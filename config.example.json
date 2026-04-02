@@ -18,12 +18,12 @@
       "type": "local",
       "defaultCwd": ""
     },
-    "dgx": {
+    "my-server": {
       "type": "ssh",
-      "host": "shinc@192.168.10.222",
-      "defaultCwd": "/home/shinc",
+      "host": "user@192.168.1.100",
+      "defaultCwd": "/home/user/project",
       "commandMap": {
-        "claude": "/home/shinc/.local/bin/claude"
+        "claude": "/home/user/.local/bin/claude"
       }
     }
   },

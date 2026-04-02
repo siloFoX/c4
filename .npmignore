@@ -1,0 +1,11 @@
+logs/
+state.json
+*.raw.log
+.claude-plugin/
+commands/
+skills/
+TODO.md
+CHANGELOG.md
+.gitignore
+.idea/
+.vscode/
