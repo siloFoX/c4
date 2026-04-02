@@ -323,6 +323,8 @@ class PtyManager {
         : null,
       rawLogStream: null,
       pendingCommands: pendingCommands || null,
+      setupDone: false,       // initial setup (effort level) completed
+      setupPhase: null,       // current setup phase: null, 'waitingPrompt', 'sentModel', 'inModelMenu'
     };
 
     // Raw log
@@ -358,6 +360,50 @@ class PtyManager {
         if (this.config.workerDefaults?.trustFolder && this._detectTrustPrompt(text)) {
           proc.write('\r'); // Press Enter to trust
           return;
+        }
+
+        // Auto effort level setup (2-phase: send /model, then detect menu and press keys)
+        const effortLevel = this.config.workerDefaults?.effortLevel;
+        if (effortLevel && !worker.setupDone) {
+          const hasPrompt = text.includes('❯') && text.includes('for shortcuts');
+          const hasModelMenu = text.includes('to adjust') && text.includes('effort');
+
+          if (!worker.setupPhase && hasPrompt) {
+            // Phase 1: Claude Code ready, send /model
+            worker.setupPhase = 'waitMenu';
+            proc.write('/model\r');
+            return;
+          }
+
+          if (worker.setupPhase === 'waitMenu' && hasModelMenu) {
+            // Phase 2: Menu rendered, send arrow keys + Enter
+            worker.setupPhase = 'done';
+
+            const levels = ['low', 'medium', 'high', 'max'];
+            const defaultIdx = levels.indexOf('high');
+            const targetIdx = levels.indexOf(effortLevel);
+            const steps = targetIdx - defaultIdx;
+
+            // Small delay to ensure TUI is ready for input
+            setTimeout(() => {
+              if (steps > 0) {
+                for (let i = 0; i < steps; i++) proc.write('\x1b[C'); // Right
+              } else if (steps < 0) {
+                for (let i = 0; i < Math.abs(steps); i++) proc.write('\x1b[D'); // Left
+              }
+              setTimeout(() => {
+                proc.write('\r'); // Enter to confirm
+                worker.setupDone = true;
+                worker.setupPhase = null;
+                worker.snapshots.push({
+                  time: Date.now(),
+                  screen: `[C4 SETUP] effort level → ${effortLevel}`,
+                  autoAction: true
+                });
+              }, 500);
+            }, 500);
+            return;
+          }
         }
 
         // Auto-approve logic
