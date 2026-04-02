@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.2.0] - 2026-04-02
+
+### Added
+- **Auto-approve engine** (1.1): Config-based TUI pattern matching for permission prompts
+  - Version compatibility system (`compatibility.patterns` in config)
+  - Tested on v2.1.85, v2.1.90
+  - Bash command extraction from screen, file name extraction
+  - Option count detection (2-opt vs 3-opt prompts)
+  - `alwaysApproveForSession` toggle for "don't ask again" option
+  - Audit trail: auto-approve/deny decisions logged in snapshots
+- **Worker auto-setup** (1.3): Trust folder + max effort fully automated
+  - 2-phase idle detection: prompt detect → /model → menu detect → Right+Enter
+  - Configurable effort level via `workerDefaults.effortLevel`
+- **Git branch isolation** (1.5): `c4 task` command with auto branch creation
+  - `--branch` flag for custom branch, `--no-branch` to skip
+  - Workers instructed to commit per unit of work
+  - Branch info shown in `c4 list`
+- **`c4 task`** command: send task with branch isolation in one step
+- **`c4 config` / `c4 config reload`**: view and hot-reload config
+- **Claude Code plugin marketplace**: self-hosted via `.claude-plugin/`
+- **TODO.md roadmap**: Phase 1/2/3 with task scope, manager protocol, design-doc workflow
+
+### Changed
+- Renamed project from `dispatch-terminal-mcp` to `c4` (Claude {Claude Code} Code)
+- CLI command: `dispatch` → `c4`
+- `config.json` moved to `.gitignore`, `config.example.json` provided
+- Git commands added to autoApprove rules
+
+### Fixed
+- SSH argument passing on Windows (cmd.exe `&&` splitting issue → pendingCommands approach)
+- Git Bash path conversion for `/model` → `MSYS_NO_PATHCONV=1` workaround
+
 ## [0.1.0] - 2026-04-02
 
 ### Added
@@ -8,11 +40,8 @@
 - ScreenBuffer virtual terminal — clean screen state without spinner noise
 - Idle detection and snapshot system
 - SSH remote workers (`--target` flag)
-- Auto-approve engine with pattern-based rules
-- CLI tool (`c4`) with all management commands
+- CLI tool with all management commands
 - `config.json` for all settings (daemon, pty, targets, autoApprove, logs)
-- Hot-reload config via `c4 config reload`
-- Claude Code plugin structure (marketplace, commands, skills)
 - Support for special keys (Enter, C-c, C-b, arrows, etc.)
 
 ### Architecture
