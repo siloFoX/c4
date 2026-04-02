@@ -68,58 +68,158 @@ class PtyManager {
     return null;
   }
 
+  _getPatterns() {
+    return this.config.compatibility?.patterns || {
+      trustPrompt: 'trust this folder',
+      permissionPrompt: 'Do you want to proceed?',
+      fileCreatePrompt: 'Do you want to create',
+      fileEditPrompt: 'Do you want to make this edit',
+      bashHeader: 'Bash command',
+      editHeader: 'Edit file',
+      createHeader: 'Create file',
+      yesOption: '1. Yes',
+      yesAlwaysEditOption: 'Yes, allow all edits during this session',
+      yesAlwaysBashOption: 'Yes, and don\'t ask again for:',
+      noOption: 'No',
+      promptFooter: 'Esc to cancel'
+    };
+  }
+
   _detectPermissionPrompt(screenText) {
-    // Detect Claude Code permission prompts
+    const p = this._getPatterns();
+    return screenText.includes(p.permissionPrompt) ||
+           screenText.includes(p.fileCreatePrompt) ||
+           screenText.includes(p.fileEditPrompt);
+  }
+
+  _detectTrustPrompt(screenText) {
+    const p = this._getPatterns();
+    return screenText.includes(p.trustPrompt);
+  }
+
+  _getPromptType(screenText) {
+    const p = this._getPatterns();
+    if (screenText.includes(p.fileCreatePrompt)) return 'create';
+    if (screenText.includes(p.fileEditPrompt)) return 'edit';
+    if (screenText.includes(p.bashHeader)) return 'bash';
+    if (screenText.includes(p.editHeader)) return 'edit';
+    if (screenText.includes(p.createHeader)) return 'create';
+    return 'unknown';
+  }
+
+  _extractBashCommand(screenText) {
+    // Extract the actual command from the Bash permission prompt
+    // The command is indented with 3 spaces, between the header and the prompt
     const lines = screenText.split('\n');
+    const p = this._getPatterns();
+
+    let inBashBlock = false;
+    let command = '';
+
     for (const line of lines) {
-      if (line.includes('Do you want to proceed?') ||
-          line.includes('Do you want to create') ||
-          line.includes('Do you want to make this edit')) {
-        return true;
+      if (line.includes(p.bashHeader)) {
+        inBashBlock = true;
+        continue;
+      }
+      if (inBashBlock) {
+        const trimmed = line.trim();
+        // Stop at prompt lines
+        if (trimmed.includes('Do you want') ||
+            trimmed.includes('Esc to cancel') ||
+            trimmed.startsWith('❯') ||
+            trimmed.match(/^\d+\.\s/)) {
+          break;
+        }
+        // Command lines are indented with spaces
+        if (line.match(/^\s{2,}/) && trimmed.length > 0 &&
+            !trimmed.includes('Run shell command') &&
+            !trimmed.includes('This command requires')) {
+          command += (command ? ' ' : '') + trimmed;
+        }
       }
     }
-    return false;
+
+    return command;
+  }
+
+  _extractFileName(screenText) {
+    const p = this._getPatterns();
+
+    // "Do you want to create test-pattern.txt?"
+    let match = screenText.match(/Do you want to create ([^\s?]+)\??/);
+    if (match) return match[1];
+
+    // "Do you want to make this edit to foo.js?"
+    match = screenText.match(/Do you want to make this edit to ([^\s?]+)\??/);
+    if (match) return match[1];
+
+    return '';
+  }
+
+  _countOptions(screenText) {
+    // Count how many numbered options exist (1. Yes, 2. ..., 3. No)
+    const matches = screenText.match(/^\s*\d+\.\s/gm);
+    return matches ? matches.length : 2;
   }
 
   _classifyPermission(screenText) {
     const rules = this.config.autoApprove?.rules || [];
     const defaultAction = this.config.autoApprove?.defaultAction || 'ask';
+    const promptType = this._getPromptType(screenText);
 
-    // Try to extract the tool/command from screen
-    const lines = screenText.split('\n');
-    let toolInfo = '';
+    if (promptType === 'bash') {
+      const command = this._extractBashCommand(screenText);
+      if (!command) return defaultAction;
 
-    for (const line of lines) {
-      // Match patterns like "Bash command", "Edit file", "Read(...)"
-      if (line.match(/^\s*(Bash command|Edit file|Read\(|Write\(|Glob\(|Grep\()/)) {
-        toolInfo = line.trim();
-        break;
-      }
-      // Match the actual command line
-      if (line.match(/^\s{3}\S/) && !line.includes('Do you want') && !line.includes('❯')) {
-        toolInfo = line.trim();
-      }
-    }
+      // Extract first word as the command name
+      const cmdName = command.split(/\s+/)[0].replace(/['"]/g, '');
 
-    for (const rule of rules) {
-      const pattern = rule.pattern;
-      if (pattern === 'Read' && (toolInfo.includes('Read(') || toolInfo.includes('Reading'))) return rule.action;
-      if (pattern === 'Glob' && toolInfo.includes('Glob(')) return rule.action;
-      if (pattern === 'Grep' && toolInfo.includes('Grep(')) return rule.action;
-      if (pattern === 'Write' && (toolInfo.includes('Write(') || toolInfo.includes('create'))) return rule.action;
-      if (pattern === 'Edit' && (toolInfo.includes('Edit ') || toolInfo.includes('edit to'))) return rule.action;
-
-      // Bash pattern matching: "Bash(cmd:*)"
-      const bashMatch = pattern.match(/^Bash\((\w+):\*\)$/);
-      if (bashMatch && toolInfo) {
-        const cmd = bashMatch[1];
-        if (toolInfo.startsWith(cmd) || toolInfo.includes(`${cmd} `)) {
+      for (const rule of rules) {
+        // Exact match: "Bash(pwd)"
+        const exactMatch = rule.pattern.match(/^Bash\((\w+)\)$/);
+        if (exactMatch && exactMatch[1] === cmdName) {
           return rule.action;
         }
+
+        // Prefix match: "Bash(grep:*)"
+        const prefixMatch = rule.pattern.match(/^Bash\((\w+):\*\)$/);
+        if (prefixMatch && prefixMatch[1] === cmdName) {
+          return rule.action;
+        }
+      }
+
+    } else if (promptType === 'create' || promptType === 'edit') {
+      for (const rule of rules) {
+        if (rule.pattern === 'Write' && promptType === 'create') return rule.action;
+        if (rule.pattern === 'Edit' && promptType === 'edit') return rule.action;
       }
     }
 
     return defaultAction;
+  }
+
+  _getApproveKeystrokes(screenText, action) {
+    const numOptions = this._countOptions(screenText);
+    const alwaysForSession = this.config.autoApprove?.alwaysApproveForSession || false;
+
+    if (action === 'approve') {
+      if (alwaysForSession && numOptions >= 2) {
+        // Select option 2 ("Yes, and don't ask again" / "Yes, allow all edits")
+        return '\x1b[B\r'; // Down, Enter
+      }
+      return '\r'; // Just Enter (option 1 is already selected)
+
+    } else if (action === 'deny') {
+      // Select the last option (No)
+      let keys = '';
+      for (let i = 1; i < numOptions; i++) {
+        keys += '\x1b[B'; // Down
+      }
+      keys += '\r'; // Enter
+      return keys;
+    }
+
+    return null; // 'ask' — don't send anything
   }
 
   create(name, command, args = [], options = {}) {
@@ -230,15 +330,30 @@ class PtyManager {
       worker.idleTimer = setTimeout(() => {
         const text = this._getScreenText(screen);
 
+        // Auto-trust folder
+        if (this.config.workerDefaults?.trustFolder && this._detectTrustPrompt(text)) {
+          proc.write('\r'); // Press Enter to trust
+          return;
+        }
+
         // Auto-approve logic
         if (this.config.autoApprove?.enabled && this._detectPermissionPrompt(text)) {
           const action = this._classifyPermission(text);
-          if (action === 'approve') {
-            proc.write('\r'); // Press Enter to approve
-            return; // Don't snapshot, will get a new idle after approval
-          } else if (action === 'deny') {
-            // Select "No" (option 3 or navigate down)
-            proc.write('\x1b[B\x1b[B\r'); // Down, Down, Enter
+          const keys = this._getApproveKeystrokes(text, action);
+
+          if (keys) {
+            // Log the decision
+            const promptType = this._getPromptType(text);
+            const detail = promptType === 'bash'
+              ? this._extractBashCommand(text)
+              : this._extractFileName(text);
+            worker.snapshots.push({
+              time: Date.now(),
+              screen: `[C4 AUTO-${action.toUpperCase()}] ${promptType}: ${detail}`,
+              autoAction: true
+            });
+
+            proc.write(keys);
             return;
           }
           // 'ask' falls through to snapshot — manager will see the prompt
