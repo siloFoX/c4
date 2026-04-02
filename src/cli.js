@@ -62,6 +62,20 @@ async function main() {
         break;
       }
 
+      case 'task': {
+        const name = args[0];
+        let branch = '', useBranch = true;
+        const taskParts = [];
+        for (let i = 1; i < args.length; i++) {
+          if (args[i] === '--branch' && args[i + 1]) { branch = args[++i]; }
+          else if (args[i] === '--no-branch') { useBranch = false; }
+          else { taskParts.push(args[i]); }
+        }
+        const task = taskParts.join(' ');
+        result = await request('POST', '/task', { name, task, branch, useBranch });
+        break;
+      }
+
       case 'key': {
         const name = args[0];
         const input = args[1];
@@ -151,7 +165,8 @@ async function main() {
 
 Commands:
   new <name> [command] [--target dgx|local] [--cwd path]   Create a worker
-  send <name> <text>               Send text to worker
+  task <name> <text> [--branch name] [--no-branch]        Send task with auto branch
+  send <name> <text>               Send raw text to worker
   key <name> <key>                 Send special key (Enter, C-c, C-b, Tab, etc.)
   read <name>                      Read new output (idle snapshots only)
   read-now <name>                  Read current screen immediately

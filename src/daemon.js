@@ -54,6 +54,10 @@ async function handleRequest(req, res) {
     } else if (req.method === 'GET' && route === '/list') {
       result = manager.list();
 
+    } else if (req.method === 'POST' && route === '/task') {
+      const { name, task, branch, useBranch } = await parseBody(req);
+      result = manager.sendTask(name, task, { branch, useBranch });
+
     } else if (req.method === 'POST' && route === '/close') {
       const { name } = await parseBody(req);
       result = manager.close(name);

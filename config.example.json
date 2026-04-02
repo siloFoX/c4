@@ -64,6 +64,7 @@
       { "pattern": "Bash(echo:*)", "action": "approve" },
       { "pattern": "Bash(pwd)", "action": "approve" },
       { "pattern": "Bash(cd:*)", "action": "approve" },
+      { "pattern": "Bash(git:*)", "action": "approve" },
       { "pattern": "Bash(python:*)", "action": "ask" },
       { "pattern": "Bash(node:*)", "action": "ask" },
       { "pattern": "Bash(npm:*)", "action": "ask" },

@@ -222,6 +222,30 @@ class PtyManager {
     return null; // 'ask' — don't send anything
   }
 
+  // Send a task to worker with optional branch isolation
+  sendTask(name, task, options = {}) {
+    const w = this.workers.get(name);
+    if (!w) return { error: `Worker '${name}' not found` };
+    if (!w.alive) return { error: `Worker '${name}' has exited` };
+
+    const branch = options.branch || `c4/${name}`;
+    const commands = [];
+
+    if (options.useBranch !== false) {
+      // Create branch via Claude Code
+      commands.push(`git checkout -b ${branch} 또는 이미 있으면 git checkout ${branch} 해줘. 그리고 작업 단위마다 커밋해줘.`);
+      commands.push(task);
+    } else {
+      commands.push(task);
+    }
+
+    const fullTask = commands.join('\n\n');
+    w.proc.write(fullTask + '\r');
+    w.branch = branch;
+
+    return { success: true, branch, task: fullTask };
+  }
+
   create(name, command, args = [], options = {}) {
     if (this.workers.has(name)) {
       return { error: `Worker '${name}' already exists` };
@@ -518,6 +542,7 @@ class PtyManager {
         name,
         command: w.command,
         target: w.target || 'local',
+        branch: w.branch || null,
         pid: w.proc ? w.proc.pid : null,
         status: w.alive ? (idleMs > this.idleThresholdMs ? 'idle' : 'busy') : 'exited',
         unreadSnapshots,
