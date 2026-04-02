@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const http = require('http');
 
-const BASE = process.env.DISPATCH_URL || 'http://127.0.0.1:3456';
+const BASE = process.env.C4_URL || 'http://127.0.0.1:3456';
 
 function request(method, path, body = null, timeout = 10000) {
   return new Promise((resolve, reject) => {
@@ -136,8 +136,18 @@ async function main() {
         break;
       }
 
+      case 'config': {
+        if (args[0] === 'reload') {
+          result = await request('POST', '/config/reload');
+          console.log('Config reloaded.');
+        } else {
+          result = await request('GET', '/config');
+        }
+        break;
+      }
+
       default:
-        console.log(`Usage: dispatch <command> [args]
+        console.log(`Usage: c4 <command> [args]
 
 Commands:
   new <name> [command] [--target dgx|local] [--cwd path]   Create a worker
@@ -149,19 +159,21 @@ Commands:
   list                             List all workers
   close <name>                     Close a worker
   health                           Check daemon status
+  config                           Show current config
+  config reload                    Reload config.json without restart
 
 Special keys: Enter, C-c, C-b, C-d, C-z, C-l, C-a, C-e, Escape, Tab, Backspace, Up, Down, Left, Right
 
 Examples:
-  dispatch new arps claude                          # 로컬
-  dispatch new arps claude --target dgx              # DGX 원격
-  dispatch new arps claude --target dgx --cwd /home/shinc/arps
-  dispatch send arps "ARPS에 로깅 추가해줘"
-  dispatch key arps Enter
-  dispatch wait arps                  # idle까지 기다렸다가 깨끗한 화면 반환
-  dispatch read-now arps              # 지금 당장 화면 보기 (스피너 포함)
-  dispatch list
-  dispatch close arps`);
+  c4 new arps claude                          # 로컬
+  c4 new arps claude --target dgx              # DGX 원격
+  c4 new arps claude --target dgx --cwd /home/shinc/arps
+  c4 send arps "ARPS에 로깅 추가해줘"
+  c4 key arps Enter
+  c4 wait arps                  # idle까지 기다렸다가 깨끗한 화면 반환
+  c4 read-now arps              # 지금 당장 화면 보기 (스피너 포함)
+  c4 list
+  c4 close arps`);
         return;
     }
 

@@ -1,23 +1,31 @@
 {
-  "name": "dispatch-terminal-mcp",
-  "version": "1.0.0",
-  "description": "",
+  "name": "c4-cli",
+  "version": "0.1.0",
+  "description": "Claude {Claude Code} Code — An agent-on-agent orchestrator that lets Claude manage multiple Claude Code instances via virtual terminals",
   "main": "src/daemon.js",
   "bin": {
-    "dispatch": "./src/cli.js"
+    "c4": "./src/cli.js"
   },
   "scripts": {
     "start": "node src/daemon.js",
     "daemon": "node src/daemon.js"
   },
-  "keywords": [],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "agent",
+    "orchestrator",
+    "pty",
+    "terminal"
+  ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
   "dependencies": {
-    "@xterm/headless": "^6.0.0",
-    "node-pty": "^1.1.0",
-    "strip-ansi": "^7.2.0",
-    "xterm-headless": "^5.3.0"
+    "node-pty": "^1.1.0"
   }
 }

@@ -3,16 +3,30 @@ const fs = require('fs');
 const path = require('path');
 const ScreenBuffer = require('./screen-buffer');
 
-const LOGS_DIR = path.join(__dirname, '..', 'logs');
+const CONFIG_FILE = path.join(__dirname, '..', 'config.json');
 const STATE_FILE = path.join(__dirname, '..', 'state.json');
 
-// How many ms of silence = "idle"
-const IDLE_THRESHOLD_MS = 3000;
+function loadConfig() {
+  try {
+    return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+  } catch {
+    return {};
+  }
+}
 
 class PtyManager {
   constructor() {
     this.workers = new Map();
+    this.config = loadConfig();
     this._loadState();
+  }
+
+  get logsDir() {
+    return path.join(__dirname, '..', 'logs');
+  }
+
+  get idleThresholdMs() {
+    return this.config.daemon?.idleThresholdMs || 3000;
   }
 
   _loadState() {
@@ -41,57 +55,120 @@ class PtyManager {
     return screen.getScreen();
   }
 
-  create(name, command = 'claude', args = [], options = {}) {
+  _resolveTarget(targetName) {
+    // Config-based targets
+    const configTargets = this.config.targets || {};
+    if (configTargets[targetName]) {
+      return configTargets[targetName];
+    }
+    // Fallback: local
+    if (targetName === 'local') {
+      return { type: 'local', defaultCwd: '' };
+    }
+    return null;
+  }
+
+  _detectPermissionPrompt(screenText) {
+    // Detect Claude Code permission prompts
+    const lines = screenText.split('\n');
+    for (const line of lines) {
+      if (line.includes('Do you want to proceed?') ||
+          line.includes('Do you want to create') ||
+          line.includes('Do you want to make this edit')) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  _classifyPermission(screenText) {
+    const rules = this.config.autoApprove?.rules || [];
+    const defaultAction = this.config.autoApprove?.defaultAction || 'ask';
+
+    // Try to extract the tool/command from screen
+    const lines = screenText.split('\n');
+    let toolInfo = '';
+
+    for (const line of lines) {
+      // Match patterns like "Bash command", "Edit file", "Read(...)"
+      if (line.match(/^\s*(Bash command|Edit file|Read\(|Write\(|Glob\(|Grep\()/)) {
+        toolInfo = line.trim();
+        break;
+      }
+      // Match the actual command line
+      if (line.match(/^\s{3}\S/) && !line.includes('Do you want') && !line.includes('❯')) {
+        toolInfo = line.trim();
+      }
+    }
+
+    for (const rule of rules) {
+      const pattern = rule.pattern;
+      if (pattern === 'Read' && (toolInfo.includes('Read(') || toolInfo.includes('Reading'))) return rule.action;
+      if (pattern === 'Glob' && toolInfo.includes('Glob(')) return rule.action;
+      if (pattern === 'Grep' && toolInfo.includes('Grep(')) return rule.action;
+      if (pattern === 'Write' && (toolInfo.includes('Write(') || toolInfo.includes('create'))) return rule.action;
+      if (pattern === 'Edit' && (toolInfo.includes('Edit ') || toolInfo.includes('edit to'))) return rule.action;
+
+      // Bash pattern matching: "Bash(cmd:*)"
+      const bashMatch = pattern.match(/^Bash\((\w+):\*\)$/);
+      if (bashMatch && toolInfo) {
+        const cmd = bashMatch[1];
+        if (toolInfo.startsWith(cmd) || toolInfo.includes(`${cmd} `)) {
+          return rule.action;
+        }
+      }
+    }
+
+    return defaultAction;
+  }
+
+  create(name, command, args = [], options = {}) {
     if (this.workers.has(name)) {
       return { error: `Worker '${name}' already exists` };
     }
 
-    if (!fs.existsSync(LOGS_DIR)) {
-      fs.mkdirSync(LOGS_DIR, { recursive: true });
+    command = command || this.config.pty?.defaultCommand || 'claude';
+
+    if (!fs.existsSync(this.logsDir)) {
+      fs.mkdirSync(this.logsDir, { recursive: true });
     }
 
-    const target = options.target || 'local';
+    const targetName = options.target || 'local';
     const cwd = options.cwd || '';
+    const t = this._resolveTarget(targetName);
+    if (!t) return { error: `Unknown target: '${targetName}'` };
 
     let shell, shellArgs, pendingCommands;
 
-    if (target === 'local') {
+    if (t.type === 'local' || targetName === 'local') {
       shell = process.platform === 'win32' ? 'cmd.exe' : 'bash';
       shellArgs = process.platform === 'win32'
         ? ['/c', command, ...args]
         : ['-c', `${command} ${args.join(' ')}`];
-    } else {
-      // Remote target via SSH
-      const targets = {
-        dgx: {
-          host: 'shinc@192.168.10.222',
-          defaultCwd: '/home/shinc',
-          // Map common commands to full paths on remote
-          commandMap: { 'claude': '/home/shinc/.local/bin/claude' }
-        }
-      };
-      const t = targets[target];
-      if (!t) return { error: `Unknown target: '${target}'. Available: ${Object.keys(targets).join(', ')}` };
-
-      const remoteCwd = cwd || t.defaultCwd;
-      const resolvedCmd = (t.commandMap && t.commandMap[command]) || command;
+    } else if (t.type === 'ssh') {
+      const remoteCwd = cwd || t.defaultCwd || '';
+      const commandMap = t.commandMap || {};
+      const resolvedCmd = commandMap[command] || command;
       const remoteArgs = args.length > 0 ? ' ' + args.join(' ') : '';
 
-      // Spawn SSH shell, then send commands via stdin after connection
       shell = process.platform === 'win32' ? 'C:\\Windows\\System32\\OpenSSH\\ssh.exe' : 'ssh';
-      shellArgs = ['-t', '-o', 'StrictHostKeyChecking=no', t.host];
+      const sshArgs = ['-t', '-o', 'StrictHostKeyChecking=no'];
+      if (t.port) sshArgs.push('-p', String(t.port));
+      if (t.identityFile) sshArgs.push('-i', t.identityFile);
+      sshArgs.push(t.host);
+      shellArgs = sshArgs;
 
-      // Note: remoteCwd and resolvedCmd are sent via proc.write (not through bash)
-      // so Git Bash path conversion doesn't apply here. They go through node-pty stdin.
       pendingCommands = [];
       if (remoteCwd) pendingCommands.push(`cd ${remoteCwd}`);
       pendingCommands.push(`${resolvedCmd}${remoteArgs}`);
+    } else {
+      return { error: `Unknown target type: '${t.type}'` };
     }
 
-    const cols = 160;
-    const rows = 48;
+    const cols = this.config.pty?.cols || 160;
+    const rows = this.config.pty?.rows || 48;
 
-    const spawnCwd = target === 'local'
+    const spawnCwd = (t.type === 'local' || targetName === 'local')
       ? (process.env.HOME || process.env.USERPROFILE)
       : undefined;
 
@@ -103,35 +180,41 @@ class PtyManager {
       env: { ...process.env, LANG: 'en_US.UTF-8' }
     });
 
-    // Virtual screen buffer to process escape sequences
     const screen = new ScreenBuffer(cols, rows);
+    const scrollback = this.config.pty?.scrollback || 2000;
+    screen.maxScrollback = scrollback;
 
     const worker = {
       proc,
       screen,
       alive: true,
       command: `${command} ${args.join(' ')}`.trim(),
-      target,
+      target: targetName,
       lastDataTime: Date.now(),
       snapshots: [],
       snapshotIndex: 0,
       idleTimer: null,
-      rawLogPath: path.join(LOGS_DIR, `${name}.raw.log`),
+      rawLogPath: this.config.logs?.rawLog !== false
+        ? path.join(this.logsDir, `${name}.raw.log`)
+        : null,
       rawLogStream: null,
       pendingCommands: pendingCommands || null,
     };
 
-    // Raw log for debugging
-    worker.rawLogStream = fs.createWriteStream(worker.rawLogPath, { flags: 'w' });
+    // Raw log
+    if (worker.rawLogPath) {
+      worker.rawLogStream = fs.createWriteStream(worker.rawLogPath, { flags: 'w' });
+    }
+
+    const idleMs = this.idleThresholdMs;
 
     proc.onData((data) => {
       worker.lastDataTime = Date.now();
-      worker.rawLogStream.write(data);
+      if (worker.rawLogStream) worker.rawLogStream.write(data);
 
-      // Feed data into virtual screen buffer
       screen.write(data);
 
-      // Send pending commands when SSH shell is ready (detects shell prompt)
+      // Send pending commands when SSH shell is ready
       if (worker.pendingCommands && worker.pendingCommands.length > 0) {
         const cmd = worker.pendingCommands.shift();
         setTimeout(() => {
@@ -145,20 +228,33 @@ class PtyManager {
       // Reset idle timer
       if (worker.idleTimer) clearTimeout(worker.idleTimer);
       worker.idleTimer = setTimeout(() => {
-        // Terminal has been idle -> take a snapshot
         const text = this._getScreenText(screen);
+
+        // Auto-approve logic
+        if (this.config.autoApprove?.enabled && this._detectPermissionPrompt(text)) {
+          const action = this._classifyPermission(text);
+          if (action === 'approve') {
+            proc.write('\r'); // Press Enter to approve
+            return; // Don't snapshot, will get a new idle after approval
+          } else if (action === 'deny') {
+            // Select "No" (option 3 or navigate down)
+            proc.write('\x1b[B\x1b[B\r'); // Down, Down, Enter
+            return;
+          }
+          // 'ask' falls through to snapshot — manager will see the prompt
+        }
+
         worker.snapshots.push({
           time: Date.now(),
           screen: text
         });
         this._saveState();
-      }, IDLE_THRESHOLD_MS);
+      }, idleMs);
     });
 
     proc.onExit(({ exitCode, signal }) => {
       worker.alive = false;
       if (worker.idleTimer) clearTimeout(worker.idleTimer);
-      // Final snapshot
       const text = this._getScreenText(screen);
       worker.snapshots.push({
         time: Date.now(),
@@ -167,16 +263,22 @@ class PtyManager {
         exitCode,
         signal
       });
-      worker.rawLogStream.end();
+      if (worker.rawLogStream) worker.rawLogStream.end();
       this._saveState();
     });
 
     this.workers.set(name, worker);
     this._saveState();
 
+    // Auto trust folder + effort level setup
+    if (this.config.workerDefaults?.trustFolder) {
+      // Will be handled by pending commands or first idle snapshot
+    }
+
     return {
       name,
       pid: proc.pid,
+      target: targetName,
       status: 'running'
     };
   }
@@ -217,7 +319,6 @@ class PtyManager {
     return { success: true };
   }
 
-  // Read new snapshots since last read (only idle/finished states)
   read(name) {
     const w = this.workers.get(name);
     if (!w) return { error: `Worker '${name}' not found` };
@@ -230,12 +331,11 @@ class PtyManager {
       const idleMs = Date.now() - w.lastDataTime;
       return {
         content: '',
-        status: w.alive ? (idleMs > IDLE_THRESHOLD_MS ? 'idle' : 'busy') : 'exited',
+        status: w.alive ? (idleMs > this.idleThresholdMs ? 'idle' : 'busy') : 'exited',
         pendingSnapshots: 0
       };
     }
 
-    // Return the latest snapshot (most current screen state)
     const latest = newSnapshots[newSnapshots.length - 1];
     return {
       content: latest.screen,
@@ -245,7 +345,6 @@ class PtyManager {
     };
   }
 
-  // Get current screen NOW (even if busy)
   readNow(name) {
     const w = this.workers.get(name);
     if (!w) return { error: `Worker '${name}' not found` };
@@ -255,11 +354,10 @@ class PtyManager {
 
     return {
       content: screenText,
-      status: w.alive ? (idleMs > IDLE_THRESHOLD_MS ? 'idle' : 'busy') : 'exited'
+      status: w.alive ? (idleMs > this.idleThresholdMs ? 'idle' : 'busy') : 'exited'
     };
   }
 
-  // Wait until idle, then return screen
   async waitAndRead(name, timeoutMs = 120000) {
     const w = this.workers.get(name);
     if (!w) return { error: `Worker '${name}' not found` };
@@ -269,34 +367,31 @@ class PtyManager {
     return new Promise((resolve) => {
       const check = () => {
         if (Date.now() - startTime > timeoutMs) {
-          resolve({
-            content: this._getScreenText(w.screen),
-            status: 'timeout'
-          });
+          resolve({ content: this._getScreenText(w.screen), status: 'timeout' });
           return;
         }
-
         if (!w.alive) {
-          resolve({
-            content: this._getScreenText(w.screen),
-            status: 'exited'
-          });
+          resolve({ content: this._getScreenText(w.screen), status: 'exited' });
           return;
         }
-
         const idleMs = Date.now() - w.lastDataTime;
-        if (idleMs >= IDLE_THRESHOLD_MS) {
-          resolve({
-            content: this._getScreenText(w.screen),
-            status: 'idle'
-          });
+        if (idleMs >= this.idleThresholdMs) {
+          resolve({ content: this._getScreenText(w.screen), status: 'idle' });
           return;
         }
-
         setTimeout(check, 500);
       };
       check();
     });
+  }
+
+  reloadConfig() {
+    this.config = loadConfig();
+    return { success: true, config: this.config };
+  }
+
+  getConfig() {
+    return this.config;
   }
 
   list() {
@@ -309,7 +404,7 @@ class PtyManager {
         command: w.command,
         target: w.target || 'local',
         pid: w.proc ? w.proc.pid : null,
-        status: w.alive ? (idleMs > IDLE_THRESHOLD_MS ? 'idle' : 'busy') : 'exited',
+        status: w.alive ? (idleMs > this.idleThresholdMs ? 'idle' : 'busy') : 'exited',
         unreadSnapshots,
         totalSnapshots: w.snapshots.length
       });
@@ -324,7 +419,6 @@ class PtyManager {
     if (w.idleTimer) clearTimeout(w.idleTimer);
     if (w.alive) w.proc.kill();
     if (w.rawLogStream && !w.rawLogStream.destroyed) w.rawLogStream.end();
-    // screen buffer doesn't need dispose
 
     this.workers.delete(name);
     this._saveState();

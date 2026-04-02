@@ -1,0 +1,72 @@
+{
+  "daemon": {
+    "port": 3456,
+    "host": "127.0.0.1",
+    "idleThresholdMs": 3000
+  },
+
+  "pty": {
+    "cols": 160,
+    "rows": 48,
+    "scrollback": 2000,
+    "defaultCommand": "claude",
+    "defaultShell": "auto"
+  },
+
+  "targets": {
+    "local": {
+      "type": "local",
+      "defaultCwd": ""
+    },
+    "dgx": {
+      "type": "ssh",
+      "host": "shinc@192.168.10.222",
+      "defaultCwd": "/home/shinc",
+      "commandMap": {
+        "claude": "/home/shinc/.local/bin/claude"
+      }
+    }
+  },
+
+  "autoApprove": {
+    "enabled": false,
+    "rules": [
+      { "pattern": "Read", "action": "approve" },
+      { "pattern": "Glob", "action": "approve" },
+      { "pattern": "Grep", "action": "approve" },
+      { "pattern": "Bash(ls:*)", "action": "approve" },
+      { "pattern": "Bash(find:*)", "action": "approve" },
+      { "pattern": "Bash(grep:*)", "action": "approve" },
+      { "pattern": "Bash(cat:*)", "action": "approve" },
+      { "pattern": "Bash(head:*)", "action": "approve" },
+      { "pattern": "Bash(tail:*)", "action": "approve" },
+      { "pattern": "Bash(wc:*)", "action": "approve" },
+      { "pattern": "Bash(echo:*)", "action": "approve" },
+      { "pattern": "Bash(pwd)", "action": "approve" },
+      { "pattern": "Write", "action": "ask" },
+      { "pattern": "Edit", "action": "ask" },
+      { "pattern": "Bash(rm:*)", "action": "deny" },
+      { "pattern": "Bash(sudo:*)", "action": "deny" },
+      { "pattern": "Bash(kill:*)", "action": "deny" },
+      { "pattern": "Bash(reboot:*)", "action": "deny" },
+      { "pattern": "Bash(shutdown:*)", "action": "deny" }
+    ],
+    "defaultAction": "ask"
+  },
+
+  "workerDefaults": {
+    "trustFolder": true,
+    "effortLevel": "max",
+    "model": "default"
+  },
+
+  "logs": {
+    "rawLog": true,
+    "maxLogSizeMb": 50,
+    "cleanupAfterMinutes": 60
+  },
+
+  "gitBash": {
+    "disablePathConversion": true
+  }
+}

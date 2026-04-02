@@ -1,10 +1,10 @@
 const http = require('http');
 const PtyManager = require('./pty-manager');
 
-const PORT = parseInt(process.env.PORT || '3456');
-const HOST = '127.0.0.1';
-
 const manager = new PtyManager();
+const cfg = manager.getConfig();
+const PORT = parseInt(process.env.PORT || cfg.daemon?.port || '3456');
+const HOST = cfg.daemon?.host || '127.0.0.1';
 
 function parseBody(req) {
   return new Promise((resolve, reject) => {
@@ -58,6 +58,12 @@ async function handleRequest(req, res) {
       const { name } = await parseBody(req);
       result = manager.close(name);
 
+    } else if (req.method === 'GET' && route === '/config') {
+      result = manager.getConfig();
+
+    } else if (req.method === 'POST' && route === '/config/reload') {
+      result = manager.reloadConfig();
+
     } else {
       res.writeHead(404);
       result = { error: 'Not found' };
@@ -79,7 +85,7 @@ async function handleRequest(req, res) {
 const server = http.createServer(handleRequest);
 
 server.listen(PORT, HOST, () => {
-  console.log(`Dispatch Terminal Daemon running on http://${HOST}:${PORT}`);
+  console.log(`C4 daemon running on http://${HOST}:${PORT}`);
 });
 
 process.on('SIGINT', () => {
