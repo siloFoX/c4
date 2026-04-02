@@ -16,15 +16,36 @@
     "agent",
     "orchestrator",
     "pty",
-    "terminal"
+    "terminal",
+    "multi-agent",
+    "ai",
+    "automation"
   ],
-  "author": "",
+  "author": "siloFoX",
   "license": "MIT",
   "type": "commonjs",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/siloFoX/c4.git"
   },
+  "homepage": "https://github.com/siloFoX/c4#readme",
+  "bugs": {
+    "url": "https://github.com/siloFoX/c4/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "os": [
+    "win32",
+    "linux",
+    "darwin"
+  ],
+  "files": [
+    "src/",
+    "config.json",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "node-pty": "^1.1.0"
   }

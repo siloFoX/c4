@@ -1,0 +1,16 @@
+{
+  "name": "c4",
+  "description": "Claude {Claude Code} Code — Agent-on-agent orchestrator plugins",
+  "owner": {
+    "name": "siloFoX",
+    "url": "https://github.com/siloFoX"
+  },
+  "plugins": [
+    {
+      "name": "c4",
+      "description": "Manage multiple Claude Code workers from a single Claude Code session. Includes skills and commands for the C4 orchestrator.",
+      "version": "0.1.0",
+      "source": "./"
+    }
+  ]
+}

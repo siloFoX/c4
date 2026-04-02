@@ -1,11 +1,18 @@
-# C4 — Claude {Claude Code} Code
+```
+     ██████╗ ██╗  ██╗
+    ██╔════╝ ██║  ██║
+    ██║      ███████║   Claude { Claude Code } Code
+    ██║      ╚════██║   Agent-on-Agent Orchestrator
+    ╚██████╗      ██║
+     ╚═════╝      ╚═╝
+```
 
 An agent-on-agent orchestrator. C4 lets one Claude instance manage multiple Claude Code workers through virtual terminals — no screen capture, no token waste.
 
 ```
-You ↔ Manager (Claude Code) ↔ C4 Daemon ↔ Worker A (Claude Code)
-                                         ↔ Worker B (Claude Code)
-                                         ↔ Worker C (Claude Code, remote SSH)
+You ↔ Manager (Claude Code) ↔ C4 ↔ Worker A (Claude Code)
+                                  ↔ Worker B (Claude Code)
+                                  ↔ Worker C (Claude Code, remote SSH)
 ```
 
 ## Why?
@@ -21,15 +28,41 @@ C4 replaces this with a **virtual terminal** approach:
 - Idle detection → snapshot only when the terminal stops updating
 - **10-100x more efficient** than screenshot-based approaches
 
+## Install
+
+3 ways to install:
+
+**npm** (recommended)
+```bash
+npm install -g c4-cli
+```
+
+**GitHub**
+```bash
+git clone https://github.com/siloFoX/c4.git
+cd c4 && npm install && npm link
+```
+
+**Claude Code Plugin**
+
+Add to `~/.claude/settings.json`:
+```json
+{
+  "extraKnownMarketplaces": {
+    "c4": {
+      "source": {
+        "source": "github",
+        "repo": "siloFoX/c4"
+      }
+    }
+  }
+}
+```
+Then install from Claude Code's plugin menu.
+
 ## Quick Start
 
 ```bash
-# Install
-git clone https://github.com/your-username/c4.git
-cd c4
-npm install
-npm link
-
 # Start daemon
 nohup node src/daemon.js &
 
@@ -52,6 +85,11 @@ c4 list
 # Close worker
 c4 close my-worker
 ```
+
+> **Note**: On Git Bash (Windows), prefix with `MSYS_NO_PATHCONV=1` when sending `/` commands:
+> ```bash
+> MSYS_NO_PATHCONV=1 c4 send my-worker "/model"
+> ```
 
 ## Remote Workers (SSH)
 

@@ -1,0 +1,8 @@
+{
+  "name": "c4",
+  "version": "0.1.0",
+  "description": "Claude {Claude Code} Code — Manage multiple Claude Code workers from a single Claude Code session",
+  "author": {
+    "name": "siloFoX"
+  }
+}
