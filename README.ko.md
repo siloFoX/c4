@@ -11,7 +11,7 @@
 ![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)
 ![Claude Code](https://img.shields.io/badge/Claude_Code-v2.1.85--2.1.91-8A2BE2.svg)
 ![Platform](https://img.shields.io/badge/tested-Win11%20%7C%20Ubuntu%20%7C%20macOS-blue.svg)
-![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
+![Version](https://img.shields.io/badge/version-1.0.1-green.svg)
 
 **[English](README.md)**
 
@@ -62,7 +62,6 @@ C4는 **가상 터미널 텍스트**를 사용합니다:
 git clone https://github.com/siloFoX/c4.git
 cd c4
 npm install
-npm link
 ```
 
 그 다음 Claude Code를 열고 다음을 실행하도록 요청하세요:
@@ -70,10 +69,12 @@ npm link
 c4 init
 ```
 
-이 명령이 자동으로 설정합니다:
+`c4 init`이 모든 것을 자동으로 처리합니다:
 - `~/.claude/settings.json` — c4 bash 권한 추가
-- `config.json` — `config.example.json`에서 복사
+- `config.json` — `config.example.json`에서 복사, claude 경로 자동 감지
+- `c4` 명령어 — 전역 등록 (npm link, Windows에서는 wrapper 스크립트 폴백)
 - `CLAUDE.md` 심링크 — 프로젝트 안내 문서
+- `.githooks` — main 브랜치 보호 (pre-commit hook)
 
 ## 사용법
 
