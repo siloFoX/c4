@@ -26,6 +26,117 @@ function parseBody(req) {
   });
 }
 
+function escapeHtml(str) {
+  if (typeof str !== 'string') return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function renderDashboard(listData) {
+  const workers = listData.workers || [];
+  const queued = listData.queuedTasks || [];
+  const lost = listData.lostWorkers || [];
+  const lastHC = listData.lastHealthCheck;
+
+  const statusColor = (s) => {
+    if (s === 'idle') return '#2ecc71';
+    if (s === 'busy') return '#f39c12';
+    if (s === 'exited') return '#e74c3c';
+    if (s === 'queued') return '#9b59b6';
+    return '#95a5a6';
+  };
+
+  let workerRows = '';
+  if (workers.length === 0) {
+    workerRows = '<tr><td colspan="8" style="text-align:center;color:#888;">No active workers</td></tr>';
+  } else {
+    for (const w of workers) {
+      workerRows += '<tr>'
+        + '<td>' + escapeHtml(w.name) + '</td>'
+        + '<td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + statusColor(w.status) + ';margin-right:6px;"></span>' + escapeHtml(w.status) + '</td>'
+        + '<td>' + escapeHtml(w.target) + '</td>'
+        + '<td>' + escapeHtml(w.branch || '-') + '</td>'
+        + '<td>' + escapeHtml(w.phase || '-') + '</td>'
+        + '<td>' + (w.intervention ? escapeHtml(w.intervention) : '-') + '</td>'
+        + '<td>' + w.unreadSnapshots + '/' + w.totalSnapshots + '</td>'
+        + '<td>' + (w.pid || '-') + '</td>'
+        + '</tr>';
+    }
+  }
+
+  let queuedRows = '';
+  if (queued.length > 0) {
+    for (const q of queued) {
+      queuedRows += '<tr>'
+        + '<td>' + escapeHtml(q.name) + '</td>'
+        + '<td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + statusColor('queued') + ';margin-right:6px;"></span>queued</td>'
+        + '<td>' + escapeHtml(q.branch || '-') + '</td>'
+        + '<td>' + escapeHtml(q.after || '-') + '</td>'
+        + '<td>' + escapeHtml(q.task ? q.task.slice(0, 80) : '-') + '</td>'
+        + '</tr>';
+    }
+  }
+
+  let lostRows = '';
+  if (lost.length > 0) {
+    for (const l of lost) {
+      lostRows += '<tr>'
+        + '<td>' + escapeHtml(l.name) + '</td>'
+        + '<td>' + (l.pid || '-') + '</td>'
+        + '<td>' + escapeHtml(l.branch || '-') + '</td>'
+        + '<td>' + escapeHtml(l.lostAt || '-') + '</td>'
+        + '</tr>';
+    }
+  }
+
+  const healthCheckInfo = lastHC
+    ? 'Last health check: ' + new Date(lastHC).toLocaleString()
+    : 'No health check yet';
+
+  return '<!DOCTYPE html>'
+    + '<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+    + '<title>C4 Dashboard</title>'
+    + '<style>'
+    + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:20px;background:#1a1a2e;color:#e0e0e0;}'
+    + 'h1{color:#e0e0e0;font-size:1.5em;margin-bottom:4px;}'
+    + '.subtitle{color:#888;font-size:0.85em;margin-bottom:20px;}'
+    + 'table{width:100%;border-collapse:collapse;margin-bottom:24px;}'
+    + 'th{background:#16213e;color:#e0e0e0;padding:10px 12px;text-align:left;font-size:0.85em;border-bottom:2px solid #0f3460;}'
+    + 'td{padding:8px 12px;border-bottom:1px solid #16213e;font-size:0.85em;}'
+    + 'tr:hover{background:#16213e;}'
+    + '.section{margin-bottom:24px;}'
+    + '.section-title{font-size:1.1em;color:#e94560;margin-bottom:8px;}'
+    + '.stats{display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;}'
+    + '.stat{background:#16213e;padding:12px 20px;border-radius:8px;min-width:120px;}'
+    + '.stat-value{font-size:1.4em;font-weight:bold;color:#e94560;}'
+    + '.stat-label{font-size:0.75em;color:#888;margin-top:2px;}'
+    + '.refresh{color:#888;font-size:0.8em;margin-top:16px;}'
+    + '</style></head><body>'
+    + '<h1>C4 Dashboard</h1>'
+    + '<div class="subtitle">' + escapeHtml(healthCheckInfo) + '</div>'
+    + '<div class="stats">'
+    + '<div class="stat"><div class="stat-value">' + workers.length + '</div><div class="stat-label">Workers</div></div>'
+    + '<div class="stat"><div class="stat-value">' + workers.filter(w => w.status === 'busy').length + '</div><div class="stat-label">Busy</div></div>'
+    + '<div class="stat"><div class="stat-value">' + workers.filter(w => w.status === 'idle').length + '</div><div class="stat-label">Idle</div></div>'
+    + '<div class="stat"><div class="stat-value">' + workers.filter(w => w.status === 'exited').length + '</div><div class="stat-label">Exited</div></div>'
+    + '<div class="stat"><div class="stat-value">' + queued.length + '</div><div class="stat-label">Queued</div></div>'
+    + '</div>'
+    + '<div class="section"><div class="section-title">Workers</div>'
+    + '<table><thead><tr><th>Name</th><th>Status</th><th>Target</th><th>Branch</th><th>Phase</th><th>Intervention</th><th>Snapshots</th><th>PID</th></tr></thead>'
+    + '<tbody>' + workerRows + '</tbody></table></div>'
+    + (queued.length > 0
+      ? '<div class="section"><div class="section-title">Queued Tasks</div>'
+        + '<table><thead><tr><th>Name</th><th>Status</th><th>Branch</th><th>After</th><th>Task</th></tr></thead>'
+        + '<tbody>' + queuedRows + '</tbody></table></div>'
+      : '')
+    + (lost.length > 0
+      ? '<div class="section"><div class="section-title">Lost Workers</div>'
+        + '<table><thead><tr><th>Name</th><th>PID</th><th>Branch</th><th>Lost At</th></tr></thead>'
+        + '<tbody>' + lostRows + '</tbody></table></div>'
+      : '')
+    + '<div class="refresh">Auto-refresh: <script>setTimeout(function(){location.reload()},30000);</script>30s</div>'
+    + '</body></html>';
+}
+
 async function handleRequest(req, res) {
   res.setHeader('Content-Type', 'application/json');
 
@@ -183,6 +294,15 @@ async function handleRequest(req, res) {
       const worker = url.searchParams.get('worker') || '';
       const limit = parseInt(url.searchParams.get('limit') || '0') || 0;
       result = manager.getHistory({ worker: worker || undefined, limit: limit || undefined });
+
+    } else if (req.method === 'GET' && route === '/dashboard') {
+      // Dashboard Web UI (4.3)
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      const listData = manager.list();
+      const html = renderDashboard(listData);
+      res.writeHead(200);
+      res.end(html);
+      return;
 
     } else {
       res.writeHead(404);

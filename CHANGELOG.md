@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.3.1] - 2026-04-04
+
+### Added
+- **Dashboard Web UI** (4.3): `GET /dashboard` route in daemon
+  - Worker list with status, target, branch, phase, intervention, snapshots, PID
+  - Stats bar: total workers, busy, idle, exited, queued counts
+  - Queued tasks section (shown when queue is non-empty)
+  - Lost workers section (shown when lost workers exist)
+  - Dark theme, responsive layout (mobile-friendly)
+  - XSS protection via HTML escaping
+  - 30-second auto-refresh
+  - No external dependencies — pure HTML string rendering
+  - `tests/dashboard.test.js`: 17 unit tests
+
+---
+
 ## [1.3.0] - 2026-04-03
 
 ### Added
