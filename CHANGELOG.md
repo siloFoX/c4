@@ -23,6 +23,15 @@
   - `.githooks/pre-commit` prevents commits on main branch
   - `c4 init` sets `git config core.hooksPath .githooks` automatically
 
+### Fixed
+- **Effort auto-setup stabilized** (1.15): `/model` menu setup intermittent failure fix
+  - Retry logic with configurable `retries` (default: 3) and `phaseTimeoutMs` (default: 8000ms)
+  - Escape key sent on timeout to clear partial TUI state before retry
+  - Configurable `inputDelayMs` and `confirmDelayMs` (previously hardcoded 500ms)
+  - Config: `workerDefaults.effortSetup` object in `config.json`
+  - Failure snapshot logged after max retries exhausted
+  - Success snapshot shows retry count if retries were needed
+
 ### Improved
 - **`c4 init` enhanced** (1.10): Full initialization with auto-detection and fallbacks
   - Auto-detect `claude` binary path (`where`/`which`) → saves to `config.json`
