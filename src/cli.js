@@ -195,6 +195,92 @@ async function main() {
         break;
       }
 
+      case 'init': {
+        const fs = require('fs');
+        const path = require('path');
+        const os = require('os');
+
+        const home = os.homedir();
+        const repoRoot = path.resolve(__dirname, '..');
+
+        // 1. Merge c4 permissions into ~/.claude/settings.json
+        const claudeDir = path.join(home, '.claude');
+        const settingsPath = path.join(claudeDir, 'settings.json');
+        const requiredPermissions = [
+          'Bash(c4:*)',
+          'Bash(MSYS_NO_PATHCONV=1 c4:*)',
+          'Bash(cd:*)',
+          'Bash(git:*)',
+        ];
+
+        let settings = {};
+        try {
+          settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+        } catch {}
+
+        if (!settings.permissions) settings.permissions = {};
+        if (!Array.isArray(settings.permissions.allow)) settings.permissions.allow = [];
+
+        let added = 0;
+        for (const perm of requiredPermissions) {
+          if (!settings.permissions.allow.includes(perm)) {
+            settings.permissions.allow.push(perm);
+            added++;
+          }
+        }
+
+        fs.mkdirSync(claudeDir, { recursive: true });
+        fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+        console.log(`[ok] settings.json: ${added} permissions added (${settings.permissions.allow.length} total)`);
+
+        // 2. Copy config.example.json -> config.json (skip if exists)
+        const configSrc = path.join(repoRoot, 'config.example.json');
+        const configDst = path.join(repoRoot, 'config.json');
+
+        if (fs.existsSync(configDst)) {
+          console.log('[ok] config.json: already exists (skipped)');
+        } else if (fs.existsSync(configSrc)) {
+          fs.copyFileSync(configSrc, configDst);
+          console.log('[ok] config.json: created from config.example.json');
+        } else {
+          console.log('[warn] config.example.json not found');
+        }
+
+        // 3. CLAUDE.md symlink: ~/CLAUDE.md -> repo/CLAUDE.md
+        const claudeMdSrc = path.join(repoRoot, 'CLAUDE.md');
+        const claudeMdDst = path.join(home, 'CLAUDE.md');
+
+        if (!fs.existsSync(claudeMdSrc)) {
+          console.log('[warn] CLAUDE.md not found in repo');
+        } else {
+          try {
+            const stat = fs.lstatSync(claudeMdDst);
+            if (stat.isSymbolicLink()) {
+              const target = path.resolve(path.dirname(claudeMdDst), fs.readlinkSync(claudeMdDst));
+              if (target === claudeMdSrc) {
+                console.log('[ok] CLAUDE.md symlink: already linked');
+              } else {
+                fs.unlinkSync(claudeMdDst);
+                fs.symlinkSync(claudeMdSrc, claudeMdDst);
+                console.log('[ok] CLAUDE.md symlink: updated');
+              }
+            } else {
+              console.log('[warn] ~/CLAUDE.md exists and is not a symlink (skipped)');
+            }
+          } catch (e) {
+            if (e.code === 'ENOENT') {
+              fs.symlinkSync(claudeMdSrc, claudeMdDst);
+              console.log('[ok] CLAUDE.md symlink: created');
+            } else {
+              throw e;
+            }
+          }
+        }
+
+        console.log('\nc4 init complete!');
+        return;
+      }
+
       case 'daemon': {
         const DaemonManager = require('./daemon-manager');
         const sub = args[0];
@@ -232,6 +318,7 @@ async function main() {
         console.log(`Usage: c4 <command> [args]
 
 Commands:
+  init                                                     Initialize c4 (permissions, config, symlink)
   new <name> [command] [--target dgx|local] [--cwd path]   Create a worker
   task <name> <text> [--branch name] [--no-branch]        Send task with auto branch
   send <name> <text>               Send raw text to worker

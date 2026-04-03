@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1] - 2026-04-03
+
+### Added
+- **`c4 init` command** (1.10): One-time project initialization
+  - Merges c4 permissions into `~/.claude/settings.json` (non-destructive)
+  - Copies `config.example.json` → `config.json` (skips if exists)
+  - Creates `~/CLAUDE.md` symlink → repo `CLAUDE.md`
+
 ## [0.3.0] - 2026-04-03
 
 ### Added
