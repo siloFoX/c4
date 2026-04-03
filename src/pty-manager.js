@@ -614,6 +614,39 @@ class PtyManager extends EventEmitter {
     return { input: inputTokens, output: outputTokens };
   }
 
+  _getLastActivity(w) {
+    // Extract meaningful activity from worker's current screen or recent snapshots
+    const screen = w.screen ? w.screen.getScreen() : '';
+
+    // Look for tool use patterns in screen text
+    const patterns = [
+      /Edit\(([^\)]+)\)/,
+      /Write\(([^\)]+)\)/,
+      /Reading\s+(\d+)\s+files?/,
+      /Searching\s+for\s+(\d+)\s+pattern/,
+      /Bash\(([^\)]{0,60})\)/,
+      /npm\s+test/,
+      /git\s+(commit|push|merge|checkout)/,
+      /(\d+)\s+passed.*(\d+)\s+failed/,
+    ];
+
+    for (const p of patterns) {
+      const m = screen.match(p);
+      if (m) return m[0].substring(0, 80);
+    }
+
+    // Fallback: last non-auto snapshot text
+    const snaps = (w.snapshots || []).filter(s => !s.autoAction);
+    if (snaps.length > 0) {
+      const last = snaps[snaps.length - 1].screen || '';
+      // Extract first meaningful line
+      const lines = last.split('\n').filter(l => l.trim().length > 10);
+      if (lines.length > 0) return lines[0].substring(0, 80);
+    }
+
+    return '';
+  }
+
   _checkTokenUsage() {
     const cfg = this.config.tokenMonitor || {};
     if (cfg.enabled === false) return null;
@@ -2265,8 +2298,18 @@ class PtyManager extends EventEmitter {
 
       // Notification on task complete (4.10)
       if (this._notifications) {
+        let lastCommit = '';
+        const gitDir = (worker.worktree || this._detectRepoRoot() || '').replace(/\\/g, '/');
+        if (gitDir) {
+          try {
+            lastCommit = execSync(`git -C "${gitDir}" log -1 --oneline`, {
+              encoding: 'utf8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe']
+            }).trim();
+          } catch {}
+        }
         this._notifications.notifyTaskComplete(name, {
-          exitCode, signal, branch: worker.branch || null
+          exitCode, signal, branch: worker.branch || null,
+          task: worker._taskText, lastCommit
         });
       }
 
@@ -2522,9 +2565,9 @@ class PtyManager extends EventEmitter {
             screen: `[HEALTH] worker idle for ${Math.round(idleMs / 60000)}min (timeout: ${Math.round(timeoutMs / 60000)}min)`,
             autoAction: true
           });
-          results.push({ name, status: 'timeout', idleMs, task: w._taskText, taskStarted: w._taskStartedAt });
+          results.push({ name, status: 'timeout', idleMs, task: w._taskText, taskStarted: w._taskStartedAt, lastActivity: this._getLastActivity(w) });
         } else {
-          results.push({ name, status: 'alive', task: w._taskText, taskStarted: w._taskStartedAt });
+          results.push({ name, status: 'alive', task: w._taskText, taskStarted: w._taskStartedAt, lastActivity: this._getLastActivity(w) });
         }
         continue;
       }

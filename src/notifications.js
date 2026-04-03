@@ -140,20 +140,32 @@ class Notifications {
 
   async notifyTaskComplete(workerName, details = {}) {
     const t = this._time();
-    const branch = details.branch ? ` (${details.branch})` : '';
-    this.pushSlack(`${t} ${workerName} ${this.lang.done}${branch}`);
+    const branch = details.branch ? `${details.branch}` : '';
+    const lines = [`${t} ${workerName} ${this.lang.done}`];
+    if (branch) lines.push(`  branch: ${branch}`);
+    if (details.lastCommit) lines.push(`  commit: ${details.lastCommit}`);
+    if (details.task) {
+      const shortTask = details.task.split(/[.\n]/)[0].substring(0, 100);
+      lines.push(`  task: ${shortTask}`);
+    }
+    this.pushSlack(lines.join('\n'));
 
     const emailResult = await this.sendEmail(
       `C4: ${workerName} ${this.lang.done}`,
-      `${workerName} ${this.lang.done} ${t}${branch}`
+      lines.join('\n')
     );
     return { slack: 'buffered', email: emailResult };
   }
 
-  async notifyError(workerName, error) {
+  async notifyError(workerName, error, details = {}) {
     const t = this._time();
-    const msg = typeof error === 'string' ? error.substring(0, 150) : String(error);
-    this.pushSlack(`${t} ${workerName} ${this.lang.error}: ${msg}`);
+    const msg = typeof error === 'string' ? error.substring(0, 200) : String(error);
+    const lines = [`${t} ${workerName} ${this.lang.error}`];
+    lines.push(`  ${msg}`);
+    if (details.task) {
+      lines.push(`  task: ${details.task.split(/[.\n]/)[0].substring(0, 80)}`);
+    }
+    this.pushSlack(lines.join('\n'));
   }
 
   async notifyHealthCheck(results) {
@@ -171,6 +183,9 @@ class Notifications {
     } else if (workers.length > 0) {
       const lines = alive.map(w => this._fmtWorker(w));
       this.pushSlack(`${t}\n${lines.join('\n')}`);
+    } else {
+      // Heartbeat — 워커 없어도 데몬 살아있다는 신호
+      this.pushSlack(`${t} daemon OK`);
     }
   }
 
@@ -197,6 +212,14 @@ class Notifications {
       ? Math.round((Date.now() - new Date(w.taskStarted).getTime()) / 60000)
       : 0;
     const elStr = elapsed > 0 ? ` ${this.lang.elapsed(elapsed)}` : '';
+
+    // Show what the worker is actually doing, not the original task text
+    const activity = w.lastActivity || '';
+    if (activity) {
+      return `  ${w.name}${elStr} - ${activity}`;
+    }
+
+    // Fallback to task description
     const shortTask = w.task.split(/[.\n]/)[0].substring(0, 80);
     return `  ${w.name}${elStr} - ${shortTask}`;
   }
