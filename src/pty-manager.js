@@ -1713,7 +1713,7 @@ class PtyManager extends EventEmitter {
     commands.push(task);
 
     const fullTask = commands.join('\n\n');
-    w.proc.write(fullTask + '\r');
+    this._chunkedWrite(w.proc, fullTask + '\r');
     w.branch = branch;
 
     // Save start commit for rollback (3.6)
@@ -2226,10 +2226,28 @@ class PtyManager extends EventEmitter {
       if (!code) return { error: `Unknown key: '${input}'` };
       w.proc.write(code);
     } else {
-      w.proc.write(input);
+      this._chunkedWrite(w.proc, input);
     }
 
     return { success: true };
+  }
+
+  /**
+   * PTY에 텍스트를 청크 단위로 분할 전송 (버퍼 오버플로우 방지)
+   */
+  _chunkedWrite(proc, text, chunkSize = 500, delayMs = 50) {
+    if (text.length <= chunkSize) {
+      proc.write(text);
+      return;
+    }
+    for (let i = 0; i < text.length; i += chunkSize) {
+      const chunk = text.slice(i, i + chunkSize);
+      if (i === 0) {
+        proc.write(chunk);
+      } else {
+        setTimeout(() => proc.write(chunk), delayMs * (i / chunkSize));
+      }
+    }
   }
 
   read(name) {
