@@ -9,7 +9,7 @@
 | 1.3 | 작업자 초기 설정 자동화 | **done** | trust folder + /model max effort 2-phase 자동화 |
 | 1.4 | Git Bash 경로 변환 해결 | **done** | MSYS_NO_PATHCONV=1 + fixMsysArgs() argv 자동 복원 |
 | 1.5 | Git 브랜치 격리 | **done** | c4 task 명령. 작업자마다 자동 브랜치 생성. 2.1 통합 |
-| 1.6 | 관리자 컨텍스트 영속화 | todo | 컨텍스트 한계 근접 시 핵심 상태를 CLAUDE.md/state에 저장. 세션 이어가기 |
+| 1.6 | Scribe 시스템 (컨텍스트 영속화) | todo | 아래 상세 |
 | 1.7 | 작업자 헬스체크 + 자동 재시작 | **done** | 주기적 alive 체크. 죽으면 자동 재시작 또는 관리자에게 보고 |
 | 1.8 | 작업 스코프 정의 + 이탈 감시 | todo | 아래 상세 |
 | 1.9 | 관리자 개입 프로토콜 | todo | 아래 상세 |
@@ -19,6 +19,60 @@
 | 1.13 | CLAUDE.md 규칙 강제 이행 | **done** | pre-commit hook 복합 명령 경고, sendTask() 규칙 자동 삽입, config rules 섹션 |
 | 1.14 | 재귀적 C4 구조 | **done** | 테스트 완료. 작업자가 c4 new/list/health 실행 가능. 같은 데몬 공유 |
 | 1.15 | effort 자동 설정 안정화 | **done** | 재시도 로직 + 설정 가능한 딜레이. phaseTimeout으로 stuck 복구 |
+
+### 1.6 Scribe 시스템 (상세)
+
+세션 대화를 실시간 모니터링하고 핵심 맥락을 기록하는 서기(Scribe) 시스템.
+
+**데이터 소스:**
+- `~/.claude/projects/<project>/<session>.jsonl` — 전체 대화 기록 (compact 후에도 유지)
+- 관리자 세션 + 모든 작업자 세션 포함
+- user, assistant, system, tool_use 메시지 전부 기록됨
+
+**동작 흐름:**
+```
+1. c4 scribe start → scribe 모드 활성화
+2. 주기적 (5분마다) 활성 세션 jsonl 스캔
+3. 새 메시지 감지 → 핵심 내용 추출 → docs/session-context.md 업데이트
+4. compact 발생 → PostCompact hook으로 session-context.md 내용 컨텍스트에 자동 주입
+5. 세션 교체 시 → 다음 세션이 session-context.md 읽고 이어감
+```
+
+**기록 대상 (자동 분류):**
+- 설계 결정: "~로 하기로 했다", "~ 방향으로"
+- 작업 상태: 누가 뭘 하고 있는지, 완료/미완료
+- 에러/해결: 뭐가 실패했고 어떻게 고쳤는지
+- TODO 변경: 새로 추가된 항목, 상태 변경
+- 사용자 의도: 사용자가 원하는 방향, 제약 조건
+
+**PostCompact hook:**
+```json
+{
+  "hooks": {
+    "PostCompact": [{
+      "hooks": [{
+        "type": "command",
+        "command": "cat docs/session-context.md"
+      }]
+    }]
+  }
+}
+```
+- hook이 반환한 내용이 additionalContext로 모델에 주입
+- compact 후에도 scribe가 정리한 핵심 맥락 유지
+
+**구현 사항:**
+- `c4 scribe start/stop/status` CLI 명령
+- daemon에 scribe 타이머 (jsonl 스캔 주기 설정)
+- jsonl 파서: 메시지 타입별 필터링 + 오프셋 추적 (이미 읽은 건 스킵)
+- 요약 생성: scribe worker(Claude Code)를 필요 시 잠깐 띄워서 요약
+- PostCompact hook 자동 설정 (`c4 init`에서)
+- config에 scribe 설정: enabled, intervalMs, outputPath
+
+**관리자 + 작업자 모두 지원:**
+- 관리자 세션: 설계 결정, 사용자 의도 기록
+- 작업자 세션: 구현 과정, 에러, 해결법 기록
+- 종합 문서: 전체 프로젝트 진행 상황 한눈에
 
 ### 1.14 재귀적 C4 구조 (상세)
 
