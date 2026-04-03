@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.1] - 2026-04-03
+
+### Added
+- **`c4 merge --skip-checks`** (1.16): Skip pre-merge checks (npm test, TODO.md, CHANGELOG.md)
+  - `--skip-checks` flag bypasses all validation and proceeds directly to merge
+  - Useful for doc-only commits or hotfixes where TODO/CHANGELOG changes are not required
+  - Usage: `c4 merge <worker|branch> --skip-checks`
+
 ## [0.8.0] - 2026-04-03
 
 ### Added

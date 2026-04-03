@@ -438,10 +438,11 @@ async function main() {
       case 'merge': {
         const { execSync } = require('child_process');
         const path = require('path');
-        const target = args[0];
+        const skipChecks = args.includes('--skip-checks');
+        const target = args.filter(a => a !== '--skip-checks')[0];
 
         if (!target) {
-          console.error('Usage: c4 merge <worker-name|branch-name>');
+          console.error('Usage: c4 merge <worker-name|branch-name> [--skip-checks]');
           process.exit(1);
         }
 
@@ -490,65 +491,68 @@ async function main() {
           process.exit(1);
         }
 
-        console.log(`\nPre-merge checks for branch "${branch}":\n`);
+        if (skipChecks) {
+          console.log(`\nSkipping pre-merge checks (--skip-checks).\nMerging...\n`);
+        } else {
+          console.log(`\nPre-merge checks for branch "${branch}":\n`);
 
-        let allPassed = true;
+          let allPassed = true;
 
-        // Check 1: tests pass (if test script exists)
-        process.stdout.write('  [check] npm test ... ');
-        try {
-          const pkg = JSON.parse(require('fs').readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
-          if (pkg.scripts && pkg.scripts.test) {
-            execSync('npm test', { cwd: repoRoot, stdio: 'pipe' });
-            console.log('PASS');
-          } else {
-            console.log('SKIP (no test script)');
-          }
-        } catch (e) {
-          console.log('FAIL');
-          console.error('    Tests failed. Fix tests before merging.');
-          allPassed = false;
-        }
-
-        // Check 2: TODO.md modified
-        process.stdout.write('  [check] TODO.md modified ... ');
-        try {
-          const diff = execSync(`git diff main..."${branch}" --name-only`, { cwd: repoRoot, encoding: 'utf8' });
-          if (diff.split('\n').some(f => f.trim() === 'TODO.md')) {
-            console.log('PASS');
-          } else {
+          // Check 1: tests pass (if test script exists)
+          process.stdout.write('  [check] npm test ... ');
+          try {
+            const pkg = JSON.parse(require('fs').readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
+            if (pkg.scripts && pkg.scripts.test) {
+              execSync('npm test', { cwd: repoRoot, stdio: 'pipe' });
+              console.log('PASS');
+            } else {
+              console.log('SKIP (no test script)');
+            }
+          } catch (e) {
             console.log('FAIL');
-            console.error('    TODO.md was not modified in this branch.');
+            console.error('    Tests failed. Fix tests before merging.');
             allPassed = false;
           }
-        } catch {
-          console.log('FAIL (could not diff)');
-          allPassed = false;
-        }
 
-        // Check 3: CHANGELOG.md modified
-        process.stdout.write('  [check] CHANGELOG.md modified ... ');
-        try {
-          const diff = execSync(`git diff main..."${branch}" --name-only`, { cwd: repoRoot, encoding: 'utf8' });
-          if (diff.split('\n').some(f => f.trim() === 'CHANGELOG.md')) {
-            console.log('PASS');
-          } else {
-            console.log('FAIL');
-            console.error('    CHANGELOG.md was not modified in this branch.');
+          // Check 2: TODO.md modified
+          process.stdout.write('  [check] TODO.md modified ... ');
+          try {
+            const diff = execSync(`git diff main..."${branch}" --name-only`, { cwd: repoRoot, encoding: 'utf8' });
+            if (diff.split('\n').some(f => f.trim() === 'TODO.md')) {
+              console.log('PASS');
+            } else {
+              console.log('FAIL');
+              console.error('    TODO.md was not modified in this branch.');
+              allPassed = false;
+            }
+          } catch {
+            console.log('FAIL (could not diff)');
             allPassed = false;
           }
-        } catch {
-          console.log('FAIL (could not diff)');
-          allPassed = false;
-        }
 
-        if (!allPassed) {
-          console.log('\nMerge REJECTED — fix the above issues first.');
-          process.exit(1);
-        }
+          // Check 3: CHANGELOG.md modified
+          process.stdout.write('  [check] CHANGELOG.md modified ... ');
+          try {
+            const diff = execSync(`git diff main..."${branch}" --name-only`, { cwd: repoRoot, encoding: 'utf8' });
+            if (diff.split('\n').some(f => f.trim() === 'CHANGELOG.md')) {
+              console.log('PASS');
+            } else {
+              console.log('FAIL');
+              console.error('    CHANGELOG.md was not modified in this branch.');
+              allPassed = false;
+            }
+          } catch {
+            console.log('FAIL (could not diff)');
+            allPassed = false;
+          }
 
-        // All checks passed — merge
-        console.log('\nAll checks passed. Merging...\n');
+          if (!allPassed) {
+            console.log('\nMerge REJECTED — fix the above issues first.');
+            process.exit(1);
+          }
+
+          console.log('\nAll checks passed. Merging...\n');
+        }
         try {
           const output = execSync(`git merge "${branch}" --no-ff -m "Merge branch '${branch}'"`, { cwd: repoRoot, encoding: 'utf8' });
           console.log(output);
