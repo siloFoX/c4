@@ -9,6 +9,7 @@ const Scribe = require('./scribe');
 const { ScopeGuard, resolveScope } = require('./scope-guard');
 const StateMachine = require('./state-machine');
 const AdaptivePolling = require('./adaptive-polling');
+const TerminalInterface = require('./terminal-interface');
 
 const CONFIG_FILE = path.join(__dirname, '..', 'config.json');
 const STATE_FILE = path.join(__dirname, '..', 'state.json');
@@ -39,6 +40,10 @@ class PtyManager extends EventEmitter {
     this._stateMachine = new StateMachine({
       maxTestFails: this.config.stateMachine?.maxTestFails || 3
     });
+    this._termInterface = new TerminalInterface(
+      this.config.compatibility?.patterns || {},
+      { alwaysApproveForSession: this.config.autoApprove?.alwaysApproveForSession || false }
+    );
     const apCfg = this.config.adaptivePolling || {};
     this._adaptivePolling = new AdaptivePolling({
       minIntervalMs: apCfg.minIntervalMs,
@@ -1245,9 +1250,9 @@ class PtyManager extends EventEmitter {
       worker.idleTimer = setTimeout(() => {
         const text = this._getScreenText(screen);
 
-        // Auto-trust folder
-        if (this.config.workerDefaults?.trustFolder && this._detectTrustPrompt(text)) {
-          proc.write('\r'); // Press Enter to trust
+        // Auto-trust folder (via terminal interface 3.13)
+        if (this.config.workerDefaults?.trustFolder && this._termInterface.isTrustPrompt(text)) {
+          proc.write(this._termInterface.getTrustKeys());
           return;
         }
 
@@ -1260,8 +1265,8 @@ class PtyManager extends EventEmitter {
           const inputDelayMs = setupCfg.inputDelayMs ?? 500;
           const confirmDelayMs = setupCfg.confirmDelayMs ?? 500;
 
-          const hasPrompt = text.includes('❯') && text.includes('for shortcuts');
-          const hasModelMenu = text.includes('to adjust') && text.includes('effort');
+          const hasPrompt = this._termInterface.isReady(text);
+          const hasModelMenu = this._termInterface.isModelMenu(text);
 
           // Timeout: if stuck in waitMenu phase too long, retry
           if (worker.setupPhase === 'waitMenu' && worker.setupPhaseStart) {
@@ -1285,7 +1290,7 @@ class PtyManager extends EventEmitter {
                 screen: `[C4 SETUP] effort setup retry ${worker.setupRetries}/${maxRetries} (phase timeout)`,
                 autoAction: true
               });
-              proc.write('\x1b'); // Escape to clear any partial state
+              proc.write(this._termInterface.getEscapeKey()); // Escape to clear any partial state
               return;
             }
           }
@@ -1294,7 +1299,7 @@ class PtyManager extends EventEmitter {
             // Phase 1: Claude Code ready, send /model
             worker.setupPhase = 'waitMenu';
             worker.setupPhaseStart = Date.now();
-            proc.write('/model\r');
+            proc.write(this._termInterface.getModelMenuKeys());
             return;
           }
 
@@ -1302,17 +1307,11 @@ class PtyManager extends EventEmitter {
             // Phase 2: Menu rendered, send arrow keys + Enter
             worker.setupPhase = 'done';
 
-            const levels = ['low', 'medium', 'high', 'max'];
-            const defaultIdx = levels.indexOf('high');
-            const targetIdx = levels.indexOf(effortLevel);
-            const steps = targetIdx - defaultIdx;
-
             setTimeout(() => {
-              if (steps > 0) {
-                for (let i = 0; i < steps; i++) proc.write('\x1b[C'); // Right
-              } else if (steps < 0) {
-                for (let i = 0; i < Math.abs(steps); i++) proc.write('\x1b[D'); // Left
-              }
+              const effortKeys = this._termInterface.getEffortKeys(effortLevel);
+              // Send arrow keys (all but the trailing Enter)
+              const arrowKeys = effortKeys.slice(0, -1);
+              if (arrowKeys) proc.write(arrowKeys);
               setTimeout(() => {
                 proc.write('\r'); // Enter to confirm
                 worker.setupDone = true;
@@ -1344,23 +1343,20 @@ class PtyManager extends EventEmitter {
         }
 
         // Auto-approve logic + SSE permission event (3.5)
-        if (this._detectPermissionPrompt(text)) {
-          const promptType = this._getPromptType(text);
+        if (this._termInterface.isPermissionPrompt(text)) {
+          const promptType = this._termInterface.getPromptType(text);
           const detail = promptType === 'bash'
-            ? this._extractBashCommand(text)
-            : this._extractFileName(text);
+            ? this._termInterface.extractBashCommand(text)
+            : this._termInterface.extractFileName(text);
           this._emitSSE('permission', { worker: name, promptType, detail });
         }
-        if (this.config.autoApprove?.enabled && this._detectPermissionPrompt(text)) {
+        if (this.config.autoApprove?.enabled && this._termInterface.isPermissionPrompt(text)) {
           // Scope guard check — override autoApprove if out of scope
           if (worker.scopeGuard && worker.scopeGuard.hasRestrictions()) {
             const scopeResult = this._checkScope(worker.scopeGuard, text);
             if (scopeResult && !scopeResult.allowed) {
               // Out of scope → force deny
-              const numOptions = this._countOptions(text);
-              let denyKeys = '';
-              for (let i = 1; i < numOptions; i++) denyKeys += '\x1b[B';
-              denyKeys += '\r';
+              const denyKeys = this._termInterface.getDenyKeys(text);
 
               worker.snapshots.push({
                 time: Date.now(),
@@ -1379,13 +1375,13 @@ class PtyManager extends EventEmitter {
 
           if (keys) {
             // Log the decision
-            const promptType = this._getPromptType(text);
-            const detail = promptType === 'bash'
-              ? this._extractBashCommand(text)
-              : this._extractFileName(text);
+            const approvePromptType = this._termInterface.getPromptType(text);
+            const approveDetail = approvePromptType === 'bash'
+              ? this._termInterface.extractBashCommand(text)
+              : this._termInterface.extractFileName(text);
             worker.snapshots.push({
               time: Date.now(),
-              screen: `[C4 AUTO-${action.toUpperCase()}] ${promptType}: ${detail}`,
+              screen: `[C4 AUTO-${action.toUpperCase()}] ${approvePromptType}: ${approveDetail}`,
               autoAction: true
             });
 
