@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 const ScreenBuffer = require('./screen-buffer');
+const Scribe = require('./scribe');
 
 const CONFIG_FILE = path.join(__dirname, '..', 'config.json');
 const STATE_FILE = path.join(__dirname, '..', 'state.json');
@@ -22,6 +23,7 @@ class PtyManager {
     this._loadState();
     this._healthTimer = null;
     this._lastHealthCheck = null;
+    this._scribe = null;
   }
 
   get logsDir() {
@@ -786,6 +788,44 @@ class PtyManager {
       clearInterval(this._healthTimer);
       this._healthTimer = null;
     }
+  }
+
+  // --- Scribe ---
+
+  _ensureScribe() {
+    if (!this._scribe) {
+      const scribeCfg = this.config.scribe || {};
+      this._scribe = new Scribe({
+        intervalMs: scribeCfg.intervalMs,
+        outputPath: scribeCfg.outputPath,
+        projectId: scribeCfg.projectId,
+        maxEntries: scribeCfg.maxEntries,
+        projectRoot: this._detectRepoRoot() || path.join(__dirname, '..')
+      });
+    }
+    return this._scribe;
+  }
+
+  scribeStart() {
+    const scribe = this._ensureScribe();
+    return scribe.start();
+  }
+
+  scribeStop() {
+    if (!this._scribe) return { error: 'Scribe not initialized' };
+    return this._scribe.stop();
+  }
+
+  scribeStatus() {
+    if (!this._scribe) {
+      return { enabled: false, running: false };
+    }
+    return this._scribe.status();
+  }
+
+  scribeScan() {
+    const scribe = this._ensureScribe();
+    return scribe.scan();
   }
 
   reloadConfig() {

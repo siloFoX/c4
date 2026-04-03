@@ -1,5 +1,6 @@
 const http = require('http');
 const PtyManager = require('./pty-manager');
+const Scribe = require('./scribe');
 
 const manager = new PtyManager();
 const cfg = manager.getConfig();
@@ -67,6 +68,18 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && route === '/config/reload') {
       result = manager.reloadConfig();
+
+    } else if (req.method === 'POST' && route === '/scribe/start') {
+      result = manager.scribeStart();
+
+    } else if (req.method === 'POST' && route === '/scribe/stop') {
+      result = manager.scribeStop();
+
+    } else if (req.method === 'GET' && route === '/scribe/status') {
+      result = manager.scribeStatus();
+
+    } else if (req.method === 'POST' && route === '/scribe/scan') {
+      result = manager.scribeScan();
 
     } else {
       res.writeHead(404);

@@ -531,6 +531,36 @@ async function main() {
         return;
       }
 
+      case 'scribe': {
+        const sub = args[0];
+        if (!sub || !['start', 'stop', 'status', 'scan'].includes(sub)) {
+          console.log('Usage: c4 scribe <start|stop|status|scan>');
+          return;
+        }
+        if (sub === 'start') {
+          result = await request('POST', '/scribe/start');
+        } else if (sub === 'stop') {
+          result = await request('POST', '/scribe/stop');
+        } else if (sub === 'status') {
+          result = await request('GET', '/scribe/status');
+          if (result.running !== undefined) {
+            console.log(`Scribe: ${result.running ? 'running' : 'stopped'}`);
+            console.log(`  Interval: ${(result.intervalMs / 1000).toFixed(0)}s`);
+            console.log(`  Output: ${result.outputPath}`);
+            console.log(`  Entries: ${result.totalEntries}`);
+            console.log(`  Tracked files: ${result.trackedFiles}`);
+            return;
+          }
+        } else if (sub === 'scan') {
+          result = await request('POST', '/scribe/scan');
+          if (result.scanned !== undefined) {
+            console.log(`Scanned ${result.scanned} files, ${result.newEntries} new entries (${result.totalEntries} total)`);
+            return;
+          }
+        }
+        break;
+      }
+
       case 'daemon': {
         const DaemonManager = require('./daemon-manager');
         const sub = args[0];
@@ -584,6 +614,10 @@ Commands:
   daemon stop                      Stop daemon
   daemon restart                   Restart daemon
   daemon status                    Check daemon status
+  scribe start                     Start session context recording
+  scribe stop                      Stop scribe
+  scribe status                    Show scribe status
+  scribe scan                      Run one-time scan now
   config                           Show current config
   config reload                    Reload config.json without restart
 

@@ -119,6 +119,14 @@
     "summary": ""
   },
 
+  "scribe": {
+    "enabled": false,
+    "intervalMs": 300000,
+    "outputPath": "docs/session-context.md",
+    "projectId": "",
+    "maxEntries": 200
+  },
+
   "gitBash": {
     "disablePathConversion": true
   }

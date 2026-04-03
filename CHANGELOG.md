@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.7.0] - 2026-04-03
+
+### Added
+- **Scribe system** (1.6): Session context persistence via JSONL parsing
+  - `src/scribe.js`: Core module — scans `~/.claude/projects/<project>/*.jsonl` files
+  - JSONL parser with offset tracking (reads only new messages per scan)
+  - Content extraction: user text, assistant text, tool uses (Write/Edit)
+  - Auto-classification into categories: decision, error, fix, todo, intent, progress
+  - Korean + English keyword pattern matching for classification
+  - Structured output to `docs/session-context.md` (grouped by category, newest first)
+  - Subagent session files included in scan
+  - `c4 scribe start` — activate periodic scanning (default 5min interval)
+  - `c4 scribe stop` — deactivate scribe
+  - `c4 scribe status` — show scribe state (entries, tracked files, interval)
+  - `c4 scribe scan` — run one-time scan immediately
+  - Daemon integration: `/scribe/start`, `/scribe/stop`, `/scribe/status`, `/scribe/scan` API routes
+  - Config: `scribe.enabled`, `scribe.intervalMs`, `scribe.outputPath`, `scribe.projectId`, `scribe.maxEntries`
+  - PostCompact hook compatible: `cat docs/session-context.md` restores context after compaction
+
 ## [0.6.0] - 2026-04-03
 
 ### Added
