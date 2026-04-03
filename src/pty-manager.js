@@ -2448,7 +2448,7 @@ class PtyManager extends EventEmitter {
       if (!code) return { error: `Unknown key: '${input}'` };
       w.proc.write(code);
     } else {
-      this._chunkedWrite(w.proc, input);
+      this._chunkedWrite(w.proc, input + '\r');
     }
 
     return { success: true };
