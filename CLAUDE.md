@@ -47,6 +47,35 @@ ssh -R 9222:localhost:9222 shinc@192.168.10.222
 - 데몬 시작: `c4 daemon start` (데몬 중지: `c4 daemon stop`, 상태: `c4 daemon status`)
 - CLI: `c4` (npm link 등록됨)
 
+### C4 CLI 명령어
+```
+c4 daemon start|stop|restart|status  데몬 관리
+c4 new <name> [--target local|dgx]   새 워커 생성
+c4 task <name> "작업" [--auto-mode] [--branch c4/<name>]  작업 전송
+c4 send <name> "텍스트"              워커에 텍스트 전송
+c4 key <name> Enter|C-c|Escape       워커에 키 전송
+c4 read <name>                       워커 출력 읽기 (idle 상태만)
+c4 read-now <name>                   워커 출력 즉시 읽기
+c4 wait <name> [--timeout ms]        워커 idle 대기
+c4 scrollback <name> [--lines N]     워커 스크롤백 읽기
+c4 list                              모든 워커 상태 조회
+c4 close <name>                      워커 종료
+c4 health                            데몬 헬스체크
+c4 config [reload]                   설정 조회/리로드
+c4 merge <name|branch>               워커 브랜치 main에 머지
+c4 auto "작업"                       자율 모드 (관리자 + scribe 자동 생성)
+c4 status <name> "message"           Slack에 상태 메시지 전송
+c4 scribe start|stop|status|scan     세션 컨텍스트 기록
+c4 history [name] [--last N]         작업 히스토리 조회
+c4 token-usage                       토큰 사용량 조회
+c4 templates                         템플릿 목록 조회
+c4 swarm <name>                      워커 swarm 상태 조회
+c4 morning                           모닝 리포트 생성
+c4 plan <name> <task> [opts]         설계 작업 전송 (--branch, --output)
+c4 plan-read <name>                  설계 결과 읽기
+c4 rollback <name>                   워커 브랜치 롤백
+```
+
 ### C4 사용 시 주의사항
 - 복합 명령(`&&`, `|`, `;`으로 연결) 사용 금지 → 단일 명령으로 분리해서 실행 (승인 필요 없게)
 - `cd X && git Y` 대신 `git -C <path>` 사용
