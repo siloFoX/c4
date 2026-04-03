@@ -1,93 +1,57 @@
 # Changelog
 
+## [1.0.0] - 2026-04-03
+
+All Phase 1/2/3 features complete. 45 roadmap items implemented.
+
+### Highlights
+- **Scope Guard** (1.8): File/command scope enforcement + drift detection
+- **Intervention Protocol** (1.9): Question/escalation/routine monitoring
+- **Task Queue** (2.2-2.3, 2.8): Dependencies, deduplication, rate limiting
+- **SSH Recovery** (2.4): ControlMaster + auto-reconnect
+- **Token Monitoring** (2.5): JSONL parsing, daily limits, warnings
+- **Autonomous Ops** (2.9): watchdog.sh for unattended operation
+- **Context Transfer** (3.1): Worker-to-worker snapshot injection
+- **Auto Verification** (3.2): Post-commit test runner
+- **Effort Dynamic** (3.3): Task length-based effort auto-adjustment
+- **Worker Pooling** (3.4): Idle worker recycling
+- **SSE Events** (3.5): Real-time event streaming
+- **Rollback** (3.6): Pre-task commit restore
+- **Task History** (3.7): JSONL persistence, `c4 history`
+- **ScreenBuffer** (3.8): Enhanced CSI parser + scrollback API
+- **MCP Server** (3.9): HTTP MCP protocol at `/mcp`
+- **Planner Worker** (3.10): Plan-only mode, `c4 plan`
+- **State Machine** (3.11): Worker phase tracking (plan/edit/test/fix)
+- **Adaptive Polling** (3.12): Activity-based idle interval
+- **Interface Abstraction** (3.13): Terminal-Agent decoupling
+- **Summary Layer** (3.14): Long snapshot auto-summarization
+- **Hook Architecture** (3.15): PreToolUse/PostToolUse JSON events
+- **Worker Settings** (3.16): Per-worktree `.claude/settings.json` profiles
+- **Subagent Swarm** (3.17): Agent tool usage tracking + limits
+- **Role Templates** (3.18): Planner/Executor/Reviewer presets
+- **Auto Mode** (3.19): Claude classifier safety delegation
+- **Cross-Platform** (3.20): Windows/Linux/macOS support
+
+### Stats
+- 12 source modules, 15 test files, 200+ unit tests
+- Tested on Claude Code v2.1.85-2.1.91
+
+---
+
+<details>
+<summary>Previous versions (0.1.0 - 0.14.0)</summary>
+
 ## [0.14.0] - 2026-04-03
-
-### Added
-- **Linux/macOS platform support** (3.20): Complete cross-platform support
-  - Platform utility functions: `platformShell()`, `platformShellArgs()`, `platformSshPath()`, `platformHomedir()`, `platformNormalizePath()`, `platformClaudeConfigDir()`, `platformTmpDir()`, `platformClaudePaths()`
-  - macOS: homebrew (Apple Silicon + Intel), nvm claude paths
-  - Linux: `.local/bin`, `.npm-global/bin` claude paths
-  - `c4 init` auto-detects claude from platform-specific paths
-  - All platform-specific branching uses centralized constants (`IS_WIN`, `IS_MAC`, `IS_LINUX`)
-  - `tests/platform.test.js`: 17 unit tests
-
-### Changed
-- Replaced inline `process.platform` checks with centralized platform utilities
-- SSH ControlMaster explicitly documented as Linux + macOS support
+- Cross-platform support (3.20): Platform utility functions, macOS homebrew/nvm paths
 
 ## [0.13.0] - 2026-04-03
-
-### Added
-- **Hook architecture** (3.15): Structured event-based tool monitoring
-  - `hookEvent()`: Receives PreToolUse/PostToolUse JSON events from Claude Code hooks
-  - `_handlePreToolUse()`: Scope guard checks via structured data (Bash/Write/Edit)
-  - `_handlePostToolUse()`: Routine state tracking, error escalation, Agent subagent tracking
-  - `_buildHookCommands()`: Generates hook commands for worker `.claude/settings.json`
-  - `getHookEvents()`: Query hook event buffer per worker
-  - Daemon routes: `POST /hook-event`, `GET /hook-events`
-  - Config: `hooks.enabled`, `hooks.injectToWorkers`
-  - `tests/hook-architecture.test.js`: 18 unit tests
-- **Worker settings profiles** (3.16): Auto-generate `.claude/settings.json` per worktree
-  - `_buildWorkerSettings()`: Profile-based settings generation (permissions + hooks)
-  - `_writeWorkerSettings()`: Write settings to worktree `.claude/` directory
-  - `_getProfile()`: Resolve profile from config
-  - Config: `profiles` section (default/executor/reviewer/planner)
-  - CLI: `--profile`, `--template` flags for `c4 task`
-  - `tests/worker-settings.test.js`: 13 unit tests
-- **Subagent Swarm** (3.17): Monitor worker-internal Claude Code Agent tool usage
-  - `_trackSubagent()`: Track subagent spawns + limit enforcement
-  - `getSwarmStatus()`: Query swarm status per worker
-  - Config: `swarm.enabled`, `swarm.maxSubagents`, `swarm.trackUsage`
-  - CLI: `c4 swarm <worker-name>`
-  - Daemon route: `GET /swarm`
-  - `tests/subagent-swarm.test.js`: 10 unit tests
-- **Role templates** (3.18): Planner/Executor/Reviewer presets
-  - Built-in templates: Planner (Opus/max), Executor (Sonnet/high), Reviewer (Haiku/high)
-  - `resolveTemplate()`: User-defined → builtin priority resolution
-  - `_applyTemplate()`: Auto-apply model, effort, profile, prompt prefix
-  - `listTemplates()`: List all templates (builtin + config)
-  - Config: `templates` section
-  - CLI: `c4 new --template executor`, `c4 task --template reviewer`, `c4 templates`
-  - Daemon route: `GET /templates`
-  - `tests/role-templates.test.js`: 14 unit tests
-- **Auto Mode** (3.19): Delegate safety decisions to Claude's classifier
-  - `_isAutoModeEnabled()`: Config + flag priority resolution
-  - `_applyAutoMode()`: Set `permissions.defaultMode: "auto"` in worker settings
-  - Config: `autoMode.enabled`, `autoMode.allowOverride`
-  - CLI: `c4 task --auto-mode`
-  - `tests/auto-mode.test.js`: 12 unit tests
-
-### Changed
-- `config.example.json`: Added `hooks`, `profiles`, `templates`, `swarm`, `autoMode` sections
-- `sendTask()`: Template application, prompt prefix injection, auto mode integration
+- Hook architecture (3.15), Worker settings profiles (3.16), Subagent Swarm (3.17), Role templates (3.18), Auto Mode (3.19)
 
 ## [0.12.0] - 2026-04-03
-
-### Added
-- **Context transfer** (3.1): `sendTask()` contextFrom option, `--context` CLI flag
-- **Worker pooling** (3.4): idle worker recycle, `pool.enabled/maxIdleMs`, `--reuse` flag
-- **Rollback support** (3.6): `c4 rollback`, `_startCommit` tracking, `git reset --soft`
-- **Effort dynamic adjustment** (3.3): `_determineEffort()`, task length-based effort
-- **SSE event streaming** (3.5): `GET /events`, permission/complete/error/question events
-- **ScreenBuffer improvements** (3.8): CSI parser enhancement, `c4 scrollback`, scrollback API
-
-### Changed
-- `config.example.json`: Added `pool`, `effort` sections
+- Context transfer (3.1), Worker pooling (3.4), Rollback (3.6), Effort dynamic (3.3), SSE (3.5), ScreenBuffer improvements (3.8)
 
 ## [0.11.0] - 2026-04-03
-
-### Added
-- **Task history persistence** (3.7): Record worker task history across sessions
-  - `history.jsonl`: JSONL log with `{ name, task, branch, startedAt, completedAt, commits, status }`
-  - `close()` auto-records history before worker cleanup
-  - `_getCommits()`: Collects branch commits via `git log main..<branch>`
-  - `c4 history` CLI command: View task history with formatted output
-  - `c4 history <worker>` / `c4 history --worker <name>`: Filter by worker
-  - `c4 history --limit N`: Show last N records
-  - `GET /history` daemon route with `?worker=` and `?limit=` query params
-  - `tests/history.test.js`: 25 unit tests
-- **Autonomous operation structure** (2.9): watchdog + manager auto-creation + scribe context recovery
-- **Auto-validate task results** (3.2): Post-task test/lint execution with feedback loop
+- Task history persistence (3.7), Autonomous ops (2.9), Auto-verification (3.2)
 
 ## [0.10.0] - 2026-04-03
 
