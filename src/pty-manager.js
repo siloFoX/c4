@@ -417,7 +417,9 @@ class PtyManager {
       rawLogStream: null,
       pendingCommands: pendingCommands || null,
       setupDone: false,       // initial setup (effort level) completed
-      setupPhase: null,       // current setup phase: null, 'waitingPrompt', 'sentModel', 'inModelMenu'
+      setupPhase: null,       // current setup phase: null, 'waitMenu', 'done'
+      setupRetries: 0,        // retry count for effort setup
+      setupPhaseStart: null,  // timestamp when current phase started
     };
 
     // Raw log
@@ -455,15 +457,49 @@ class PtyManager {
           return;
         }
 
-        // Auto effort level setup (2-phase: send /model, then detect menu and press keys)
+        // Auto effort level setup (2-phase with retry: send /model, then detect menu and press keys)
         const effortLevel = this.config.workerDefaults?.effortLevel;
         if (effortLevel && !worker.setupDone) {
+          const setupCfg = this.config.workerDefaults?.effortSetup || {};
+          const maxRetries = setupCfg.retries ?? 3;
+          const phaseTimeoutMs = setupCfg.phaseTimeoutMs ?? 8000;
+          const inputDelayMs = setupCfg.inputDelayMs ?? 500;
+          const confirmDelayMs = setupCfg.confirmDelayMs ?? 500;
+
           const hasPrompt = text.includes('❯') && text.includes('for shortcuts');
           const hasModelMenu = text.includes('to adjust') && text.includes('effort');
+
+          // Timeout: if stuck in waitMenu phase too long, retry
+          if (worker.setupPhase === 'waitMenu' && worker.setupPhaseStart) {
+            const elapsed = Date.now() - worker.setupPhaseStart;
+            if (elapsed > phaseTimeoutMs && !hasModelMenu) {
+              worker.setupRetries++;
+              if (worker.setupRetries > maxRetries) {
+                worker.setupDone = true;
+                worker.setupPhase = null;
+                worker.snapshots.push({
+                  time: Date.now(),
+                  screen: `[C4 SETUP] effort level setup FAILED after ${maxRetries} retries`,
+                  autoAction: true
+                });
+                return;
+              }
+              worker.setupPhase = null;
+              worker.setupPhaseStart = null;
+              worker.snapshots.push({
+                time: Date.now(),
+                screen: `[C4 SETUP] effort setup retry ${worker.setupRetries}/${maxRetries} (phase timeout)`,
+                autoAction: true
+              });
+              proc.write('\x1b'); // Escape to clear any partial state
+              return;
+            }
+          }
 
           if (!worker.setupPhase && hasPrompt) {
             // Phase 1: Claude Code ready, send /model
             worker.setupPhase = 'waitMenu';
+            worker.setupPhaseStart = Date.now();
             proc.write('/model\r');
             return;
           }
@@ -477,7 +513,6 @@ class PtyManager {
             const targetIdx = levels.indexOf(effortLevel);
             const steps = targetIdx - defaultIdx;
 
-            // Small delay to ensure TUI is ready for input
             setTimeout(() => {
               if (steps > 0) {
                 for (let i = 0; i < steps; i++) proc.write('\x1b[C'); // Right
@@ -488,13 +523,15 @@ class PtyManager {
                 proc.write('\r'); // Enter to confirm
                 worker.setupDone = true;
                 worker.setupPhase = null;
+                worker.setupPhaseStart = null;
                 worker.snapshots.push({
                   time: Date.now(),
-                  screen: `[C4 SETUP] effort level → ${effortLevel}`,
+                  screen: `[C4 SETUP] effort level → ${effortLevel}` +
+                    (worker.setupRetries ? ` (after ${worker.setupRetries} retries)` : ''),
                   autoAction: true
                 });
-              }, 500);
-            }, 500);
+              }, confirmDelayMs);
+            }, inputDelayMs);
             return;
           }
         }

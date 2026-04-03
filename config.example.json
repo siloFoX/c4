@@ -93,6 +93,12 @@
   "workerDefaults": {
     "trustFolder": true,
     "effortLevel": "max",
+    "effortSetup": {
+      "retries": 3,
+      "phaseTimeoutMs": 8000,
+      "inputDelayMs": 500,
+      "confirmDelayMs": 500
+    },
     "model": "default"
   },
 
