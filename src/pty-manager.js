@@ -636,34 +636,50 @@ class PtyManager extends EventEmitter {
     return { input: inputTokens, output: outputTokens };
   }
 
-  _getLastActivity(w) {
-    // Extract meaningful activity from worker's current screen or recent snapshots
-    const screen = w.screen ? w.screen.getScreen() : '';
-
-    // Look for tool use patterns in screen text
-    const patterns = [
-      /Edit\(([^\)]+)\)/,
-      /Write\(([^\)]+)\)/,
-      /Reading\s+(\d+)\s+files?/,
-      /Searching\s+for\s+(\d+)\s+pattern/,
-      /Bash\(([^\)]{0,60})\)/,
-      /npm\s+test/,
-      /git\s+(commit|push|merge|checkout)/,
-      /(\d+)\s+passed.*(\d+)\s+failed/,
-    ];
-
-    for (const p of patterns) {
-      const m = screen.match(p);
-      if (m) return m[0].substring(0, 80);
+  _getLastActivity(w, workerName) {
+    // Read recent tool_use events from logs/events-<worker>.jsonl
+    // Returns "Edit: foo.js, Write: bar.js" style summary
+    workerName = workerName || '';
+    if (workerName) {
+      try {
+        const logFile = path.join(this.logsDir, `events-${workerName}.jsonl`);
+        if (fs.existsSync(logFile)) {
+          const content = fs.readFileSync(logFile, 'utf8').trim();
+          if (content) {
+            const lines = content.split('\n');
+            // Take last 20 lines to find recent tool_use events
+            const recent = lines.slice(-20);
+            const activities = [];
+            for (const line of recent) {
+              try {
+                const evt = JSON.parse(line);
+                const tool = evt.tool_name;
+                if (!tool) continue;
+                const input = evt.tool_input || {};
+                // Extract meaningful file path from tool input
+                const file = input.file_path || input.command || '';
+                const shortFile = file ? path.basename(file) : '';
+                if (shortFile) {
+                  activities.push(`${tool}: ${shortFile}`);
+                } else {
+                  activities.push(tool);
+                }
+              } catch {}
+            }
+            if (activities.length > 0) {
+              // Deduplicate and take last 5
+              const unique = [...new Set(activities)].slice(-5);
+              return unique.join(', ').substring(0, 120);
+            }
+          }
+        }
+      } catch {}
     }
 
-    // Fallback: last non-auto snapshot text
-    const snaps = (w.snapshots || []).filter(s => !s.autoAction);
-    if (snaps.length > 0) {
-      const last = snaps[snaps.length - 1].screen || '';
-      // Extract first meaningful line
-      const lines = last.split('\n').filter(l => l.trim().length > 10);
-      if (lines.length > 0) return lines[0].substring(0, 80);
+    // Fallback: first line of task text
+    if (w._taskText) {
+      const firstLine = w._taskText.split(/[\n.]/)[0].trim();
+      if (firstLine) return firstLine.substring(0, 80);
     }
 
     return '';
@@ -2624,9 +2640,9 @@ class PtyManager extends EventEmitter {
             screen: `[HEALTH] worker idle for ${Math.round(idleMs / 60000)}min (timeout: ${Math.round(timeoutMs / 60000)}min)`,
             autoAction: true
           });
-          results.push({ name, status: 'timeout', idleMs, task: w._taskText, taskStarted: w._taskStartedAt, lastActivity: this._getLastActivity(w) });
+          results.push({ name, status: 'timeout', idleMs, task: w._taskText, taskStarted: w._taskStartedAt, lastActivity: this._getLastActivity(w, name) });
         } else {
-          results.push({ name, status: 'alive', task: w._taskText, taskStarted: w._taskStartedAt, lastActivity: this._getLastActivity(w) });
+          results.push({ name, status: 'alive', idleMs, task: w._taskText, taskStarted: w._taskStartedAt, lastActivity: this._getLastActivity(w, name) });
         }
         continue;
       }
@@ -2692,6 +2708,20 @@ class PtyManager extends EventEmitter {
 
     // Process task queue — worker exits may unblock queued tasks (2.2, 2.8)
     const dequeued = this._processQueue();
+
+    // Stall detection: intervention state or 5min+ no output (4.14)
+    const stallThresholdMs = 300000; // 5 minutes
+    if (this._notifications) {
+      for (const r of results) {
+        const w = this.workers.get(r.name);
+        if (!w || !w.alive) continue;
+        if (w._interventionState) {
+          this._notifications.notifyStall(r.name, `intervention: ${w._interventionState}`);
+        } else if (w._taskText && r.idleMs >= stallThresholdMs) {
+          this._notifications.notifyStall(r.name, `no output for ${Math.round(r.idleMs / 60000)}min`);
+        }
+      }
+    }
 
     // Notifications: flush Slack buffer + report health issues (4.10)
     if (this._notifications) {

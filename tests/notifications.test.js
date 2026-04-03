@@ -97,10 +97,11 @@ describe('Notifications.notifyHealthCheck()', () => {
     assert.strictEqual(n._slackBuffer.length, 1);
   });
 
-  it('does not push when no workers', () => {
+  it('pushes heartbeat when no workers', () => {
     const n = new Notifications({ language: 'ko', slack: { enabled: true, webhookUrl: 'http://example.com/hook' } });
     n.notifyHealthCheck({ workers: [] });
-    assert.strictEqual(n._slackBuffer.length, 0);
+    assert.strictEqual(n._slackBuffer.length, 1);
+    assert.ok(n._slackBuffer[0].text.includes('daemon OK'));
   });
 });
 

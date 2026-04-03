@@ -189,6 +189,16 @@ class Notifications {
     }
   }
 
+  // Stall alert: immediate Slack webhook (not buffered)
+  async notifyStall(workerName, reason) {
+    if (!this.slack.enabled || !this.slack.webhookUrl) {
+      return { sent: false, reason: 'slack not configured' };
+    }
+    const t = this._time();
+    const text = `[STALL] ${t} ${workerName}: ${reason}`;
+    return this._postWebhook(this.slack.webhookUrl, { text });
+  }
+
   // Worker가 직접 보내는 상태 메시지
   statusUpdate(workerName, message) {
     const t = this._time();
