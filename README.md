@@ -11,7 +11,7 @@
 ![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)
 ![Claude Code](https://img.shields.io/badge/Claude_Code-v2.1.85--2.1.91-8A2BE2.svg)
 ![Platform](https://img.shields.io/badge/tested-Win11%20%7C%20Ubuntu%20%7C%20macOS-blue.svg)
-![Version](https://img.shields.io/badge/version-1.3.0-green.svg)
+![Version](https://img.shields.io/badge/version-1.5.0-green.svg)
 
 **[한국어](README.ko.md)**
 
@@ -214,6 +214,8 @@ These are used by Claude Code (manager), not by you directly:
 | `c4 swarm <name>` | Show subagent swarm status |
 | `c4 auto <text>` | One-command autonomous mode (manager + scribe + full permissions) |
 | `c4 morning` | Generate morning report (auto-called on `c4 auto` completion) |
+| `c4 resume <name> [sessionId]` | Resume worker with previous session |
+| `c4 session-id <name>` | Show worker session ID |
 | `c4 status <name> <text>` | Send status update to Slack |
 | `c4 scribe start\|stop\|status\|scan` | Manage session context recording |
 | `c4 config [reload]` | View or hot-reload config |
@@ -279,7 +281,10 @@ These are used by Claude Code (manager), not by you directly:
 - **`c4 auto`**: One-command autonomous mode — manager + scribe + full permissions
 - **Global auto mode**: All workers auto-approve non-denied commands (no overnight stalls)
 - **PostCompact recovery**: CLAUDE.md + session context re-injected after context compaction
-- **Notifications**: Slack webhook + Email alerts with i18n (ko/en). `c4 status` for worker self-reporting
+- **Session resume**: Workers auto-resume previous Claude Code sessions on restart (--resume flag)
+- **Manager rotation**: Auto-replace manager when context limit is reached (PostCompact hook)
+- **Autonomy Level 4**: Full autonomy mode — deny rules overridden to approve
+- **Notifications**: Multi-channel alerts (Slack, Discord, Telegram, KakaoWork) + Email. alertOnly mode for critical-only alerts
 
 **Monitoring**
 - **SSE events**: Real-time streaming of permission/complete/error/question events
@@ -287,6 +292,8 @@ These are used by Claude Code (manager), not by you directly:
 - **Task history**: Persistent JSONL log of all completed tasks
 - **Scribe**: Session context extraction, survives context compaction via PostCompact hook
 - **State machine**: Worker phase tracking (plan/edit/test/fix) with escalation
+- **Dashboard**: Web UI at GET /dashboard — worker status, stats, queued/lost sections with dark theme
+- **Stall detection**: Auto-detect intervention state and 5min+ no-output workers, immediate Slack alert
 
 **Infrastructure**
 - **Hook architecture**: PreToolUse/PostToolUse JSON event processing
