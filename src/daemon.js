@@ -56,8 +56,8 @@ async function handleRequest(req, res) {
       result = manager.list();
 
     } else if (req.method === 'POST' && route === '/task') {
-      const { name, task, branch, useBranch, useWorktree, projectRoot, scope, scopePreset } = await parseBody(req);
-      result = manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot, scope, scopePreset });
+      const { name, task, branch, useBranch, useWorktree, projectRoot, scope, scopePreset, after, command, target } = await parseBody(req);
+      result = manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot, scope, scopePreset, after, command, target });
 
     } else if (req.method === 'POST' && route === '/close') {
       const { name } = await parseBody(req);
@@ -80,6 +80,9 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && route === '/scribe/scan') {
       result = manager.scribeScan();
+
+    } else if (req.method === 'GET' && route === '/token-usage') {
+      result = manager.getTokenUsage();
 
     } else {
       res.writeHead(404);

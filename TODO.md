@@ -196,13 +196,13 @@
 | # | 항목 | 상태 | 설명 |
 |---|------|------|------|
 | 2.1 | ~~멀티 에이전트 충돌 규칙~~ | **→1.5** | 브랜치 격리로 해결. lock 불필요 |
-| 2.2 | 작업 의존성/순서 보장 | todo | `--after worker-a` 플래그. 관리자가 worker-a 완료 감지 후 worker-b 시작 |
-| 2.3 | 중복 작업 방지 | todo | state.json에 작업 할당 추적. 동일 이름 task 거부 |
+| 2.2 | 작업 의존성/순서 보장 | **done** | `--after worker-a` 플래그. 큐에서 의존성 완료 후 자동 생성 |
+| 2.3 | 중복 작업 방지 | **done** | 큐 + workers에서 동일 이름 task 거부 |
 | 2.4 | SSH 끊김 복구 | todo | SSH ControlMaster + 재연결 로직 |
 | 2.5 | 토큰 사용량 모니터링 | todo | jsonl에서 토큰 추출. config에 일일 한도 설정 |
 | 2.6 | 타임아웃 정책 | **done** | healthCheck에 timeoutMs 추가. 기본 10분 초과 시 [HEALTH] timeout 스냅샷 |
 | 2.7 | 로그 관리 및 세션 복구 | **done** | 로그 로테이션(50MB). 종료 작업자 로그 자동 정리. 데몬 재시작 시 lost workers 표시 |
-| 2.8 | API rate limit 큐잉 | todo | maxWorkers: 3 (config). 초과 시 큐에 대기 |
+| 2.8 | API rate limit 큐잉 | **done** | maxWorkers config. 초과 시 큐에 대기. healthCheck에서 자동 디큐 |
 | 2.9 | 자율 운영 구조 | todo | 아래 상세 |
 
 ### 2.9 자율 운영 구조 (상세)
@@ -291,3 +291,6 @@ watchdog.sh (nohup, 60초 체크)
 | ~~1.17~~ | worktree에서 main 보호 hook 적용 | 2026-04-03 |
 | ~~1.8~~ | 작업 스코프 정의 + 이탈 감시 | 2026-04-03 |
 | ~~1.9~~ | 관리자 개입 프로토콜 | 2026-04-03 |
+| ~~2.2~~ | 작업 의존성/순서 보장 | 2026-04-03 |
+| ~~2.3~~ | 중복 작업 방지 | 2026-04-03 |
+| ~~2.8~~ | API rate limit 큐잉 | 2026-04-03 |
