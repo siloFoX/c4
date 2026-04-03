@@ -18,6 +18,14 @@
   - `_classifyPermission()`: Level 4일 때 deny → approve + `[AUTONOMY L4]` 스냅샷 기록
   - config.example.json에 `autoApprove.autonomyLevel` 옵션 추가
   - `tests/autonomy-level.test.js`: 14개 유닛 테스트
+- **관리자 자동 교체** (4.7): 컨텍스트 한계 도달 시 관리자 자동 교체
+  - `compactEvent()`: PostCompact hook에서 compact 이벤트 수신, 횟수 추적
+  - `_replaceManager()`: 새 관리자 생성 + 맥락 전달 (session-context.md, TODO.md, git log)
+  - PostCompact hook에 daemon compact-event 보고 curl 명령 추가
+  - `config.managerRotation.compactThreshold`: 교체 임계값 설정 (0=비활성)
+  - healthCheck에서 임계값 근접 경고 알림
+  - `POST /compact-event` daemon API 라우트
+  - `tests/manager-rotation.test.js`: 13개 유닛 테스트
 
 ## [1.4.0] - 2026-04-04
 

@@ -194,6 +194,11 @@
     "allowOverride": true
   },
 
+  "managerRotation": {
+    "compactThreshold": 0,
+    "enabled": false
+  },
+
   "templates": {
     "planner": {
       "description": "Planner — 설계 전담, Opus 모델",

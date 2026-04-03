@@ -1338,12 +1338,18 @@ class PtyManager extends EventEmitter {
     const projectRoot = (this.projectRoot || path.join(__dirname, '..')).replace(/\\/g, '/');
     const claudeMdPath = `${projectRoot}/CLAUDE.md`;
     const sessionContextPath = `${projectRoot}/docs/session-context.md`;
+    const daemonPort = this.config.daemon?.port || 3456;
+    const daemonHost = this.config.daemon?.host || '127.0.0.1';
     settings.hooks.PostCompact.push({
       hooks: [
         {
           type: 'command',
           command: `echo "=== CLAUDE.md ===" && cat "${claudeMdPath}" 2>/dev/null && echo "=== Session Context ===" && cat "${sessionContextPath}" 2>/dev/null || echo "No context files"`,
           statusMessage: 'Reloading project context...'
+        },
+        {
+          type: 'command',
+          command: `curl -s -X POST http://${daemonHost}:${daemonPort}/compact-event -H "Content-Type: application/json" -d "{\\"worker\\":\\"${workerName}\\"}" 2>/dev/null || true`
         }
       ]
     });
@@ -2831,6 +2837,20 @@ class PtyManager extends EventEmitter {
       }
     }
 
+    // Manager rotation check (4.7): warn if compact count approaching threshold
+    const rotationThreshold = this.config.managerRotation?.compactThreshold ?? 0;
+    if (rotationThreshold > 0) {
+      for (const [name, w] of this.workers) {
+        if (!w.alive || !w._autoWorker) continue;
+        const count = w._compactCount || 0;
+        if (count > 0 && count >= rotationThreshold - 1 && count < rotationThreshold) {
+          if (this._notifications) {
+            this._notifications.pushAll(`[MANAGER WARN] ${name} approaching compact limit (${count}/${rotationThreshold})`);
+          }
+        }
+      }
+    }
+
     // Process task queue — worker exits may unblock queued tasks (2.2, 2.8)
     const dequeued = this._processQueue();
 
@@ -3106,6 +3126,93 @@ class PtyManager extends EventEmitter {
     for (const name of [...this.workers.keys()]) {
       this.close(name);
     }
+  }
+
+  // --- Manager Auto-Replacement (4.7) ---
+
+  compactEvent(workerName) {
+    const w = this.workers.get(workerName);
+    if (!w) return { error: `Worker '${workerName}' not found` };
+
+    if (!w._compactCount) w._compactCount = 0;
+    w._compactCount++;
+    w._lastCompactAt = Date.now();
+
+    w.snapshots.push({
+      time: Date.now(),
+      screen: `[COMPACT] context compaction #${w._compactCount} detected`,
+      autoAction: true
+    });
+
+    this._emitSSE('compact', { worker: workerName, count: w._compactCount });
+
+    // Check if auto-replacement threshold reached
+    const threshold = this.config.managerRotation?.compactThreshold ?? 0;
+    if (threshold > 0 && w._compactCount >= threshold && w._autoWorker) {
+      // Trigger manager replacement
+      const replaceResult = this._replaceManager(workerName);
+      return { compactCount: w._compactCount, replaced: true, ...replaceResult };
+    }
+
+    return { received: true, worker: workerName, compactCount: w._compactCount };
+  }
+
+  _replaceManager(oldName) {
+    const old = this.workers.get(oldName);
+    if (!old || !old.alive) return { error: `Worker '${oldName}' not alive` };
+
+    // Force scribe scan to capture latest context
+    try { this.scribeScan(); } catch {}
+
+    // Save session ID before closing
+    this._updateSessionId(oldName);
+
+    const newName = `${oldName}-${Date.now().toString(36)}`;
+    const task = old._taskText || '';
+    const branch = old.branch || `c4/${newName}`;
+
+    // Build replacement mission with context recovery instructions
+    const repoRoot = (old.worktreeRepoRoot || this._detectRepoRoot() || '').replace(/\\/g, '/');
+    const contextInstructions = [
+      `docs/session-context.md 파일을 읽어서 이전 관리자의 작업 맥락을 파악해.`,
+      `TODO.md를 읽고 남은 작업을 이어서 진행해.`,
+      `git log --oneline -20 으로 최근 진행 상황을 확인해.`,
+      `이전 관리자(${oldName})의 작업을 이어받는 중이야.`
+    ].join('\n');
+
+    const fullMission = task
+      ? `${contextInstructions}\n\n이전 작업 지시:\n${task}`
+      : contextInstructions;
+
+    // Close old manager
+    old.snapshots.push({
+      time: Date.now(),
+      screen: `[MANAGER ROTATION] replacing with ${newName} after ${old._compactCount} compactions`,
+      autoAction: true
+    });
+
+    // Notify
+    if (this._notifications) {
+      this._notifications.pushAll(`[MANAGER ROTATION] ${oldName} -> ${newName} (compactions: ${old._compactCount})`);
+    }
+
+    // Create new manager with same permissions
+    const sendResult = this.sendTask(newName, fullMission, {
+      branch,
+      useBranch: true,
+      autoMode: true,
+      _autoWorker: true
+    });
+
+    // Close old after new is created
+    this.close(oldName);
+
+    return {
+      oldManager: oldName,
+      newManager: newName,
+      compactCount: old._compactCount || 0,
+      sendResult
+    };
   }
 
   // --- Auto Mode (4.8) ---

@@ -278,7 +278,7 @@ watchdog.sh (nohup, 60초 체크)
 | 4.4 | 아침 보고서 자동 생성 | **done** | 야간 작업 완료 후 docs/morning-report.md 자동 생성. 완료/실패/수정 필요 항목 요약 |
 | 4.5 | 관리자 자동 컨펌 정책 | **done** | Level 0~4 지원. autonomyLevel 4: deny도 approve+로그. 완전 자율 |
 | 4.6 | PreToolUse hook으로 복합 명령 차단 | **done** | 작업자 .claude/settings.json에 hook 자동 삽입. &&, |, ; 감지 시 block. 승인 요청 자체가 안 뜨게 |
-| 4.7 | 관리자 컨텍스트 한계 자동 대응 | **partial** | PostCompact hook이 CLAUDE.md+session-context.md 자동 주입. 남은 과제: 관리자 자동 교체 |
+| 4.7 | 관리자 컨텍스트 한계 자동 대응 | **done** | PostCompact hook 컨텍스트 주입 + compact 횟수 추적 + 관리자 자동 교체 |
 | 4.8 | c4 auto 원커맨드 실행 | **done** | c4 auto "작업 내용" 하면 관리자+scribe+작업자 전부 자동 생성, 완료 시 morning-report 생성 |
 | 4.9 | 작업자 .claude/settings.json 프리셋 | **done** | worktree 생성 시 역할별 permissions+hooks 자동 삽입. 복합 명령 차단 hook 포함 |
 | 4.10 | 관리자-작업자 간 Hook 기반 통신 | **done** | Notifications 모듈(Slack webhook+Email). healthCheck 연동. 작업 완료/에러/헬스 이벤트 알림 |
@@ -413,3 +413,6 @@ Level 4이면:
 | ~~4.14~~ | _getLastActivity JSONL 기반 전환 | 2026-04-04 |
 | ~~4.15~~ | notifyStall 긴급 알림 | 2026-04-04 |
 | ~~4.16~~ | alertOnly 모드 | 2026-04-04 |
+| ~~4.1~~ | 완전 무인 운영 모드 (claude --resume) | 2026-04-04 |
+| ~~4.5~~ | 관리자 자동 컨펌 정책 (Level 4) | 2026-04-04 |
+| ~~4.7~~ | 관리자 컨텍스트 한계 자동 대응 (자동 교체) | 2026-04-04 |

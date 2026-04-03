@@ -295,6 +295,15 @@ async function handleRequest(req, res) {
       const limit = parseInt(url.searchParams.get('limit') || '0') || 0;
       result = manager.getHistory({ worker: worker || undefined, limit: limit || undefined });
 
+    } else if (req.method === 'POST' && route === '/compact-event') {
+      // Manager auto-replacement (4.7): compact event from PostCompact hook
+      const { worker } = await parseBody(req);
+      if (!worker) {
+        result = { error: 'Missing worker name in compact event' };
+      } else {
+        result = manager.compactEvent(worker);
+      }
+
     } else if (req.method === 'GET' && route === '/session-id') {
       // Resume support (4.1): get session ID for a worker
       const name = url.searchParams.get('name');
