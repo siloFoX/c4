@@ -13,8 +13,8 @@
 | 1.7 | 작업자 헬스체크 + 자동 재시작 | todo | 주기적 alive 체크. 죽으면 자동 재시작 또는 관리자에게 보고 |
 | 1.8 | 작업 스코프 정의 + 이탈 감시 | todo | 아래 상세 |
 | 1.9 | 관리자 개입 프로토콜 | todo | 아래 상세 |
-| 1.10 | `c4 init` 개선 | **done** | claude 경로 자동 감지 → config.json 저장, npm link → ~/.local/bin 심링크 → .bashrc alias 3단계 폴백, EPERM 처리 |
-| 1.11 | `c4 merge` + main 보호 | todo | main 직접 커밋 차단(pre-commit hook). 머지는 c4 merge로만. 테스트/문서 확인 후 머지 |
+| 1.10 | `c4 init` 개선 | **done** | claude 경로 자동 감지, npm link → symlink → alias 폴백, EPERM 처리 |
+| 1.11 | `c4 merge` + main 보호 | **done** | pre-commit hook으로 main 직접 커밋 차단. c4 merge로 테스트/문서 체크 후 머지 |
 | 1.12 | git worktree 지원 | **done** | 작업자마다 별도 worktree. 같은 디렉토리 공유 문제 해결. 멀티 에이전트 필수 |
 | 1.13 | CLAUDE.md 규칙 강제 이행 | todo | hook(PreToolUse)으로 복합 명령 차단, 작업자에 system prompt 주입, c4 send/task에서 규칙 위반 검증 |
 | 1.14 | 재귀적 C4 구조 | todo | 작업자가 c4를 실행해서 하위 작업자를 관리하는 중간 관리자 역할. 멀티레벨 오케스트레이션 |
@@ -154,3 +154,4 @@
 | ~~1.4~~ | Git Bash 경로 변환 해결 (main cherry-pick) | 2026-04-03 |
 | ~~1.12~~ | git worktree 지원 | 2026-04-03 |
 | ~~1.10~~ | `c4 init` 명령 | 2026-04-03 |
+| ~~1.11~~ | `c4 merge` + main 보호 | 2026-04-03 |

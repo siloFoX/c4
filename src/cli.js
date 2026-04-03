@@ -389,7 +389,141 @@ async function main() {
           }
         }
 
+        // 4. Set git hooksPath to .githooks
+        const { execSync: execSyncInit } = require('child_process');
+        try {
+          execSyncInit(`git config core.hooksPath .githooks`, { cwd: repoRoot, stdio: 'pipe' });
+          console.log('[ok] git hooksPath: set to .githooks');
+        } catch (e) {
+          console.log(`[warn] git hooksPath: ${e.message}`);
+        }
+
         console.log('\nc4 init complete!');
+        return;
+      }
+
+      case 'merge': {
+        const { execSync } = require('child_process');
+        const path = require('path');
+        const target = args[0];
+
+        if (!target) {
+          console.error('Usage: c4 merge <worker-name|branch-name>');
+          process.exit(1);
+        }
+
+        // Detect project root (git repo root)
+        let repoRoot;
+        try {
+          repoRoot = execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim();
+        } catch {
+          console.error('Error: not inside a git repository');
+          process.exit(1);
+        }
+
+        // Determine branch name: if target matches a worktree worker name, derive branch
+        let branch = target;
+        const worktreePath = path.resolve(repoRoot, '..', `c4-worktree-${target}`);
+        try {
+          const fs = require('fs');
+          if (fs.existsSync(worktreePath)) {
+            // It's a worker name — get the branch from the worktree
+            const wtBranch = execSync(`git -C "${worktreePath.replace(/\\/g, '/')}" rev-parse --abbrev-ref HEAD`, { encoding: 'utf8' }).trim();
+            if (wtBranch) {
+              branch = wtBranch;
+              console.log(`Worker "${target}" → branch "${branch}"`);
+            }
+          }
+        } catch {}
+
+        // Verify the branch exists
+        try {
+          execSync(`git rev-parse --verify "${branch}"`, { cwd: repoRoot, encoding: 'utf8', stdio: 'pipe' });
+        } catch {
+          console.error(`Error: branch "${branch}" does not exist`);
+          process.exit(1);
+        }
+
+        // Ensure we're on main
+        const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: repoRoot, encoding: 'utf8' }).trim();
+        if (currentBranch !== 'main') {
+          console.error(`Error: must be on main branch to merge (currently on "${currentBranch}")`);
+          process.exit(1);
+        }
+
+        // Don't merge main into itself
+        if (branch === 'main') {
+          console.error('Error: cannot merge main into itself');
+          process.exit(1);
+        }
+
+        console.log(`\nPre-merge checks for branch "${branch}":\n`);
+
+        let allPassed = true;
+
+        // Check 1: tests pass (if test script exists)
+        process.stdout.write('  [check] npm test ... ');
+        try {
+          const pkg = JSON.parse(require('fs').readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
+          if (pkg.scripts && pkg.scripts.test) {
+            execSync('npm test', { cwd: repoRoot, stdio: 'pipe' });
+            console.log('PASS');
+          } else {
+            console.log('SKIP (no test script)');
+          }
+        } catch (e) {
+          console.log('FAIL');
+          console.error('    Tests failed. Fix tests before merging.');
+          allPassed = false;
+        }
+
+        // Check 2: TODO.md modified
+        process.stdout.write('  [check] TODO.md modified ... ');
+        try {
+          const diff = execSync(`git diff main..."${branch}" --name-only`, { cwd: repoRoot, encoding: 'utf8' });
+          if (diff.split('\n').some(f => f.trim() === 'TODO.md')) {
+            console.log('PASS');
+          } else {
+            console.log('FAIL');
+            console.error('    TODO.md was not modified in this branch.');
+            allPassed = false;
+          }
+        } catch {
+          console.log('FAIL (could not diff)');
+          allPassed = false;
+        }
+
+        // Check 3: CHANGELOG.md modified
+        process.stdout.write('  [check] CHANGELOG.md modified ... ');
+        try {
+          const diff = execSync(`git diff main..."${branch}" --name-only`, { cwd: repoRoot, encoding: 'utf8' });
+          if (diff.split('\n').some(f => f.trim() === 'CHANGELOG.md')) {
+            console.log('PASS');
+          } else {
+            console.log('FAIL');
+            console.error('    CHANGELOG.md was not modified in this branch.');
+            allPassed = false;
+          }
+        } catch {
+          console.log('FAIL (could not diff)');
+          allPassed = false;
+        }
+
+        if (!allPassed) {
+          console.log('\nMerge REJECTED — fix the above issues first.');
+          process.exit(1);
+        }
+
+        // All checks passed — merge
+        console.log('\nAll checks passed. Merging...\n');
+        try {
+          const output = execSync(`git merge "${branch}" --no-ff -m "Merge branch '${branch}'"`, { cwd: repoRoot, encoding: 'utf8' });
+          console.log(output);
+          console.log(`Merge complete: ${branch} → main`);
+        } catch (e) {
+          console.error('Merge failed:', e.message);
+          process.exit(1);
+        }
         return;
       }
 
@@ -439,6 +573,7 @@ Commands:
   read-now <name>                  Read current screen immediately
   wait <name> [timeout_ms]         Wait until idle, then read screen
   list                             List all workers
+  merge <worker|branch>            Merge branch to main (with pre-checks)
   close <name>                     Close a worker
   health                           Check daemon status
   daemon start                     Start daemon in background

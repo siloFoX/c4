@@ -1,0 +1,14 @@
+#!/bin/sh
+# C4 pre-commit hook: protect main branch from direct commits.
+# Commits are only allowed on c4/ prefixed branches (or non-main branches).
+# Install: git config core.hooksPath .githooks (done by c4 init)
+
+branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+
+if [ "$branch" = "main" ]; then
+  echo ""
+  echo "  [c4] Direct commits to main are blocked."
+  echo "  Use a c4/ branch and merge with: c4 merge <branch>"
+  echo ""
+  exit 1
+fi
