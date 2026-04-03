@@ -295,6 +295,48 @@ async function handleRequest(req, res) {
       const limit = parseInt(url.searchParams.get('limit') || '0') || 0;
       result = manager.getHistory({ worker: worker || undefined, limit: limit || undefined });
 
+    } else if (req.method === 'POST' && route === '/compact-event') {
+      // Manager auto-replacement (4.7): compact event from PostCompact hook
+      const { worker } = await parseBody(req);
+      if (!worker) {
+        result = { error: 'Missing worker name in compact event' };
+      } else {
+        result = manager.compactEvent(worker);
+      }
+
+    } else if (req.method === 'GET' && route === '/session-id') {
+      // Resume support (4.1): get session ID for a worker
+      const name = url.searchParams.get('name');
+      if (!name) {
+        result = { error: 'Missing name parameter' };
+      } else {
+        const sessionId = manager.getSessionId(name);
+        result = { name, sessionId };
+      }
+
+    } else if (req.method === 'POST' && route === '/resume') {
+      // Resume support (4.1): restart worker with --resume
+      const { name, sessionId } = await parseBody(req);
+      if (!name) {
+        result = { error: 'Missing name parameter' };
+      } else {
+        const sid = sessionId || manager.getSessionId(name);
+        if (!sid) {
+          result = { error: `No session ID found for '${name}'` };
+        } else {
+          // Close existing worker if alive
+          const existing = manager.workers.get(name);
+          if (existing && existing.alive) {
+            manager.close(name);
+          } else if (existing) {
+            if (existing.idleTimer) clearTimeout(existing.idleTimer);
+            if (existing.rawLogStream && !existing.rawLogStream.destroyed) existing.rawLogStream.end();
+            manager.workers.delete(name);
+          }
+          result = manager.create(name, 'claude', ['--resume', sid], { target: 'local' });
+        }
+      }
+
     } else if (req.method === 'GET' && route === '/dashboard') {
       // Dashboard Web UI (4.3)
       res.setHeader('Content-Type', 'text/html; charset=utf-8');

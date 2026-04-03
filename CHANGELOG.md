@@ -1,11 +1,34 @@
 # Changelog
 
-## [1.4.1] - 2026-04-04
+## [1.5.0] - 2026-04-04
+
+### Added
+- **claude --resume 세션 이어가기** (4.1): 작업자/관리자 재시작 시 이전 세션 자동 복구
+  - `_getWorkerSessionId()`: Claude Code JSONL 세션 파일에서 최신 세션 ID 추출
+  - `_updateSessionId()`: healthCheck 주기마다 세션 ID 갱신, state.json에 영속화
+  - `create()`: `options.resume` 지원 — `claude --resume <sessionId>`로 세션 이어가기
+  - healthCheck autoRestart: resume 우선 시도, 실패 시 새 세션 폴백
+  - `c4 resume <name> [sessionId]`: CLI 명령으로 수동 resume
+  - `c4 session-id <name>`: 작업자 세션 ID 조회
+  - `GET /session-id`, `POST /resume`: daemon API 라우트
+  - watchdog.sh: 관리자 사망 시 resume 우선 시도
+  - `tests/session-resume.test.js`: 13개 유닛 테스트
+- **autonomyLevel 4 완전 자율** (4.5): deny 룰도 approve로 오버라이드하는 완전 자율 모드
+  - `_getAutonomyLevel()`: config에서 autonomyLevel 읽기
+  - `_classifyPermission()`: Level 4일 때 deny → approve + `[AUTONOMY L4]` 스냅샷 기록
+  - config.example.json에 `autoApprove.autonomyLevel` 옵션 추가
+  - `tests/autonomy-level.test.js`: 14개 유닛 테스트
+- **관리자 자동 교체** (4.7): 컨텍스트 한계 도달 시 관리자 자동 교체
+  - `compactEvent()`: PostCompact hook에서 compact 이벤트 수신, 횟수 추적
+  - `_replaceManager()`: 새 관리자 생성 + 맥락 전달 (session-context.md, TODO.md, git log)
+  - PostCompact hook에 daemon compact-event 보고 curl 명령 추가
+  - `config.managerRotation.compactThreshold`: 교체 임계값 설정 (0=비활성)
+  - healthCheck에서 임계값 근접 경고 알림
+  - `POST /compact-event` daemon API 라우트
+  - `tests/manager-rotation.test.js`: 13개 유닛 테스트
 
 ### Fixed
 - **send() Enter 누락 버그 수정**: 일반 텍스트 전송(isSpecialKey=false) 시 `\r`(Enter)을 append하지 않아 명령이 실행되지 않던 문제 수정
-
----
 
 ## [1.4.0] - 2026-04-04
 

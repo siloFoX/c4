@@ -53,6 +53,7 @@
   "autoApprove": {
     "enabled": false,
     "alwaysApproveForSession": false,
+    "autonomyLevel": 0,
     "rules": [
       { "pattern": "Read", "action": "approve" },
       { "pattern": "Glob", "action": "approve" },
@@ -191,6 +192,11 @@
   "autoMode": {
     "enabled": false,
     "allowOverride": true
+  },
+
+  "managerRotation": {
+    "compactThreshold": 0,
+    "enabled": false
   },
 
   "templates": {

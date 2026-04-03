@@ -106,6 +106,7 @@ class PtyManager extends EventEmitter {
     this._lastHealthCheck = null;
     this._scribe = null;
     this._sshReconnects = new Map(); // name → { count, lastAttempt }
+    this._sessionIds = {};  // name → sessionId for --resume (4.1)
     this._tokenUsage = { daily: {}, lastScan: 0, offsets: {} };
     this._loadTokenState();
     this._sseClients = new Set(); // SSE client connections (3.5)
@@ -152,14 +153,20 @@ class PtyManager extends EventEmitter {
       this.offsets = data.offsets || {};
       // Recover lost workers from previous daemon session
       this.lostWorkers = [];
+      // Session ID map for --resume support (4.1)
+      this._sessionIds = {};
       if (Array.isArray(data.workers)) {
         for (const w of data.workers) {
+          if (w.sessionId) {
+            this._sessionIds[w.name] = w.sessionId;
+          }
           if (w.name && w.alive) {
             this.lostWorkers.push({
               name: w.name,
               pid: w.pid,
               branch: w.branch || null,
               worktree: w.worktree || null,
+              sessionId: w.sessionId || null,
               lostAt: new Date().toISOString()
             });
           }
@@ -188,10 +195,76 @@ class PtyManager extends EventEmitter {
         alive: w.alive,
         branch: w.branch || null,
         worktree: w.worktree || null,
+        sessionId: w._sessionId || null,
         exitedAt: exitSnapshot ? new Date(exitSnapshot.time).toISOString() : null
       });
     }
     fs.writeFileSync(STATE_FILE, JSON.stringify(data, null, 2));
+  }
+
+  // --- Session Resume (4.1) ---
+
+  _getWorkerSessionId(workerName, workerDir) {
+    // Find the most recent Claude Code JSONL session for this worker's project dir
+    const home = platformHomedir();
+    const claudeProjects = path.join(home, '.claude', 'projects');
+    if (!fs.existsSync(claudeProjects)) return null;
+
+    const projectPath = (workerDir || '').replace(/\\/g, '/');
+    if (!projectPath) return null;
+
+    // Find matching project directory (Claude encodes paths: C:\Users\silof\c4 → C--Users-silof-c4)
+    let projectDir = null;
+    try {
+      const entries = fs.readdirSync(claudeProjects);
+      for (const entry of entries) {
+        const decoded = entry.replace(/^([A-Z])--/, '$1:/').replace(/-/g, '/');
+        if (decoded === projectPath || projectPath.startsWith(decoded + '/') || projectPath === decoded) {
+          projectDir = path.join(claudeProjects, entry);
+          break;
+        }
+      }
+    } catch { return null; }
+
+    if (!projectDir || !fs.existsSync(projectDir)) return null;
+
+    // Find the most recently modified .jsonl file
+    let latestFile = null;
+    let latestMtime = 0;
+    try {
+      for (const entry of fs.readdirSync(projectDir)) {
+        if (!entry.endsWith('.jsonl')) continue;
+        const fullPath = path.join(projectDir, entry);
+        const stat = fs.statSync(fullPath);
+        if (stat.mtimeMs > latestMtime) {
+          latestMtime = stat.mtimeMs;
+          latestFile = entry;
+        }
+      }
+    } catch { return null; }
+
+    if (!latestFile) return null;
+    return latestFile.replace('.jsonl', '');
+  }
+
+  _updateSessionId(name) {
+    const w = this.workers.get(name);
+    if (!w) return;
+    const dir = w.worktree || this._detectRepoRoot();
+    if (!dir) return;
+    const sid = this._getWorkerSessionId(name, dir);
+    if (sid) {
+      w._sessionId = sid;
+      this._sessionIds[name] = sid;
+    }
+  }
+
+  getSessionId(name) {
+    // Try live worker first, then stored state
+    this._updateSessionId(name);
+    const w = this.workers.get(name);
+    if (w && w._sessionId) return w._sessionId;
+    return this._sessionIds[name] || null;
   }
 
   // --- SSE Event Streaming (3.5) ---
@@ -1265,12 +1338,18 @@ class PtyManager extends EventEmitter {
     const projectRoot = (this.projectRoot || path.join(__dirname, '..')).replace(/\\/g, '/');
     const claudeMdPath = `${projectRoot}/CLAUDE.md`;
     const sessionContextPath = `${projectRoot}/docs/session-context.md`;
+    const daemonPort = this.config.daemon?.port || 3456;
+    const daemonHost = this.config.daemon?.host || '127.0.0.1';
     settings.hooks.PostCompact.push({
       hooks: [
         {
           type: 'command',
           command: `echo "=== CLAUDE.md ===" && cat "${claudeMdPath}" 2>/dev/null && echo "=== Session Context ===" && cat "${sessionContextPath}" 2>/dev/null || echo "No context files"`,
           statusMessage: 'Reloading project context...'
+        },
+        {
+          type: 'command',
+          command: `curl -s -X POST http://${daemonHost}:${daemonPort}/compact-event -H "Content-Type: application/json" -d "{\\"worker\\":\\"${workerName}\\"}" 2>/dev/null || true`
         }
       ]
     });
@@ -1457,13 +1536,20 @@ class PtyManager extends EventEmitter {
     return matches ? matches.length : 2;
   }
 
+  _getAutonomyLevel() {
+    return this.config.autoApprove?.autonomyLevel ?? 0;
+  }
+
   _classifyPermission(screenText, worker) {
     const rules = this.config.autoApprove?.rules || [];
+    const autonomyLevel = this._getAutonomyLevel();
     // Global auto mode (c4 auto): approve everything not explicitly denied
     const defaultAction = (this._globalAutoMode || worker?._autoWorker)
       ? 'approve'
       : (this.config.autoApprove?.defaultAction || 'ask');
     const promptType = this._getPromptType(screenText);
+
+    let action = defaultAction;
 
     if (promptType === 'bash') {
       const command = this._extractBashCommand(screenText);
@@ -1476,24 +1562,42 @@ class PtyManager extends EventEmitter {
         // Exact match: "Bash(pwd)"
         const exactMatch = rule.pattern.match(/^Bash\((\w+)\)$/);
         if (exactMatch && exactMatch[1] === cmdName) {
-          return rule.action;
+          action = rule.action;
+          break;
         }
 
         // Prefix match: "Bash(grep:*)"
         const prefixMatch = rule.pattern.match(/^Bash\((\w+):\*\)$/);
         if (prefixMatch && prefixMatch[1] === cmdName) {
-          return rule.action;
+          action = rule.action;
+          break;
         }
       }
 
     } else if (promptType === 'create' || promptType === 'edit') {
       for (const rule of rules) {
-        if (rule.pattern === 'Write' && promptType === 'create') return rule.action;
-        if (rule.pattern === 'Edit' && promptType === 'edit') return rule.action;
+        if (rule.pattern === 'Write' && promptType === 'create') { action = rule.action; break; }
+        if (rule.pattern === 'Edit' && promptType === 'edit') { action = rule.action; break; }
       }
     }
 
-    return defaultAction;
+    // Level 4 (4.5): full autonomy — override deny to approve with logging
+    if (autonomyLevel >= 4 && action === 'deny') {
+      const command = this._extractBashCommand(screenText) || '';
+      const workerName = worker?._taskText ? 'worker' : 'unknown';
+      if (worker) {
+        worker.snapshots = worker.snapshots || [];
+        worker.snapshots.push({
+          time: Date.now(),
+          screen: `[AUTONOMY L4] deny overridden to approve: ${command.substring(0, 100)}`,
+          autoAction: true,
+          autonomyOverride: true
+        });
+      }
+      return 'approve';
+    }
+
+    return action;
   }
 
   _checkScope(scopeGuard, screenText) {
@@ -1956,8 +2060,13 @@ class PtyManager extends EventEmitter {
     if (t.type === 'local' || targetName === 'local') {
       const commandMap = t.commandMap || {};
       const resolvedCmd = commandMap[command] || command;
+      // Resume support (4.1): append --resume <sessionId> to claude command
+      const finalArgs = [...args];
+      if (options.resume && command === 'claude') {
+        finalArgs.push('--resume', options.resume);
+      }
       shell = platformShell();
-      shellArgs = platformShellArgs(resolvedCmd, args);
+      shellArgs = platformShellArgs(resolvedCmd, finalArgs);
     } else if (t.type === 'ssh') {
       const remoteCwd = cwd || t.defaultCwd || '';
       const commandMap = t.commandMap || {};
@@ -2032,6 +2141,9 @@ class PtyManager extends EventEmitter {
       _smState: this._stateMachine.createState(),
       // Adaptive polling (3.12)
       _pollState: this._adaptivePolling.createState(),
+      // Session resume (4.1)
+      _sessionId: options.resume || null,
+      _resumed: !!options.resume,
     };
 
     // Raw log
@@ -2633,6 +2745,9 @@ class PtyManager extends EventEmitter {
 
     for (const [name, w] of this.workers) {
       if (w.alive) {
+        // Periodically update session ID for resume support (4.1)
+        this._updateSessionId(name);
+
         const idleMs = now - w.lastDataTime;
         if (idleMs > timeoutMs) {
           w.snapshots.push({
@@ -2665,6 +2780,10 @@ class PtyManager extends EventEmitter {
       }
 
       if (this.config.healthCheck?.autoRestart) {
+        // Save session ID before cleanup for resume (4.1)
+        this._updateSessionId(name);
+        const sessionId = w._sessionId || this._sessionIds[name] || null;
+
         // Restart: re-create with same command
         const command = w.command.split(' ')[0];
         const args = w.command.split(' ').slice(1);
@@ -2675,11 +2794,23 @@ class PtyManager extends EventEmitter {
         if (w.rawLogStream && !w.rawLogStream.destroyed) w.rawLogStream.end();
         this.workers.delete(name);
 
-        const createResult = this.create(name, command, args, { target });
+        // Try resume first, fall back to fresh start (4.1)
+        let createResult;
+        if (sessionId && command === 'claude') {
+          createResult = this.create(name, command, args, { target, resume: sessionId });
+          if (createResult.error) {
+            // Resume failed — try fresh start
+            this.workers.delete(name);
+            createResult = this.create(name, command, args, { target });
+          }
+        } else {
+          createResult = this.create(name, command, args, { target });
+        }
+
         if (createResult.error) {
           results.push({ name, status: 'restart_failed', error: createResult.error });
         } else {
-          results.push({ name, status: 'restarted', pid: createResult.pid });
+          results.push({ name, status: 'restarted', pid: createResult.pid, resumed: !!sessionId });
         }
       } else {
         results.push({ name, status: 'exited' });
@@ -2702,6 +2833,20 @@ class PtyManager extends EventEmitter {
             autoAction: true,
             tokenWarn: true
           });
+        }
+      }
+    }
+
+    // Manager rotation check (4.7): warn if compact count approaching threshold
+    const rotationThreshold = this.config.managerRotation?.compactThreshold ?? 0;
+    if (rotationThreshold > 0) {
+      for (const [name, w] of this.workers) {
+        if (!w.alive || !w._autoWorker) continue;
+        const count = w._compactCount || 0;
+        if (count > 0 && count >= rotationThreshold - 1 && count < rotationThreshold) {
+          if (this._notifications) {
+            this._notifications.pushAll(`[MANAGER WARN] ${name} approaching compact limit (${count}/${rotationThreshold})`);
+          }
         }
       }
     }
@@ -2954,6 +3099,9 @@ class PtyManager extends EventEmitter {
     const w = this.workers.get(name);
     if (!w) return { error: `Worker '${name}' not found` };
 
+    // Save session ID for potential resume (4.1)
+    this._updateSessionId(name);
+
     // Record history before cleanup (3.7)
     const history = this._recordHistory(name, w);
 
@@ -2978,6 +3126,93 @@ class PtyManager extends EventEmitter {
     for (const name of [...this.workers.keys()]) {
       this.close(name);
     }
+  }
+
+  // --- Manager Auto-Replacement (4.7) ---
+
+  compactEvent(workerName) {
+    const w = this.workers.get(workerName);
+    if (!w) return { error: `Worker '${workerName}' not found` };
+
+    if (!w._compactCount) w._compactCount = 0;
+    w._compactCount++;
+    w._lastCompactAt = Date.now();
+
+    w.snapshots.push({
+      time: Date.now(),
+      screen: `[COMPACT] context compaction #${w._compactCount} detected`,
+      autoAction: true
+    });
+
+    this._emitSSE('compact', { worker: workerName, count: w._compactCount });
+
+    // Check if auto-replacement threshold reached
+    const threshold = this.config.managerRotation?.compactThreshold ?? 0;
+    if (threshold > 0 && w._compactCount >= threshold && w._autoWorker) {
+      // Trigger manager replacement
+      const replaceResult = this._replaceManager(workerName);
+      return { compactCount: w._compactCount, replaced: true, ...replaceResult };
+    }
+
+    return { received: true, worker: workerName, compactCount: w._compactCount };
+  }
+
+  _replaceManager(oldName) {
+    const old = this.workers.get(oldName);
+    if (!old || !old.alive) return { error: `Worker '${oldName}' not alive` };
+
+    // Force scribe scan to capture latest context
+    try { this.scribeScan(); } catch {}
+
+    // Save session ID before closing
+    this._updateSessionId(oldName);
+
+    const newName = `${oldName}-${Date.now().toString(36)}`;
+    const task = old._taskText || '';
+    const branch = old.branch || `c4/${newName}`;
+
+    // Build replacement mission with context recovery instructions
+    const repoRoot = (old.worktreeRepoRoot || this._detectRepoRoot() || '').replace(/\\/g, '/');
+    const contextInstructions = [
+      `docs/session-context.md 파일을 읽어서 이전 관리자의 작업 맥락을 파악해.`,
+      `TODO.md를 읽고 남은 작업을 이어서 진행해.`,
+      `git log --oneline -20 으로 최근 진행 상황을 확인해.`,
+      `이전 관리자(${oldName})의 작업을 이어받는 중이야.`
+    ].join('\n');
+
+    const fullMission = task
+      ? `${contextInstructions}\n\n이전 작업 지시:\n${task}`
+      : contextInstructions;
+
+    // Close old manager
+    old.snapshots.push({
+      time: Date.now(),
+      screen: `[MANAGER ROTATION] replacing with ${newName} after ${old._compactCount} compactions`,
+      autoAction: true
+    });
+
+    // Notify
+    if (this._notifications) {
+      this._notifications.pushAll(`[MANAGER ROTATION] ${oldName} -> ${newName} (compactions: ${old._compactCount})`);
+    }
+
+    // Create new manager with same permissions
+    const sendResult = this.sendTask(newName, fullMission, {
+      branch,
+      useBranch: true,
+      autoMode: true,
+      _autoWorker: true
+    });
+
+    // Close old after new is created
+    this.close(oldName);
+
+    return {
+      oldManager: oldName,
+      newManager: newName,
+      compactCount: old._compactCount || 0,
+      sendResult
+    };
   }
 
   // --- Auto Mode (4.8) ---
