@@ -268,6 +268,68 @@ watchdog.sh (nohup, 60초 체크)
 | 3.19 | Auto Mode 연동 | **done** | 작업자에 permissions.defaultMode: "auto" 적용. Claude 자체 classifier로 안전성 판단 위임 |
 | 3.20 | Linux/macOS 지원 | **done** | 플랫폼 유틸리티 함수. macOS homebrew/nvm 경로 지원. process.platform 분기 완성 |
 
+## Phase 4 — 완전 자율화
+
+| # | 항목 | 상태 | 설명 |
+|---|------|------|------|
+| 4.1 | 완전 무인 운영 모드 | todo | 아래 상세 |
+| 4.2 | Hook 이벤트 JSONL 영속화 | todo | PostToolUse/PreToolUse 이벤트를 logs/events.jsonl에 저장. 리플레이/디버깅 |
+| 4.3 | 승인 요청 웹 UI | todo | 작업자 권한 요청을 웹 대시보드에 표시. 폰에서 승인/거부 |
+| 4.4 | 아침 보고서 자동 생성 | todo | 야간 작업 완료 후 docs/morning-report.md 자동 생성. 완료/실패/수정 필요 항목 요약 |
+| 4.5 | 관리자 자동 컨펌 정책 | todo | 아래 상세 |
+
+### 4.1 완전 무인 운영 모드 (상세)
+
+목표: "시켜놓고 자면 아침에 결과만 확인"
+
+현재 문제:
+- 관리자(Claude Code)가 작업자 권한 요청할 때마다 사람이 Enter 눌러줘야 함
+- 데몬 죽으면 watchdog이 살려도 관리자 컨텍스트 소실
+- 긴 작업 중 관리자 세션 컨텍스트 한계
+
+해결 방향:
+```
+1. 관리자 = Claude Code + acceptEdits 모드
+   - 작업자에게 accept edits on 자동 설정
+   - Bash 명령은 autoApprove + alwaysApproveForSession으로 최대한 자동
+   
+2. 작업자 = --dangerously-skip-permissions 모드 (격리된 worktree에서만)
+   - worktree는 격리되어 있으니 위험도 낮음
+   - main 보호 hook이 최후 방어선
+   
+3. 관리자 세션 자동 이어가기
+   - scribe가 컨텍스트 기록
+   - 관리자 죽으면 새 관리자 + session-context.md 읽기
+   - claude --resume으로 세션 이어가기 시도
+
+4. 데몬 레벨 자동 승인
+   - autoApprove를 daemon에서 직접 처리 (PTY에 Enter 주입이 아닌)
+   - 작업자가 idle이고 권한 프롬프트 패턴 감지되면 자동 Enter
+```
+
+### 4.5 관리자 자동 컨펌 정책 (상세)
+
+작업자가 컨펌 요청할 때 관리자 개입 없이 자동 처리하는 정책:
+
+```
+Level 0 (현재): 모든 컨펌 수동
+Level 1: 읽기 명령 자동, 쓰기 수동 (autoApprove)
+Level 2: 스코프 내 쓰기도 자동, 스코프 밖만 수동
+Level 3: 전부 자동, 위험 명령만 거부 (deny 룰)
+Level 4: 전부 자동, 위험 명령도 로그만 (완전 자율)
+```
+
+config에 `autonomyLevel: 3` 같은 설정으로 조절.
+
+Level 3이면:
+- 파일 읽기/수정/생성: 자동 승인
+- ls, grep, find, git: 자동 승인
+- npm test, node: 자동 승인
+- rm, sudo, git push --force: 자동 거부
+- 그 외: 자동 승인 + 로그 기록
+
+이러면 밤새 사람 개입 없이 돌아감.
+
 ## 완료
 
 | # | 항목 | 완료일 |
