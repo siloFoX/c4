@@ -11,7 +11,7 @@
 ![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)
 ![Claude Code](https://img.shields.io/badge/Claude_Code-v2.1.85--2.1.91-8A2BE2.svg)
 ![Platform](https://img.shields.io/badge/tested-Win11%20%7C%20Ubuntu%20%7C%20macOS-blue.svg)
-![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
+![Version](https://img.shields.io/badge/version-1.0.1-green.svg)
 
 **[한국어](README.ko.md)**
 
@@ -62,7 +62,6 @@ C4 uses **virtual terminal** text instead:
 git clone https://github.com/siloFoX/c4.git
 cd c4
 npm install
-npm link
 ```
 
 Then open Claude Code and ask it to run:
@@ -70,10 +69,10 @@ Then open Claude Code and ask it to run:
 c4 init
 ```
 
-This sets up:
+`c4 init` automatically handles everything:
 - `~/.claude/settings.json` — adds c4 bash permissions
 - `config.json` — copies from `config.example.json`, auto-detects `claude` binary path
-- `c4` command registration — npm link → ~/.local/bin symlink → .bashrc alias (3-step fallback)
+- `c4` command — registers globally (npm link, or wrapper script fallback on Windows)
 - `CLAUDE.md` symlink — project instructions
 - `.githooks` — main branch protection (pre-commit hook)
 

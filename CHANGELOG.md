@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.1] - 2026-04-03
+
+### Fixed
+- **npm link Windows fallback**: `c4 init` now creates wrapper scripts (shell + .cmd) in npm global bin directory when `npm link` fails, instead of relying on symlinks that require elevated permissions on Windows
+
+### Changed
+- README Install section simplified — `npm link` removed from manual steps, `c4 init` handles command registration automatically
+
+---
+
 ## [1.0.0] - 2026-04-03
 
 All Phase 1/2/3 features complete. 45 roadmap items implemented.

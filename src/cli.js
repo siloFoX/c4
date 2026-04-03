@@ -429,37 +429,53 @@ async function main() {
             c4Registered = true;
             console.log('[ok] npm link: c4 command registered globally');
           } catch {
-            console.log('[info] npm link failed (may need elevated permissions)');
+            console.log('[info] npm link failed — creating wrapper scripts');
 
-            // 5b. Try ~/.local/bin/c4 symlink (Linux/macOS)
-            if (!isWin) {
-              const localBin = path.join(home, '.local', 'bin');
-              const c4Link = path.join(localBin, 'c4');
-              const c4Cli = path.join(repoRoot, 'src', 'cli.js');
+            // 5b. Create wrapper scripts in npm global bin directory
+            try {
+              const npmPrefix = execSync('npm config get prefix', {
+                encoding: 'utf8',
+                stdio: ['pipe', 'pipe', 'pipe'],
+                timeout: 10000
+              }).trim();
+              const npmBin = isWin ? npmPrefix : path.join(npmPrefix, 'bin');
 
-              try {
-                fs.mkdirSync(localBin, { recursive: true });
-                try { fs.unlinkSync(c4Link); } catch {}
-                fs.symlinkSync(c4Cli, c4Link);
-                try { fs.chmodSync(c4Cli, 0o755); } catch {}
-                c4Registered = true;
-                console.log('[ok] symlink: ~/.local/bin/c4 → src/cli.js');
+              const c4Cli = path.join(repoRoot, 'src', 'cli.js').replace(/\\/g, '/');
 
-                const pathDirs = (process.env.PATH || '').split(':');
-                const inPath = pathDirs.some(d => {
-                  const resolved = d.replace(/^~/, home).replace('$HOME', home);
-                  return resolved === localBin;
-                });
-                if (!inPath) {
-                  console.log('[info] Add to PATH (add to ~/.bashrc for persistence):');
-                  console.log('  export PATH="$HOME/.local/bin:$PATH"');
-                }
-              } catch (e) {
-                console.log(`[warn] symlink creation failed: ${e.message}`);
+              // Shell script (Git Bash, WSL, Linux, macOS)
+              const shScript = `#!/bin/sh\nexec node "${c4Cli}" "$@"\n`;
+              const shPath = path.join(npmBin, 'c4');
+              fs.mkdirSync(npmBin, { recursive: true });
+              fs.writeFileSync(shPath, shScript, { mode: 0o755 });
+              console.log(`[ok] wrapper: ${shPath}`);
+
+              // Windows .cmd file
+              if (isWin) {
+                const cmdScript = `@node "${c4Cli}" %*\r\n`;
+                const cmdPath = path.join(npmBin, 'c4.cmd');
+                fs.writeFileSync(cmdPath, cmdScript);
+                console.log(`[ok] wrapper: ${cmdPath}`);
               }
+
+              c4Registered = true;
+
+              // Check if npm global bin is in PATH
+              const sep = isWin ? ';' : ':';
+              const pathDirs = (process.env.PATH || '').split(sep);
+              const normalizedBin = npmBin.replace(/\\/g, '/').toLowerCase();
+              const inPath = pathDirs.some(d => d.replace(/\\/g, '/').toLowerCase() === normalizedBin);
+              if (!inPath) {
+                if (isWin) {
+                  console.log(`[info] Add to PATH: ${npmBin}`);
+                } else {
+                  console.log(`[info] Add to PATH: export PATH="${npmBin}:$PATH"`);
+                }
+              }
+            } catch (e) {
+              console.log(`[warn] wrapper creation failed: ${e.message}`);
             }
 
-            // 5c. Final fallback: suggest .bashrc alias
+            // 5c. Final fallback: suggest alias
             if (!c4Registered) {
               const c4Cli = path.join(repoRoot, 'src', 'cli.js').replace(/\\/g, '/');
               console.log('[info] Add alias to ~/.bashrc:');
