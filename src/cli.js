@@ -837,7 +837,7 @@ async function main() {
       }
 
       case 'daemon': {
-        const DaemonManager = require('./daemon-manager');
+        const DaemonManager = require(require('path').join(__dirname, 'daemon-manager'));
         const sub = args[0];
         if (!sub || !['start', 'stop', 'restart', 'status'].includes(sub)) {
           console.log('Usage: c4 daemon <start|stop|restart|status>');
