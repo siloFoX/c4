@@ -90,15 +90,18 @@ const server = http.createServer(handleRequest);
 
 server.listen(PORT, HOST, () => {
   console.log(`C4 daemon running on http://${HOST}:${PORT}`);
+  manager.startHealthCheck();
 });
 
 process.on('SIGINT', () => {
+  manager.stopHealthCheck();
   manager.closeAll();
   server.close();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
+  manager.stopHealthCheck();
   manager.closeAll();
   server.close();
   process.exit(0);

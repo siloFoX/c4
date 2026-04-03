@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.0] - 2026-04-03
+
+### Added
+- **Worker health check** (1.7): Periodic alive check with auto-restart support
+  - `healthCheck()` method: scans all workers, detects dead ones, logs `[HEALTH] worker exited` to snapshots
+  - `startHealthCheck()` / `stopHealthCheck()`: timer-based periodic execution (default 30s)
+  - Config: `healthCheck.enabled` (default: true), `healthCheck.intervalMs` (default: 30000), `healthCheck.autoRestart` (default: false)
+  - Auto-restart: when enabled, dead workers are re-created with same command/target
+  - `c4 list` shows last health check time (seconds ago + timestamp)
+  - Daemon starts health check on boot, stops on shutdown
+
 ## [0.4.0] - 2026-04-03
 
 ### Added

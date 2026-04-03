@@ -20,6 +20,8 @@ class PtyManager {
     this.workers = new Map();
     this.config = loadConfig();
     this._loadState();
+    this._healthTimer = null;
+    this._lastHealthCheck = null;
   }
 
   get logsDir() {
@@ -663,6 +665,70 @@ class PtyManager {
     });
   }
 
+  // --- Health Check ---
+
+  healthCheck() {
+    const now = Date.now();
+    this._lastHealthCheck = now;
+    const results = [];
+
+    for (const [name, w] of this.workers) {
+      if (w.alive) {
+        results.push({ name, status: 'alive' });
+        continue;
+      }
+
+      // Dead worker detected
+      w.snapshots.push({
+        time: now,
+        screen: `[HEALTH] worker exited (detected at ${new Date(now).toISOString()})`,
+        autoAction: true
+      });
+      this._saveState();
+
+      if (this.config.healthCheck?.autoRestart) {
+        // Restart: re-create with same command
+        const command = w.command.split(' ')[0];
+        const args = w.command.split(' ').slice(1);
+        const target = w.target || 'local';
+
+        // Clean up old worker
+        if (w.idleTimer) clearTimeout(w.idleTimer);
+        if (w.rawLogStream && !w.rawLogStream.destroyed) w.rawLogStream.end();
+        this.workers.delete(name);
+
+        const createResult = this.create(name, command, args, { target });
+        if (createResult.error) {
+          results.push({ name, status: 'restart_failed', error: createResult.error });
+        } else {
+          results.push({ name, status: 'restarted', pid: createResult.pid });
+        }
+      } else {
+        results.push({ name, status: 'exited' });
+      }
+    }
+
+    return { lastCheck: now, workers: results };
+  }
+
+  startHealthCheck() {
+    if (this._healthTimer) return;
+    const enabled = this.config.healthCheck?.enabled !== false;
+    if (!enabled) return;
+
+    const intervalMs = this.config.healthCheck?.intervalMs || 30000;
+    this._healthTimer = setInterval(() => this.healthCheck(), intervalMs);
+    // Run immediately on start
+    this.healthCheck();
+  }
+
+  stopHealthCheck() {
+    if (this._healthTimer) {
+      clearInterval(this._healthTimer);
+      this._healthTimer = null;
+    }
+  }
+
   reloadConfig() {
     this.config = loadConfig();
     return { success: true, config: this.config };
@@ -689,7 +755,7 @@ class PtyManager {
         totalSnapshots: w.snapshots.length
       });
     }
-    return { workers: result };
+    return { workers: result, lastHealthCheck: this._lastHealthCheck };
   }
 
   close(name) {
