@@ -124,6 +124,11 @@
 | 3.7 | 작업 히스토리 영속화 | todo | 누가 뭘 했는지 로그. 관리자 세션 끊겨도 이어서 관리 |
 | 3.8 | ScreenBuffer 개선 | todo | 복잡한 TUI 테이블 렌더링 깨짐 수정. scrollback 읽기 지원 |
 | 3.9 | MCP 서버 모드 | todo | Cowork 플러그인으로도 사용 가능하도록 HTTP MCP 전환 지원 |
+| 3.10 | Planner Worker | todo | 설계 전담 작업자. 작업 받으면 plan.md 작성 → 관리자 승인 → 실행 작업자에게 분배 |
+| 3.11 | State Machine (Plan→Edit→Test→Fix) | todo | 작업자 상태 추적. 무한루프 방지. 테스트 N회 실패 시 관리자에게 에스컬레이션 |
+| 3.12 | Adaptive Polling | todo | 고정 sleep 대신 출력 활동량 기반 동적 대기. busy일수록 짧게, idle이면 길게 |
+| 3.13 | Interface Abstraction | todo | Claude Code 직접 의존 제거. Terminal-Agent-Interface 추상 레이어. 버전 변경에 유연 대응 |
+| 3.14 | Summary Layer | todo | 긴 작업자 출력을 요약해서 관리자에게 전달. 컨텍스트 효율화 |
 
 ## 완료
 
