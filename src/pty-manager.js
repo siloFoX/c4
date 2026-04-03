@@ -7,6 +7,7 @@ const { EventEmitter } = require('events');
 const ScreenBuffer = require('./screen-buffer');
 const Scribe = require('./scribe');
 const { ScopeGuard, resolveScope } = require('./scope-guard');
+const StateMachine = require('./state-machine');
 
 const CONFIG_FILE = path.join(__dirname, '..', 'config.json');
 const STATE_FILE = path.join(__dirname, '..', 'state.json');
@@ -34,6 +35,9 @@ class PtyManager extends EventEmitter {
     this._tokenUsage = { daily: {}, lastScan: 0, offsets: {} };
     this._loadTokenState();
     this._sseClients = new Set(); // SSE client connections (3.5)
+    this._stateMachine = new StateMachine({
+      maxTestFails: this.config.stateMachine?.maxTestFails || 3
+    });
   }
 
   get logsDir() {
@@ -1196,6 +1200,8 @@ class PtyManager extends EventEmitter {
       _taskStartedAt: null,      // ISO timestamp when task was sent
       // Rollback (3.6)
       _startCommit: null,        // HEAD commit hash before task started
+      // State machine (3.11)
+      _smState: this._stateMachine.createState(),
     };
 
     // Raw log
@@ -1389,6 +1395,36 @@ class PtyManager extends EventEmitter {
             });
             this._saveState();
             return; // Still capture the snapshot but flag it
+          }
+        }
+
+        // --- State machine update (3.11) ---
+        if (worker._smState) {
+          const smResult = this._stateMachine.update(worker._smState, text);
+          if (smResult) {
+            if (smResult.transition) {
+              worker.snapshots.push({
+                time: Date.now(),
+                screen: `[STATE] ${smResult.transition.from} → ${smResult.transition.to}`,
+                autoAction: true,
+                stateTransition: true
+              });
+            }
+            if (smResult.escalation) {
+              worker._interventionState = 'escalation';
+              worker.snapshots.push({
+                time: Date.now(),
+                screen: `[ESCALATION] ${smResult.escalation.reason}`,
+                autoAction: true,
+                intervention: 'escalation'
+              });
+              this._emitSSE('error', {
+                worker: name,
+                line: smResult.escalation.reason,
+                count: smResult.escalation.failCount,
+                escalation: true
+              });
+            }
           }
         }
 
@@ -1867,7 +1903,9 @@ class PtyManager extends EventEmitter {
         totalSnapshots: w.snapshots.length,
         intervention: w._interventionState || null,
         lastQuestion: w._lastQuestion || null,
-        errorCount: (w._errorHistory || []).reduce((sum, e) => sum + e.count, 0)
+        errorCount: (w._errorHistory || []).reduce((sum, e) => sum + e.count, 0),
+        phase: w._smState ? w._smState.phase : null,
+        testFailCount: w._smState ? w._smState.testFailCount : 0
       });
     }
     // Include queued tasks (2.8)
