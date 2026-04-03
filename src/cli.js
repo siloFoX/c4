@@ -169,8 +169,14 @@ async function main() {
 
       case 'wait': {
         // Wait until idle, then read
-        const name = args[0];
-        const timeout = args[1] || '120000';
+        let waitName = '', waitTimeout = '120000';
+        for (let i = 0; i < args.length; i++) {
+          if (args[i] === '--timeout' && args[i + 1]) { waitTimeout = args[++i]; }
+          else if (/^\d+$/.test(args[i]) && waitName) { waitTimeout = args[i]; }
+          else if (!args[i].startsWith('-') && !waitName) { waitName = args[i]; }
+        }
+        const name = waitName;
+        const timeout = waitTimeout;
         process.stderr.write('Waiting for worker to become idle...\n');
         result = await request('GET', `/wait-read?name=${name}&timeout=${timeout}`, null, parseInt(timeout) + 5000);
         if (result.content !== undefined) {

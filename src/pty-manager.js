@@ -850,18 +850,40 @@ class PtyManager extends EventEmitter {
     };
     w._pendingTaskTime = Date.now();
 
-    // Fallback: force-send task after 30s if setup hasn't completed
+    // Fallback: force-send task after 30s if idle handler hasn't fired
     setTimeout(() => {
       const worker = this.workers.get(entry.name);
-      if (worker && worker._pendingTask && !worker._pendingTaskSent) {
+      if (worker && worker.alive && worker._pendingTask && !worker._pendingTaskSent) {
         worker._pendingTaskSent = true;
         const pt = worker._pendingTask;
-        this.sendTask(entry.name, pt.task, pt.options);
+        const fullTask = this._buildTaskText(worker, pt.task, pt.options);
+        this._chunkedWrite(worker.proc, fullTask + '\r');
+        worker._taskText = pt.task;
+        worker._taskStartedAt = new Date().toISOString();
         worker._pendingTask = null;
       }
     }, 30000);
 
     return { created: true, name: entry.name, pid: createResult.pid };
+  }
+
+  _buildTaskText(worker, task, options = {}) {
+    const commands = [];
+    if (worker.worktree) {
+      const cdPath = worker.worktree.replace(/\\/g, '/');
+      commands.push(`cd ${cdPath} 로 이동해서 작업해줘. 현재 브랜치는 ${worker.branch || 'unknown'}야. 작업 단위마다 커밋해줘.`);
+    }
+    const rulesSummary = this._getRulesSummary();
+    if (rulesSummary) commands.push(rulesSummary);
+    if (worker.scopeGuard && worker.scopeGuard.hasRestrictions()) {
+      commands.push(worker.scopeGuard.toSummary());
+    }
+    if (options.contextFrom) {
+      const ctx = this._getContextSnapshots(options.contextFrom, 3);
+      if (ctx) commands.push(ctx);
+    }
+    commands.push(task);
+    return commands.join('\n\n');
   }
 
   _getScreenText(screen) {
@@ -2060,16 +2082,15 @@ class PtyManager extends EventEmitter {
           }
         }
 
-        // Send pending task after setup completes (queue auto-create flow)
-        const effortNeeded = worker._dynamicEffort || this.config.workerDefaults?.effortLevel;
-        const pendingAge = worker._pendingTaskTime ? Date.now() - worker._pendingTaskTime : 0;
-        const setupTimeout = pendingAge > 30000; // 30s since task was queued
-        const setupComplete = worker.setupDone || !effortNeeded || setupTimeout;
-        if (setupComplete && worker._pendingTask && !worker._pendingTaskSent) {
+        // Send pending task — idle handler fired means prompt is ready
+        if (worker._pendingTask && !worker._pendingTaskSent) {
           worker._pendingTaskSent = true;
           const pt = worker._pendingTask;
+          const fullTask = this._buildTaskText(worker, pt.task, pt.options);
           setTimeout(() => {
-            this.sendTask(name, pt.task, pt.options);
+            this._chunkedWrite(proc, fullTask + '\r');
+            worker._taskText = pt.task;
+            worker._taskStartedAt = new Date().toISOString();
             worker._pendingTask = null;
           }, 500);
           return;
