@@ -133,6 +133,10 @@ async function handleRequest(req, res) {
       });
       return; // Don't end the response
 
+    } else if (req.method === 'GET' && route === '/templates') {
+      // List templates (3.18)
+      result = { templates: manager.listTemplates() };
+
     } else if (req.method === 'GET' && route === '/swarm') {
       // Swarm status (3.17)
       const name = url.searchParams.get('name');

@@ -662,9 +662,13 @@ class PtyManager extends EventEmitter {
     const createResult = this.create(entry.name, entry.command, entry.args, { target: entry.target });
     if (createResult.error) return createResult;
 
-    // Dynamic effort level (3.3)
+    // Dynamic effort level (3.3) — template effort overrides (3.18)
     const w = this.workers.get(entry.name);
-    w._dynamicEffort = this._determineEffort(entry.task);
+    if (entry._templateEffort) {
+      w._dynamicEffort = entry._templateEffort;
+    } else {
+      w._dynamicEffort = this._determineEffort(entry.task);
+    }
 
     // Store pending task — will be sent after worker setup completes
     w._pendingTask = {
@@ -715,6 +719,103 @@ class PtyManager extends EventEmitter {
       noOption: 'No',
       promptFooter: 'Esc to cancel'
     };
+  }
+
+  // --- Role Templates (3.18) ---
+
+  _getTemplate(templateName) {
+    const templates = this.config.templates || {};
+    return templates[templateName] || null;
+  }
+
+  _getBuiltinTemplates() {
+    return {
+      planner: {
+        description: 'Planner — 설계 전담, Opus 모델 사용',
+        model: 'opus',
+        effort: 'max',
+        profile: 'planner',
+        promptPrefix: '[역할: Planner] 설계와 분석에 집중해줘. 코드 직접 수정보다는 계획과 구조 설계를 해줘. plan.md나 설계 문서를 작성해줘.',
+        command: 'claude',
+        args: []
+      },
+      executor: {
+        description: 'Executor — 구현 전담, Sonnet 모델 사용',
+        model: 'sonnet',
+        effort: 'high',
+        profile: 'executor',
+        promptPrefix: '[역할: Executor] 구현에 집중해줘. 설계 문서나 지시에 따라 코드를 작성하고 테스트해줘.',
+        command: 'claude',
+        args: []
+      },
+      reviewer: {
+        description: 'Reviewer — 리뷰 전담, Haiku 모델 사용',
+        model: 'haiku',
+        effort: 'high',
+        profile: 'reviewer',
+        promptPrefix: '[역할: Reviewer] 코드 리뷰에 집중해줘. 버그, 보안 이슈, 코드 품질 문제를 찾아줘. 코드를 직접 수정하지 말고 리뷰 코멘트만 남겨줘.',
+        command: 'claude',
+        args: []
+      }
+    };
+  }
+
+  resolveTemplate(templateName) {
+    // Check user-defined templates first, then builtins
+    const userTemplate = this._getTemplate(templateName);
+    if (userTemplate) return userTemplate;
+    const builtins = this._getBuiltinTemplates();
+    return builtins[templateName] || null;
+  }
+
+  listTemplates() {
+    const builtins = this._getBuiltinTemplates();
+    const userTemplates = this.config.templates || {};
+    const result = {};
+    // Builtins first
+    for (const [name, tmpl] of Object.entries(builtins)) {
+      result[name] = { ...tmpl, source: 'builtin' };
+    }
+    // User overrides
+    for (const [name, tmpl] of Object.entries(userTemplates)) {
+      result[name] = { ...tmpl, source: 'config' };
+    }
+    return result;
+  }
+
+  // Apply template to task/worker options
+  _applyTemplate(templateName, options = {}) {
+    const template = this.resolveTemplate(templateName);
+    if (!template) return options;
+
+    const result = { ...options };
+
+    // Profile from template (if not explicitly set)
+    if (template.profile && !result.profile) {
+      result.profile = template.profile;
+    }
+
+    // Model override — will be applied via /model command after worker creation
+    if (template.model) {
+      result._templateModel = template.model;
+    }
+
+    // Effort level override
+    if (template.effort) {
+      result._templateEffort = template.effort;
+    }
+
+    // Prompt prefix
+    if (template.promptPrefix) {
+      result._templatePromptPrefix = template.promptPrefix;
+    }
+
+    // Command override
+    if (template.command) {
+      result.command = template.command;
+    }
+
+    return result;
   }
 
   // --- Subagent Swarm (3.17) ---
@@ -1299,6 +1400,12 @@ class PtyManager extends EventEmitter {
 
   // Send a task to worker with branch isolation via git worktree
   sendTask(name, task, options = {}) {
+    // Apply template (3.18)
+    const templateName = options.template || options.profile || '';
+    if (templateName) {
+      options = this._applyTemplate(templateName, options);
+    }
+
     // Duplicate check (2.3): reject if same name already queued
     if (this._taskQueue.some(q => q.name === name)) {
       return { error: `Task '${name}' is already queued` };
@@ -1405,6 +1512,11 @@ class PtyManager extends EventEmitter {
     // Prepend scope summary if scope is defined
     if (w.scopeGuard && w.scopeGuard.hasRestrictions()) {
       commands.push(w.scopeGuard.toSummary());
+    }
+
+    // Template prompt prefix (3.18)
+    if (options._templatePromptPrefix) {
+      commands.push(options._templatePromptPrefix);
     }
 
     // Context transfer (3.1): inject snapshots from another worker

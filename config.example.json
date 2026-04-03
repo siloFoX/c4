@@ -188,6 +188,30 @@
     "maxIdleMs": 300000
   },
 
+  "templates": {
+    "planner": {
+      "description": "Planner — 설계 전담, Opus 모델",
+      "model": "opus",
+      "effort": "max",
+      "profile": "planner",
+      "promptPrefix": "[역할: Planner] 설계와 분석에 집중. 코드 수정보다 계획/구조 설계."
+    },
+    "executor": {
+      "description": "Executor — 구현 전담, Sonnet 모델",
+      "model": "sonnet",
+      "effort": "high",
+      "profile": "executor",
+      "promptPrefix": "[역할: Executor] 구현에 집중. 설계대로 코드 작성/테스트."
+    },
+    "reviewer": {
+      "description": "Reviewer — 리뷰 전담, Haiku 모델",
+      "model": "haiku",
+      "effort": "high",
+      "profile": "reviewer",
+      "promptPrefix": "[역할: Reviewer] 코드 리뷰 집중. 수정 금지, 리뷰 코멘트만."
+    }
+  },
+
   "swarm": {
     "enabled": false,
     "maxSubagents": 10,

@@ -75,18 +75,21 @@ async function main() {
     switch (cmd) {
       case 'new': {
         const name = args[0];
-        // Parse --target and --cwd flags
-        let target = 'local', cwd = '';
+        // Parse --target, --cwd, --template flags
+        let target = 'local', cwd = '', template = '';
         const filteredArgs = [];
         let command = 'claude';
         let commandSet = false;
         for (let i = 1; i < args.length; i++) {
           if (args[i] === '--target' && args[i + 1]) { target = args[++i]; }
           else if (args[i] === '--cwd' && args[i + 1]) { cwd = args[++i]; }
+          else if (args[i] === '--template' && args[i + 1]) { template = args[++i]; }
           else if (!commandSet) { command = args[i]; commandSet = true; }
           else { filteredArgs.push(args[i]); }
         }
-        result = await request('POST', '/create', { name, command, args: filteredArgs, target, cwd });
+        const body = { name, command, args: filteredArgs, target, cwd };
+        if (template) body.template = template;
+        result = await request('POST', '/create', body);
         break;
       }
 
@@ -638,6 +641,22 @@ async function main() {
             console.log(`Scanned ${result.scanned} files, ${result.newEntries} new entries (${result.totalEntries} total)`);
             return;
           }
+        }
+        break;
+      }
+
+      case 'templates': {
+        result = await request('GET', '/templates');
+        if (result.templates) {
+          console.log('NAME\t\tMODEL\tEFFORT\tSOURCE\tDESCRIPTION');
+          for (const [name, tmpl] of Object.entries(result.templates)) {
+            const model = tmpl.model || '-';
+            const effort = tmpl.effort || '-';
+            const source = tmpl.source || '-';
+            const desc = (tmpl.description || '').slice(0, 50);
+            console.log(`${name}\t\t${model}\t${effort}\t${source}\t${desc}`);
+          }
+          return;
         }
         break;
       }
