@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0] - 2026-04-03
+
+### Added
+- **`c4 merge` command** (1.11): Merge branch to main with pre-merge checks
+  - Accepts worker name (`c4 merge worker-a`) or branch name (`c4 merge c4/feature`)
+  - Pre-merge checks: npm test, TODO.md modified, CHANGELOG.md modified
+  - Rejects merge if any check fails with clear error messages
+  - Executes `git merge --no-ff` on success
+- **Main branch protection** (1.11): Pre-commit hook blocks direct commits to main
+  - `.githooks/pre-commit` prevents commits on main branch
+  - `c4 init` sets `git config core.hooksPath .githooks` automatically
+
 ## [0.3.1] - 2026-04-03
 
 ### Added
