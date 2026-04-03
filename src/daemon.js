@@ -93,6 +93,26 @@ async function handleRequest(req, res) {
       const lines = parseInt(url.searchParams.get('lines') || '200') || 200;
       result = manager.getScrollback(name, lines);
 
+    } else if (req.method === 'POST' && route === '/hook-event') {
+      // Hook architecture (3.15): receive structured events from Claude Code hooks
+      const body = await parseBody(req);
+      const workerName = body.worker || '';
+      if (!workerName) {
+        result = { error: 'Missing worker name in hook event' };
+      } else {
+        result = manager.hookEvent(workerName, body);
+      }
+
+    } else if (req.method === 'GET' && route === '/hook-events') {
+      // Query hook events for a worker (3.15)
+      const name = url.searchParams.get('name');
+      const limit = parseInt(url.searchParams.get('limit') || '50') || 50;
+      if (!name) {
+        result = { error: 'Missing name parameter' };
+      } else {
+        result = manager.getHookEvents(name, limit);
+      }
+
     } else if (req.method === 'GET' && route === '/events') {
       // SSE endpoint (3.5)
       res.writeHead(200, {

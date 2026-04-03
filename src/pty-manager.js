@@ -34,6 +34,7 @@ class PtyManager extends EventEmitter {
     this._tokenUsage = { daily: {}, lastScan: 0, offsets: {} };
     this._loadTokenState();
     this._sseClients = new Set(); // SSE client connections (3.5)
+    this._hookEvents = new Map(); // name → [events] — hook event buffer per worker (3.15)
   }
 
   get logsDir() {
@@ -102,6 +103,204 @@ class PtyManager extends EventEmitter {
   addSSEClient(res) {
     this._sseClients.add(res);
     res.on('close', () => this._sseClients.delete(res));
+  }
+
+  // --- Hook Architecture (3.15) ---
+  // Receives structured JSON events from Claude Code hooks (PreToolUse/PostToolUse)
+  // instead of relying on ScreenBuffer parsing for permission/action detection.
+
+  hookEvent(workerName, event) {
+    const w = this.workers.get(workerName);
+    if (!w) return { error: `Worker '${workerName}' not found` };
+
+    // Store event in buffer
+    if (!this._hookEvents.has(workerName)) {
+      this._hookEvents.set(workerName, []);
+    }
+    const events = this._hookEvents.get(workerName);
+    const hookEntry = {
+      ...event,
+      receivedAt: Date.now()
+    };
+    events.push(hookEntry);
+
+    // Keep buffer bounded
+    if (events.length > 500) {
+      events.splice(0, events.length - 500);
+    }
+
+    // Emit SSE for real-time monitoring
+    this._emitSSE('hook', { worker: workerName, event: hookEntry });
+
+    const hookType = event.hook_type; // 'PreToolUse' or 'PostToolUse'
+    const toolName = event.tool_name || '';
+    const toolInput = event.tool_input || {};
+
+    // --- PreToolUse: scope check + auto-approve decision ---
+    if (hookType === 'PreToolUse') {
+      return this._handlePreToolUse(workerName, w, toolName, toolInput, event);
+    }
+
+    // --- PostToolUse: track progress, detect errors, update routine state ---
+    if (hookType === 'PostToolUse') {
+      return this._handlePostToolUse(workerName, w, toolName, toolInput, event);
+    }
+
+    return { received: true, worker: workerName };
+  }
+
+  _handlePreToolUse(workerName, worker, toolName, toolInput, event) {
+    const result = { received: true, worker: workerName, hook_type: 'PreToolUse' };
+
+    // Scope guard check via structured data (more accurate than screen parsing)
+    if (worker.scopeGuard && worker.scopeGuard.hasRestrictions()) {
+      if (toolName === 'Bash' || toolName === 'bash') {
+        const command = toolInput.command || '';
+        const scopeResult = worker.scopeGuard.checkBash(command);
+        if (scopeResult && !scopeResult.allowed) {
+          worker.snapshots.push({
+            time: Date.now(),
+            screen: `[HOOK SCOPE DENY] Bash: ${command}\n  reason: ${scopeResult.reason}`,
+            autoAction: true,
+            scopeViolation: true,
+            hookEvent: true
+          });
+          this._emitSSE('scope_deny', { worker: workerName, tool: toolName, command, reason: scopeResult.reason });
+          result.action = 'deny';
+          result.reason = scopeResult.reason;
+          return result;
+        }
+      } else if (toolName === 'Write' || toolName === 'Edit') {
+        const filePath = toolInput.file_path || toolInput.path || '';
+        if (filePath) {
+          const scopeResult = worker.scopeGuard.checkFile(filePath);
+          if (scopeResult && !scopeResult.allowed) {
+            worker.snapshots.push({
+              time: Date.now(),
+              screen: `[HOOK SCOPE DENY] ${toolName}: ${filePath}\n  reason: ${scopeResult.reason}`,
+              autoAction: true,
+              scopeViolation: true,
+              hookEvent: true
+            });
+            this._emitSSE('scope_deny', { worker: workerName, tool: toolName, file: filePath, reason: scopeResult.reason });
+            result.action = 'deny';
+            result.reason = scopeResult.reason;
+            return result;
+          }
+        }
+      }
+    }
+
+    // Emit permission event for monitoring
+    if (['Bash', 'bash', 'Write', 'Edit', 'NotebookEdit'].includes(toolName)) {
+      const detail = toolName === 'Bash' || toolName === 'bash'
+        ? (toolInput.command || '').slice(0, 200)
+        : (toolInput.file_path || toolInput.path || '');
+      this._emitSSE('permission', { worker: workerName, promptType: toolName.toLowerCase(), detail, source: 'hook' });
+    }
+
+    return result;
+  }
+
+  _handlePostToolUse(workerName, worker, toolName, toolInput, event) {
+    const result = { received: true, worker: workerName, hook_type: 'PostToolUse' };
+    const toolOutput = event.tool_output || '';
+    const toolError = event.tool_error || '';
+
+    // Track routine state from structured events
+    if (toolName === 'Bash' || toolName === 'bash') {
+      const command = toolInput.command || '';
+      // Test execution detection
+      if (/npm test|pytest|jest|mocha/.test(command)) {
+        if (!worker._routineState) worker._routineState = { tested: false, docsUpdated: false };
+        worker._routineState.tested = true;
+      }
+      // Commit detection — reset routine
+      if (/git commit/.test(command)) {
+        worker._routineState = { tested: false, docsUpdated: false };
+      }
+    }
+
+    // Docs update detection
+    if ((toolName === 'Write' || toolName === 'Edit') &&
+        /TODO\.md|CHANGELOG\.md|README\.md/.test(toolInput.file_path || toolInput.path || '')) {
+      if (!worker._routineState) worker._routineState = { tested: false, docsUpdated: false };
+      worker._routineState.docsUpdated = true;
+    }
+
+    // Error tracking from tool output
+    if (toolError) {
+      const maxRetries = (this._getInterventionConfig().escalation?.maxRetries) ?? 3;
+      if (!worker._errorHistory) worker._errorHistory = [];
+      const errLine = toolError.slice(0, 200);
+      const existing = worker._errorHistory.find(e => e.line === errLine);
+      if (existing) {
+        existing.count++;
+        if (existing.count >= maxRetries) {
+          worker._interventionState = 'escalation';
+          worker.snapshots.push({
+            time: Date.now(),
+            screen: `[HOOK ESCALATION] repeated error (${existing.count}x): ${errLine}`,
+            autoAction: true,
+            intervention: 'escalation',
+            hookEvent: true
+          });
+          this._emitSSE('error', { worker: workerName, line: errLine, count: existing.count, escalation: true, source: 'hook' });
+          existing.count = 0;
+        }
+      } else {
+        worker._errorHistory.push({ line: errLine, count: 1, firstSeen: Date.now() });
+      }
+    }
+
+    // Subagent tracking (3.17 integration point)
+    if (toolName === 'Agent') {
+      if (!worker._subagentCount) worker._subagentCount = 0;
+      worker._subagentCount++;
+      worker.snapshots.push({
+        time: Date.now(),
+        screen: `[HOOK SUBAGENT] Agent spawned (#${worker._subagentCount}): ${(toolInput.prompt || '').slice(0, 100)}`,
+        autoAction: true,
+        hookEvent: true
+      });
+      this._emitSSE('subagent', { worker: workerName, count: worker._subagentCount, prompt: (toolInput.prompt || '').slice(0, 200) });
+    }
+
+    return result;
+  }
+
+  getHookEvents(workerName, limit = 50) {
+    const events = this._hookEvents.get(workerName) || [];
+    return { worker: workerName, events: events.slice(-limit), total: events.length };
+  }
+
+  // Build hook commands for worker's .claude/settings.json (3.15)
+  // These hooks POST structured JSON data to the C4 daemon
+  _buildHookCommands(workerName) {
+    const port = this.config.daemon?.port || 3456;
+    const host = this.config.daemon?.host || '127.0.0.1';
+    const baseUrl = `http://${host}:${port}`;
+
+    // Use curl to POST hook event data to daemon
+    // Claude Code passes hook data as JSON to stdin
+    const curlCmd = process.platform === 'win32'
+      ? `powershell -NoProfile -Command "$input = [Console]::In.ReadToEnd(); Invoke-RestMethod -Uri '${baseUrl}/hook-event' -Method Post -ContentType 'application/json' -Body $input"`
+      : `curl -s -X POST -H 'Content-Type: application/json' -d @- '${baseUrl}/hook-event'`;
+
+    return {
+      PreToolUse: [{
+        hooks: [{
+          type: 'command',
+          command: curlCmd
+        }]
+      }],
+      PostToolUse: [{
+        hooks: [{
+          type: 'command',
+          command: curlCmd
+        }]
+      }]
+    };
   }
 
   // --- Token Usage State (2.5) ---
