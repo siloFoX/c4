@@ -160,6 +160,12 @@ class PtyManager {
         cwd: repoRoot, encoding: 'utf8', stdio: 'pipe'
       });
     }
+
+    // Apply main-protection hooks to worktree (1.17)
+    const hooksPath = repoRoot.replace(/\\/g, '/') + '/.githooks';
+    execSync(`git -C "${gitPath}" config core.hooksPath "${hooksPath}"`, {
+      encoding: 'utf8', stdio: 'pipe'
+    });
   }
 
   _removeWorktree(repoRoot, worktreePath) {

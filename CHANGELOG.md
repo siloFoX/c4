@@ -3,10 +3,10 @@
 ## [0.8.1] - 2026-04-03
 
 ### Added
-- **`c4 merge --skip-checks`** (1.16): Skip pre-merge checks (npm test, TODO.md, CHANGELOG.md)
-  - `--skip-checks` flag bypasses all validation and proceeds directly to merge
-  - Useful for doc-only commits or hotfixes where TODO/CHANGELOG changes are not required
-  - Usage: `c4 merge <worker|branch> --skip-checks`
+- **`c4 merge --skip-checks`** (1.16): Skip pre-merge checks for doc-only commits
+
+### Fixed
+- **Worktree main-protection hooks** (1.17): `_createWorktree()` sets `core.hooksPath` to enforce pre-commit hook in worktrees
 
 ## [0.8.0] - 2026-04-03
 
