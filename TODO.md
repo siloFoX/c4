@@ -13,7 +13,7 @@
 | 1.7 | 작업자 헬스체크 + 자동 재시작 | todo | 주기적 alive 체크. 죽으면 자동 재시작 또는 관리자에게 보고 |
 | 1.8 | 작업 스코프 정의 + 이탈 감시 | todo | 아래 상세 |
 | 1.9 | 관리자 개입 프로토콜 | todo | 아래 상세 |
-| 1.10 | `c4 init` 명령 | **done** | settings.json 권한 추가 + config.example→config.json 복사 + CLAUDE.md symlink. 설치 후 한번 실행 |
+| 1.10 | `c4 init` 개선 | **partial** | 기본 동작 완료. 추가 필요: claude 경로 자동 감지(which claude), npm link 실패 시 PATH 대안, Linux/macOS 대응 |
 | 1.11 | `c4 merge` + main 보호 | todo | main 직접 커밋 차단(pre-commit hook). 머지는 c4 merge로만. 테스트/문서 확인 후 머지 |
 | 1.12 | git worktree 지원 | **done** | 작업자마다 별도 worktree. 같은 디렉토리 공유 문제 해결. 멀티 에이전트 필수 |
 
@@ -134,7 +134,7 @@
 | 3.17 | Subagent Swarm 지원 | todo | 작업자 내부에서 Claude Code Agent 도구로 하위 에이전트 병렬 처리. C4는 hook으로 모니터링만 |
 | 3.18 | 역할별 작업자 템플릿 | todo | Planner(Opus), Executor(Sonnet), Reviewer(Haiku) 등 역할별 모델/도구/프롬프트 프리셋 |
 | 3.19 | Auto Mode 연동 | todo | 작업자에 permissions.defaultMode: "auto" 적용. Claude 자체 classifier로 안전성 판단 위임 |
-| 3.20 | Linux/macOS 지원 | todo | Windows 전용 코드 제거: ssh.exe 하드코딩, taskkill, fixMsysArgs. process.platform 분기 정비 + 테스트 |
+| 3.20 | Linux/macOS 지원 | **partial** | Linux(DGX) 테스트 완료. commandMap 로컬 지원 추가. macOS 미테스트 |
 
 ## 완료
 
