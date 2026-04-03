@@ -285,6 +285,19 @@
       "intervalMs": 300000,
       "alertOnly": false
     },
+    "discord": {
+      "enabled": false,
+      "webhookUrl": ""
+    },
+    "telegram": {
+      "enabled": false,
+      "botToken": "",
+      "chatId": ""
+    },
+    "kakaowork": {
+      "enabled": false,
+      "webhookUrl": ""
+    },
     "email": {
       "enabled": false,
       "from": "",

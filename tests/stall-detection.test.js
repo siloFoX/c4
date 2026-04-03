@@ -30,7 +30,9 @@ describe('Notifications.notifyStall()', () => {
     const promise = n.notifyStall('w1', 'intervention: escalation');
     assert.strictEqual(n._slackBuffer.length, 0, 'should not use buffer');
     const result = await promise;
-    assert.ok('ok' in result || 'error' in result);
+    // Result is per-channel: { slack: { ok: ..., error: ... } }
+    assert.ok('slack' in result);
+    assert.ok('ok' in result.slack || 'error' in result.slack);
   });
 
   it('includes [STALL] prefix and worker name in payload', async () => {
@@ -38,15 +40,16 @@ describe('Notifications.notifyStall()', () => {
       slack: { enabled: true, webhookUrl: 'http://localhost:19999/noop' }
     });
     let captured = null;
-    n._postWebhook = (url, payload) => {
-      captured = payload;
+    // Monkey-patch the channel's _send method
+    n.channels.slack._send = (text) => {
+      captured = text;
       return Promise.resolve({ ok: true });
     };
     await n.notifyStall('worker3', 'no output for 7min');
     assert.ok(captured);
-    assert.ok(captured.text.includes('[STALL]'));
-    assert.ok(captured.text.includes('worker3'));
-    assert.ok(captured.text.includes('no output for 7min'));
+    assert.ok(captured.includes('[STALL]'));
+    assert.ok(captured.includes('worker3'));
+    assert.ok(captured.includes('no output for 7min'));
   });
 });
 

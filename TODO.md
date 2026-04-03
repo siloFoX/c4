@@ -283,7 +283,7 @@ watchdog.sh (nohup, 60초 체크)
 | 4.9 | 작업자 .claude/settings.json 프리셋 | **done** | worktree 생성 시 역할별 permissions+hooks 자동 삽입. 복합 명령 차단 hook 포함 |
 | 4.10 | 관리자-작업자 간 Hook 기반 통신 | **done** | Notifications 모듈(Slack webhook+Email). healthCheck 연동. 작업 완료/에러/헬스 이벤트 알림 |
 | 4.11 | c4 status 명령 + AI 요약 알림 | **done** | `c4 status <name> "msg"` — worker가 직접 Slack에 상태 메시지 전송. daemon /status-update 라우트 |
-| 4.12 | 메시지 채널 확장 | todo | 카카오톡(KakaoWork API), 텔레그램(Bot API), Discord(Webhook) 알림 채널 추가. notifications.js 플러그인 구조로 |
+| 4.12 | 메시지 채널 확장 | **done** | Channel 플러그인 구조 리팩토링. Discord(Webhook), Telegram(Bot API), KakaoWork(Webhook) 채널 추가. pushAll/startAll/stopAll. 하위 호환 유지 |
 | 4.13 | config.example.json + CLAUDE.md 최신화 | **done** | config.example.json에 intervention, notifications.language 추가. CLAUDE.md에 CLI 전체 명령어 레퍼런스 추가 |
 | 4.14 | _getLastActivity JSONL 기반 전환 | **done** | raw screen 패턴 매칭 제거. logs/events-<worker>.jsonl에서 최근 tool_use 읽어서 "Edit: foo.js, Write: bar.js" 형태 반환. 폴백: taskText 첫줄 |
 | 4.15 | notifyStall 긴급 알림 | **done** | intervention 상태 또는 5분+ 무출력 시 Slack webhook 즉시 전송. healthCheck에서 자동 감지 |
