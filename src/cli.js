@@ -1,4 +1,39 @@
 #!/usr/bin/env node
+
+// Git Bash (MSYS2) path conversion fix
+// MSYS converts /path args to C:/Program Files/Git/path before Node sees them.
+// Set MSYS_NO_PATHCONV=1 for any child processes this CLI spawns.
+process.env.MSYS_NO_PATHCONV = '1';
+
+// Restore already-converted paths in current process argv
+function fixMsysArgs(argv) {
+  if (!process.env.MSYSTEM) return argv; // not Git Bash
+
+  // Determine the Git Bash install prefix (e.g. "C:/Program Files/Git")
+  const exepath = process.env.EXEPATH || '';
+  const prefixes = [];
+  if (exepath) {
+    prefixes.push(exepath.replace(/\\/g, '/').replace(/\/+$/, '') + '/');
+  }
+  prefixes.push('C:/Program Files/Git/');
+
+  return argv.map(arg => {
+    for (const prefix of prefixes) {
+      if (arg.startsWith(prefix)) {
+        return '/' + arg.slice(prefix.length);
+      }
+      // Handle backslash variant
+      const bsPrefix = prefix.replace(/\//g, '\\');
+      if (arg.startsWith(bsPrefix)) {
+        return '/' + arg.slice(bsPrefix.length).replace(/\\/g, '/');
+      }
+    }
+    return arg;
+  });
+}
+
+process.argv = fixMsysArgs(process.argv);
+
 const http = require('http');
 
 const BASE = process.env.C4_URL || 'http://127.0.0.1:3456';
