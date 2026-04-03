@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.2] - 2026-04-03
+
+### Fixed
+- **ScopeGuard glob `**` zero-depth match**: `_matchGlob`에서 `**`가 0개 디렉토리도 매칭하도록 수정 (`src/**/*.js` → `src/foo.js` 정상 매칭)
+- **sendTask/send PTY 잘림 버그**: `_chunkedWrite()` 도입 — 500자 청크 + 50ms 간격 전송으로 PTY 버퍼 오버플로우 방지 (1.18)
+
+### Added
+- Integration tests: SSE, MCP, Worktree, Linux cross-platform (17 tests)
+- Test results: 177/177 PASS (100%)
+
+---
+
 ## [1.0.1] - 2026-04-03
 
 ### Fixed
