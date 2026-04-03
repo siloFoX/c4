@@ -7,6 +7,11 @@
      ╚═════╝      ╚═╝
 ```
 
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)
+![Claude Code](https://img.shields.io/badge/Claude_Code-compatible-8A2BE2.svg)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)
+
 **[한국어](README.ko.md)**
 
 An agent-on-agent orchestrator. C4 lets Claude Code manage multiple Claude Code workers through virtual terminals — no screen capture, no token waste.
@@ -210,6 +215,44 @@ These are used by Claude Code (manager), not by you directly:
 - **ScreenBuffer**: Virtual terminal processes ANSI escape sequences — clean text, no spinner noise
 - **Daemon manager**: `c4 daemon start/stop/status` with PID tracking and health checks
 - **Version compatibility**: TUI patterns configurable per Claude Code version
+
+## FAQ
+
+**Q: C4 is not a standalone CLI tool?**
+A: Correct. C4 is a toolkit that Claude Code (the manager) uses. You talk to Claude Code, and it runs `c4` commands to manage worker instances.
+
+**Q: Does it work with models other than Claude?**
+A: Currently C4 is designed for Claude Code CLI only. The TUI pattern matching and auto-approve engine are tuned for Claude Code's interface.
+
+**Q: How many workers can I run?**
+A: Depends on your Claude Max plan limits. Each worker is a separate Claude Code session consuming tokens.
+
+**Q: What if the daemon crashes?**
+A: Use `c4 daemon start` to restart. Workers are lost on daemon crash (session recovery is on the roadmap).
+
+## Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feature/amazing`)
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
+
+See [TODO.md](TODO.md) for the roadmap and open tasks.
+
+## Roadmap
+
+See [TODO.md](TODO.md) for the full roadmap. Current priorities:
+
+- **Phase 1**: Core features (auto-approve, worktree, daemon manager) — mostly done
+- **Phase 2**: Operational stability (healthcheck, timeout, session recovery)
+- **Phase 3**: Advanced features (subagent swarm, hook-based architecture, planner worker)
+
+## Author
+
+**siloFoX** — [GitHub](https://github.com/siloFoX)
 
 ## License
 
