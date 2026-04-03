@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1] - 2026-04-04
+
+### Fixed
+- **send() Enter 누락 버그 수정**: 일반 텍스트 전송(isSpecialKey=false) 시 `\r`(Enter)을 append하지 않아 명령이 실행되지 않던 문제 수정
+
+---
+
 ## [1.4.0] - 2026-04-04
 
 ### Added
