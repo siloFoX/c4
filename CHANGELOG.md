@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.8.1] - 2026-04-03
+
+### Fixed
+- **Worktree main-protection hooks** (1.17): `_createWorktree()` now sets `core.hooksPath` to the original repo's `.githooks` directory after creating a worktree, ensuring `pre-commit` hook (main branch protection) is enforced in worktree directories
+
 ## [0.8.0] - 2026-04-03
 
 ### Added
