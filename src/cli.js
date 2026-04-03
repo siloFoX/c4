@@ -199,9 +199,11 @@ async function main() {
         const fs = require('fs');
         const path = require('path');
         const os = require('os');
+        const { execSync } = require('child_process');
 
         const home = os.homedir();
         const repoRoot = path.resolve(__dirname, '..');
+        const isWin = process.platform === 'win32';
 
         // 1. Merge c4 permissions into ~/.claude/settings.json
         const claudeDir = path.join(home, '.claude');
@@ -246,7 +248,43 @@ async function main() {
           console.log('[warn] config.example.json not found');
         }
 
-        // 3. CLAUDE.md symlink: ~/CLAUDE.md -> repo/CLAUDE.md
+        // 3. Auto-detect claude binary path → save to config.json
+        let claudePath = '';
+        const detectCmds = isWin ? ['where claude'] : ['which claude', 'command -v claude'];
+
+        for (const cmd of detectCmds) {
+          try {
+            const result = execSync(cmd, {
+              encoding: 'utf8',
+              stdio: ['pipe', 'pipe', 'pipe'],
+              timeout: 5000
+            }).trim();
+            if (result) {
+              claudePath = result.split(/\r?\n/)[0].trim();
+              break;
+            }
+          } catch {}
+        }
+
+        if (claudePath) {
+          const normalizedPath = claudePath.replace(/\\/g, '/');
+          try {
+            const config = JSON.parse(fs.readFileSync(configDst, 'utf8'));
+            if (!config.targets) config.targets = {};
+            if (!config.targets.local) config.targets.local = { type: 'local' };
+            if (!config.targets.local.commandMap) config.targets.local.commandMap = {};
+            config.targets.local.commandMap.claude = normalizedPath;
+            fs.writeFileSync(configDst, JSON.stringify(config, null, 2) + '\n');
+            console.log(`[ok] claude path: ${normalizedPath} (saved to config.json)`);
+          } catch (e) {
+            console.log(`[ok] claude detected: ${normalizedPath}`);
+            console.log(`[warn] could not update config.json: ${e.message}`);
+          }
+        } else {
+          console.log('[warn] claude not found in PATH — set targets.local.commandMap.claude in config.json manually');
+        }
+
+        // 4. CLAUDE.md symlink: ~/CLAUDE.md -> repo/CLAUDE.md
         const claudeMdSrc = path.join(repoRoot, 'CLAUDE.md');
         const claudeMdDst = path.join(home, 'CLAUDE.md');
 
@@ -269,10 +307,84 @@ async function main() {
             }
           } catch (e) {
             if (e.code === 'ENOENT') {
-              fs.symlinkSync(claudeMdSrc, claudeMdDst);
-              console.log('[ok] CLAUDE.md symlink: created');
+              try {
+                fs.symlinkSync(claudeMdSrc, claudeMdDst);
+                console.log('[ok] CLAUDE.md symlink: created');
+              } catch (symlinkErr) {
+                if (symlinkErr.code === 'EPERM') {
+                  console.log('[warn] CLAUDE.md symlink: permission denied (run as admin or enable Developer Mode on Windows)');
+                } else {
+                  console.log(`[warn] CLAUDE.md symlink: ${symlinkErr.message}`);
+                }
+              }
             } else {
-              throw e;
+              console.log(`[warn] CLAUDE.md: ${e.message}`);
+            }
+          }
+        }
+
+        // 5. Register c4 command (npm link → ~/.local/bin symlink → .bashrc alias)
+        let c4InPath = false;
+        try {
+          const c4Which = execSync(isWin ? 'where c4' : 'which c4', {
+            encoding: 'utf8',
+            stdio: ['pipe', 'pipe', 'pipe'],
+            timeout: 5000
+          }).trim();
+          if (c4Which) c4InPath = true;
+        } catch {}
+
+        if (c4InPath) {
+          console.log('[ok] c4 command: already in PATH');
+        } else {
+          let c4Registered = false;
+
+          // 5a. Try npm link
+          try {
+            execSync('npm link', {
+              cwd: repoRoot,
+              stdio: 'pipe',
+              timeout: 30000
+            });
+            c4Registered = true;
+            console.log('[ok] npm link: c4 command registered globally');
+          } catch {
+            console.log('[info] npm link failed (may need elevated permissions)');
+
+            // 5b. Try ~/.local/bin/c4 symlink (Linux/macOS)
+            if (!isWin) {
+              const localBin = path.join(home, '.local', 'bin');
+              const c4Link = path.join(localBin, 'c4');
+              const c4Cli = path.join(repoRoot, 'src', 'cli.js');
+
+              try {
+                fs.mkdirSync(localBin, { recursive: true });
+                try { fs.unlinkSync(c4Link); } catch {}
+                fs.symlinkSync(c4Cli, c4Link);
+                try { fs.chmodSync(c4Cli, 0o755); } catch {}
+                c4Registered = true;
+                console.log('[ok] symlink: ~/.local/bin/c4 → src/cli.js');
+
+                const pathDirs = (process.env.PATH || '').split(':');
+                const inPath = pathDirs.some(d => {
+                  const resolved = d.replace(/^~/, home).replace('$HOME', home);
+                  return resolved === localBin;
+                });
+                if (!inPath) {
+                  console.log('[info] Add to PATH (add to ~/.bashrc for persistence):');
+                  console.log('  export PATH="$HOME/.local/bin:$PATH"');
+                }
+              } catch (e) {
+                console.log(`[warn] symlink creation failed: ${e.message}`);
+              }
+            }
+
+            // 5c. Final fallback: suggest .bashrc alias
+            if (!c4Registered) {
+              const c4Cli = path.join(repoRoot, 'src', 'cli.js').replace(/\\/g, '/');
+              console.log('[info] Add alias to ~/.bashrc:');
+              console.log(`  echo 'alias c4="node ${c4Cli}"' >> ~/.bashrc`);
+              console.log('  source ~/.bashrc');
             }
           }
         }

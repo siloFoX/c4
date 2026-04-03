@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.2] - 2026-04-03
+
+### Improved
+- **`c4 init` enhanced** (1.10): Full initialization with auto-detection and fallbacks
+  - Auto-detect `claude` binary path (`where`/`which`) → saves to `config.json` `targets.local.commandMap.claude`
+  - Register `c4` command: `npm link` → `~/.local/bin/c4` symlink → `.bashrc` alias (3-step fallback)
+  - PATH check: skips registration if `c4` already accessible
+  - EPERM handling: graceful error on Windows symlink permission issues
+
 ## [0.3.1] - 2026-04-03
 
 ### Added
