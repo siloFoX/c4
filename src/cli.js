@@ -641,6 +641,46 @@ async function main() {
         return;
       }
 
+      case 'history': {
+        let worker = '', limit = 0;
+        for (let i = 0; i < args.length; i++) {
+          if (args[i] === '--worker' && args[i + 1]) { worker = args[++i]; }
+          else if (args[i] === '--limit' && args[i + 1]) { limit = parseInt(args[++i]) || 0; }
+          else if (!worker) { worker = args[i]; }
+        }
+        const params = new URLSearchParams();
+        if (worker) params.set('worker', worker);
+        if (limit) params.set('limit', String(limit));
+        const qs = params.toString() ? `?${params.toString()}` : '';
+        result = await request('GET', `/history${qs}`);
+        if (result.records) {
+          if (result.records.length === 0) {
+            console.log('No history records.');
+          } else {
+            for (const r of result.records) {
+              const started = r.startedAt ? new Date(r.startedAt).toLocaleString() : '?';
+              const completed = r.completedAt ? new Date(r.completedAt).toLocaleString() : '?';
+              const commits = (r.commits || []).length;
+              console.log(`[${r.status}] ${r.name}  branch=${r.branch || '-'}  commits=${commits}`);
+              console.log(`  started: ${started}  completed: ${completed}`);
+              if (r.task) {
+                const taskPreview = r.task.length > 80 ? r.task.slice(0, 80) + '...' : r.task;
+                console.log(`  task: ${taskPreview}`);
+              }
+              if (r.commits && r.commits.length > 0) {
+                for (const c of r.commits) {
+                  console.log(`    ${c.hash} ${c.message}`);
+                }
+              }
+              console.log('');
+            }
+            console.log(`Total: ${result.records.length} records`);
+          }
+          return;
+        }
+        break;
+      }
+
       case 'daemon': {
         const DaemonManager = require('./daemon-manager');
         const sub = args[0];
@@ -690,6 +730,7 @@ Commands:
   list                             List all workers
   merge <worker|branch>            Merge branch to main (with pre-checks)
   close <name>                     Close a worker
+  history [worker] [--limit N]     Show task history
   health                           Check daemon status
   daemon start                     Start daemon in background
   daemon stop                      Stop daemon

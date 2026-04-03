@@ -9,6 +9,7 @@ const { ScopeGuard, resolveScope } = require('./scope-guard');
 
 const CONFIG_FILE = path.join(__dirname, '..', 'config.json');
 const STATE_FILE = path.join(__dirname, '..', 'state.json');
+const HISTORY_FILE = path.join(__dirname, '..', 'history.jsonl');
 
 function loadConfig() {
   try {
@@ -942,6 +943,10 @@ class PtyManager {
     w.proc.write(fullTask + '\r');
     w.branch = branch;
 
+    // History tracking (3.7)
+    w._taskText = task;
+    w._taskStartedAt = new Date().toISOString();
+
     return {
       success: true,
       branch,
@@ -1040,6 +1045,9 @@ class PtyManager {
       _pendingTaskSent: false,
       // SSH state (2.4)
       _isSsh: t.type === 'ssh',
+      // History tracking (3.7)
+      _taskText: null,           // original task text
+      _taskStartedAt: null,      // ISO timestamp when task was sent
     };
 
     // Raw log
@@ -1711,9 +1719,72 @@ class PtyManager {
     };
   }
 
+  // --- Task History (3.7) ---
+
+  _getCommits(branch) {
+    if (!branch) return [];
+    try {
+      const repoRoot = this._detectRepoRoot();
+      if (!repoRoot) return [];
+      const log = execSync(
+        `git -C "${repoRoot.replace(/\\/g, '/')}" log main..${branch} --oneline --no-decorate 2>/dev/null`,
+        { encoding: 'utf8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe'] }
+      ).trim();
+      if (!log) return [];
+      return log.split('\n').map(line => {
+        const [hash, ...rest] = line.split(' ');
+        return { hash, message: rest.join(' ') };
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  _recordHistory(name, worker) {
+    const record = {
+      name,
+      task: worker._taskText || null,
+      branch: worker.branch || null,
+      startedAt: worker._taskStartedAt || null,
+      completedAt: new Date().toISOString(),
+      commits: this._getCommits(worker.branch),
+      status: worker.alive ? 'closed' : 'exited'
+    };
+    try {
+      fs.appendFileSync(HISTORY_FILE, JSON.stringify(record) + '\n');
+    } catch (e) {
+      // Silently fail — don't break close()
+    }
+    return record;
+  }
+
+  getHistory(options = {}) {
+    try {
+      const content = fs.readFileSync(HISTORY_FILE, 'utf8').trim();
+      if (!content) return { records: [] };
+      let records = content.split('\n').map(line => {
+        try { return JSON.parse(line); }
+        catch { return null; }
+      }).filter(Boolean);
+
+      if (options.worker) {
+        records = records.filter(r => r.name === options.worker);
+      }
+      if (options.limit) {
+        records = records.slice(-options.limit);
+      }
+      return { records };
+    } catch {
+      return { records: [] };
+    }
+  }
+
   close(name) {
     const w = this.workers.get(name);
     if (!w) return { error: `Worker '${name}' not found` };
+
+    // Record history before cleanup (3.7)
+    const history = this._recordHistory(name, w);
 
     if (w.idleTimer) clearTimeout(w.idleTimer);
     if (w.alive) w.proc.kill();
@@ -1729,7 +1800,7 @@ class PtyManager {
 
     this.workers.delete(name);
     this._saveState();
-    return { success: true, name };
+    return { success: true, name, history };
   }
 
   closeAll() {

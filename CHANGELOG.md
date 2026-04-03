@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.11.0] - 2026-04-03
+
+### Added
+- **Task history persistence** (3.7): Record worker task history across sessions
+  - `history.jsonl`: JSONL log with `{ name, task, branch, startedAt, completedAt, commits, status }`
+  - `close()` auto-records history before worker cleanup
+  - `_getCommits()`: Collects branch commits via `git log main..<branch>`
+  - `c4 history` CLI command: View task history with formatted output
+  - `c4 history <worker>` / `c4 history --worker <name>`: Filter by worker
+  - `c4 history --limit N`: Show last N records
+  - `GET /history` daemon route with `?worker=` and `?limit=` query params
+  - `tests/history.test.js`: 25 unit tests
+- **Autonomous operation structure** (2.9): watchdog + manager auto-creation + scribe context recovery
+- **Auto-validate task results** (3.2): Post-task test/lint execution with feedback loop
+
 ## [0.10.0] - 2026-04-03
 
 ### Added
