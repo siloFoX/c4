@@ -292,6 +292,24 @@ class PtyManager {
     return null; // 'ask' — don't send anything
   }
 
+  _getRulesSummary() {
+    const rules = this.config.rules;
+    if (!rules || !rules.appendToTask) return null;
+
+    // Use custom summary if provided, otherwise use default
+    if (rules.summary) return rules.summary;
+
+    return [
+      '[C4 규칙 — 반드시 준수]',
+      '- 복합 명령(&&, |, ;) 사용 금지 → 단일 명령으로 분리',
+      '- cd X && git Y 대신 git -C <path> 사용',
+      '- sleep 대신 c4 wait <name> 사용',
+      '- /model 등 슬래시 명령: MSYS_NO_PATHCONV=1 c4 send 사용',
+      '- main 직접 커밋 금지 → 브랜치에서 작업',
+      '- 작업 루틴: 구현 → 테스트 → 문서 업데이트 → 커밋',
+    ].join('\n');
+  }
+
   // Send a task to worker with branch isolation via git worktree
   sendTask(name, task, options = {}) {
     const w = this.workers.get(name);
@@ -322,15 +340,19 @@ class PtyManager {
 
         const cdPath = worktreePath.replace(/\\/g, '/');
         commands.push(`cd ${cdPath} 로 이동해서 작업해줘. 현재 브랜치는 ${branch}야. 작업 단위마다 커밋해줘.`);
-        commands.push(task);
       } else {
         // Fallback: branch-only (no worktree)
         commands.push(`git checkout -b ${branch} 또는 이미 있으면 git checkout ${branch} 해줘. 그리고 작업 단위마다 커밋해줘.`);
-        commands.push(task);
       }
-    } else {
-      commands.push(task);
     }
+
+    // Prepend rules summary to task if enabled
+    const rulesSummary = this._getRulesSummary();
+    if (rulesSummary) {
+      commands.push(rulesSummary);
+    }
+
+    commands.push(task);
 
     const fullTask = commands.join('\n\n');
     w.proc.write(fullTask + '\r');

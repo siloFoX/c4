@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.0] - 2026-04-03
+
+### Added
+- **CLAUDE.md rule enforcement** (1.13): Automated rule compliance for workers
+  - Pre-commit hook warns on compound commands (`&&`, `|`, `;`) in staged diffs
+  - `sendTask()` auto-prepends CLAUDE.md key rules to task text
+  - Default rules summary: no compound commands, use `git -C`, use `c4 wait`, no main commits, work routine
+  - Config: `rules.appendToTask` (default: true) enables/disables rule injection
+  - Config: `rules.summary` for custom rules text (empty = built-in default)
+
 ## [0.5.0] - 2026-04-03
 
 ### Added
