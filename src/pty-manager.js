@@ -386,6 +386,7 @@ class PtyManager {
       scope: options.scope || null,
       scopePreset: options.scopePreset || '',
       after: options.after || null,
+      contextFrom: options.contextFrom || null,
       queuedAt: Date.now()
     };
     this._taskQueue.push(entry);
@@ -456,7 +457,8 @@ class PtyManager {
         useWorktree: entry.useWorktree,
         projectRoot: entry.projectRoot,
         scope: entry.scope,
-        scopePreset: entry.scopePreset
+        scopePreset: entry.scopePreset,
+        contextFrom: entry.contextFrom
       }
     };
 
@@ -849,6 +851,73 @@ class PtyManager {
     ].join('\n');
   }
 
+  // --- Worker Pooling (3.4) ---
+
+  _findPoolWorker() {
+    const poolCfg = this.config.pool || {};
+    if (!poolCfg.enabled) return null;
+
+    const maxIdleMs = poolCfg.maxIdleMs || 300000;
+    const now = Date.now();
+
+    for (const [name, w] of this.workers) {
+      if (!w.alive) continue;
+      const idleMs = now - w.lastDataTime;
+      // Must be idle (past threshold) but not too old (within maxIdleMs)
+      if (idleMs >= this.idleThresholdMs && idleMs <= maxIdleMs) {
+        // Must not have an active task or pending task
+        if (!w._pendingTask && !w._pendingTaskSent) {
+          return name;
+        }
+      }
+    }
+    return null;
+  }
+
+  _reuseWorker(poolName, newName, task, options = {}) {
+    const w = this.workers.get(poolName);
+    if (!w || !w.alive) return { error: `Pool worker '${poolName}' not available` };
+
+    // Rename the worker
+    this.workers.delete(poolName);
+    this.workers.set(newName, w);
+
+    // Reset worker state for new task
+    w._interventionState = null;
+    w._lastQuestion = null;
+    w._errorHistory = [];
+    w._routineState = { tested: false, docsUpdated: false };
+    w._taskText = null;
+    w._taskStartedAt = null;
+    w.snapshotIndex = w.snapshots.length; // mark all old snapshots as read
+
+    // Now send the task directly
+    return this.sendTask(newName, task, options);
+  }
+
+  // --- Context Transfer (3.1) ---
+
+  _getContextSnapshots(workerName, count = 3) {
+    const w = this.workers.get(workerName);
+    if (!w) return null;
+
+    // Get the most recent non-autoAction snapshots
+    const relevant = w.snapshots
+      .filter(s => !s.autoAction && s.screen && s.screen.trim())
+      .slice(-count);
+
+    if (relevant.length === 0) return null;
+
+    const lines = [`[컨텍스트 전달: ${workerName}의 최근 작업 결과]`];
+    for (const snap of relevant) {
+      const time = new Date(snap.time).toLocaleTimeString();
+      lines.push(`--- ${time} ---`);
+      lines.push(snap.screen.trim());
+    }
+    lines.push(`[/${workerName} 컨텍스트 끝]`);
+    return lines.join('\n');
+  }
+
   // Send a task to worker with branch isolation via git worktree
   sendTask(name, task, options = {}) {
     // Duplicate check (2.3): reject if same name already queued
@@ -875,6 +944,14 @@ class PtyManager {
         return this._enqueueTask(name, task, options);
       }
 
+      // Pool reuse (3.4): try to recycle an idle worker instead of creating new
+      if (options.reuse !== false) {
+        const poolName = this._findPoolWorker();
+        if (poolName) {
+          return this._reuseWorker(poolName, name, task, options);
+        }
+      }
+
       // Can proceed — auto-create worker and queue task for after setup
       return this._createAndSendTask({
         name, task,
@@ -886,7 +963,8 @@ class PtyManager {
         useWorktree: options.useWorktree,
         projectRoot: options.projectRoot,
         scope: options.scope,
-        scopePreset: options.scopePreset
+        scopePreset: options.scopePreset,
+        contextFrom: options.contextFrom
       });
     }
 
@@ -937,11 +1015,33 @@ class PtyManager {
       commands.push(w.scopeGuard.toSummary());
     }
 
+    // Context transfer (3.1): inject snapshots from another worker
+    if (options.contextFrom) {
+      const contextText = this._getContextSnapshots(options.contextFrom, 3);
+      if (contextText) {
+        commands.push(contextText);
+      }
+    }
+
     commands.push(task);
 
     const fullTask = commands.join('\n\n');
     w.proc.write(fullTask + '\r');
     w.branch = branch;
+
+    // Save start commit for rollback (3.6)
+    if (w.worktree || w.branch) {
+      try {
+        const gitDir = (w.worktree || this._detectRepoRoot() || '').replace(/\\/g, '/');
+        if (gitDir) {
+          w._startCommit = execSync(`git -C "${gitDir}" rev-parse HEAD`, {
+            encoding: 'utf8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe']
+          }).trim();
+        }
+      } catch {
+        w._startCommit = null;
+      }
+    }
 
     // History tracking (3.7)
     w._taskText = task;
@@ -952,6 +1052,8 @@ class PtyManager {
       branch,
       worktree: w.worktree || null,
       scope: w.scopeGuard ? { active: true, description: w.scopeGuard.description } : null,
+      contextFrom: options.contextFrom || null,
+      startCommit: w._startCommit || null,
       task: fullTask
     };
   }
@@ -1048,6 +1150,8 @@ class PtyManager {
       // History tracking (3.7)
       _taskText: null,           // original task text
       _taskStartedAt: null,      // ISO timestamp when task was sent
+      // Rollback (3.6)
+      _startCommit: null,        // HEAD commit hash before task started
     };
 
     // Raw log
@@ -1776,6 +1880,54 @@ class PtyManager {
       return { records };
     } catch {
       return { records: [] };
+    }
+  }
+
+  // --- Rollback (3.6) ---
+
+  rollback(name) {
+    const w = this.workers.get(name);
+    if (!w) return { error: `Worker '${name}' not found` };
+    if (!w._startCommit) return { error: `No start commit recorded for '${name}'` };
+
+    const gitDir = (w.worktree || this._detectRepoRoot() || '').replace(/\\/g, '/');
+    if (!gitDir) return { error: 'Cannot determine git directory for rollback' };
+
+    try {
+      // Get current HEAD for reference
+      const currentHead = execSync(`git -C "${gitDir}" rev-parse --short HEAD`, {
+        encoding: 'utf8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe']
+      }).trim();
+
+      const startShort = w._startCommit.slice(0, 7);
+
+      if (currentHead === startShort) {
+        return { success: true, name, message: 'Already at start commit, nothing to rollback', commit: w._startCommit };
+      }
+
+      // git reset --soft preserves changes in staging area
+      execSync(`git -C "${gitDir}" reset --soft ${w._startCommit}`, {
+        encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe']
+      });
+
+      // Log the rollback
+      w.snapshots.push({
+        time: Date.now(),
+        screen: `[ROLLBACK] reset to ${startShort} (was ${currentHead})`,
+        autoAction: true
+      });
+
+      return {
+        success: true,
+        name,
+        from: currentHead,
+        to: startShort,
+        startCommit: w._startCommit,
+        branch: w.branch || null,
+        worktree: w.worktree || null
+      };
+    } catch (e) {
+      return { error: `Rollback failed: ${e.message}` };
     }
   }
 

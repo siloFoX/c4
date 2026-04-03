@@ -174,6 +174,11 @@
     "projectId": ""
   },
 
+  "pool": {
+    "enabled": false,
+    "maxIdleMs": 300000
+  },
+
   "gitBash": {
     "disablePathConversion": true
   }

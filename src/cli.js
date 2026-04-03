@@ -99,12 +99,15 @@ async function main() {
 
       case 'task': {
         const name = args[0];
-        let branch = '', useBranch = true, scope = null, scopePreset = '', after = '';
+        let branch = '', useBranch = true, scope = null, scopePreset = '', after = '', contextFrom = '', reuse = undefined;
         const taskParts = [];
         for (let i = 1; i < args.length; i++) {
           if (args[i] === '--branch' && args[i + 1]) { branch = args[++i]; }
           else if (args[i] === '--no-branch') { useBranch = false; }
           else if (args[i] === '--after' && args[i + 1]) { after = args[++i]; }
+          else if (args[i] === '--context' && args[i + 1]) { contextFrom = args[++i]; }
+          else if (args[i] === '--reuse') { reuse = true; }
+          else if (args[i] === '--no-reuse') { reuse = false; }
           else if (args[i] === '--scope' && args[i + 1]) {
             try { scope = JSON.parse(args[++i]); }
             catch { console.error('Error: --scope must be valid JSON'); process.exit(1); }
@@ -117,6 +120,8 @@ async function main() {
         if (scope) body.scope = scope;
         if (scopePreset) body.scopePreset = scopePreset;
         if (after) body.after = after;
+        if (contextFrom) body.contextFrom = contextFrom;
+        if (reuse !== undefined) body.reuse = reuse;
         result = await request('POST', '/task', body);
         break;
       }
@@ -681,6 +686,24 @@ async function main() {
         break;
       }
 
+      case 'rollback': {
+        const name = args[0];
+        if (!name) {
+          console.error('Usage: c4 rollback <worker-name>');
+          process.exit(1);
+        }
+        result = await request('POST', '/rollback', { name });
+        if (result.success) {
+          if (result.from) {
+            console.log(`Rolled back '${name}': ${result.from} → ${result.to}`);
+          } else {
+            console.log(result.message);
+          }
+          return;
+        }
+        break;
+      }
+
       case 'daemon': {
         const DaemonManager = require('./daemon-manager');
         const sub = args[0];
@@ -721,7 +744,7 @@ Commands:
   init                                                     Initialize c4 (permissions, config, symlink)
   new <name> [command] [--target dgx|local] [--cwd path]   Create a worker
   task <name> <text> [--branch name] [--no-branch]         Send task with auto branch
-       [--scope JSON] [--scope-preset name]                  Scope guard: restrict files/commands
+       [--context worker] [--reuse] [--scope JSON]             Context / pool reuse / scope
   send <name> <text>               Send raw text to worker
   key <name> <key>                 Send special key (Enter, C-c, C-b, Tab, etc.)
   read <name>                      Read new output (idle snapshots only)
@@ -729,6 +752,7 @@ Commands:
   wait <name> [timeout_ms]         Wait until idle, then read screen
   list                             List all workers
   merge <worker|branch>            Merge branch to main (with pre-checks)
+  rollback <name>                  Rollback worker to pre-task commit (git reset --soft)
   close <name>                     Close a worker
   history [worker] [--limit N]     Show task history
   health                           Check daemon status
