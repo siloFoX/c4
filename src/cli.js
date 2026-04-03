@@ -99,11 +99,12 @@ async function main() {
 
       case 'task': {
         const name = args[0];
-        let branch = '', useBranch = true, scope = null, scopePreset = '';
+        let branch = '', useBranch = true, scope = null, scopePreset = '', after = '';
         const taskParts = [];
         for (let i = 1; i < args.length; i++) {
           if (args[i] === '--branch' && args[i + 1]) { branch = args[++i]; }
           else if (args[i] === '--no-branch') { useBranch = false; }
+          else if (args[i] === '--after' && args[i + 1]) { after = args[++i]; }
           else if (args[i] === '--scope' && args[i + 1]) {
             try { scope = JSON.parse(args[++i]); }
             catch { console.error('Error: --scope must be valid JSON'); process.exit(1); }
@@ -115,6 +116,7 @@ async function main() {
         const body = { name, task, branch, useBranch };
         if (scope) body.scope = scope;
         if (scopePreset) body.scopePreset = scopePreset;
+        if (after) body.after = after;
         result = await request('POST', '/task', body);
         break;
       }
@@ -176,6 +178,15 @@ async function main() {
             for (const w of result.workers) {
               const intervention = w.intervention || '-';
               console.log(`${w.name}\t\t${w.status}\t\t${w.unreadSnapshots}\t${intervention}\t\t${w.command}`);
+            }
+          }
+          if (result.queuedTasks && result.queuedTasks.length > 0) {
+            console.log('\nQUEUED:');
+            console.log('  NAME\t\tBRANCH\t\t\tAFTER\t\tQUEUED AT');
+            for (const q of result.queuedTasks) {
+              const after = q.after || '-';
+              const time = new Date(q.queuedAt).toLocaleTimeString();
+              console.log(`  ${q.name}\t\t${q.branch || '-'}\t\t${after}\t\t${time}`);
             }
           }
           if (result.lostWorkers && result.lostWorkers.length > 0) {
@@ -603,6 +614,33 @@ async function main() {
         break;
       }
 
+      case 'token-usage': {
+        result = await request('GET', '/token-usage');
+        if (result.error) {
+          console.log(`Error: ${result.error}`);
+        } else {
+          console.log(`Token usage (${result.today}):`);
+          console.log(`  Input:  ${(result.input || 0).toLocaleString()} tokens`);
+          console.log(`  Output: ${(result.output || 0).toLocaleString()} tokens`);
+          console.log(`  Total:  ${(result.total || 0).toLocaleString()} tokens`);
+          if (result.dailyLimit > 0) {
+            const pct = Math.round((result.total / result.dailyLimit) * 100);
+            console.log(`  Limit:  ${result.dailyLimit.toLocaleString()} tokens (${pct}% used)`);
+          }
+          if (result.history) {
+            const days = Object.keys(result.history).sort().reverse();
+            if (days.length > 1) {
+              console.log('  History:');
+              for (const day of days.slice(0, 7)) {
+                const d = result.history[day];
+                console.log(`    ${day}: ${(d.input + d.output).toLocaleString()} tokens`);
+              }
+            }
+          }
+        }
+        return;
+      }
+
       case 'daemon': {
         const DaemonManager = require('./daemon-manager');
         const sub = args[0];
@@ -661,6 +699,7 @@ Commands:
   scribe stop                      Stop scribe
   scribe status                    Show scribe status
   scribe scan                      Run one-time scan now
+  token-usage                      Show daily token usage
   config                           Show current config
   config reload                    Reload config.json without restart
 

@@ -90,6 +90,8 @@
     "projectRoot": ""
   },
 
+  "maxWorkers": 5,
+
   "healthCheck": {
     "enabled": true,
     "intervalMs": 30000,
@@ -153,6 +155,23 @@
     "outputPath": "docs/session-context.md",
     "projectId": "",
     "maxEntries": 200
+  },
+
+  "ssh": {
+    "controlMaster": true,
+    "controlPersist": 60,
+    "serverAliveInterval": 15,
+    "serverAliveCountMax": 3,
+    "reconnect": true,
+    "maxReconnects": 3,
+    "reconnectDelayMs": 5000
+  },
+
+  "tokenMonitor": {
+    "enabled": true,
+    "dailyLimit": 0,
+    "warnThreshold": 0.8,
+    "projectId": ""
   },
 
   "gitBash": {

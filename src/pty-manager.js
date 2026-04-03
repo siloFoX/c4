@@ -1,6 +1,7 @@
 const pty = require('node-pty');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { execSync } = require('child_process');
 const ScreenBuffer = require('./screen-buffer');
 const Scribe = require('./scribe');
@@ -21,10 +22,14 @@ class PtyManager {
   constructor() {
     this.workers = new Map();
     this.config = loadConfig();
+    this._taskQueue = [];
     this._loadState();
     this._healthTimer = null;
     this._lastHealthCheck = null;
     this._scribe = null;
+    this._sshReconnects = new Map(); // name → { count, lastAttempt }
+    this._tokenUsage = { daily: {}, lastScan: 0, offsets: {} };
+    this._loadTokenState();
   }
 
   get logsDir() {
@@ -54,6 +59,10 @@ class PtyManager {
           }
         }
       }
+      // Restore task queue
+      if (Array.isArray(data.taskQueue)) {
+        this._taskQueue = data.taskQueue;
+      }
     } catch {
       this.offsets = {};
       this.lostWorkers = [];
@@ -61,7 +70,7 @@ class PtyManager {
   }
 
   _saveState() {
-    const data = { offsets: {}, workers: [], lostWorkers: this.lostWorkers || [] };
+    const data = { offsets: {}, workers: [], lostWorkers: this.lostWorkers || [], taskQueue: this._taskQueue || [] };
     for (const [name, w] of this.workers) {
       data.offsets[name] = w.snapshotIndex;
       const exitSnapshot = !w.alive
@@ -77,6 +86,380 @@ class PtyManager {
       });
     }
     fs.writeFileSync(STATE_FILE, JSON.stringify(data, null, 2));
+  }
+
+  // --- Token Usage State (2.5) ---
+
+  _loadTokenState() {
+    const stateFile = path.join(__dirname, '..', 'token-state.json');
+    try {
+      const data = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+      this._tokenUsage = {
+        daily: data.daily || {},
+        lastScan: data.lastScan || 0,
+        offsets: data.offsets || {}
+      };
+    } catch {
+      this._tokenUsage = { daily: {}, lastScan: 0, offsets: {} };
+    }
+  }
+
+  _saveTokenState() {
+    const stateFile = path.join(__dirname, '..', 'token-state.json');
+    fs.writeFileSync(stateFile, JSON.stringify(this._tokenUsage, null, 2));
+  }
+
+  // --- SSH Helpers (2.4) ---
+
+  _buildSshArgs(target) {
+    const sshArgs = ['-t', '-o', 'StrictHostKeyChecking=no'];
+
+    // ControlMaster for persistent connections (Unix only)
+    if (process.platform !== 'win32') {
+      const sshCfg = this.config.ssh || {};
+      if (sshCfg.controlMaster !== false) {
+        const controlDir = path.join(os.tmpdir(), 'c4-ssh');
+        if (!fs.existsSync(controlDir)) {
+          fs.mkdirSync(controlDir, { recursive: true, mode: 0o700 });
+        }
+        const controlPath = sshCfg.controlPath || path.join(controlDir, '%r@%h:%p');
+        const controlPersist = sshCfg.controlPersist || 60;
+        sshArgs.push(
+          '-o', `ControlMaster=auto`,
+          '-o', `ControlPath=${controlPath}`,
+          '-o', `ControlPersist=${controlPersist}`
+        );
+      }
+    }
+
+    // ServerAlive for disconnect detection (all platforms)
+    const sshCfg = this.config.ssh || {};
+    const serverAliveInterval = sshCfg.serverAliveInterval || 15;
+    const serverAliveCountMax = sshCfg.serverAliveCountMax || 3;
+    sshArgs.push(
+      '-o', `ServerAliveInterval=${serverAliveInterval}`,
+      '-o', `ServerAliveCountMax=${serverAliveCountMax}`
+    );
+
+    if (target.port) sshArgs.push('-p', String(target.port));
+    if (target.identityFile) sshArgs.push('-i', target.identityFile);
+    sshArgs.push(target.host);
+
+    return sshArgs;
+  }
+
+  _handleSshReconnect(name, worker) {
+    const sshCfg = this.config.ssh || {};
+    if (!sshCfg.reconnect) return null;
+
+    const maxReconnects = sshCfg.maxReconnects || 3;
+    const reconnectDelayMs = sshCfg.reconnectDelayMs || 5000;
+
+    let state = this._sshReconnects.get(name);
+    if (!state) {
+      state = { count: 0, lastAttempt: 0 };
+      this._sshReconnects.set(name, state);
+    }
+
+    if (state.count >= maxReconnects) {
+      worker.snapshots.push({
+        time: Date.now(),
+        screen: `[SSH WARN] reconnect limit reached (${maxReconnects}x) for '${name}'`,
+        autoAction: true,
+        sshWarn: true
+      });
+      this._sshReconnects.delete(name);
+      return null;
+    }
+
+    const elapsed = Date.now() - state.lastAttempt;
+    if (elapsed < reconnectDelayMs) return null;
+
+    state.count++;
+    state.lastAttempt = Date.now();
+
+    worker.snapshots.push({
+      time: Date.now(),
+      screen: `[SSH WARN] connection lost, reconnecting (${state.count}/${maxReconnects})...`,
+      autoAction: true,
+      sshWarn: true
+    });
+
+    // Re-create with same params
+    const command = worker.command.split(' ')[0];
+    const args = worker.command.split(' ').slice(1);
+    const target = worker.target;
+    const branch = worker.branch;
+    const worktree = worker.worktree;
+
+    // Clean up
+    if (worker.idleTimer) clearTimeout(worker.idleTimer);
+    if (worker.rawLogStream && !worker.rawLogStream.destroyed) worker.rawLogStream.end();
+    this.workers.delete(name);
+
+    const result = this.create(name, command, args, { target });
+    if (result.error) {
+      return { status: 'reconnect_failed', error: result.error };
+    }
+
+    // Restore branch/worktree info
+    const newWorker = this.workers.get(name);
+    if (newWorker) {
+      newWorker.branch = branch;
+      newWorker.worktree = worktree;
+    }
+
+    return { status: 'reconnected', attempt: state.count, pid: result.pid };
+  }
+
+  // --- Token Usage Monitoring (2.5) ---
+
+  _getProjectDir() {
+    const home = os.homedir();
+    const claudeProjects = path.join(home, '.claude', 'projects');
+    const projectId = this.config.tokenMonitor?.projectId || this.config.scribe?.projectId || '';
+
+    if (projectId) {
+      const dir = path.join(claudeProjects, projectId);
+      return fs.existsSync(dir) ? dir : null;
+    }
+
+    if (!fs.existsSync(claudeProjects)) return null;
+
+    const projectRoot = this._detectRepoRoot() || path.join(__dirname, '..');
+    const cwd = projectRoot.replace(/\\/g, '/');
+    const entries = fs.readdirSync(claudeProjects);
+
+    for (const entry of entries) {
+      const decoded = entry
+        .replace(/^([A-Z])--/, '$1:/')
+        .replace(/-/g, '/');
+      if (decoded === cwd || cwd.startsWith(decoded + '/')) {
+        return path.join(claudeProjects, entry);
+      }
+    }
+
+    return null;
+  }
+
+  _parseTokensFromJsonl(filePath) {
+    const offset = this._tokenUsage.offsets[filePath] || 0;
+    let content;
+    try {
+      content = fs.readFileSync(filePath, 'utf8');
+    } catch {
+      return { input: 0, output: 0 };
+    }
+
+    const lines = content.split('\n');
+    if (offset >= lines.length) return { input: 0, output: 0 };
+
+    let inputTokens = 0;
+    let outputTokens = 0;
+
+    for (let i = offset; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      try {
+        const obj = JSON.parse(line);
+        // Claude JSONL: assistant messages have usage data
+        const usage = obj.message?.usage || obj.usage;
+        if (usage) {
+          if (usage.input_tokens) inputTokens += usage.input_tokens;
+          if (usage.output_tokens) outputTokens += usage.output_tokens;
+        }
+        // Also check costUSD if available
+        if (obj.costUSD && !usage) {
+          // Estimate tokens from cost (~$3/M input, ~$15/M output for Opus)
+          // Just track cost directly as a fallback
+        }
+      } catch {}
+    }
+
+    this._tokenUsage.offsets[filePath] = lines.length;
+    return { input: inputTokens, output: outputTokens };
+  }
+
+  _checkTokenUsage() {
+    const cfg = this.config.tokenMonitor || {};
+    if (cfg.enabled === false) return null;
+
+    const projectDir = this._getProjectDir();
+    if (!projectDir) return null;
+
+    // Scan JSONL files (same pattern as scribe)
+    const sessionFiles = [];
+    try {
+      for (const entry of fs.readdirSync(projectDir)) {
+        if (entry.endsWith('.jsonl')) {
+          sessionFiles.push(path.join(projectDir, entry));
+        }
+      }
+    } catch {}
+
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    if (!this._tokenUsage.daily[today]) {
+      this._tokenUsage.daily[today] = { input: 0, output: 0 };
+    }
+
+    let newInput = 0;
+    let newOutput = 0;
+
+    for (const filePath of sessionFiles) {
+      const tokens = this._parseTokensFromJsonl(filePath);
+      newInput += tokens.input;
+      newOutput += tokens.output;
+    }
+
+    this._tokenUsage.daily[today].input += newInput;
+    this._tokenUsage.daily[today].output += newOutput;
+    this._tokenUsage.lastScan = Date.now();
+
+    // Clean up old days (keep 7 days)
+    const keys = Object.keys(this._tokenUsage.daily).sort();
+    while (keys.length > 7) {
+      delete this._tokenUsage.daily[keys.shift()];
+    }
+
+    this._saveTokenState();
+
+    const dailyTotal = this._tokenUsage.daily[today];
+    const totalTokens = dailyTotal.input + dailyTotal.output;
+    const dailyLimit = cfg.dailyLimit || 0;
+    const warnThreshold = cfg.warnThreshold || 0.8;
+
+    let warning = null;
+    if (dailyLimit > 0) {
+      const ratio = totalTokens / dailyLimit;
+      if (ratio >= 1.0) {
+        warning = `[TOKEN WARN] daily limit exceeded: ${totalTokens.toLocaleString()} / ${dailyLimit.toLocaleString()} tokens (${Math.round(ratio * 100)}%)`;
+      } else if (ratio >= warnThreshold) {
+        warning = `[TOKEN WARN] approaching daily limit: ${totalTokens.toLocaleString()} / ${dailyLimit.toLocaleString()} tokens (${Math.round(ratio * 100)}%)`;
+      }
+    }
+
+    return {
+      today,
+      input: dailyTotal.input,
+      output: dailyTotal.output,
+      total: totalTokens,
+      dailyLimit,
+      warning
+    };
+  }
+
+  getTokenUsage() {
+    const today = new Date().toISOString().split('T')[0];
+    const dailyTotal = this._tokenUsage.daily[today] || { input: 0, output: 0 };
+    return {
+      today,
+      input: dailyTotal.input,
+      output: dailyTotal.output,
+      total: dailyTotal.input + dailyTotal.output,
+      dailyLimit: this.config.tokenMonitor?.dailyLimit || 0,
+      history: this._tokenUsage.daily
+    };
+  }
+
+  // --- Task Queue helpers (2.2, 2.3, 2.8) ---
+
+  _activeWorkerCount() {
+    let count = 0;
+    for (const [, w] of this.workers) {
+      if (w.alive) count++;
+    }
+    return count;
+  }
+
+  _enqueueTask(name, task, options = {}) {
+    const entry = {
+      name,
+      task,
+      command: options.command || 'claude',
+      args: options.args || [],
+      target: options.target || 'local',
+      branch: options.branch || `c4/${name}`,
+      useBranch: options.useBranch !== false,
+      useWorktree: options.useWorktree,
+      projectRoot: options.projectRoot || null,
+      scope: options.scope || null,
+      scopePreset: options.scopePreset || '',
+      after: options.after || null,
+      queuedAt: Date.now()
+    };
+    this._taskQueue.push(entry);
+    this._saveState();
+    return {
+      queued: true,
+      name,
+      after: entry.after,
+      position: this._taskQueue.length,
+      reason: entry.after ? `waiting for ${entry.after}` : 'maxWorkers reached'
+    };
+  }
+
+  _canStartQueuedTask(entry) {
+    // Check dependency
+    if (entry.after) {
+      const dep = this.workers.get(entry.after);
+      if (dep && dep.alive) return false;
+    }
+    // Check maxWorkers
+    const maxW = this.config.maxWorkers || 0;
+    if (maxW > 0 && this._activeWorkerCount() >= maxW) return false;
+    return true;
+  }
+
+  _processQueue() {
+    if (this._taskQueue.length === 0) return [];
+
+    const started = [];
+    const remaining = [];
+
+    for (const entry of this._taskQueue) {
+      if (this._canStartQueuedTask(entry)) {
+        const result = this._createAndSendTask(entry);
+        started.push({ name: entry.name, result });
+      } else {
+        remaining.push(entry);
+      }
+    }
+
+    this._taskQueue = remaining;
+    if (started.length > 0) this._saveState();
+    return started;
+  }
+
+  _createAndSendTask(entry) {
+    // Clean up exited worker with same name if exists
+    const existing = this.workers.get(entry.name);
+    if (existing) {
+      if (existing.alive) {
+        return { error: `Worker '${entry.name}' is already alive` };
+      }
+      if (existing.idleTimer) clearTimeout(existing.idleTimer);
+      if (existing.rawLogStream && !existing.rawLogStream.destroyed) existing.rawLogStream.end();
+      this.workers.delete(entry.name);
+    }
+
+    const createResult = this.create(entry.name, entry.command, entry.args, { target: entry.target });
+    if (createResult.error) return createResult;
+
+    // Store pending task — will be sent after worker setup completes
+    const w = this.workers.get(entry.name);
+    w._pendingTask = {
+      task: entry.task,
+      options: {
+        branch: entry.branch,
+        useBranch: entry.useBranch,
+        useWorktree: entry.useWorktree,
+        projectRoot: entry.projectRoot,
+        scope: entry.scope,
+        scopePreset: entry.scopePreset
+      }
+    };
+
+    return { created: true, name: entry.name, pid: createResult.pid };
   }
 
   _getScreenText(screen) {
@@ -467,9 +850,44 @@ class PtyManager {
 
   // Send a task to worker with branch isolation via git worktree
   sendTask(name, task, options = {}) {
+    // Duplicate check (2.3): reject if same name already queued
+    if (this._taskQueue.some(q => q.name === name)) {
+      return { error: `Task '${name}' is already queued` };
+    }
+
     const w = this.workers.get(name);
-    if (!w) return { error: `Worker '${name}' not found` };
-    if (!w.alive) return { error: `Worker '${name}' has exited` };
+
+    // Worker doesn't exist or has exited — check queue conditions
+    if (!w || !w.alive) {
+      // Dependency check (2.2)
+      const afterWorker = options.after || null;
+      if (afterWorker) {
+        const dep = this.workers.get(afterWorker);
+        if (dep && dep.alive) {
+          return this._enqueueTask(name, task, options);
+        }
+      }
+
+      // maxWorkers check (2.8)
+      const maxW = this.config.maxWorkers || 0;
+      if (maxW > 0 && this._activeWorkerCount() >= maxW) {
+        return this._enqueueTask(name, task, options);
+      }
+
+      // Can proceed — auto-create worker and queue task for after setup
+      return this._createAndSendTask({
+        name, task,
+        command: options.command || 'claude',
+        args: options.args || [],
+        target: options.target || 'local',
+        branch: options.branch || `c4/${name}`,
+        useBranch: options.useBranch,
+        useWorktree: options.useWorktree,
+        projectRoot: options.projectRoot,
+        scope: options.scope,
+        scopePreset: options.scopePreset
+      });
+    }
 
     const branch = options.branch || `c4/${name}`;
     const useWorktree = options.useWorktree !== false && this.config.worktree?.enabled !== false;
@@ -565,11 +983,7 @@ class PtyManager {
       const remoteArgs = args.length > 0 ? ' ' + args.join(' ') : '';
 
       shell = process.platform === 'win32' ? 'C:\\Windows\\System32\\OpenSSH\\ssh.exe' : 'ssh';
-      const sshArgs = ['-t', '-o', 'StrictHostKeyChecking=no'];
-      if (t.port) sshArgs.push('-p', String(t.port));
-      if (t.identityFile) sshArgs.push('-i', t.identityFile);
-      sshArgs.push(t.host);
-      shellArgs = sshArgs;
+      shellArgs = this._buildSshArgs(t);
 
       pendingCommands = [];
       if (remoteCwd) pendingCommands.push(`cd ${remoteCwd}`);
@@ -621,6 +1035,11 @@ class PtyManager {
       _lastQuestion: null,       // last detected question text
       _errorHistory: [],         // recent error lines for repeat detection
       _routineState: { tested: false, docsUpdated: false },
+      // Pending task (2.2/2.8 queue)
+      _pendingTask: null,        // { task, options } — sent after setup completes
+      _pendingTaskSent: false,
+      // SSH state (2.4)
+      _isSsh: t.type === 'ssh',
     };
 
     // Raw log
@@ -735,6 +1154,18 @@ class PtyManager {
             }, inputDelayMs);
             return;
           }
+        }
+
+        // Send pending task after setup completes (queue auto-create flow)
+        const setupComplete = worker.setupDone || !this.config.workerDefaults?.effortLevel;
+        if (setupComplete && worker._pendingTask && !worker._pendingTaskSent) {
+          worker._pendingTaskSent = true;
+          const pt = worker._pendingTask;
+          setTimeout(() => {
+            this.sendTask(name, pt.task, pt.options);
+            worker._pendingTask = null;
+          }, 500);
+          return;
         }
 
         // Auto-approve logic
@@ -890,6 +1321,11 @@ class PtyManager {
       });
       if (worker.rawLogStream) worker.rawLogStream.end();
       this._saveState();
+
+      // Process queue — worker exit may unblock queued tasks (2.2, 2.8)
+      if (this._taskQueue.length > 0) {
+        setTimeout(() => this._processQueue(), 1000);
+      }
     });
 
     this.workers.set(name, worker);
@@ -1114,6 +1550,15 @@ class PtyManager {
       });
       this._saveState();
 
+      // SSH reconnect attempt (2.4)
+      if (w._isSsh) {
+        const reconnectResult = this._handleSshReconnect(name, w);
+        if (reconnectResult) {
+          results.push({ name, ...reconnectResult });
+          continue;
+        }
+      }
+
       if (this.config.healthCheck?.autoRestart) {
         // Restart: re-create with same command
         const command = w.command.split(' ')[0];
@@ -1140,7 +1585,26 @@ class PtyManager {
     const rotated = this._checkLogRotation();
     const cleaned = this._cleanupExitedLogs();
 
-    return { lastCheck: now, workers: results, rotated, cleaned };
+    // Token usage monitoring (2.5)
+    const tokenResult = this._checkTokenUsage();
+    if (tokenResult?.warning) {
+      // Push warning to all alive workers
+      for (const [wName, w] of this.workers) {
+        if (w.alive) {
+          w.snapshots.push({
+            time: now,
+            screen: tokenResult.warning,
+            autoAction: true,
+            tokenWarn: true
+          });
+        }
+      }
+    }
+
+    // Process task queue — worker exits may unblock queued tasks (2.2, 2.8)
+    const dequeued = this._processQueue();
+
+    return { lastCheck: now, workers: results, rotated, cleaned, dequeued, tokenUsage: tokenResult };
   }
 
   startHealthCheck() {
@@ -1229,8 +1693,19 @@ class PtyManager {
         errorCount: (w._errorHistory || []).reduce((sum, e) => sum + e.count, 0)
       });
     }
+    // Include queued tasks (2.8)
+    const queuedTasks = (this._taskQueue || []).map(q => ({
+      name: q.name,
+      task: q.task,
+      branch: q.branch || null,
+      after: q.after || null,
+      queuedAt: q.queuedAt,
+      status: 'queued'
+    }));
+
     return {
       workers: result,
+      queuedTasks,
       lostWorkers: this.lostWorkers || [],
       lastHealthCheck: this._lastHealthCheck
     };
