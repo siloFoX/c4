@@ -10,7 +10,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)
 ![Claude Code](https://img.shields.io/badge/Claude_Code-v2.1.85--2.1.91-8A2BE2.svg)
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux_(tested)-blue.svg)
+![Platform](https://img.shields.io/badge/tested-Win11%20%7C%20Ubuntu_(aarch64)-blue.svg)
 
 **[한국어](README.ko.md)**
 
