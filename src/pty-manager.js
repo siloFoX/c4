@@ -1482,6 +1482,16 @@ class PtyManager extends EventEmitter {
     };
   }
 
+  getScrollback(name, lastN = 200) {
+    const w = this.workers.get(name);
+    if (!w) return { error: `Worker '${name}' not found` };
+    return {
+      content: w.screen.getScrollback(lastN),
+      lines: Math.min(lastN, w.screen.scrollback.length),
+      totalScrollback: w.screen.scrollback.length
+    };
+  }
+
   async waitAndRead(name, timeoutMs = 120000) {
     const w = this.workers.get(name);
     if (!w) return { error: `Worker '${name}' not found` };

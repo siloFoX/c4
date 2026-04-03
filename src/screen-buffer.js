@@ -15,6 +15,11 @@ class ScreenBuffer {
       this.lines.push('');
     }
     this._buf = ''; // partial escape sequence buffer
+    this._savedCursorX = 0;
+    this._savedCursorY = 0;
+    this._scrollTop = 0;
+    this._scrollBottom = rows - 1;
+    this._lastPrintedChar = null;
   }
 
   write(data) {
@@ -200,11 +205,62 @@ class ScreenBuffer {
           this.lines.push('');
         }
         break;
-      // r, s, u etc - scroll region, save/restore cursor - skip for now
+      case 'P': { // Delete characters at cursor
+        let line = this.lines[this.cursorY] || '';
+        line = line.substring(0, this.cursorX) + line.substring(this.cursorX + n);
+        this.lines[this.cursorY] = line;
+        break;
+      }
+      case '@': { // Insert blank characters at cursor
+        let line = this.lines[this.cursorY] || '';
+        const blanks = ' '.repeat(n);
+        line = line.substring(0, this.cursorX) + blanks + line.substring(this.cursorX);
+        if (line.length > this.cols) line = line.substring(0, this.cols);
+        this.lines[this.cursorY] = line;
+        break;
+      }
+      case 'X': { // Erase characters at cursor (replace with spaces)
+        let line = this.lines[this.cursorY] || '';
+        while (line.length < this.cursorX + n) line += ' ';
+        line = line.substring(0, this.cursorX) + ' '.repeat(n) + line.substring(this.cursorX + n);
+        this.lines[this.cursorY] = line;
+        break;
+      }
+      case 'r': // Set scroll region (top;bottom)
+        this._scrollTop = Math.max(0, (parts[0] || 1) - 1);
+        this._scrollBottom = Math.min(this.rows - 1, (parts[1] || this.rows) - 1);
+        break;
+      case 's': // Save cursor position
+        this._savedCursorX = this.cursorX;
+        this._savedCursorY = this.cursorY;
+        break;
+      case 'u': // Restore cursor position
+        this.cursorX = this._savedCursorX || 0;
+        this.cursorY = this._savedCursorY || 0;
+        break;
+      case 'b': { // Repeat previous character n times
+        if (this._lastPrintedChar) {
+          for (let i = 0; i < n; i++) {
+            this._putChar(this._lastPrintedChar);
+          }
+        }
+        break;
+      }
+      case 'I': // Cursor forward tabulation (n tab stops)
+        for (let i = 0; i < n; i++) {
+          this.cursorX = Math.min(this.cols - 1, (Math.floor(this.cursorX / 8) + 1) * 8);
+        }
+        break;
+      case 'Z': // Cursor backward tabulation (n tab stops)
+        for (let i = 0; i < n; i++) {
+          this.cursorX = Math.max(0, (Math.ceil(this.cursorX / 8) - 1) * 8);
+        }
+        break;
     }
   }
 
   _putChar(ch) {
+    this._lastPrintedChar = ch;
     if (this.cursorY >= this.rows) {
       this.cursorY = this.rows - 1;
     }
@@ -249,6 +305,13 @@ class ScreenBuffer {
       result.pop();
     }
     return result.join('\n');
+  }
+
+  // Get scrollback only (without current screen)
+  getScrollback(lastN = 200) {
+    const lines = this.scrollback.slice(-lastN).map(l => (l || '').trimEnd());
+    while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
+    return lines.join('\n');
   }
 
   // Get scrollback + screen (full history)

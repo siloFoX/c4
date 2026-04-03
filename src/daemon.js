@@ -84,6 +84,11 @@ async function handleRequest(req, res) {
     } else if (req.method === 'GET' && route === '/token-usage') {
       result = manager.getTokenUsage();
 
+    } else if (req.method === 'GET' && route === '/scrollback') {
+      const name = url.searchParams.get('name');
+      const lines = parseInt(url.searchParams.get('lines') || '200') || 200;
+      result = manager.getScrollback(name, lines);
+
     } else if (req.method === 'GET' && route === '/events') {
       // SSE endpoint (3.5)
       res.writeHead(200, {
