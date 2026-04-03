@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.1.0] - 2026-04-03
+
+### Added
+- **Notifications module** (4.10): `src/notifications.js` — Slack webhook (periodic) + Email (event-based)
+  - Slack: built-in `https` module, buffer + periodic flush (`notifications.slack.intervalMs`)
+  - Email: optional `nodemailer` soft dependency, sends immediately on task completion
+  - Config: `notifications.slack` / `notifications.email` sections in `config.json`
+  - daemon.js: `startPeriodicSlack()` on boot, `tick()` in healthCheck timer
+  - pty-manager.js: `notifyTaskComplete()` on worker exit, `notifyHealthCheck()` on issues
+- **PreToolUse compound command blocking** (4.6/4.9): Auto-inserted into worker `.claude/settings.json`
+  - `_buildCompoundBlockCommand()`: cross-platform `node -e` script
+  - Matcher: `Bash` tool only, detects `&&`, `||`, `|`, `;` → exit code 2 (block)
+  - Injected via `_buildWorkerSettings()` into every worktree worker
+
+---
+
 ## [1.0.2] - 2026-04-03
 
 ### Fixed

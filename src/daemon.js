@@ -3,6 +3,7 @@ const PtyManager = require('./pty-manager');
 const McpHandler = require('./mcp-handler');
 const Planner = require('./planner');
 const Scribe = require('./scribe');
+const Notifications = require('./notifications');
 
 const manager = new PtyManager();
 const mcpHandler = new McpHandler(manager);
@@ -10,6 +11,8 @@ const planner = new Planner(manager);
 const cfg = manager.getConfig();
 const PORT = parseInt(process.env.PORT || cfg.daemon?.port || '3456');
 const HOST = cfg.daemon?.host || '127.0.0.1';
+const notifications = new Notifications(cfg.notifications || {});
+manager.setNotifications(notifications);
 
 function parseBody(req) {
   return new Promise((resolve, reject) => {
@@ -192,9 +195,11 @@ const server = http.createServer(handleRequest);
 server.listen(PORT, HOST, () => {
   console.log(`C4 daemon running on http://${HOST}:${PORT}`);
   manager.startHealthCheck();
+  notifications.startPeriodicSlack();
 });
 
 process.on('SIGINT', () => {
+  notifications.stopPeriodicSlack();
   manager.stopHealthCheck();
   manager.closeAll();
   server.close();
@@ -202,6 +207,7 @@ process.on('SIGINT', () => {
 });
 
 process.on('SIGTERM', () => {
+  notifications.stopPeriodicSlack();
   manager.stopHealthCheck();
   manager.closeAll();
   server.close();

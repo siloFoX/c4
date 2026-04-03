@@ -131,6 +131,11 @@ class PtyManager extends EventEmitter {
       busyThreshold: apCfg.busyThreshold,
     });
     this._hookEvents = new Map(); // name → [events] — hook event buffer per worker (3.15)
+    this._notifications = null; // set by daemon via setNotifications()
+  }
+
+  setNotifications(notifications) {
+    this._notifications = notifications;
   }
 
   get logsDir() {
@@ -398,6 +403,23 @@ class PtyManager extends EventEmitter {
         }]
       }]
     };
+  }
+
+  // Compound command blocking (4.6): returns a shell command that reads tool_input
+  // from stdin and exits 2 (block) if &&, ||, |, or ; are found in the command.
+  _buildCompoundBlockCommand() {
+    // node is cross-platform and always available in a Node.js project
+    const script = [
+      "let d='';",
+      "process.stdin.on('data',c=>d+=c);",
+      "process.stdin.on('end',()=>{",
+      "try{const j=JSON.parse(d);const cmd=j.tool_input&&j.tool_input.command||'';",
+      "if(/&&|\\|\\||[|;]/.test(cmd)){",
+      "console.error('BLOCKED: compound commands (&&, ||, |, ;) are not allowed. Use single commands.');",
+      "process.exit(2)}",
+      "}catch{}process.exit(0)})"
+    ].join('');
+    return `node -e "${script}"`;
   }
 
   // --- Token Usage State (2.5) ---
@@ -1099,6 +1121,17 @@ class PtyManager extends EventEmitter {
     if (hooksCfg.enabled !== false && hooksCfg.injectToWorkers !== false) {
       settings.hooks = this._buildHookCommands(workerName);
     }
+
+    // Compound command blocking hook (4.6/4.9): block &&, ||, |, ; in Bash commands
+    if (!settings.hooks) settings.hooks = {};
+    if (!settings.hooks.PreToolUse) settings.hooks.PreToolUse = [];
+    settings.hooks.PreToolUse.push({
+      matcher: 'Bash',
+      hooks: [{
+        type: 'command',
+        command: this._buildCompoundBlockCommand()
+      }]
+    });
 
     // Profile-specific hooks (merge with injected hooks)
     if (profile && profile.hooks) {
@@ -2174,6 +2207,13 @@ class PtyManager extends EventEmitter {
       this._saveState();
       this._emitSSE('complete', { worker: name, exitCode, signal });
 
+      // Notification on task complete (4.10)
+      if (this._notifications) {
+        this._notifications.notifyTaskComplete(name, {
+          exitCode, signal, branch: worker.branch || null
+        });
+      }
+
       // Process queue — worker exit may unblock queued tasks (2.2, 2.8)
       if (this._taskQueue.length > 0) {
         setTimeout(() => this._processQueue(), 1000);
@@ -2486,6 +2526,12 @@ class PtyManager extends EventEmitter {
 
     // Process task queue — worker exits may unblock queued tasks (2.2, 2.8)
     const dequeued = this._processQueue();
+
+    // Notifications: flush Slack buffer + report health issues (4.10)
+    if (this._notifications) {
+      this._notifications.notifyHealthCheck({ workers: results });
+      this._notifications.tick();
+    }
 
     return { lastCheck: now, workers: results, rotated, cleaned, dequeued, tokenUsage: tokenResult };
   }
