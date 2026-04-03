@@ -8,6 +8,7 @@ const ScreenBuffer = require('./screen-buffer');
 const Scribe = require('./scribe');
 const { ScopeGuard, resolveScope } = require('./scope-guard');
 const StateMachine = require('./state-machine');
+const AdaptivePolling = require('./adaptive-polling');
 
 const CONFIG_FILE = path.join(__dirname, '..', 'config.json');
 const STATE_FILE = path.join(__dirname, '..', 'state.json');
@@ -37,6 +38,14 @@ class PtyManager extends EventEmitter {
     this._sseClients = new Set(); // SSE client connections (3.5)
     this._stateMachine = new StateMachine({
       maxTestFails: this.config.stateMachine?.maxTestFails || 3
+    });
+    const apCfg = this.config.adaptivePolling || {};
+    this._adaptivePolling = new AdaptivePolling({
+      minIntervalMs: apCfg.minIntervalMs,
+      maxIntervalMs: apCfg.maxIntervalMs,
+      baseIntervalMs: this.config.daemon?.idleThresholdMs || 3000,
+      windowMs: apCfg.windowMs,
+      busyThreshold: apCfg.busyThreshold,
     });
   }
 
@@ -1202,6 +1211,8 @@ class PtyManager extends EventEmitter {
       _startCommit: null,        // HEAD commit hash before task started
       // State machine (3.11)
       _smState: this._stateMachine.createState(),
+      // Adaptive polling (3.12)
+      _pollState: this._adaptivePolling.createState(),
     };
 
     // Raw log
@@ -1209,11 +1220,11 @@ class PtyManager extends EventEmitter {
       worker.rawLogStream = fs.createWriteStream(worker.rawLogPath, { flags: 'w' });
     }
 
-    const idleMs = this.idleThresholdMs;
-
     proc.onData((data) => {
       worker.lastDataTime = Date.now();
       if (worker.rawLogStream) worker.rawLogStream.write(data);
+      // Record activity for adaptive polling (3.12)
+      this._adaptivePolling.recordActivity(worker._pollState);
 
       screen.write(data);
 
@@ -1228,8 +1239,9 @@ class PtyManager extends EventEmitter {
         }
       }
 
-      // Reset idle timer
+      // Reset idle timer with adaptive interval (3.12)
       if (worker.idleTimer) clearTimeout(worker.idleTimer);
+      const idleMs = this._adaptivePolling.getInterval(worker._pollState);
       worker.idleTimer = setTimeout(() => {
         const text = this._getScreenText(screen);
 
