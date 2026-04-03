@@ -716,6 +716,82 @@ class PtyManager extends EventEmitter {
     };
   }
 
+  // --- Worker Settings Profile (3.16) ---
+
+  _getProfile(profileName) {
+    const profiles = this.config.profiles || {};
+    return profiles[profileName] || null;
+  }
+
+  _buildWorkerSettings(workerName, options = {}) {
+    const profileName = options.profile || options.template || '';
+    const profile = profileName ? this._getProfile(profileName) : null;
+    const hooksCfg = this.config.hooks || {};
+    const settings = {};
+
+    // Permissions
+    const permissions = { allow: [], deny: [] };
+
+    if (profile && profile.permissions) {
+      if (Array.isArray(profile.permissions.allow)) {
+        permissions.allow.push(...profile.permissions.allow);
+      }
+      if (Array.isArray(profile.permissions.deny)) {
+        permissions.deny.push(...profile.permissions.deny);
+      }
+      if (profile.permissions.defaultMode) {
+        permissions.defaultMode = profile.permissions.defaultMode;
+      }
+    }
+
+    // Default c4 permissions for all workers
+    const defaultPerms = [
+      'Bash(c4:*)',
+      'Bash(MSYS_NO_PATHCONV=1 c4:*)',
+      'Bash(git:*)',
+    ];
+    for (const perm of defaultPerms) {
+      if (!permissions.allow.includes(perm)) {
+        permissions.allow.push(perm);
+      }
+    }
+
+    settings.permissions = permissions;
+
+    // Hooks (3.15 integration): inject PreToolUse/PostToolUse hooks
+    if (hooksCfg.enabled !== false && hooksCfg.injectToWorkers !== false) {
+      settings.hooks = this._buildHookCommands(workerName);
+    }
+
+    // Profile-specific hooks (merge with injected hooks)
+    if (profile && profile.hooks) {
+      if (!settings.hooks) settings.hooks = {};
+      for (const [hookName, hookDefs] of Object.entries(profile.hooks)) {
+        if (!settings.hooks[hookName]) {
+          settings.hooks[hookName] = hookDefs;
+        } else {
+          // Append profile hooks after injected hooks
+          settings.hooks[hookName] = [...settings.hooks[hookName], ...hookDefs];
+        }
+      }
+    }
+
+    return settings;
+  }
+
+  _writeWorkerSettings(worktreePath, workerName, options = {}) {
+    const settings = this._buildWorkerSettings(workerName, options);
+    const claudeDir = path.join(worktreePath, '.claude');
+    const settingsPath = path.join(claudeDir, 'settings.json');
+
+    if (!fs.existsSync(claudeDir)) {
+      fs.mkdirSync(claudeDir, { recursive: true });
+    }
+
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+    return settingsPath;
+  }
+
   // --- Git Worktree helpers ---
 
   _detectRepoRoot(projectRoot) {
@@ -1238,6 +1314,19 @@ class PtyManager extends EventEmitter {
         w.worktree = worktreePath;
         w.worktreeRepoRoot = repoRoot;
         w.branch = branch;
+
+        // Auto-generate .claude/settings.json for this worktree (3.16)
+        try {
+          this._writeWorkerSettings(worktreePath, name, options);
+        } catch (e) {
+          // Non-fatal: settings generation failure shouldn't block task
+          w.snapshots = w.snapshots || [];
+          w.snapshots.push({
+            time: Date.now(),
+            screen: `[C4 WARN] Failed to write worker settings: ${e.message}`,
+            autoAction: true
+          });
+        }
 
         const cdPath = worktreePath.replace(/\\/g, '/');
         commands.push(`cd ${cdPath} 로 이동해서 작업해줘. 현재 브랜치는 ${branch}야. 작업 단위마다 커밋해줘.`);

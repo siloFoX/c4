@@ -193,6 +193,46 @@
     "injectToWorkers": true
   },
 
+  "profiles": {
+    "default": {
+      "permissions": {
+        "allow": [
+          "Bash(c4:*)", "Bash(git:*)", "Bash(grep:*)", "Bash(find:*)",
+          "Bash(cat:*)", "Bash(ls:*)", "Bash(head:*)", "Bash(tail:*)"
+        ],
+        "deny": ["Bash(rm:*)", "Bash(sudo:*)"]
+      }
+    },
+    "executor": {
+      "permissions": {
+        "allow": [
+          "Bash(c4:*)", "Bash(git:*)", "Bash(npm:*)", "Bash(node:*)",
+          "Bash(grep:*)", "Bash(find:*)", "Bash(cat:*)", "Bash(ls:*)",
+          "Edit", "Write"
+        ],
+        "deny": ["Bash(rm:*)", "Bash(sudo:*)", "Bash(docker:*)"]
+      }
+    },
+    "reviewer": {
+      "permissions": {
+        "allow": [
+          "Bash(c4:*)", "Bash(git:*)", "Bash(grep:*)", "Bash(find:*)",
+          "Bash(cat:*)", "Bash(ls:*)", "Bash(npm:*)"
+        ],
+        "deny": ["Edit", "Write", "Bash(rm:*)", "Bash(sudo:*)"]
+      }
+    },
+    "planner": {
+      "permissions": {
+        "allow": [
+          "Bash(c4:*)", "Bash(git:*)", "Bash(grep:*)", "Bash(find:*)",
+          "Bash(cat:*)", "Bash(ls:*)"
+        ],
+        "deny": ["Bash(rm:*)", "Bash(sudo:*)", "Bash(npm:*)"]
+      }
+    }
+  },
+
   "gitBash": {
     "disablePathConversion": true
   }

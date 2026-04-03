@@ -99,7 +99,7 @@ async function main() {
 
       case 'task': {
         const name = args[0];
-        let branch = '', useBranch = true, scope = null, scopePreset = '', after = '', contextFrom = '', reuse = undefined;
+        let branch = '', useBranch = true, scope = null, scopePreset = '', after = '', contextFrom = '', reuse = undefined, profile = '', autoMode = false;
         const taskParts = [];
         for (let i = 1; i < args.length; i++) {
           if (args[i] === '--branch' && args[i + 1]) { branch = args[++i]; }
@@ -108,6 +108,9 @@ async function main() {
           else if (args[i] === '--context' && args[i + 1]) { contextFrom = args[++i]; }
           else if (args[i] === '--reuse') { reuse = true; }
           else if (args[i] === '--no-reuse') { reuse = false; }
+          else if (args[i] === '--profile' && args[i + 1]) { profile = args[++i]; }
+          else if (args[i] === '--template' && args[i + 1]) { profile = args[++i]; }
+          else if (args[i] === '--auto-mode') { autoMode = true; }
           else if (args[i] === '--scope' && args[i + 1]) {
             try { scope = JSON.parse(args[++i]); }
             catch { console.error('Error: --scope must be valid JSON'); process.exit(1); }
@@ -122,6 +125,8 @@ async function main() {
         if (after) body.after = after;
         if (contextFrom) body.contextFrom = contextFrom;
         if (reuse !== undefined) body.reuse = reuse;
+        if (profile) body.profile = profile;
+        if (autoMode) body.autoMode = true;
         result = await request('POST', '/task', body);
         break;
       }
