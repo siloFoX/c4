@@ -1961,6 +1961,35 @@ class PtyManager extends EventEmitter {
             : this._termInterface.extractFileName(text);
           this._emitSSE('permission', { worker: name, promptType, detail });
         }
+        // Block git reset --hard on main (unconditional, regardless of autoApprove)
+        if (this._termInterface.isPermissionPrompt(text)) {
+          const _pt = this._termInterface.getPromptType(text);
+          if (_pt === 'bash') {
+            const _cmd = this._termInterface.extractBashCommand(text);
+            if (_cmd && /\bgit\b.*\breset\b.*--hard/.test(_cmd)) {
+              const gitDir = (worker.worktree || this._detectRepoRoot() || '').replace(/\\/g, '/');
+              let branch = null;
+              if (gitDir) {
+                try {
+                  branch = execSync(`git -C "${gitDir}" rev-parse --abbrev-ref HEAD`, {
+                    encoding: 'utf8', stdio: 'pipe'
+                  }).trim();
+                } catch {}
+              }
+              if (branch === 'main') {
+                const denyKeys = this._termInterface.getDenyKeys(text);
+                worker.snapshots.push({
+                  time: Date.now(),
+                  screen: `[C4 BLOCK] git reset --hard denied on main branch`,
+                  autoAction: true
+                });
+                proc.write(denyKeys);
+                return;
+              }
+            }
+          }
+        }
+
         if (this.config.autoApprove?.enabled && this._termInterface.isPermissionPrompt(text)) {
           // Scope guard check — override autoApprove if out of scope
           if (worker.scopeGuard && worker.scopeGuard.hasRestrictions()) {
