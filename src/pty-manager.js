@@ -320,6 +320,118 @@ class PtyManager {
     return null; // 'ask' — don't send anything
   }
 
+  // --- Intervention Detection (1.9) ---
+
+  _getInterventionConfig() {
+    return this.config.intervention || {};
+  }
+
+  _getQuestionPatterns() {
+    const cfg = this._getInterventionConfig();
+    const custom = cfg.questionPatterns || [];
+    // Default patterns: Korean + English question indicators
+    const defaults = [
+      // Korean question patterns
+      '할까요\\?', '해도 될까요\\?', '어떻게', '선택지',
+      '어느 걸로', '방식.*vs.*방식', '확장.*요청',
+      '명확하지 않', '어떤 방향', '결정해.*주',
+      // English question patterns
+      'should I', 'which approach', 'A or B',
+      'not sure whether', 'could you clarify',
+      'what do you think', 'how should',
+    ];
+    return [...defaults, ...custom];
+  }
+
+  _detectQuestion(screenText) {
+    const patterns = this._getQuestionPatterns();
+    // Avoid false positives: only match in assistant output areas,
+    // skip lines that look like code (indented 4+ spaces or contain common code tokens)
+    const lines = screenText.split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      // Skip empty lines, code-like lines, and system/C4 markers
+      if (!trimmed) continue;
+      if (line.match(/^\s{4,}/)) continue;  // indented code
+      if (trimmed.startsWith('```') || trimmed.startsWith('//') || trimmed.startsWith('#!')) continue;
+      if (trimmed.startsWith('[C4') || trimmed.startsWith('[HEALTH]')) continue;
+
+      for (const pattern of patterns) {
+        try {
+          if (new RegExp(pattern, 'i').test(trimmed)) {
+            return { detected: true, line: trimmed, pattern };
+          }
+        } catch {
+          // Invalid regex in custom pattern — skip
+          if (trimmed.includes(pattern)) {
+            return { detected: true, line: trimmed, pattern };
+          }
+        }
+      }
+    }
+    return { detected: false };
+  }
+
+  _getErrorPatterns() {
+    return ['error', 'failed', 'FAIL', 'Error:', 'Exception', '에러', '실패'];
+  }
+
+  _detectErrors(screenText) {
+    const patterns = this._getErrorPatterns();
+    const found = [];
+    const lines = screenText.split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      if (trimmed.startsWith('[C4') || trimmed.startsWith('[HEALTH]')) continue;
+      for (const pattern of patterns) {
+        if (trimmed.includes(pattern)) {
+          found.push(trimmed);
+          break;
+        }
+      }
+    }
+    return found;
+  }
+
+  _detectRoutineSkip(screenText, worker) {
+    // Detect if worker is committing without following the routine:
+    // implement → test → docs → commit
+    // Look for git commit patterns without prior test execution
+    const hasCommit = /git commit|git add/.test(screenText);
+    if (!hasCommit) return null;
+
+    const routine = worker._routineState || { tested: false, docsUpdated: false };
+
+    // Check if tests were run in recent snapshots
+    if (!routine.tested) {
+      return { type: 'no_test', message: 'Committing without running tests' };
+    }
+
+    return null;
+  }
+
+  _updateRoutineState(screenText, worker) {
+    if (!worker._routineState) {
+      worker._routineState = { tested: false, docsUpdated: false };
+    }
+
+    // Detect test execution
+    if (/npm test|pytest|jest|mocha|test.*pass|tests.*pass|테스트.*통과/.test(screenText)) {
+      worker._routineState.tested = true;
+    }
+
+    // Detect docs update
+    if (/TODO\.md|CHANGELOG\.md|README\.md|patches\//.test(screenText)) {
+      worker._routineState.docsUpdated = true;
+    }
+
+    // Reset after commit (new cycle)
+    if (/git commit/.test(screenText)) {
+      worker._routineState = { tested: false, docsUpdated: false };
+    }
+  }
+
   _getRulesSummary() {
     const rules = this.config.rules;
     if (!rules || !rules.appendToTask) return null;
@@ -472,6 +584,11 @@ class PtyManager {
       setupPhase: null,       // current setup phase: null, 'waitMenu', 'done'
       setupRetries: 0,        // retry count for effort setup
       setupPhaseStart: null,  // timestamp when current phase started
+      // Intervention state (1.9)
+      _interventionState: null,  // null | 'question' | 'escalation'
+      _lastQuestion: null,       // last detected question text
+      _errorHistory: [],         // recent error lines for repeat detection
+      _routineState: { tested: false, docsUpdated: false },
     };
 
     // Raw log
@@ -609,6 +726,81 @@ class PtyManager {
             return;
           }
           // 'ask' falls through to snapshot — manager will see the prompt
+        }
+
+        // --- Intervention detection (1.9) ---
+        const interventionCfg = this._getInterventionConfig();
+
+        // Question detection
+        if (interventionCfg.enabled !== false) {
+          const questionResult = this._detectQuestion(text);
+          if (questionResult.detected) {
+            worker._interventionState = 'question';
+            worker._lastQuestion = questionResult.line;
+            worker.snapshots.push({
+              time: Date.now(),
+              screen: `[QUESTION] ${questionResult.line}`,
+              autoAction: true,
+              intervention: 'question'
+            });
+          }
+        }
+
+        // Escalation detection (error keywords + repeat count)
+        if (interventionCfg.enabled !== false) {
+          const errors = this._detectErrors(text);
+          if (errors.length > 0) {
+            const maxRetries = interventionCfg.escalation?.maxRetries ?? 3;
+
+            for (const errLine of errors) {
+              // Check for repeated identical error
+              const existing = worker._errorHistory.find(e => e.line === errLine);
+              if (existing) {
+                existing.count++;
+                if (existing.count >= maxRetries) {
+                  worker._interventionState = 'escalation';
+                  worker.snapshots.push({
+                    time: Date.now(),
+                    screen: `[ESCALATION] repeated error (${existing.count}x): ${errLine}`,
+                    autoAction: true,
+                    intervention: 'escalation'
+                  });
+                  // Reset count after escalation
+                  existing.count = 0;
+                }
+              } else {
+                worker._errorHistory.push({ line: errLine, count: 1, firstSeen: Date.now() });
+              }
+            }
+
+            // Keep error history bounded (last 50 entries)
+            if (worker._errorHistory.length > 50) {
+              worker._errorHistory = worker._errorHistory.slice(-50);
+            }
+          }
+        }
+
+        // Routine monitoring
+        if (interventionCfg.routineCheck !== false) {
+          this._updateRoutineState(text, worker);
+          const routineSkip = this._detectRoutineSkip(text, worker);
+          if (routineSkip) {
+            worker.snapshots.push({
+              time: Date.now(),
+              screen: `[ROUTINE SKIP] ${routineSkip.message}`,
+              autoAction: true,
+              intervention: 'routine'
+            });
+          }
+        }
+
+        // Clear intervention state when worker resumes normal output (no question/error)
+        if (worker._interventionState === 'question') {
+          const stillQuestion = this._detectQuestion(text);
+          if (!stillQuestion.detected) {
+            worker._interventionState = null;
+            worker._lastQuestion = null;
+          }
         }
 
         worker.snapshots.push({
@@ -964,7 +1156,10 @@ class PtyManager {
         pid: w.proc ? w.proc.pid : null,
         status: w.alive ? (idleMs > this.idleThresholdMs ? 'idle' : 'busy') : 'exited',
         unreadSnapshots,
-        totalSnapshots: w.snapshots.length
+        totalSnapshots: w.snapshots.length,
+        intervention: w._interventionState || null,
+        lastQuestion: w._lastQuestion || null,
+        errorCount: (w._errorHistory || []).reduce((sum, e) => sum + e.count, 0)
       });
     }
     return {

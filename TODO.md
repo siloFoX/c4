@@ -12,7 +12,7 @@
 | 1.6 | Scribe 시스템 (컨텍스트 영속화) | **done** | JSONL 파서 + 컨텍스트 추출 + session-context.md 자동 생성 |
 | 1.7 | 작업자 헬스체크 + 자동 재시작 | **done** | 주기적 alive 체크. 죽으면 자동 재시작 또는 관리자에게 보고 |
 | 1.8 | 작업 스코프 정의 + 이탈 감시 | todo | 아래 상세 |
-| 1.9 | 관리자 개입 프로토콜 | todo | 아래 상세 |
+| 1.9 | 관리자 개입 프로토콜 | **done** | 질문 감지, 에스컬레이션 감지, 루틴 감시. config.intervention 섹션 |
 | 1.10 | `c4 init` 개선 | **done** | claude 경로 자동 감지, npm link → symlink → alias 폴백, EPERM 처리 |
 | 1.11 | `c4 merge` + main 보호 | **done** | pre-commit hook으로 main 직접 커밋 차단. c4 merge로 테스트/문서 체크 후 머지 |
 | 1.12 | git worktree 지원 | **done** | 작업자마다 별도 worktree. 같은 디렉토리 공유 문제 해결. 멀티 에이전트 필수 |
@@ -203,6 +203,44 @@
 | 2.6 | 타임아웃 정책 | **done** | healthCheck에 timeoutMs 추가. 기본 10분 초과 시 [HEALTH] timeout 스냅샷 |
 | 2.7 | 로그 관리 및 세션 복구 | **done** | 로그 로테이션(50MB). 종료 작업자 로그 자동 정리. 데몬 재시작 시 lost workers 표시 |
 | 2.8 | API rate limit 큐잉 | todo | maxWorkers: 3 (config). 초과 시 큐에 대기 |
+| 2.9 | 자율 운영 구조 | todo | 아래 상세 |
+
+### 2.9 자율 운영 구조 (상세)
+
+사용자 부재 시 C4가 자율적으로 개발을 계속하는 구조:
+
+```
+watchdog.sh (nohup, 60초 체크)
+  ├─ 데몬 죽으면 → c4 daemon start
+  ├─ 관리자 죽으면 → c4 new manager + 미션 재전송 + session-context.md 읽기 지시
+  └─ scribe 죽으면 → c4 scribe start
+
+관리자 (Claude Code, manager worker)
+  ├─ TODO.md 읽고 다음 작업 파악
+  ├─ c4 new/task로 작업자 생성 + 작업 지시
+  ├─ c4 wait/read로 모니터링 + 권한 승인
+  ├─ 완료 시 리뷰 → 머지 → push
+  └─ 다음 작업으로 (끊기지 않게)
+
+상위 관리자 (이 세션 또는 watchdog)
+  ├─ 관리자가 멈추면 재시작 + 컨텍스트 전달
+  ├─ scribe의 session-context.md로 맥락 복구
+  └─ git log/TODO.md로 진행 상황 파악
+```
+
+**컨텍스트 복구 흐름:**
+1. 관리자 죽음 감지
+2. 새 관리자 생성
+3. "docs/session-context.md 읽어" 지시 (scribe가 기록한 맥락)
+4. "TODO.md 읽고 남은 작업 이어서 해" 지시
+5. "git branch로 진행 중인 브랜치 확인" 지시
+6. 관리자가 자율적으로 이어서 개발
+
+**필요 조건:**
+- watchdog.sh가 nohup으로 상주
+- scribe가 주기적으로 세션 스캔
+- healthCheck.autoRestart: true
+- config.json에 모든 설정 확정
 
 ## Phase 3 — 확장
 
@@ -251,3 +289,4 @@
 | ~~1.16~~ | `c4 merge --skip-checks` | 2026-04-03 |
 | ~~2.7~~ | 로그 관리 및 세션 복구 | 2026-04-03 |
 | ~~1.17~~ | worktree에서 main 보호 hook 적용 | 2026-04-03 |
+| ~~1.9~~ | 관리자 개입 프로토콜 | 2026-04-03 |

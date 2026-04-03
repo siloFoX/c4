@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.9.0] - 2026-04-03
+
+### Added
+- **Manager intervention protocol** (1.9): Automated detection of worker states requiring manager attention
+  - **Question detection**: Detects question patterns in worker output (Korean + English)
+    - Default patterns: "할까요?", "어떻게", "should I", "which approach", etc.
+    - Custom patterns via `config.intervention.questionPatterns`
+    - Logs `[QUESTION]` snapshots with the detected question line
+    - False positive reduction: skips code blocks, system markers, indented lines
+  - **Escalation detection**: Detects error keywords and repeated errors
+    - Error keywords: 'error', 'failed', 'FAIL', 'Error:', 'Exception', '에러', '실패'
+    - Repeated error tracking: same error line N times → `[ESCALATION]` snapshot
+    - Config: `intervention.escalation.maxRetries` (default: 3)
+    - Error history bounded to last 50 entries per worker
+  - **Routine monitoring**: Tracks worker routine compliance (implement → test → docs → commit)
+    - Detects commit without prior test execution → `[ROUTINE SKIP]` snapshot
+    - Tracks test/docs phases per commit cycle, resets after each commit
+    - Config: `intervention.routineCheck` (default: true)
+  - **Worker intervention state**: Each worker tracks `intervention` state (null/question/escalation)
+    - `c4 list` shows INTERVENTION column with current state per worker
+    - State auto-clears when worker resumes normal output
+  - **Config section**: `intervention.enabled`, `intervention.questionPatterns`, `intervention.escalation.maxRetries`, `intervention.routineCheck`
+
 ## [0.8.1] - 2026-04-03
 
 ### Added
