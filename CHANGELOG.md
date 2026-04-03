@@ -8,19 +8,18 @@
   - `checkFile()`: Validates file paths against `allowFiles`/`denyFiles` glob patterns
   - `checkBash()`: Validates bash commands against `allowBash`/`denyBash` prefix lists
   - `detectDrift()`: Detects scope drift keywords in worker output (Korean + English)
-    - Korean: 리팩토링, 더 나은 방법, 방향을 바꿔, 다른 접근, 우선 ~부터
-    - English: refactor, better approach, let me first, change direction, better way
   - `resolveScope()`: Resolves scope from explicit → preset → default (priority order)
-  - `toSummary()`: Generates human-readable scope instructions for task prepend
-  - Integrated into `_classifyPermission()` pipeline: scope check runs before autoApprove rules
-  - Out-of-scope file/command access → auto-deny + `[SCOPE DENY]` snapshot
-  - Drift keywords detected → `[SCOPE DRIFT]` snapshot (flagged for manager review)
-  - `c4 task --scope '{"allowFiles":["src/**"],"denyBash":["pip"]}'` — inline JSON scope
-  - `c4 task --scope-preset backend` — named preset from config
-  - `config.json`: `scope.presets` (named scope profiles), `scope.defaultScope` (fallback)
-  - `c4 list` shows scope status per worker
-  - Scope summary auto-prepended to task instructions
-  - `tests/scope-guard.test.js`: Comprehensive unit tests
+  - Out-of-scope access → auto-deny + `[SCOPE DENY]` snapshot
+  - Drift keywords → `[SCOPE DRIFT]` snapshot
+  - `c4 task --scope '...'` / `--scope-preset` CLI flags
+  - `config.json`: `scope.presets`, `scope.defaultScope`
+  - `tests/scope-guard.test.js`: Unit tests
+- **Manager intervention protocol** (1.9): Automated detection of worker states requiring manager attention
+  - **Question detection**: Korean + English question patterns, `[QUESTION]` snapshots
+  - **Escalation detection**: Repeated error tracking → `[ESCALATION]` snapshot
+  - **Routine monitoring**: implement → test → docs → commit compliance, `[ROUTINE SKIP]` snapshot
+  - Worker intervention state: `c4 list` shows INTERVENTION column
+  - Config: `intervention.enabled`, `intervention.questionPatterns`, `intervention.escalation.maxRetries`, `intervention.routineCheck`
 
 ## [0.8.1] - 2026-04-03
 

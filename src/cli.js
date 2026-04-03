@@ -172,9 +172,10 @@ async function main() {
           if (result.workers.length === 0) {
             console.log('No workers running.');
           } else {
-            console.log('NAME\t\tSTATUS\t\tUNREAD\tCOMMAND');
+            console.log('NAME\t\tSTATUS\t\tUNREAD\tINTERVENTION\tCOMMAND');
             for (const w of result.workers) {
-              console.log(`${w.name}\t\t${w.status}\t\t${w.unreadSnapshots}\t${w.command}`);
+              const intervention = w.intervention || '-';
+              console.log(`${w.name}\t\t${w.status}\t\t${w.unreadSnapshots}\t${intervention}\t\t${w.command}`);
             }
           }
           if (result.lostWorkers && result.lostWorkers.length > 0) {
