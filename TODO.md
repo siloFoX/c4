@@ -196,13 +196,13 @@
 | # | 항목 | 상태 | 설명 |
 |---|------|------|------|
 | 2.1 | ~~멀티 에이전트 충돌 규칙~~ | **→1.5** | 브랜치 격리로 해결. lock 불필요 |
-| 2.2 | 작업 의존성/순서 보장 | todo | Worker A 완료 후 Worker B 시작. DAG 기반 스케줄링 |
-| 2.3 | 중복 작업 방지 | todo | 작업 할당 추적. 이미 진행 중인 작업 재할당 금지 |
-| 2.4 | SSH 끊김 복구 | todo | 네트워크 끊겼다 돌아오면 자동 재연결. ControlMaster 활용 |
-| 2.5 | 토큰 사용량 모니터링 | todo | 작업자별 /status에서 토큰 소비 추적. 일일 리포트 |
+| 2.2 | 작업 의존성/순서 보장 | todo | `--after worker-a` 플래그. 관리자가 worker-a 완료 감지 후 worker-b 시작 |
+| 2.3 | 중복 작업 방지 | todo | state.json에 작업 할당 추적. 동일 이름 task 거부 |
+| 2.4 | SSH 끊김 복구 | todo | SSH ControlMaster + 재연결 로직 |
+| 2.5 | 토큰 사용량 모니터링 | todo | jsonl에서 토큰 추출. config에 일일 한도 설정 |
 | 2.6 | 타임아웃 정책 | **done** | healthCheck에 timeoutMs 추가. 기본 10분 초과 시 [HEALTH] timeout 스냅샷 |
 | 2.7 | 로그 관리 및 세션 복구 | **done** | 로그 로테이션(50MB). 종료 작업자 로그 자동 정리. 데몬 재시작 시 lost workers 표시 |
-| 2.8 | API rate limit 큐잉 | todo | Claude Max 동시 세션 제한 대응. 작업자 생성 큐 |
+| 2.8 | API rate limit 큐잉 | todo | maxWorkers: 3 (config). 초과 시 큐에 대기 |
 
 ## Phase 3 — 확장
 
