@@ -1,10 +1,12 @@
 const http = require('http');
 const PtyManager = require('./pty-manager');
 const McpHandler = require('./mcp-handler');
+const Planner = require('./planner');
 const Scribe = require('./scribe');
 
 const manager = new PtyManager();
 const mcpHandler = new McpHandler(manager);
+const planner = new Planner(manager);
 const cfg = manager.getConfig();
 const PORT = parseInt(process.env.PORT || cfg.daemon?.port || '3456');
 const HOST = cfg.daemon?.host || '127.0.0.1';
@@ -114,6 +116,17 @@ async function handleRequest(req, res) {
         manager.removeListener('sse', onEvent);
       });
       return; // Don't end the response
+
+    } else if (req.method === 'POST' && route === '/plan') {
+      // Planner (3.10)
+      const { name, task, branch, outputPath, scopePreset, contextFrom } = await parseBody(req);
+      result = planner.sendPlan(name, task, { branch, outputPath, scopePreset, contextFrom });
+
+    } else if (req.method === 'GET' && route === '/plan') {
+      // Read plan (3.10)
+      const name = url.searchParams.get('name');
+      const outputPath = url.searchParams.get('outputPath') || '';
+      result = planner.readPlan(name, { outputPath: outputPath || undefined });
 
     } else if (req.method === 'POST' && route === '/mcp') {
       // MCP (Model Context Protocol) endpoint (3.9)

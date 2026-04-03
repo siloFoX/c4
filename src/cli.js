@@ -704,6 +704,52 @@ async function main() {
         break;
       }
 
+      case 'plan': {
+        const name = args[0];
+        let planOutput = '';
+        const taskParts = [];
+        let branch = '', scopePreset = '', contextFrom = '';
+        for (let i = 1; i < args.length; i++) {
+          if (args[i] === '--branch' && args[i + 1]) { branch = args[++i]; }
+          else if (args[i] === '--output' && args[i + 1]) { planOutput = args[++i]; }
+          else if (args[i] === '--scope-preset' && args[i + 1]) { scopePreset = args[++i]; }
+          else if (args[i] === '--context' && args[i + 1]) { contextFrom = args[++i]; }
+          else { taskParts.push(args[i]); }
+        }
+        const planTask = taskParts.join(' ');
+        if (!name || !planTask) {
+          console.error('Usage: c4 plan <name> <task> [--branch name] [--output plan.md]');
+          process.exit(1);
+        }
+        const planBody = { name, task: planTask };
+        if (branch) planBody.branch = branch;
+        if (planOutput) planBody.outputPath = planOutput;
+        if (scopePreset) planBody.scopePreset = scopePreset;
+        if (contextFrom) planBody.contextFrom = contextFrom;
+        result = await request('POST', '/plan', planBody);
+        break;
+      }
+
+      case 'plan-read': {
+        const name = args[0];
+        let planOutput = '';
+        for (let i = 1; i < args.length; i++) {
+          if (args[i] === '--output' && args[i + 1]) { planOutput = args[++i]; }
+        }
+        if (!name) {
+          console.error('Usage: c4 plan-read <name> [--output plan.md]');
+          process.exit(1);
+        }
+        const prParams = new URLSearchParams({ name });
+        if (planOutput) prParams.set('outputPath', planOutput);
+        result = await request('GET', `/plan?${prParams.toString()}`);
+        if (result.content) {
+          process.stdout.write(result.content + '\n');
+          return;
+        }
+        break;
+      }
+
       case 'rollback': {
         const name = args[0];
         if (!name) {
@@ -771,6 +817,8 @@ Commands:
   scrollback <name> [--lines N]    Read scrollback buffer (default 200 lines)
   list                             List all workers
   merge <worker|branch>            Merge branch to main (with pre-checks)
+  plan <name> <task> [--output f]   Plan-only mode: write plan.md without executing
+  plan-read <name> [--output f]    Read generated plan.md from worker
   rollback <name>                  Rollback worker to pre-task commit (git reset --soft)
   close <name>                     Close a worker
   history [worker] [--limit N]     Show task history
