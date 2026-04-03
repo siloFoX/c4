@@ -276,7 +276,7 @@ watchdog.sh (nohup, 60초 체크)
 | 4.2 | Hook 이벤트 JSONL 영속화 | **done** | PostToolUse/PreToolUse 이벤트를 logs/events-<worker>.jsonl에 저장. 리플레이/디버깅 |
 | 4.3 | 승인 요청 웹 UI | **done** | GET /dashboard 라우트. 워커 목록/상태/스냅샷 HTML 서빙. 다크 테마, XSS 보호, 30초 자동 새로고침 |
 | 4.4 | 아침 보고서 자동 생성 | **done** | 야간 작업 완료 후 docs/morning-report.md 자동 생성. 완료/실패/수정 필요 항목 요약 |
-| 4.5 | 관리자 자동 컨펌 정책 | **partial** | global auto mode로 Level 3 구현 (deny 외 전부 자동 승인). Level 4(완전 자율) 미구현 |
+| 4.5 | 관리자 자동 컨펌 정책 | **done** | Level 0~4 지원. autonomyLevel 4: deny도 approve+로그. 완전 자율 |
 | 4.6 | PreToolUse hook으로 복합 명령 차단 | **done** | 작업자 .claude/settings.json에 hook 자동 삽입. &&, |, ; 감지 시 block. 승인 요청 자체가 안 뜨게 |
 | 4.7 | 관리자 컨텍스트 한계 자동 대응 | **partial** | PostCompact hook이 CLAUDE.md+session-context.md 자동 주입. 남은 과제: 관리자 자동 교체 |
 | 4.8 | c4 auto 원커맨드 실행 | **done** | c4 auto "작업 내용" 하면 관리자+scribe+작업자 전부 자동 생성, 완료 시 morning-report 생성 |
@@ -338,6 +338,12 @@ Level 3이면:
 - npm test, node: 자동 승인
 - rm, sudo, git push --force: 자동 거부
 - 그 외: 자동 승인 + 로그 기록
+
+Level 4이면:
+- Level 3과 동일하되 deny 룰도 approve로 오버라이드
+- `[AUTONOMY L4]` 스냅샷으로 오버라이드 이력 기록
+- `autonomyOverride: true` 플래그로 구분 가능
+- config: `autoApprove.autonomyLevel: 4`
 
 이러면 밤새 사람 개입 없이 돌아감.
 

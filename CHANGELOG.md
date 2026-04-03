@@ -13,6 +13,11 @@
   - `GET /session-id`, `POST /resume`: daemon API 라우트
   - watchdog.sh: 관리자 사망 시 resume 우선 시도
   - `tests/session-resume.test.js`: 13개 유닛 테스트
+- **autonomyLevel 4 완전 자율** (4.5): deny 룰도 approve로 오버라이드하는 완전 자율 모드
+  - `_getAutonomyLevel()`: config에서 autonomyLevel 읽기
+  - `_classifyPermission()`: Level 4일 때 deny → approve + `[AUTONOMY L4]` 스냅샷 기록
+  - config.example.json에 `autoApprove.autonomyLevel` 옵션 추가
+  - `tests/autonomy-level.test.js`: 14개 유닛 테스트
 
 ## [1.4.0] - 2026-04-04
 

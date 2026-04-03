@@ -1530,13 +1530,20 @@ class PtyManager extends EventEmitter {
     return matches ? matches.length : 2;
   }
 
+  _getAutonomyLevel() {
+    return this.config.autoApprove?.autonomyLevel ?? 0;
+  }
+
   _classifyPermission(screenText, worker) {
     const rules = this.config.autoApprove?.rules || [];
+    const autonomyLevel = this._getAutonomyLevel();
     // Global auto mode (c4 auto): approve everything not explicitly denied
     const defaultAction = (this._globalAutoMode || worker?._autoWorker)
       ? 'approve'
       : (this.config.autoApprove?.defaultAction || 'ask');
     const promptType = this._getPromptType(screenText);
+
+    let action = defaultAction;
 
     if (promptType === 'bash') {
       const command = this._extractBashCommand(screenText);
@@ -1549,24 +1556,42 @@ class PtyManager extends EventEmitter {
         // Exact match: "Bash(pwd)"
         const exactMatch = rule.pattern.match(/^Bash\((\w+)\)$/);
         if (exactMatch && exactMatch[1] === cmdName) {
-          return rule.action;
+          action = rule.action;
+          break;
         }
 
         // Prefix match: "Bash(grep:*)"
         const prefixMatch = rule.pattern.match(/^Bash\((\w+):\*\)$/);
         if (prefixMatch && prefixMatch[1] === cmdName) {
-          return rule.action;
+          action = rule.action;
+          break;
         }
       }
 
     } else if (promptType === 'create' || promptType === 'edit') {
       for (const rule of rules) {
-        if (rule.pattern === 'Write' && promptType === 'create') return rule.action;
-        if (rule.pattern === 'Edit' && promptType === 'edit') return rule.action;
+        if (rule.pattern === 'Write' && promptType === 'create') { action = rule.action; break; }
+        if (rule.pattern === 'Edit' && promptType === 'edit') { action = rule.action; break; }
       }
     }
 
-    return defaultAction;
+    // Level 4 (4.5): full autonomy — override deny to approve with logging
+    if (autonomyLevel >= 4 && action === 'deny') {
+      const command = this._extractBashCommand(screenText) || '';
+      const workerName = worker?._taskText ? 'worker' : 'unknown';
+      if (worker) {
+        worker.snapshots = worker.snapshots || [];
+        worker.snapshots.push({
+          time: Date.now(),
+          screen: `[AUTONOMY L4] deny overridden to approve: ${command.substring(0, 100)}`,
+          autoAction: true,
+          autonomyOverride: true
+        });
+      }
+      return 'approve';
+    }
+
+    return action;
   }
 
   _checkScope(scopeGuard, screenText) {
