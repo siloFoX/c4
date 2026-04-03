@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
+const { EventEmitter } = require('events');
 const ScreenBuffer = require('./screen-buffer');
 const Scribe = require('./scribe');
 const { ScopeGuard, resolveScope } = require('./scope-guard');
@@ -19,8 +20,9 @@ function loadConfig() {
   }
 }
 
-class PtyManager {
+class PtyManager extends EventEmitter {
   constructor() {
+    super();
     this.workers = new Map();
     this.config = loadConfig();
     this._taskQueue = [];
@@ -31,6 +33,7 @@ class PtyManager {
     this._sshReconnects = new Map(); // name → { count, lastAttempt }
     this._tokenUsage = { daily: {}, lastScan: 0, offsets: {} };
     this._loadTokenState();
+    this._sseClients = new Set(); // SSE client connections (3.5)
   }
 
   get logsDir() {
@@ -87,6 +90,18 @@ class PtyManager {
       });
     }
     fs.writeFileSync(STATE_FILE, JSON.stringify(data, null, 2));
+  }
+
+  // --- SSE Event Streaming (3.5) ---
+
+  _emitSSE(type, data) {
+    const event = { type, ...data, timestamp: Date.now() };
+    this.emit('sse', event);
+  }
+
+  addSSEClient(res) {
+    this._sseClients.add(res);
+    res.on('close', () => this._sseClients.delete(res));
   }
 
   // --- Token Usage State (2.5) ---
@@ -1206,7 +1221,14 @@ class PtyManager {
           return;
         }
 
-        // Auto-approve logic
+        // Auto-approve logic + SSE permission event (3.5)
+        if (this._detectPermissionPrompt(text)) {
+          const promptType = this._getPromptType(text);
+          const detail = promptType === 'bash'
+            ? this._extractBashCommand(text)
+            : this._extractFileName(text);
+          this._emitSSE('permission', { worker: name, promptType, detail });
+        }
         if (this.config.autoApprove?.enabled && this._detectPermissionPrompt(text)) {
           // Scope guard check — override autoApprove if out of scope
           if (worker.scopeGuard && worker.scopeGuard.hasRestrictions()) {
@@ -1281,6 +1303,7 @@ class PtyManager {
               autoAction: true,
               intervention: 'question'
             });
+            this._emitSSE('question', { worker: name, line: questionResult.line, pattern: questionResult.pattern });
           }
         }
 
@@ -1302,6 +1325,7 @@ class PtyManager {
                     autoAction: true,
                     intervention: 'escalation'
                   });
+                  this._emitSSE('error', { worker: name, line: errLine, count: existing.count, escalation: true });
                   existing.count = 0;
                 }
               } else {
@@ -1359,6 +1383,7 @@ class PtyManager {
       });
       if (worker.rawLogStream) worker.rawLogStream.end();
       this._saveState();
+      this._emitSSE('complete', { worker: name, exitCode, signal });
 
       // Process queue — worker exit may unblock queued tasks (2.2, 2.8)
       if (this._taskQueue.length > 0) {
