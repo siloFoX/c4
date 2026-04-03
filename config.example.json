@@ -114,6 +114,11 @@
     "cleanupAfterMinutes": 60
   },
 
+  "rules": {
+    "appendToTask": true,
+    "summary": ""
+  },
+
   "gitBash": {
     "disablePathConversion": true
   }

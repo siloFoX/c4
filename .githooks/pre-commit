@@ -12,3 +12,26 @@ if [ "$branch" = "main" ]; then
   echo ""
   exit 1
 fi
+
+# --- Rule enforcement: warn on compound commands in staged diffs ---
+# Detects &&, |, ; in bash/shell command contexts within code changes.
+# This is a warning only (does not block commit).
+
+compound_lines=$(git diff --cached --diff-filter=ACM -U0 -- '*.js' '*.sh' '*.md' 2>/dev/null \
+  | grep '^+' | grep -v '^+++' \
+  | grep -E '(&&|\|[^|]|;)\s' \
+  | grep -iv '(\/\/|#|<!--).*(&&|\||;)' \
+  || true)
+
+if [ -n "$compound_lines" ]; then
+  echo ""
+  echo "  [c4] WARNING: Compound commands detected in staged changes."
+  echo "  CLAUDE.md rule: Use single commands instead of &&, |, ;"
+  echo ""
+  echo "  Matches:"
+  echo "$compound_lines" | head -10 | sed 's/^/    /'
+  echo ""
+  echo "  Consider splitting into separate commands."
+  echo "  (This is a warning — commit proceeds.)"
+  echo ""
+fi
