@@ -787,6 +787,62 @@ class PtyManager extends EventEmitter {
     return screen.getScreen();
   }
 
+  /**
+   * Execute effort setup Phase 2: send arrow keys + Enter to set effort level.
+   * Extracted to avoid duplication between idle timer and polling timer.
+   */
+  _executeSetupPhase2(worker, proc) {
+    if (worker.setupPhase !== 'waitMenu') return; // guard against double execution
+
+    const effortLevel = worker._dynamicEffort || this.config.workerDefaults?.effortLevel;
+    const setupCfg = this.config.workerDefaults?.effortSetup || {};
+    const inputDelayMs = setupCfg.inputDelayMs ?? 500;
+    const confirmDelayMs = setupCfg.confirmDelayMs ?? 500;
+
+    worker.setupPhase = 'done';
+
+    setTimeout(() => {
+      const effortKeys = this._termInterface.getEffortKeys(effortLevel);
+      // Send arrow keys (all but the trailing Enter)
+      const arrowKeys = effortKeys.slice(0, -1);
+      if (arrowKeys) proc.write(arrowKeys);
+      setTimeout(() => {
+        proc.write('\r'); // Enter to confirm
+        worker.setupDone = true;
+        worker.setupPhase = null;
+        worker.setupPhaseStart = null;
+        worker.snapshots.push({
+          time: Date.now(),
+          screen: `[C4 SETUP] effort level → ${effortLevel}` +
+            (worker.setupRetries ? ` (after ${worker.setupRetries} retries)` : ''),
+          autoAction: true
+        });
+      }, confirmDelayMs);
+    }, inputDelayMs);
+  }
+
+  /**
+   * Start periodic polling for model menu detection during waitMenu phase.
+   * Independent of the idle timer, so detection doesn't depend on data events.
+   */
+  _startSetupPolling(worker, screen, proc) {
+    if (worker._setupPollTimer) clearInterval(worker._setupPollTimer);
+
+    worker._setupPollTimer = setInterval(() => {
+      if (worker.setupPhase !== 'waitMenu' || worker.setupDone) {
+        clearInterval(worker._setupPollTimer);
+        worker._setupPollTimer = null;
+        return;
+      }
+      const text = this._getScreenText(screen);
+      if (this._termInterface.isModelMenu(text)) {
+        clearInterval(worker._setupPollTimer);
+        worker._setupPollTimer = null;
+        this._executeSetupPhase2(worker, proc);
+      }
+    }, 500);
+  }
+
   _resolveTarget(targetName) {
     // Config-based targets
     const configTargets = this.config.targets || {};
@@ -1766,6 +1822,7 @@ class PtyManager extends EventEmitter {
       setupPhase: null,       // current setup phase: null, 'waitMenu', 'done'
       setupRetries: 0,        // retry count for effort setup
       setupPhaseStart: null,  // timestamp when current phase started
+      _setupPollTimer: null,  // periodic menu detection timer during waitMenu
       // Intervention state (1.9)
       _interventionState: null,  // null | 'question' | 'escalation'
       _lastQuestion: null,       // last detected question text
@@ -1813,7 +1870,9 @@ class PtyManager extends EventEmitter {
 
       // Reset idle timer with adaptive interval (3.12)
       if (worker.idleTimer) clearTimeout(worker.idleTimer);
-      const idleMs = this._adaptivePolling.getInterval(worker._pollState);
+      let idleMs = this._adaptivePolling.getInterval(worker._pollState);
+      // Cap interval during effort setup for faster menu detection
+      if (worker.setupPhase === 'waitMenu') idleMs = Math.min(idleMs, 500);
       worker.idleTimer = setTimeout(() => {
         const text = this._getScreenText(screen);
 
@@ -1839,6 +1898,7 @@ class PtyManager extends EventEmitter {
           if (worker.setupPhase === 'waitMenu' && worker.setupPhaseStart) {
             const elapsed = Date.now() - worker.setupPhaseStart;
             if (elapsed > phaseTimeoutMs && !hasModelMenu) {
+              if (worker._setupPollTimer) { clearInterval(worker._setupPollTimer); worker._setupPollTimer = null; }
               worker.setupRetries++;
               if (worker.setupRetries > maxRetries) {
                 worker.setupDone = true;
@@ -1867,31 +1927,15 @@ class PtyManager extends EventEmitter {
             worker.setupPhase = 'waitMenu';
             worker.setupPhaseStart = Date.now();
             proc.write(this._termInterface.getModelMenuKeys());
+            // Start periodic menu detection (independent of idle timer)
+            this._startSetupPolling(worker, screen, proc);
             return;
           }
 
           if (worker.setupPhase === 'waitMenu' && hasModelMenu) {
-            // Phase 2: Menu rendered, send arrow keys + Enter
-            worker.setupPhase = 'done';
-
-            setTimeout(() => {
-              const effortKeys = this._termInterface.getEffortKeys(effortLevel);
-              // Send arrow keys (all but the trailing Enter)
-              const arrowKeys = effortKeys.slice(0, -1);
-              if (arrowKeys) proc.write(arrowKeys);
-              setTimeout(() => {
-                proc.write('\r'); // Enter to confirm
-                worker.setupDone = true;
-                worker.setupPhase = null;
-                worker.setupPhaseStart = null;
-                worker.snapshots.push({
-                  time: Date.now(),
-                  screen: `[C4 SETUP] effort level → ${effortLevel}` +
-                    (worker.setupRetries ? ` (after ${worker.setupRetries} retries)` : ''),
-                  autoAction: true
-                });
-              }, confirmDelayMs);
-            }, inputDelayMs);
+            // Phase 2: Menu rendered — use extracted method
+            if (worker._setupPollTimer) { clearInterval(worker._setupPollTimer); worker._setupPollTimer = null; }
+            this._executeSetupPhase2(worker, proc);
             return;
           }
         }
@@ -2088,6 +2132,7 @@ class PtyManager extends EventEmitter {
     proc.onExit(({ exitCode, signal }) => {
       worker.alive = false;
       if (worker.idleTimer) clearTimeout(worker.idleTimer);
+      if (worker._setupPollTimer) { clearInterval(worker._setupPollTimer); worker._setupPollTimer = null; }
       const text = this._getScreenText(screen);
       worker.snapshots.push({
         time: Date.now(),
