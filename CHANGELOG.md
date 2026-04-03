@@ -15,6 +15,14 @@
 
 ---
 
+## [1.2.1] - 2026-04-04
+
+### Updated
+- **config.example.json**: `intervention` 섹션 추가, `notifications.language` 필드 추가
+- **CLAUDE.md**: CLI 전체 명령어 레퍼런스 추가 (token-usage, scrollback, templates, swarm, morning, plan, plan-read, rollback, config, health)
+
+---
+
 ## [1.2.0] - 2026-04-03
 
 ### Added

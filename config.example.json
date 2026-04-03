@@ -268,7 +268,17 @@
     }
   },
 
+  "intervention": {
+    "enabled": true,
+    "questionPatterns": [],
+    "escalation": {
+      "maxRetries": 3
+    },
+    "routineCheck": true
+  },
+
   "notifications": {
+    "language": "ko",
     "slack": {
       "enabled": false,
       "webhookUrl": "",
