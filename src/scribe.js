@@ -304,6 +304,15 @@ class Scribe {
 
     if (newEntries > 0) {
       this._writeOutput();
+
+      // Send file edit summary to Slack
+      if (this._notifications) {
+        const recent = this._state.entries.slice(-newEntries);
+        const toolActions = recent.filter(e => e.role === 'tool');
+        if (toolActions.length > 0) {
+          this._notifications.notifyEdits(newEntries, toolActions);
+        }
+      }
     }
 
     return { scanned: sessionFiles.length, newEntries, totalEntries: this._state.entries.length };

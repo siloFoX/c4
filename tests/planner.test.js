@@ -1,3 +1,5 @@
+const { describe, test, beforeEach, mock } = require('node:test');
+const assert = require('node:assert');
 const Planner = require('../src/planner');
 const fs = require('fs');
 const path = require('path');
@@ -6,8 +8,8 @@ const os = require('os');
 function createMockManager() {
   return {
     workers: new Map(),
-    sendTask: jest.fn(() => ({ success: true, branch: 'c4/planner', worktree: '/tmp/wt' })),
-    _detectRepoRoot: jest.fn(() => os.tmpdir()),
+    sendTask: mock.fn(() => ({ success: true, branch: 'c4/planner', worktree: '/tmp/wt' })),
+    _detectRepoRoot: mock.fn(() => os.tmpdir()),
   };
 }
 
@@ -21,39 +23,39 @@ describe('Planner', () => {
 
   test('buildPlanPrompt includes task and plan mode header', () => {
     const prompt = planner.buildPlanPrompt('Add user auth');
-    expect(prompt).toContain('[C4 PLAN MODE');
-    expect(prompt).toContain('Add user auth');
-    expect(prompt).toContain('plan.md');
-    expect(prompt).toContain('수정할 파일 목록');
-    expect(prompt).toContain('테스트 계획');
+    assert.ok(prompt.includes('[C4 PLAN MODE'));
+    assert.ok(prompt.includes('Add user auth'));
+    assert.ok(prompt.includes('plan.md'));
+    assert.ok(prompt.includes('\uc218\uc815\ud560 \ud30c\uc77c \ubaa9\ub85d'));
+    assert.ok(prompt.includes('\ud14c\uc2a4\ud2b8 \uacc4\ud68d'));
   });
 
   test('buildPlanPrompt uses custom outputPath', () => {
     const prompt = planner.buildPlanPrompt('task', { outputPath: 'docs/plan-auth.md' });
-    expect(prompt).toContain('docs/plan-auth.md');
-    expect(prompt).not.toContain('plan.md\n');
+    assert.ok(prompt.includes('docs/plan-auth.md'));
+    assert.ok(!prompt.includes('plan.md\n'));
   });
 
   test('sendPlan calls sendTask with plan prompt', () => {
     const result = planner.sendPlan('w1', 'Add logging');
-    expect(result.success).toBe(true);
-    expect(manager.sendTask).toHaveBeenCalledTimes(1);
-    const [name, prompt, options] = manager.sendTask.mock.calls[0];
-    expect(name).toBe('w1');
-    expect(prompt).toContain('[C4 PLAN MODE');
-    expect(prompt).toContain('Add logging');
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(manager.sendTask.mock.callCount(), 1);
+    const args = manager.sendTask.mock.calls[0].arguments;
+    assert.strictEqual(args[0], 'w1');
+    assert.ok(args[1].includes('[C4 PLAN MODE'));
+    assert.ok(args[1].includes('Add logging'));
   });
 
   test('sendPlan passes branch and scope options', () => {
     planner.sendPlan('w1', 'task', { branch: 'plan/feature', scopePreset: 'backend' });
-    const options = manager.sendTask.mock.calls[0][2];
-    expect(options.branch).toBe('plan/feature');
-    expect(options.scopePreset).toBe('backend');
+    const options = manager.sendTask.mock.calls[0].arguments[2];
+    assert.strictEqual(options.branch, 'plan/feature');
+    assert.strictEqual(options.scopePreset, 'backend');
   });
 
   test('readPlan returns error for unknown worker', () => {
     const result = planner.readPlan('unknown');
-    expect(result.error).toContain('not found');
+    assert.ok(result.error.includes('not found'));
   });
 
   test('readPlan reads plan.md from worktree', () => {
@@ -63,9 +65,9 @@ describe('Planner', () => {
 
     manager.workers.set('w1', { worktree: tmpDir });
     const result = planner.readPlan('w1');
-    expect(result.success).toBe(true);
-    expect(result.content).toContain('# Plan');
-    expect(result.content).toContain('Step one');
+    assert.strictEqual(result.success, true);
+    assert.ok(result.content.includes('# Plan'));
+    assert.ok(result.content.includes('Step one'));
 
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
@@ -74,7 +76,7 @@ describe('Planner', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'c4-planner-'));
     manager.workers.set('w1', { worktree: tmpDir });
     const result = planner.readPlan('w1');
-    expect(result.error).toContain('Plan not found');
+    assert.ok(result.error.includes('Plan not found'));
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
@@ -86,8 +88,8 @@ describe('Planner', () => {
 
     manager.workers.set('w1', { worktree: tmpDir });
     const result = planner.readPlan('w1', { outputPath: 'docs/my-plan.md' });
-    expect(result.success).toBe(true);
-    expect(result.content).toContain('# Custom Plan');
+    assert.strictEqual(result.success, true);
+    assert.ok(result.content.includes('# Custom Plan'));
 
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
