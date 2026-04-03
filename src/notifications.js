@@ -139,6 +139,7 @@ class Notifications {
   // --- Event handlers (unified format) ---
 
   async notifyTaskComplete(workerName, details = {}) {
+    if (this.slack.alertOnly) return { slack: 'skipped(alertOnly)', email: { sent: false } };
     const t = this._time();
     const branch = details.branch ? `${details.branch}` : '';
     const lines = [`${t} ${workerName} ${this.lang.done}`];
@@ -169,6 +170,7 @@ class Notifications {
   }
 
   async notifyHealthCheck(results) {
+    if (this.slack.alertOnly) return;
     const workers = results.workers || [];
     const alive = workers.filter(w => w.status === 'alive');
     const dead = workers.filter(w => w.status === 'exited' || w.status === 'timeout');
@@ -201,12 +203,14 @@ class Notifications {
 
   // Worker가 직접 보내는 상태 메시지
   statusUpdate(workerName, message) {
+    if (this.slack.alertOnly) return;
     const t = this._time();
     this.pushSlack(`${t} ${workerName}: ${message}`);
   }
 
   // Scribe가 보내는 파일 수정 요약
   notifyEdits(totalNew, toolActions) {
+    if (this.slack.alertOnly) return;
     if (toolActions.length === 0) return;
     const t = this._time();
     const files = toolActions.map(e => e.text).join(', ');

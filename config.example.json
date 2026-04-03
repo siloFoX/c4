@@ -282,7 +282,8 @@
     "slack": {
       "enabled": false,
       "webhookUrl": "",
-      "intervalMs": 300000
+      "intervalMs": 300000,
+      "alertOnly": false
     },
     "email": {
       "enabled": false,
