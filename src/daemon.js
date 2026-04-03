@@ -56,8 +56,8 @@ async function handleRequest(req, res) {
       result = manager.list();
 
     } else if (req.method === 'POST' && route === '/task') {
-      const { name, task, branch, useBranch, useWorktree, projectRoot, scope, scopePreset, after, command, target } = await parseBody(req);
-      result = manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot, scope, scopePreset, after, command, target });
+      const { name, task, branch, useBranch, useWorktree, projectRoot, scope, scopePreset, after, command, target, contextFrom } = await parseBody(req);
+      result = manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot, scope, scopePreset, after, command, target, contextFrom });
 
     } else if (req.method === 'POST' && route === '/close') {
       const { name } = await parseBody(req);

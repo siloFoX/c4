@@ -386,6 +386,7 @@ class PtyManager {
       scope: options.scope || null,
       scopePreset: options.scopePreset || '',
       after: options.after || null,
+      contextFrom: options.contextFrom || null,
       queuedAt: Date.now()
     };
     this._taskQueue.push(entry);
@@ -456,7 +457,8 @@ class PtyManager {
         useWorktree: entry.useWorktree,
         projectRoot: entry.projectRoot,
         scope: entry.scope,
-        scopePreset: entry.scopePreset
+        scopePreset: entry.scopePreset,
+        contextFrom: entry.contextFrom
       }
     };
 
@@ -849,6 +851,29 @@ class PtyManager {
     ].join('\n');
   }
 
+  // --- Context Transfer (3.1) ---
+
+  _getContextSnapshots(workerName, count = 3) {
+    const w = this.workers.get(workerName);
+    if (!w) return null;
+
+    // Get the most recent non-autoAction snapshots
+    const relevant = w.snapshots
+      .filter(s => !s.autoAction && s.screen && s.screen.trim())
+      .slice(-count);
+
+    if (relevant.length === 0) return null;
+
+    const lines = [`[컨텍스트 전달: ${workerName}의 최근 작업 결과]`];
+    for (const snap of relevant) {
+      const time = new Date(snap.time).toLocaleTimeString();
+      lines.push(`--- ${time} ---`);
+      lines.push(snap.screen.trim());
+    }
+    lines.push(`[/${workerName} 컨텍스트 끝]`);
+    return lines.join('\n');
+  }
+
   // Send a task to worker with branch isolation via git worktree
   sendTask(name, task, options = {}) {
     // Duplicate check (2.3): reject if same name already queued
@@ -886,7 +911,8 @@ class PtyManager {
         useWorktree: options.useWorktree,
         projectRoot: options.projectRoot,
         scope: options.scope,
-        scopePreset: options.scopePreset
+        scopePreset: options.scopePreset,
+        contextFrom: options.contextFrom
       });
     }
 
@@ -937,6 +963,14 @@ class PtyManager {
       commands.push(w.scopeGuard.toSummary());
     }
 
+    // Context transfer (3.1): inject snapshots from another worker
+    if (options.contextFrom) {
+      const contextText = this._getContextSnapshots(options.contextFrom, 3);
+      if (contextText) {
+        commands.push(contextText);
+      }
+    }
+
     commands.push(task);
 
     const fullTask = commands.join('\n\n');
@@ -952,6 +986,7 @@ class PtyManager {
       branch,
       worktree: w.worktree || null,
       scope: w.scopeGuard ? { active: true, description: w.scopeGuard.description } : null,
+      contextFrom: options.contextFrom || null,
       task: fullTask
     };
   }
