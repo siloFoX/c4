@@ -1,8 +1,10 @@
 const http = require('http');
 const PtyManager = require('./pty-manager');
+const McpHandler = require('./mcp-handler');
 const Scribe = require('./scribe');
 
 const manager = new PtyManager();
+const mcpHandler = new McpHandler(manager);
 const cfg = manager.getConfig();
 const PORT = parseInt(process.env.PORT || cfg.daemon?.port || '3456');
 const HOST = cfg.daemon?.host || '127.0.0.1';
@@ -112,6 +114,14 @@ async function handleRequest(req, res) {
         manager.removeListener('sse', onEvent);
       });
       return; // Don't end the response
+
+    } else if (req.method === 'POST' && route === '/mcp') {
+      // MCP (Model Context Protocol) endpoint (3.9)
+      const body = await parseBody(req);
+      result = await mcpHandler.handle(body);
+      res.writeHead(200);
+      res.end(JSON.stringify(result));
+      return;
 
     } else if (req.method === 'GET' && route === '/history') {
       const worker = url.searchParams.get('worker') || '';
