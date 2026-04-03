@@ -88,6 +88,31 @@ async function handleRequest(req, res) {
     } else if (req.method === 'GET' && route === '/token-usage') {
       result = manager.getTokenUsage();
 
+    } else if (req.method === 'GET' && route === '/scrollback') {
+      const name = url.searchParams.get('name');
+      const lines = parseInt(url.searchParams.get('lines') || '200') || 200;
+      result = manager.getScrollback(name, lines);
+
+    } else if (req.method === 'GET' && route === '/events') {
+      // SSE endpoint (3.5)
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+      });
+      res.write('data: {"type":"connected"}\n\n');
+
+      const onEvent = (event) => {
+        res.write(`data: ${JSON.stringify(event)}\n\n`);
+      };
+      manager.on('sse', onEvent);
+      manager.addSSEClient(res);
+
+      req.on('close', () => {
+        manager.removeListener('sse', onEvent);
+      });
+      return; // Don't end the response
+
     } else if (req.method === 'GET' && route === '/history') {
       const worker = url.searchParams.get('worker') || '';
       const limit = parseInt(url.searchParams.get('limit') || '0') || 0;

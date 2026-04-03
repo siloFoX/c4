@@ -3,27 +3,15 @@
 ## [0.12.0] - 2026-04-03
 
 ### Added
-- **Context transfer** (3.1): Inject another worker's recent snapshots into a new task
-  - `sendTask()` `contextFrom` option: injects up to 3 recent non-autoAction snapshots
-  - `_getContextSnapshots()`: extracts relevant snapshots from source worker
-  - `c4 task <name> <text> --context <worker>`: CLI flag
-  - `POST /task { contextFrom }`: API parameter
-  - Propagated through queue, pending-task, and auto-create paths
-- **Worker pooling** (3.4): Recycle idle workers instead of spawning new processes
-  - `_findPoolWorker()`: finds idle worker within `pool.maxIdleMs` window
-  - `_reuseWorker()`: renames and resets worker state for new task
-  - Config: `pool.enabled` (default: false), `pool.maxIdleMs` (default: 300000)
-  - `c4 task --reuse` / `--no-reuse`: CLI flags
-  - `POST /task { reuse }`: API parameter
-- **Rollback support** (3.6): Revert worker's branch to pre-task state
-  - `sendTask()` records `_startCommit` (HEAD before task) on each worker
-  - `rollback()`: executes `git reset --soft` to start commit
-  - `c4 rollback <worker-name>`: CLI command
-  - `POST /rollback { name }`: API route
-  - `[ROLLBACK]` snapshot logged on successful reset
+- **Context transfer** (3.1): `sendTask()` contextFrom option, `--context` CLI flag
+- **Worker pooling** (3.4): idle worker recycle, `pool.enabled/maxIdleMs`, `--reuse` flag
+- **Rollback support** (3.6): `c4 rollback`, `_startCommit` tracking, `git reset --soft`
+- **Effort dynamic adjustment** (3.3): `_determineEffort()`, task length-based effort
+- **SSE event streaming** (3.5): `GET /events`, permission/complete/error/question events
+- **ScreenBuffer improvements** (3.8): CSI parser enhancement, `c4 scrollback`, scrollback API
 
 ### Changed
-- `config.example.json`: Added `pool` section
+- `config.example.json`: Added `pool`, `effort` sections
 
 ## [0.11.0] - 2026-04-03
 

@@ -173,6 +173,24 @@ async function main() {
         break;
       }
 
+      case 'scrollback': {
+        const name = args[0];
+        let lines = 200;
+        for (let i = 1; i < args.length; i++) {
+          if (args[i] === '--lines' && args[i + 1]) { lines = parseInt(args[++i]) || 200; }
+        }
+        if (!name) { console.error('Usage: c4 scrollback <name> [--lines N]'); process.exit(1); }
+        result = await request('GET', `/scrollback?name=${name}&lines=${lines}`);
+        if (result.content !== undefined) {
+          if (result.content) {
+            process.stdout.write(result.content + '\n');
+          }
+          process.stderr.write(`--- scrollback: ${result.lines} lines (${result.totalScrollback} total) ---\n`);
+          return;
+        }
+        break;
+      }
+
       case 'list': {
         result = await request('GET', '/list');
         if (result.workers) {
@@ -750,6 +768,7 @@ Commands:
   read <name>                      Read new output (idle snapshots only)
   read-now <name>                  Read current screen immediately
   wait <name> [timeout_ms]         Wait until idle, then read screen
+  scrollback <name> [--lines N]    Read scrollback buffer (default 200 lines)
   list                             List all workers
   merge <worker|branch>            Merge branch to main (with pre-checks)
   rollback <name>                  Rollback worker to pre-task commit (git reset --soft)

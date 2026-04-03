@@ -248,12 +248,12 @@ watchdog.sh (nohup, 60초 체크)
 |---|------|------|------|
 | 3.1 | 작업자 간 컨텍스트 전달 | **done** | sendTask() contextFrom 옵션. 최근 스냅샷 3개 주입. CLI --context 플래그 |
 | 3.2 | 작업 결과 자동 검증 | **done** | 작업 완료 후 테스트/린트 자동 실행. 실패 시 작업자에게 피드백 |
-| 3.3 | effort 동적 조절 | todo | 작업 복잡도에 따라 low/high/max 자동 전환 |
+| 3.3 | effort 동적 조절 | **done** | task 길이 기반 effort 자동 결정. config effort.dynamic/thresholds |
 | 3.4 | 작업자 풀링 | **done** | pool.enabled/maxIdleMs config. idle worker 재활용. CLI --reuse 플래그 |
-| 3.5 | 이벤트 기반 알림 | todo | 폴링 대신 권한 요청 시 즉시 콜백. WebSocket 또는 SSE |
+| 3.5 | 이벤트 기반 알림 | **done** | SSE GET /events. permission/complete/error/question 이벤트 |
 | 3.6 | 롤백 지원 | **done** | c4 rollback 명령. git reset --soft. _startCommit 저장. /rollback API |
 | 3.7 | 작업 히스토리 영속화 | **done** | history.jsonl에 작업 기록. close() 시 자동 기록. c4 history로 조회 |
-| 3.8 | ScreenBuffer 개선 | todo | 복잡한 TUI 테이블 렌더링 깨짐 수정. scrollback 읽기 지원 |
+| 3.8 | ScreenBuffer 개선 | **done** | 복잡한 TUI 테이블 렌더링 깨짐 수정. scrollback 읽기 지원 |
 | 3.9 | MCP 서버 모드 | todo | Cowork 플러그인으로도 사용 가능하도록 HTTP MCP 전환 지원 |
 | 3.10 | Planner Worker | todo | 설계 전담 작업자. 작업 받으면 plan.md 작성 → 관리자 승인 → 실행 작업자에게 분배 |
 | 3.11 | State Machine (Plan→Edit→Test→Fix) | todo | 작업자 상태 추적. 무한루프 방지. 테스트 N회 실패 시 관리자에게 에스컬레이션 |
@@ -299,6 +299,9 @@ watchdog.sh (nohup, 60초 체크)
 | ~~2.9~~ | 자율 운영 구조 | 2026-04-03 |
 | ~~3.1~~ | 작업자 간 컨텍스트 전달 | 2026-04-03 |
 | ~~3.2~~ | 작업 결과 자동 검증 | 2026-04-03 |
+| ~~3.3~~ | effort 동적 조절 | 2026-04-03 |
 | ~~3.4~~ | 작업자 풀링 | 2026-04-03 |
+| ~~3.5~~ | 이벤트 기반 알림 (SSE) | 2026-04-03 |
 | ~~3.6~~ | 롤백 지원 | 2026-04-03 |
 | ~~3.7~~ | 작업 히스토리 영속화 | 2026-04-03 |
+| ~~3.8~~ | ScreenBuffer 개선 | 2026-04-03 |

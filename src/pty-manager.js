@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
+const { EventEmitter } = require('events');
 const ScreenBuffer = require('./screen-buffer');
 const Scribe = require('./scribe');
 const { ScopeGuard, resolveScope } = require('./scope-guard');
@@ -19,8 +20,9 @@ function loadConfig() {
   }
 }
 
-class PtyManager {
+class PtyManager extends EventEmitter {
   constructor() {
+    super();
     this.workers = new Map();
     this.config = loadConfig();
     this._taskQueue = [];
@@ -31,6 +33,7 @@ class PtyManager {
     this._sshReconnects = new Map(); // name → { count, lastAttempt }
     this._tokenUsage = { daily: {}, lastScan: 0, offsets: {} };
     this._loadTokenState();
+    this._sseClients = new Set(); // SSE client connections (3.5)
   }
 
   get logsDir() {
@@ -87,6 +90,18 @@ class PtyManager {
       });
     }
     fs.writeFileSync(STATE_FILE, JSON.stringify(data, null, 2));
+  }
+
+  // --- SSE Event Streaming (3.5) ---
+
+  _emitSSE(type, data) {
+    const event = { type, ...data, timestamp: Date.now() };
+    this.emit('sse', event);
+  }
+
+  addSSEClient(res) {
+    this._sseClients.add(res);
+    res.on('close', () => this._sseClients.delete(res));
   }
 
   // --- Token Usage State (2.5) ---
@@ -447,8 +462,11 @@ class PtyManager {
     const createResult = this.create(entry.name, entry.command, entry.args, { target: entry.target });
     if (createResult.error) return createResult;
 
-    // Store pending task — will be sent after worker setup completes
+    // Dynamic effort level (3.3)
     const w = this.workers.get(entry.name);
+    w._dynamicEffort = this._determineEffort(entry.task);
+
+    // Store pending task — will be sent after worker setup completes
     w._pendingTask = {
       task: entry.task,
       options: {
@@ -833,6 +851,32 @@ class PtyManager {
     }
   }
 
+  // --- Effort Dynamic Adjustment (3.3) ---
+
+  _determineEffort(taskText) {
+    const effortCfg = this.config.effort || {};
+    if (!effortCfg.dynamic) return this.config.workerDefaults?.effortLevel || 'max';
+
+    const thresholds = effortCfg.thresholds || { high: 100, max: 500 };
+    const defaultLevel = effortCfg.default || this.config.workerDefaults?.effortLevel || 'high';
+    const len = (taskText || '').length;
+
+    // Sort threshold entries by value ascending
+    const entries = Object.entries(thresholds).sort((a, b) => a[1] - b[1]);
+
+    // Under the lowest threshold → use that level
+    if (entries.length > 0 && len < entries[0][1]) {
+      return entries[0][0]; // e.g., 'high' when < 100
+    }
+
+    // At or above the highest threshold → use that level
+    if (entries.length > 0 && len >= entries[entries.length - 1][1]) {
+      return entries[entries.length - 1][0]; // e.g., 'max' when >= 500
+    }
+
+    return defaultLevel;
+  }
+
   _getRulesSummary() {
     const rules = this.config.rules;
     if (!rules || !rules.appendToTask) return null;
@@ -1190,7 +1234,7 @@ class PtyManager {
         }
 
         // Auto effort level setup (2-phase with retry: send /model, then detect menu and press keys)
-        const effortLevel = this.config.workerDefaults?.effortLevel;
+        const effortLevel = worker._dynamicEffort || this.config.workerDefaults?.effortLevel;
         if (effortLevel && !worker.setupDone) {
           const setupCfg = this.config.workerDefaults?.effortSetup || {};
           const maxRetries = setupCfg.retries ?? 3;
@@ -1269,7 +1313,8 @@ class PtyManager {
         }
 
         // Send pending task after setup completes (queue auto-create flow)
-        const setupComplete = worker.setupDone || !this.config.workerDefaults?.effortLevel;
+        const effortNeeded = worker._dynamicEffort || this.config.workerDefaults?.effortLevel;
+        const setupComplete = worker.setupDone || !effortNeeded;
         if (setupComplete && worker._pendingTask && !worker._pendingTaskSent) {
           worker._pendingTaskSent = true;
           const pt = worker._pendingTask;
@@ -1280,7 +1325,14 @@ class PtyManager {
           return;
         }
 
-        // Auto-approve logic
+        // Auto-approve logic + SSE permission event (3.5)
+        if (this._detectPermissionPrompt(text)) {
+          const promptType = this._getPromptType(text);
+          const detail = promptType === 'bash'
+            ? this._extractBashCommand(text)
+            : this._extractFileName(text);
+          this._emitSSE('permission', { worker: name, promptType, detail });
+        }
         if (this.config.autoApprove?.enabled && this._detectPermissionPrompt(text)) {
           // Scope guard check — override autoApprove if out of scope
           if (worker.scopeGuard && worker.scopeGuard.hasRestrictions()) {
@@ -1355,6 +1407,7 @@ class PtyManager {
               autoAction: true,
               intervention: 'question'
             });
+            this._emitSSE('question', { worker: name, line: questionResult.line, pattern: questionResult.pattern });
           }
         }
 
@@ -1376,6 +1429,7 @@ class PtyManager {
                     autoAction: true,
                     intervention: 'escalation'
                   });
+                  this._emitSSE('error', { worker: name, line: errLine, count: existing.count, escalation: true });
                   existing.count = 0;
                 }
               } else {
@@ -1433,6 +1487,7 @@ class PtyManager {
       });
       if (worker.rawLogStream) worker.rawLogStream.end();
       this._saveState();
+      this._emitSSE('complete', { worker: name, exitCode, signal });
 
       // Process queue — worker exit may unblock queued tasks (2.2, 2.8)
       if (this._taskQueue.length > 0) {
@@ -1528,6 +1583,16 @@ class PtyManager {
     return {
       content: screenText,
       status: w.alive ? (idleMs > this.idleThresholdMs ? 'idle' : 'busy') : 'exited'
+    };
+  }
+
+  getScrollback(name, lastN = 200) {
+    const w = this.workers.get(name);
+    if (!w) return { error: `Worker '${name}' not found` };
+    return {
+      content: w.screen.getScrollback(lastN),
+      lines: Math.min(lastN, w.screen.scrollback.length),
+      totalScrollback: w.screen.scrollback.length
     };
   }
 
