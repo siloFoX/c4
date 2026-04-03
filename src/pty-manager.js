@@ -7,6 +7,10 @@ const { EventEmitter } = require('events');
 const ScreenBuffer = require('./screen-buffer');
 const Scribe = require('./scribe');
 const { ScopeGuard, resolveScope } = require('./scope-guard');
+const StateMachine = require('./state-machine');
+const AdaptivePolling = require('./adaptive-polling');
+const TerminalInterface = require('./terminal-interface');
+const SummaryLayer = require('./summary-layer');
 
 const CONFIG_FILE = path.join(__dirname, '..', 'config.json');
 const STATE_FILE = path.join(__dirname, '..', 'state.json');
@@ -34,6 +38,27 @@ class PtyManager extends EventEmitter {
     this._tokenUsage = { daily: {}, lastScan: 0, offsets: {} };
     this._loadTokenState();
     this._sseClients = new Set(); // SSE client connections (3.5)
+    this._stateMachine = new StateMachine({
+      maxTestFails: this.config.stateMachine?.maxTestFails || 3
+    });
+    const slCfg = this.config.summaryLayer || {};
+    this._summaryLayer = new SummaryLayer({
+      threshold: slCfg.threshold,
+      tailLines: slCfg.tailLines,
+      maxSummary: slCfg.maxSummary,
+    });
+    this._termInterface = new TerminalInterface(
+      this.config.compatibility?.patterns || {},
+      { alwaysApproveForSession: this.config.autoApprove?.alwaysApproveForSession || false }
+    );
+    const apCfg = this.config.adaptivePolling || {};
+    this._adaptivePolling = new AdaptivePolling({
+      minIntervalMs: apCfg.minIntervalMs,
+      maxIntervalMs: apCfg.maxIntervalMs,
+      baseIntervalMs: this.config.daemon?.idleThresholdMs || 3000,
+      windowMs: apCfg.windowMs,
+      busyThreshold: apCfg.busyThreshold,
+    });
   }
 
   get logsDir() {
@@ -956,7 +981,9 @@ class PtyManager extends EventEmitter {
     for (const snap of relevant) {
       const time = new Date(snap.time).toLocaleTimeString();
       lines.push(`--- ${time} ---`);
-      lines.push(snap.screen.trim());
+      // Apply summary layer (3.14) for long context snapshots
+      const processed = this._summaryLayer.process(snap);
+      lines.push((processed.screen || snap.screen).trim());
     }
     lines.push(`[/${workerName} 컨텍스트 끝]`);
     return lines.join('\n');
@@ -1196,6 +1223,10 @@ class PtyManager extends EventEmitter {
       _taskStartedAt: null,      // ISO timestamp when task was sent
       // Rollback (3.6)
       _startCommit: null,        // HEAD commit hash before task started
+      // State machine (3.11)
+      _smState: this._stateMachine.createState(),
+      // Adaptive polling (3.12)
+      _pollState: this._adaptivePolling.createState(),
     };
 
     // Raw log
@@ -1203,11 +1234,11 @@ class PtyManager extends EventEmitter {
       worker.rawLogStream = fs.createWriteStream(worker.rawLogPath, { flags: 'w' });
     }
 
-    const idleMs = this.idleThresholdMs;
-
     proc.onData((data) => {
       worker.lastDataTime = Date.now();
       if (worker.rawLogStream) worker.rawLogStream.write(data);
+      // Record activity for adaptive polling (3.12)
+      this._adaptivePolling.recordActivity(worker._pollState);
 
       screen.write(data);
 
@@ -1222,14 +1253,15 @@ class PtyManager extends EventEmitter {
         }
       }
 
-      // Reset idle timer
+      // Reset idle timer with adaptive interval (3.12)
       if (worker.idleTimer) clearTimeout(worker.idleTimer);
+      const idleMs = this._adaptivePolling.getInterval(worker._pollState);
       worker.idleTimer = setTimeout(() => {
         const text = this._getScreenText(screen);
 
-        // Auto-trust folder
-        if (this.config.workerDefaults?.trustFolder && this._detectTrustPrompt(text)) {
-          proc.write('\r'); // Press Enter to trust
+        // Auto-trust folder (via terminal interface 3.13)
+        if (this.config.workerDefaults?.trustFolder && this._termInterface.isTrustPrompt(text)) {
+          proc.write(this._termInterface.getTrustKeys());
           return;
         }
 
@@ -1242,8 +1274,8 @@ class PtyManager extends EventEmitter {
           const inputDelayMs = setupCfg.inputDelayMs ?? 500;
           const confirmDelayMs = setupCfg.confirmDelayMs ?? 500;
 
-          const hasPrompt = text.includes('❯') && text.includes('for shortcuts');
-          const hasModelMenu = text.includes('to adjust') && text.includes('effort');
+          const hasPrompt = this._termInterface.isReady(text);
+          const hasModelMenu = this._termInterface.isModelMenu(text);
 
           // Timeout: if stuck in waitMenu phase too long, retry
           if (worker.setupPhase === 'waitMenu' && worker.setupPhaseStart) {
@@ -1267,7 +1299,7 @@ class PtyManager extends EventEmitter {
                 screen: `[C4 SETUP] effort setup retry ${worker.setupRetries}/${maxRetries} (phase timeout)`,
                 autoAction: true
               });
-              proc.write('\x1b'); // Escape to clear any partial state
+              proc.write(this._termInterface.getEscapeKey()); // Escape to clear any partial state
               return;
             }
           }
@@ -1276,7 +1308,7 @@ class PtyManager extends EventEmitter {
             // Phase 1: Claude Code ready, send /model
             worker.setupPhase = 'waitMenu';
             worker.setupPhaseStart = Date.now();
-            proc.write('/model\r');
+            proc.write(this._termInterface.getModelMenuKeys());
             return;
           }
 
@@ -1284,17 +1316,11 @@ class PtyManager extends EventEmitter {
             // Phase 2: Menu rendered, send arrow keys + Enter
             worker.setupPhase = 'done';
 
-            const levels = ['low', 'medium', 'high', 'max'];
-            const defaultIdx = levels.indexOf('high');
-            const targetIdx = levels.indexOf(effortLevel);
-            const steps = targetIdx - defaultIdx;
-
             setTimeout(() => {
-              if (steps > 0) {
-                for (let i = 0; i < steps; i++) proc.write('\x1b[C'); // Right
-              } else if (steps < 0) {
-                for (let i = 0; i < Math.abs(steps); i++) proc.write('\x1b[D'); // Left
-              }
+              const effortKeys = this._termInterface.getEffortKeys(effortLevel);
+              // Send arrow keys (all but the trailing Enter)
+              const arrowKeys = effortKeys.slice(0, -1);
+              if (arrowKeys) proc.write(arrowKeys);
               setTimeout(() => {
                 proc.write('\r'); // Enter to confirm
                 worker.setupDone = true;
@@ -1326,23 +1352,20 @@ class PtyManager extends EventEmitter {
         }
 
         // Auto-approve logic + SSE permission event (3.5)
-        if (this._detectPermissionPrompt(text)) {
-          const promptType = this._getPromptType(text);
+        if (this._termInterface.isPermissionPrompt(text)) {
+          const promptType = this._termInterface.getPromptType(text);
           const detail = promptType === 'bash'
-            ? this._extractBashCommand(text)
-            : this._extractFileName(text);
+            ? this._termInterface.extractBashCommand(text)
+            : this._termInterface.extractFileName(text);
           this._emitSSE('permission', { worker: name, promptType, detail });
         }
-        if (this.config.autoApprove?.enabled && this._detectPermissionPrompt(text)) {
+        if (this.config.autoApprove?.enabled && this._termInterface.isPermissionPrompt(text)) {
           // Scope guard check — override autoApprove if out of scope
           if (worker.scopeGuard && worker.scopeGuard.hasRestrictions()) {
             const scopeResult = this._checkScope(worker.scopeGuard, text);
             if (scopeResult && !scopeResult.allowed) {
               // Out of scope → force deny
-              const numOptions = this._countOptions(text);
-              let denyKeys = '';
-              for (let i = 1; i < numOptions; i++) denyKeys += '\x1b[B';
-              denyKeys += '\r';
+              const denyKeys = this._termInterface.getDenyKeys(text);
 
               worker.snapshots.push({
                 time: Date.now(),
@@ -1361,13 +1384,13 @@ class PtyManager extends EventEmitter {
 
           if (keys) {
             // Log the decision
-            const promptType = this._getPromptType(text);
-            const detail = promptType === 'bash'
-              ? this._extractBashCommand(text)
-              : this._extractFileName(text);
+            const approvePromptType = this._termInterface.getPromptType(text);
+            const approveDetail = approvePromptType === 'bash'
+              ? this._termInterface.extractBashCommand(text)
+              : this._termInterface.extractFileName(text);
             worker.snapshots.push({
               time: Date.now(),
-              screen: `[C4 AUTO-${action.toUpperCase()}] ${promptType}: ${detail}`,
+              screen: `[C4 AUTO-${action.toUpperCase()}] ${approvePromptType}: ${approveDetail}`,
               autoAction: true
             });
 
@@ -1389,6 +1412,36 @@ class PtyManager extends EventEmitter {
             });
             this._saveState();
             return; // Still capture the snapshot but flag it
+          }
+        }
+
+        // --- State machine update (3.11) ---
+        if (worker._smState) {
+          const smResult = this._stateMachine.update(worker._smState, text);
+          if (smResult) {
+            if (smResult.transition) {
+              worker.snapshots.push({
+                time: Date.now(),
+                screen: `[STATE] ${smResult.transition.from} → ${smResult.transition.to}`,
+                autoAction: true,
+                stateTransition: true
+              });
+            }
+            if (smResult.escalation) {
+              worker._interventionState = 'escalation';
+              worker.snapshots.push({
+                time: Date.now(),
+                screen: `[ESCALATION] ${smResult.escalation.reason}`,
+                autoAction: true,
+                intervention: 'escalation'
+              });
+              this._emitSSE('error', {
+                worker: name,
+                line: smResult.escalation.reason,
+                count: smResult.escalation.failCount,
+                escalation: true
+              });
+            }
           }
         }
 
@@ -1565,11 +1618,14 @@ class PtyManager extends EventEmitter {
     }
 
     const latest = newSnapshots[newSnapshots.length - 1];
+    // Apply summary layer (3.14) for long snapshots
+    const processed = this._summaryLayer.process(latest);
     return {
-      content: latest.screen,
+      content: processed.screen,
       status: w.alive ? 'idle' : 'exited',
       snapshotsRead: newSnapshots.length,
-      exitCode: latest.exitCode
+      exitCode: latest.exitCode,
+      summarized: processed._summarized || false
     };
   }
 
@@ -1867,7 +1923,9 @@ class PtyManager extends EventEmitter {
         totalSnapshots: w.snapshots.length,
         intervention: w._interventionState || null,
         lastQuestion: w._lastQuestion || null,
-        errorCount: (w._errorHistory || []).reduce((sum, e) => sum + e.count, 0)
+        errorCount: (w._errorHistory || []).reduce((sum, e) => sum + e.count, 0),
+        phase: w._smState ? w._smState.phase : null,
+        testFailCount: w._smState ? w._smState.testFailCount : 0
       });
     }
     // Include queued tasks (2.8)
