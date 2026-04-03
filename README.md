@@ -27,12 +27,12 @@ You ↔ Claude Code (Manager) ↔ C4 Daemon ↔ Worker A (Claude Code)
 You open Claude Code and talk to it normally. Claude Code uses `c4` commands via Bash to spawn and manage worker Claude Code instances. You never run `c4` directly — Claude Code is both the manager and your interface.
 
 ```
-You: "ARPS 프로젝트에 로깅 추가하고 테스트까지 해줘"
+You: "Add logging to the project and run the tests"
 
 Claude Code (Manager):
   → c4 daemon start
-  → c4 new worker-a claude --target dgx
-  → c4 task worker-a "로깅 추가해" --branch c4/add-logging
+  → c4 new worker-a claude
+  → c4 task worker-a "Add logging module" --branch c4/add-logging
   → c4 wait worker-a          (monitors progress)
   → c4 key worker-a Enter     (approves safe actions)
   → c4 read worker-a          (reads result, reports to you)
@@ -71,22 +71,24 @@ c4 init
 
 This sets up:
 - `~/.claude/settings.json` — adds c4 bash permissions
-- `config.json` — copies from `config.example.json`
+- `config.json` — copies from `config.example.json`, auto-detects `claude` binary path
+- `c4` command registration — npm link → ~/.local/bin symlink → .bashrc alias (3-step fallback)
 - `CLAUDE.md` symlink — project instructions
+- `.githooks` — main branch protection (pre-commit hook)
 
 ## Usage
 
 Open Claude Code in any project directory and give it tasks:
 
 ```
-You: "이 프로젝트의 TODO를 정리해줘. 작업자 2개 띄워서 병렬로 해"
+You: "Clean up the TODO list. Spin up 2 workers and do it in parallel."
 
 Claude Code will:
 1. c4 daemon start
 2. c4 new worker-a claude
 3. c4 new worker-b claude
-4. c4 task worker-a "TODO 분석" --branch c4/todo-analysis
-5. c4 task worker-b "코드 정리" --branch c4/cleanup
+4. c4 task worker-a "Analyze TODOs" --branch c4/todo-analysis
+5. c4 task worker-b "Code cleanup" --branch c4/cleanup
 6. Monitor, approve, report back to you
 ```
 
@@ -95,11 +97,11 @@ Claude Code will:
 Workers can run on remote servers:
 
 ```
-You: "DGX 서버에서 모델 학습시켜줘"
+You: "Train the model on the DGX server"
 
 Claude Code will:
 1. c4 new trainer claude --target dgx
-2. c4 task trainer "모델 학습 시작해"
+2. c4 task trainer "Start model training"
 ```
 
 Configure targets in `config.json`:
@@ -117,6 +119,23 @@ Configure targets in `config.json`:
   }
 }
 ```
+
+### Recursive C4 (Experimental)
+
+Workers can themselves use C4 to spawn sub-workers, creating a multi-level hierarchy:
+
+```
+You ↔ Manager (Claude Code)
+       ├─ Worker A (Mid-Manager)
+       │    ├─ Sub-Worker A1
+       │    ├─ Sub-Worker A2
+       │    └─ Sub-Worker A3
+       └─ Worker B
+```
+
+Since all workers share the same daemon (localhost:3456), any worker with `c4` in PATH can create and manage sub-workers. This enables hierarchical task delegation — a manager assigns high-level tasks to mid-managers, who break them down and distribute to sub-workers.
+
+> **Status**: Architecturally supported, not yet tested in production.
 
 ## Config
 
@@ -160,10 +179,11 @@ These are used by Claude Code (manager), not by you directly:
 
 | Command | Description |
 |---------|-------------|
-| `c4 init` | First-time setup (permissions, config, CLAUDE.md) |
-| `c4 daemon start\|stop\|status` | Manage the daemon |
+| `c4 init` | First-time setup (permissions, config, CLAUDE.md, hooks) |
+| `c4 daemon start\|stop\|restart\|status` | Manage the daemon |
 | `c4 new <name> [--target t]` | Create a worker |
 | `c4 task <name> <text> [--branch b]` | Send task with git branch/worktree isolation |
+| `c4 merge <worker\|branch>` | Merge branch to main (with pre-checks) |
 | `c4 send <name> <text>` | Send raw text to worker |
 | `c4 key <name> <key>` | Send special key (Enter, C-c, etc.) |
 | `c4 read <name>` | Read new output (idle snapshots) |
@@ -202,7 +222,12 @@ These are used by Claude Code (manager), not by you directly:
 │PTY A│    │PTY B│    ...
 │local│    │ SSH │
 │(wt) │    │(wt) │
-└─────┘    └─────┘
+└──┬──┘    └─────┘
+   │ (recursive)
+┌──▼──┐
+│PTY  │  Sub-workers via same daemon
+│sub-1│
+└─────┘
   wt = git worktree (isolated branch)
 ```
 
@@ -212,8 +237,10 @@ These are used by Claude Code (manager), not by you directly:
 - **Auto-approve**: Safe commands (read, grep, find) approved automatically; dangerous commands (rm, sudo) denied
 - **Git worktree**: Each worker gets isolated directory — no conflicts between parallel workers
 - **SSH workers**: Spawn workers on remote servers transparently
+- **Recursive C4**: Workers can spawn sub-workers for hierarchical task delegation
+- **Merge protection**: `c4 merge` enforces test/docs checks; pre-commit hook blocks direct main commits
 - **ScreenBuffer**: Virtual terminal processes ANSI escape sequences — clean text, no spinner noise
-- **Daemon manager**: `c4 daemon start/stop/status` with PID tracking and health checks
+- **Daemon manager**: `c4 daemon start/stop/restart/status` with PID tracking and health checks
 - **Version compatibility**: TUI patterns configurable per Claude Code version
 
 ## FAQ
@@ -229,6 +256,9 @@ A: Depends on your Claude Max plan limits. Each worker is a separate Claude Code
 
 **Q: What if the daemon crashes?**
 A: Use `c4 daemon start` to restart. Workers are lost on daemon crash (session recovery is on the roadmap).
+
+**Q: Can workers manage other workers?**
+A: Yes (experimental). Since all workers share the same daemon, any worker with `c4` in PATH can create sub-workers. This enables hierarchical orchestration.
 
 ## Contributing
 
@@ -246,7 +276,7 @@ See [TODO.md](TODO.md) for the roadmap and open tasks.
 
 See [TODO.md](TODO.md) for the full roadmap. Current priorities:
 
-- **Phase 1**: Core features (auto-approve, worktree, daemon manager) — mostly done
+- **Phase 1**: Core features (auto-approve, worktree, daemon manager, merge protection) — mostly done
 - **Phase 2**: Operational stability (healthcheck, timeout, session recovery)
 - **Phase 3**: Advanced features (subagent swarm, hook-based architecture, planner worker)
 
