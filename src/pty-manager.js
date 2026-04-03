@@ -10,6 +10,7 @@ const { ScopeGuard, resolveScope } = require('./scope-guard');
 const StateMachine = require('./state-machine');
 const AdaptivePolling = require('./adaptive-polling');
 const TerminalInterface = require('./terminal-interface');
+const SummaryLayer = require('./summary-layer');
 
 const CONFIG_FILE = path.join(__dirname, '..', 'config.json');
 const STATE_FILE = path.join(__dirname, '..', 'state.json');
@@ -39,6 +40,12 @@ class PtyManager extends EventEmitter {
     this._sseClients = new Set(); // SSE client connections (3.5)
     this._stateMachine = new StateMachine({
       maxTestFails: this.config.stateMachine?.maxTestFails || 3
+    });
+    const slCfg = this.config.summaryLayer || {};
+    this._summaryLayer = new SummaryLayer({
+      threshold: slCfg.threshold,
+      tailLines: slCfg.tailLines,
+      maxSummary: slCfg.maxSummary,
     });
     this._termInterface = new TerminalInterface(
       this.config.compatibility?.patterns || {},
@@ -974,7 +981,9 @@ class PtyManager extends EventEmitter {
     for (const snap of relevant) {
       const time = new Date(snap.time).toLocaleTimeString();
       lines.push(`--- ${time} ---`);
-      lines.push(snap.screen.trim());
+      // Apply summary layer (3.14) for long context snapshots
+      const processed = this._summaryLayer.process(snap);
+      lines.push((processed.screen || snap.screen).trim());
     }
     lines.push(`[/${workerName} 컨텍스트 끝]`);
     return lines.join('\n');
@@ -1609,11 +1618,14 @@ class PtyManager extends EventEmitter {
     }
 
     const latest = newSnapshots[newSnapshots.length - 1];
+    // Apply summary layer (3.14) for long snapshots
+    const processed = this._summaryLayer.process(latest);
     return {
-      content: latest.screen,
+      content: processed.screen,
       status: w.alive ? 'idle' : 'exited',
       snapshotsRead: newSnapshots.length,
-      exitCode: latest.exitCode
+      exitCode: latest.exitCode,
+      summarized: processed._summarized || false
     };
   }
 
