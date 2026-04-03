@@ -791,6 +791,13 @@ class PtyManager extends EventEmitter {
     // Auto worker flag (4.8): mark for morning report on exit
     if (entry._autoWorker) {
       w._autoWorker = true;
+      // Write settings with PreToolUse hooks to project root so they're active from start
+      const projectRoot = this._detectRepoRoot(entry.projectRoot);
+      if (projectRoot) {
+        try {
+          this._writeWorkerSettings(projectRoot, entry.name, { _autoWorker: true });
+        } catch {}
+      }
     }
 
     // Store pending task — will be sent after worker setup completes
@@ -808,6 +815,18 @@ class PtyManager extends EventEmitter {
         _autoWorker: entry._autoWorker
       }
     };
+    w._pendingTaskTime = Date.now();
+
+    // Fallback: force-send task after 30s if setup hasn't completed
+    setTimeout(() => {
+      const worker = this.workers.get(entry.name);
+      if (worker && worker._pendingTask && !worker._pendingTaskSent) {
+        worker._pendingTaskSent = true;
+        const pt = worker._pendingTask;
+        this.sendTask(entry.name, pt.task, pt.options);
+        worker._pendingTask = null;
+      }
+    }, 30000);
 
     return { created: true, name: entry.name, pid: createResult.pid };
   }
@@ -1989,7 +2008,9 @@ class PtyManager extends EventEmitter {
 
         // Send pending task after setup completes (queue auto-create flow)
         const effortNeeded = worker._dynamicEffort || this.config.workerDefaults?.effortLevel;
-        const setupComplete = worker.setupDone || !effortNeeded;
+        const pendingAge = worker._pendingTaskTime ? Date.now() - worker._pendingTaskTime : 0;
+        const setupTimeout = pendingAge > 30000; // 30s since task was queued
+        const setupComplete = worker.setupDone || !effortNeeded || setupTimeout;
         if (setupComplete && worker._pendingTask && !worker._pendingTaskSent) {
           worker._pendingTaskSent = true;
           const pt = worker._pendingTask;
