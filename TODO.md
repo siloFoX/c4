@@ -254,12 +254,12 @@ watchdog.sh (nohup, 60초 체크)
 | 3.6 | 롤백 지원 | **done** | c4 rollback 명령. git reset --soft. _startCommit 저장. /rollback API |
 | 3.7 | 작업 히스토리 영속화 | **done** | history.jsonl에 작업 기록. close() 시 자동 기록. c4 history로 조회 |
 | 3.8 | ScreenBuffer 개선 | **done** | 복잡한 TUI 테이블 렌더링 깨짐 수정. scrollback 읽기 지원 |
-| 3.9 | MCP 서버 모드 | todo | Cowork 플러그인으로도 사용 가능하도록 HTTP MCP 전환 지원 |
-| 3.10 | Planner Worker | todo | 설계 전담 작업자. 작업 받으면 plan.md 작성 → 관리자 승인 → 실행 작업자에게 분배 |
-| 3.11 | State Machine (Plan→Edit→Test→Fix) | todo | 작업자 상태 추적. 무한루프 방지. 테스트 N회 실패 시 관리자에게 에스컬레이션 |
-| 3.12 | Adaptive Polling | todo | 고정 sleep 대신 출력 활동량 기반 동적 대기. busy일수록 짧게, idle이면 길게 |
-| 3.13 | Interface Abstraction | todo | Claude Code 직접 의존 제거. Terminal-Agent-Interface 추상 레이어. 버전 변경에 유연 대응 |
-| 3.14 | Summary Layer | todo | 긴 작업자 출력을 요약해서 관리자에게 전달. 컨텍스트 효율화 |
+| 3.9 | MCP 서버 모드 | **done** | HTTP MCP 프로토콜 엔드포인트. JSON-RPC 2.0. mcp-handler.js |
+| 3.10 | Planner Worker | **done** | c4 plan 명령. plan.md 작성 전용 모드. planner.js |
+| 3.11 | State Machine (Plan→Edit→Test→Fix) | **done** | 작업자 단계 추적. 테스트 실패 시 fix 전환. N회 실패 시 에스컬레이션. state-machine.js |
+| 3.12 | Adaptive Polling | **done** | 출력 활동량 기반 동적 폴링. min 500ms ~ max 5000ms. adaptive-polling.js |
+| 3.13 | Interface Abstraction | **done** | Terminal-Agent 추상 레이어. Claude Code 패턴 분리. terminal-interface.js |
+| 3.14 | Summary Layer | **done** | 긴 스냅샷 자동 요약. 에러/파일/테스트/결정 추출. summary-layer.js |
 | 3.15 | Hook 기반 아키텍처 전환 | **done** | ScreenBuffer 파싱 대신 Claude Code hook(PreToolUse/PostToolUse)으로 작업자 행동 수신. 정확한 JSON 데이터 기반 판단 |
 | 3.16 | 작업자별 .claude/settings.json 자동 생성 | **done** | worktree 생성 시 permissions, hooks, allowed tools 자동 설정. 작업자 역할별 프로파일 |
 | 3.17 | Subagent Swarm 지원 | **done** | 작업자 내부에서 Claude Code Agent 도구로 하위 에이전트 병렬 처리. C4는 hook으로 모니터링만 |
@@ -311,3 +311,13 @@ watchdog.sh (nohup, 60초 체크)
 | ~~3.18~~ | 역할별 작업자 템플릿 | 2026-04-03 |
 | ~~3.19~~ | Auto Mode 연동 | 2026-04-03 |
 | ~~3.20~~ | Linux/macOS 지원 | 2026-04-03 |
+| ~~1.2~~ | 데몬 안정화 | 2026-04-02 |
+| ~~1.13~~ | CLAUDE.md 규칙 강제 이행 | 2026-04-03 |
+| ~~1.14~~ | 재귀적 C4 구조 | 2026-04-03 |
+| ~~2.6~~ | 타임아웃 정책 | 2026-04-03 |
+| ~~3.9~~ | MCP 서버 모드 | 2026-04-03 |
+| ~~3.10~~ | Planner Worker | 2026-04-03 |
+| ~~3.11~~ | State Machine | 2026-04-03 |
+| ~~3.12~~ | Adaptive Polling | 2026-04-03 |
+| ~~3.13~~ | Interface Abstraction | 2026-04-03 |
+| ~~3.14~~ | Summary Layer | 2026-04-03 |

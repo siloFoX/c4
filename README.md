@@ -283,7 +283,6 @@ These are used by Claude Code (manager), not by you directly:
 - **MCP server**: HTTP MCP protocol endpoint for external tool integration
 - **Adaptive polling**: Dynamic idle detection interval based on output activity
 - **ScreenBuffer**: Enhanced ANSI CSI parser with scrollback API
-- **Watchdog**: Autonomous operation — auto-restart daemon/manager/scribe
 - **Cross-platform**: Windows, Linux, macOS support
 
 ## FAQ
@@ -298,7 +297,7 @@ A: Currently C4 is designed for Claude Code CLI only. The TUI pattern matching a
 A: Depends on your Claude Max plan limits. Each worker is a separate Claude Code session consuming tokens.
 
 **Q: What if the daemon crashes?**
-A: Use `c4 daemon start` to restart. Use `watchdog.sh` for unattended operation — it auto-restarts the daemon, manager, and scribe.
+A: Use `c4 daemon start` to restart. Enable `healthCheck.autoRestart` in config for automatic worker recovery.
 
 **Q: Can workers manage other workers?**
 A: Yes (experimental). Since all workers share the same daemon, any worker with `c4` in PATH can create sub-workers. This enables hierarchical orchestration.

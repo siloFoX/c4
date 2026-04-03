@@ -43,7 +43,7 @@ All Phase 1/2/3 features complete. 45 roadmap items implemented.
 - **Cross-Platform** (3.20): Windows/Linux/macOS support
 
 ### Stats
-- 12 source modules, 15 test files, 200+ unit tests
+- 13 source modules, 18 test files, 200+ unit tests
 - Tested on Claude Code v2.1.85-2.1.91
 
 ---
