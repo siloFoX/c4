@@ -7,6 +7,8 @@
      ╚═════╝      ╚═╝
 ```
 
+**[한국어](README.ko.md)**
+
 An agent-on-agent orchestrator. C4 lets Claude Code manage multiple Claude Code workers through virtual terminals — no screen capture, no token waste.
 
 ```

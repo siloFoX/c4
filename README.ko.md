@@ -1,0 +1,214 @@
+```
+     ██████╗ ██╗  ██╗
+    ██╔════╝ ██║  ██║
+    ██║      ███████║   Claude { Claude Code } Code
+    ██║      ╚════██║   에이전트 온 에이전트 오케스트레이터
+    ╚██████╗      ██║
+     ╚═════╝      ╚═╝
+```
+
+Claude Code가 여러 Claude Code 작업자를 가상 터미널로 관리하는 에이전트 오케스트레이터. 화면 캡쳐 없이, 토큰 낭비 없이.
+
+```
+사용자 ↔ Claude Code (관리자) ↔ C4 데몬 ↔ 작업자 A (Claude Code)
+                                         ↔ 작업자 B (Claude Code)
+                                         ↔ 작업자 C (Claude Code, 원격 SSH)
+```
+
+## 어떻게 동작하나요?
+
+Claude Code를 열고 평소처럼 대화하면 됩니다. Claude Code가 `c4` 명령어로 작업자 Claude Code 인스턴스를 생성하고 관리합니다. `c4`를 직접 실행할 필요 없습니다 — Claude Code가 관리자이자 인터페이스입니다.
+
+```
+사용자: "ARPS 프로젝트에 로깅 추가하고 테스트까지 해줘"
+
+Claude Code (관리자):
+  → c4 daemon start
+  → c4 new worker-a claude --target dgx
+  → c4 task worker-a "로깅 추가해" --branch c4/add-logging
+  → c4 wait worker-a          (진행 상황 모니터링)
+  → c4 key worker-a Enter     (안전한 작업 승인)
+  → c4 read worker-a          (결과 읽고 사용자에게 보고)
+```
+
+## 왜 C4인가요?
+
+Claude Desktop의 Dispatch는 **화면 캡쳐**로 터미널과 상호작용합니다:
+- 느림 (이미지 인코딩/디코딩)
+- 비쌈 (이미지 토큰 >> 텍스트 토큰)
+- 부정확 (OCR 수준)
+
+C4는 **가상 터미널 텍스트**를 사용합니다:
+- PTY로 원시 출력 캡쳐 → ScreenBuffer가 이스케이프 시퀀스 처리 → 깨끗한 텍스트
+- 유휴 감지 → 터미널 출력이 멈출 때만 스냅샷
+- **스크린샷 방식 대비 10~100배 효율적**
+
+## 사전 요구사항
+
+- [Node.js](https://nodejs.org/) >= 18
+- [Claude Code](https://claude.ai/code) CLI 설치
+
+## 설치
+
+```bash
+git clone https://github.com/siloFoX/c4.git
+cd c4
+npm install
+npm link
+```
+
+그 다음 Claude Code를 열고 다음을 실행하도록 요청하세요:
+```
+c4 init
+```
+
+이 명령이 자동으로 설정합니다:
+- `~/.claude/settings.json` — c4 bash 권한 추가
+- `config.json` — `config.example.json`에서 복사
+- `CLAUDE.md` 심링크 — 프로젝트 안내 문서
+
+## 사용법
+
+아무 프로젝트 디렉토리에서 Claude Code를 열고 작업을 지시하세요:
+
+```
+사용자: "이 프로젝트 TODO를 정리해줘. 작업자 2개 띄워서 병렬로 해"
+
+Claude Code가 알아서:
+1. c4 daemon start
+2. c4 new worker-a claude
+3. c4 new worker-b claude
+4. c4 task worker-a "TODO 분석" --branch c4/todo-analysis
+5. c4 task worker-b "코드 정리" --branch c4/cleanup
+6. 모니터링, 승인, 결과 보고
+```
+
+### 원격 작업자 (SSH)
+
+작업자를 원격 서버에서 실행할 수 있습니다:
+
+```
+사용자: "DGX 서버에서 모델 학습시켜줘"
+
+Claude Code가 알아서:
+1. c4 new trainer claude --target dgx
+2. c4 task trainer "모델 학습 시작해"
+```
+
+`config.json`에서 타겟 설정:
+```json
+{
+  "targets": {
+    "dgx": {
+      "type": "ssh",
+      "host": "user@192.168.1.100",
+      "defaultCwd": "/home/user/project",
+      "commandMap": {
+        "claude": "/home/user/.local/bin/claude"
+      }
+    }
+  }
+}
+```
+
+## 설정
+
+`config.example.json`을 `config.json`으로 복사하고 편집하세요:
+
+| 섹션 | 설명 |
+|------|------|
+| `daemon` | 포트, 호스트, 유휴 감지 시간 |
+| `pty` | 터미널 크기, 스크롤백 |
+| `targets` | 로컬 및 SSH 원격 타겟 |
+| `autoApprove` | 안전한 명령 자동 승인, 위험한 명령 자동 거부 |
+| `workerDefaults` | 폴더 신뢰, effort 레벨, 모델 |
+| `compatibility` | Claude Code TUI 패턴 (버전 호환성) |
+| `worktree` | git worktree 설정 (멀티 에이전트 격리) |
+| `logs` | 로그 기록, 로테이션 |
+
+### 자동 승인
+
+안전한 명령은 자동 승인, 위험한 명령은 자동 거부:
+
+```json
+{
+  "autoApprove": {
+    "enabled": true,
+    "rules": [
+      { "pattern": "Read", "action": "approve" },
+      { "pattern": "Bash(ls:*)", "action": "approve" },
+      { "pattern": "Bash(find:*)", "action": "approve" },
+      { "pattern": "Write", "action": "ask" },
+      { "pattern": "Bash(rm:*)", "action": "deny" },
+      { "pattern": "Bash(sudo:*)", "action": "deny" }
+    ],
+    "defaultAction": "ask"
+  }
+}
+```
+
+## 명령어 참고
+
+Claude Code(관리자)가 사용하는 명령어입니다. 사용자가 직접 실행하는 것이 아닙니다:
+
+| 명령어 | 설명 |
+|--------|------|
+| `c4 init` | 최초 설정 (권한, 설정, CLAUDE.md) |
+| `c4 daemon start\|stop\|status` | 데몬 관리 |
+| `c4 new <이름> [--target 타겟]` | 작업자 생성 |
+| `c4 task <이름> <내용> [--branch 브랜치]` | git 브랜치/worktree 격리와 함께 작업 지시 |
+| `c4 send <이름> <텍스트>` | 작업자에게 텍스트 전송 |
+| `c4 key <이름> <키>` | 특수키 전송 (Enter, C-c 등) |
+| `c4 read <이름>` | 새 출력 읽기 (유휴 스냅샷) |
+| `c4 read-now <이름>` | 현재 화면 즉시 읽기 |
+| `c4 wait <이름> [타임아웃]` | 유휴 상태까지 대기 후 읽기 |
+| `c4 list` | 모든 작업자 목록 |
+| `c4 close <이름>` | 작업자 종료 |
+| `c4 config [reload]` | 설정 보기 또는 핫리로드 |
+
+## 아키텍처
+
+```
+┌─────────────────────────────────────────┐
+│  사용자 (사람)                          │
+└──────────────┬──────────────────────────┘
+               │ 대화
+┌──────────────▼──────────────────────────┐
+│  관리자 (Claude Code CLI)               │
+│  - 사용자와 대화                        │
+│  - c4 명령어로 작업자 관리              │
+│  - 작업자 출력 검토                     │
+│  - 작업자 행동 승인/거부                │
+│  - 결과를 사용자에게 보고               │
+└──────────────┬──────────────────────────┘
+               │ HTTP (localhost:3456)
+┌──────────────▼──────────────────────────┐
+│  C4 데몬 (Node.js)                      │
+│  - PTY 프로세스 관리                    │
+│  - ScreenBuffer (가상 터미널)           │
+│  - 유휴 감지 + 스냅샷                   │
+│  - 자동 승인 엔진                       │
+│  - Git worktree 격리                    │
+└──┬───────────┬──────────────────────────┘
+   │           │
+┌──▼──┐    ┌──▼──┐
+│PTY A│    │PTY B│    ...
+│로컬 │    │ SSH │
+│(wt) │    │(wt) │
+└─────┘    └─────┘
+  wt = git worktree (격리된 브랜치)
+```
+
+## 주요 기능
+
+- **자동 초기 설정**: 작업자 생성 시 폴더 신뢰 + max effort 자동 설정
+- **자동 승인**: 안전한 명령(read, grep, find) 자동 승인, 위험한 명령(rm, sudo) 자동 거부
+- **Git worktree**: 각 작업자가 격리된 디렉토리에서 작업 — 병렬 작업자 간 충돌 없음
+- **SSH 원격 작업자**: 원격 서버에 작업자를 투명하게 생성
+- **ScreenBuffer**: 가상 터미널이 ANSI 이스케이프 시퀀스 처리 — 깨끗한 텍스트, 스피너 노이즈 없음
+- **데몬 관리자**: `c4 daemon start/stop/status` PID 추적 및 헬스체크
+- **버전 호환성**: Claude Code 버전별 TUI 패턴 설정 가능
+
+## 라이선스
+
+MIT
