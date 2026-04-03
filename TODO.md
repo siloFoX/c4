@@ -19,6 +19,8 @@
 | 1.13 | CLAUDE.md 규칙 강제 이행 | **done** | pre-commit hook 복합 명령 경고, sendTask() 규칙 자동 삽입, config rules 섹션 |
 | 1.14 | 재귀적 C4 구조 | **done** | 테스트 완료. 작업자가 c4 new/list/health 실행 가능. 같은 데몬 공유 |
 | 1.15 | effort 자동 설정 안정화 | **done** | 재시도 로직 + 설정 가능한 딜레이. phaseTimeout으로 stuck 복구 |
+| 1.16 | `c4 merge --skip-checks` | todo | 문서 전용 커밋 등 체크 우회 플래그. TODO/CHANGELOG 수정 없어도 머지 허용 |
+| 1.17 | worktree에서 main 보호 hook 적용 | todo | worktree 생성 시 .githooks 복사 또는 core.hooksPath 설정. 현재 worktree에서 main 직접 커밋 차단 안 됨 |
 
 ### 1.6 Scribe 시스템 (상세)
 
