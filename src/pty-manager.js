@@ -721,6 +721,30 @@ class PtyManager extends EventEmitter {
     };
   }
 
+  // --- Auto Mode (3.19) ---
+
+  _isAutoModeEnabled(options = {}) {
+    // Explicit --auto-mode flag takes priority
+    if (options.autoMode === true) return true;
+    if (options.autoMode === false) return false;
+
+    // Check config default
+    return this.config.autoMode?.enabled === true;
+  }
+
+  _applyAutoMode(settings, enabled) {
+    if (!enabled) return settings;
+
+    if (!settings.permissions) settings.permissions = {};
+    settings.permissions.defaultMode = 'auto';
+
+    return settings;
+  }
+
+  _getAutoModeConfig() {
+    return this.config.autoMode || { enabled: false, allowOverride: true };
+  }
+
   // --- Role Templates (3.18) ---
 
   _getTemplate(templateName) {
@@ -935,6 +959,11 @@ class PtyManager extends EventEmitter {
           settings.hooks[hookName] = [...settings.hooks[hookName], ...hookDefs];
         }
       }
+    }
+
+    // Auto Mode (3.19): set permissions.defaultMode to "auto"
+    if (this._isAutoModeEnabled(options)) {
+      this._applyAutoMode(settings, true);
     }
 
     return settings;

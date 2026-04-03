@@ -188,6 +188,11 @@
     "maxIdleMs": 300000
   },
 
+  "autoMode": {
+    "enabled": false,
+    "allowOverride": true
+  },
+
   "templates": {
     "planner": {
       "description": "Planner — 설계 전담, Opus 모델",
