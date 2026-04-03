@@ -275,13 +275,13 @@ watchdog.sh (nohup, 60초 체크)
 | 4.1 | 완전 무인 운영 모드 | todo | 아래 상세 |
 | 4.2 | Hook 이벤트 JSONL 영속화 | todo | PostToolUse/PreToolUse 이벤트를 logs/events.jsonl에 저장. 리플레이/디버깅 |
 | 4.3 | 승인 요청 웹 UI | todo | 작업자 권한 요청을 웹 대시보드에 표시. 폰에서 승인/거부 |
-| 4.4 | 아침 보고서 자동 생성 | todo | 야간 작업 완료 후 docs/morning-report.md 자동 생성. 완료/실패/수정 필요 항목 요약 |
+| 4.4 | 아침 보고서 자동 생성 | **done** | 야간 작업 완료 후 docs/morning-report.md 자동 생성. 완료/실패/수정 필요 항목 요약 |
 | 4.5 | 관리자 자동 컨펌 정책 | todo | 아래 상세 |
-| 4.6 | PreToolUse hook으로 복합 명령 차단 | todo | 작업자 .claude/settings.json에 hook 자동 삽입. &&, |, ; 감지 시 block. 승인 요청 자체가 안 뜨게 |
+| 4.6 | PreToolUse hook으로 복합 명령 차단 | **done** | 작업자 .claude/settings.json에 hook 자동 삽입. &&, |, ; 감지 시 block. 승인 요청 자체가 안 뜨게 |
 | 4.7 | 관리자 컨텍스트 한계 자동 대응 | todo | 관리자 세션이 길어지면 compact 전에 scribe로 상태 저장 → 새 관리자로 교체 → session-context.md로 복구 |
-| 4.8 | c4 auto 원커맨드 실행 | todo | c4 auto "작업 내용" 하면 관리자+scribe+작업자 전부 자동 생성, 완료 시 morning-report 생성 |
-| 4.9 | 작업자 .claude/settings.json 프리셋 | todo | worktree 생성 시 역할별 permissions+hooks 자동 삽입. 복합 명령 차단 hook 포함 |
-| 4.10 | 관리자-작업자 간 Hook 기반 통신 | todo | ScreenBuffer 파싱 대신 PostToolUse hook으로 작업자 행동 직접 수신. 승인 요청 PTY Enter 주입 불필요 |
+| 4.8 | c4 auto 원커맨드 실행 | **done** | c4 auto "작업 내용" 하면 관리자+scribe+작업자 전부 자동 생성, 완료 시 morning-report 생성 |
+| 4.9 | 작업자 .claude/settings.json 프리셋 | **done** | worktree 생성 시 역할별 permissions+hooks 자동 삽입. 복합 명령 차단 hook 포함 |
+| 4.10 | 관리자-작업자 간 Hook 기반 통신 | **done** | Notifications 모듈(Slack webhook+Email). healthCheck 연동. 작업 완료/에러/헬스 이벤트 알림 |
 
 ### 4.1 완전 무인 운영 모드 (상세)
 

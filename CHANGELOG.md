@@ -1,5 +1,37 @@
 # Changelog
 
+## [1.2.0] - 2026-04-03
+
+### Added
+- **`c4 auto` command** (4.8): One-command autonomous execution
+  - `c4 auto "작업 내용"` → manager worker + scribe auto-start + task send
+  - Manager worker gets full permissions (Read, Write, Edit, Bash, etc.) + `defaultMode: auto`
+  - Morning report auto-generated on worker exit
+  - daemon route: `POST /auto`
+- **`c4 morning` command** (4.4): Morning report generation
+  - `c4 morning` → generates `docs/morning-report.md`
+  - Sections: recent commits (24h), worker history (completed/needs-review), TODO status, token usage
+  - Auto-called when `c4 auto` worker exits
+  - daemon route: `POST /morning`
+
+---
+
+## [1.1.0] - 2026-04-03
+
+### Added
+- **Notifications module** (4.10): `src/notifications.js` — Slack webhook (periodic) + Email (event-based)
+  - Slack: built-in `https` module, buffer + periodic flush (`notifications.slack.intervalMs`)
+  - Email: optional `nodemailer` soft dependency, sends immediately on task completion
+  - Config: `notifications.slack` / `notifications.email` sections in `config.json`
+  - daemon.js: `startPeriodicSlack()` on boot, `tick()` in healthCheck timer
+  - pty-manager.js: `notifyTaskComplete()` on worker exit, `notifyHealthCheck()` on issues
+- **PreToolUse compound command blocking** (4.6/4.9): Auto-inserted into worker `.claude/settings.json`
+  - `_buildCompoundBlockCommand()`: cross-platform `node -e` script
+  - Matcher: `Bash` tool only, detects `&&`, `||`, `|`, `;` → exit code 2 (block)
+  - Injected via `_buildWorkerSettings()` into every worktree worker
+
+---
+
 ## [1.0.2] - 2026-04-03
 
 ### Fixed
