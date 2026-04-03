@@ -260,12 +260,12 @@ watchdog.sh (nohup, 60초 체크)
 | 3.12 | Adaptive Polling | todo | 고정 sleep 대신 출력 활동량 기반 동적 대기. busy일수록 짧게, idle이면 길게 |
 | 3.13 | Interface Abstraction | todo | Claude Code 직접 의존 제거. Terminal-Agent-Interface 추상 레이어. 버전 변경에 유연 대응 |
 | 3.14 | Summary Layer | todo | 긴 작업자 출력을 요약해서 관리자에게 전달. 컨텍스트 효율화 |
-| 3.15 | Hook 기반 아키텍처 전환 | todo | ScreenBuffer 파싱 대신 Claude Code hook(PreToolUse/PostToolUse)으로 작업자 행동 수신. 정확한 JSON 데이터 기반 판단 |
-| 3.16 | 작업자별 .claude/settings.json 자동 생성 | todo | worktree 생성 시 permissions, hooks, allowed tools 자동 설정. 작업자 역할별 프로파일 |
-| 3.17 | Subagent Swarm 지원 | todo | 작업자 내부에서 Claude Code Agent 도구로 하위 에이전트 병렬 처리. C4는 hook으로 모니터링만 |
-| 3.18 | 역할별 작업자 템플릿 | todo | Planner(Opus), Executor(Sonnet), Reviewer(Haiku) 등 역할별 모델/도구/프롬프트 프리셋 |
-| 3.19 | Auto Mode 연동 | todo | 작업자에 permissions.defaultMode: "auto" 적용. Claude 자체 classifier로 안전성 판단 위임 |
-| 3.20 | Linux/macOS 지원 | **partial** | Linux(DGX) 테스트 완료. commandMap 로컬 지원 추가. macOS 미테스트 |
+| 3.15 | Hook 기반 아키텍처 전환 | **done** | ScreenBuffer 파싱 대신 Claude Code hook(PreToolUse/PostToolUse)으로 작업자 행동 수신. 정확한 JSON 데이터 기반 판단 |
+| 3.16 | 작업자별 .claude/settings.json 자동 생성 | **done** | worktree 생성 시 permissions, hooks, allowed tools 자동 설정. 작업자 역할별 프로파일 |
+| 3.17 | Subagent Swarm 지원 | **done** | 작업자 내부에서 Claude Code Agent 도구로 하위 에이전트 병렬 처리. C4는 hook으로 모니터링만 |
+| 3.18 | 역할별 작업자 템플릿 | **done** | Planner(Opus), Executor(Sonnet), Reviewer(Haiku) 등 역할별 모델/도구/프롬프트 프리셋 |
+| 3.19 | Auto Mode 연동 | **done** | 작업자에 permissions.defaultMode: "auto" 적용. Claude 자체 classifier로 안전성 판단 위임 |
+| 3.20 | Linux/macOS 지원 | **done** | 플랫폼 유틸리티 함수. macOS homebrew/nvm 경로 지원. process.platform 분기 완성 |
 
 ## 완료
 
@@ -305,3 +305,9 @@ watchdog.sh (nohup, 60초 체크)
 | ~~3.6~~ | 롤백 지원 | 2026-04-03 |
 | ~~3.7~~ | 작업 히스토리 영속화 | 2026-04-03 |
 | ~~3.8~~ | ScreenBuffer 개선 | 2026-04-03 |
+| ~~3.15~~ | Hook 기반 아키텍처 전환 | 2026-04-03 |
+| ~~3.16~~ | 작업자별 settings.json 자동 생성 | 2026-04-03 |
+| ~~3.17~~ | Subagent Swarm 지원 | 2026-04-03 |
+| ~~3.18~~ | 역할별 작업자 템플릿 | 2026-04-03 |
+| ~~3.19~~ | Auto Mode 연동 | 2026-04-03 |
+| ~~3.20~~ | Linux/macOS 지원 | 2026-04-03 |

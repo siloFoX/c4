@@ -16,6 +16,77 @@ const CONFIG_FILE = path.join(__dirname, '..', 'config.json');
 const STATE_FILE = path.join(__dirname, '..', 'state.json');
 const HISTORY_FILE = path.join(__dirname, '..', 'history.jsonl');
 
+// --- Platform Utilities (3.20) ---
+
+const PLATFORM = process.platform; // 'win32', 'linux', 'darwin'
+const IS_WIN = PLATFORM === 'win32';
+const IS_MAC = PLATFORM === 'darwin';
+const IS_LINUX = PLATFORM === 'linux';
+
+function platformShell() {
+  if (IS_WIN) return 'cmd.exe';
+  // macOS and Linux: prefer bash, fallback to sh
+  if (fs.existsSync('/bin/bash')) return 'bash';
+  if (fs.existsSync('/usr/bin/bash')) return 'bash';
+  return 'sh';
+}
+
+function platformShellArgs(command, args = []) {
+  if (IS_WIN) {
+    return ['/c', command, ...args];
+  }
+  const cmdStr = args.length > 0 ? `${command} ${args.join(' ')}` : command;
+  return ['-c', cmdStr];
+}
+
+function platformSshPath() {
+  if (IS_WIN) return 'C:\\Windows\\System32\\OpenSSH\\ssh.exe';
+  return 'ssh';
+}
+
+function platformHomedir() {
+  return os.homedir();
+}
+
+function platformNormalizePath(p) {
+  // Normalize to forward slashes for git commands
+  return p.replace(/\\/g, '/');
+}
+
+function platformClaudeConfigDir() {
+  return path.join(platformHomedir(), '.claude');
+}
+
+function platformTmpDir() {
+  return os.tmpdir();
+}
+
+// macOS-specific: homebrew paths for claude
+function platformClaudePaths() {
+  const paths = [];
+  if (IS_MAC) {
+    // Homebrew (Apple Silicon)
+    paths.push('/opt/homebrew/bin/claude');
+    // Homebrew (Intel)
+    paths.push('/usr/local/bin/claude');
+    // npm global (nvm)
+    const nvmDir = process.env.NVM_DIR || path.join(platformHomedir(), '.nvm');
+    if (fs.existsSync(nvmDir)) {
+      try {
+        const nodeVersion = execSync('node -v', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+        paths.push(path.join(nvmDir, 'versions', 'node', nodeVersion, 'bin', 'claude'));
+      } catch {}
+    }
+  }
+  if (IS_LINUX) {
+    paths.push('/usr/local/bin/claude');
+    paths.push(path.join(platformHomedir(), '.local', 'bin', 'claude'));
+    // npm global
+    paths.push(path.join(platformHomedir(), '.npm-global', 'bin', 'claude'));
+  }
+  return paths;
+}
+
 function loadConfig() {
   try {
     return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
@@ -59,6 +130,7 @@ class PtyManager extends EventEmitter {
       windowMs: apCfg.windowMs,
       busyThreshold: apCfg.busyThreshold,
     });
+    this._hookEvents = new Map(); // name → [events] — hook event buffer per worker (3.15)
   }
 
   get logsDir() {
@@ -129,6 +201,205 @@ class PtyManager extends EventEmitter {
     res.on('close', () => this._sseClients.delete(res));
   }
 
+  // --- Hook Architecture (3.15) ---
+  // Receives structured JSON events from Claude Code hooks (PreToolUse/PostToolUse)
+  // instead of relying on ScreenBuffer parsing for permission/action detection.
+
+  hookEvent(workerName, event) {
+    const w = this.workers.get(workerName);
+    if (!w) return { error: `Worker '${workerName}' not found` };
+
+    // Store event in buffer
+    if (!this._hookEvents.has(workerName)) {
+      this._hookEvents.set(workerName, []);
+    }
+    const events = this._hookEvents.get(workerName);
+    const hookEntry = {
+      ...event,
+      receivedAt: Date.now()
+    };
+    events.push(hookEntry);
+
+    // Keep buffer bounded
+    if (events.length > 500) {
+      events.splice(0, events.length - 500);
+    }
+
+    // Emit SSE for real-time monitoring
+    this._emitSSE('hook', { worker: workerName, event: hookEntry });
+
+    const hookType = event.hook_type; // 'PreToolUse' or 'PostToolUse'
+    const toolName = event.tool_name || '';
+    const toolInput = event.tool_input || {};
+
+    // --- PreToolUse: scope check + auto-approve decision ---
+    if (hookType === 'PreToolUse') {
+      return this._handlePreToolUse(workerName, w, toolName, toolInput, event);
+    }
+
+    // --- PostToolUse: track progress, detect errors, update routine state ---
+    if (hookType === 'PostToolUse') {
+      return this._handlePostToolUse(workerName, w, toolName, toolInput, event);
+    }
+
+    return { received: true, worker: workerName };
+  }
+
+  _handlePreToolUse(workerName, worker, toolName, toolInput, event) {
+    const result = { received: true, worker: workerName, hook_type: 'PreToolUse' };
+
+    // Scope guard check via structured data (more accurate than screen parsing)
+    if (worker.scopeGuard && worker.scopeGuard.hasRestrictions()) {
+      if (toolName === 'Bash' || toolName === 'bash') {
+        const command = toolInput.command || '';
+        const scopeResult = worker.scopeGuard.checkBash(command);
+        if (scopeResult && !scopeResult.allowed) {
+          worker.snapshots.push({
+            time: Date.now(),
+            screen: `[HOOK SCOPE DENY] Bash: ${command}\n  reason: ${scopeResult.reason}`,
+            autoAction: true,
+            scopeViolation: true,
+            hookEvent: true
+          });
+          this._emitSSE('scope_deny', { worker: workerName, tool: toolName, command, reason: scopeResult.reason });
+          result.action = 'deny';
+          result.reason = scopeResult.reason;
+          return result;
+        }
+      } else if (toolName === 'Write' || toolName === 'Edit') {
+        const filePath = toolInput.file_path || toolInput.path || '';
+        if (filePath) {
+          const scopeResult = worker.scopeGuard.checkFile(filePath);
+          if (scopeResult && !scopeResult.allowed) {
+            worker.snapshots.push({
+              time: Date.now(),
+              screen: `[HOOK SCOPE DENY] ${toolName}: ${filePath}\n  reason: ${scopeResult.reason}`,
+              autoAction: true,
+              scopeViolation: true,
+              hookEvent: true
+            });
+            this._emitSSE('scope_deny', { worker: workerName, tool: toolName, file: filePath, reason: scopeResult.reason });
+            result.action = 'deny';
+            result.reason = scopeResult.reason;
+            return result;
+          }
+        }
+      }
+    }
+
+    // Emit permission event for monitoring
+    if (['Bash', 'bash', 'Write', 'Edit', 'NotebookEdit'].includes(toolName)) {
+      const detail = toolName === 'Bash' || toolName === 'bash'
+        ? (toolInput.command || '').slice(0, 200)
+        : (toolInput.file_path || toolInput.path || '');
+      this._emitSSE('permission', { worker: workerName, promptType: toolName.toLowerCase(), detail, source: 'hook' });
+    }
+
+    return result;
+  }
+
+  _handlePostToolUse(workerName, worker, toolName, toolInput, event) {
+    const result = { received: true, worker: workerName, hook_type: 'PostToolUse' };
+    const toolOutput = event.tool_output || '';
+    const toolError = event.tool_error || '';
+
+    // Track routine state from structured events
+    if (toolName === 'Bash' || toolName === 'bash') {
+      const command = toolInput.command || '';
+      // Test execution detection
+      if (/npm test|pytest|jest|mocha/.test(command)) {
+        if (!worker._routineState) worker._routineState = { tested: false, docsUpdated: false };
+        worker._routineState.tested = true;
+      }
+      // Commit detection — reset routine
+      if (/git commit/.test(command)) {
+        worker._routineState = { tested: false, docsUpdated: false };
+      }
+    }
+
+    // Docs update detection
+    if ((toolName === 'Write' || toolName === 'Edit') &&
+        /TODO\.md|CHANGELOG\.md|README\.md/.test(toolInput.file_path || toolInput.path || '')) {
+      if (!worker._routineState) worker._routineState = { tested: false, docsUpdated: false };
+      worker._routineState.docsUpdated = true;
+    }
+
+    // Error tracking from tool output
+    if (toolError) {
+      const maxRetries = (this._getInterventionConfig().escalation?.maxRetries) ?? 3;
+      if (!worker._errorHistory) worker._errorHistory = [];
+      const errLine = toolError.slice(0, 200);
+      const existing = worker._errorHistory.find(e => e.line === errLine);
+      if (existing) {
+        existing.count++;
+        if (existing.count >= maxRetries) {
+          worker._interventionState = 'escalation';
+          worker.snapshots.push({
+            time: Date.now(),
+            screen: `[HOOK ESCALATION] repeated error (${existing.count}x): ${errLine}`,
+            autoAction: true,
+            intervention: 'escalation',
+            hookEvent: true
+          });
+          this._emitSSE('error', { worker: workerName, line: errLine, count: existing.count, escalation: true, source: 'hook' });
+          existing.count = 0;
+        }
+      } else {
+        worker._errorHistory.push({ line: errLine, count: 1, firstSeen: Date.now() });
+      }
+    }
+
+    // Subagent tracking (3.17)
+    if (toolName === 'Agent') {
+      if (!worker._subagentCount) worker._subagentCount = 0;
+      worker._subagentCount++;
+      worker.snapshots.push({
+        time: Date.now(),
+        screen: `[HOOK SUBAGENT] Agent spawned (#${worker._subagentCount}): ${(toolInput.prompt || '').slice(0, 100)}`,
+        autoAction: true,
+        hookEvent: true
+      });
+      this._emitSSE('subagent', { worker: workerName, count: worker._subagentCount, prompt: (toolInput.prompt || '').slice(0, 200) });
+      this._trackSubagent(workerName, worker, toolInput, event);
+    }
+
+    return result;
+  }
+
+  getHookEvents(workerName, limit = 50) {
+    const events = this._hookEvents.get(workerName) || [];
+    return { worker: workerName, events: events.slice(-limit), total: events.length };
+  }
+
+  // Build hook commands for worker's .claude/settings.json (3.15)
+  // These hooks POST structured JSON data to the C4 daemon
+  _buildHookCommands(workerName) {
+    const port = this.config.daemon?.port || 3456;
+    const host = this.config.daemon?.host || '127.0.0.1';
+    const baseUrl = `http://${host}:${port}`;
+
+    // Use curl to POST hook event data to daemon
+    // Claude Code passes hook data as JSON to stdin
+    const curlCmd = IS_WIN
+      ? `powershell -NoProfile -Command "$input = [Console]::In.ReadToEnd(); Invoke-RestMethod -Uri '${baseUrl}/hook-event' -Method Post -ContentType 'application/json' -Body $input"`
+      : `curl -s -X POST -H 'Content-Type: application/json' -d @- '${baseUrl}/hook-event'`;
+
+    return {
+      PreToolUse: [{
+        hooks: [{
+          type: 'command',
+          command: curlCmd
+        }]
+      }],
+      PostToolUse: [{
+        hooks: [{
+          type: 'command',
+          command: curlCmd
+        }]
+      }]
+    };
+  }
+
   // --- Token Usage State (2.5) ---
 
   _loadTokenState() {
@@ -155,8 +426,8 @@ class PtyManager extends EventEmitter {
   _buildSshArgs(target) {
     const sshArgs = ['-t', '-o', 'StrictHostKeyChecking=no'];
 
-    // ControlMaster for persistent connections (Unix only)
-    if (process.platform !== 'win32') {
+    // ControlMaster for persistent connections (Unix only — Linux and macOS)
+    if (!IS_WIN) {
       const sshCfg = this.config.ssh || {};
       if (sshCfg.controlMaster !== false) {
         const controlDir = path.join(os.tmpdir(), 'c4-ssh');
@@ -487,9 +758,13 @@ class PtyManager extends EventEmitter {
     const createResult = this.create(entry.name, entry.command, entry.args, { target: entry.target });
     if (createResult.error) return createResult;
 
-    // Dynamic effort level (3.3)
+    // Dynamic effort level (3.3) — template effort overrides (3.18)
     const w = this.workers.get(entry.name);
-    w._dynamicEffort = this._determineEffort(entry.task);
+    if (entry._templateEffort) {
+      w._dynamicEffort = entry._templateEffort;
+    } else {
+      w._dynamicEffort = this._determineEffort(entry.task);
+    }
 
     // Store pending task — will be sent after worker setup completes
     w._pendingTask = {
@@ -540,6 +815,267 @@ class PtyManager extends EventEmitter {
       noOption: 'No',
       promptFooter: 'Esc to cancel'
     };
+  }
+
+  // --- Auto Mode (3.19) ---
+
+  _isAutoModeEnabled(options = {}) {
+    // Explicit --auto-mode flag takes priority
+    if (options.autoMode === true) return true;
+    if (options.autoMode === false) return false;
+
+    // Check config default
+    return this.config.autoMode?.enabled === true;
+  }
+
+  _applyAutoMode(settings, enabled) {
+    if (!enabled) return settings;
+
+    if (!settings.permissions) settings.permissions = {};
+    settings.permissions.defaultMode = 'auto';
+
+    return settings;
+  }
+
+  _getAutoModeConfig() {
+    return this.config.autoMode || { enabled: false, allowOverride: true };
+  }
+
+  // --- Role Templates (3.18) ---
+
+  _getTemplate(templateName) {
+    const templates = this.config.templates || {};
+    return templates[templateName] || null;
+  }
+
+  _getBuiltinTemplates() {
+    return {
+      planner: {
+        description: 'Planner — 설계 전담, Opus 모델 사용',
+        model: 'opus',
+        effort: 'max',
+        profile: 'planner',
+        promptPrefix: '[역할: Planner] 설계와 분석에 집중해줘. 코드 직접 수정보다는 계획과 구조 설계를 해줘. plan.md나 설계 문서를 작성해줘.',
+        command: 'claude',
+        args: []
+      },
+      executor: {
+        description: 'Executor — 구현 전담, Sonnet 모델 사용',
+        model: 'sonnet',
+        effort: 'high',
+        profile: 'executor',
+        promptPrefix: '[역할: Executor] 구현에 집중해줘. 설계 문서나 지시에 따라 코드를 작성하고 테스트해줘.',
+        command: 'claude',
+        args: []
+      },
+      reviewer: {
+        description: 'Reviewer — 리뷰 전담, Haiku 모델 사용',
+        model: 'haiku',
+        effort: 'high',
+        profile: 'reviewer',
+        promptPrefix: '[역할: Reviewer] 코드 리뷰에 집중해줘. 버그, 보안 이슈, 코드 품질 문제를 찾아줘. 코드를 직접 수정하지 말고 리뷰 코멘트만 남겨줘.',
+        command: 'claude',
+        args: []
+      }
+    };
+  }
+
+  resolveTemplate(templateName) {
+    // Check user-defined templates first, then builtins
+    const userTemplate = this._getTemplate(templateName);
+    if (userTemplate) return userTemplate;
+    const builtins = this._getBuiltinTemplates();
+    return builtins[templateName] || null;
+  }
+
+  listTemplates() {
+    const builtins = this._getBuiltinTemplates();
+    const userTemplates = this.config.templates || {};
+    const result = {};
+    // Builtins first
+    for (const [name, tmpl] of Object.entries(builtins)) {
+      result[name] = { ...tmpl, source: 'builtin' };
+    }
+    // User overrides
+    for (const [name, tmpl] of Object.entries(userTemplates)) {
+      result[name] = { ...tmpl, source: 'config' };
+    }
+    return result;
+  }
+
+  // Apply template to task/worker options
+  _applyTemplate(templateName, options = {}) {
+    const template = this.resolveTemplate(templateName);
+    if (!template) return options;
+
+    const result = { ...options };
+
+    // Profile from template (if not explicitly set)
+    if (template.profile && !result.profile) {
+      result.profile = template.profile;
+    }
+
+    // Model override — will be applied via /model command after worker creation
+    if (template.model) {
+      result._templateModel = template.model;
+    }
+
+    // Effort level override
+    if (template.effort) {
+      result._templateEffort = template.effort;
+    }
+
+    // Prompt prefix
+    if (template.promptPrefix) {
+      result._templatePromptPrefix = template.promptPrefix;
+    }
+
+    // Command override
+    if (template.command) {
+      result.command = template.command;
+    }
+
+    return result;
+  }
+
+  // --- Subagent Swarm (3.17) ---
+
+  _getSwarmConfig() {
+    return this.config.swarm || { enabled: false, maxSubagents: 10, trackUsage: true };
+  }
+
+  getSwarmStatus(workerName) {
+    const w = this.workers.get(workerName);
+    if (!w) return { error: `Worker '${workerName}' not found` };
+
+    const swarmCfg = this._getSwarmConfig();
+    return {
+      worker: workerName,
+      enabled: swarmCfg.enabled !== false,
+      maxSubagents: swarmCfg.maxSubagents || 10,
+      subagentCount: w._subagentCount || 0,
+      subagentLog: (w._subagentLog || []).slice(-20)
+    };
+  }
+
+  // Called by _handlePostToolUse when Agent tool is detected (3.15 integration)
+  _trackSubagent(workerName, worker, toolInput, event) {
+    const swarmCfg = this._getSwarmConfig();
+    if (!swarmCfg.enabled) return;
+
+    if (!worker._subagentLog) worker._subagentLog = [];
+
+    const entry = {
+      index: (worker._subagentCount || 0),
+      prompt: (toolInput.prompt || '').slice(0, 300),
+      subagentType: toolInput.subagent_type || 'general-purpose',
+      timestamp: Date.now(),
+      status: 'spawned'
+    };
+
+    worker._subagentLog.push(entry);
+
+    // Keep log bounded
+    if (worker._subagentLog.length > 100) {
+      worker._subagentLog.splice(0, worker._subagentLog.length - 100);
+    }
+
+    // Check limit
+    const maxSubagents = swarmCfg.maxSubagents || 10;
+    if ((worker._subagentCount || 0) > maxSubagents) {
+      worker.snapshots.push({
+        time: Date.now(),
+        screen: `[SWARM WARN] subagent limit reached (${worker._subagentCount}/${maxSubagents})`,
+        autoAction: true,
+        swarmWarn: true
+      });
+      this._emitSSE('swarm_limit', {
+        worker: workerName,
+        count: worker._subagentCount,
+        max: maxSubagents
+      });
+    }
+  }
+
+  // --- Worker Settings Profile (3.16) ---
+
+  _getProfile(profileName) {
+    const profiles = this.config.profiles || {};
+    return profiles[profileName] || null;
+  }
+
+  _buildWorkerSettings(workerName, options = {}) {
+    const profileName = options.profile || options.template || '';
+    const profile = profileName ? this._getProfile(profileName) : null;
+    const hooksCfg = this.config.hooks || {};
+    const settings = {};
+
+    // Permissions
+    const permissions = { allow: [], deny: [] };
+
+    if (profile && profile.permissions) {
+      if (Array.isArray(profile.permissions.allow)) {
+        permissions.allow.push(...profile.permissions.allow);
+      }
+      if (Array.isArray(profile.permissions.deny)) {
+        permissions.deny.push(...profile.permissions.deny);
+      }
+      if (profile.permissions.defaultMode) {
+        permissions.defaultMode = profile.permissions.defaultMode;
+      }
+    }
+
+    // Default c4 permissions for all workers
+    const defaultPerms = [
+      'Bash(c4:*)',
+      'Bash(MSYS_NO_PATHCONV=1 c4:*)',
+      'Bash(git:*)',
+    ];
+    for (const perm of defaultPerms) {
+      if (!permissions.allow.includes(perm)) {
+        permissions.allow.push(perm);
+      }
+    }
+
+    settings.permissions = permissions;
+
+    // Hooks (3.15 integration): inject PreToolUse/PostToolUse hooks
+    if (hooksCfg.enabled !== false && hooksCfg.injectToWorkers !== false) {
+      settings.hooks = this._buildHookCommands(workerName);
+    }
+
+    // Profile-specific hooks (merge with injected hooks)
+    if (profile && profile.hooks) {
+      if (!settings.hooks) settings.hooks = {};
+      for (const [hookName, hookDefs] of Object.entries(profile.hooks)) {
+        if (!settings.hooks[hookName]) {
+          settings.hooks[hookName] = hookDefs;
+        } else {
+          // Append profile hooks after injected hooks
+          settings.hooks[hookName] = [...settings.hooks[hookName], ...hookDefs];
+        }
+      }
+    }
+
+    // Auto Mode (3.19): set permissions.defaultMode to "auto"
+    if (this._isAutoModeEnabled(options)) {
+      this._applyAutoMode(settings, true);
+    }
+
+    return settings;
+  }
+
+  _writeWorkerSettings(worktreePath, workerName, options = {}) {
+    const settings = this._buildWorkerSettings(workerName, options);
+    const claudeDir = path.join(worktreePath, '.claude');
+    const settingsPath = path.join(claudeDir, 'settings.json');
+
+    if (!fs.existsSync(claudeDir)) {
+      fs.mkdirSync(claudeDir, { recursive: true });
+    }
+
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+    return settingsPath;
   }
 
   // --- Git Worktree helpers ---
@@ -991,6 +1527,12 @@ class PtyManager extends EventEmitter {
 
   // Send a task to worker with branch isolation via git worktree
   sendTask(name, task, options = {}) {
+    // Apply template (3.18)
+    const templateName = options.template || options.profile || '';
+    if (templateName) {
+      options = this._applyTemplate(templateName, options);
+    }
+
     // Duplicate check (2.3): reject if same name already queued
     if (this._taskQueue.some(q => q.name === name)) {
       return { error: `Task '${name}' is already queued` };
@@ -1067,6 +1609,19 @@ class PtyManager extends EventEmitter {
         w.worktreeRepoRoot = repoRoot;
         w.branch = branch;
 
+        // Auto-generate .claude/settings.json for this worktree (3.16)
+        try {
+          this._writeWorkerSettings(worktreePath, name, options);
+        } catch (e) {
+          // Non-fatal: settings generation failure shouldn't block task
+          w.snapshots = w.snapshots || [];
+          w.snapshots.push({
+            time: Date.now(),
+            screen: `[C4 WARN] Failed to write worker settings: ${e.message}`,
+            autoAction: true
+          });
+        }
+
         const cdPath = worktreePath.replace(/\\/g, '/');
         commands.push(`cd ${cdPath} 로 이동해서 작업해줘. 현재 브랜치는 ${branch}야. 작업 단위마다 커밋해줘.`);
       } else {
@@ -1084,6 +1639,11 @@ class PtyManager extends EventEmitter {
     // Prepend scope summary if scope is defined
     if (w.scopeGuard && w.scopeGuard.hasRestrictions()) {
       commands.push(w.scopeGuard.toSummary());
+    }
+
+    // Template prompt prefix (3.18)
+    if (options._templatePromptPrefix) {
+      commands.push(options._templatePromptPrefix);
     }
 
     // Context transfer (3.1): inject snapshots from another worker
@@ -1150,17 +1710,15 @@ class PtyManager extends EventEmitter {
     if (t.type === 'local' || targetName === 'local') {
       const commandMap = t.commandMap || {};
       const resolvedCmd = commandMap[command] || command;
-      shell = process.platform === 'win32' ? 'cmd.exe' : 'bash';
-      shellArgs = process.platform === 'win32'
-        ? ['/c', resolvedCmd, ...args]
-        : ['-c', `${resolvedCmd} ${args.join(' ')}`];
+      shell = platformShell();
+      shellArgs = platformShellArgs(resolvedCmd, args);
     } else if (t.type === 'ssh') {
       const remoteCwd = cwd || t.defaultCwd || '';
       const commandMap = t.commandMap || {};
       const resolvedCmd = commandMap[command] || command;
       const remoteArgs = args.length > 0 ? ' ' + args.join(' ') : '';
 
-      shell = process.platform === 'win32' ? 'C:\\Windows\\System32\\OpenSSH\\ssh.exe' : 'ssh';
+      shell = platformSshPath();
       shellArgs = this._buildSshArgs(t);
 
       pendingCommands = [];
@@ -1174,7 +1732,7 @@ class PtyManager extends EventEmitter {
     const rows = this.config.pty?.rows || 48;
 
     const spawnCwd = (t.type === 'local' || targetName === 'local')
-      ? (process.env.HOME || process.env.USERPROFILE)
+      ? platformHomedir()
       : undefined;
 
     const proc = pty.spawn(shell, shellArgs, {

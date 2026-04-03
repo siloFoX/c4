@@ -60,8 +60,8 @@ async function handleRequest(req, res) {
       result = manager.list();
 
     } else if (req.method === 'POST' && route === '/task') {
-      const { name, task, branch, useBranch, useWorktree, projectRoot, scope, scopePreset, after, command, target, contextFrom, reuse } = await parseBody(req);
-      result = manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot, scope, scopePreset, after, command, target, contextFrom, reuse });
+      const { name, task, branch, useBranch, useWorktree, projectRoot, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode } = await parseBody(req);
+      result = manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode });
 
     } else if (req.method === 'POST' && route === '/rollback') {
       const { name } = await parseBody(req);
@@ -97,6 +97,26 @@ async function handleRequest(req, res) {
       const lines = parseInt(url.searchParams.get('lines') || '200') || 200;
       result = manager.getScrollback(name, lines);
 
+    } else if (req.method === 'POST' && route === '/hook-event') {
+      // Hook architecture (3.15): receive structured events from Claude Code hooks
+      const body = await parseBody(req);
+      const workerName = body.worker || '';
+      if (!workerName) {
+        result = { error: 'Missing worker name in hook event' };
+      } else {
+        result = manager.hookEvent(workerName, body);
+      }
+
+    } else if (req.method === 'GET' && route === '/hook-events') {
+      // Query hook events for a worker (3.15)
+      const name = url.searchParams.get('name');
+      const limit = parseInt(url.searchParams.get('limit') || '50') || 50;
+      if (!name) {
+        result = { error: 'Missing name parameter' };
+      } else {
+        result = manager.getHookEvents(name, limit);
+      }
+
     } else if (req.method === 'GET' && route === '/events') {
       // SSE endpoint (3.5)
       res.writeHead(200, {
@@ -118,23 +138,31 @@ async function handleRequest(req, res) {
       return; // Don't end the response
 
     } else if (req.method === 'POST' && route === '/plan') {
-      // Planner (3.10)
       const { name, task, branch, outputPath, scopePreset, contextFrom } = await parseBody(req);
       result = planner.sendPlan(name, task, { branch, outputPath, scopePreset, contextFrom });
 
     } else if (req.method === 'GET' && route === '/plan') {
-      // Read plan (3.10)
       const name = url.searchParams.get('name');
       const outputPath = url.searchParams.get('outputPath') || '';
       result = planner.readPlan(name, { outputPath: outputPath || undefined });
 
     } else if (req.method === 'POST' && route === '/mcp') {
-      // MCP (Model Context Protocol) endpoint (3.9)
       const body = await parseBody(req);
       result = await mcpHandler.handle(body);
       res.writeHead(200);
       res.end(JSON.stringify(result));
       return;
+
+    } else if (req.method === 'GET' && route === '/templates') {
+      result = { templates: manager.listTemplates() };
+
+    } else if (req.method === 'GET' && route === '/swarm') {
+      const name = url.searchParams.get('name');
+      if (!name) {
+        result = { error: 'Missing name parameter' };
+      } else {
+        result = manager.getSwarmStatus(name);
+      }
 
     } else if (req.method === 'GET' && route === '/history') {
       const worker = url.searchParams.get('worker') || '';

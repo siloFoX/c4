@@ -75,18 +75,21 @@ async function main() {
     switch (cmd) {
       case 'new': {
         const name = args[0];
-        // Parse --target and --cwd flags
-        let target = 'local', cwd = '';
+        // Parse --target, --cwd, --template flags
+        let target = 'local', cwd = '', template = '';
         const filteredArgs = [];
         let command = 'claude';
         let commandSet = false;
         for (let i = 1; i < args.length; i++) {
           if (args[i] === '--target' && args[i + 1]) { target = args[++i]; }
           else if (args[i] === '--cwd' && args[i + 1]) { cwd = args[++i]; }
+          else if (args[i] === '--template' && args[i + 1]) { template = args[++i]; }
           else if (!commandSet) { command = args[i]; commandSet = true; }
           else { filteredArgs.push(args[i]); }
         }
-        result = await request('POST', '/create', { name, command, args: filteredArgs, target, cwd });
+        const body = { name, command, args: filteredArgs, target, cwd };
+        if (template) body.template = template;
+        result = await request('POST', '/create', body);
         break;
       }
 
@@ -99,7 +102,7 @@ async function main() {
 
       case 'task': {
         const name = args[0];
-        let branch = '', useBranch = true, scope = null, scopePreset = '', after = '', contextFrom = '', reuse = undefined;
+        let branch = '', useBranch = true, scope = null, scopePreset = '', after = '', contextFrom = '', reuse = undefined, profile = '', autoMode = false;
         const taskParts = [];
         for (let i = 1; i < args.length; i++) {
           if (args[i] === '--branch' && args[i + 1]) { branch = args[++i]; }
@@ -108,6 +111,9 @@ async function main() {
           else if (args[i] === '--context' && args[i + 1]) { contextFrom = args[++i]; }
           else if (args[i] === '--reuse') { reuse = true; }
           else if (args[i] === '--no-reuse') { reuse = false; }
+          else if (args[i] === '--profile' && args[i + 1]) { profile = args[++i]; }
+          else if (args[i] === '--template' && args[i + 1]) { profile = args[++i]; }
+          else if (args[i] === '--auto-mode') { autoMode = true; }
           else if (args[i] === '--scope' && args[i + 1]) {
             try { scope = JSON.parse(args[++i]); }
             catch { console.error('Error: --scope must be valid JSON'); process.exit(1); }
@@ -122,6 +128,8 @@ async function main() {
         if (after) body.after = after;
         if (contextFrom) body.contextFrom = contextFrom;
         if (reuse !== undefined) body.reuse = reuse;
+        if (profile) body.profile = profile;
+        if (autoMode) body.autoMode = true;
         result = await request('POST', '/task', body);
         break;
       }
@@ -302,6 +310,7 @@ async function main() {
         }
 
         // 3. Auto-detect claude binary path → save to config.json
+        const isMac = process.platform === 'darwin';
         let claudePath = '';
         const detectCmds = isWin ? ['where claude'] : ['which claude', 'command -v claude'];
 
@@ -317,6 +326,24 @@ async function main() {
               break;
             }
           } catch {}
+        }
+
+        // macOS/Linux: check common paths if not found
+        if (!claudePath && !isWin) {
+          const commonPaths = [];
+          if (isMac) {
+            commonPaths.push('/opt/homebrew/bin/claude');  // Apple Silicon
+            commonPaths.push('/usr/local/bin/claude');     // Intel
+          }
+          commonPaths.push(path.join(home, '.local', 'bin', 'claude'));
+          commonPaths.push(path.join(home, '.npm-global', 'bin', 'claude'));
+
+          for (const p of commonPaths) {
+            if (fs.existsSync(p)) {
+              claudePath = p;
+              break;
+            }
+          }
         }
 
         if (claudePath) {
@@ -633,6 +660,47 @@ async function main() {
             console.log(`Scanned ${result.scanned} files, ${result.newEntries} new entries (${result.totalEntries} total)`);
             return;
           }
+        }
+        break;
+      }
+
+      case 'templates': {
+        result = await request('GET', '/templates');
+        if (result.templates) {
+          console.log('NAME\t\tMODEL\tEFFORT\tSOURCE\tDESCRIPTION');
+          for (const [name, tmpl] of Object.entries(result.templates)) {
+            const model = tmpl.model || '-';
+            const effort = tmpl.effort || '-';
+            const source = tmpl.source || '-';
+            const desc = (tmpl.description || '').slice(0, 50);
+            console.log(`${name}\t\t${model}\t${effort}\t${source}\t${desc}`);
+          }
+          return;
+        }
+        break;
+      }
+
+      case 'swarm': {
+        const name = args[0];
+        if (!name) {
+          console.error('Usage: c4 swarm <worker-name>');
+          process.exit(1);
+        }
+        result = await request('GET', `/swarm?name=${name}`);
+        if (result.worker) {
+          console.log(`Swarm status for '${result.worker}':`);
+          console.log(`  Enabled: ${result.enabled}`);
+          console.log(`  Max subagents: ${result.maxSubagents}`);
+          console.log(`  Subagent count: ${result.subagentCount}`);
+          if (result.subagentLog && result.subagentLog.length > 0) {
+            console.log('  Recent subagents:');
+            for (const entry of result.subagentLog) {
+              const time = new Date(entry.timestamp).toLocaleTimeString();
+              const prompt = entry.prompt.length > 60 ? entry.prompt.slice(0, 60) + '...' : entry.prompt;
+              console.log(`    #${entry.index} [${time}] ${entry.subagentType}: ${prompt}`);
+            }
+          }
+          return;
         }
         break;
       }
