@@ -51,6 +51,7 @@ ssh -R 9222:localhost:9222 shinc@192.168.10.222
 - 복합 명령(`&&`, `|`, `;`으로 연결) 사용 금지 → 단일 명령으로 분리해서 실행 (승인 필요 없게)
 - `cd X && git Y` 대신 `git -C <path>` 사용
 - `tasklist | grep | xargs taskkill` 대신 `c4 daemon stop` 사용
+- `sleep N && c4 read-now` 대신 `c4 wait <name>` 사용 (idle 감지 시 즉시 반환, 불필요한 대기 없음)
 - `/model` 등 슬래시 명령 보낼 때: `MSYS_NO_PATHCONV=1 c4 send` 사용 (Git Bash 경로 변환 방지)
 - 멀티 에이전트 작업 시 반드시 worktree 사용 (같은 디렉토리 공유하면 git 충돌)
 - 머지 전 반드시: 기능 확인 → 테스트 → 문서(TODO, CHANGELOG, patches/) → 코드 리뷰
