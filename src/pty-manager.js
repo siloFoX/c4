@@ -106,6 +106,7 @@ class PtyManager extends EventEmitter {
     this._lastHealthCheck = null;
     this._scribe = null;
     this._sshReconnects = new Map(); // name → { count, lastAttempt }
+    this._sessionIds = {};  // name → sessionId for --resume (4.1)
     this._tokenUsage = { daily: {}, lastScan: 0, offsets: {} };
     this._loadTokenState();
     this._sseClients = new Set(); // SSE client connections (3.5)
@@ -152,14 +153,20 @@ class PtyManager extends EventEmitter {
       this.offsets = data.offsets || {};
       // Recover lost workers from previous daemon session
       this.lostWorkers = [];
+      // Session ID map for --resume support (4.1)
+      this._sessionIds = {};
       if (Array.isArray(data.workers)) {
         for (const w of data.workers) {
+          if (w.sessionId) {
+            this._sessionIds[w.name] = w.sessionId;
+          }
           if (w.name && w.alive) {
             this.lostWorkers.push({
               name: w.name,
               pid: w.pid,
               branch: w.branch || null,
               worktree: w.worktree || null,
+              sessionId: w.sessionId || null,
               lostAt: new Date().toISOString()
             });
           }
@@ -188,10 +195,76 @@ class PtyManager extends EventEmitter {
         alive: w.alive,
         branch: w.branch || null,
         worktree: w.worktree || null,
+        sessionId: w._sessionId || null,
         exitedAt: exitSnapshot ? new Date(exitSnapshot.time).toISOString() : null
       });
     }
     fs.writeFileSync(STATE_FILE, JSON.stringify(data, null, 2));
+  }
+
+  // --- Session Resume (4.1) ---
+
+  _getWorkerSessionId(workerName, workerDir) {
+    // Find the most recent Claude Code JSONL session for this worker's project dir
+    const home = platformHomedir();
+    const claudeProjects = path.join(home, '.claude', 'projects');
+    if (!fs.existsSync(claudeProjects)) return null;
+
+    const projectPath = (workerDir || '').replace(/\\/g, '/');
+    if (!projectPath) return null;
+
+    // Find matching project directory (Claude encodes paths: C:\Users\silof\c4 → C--Users-silof-c4)
+    let projectDir = null;
+    try {
+      const entries = fs.readdirSync(claudeProjects);
+      for (const entry of entries) {
+        const decoded = entry.replace(/^([A-Z])--/, '$1:/').replace(/-/g, '/');
+        if (decoded === projectPath || projectPath.startsWith(decoded + '/') || projectPath === decoded) {
+          projectDir = path.join(claudeProjects, entry);
+          break;
+        }
+      }
+    } catch { return null; }
+
+    if (!projectDir || !fs.existsSync(projectDir)) return null;
+
+    // Find the most recently modified .jsonl file
+    let latestFile = null;
+    let latestMtime = 0;
+    try {
+      for (const entry of fs.readdirSync(projectDir)) {
+        if (!entry.endsWith('.jsonl')) continue;
+        const fullPath = path.join(projectDir, entry);
+        const stat = fs.statSync(fullPath);
+        if (stat.mtimeMs > latestMtime) {
+          latestMtime = stat.mtimeMs;
+          latestFile = entry;
+        }
+      }
+    } catch { return null; }
+
+    if (!latestFile) return null;
+    return latestFile.replace('.jsonl', '');
+  }
+
+  _updateSessionId(name) {
+    const w = this.workers.get(name);
+    if (!w) return;
+    const dir = w.worktree || this._detectRepoRoot();
+    if (!dir) return;
+    const sid = this._getWorkerSessionId(name, dir);
+    if (sid) {
+      w._sessionId = sid;
+      this._sessionIds[name] = sid;
+    }
+  }
+
+  getSessionId(name) {
+    // Try live worker first, then stored state
+    this._updateSessionId(name);
+    const w = this.workers.get(name);
+    if (w && w._sessionId) return w._sessionId;
+    return this._sessionIds[name] || null;
   }
 
   // --- SSE Event Streaming (3.5) ---
@@ -1956,8 +2029,13 @@ class PtyManager extends EventEmitter {
     if (t.type === 'local' || targetName === 'local') {
       const commandMap = t.commandMap || {};
       const resolvedCmd = commandMap[command] || command;
+      // Resume support (4.1): append --resume <sessionId> to claude command
+      const finalArgs = [...args];
+      if (options.resume && command === 'claude') {
+        finalArgs.push('--resume', options.resume);
+      }
       shell = platformShell();
-      shellArgs = platformShellArgs(resolvedCmd, args);
+      shellArgs = platformShellArgs(resolvedCmd, finalArgs);
     } else if (t.type === 'ssh') {
       const remoteCwd = cwd || t.defaultCwd || '';
       const commandMap = t.commandMap || {};
@@ -2032,6 +2110,9 @@ class PtyManager extends EventEmitter {
       _smState: this._stateMachine.createState(),
       // Adaptive polling (3.12)
       _pollState: this._adaptivePolling.createState(),
+      // Session resume (4.1)
+      _sessionId: options.resume || null,
+      _resumed: !!options.resume,
     };
 
     // Raw log
@@ -2633,6 +2714,9 @@ class PtyManager extends EventEmitter {
 
     for (const [name, w] of this.workers) {
       if (w.alive) {
+        // Periodically update session ID for resume support (4.1)
+        this._updateSessionId(name);
+
         const idleMs = now - w.lastDataTime;
         if (idleMs > timeoutMs) {
           w.snapshots.push({
@@ -2665,6 +2749,10 @@ class PtyManager extends EventEmitter {
       }
 
       if (this.config.healthCheck?.autoRestart) {
+        // Save session ID before cleanup for resume (4.1)
+        this._updateSessionId(name);
+        const sessionId = w._sessionId || this._sessionIds[name] || null;
+
         // Restart: re-create with same command
         const command = w.command.split(' ')[0];
         const args = w.command.split(' ').slice(1);
@@ -2675,11 +2763,23 @@ class PtyManager extends EventEmitter {
         if (w.rawLogStream && !w.rawLogStream.destroyed) w.rawLogStream.end();
         this.workers.delete(name);
 
-        const createResult = this.create(name, command, args, { target });
+        // Try resume first, fall back to fresh start (4.1)
+        let createResult;
+        if (sessionId && command === 'claude') {
+          createResult = this.create(name, command, args, { target, resume: sessionId });
+          if (createResult.error) {
+            // Resume failed — try fresh start
+            this.workers.delete(name);
+            createResult = this.create(name, command, args, { target });
+          }
+        } else {
+          createResult = this.create(name, command, args, { target });
+        }
+
         if (createResult.error) {
           results.push({ name, status: 'restart_failed', error: createResult.error });
         } else {
-          results.push({ name, status: 'restarted', pid: createResult.pid });
+          results.push({ name, status: 'restarted', pid: createResult.pid, resumed: !!sessionId });
         }
       } else {
         results.push({ name, status: 'exited' });
@@ -2953,6 +3053,9 @@ class PtyManager extends EventEmitter {
   close(name) {
     const w = this.workers.get(name);
     if (!w) return { error: `Worker '${name}' not found` };
+
+    // Save session ID for potential resume (4.1)
+    this._updateSessionId(name);
 
     // Record history before cleanup (3.7)
     const history = this._recordHistory(name, w);

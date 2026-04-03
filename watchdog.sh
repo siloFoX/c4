@@ -24,24 +24,31 @@ while true; do
   fi
 
   # 2. Check manager worker
+  MISSION="너는 C4 프로젝트의 자율 개발 관리자야. TODO.md를 읽고 남은 작업을 순서대로 개발해. c4 new/task/wait/read/close로 작업자를 관리하고, 완료되면 머지하고 push해. 규칙: 복합 명령 금지, git -C 사용, c4 wait 사용, main 직접 커밋 금지, 단위 작업마다 구현→테스트→문서→커밋."
   LIST=$($C4 list 2>/dev/null)
   if echo "$LIST" | grep -q "manager"; then
     STATUS=$(echo "$LIST" | grep "manager" | awk '{print $2}')
     if [ "$STATUS" = "exited" ]; then
-      log "Manager exited. Recreating..."
-      $C4 close manager >> "$LOG" 2>&1
-      $C4 new manager claude >> "$LOG" 2>&1
-      sleep 30
-      # Resend mission
-      $C4 send manager "너는 C4 프로젝트의 자율 개발 관리자야. TODO.md를 읽고 남은 작업을 순서대로 개발해. c4 new/task/wait/read/close로 작업자를 관리하고, 완료되면 머지하고 push해. 규칙: 복합 명령 금지, git -C 사용, c4 wait 사용, main 직접 커밋 금지, 단위 작업마다 구현→테스트→문서→커밋." >> "$LOG" 2>&1
-      $C4 key manager Enter >> "$LOG" 2>&1
-      log "Manager recreated and mission sent"
+      log "Manager exited. Trying resume..."
+      # Try claude --resume first (4.1)
+      RESUME_RESULT=$($C4 resume manager 2>&1)
+      if echo "$RESUME_RESULT" | grep -q "resumed"; then
+        log "Manager resumed successfully"
+      else
+        log "Resume failed. Recreating fresh..."
+        $C4 close manager >> "$LOG" 2>&1
+        $C4 new manager claude >> "$LOG" 2>&1
+        sleep 30
+        $C4 send manager "$MISSION" >> "$LOG" 2>&1
+        $C4 key manager Enter >> "$LOG" 2>&1
+        log "Manager recreated and mission sent"
+      fi
     fi
   else
     log "Manager not found. Creating..."
     $C4 new manager claude >> "$LOG" 2>&1
     sleep 30
-    $C4 send manager "너는 C4 프로젝트의 자율 개발 관리자야. TODO.md를 읽고 남은 작업을 순서대로 개발해. c4 new/task/wait/read/close로 작업자를 관리하고, 완료되면 머지하고 push해. 규칙: 복합 명령 금지, git -C 사용, c4 wait 사용, main 직접 커밋 금지, 단위 작업마다 구현→테스트→문서→커밋." >> "$LOG" 2>&1
+    $C4 send manager "$MISSION" >> "$LOG" 2>&1
     $C4 key manager Enter >> "$LOG" 2>&1
     log "Manager created and mission sent"
   fi

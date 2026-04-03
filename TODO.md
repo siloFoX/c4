@@ -272,7 +272,7 @@ watchdog.sh (nohup, 60초 체크)
 
 | # | 항목 | 상태 | 설명 |
 |---|------|------|------|
-| 4.1 | 완전 무인 운영 모드 | **partial** | global auto mode로 권한 자동 승인 구현. PostCompact hook으로 컨텍스트 복구. 남은 과제: claude --resume 연동 |
+| 4.1 | 완전 무인 운영 모드 | **done** | global auto mode로 권한 자동 승인. PostCompact hook으로 컨텍스트 복구. claude --resume 세션 이어가기 |
 | 4.2 | Hook 이벤트 JSONL 영속화 | **done** | PostToolUse/PreToolUse 이벤트를 logs/events-<worker>.jsonl에 저장. 리플레이/디버깅 |
 | 4.3 | 승인 요청 웹 UI | **done** | GET /dashboard 라우트. 워커 목록/상태/스냅샷 HTML 서빙. 다크 테마, XSS 보호, 30초 자동 새로고침 |
 | 4.4 | 아침 보고서 자동 생성 | **done** | 야간 작업 완료 후 docs/morning-report.md 자동 생성. 완료/실패/수정 필요 항목 요약 |

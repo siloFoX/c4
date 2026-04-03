@@ -904,6 +904,40 @@ async function main() {
         break;
       }
 
+      case 'resume': {
+        // Resume a worker's Claude Code session (4.1)
+        const name = args[0];
+        const sessionId = args[1] || '';
+        if (!name) {
+          console.error('Usage: c4 resume <name> [sessionId]');
+          console.error('  Resumes a worker with claude --resume. If sessionId not given, auto-detects.');
+          process.exit(1);
+        }
+        const body = { name };
+        if (sessionId) body.sessionId = sessionId;
+        result = await request('POST', '/resume', body, 30000);
+        if (result.pid) {
+          console.log(`[resume] Worker '${name}' resumed (pid: ${result.pid})`);
+        }
+        break;
+      }
+
+      case 'session-id': {
+        // Get session ID for a worker (4.1)
+        const name = args[0];
+        if (!name) {
+          console.error('Usage: c4 session-id <name>');
+          process.exit(1);
+        }
+        result = await request('GET', `/session-id?name=${encodeURIComponent(name)}`);
+        if (result.sessionId) {
+          console.log(`Session ID for '${name}': ${result.sessionId}`);
+        } else {
+          console.log(`No session ID found for '${name}'`);
+        }
+        break;
+      }
+
       case 'morning': {
         result = await request('POST', '/morning');
         if (result.success) {

@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.5.0] - 2026-04-04
+
+### Added
+- **claude --resume 세션 이어가기** (4.1): 작업자/관리자 재시작 시 이전 세션 자동 복구
+  - `_getWorkerSessionId()`: Claude Code JSONL 세션 파일에서 최신 세션 ID 추출
+  - `_updateSessionId()`: healthCheck 주기마다 세션 ID 갱신, state.json에 영속화
+  - `create()`: `options.resume` 지원 — `claude --resume <sessionId>`로 세션 이어가기
+  - healthCheck autoRestart: resume 우선 시도, 실패 시 새 세션 폴백
+  - `c4 resume <name> [sessionId]`: CLI 명령으로 수동 resume
+  - `c4 session-id <name>`: 작업자 세션 ID 조회
+  - `GET /session-id`, `POST /resume`: daemon API 라우트
+  - watchdog.sh: 관리자 사망 시 resume 우선 시도
+  - `tests/session-resume.test.js`: 13개 유닛 테스트
+
 ## [1.4.0] - 2026-04-04
 
 ### Added
