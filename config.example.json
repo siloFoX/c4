@@ -90,6 +90,12 @@
     "projectRoot": ""
   },
 
+  "healthCheck": {
+    "enabled": true,
+    "intervalMs": 30000,
+    "autoRestart": false
+  },
+
   "workerDefaults": {
     "trustFolder": true,
     "effortLevel": "max",

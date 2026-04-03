@@ -169,6 +169,10 @@ async function main() {
               console.log(`${w.name}\t\t${w.status}\t\t${w.unreadSnapshots}\t${w.command}`);
             }
           }
+          if (result.lastHealthCheck) {
+            const ago = Math.round((Date.now() - result.lastHealthCheck) / 1000);
+            console.log(`\nLast health check: ${ago}s ago (${new Date(result.lastHealthCheck).toLocaleTimeString()})`);
+          }
           return;
         }
         break;
