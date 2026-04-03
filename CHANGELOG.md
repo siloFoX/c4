@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.2.0] - 2026-04-03
+
+### Added
+- **`c4 auto` command** (4.8): One-command autonomous execution
+  - `c4 auto "작업 내용"` → manager worker + scribe auto-start + task send
+  - Manager worker gets full permissions (Read, Write, Edit, Bash, etc.) + `defaultMode: auto`
+  - Morning report auto-generated on worker exit
+  - daemon route: `POST /auto`
+- **`c4 morning` command** (4.4): Morning report generation
+  - `c4 morning` → generates `docs/morning-report.md`
+  - Sections: recent commits (24h), worker history (completed/needs-review), TODO status, token usage
+  - Auto-called when `c4 auto` worker exits
+  - daemon route: `POST /morning`
+
+---
+
 ## [1.1.0] - 2026-04-03
 
 ### Added

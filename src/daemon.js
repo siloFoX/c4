@@ -167,6 +167,13 @@ async function handleRequest(req, res) {
         result = manager.getSwarmStatus(name);
       }
 
+    } else if (req.method === 'POST' && route === '/auto') {
+      const { task, name } = await parseBody(req);
+      result = manager.autoStart(task, { name });
+
+    } else if (req.method === 'POST' && route === '/morning') {
+      result = manager.generateMorningReport();
+
     } else if (req.method === 'GET' && route === '/history') {
       const worker = url.searchParams.get('worker') || '';
       const limit = parseInt(url.searchParams.get('limit') || '0') || 0;

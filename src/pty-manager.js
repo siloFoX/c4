@@ -788,6 +788,11 @@ class PtyManager extends EventEmitter {
       w._dynamicEffort = this._determineEffort(entry.task);
     }
 
+    // Auto worker flag (4.8): mark for morning report on exit
+    if (entry._autoWorker) {
+      w._autoWorker = true;
+    }
+
     // Store pending task — will be sent after worker setup completes
     w._pendingTask = {
       task: entry.task,
@@ -798,7 +803,9 @@ class PtyManager extends EventEmitter {
         projectRoot: entry.projectRoot,
         scope: entry.scope,
         scopePreset: entry.scopePreset,
-        contextFrom: entry.contextFrom
+        contextFrom: entry.contextFrom,
+        autoMode: entry.autoMode,
+        _autoWorker: entry._autoWorker
       }
     };
 
@@ -1088,34 +1095,39 @@ class PtyManager extends EventEmitter {
     const hooksCfg = this.config.hooks || {};
     const settings = {};
 
-    // Permissions
-    const permissions = { allow: [], deny: [] };
+    // Auto-manager (4.8): full permissions for autonomous operation
+    if (options._autoWorker) {
+      settings.permissions = this._buildAutoManagerPermissions();
+    } else {
+      // Permissions
+      const permissions = { allow: [], deny: [] };
 
-    if (profile && profile.permissions) {
-      if (Array.isArray(profile.permissions.allow)) {
-        permissions.allow.push(...profile.permissions.allow);
+      if (profile && profile.permissions) {
+        if (Array.isArray(profile.permissions.allow)) {
+          permissions.allow.push(...profile.permissions.allow);
+        }
+        if (Array.isArray(profile.permissions.deny)) {
+          permissions.deny.push(...profile.permissions.deny);
+        }
+        if (profile.permissions.defaultMode) {
+          permissions.defaultMode = profile.permissions.defaultMode;
+        }
       }
-      if (Array.isArray(profile.permissions.deny)) {
-        permissions.deny.push(...profile.permissions.deny);
+
+      // Default c4 permissions for all workers
+      const defaultPerms = [
+        'Bash(c4:*)',
+        'Bash(MSYS_NO_PATHCONV=1 c4:*)',
+        'Bash(git:*)',
+      ];
+      for (const perm of defaultPerms) {
+        if (!permissions.allow.includes(perm)) {
+          permissions.allow.push(perm);
+        }
       }
-      if (profile.permissions.defaultMode) {
-        permissions.defaultMode = profile.permissions.defaultMode;
-      }
+
+      settings.permissions = permissions;
     }
-
-    // Default c4 permissions for all workers
-    const defaultPerms = [
-      'Bash(c4:*)',
-      'Bash(MSYS_NO_PATHCONV=1 c4:*)',
-      'Bash(git:*)',
-    ];
-    for (const perm of defaultPerms) {
-      if (!permissions.allow.includes(perm)) {
-        permissions.allow.push(perm);
-      }
-    }
-
-    settings.permissions = permissions;
 
     // Hooks (3.15 integration): inject PreToolUse/PostToolUse hooks
     if (hooksCfg.enabled !== false && hooksCfg.injectToWorkers !== false) {
@@ -1666,7 +1678,9 @@ class PtyManager extends EventEmitter {
         projectRoot: options.projectRoot,
         scope: options.scope,
         scopePreset: options.scopePreset,
-        contextFrom: options.contextFrom
+        contextFrom: options.contextFrom,
+        autoMode: options.autoMode,
+        _autoWorker: options._autoWorker
       });
     }
 
@@ -2212,6 +2226,14 @@ class PtyManager extends EventEmitter {
         this._notifications.notifyTaskComplete(name, {
           exitCode, signal, branch: worker.branch || null
         });
+      }
+
+      // Auto worker (4.8): generate morning report on exit
+      if (worker._autoWorker) {
+        try {
+          const report = this.generateMorningReport();
+          this._emitSSE('morning-report', { worker: name, path: report.path });
+        } catch {}
       }
 
       // Process queue — worker exit may unblock queued tasks (2.2, 2.8)
@@ -2778,6 +2800,165 @@ class PtyManager extends EventEmitter {
     for (const name of [...this.workers.keys()]) {
       this.close(name);
     }
+  }
+
+  // --- Auto Mode (4.8) ---
+
+  autoStart(task, options = {}) {
+    const name = options.name || 'auto-mgr';
+
+    // Start scribe
+    try { this.scribeStart(); } catch {}
+
+    // Build full-permission manager worker via sendTask with autoMode
+    const result = this.sendTask(name, task, {
+      branch: options.branch || `c4/${name}`,
+      useBranch: true,
+      autoMode: true,
+      profile: '',  // no profile restriction — full permissions built below
+      _autoWorker: true
+    });
+
+    return { ...result, name, scribe: true };
+  }
+
+  _buildAutoManagerPermissions() {
+    return {
+      allow: [
+        'Bash(c4:*)', 'Bash(MSYS_NO_PATHCONV=1 c4:*)',
+        'Bash(git:*)', 'Bash(npm:*)', 'Bash(node:*)',
+        'Bash(grep:*)', 'Bash(find:*)', 'Bash(cat:*)',
+        'Bash(ls:*)', 'Bash(head:*)', 'Bash(tail:*)',
+        'Bash(echo:*)', 'Bash(pwd)', 'Bash(cd:*)',
+        'Bash(wc:*)', 'Bash(mkdir:*)', 'Bash(cp:*)',
+        'Bash(mv:*)', 'Bash(touch:*)', 'Bash(python:*)',
+        'Bash(curl:*)', 'Bash(sed:*)', 'Bash(awk:*)',
+        'Bash(sort:*)', 'Bash(uniq:*)', 'Bash(tee:*)',
+        'Bash(diff:*)', 'Bash(test:*)',
+        'Read', 'Edit', 'Write', 'Glob', 'Grep',
+        'Agent', 'Bash', 'WebFetch', 'WebSearch',
+        'NotebookEdit'
+      ],
+      deny: ['Bash(rm -rf:*)', 'Bash(sudo:*)', 'Bash(shutdown:*)', 'Bash(reboot:*)'],
+      defaultMode: 'auto'
+    };
+  }
+
+  // --- Morning Report (4.4) ---
+
+  generateMorningReport() {
+    const repoRoot = this._detectRepoRoot();
+    const reportPath = repoRoot
+      ? path.join(repoRoot, 'docs', 'morning-report.md')
+      : path.join(__dirname, '..', 'docs', 'morning-report.md');
+
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+    const timeStr = now.toLocaleTimeString();
+    const sections = [];
+
+    sections.push(`# Morning Report — ${dateStr}`);
+    sections.push(`> Generated at ${timeStr}\n`);
+
+    // 1. Git log (last 24h)
+    sections.push('## Recent Commits');
+    try {
+      const gitDir = (repoRoot || path.join(__dirname, '..')).replace(/\\/g, '/');
+      const log = execSync(
+        `git -C "${gitDir}" log --since="24 hours ago" --oneline --no-decorate`,
+        { encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] }
+      ).trim();
+      if (log) {
+        sections.push('```');
+        sections.push(log);
+        sections.push('```');
+      } else {
+        sections.push('_No commits in the last 24 hours._');
+      }
+    } catch {
+      sections.push('_Could not read git log._');
+    }
+    sections.push('');
+
+    // 2. Worker history
+    sections.push('## Worker History');
+    const { records } = this.getHistory({ limit: 20 });
+    if (records.length > 0) {
+      // Separate completed/failed
+      const completed = [];
+      const failed = [];
+      const other = [];
+      for (const r of records) {
+        const taskPreview = r.task ? (r.task.length > 80 ? r.task.slice(0, 80) + '...' : r.task) : '(no task)';
+        const entry = `- **${r.name}** [${r.status}] branch=\`${r.branch || '-'}\` commits=${(r.commits || []).length}\n  ${taskPreview}`;
+        if (r.status === 'closed' || r.status === 'exited') {
+          const hasCommits = (r.commits || []).length > 0;
+          if (hasCommits) completed.push(entry);
+          else failed.push(entry);
+        } else {
+          other.push(entry);
+        }
+      }
+
+      if (completed.length > 0) {
+        sections.push('### Completed');
+        sections.push(completed.join('\n'));
+      }
+      if (failed.length > 0) {
+        sections.push('### Needs Review (no commits)');
+        sections.push(failed.join('\n'));
+      }
+      if (other.length > 0) {
+        sections.push('### Other');
+        sections.push(other.join('\n'));
+      }
+    } else {
+      sections.push('_No worker history records._');
+    }
+    sections.push('');
+
+    // 3. TODO.md status
+    sections.push('## TODO Status');
+    try {
+      const todoPath = repoRoot
+        ? path.join(repoRoot, 'TODO.md')
+        : path.join(__dirname, '..', 'TODO.md');
+      const todoContent = fs.readFileSync(todoPath, 'utf8');
+      // Count done/todo items
+      const doneCount = (todoContent.match(/\*\*done\*\*/gi) || []).length;
+      const todoCount = (todoContent.match(/\|\s*todo\s*\|/gi) || []).length;
+      sections.push(`- Done: **${doneCount}** items`);
+      sections.push(`- Todo: **${todoCount}** items`);
+      sections.push(`- Progress: ${doneCount}/${doneCount + todoCount} (${Math.round(doneCount / (doneCount + todoCount) * 100)}%)`);
+    } catch {
+      sections.push('_Could not read TODO.md._');
+    }
+    sections.push('');
+
+    // 4. Token usage
+    sections.push('## Token Usage');
+    try {
+      const usage = this.getTokenUsage();
+      if (usage && !usage.error) {
+        sections.push(`- Input: ${(usage.input || 0).toLocaleString()} tokens`);
+        sections.push(`- Output: ${(usage.output || 0).toLocaleString()} tokens`);
+        sections.push(`- Total: ${(usage.total || 0).toLocaleString()} tokens`);
+      } else {
+        sections.push('_No token usage data._');
+      }
+    } catch {
+      sections.push('_Could not read token usage._');
+    }
+
+    // Write report
+    const reportDir = path.dirname(reportPath);
+    if (!fs.existsSync(reportDir)) {
+      fs.mkdirSync(reportDir, { recursive: true });
+    }
+    const content = sections.join('\n') + '\n';
+    fs.writeFileSync(reportPath, content);
+
+    return { success: true, path: reportPath, date: dateStr };
   }
 }
 

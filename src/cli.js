@@ -852,6 +852,39 @@ async function main() {
         break;
       }
 
+      case 'auto': {
+        const task = args.join(' ');
+        if (!task) {
+          console.error('Usage: c4 auto <task>');
+          console.error('  Starts autonomous manager worker + scribe, sends task.');
+          console.error('  Morning report generated on completion.');
+          console.error('\nExample:');
+          console.error('  c4 auto "Build feature X, run tests, commit"');
+          process.exit(1);
+        }
+        result = await request('POST', '/auto', { task }, 30000);
+        if (result.name) {
+          console.log(`[auto] Manager '${result.name}' created (scribe: ${result.scribe ? 'on' : 'off'})`);
+          console.log(`[auto] Task sent. Morning report will be generated on completion.`);
+          console.log(`[auto] Monitor: c4 read-now ${result.name} / c4 wait ${result.name}`);
+        }
+        break;
+      }
+
+      case 'morning': {
+        result = await request('POST', '/morning');
+        if (result.success) {
+          console.log(`Morning report generated: ${result.path}`);
+          // Print the report
+          try {
+            const fs = require('fs');
+            const content = fs.readFileSync(result.path, 'utf8');
+            console.log('\n' + content);
+          } catch {}
+        }
+        break;
+      }
+
       case 'daemon': {
         const DaemonManager = require(require('path').join(__dirname, 'daemon-manager'));
         const sub = args[0];
@@ -916,6 +949,8 @@ Commands:
   scribe status                    Show scribe status
   scribe scan                      Run one-time scan now
   token-usage                      Show daily token usage
+  auto <task>                      Autonomous mode: manager + scribe + task (4.8)
+  morning                          Generate morning report (4.4)
   config                           Show current config
   config reload                    Reload config.json without restart
 
