@@ -252,7 +252,7 @@ A: `c4 daemon start`로 재시작하세요. 데몬 죽으면 작업자는 소실
 
 ## 만든 사람
 
-**siloFoX** — [GitHub](https://github.com/siloFoX)
+**siloFoX** — [GitHub](https://github.com/siloFoX) · [Instagram](https://instagram.com/_chobo___)
 
 ## 라이선스
 

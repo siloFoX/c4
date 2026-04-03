@@ -252,7 +252,7 @@ See [TODO.md](TODO.md) for the full roadmap. Current priorities:
 
 ## Author
 
-**siloFoX** — [GitHub](https://github.com/siloFoX)
+**siloFoX** — [GitHub](https://github.com/siloFoX) · [Instagram](https://instagram.com/_chobo___)
 
 ## License
 
