@@ -38,21 +38,41 @@ class PtyManager {
     try {
       const data = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
       this.offsets = data.offsets || {};
+      // Recover lost workers from previous daemon session
+      this.lostWorkers = [];
+      if (Array.isArray(data.workers)) {
+        for (const w of data.workers) {
+          if (w.name && w.alive) {
+            this.lostWorkers.push({
+              name: w.name,
+              pid: w.pid,
+              branch: w.branch || null,
+              worktree: w.worktree || null,
+              lostAt: new Date().toISOString()
+            });
+          }
+        }
+      }
     } catch {
       this.offsets = {};
+      this.lostWorkers = [];
     }
   }
 
   _saveState() {
-    const data = { offsets: {}, workers: [] };
+    const data = { offsets: {}, workers: [], lostWorkers: this.lostWorkers || [] };
     for (const [name, w] of this.workers) {
       data.offsets[name] = w.snapshotIndex;
+      const exitSnapshot = !w.alive
+        ? [...w.snapshots].reverse().find(s => s.exited)
+        : null;
       data.workers.push({
         name,
         pid: w.proc ? w.proc.pid : null,
         alive: w.alive,
         branch: w.branch || null,
-        worktree: w.worktree || null
+        worktree: w.worktree || null,
+        exitedAt: exitSnapshot ? new Date(exitSnapshot.time).toISOString() : null
       });
     }
     fs.writeFileSync(STATE_FILE, JSON.stringify(data, null, 2));
@@ -726,6 +746,77 @@ class PtyManager {
     });
   }
 
+  // --- Log Management ---
+
+  _checkLogRotation() {
+    const maxSizeMb = this.config.logs?.maxLogSizeMb || 50;
+    const maxSizeBytes = maxSizeMb * 1024 * 1024;
+    const rotated = [];
+
+    for (const [name, w] of this.workers) {
+      if (!w.rawLogPath) continue;
+
+      try {
+        const stat = fs.statSync(w.rawLogPath);
+        if (stat.size >= maxSizeBytes) {
+          // Close current stream
+          if (w.rawLogStream && !w.rawLogStream.destroyed) {
+            w.rawLogStream.end();
+          }
+
+          // Delete old .log.1 if exists, then rotate
+          const rotatedPath = w.rawLogPath + '.1';
+          try { fs.unlinkSync(rotatedPath); } catch {}
+          fs.renameSync(w.rawLogPath, rotatedPath);
+
+          // Re-open stream for active workers
+          if (w.alive) {
+            w.rawLogStream = fs.createWriteStream(w.rawLogPath, { flags: 'w' });
+          }
+
+          rotated.push({ name, sizeMb: Math.round(stat.size / 1024 / 1024) });
+        }
+      } catch {}
+    }
+
+    return rotated;
+  }
+
+  _cleanupExitedLogs() {
+    const cleanupMinutes = this.config.logs?.cleanupAfterMinutes || 60;
+    const cleanupMs = cleanupMinutes * 60 * 1000;
+    const now = Date.now();
+    const cleaned = [];
+
+    for (const [name, w] of this.workers) {
+      if (w.alive) continue;
+
+      // Find exit time from last snapshot with exited flag
+      const exitSnapshot = [...w.snapshots].reverse().find(s => s.exited);
+      if (!exitSnapshot) continue;
+
+      const age = now - exitSnapshot.time;
+      if (age >= cleanupMs) {
+        // Delete log files
+        if (w.rawLogPath) {
+          try { fs.unlinkSync(w.rawLogPath); } catch {}
+          try { fs.unlinkSync(w.rawLogPath + '.1'); } catch {}
+        }
+
+        // Remove worker from map
+        if (w.rawLogStream && !w.rawLogStream.destroyed) w.rawLogStream.end();
+        this.workers.delete(name);
+        cleaned.push({ name, ageMinutes: Math.round(age / 60000) });
+      }
+    }
+
+    if (cleaned.length > 0) {
+      this._saveState();
+    }
+
+    return cleaned;
+  }
+
   // --- Health Check ---
 
   healthCheck() {
@@ -781,7 +872,11 @@ class PtyManager {
       }
     }
 
-    return { lastCheck: now, workers: results };
+    // Log rotation and cleanup
+    const rotated = this._checkLogRotation();
+    const cleaned = this._cleanupExitedLogs();
+
+    return { lastCheck: now, workers: results, rotated, cleaned };
   }
 
   startHealthCheck() {
@@ -866,7 +961,11 @@ class PtyManager {
         totalSnapshots: w.snapshots.length
       });
     }
-    return { workers: result, lastHealthCheck: this._lastHealthCheck };
+    return {
+      workers: result,
+      lostWorkers: this.lostWorkers || [],
+      lastHealthCheck: this._lastHealthCheck
+    };
   }
 
   close(name) {

@@ -169,6 +169,12 @@ async function main() {
               console.log(`${w.name}\t\t${w.status}\t\t${w.unreadSnapshots}\t${w.command}`);
             }
           }
+          if (result.lostWorkers && result.lostWorkers.length > 0) {
+            console.log('\nLOST (daemon restart):');
+            for (const lw of result.lostWorkers) {
+              console.log(`  ${lw.name}\t\tpid=${lw.pid || '?'}\tbranch=${lw.branch || '-'}\tlost=${lw.lostAt}`);
+            }
+          }
           if (result.lastHealthCheck) {
             const ago = Math.round((Date.now() - result.lastHealthCheck) / 1000);
             console.log(`\nLast health check: ${ago}s ago (${new Date(result.lastHealthCheck).toLocaleTimeString()})`);

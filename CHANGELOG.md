@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.8.0] - 2026-04-03
+
+### Added
+- **Log rotation** (2.7): Auto-rotate `logs/*.raw.log` when exceeding size limit
+  - `_checkLogRotation()`: checks file size against `config.logs.maxLogSizeMb` (default 50MB)
+  - Rotates `.raw.log` → `.raw.log.1` (deletes previous `.log.1`)
+  - Re-opens log stream for active workers after rotation
+  - Runs automatically in `healthCheck()` timer
+- **Exited worker log cleanup** (2.7): Auto-delete logs of long-exited workers
+  - `_cleanupExitedLogs()`: removes workers exited longer than `config.logs.cleanupAfterMinutes` (default 60min)
+  - Deletes both `.raw.log` and `.raw.log.1` files
+  - Removes cleaned-up workers from internal map
+  - Runs automatically in `healthCheck()` timer
+- **Lost worker recovery display** (2.7): Daemon restart awareness
+  - `_loadState()` detects previously-alive workers from `state.json` on startup
+  - Marks them as `lost` (daemon restarted, PTY sessions gone)
+  - `_saveState()` includes `exitedAt` timestamp for exited workers
+  - `c4 list` shows LOST section with name, pid, branch, and lost timestamp
+
 ## [0.7.0] - 2026-04-03
 
 ### Added
