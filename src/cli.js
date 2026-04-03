@@ -99,13 +99,15 @@ async function main() {
 
       case 'task': {
         const name = args[0];
-        let branch = '', useBranch = true, scope = null, scopePreset = '', after = '', contextFrom = '';
+        let branch = '', useBranch = true, scope = null, scopePreset = '', after = '', contextFrom = '', reuse = undefined;
         const taskParts = [];
         for (let i = 1; i < args.length; i++) {
           if (args[i] === '--branch' && args[i + 1]) { branch = args[++i]; }
           else if (args[i] === '--no-branch') { useBranch = false; }
           else if (args[i] === '--after' && args[i + 1]) { after = args[++i]; }
           else if (args[i] === '--context' && args[i + 1]) { contextFrom = args[++i]; }
+          else if (args[i] === '--reuse') { reuse = true; }
+          else if (args[i] === '--no-reuse') { reuse = false; }
           else if (args[i] === '--scope' && args[i + 1]) {
             try { scope = JSON.parse(args[++i]); }
             catch { console.error('Error: --scope must be valid JSON'); process.exit(1); }
@@ -119,6 +121,7 @@ async function main() {
         if (scopePreset) body.scopePreset = scopePreset;
         if (after) body.after = after;
         if (contextFrom) body.contextFrom = contextFrom;
+        if (reuse !== undefined) body.reuse = reuse;
         result = await request('POST', '/task', body);
         break;
       }
@@ -723,7 +726,7 @@ Commands:
   init                                                     Initialize c4 (permissions, config, symlink)
   new <name> [command] [--target dgx|local] [--cwd path]   Create a worker
   task <name> <text> [--branch name] [--no-branch]         Send task with auto branch
-       [--context worker] [--scope JSON] [--scope-preset name] Context transfer / scope guard
+       [--context worker] [--reuse] [--scope JSON]             Context / pool reuse / scope
   send <name> <text>               Send raw text to worker
   key <name> <key>                 Send special key (Enter, C-c, C-b, Tab, etc.)
   read <name>                      Read new output (idle snapshots only)

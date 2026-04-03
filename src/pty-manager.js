@@ -851,6 +851,50 @@ class PtyManager {
     ].join('\n');
   }
 
+  // --- Worker Pooling (3.4) ---
+
+  _findPoolWorker() {
+    const poolCfg = this.config.pool || {};
+    if (!poolCfg.enabled) return null;
+
+    const maxIdleMs = poolCfg.maxIdleMs || 300000;
+    const now = Date.now();
+
+    for (const [name, w] of this.workers) {
+      if (!w.alive) continue;
+      const idleMs = now - w.lastDataTime;
+      // Must be idle (past threshold) but not too old (within maxIdleMs)
+      if (idleMs >= this.idleThresholdMs && idleMs <= maxIdleMs) {
+        // Must not have an active task or pending task
+        if (!w._pendingTask && !w._pendingTaskSent) {
+          return name;
+        }
+      }
+    }
+    return null;
+  }
+
+  _reuseWorker(poolName, newName, task, options = {}) {
+    const w = this.workers.get(poolName);
+    if (!w || !w.alive) return { error: `Pool worker '${poolName}' not available` };
+
+    // Rename the worker
+    this.workers.delete(poolName);
+    this.workers.set(newName, w);
+
+    // Reset worker state for new task
+    w._interventionState = null;
+    w._lastQuestion = null;
+    w._errorHistory = [];
+    w._routineState = { tested: false, docsUpdated: false };
+    w._taskText = null;
+    w._taskStartedAt = null;
+    w.snapshotIndex = w.snapshots.length; // mark all old snapshots as read
+
+    // Now send the task directly
+    return this.sendTask(newName, task, options);
+  }
+
   // --- Context Transfer (3.1) ---
 
   _getContextSnapshots(workerName, count = 3) {
@@ -898,6 +942,14 @@ class PtyManager {
       const maxW = this.config.maxWorkers || 0;
       if (maxW > 0 && this._activeWorkerCount() >= maxW) {
         return this._enqueueTask(name, task, options);
+      }
+
+      // Pool reuse (3.4): try to recycle an idle worker instead of creating new
+      if (options.reuse !== false) {
+        const poolName = this._findPoolWorker();
+        if (poolName) {
+          return this._reuseWorker(poolName, name, task, options);
+        }
       }
 
       // Can proceed — auto-create worker and queue task for after setup
