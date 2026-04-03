@@ -97,10 +97,11 @@ describe('Notifications.notifyHealthCheck()', () => {
     assert.strictEqual(n._slackBuffer.length, 1);
   });
 
-  it('does not push when no workers', () => {
+  it('pushes heartbeat when no workers', () => {
     const n = new Notifications({ language: 'ko', slack: { enabled: true, webhookUrl: 'http://example.com/hook' } });
     n.notifyHealthCheck({ workers: [] });
-    assert.strictEqual(n._slackBuffer.length, 0);
+    assert.strictEqual(n._slackBuffer.length, 1);
+    assert.ok(n._slackBuffer[0].text.includes('daemon OK'));
   });
 });
 
@@ -185,5 +186,70 @@ describe('Notifications.reload()', () => {
     n.reload();
     assert.strictEqual(n._slackBuffer.length, 0);
     assert.strictEqual(n.lang.done, '\uC644\uB8CC');
+  });
+});
+
+describe('Notifications alertOnly mode', () => {
+  const slackCfg = { enabled: true, webhookUrl: 'http://example.com/hook', alertOnly: true };
+
+  it('statusUpdate does not push to slack buffer when alertOnly is true', () => {
+    const n = new Notifications({ language: 'ko', slack: slackCfg });
+    n.statusUpdate('w1', 'doing stuff');
+    assert.strictEqual(n._slackBuffer.length, 0);
+  });
+
+  it('notifyEdits does not push to slack buffer when alertOnly is true', () => {
+    const n = new Notifications({ language: 'ko', slack: slackCfg });
+    n.notifyEdits(2, [{ text: 'file1.js' }, { text: 'file2.js' }]);
+    assert.strictEqual(n._slackBuffer.length, 0);
+  });
+
+  it('notifyTaskComplete does not push to slack buffer when alertOnly is true', async () => {
+    const n = new Notifications({ language: 'en', slack: slackCfg });
+    const result = await n.notifyTaskComplete('w1', { branch: 'c4/w1' });
+    assert.strictEqual(n._slackBuffer.length, 0);
+    assert.strictEqual(result.slack, 'skipped(alertOnly)');
+  });
+
+  it('notifyHealthCheck does not push to slack buffer when alertOnly is true', () => {
+    const n = new Notifications({ language: 'ko', slack: slackCfg });
+    n.notifyHealthCheck({
+      workers: [
+        { name: 'w1', status: 'alive', task: 'test' },
+        { name: 'w2', status: 'exited' }
+      ]
+    });
+    assert.strictEqual(n._slackBuffer.length, 0);
+  });
+
+  it('notifyError still pushes to slack buffer when alertOnly is true', async () => {
+    const n = new Notifications({ language: 'en', slack: slackCfg });
+    await n.notifyError('w1', 'something broke');
+    assert.strictEqual(n._slackBuffer.length, 1);
+    assert.ok(n._slackBuffer[0].text.includes('ERROR'));
+  });
+
+  it('notifyStall still sends when alertOnly is true', async () => {
+    const n = new Notifications({ language: 'ko', slack: slackCfg });
+    // notifyStall uses _postWebhook directly, won't actually connect but won't throw
+    // Just verify it doesn't early-return
+    const result = await n.notifyStall('w1', 'no output for 5min');
+    // Result will have ok:false because it can't connect, but it tried (not skipped)
+    assert.ok(result !== undefined);
+    assert.ok('ok' in result || 'error' in result);
+  });
+
+  it('alertOnly false allows all notifications normally', () => {
+    const n = new Notifications({ language: 'ko', slack: { enabled: true, webhookUrl: 'http://example.com/hook', alertOnly: false } });
+    n.statusUpdate('w1', 'doing stuff');
+    assert.strictEqual(n._slackBuffer.length, 1);
+    n.notifyEdits(1, [{ text: 'file.js' }]);
+    assert.strictEqual(n._slackBuffer.length, 2);
+  });
+
+  it('alertOnly undefined (default) allows all notifications', () => {
+    const n = new Notifications({ language: 'ko', slack: { enabled: true, webhookUrl: 'http://example.com/hook' } });
+    n.statusUpdate('w1', 'doing stuff');
+    assert.strictEqual(n._slackBuffer.length, 1);
   });
 });

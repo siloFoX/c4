@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.2] - 2026-04-04
+
+### Changed
+- **_getLastActivity JSONL 기반 전환** (4.14): raw screen 패턴 매칭 제거, logs/events-<worker>.jsonl에서 최근 tool_use 이벤트 읽어 "Edit: foo.js, Write: bar.js" 형태 반환. 폴백으로 taskText 첫줄 요약
+
+### Added
+- **alertOnly 모드** (4.16): `notifications.slack.alertOnly` 옵션 추가. true이면 STALL/ERROR 알림만 Slack 전송, 일반 알림(statusUpdate, notifyEdits, notifyTaskComplete, notifyHealthCheck) 억제. 8개 유닛 테스트 추가
+- **notifyStall 긴급 알림** (4.15): `notifyStall(workerName, reason)` 메서드. Slack webhook 즉시 전송 (버퍼 미사용)
+  - healthCheck에서 intervention 상태 워커 자동 감지
+  - busy 워커 5분+ 무출력 시 자동 감지
+  - `tests/stall-detection.test.js`: 10개 유닛 테스트
+
+---
+
 ## [1.3.1] - 2026-04-04
 
 ### Added
