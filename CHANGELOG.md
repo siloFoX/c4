@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.4.0] - 2026-04-04
+
+### Added
+- **메시지 채널 확장** (4.12): notifications.js를 플러그인 구조로 리팩토링
+  - Channel 베이스 클래스: push/flush/sendImmediate/start/stop 인터페이스
+  - SlackChannel: 기존 Slack webhook 로직 (하위 호환 유지)
+  - DiscordChannel: webhook POST `{ content }`, 2000자 초과 시 자동 truncate
+  - TelegramChannel: Bot API `sendMessage`, Markdown parse_mode
+  - KakaoWorkChannel: Incoming Webhook POST `{ text }`
+  - `pushSlack()` -> `pushAll()` (모든 활성 채널에 push, pushSlack은 호환 alias)
+  - `startPeriodicSlack()` -> `startAll()` / `stopPeriodicSlack()` -> `stopAll()`
+  - `notifyStall()`: 모든 채널에 즉시(unbuffered) 전송
+  - `tick()`: 모든 채널 flush
+  - config.example.json에 discord/telegram/kakaowork 설정 추가
+  - 새 외부 패키지 없이 Node.js 표준 http/https만 사용
+
 ## [1.3.2] - 2026-04-04
 
 ### Changed

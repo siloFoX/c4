@@ -1,6 +1,8 @@
-// Notification system (4.10): Slack webhook (periodic) + Email (event-based)
-// Slack: Node.js built-in https — no external dependency
-// Email: nodemailer (optional soft dependency — npm install nodemailer to enable)
+// Notification system (4.12): Plugin-based multi-channel notifications
+// Channels: Slack, Discord, Telegram, KakaoWork
+// Slack/Discord/KakaoWork: webhook POST. Telegram: Bot API POST
+// Email: nodemailer (optional soft dependency)
+// All webhook channels use Node.js built-in http/https — no external dependency
 
 const https = require('https');
 const http = require('http');
@@ -30,17 +32,168 @@ const LANG = {
   }
 };
 
+// --- Channel base class ---
+
+class Channel {
+  constructor(config) {
+    this.config = config;
+    this._buffer = [];
+    this._timer = null;
+  }
+
+  /** Buffer a message for periodic flush */
+  push(message) {
+    this._buffer.push({ text: message, ts: Date.now() });
+  }
+
+  /** Flush buffered messages — subclass must implement _send(text) */
+  async flush() {
+    if (this._buffer.length === 0) return { sent: false };
+    const messages = this._buffer.splice(0);
+    const text = messages.map(m => m.text).join('\n---\n');
+    return this._send(text);
+  }
+
+  /** Send a message immediately (unbuffered) */
+  async sendImmediate(message) {
+    return this._send(message);
+  }
+
+  /** Start periodic flush timer */
+  start(intervalMs) {
+    if (this._timer) return;
+    this._timer = setInterval(() => this.flush(), intervalMs || 300000);
+  }
+
+  /** Stop periodic flush timer */
+  stop() {
+    if (this._timer) {
+      clearInterval(this._timer);
+      this._timer = null;
+    }
+  }
+
+  /** Subclass must override: send text to the channel endpoint */
+  async _send(text) {
+    throw new Error('Channel._send() not implemented');
+  }
+}
+
+// --- Slack Channel ---
+
+class SlackChannel extends Channel {
+  async _send(text) {
+    return _postWebhook(this.config.webhookUrl, { text });
+  }
+}
+
+// --- Discord Channel (2000 char limit) ---
+
+class DiscordChannel extends Channel {
+  async _send(text) {
+    const content = text.length > 2000 ? text.substring(0, 1997) + '...' : text;
+    return _postWebhook(this.config.webhookUrl, { content });
+  }
+}
+
+// --- Telegram Channel (Bot API) ---
+
+class TelegramChannel extends Channel {
+  async _send(text) {
+    const url = `https://api.telegram.org/bot${this.config.botToken}/sendMessage`;
+    return _postWebhook(url, {
+      chat_id: this.config.chatId,
+      text,
+      parse_mode: 'Markdown'
+    });
+  }
+}
+
+// --- KakaoWork Channel (Incoming Webhook) ---
+
+class KakaoWorkChannel extends Channel {
+  async _send(text) {
+    return _postWebhook(this.config.webhookUrl, { text });
+  }
+}
+
+// --- Shared webhook utility (module-level) ---
+
+function _postWebhook(url, payload) {
+  return new Promise((resolve) => {
+    try {
+      const parsed = new URL(url);
+      const lib = parsed.protocol === 'https:' ? https : http;
+      const data = JSON.stringify(payload);
+      const req = lib.request({
+        hostname: parsed.hostname,
+        port: parsed.port,
+        path: parsed.pathname + parsed.search,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(data)
+        }
+      }, (res) => {
+        res.resume();
+        resolve({ ok: res.statusCode < 300, status: res.statusCode });
+      });
+      req.on('error', (e) => resolve({ ok: false, error: e.message }));
+      req.write(data);
+      req.end();
+    } catch (e) {
+      resolve({ ok: false, error: e.message });
+    }
+  });
+}
+
+// --- Channel registry ---
+
+const CHANNEL_TYPES = {
+  slack: SlackChannel,
+  discord: DiscordChannel,
+  telegram: TelegramChannel,
+  kakaowork: KakaoWorkChannel,
+};
+
+// --- Notifications class ---
+
 class Notifications {
   constructor(config = {}) {
     this.config = config;
     this.slack = config.slack || {};
     this.email = config.email || {};
     this.lang = LANG[config.language || 'ko'] || LANG.ko;
+    this.channels = {};
+
+    // Backward compat: expose slack buffer reference
     this._slackBuffer = [];
     this._slackTimer = null;
     this._transporter = null;
 
+    this._initChannels();
     this._initEmail();
+  }
+
+  _initChannels() {
+    this.channels = {};
+
+    // Slack channel (from legacy config.slack)
+    if (this.slack.enabled && this.slack.webhookUrl) {
+      const ch = new SlackChannel(this.slack);
+      this.channels.slack = ch;
+      // Backward compat: share buffer reference
+      this._slackBuffer = ch._buffer;
+    }
+
+    // New channels from config
+    for (const [name, ChannelClass] of Object.entries(CHANNEL_TYPES)) {
+      if (name === 'slack') continue; // already handled above
+      const chConfig = this.config[name];
+      if (chConfig && chConfig.enabled) {
+        this.channels[name] = new ChannelClass(chConfig);
+      }
+    }
   }
 
   _time() {
@@ -61,60 +214,68 @@ class Notifications {
     }
   }
 
-  // --- Slack (periodic) ---
+  // --- Push to all channels (buffered) ---
 
+  pushAll(message) {
+    for (const ch of Object.values(this.channels)) {
+      ch.push(message);
+    }
+  }
+
+  /** @deprecated Use pushAll(). Kept for backward compatibility. */
   pushSlack(message) {
-    if (!this.slack.enabled || !this.slack.webhookUrl) return;
-    this._slackBuffer.push({ text: message, ts: Date.now() });
+    this.pushAll(message);
   }
 
-  async _flushSlack() {
-    if (this._slackBuffer.length === 0) return { sent: false };
-    const messages = this._slackBuffer.splice(0);
-    const text = messages.map(m => m.text).join('\n---\n');
-    return this._postWebhook(this.slack.webhookUrl, { text });
+  // --- Flush all channels ---
+
+  async _flushAll() {
+    const results = {};
+    for (const [name, ch] of Object.entries(this.channels)) {
+      results[name] = await ch.flush();
+    }
+    return results;
   }
+
+  /** @deprecated Use _flushAll(). Kept for backward compatibility. */
+  async _flushSlack() {
+    return this._flushAll();
+  }
+
+  // --- Webhook utility (instance method for backward compat) ---
 
   _postWebhook(url, payload) {
-    return new Promise((resolve) => {
-      try {
-        const parsed = new URL(url);
-        const lib = parsed.protocol === 'https:' ? https : http;
-        const data = JSON.stringify(payload);
-        const req = lib.request({
-          hostname: parsed.hostname,
-          port: parsed.port,
-          path: parsed.pathname + parsed.search,
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(data)
-          }
-        }, (res) => {
-          res.resume();
-          resolve({ ok: res.statusCode < 300, status: res.statusCode });
-        });
-        req.on('error', (e) => resolve({ ok: false, error: e.message }));
-        req.write(data);
-        req.end();
-      } catch (e) {
-        resolve({ ok: false, error: e.message });
-      }
-    });
+    return _postWebhook(url, payload);
   }
 
-  startPeriodicSlack() {
-    if (this._slackTimer) return;
-    if (!this.slack.enabled || !this.slack.webhookUrl) return;
+  // --- Periodic flush ---
+
+  startAll() {
     const intervalMs = this.slack.intervalMs || 300000;
-    this._slackTimer = setInterval(() => this._flushSlack(), intervalMs);
+    for (const ch of Object.values(this.channels)) {
+      ch.start(intervalMs);
+    }
+    // Backward compat timer reference
+    if (this.channels.slack) {
+      this._slackTimer = this.channels.slack._timer;
+    }
   }
 
-  stopPeriodicSlack() {
-    if (this._slackTimer) {
-      clearInterval(this._slackTimer);
-      this._slackTimer = null;
+  stopAll() {
+    for (const ch of Object.values(this.channels)) {
+      ch.stop();
     }
+    this._slackTimer = null;
+  }
+
+  /** @deprecated Use startAll(). Kept for backward compatibility. */
+  startPeriodicSlack() {
+    this.startAll();
+  }
+
+  /** @deprecated Use stopAll(). Kept for backward compatibility. */
+  stopPeriodicSlack() {
+    this.stopAll();
   }
 
   // --- Email (event-based) ---
@@ -149,7 +310,7 @@ class Notifications {
       const shortTask = details.task.split(/[.\n]/)[0].substring(0, 100);
       lines.push(`  task: ${shortTask}`);
     }
-    this.pushSlack(lines.join('\n'));
+    this.pushAll(lines.join('\n'));
 
     const emailResult = await this.sendEmail(
       `C4: ${workerName} ${this.lang.done}`,
@@ -166,7 +327,7 @@ class Notifications {
     if (details.task) {
       lines.push(`  task: ${details.task.split(/[.\n]/)[0].substring(0, 80)}`);
     }
-    this.pushSlack(lines.join('\n'));
+    this.pushAll(lines.join('\n'));
   }
 
   async notifyHealthCheck(results) {
@@ -181,41 +342,43 @@ class Notifications {
         ...dead.map(w => `  ${w.name} - ${this.lang.down}`),
         ...alive.map(w => this._fmtWorker(w))
       ];
-      this.pushSlack(`${t} ${this.lang.workersDown(dead.length)}\n${lines.join('\n')}`);
+      this.pushAll(`${t} ${this.lang.workersDown(dead.length)}\n${lines.join('\n')}`);
     } else if (workers.length > 0) {
       const lines = alive.map(w => this._fmtWorker(w));
-      this.pushSlack(`${t}\n${lines.join('\n')}`);
+      this.pushAll(`${t}\n${lines.join('\n')}`);
     } else {
-      // Heartbeat — 워커 없어도 데몬 살아있다는 신호
-      this.pushSlack(`${t} daemon OK`);
+      this.pushAll(`${t} daemon OK`);
     }
   }
 
-  // Stall alert: immediate Slack webhook (not buffered)
+  // Stall alert: immediate send to ALL channels (not buffered)
   async notifyStall(workerName, reason) {
-    if (!this.slack.enabled || !this.slack.webhookUrl) {
-      return { sent: false, reason: 'slack not configured' };
+    const channelNames = Object.keys(this.channels);
+    if (channelNames.length === 0) {
+      return { sent: false, reason: 'no channels configured' };
     }
     const t = this._time();
     const text = `[STALL] ${t} ${workerName}: ${reason}`;
-    return this._postWebhook(this.slack.webhookUrl, { text });
+    const results = {};
+    for (const [name, ch] of Object.entries(this.channels)) {
+      results[name] = await ch.sendImmediate(text);
+    }
+    return results;
   }
 
-  // Worker가 직접 보내는 상태 메시지
   statusUpdate(workerName, message) {
     if (this.slack.alertOnly) return;
     const t = this._time();
-    this.pushSlack(`${t} ${workerName}: ${message}`);
+    this.pushAll(`${t} ${workerName}: ${message}`);
   }
 
-  // Scribe가 보내는 파일 수정 요약
   notifyEdits(totalNew, toolActions) {
     if (this.slack.alertOnly) return;
     if (toolActions.length === 0) return;
     const t = this._time();
     const files = toolActions.map(e => e.text).join(', ');
     const short = files.length > 120 ? files.substring(0, 120) + '...' : files;
-    this.pushSlack(`${t} ${this.lang.edits(toolActions.length, short)}`);
+    this.pushAll(`${t} ${this.lang.edits(toolActions.length, short)}`);
   }
 
   _fmtWorker(w) {
@@ -227,35 +390,43 @@ class Notifications {
       : 0;
     const elStr = elapsed > 0 ? ` ${this.lang.elapsed(elapsed)}` : '';
 
-    // Show what the worker is actually doing, not the original task text
     const activity = w.lastActivity || '';
     if (activity) {
       return `  ${w.name}${elStr} - ${activity}`;
     }
 
-    // Fallback to task description
     const shortTask = w.task.split(/[.\n]/)[0].substring(0, 80);
     return `  ${w.name}${elStr} - ${shortTask}`;
   }
 
-  // Called from daemon healthCheck timer — flushes Slack buffer
+  // Called from daemon healthCheck timer — flushes all channel buffers
   async tick() {
     const results = {};
-    if (this.slack.enabled) {
-      results.slack = await this._flushSlack();
+    const channelResults = await this._flushAll();
+    for (const [name, res] of Object.entries(channelResults)) {
+      results[name] = res;
     }
     return results;
   }
 
   reload(config = {}) {
-    this.stopPeriodicSlack();
+    this.stopAll();
     this.config = config;
     this.slack = config.slack || {};
     this.email = config.email || {};
     this.lang = LANG[config.language || 'ko'] || LANG.ko;
     this._slackBuffer = [];
+    this._initChannels();
     this._initEmail();
   }
 }
+
+// Export channel classes for testing
+Notifications.Channel = Channel;
+Notifications.SlackChannel = SlackChannel;
+Notifications.DiscordChannel = DiscordChannel;
+Notifications.TelegramChannel = TelegramChannel;
+Notifications.KakaoWorkChannel = KakaoWorkChannel;
+Notifications.CHANNEL_TYPES = CHANNEL_TYPES;
 
 module.exports = Notifications;
