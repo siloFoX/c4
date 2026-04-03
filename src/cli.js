@@ -402,6 +402,29 @@ async function main() {
           console.log(`[warn] git hooksPath: ${e.message}`);
         }
 
+        // 5. Add PostCompact hook for scribe context recovery
+        try {
+          const settingsPath2 = path.join(home, '.claude', 'settings.json');
+          const settings2 = JSON.parse(fs.readFileSync(settingsPath2, 'utf8'));
+          if (!settings2.hooks) settings2.hooks = {};
+          if (!settings2.hooks.PostCompact) {
+            const contextPath = path.join(repoRoot, 'docs', 'session-context.md').replace(/\\/g, '/');
+            settings2.hooks.PostCompact = [{
+              hooks: [{
+                type: 'command',
+                command: `cat "${contextPath}" 2>/dev/null || echo "No session context found"`,
+                statusMessage: 'Loading session context...'
+              }]
+            }];
+            fs.writeFileSync(settingsPath2, JSON.stringify(settings2, null, 2));
+            console.log('[ok] PostCompact hook: session context auto-load');
+          } else {
+            console.log('[ok] PostCompact hook: already configured');
+          }
+        } catch (e) {
+          console.log(`[warn] PostCompact hook: ${e.message}`);
+        }
+
         console.log('\nc4 init complete!');
         return;
       }

@@ -733,9 +733,21 @@ class PtyManager {
     this._lastHealthCheck = now;
     const results = [];
 
+    const timeoutMs = this.config.healthCheck?.timeoutMs || 600000; // 10 min default
+
     for (const [name, w] of this.workers) {
       if (w.alive) {
-        results.push({ name, status: 'alive' });
+        const idleMs = now - w.lastDataTime;
+        if (idleMs > timeoutMs) {
+          w.snapshots.push({
+            time: now,
+            screen: `[HEALTH] worker idle for ${Math.round(idleMs / 60000)}min (timeout: ${Math.round(timeoutMs / 60000)}min)`,
+            autoAction: true
+          });
+          results.push({ name, status: 'timeout', idleMs });
+        } else {
+          results.push({ name, status: 'alive' });
+        }
         continue;
       }
 

@@ -93,6 +93,7 @@
   "healthCheck": {
     "enabled": true,
     "intervalMs": 30000,
+    "timeoutMs": 600000,
     "autoRestart": false
   },
 
