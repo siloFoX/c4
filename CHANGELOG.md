@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.12.0] - 2026-04-03
+
+### Added
+- **Effort dynamic adjustment** (3.3): Auto-determine effort level based on task text length
+  - `_determineEffort()`: task length → effort level mapping
+  - Config: `effort.dynamic` (boolean), `effort.thresholds` (e.g., `{ high: 100, max: 500 }`), `effort.default`
+  - Under 100 chars → high, 500+ chars → max, between → configurable default
+  - Per-worker `_dynamicEffort` overrides static `workerDefaults.effortLevel`
+  - `tests/effort-dynamic.test.js`: 12 unit tests
+- **SSE event streaming** (3.5): Real-time event propagation via Server-Sent Events
+  - `GET /events`: SSE endpoint (`text/event-stream`)
+  - 4 event types: `permission`, `complete`, `error`, `question`
+  - PtyManager extends EventEmitter, `_emitSSE()` helper
+  - `addSSEClient()` connection management with auto-cleanup on disconnect
+  - `tests/sse.test.js`: 7 unit tests
+- **ScreenBuffer improvements** (3.8): Enhanced ANSI CSI parser + scrollback API
+  - New CSI commands: `P` (Delete Chars), `@` (Insert Chars), `X` (Erase Chars), `r` (Scroll Region), `s`/`u` (Save/Restore Cursor), `b` (Repeat Char), `I`/`Z` (Tab Stops)
+  - `getScrollback(lastN)`: read scrollback buffer without current screen
+  - `c4 scrollback <name> [--lines N]`: CLI command for scrollback access
+  - `GET /scrollback`: daemon endpoint with `?name=` and `?lines=` params
+  - `tests/screen-buffer.test.js`: 16 unit tests
+
 ## [0.11.0] - 2026-04-03
 
 ### Added
