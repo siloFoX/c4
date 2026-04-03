@@ -1573,15 +1573,25 @@ class PtyManager extends EventEmitter {
   _detectRoutineSkip(screenText, worker) {
     // Detect if worker is committing without following the routine:
     // implement → test → docs → commit
-    // Look for git commit patterns without prior test execution
-    const hasCommit = /git commit|git add/.test(screenText);
+    const hasCommit = /git commit/.test(screenText);
     if (!hasCommit) return null;
 
     const routine = worker._routineState || { tested: false, docsUpdated: false };
+    const skips = [];
 
-    // Check if tests were run in recent snapshots
     if (!routine.tested) {
-      return { type: 'no_test', message: 'Committing without running tests' };
+      skips.push('npm test');
+    }
+    if (!routine.docsUpdated) {
+      skips.push('docs (TODO/CHANGELOG/patches)');
+    }
+
+    if (skips.length > 0) {
+      return {
+        type: skips.length === 2 ? 'no_test_no_docs' : (!routine.tested ? 'no_test' : 'no_docs'),
+        message: `Committing without: ${skips.join(', ')}`,
+        feedback: `커밋 전에 ${skips.join(', ')} 먼저 해. 루틴: 구현 -> 테스트 -> 문서 -> 커밋.`
+      };
     }
 
     return null;
@@ -2270,7 +2280,7 @@ class PtyManager extends EventEmitter {
           }
         }
 
-        // Routine monitoring
+        // Routine monitoring — auto-feedback on skip
         if (interventionCfg.routineCheck !== false) {
           this._updateRoutineState(text, worker);
           const routineSkip = this._detectRoutineSkip(text, worker);
@@ -2281,6 +2291,12 @@ class PtyManager extends EventEmitter {
               autoAction: true,
               intervention: 'routine'
             });
+            // Send feedback to worker — tell it to follow the routine
+            if (routineSkip.feedback && worker.alive) {
+              setTimeout(() => {
+                this._chunkedWrite(proc, routineSkip.feedback + '\r');
+              }, 1000);
+            }
           }
         }
 
