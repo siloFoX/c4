@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.1] - 2026-04-04
+
+### Added
+- **Hook 이벤트 JSONL 영속화** (4.2): `_appendEventLog()` 메서드 추가
+  - 모든 PreToolUse/PostToolUse hook 이벤트를 `logs/events-<worker>.jsonl`에 JSONL 형식으로 저장
+  - 워커별 개별 파일로 분리 저장 (리플레이/디버깅 용도)
+  - 잘못된 입력(null, undefined, 비문자열 workerName, 비객체 hookEntry) 안전 처리
+  - 파일/디렉토리 자동 생성, 기존 파일에 추가(append) 동작
+  - 쓰기 실패 시 hook 처리 중단 없이 무시 (에러 격리)
+  - `tests/hook-event-log.test.js`: 16개 유닛 테스트
+
+---
+
 ## [1.3.0] - 2026-04-03
 
 ### Added

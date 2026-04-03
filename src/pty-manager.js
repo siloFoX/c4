@@ -233,6 +233,9 @@ class PtyManager extends EventEmitter {
     // Emit SSE for real-time monitoring
     this._emitSSE('hook', { worker: workerName, event: hookEntry });
 
+    // Persist to JSONL file (4.2)
+    this._appendEventLog(workerName, hookEntry);
+
     const hookType = event.hook_type; // 'PreToolUse' or 'PostToolUse'
     const toolName = event.tool_name || '';
     const toolInput = event.tool_input || {};
@@ -374,6 +377,25 @@ class PtyManager extends EventEmitter {
   getHookEvents(workerName, limit = 50) {
     const events = this._hookEvents.get(workerName) || [];
     return { worker: workerName, events: events.slice(-limit), total: events.length };
+  }
+
+  // --- Hook Event JSONL Persistence (4.2) ---
+  // Appends hook events to logs/events-<workerName>.jsonl for replay/debugging
+  _appendEventLog(workerName, hookEntry) {
+    if (!workerName || typeof workerName !== 'string') return;
+    if (!hookEntry || typeof hookEntry !== 'object') return;
+
+    try {
+      const dir = this.logsDir;
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      const logFile = path.join(dir, `events-${workerName}.jsonl`);
+      const line = JSON.stringify(hookEntry) + '\n';
+      fs.appendFileSync(logFile, line, 'utf8');
+    } catch (err) {
+      // Log write failures should not break hook processing
+    }
   }
 
   // Build hook commands for worker's .claude/settings.json (3.15)
