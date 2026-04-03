@@ -4,6 +4,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 const ScreenBuffer = require('./screen-buffer');
 const Scribe = require('./scribe');
+const { ScopeGuard, resolveScope } = require('./scope-guard');
 
 const CONFIG_FILE = path.join(__dirname, '..', 'config.json');
 const STATE_FILE = path.join(__dirname, '..', 'state.json');
@@ -296,6 +297,20 @@ class PtyManager {
     return defaultAction;
   }
 
+  _checkScope(scopeGuard, screenText) {
+    const promptType = this._getPromptType(screenText);
+
+    if (promptType === 'bash') {
+      const command = this._extractBashCommand(screenText);
+      if (command) return scopeGuard.checkBash(command);
+    } else if (promptType === 'create' || promptType === 'edit') {
+      const fileName = this._extractFileName(screenText);
+      if (fileName) return scopeGuard.checkFile(fileName);
+    }
+
+    return null; // Can't determine — let autoApprove decide
+  }
+
   _getApproveKeystrokes(screenText, action) {
     const numOptions = this._countOptions(screenText);
     const alwaysForSession = this.config.autoApprove?.alwaysApproveForSession || false;
@@ -348,6 +363,12 @@ class PtyManager {
     const useWorktree = options.useWorktree !== false && this.config.worktree?.enabled !== false;
     const commands = [];
 
+    // Scope guard setup
+    const scopeGuard = resolveScope(options.scope, this.config, options.scopePreset);
+    if (scopeGuard) {
+      w.scopeGuard = scopeGuard;
+    }
+
     if (options.useBranch !== false) {
       if (useWorktree) {
         const repoRoot = this._detectRepoRoot(options.projectRoot);
@@ -380,13 +401,24 @@ class PtyManager {
       commands.push(rulesSummary);
     }
 
+    // Prepend scope summary if scope is defined
+    if (w.scopeGuard && w.scopeGuard.hasRestrictions()) {
+      commands.push(w.scopeGuard.toSummary());
+    }
+
     commands.push(task);
 
     const fullTask = commands.join('\n\n');
     w.proc.write(fullTask + '\r');
     w.branch = branch;
 
-    return { success: true, branch, worktree: w.worktree || null, task: fullTask };
+    return {
+      success: true,
+      branch,
+      worktree: w.worktree || null,
+      scope: w.scopeGuard ? { active: true, description: w.scopeGuard.description } : null,
+      task: fullTask
+    };
   }
 
   create(name, command, args = [], options = {}) {
@@ -590,6 +622,28 @@ class PtyManager {
 
         // Auto-approve logic
         if (this.config.autoApprove?.enabled && this._detectPermissionPrompt(text)) {
+          // Scope guard check — override autoApprove if out of scope
+          if (worker.scopeGuard && worker.scopeGuard.hasRestrictions()) {
+            const scopeResult = this._checkScope(worker.scopeGuard, text);
+            if (scopeResult && !scopeResult.allowed) {
+              // Out of scope → force deny
+              const numOptions = this._countOptions(text);
+              let denyKeys = '';
+              for (let i = 1; i < numOptions; i++) denyKeys += '\x1b[B';
+              denyKeys += '\r';
+
+              worker.snapshots.push({
+                time: Date.now(),
+                screen: `[SCOPE DENY] ${scopeResult.reason}`,
+                autoAction: true,
+                scopeViolation: true
+              });
+
+              proc.write(denyKeys);
+              return;
+            }
+          }
+
           const action = this._classifyPermission(text);
           const keys = this._getApproveKeystrokes(text, action);
 
@@ -609,6 +663,21 @@ class PtyManager {
             return;
           }
           // 'ask' falls through to snapshot — manager will see the prompt
+        }
+
+        // Scope drift keyword detection
+        if (worker.scopeGuard) {
+          const driftKeywords = worker.scopeGuard.detectDrift(text);
+          if (driftKeywords) {
+            worker.snapshots.push({
+              time: Date.now(),
+              screen: `[SCOPE DRIFT] 방향 전환 감지: ${driftKeywords.join(', ')}\n---\n${text}`,
+              autoAction: true,
+              scopeDrift: true
+            });
+            this._saveState();
+            return; // Still capture the snapshot but flag it
+          }
         }
 
         worker.snapshots.push({
@@ -961,6 +1030,7 @@ class PtyManager {
         target: w.target || 'local',
         branch: w.branch || null,
         worktree: w.worktree || null,
+        scope: w.scopeGuard ? w.scopeGuard.hasRestrictions() : false,
         pid: w.proc ? w.proc.pid : null,
         status: w.alive ? (idleMs > this.idleThresholdMs ? 'idle' : 'busy') : 'exited',
         unreadSnapshots,

@@ -99,15 +99,23 @@ async function main() {
 
       case 'task': {
         const name = args[0];
-        let branch = '', useBranch = true;
+        let branch = '', useBranch = true, scope = null, scopePreset = '';
         const taskParts = [];
         for (let i = 1; i < args.length; i++) {
           if (args[i] === '--branch' && args[i + 1]) { branch = args[++i]; }
           else if (args[i] === '--no-branch') { useBranch = false; }
+          else if (args[i] === '--scope' && args[i + 1]) {
+            try { scope = JSON.parse(args[++i]); }
+            catch { console.error('Error: --scope must be valid JSON'); process.exit(1); }
+          }
+          else if (args[i] === '--scope-preset' && args[i + 1]) { scopePreset = args[++i]; }
           else { taskParts.push(args[i]); }
         }
         const task = taskParts.join(' ');
-        result = await request('POST', '/task', { name, task, branch, useBranch });
+        const body = { name, task, branch, useBranch };
+        if (scope) body.scope = scope;
+        if (scopePreset) body.scopePreset = scopePreset;
+        result = await request('POST', '/task', body);
         break;
       }
 
@@ -633,7 +641,8 @@ async function main() {
 Commands:
   init                                                     Initialize c4 (permissions, config, symlink)
   new <name> [command] [--target dgx|local] [--cwd path]   Create a worker
-  task <name> <text> [--branch name] [--no-branch]        Send task with auto branch
+  task <name> <text> [--branch name] [--no-branch]         Send task with auto branch
+       [--scope JSON] [--scope-preset name]                  Scope guard: restrict files/commands
   send <name> <text>               Send raw text to worker
   key <name> <key>                 Send special key (Enter, C-c, C-b, Tab, etc.)
   read <name>                      Read new output (idle snapshots only)
@@ -665,7 +674,11 @@ Examples:
   c4 wait arps                  # idle까지 기다렸다가 깨끗한 화면 반환
   c4 read-now arps              # 지금 당장 화면 보기 (스피너 포함)
   c4 list
-  c4 close arps`);
+  c4 close arps
+
+Scope examples:
+  c4 task worker "Add logging" --scope '{"allowFiles":["src/rag.py","tests/"],"denyBash":["pip","docker"]}'
+  c4 task worker "Fix bug" --scope-preset backend`);
         return;
     }
 

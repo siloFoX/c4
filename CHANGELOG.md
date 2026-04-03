@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.9.0] - 2026-04-03
+
+### Added
+- **Scope Guard** (1.8): Task scope definition + drift detection
+  - `src/scope-guard.js`: `ScopeGuard` class with file/bash scope checking and drift keyword detection
+  - `checkFile()`: Validates file paths against `allowFiles`/`denyFiles` glob patterns
+  - `checkBash()`: Validates bash commands against `allowBash`/`denyBash` prefix lists
+  - `detectDrift()`: Detects scope drift keywords in worker output (Korean + English)
+    - Korean: 리팩토링, 더 나은 방법, 방향을 바꿔, 다른 접근, 우선 ~부터
+    - English: refactor, better approach, let me first, change direction, better way
+  - `resolveScope()`: Resolves scope from explicit → preset → default (priority order)
+  - `toSummary()`: Generates human-readable scope instructions for task prepend
+  - Integrated into `_classifyPermission()` pipeline: scope check runs before autoApprove rules
+  - Out-of-scope file/command access → auto-deny + `[SCOPE DENY]` snapshot
+  - Drift keywords detected → `[SCOPE DRIFT]` snapshot (flagged for manager review)
+  - `c4 task --scope '{"allowFiles":["src/**"],"denyBash":["pip"]}'` — inline JSON scope
+  - `c4 task --scope-preset backend` — named preset from config
+  - `config.json`: `scope.presets` (named scope profiles), `scope.defaultScope` (fallback)
+  - `c4 list` shows scope status per worker
+  - Scope summary auto-prepended to task instructions
+  - `tests/scope-guard.test.js`: Comprehensive unit tests
+
 ## [0.8.1] - 2026-04-03
 
 ### Added

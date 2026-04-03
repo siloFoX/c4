@@ -115,6 +115,33 @@
     "cleanupAfterMinutes": 60
   },
 
+  "scope": {
+    "defaultScope": {},
+    "presets": {
+      "backend": {
+        "description": "Backend files only",
+        "allowFiles": ["src/**", "tests/**", "config.*"],
+        "denyFiles": [],
+        "allowBash": ["grep", "find", "cat", "head", "tail", "python", "node", "npm", "git"],
+        "denyBash": ["pip", "docker", "rm", "sudo"]
+      },
+      "frontend": {
+        "description": "Frontend files only",
+        "allowFiles": ["src/components/**", "src/pages/**", "public/**", "tests/**"],
+        "denyFiles": ["src/server/**", "src/db/**"],
+        "allowBash": ["grep", "find", "cat", "npm", "git"],
+        "denyBash": ["pip", "docker", "rm", "sudo"]
+      },
+      "docs-only": {
+        "description": "Documentation only",
+        "allowFiles": ["*.md", "docs/**"],
+        "denyFiles": [],
+        "allowBash": ["grep", "find", "cat", "git"],
+        "denyBash": ["pip", "npm", "docker", "rm", "sudo", "node", "python"]
+      }
+    }
+  },
+
   "rules": {
     "appendToTask": true,
     "summary": ""
