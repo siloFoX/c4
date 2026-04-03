@@ -16,7 +16,10 @@
   "targets": {
     "local": {
       "type": "local",
-      "defaultCwd": ""
+      "defaultCwd": "",
+      "commandMap": {
+        "claude": "claude"
+      }
     },
     "my-server": {
       "type": "ssh",

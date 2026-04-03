@@ -356,10 +356,12 @@ class PtyManager {
     let shell, shellArgs, pendingCommands;
 
     if (t.type === 'local' || targetName === 'local') {
+      const commandMap = t.commandMap || {};
+      const resolvedCmd = commandMap[command] || command;
       shell = process.platform === 'win32' ? 'cmd.exe' : 'bash';
       shellArgs = process.platform === 'win32'
-        ? ['/c', command, ...args]
-        : ['-c', `${command} ${args.join(' ')}`];
+        ? ['/c', resolvedCmd, ...args]
+        : ['-c', `${resolvedCmd} ${args.join(' ')}`];
     } else if (t.type === 'ssh') {
       const remoteCwd = cwd || t.defaultCwd || '';
       const commandMap = t.commandMap || {};
