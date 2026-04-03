@@ -6,6 +6,10 @@
 branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
 
 if [ "$branch" = "main" ]; then
+  # Allow merge commits (git merge creates MERGE_HEAD)
+  if [ -f "$(git rev-parse --git-dir)/MERGE_HEAD" ]; then
+    exit 0
+  fi
   echo ""
   echo "  [c4] Direct commits to main are blocked."
   echo "  Use a c4/ branch and merge with: c4 merge <branch>"
