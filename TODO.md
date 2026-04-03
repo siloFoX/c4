@@ -21,6 +21,7 @@
 | 1.15 | effort 자동 설정 안정화 | **done** | 재시도 로직 + 설정 가능한 딜레이. phaseTimeout으로 stuck 복구 |
 | 1.16 | `c4 merge --skip-checks` | **done** | 문서 전용 커밋 등 체크 우회 플래그. TODO/CHANGELOG 수정 없어도 머지 허용 |
 | 1.17 | worktree에서 main 보호 hook 적용 | **done** | worktree 생성 시 core.hooksPath를 원본 repo의 .githooks로 설정 |
+| 1.18 | sendTask 긴 메시지 잘림 버그 | todo | PTY 터미널 버퍼 한계로 긴 텍스트 누락. 청크 분할 전송 또는 파일 기반 전달 필요 |
 
 ### 1.6 Scribe 시스템 (상세)
 
