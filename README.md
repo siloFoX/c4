@@ -191,6 +191,8 @@ These are used by Claude Code (manager), not by you directly:
 | `c4 wait <name> [timeout]` | Wait until idle, then read |
 | `c4 list` | List all workers |
 | `c4 close <name>` | Close a worker |
+| `c4 scribe scan` | Scan all sessions and generate context summary |
+| `c4 scribe start\|stop\|status` | Manage periodic scribe scanning |
 | `c4 config [reload]` | View or hot-reload config |
 
 ## Architecture
@@ -240,7 +242,9 @@ These are used by Claude Code (manager), not by you directly:
 - **Recursive C4**: Workers can spawn sub-workers for hierarchical task delegation
 - **Merge protection**: `c4 merge` enforces test/docs checks; pre-commit hook blocks direct main commits
 - **ScreenBuffer**: Virtual terminal processes ANSI escape sequences — clean text, no spinner noise
+- **Scribe**: Session context persistence — scans JSONL transcripts, extracts key decisions/errors/progress, survives context compaction via PostCompact hook
 - **Daemon manager**: `c4 daemon start/stop/restart/status` with PID tracking and health checks
+- **Worker timeout**: Detects idle workers (default 10min) and logs warnings
 - **Version compatibility**: TUI patterns configurable per Claude Code version
 
 ## FAQ
