@@ -1,6 +1,7 @@
 const pty = require('node-pty');
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 const ScreenBuffer = require('./screen-buffer');
 
 const CONFIG_FILE = path.join(__dirname, '..', 'config.json');
@@ -45,7 +46,9 @@ class PtyManager {
       data.workers.push({
         name,
         pid: w.proc ? w.proc.pid : null,
-        alive: w.alive
+        alive: w.alive,
+        branch: w.branch || null,
+        worktree: w.worktree || null
       });
     }
     fs.writeFileSync(STATE_FILE, JSON.stringify(data, null, 2));
@@ -83,6 +86,71 @@ class PtyManager {
       noOption: 'No',
       promptFooter: 'Esc to cancel'
     };
+  }
+
+  // --- Git Worktree helpers ---
+
+  _detectRepoRoot(projectRoot) {
+    if (projectRoot) return projectRoot;
+    const configRoot = this.config.worktree?.projectRoot;
+    if (configRoot) return path.resolve(configRoot);
+    try {
+      return execSync('git rev-parse --show-toplevel', {
+        encoding: 'utf8',
+        cwd: path.resolve(__dirname, '..'),
+        stdio: 'pipe'
+      }).trim();
+    } catch {
+      return null;
+    }
+  }
+
+  _worktreePath(repoRoot, name) {
+    return path.resolve(repoRoot, '..', `c4-worktree-${name}`);
+  }
+
+  _createWorktree(repoRoot, worktreePath, branch) {
+    const gitPath = worktreePath.replace(/\\/g, '/');
+
+    // Clean up stale worktree at the same path
+    if (fs.existsSync(worktreePath)) {
+      try {
+        execSync(`git worktree remove "${gitPath}" --force`, {
+          cwd: repoRoot, encoding: 'utf8', stdio: 'pipe'
+        });
+      } catch {
+        fs.rmSync(worktreePath, { recursive: true, force: true });
+        execSync('git worktree prune', {
+          cwd: repoRoot, encoding: 'utf8', stdio: 'pipe'
+        });
+      }
+    }
+
+    // Try new branch first, fall back to existing branch
+    try {
+      execSync(`git worktree add "${gitPath}" -b "${branch}"`, {
+        cwd: repoRoot, encoding: 'utf8', stdio: 'pipe'
+      });
+    } catch {
+      execSync(`git worktree add "${gitPath}" "${branch}"`, {
+        cwd: repoRoot, encoding: 'utf8', stdio: 'pipe'
+      });
+    }
+  }
+
+  _removeWorktree(repoRoot, worktreePath) {
+    const gitPath = worktreePath.replace(/\\/g, '/');
+    try {
+      execSync(`git worktree remove "${gitPath}" --force`, {
+        cwd: repoRoot, encoding: 'utf8', stdio: 'pipe'
+      });
+    } catch {
+      try {
+        execSync('git worktree prune', {
+          cwd: repoRoot, encoding: 'utf8', stdio: 'pipe'
+        });
+      } catch {}
+    }
   }
 
   _detectPermissionPrompt(screenText) {
@@ -222,19 +290,42 @@ class PtyManager {
     return null; // 'ask' — don't send anything
   }
 
-  // Send a task to worker with optional branch isolation
+  // Send a task to worker with branch isolation via git worktree
   sendTask(name, task, options = {}) {
     const w = this.workers.get(name);
     if (!w) return { error: `Worker '${name}' not found` };
     if (!w.alive) return { error: `Worker '${name}' has exited` };
 
     const branch = options.branch || `c4/${name}`;
+    const useWorktree = options.useWorktree !== false && this.config.worktree?.enabled !== false;
     const commands = [];
 
     if (options.useBranch !== false) {
-      // Create branch via Claude Code
-      commands.push(`git checkout -b ${branch} 또는 이미 있으면 git checkout ${branch} 해줘. 그리고 작업 단위마다 커밋해줘.`);
-      commands.push(task);
+      if (useWorktree) {
+        const repoRoot = this._detectRepoRoot(options.projectRoot);
+        if (!repoRoot) {
+          return { error: 'Cannot create worktree: projectRoot not configured and auto-detection failed' };
+        }
+
+        const worktreePath = this._worktreePath(repoRoot, name);
+        try {
+          this._createWorktree(repoRoot, worktreePath, branch);
+        } catch (e) {
+          return { error: `Failed to create worktree: ${e.message}` };
+        }
+
+        w.worktree = worktreePath;
+        w.worktreeRepoRoot = repoRoot;
+        w.branch = branch;
+
+        const cdPath = worktreePath.replace(/\\/g, '/');
+        commands.push(`cd ${cdPath} 로 이동해서 작업해줘. 현재 브랜치는 ${branch}야. 작업 단위마다 커밋해줘.`);
+        commands.push(task);
+      } else {
+        // Fallback: branch-only (no worktree)
+        commands.push(`git checkout -b ${branch} 또는 이미 있으면 git checkout ${branch} 해줘. 그리고 작업 단위마다 커밋해줘.`);
+        commands.push(task);
+      }
     } else {
       commands.push(task);
     }
@@ -243,7 +334,7 @@ class PtyManager {
     w.proc.write(fullTask + '\r');
     w.branch = branch;
 
-    return { success: true, branch, task: fullTask };
+    return { success: true, branch, worktree: w.worktree || null, task: fullTask };
   }
 
   create(name, command, args = [], options = {}) {
@@ -589,6 +680,7 @@ class PtyManager {
         command: w.command,
         target: w.target || 'local',
         branch: w.branch || null,
+        worktree: w.worktree || null,
         pid: w.proc ? w.proc.pid : null,
         status: w.alive ? (idleMs > this.idleThresholdMs ? 'idle' : 'busy') : 'exited',
         unreadSnapshots,
@@ -605,6 +697,14 @@ class PtyManager {
     if (w.idleTimer) clearTimeout(w.idleTimer);
     if (w.alive) w.proc.kill();
     if (w.rawLogStream && !w.rawLogStream.destroyed) w.rawLogStream.end();
+
+    // Cleanup worktree
+    if (w.worktree) {
+      const repoRoot = w.worktreeRepoRoot || this._detectRepoRoot();
+      if (repoRoot) {
+        this._removeWorktree(repoRoot, w.worktree);
+      }
+    }
 
     this.workers.delete(name);
     this._saveState();

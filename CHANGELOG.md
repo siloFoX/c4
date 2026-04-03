@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0] - 2026-04-03
+
+### Added
+- **Git worktree support** (1.12): Each worker gets an isolated worktree directory
+  - `sendTask()` auto-creates `git worktree add ../c4-worktree-<name> -b <branch>`
+  - Worker is instructed to `cd` into the worktree before starting work
+  - `close()` auto-removes worktree with `git worktree remove --force`
+  - `list()` shows worktree path per worker
+  - Stale worktree cleanup on re-creation
+  - Config: `worktree.enabled` (default: true), `worktree.projectRoot` (auto-detect from git)
+  - API: `useWorktree`, `projectRoot` options in `/task` endpoint
+  - Fallback to branch-only mode with `useWorktree: false`
+
 ## [0.2.0] - 2026-04-02
 
 ### Added

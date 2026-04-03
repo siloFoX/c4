@@ -82,6 +82,11 @@
     "defaultAction": "ask"
   },
 
+  "worktree": {
+    "enabled": true,
+    "projectRoot": ""
+  },
+
   "workerDefaults": {
     "trustFolder": true,
     "effortLevel": "max",
