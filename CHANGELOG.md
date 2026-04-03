@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.3.0] - 2026-04-03
+
+### Added
+- **Global auto mode**: `c4 auto` sets `_globalAutoMode=true` on daemon. All workers created during auto session inherit `defaultMode: 'auto'` and auto-approve all non-denied commands. No more overnight permission prompt stalls.
+- **PostCompact hook auto-injection**: All worker `.claude/settings.json` now include PostCompact hook that re-injects CLAUDE.md + session-context.md after context compaction.
+- **CLAUDE.md full CLI reference**: Added complete c4 command list and manager worker operation pattern to CLAUDE.md for worker self-guidance.
+
+### Changed
+- **Slack notifications improved**: `notifyHealthCheck()` now shows per-worker task description + elapsed time instead of generic "OK: N workers running".
+- **`c4 init` permissions expanded**: 4 allow rules -> 30+ allow + 7 deny rules. Covers all common development commands out of the box.
+- **`_classifyPermission` auto worker support**: Accepts worker context, auto workers default to 'approve' for unmatched commands instead of 'ask'.
+- **User `~/.claude/settings.json` PostCompact**: Now injects both CLAUDE.md and session-context.md.
+
+---
+
 ## [1.2.0] - 2026-04-03
 
 ### Added

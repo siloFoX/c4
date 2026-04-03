@@ -1,3 +1,5 @@
+const { describe, test, beforeEach } = require('node:test');
+const assert = require('node:assert');
 const AdaptivePolling = require('../src/adaptive-polling');
 
 describe('AdaptivePolling', () => {
@@ -15,15 +17,15 @@ describe('AdaptivePolling', () => {
 
   test('createState returns initial state', () => {
     const state = ap.createState();
-    expect(state.dataTimestamps).toEqual([]);
-    expect(state.currentInterval).toBe(3000);
+    assert.deepStrictEqual(state.dataTimestamps, []);
+    assert.strictEqual(state.currentInterval, 3000);
   });
 
   test('getInterval returns base when no activity', () => {
     const state = ap.createState();
     const interval = ap.getInterval(state);
-    // No activity → max interval
-    expect(interval).toBe(5000);
+    // No activity -> max interval
+    assert.strictEqual(interval, 5000);
   });
 
   test('getInterval returns min when busy', () => {
@@ -34,31 +36,31 @@ describe('AdaptivePolling', () => {
       state.dataTimestamps.push(now - i * 100);
     }
     const interval = ap.getInterval(state);
-    expect(interval).toBe(500);
+    assert.strictEqual(interval, 500);
   });
 
   test('getInterval interpolates for moderate activity', () => {
     const state = ap.createState();
     const now = Date.now();
-    // 2 events out of 5 threshold → moderate
+    // 2 events out of 5 threshold -> moderate
     state.dataTimestamps.push(now - 100);
     state.dataTimestamps.push(now - 200);
     const interval = ap.getInterval(state);
     // Should be between min(500) and max(5000)
-    expect(interval).toBeGreaterThan(500);
-    expect(interval).toBeLessThan(5000);
+    assert.ok(interval > 500);
+    assert.ok(interval < 5000);
   });
 
   test('recordActivity adds timestamp and trims old', () => {
     const state = ap.createState();
     ap.recordActivity(state);
-    expect(state.dataTimestamps).toHaveLength(1);
+    assert.strictEqual(state.dataTimestamps.length, 1);
 
     // Add old timestamp
     state.dataTimestamps.unshift(Date.now() - 20000); // 20s ago, outside 10s window
     ap.recordActivity(state);
     // Old one should be trimmed
-    expect(state.dataTimestamps).toHaveLength(2); // new one + previous one (not old)
+    assert.strictEqual(state.dataTimestamps.length, 2); // new one + previous one (not old)
   });
 
   test('getInterval trims old timestamps', () => {
@@ -69,34 +71,34 @@ describe('AdaptivePolling', () => {
       Date.now() - 15000,
     ];
     const interval = ap.getInterval(state);
-    expect(interval).toBe(5000); // No recent activity → max
-    expect(state.dataTimestamps).toHaveLength(0);
+    assert.strictEqual(interval, 5000); // No recent activity -> max
+    assert.strictEqual(state.dataTimestamps.length, 0);
   });
 
   test('getActivityLevel returns busy/moderate/idle', () => {
     const state = ap.createState();
-    expect(ap.getActivityLevel(state)).toBe('idle');
+    assert.strictEqual(ap.getActivityLevel(state), 'idle');
 
     const now = Date.now();
     state.dataTimestamps.push(now);
-    expect(ap.getActivityLevel(state)).toBe('moderate');
+    assert.strictEqual(ap.getActivityLevel(state), 'moderate');
 
     for (let i = 0; i < 10; i++) {
       state.dataTimestamps.push(now - i * 100);
     }
-    expect(ap.getActivityLevel(state)).toBe('busy');
+    assert.strictEqual(ap.getActivityLevel(state), 'busy');
   });
 
   test('getActivityLevel returns unknown for null state', () => {
-    expect(ap.getActivityLevel(null)).toBe('unknown');
+    assert.strictEqual(ap.getActivityLevel(null), 'unknown');
   });
 
   test('getInterval returns base for null state', () => {
-    expect(ap.getInterval(null)).toBe(3000);
+    assert.strictEqual(ap.getInterval(null), 3000);
   });
 
   test('recordActivity handles null state gracefully', () => {
-    expect(() => ap.recordActivity(null)).not.toThrow();
+    assert.doesNotThrow(() => ap.recordActivity(null));
   });
 
   test('custom options are respected', () => {
@@ -107,13 +109,13 @@ describe('AdaptivePolling', () => {
       windowMs: 5000,
       busyThreshold: 3,
     });
-    expect(custom.minIntervalMs).toBe(200);
-    expect(custom.maxIntervalMs).toBe(10000);
-    expect(custom.baseIntervalMs).toBe(1000);
-    expect(custom.busyThreshold).toBe(3);
+    assert.strictEqual(custom.minIntervalMs, 200);
+    assert.strictEqual(custom.maxIntervalMs, 10000);
+    assert.strictEqual(custom.baseIntervalMs, 1000);
+    assert.strictEqual(custom.busyThreshold, 3);
 
     const state = custom.createState();
-    expect(state.currentInterval).toBe(1000);
+    assert.strictEqual(state.currentInterval, 1000);
   });
 
   test('interval decreases as activity increases', () => {
@@ -132,11 +134,11 @@ describe('AdaptivePolling', () => {
     state.dataTimestamps.push(now - 200);
     const interval3 = ap.getInterval(state);
 
-    expect(interval0).toBeGreaterThan(interval1);
-    expect(interval1).toBeGreaterThan(interval3);
+    assert.ok(interval0 > interval1);
+    assert.ok(interval1 > interval3);
   });
 
-  test('busy → idle transition increases interval', () => {
+  test('busy -> idle transition increases interval', () => {
     const state = ap.createState();
     const now = Date.now();
 
@@ -150,16 +152,16 @@ describe('AdaptivePolling', () => {
     state.dataTimestamps = [];
     const idleInterval = ap.getInterval(state);
 
-    expect(busyInterval).toBe(500);
-    expect(idleInterval).toBe(5000);
+    assert.strictEqual(busyInterval, 500);
+    assert.strictEqual(idleInterval, 5000);
   });
 
   test('defaults are used when no options provided', () => {
     const defaultAp = new AdaptivePolling();
-    expect(defaultAp.minIntervalMs).toBe(500);
-    expect(defaultAp.maxIntervalMs).toBe(5000);
-    expect(defaultAp.baseIntervalMs).toBe(3000);
-    expect(defaultAp.windowMs).toBe(10000);
-    expect(defaultAp.busyThreshold).toBe(5);
+    assert.strictEqual(defaultAp.minIntervalMs, 500);
+    assert.strictEqual(defaultAp.maxIntervalMs, 5000);
+    assert.strictEqual(defaultAp.baseIntervalMs, 3000);
+    assert.strictEqual(defaultAp.windowMs, 10000);
+    assert.strictEqual(defaultAp.busyThreshold, 5);
   });
 });

@@ -174,6 +174,11 @@ async function handleRequest(req, res) {
     } else if (req.method === 'POST' && route === '/morning') {
       result = manager.generateMorningReport();
 
+    } else if (req.method === 'POST' && route === '/status-update') {
+      const { worker, message } = await parseBody(req);
+      notifications.statusUpdate(worker || 'C4', message);
+      result = { sent: true };
+
     } else if (req.method === 'GET' && route === '/history') {
       const worker = url.searchParams.get('worker') || '';
       const limit = parseInt(url.searchParams.get('limit') || '0') || 0;
@@ -181,19 +186,22 @@ async function handleRequest(req, res) {
 
     } else {
       res.writeHead(404);
-      result = { error: 'Not found' };
+      res.end(JSON.stringify({ error: 'Not found' }));
+      return;
     }
 
-    if (result.error) {
-      res.writeHead(400);
-    } else {
-      res.writeHead(200);
+    if (!res.headersSent) {
+      res.writeHead(result.error ? 400 : 200);
     }
     res.end(JSON.stringify(result));
 
   } catch (err) {
-    res.writeHead(500);
-    res.end(JSON.stringify({ error: err.message }));
+    if (!res.headersSent) {
+      res.writeHead(500);
+    }
+    if (!res.writableEnded) {
+      res.end(JSON.stringify({ error: err.message }));
+    }
   }
 }
 
@@ -219,4 +227,13 @@ process.on('SIGTERM', () => {
   manager.closeAll();
   server.close();
   process.exit(0);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[DAEMON] uncaughtException:', err.message);
+  // Don't crash — log and continue
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('[DAEMON] unhandledRejection:', err);
 });

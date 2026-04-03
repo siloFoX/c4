@@ -11,6 +11,9 @@ yarn-error.log*
 
 # Runtime data
 state.json
+scribe-state.json
+token-state.json
+history.jsonl
 pids
 *.pid
 *.seed
@@ -24,8 +27,17 @@ Thumbs.db
 .vscode/
 .idea/
 
+# Claude Code project settings (per-worktree)
+.claude/
+
 # Personal config (use config.example.json as template)
 config.json
+
+# Generated reports (runtime)
+docs/morning-report.md
+
+# Test artifacts
+tests/_real_test*
 
 # Environment variables
 .env

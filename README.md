@@ -11,7 +11,7 @@
 ![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)
 ![Claude Code](https://img.shields.io/badge/Claude_Code-v2.1.85--2.1.91-8A2BE2.svg)
 ![Platform](https://img.shields.io/badge/tested-Win11%20%7C%20Ubuntu%20%7C%20macOS-blue.svg)
-![Version](https://img.shields.io/badge/version-1.0.2-green.svg)
+![Version](https://img.shields.io/badge/version-1.3.0-green.svg)
 
 **[한국어](README.ko.md)**
 
@@ -158,6 +158,7 @@ Copy `config.example.json` to `config.json` and edit:
 | `hooks` | Hook architecture (PreToolUse/PostToolUse) |
 | `swarm` | Subagent swarm monitoring settings |
 | `autoMode` | Claude classifier safety delegation |
+| `notifications` | Slack webhook + Email alerts (language: ko/en) |
 | `ssh` | SSH ControlMaster and reconnect settings |
 | `tokenMonitor` | Daily token usage limits and warnings |
 | `scribe` | Session context recording |
@@ -211,6 +212,9 @@ These are used by Claude Code (manager), not by you directly:
 | `c4 scrollback <name>` | Read scrollback buffer |
 | `c4 templates` | List available role templates |
 | `c4 swarm <name>` | Show subagent swarm status |
+| `c4 auto <text>` | One-command autonomous mode (manager + scribe + full permissions) |
+| `c4 morning` | Generate morning report (auto-called on `c4 auto` completion) |
+| `c4 status <name> <text>` | Send status update to Slack |
 | `c4 scribe start\|stop\|status\|scan` | Manage session context recording |
 | `c4 config [reload]` | View or hot-reload config |
 
@@ -271,6 +275,12 @@ These are used by Claude Code (manager), not by you directly:
 - **Worker pooling**: Recycle idle workers instead of spawning new ones
 - **Context transfer**: Inject previous worker's output into new tasks
 
+**Autonomous Operation**
+- **`c4 auto`**: One-command autonomous mode — manager + scribe + full permissions
+- **Global auto mode**: All workers auto-approve non-denied commands (no overnight stalls)
+- **PostCompact recovery**: CLAUDE.md + session context re-injected after context compaction
+- **Notifications**: Slack webhook + Email alerts with i18n (ko/en). `c4 status` for worker self-reporting
+
 **Monitoring**
 - **SSE events**: Real-time streaming of permission/complete/error/question events
 - **Token monitoring**: Daily token consumption tracking with configurable limits
@@ -299,6 +309,9 @@ A: Depends on your Claude Max plan limits. Each worker is a separate Claude Code
 **Q: What if the daemon crashes?**
 A: Use `c4 daemon start` to restart. Enable `healthCheck.autoRestart` in config for automatic worker recovery.
 
+**Q: Can I leave it running overnight?**
+A: Yes. Use `c4 auto "your task"` for autonomous mode. Workers get full auto-approve permissions (deny list excluded), PostCompact hooks recover context after compaction, and Slack notifications keep you updated.
+
 **Q: Can workers manage other workers?**
 A: Yes (experimental). Since all workers share the same daemon, any worker with `c4` in PATH can create sub-workers. This enables hierarchical orchestration.
 
@@ -316,7 +329,7 @@ See [TODO.md](TODO.md) for the roadmap and open tasks.
 
 ## Roadmap
 
-All 45 roadmap items across Phase 1/2/3 are complete. See [TODO.md](TODO.md) for full details and [CHANGELOG.md](CHANGELOG.md) for version history.
+Phase 1/2/3 complete (45 items). Phase 4 (autonomous operation) in progress — see [TODO.md](TODO.md) for details and [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ## Author
 

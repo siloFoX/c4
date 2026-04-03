@@ -270,10 +270,18 @@ async function main() {
         const claudeDir = path.join(home, '.claude');
         const settingsPath = path.join(claudeDir, 'settings.json');
         const requiredPermissions = [
-          'Bash(c4:*)',
-          'Bash(MSYS_NO_PATHCONV=1 c4:*)',
-          'Bash(cd:*)',
-          'Bash(git:*)',
+          'Bash(c4:*)', 'Bash(MSYS_NO_PATHCONV=1 c4:*)',
+          'Bash(cd:*)', 'Bash(git:*)', 'Bash(node:*)', 'Bash(npm:*)', 'Bash(npx:*)',
+          'Bash(cat:*)', 'Bash(ls:*)', 'Bash(grep:*)', 'Bash(echo:*)', 'Bash(curl:*)',
+          'Bash(find:*)', 'Bash(head:*)', 'Bash(tail:*)', 'Bash(wc:*)', 'Bash(pwd)',
+          'Bash(mkdir:*)', 'Bash(cp:*)', 'Bash(mv:*)', 'Bash(touch:*)',
+          'Bash(python:*)', 'Bash(sed:*)', 'Bash(awk:*)', 'Bash(sort:*)',
+          'Bash(uniq:*)', 'Bash(tee:*)', 'Bash(diff:*)', 'Bash(test:*)', 'Bash(sleep:*)',
+          'Read', 'Edit', 'Write', 'Glob', 'Grep', 'WebFetch', 'WebSearch',
+        ];
+        const denyPermissions = [
+          'Bash(rm -rf:*)', 'Bash(sudo:*)', 'Bash(shutdown:*)',
+          'Bash(reboot:*)', 'Bash(kill:*)', 'Bash(chmod:*)', 'Bash(chown:*)',
         ];
 
         let settings = {};
@@ -292,9 +300,16 @@ async function main() {
           }
         }
 
+        if (!Array.isArray(settings.permissions.deny)) settings.permissions.deny = [];
+        for (const perm of denyPermissions) {
+          if (!settings.permissions.deny.includes(perm)) {
+            settings.permissions.deny.push(perm);
+          }
+        }
+
         fs.mkdirSync(claudeDir, { recursive: true });
         fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
-        console.log(`[ok] settings.json: ${added} permissions added (${settings.permissions.allow.length} total)`);
+        console.log(`[ok] settings.json: ${added} permissions added (${settings.permissions.allow.length} allow, ${settings.permissions.deny.length} deny)`);
 
         // 2. Copy config.example.json -> config.json (skip if exists)
         const configSrc = path.join(repoRoot, 'config.example.json');
@@ -746,6 +761,18 @@ async function main() {
           }
         }
         return;
+      }
+
+      case 'status': {
+        // c4 status <worker-name> "message"  — send status update to Slack
+        const statusWorker = args[0] || '';
+        const statusMsg = args.slice(1).join(' ');
+        if (!statusMsg) {
+          console.error('Usage: c4 status <worker-name> "status message"');
+          process.exit(1);
+        }
+        result = await request('POST', '/status-update', { worker: statusWorker, message: statusMsg });
+        break;
       }
 
       case 'history': {

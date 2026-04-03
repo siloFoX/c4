@@ -5,16 +5,49 @@
 const https = require('https');
 const http = require('http');
 
+// --- i18n templates ---
+
+const LANG = {
+  ko: {
+    done: '완료',
+    error: '오류',
+    down: '중단',
+    idle: '대기',
+    running: '진행중',
+    elapsed: (m) => `${m}분`,
+    edits: (n, files) => `${n}개 파일 수정: ${files}`,
+    workersDown: (n) => `${n}개 워커 중단`,
+  },
+  en: {
+    done: 'done',
+    error: 'ERROR',
+    down: 'down',
+    idle: 'idle',
+    running: 'running',
+    elapsed: (m) => `${m}min`,
+    edits: (n, files) => `${n} edits: ${files}`,
+    workersDown: (n) => `${n} workers down`,
+  }
+};
+
 class Notifications {
   constructor(config = {}) {
     this.config = config;
     this.slack = config.slack || {};
     this.email = config.email || {};
+    this.lang = LANG[config.language || 'ko'] || LANG.ko;
     this._slackBuffer = [];
     this._slackTimer = null;
     this._transporter = null;
 
     this._initEmail();
+  }
+
+  _time() {
+    return new Date().toLocaleTimeString(
+      this.config.language === 'en' ? 'en-US' : 'ko-KR',
+      { hour: '2-digit', minute: '2-digit' }
+    );
   }
 
   _initEmail() {
@@ -103,39 +136,69 @@ class Notifications {
     }
   }
 
-  // --- Event handlers ---
+  // --- Event handlers (unified format) ---
 
   async notifyTaskComplete(workerName, details = {}) {
-    const time = new Date().toISOString();
-    const summary = `[C4] Worker '${workerName}' completed (${time})`;
+    const t = this._time();
+    const branch = details.branch ? ` (${details.branch})` : '';
+    this.pushSlack(`${t} ${workerName} ${this.lang.done}${branch}`);
 
-    // Slack: buffer for periodic flush
-    this.pushSlack(summary);
-
-    // Email: send immediately
     const emailResult = await this.sendEmail(
-      `[C4] Task Complete: ${workerName}`,
-      [
-        `Worker: ${workerName}`,
-        `Time: ${time}`,
-        details.branch ? `Branch: ${details.branch}` : null,
-        details.exitCode !== undefined ? `Exit code: ${details.exitCode}` : null,
-      ].filter(Boolean).join('\n')
+      `C4: ${workerName} ${this.lang.done}`,
+      `${workerName} ${this.lang.done} ${t}${branch}`
     );
-
     return { slack: 'buffered', email: emailResult };
   }
 
   async notifyError(workerName, error) {
-    const time = new Date().toISOString();
-    this.pushSlack(`[C4 ERROR] Worker '${workerName}': ${error} (${time})`);
+    const t = this._time();
+    const msg = typeof error === 'string' ? error.substring(0, 150) : String(error);
+    this.pushSlack(`${t} ${workerName} ${this.lang.error}: ${msg}`);
   }
 
   async notifyHealthCheck(results) {
-    const dead = results.workers?.filter(w => w.status === 'exited' || w.status === 'timeout') || [];
-    if (dead.length === 0) return;
-    const lines = dead.map(w => `  - ${w.name}: ${w.status}`);
-    this.pushSlack(`[C4 HEALTH] Issues detected:\n${lines.join('\n')}`);
+    const workers = results.workers || [];
+    const alive = workers.filter(w => w.status === 'alive');
+    const dead = workers.filter(w => w.status === 'exited' || w.status === 'timeout');
+    const t = this._time();
+
+    if (dead.length > 0) {
+      const lines = [
+        ...dead.map(w => `  ${w.name} - ${this.lang.down}`),
+        ...alive.map(w => this._fmtWorker(w))
+      ];
+      this.pushSlack(`${t} ${this.lang.workersDown(dead.length)}\n${lines.join('\n')}`);
+    } else if (workers.length > 0) {
+      const lines = alive.map(w => this._fmtWorker(w));
+      this.pushSlack(`${t}\n${lines.join('\n')}`);
+    }
+  }
+
+  // Worker가 직접 보내는 상태 메시지
+  statusUpdate(workerName, message) {
+    const t = this._time();
+    this.pushSlack(`${t} ${workerName}: ${message}`);
+  }
+
+  // Scribe가 보내는 파일 수정 요약
+  notifyEdits(totalNew, toolActions) {
+    if (toolActions.length === 0) return;
+    const t = this._time();
+    const files = toolActions.map(e => e.text).join(', ');
+    const short = files.length > 120 ? files.substring(0, 120) + '...' : files;
+    this.pushSlack(`${t} ${this.lang.edits(toolActions.length, short)}`);
+  }
+
+  _fmtWorker(w) {
+    if (!w.task) {
+      return `  ${w.name} - ${this.lang.idle}`;
+    }
+    const elapsed = w.taskStarted
+      ? Math.round((Date.now() - new Date(w.taskStarted).getTime()) / 60000)
+      : 0;
+    const elStr = elapsed > 0 ? ` ${this.lang.elapsed(elapsed)}` : '';
+    const shortTask = w.task.split(/[.\n]/)[0].substring(0, 80);
+    return `  ${w.name}${elStr} - ${shortTask}`;
   }
 
   // Called from daemon healthCheck timer — flushes Slack buffer
@@ -152,6 +215,7 @@ class Notifications {
     this.config = config;
     this.slack = config.slack || {};
     this.email = config.email || {};
+    this.lang = LANG[config.language || 'ko'] || LANG.ko;
     this._slackBuffer = [];
     this._initEmail();
   }

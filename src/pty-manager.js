@@ -928,6 +928,9 @@ class PtyManager extends EventEmitter {
     if (options.autoMode === true) return true;
     if (options.autoMode === false) return false;
 
+    // Global auto mode (set by c4 auto) — all workers inherit
+    if (this._globalAutoMode) return true;
+
     // Check config default
     return this.config.autoMode?.enabled === true;
   }
@@ -1164,6 +1167,21 @@ class PtyManager extends EventEmitter {
       }]
     });
 
+    // PostCompact hook: re-inject CLAUDE.md + session context after compaction
+    if (!settings.hooks.PostCompact) settings.hooks.PostCompact = [];
+    const projectRoot = (this.projectRoot || path.join(__dirname, '..')).replace(/\\/g, '/');
+    const claudeMdPath = `${projectRoot}/CLAUDE.md`;
+    const sessionContextPath = `${projectRoot}/docs/session-context.md`;
+    settings.hooks.PostCompact.push({
+      hooks: [
+        {
+          type: 'command',
+          command: `echo "=== CLAUDE.md ===" && cat "${claudeMdPath}" 2>/dev/null && echo "=== Session Context ===" && cat "${sessionContextPath}" 2>/dev/null || echo "No context files"`,
+          statusMessage: 'Reloading project context...'
+        }
+      ]
+    });
+
     // Profile-specific hooks (merge with injected hooks)
     if (profile && profile.hooks) {
       if (!settings.hooks) settings.hooks = {};
@@ -1346,9 +1364,12 @@ class PtyManager extends EventEmitter {
     return matches ? matches.length : 2;
   }
 
-  _classifyPermission(screenText) {
+  _classifyPermission(screenText, worker) {
     const rules = this.config.autoApprove?.rules || [];
-    const defaultAction = this.config.autoApprove?.defaultAction || 'ask';
+    // Global auto mode (c4 auto): approve everything not explicitly denied
+    const defaultAction = (this._globalAutoMode || worker?._autoWorker)
+      ? 'approve'
+      : (this.config.autoApprove?.defaultAction || 'ask');
     const promptType = this._getPromptType(screenText);
 
     if (promptType === 'bash') {
@@ -2078,7 +2099,7 @@ class PtyManager extends EventEmitter {
             }
           }
 
-          const action = this._classifyPermission(text);
+          const action = this._classifyPermission(text, worker);
           const keys = this._getApproveKeystrokes(text, action);
 
           if (keys) {
@@ -2501,9 +2522,9 @@ class PtyManager extends EventEmitter {
             screen: `[HEALTH] worker idle for ${Math.round(idleMs / 60000)}min (timeout: ${Math.round(timeoutMs / 60000)}min)`,
             autoAction: true
           });
-          results.push({ name, status: 'timeout', idleMs });
+          results.push({ name, status: 'timeout', idleMs, task: w._taskText, taskStarted: w._taskStartedAt });
         } else {
-          results.push({ name, status: 'alive' });
+          results.push({ name, status: 'alive', task: w._taskText, taskStarted: w._taskStartedAt });
         }
         continue;
       }
@@ -2609,6 +2630,10 @@ class PtyManager extends EventEmitter {
         maxEntries: scribeCfg.maxEntries,
         projectRoot: this._detectRepoRoot() || path.join(__dirname, '..')
       });
+    }
+    // Connect notifications to scribe
+    if (this._notifications) {
+      this._scribe._notifications = this._notifications;
     }
     return this._scribe;
   }
@@ -2827,6 +2852,9 @@ class PtyManager extends EventEmitter {
 
   autoStart(task, options = {}) {
     const name = options.name || 'auto-mgr';
+
+    // Enable global auto mode — all workers created during this session inherit autoMode
+    this._globalAutoMode = true;
 
     // Start scribe
     try { this.scribeStart(); } catch {}
