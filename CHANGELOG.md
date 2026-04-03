@@ -12,6 +12,10 @@
   - Config: `worktree.enabled` (default: true), `worktree.projectRoot` (auto-detect from git)
   - API: `useWorktree`, `projectRoot` options in `/task` endpoint
   - Fallback to branch-only mode with `useWorktree: false`
+- **TODO roadmap expansion** (3.10-3.19): Planner Worker, State Machine, Adaptive Polling, Interface Abstraction, Summary Layer, Hook architecture, Subagent Swarm, Role templates, Auto Mode
+
+### Fixed
+- **Git Bash MSYS path fix** (1.4): Cherry-picked `MSYS_NO_PATHCONV=1` + `fixMsysArgs()` to main branch
 
 ## [0.2.0] - 2026-04-02
 
