@@ -14,7 +14,7 @@
 | 1.8 | 작업 스코프 정의 + 이탈 감시 | todo | 아래 상세 |
 | 1.9 | 관리자 개입 프로토콜 | todo | 아래 상세 |
 | 1.10 | `c4 init` 명령 | **done** | settings.json 권한 추가 + config.example→config.json 복사 + CLAUDE.md symlink. 설치 후 한번 실행 |
-| 1.11 | `c4 merge` 명령 (프로세스 강제) | todo | 테스트 통과, CHANGELOG, TODO, patches/ 확인 후에만 머지 허용 |
+| 1.11 | `c4 merge` + main 보호 | todo | main 직접 커밋 차단(pre-commit hook). 머지는 c4 merge로만. 테스트/문서 확인 후 머지 |
 | 1.12 | git worktree 지원 | **done** | 작업자마다 별도 worktree. 같은 디렉토리 공유 문제 해결. 멀티 에이전트 필수 |
 
 ### 1.8 작업 스코프 정의 + 이탈 감시 (상세)

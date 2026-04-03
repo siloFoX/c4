@@ -54,5 +54,6 @@ ssh -R 9222:localhost:9222 shinc@192.168.10.222
 - `sleep N && c4 read-now` 대신 `c4 wait <name>` 사용 (idle 감지 시 즉시 반환, 불필요한 대기 없음)
 - `/model` 등 슬래시 명령 보낼 때: `MSYS_NO_PATHCONV=1 c4 send` 사용 (Git Bash 경로 변환 방지)
 - 멀티 에이전트 작업 시 반드시 worktree 사용 (같은 디렉토리 공유하면 git 충돌)
+- 작업자가 main에 직접 커밋하게 하면 절대 안 됨 → 반드시 worktree/브랜치에서 작업 후 관리자가 리뷰/머지
 - 머지 전 반드시: 기능 확인 → 테스트 → 문서(TODO, CHANGELOG, patches/) → 코드 리뷰
 - 작업자 기본 루틴: 구현 → 테스트 → 문서 업데이트 → 커밋
