@@ -133,6 +133,15 @@ async function handleRequest(req, res) {
       });
       return; // Don't end the response
 
+    } else if (req.method === 'GET' && route === '/swarm') {
+      // Swarm status (3.17)
+      const name = url.searchParams.get('name');
+      if (!name) {
+        result = { error: 'Missing name parameter' };
+      } else {
+        result = manager.getSwarmStatus(name);
+      }
+
     } else if (req.method === 'GET' && route === '/history') {
       const worker = url.searchParams.get('worker') || '';
       const limit = parseInt(url.searchParams.get('limit') || '0') || 0;

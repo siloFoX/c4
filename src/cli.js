@@ -642,6 +642,31 @@ async function main() {
         break;
       }
 
+      case 'swarm': {
+        const name = args[0];
+        if (!name) {
+          console.error('Usage: c4 swarm <worker-name>');
+          process.exit(1);
+        }
+        result = await request('GET', `/swarm?name=${name}`);
+        if (result.worker) {
+          console.log(`Swarm status for '${result.worker}':`);
+          console.log(`  Enabled: ${result.enabled}`);
+          console.log(`  Max subagents: ${result.maxSubagents}`);
+          console.log(`  Subagent count: ${result.subagentCount}`);
+          if (result.subagentLog && result.subagentLog.length > 0) {
+            console.log('  Recent subagents:');
+            for (const entry of result.subagentLog) {
+              const time = new Date(entry.timestamp).toLocaleTimeString();
+              const prompt = entry.prompt.length > 60 ? entry.prompt.slice(0, 60) + '...' : entry.prompt;
+              console.log(`    #${entry.index} [${time}] ${entry.subagentType}: ${prompt}`);
+            }
+          }
+          return;
+        }
+        break;
+      }
+
       case 'token-usage': {
         result = await request('GET', '/token-usage');
         if (result.error) {

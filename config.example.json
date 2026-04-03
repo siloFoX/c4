@@ -188,6 +188,12 @@
     "maxIdleMs": 300000
   },
 
+  "swarm": {
+    "enabled": false,
+    "maxSubagents": 10,
+    "trackUsage": true
+  },
+
   "hooks": {
     "enabled": true,
     "injectToWorkers": true

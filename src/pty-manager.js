@@ -253,7 +253,7 @@ class PtyManager extends EventEmitter {
       }
     }
 
-    // Subagent tracking (3.17 integration point)
+    // Subagent tracking (3.17)
     if (toolName === 'Agent') {
       if (!worker._subagentCount) worker._subagentCount = 0;
       worker._subagentCount++;
@@ -264,6 +264,7 @@ class PtyManager extends EventEmitter {
         hookEvent: true
       });
       this._emitSSE('subagent', { worker: workerName, count: worker._subagentCount, prompt: (toolInput.prompt || '').slice(0, 200) });
+      this._trackSubagent(workerName, worker, toolInput, event);
     }
 
     return result;
@@ -714,6 +715,65 @@ class PtyManager extends EventEmitter {
       noOption: 'No',
       promptFooter: 'Esc to cancel'
     };
+  }
+
+  // --- Subagent Swarm (3.17) ---
+
+  _getSwarmConfig() {
+    return this.config.swarm || { enabled: false, maxSubagents: 10, trackUsage: true };
+  }
+
+  getSwarmStatus(workerName) {
+    const w = this.workers.get(workerName);
+    if (!w) return { error: `Worker '${workerName}' not found` };
+
+    const swarmCfg = this._getSwarmConfig();
+    return {
+      worker: workerName,
+      enabled: swarmCfg.enabled !== false,
+      maxSubagents: swarmCfg.maxSubagents || 10,
+      subagentCount: w._subagentCount || 0,
+      subagentLog: (w._subagentLog || []).slice(-20)
+    };
+  }
+
+  // Called by _handlePostToolUse when Agent tool is detected (3.15 integration)
+  _trackSubagent(workerName, worker, toolInput, event) {
+    const swarmCfg = this._getSwarmConfig();
+    if (!swarmCfg.enabled) return;
+
+    if (!worker._subagentLog) worker._subagentLog = [];
+
+    const entry = {
+      index: (worker._subagentCount || 0),
+      prompt: (toolInput.prompt || '').slice(0, 300),
+      subagentType: toolInput.subagent_type || 'general-purpose',
+      timestamp: Date.now(),
+      status: 'spawned'
+    };
+
+    worker._subagentLog.push(entry);
+
+    // Keep log bounded
+    if (worker._subagentLog.length > 100) {
+      worker._subagentLog.splice(0, worker._subagentLog.length - 100);
+    }
+
+    // Check limit
+    const maxSubagents = swarmCfg.maxSubagents || 10;
+    if ((worker._subagentCount || 0) > maxSubagents) {
+      worker.snapshots.push({
+        time: Date.now(),
+        screen: `[SWARM WARN] subagent limit reached (${worker._subagentCount}/${maxSubagents})`,
+        autoAction: true,
+        swarmWarn: true
+      });
+      this._emitSSE('swarm_limit', {
+        worker: workerName,
+        count: worker._subagentCount,
+        max: maxSubagents
+      });
+    }
   }
 
   // --- Worker Settings Profile (3.16) ---
