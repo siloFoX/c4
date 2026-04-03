@@ -84,6 +84,11 @@ async function handleRequest(req, res) {
     } else if (req.method === 'GET' && route === '/token-usage') {
       result = manager.getTokenUsage();
 
+    } else if (req.method === 'GET' && route === '/history') {
+      const worker = url.searchParams.get('worker') || '';
+      const limit = parseInt(url.searchParams.get('limit') || '0') || 0;
+      result = manager.getHistory({ worker: worker || undefined, limit: limit || undefined });
+
     } else {
       res.writeHead(404);
       result = { error: 'Not found' };
