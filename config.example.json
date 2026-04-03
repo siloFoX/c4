@@ -99,6 +99,15 @@
     "autoRestart": false
   },
 
+  "effort": {
+    "dynamic": true,
+    "thresholds": {
+      "high": 100,
+      "max": 500
+    },
+    "default": "high"
+  },
+
   "workerDefaults": {
     "trustFolder": true,
     "effortLevel": "max",

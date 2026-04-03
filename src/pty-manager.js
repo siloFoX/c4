@@ -446,8 +446,11 @@ class PtyManager {
     const createResult = this.create(entry.name, entry.command, entry.args, { target: entry.target });
     if (createResult.error) return createResult;
 
-    // Store pending task — will be sent after worker setup completes
+    // Dynamic effort level (3.3)
     const w = this.workers.get(entry.name);
+    w._dynamicEffort = this._determineEffort(entry.task);
+
+    // Store pending task — will be sent after worker setup completes
     w._pendingTask = {
       task: entry.task,
       options: {
@@ -831,6 +834,32 @@ class PtyManager {
     }
   }
 
+  // --- Effort Dynamic Adjustment (3.3) ---
+
+  _determineEffort(taskText) {
+    const effortCfg = this.config.effort || {};
+    if (!effortCfg.dynamic) return this.config.workerDefaults?.effortLevel || 'max';
+
+    const thresholds = effortCfg.thresholds || { high: 100, max: 500 };
+    const defaultLevel = effortCfg.default || this.config.workerDefaults?.effortLevel || 'high';
+    const len = (taskText || '').length;
+
+    // Sort threshold entries by value ascending
+    const entries = Object.entries(thresholds).sort((a, b) => a[1] - b[1]);
+
+    // Under the lowest threshold → use that level
+    if (entries.length > 0 && len < entries[0][1]) {
+      return entries[0][0]; // e.g., 'high' when < 100
+    }
+
+    // At or above the highest threshold → use that level
+    if (entries.length > 0 && len >= entries[entries.length - 1][1]) {
+      return entries[entries.length - 1][0]; // e.g., 'max' when >= 500
+    }
+
+    return defaultLevel;
+  }
+
   _getRulesSummary() {
     const rules = this.config.rules;
     if (!rules || !rules.appendToTask) return null;
@@ -1086,7 +1115,7 @@ class PtyManager {
         }
 
         // Auto effort level setup (2-phase with retry: send /model, then detect menu and press keys)
-        const effortLevel = this.config.workerDefaults?.effortLevel;
+        const effortLevel = worker._dynamicEffort || this.config.workerDefaults?.effortLevel;
         if (effortLevel && !worker.setupDone) {
           const setupCfg = this.config.workerDefaults?.effortSetup || {};
           const maxRetries = setupCfg.retries ?? 3;
@@ -1165,7 +1194,8 @@ class PtyManager {
         }
 
         // Send pending task after setup completes (queue auto-create flow)
-        const setupComplete = worker.setupDone || !this.config.workerDefaults?.effortLevel;
+        const effortNeeded = worker._dynamicEffort || this.config.workerDefaults?.effortLevel;
+        const setupComplete = worker.setupDone || !effortNeeded;
         if (setupComplete && worker._pendingTask && !worker._pendingTaskSent) {
           worker._pendingTaskSent = true;
           const pt = worker._pendingTask;
