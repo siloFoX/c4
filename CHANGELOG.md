@@ -10,6 +10,16 @@
   - 파일/디렉토리 자동 생성, 기존 파일에 추가(append) 동작
   - 쓰기 실패 시 hook 처리 중단 없이 무시 (에러 격리)
   - `tests/hook-event-log.test.js`: 16개 유닛 테스트
+- **Dashboard Web UI** (4.3): `GET /dashboard` route in daemon
+  - Worker list with status, target, branch, phase, intervention, snapshots, PID
+  - Stats bar: total workers, busy, idle, exited, queued counts
+  - Queued tasks section (shown when queue is non-empty)
+  - Lost workers section (shown when lost workers exist)
+  - Dark theme, responsive layout (mobile-friendly)
+  - XSS protection via HTML escaping
+  - 30-second auto-refresh
+  - No external dependencies — pure HTML string rendering
+  - `tests/dashboard.test.js`: 17 unit tests
 
 ---
 
