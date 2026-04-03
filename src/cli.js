@@ -195,6 +195,39 @@ async function main() {
         break;
       }
 
+      case 'daemon': {
+        const DaemonManager = require('./daemon-manager');
+        const sub = args[0];
+        if (!sub || !['start', 'stop', 'restart', 'status'].includes(sub)) {
+          console.log('Usage: c4 daemon <start|stop|restart|status>');
+          return;
+        }
+        result = await DaemonManager[sub]();
+        if (sub === 'status') {
+          if (result.running) {
+            console.log(`Daemon running (PID ${result.pid}, ${result.workers ?? '?'} workers)`);
+            if (result.endpoint) console.log(`  ${result.endpoint}`);
+            if (result.note) console.log(`  ${result.note}`);
+          } else {
+            console.log('Daemon is not running.');
+          }
+          return;
+        }
+        if (sub === 'restart') {
+          const s = result.start;
+          if (s.ok) {
+            console.log(`Restarted (PID ${s.pid})`);
+          } else {
+            console.log(s.error || JSON.stringify(result));
+          }
+          return;
+        }
+        if (result.ok) {
+          console.log(sub === 'start' ? `Started (PID ${result.pid})` : `Stopped (PID ${result.pid})`);
+        }
+        break;
+      }
+
       default:
         console.log(`Usage: c4 <command> [args]
 
@@ -209,6 +242,10 @@ Commands:
   list                             List all workers
   close <name>                     Close a worker
   health                           Check daemon status
+  daemon start                     Start daemon in background
+  daemon stop                      Stop daemon
+  daemon restart                   Restart daemon
+  daemon status                    Check daemon status
   config                           Show current config
   config reload                    Reload config.json without restart
 
