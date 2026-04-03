@@ -59,6 +59,10 @@ async function handleRequest(req, res) {
       const { name, task, branch, useBranch, useWorktree, projectRoot, scope, scopePreset, after, command, target, contextFrom, reuse } = await parseBody(req);
       result = manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot, scope, scopePreset, after, command, target, contextFrom, reuse });
 
+    } else if (req.method === 'POST' && route === '/rollback') {
+      const { name } = await parseBody(req);
+      result = manager.rollback(name);
+
     } else if (req.method === 'POST' && route === '/close') {
       const { name } = await parseBody(req);
       result = manager.close(name);

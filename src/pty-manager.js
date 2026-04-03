@@ -1029,6 +1029,20 @@ class PtyManager {
     w.proc.write(fullTask + '\r');
     w.branch = branch;
 
+    // Save start commit for rollback (3.6)
+    if (w.worktree || w.branch) {
+      try {
+        const gitDir = (w.worktree || this._detectRepoRoot() || '').replace(/\\/g, '/');
+        if (gitDir) {
+          w._startCommit = execSync(`git -C "${gitDir}" rev-parse HEAD`, {
+            encoding: 'utf8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe']
+          }).trim();
+        }
+      } catch {
+        w._startCommit = null;
+      }
+    }
+
     // History tracking (3.7)
     w._taskText = task;
     w._taskStartedAt = new Date().toISOString();
@@ -1039,6 +1053,7 @@ class PtyManager {
       worktree: w.worktree || null,
       scope: w.scopeGuard ? { active: true, description: w.scopeGuard.description } : null,
       contextFrom: options.contextFrom || null,
+      startCommit: w._startCommit || null,
       task: fullTask
     };
   }
@@ -1135,6 +1150,8 @@ class PtyManager {
       // History tracking (3.7)
       _taskText: null,           // original task text
       _taskStartedAt: null,      // ISO timestamp when task was sent
+      // Rollback (3.6)
+      _startCommit: null,        // HEAD commit hash before task started
     };
 
     // Raw log
@@ -1863,6 +1880,54 @@ class PtyManager {
       return { records };
     } catch {
       return { records: [] };
+    }
+  }
+
+  // --- Rollback (3.6) ---
+
+  rollback(name) {
+    const w = this.workers.get(name);
+    if (!w) return { error: `Worker '${name}' not found` };
+    if (!w._startCommit) return { error: `No start commit recorded for '${name}'` };
+
+    const gitDir = (w.worktree || this._detectRepoRoot() || '').replace(/\\/g, '/');
+    if (!gitDir) return { error: 'Cannot determine git directory for rollback' };
+
+    try {
+      // Get current HEAD for reference
+      const currentHead = execSync(`git -C "${gitDir}" rev-parse --short HEAD`, {
+        encoding: 'utf8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe']
+      }).trim();
+
+      const startShort = w._startCommit.slice(0, 7);
+
+      if (currentHead === startShort) {
+        return { success: true, name, message: 'Already at start commit, nothing to rollback', commit: w._startCommit };
+      }
+
+      // git reset --soft preserves changes in staging area
+      execSync(`git -C "${gitDir}" reset --soft ${w._startCommit}`, {
+        encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe']
+      });
+
+      // Log the rollback
+      w.snapshots.push({
+        time: Date.now(),
+        screen: `[ROLLBACK] reset to ${startShort} (was ${currentHead})`,
+        autoAction: true
+      });
+
+      return {
+        success: true,
+        name,
+        from: currentHead,
+        to: startShort,
+        startCommit: w._startCommit,
+        branch: w.branch || null,
+        worktree: w.worktree || null
+      };
+    } catch (e) {
+      return { error: `Rollback failed: ${e.message}` };
     }
   }
 

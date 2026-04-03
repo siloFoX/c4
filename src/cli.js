@@ -686,6 +686,24 @@ async function main() {
         break;
       }
 
+      case 'rollback': {
+        const name = args[0];
+        if (!name) {
+          console.error('Usage: c4 rollback <worker-name>');
+          process.exit(1);
+        }
+        result = await request('POST', '/rollback', { name });
+        if (result.success) {
+          if (result.from) {
+            console.log(`Rolled back '${name}': ${result.from} → ${result.to}`);
+          } else {
+            console.log(result.message);
+          }
+          return;
+        }
+        break;
+      }
+
       case 'daemon': {
         const DaemonManager = require('./daemon-manager');
         const sub = args[0];
@@ -734,6 +752,7 @@ Commands:
   wait <name> [timeout_ms]         Wait until idle, then read screen
   list                             List all workers
   merge <worker|branch>            Merge branch to main (with pre-checks)
+  rollback <name>                  Rollback worker to pre-task commit (git reset --soft)
   close <name>                     Close a worker
   history [worker] [--limit N]     Show task history
   health                           Check daemon status
