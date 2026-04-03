@@ -134,6 +134,7 @@
 | 3.17 | Subagent Swarm 지원 | todo | 작업자 내부에서 Claude Code Agent 도구로 하위 에이전트 병렬 처리. C4는 hook으로 모니터링만 |
 | 3.18 | 역할별 작업자 템플릿 | todo | Planner(Opus), Executor(Sonnet), Reviewer(Haiku) 등 역할별 모델/도구/프롬프트 프리셋 |
 | 3.19 | Auto Mode 연동 | todo | 작업자에 permissions.defaultMode: "auto" 적용. Claude 자체 classifier로 안전성 판단 위임 |
+| 3.20 | Linux/macOS 지원 | todo | Windows 전용 코드 제거: ssh.exe 하드코딩, taskkill, fixMsysArgs. process.platform 분기 정비 + 테스트 |
 
 ## 완료
 
