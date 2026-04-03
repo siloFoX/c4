@@ -4,23 +4,25 @@
 
 ### Added
 - **Task queue with rate limiting** (2.8): `maxWorkers` config limits concurrent workers
-  - Excess tasks queued automatically, dequeued when workers exit
-  - `healthCheck()` processes queue on every cycle
-  - `proc.onExit` triggers immediate queue processing
-  - Queue persisted in `state.json` (new `taskQueue` field, backward compatible)
-  - `c4 list` shows QUEUED section with name, branch, dependency, and queued time
+  - Excess tasks queued automatically, dequeued when workers exit or in healthCheck
+  - Queue persisted in `state.json`, `c4 list` shows QUEUED section
 - **Task dependencies** (2.2): `c4 task worker-b "..." --after worker-a`
   - Queued task waits until dependency worker exits before starting
-  - Auto-creates worker and sends task when dependency + maxWorkers conditions met
-  - Works with rate limiting: both conditions must be satisfied to dequeue
 - **Duplicate task prevention** (2.3): Reject `c4 task` if same name already queued or running
 - **Auto-create workers**: `c4 task` on non-existent worker auto-creates it
-  - Pending task stored internally, sent after worker setup (trust + effort) completes
-  - `tests/task-queue.test.js`: Unit tests for queue, dependencies, rate limiting, duplicates
+  - `tests/task-queue.test.js`: Unit tests
+- **SSH disconnect recovery** (2.4): Automatic SSH connection resilience
+  - ControlMaster (Unix) + ServerAlive + auto-reconnect on SSH worker exit
+  - `[SSH WARN]` snapshots, health check integration
+  - Config: `ssh.controlMaster`, `ssh.reconnect`, `ssh.maxReconnects`, etc.
+- **Token usage monitoring** (2.5): Track daily token consumption from JSONL session files
+  - `_parseTokensFromJsonl()`, `_checkTokenUsage()`: daily aggregation + 7-day history
+  - `[TOKEN WARN]` snapshots, `c4 token-usage` CLI command
+  - Config: `tokenMonitor.enabled`, `tokenMonitor.dailyLimit`, `tokenMonitor.warnThreshold`
 
 ### Changed
-- `config.json`: Added `maxWorkers: 5` (0 = unlimited)
-- `state.json`: Added `taskQueue` array (backward compatible, existing fields preserved)
+- `config.json`: Added `maxWorkers`, `ssh`, `tokenMonitor` sections
+- `state.json`: Added `taskQueue` array (backward compatible)
 
 ## [0.9.0] - 2026-04-03
 
