@@ -310,6 +310,7 @@ async function main() {
         }
 
         // 3. Auto-detect claude binary path → save to config.json
+        const isMac = process.platform === 'darwin';
         let claudePath = '';
         const detectCmds = isWin ? ['where claude'] : ['which claude', 'command -v claude'];
 
@@ -325,6 +326,24 @@ async function main() {
               break;
             }
           } catch {}
+        }
+
+        // macOS/Linux: check common paths if not found
+        if (!claudePath && !isWin) {
+          const commonPaths = [];
+          if (isMac) {
+            commonPaths.push('/opt/homebrew/bin/claude');  // Apple Silicon
+            commonPaths.push('/usr/local/bin/claude');     // Intel
+          }
+          commonPaths.push(path.join(home, '.local', 'bin', 'claude'));
+          commonPaths.push(path.join(home, '.npm-global', 'bin', 'claude'));
+
+          for (const p of commonPaths) {
+            if (fs.existsSync(p)) {
+              claudePath = p;
+              break;
+            }
+          }
         }
 
         if (claudePath) {

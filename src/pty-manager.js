@@ -12,6 +12,77 @@ const CONFIG_FILE = path.join(__dirname, '..', 'config.json');
 const STATE_FILE = path.join(__dirname, '..', 'state.json');
 const HISTORY_FILE = path.join(__dirname, '..', 'history.jsonl');
 
+// --- Platform Utilities (3.20) ---
+
+const PLATFORM = process.platform; // 'win32', 'linux', 'darwin'
+const IS_WIN = PLATFORM === 'win32';
+const IS_MAC = PLATFORM === 'darwin';
+const IS_LINUX = PLATFORM === 'linux';
+
+function platformShell() {
+  if (IS_WIN) return 'cmd.exe';
+  // macOS and Linux: prefer bash, fallback to sh
+  if (fs.existsSync('/bin/bash')) return 'bash';
+  if (fs.existsSync('/usr/bin/bash')) return 'bash';
+  return 'sh';
+}
+
+function platformShellArgs(command, args = []) {
+  if (IS_WIN) {
+    return ['/c', command, ...args];
+  }
+  const cmdStr = args.length > 0 ? `${command} ${args.join(' ')}` : command;
+  return ['-c', cmdStr];
+}
+
+function platformSshPath() {
+  if (IS_WIN) return 'C:\\Windows\\System32\\OpenSSH\\ssh.exe';
+  return 'ssh';
+}
+
+function platformHomedir() {
+  return os.homedir();
+}
+
+function platformNormalizePath(p) {
+  // Normalize to forward slashes for git commands
+  return p.replace(/\\/g, '/');
+}
+
+function platformClaudeConfigDir() {
+  return path.join(platformHomedir(), '.claude');
+}
+
+function platformTmpDir() {
+  return os.tmpdir();
+}
+
+// macOS-specific: homebrew paths for claude
+function platformClaudePaths() {
+  const paths = [];
+  if (IS_MAC) {
+    // Homebrew (Apple Silicon)
+    paths.push('/opt/homebrew/bin/claude');
+    // Homebrew (Intel)
+    paths.push('/usr/local/bin/claude');
+    // npm global (nvm)
+    const nvmDir = process.env.NVM_DIR || path.join(platformHomedir(), '.nvm');
+    if (fs.existsSync(nvmDir)) {
+      try {
+        const nodeVersion = execSync('node -v', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+        paths.push(path.join(nvmDir, 'versions', 'node', nodeVersion, 'bin', 'claude'));
+      } catch {}
+    }
+  }
+  if (IS_LINUX) {
+    paths.push('/usr/local/bin/claude');
+    paths.push(path.join(platformHomedir(), '.local', 'bin', 'claude'));
+    // npm global
+    paths.push(path.join(platformHomedir(), '.npm-global', 'bin', 'claude'));
+  }
+  return paths;
+}
+
 function loadConfig() {
   try {
     return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
@@ -284,7 +355,7 @@ class PtyManager extends EventEmitter {
 
     // Use curl to POST hook event data to daemon
     // Claude Code passes hook data as JSON to stdin
-    const curlCmd = process.platform === 'win32'
+    const curlCmd = IS_WIN
       ? `powershell -NoProfile -Command "$input = [Console]::In.ReadToEnd(); Invoke-RestMethod -Uri '${baseUrl}/hook-event' -Method Post -ContentType 'application/json' -Body $input"`
       : `curl -s -X POST -H 'Content-Type: application/json' -d @- '${baseUrl}/hook-event'`;
 
@@ -330,8 +401,8 @@ class PtyManager extends EventEmitter {
   _buildSshArgs(target) {
     const sshArgs = ['-t', '-o', 'StrictHostKeyChecking=no'];
 
-    // ControlMaster for persistent connections (Unix only)
-    if (process.platform !== 'win32') {
+    // ControlMaster for persistent connections (Unix only — Linux and macOS)
+    if (!IS_WIN) {
       const sshCfg = this.config.ssh || {};
       if (sshCfg.controlMaster !== false) {
         const controlDir = path.join(os.tmpdir(), 'c4-ssh');
@@ -1612,17 +1683,15 @@ class PtyManager extends EventEmitter {
     if (t.type === 'local' || targetName === 'local') {
       const commandMap = t.commandMap || {};
       const resolvedCmd = commandMap[command] || command;
-      shell = process.platform === 'win32' ? 'cmd.exe' : 'bash';
-      shellArgs = process.platform === 'win32'
-        ? ['/c', resolvedCmd, ...args]
-        : ['-c', `${resolvedCmd} ${args.join(' ')}`];
+      shell = platformShell();
+      shellArgs = platformShellArgs(resolvedCmd, args);
     } else if (t.type === 'ssh') {
       const remoteCwd = cwd || t.defaultCwd || '';
       const commandMap = t.commandMap || {};
       const resolvedCmd = commandMap[command] || command;
       const remoteArgs = args.length > 0 ? ' ' + args.join(' ') : '';
 
-      shell = process.platform === 'win32' ? 'C:\\Windows\\System32\\OpenSSH\\ssh.exe' : 'ssh';
+      shell = platformSshPath();
       shellArgs = this._buildSshArgs(t);
 
       pendingCommands = [];
@@ -1636,7 +1705,7 @@ class PtyManager extends EventEmitter {
     const rows = this.config.pty?.rows || 48;
 
     const spawnCwd = (t.type === 'local' || targetName === 'local')
-      ? (process.env.HOME || process.env.USERPROFILE)
+      ? platformHomedir()
       : undefined;
 
     const proc = pty.spawn(shell, shellArgs, {
