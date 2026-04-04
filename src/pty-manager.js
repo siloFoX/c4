@@ -888,6 +888,8 @@ class PtyManager extends EventEmitter {
         return { error: `Worker '${entry.name}' is already alive` };
       }
       if (existing.idleTimer) clearTimeout(existing.idleTimer);
+      if (existing._pendingTaskTimer) { clearInterval(existing._pendingTaskTimer); existing._pendingTaskTimer = null; }
+      if (existing._pendingTaskTimeoutTimer) { clearTimeout(existing._pendingTaskTimeoutTimer); existing._pendingTaskTimeoutTimer = null; }
       if (existing.rawLogStream && !existing.rawLogStream.destroyed) existing.rawLogStream.end();
       this.workers.delete(entry.name);
     }
@@ -972,8 +974,41 @@ class PtyManager extends EventEmitter {
     };
     w._pendingTaskTime = Date.now();
 
-    // Fallback: force-send task after 30s if idle handler hasn't fired
-    setTimeout(async () => {
+    // Active polling: check screen readiness every 500ms instead of relying only on idle handler
+    w._pendingTaskTimer = setInterval(() => {
+      const worker = this.workers.get(entry.name);
+      if (!worker || !worker.alive || !worker._pendingTask || worker._pendingTaskSent) {
+        clearInterval(w._pendingTaskTimer);
+        w._pendingTaskTimer = null;
+        return;
+      }
+
+      const text = this._getScreenText(worker.screen);
+      const isReady = this._termInterface.isReady(text);
+      const effortLevel = worker._dynamicEffort || this.config.workerDefaults?.effortLevel;
+      const needsSetup = effortLevel && !worker.setupDone;
+
+      // Send immediately when prompt is ready and effort setup is complete (or not needed)
+      if (isReady && !needsSetup) {
+        clearInterval(w._pendingTaskTimer);
+        w._pendingTaskTimer = null;
+        worker._pendingTaskSent = true;
+        const pt = worker._pendingTask;
+        const fullTask = this._buildTaskText(worker, pt.task, pt.options);
+        this._chunkedWrite(worker.proc, fullTask + '\r');
+        worker._taskText = pt.task;
+        worker._taskStartedAt = new Date().toISOString();
+        worker._pendingTask = null;
+      }
+    }, 500);
+
+    // Timeout fallback: force-send if polling hasn't detected idle in time
+    const pendingTimeoutMs = this.config.workerDefaults?.pendingTaskTimeout ?? 30000;
+    w._pendingTaskTimeoutTimer = setTimeout(async () => {
+      if (w._pendingTaskTimer) {
+        clearInterval(w._pendingTaskTimer);
+        w._pendingTaskTimer = null;
+      }
       const worker = this.workers.get(entry.name);
       if (worker && worker.alive && worker._pendingTask && !worker._pendingTaskSent) {
         worker._pendingTaskSent = true;
@@ -983,8 +1018,14 @@ class PtyManager extends EventEmitter {
         worker._taskText = pt.task;
         worker._taskStartedAt = new Date().toISOString();
         worker._pendingTask = null;
+        worker.snapshots = worker.snapshots || [];
+        worker.snapshots.push({
+          time: Date.now(),
+          screen: `[C4 WARN] pendingTask sent via timeout fallback (${pendingTimeoutMs}ms)`,
+          autoAction: true
+        });
       }
-    }, 30000);
+    }, pendingTimeoutMs);
 
     return { created: true, name: entry.name, pid: createResult.pid };
   }
@@ -2269,6 +2310,8 @@ class PtyManager extends EventEmitter {
       // Pending task (2.2/2.8 queue)
       _pendingTask: null,        // { task, options } — sent after setup completes
       _pendingTaskSent: false,
+      _pendingTaskTimer: null,   // active polling interval for pending task
+      _pendingTaskTimeoutTimer: null, // timeout fallback timer
       // SSH state (2.4)
       _isSsh: t.type === 'ssh',
       // History tracking (3.7)
@@ -2626,6 +2669,8 @@ class PtyManager extends EventEmitter {
       worker.alive = false;
       if (worker.idleTimer) clearTimeout(worker.idleTimer);
       if (worker._setupPollTimer) { clearInterval(worker._setupPollTimer); worker._setupPollTimer = null; }
+      if (worker._pendingTaskTimer) { clearInterval(worker._pendingTaskTimer); worker._pendingTaskTimer = null; }
+      if (worker._pendingTaskTimeoutTimer) { clearTimeout(worker._pendingTaskTimeoutTimer); worker._pendingTaskTimeoutTimer = null; }
       const text = this._getScreenText(screen);
       worker.snapshots.push({
         time: Date.now(),
@@ -2949,6 +2994,8 @@ class PtyManager extends EventEmitter {
 
         // Clean up old worker
         if (w.idleTimer) clearTimeout(w.idleTimer);
+        if (w._pendingTaskTimer) { clearInterval(w._pendingTaskTimer); w._pendingTaskTimer = null; }
+        if (w._pendingTaskTimeoutTimer) { clearTimeout(w._pendingTaskTimeoutTimer); w._pendingTaskTimeoutTimer = null; }
         if (w.rawLogStream && !w.rawLogStream.destroyed) w.rawLogStream.end();
         this.workers.delete(name);
 
@@ -3270,6 +3317,8 @@ class PtyManager extends EventEmitter {
     const history = this._recordHistory(name, w);
 
     if (w.idleTimer) clearTimeout(w.idleTimer);
+    if (w._pendingTaskTimer) { clearInterval(w._pendingTaskTimer); w._pendingTaskTimer = null; }
+    if (w._pendingTaskTimeoutTimer) { clearTimeout(w._pendingTaskTimeoutTimer); w._pendingTaskTimeoutTimer = null; }
     if (w.alive) w.proc.kill();
     if (w.rawLogStream && !w.rawLogStream.destroyed) w.rawLogStream.end();
 
