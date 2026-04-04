@@ -44,6 +44,17 @@ class MockPtyManager {
     this._writeWorkerSettingsCalls.push({ worktreePath, name, options });
   }
 
+  _resolveTarget(targetName) {
+    const configTargets = this.config.targets || {};
+    if (configTargets[targetName]) {
+      return configTargets[targetName];
+    }
+    if (targetName === 'local') {
+      return { type: 'local', defaultCwd: '' };
+    }
+    return null;
+  }
+
   _determineEffort() {
     return 'high';
   }
@@ -80,7 +91,10 @@ MockPtyManager.prototype._createAndSendTask = function(entry) {
   const w = this.workers.get(entry.name);
 
   // Worktree setup (the fix being tested)
-  const useWorktree = entry.useWorktree !== false && this.config.worktree?.enabled !== false;
+  // SSH targets run on remote machines — local worktree creation is unnecessary
+  const targetResolved = this._resolveTarget(entry.target || 'local');
+  const isSshTarget = targetResolved && targetResolved.type === 'ssh';
+  const useWorktree = !isSshTarget && entry.useWorktree !== false && this.config.worktree?.enabled !== false;
   if (entry.useBranch !== false && useWorktree) {
     const repoRoot = this._detectRepoRoot(entry.projectRoot);
     if (repoRoot) {
@@ -315,6 +329,55 @@ describe('_createAndSendTask worktree setup', () => {
 
     const w = mgr.workers.get('w10');
     expect(w.worktreeRepoRoot).toBe('/custom/repo');
+  });
+
+  test('skips worktree when target is ssh', () => {
+    mgr.config.targets = {
+      dgx: { type: 'ssh', host: '192.168.10.222', user: 'shinc' }
+    };
+    mgr._createAndSendTask({
+      name: 'ssh-w1',
+      task: 'remote task',
+      target: 'dgx',
+      useWorktree: true,
+      branch: 'c4/ssh-w1'
+    });
+
+    const w = mgr.workers.get('ssh-w1');
+    expect(w.worktree).toBeUndefined();
+    expect(mgr._createWorktreeCalls).toHaveLength(0);
+  });
+
+  test('creates worktree when target is local (not ssh)', () => {
+    mgr.config.targets = {
+      dgx: { type: 'ssh', host: '192.168.10.222', user: 'shinc' }
+    };
+    mgr._createAndSendTask({
+      name: 'local-w1',
+      task: 'local task',
+      target: 'local',
+      useWorktree: true,
+      branch: 'c4/local-w1'
+    });
+
+    const w = mgr.workers.get('local-w1');
+    expect(w.worktree).toBeTruthy();
+    expect(mgr._createWorktreeCalls).toHaveLength(1);
+  });
+
+  test('skips worktree for ssh even when useWorktree not explicitly set', () => {
+    mgr.config.targets = {
+      dgx: { type: 'ssh', host: '192.168.10.222', user: 'shinc' }
+    };
+    mgr._createAndSendTask({
+      name: 'ssh-w2',
+      task: 'remote task',
+      target: 'dgx'
+    });
+
+    const w = mgr.workers.get('ssh-w2');
+    expect(w.worktree).toBeUndefined();
+    expect(mgr._createWorktreeCalls).toHaveLength(0);
   });
 
   test('handles _writeWorkerSettings failure gracefully', () => {
