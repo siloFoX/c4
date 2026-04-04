@@ -30,6 +30,7 @@
 ### Fixed
 - **send() Enter 누락 버그 수정**: 일반 텍스트 전송(isSpecialKey=false) 시 `\r`(Enter)을 append하지 않아 명령이 실행되지 않던 문제 수정
 - **_chunkedWrite() 레이스 컨디션 수정** (1.19): setTimeout 기반 청크 전송을 async/await + drain 이벤트 기반 순차 전송으로 교체. 500자 초과 텍스트에서 `\r`이 유실되어 명령이 실행되지 않던 문제 해결. 호출처 5곳 모두 async 대응
+- **worktree 완전 hook 세트** (4.17): `_buildWorkerSettings()`가 PreToolUse/PostToolUse/PostCompact 완전한 hook 세트를 직접 생성. 복합 명령 차단 hook을 PreToolUse 첫 번째로 배치하여 daemon 통신 hook 실패와 무관하게 차단 보장. Claude Code 설정 병합 의존 제거
 
 ## [1.4.0] - 2026-04-04
 

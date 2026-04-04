@@ -1317,42 +1317,55 @@ class PtyManager extends EventEmitter {
       settings.permissions = permissions;
     }
 
-    // Hooks (3.15 integration): inject PreToolUse/PostToolUse hooks
-    if (hooksCfg.enabled !== false && hooksCfg.injectToWorkers !== false) {
-      settings.hooks = this._buildHookCommands(workerName);
-    }
-
-    // Compound command blocking hook (4.6/4.9): block &&, ||, |, ; in Bash commands
-    if (!settings.hooks) settings.hooks = {};
-    if (!settings.hooks.PreToolUse) settings.hooks.PreToolUse = [];
-    settings.hooks.PreToolUse.push({
-      matcher: 'Bash',
-      hooks: [{
-        type: 'command',
-        command: this._buildCompoundBlockCommand()
-      }]
-    });
-
-    // PostCompact hook: re-inject CLAUDE.md + session context after compaction
-    if (!settings.hooks.PostCompact) settings.hooks.PostCompact = [];
+    // Complete hook set (4.6/4.9 fix): build all hooks explicitly
+    // Don't rely on Claude Code's settings merge — generate a self-contained hook set
     const projectRoot = (this.projectRoot || path.join(__dirname, '..')).replace(/\\/g, '/');
     const claudeMdPath = `${projectRoot}/CLAUDE.md`;
     const sessionContextPath = `${projectRoot}/docs/session-context.md`;
     const daemonPort = this.config.daemon?.port || 3456;
     const daemonHost = this.config.daemon?.host || '127.0.0.1';
-    settings.hooks.PostCompact.push({
-      hooks: [
-        {
+
+    settings.hooks = {};
+
+    // PreToolUse: compound blocking FIRST (independent of daemon hook success)
+    settings.hooks.PreToolUse = [
+      {
+        matcher: 'Bash',
+        hooks: [{
           type: 'command',
-          command: `echo "=== CLAUDE.md ===" && cat "${claudeMdPath}" 2>/dev/null && echo "=== Session Context ===" && cat "${sessionContextPath}" 2>/dev/null || echo "No context files"`,
-          statusMessage: 'Reloading project context...'
-        },
-        {
-          type: 'command',
-          command: `curl -s -X POST http://${daemonHost}:${daemonPort}/compact-event -H "Content-Type: application/json" -d "{\\"worker\\":\\"${workerName}\\"}" 2>/dev/null || true`
-        }
-      ]
-    });
+          command: this._buildCompoundBlockCommand()
+        }]
+      }
+    ];
+
+    // Daemon communication hooks (PreToolUse + PostToolUse)
+    settings.hooks.PostToolUse = [];
+    if (hooksCfg.enabled !== false && hooksCfg.injectToWorkers !== false) {
+      const daemonHooks = this._buildHookCommands(workerName);
+      if (daemonHooks.PreToolUse) {
+        settings.hooks.PreToolUse.push(...daemonHooks.PreToolUse);
+      }
+      if (daemonHooks.PostToolUse) {
+        settings.hooks.PostToolUse.push(...daemonHooks.PostToolUse);
+      }
+    }
+
+    // PostCompact: context reload + compact event reporting
+    settings.hooks.PostCompact = [
+      {
+        hooks: [
+          {
+            type: 'command',
+            command: `echo "=== CLAUDE.md ===" && cat "${claudeMdPath}" 2>/dev/null && echo "=== Session Context ===" && cat "${sessionContextPath}" 2>/dev/null || echo "No context files"`,
+            statusMessage: 'Reloading project context...'
+          },
+          {
+            type: 'command',
+            command: `curl -s -X POST http://${daemonHost}:${daemonPort}/compact-event -H "Content-Type: application/json" -d "{\\"worker\\":\\"${workerName}\\"}" 2>/dev/null || true`
+          }
+        ]
+      }
+    ];
 
     // Profile-specific hooks (merge with injected hooks)
     if (profile && profile.hooks) {

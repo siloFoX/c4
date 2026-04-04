@@ -289,6 +289,7 @@ watchdog.sh (nohup, 60초 체크)
 | 4.14 | _getLastActivity JSONL 기반 전환 | **done** | raw screen 패턴 매칭 제거. logs/events-<worker>.jsonl에서 최근 tool_use 읽어서 "Edit: foo.js, Write: bar.js" 형태 반환. 폴백: taskText 첫줄 |
 | 4.15 | notifyStall 긴급 알림 | **done** | intervention 상태 또는 5분+ 무출력 시 Slack webhook 즉시 전송. healthCheck에서 자동 감지 |
 | 4.16 | alertOnly 모드 | **done** | `notifications.slack.alertOnly: true` 시 STALL/ERROR만 Slack 전송. 일반 알림(statusUpdate, notifyEdits, notifyTaskComplete, notifyHealthCheck) 억제 |
+| 4.17 | worktree 완전 hook 세트 | **done** | _buildWorkerSettings()가 완전한 hook 세트를 직접 생성. 복합 명령 차단을 PreToolUse 첫 번째로 배치. Claude Code 설정 병합에 의존하지 않음 |
 
 ### 4.1 완전 무인 운영 모드 (상세)
 
