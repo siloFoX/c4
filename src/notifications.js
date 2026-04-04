@@ -307,7 +307,7 @@ class Notifications {
     if (branch) lines.push(`  branch: ${branch}`);
     if (details.lastCommit) lines.push(`  commit: ${details.lastCommit}`);
     if (details.task) {
-      const shortTask = details.task.split(/[.\n]/)[0].substring(0, 100);
+      const shortTask = details.task.split('\n')[0].substring(0, 100);
       lines.push(`  task: ${shortTask}`);
     }
     this.pushAll(lines.join('\n'));
@@ -325,7 +325,7 @@ class Notifications {
     const lines = [`${t} ${workerName} ${this.lang.error}`];
     lines.push(`  ${msg}`);
     if (details.task) {
-      lines.push(`  task: ${details.task.split(/[.\n]/)[0].substring(0, 80)}`);
+      lines.push(`  task: ${details.task.split('\n')[0].substring(0, 80)}`);
     }
     this.pushAll(lines.join('\n'));
   }
@@ -395,7 +395,7 @@ class Notifications {
       return `  ${w.name}${elStr} - ${activity}`;
     }
 
-    const shortTask = w.task.split(/[.\n]/)[0].substring(0, 80);
+    const shortTask = w.task.split('\n')[0].substring(0, 80);
     return `  ${w.name}${elStr} - ${shortTask}`;
   }
 

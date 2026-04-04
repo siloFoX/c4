@@ -1483,17 +1483,58 @@ class PtyManager extends EventEmitter {
     }
   }
 
+  /**
+   * Check if a worktree directory has uncommitted changes (dirty state).
+   * Returns true if there are staged, unstaged, or untracked changes.
+   * Returns false if clean or if the check fails (e.g. not a git dir).
+   */
+  _isWorktreeDirty(worktreePath) {
+    try {
+      const wtPath = worktreePath.replace(/\\/g, '/');
+      if (!fs.existsSync(wtPath)) return false;
+      const output = execSync(`git -C "${wtPath}" status --porcelain`, {
+        encoding: 'utf8', stdio: 'pipe', timeout: 10000
+      });
+      return output.trim().length > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Send notification about a dirty lost worktree that was preserved.
+   * Creates a [LOST DIRTY] snapshot and sends immediate notification
+   * via all configured notification channels.
+   */
+  _notifyLostDirty(workerName, worktreePath) {
+    const msg = `[LOST DIRTY] ${workerName}: worktree preserved at ${worktreePath} (has uncommitted changes)`;
+    if (this._notifications) {
+      this._notifications.pushAll(msg);
+      // Also send immediately so the user sees it right away
+      for (const ch of Object.values(this._notifications.channels)) {
+        ch.sendImmediate(msg).catch(() => {});
+      }
+    }
+  }
+
   _cleanupLostWorktrees() {
     let cleaned = 0;
+    let preserved = 0;
     try {
       const repoRoot = this._detectRepoRoot();
-      if (!repoRoot) return 0;
+      if (!repoRoot) return { cleaned: 0, preserved: 0 };
 
-      // 1. Clean up worktrees from lostWorkers
+      // 1. Clean up worktrees from lostWorkers (check dirty state first)
       if (Array.isArray(this.lostWorkers)) {
         for (const lw of this.lostWorkers) {
           if (!lw.worktree) continue;
           try {
+            if (this._isWorktreeDirty(lw.worktree)) {
+              // Dirty worktree: preserve and notify
+              this._notifyLostDirty(lw.name || 'unknown', lw.worktree);
+              preserved++;
+              continue;
+            }
             this._removeWorktree(repoRoot, lw.worktree);
             const wtPath = lw.worktree.replace(/\\/g, '/');
             try {
@@ -1514,21 +1555,34 @@ class PtyManager extends EventEmitter {
         });
       } catch {}
 
-      // 3. Scan for orphan c4-worktree-* directories
+      // 3. Scan for orphan c4-worktree-* directories (check dirty state first)
       try {
         const parentDir = path.resolve(repoRoot, '..');
         const entries = fs.readdirSync(parentDir);
-        const activeWorktrees = new Set();
+        const knownWorktrees = new Set();
         for (const [, w] of this.workers) {
-          if (w.worktree) activeWorktrees.add(w.worktree.replace(/\\/g, '/'));
+          if (w.worktree) knownWorktrees.add(w.worktree.replace(/\\/g, '/'));
+        }
+        // Also skip worktrees still tracked in lostWorkers (dirty ones preserved in step 1)
+        if (Array.isArray(this.lostWorkers)) {
+          for (const lw of this.lostWorkers) {
+            if (lw.worktree) knownWorktrees.add(lw.worktree.replace(/\\/g, '/'));
+          }
         }
         for (const entry of entries) {
           if (!entry.startsWith('c4-worktree-')) continue;
           const fullPath = path.resolve(parentDir, entry).replace(/\\/g, '/');
-          if (activeWorktrees.has(fullPath)) continue;
+          if (knownWorktrees.has(fullPath)) continue;
           try {
             const stat = fs.statSync(fullPath);
             if (stat.isDirectory()) {
+              if (this._isWorktreeDirty(fullPath)) {
+                // Dirty orphan: preserve and notify
+                const orphanName = entry.replace('c4-worktree-', '');
+                this._notifyLostDirty(orphanName, fullPath);
+                preserved++;
+                continue;
+              }
               this._removeWorktree(repoRoot, fullPath);
               try {
                 if (fs.existsSync(fullPath)) {
@@ -1541,7 +1595,7 @@ class PtyManager extends EventEmitter {
         }
       } catch {}
     } catch {}
-    return cleaned;
+    return { cleaned, preserved };
   }
 
   _detectPermissionPrompt(screenText) {

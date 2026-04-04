@@ -203,7 +203,7 @@
 | 2.4 | SSH 끊김 복구 | **done** | SSH ControlMaster + ServerAlive + 자동 재연결. [SSH WARN] 경고 스냅샷 |
 | 2.5 | 토큰 사용량 모니터링 | **done** | JSONL 토큰 파싱. 일일 한도 + 경고 임계값. [TOKEN WARN] 경고 스냅샷 |
 | 2.6 | 타임아웃 정책 | **done** | healthCheck에 timeoutMs 추가. 기본 10분 초과 시 [HEALTH] timeout 스냅샷 |
-| 2.7 | 로그 관리 및 세션 복구 | **done** | 로그 로테이션(50MB). 종료 작업자 로그 자동 정리. 데몬 재시작 시 lost workers 표시. healthCheck에서 LOST worker worktree 자동 정리 + orphan c4-worktree-* 스캔/삭제 |
+| 2.7 | 로그 관리 및 세션 복구 | **done** | 로그 로테이션(50MB). 종료 작업자 로그 자동 정리. 데몬 재시작 시 lost workers 표시. healthCheck에서 LOST worker worktree 안전 정리 (dirty 상태 확인 후 clean만 삭제, dirty는 보존+알림) + orphan c4-worktree-* 스캔/삭제 |
 | 2.8 | API rate limit 큐잉 | **done** | maxWorkers config. 초과 시 큐에 대기. healthCheck에서 자동 디큐 |
 | 2.9 | 자율 운영 구조 | **done** | watchdog.sh + 관리자 자동 생성 + scribe 연동 |
 

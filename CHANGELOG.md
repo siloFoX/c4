@@ -26,13 +26,21 @@
   - healthCheck에서 임계값 근접 경고 알림
   - `POST /compact-event` daemon API 라우트
   - `tests/manager-rotation.test.js`: 13개 유닛 테스트
-- **LOST worker worktree 자동 정리**: healthCheck에서 미아 worktree 자동 정리
-  - `_cleanupLostWorktrees()`: lostWorkers의 worktree 정리 + orphan c4-worktree-* 디렉토리 스캔/삭제
-  - `healthCheck()`: 매 주기마다 _cleanupLostWorktrees() 호출, 결과에 cleanedWorktrees 포함
-  - `startHealthCheck()`: daemon 시작 시 이전 세션 잔여 worktree 즉시 정리
-  - `tests/worktree-cleanup.test.js`: 10개 유닛 테스트
+- **LOST worker worktree 안전 정리**: healthCheck에서 미아 worktree를 dirty 상태 확인 후 안전하게 정리
+  - `_cleanupLostWorktrees()`: 삭제 전 `git status --porcelain`으로 uncommitted changes 확인
+  - `_isWorktreeDirty()`: worktree의 dirty 상태 확인 (staged, unstaged, untracked 파일 검사)
+  - `_notifyLostDirty()`: dirty worktree 발견 시 `[LOST DIRTY]` 알림을 모든 채널에 즉시 전송
+  - dirty worktree: 삭제하지 않고 보존 + Slack/Discord/Telegram 알림으로 사용자에게 판단 위임
+  - clean worktree: 기존과 동일하게 안전 삭제
+  - orphan 스캔에서 lostWorkers에 속한 worktree 중복 처리 방지
+  - 반환값 변경: `number` -> `{ cleaned, preserved }` 객체
+  - `tests/worktree-cleanup.test.js`: 18개 유닛 테스트
 
 ### Fixed
+- **Slack 알림 task 요약 절단 버그** (4.19): 파일명의 `.`에서 잘리던 task 요약 수정
+  - `_fmtWorker()`, `notifyTaskComplete()`, `notifyError()`: `split(/[.\n]/)` -> `split('\n')`
+  - 예: "Fix bug in daemon.js" 가 "Fix bug in daemon" 으로 잘리던 문제 해결
+  - `tests/notifications.test.js`: 5개 테스트 추가 (dot 보존, multi-line 첫줄 추출)
 - **merge-homedir config 폴백** (4.18): cli.js merge 핸들러에 config.json projectRoot 폴백 추가
   - `git rev-parse` 실패 시 `config.json`의 `worktree.projectRoot` 확인
   - `pty-manager.js`의 `_detectRepoRoot()`와 동일한 폴백 전략
