@@ -1483,6 +1483,67 @@ class PtyManager extends EventEmitter {
     }
   }
 
+  _cleanupLostWorktrees() {
+    let cleaned = 0;
+    try {
+      const repoRoot = this._detectRepoRoot();
+      if (!repoRoot) return 0;
+
+      // 1. Clean up worktrees from lostWorkers
+      if (Array.isArray(this.lostWorkers)) {
+        for (const lw of this.lostWorkers) {
+          if (!lw.worktree) continue;
+          try {
+            this._removeWorktree(repoRoot, lw.worktree);
+            const wtPath = lw.worktree.replace(/\\/g, '/');
+            try {
+              if (fs.existsSync(wtPath)) {
+                fs.rmSync(wtPath, { recursive: true, force: true });
+              }
+            } catch {}
+            cleaned++;
+            lw.worktree = null;
+          } catch {}
+        }
+      }
+
+      // 2. git worktree prune
+      try {
+        execSync('git worktree prune', {
+          cwd: repoRoot, encoding: 'utf8', stdio: 'pipe'
+        });
+      } catch {}
+
+      // 3. Scan for orphan c4-worktree-* directories
+      try {
+        const parentDir = path.resolve(repoRoot, '..');
+        const entries = fs.readdirSync(parentDir);
+        const activeWorktrees = new Set();
+        for (const [, w] of this.workers) {
+          if (w.worktree) activeWorktrees.add(w.worktree.replace(/\\/g, '/'));
+        }
+        for (const entry of entries) {
+          if (!entry.startsWith('c4-worktree-')) continue;
+          const fullPath = path.resolve(parentDir, entry).replace(/\\/g, '/');
+          if (activeWorktrees.has(fullPath)) continue;
+          try {
+            const stat = fs.statSync(fullPath);
+            if (stat.isDirectory()) {
+              this._removeWorktree(repoRoot, fullPath);
+              try {
+                if (fs.existsSync(fullPath)) {
+                  fs.rmSync(fullPath, { recursive: true, force: true });
+                }
+              } catch {}
+              cleaned++;
+            }
+          } catch {}
+        }
+      } catch {}
+    } catch {}
+    return cleaned;
+  }
+
   _detectPermissionPrompt(screenText) {
     const p = this._getPatterns();
     return screenText.includes(p.permissionPrompt) ||
@@ -2917,13 +2978,19 @@ class PtyManager extends EventEmitter {
       this._notifications.tick();
     }
 
-    return { lastCheck: now, workers: results, rotated, cleaned, dequeued, tokenUsage: tokenResult };
+    // Lost worker worktree cleanup
+    const cleanedWorktrees = this._cleanupLostWorktrees();
+
+    return { lastCheck: now, workers: results, rotated, cleaned, dequeued, tokenUsage: tokenResult, cleanedWorktrees };
   }
 
   startHealthCheck() {
     if (this._healthTimer) return;
     const enabled = this.config.healthCheck?.enabled !== false;
     if (!enabled) return;
+
+    // Clean up leftover worktrees from previous sessions
+    this._cleanupLostWorktrees();
 
     const intervalMs = this.config.healthCheck?.intervalMs || 30000;
     this._healthTimer = setInterval(() => this.healthCheck(), intervalMs);
