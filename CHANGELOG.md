@@ -44,6 +44,9 @@
   - `tests/worktree-cleanup.test.js`: 18개 유닛 테스트
 
 ### Fixed
+- **알림 동작 수정** (4.24): `notifyHealthCheck`, `notifyTaskComplete` 불필요한 동작 제거
+  - `notifyHealthCheck()`: 워커가 없을 때 "daemon OK" 메시지 전송 삭제 (노이즈 제거)
+  - `notifyTaskComplete()`: `alertOnly` 체크 제거 - 완료 메시지는 항상 전송
 - **좀비 데몬 정리** (4.21): `daemon stop`이 프로세스를 확실히 죽이도록 수정
   - SIGTERM 후 매 반복마다 프로세스 종료 확인, 죽으면 즉시 반환
   - kill 호출 중 race condition 처리 (에러 발생 시에도 프로세스 사망 여부 재확인)

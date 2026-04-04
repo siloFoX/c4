@@ -304,7 +304,6 @@ class Notifications {
   // --- Event handlers (unified format) ---
 
   async notifyTaskComplete(workerName, details = {}) {
-    if (this.slack.alertOnly) return { slack: 'skipped(alertOnly)', email: { sent: false } };
     const t = this._time();
     const branch = details.branch ? `${details.branch}` : '';
     const lines = [`${t} ${workerName} ${this.lang.done}`];
@@ -353,8 +352,6 @@ class Notifications {
     } else if (workers.length > 0) {
       const lines = alive.map(w => this._fmtWorker(w));
       this.pushAll(`${t}\n${lines.join('\n')}`);
-    } else {
-      this.pushAll(`${t} daemon OK`);
     }
   }
 
