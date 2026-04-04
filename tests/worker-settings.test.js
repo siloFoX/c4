@@ -59,6 +59,20 @@ describe('Worker Settings Profile (3.16)', () => {
       };
     };
 
+    mgr._buildCompoundBlockCommand = function() {
+      const script = [
+        "let d='';",
+        "process.stdin.on('data',c=>d+=c);",
+        "process.stdin.on('end',()=>{",
+        "try{const j=JSON.parse(d);const cmd=j.tool_input&&j.tool_input.command||'';",
+        "if(/&&|\\|\\||[|;]/.test(cmd)){",
+        "console.error('BLOCKED: compound commands (&&, ||, |, ;) are not allowed. Use single commands.');",
+        "process.exit(2)}",
+        "}catch{}process.exit(0)})"
+      ].join('');
+      return `node -e "${script}"`;
+    };
+
     mgr._buildWorkerSettings = function(workerName, options = {}) {
       const profileName = options.profile || options.template || '';
       const profile = profileName ? this._getProfile(profileName) : null;
@@ -78,12 +92,36 @@ describe('Worker Settings Profile (3.16)', () => {
       }
       settings.permissions = permissions;
 
+      // Complete hook set: build all hooks explicitly
+      settings.hooks = {};
+
+      // PreToolUse: compound blocking FIRST
+      settings.hooks.PreToolUse = [
+        {
+          matcher: 'Bash',
+          hooks: [{ type: 'command', command: this._buildCompoundBlockCommand() }]
+        }
+      ];
+
+      // Daemon communication hooks
+      settings.hooks.PostToolUse = [];
       if (hooksCfg.enabled !== false && hooksCfg.injectToWorkers !== false) {
-        settings.hooks = this._buildHookCommands(workerName);
+        const daemonHooks = this._buildHookCommands(workerName);
+        if (daemonHooks.PreToolUse) {
+          settings.hooks.PreToolUse.push(...daemonHooks.PreToolUse);
+        }
+        if (daemonHooks.PostToolUse) {
+          settings.hooks.PostToolUse.push(...daemonHooks.PostToolUse);
+        }
       }
 
+      // PostCompact: context reload
+      settings.hooks.PostCompact = [
+        { hooks: [{ type: 'command', command: 'cat CLAUDE.md' }] }
+      ];
+
+      // Profile-specific hooks
       if (profile && profile.hooks) {
-        if (!settings.hooks) settings.hooks = {};
         for (const [hookName, hookDefs] of Object.entries(profile.hooks)) {
           if (!settings.hooks[hookName]) {
             settings.hooks[hookName] = hookDefs;
@@ -155,10 +193,15 @@ describe('Worker Settings Profile (3.16)', () => {
     assert.ok(settings.hooks.PostToolUse);
   });
 
-  it('skips hook injection when hooks disabled', () => {
+  it('has compound blocking but no daemon hooks when hooks disabled', () => {
     const mgr = createMockManager({ hooks: { enabled: false } });
     const settings = mgr._buildWorkerSettings('w1');
-    assert.ok(!settings.hooks);
+    assert.ok(settings.hooks);
+    // PreToolUse has compound blocking only (no daemon hook)
+    assert.strictEqual(settings.hooks.PreToolUse.length, 1);
+    assert.strictEqual(settings.hooks.PreToolUse[0].matcher, 'Bash');
+    // PostToolUse is empty (no daemon hook)
+    assert.strictEqual(settings.hooks.PostToolUse.length, 0);
   });
 
   it('merges profile hooks with injected hooks', () => {
@@ -222,6 +265,42 @@ describe('Worker Settings Profile (3.16)', () => {
     const mgr = createMockManager();
     const settings = mgr._buildWorkerSettings('w1', { template: 'reviewer' });
     assert.ok(settings.permissions.deny.includes('Edit'));
+  });
+
+  // --- no duplicate default permissions ---
+
+  // --- Complete hook set (4.6/4.9 fix) ---
+
+  it('compound blocking is first PreToolUse hook', () => {
+    const mgr = createMockManager();
+    const settings = mgr._buildWorkerSettings('w1');
+    assert.strictEqual(settings.hooks.PreToolUse[0].matcher, 'Bash');
+    assert.ok(settings.hooks.PreToolUse[0].hooks[0].command.includes('BLOCKED'));
+  });
+
+  it('daemon hook comes after compound blocking in PreToolUse', () => {
+    const mgr = createMockManager();
+    const settings = mgr._buildWorkerSettings('w1');
+    assert.strictEqual(settings.hooks.PreToolUse.length, 2);
+    // First: compound blocking (has matcher: 'Bash')
+    assert.strictEqual(settings.hooks.PreToolUse[0].matcher, 'Bash');
+    // Second: daemon hook (no matcher = global)
+    assert.strictEqual(settings.hooks.PreToolUse[1].matcher, undefined);
+  });
+
+  it('includes PostCompact hooks', () => {
+    const mgr = createMockManager();
+    const settings = mgr._buildWorkerSettings('w1');
+    assert.ok(settings.hooks.PostCompact);
+    assert.ok(settings.hooks.PostCompact.length > 0);
+  });
+
+  it('includes all three hook types in complete set', () => {
+    const mgr = createMockManager();
+    const settings = mgr._buildWorkerSettings('w1');
+    assert.ok(settings.hooks.PreToolUse, 'PreToolUse must exist');
+    assert.ok(settings.hooks.PostToolUse, 'PostToolUse must exist');
+    assert.ok(settings.hooks.PostCompact, 'PostCompact must exist');
   });
 
   // --- no duplicate default permissions ---

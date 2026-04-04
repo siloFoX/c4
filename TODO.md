@@ -22,6 +22,7 @@
 | 1.16 | `c4 merge --skip-checks` | **done** | 문서 전용 커밋 등 체크 우회 플래그. TODO/CHANGELOG 수정 없어도 머지 허용 |
 | 1.17 | worktree에서 main 보호 hook 적용 | **done** | worktree 생성 시 core.hooksPath를 원본 repo의 .githooks로 설정 |
 | 1.18 | sendTask 긴 메시지 잘림 버그 | **done** | `_chunkedWrite()` 도입. 500자 청크 + 50ms 간격 전송으로 PTY 버퍼 오버플로우 방지 |
+| 1.19 | _chunkedWrite setTimeout 레이스 | **done** | Promise 기반 순차 전송으로 전환. drain 이벤트로 백프레셔 처리, CR 유실 방지 |
 
 ### 1.6 Scribe 시스템 (상세)
 
@@ -287,8 +288,8 @@ watchdog.sh (nohup, 60초 체크)
 | 4.13 | config.example.json + CLAUDE.md 최신화 | **done** | config.example.json에 intervention, notifications.language 추가. CLAUDE.md에 CLI 전체 명령어 레퍼런스 추가 |
 | 4.14 | _getLastActivity JSONL 기반 전환 | **done** | raw screen 패턴 매칭 제거. logs/events-<worker>.jsonl에서 최근 tool_use 읽어서 "Edit: foo.js, Write: bar.js" 형태 반환. 폴백: taskText 첫줄 |
 | 4.15 | notifyStall 긴급 알림 | **done** | intervention 상태 또는 5분+ 무출력 시 Slack webhook 즉시 전송. healthCheck에서 자동 감지 |
-| 4.16 | alertOnly 모드 | **done** | `notifications.slack.alertOnly: true` 시 STALL/ERROR만 Slack 전송. 일반 알���(statusUpdate, notifyEdits, notifyTaskComplete, notifyHealthCheck) 억제 |
-| 4.17 | auto-resume idle 큐 확인 | **done** | idle 콜백에서 _taskQueue 매칭 태스크 자동 전송. _processQueue에 idle 워커 감지 로직 추가. auto-mgr 연속 작업 보장 |
+| 4.16 | alertOnly 모드 | **done** | `notifications.slack.alertOnly: true` 시 STALL/ERROR만 Slack 전송. 일반 알림(statusUpdate, notifyEdits, notifyTaskComplete, notifyHealthCheck) 억제 |
+| 4.17 | auto-resume idle 큐 확인 + worktree 완전 hook 세트 | **done** | idle 콜백에서 _taskQueue 매칭 태스크 자동 전송. _processQueue에 idle 워커 감지 로직 추가. _buildWorkerSettings() 완전한 hook 세트 직접 생성. 복합 명령 차단을 PreToolUse 첫 번째로 배치 |
 | 4.18 | merge-homedir config 폴백 | **done** | cli.js merge 핸들러에 config.json projectRoot 폴백 추가. 홈디렉토리에서 c4 merge 실행 가능 |
 
 ### 4.1 완전 무인 운영 모드 (상세)

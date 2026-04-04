@@ -1047,13 +1047,13 @@ class PtyManager extends EventEmitter {
     w._pendingTaskTime = Date.now();
 
     // Fallback: force-send task after 30s if idle handler hasn't fired
-    setTimeout(() => {
+    setTimeout(async () => {
       const worker = this.workers.get(entry.name);
       if (worker && worker.alive && worker._pendingTask && !worker._pendingTaskSent) {
         worker._pendingTaskSent = true;
         const pt = worker._pendingTask;
         const fullTask = this._buildTaskText(worker, pt.task, pt.options);
-        this._chunkedWrite(worker.proc, fullTask + '\r');
+        await this._chunkedWrite(worker.proc, fullTask + '\r');
         worker._taskText = pt.task;
         worker._taskStartedAt = new Date().toISOString();
         worker._pendingTask = null;
@@ -1402,42 +1402,55 @@ class PtyManager extends EventEmitter {
       settings.permissions = permissions;
     }
 
-    // Hooks (3.15 integration): inject PreToolUse/PostToolUse hooks
-    if (hooksCfg.enabled !== false && hooksCfg.injectToWorkers !== false) {
-      settings.hooks = this._buildHookCommands(workerName);
-    }
-
-    // Compound command blocking hook (4.6/4.9): block &&, ||, |, ; in Bash commands
-    if (!settings.hooks) settings.hooks = {};
-    if (!settings.hooks.PreToolUse) settings.hooks.PreToolUse = [];
-    settings.hooks.PreToolUse.push({
-      matcher: 'Bash',
-      hooks: [{
-        type: 'command',
-        command: this._buildCompoundBlockCommand()
-      }]
-    });
-
-    // PostCompact hook: re-inject CLAUDE.md + session context after compaction
-    if (!settings.hooks.PostCompact) settings.hooks.PostCompact = [];
+    // Complete hook set (4.6/4.9 fix): build all hooks explicitly
+    // Don't rely on Claude Code's settings merge — generate a self-contained hook set
     const projectRoot = (this.projectRoot || path.join(__dirname, '..')).replace(/\\/g, '/');
     const claudeMdPath = `${projectRoot}/CLAUDE.md`;
     const sessionContextPath = `${projectRoot}/docs/session-context.md`;
     const daemonPort = this.config.daemon?.port || 3456;
     const daemonHost = this.config.daemon?.host || '127.0.0.1';
-    settings.hooks.PostCompact.push({
-      hooks: [
-        {
+
+    settings.hooks = {};
+
+    // PreToolUse: compound blocking FIRST (independent of daemon hook success)
+    settings.hooks.PreToolUse = [
+      {
+        matcher: 'Bash',
+        hooks: [{
           type: 'command',
-          command: `echo "=== CLAUDE.md ===" && cat "${claudeMdPath}" 2>/dev/null && echo "=== Session Context ===" && cat "${sessionContextPath}" 2>/dev/null || echo "No context files"`,
-          statusMessage: 'Reloading project context...'
-        },
-        {
-          type: 'command',
-          command: `curl -s -X POST http://${daemonHost}:${daemonPort}/compact-event -H "Content-Type: application/json" -d "{\\"worker\\":\\"${workerName}\\"}" 2>/dev/null || true`
-        }
-      ]
-    });
+          command: this._buildCompoundBlockCommand()
+        }]
+      }
+    ];
+
+    // Daemon communication hooks (PreToolUse + PostToolUse)
+    settings.hooks.PostToolUse = [];
+    if (hooksCfg.enabled !== false && hooksCfg.injectToWorkers !== false) {
+      const daemonHooks = this._buildHookCommands(workerName);
+      if (daemonHooks.PreToolUse) {
+        settings.hooks.PreToolUse.push(...daemonHooks.PreToolUse);
+      }
+      if (daemonHooks.PostToolUse) {
+        settings.hooks.PostToolUse.push(...daemonHooks.PostToolUse);
+      }
+    }
+
+    // PostCompact: context reload + compact event reporting
+    settings.hooks.PostCompact = [
+      {
+        hooks: [
+          {
+            type: 'command',
+            command: `echo "=== CLAUDE.md ===" && cat "${claudeMdPath}" 2>/dev/null && echo "=== Session Context ===" && cat "${sessionContextPath}" 2>/dev/null || echo "No context files"`,
+            statusMessage: 'Reloading project context...'
+          },
+          {
+            type: 'command',
+            command: `curl -s -X POST http://${daemonHost}:${daemonPort}/compact-event -H "Content-Type: application/json" -d "{\\"worker\\":\\"${workerName}\\"}" 2>/dev/null || true`
+          }
+        ]
+      }
+    ];
 
     // Profile-specific hooks (merge with injected hooks)
     if (profile && profile.hooks) {
@@ -2332,8 +2345,8 @@ class PtyManager extends EventEmitter {
           worker._pendingTaskSent = true;
           const pt = worker._pendingTask;
           const fullTask = this._buildTaskText(worker, pt.task, pt.options);
-          setTimeout(() => {
-            this._chunkedWrite(proc, fullTask + '\r');
+          setTimeout(async () => {
+            await this._chunkedWrite(proc, fullTask + '\r');
             worker._taskText = pt.task;
             worker._taskStartedAt = new Date().toISOString();
             worker._pendingTask = null;
@@ -2544,8 +2557,8 @@ class PtyManager extends EventEmitter {
             });
             // Send feedback to worker — tell it to follow the routine
             if (routineSkip.feedback && worker.alive) {
-              setTimeout(() => {
-                this._chunkedWrite(proc, routineSkip.feedback + '\r');
+              setTimeout(async () => {
+                await this._chunkedWrite(proc, routineSkip.feedback + '\r');
               }, 1000);
             }
           }
@@ -2669,18 +2682,21 @@ class PtyManager extends EventEmitter {
 
   /**
    * PTY에 텍스트를 청크 단위로 분할 전송 (버퍼 오버플로우 방지)
+   * Promise 기반 순차 전송: drain 이벤트로 백프레셔 처리
    */
-  _chunkedWrite(proc, text, chunkSize = 500, delayMs = 50) {
+  async _chunkedWrite(proc, text, chunkSize = 500, delayMs = 50) {
     if (text.length <= chunkSize) {
       proc.write(text);
       return;
     }
     for (let i = 0; i < text.length; i += chunkSize) {
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
       const chunk = text.slice(i, i + chunkSize);
-      if (i === 0) {
-        proc.write(chunk);
-      } else {
-        setTimeout(() => proc.write(chunk), delayMs * (i / chunkSize));
+      const ok = proc.write(chunk);
+      if (!ok) {
+        await new Promise(resolve => proc.once('drain', resolve));
       }
     }
   }
