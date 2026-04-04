@@ -28,6 +28,16 @@
   - `tests/manager-rotation.test.js`: 13개 유닛 테스트
 
 ### Fixed
+- **merge-homedir config 폴백** (4.18): cli.js merge 핸들러에 config.json projectRoot 폴백 추가
+  - `git rev-parse` 실패 시 `config.json`의 `worktree.projectRoot` 확인
+  - `pty-manager.js`의 `_detectRepoRoot()`와 동일한 폴백 전략
+  - 홈디렉토리에서 `c4 merge` 실행 가능
+  - `tests/merge-homedir.test.js`: 11개 유닛 테스���
+- **auto-resume idle 큐 확인** (4.17): 워커 idle 시 `_taskQueue`에서 매칭 태스크 자동 전송
+  - idle 콜백(line 2246 부근): `_pendingTask` 없고 idle 상태일 때 `_taskQueue`에서 현재 워커명 매칭 태스크 검색 후 `sendTask()` 방식으로 전송
+  - `_processQueue()`: idle 워커 감지 로직 추가 — healthCheck에서도 기존 idle 워커에 태스크 자동 할당
+  - auto-mgr이 태스크 완료 후 다음 태스크를 자동으로 받을 수 있게 보장
+  - `tests/auto-resume.test.js`: 13개 유닛 테스트
 - **send() Enter 누락 버그 수정**: 일반 텍스트 전송(isSpecialKey=false) 시 `\r`(Enter)을 append하지 않아 명령이 실행되지 않던 문제 수정
 - **pending-task worktree 미생성 버그 수정** (BF-1): `_createAndSendTask()`에서 worktree 생성 로직이 누락되어, 새 워커 생성과 동시에 task 전달 시 worktree 없이 원본 repo에서 작업이 실행되던 문제 수정. `sendTask()`의 worktree 생성 패턴을 `create()` 호출 직후에 복제하여 `_pendingTask` 저장 전에 `w.worktree`가 설정되도록 함
   - `tests/pending-task-worktree.test.js`: 13개 유닛 테스트

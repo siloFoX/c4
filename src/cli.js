@@ -553,13 +553,23 @@ async function main() {
           process.exit(1);
         }
 
-        // Detect project root (git repo root)
+        // Detect project root (git repo root) with config.json fallback
         let repoRoot;
         try {
           repoRoot = execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim();
         } catch {
-          console.error('Error: not inside a git repository');
-          process.exit(1);
+          // Fallback: config.json projectRoot (same strategy as pty-manager._detectRepoRoot)
+          try {
+            const configPath = path.resolve(__dirname, '..', 'config.json');
+            const config = JSON.parse(require('fs').readFileSync(configPath, 'utf8'));
+            if (config.worktree && config.worktree.projectRoot) {
+              repoRoot = path.resolve(config.worktree.projectRoot);
+            }
+          } catch {}
+          if (!repoRoot) {
+            console.error('Error: not inside a git repository and config.worktree.projectRoot not set');
+            process.exit(1);
+          }
         }
 
         // Determine branch name: if target matches a worktree worker name, derive branch
