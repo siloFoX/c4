@@ -898,7 +898,10 @@ class PtyManager extends EventEmitter {
     const w = this.workers.get(entry.name);
 
     // Worktree setup: replicate sendTask() worktree creation pattern
-    const useWorktree = entry.useWorktree !== false && this.config.worktree?.enabled !== false;
+    // SSH targets run on remote machines — local worktree creation is unnecessary
+    const targetResolved = this._resolveTarget(entry.target || 'local');
+    const isSshTarget = targetResolved && targetResolved.type === 'ssh';
+    const useWorktree = !isSshTarget && entry.useWorktree !== false && this.config.worktree?.enabled !== false;
     if (entry.useBranch !== false && useWorktree) {
       const repoRoot = this._detectRepoRoot(entry.projectRoot);
       if (repoRoot) {
@@ -2071,7 +2074,10 @@ class PtyManager extends EventEmitter {
     }
 
     const branch = options.branch || `c4/${name}`;
-    const useWorktree = options.useWorktree !== false && this.config.worktree?.enabled !== false;
+    // SSH targets run on remote machines — local worktree creation is unnecessary
+    const targetResolved = this._resolveTarget(options.target || 'local');
+    const isSshTarget = targetResolved && targetResolved.type === 'ssh';
+    const useWorktree = !isSshTarget && options.useWorktree !== false && this.config.worktree?.enabled !== false;
     const commands = [];
 
     // Scope guard setup
