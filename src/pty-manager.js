@@ -711,53 +711,12 @@ class PtyManager extends EventEmitter {
     return { input: inputTokens, output: outputTokens };
   }
 
-  _getLastActivity(w, workerName) {
-    // Read recent tool_use events from logs/events-<worker>.jsonl
-    // Returns "Edit: foo.js, Write: bar.js" style summary
-    workerName = workerName || '';
-    if (workerName) {
-      try {
-        const logFile = path.join(this.logsDir, `events-${workerName}.jsonl`);
-        if (fs.existsSync(logFile)) {
-          const content = fs.readFileSync(logFile, 'utf8').trim();
-          if (content) {
-            const lines = content.split('\n');
-            // Take last 20 lines to find recent tool_use events
-            const recent = lines.slice(-20);
-            const activities = [];
-            for (const line of recent) {
-              try {
-                const evt = JSON.parse(line);
-                const tool = evt.tool_name;
-                if (!tool) continue;
-                const input = evt.tool_input || {};
-                // Extract meaningful file path from tool input
-                const file = input.file_path || input.command || '';
-                const shortFile = file ? path.basename(file) : '';
-                if (shortFile) {
-                  activities.push(`${tool}: ${shortFile}`);
-                } else {
-                  activities.push(tool);
-                }
-              } catch {}
-            }
-            if (activities.length > 0) {
-              // Deduplicate and take last 5
-              const unique = [...new Set(activities)].slice(-5);
-              return unique.join(', ').substring(0, 120);
-            }
-          }
-        }
-      } catch {}
-    }
-
-    // Fallback: first line of task text
+  _getLastActivity(w) {
     if (w._taskText) {
       const firstLine = w._taskText.split(/[\n.]/)[0].trim();
       if (firstLine) return firstLine.substring(0, 80);
     }
-
-    return '';
+    return 'idle';
   }
 
   _checkTokenUsage() {
@@ -2839,9 +2798,9 @@ class PtyManager extends EventEmitter {
             screen: `[HEALTH] worker idle for ${Math.round(idleMs / 60000)}min (timeout: ${Math.round(timeoutMs / 60000)}min)`,
             autoAction: true
           });
-          results.push({ name, status: 'timeout', idleMs, task: w._taskText, taskStarted: w._taskStartedAt, lastActivity: this._getLastActivity(w, name) });
+          results.push({ name, status: 'timeout', idleMs, task: w._taskText, taskStarted: w._taskStartedAt, lastActivity: this._getLastActivity(w) });
         } else {
-          results.push({ name, status: 'alive', idleMs, task: w._taskText, taskStarted: w._taskStartedAt, lastActivity: this._getLastActivity(w, name) });
+          results.push({ name, status: 'alive', idleMs, task: w._taskText, taskStarted: w._taskStartedAt, lastActivity: this._getLastActivity(w) });
         }
         continue;
       }
