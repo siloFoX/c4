@@ -66,6 +66,18 @@ describe('Notifications._fmtWorker()', () => {
     assert.ok(result.includes('build feature'));
   });
 
+  it('preserves dots in task first-line summary (e.g. filenames)', () => {
+    const result = n._fmtWorker({ name: 'w4', task: 'Fix bug in daemon.js that causes crash' });
+    assert.ok(result.includes('daemon.js'), 'task with filename should not be truncated at the dot');
+    assert.ok(result.includes('Fix bug in daemon.js that causes crash'));
+  });
+
+  it('uses first line of multi-line task', () => {
+    const result = n._fmtWorker({ name: 'w5', task: 'First line summary\nSecond line detail\nThird line' });
+    assert.ok(result.includes('First line summary'));
+    assert.ok(!result.includes('Second line detail'));
+  });
+
   it('includes elapsed time when taskStarted is set', () => {
     const started = new Date(Date.now() - 5 * 60000).toISOString();
     const result = n._fmtWorker({ name: 'w3', task: 'deploy', taskStarted: started });
@@ -148,6 +160,14 @@ describe('Notifications.notifyTaskComplete()', () => {
     assert.ok(n._slackBuffer[0].text.includes('w2'));
     assert.ok(n._slackBuffer[0].text.includes('\uC644\uB8CC'));
   });
+
+  it('preserves dots in task summary (e.g. filenames)', async () => {
+    const n = new Notifications({ language: 'en', slack: { enabled: true, webhookUrl: 'http://example.com/hook' } });
+    await n.notifyTaskComplete('w3', { task: 'Fix bug in pty-manager.js\nDetails here' });
+    assert.strictEqual(n._slackBuffer.length, 1);
+    assert.ok(n._slackBuffer[0].text.includes('pty-manager.js'), 'task summary should preserve dots in filenames');
+    assert.ok(!n._slackBuffer[0].text.includes('Details here'), 'should only show first line');
+  });
 });
 
 describe('Notifications.notifyError()', () => {
@@ -165,6 +185,14 @@ describe('Notifications.notifyError()', () => {
     await n.notifyError('w2', new Error('fail'));
     assert.strictEqual(n._slackBuffer.length, 1);
     assert.ok(n._slackBuffer[0].text.includes('w2'));
+  });
+
+  it('preserves dots in task summary for error notifications', async () => {
+    const n = new Notifications({ language: 'en', slack: { enabled: true, webhookUrl: 'http://example.com/hook' } });
+    await n.notifyError('w3', 'crash', { task: 'Update config.json parsing\nMore details' });
+    assert.strictEqual(n._slackBuffer.length, 1);
+    assert.ok(n._slackBuffer[0].text.includes('config.json'), 'error task summary should preserve dots in filenames');
+    assert.ok(!n._slackBuffer[0].text.includes('More details'), 'should only show first line');
   });
 });
 
