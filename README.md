@@ -294,6 +294,7 @@ These are used by Claude Code (manager), not by you directly:
 - **State machine**: Worker phase tracking (plan/edit/test/fix) with escalation
 - **Dashboard**: Web UI at GET /dashboard — worker status, stats, queued/lost sections with dark theme
 - **Stall detection**: Auto-detect intervention state and 5min+ no-output workers, immediate Slack alert
+- **Worktree auto-cleanup**: LOST worker worktrees cleaned up in healthCheck — dirty-state safety check preserves uncommitted changes with [LOST DIRTY] notification
 
 **Infrastructure**
 - **Hook architecture**: PreToolUse/PostToolUse JSON event processing
@@ -336,7 +337,7 @@ See [TODO.md](TODO.md) for the roadmap and open tasks.
 
 ## Roadmap
 
-Phase 1/2/3 complete (45 items). Phase 4 (autonomous operation) in progress — see [TODO.md](TODO.md) for details and [CHANGELOG.md](CHANGELOG.md) for version history.
+Phase 1/2/3/4 complete (65+ items). See [TODO.md](TODO.md) for details and [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ## Author
 

@@ -291,6 +291,8 @@ watchdog.sh (nohup, 60초 체크)
 | 4.16 | alertOnly 모드 | **done** | `notifications.slack.alertOnly: true` 시 STALL/ERROR만 Slack 전송. 일반 알림(statusUpdate, notifyEdits, notifyTaskComplete, notifyHealthCheck) 억제 |
 | 4.17 | auto-resume idle 큐 확인 + worktree 완전 hook 세트 | **done** | idle 콜백에서 _taskQueue 매칭 태스크 자동 전송. _processQueue에 idle 워커 감지 로직 추가. _buildWorkerSettings() 완전한 hook 세트 직접 생성. 복합 명령 차단을 PreToolUse 첫 번째로 배치 |
 | 4.18 | merge-homedir config 폴백 | **done** | cli.js merge 핸들러에 config.json projectRoot 폴백 추가. 홈디렉토리에서 c4 merge 실행 가능 |
+| 4.19 | Slack task 요약 절단 버그 수정 | **done** | `_fmtWorker()`, `notifyTaskComplete()`, `notifyError()`에서 `split(/[.\n]/)` -> `split('\n')`으로 수정. 파일명의 `.`에서 잘리던 task 요약 복원. 5개 테스트 추가 |
+| 4.20 | notifyHealthCheck 상태 누락 수정 | **done** | `restarted` 워커가 alive 목록에서 누락, `restart_failed` 워커가 dead 목록에서 누락되던 문제 수정. LANG에 라벨 추가. 4개 테스트 추가 |
 
 ### 4.1 완전 무인 운영 모드 (상세)
 
@@ -421,3 +423,5 @@ Level 4이면:
 | ~~4.7~~ | 관리자 컨텍스트 한계 자동 대응 (자동 교체) | 2026-04-04 |
 | ~~BF-1~~ | pending-task worktree 미생성 버그 수정 | 2026-04-04 |
 | ~~BF-2~~ | slack-activity hook 디버깅 + PTY fallback | 2026-04-04 |
+| ~~4.19~~ | Slack task 요약 절단 버그 수정 | 2026-04-04 |
+| ~~4.20~~ | notifyHealthCheck 상태 누락 수정 | 2026-04-04 |
