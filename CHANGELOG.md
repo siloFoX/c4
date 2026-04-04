@@ -3,6 +3,13 @@
 ## [1.5.0] - 2026-04-04
 
 ### Added
+- **트러블슈팅 가이드** (4.21): `docs/troubleshooting.md` 신규 작성
+  - 좀비 데몬: PID 파일 잔존 + HTTP 무응답 진단/해결
+  - Worktree 잔여물: 비정상 종료 후 stale worktree 정리, dirty worktree 복구
+  - STALL 반복: intervention/idle 기반 멈춤 원인별 해결, autoApprove/autoRestart 예방
+  - Lost 워커 복구: `c4 resume` 세션 복구, worktree dirty 상태 처리
+  - CLI 에러: ECONNREFUSED, timeout, Git Bash 경로 변환 등 일반 에러 해결
+  - Quick Reference 테이블로 빠른 참조
 - **claude --resume 세션 이어가기** (4.1): 작업자/관리자 재시작 시 이전 세션 자동 복구
   - `_getWorkerSessionId()`: Claude Code JSONL 세션 파일에서 최신 세션 ID 추출
   - `_updateSessionId()`: healthCheck 주기마다 세션 ID 갱신, state.json에 영속화
