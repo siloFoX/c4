@@ -50,7 +50,7 @@
 - **worktree 완전 hook 세트** (4.17): `_buildWorkerSettings()`가 PreToolUse/PostToolUse/PostCompact 완전한 hook 세트를 직접 생성. 복합 명령 차단 hook을 PreToolUse 첫 번째로 배치하여 daemon 통신 hook 실패와 무관하게 차단 보장. Claude Code 설정 병합 의존 제거
 
 ### Changed
-- **_getLastActivity PTY raw.log fallback 제거**: events JSONL 없을 때 raw.log 파싱 fallback 제거, _taskText 요약으로 직접 폴백. `tests/slack-activity.test.js` raw.log 관련 테스트 제거 (16개 -> 8개)
+- **_getLastActivity 단순화**: events.jsonl 파싱 로직 전부 제거, `w._taskText` 첫 줄 반환 또는 `'idle'` 반환으로 단순화. `workerName` 파라미터 제거. 테스트 2파일 JSONL 관련 케이스 제거 후 새 로직에 맞게 재작성
 - **README 배지 업데이트**: Platform 배지에서 macOS 제거, Win11 22H2+/Ubuntu 22.04+ 버전 명시. Node.js 배지에 tested v24.11.1 추가. Claude Code 지원 버전 v2.1.92로 갱신
 
 ## [1.4.0] - 2026-04-04
