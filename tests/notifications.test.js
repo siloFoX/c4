@@ -109,11 +109,10 @@ describe('Notifications.notifyHealthCheck()', () => {
     assert.strictEqual(n._slackBuffer.length, 1);
   });
 
-  it('pushes heartbeat when no workers', () => {
+  it('does not push when no workers', () => {
     const n = new Notifications({ language: 'ko', slack: { enabled: true, webhookUrl: 'http://example.com/hook' } });
     n.notifyHealthCheck({ workers: [] });
-    assert.strictEqual(n._slackBuffer.length, 1);
-    assert.ok(n._slackBuffer[0].text.includes('daemon OK'));
+    assert.strictEqual(n._slackBuffer.length, 0);
   });
 });
 
@@ -232,11 +231,13 @@ describe('Notifications alertOnly mode', () => {
     assert.strictEqual(n._slackBuffer.length, 0);
   });
 
-  it('notifyTaskComplete does not push to slack buffer when alertOnly is true', async () => {
+  it('notifyTaskComplete still pushes to slack buffer when alertOnly is true', async () => {
     const n = new Notifications({ language: 'en', slack: slackCfg });
     const result = await n.notifyTaskComplete('w1', { branch: 'c4/w1' });
-    assert.strictEqual(n._slackBuffer.length, 0);
-    assert.strictEqual(result.slack, 'skipped(alertOnly)');
+    assert.strictEqual(n._slackBuffer.length, 1);
+    assert.ok(n._slackBuffer[0].text.includes('w1'));
+    assert.ok(n._slackBuffer[0].text.includes('done'));
+    assert.strictEqual(result.slack, 'buffered');
   });
 
   it('notifyHealthCheck does not push to slack buffer when alertOnly is true', () => {
