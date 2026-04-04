@@ -37,6 +37,13 @@
   - `tests/worktree-cleanup.test.js`: 18개 유닛 테스트
 
 ### Fixed
+- **좀비 데몬 정리** (4.21): `daemon stop`이 프로세스를 확실히 죽이도록 수정
+  - SIGTERM 후 매 반복마다 프로세스 종료 확인, 죽으면 즉시 반환
+  - kill 호출 중 race condition 처리 (에러 발생 시에도 프로세스 사망 여부 재확인)
+  - SIGKILL 후 최대 2초간 종료 확인 루프 추가
+  - Windows에서 불필요한 SIGKILL 단계 제거 (taskkill /F가 이미 강제 종료)
+  - 프로세스가 SIGTERM+SIGKILL 모두 생존하면 `{ ok: true }` 대신 `{ error }` 반환
+  - `tests/daemon-stop.test.js`: 9개 유닛 테스트
 - **notifyHealthCheck 상태 누락 수정** (4.20): `restarted`/`restart_failed` 워커가 Slack 알림에서 누락되던 문제 수정
   - `restart_failed` 워커를 dead 목록에 포함, '재시작 실패' 라벨 표시
   - `restarted` 워커를 alive 목록에 포함
