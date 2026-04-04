@@ -138,21 +138,48 @@ async function stop() {
       process.kill(pid, 'SIGTERM');
     }
   } catch (err) {
+    // On kill failure, check if process died anyway (race condition)
+    if (!isProcessAlive(pid)) {
+      removePid();
+      return { ok: true, pid, note: 'Process exited during kill' };
+    }
     return { error: `Failed to kill PID ${pid}: ${err.message}` };
   }
 
-  // Wait for exit
+  // Wait for graceful exit (up to 3s)
   for (let i = 0; i < 10; i++) {
     await sleep(300);
-    if (!isProcessAlive(pid)) break;
+    if (!isProcessAlive(pid)) {
+      removePid();
+      return { ok: true, pid };
+    }
   }
 
-  // Force kill if still alive
-  if (isProcessAlive(pid)) {
+  // SIGKILL escalation (skip on Windows — taskkill /F is already forceful)
+  if (process.platform !== 'win32') {
     try {
       process.kill(pid, 'SIGKILL');
-    } catch {}
-    await sleep(500);
+    } catch {
+      // Process may have died between check and kill
+      if (!isProcessAlive(pid)) {
+        removePid();
+        return { ok: true, pid, note: 'Process exited during SIGKILL' };
+      }
+    }
+
+    // Verify SIGKILL worked (up to 2s)
+    for (let i = 0; i < 10; i++) {
+      await sleep(200);
+      if (!isProcessAlive(pid)) {
+        removePid();
+        return { ok: true, pid, note: 'Killed with SIGKILL' };
+      }
+    }
+  }
+
+  // Final check — process survived everything
+  if (isProcessAlive(pid)) {
+    return { error: `Failed to kill PID ${pid}: process survived SIGTERM and SIGKILL` };
   }
 
   removePid();
