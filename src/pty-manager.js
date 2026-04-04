@@ -924,8 +924,48 @@ class PtyManager extends EventEmitter {
     const createResult = this.create(entry.name, entry.command, entry.args, { target: entry.target });
     if (createResult.error) return createResult;
 
-    // Dynamic effort level (3.3) — template effort overrides (3.18)
     const w = this.workers.get(entry.name);
+
+    // Worktree setup: replicate sendTask() worktree creation pattern
+    const useWorktree = entry.useWorktree !== false && this.config.worktree?.enabled !== false;
+    if (entry.useBranch !== false && useWorktree) {
+      const repoRoot = this._detectRepoRoot(entry.projectRoot);
+      if (repoRoot) {
+        const branch = entry.branch || `c4/${entry.name}`;
+        const worktreePath = this._worktreePath(repoRoot, entry.name);
+        try {
+          this._createWorktree(repoRoot, worktreePath, branch);
+          w.worktree = worktreePath;
+          w.worktreeRepoRoot = repoRoot;
+          w.branch = branch;
+
+          // Auto-generate .claude/settings.json for this worktree
+          try {
+            this._writeWorkerSettings(worktreePath, entry.name, {
+              branch,
+              useWorktree: true,
+              _autoWorker: entry._autoWorker
+            });
+          } catch (e) {
+            w.snapshots = w.snapshots || [];
+            w.snapshots.push({
+              time: Date.now(),
+              screen: `[C4 WARN] Failed to write worker settings: ${e.message}`,
+              autoAction: true
+            });
+          }
+        } catch (e) {
+          w.snapshots = w.snapshots || [];
+          w.snapshots.push({
+            time: Date.now(),
+            screen: `[C4 WARN] Failed to create worktree: ${e.message}`,
+            autoAction: true
+          });
+        }
+      }
+    }
+
+    // Dynamic effort level (3.3) — template effort overrides (3.18)
     if (entry._templateEffort) {
       w._dynamicEffort = entry._templateEffort;
     } else {
