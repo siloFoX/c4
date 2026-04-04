@@ -289,6 +289,7 @@ watchdog.sh (nohup, 60초 체크)
 | 4.15 | notifyStall 긴급 알림 | **done** | intervention 상태 또는 5분+ 무출력 시 Slack webhook 즉시 전송. healthCheck에서 자동 감지 |
 | 4.16 | alertOnly 모드 | **done** | `notifications.slack.alertOnly: true` 시 STALL/ERROR만 Slack 전송. 일반 알���(statusUpdate, notifyEdits, notifyTaskComplete, notifyHealthCheck) 억제 |
 | 4.17 | auto-resume idle 큐 확인 | **done** | idle 콜백에서 _taskQueue 매칭 태스크 자동 전송. _processQueue에 idle 워커 감지 로직 추가. auto-mgr 연속 작업 보장 |
+| 4.18 | merge-homedir config 폴백 | **done** | cli.js merge 핸들러에 config.json projectRoot 폴백 추가. 홈디렉토리에서 c4 merge 실행 가능 |
 
 ### 4.1 완전 무인 운영 모드 (상세)
 

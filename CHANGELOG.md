@@ -28,6 +28,11 @@
   - `tests/manager-rotation.test.js`: 13개 유닛 테스트
 
 ### Fixed
+- **merge-homedir config 폴백** (4.18): cli.js merge 핸들러에 config.json projectRoot 폴백 추가
+  - `git rev-parse` 실패 시 `config.json`의 `worktree.projectRoot` 확인
+  - `pty-manager.js`의 `_detectRepoRoot()`와 동일한 폴백 전략
+  - 홈디렉토리에서 `c4 merge` 실행 가능
+  - `tests/merge-homedir.test.js`: 11개 유닛 테스���
 - **auto-resume idle 큐 확인** (4.17): 워커 idle 시 `_taskQueue`에서 매칭 태스크 자동 전송
   - idle 콜백(line 2246 부근): `_pendingTask` 없고 idle 상태일 때 `_taskQueue`에서 현재 워커명 매칭 태스크 검색 후 `sendTask()` 방식으로 전송
   - `_processQueue()`: idle 워커 감지 로직 추가 — healthCheck에서도 기존 idle 워커에 태스크 자동 할당
