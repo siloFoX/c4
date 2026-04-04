@@ -28,6 +28,11 @@
   - `tests/manager-rotation.test.js`: 13개 유닛 테스트
 
 ### Fixed
+- **auto-resume idle 큐 확인** (4.17): 워커 idle 시 `_taskQueue`에서 매칭 태스크 자동 전송
+  - idle 콜백(line 2246 부근): `_pendingTask` 없고 idle 상태일 때 `_taskQueue`에서 현재 워커명 매칭 태스크 검색 후 `sendTask()` 방식으로 전송
+  - `_processQueue()`: idle 워커 감지 로직 추가 — healthCheck에서도 기존 idle 워커에 태스크 자동 할당
+  - auto-mgr이 태스크 완료 후 다음 태스크를 자동으로 받을 수 있게 보장
+  - `tests/auto-resume.test.js`: 13개 유닛 테스트
 - **send() Enter 누락 버그 수정**: 일반 텍스트 전송(isSpecialKey=false) 시 `\r`(Enter)을 append하지 않아 명령이 실행되지 않던 문제 수정
 
 ## [1.4.0] - 2026-04-04

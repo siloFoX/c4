@@ -896,6 +896,16 @@ class PtyManager extends EventEmitter {
     const remaining = [];
 
     for (const entry of this._taskQueue) {
+      // Auto-resume: send task to existing idle worker (4.17)
+      const existingWorker = this.workers.get(entry.name);
+      if (existingWorker && existingWorker.alive && !existingWorker._pendingTask && !existingWorker._taskText) {
+        const fullTask = this._buildTaskText(existingWorker, entry.task, entry);
+        this._chunkedWrite(existingWorker.proc, fullTask + '\r');
+        existingWorker._taskText = entry.task;
+        existingWorker._taskStartedAt = new Date().toISOString();
+        started.push({ name: entry.name, result: { sent: true } });
+        continue;
+      }
       if (this._canStartQueuedTask(entry)) {
         const result = this._createAndSendTask(entry);
         started.push({ name: entry.name, result });
@@ -2254,6 +2264,22 @@ class PtyManager extends EventEmitter {
             worker._pendingTask = null;
           }, 500);
           return;
+        }
+
+        // Auto-resume: check task queue for this worker when idle (4.17)
+        if (!worker._pendingTask && !worker._taskText) {
+          const queueIdx = this._taskQueue.findIndex(e => e.name === name);
+          if (queueIdx !== -1) {
+            const entry = this._taskQueue.splice(queueIdx, 1)[0];
+            const fullTask = this._buildTaskText(worker, entry.task, entry);
+            setTimeout(() => {
+              this._chunkedWrite(proc, fullTask + '\r');
+              worker._taskText = entry.task;
+              worker._taskStartedAt = new Date().toISOString();
+            }, 500);
+            this._saveState();
+            return;
+          }
         }
 
         // Auto-approve logic + SSE permission event (3.5)
