@@ -284,6 +284,7 @@ class PtyManager extends EventEmitter {
   // instead of relying on ScreenBuffer parsing for permission/action detection.
 
   hookEvent(workerName, event) {
+    console.error(`[C4] hookEvent: worker=${workerName} hook_type=${event.hook_type || ''} tool=${event.tool_name || ''}`);
     const w = this.workers.get(workerName);
     if (!w) return { error: `Worker '${workerName}' not found` };
 
@@ -464,10 +465,11 @@ class PtyManager extends EventEmitter {
         fs.mkdirSync(dir, { recursive: true });
       }
       const logFile = path.join(dir, `events-${workerName}.jsonl`);
+      console.error(`[C4] _appendEventLog: ${logFile} tool=${hookEntry.tool_name || ''}`);
       const line = JSON.stringify(hookEntry) + '\n';
       fs.appendFileSync(logFile, line, 'utf8');
     } catch (err) {
-      // Log write failures should not break hook processing
+      console.error(`[C4] _appendEventLog error: ${err.message}`);
     }
   }
 
@@ -749,6 +751,39 @@ class PtyManager extends EventEmitter {
       } catch {}
     }
 
+    // Fallback: parse PTY raw.log for tool usage patterns
+    if (workerName) {
+      try {
+        const rawLogFile = path.join(this.logsDir, `${workerName}.raw.log`);
+        if (fs.existsSync(rawLogFile)) {
+          const rawContent = fs.readFileSync(rawLogFile, 'utf8');
+          if (rawContent) {
+            // Strip ANSI escape sequences
+            const clean = rawContent.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
+            // Extract tool usage patterns from PTY output
+            const toolPattern = /\b(Edit|Write|Read|Bash|Glob|Grep|Agent|NotebookEdit|WebFetch|WebSearch)\b[:\s]+([^\n\r]{1,60})/g;
+            const rawActivities = [];
+            let match;
+            while ((match = toolPattern.exec(clean)) !== null) {
+              const toolName = match[1];
+              const detail = match[2].trim();
+              // Extract filename if present
+              const fileMatch = detail.match(/([a-zA-Z0-9_.-]+\.[a-zA-Z0-9]+)/);
+              if (fileMatch) {
+                rawActivities.push(`${toolName}: ${fileMatch[1]}`);
+              } else {
+                rawActivities.push(toolName);
+              }
+            }
+            if (rawActivities.length > 0) {
+              const unique = [...new Set(rawActivities)].slice(-5);
+              return unique.join(', ').substring(0, 120);
+            }
+          }
+        }
+      } catch {}
+    }
+
     // Fallback: first line of task text
     if (w._taskText) {
       const firstLine = w._taskText.split(/[\n.]/)[0].trim();
@@ -924,8 +959,48 @@ class PtyManager extends EventEmitter {
     const createResult = this.create(entry.name, entry.command, entry.args, { target: entry.target });
     if (createResult.error) return createResult;
 
-    // Dynamic effort level (3.3) — template effort overrides (3.18)
     const w = this.workers.get(entry.name);
+
+    // Worktree setup: replicate sendTask() worktree creation pattern
+    const useWorktree = entry.useWorktree !== false && this.config.worktree?.enabled !== false;
+    if (entry.useBranch !== false && useWorktree) {
+      const repoRoot = this._detectRepoRoot(entry.projectRoot);
+      if (repoRoot) {
+        const branch = entry.branch || `c4/${entry.name}`;
+        const worktreePath = this._worktreePath(repoRoot, entry.name);
+        try {
+          this._createWorktree(repoRoot, worktreePath, branch);
+          w.worktree = worktreePath;
+          w.worktreeRepoRoot = repoRoot;
+          w.branch = branch;
+
+          // Auto-generate .claude/settings.json for this worktree
+          try {
+            this._writeWorkerSettings(worktreePath, entry.name, {
+              branch,
+              useWorktree: true,
+              _autoWorker: entry._autoWorker
+            });
+          } catch (e) {
+            w.snapshots = w.snapshots || [];
+            w.snapshots.push({
+              time: Date.now(),
+              screen: `[C4 WARN] Failed to write worker settings: ${e.message}`,
+              autoAction: true
+            });
+          }
+        } catch (e) {
+          w.snapshots = w.snapshots || [];
+          w.snapshots.push({
+            time: Date.now(),
+            screen: `[C4 WARN] Failed to create worktree: ${e.message}`,
+            autoAction: true
+          });
+        }
+      }
+    }
+
+    // Dynamic effort level (3.3) — template effort overrides (3.18)
     if (entry._templateEffort) {
       w._dynamicEffort = entry._templateEffort;
     } else {

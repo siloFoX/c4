@@ -29,6 +29,14 @@
 
 ### Fixed
 - **send() Enter 누락 버그 수정**: 일반 텍스트 전송(isSpecialKey=false) 시 `\r`(Enter)을 append하지 않아 명령이 실행되지 않던 문제 수정
+- **pending-task worktree 미생성 버그 수정** (BF-1): `_createAndSendTask()`에서 worktree 생성 로직이 누락되어, 새 워커 생성과 동시에 task 전달 시 worktree 없이 원본 repo에서 작업이 실행되던 문제 수정. `sendTask()`의 worktree 생성 패턴을 `create()` 호출 직후에 복제하여 `_pendingTask` 저장 전에 `w.worktree`가 설정되도록 함
+  - `tests/pending-task-worktree.test.js`: 13개 유닛 테스트
+- **slack-activity hook 디버깅 + PTY fallback** (BF-2): hook 이벤트 수신 경로에 디버깅 로그 추가 + `_getLastActivity()`에 PTY raw.log 파싱 fallback 추가
+  - `daemon.js` `/hook-event` 핸들러에 요청 수신/거부 로그 추가
+  - `hookEvent()` 진입 시 workerName, hook_type, tool_name 로그 추가
+  - `_appendEventLog()` 호출 시 파일 경로, 에러 로그 추가
+  - `_getLastActivity()`에 events.jsonl 없거나 비어있을 때 PTY raw.log에서 tool 사용 패턴(Edit, Write, Bash 등) 추출하는 fallback 추가. ANSI escape 제거 후 파싱. 기존 _taskText fallback보다 우선 적용
+  - `tests/slack-activity.test.js`: 16개 유닛 테스트
 
 ## [1.4.0] - 2026-04-04
 

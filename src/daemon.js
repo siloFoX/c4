@@ -215,7 +215,9 @@ async function handleRequest(req, res) {
       // Hook architecture (3.15): receive structured events from Claude Code hooks
       const body = await parseBody(req);
       const workerName = body.worker || '';
+      console.error(`[DAEMON] /hook-event received: worker=${workerName} hook_type=${body.hook_type || ''} tool=${body.tool_name || ''}`);
       if (!workerName) {
+        console.error('[DAEMON] /hook-event rejected: missing worker name');
         result = { error: 'Missing worker name in hook event' };
       } else {
         result = manager.hookEvent(workerName, body);
