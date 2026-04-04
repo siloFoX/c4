@@ -26,6 +26,11 @@
   - healthCheck에서 임계값 근접 경고 알림
   - `POST /compact-event` daemon API 라우트
   - `tests/manager-rotation.test.js`: 13개 유닛 테스트
+- **LOST worker worktree 자동 정리**: healthCheck에서 미아 worktree 자동 정리
+  - `_cleanupLostWorktrees()`: lostWorkers의 worktree 정리 + orphan c4-worktree-* 디렉토리 스캔/삭제
+  - `healthCheck()`: 매 주기마다 _cleanupLostWorktrees() 호출, 결과에 cleanedWorktrees 포함
+  - `startHealthCheck()`: daemon 시작 시 이전 세션 잔여 worktree 즉시 정리
+  - `tests/worktree-cleanup.test.js`: 10개 유닛 테스트
 
 ### Fixed
 - **merge-homedir config 폴백** (4.18): cli.js merge 핸들러에 config.json projectRoot 폴백 추가
