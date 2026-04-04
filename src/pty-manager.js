@@ -284,6 +284,7 @@ class PtyManager extends EventEmitter {
   // instead of relying on ScreenBuffer parsing for permission/action detection.
 
   hookEvent(workerName, event) {
+    console.error(`[C4] hookEvent: worker=${workerName} hook_type=${event.hook_type || ''} tool=${event.tool_name || ''}`);
     const w = this.workers.get(workerName);
     if (!w) return { error: `Worker '${workerName}' not found` };
 
@@ -464,10 +465,11 @@ class PtyManager extends EventEmitter {
         fs.mkdirSync(dir, { recursive: true });
       }
       const logFile = path.join(dir, `events-${workerName}.jsonl`);
+      console.error(`[C4] _appendEventLog: ${logFile} tool=${hookEntry.tool_name || ''}`);
       const line = JSON.stringify(hookEntry) + '\n';
       fs.appendFileSync(logFile, line, 'utf8');
     } catch (err) {
-      // Log write failures should not break hook processing
+      console.error(`[C4] _appendEventLog error: ${err.message}`);
     }
   }
 
@@ -742,6 +744,39 @@ class PtyManager extends EventEmitter {
             if (activities.length > 0) {
               // Deduplicate and take last 5
               const unique = [...new Set(activities)].slice(-5);
+              return unique.join(', ').substring(0, 120);
+            }
+          }
+        }
+      } catch {}
+    }
+
+    // Fallback: parse PTY raw.log for tool usage patterns
+    if (workerName) {
+      try {
+        const rawLogFile = path.join(this.logsDir, `${workerName}.raw.log`);
+        if (fs.existsSync(rawLogFile)) {
+          const rawContent = fs.readFileSync(rawLogFile, 'utf8');
+          if (rawContent) {
+            // Strip ANSI escape sequences
+            const clean = rawContent.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
+            // Extract tool usage patterns from PTY output
+            const toolPattern = /\b(Edit|Write|Read|Bash|Glob|Grep|Agent|NotebookEdit|WebFetch|WebSearch)\b[:\s]+([^\n\r]{1,60})/g;
+            const rawActivities = [];
+            let match;
+            while ((match = toolPattern.exec(clean)) !== null) {
+              const toolName = match[1];
+              const detail = match[2].trim();
+              // Extract filename if present
+              const fileMatch = detail.match(/([a-zA-Z0-9_.-]+\.[a-zA-Z0-9]+)/);
+              if (fileMatch) {
+                rawActivities.push(`${toolName}: ${fileMatch[1]}`);
+              } else {
+                rawActivities.push(toolName);
+              }
+            }
+            if (rawActivities.length > 0) {
+              const unique = [...new Set(rawActivities)].slice(-5);
               return unique.join(', ').substring(0, 120);
             }
           }
