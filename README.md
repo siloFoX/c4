@@ -8,9 +8,9 @@
 ```
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)
-![Claude Code](https://img.shields.io/badge/Claude_Code-v2.1.85--2.1.91-8A2BE2.svg)
-![Platform](https://img.shields.io/badge/tested-Win11%20%7C%20Ubuntu%20%7C%20macOS-blue.svg)
+![Node >= 18](https://img.shields.io/badge/node-%3E%3D18%20(tested%20v24.11.1)-brightgreen.svg)
+![Claude Code](https://img.shields.io/badge/Claude_Code-v2.1.85--2.1.92-8A2BE2.svg)
+![Platform](https://img.shields.io/badge/platform-Win11%2022H2%2B%20%7C%20Ubuntu%2022.04%2B-blue.svg)
 ![Version](https://img.shields.io/badge/version-1.5.0-green.svg)
 
 **[한국어](README.ko.md)**
