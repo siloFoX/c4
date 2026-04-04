@@ -12,7 +12,7 @@ const path = require('path');
 
 function getLastActivity(w) {
   if (w._taskText) {
-    const firstLine = w._taskText.split(/[\n.]/)[0].trim();
+    const firstLine = w._taskText.split('\n')[0].trim();
     if (firstLine) return firstLine.substring(0, 80);
   }
   return 'idle';
@@ -23,7 +23,7 @@ function getLastActivity(w) {
 describe('_getLastActivity (taskText or idle)', () => {
   test('returns first line of _taskText', () => {
     const result = getLastActivity({ _taskText: 'Fix login page. Update CSS.' });
-    expect(result).toBe('Fix login page');
+    expect(result).toBe('Fix login page. Update CSS.');
   });
 
   test('returns first line split by newline', () => {

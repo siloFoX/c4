@@ -58,7 +58,7 @@ describe('Notifications.notifyStall()', () => {
 describe('_getLastActivity (taskText or idle)', () => {
   function getLastActivity(w) {
     if (w._taskText) {
-      const firstLine = w._taskText.split(/[\n.]/)[0].trim();
+      const firstLine = w._taskText.split('\n')[0].trim();
       if (firstLine) return firstLine.substring(0, 80);
     }
     return 'idle';
@@ -66,7 +66,7 @@ describe('_getLastActivity (taskText or idle)', () => {
 
   it('returns first line of taskText', () => {
     const result = getLastActivity({ _taskText: 'Fix the login bug. Also update tests.' });
-    assert.strictEqual(result, 'Fix the login bug');
+    assert.strictEqual(result, 'Fix the login bug. Also update tests.');
   });
 
   it('returns idle when no taskText', () => {

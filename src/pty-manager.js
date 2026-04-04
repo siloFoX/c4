@@ -713,7 +713,7 @@ class PtyManager extends EventEmitter {
 
   _getLastActivity(w) {
     if (w._taskText) {
-      const firstLine = w._taskText.split(/[\n.]/)[0].trim();
+      const firstLine = w._taskText.split('\n')[0].trim();
       if (firstLine) return firstLine.substring(0, 80);
     }
     return 'idle';
