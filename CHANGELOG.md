@@ -37,6 +37,11 @@
   - `tests/worktree-cleanup.test.js`: 18개 유닛 테스트
 
 ### Fixed
+- **notifyHealthCheck 상태 누락 수정** (4.20): `restarted`/`restart_failed` 워커가 Slack 알림에서 누락되던 문제 수정
+  - `restart_failed` 워커를 dead 목록에 포함, '재시작 실패' 라벨 표시
+  - `restarted` 워커를 alive 목록에 포함
+  - LANG에 `restarted`/`restartFailed` 라벨 추가 (ko/en)
+  - `tests/slack-activity.test.js`: 4개 유닛 테스트 추가 (총 12개)
 - **Slack 알림 task 요약 절단 버그** (4.19): 파일명의 `.`에서 잘리던 task 요약 수정
   - `_fmtWorker()`, `notifyTaskComplete()`, `notifyError()`: `split(/[.\n]/)` -> `split('\n')`
   - 예: "Fix bug in daemon.js" 가 "Fix bug in daemon" 으로 잘리던 문제 해결

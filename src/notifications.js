@@ -16,6 +16,8 @@ const LANG = {
     down: '중단',
     idle: '대기',
     running: '진행중',
+    restarted: '재시작됨',
+    restartFailed: '재시작 실패',
     elapsed: (m) => `${m}분`,
     edits: (n, files) => `${n}개 파일 수정: ${files}`,
     workersDown: (n) => `${n}개 워커 중단`,
@@ -26,6 +28,8 @@ const LANG = {
     down: 'down',
     idle: 'idle',
     running: 'running',
+    restarted: 'restarted',
+    restartFailed: 'restart failed',
     elapsed: (m) => `${m}min`,
     edits: (n, files) => `${n} edits: ${files}`,
     workersDown: (n) => `${n} workers down`,
@@ -333,13 +337,16 @@ class Notifications {
   async notifyHealthCheck(results) {
     if (this.slack.alertOnly) return;
     const workers = results.workers || [];
-    const alive = workers.filter(w => w.status === 'alive');
-    const dead = workers.filter(w => w.status === 'exited' || w.status === 'timeout');
+    const alive = workers.filter(w => w.status === 'alive' || w.status === 'restarted');
+    const dead = workers.filter(w => w.status === 'exited' || w.status === 'timeout' || w.status === 'restart_failed');
     const t = this._time();
 
     if (dead.length > 0) {
       const lines = [
-        ...dead.map(w => `  ${w.name} - ${this.lang.down}`),
+        ...dead.map(w => {
+          const label = w.status === 'restart_failed' ? this.lang.restartFailed : this.lang.down;
+          return `  ${w.name} - ${label}`;
+        }),
         ...alive.map(w => this._fmtWorker(w))
       ];
       this.pushAll(`${t} ${this.lang.workersDown(dead.length)}\n${lines.join('\n')}`);
