@@ -37,6 +37,10 @@
   - `tests/worktree-cleanup.test.js`: 18개 유닛 테스트
 
 ### Fixed
+- **SSH target worktree 생성 방지** (4.21): SSH target(dgx 등) worker에 불필요한 로컬 worktree 생성 방지
+  - `sendTask()`, `_createAndSendTask()`: `_resolveTarget()`으로 target type 확인, ssh이면 `useWorktree=false` 강제
+  - SSH worker는 remote에서 실행되므로 로컬 worktree가 불필요하고 오류를 유발할 수 있음
+  - `tests/pending-task-worktree.test.js`: SSH 관련 3개 유닛 테스트 추가 (총 16개)
 - **notifyHealthCheck 상태 누락 수정** (4.20): `restarted`/`restart_failed` 워커가 Slack 알림에서 누락되던 문제 수정
   - `restart_failed` 워커를 dead 목록에 포함, '재시작 실패' 라벨 표시
   - `restarted` 워커를 alive 목록에 포함
