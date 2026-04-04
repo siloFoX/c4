@@ -22,6 +22,7 @@
 | 1.16 | `c4 merge --skip-checks` | **done** | 문서 전용 커밋 등 체크 우회 플래그. TODO/CHANGELOG 수정 없어도 머지 허용 |
 | 1.17 | worktree에서 main 보호 hook 적용 | **done** | worktree 생성 시 core.hooksPath를 원본 repo의 .githooks로 설정 |
 | 1.18 | sendTask 긴 메시지 잘림 버그 | **done** | `_chunkedWrite()` 도입. 500자 청크 + 50ms 간격 전송으로 PTY 버퍼 오버플로우 방지 |
+| 1.19 | _chunkedWrite setTimeout 레이스 | **done** | Promise 기반 순차 전송으로 전환. drain 이벤트로 백프레셔 처리, CR 유실 방지 |
 
 ### 1.6 Scribe 시스템 (상세)
 

@@ -962,13 +962,13 @@ class PtyManager extends EventEmitter {
     w._pendingTaskTime = Date.now();
 
     // Fallback: force-send task after 30s if idle handler hasn't fired
-    setTimeout(() => {
+    setTimeout(async () => {
       const worker = this.workers.get(entry.name);
       if (worker && worker.alive && worker._pendingTask && !worker._pendingTaskSent) {
         worker._pendingTaskSent = true;
         const pt = worker._pendingTask;
         const fullTask = this._buildTaskText(worker, pt.task, pt.options);
-        this._chunkedWrite(worker.proc, fullTask + '\r');
+        await this._chunkedWrite(worker.proc, fullTask + '\r');
         worker._taskText = pt.task;
         worker._taskStartedAt = new Date().toISOString();
         worker._pendingTask = null;
@@ -2247,8 +2247,8 @@ class PtyManager extends EventEmitter {
           worker._pendingTaskSent = true;
           const pt = worker._pendingTask;
           const fullTask = this._buildTaskText(worker, pt.task, pt.options);
-          setTimeout(() => {
-            this._chunkedWrite(proc, fullTask + '\r');
+          setTimeout(async () => {
+            await this._chunkedWrite(proc, fullTask + '\r');
             worker._taskText = pt.task;
             worker._taskStartedAt = new Date().toISOString();
             worker._pendingTask = null;
@@ -2443,8 +2443,8 @@ class PtyManager extends EventEmitter {
             });
             // Send feedback to worker — tell it to follow the routine
             if (routineSkip.feedback && worker.alive) {
-              setTimeout(() => {
-                this._chunkedWrite(proc, routineSkip.feedback + '\r');
+              setTimeout(async () => {
+                await this._chunkedWrite(proc, routineSkip.feedback + '\r');
               }, 1000);
             }
           }
@@ -2568,18 +2568,21 @@ class PtyManager extends EventEmitter {
 
   /**
    * PTY에 텍스트를 청크 단위로 분할 전송 (버퍼 오버플로우 방지)
+   * Promise 기반 순차 전송: drain 이벤트로 백프레셔 처리
    */
-  _chunkedWrite(proc, text, chunkSize = 500, delayMs = 50) {
+  async _chunkedWrite(proc, text, chunkSize = 500, delayMs = 50) {
     if (text.length <= chunkSize) {
       proc.write(text);
       return;
     }
     for (let i = 0; i < text.length; i += chunkSize) {
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
       const chunk = text.slice(i, i + chunkSize);
-      if (i === 0) {
-        proc.write(chunk);
-      } else {
-        setTimeout(() => proc.write(chunk), delayMs * (i / chunkSize));
+      const ok = proc.write(chunk);
+      if (!ok) {
+        await new Promise(resolve => proc.once('drain', resolve));
       }
     }
   }
