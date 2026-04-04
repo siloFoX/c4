@@ -293,6 +293,7 @@ watchdog.sh (nohup, 60초 체크)
 | 4.18 | merge-homedir config 폴백 | **done** | cli.js merge 핸들러에 config.json projectRoot 폴백 추가. 홈디렉토리에서 c4 merge 실행 가능 |
 | 4.19 | Slack task 요약 절단 버그 수정 | **done** | `_fmtWorker()`, `notifyTaskComplete()`, `notifyError()`에서 `split(/[.\n]/)` -> `split('\n')`으로 수정. 파일명의 `.`에서 잘리던 task 요약 복원. 5개 테스트 추가 |
 | 4.20 | notifyHealthCheck 상태 누락 수정 | **done** | `restarted` 워커가 alive 목록에서 누락, `restart_failed` 워커가 dead 목록에서 누락되던 문제 수정. LANG에 라벨 추가. 4개 테스트 추가 |
+| 4.21 | 트러블슈팅 가이드 | **done** | docs/troubleshooting.md 신규 작성. 좀비 데몬/worktree 잔여물/STALL 반복/lost 워커 복구/CLI 에러 5개 섹션. 증상/원인/해결/예방 구조. Quick Reference 테이블 |
 
 ### 4.1 완전 무인 운영 모드 (상세)
 
@@ -425,3 +426,4 @@ Level 4이면:
 | ~~BF-2~~ | slack-activity hook 디버깅 + PTY fallback | 2026-04-04 |
 | ~~4.19~~ | Slack task 요약 절단 버그 수정 | 2026-04-04 |
 | ~~4.20~~ | notifyHealthCheck 상태 누락 수정 | 2026-04-04 |
+| ~~4.21~~ | 트러블슈팅 가이드 | 2026-04-04 |
