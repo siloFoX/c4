@@ -41,16 +41,16 @@
 - **send() Enter 누락 버그 수정**: 일반 텍스트 전송(isSpecialKey=false) 시 `\r`(Enter)을 append하지 않아 명령이 실행되지 않던 문제 수정
 - **pending-task worktree 미생성 버그 수정** (BF-1): `_createAndSendTask()`에서 worktree 생성 로직이 누락되어, 새 워커 생성과 동시에 task 전달 시 worktree 없이 원본 repo에서 작업이 실행되던 문제 수정. `sendTask()`의 worktree 생성 패턴을 `create()` 호출 직후에 복제하여 `_pendingTask` 저장 전에 `w.worktree`가 설정되도록 함
   - `tests/pending-task-worktree.test.js`: 13개 유닛 테스트
-- **slack-activity hook 디버깅 + PTY fallback** (BF-2): hook 이벤트 수신 경로에 디버깅 로그 추가 + `_getLastActivity()`에 PTY raw.log 파싱 fallback 추가
+- **slack-activity hook 디버깅** (BF-2): hook 이벤트 수신 경로에 디버깅 로그 추가
   - `daemon.js` `/hook-event` 핸들러에 요청 수신/거부 로그 추가
   - `hookEvent()` 진입 시 workerName, hook_type, tool_name 로그 추가
   - `_appendEventLog()` 호출 시 파일 경로, 에러 로그 추가
-  - `_getLastActivity()`에 events.jsonl 없거나 비어있을 때 PTY raw.log에서 tool 사용 패턴(Edit, Write, Bash 등) 추출하는 fallback 추가. ANSI escape 제거 후 파싱. 기존 _taskText fallback보다 우선 적용
-  - `tests/slack-activity.test.js`: 16개 유닛 테스트
+  - `tests/slack-activity.test.js`: 8개 유닛 테스트
 - **_chunkedWrite() 레이스 컨디션 수정** (1.19): setTimeout 기반 청크 전송을 async/await + drain 이벤트 기반 순차 전송으로 교체. 500자 초과 텍스트에서 `\r`이 유실되어 명령이 실행되지 않던 문제 해결. 호출처 5곳 모두 async 대응
 - **worktree 완전 hook 세트** (4.17): `_buildWorkerSettings()`가 PreToolUse/PostToolUse/PostCompact 완전한 hook 세트를 직접 생성. 복합 명령 차단 hook을 PreToolUse 첫 번째로 배치하여 daemon 통신 hook 실패와 무관하게 차단 보장. Claude Code 설정 병합 의존 제거
 
 ### Changed
+- **_getLastActivity PTY raw.log fallback 제거**: events JSONL 없을 때 raw.log 파싱 fallback 제거, _taskText 요약으로 직접 폴백. `tests/slack-activity.test.js` raw.log 관련 테스트 제거 (16개 -> 8개)
 - **README 배지 업데이트**: Platform 배지에서 macOS 제거, Win11 22H2+/Ubuntu 22.04+ 버전 명시. Node.js 배지에 tested v24.11.1 추가. Claude Code 지원 버전 v2.1.92로 갱신
 
 ## [1.4.0] - 2026-04-04

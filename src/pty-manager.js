@@ -751,39 +751,6 @@ class PtyManager extends EventEmitter {
       } catch {}
     }
 
-    // Fallback: parse PTY raw.log for tool usage patterns
-    if (workerName) {
-      try {
-        const rawLogFile = path.join(this.logsDir, `${workerName}.raw.log`);
-        if (fs.existsSync(rawLogFile)) {
-          const rawContent = fs.readFileSync(rawLogFile, 'utf8');
-          if (rawContent) {
-            // Strip ANSI escape sequences
-            const clean = rawContent.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
-            // Extract tool usage patterns from PTY output
-            const toolPattern = /\b(Edit|Write|Read|Bash|Glob|Grep|Agent|NotebookEdit|WebFetch|WebSearch)\b[:\s]+([^\n\r]{1,60})/g;
-            const rawActivities = [];
-            let match;
-            while ((match = toolPattern.exec(clean)) !== null) {
-              const toolName = match[1];
-              const detail = match[2].trim();
-              // Extract filename if present
-              const fileMatch = detail.match(/([a-zA-Z0-9_.-]+\.[a-zA-Z0-9]+)/);
-              if (fileMatch) {
-                rawActivities.push(`${toolName}: ${fileMatch[1]}`);
-              } else {
-                rawActivities.push(toolName);
-              }
-            }
-            if (rawActivities.length > 0) {
-              const unique = [...new Set(rawActivities)].slice(-5);
-              return unique.join(', ').substring(0, 120);
-            }
-          }
-        }
-      } catch {}
-    }
-
     // Fallback: first line of task text
     if (w._taskText) {
       const firstLine = w._taskText.split(/[\n.]/)[0].trim();
