@@ -3098,6 +3098,16 @@ class PtyManager extends EventEmitter {
     // Lost worker worktree cleanup
     const cleanedWorktrees = this._cleanupLostWorktrees();
 
+    // Worktree prune (5.32): periodically clean up stale worktrees
+    try {
+      const repoRoot = this._detectRepoRoot();
+      if (repoRoot) {
+        execSyncSafe('git worktree prune', {
+          cwd: repoRoot, encoding: 'utf8', stdio: 'pipe', timeout: 5000
+        });
+      }
+    } catch {}
+
     return { lastCheck: now, workers: results, rotated, cleaned, dequeued, tokenUsage: tokenResult, cleanedWorktrees };
   }
 
@@ -3343,6 +3353,18 @@ class PtyManager extends EventEmitter {
       const repoRoot = w.worktreeRepoRoot || this._detectRepoRoot();
       if (repoRoot) {
         this._removeWorktree(repoRoot, w.worktree);
+      }
+    }
+
+    // Branch cleanup (5.25/5.31): delete worker's c4/ branch after worktree removal
+    if (w.branch && w.branch.startsWith('c4/')) {
+      const cleanupRoot = w.worktreeRepoRoot || this._detectRepoRoot();
+      if (cleanupRoot) {
+        try {
+          execSyncSafe(`git -C "${cleanupRoot.replace(/\\/g, '/')}" branch -D "${w.branch}"`, {
+            encoding: 'utf8', stdio: 'pipe', timeout: 5000
+          });
+        } catch {} // Branch may already be deleted or not exist
       }
     }
 

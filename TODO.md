@@ -382,14 +382,14 @@ Level 4이면:
 | 5.22 | Recursive C4 테스트 시나리오 | **todo** | 관리자->중간관리자->작업자 3단계 계층 테스트. docs/test-scenarios.md |
 | 5.23 | 경쟁자 분석 문서 | **todo** | docs/competitive-analysis.md. Composio, OpenHands 등 비교 |
 | 5.24 | worker auto-approve 범위 확장 | **todo** | python, pip, ffmpeg 등 개발 도구를 autoApprove rules에 기본 포함 |
-| 5.25 | 다른 프로젝트 브랜치 정리 | **todo** | c4 worker가 만든 c4/ 접두사 브랜치를 close 시 자동 삭제 |
+| 5.25 | 다른 프로젝트 브랜치 정리 | **done** | c4 worker가 만든 c4/ 접두사 브랜치를 close 시 자동 삭제 |
 | 5.26 | worker 권한 프로파일 | **todo** | 프로젝트 유형별 auto-approve 프리셋. config.json profiles 확장 |
 | 5.27 | 실사용 실패 케이스 문서화 | **todo** | docs/known-issues.md에 실패 사례 기록 |
 | 5.28 | 관리자 자동 승인 방지 | **todo** | 관리자가 cron으로 자동 Enter 보내는 패턴 차단. 위험 명령 무분별 승인 방지 |
 | 5.29 | intervention 발생 시 관리자 알림 | **todo** | worker 승인 대기 시 관리자 Claude에게 즉시 notification. 현재는 c4 list로 확인해야 함 |
 | 5.30 | 서브모듈 프로젝트 diff 지원 | **todo** | git diff --stat이 서브모듈 포인터만 보이는 문제. --submodule=diff 옵션 자동 적용 |
-| 5.31 | 다른 repo 브랜치 자동 정리 | **todo** | c4 worker close 시 해당 worker가 만든 c4/ 접두사 브랜치를 자동 삭제. worktree remove + branch delete |
-| 5.32 | worktree prune 자동화 | **todo** | healthCheck에서 주기적으로 git worktree prune 실행. prunable worktree 감지 시 자동 정리 |
+| 5.31 | 다른 repo 브랜치 자동 정리 | **done** | c4 worker close 시 해당 worker가 만든 c4/ 접두사 브랜치를 자동 삭제. worktree remove + branch delete |
+| 5.32 | worktree prune 자동화 | **done** | healthCheck에서 주기적으로 git worktree prune 실행. prunable worktree 감지 시 자동 정리 |
 | 5.33 | c4 cleanup 명령 | **todo** | 수동 정리 명령어. 모든 LOST worker의 worktree + 브랜치 + 잔여 디렉토리를 한 번에 정리 |
 
 ## Phase 6 - 마케팅/가시성

@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.5.8] - 2026-04-05
+
+### Added
+- **close() 브랜치 자동 삭제** (5.25/5.31): worker close 시 c4/ 접두사 브랜치를 자동으로 `git branch -D`로 삭제. worktree remove 후 실행
+- **healthCheck worktree prune** (5.32): healthCheck 주기마다 `git worktree prune` 자동 실행하여 stale worktree 참조 정리
+
 ## [1.5.7] - 2026-04-05
 
 ### Added
