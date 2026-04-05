@@ -412,9 +412,49 @@ class PtyManager extends EventEmitter {
         if (!worker._routineState) worker._routineState = { tested: false, docsUpdated: false };
         worker._routineState.tested = true;
       }
-      // Commit detection — reset routine
-      if (/git commit/.test(command)) {
+      // Commit detection — reset routine + CI feedback loop (5.20)
+      if (/git commit/.test(command) && !toolError) {
         worker._routineState = { tested: false, docsUpdated: false };
+        // CI feedback loop: auto-run npm test after commit
+        const ciDir = (worker.worktree || this._detectRepoRoot() || '').replace(/\\/g, '/');
+        if (ciDir && worker.alive && worker.proc) {
+          const ciConfig = this.config.ci || {};
+          if (ciConfig.enabled !== false) {
+            const testCmd = ciConfig.testCommand || 'npm test';
+            setTimeout(() => {
+              try {
+                execSyncSafe(`${testCmd}`, {
+                  cwd: ciDir, encoding: 'utf8', stdio: 'pipe',
+                  timeout: ciConfig.timeoutMs || 120000
+                });
+                // Test passed
+                worker._lastCiResult = { passed: true, time: Date.now() };
+                this._emitSSE('ci', { worker: workerName, result: 'pass', command: testCmd });
+                if (this._notifications) {
+                  this._notifications.pushAll(`[CI PASS] ${workerName}: ${testCmd}`);
+                }
+              } catch (ciErr) {
+                // Test failed — send feedback to worker
+                const output = (ciErr.stderr || ciErr.stdout || ciErr.message || '').slice(-1000);
+                worker._lastCiResult = { passed: false, time: Date.now(), output };
+                worker.snapshots.push({
+                  time: Date.now(),
+                  screen: `[CI FAIL] ${testCmd}\n${output.slice(-300)}`,
+                  autoAction: true, ci: true
+                });
+                this._emitSSE('ci', { worker: workerName, result: 'fail', command: testCmd, output: output.slice(0, 500) });
+                if (this._notifications) {
+                  this._notifications.pushAll(`[CI FAIL] ${workerName}: ${testCmd}`);
+                }
+                // Auto-feedback to worker
+                const feedback = `CI 실패: ${testCmd} 실행 결과 테스트가 실패했어. 아래 에러를 확인하고 수정해줘:\n${output.slice(-500)}`;
+                if (worker.alive && worker.proc) {
+                  this._chunkedWrite(worker.proc, feedback + '\r');
+                }
+              }
+            }, 2000); // wait for commit to fully complete
+          }
+        }
       }
     }
 
@@ -443,6 +483,10 @@ class PtyManager extends EventEmitter {
             hookEvent: true
           });
           this._emitSSE('error', { worker: workerName, line: errLine, count: existing.count, escalation: true, source: 'hook' });
+          // Immediate intervention notification (5.29)
+          if (this._notifications) {
+            this._notifications.notifyStall(workerName, `intervention: escalation — ${errLine.slice(0, 100)}`);
+          }
           existing.count = 0;
         }
       } else {
@@ -2362,6 +2406,8 @@ class PtyManager extends EventEmitter {
       _interventionState: null,  // null | 'question' | 'escalation'
       _lastQuestion: null,       // last detected question text
       _errorHistory: [],         // recent error lines for repeat detection
+      _permissionNotified: false, // (5.29) prevent duplicate permission notifications
+      _lastCiResult: null,        // (5.20) last CI test result
       _routineState: { tested: false, docsUpdated: false },
       // Pending task (2.2/2.8 queue)
       _pendingTask: null,        // { task, options } — sent after setup completes
@@ -2517,6 +2563,11 @@ class PtyManager extends EventEmitter {
             ? this._termInterface.extractBashCommand(text)
             : this._termInterface.extractFileName(text);
           this._emitSSE('permission', { worker: name, promptType, detail });
+          // Immediate intervention notification for permission prompts (5.29)
+          if (this._notifications && !worker._permissionNotified) {
+            worker._permissionNotified = true;
+            this._notifications.notifyStall(name, `awaiting approval: ${promptType} — ${(detail || '').slice(0, 100)}`);
+          }
         }
         // Block git reset --hard on main (unconditional, regardless of autoApprove)
         if (this._termInterface.isPermissionPrompt(text)) {
@@ -2649,6 +2700,10 @@ class PtyManager extends EventEmitter {
               intervention: 'question'
             });
             this._emitSSE('question', { worker: name, line: questionResult.line, pattern: questionResult.pattern });
+            // Immediate intervention notification (5.29)
+            if (this._notifications) {
+              this._notifications.notifyStall(name, `intervention: question — ${questionResult.line.slice(0, 100)}`);
+            }
           }
         }
 
@@ -2671,6 +2726,10 @@ class PtyManager extends EventEmitter {
                     intervention: 'escalation'
                   });
                   this._emitSSE('error', { worker: name, line: errLine, count: existing.count, escalation: true });
+                  // Immediate intervention notification (5.29)
+                  if (this._notifications) {
+                    this._notifications.notifyStall(name, `intervention: escalation — ${errLine.slice(0, 100)}`);
+                  }
                   existing.count = 0;
                 }
               } else {
@@ -2711,6 +2770,10 @@ class PtyManager extends EventEmitter {
             worker._interventionState = null;
             worker._lastQuestion = null;
           }
+        }
+        // Reset permission notification flag when prompt is no longer visible (5.29)
+        if (worker._permissionNotified && !this._termInterface.isPermissionPrompt(text)) {
+          worker._permissionNotified = false;
         }
 
         worker.snapshots.push({
