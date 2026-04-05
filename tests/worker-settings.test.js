@@ -105,7 +105,21 @@ describe('Worker Settings Profile (3.16)', () => {
           if (profile.permissions.defaultMode) permissions.defaultMode = profile.permissions.defaultMode;
         }
 
-        const defaultPerms = ['Bash(c4:*)', 'Bash(MSYS_NO_PATHCONV=1 c4:*)', 'Bash(git:*)'];
+        const defaultPerms = [
+          'Bash(c4:*)', 'Bash(MSYS_NO_PATHCONV=1 c4:*)', 'Bash(git:*)',
+          'Bash(npm:*)', 'Bash(npx:*)', 'Bash(node:*)',
+          'Bash(python:*)', 'Bash(python3:*)', 'Bash(pip:*)', 'Bash(pip3:*)',
+          'Bash(cargo:*)', 'Bash(go:*)', 'Bash(rustc:*)',
+          'Bash(make:*)', 'Bash(cmake:*)',
+          'Bash(ffmpeg:*)', 'Bash(ffprobe:*)',
+          'Bash(docker:*)', 'Bash(docker-compose:*)',
+          'Bash(ls:*)', 'Bash(cat:*)', 'Bash(head:*)', 'Bash(tail:*)',
+          'Bash(grep:*)', 'Bash(find:*)', 'Bash(wc:*)',
+          'Bash(mkdir:*)', 'Bash(cp:*)', 'Bash(mv:*)', 'Bash(touch:*)',
+          'Bash(pwd)', 'Bash(echo:*)', 'Bash(test:*)',
+          'Bash(curl:*)', 'Bash(wget:*)',
+          'Read', 'Edit', 'Write', 'Glob', 'Grep',
+        ];
         for (const perm of defaultPerms) {
           if (!permissions.allow.includes(perm)) permissions.allow.push(perm);
         }
@@ -365,6 +379,49 @@ describe('Worker Settings Profile (3.16)', () => {
     const mgr = createMockManager();
     const settings = mgr._buildWorkerSettings('auto-mgr', { _autoWorker: true });
     assert.ok(settings.permissions.allow.includes('Agent'));
+  });
+
+  // --- expanded default permissions (5.24) ---
+
+  it('default perms include dev tools (python, npm, cargo, docker, etc.)', () => {
+    const mgr = createMockManager();
+    const settings = mgr._buildWorkerSettings('w1');
+    const expected = [
+      'Bash(npm:*)', 'Bash(npx:*)', 'Bash(node:*)',
+      'Bash(python:*)', 'Bash(python3:*)', 'Bash(pip:*)', 'Bash(pip3:*)',
+      'Bash(cargo:*)', 'Bash(go:*)', 'Bash(rustc:*)',
+      'Bash(make:*)', 'Bash(cmake:*)',
+      'Bash(ffmpeg:*)', 'Bash(ffprobe:*)',
+      'Bash(docker:*)', 'Bash(docker-compose:*)',
+    ];
+    for (const perm of expected) {
+      assert.ok(settings.permissions.allow.includes(perm), `missing: ${perm}`);
+    }
+  });
+
+  it('default perms include shell utilities and file tools', () => {
+    const mgr = createMockManager();
+    const settings = mgr._buildWorkerSettings('w1');
+    const expected = [
+      'Bash(ls:*)', 'Bash(cat:*)', 'Bash(head:*)', 'Bash(tail:*)',
+      'Bash(grep:*)', 'Bash(find:*)', 'Bash(wc:*)',
+      'Bash(mkdir:*)', 'Bash(cp:*)', 'Bash(mv:*)', 'Bash(touch:*)',
+      'Bash(pwd)', 'Bash(echo:*)', 'Bash(test:*)',
+      'Bash(curl:*)', 'Bash(wget:*)',
+      'Read', 'Edit', 'Write', 'Glob', 'Grep',
+    ];
+    for (const perm of expected) {
+      assert.ok(settings.permissions.allow.includes(perm), `missing: ${perm}`);
+    }
+  });
+
+  it('auto-manager is NOT affected by expanded default perms', () => {
+    const mgr = createMockManager();
+    const settings = mgr._buildWorkerSettings('auto-mgr', { _autoWorker: true });
+    // auto-manager should NOT have expanded dev tool perms
+    assert.ok(!settings.permissions.allow.includes('Bash(python:*)'));
+    assert.ok(!settings.permissions.allow.includes('Bash(docker:*)'));
+    assert.ok(!settings.permissions.allow.includes('Bash(npm:*)'));
   });
 
   it('non-auto worker is not affected by auto-manager restrictions', () => {

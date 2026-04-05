@@ -1383,6 +1383,18 @@ class PtyManager extends EventEmitter {
         'Bash(c4:*)',
         'Bash(MSYS_NO_PATHCONV=1 c4:*)',
         'Bash(git:*)',
+        'Bash(npm:*)', 'Bash(npx:*)', 'Bash(node:*)',
+        'Bash(python:*)', 'Bash(python3:*)', 'Bash(pip:*)', 'Bash(pip3:*)',
+        'Bash(cargo:*)', 'Bash(go:*)', 'Bash(rustc:*)',
+        'Bash(make:*)', 'Bash(cmake:*)',
+        'Bash(ffmpeg:*)', 'Bash(ffprobe:*)',
+        'Bash(docker:*)', 'Bash(docker-compose:*)',
+        'Bash(ls:*)', 'Bash(cat:*)', 'Bash(head:*)', 'Bash(tail:*)',
+        'Bash(grep:*)', 'Bash(find:*)', 'Bash(wc:*)',
+        'Bash(mkdir:*)', 'Bash(cp:*)', 'Bash(mv:*)', 'Bash(touch:*)',
+        'Bash(pwd)', 'Bash(echo:*)', 'Bash(test:*)',
+        'Bash(curl:*)', 'Bash(wget:*)',
+        'Read', 'Edit', 'Write', 'Glob', 'Grep',
       ];
       for (const perm of defaultPerms) {
         if (!permissions.allow.includes(perm)) {
