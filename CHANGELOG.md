@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.5.8] - 2026-04-05
+
+### Added
+- **L4 Critical Deny List** (5.13): `CRITICAL_DENY_PATTERNS`로 `rm -rf /`, `git push --force`, `DROP TABLE`, `sudo rm`, `shutdown`, `reboot`, `mkfs`, `dd if=`, `git reset --hard origin` 등 파괴적 명령을 L4 full autonomy에서도 절대 차단. 차단 시 스냅샷 로그 + Slack 알림
+
 ## [1.5.7] - 2026-04-05
 
 ### Added

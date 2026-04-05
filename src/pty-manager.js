@@ -17,6 +17,20 @@ const AdaptivePolling = require('./adaptive-polling');
 const TerminalInterface = require('./terminal-interface');
 const SummaryLayer = require('./summary-layer');
 
+// L4 Critical Deny List (5.13) — these commands are NEVER auto-approved, even at full autonomy
+const CRITICAL_DENY_PATTERNS = [
+  /\brm\s+-rf\s+[\/\\]/,
+  /\bgit\s+push\s+--force/,
+  /\bgit\s+push\s+-f\b/,
+  /\bDROP\s+(TABLE|DATABASE)/i,
+  /\bsudo\s+rm\b/,
+  /\bshutdown\b/,
+  /\breboot\b/,
+  /\bmkfs\b/,
+  /\bdd\s+if=/,
+  /\bgit\s+reset\s+--hard\s+origin/,
+];
+
 const CONFIG_FILE = path.join(__dirname, '..', 'config.json');
 const STATE_FILE = path.join(__dirname, '..', 'state.json');
 const HISTORY_FILE = path.join(__dirname, '..', 'history.jsonl');
@@ -1774,6 +1788,22 @@ class PtyManager extends EventEmitter {
     // Level 4 (4.5): full autonomy — override deny to approve with logging
     if (autonomyLevel >= 4 && action === 'deny') {
       const command = this._extractBashCommand(screenText) || '';
+      // Critical commands are NEVER auto-approved, even at L4 (5.13)
+      const isCritical = CRITICAL_DENY_PATTERNS.some(p => p.test(command));
+      if (isCritical) {
+        if (worker) {
+          worker.snapshots = worker.snapshots || [];
+          worker.snapshots.push({
+            time: Date.now(),
+            screen: `[AUTONOMY L4 BLOCKED] critical command denied: ${command.substring(0, 100)}`,
+            autoAction: true
+          });
+        }
+        if (this._notifications) {
+          this._notifications.notifyStall(worker?._taskText ? 'worker' : 'unknown', `CRITICAL DENY: ${command.substring(0, 80)}`);
+        }
+        return 'deny';
+      }
       const workerName = worker?._taskText ? 'worker' : 'unknown';
       if (worker) {
         worker.snapshots = worker.snapshots || [];
