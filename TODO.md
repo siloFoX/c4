@@ -370,7 +370,7 @@ Level 4이면:
 | 5.10 | Hook으로 권한 요청 Slack 라우팅 | **todo** | hook에서 권한 prompt를 Slack으로 보내서 폰에서 승인 |
 | 5.11 | Batch 처리 | **todo** | 대규모 병렬 작업 시 수십 개 worktree agent 분산 처리 |
 | 5.12 | 매니저 교체 시 의사결정 요약 주입 | **todo** | compact 전에 핵심 진행/주의사항 3줄 요약 -> session-context.md 상단에 주입 |
-| 5.13 | L4 Critical Deny List | **todo** | rm -rf /, git push --force, DROP TABLE 등 파괴적 명령은 L4에서도 절대 차단 |
+| 5.13 | L4 Critical Deny List | **done** | rm -rf /, git push --force, DROP TABLE 등 파괴적 명령은 L4에서도 절대 차단 |
 | 5.14 | Resume 후 Re-orientation | **todo** | 복구 직후 scrollback 읽어서 마지막 작업 안내 |
 | 5.15 | Dirty Worktree Slack 경고 | **todo** | STALL처럼 눈에 띄게 알림 |
 | 5.16 | --repo 옵션 | **done** | c4 task --repo /path/to/other-project 로 다른 프로젝트 worktree 생성 지원 (5.17과 동일) |
