@@ -1848,15 +1848,18 @@ class PtyManager extends EventEmitter {
       const isCritical = CRITICAL_DENY_PATTERNS.some(p => p.test(command));
       if (isCritical) {
         if (worker) {
+          worker._interventionState = 'critical_deny';
+          worker._criticalCommand = command;
           worker.snapshots = worker.snapshots || [];
           worker.snapshots.push({
             time: Date.now(),
-            screen: `[AUTONOMY L4 BLOCKED] critical command denied: ${command.substring(0, 100)}`,
+            screen: `[CRITICAL DENY] awaiting approval: ${command.substring(0, 100)}`,
             autoAction: true
           });
         }
         if (this._notifications) {
-          this._notifications.notifyStall(worker?._taskText ? 'worker' : 'unknown', `CRITICAL DENY: ${command.substring(0, 80)}`);
+          this._notifications.pushAll(`[CRITICAL DENY] worker needs approval for: ${command.substring(0, 80)}`);
+          this._notifications._flushSlack();
         }
         return 'deny';
       }
@@ -2843,6 +2846,30 @@ class PtyManager extends EventEmitter {
       // Will be handled by pending commands or first idle snapshot
     }
 
+    // Resume re-orientation (5.14): read scrollback after resume
+    if (options.resume) {
+      const w = this.workers.get(name);
+      if (w) {
+        w._resumed = true;
+        // Schedule a delayed scrollback read to capture resume state
+        setTimeout(() => {
+          if (!w.alive) return;
+          const scr = w.screen;
+          if (scr) {
+            const lastLines = scr.getVisibleText().split('\n').slice(-20).join('\n');
+            w.snapshots.push({
+              time: Date.now(),
+              screen: `[RESUMED] Last visible state:\n${lastLines}`,
+              autoAction: true
+            });
+            if (this._notifications) {
+              this._notifications.pushAll(`[RESUMED] ${name}: worker resumed. Last state captured.`);
+            }
+          }
+        }, 5000); // Wait 5s for Claude to load
+      }
+    }
+
     return {
       name,
       pid: proc.pid,
@@ -2855,6 +2882,17 @@ class PtyManager extends EventEmitter {
     const w = this.workers.get(name);
     if (!w) return { error: `Worker '${name}' not found` };
     if (!w.alive) return { error: `Worker '${name}' has exited` };
+
+    // Block auto-approval of critical commands (5.28)
+    if (w._interventionState === 'critical_deny') {
+      if (isSpecialKey && input === 'Enter') {
+        return { error: `Worker '${name}' has a critical command pending. Use 'c4 approve ${name}' instead.` };
+      }
+      // Also block 'y' followed by enter
+      if (!isSpecialKey && /^y$/i.test(input.trim())) {
+        return { error: `Worker '${name}' has a critical command pending. Use 'c4 approve ${name}' instead.` };
+      }
+    }
 
     if (isSpecialKey) {
       const keyMap = {
@@ -2885,6 +2923,19 @@ class PtyManager extends EventEmitter {
     }
 
     return { success: true };
+  }
+
+  // Approve a critical_deny command (5.21 hybrid safety)
+  approve(name) {
+    const w = this.workers.get(name);
+    if (!w) return { error: `Worker '${name}' not found` };
+    if (w._interventionState !== 'critical_deny') {
+      return { error: `Worker '${name}' is not awaiting critical approval` };
+    }
+    w._interventionState = null;
+    // Send 'y' + Enter to approve the pending permission prompt
+    w.proc.write('y\r');
+    return { success: true, approved: w._criticalCommand };
   }
 
   /**

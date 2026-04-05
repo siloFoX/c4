@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.1] - 2026-04-05
+
+### Added
+- **Hybrid safety mode** (5.21): L4 critical deny 시 worker를 `critical_deny` 상태로 전환하고 Slack 승인 요청 전송. `c4 approve <name>` 명령으로 관리자가 승인. CLI, daemon route, pty-manager approve() 메서드 추가
+- **Auto-approval block** (5.28): `critical_deny` 상태 worker에 Enter 키나 'y' 입력 차단. `c4 send`/`c4 key`로 위험 명령 무분별 승인 방지
+- **Resume re-orientation** (5.14): worker resume 후 5초 대기 뒤 scrollback 마지막 20줄 캡처하여 `[RESUMED]` 스냅샷 생성 + Slack 알림
+
 ## [1.6.0] - 2026-04-05
 
 ### Added
