@@ -357,6 +357,27 @@ Level 4이면:
 
 이러면 밤새 사람 개입 없이 돌아감.
 
+## Phase 5 - 실사용 테스트 + 강제 메커니즘
+
+| # | 항목 | 상태 | 설명 |
+|---|------|------|------|
+| 5.1 | auto-mgr 도구 제한 | **todo** | _buildAutoManagerPermissions()에서 Read/Write/Edit/Grep/Glob deny. Bash(c4:*) + Bash(git -C:*) 만 allow |
+| 5.2 | 실사용 테스트 시나리오 | **todo** | c4로 작업 시켜보고 관찰. docs/test-scenarios.md에 시나리오 작성 |
+| 5.3 | CLAUDE.md 개선 | **todo** | worker가 c4 명령어를 더 잘 쓰도록 사용 예시/패턴 보강 |
+| 5.4 | worker close 시 Slack flush | **todo** | notifyTaskComplete 후 즉시 _flushAll() 호출 |
+| 5.8 | Custom Agents 활용 | **todo** | .claude/agents/manager.md 로 관리자 에이전트 정의 |
+| 5.9 | claude -w 네이티브 worktree 검토 | **todo** | Claude Code 내장 worktree 활용 가능한지 평가 |
+| 5.10 | Hook으로 권한 요청 Slack 라우팅 | **todo** | hook에서 권한 prompt를 Slack으로 보내서 폰에서 승인 |
+| 5.11 | Batch 처리 | **todo** | 대규모 병렬 작업 시 수십 개 worktree agent 분산 처리 |
+| 5.12 | 매니저 교체 시 의사결정 요약 주입 | **todo** | compact 전에 핵심 진행/주의사항 3줄 요약 -> session-context.md 상단에 주입 |
+| 5.13 | L4 Critical Deny List | **todo** | rm -rf /, git push --force, DROP TABLE 등 파괴적 명령은 L4에서도 절대 차단 |
+| 5.14 | Resume 후 Re-orientation | **todo** | 복구 직후 scrollback 읽어서 마지막 작업 안내 |
+| 5.15 | Dirty Worktree Slack 경고 | **todo** | STALL처럼 눈에 띄게 알림 |
+| 5.16 | --repo 옵션 | **todo** | c4 task --repo /path/to/other-project 로 다른 프로젝트 worktree 생성 지원 |
+| 5.17 | c4 task --repo 옵션 구현 | **todo** | c4 task worker --repo /path/to/project 하면 해당 프로젝트 worktree 생성 |
+| 5.18 | c4 send 자동 Enter | **todo** | send로 텍스트 보낼 때 자동으로 Enter 키 포함 |
+| 5.19 | PreToolUse 복합 명령 차단 실효성 | **todo** | worker가 cd && git 계속 사용. hook이 실제로 차단 안 되는 원인 조사 + 수정 |
+
 ## 완료
 
 | # | 항목 | 완료일 |
