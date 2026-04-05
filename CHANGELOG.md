@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.9] - 2026-04-05
+
+### Added
+- **Dirty worktree Slack warning** (5.15): healthCheck에서 alive worker의 worktree dirty 상태 감지 시 `[DIRTY]` Slack 알림 전송. 정리되면 플래그 리셋하여 재알림 가능
+- **Submodule diff support** (5.30): `c4 merge` 완료 후 `git diff --stat --submodule=diff`로 서브모듈 변경사항 상세 표시
+- **c4 cleanup command** (5.33): 수동 정리 명령어. LOST worker의 c4/ 브랜치 삭제, worktree 제거, 고아 c4-worktree-* 디렉토리 정리, git worktree prune 실행. `--dry-run` 지원
+
 ## [1.5.8] - 2026-04-05
 
 ### Added

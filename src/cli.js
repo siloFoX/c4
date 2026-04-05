@@ -676,6 +676,24 @@ async function main() {
           const output = execSync(`git merge "${branch}" --no-ff -m "Merge branch '${branch}'"`, { cwd: repoRoot, encoding: 'utf8' });
           console.log(output);
           console.log(`Merge complete: ${branch} → main`);
+
+          // Show diff stat with submodule details (5.30)
+          try {
+            const diffStat = execSync(`git diff --stat --submodule=diff HEAD~1..HEAD`, { cwd: repoRoot, encoding: 'utf8' });
+            if (diffStat.trim()) {
+              console.log('\nDiff summary (with submodule details):');
+              console.log(diffStat);
+            }
+          } catch {}
+
+          // Show merged commits (5.30)
+          try {
+            const logOutput = execSync(`git log --oneline HEAD~1..HEAD --first-parent`, { cwd: repoRoot, encoding: 'utf8' });
+            if (logOutput.trim()) {
+              console.log('Merged commits:');
+              console.log(logOutput);
+            }
+          } catch {}
         } catch (e) {
           console.error('Merge failed:', e.message);
           process.exit(1);
@@ -891,6 +909,22 @@ async function main() {
             console.log(`Rolled back '${name}': ${result.from} → ${result.to}`);
           } else {
             console.log(result.message);
+          }
+          return;
+        }
+        break;
+      }
+
+      case 'cleanup': {
+        const dryRun = args.includes('--dry-run');
+        result = await request('POST', '/cleanup', { dryRun });
+        if (result.branches || result.worktrees || result.directories) {
+          const mode = result.dryRun ? '[dry-run] ' : '';
+          if (result.branches.length) console.log(`${mode}Branches deleted: ${result.branches.join(', ')}`);
+          if (result.worktrees.length) console.log(`${mode}Worktrees removed: ${result.worktrees.join(', ')}`);
+          if (result.directories.length) console.log(`${mode}Orphan directories removed: ${result.directories.join(', ')}`);
+          if (!result.branches.length && !result.worktrees.length && !result.directories.length) {
+            console.log('Nothing to clean up.');
           }
           return;
         }

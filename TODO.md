@@ -372,7 +372,7 @@ Level 4이면:
 | 5.12 | 매니저 교체 시 의사결정 요약 주입 | **todo** | compact 전에 핵심 진행/주의사항 3줄 요약 -> session-context.md 상단에 주입 |
 | 5.13 | L4 Critical Deny List | **done** | rm -rf /, git push --force, DROP TABLE 등 파괴적 명령은 L4에서도 절대 차단 |
 | 5.14 | Resume 후 Re-orientation | **todo** | 복구 직후 scrollback 읽어서 마지막 작업 안내 |
-| 5.15 | Dirty Worktree Slack 경고 | **todo** | STALL처럼 눈에 띄게 알림 |
+| 5.15 | Dirty Worktree Slack 경고 | **done** | STALL처럼 눈에 띄게 알림 |
 | 5.16 | --repo 옵션 | **done** | c4 task --repo /path/to/other-project 로 다른 프로젝트 worktree 생성 지원 (5.17과 동일) |
 | 5.17 | c4 task --repo 옵션 구현 | **done** | cli.js --repo 파싱, daemon.js projectRoot 전달, pty-manager sendTask 연결 |
 | 5.18 | c4 send 자동 Enter | **done** | 이미 구현됨 - send()에서 자동 \r 추가 (pty-manager.js 2777번 줄) |
@@ -387,10 +387,10 @@ Level 4이면:
 | 5.27 | 실사용 실패 케이스 문서화 | **todo** | docs/known-issues.md에 실패 사례 기록 |
 | 5.28 | 관리자 자동 승인 방지 | **todo** | 관리자가 cron으로 자동 Enter 보내는 패턴 차단. 위험 명령 무분별 승인 방지 |
 | 5.29 | intervention 발생 시 관리자 알림 | **todo** | worker 승인 대기 시 관리자 Claude에게 즉시 notification. 현재는 c4 list로 확인해야 함 |
-| 5.30 | 서브모듈 프로젝트 diff 지원 | **todo** | git diff --stat이 서브모듈 포인터만 보이는 문제. --submodule=diff 옵션 자동 적용 |
+| 5.30 | 서브모듈 프로젝트 diff 지원 | **done** | git diff --stat이 서브모듈 포인터만 보이는 문제. --submodule=diff 옵션 자동 적용 |
 | 5.31 | 다른 repo 브랜치 자동 정리 | **done** | c4 worker close 시 해당 worker가 만든 c4/ 접두사 브랜치를 자동 삭제. worktree remove + branch delete |
 | 5.32 | worktree prune 자동화 | **done** | healthCheck에서 주기적으로 git worktree prune 실행. prunable worktree 감지 시 자동 정리 |
-| 5.33 | c4 cleanup 명령 | **todo** | 수동 정리 명령어. 모든 LOST worker의 worktree + 브랜치 + 잔여 디렉토리를 한 번에 정리 |
+| 5.33 | c4 cleanup 명령 | **done** | 수동 정리 명령어. 모든 LOST worker의 worktree + 브랜치 + 잔여 디렉토리를 한 번에 정리 |
 
 ## Phase 6 - 마케팅/가시성
 
