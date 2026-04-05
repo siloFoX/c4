@@ -377,6 +377,25 @@ Level 4이면:
 | 5.17 | c4 task --repo 옵션 구현 | **todo** | c4 task worker --repo /path/to/project 하면 해당 프로젝트 worktree 생성 |
 | 5.18 | c4 send 자동 Enter | **todo** | send로 텍스트 보낼 때 자동으로 Enter 키 포함 |
 | 5.19 | PreToolUse 복합 명령 차단 실효성 | **todo** | worker가 cd && git 계속 사용. hook이 실제로 차단 안 되는 원인 조사 + 수정 |
+| 5.20 | CI 피드백 루프 | **todo** | worker 커밋 후 npm test 자동 실행, 실패 시 worker에 자동 피드백 |
+| 5.21 | 하이브리드 안전 모드 | **todo** | L4에서도 rm -rf, push --force 등 위험 명령은 Slack 승인 요청 |
+| 5.22 | Recursive C4 테스트 시나리오 | **todo** | 관리자->중간관리자->작업자 3단계 계층 테스트. docs/test-scenarios.md |
+| 5.23 | 경쟁자 분석 문서 | **todo** | docs/competitive-analysis.md. Composio, OpenHands 등 비교 |
+| 5.24 | worker auto-approve 범위 확장 | **todo** | python, pip, ffmpeg 등 개발 도구를 autoApprove rules에 기본 포함 |
+| 5.25 | 다른 프로젝트 브랜치 정리 | **todo** | c4 worker가 만든 c4/ 접두사 브랜치를 close 시 자동 삭제 |
+| 5.26 | worker 권한 프로파일 | **todo** | 프로젝트 유형별 auto-approve 프리셋. config.json profiles 확장 |
+| 5.27 | 실사용 실패 케이스 문서화 | **todo** | docs/known-issues.md에 실패 사례 기록 |
+
+## Phase 6 - 마케팅/가시성
+
+| # | 항목 | 상태 | 설명 |
+|---|------|------|------|
+| 6.1 | README 한 줄 요약 강화 | **todo** | 상단에 독보적 기능 한 문장 |
+| 6.2 | asciinema 데모 | **todo** | c4 auto 터미널 녹화. README에 GIF 삽입 |
+| 6.3 | GitHub Topics | **todo** | #claude-code #agent-orchestrator 등 태그 추가 |
+| 6.4 | MCP 서버 등록 | **todo** | smithery.ai 등 MCP 리스트에 C4 등록 |
+| 6.5 | Build in Public 자동화 | **todo** | Scribe 요약본을 SNS에 자동 포스팅 연동 |
+| 6.6 | 경쟁 키워드 선점 | **todo** | Manager Rotation, Recursive Worker 등을 README/docs에 반복 노출 |
 
 ## 완료
 
