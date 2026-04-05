@@ -2,6 +2,9 @@
 
 ## [1.5.2] - 2026-04-05
 
+### Fixed
+- **Worker close 시 Slack flush** (5.4): worker exit 시 alertOnly 모드에서 완료 메시지가 버퍼에 남는 문제 수정. notifyTaskComplete 후 즉시 _flushAll() 호출
+
 ### Added
 - **Phase 5 로드맵**: TODO.md에 실사용 테스트 + 강제 메커니즘 항목 추가 (5.1~5.16)
 - **Phase 5 추가 항목**: TODO 5.17 --repo 옵션 구현, 5.18 send 자동 Enter, 5.19 PreToolUse 복합 명령 차단 실효성

@@ -2710,6 +2710,8 @@ class PtyManager extends EventEmitter {
           exitCode, signal, branch: worker.branch || null,
           task: worker._taskText, lastCommit
         });
+        // Force flush Slack buffer on worker close (5.4)
+        this._notifications._flushAll().catch(() => {});
       }
 
       // Auto worker (4.8): generate morning report on exit
