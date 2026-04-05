@@ -3105,6 +3105,21 @@ class PtyManager extends EventEmitter {
     // Process task queue — worker exits may unblock queued tasks (2.2, 2.8)
     const dequeued = this._processQueue();
 
+    // Dirty worktree Slack warning (5.15)
+    if (this._notifications) {
+      for (const [name, w] of this.workers) {
+        if (!w.alive || !w.worktree) continue;
+        if (this._isWorktreeDirty(w.worktree)) {
+          if (!w._dirtyNotified) {
+            w._dirtyNotified = true;
+            this._notifications.pushAll(`[DIRTY] ${name}: worktree has uncommitted changes`);
+          }
+        } else {
+          w._dirtyNotified = false;
+        }
+      }
+    }
+
     // Stall detection: intervention state or 5min+ no output (4.14)
     const stallThresholdMs = 300000; // 5 minutes
     if (this._notifications) {
@@ -3360,6 +3375,79 @@ class PtyManager extends EventEmitter {
     } catch (e) {
       return { error: `Rollback failed: ${e.message}` };
     }
+  }
+
+  cleanup(dryRun = false) {
+    const repoRoot = this._detectRepoRoot();
+    const results = { branches: [], worktrees: [], directories: [] };
+
+    // 1. Find all LOST/exited workers with worktrees
+    for (const [name, w] of this.workers) {
+      if (w.alive) continue;
+
+      // Branch cleanup
+      if (w.branch && w.branch.startsWith('c4/')) {
+        results.branches.push(w.branch);
+        if (!dryRun && repoRoot) {
+          try {
+            execSyncSafe(`git -C "${repoRoot.replace(/\\/g, '/')}" branch -D "${w.branch}"`, {
+              encoding: 'utf8', stdio: 'pipe', timeout: 5000
+            });
+          } catch {}
+        }
+      }
+
+      // Worktree cleanup
+      if (w.worktree && fs.existsSync(w.worktree)) {
+        results.worktrees.push(w.worktree);
+        if (!dryRun && repoRoot) {
+          this._removeWorktree(repoRoot, w.worktree);
+        }
+      }
+
+      // Remove from workers map
+      if (!dryRun) {
+        if (w.rawLogStream && !w.rawLogStream.destroyed) w.rawLogStream.end();
+        this.workers.delete(name);
+      }
+    }
+
+    // 2. Find orphan c4-worktree-* directories
+    if (repoRoot) {
+      const parentDir = path.dirname(repoRoot);
+      try {
+        const entries = fs.readdirSync(parentDir);
+        for (const entry of entries) {
+          if (!entry.startsWith('c4-worktree-')) continue;
+          const fullPath = path.join(parentDir, entry);
+          // Skip if an active worker uses this worktree
+          let inUse = false;
+          for (const [, w] of this.workers) {
+            if (w.worktree && path.resolve(w.worktree) === path.resolve(fullPath) && w.alive) {
+              inUse = true; break;
+            }
+          }
+          if (!inUse) {
+            results.directories.push(fullPath);
+            if (!dryRun) {
+              try { fs.rmSync(fullPath, { recursive: true, force: true }); } catch {}
+            }
+          }
+        }
+      } catch {}
+    }
+
+    // 3. git worktree prune
+    if (!dryRun && repoRoot) {
+      try {
+        execSyncSafe('git worktree prune', {
+          cwd: repoRoot, encoding: 'utf8', stdio: 'pipe', timeout: 5000
+        });
+      } catch {}
+    }
+
+    if (!dryRun) this._saveState();
+    return { dryRun, ...results };
   }
 
   close(name) {

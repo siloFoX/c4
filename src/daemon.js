@@ -181,6 +181,10 @@ async function handleRequest(req, res) {
       const { name } = await parseBody(req);
       result = manager.rollback(name);
 
+    } else if (req.method === 'POST' && route === '/cleanup') {
+      const { dryRun } = await parseBody(req);
+      result = manager.cleanup(dryRun);
+
     } else if (req.method === 'POST' && route === '/close') {
       const { name } = await parseBody(req);
       result = manager.close(name);
