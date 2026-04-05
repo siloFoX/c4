@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.2] - 2026-04-05
+
+### Added
+- **Manager handoff summary injection** (5.12): manager rotation 전 `_injectDecisionSummary()`로 task, compaction count, intervention 경고, active worker 수를 `docs/session-context.md` 상단에 주입
+- **Hook Slack routing on deny** (5.10): `_handlePreToolUse`에서 scope guard deny 시 `[HOOK DENY]` Slack 알림 전송 + 즉시 flush
+- **Custom Agent definition** (5.8): `.claude/agents/manager.md` 생성. C4 Manager 에이전트 도구 제한(Bash c4/git만 allow, Read/Write/Edit/Grep/Glob deny)을 Claude Code 네이티브 Custom Agents로 정의
+
 ## [1.6.1] - 2026-04-05
 
 ### Added

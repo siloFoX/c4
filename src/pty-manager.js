@@ -396,6 +396,16 @@ class PtyManager extends EventEmitter {
       this._emitSSE('permission', { worker: workerName, promptType: toolName.toLowerCase(), detail, source: 'hook' });
     }
 
+    // Hook permission Slack routing (5.10)
+    // When a tool use is denied by scope/compound block, notify via Slack
+    if (result.decision === 'block' || result.action === 'deny') {
+      const toolDesc = `${toolName}: ${JSON.stringify(toolInput).substring(0, 100)}`;
+      if (this._notifications) {
+        this._notifications.pushAll(`[HOOK DENY] ${workerName}: ${toolDesc}`);
+        this._notifications._flushSlack();
+      }
+    }
+
     return result;
   }
 
@@ -3644,12 +3654,55 @@ class PtyManager extends EventEmitter {
     // Check if auto-replacement threshold reached
     const threshold = this.config.managerRotation?.compactThreshold ?? 0;
     if (threshold > 0 && w._compactCount >= threshold && w._autoWorker) {
+      // Decision summary injection (5.12)
+      this._injectDecisionSummary(workerName, w);
       // Trigger manager replacement
       const replaceResult = this._replaceManager(workerName);
       return { compactCount: w._compactCount, replaced: true, ...replaceResult };
     }
 
     return { received: true, worker: workerName, compactCount: w._compactCount };
+  }
+
+  // Decision summary injection before manager handoff (5.12)
+  _injectDecisionSummary(workerName, worker) {
+    try {
+      const sessionContextPath = path.join(this.projectRoot || path.join(__dirname, '..'), 'docs', 'session-context.md');
+
+      // Gather key info from snapshots
+      const recentSnapshots = (worker.snapshots || []).slice(-20);
+      const summaryLines = [];
+
+      // Task info
+      if (worker._taskText) {
+        summaryLines.push(`Task: ${worker._taskText.substring(0, 100)}`);
+      }
+
+      // Compact count + branch
+      summaryLines.push(`Progress: ${worker._compactCount || 0} compactions, branch: ${worker.branch || 'unknown'}`);
+
+      // Recent interventions/errors
+      const interventions = recentSnapshots.filter(s => s.intervention);
+      if (interventions.length > 0) {
+        summaryLines.push(`Warnings: ${interventions.length} interventions detected`);
+      }
+
+      // Active workers
+      const activeCount = [...this.workers.values()].filter(w => w.alive).length;
+      summaryLines.push(`Active workers: ${activeCount}`);
+
+      const header = `<!-- Manager Handoff Summary (${new Date().toISOString()}) -->\n` +
+        `## Manager Handoff\n` +
+        summaryLines.map(l => `- ${l}`).join('\n') +
+        `\n---\n\n`;
+
+      // Prepend to session-context.md
+      let existing = '';
+      if (fs.existsSync(sessionContextPath)) {
+        existing = fs.readFileSync(sessionContextPath, 'utf8');
+      }
+      fs.writeFileSync(sessionContextPath, header + existing, 'utf8');
+    } catch {} // Non-fatal
   }
 
   _replaceManager(oldName) {
