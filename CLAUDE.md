@@ -74,7 +74,19 @@ c4 morning                           모닝 리포트 생성
 c4 plan <name> <task> [opts]         설계 작업 전송 (--branch, --output)
 c4 plan-read <name>                  설계 결과 읽기
 c4 rollback <name>                   워커 브랜치 롤백
+c4 cleanup [--dry-run]               고아 worktree/브랜치 일괄 정리
+c4 approve <name>                    critical 명령 수동 승인
+c4 batch "작업" [--count N] [--file tasks.txt]  배치 작업 실행
 ```
+
+### 관리자 vs 작업자 역할 구분
+| | 관리자 (Manager) | 작업자 (Worker) |
+|---|---|---|
+| 코드 직접 수정 | X (금지) | O |
+| c4 명령어 사용 | O (워커 생성/관리) | X (원칙적으로 불필요) |
+| 사용 도구 | Bash(c4:*), Agent | Read, Write, Edit, Grep, Glob, Bash |
+| 에이전트 정의 | `.claude/agents/manager.md` | 기본 Claude Code |
+| 모델 | claude-opus-4-6 | config 설정에 따름 |
 
 ### 관리자 워커 운영 패턴
 관리자(auto-mgr)는 c4 명령어로 하위 워커를 생성/관리/감시한다:
