@@ -73,24 +73,44 @@ describe('Worker Settings Profile (3.16)', () => {
       return `node -e "${script}"`;
     };
 
+    mgr._buildAutoManagerPermissions = function() {
+      return {
+        allow: [
+          'Bash(c4:*)', 'Bash(MSYS_NO_PATHCONV=1 c4:*)',
+          'Bash(git -C:*)',
+          'Agent'
+        ],
+        deny: [
+          'Read', 'Write', 'Edit', 'Grep', 'Glob',
+          'Bash(rm -rf:*)', 'Bash(sudo:*)', 'Bash(shutdown:*)', 'Bash(reboot:*)'
+        ],
+        defaultMode: 'auto'
+      };
+    };
+
     mgr._buildWorkerSettings = function(workerName, options = {}) {
       const profileName = options.profile || options.template || '';
       const profile = profileName ? this._getProfile(profileName) : null;
       const hooksCfg = this.config.hooks || {};
       const settings = {};
-      const permissions = { allow: [], deny: [] };
 
-      if (profile && profile.permissions) {
-        if (Array.isArray(profile.permissions.allow)) permissions.allow.push(...profile.permissions.allow);
-        if (Array.isArray(profile.permissions.deny)) permissions.deny.push(...profile.permissions.deny);
-        if (profile.permissions.defaultMode) permissions.defaultMode = profile.permissions.defaultMode;
-      }
+      if (options._autoWorker) {
+        settings.permissions = this._buildAutoManagerPermissions();
+      } else {
+        const permissions = { allow: [], deny: [] };
 
-      const defaultPerms = ['Bash(c4:*)', 'Bash(MSYS_NO_PATHCONV=1 c4:*)', 'Bash(git:*)'];
-      for (const perm of defaultPerms) {
-        if (!permissions.allow.includes(perm)) permissions.allow.push(perm);
+        if (profile && profile.permissions) {
+          if (Array.isArray(profile.permissions.allow)) permissions.allow.push(...profile.permissions.allow);
+          if (Array.isArray(profile.permissions.deny)) permissions.deny.push(...profile.permissions.deny);
+          if (profile.permissions.defaultMode) permissions.defaultMode = profile.permissions.defaultMode;
+        }
+
+        const defaultPerms = ['Bash(c4:*)', 'Bash(MSYS_NO_PATHCONV=1 c4:*)', 'Bash(git:*)'];
+        for (const perm of defaultPerms) {
+          if (!permissions.allow.includes(perm)) permissions.allow.push(perm);
+        }
+        settings.permissions = permissions;
       }
-      settings.permissions = permissions;
 
       // Complete hook set: build all hooks explicitly
       settings.hooks = {};
@@ -310,5 +330,49 @@ describe('Worker Settings Profile (3.16)', () => {
     const settings = mgr._buildWorkerSettings('w1', { profile: 'reviewer' });
     const gitPerms = settings.permissions.allow.filter(p => p === 'Bash(git:*)');
     assert.strictEqual(gitPerms.length, 1);
+  });
+
+  // --- Auto-manager tool restrictions (5.1) ---
+
+  it('auto-manager denies Read, Write, Edit, Grep, Glob', () => {
+    const mgr = createMockManager();
+    const settings = mgr._buildWorkerSettings('auto-mgr', { _autoWorker: true });
+    const denied = ['Read', 'Write', 'Edit', 'Grep', 'Glob'];
+    for (const tool of denied) {
+      assert.ok(settings.permissions.deny.includes(tool), `${tool} must be denied`);
+      assert.ok(!settings.permissions.allow.includes(tool), `${tool} must not be allowed`);
+    }
+  });
+
+  it('auto-manager allows only c4 and git -C bash patterns', () => {
+    const mgr = createMockManager();
+    const settings = mgr._buildWorkerSettings('auto-mgr', { _autoWorker: true });
+    assert.ok(settings.permissions.allow.includes('Bash(c4:*)'));
+    assert.ok(settings.permissions.allow.includes('Bash(MSYS_NO_PATHCONV=1 c4:*)'));
+    assert.ok(settings.permissions.allow.includes('Bash(git -C:*)'));
+    // General Bash must not be allowed
+    assert.ok(!settings.permissions.allow.includes('Bash'));
+    assert.ok(!settings.permissions.allow.includes('Bash(git:*)'));
+  });
+
+  it('auto-manager has defaultMode auto', () => {
+    const mgr = createMockManager();
+    const settings = mgr._buildWorkerSettings('auto-mgr', { _autoWorker: true });
+    assert.strictEqual(settings.permissions.defaultMode, 'auto');
+  });
+
+  it('auto-manager allows Agent tool', () => {
+    const mgr = createMockManager();
+    const settings = mgr._buildWorkerSettings('auto-mgr', { _autoWorker: true });
+    assert.ok(settings.permissions.allow.includes('Agent'));
+  });
+
+  it('non-auto worker is not affected by auto-manager restrictions', () => {
+    const mgr = createMockManager();
+    const settings = mgr._buildWorkerSettings('w1');
+    // Normal workers should NOT have Read/Write/Edit in deny
+    assert.ok(!settings.permissions.deny.includes('Read'));
+    assert.ok(!settings.permissions.deny.includes('Write'));
+    assert.ok(!settings.permissions.deny.includes('Edit'));
   });
 });
