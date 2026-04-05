@@ -388,6 +388,9 @@ Level 4이면:
 | 5.28 | 관리자 자동 승인 방지 | **todo** | 관리자가 cron으로 자동 Enter 보내는 패턴 차단. 위험 명령 무분별 승인 방지 |
 | 5.29 | intervention 발생 시 관리자 알림 | **todo** | worker 승인 대기 시 관리자 Claude에게 즉시 notification. 현재는 c4 list로 확인해야 함 |
 | 5.30 | 서브모듈 프로젝트 diff 지원 | **todo** | git diff --stat이 서브모듈 포인터만 보이는 문제. --submodule=diff 옵션 자동 적용 |
+| 5.31 | 다른 repo 브랜치 자동 정리 | **todo** | c4 worker close 시 해당 worker가 만든 c4/ 접두사 브랜치를 자동 삭제. worktree remove + branch delete |
+| 5.32 | worktree prune 자동화 | **todo** | healthCheck에서 주기적으로 git worktree prune 실행. prunable worktree 감지 시 자동 정리 |
+| 5.33 | c4 cleanup 명령 | **todo** | 수동 정리 명령어. 모든 LOST worker의 worktree + 브랜치 + 잔여 디렉토리를 한 번에 정리 |
 
 ## Phase 6 - 마케팅/가시성
 
@@ -399,6 +402,7 @@ Level 4이면:
 | 6.4 | MCP 서버 등록 | **todo** | smithery.ai 등 MCP 리스트에 C4 등록 |
 | 6.5 | Build in Public 자동화 | **todo** | Scribe 요약본을 SNS에 자동 포스팅 연동 |
 | 6.6 | 경쟁 키워드 선점 | **todo** | Manager Rotation, Recursive Worker 등을 README/docs에 반복 노출 |
+| 6.7 | docs/best-practices.md | **todo** | 실사용 성공 사례 문서. DGX arps 구현 예시 등 |
 
 ## 완료
 
