@@ -2,8 +2,13 @@ const pty = require('node-pty');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execSync } = require('child_process');
+const { execSync: _execSync } = require('child_process');
 const { EventEmitter } = require('events');
+
+// Windows console window hiding wrapper (4.25)
+function execSyncSafe(cmd, opts = {}) {
+  return _execSync(cmd, { windowsHide: true, ...opts });
+}
 const ScreenBuffer = require('./screen-buffer');
 const Scribe = require('./scribe');
 const { ScopeGuard, resolveScope } = require('./scope-guard');
@@ -73,7 +78,7 @@ function platformClaudePaths() {
     const nvmDir = process.env.NVM_DIR || path.join(platformHomedir(), '.nvm');
     if (fs.existsSync(nvmDir)) {
       try {
-        const nodeVersion = execSync('node -v', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+        const nodeVersion = execSyncSafe('node -v', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
         paths.push(path.join(nvmDir, 'versions', 'node', nodeVersion, 'bin', 'claude'));
       } catch {}
     }
@@ -1463,7 +1468,7 @@ class PtyManager extends EventEmitter {
     const configRoot = this.config.worktree?.projectRoot;
     if (configRoot) return path.resolve(configRoot);
     try {
-      return execSync('git rev-parse --show-toplevel', {
+      return execSyncSafe('git rev-parse --show-toplevel', {
         encoding: 'utf8',
         cwd: path.resolve(__dirname, '..'),
         stdio: 'pipe'
@@ -1483,12 +1488,12 @@ class PtyManager extends EventEmitter {
     // Clean up stale worktree at the same path
     if (fs.existsSync(worktreePath)) {
       try {
-        execSync(`git worktree remove "${gitPath}" --force`, {
+        execSyncSafe(`git worktree remove "${gitPath}" --force`, {
           cwd: repoRoot, encoding: 'utf8', stdio: 'pipe'
         });
       } catch {
         fs.rmSync(worktreePath, { recursive: true, force: true });
-        execSync('git worktree prune', {
+        execSyncSafe('git worktree prune', {
           cwd: repoRoot, encoding: 'utf8', stdio: 'pipe'
         });
       }
@@ -1496,18 +1501,18 @@ class PtyManager extends EventEmitter {
 
     // Try new branch first, fall back to existing branch
     try {
-      execSync(`git worktree add "${gitPath}" -b "${branch}"`, {
+      execSyncSafe(`git worktree add "${gitPath}" -b "${branch}"`, {
         cwd: repoRoot, encoding: 'utf8', stdio: 'pipe'
       });
     } catch {
-      execSync(`git worktree add "${gitPath}" "${branch}"`, {
+      execSyncSafe(`git worktree add "${gitPath}" "${branch}"`, {
         cwd: repoRoot, encoding: 'utf8', stdio: 'pipe'
       });
     }
 
     // Apply main-protection hooks to worktree (1.17)
     const hooksPath = repoRoot.replace(/\\/g, '/') + '/.githooks';
-    execSync(`git -C "${gitPath}" config core.hooksPath "${hooksPath}"`, {
+    execSyncSafe(`git -C "${gitPath}" config core.hooksPath "${hooksPath}"`, {
       encoding: 'utf8', stdio: 'pipe'
     });
   }
@@ -1515,12 +1520,12 @@ class PtyManager extends EventEmitter {
   _removeWorktree(repoRoot, worktreePath) {
     const gitPath = worktreePath.replace(/\\/g, '/');
     try {
-      execSync(`git worktree remove "${gitPath}" --force`, {
+      execSyncSafe(`git worktree remove "${gitPath}" --force`, {
         cwd: repoRoot, encoding: 'utf8', stdio: 'pipe'
       });
     } catch {
       try {
-        execSync('git worktree prune', {
+        execSyncSafe('git worktree prune', {
           cwd: repoRoot, encoding: 'utf8', stdio: 'pipe'
         });
       } catch {}
@@ -1536,7 +1541,7 @@ class PtyManager extends EventEmitter {
     try {
       const wtPath = worktreePath.replace(/\\/g, '/');
       if (!fs.existsSync(wtPath)) return false;
-      const output = execSync(`git -C "${wtPath}" status --porcelain`, {
+      const output = execSyncSafe(`git -C "${wtPath}" status --porcelain`, {
         encoding: 'utf8', stdio: 'pipe', timeout: 10000
       });
       return output.trim().length > 0;
@@ -1594,7 +1599,7 @@ class PtyManager extends EventEmitter {
 
       // 2. git worktree prune
       try {
-        execSync('git worktree prune', {
+        execSyncSafe('git worktree prune', {
           cwd: repoRoot, encoding: 'utf8', stdio: 'pipe'
         });
       } catch {}
@@ -2201,7 +2206,7 @@ class PtyManager extends EventEmitter {
       try {
         const gitDir = (w.worktree || this._detectRepoRoot() || '').replace(/\\/g, '/');
         if (gitDir) {
-          w._startCommit = execSync(`git -C "${gitDir}" rev-parse HEAD`, {
+          w._startCommit = execSyncSafe(`git -C "${gitDir}" rev-parse HEAD`, {
             encoding: 'utf8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe']
           }).trim();
         }
@@ -2280,6 +2285,7 @@ class PtyManager extends EventEmitter {
       name: 'xterm-256color',
       cols,
       rows,
+      useConpty: false, // Avoid conpty issues on Windows (4.25)
       ...(spawnCwd ? { cwd: spawnCwd } : {}),
       env: { ...process.env, LANG: 'en_US.UTF-8' }
     });
@@ -2478,7 +2484,7 @@ class PtyManager extends EventEmitter {
               let branch = null;
               if (gitDir) {
                 try {
-                  branch = execSync(`git -C "${gitDir}" rev-parse --abbrev-ref HEAD`, {
+                  branch = execSyncSafe(`git -C "${gitDir}" rev-parse --abbrev-ref HEAD`, {
                     encoding: 'utf8', stdio: 'pipe'
                   }).trim();
                 } catch {}
@@ -2695,7 +2701,7 @@ class PtyManager extends EventEmitter {
         const gitDir = (worker.worktree || this._detectRepoRoot() || '').replace(/\\/g, '/');
         if (gitDir) {
           try {
-            lastCommit = execSync(`git -C "${gitDir}" log -1 --oneline`, {
+            lastCommit = execSyncSafe(`git -C "${gitDir}" log -1 --oneline`, {
               encoding: 'utf8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe']
             }).trim();
           } catch {}
@@ -3211,7 +3217,7 @@ class PtyManager extends EventEmitter {
     try {
       const repoRoot = this._detectRepoRoot();
       if (!repoRoot) return [];
-      const log = execSync(
+      const log = execSyncSafe(
         `git -C "${repoRoot.replace(/\\/g, '/')}" log main..${branch} --oneline --no-decorate 2>/dev/null`,
         { encoding: 'utf8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe'] }
       ).trim();
@@ -3276,7 +3282,7 @@ class PtyManager extends EventEmitter {
 
     try {
       // Get current HEAD for reference
-      const currentHead = execSync(`git -C "${gitDir}" rev-parse --short HEAD`, {
+      const currentHead = execSyncSafe(`git -C "${gitDir}" rev-parse --short HEAD`, {
         encoding: 'utf8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe']
       }).trim();
 
@@ -3287,7 +3293,7 @@ class PtyManager extends EventEmitter {
       }
 
       // git reset --soft preserves changes in staging area
-      execSync(`git -C "${gitDir}" reset --soft ${w._startCommit}`, {
+      execSyncSafe(`git -C "${gitDir}" reset --soft ${w._startCommit}`, {
         encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe']
       });
 
@@ -3499,7 +3505,7 @@ class PtyManager extends EventEmitter {
     sections.push('## Recent Commits');
     try {
       const gitDir = (repoRoot || path.join(__dirname, '..')).replace(/\\/g, '/');
-      const log = execSync(
+      const log = execSyncSafe(
         `git -C "${gitDir}" log --since="24 hours ago" --oneline --no-decorate`,
         { encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] }
       ).trim();

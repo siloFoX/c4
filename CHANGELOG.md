@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.5.1] - 2026-04-05
+
+### Fixed
+- **Windows 콘솔 창 숨김** (4.25): `execSyncSafe` 래퍼 도입하여 모든 `execSync` 호출에 `windowsHide: true` 기본 적용. daemon spawn에 `windowsHide: true` 추가. pty.spawn에 `useConpty: false` 추가하여 conpty 관련 이슈 방지
+
 ## [1.5.0] - 2026-04-04
 
 ### Added

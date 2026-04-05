@@ -91,6 +91,7 @@ async function start() {
     cwd: ROOT,
     detached: true,
     stdio: ['ignore', logFd, logFd],
+    windowsHide: true, // Hide console window on Windows (4.25)
     env: { ...process.env, FORCE_COLOR: '0' }
   });
 
@@ -133,7 +134,7 @@ async function stop() {
 
   try {
     if (process.platform === 'win32') {
-      execSync(`taskkill /PID ${pid} /T /F`, { stdio: 'ignore' });
+      execSync(`taskkill /PID ${pid} /T /F`, { stdio: 'ignore', windowsHide: true });
     } else {
       process.kill(pid, 'SIGTERM');
     }
