@@ -509,19 +509,10 @@ class PtyManager extends EventEmitter {
 
   // Compound command blocking (4.6): returns a shell command that reads tool_input
   // from stdin and exits 2 (block) if &&, ||, |, or ; are found in the command.
+  // Uses standalone script to avoid shell escaping issues (5.19).
   _buildCompoundBlockCommand() {
-    // node is cross-platform and always available in a Node.js project
-    const script = [
-      "let d='';",
-      "process.stdin.on('data',c=>d+=c);",
-      "process.stdin.on('end',()=>{",
-      "try{const j=JSON.parse(d);const cmd=j.tool_input&&j.tool_input.command||'';",
-      "if(/&&|\\|\\||[|;]/.test(cmd)){",
-      "console.error('BLOCKED: compound commands (&&, ||, |, ;) are not allowed. Use single commands.');",
-      "process.exit(2)}",
-      "}catch{}process.exit(0)})"
-    ].join('');
-    return `node -e "${script}"`;
+    const scriptPath = path.join(__dirname, 'compound-check.js').replace(/\\/g, '/');
+    return `node "${scriptPath}"`;
   }
 
   // --- Token Usage State (2.5) ---
@@ -899,51 +890,62 @@ class PtyManager extends EventEmitter {
       this.workers.delete(entry.name);
     }
 
-    const createResult = this.create(entry.name, entry.command, entry.args, { target: entry.target });
-    if (createResult.error) return createResult;
-
-    const w = this.workers.get(entry.name);
-
-    // Worktree setup: replicate sendTask() worktree creation pattern
-    // SSH targets run on remote machines — local worktree creation is unnecessary
+    // Worktree setup BEFORE spawning worker (5.19): create worktree + settings first
+    // so Claude Code loads .claude/settings.json (with PreToolUse hooks) from the worktree
     const targetResolved = this._resolveTarget(entry.target || 'local');
     const isSshTarget = targetResolved && targetResolved.type === 'ssh';
     const useWorktree = !isSshTarget && entry.useWorktree !== false && this.config.worktree?.enabled !== false;
+    let worktreePath = null;
+    let worktreeRepoRoot = null;
+    let worktreeBranch = null;
+    const worktreeWarnings = [];
+
     if (entry.useBranch !== false && useWorktree) {
       const repoRoot = this._detectRepoRoot(entry.projectRoot);
       if (repoRoot) {
-        const branch = entry.branch || `c4/${entry.name}`;
-        const worktreePath = this._worktreePath(repoRoot, entry.name);
+        worktreeBranch = entry.branch || `c4/${entry.name}`;
+        worktreePath = this._worktreePath(repoRoot, entry.name);
+        worktreeRepoRoot = repoRoot;
         try {
-          this._createWorktree(repoRoot, worktreePath, branch);
-          w.worktree = worktreePath;
-          w.worktreeRepoRoot = repoRoot;
-          w.branch = branch;
+          this._createWorktree(repoRoot, worktreePath, worktreeBranch);
 
           // Auto-generate .claude/settings.json for this worktree
           try {
             this._writeWorkerSettings(worktreePath, entry.name, {
-              branch,
+              branch: worktreeBranch,
               useWorktree: true,
               _autoWorker: entry._autoWorker
             });
           } catch (e) {
-            w.snapshots = w.snapshots || [];
-            w.snapshots.push({
-              time: Date.now(),
-              screen: `[C4 WARN] Failed to write worker settings: ${e.message}`,
-              autoAction: true
-            });
+            worktreeWarnings.push(`[C4 WARN] Failed to write worker settings: ${e.message}`);
           }
         } catch (e) {
-          w.snapshots = w.snapshots || [];
-          w.snapshots.push({
-            time: Date.now(),
-            screen: `[C4 WARN] Failed to create worktree: ${e.message}`,
-            autoAction: true
-          });
+          worktreeWarnings.push(`[C4 WARN] Failed to create worktree: ${e.message}`);
+          worktreePath = null;
+          worktreeRepoRoot = null;
+          worktreeBranch = null;
         }
       }
+    }
+
+    // Spawn worker with cwd set to worktree so Claude Code loads project settings
+    const createOpts = { target: entry.target };
+    if (worktreePath) createOpts.cwd = worktreePath;
+    const createResult = this.create(entry.name, entry.command, entry.args, createOpts);
+    if (createResult.error) return createResult;
+
+    const w = this.workers.get(entry.name);
+
+    if (worktreePath) {
+      w.worktree = worktreePath;
+      w.worktreeRepoRoot = worktreeRepoRoot;
+      w.branch = worktreeBranch;
+    }
+
+    // Record any worktree warnings
+    for (const msg of worktreeWarnings) {
+      w.snapshots = w.snapshots || [];
+      w.snapshots.push({ time: Date.now(), screen: msg, autoAction: true });
     }
 
     // Dynamic effort level (3.3) — template effort overrides (3.18)
@@ -2278,7 +2280,7 @@ class PtyManager extends EventEmitter {
     const rows = this.config.pty?.rows || 48;
 
     const spawnCwd = (t.type === 'local' || targetName === 'local')
-      ? platformHomedir()
+      ? (cwd || platformHomedir())
       : undefined;
 
     const proc = pty.spawn(shell, shellArgs, {
