@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.5.6] - 2026-04-05
+
+### Added
+- **Phase 5 추가 항목**: TODO 5.31~5.33 추가 (브랜치 자동 정리, worktree prune, c4 cleanup)
+- **Phase 6 추가 항목**: TODO 6.7 추가 (best-practices 문서)
+
 ## [1.5.5] - 2026-04-05
 
 ### Added
