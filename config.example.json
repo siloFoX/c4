@@ -289,6 +289,12 @@
     }
   },
 
+  "ci": {
+    "enabled": true,
+    "testCommand": "npm test",
+    "timeoutMs": 120000
+  },
+
   "intervention": {
     "enabled": true,
     "questionPatterns": [],

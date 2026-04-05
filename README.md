@@ -218,9 +218,12 @@ These are used by Claude Code (manager), not by you directly:
 | `c4 session-id <name>` | Show worker session ID |
 | `c4 status <name> <text>` | Send status update to Slack |
 | `c4 scribe start\|stop\|status\|scan` | Manage session context recording |
+| `c4 cleanup [--dry-run]` | Clean up orphan worktrees and branches |
+| `c4 approve <name>` | Manually approve critical command (hybrid safety) |
+| `c4 batch <text> [--count N] [--file tasks.txt]` | Batch task execution |
 | `c4 config [reload]` | View or hot-reload config |
 
-**Task flags**: `--branch`, `--after <worker>`, `--scope <json>`, `--scope-preset`, `--context <worker>`, `--reuse`, `--template`, `--auto-mode`
+**Task flags**: `--repo /path` (create worktree in another project), `--branch`, `--after <worker>`, `--scope <json>`, `--scope-preset`, `--context <worker>`, `--reuse`, `--template`, `--auto-mode`
 
 ## Architecture
 
@@ -295,6 +298,14 @@ These are used by Claude Code (manager), not by you directly:
 - **Dashboard**: Web UI at GET /dashboard — worker status, stats, queued/lost sections with dark theme
 - **Stall detection**: Auto-detect intervention state and 5min+ no-output workers, immediate Slack alert
 - **Worktree auto-cleanup**: LOST worker worktrees cleaned up in healthCheck — dirty-state safety check preserves uncommitted changes with [LOST DIRTY] notification
+- **Dirty worktree warning**: Slack notification when worktree has uncommitted changes
+
+**Safety**
+- **L4 Critical Deny List**: Absolutely block destructive commands (rm -rf, drop table, etc.)
+- **CI feedback loop**: Auto-run `npm test` after commit
+- **Intervention Slack alert**: Immediate notification on worker intervention
+- **Manager Handoff Summary**: Inject decision context on manager rotation
+- **Custom Agent definition**: Define agent roles via `.claude/agents/manager.md`
 
 **Infrastructure**
 - **Hook architecture**: PreToolUse/PostToolUse JSON event processing
