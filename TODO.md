@@ -374,6 +374,9 @@ Level 4이면:
 | 5.14 | Resume 후 Re-orientation | **todo** | 복구 직후 scrollback 읽어서 마지막 작업 안내 |
 | 5.15 | Dirty Worktree Slack 경고 | **todo** | STALL처럼 눈에 띄게 알림 |
 | 5.16 | --repo 옵션 | **todo** | c4 task --repo /path/to/other-project 로 다른 프로젝트 worktree 생성 지원 |
+| 5.17 | c4 task --repo 옵션 구현 | **todo** | c4 task worker --repo /path/to/project 하면 해당 프로젝트 worktree 생성 |
+| 5.18 | c4 send 자동 Enter | **todo** | send로 텍스트 보낼 때 자동으로 Enter 키 포함 |
+| 5.19 | PreToolUse 복합 명령 차단 실효성 | **todo** | worker가 cd && git 계속 사용. hook이 실제로 차단 안 되는 원인 조사 + 수정 |
 
 ## 완료
 
