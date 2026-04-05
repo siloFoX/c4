@@ -373,10 +373,10 @@ Level 4이면:
 | 5.13 | L4 Critical Deny List | **todo** | rm -rf /, git push --force, DROP TABLE 등 파괴적 명령은 L4에서도 절대 차단 |
 | 5.14 | Resume 후 Re-orientation | **todo** | 복구 직후 scrollback 읽어서 마지막 작업 안내 |
 | 5.15 | Dirty Worktree Slack 경고 | **todo** | STALL처럼 눈에 띄게 알림 |
-| 5.16 | --repo 옵션 | **todo** | c4 task --repo /path/to/other-project 로 다른 프로젝트 worktree 생성 지원 |
-| 5.17 | c4 task --repo 옵션 구현 | **todo** | c4 task worker --repo /path/to/project 하면 해당 프로젝트 worktree 생성 |
-| 5.18 | c4 send 자동 Enter | **todo** | send로 텍스트 보낼 때 자동으로 Enter 키 포함 |
-| 5.19 | PreToolUse 복합 명령 차단 실효성 | **todo** | worker가 cd && git 계속 사용. hook이 실제로 차단 안 되는 원인 조사 + 수정 |
+| 5.16 | --repo 옵션 | **done** | c4 task --repo /path/to/other-project 로 다른 프로젝트 worktree 생성 지원 (5.17과 동일) |
+| 5.17 | c4 task --repo 옵션 구현 | **done** | cli.js --repo 파싱, daemon.js projectRoot 전달, pty-manager sendTask 연결 |
+| 5.18 | c4 send 자동 Enter | **done** | 이미 구현됨 - send()에서 자동 \r 추가 (pty-manager.js 2777번 줄) |
+| 5.19 | PreToolUse 복합 명령 차단 실효성 | **done** | 원인: 워커가 home dir에서 스폰되어 worktree settings.json 미로드. 수정: worktree 생성 후 스폰 + standalone script 분리 |
 | 5.20 | CI 피드백 루프 | **todo** | worker 커밋 후 npm test 자동 실행, 실패 시 worker에 자동 피드백 |
 | 5.21 | 하이브리드 안전 모드 | **todo** | L4에서도 rm -rf, push --force 등 위험 명령은 Slack 승인 요청 |
 | 5.22 | Recursive C4 테스트 시나리오 | **todo** | 관리자->중간관리자->작업자 3단계 계층 테스트. docs/test-scenarios.md |

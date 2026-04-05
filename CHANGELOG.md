@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.5.7] - 2026-04-05
+
+### Added
+- **--repo 옵션** (5.16/5.17): `c4 task worker --repo /path/to/project`로 다른 프로젝트의 worktree 생성 지원. CLI에서 파싱하여 daemon/pty-manager로 전달
+
+### Fixed
+- **PreToolUse 복합 명령 차단** (5.19): 워커가 home dir에서 스폰되어 worktree의 `.claude/settings.json` 훅을 로드하지 못하던 문제 수정. worktree + settings 생성 후 워커 스폰하도록 순서 변경. inline node -e 스크립트를 standalone `src/compound-check.js`로 분리하여 shell escaping 문제 해결
+
+### Changed
+- **c4 send 자동 Enter** (5.18): 이미 구현 확인 (send()에서 자동 `\r` 추가), TODO에 done 표시
+
 ## [1.5.6] - 2026-04-05
 
 ### Added
