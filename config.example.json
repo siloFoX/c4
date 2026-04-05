@@ -271,6 +271,21 @@
         ],
         "deny": ["Bash(rm:*)", "Bash(sudo:*)", "Bash(npm:*)"]
       }
+    },
+    "node": {
+      "permissions": {
+        "allow": ["Bash(npm:*)", "Bash(npx:*)", "Bash(node:*)"]
+      }
+    },
+    "python": {
+      "permissions": {
+        "allow": ["Bash(python:*)", "Bash(pip:*)", "Bash(conda:*)"]
+      }
+    },
+    "rust": {
+      "permissions": {
+        "allow": ["Bash(cargo:*)", "Bash(rustc:*)"]
+      }
     }
   },
 

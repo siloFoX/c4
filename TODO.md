@@ -381,7 +381,7 @@ Level 4이면:
 | 5.21 | 하이브리드 안전 모드 | **todo** | L4에서도 rm -rf, push --force 등 위험 명령은 Slack 승인 요청 |
 | 5.22 | Recursive C4 테스트 시나리오 | **todo** | 관리자->중간관리자->작업자 3단계 계층 테스트. docs/test-scenarios.md |
 | 5.23 | 경쟁자 분석 문서 | **todo** | docs/competitive-analysis.md. Composio, OpenHands 등 비교 |
-| 5.24 | worker auto-approve 범위 확장 | **todo** | python, pip, ffmpeg 등 개발 도구를 autoApprove rules에 기본 포함 |
+| 5.24 | worker auto-approve 범위 확장 | **done** | python, pip, ffmpeg 등 개발 도구를 autoApprove rules에 기본 포함 |
 | 5.25 | 다른 프로젝트 브랜치 정리 | **done** | c4 worker가 만든 c4/ 접두사 브랜치를 close 시 자동 삭제 |
 | 5.26 | worker 권한 프로파일 | **todo** | 프로젝트 유형별 auto-approve 프리셋. config.json profiles 확장 |
 | 5.27 | 실사용 실패 케이스 문서화 | **todo** | docs/known-issues.md에 실패 사례 기록 |
