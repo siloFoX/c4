@@ -385,6 +385,9 @@ Level 4이면:
 | 5.25 | 다른 프로젝트 브랜치 정리 | **todo** | c4 worker가 만든 c4/ 접두사 브랜치를 close 시 자동 삭제 |
 | 5.26 | worker 권한 프로파일 | **todo** | 프로젝트 유형별 auto-approve 프리셋. config.json profiles 확장 |
 | 5.27 | 실사용 실패 케이스 문서화 | **todo** | docs/known-issues.md에 실패 사례 기록 |
+| 5.28 | 관리자 자동 승인 방지 | **todo** | 관리자가 cron으로 자동 Enter 보내는 패턴 차단. 위험 명령 무분별 승인 방지 |
+| 5.29 | intervention 발생 시 관리자 알림 | **todo** | worker 승인 대기 시 관리자 Claude에게 즉시 notification. 현재는 c4 list로 확인해야 함 |
+| 5.30 | 서브모듈 프로젝트 diff 지원 | **todo** | git diff --stat이 서브모듈 포인터만 보이는 문제. --submodule=diff 옵션 자동 적용 |
 
 ## Phase 6 - 마케팅/가시성
 
