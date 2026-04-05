@@ -364,7 +364,7 @@ Level 4이면:
 | 5.1 | auto-mgr 도구 제한 | **todo** | _buildAutoManagerPermissions()에서 Read/Write/Edit/Grep/Glob deny. Bash(c4:*) + Bash(git -C:*) 만 allow |
 | 5.2 | 실사용 테스트 시나리오 | **todo** | c4로 작업 시켜보고 관찰. docs/test-scenarios.md에 시나리오 작성 |
 | 5.3 | CLAUDE.md 개선 | **todo** | worker가 c4 명령어를 더 잘 쓰도록 사용 예시/패턴 보강 |
-| 5.4 | worker close 시 Slack flush | **todo** | notifyTaskComplete 후 즉시 _flushAll() 호출 |
+| 5.4 | worker close 시 Slack flush | **done** | notifyTaskComplete 후 즉시 _flushAll() 호출 |
 | 5.8 | Custom Agents 활용 | **todo** | .claude/agents/manager.md 로 관리자 에이전트 정의 |
 | 5.9 | claude -w 네이티브 worktree 검토 | **todo** | Claude Code 내장 worktree 활용 가능한지 평가 |
 | 5.10 | Hook으로 권한 요청 Slack 라우팅 | **todo** | hook에서 권한 prompt를 Slack으로 보내서 폰에서 승인 |
