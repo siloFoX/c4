@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.6.0] - 2026-04-05
+
+### Added
+- **CI feedback loop** (5.20): worker가 `git commit` 실행 후 자동으로 `npm test` 실행. 실패 시 에러 출력과 함께 worker에 자동 피드백 전송. `config.ci.enabled`, `testCommand`, `timeoutMs` 설정 지원. SSE `ci` 이벤트 + Slack `[CI PASS]`/`[CI FAIL]` 알림
+- **Intervention immediate notification** (5.29): question/escalation/permission prompt 감지 시 즉시 `notifyStall()` 호출하여 Slack 알림 전송. healthCheck 30초 주기 대기 없이 실시간 알림. `_permissionNotified` 플래그로 중복 방지
+
 ## [1.5.9] - 2026-04-05
 
 ### Added
