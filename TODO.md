@@ -361,7 +361,7 @@ Level 4이면:
 
 | # | 항목 | 상태 | 설명 |
 |---|------|------|------|
-| 5.1 | auto-mgr 도구 제한 | **todo** | _buildAutoManagerPermissions()에서 Read/Write/Edit/Grep/Glob deny. Bash(c4:*) + Bash(git -C:*) 만 allow |
+| 5.1 | auto-mgr 도구 제한 | **done** | _buildAutoManagerPermissions()에서 Read/Write/Edit/Grep/Glob deny. Bash(c4:*) + Bash(git -C:*) 만 allow |
 | 5.2 | 실사용 테스트 시나리오 | **todo** | c4로 작업 시켜보고 관찰. docs/test-scenarios.md에 시나리오 작성 |
 | 5.3 | CLAUDE.md 개선 | **todo** | worker가 c4 명령어를 더 잘 쓰도록 사용 예시/패턴 보강 |
 | 5.4 | worker close 시 Slack flush | **todo** | notifyTaskComplete 후 즉시 _flushAll() 호출 |

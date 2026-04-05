@@ -3464,23 +3464,18 @@ class PtyManager extends EventEmitter {
   }
 
   _buildAutoManagerPermissions() {
+    // 5.1: Manager worker must NOT directly modify code.
+    // Only c4 commands (to delegate to sub-workers) and git -C (to inspect repos) are allowed.
     return {
       allow: [
         'Bash(c4:*)', 'Bash(MSYS_NO_PATHCONV=1 c4:*)',
-        'Bash(git:*)', 'Bash(npm:*)', 'Bash(node:*)',
-        'Bash(grep:*)', 'Bash(find:*)', 'Bash(cat:*)',
-        'Bash(ls:*)', 'Bash(head:*)', 'Bash(tail:*)',
-        'Bash(echo:*)', 'Bash(pwd)', 'Bash(cd:*)',
-        'Bash(wc:*)', 'Bash(mkdir:*)', 'Bash(cp:*)',
-        'Bash(mv:*)', 'Bash(touch:*)', 'Bash(python:*)',
-        'Bash(curl:*)', 'Bash(sed:*)', 'Bash(awk:*)',
-        'Bash(sort:*)', 'Bash(uniq:*)', 'Bash(tee:*)',
-        'Bash(diff:*)', 'Bash(test:*)',
-        'Read', 'Edit', 'Write', 'Glob', 'Grep',
-        'Agent', 'Bash', 'WebFetch', 'WebSearch',
-        'NotebookEdit'
+        'Bash(git -C:*)',
+        'Agent'
       ],
-      deny: ['Bash(rm -rf:*)', 'Bash(sudo:*)', 'Bash(shutdown:*)', 'Bash(reboot:*)'],
+      deny: [
+        'Read', 'Write', 'Edit', 'Grep', 'Glob',
+        'Bash(rm -rf:*)', 'Bash(sudo:*)', 'Bash(shutdown:*)', 'Bash(reboot:*)'
+      ],
       defaultMode: 'auto'
     };
   }
