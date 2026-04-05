@@ -297,6 +297,7 @@ watchdog.sh (nohup, 60초 체크)
 | 4.22 | SSH target worktree 생성 방지 | **done** | SSH target(dgx 등) worker에 불필요한 로컬 worktree 생성 방지. `_resolveTarget()`으로 target type 확인 후 ssh이면 `useWorktree=false` 강제. 3개 테스트 추가 |
 | 4.23 | 트러블슈팅 가이드 | **done** | docs/troubleshooting.md 신규 작성. 좀비 데몬/worktree 잔여물/STALL 반복/lost 워커 복구/CLI 에러 5개 섹션. 증상/원인/해결/예방 구조. Quick Reference 테이블 |
 | 4.24 | 알림 동작 수정 | **done** | `notifyHealthCheck()` 워커 없을 때 daemon OK 메시지 삭제 (노이즈 제거). `notifyTaskComplete()` alertOnly 체크 제거 - 완료 메시지 항상 전송 |
+| 4.25 | Windows 콘솔 창 숨김 (windowsHide) | **done** | execSync 래퍼(`execSyncSafe`) 도입하여 `windowsHide: true` 기본 적용. daemon spawn에도 `windowsHide: true`. pty.spawn에 `useConpty: false` 추가 |
 
 ### 4.1 완전 무인 운영 모드 (상세)
 
