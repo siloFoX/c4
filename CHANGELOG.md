@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.5.3] - 2026-04-05
+
+### Changed
+- **auto-mgr 도구 제한** (5.1): `_buildAutoManagerPermissions()`에서 Read/Write/Edit/Grep/Glob deny. Bash는 `c4:*`와 `git -C:*` 패턴만 allow. manager worker가 코드를 직접 수정하지 못하고 c4 명령어로 하위 worker에 위임하도록 강제
+
 ## [1.5.2] - 2026-04-05
 
 ### Added
