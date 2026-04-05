@@ -897,6 +897,20 @@ async function main() {
         break;
       }
 
+      case 'approve': {
+        const name = args[0];
+        if (!name) {
+          console.error('Usage: c4 approve <worker-name>');
+          process.exit(1);
+        }
+        result = await request('POST', '/approve', { name });
+        if (result.success) {
+          console.log(`Approved critical command for '${name}': ${result.approved}`);
+          return;
+        }
+        break;
+      }
+
       case 'rollback': {
         const name = args[0];
         if (!name) {

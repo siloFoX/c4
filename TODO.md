@@ -371,21 +371,21 @@ Level 4이면:
 | 5.11 | Batch 처리 | **todo** | 대규모 병렬 작업 시 수십 개 worktree agent 분산 처리 |
 | 5.12 | 매니저 교체 시 의사결정 요약 주입 | **todo** | compact 전에 핵심 진행/주의사항 3줄 요약 -> session-context.md 상단에 주입 |
 | 5.13 | L4 Critical Deny List | **done** | rm -rf /, git push --force, DROP TABLE 등 파괴적 명령은 L4에서도 절대 차단 |
-| 5.14 | Resume 후 Re-orientation | **todo** | 복구 직후 scrollback 읽어서 마지막 작업 안내 |
+| 5.14 | Resume 후 Re-orientation | **done** | 복구 직후 scrollback 읽어서 마지막 작업 안내 |
 | 5.15 | Dirty Worktree Slack 경고 | **done** | STALL처럼 눈에 띄게 알림 |
 | 5.16 | --repo 옵션 | **done** | c4 task --repo /path/to/other-project 로 다른 프로젝트 worktree 생성 지원 (5.17과 동일) |
 | 5.17 | c4 task --repo 옵션 구현 | **done** | cli.js --repo 파싱, daemon.js projectRoot 전달, pty-manager sendTask 연결 |
 | 5.18 | c4 send 자동 Enter | **done** | 이미 구현됨 - send()에서 자동 \r 추가 (pty-manager.js 2777번 줄) |
 | 5.19 | PreToolUse 복합 명령 차단 실효성 | **done** | 원인: 워커가 home dir에서 스폰되어 worktree settings.json 미로드. 수정: worktree 생성 후 스폰 + standalone script 분리 |
 | 5.20 | CI 피드백 루프 | **done** | worker 커밋 후 npm test 자동 실행, 실패 시 worker에 자동 피드백. config.ci.enabled/testCommand/timeoutMs 설정 |
-| 5.21 | 하이브리드 안전 모드 | **todo** | L4에서도 rm -rf, push --force 등 위험 명령은 Slack 승인 요청 |
+| 5.21 | 하이브리드 안전 모드 | **done** | L4에서도 rm -rf, push --force 등 위험 명령은 Slack 승인 요청 |
 | 5.22 | Recursive C4 테스트 시나리오 | **todo** | 관리자->중간관리자->작업자 3단계 계층 테스트. docs/test-scenarios.md |
 | 5.23 | 경쟁자 분석 문서 | **todo** | docs/competitive-analysis.md. Composio, OpenHands 등 비교 |
 | 5.24 | worker auto-approve 범위 확장 | **done** | python, pip, ffmpeg 등 개발 도구를 autoApprove rules에 기본 포함 |
 | 5.25 | 다른 프로젝트 브랜치 정리 | **done** | c4 worker가 만든 c4/ 접두사 브랜치를 close 시 자동 삭제 |
 | 5.26 | worker 권한 프로파일 | **todo** | 프로젝트 유형별 auto-approve 프리셋. config.json profiles 확장 |
 | 5.27 | 실사용 실패 케이스 문서화 | **todo** | docs/known-issues.md에 실패 사례 기록 |
-| 5.28 | 관리자 자동 승인 방지 | **todo** | 관리자가 cron으로 자동 Enter 보내는 패턴 차단. 위험 명령 무분별 승인 방지 |
+| 5.28 | 관리자 자동 승인 방지 | **done** | 관리자가 cron으로 자동 Enter 보내는 패턴 차단. 위험 명령 무분별 승인 방지 |
 | 5.29 | intervention 발생 시 관리자 알림 | **done** | question/escalation/permission 감지 시 즉시 notifyStall 호출. healthCheck 30초 대기 없이 실시간 알림 |
 | 5.30 | 서브모듈 프로젝트 diff 지원 | **done** | git diff --stat이 서브모듈 포인터만 보이는 문제. --submodule=diff 옵션 자동 적용 |
 | 5.31 | 다른 repo 브랜치 자동 정리 | **done** | c4 worker close 시 해당 worker가 만든 c4/ 접두사 브랜치를 자동 삭제. worktree remove + branch delete |
