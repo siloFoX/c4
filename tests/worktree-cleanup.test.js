@@ -20,6 +20,8 @@ class MockPtyManager {
     this._notifications = null;
     this._dirtyPaths = new Set(); // paths to treat as dirty
     this._notifyLostDirtyCalls = [];
+    this._branchDeleteCalls = []; // track branch -D calls (5.25/5.31)
+    this._worktreePruneCalls = 0; // track worktree prune calls (5.32)
   }
 
   _detectRepoRoot(projectRoot) {
@@ -48,6 +50,24 @@ class MockPtyManager {
     this._notifyLostDirtyCalls.push({ workerName, worktreePath, msg });
     if (this._notifications) {
       this._notifications.pushAll(msg);
+    }
+  }
+
+  // Mock close() branch cleanup (5.25/5.31)
+  _closeBranchCleanup(w) {
+    if (w.branch && w.branch.startsWith('c4/')) {
+      const cleanupRoot = w.worktreeRepoRoot || this._detectRepoRoot();
+      if (cleanupRoot) {
+        this._branchDeleteCalls.push({ repoRoot: cleanupRoot, branch: w.branch });
+      }
+    }
+  }
+
+  // Mock healthCheck worktree prune (5.32)
+  _healthCheckWorktreePrune() {
+    const repoRoot = this._detectRepoRoot();
+    if (repoRoot) {
+      this._worktreePruneCalls++;
     }
   }
 
@@ -373,5 +393,76 @@ describe('_cleanupLostWorktrees', () => {
     expect(notif.messages[0]).toContain('msg-worker');
     expect(notif.messages[0]).toContain(wtPath);
     expect(notif.messages[0]).toContain('uncommitted changes');
+  });
+});
+
+// --- Branch cleanup on close (5.25/5.31) ---
+describe('close() branch cleanup (5.25/5.31)', () => {
+  test('deletes c4/ branch on close', () => {
+    const mgr = new MockPtyManager({ worktree: { projectRoot: '/repo' } });
+    const w = { branch: 'c4/my-worker', worktreeRepoRoot: '/repo' };
+    mgr._closeBranchCleanup(w);
+    expect(mgr._branchDeleteCalls).toHaveLength(1);
+    expect(mgr._branchDeleteCalls[0].branch).toBe('c4/my-worker');
+    expect(mgr._branchDeleteCalls[0].repoRoot).toBe('/repo');
+  });
+
+  test('does not delete non-c4 branch', () => {
+    const mgr = new MockPtyManager({ worktree: { projectRoot: '/repo' } });
+    const w = { branch: 'feature/something', worktreeRepoRoot: '/repo' };
+    mgr._closeBranchCleanup(w);
+    expect(mgr._branchDeleteCalls).toHaveLength(0);
+  });
+
+  test('does not delete when branch is null', () => {
+    const mgr = new MockPtyManager({ worktree: { projectRoot: '/repo' } });
+    const w = { branch: null, worktreeRepoRoot: '/repo' };
+    mgr._closeBranchCleanup(w);
+    expect(mgr._branchDeleteCalls).toHaveLength(0);
+  });
+
+  test('does not delete when branch is undefined', () => {
+    const mgr = new MockPtyManager({ worktree: { projectRoot: '/repo' } });
+    const w = { worktreeRepoRoot: '/repo' };
+    mgr._closeBranchCleanup(w);
+    expect(mgr._branchDeleteCalls).toHaveLength(0);
+  });
+
+  test('falls back to _detectRepoRoot when worktreeRepoRoot is not set', () => {
+    const mgr = new MockPtyManager({ worktree: { projectRoot: '/fallback-repo' } });
+    const w = { branch: 'c4/test-worker' };
+    mgr._closeBranchCleanup(w);
+    expect(mgr._branchDeleteCalls).toHaveLength(1);
+    expect(mgr._branchDeleteCalls[0].repoRoot).toBe('/fallback-repo');
+  });
+
+  test('does nothing when no repoRoot is available', () => {
+    const mgr = new MockPtyManager({});
+    const w = { branch: 'c4/orphan' };
+    mgr._closeBranchCleanup(w);
+    expect(mgr._branchDeleteCalls).toHaveLength(0);
+  });
+});
+
+// --- healthCheck worktree prune (5.32) ---
+describe('healthCheck worktree prune (5.32)', () => {
+  test('calls worktree prune when repoRoot is available', () => {
+    const mgr = new MockPtyManager({ worktree: { projectRoot: '/repo' } });
+    mgr._healthCheckWorktreePrune();
+    expect(mgr._worktreePruneCalls).toBe(1);
+  });
+
+  test('does not call worktree prune when no repoRoot', () => {
+    const mgr = new MockPtyManager({});
+    mgr._healthCheckWorktreePrune();
+    expect(mgr._worktreePruneCalls).toBe(0);
+  });
+
+  test('prune count increments on each healthCheck call', () => {
+    const mgr = new MockPtyManager({ worktree: { projectRoot: '/repo' } });
+    mgr._healthCheckWorktreePrune();
+    mgr._healthCheckWorktreePrune();
+    mgr._healthCheckWorktreePrune();
+    expect(mgr._worktreePruneCalls).toBe(3);
   });
 });
