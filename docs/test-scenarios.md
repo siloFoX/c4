@@ -22,6 +22,7 @@
 | 8 | [Batch 처리](#8-batch-처리) | c4 batch로 N개 작업 일괄 실행 |
 | 9 | [Scribe 컨텍스트 영속화](#9-scribe-컨텍스트-영속화) | JSONL 스캔 → session-context.md 생성 → PostCompact 주입 |
 | 10 | [에러 복구](#10-에러-복구) | 데몬 죽음, 워커 crash, STALL, dirty worktree 복구 |
+| 11 | [Recursive C4 (3단계 계층)](#11-recursive-c4-3단계-계층) | 관리자→중간관리자→작업자 계층, 하위 머지, 계층 health check |
 
 ---
 
@@ -627,6 +628,137 @@ c4 daemon status  # running 또는 stopped (좀비 아님)
 
 ---
 
+## 11. Recursive C4 (3단계 계층)
+
+### 목표
+관리자 → 중간관리자 → 작업자 3단계 계층 구조에서 재귀적 C4 운영이 정상 동작하는지 검증. 중간관리자가 하위 작업자를 생성/관리/머지하고, 상위 관리자가 계층 전체를 모니터링하는 시나리오.
+
+### 사전조건
+- `c4 daemon start`로 데몬 실행 중
+- `config.json`에 `maxWorkers >= 5` 설정 (관리자1 + 중간관리자2 + 작업자2 이상)
+- 1.14 재귀적 C4 구조 기본 동작 확인 완료
+- 테스트용 프론트엔드/백엔드 파일 존재
+
+### 계층 구조
+```
+top-mgr (상위 관리자)
+  ├─ fe-mgr (중간관리자, 프론트엔드)
+  │    ├─ fe-worker-1: 컴포넌트 구현
+  │    └─ fe-worker-2: 스타일 작업
+  └─ be-mgr (중간관리자, 백엔드)
+       ├─ be-worker-1: API 구현
+       └─ be-worker-2: 테스트 작성
+```
+
+### 실행단계
+
+#### 11-A: 계층 생성 및 작업 배정
+```bash
+# 1. 상위 관리자 생성
+c4 new top-mgr
+
+# 2. 상위 관리자에게 계층 운영 지시
+c4 task top-mgr --auto-mode "아래 작업을 2개 중간관리자로 분배해서 처리해.
+  프론트엔드: src/components/Header.js, src/components/Footer.js 컴포넌트 생성
+  백엔드: src/api/users.js API 엔드포인트 + tests/api/users.test.js 테스트
+  각 중간관리자가 c4 new로 하위 작업자를 생성하고 c4 task로 작업 지시.
+  하위 작업자 완료 후 중간관리자가 c4 merge로 머지.
+  전체 완료 후 보고."
+
+# 3. 상위 관리자가 내부적으로 실행하는 명령 (자동):
+#   c4 new fe-mgr
+#   c4 task fe-mgr --auto-mode "c4 new로 fe-worker-1, fe-worker-2 생성하고..."
+#   c4 new be-mgr
+#   c4 task be-mgr --auto-mode "c4 new로 be-worker-1, be-worker-2 생성하고..."
+```
+
+#### 11-B: 계층 모니터링
+```bash
+# 4. 전체 워커 목록 확인 (5개 워커 존재해야 함)
+c4 list
+
+# 5. 상위 관리자 상태 확인
+c4 scrollback top-mgr --lines 30
+
+# 6. 중간관리자가 하위 작업자를 제대로 관리하는지 확인
+c4 scrollback fe-mgr --lines 30
+c4 scrollback be-mgr --lines 30
+```
+
+#### 11-C: 하위 완료 후 중간관리자 머지
+```bash
+# 7. 상위 관리자 완료 대기
+c4 wait top-mgr --timeout 600000
+
+# 8. 결과 확인 — 중간관리자가 하위 워커를 머지했는지
+c4 read top-mgr
+
+# 9. 각 중간관리자의 머지 결과 확인
+c4 read fe-mgr
+c4 read be-mgr
+
+# 10. 상위 관리자가 중간관리자 브랜치를 머지
+c4 merge fe-mgr
+c4 merge be-mgr
+```
+
+#### 11-D: 계층 health check
+```bash
+# 11. 전체 계층 헬스체크
+c4 health
+
+# 12. 각 레벨 워커 상태 확인
+c4 list
+
+# 13. 전체 종료 (하위부터 상위 순서)
+c4 close fe-worker-1
+c4 close fe-worker-2
+c4 close be-worker-1
+c4 close be-worker-2
+c4 close fe-mgr
+c4 close be-mgr
+c4 close top-mgr
+```
+
+### 예상결과
+- **계층 생성**: 상위 관리자가 `c4 new`로 중간관리자 2개 생성, 중간관리자가 각각 하위 작업자 2개 생성 (총 7개 세션)
+- **작업 격리**: 모든 작업자가 별도 worktree에서 작업 (같은 데몬 공유)
+- **하위 머지**: 중간관리자가 `c4 wait` → `c4 read` → `c4 merge`로 하위 작업자 결과를 자기 브랜치에 머지
+- **상위 머지**: 상위 관리자가 중간관리자 브랜치를 main에 머지
+- **health check**: `c4 health`가 전체 계층(5+개 워커)의 alive/dead 상태를 정확히 보고
+- **c4 list**: parent 관계 없이 모든 워커가 플랫 리스트로 표시 (현재 구조)
+
+### 검증방법
+```bash
+# 계층 내 모든 워커가 동시 실행되었는지
+c4 history --last 10
+
+# 중간관리자가 c4 명령을 실행했는지 (재귀적 C4)
+c4 scrollback fe-mgr --lines 50
+# → c4 new, c4 task, c4 wait, c4 merge 명령이 보여야 함
+
+# 최종 결과물 확인
+git log --oneline -10
+ls src/components/Header.js
+ls src/components/Footer.js
+ls src/api/users.js
+ls tests/api/users.test.js
+
+# worktree 전체 정리 확인
+git worktree list
+
+# 데몬 부하 확인 (5+ 동시 세션)
+c4 health
+```
+
+### 주의사항
+- `maxWorkers` 부족 시 하위 워커가 큐에 대기 → 전체 지연 발생
+- Claude Max 동시 세션 제한에 걸릴 수 있음 (7개 세션 동시)
+- 2단계(관리자→중간관리자→작업자)가 현실적 한계, 3단계 이상은 토큰 비용 급증
+- 중간관리자가 `c4 list` 폴링하지 않도록 `c4 wait` 사용 필수
+
+---
+
 ## 실행 순서 권장
 
 1. **시나리오 1** (기본 흐름) → 모든 테스트의 기초
@@ -639,6 +771,7 @@ c4 daemon status  # running 또는 stopped (좀비 아님)
 8. **시나리오 7** (c4 auto) → 완전 자율 모드
 9. **시나리오 6** (관리자 교체) → 장시간 운영 안정성
 10. **시나리오 10** (에러 복구) → 장애 대응 최종 검증
+11. **시나리오 11** (Recursive C4) → 3단계 계층 재귀적 운영 검증
 
 ## 참고 문서
 
