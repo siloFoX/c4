@@ -78,6 +78,18 @@ c4 init
 
 ## Usage
 
+### Manager Mode (Recommended)
+
+Start Claude Code with the manager agent for enforced rules (no compound commands, no direct code editing):
+
+```bash
+claude --agent .claude/agents/manager.md
+```
+
+Then give it tasks — the manager will create workers via `c4` commands.
+
+### Basic Usage
+
 Open Claude Code in any project directory and give it tasks:
 
 ```
