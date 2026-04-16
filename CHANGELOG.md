@@ -4,6 +4,8 @@
 
 ### Added
 - **c4 approve 편의 명령** (5.36): `c4 approve <name> [option_number]` — TUI 선택 프롬프트에서 번호로 옵션 선택. option_number 지정 시 (N-1) Down + Enter 키 전송. CLI, daemon route, pty-manager approve() 3계층 확장
+- **관리자 병렬 wait** (5.43): `c4 wait --all` 또는 `c4 wait w1 w2 w3`으로 여러 worker 동시 대기, 첫 idle/exited 시 즉시 반환. `waitAndReadMulti()` 메서드, `/wait-read-multi` daemon 라우트 추가
+- **interrupt-on-intervention** (5.44): `c4 wait --interrupt-on-intervention`으로 intervention 감지 시 wait 즉시 종료. 단일/병렬 wait 모두 지원
 
 ## [1.6.6] - 2026-04-16
 

@@ -57,6 +57,8 @@ c4 key <name> Enter|C-c|Escape       워커에 키 전송
 c4 read <name>                       워커 출력 읽기 (idle 상태만)
 c4 read-now <name>                   워커 출력 즉시 읽기
 c4 wait <name> [--timeout ms]        워커 idle 대기
+c4 wait w1 w2 w3 [--timeout ms]     여러 워커 동시 대기 (첫 완료 시 반환)
+c4 wait --all [--interrupt-on-intervention]  전체 워커 대기 + intervention 감지
 c4 scrollback <name> [--lines N]     워커 스크롤백 읽기
 c4 list                              모든 워커 상태 조회
 c4 close <name>                      워커 종료

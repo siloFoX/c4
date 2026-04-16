@@ -400,8 +400,8 @@ Level 4이면:
 | 5.40 | worker 이름에 작업 설명 포함 | **done** | w-535 같은 의미없는 이름 대신 task 기반 자동 네이밍. c4 task 시 이름 자동 생성(task 첫 단어 기반) 또는 관리자에게 의미있는 이름 사용 강제. |
 | 5.41 | worktree close 후 정리 검증 | **todo** | worktree dir이 close 후에도 남는 케이스 추가 확인. healthCheck에서 orphan worktree 스캔 강화. |
 | 5.42 | c4 watch 실시간 스트리밍 | **todo** | worker 출력을 tail -f처럼 실시간 스트리밍. 현재 read-now는 스냅샷만. SSE /events 활용하거나 PTY onData를 직접 파이프. |
-| 5.43 | 관리자 병렬 wait | **todo** | 관리자가 여러 worker를 순차 wait하면 시간 낭비. c4 wait --all 또는 c4 wait w-1 w-2 w-3 동시 대기 후 첫 완료 시 알림. |
-| 5.44 | 관리자 판단 모드 | **todo** | 관리자가 wait 중에도 intervention 발생 시 중단하고 판단할 수 있어야 함. c4 wait --interrupt-on-intervention: intervention 감지 시 wait 즉시 종료 + 해당 worker 정보 반환. 관리자가 read-now로 확인 후 approve/deny/send 판단. |
+| 5.43 | 관리자 병렬 wait | **done** | c4 wait --all 또는 c4 wait w1 w2 w3 동시 대기 후 첫 완료 시 반환. waitAndReadMulti() 메서드, /wait-read-multi 라우트 |
+| 5.44 | interrupt-on-intervention | **done** | c4 wait --interrupt-on-intervention: intervention 감지 시 wait 즉시 종료 + 해당 worker 정보 반환. 단일/병렬 wait 모두 지원 |
 | 5.45 | 관리자 역할 가이드 강화 | **done** | CLAUDE.md에 관리자 승인 프로토콜 추가: read-now -> 판단 -> 승인/수정 3단계. 맹목적 승인 금지, 판단 기준 명시 |
 | 5.46 | 실패 사례: w-535/w-536 복합 명령 차단으로 작업 불가 | **done** | docs/known-issues.md에 기록 완료. exit(2) block -> exit(0) warning 변경 경위 포함 |
 | 5.47 | PreToolUse 복합 명령 차단 정책 재검토 | **done** | exit(2) block -> exit(0) warning으로 변경 완료. worker가 멈추지 않고 경고만 표시. |
