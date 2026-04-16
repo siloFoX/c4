@@ -221,8 +221,9 @@ class Notifications {
   // --- Push to all channels (buffered) ---
 
   pushAll(message) {
+    const msg = message.length > 2000 ? message.substring(0, 1997) + '...' : message;
     for (const ch of Object.values(this.channels)) {
-      ch.push(message);
+      ch.push(msg);
     }
   }
 
@@ -344,7 +345,8 @@ class Notifications {
       const lines = [
         ...dead.map(w => {
           const label = w.status === 'restart_failed' ? this.lang.restartFailed : this.lang.down;
-          return `  ${w.name} - ${label}`;
+          const taskInfo = w.task ? ` (${w.task.split('\n')[0].substring(0, 80)})` : '';
+          return `  ${w.name} - ${label}${taskInfo}`;
         }),
         ...alive.map(w => this._fmtWorker(w))
       ];
@@ -394,12 +396,12 @@ class Notifications {
       : 0;
     const elStr = elapsed > 0 ? ` ${this.lang.elapsed(elapsed)}` : '';
 
+    const shortTask = w.task.split('\n')[0].substring(0, 80);
     const activity = w.lastActivity || '';
     if (activity) {
-      return `  ${w.name}${elStr} - ${activity}`;
+      return `  ${w.name}${elStr} - ${shortTask} | ${activity}`;
     }
 
-    const shortTask = w.task.split('\n')[0].substring(0, 80);
     return `  ${w.name}${elStr} - ${shortTask}`;
   }
 

@@ -78,6 +78,12 @@ describe('Notifications._fmtWorker()', () => {
     assert.ok(!result.includes('Second line detail'));
   });
 
+  it('always includes task summary even when lastActivity exists', () => {
+    const result = n._fmtWorker({ name: 'w6', task: 'deploy API server', lastActivity: 'writing file' });
+    assert.ok(result.includes('deploy API server'), 'task summary should always appear');
+    assert.ok(result.includes('writing file'), 'activity should also appear');
+  });
+
   it('includes elapsed time when taskStarted is set', () => {
     const started = new Date(Date.now() - 5 * 60000).toISOString();
     const result = n._fmtWorker({ name: 'w3', task: 'deploy', taskStarted: started });
@@ -107,6 +113,20 @@ describe('Notifications.notifyHealthCheck()', () => {
       ]
     });
     assert.strictEqual(n._slackBuffer.length, 1);
+  });
+
+  it('includes task summary for dead workers', () => {
+    const n = new Notifications({ language: 'en', slack: { enabled: true, webhookUrl: 'http://example.com/hook' } });
+    n.notifyHealthCheck({
+      workers: [
+        { name: 'w1', status: 'exited', task: 'deploy API server\ndetails here' },
+        { name: 'w2', status: 'alive', task: 'run tests' }
+      ]
+    });
+    assert.strictEqual(n._slackBuffer.length, 1);
+    const text = n._slackBuffer[0].text;
+    assert.ok(text.includes('deploy API server'), 'dead worker should show task summary');
+    assert.ok(!text.includes('details here'), 'should only show first line of task');
   });
 
   it('does not push when no workers', () => {
@@ -280,6 +300,26 @@ describe('Notifications alertOnly mode', () => {
     const n = new Notifications({ language: 'ko', slack: { enabled: true, webhookUrl: 'http://example.com/hook' } });
     n.statusUpdate('w1', 'doing stuff');
     assert.strictEqual(n._slackBuffer.length, 1);
+  });
+});
+
+describe('Notifications.pushAll() truncation', () => {
+  it('truncates messages over 2000 chars', () => {
+    const n = new Notifications({ language: 'ko', slack: { enabled: true, webhookUrl: 'http://example.com/hook' } });
+    const longMsg = 'x'.repeat(2500);
+    n.pushAll(longMsg);
+    assert.strictEqual(n._slackBuffer.length, 1);
+    assert.strictEqual(n._slackBuffer[0].text.length, 2000);
+    assert.ok(n._slackBuffer[0].text.endsWith('...'));
+  });
+
+  it('does not truncate messages at or under 2000 chars', () => {
+    const n = new Notifications({ language: 'ko', slack: { enabled: true, webhookUrl: 'http://example.com/hook' } });
+    const msg = 'y'.repeat(2000);
+    n.pushAll(msg);
+    assert.strictEqual(n._slackBuffer.length, 1);
+    assert.strictEqual(n._slackBuffer[0].text.length, 2000);
+    assert.ok(!n._slackBuffer[0].text.endsWith('...'));
   });
 });
 
