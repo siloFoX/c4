@@ -1168,6 +1168,71 @@ async function main() {
         break;
       }
 
+      case 'watch': {
+        // Real-time worker output streaming (5.42)
+        const name = args[0];
+        if (!name) {
+          console.error('Usage: c4 watch <name>');
+          process.exit(1);
+        }
+
+        const watchUrl = new URL(`/watch?name=${encodeURIComponent(name)}`, BASE);
+        const watchReq = http.get(watchUrl, (res) => {
+          if (res.statusCode !== 200) {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+              try {
+                const err = JSON.parse(data);
+                console.error(`Error: ${err.error || data}`);
+              } catch { console.error(`Error: ${data}`); }
+              process.exit(1);
+            });
+            return;
+          }
+
+          process.stderr.write(`Watching worker '${name}' (Ctrl+C to stop)...\n`);
+
+          let buffer = '';
+          res.on('data', (chunk) => {
+            buffer += chunk;
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const event = JSON.parse(line.slice(6));
+                  if (event.type === 'output') {
+                    process.stdout.write(Buffer.from(event.data, 'base64'));
+                  } else if (event.type === 'error') {
+                    console.error(`Error: ${event.error}`);
+                    process.exit(1);
+                  }
+                } catch {}
+              }
+            }
+          });
+
+          res.on('end', () => {
+            process.stderr.write('\n--- stream ended ---\n');
+            process.exit(0);
+          });
+        });
+
+        watchReq.on('error', (err) => {
+          console.error(`Error: ${err.message}`);
+          process.exit(1);
+        });
+
+        process.on('SIGINT', () => {
+          watchReq.destroy();
+          process.stderr.write('\n');
+          process.exit(0);
+        });
+
+        return;
+      }
+
       case 'daemon': {
         const DaemonManager = require(require('path').join(__dirname, 'daemon-manager'));
         const sub = args[0];
@@ -1216,6 +1281,7 @@ Commands:
   wait <name> [timeout_ms]         Wait until idle, then read screen
        [--all] [--interrupt-on-intervention]  Multi-worker / intervention wait
   scrollback <name> [--lines N]    Read scrollback buffer (default 200 lines)
+  watch <name>                     Watch worker output in real-time (Ctrl+C to stop)
   list                             List all workers
   merge <worker|branch>            Merge branch to main (with pre-checks)
   plan <name> <task> [--output f]   Plan-only mode: write plan.md without executing

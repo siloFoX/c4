@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.9] - 2026-04-16
+
+### Added
+- **c4 watch 실시간 스트리밍** (5.42): `c4 watch <name>`으로 worker PTY 출력을 tail -f처럼 실시간 스트리밍. SSE `/watch` 엔드포인트, base64 인코딩, Ctrl+C 종료. `watchWorker(name, cb)` 메서드로 다중 watcher 지원
+
 ## [1.6.8] - 2026-04-16
 
 ### Added
