@@ -375,7 +375,7 @@ Level 4이면:
 | 5.15 | Dirty Worktree Slack 경고 | **done** | STALL처럼 눈에 띄게 알림 |
 | 5.16 | --repo 옵션 | **done** | c4 task --repo /path/to/other-project 로 다른 프로젝트 worktree 생성 지원 (5.17과 동일) |
 | 5.17 | c4 task --repo 옵션 구현 | **done** | cli.js --repo 파싱, daemon.js projectRoot 전달, pty-manager sendTask 연결 |
-| 5.18 | c4 send 자동 Enter | **partial** | send()에서 \r 추가했으나 실사용에서 여전히 Enter 안 먹히는 케이스 발생. _chunkedWrite 타이밍 문제 의심 |
+| 5.18 | c4 send 자동 Enter | **done** | input과 CR 분리 전송: _chunkedWrite로 input 전송 후 100ms 대기, 별도 proc.write('\r') |
 | 5.19 | PreToolUse 복합 명령 차단 실효성 | **done** | 원인: 워커가 home dir에서 스폰되어 worktree settings.json 미로드. 수정: worktree 생성 후 스폰 + standalone script 분리 |
 | 5.20 | CI 피드백 루프 | **done** | worker 커밋 후 npm test 자동 실행, 실패 시 worker에 자동 피드백. config.ci.enabled/testCommand/timeoutMs 설정 |
 | 5.21 | 하이브리드 안전 모드 | **done** | L4에서도 rm -rf, push --force 등 위험 명령은 Slack 승인 요청 |
