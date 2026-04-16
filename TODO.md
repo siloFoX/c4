@@ -380,7 +380,7 @@ Level 4이면:
 | 5.20 | CI 피드백 루프 | **done** | worker 커밋 후 npm test 자동 실행, 실패 시 worker에 자동 피드백. config.ci.enabled/testCommand/timeoutMs 설정 |
 | 5.21 | 하이브리드 안전 모드 | **done** | L4에서도 rm -rf, push --force 등 위험 명령은 Slack 승인 요청 |
 | 5.22 | Recursive C4 테스트 시나리오 | **todo** | 관리자->중간관리자->작업자 3단계 계층 테스트. docs/test-scenarios.md |
-| 5.23 | 경쟁자 분석 문서 | **todo** | docs/competitive-analysis.md. Composio, OpenHands 등 비교 |
+| 5.23 | 경쟁자 분석 문서 | **done** | docs/competitive-analysis.md. Agent Tool, Cursor, OpenHands, Cline, Aider, Copilot 비교 |
 | 5.24 | worker auto-approve 범위 확장 | **done** | python, pip, ffmpeg 등 개발 도구를 autoApprove rules에 기본 포함 |
 | 5.25 | 다른 프로젝트 브랜치 정리 | **done** | c4 worker가 만든 c4/ 접두사 브랜치를 close 시 자동 삭제 |
 | 5.26 | worker 권한 프로파일 | **done** | 프로젝트 유형별 auto-approve 프리셋. web/ml/infra 3종 추가 + c4 profiles CLI + /profiles API |
