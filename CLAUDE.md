@@ -137,3 +137,104 @@ agent 모드로 시작하면 compound 금지(git -C 사용), Read/Edit deny 등 
 - 불필요한 확인 질문 하지 않기 - 자율적으로 판단해서 진행
 - scribe 항상 켜두기 - `c4 scribe start`로 주기적 컨텍스트 기록
 - `c4 list` 반복 금지 - `c4 wait <name>` 사용. `c4 list`는 현재 상태 확인용 (10초 cooldown 있음)
+
+### c4 batch 사용 예시
+동일 작업을 여러 워커에 병렬 배포하거나, 파일에서 작업 목록을 읽어 일괄 실행한다.
+워커 이름은 자동으로 `batch-1`, `batch-2`, ... 순으로 생성된다.
+```bash
+# 동일 작업 5개 워커에 배포
+c4 batch "src/의 lint 에러 수정" --count 5
+
+# 파일에서 작업 목록 읽기 (한 줄에 하나, # 주석 무시)
+c4 batch --file tasks.txt --auto-mode
+
+# 브랜치 접두사 지정 (feature-1, feature-2, feature-3 브랜치 생성)
+c4 batch "테스트 추가" --count 3 --branch feature
+
+# 프로파일 적용
+c4 batch "API 엔드포인트 구현" --count 2 --profile web
+```
+
+tasks.txt 예시:
+```
+# 각 줄이 하나의 작업
+src/auth.js에 JWT 검증 추가
+src/api.js에 rate limiter 적용
+tests/auth.test.js 작성
+```
+
+### c4 watch 사용 예시
+워커 출력을 `tail -f`처럼 실시간 스트리밍한다. SSE 기반. Ctrl+C로 종료.
+```bash
+# 워커 출력 실시간 관찰
+c4 watch myworker
+
+# 일반적인 운영 흐름: task 전송 후 바로 watch
+c4 task worker1 --auto-mode "npm test 실패 원인 분석"
+c4 watch worker1
+```
+`c4 watch`는 관찰만 하며 워커 동작에 영향을 주지 않는다. 개입이 필요하면 별도 터미널에서 `c4 send`나 `c4 key`를 사용한다.
+
+### --cwd / --repo / --no-branch 차이
+| 옵션 | 용도 | worktree 생성 | 브랜치 생성 | repo root 감지 |
+|------|------|:---:|:---:|------|
+| (기본) | c4 프로젝트 자체에서 작업 | O | O | config.json |
+| `--repo <path>` | 다른 프로젝트 repo root 직접 지정 | O | O | 지정한 경로 그대로 사용 |
+| `--cwd <path>` | repo 내부 하위 디렉토리 지정 | O | O | git rev-parse로 자동 탐지 |
+| `--no-branch` | 브랜치/worktree 없이 현재 상태에서 작업 | X | X | 현재 디렉토리 |
+
+```bash
+# 다른 프로젝트에서 작업 (repo root 직접 지정)
+c4 task worker1 "README 수정" --repo /home/shinc/arps
+
+# repo 내부 하위 디렉토리 기준으로 repo root 자동 탐지
+c4 task worker1 "src 분석" --cwd /home/shinc/arps/src
+
+# 브랜치/worktree 없이 읽기 전용 탐색
+c4 task worker1 "코드 구조 파악해" --no-branch
+
+# --cwd + --no-branch 조합: 특정 디렉토리에서 격리 없이 작업
+c4 task worker1 "로그 확인" --cwd /home/shinc/arps --no-branch
+```
+
+### git -C 사용 예시 (cd 대신)
+관리자 세션에서 워커의 worktree/repo를 조작할 때 반드시 `git -C`를 사용한다. `cd`로 디렉토리 이동 후 git 실행 금지.
+```bash
+# 워커 worktree 상태 확인
+git -C /c/Users/silof/c4-worktree-worker1 status
+
+# 워커 브랜치 로그 확인
+git -C /c/Users/silof/c4-worktree-worker1 log --oneline -5
+
+# 워커 브랜치의 변경 diff
+git -C /c/Users/silof/c4-worktree-worker1 diff main..HEAD --stat
+
+# 다른 프로젝트 repo 상태 확인
+git -C /home/shinc/arps status --porcelain
+
+# 브랜치 삭제
+git -C /c/Users/silof/c4 branch -D c4/old-branch
+```
+
+**금지 패턴 vs 올바른 패턴:**
+```bash
+# X 금지: cd 후 git
+cd /c/Users/silof/c4-worktree-worker1 && git status
+
+# O 올바름: git -C 사용
+git -C /c/Users/silof/c4-worktree-worker1 status
+```
+
+### 트러블슈팅 빠른 참조
+| 증상 | 확인 | 해결 |
+|------|------|------|
+| 데몬 응답 없음 | `c4 health` | `c4 daemon restart` |
+| 좀비 데몬 (프로세스 살아있지만 무응답) | `c4 daemon status` | `c4 daemon stop` 후 `c4 daemon start` |
+| 워커 STALL (멈춤) | `c4 read-now <name>` | 상황 파악 후 `c4 key <name> Enter` 또는 `c4 send <name> "지시"` |
+| LOST 워커 (데몬 재시작 후) | `c4 list` | 새 워커 생성 후 같은 브랜치에서 이어가기 |
+| 고아 worktree 잔여 | `git worktree list` | `c4 cleanup` 또는 `git worktree remove <path> --force` |
+| Git Bash 경로 변환 | `/model`이 `/c/model`로 변환됨 | `MSYS_NO_PATHCONV=1 c4 send <name> "/model"` |
+| 긴 작업 메시지 잘림 | 1000자+ 메시지 | 자동으로 `.c4-task.md` 파일 전달됨 (수동 조치 불필요) |
+| 복합 명령 경고 | `&&`, `\|`, `;` 사용 시 | 단일 명령으로 분리, `git -C` 사용 |
+
+상세 트러블슈팅: `docs/troubleshooting.md` 참조. 실패 사례: `docs/known-issues.md` 참조.
