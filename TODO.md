@@ -408,7 +408,7 @@ Level 4이면:
 | 5.48 | Claude Code 자체 compound command 승인 prompt | **done** | cd && git 할 때 Claude Code가 "bare repository attacks" 경고로 승인 요청. c4 hook과 별개. 해결: worker worktree settings.json permissions에 compound command 패턴 allow 추가 (cd * && *, cd * ; *, cd * || *) |
 | 5.49 | task 메시지 # 특수문자 승인 prompt | **done** | # 포함 시 Claude Code가 "Newline followed by # can hide arguments" 보안 경고. _maybeWriteTaskFile에서 # 감지 시 길이 무관하게 파일 전달 모드 사용 |
 | 5.50 | 관리자가 git -C 안 쓰는 문제 | **done** | _getRulesSummary()에 IMPORTANT git -C path 형태만 허용, cd 후 git 절대 금지 규칙 강화. cd X && git Y, cd X; git Y 모두 불가 명시 |
-| 5.51 | pendingTask 근본 해결 필요 | **todo** | c4 task로 worker 생성+task 전송해도 3개 worker 전부 task 못 받음. 데몬 재시작 후에도 발생. _createAndSendTask -> idle handler 타이밍 문제 근본적으로 남아있음. 관리자가 매번 c4 send로 재전송해야 함. |
+| 5.51 | pendingTask 근본 해결 | **done** | idle handler pendingTask 블록에 setupDone 가드 추가. _executeSetupPhase2 완료 후 post-setup 전달 트리거 추가. active polling _chunkedWrite await 처리. 근본 원인: setupPhase='done'~setupDone=true 사이 1000ms 창에서 idle handler가 effort 블록을 관통하여 모델 메뉴 활성 상태에서 task 전송 |
 
 ## Phase 6 - 마케팅/가시성
 

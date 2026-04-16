@@ -1055,7 +1055,7 @@ class PtyManager extends EventEmitter {
     w._pendingTaskTime = Date.now();
 
     // Active polling: check screen readiness every 500ms instead of relying only on idle handler
-    w._pendingTaskTimer = setInterval(() => {
+    w._pendingTaskTimer = setInterval(async () => {
       const worker = this.workers.get(entry.name);
       if (!worker || !worker.alive || !worker._pendingTask || worker._pendingTaskSent) {
         clearInterval(w._pendingTaskTimer);
@@ -1075,7 +1075,7 @@ class PtyManager extends EventEmitter {
         worker._pendingTaskSent = true;
         const pt = worker._pendingTask;
         const fullTask = this._buildTaskText(worker, pt.task, pt.options);
-        this._chunkedWrite(worker.proc, fullTask + '\r');
+        await this._chunkedWrite(worker.proc, fullTask + '\r');
         worker._taskText = pt.task;
         worker._taskStartedAt = new Date().toISOString();
         worker._pendingTask = null;
@@ -1178,6 +1178,23 @@ class PtyManager extends EventEmitter {
             (worker.setupRetries ? ` (after ${worker.setupRetries} retries)` : ''),
           autoAction: true
         });
+        // (5.51) Trigger pending task delivery after setup completes
+        if (worker._pendingTask && !worker._pendingTaskSent) {
+          const postSetupMs = 2000;
+          setTimeout(async () => {
+            if (!worker._pendingTask || worker._pendingTaskSent || !worker.alive) return;
+            const text = this._getScreenText(worker.screen);
+            if (this._termInterface.isReady(text)) {
+              worker._pendingTaskSent = true;
+              const pt = worker._pendingTask;
+              const fullTask = this._buildTaskText(worker, pt.task, pt.options);
+              await this._chunkedWrite(proc, fullTask + '\r');
+              worker._taskText = pt.task;
+              worker._taskStartedAt = new Date().toISOString();
+              worker._pendingTask = null;
+            }
+          }, postSetupMs);
+        }
       }, confirmDelayMs);
     }, inputDelayMs);
   }
@@ -2702,8 +2719,9 @@ class PtyManager extends EventEmitter {
           }
         }
 
-        // Send pending task — idle handler fired means prompt is ready
-        if (worker._pendingTask && !worker._pendingTaskSent) {
+        // Send pending task — only after effort setup is fully complete (5.51)
+        const setupNeeded = (worker._dynamicEffort || this.config.workerDefaults?.effortLevel) && !worker.setupDone;
+        if (worker._pendingTask && !worker._pendingTaskSent && !setupNeeded) {
           worker._pendingTaskSent = true;
           const pt = worker._pendingTask;
           const fullTask = this._buildTaskText(worker, pt.task, pt.options);

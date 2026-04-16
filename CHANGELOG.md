@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.10] - 2026-04-16
+
+### Fixed
+- **pendingTask 근본 해결** (5.51): idle handler pendingTask 블록에 setupDone 가드 추가. setupPhase='done'~setupDone=true 사이 1000ms 창에서 effort 블록을 관통하여 모델 메뉴 활성 상태에서 task가 전송되던 근본 원인 수정. _executeSetupPhase2 완료 후 post-setup 전달 트리거 추가, active polling _chunkedWrite await 처리
+
 ## [1.6.9] - 2026-04-16
 
 ### Added

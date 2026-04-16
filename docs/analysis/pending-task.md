@@ -98,3 +98,25 @@ idle handler (line 2246)에서 `_pendingTask.options.useWorktree`가 true이고 
 - 방안 3은 idle handler의 책임이 과도해지고, worktree 생성 실패 시 task 전달 자체가 불가능해지는 문제가 있음
 
 수정 위치: `src/pty-manager.js` line 924 이후 (create() 호출과 _pendingTask 저장 사이)
+
+## 2차 수정 (5.51) - idle handler effort setup 관통 문제
+
+### 근본 원인
+
+1차 수정으로 worktree 미생성 문제는 해결됐지만, task 전달 자체가 실패하는 근본 원인이 남아있었다.
+
+`_executeSetupPhase2()`가 `setupPhase = 'done'`을 설정한 후, 중첩 setTimeout으로 `setupDone = true`를 설정하기까지 ~1000ms 창이 존재한다 (inputDelayMs + confirmDelayMs).
+
+이 창 동안 idle handler가 fire하면:
+1. effort 블록 진입 (`!worker.setupDone` = true)
+2. `!worker.setupPhase` = false (setupPhase가 'done'이므로), `setupPhase === 'waitMenu'` = false
+3. 두 조건 모두 불일치 → effort 블록을 **관통**
+4. pendingTask 블록 도달 → 모델 메뉴가 아직 활성 상태인데 task 전송
+5. task 텍스트가 모델 메뉴 입력으로 소비됨 (먹힘)
+6. `_pendingTaskSent = true` 설정으로 timeout fallback도 재시도 안 함
+
+### 수정 내용
+
+1. **idle handler pendingTask 블록에 setupDone 가드 추가**: effort 설정이 있고 setupDone이 false면 pendingTask 전송을 차단
+2. **_executeSetupPhase2 post-setup 전달 트리거**: setupDone = true 설정 후 2초 딜레이로 isReady 확인 후 pendingTask 직접 전달 (active polling 보조)
+3. **active polling _chunkedWrite await**: setInterval 콜백을 async로 변경하여 긴 task 텍스트의 부분 전송 방지
