@@ -391,7 +391,7 @@ Level 4이면:
 | 5.31 | 다른 repo 브랜치 자동 정리 | **done** | c4 worker close 시 해당 worker가 만든 c4/ 접두사 브랜치를 자동 삭제. worktree remove + branch delete |
 | 5.32 | worktree prune 자동화 | **done** | healthCheck에서 주기적으로 git worktree prune 실행. prunable worktree 감지 시 자동 정리 |
 | 5.33 | c4 cleanup 명령 | **done** | 수동 정리 명령어. 모든 LOST worker의 worktree + 브랜치 + 잔여 디렉토리를 한 번에 정리 |
-| 5.34 | autoApprove에 poetry/nvidia-smi/nohup/lsof/env 추가 | **todo** | 실사용 피드백: 기본 셸 도구 + Python 개발 도구 부족. 프로젝트별 config 또는 기본 rules 확장 |
+| 5.34 | autoApprove에 개발 도구 추가 | **done** | nvidia-smi, nohup, lsof, env, which, whoami, poetry를 worker defaultPerms에 추가 |
 | 5.35 | 긴 task 메시지 잘림 근본 수정 | **todo** | _chunkedWrite Promise 전환 후에도 수백 줄 task에서 잘림 발생. 파일 기반 task 전달 방식 검토 (task를 파일로 쓰고 워커에 경로만 전달) |
 | 5.36 | c4 approve 편의 명령 | **todo** | TUI 선택 프롬프트를 번호로 선택. c4 send "2" 안 됨 — key Down/Enter 조합 필요. c4 approve worker 1 하면 첫 번째 옵션 선택 |
 | 5.37 | --no-branch/--cwd 외부 repo 지원 개선 | **todo** | --cwd 지정해도 worktree가 c4 repo 기준으로 생성. --no-branch 시 worktree 비활성화 명확히. --repo와 --cwd 차이 문서화 |

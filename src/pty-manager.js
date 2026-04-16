@@ -1439,6 +1439,7 @@ class PtyManager extends EventEmitter {
         'Bash(git:*)',
         'Bash(npm:*)', 'Bash(npx:*)', 'Bash(node:*)',
         'Bash(python:*)', 'Bash(python3:*)', 'Bash(pip:*)', 'Bash(pip3:*)',
+        'Bash(poetry:*)',
         'Bash(cargo:*)', 'Bash(go:*)', 'Bash(rustc:*)',
         'Bash(make:*)', 'Bash(cmake:*)',
         'Bash(ffmpeg:*)', 'Bash(ffprobe:*)',
@@ -1447,6 +1448,8 @@ class PtyManager extends EventEmitter {
         'Bash(grep:*)', 'Bash(find:*)', 'Bash(wc:*)',
         'Bash(mkdir:*)', 'Bash(cp:*)', 'Bash(mv:*)', 'Bash(touch:*)',
         'Bash(pwd)', 'Bash(echo:*)', 'Bash(test:*)',
+        'Bash(nvidia-smi:*)', 'Bash(nohup:*)', 'Bash(lsof:*)',
+        'Bash(env:*)', 'Bash(which:*)', 'Bash(whoami)',
         'Bash(curl:*)', 'Bash(wget:*)',
         'Read', 'Edit', 'Write', 'Glob', 'Grep',
       ];
