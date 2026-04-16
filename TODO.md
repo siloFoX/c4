@@ -401,6 +401,8 @@ Level 4이면:
 | 5.41 | worktree close 후 정리 검증 | **todo** | worktree dir이 close 후에도 남는 케이스 추가 확인. healthCheck에서 orphan worktree 스캔 강화. |
 | 5.42 | c4 watch 실시간 스트리밍 | **todo** | worker 출력을 tail -f처럼 실시간 스트리밍. 현재 read-now는 스냅샷만. SSE /events 활용하거나 PTY onData를 직접 파이프. |
 | 5.43 | 관리자 병렬 wait | **todo** | 관리자가 여러 worker를 순차 wait하면 시간 낭비. c4 wait --all 또는 c4 wait w-1 w-2 w-3 동시 대기 후 첫 완료 시 알림. |
+| 5.44 | 관리자 판단 모드 | **todo** | 관리자가 wait 중에도 intervention 발생 시 중단하고 판단할 수 있어야 함. c4 wait --interrupt-on-intervention: intervention 감지 시 wait 즉시 종료 + 해당 worker 정보 반환. 관리자가 read-now로 확인 후 approve/deny/send 판단. |
+| 5.45 | 관리자 역할 가이드 강화 | **todo** | CLAUDE.md에 관리자 역할 명확화: 단순 Enter가 아니라 (1) read-now로 내용 확인 (2) 적절한지 판단 (3) 승인 또는 수정 지시. 맹목적 승인 금지. |
 
 ## Phase 6 - 마케팅/가시성
 
