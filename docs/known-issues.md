@@ -1,0 +1,149 @@
+# Known Issues
+
+실사용 중 발견된 문제와 해결 방법. troubleshooting.md는 일반적인 운영 문제, 이 문서는 특정 사건/실패 사례 기록.
+
+---
+
+## 해결된 이슈
+
+### 복합 명령 차단으로 worker 작업 불가 (5.46/5.47)
+
+**상황:** c4 auto로 5개 worker 병렬 실행. 그 중 2개(w-535, w-536)가 커밋 0건으로 종료. PreToolUse hook이 `&&`, `|`, `;` 포함 명령을 `exit(2)`로 차단하여 worker가 완전 정지.
+
+**원인:** PreToolUse hook의 복합 명령 차단이 너무 공격적. `exit(2)`는 도구 사용 자체를 block하므로 worker가 권한 프롬프트조차 받지 못하고 멈춤. Claude Code는 block된 도구를 재시도하지 않아서 worker가 아무 진행 없이 대기 상태에 빠짐.
+
+**해결:** 5.47에서 `exit(2)` block을 `exit(0)` warning으로 변경 (커밋 `7998125`). worker가 경고만 표시하고 명령은 정상 실행. worker가 멈추지 않으면서도 복합 명령 사용을 인지할 수 있게 됨.
+
+**교훈:**
+- PreToolUse hook에서 `exit(2)` block은 worker를 완전히 멈추게 한다. 안전성과 가용성의 균형 필요.
+- 자율 모드에서는 block보다 warning이 적합. 관리자가 사후 리뷰로 보완.
+- hook 정책 변경 전 소규모 테스트 필수 (5개 worker 한번에 돌리기 전에 1개로 확인).
+
+---
+
+### 관리자가 c4 list 무한 반복 (5.39)
+
+**상황:** 관리자(auto-mgr)가 worker 완료를 기다리면서 `c4 list`를 324번 호출. 사용자 메시지는 3개뿐. 토큰 낭비 + 컨텍스트 소진 가속.
+
+**원인:** 관리자 에이전트 프롬프트에 "주기적으로 상태 확인"이라고만 적혀있어 Claude가 list를 반복 호출. `c4 wait` 사용 지시가 없었음.
+
+**해결:**
+1. CLAUDE.md에 "`c4 wait` 사용, `c4 list` 폴링 금지" 명시
+2. `c4 list`에 10초 cooldown 캐시 도입 (커밋 `93022f8`)
+3. Custom Agent(manager.md)에 "wait만 사용" 규칙 추가
+
+**교훈:**
+- LLM은 명시적 금지 없이는 같은 명령을 반복 호출하는 경향이 있다.
+- 기술적 제한(cooldown)과 프롬프트 규칙을 함께 적용해야 효과적.
+- `c4 wait`처럼 "기다리는 전용 명령"을 제공하면 폴링 문제 해결.
+
+---
+
+### 긴 task 메시지 PTY 잘림 (5.35)
+
+**상황:** `c4 task worker "긴 작업 설명..."` 실행 시 1000자 이상 메시지가 PTY 버퍼에서 잘림. worker가 불완전한 지시를 받아 엉뚱한 작업 수행.
+
+**원인:** PTY의 입력 버퍼에 한계가 있어 긴 문자열을 한번에 write하면 뒷부분이 유실. `_chunkedWrite()`로 분할 전송해도 근본 해결이 안 됨.
+
+**해결:** 1000자 초과 task는 worktree 내 `.c4-task.md` 파일에 저장, PTY에는 파일 경로만 전달 (커밋 `6f5a851`). `_maybeWriteTaskFile()` 헬퍼로 `_buildTaskText`와 `sendTask` 인라인 모두 적용.
+
+**교훈:**
+- PTY는 긴 텍스트 입력에 적합하지 않다. 파일 기반 전달이 근본 해결.
+- 분할 전송(`_chunkedWrite`)은 임시방편이었고, 메시지 길이 제한이 있다는 전제 자체가 틀렸음.
+
+---
+
+### Slack task 요약 절단 (5.19/5.38)
+
+**상황:** Slack 알림에서 worker의 task 요약이 파일명의 `.`에서 잘림. 예: `src/daemon.js 수정` -> `src/daemon` 까지만 표시.
+
+**원인:** `_fmtWorker()`에서 `split(/[.\n]/)`으로 첫 문장을 추출하려 했으나, 파일명의 `.`도 구분자로 인식.
+
+**해결:** `split('\n')`으로 변경하여 줄바꿈만 구분자로 사용 (커밋 `65365a4`). 추가로 Slack 메시지 전체를 2000자로 truncate하여 API 에러 방지.
+
+**교훈:**
+- 정규식 구분자에 `.`을 포함하면 파일 경로가 잘린다. 코드 관련 텍스트에서 `.`은 흔한 문자.
+
+---
+
+### worker 이름이 의미 없어서 관리 불가 (5.40)
+
+**상황:** 자동 생성된 worker 이름이 `w-535`, `w-536` 등 숫자 기반. 5개 이상 병렬 실행 시 어떤 worker가 무슨 작업을 하는지 `c4 list`만으로 파악 불가.
+
+**원인:** 기존 이름 생성이 단순 카운터 기반.
+
+**해결:** task 기반 자동 네이밍 도입 (커밋 `7c2c68d`). `c4 task` 시 task 첫 단어를 기반으로 의미있는 이름 자동 생성. 관리자에게 의미있는 이름 사용 강제.
+
+**교훈:**
+- 병렬 worker 운영에서 이름은 가독성의 핵심. 의미 없는 이름은 관리 비용을 높인다.
+
+---
+
+### 관리자가 worker 권한 요청을 맹목적으로 승인 (5.28/5.45)
+
+**상황:** 관리자(auto-mgr)가 worker의 권한 요청에 내용 확인 없이 자동 Enter 전송. cron으로 주기적 `c4 key worker Enter` 실행하여 위험 명령도 무분별 승인.
+
+**원인:** 관리자 에이전트에 "권한 요청이 오면 승인해라"라고만 적혀있어 판단 없이 일괄 승인. 자동화 스크립트가 이를 더 악화.
+
+**해결:**
+1. 5.28: cron 자동 Enter 패턴 차단
+2. 5.45: CLAUDE.md에 관리자 승인 프로토콜 명확화 (read-now -> 판단 -> 승인/수정)
+3. 5.13: L4 Critical Deny List로 파괴적 명령은 레벨과 무관하게 절대 차단
+
+**교훈:**
+- "승인"은 "확인"이 선행되어야 한다. 맹목적 Enter는 보안 구멍.
+- 자율 모드라도 Critical Deny List 같은 최후 방어선 필요.
+- 관리자 역할은 단순 전달이 아니라 판단. CLAUDE.md에 이를 명시해야 함.
+
+---
+
+### send() 후 Enter 누락 (5.18)
+
+**상황:** `c4 send worker "텍스트"` 후 worker가 입력을 받았으나 Enter가 안 눌려서 대기 상태 지속.
+
+**원인:** `_chunkedWrite()`가 input과 CR(`\r`)을 같은 스트림으로 전송. 청크 분할 과정에서 CR이 이전 청크에 포함되거나 유실.
+
+**해결:** input과 CR을 분리 전송 (커밋 `b697a27`). `_chunkedWrite`로 input 전송 후 100ms 대기, 별도 `proc.write('\r')`로 Enter 전송.
+
+**교훈:**
+- PTY에서 입력 완료와 실행(Enter)은 분리해야 안전하다.
+- 타이밍 문제는 단순 sleep보다 이벤트 기반으로 해결하는 게 이상적이나, PTY 특성상 딜레이가 현실적.
+
+---
+
+### PreToolUse hook이 worktree에서 작동 안 함 (5.19)
+
+**상황:** PreToolUse 복합 명령 차단 hook을 설정했으나 worktree에서 생성된 worker에게 적용 안 됨.
+
+**원인:** worker가 home directory에서 스폰된 후 worktree로 이동하는 구조. Claude Code가 스폰 시점의 `.claude/settings.json`을 로드하므로 worktree의 settings.json이 무시됨.
+
+**해결:** worktree 생성 후 worker 스폰 순서로 변경. standalone hook script 분리하여 경로 의존성 제거 (커밋 `789398e`).
+
+**교훈:**
+- Claude Code의 settings.json 로딩 시점은 프로세스 시작 시. 이후 디렉토리 이동은 설정에 영향 없음.
+- hook 스크립트는 절대 경로 또는 standalone으로 작성해야 이식성 확보.
+
+---
+
+## 미해결 이슈
+
+### Claude Code 자체 compound command 승인 prompt (5.48)
+
+**상황:** `cd path && git commit` 같은 복합 명령 실행 시 Claude Code가 "bare repository attacks" 보안 경고로 승인 프롬프트 표시. C4 hook과는 별개의 Claude Code 내부 동작.
+
+**현재 상태:** worker worktree settings.json permissions에 compound command 패턴 allow 추가하거나, 세션에서 "Yes, and don't ask again" 자동 선택 필요. 근본 해결은 복합 명령 자체를 쓰지 않는 것 (git -C 등 단일 명령 대체).
+
+---
+
+## 패턴 요약
+
+실사용에서 반복되는 실패 패턴:
+
+| 패턴 | 사례 | 대응 |
+|------|------|------|
+| LLM 반복 행동 | c4 list 324회 | 프롬프트 금지 + 기술적 cooldown |
+| hook 과잉 차단 | exit(2) block으로 worker 정지 | warning으로 완화 + 사후 리뷰 |
+| PTY 한계 | 긴 메시지 잘림, Enter 누락 | 파일 기반 전달, 분리 전송 |
+| 맹목적 자동화 | cron Enter, 무분별 승인 | 판단 프로토콜 + Critical Deny List |
+| 설정 로딩 시점 | worktree hook 미적용 | 스폰 순서 변경, standalone script |
+| 이름/라벨 부재 | w-535 구분 불가 | 의미있는 자동 네이밍 |
