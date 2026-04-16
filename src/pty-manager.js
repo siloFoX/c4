@@ -962,14 +962,15 @@ class PtyManager extends EventEmitter {
     // so Claude Code loads .claude/settings.json (with PreToolUse hooks) from the worktree
     const targetResolved = this._resolveTarget(entry.target || 'local');
     const isSshTarget = targetResolved && targetResolved.type === 'ssh';
-    const useWorktree = !isSshTarget && entry.useWorktree !== false && this.config.worktree?.enabled !== false;
+    // (5.37) --no-branch disables worktree as well
+    const useWorktree = !isSshTarget && entry.useWorktree !== false && entry.useBranch !== false && this.config.worktree?.enabled !== false;
     let worktreePath = null;
     let worktreeRepoRoot = null;
     let worktreeBranch = null;
     const worktreeWarnings = [];
 
     if (entry.useBranch !== false && useWorktree) {
-      const repoRoot = this._detectRepoRoot(entry.projectRoot);
+      const repoRoot = this._detectRepoRoot(entry.projectRoot, entry.cwd);
       if (repoRoot) {
         worktreeBranch = entry.branch || `c4/${entry.name}`;
         worktreePath = this._worktreePath(repoRoot, entry.name);
@@ -1027,7 +1028,7 @@ class PtyManager extends EventEmitter {
     if (entry._autoWorker) {
       w._autoWorker = true;
       // Write settings with PreToolUse hooks to project root so they're active from start
-      const projectRoot = this._detectRepoRoot(entry.projectRoot);
+      const projectRoot = this._detectRepoRoot(entry.projectRoot, entry.cwd);
       if (projectRoot) {
         try {
           this._writeWorkerSettings(projectRoot, entry.name, { _autoWorker: true });
@@ -1042,6 +1043,7 @@ class PtyManager extends EventEmitter {
         branch: entry.branch,
         useBranch: entry.useBranch,
         useWorktree: entry.useWorktree,
+        cwd: entry.cwd,
         projectRoot: entry.projectRoot,
         scope: entry.scope,
         scopePreset: entry.scopePreset,
@@ -1580,14 +1582,15 @@ class PtyManager extends EventEmitter {
 
   // --- Git Worktree helpers ---
 
-  _detectRepoRoot(projectRoot) {
+  // (5.37) cwd param: when --cwd is specified, detect repo root from that directory
+  _detectRepoRoot(projectRoot, cwd) {
     if (projectRoot) return projectRoot;
     const configRoot = this.config.worktree?.projectRoot;
     if (configRoot) return path.resolve(configRoot);
     try {
       return execSyncSafe('git rev-parse --show-toplevel', {
         encoding: 'utf8',
-        cwd: path.resolve(__dirname, '..'),
+        cwd: cwd || path.resolve(__dirname, '..'),
         stdio: 'pipe'
       }).trim();
     } catch {
@@ -2293,6 +2296,7 @@ class PtyManager extends EventEmitter {
         branch: options.branch || `c4/${name}`,
         useBranch: options.useBranch,
         useWorktree: options.useWorktree,
+        cwd: options.cwd,
         projectRoot: options.projectRoot,
         scope: options.scope,
         scopePreset: options.scopePreset,
@@ -2306,7 +2310,8 @@ class PtyManager extends EventEmitter {
     // SSH targets run on remote machines — local worktree creation is unnecessary
     const targetResolved = this._resolveTarget(options.target || 'local');
     const isSshTarget = targetResolved && targetResolved.type === 'ssh';
-    const useWorktree = !isSshTarget && options.useWorktree !== false && this.config.worktree?.enabled !== false;
+    // (5.37) --no-branch disables worktree as well
+    const useWorktree = !isSshTarget && options.useWorktree !== false && options.useBranch !== false && this.config.worktree?.enabled !== false;
     const commands = [];
 
     // Scope guard setup
@@ -2317,7 +2322,7 @@ class PtyManager extends EventEmitter {
 
     if (options.useBranch !== false) {
       if (useWorktree) {
-        const repoRoot = this._detectRepoRoot(options.projectRoot);
+        const repoRoot = this._detectRepoRoot(options.projectRoot, options.cwd);
         if (!repoRoot) {
           return { error: 'Cannot create worktree: projectRoot not configured and auto-detection failed' };
         }

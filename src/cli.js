@@ -120,7 +120,7 @@ async function main() {
           argStart = 1;
         }
 
-        let branch = '', useBranch = true, scope = null, scopePreset = '', after = '', contextFrom = '', reuse = undefined, profile = '', autoMode = false, projectRoot = '';
+        let branch = '', useBranch = true, scope = null, scopePreset = '', after = '', contextFrom = '', reuse = undefined, profile = '', autoMode = false, projectRoot = '', cwd = '';
         const taskParts = [];
         for (let i = argStart; i < effectiveArgs.length; i++) {
           if (effectiveArgs[i] === '--branch' && effectiveArgs[i + 1]) { branch = effectiveArgs[++i]; }
@@ -133,6 +133,7 @@ async function main() {
           else if (effectiveArgs[i] === '--template' && effectiveArgs[i + 1]) { profile = effectiveArgs[++i]; }
           else if (effectiveArgs[i] === '--auto-mode') { autoMode = true; }
           else if (effectiveArgs[i] === '--repo' && effectiveArgs[i + 1]) { projectRoot = effectiveArgs[++i]; }
+          else if (effectiveArgs[i] === '--cwd' && effectiveArgs[i + 1]) { cwd = effectiveArgs[++i]; }
           else if (effectiveArgs[i] === '--scope' && effectiveArgs[i + 1]) {
             try { scope = JSON.parse(effectiveArgs[++i]); }
             catch { console.error('Error: --scope must be valid JSON'); process.exit(1); }
@@ -150,6 +151,7 @@ async function main() {
         if (profile) body.profile = profile;
         if (autoMode) body.autoMode = true;
         if (projectRoot) body.projectRoot = projectRoot;
+        if (cwd) body.cwd = cwd;
         result = await request('POST', '/task', body);
         break;
       }
@@ -1273,6 +1275,7 @@ Commands:
   init                                                     Initialize c4 (permissions, config, symlink)
   new <name> [command] [--target dgx|local] [--cwd path]   Create a worker
   task <name> <text> [--branch name] [--no-branch]         Send task with auto branch
+       [--repo path] [--cwd path]                              Repo root / working dir for worktree
        [--context worker] [--reuse] [--scope JSON]             Context / pool reuse / scope
   send <name> <text>               Send raw text to worker
   key <name> <key>                 Send special key (Enter, C-c, C-b, Tab, etc.)
@@ -1332,7 +1335,14 @@ Profile examples:
 
 Scope examples:
   c4 task worker "Add logging" --scope '{"allowFiles":["src/rag.py","tests/"],"denyBash":["pip","docker"]}'
-  c4 task worker "Fix bug" --scope-preset backend`);
+  c4 task worker "Fix bug" --scope-preset backend
+
+--repo vs --cwd (5.37):
+  --repo <path>   Exact git repo root for worktree creation (= projectRoot)
+  --cwd  <path>   Directory inside a repo; repo root is auto-detected via git
+  --no-branch     Disables both branch creation and worktree creation
+  c4 task worker "Fix bug" --repo /home/user/other-repo
+  c4 task worker "Fix bug" --cwd /home/user/other-repo/src`);
         return;
     }
 
