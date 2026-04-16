@@ -366,7 +366,7 @@ Level 4이면:
 | 5.3 | CLAUDE.md 개선 | **done** | worker가 c4 명령어를 더 잘 쓰도록 사용 예시/패턴 보강 |
 | 5.4 | worker close 시 Slack flush | **done** | notifyTaskComplete 후 즉시 _flushAll() 호출 |
 | 5.8 | Custom Agents 활용 | **done** | .claude/agents/manager.md 로 관리자 에이전트 정의 |
-| 5.9 | claude -w 네이티브 worktree 검토 | **todo** | Claude Code 내장 worktree 활용 가능한지 평가 |
+| 5.9 | claude -w 네이티브 worktree 검토 | **done** | Claude Code 내장 worktree 활용 가능한지 평가. docs/native-worktree-review.md |
 | 5.10 | Hook으로 권한 요청 Slack 라우팅 | **done** | hook에서 권한 prompt를 Slack으로 보내서 폰에서 승인 |
 | 5.11 | Batch 처리 | **done** | c4 batch --count N / --file tasks.txt. CLI에서 POST /task N회 호출. 워커 자동 네이밍 batch-1~N |
 | 5.12 | 매니저 교체 시 의사결정 요약 주입 | **done** | compact 전에 핵심 진행/주의사항 3줄 요약 -> session-context.md 상단에 주입 |
