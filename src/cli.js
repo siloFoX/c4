@@ -1020,6 +1020,71 @@ async function main() {
         break;
       }
 
+      case 'batch': {
+        // c4 batch "task" --count N  → same task to N workers
+        // c4 batch --file tasks.txt  → one task per line from file
+        let count = 0, filePath = '', autoMode = false, profile = '', branch = '';
+        const taskParts = [];
+        for (let i = 0; i < args.length; i++) {
+          if (args[i] === '--count' && args[i + 1]) { count = parseInt(args[++i]) || 0; }
+          else if (args[i] === '--file' && args[i + 1]) { filePath = args[++i]; }
+          else if (args[i] === '--auto-mode') { autoMode = true; }
+          else if (args[i] === '--profile' && args[i + 1]) { profile = args[++i]; }
+          else if (args[i] === '--branch' && args[i + 1]) { branch = args[++i]; }
+          else { taskParts.push(args[i]); }
+        }
+        const batchTask = taskParts.join(' ');
+
+        // Build list of tasks
+        let tasks = [];
+        if (filePath) {
+          // File mode: one task per line
+          try {
+            const content = fs.readFileSync(filePath, 'utf8');
+            tasks = content.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+          } catch (e) {
+            console.error(`Error reading file: ${e.message}`);
+            process.exit(1);
+          }
+          if (tasks.length === 0) {
+            console.error('No tasks found in file.');
+            process.exit(1);
+          }
+        } else if (count > 0 && batchTask) {
+          // Count mode: same task N times
+          for (let i = 0; i < count; i++) tasks.push(batchTask);
+        } else {
+          console.error('Usage: c4 batch "task" --count N');
+          console.error('       c4 batch --file tasks.txt');
+          console.error('  Options: --auto-mode --profile <name> --branch <prefix>');
+          process.exit(1);
+        }
+
+        console.log(`Batch: ${tasks.length} tasks`);
+        const results = [];
+        for (let i = 0; i < tasks.length; i++) {
+          const workerName = `batch-${i + 1}`;
+          const branchName = branch ? `${branch}-${i + 1}` : '';
+          const body = { name: workerName, task: tasks[i], useBranch: true };
+          if (branchName) body.branch = branchName;
+          if (autoMode) body.autoMode = true;
+          if (profile) body.profile = profile;
+          try {
+            const r = await request('POST', '/task', body);
+            results.push({ name: workerName, ok: true, result: r });
+            console.log(`  [${i + 1}/${tasks.length}] ${workerName}: created`);
+          } catch (e) {
+            results.push({ name: workerName, ok: false, error: e.message });
+            console.log(`  [${i + 1}/${tasks.length}] ${workerName}: FAILED (${e.message})`);
+          }
+        }
+
+        const ok = results.filter(r => r.ok).length;
+        const fail = results.filter(r => !r.ok).length;
+        console.log(`\nBatch complete: ${ok} created, ${fail} failed`);
+        return;
+      }
+
       case 'cleanup': {
         const dryRun = args.includes('--dry-run');
         result = await request('POST', '/cleanup', { dryRun });
@@ -1171,6 +1236,9 @@ Commands:
   auto <task>                      Autonomous mode: manager + scribe + task (4.8)
   morning                          Generate morning report (4.4)
   profiles                         List available permission profiles
+  batch "task" --count N           Same task to N workers in parallel
+  batch --file tasks.txt           One task per line from file
+       [--auto-mode] [--profile name] [--branch prefix]
   config                           Show current config
   config reload                    Reload config.json without restart
 
