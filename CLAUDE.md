@@ -91,6 +91,12 @@ c4 batch "작업" [--count N] [--file tasks.txt]  배치 작업 실행
 | 에이전트 정의 | `.claude/agents/manager.md` | 기본 Claude Code |
 | 모델 | claude-opus-4-6 | config 설정에 따름 |
 
+### 관리자 세션 시작 (권장)
+```
+claude --agent C:/Users/silof/c4/.claude/agents/manager.md
+```
+agent 모드로 시작하면 compound 금지(git -C 사용), Read/Edit deny 등 관리자 규칙이 강제된다.
+
 ### 관리자 워커 운영 패턴
 관리자(auto-mgr)는 c4 명령어로 하위 워커를 생성/관리/감시한다:
 1. `c4 new worker1` 으로 워커 생성
