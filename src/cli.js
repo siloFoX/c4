@@ -107,26 +107,38 @@ async function main() {
       }
 
       case 'task': {
-        const name = args[0];
+        // Check for --auto-name flag (5.40): auto-generate worker name from task text
+        const autoName = args.includes('--auto-name');
+        const effectiveArgs = args.filter(a => a !== '--auto-name');
+
+        let name, argStart;
+        if (autoName) {
+          name = '';  // server will auto-generate from task text
+          argStart = 0;
+        } else {
+          name = effectiveArgs[0] || '';
+          argStart = 1;
+        }
+
         let branch = '', useBranch = true, scope = null, scopePreset = '', after = '', contextFrom = '', reuse = undefined, profile = '', autoMode = false, projectRoot = '';
         const taskParts = [];
-        for (let i = 1; i < args.length; i++) {
-          if (args[i] === '--branch' && args[i + 1]) { branch = args[++i]; }
-          else if (args[i] === '--no-branch') { useBranch = false; }
-          else if (args[i] === '--after' && args[i + 1]) { after = args[++i]; }
-          else if (args[i] === '--context' && args[i + 1]) { contextFrom = args[++i]; }
-          else if (args[i] === '--reuse') { reuse = true; }
-          else if (args[i] === '--no-reuse') { reuse = false; }
-          else if (args[i] === '--profile' && args[i + 1]) { profile = args[++i]; }
-          else if (args[i] === '--template' && args[i + 1]) { profile = args[++i]; }
-          else if (args[i] === '--auto-mode') { autoMode = true; }
-          else if (args[i] === '--repo' && args[i + 1]) { projectRoot = args[++i]; }
-          else if (args[i] === '--scope' && args[i + 1]) {
-            try { scope = JSON.parse(args[++i]); }
+        for (let i = argStart; i < effectiveArgs.length; i++) {
+          if (effectiveArgs[i] === '--branch' && effectiveArgs[i + 1]) { branch = effectiveArgs[++i]; }
+          else if (effectiveArgs[i] === '--no-branch') { useBranch = false; }
+          else if (effectiveArgs[i] === '--after' && effectiveArgs[i + 1]) { after = effectiveArgs[++i]; }
+          else if (effectiveArgs[i] === '--context' && effectiveArgs[i + 1]) { contextFrom = effectiveArgs[++i]; }
+          else if (effectiveArgs[i] === '--reuse') { reuse = true; }
+          else if (effectiveArgs[i] === '--no-reuse') { reuse = false; }
+          else if (effectiveArgs[i] === '--profile' && effectiveArgs[i + 1]) { profile = effectiveArgs[++i]; }
+          else if (effectiveArgs[i] === '--template' && effectiveArgs[i + 1]) { profile = effectiveArgs[++i]; }
+          else if (effectiveArgs[i] === '--auto-mode') { autoMode = true; }
+          else if (effectiveArgs[i] === '--repo' && effectiveArgs[i + 1]) { projectRoot = effectiveArgs[++i]; }
+          else if (effectiveArgs[i] === '--scope' && effectiveArgs[i + 1]) {
+            try { scope = JSON.parse(effectiveArgs[++i]); }
             catch { console.error('Error: --scope must be valid JSON'); process.exit(1); }
           }
-          else if (args[i] === '--scope-preset' && args[i + 1]) { scopePreset = args[++i]; }
-          else { taskParts.push(args[i]); }
+          else if (effectiveArgs[i] === '--scope-preset' && effectiveArgs[i + 1]) { scopePreset = effectiveArgs[++i]; }
+          else { taskParts.push(effectiveArgs[i]); }
         }
         const task = taskParts.join(' ');
         const body = { name, task, branch, useBranch };
