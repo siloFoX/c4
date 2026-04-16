@@ -406,6 +406,8 @@ Level 4이면:
 | 5.46 | 실패 사례: w-535/w-536 복합 명령 차단으로 작업 불가 | **todo** | 5개 worker 중 2개 커밋 0건. 전부 복합 명령 승인 대기에 막힘. PreToolUse hook이 너무 공격적. docs/known-issues.md에 기록. |
 | 5.47 | PreToolUse 복합 명령 차단 정책 재검토 | **done** | exit(2) block -> exit(0) warning으로 변경 완료. worker가 멈추지 않고 경고만 표시. |
 | 5.48 | Claude Code 자체 compound command 승인 prompt | **todo** | cd && git 할 때 Claude Code가 "bare repository attacks" 경고로 승인 요청. c4 hook과 별개. 해결: worker worktree settings.json permissions에 compound command 패턴 allow 추가, 또는 관리자/worker 세션에서 "Yes, and don't ask again" 자동 선택. |
+| 5.49 | task 메시지 # 특수문자 승인 prompt | **todo** | 긴 task에 # 포함 시 Claude Code가 "Newline followed by # can hide arguments" 보안 경고. 파일 기반 task 전달(5.35)로 우회 가능. 관리자가 c4 task 보낼 때 자동으로 파일 전달 모드 사용하도록. |
+| 5.50 | 관리자가 git -C 안 쓰는 문제 | **todo** | CLAUDE.md/manager.md에 명시해도 관리자 Claude가 cd && git 사용. --agent manager.md로 시작하면 강제 가능하지만 일반 세션에서는 무시. sendTask rules에 "git -C만 사용" 삽입 검토. |
 
 ## Phase 6 - 마케팅/가시성
 
