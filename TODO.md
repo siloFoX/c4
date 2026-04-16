@@ -415,12 +415,12 @@ Level 4이면:
 | # | 항목 | 상태 | 설명 |
 |---|------|------|------|
 | 6.1 | README 한 줄 요약 강화 | **done** | 상단에 독보적 기능 한 문장 |
-| 6.2 | asciinema 데모 | **todo** | c4 auto 터미널 녹화. README에 GIF 삽입 |
+| 6.2 | asciinema 데모 | **done** | c4 auto 터미널 녹화. README에 GIF 삽입. docs/best-practices.md에 녹화 가이드 작성 |
 | 6.3 | GitHub Topics | **done** | #claude-code #agent-orchestrator 등 태그 추가 |
-| 6.4 | MCP 서버 등록 | **todo** | smithery.ai 등 MCP 리스트에 C4 등록 |
-| 6.5 | Build in Public 자동화 | **todo** | Scribe 요약본을 SNS에 자동 포스팅 연동 |
+| 6.4 | MCP 서버 등록 | **done** | smithery.ai 등록 절차 + Claude Code MCP 설정 + 수동 테스트 가이드. docs/best-practices.md |
+| 6.5 | Build in Public 자동화 | **done** | 콘텐츠 소스/채널/일정/내러티브 전략. Scribe 기반 파이프라인 설계. docs/best-practices.md |
 | 6.6 | 경쟁 키워드 선점 | **done** | Manager Rotation, Recursive Worker 등을 README/docs에 반복 노출 |
-| 6.7 | docs/best-practices.md | **todo** | 실사용 성공 사례 문서. DGX arps 구현 예시 등 |
+| 6.7 | docs/best-practices.md | **done** | 실사용 패턴 6선 + 데모 시나리오 + MCP 등록 + Build in Public. docs/best-practices.md |
 
 ## 완료
 
@@ -498,3 +498,7 @@ Level 4이면:
 | ~~4.22~~ | SSH target worktree 생성 방지 | 2026-04-04 |
 | ~~4.23~~ | 트러블슈팅 가이드 | 2026-04-04 |
 | ~~4.24~~ | 알림 동작 수정 | 2026-04-04 |
+| ~~6.2~~ | asciinema 데모 가이드 | 2026-04-16 |
+| ~~6.4~~ | MCP 서버 등록 가이드 | 2026-04-16 |
+| ~~6.5~~ | Build in Public 전략 | 2026-04-16 |
+| ~~6.7~~ | docs/best-practices.md | 2026-04-16 |
