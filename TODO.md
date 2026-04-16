@@ -375,7 +375,7 @@ Level 4이면:
 | 5.15 | Dirty Worktree Slack 경고 | **done** | STALL처럼 눈에 띄게 알림 |
 | 5.16 | --repo 옵션 | **done** | c4 task --repo /path/to/other-project 로 다른 프로젝트 worktree 생성 지원 (5.17과 동일) |
 | 5.17 | c4 task --repo 옵션 구현 | **done** | cli.js --repo 파싱, daemon.js projectRoot 전달, pty-manager sendTask 연결 |
-| 5.18 | c4 send 자동 Enter | **done** | 이미 구현됨 - send()에서 자동 \r 추가 (pty-manager.js 2777번 줄) |
+| 5.18 | c4 send 자동 Enter | **partial** | send()에서 \r 추가했으나 실사용에서 여전히 Enter 안 먹히는 케이스 발생. _chunkedWrite 타이밍 문제 의심 |
 | 5.19 | PreToolUse 복합 명령 차단 실효성 | **done** | 원인: 워커가 home dir에서 스폰되어 worktree settings.json 미로드. 수정: worktree 생성 후 스폰 + standalone script 분리 |
 | 5.20 | CI 피드백 루프 | **done** | worker 커밋 후 npm test 자동 실행, 실패 시 worker에 자동 피드백. config.ci.enabled/testCommand/timeoutMs 설정 |
 | 5.21 | 하이브리드 안전 모드 | **done** | L4에서도 rm -rf, push --force 등 위험 명령은 Slack 승인 요청 |
@@ -391,6 +391,10 @@ Level 4이면:
 | 5.31 | 다른 repo 브랜치 자동 정리 | **done** | c4 worker close 시 해당 worker가 만든 c4/ 접두사 브랜치를 자동 삭제. worktree remove + branch delete |
 | 5.32 | worktree prune 자동화 | **done** | healthCheck에서 주기적으로 git worktree prune 실행. prunable worktree 감지 시 자동 정리 |
 | 5.33 | c4 cleanup 명령 | **done** | 수동 정리 명령어. 모든 LOST worker의 worktree + 브랜치 + 잔여 디렉토리를 한 번에 정리 |
+| 5.34 | autoApprove에 poetry/nvidia-smi/nohup/lsof/env 추가 | **todo** | 실사용 피드백: 기본 셸 도구 + Python 개발 도구 부족. 프로젝트별 config 또는 기본 rules 확장 |
+| 5.35 | 긴 task 메시지 잘림 근본 수정 | **todo** | _chunkedWrite Promise 전환 후에도 수백 줄 task에서 잘림 발생. 파일 기반 task 전달 방식 검토 (task를 파일로 쓰고 워커에 경로만 전달) |
+| 5.36 | c4 approve 편의 명령 | **todo** | TUI 선택 프롬프트를 번호로 선택. c4 send "2" 안 됨 — key Down/Enter 조합 필요. c4 approve worker 1 하면 첫 번째 옵션 선택 |
+| 5.37 | --no-branch/--cwd 외부 repo 지원 개선 | **todo** | --cwd 지정해도 worktree가 c4 repo 기준으로 생성. --no-branch 시 worktree 비활성화 명확히. --repo와 --cwd 차이 문서화 |
 
 ## Phase 6 - 마케팅/가시성
 
