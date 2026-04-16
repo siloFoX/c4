@@ -391,6 +391,7 @@ Level 4이면:
 | 5.31 | 다른 repo 브랜치 자동 정리 | **done** | c4 worker close 시 해당 worker가 만든 c4/ 접두사 브랜치를 자동 삭제. worktree remove + branch delete |
 | 5.32 | worktree prune 자동화 | **done** | healthCheck에서 주기적으로 git worktree prune 실행. prunable worktree 감지 시 자동 정리 |
 | 5.33 | c4 cleanup 명령 | **done** | 수동 정리 명령어. 모든 LOST worker의 worktree + 브랜치 + 잔여 디렉토리를 한 번에 정리 |
+| 5.34 | autoApprove에 개발 도구 추가 | **done** | nvidia-smi, nohup, lsof, env, which, whoami, poetry를 worker defaultPerms에 추가 |
 
 ## Phase 6 - 마케팅/가시성
 

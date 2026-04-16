@@ -3,6 +3,7 @@
 ## [1.5.10] - 2026-04-05
 
 ### Added
+- **autoApprove에 개발 도구 추가** (5.34): worker defaultPerms에 nvidia-smi(GPU 모니터링), nohup(백그라운드 실행), lsof(포트/파일 잠금), env(환경변수), which(실행파일 경로), whoami, poetry 추가
 - **Worker auto-approve 범위 확장** (5.24): worker defaultPerms에 개발 도구(npm, python, cargo, docker, ffmpeg, make 등), 셸 유틸리티(ls, cat, grep, mkdir, cp, mv 등), 파일 도구(Read, Edit, Write, Glob, Grep) 추가. auto-manager는 영향 없음. config.example.json에 node/python/rust 프로파일 프리셋 추가
 
 ## [1.5.9] - 2026-04-05
