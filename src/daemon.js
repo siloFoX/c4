@@ -362,6 +362,38 @@ async function handleRequest(req, res) {
         }
       }
 
+    } else if (req.method === 'GET' && route === '/watch') {
+      // Watch worker output stream (5.42) — SSE with base64-encoded PTY data
+      const name = url.searchParams.get('name');
+      if (!name) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Missing name parameter' }));
+        return;
+      }
+
+      const unwatch = manager.watchWorker(name, (data) => {
+        const encoded = Buffer.from(data).toString('base64');
+        res.write(`data: ${JSON.stringify({ type: 'output', data: encoded })}\n\n`);
+      });
+
+      if (!unwatch) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: `Worker '${name}' not found` }));
+        return;
+      }
+
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+      });
+      res.write(`data: ${JSON.stringify({ type: 'connected', worker: name })}\n\n`);
+
+      req.on('close', () => {
+        unwatch();
+      });
+      return; // Don't end the response
+
     } else if (req.method === 'GET' && route === '/dashboard') {
       // Dashboard Web UI (4.3)
       res.setHeader('Content-Type', 'text/html; charset=utf-8');

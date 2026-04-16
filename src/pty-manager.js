@@ -2538,6 +2538,13 @@ class PtyManager extends EventEmitter {
 
       screen.write(data);
 
+      // Notify watch stream listeners (5.42)
+      if (worker._watchers && worker._watchers.size > 0) {
+        for (const cb of worker._watchers) {
+          try { cb(data); } catch (e) { /* watcher error, ignore */ }
+        }
+      }
+
       // Send pending commands when SSH shell is ready
       if (worker.pendingCommands && worker.pendingCommands.length > 0) {
         const cmd = worker.pendingCommands.shift();
@@ -3113,6 +3120,18 @@ class PtyManager extends EventEmitter {
       content: w.screen.getScrollback(lastN),
       lines: Math.min(lastN, w.screen.scrollback.length),
       totalScrollback: w.screen.scrollback.length
+    };
+  }
+
+  // Watch worker output stream (5.42)
+  // Registers a callback that receives raw PTY data. Returns unwatch function, or null if worker not found.
+  watchWorker(name, cb) {
+    const w = this.workers.get(name);
+    if (!w) return null;
+    if (!w._watchers) w._watchers = new Set();
+    w._watchers.add(cb);
+    return () => {
+      if (w._watchers) w._watchers.delete(cb);
     };
   }
 

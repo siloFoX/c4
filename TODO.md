@@ -399,7 +399,7 @@ Level 4이면:
 | 5.39 | 관리자가 c4 list 무한 반복하는 문제 | **done** | 실측: 324번 c4 list 호출, 사용자 메시지 3개. 해결: (1) CLAUDE.md에 "c4 wait 사용, c4 list 폴링 금지" 명시, (2) c4 list에 10초 cooldown (캐시 반환), (3) Custom Agent에 "wait만 사용" 규칙. |
 | 5.40 | worker 이름에 작업 설명 포함 | **done** | w-535 같은 의미없는 이름 대신 task 기반 자동 네이밍. c4 task 시 이름 자동 생성(task 첫 단어 기반) 또는 관리자에게 의미있는 이름 사용 강제. |
 | 5.41 | worktree close 후 정리 검증 | **todo** | worktree dir이 close 후에도 남는 케이스 추가 확인. healthCheck에서 orphan worktree 스캔 강화. |
-| 5.42 | c4 watch 실시간 스트리밍 | **todo** | worker 출력을 tail -f처럼 실시간 스트리밍. 현재 read-now는 스냅샷만. SSE /events 활용하거나 PTY onData를 직접 파이프. |
+| 5.42 | c4 watch 실시간 스트리밍 | **done** | worker 출력을 tail -f처럼 실시간 스트리밍. SSE /watch 엔드포인트 + PTY onData를 watchWorker()로 파이프. base64 인코딩. |
 | 5.43 | 관리자 병렬 wait | **done** | c4 wait --all 또는 c4 wait w1 w2 w3 동시 대기 후 첫 완료 시 반환. waitAndReadMulti() 메서드, /wait-read-multi 라우트 |
 | 5.44 | interrupt-on-intervention | **done** | c4 wait --interrupt-on-intervention: intervention 감지 시 wait 즉시 종료 + 해당 worker 정보 반환. 단일/병렬 wait 모두 지원 |
 | 5.45 | 관리자 역할 가이드 강화 | **done** | CLAUDE.md에 관리자 승인 프로토콜 추가: read-now -> 판단 -> 승인/수정 3단계. 맹목적 승인 금지, 판단 기준 명시 |
