@@ -384,7 +384,7 @@ Level 4이면:
 | 5.24 | worker auto-approve 범위 확장 | **done** | python, pip, ffmpeg 등 개발 도구를 autoApprove rules에 기본 포함 |
 | 5.25 | 다른 프로젝트 브랜치 정리 | **done** | c4 worker가 만든 c4/ 접두사 브랜치를 close 시 자동 삭제 |
 | 5.26 | worker 권한 프로파일 | **todo** | 프로젝트 유형별 auto-approve 프리셋. config.json profiles 확장 |
-| 5.27 | 실사용 실패 케이스 문서화 | **todo** | docs/known-issues.md에 실패 사례 기록 |
+| 5.27 | 실사용 실패 케이스 문서화 | **done** | docs/known-issues.md에 실패 사례 기록. 해결 8건 + 미해결 1건 + 패턴 요약 |
 | 5.28 | 관리자 자동 승인 방지 | **done** | 관리자가 cron으로 자동 Enter 보내는 패턴 차단. 위험 명령 무분별 승인 방지 |
 | 5.29 | intervention 발생 시 관리자 알림 | **done** | question/escalation/permission 감지 시 즉시 notifyStall 호출. healthCheck 30초 대기 없이 실시간 알림 |
 | 5.30 | 서브모듈 프로젝트 diff 지원 | **done** | git diff --stat이 서브모듈 포인터만 보이는 문제. --submodule=diff 옵션 자동 적용 |
@@ -402,8 +402,8 @@ Level 4이면:
 | 5.42 | c4 watch 실시간 스트리밍 | **todo** | worker 출력을 tail -f처럼 실시간 스트리밍. 현재 read-now는 스냅샷만. SSE /events 활용하거나 PTY onData를 직접 파이프. |
 | 5.43 | 관리자 병렬 wait | **todo** | 관리자가 여러 worker를 순차 wait하면 시간 낭비. c4 wait --all 또는 c4 wait w-1 w-2 w-3 동시 대기 후 첫 완료 시 알림. |
 | 5.44 | 관리자 판단 모드 | **todo** | 관리자가 wait 중에도 intervention 발생 시 중단하고 판단할 수 있어야 함. c4 wait --interrupt-on-intervention: intervention 감지 시 wait 즉시 종료 + 해당 worker 정보 반환. 관리자가 read-now로 확인 후 approve/deny/send 판단. |
-| 5.45 | 관리자 역할 가이드 강화 | **todo** | CLAUDE.md에 관리자 역할 명확화: 단순 Enter가 아니라 (1) read-now로 내용 확인 (2) 적절한지 판단 (3) 승인 또는 수정 지시. 맹목적 승인 금지. |
-| 5.46 | 실패 사례: w-535/w-536 복합 명령 차단으로 작업 불가 | **todo** | 5개 worker 중 2개 커밋 0건. 전부 복합 명령 승인 대기에 막힘. PreToolUse hook이 너무 공격적. docs/known-issues.md에 기록. |
+| 5.45 | 관리자 역할 가이드 강화 | **done** | CLAUDE.md에 관리자 승인 프로토콜 추가: read-now -> 판단 -> 승인/수정 3단계. 맹목적 승인 금지, 판단 기준 명시 |
+| 5.46 | 실패 사례: w-535/w-536 복합 명령 차단으로 작업 불가 | **done** | docs/known-issues.md에 기록 완료. exit(2) block -> exit(0) warning 변경 경위 포함 |
 | 5.47 | PreToolUse 복합 명령 차단 정책 재검토 | **done** | exit(2) block -> exit(0) warning으로 변경 완료. worker가 멈추지 않고 경고만 표시. |
 | 5.48 | Claude Code 자체 compound command 승인 prompt | **todo** | cd && git 할 때 Claude Code가 "bare repository attacks" 경고로 승인 요청. c4 hook과 별개. 해결: worker worktree settings.json permissions에 compound command 패턴 allow 추가, 또는 관리자/worker 세션에서 "Yes, and don't ask again" 자동 선택. |
 
