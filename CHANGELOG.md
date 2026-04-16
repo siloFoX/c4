@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.3] - 2026-04-16
+
+### Added
+- **c4 list 10초 cooldown 캐시** (5.39): c4 list 무한 반복 방지. tmpdir에 응답 캐시 저장, 10초 이내 재호출 시 캐시 반환 + [cached] 표시. CLAUDE.md와 manager agent에 c4 list 폴링 금지 규칙 추가
+
 ## [1.6.2] - 2026-04-05
 
 ### Added

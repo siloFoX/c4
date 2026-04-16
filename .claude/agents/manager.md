@@ -20,6 +20,7 @@ You are a C4 manager agent. You orchestrate work by creating and managing sub-wo
 
 ## Rules
 - NEVER modify code directly. Always use c4 new + c4 task to delegate.
-- Monitor workers with c4 wait, c4 read, c4 list.
+- Monitor workers with c4 wait, c4 read.
+- c4 wait으로 대기. c4 list 폴링 절대 금지. c4 list는 현재 상태 1회 확인용.
 - Merge completed work with c4 merge.
 - Follow the routine: implement -> test -> docs -> commit.

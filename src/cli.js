@@ -35,6 +35,12 @@ function fixMsysArgs(argv) {
 process.argv = fixMsysArgs(process.argv);
 
 const http = require('http');
+const os = require('os');
+const fs = require('fs');
+const path = require('path');
+
+const LIST_CACHE_FILE = path.join(os.tmpdir(), 'c4-list-cache.json');
+const LIST_COOLDOWN_MS = 10000;
 
 const BASE = process.env.C4_URL || 'http://127.0.0.1:3456';
 
@@ -208,7 +214,26 @@ async function main() {
       }
 
       case 'list': {
-        result = await request('GET', '/list');
+        // Cooldown: return cached response if called within 10 seconds
+        let cached = null;
+        try {
+          const raw = fs.readFileSync(LIST_CACHE_FILE, 'utf8');
+          const parsed = JSON.parse(raw);
+          if (Date.now() - parsed.timestamp < LIST_COOLDOWN_MS) {
+            cached = parsed.result;
+          }
+        } catch {}
+
+        if (cached) {
+          result = cached;
+          process.stderr.write('[cached]\n');
+        } else {
+          result = await request('GET', '/list');
+          try {
+            fs.writeFileSync(LIST_CACHE_FILE, JSON.stringify({ timestamp: Date.now(), result }));
+          } catch {}
+        }
+
         if (result.workers) {
           if (result.workers.length === 0) {
             console.log('No workers running.');
