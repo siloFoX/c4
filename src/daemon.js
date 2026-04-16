@@ -155,7 +155,7 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && route === '/send') {
       const { name, input, keys } = await parseBody(req);
-      result = manager.send(name, input, keys || false);
+      result = await manager.send(name, input, keys || false);
 
     } else if (req.method === 'GET' && route === '/read') {
       const name = url.searchParams.get('name');

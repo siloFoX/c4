@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.6] - 2026-04-16
+
+### Fixed
+- **c4 send 자동 Enter 누락 수정** (5.18): send()에서 input과 CR을 분리 전송. _chunkedWrite로 input 전송 후 100ms 대기, 별도 proc.write('\r')로 Enter 전송. send()를 async로 변경, daemon.js 호출부에 await 추가
+
 ## [1.6.5] - 2026-04-16
 
 ### Fixed

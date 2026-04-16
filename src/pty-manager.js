@@ -2951,7 +2951,7 @@ class PtyManager extends EventEmitter {
     };
   }
 
-  send(name, input, isSpecialKey = false) {
+  async send(name, input, isSpecialKey = false) {
     const w = this.workers.get(name);
     if (!w) return { error: `Worker '${name}' not found` };
     if (!w.alive) return { error: `Worker '${name}' has exited` };
@@ -2992,7 +2992,9 @@ class PtyManager extends EventEmitter {
       if (!code) return { error: `Unknown key: '${input}'` };
       w.proc.write(code);
     } else {
-      this._chunkedWrite(w.proc, input + '\r');
+      await this._chunkedWrite(w.proc, input);
+      await new Promise(r => setTimeout(r, 100));
+      w.proc.write('\r');
     }
 
     return { success: true };
