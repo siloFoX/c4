@@ -13,9 +13,11 @@
 ![Platform](https://img.shields.io/badge/platform-Win11%2022H2%2B%20%7C%20Ubuntu%2022.04%2B-blue.svg)
 ![Version](https://img.shields.io/badge/version-1.5.0-green.svg)
 
+> **The only multi-agent orchestrator for Claude Code** — parallel workers, manager rotation, recursive delegation, overnight autonomous coding. No screenshots, just PTY.
+
 **[한국어](README.ko.md)**
 
-An agent-on-agent orchestrator. C4 lets Claude Code manage multiple Claude Code workers through virtual terminals — no screen capture, no token waste.
+A multi-agent orchestrator for autonomous coding. C4 lets Claude Code spawn, supervise, and merge parallel Claude Code workers through virtual terminals — with hierarchical task delegation, automatic manager rotation, and agent swarm support. No screen capture, no token waste.
 
 ```
 You ↔ Claude Code (Manager) ↔ C4 Daemon ↔ Worker A (Claude Code)
@@ -46,10 +48,12 @@ Claude Desktop's Dispatch uses **screen capture** to interact with terminals:
 - Expensive (image tokens >> text tokens)
 - Lossy (OCR-level accuracy)
 
-C4 uses **virtual terminal** text instead:
+C4 uses **PTY-native virtual terminal** text instead:
 - PTY captures raw output → ScreenBuffer processes escape sequences → clean text
 - Idle detection → snapshot only when terminal stops updating
-- **10-100x more efficient** than screenshot-based approaches
+- **10-100x more efficient** than screenshot-based agent orchestration
+
+This efficiency makes C4 viable for overnight autonomous coding with multiple parallel workers — something screenshot-based approaches can't sustain.
 
 ## Prerequisites
 
@@ -282,10 +286,10 @@ These are used by Claude Code (manager), not by you directly:
 - **Auto-approve**: Pattern-based approval/denial of worker actions (Read, Write, Bash commands)
 - **Git worktree**: Each worker gets isolated directory — no conflicts between parallel workers
 - **SSH workers**: Spawn workers on remote servers with auto-reconnect on disconnect
-- **Recursive C4**: Workers spawn sub-workers for hierarchical task delegation
+- **Recursive C4 (Recursive Workers)**: Workers spawn sub-workers for multi-level hierarchical task delegation
 
 **Orchestration**
-- **Task queue**: Rate limiting (`maxWorkers`), dependencies (`--after`), duplicate prevention
+- **Task queue / Batch execution**: Rate limiting (`maxWorkers`), dependencies (`--after`), duplicate prevention, batch processing
 - **Scope guard**: File/command restrictions per task with drift keyword detection
 - **Intervention protocol**: Auto-detect worker questions, repeated errors, routine skips
 - **Role templates**: Planner (Opus), Executor (Sonnet), Reviewer (Haiku) presets
@@ -293,11 +297,11 @@ These are used by Claude Code (manager), not by you directly:
 - **Context transfer**: Inject previous worker's output into new tasks
 
 **Autonomous Operation**
-- **`c4 auto`**: One-command autonomous mode — manager + scribe + full permissions
+- **`c4 auto`**: One-command overnight autonomous coding — manager + scribe + full permissions, works unattended
 - **Global auto mode**: All workers auto-approve non-denied commands (no overnight stalls)
 - **PostCompact recovery**: CLAUDE.md + session context re-injected after context compaction
 - **Session resume**: Workers auto-resume previous Claude Code sessions on restart (--resume flag)
-- **Manager rotation**: Auto-replace manager when context limit is reached (PostCompact hook)
+- **Manager rotation (Manager handoff)**: Auto-replace manager when context limit is reached — decision summary injected into new manager (PostCompact hook)
 - **Autonomy Level 4**: Full autonomy mode — deny rules overridden to approve
 - **Notifications**: Multi-channel alerts (Slack, Discord, Telegram, KakaoWork) + Email. alertOnly mode for critical-only alerts
 

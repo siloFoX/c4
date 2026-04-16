@@ -414,12 +414,12 @@ Level 4이면:
 
 | # | 항목 | 상태 | 설명 |
 |---|------|------|------|
-| 6.1 | README 한 줄 요약 강화 | **todo** | 상단에 독보적 기능 한 문장 |
+| 6.1 | README 한 줄 요약 강화 | **done** | 상단에 독보적 기능 한 문장 |
 | 6.2 | asciinema 데모 | **todo** | c4 auto 터미널 녹화. README에 GIF 삽입 |
-| 6.3 | GitHub Topics | **todo** | #claude-code #agent-orchestrator 등 태그 추가 |
+| 6.3 | GitHub Topics | **done** | #claude-code #agent-orchestrator 등 태그 추가 |
 | 6.4 | MCP 서버 등록 | **todo** | smithery.ai 등 MCP 리스트에 C4 등록 |
 | 6.5 | Build in Public 자동화 | **todo** | Scribe 요약본을 SNS에 자동 포스팅 연동 |
-| 6.6 | 경쟁 키워드 선점 | **todo** | Manager Rotation, Recursive Worker 등을 README/docs에 반복 노출 |
+| 6.6 | 경쟁 키워드 선점 | **done** | Manager Rotation, Recursive Worker 등을 README/docs에 반복 노출 |
 | 6.7 | docs/best-practices.md | **todo** | 실사용 성공 사례 문서. DGX arps 구현 예시 등 |
 
 ## 완료
