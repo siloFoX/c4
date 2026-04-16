@@ -108,3 +108,4 @@ c4 batch "작업" [--count N] [--file tasks.txt]  배치 작업 실행
 - 작업자 기본 루틴: 구현 - 테스트 - 문서 업데이트 - 커밋
 - 불필요한 확인 질문 하지 않기 - 자율적으로 판단해서 진행
 - scribe 항상 켜두기 - `c4 scribe start`로 주기적 컨텍스트 기록
+- `c4 list` 반복 금지 - `c4 wait <name>` 사용. `c4 list`는 현재 상태 확인용 (10초 cooldown 있음)
