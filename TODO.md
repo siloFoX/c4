@@ -407,7 +407,8 @@ Level 4이면:
 | 5.47 | PreToolUse 복합 명령 차단 정책 재검토 | **done** | exit(2) block -> exit(0) warning으로 변경 완료. worker가 멈추지 않고 경고만 표시. |
 | 5.48 | Claude Code 자체 compound command 승인 prompt | **todo** | cd && git 할 때 Claude Code가 "bare repository attacks" 경고로 승인 요청. c4 hook과 별개. 해결: worker worktree settings.json permissions에 compound command 패턴 allow 추가, 또는 관리자/worker 세션에서 "Yes, and don't ask again" 자동 선택. |
 | 5.49 | task 메시지 # 특수문자 승인 prompt | **todo** | 긴 task에 # 포함 시 Claude Code가 "Newline followed by # can hide arguments" 보안 경고. 파일 기반 task 전달(5.35)로 우회 가능. 관리자가 c4 task 보낼 때 자동으로 파일 전달 모드 사용하도록. |
-| 5.50 | 관리자가 git -C 안 쓰는 문제 | **todo** | CLAUDE.md/manager.md에 명시해도 관리자 Claude가 cd && git 사용. --agent manager.md로 시작하면 강제 가능하지만 일반 세션에서는 무시. sendTask rules에 "git -C만 사용" 삽입 검토. |
+| 5.50 | 관리자가 git -C 안 쓰는 문제 | **partial** | --agent manager.md로 시작하면 git -C 사용 확인됨. 일반 세션에서는 여전히 cd && git 사용. |
+| 5.51 | pendingTask 근본 해결 필요 | **todo** | c4 task로 worker 생성+task 전송해도 3개 worker 전부 task 못 받음. 데몬 재시작 후에도 발생. _createAndSendTask -> idle handler 타이밍 문제 근본적으로 남아있음. 관리자가 매번 c4 send로 재전송해야 함. |
 
 ## Phase 6 - 마케팅/가시성
 
