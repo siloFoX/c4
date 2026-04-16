@@ -3001,14 +3001,25 @@ class PtyManager extends EventEmitter {
   }
 
   // Approve a critical_deny command (5.21 hybrid safety)
-  approve(name) {
+  // optionNumber: select a specific TUI option (1-based). Down arrows + Enter.
+  approve(name, optionNumber) {
     const w = this.workers.get(name);
     if (!w) return { error: `Worker '${name}' not found` };
     if (w._interventionState !== 'critical_deny') {
       return { error: `Worker '${name}' is not awaiting critical approval` };
     }
     w._interventionState = null;
-    // Send 'y' + Enter to approve the pending permission prompt
+    if (optionNumber) {
+      // TUI selection: (N-1) Down arrows + Enter
+      let keys = '';
+      for (let i = 1; i < optionNumber; i++) {
+        keys += '\x1b[B'; // Down arrow
+      }
+      keys += '\r'; // Enter
+      w.proc.write(keys);
+      return { success: true, approved: w._criticalCommand, option: optionNumber };
+    }
+    // Default: send 'y' + Enter to approve
     w.proc.write('y\r');
     return { success: true, approved: w._criticalCommand };
   }

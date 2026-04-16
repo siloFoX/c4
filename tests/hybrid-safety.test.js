@@ -49,14 +49,21 @@ describe('Hybrid Safety Mode (5.21)', () => {
       return 'approve';
     };
 
-    mgr.approve = function(name) {
+    mgr.approve = function(name, optionNumber) {
       const w = this.workers.get(name);
       if (!w) return { error: `Worker '${name}' not found` };
       if (w._interventionState !== 'critical_deny') {
         return { error: `Worker '${name}' is not awaiting critical approval` };
       }
       w._interventionState = null;
-      w._approvedWith = 'y\r'; // track for testing
+      if (optionNumber) {
+        let keys = '';
+        for (let i = 1; i < optionNumber; i++) keys += '\x1b[B';
+        keys += '\r';
+        if (w.proc) w.proc.write(keys);
+        return { success: true, approved: w._criticalCommand, option: optionNumber };
+      }
+      if (w.proc) w.proc.write('y\r');
       return { success: true, approved: w._criticalCommand };
     };
 
@@ -122,6 +129,41 @@ describe('Hybrid Safety Mode (5.21)', () => {
     const result = mgr.approve('w2');
     assert.ok(result.error);
     assert.ok(result.error.includes('not awaiting'));
+  });
+
+  it('approve() with optionNumber sends Down arrows + Enter', () => {
+    const mgr = createMockManager();
+    let written = '';
+    const worker = {
+      snapshots: [],
+      _interventionState: 'critical_deny',
+      _criticalCommand: 'rm -rf /tmp',
+      proc: { write: (data) => { written = data; } }
+    };
+    mgr.workers.set('w1', worker);
+    const result = mgr.approve('w1', 3);
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.option, 3);
+    // option 3 = 2 Down arrows + Enter
+    assert.strictEqual(written, '\x1b[B\x1b[B\r');
+    assert.strictEqual(worker._interventionState, null);
+  });
+
+  it('approve() with optionNumber=1 sends only Enter', () => {
+    const mgr = createMockManager();
+    let written = '';
+    const worker = {
+      snapshots: [],
+      _interventionState: 'critical_deny',
+      _criticalCommand: 'rm -rf /tmp',
+      proc: { write: (data) => { written = data; } }
+    };
+    mgr.workers.set('w1', worker);
+    const result = mgr.approve('w1', 1);
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.option, 1);
+    // option 1 = just Enter (no Down arrows)
+    assert.strictEqual(written, '\r');
   });
 });
 

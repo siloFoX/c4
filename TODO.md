@@ -393,7 +393,7 @@ Level 4이면:
 | 5.33 | c4 cleanup 명령 | **done** | 수동 정리 명령어. 모든 LOST worker의 worktree + 브랜치 + 잔여 디렉토리를 한 번에 정리 |
 | 5.34 | autoApprove에 개발 도구 추가 | **done** | nvidia-smi, nohup, lsof, env, which, whoami, poetry를 worker defaultPerms에 추가 |
 | 5.35 | 긴 task 메시지 잘림 근본 수정 | **done** | 1000자 초과 task는 worktree/.c4-task.md에 파일로 저장, PTY에는 경로만 전달. _maybeWriteTaskFile() 헬퍼로 _buildTaskText + sendTask 인라인 모두 적용 |
-| 5.36 | c4 approve 편의 명령 | **todo** | TUI 선택 프롬프트를 번호로 선택. c4 send "2" 안 됨 — key Down/Enter 조합 필요. c4 approve worker 1 하면 첫 번째 옵션 선택 |
+| 5.36 | c4 approve 편의 명령 | **done** | `c4 approve <name> [option_number]` — TUI 선택 프롬프트를 번호로 선택. option_number 지정 시 (N-1) Down + Enter 전송. CLI, daemon, pty-manager 3계층 확장 |
 | 5.37 | --no-branch/--cwd 외부 repo 지원 개선 | **todo** | --cwd 지정해도 worktree가 c4 repo 기준으로 생성. --no-branch 시 worktree 비활성화 명확히. --repo와 --cwd 차이 문서화 |
 | 5.38 | Slack 메시지 길이 제한 + task 요약 포함 | **done** | pushAll() 2000자 truncate, _fmtWorker() activity 있어도 task 요약 항상 표시, notifyHealthCheck() dead worker에도 task 요약 포함. |
 | 5.39 | 관리자가 c4 list 무한 반복하는 문제 | **done** | 실측: 324번 c4 list 호출, 사용자 메시지 3개. 해결: (1) CLAUDE.md에 "c4 wait 사용, c4 list 폴링 금지" 명시, (2) c4 list에 10초 cooldown (캐시 반환), (3) Custom Agent에 "wait만 사용" 규칙. |

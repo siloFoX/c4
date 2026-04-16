@@ -219,7 +219,7 @@ These are used by Claude Code (manager), not by you directly:
 | `c4 status <name> <text>` | Send status update to Slack |
 | `c4 scribe start\|stop\|status\|scan` | Manage session context recording |
 | `c4 cleanup [--dry-run]` | Clean up orphan worktrees and branches |
-| `c4 approve <name>` | Manually approve critical command (hybrid safety) |
+| `c4 approve <name> [option_number]` | Manually approve critical command. With option_number, select a specific TUI option |
 | `c4 batch <text> [--count N] [--file tasks.txt]` | Batch task execution |
 | `c4 config [reload]` | View or hot-reload config |
 

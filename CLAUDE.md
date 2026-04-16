@@ -75,7 +75,7 @@ c4 plan <name> <task> [opts]         설계 작업 전송 (--branch, --output)
 c4 plan-read <name>                  설계 결과 읽기
 c4 rollback <name>                   워커 브랜치 롤백
 c4 cleanup [--dry-run]               고아 worktree/브랜치 일괄 정리
-c4 approve <name>                    critical 명령 수동 승인
+c4 approve <name> [option_number]     critical 명령 수동 승인 (번호로 TUI 옵션 선택)
 c4 batch "작업" [--count N] [--file tasks.txt]  배치 작업 실행
 ```
 
