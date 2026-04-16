@@ -9,9 +9,9 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Node >= 18](https://img.shields.io/badge/node-%3E%3D18%20(tested%20v24.11.1)-brightgreen.svg)
-![Claude Code](https://img.shields.io/badge/Claude_Code-v2.1.85--2.1.92-8A2BE2.svg)
+![Claude Code](https://img.shields.io/badge/Claude_Code-v2.1.85--2.1.110-8A2BE2.svg)
 ![Platform](https://img.shields.io/badge/platform-Win11%2022H2%2B%20%7C%20Ubuntu%2022.04%2B-blue.svg)
-![Version](https://img.shields.io/badge/version-1.5.0-green.svg)
+![Version](https://img.shields.io/badge/version-1.6.10-green.svg)
 
 > **Claude Code 전용 멀티 에이전트 오케스트레이터** — 병렬 작업자, 관리자 자동 교체, 재귀적 위임, 밤새 자율 코딩. 스크린샷 없이, PTY로.
 
