@@ -1650,6 +1650,17 @@ class PtyManager extends EventEmitter {
         });
       } catch {}
     }
+    // (5.41) Verify directory actually removed; fs.rmSync fallback + prune
+    if (fs.existsSync(gitPath)) {
+      try {
+        fs.rmSync(gitPath, { recursive: true, force: true });
+      } catch {}
+      try {
+        execSyncSafe('git worktree prune', {
+          cwd: repoRoot, encoding: 'utf8', stdio: 'pipe', timeout: 5000
+        });
+      } catch {}
+    }
   }
 
   /**
@@ -1763,6 +1774,64 @@ class PtyManager extends EventEmitter {
           } catch {}
         }
       } catch {}
+    } catch {}
+    return { cleaned, preserved };
+  }
+
+  /**
+   * (5.41) Compare `git worktree list` output against active workers to find
+   * orphan c4-worktree-* entries that git still tracks but no worker owns.
+   * Removes clean orphans; preserves dirty ones with notification.
+   */
+  _cleanupOrphanWorktreesByList() {
+    let cleaned = 0;
+    let preserved = 0;
+    try {
+      const repoRoot = this._detectRepoRoot();
+      if (!repoRoot) return { cleaned: 0, preserved: 0 };
+
+      const listOutput = execSyncSafe('git worktree list --porcelain', {
+        cwd: repoRoot, encoding: 'utf8', stdio: 'pipe', timeout: 5000
+      });
+
+      // Parse worktree paths from porcelain output
+      const gitWorktrees = [];
+      for (const line of listOutput.split('\n')) {
+        if (line.startsWith('worktree ')) {
+          gitWorktrees.push(line.slice('worktree '.length).trim().replace(/\\/g, '/'));
+        }
+      }
+
+      // Build set of known worktree paths from active workers
+      const knownWorktrees = new Set();
+      for (const [, w] of this.workers) {
+        if (w.worktree) knownWorktrees.add(w.worktree.replace(/\\/g, '/'));
+      }
+      // Also include lostWorkers (dirty ones being preserved)
+      if (Array.isArray(this.lostWorkers)) {
+        for (const lw of this.lostWorkers) {
+          if (lw.worktree) knownWorktrees.add(lw.worktree.replace(/\\/g, '/'));
+        }
+      }
+
+      // Find orphan c4-worktree-* entries
+      for (const wtPath of gitWorktrees) {
+        const basename = path.basename(wtPath);
+        if (!basename.startsWith('c4-worktree-')) continue;
+        if (knownWorktrees.has(wtPath)) continue;
+
+        // Orphan detected — check dirty state
+        if (fs.existsSync(wtPath) && this._isWorktreeDirty(wtPath)) {
+          const orphanName = basename.replace('c4-worktree-', '');
+          this._notifyLostDirty(orphanName, wtPath);
+          preserved++;
+          continue;
+        }
+
+        // Clean orphan — remove
+        this._removeWorktree(repoRoot, wtPath);
+        cleaned++;
+      }
     } catch {}
     return { cleaned, preserved };
   }
@@ -3487,6 +3556,9 @@ class PtyManager extends EventEmitter {
     // Lost worker worktree cleanup
     const cleanedWorktrees = this._cleanupLostWorktrees();
 
+    // (5.41) Orphan worktree detection via git worktree list vs active workers
+    const orphanWorktrees = this._cleanupOrphanWorktreesByList();
+
     // Worktree prune (5.32): periodically clean up stale worktrees
     try {
       const repoRoot = this._detectRepoRoot();
@@ -3497,7 +3569,7 @@ class PtyManager extends EventEmitter {
       }
     } catch {}
 
-    return { lastCheck: now, workers: results, rotated, cleaned, dequeued, tokenUsage: tokenResult, cleanedWorktrees };
+    return { lastCheck: now, workers: results, rotated, cleaned, dequeued, tokenUsage: tokenResult, cleanedWorktrees, orphanWorktrees };
   }
 
   startHealthCheck() {
