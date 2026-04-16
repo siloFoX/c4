@@ -405,9 +405,9 @@ Level 4이면:
 | 5.45 | 관리자 역할 가이드 강화 | **done** | CLAUDE.md에 관리자 승인 프로토콜 추가: read-now -> 판단 -> 승인/수정 3단계. 맹목적 승인 금지, 판단 기준 명시 |
 | 5.46 | 실패 사례: w-535/w-536 복합 명령 차단으로 작업 불가 | **done** | docs/known-issues.md에 기록 완료. exit(2) block -> exit(0) warning 변경 경위 포함 |
 | 5.47 | PreToolUse 복합 명령 차단 정책 재검토 | **done** | exit(2) block -> exit(0) warning으로 변경 완료. worker가 멈추지 않고 경고만 표시. |
-| 5.48 | Claude Code 자체 compound command 승인 prompt | **todo** | cd && git 할 때 Claude Code가 "bare repository attacks" 경고로 승인 요청. c4 hook과 별개. 해결: worker worktree settings.json permissions에 compound command 패턴 allow 추가, 또는 관리자/worker 세션에서 "Yes, and don't ask again" 자동 선택. |
-| 5.49 | task 메시지 # 특수문자 승인 prompt | **todo** | 긴 task에 # 포함 시 Claude Code가 "Newline followed by # can hide arguments" 보안 경고. 파일 기반 task 전달(5.35)로 우회 가능. 관리자가 c4 task 보낼 때 자동으로 파일 전달 모드 사용하도록. |
-| 5.50 | 관리자가 git -C 안 쓰는 문제 | **partial** | --agent manager.md로 시작하면 git -C 사용 확인됨. 일반 세션에서는 여전히 cd && git 사용. |
+| 5.48 | Claude Code 자체 compound command 승인 prompt | **done** | cd && git 할 때 Claude Code가 "bare repository attacks" 경고로 승인 요청. c4 hook과 별개. 해결: worker worktree settings.json permissions에 compound command 패턴 allow 추가 (cd * && *, cd * ; *, cd * || *) |
+| 5.49 | task 메시지 # 특수문자 승인 prompt | **done** | # 포함 시 Claude Code가 "Newline followed by # can hide arguments" 보안 경고. _maybeWriteTaskFile에서 # 감지 시 길이 무관하게 파일 전달 모드 사용 |
+| 5.50 | 관리자가 git -C 안 쓰는 문제 | **done** | _getRulesSummary()에 IMPORTANT git -C path 형태만 허용, cd 후 git 절대 금지 규칙 강화. cd X && git Y, cd X; git Y 모두 불가 명시 |
 | 5.51 | pendingTask 근본 해결 필요 | **todo** | c4 task로 worker 생성+task 전송해도 3개 worker 전부 task 못 받음. 데몬 재시작 후에도 발생. _createAndSendTask -> idle handler 타이밍 문제 근본적으로 남아있음. 관리자가 매번 c4 send로 재전송해야 함. |
 
 ## Phase 6 - 마케팅/가시성

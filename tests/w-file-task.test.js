@@ -24,7 +24,8 @@ class MockPtyManager {
   _getContextSnapshots() { return null; }
 
   _maybeWriteTaskFile(worker, fullText) {
-    if (fullText.length > 1000 && worker.worktree) {
+    const hasHash = fullText.includes('#');
+    if ((fullText.length > 1000 || hasHash) && worker.worktree) {
       const taskFilePath = path.join(worker.worktree, '.c4-task.md').replace(/\\/g, '/');
       fs.writeFileSync(taskFilePath, fullText, 'utf8');
       const cdPath = worker.worktree.replace(/\\/g, '/');
