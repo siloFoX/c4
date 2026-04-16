@@ -107,6 +107,7 @@ describe('Worker Settings Profile (3.16)', () => {
 
         const defaultPerms = [
           'Bash(c4:*)', 'Bash(MSYS_NO_PATHCONV=1 c4:*)', 'Bash(git:*)',
+          'Bash(cd * && *)',
           'Bash(npm:*)', 'Bash(npx:*)', 'Bash(node:*)',
           'Bash(python:*)', 'Bash(python3:*)', 'Bash(pip:*)', 'Bash(pip3:*)',
           'Bash(cargo:*)', 'Bash(go:*)', 'Bash(rustc:*)',
@@ -431,5 +432,21 @@ describe('Worker Settings Profile (3.16)', () => {
     assert.ok(!settings.permissions.deny.includes('Read'));
     assert.ok(!settings.permissions.deny.includes('Write'));
     assert.ok(!settings.permissions.deny.includes('Edit'));
+  });
+
+  // --- compound command permission pattern (5.48) ---
+
+  it('default perms include compound command pattern for cd', () => {
+    const mgr = createMockManager();
+    const settings = mgr._buildWorkerSettings('w1');
+    assert.ok(settings.permissions.allow.includes('Bash(cd * && *)'),
+      'must include cd compound pattern to prevent Claude Code bare repository prompt');
+  });
+
+  it('auto-manager does NOT have compound command pattern', () => {
+    const mgr = createMockManager();
+    const settings = mgr._buildWorkerSettings('auto-mgr', { _autoWorker: true });
+    assert.ok(!settings.permissions.allow.includes('Bash(cd * && *)'),
+      'auto-manager should not have compound patterns');
   });
 });

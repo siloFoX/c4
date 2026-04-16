@@ -127,11 +127,11 @@
 
 ## 미해결 이슈
 
-### Claude Code 자체 compound command 승인 prompt (5.48)
+### ~~Claude Code 자체 compound command 승인 prompt (5.48)~~ -- 해결됨
 
 **상황:** `cd path && git commit` 같은 복합 명령 실행 시 Claude Code가 "bare repository attacks" 보안 경고로 승인 프롬프트 표시. C4 hook과는 별개의 Claude Code 내부 동작.
 
-**현재 상태:** worker worktree settings.json permissions에 compound command 패턴 allow 추가하거나, 세션에서 "Yes, and don't ask again" 자동 선택 필요. 근본 해결은 복합 명령 자체를 쓰지 않는 것 (git -C 등 단일 명령 대체).
+**해결:** `_buildWorkerSettings()`의 `defaultPerms`에 `Bash(cd * && *)` 패턴 추가. Worker worktree의 `.claude/settings.json` permissions.allow에 자동 포함되어 Claude Code가 cd-based compound command를 승인 없이 실행.
 
 ---
 
