@@ -292,6 +292,9 @@ async function handleRequest(req, res) {
     } else if (req.method === 'GET' && route === '/templates') {
       result = { templates: manager.listTemplates() };
 
+    } else if (req.method === 'GET' && route === '/profiles') {
+      result = { profiles: manager.listProfiles() };
+
     } else if (req.method === 'GET' && route === '/swarm') {
       const name = url.searchParams.get('name');
       if (!name) {

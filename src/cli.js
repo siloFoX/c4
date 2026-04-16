@@ -815,6 +815,21 @@ async function main() {
         break;
       }
 
+      case 'profiles': {
+        result = await request('GET', '/profiles');
+        if (result.profiles) {
+          console.log('NAME\t\tALLOW\tDENY\tDESCRIPTION');
+          for (const [name, prof] of Object.entries(result.profiles)) {
+            const allow = (prof.allow || []).length;
+            const deny = (prof.deny || []).length;
+            const desc = (prof.description || '').slice(0, 50);
+            console.log(`${name}\t\t${allow}\t${deny}\t${desc}`);
+          }
+          return;
+        }
+        break;
+      }
+
       case 'swarm': {
         const name = args[0];
         if (!name) {
@@ -1155,6 +1170,7 @@ Commands:
   token-usage                      Show daily token usage
   auto <task>                      Autonomous mode: manager + scribe + task (4.8)
   morning                          Generate morning report (4.4)
+  profiles                         List available permission profiles
   config                           Show current config
   config reload                    Reload config.json without restart
 
@@ -1173,6 +1189,12 @@ Examples:
   c4 read-now arps              # 지금 당장 화면 보기 (스피너 포함)
   c4 list
   c4 close arps
+
+Profile examples:
+  c4 task worker "Build API" --profile web
+  c4 task worker "Train model" --profile ml
+  c4 task worker "Write Dockerfile" --profile infra
+  c4 profiles                      # List all profiles
 
 Scope examples:
   c4 task worker "Add logging" --scope '{"allowFiles":["src/rag.py","tests/"],"denyBash":["pip","docker"]}'

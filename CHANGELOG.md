@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.8] - 2026-04-16
+
+### Added
+- **프로젝트 유형별 권한 프로파일** (5.26): web/ml/infra 3종 프리셋 추가. `c4 task --profile web` 으로 프로젝트에 맞는 권한 세트 자동 적용. `c4 profiles` 명령으로 전체 프로파일 목록 조회. `/profiles` daemon API 엔드포인트 추가
+
 ## [1.6.7] - 2026-04-16
 
 ### Added

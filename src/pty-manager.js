@@ -1413,11 +1413,24 @@ class PtyManager extends EventEmitter {
     }
   }
 
-  // --- Worker Settings Profile (3.16) ---
+  // --- Worker Settings Profile (3.16 / 5.26) ---
 
   _getProfile(profileName) {
     const profiles = this.config.profiles || {};
     return profiles[profileName] || null;
+  }
+
+  listProfiles() {
+    const profiles = this.config.profiles || {};
+    const result = {};
+    for (const [name, prof] of Object.entries(profiles)) {
+      result[name] = {
+        description: prof.description || '',
+        allow: (prof.permissions && prof.permissions.allow) || [],
+        deny: (prof.permissions && prof.permissions.deny) || []
+      };
+    }
+    return result;
   }
 
   _buildWorkerSettings(workerName, options = {}) {
