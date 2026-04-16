@@ -1130,8 +1130,10 @@ class PtyManager extends EventEmitter {
   }
 
   // 5.35: long task -> file to prevent PTY truncation
+  // 5.49: # character triggers Claude Code "Newline followed by # can hide arguments" warning
   _maybeWriteTaskFile(worker, fullText) {
-    if (fullText.length > 1000 && worker.worktree) {
+    const hasHash = fullText.includes('#');
+    if ((fullText.length > 1000 || hasHash) && worker.worktree) {
       const taskFilePath = path.join(worker.worktree, '.c4-task.md').replace(/\\/g, '/');
       fs.writeFileSync(taskFilePath, fullText, 'utf8');
       const cdPath = worker.worktree.replace(/\\/g, '/');
@@ -1465,6 +1467,8 @@ class PtyManager extends EventEmitter {
         'Bash(git:*)',
         // Compound command patterns (5.48): prevent Claude Code's "bare repository attacks" prompt
         'Bash(cd * && *)',
+        'Bash(cd * ; *)',
+        'Bash(cd * || *)',
         'Bash(npm:*)', 'Bash(npx:*)', 'Bash(node:*)',
         'Bash(python:*)', 'Bash(python3:*)', 'Bash(pip:*)', 'Bash(pip3:*)',
         'Bash(poetry:*)',
@@ -2116,7 +2120,7 @@ class PtyManager extends EventEmitter {
     return [
       '[C4 규칙 — 반드시 준수]',
       '- 복합 명령(&&, |, ;) 사용 금지 → 단일 명령으로 분리',
-      '- cd X && git Y 대신 git -C <path> 사용',
+      '- IMPORTANT: git -C <path> 형태만 허용. cd 후 git 절대 금지 (cd X && git Y, cd X; git Y 모두 불가)',
       '- sleep 대신 c4 wait <name> 사용',
       '- /model 등 슬래시 명령: MSYS_NO_PATHCONV=1 c4 send 사용',
       '- main 직접 커밋 금지 → 브랜치에서 작업',
