@@ -178,8 +178,8 @@ async function handleRequest(req, res) {
       result = manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode });
 
     } else if (req.method === 'POST' && route === '/approve') {
-      const { name } = await parseBody(req);
-      result = manager.approve(name);
+      const { name, optionNumber } = await parseBody(req);
+      result = manager.approve(name, optionNumber);
 
     } else if (req.method === 'POST' && route === '/rollback') {
       const { name } = await parseBody(req);

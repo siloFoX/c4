@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.7] - 2026-04-16
+
+### Added
+- **c4 approve 편의 명령** (5.36): `c4 approve <name> [option_number]` — TUI 선택 프롬프트에서 번호로 옵션 선택. option_number 지정 시 (N-1) Down + Enter 키 전송. CLI, daemon route, pty-manager approve() 3계층 확장
+
 ## [1.6.6] - 2026-04-16
 
 ### Fixed

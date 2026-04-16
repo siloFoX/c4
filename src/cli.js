@@ -937,12 +937,20 @@ async function main() {
       case 'approve': {
         const name = args[0];
         if (!name) {
-          console.error('Usage: c4 approve <worker-name>');
+          console.error('Usage: c4 approve <worker-name> [option_number]');
           process.exit(1);
         }
-        result = await request('POST', '/approve', { name });
+        const optionNumber = args[1] ? parseInt(args[1], 10) : undefined;
+        if (optionNumber !== undefined && (isNaN(optionNumber) || optionNumber < 1)) {
+          console.error('option_number must be a positive integer (1, 2, 3, ...)');
+          process.exit(1);
+        }
+        result = await request('POST', '/approve', { name, optionNumber });
         if (result.success) {
-          console.log(`Approved critical command for '${name}': ${result.approved}`);
+          const detail = optionNumber
+            ? `Selected option ${optionNumber} for '${name}'`
+            : `Approved critical command for '${name}': ${result.approved}`;
+          console.log(detail);
           return;
         }
         break;
