@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.8] - 2026-04-16
+
+### Fixed
+- **compound command 승인 prompt 해결** (5.48): worker가 `cd path && git commit` 실행 시 Claude Code의 "bare repository attacks" 보안 경고 해결. `_buildWorkerSettings()` defaultPerms에 `Bash(cd * && *)` 패턴 추가하여 worktree settings.json에 자동 포함
+
 ## [1.6.7] - 2026-04-16
 
 ### Added

@@ -1450,6 +1450,8 @@ class PtyManager extends EventEmitter {
         'Bash(c4:*)',
         'Bash(MSYS_NO_PATHCONV=1 c4:*)',
         'Bash(git:*)',
+        // Compound command patterns (5.48): prevent Claude Code's "bare repository attacks" prompt
+        'Bash(cd * && *)',
         'Bash(npm:*)', 'Bash(npx:*)', 'Bash(node:*)',
         'Bash(python:*)', 'Bash(python3:*)', 'Bash(pip:*)', 'Bash(pip3:*)',
         'Bash(poetry:*)',
