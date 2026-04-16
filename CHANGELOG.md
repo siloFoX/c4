@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.5] - 2026-04-16
+
+### Fixed
+- **긴 task 메시지 잘림 근본 수정** (5.35): 1000자 초과 task는 worktree/.c4-task.md 파일로 저장하고 PTY에는 경로만 전달. `_maybeWriteTaskFile()` 헬퍼로 `_buildTaskText()` + `sendTask()` 인라인 빌드 모두 적용. worktree 없으면 기존 방식 유지
+
 ## [1.6.4] - 2026-04-16
 
 ### Added

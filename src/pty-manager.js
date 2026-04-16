@@ -1124,7 +1124,20 @@ class PtyManager extends EventEmitter {
       if (ctx) commands.push(ctx);
     }
     commands.push(task);
-    return commands.join('\n\n');
+    const fullText = commands.join('\n\n');
+
+    return this._maybeWriteTaskFile(worker, fullText);
+  }
+
+  // 5.35: long task -> file to prevent PTY truncation
+  _maybeWriteTaskFile(worker, fullText) {
+    if (fullText.length > 1000 && worker.worktree) {
+      const taskFilePath = path.join(worker.worktree, '.c4-task.md').replace(/\\/g, '/');
+      fs.writeFileSync(taskFilePath, fullText, 'utf8');
+      const cdPath = worker.worktree.replace(/\\/g, '/');
+      return `${taskFilePath} 파일을 읽고 지시대로 작업해. cd ${cdPath} 후 작업 시작.`;
+    }
+    return fullText;
   }
 
   _getScreenText(screen) {
@@ -2348,7 +2361,7 @@ class PtyManager extends EventEmitter {
 
     commands.push(task);
 
-    const fullTask = commands.join('\n\n');
+    const fullTask = this._maybeWriteTaskFile(w, commands.join('\n\n'));
     this._chunkedWrite(w.proc, fullTask + '\r');
     w.branch = branch;
 
