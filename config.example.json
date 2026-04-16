@@ -286,6 +286,43 @@
       "permissions": {
         "allow": ["Bash(cargo:*)", "Bash(rustc:*)"]
       }
+    },
+    "web": {
+      "description": "Web development project preset",
+      "permissions": {
+        "allow": [
+          "Bash(npm:*)", "Bash(npx:*)", "Bash(node:*)",
+          "Bash(yarn:*)", "Bash(pnpm:*)", "Bash(bun:*)",
+          "Bash(tsc:*)", "Bash(eslint:*)", "Bash(prettier:*)",
+          "Edit", "Write"
+        ],
+        "deny": ["Bash(rm:*)", "Bash(sudo:*)", "Bash(docker:*)"]
+      }
+    },
+    "ml": {
+      "description": "ML/Data Science project preset",
+      "permissions": {
+        "allow": [
+          "Bash(python:*)", "Bash(python3:*)", "Bash(pip:*)", "Bash(pip3:*)",
+          "Bash(conda:*)", "Bash(jupyter:*)", "Bash(ipython:*)",
+          "Bash(nvidia-smi:*)", "Bash(torchrun:*)",
+          "Edit", "Write"
+        ],
+        "deny": ["Bash(rm:*)", "Bash(sudo:*)", "Bash(shutdown:*)", "Bash(reboot:*)"]
+      }
+    },
+    "infra": {
+      "description": "Infrastructure/DevOps project preset",
+      "permissions": {
+        "allow": [
+          "Bash(docker:*)", "Bash(docker-compose:*)",
+          "Bash(terraform:*)", "Bash(ansible:*)",
+          "Bash(kubectl:*)", "Bash(helm:*)",
+          "Bash(ssh:*)", "Bash(scp:*)",
+          "Edit", "Write"
+        ],
+        "deny": ["Bash(rm -rf:*)", "Bash(sudo:*)", "Bash(shutdown:*)", "Bash(reboot:*)"]
+      }
     }
   },
 

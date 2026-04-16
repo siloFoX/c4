@@ -383,7 +383,7 @@ Level 4이면:
 | 5.23 | 경쟁자 분석 문서 | **todo** | docs/competitive-analysis.md. Composio, OpenHands 등 비교 |
 | 5.24 | worker auto-approve 범위 확장 | **done** | python, pip, ffmpeg 등 개발 도구를 autoApprove rules에 기본 포함 |
 | 5.25 | 다른 프로젝트 브랜치 정리 | **done** | c4 worker가 만든 c4/ 접두사 브랜치를 close 시 자동 삭제 |
-| 5.26 | worker 권한 프로파일 | **todo** | 프로젝트 유형별 auto-approve 프리셋. config.json profiles 확장 |
+| 5.26 | worker 권한 프로파일 | **done** | 프로젝트 유형별 auto-approve 프리셋. web/ml/infra 3종 추가 + c4 profiles CLI + /profiles API |
 | 5.27 | 실사용 실패 케이스 문서화 | **done** | docs/known-issues.md에 실패 사례 기록. 해결 8건 + 미해결 1건 + 패턴 요약 |
 | 5.28 | 관리자 자동 승인 방지 | **done** | 관리자가 cron으로 자동 Enter 보내는 패턴 차단. 위험 명령 무분별 승인 방지 |
 | 5.29 | intervention 발생 시 관리자 알림 | **done** | question/escalation/permission 감지 시 즉시 notifyStall 호출. healthCheck 30초 대기 없이 실시간 알림 |

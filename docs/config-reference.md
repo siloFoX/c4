@@ -305,32 +305,46 @@ Hook 아키텍처 (PreToolUse/PostToolUse).
 
 ## profiles
 
-worker별 `.claude/settings.json` 프로파일.
+worker별 `.claude/settings.json` 프로파일. `c4 task --profile <name>` 또는 `c4 profiles`로 조회.
+
+### 역할 기반 프로파일
+
+| Profile | 설명 | Edit/Write |
+|---------|------|------------|
+| `default` | 읽기 전용 기본 | deny |
+| `executor` | 코드 구현 전담 | allow |
+| `reviewer` | 코드 리뷰 전담 | deny |
+| `planner` | 설계/분석 전담 | deny |
+
+### 프로젝트 유형 프로파일
+
+| Profile | 설명 | 주요 도구 |
+|---------|------|-----------|
+| `web` | 웹 개발 | npm, npx, node, yarn, pnpm, bun, tsc, eslint, prettier |
+| `ml` | ML/데이터 과학 | python, pip, conda, jupyter, ipython, nvidia-smi, torchrun |
+| `infra` | 인프라/DevOps | docker, docker-compose, terraform, ansible, kubectl, helm, ssh, scp |
+
+### 언어 기반 프로파일
+
+| Profile | 설명 | 도구 |
+|---------|------|------|
+| `node` | Node.js | npm, npx, node |
+| `python` | Python | python, pip, conda |
+| `rust` | Rust | cargo, rustc |
 
 ```json
 {
-  "default": {
+  "web": {
+    "description": "Web development project preset",
     "permissions": {
-      "allow": ["Bash(c4:*)", "Bash(git:*)", "Bash(grep:*)"],
-      "deny": ["Bash(rm:*)", "Bash(sudo:*)"]
-    }
-  },
-  "executor": {
-    "permissions": {
-      "allow": ["Bash(c4:*)", "Bash(git:*)", "Bash(npm:*)", "Edit", "Write"],
-      "deny": ["Bash(rm:*)", "Bash(sudo:*)"]
-    }
-  },
-  "reviewer": {
-    "permissions": {
-      "allow": ["Bash(c4:*)", "Bash(git:*)", "Bash(grep:*)"],
-      "deny": ["Edit", "Write", "Bash(rm:*)"]
+      "allow": ["Bash(npm:*)", "Bash(npx:*)", "Bash(node:*)", "Bash(yarn:*)", "Edit", "Write"],
+      "deny": ["Bash(rm:*)", "Bash(sudo:*)", "Bash(docker:*)"]
     }
   }
 }
 ```
 
-모든 worker에 `Bash(c4:*)`, `Bash(git:*)` 권한이 자동 추가됨.
+모든 worker에 `Bash(c4:*)`, `Bash(git:*)` 등 기본 권한이 자동 추가됨.
 
 ## gitBash
 

@@ -71,6 +71,7 @@ c4 scribe start|stop|status|scan     세션 컨텍스트 기록
 c4 history [name] [--last N]         작업 히스토리 조회
 c4 token-usage                       토큰 사용량 조회
 c4 templates                         템플릿 목록 조회
+c4 profiles                          권한 프로파일 목록 조회
 c4 swarm <name>                      워커 swarm 상태 조회
 c4 morning                           모닝 리포트 생성
 c4 plan <name> <task> [opts]         설계 작업 전송 (--branch, --output)

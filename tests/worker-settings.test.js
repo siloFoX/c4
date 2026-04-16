@@ -34,6 +34,27 @@ describe('Worker Settings Profile (3.16)', () => {
             hooks: {
               PostToolUse: [{ hooks: [{ type: 'command', command: 'echo custom' }] }]
             }
+          },
+          web: {
+            description: 'Web development project preset',
+            permissions: {
+              allow: ['Bash(npm:*)', 'Bash(npx:*)', 'Bash(node:*)', 'Bash(yarn:*)', 'Edit', 'Write'],
+              deny: ['Bash(rm:*)', 'Bash(sudo:*)', 'Bash(docker:*)']
+            }
+          },
+          ml: {
+            description: 'ML/Data Science project preset',
+            permissions: {
+              allow: ['Bash(python:*)', 'Bash(pip:*)', 'Bash(conda:*)', 'Bash(jupyter:*)', 'Edit', 'Write'],
+              deny: ['Bash(rm:*)', 'Bash(sudo:*)']
+            }
+          },
+          infra: {
+            description: 'Infrastructure/DevOps project preset',
+            permissions: {
+              allow: ['Bash(docker:*)', 'Bash(docker-compose:*)', 'Bash(terraform:*)', 'Bash(kubectl:*)', 'Edit', 'Write'],
+              deny: ['Bash(rm -rf:*)', 'Bash(sudo:*)']
+            }
           }
         },
         ...config
@@ -86,6 +107,19 @@ describe('Worker Settings Profile (3.16)', () => {
         ],
         defaultMode: 'auto'
       };
+    };
+
+    mgr.listProfiles = function() {
+      const profiles = this.config.profiles || {};
+      const result = {};
+      for (const [name, prof] of Object.entries(profiles)) {
+        result[name] = {
+          description: prof.description || '',
+          allow: (prof.permissions && prof.permissions.allow) || [],
+          deny: (prof.permissions && prof.permissions.deny) || []
+        };
+      }
+      return result;
     };
 
     mgr._buildWorkerSettings = function(workerName, options = {}) {
@@ -448,5 +482,67 @@ describe('Worker Settings Profile (3.16)', () => {
     const settings = mgr._buildWorkerSettings('auto-mgr', { _autoWorker: true });
     assert.ok(!settings.permissions.allow.includes('Bash(cd * && *)'),
       'auto-manager should not have compound patterns');
+  });
+
+  // --- Project-type profiles (5.26) ---
+
+  it('web profile includes frontend tooling permissions', () => {
+    const mgr = createMockManager();
+    const settings = mgr._buildWorkerSettings('w1', { profile: 'web' });
+    assert.ok(settings.permissions.allow.includes('Bash(npm:*)'));
+    assert.ok(settings.permissions.allow.includes('Bash(npx:*)'));
+    assert.ok(settings.permissions.allow.includes('Bash(yarn:*)'));
+    assert.ok(settings.permissions.deny.includes('Bash(docker:*)'));
+  });
+
+  it('ml profile includes python/conda permissions', () => {
+    const mgr = createMockManager();
+    const settings = mgr._buildWorkerSettings('w1', { profile: 'ml' });
+    assert.ok(settings.permissions.allow.includes('Bash(python:*)'));
+    assert.ok(settings.permissions.allow.includes('Bash(pip:*)'));
+    assert.ok(settings.permissions.allow.includes('Bash(conda:*)'));
+    assert.ok(settings.permissions.allow.includes('Bash(jupyter:*)'));
+  });
+
+  it('infra profile includes docker/k8s/terraform permissions', () => {
+    const mgr = createMockManager();
+    const settings = mgr._buildWorkerSettings('w1', { profile: 'infra' });
+    assert.ok(settings.permissions.allow.includes('Bash(docker:*)'));
+    assert.ok(settings.permissions.allow.includes('Bash(docker-compose:*)'));
+    assert.ok(settings.permissions.allow.includes('Bash(terraform:*)'));
+    assert.ok(settings.permissions.allow.includes('Bash(kubectl:*)'));
+    assert.ok(settings.permissions.deny.includes('Bash(rm -rf:*)'));
+  });
+
+  // --- listProfiles (5.26) ---
+
+  it('listProfiles returns all profiles with description', () => {
+    const mgr = createMockManager();
+    const profiles = mgr.listProfiles();
+    assert.ok(profiles.web);
+    assert.ok(profiles.ml);
+    assert.ok(profiles.infra);
+    assert.strictEqual(profiles.web.description, 'Web development project preset');
+    assert.strictEqual(profiles.ml.description, 'ML/Data Science project preset');
+  });
+
+  it('listProfiles includes allow/deny counts', () => {
+    const mgr = createMockManager();
+    const profiles = mgr.listProfiles();
+    assert.ok(profiles.executor.allow.length > 0);
+    assert.ok(profiles.executor.deny.length > 0);
+  });
+
+  it('listProfiles returns empty for profiles without description', () => {
+    const mgr = createMockManager();
+    const profiles = mgr.listProfiles();
+    assert.strictEqual(profiles.default.description, '');
+  });
+
+  it('listProfiles returns empty object when no profiles configured', () => {
+    const mgr = createMockManager({ profiles: undefined });
+    mgr.config.profiles = undefined;
+    const profiles = mgr.listProfiles();
+    assert.deepStrictEqual(profiles, {});
   });
 });
