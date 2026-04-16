@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.4] - 2026-04-16
+
+### Added
+- **worker 자동 네이밍** (5.40): `c4 task --auto-name "task text"` 또는 name 생략 시 task 첫 줄에서 영문 단어 추출하여 kebab-case 이름 자동 생성 (w- 접두사, 최대 30자). 중복 시 -2, -3 자동 부여. `_generateTaskName()` 메서드 추가
+
 ## [1.6.3] - 2026-04-16
 
 ### Added

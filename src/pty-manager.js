@@ -2165,8 +2165,55 @@ class PtyManager extends EventEmitter {
     return lines.join('\n');
   }
 
+  // Auto-generate worker name from task text (5.40)
+  _generateTaskName(task) {
+    const firstLine = (task || '').split('\n')[0].trim();
+
+    // Extract words that are pure ASCII alphanumeric (English words)
+    const words = firstLine.split(/\s+/)
+      .map(w => w.replace(/[^a-zA-Z0-9]/g, ''))
+      .filter(w => w.length > 0 && /[a-zA-Z]/.test(w))
+      .map(w => w.toLowerCase());
+
+    let base;
+    if (words.length > 0) {
+      // Build name word by word, respecting 30 char limit
+      base = 'w';
+      for (const word of words) {
+        const candidate = base + '-' + word;
+        if (candidate.length > 30) break;
+        base = candidate;
+      }
+    } else {
+      base = 'w-task';
+    }
+
+    // Dedup: check existing workers and task queue
+    const nameExists = (n) => this.workers.has(n) || this._taskQueue.some(q => q.name === n);
+
+    if (!nameExists(base)) return base;
+
+    for (let i = 2; i <= 99; i++) {
+      const suffix = `-${i}`;
+      let candidate;
+      if (base.length + suffix.length > 30) {
+        candidate = base.slice(0, 30 - suffix.length) + suffix;
+      } else {
+        candidate = base + suffix;
+      }
+      if (!nameExists(candidate)) return candidate;
+    }
+
+    return `w-${Date.now() % 100000}`;
+  }
+
   // Send a task to worker with branch isolation via git worktree
   sendTask(name, task, options = {}) {
+    // Auto-generate name if not provided (5.40)
+    if (!name) {
+      name = this._generateTaskName(task);
+    }
+
     // Apply template (3.18)
     const templateName = options.template || options.profile || '';
     if (templateName) {
