@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.6.7] - 2026-04-16
+
+### Added
+- **관리자 병렬 wait** (5.43): `c4 wait --all` 또는 `c4 wait w1 w2 w3`으로 여러 worker 동시 대기, 첫 idle/exited 시 즉시 반환. `waitAndReadMulti()` 메서드, `/wait-read-multi` daemon 라우트 추가. `--all`은 모든 활성 worker 대상, timeout 시 전체 worker 상태 반환
+- **interrupt-on-intervention** (5.44): `c4 wait --interrupt-on-intervention`으로 intervention(question/escalation) 감지 시 wait 즉시 종료. 단일/병렬 wait 모두 지원. 관리자가 개입 필요 시 빠르게 대응 가능
+
 ## [1.6.6] - 2026-04-16
 
 ### Fixed

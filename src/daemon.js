@@ -168,7 +168,19 @@ async function handleRequest(req, res) {
     } else if (req.method === 'GET' && route === '/wait-read') {
       const name = url.searchParams.get('name');
       const timeout = parseInt(url.searchParams.get('timeout') || '120000');
-      result = await manager.waitAndRead(name, timeout);
+      const interruptOnIntervention = url.searchParams.get('interruptOnIntervention') === '1';
+      result = await manager.waitAndRead(name, timeout, { interruptOnIntervention });
+
+    } else if (req.method === 'GET' && route === '/wait-read-multi') {
+      const namesParam = url.searchParams.get('names') || '';
+      const names = namesParam.split(',').filter(Boolean);
+      const timeout = parseInt(url.searchParams.get('timeout') || '120000');
+      const interruptOnIntervention = url.searchParams.get('interruptOnIntervention') === '1';
+      if (names.length === 0) {
+        result = { error: 'No worker names specified' };
+      } else {
+        result = await manager.waitAndReadMulti(names, timeout, { interruptOnIntervention });
+      }
 
     } else if (req.method === 'GET' && route === '/list') {
       result = manager.list();

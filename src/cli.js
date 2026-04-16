@@ -189,20 +189,51 @@ async function main() {
 
       case 'wait': {
         // Wait until idle, then read
-        let waitName = '', waitTimeout = '120000';
+        // Supports: c4 wait <name>, c4 wait w1 w2 w3, c4 wait --all
+        let waitTimeout = '120000';
+        let waitAll = false;
+        let interruptOnIntervention = false;
+        const waitNames = [];
         for (let i = 0; i < args.length; i++) {
           if (args[i] === '--timeout' && args[i + 1]) { waitTimeout = args[++i]; }
-          else if (/^\d+$/.test(args[i]) && waitName) { waitTimeout = args[i]; }
-          else if (!args[i].startsWith('-') && !waitName) { waitName = args[i]; }
+          else if (args[i] === '--all') { waitAll = true; }
+          else if (args[i] === '--interrupt-on-intervention') { interruptOnIntervention = true; }
+          else if (/^\d+$/.test(args[i]) && waitNames.length > 0) { waitTimeout = args[i]; }
+          else if (!args[i].startsWith('-')) { waitNames.push(args[i]); }
         }
-        const name = waitName;
-        const timeout = waitTimeout;
-        process.stderr.write('Waiting for worker to become idle...\n');
-        result = await request('GET', `/wait-read?name=${name}&timeout=${timeout}`, null, parseInt(timeout) + 5000);
-        if (result.content !== undefined) {
-          process.stdout.write(result.content + '\n');
-          process.stderr.write(`--- status=${result.status} ---\n`);
-          return;
+
+        const ioiParam = interruptOnIntervention ? '&interruptOnIntervention=1' : '';
+        const timeoutNum = parseInt(waitTimeout);
+
+        if (waitAll || waitNames.length > 1) {
+          // Multi-worker wait
+          const names = waitAll ? '*' : waitNames.join(',');
+          process.stderr.write(`Waiting for ${waitAll ? 'all workers' : waitNames.join(', ')}...\n`);
+          result = await request('GET', `/wait-read-multi?names=${names}&timeout=${waitTimeout}${ioiParam}`, null, timeoutNum + 5000);
+          if (result.status === 'timeout') {
+            process.stderr.write('--- status=timeout ---\n');
+            if (result.results) {
+              for (const r of result.results) {
+                process.stderr.write(`  ${r.name}: ${r.status}${r.intervention ? ` (intervention: ${r.intervention})` : ''}\n`);
+              }
+            }
+            return;
+          }
+          if (result.name) {
+            if (result.content) process.stdout.write(result.content + '\n');
+            process.stderr.write(`--- name=${result.name} status=${result.status}${result.intervention ? ` intervention=${result.intervention}` : ''} ---\n`);
+            return;
+          }
+        } else {
+          // Single-worker wait
+          const name = waitNames[0] || '';
+          process.stderr.write('Waiting for worker to become idle...\n');
+          result = await request('GET', `/wait-read?name=${name}&timeout=${waitTimeout}${ioiParam}`, null, timeoutNum + 5000);
+          if (result.content !== undefined) {
+            process.stdout.write(result.content + '\n');
+            process.stderr.write(`--- status=${result.status}${result.intervention ? ` intervention=${result.intervention}` : ''} ---\n`);
+            return;
+          }
         }
         break;
       }
@@ -1095,6 +1126,7 @@ Commands:
   read <name>                      Read new output (idle snapshots only)
   read-now <name>                  Read current screen immediately
   wait <name> [timeout_ms]         Wait until idle, then read screen
+       [--all] [--interrupt-on-intervention]  Multi-worker / intervention wait
   scrollback <name> [--lines N]    Read scrollback buffer (default 200 lines)
   list                             List all workers
   merge <worker|branch>            Merge branch to main (with pre-checks)
@@ -1127,6 +1159,9 @@ Examples:
   c4 send arps "ARPS에 로깅 추가해줘"
   c4 key arps Enter
   c4 wait arps                  # idle까지 기다렸다가 깨끗한 화면 반환
+  c4 wait w1 w2 w3               # 여러 worker 동시 대기, 첫 완료 시 반환
+  c4 wait --all                  # 모든 worker 동시 대기
+  c4 wait --all --interrupt-on-intervention  # intervention 발생 시 즉시 종료
   c4 read-now arps              # 지금 당장 화면 보기 (스피너 포함)
   c4 list
   c4 close arps

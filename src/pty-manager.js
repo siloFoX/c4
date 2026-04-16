@@ -3086,7 +3086,8 @@ class PtyManager extends EventEmitter {
     };
   }
 
-  async waitAndRead(name, timeoutMs = 120000) {
+  async waitAndRead(name, timeoutMs = 120000, options = {}) {
+    const { interruptOnIntervention = false } = options;
     const w = this.workers.get(name);
     if (!w) return { error: `Worker '${name}' not found` };
 
@@ -3102,11 +3103,99 @@ class PtyManager extends EventEmitter {
           resolve({ content: this._getScreenText(w.screen), status: 'exited' });
           return;
         }
+        if (interruptOnIntervention && w._interventionState) {
+          resolve({
+            content: this._getScreenText(w.screen),
+            status: 'intervention',
+            intervention: w._interventionState
+          });
+          return;
+        }
         const idleMs = Date.now() - w.lastDataTime;
         if (idleMs >= this.idleThresholdMs) {
           resolve({ content: this._getScreenText(w.screen), status: 'idle' });
           return;
         }
+        setTimeout(check, 500);
+      };
+      check();
+    });
+  }
+
+  async waitAndReadMulti(names, timeoutMs = 120000, options = {}) {
+    const { interruptOnIntervention = false } = options;
+
+    // Resolve names: '*' means all active workers
+    let resolvedNames = names;
+    if (names.length === 1 && names[0] === '*') {
+      resolvedNames = [];
+      for (const [n, w] of this.workers) {
+        if (w.alive) resolvedNames.push(n);
+      }
+      if (resolvedNames.length === 0) {
+        return { error: 'No active workers' };
+      }
+    }
+
+    // Validate all workers exist
+    const entries = [];
+    for (const name of resolvedNames) {
+      const w = this.workers.get(name);
+      if (!w) return { error: `Worker '${name}' not found` };
+      entries.push({ name, worker: w });
+    }
+
+    const startTime = Date.now();
+
+    return new Promise((resolve) => {
+      const check = () => {
+        if (Date.now() - startTime > timeoutMs) {
+          resolve({
+            status: 'timeout',
+            results: entries.map(({ name, worker }) => {
+              const idleMs = Date.now() - worker.lastDataTime;
+              return {
+                name,
+                status: !worker.alive ? 'exited' :
+                  (idleMs >= this.idleThresholdMs ? 'idle' : 'busy'),
+                intervention: worker._interventionState || null
+              };
+            })
+          });
+          return;
+        }
+
+        for (const { name, worker } of entries) {
+          if (!worker.alive) {
+            resolve({
+              name,
+              status: 'exited',
+              content: this._getScreenText(worker.screen)
+            });
+            return;
+          }
+
+          const idleMs = Date.now() - worker.lastDataTime;
+          if (idleMs >= this.idleThresholdMs) {
+            resolve({
+              name,
+              status: 'idle',
+              content: this._getScreenText(worker.screen)
+            });
+            return;
+          }
+
+          if (interruptOnIntervention && worker._interventionState) {
+            resolve({
+              name,
+              status: 'intervention',
+              intervention: worker._interventionState,
+              content: this._getScreenText(worker.screen)
+            });
+            return;
+          }
+        }
+
         setTimeout(check, 500);
       };
       check();
