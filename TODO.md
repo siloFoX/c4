@@ -395,6 +395,10 @@ Level 4이면:
 | 5.35 | 긴 task 메시지 잘림 근본 수정 | **todo** | _chunkedWrite Promise 전환 후에도 수백 줄 task에서 잘림 발생. 파일 기반 task 전달 방식 검토 (task를 파일로 쓰고 워커에 경로만 전달) |
 | 5.36 | c4 approve 편의 명령 | **todo** | TUI 선택 프롬프트를 번호로 선택. c4 send "2" 안 됨 — key Down/Enter 조합 필요. c4 approve worker 1 하면 첫 번째 옵션 선택 |
 | 5.37 | --no-branch/--cwd 외부 repo 지원 개선 | **todo** | --cwd 지정해도 worktree가 c4 repo 기준으로 생성. --no-branch 시 worktree 비활성화 명확히. --repo와 --cwd 차이 문서화 |
+| 5.38 | Slack 메시지 길이 제한 + task 요약 포함 | **todo** | Slack 메시지가 길면 잘림. worker 이름만 보이고 무슨 작업인지 안 보임. healthCheck 알림에 worker별 task 첫줄 요약 포함. 메시지 길이 제한(2000자) 후 truncate. |
+| 5.39 | 관리자가 c4 list 무한 반복하는 문제 | **todo** | 관리자 Claude가 c4 wait 대신 c4 list를 5초마다 반복 호출. 토큰 낭비. CLAUDE.md에 "c4 wait 사용" 강제 + c4 list 호출 빈도 제한(rateLimit) 또는 관리자 패턴 가이드 보강. |
+| 5.40 | worker 이름에 작업 설명 포함 | **todo** | w-535 같은 의미없는 이름 대신 task 기반 자동 네이밍. c4 task 시 이름 자동 생성(task 첫 단어 기반) 또는 관리자에게 의미있는 이름 사용 강제. |
+| 5.41 | worktree close 후 정리 검증 | **todo** | worktree dir이 close 후에도 남는 케이스 추가 확인. healthCheck에서 orphan worktree 스캔 강화. |
 
 ## Phase 6 - 마케팅/가시성
 
