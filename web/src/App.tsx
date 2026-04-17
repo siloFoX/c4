@@ -9,6 +9,10 @@ type AuthState = 'loading' | 'anon' | 'authed' | 'disabled';
 export default function App() {
   const [selectedWorker, setSelectedWorker] = useState<string | null>(null);
   const [authState, setAuthState] = useState<AuthState>('loading');
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return window.matchMedia('(min-width: 768px)').matches;
+  });
 
   const refreshAuth = useCallback(async () => {
     const status = await fetchAuthStatus();
@@ -43,10 +47,29 @@ export default function App() {
     setAuthState('anon');
   };
 
+  const handleSelect = (name: string | null) => {
+    setSelectedWorker(name);
+    if (typeof window !== 'undefined' && !window.matchMedia('(min-width: 768px)').matches) {
+      setSidebarOpen(false);
+    }
+  };
+
   return (
     <div className="flex h-screen flex-col">
-      <header className="flex items-center justify-between border-b border-gray-800 bg-gray-800 px-6 py-4">
-        <h1 className="text-xl font-semibold text-gray-100">C4 Dashboard</h1>
+      <header className="flex items-center justify-between gap-2 border-b border-gray-800 bg-gray-800 px-4 py-3 md:px-6 md:py-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen((open) => !open)}
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded bg-gray-700 text-gray-100 hover:bg-gray-600 md:hidden"
+            aria-label={sidebarOpen ? 'Close worker list' : 'Open worker list'}
+          >
+            <span aria-hidden="true" className="text-lg leading-none">
+              {sidebarOpen ? '\u2715' : '\u2630'}
+            </span>
+          </button>
+          <h1 className="truncate text-lg font-semibold text-gray-100 md:text-xl">C4 Dashboard</h1>
+        </div>
         {authState === 'authed' && (
           <button
             type="button"
@@ -57,15 +80,17 @@ export default function App() {
           </button>
         )}
       </header>
-      <div className="flex flex-1 overflow-hidden">
-        <aside className="w-72 shrink-0 overflow-y-auto border-r border-gray-800 bg-gray-900 p-4">
-          <img src="/logo.svg" alt="C4" className="mb-4 h-10" />
-          <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-gray-400">
-            Workers
-          </h2>
-          <WorkerList selectedWorker={selectedWorker} onSelect={setSelectedWorker} />
-        </aside>
-        <main className="flex-1 overflow-hidden p-6">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {sidebarOpen && (
+          <aside className="w-full shrink-0 overflow-y-auto border-b border-gray-800 bg-gray-900 p-4 md:w-72 md:border-b-0 md:border-r">
+            <img src="/logo.svg" alt="C4" className="mb-4 h-10" />
+            <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-gray-400">
+              Workers
+            </h2>
+            <WorkerList selectedWorker={selectedWorker} onSelect={handleSelect} />
+          </aside>
+        )}
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-3 md:p-6">
           {selectedWorker ? (
             <WorkerDetail key={selectedWorker} workerName={selectedWorker} />
           ) : (
