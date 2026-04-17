@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.17] - 2026-04-17
+
+### Fixed
+- **package-lock.json env-drift guard** (7.29): 세션 시작부터 `web/package-lock.json`이 `M` 상태로 떠서 `c4 merge` 때마다 stash 대상이 되고 의미 없는 diff를 양산하던 문제 해결. 조사 결과 원인은 npm 버전/플랫폼 드리프트 — 커밋된 lockfile이 8개의 `"peer": true` 메타데이터를 포함했고, 로컬 npm 10.8.2가 `npm install --package-lock-only` 재계산 시 이들을 strip해서 발생. c4 코드 경로 어디에서도 `npm install`을 돌리지 않음 (`grep src/` 0건) — 트리거는 사용자가 `npm --prefix web` 계열 명령을 수동 실행할 때. 신규 `src/pkglock-guard.js` (`analyzeDiff`/`buildAdvice`/`runCli`)가 `"peer": true`-only 시그니처를 감지. `.githooks/pre-commit`이 스테이징된 lockfile에 대해 가드를 호출해 env-드리프트 진단 메시지 출력 (warning only — commit 진행). `tests/pkglock-guard.test.js`(27 assertions) + `tests/fixtures/pkglock-peer-drift.diff`로 실제 8라인 drift payload를 regression fixture로 고정. `docs/known-issues.md`에 근본 원인/재현/권장 워크플로우/gitignore 금지 근거 섹션 추가. `patches/1.6.17-pkglock-env-drift.md`. lockfile을 gitignore하면 `npm ci` 재현성이 깨지므로 명시적으로 채택하지 않음.
+
 ## [1.6.16] - 2026-04-17
 
 ### Added
