@@ -205,18 +205,21 @@ async function main() {
         }
 
         const ioiParam = interruptOnIntervention ? '&interruptOnIntervention=1' : '';
+        const allParam = waitAll ? '&waitAll=1' : '';
         const timeoutNum = parseInt(waitTimeout);
 
         if (waitAll || waitNames.length > 1) {
           // Multi-worker wait
           const names = waitAll ? '*' : waitNames.join(',');
           process.stderr.write(`Waiting for ${waitAll ? 'all workers' : waitNames.join(', ')}...\n`);
-          result = await request('GET', `/wait-read-multi?names=${names}&timeout=${waitTimeout}${ioiParam}`, null, timeoutNum + 5000);
-          if (result.status === 'timeout') {
-            process.stderr.write('--- status=timeout ---\n');
+          result = await request('GET', `/wait-read-multi?names=${names}&timeout=${waitTimeout}${ioiParam}${allParam}`, null, timeoutNum + 5000);
+          if (result.status === 'all-settled' || (result.status === 'timeout' && Array.isArray(result.results))) {
+            const label = result.status === 'timeout' ? 'timeout' : 'all-settled';
+            process.stderr.write(`--- status=${label} ---\n`);
             if (result.results) {
               for (const r of result.results) {
-                process.stderr.write(`  ${r.name}: ${r.status}${r.intervention ? ` (intervention: ${r.intervention})` : ''}\n`);
+                const tag = r.intervention ? ` (intervention: ${r.intervention})` : '';
+                process.stderr.write(`  ${r.name}: ${r.status}${tag}\n`);
               }
             }
             return;

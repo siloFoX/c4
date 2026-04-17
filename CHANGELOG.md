@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.20] - 2026-04-17
+
+### Fixed
+- **`c4 wait --all` no longer hangs on intervention workers** (7.21): before this fix `c4 wait --all` reused the single-completion multi-worker path, so a worker parked in an approval prompt (intervention state) could block the caller indefinitely even when other workers were already idle. `PtyManager.waitAndReadMulti` now accepts a `waitAll` option and resolves only once every target worker has reached a terminal state — idle, exited, or intervention — and returns a `status:'all-settled'` envelope with a per-worker `results` array (`{name, status, intervention, content}`). Intervention is treated as terminal under `waitAll`, so all-intervention and mixed idle+intervention swarms resolve immediately instead of hanging; the existing first-completion semantics for `c4 wait w1 w2 w3` (without `--all`) are preserved. Wire-up: the CLI passes a new `waitAll=1` query parameter to the daemon `/wait-read-multi` endpoint and prints the per-worker report (including any `intervention: <kind>` tag) so the manager can immediately triage which workers need approval. `tests/parallel-wait.test.js` adds four node:test cases covering (a) all-idle returns immediately (<500 ms), (b) mixed idle + intervention returns both with correct state, (c) all-intervention resolves instead of hanging, and (d) timeout reports per-worker `busy`/`idle` without losing the intervention field. Full suite 60 / 60 pass.
+
 ## [1.6.19] - 2026-04-17
 
 ### Fixed
