@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.15] - 2026-04-17
+
+### Fixed
+- **c4 init PATH 자동 등록** (7.20): 7.13에서 `~/.local/bin/c4` symlink는 만들지만 `~/.local/bin`이 PATH에 없으면 `c4` 명령이 동작하지 않던 문제 해결. init이 PATH 포함 여부를 확인해 누락이면 `~/.bashrc`에 `export PATH="$HOME/.local/bin:$PATH"` 블록 자동 추가 (marker 기반 중복 방지). SHELL이 zsh이면 `~/.zshrc`도 함께 갱신. 로직은 `src/init-path.js`로 분리하여 fs dependency injection으로 테스트. `tests/init-path.test.js` 30 assertion 추가.
+
 ## [1.6.14] - 2026-04-17
 
 ### Changed
