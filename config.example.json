@@ -116,8 +116,10 @@
       "retries": 3,
       "phaseTimeoutMs": 8000,
       "inputDelayMs": 500,
-      "confirmDelayMs": 500
+      "confirmDelayMs": 500,
+      "stabilizeMs": 1000
     },
+    "enterDelayMs": 200,
     "model": "default",
     "workerLanguage": "en"
   },

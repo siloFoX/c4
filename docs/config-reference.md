@@ -148,6 +148,8 @@ worker 초기 설정.
 | `effortSetup.phaseTimeoutMs` | number | `8000` | 메뉴 감지 타임아웃 (ms) |
 | `effortSetup.inputDelayMs` | number | `500` | 키 입력 전 딜레이 (ms) |
 | `effortSetup.confirmDelayMs` | number | `500` | Enter 전 딜레이 (ms) |
+| `effortSetup.stabilizeMs` | number | `1000` | setupDone 직후 pendingTask 전송 금지 창 (ms) — TUI 메뉴 close 애니메이션 대기 (7.17) |
+| `enterDelayMs` | number | `200` | `_writeTaskAndEnter`에서 text 전송 후 CR 전송까지 대기 시간 (ms). Windows conpty 고부하 환경에서 250~500까지 조정 (7.17) |
 | `model` | string | `"default"` | 기본 모델 |
 
 ## logs
