@@ -558,17 +558,22 @@ class PtyManager extends EventEmitter {
   }
 
   // Build hook commands for worker's .claude/settings.json (3.15)
-  // These hooks POST structured JSON data to the C4 daemon
+  // These hooks POST structured JSON data to the C4 daemon.
+  // 7.16: All stderr must stay ASCII. On Korean Windows, an uncaught
+  // Invoke-RestMethod error prints a localized message that the PTY mangles
+  // into "?????", which Claude Code then reports as "Failed with non-blocking
+  // status code" and loops forever, triggering escalation false-positives.
+  // Both branches swallow errors silently and always exit 0.
   _buildHookCommands(workerName) {
     const port = this.config.daemon?.port || 3456;
     const host = this.config.daemon?.host || '127.0.0.1';
     const baseUrl = `http://${host}:${port}`;
 
-    // Use curl to POST hook event data to daemon
-    // Claude Code passes hook data as JSON to stdin
+    // Use curl/PowerShell to POST hook event data to daemon.
+    // Claude Code passes hook data as JSON to stdin.
     const curlCmd = IS_WIN
-      ? `powershell -NoProfile -Command "$input = [Console]::In.ReadToEnd(); Invoke-RestMethod -Uri '${baseUrl}/hook-event' -Method Post -ContentType 'application/json' -Body $input"`
-      : `curl -s -X POST -H 'Content-Type: application/json' -d @- '${baseUrl}/hook-event'`;
+      ? `powershell -NoProfile -Command "$ErrorActionPreference='SilentlyContinue';try{$body=[Console]::In.ReadToEnd();Invoke-RestMethod -Uri '${baseUrl}/hook-event' -Method Post -ContentType 'application/json' -Body $body -ErrorAction SilentlyContinue | Out-Null}catch{};exit 0"`
+      : `curl -s -X POST -H 'Content-Type: application/json' -d @- '${baseUrl}/hook-event' 2>/dev/null; exit 0`;
 
     return {
       PreToolUse: [{

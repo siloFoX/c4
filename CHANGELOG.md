@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.13] - 2026-04-17
+
+### Fixed
+- **PreToolUse hook 인코딩 깨짐** (7.16): Korean Windows에서 PowerShell `Invoke-RestMethod` 실패 시 localized 에러 메시지가 PTY에서 "?????"로 깨지고 Claude Code가 이를 "Failed with non-blocking status code"로 반복 보고하여 escalation 오탐을 일으키던 문제 해결. `_buildHookCommands`의 PowerShell/curl 명령에 `try/catch` + `ErrorActionPreference=SilentlyContinue` + `2>/dev/null` 적용하여 실패 시에도 stderr에 어떤 메시지도 나오지 않고 exit 0. `src/compound-check.js`는 `process.stderr.write` + `stdin.setEncoding('utf8')` + 빈 catch 블록으로 ASCII-only 보장. 회귀 방지용 `tests/hook-ascii.test.js` 7종 추가.
+
 ## [1.6.12] - 2026-04-17
 
 ### Added
