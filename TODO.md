@@ -426,7 +426,7 @@ Level 4이면:
 
 | # | 항목 | 상태 | 설명 |
 |---|------|------|------|
-| 7.1 | pendingTask Enter 안 먹히는 케이스 재조사 | **todo** | 5.51 수정 후에도 w-docs-final에서 task가 prompt에 보이지만 Enter 안 먹힘. 관리자 세션 테스트(w-test2)에서는 성공. 세션/데몬 상태 차이 조사. |
+| 7.1 | pendingTask Enter 안 먹히는 케이스 재조사 | **done** | 근본 원인: 5.18에서 send()에만 적용한 "input/CR 분리 전송"이 9개 pendingTask delivery 경로에 전파되지 않음. `_writeTaskAndEnter()` 헬퍼로 모든 경로 교체. 5개 단위 테스트 추가. |
 | 7.2 | agent 모드 Read deny 실효성 검증 | **todo** | --agent manager.md로 시작해도 관리자가 Read/Explore 사용 가능. deny가 제안일 뿐 강제가 아닌지 확인. Claude Code Custom Agent 도구 제한 동작 검증. |
 | 7.3 | c4 watch 실사용 테스트 | **done** | SSE 연결 성공, 실시간 PTY 출력(ANSI 포함) 스트리밍 확인. c4 send 후 watch에서 입력/응답 모두 수신됨. |
 | 7.4 | c4 batch 실사용 테스트 | **done** | c4 batch --count 3 "hello" → batch-1/2/3 자동 생성 + task 전송 완료. 3 created, 0 failed. |
@@ -581,3 +581,4 @@ Level 4이면:
 | ~~6.5~~ | Build in Public 전략 | 2026-04-16 |
 | ~~6.6~~ | 경쟁 키워드 선점 | 2026-04-16 |
 | ~~6.7~~ | docs/best-practices.md | 2026-04-16 |
+| ~~7.1~~ | pendingTask Enter 안 먹히는 케이스 재조사 | 2026-04-17 |

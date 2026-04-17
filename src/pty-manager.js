@@ -459,7 +459,7 @@ class PtyManager extends EventEmitter {
                 // Auto-feedback to worker
                 const feedback = `CI 실패: ${testCmd} 실행 결과 테스트가 실패했어. 아래 에러를 확인하고 수정해줘:\n${output.slice(-500)}`;
                 if (worker.alive && worker.proc) {
-                  this._chunkedWrite(worker.proc, feedback + '\r');
+                  this._writeTaskAndEnter(worker.proc, feedback);
                 }
               }
             }, 2000); // wait for commit to fully complete
@@ -925,7 +925,7 @@ class PtyManager extends EventEmitter {
       const existingWorker = this.workers.get(entry.name);
       if (existingWorker && existingWorker.alive && !existingWorker._pendingTask && !existingWorker._taskText) {
         const fullTask = this._buildTaskText(existingWorker, entry.task, entry);
-        this._chunkedWrite(existingWorker.proc, fullTask + '\r');
+        this._writeTaskAndEnter(existingWorker.proc, fullTask);
         existingWorker._taskText = entry.task;
         existingWorker._taskStartedAt = new Date().toISOString();
         started.push({ name: entry.name, result: { sent: true } });
@@ -1075,7 +1075,7 @@ class PtyManager extends EventEmitter {
         worker._pendingTaskSent = true;
         const pt = worker._pendingTask;
         const fullTask = this._buildTaskText(worker, pt.task, pt.options);
-        await this._chunkedWrite(worker.proc, fullTask + '\r');
+        await this._writeTaskAndEnter(worker.proc, fullTask);
         worker._taskText = pt.task;
         worker._taskStartedAt = new Date().toISOString();
         worker._pendingTask = null;
@@ -1094,7 +1094,7 @@ class PtyManager extends EventEmitter {
         worker._pendingTaskSent = true;
         const pt = worker._pendingTask;
         const fullTask = this._buildTaskText(worker, pt.task, pt.options);
-        await this._chunkedWrite(worker.proc, fullTask + '\r');
+        await this._writeTaskAndEnter(worker.proc, fullTask);
         worker._taskText = pt.task;
         worker._taskStartedAt = new Date().toISOString();
         worker._pendingTask = null;
@@ -1188,7 +1188,7 @@ class PtyManager extends EventEmitter {
               worker._pendingTaskSent = true;
               const pt = worker._pendingTask;
               const fullTask = this._buildTaskText(worker, pt.task, pt.options);
-              await this._chunkedWrite(proc, fullTask + '\r');
+              await this._writeTaskAndEnter(proc, fullTask);
               worker._taskText = pt.task;
               worker._taskStartedAt = new Date().toISOString();
               worker._pendingTask = null;
@@ -2472,7 +2472,7 @@ class PtyManager extends EventEmitter {
     commands.push(task);
 
     const fullTask = this._maybeWriteTaskFile(w, commands.join('\n\n'));
-    this._chunkedWrite(w.proc, fullTask + '\r');
+    this._writeTaskAndEnter(w.proc, fullTask);
     w.branch = branch;
 
     // Save start commit for rollback (3.6)
@@ -2726,7 +2726,7 @@ class PtyManager extends EventEmitter {
           const pt = worker._pendingTask;
           const fullTask = this._buildTaskText(worker, pt.task, pt.options);
           setTimeout(async () => {
-            await this._chunkedWrite(proc, fullTask + '\r');
+            await this._writeTaskAndEnter(proc, fullTask);
             worker._taskText = pt.task;
             worker._taskStartedAt = new Date().toISOString();
             worker._pendingTask = null;
@@ -2741,7 +2741,7 @@ class PtyManager extends EventEmitter {
             const entry = this._taskQueue.splice(queueIdx, 1)[0];
             const fullTask = this._buildTaskText(worker, entry.task, entry);
             setTimeout(() => {
-              this._chunkedWrite(proc, fullTask + '\r');
+              this._writeTaskAndEnter(proc, fullTask);
               worker._taskText = entry.task;
               worker._taskStartedAt = new Date().toISOString();
             }, 500);
@@ -2951,7 +2951,7 @@ class PtyManager extends EventEmitter {
             // Send feedback to worker — tell it to follow the routine
             if (routineSkip.feedback && worker.alive) {
               setTimeout(async () => {
-                await this._chunkedWrite(proc, routineSkip.feedback + '\r');
+                await this._writeTaskAndEnter(proc, routineSkip.feedback);
               }, 1000);
             }
           }
@@ -3161,6 +3161,16 @@ class PtyManager extends EventEmitter {
         await new Promise(resolve => proc.once('drain', resolve));
       }
     }
+  }
+
+  // (7.1) Write task text followed by a separate CR after 100ms.
+  // Combined `text + '\r'` writes can lose the CR due to PTY/Claude Code
+  // timing (same root cause as 5.18's send() fix). Splitting guarantees
+  // the Enter lands after the input field has received the text.
+  async _writeTaskAndEnter(proc, text, enterDelayMs = 100) {
+    await this._chunkedWrite(proc, text);
+    await new Promise(resolve => setTimeout(resolve, enterDelayMs));
+    try { proc.write('\r'); } catch { /* proc closed */ }
   }
 
   read(name) {

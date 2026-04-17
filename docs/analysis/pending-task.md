@@ -120,3 +120,59 @@ idle handler (line 2246)에서 `_pendingTask.options.useWorktree`가 true이고 
 1. **idle handler pendingTask 블록에 setupDone 가드 추가**: effort 설정이 있고 setupDone이 false면 pendingTask 전송을 차단
 2. **_executeSetupPhase2 post-setup 전달 트리거**: setupDone = true 설정 후 2초 딜레이로 isReady 확인 후 pendingTask 직접 전달 (active polling 보조)
 3. **active polling _chunkedWrite await**: setInterval 콜백을 async로 변경하여 긴 task 텍스트의 부분 전송 방지
+
+## 3차 수정 (7.1) — 모든 delivery 경로에서 CR 분리 전송
+
+### 증상
+
+5.51 수정 이후에도 `w-docs-final` 등 일부 세션에서 동일한 증상 재현. task 텍스트는 Claude Code의 prompt에 정상적으로 보이지만 Enter가 인식되지 않아 worker가 입력 대기 상태로 멈춤.
+
+### 근본 원인
+
+이미 5.18에서 `c4 send` 경로에 대해 동일한 증상을 해결한 이력이 있었다.
+
+**5.18 핵심 원인:**
+> `_chunkedWrite()`가 input과 CR(`\r`)을 같은 스트림으로 전송하면 PTY/Claude Code가 CR을 인식 못하는 타이밍 문제. 해결책: input 전송 후 100ms 대기, 별도 `proc.write('\r')`로 Enter 전송.
+
+이 수정은 `send()` 메서드에만 적용됐고, pendingTask 전달 경로 9곳은 여전히 `_chunkedWrite(proc, text + '\r')` 형태로 CR을 합쳐서 전송하고 있었다:
+
+1. `_createAndSendTask()` active polling (line 1078)
+2. `_createAndSendTask()` timeout fallback (line 1097)
+3. `_executeSetupPhase2()` post-setup trigger (line 1191)
+4. `sendTask()` existing worker path (line 2475)
+5. idle handler pendingTask block (line 2729)
+6. idle handler auto-resume queue (line 2744)
+7. `_processQueue()` existing worker re-send (line 928)
+8. CI feedback auto-send (line 462)
+9. routine skip feedback (line 2954)
+
+모든 경로가 5.18과 동일한 PTY 타이밍 문제에 노출돼 있었으나 수정이 전파되지 않았다.
+
+### 왜 간헐적인가
+
+PTY 버퍼 상태, Claude Code TUI 렌더링 타이밍, 작업자 머신 부하 등 환경 요인에 따라 CR이 인식되기도 하고 누락되기도 한다. w-test2처럼 빠르게 Enter가 인식되는 세션은 성공, w-docs-final처럼 누락되는 세션은 실패로 나뉜다.
+
+### 수정 내용
+
+`_writeTaskAndEnter(proc, text, enterDelayMs=100)` 헬퍼를 `_chunkedWrite` 바로 아래에 추가:
+
+```javascript
+async _writeTaskAndEnter(proc, text, enterDelayMs = 100) {
+  await this._chunkedWrite(proc, text);
+  await new Promise(resolve => setTimeout(resolve, enterDelayMs));
+  try { proc.write('\r'); } catch { /* proc closed */ }
+}
+```
+
+위 9개 경로의 `_chunkedWrite(proc, text + '\r')` 호출을 모두 `_writeTaskAndEnter(proc, text)`로 교체.
+
+### 검증
+
+`tests/pending-task-cr-split.test.js`에 5개 단위 테스트 추가:
+- text와 CR이 별개의 `proc.write` 호출로 분리되는지
+- payload에 `\r`이 embed되지 않는지
+- delay 파라미터가 전달되는지
+- 긴 text 청크 분할 후에도 CR은 별도 호출로 전송되는지
+- 닫힌 proc에서 에러 발생 시 swallow 되는지
+
+전체 테스트(48개) 모두 통과.
