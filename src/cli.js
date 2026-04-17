@@ -2241,6 +2241,169 @@ async function main() {
         return;
       }
 
+      case 'project': {
+        // (10.8) Project management CLI. Thin wrapper around /projects/*
+        // daemon endpoints. Never mutates worker state — all calls go
+        // through the storage layer so reporting is safe mid-session.
+        //   c4 project create <id> --name N [--desc D]
+        //   c4 project list
+        //   c4 project show <id>
+        //   c4 project task add <projectId> <title> [--status S] [--milestone M] [--sprint S] [--assignee A] [--estimate N]
+        //   c4 project task update <projectId> <taskId> [--status S] [--title T] [--assignee A] [--estimate N] [--milestone M] [--sprint S] [--description D]
+        //   c4 project milestone add <projectId> <name> --due <date> [--id ID]
+        //   c4 project sprint add <projectId> <name> --start <d> --end <d> [--id ID]
+        //   c4 project progress <id>
+        //   c4 project sync <id> [--repo PATH]
+        const sub = args[0];
+        const validSubs = ['create', 'list', 'show', 'task', 'milestone', 'sprint', 'progress', 'sync'];
+        if (!sub || !validSubs.includes(sub)) {
+          console.log('Usage: c4 project <create|list|show|task|milestone|sprint|progress|sync> [flags]');
+          console.log('  create <id> --name N [--desc D]');
+          console.log('  list');
+          console.log('  show <id>');
+          console.log('  task add <projectId> <title> [--status S] [--milestone M] [--sprint S] [--assignee A] [--estimate N]');
+          console.log('  task update <projectId> <taskId> [--status S] [--title T] [--assignee A] [--estimate N] [--milestone M] [--sprint S] [--description D]');
+          console.log('  milestone add <projectId> <name> --due <date> [--id ID]');
+          console.log('  sprint add <projectId> <name> --start <d> --end <d> [--id ID]');
+          console.log('  progress <id>');
+          console.log('  sync <id> [--repo PATH]');
+          return;
+        }
+
+        function extractFlagAt(startIdx, flag) {
+          for (let i = startIdx; i < args.length - 1; i++) {
+            if (args[i] === flag) return args[i + 1];
+          }
+          return '';
+        }
+
+        if (sub === 'create') {
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 project create <id> --name N [--desc D]'); process.exit(1); }
+          const name = extractFlagAt(2, '--name');
+          const desc = extractFlagAt(2, '--desc') || extractFlagAt(2, '--description');
+          result = await request('POST', '/projects', { id, name, description: desc });
+        } else if (sub === 'list') {
+          result = await request('GET', '/projects');
+        } else if (sub === 'show') {
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 project show <id>'); process.exit(1); }
+          result = await request('GET', '/projects/' + encodeURIComponent(id));
+        } else if (sub === 'task') {
+          const taskSub = args[1];
+          if (!taskSub || (taskSub !== 'add' && taskSub !== 'update')) {
+            console.error('Usage: c4 project task <add|update> ...');
+            process.exit(1);
+          }
+          if (taskSub === 'add') {
+            const projectId = args[2];
+            const title = args[3];
+            if (!projectId || !title) {
+              console.error('Usage: c4 project task add <projectId> <title> [flags]');
+              process.exit(1);
+            }
+            const body = { title };
+            const status = extractFlagAt(4, '--status');
+            const milestone = extractFlagAt(4, '--milestone');
+            const sprint = extractFlagAt(4, '--sprint');
+            const assignee = extractFlagAt(4, '--assignee');
+            const estimate = extractFlagAt(4, '--estimate');
+            if (status) body.status = status;
+            if (milestone) body.milestoneId = milestone;
+            if (sprint) body.sprintId = sprint;
+            if (assignee) body.assignee = assignee;
+            if (estimate) body.estimate = parseFloat(estimate) || 0;
+            result = await request('POST', '/projects/' + encodeURIComponent(projectId) + '/tasks', body);
+          } else {
+            const projectId = args[2];
+            const taskId = args[3];
+            if (!projectId || !taskId) {
+              console.error('Usage: c4 project task update <projectId> <taskId> [flags]');
+              process.exit(1);
+            }
+            const patch = {};
+            const status = extractFlagAt(4, '--status');
+            const title = extractFlagAt(4, '--title');
+            const assignee = extractFlagAt(4, '--assignee');
+            const estimate = extractFlagAt(4, '--estimate');
+            const milestone = extractFlagAt(4, '--milestone');
+            const sprint = extractFlagAt(4, '--sprint');
+            const description = extractFlagAt(4, '--description');
+            if (status) patch.status = status;
+            if (title) patch.title = title;
+            if (assignee) patch.assignee = assignee;
+            if (estimate) patch.estimate = parseFloat(estimate) || 0;
+            if (milestone) patch.milestoneId = milestone;
+            if (sprint) patch.sprintId = sprint;
+            if (description) patch.description = description;
+            result = await request('PATCH', '/projects/' + encodeURIComponent(projectId) + '/tasks/' + encodeURIComponent(taskId), patch);
+          }
+        } else if (sub === 'milestone') {
+          const mSub = args[1];
+          if (mSub !== 'add') {
+            console.error('Usage: c4 project milestone add <projectId> <name> --due <date> [--id ID]');
+            process.exit(1);
+          }
+          const projectId = args[2];
+          const name = args[3];
+          if (!projectId || !name) {
+            console.error('Usage: c4 project milestone add <projectId> <name> --due <date> [--id ID]');
+            process.exit(1);
+          }
+          const dueDate = extractFlagAt(4, '--due');
+          const mId = extractFlagAt(4, '--id');
+          const body = { name };
+          if (dueDate) body.dueDate = dueDate;
+          if (mId) body.id = mId;
+          result = await request('POST', '/projects/' + encodeURIComponent(projectId) + '/milestones', body);
+        } else if (sub === 'sprint') {
+          const sSub = args[1];
+          if (sSub !== 'add') {
+            console.error('Usage: c4 project sprint add <projectId> <name> --start <d> --end <d> [--id ID]');
+            process.exit(1);
+          }
+          const projectId = args[2];
+          const name = args[3];
+          if (!projectId || !name) {
+            console.error('Usage: c4 project sprint add <projectId> <name> --start <d> --end <d> [--id ID]');
+            process.exit(1);
+          }
+          const startDate = extractFlagAt(4, '--start');
+          const endDate = extractFlagAt(4, '--end');
+          const sId = extractFlagAt(4, '--id');
+          const body = { name };
+          if (startDate) body.startDate = startDate;
+          if (endDate) body.endDate = endDate;
+          if (sId) body.id = sId;
+          result = await request('POST', '/projects/' + encodeURIComponent(projectId) + '/sprints', body);
+        } else if (sub === 'progress') {
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 project progress <id>'); process.exit(1); }
+          result = await request('GET', '/projects/' + encodeURIComponent(id) + '/progress');
+          if (result && !result.error) {
+            console.log('Progress for ' + id + ':');
+            console.log('  total:  ' + result.totalTasks + ' tasks');
+            console.log('  done:   ' + result.doneTasks);
+            console.log('  percent: ' + result.percent + '%');
+            const bs = result.byStatus || {};
+            console.log('  backlog: ' + (bs.backlog || 0) + '  todo: ' + (bs.todo || 0) + '  in_progress: ' + (bs.in_progress || 0) + '  done: ' + (bs.done || 0));
+            return;
+          }
+        } else if (sub === 'sync') {
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 project sync <id> [--repo PATH]'); process.exit(1); }
+          const repo = extractFlagAt(2, '--repo') || process.cwd();
+          result = await request('POST', '/projects/' + encodeURIComponent(id) + '/sync', { repoPath: repo });
+        }
+
+        if (result && result.error) {
+          console.error('Error: ' + result.error);
+          process.exit(1);
+        }
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+
       case 'daemon': {
         const DaemonManager = require(require('path').join(__dirname, 'daemon-manager'));
         const sub = args[0];
@@ -2364,6 +2527,15 @@ Commands:
   cost report [--from ISO] [--to ISO] [--group project|team|machine|user] [--models] [--json]   Cost report (10.5)
   cost monthly <YYYY-MM> [--json]  Monthly cost report
   cost budget --limit N [--period day|week|month] [--group name] [--json]   Budget check
+  project create <id> --name N [--desc D]   Create a PM project (10.8)
+  project list                     List PM projects
+  project show <id>                Show project detail (tasks, milestones, sprints)
+  project task add <projectId> <title> [--status S] [--milestone M] [--sprint S] [--assignee A] [--estimate N]
+  project task update <projectId> <taskId> [--status S] [--title T] [--assignee A] [--estimate N] [--milestone M] [--sprint S] [--description D]
+  project milestone add <projectId> <name> --due <date> [--id ID]
+  project sprint add <projectId> <name> --start <d> --end <d> [--id ID]
+  project progress <id>            Show {totalTasks, doneTasks, percent, byStatus}
+  project sync <id> [--repo PATH]  Bi-directional TODO.md sync
 
 Special keys: Enter, C-c, C-b, C-d, C-z, C-l, C-a, C-e, Escape, Tab, Backspace, Up, Down, Left, Right
 
