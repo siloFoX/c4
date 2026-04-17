@@ -161,6 +161,14 @@ async function handleRequest(req, res) {
       const { name, input, keys } = await parseBody(req);
       result = await manager.send(name, input, keys || false);
 
+    } else if (req.method === 'POST' && route === '/key') {
+      const { name, key } = await parseBody(req);
+      if (!name || !key) {
+        result = { error: 'Missing name or key' };
+      } else {
+        result = manager.send(name, key, true);
+      }
+
     } else if (req.method === 'GET' && route === '/read') {
       const name = url.searchParams.get('name');
       result = manager.read(name);
@@ -192,6 +200,40 @@ async function handleRequest(req, res) {
     } else if (req.method === 'POST' && route === '/task') {
       const { name, task, branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode } = await parseBody(req);
       result = manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode });
+
+    } else if (req.method === 'POST' && route === '/merge') {
+      const { name, skipChecks } = await parseBody(req);
+      if (!name) {
+        result = { error: 'Missing name' };
+      } else {
+        try {
+          const { execSync } = require('child_process');
+          const repoRoot = manager.config.worktree?.projectRoot || path.resolve(__dirname, '..');
+          // Resolve worker name to branch
+          let branch = name;
+          const workerEntry = manager.workers?.get(name);
+          if (workerEntry && workerEntry.branch) {
+            branch = workerEntry.branch;
+          } else {
+            const wtPath = path.resolve(repoRoot, '..', `c4-worktree-${name}`);
+            try {
+              if (fs.existsSync(wtPath)) {
+                branch = execSync(`git -C "${wtPath.replace(/\\/g, '/')}" rev-parse --abbrev-ref HEAD`, { encoding: 'utf8', stdio: 'pipe' }).trim();
+              }
+            } catch {}
+          }
+          // Verify on main
+          const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: repoRoot, encoding: 'utf8', stdio: 'pipe' }).trim();
+          if (currentBranch !== 'main') {
+            result = { error: `Must be on main branch (currently on ${currentBranch})` };
+          } else {
+            execSync(`git merge "${branch}" --no-ff -m "Merge branch '${branch}'"`, { cwd: repoRoot, encoding: 'utf8', stdio: 'pipe' });
+            result = { success: true, merged: branch };
+          }
+        } catch (e) {
+          result = { error: `Merge failed: ${e.message}` };
+        }
+      }
 
     } else if (req.method === 'POST' && route === '/approve') {
       const { name, optionNumber } = await parseBody(req);
