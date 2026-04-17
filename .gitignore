@@ -42,3 +42,7 @@ tests/_real_test*
 # Environment variables
 .env
 .env.local
+
+# Web scaffold build artifacts
+web/node_modules
+web/dist
