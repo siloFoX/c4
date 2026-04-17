@@ -353,6 +353,20 @@
     "routineCheck": true
   },
 
+  "recovery": {
+    "enabled": false,
+    "maxAttempts": 3,
+    "autoMode": false,
+    "strategies": {
+      "test-fail": ["retry-same", "retry-simpler", "retry-with-smaller-scope", "ask-manager"],
+      "build-fail": ["retry-simpler", "retry-with-smaller-scope", "ask-manager"],
+      "tool-deny": ["retry-simpler", "ask-manager"],
+      "timeout": ["retry-same", "retry-same", "ask-manager"],
+      "dependency": ["ask-manager"],
+      "unknown": ["retry-simpler", "ask-manager"]
+    }
+  },
+
   "notifications": {
     "language": "ko",
     "slack": {
