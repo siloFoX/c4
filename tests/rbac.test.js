@@ -64,7 +64,9 @@ describe('(10.1) RBAC helpers', () => {
     expect(ACTIONS.CONFIG_RELOAD).toBe('config.reload');
     expect(ACTIONS.AUTH_USER_CREATE).toBe('auth.user.create');
     expect(ACTIONS.AUDIT_READ).toBe('audit.read');
-    expect(ALL_ACTIONS.length).toBe(12);
+    expect(ACTIONS.CICD_READ).toBe('cicd.read');
+    expect(ACTIONS.CICD_MANAGE).toBe('cicd.manage');
+    expect(ALL_ACTIONS.length).toBe(14);
   });
 
   test('(d) isRole/isAction/isUsername validators', () => {
