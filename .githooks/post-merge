@@ -1,0 +1,16 @@
+#!/bin/sh
+# C4 post-merge hook: auto-restore src/cli.js executable bit if a merge
+# brought in mode 100644 from a branch that started before the bit was
+# permanently set. Context: TODO 7.27 / docs/troubleshooting.md.
+# Install: git config core.hooksPath .githooks (done by c4 init)
+
+mode=$(git ls-files --stage -- src/cli.js 2>/dev/null | awk '{print $1}')
+
+if [ "$mode" = "100644" ]; then
+  echo ""
+  echo "  [c4] src/cli.js lost exec bit (100644) after merge. Restoring 100755 in the index."
+  git update-index --chmod=+x src/cli.js
+  echo "  Index updated. Finalize with a follow-up commit:"
+  echo "    git commit -m 'fix: restore src/cli.js exec bit after merge (7.27)'"
+  echo ""
+fi
