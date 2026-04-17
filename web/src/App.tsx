@@ -1,6 +1,10 @@
+import { useState } from 'react';
 import WorkerList from './components/WorkerList';
+import WorkerDetail from './components/WorkerDetail';
 
 export default function App() {
+  const [selectedWorker, setSelectedWorker] = useState<string | null>(null);
+
   return (
     <div className="flex h-screen flex-col">
       <header className="border-b border-gray-800 bg-gray-800 px-6 py-4">
@@ -12,11 +16,17 @@ export default function App() {
           <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-gray-400">
             Workers
           </h2>
-          <WorkerList />
+          <WorkerList selectedWorker={selectedWorker} onSelect={setSelectedWorker} />
         </aside>
-        <main className="flex-1 overflow-y-auto p-6">
-          <h2 className="mb-4 text-lg font-semibold text-gray-200">Worker detail</h2>
-          <p className="text-gray-400">Select a worker from the sidebar to view details.</p>
+        <main className="flex-1 overflow-hidden p-6">
+          {selectedWorker ? (
+            <WorkerDetail key={selectedWorker} workerName={selectedWorker} />
+          ) : (
+            <div>
+              <h2 className="mb-4 text-lg font-semibold text-gray-200">Worker detail</h2>
+              <p className="text-gray-400">Select a worker from the sidebar to view details.</p>
+            </div>
+          )}
         </main>
       </div>
     </div>
