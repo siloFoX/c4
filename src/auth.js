@@ -99,8 +99,13 @@ function findUser(cfg, name) {
   return user && typeof user === 'object' ? user : null;
 }
 
-// login(cfg, {user, password}) -> {ok, token?, error?}
-function login(cfg, body) {
+// login(cfg, {user, password}, opts?) -> {ok, token?, role?, error?}
+// opts.roleResolver(name) -> string|null lets the daemon inject a role
+// from the RBAC store without auth.js needing a hard dependency on
+// src/rbac.js. When the resolver returns null we fall back to whatever
+// role is recorded directly on the user entry in config.auth.users[name],
+// then to 'viewer' as the safest default.
+function login(cfg, body, opts) {
   const name = body && typeof body.user === 'string' ? body.user : '';
   const password = body && typeof body.password === 'string' ? body.password : '';
   if (!name || !password) return { ok: false, error: 'missing user or password' };
@@ -115,8 +120,17 @@ function login(cfg, body) {
 
   const secret = getAuthSecret(cfg);
   if (!secret) return { ok: false, error: 'auth secret not configured' };
-  const token = signToken({ sub: name }, secret);
-  return { ok: true, token, user: name };
+
+  const resolver = opts && typeof opts.roleResolver === 'function' ? opts.roleResolver : null;
+  let role = null;
+  if (resolver) {
+    try { role = resolver(name); } catch { role = null; }
+  }
+  if (!role && typeof user.role === 'string') role = user.role;
+  if (!role) role = 'viewer';
+
+  const token = signToken({ sub: name, role }, secret);
+  return { ok: true, token, user: name, role };
 }
 
 // checkRequest(cfg, req, route) -> {allow, status?, body?, decoded?}
