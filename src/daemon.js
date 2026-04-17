@@ -19,6 +19,7 @@ const projectMgmt = require('./project-mgmt');
 const projectDashboard = require('./project-dashboard');
 const rbac = require('./rbac');
 const cicd = require('./cicd');
+const orgMgmt = require('./org-mgmt');
 
 const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
 
@@ -143,6 +144,21 @@ function _buildCicdManagerFromConfig(cfgNow) {
   return mgr;
 }
 const cicdManager = _buildCicdManagerFromConfig(cfg);
+
+// (10.6) Shared OrgManager. Writes to ~/.c4/org.json by default;
+// honour config.org.path. Rebuilt on config reload so a new path is
+// picked up without a daemon restart. Tests construct their own
+// OrgManager with a tmpdir and never touch this instance.
+let _orgManager = null;
+function getOrgManager() {
+  if (_orgManager) return _orgManager;
+  const currentCfg = manager.getConfig();
+  const om = currentCfg && currentCfg.org && typeof currentCfg.org.path === 'string'
+    ? { storePath: currentCfg.org.path }
+    : {};
+  _orgManager = new orgMgmt.OrgManager(om);
+  return _orgManager;
+}
 
 // (10.8) Shared ProjectBoard. Writes to ~/.c4/projects/<id>.json by
 // default; honour config.projects.path for operators who want the
@@ -380,6 +396,24 @@ async function handleRequest(req, res) {
   {
     const m = route.match(/^\/cicd\/pipelines\/([^\/]+)$/);
     if (m) cicdPipelineId = decodeURIComponent(m[1]);
+  }
+
+  // (10.6) Org management: decode /orgs/dept/<id>/... path params here
+  // so the route dispatch below stays as a flat string match.
+  let orgParams = null;
+  {
+    const mMember = route.match(/^\/orgs\/dept\/([^\/]+)\/member$/);
+    const mQuota = route.match(/^\/orgs\/dept\/([^\/]+)\/quota$/);
+    const mUsage = route.match(/^\/orgs\/dept\/([^\/]+)\/usage$/);
+    const mDept = route.match(/^\/orgs\/dept\/([^\/]+)$/);
+    const mTeamMember = route.match(/^\/orgs\/team\/([^\/]+)\/member$/);
+    const mTeam = route.match(/^\/orgs\/team\/([^\/]+)$/);
+    if (mMember) orgParams = { kind: 'dept.member', deptId: decodeURIComponent(mMember[1]) };
+    else if (mQuota) orgParams = { kind: 'dept.quota', deptId: decodeURIComponent(mQuota[1]) };
+    else if (mUsage) orgParams = { kind: 'dept.usage', deptId: decodeURIComponent(mUsage[1]) };
+    else if (mDept) orgParams = { kind: 'dept', deptId: decodeURIComponent(mDept[1]) };
+    else if (mTeamMember) orgParams = { kind: 'team.member', teamId: decodeURIComponent(mTeamMember[1]) };
+    else if (mTeam) orgParams = { kind: 'team', teamId: decodeURIComponent(mTeam[1]) };
   }
 
   // (10.8) Project management: decode /projects/<id>/... path params
@@ -799,6 +833,109 @@ async function handleRequest(req, res) {
         result = { error: e.message };
       }
 
+    } else if (req.method === 'GET' && route === '/orgs/tree') {
+      // (10.6) Organization tree. Returns root departments with nested
+      // subdepts, teams, and a deduped member list per node. Protected
+      // with the ORG_READ action so viewers can see the chart without
+      // getting write access.
+      const gate = requireRole(authCheck, rbac.ACTIONS.ORG_READ);
+      if (denyOr(res, gate)) return;
+      try {
+        const org = getOrgManager();
+        const roots = org.treeView();
+        result = { roots, count: roots.length };
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && route === '/orgs/dept') {
+      // (10.6) Create a department. Body: { id, name, parentId? }.
+      const gate = requireRole(authCheck, rbac.ACTIONS.ORG_MANAGE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const org = getOrgManager();
+        result = org.createDepartment({
+          id: body.id,
+          name: body.name,
+          parentId: body.parentId === undefined ? null : body.parentId,
+        });
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && orgParams && orgParams.kind === 'dept.member') {
+      // (10.6) Attach a user to a department. Body: { userId, role? }.
+      const gate = requireRole(authCheck, rbac.ACTIONS.ORG_MANAGE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const org = getOrgManager();
+        result = org.addMember(orgParams.deptId, body.userId, body.role);
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && route === '/orgs/team') {
+      // (10.6) Create a team under a department. Body: { id, deptId, name }.
+      const gate = requireRole(authCheck, rbac.ACTIONS.ORG_MANAGE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const org = getOrgManager();
+        result = org.createTeam({
+          id: body.id,
+          deptId: body.deptId,
+          name: body.name,
+        });
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && orgParams && orgParams.kind === 'team.member') {
+      // (10.6) Attach a user to a team. Body: { userId }.
+      const gate = requireRole(authCheck, rbac.ACTIONS.ORG_MANAGE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const org = getOrgManager();
+        result = org.assignMember(orgParams.teamId, body.userId);
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && orgParams && orgParams.kind === 'dept.quota') {
+      // (10.6) Set or update a department's quotas.
+      // Body: { maxWorkers?, monthlyBudgetUSD?, tokenLimit? }.
+      const gate = requireRole(authCheck, rbac.ACTIONS.ORG_MANAGE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const org = getOrgManager();
+        result = org.setQuota(orgParams.deptId, body);
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && orgParams && orgParams.kind === 'dept.usage') {
+      // (10.6) Per-department quota usage snapshot. Joins active workers
+      // + cost report so admins can see "has team X blown its budget".
+      const gate = requireRole(authCheck, rbac.ACTIONS.ORG_READ);
+      if (denyOr(res, gate)) return;
+      try {
+        const org = getOrgManager();
+        const workers = (() => {
+          try { return (manager.list().workers || []); }
+          catch { return []; }
+        })();
+        result = org.getQuotaUsage(orgParams.deptId, {
+          costReporter: buildCostReporter(manager),
+          workers,
+        });
+      } catch (e) {
+        result = { error: e.message };
+      }
+
     } else if (req.method === 'GET' && route === '/projects') {
       // (10.8) List all projects. Returns the full board objects so a
       // caller can render a per-project dashboard without a second trip
@@ -1158,6 +1295,9 @@ async function handleRequest(req, res) {
         // (10.8) Drop the cached ProjectBoard so a new projects.path
         // picks up on the next request without a daemon restart.
         _projectBoard = null;
+        // (10.6) Drop the cached OrgManager so a new org.path kicks in
+        // on the next request.
+        _orgManager = null;
         // (10.3) Rebuild the dashboard on the next hit so it binds to
         // the fresh board + any updated cost config.
         _projectDashboard = null;

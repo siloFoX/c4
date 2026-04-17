@@ -2531,6 +2531,127 @@ async function main() {
         return;
       }
 
+      case 'org': {
+        // (10.6) Department / team management CLI. Thin wrapper around
+        // /orgs/* daemon endpoints.
+        //   c4 org tree
+        //   c4 org dept create --id ID --name N [--parent PID]
+        //   c4 org dept member add <deptId> <userId> [--role manager]
+        //   c4 org team create --id ID --dept DEPTID --name N
+        //   c4 org team member add <teamId> <userId>
+        //   c4 org quota set <deptId> [--max-workers N] [--budget USD] [--tokens N]
+        //   c4 org usage <deptId>
+        const sub = args[0];
+        const validSubs = ['tree', 'dept', 'team', 'quota', 'usage'];
+        if (!sub || !validSubs.includes(sub)) {
+          console.log('Usage: c4 org <tree|dept|team|quota|usage> ...');
+          console.log('  tree');
+          console.log('  dept create --id ID --name N [--parent PID]');
+          console.log('  dept member add <deptId> <userId> [--role manager]');
+          console.log('  team create --id ID --dept DEPTID --name N');
+          console.log('  team member add <teamId> <userId>');
+          console.log('  quota set <deptId> [--max-workers N] [--budget USD] [--tokens N]');
+          console.log('  usage <deptId>');
+          return;
+        }
+
+        function flagAt(startIdx, flag) {
+          for (let i = startIdx; i < args.length - 1; i++) {
+            if (args[i] === flag) return args[i + 1];
+          }
+          return '';
+        }
+
+        if (sub === 'tree') {
+          result = await request('GET', '/orgs/tree');
+        } else if (sub === 'dept') {
+          const action = args[1];
+          if (action === 'create') {
+            const id = flagAt(2, '--id');
+            const name = flagAt(2, '--name');
+            const parent = flagAt(2, '--parent');
+            if (!id) {
+              console.error('Usage: c4 org dept create --id ID --name N [--parent PID]');
+              process.exit(1);
+            }
+            const body = { id };
+            if (name) body.name = name;
+            if (parent) body.parentId = parent;
+            result = await request('POST', '/orgs/dept', body);
+          } else if (action === 'member') {
+            const memberAction = args[2];
+            const deptId = args[3];
+            const userId = args[4];
+            if (memberAction !== 'add' || !deptId || !userId) {
+              console.error('Usage: c4 org dept member add <deptId> <userId> [--role manager]');
+              process.exit(1);
+            }
+            const role = flagAt(5, '--role');
+            const body = { userId };
+            if (role) body.role = role;
+            result = await request('POST', '/orgs/dept/' + encodeURIComponent(deptId) + '/member', body);
+          } else {
+            console.error('Usage: c4 org dept <create|member> ...');
+            process.exit(1);
+          }
+        } else if (sub === 'team') {
+          const action = args[1];
+          if (action === 'create') {
+            const id = flagAt(2, '--id');
+            const deptId = flagAt(2, '--dept');
+            const name = flagAt(2, '--name');
+            if (!id || !deptId) {
+              console.error('Usage: c4 org team create --id ID --dept DEPTID --name N');
+              process.exit(1);
+            }
+            const body = { id, deptId };
+            if (name) body.name = name;
+            result = await request('POST', '/orgs/team', body);
+          } else if (action === 'member') {
+            const memberAction = args[2];
+            const teamId = args[3];
+            const userId = args[4];
+            if (memberAction !== 'add' || !teamId || !userId) {
+              console.error('Usage: c4 org team member add <teamId> <userId>');
+              process.exit(1);
+            }
+            result = await request('POST', '/orgs/team/' + encodeURIComponent(teamId) + '/member', { userId });
+          } else {
+            console.error('Usage: c4 org team <create|member> ...');
+            process.exit(1);
+          }
+        } else if (sub === 'quota') {
+          const action = args[1];
+          const deptId = args[2];
+          if (action !== 'set' || !deptId) {
+            console.error('Usage: c4 org quota set <deptId> [--max-workers N] [--budget USD] [--tokens N]');
+            process.exit(1);
+          }
+          const body = {};
+          const maxW = flagAt(3, '--max-workers');
+          const budget = flagAt(3, '--budget');
+          const tokens = flagAt(3, '--tokens');
+          if (maxW !== '') body.maxWorkers = parseFloat(maxW) || 0;
+          if (budget !== '') body.monthlyBudgetUSD = parseFloat(budget) || 0;
+          if (tokens !== '') body.tokenLimit = parseFloat(tokens) || 0;
+          result = await request('POST', '/orgs/dept/' + encodeURIComponent(deptId) + '/quota', body);
+        } else if (sub === 'usage') {
+          const deptId = args[1];
+          if (!deptId) {
+            console.error('Usage: c4 org usage <deptId>');
+            process.exit(1);
+          }
+          result = await request('GET', '/orgs/dept/' + encodeURIComponent(deptId) + '/usage');
+        }
+
+        if (result && result.error) {
+          console.error('Error: ' + result.error);
+          process.exit(1);
+        }
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+
       case 'cicd': {
         // (10.4) CI/CD pipeline management.
         //   c4 cicd pipeline list
