@@ -146,3 +146,15 @@ Started: 2026-04-17
 - Replaced aae0ee50 with 9ced657d: only c4/git commands, delegates setup to worker
 - Auth-setup flow: cron detects 8.14 merge via git log grep -> spawns auth-setup worker -> worker runs c4 init, removes cred, c4 daemon reload (not restart to preserve manager), starts vite, logs done
 - Cron itself never touches /tmp or filesystem outside /root/c4 via c4/git
+
+### 2026-04-17 UTC 12:58 - 8.14 detected, auth-setup worker dispatched
+- Manager idle, v2 done + v3 task [1] (8.14 session auth) merged (04de67d, 75c9bb6, 85ee5df, b041c87, ae52e09). Version bumped to 1.7.0.
+- auth-setup worker spawned (PID 2765228)
+- Task: run c4 init --user silofox --password-file /tmp/c4-silofox-cred, remove cred, c4 daemon reload, start vite 0.0.0.0:5173 in background, log done
+- Cron next fire :49 will verify vite up and silofox created
+
+### 2026-04-17 UTC 15:29 - auth setup complete
+- silofox created
+- /tmp/c4-silofox-cred removed
+- vite up at 0.0.0.0:5173
+- c4 daemon v1.7.0 active

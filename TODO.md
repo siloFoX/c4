@@ -673,3 +673,4 @@ Level 4이면:
 | ~~7.20~~ | c4 init PATH 자동 등록 | 2026-04-17 |
 | ~~7.22~~ | pendingTask Enter 재발 수정 (delivery verify + write-failure recovery) | 2026-04-17 |
 | ~~7.23~~ | PostToolUse hook error recurrence — verified resolved + regression test | 2026-04-17 |
+| 8.16 | 8.14 후속 — bcryptjs 의존성 + merge check dep 누락 방지 | **todo** | 2026-04-17 8.14 세션 인증 구현 시 `bcryptjs` 디펜던시 package.json에 추가됐으나 npm install 미실행 + 새 코드가 모듈 로드 실패 → c4 init --user 실행 시 silofox 생성 실패 (cannot find module bcryptjs). 8.14 pre-merge check가 기능 동작 검증 안 함 (npm test는 통과했지만 런타임 실행 경로 커버 안 됨). 수정: (1) 8.14 구현에서 누락된 bcryptjs 런타임 의존성 설치 검증 스텝 추가 (postinstall 훅 또는 init 자체에 require 체크), (2) 머지 전 check에 "신규 의존성 설치 후 smoke test" 단계 추가 — 새로 추가된 dep이 있으면 실제 import/require 가능한지 확인, (3) 일반화: c4 merge pre-check에 package.json diff 감지 시 npm ci 후 node -e "require(...)" 런 스모크 테스트, (4) 재현 근거: 2026-04-17 auth-setup 워커가 c4 init 실행 시 cannot find module bcryptjs 에러, silofox 미생성 → 수동 복구 지시 필요했음. |
