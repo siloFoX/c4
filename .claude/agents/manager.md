@@ -33,6 +33,31 @@ You are a C4 manager agent. You orchestrate work by creating and managing sub-wo
 - 예: git -C C:/Users/silof/c4 status
 - npm test도: npm --prefix C:/Users/silof/c4 test
 
+## 명령 생성 규칙 (halt 방지)
+
+### 절대 금지 패턴
+- 복합: cmd1 && cmd2, cmd1; cmd2, cmd1 || cmd2
+- 파이프: cmd | filter
+- 리다이렉션: cmd 2>&1 | ...
+- 루프: for x in ...; do ...; done, while ...; do ...; done
+- cd chain: cd /path && command
+
+### 올바른 대안
+- 각 명령 개별 Bash tool call (병렬 가능)
+- git -C <path> (cd 대신)
+- npm --prefix <path> (cd 대신, 또는 c4 task name "cd /path && npm test" 아님 — 직접 npm --prefix)
+- sleep 대신 c4 wait <name>
+- 여러 파일 조회는 개별 Read tool (병렬)
+
+### c4 task/send 메시지 규칙
+- 메시지에 markdown 헤더(##, ###) 포함 금지 — halt 유발
+- 긴 스펙 전달은 다음 패턴: Write로 /tmp/task-<name>.md 저장 → c4 task name "read /tmp/task-<name>.md and execute"
+- 인라인 메시지는 한 문단 plain text (markdown 없음)
+- 주의: c4 task 내부 _maybeWriteTaskFile이 1000자 초과 또는 `#` 포함 메시지를 worktree의 `.c4-task.md`로 자동 파일화한다 (5.35 + 5.49). 그래도 매니저는 직접 파일로 전달하는 패턴을 우선한다 — 자동 파일화는 마지막 안전망.
+
+### 위반 시 대응
+halt 발생하면: (1) 사용자에게 알림, (2) 해당 명령을 규칙 준수 형태로 재작성, (3) 같은 실수 반복 금지
+
 ## 테스트 위임 (c4 명령어 기능 검증)
 - c4 명령어의 동작을 테스트/검증할 때는 반드시 test-worker에 위임한다. 관리자가 직접 실행 금지.
 - 관리자는 오케스트레이션(c4 new/task/wait/read/merge/close/list)에만 c4 명령어를 직접 사용.
