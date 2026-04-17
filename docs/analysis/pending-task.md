@@ -310,3 +310,45 @@ Windows conpty의 write→child read 지연은 평시 10-30ms 수준이지만 3 
 - `isReady` false-positive가 실제로 얼마나 자주 발생하는가? (스냅샷 샘플링 필요)
 
 이 3개 질문은 코드만 보고 답할 수 없고 실측이 필요. 본 분석은 **코드 경로 검토 기반 가설**이며 실측으로 가설 A/B/C/D의 기여도 분리가 필요하다.
+
+## 5차 수정 (7.17 구현) — 5-point 방어 적용
+
+### 의도
+
+후보 A~D의 **기여도를 분리하지 않고 동시에 차단**한다. 각 수정은 단독으로 부작용이 적고, 실측으로 기여도를 나누는 작업은 (A) 수정 전/후 실패율 측정 (B) 개별 fix 토글 실험으로 별도 진행한다.
+
+### 구현 요약 (`src/pty-manager.js`)
+
+| # | 후보 | 변경 |
+|---|------|------|
+| 1 | A | `_setupStableAt` 필드 추가. `_executeSetupPhase2`에서 `worker.setupDone = true` 시 `_setupStableAt = Date.now() + stabilizeMs`(default 1000ms) 기록. active polling / idle handler pendingTask / post-setup trigger 모두 `Date.now() >= _setupStableAt` 통과해야 송신. retry-giveup 경로에도 동일 적용. |
+| 2 | A 보조 | `_readyConfirmedAt` 필드 추가. active polling이 isReady && stable && !needsSetup 첫 tick에서는 timestamp만 기록하고 return. 다음 tick까지 유지되어야 송신. isReady / stable / setup 하나라도 어긋나면 `_readyConfirmedAt = 0` 리셋. 최소 500ms 연속 ready 보장. |
+| 3 | C | `_pendingTaskTimeoutTimer`를 `fireFallback(attempt)` 헬퍼로 래핑. `setupNeeded && attempt === 1`이면 한 번에 `pendingTimeoutMs/2` 뒤로 재스케줄 + `[C4 WARN] pendingTask fallback deferred` 스냅샷. attempt=2에서도 여전히 setup 미완료면 `[setup incomplete]` 경고와 함께 force-send (영구 hang 방지). |
+| 4 | B | `_chunkedWrite` 단일-청크 fast path에도 `proc.write()` 리턴값 확인. false + `proc.once`가 있으면 `drain` 이벤트 대기. 백프레셔 상태에서 CR이 text 앞에 끼어드는 현상 차단. |
+| 5 | D | `_writeTaskAndEnter` default 100→200ms. `_getEnterDelayMs()` 헬퍼로 `workerDefaults.enterDelayMs` config 경유. pendingTask 전달 9개 경로 전부 이 경유로 통일. `config.example.json`, `docs/config-reference.md`에 노출. |
+
+### 테스트
+
+- `tests/pending-task-polling.test.js` — mock 로직을 새 게이트(`stableGateOk`, `_readyConfirmedAt`, `deferred` 타임아웃)에 맞춰 업데이트. 기존 13개 중 2-tick이 필요해진 테스트 재작성. 7.17 신규 케이스 4개 추가 (14→18개):
+  - stabilization gate가 `_setupStableAt` 통과 전까지 송신을 막는가
+  - isReady가 tick 사이에 false로 변하면 `_readyConfirmedAt`이 리셋돼 single-tick send가 불가능한가
+  - setupDone=false인 상태에서 timeout fallback attempt=1은 defer, attempt=2는 force-send with `[setup incomplete]` 경고를 찍는가
+  - setupDone=true면 timeout fallback이 바로 send (경고 없이)
+- `tests/chunked-write.test.js` — fast path drain 검증 2개 추가 (7→9개):
+  - `proc.write()=false` 시 drain 이벤트가 될 때까지 await 되는가
+  - `proc.write()=true` 시 drain listener가 붙지 않는가
+- `tests/pending-task-cr-split.test.js` — default enterDelayMs 100→200으로 갱신.
+- 전체 스위트 50/50 PASS.
+
+### 의도적으로 하지 않은 것
+
+- active polling 인터벌 변경 (500ms 유지) — 2-consecutive 요구만으로 최소 500ms 연속 ready를 확보.
+- `enterDelayMs`의 플랫폼별 자동 스케일링 — 실측 분포 데이터가 있어야 가능. 일단 config로 수동 튜닝 가능하도록만 노출.
+- idle handler pendingTask 블록의 500ms `setTimeout` 내부 isReady 재확인 — stable gate + setup guard로 커버되는 영역이라 과도한 방어가 되는 것을 피했다.
+
+### 실측 계획 (향후)
+
+1. 3-worker 배치 기동 10회 반복 → Enter 인식 성공률 측정 (before/after).
+2. Linux(ptmx)와 Windows(conpty) 모두에서 동일 시나리오 수행.
+3. `_writeTaskAndEnter` 내부에 debug 로그 추가하여 text→CR 간 실제 간격, proc.write 리턴 분포 수집.
+4. 실패 재현 시 후보 A/B/C/D 중 어느 fix를 disable하면 다시 깨지는지 binary search.
