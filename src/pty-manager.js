@@ -4660,6 +4660,112 @@ class PtyManager extends EventEmitter {
     }
   }
 
+  // --- Web UI Worker Control Panel (8.8) ---
+
+  // Cancel a pending or in-flight task without destroying the worker.
+  // Priority: queued entry first, then worker-level pending task that has
+  // not yet been flushed to the PTY, then live task (send Ctrl+C).
+  cancelTask(name) {
+    if (!name) return { error: 'Missing name' };
+
+    const queueIdx = (this._taskQueue || []).findIndex((q) => q && q.name === name);
+    if (queueIdx >= 0) {
+      const entry = this._taskQueue.splice(queueIdx, 1)[0];
+      this._saveState();
+      return { success: true, name, kind: 'queued', task: entry && entry.task ? entry.task : null };
+    }
+
+    const w = this.workers.get(name);
+    if (!w) {
+      return { error: `Worker '${name}' not found and no queued task for this name` };
+    }
+
+    if (w._pendingTask && !w._pendingTaskSent) {
+      const pendingTaskText = w._pendingTask.task || null;
+      if (w._pendingTaskTimer) { clearInterval(w._pendingTaskTimer); w._pendingTaskTimer = null; }
+      if (w._pendingTaskTimeoutTimer) { clearTimeout(w._pendingTaskTimeoutTimer); w._pendingTaskTimeoutTimer = null; }
+      if (w._pendingTaskVerifyTimer) { clearTimeout(w._pendingTaskVerifyTimer); w._pendingTaskVerifyTimer = null; }
+      w._pendingTask = null;
+      w._pendingTaskSent = false;
+      return { success: true, name, kind: 'pending', task: pendingTaskText };
+    }
+
+    if (!w.alive) {
+      return { error: `Worker '${name}' has exited - nothing to cancel` };
+    }
+
+    const interruptedTask = w._taskText || null;
+    try { w.proc.write('\x03'); }
+    catch (e) { return { error: `Interrupt failed: ${e.message}` }; }
+    w._taskText = null;
+    return { success: true, name, kind: 'interrupt', task: interruptedTask };
+  }
+
+  // Restart a worker: kill the current PTY process and spawn a fresh one in
+  // the same worktree so the branch is preserved. Unlike close() this does
+  // NOT remove the worktree or the c4/ branch.
+  restart(name) {
+    const w = this.workers.get(name);
+    if (!w) return { error: `Worker '${name}' not found` };
+
+    const snapshot = {
+      branch: w.branch || null,
+      worktree: w.worktree || null,
+      worktreeRepoRoot: w.worktreeRepoRoot || null,
+      target: w.target || 'local',
+      parent: w.parent || null,
+      startCommit: w._startCommit || null,
+      autoWorker: Boolean(w._autoWorker),
+    };
+
+    let command = 'claude';
+    let args = [];
+    if (w.command && typeof w.command === 'string') {
+      const parts = w.command.trim().split(/\s+/).filter(Boolean);
+      if (parts.length > 0) {
+        command = parts[0];
+        args = parts.slice(1);
+      }
+    }
+
+    if (w.idleTimer) clearTimeout(w.idleTimer);
+    if (w._pendingTaskTimer) { clearInterval(w._pendingTaskTimer); w._pendingTaskTimer = null; }
+    if (w._pendingTaskTimeoutTimer) { clearTimeout(w._pendingTaskTimeoutTimer); w._pendingTaskTimeoutTimer = null; }
+    if (w._pendingTaskVerifyTimer) { clearTimeout(w._pendingTaskVerifyTimer); w._pendingTaskVerifyTimer = null; }
+    if (w.alive) {
+      try { w.proc.kill(); } catch {}
+    }
+    if (w.rawLogStream && !w.rawLogStream.destroyed) w.rawLogStream.end();
+    this.workers.delete(name);
+
+    const createOpts = { target: snapshot.target };
+    if (snapshot.parent) createOpts.parent = snapshot.parent;
+    if (snapshot.worktree) createOpts.cwd = snapshot.worktree;
+    const createResult = this.create(name, command, args, createOpts);
+    if (createResult.error) return createResult;
+
+    const newW = this.workers.get(name);
+    if (newW) {
+      if (snapshot.worktree) {
+        newW.worktree = snapshot.worktree;
+        newW.worktreeRepoRoot = snapshot.worktreeRepoRoot;
+        newW.branch = snapshot.branch;
+      }
+      if (snapshot.startCommit) newW._startCommit = snapshot.startCommit;
+      if (snapshot.autoWorker) newW._autoWorker = true;
+    }
+
+    this._saveState();
+    return {
+      success: true,
+      name,
+      branch: snapshot.branch,
+      worktree: snapshot.worktree,
+      target: snapshot.target,
+      restarted: true,
+    };
+  }
+
   // --- Manager Auto-Replacement (4.7) ---
 
   compactEvent(workerName) {

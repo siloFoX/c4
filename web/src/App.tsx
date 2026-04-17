@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import WorkerList from './components/WorkerList';
 import WorkerDetail from './components/WorkerDetail';
 import ChatView from './components/ChatView';
+import ControlPanel from './components/ControlPanel';
 import HierarchyTree from './components/HierarchyTree';
 import HistoryView from './components/HistoryView';
 import Login from './components/Login';
@@ -9,7 +10,7 @@ import { AUTH_EVENT, fetchAuthStatus, getToken, logout } from './lib/api';
 
 type AuthState = 'loading' | 'anon' | 'authed' | 'disabled';
 type SidebarMode = 'list' | 'tree';
-type DetailMode = 'terminal' | 'chat';
+type DetailMode = 'terminal' | 'chat' | 'control';
 type TopView = 'workers' | 'history';
 const SIDEBAR_MODE_KEY = 'c4.sidebar.mode';
 const DETAIL_MODE_KEY = 'c4.detail.mode';
@@ -29,7 +30,9 @@ function readDetailMode(): DetailMode {
   if (typeof window === 'undefined') return 'terminal';
   try {
     const v = window.localStorage.getItem(DETAIL_MODE_KEY);
-    return v === 'chat' ? 'chat' : 'terminal';
+    if (v === 'chat') return 'chat';
+    if (v === 'control') return 'control';
+    return 'terminal';
   } catch {
     return 'terminal';
   }
@@ -268,11 +271,26 @@ export default function App() {
                   >
                     Chat
                   </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={detailMode === 'control'}
+                    onClick={() => setDetailMode('control')}
+                    className={`px-3 py-1 ${
+                      detailMode === 'control'
+                        ? 'bg-gray-700 text-gray-100'
+                        : 'bg-gray-900 text-gray-400 hover:bg-gray-800'
+                    }`}
+                  >
+                    Control
+                  </button>
                 </div>
               </div>
               <div className="min-h-0 min-w-0 flex-1">
                 {detailMode === 'chat' ? (
                   <ChatView key={`chat-${selectedWorker}`} workerName={selectedWorker} />
+                ) : detailMode === 'control' ? (
+                  <ControlPanel key={`control-${selectedWorker}`} workerName={selectedWorker} />
                 ) : (
                   <WorkerDetail key={`term-${selectedWorker}`} workerName={selectedWorker} />
                 )}

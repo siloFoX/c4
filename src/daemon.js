@@ -316,6 +316,24 @@ async function handleRequest(req, res) {
       const { name } = await parseBody(req);
       result = manager.rollback(name);
 
+    } else if (req.method === 'POST' && route === '/cancel') {
+      // 8.8: cancel pending/queued/active task without destroying the worker.
+      const { name } = await parseBody(req);
+      if (!name) {
+        result = { error: 'Missing name' };
+      } else {
+        result = manager.cancelTask(name);
+      }
+
+    } else if (req.method === 'POST' && route === '/restart') {
+      // 8.8: kill + respawn a worker's PTY while preserving branch/worktree.
+      const { name } = await parseBody(req);
+      if (!name) {
+        result = { error: 'Missing name' };
+      } else {
+        result = manager.restart(name);
+      }
+
     } else if (req.method === 'POST' && route === '/cleanup') {
       const { dryRun } = await parseBody(req);
       result = manager.cleanup(dryRun);
