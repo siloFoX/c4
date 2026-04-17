@@ -465,6 +465,19 @@ Level 4이면:
 | 9.3 | Agent SDK | **todo** | 프로그래밍 방식으로 C4 제어하는 SDK. `const c4 = require('c4-sdk'); c4.createWorker(); c4.sendTask()` 패턴. Web UI와 CLI 외에 코드에서 직접 호출. npm 패키지 배포. |
 | 9.4 | MCP 서버 고도화 | **todo** | 기존 mcp-handler.js(3.9)를 공식 MCP 프로토콜 최신 스펙에 맞게 업그레이드. Claude Desktop/claude.ai에서 C4를 MCP 서버로 연결하여 대화 중 worker 생성/관리. tool 목록: create_worker, send_task, read_output, approve, merge, list_workers, token_usage. |
 | 9.5 | Claude Code Extension/Plugin | **todo** | Claude Code CLI에서 C4를 네이티브 플러그인으로 로드. slash command(/c4 new, /c4 task) 또는 tool로 등록. PTY spawn 없이 직접 API 호출. Claude Code의 Agent tool과 C4 worker를 통합. |
+| 9.6 | 멀티 머신 Fleet 관리 | **todo** | 내부 IP별 별명(alias) 등록 + 각 머신에 C4 daemon 배포. Web UI에서 여러 daemon을 중앙 관리 — 머신 상태 모니터링, 원격 worker 생성/task 전송, 크로스 머신 작업 분배. config에 fleet 섹션: `{ "dgx": { "host": "192.168.10.222", "port": 3456 }, "build": { "host": "192.168.10.50", "port": 3456 } }`. daemon 간 상태 동기화 프로토콜. |
+| 9.7 | Dispatcher (자동 작업 분배) | **todo** | Fleet 머신들에 작업을 자동 분배하는 중앙 스케줄러. 머신 부하(CPU/GPU/메모리/worker 수), 역할 태그(gpu/build/dev), 프로젝트 위치 기반으로 최적 머신 자동 선택. Web UI에서 "작업" 만 입력하면 dispatcher가 어디서 돌릴지 결정. 라운드로빈/최소부하/태그매칭 전략. 머신 오프라인 시 자동 폴백. |
+| 9.8 | 머신 간 파일 전송 | **todo** | Fleet 머신 간 자동 파일 동기화. 작업 분배 시 소스 코드/빌드 결과/모델 파일 자동 전송. rsync/scp 기반 + 진행률 표시. git repo는 clone/pull로 동기화, 그 외 파일은 rsync. 대용량 파일(모델 등) 청크 전송 + 이어받기. Web UI에서 전송 상태 모니터링. |
+
+## Phase 10 — 엔터프라이즈
+
+| # | 항목 | 상태 | 설명 |
+|---|------|------|------|
+| 10.1 | 팀 권한 관리 (RBAC) | **todo** | 팀원별 역할(admin/manager/viewer) + 머신/프로젝트별 접근 권한. Web UI 로그인 시 본인 권한 범위만 표시. admin은 전체, manager는 할당된 머신, viewer는 읽기만. |
+| 10.2 | 감사 로그 (Audit Log) | **todo** | 누가 언제 어떤 worker를 만들고, 어떤 task를 보내고, 어떤 명령을 승인했는지 전수 기록. 변경 불가 append-only 로그. Web UI에서 필터/검색. 보안 감사 대응. |
+| 10.3 | 프로젝트별 대시보드 | **todo** | 프로젝트 단위로 worker/task/branch/머지 현황 분리 표시. 팀원별 기여도, 완료율, 토큰 사용량. 프로젝트 매니저가 진행 상황 한눈에 파악. |
+| 10.4 | CI/CD 파이프라인 통합 | **todo** | GitHub Actions/GitLab CI와 연동. PR 생성 시 자동 리뷰 worker 배정, 머지 후 자동 배포 worker 실행. 파이프라인 정의를 config 또는 YAML로 관리. |
+| 10.5 | 비용 리포트 + 청구 | **todo** | 프로젝트/팀/머신별 토큰 사용량 + API 비용 집계. 월간 리포트 자동 생성. 예산 한도 초과 시 경고/차단. 관리자용 비용 대시보드. |
 
 ## 완료
 
