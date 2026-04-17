@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.16] - 2026-04-17
+
+### Added
+- **Web UI external (LAN) access** (8.10): vite dev server와 c4 daemon 모두 기본 `127.0.0.1` 바인딩이라 외부 IP에서 접근 불가하던 문제 해결. `web/vite.config.ts`에 `server.host: '0.0.0.0'` + `port: 5173` 추가. 데몬은 `config.daemon.bindHost`(없으면 legacy `host`, 기본 `127.0.0.1`)로 listen하도록 변경 — backward compat 유지. 새로운 `src/web-external.js` 모듈에 `resolveBindHost`/`detectLanIP`/`enableViteExternal`/`setDaemonBindHost` 순수 함수 분리. `c4 init`이 "Enable Web UI external (LAN) access? (y/N)" 프롬프트 추가, `--yes-external`/`--no-external` 플래그로 scripted 실행 지원. yes 응답 시 vite.config.ts에 host 자동 주입(idempotent), `config.json`의 `daemon.bindHost=0.0.0.0` 저장, `os.networkInterfaces()` 기반 LAN IP 자동 감지·Web UI/Daemon URL 출력, 방화벽/JWT(8.1) 경고, `c4 daemon restart` 안내. `C4_BIND_HOST` 환경변수로 런타임 오버라이드도 지원. README.md에 "External (LAN) Access for the Web UI" 섹션 추가. `tests/daemon-bindhost.test.js`(8 assertions) + `tests/init-web-external.test.js`(16 assertions).
+
 ## [1.6.15] - 2026-04-17
 
 ### Fixed

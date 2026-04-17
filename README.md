@@ -11,7 +11,7 @@
 ![Node >= 18](https://img.shields.io/badge/node-%3E%3D18%20(tested%20v24.11.1)-brightgreen.svg)
 ![Claude Code](https://img.shields.io/badge/Claude_Code-v2.1.85--2.1.112-8A2BE2.svg)
 ![Platform](https://img.shields.io/badge/platform-Win11%2022H2%2B%20%7C%20Ubuntu%2022.04%2B-blue.svg)
-![Version](https://img.shields.io/badge/version-1.6.15-green.svg)
+![Version](https://img.shields.io/badge/version-1.6.16-green.svg)
 
 > **The only multi-agent orchestrator for Claude Code** — parallel workers, manager rotation, recursive delegation, overnight autonomous coding. No screenshots, just PTY.
 
@@ -159,7 +159,7 @@ Copy `config.example.json` to `config.json` and edit:
 
 | Section | What it does |
 |---------|-------------|
-| `daemon` | Port, host, idle threshold |
+| `daemon` | Port, host, `bindHost` (LAN exposure), idle threshold |
 | `pty` | Terminal dimensions, scrollback |
 | `targets` | Local and SSH remote targets |
 | `autoApprove` | Auto-approve safe commands, deny dangerous ones |
@@ -181,6 +181,37 @@ Copy `config.example.json` to `config.json` and edit:
 | `logs` | Raw logging, rotation, cleanup |
 | `compatibility` | Claude Code TUI patterns for version compatibility |
 | `worktree` | Git worktree settings for multi-agent isolation |
+
+### External (LAN) Access for the Web UI
+
+By default the Vite dev server and the C4 daemon both bind to `127.0.0.1`, so
+the Web UI is only reachable from the same machine. To open it to the local
+network (another PC, a phone on the same Wi-Fi), either run `c4 init` and
+answer **y** to the external-access prompt, or set it up manually:
+
+```bash
+c4 init                       # prompts: Enable Web UI external (LAN) access? (y/N)
+c4 init --yes-external        # non-interactive: enable
+c4 init --no-external         # non-interactive: skip
+```
+
+`c4 init --yes-external` will:
+
+- patch `web/vite.config.ts` to bind `server.host: '0.0.0.0'`, `port: 5173`
+- set `daemon.bindHost: "0.0.0.0"` in `config.json`
+- print the detected LAN IP and the URLs to use
+- remind you to run `c4 daemon restart` so the daemon rebinds
+
+Manual equivalent:
+
+```bash
+npm --prefix web run dev -- --host 0.0.0.0   # Web UI on 0.0.0.0:5173
+c4 daemon restart                             # rebinds daemon to bindHost
+```
+
+Check the daemon bind with `c4 config` or `ss -tlnp | grep 3456` (expect
+`0.0.0.0:3456`). **Binding to 0.0.0.0 exposes the daemon to the LAN — review
+firewall rules; proper auth (JWT) is planned in 8.1.**
 
 ### Auto-Approve
 
