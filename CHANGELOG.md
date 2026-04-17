@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.18] - 2026-04-17
+
+### Fixed
+- **pendingTask delivery verification + write-failure recovery** (7.22): 7.17 5-point 방어 이후에도 v1.6.16+ 실사용에서 task 2/3 worker가 수동 `c4 send + c4 key Enter` 필요한 증상 재발. 추가 failure mode 3개 차단 + post-write 검증 도입. (1) 모든 delivery 경로(active polling, timeout fallback, post-setup trigger, idle handler pendingTask, auto-resume)에서 `_pendingTaskSent=true`가 `await _writeTaskAndEnter` 이전에 설정돼 PTY write 중 throw 발생 시 `_pendingTaskSent=true`/`_pendingTask=non-null`로 worker가 영구 stuck — try/catch로 감싸 실패 시 `_pendingTaskSent=false`로 복구 + `[C4 WARN]` 스냅샷. (2) `fireFallback`이 `_setupStableAt` 체크 없이 setupDone=true면 즉시 발사 — stable-gate 갭이 ≤2s면 한 번 defer (>2s면 영구 hang 방지로 force-send), attempt=2는 무조건 force-send. (3) idle handler와 auto-resume의 500ms `setTimeout` 스케줄 콜백이 state 재검증 없이 write — 내부에서 `worker.alive`/`isReady(screen)`/`stableGateOk`/`setupDone` 재확인, 어긋나면 abort + `_pendingTaskSent=false` 복구 + 구체적 어긋난 조건이 담긴 snapshot, auto-resume은 queue head로 되돌려 idle handler retry. 추가로 `_schedulePendingTaskVerify(worker)` 신설: 성공 write 이후 1500ms 뒤 화면이 여전히 idle 프롬프트면 `\r`만 한 번 재전송 (단발). `workerDefaults.pendingTaskVerifyMs`로 delay 조정, `pendingTaskVerifyEnabled=false`로 기능 off. 새 worker 필드 `_pendingTaskAttempts`(진단) / `_pendingTaskVerifyTimer`는 4개 cleanup 지점(existing replace / exit handler / session resume / close) 모두 해제. `tests/pending-task-verify.test.js` 22 assertions (verify 8 + write-failure 4 + fallback stable-gate 5 + idle-path revalidation 5). 전체 59 suites pass.
+
 ## [1.6.17] - 2026-04-17
 
 ### Fixed
