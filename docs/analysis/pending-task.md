@@ -176,3 +176,137 @@ async _writeTaskAndEnter(proc, text, enterDelayMs = 100) {
 - 닫힌 proc에서 에러 발생 시 swallow 되는지
 
 전체 테스트(48개) 모두 통과.
+
+## 4차 조사 (7.17) — 7.1 적용 후에도 3/3 worker Enter 미인식 재발
+
+### 증상 요약
+
+7.1 수정(`_writeTaskAndEnter` 9개 경로 교체) 이후에도 동일 세션에서 생성된 worker 3개 모두 Enter가 먹히지 않는 현상이 관찰됐다. prompt에 task 텍스트는 도달했지만 submit이 일어나지 않아 입력 대기 상태로 정지.
+
+### 코드 확인 (2026-04-17 현재)
+
+`src/pty-manager.js`에서 `_chunkedWrite(proc, text + '\r')` 패턴은 완전히 제거됐다. pendingTask를 전달하는 9개 경로 모두 `_writeTaskAndEnter(proc, text)`를 호출:
+
+| 경로 | line | await 여부 |
+|------|------|-----------|
+| CI 실패 feedback | 473 | X (fire-and-forget) |
+| `_processQueue()` 기존 워커 재전송 | 939 | X |
+| `_createAndSendTask()` active polling | 1089 | O |
+| `_createAndSendTask()` timeout fallback | 1108 | O |
+| `_executeSetupPhase2()` post-setup trigger | 1202 | O |
+| `sendTask()` 기존 워커 경로 | 2486 | X |
+| idle handler pendingTask 블록 | 2740 | O |
+| idle handler auto-resume queue | 2755 | X |
+| routine skip feedback | 2965 | O |
+
+비-task 경로의 잔여 `text + '\r'` 패턴(영향 없음):
+- `pty-manager.js:2654` — SSH shell 초기화용 `pendingCommands`
+- `pty-manager.js:1182` — effort 메뉴 확인용 standalone Enter
+- `pty-manager.js:3126, 3152` — `send()`/`approve()` (별도 경로)
+
+즉 **7.1 수정은 올바르게 전파**됐고 코드 레벨에서 CR이 합쳐져 전송되는 task 경로는 남아있지 않다. 따라서 7.17 재발 원인은 7.1 이외의 다른 지점이다.
+
+### 근본 원인 후보 (가중치 순)
+
+#### 후보 A (유력) — setupDone=true 직후 active polling의 transient 상태 관통
+
+5.51이 idle handler pendingTask 블록에는 `!setupNeeded` 가드를 추가했지만, active polling(`_pendingTaskTimer`, line 1069-1094)에도 동일 가드가 있긴 하다(line 1080 `needsSetup`). 문제는 **가드 자체는 있어도 타이밍 윈도우를 보호하지 못한다**는 점:
+
+시나리오:
+1. `_executeSetupPhase2()` 내부에서 effort 메뉴 Enter(`proc.write('\r')`) 전송 후 동기적으로 `worker.setupDone = true` 설정 (line 1182-1183).
+2. 이 시점에서 **메뉴 닫힘 애니메이션은 아직 진행 중**. Claude Code TUI의 입력 포커스가 prompt로 완전히 복귀하기까지 ~수십 ms의 전이 구간 존재.
+3. active polling의 setInterval은 500ms 주기로 독립 실행 중이며, `setupDone=true`가 되는 순간 다음 tick에서 `isReady && !needsSetup` 체크를 통과할 수 있다.
+4. `isReady()`(`terminal-interface.js:60`)는 `❯` + `for shortcuts` 두 문자열의 동시 존재만 본다. 메뉴 닫힘 과정에서 이 두 문자열이 먼저 복구되고 입력 핸들러가 마지막으로 복구될 수 있다 → **false-positive ready**.
+5. 이 순간 `_writeTaskAndEnter(proc, fullTask)` 실행:
+   - `_chunkedWrite`로 text 청크 전송
+   - 100ms 대기
+   - `proc.write('\r')` 전송
+6. TUI가 아직 menu-close 전이 상태면 text의 일부 또는 전부가 메뉴 잔여 입력으로 소비되고, CR이 menu confirm으로 재해석되거나 노쓰롭된다. **결과: prompt에는 task 일부만 남고 Enter 안 먹힘.**
+
+`_pendingTaskSent = true`가 await 이전에 설정되므로 post-setup trigger(2s 뒤)와 timeout fallback(30s 뒤)이 **재시도하지 않고 early return**한다. "한 번 실패하면 회복 불가" 구조.
+
+후보 A가 유력한 이유:
+- 3개 worker가 동시 기동 시 Windows conpty가 공유되어 렌더링 지연 증가 → 전이 윈도우가 100ms보다 길어질 가능성 ↑
+- 3개 동시 실패는 환경적 load와 일치하는 패턴
+- 5.51의 post-setup trigger(2s 대기)는 안전하지만 active polling은 먼저 fire하면 win-race
+- isReady 패턴이 `❯` + `for shortcuts`라는 단순 문자열 두 개 — 메뉴 overlay 해제 순서에 따라 둘 다 true인 transient 존재 가능
+
+#### 후보 B — `_chunkedWrite` 단일-청크 fast path의 drain 누락
+
+`pty-manager.js:3160-3164`:
+```javascript
+async _chunkedWrite(proc, text, chunkSize = 500, delayMs = 50) {
+  if (text.length <= chunkSize) {
+    proc.write(text);
+    return;  // drain 대기 없음
+  }
+  // 청크 루프 — !ok면 'drain' 이벤트 대기
+}
+```
+
+500자 이하 짧은 task text(대부분)는 짧은 경로로 처리돼 drain을 기다리지 않는다. `proc.write`가 백프레셔로 false를 반환해도 무시. 그 상태에서 `_writeTaskAndEnter`가 100ms 뒤 `proc.write('\r')`을 호출하면 CR이 **아직 flush 안 된 text 앞에 끼어들거나** conpty 내부 큐잉 순서가 역전될 가능성. 3-worker 병렬 기동 시 버퍼 압력이 높아 발생 확률 ↑.
+
+동일 패턴이 긴 청크 루프의 **마지막 청크**에도 있다: 마지막 `proc.write(chunk)`의 리턴 값이 true여도 flush는 미보장. Windows conpty는 write 수락과 child read가 비동기이므로 100ms가 타이트한 예산.
+
+#### 후보 C — timeout fallback의 setupDone 가드 부재
+
+`_createAndSendTask()` timeout fallback(line 1098-1119):
+```javascript
+w._pendingTaskTimeoutTimer = setTimeout(async () => {
+  if (w._pendingTaskTimer) { clearInterval(...) }
+  const worker = this.workers.get(entry.name);
+  if (worker && worker.alive && worker._pendingTask && !worker._pendingTaskSent) {
+    worker._pendingTaskSent = true;
+    // setupDone/setupPhase 체크 없음!
+    ...
+    await this._writeTaskAndEnter(worker.proc, fullTask);
+    ...
+  }
+}, pendingTimeoutMs);  // 30000ms
+```
+
+30초 초과 시 세팅 상태 관계없이 강제 전송. 정상 케이스에선 안 도달하지만 effort 메뉴 검출 실패·retry 지연 등으로 setup이 30초를 넘기면 메뉴 활성 상태에서 task 전송 → 동일 증상. 3-worker 동시 기동 시 setup polling이 순차적으로 처리되며 뒤쪽 워커의 setup이 지연돼 fallback에 도달할 가능성.
+
+#### 후보 D — enterDelayMs=100ms가 Windows conpty 부하 상황에서 부족
+
+5.18에서 `send()`에 100ms가 적용돼 동작하는 것이 확인됐지만, `send()`는 일반적으로 짧은 텍스트를 한 번에 다룬다. pendingTask는 rules summary + scope guard + context + 실제 task로 최대 1000자에 가까운 텍스트를 청크 분할로 보낼 수 있다.
+
+Windows conpty의 write→child read 지연은 평시 10-30ms 수준이지만 3 worker 동시 렌더링이면 50-150ms까지 늘어날 수 있다(node-pty 이슈 트래커의 유사 보고 참조). 100ms는 이 영역에 들어가는 경계값.
+
+### 권장 수정 방향 (검증 필요)
+
+1. **active polling에 "setupDone 안정화" 지연 추가** (후보 A 대응)
+   - `needsSetup = effortLevel && !worker.setupDone` 외에 `worker._setupStableAt` 같은 timestamp 추가
+   - `_executeSetupPhase2`에서 setupDone=true 설정 시 `_setupStableAt = Date.now() + 1000` 기록
+   - active polling에서 `Date.now() < _setupStableAt`이면 한 tick 더 대기
+   - 결과: menu close 애니메이션이 끝날 때까지 최소 1초 보장
+
+2. **isReady 검증 강화: 연속 2회 ready 요구** (후보 A 보조)
+   - active polling에서 첫 tick에 isReady면 `_readyCount++`, 아니면 리셋
+   - `_readyCount >= 2`일 때만 실제 전송 (최소 500ms 연속 ready 확인)
+
+3. **timeout fallback에 setupDone 가드 추가** (후보 C 대응)
+   - `if (!worker.setupDone) { reschedule fallback }` 또는 단순히 setupNeeded면 skip하고 active polling 재시작
+
+4. **`_chunkedWrite` 단일-청크 경로에도 drain 동기화** (후보 B 대응)
+   - `if (!ok) await new Promise(resolve => proc.once('drain', resolve));`를 fast path에도 적용
+   - 청크 루프의 마지막 write 이후에도 drain 확인
+
+5. **enterDelayMs 환경 변수화** (후보 D 대응)
+   - `config.workerDefaults.enterDelayMs` 추가 (default 200ms로 상향)
+   - Windows conpty 부하 상황에서 250-500ms까지 조정 가능하도록
+
+### 재현·검증 플랜
+
+1. **OS 비교**: Windows(conpty)와 Linux(ptmx)에서 3-worker 배치 기동 (`c4 batch --count 3 --auto-mode "간단 작업"`) 후 Enter 인식 실패율 측정. Linux에서 발생하지 않으면 conpty 특성 확정.
+2. **타이밍 로깅**: `_writeTaskAndEnter` 내부에 `Date.now()` 기록 → text write 시작/완료/CR 전송 시각을 `worker.snapshots`에 남겨 사후 분석.
+3. **수정 효과 측정**: 위 권장안 1+3을 먼저 적용(가장 가설 A에 직접 대응), 10회 연속 3-worker 기동 실패율 비교.
+4. **회귀 방지 테스트**: `tests/setup-done-race.test.js` 신설 — setupDone=true 직후 isReady가 transient true가 되는 가짜 PTY 모킹으로 active polling이 메뉴 전이 중 전송을 하지 않는지 검증.
+
+### 미해결 질문
+
+- Claude Code 2.x의 실제 메뉴 close 애니메이션 타이밍(ms 단위)?
+- Windows conpty에서 `proc.write` → child read 지연의 분포? (3-worker vs 1-worker 비교)
+- `isReady` false-positive가 실제로 얼마나 자주 발생하는가? (스냅샷 샘플링 필요)
+
+이 3개 질문은 코드만 보고 답할 수 없고 실측이 필요. 본 분석은 **코드 경로 검토 기반 가설**이며 실측으로 가설 A/B/C/D의 기여도 분리가 필요하다.
