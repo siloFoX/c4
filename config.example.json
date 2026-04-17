@@ -128,7 +128,9 @@
     },
     "enterDelayMs": 200,
     "model": "default",
-    "workerLanguage": "en"
+    "workerLanguage": "en",
+    "maxBudgetUsd": 5.0,
+    "maxRetries": 3
   },
 
   "logs": {

@@ -121,6 +121,7 @@ async function main() {
         }
 
         let branch = '', useBranch = true, scope = null, scopePreset = '', after = '', contextFrom = '', reuse = undefined, profile = '', autoMode = false, projectRoot = '', cwd = '';
+        let budgetUsd = null, maxRetries = null;
         const taskParts = [];
         for (let i = argStart; i < effectiveArgs.length; i++) {
           if (effectiveArgs[i] === '--branch' && effectiveArgs[i + 1]) { branch = effectiveArgs[++i]; }
@@ -134,6 +135,16 @@ async function main() {
           else if (effectiveArgs[i] === '--auto-mode') { autoMode = true; }
           else if (effectiveArgs[i] === '--repo' && effectiveArgs[i + 1]) { projectRoot = effectiveArgs[++i]; }
           else if (effectiveArgs[i] === '--cwd' && effectiveArgs[i + 1]) { cwd = effectiveArgs[++i]; }
+          else if (effectiveArgs[i] === '--budget' && effectiveArgs[i + 1]) {
+            const v = parseFloat(effectiveArgs[++i]);
+            if (!Number.isFinite(v)) { console.error('Error: --budget must be a number (USD)'); process.exit(1); }
+            budgetUsd = v;
+          }
+          else if (effectiveArgs[i] === '--max-retries' && effectiveArgs[i + 1]) {
+            const v = parseInt(effectiveArgs[++i], 10);
+            if (!Number.isFinite(v) || v < 0) { console.error('Error: --max-retries must be a non-negative integer'); process.exit(1); }
+            maxRetries = v;
+          }
           else if (effectiveArgs[i] === '--scope' && effectiveArgs[i + 1]) {
             try { scope = JSON.parse(effectiveArgs[++i]); }
             catch { console.error('Error: --scope must be valid JSON'); process.exit(1); }
@@ -152,6 +163,8 @@ async function main() {
         if (autoMode) body.autoMode = true;
         if (projectRoot) body.projectRoot = projectRoot;
         if (cwd) body.cwd = cwd;
+        if (budgetUsd !== null) body.budgetUsd = budgetUsd;
+        if (maxRetries !== null) body.maxRetries = maxRetries;
         result = await request('POST', '/task', body);
         break;
       }

@@ -1018,6 +1018,9 @@ class PtyManager extends EventEmitter {
     // Spawn worker with cwd set to worktree so Claude Code loads project settings
     const createOpts = { target: entry.target };
     if (worktreePath) createOpts.cwd = worktreePath;
+    // Cost/retry guardrails (9.10): propagate per-task overrides into spawn args
+    if (entry.budgetUsd !== undefined) createOpts.budgetUsd = entry.budgetUsd;
+    if (entry.maxRetries !== undefined) createOpts.maxRetries = entry.maxRetries;
     const createResult = this.create(entry.name, entry.command, entry.args, createOpts);
     if (createResult.error) return createResult;
 
@@ -2693,6 +2696,8 @@ class PtyManager extends EventEmitter {
         scopePreset: options.scopePreset,
         contextFrom: options.contextFrom,
         autoMode: options.autoMode,
+        budgetUsd: options.budgetUsd,
+        maxRetries: options.maxRetries,
         _autoWorker: options._autoWorker
       });
     }
@@ -2809,6 +2814,78 @@ class PtyManager extends EventEmitter {
     };
   }
 
+  // --- Cost/retry guardrails (9.10) ---
+  // Resolve the budget cap in USD. Precedence:
+  //   1. per-task override (options.budgetUsd)
+  //   2. config.workerDefaults.maxBudgetUsd (default 5.0)
+  // A value of 0 or less disables the guard (no flag emitted).
+  _resolveBudgetUsd(override) {
+    const raw = (override !== undefined && override !== null && override !== '')
+      ? override
+      : this.config.workerDefaults?.maxBudgetUsd;
+    if (raw === undefined || raw === null) return 5.0;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return 0;
+    return n > 0 ? n : 0;
+  }
+
+  _resolveMaxRetries(override) {
+    const raw = (override !== undefined && override !== null && override !== '')
+      ? override
+      : this.config.workerDefaults?.maxRetries;
+    if (raw === undefined || raw === null) return 3;
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 0) return 0;
+    return Math.floor(n);
+  }
+
+  // Build the final args list for a spawned command. For claude, this appends
+  // --resume (4.1) and --max-budget-usd (9.10) when applicable. Non-claude
+  // commands are passed through unchanged so this stays a no-op for SSH shells
+  // or user-provided binaries.
+  _buildClaudeArgs(command, args = [], options = {}) {
+    const finalArgs = [...args];
+    if (command !== 'claude') return finalArgs;
+    if (options.resume) {
+      finalArgs.push('--resume', options.resume);
+    }
+    const budget = this._resolveBudgetUsd(options.budgetUsd);
+    if (budget > 0) {
+      finalArgs.push('--max-budget-usd', String(budget));
+    }
+    return finalArgs;
+  }
+
+  // Record a retry event (intervention, test-fail escalation, etc). When the
+  // count reaches _maxRetries the worker is stopped via close() and a Slack
+  // alert is pushed. Returns { retryCount, stopped, stopReason }.
+  recordRetry(name, reason) {
+    const w = this.workers.get(name);
+    if (!w) return { error: `Worker '${name}' not found` };
+    if (w._stopReason) {
+      // Already stopped; no further action.
+      return { retryCount: w._retryCount, stopped: true, stopReason: w._stopReason };
+    }
+    w._retryCount = (w._retryCount || 0) + 1;
+    const limit = w._maxRetries || 0;
+    const hit = limit > 0 && w._retryCount >= limit;
+    const detail = reason ? String(reason).slice(0, 200) : 'unspecified';
+    if (!hit) {
+      if (this._notifications) {
+        this._notifications.pushAll(`[RETRY] ${name}: attempt ${w._retryCount}/${limit} (${detail})`);
+      }
+      return { retryCount: w._retryCount, stopped: false, stopReason: null };
+    }
+    const stopReason = `maxRetries exhausted (${w._retryCount}/${limit}): ${detail}`;
+    w._stopReason = stopReason;
+    if (this._notifications) {
+      this._notifications.pushAll(`[SAFETY STOP] ${name}: ${stopReason}`);
+      try { this._notifications._flushAll().catch(() => {}); } catch {}
+    }
+    try { this.close(name); } catch {}
+    return { retryCount: w._retryCount, stopped: true, stopReason };
+  }
+
   create(name, command, args = [], options = {}) {
     if (this.workers.has(name)) {
       return { error: `Worker '${name}' already exists` };
@@ -2827,21 +2904,18 @@ class PtyManager extends EventEmitter {
 
     let shell, shellArgs, pendingCommands;
 
+    const finalArgs = this._buildClaudeArgs(command, args, options);
+
     if (t.type === 'local' || targetName === 'local') {
       const commandMap = t.commandMap || {};
       const resolvedCmd = commandMap[command] || command;
-      // Resume support (4.1): append --resume <sessionId> to claude command
-      const finalArgs = [...args];
-      if (options.resume && command === 'claude') {
-        finalArgs.push('--resume', options.resume);
-      }
       shell = platformShell();
       shellArgs = platformShellArgs(resolvedCmd, finalArgs);
     } else if (t.type === 'ssh') {
       const remoteCwd = cwd || t.defaultCwd || '';
       const commandMap = t.commandMap || {};
       const resolvedCmd = commandMap[command] || command;
-      const remoteArgs = args.length > 0 ? ' ' + args.join(' ') : '';
+      const remoteArgs = finalArgs.length > 0 ? ' ' + finalArgs.join(' ') : '';
 
       shell = platformSshPath();
       shellArgs = this._buildSshArgs(t);
@@ -2923,6 +2997,11 @@ class PtyManager extends EventEmitter {
       // Session resume (4.1)
       _sessionId: options.resume || null,
       _resumed: !!options.resume,
+      // Cost/retry guardrails (9.10)
+      _budgetUsd: this._resolveBudgetUsd(options.budgetUsd),
+      _maxRetries: this._resolveMaxRetries(options.maxRetries),
+      _retryCount: 0,
+      _stopReason: null,
     };
 
     // Raw log
