@@ -1,0 +1,5 @@
+# Preserve LF endings for shell-executable scripts.
+# This avoids CRLF-related churn on cross-platform merges that often
+# accompany src/cli.js mode regressions (TODO 7.27).
+src/cli.js text eol=lf
+*.sh       text eol=lf

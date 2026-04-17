@@ -3,6 +3,7 @@
 ## [1.6.15] - 2026-04-17
 
 ### Fixed
+- fix: preserve src/cli.js executable bit across merges (7.27)
 - **prevent manager halt from compound/markdown commands** (7.26): `.claude/agents/manager.md`에 '명령 생성 규칙 (halt 방지)' 섹션 추가 — 복합/파이프/루프/cd-chain 절대 금지, git -C / npm --prefix / c4 wait 대안, c4 task/send 메시지 규칙(markdown 헤더 금지, 긴 스펙 파일화), 위반 시 대응 프로토콜. 자동 파일화 안전망(`_maybeWriteTaskFile`, src/pty-manager.js:1185)은 5.35 + 5.49에서 이미 도입돼 1000자 초과 또는 `#` 포함 메시지를 `.c4-task.md`로 변환 (sendTask 및 _buildTaskText 경로 공통). `tests/manager-command-rules.test.js` 6 assertions로 문서 섹션 유지 검증.
 
 ### Changed

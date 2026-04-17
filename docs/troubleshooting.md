@@ -320,6 +320,73 @@ grep -i "error\|exception\|fail" logs/daemon.log
 
 ---
 
+## 6. src/cli.js exec bit lost after merge (7.27)
+
+After a `c4 merge`, `git stash pop`, or a plain `git merge`, `src/cli.js`
+occasionally reverts from mode `100755` to `100644`, which makes `c4 health`
+fail with `/usr/bin/c4: Permission denied (exit 126)`.
+
+### Symptoms
+
+- `c4 health` exits 126 with `Permission denied`.
+- `git ls-files --stage src/cli.js` reports `100644` instead of `100755`.
+- A `git diff --raw main..HEAD -- src/cli.js` line starts with
+  `:100755 100644`.
+
+### Root cause
+
+Older branches were cut when `src/cli.js` was still tracked as `100644`.
+On Windows manager sessions the default `core.filemode=false` means git
+never records a mode change coming back from the working tree, so those
+branches still carry `100644` when they are merged back into main. The
+merge result then silently overwrites the `100755` that main just set.
+
+### Fix (one-time, per clone)
+
+```bash
+# On Linux / macOS (core.filemode=true): leave as-is.
+git -C <repo> config core.filemode
+
+# On Windows manager sessions where the value is false,
+# do NOT flip it to true blindly (NTFS does not preserve exec bits
+# reliably). Instead, rely on the repo-level defenses below.
+```
+
+Repo-level defenses already in place after 7.27:
+
+1. `src/cli.js` is committed with `100755` on record (`git update-index
+   --chmod=+x src/cli.js`).
+2. `.gitattributes` pins LF line endings for `src/cli.js` and `*.sh`,
+   which avoids the CRLF churn that frequently accompanies mode
+   regressions in cross-platform merges.
+3. `.githooks/post-merge` detects a lost exec bit right after merge and
+   runs `git update-index --chmod=+x src/cli.js` automatically. The
+   manager still needs one follow-up commit, but the index is already
+   correct:
+
+   ```bash
+   git -C <repo> commit -m "fix: restore src/cli.js exec bit after merge (7.27)"
+   ```
+
+### Manual recovery if the hook did not run
+
+```bash
+git -C <repo> update-index --chmod=+x src/cli.js
+git -C <repo> commit -m "fix: restore src/cli.js exec bit after merge (7.27)"
+```
+
+### Verification
+
+```bash
+git -C <repo> ls-files --stage src/cli.js
+# expected: 100755 <sha> 0  src/cli.js
+
+c4 health
+# expected: 200 OK
+```
+
+---
+
 ## Quick Reference
 
 | 문제 | 진단 명령 | 해결 명령 |
@@ -330,3 +397,4 @@ grep -i "error\|exception\|fail" logs/daemon.log
 | lost 워커 | `c4 list` | `c4 resume <name>` |
 | 데몬 미응답 | `c4 health` | `c4 daemon start` |
 | 경로 변환 | - | `MSYS_NO_PATHCONV=1 c4 send ...` |
+| cli.js exec bit lost | `git ls-files --stage src/cli.js` | `git update-index --chmod=+x src/cli.js` + commit |
