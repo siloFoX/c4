@@ -42,7 +42,26 @@ const path = require('path');
 const LIST_CACHE_FILE = path.join(os.tmpdir(), 'c4-list-cache.json');
 const LIST_COOLDOWN_MS = 10000;
 
-const BASE = process.env.C4_URL || 'http://127.0.0.1:3456';
+// Fleet routing (9.6): when an alias is pinned via C4_FLEET env or
+// ~/.c4/fleet.current, `request()` proxies to that peer's daemon
+// instead of 127.0.0.1. `c4 fleet use <alias>` writes the pin file;
+// `c4 fleet use --clear` removes it.
+let _fleetModule;
+function fleetModule() {
+  if (!_fleetModule) _fleetModule = require('./fleet');
+  return _fleetModule;
+}
+
+function resolveBase() {
+  if (process.env.C4_URL) return process.env.C4_URL;
+  try {
+    const pinned = fleetModule().getPinnedBase();
+    if (pinned && pinned.pinned && pinned.base) return pinned.base;
+  } catch {}
+  return 'http://127.0.0.1:3456';
+}
+
+const BASE = resolveBase();
 
 // Session auth (8.14): the daemon rejects unauthenticated /api/* requests
 // when config.auth.enabled is true. Looking up the token at call time so
@@ -51,6 +70,12 @@ const TOKEN_FILE = path.join(os.homedir(), '.c4-token');
 
 function readToken() {
   if (process.env.C4_TOKEN) return process.env.C4_TOKEN.trim();
+  // 9.6: when targeting a pinned fleet alias, prefer its stored token
+  // so each peer can use its own JWT without trampling ~/.c4-token.
+  try {
+    const pinned = fleetModule().getPinnedBase();
+    if (pinned && pinned.pinned && pinned.token) return pinned.token;
+  } catch {}
   try {
     const t = fs.readFileSync(TOKEN_FILE, 'utf8').trim();
     return t || null;
@@ -1714,6 +1739,152 @@ async function main() {
         return;
       }
 
+      case 'fleet': {
+        // Multi-machine fleet management (9.6).
+        const fleet = fleetModule();
+        const sub = args[0];
+        if (!sub || !['add', 'list', 'remove', 'rm', 'status', 'use', 'current'].includes(sub)) {
+          console.log('Usage: c4 fleet <add|list|remove|status|use|current> [args]');
+          console.log('  add <alias> <host> [--port N] [--token T]');
+          console.log('  list                                        List registered machines');
+          console.log('  remove <alias>                              Remove a machine');
+          console.log('  status [--timeout ms]                       Show aggregated fleet health');
+          console.log('  use <alias>                                 Pin subsequent c4 calls to alias');
+          console.log('  use --clear                                 Unpin and restore local target');
+          console.log('  current                                     Print the pinned alias, if any');
+          return;
+        }
+
+        if (sub === 'add') {
+          const alias = args[1];
+          const host = args[2];
+          if (!alias || !host) {
+            console.error('Usage: c4 fleet add <alias> <host> [--port N] [--token T]');
+            process.exit(1);
+          }
+          let port;
+          let token = '';
+          for (let i = 3; i < args.length; i++) {
+            if (args[i] === '--port' && args[i + 1]) port = parseInt(args[++i], 10);
+            else if (args[i] === '--token' && args[i + 1]) token = args[++i];
+          }
+          try {
+            const res = fleet.addMachine(alias, host, {
+              port,
+              authToken: token || undefined,
+            });
+            console.log(`[ok] fleet: registered ${res.alias} -> http://${res.host}:${res.port}`);
+            if (token) console.log('[ok] fleet: auth token stored for alias');
+          } catch (e) {
+            console.error(`Error: ${e.message}`);
+            process.exit(1);
+          }
+          return;
+        }
+
+        if (sub === 'list') {
+          const machines = fleet.listMachines();
+          if (machines.length === 0) {
+            console.log('No machines registered. Use: c4 fleet add <alias> <host>');
+            return;
+          }
+          const current = fleet.getCurrent();
+          console.log('ALIAS\t\tHOST\t\t\tPORT\tTOKEN\tPINNED');
+          for (const m of machines) {
+            const pin = current === m.alias ? '*' : '';
+            const tok = m.hasToken ? 'yes' : 'no';
+            console.log(`${m.alias}\t\t${m.host}\t\t${m.port}\t${tok}\t${pin}`);
+          }
+          if (current) console.log(`\nPinned alias: ${current}`);
+          return;
+        }
+
+        if (sub === 'remove' || sub === 'rm') {
+          const alias = args[1];
+          if (!alias) {
+            console.error('Usage: c4 fleet remove <alias>');
+            process.exit(1);
+          }
+          const res = fleet.removeMachine(alias);
+          if (!res.ok) {
+            console.error(`Error: ${res.error}`);
+            process.exit(1);
+          }
+          console.log(`[ok] fleet: removed ${alias}`);
+          return;
+        }
+
+        if (sub === 'use') {
+          const arg = args[1];
+          if (arg === '--clear') {
+            fleet.setCurrent(null);
+            console.log('[ok] fleet: pin cleared (back to local daemon)');
+            return;
+          }
+          if (!arg) {
+            console.error('Usage: c4 fleet use <alias>   (or --clear)');
+            process.exit(1);
+          }
+          const res = fleet.setCurrent(arg);
+          if (!res.ok) {
+            console.error(`Error: ${res.error}`);
+            process.exit(1);
+          }
+          const machine = fleet.getMachine(arg);
+          console.log(`[ok] fleet: pinned ${arg} -> http://${machine.host}:${machine.port}`);
+          console.log('[info] subsequent c4 commands proxy to this machine until `c4 fleet use --clear`.');
+          return;
+        }
+
+        if (sub === 'current') {
+          const alias = fleet.getCurrent();
+          if (!alias) { console.log('No alias pinned (local daemon)'); return; }
+          const machine = fleet.getMachine(alias);
+          if (!machine) {
+            console.log(`Pinned alias '${alias}' is not in fleet.json (stale pin).`);
+            return;
+          }
+          console.log(`${alias}  http://${machine.host}:${machine.port}`);
+          return;
+        }
+
+        if (sub === 'status') {
+          let timeoutMs;
+          for (let i = 1; i < args.length; i++) {
+            if (args[i] === '--timeout' && args[i + 1]) timeoutMs = parseInt(args[++i], 10);
+          }
+          const qs = timeoutMs ? `?timeout=${timeoutMs}` : '';
+          result = await request('GET', `/fleet/overview${qs}`);
+          if (result && result.self) {
+            const self = result.self;
+            console.log('SELF:');
+            console.log(`  ${self.host}:${self.port}  workers=${self.workers}  version=${self.version || '?'}`);
+          }
+          if (result && Array.isArray(result.machines)) {
+            if (result.machines.length === 0) {
+              console.log('\nNo remote machines registered.');
+            } else {
+              console.log('\nREMOTES:');
+              console.log('  ALIAS\t\tHOST\t\t\tPORT\tOK\tWORKERS\tVERSION\tELAPSED');
+              for (const m of result.machines) {
+                const ok = m.ok ? 'yes' : 'NO';
+                const w = m.workers == null ? '?' : m.workers;
+                const v = m.version || '?';
+                const err = m.ok ? '' : ` (${m.error || 'unreachable'})`;
+                console.log(`  ${m.alias}\t\t${m.host}\t\t${m.port}\t${ok}\t${w}\t${v}\t${m.elapsedMs}ms${err}`);
+              }
+            }
+          }
+          if (result && result.total) {
+            const t = result.total;
+            console.log(`\nTotal: ${t.workers} workers across ${t.reachable}/${t.machines} reachable machines`);
+          }
+          return;
+        }
+
+        return;
+      }
+
       case 'daemon': {
         const DaemonManager = require(require('path').join(__dirname, 'daemon-manager'));
         const sub = args[0];
@@ -1807,6 +1978,12 @@ Commands:
   mcp start [--base URL]           Start MCP stdio proxy (for Claude Desktop, 9.4)
   mcp status                       Verify MCP endpoint handshake
   mcp tools                        List exposed MCP tools
+  fleet add <alias> <host> [--port N] [--token T]  Register a remote daemon (9.6)
+  fleet list                       List registered machines + pinned alias
+  fleet remove <alias>             Remove a machine from ~/.c4/fleet.json
+  fleet use <alias>                Pin c4 commands to this alias (use --clear to unpin)
+  fleet current                    Print the pinned alias, if any
+  fleet status [--timeout ms]      Aggregated fleet overview (health + worker counts)
   scribe start                     Start session context recording
   scribe stop                      Stop scribe
   scribe status                    Show scribe status
