@@ -387,6 +387,58 @@ c4 health
 
 ---
 
+## 7. c4 merge with uncommitted changes on main (7.28)
+
+`c4 merge` will not run `git merge` while the target branch has uncommitted
+changes. Otherwise the manager has to do `git stash` + merge + `git stash
+pop` manually, and a pop conflict halts automated runs.
+
+### Symptoms
+
+- `c4 merge <name>` exits with `Error: target branch has uncommitted
+  changes:` followed by a list of modified paths.
+- The merge does not happen until you address the dirty tree.
+
+### Resolve manually
+
+```bash
+git -C <repo> status                 # inspect what is dirty
+# either commit:
+git -C <repo> commit -am "wip"
+# or stash and pop yourself:
+git -C <repo> stash push -m wip
+c4 merge <name>
+git -C <repo> stash pop
+# or clean orphan worktrees first:
+c4 cleanup
+```
+
+### Auto-stash flag
+
+If the dirty paths are routinely TODO.md / package-lock.json / similar
+working files that you are happy to stash and restore, run:
+
+```bash
+c4 merge <name> --auto-stash
+```
+
+`c4` will:
+
+1. `git stash push -m "c4-merge-autostash-<name>"`
+2. Run the normal pre-merge checks and `git merge`
+3. `git stash pop`
+
+If pop conflicts (uncommon — main moved over the stashed paths), `c4` exits
+non-zero and prints exact recovery steps. The stash entry stays in
+`git stash list`, so no data is lost. Resolve conflicts in the working tree
+and then `git -C <repo> stash drop` to discard the entry.
+
+If the merge itself fails after `--auto-stash` already pushed, `c4` prints
+the stash label and instructs you to run `git stash pop` yourself once the
+merge problem is resolved.
+
+---
+
 ## Quick Reference
 
 | 문제 | 진단 명령 | 해결 명령 |
@@ -398,3 +450,4 @@ c4 health
 | 데몬 미응답 | `c4 health` | `c4 daemon start` |
 | 경로 변환 | - | `MSYS_NO_PATHCONV=1 c4 send ...` |
 | cli.js exec bit lost | `git ls-files --stage src/cli.js` | `git update-index --chmod=+x src/cli.js` + commit |
+| merge halts on dirty main (7.28) | `git -C <repo> status` | `c4 merge <name> --auto-stash` 또는 commit/stash 먼저 |
