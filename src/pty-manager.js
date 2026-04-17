@@ -3798,6 +3798,54 @@ class PtyManager extends EventEmitter {
     };
   }
 
+  // --- Resize clamp (8.13) ---
+  // Keep as a static-style helper so tests can extract it via regex + new
+  // Function without pulling node-pty (same pattern as worktree-gc and
+  // cost-guard).
+  static _clampResizeDims(cols, rows, limits) {
+    const lim = limits || {};
+    const minC = Number(lim.minCols) > 0 ? Math.floor(Number(lim.minCols)) : 20;
+    const maxC = Number(lim.maxCols) > 0 ? Math.floor(Number(lim.maxCols)) : 400;
+    const minR = Number(lim.minRows) > 0 ? Math.floor(Number(lim.minRows)) : 5;
+    const maxR = Number(lim.maxRows) > 0 ? Math.floor(Number(lim.maxRows)) : 200;
+    const cNum = Math.floor(Number(cols));
+    const rNum = Math.floor(Number(rows));
+    const c = Number.isFinite(cNum) ? Math.max(minC, Math.min(maxC, cNum)) : minC;
+    const r = Number.isFinite(rNum) ? Math.max(minR, Math.min(maxR, rNum)) : minR;
+    return { cols: c, rows: r };
+  }
+
+  // Resize a worker's PTY and ScreenBuffer (8.13). Called by the web UI so the
+  // client viewport width drives the server-side line width, avoiding wrapped
+  // output when the browser is narrower than the default 160x48 grid.
+  resize(name, cols, rows) {
+    const w = this.workers.get(name);
+    if (!w) return { error: `Worker '${name}' not found` };
+    if (!w.alive) return { error: `Worker '${name}' is not alive` };
+
+    const limits = {
+      minCols: this.config.pty?.minCols,
+      maxCols: this.config.pty?.maxCols,
+      minRows: this.config.pty?.minRows,
+      maxRows: this.config.pty?.maxRows,
+    };
+    const { cols: c, rows: r } = PtyManager._clampResizeDims(cols, rows, limits);
+
+    try {
+      if (w.proc && typeof w.proc.resize === 'function') {
+        w.proc.resize(c, r);
+      }
+    } catch (e) {
+      return { error: `PTY resize failed: ${e.message}` };
+    }
+
+    if (w.screen && typeof w.screen.resize === 'function') {
+      w.screen.resize(c, r);
+    }
+
+    return { success: true, name, cols: c, rows: r };
+  }
+
   // Watch worker output stream (5.42)
   // Registers a callback that receives raw PTY data. Returns unwatch function, or null if worker not found.
   watchWorker(name, cb) {

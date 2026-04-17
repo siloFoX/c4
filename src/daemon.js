@@ -343,6 +343,15 @@ async function handleRequest(req, res) {
       const lines = parseInt(url.searchParams.get('lines') || '200') || 200;
       result = manager.getScrollback(name, lines);
 
+    } else if (req.method === 'POST' && route === '/resize') {
+      // 8.13: Web UI viewport resize -> server PTY + ScreenBuffer resize
+      const { name, cols, rows } = await parseBody(req);
+      if (!name || cols == null || rows == null) {
+        result = { error: 'Missing name, cols or rows' };
+      } else {
+        result = manager.resize(name, cols, rows);
+      }
+
     } else if (req.method === 'POST' && route === '/hook-event') {
       // Hook architecture (3.15): receive structured events from Claude Code hooks
       const body = await parseBody(req);
