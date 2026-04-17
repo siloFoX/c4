@@ -207,8 +207,8 @@ async function handleRequest(req, res) {
       };
 
     } else if (req.method === 'POST' && route === '/create') {
-      const { name, command, args, target, cwd } = await parseBody(req);
-      result = manager.create(name, command, args || [], { target, cwd });
+      const { name, command, args, target, cwd, parent } = await parseBody(req);
+      result = manager.create(name, command, args || [], { target, cwd, parent });
 
     } else if (req.method === 'POST' && route === '/send') {
       const { name, input, keys } = await parseBody(req);
@@ -250,6 +250,15 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'GET' && route === '/list') {
       result = manager.list();
+
+    } else if (req.method === 'GET' && route === '/tree') {
+      const tree = require('./hierarchy-tree');
+      const listData = manager.list();
+      result = {
+        roots: tree.buildTree(listData.workers || []),
+        queuedTasks: listData.queuedTasks || [],
+        lostWorkers: listData.lostWorkers || [],
+      };
 
     } else if (req.method === 'POST' && route === '/task') {
       const { name, task, branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, budgetUsd, maxRetries } = await parseBody(req);

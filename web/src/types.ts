@@ -13,6 +13,7 @@ export interface Worker {
   target: string;
   branch: string | null;
   worktree: string | null;
+  parent: string | null;
   scope: boolean;
   pid: number | null;
   status: WorkerStatus;

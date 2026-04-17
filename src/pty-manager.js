@@ -191,6 +191,7 @@ class PtyManager extends EventEmitter {
               pid: w.pid,
               branch: w.branch || null,
               worktree: w.worktree || null,
+              parent: w.parent || null,
               sessionId: w.sessionId || null,
               lostAt: new Date().toISOString()
             });
@@ -226,6 +227,7 @@ class PtyManager extends EventEmitter {
         alive: w.alive,
         branch: w.branch || null,
         worktree: w.worktree || null,
+        parent: w.parent || null,
         sessionId: w._sessionId || null,
         exitedAt: exitSnapshot ? new Date(exitSnapshot.time).toISOString() : null
       });
@@ -3019,7 +3021,12 @@ class PtyManager extends EventEmitter {
       rows,
       useConpty: false, // Avoid conpty issues on Windows (4.25)
       ...(spawnCwd ? { cwd: spawnCwd } : {}),
-      env: { ...process.env, LANG: 'en_US.UTF-8' }
+      env: {
+        ...process.env,
+        LANG: 'en_US.UTF-8',
+        C4_WORKER_NAME: name,
+        ...(options.parent ? { C4_PARENT: String(options.parent) } : {})
+      }
     });
 
     const screen = new ScreenBuffer(cols, rows);
@@ -3032,6 +3039,7 @@ class PtyManager extends EventEmitter {
       alive: true,
       command: `${command} ${args.join(' ')}`.trim(),
       target: targetName,
+      parent: options.parent ? String(options.parent) : null,
       lastDataTime: Date.now(),
       snapshots: [],
       snapshotIndex: 0,
@@ -4364,6 +4372,7 @@ class PtyManager extends EventEmitter {
         target: w.target || 'local',
         branch: w.branch || null,
         worktree: w.worktree || null,
+        parent: w.parent || null,
         scope: w.scopeGuard ? w.scopeGuard.hasRestrictions() : false,
         pid: w.proc ? w.proc.pid : null,
         status: w.alive ? (idleMs > this.idleThresholdMs ? 'idle' : 'busy') : 'exited',

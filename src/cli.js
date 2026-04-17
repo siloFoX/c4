@@ -109,8 +109,8 @@ async function main() {
     switch (cmd) {
       case 'new': {
         const name = args[0];
-        // Parse --target, --cwd, --template flags
-        let target = 'local', cwd = '', template = '';
+        // Parse --target, --cwd, --template, --parent flags
+        let target = 'local', cwd = '', template = '', parent = '';
         const filteredArgs = [];
         let command = 'claude';
         let commandSet = false;
@@ -118,11 +118,19 @@ async function main() {
           if (args[i] === '--target' && args[i + 1]) { target = args[++i]; }
           else if (args[i] === '--cwd' && args[i + 1]) { cwd = args[++i]; }
           else if (args[i] === '--template' && args[i + 1]) { template = args[++i]; }
+          else if (args[i] === '--parent' && args[i + 1]) { parent = args[++i]; }
           else if (!commandSet) { command = args[i]; commandSet = true; }
           else { filteredArgs.push(args[i]); }
         }
+        // Auto-detect parent from spawned worker env (8.2). The daemon
+        // injects C4_WORKER_NAME so nested `c4 new` calls know which
+        // worker they are running inside. Explicit --parent wins.
+        if (!parent && process.env.C4_WORKER_NAME) {
+          parent = process.env.C4_WORKER_NAME;
+        }
         const body = { name, command, args: filteredArgs, target, cwd };
         if (template) body.template = template;
+        if (parent) body.parent = parent;
         result = await request('POST', '/create', body);
         break;
       }
@@ -304,6 +312,7 @@ async function main() {
 
       case 'list': {
         // Cooldown: return cached response if called within 10 seconds
+        const treeMode = args.includes('--tree');
         let cached = null;
         try {
           const raw = fs.readFileSync(LIST_CACHE_FILE, 'utf8');
@@ -324,6 +333,29 @@ async function main() {
         }
 
         if (result.workers) {
+          if (treeMode) {
+            const { buildTree, renderTree } = require('./hierarchy-tree');
+            const roots = buildTree(result.workers);
+            if (roots.length === 0) {
+              console.log('No workers running.');
+            } else {
+              console.log(renderTree(roots));
+            }
+            if (result.queuedTasks && result.queuedTasks.length > 0) {
+              console.log('\nQUEUED:');
+              for (const q of result.queuedTasks) {
+                const after = q.after || '-';
+                console.log(`  ${q.name}  branch=${q.branch || '-'}  after=${after}`);
+              }
+            }
+            if (result.lostWorkers && result.lostWorkers.length > 0) {
+              console.log('\nLOST (daemon restart):');
+              for (const lw of result.lostWorkers) {
+                console.log(`  ${lw.name}  parent=${lw.parent || '-'}  branch=${lw.branch || '-'}`);
+              }
+            }
+            return;
+          }
           if (result.workers.length === 0) {
             console.log('No workers running.');
           } else {
@@ -1647,6 +1679,7 @@ async function main() {
 Commands:
   init                                                     Initialize c4 (permissions, config, symlink)
   new <name> [command] [--target dgx|local] [--cwd path]   Create a worker
+       [--parent <name>]             Record parent worker (auto-detected from C4_WORKER_NAME env)
   task <name> <text> [--branch name] [--no-branch]         Send task with auto branch
        [--repo path] [--cwd path]                              Repo root / working dir for worktree
        [--context worker] [--reuse] [--scope JSON]             Context / pool reuse / scope
@@ -1659,7 +1692,7 @@ Commands:
        [--all] [--interrupt-on-intervention]  Multi-worker / intervention wait
   scrollback <name> [--lines N]    Read scrollback buffer (default 200 lines)
   watch <name>                     Watch worker output in real-time (Ctrl+C to stop)
-  list                             List all workers
+  list [--tree]                    List all workers (--tree for hierarchy view)
   merge <worker|branch>            Merge branch to main (with pre-checks)
        [--skip-checks]             Skip test/TODO/CHANGELOG checks
        [--auto-stash]              Stash uncommitted changes on main, merge, then pop (7.28)
