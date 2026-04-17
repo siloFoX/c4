@@ -1406,6 +1406,63 @@ async function main() {
         break;
       }
 
+      case 'recover': {
+        // 8.4: manual intelligent-recovery pass. Classifies the worker's
+        // recent scrollback, picks a strategy, and re-sends a transformed
+        // task. Never destructive: no close / rollback / skip-checks.
+        const name = args[0];
+        if (!name) {
+          console.error('Usage: c4 recover <worker-name> [--category <name>] [--history]');
+          console.error('  --category  Force a classification category (test-fail | build-fail | tool-deny | timeout | dependency | unknown).');
+          console.error('  --history   Show recent recovery history instead of running a pass.');
+          process.exit(1);
+        }
+        let category = '';
+        let showHistory = false;
+        let historyLimit = 20;
+        for (let i = 1; i < args.length; i++) {
+          if (args[i] === '--category' && args[i + 1]) { category = args[++i]; }
+          else if (args[i] === '--history') { showHistory = true; }
+          else if (args[i] === '--limit' && args[i + 1]) { historyLimit = parseInt(args[++i], 10) || 20; }
+        }
+        if (showHistory) {
+          const qs = new URLSearchParams();
+          qs.set('name', name);
+          qs.set('limit', String(historyLimit));
+          result = await request('GET', `/recovery-history?${qs.toString()}`);
+          const records = (result && result.records) || [];
+          if (records.length === 0) {
+            console.log(`No recovery history for '${name}'.`);
+          } else {
+            console.log(`Recovery history for '${name}' (${records.length} entries):`);
+            for (const r of records) {
+              const parts = [r.time, `attempt=${r.attempt || 0}`, `category=${r.category || '-'}`, `strategy=${r.strategy || '-'}`, `phase=${r.phase || '-'}`];
+              if (r.error) parts.push(`error=${String(r.error).slice(0, 120)}`);
+              console.log('  ' + parts.join(' '));
+            }
+          }
+          return;
+        }
+        result = await request('POST', '/recover', { name, category: category || undefined });
+        if (result.error) break;
+        if (result.skipped) {
+          console.log(`Recovery skipped for '${name}': ${result.reason}`);
+          return;
+        }
+        const lines = [
+          `Recovery pass for '${name}':`,
+          `  strategy: ${result.strategy || '-'}`,
+          `  category: ${result.category || '-'}`,
+          `  attempt:  ${result.attempt || '-'}`,
+          `  action:   ${result.action || '-'}`,
+          `  recovered: ${result.recovered ? 'yes' : 'no'}`,
+        ];
+        if (result.error) lines.push(`  error:    ${result.error}`);
+        if (result.historyPath) lines.push(`  history:  ${result.historyPath}`);
+        console.log(lines.join('\n'));
+        return;
+      }
+
       case 'batch': {
         // c4 batch "task" --count N  → same task to N workers
         // c4 batch --file tasks.txt  → one task per line from file
@@ -1700,6 +1757,8 @@ Commands:
   plan <name> <task> [--output f]   Plan-only mode: write plan.md without executing
   plan-read <name> [--output f]    Read generated plan.md from worker
   rollback <name>                  Rollback worker to pre-task commit (git reset --soft)
+  recover <name> [--category X]    Smart recovery pass on a stuck worker (8.4)
+       [--history] [--limit N]     Show recovery history instead of running a pass
   close <name>                     Close a worker
   history [worker] [--limit N]     Show task history
   health                           Check daemon status
