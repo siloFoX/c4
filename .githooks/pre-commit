@@ -60,3 +60,20 @@ if [ -n "$compound_lines" ]; then
   echo "  (This is a warning — commit proceeds.)"
   echo ""
 fi
+
+# --- Rule enforcement: warn on package-lock.json env-drift churn (TODO 7.29) ---
+# Detects the npm-version/platform drift fingerprint ("peer": true-only diff)
+# so the committer notices that the change is metadata churn and not a real
+# dependency update. See src/pkglock-guard.js + docs/known-issues.md.
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+guard_script="$repo_root/src/pkglock-guard.js"
+
+if command -v node >/dev/null 2>&1 && [ -f "$guard_script" ]; then
+  staged=$(git diff --cached --name-only 2>/dev/null)
+  for lock in web/package-lock.json package-lock.json; do
+    if echo "$staged" | grep -qx "$lock"; then
+      node "$guard_script" "$lock" || true
+    fi
+  done
+fi
