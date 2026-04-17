@@ -780,6 +780,16 @@ async function main() {
         return;
       }
 
+      case 'validation': {
+        const name = args[0];
+        if (!name) {
+          console.error('Usage: c4 validation <worker-name>');
+          process.exit(1);
+        }
+        result = await request('GET', `/worker/${encodeURIComponent(name)}/validation`);
+        break;
+      }
+
       case 'merge': {
         const { execSync } = require('child_process');
         const path = require('path');
@@ -1594,6 +1604,7 @@ Commands:
   merge <worker|branch>            Merge branch to main (with pre-checks)
        [--skip-checks]             Skip test/TODO/CHANGELOG checks
        [--auto-stash]              Stash uncommitted changes on main, merge, then pop (7.28)
+  validation <worker>              Show stored validation object for the worker (9.9)
   plan <name> <task> [--output f]   Plan-only mode: write plan.md without executing
   plan-read <name> [--output f]    Read generated plan.md from worker
   rollback <name>                  Rollback worker to pre-task commit (git reset --soft)
