@@ -7,6 +7,7 @@ const Scribe = require('./scribe');
 const Notifications = require('./notifications');
 const { resolveBindHost } = require('./web-external');
 const staticServer = require('./static-server');
+const auth = require('./auth');
 
 const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
 
@@ -162,9 +163,43 @@ async function handleRequest(req, res) {
   }
 
   try {
+    // Session auth middleware (8.14). Only API routes go through the check
+    // so the built Web UI (static assets) can still load the login page
+    // without a token. /dashboard is legacy HTML that we still protect when
+    // auth is enabled.
+    const cfg = manager.getConfig();
+    const needsAuthCheck = isApiPrefixed || route === '/dashboard';
+    if (needsAuthCheck) {
+      const check = auth.checkRequest(cfg, req, route);
+      if (!check.allow) {
+        res.writeHead(check.status || 401);
+        res.end(JSON.stringify(check.body || { error: 'Authentication required' }));
+        return;
+      }
+    }
+
     let result;
 
-    if (req.method === 'GET' && route === '/health') {
+    if (req.method === 'POST' && route === '/auth/login') {
+      const body = await parseBody(req);
+      const loginResult = auth.login(cfg, body);
+      if (!loginResult.ok) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ error: loginResult.error || 'Login failed' }));
+        return;
+      }
+      result = { token: loginResult.token, user: loginResult.user };
+
+    } else if (req.method === 'POST' && route === '/auth/logout') {
+      // Stateless JWT logout: client discards the token. We still return ok
+      // so the UI can clear localStorage without a special-case branch.
+      result = { ok: true };
+
+    } else if (req.method === 'GET' && route === '/auth/status') {
+      // Lets the Web UI know whether auth is enabled before rendering.
+      result = { enabled: auth.isAuthEnabled(cfg) };
+
+    } else if (req.method === 'GET' && route === '/health') {
       result = {
         ok: true,
         workers: manager.list().workers.length,

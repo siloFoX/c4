@@ -68,9 +68,21 @@ function verifyToken(token, secret) {
 
 function extractBearerToken(req) {
   const header = req && req.headers && (req.headers.authorization || req.headers.Authorization);
-  if (!header || typeof header !== 'string') return null;
-  const match = header.match(/^Bearer\s+(.+)$/i);
-  return match ? match[1].trim() : null;
+  if (header && typeof header === 'string') {
+    const match = header.match(/^Bearer\s+(.+)$/i);
+    if (match) return match[1].trim();
+  }
+  // EventSource cannot set custom headers, so SSE endpoints accept the
+  // token via a ?token= query param as a fallback. Only honored when the
+  // header is absent so header-based requests are not overridden.
+  if (req && typeof req.url === 'string' && req.url.includes('token=')) {
+    try {
+      const parsed = new URL(req.url, 'http://_placeholder_');
+      const q = parsed.searchParams.get('token');
+      if (q) return q;
+    } catch {}
+  }
+  return null;
 }
 
 function isAuthEnabled(cfg) {

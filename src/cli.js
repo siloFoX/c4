@@ -44,15 +44,33 @@ const LIST_COOLDOWN_MS = 10000;
 
 const BASE = process.env.C4_URL || 'http://127.0.0.1:3456';
 
+// Session auth (8.14): the daemon rejects unauthenticated /api/* requests
+// when config.auth.enabled is true. Looking up the token at call time so
+// the same CLI process stays usable after `c4 login` writes the token file.
+const TOKEN_FILE = path.join(os.homedir(), '.c4-token');
+
+function readToken() {
+  if (process.env.C4_TOKEN) return process.env.C4_TOKEN.trim();
+  try {
+    const t = fs.readFileSync(TOKEN_FILE, 'utf8').trim();
+    return t || null;
+  } catch {
+    return null;
+  }
+}
+
 function request(method, path, body = null, timeout = 10000) {
   return new Promise((resolve, reject) => {
     const url = new URL(path, BASE);
+    const headers = { 'Content-Type': 'application/json' };
+    const token = readToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     const options = {
       hostname: url.hostname,
       port: url.port,
       path: url.pathname + url.search,
       method,
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       timeout
     };
 
