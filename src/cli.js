@@ -2241,6 +2241,88 @@ async function main() {
         return;
       }
 
+      case 'rbac': {
+        // (10.1) Role-based access control CLI. Thin wrapper around the
+        // /rbac/* daemon endpoints. Mutations require the caller's JWT
+        // role to allow auth.user.create; reads are open so operators
+        // can introspect roles without elevated privileges.
+        //   c4 rbac role list
+        //   c4 rbac role assign <username> <role>
+        //   c4 rbac grant project <username> <projectId>
+        //   c4 rbac grant machine <username> <alias>
+        //   c4 rbac revoke project <username> <projectId>
+        //   c4 rbac revoke machine <username> <alias>
+        //   c4 rbac check <username> <action> [--resource type:id]
+        const sub = args[0];
+        const validSubs = ['role', 'grant', 'revoke', 'check', 'users'];
+        if (!sub || !validSubs.includes(sub)) {
+          console.log('Usage: c4 rbac <role|grant|revoke|check|users> ...');
+          console.log('  role list');
+          console.log('  role assign <username> <role>');
+          console.log('  grant project <username> <projectId>');
+          console.log('  grant machine <username> <alias>');
+          console.log('  revoke project <username> <projectId>');
+          console.log('  revoke machine <username> <alias>');
+          console.log('  check <username> <action> [--resource type:id]');
+          console.log('  users');
+          return;
+        }
+
+        if (sub === 'users') {
+          result = await request('GET', '/rbac/users');
+        } else if (sub === 'role') {
+          const roleSub = args[1];
+          if (roleSub === 'list') {
+            result = await request('GET', '/rbac/roles');
+          } else if (roleSub === 'assign') {
+            const username = args[2];
+            const role = args[3];
+            if (!username || !role) {
+              console.error('Usage: c4 rbac role assign <username> <role>');
+              process.exit(1);
+            }
+            result = await request('POST', '/rbac/role/assign', { username, role });
+          } else {
+            console.error('Usage: c4 rbac role <list|assign> ...');
+            process.exit(1);
+          }
+        } else if (sub === 'grant' || sub === 'revoke') {
+          const kind = args[1];
+          const username = args[2];
+          const target = args[3];
+          if ((kind !== 'project' && kind !== 'machine') || !username || !target) {
+            console.error('Usage: c4 rbac ' + sub + ' <project|machine> <username> <id>');
+            process.exit(1);
+          }
+          const body = kind === 'project'
+            ? { username, projectId: target }
+            : { username, alias: target };
+          result = await request('POST', '/rbac/' + sub + '/' + kind, body);
+        } else if (sub === 'check') {
+          const username = args[1];
+          const action = args[2];
+          if (!username || !action) {
+            console.error('Usage: c4 rbac check <username> <action> [--resource type:id]');
+            process.exit(1);
+          }
+          let resource = null;
+          for (let i = 3; i < args.length - 1; i++) {
+            if (args[i] === '--resource') {
+              const v = args[i + 1] || '';
+              const idx = v.indexOf(':');
+              if (idx > 0) resource = { type: v.slice(0, idx), id: v.slice(idx + 1) };
+            }
+          }
+          result = await request('POST', '/rbac/check', { username, action, resource });
+        }
+        if (result && result.error) {
+          console.error('Error: ' + result.error);
+          process.exit(1);
+        }
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+
       case 'project': {
         // (10.8) Project management CLI. Thin wrapper around /projects/*
         // daemon endpoints. Never mutates worker state — all calls go
@@ -2524,6 +2606,14 @@ Commands:
   config reload                    Reload config.json without restart
   audit query [--type T] [--from ISO] [--to ISO] [--target name] [--limit N]   Query audit log (10.2)
   audit verify                     Verify audit log hash chain integrity
+  rbac role list                   Show role-action matrix (10.1)
+  rbac role assign <user> <role>   Assign role (admin|manager|viewer)
+  rbac grant project <user> <id>   Grant per-project access
+  rbac grant machine <user> <alias>  Grant per-machine access
+  rbac revoke project <user> <id>  Revoke project access
+  rbac revoke machine <user> <alias>   Revoke machine access
+  rbac check <user> <action> [--resource type:id]   Check a permission
+  rbac users                       List RBAC users
   cost report [--from ISO] [--to ISO] [--group project|team|machine|user] [--models] [--json]   Cost report (10.5)
   cost monthly <YYYY-MM> [--json]  Monthly cost report
   cost budget --limit N [--period day|week|month] [--group name] [--json]   Budget check

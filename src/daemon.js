@@ -16,6 +16,7 @@ const fileTransfer = require('./file-transfer');
 const auditLog = require('./audit-log');
 const costReport = require('./cost-report');
 const projectMgmt = require('./project-mgmt');
+const rbac = require('./rbac');
 
 const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
 
@@ -48,6 +49,59 @@ function _auditActor(authCheck) {
 function _safeAudit(type, details, overrides) {
   try { return audit.record(type, details, overrides); }
   catch (e) { console.error('[AUDIT] record failed:', e && e.message ? e.message : e); return null; }
+}
+
+// (10.1) Shared RoleManager. Writes to ~/.c4/rbac.json by default; the
+// daemon and CLI both go through getShared so a `c4 rbac` mutation is
+// visible on the next request without a restart. Tests construct their
+// own RoleManager pointed at a tmpdir and never touch the shared one.
+const rbacManager = rbac.getShared(
+  cfg.rbac && typeof cfg.rbac.path === 'string' ? { storePath: cfg.rbac.path } : {}
+);
+
+// roleFor(name) -> string|null. Looks up a user's role in the RBAC store
+// first, then in config.auth.users[name].role, so operators who have not
+// migrated to ~/.c4/rbac.json yet still get a meaningful role on the JWT.
+function roleFor(name) {
+  if (!name) return null;
+  try {
+    const u = rbacManager.getUser(name);
+    if (u && u.role) return u.role;
+  } catch {}
+  const cfgNow = manager.getConfig();
+  const cu = cfgNow && cfgNow.auth && cfgNow.auth.users && cfgNow.auth.users[name];
+  if (cu && typeof cu.role === 'string') return cu.role;
+  return null;
+}
+
+// requireRole(authCheck, action, resource?) -> {allow, status?, body?}
+// Single decision point for the RBAC gate. When auth is disabled or the
+// caller could not be identified we fall back to allow=true so the
+// existing behaviour stays intact for operators who have not enabled
+// auth yet (they get the RBAC behaviour the moment auth.enabled flips).
+function requireRole(authCheck, action, resource) {
+  if (!auth.isAuthEnabled(manager.getConfig())) return { allow: true };
+  const username = authCheck && authCheck.decoded && typeof authCheck.decoded.sub === 'string'
+    ? authCheck.decoded.sub : null;
+  if (!username) {
+    return { allow: false, status: 401, body: { error: 'Authentication required' } };
+  }
+  const ok = rbacManager.checkPermission(username, action, resource);
+  if (!ok) {
+    return {
+      allow: false,
+      status: 403,
+      body: { error: 'Forbidden', action, user: username },
+    };
+  }
+  return { allow: true };
+}
+
+function denyOr(res, gate) {
+  if (gate.allow) return false;
+  res.writeHead(gate.status || 403);
+  res.end(JSON.stringify(gate.body || { error: 'Forbidden' }));
+  return true;
 }
 
 // (10.8) Shared ProjectBoard. Writes to ~/.c4/projects/<id>.json by
@@ -286,7 +340,7 @@ async function handleRequest(req, res) {
 
     if (req.method === 'POST' && route === '/auth/login') {
       const body = await parseBody(req);
-      const loginResult = auth.login(cfg, body);
+      const loginResult = auth.login(cfg, body, { roleResolver: roleFor });
       if (!loginResult.ok) {
         _safeAudit('auth.login', { ok: false, reason: loginResult.error || 'failed' },
           { target: (body && typeof body.user === 'string') ? body.user : '', actor: 'anonymous' });
@@ -294,8 +348,9 @@ async function handleRequest(req, res) {
         res.end(JSON.stringify({ error: loginResult.error || 'Login failed' }));
         return;
       }
-      _safeAudit('auth.login', { ok: true }, { target: loginResult.user, actor: loginResult.user });
-      result = { token: loginResult.token, user: loginResult.user };
+      _safeAudit('auth.login', { ok: true, role: loginResult.role || null },
+        { target: loginResult.user, actor: loginResult.user });
+      result = { token: loginResult.token, user: loginResult.user, role: loginResult.role || null };
 
     } else if (req.method === 'POST' && route === '/auth/logout') {
       // Stateless JWT logout: client discards the token. We still return ok
@@ -316,6 +371,9 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && route === '/create') {
       const { name, command, args, target, cwd, parent } = await parseBody(req);
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE,
+        target ? { type: 'machine', id: target } : null);
+      if (denyOr(res, gate)) return;
       result = manager.create(name, command, args || [], { target, cwd, parent });
       if (result && !result.error) {
         _safeAudit('worker.created',
@@ -375,6 +433,9 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && route === '/task') {
       const { name, task, branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, budgetUsd, maxRetries } = await parseBody(req);
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_TASK,
+        target ? { type: 'machine', id: target } : null);
+      if (denyOr(res, gate)) return;
       result = manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, budgetUsd, maxRetries });
       if (result && !result.error) {
         _safeAudit('task.sent',
@@ -384,6 +445,8 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && route === '/merge') {
       const { name, skipChecks } = await parseBody(req);
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_MERGE);
+      if (denyOr(res, gate)) return;
       if (!name) {
         result = { error: 'Missing name' };
       } else {
@@ -481,6 +544,8 @@ async function handleRequest(req, res) {
     } else if (req.method === 'GET' && route === '/audit/query') {
       // (10.2) Filtered audit log query. Every param is optional; omit
       // all to dump the full log. Limit defaults to 0 (no cap).
+      const gate = requireRole(authCheck, rbac.ACTIONS.AUDIT_READ);
+      if (denyOr(res, gate)) return;
       const typeParam = url.searchParams.get('type') || '';
       const fromParam = url.searchParams.get('from') || '';
       const toParam = url.searchParams.get('to') || '';
@@ -503,9 +568,90 @@ async function handleRequest(req, res) {
       // (10.2) Hash chain integrity check. Returns valid=false +
       // corruptedAt=<line index> when the log has been tampered with or
       // truncated in the middle.
+      const gate = requireRole(authCheck, rbac.ACTIONS.AUDIT_READ);
+      if (denyOr(res, gate)) return;
       try {
         result = audit.verify();
         result.path = audit.logPath;
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && route === '/rbac/roles') {
+      // (10.1) Role + action matrix dump. Useful for the Web UI to
+      // render a permissions table without recomputing the matrix in
+      // the browser.
+      result = { roles: rbacManager.listRoles() };
+
+    } else if (req.method === 'GET' && route === '/rbac/users') {
+      // (10.1) List every RBAC user with role + grant lists.
+      result = { users: rbacManager.listUsers() };
+
+    } else if (req.method === 'POST' && route === '/rbac/role/assign') {
+      // (10.1) Assign a role. Body: { username, role }.
+      const gate = requireRole(authCheck, rbac.ACTIONS.AUTH_USER_CREATE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const u = rbacManager.assignRole(body.username, body.role);
+        result = { username: body.username, ...u };
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && route === '/rbac/grant/project') {
+      // (10.1) Grant project access. Body: { username, projectId }.
+      const gate = requireRole(authCheck, rbac.ACTIONS.AUTH_USER_CREATE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        result = rbacManager.grantProjectAccess(body.username, body.projectId);
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && route === '/rbac/grant/machine') {
+      // (10.1) Grant machine access. Body: { username, alias }.
+      const gate = requireRole(authCheck, rbac.ACTIONS.AUTH_USER_CREATE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        result = rbacManager.grantMachineAccess(body.username, body.alias);
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && route === '/rbac/revoke/project') {
+      // (10.1) Revoke project access. Body: { username, projectId }.
+      const gate = requireRole(authCheck, rbac.ACTIONS.AUTH_USER_CREATE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const ok = rbacManager.revokeProjectAccess(body.username, body.projectId);
+        result = { ok };
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && route === '/rbac/revoke/machine') {
+      // (10.1) Revoke machine access. Body: { username, alias }.
+      const gate = requireRole(authCheck, rbac.ACTIONS.AUTH_USER_CREATE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const ok = rbacManager.revokeMachineAccess(body.username, body.alias);
+        result = { ok };
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && route === '/rbac/check') {
+      // (10.1) Check a permission. Body: { username, action, resource? }.
+      // Useful for the Web UI to hide buttons the caller cannot reach.
+      try {
+        const body = await parseBody(req);
+        const allowed = rbacManager.checkPermission(body.username, body.action, body.resource);
+        result = { allowed, username: body.username, action: body.action };
       } catch (e) {
         result = { error: e.message };
       }
@@ -566,6 +712,8 @@ async function handleRequest(req, res) {
       // (10.8) List all projects. Returns the full board objects so a
       // caller can render a per-project dashboard without a second trip
       // per project.
+      const gate = requireRole(authCheck, rbac.ACTIONS.PROJECT_READ);
+      if (denyOr(res, gate)) return;
       try {
         const board = getProjectBoard();
         const projects = board.listProjects();
@@ -576,6 +724,8 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && route === '/projects') {
       // (10.8) Create a project. Body: { id, name, description }.
+      const gate = requireRole(authCheck, rbac.ACTIONS.PROJECT_CREATE);
+      if (denyOr(res, gate)) return;
       try {
         const body = await parseBody(req);
         const board = getProjectBoard();
@@ -590,6 +740,9 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'GET' && projectParams && projectParams.kind === 'project') {
       // (10.8) Show one project (full board).
+      const gate = requireRole(authCheck, rbac.ACTIONS.PROJECT_READ,
+        { type: 'project', id: projectParams.projectId });
+      if (denyOr(res, gate)) return;
       try {
         const board = getProjectBoard();
         const p = board.getProject(projectParams.projectId);
@@ -606,6 +759,9 @@ async function handleRequest(req, res) {
     } else if (req.method === 'POST' && projectParams && projectParams.kind === 'tasks') {
       // (10.8) Add a task to a project. Body is the task shape
       // { title, status, assignee, estimate, milestoneId, sprintId, description }.
+      const gate = requireRole(authCheck, rbac.ACTIONS.PROJECT_UPDATE,
+        { type: 'project', id: projectParams.projectId });
+      if (denyOr(res, gate)) return;
       try {
         const body = await parseBody(req);
         const board = getProjectBoard();
@@ -617,6 +773,9 @@ async function handleRequest(req, res) {
     } else if (req.method === 'PATCH' && projectParams && projectParams.kind === 'task') {
       // (10.8) Patch a task. Only provided fields are overwritten; status
       // transitions keep the backlog and sprint invariants consistent.
+      const gate = requireRole(authCheck, rbac.ACTIONS.PROJECT_UPDATE,
+        { type: 'project', id: projectParams.projectId });
+      if (denyOr(res, gate)) return;
       try {
         const body = await parseBody(req);
         const board = getProjectBoard();
@@ -676,6 +835,8 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && route === '/close') {
       const { name } = await parseBody(req);
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CLOSE);
+      if (denyOr(res, gate)) return;
       result = manager.close(name);
       if (result && !result.error) {
         _safeAudit('worker.closed', {}, { target: name, actor: _auditActor(authCheck) });
@@ -685,6 +846,11 @@ async function handleRequest(req, res) {
       result = manager.getConfig();
 
     } else if (req.method === 'POST' && route === '/config/reload') {
+      const gate = requireRole(authCheck, rbac.ACTIONS.CONFIG_RELOAD);
+      if (denyOr(res, gate)) return;
+      // Pick up RBAC store edits applied via direct file editing in the
+      // same call so the next request sees the new ACLs.
+      try { rbacManager.reload(); } catch {}
       result = manager.reloadConfig();
       if (result && !result.error) {
         _safeAudit('config.reloaded', {}, { actor: _auditActor(authCheck), target: 'config' });
