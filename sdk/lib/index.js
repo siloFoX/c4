@@ -43,9 +43,13 @@ class C4Client {
     // Normalize: trim trailing slash so new URL(path, base) behaves.
     this.base = typeof base === 'string' ? base.replace(/\/+$/, '') : DEFAULT_BASE;
     this.token = opts.token || null;
-    this.fetch = opts.fetch || (typeof fetch === 'function' ? fetch : null);
+    // Distinguish "caller passed fetch explicitly (even as null)" from
+    // "caller omitted it and wants the platform default". Passing null is
+    // useful for tests that want to assert the no-fetch error path.
+    const hasFetchOpt = Object.prototype.hasOwnProperty.call(opts || {}, 'fetch');
+    this.fetch = hasFetchOpt ? opts.fetch : (typeof fetch === 'function' ? fetch : null);
     this.timeoutMs = typeof opts.timeoutMs === 'number' ? opts.timeoutMs : 30000;
-    if (!this.fetch) {
+    if (typeof this.fetch !== 'function') {
       throw new Error('C4Client: no fetch implementation available. Use Node 18+ or pass opts.fetch.');
     }
   }
