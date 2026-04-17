@@ -66,7 +66,9 @@ describe('(10.1) RBAC helpers', () => {
     expect(ACTIONS.AUDIT_READ).toBe('audit.read');
     expect(ACTIONS.CICD_READ).toBe('cicd.read');
     expect(ACTIONS.CICD_MANAGE).toBe('cicd.manage');
-    expect(ALL_ACTIONS.length).toBe(14);
+    expect(ACTIONS.ORG_READ).toBe('org.read');
+    expect(ACTIONS.ORG_MANAGE).toBe('org.manage');
+    expect(ALL_ACTIONS.length).toBe(16);
   });
 
   test('(d) isRole/isAction/isUsername validators', () => {
