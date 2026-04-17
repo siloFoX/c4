@@ -437,13 +437,14 @@ Level 4이면:
 | 7.9 | worktree 잔여물 정리 검증 | **todo** | worker close 후 c4-worktree-* 디렉토리와 c4/ 브랜치가 완전히 정리되는지 반복 테스트. |
 | 7.10 | 전체 npm test 통과 확인 | **done** | 47개 전부 통과 확인 (관리자 세션에서 직접 실행) |
 | 7.11 | 재귀적 테스트 구조 | **todo** | 관리자 세션 -> c4 new test-mgr -> test-mgr이 c4 watch/batch/approve/wait 테스트 실행. 관리자가 직접 compound 명령 안 쓰고 worker에 위임하는 패턴 검증. |
-| 7.12 | manager.md에 테스트 위임 규칙 추가 | **todo** | c4 명령어 테스트도 worker에 위임하도록 manager.md에 명시. "c4 명령어를 직접 실행하지 마. 테스트도 worker를 만들어서 시켜." 사용자가 매번 지시하지 않아도 알아서 되게. |
+| 7.12 | manager.md에 테스트 위임 규칙 추가 | **done** | c4 명령어 테스트도 worker에 위임하도록 manager.md에 명시. "c4 명령어를 직접 실행하지 마. 테스트도 worker를 만들어서 시켜." 사용자가 매번 지시하지 않아도 알아서 되게. |
 | 7.13 | c4 init Linux PATH 등록 개선 | **done** | npm link 실패 시 ~/.local/bin/c4 심볼릭 링크 자동 생성 + ~/.bashrc alias 폴백 구현. |
 | 7.14 | c4 init 후 --agent 안내 | **done** | init 완료 후 "관리자 모드: claude --agent .claude/agents/manager.md" 안내 메시지 출력. |
 | 7.15 | daemon 버전 불일치 경고 | **done** | c4 health/daemon status에서 daemon 버전과 설치 버전 비교, 불일치 시 경고 + restart 안내. |
 | 7.16 | PreToolUse hook error 인코딩 깨짐 | **done** | compound-check.js stderr 완전 ASCII 전환 + PowerShell/curl 후크 커맨드에 try/catch + SilentlyContinue 적용하여 localized 에러 메시지 차단. tests/hook-ascii.test.js로 non-ASCII 회귀 방지. |
 | 7.17 | pendingTask 5.51 수정 후에도 재발 | **todo** | 3개 worker 전부 Enter 안 먹힘. 5.51 수정(setupDone 가드 + post-setup 트리거)이 충분하지 않음. Windows에서만 발생하는지 DGX에서도 발생하는지 비교 필요. |
 | 7.18 | worker 영어 전용 모드 | **done** | workerDefaults.workerLanguage: "en" 옵션 추가. _getRulesSummary()가 rules 끝에 "Respond in English only..." 지시문을 자동 덧붙인다. 한국어 인코딩 깨짐(7.16) 우회 + hook error 방지. |
+| 7.19 | worker setup /effort + /model 슬래시 명령 대응 | **todo** | Claude Code v2.1.112+에서 /effort max, /model <model> 슬래시 명령으로 설정 필요. _executeSetupPhase2 로직 업데이트. MSYS_NO_PATHCONV=1 적용 (Git Bash 경로 변환 방지). config workerDefaults.model 반영. |
 
 ## 완료
 
@@ -582,3 +583,7 @@ Level 4이면:
 | ~~6.6~~ | 경쟁 키워드 선점 | 2026-04-16 |
 | ~~6.7~~ | docs/best-practices.md | 2026-04-16 |
 | ~~7.1~~ | pendingTask Enter 안 먹히는 케이스 재조사 | 2026-04-17 |
+| ~~7.12~~ | manager.md에 테스트 위임 규칙 추가 | 2026-04-17 |
+| ~~7.13~~ | c4 init Linux PATH 등록 개선 | 2026-04-17 |
+| ~~7.14~~ | c4 init 후 --agent 안내 | 2026-04-17 |
+| ~~7.15~~ | daemon 버전 불일치 경고 | 2026-04-17 |
