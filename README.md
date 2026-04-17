@@ -11,7 +11,7 @@
 ![Node >= 18](https://img.shields.io/badge/node-%3E%3D18%20(tested%20v24.11.1)-brightgreen.svg)
 ![Claude Code](https://img.shields.io/badge/Claude_Code-v2.1.85--2.1.112-8A2BE2.svg)
 ![Platform](https://img.shields.io/badge/platform-Win11%2022H2%2B%20%7C%20Ubuntu%2022.04%2B-blue.svg)
-![Version](https://img.shields.io/badge/version-1.6.14-green.svg)
+![Version](https://img.shields.io/badge/version-1.6.15-green.svg)
 
 > **The only multi-agent orchestrator for Claude Code** — parallel workers, manager rotation, recursive delegation, overnight autonomous coding. No screenshots, just PTY.
 
@@ -151,7 +151,7 @@ You ↔ Manager (Claude Code)
 
 Since all workers share the same daemon (localhost:3456), any worker with `c4` in PATH can create and manage sub-workers. This enables hierarchical task delegation — a manager assigns high-level tasks to mid-managers, who break them down and distribute to sub-workers.
 
-> **Status**: Architecturally supported, not yet tested in production.
+> **Status**: Tested and verified — manager -> sub-worker full lifecycle (create/task/wait/read/close) confirmed.
 
 ## Config
 
@@ -364,7 +364,7 @@ See [TODO.md](TODO.md) for the roadmap and open tasks.
 
 ## Roadmap
 
-Phase 1/2/3/4 complete (65+ items). See [TODO.md](TODO.md) for details and [CHANGELOG.md](CHANGELOG.md) for version history.
+Phase 1-7 complete (139+ items). Phase 8 (Web UI, observability, token optimization) planned. See [TODO.md](TODO.md) for details and [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ## Author
 
