@@ -1972,6 +1972,182 @@ class PtyManager extends EventEmitter {
     return { cleaned, preserved };
   }
 
+  // (9.11) Worktree GC automation
+  // Returns true when `branch` has been merged into `mainBranch` in `repoRoot`.
+  // Uses `git branch --merged <main>` so worktrees for unmerged branches are
+  // preserved even when other signals (inactivity, clean state) would allow GC.
+  _isBranchMerged(repoRoot, branch, mainBranch = 'main') {
+    if (!repoRoot || !branch) return false;
+    try {
+      const out = execSyncSafe(
+        `git -C "${repoRoot.replace(/\\/g, '/')}" branch --merged "${mainBranch}"`,
+        { encoding: 'utf8', stdio: 'pipe', timeout: 5000 }
+      );
+      const names = out.split('\n').map(s => s.replace(/^\*?\s+/, '').trim()).filter(Boolean);
+      return names.includes(branch);
+    } catch {
+      return false;
+    }
+  }
+
+  // (9.11) Inactive duration heuristic.
+  // Prefers `.git/logs/HEAD` mtime (touched by every ref update), then falls
+  // back to directory mtime. Returns Infinity when the path is missing so the
+  // caller treats it as eligible for removal (orphan directory already gone).
+  _getWorktreeInactiveMs(worktreePath, now = Date.now()) {
+    try {
+      const wtPath = worktreePath.replace(/\\/g, '/');
+      if (!fs.existsSync(wtPath)) return Infinity;
+      const reflog = path.join(wtPath, '.git', 'logs', 'HEAD');
+      if (fs.existsSync(reflog)) {
+        const s = fs.statSync(reflog);
+        return Math.max(0, now - s.mtimeMs);
+      }
+      const s = fs.statSync(wtPath);
+      return Math.max(0, now - s.mtimeMs);
+    } catch {
+      return 0;
+    }
+  }
+
+  // (9.11) Per-entry decision helper. Returns {skip, reason, dirty}.
+  // Extracted so tests can override the individual probes
+  // (_isWorktreeDirty, _isBranchMerged, _getWorktreeInactiveMs) to drive the
+  // GC loop without touching a real git repo.
+  _worktreeGcDecision(repoRoot, entry, opts) {
+    const inactiveHoursMs = (opts.inactiveHours || 24) * 3600 * 1000;
+    const mainBranch = opts.mainBranch || 'main';
+    const now = opts.now || Date.now();
+
+    if (entry.activeWorker) return { skip: true, reason: 'active-worker' };
+
+    const inactiveMs = this._getWorktreeInactiveMs(entry.worktree, now);
+    if (inactiveMs < inactiveHoursMs) {
+      return { skip: true, reason: 'recent-activity' };
+    }
+
+    if (this._isWorktreeDirty(entry.worktree)) {
+      return { skip: true, reason: 'uncommitted-changes', dirty: true };
+    }
+
+    if (entry.branch && !this._isBranchMerged(repoRoot, entry.branch, mainBranch)) {
+      return { skip: true, reason: 'branch-not-merged' };
+    }
+
+    return { skip: false, reason: 'inactive-merged-clean' };
+  }
+
+  // (9.11) Main GC sweep. Honors config.daemon.worktreeGc.{enabled, inactiveHours}
+  // and returns a structured summary — never throws. Extends the manual
+  // `c4 cleanup` path by adding the merged-branch + inactivity gate; the
+  // existing lost-worker/orphan cleanups still run under healthCheck.
+  _runWorktreeGc(overrides = {}) {
+    const cfg = this.config.daemon?.worktreeGc || {};
+    const result = { enabled: cfg.enabled !== false, scanned: 0, removed: [], skipped: [] };
+    if (cfg.enabled === false) {
+      result.disabled = true;
+      return result;
+    }
+
+    const repoRoot = this._detectRepoRoot();
+    if (!repoRoot) return result;
+
+    const opts = {
+      inactiveHours: overrides.inactiveHours ?? cfg.inactiveHours ?? 24,
+      mainBranch: overrides.mainBranch ?? cfg.mainBranch ?? 'main',
+      now: overrides.now ?? Date.now()
+    };
+
+    // Build the set of worktree paths currently claimed by alive workers.
+    const activePaths = new Set();
+    for (const [, w] of this.workers) {
+      if (w.alive && w.worktree) {
+        activePaths.add(w.worktree.replace(/\\/g, '/'));
+      }
+    }
+
+    const entries = this._listC4Worktrees(repoRoot);
+    for (const entry of entries) {
+      result.scanned++;
+      entry.activeWorker = activePaths.has(entry.worktree);
+      const decision = this._worktreeGcDecision(repoRoot, entry, opts);
+      if (decision.skip) {
+        result.skipped.push({ path: entry.worktree, branch: entry.branch, reason: decision.reason });
+        if (decision.dirty) {
+          const name = path.basename(entry.worktree).replace(/^c4-worktree-/, '');
+          this._notifyLostDirty(name, entry.worktree);
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn(`[GC WARN] ${entry.worktree}: uncommitted changes — skip`);
+          }
+        }
+        continue;
+      }
+      try {
+        this._removeWorktree(repoRoot, entry.worktree);
+        if (entry.branch && entry.branch.startsWith('c4/')) {
+          try {
+            execSyncSafe(
+              `git -C "${repoRoot.replace(/\\/g, '/')}" branch -D "${entry.branch}"`,
+              { encoding: 'utf8', stdio: 'pipe', timeout: 5000 }
+            );
+          } catch {}
+        }
+        result.removed.push({ path: entry.worktree, branch: entry.branch });
+      } catch (e) {
+        result.skipped.push({ path: entry.worktree, branch: entry.branch, reason: `remove-failed: ${e.message}` });
+      }
+    }
+
+    return result;
+  }
+
+  // (9.11) Enumerate c4-worktree-* entries tracked by git worktree list.
+  // Separate helper so tests can stub git invocation.
+  _listC4Worktrees(repoRoot) {
+    const entries = [];
+    try {
+      const listOutput = execSyncSafe('git worktree list --porcelain', {
+        cwd: repoRoot, encoding: 'utf8', stdio: 'pipe', timeout: 5000
+      });
+      let cur = null;
+      for (const raw of listOutput.split('\n')) {
+        const line = raw.trim();
+        if (line.startsWith('worktree ')) {
+          if (cur) entries.push(cur);
+          cur = { worktree: line.slice('worktree '.length).replace(/\\/g, '/'), branch: null };
+        } else if (cur && line.startsWith('branch ')) {
+          cur.branch = line.slice('branch '.length).replace(/^refs\/heads\//, '');
+        }
+      }
+      if (cur) entries.push(cur);
+    } catch {}
+    return entries.filter(e => path.basename(e.worktree).startsWith('c4-worktree-'));
+  }
+
+  startWorktreeGc() {
+    if (this._worktreeGcTimer) return;
+    const cfg = this.config.daemon?.worktreeGc || {};
+    if (cfg.enabled === false) return;
+    const intervalSec = cfg.intervalSec || 3600;
+    const intervalMs = Math.max(60, intervalSec) * 1000;
+    this._worktreeGcTimer = setInterval(() => {
+      try {
+        this._lastWorktreeGc = this._runWorktreeGc();
+      } catch (e) {
+        if (typeof console !== 'undefined' && console.error) {
+          console.error('[GC ERROR]', e.message);
+        }
+      }
+    }, intervalMs);
+  }
+
+  stopWorktreeGc() {
+    if (this._worktreeGcTimer) {
+      clearInterval(this._worktreeGcTimer);
+      this._worktreeGcTimer = null;
+    }
+  }
+
   _detectPermissionPrompt(screenText) {
     const p = this._getPatterns();
     return screenText.includes(p.permissionPrompt) ||
