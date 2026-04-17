@@ -16,6 +16,7 @@ const StateMachine = require('./state-machine');
 const AdaptivePolling = require('./adaptive-polling');
 const TerminalInterface = require('./terminal-interface');
 const SummaryLayer = require('./summary-layer');
+const validationLib = require('./validation');
 
 // L4 Critical Deny List (5.13) — these commands are NEVER auto-approved, even at full autonomy
 const CRITICAL_DENY_PATTERNS = [
@@ -3080,6 +3081,8 @@ class PtyManager extends EventEmitter {
       _maxRetries: this._resolveMaxRetries(options.maxRetries),
       _retryCount: 0,
       _stopReason: null,
+      // Validation object (9.9)
+      _validation: null,
     };
 
     // Raw log
@@ -4524,12 +4527,40 @@ class PtyManager extends EventEmitter {
     return { dryRun, ...results };
   }
 
+  // --- Validation Object (9.9) ---
+
+  _captureValidation(name) {
+    const w = this.workers.get(name);
+    if (!w) return null;
+    const v = validationLib.captureValidation(w.worktree || null, w.branch || null, {
+      mainBranch: this.config.daemon?.worktreeGc?.mainBranch || 'main',
+    });
+    w._validation = v;
+    return v;
+  }
+
+  getValidation(name) {
+    const w = this.workers.get(name);
+    if (!w) return { error: `Worker '${name}' not found` };
+    if (w._validation) return { name, validation: w._validation };
+    const file = validationLib.readValidationFile(w.worktree || null);
+    if (file) {
+      w._validation = file;
+      return { name, validation: file };
+    }
+    return { name, validation: null };
+  }
+
   close(name) {
     const w = this.workers.get(name);
     if (!w) return { error: `Worker '${name}' not found` };
 
     // Save session ID for potential resume (4.1)
     this._updateSessionId(name);
+
+    // Capture validation object (9.9) before the worktree is removed so
+    // /worker/<name>/validation stays answerable after close.
+    try { this._captureValidation(name); } catch {}
 
     // Record history before cleanup (3.7)
     const history = this._recordHistory(name, w);
