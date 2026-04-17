@@ -1,0 +1,81 @@
+{
+  "name": "c4",
+  "displayName": "C4 (Claude Code Code)",
+  "version": "1.8.1",
+  "description": "Native Claude Code plugin that exposes the c4 daemon (worker lifecycle: new, task, list, merge, close) as slash commands. Posts to the local daemon HTTP API via c4-sdk when available, otherwise via a built-in minimal fetch client.",
+  "author": "siloFoX",
+  "license": "MIT",
+  "homepage": "https://github.com/siloFoX/c4",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/siloFoX/c4.git",
+    "directory": "claude-code-plugin"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "claude-code": ">=2.0.0"
+  },
+  "commandsDir": "commands",
+  "commands": [
+    {
+      "name": "c4-new",
+      "description": "Spawn a new c4 worker.",
+      "usage": "/c4-new <name> [--target local|dgx] [--parent <parent>] [--command <cmd>]",
+      "file": "commands/c4-new.md",
+      "handler": "commands/c4-new.js",
+      "arguments": [
+        { "name": "name", "required": true, "description": "Worker name (unique alias)." },
+        { "name": "target", "required": false, "description": "local (default) or dgx." },
+        { "name": "parent", "required": false, "description": "Parent worker name (for hierarchy)." },
+        { "name": "command", "required": false, "description": "Override spawn command (default: claude)." }
+      ]
+    },
+    {
+      "name": "c4-task",
+      "description": "Send a task to an existing c4 worker.",
+      "usage": "/c4-task <name> <task> [--auto-mode] [--branch <branch>] [--reuse]",
+      "file": "commands/c4-task.md",
+      "handler": "commands/c4-task.js",
+      "arguments": [
+        { "name": "name", "required": true, "description": "Target worker name." },
+        { "name": "task", "required": true, "description": "Task text (the rest of the line)." },
+        { "name": "auto-mode", "required": false, "description": "Enable auto-mode on the task." },
+        { "name": "branch", "required": false, "description": "Branch to run the task on." },
+        { "name": "reuse", "required": false, "description": "Reuse the current worker / branch." }
+      ]
+    },
+    {
+      "name": "c4-list",
+      "description": "List all c4 workers and their current status.",
+      "usage": "/c4-list",
+      "file": "commands/c4-list.md",
+      "handler": "commands/c4-list.js",
+      "arguments": []
+    },
+    {
+      "name": "c4-merge",
+      "description": "Merge a c4 worker branch into main.",
+      "usage": "/c4-merge <name> [--skip-checks]",
+      "file": "commands/c4-merge.md",
+      "handler": "commands/c4-merge.js",
+      "arguments": [
+        { "name": "name", "required": true, "description": "Worker (or branch) name to merge." },
+        { "name": "skip-checks", "required": false, "description": "Bypass the pre-merge guardrails (dangerous)." }
+      ]
+    },
+    {
+      "name": "c4-close",
+      "description": "Close a c4 worker and clean up its PTY/worktree.",
+      "usage": "/c4-close <name>",
+      "file": "commands/c4-close.md",
+      "handler": "commands/c4-close.js",
+      "arguments": [
+        { "name": "name", "required": true, "description": "Worker name to close." }
+      ]
+    }
+  ],
+  "env": {
+    "C4_BASE": "Daemon base URL (default: http://localhost:3456).",
+    "C4_TOKEN": "JWT for daemon auth (8.14). Also read from ~/.c4-token when absent."
+  }
+}
