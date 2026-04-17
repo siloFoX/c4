@@ -446,6 +446,14 @@ Level 4이면:
 | 7.18 | worker 영어 전용 모드 | **done** | workerDefaults.workerLanguage: "en" 옵션 추가. _getRulesSummary()가 rules 끝에 "Respond in English only..." 지시문을 자동 덧붙인다. 한국어 인코딩 깨짐(7.16) 우회 + hook error 방지. |
 | 7.19 | worker setup /effort + /model 슬래시 명령 대응 | **done** | Claude Code v2.1.112+에서 `/effort <level>` + 옵션 `/model <value>` 슬래시 명령으로 설정. `_executeSetupPhase2`가 TUI 화살표 대신 슬래시 명령 전송, `_finishSetup` 헬퍼 추출. MSYS_NO_PATHCONV=1 방어 재확인 (Git Bash `/effort` 경로 변환 방지). `workerDefaults.model !== 'default'`일 때만 `/model` 전송. `tests/setup-slash.test.js` 추가. |
 | 7.20 | c4 init PATH 자동 등록 (7.13 후속) | **done** | 7.13에서 `~/.local/bin/c4` symlink는 만들지만 `~/.local/bin`이 PATH에 없으면 `c4` 명령이 동작하지 않는 문제 해결. init이 PATH 포함 여부를 확인하고 없으면 `~/.bashrc`에 `export PATH="$HOME/.local/bin:$PATH"` 자동 추가 (중복 방지). SHELL이 zsh이면 `~/.zshrc`도 추가. 로직을 `src/init-path.js`로 분리하여 dependency-injectable fs로 테스트 가능. `tests/init-path.test.js` 30개 assertion 추가. |
+| 7.21 | c4 wait --all intervention 감지 개선 | **todo** |
+| 7.22 | pendingTask Enter 재발 (v1.6.15에서도) | **todo** | 7.17 5-point 방어 적용된 v1.6.15 daemon에서도 2/2 worker Enter 수동 필요. 3개 병렬 테스트(test-a/b/c)는 성공했지만 실제 task가 긴 경우나 worker 수가 많을 때 재발. 추가 failure mode 존재 가능. |
+| 7.23 | PostToolUse hook 에러 재발 (v1.6.15) | **todo** | 7.16 ASCII 수정 후에도 PostToolUse hook 에러 반복 + escalation 오탐. v1.6.15 daemon에서 worker 생성 시 worktree hook 설정이 여전히 에러 유발. _buildHookCommands 출력 재검증 필요. workerLanguage "en" 설정이 hook 에러까지 방지하는지 확인. | `c4 wait --all`이 intervention worker 때문에 무한 대기. idle worker가 있어도 intervention worker가 블록. 개선: (1) `--all` 기본 동작을 `--interrupt-on-intervention` 으로 변경, (2) idle 완료된 worker는 즉시 반환하고 intervention worker 별도 보고, (3) 관리자가 wait 결과에서 intervention worker를 바로 처리할 수 있게 출력 개선. |
+| 8.5 | daemon API 보강 (Web UI 연동) | **todo** | Web UI에서 필요한 누락 API 추가. (1) POST /key — worker에 특수키 전송 (Enter, C-c 등), 현재 /send에 keys:true로 우회 중. (2) POST /merge — Web UI에서 머지 실행, 현재 CLI가 직접 git merge 수행하는 구조라 daemon 라우트 없음. (3) Web UI 프론트엔드도 새 API에 맞게 수정. |
+| 8.6 | Web UI — 채팅 인터페이스 | **todo** | worker별 채팅 뷰. 메시지 입력 → POST /send로 전송, 응답은 SSE /watch로 실시간 수신. 말풍선 UI로 대화 흐름 표시. c4 send + c4 read를 브라우저 채팅으로 대체. |
+| 8.7 | Web UI — 대화/작업 이력 | **todo** | worker 대화 기록 열람. scrollback 전체 + history.jsonl 기반 과거 task 목록. 완료된 worker의 대화도 조회 가능. 검색/필터. scribe session-context.md 뷰어. |
+| 8.8 | Web UI — Worker 제어 패널 | **todo** |
+| 8.9 | Web UI — 디자인 리디자인 | **todo** | ARPS frontend 스타일 참고하여 전체 UI 리디자인. 현재 기본 Tailwind만 적용된 상태. 컴포넌트 정리, 반응형(모바일 대응), 애니메이션, 아이콘(lucide-react), 카드/패널 레이아웃, 색상 시스템 통일. 기능 안정화 후 일괄 진행. | 중단(Ctrl+C/SIGTERM), 일시정지(suspend), 재개(resume), 롤백(rollback), 재시작. worker 상태 전환 버튼 + 확인 다이얼로그. 배치 제어(선택한 worker 일괄 중단/종료). 진행 중인 task 취소. |
 
 ## Phase 8 — Web UI + 운영 고도화
 
@@ -481,6 +489,15 @@ Level 4이면:
 | 10.6 | 부서/팀 관리 | **todo** | 부서(팀) 단위 조직 구조. 부서별 머신 할당, 프로젝트 소유권, worker quota. 부서 관리자가 소속 팀원/프로젝트/머신 관리. Web UI에서 조직도 트리 + 부서 대시보드. |
 | 10.7 | 일정 관리 + 스케줄링 | **todo** | 작업 일정 등록 (cron/캘린더). "매일 새벽 2시에 DGX에서 모델 학습 돌려" 같은 예약 작업. 마감일 기반 우선순위 자동 조절. Google Calendar/MCP 연동으로 일정 동기화. 간트 차트 뷰. |
 | 10.8 | 프로젝트 관리 (PM) | **todo** | 프로젝트별 task 보드 (칸반/리스트). 마일스톤, 스프린트, 백로그 관리. TODO.md 양방향 동기화. 프로젝트 진행률 자동 계산. 팀원별 할당 + 워크로드 밸런싱. |
+
+## Phase 11 — 범용 자동화 플랫폼
+
+| # | 항목 | 상태 | 설명 |
+|---|------|------|------|
+| 11.1 | MCP 허브 | **todo** | worker에 MCP 서버를 동적으로 연결. config에 MCP 서버 목록 등록, worker 생성 시 필요한 MCP 자동 로드. Chrome DevTools, Google Calendar, Gmail 등 기존 MCP + 커뮤니티 MCP 무한 확장. |
+| 11.2 | Computer Use agent | **todo** | 화면 조작 기반 범용 자동화. 카카오톡, 네이버, 은행 등 API 없는 앱도 computer use로 제어. worker type으로 "computer-use" 추가. 스크린샷 + 클릭/타이핑 파이프라인. |
+| 11.3 | 워크플로우 엔진 | **todo** | 여러 도구/MCP를 연결하는 자동화 워크플로우 정의. "매일 아침 이메일 확인 → 중요한 건 카톡으로 전달 → 코드 관련이면 worker 생성" 같은 체인. YAML/JSON으로 워크플로우 정의. Web UI에서 시각적 편집. |
+| 11.4 | 자연어 인터페이스 | **todo** | Web UI 채팅창에서 자연어로 모든 자동화 실행. "DGX에서 모델 학습 시키고 끝나면 카톡으로 알려줘" → dispatcher + worker + computer use + notification 자동 체이닝. 사람은 말만 하면 됨. |
 
 ## 완료
 
