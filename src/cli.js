@@ -121,6 +121,7 @@ async function main() {
         }
 
         let branch = '', useBranch = true, scope = null, scopePreset = '', after = '', contextFrom = '', reuse = undefined, profile = '', autoMode = false, projectRoot = '', cwd = '';
+        let budgetUsd = null, maxRetries = null;
         const taskParts = [];
         for (let i = argStart; i < effectiveArgs.length; i++) {
           if (effectiveArgs[i] === '--branch' && effectiveArgs[i + 1]) { branch = effectiveArgs[++i]; }
@@ -134,6 +135,16 @@ async function main() {
           else if (effectiveArgs[i] === '--auto-mode') { autoMode = true; }
           else if (effectiveArgs[i] === '--repo' && effectiveArgs[i + 1]) { projectRoot = effectiveArgs[++i]; }
           else if (effectiveArgs[i] === '--cwd' && effectiveArgs[i + 1]) { cwd = effectiveArgs[++i]; }
+          else if (effectiveArgs[i] === '--budget' && effectiveArgs[i + 1]) {
+            const v = parseFloat(effectiveArgs[++i]);
+            if (!Number.isFinite(v)) { console.error('Error: --budget must be a number (USD)'); process.exit(1); }
+            budgetUsd = v;
+          }
+          else if (effectiveArgs[i] === '--max-retries' && effectiveArgs[i + 1]) {
+            const v = parseInt(effectiveArgs[++i], 10);
+            if (!Number.isFinite(v) || v < 0) { console.error('Error: --max-retries must be a non-negative integer'); process.exit(1); }
+            maxRetries = v;
+          }
           else if (effectiveArgs[i] === '--scope' && effectiveArgs[i + 1]) {
             try { scope = JSON.parse(effectiveArgs[++i]); }
             catch { console.error('Error: --scope must be valid JSON'); process.exit(1); }
@@ -152,6 +163,8 @@ async function main() {
         if (autoMode) body.autoMode = true;
         if (projectRoot) body.projectRoot = projectRoot;
         if (cwd) body.cwd = cwd;
+        if (budgetUsd !== null) body.budgetUsd = budgetUsd;
+        if (maxRetries !== null) body.maxRetries = maxRetries;
         result = await request('POST', '/task', body);
         break;
       }
@@ -1060,7 +1073,9 @@ async function main() {
       }
 
       case 'token-usage': {
-        result = await request('GET', '/token-usage');
+        const perTask = args.includes('--per-task');
+        const qs = perTask ? '?perTask=1' : '';
+        result = await request('GET', `/token-usage${qs}`);
         if (result.error) {
           console.log(`Error: ${result.error}`);
         } else {
@@ -1079,6 +1094,24 @@ async function main() {
               for (const day of days.slice(0, 7)) {
                 const d = result.history[day];
                 console.log(`    ${day}: ${(d.input + d.output).toLocaleString()} tokens`);
+              }
+            }
+          }
+          if (perTask && Array.isArray(result.perTask)) {
+            console.log('  Per-task:');
+            if (result.perTask.length === 0) {
+              console.log('    (no active workers)');
+            } else {
+              for (const row of result.perTask) {
+                const budget = row.budgetUsd > 0 ? ` budget=$${row.budgetUsd}` : '';
+                const retries = row.maxRetries > 0 ? ` retries=${row.retryCount}/${row.maxRetries}` : '';
+                const stop = row.stopReason ? ` STOPPED(${row.stopReason})` : '';
+                const live = row.alive ? 'live' : 'exited';
+                console.log(`    ${row.name} [${live}] tokens=${row.total.toLocaleString()} (in=${row.input.toLocaleString()} out=${row.output.toLocaleString()})${budget}${retries}${stop}`);
+                if (row.task) {
+                  const preview = row.task.length > 70 ? row.task.slice(0, 70) + '...' : row.task;
+                  console.log(`      task: ${preview}`);
+                }
               }
             }
           }
@@ -1500,6 +1533,7 @@ Commands:
   task <name> <text> [--branch name] [--no-branch]         Send task with auto branch
        [--repo path] [--cwd path]                              Repo root / working dir for worktree
        [--context worker] [--reuse] [--scope JSON]             Context / pool reuse / scope
+       [--budget <usd>] [--max-retries <n>]                    Cost/retry guardrails (9.10)
   send <name> <text>               Send raw text to worker
   key <name> <key>                 Send special key (Enter, C-c, C-b, Tab, etc.)
   read <name>                      Read new output (idle snapshots only)
@@ -1526,7 +1560,7 @@ Commands:
   scribe stop                      Stop scribe
   scribe status                    Show scribe status
   scribe scan                      Run one-time scan now
-  token-usage                      Show daily token usage
+  token-usage [--per-task]         Show daily token usage (per-task adds worker-level aggregation)
   auto <task>                      Autonomous mode: manager + scribe + task (4.8)
   morning                          Generate morning report (4.4)
   profiles                         List available permission profiles

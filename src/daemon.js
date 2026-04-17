@@ -207,8 +207,8 @@ async function handleRequest(req, res) {
       result = manager.list();
 
     } else if (req.method === 'POST' && route === '/task') {
-      const { name, task, branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode } = await parseBody(req);
-      result = manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode });
+      const { name, task, branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, budgetUsd, maxRetries } = await parseBody(req);
+      result = manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, budgetUsd, maxRetries });
 
     } else if (req.method === 'POST' && route === '/merge') {
       const { name, skipChecks } = await parseBody(req);
@@ -279,7 +279,8 @@ async function handleRequest(req, res) {
       result = manager.scribeScan();
 
     } else if (req.method === 'GET' && route === '/token-usage') {
-      result = manager.getTokenUsage();
+      const perTask = url.searchParams.get('perTask') === '1';
+      result = manager.getTokenUsage({ perTask });
 
     } else if (req.method === 'GET' && route === '/scrollback') {
       const name = url.searchParams.get('name');
