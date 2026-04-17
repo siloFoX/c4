@@ -496,12 +496,14 @@ server.listen(PORT, HOST, () => {
   // Persist daemon version to state.json (7.15)
   try { manager._saveState(); } catch (e) { console.error('[DAEMON] _saveState on startup failed:', e.message); }
   manager.startHealthCheck();
+  manager.startWorktreeGc();
   notifications.startPeriodicSlack();
 });
 
 process.on('SIGINT', () => {
   notifications.stopPeriodicSlack();
   manager.stopHealthCheck();
+  manager.stopWorktreeGc();
   manager.closeAll();
   server.close();
   process.exit(0);
@@ -510,6 +512,7 @@ process.on('SIGINT', () => {
 process.on('SIGTERM', () => {
   notifications.stopPeriodicSlack();
   manager.stopHealthCheck();
+  manager.stopWorktreeGc();
   manager.closeAll();
   server.close();
   process.exit(0);

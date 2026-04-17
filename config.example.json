@@ -3,7 +3,13 @@
     "port": 3456,
     "host": "127.0.0.1",
     "bindHost": "127.0.0.1",
-    "idleThresholdMs": 3000
+    "idleThresholdMs": 3000,
+    "worktreeGc": {
+      "enabled": true,
+      "intervalSec": 3600,
+      "inactiveHours": 24,
+      "mainBranch": "main"
+    }
   },
 
   "pty": {
