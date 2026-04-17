@@ -451,10 +451,13 @@ Level 4이면:
 
 | # | 항목 | 상태 | 설명 |
 |---|------|------|------|
-| 8.1 | Web UI — React SPA | **todo** | ARPS frontend(React+TS+Vite+Tailwind) 스택 참고. `web/` 디렉토리에 별도 package.json. 빌드 결과(`web/dist/`)를 daemon이 static 서빙. C4 CLI 의존성 영향 없음. 기능: worker 목록(SSE 실시간), task 전송 폼, 승인/거부 버튼, 스냅샷/로그 뷰어, 머지 버튼, 토큰 사용량. Claude Code 없이 브라우저만으로 C4 운영 가능. |
+| 8.1 | Web UI — React SPA | **todo** | ARPS frontend(React+TS+Vite+Tailwind) 스택 참고. `web/` 디렉토리에 별도 package.json. 빌드 결과(`web/dist/`)를 daemon이 static 서빙. C4 CLI 의존성 영향 없음. 기능: worker 목록(SSE 실시간), task 전송 폼, 승인/거부 버튼, 스냅샷/로그 뷰어, 머지 버튼, 토큰 사용량. Claude Code 없이 브라우저만으로 C4 운영 가능. 인증: JWT 기반 로그인 + 세션 관리. 포트포워딩으로 외부(모바일) 접속 대비. config에 users/password 설정. |
 | 8.2 | Web UI — 재귀 계층 트리 | **todo** | c4 list --tree CLI + Web UI에서 parent-child 관계 트리 시각화. worker 메타데이터에 parent 필드. 계층별 상태/에러 추적. 중앙 집중식 로깅 뷰. |
 | 8.3 | 계층별 토큰 quota | **todo** | 관리자/중간관리자/worker 별 토큰 할당량 설정. 일일 한도를 계층별로 분리. 비용 최적화 알고리즘 — 작업 복잡도 대비 모델 자동 선택 (Opus/Sonnet/Haiku). |
 | 8.4 | 지능형 예외 복구 | **todo** | 단순 재시도 넘어 작업 재정의 + 대안 경로 탐색. worker 실패 분석 후 다른 접근법으로 자동 재시도. 실패 패턴 학습. 자가 치유 로직으로 완전 무인 운영 강화. |
+| 8.5 | Agent Framework 전환 | **todo** | C4를 Claude Code 전용에서 범용 agent orchestration framework로 확장. terminal-interface.js(3.13) 추상화 기반. Agent Adapter 패턴: Claude Code adapter(기존), Cursor/Aider/OpenHands adapter, Local LLM adapter. claw-code 참고하여 세션/hook/tool 파이프라인 이해. |
+| 8.6 | Local LLM adapter | **todo** | Ollama, llama.cpp, vLLM 등 로컬 LLM 연동. 비용 0으로 단순 작업 처리. config에 agent type 설정(claude/local/hybrid). 하이브리드 모드: 단순 작업은 local, 복잡한 건 Claude로 자동 라우팅. |
+| 8.7 | Agent SDK | **todo** | 프로그래밍 방식으로 C4 제어하는 SDK. `const c4 = require('c4-sdk'); c4.createWorker(); c4.sendTask()` 패턴. Web UI와 CLI 외에 코드에서 직접 호출. npm 패키지 배포. |
 
 ## 완료
 
