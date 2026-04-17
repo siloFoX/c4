@@ -887,21 +887,69 @@ async function main() {
           console.log(`\nPre-merge checks for branch "${branch}":\n`);
 
           let allPassed = true;
+          let npmTestCount = null;
+          const validationLib = require('./validation');
 
-          // Check 1: tests pass (if test script exists)
+          // Check 0: validation.test_passed (9.9). Reads
+          // <worktree>/.c4-validation.json (or synthesizes from git state)
+          // and rejects when the worker did not confirm green tests.
+          process.stdout.write('  [check] validation.test_passed ... ');
+          let validationObj = null;
+          try {
+            const fsRef = require('fs');
+            if (fsRef.existsSync(worktreePath)) {
+              validationObj = validationLib.captureValidation(worktreePath, branch);
+            }
+            if (!validationObj) {
+              console.log('SKIP (no worktree for branch)');
+            } else if (validationObj.test_passed === true) {
+              console.log(`PASS (source: ${validationObj._source})`);
+            } else {
+              console.log('FAIL');
+              console.error(`    validation.test_passed = ${String(validationObj.test_passed)} (source: ${validationObj._source}). Worker did not confirm green tests.`);
+              allPassed = false;
+            }
+          } catch (e) {
+            console.log(`FAIL (${e.message})`);
+            allPassed = false;
+          }
+
+          // Check 1: tests pass (if test script exists). Capture stdout so
+          // the count can be cross-checked against validation.test_count.
           process.stdout.write('  [check] npm test ... ');
           try {
             const pkg = JSON.parse(require('fs').readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
             if (pkg.scripts && pkg.scripts.test) {
-              execSync('npm test', { cwd: repoRoot, stdio: 'pipe' });
-              console.log('PASS');
+              const testOut = execSync('npm test', {
+                cwd: repoRoot, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+              });
+              npmTestCount = validationLib.extractNpmTestCount(testOut);
+              console.log(npmTestCount !== null ? `PASS (${npmTestCount} passed)` : 'PASS');
             } else {
               console.log('SKIP (no test script)');
             }
           } catch (e) {
+            const merged = String((e && e.stdout) || '') + String((e && e.stderr) || '');
+            if (merged) npmTestCount = validationLib.extractNpmTestCount(merged);
             console.log('FAIL');
             console.error('    Tests failed. Fix tests before merging.');
             allPassed = false;
+          }
+
+          // Check 1b: validation.test_count matches npm test output (9.9).
+          if (validationObj && npmTestCount !== null) {
+            process.stdout.write('  [check] validation.test_count matches npm test ... ');
+            const gate = validationLib.checkPreMerge(validationObj, { npmTestCount });
+            if (gate.ok) {
+              console.log(`PASS (${validationObj.test_count} == ${npmTestCount})`);
+            } else if (gate.reason === 'test-count-mismatch') {
+              console.log('FAIL');
+              console.error(`    ${gate.detail}`);
+              allPassed = false;
+            } else {
+              // test-not-passed already surfaced by check 0; skip here.
+              console.log(`SKIP (${gate.reason})`);
+            }
           }
 
           // Check 2: TODO.md modified
