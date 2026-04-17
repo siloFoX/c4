@@ -135,6 +135,48 @@
 
 ---
 
+### web/package-lock.json 자발적 수정 — npm 버전/플랫폼 드리프트 (7.29)
+
+**상황:** 세션 시작부터 `git -C /root/c4 status`가 `modified: web/package-lock.json`을 보고. 로컬에서 의도적 수정 없음. 머지 때마다 stash 대상이 되고 의미 없는 diff를 생성.
+
+**원인:** npm 버전/플랫폼 간 드리프트. 커밋된 lockfile은 `"peer": true` 메타데이터 8개를 포함 (Windows 측 silof 환경 npm이 emit). 로컬 Linux의 npm 10.8.2는 `npm install`을 돌릴 때마다 이 `"peer": true` 라인을 strip. 결과 — 실제 의존성은 바뀌지 않았지만 lockfile이 항상 modified로 보임.
+
+재현:
+
+```bash
+# 커밋된 lockfile을 임시 디렉토리에 복사
+git -C /root/c4 show HEAD:web/package-lock.json > /tmp/pl/package-lock.json
+cp /root/c4/web/package.json /tmp/pl/package.json
+
+# --package-lock-only로 lockfile만 재계산 — node_modules 영향 없음
+npm --prefix /tmp/pl install --package-lock-only
+
+# 8개 "peer": true 라인이 사라진 diff 확인
+grep -c '"peer": true' /tmp/pl/package-lock.json
+# 출력: 0 (원본은 8)
+```
+
+영향받는 패키지 (전부 peer 엣지로도 도달하는 transitive/direct dep): `@babel/core` 계열, `@types/react`, `browserslist`, `jiti`, `postcss`, `react`, `yaml`, `@vitejs/plugin-react`.
+
+c4 데몬/워커 코드 경로 어디에서도 `npm install`을 자동 실행하지 않음 (`src/` grep 결과 0건). 트리거는 사용자가 수동으로 `npm --prefix web install` 또는 `npm --prefix web run dev`를 실행할 때 npm이 lockfile을 rewrite하면서 발생.
+
+**대응:** 은폐 대신 원인 surface. `src/pkglock-guard.js` + `.githooks/pre-commit`이 `"peer": true`-only diff 시그니처를 감지해 커밋 시점에 경고 출력 ("commit proceeds" — block 아님). `tests/fixtures/pkglock-peer-drift.diff`가 실제 8라인 드리프트 diff 페이로드를 고정.
+
+**권장 워크플로우:**
+1. `web/package-lock.json`이 dirty로 보이면 먼저 `git -C /root/c4 diff web/package-lock.json`으로 diff 확인.
+2. 내용이 `"peer": true` 제거/추가뿐이면 env 드리프트 — 의도적 수정이 아니므로 `git checkout -- web/package-lock.json`으로 되돌림.
+3. 같은 기계에서 `npm install` 후 즉시 diff가 재발생하면: 해당 기계의 npm 버전이 upstream과 다름. `npm --version` 확인 후 일치하는 버전으로 통일 (`engines.npm` pin 고려).
+4. 실제 의존성 변경이 필요할 때만 lockfile 커밋 — 그 경우 커밋 메시지에 어느 기계/npm 버전에서 생성했는지 기록.
+
+**gitignore 금지:** lockfile을 gitignore하면 `npm ci` 재현성이 깨지고 CI/fresh-install이 비결정적이 됨. surface warning + 운영 수칙이 올바른 대응.
+
+**교훈:**
+- lockfile dirty의 80%는 실제 코드 변경이 아니라 toolchain 버전 차이. 진단 없이 커밋하면 같은 churn이 상대 환경에서 되돌려져 무한 ping-pong.
+- 드리프트 시그니처(`"peer": true`-only)는 고정된 패턴이라 정적으로 탐지 가능. pre-commit 경고로 "환경 차이"라는 컨텍스트를 커밋 시점에 제공하면 맹목적 커밋 방지.
+- 실제 코드 경로가 아닌 환경 차이 이슈는 테스트로 덮기 어려움 — fixture 파일(`tests/fixtures/pkglock-peer-drift.diff`)로 payload를 버전 관리해 regression을 정적으로 감지.
+
+---
+
 ## 패턴 요약
 
 실사용에서 반복되는 실패 패턴:
@@ -147,3 +189,4 @@
 | 맹목적 자동화 | cron Enter, 무분별 승인 | 판단 프로토콜 + Critical Deny List |
 | 설정 로딩 시점 | worktree hook 미적용 | 스폰 순서 변경, standalone script |
 | 이름/라벨 부재 | w-535 구분 불가 | 의미있는 자동 네이밍 |
+| 환경 드리프트 | web/package-lock.json "peer":true churn | 시그니처 감지 + pre-commit 경고 (7.29) |
