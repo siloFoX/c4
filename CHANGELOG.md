@@ -6,6 +6,7 @@
 - **manager 세션 launch 명령 플래그 보강** (7.24): CLAUDE.md, README.md, README.ko.md, src/cli.js (c4 init 출력), docs/handoff.md 5곳의 `claude --agent` 안내에 `--model opus --effort max --name c4-manager` 플래그 추가. 관리자 세션을 최고 effort + Opus 모델 + 고정 세션 이름(c4-manager)으로 시작하도록 일관 유도. `--name c4-manager`는 세션 식별자 고정으로 scribe/로그 상관관계 추적 및 관리자 세션 재진입 시 동일성 확보에 기여.
 
 ### Fixed
+- **c4 init이 git identity 체크/설정, merge가 identity 부재 시 명확 에러** (7.25): 야간 자동 실행이 `git config user.name/user.email` 부재로 `c4 merge` 실패 → 관리자가 `GIT_AUTHOR_NAME=... c4 merge` env prefix workaround 시도 → `Bash(c4:*)` 권한 패턴이 env prefix와 매치 안 되어 permission prompt에서 halt하던 문제 해결. 신규 `src/git-identity.js` 모듈이 `ensureIdentity` / `identityComplete` / `missingIdentityKeys` 제공. `c4 init`은 TTY에서 name/email 프롬프트 후 `git config --global` 저장, non-TTY에서는 경고만 (덮어쓰기 금지). `c4 daemon start|restart`는 미설정 시 경고 출력 후 정상 진행, `c4 merge`는 명확 에러 + exit 1 (env workaround 힌트 없음). `.claude/agents/manager.md`에 env prefix workaround 금지 규칙 추가. `tests/git-identity.test.js` 26 assertions.
 - **c4 init PATH 자동 등록** (7.20): 7.13에서 `~/.local/bin/c4` symlink는 만들지만 `~/.local/bin`이 PATH에 없으면 `c4` 명령이 동작하지 않던 문제 해결. init이 PATH 포함 여부를 확인해 누락이면 `~/.bashrc`에 `export PATH="$HOME/.local/bin:$PATH"` 블록 자동 추가 (marker 기반 중복 방지). SHELL이 zsh이면 `~/.zshrc`도 함께 갱신. 로직은 `src/init-path.js`로 분리하여 fs dependency injection으로 테스트. `tests/init-path.test.js` 30 assertion 추가.
 
 ## [1.6.14] - 2026-04-17

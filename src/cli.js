@@ -671,6 +671,14 @@ async function main() {
           console.log(`[warn] PostCompact hook: ${e.message}`);
         }
 
+        // 6. Git identity check/setup (7.25)
+        try {
+          const { ensureIdentity } = require('./git-identity');
+          await ensureIdentity();
+        } catch (e) {
+          console.log(`[warn] git identity: ${e.message}`);
+        }
+
         console.log('\nc4 init complete!');
 
         // 6. Guide: manager mode start (7.14)
@@ -690,6 +698,19 @@ async function main() {
 
         if (!target) {
           console.error('Usage: c4 merge <worker-name|branch-name> [--skip-checks]');
+          process.exit(1);
+        }
+
+        // Require git identity before merging (7.25).
+        // Must not suggest env-prefix workarounds here: those trigger Bash
+        // permission prompts that halt automated nightly runs.
+        const { identityComplete, missingIdentityKeys } = require('./git-identity');
+        if (!identityComplete()) {
+          const missing = missingIdentityKeys();
+          console.error(`Error: git ${missing.join(' and ')} not set. Run one of:`);
+          console.error('  c4 init');
+          console.error('  git config --global user.name "Your Name"');
+          console.error('  git config --global user.email "you@example.com"');
           process.exit(1);
         }
 
@@ -1309,6 +1330,17 @@ async function main() {
         if (!sub || !['start', 'stop', 'restart', 'status'].includes(sub)) {
           console.log('Usage: c4 daemon <start|stop|restart|status>');
           return;
+        }
+        // Warn on missing git identity at daemon start (7.25). Non-fatal.
+        if (sub === 'start' || sub === 'restart') {
+          try {
+            const { missingIdentityKeys } = require('./git-identity');
+            const missing = missingIdentityKeys();
+            if (missing.length) {
+              console.warn(`[warn] git identity not set: ${missing.join(', ')}`);
+              console.warn('  c4 merge will fail without it. Run: c4 init');
+            }
+          } catch {}
         }
         result = await DaemonManager[sub]();
         if (sub === 'status') {
