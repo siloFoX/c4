@@ -2337,9 +2337,10 @@ async function main() {
         //   c4 project progress <id>
         //   c4 project sync <id> [--repo PATH]
         const sub = args[0];
-        const validSubs = ['create', 'list', 'show', 'task', 'milestone', 'sprint', 'progress', 'sync'];
+        const validSubs = ['create', 'list', 'show', 'task', 'milestone', 'sprint', 'progress', 'sync',
+          'dashboard', 'contributors', 'velocity', 'tokens'];
         if (!sub || !validSubs.includes(sub)) {
-          console.log('Usage: c4 project <create|list|show|task|milestone|sprint|progress|sync> [flags]');
+          console.log('Usage: c4 project <create|list|show|task|milestone|sprint|progress|sync|dashboard|contributors|velocity|tokens> [flags]');
           console.log('  create <id> --name N [--desc D]');
           console.log('  list');
           console.log('  show <id>');
@@ -2349,6 +2350,10 @@ async function main() {
           console.log('  sprint add <projectId> <name> --start <d> --end <d> [--id ID]');
           console.log('  progress <id>');
           console.log('  sync <id> [--repo PATH]');
+          console.log('  dashboard <id> [--json]');
+          console.log('  contributors <id>');
+          console.log('  velocity <id> [--weeks N]');
+          console.log('  tokens <id>');
           return;
         }
 
@@ -2476,6 +2481,46 @@ async function main() {
           if (!id) { console.error('Usage: c4 project sync <id> [--repo PATH]'); process.exit(1); }
           const repo = extractFlagAt(2, '--repo') || process.cwd();
           result = await request('POST', '/projects/' + encodeURIComponent(id) + '/sync', { repoPath: repo });
+        } else if (sub === 'dashboard') {
+          // (10.3) Project-specific dashboard summary. --json dumps the
+          // full snapshot; the default view prints a compact human
+          // summary so operators can eyeball a project's health.
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 project dashboard <id> [--json]'); process.exit(1); }
+          const jsonMode = args.includes('--json');
+          result = await request('GET', '/projects/' + encodeURIComponent(id) + '/dashboard');
+          if (result && !result.error && !jsonMode) {
+            const p = result.project || {};
+            const ts = result.todoStats || {};
+            const tu = result.tokenUsage || {};
+            const v = result.velocity || {};
+            console.log('Project: ' + (p.name || p.id || id));
+            console.log('  tasks:    ' + (ts.total || 0) + ' (' + (ts.done || 0) + ' done / ' + (ts.open || 0) + ' open, ' + (ts.done_pct || 0) + '%)');
+            console.log('  workers:  ' + (result.activeWorkers ? result.activeWorkers.length : 0) + ' active');
+            console.log('  merges:   ' + (result.recentMerges ? result.recentMerges.length : 0) + ' recent');
+            console.log('  tokens:   ' + (tu.total || 0) + ' total');
+            console.log('  velocity: ' + (v.tasksPerWeek || 0) + ' tasks/wk, ' + (v.mergesPerWeek || 0) + ' merges/wk (over ' + (v.windowWeeks || 0) + ' wk)');
+            console.log('  contributors: ' + (result.contributors ? result.contributors.length : 0));
+            return;
+          }
+        } else if (sub === 'contributors') {
+          // (10.3) Per-user tasks and tokens for one project.
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 project contributors <id>'); process.exit(1); }
+          result = await request('GET', '/projects/' + encodeURIComponent(id) + '/contributors');
+        } else if (sub === 'velocity') {
+          // (10.3) Velocity over a sliding window. --weeks N overrides
+          // the 4-week default so operators can show a different window.
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 project velocity <id> [--weeks N]'); process.exit(1); }
+          const weeksStr = extractFlagAt(2, '--weeks');
+          const qs = weeksStr ? '?weeks=' + encodeURIComponent(weeksStr) : '';
+          result = await request('GET', '/projects/' + encodeURIComponent(id) + '/velocity' + qs);
+        } else if (sub === 'tokens') {
+          // (10.3) Token usage breakdown for one project.
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 project tokens <id>'); process.exit(1); }
+          result = await request('GET', '/projects/' + encodeURIComponent(id) + '/tokens');
         }
 
         if (result && result.error) {

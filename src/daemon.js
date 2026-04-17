@@ -16,6 +16,7 @@ const fileTransfer = require('./file-transfer');
 const auditLog = require('./audit-log');
 const costReport = require('./cost-report');
 const projectMgmt = require('./project-mgmt');
+const projectDashboard = require('./project-dashboard');
 const rbac = require('./rbac');
 
 const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
@@ -117,6 +118,27 @@ function getProjectBoard() {
     : {};
   _projectBoard = new projectMgmt.ProjectBoard(pm);
   return _projectBoard;
+}
+
+// (10.3) Shared ProjectDashboard. Joins the shared ProjectBoard (10.8),
+// AuditLogger (10.2), and a fresh CostReporter (10.5) into a single
+// per-project snapshot. Rebuilt lazily so a `c4 config reload` or a
+// projects.path switch picks up the new ProjectBoard instance on the
+// next request. Tests never touch this singleton — they construct
+// their own ProjectDashboard with tmpdir-backed collaborators.
+let _projectDashboard = null;
+function getProjectDashboard() {
+  if (_projectDashboard) return _projectDashboard;
+  _projectDashboard = new projectDashboard.ProjectDashboard({
+    board: getProjectBoard(),
+    auditLogger: audit,
+    costReporter: buildCostReporter(manager),
+    workers: () => {
+      try { return (manager.list().workers || []); }
+      catch { return []; }
+    },
+  });
+  return _projectDashboard;
 }
 
 // (10.5) Build a CostReporter seeded from config.costs.models and
@@ -301,7 +323,7 @@ async function handleRequest(req, res) {
   let projectParams = null;
   {
     const m1 = route.match(/^\/projects\/([^\/]+)$/);
-    const m2 = route.match(/^\/projects\/([^\/]+)\/(tasks|milestones|sprints|progress|sync)$/);
+    const m2 = route.match(/^\/projects\/([^\/]+)\/(tasks|milestones|sprints|progress|sync|dashboard|contributors|velocity|tokens)$/);
     const m3 = route.match(/^\/projects\/([^\/]+)\/tasks\/([^\/]+)$/);
     if (m3) {
       projectParams = {
@@ -829,6 +851,84 @@ async function handleRequest(req, res) {
         result = { error: e.message };
       }
 
+    } else if (req.method === 'GET' && projectParams && projectParams.kind === 'dashboard') {
+      // (10.3) Full dashboard snapshot for one project.
+      const gate = requireRole(authCheck, rbac.ACTIONS.PROJECT_READ,
+        { type: 'project', id: projectParams.projectId });
+      if (denyOr(res, gate)) return;
+      try {
+        const dashboard = getProjectDashboard();
+        const snap = dashboard.getSnapshot(projectParams.projectId);
+        if (!snap) {
+          res.writeHead(404);
+          res.end(JSON.stringify({ error: 'Project not found: ' + projectParams.projectId }));
+          return;
+        }
+        result = snap;
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && projectParams && projectParams.kind === 'contributors') {
+      // (10.3) Per-user task and token roll-up for one project.
+      const gate = requireRole(authCheck, rbac.ACTIONS.PROJECT_READ,
+        { type: 'project', id: projectParams.projectId });
+      if (denyOr(res, gate)) return;
+      try {
+        const dashboard = getProjectDashboard();
+        const contributors = dashboard.getContributors(projectParams.projectId);
+        if (contributors === null) {
+          res.writeHead(404);
+          res.end(JSON.stringify({ error: 'Project not found: ' + projectParams.projectId }));
+          return;
+        }
+        result = { projectId: projectParams.projectId, contributors, count: contributors.length };
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && projectParams && projectParams.kind === 'velocity') {
+      // (10.3) Velocity over a sliding window. ?weeks=N overrides the
+      // default 4-week window so dashboards can show 1/4/12-week views
+      // without a daemon restart.
+      const gate = requireRole(authCheck, rbac.ACTIONS.PROJECT_READ,
+        { type: 'project', id: projectParams.projectId });
+      if (denyOr(res, gate)) return;
+      try {
+        const weeksParam = parseInt(url.searchParams.get('weeks') || '', 10);
+        const dashboard = getProjectDashboard();
+        const v = dashboard.getVelocity(
+          projectParams.projectId,
+          Number.isFinite(weeksParam) && weeksParam > 0 ? weeksParam : undefined
+        );
+        if (!v) {
+          res.writeHead(404);
+          res.end(JSON.stringify({ error: 'Project not found: ' + projectParams.projectId }));
+          return;
+        }
+        result = v;
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && projectParams && projectParams.kind === 'tokens') {
+      // (10.3) Token usage for one project (total + per-user + per-model).
+      const gate = requireRole(authCheck, rbac.ACTIONS.PROJECT_READ,
+        { type: 'project', id: projectParams.projectId });
+      if (denyOr(res, gate)) return;
+      try {
+        const dashboard = getProjectDashboard();
+        const usage = dashboard.getTokenUsage(projectParams.projectId);
+        if (usage === null) {
+          res.writeHead(404);
+          res.end(JSON.stringify({ error: 'Project not found: ' + projectParams.projectId }));
+          return;
+        }
+        result = Object.assign({ projectId: projectParams.projectId }, usage);
+      } catch (e) {
+        result = { error: e.message };
+      }
+
     } else if (req.method === 'POST' && route === '/cleanup') {
       const { dryRun } = await parseBody(req);
       result = manager.cleanup(dryRun);
@@ -857,6 +957,9 @@ async function handleRequest(req, res) {
         // (10.8) Drop the cached ProjectBoard so a new projects.path
         // picks up on the next request without a daemon restart.
         _projectBoard = null;
+        // (10.3) Rebuild the dashboard on the next hit so it binds to
+        // the fresh board + any updated cost config.
+        _projectDashboard = null;
       }
 
     } else if (req.method === 'POST' && route === '/scribe/start') {
