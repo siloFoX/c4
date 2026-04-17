@@ -182,6 +182,31 @@ Copy `config.example.json` to `config.json` and edit:
 | `compatibility` | Claude Code TUI patterns for version compatibility |
 | `worktree` | Git worktree settings for multi-agent isolation |
 
+### Web UI Access (single port)
+
+The daemon (port 3456) serves both the JSON API and the built web UI. You
+only need one port forwarded to browse C4 from another machine.
+
+```bash
+npm run build:web           # web/dist/ = React bundle (index.html + assets/)
+c4 daemon restart           # daemon picks up the static middleware
+curl http://localhost:3456/             # returns index.html
+curl http://localhost:3456/api/list     # mirrors /list (JSON)
+```
+
+From another machine, forward port 3456 over SSH:
+
+```bash
+ssh -L 3456:localhost:3456 user@host
+# then browse http://localhost:3456/ locally
+```
+
+`c4 init` runs `npm run build:web` automatically when `web/dist/` is absent;
+`c4 daemon start` warns (not fatal) if the build is missing. Unknown non-`/api`
+routes fall back to `index.html` so the React router handles them. Vite dev
+mode (`npm --prefix web run dev`) still works independently for HMR and
+proxies `/api` to the daemon.
+
 ### External (LAN) Access for the Web UI
 
 By default the Vite dev server and the C4 daemon both bind to `127.0.0.1`, so

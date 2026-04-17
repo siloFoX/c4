@@ -48,7 +48,11 @@
 - web/ 디렉토리에 React+TS+Vite+Tailwind 세팅 완료
 - 구현된 컴포넌트: WorkerList, TaskForm, WorkerDetail, WorkerActions, Toast
 - 로고: web/public/logo.svg (C4 폭발물 SVG)
-- API 프록시: Vite dev server → localhost:3456 daemon
+- API 프록시: Vite dev server -> localhost:3456 daemon (dev, HMR)
+- Prod: daemon serves built web/dist on port 3456 as well (8.12). Run
+  `npm run build:web` once (or let `c4 init` do it), then browse
+  `http://<host>:3456/` — `/api/*` routes are aliased to the existing
+  daemon handlers so dev and prod use the same frontend code.
 - 미구현: 채팅(8.6), 이력(8.7), 제어패널(8.8), 디자인(8.9), 세션관리(8.10)
 
 ## 관리자 세션 사용법
