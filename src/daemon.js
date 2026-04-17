@@ -15,6 +15,7 @@ const dispatcher = require('./dispatcher');
 const fileTransfer = require('./file-transfer');
 const auditLog = require('./audit-log');
 const costReport = require('./cost-report');
+const projectMgmt = require('./project-mgmt');
 
 const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
 
@@ -47,6 +48,21 @@ function _auditActor(authCheck) {
 function _safeAudit(type, details, overrides) {
   try { return audit.record(type, details, overrides); }
   catch (e) { console.error('[AUDIT] record failed:', e && e.message ? e.message : e); return null; }
+}
+
+// (10.8) Shared ProjectBoard. Writes to ~/.c4/projects/<id>.json by
+// default; honour config.projects.path for operators who want the
+// storage on a different volume. Tests construct their own board with
+// a tmpdir and never touch this instance.
+let _projectBoard = null;
+function getProjectBoard() {
+  if (_projectBoard) return _projectBoard;
+  const currentCfg = manager.getConfig();
+  const pm = currentCfg && currentCfg.projects && typeof currentCfg.projects.path === 'string'
+    ? { projectsDir: currentCfg.projects.path }
+    : {};
+  _projectBoard = new projectMgmt.ProjectBoard(pm);
+  return _projectBoard;
 }
 
 // (10.5) Build a CostReporter seeded from config.costs.models and
@@ -224,6 +240,29 @@ async function handleRequest(req, res) {
   {
     const m = route.match(/^\/cost\/monthly\/(\d{4})\/(\d{1,2})$/);
     if (m) costMonthlyParams = { year: parseInt(m[1], 10), month: parseInt(m[2], 10) };
+  }
+
+  // (10.8) Project management: decode /projects/<id>/... path params
+  // here so the route dispatch below stays as a flat string match.
+  let projectParams = null;
+  {
+    const m1 = route.match(/^\/projects\/([^\/]+)$/);
+    const m2 = route.match(/^\/projects\/([^\/]+)\/(tasks|milestones|sprints|progress|sync)$/);
+    const m3 = route.match(/^\/projects\/([^\/]+)\/tasks\/([^\/]+)$/);
+    if (m3) {
+      projectParams = {
+        kind: 'task',
+        projectId: decodeURIComponent(m3[1]),
+        taskId: decodeURIComponent(m3[2]),
+      };
+    } else if (m2) {
+      projectParams = {
+        kind: m2[2],
+        projectId: decodeURIComponent(m2[1]),
+      };
+    } else if (m1) {
+      projectParams = { kind: 'project', projectId: decodeURIComponent(m1[1]) };
+    }
   }
 
   try {
@@ -523,6 +562,114 @@ async function handleRequest(req, res) {
         result = { error: e.message };
       }
 
+    } else if (req.method === 'GET' && route === '/projects') {
+      // (10.8) List all projects. Returns the full board objects so a
+      // caller can render a per-project dashboard without a second trip
+      // per project.
+      try {
+        const board = getProjectBoard();
+        const projects = board.listProjects();
+        result = { projects, count: projects.length };
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && route === '/projects') {
+      // (10.8) Create a project. Body: { id, name, description }.
+      try {
+        const body = await parseBody(req);
+        const board = getProjectBoard();
+        result = board.createProject({
+          id: body.id,
+          name: body.name,
+          description: body.description,
+        });
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && projectParams && projectParams.kind === 'project') {
+      // (10.8) Show one project (full board).
+      try {
+        const board = getProjectBoard();
+        const p = board.getProject(projectParams.projectId);
+        if (!p) {
+          res.writeHead(404);
+          res.end(JSON.stringify({ error: 'Project not found: ' + projectParams.projectId }));
+          return;
+        }
+        result = p;
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && projectParams && projectParams.kind === 'tasks') {
+      // (10.8) Add a task to a project. Body is the task shape
+      // { title, status, assignee, estimate, milestoneId, sprintId, description }.
+      try {
+        const body = await parseBody(req);
+        const board = getProjectBoard();
+        result = board.addTask(projectParams.projectId, body);
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'PATCH' && projectParams && projectParams.kind === 'task') {
+      // (10.8) Patch a task. Only provided fields are overwritten; status
+      // transitions keep the backlog and sprint invariants consistent.
+      try {
+        const body = await parseBody(req);
+        const board = getProjectBoard();
+        result = board.updateTask(projectParams.projectId, projectParams.taskId, body);
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && projectParams && projectParams.kind === 'milestones') {
+      // (10.8) Add a milestone. Body: { id?, name, dueDate, status }.
+      try {
+        const body = await parseBody(req);
+        const board = getProjectBoard();
+        result = board.createMilestone(projectParams.projectId, body);
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && projectParams && projectParams.kind === 'sprints') {
+      // (10.8) Add a sprint. Body: { id?, name, startDate, endDate, taskIds? }.
+      try {
+        const body = await parseBody(req);
+        const board = getProjectBoard();
+        result = board.createSprint(projectParams.projectId, body);
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && projectParams && projectParams.kind === 'progress') {
+      // (10.8) Project progress aggregate: counts by status + percent.
+      try {
+        const board = getProjectBoard();
+        result = board.projectProgress(projectParams.projectId);
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && projectParams && projectParams.kind === 'sync') {
+      // (10.8) Bidirectional TODO.md sync. Body: { repoPath, todoPath? }.
+      // Returns { imported, exported, path }.
+      try {
+        const body = await parseBody(req);
+        const repoPath = typeof body.repoPath === 'string' && body.repoPath.length > 0
+          ? body.repoPath
+          : process.cwd();
+        const board = getProjectBoard();
+        result = board.syncTodoMd(projectParams.projectId, repoPath, {
+          todoPath: typeof body.todoPath === 'string' && body.todoPath.length > 0 ? body.todoPath : undefined,
+        });
+      } catch (e) {
+        result = { error: e.message };
+      }
+
     } else if (req.method === 'POST' && route === '/cleanup') {
       const { dryRun } = await parseBody(req);
       result = manager.cleanup(dryRun);
@@ -541,6 +688,9 @@ async function handleRequest(req, res) {
       result = manager.reloadConfig();
       if (result && !result.error) {
         _safeAudit('config.reloaded', {}, { actor: _auditActor(authCheck), target: 'config' });
+        // (10.8) Drop the cached ProjectBoard so a new projects.path
+        // picks up on the next request without a daemon restart.
+        _projectBoard = null;
       }
 
     } else if (req.method === 'POST' && route === '/scribe/start') {
