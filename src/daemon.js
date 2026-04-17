@@ -189,10 +189,11 @@ async function handleRequest(req, res) {
       const names = namesParam.split(',').filter(Boolean);
       const timeout = parseInt(url.searchParams.get('timeout') || '120000');
       const interruptOnIntervention = url.searchParams.get('interruptOnIntervention') === '1';
+      const waitAll = url.searchParams.get('waitAll') === '1';
       if (names.length === 0) {
         result = { error: 'No worker names specified' };
       } else {
-        result = await manager.waitAndReadMulti(names, timeout, { interruptOnIntervention });
+        result = await manager.waitAndReadMulti(names, timeout, { interruptOnIntervention, waitAll });
       }
 
     } else if (req.method === 'GET' && route === '/list') {

@@ -3511,7 +3511,7 @@ class PtyManager extends EventEmitter {
   }
 
   async waitAndReadMulti(names, timeoutMs = 120000, options = {}) {
-    const { interruptOnIntervention = false } = options;
+    const { interruptOnIntervention = false, waitAll = false } = options;
 
     // Resolve names: '*' means all active workers
     let resolvedNames = names;
@@ -3531,6 +3531,10 @@ class PtyManager extends EventEmitter {
       const w = this.workers.get(name);
       if (!w) return { error: `Worker '${name}' not found` };
       entries.push({ name, worker: w });
+    }
+
+    if (waitAll) {
+      return this._waitAllSettled(entries, timeoutMs);
     }
 
     const startTime = Date.now();
@@ -3582,6 +3586,61 @@ class PtyManager extends EventEmitter {
             });
             return;
           }
+        }
+
+        setTimeout(check, 500);
+      };
+      check();
+    });
+  }
+
+  // wait --all: resolve when every worker has reached a terminal state
+  // (idle, exited, or intervention). Intervention is always terminal here so
+  // that a stuck-in-approval worker does not block the other, already-idle
+  // workers from being reported back.
+  _waitAllSettled(entries, timeoutMs) {
+    const startTime = Date.now();
+
+    const describe = ({ name, worker }) => {
+      const intervention = worker._interventionState || null;
+      let status;
+      let settled;
+      if (!worker.alive) {
+        status = 'exited';
+        settled = true;
+      } else if (intervention) {
+        status = 'intervention';
+        settled = true;
+      } else if (Date.now() - worker.lastDataTime >= this.idleThresholdMs) {
+        status = 'idle';
+        settled = true;
+      } else {
+        status = 'busy';
+        settled = false;
+      }
+      return {
+        settled,
+        result: {
+          name,
+          status,
+          intervention,
+          content: this._getScreenText(worker.screen)
+        }
+      };
+    };
+
+    return new Promise((resolve) => {
+      const check = () => {
+        const snapshot = entries.map(describe);
+        const allSettled = snapshot.every(s => s.settled);
+        const timedOut = Date.now() - startTime > timeoutMs;
+
+        if (allSettled || timedOut) {
+          resolve({
+            status: timedOut && !allSettled ? 'timeout' : 'all-settled',
+            results: snapshot.map(s => s.result)
+          });
+          return;
         }
 
         setTimeout(check, 500);
