@@ -147,7 +147,11 @@ async function handleRequest(req, res) {
     let result;
 
     if (req.method === 'GET' && route === '/health') {
-      result = { ok: true, workers: manager.list().workers.length };
+      result = {
+        ok: true,
+        workers: manager.list().workers.length,
+        version: manager._daemonVersion || null,
+      };
 
     } else if (req.method === 'POST' && route === '/create') {
       const { name, command, args, target, cwd } = await parseBody(req);
@@ -427,7 +431,9 @@ async function handleRequest(req, res) {
 const server = http.createServer(handleRequest);
 
 server.listen(PORT, HOST, () => {
-  console.log(`C4 daemon running on http://${HOST}:${PORT}`);
+  console.log(`C4 daemon running on http://${HOST}:${PORT} (version ${manager._daemonVersion || 'unknown'})`);
+  // Persist daemon version to state.json (7.15)
+  try { manager._saveState(); } catch (e) { console.error('[DAEMON] _saveState on startup failed:', e.message); }
   manager.startHealthCheck();
   notifications.startPeriodicSlack();
 });

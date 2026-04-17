@@ -120,6 +120,11 @@ class PtyManager extends EventEmitter {
     this.workers = new Map();
     this.config = loadConfig();
     this._taskQueue = [];
+    try {
+      this._daemonVersion = require('../package.json').version;
+    } catch {
+      this._daemonVersion = null;
+    }
     this._loadState();
     this._healthTimer = null;
     this._lastHealthCheck = null;
@@ -202,7 +207,13 @@ class PtyManager extends EventEmitter {
   }
 
   _saveState() {
-    const data = { offsets: {}, workers: [], lostWorkers: this.lostWorkers || [], taskQueue: this._taskQueue || [] };
+    const data = {
+      daemonVersion: this._daemonVersion || null,
+      offsets: {},
+      workers: [],
+      lostWorkers: this.lostWorkers || [],
+      taskQueue: this._taskQueue || [],
+    };
     for (const [name, w] of this.workers) {
       data.offsets[name] = w.snapshotIndex;
       const exitSnapshot = !w.alive

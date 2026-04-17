@@ -1,9 +1,16 @@
 # Changelog
 
+## [1.6.12] - 2026-04-17
+
+### Added
+- **c4 init Linux PATH 개선** (7.13): npm link 실패 시 ~/.local/bin/c4 심볼릭 링크 자동 생성 + ~/.bashrc alias 폴백
+- **c4 init --agent 안내** (7.14): init 완료 후 관리자 모드 시작 안내 메시지 출력
+- **daemon 버전 불일치 경고** (7.15): c4 health/daemon status에서 daemon 버전과 설치 버전 비교, 불일치 시 restart 안내
+
 ## [1.6.11] - 2026-04-17
 
 ### Fixed
-- **pendingTask Enter 누락 완전 해결** (7.1): 5.18에서 send()에만 적용했던 "input/CR 분리 전송" 패턴이 pendingTask delivery 9개 경로(active polling, timeout fallback, post-setup trigger, sendTask existing worker, idle handler, auto-resume queue, CI feedback, routine skip, _processQueue existing worker)에는 전파되지 않아 동일 PTY/Claude Code 타이밍 문제로 task 텍스트는 prompt에 도달하지만 Enter 인식 실패. `_writeTaskAndEnter()` 헬퍼 추가하여 모든 경로 교체 (w-docs-final 재현 케이스 해결)
+- **pendingTask Enter 누락 완전 해결** (7.1): 5.18에서 send()에만 적용했던 "input/CR 분리 전송" 패턴이 pendingTask delivery 9개 경로에는 전파되지 않아 동일 PTY/Claude Code 타이밍 문제로 Enter 인식 실패. `_writeTaskAndEnter()` 헬퍼 추가하여 모든 경로 교체
 
 ## [1.6.10] - 2026-04-16
 

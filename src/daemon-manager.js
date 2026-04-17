@@ -205,7 +205,8 @@ async function status() {
       running: true,
       pid: pid || 'unknown',
       workers: health.workers,
-      endpoint: `http://${host}:${port}`
+      endpoint: `http://${host}:${port}`,
+      daemonVersion: health.version || null,
     };
   }
 

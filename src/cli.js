@@ -321,6 +321,14 @@ async function main() {
 
       case 'health': {
         result = await request('GET', '/health');
+        // Version mismatch warning (7.15)
+        try {
+          const installedVersion = require('../package.json').version;
+          if (result && result.version && result.version !== installedVersion) {
+            console.warn(`[warn] daemon version mismatch: daemon=${result.version} installed=${installedVersion}`);
+            console.warn(`  Run 'c4 daemon restart' to reload the daemon with the latest code.`);
+          }
+        } catch {}
         break;
       }
 
@@ -511,6 +519,7 @@ async function main() {
           console.log('[ok] c4 command: already in PATH');
         } else {
           let c4Registered = false;
+          const c4Cli = path.join(repoRoot, 'src', 'cli.js').replace(/\\/g, '/');
 
           // 5a. Try npm link
           try {
@@ -522,58 +531,94 @@ async function main() {
             c4Registered = true;
             console.log('[ok] npm link: c4 command registered globally');
           } catch {
-            console.log('[info] npm link failed — creating wrapper scripts');
+            console.log('[info] npm link failed — trying fallbacks');
+          }
 
-            // 5b. Create wrapper scripts in npm global bin directory
+          // 5b. Linux/macOS: ~/.local/bin/c4 symlink (primary fallback)
+          if (!c4Registered && !isWin) {
+            const localBin = path.join(home, '.local', 'bin');
+            const c4Link = path.join(localBin, 'c4');
+            try {
+              fs.mkdirSync(localBin, { recursive: true });
+              try { fs.chmodSync(c4Cli, 0o755); } catch {}
+              try {
+                const stat = fs.lstatSync(c4Link);
+                if (stat.isSymbolicLink() || stat.isFile()) fs.unlinkSync(c4Link);
+              } catch {}
+              fs.symlinkSync(c4Cli, c4Link);
+              c4Registered = true;
+              console.log(`[ok] symlink: ${c4Link} -> ${c4Cli}`);
+
+              const pathDirs = (process.env.PATH || '').split(':');
+              if (!pathDirs.includes(localBin)) {
+                console.log('[info] ~/.local/bin not in PATH — add to your shell rc:');
+                console.log('  export PATH="$HOME/.local/bin:$PATH"');
+              }
+            } catch (e) {
+              console.log(`[info] ~/.local/bin symlink failed: ${e.message}`);
+            }
+          }
+
+          // 5c. Windows: wrapper scripts in npm global bin directory
+          if (!c4Registered && isWin) {
             try {
               const npmPrefix = execSync('npm config get prefix', {
                 encoding: 'utf8',
                 stdio: ['pipe', 'pipe', 'pipe'],
                 timeout: 10000
               }).trim();
-              const npmBin = isWin ? npmPrefix : path.join(npmPrefix, 'bin');
+              const npmBin = npmPrefix;
 
-              const c4Cli = path.join(repoRoot, 'src', 'cli.js').replace(/\\/g, '/');
-
-              // Shell script (Git Bash, WSL, Linux, macOS)
               const shScript = `#!/bin/sh\nexec node "${c4Cli}" "$@"\n`;
               const shPath = path.join(npmBin, 'c4');
               fs.mkdirSync(npmBin, { recursive: true });
               fs.writeFileSync(shPath, shScript, { mode: 0o755 });
               console.log(`[ok] wrapper: ${shPath}`);
 
-              // Windows .cmd file
-              if (isWin) {
-                const cmdScript = `@node "${c4Cli}" %*\r\n`;
-                const cmdPath = path.join(npmBin, 'c4.cmd');
-                fs.writeFileSync(cmdPath, cmdScript);
-                console.log(`[ok] wrapper: ${cmdPath}`);
-              }
+              const cmdScript = `@node "${c4Cli}" %*\r\n`;
+              const cmdPath = path.join(npmBin, 'c4.cmd');
+              fs.writeFileSync(cmdPath, cmdScript);
+              console.log(`[ok] wrapper: ${cmdPath}`);
 
               c4Registered = true;
 
-              // Check if npm global bin is in PATH
-              const sep = isWin ? ';' : ':';
-              const pathDirs = (process.env.PATH || '').split(sep);
+              const pathDirs = (process.env.PATH || '').split(';');
               const normalizedBin = npmBin.replace(/\\/g, '/').toLowerCase();
               const inPath = pathDirs.some(d => d.replace(/\\/g, '/').toLowerCase() === normalizedBin);
-              if (!inPath) {
-                if (isWin) {
-                  console.log(`[info] Add to PATH: ${npmBin}`);
-                } else {
-                  console.log(`[info] Add to PATH: export PATH="${npmBin}:$PATH"`);
-                }
-              }
+              if (!inPath) console.log(`[info] Add to PATH: ${npmBin}`);
             } catch (e) {
               console.log(`[warn] wrapper creation failed: ${e.message}`);
             }
+          }
 
-            // 5c. Final fallback: suggest alias
-            if (!c4Registered) {
-              const c4Cli = path.join(repoRoot, 'src', 'cli.js').replace(/\\/g, '/');
-              console.log('[info] Add alias to ~/.bashrc:');
-              console.log(`  echo 'alias c4="node ${c4Cli}"' >> ~/.bashrc`);
-              console.log('  source ~/.bashrc');
+          // 5d. Linux/macOS: auto-append alias to ~/.bashrc (secondary fallback)
+          if (!c4Registered && !isWin) {
+            try {
+              const bashrc = path.join(home, '.bashrc');
+              const aliasLine = `alias c4="node ${c4Cli}"`;
+              let content = '';
+              try { content = fs.readFileSync(bashrc, 'utf8'); } catch {}
+              if (content.includes(aliasLine)) {
+                console.log(`[ok] alias already in ${bashrc}`);
+              } else {
+                fs.appendFileSync(bashrc, `\n# c4 CLI (added by c4 init)\n${aliasLine}\n`);
+                console.log(`[ok] alias appended to ${bashrc}`);
+                console.log('  Run: source ~/.bashrc');
+              }
+              c4Registered = true;
+            } catch (e) {
+              console.log(`[warn] bashrc alias failed: ${e.message}`);
+            }
+          }
+
+          // 5e. Final fallback: manual instructions
+          if (!c4Registered) {
+            console.log('[warn] Could not auto-register c4. Manual options:');
+            if (isWin) {
+              console.log(`  alias: doskey c4=node "${c4Cli}" $*`);
+            } else {
+              console.log(`  symlink: ln -sf "${c4Cli}" ~/.local/bin/c4 && chmod +x "${c4Cli}"`);
+              console.log(`  alias:   echo 'alias c4="node ${c4Cli}"' >> ~/.bashrc && source ~/.bashrc`);
             }
           }
         }
@@ -611,6 +656,13 @@ async function main() {
         }
 
         console.log('\nc4 init complete!');
+
+        // 6. Guide: manager mode start (7.14)
+        const managerAgentPath = path.join(repoRoot, '.claude', 'agents', 'manager.md').replace(/\\/g, '/');
+        if (fs.existsSync(managerAgentPath)) {
+          console.log('\nTo start in manager mode:');
+          console.log(`  claude --agent ${managerAgentPath}`);
+        }
         return;
       }
 
@@ -1248,6 +1300,16 @@ async function main() {
             console.log(`Daemon running (PID ${result.pid}, ${result.workers ?? '?'} workers)`);
             if (result.endpoint) console.log(`  ${result.endpoint}`);
             if (result.note) console.log(`  ${result.note}`);
+            // Version mismatch warning (7.15)
+            try {
+              const installedVersion = require('../package.json').version;
+              if (result.daemonVersion && result.daemonVersion !== installedVersion) {
+                console.warn(`  [warn] version mismatch: daemon=${result.daemonVersion} installed=${installedVersion}`);
+                console.warn(`         Run 'c4 daemon restart' to reload the daemon with the latest code.`);
+              } else if (result.daemonVersion) {
+                console.log(`  version: ${result.daemonVersion}`);
+              }
+            } catch {}
           } else {
             console.log('Daemon is not running.');
           }
