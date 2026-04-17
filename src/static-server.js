@@ -153,6 +153,16 @@ function webDistExists(webDist = DEFAULT_WEB_DIST) {
   }
 }
 
+// Alias /api/<x> -> /<x> so the built frontend (which fetches /api/*) hits the
+// existing daemon routes. Pure function so daemon.js can call it and tests can
+// exercise it without spinning up a server.
+function resolveApiRoute(rawPath) {
+  const p = rawPath || '/';
+  const isApi = p === '/api' || p.startsWith('/api/');
+  const route = isApi ? (p.slice(4) || '/') : p;
+  return { isApi, route };
+}
+
 module.exports = {
   DEFAULT_WEB_DIST,
   MIME_TYPES,
@@ -161,4 +171,5 @@ module.exports = {
   pickFile,
   serveStatic,
   webDistExists,
+  resolveApiRoute,
 };

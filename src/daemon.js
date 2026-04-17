@@ -149,8 +149,7 @@ async function handleRequest(req, res) {
   const rawPath = url.pathname;
   // Built web UI calls /api/* (vite dev server strips the prefix via proxy).
   // In prod the daemon serves both on port 3456, so alias /api/<x> -> /<x>.
-  const isApiPrefixed = rawPath === '/api' || rawPath.startsWith('/api/');
-  const route = isApiPrefixed ? (rawPath.slice(4) || '/') : rawPath;
+  const { isApi: isApiPrefixed, route } = staticServer.resolveApiRoute(rawPath);
 
   try {
     let result;
