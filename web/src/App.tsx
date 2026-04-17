@@ -1,3 +1,5 @@
+import WorkerList from './components/WorkerList';
+
 export default function App() {
   return (
     <div className="flex h-screen flex-col">
@@ -5,11 +7,11 @@ export default function App() {
         <h1 className="text-xl font-semibold text-gray-100">C4 Dashboard</h1>
       </header>
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-64 shrink-0 overflow-y-auto border-r border-gray-800 bg-gray-800 p-4">
-          <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-gray-400">
+        <aside className="w-72 shrink-0 overflow-y-auto border-r border-gray-800 bg-gray-900 p-4">
+          <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-gray-400">
             Workers
           </h2>
-          <div className="text-sm text-gray-500">No workers yet.</div>
+          <WorkerList />
         </aside>
         <main className="flex-1 overflow-y-auto p-6">
           <h2 className="mb-4 text-lg font-semibold text-gray-200">Worker detail</h2>
