@@ -428,11 +428,11 @@ Level 4이면:
 |---|------|------|------|
 | 7.1 | pendingTask Enter 안 먹히는 케이스 재조사 | **todo** | 5.51 수정 후에도 w-docs-final에서 task가 prompt에 보이지만 Enter 안 먹힘. 관리자 세션 테스트(w-test2)에서는 성공. 세션/데몬 상태 차이 조사. |
 | 7.2 | agent 모드 Read deny 실효성 검증 | **todo** | --agent manager.md로 시작해도 관리자가 Read/Explore 사용 가능. deny가 제안일 뿐 강제가 아닌지 확인. Claude Code Custom Agent 도구 제한 동작 검증. |
-| 7.3 | c4 watch 실사용 테스트 | **todo** | c4 watch 명령 실제 동작 확인. SSE 스트리밍이 터미널에서 정상 출력되는지. |
-| 7.4 | c4 batch 실사용 테스트 | **todo** | c4 batch --count 3 "작업" 실제 동작 확인. worker 생성 + task 전송 + 결과 수거 전체 흐름. |
-| 7.5 | c4 approve N 실사용 테스트 | **todo** | c4 approve worker 2 로 TUI 2번째 옵션 선택 실제 동작 확인. |
-| 7.6 | c4 wait --all 실사용 테스트 | **todo** | 3개+ worker 동시 대기 후 첫 완료 시 반환 실제 동작 확인. |
-| 7.7 | c4 wait --interrupt-on-intervention 실사용 테스트 | **todo** | intervention 감지 시 wait 즉시 종료 실제 동작 확인. |
+| 7.3 | c4 watch 실사용 테스트 | **done** | SSE 연결 성공, 실시간 PTY 출력(ANSI 포함) 스트리밍 확인. c4 send 후 watch에서 입력/응답 모두 수신됨. |
+| 7.4 | c4 batch 실사용 테스트 | **done** | c4 batch --count 3 "hello" → batch-1/2/3 자동 생성 + task 전송 완료. 3 created, 0 failed. |
+| 7.5 | c4 approve N 실사용 테스트 | **partial** | API 경로 정상 (에러 메시지 정확: "not awaiting critical approval"). 단위 테스트 통과. 실제 critical_deny 트리거 불가 — Claude가 rm -rf 실행 자체 거부, TUI 프롬프트 미표시. autonomyLevel 4 + deny 규칙 + TUI 프롬프트 3조건 충족 어려움. |
+| 7.6 | c4 wait --all 실사용 테스트 | **done** | batch-1/2/3 동시 대기 → batch-2 첫 idle 감지 즉시 반환. name=batch-2 status=idle. |
+| 7.7 | c4 wait --interrupt-on-intervention 실사용 테스트 | **partial** | 플래그 파싱/API 전달 정상 (interruptOnIntervention=1). 단위 테스트(parallel-wait) 통과. 실제 intervention 트리거 불가 — Claude 응답이 question 패턴("할까요?", "어떻게" 등)과 불일치. |
 | 7.8 | DGX 최신 코드 테스트 | **todo** | DGX에서 git pull + npm install + npm test + c4 daemon start 확인. |
 | 7.9 | worktree 잔여물 정리 검증 | **todo** | worker close 후 c4-worktree-* 디렉토리와 c4/ 브랜치가 완전히 정리되는지 반복 테스트. |
 | 7.10 | 전체 npm test 통과 확인 | **done** | 47개 전부 통과 확인 (관리자 세션에서 직접 실행) |
