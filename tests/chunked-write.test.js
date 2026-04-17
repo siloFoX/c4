@@ -19,8 +19,12 @@ describe('_chunkedWrite (Promise-based sequential write)', () => {
 
   // Inline _chunkedWrite from PtyManager (avoids node-pty dependency)
   async function _chunkedWrite(proc, text, chunkSize = 500, delayMs = 50) {
+    // (7.17) Honor backpressure on the single-chunk fast path too.
     if (text.length <= chunkSize) {
-      proc.write(text);
+      const ok = proc.write(text);
+      if (ok === false && typeof proc.once === 'function') {
+        await new Promise(resolve => proc.once('drain', resolve));
+      }
       return;
     }
     for (let i = 0; i < text.length; i += chunkSize) {
@@ -29,7 +33,7 @@ describe('_chunkedWrite (Promise-based sequential write)', () => {
       }
       const chunk = text.slice(i, i + chunkSize);
       const ok = proc.write(chunk);
-      if (!ok) {
+      if (ok === false && typeof proc.once === 'function') {
         await new Promise(resolve => proc.once('drain', resolve));
       }
     }
@@ -90,5 +94,34 @@ describe('_chunkedWrite (Promise-based sequential write)', () => {
     const reassembled = proc.written.join('');
     assert.strictEqual(reassembled, text);
     assert.strictEqual(proc.written.length, 4);
+  });
+
+  // (7.17) Fast path must also respect backpressure so that a subsequent
+  // proc.write('\r') does not race ahead of an unflushed text buffer.
+  test('fast path awaits drain when proc.write returns false', async () => {
+    const proc = new EventEmitter();
+    proc.written = [];
+    proc.write = (data) => {
+      proc.written.push(data);
+      setTimeout(() => proc.emit('drain'), 5);
+      return false; // force backpressure on the single-chunk path
+    };
+    const start = Date.now();
+    await _chunkedWrite(proc, 'short');
+    const elapsed = Date.now() - start;
+    assert.deepStrictEqual(proc.written, ['short']);
+    // Elapsed must include the 5ms drain wait. Allow slack for CI timing.
+    assert.ok(elapsed >= 4, `expected drain wait ~5ms, got ${elapsed}ms`);
+  });
+
+  test('fast path returns immediately when proc.write returns true', async () => {
+    const proc = new EventEmitter();
+    proc.written = [];
+    proc.write = (data) => { proc.written.push(data); return true; };
+    let drainListeners = 0;
+    const origOnce = proc.once.bind(proc);
+    proc.once = (ev, fn) => { drainListeners++; return origOnce(ev, fn); };
+    await _chunkedWrite(proc, 'x');
+    assert.strictEqual(drainListeners, 0, 'no drain listener should attach on ok=true');
   });
 });

@@ -470,7 +470,7 @@ class PtyManager extends EventEmitter {
                 // Auto-feedback to worker
                 const feedback = `CI 실패: ${testCmd} 실행 결과 테스트가 실패했어. 아래 에러를 확인하고 수정해줘:\n${output.slice(-500)}`;
                 if (worker.alive && worker.proc) {
-                  this._writeTaskAndEnter(worker.proc, feedback);
+                  this._writeTaskAndEnter(worker.proc, feedback, this._getEnterDelayMs());
                 }
               }
             }, 2000); // wait for commit to fully complete
@@ -941,7 +941,7 @@ class PtyManager extends EventEmitter {
       const existingWorker = this.workers.get(entry.name);
       if (existingWorker && existingWorker.alive && !existingWorker._pendingTask && !existingWorker._taskText) {
         const fullTask = this._buildTaskText(existingWorker, entry.task, entry);
-        this._writeTaskAndEnter(existingWorker.proc, fullTask);
+        this._writeTaskAndEnter(existingWorker.proc, fullTask, this._getEnterDelayMs());
         existingWorker._taskText = entry.task;
         existingWorker._taskStartedAt = new Date().toISOString();
         started.push({ name: entry.name, result: { sent: true } });
@@ -1084,44 +1084,76 @@ class PtyManager extends EventEmitter {
       const effortLevel = worker._dynamicEffort || this.config.workerDefaults?.effortLevel;
       const needsSetup = effortLevel && !worker.setupDone;
 
-      // Send immediately when prompt is ready and effort setup is complete (or not needed)
-      if (isReady && !needsSetup) {
-        clearInterval(w._pendingTaskTimer);
-        w._pendingTaskTimer = null;
-        worker._pendingTaskSent = true;
-        const pt = worker._pendingTask;
-        const fullTask = this._buildTaskText(worker, pt.task, pt.options);
-        await this._writeTaskAndEnter(worker.proc, fullTask);
-        worker._taskText = pt.task;
-        worker._taskStartedAt = new Date().toISOString();
-        worker._pendingTask = null;
+      // (7.17) Menu-close transient: wait for stabilization window after setupDone.
+      const stableGateOk = Date.now() >= (worker._setupStableAt || 0);
+
+      if (!isReady || needsSetup || !stableGateOk) {
+        // Reset consecutive-ready confirmation when any gate fails.
+        worker._readyConfirmedAt = 0;
+        return;
       }
+
+      // (7.17) Require two consecutive ready ticks (~500ms) to avoid
+      // false-positive ready during menu-close TUI redraw.
+      if (!worker._readyConfirmedAt) {
+        worker._readyConfirmedAt = Date.now();
+        return;
+      }
+
+      clearInterval(w._pendingTaskTimer);
+      w._pendingTaskTimer = null;
+      worker._pendingTaskSent = true;
+      const pt = worker._pendingTask;
+      const fullTask = this._buildTaskText(worker, pt.task, pt.options);
+      await this._writeTaskAndEnter(worker.proc, fullTask, this._getEnterDelayMs());
+      worker._taskText = pt.task;
+      worker._taskStartedAt = new Date().toISOString();
+      worker._pendingTask = null;
     }, 500);
 
-    // Timeout fallback: force-send if polling hasn't detected idle in time
+    // Timeout fallback: force-send if polling hasn't detected idle in time.
+    // (7.17) If setup is still in progress, defer once rather than blasting task
+    // text into a still-active model menu.
     const pendingTimeoutMs = this.config.workerDefaults?.pendingTaskTimeout ?? 30000;
-    w._pendingTaskTimeoutTimer = setTimeout(async () => {
-      if (w._pendingTaskTimer) {
-        clearInterval(w._pendingTaskTimer);
-        w._pendingTaskTimer = null;
-      }
+    const fireFallback = async (attempt) => {
       const worker = this.workers.get(entry.name);
-      if (worker && worker.alive && worker._pendingTask && !worker._pendingTaskSent) {
-        worker._pendingTaskSent = true;
-        const pt = worker._pendingTask;
-        const fullTask = this._buildTaskText(worker, pt.task, pt.options);
-        await this._writeTaskAndEnter(worker.proc, fullTask);
-        worker._taskText = pt.task;
-        worker._taskStartedAt = new Date().toISOString();
-        worker._pendingTask = null;
+      if (!worker || !worker.alive || !worker._pendingTask || worker._pendingTaskSent) {
+        if (w._pendingTaskTimer) { clearInterval(w._pendingTaskTimer); w._pendingTaskTimer = null; }
+        return;
+      }
+
+      const effortLevel = worker._dynamicEffort || this.config.workerDefaults?.effortLevel;
+      const setupNeeded = effortLevel && !worker.setupDone;
+
+      if (setupNeeded && attempt === 1) {
+        const deferMs = Math.floor(pendingTimeoutMs / 2);
         worker.snapshots = worker.snapshots || [];
         worker.snapshots.push({
           time: Date.now(),
-          screen: `[C4 WARN] pendingTask sent via timeout fallback (${pendingTimeoutMs}ms)`,
+          screen: `[C4 WARN] pendingTask fallback deferred — setup not done, retry in ${deferMs}ms`,
           autoAction: true
         });
+        w._pendingTaskTimeoutTimer = setTimeout(() => fireFallback(2), deferMs);
+        return;
       }
-    }, pendingTimeoutMs);
+
+      if (w._pendingTaskTimer) { clearInterval(w._pendingTaskTimer); w._pendingTaskTimer = null; }
+      worker._pendingTaskSent = true;
+      const pt = worker._pendingTask;
+      const fullTask = this._buildTaskText(worker, pt.task, pt.options);
+      await this._writeTaskAndEnter(worker.proc, fullTask, this._getEnterDelayMs());
+      worker._taskText = pt.task;
+      worker._taskStartedAt = new Date().toISOString();
+      worker._pendingTask = null;
+      worker.snapshots = worker.snapshots || [];
+      worker.snapshots.push({
+        time: Date.now(),
+        screen: `[C4 WARN] pendingTask sent via timeout fallback (${pendingTimeoutMs}ms)` +
+          (setupNeeded ? ' [setup incomplete]' : ''),
+        autoAction: true
+      });
+    };
+    w._pendingTaskTimeoutTimer = setTimeout(() => fireFallback(1), pendingTimeoutMs);
 
     return { created: true, name: entry.name, pid: createResult.pid };
   }
@@ -1175,6 +1207,8 @@ class PtyManager extends EventEmitter {
     const setupCfg = this.config.workerDefaults?.effortSetup || {};
     const inputDelayMs = setupCfg.inputDelayMs ?? 500;
     const confirmDelayMs = setupCfg.confirmDelayMs ?? 500;
+    // (7.17) stabilization window after menu close; covers TUI redraw latency
+    const stabilizeMs = setupCfg.stabilizeMs ?? 1000;
 
     worker.setupPhase = 'done';
 
@@ -1186,6 +1220,8 @@ class PtyManager extends EventEmitter {
       setTimeout(() => {
         proc.write('\r'); // Enter to confirm
         worker.setupDone = true;
+        worker._setupStableAt = Date.now() + stabilizeMs;
+        worker._readyConfirmedAt = 0;
         worker.setupPhase = null;
         worker.setupPhaseStart = null;
         worker.snapshots.push({
@@ -1194,17 +1230,19 @@ class PtyManager extends EventEmitter {
             (worker.setupRetries ? ` (after ${worker.setupRetries} retries)` : ''),
           autoAction: true
         });
-        // (5.51) Trigger pending task delivery after setup completes
+        // (5.51) Trigger pending task delivery after setup completes.
+        // (7.17) Post-setup delay must exceed the stabilization window.
         if (worker._pendingTask && !worker._pendingTaskSent) {
-          const postSetupMs = 2000;
+          const postSetupMs = Math.max(2000, stabilizeMs + 500);
           setTimeout(async () => {
             if (!worker._pendingTask || worker._pendingTaskSent || !worker.alive) return;
+            if (Date.now() < (worker._setupStableAt || 0)) return;
             const text = this._getScreenText(worker.screen);
             if (this._termInterface.isReady(text)) {
               worker._pendingTaskSent = true;
               const pt = worker._pendingTask;
               const fullTask = this._buildTaskText(worker, pt.task, pt.options);
-              await this._writeTaskAndEnter(proc, fullTask);
+              await this._writeTaskAndEnter(proc, fullTask, this._getEnterDelayMs());
               worker._taskText = pt.task;
               worker._taskStartedAt = new Date().toISOString();
               worker._pendingTask = null;
@@ -2498,7 +2536,7 @@ class PtyManager extends EventEmitter {
     commands.push(task);
 
     const fullTask = this._maybeWriteTaskFile(w, commands.join('\n\n'));
-    this._writeTaskAndEnter(w.proc, fullTask);
+    this._writeTaskAndEnter(w.proc, fullTask, this._getEnterDelayMs());
     w.branch = branch;
 
     // Save start commit for rollback (3.6)
@@ -2614,6 +2652,8 @@ class PtyManager extends EventEmitter {
       setupRetries: 0,        // retry count for effort setup
       setupPhaseStart: null,  // timestamp when current phase started
       _setupPollTimer: null,  // periodic menu detection timer during waitMenu
+      _setupStableAt: 0,      // (7.17) earliest time pendingTask may be sent after setupDone
+      _readyConfirmedAt: 0,   // (7.17) timestamp of first consecutive ready tick (0 = not confirmed)
       // Intervention state (1.9)
       _interventionState: null,  // null | 'question' | 'escalation'
       _lastQuestion: null,       // last detected question text
@@ -2707,6 +2747,10 @@ class PtyManager extends EventEmitter {
               worker.setupRetries++;
               if (worker.setupRetries > maxRetries) {
                 worker.setupDone = true;
+                // (7.17) still apply stabilization window even on give-up
+                const stabilizeMs = this.config.workerDefaults?.effortSetup?.stabilizeMs ?? 1000;
+                worker._setupStableAt = Date.now() + stabilizeMs;
+                worker._readyConfirmedAt = 0;
                 worker.setupPhase = null;
                 worker.snapshots.push({
                   time: Date.now(),
@@ -2746,13 +2790,16 @@ class PtyManager extends EventEmitter {
         }
 
         // Send pending task — only after effort setup is fully complete (5.51)
+        // and the TUI menu-close stabilization window has elapsed (7.17).
         const setupNeeded = (worker._dynamicEffort || this.config.workerDefaults?.effortLevel) && !worker.setupDone;
-        if (worker._pendingTask && !worker._pendingTaskSent && !setupNeeded) {
+        const stableGateOk = Date.now() >= (worker._setupStableAt || 0);
+        if (worker._pendingTask && !worker._pendingTaskSent && !setupNeeded && stableGateOk) {
           worker._pendingTaskSent = true;
           const pt = worker._pendingTask;
           const fullTask = this._buildTaskText(worker, pt.task, pt.options);
+          const enterDelayMs = this._getEnterDelayMs();
           setTimeout(async () => {
-            await this._writeTaskAndEnter(proc, fullTask);
+            await this._writeTaskAndEnter(proc, fullTask, enterDelayMs);
             worker._taskText = pt.task;
             worker._taskStartedAt = new Date().toISOString();
             worker._pendingTask = null;
@@ -2766,8 +2813,9 @@ class PtyManager extends EventEmitter {
           if (queueIdx !== -1) {
             const entry = this._taskQueue.splice(queueIdx, 1)[0];
             const fullTask = this._buildTaskText(worker, entry.task, entry);
+            const queueEnterDelayMs = this._getEnterDelayMs();
             setTimeout(() => {
-              this._writeTaskAndEnter(proc, fullTask);
+              this._writeTaskAndEnter(proc, fullTask, queueEnterDelayMs);
               worker._taskText = entry.task;
               worker._taskStartedAt = new Date().toISOString();
             }, 500);
@@ -2976,8 +3024,9 @@ class PtyManager extends EventEmitter {
             });
             // Send feedback to worker — tell it to follow the routine
             if (routineSkip.feedback && worker.alive) {
+              const routineEnterDelayMs = this._getEnterDelayMs();
               setTimeout(async () => {
-                await this._writeTaskAndEnter(proc, routineSkip.feedback);
+                await this._writeTaskAndEnter(proc, routineSkip.feedback, routineEnterDelayMs);
               }, 1000);
             }
           }
@@ -3173,8 +3222,12 @@ class PtyManager extends EventEmitter {
    * Promise 기반 순차 전송: drain 이벤트로 백프레셔 처리
    */
   async _chunkedWrite(proc, text, chunkSize = 500, delayMs = 50) {
+    // (7.17) Honor backpressure on the single-chunk fast path too.
     if (text.length <= chunkSize) {
-      proc.write(text);
+      const ok = proc.write(text);
+      if (ok === false && typeof proc.once === 'function') {
+        await new Promise(resolve => proc.once('drain', resolve));
+      }
       return;
     }
     for (let i = 0; i < text.length; i += chunkSize) {
@@ -3183,20 +3236,28 @@ class PtyManager extends EventEmitter {
       }
       const chunk = text.slice(i, i + chunkSize);
       const ok = proc.write(chunk);
-      if (!ok) {
+      if (ok === false && typeof proc.once === 'function') {
         await new Promise(resolve => proc.once('drain', resolve));
       }
     }
   }
 
-  // (7.1) Write task text followed by a separate CR after 100ms.
+  // (7.1) Write task text followed by a separate CR after enterDelayMs.
   // Combined `text + '\r'` writes can lose the CR due to PTY/Claude Code
   // timing (same root cause as 5.18's send() fix). Splitting guarantees
   // the Enter lands after the input field has received the text.
-  async _writeTaskAndEnter(proc, text, enterDelayMs = 100) {
+  // (7.17) Default raised to 200ms; configurable via workerDefaults.enterDelayMs
+  // because Windows conpty under 3-worker load can exceed 100ms write→child read.
+  async _writeTaskAndEnter(proc, text, enterDelayMs = 200) {
     await this._chunkedWrite(proc, text);
     await new Promise(resolve => setTimeout(resolve, enterDelayMs));
     try { proc.write('\r'); } catch { /* proc closed */ }
+  }
+
+  // (7.17) Central resolver so every pendingTask delivery path uses the same
+  // configured enterDelayMs. Returns the _writeTaskAndEnter default when unset.
+  _getEnterDelayMs() {
+    return this.config.workerDefaults?.enterDelayMs ?? 200;
   }
 
   read(name) {

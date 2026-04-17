@@ -32,6 +32,8 @@ class MockPtyManager {
       _pendingTaskTimer: null,
       _pendingTaskTimeoutTimer: null,
       _pendingTaskTime: null,
+      _setupStableAt: 0,       // (7.17) stabilization gate
+      _readyConfirmedAt: 0,    // (7.17) 2-consecutive ready gate
       _taskText: null,
       _taskStartedAt: null,
       worktree: null,
@@ -42,6 +44,8 @@ class MockPtyManager {
     this.workers.set(name, worker);
     return { pid: 1234 };
   }
+
+  _getEnterDelayMs() { return this.config.workerDefaults?.enterDelayMs ?? 200; }
 
   _detectRepoRoot() { return null; }
   _worktreePath() { return '/tmp/worktree'; }
@@ -100,7 +104,8 @@ MockPtyManager.prototype._createAndSendTask = function(entry) {
   };
   w._pendingTaskTime = Date.now();
 
-  // Capture polling callback (mirrors real setInterval logic)
+  // Capture polling callback (mirrors real setInterval logic, including 7.17
+  // stabilization gate and 2-consecutive isReady requirement).
   const self = this;
   this._pollingCallback = function pollTick() {
     const worker = self.workers.get(entry.name);
@@ -115,44 +120,67 @@ MockPtyManager.prototype._createAndSendTask = function(entry) {
       : text.includes('> ');
     const effortLevel = worker._dynamicEffort || self.config.workerDefaults?.effortLevel;
     const needsSetup = effortLevel && !worker.setupDone;
+    const stableGateOk = Date.now() >= (worker._setupStableAt || 0);
 
-    if (isReady && !needsSetup) {
-      w._pendingTaskTimer = null;
-      worker._pendingTaskSent = true;
-      const pt = worker._pendingTask;
-      const fullTask = self._buildTaskText(worker, pt.task, pt.options);
-      self._chunkedWrite(worker.proc, fullTask + '\r');
-      worker._taskText = pt.task;
-      worker._taskStartedAt = new Date().toISOString();
-      worker._pendingTask = null;
-      return 'sent';
+    if (!isReady || needsSetup || !stableGateOk) {
+      worker._readyConfirmedAt = 0;
+      return 'waiting';
     }
-    return 'waiting';
+
+    if (!worker._readyConfirmedAt) {
+      worker._readyConfirmedAt = Date.now();
+      return 'confirming';
+    }
+
+    w._pendingTaskTimer = null;
+    worker._pendingTaskSent = true;
+    const pt = worker._pendingTask;
+    const fullTask = self._buildTaskText(worker, pt.task, pt.options);
+    self._chunkedWrite(worker.proc, fullTask + '\r');
+    worker._taskText = pt.task;
+    worker._taskStartedAt = new Date().toISOString();
+    worker._pendingTask = null;
+    return 'sent';
   };
   w._pendingTaskTimer = true; // marker
 
-  // Capture timeout callback
+  // Capture timeout callback (with 7.17 setupDone guard / one-shot defer).
   const pendingTimeoutMs = this.config.workerDefaults?.pendingTaskTimeout ?? 30000;
-  this._timeoutCallback = function timeoutFallback() {
-    w._pendingTaskTimer = null;
+  this._timeoutCallback = function timeoutFallback(attempt = 1) {
     const worker = self.workers.get(entry.name);
-    if (worker && worker.alive && worker._pendingTask && !worker._pendingTaskSent) {
-      worker._pendingTaskSent = true;
-      const pt = worker._pendingTask;
-      const fullTask = self._buildTaskText(worker, pt.task, pt.options);
-      self._chunkedWrite(worker.proc, fullTask + '\r');
-      worker._taskText = pt.task;
-      worker._taskStartedAt = new Date().toISOString();
-      worker._pendingTask = null;
+    if (!worker || !worker.alive || !worker._pendingTask || worker._pendingTaskSent) {
+      w._pendingTaskTimer = null;
+      return 'skipped';
+    }
+
+    const effortLevel = worker._dynamicEffort || self.config.workerDefaults?.effortLevel;
+    const setupNeeded = effortLevel && !worker.setupDone;
+    if (setupNeeded && attempt === 1) {
       worker.snapshots = worker.snapshots || [];
       worker.snapshots.push({
         time: Date.now(),
-        screen: `[C4 WARN] pendingTask sent via timeout fallback (${pendingTimeoutMs}ms)`,
+        screen: `[C4 WARN] pendingTask fallback deferred — setup not done`,
         autoAction: true
       });
-      return 'sent';
+      return 'deferred';
     }
-    return 'skipped';
+
+    w._pendingTaskTimer = null;
+    worker._pendingTaskSent = true;
+    const pt = worker._pendingTask;
+    const fullTask = self._buildTaskText(worker, pt.task, pt.options);
+    self._chunkedWrite(worker.proc, fullTask + '\r');
+    worker._taskText = pt.task;
+    worker._taskStartedAt = new Date().toISOString();
+    worker._pendingTask = null;
+    worker.snapshots = worker.snapshots || [];
+    worker.snapshots.push({
+      time: Date.now(),
+      screen: `[C4 WARN] pendingTask sent via timeout fallback (${pendingTimeoutMs}ms)` +
+        (setupNeeded ? ' [setup incomplete]' : ''),
+      autoAction: true
+    });
+    return 'sent';
   };
   w._pendingTaskTimeoutTimer = true; // marker
 
@@ -187,7 +215,7 @@ describe('pendingTask active polling', () => {
     expect(mgr._timeoutCallback).toBeTruthy();
   });
 
-  test('polling sends task when screen shows ready prompt', () => {
+  test('polling sends task after 2 consecutive ready ticks (7.17)', () => {
     mgr._screenText = '> ';
 
     mgr._createAndSendTask({
@@ -196,9 +224,15 @@ describe('pendingTask active polling', () => {
     });
 
     const w = mgr.workers.get('w2');
-    const result = mgr._pollingCallback();
 
-    expect(result).toBe('sent');
+    // First ready tick: record confirmation timestamp, do not send yet.
+    expect(mgr._pollingCallback()).toBe('confirming');
+    expect(w._pendingTaskSent).toBe(false);
+    expect(mgr._chunkedWriteCalls).toHaveLength(0);
+    expect(w._readyConfirmedAt).toBeGreaterThan(0);
+
+    // Second ready tick: now safe to send.
+    expect(mgr._pollingCallback()).toBe('sent');
     expect(w._pendingTaskSent).toBe(true);
     expect(w._pendingTask).toBeNull();
     expect(w._taskText).toBe('build feature');
@@ -239,10 +273,12 @@ describe('pendingTask active polling', () => {
     expect(mgr._pollingCallback()).toBe('waiting');
     expect(w._pendingTaskSent).toBe(false);
 
-    // Screen becomes ready
+    // Screen becomes ready — first ready tick is confirmation only (7.17)
     mgr._screenText = '> ';
+    expect(mgr._pollingCallback()).toBe('confirming');
+    expect(w._pendingTaskSent).toBe(false);
 
-    // Second poll: ready
+    // Second ready tick: sends
     expect(mgr._pollingCallback()).toBe('sent');
     expect(w._pendingTaskSent).toBe(true);
     expect(w._taskText).toBe('delayed task');
@@ -264,10 +300,15 @@ describe('pendingTask active polling', () => {
     expect(mgr._pollingCallback()).toBe('waiting');
     expect(w._pendingTaskSent).toBe(false);
 
-    // Mark setup as done
+    // Mark setup as done (stabilization gate not in the way for this test)
     w.setupDone = true;
+    w._setupStableAt = 0;
 
-    // Poll again: now it sends
+    // First ready tick after setupDone: confirming
+    expect(mgr._pollingCallback()).toBe('confirming');
+    expect(w._pendingTaskSent).toBe(false);
+
+    // Second ready tick: sends
     expect(mgr._pollingCallback()).toBe('sent');
     expect(w._pendingTaskSent).toBe(true);
     expect(w._taskText).toBe('effort task');
@@ -330,12 +371,13 @@ describe('pendingTask active polling', () => {
 
     const w = mgr.workers.get('w8');
 
-    // First poll sends
+    // 2 ticks to send
+    expect(mgr._pollingCallback()).toBe('confirming');
     expect(mgr._pollingCallback()).toBe('sent');
     expect(w._pendingTaskSent).toBe(true);
     expect(mgr._chunkedWriteCalls).toHaveLength(1);
 
-    // Second poll stops (already sent)
+    // Next poll stops (already sent)
     expect(mgr._pollingCallback()).toBe('stopped');
     expect(mgr._chunkedWriteCalls).toHaveLength(1);
 
@@ -352,7 +394,8 @@ describe('pendingTask active polling', () => {
       task: 'poll wins'
     });
 
-    // Polling sends
+    // Polling sends after 2 consecutive ready ticks
+    expect(mgr._pollingCallback()).toBe('confirming');
     expect(mgr._pollingCallback()).toBe('sent');
 
     // Timeout does nothing
@@ -390,7 +433,8 @@ describe('pendingTask active polling', () => {
 
     const w = mgr.workers.get('w12');
 
-    // Sends immediately since no effort setup needed
+    // Still requires 2 consecutive ready ticks (7.17)
+    expect(mgr._pollingCallback()).toBe('confirming');
     expect(mgr._pollingCallback()).toBe('sent');
     expect(w._pendingTaskSent).toBe(true);
     expect(w._taskText).toBe('no effort');
@@ -411,6 +455,8 @@ describe('pendingTask active polling', () => {
     expect(mgr._pollingCallback()).toBe('waiting');
 
     w.setupDone = true;
+    w._setupStableAt = 0; // bypass stabilization gate for this test
+    expect(mgr._pollingCallback()).toBe('confirming');
     expect(mgr._pollingCallback()).toBe('sent');
   });
 
@@ -429,5 +475,90 @@ describe('pendingTask active polling', () => {
     const snap = w.snapshots.find(s => s.screen.includes('timeout fallback'));
     expect(snap).toBeTruthy();
     expect(snap.screen).toContain('5000ms');
+  });
+
+  // --- 7.17 fixes: stabilization gate, 2-consecutive ready, timeout deferral ---
+
+  test('7.17: stabilization gate blocks send until _setupStableAt reached', () => {
+    mgr._screenText = '> ';
+    mgr.config.workerDefaults = { effortLevel: 'high', pendingTaskTimeout: 30000 };
+
+    mgr._createAndSendTask({ name: 'w-stab', task: 't' });
+    const w = mgr.workers.get('w-stab');
+
+    // Simulate setup just completed but still inside stabilization window
+    w.setupDone = true;
+    w._setupStableAt = Date.now() + 5000; // 5s in the future
+
+    expect(mgr._pollingCallback()).toBe('waiting');
+    expect(w._pendingTaskSent).toBe(false);
+
+    // Move past stabilization window
+    w._setupStableAt = Date.now() - 1;
+    expect(mgr._pollingCallback()).toBe('confirming');
+    expect(mgr._pollingCallback()).toBe('sent');
+    expect(w._pendingTaskSent).toBe(true);
+  });
+
+  test('7.17: transient ready resets _readyConfirmedAt (no single-tick send)', () => {
+    mgr._screenText = '> ';
+
+    mgr._createAndSendTask({ name: 'w-transient', task: 't' });
+    const w = mgr.workers.get('w-transient');
+
+    // First tick: prompt looks ready → record confirmation
+    expect(mgr._pollingCallback()).toBe('confirming');
+    const firstConfirm = w._readyConfirmedAt;
+    expect(firstConfirm).toBeGreaterThan(0);
+
+    // Screen transients away from ready (e.g., menu overlay still rendering)
+    mgr._screenText = 'loading...';
+    expect(mgr._pollingCallback()).toBe('waiting');
+    expect(w._readyConfirmedAt).toBe(0);
+    expect(mgr._chunkedWriteCalls).toHaveLength(0);
+
+    // Back to ready: must re-confirm before sending
+    mgr._screenText = '> ';
+    expect(mgr._pollingCallback()).toBe('confirming');
+    expect(mgr._pollingCallback()).toBe('sent');
+    expect(mgr._chunkedWriteCalls).toHaveLength(1);
+  });
+
+  test('7.17: timeout fallback defers once when setupDone is false', () => {
+    mgr._screenText = 'never ready';
+    mgr.config.workerDefaults = { effortLevel: 'high', pendingTaskTimeout: 30000 };
+
+    mgr._createAndSendTask({ name: 'w-defer', task: 't' });
+    const w = mgr.workers.get('w-defer');
+
+    // setupDone still false → first fallback attempt is deferred, no send.
+    expect(mgr._timeoutCallback(1)).toBe('deferred');
+    expect(w._pendingTaskSent).toBe(false);
+    expect(mgr._chunkedWriteCalls).toHaveLength(0);
+    const deferSnap = w.snapshots.find(s => s.screen.includes('deferred'));
+    expect(deferSnap).toBeTruthy();
+
+    // Second attempt: still setup incomplete but we force-send with warning.
+    expect(mgr._timeoutCallback(2)).toBe('sent');
+    expect(w._pendingTaskSent).toBe(true);
+    const incSnap = w.snapshots.find(s => s.screen.includes('setup incomplete'));
+    expect(incSnap).toBeTruthy();
+  });
+
+  test('7.17: timeout fallback sends normally when setup is done', () => {
+    mgr._screenText = 'never ready';
+    mgr.config.workerDefaults = { effortLevel: 'high', pendingTaskTimeout: 30000 };
+
+    mgr._createAndSendTask({ name: 'w-ok', task: 't' });
+    const w = mgr.workers.get('w-ok');
+
+    // Setup completed → first attempt sends directly (no defer).
+    w.setupDone = true;
+    expect(mgr._timeoutCallback(1)).toBe('sent');
+    expect(w._pendingTaskSent).toBe(true);
+    const snap = w.snapshots.find(s => s.screen.includes('timeout fallback'));
+    expect(snap).toBeTruthy();
+    // Should not be marked as setup incomplete.
+    expect(snap.screen.includes('setup incomplete')).toBe(false);
   });
 });

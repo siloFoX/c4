@@ -32,7 +32,8 @@ class MockPtyManager {
 
   // Mirrors src/pty-manager.js:_writeTaskAndEnter semantics.
   // Captures the delay arg instead of sleeping, to keep the test sync.
-  async _writeTaskAndEnter(proc, text, enterDelayMs = 100) {
+  // (7.17) Default enterDelayMs raised 100→200ms.
+  async _writeTaskAndEnter(proc, text, enterDelayMs = 200) {
     await this._chunkedWrite(proc, text);
     this._enterDelays.push(enterDelayMs);
     try { proc.write('\r'); } catch { /* proc closed */ }
@@ -69,14 +70,14 @@ describe('_writeTaskAndEnter (7.1)', () => {
     expect(proc.writes[0].includes('\r')).toBe(false);
   });
 
-  test('passes the configured delay through (default 100ms)', async () => {
+  test('passes the configured delay through (default 200ms, 7.17)', async () => {
     const mgr = new MockPtyManager();
     const proc = makeMockProc();
 
     await mgr._writeTaskAndEnter(proc, 'x');
     await mgr._writeTaskAndEnter(proc, 'y', 250);
 
-    expect(mgr._enterDelays).toEqual([100, 250]);
+    expect(mgr._enterDelays).toEqual([200, 250]);
   });
 
   test('handles long text via chunked writes and still sends separate CR', async () => {
