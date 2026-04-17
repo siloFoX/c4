@@ -9,6 +9,7 @@ const { resolveBindHost } = require('./web-external');
 const staticServer = require('./static-server');
 const auth = require('./auth');
 const historyView = require('./history-view');
+const recovery = require('./recovery');
 
 const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
 
@@ -315,6 +316,29 @@ async function handleRequest(req, res) {
     } else if (req.method === 'POST' && route === '/rollback') {
       const { name } = await parseBody(req);
       result = manager.rollback(name);
+
+    } else if (req.method === 'POST' && route === '/recover') {
+      // 8.4: manual recovery pass. Runs the same strategy picker as the
+      // automatic escalation hook but forces enabled=true so operators can
+      // trigger recovery even when config.recovery.enabled is false.
+      const { name, category } = await parseBody(req);
+      if (!name) {
+        result = { error: 'Missing name' };
+      } else {
+        result = recovery.recoverWorker(manager, name, { manual: true, categoryHint: category });
+      }
+
+    } else if (req.method === 'GET' && route === '/recovery-history') {
+      // 8.4: read the append-only history for audit / debugging.
+      const name = url.searchParams.get('name') || '';
+      const limit = parseInt(url.searchParams.get('limit') || '0') || 0;
+      const cfgNow = manager.getConfig();
+      const projectRoot = cfgNow.worktree?.projectRoot || path.resolve(__dirname, '..');
+      const records = recovery.readHistory(projectRoot, {
+        worker: name || undefined,
+        limit: limit || undefined,
+      });
+      result = { records, path: recovery.historyPath(projectRoot) };
 
     } else if (req.method === 'POST' && route === '/cancel') {
       // 8.8: cancel pending/queued/active task without destroying the worker.
@@ -647,6 +671,33 @@ async function handleRequest(req, res) {
 }
 
 const server = http.createServer(handleRequest);
+
+// Smart recovery auto-hook (8.4). When a worker's intervention transitions
+// to 'escalation' the daemon classifies the failure from scrollback and
+// picks a strategy. Per-worker debounce keeps a stuck loop from retrying
+// every frame — recoverWorker is re-entrant-safe but expensive, so we
+// gate on a 30s minimum gap per worker.
+const _recoveryLastRun = new Map();
+const RECOVERY_DEBOUNCE_MS = 30000;
+
+manager.on('sse', (event) => {
+  if (!event || event.type !== 'error' || !event.escalation || !event.worker) return;
+  const cfgNow = manager.getConfig();
+  if (!cfgNow.recovery || cfgNow.recovery.enabled !== true) return;
+  const last = _recoveryLastRun.get(event.worker) || 0;
+  if (Date.now() - last < RECOVERY_DEBOUNCE_MS) return;
+  _recoveryLastRun.set(event.worker, Date.now());
+  try {
+    const res = recovery.recoverWorker(manager, event.worker, { manual: false });
+    if (res && res.recovered) {
+      console.log(`[RECOVERY] auto-hook: ${event.worker} strategy=${res.strategy} category=${res.category} attempt=${res.attempt}`);
+    } else if (res && res.skipped) {
+      console.log(`[RECOVERY] auto-hook: ${event.worker} skipped (${res.reason})`);
+    }
+  } catch (err) {
+    console.error(`[RECOVERY] auto-hook failed for ${event.worker}:`, err && err.message ? err.message : err);
+  }
+});
 
 server.listen(PORT, HOST, () => {
   console.log(`C4 daemon running on http://${HOST}:${PORT} (version ${manager._daemonVersion || 'unknown'})`);
