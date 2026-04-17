@@ -18,7 +18,12 @@ function statusLabel(w: Worker): string {
   return isInterventionActive(w) ? 'intervention' : w.status;
 }
 
-export default function WorkerList() {
+interface WorkerListProps {
+  selectedWorker: string | null;
+  onSelect: (name: string) => void;
+}
+
+export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps) {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [sseConnected, setSseConnected] = useState(false);
@@ -77,8 +82,18 @@ export default function WorkerList() {
 
       {workers.map((w) => {
         const interventionActive = isInterventionActive(w);
+        const isSelected = selectedWorker === w.name;
         return (
-          <div key={w.name} className="rounded-lg bg-gray-800 p-4">
+          <button
+            key={w.name}
+            type="button"
+            onClick={() => onSelect(w.name)}
+            className={`w-full rounded-lg p-4 text-left transition ${
+              isSelected
+                ? 'bg-gray-700 ring-1 ring-blue-500'
+                : 'bg-gray-800 hover:bg-gray-700'
+            }`}
+          >
             <div className="flex items-center justify-between gap-2">
               <span className="truncate font-medium text-gray-100">{w.name}</span>
               <span className={`text-xs font-semibold uppercase ${statusColor(w)}`}>
@@ -102,7 +117,7 @@ export default function WorkerList() {
             {w.branch && (
               <div className="mt-2 truncate text-xs text-gray-500">{w.branch}</div>
             )}
-          </div>
+          </button>
         );
       })}
     </div>
