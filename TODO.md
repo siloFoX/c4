@@ -447,7 +447,7 @@ Level 4이면:
 | 7.19 | worker setup /effort + /model 슬래시 명령 대응 | **done** | Claude Code v2.1.112+에서 `/effort <level>` + 옵션 `/model <value>` 슬래시 명령으로 설정. `_executeSetupPhase2`가 TUI 화살표 대신 슬래시 명령 전송, `_finishSetup` 헬퍼 추출. MSYS_NO_PATHCONV=1 방어 재확인 (Git Bash `/effort` 경로 변환 방지). `workerDefaults.model !== 'default'`일 때만 `/model` 전송. `tests/setup-slash.test.js` 추가. |
 | 7.20 | c4 init PATH 자동 등록 (7.13 후속) | **done** | 7.13에서 `~/.local/bin/c4` symlink는 만들지만 `~/.local/bin`이 PATH에 없으면 `c4` 명령이 동작하지 않는 문제 해결. init이 PATH 포함 여부를 확인하고 없으면 `~/.bashrc`에 `export PATH="$HOME/.local/bin:$PATH"` 자동 추가 (중복 방지). SHELL이 zsh이면 `~/.zshrc`도 추가. 로직을 `src/init-path.js`로 분리하여 dependency-injectable fs로 테스트 가능. `tests/init-path.test.js` 30개 assertion 추가. |
 
-## Phase 8 — 운영 고도화 + Web UI
+## Phase 8 — Web UI + 운영 고도화
 
 | # | 항목 | 상태 | 설명 |
 |---|------|------|------|
@@ -455,9 +455,16 @@ Level 4이면:
 | 8.2 | Web UI — 재귀 계층 트리 | **todo** | c4 list --tree CLI + Web UI에서 parent-child 관계 트리 시각화. worker 메타데이터에 parent 필드. 계층별 상태/에러 추적. 중앙 집중식 로깅 뷰. |
 | 8.3 | 계층별 토큰 quota | **todo** | 관리자/중간관리자/worker 별 토큰 할당량 설정. 일일 한도를 계층별로 분리. 비용 최적화 알고리즘 — 작업 복잡도 대비 모델 자동 선택 (Opus/Sonnet/Haiku). |
 | 8.4 | 지능형 예외 복구 | **todo** | 단순 재시도 넘어 작업 재정의 + 대안 경로 탐색. worker 실패 분석 후 다른 접근법으로 자동 재시도. 실패 패턴 학습. 자가 치유 로직으로 완전 무인 운영 강화. |
-| 8.5 | Agent Framework 전환 | **todo** | C4를 Claude Code 전용에서 범용 agent orchestration framework로 확장. terminal-interface.js(3.13) 추상화 기반. Agent Adapter 패턴: Claude Code adapter(기존), Cursor/Aider/OpenHands adapter, Local LLM adapter. claw-code 참고하여 세션/hook/tool 파이프라인 이해. |
-| 8.6 | Local LLM adapter | **todo** | Ollama, llama.cpp, vLLM 등 로컬 LLM 연동. 비용 0으로 단순 작업 처리. config에 agent type 설정(claude/local/hybrid). 하이브리드 모드: 단순 작업은 local, 복잡한 건 Claude로 자동 라우팅. |
-| 8.7 | Agent SDK | **todo** | 프로그래밍 방식으로 C4 제어하는 SDK. `const c4 = require('c4-sdk'); c4.createWorker(); c4.sendTask()` 패턴. Web UI와 CLI 외에 코드에서 직접 호출. npm 패키지 배포. |
+
+## Phase 9 — Framework + 생태계
+
+| # | 항목 | 상태 | 설명 |
+|---|------|------|------|
+| 9.1 | Agent Framework 전환 | **todo** | C4를 Claude Code 전용에서 범용 agent orchestration framework로 확장. terminal-interface.js(3.13) 추상화 기반. Agent Adapter 패턴: Claude Code adapter(기존), Cursor/Aider/OpenHands adapter, Local LLM adapter. claw-code 참고하여 세션/hook/tool 파이프라인 이해. |
+| 9.2 | Local LLM adapter | **todo** | Ollama, llama.cpp, vLLM 등 로컬 LLM 연동. 비용 0으로 단순 작업 처리. config에 agent type 설정(claude/local/hybrid). 하이브리드 모드: 단순 작업은 local, 복잡한 건 Claude로 자동 라우팅. |
+| 9.3 | Agent SDK | **todo** | 프로그래밍 방식으로 C4 제어하는 SDK. `const c4 = require('c4-sdk'); c4.createWorker(); c4.sendTask()` 패턴. Web UI와 CLI 외에 코드에서 직접 호출. npm 패키지 배포. |
+| 9.4 | MCP 서버 고도화 | **todo** | 기존 mcp-handler.js(3.9)를 공식 MCP 프로토콜 최신 스펙에 맞게 업그레이드. Claude Desktop/claude.ai에서 C4를 MCP 서버로 연결하여 대화 중 worker 생성/관리. tool 목록: create_worker, send_task, read_output, approve, merge, list_workers, token_usage. |
+| 9.5 | Claude Code Extension/Plugin | **todo** | Claude Code CLI에서 C4를 네이티브 플러그인으로 로드. slash command(/c4 new, /c4 task) 또는 tool로 등록. PTY spawn 없이 직접 API 호출. Claude Code의 Agent tool과 C4 worker를 통합. |
 
 ## 완료
 
