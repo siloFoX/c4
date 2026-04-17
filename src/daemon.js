@@ -8,6 +8,7 @@ const Notifications = require('./notifications');
 const { resolveBindHost } = require('./web-external');
 const staticServer = require('./static-server');
 const auth = require('./auth');
+const historyView = require('./history-view');
 
 const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
 
@@ -160,6 +161,15 @@ async function handleRequest(req, res) {
   {
     const m = route.match(/^\/worker\/([^\/]+)\/validation$/);
     if (m) workerValidationName = decodeURIComponent(m[1]);
+  }
+
+  // Per-worker history view (8.7): GET /history/<name>. The bare
+  // /history endpoint keeps the backwards-compatible summary shape and
+  // is handled in the main route table.
+  let historyWorkerName = null;
+  {
+    const m = route.match(/^\/history\/([^\/]+)$/);
+    if (m) historyWorkerName = decodeURIComponent(m[1]);
   }
 
   try {
@@ -446,9 +456,63 @@ async function handleRequest(req, res) {
       result = { sent: true };
 
     } else if (req.method === 'GET' && route === '/history') {
+      // 8.7: richer summary shape for the Web UI. Query params stay
+      // backwards compatible with the 3.7 CLI (`worker`, `limit`) and add
+      // search/filter parameters (`q`, `status`, `since`, `until`).
       const worker = url.searchParams.get('worker') || '';
       const limit = parseInt(url.searchParams.get('limit') || '0') || 0;
-      result = manager.getHistory({ worker: worker || undefined, limit: limit || undefined });
+      const status = url.searchParams.get('status') || '';
+      const since = url.searchParams.get('since') || '';
+      const until = url.searchParams.get('until') || '';
+      const q = url.searchParams.get('q') || '';
+      const all = manager.getHistory();
+      const allRecords = Array.isArray(all.records) ? all.records : [];
+      const records = historyView.filterRecords(allRecords, {
+        worker: worker || undefined,
+        limit: limit || undefined,
+        status: status || undefined,
+        since: since || undefined,
+        until: until || undefined,
+        q: q || undefined,
+      });
+      const liveWorkers = (manager.list().workers || []);
+      const workers = historyView.summarizeWorkers(allRecords, liveWorkers);
+      result = { records, workers, total: allRecords.length };
+
+    } else if (req.method === 'GET' && historyWorkerName) {
+      // 8.7: per-worker detail - past tasks + live scrollback (if alive).
+      const all = manager.getHistory();
+      const records = historyView.filterRecords(all.records || [], { worker: historyWorkerName });
+      const liveList = manager.list().workers || [];
+      const live = liveList.find((w) => w.name === historyWorkerName) || null;
+      let scrollback = null;
+      if (manager.workers && manager.workers.has(historyWorkerName)) {
+        const linesParam = parseInt(url.searchParams.get('lines') || '2000') || 2000;
+        const sb = manager.getScrollback(historyWorkerName, linesParam);
+        if (!sb.error) scrollback = sb;
+      }
+      const lastBranch = records.length > 0 ? records[records.length - 1].branch : null;
+      result = {
+        name: historyWorkerName,
+        records,
+        alive: live ? live.status !== 'exited' : false,
+        status: live ? live.status : null,
+        branch: live ? live.branch : lastBranch,
+        worktree: live ? live.worktree : null,
+        scrollback,
+      };
+
+    } else if (req.method === 'GET' && route === '/scribe-context') {
+      // 8.7: scribe session-context.md viewer. Reads docs/session-context.md
+      // from the project root (or from config.scribe.outputPath if set).
+      const cfgNow = manager.getConfig();
+      const scribeCfg = cfgNow.scribe || {};
+      const repoRoot = cfgNow.worktree?.projectRoot || path.resolve(__dirname, '..');
+      const maxBytesParam = parseInt(url.searchParams.get('maxBytes') || '0') || 0;
+      result = historyView.readScribeContext(repoRoot, {
+        outputPath: scribeCfg.outputPath,
+        maxBytes: maxBytesParam || undefined,
+      });
 
     } else if (req.method === 'POST' && route === '/compact-event') {
       // Manager auto-replacement (4.7): compact event from PostCompact hook

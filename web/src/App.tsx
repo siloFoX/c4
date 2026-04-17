@@ -3,14 +3,17 @@ import WorkerList from './components/WorkerList';
 import WorkerDetail from './components/WorkerDetail';
 import ChatView from './components/ChatView';
 import HierarchyTree from './components/HierarchyTree';
+import HistoryView from './components/HistoryView';
 import Login from './components/Login';
 import { AUTH_EVENT, fetchAuthStatus, getToken, logout } from './lib/api';
 
 type AuthState = 'loading' | 'anon' | 'authed' | 'disabled';
 type SidebarMode = 'list' | 'tree';
 type DetailMode = 'terminal' | 'chat';
+type TopView = 'workers' | 'history';
 const SIDEBAR_MODE_KEY = 'c4.sidebar.mode';
 const DETAIL_MODE_KEY = 'c4.detail.mode';
+const TOP_VIEW_KEY = 'c4.topView';
 
 function readSidebarMode(): SidebarMode {
   if (typeof window === 'undefined') return 'list';
@@ -32,6 +35,16 @@ function readDetailMode(): DetailMode {
   }
 }
 
+function readTopView(): TopView {
+  if (typeof window === 'undefined') return 'workers';
+  try {
+    const v = window.localStorage.getItem(TOP_VIEW_KEY);
+    return v === 'history' ? 'history' : 'workers';
+  } catch {
+    return 'workers';
+  }
+}
+
 export default function App() {
   const [selectedWorker, setSelectedWorker] = useState<string | null>(null);
   const [authState, setAuthState] = useState<AuthState>('loading');
@@ -41,6 +54,7 @@ export default function App() {
   });
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>(readSidebarMode);
   const [detailMode, setDetailMode] = useState<DetailMode>(readDetailMode);
+  const [topView, setTopView] = useState<TopView>(readTopView);
 
   useEffect(() => {
     try {
@@ -57,6 +71,14 @@ export default function App() {
       // ignore private-mode throws
     }
   }, [detailMode]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(TOP_VIEW_KEY, topView);
+    } catch {
+      // ignore private-mode throws
+    }
+  }, [topView]);
 
   const refreshAuth = useCallback(async () => {
     const status = await fetchAuthStatus();
@@ -114,16 +136,55 @@ export default function App() {
           </button>
           <h1 className="truncate text-lg font-semibold text-gray-100 md:text-xl">C4 Dashboard</h1>
         </div>
-        {authState === 'authed' && (
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="rounded bg-gray-700 px-3 py-1 text-xs text-gray-200 hover:bg-gray-600"
+        <div className="flex items-center gap-2">
+          <div
+            role="tablist"
+            aria-label="Top view"
+            className="flex overflow-hidden rounded border border-gray-700 text-xs"
           >
-            Sign out
-          </button>
-        )}
+            <button
+              type="button"
+              role="tab"
+              aria-selected={topView === 'workers'}
+              onClick={() => setTopView('workers')}
+              className={`px-3 py-1 ${
+                topView === 'workers'
+                  ? 'bg-gray-700 text-gray-100'
+                  : 'bg-gray-900 text-gray-400 hover:bg-gray-800'
+              }`}
+            >
+              Workers
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={topView === 'history'}
+              onClick={() => setTopView('history')}
+              className={`px-3 py-1 ${
+                topView === 'history'
+                  ? 'bg-gray-700 text-gray-100'
+                  : 'bg-gray-900 text-gray-400 hover:bg-gray-800'
+              }`}
+            >
+              History
+            </button>
+          </div>
+          {authState === 'authed' && (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded bg-gray-700 px-3 py-1 text-xs text-gray-200 hover:bg-gray-600"
+            >
+              Sign out
+            </button>
+          )}
+        </div>
       </header>
+      {topView === 'history' ? (
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          <HistoryView />
+        </div>
+      ) : (
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {sidebarOpen && (
           <aside className="w-full shrink-0 overflow-y-auto border-b border-gray-800 bg-gray-900 p-4 md:w-72 md:border-b-0 md:border-r">
@@ -225,6 +286,7 @@ export default function App() {
           )}
         </main>
       </div>
+      )}
     </div>
   );
 }
