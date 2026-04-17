@@ -11,6 +11,7 @@ const auth = require('./auth');
 const historyView = require('./history-view');
 const recovery = require('./recovery');
 const fleet = require('./fleet');
+const dispatcher = require('./dispatcher');
 
 const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
 
@@ -584,6 +585,131 @@ async function handleRequest(req, res) {
         self,
         timeoutMs: timeoutParam > 0 ? timeoutParam : undefined,
       });
+
+    } else if (req.method === 'POST' && route === '/dispatch') {
+      // Fleet task distribution (9.7). Build a placement plan across
+      // reachable fleet machines (plus the local daemon) using the
+      // requested strategy, then fan out /create + /task to each slot.
+      // When no fleet machines are configured everything lands on
+      // localhost. Every remote unreachable -> fall back to local too.
+      const body = await parseBody(req);
+      const count = Math.max(1, parseInt(body.count, 10) || 1);
+      const strategy = body.strategy || 'least-loaded';
+      const tags = Array.isArray(body.tags) ? body.tags : [];
+      const task = typeof body.task === 'string' ? body.task : '';
+      const namePrefix = body.namePrefix || 'dispatch';
+      const branchPrefix = body.branch || '';
+      const profile = body.profile || '';
+      const autoMode = Boolean(body.autoMode);
+      const location = body.location || null;
+      const dryRun = Boolean(body.dryRun);
+
+      if (!task) {
+        result = { error: 'Missing task' };
+      } else {
+        const listData = manager.list();
+        const localSample = {
+          alias: '_local',
+          host: '127.0.0.1',
+          port: PORT,
+          ok: true,
+          workers: Array.isArray(listData.workers) ? listData.workers.length : 0,
+          version: manager._daemonVersion || null,
+          tags: [],
+          authToken: '',
+        };
+        const machines = fleet.listMachines().map((m) => {
+          const full = fleet.getMachine(m.alias) || m;
+          return {
+            alias: full.alias,
+            host: full.host,
+            port: full.port,
+            authToken: full.authToken,
+            tags: Array.isArray(full.tags) ? full.tags.slice() : [],
+          };
+        });
+        let plan;
+        try {
+          plan = await dispatcher.dispatch({
+            task,
+            count,
+            strategy,
+            tags,
+            location,
+            namePrefix,
+            branchPrefix,
+            machines,
+            local: localSample,
+          });
+        } catch (e) {
+          result = { error: `dispatch failed: ${e.message}` };
+          plan = null;
+        }
+        if (plan) {
+          const created = [];
+          if (!dryRun) {
+            for (const slot of plan.plan) {
+              const isLocal = slot.machine.alias === '_local';
+              const payload = {
+                name: slot.name,
+                task: slot.task,
+                useBranch: true,
+              };
+              if (slot.branch) payload.branch = slot.branch;
+              if (autoMode) payload.autoMode = true;
+              if (profile) payload.profile = profile;
+              if (isLocal) {
+                try {
+                  const r = manager.sendTask(slot.name, slot.task, {
+                    branch: slot.branch || undefined,
+                    profile: profile || undefined,
+                    autoMode: autoMode || undefined,
+                  });
+                  created.push({ slot: slot.slot, name: slot.name, alias: slot.machine.alias, ok: !r.error, result: r });
+                } catch (e) {
+                  created.push({ slot: slot.slot, name: slot.name, alias: slot.machine.alias, ok: false, error: e.message });
+                }
+              } else {
+                // Remote /task via the target peer's HTTP daemon. We do
+                // not await a busy-loop here; sendTask on the peer will
+                // return immediately with the worker id.
+                try {
+                  const base = `http://${slot.machine.host}:${slot.machine.port}`;
+                  const tokenRow = fleet.getMachine(slot.machine.alias);
+                  const token = (tokenRow && tokenRow.authToken) || fleet.readSharedToken() || null;
+                  const r = await fleet.proxyRequest(
+                    { pinned: true, base, token },
+                    'POST', '/task', payload, { timeoutMs: 10000 }
+                  );
+                  created.push({ slot: slot.slot, name: slot.name, alias: slot.machine.alias, ok: Boolean(r.ok), result: r.body || null, status: r.status, error: r.error || null });
+                } catch (e) {
+                  created.push({ slot: slot.slot, name: slot.name, alias: slot.machine.alias, ok: false, error: e.message });
+                }
+              }
+            }
+          }
+          result = {
+            strategy: plan.strategy,
+            count: plan.count,
+            tags: plan.tags,
+            fallback: plan.fallback,
+            plan: plan.plan,
+            samples: plan.samples.map((s) => ({
+              alias: s.alias,
+              host: s.host,
+              port: s.port,
+              ok: s.ok,
+              workers: s.workers,
+              version: s.version,
+              error: s.error,
+              elapsedMs: s.elapsedMs,
+              tags: s.tags || [],
+            })),
+            created: dryRun ? null : created,
+            dryRun,
+          };
+        }
+      }
 
     } else if (req.method === 'POST' && route === '/compact-event') {
       // Manager auto-replacement (4.7): compact event from PostCompact hook

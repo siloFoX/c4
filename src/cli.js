@@ -1739,6 +1739,85 @@ async function main() {
         return;
       }
 
+      case 'dispatch': {
+        // Fleet task distribution (9.7). Forwards to POST /dispatch on
+        // the daemon which builds the placement plan and fans out the
+        // /create + /task calls per slot.
+        let count = 1, strategy = 'least-loaded', tagsRaw = '', branch = '', namePrefix = '';
+        let profile = '', autoMode = false, dryRun = false, location = '';
+        const taskParts = [];
+        for (let i = 0; i < args.length; i++) {
+          if (args[i] === '--count' && args[i + 1]) { count = parseInt(args[++i], 10) || 1; }
+          else if (args[i] === '--strategy' && args[i + 1]) { strategy = args[++i]; }
+          else if (args[i] === '--tags' && args[i + 1]) { tagsRaw = args[++i]; }
+          else if (args[i] === '--branch' && args[i + 1]) { branch = args[++i]; }
+          else if (args[i] === '--name' && args[i + 1]) { namePrefix = args[++i]; }
+          else if (args[i] === '--profile' && args[i + 1]) { profile = args[++i]; }
+          else if (args[i] === '--auto-mode') { autoMode = true; }
+          else if (args[i] === '--dry-run') { dryRun = true; }
+          else if (args[i] === '--location' && args[i + 1]) { location = args[++i]; }
+          else { taskParts.push(args[i]); }
+        }
+        const task = taskParts.join(' ');
+        if (!task) {
+          console.error('Usage: c4 dispatch "<task>" [--count N] [--tags t1,t2] [--strategy least-loaded|tag-match|round-robin]');
+          console.error('  Options: --branch <prefix> --name <prefix> --profile <name>');
+          console.error('           --auto-mode --dry-run --location <alias>');
+          process.exit(1);
+        }
+        const body = {
+          task,
+          count,
+          strategy,
+          tags: tagsRaw ? tagsRaw.split(',').map((t) => t.trim()).filter(Boolean) : [],
+        };
+        if (branch) body.branch = branch;
+        if (namePrefix) body.namePrefix = namePrefix;
+        if (profile) body.profile = profile;
+        if (autoMode) body.autoMode = true;
+        if (dryRun) body.dryRun = true;
+        if (location) body.location = location;
+
+        result = await request('POST', '/dispatch', body, 30000);
+        if (result.error) {
+          console.error(`Error: ${result.error}`);
+          process.exit(1);
+        }
+        console.log(`Strategy: ${result.strategy}  Count: ${result.count}  Tags: ${(result.tags || []).join(',') || '-'}`);
+        if (result.fallback) console.log(`Fallback: ${result.fallback}`);
+        if (Array.isArray(result.samples) && result.samples.length > 0) {
+          console.log('\nSAMPLES:');
+          console.log('  ALIAS\t\tOK\tWORKERS\tTAGS\t\tELAPSED');
+          for (const s of result.samples) {
+            const ok = s.ok ? 'yes' : 'NO';
+            const w = s.workers == null ? '?' : s.workers;
+            const tg = (s.tags || []).join(',') || '-';
+            console.log(`  ${s.alias}\t\t${ok}\t${w}\t${tg}\t\t${s.elapsedMs || 0}ms`);
+          }
+        }
+        if (Array.isArray(result.plan) && result.plan.length > 0) {
+          console.log('\nPLAN:');
+          console.log('  SLOT\tNAME\t\tALIAS\t\tSTRATEGY\tSCORE');
+          for (const p of result.plan) {
+            const sc = p.score || {};
+            const scoreStr = sc.tagMatches != null
+              ? `matches=${sc.tagMatches}/${sc.tagWanted} workers=${sc.workers}`
+              : `workers=${sc.workers}`;
+            console.log(`  ${p.slot}\t${p.name}\t${p.machine.alias}\t\t${sc.strategy || strategy}\t${scoreStr}`);
+          }
+        }
+        if (result.dryRun) {
+          console.log('\n[dry-run] No workers created.');
+        } else if (Array.isArray(result.created) && result.created.length > 0) {
+          console.log('\nCREATED:');
+          for (const c of result.created) {
+            const status = c.ok ? 'ok' : `FAIL (${c.error || c.status || 'unknown'})`;
+            console.log(`  ${c.name}\t-> ${c.alias}\t${status}`);
+          }
+        }
+        return;
+      }
+
       case 'fleet': {
         // Multi-machine fleet management (9.6).
         const fleet = fleetModule();
@@ -1759,22 +1838,35 @@ async function main() {
           const alias = args[1];
           const host = args[2];
           if (!alias || !host) {
-            console.error('Usage: c4 fleet add <alias> <host> [--port N] [--token T]');
+            console.error('Usage: c4 fleet add <alias> <host> [--port N] [--token T] [--tags t1,t2]');
             process.exit(1);
           }
           let port;
           let token = '';
+          let tags; // undefined = keep existing
+          let clearTags = false;
           for (let i = 3; i < args.length; i++) {
             if (args[i] === '--port' && args[i + 1]) port = parseInt(args[++i], 10);
             else if (args[i] === '--token' && args[i + 1]) token = args[++i];
+            else if (args[i] === '--tags' && args[i + 1]) {
+              tags = args[++i].split(',').map((t) => t.trim()).filter(Boolean);
+            } else if (args[i] === '--clear-tags') {
+              clearTags = true;
+            }
           }
           try {
-            const res = fleet.addMachine(alias, host, {
+            const opts = {
               port,
               authToken: token || undefined,
-            });
+            };
+            if (tags !== undefined) opts.tags = tags;
+            if (clearTags) opts.clearTags = true;
+            const res = fleet.addMachine(alias, host, opts);
             console.log(`[ok] fleet: registered ${res.alias} -> http://${res.host}:${res.port}`);
             if (token) console.log('[ok] fleet: auth token stored for alias');
+            if (Array.isArray(res.tags) && res.tags.length > 0) {
+              console.log(`[ok] fleet: tags = ${res.tags.join(',')}`);
+            }
           } catch (e) {
             console.error(`Error: ${e.message}`);
             process.exit(1);
@@ -1789,11 +1881,12 @@ async function main() {
             return;
           }
           const current = fleet.getCurrent();
-          console.log('ALIAS\t\tHOST\t\t\tPORT\tTOKEN\tPINNED');
+          console.log('ALIAS\t\tHOST\t\t\tPORT\tTOKEN\tTAGS\t\tPINNED');
           for (const m of machines) {
             const pin = current === m.alias ? '*' : '';
             const tok = m.hasToken ? 'yes' : 'no';
-            console.log(`${m.alias}\t\t${m.host}\t\t${m.port}\t${tok}\t${pin}`);
+            const tagStr = Array.isArray(m.tags) && m.tags.length > 0 ? m.tags.join(',') : '-';
+            console.log(`${m.alias}\t\t${m.host}\t\t${m.port}\t${tok}\t${tagStr}\t\t${pin}`);
           }
           if (current) console.log(`\nPinned alias: ${current}`);
           return;
@@ -1978,12 +2071,14 @@ Commands:
   mcp start [--base URL]           Start MCP stdio proxy (for Claude Desktop, 9.4)
   mcp status                       Verify MCP endpoint handshake
   mcp tools                        List exposed MCP tools
-  fleet add <alias> <host> [--port N] [--token T]  Register a remote daemon (9.6)
+  fleet add <alias> <host> [--port N] [--token T] [--tags t1,t2]  Register a remote daemon (9.6)
   fleet list                       List registered machines + pinned alias
   fleet remove <alias>             Remove a machine from ~/.c4/fleet.json
   fleet use <alias>                Pin c4 commands to this alias (use --clear to unpin)
   fleet current                    Print the pinned alias, if any
   fleet status [--timeout ms]      Aggregated fleet overview (health + worker counts)
+  dispatch "<task>" [--count N] [--tags t1,t2] [--strategy S]  Distribute task across fleet (9.7)
+       [--branch prefix] [--name prefix] [--profile name] [--auto-mode] [--dry-run] [--location alias]
   scribe start                     Start session context recording
   scribe stop                      Stop scribe
   scribe status                    Show scribe status
