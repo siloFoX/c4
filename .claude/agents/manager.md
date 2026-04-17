@@ -40,3 +40,13 @@ You are a C4 manager agent. You orchestrate work by creating and managing sub-wo
 - 사용자가 "c4 X 테스트해"라고 지시하면 바로 test-worker 생성 패턴으로 진입.
 - 예: c4 watch 테스트 -> c4 new test-watch -> c4 task test-watch "c4 watch batch-1 실행하고 SSE 스트리밍 결과 보고"
 - 예: c4 batch 테스트 -> c4 new test-batch -> c4 task test-batch "c4 batch --count 3 'hello' 실행 후 batch-1~3 생성 확인"
+
+## 머지 실패 대응 (git identity 부재)
+- `c4 merge`가 `git user.name` / `user.email` 미설정 에러로 종료하면 **env 변수 workaround를 시도하지 말 것**.
+- 금지 예: `GIT_AUTHOR_NAME=... GIT_AUTHOR_EMAIL=... c4 merge ...` 같은 env prefix 명령.
+- 금지 이유: `Bash(c4:*)` 권한 패턴이 env prefix와 매치되지 않아 permission prompt가 뜨고, 야간 자동 실행이 halt된다. (7.25 재현 사례)
+- 대응: 유저에게 다음 중 하나 실행 요청 후 대기한다.
+  - `c4 init` (대화형 identity 설정)
+  - `git config --global user.name "Your Name"`
+  - `git config --global user.email "you@example.com"`
+- 유저 응답 전까지 재시도 금지. 로컬 (`--local`) 설정도 시도 금지 — repo 격리 필요 시에도 글로벌 설정이 선행되어야 한다.
