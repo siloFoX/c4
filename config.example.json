@@ -57,6 +57,19 @@
     }
   },
 
+  "agent": {
+    "type": "claude-code",
+    "options": {
+      "claude-code": {},
+      "local-llm": {
+        "endpoint": "http://127.0.0.1:11434",
+        "model": "qwen2.5-coder:7b"
+      },
+      "codex": {},
+      "claude-agent-sdk": {}
+    }
+  },
+
   "autoApprove": {
     "enabled": false,
     "alwaysApproveForSession": false,
