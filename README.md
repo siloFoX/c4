@@ -62,16 +62,32 @@ This efficiency makes C4 viable for overnight autonomous coding with multiple pa
 
 ## Install
 
+### Quick Install
+
+Four commands, one browser tab:
+
 ```bash
 git clone https://github.com/siloFoX/c4.git
 cd c4
 npm install
+c4 init
+c4 daemon start
 ```
 
-Then open Claude Code and ask it to run:
-```
-c4 init
-```
+Then browse `http://localhost:3456/` -- the daemon serves the built
+React Web UI and the JSON API on the same port.
+
+`c4` becomes globally available only after `c4 init` runs `npm link`
+(or drops the `~/.local/bin/c4` fallback on Linux), so do not skip
+`c4 init` between `npm install` and `c4 daemon start`. If `c4` is
+still not on your `PATH`, open a new shell or use `npx c4 daemon start`
+from the repo root.
+
+Fresh-install verification: `docs/install-verify.md` is the manual
+runbook; `tests/install-verify.test.js` is the automated smoke test
+(runs as part of `npm test`, full mode via `C4_INSTALL_VERIFY_FULL=1`).
+
+### What `c4 init` does
 
 `c4 init` automatically handles everything:
 - `~/.claude/settings.json` — adds c4 bash permissions
