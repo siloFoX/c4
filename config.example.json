@@ -225,6 +225,21 @@
     "projectId": ""
   },
 
+  "costs": {
+    "models": {
+      "claude-opus":   { "input": 15,  "output": 75 },
+      "claude-sonnet": { "input": 3,   "output": 15 },
+      "claude-haiku":  { "input": 0.8, "output": 4 },
+      "local":         { "input": 0,   "output": 0 },
+      "default":       { "input": 3,   "output": 15 }
+    },
+    "budget": {
+      "defaultPeriod": "month",
+      "warnAt": 0.8,
+      "monthlyLimitUSD": 0
+    }
+  },
+
   "pool": {
     "enabled": false,
     "maxIdleMs": 300000

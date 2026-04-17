@@ -14,6 +14,7 @@ const fleet = require('./fleet');
 const dispatcher = require('./dispatcher');
 const fileTransfer = require('./file-transfer');
 const auditLog = require('./audit-log');
+const costReport = require('./cost-report');
 
 const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
 
@@ -46,6 +47,23 @@ function _auditActor(authCheck) {
 function _safeAudit(type, details, overrides) {
   try { return audit.record(type, details, overrides); }
   catch (e) { console.error('[AUDIT] record failed:', e && e.message ? e.message : e); return null; }
+}
+
+// (10.5) Build a CostReporter seeded from config.costs.models and
+// backed by the daemon's history.jsonl. Rebuilt per request so a live
+// `c4 config reload` is picked up without a daemon restart.
+function buildCostReporter(m) {
+  const currentCfg = m && typeof m.getConfig === 'function' ? m.getConfig() : cfg;
+  const costsCfg = (currentCfg && currentCfg.costs) || {};
+  const models = costsCfg.models && typeof costsCfg.models === 'object' ? costsCfg.models : undefined;
+  const warnAt = costsCfg.budget && Number.isFinite(costsCfg.budget.warnAt)
+    ? costsCfg.budget.warnAt : 0.8;
+  const historyPath = costReport.defaultHistoryPath();
+  return new costReport.CostReporter({
+    costs: models,
+    warnAt,
+    loadRecords: () => costReport.loadHistoryRecords(historyPath),
+  });
 }
 
 function parseBody(req) {
@@ -197,6 +215,15 @@ async function handleRequest(req, res) {
   {
     const m = route.match(/^\/history\/([^\/]+)$/);
     if (m) historyWorkerName = decodeURIComponent(m[1]);
+  }
+
+  // (10.5) Monthly cost report: GET /cost/monthly/<year>/<month>. Path
+  // params are decoded here so the route dispatch below only has to
+  // compare strings.
+  let costMonthlyParams = null;
+  {
+    const m = route.match(/^\/cost\/monthly\/(\d{4})\/(\d{1,2})$/);
+    if (m) costMonthlyParams = { year: parseInt(m[1], 10), month: parseInt(m[2], 10) };
   }
 
   try {
@@ -440,6 +467,58 @@ async function handleRequest(req, res) {
       try {
         result = audit.verify();
         result.path = audit.logPath;
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && route === '/cost/report') {
+      // (10.5) Cost + token aggregation over the daemon's history.jsonl.
+      // Never touches live worker state so it is safe to call at any
+      // time — the report is pure aggregation over immutable rows.
+      try {
+        const reporter = buildCostReporter(manager);
+        const fromParam = url.searchParams.get('from') || null;
+        const toParam = url.searchParams.get('to') || null;
+        const groupParam = url.searchParams.get('group') || 'project';
+        const includeModels = url.searchParams.get('models') === '1';
+        result = reporter.report({
+          from: fromParam,
+          to: toParam,
+          groupBy: groupParam,
+          includeModels,
+        });
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && costMonthlyParams) {
+      // (10.5) Monthly report wraps report() with calendar bounds so the
+      // caller does not have to compute month-end edge cases (leap
+      // years, variable month length, timezone drift).
+      try {
+        const reporter = buildCostReporter(manager);
+        const groupParam = url.searchParams.get('group') || 'project';
+        result = reporter.monthlyReport(costMonthlyParams.year, costMonthlyParams.month, {
+          groupBy: groupParam,
+        });
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && route === '/cost/budget') {
+      // (10.5) Budget check. Body: { limit, period, group, warnAt }.
+      // Returns exceeded=true once used >= limit, warning=true once
+      // used crosses warnAt (defaults to 0.8) but has not yet exceeded.
+      try {
+        const body = await parseBody(req);
+        const reporter = buildCostReporter(manager);
+        result = reporter.budgetCheck({
+          limit: Number(body.limit),
+          period: body.period || 'month',
+          group: body.group || null,
+          groupBy: body.groupBy || 'project',
+          warnAt: Number.isFinite(body.warnAt) ? body.warnAt : undefined,
+        });
       } catch (e) {
         result = { error: e.message };
       }
