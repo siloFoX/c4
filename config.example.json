@@ -59,8 +59,24 @@
 
   "agent": {
     "type": "claude-code",
+    "local": "local-ollama",
+    "complex": "claude-code",
+    "hybridThreshold": 2000,
+    "complexKeywords": ["refactor", "architect", "architecture", "design"],
     "options": {
       "claude-code": {},
+      "local-ollama": {
+        "url": "http://localhost:11434",
+        "model": "llama3.1"
+      },
+      "local-llama-cpp": {
+        "url": "http://localhost:8080",
+        "model": "local-model"
+      },
+      "local-vllm": {
+        "url": "http://localhost:8000",
+        "model": "meta-llama/Llama-3.1-8B"
+      },
       "local-llm": {
         "endpoint": "http://127.0.0.1:11434",
         "model": "qwen2.5-coder:7b"
