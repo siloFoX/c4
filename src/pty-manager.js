@@ -569,11 +569,12 @@ class PtyManager extends EventEmitter {
     const host = this.config.daemon?.host || '127.0.0.1';
     const baseUrl = `http://${host}:${port}`;
 
-    // Use curl/PowerShell to POST hook event data to daemon.
-    // Claude Code passes hook data as JSON to stdin.
-    const curlCmd = IS_WIN
-      ? `powershell -NoProfile -Command "$ErrorActionPreference='SilentlyContinue';try{$body=[Console]::In.ReadToEnd();Invoke-RestMethod -Uri '${baseUrl}/hook-event' -Method Post -ContentType 'application/json' -Body $body -ErrorAction SilentlyContinue | Out-Null}catch{};exit 0"`
-      : `curl -s -X POST -H 'Content-Type: application/json' -d @- '${baseUrl}/hook-event' 2>/dev/null; exit 0`;
+    // Use a Node.js one-liner instead of curl/PowerShell to avoid
+    // Windows encoding issues and non-zero exit codes that cause
+    // Claude Code to report "Failed with non-blocking status code" repeatedly,
+    // triggering escalation false positives (7.16, 7.23).
+    const scriptPath = path.join(__dirname, 'hook-relay.js').replace(/\\/g, '/');
+    const curlCmd = `node "${scriptPath}" ${baseUrl}/hook-event`;
 
     return {
       PreToolUse: [{
