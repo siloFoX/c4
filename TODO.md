@@ -443,7 +443,7 @@ Level 4이면:
 | 7.15 | daemon 버전 불일치 경고 | **done** | c4 health/daemon status에서 daemon 버전과 설치 버전 비교, 불일치 시 경고 + restart 안내. |
 | 7.16 | PreToolUse hook error 인코딩 깨짐 | **done** | compound-check.js stderr 완전 ASCII 전환 + PowerShell/curl 후크 커맨드에 try/catch + SilentlyContinue 적용하여 localized 에러 메시지 차단. tests/hook-ascii.test.js로 non-ASCII 회귀 방지. |
 | 7.17 | pendingTask 5.51 수정 후에도 재발 | **todo** | 3개 worker 전부 Enter 안 먹힘. 5.51 수정(setupDone 가드 + post-setup 트리거)이 충분하지 않음. Windows에서만 발생하는지 DGX에서도 발생하는지 비교 필요. |
-| 7.18 | worker 영어 전용 모드 | **todo** | sendTask rules에 "Respond in English only" 추가하여 worker가 영어로만 동작. 한국어 인코딩 깨짐(7.16) 우회 + hook error 방지. config에 workerLanguage: "en" 옵션 추가. |
+| 7.18 | worker 영어 전용 모드 | **done** | workerDefaults.workerLanguage: "en" 옵션 추가. _getRulesSummary()가 rules 끝에 "Respond in English only..." 지시문을 자동 덧붙인다. 한국어 인코딩 깨짐(7.16) 우회 + hook error 방지. |
 
 ## 완료
 

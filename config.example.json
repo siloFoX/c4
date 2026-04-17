@@ -118,7 +118,8 @@
       "inputDelayMs": 500,
       "confirmDelayMs": 500
     },
-    "model": "default"
+    "model": "default",
+    "workerLanguage": "en"
   },
 
   "logs": {
