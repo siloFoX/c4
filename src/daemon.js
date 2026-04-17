@@ -10,6 +10,7 @@ const staticServer = require('./static-server');
 const auth = require('./auth');
 const historyView = require('./history-view');
 const recovery = require('./recovery');
+const fleet = require('./fleet');
 
 const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
 
@@ -554,6 +555,34 @@ async function handleRequest(req, res) {
       result = historyView.readScribeContext(repoRoot, {
         outputPath: scribeCfg.outputPath,
         maxBytes: maxBytesParam || undefined,
+      });
+
+    } else if (req.method === 'GET' && route === '/fleet/overview') {
+      // Fleet management (9.6): aggregate this daemon's state plus
+      // every registered peer in ~/.c4/fleet.json. Best-effort with a
+      // per-machine timeout so one unreachable peer cannot stall the
+      // endpoint — see src/fleet.js for the sampling contract.
+      const listData = manager.list();
+      const self = {
+        ok: true,
+        alias: '_self',
+        host: HOST,
+        port: PORT,
+        workers: Array.isArray(listData.workers) ? listData.workers.length : 0,
+        version: manager._daemonVersion || null,
+      };
+      const timeoutParam = parseInt(url.searchParams.get('timeout') || '0', 10);
+      const machines = fleet.listMachines();
+      // Each row carries an authToken for proxy auth; sampleMachine
+      // reads it before the token fallback.
+      const enriched = machines.map((m) => {
+        const full = fleet.getMachine(m.alias) || m;
+        return { alias: full.alias, host: full.host, port: full.port, authToken: full.authToken };
+      });
+      result = await fleet.fetchOverview({
+        machines: enriched,
+        self,
+        timeoutMs: timeoutParam > 0 ? timeoutParam : undefined,
       });
 
     } else if (req.method === 'POST' && route === '/compact-event') {
