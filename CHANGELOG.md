@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.12] - 2026-04-17
+
+### Added
+- **c4 init Linux PATH 개선** (7.13): npm link 실패 시 ~/.local/bin/c4 심볼릭 링크 자동 생성 + ~/.bashrc alias 폴백
+- **c4 init --agent 안내** (7.14): init 완료 후 관리자 모드 시작 안내 메시지 출력
+- **daemon 버전 불일치 경고** (7.15): c4 health/daemon status에서 daemon 버전과 설치 버전 비교, 불일치 시 restart 안내
+
 ## [1.6.10] - 2026-04-16
 
 ### Fixed
