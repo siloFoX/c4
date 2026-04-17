@@ -2038,7 +2038,7 @@ class PtyManager extends EventEmitter {
   }
 
   // (9.11) Main GC sweep. Honors config.daemon.worktreeGc.{enabled, inactiveHours}
-  // and returns a structured summary — never throws. Extends the manual
+  // and returns a structured summary - never throws. Extends the manual
   // `c4 cleanup` path by adding the merged-branch + inactivity gate; the
   // existing lost-worker/orphan cleanups still run under healthCheck.
   _runWorktreeGc(overrides = {}) {
@@ -2077,7 +2077,7 @@ class PtyManager extends EventEmitter {
           const name = path.basename(entry.worktree).replace(/^c4-worktree-/, '');
           this._notifyLostDirty(name, entry.worktree);
           if (typeof console !== 'undefined' && console.warn) {
-            console.warn(`[GC WARN] ${entry.worktree}: uncommitted changes — skip`);
+            console.warn(`[GC WARN] ${entry.worktree}: uncommitted changes - skip`);
           }
         }
         continue;
