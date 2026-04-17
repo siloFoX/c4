@@ -12,6 +12,7 @@ const historyView = require('./history-view');
 const recovery = require('./recovery');
 const fleet = require('./fleet');
 const dispatcher = require('./dispatcher');
+const fileTransfer = require('./file-transfer');
 
 const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
 
@@ -708,6 +709,113 @@ async function handleRequest(req, res) {
             created: dryRun ? null : created,
             dryRun,
           };
+        }
+      }
+
+    } else if (req.method === 'POST' && route === '/transfer') {
+      // Machine-to-machine file transfer (9.8). Accepts either
+      //   { alias, type: 'rsync', src, dest, opts? } -> rsync over ssh
+      // or
+      //   { alias, type: 'git',   src, remoteRepoPath, branch, opts? } -> git push
+      // The HTTP response returns immediately with { started, pid } so
+      // the caller can poll /events for the progress stream. Progress,
+      // completion and error events arrive on the existing SSE bus.
+      const body = await parseBody(req);
+      const alias = body.alias;
+      const type = body.type || 'rsync';
+      const src = body.src;
+      const dest = body.dest || '';
+      const opts = body.opts && typeof body.opts === 'object' ? body.opts : {};
+      const allowSystem = Boolean(opts.allowSystem);
+      if (!alias || typeof alias !== 'string') {
+        result = { error: 'Missing alias' };
+      } else if (type !== 'rsync' && type !== 'git') {
+        result = { error: `Unknown transfer type '${type}' (use 'rsync' or 'git')` };
+      } else if (!src) {
+        result = { error: 'Missing src' };
+      } else {
+        let machine;
+        try {
+          machine = fileTransfer.resolveMachine(alias);
+        } catch (e) {
+          result = { error: e.message };
+        }
+        if (machine) {
+          const transferId = `tx-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+          const baseEvent = { alias, type, transferId };
+          try {
+            if (type === 'rsync') {
+              const handle = fileTransfer.transferFiles(src, dest, {
+                machine,
+                excludes: Array.isArray(opts.excludes) ? opts.excludes : [],
+                delete: Boolean(opts.delete),
+                dryRun: Boolean(opts.dryRun),
+                allowSystem,
+                onProgress: (ev) => {
+                  manager.emit('sse', Object.assign({ type: 'transfer-progress' }, baseEvent, ev));
+                },
+                onComplete: (info) => {
+                  manager.emit('sse', Object.assign(
+                    { type: 'transfer-complete' }, baseEvent, info
+                  ));
+                },
+                onError: (err) => {
+                  manager.emit('sse', Object.assign(
+                    { type: 'transfer-error' }, baseEvent,
+                    { error: err && err.message ? err.message : String(err) }
+                  ));
+                },
+              });
+              result = {
+                started: handle.started,
+                pid: handle.pid,
+                alias,
+                type,
+                transferId,
+                cmd: handle.cmd,
+                args: handle.args,
+              };
+            } else {
+              const branch = typeof body.branch === 'string' ? body.branch : '';
+              const remoteRepoPath = body.remoteRepoPath || opts.remoteRepoPath;
+              if (!remoteRepoPath) {
+                result = { error: 'Missing remoteRepoPath for git transfer' };
+              } else {
+                const handle = fileTransfer.pushRepo(machine, src, branch, {
+                  remoteRepoPath,
+                  force: Boolean(opts.force),
+                  allowSystem,
+                  onProgress: (ev) => {
+                    manager.emit('sse', Object.assign(
+                      { type: 'transfer-progress' }, baseEvent, ev
+                    ));
+                  },
+                  onComplete: (info) => {
+                    manager.emit('sse', Object.assign(
+                      { type: 'transfer-complete' }, baseEvent, info
+                    ));
+                  },
+                  onError: (err) => {
+                    manager.emit('sse', Object.assign(
+                      { type: 'transfer-error' }, baseEvent,
+                      { error: err && err.message ? err.message : String(err) }
+                    ));
+                  },
+                });
+                result = {
+                  started: handle.started,
+                  pid: handle.pid,
+                  alias,
+                  type,
+                  transferId,
+                  cmd: handle.cmd,
+                  args: handle.args,
+                };
+              }
+            }
+          } catch (e) {
+            result = { error: e.message };
+          }
         }
       }
 

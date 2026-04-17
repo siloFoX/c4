@@ -1818,6 +1818,96 @@ async function main() {
         return;
       }
 
+      case 'send-file': {
+        // Machine-to-machine rsync over ssh (9.8). Positional args:
+        //   c4 send-file <alias> <localPath> <remotePath>
+        // Flags: --delete / --exclude (repeatable) / --dry-run / --allow-system.
+        const positional = [];
+        const excludes = [];
+        let deleteFlag = false, dryRun = false, allowSystem = false;
+        for (let i = 0; i < args.length; i++) {
+          if (args[i] === '--delete') deleteFlag = true;
+          else if (args[i] === '--exclude' && args[i + 1]) excludes.push(args[++i]);
+          else if (args[i] === '--dry-run') dryRun = true;
+          else if (args[i] === '--allow-system') allowSystem = true;
+          else positional.push(args[i]);
+        }
+        const [alias, localPath, remotePath] = positional;
+        if (!alias || !localPath || !remotePath) {
+          console.error('Usage: c4 send-file <alias> <localPath> <remotePath> [--delete] [--exclude pattern] [--dry-run] [--allow-system]');
+          process.exit(1);
+        }
+        const body = {
+          alias,
+          type: 'rsync',
+          src: localPath,
+          dest: remotePath,
+          opts: {
+            excludes,
+            delete: deleteFlag,
+            dryRun,
+            allowSystem,
+          },
+        };
+        result = await request('POST', '/transfer', body);
+        if (result.error) {
+          console.error(`Error: ${result.error}`);
+          process.exit(1);
+        }
+        console.log(`[ok] transfer started: pid=${result.pid} alias=${result.alias} id=${result.transferId}`);
+        console.log(`[info] progress events on /events (type='transfer-progress')`);
+        return;
+      }
+
+      case 'push-repo': {
+        // Machine-to-machine git push over ssh (9.8). Positional:
+        //   c4 push-repo <alias> [branch]
+        // Flags: --repo <localRepoPath> (default: cwd)
+        //        --remote-repo <remoteRepoPath> (required)
+        //        --force (uses --force-with-lease; never plain --force)
+        //        --allow-system
+        const positional = [];
+        let localRepoPath = process.cwd();
+        let remoteRepoPath = '';
+        let force = false, allowSystem = false;
+        for (let i = 0; i < args.length; i++) {
+          if (args[i] === '--repo' && args[i + 1]) localRepoPath = args[++i];
+          else if (args[i] === '--remote-repo' && args[i + 1]) remoteRepoPath = args[++i];
+          else if (args[i] === '--force') force = true;
+          else if (args[i] === '--allow-system') allowSystem = true;
+          else positional.push(args[i]);
+        }
+        const [alias, branch] = positional;
+        if (!alias) {
+          console.error('Usage: c4 push-repo <alias> [branch] --remote-repo <path> [--repo <localPath>] [--force] [--allow-system]');
+          process.exit(1);
+        }
+        if (!remoteRepoPath) {
+          console.error('Error: --remote-repo <path> is required (remote path on target machine)');
+          process.exit(1);
+        }
+        const body = {
+          alias,
+          type: 'git',
+          src: localRepoPath,
+          remoteRepoPath,
+          branch: branch || '',
+          opts: {
+            force,
+            allowSystem,
+          },
+        };
+        result = await request('POST', '/transfer', body);
+        if (result.error) {
+          console.error(`Error: ${result.error}`);
+          process.exit(1);
+        }
+        console.log(`[ok] push-repo started: pid=${result.pid} alias=${result.alias} id=${result.transferId}`);
+        if (branch) console.log(`[info] branch=${branch}`);
+        console.log(`[info] progress events on /events (type='transfer-progress')`);
+        return;
+      }
+
       case 'fleet': {
         // Multi-machine fleet management (9.6).
         const fleet = fleetModule();
@@ -2079,6 +2169,10 @@ Commands:
   fleet status [--timeout ms]      Aggregated fleet overview (health + worker counts)
   dispatch "<task>" [--count N] [--tags t1,t2] [--strategy S]  Distribute task across fleet (9.7)
        [--branch prefix] [--name prefix] [--profile name] [--auto-mode] [--dry-run] [--location alias]
+  send-file <alias> <localPath> <remotePath>                   Transfer files via rsync over ssh (9.8)
+       [--delete] [--exclude pattern] [--dry-run] [--allow-system]
+  push-repo <alias> [branch] --remote-repo <path>              Push a git repo to a fleet machine (9.8)
+       [--repo <localPath>] [--force] [--allow-system]
   scribe start                     Start session context recording
   scribe stop                      Stop scribe
   scribe status                    Show scribe status
