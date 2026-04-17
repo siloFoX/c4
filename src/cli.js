@@ -679,6 +679,58 @@ async function main() {
           console.log(`[warn] git identity: ${e.message}`);
         }
 
+        // 7. Web UI external-access prompt (8.10)
+        try {
+          const {
+            detectLanIP,
+            enableViteExternal,
+            setDaemonBindHost,
+          } = require('./web-external');
+
+          let enableExternal = false;
+
+          if (args.includes('--yes-external')) {
+            enableExternal = true;
+          } else if (args.includes('--no-external')) {
+            enableExternal = false;
+          } else if (process.stdin.isTTY) {
+            const readline = require('readline');
+            const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+            const answer = await new Promise((resolve) => {
+              rl.question('Enable Web UI external (LAN) access? (y/N): ', (a) => { rl.close(); resolve(a); });
+            });
+            enableExternal = /^y(es)?$/i.test((answer || '').trim());
+          } else {
+            console.log('[info] Web UI external access: non-TTY, skipped (use --yes-external to force)');
+          }
+
+          if (enableExternal) {
+            const viteCfg = path.join(repoRoot, 'web', 'vite.config.ts');
+            const viteRes = enableViteExternal(viteCfg);
+            if (viteRes.result === 'updated') console.log(`[ok] vite.config.ts: host 0.0.0.0 enabled`);
+            else if (viteRes.result === 'already-present') console.log('[ok] vite.config.ts: host already configured');
+            else console.log(`[warn] vite.config.ts: ${viteRes.error}`);
+
+            const cfgRes = setDaemonBindHost(configDst, '0.0.0.0');
+            if (cfgRes.result === 'updated') console.log('[ok] config.json: daemon.bindHost = 0.0.0.0');
+            else if (cfgRes.result === 'already-present') console.log('[ok] config.json: daemon.bindHost already 0.0.0.0');
+            else console.log(`[warn] config.json: ${cfgRes.error}`);
+
+            const ip = detectLanIP();
+            if (ip) {
+              console.log(`\nWeb UI:   http://${ip}:5173/  (run: npm --prefix ${path.join(repoRoot, 'web')} run dev -- --host 0.0.0.0)`);
+              console.log(`Daemon:   http://${ip}:3456/  (run: c4 daemon restart)`);
+            } else {
+              console.log('\nWeb UI:   http://<this-machine-ip>:5173/  (run: npm --prefix web run dev)');
+              console.log('Daemon:   http://<this-machine-ip>:3456/  (run: c4 daemon restart)');
+            }
+            console.log('[warn] External access enabled. Review firewall + auth (JWT planned in 8.1).');
+            console.log('[info] Run `c4 daemon restart` to rebind the daemon to 0.0.0.0.');
+          }
+        } catch (e) {
+          console.log(`[warn] web-external: ${e.message}`);
+        }
+
         console.log('\nc4 init complete!');
 
         // 6. Guide: manager mode start (7.14)
