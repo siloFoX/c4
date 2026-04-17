@@ -75,7 +75,7 @@ function isNotification(request) {
   return request && typeof request === 'object' && !('id' in request);
 }
 
-// Entry point for `c4 mcp start` — proxies stdio to the daemon.
+// Entry point for `c4 mcp start` - proxies stdio to the daemon.
 async function startStdio({ base = DEFAULT_BASE, stdin = process.stdin, stdout = process.stdout, stderr = process.stderr, exit = process.exit } = {}) {
   const rl = readline.createInterface({ input: stdin, crlfDelay: Infinity });
   const token = readToken();
