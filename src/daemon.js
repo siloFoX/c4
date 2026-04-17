@@ -4,13 +4,14 @@ const McpHandler = require('./mcp-handler');
 const Planner = require('./planner');
 const Scribe = require('./scribe');
 const Notifications = require('./notifications');
+const { resolveBindHost } = require('./web-external');
 
 const manager = new PtyManager();
 const mcpHandler = new McpHandler(manager);
 const planner = new Planner(manager);
 const cfg = manager.getConfig();
 const PORT = parseInt(process.env.PORT || cfg.daemon?.port || '3456');
-const HOST = cfg.daemon?.host || '127.0.0.1';
+const HOST = process.env.C4_BIND_HOST || resolveBindHost(cfg);
 const notifications = new Notifications(cfg.notifications || {});
 manager.setNotifications(notifications);
 
