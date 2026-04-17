@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Daemon serves built web UI on port 3456 (8.12):** new `src/static-server.js` (pure Node, no express) exports `serveStatic` with SPA fallback, path-traversal containment, MIME map, and 503 + `build:web` hint when `web/dist` is missing. `src/daemon.js` aliases `/api/<x>` -> `/<x>` via a new `resolveApiRoute` helper (vite dev proxy strips the prefix in dev; this aliasing keeps the same semantics in prod) and falls through to `serveStatic` for unmatched non-/api GET/HEAD. `vite.config.ts` unchanged so HMR still works via `npm --prefix web run dev`. `package.json` gains a `build:web` script (`npm --prefix web install && npm --prefix web run build`). `c4 init` auto-runs `npm run build:web` when `web/dist` is absent (300s timeout, non-fatal on failure). `c4 daemon start` warns via `webDistExists` but still boots. Result: one forwarded port (3456) is enough — `curl http://localhost:3456/` returns the React bundle, `curl http://localhost:3456/api/list` mirrors `/list`. README "Web UI Access" section added. `tests/daemon-static-serve.test.js` adds 25 node:test assertions (mimeFor 5 + resolveSafePath 3 + pickFile 6 + webDistExists 3 + resolveApiRoute 4 + serveStatic 7 — stream.PassThrough sink, no live daemon spawn). Full suite 61 / 61 pass.
+
 ## [1.6.20] - 2026-04-17
 
 ### Fixed

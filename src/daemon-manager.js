@@ -84,6 +84,16 @@ async function start() {
     removePid();
   }
 
+  // web/dist readiness warning (8.12). Daemon still starts so API works;
+  // browser visits to / will show a 503 with a build hint until fixed.
+  try {
+    const { webDistExists, DEFAULT_WEB_DIST } = require('./static-server');
+    if (!webDistExists(DEFAULT_WEB_DIST)) {
+      console.warn('[warn] web/dist not built — Web UI will return 503 until built.');
+      console.warn('       Run: npm run build:web');
+    }
+  } catch {}
+
   fs.mkdirSync(path.join(ROOT, 'logs'), { recursive: true });
 
   const logFd = fs.openSync(LOG_FILE, 'a');
