@@ -93,7 +93,7 @@ c4 batch "작업" [--count N] [--file tasks.txt]  배치 작업 실행
 
 ### 관리자 세션 시작 (권장)
 ```
-claude --agent C:/Users/silof/c4/.claude/agents/manager.md --model opus --effort max
+claude --agent C:/Users/silof/c4/.claude/agents/manager.md --model opus --effort max --name c4-manager
 ```
 agent 모드로 시작하면 compound 금지(git -C 사용), Read/Edit deny 등 관리자 규칙이 강제된다.
 

@@ -677,7 +677,7 @@ async function main() {
         const managerAgentPath = path.join(repoRoot, '.claude', 'agents', 'manager.md').replace(/\\/g, '/');
         if (fs.existsSync(managerAgentPath)) {
           console.log('\nTo start in manager mode:');
-          console.log(`  claude --agent ${managerAgentPath} --model opus --effort max`);
+          console.log(`  claude --agent ${managerAgentPath} --model opus --effort max --name c4-manager`);
         }
         return;
       }

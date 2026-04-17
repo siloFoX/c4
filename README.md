@@ -87,7 +87,7 @@ c4 init
 Start Claude Code with the manager agent for enforced rules (no compound commands, no direct code editing):
 
 ```bash
-claude --agent .claude/agents/manager.md --model opus --effort max
+claude --agent .claude/agents/manager.md --model opus --effort max --name c4-manager
 ```
 
 Then give it tasks — the manager will create workers via `c4` commands.
