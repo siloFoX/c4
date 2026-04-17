@@ -445,6 +445,7 @@ Level 4이면:
 | 7.17 | pendingTask 5.51 수정 후에도 재발 | **done** | docs/analysis/pending-task.md 후보 A~D 한꺼번에 차단: (1) setupDone 후 1000ms stabilization window (`_setupStableAt`), (2) active polling 2-consecutive ready (`_readyConfirmedAt`), (3) timeout fallback setupDone 가드 + 1회 defer, (4) `_chunkedWrite` fast path drain 동기화, (5) `enterDelayMs` 설정화(default 100→200). 9개 delivery 경로가 모두 `_getEnterDelayMs()` 경유. 테스트: pending-task-polling 14→18, chunked-write 7→9. |
 | 7.18 | worker 영어 전용 모드 | **done** | workerDefaults.workerLanguage: "en" 옵션 추가. _getRulesSummary()가 rules 끝에 "Respond in English only..." 지시문을 자동 덧붙인다. 한국어 인코딩 깨짐(7.16) 우회 + hook error 방지. |
 | 7.19 | worker setup /effort + /model 슬래시 명령 대응 | **done** | Claude Code v2.1.112+에서 `/effort <level>` + 옵션 `/model <value>` 슬래시 명령으로 설정. `_executeSetupPhase2`가 TUI 화살표 대신 슬래시 명령 전송, `_finishSetup` 헬퍼 추출. MSYS_NO_PATHCONV=1 방어 재확인 (Git Bash `/effort` 경로 변환 방지). `workerDefaults.model !== 'default'`일 때만 `/model` 전송. `tests/setup-slash.test.js` 추가. |
+| 7.20 | c4 init PATH 자동 등록 (7.13 후속) | **done** | 7.13에서 `~/.local/bin/c4` symlink는 만들지만 `~/.local/bin`이 PATH에 없으면 `c4` 명령이 동작하지 않는 문제 해결. init이 PATH 포함 여부를 확인하고 없으면 `~/.bashrc`에 `export PATH="$HOME/.local/bin:$PATH"` 자동 추가 (중복 방지). SHELL이 zsh이면 `~/.zshrc`도 추가. 로직을 `src/init-path.js`로 분리하여 dependency-injectable fs로 테스트 가능. `tests/init-path.test.js` 30개 assertion 추가. |
 
 ## 완료
 
@@ -599,3 +600,4 @@ Level 4이면:
 | ~~7.2~~ | agent 모드 Read deny 실효성 검증 | 2026-04-17 |
 | ~~7.8~~ | DGX 최신 코드 테스트 | 2026-04-17 |
 | ~~7.11~~ | 재귀적 테스트 구조 | 2026-04-17 |
+| ~~7.20~~ | c4 init PATH 자동 등록 | 2026-04-17 |
