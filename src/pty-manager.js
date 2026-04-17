@@ -971,6 +971,7 @@ class PtyManager extends EventEmitter {
       if (existing.idleTimer) clearTimeout(existing.idleTimer);
       if (existing._pendingTaskTimer) { clearInterval(existing._pendingTaskTimer); existing._pendingTaskTimer = null; }
       if (existing._pendingTaskTimeoutTimer) { clearTimeout(existing._pendingTaskTimeoutTimer); existing._pendingTaskTimeoutTimer = null; }
+      if (existing._pendingTaskVerifyTimer) { clearTimeout(existing._pendingTaskVerifyTimer); existing._pendingTaskVerifyTimer = null; }
       if (existing.rawLogStream && !existing.rawLogStream.destroyed) existing.rawLogStream.end();
       this.workers.delete(entry.name);
     }
@@ -1104,12 +1105,29 @@ class PtyManager extends EventEmitter {
       clearInterval(w._pendingTaskTimer);
       w._pendingTaskTimer = null;
       worker._pendingTaskSent = true;
+      worker._pendingTaskAttempts = (worker._pendingTaskAttempts || 0) + 1;
       const pt = worker._pendingTask;
       const fullTask = this._buildTaskText(worker, pt.task, pt.options);
-      await this._writeTaskAndEnter(worker.proc, fullTask, this._getEnterDelayMs());
-      worker._taskText = pt.task;
-      worker._taskStartedAt = new Date().toISOString();
-      worker._pendingTask = null;
+      try {
+        await this._writeTaskAndEnter(worker.proc, fullTask, this._getEnterDelayMs());
+        worker._taskText = pt.task;
+        worker._taskStartedAt = new Date().toISOString();
+        worker._pendingTask = null;
+        // (7.22) Schedule delivery verification — if the prompt is still idle
+        // after a grace period the CR was dropped; resend a bare Enter.
+        this._schedulePendingTaskVerify(worker);
+      } catch (err) {
+        // (7.22) Write failed mid-send. Leave _pendingTask populated and clear
+        // the sent flag so the still-armed timeout fallback (or the idle
+        // handler) can retry. Without this the worker is permanently stuck.
+        worker._pendingTaskSent = false;
+        worker.snapshots = worker.snapshots || [];
+        worker.snapshots.push({
+          time: Date.now(),
+          screen: `[C4 WARN] pendingTask write failed, will retry via fallback: ${String((err && err.message) || err).slice(0, 200)}`,
+          autoAction: true
+        });
+      }
     }, 500);
 
     // Timeout fallback: force-send if polling hasn't detected idle in time.
@@ -1125,6 +1143,10 @@ class PtyManager extends EventEmitter {
 
       const effortLevel = worker._dynamicEffort || this.config.workerDefaults?.effortLevel;
       const setupNeeded = effortLevel && !worker.setupDone;
+      // (7.22) Honor the stabilization window even in the fallback: if setup
+      // just finished but _setupStableAt is still ahead, sending now lands in
+      // the same menu-close transient that active polling protects against.
+      const stableGateOk = Date.now() >= (worker._setupStableAt || 0);
 
       if (setupNeeded && attempt === 1) {
         const deferMs = Math.floor(pendingTimeoutMs / 2);
@@ -1138,14 +1160,46 @@ class PtyManager extends EventEmitter {
         return;
       }
 
+      // (7.22) Transient stabilization defer: only on first attempt and only
+      // when the gap is small (<=2s). Prevents fallback from racing into a
+      // still-open model-menu overlay.
+      if (!stableGateOk && attempt === 1) {
+        const deferMs = Math.max(500, (worker._setupStableAt || 0) - Date.now());
+        if (deferMs <= 2000) {
+          worker.snapshots = worker.snapshots || [];
+          worker.snapshots.push({
+            time: Date.now(),
+            screen: `[C4 WARN] pendingTask fallback deferred — stabilization window, retry in ${deferMs}ms`,
+            autoAction: true
+          });
+          w._pendingTaskTimeoutTimer = setTimeout(() => fireFallback(2), deferMs);
+          return;
+        }
+      }
+
       if (w._pendingTaskTimer) { clearInterval(w._pendingTaskTimer); w._pendingTaskTimer = null; }
       worker._pendingTaskSent = true;
+      worker._pendingTaskAttempts = (worker._pendingTaskAttempts || 0) + 1;
       const pt = worker._pendingTask;
       const fullTask = this._buildTaskText(worker, pt.task, pt.options);
-      await this._writeTaskAndEnter(worker.proc, fullTask, this._getEnterDelayMs());
-      worker._taskText = pt.task;
-      worker._taskStartedAt = new Date().toISOString();
-      worker._pendingTask = null;
+      try {
+        await this._writeTaskAndEnter(worker.proc, fullTask, this._getEnterDelayMs());
+        worker._taskText = pt.task;
+        worker._taskStartedAt = new Date().toISOString();
+        worker._pendingTask = null;
+        this._schedulePendingTaskVerify(worker);
+      } catch (err) {
+        // (7.22) Write failure on fallback: keep _pendingTask and clear sent
+        // flag so idle handler can retry. Fallback timer is already spent;
+        // rely on the idle handler's pendingTask block.
+        worker._pendingTaskSent = false;
+        worker.snapshots.push({
+          time: Date.now(),
+          screen: `[C4 WARN] pendingTask fallback write failed: ${String((err && err.message) || err).slice(0, 200)}`,
+          autoAction: true
+        });
+        return;
+      }
       worker.snapshots = worker.snapshots || [];
       worker.snapshots.push({
         time: Date.now(),
@@ -1260,12 +1314,27 @@ class PtyManager extends EventEmitter {
         const text = this._getScreenText(worker.screen);
         if (this._termInterface.isReady(text)) {
           worker._pendingTaskSent = true;
+          worker._pendingTaskAttempts = (worker._pendingTaskAttempts || 0) + 1;
           const pt = worker._pendingTask;
           const fullTask = this._buildTaskText(worker, pt.task, pt.options);
-          await this._writeTaskAndEnter(proc, fullTask, this._getEnterDelayMs());
-          worker._taskText = pt.task;
-          worker._taskStartedAt = new Date().toISOString();
-          worker._pendingTask = null;
+          try {
+            await this._writeTaskAndEnter(proc, fullTask, this._getEnterDelayMs());
+            worker._taskText = pt.task;
+            worker._taskStartedAt = new Date().toISOString();
+            worker._pendingTask = null;
+            // (7.22) Verify the Enter was accepted; resend CR if still idle.
+            this._schedulePendingTaskVerify(worker);
+          } catch (err) {
+            // (7.22) Recover from mid-write failure so the idle handler's
+            // pendingTask block or timeout fallback can retry.
+            worker._pendingTaskSent = false;
+            worker.snapshots = worker.snapshots || [];
+            worker.snapshots.push({
+              time: Date.now(),
+              screen: `[C4 WARN] post-setup write failed: ${String((err && err.message) || err).slice(0, 200)}`,
+              autoAction: true
+            });
+          }
         }
       }, postSetupMs);
     }
@@ -2662,6 +2731,8 @@ class PtyManager extends EventEmitter {
       _pendingTaskSent: false,
       _pendingTaskTimer: null,   // active polling interval for pending task
       _pendingTaskTimeoutTimer: null, // timeout fallback timer
+      _pendingTaskAttempts: 0,   // (7.22) number of _writeTaskAndEnter attempts (delivery verification)
+      _pendingTaskVerifyTimer: null, // (7.22) post-write Enter verification timer
       // SSH state (2.4)
       _isSsh: t.type === 'ssh',
       // History tracking (3.7)
@@ -2783,14 +2854,45 @@ class PtyManager extends EventEmitter {
         const stableGateOk = Date.now() >= (worker._setupStableAt || 0);
         if (worker._pendingTask && !worker._pendingTaskSent && !setupNeeded && stableGateOk) {
           worker._pendingTaskSent = true;
+          worker._pendingTaskAttempts = (worker._pendingTaskAttempts || 0) + 1;
           const pt = worker._pendingTask;
           const fullTask = this._buildTaskText(worker, pt.task, pt.options);
           const enterDelayMs = this._getEnterDelayMs();
           setTimeout(async () => {
-            await this._writeTaskAndEnter(proc, fullTask, enterDelayMs);
-            worker._taskText = pt.task;
-            worker._taskStartedAt = new Date().toISOString();
-            worker._pendingTask = null;
+            // (7.22) Re-validate state inside the 500ms delay: the worker can
+            // die or a prompt overlay can reopen in this gap, which would make
+            // the write land somewhere other than the input field.
+            if (!worker.alive || !worker._pendingTask) return;
+            const recheckText = this._getScreenText(worker.screen);
+            const stillReady = this._termInterface.isReady(recheckText);
+            const stillStable = Date.now() >= (worker._setupStableAt || 0);
+            const stillNoSetup = !(worker._dynamicEffort || this.config.workerDefaults?.effortLevel) || worker.setupDone;
+            if (!stillReady || !stillStable || !stillNoSetup) {
+              // Abort this scheduled send; let active polling / idle retry.
+              worker._pendingTaskSent = false;
+              worker.snapshots = worker.snapshots || [];
+              worker.snapshots.push({
+                time: Date.now(),
+                screen: `[C4 WARN] pendingTask idle-path scheduled send aborted (state changed). ready=${stillReady} stable=${stillStable} noSetup=${stillNoSetup}`,
+                autoAction: true
+              });
+              return;
+            }
+            try {
+              await this._writeTaskAndEnter(proc, fullTask, enterDelayMs);
+              worker._taskText = pt.task;
+              worker._taskStartedAt = new Date().toISOString();
+              worker._pendingTask = null;
+              this._schedulePendingTaskVerify(worker);
+            } catch (err) {
+              worker._pendingTaskSent = false;
+              worker.snapshots = worker.snapshots || [];
+              worker.snapshots.push({
+                time: Date.now(),
+                screen: `[C4 WARN] idle-path pendingTask write failed: ${String((err && err.message) || err).slice(0, 200)}`,
+                autoAction: true
+              });
+            }
           }, 500);
           return;
         }
@@ -2802,10 +2904,28 @@ class PtyManager extends EventEmitter {
             const entry = this._taskQueue.splice(queueIdx, 1)[0];
             const fullTask = this._buildTaskText(worker, entry.task, entry);
             const queueEnterDelayMs = this._getEnterDelayMs();
-            setTimeout(() => {
-              this._writeTaskAndEnter(proc, fullTask, queueEnterDelayMs);
-              worker._taskText = entry.task;
-              worker._taskStartedAt = new Date().toISOString();
+            setTimeout(async () => {
+              // (7.22) Re-validate — the worker may have died or a prompt
+              // may have appeared in the 500ms gap.
+              if (!worker.alive) {
+                this._taskQueue.unshift(entry); // return to queue head
+                return;
+              }
+              try {
+                await this._writeTaskAndEnter(proc, fullTask, queueEnterDelayMs);
+                worker._taskText = entry.task;
+                worker._taskStartedAt = new Date().toISOString();
+                this._schedulePendingTaskVerify(worker);
+              } catch (err) {
+                // Re-queue on write failure so idle handler retries.
+                this._taskQueue.unshift(entry);
+                worker.snapshots = worker.snapshots || [];
+                worker.snapshots.push({
+                  time: Date.now(),
+                  screen: `[C4 WARN] auto-resume write failed, re-queued: ${String((err && err.message) || err).slice(0, 200)}`,
+                  autoAction: true
+                });
+              }
             }, 500);
             this._saveState();
             return;
@@ -3047,6 +3167,7 @@ class PtyManager extends EventEmitter {
       if (worker._setupPollTimer) { clearInterval(worker._setupPollTimer); worker._setupPollTimer = null; }
       if (worker._pendingTaskTimer) { clearInterval(worker._pendingTaskTimer); worker._pendingTaskTimer = null; }
       if (worker._pendingTaskTimeoutTimer) { clearTimeout(worker._pendingTaskTimeoutTimer); worker._pendingTaskTimeoutTimer = null; }
+      if (worker._pendingTaskVerifyTimer) { clearTimeout(worker._pendingTaskVerifyTimer); worker._pendingTaskVerifyTimer = null; }
       const text = this._getScreenText(screen);
       worker.snapshots.push({
         time: Date.now(),
@@ -3246,6 +3367,47 @@ class PtyManager extends EventEmitter {
   // configured enterDelayMs. Returns the _writeTaskAndEnter default when unset.
   _getEnterDelayMs() {
     return this.config.workerDefaults?.enterDelayMs ?? 200;
+  }
+
+  // (7.22) Post-write delivery verification.
+  //
+  // `_writeTaskAndEnter` splits text and CR into two proc.write calls with
+  // enterDelayMs between them. On Windows conpty under load the CR can still
+  // be silently dropped — the write succeeds from Node's side but the child
+  // TUI never registers the submit. The result is a prompt that holds the
+  // full task text without processing it, and _pendingTaskSent=true blocks
+  // every retry path.
+  //
+  // After a successful write, schedule a single verification check. If the
+  // screen still shows the idle prompt after the verify delay, fire one more
+  // bare CR to try to submit. Limit to a single retry so we never runaway.
+  //
+  // Configurable:
+  //   - workerDefaults.pendingTaskVerifyMs (default 1500ms)
+  //   - workerDefaults.pendingTaskVerifyEnabled (default true)
+  _schedulePendingTaskVerify(worker) {
+    const cfg = this.config.workerDefaults || {};
+    if (cfg.pendingTaskVerifyEnabled === false) return;
+    const verifyMs = cfg.pendingTaskVerifyMs ?? 1500;
+    if (!worker || !worker.proc) return;
+    if (worker._pendingTaskVerifyTimer) {
+      clearTimeout(worker._pendingTaskVerifyTimer);
+      worker._pendingTaskVerifyTimer = null;
+    }
+    worker._pendingTaskVerifyTimer = setTimeout(() => {
+      worker._pendingTaskVerifyTimer = null;
+      if (!worker.alive || !worker.proc) return;
+      const text = this._getScreenText(worker.screen);
+      if (!this._termInterface.isReady(text)) return; // task is processing — delivered
+      // Idle prompt is still up. Send a lone CR to submit any buffered text.
+      try { worker.proc.write('\r'); } catch { /* proc closed */ }
+      worker.snapshots = worker.snapshots || [];
+      worker.snapshots.push({
+        time: Date.now(),
+        screen: `[C4 WARN] pendingTask verify: prompt still idle after ${verifyMs}ms, resent Enter`,
+        autoAction: true
+      });
+    }, verifyMs);
   }
 
   read(name) {
@@ -3558,6 +3720,7 @@ class PtyManager extends EventEmitter {
         if (w.idleTimer) clearTimeout(w.idleTimer);
         if (w._pendingTaskTimer) { clearInterval(w._pendingTaskTimer); w._pendingTaskTimer = null; }
         if (w._pendingTaskTimeoutTimer) { clearTimeout(w._pendingTaskTimeoutTimer); w._pendingTaskTimeoutTimer = null; }
+        if (w._pendingTaskVerifyTimer) { clearTimeout(w._pendingTaskVerifyTimer); w._pendingTaskVerifyTimer = null; }
         if (w.rawLogStream && !w.rawLogStream.destroyed) w.rawLogStream.end();
         this.workers.delete(name);
 
@@ -3982,6 +4145,7 @@ class PtyManager extends EventEmitter {
     if (w.idleTimer) clearTimeout(w.idleTimer);
     if (w._pendingTaskTimer) { clearInterval(w._pendingTaskTimer); w._pendingTaskTimer = null; }
     if (w._pendingTaskTimeoutTimer) { clearTimeout(w._pendingTaskTimeoutTimer); w._pendingTaskTimeoutTimer = null; }
+    if (w._pendingTaskVerifyTimer) { clearTimeout(w._pendingTaskVerifyTimer); w._pendingTaskVerifyTimer = null; }
     if (w.alive) w.proc.kill();
     if (w.rawLogStream && !w.rawLogStream.destroyed) w.rawLogStream.end();
 
