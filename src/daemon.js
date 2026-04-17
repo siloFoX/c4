@@ -151,6 +151,16 @@ async function handleRequest(req, res) {
   // In prod the daemon serves both on port 3456, so alias /api/<x> -> /<x>.
   const { isApi: isApiPrefixed, route } = staticServer.resolveApiRoute(rawPath);
 
+  // Validation object (9.9): also recognize path-param form
+  // /worker/<name>/validation so the REST shape matches the TODO spec.
+  // The query-param alias /validation?name=<x> is handled in the normal
+  // route table below.
+  let workerValidationName = null;
+  {
+    const m = route.match(/^\/worker\/([^\/]+)\/validation$/);
+    if (m) workerValidationName = decodeURIComponent(m[1]);
+  }
+
   try {
     let result;
 
@@ -281,6 +291,17 @@ async function handleRequest(req, res) {
     } else if (req.method === 'GET' && route === '/token-usage') {
       const perTask = url.searchParams.get('perTask') === '1';
       result = manager.getTokenUsage({ perTask });
+
+    } else if (req.method === 'GET' && (route === '/validation' || workerValidationName)) {
+      // Validation object (9.9): returns parsed JSON from
+      // <worktree>/.c4-validation.json, falling back to a synthesized
+      // object from git state when the file is missing or malformed.
+      const name = workerValidationName || url.searchParams.get('name');
+      if (!name) {
+        result = { error: 'Missing name parameter' };
+      } else {
+        result = manager.getValidation(name);
+      }
 
     } else if (req.method === 'GET' && route === '/scrollback') {
       const name = url.searchParams.get('name');
