@@ -6,6 +6,7 @@ export default function App() {
       </header>
       <div className="flex flex-1 overflow-hidden">
         <aside className="w-64 shrink-0 overflow-y-auto border-r border-gray-800 bg-gray-800 p-4">
+          <img src="/logo.svg" alt="C4" className="mb-4 h-10" />
           <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-gray-400">
             Workers
           </h2>
