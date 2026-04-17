@@ -2068,6 +2068,118 @@ async function main() {
         return;
       }
 
+      case 'cost': {
+        // (10.5) Cost report + billing. Thin wrapper around the daemon
+        // endpoints at /cost/*. Pure reporting — never mutates worker
+        // state, so safe to run during active sessions.
+        //   c4 cost report [--from ISO] [--to ISO] [--group project|team|machine|user] [--models] [--json]
+        //   c4 cost monthly <YYYY-MM> [--group ...] [--json]
+        //   c4 cost budget --limit N [--period day|week|month] [--group name] [--json]
+        const sub = args[0];
+        if (!sub || !['report', 'monthly', 'budget'].includes(sub)) {
+          console.log('Usage: c4 cost <report|monthly|budget> [flags]');
+          console.log('  report [--from ISO] [--to ISO] [--group project|team|machine|user] [--models] [--json]');
+          console.log('  monthly <YYYY-MM> [--group ...] [--json]');
+          console.log('  budget --limit N [--period day|week|month] [--group name] [--json]');
+          return;
+        }
+
+        // Shared flag parser for all three subcommands.
+        let flagFrom = '', flagTo = '', flagGroup = 'project', flagModels = false;
+        let flagJson = false, flagLimit = 0, flagPeriod = 'month', flagGroupName = '';
+        for (let i = 1; i < args.length; i++) {
+          if (args[i] === '--from' && args[i + 1]) flagFrom = args[++i];
+          else if (args[i] === '--to' && args[i + 1]) flagTo = args[++i];
+          else if (args[i] === '--group' && args[i + 1]) {
+            // 'report' and 'monthly' use --group for groupBy; 'budget'
+            // uses it for the specific group name to check. Disambiguate
+            // by subcommand below.
+            if (sub === 'budget') flagGroupName = args[++i];
+            else flagGroup = args[++i];
+          }
+          else if (args[i] === '--models') flagModels = true;
+          else if (args[i] === '--json') flagJson = true;
+          else if (args[i] === '--limit' && args[i + 1]) flagLimit = parseFloat(args[++i]) || 0;
+          else if (args[i] === '--period' && args[i + 1]) flagPeriod = args[++i];
+        }
+
+        if (sub === 'report') {
+          const qs = new URLSearchParams();
+          if (flagFrom) qs.set('from', flagFrom);
+          if (flagTo) qs.set('to', flagTo);
+          if (flagGroup) qs.set('group', flagGroup);
+          if (flagModels) qs.set('models', '1');
+          const qsStr = qs.toString();
+          result = await request('GET', '/cost/report' + (qsStr ? '?' + qsStr : ''));
+        } else if (sub === 'monthly') {
+          const ym = args[1] && !args[1].startsWith('--') ? args[1] : '';
+          const match = /^(\d{4})-(\d{1,2})$/.exec(ym);
+          if (!match) {
+            console.error('Usage: c4 cost monthly <YYYY-MM> [--group ...] [--json]');
+            process.exit(1);
+          }
+          const year = match[1];
+          const month = String(parseInt(match[2], 10)).padStart(2, '0');
+          const qs = new URLSearchParams();
+          if (flagGroup && flagGroup !== 'project') qs.set('group', flagGroup);
+          const qsStr = qs.toString();
+          result = await request('GET', `/cost/monthly/${year}/${month}` + (qsStr ? '?' + qsStr : ''));
+        } else {
+          // sub === 'budget'
+          if (!flagLimit || flagLimit <= 0) {
+            console.error('Usage: c4 cost budget --limit <usd> [--period day|week|month] [--group name]');
+            process.exit(1);
+          }
+          const body = { limit: flagLimit, period: flagPeriod };
+          if (flagGroupName) body.group = flagGroupName;
+          result = await request('POST', '/cost/budget', body);
+        }
+
+        if (result && result.error) {
+          console.error(`Error: ${result.error}`);
+          process.exit(1);
+        }
+
+        if (flagJson) {
+          console.log(JSON.stringify(result, null, 2));
+          return;
+        }
+
+        if (sub === 'budget') {
+          const pct = Math.round((result.percent || 0) * 100);
+          const status = result.exceeded ? 'EXCEEDED' : result.warning ? 'WARN' : 'OK';
+          console.log(`Budget [${status}] period=${result.period} ${result.from} .. ${result.to}`);
+          if (result.group) console.log(`  group: ${result.group}`);
+          console.log(`  used:    $${(result.used || 0).toFixed(4)}`);
+          console.log(`  limit:   $${(result.limit || 0).toFixed(2)}`);
+          console.log(`  percent: ${pct}% (warnAt ${Math.round((result.warnAt || 0) * 100)}%)`);
+          return;
+        }
+
+        // report + monthly share the same printer
+        const header = sub === 'monthly' && result.month
+          ? `Cost report ${result.month.year}-${String(result.month.month).padStart(2, '0')}`
+          : `Cost report ${result.period?.from || ''} .. ${result.period?.to || ''}`;
+        console.log(header);
+        const total = result.total || { tokens: 0, costUSD: 0 };
+        console.log(`  total: ${(total.tokens || 0).toLocaleString()} tokens  $${(total.costUSD || 0).toFixed(4)}`);
+        const groups = result.byGroup || [];
+        if (groups.length === 0) {
+          console.log('  (no usage in period)');
+        } else {
+          console.log(`  by ${result.groupBy || flagGroup}:`);
+          for (const g of groups) {
+            console.log(`    ${g.name}: ${(g.tokens || 0).toLocaleString()} tokens  $${(g.costUSD || 0).toFixed(4)}`);
+            if (g.perModel) {
+              for (const [model, m] of Object.entries(g.perModel)) {
+                console.log(`      ${model}: ${(m.tokens || 0).toLocaleString()} tokens  $${(m.costUSD || 0).toFixed(4)}`);
+              }
+            }
+          }
+        }
+        return;
+      }
+
       case 'audit': {
         // (10.2) Audit log query + hash chain verification.
         //   c4 audit query [--type T] [--from ISO] [--to ISO] [--target name] [--limit N]
@@ -2249,6 +2361,9 @@ Commands:
   config reload                    Reload config.json without restart
   audit query [--type T] [--from ISO] [--to ISO] [--target name] [--limit N]   Query audit log (10.2)
   audit verify                     Verify audit log hash chain integrity
+  cost report [--from ISO] [--to ISO] [--group project|team|machine|user] [--models] [--json]   Cost report (10.5)
+  cost monthly <YYYY-MM> [--json]  Monthly cost report
+  cost budget --limit N [--period day|week|month] [--group name] [--json]   Budget check
 
 Special keys: Enter, C-c, C-b, C-d, C-z, C-l, C-a, C-e, Escape, Tab, Backspace, Up, Down, Left, Right
 
