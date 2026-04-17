@@ -55,6 +55,8 @@ const ACTIONS = Object.freeze({
   CONFIG_RELOAD: 'config.reload',
   AUTH_USER_CREATE: 'auth.user.create',
   AUDIT_READ: 'audit.read',
+  CICD_READ: 'cicd.read',
+  CICD_MANAGE: 'cicd.manage',
 });
 
 const ALL_ACTIONS = Object.freeze(Object.values(ACTIONS));
@@ -75,10 +77,13 @@ const DEFAULT_PERMISSIONS = Object.freeze({
     'fleet.add',
     'config.reload',
     'audit.read',
+    'cicd.read',
+    'cicd.manage',
   ]),
   viewer: Object.freeze([
     'project.read',
     'audit.read',
+    'cicd.read',
   ]),
 });
 

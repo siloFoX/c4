@@ -240,6 +240,12 @@
     }
   },
 
+  "cicd": {
+    "provider": "github-actions",
+    "webhooks": { "secret": "" },
+    "repos": []
+  },
+
   "pool": {
     "enabled": false,
     "maxIdleMs": 300000
