@@ -87,7 +87,7 @@ c4 init
 관리자 에이전트로 시작하면 규칙이 강제됩니다 (복합 명령 금지, 코드 직접 수정 금지):
 
 ```bash
-claude --agent .claude/agents/manager.md
+claude --agent .claude/agents/manager.md --model opus --effort max
 ```
 
 작업을 지시하면 관리자가 `c4` 명령어로 워커를 생성해서 처리합니다.
