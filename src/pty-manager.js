@@ -2214,10 +2214,16 @@ class PtyManager extends EventEmitter {
     const rules = this.config.rules;
     if (!rules || !rules.appendToTask) return null;
 
-    // Use custom summary if provided, otherwise use default
-    if (rules.summary) return rules.summary;
+    const englishOnly = this.config.workerDefaults?.workerLanguage === 'en';
 
-    return [
+    // Use custom summary if provided, otherwise use default
+    if (rules.summary) {
+      return englishOnly
+        ? `${rules.summary}\n- Respond in English only. Do not use non-ASCII characters in any output.`
+        : rules.summary;
+    }
+
+    const lines = [
       '[C4 규칙 — 반드시 준수]',
       '- 복합 명령(&&, |, ;) 사용 금지 → 단일 명령으로 분리',
       '- IMPORTANT: git -C <path> 형태만 허용. cd 후 git 절대 금지 (cd X && git Y, cd X; git Y 모두 불가)',
@@ -2225,7 +2231,11 @@ class PtyManager extends EventEmitter {
       '- /model 등 슬래시 명령: MSYS_NO_PATHCONV=1 c4 send 사용',
       '- main 직접 커밋 금지 → 브랜치에서 작업',
       '- 작업 루틴: 구현 → 테스트 → 문서 업데이트 → 커밋',
-    ].join('\n');
+    ];
+    if (englishOnly) {
+      lines.push('- Respond in English only. Do not use non-ASCII characters in any output.');
+    }
+    return lines.join('\n');
   }
 
   // --- Worker Pooling (3.4) ---
