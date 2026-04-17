@@ -549,10 +549,26 @@ async function main() {
               c4Registered = true;
               console.log(`[ok] symlink: ${c4Link} -> ${c4Cli}`);
 
-              const pathDirs = (process.env.PATH || '').split(':');
-              if (!pathDirs.includes(localBin)) {
-                console.log('[info] ~/.local/bin not in PATH — add to your shell rc:');
-                console.log('  export PATH="$HOME/.local/bin:$PATH"');
+              // Auto-register ~/.local/bin in PATH via shell rc (bash + zsh).
+              const { registerLocalBinInPath } = require('./init-path');
+              const pathResult = registerLocalBinInPath({ home, localBin });
+              if (pathResult.alreadyInPath) {
+                console.log('[ok] PATH: ~/.local/bin already in PATH');
+              } else {
+                for (const rc of pathResult.updated) {
+                  console.log(`[ok] PATH: registered ~/.local/bin in ${rc}`);
+                }
+                for (const rc of pathResult.unchanged) {
+                  console.log(`[ok] PATH: export already present in ${rc} (skipped)`);
+                }
+                for (const { rc, error } of pathResult.errors) {
+                  console.log(`[warn] PATH: could not update ${rc}: ${error}`);
+                }
+                if (pathResult.updated.length > 0) {
+                  console.log('[info] Open a new terminal (or `source ~/.bashrc`) to pick up PATH');
+                } else if (pathResult.unchanged.length === 0 && pathResult.errors.length === 0) {
+                  console.log('[info] Add to your shell rc: export PATH="$HOME/.local/bin:$PATH"');
+                }
               }
             } catch (e) {
               console.log(`[info] ~/.local/bin symlink failed: ${e.message}`);
