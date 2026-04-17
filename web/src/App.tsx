@@ -1,14 +1,61 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import WorkerList from './components/WorkerList';
 import WorkerDetail from './components/WorkerDetail';
+import Login from './components/Login';
+import { AUTH_EVENT, fetchAuthStatus, getToken, logout } from './lib/api';
+
+type AuthState = 'loading' | 'anon' | 'authed' | 'disabled';
 
 export default function App() {
   const [selectedWorker, setSelectedWorker] = useState<string | null>(null);
+  const [authState, setAuthState] = useState<AuthState>('loading');
+
+  const refreshAuth = useCallback(async () => {
+    const status = await fetchAuthStatus();
+    if (!status.enabled) {
+      setAuthState('disabled');
+      return;
+    }
+    setAuthState(getToken() ? 'authed' : 'anon');
+  }, []);
+
+  useEffect(() => {
+    refreshAuth();
+    const onExpired = () => setAuthState('anon');
+    window.addEventListener(AUTH_EVENT, onExpired);
+    return () => window.removeEventListener(AUTH_EVENT, onExpired);
+  }, [refreshAuth]);
+
+  if (authState === 'loading') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-900 text-sm text-gray-400">
+        Loading...
+      </div>
+    );
+  }
+
+  if (authState === 'anon') {
+    return <Login onSuccess={() => setAuthState('authed')} />;
+  }
+
+  const handleLogout = async () => {
+    await logout();
+    setAuthState('anon');
+  };
 
   return (
     <div className="flex h-screen flex-col">
-      <header className="border-b border-gray-800 bg-gray-800 px-6 py-4">
+      <header className="flex items-center justify-between border-b border-gray-800 bg-gray-800 px-6 py-4">
         <h1 className="text-xl font-semibold text-gray-100">C4 Dashboard</h1>
+        {authState === 'authed' && (
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="rounded bg-gray-700 px-3 py-1 text-xs text-gray-200 hover:bg-gray-600"
+          >
+            Sign out
+          </button>
+        )}
       </header>
       <div className="flex flex-1 overflow-hidden">
         <aside className="w-72 shrink-0 overflow-y-auto border-r border-gray-800 bg-gray-900 p-4">

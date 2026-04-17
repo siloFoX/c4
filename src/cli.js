@@ -44,15 +44,43 @@ const LIST_COOLDOWN_MS = 10000;
 
 const BASE = process.env.C4_URL || 'http://127.0.0.1:3456';
 
+// Session auth (8.14): the daemon rejects unauthenticated /api/* requests
+// when config.auth.enabled is true. Looking up the token at call time so
+// the same CLI process stays usable after `c4 login` writes the token file.
+const TOKEN_FILE = path.join(os.homedir(), '.c4-token');
+
+function readToken() {
+  if (process.env.C4_TOKEN) return process.env.C4_TOKEN.trim();
+  try {
+    const t = fs.readFileSync(TOKEN_FILE, 'utf8').trim();
+    return t || null;
+  } catch {
+    return null;
+  }
+}
+
+// Returns the value that follows --flag in argv, or '' if absent.
+// Used by `c4 init` to pull --user / --password-file without pulling in
+// a full arg parser.
+function extractFlag(argv, flag) {
+  if (!Array.isArray(argv)) return '';
+  const idx = argv.indexOf(flag);
+  if (idx === -1 || idx === argv.length - 1) return '';
+  return argv[idx + 1];
+}
+
 function request(method, path, body = null, timeout = 10000) {
   return new Promise((resolve, reject) => {
     const url = new URL(path, BASE);
+    const headers = { 'Content-Type': 'application/json' };
+    const token = readToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     const options = {
       hostname: url.hostname,
       port: url.port,
       path: url.pathname + url.search,
       method,
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       timeout
     };
 
@@ -424,6 +452,37 @@ async function main() {
           console.log('[ok] config.json: created from config.example.json');
         } else {
           console.log('[warn] config.example.json not found');
+        }
+
+        // 2b. Session auth provisioning (8.14). Two modes:
+        //   - non-interactive: --user <name> --password-file <path>
+        //   - interactive:     prompt for user + password on a TTY
+        // Either way we bcrypt the password and store only the hash in
+        // config.auth.users[<name>].passwordHash, alongside a freshly
+        // generated auth.secret on first run. The source password file is
+        // never modified.
+        try {
+          const authSetup = require('./auth-setup');
+          const cliAuthUser = extractFlag(args, '--user');
+          const cliAuthPwFile = extractFlag(args, '--password-file');
+
+          const result = await authSetup.provisionAuth({
+            configPath: configDst,
+            user: cliAuthUser,
+            passwordFile: cliAuthPwFile,
+            interactive: process.stdin.isTTY && !cliAuthUser && !cliAuthPwFile,
+          });
+          if (result.status === 'updated') {
+            console.log(`[ok] auth: user '${result.user}' configured (bcrypt hash stored)`);
+          } else if (result.status === 'skipped-exists') {
+            console.log(`[ok] auth: user '${result.user}' already configured (skipped)`);
+          } else if (result.status === 'skipped-no-args') {
+            console.log('[info] auth: non-interactive mode without --user/--password-file (skipped)');
+          } else if (result.status === 'error') {
+            console.log(`[warn] auth setup: ${result.error}`);
+          }
+        } catch (e) {
+          console.log(`[warn] auth setup: ${e.message}`);
         }
 
         // 3. Auto-detect claude binary path → save to config.json

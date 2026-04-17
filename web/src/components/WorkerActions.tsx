@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import Toast, { type ToastType } from './Toast';
+import { apiFetch } from '../lib/api';
 
 export interface WorkerActionsProps {
   workerName: string;
@@ -79,7 +80,7 @@ export default function WorkerActions({ workerName }: WorkerActionsProps) {
 
       setBusyKind(action.kind);
       try {
-        const res = await fetch(action.endpoint, {
+        const res = await apiFetch(action.endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(action.body),
