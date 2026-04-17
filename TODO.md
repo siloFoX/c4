@@ -444,7 +444,7 @@ Level 4이면:
 | 7.16 | PreToolUse hook error 인코딩 깨짐 | **done** | compound-check.js stderr 완전 ASCII 전환 + PowerShell/curl 후크 커맨드에 try/catch + SilentlyContinue 적용하여 localized 에러 메시지 차단. tests/hook-ascii.test.js로 non-ASCII 회귀 방지. |
 | 7.17 | pendingTask 5.51 수정 후에도 재발 | **todo** | 3개 worker 전부 Enter 안 먹힘. 5.51 수정(setupDone 가드 + post-setup 트리거)이 충분하지 않음. Windows에서만 발생하는지 DGX에서도 발생하는지 비교 필요. |
 | 7.18 | worker 영어 전용 모드 | **done** | workerDefaults.workerLanguage: "en" 옵션 추가. _getRulesSummary()가 rules 끝에 "Respond in English only..." 지시문을 자동 덧붙인다. 한국어 인코딩 깨짐(7.16) 우회 + hook error 방지. |
-| 7.19 | worker setup /effort + /model 슬래시 명령 대응 | **todo** | Claude Code v2.1.112+에서 /effort max, /model <model> 슬래시 명령으로 설정 필요. _executeSetupPhase2 로직 업데이트. MSYS_NO_PATHCONV=1 적용 (Git Bash 경로 변환 방지). config workerDefaults.model 반영. |
+| 7.19 | worker setup /effort + /model 슬래시 명령 대응 | **done** | Claude Code v2.1.112+에서 `/effort <level>` + 옵션 `/model <value>` 슬래시 명령으로 설정. `_executeSetupPhase2`가 TUI 화살표 대신 슬래시 명령 전송, `_finishSetup` 헬퍼 추출. MSYS_NO_PATHCONV=1 방어 재확인 (Git Bash `/effort` 경로 변환 방지). `workerDefaults.model !== 'default'`일 때만 `/model` 전송. `tests/setup-slash.test.js` 추가. |
 
 ## 완료
 

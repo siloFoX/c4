@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.14] - 2026-04-17
+
+### Changed
+- **worker setup을 슬래시 명령 기반으로 전환** (7.19): Claude Code v2.1.112+에서 `/effort <level>` + (옵션) `/model <value>` 슬래시 명령으로 설정. `_executeSetupPhase2`가 TUI 화살표 navigation 대신 `proc.write('/effort <level>\r')` + `workerDefaults.model !== 'default'`일 때 `/model <value>\r` 전송. `_finishSetup` 헬퍼 분리. Git Bash가 `/effort`를 `C:/Program Files/Git/effort`로 변환하는 것 방지 위해 write 전 `MSYS_NO_PATHCONV=1` 재확인 (cli.js:6에서 이미 설정되지만 방어적 재assert). idle handler의 Phase 1(menu 감지)/Phase 2(화살표) 분리 제거 — prompt ready 시 `_executeSetupPhase2`를 즉시 호출. `tests/setup-slash.test.js` 16개 케이스로 회귀 방지
+
 ## [1.6.13] - 2026-04-17
 
 ### Added
