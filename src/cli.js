@@ -2068,6 +2068,67 @@ async function main() {
         return;
       }
 
+      case 'audit': {
+        // (10.2) Audit log query + hash chain verification.
+        //   c4 audit query [--type T] [--from ISO] [--to ISO] [--target name] [--limit N]
+        //   c4 audit verify
+        // Both subcommands read through the daemon (so the operator sees
+        // the same trail the daemon is appending to) and print one JSON
+        // object per line for machine consumption.
+        const sub = args[0];
+        if (!sub || (sub !== 'query' && sub !== 'verify')) {
+          console.log('Usage: c4 audit <query|verify> [flags]');
+          console.log('  query [--type T] [--from ISO] [--to ISO] [--target name] [--limit N]');
+          console.log('  verify');
+          return;
+        }
+
+        if (sub === 'verify') {
+          result = await request('GET', '/audit/verify');
+          if (result.error) {
+            console.error(`Error: ${result.error}`);
+            process.exit(1);
+          }
+          if (result.valid) {
+            console.log(`[ok] audit log valid (${result.total} events, path=${result.path})`);
+          } else {
+            console.error(`[tamper] hash chain broken at line ${result.corruptedAt} (total=${result.total}, path=${result.path})`);
+            process.exit(2);
+          }
+          return;
+        }
+
+        // sub === 'query'
+        let type = '', from = '', to = '', target = '';
+        let limit = 0;
+        for (let i = 1; i < args.length; i++) {
+          if (args[i] === '--type' && args[i + 1]) type = args[++i];
+          else if (args[i] === '--from' && args[i + 1]) from = args[++i];
+          else if (args[i] === '--to' && args[i + 1]) to = args[++i];
+          else if (args[i] === '--target' && args[i + 1]) target = args[++i];
+          else if (args[i] === '--limit' && args[i + 1]) {
+            const n = parseInt(args[++i], 10);
+            if (Number.isFinite(n) && n > 0) limit = n;
+          }
+        }
+        const qs = new URLSearchParams();
+        if (type) qs.set('type', type);
+        if (from) qs.set('from', from);
+        if (to) qs.set('to', to);
+        if (target) qs.set('target', target);
+        if (limit > 0) qs.set('limit', String(limit));
+        const qsStr = qs.toString();
+        result = await request('GET', '/audit/query' + (qsStr ? '?' + qsStr : ''));
+        if (result.error) {
+          console.error(`Error: ${result.error}`);
+          process.exit(1);
+        }
+        for (const ev of result.events) {
+          console.log(JSON.stringify(ev));
+        }
+        return;
+      }
+
       case 'daemon': {
         const DaemonManager = require(require('path').join(__dirname, 'daemon-manager'));
         const sub = args[0];
@@ -2186,6 +2247,8 @@ Commands:
        [--auto-mode] [--profile name] [--branch prefix]
   config                           Show current config
   config reload                    Reload config.json without restart
+  audit query [--type T] [--from ISO] [--to ISO] [--target name] [--limit N]   Query audit log (10.2)
+  audit verify                     Verify audit log hash chain integrity
 
 Special keys: Enter, C-c, C-b, C-d, C-z, C-l, C-a, C-e, Escape, Tab, Backspace, Up, Down, Left, Right
 
