@@ -321,6 +321,14 @@ async function main() {
 
       case 'health': {
         result = await request('GET', '/health');
+        // Version mismatch warning (7.15)
+        try {
+          const installedVersion = require('../package.json').version;
+          if (result && result.version && result.version !== installedVersion) {
+            console.warn(`[warn] daemon version mismatch: daemon=${result.version} installed=${installedVersion}`);
+            console.warn(`  Run 'c4 daemon restart' to reload the daemon with the latest code.`);
+          }
+        } catch {}
         break;
       }
 
@@ -1292,6 +1300,16 @@ async function main() {
             console.log(`Daemon running (PID ${result.pid}, ${result.workers ?? '?'} workers)`);
             if (result.endpoint) console.log(`  ${result.endpoint}`);
             if (result.note) console.log(`  ${result.note}`);
+            // Version mismatch warning (7.15)
+            try {
+              const installedVersion = require('../package.json').version;
+              if (result.daemonVersion && result.daemonVersion !== installedVersion) {
+                console.warn(`  [warn] version mismatch: daemon=${result.daemonVersion} installed=${installedVersion}`);
+                console.warn(`         Run 'c4 daemon restart' to reload the daemon with the latest code.`);
+              } else if (result.daemonVersion) {
+                console.log(`  version: ${result.daemonVersion}`);
+              }
+            } catch {}
           } else {
             console.log('Daemon is not running.');
           }

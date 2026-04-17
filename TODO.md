@@ -438,9 +438,9 @@ Level 4이면:
 | 7.10 | 전체 npm test 통과 확인 | **done** | 47개 전부 통과 확인 (관리자 세션에서 직접 실행) |
 | 7.11 | 재귀적 테스트 구조 | **todo** | 관리자 세션 -> c4 new test-mgr -> test-mgr이 c4 watch/batch/approve/wait 테스트 실행. 관리자가 직접 compound 명령 안 쓰고 worker에 위임하는 패턴 검증. |
 | 7.12 | manager.md에 테스트 위임 규칙 추가 | **todo** | c4 명령어 테스트도 worker에 위임하도록 manager.md에 명시. "c4 명령어를 직접 실행하지 마. 테스트도 worker를 만들어서 시켜." 사용자가 매번 지시하지 않아도 알아서 되게. |
-| 7.13 | c4 init Linux PATH 등록 개선 | **todo** | DGX에서 c4 명령어를 찾을 수 없음. c4 init이 ~/.local/bin/c4 심볼릭 링크를 자동 생성해야 함. 현재는 npm link 실패 시 wrapper script 생성하지만 Linux에서 권한 문제로 실패. init에서 자동 심볼릭 + bashrc alias 폴백. |
-| 7.14 | c4 init 후 --agent 안내 | **todo** | c4 init 완료 후 "관리자 모드로 시작하려면: claude --agent .claude/agents/manager.md" 안내 메시지 출력. |
-| 7.15 | git pull 후 daemon 재시작 필요 안내 | **todo** | DGX에서 git pull로 최신 코드 받았지만 daemon은 옛날 코드로 실행 중. pull 후 자동으로 daemon restart 하거나, 최소한 "daemon 재시작 필요" 경고 출력. c4 init이나 pull 감지 hook에서 처리. |
+| 7.13 | c4 init Linux PATH 등록 개선 | **done** | npm link 실패 시 ~/.local/bin/c4 심볼릭 링크 자동 생성 + ~/.bashrc alias 폴백 구현. |
+| 7.14 | c4 init 후 --agent 안내 | **done** | init 완료 후 "관리자 모드: claude --agent .claude/agents/manager.md" 안내 메시지 출력. |
+| 7.15 | daemon 버전 불일치 경고 | **done** | c4 health/daemon status에서 daemon 버전과 설치 버전 비교, 불일치 시 경고 + restart 안내. |
 
 ## 완료
 
