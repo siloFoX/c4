@@ -104,6 +104,27 @@ function normalizePort(port) {
   return n;
 }
 
+function normalizeTags(input) {
+  if (input == null) return null;
+  if (!Array.isArray(input)) {
+    throw new Error('tags must be an array of strings');
+  }
+  const out = [];
+  const seen = new Set();
+  for (const raw of input) {
+    if (raw == null) continue;
+    const tag = String(raw).trim().toLowerCase();
+    if (!tag) continue;
+    if (!/^[a-z0-9][\w.-]*$/.test(tag)) {
+      throw new Error(`invalid tag '${tag}' (use letters, digits, dot, dash, underscore)`);
+    }
+    if (seen.has(tag)) continue;
+    seen.add(tag);
+    out.push(tag);
+  }
+  return out;
+}
+
 function addMachine(alias, host, options = {}) {
   validateAlias(alias);
   if (typeof host !== 'string' || !host.trim()) {
@@ -121,8 +142,26 @@ function addMachine(alias, host, options = {}) {
   } else if (existing.authToken && !options.clearToken) {
     cfg.machines[alias].authToken = existing.authToken;
   }
+  // Dispatcher tags (9.7): optional role labels ['gpu','high-mem','web'].
+  // Passing options.tags replaces the set; omitting it preserves the
+  // existing tags so `c4 fleet add` re-runs do not wipe curated labels.
+  if (options.tags !== undefined) {
+    const normalized = normalizeTags(options.tags);
+    if (normalized && normalized.length > 0) {
+      cfg.machines[alias].tags = normalized;
+    }
+  } else if (Array.isArray(existing.tags) && existing.tags.length > 0 && !options.clearTags) {
+    cfg.machines[alias].tags = existing.tags.slice();
+  }
+  if (options.clearTags) delete cfg.machines[alias].tags;
   saveFleet(cfg, options);
-  return { ok: true, alias, host: cfg.machines[alias].host, port };
+  return {
+    ok: true,
+    alias,
+    host: cfg.machines[alias].host,
+    port,
+    tags: cfg.machines[alias].tags ? cfg.machines[alias].tags.slice() : [],
+  };
 }
 
 function removeMachine(alias, options = {}) {
@@ -150,6 +189,7 @@ function listMachines(options = {}) {
       host: m.host || '',
       port: typeof m.port === 'number' ? m.port : DEFAULT_PORT,
       hasToken: Boolean(m.authToken),
+      tags: Array.isArray(m.tags) ? m.tags.slice() : [],
     };
   });
 }
@@ -164,6 +204,7 @@ function getMachine(alias, options = {}) {
     host: m.host || '',
     port: typeof m.port === 'number' ? m.port : DEFAULT_PORT,
     authToken: typeof m.authToken === 'string' ? m.authToken : '',
+    tags: Array.isArray(m.tags) ? m.tags.slice() : [],
   };
 }
 
@@ -336,6 +377,7 @@ async function sampleMachine(machine, options = {}) {
     version,
     error,
     elapsedMs,
+    tags: Array.isArray(machine.tags) ? machine.tags.slice() : [],
   };
 }
 
@@ -410,4 +452,5 @@ module.exports = {
   httpGetJson,
   validateAlias,
   normalizePort,
+  normalizeTags,
 };
