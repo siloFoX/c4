@@ -14,8 +14,8 @@
 //   }
 //
 // Internal task status is one of 'backlog' | 'todo' | 'in_progress' |
-// 'done'. TODO.md only exposes three MD states — todo / in_progress /
-// done — so syncTodoMd() maps MD.todo <-> internal.backlog and keeps
+// 'done'. TODO.md only exposes three MD states - todo / in_progress /
+// done - so syncTodoMd() maps MD.todo <-> internal.backlog and keeps
 // task IDs stable across roundtrips via a SHA-1 hash of projectId + title.
 //
 // The module is a pure storage layer: it never shells out, never touches
@@ -435,7 +435,7 @@ class ProjectBoard {
       }
     }
 
-    // Always flush project first — a crash between writing the project
+    // Always flush project first - a crash between writing the project
     // JSON and writing TODO.md still leaves the project as source of truth.
     this._write(project);
 
