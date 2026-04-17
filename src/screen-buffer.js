@@ -320,6 +320,58 @@ class ScreenBuffer {
     while (all.length > 0 && all[all.length - 1] === '') all.pop();
     return all.join('\n');
   }
+
+  // Resize the virtual terminal (8.13). Shrinking rows pushes the oldest
+  // visible lines into scrollback so nothing is silently dropped. Shrinking
+  // cols truncates each line on the right. Cursor and scroll region are
+  // clamped to the new bounds. Returns {cols, rows}.
+  resize(cols, rows) {
+    const c = Math.max(1, Math.floor(Number(cols) || 0));
+    const r = Math.max(1, Math.floor(Number(rows) || 0));
+    if (c === this.cols && r === this.rows) {
+      return { cols: this.cols, rows: this.rows };
+    }
+
+    // Row adjustment first so cursor clamp operates on the new row count.
+    if (r < this.rows) {
+      const overflow = this.rows - r;
+      for (let i = 0; i < overflow; i++) {
+        const line = this.lines.shift();
+        this.scrollback.push(line == null ? '' : line);
+        if (this.scrollback.length > this.maxScrollback) this.scrollback.shift();
+      }
+    } else if (r > this.rows) {
+      const extra = r - this.rows;
+      for (let i = 0; i < extra; i++) this.lines.push('');
+    }
+
+    // Column adjustment: truncate each existing line to the new width.
+    if (c < this.cols) {
+      for (let i = 0; i < this.lines.length; i++) {
+        const line = this.lines[i] || '';
+        if (line.length > c) this.lines[i] = line.slice(0, c);
+      }
+    }
+
+    this.cols = c;
+    this.rows = r;
+
+    // Pad / trim `this.lines` to exactly `rows` entries in case of drift.
+    while (this.lines.length < r) this.lines.push('');
+    if (this.lines.length > r) this.lines.length = r;
+
+    // Clamp cursor and scroll region.
+    this.cursorX = Math.min(this.cursorX, c - 1);
+    this.cursorY = Math.min(this.cursorY, r - 1);
+    if (this.cursorX < 0) this.cursorX = 0;
+    if (this.cursorY < 0) this.cursorY = 0;
+    this._savedCursorX = Math.min(this._savedCursorX || 0, c - 1);
+    this._savedCursorY = Math.min(this._savedCursorY || 0, r - 1);
+    this._scrollTop = Math.max(0, Math.min(this._scrollTop || 0, r - 1));
+    this._scrollBottom = Math.max(this._scrollTop, Math.min(this._scrollBottom, r - 1));
+
+    return { cols: this.cols, rows: this.rows };
+  }
 }
 
 module.exports = ScreenBuffer;
