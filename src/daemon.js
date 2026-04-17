@@ -13,6 +13,7 @@ const recovery = require('./recovery');
 const fleet = require('./fleet');
 const dispatcher = require('./dispatcher');
 const fileTransfer = require('./file-transfer');
+const auditLog = require('./audit-log');
 
 const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
 
@@ -24,6 +25,28 @@ const PORT = parseInt(process.env.PORT || cfg.daemon?.port || '3456');
 const HOST = process.env.C4_BIND_HOST || resolveBindHost(cfg);
 const notifications = new Notifications(cfg.notifications || {});
 manager.setNotifications(notifications);
+
+// (10.2) Shared audit logger. Writes to ~/.c4/audit.jsonl by default so
+// the trail survives daemon restarts. Every security-relevant endpoint
+// below records through this instance; the CLI `c4 audit` subcommands
+// read/verify the same file. All record() calls are wrapped in
+// _safeAudit so a logging failure never breaks the request.
+const audit = auditLog.getShared(
+  cfg.audit && typeof cfg.audit.path === 'string' ? { logPath: cfg.audit.path } : {}
+);
+function _auditActor(authCheck) {
+  // Prefer the JWT subject when auth is enabled, fall back to "system"
+  // for unauthenticated (or auth-disabled) requests so the actor field
+  // is always populated.
+  if (authCheck && authCheck.decoded && typeof authCheck.decoded.sub === 'string') {
+    return authCheck.decoded.sub;
+  }
+  return 'system';
+}
+function _safeAudit(type, details, overrides) {
+  try { return audit.record(type, details, overrides); }
+  catch (e) { console.error('[AUDIT] record failed:', e && e.message ? e.message : e); return null; }
+}
 
 function parseBody(req) {
   return new Promise((resolve, reject) => {
@@ -183,11 +206,12 @@ async function handleRequest(req, res) {
     // auth is enabled.
     const cfg = manager.getConfig();
     const needsAuthCheck = isApiPrefixed || route === '/dashboard';
+    let authCheck = { allow: true };
     if (needsAuthCheck) {
-      const check = auth.checkRequest(cfg, req, route);
-      if (!check.allow) {
-        res.writeHead(check.status || 401);
-        res.end(JSON.stringify(check.body || { error: 'Authentication required' }));
+      authCheck = auth.checkRequest(cfg, req, route);
+      if (!authCheck.allow) {
+        res.writeHead(authCheck.status || 401);
+        res.end(JSON.stringify(authCheck.body || { error: 'Authentication required' }));
         return;
       }
     }
@@ -198,15 +222,19 @@ async function handleRequest(req, res) {
       const body = await parseBody(req);
       const loginResult = auth.login(cfg, body);
       if (!loginResult.ok) {
+        _safeAudit('auth.login', { ok: false, reason: loginResult.error || 'failed' },
+          { target: (body && typeof body.user === 'string') ? body.user : '', actor: 'anonymous' });
         res.writeHead(401);
         res.end(JSON.stringify({ error: loginResult.error || 'Login failed' }));
         return;
       }
+      _safeAudit('auth.login', { ok: true }, { target: loginResult.user, actor: loginResult.user });
       result = { token: loginResult.token, user: loginResult.user };
 
     } else if (req.method === 'POST' && route === '/auth/logout') {
       // Stateless JWT logout: client discards the token. We still return ok
       // so the UI can clear localStorage without a special-case branch.
+      _safeAudit('auth.logout', {}, { actor: _auditActor(authCheck), target: _auditActor(authCheck) });
       result = { ok: true };
 
     } else if (req.method === 'GET' && route === '/auth/status') {
@@ -223,6 +251,11 @@ async function handleRequest(req, res) {
     } else if (req.method === 'POST' && route === '/create') {
       const { name, command, args, target, cwd, parent } = await parseBody(req);
       result = manager.create(name, command, args || [], { target, cwd, parent });
+      if (result && !result.error) {
+        _safeAudit('worker.created',
+          { command, args: args || [], target: target || 'local', cwd: cwd || '', parent: parent || '', pid: result.pid || null },
+          { target: name, actor: _auditActor(authCheck) });
+      }
 
     } else if (req.method === 'POST' && route === '/send') {
       const { name, input, keys } = await parseBody(req);
@@ -277,6 +310,11 @@ async function handleRequest(req, res) {
     } else if (req.method === 'POST' && route === '/task') {
       const { name, task, branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, budgetUsd, maxRetries } = await parseBody(req);
       result = manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, budgetUsd, maxRetries });
+      if (result && !result.error) {
+        _safeAudit('task.sent',
+          { task: typeof task === 'string' ? task.slice(0, 500) : '', branch: branch || '', profile: profile || '', autoMode: Boolean(autoMode) },
+          { target: name, actor: _auditActor(authCheck) });
+      }
 
     } else if (req.method === 'POST' && route === '/merge') {
       const { name, skipChecks } = await parseBody(req);
@@ -306,6 +344,9 @@ async function handleRequest(req, res) {
           } else {
             execSync(`git merge "${branch}" --no-ff -m "Merge branch '${branch}'"`, { cwd: repoRoot, encoding: 'utf8', stdio: 'pipe' });
             result = { success: true, merged: branch };
+            _safeAudit('merge.performed',
+              { branch, skipChecks: Boolean(skipChecks), workerName: name },
+              { target: branch, actor: _auditActor(authCheck) });
           }
         } catch (e) {
           result = { error: `Merge failed: ${e.message}` };
@@ -315,6 +356,16 @@ async function handleRequest(req, res) {
     } else if (req.method === 'POST' && route === '/approve') {
       const { name, optionNumber } = await parseBody(req);
       result = manager.approve(name, optionNumber);
+      if (result && !result.error) {
+        // optionNumber 1 is the common "Yes, proceed" slot in Claude
+        // Code's TUI. Anything else (2 = decline, 3 = always-allow, etc.)
+        // we treat as denied for audit purposes — granular option text
+        // lives in the worker's scrollback, not in the /approve payload.
+        const granted = optionNumber === 1 || optionNumber === undefined || optionNumber === null;
+        _safeAudit(granted ? 'approval.granted' : 'approval.denied',
+          { optionNumber: optionNumber == null ? null : Number(optionNumber) },
+          { target: name, actor: _auditActor(authCheck) });
+      }
 
     } else if (req.method === 'POST' && route === '/rollback') {
       const { name } = await parseBody(req);
@@ -361,6 +412,38 @@ async function handleRequest(req, res) {
         result = manager.restart(name);
       }
 
+    } else if (req.method === 'GET' && route === '/audit/query') {
+      // (10.2) Filtered audit log query. Every param is optional; omit
+      // all to dump the full log. Limit defaults to 0 (no cap).
+      const typeParam = url.searchParams.get('type') || '';
+      const fromParam = url.searchParams.get('from') || '';
+      const toParam = url.searchParams.get('to') || '';
+      const targetParam = url.searchParams.get('target') || '';
+      const limitParam = parseInt(url.searchParams.get('limit') || '0', 10);
+      try {
+        const events = audit.query({
+          type: typeParam || undefined,
+          from: fromParam || undefined,
+          to: toParam || undefined,
+          target: targetParam || undefined,
+          limit: Number.isFinite(limitParam) && limitParam > 0 ? limitParam : undefined,
+        });
+        result = { events, count: events.length, path: audit.logPath };
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && route === '/audit/verify') {
+      // (10.2) Hash chain integrity check. Returns valid=false +
+      // corruptedAt=<line index> when the log has been tampered with or
+      // truncated in the middle.
+      try {
+        result = audit.verify();
+        result.path = audit.logPath;
+      } catch (e) {
+        result = { error: e.message };
+      }
+
     } else if (req.method === 'POST' && route === '/cleanup') {
       const { dryRun } = await parseBody(req);
       result = manager.cleanup(dryRun);
@@ -368,12 +451,18 @@ async function handleRequest(req, res) {
     } else if (req.method === 'POST' && route === '/close') {
       const { name } = await parseBody(req);
       result = manager.close(name);
+      if (result && !result.error) {
+        _safeAudit('worker.closed', {}, { target: name, actor: _auditActor(authCheck) });
+      }
 
     } else if (req.method === 'GET' && route === '/config') {
       result = manager.getConfig();
 
     } else if (req.method === 'POST' && route === '/config/reload') {
       result = manager.reloadConfig();
+      if (result && !result.error) {
+        _safeAudit('config.reloaded', {}, { actor: _auditActor(authCheck), target: 'config' });
+      }
 
     } else if (req.method === 'POST' && route === '/scribe/start') {
       result = manager.scribeStart();
