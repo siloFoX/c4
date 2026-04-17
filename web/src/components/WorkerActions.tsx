@@ -42,8 +42,6 @@ export default function WorkerActions({ workerName }: WorkerActionsProps) {
       body: { name: workerName },
       successMessage: `Merged ${workerName}`,
       className: 'bg-gray-700 hover:bg-gray-600',
-      disabled: true,
-      disabledTitle: 'Daemon does not expose /merge route yet',
     },
     {
       kind: 'approve',

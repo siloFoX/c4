@@ -88,7 +88,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
   const handleSend = () => {
     const text = inputText;
     if (!text) return;
-    runAction('send', () => postJson('/api/send', { name: workerName, text })).then(() => {
+    runAction('send', () => postJson('/api/send', { name: workerName, input: text })).then(() => {
       setInputText('');
     });
   };
