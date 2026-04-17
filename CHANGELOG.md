@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.6.19] - 2026-04-17
+
+### Fixed
+- **PostToolUse hook recurrence verification + ASCII hardening** (7.23): 7.16 introduced `src/hook-relay.js` to replace the curl/PowerShell hook commands that had been producing "Failed with non-blocking status code" loops on Korean Windows. Re-verified under v1.6.18 runtime: 11 recent worker session logs (~4 MB combined) grep for `Failed with non-blocking` returns 0 occurrences; the live worker's `.claude/settings.json` renders each hook as `node "<abs>/hook-relay.js" http://<host>:<port>/hook-event` with no shell operators, no PowerShell, and no curl; direct `spawnSync` invocation confirms `hook-relay.js` exits 0 under every failure mode (unreachable URL, empty stdin, malformed JSON, missing URL arg, malformed URL) and emits nothing to stderr. No runtime code change required beyond a minor hardening: replaced two U+2014 em-dashes in `src/hook-relay.js` comments with ASCII hyphens so the relay source is pure ASCII, matching the 7.16 intent and eliminating a theoretical decode-regression vector.
+
+### Added
+- **`tests/hook-setup.test.js`** (7.23 regression): 16 assertions across 3 node:test suites. Extracts `_buildHookCommands` from `src/pty-manager.js` via regex + `new Function` (same pattern as `tests/worker-language.test.js`) so the test stays coupled to the actual implementation without pulling in `node-pty`. Locks: (1) canonical hook shape — PreToolUse + PostToolUse groups, one command each, `type:'command'`; (2) command invokes `node hook-relay.js` with no PowerShell / no `Invoke-RestMethod` / no curl / no compound operators (`&&`, `||`, `;`, `|`); (3) configured + default daemon URL routing (`http://host:port/hook-event`); (4) quoted path is absolute and references an on-disk `hook-relay.js`; (5) command output is pure ASCII; (6) `hook-relay.js` exits 0 under five failure modes and emits no stderr; (7) source hygiene — after stripping comments, the `_buildHookCommands` body never re-introduces PowerShell / IRM / curl, and always routes through `hook-relay.js`. Full suite 60 / 60 pass.
+
+### Fixed (TODO housekeeping)
+- Restored the `c4 wait --all` improvement notes that had been accidentally appended to row 7.23's description back to their proper column in row 7.21.
+
 ## [1.6.18] - 2026-04-17
 
 ### Fixed
