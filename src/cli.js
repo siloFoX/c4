@@ -693,11 +693,13 @@ async function main() {
       case 'merge': {
         const { execSync } = require('child_process');
         const path = require('path');
+        const mergeGuard = require('./merge-guard');
         const skipChecks = args.includes('--skip-checks');
-        const target = args.filter(a => a !== '--skip-checks')[0];
+        const autoStash = args.includes('--auto-stash');
+        const target = args.filter(a => a !== '--skip-checks' && a !== '--auto-stash')[0];
 
         if (!target) {
-          console.error('Usage: c4 merge <worker-name|branch-name> [--skip-checks]');
+          console.error('Usage: c4 merge <worker-name|branch-name> [--skip-checks] [--auto-stash]');
           process.exit(1);
         }
 
@@ -766,6 +768,26 @@ async function main() {
         // Don't merge main into itself
         if (branch === 'main') {
           console.error('Error: cannot merge main into itself');
+          process.exit(1);
+        }
+
+        // Dirty-tree guard (7.28). Runs before any other pre-merge work so
+        // automated runs do not enter the stash/pop dance unexpectedly.
+        let stashedLabel = null;
+        try {
+          const dirty = mergeGuard.getDirtyEntries(repoRoot);
+          if (dirty.length > 0) {
+            if (!autoStash) {
+              console.error(mergeGuard.buildDirtyMessage(dirty));
+              process.exit(1);
+            }
+            stashedLabel = `c4-merge-autostash-${target}`;
+            const stashOut = mergeGuard.stashPush(repoRoot, stashedLabel);
+            console.log(`Stashed ${dirty.length} change(s) as "${stashedLabel}":`);
+            if (stashOut) console.log(`  ${stashOut}`);
+          }
+        } catch (e) {
+          console.error(e.message);
           process.exit(1);
         }
 
@@ -853,8 +875,22 @@ async function main() {
               console.log(logOutput);
             }
           } catch {}
+
+          // Auto-stash pop (7.28). Runs only when --auto-stash stashed changes.
+          if (stashedLabel) {
+            const popResult = mergeGuard.stashPop(repoRoot);
+            if (popResult.status !== 0) {
+              console.error(mergeGuard.buildPopConflictMessage(stashedLabel, popResult));
+              process.exit(1);
+            }
+            console.log(`Stashed changes restored from "${stashedLabel}".`);
+          }
         } catch (e) {
           console.error('Merge failed:', e.message);
+          if (stashedLabel) {
+            console.error(`Note: --auto-stash saved your changes as "${stashedLabel}".`);
+            console.error('Run `git stash list` then `git stash pop` after resolving the merge issue.');
+          }
           process.exit(1);
         }
         return;
@@ -1397,6 +1433,8 @@ Commands:
   watch <name>                     Watch worker output in real-time (Ctrl+C to stop)
   list                             List all workers
   merge <worker|branch>            Merge branch to main (with pre-checks)
+       [--skip-checks]             Skip test/TODO/CHANGELOG checks
+       [--auto-stash]              Stash uncommitted changes on main, merge, then pop (7.28)
   plan <name> <task> [--output f]   Plan-only mode: write plan.md without executing
   plan-read <name> [--output f]    Read generated plan.md from worker
   rollback <name>                  Rollback worker to pre-task commit (git reset --soft)
