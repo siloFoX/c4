@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.13] - 2026-04-17
+
+### Added
+- **worker 영어 전용 모드** (7.18): `workerDefaults.workerLanguage: "en"` 옵션 추가. 설정 시 `_getRulesSummary()`가 rules 끝에 "Respond in English only. Do not use non-ASCII characters in any output." 지시문을 자동 덧붙여 한국어 인코딩 깨짐(7.16)과 hook error 파싱 이슈를 우회
+
 ## [1.6.12] - 2026-04-17
 
 ### Added
