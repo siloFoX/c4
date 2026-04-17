@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { apiFetch } from '../lib/api';
 
 interface WorkerDetailProps {
   workerName: string;
@@ -20,7 +21,7 @@ interface ActionResponse {
 }
 
 async function postJson(url: string, body: unknown): Promise<ActionResponse> {
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -43,7 +44,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
         tab === 'screen'
           ? `/api/read-now?name=${encodeURIComponent(workerName)}`
           : `/api/scrollback?name=${encodeURIComponent(workerName)}&lines=100`;
-      const res = await fetch(url);
+      const res = await apiFetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as ReadResponse;
       if (data.error) {

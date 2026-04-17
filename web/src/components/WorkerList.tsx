@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ListResponse, SSEEvent, Worker } from '../types';
+import { apiFetch, eventSourceUrl } from '../lib/api';
 
 function isInterventionActive(w: Worker): boolean {
   if (!w.intervention) return false;
@@ -30,7 +31,7 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
 
   const fetchList = useCallback(async () => {
     try {
-      const res = await fetch('/api/list');
+      const res = await apiFetch('/api/list');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as ListResponse;
       setWorkers(Array.isArray(data.workers) ? data.workers : []);
@@ -44,7 +45,7 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
     fetchList();
     const interval = setInterval(fetchList, 5000);
 
-    const es = new EventSource('/api/events');
+    const es = new EventSource(eventSourceUrl('/api/events'));
     es.onopen = () => setSseConnected(true);
     es.onerror = () => setSseConnected(false);
     es.onmessage = (ev) => {
