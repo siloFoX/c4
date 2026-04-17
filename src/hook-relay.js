@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// hook-relay.js — Relay Claude Code hook JSON (stdin) to the C4 daemon.
+// hook-relay.js - Relay Claude Code hook JSON (stdin) to the C4 daemon.
 // Replaces curl/PowerShell to avoid Windows encoding issues and non-zero
 // exit codes that cause Claude Code to report "Failed with non-blocking
 // status code" repeatedly (7.16, 7.23).
@@ -34,7 +34,7 @@ process.stdin.on('end', () => {
     req.on('timeout', () => { req.destroy(); });
     req.write(body);
     req.end();
-    // Don't wait for response — fire and forget
+    // Don't wait for response - fire and forget
     setTimeout(() => process.exit(0), 100);
   } catch {
     process.exit(0);
