@@ -406,5 +406,13 @@
 
   "gitBash": {
     "disablePathConversion": true
+  },
+
+  "mcp": {
+    "enabled": true,
+    "port": 3456,
+    "transport": "streamable-http",
+    "logLevel": "info",
+    "allowedTools": []
   }
 }

@@ -1676,6 +1676,44 @@ async function main() {
         return;
       }
 
+      case 'mcp': {
+        // MCP stdio transport proxy (TODO 9.4). Bridges newline-delimited
+        // JSON-RPC from stdin/stdout to the daemon's POST /mcp endpoint so
+        // Claude Desktop can launch `c4 mcp start` as an MCP server.
+        const sub = args[0] || 'start';
+        if (sub === 'start') {
+          const { startStdio } = require('./mcp-server');
+          const baseIdx = args.indexOf('--base');
+          const base = baseIdx >= 0 && args[baseIdx + 1] ? args[baseIdx + 1] : BASE;
+          await startStdio({ base });
+          return;
+        }
+        if (sub === 'status') {
+          try {
+            result = await request('POST', '/mcp', {
+              jsonrpc: '2.0', id: 1, method: 'initialize',
+              params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'c4 mcp status', version: '1' } },
+            });
+            if (result && result.result && result.result.serverInfo) {
+              console.log(`MCP reachable (protocol ${result.result.protocolVersion}, server ${result.result.serverInfo.name} ${result.result.serverInfo.version})`);
+            } else {
+              console.log('MCP endpoint reachable but initialize did not return serverInfo.');
+              console.log(JSON.stringify(result, null, 2));
+            }
+          } catch (err) {
+            console.error(`MCP unreachable: ${err.message}`);
+            process.exit(1);
+          }
+          return;
+        }
+        if (sub === 'tools') {
+          result = await request('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/list' });
+          break;
+        }
+        console.log('Usage: c4 mcp <start|status|tools> [--base URL]');
+        return;
+      }
+
       case 'daemon': {
         const DaemonManager = require(require('path').join(__dirname, 'daemon-manager'));
         const sub = args[0];
@@ -1766,6 +1804,9 @@ Commands:
   daemon stop                      Stop daemon
   daemon restart                   Restart daemon
   daemon status                    Check daemon status
+  mcp start [--base URL]           Start MCP stdio proxy (for Claude Desktop, 9.4)
+  mcp status                       Verify MCP endpoint handshake
+  mcp tools                        List exposed MCP tools
   scribe start                     Start session context recording
   scribe stop                      Stop scribe
   scribe status                    Show scribe status
