@@ -868,10 +868,10 @@ class PtyManager extends EventEmitter {
     };
   }
 
-  getTokenUsage() {
+  getTokenUsage(opts = {}) {
     const today = new Date().toISOString().split('T')[0];
     const dailyTotal = this._tokenUsage.daily[today] || { input: 0, output: 0 };
-    return {
+    const out = {
       today,
       input: dailyTotal.input,
       output: dailyTotal.output,
@@ -879,6 +879,84 @@ class PtyManager extends EventEmitter {
       dailyLimit: this.config.tokenMonitor?.dailyLimit || 0,
       history: this._tokenUsage.daily
     };
+    if (opts.perTask) {
+      out.perTask = this._getPerTaskUsage();
+    }
+    return out;
+  }
+
+  // Cost/retry guardrails (9.10): aggregate token counts per active worker's
+  // JSONL session so operators can see which worker is burning through budget.
+  // Returns an array of { name, sessionId, branch, task, input, output, total,
+  // retryCount, maxRetries, budgetUsd, stopReason, alive }.
+  _getPerTaskUsage() {
+    const rows = [];
+    for (const [name, w] of this.workers) {
+      let sessionId = w._sessionId || null;
+      if (!sessionId) {
+        try {
+          this._updateSessionId(name);
+          sessionId = w._sessionId || null;
+        } catch {}
+      }
+      const tokens = this._readSessionTokens(sessionId, w.worktree);
+      rows.push({
+        name,
+        sessionId,
+        branch: w.branch || null,
+        task: w._taskText || null,
+        input: tokens.input,
+        output: tokens.output,
+        total: tokens.input + tokens.output,
+        retryCount: w._retryCount || 0,
+        maxRetries: w._maxRetries || 0,
+        budgetUsd: w._budgetUsd || 0,
+        stopReason: w._stopReason || null,
+        alive: !!w.alive
+      });
+    }
+    rows.sort((a, b) => b.total - a.total);
+    return rows;
+  }
+
+  _readSessionTokens(sessionId, workerDir) {
+    if (!sessionId) return { input: 0, output: 0 };
+    const home = os.homedir();
+    const projectsDir = path.join(home, '.claude', 'projects');
+    if (!fs.existsSync(projectsDir)) return { input: 0, output: 0 };
+    const projectPath = (workerDir || '').replace(/\\/g, '/');
+    let projectDir = null;
+    if (projectPath) {
+      try {
+        for (const entry of fs.readdirSync(projectsDir)) {
+          const decoded = entry.replace(/^([A-Z])--/, '$1:/').replace(/-/g, '/');
+          if (decoded === projectPath || projectPath.startsWith(decoded + '/')) {
+            projectDir = path.join(projectsDir, entry);
+            break;
+          }
+        }
+      } catch {}
+    }
+    if (!projectDir) projectDir = this._getProjectDir();
+    if (!projectDir) return { input: 0, output: 0 };
+    const file = path.join(projectDir, `${sessionId}.jsonl`);
+    if (!fs.existsSync(file)) return { input: 0, output: 0 };
+    let content;
+    try { content = fs.readFileSync(file, 'utf8'); } catch { return { input: 0, output: 0 }; }
+    let input = 0, output = 0;
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      try {
+        const obj = JSON.parse(trimmed);
+        const usage = obj.message?.usage || obj.usage;
+        if (usage) {
+          if (usage.input_tokens) input += usage.input_tokens;
+          if (usage.output_tokens) output += usage.output_tokens;
+        }
+      } catch {}
+    }
+    return { input, output };
   }
 
   // --- Task Queue helpers (2.2, 2.3, 2.8) ---

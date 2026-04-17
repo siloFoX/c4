@@ -279,7 +279,8 @@ async function handleRequest(req, res) {
       result = manager.scribeScan();
 
     } else if (req.method === 'GET' && route === '/token-usage') {
-      result = manager.getTokenUsage();
+      const perTask = url.searchParams.get('perTask') === '1';
+      result = manager.getTokenUsage({ perTask });
 
     } else if (req.method === 'GET' && route === '/scrollback') {
       const name = url.searchParams.get('name');

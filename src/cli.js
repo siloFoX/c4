@@ -1073,7 +1073,9 @@ async function main() {
       }
 
       case 'token-usage': {
-        result = await request('GET', '/token-usage');
+        const perTask = args.includes('--per-task');
+        const qs = perTask ? '?perTask=1' : '';
+        result = await request('GET', `/token-usage${qs}`);
         if (result.error) {
           console.log(`Error: ${result.error}`);
         } else {
@@ -1092,6 +1094,24 @@ async function main() {
               for (const day of days.slice(0, 7)) {
                 const d = result.history[day];
                 console.log(`    ${day}: ${(d.input + d.output).toLocaleString()} tokens`);
+              }
+            }
+          }
+          if (perTask && Array.isArray(result.perTask)) {
+            console.log('  Per-task:');
+            if (result.perTask.length === 0) {
+              console.log('    (no active workers)');
+            } else {
+              for (const row of result.perTask) {
+                const budget = row.budgetUsd > 0 ? ` budget=$${row.budgetUsd}` : '';
+                const retries = row.maxRetries > 0 ? ` retries=${row.retryCount}/${row.maxRetries}` : '';
+                const stop = row.stopReason ? ` STOPPED(${row.stopReason})` : '';
+                const live = row.alive ? 'live' : 'exited';
+                console.log(`    ${row.name} [${live}] tokens=${row.total.toLocaleString()} (in=${row.input.toLocaleString()} out=${row.output.toLocaleString()})${budget}${retries}${stop}`);
+                if (row.task) {
+                  const preview = row.task.length > 70 ? row.task.slice(0, 70) + '...' : row.task;
+                  console.log(`      task: ${preview}`);
+                }
               }
             }
           }
@@ -1513,6 +1533,7 @@ Commands:
   task <name> <text> [--branch name] [--no-branch]         Send task with auto branch
        [--repo path] [--cwd path]                              Repo root / working dir for worktree
        [--context worker] [--reuse] [--scope JSON]             Context / pool reuse / scope
+       [--budget <usd>] [--max-retries <n>]                    Cost/retry guardrails (9.10)
   send <name> <text>               Send raw text to worker
   key <name> <key>                 Send special key (Enter, C-c, C-b, Tab, etc.)
   read <name>                      Read new output (idle snapshots only)
@@ -1539,7 +1560,7 @@ Commands:
   scribe stop                      Stop scribe
   scribe status                    Show scribe status
   scribe scan                      Run one-time scan now
-  token-usage                      Show daily token usage
+  token-usage [--per-task]         Show daily token usage (per-task adds worker-level aggregation)
   auto <task>                      Autonomous mode: manager + scribe + task (4.8)
   morning                          Generate morning report (4.4)
   profiles                         List available permission profiles
