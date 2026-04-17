@@ -441,6 +441,8 @@ Level 4이면:
 | 7.13 | c4 init Linux PATH 등록 개선 | **todo** | DGX에서 c4 명령어를 찾을 수 없음. c4 init이 ~/.local/bin/c4 심볼릭 링크를 자동 생성해야 함. 현재는 npm link 실패 시 wrapper script 생성하지만 Linux에서 권한 문제로 실패. init에서 자동 심볼릭 + bashrc alias 폴백. |
 | 7.14 | c4 init 후 --agent 안내 | **todo** | c4 init 완료 후 "관리자 모드로 시작하려면: claude --agent .claude/agents/manager.md" 안내 메시지 출력. |
 | 7.15 | git pull 후 daemon 재시작 필요 안내 | **todo** | DGX에서 git pull로 최신 코드 받았지만 daemon은 옛날 코드로 실행 중. pull 후 자동으로 daemon restart 하거나, 최소한 "daemon 재시작 필요" 경고 출력. c4 init이나 pull 감지 hook에서 처리. |
+| 7.16 | PreToolUse hook error 인코딩 깨짐 | **todo** | hook error 메시지에 한국어 깨짐: "Failed with non-blocking status code: ????? ??:1 ????:28". 반복 발생하여 escalation 오탐 유발. hook command의 stderr 인코딩 처리 또는 에러 메시지 파싱 개선. |
+| 7.17 | pendingTask 5.51 수정 후에도 재발 | **todo** | 3개 worker 전부 Enter 안 먹힘. 5.51 수정(setupDone 가드 + post-setup 트리거)이 충분하지 않음. Windows에서만 발생하는지 DGX에서도 발생하는지 비교 필요. |
 
 ## 완료
 
