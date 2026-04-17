@@ -18,6 +18,7 @@ const costReport = require('./cost-report');
 const projectMgmt = require('./project-mgmt');
 const projectDashboard = require('./project-dashboard');
 const rbac = require('./rbac');
+const cicd = require('./cicd');
 
 const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
 
@@ -105,6 +106,44 @@ function denyOr(res, gate) {
   return true;
 }
 
+// (10.4) Shared CicdManager. Writes to ~/.c4/cicd.json by default;
+// honours config.cicd.path. The dispatchWorker callback auto-creates
+// a worker and queues a task whenever a pipeline action of type
+// 'worker.task' fires, so operators get a worker per CI event without
+// extra wiring. Tests build their own CicdManager with a tmpdir + a
+// mock dispatchWorker and never touch this shared instance.
+function _buildCicdManagerFromConfig(cfgNow) {
+  const cicdCfg = (cfgNow && cfgNow.cicd) || {};
+  const mgr = cicd.getShared({
+    storePath: typeof cicdCfg.path === 'string' ? cicdCfg.path : undefined,
+    webhookSecret: cicdCfg.webhooks && typeof cicdCfg.webhooks.secret === 'string'
+      ? cicdCfg.webhooks.secret : '',
+    repos: Array.isArray(cicdCfg.repos) ? cicdCfg.repos : [],
+    defaultProvider: typeof cicdCfg.provider === 'string' ? cicdCfg.provider : undefined,
+  });
+  // Wire worker dispatch: each action of type 'worker.task' auto-creates
+  // a worker named `cicd-<pipelineId>-<timestamp>` and sends the task
+  // through sendTask with branch/profile/autoMode hints from the action.
+  mgr.dispatchWorker = function (spec) {
+    const base = 'cicd-' + (spec && spec.pipeline ? spec.pipeline : 'run') + '-' + Date.now();
+    const name = base.replace(/[^A-Za-z0-9._-]/g, '-');
+    try {
+      const created = manager.create(name, 'claude', [], { target: 'local' });
+      if (created && created.error) return { error: created.error, worker: name };
+      manager.sendTask(name, spec.task || 'CI check', {
+        branch: spec.branch || '',
+        profile: spec.profile || '',
+        autoMode: true,
+      });
+      return { worker: name };
+    } catch (e) {
+      return { error: e.message, worker: name };
+    }
+  };
+  return mgr;
+}
+const cicdManager = _buildCicdManagerFromConfig(cfg);
+
 // (10.8) Shared ProjectBoard. Writes to ~/.c4/projects/<id>.json by
 // default; honour config.projects.path for operators who want the
 // storage on a different volume. Tests construct their own board with
@@ -165,6 +204,24 @@ function parseBody(req) {
     req.on('end', () => {
       try { resolve(JSON.parse(body)); }
       catch { resolve({}); }
+    });
+    req.on('error', reject);
+  });
+}
+
+// Buffer the raw body alongside the parsed JSON so HMAC-authenticated
+// endpoints (10.4 /cicd/webhook) can hash exactly what the sender hashed.
+// parseBody() is stream-consuming so handlers that need both must use
+// this variant.
+function parseBodyRaw(req) {
+  return new Promise((resolve, reject) => {
+    let raw = '';
+    req.on('data', chunk => raw += chunk);
+    req.on('end', () => {
+      let json = {};
+      try { json = raw && raw.length > 0 ? JSON.parse(raw) : {}; }
+      catch { json = {}; }
+      resolve({ raw, json });
     });
     req.on('error', reject);
   });
@@ -318,6 +375,13 @@ async function handleRequest(req, res) {
     if (m) costMonthlyParams = { year: parseInt(m[1], 10), month: parseInt(m[2], 10) };
   }
 
+  // (10.4) CI/CD pipeline path params: /cicd/pipelines/<id>.
+  let cicdPipelineId = null;
+  {
+    const m = route.match(/^\/cicd\/pipelines\/([^\/]+)$/);
+    if (m) cicdPipelineId = decodeURIComponent(m[1]);
+  }
+
   // (10.8) Project management: decode /projects/<id>/... path params
   // here so the route dispatch below stays as a flat string match.
   let projectParams = null;
@@ -347,7 +411,12 @@ async function handleRequest(req, res) {
     // without a token. /dashboard is legacy HTML that we still protect when
     // auth is enabled.
     const cfg = manager.getConfig();
-    const needsAuthCheck = isApiPrefixed || route === '/dashboard';
+    // (10.4) /cicd/webhook authenticates via HMAC-SHA256 on the raw
+    // body, not via JWT - the sender is GitHub, not a logged-in user.
+    // Skip the JWT gate so bearer-less requests reach the handler where
+    // verifySignature does the real auth.
+    const isCicdWebhook = route === '/cicd/webhook' && req.method === 'POST';
+    const needsAuthCheck = (isApiPrefixed || route === '/dashboard') && !isCicdWebhook;
     let authCheck = { allow: true };
     if (needsAuthCheck) {
       authCheck = auth.checkRequest(cfg, req, route);
@@ -929,6 +998,138 @@ async function handleRequest(req, res) {
         result = { error: e.message };
       }
 
+    } else if (req.method === 'POST' && route === '/cicd/webhook') {
+      // (10.4) GitHub webhook receiver. Auth is HMAC-SHA256 over the raw
+      // body matching X-Hub-Signature-256; no JWT expected. Translate
+      // X-GitHub-Event + payload.action into our internal event name
+      // and forward to handleWebhook. Error codes follow the spec:
+      //   200  dispatched (including "no pipeline matched")
+      //   400  header/event missing or unroutable
+      //   401  bad / missing signature
+      const { raw, json } = await parseBodyRaw(req);
+      const signatureHeader = req.headers['x-hub-signature-256'] || '';
+      const eventHeader = req.headers['x-github-event'] || '';
+      const secret = cicdManager.webhookSecret || '';
+      if (!secret) {
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: 'Webhook secret not configured' }));
+        return;
+      }
+      if (!cicd.verifySignature(secret, raw, signatureHeader)) {
+        _safeAudit('cicd.webhook', { ok: false, reason: 'bad signature' },
+          { actor: 'github', target: 'cicd' });
+        res.writeHead(401);
+        res.end(JSON.stringify({ error: 'Invalid signature' }));
+        return;
+      }
+      if (!eventHeader) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Missing X-GitHub-Event header' }));
+        return;
+      }
+      const internalEvent = cicd.parseGithubEvent(eventHeader, json);
+      if (!internalEvent) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Unknown event: ' + eventHeader }));
+        return;
+      }
+      const outcome = cicdManager.handleWebhook(internalEvent, json);
+      _safeAudit('cicd.webhook',
+        { ok: true, event: internalEvent, matched: outcome.matched || 0 },
+        { actor: 'github', target: 'cicd' });
+      result = outcome;
+
+    } else if (req.method === 'GET' && route === '/cicd/pipelines') {
+      // (10.4) List every registered pipeline.
+      const gate = requireRole(authCheck, rbac.ACTIONS.CICD_READ);
+      if (denyOr(res, gate)) return;
+      try {
+        const pipelines = cicdManager.listPipelines();
+        result = { pipelines, count: pipelines.length };
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && route === '/cicd/pipelines') {
+      // (10.4) Register a pipeline. Body matches the schema in
+      // patches/1.9.5-cicd-integration.md.
+      const gate = requireRole(authCheck, rbac.ACTIONS.CICD_MANAGE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        result = cicdManager.registerPipeline(body || {});
+        _safeAudit('cicd.pipeline.created',
+          { id: result.id, repo: result.repo, triggers: result.triggers },
+          { actor: _auditActor(authCheck), target: result.id });
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'DELETE' && cicdPipelineId) {
+      // (10.4) Delete a pipeline by id. 404 when not found.
+      const gate = requireRole(authCheck, rbac.ACTIONS.CICD_MANAGE);
+      if (denyOr(res, gate)) return;
+      const ok = cicdManager.deletePipeline(cicdPipelineId);
+      if (!ok) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Pipeline not found: ' + cicdPipelineId }));
+        return;
+      }
+      _safeAudit('cicd.pipeline.deleted', { id: cicdPipelineId },
+        { actor: _auditActor(authCheck), target: cicdPipelineId });
+      result = { deleted: true, id: cicdPipelineId };
+
+    } else if (req.method === 'GET' && cicdPipelineId) {
+      // (10.4) Show one pipeline.
+      const gate = requireRole(authCheck, rbac.ACTIONS.CICD_READ);
+      if (denyOr(res, gate)) return;
+      const p = cicdManager.getPipeline(cicdPipelineId);
+      if (!p) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Pipeline not found: ' + cicdPipelineId }));
+        return;
+      }
+      result = p;
+
+    } else if (req.method === 'POST' && route === '/cicd/trigger') {
+      // (10.4) Manual run of a registered pipeline. Body:
+      //   { id }                     -> replay every action on the pipeline
+      //   { repo, workflow, inputs } -> one-off workflow_dispatch without a pipeline
+      const gate = requireRole(authCheck, rbac.ACTIONS.CICD_MANAGE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        if (body && body.id) {
+          const pipeline = cicdManager.getPipeline(body.id);
+          if (!pipeline) {
+            res.writeHead(404);
+            res.end(JSON.stringify({ error: 'Pipeline not found: ' + body.id }));
+            return;
+          }
+          // Replay via handleWebhook so the action fan-out stays identical
+          // to a webhook-driven run. Use the first configured trigger as
+          // the event so actions scoped to e.g. merge.main still fire.
+          const event = pipeline.triggers[0] || 'merge.main';
+          result = cicdManager.handleWebhook(event, body.payload || {});
+        } else if (body && body.repo && body.workflow) {
+          result = cicdManager.triggerWorkflow(
+            body.repo,
+            body.workflow,
+            body.inputs || {},
+            { ref: body.ref || 'main' }
+          );
+        } else {
+          result = { error: 'Provide { id } or { repo, workflow }' };
+        }
+        if (result && !result.error) {
+          _safeAudit('cicd.trigger',
+            { id: body.id || null, repo: body.repo || null, workflow: body.workflow || null },
+            { actor: _auditActor(authCheck), target: body.id || body.repo || 'cicd' });
+        }
+      } catch (e) {
+        result = { error: e.message };
+      }
+
     } else if (req.method === 'POST' && route === '/cleanup') {
       const { dryRun } = await parseBody(req);
       result = manager.cleanup(dryRun);
@@ -960,6 +1161,9 @@ async function handleRequest(req, res) {
         // (10.3) Rebuild the dashboard on the next hit so it binds to
         // the fresh board + any updated cost config.
         _projectDashboard = null;
+        // (10.4) Refresh the CicdManager with the new webhook secret +
+        // repo token list so cicd responses honour edits immediately.
+        try { cicdManager.applyConfig(manager.getConfig().cicd || {}); } catch {}
       }
 
     } else if (req.method === 'POST' && route === '/scribe/start') {

@@ -2531,6 +2531,114 @@ async function main() {
         return;
       }
 
+      case 'cicd': {
+        // (10.4) CI/CD pipeline management.
+        //   c4 cicd pipeline list
+        //   c4 cicd pipeline create --repo R --workflow W --trigger T [--trigger T2] --action worker.task:template [--action workflow.trigger:workflow] [--profile P] [--name N]
+        //   c4 cicd pipeline delete <id>
+        //   c4 cicd trigger <id> [--event E]
+        //   c4 cicd trigger --repo R --workflow W [--ref REF] [--input KEY=VAL]
+        const sub = args[0];
+        const validSubs = ['pipeline', 'trigger'];
+        if (!sub || !validSubs.includes(sub)) {
+          console.log('Usage: c4 cicd <pipeline|trigger> ...');
+          console.log('  pipeline list');
+          console.log('  pipeline create --repo R --workflow W --trigger T [--trigger T2]');
+          console.log('                  --action worker.task:<template> [--action workflow.trigger:<workflow>]');
+          console.log('                  [--profile P] [--name N] [--id ID]');
+          console.log('  pipeline delete <id>');
+          console.log('  trigger <id> [--event E]');
+          console.log('  trigger --repo R --workflow W [--ref REF] [--input KEY=VAL]');
+          return;
+        }
+
+        function collectRepeatFlag(name) {
+          const out = [];
+          for (let i = 2; i < args.length - 1; i++) {
+            if (args[i] === name) out.push(args[i + 1]);
+          }
+          return out;
+        }
+        function singleFlag(name) {
+          for (let i = 2; i < args.length - 1; i++) {
+            if (args[i] === name) return args[i + 1];
+          }
+          return '';
+        }
+
+        if (sub === 'pipeline') {
+          const pipeSub = args[1];
+          if (pipeSub === 'list') {
+            result = await request('GET', '/cicd/pipelines');
+          } else if (pipeSub === 'create') {
+            const repo = singleFlag('--repo');
+            const workflow = singleFlag('--workflow');
+            const id = singleFlag('--id');
+            const name = singleFlag('--name');
+            const profile = singleFlag('--profile');
+            const triggers = collectRepeatFlag('--trigger');
+            const actionSpecs = collectRepeatFlag('--action');
+            if (!repo) {
+              console.error('Usage: c4 cicd pipeline create --repo R --workflow W --trigger T --action TYPE:VALUE');
+              process.exit(1);
+            }
+            const actions = actionSpecs.map((spec) => {
+              const idx = spec.indexOf(':');
+              if (idx < 0) return null;
+              const type = spec.slice(0, idx);
+              const value = spec.slice(idx + 1);
+              if (type === 'worker.task') {
+                return { type, template: value, profile: profile || '' };
+              }
+              if (type === 'workflow.trigger') {
+                return { type, workflow: value, inputs: {} };
+              }
+              return null;
+            }).filter(Boolean);
+            const body = { repo, workflow, triggers, actions };
+            if (id) body.id = id;
+            if (name) body.name = name;
+            result = await request('POST', '/cicd/pipelines', body);
+          } else if (pipeSub === 'delete') {
+            const id = args[2];
+            if (!id) { console.error('Usage: c4 cicd pipeline delete <id>'); process.exit(1); }
+            result = await request('DELETE', '/cicd/pipelines/' + encodeURIComponent(id));
+          } else {
+            console.error('Usage: c4 cicd pipeline <list|create|delete>');
+            process.exit(1);
+          }
+        } else if (sub === 'trigger') {
+          const repo = singleFlag('--repo');
+          const workflow = singleFlag('--workflow');
+          if (repo && workflow) {
+            const ref = singleFlag('--ref') || 'main';
+            const inputs = {};
+            for (let i = 1; i < args.length - 1; i++) {
+              if (args[i] === '--input') {
+                const kv = args[i + 1] || '';
+                const eq = kv.indexOf('=');
+                if (eq > 0) inputs[kv.slice(0, eq)] = kv.slice(eq + 1);
+              }
+            }
+            result = await request('POST', '/cicd/trigger', { repo, workflow, ref, inputs });
+          } else {
+            const id = args[1];
+            if (!id) {
+              console.error('Usage: c4 cicd trigger <id> OR --repo R --workflow W');
+              process.exit(1);
+            }
+            result = await request('POST', '/cicd/trigger', { id });
+          }
+        }
+
+        if (result && result.error) {
+          console.error('Error: ' + result.error);
+          process.exit(1);
+        }
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+
       case 'daemon': {
         const DaemonManager = require(require('path').join(__dirname, 'daemon-manager'));
         const sub = args[0];
@@ -2671,6 +2779,13 @@ Commands:
   project sprint add <projectId> <name> --start <d> --end <d> [--id ID]
   project progress <id>            Show {totalTasks, doneTasks, percent, byStatus}
   project sync <id> [--repo PATH]  Bi-directional TODO.md sync
+  cicd pipeline list               List registered CI/CD pipelines (10.4)
+  cicd pipeline create --repo R --workflow W --trigger T --action TYPE:VALUE
+       [--trigger T2] [--action TYPE:VALUE] [--profile P] [--name N] [--id ID]
+       Register a pipeline. Actions: worker.task:<template> or workflow.trigger:<workflow>.
+  cicd pipeline delete <id>        Remove a pipeline
+  cicd trigger <id>                Replay a registered pipeline's actions
+  cicd trigger --repo R --workflow W [--ref REF] [--input K=V]  One-off workflow_dispatch
 
 Special keys: Enter, C-c, C-b, C-d, C-z, C-l, C-a, C-e, Escape, Tab, Backspace, Up, Down, Left, Right
 
