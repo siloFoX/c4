@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import WorkerList from './components/WorkerList';
 import WorkerDetail from './components/WorkerDetail';
+import ChatView from './components/ChatView';
 import HierarchyTree from './components/HierarchyTree';
 import Login from './components/Login';
 import { AUTH_EVENT, fetchAuthStatus, getToken, logout } from './lib/api';
 
 type AuthState = 'loading' | 'anon' | 'authed' | 'disabled';
 type SidebarMode = 'list' | 'tree';
+type DetailMode = 'terminal' | 'chat';
 const SIDEBAR_MODE_KEY = 'c4.sidebar.mode';
+const DETAIL_MODE_KEY = 'c4.detail.mode';
 
 function readSidebarMode(): SidebarMode {
   if (typeof window === 'undefined') return 'list';
@@ -19,6 +22,16 @@ function readSidebarMode(): SidebarMode {
   }
 }
 
+function readDetailMode(): DetailMode {
+  if (typeof window === 'undefined') return 'terminal';
+  try {
+    const v = window.localStorage.getItem(DETAIL_MODE_KEY);
+    return v === 'chat' ? 'chat' : 'terminal';
+  } catch {
+    return 'terminal';
+  }
+}
+
 export default function App() {
   const [selectedWorker, setSelectedWorker] = useState<string | null>(null);
   const [authState, setAuthState] = useState<AuthState>('loading');
@@ -27,6 +40,7 @@ export default function App() {
     return window.matchMedia('(min-width: 768px)').matches;
   });
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>(readSidebarMode);
+  const [detailMode, setDetailMode] = useState<DetailMode>(readDetailMode);
 
   useEffect(() => {
     try {
@@ -35,6 +49,14 @@ export default function App() {
       // ignore private-mode throws
     }
   }, [sidebarMode]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(DETAIL_MODE_KEY, detailMode);
+    } catch {
+      // ignore private-mode throws
+    }
+  }, [detailMode]);
 
   const refreshAuth = useCallback(async () => {
     const status = await fetchAuthStatus();
@@ -152,7 +174,49 @@ export default function App() {
         )}
         <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-3 md:p-6">
           {selectedWorker ? (
-            <WorkerDetail key={selectedWorker} workerName={selectedWorker} />
+            <div className="flex h-full min-h-0 min-w-0 flex-col">
+              <div className="mb-3 flex justify-end">
+                <div
+                  role="tablist"
+                  aria-label="Detail view mode"
+                  className="flex overflow-hidden rounded border border-gray-700 text-xs"
+                >
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={detailMode === 'terminal'}
+                    onClick={() => setDetailMode('terminal')}
+                    className={`px-3 py-1 ${
+                      detailMode === 'terminal'
+                        ? 'bg-gray-700 text-gray-100'
+                        : 'bg-gray-900 text-gray-400 hover:bg-gray-800'
+                    }`}
+                  >
+                    Terminal
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={detailMode === 'chat'}
+                    onClick={() => setDetailMode('chat')}
+                    className={`px-3 py-1 ${
+                      detailMode === 'chat'
+                        ? 'bg-gray-700 text-gray-100'
+                        : 'bg-gray-900 text-gray-400 hover:bg-gray-800'
+                    }`}
+                  >
+                    Chat
+                  </button>
+                </div>
+              </div>
+              <div className="min-h-0 min-w-0 flex-1">
+                {detailMode === 'chat' ? (
+                  <ChatView key={`chat-${selectedWorker}`} workerName={selectedWorker} />
+                ) : (
+                  <WorkerDetail key={`term-${selectedWorker}`} workerName={selectedWorker} />
+                )}
+              </div>
+            </div>
           ) : (
             <div>
               <h2 className="mb-4 text-lg font-semibold text-gray-200">Worker detail</h2>
