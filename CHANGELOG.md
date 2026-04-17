@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.11] - 2026-04-17
+
+### Fixed
+- **pendingTask Enter 누락 완전 해결** (7.1): 5.18에서 send()에만 적용했던 "input/CR 분리 전송" 패턴이 pendingTask delivery 9개 경로(active polling, timeout fallback, post-setup trigger, sendTask existing worker, idle handler, auto-resume queue, CI feedback, routine skip, _processQueue existing worker)에는 전파되지 않아 동일 PTY/Claude Code 타이밍 문제로 task 텍스트는 prompt에 도달하지만 Enter 인식 실패. `_writeTaskAndEnter()` 헬퍼 추가하여 모든 경로 교체 (w-docs-final 재현 케이스 해결)
+
 ## [1.6.10] - 2026-04-16
 
 ### Fixed
