@@ -1,10 +1,14 @@
 const http = require('http');
+const path = require('path');
 const PtyManager = require('./pty-manager');
 const McpHandler = require('./mcp-handler');
 const Planner = require('./planner');
 const Scribe = require('./scribe');
 const Notifications = require('./notifications');
 const { resolveBindHost } = require('./web-external');
+const staticServer = require('./static-server');
+
+const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
 
 const manager = new PtyManager();
 const mcpHandler = new McpHandler(manager);
@@ -142,7 +146,11 @@ async function handleRequest(req, res) {
   res.setHeader('Content-Type', 'application/json');
 
   const url = new URL(req.url, `http://${HOST}`);
-  const route = url.pathname;
+  const rawPath = url.pathname;
+  // Built web UI calls /api/* (vite dev server strips the prefix via proxy).
+  // In prod the daemon serves both on port 3456, so alias /api/<x> -> /<x>.
+  const isApiPrefixed = rawPath === '/api' || rawPath.startsWith('/api/');
+  const route = isApiPrefixed ? (rawPath.slice(4) || '/') : rawPath;
 
   try {
     let result;
@@ -452,6 +460,16 @@ async function handleRequest(req, res) {
       return;
 
     } else {
+      // Static fallback for built web UI (8.12): serve web/dist for any
+      // unmatched GET/HEAD that is not under the /api prefix. SPA routes
+      // fall back to index.html inside serveStatic.
+      if ((req.method === 'GET' || req.method === 'HEAD') && !isApiPrefixed) {
+        const served = staticServer.serveStatic(req, res, {
+          webDist: WEB_DIST,
+          urlPath: rawPath,
+        });
+        if (served) return;
+      }
       res.writeHead(404);
       res.end(JSON.stringify({ error: 'Not found' }));
       return;

@@ -9,6 +9,7 @@
   "scripts": {
     "start": "node src/daemon.js",
     "daemon": "node src/daemon.js",
+    "build:web": "npm --prefix web install && npm --prefix web run build",
     "test": "node tests/run-all.js"
   },
   "keywords": [

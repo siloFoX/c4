@@ -734,6 +734,28 @@ async function main() {
           console.log(`[warn] web-external: ${e.message}`);
         }
 
+        // 8. Build web UI if web/dist missing (8.12)
+        try {
+          const { webDistExists } = require('./static-server');
+          const webDir = path.join(repoRoot, 'web');
+          if (fs.existsSync(webDir) && !webDistExists(path.join(webDir, 'dist'))) {
+            console.log('\n[info] web/dist not found — building now (npm run build:web)');
+            try {
+              execSync('npm run build:web', {
+                cwd: repoRoot,
+                stdio: 'inherit',
+                timeout: 300000,
+              });
+              console.log('[ok] web UI build complete');
+            } catch (buildErr) {
+              console.log('[warn] web UI build failed — run `npm run build:web` manually');
+              console.log(`       (${buildErr.message.split('\n')[0]})`);
+            }
+          }
+        } catch (e) {
+          console.log(`[warn] web build check: ${e.message}`);
+        }
+
         console.log('\nc4 init complete!');
 
         // 6. Guide: manager mode start (7.14)
