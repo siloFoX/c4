@@ -435,7 +435,9 @@ Level 4이면:
 | 7.7 | c4 wait --interrupt-on-intervention 실사용 테스트 | **todo** | intervention 감지 시 wait 즉시 종료 실제 동작 확인. |
 | 7.8 | DGX 최신 코드 테스트 | **todo** | DGX에서 git pull + npm install + npm test + c4 daemon start 확인. |
 | 7.9 | worktree 잔여물 정리 검증 | **todo** | worker close 후 c4-worktree-* 디렉토리와 c4/ 브랜치가 완전히 정리되는지 반복 테스트. |
-| 7.10 | 전체 npm test 통과 확인 | **todo** | 최신 main에서 npm test 47+개 전부 통과 확인. |
+| 7.10 | 전체 npm test 통과 확인 | **done** | 47개 전부 통과 확인 (관리자 세션에서 직접 실행) |
+| 7.11 | 재귀적 테스트 구조 | **todo** | 관리자 세션 -> c4 new test-mgr -> test-mgr이 c4 watch/batch/approve/wait 테스트 실행. 관리자가 직접 compound 명령 안 쓰고 worker에 위임하는 패턴 검증. |
+| 7.12 | manager.md에 테스트 위임 규칙 추가 | **todo** | c4 명령어 테스트도 worker에 위임하도록 manager.md에 명시. "c4 명령어를 직접 실행하지 마. 테스트도 worker를 만들어서 시켜." 사용자가 매번 지시하지 않아도 알아서 되게. |
 
 ## 완료
 
