@@ -104,3 +104,45 @@ Started: 2026-04-17
 - Post-merge: daemon restart required for bindHost changes to take effect (will issue c4 daemon restart now)
 - All workers closed. Going idle after daemon restart.
 
+### 2026-04-17 ~11:20 KST - v2 Task 2 complete (7.22 pending-task-fix)
+- Manager (this session) resumed queue v2 at task 2 after earlier restart killed prior auto-mgr; spawned pending-task-fix on branch c4/pending-task-fix
+- Worker commits: 1af0d82 (fix src/pty-manager.js +204 lines), 1c8e2e7 (tests/pending-task-verify.test.js +475 lines, 22 assertions), 21589d7 (TODO/CHANGELOG/package.json 1.6.18)
+- Scope: three new failure modes beyond 7.17's 5-point defense: (1) write-failure stuck state (set _pendingTaskSent before await _writeTaskAndEnter), (2) fireFallback bypassed stabilization window, (3) delayed setTimeout sends skipped state re-validation. Capstone: _schedulePendingTaskVerify fires single bare \r at 1500ms if prompt still idle.
+- 59 suites pass. c4 merge --auto-stash worked cleanly (stashed 12 changes, popped clean). Merge commit b53e8e6, pushed to origin/main.
+- Separate commit ae0578d on main: staged queue v2-v6, autonomous-log, TODO phase 8.12-15/9.9-11/10.9 entries so upcoming workers have the TODO rows in their worktree.
+- daemon NOT restarted (would kill this manager). Fix lands in main; next natural restart picks up new src/pty-manager.js. Manual c4 send + key Enter workaround still available if pendingTask stalls.
+- Pre-commit hook warning (githooks not exec) observed again; not blocking, tracked under 7.27.
+- Worker closed. Moving to task 3 (7.23 hook-error-fix).
+
+### 2026-04-17 ~11:30 KST - v2 Task 3 complete (7.23 hook-error-fix)
+- Spawned hook-error-fix worker on branch c4/hook-error-fix for TODO 7.23
+- Finding: hook spawn error does NOT recur under v1.6.18 code; 0 failures across ~4 MB of 11 recent worker logs
+- Residual artifact found: 7.16 ASCII fix left 2 em-dashes (U+2014) in src/hook-relay.js comments (offsets 37 and 1130). Worker stripped them to pure ASCII.
+- Commits: ff16704 (fix em-dashes in hook-relay.js comments), 3199374 (test/hook-setup.test.js, 16 assertions across 3 suites - hook command shape, exit-0 contract, source hygiene guard), fb4d9a3 (TODO 7.23 done with evidence, 7.21 description restored, CHANGELOG 1.6.19, version bump)
+- 60/60 suites pass. Merge (cd26fa3) via --auto-stash (3 working-tree changes stashed/popped cleanly). Pushed origin/main: ae0578d -> cd26fa3.
+- Approved one read-only find permission prompt via c4 key Enter after verifying safety
+- Worker closed. Moving to task 4 (7.21 wait-all-fix).
+
+### 2026-04-17 ~11:36 KST - v2 Task 4 complete (7.21 wait-all-fix)
+- Spawned wait-all-fix worker on branch c4/wait-all-fix for TODO 7.21
+- Fix: added waitAll option to waitAndReadMulti (src/pty-manager.js). Intervention is terminal under --all -> returns per-worker results. CLI (src/cli.js) passes waitAll=1, daemon (src/daemon.js) forwards. CLI prints per-worker report with status.
+- Commits: cbc9280 (fix pty-manager/cli/daemon), ac494d6 (tests/parallel-wait.test.js +128 lines, 4 cases: all-idle <500ms, idle+intervention, all-intervention, busy-timeout), 42c509f (TODO 7.21 done, CHANGELOG 1.6.20, package.json bump)
+- First-completion semantics for c4 wait w1 w2 w3 (without --all) preserved
+- 60/60 suites pass. Merge (d462d94) via --auto-stash. Pushed origin/main: cd26fa3 -> d462d94. Daemon NOT restarted.
+- Worker closed in 5m. Moving to task 5 (web-serve).
+
+### 2026-04-17 ~11:45 KST - v2 Task 5 complete (8.12 web-serve)
+- Spawned web-serve worker on branch c4/web-serve from docs/tasks/web-serve.md spec
+- Worker initially tried a compound command (ls;cd;timeout node daemon | head) to do a live daemon boot smoke test. Manager sent Escape + correction via c4 send ("Rule 7.26 violation... diagnose actual test failures instead of live daemon spawn"). Worker pivoted to unit-test-only verification.
+- Also observed 2 failed sub-tests initially (resolveSafePath, pickFile) which worker addressed inline during fix-up
+- Final commits: 75cb587 (feat: src/static-server.js +175, src/daemon.js, src/daemon-manager.js, src/cli.js +22), 798b822 (tests/daemon-static-serve.test.js +257), 3b46e84 (TODO 8.12 done, CHANGELOG, README Web UI section, docs/handoff.md)
+- 61/61 suites pass. Merge (36d950c) via --auto-stash. Pushed origin/main: d462d94 -> 36d950c.
+- Spec says "daemon restart required for static middleware". Deferred: restart kills manager. Will pick up on next natural restart or user-triggered restart. Static middleware is loaded at daemon boot time; no hot-reload path exists (c4 daemon only has start/stop/restart/status).
+- Worker closed. Moving to task 6 (9.11 worktree-gc).
+
+
+### 2026-04-17 UTC 11:30 - Cron rework (9ced657d)
+- User flagged: monitor cron should not run commands needing confirmation (e.g. ls on /tmp/cred)
+- Replaced aae0ee50 with 9ced657d: only c4/git commands, delegates setup to worker
+- Auth-setup flow: cron detects 8.14 merge via git log grep -> spawns auth-setup worker -> worker runs c4 init, removes cred, c4 daemon reload (not restart to preserve manager), starts vite, logs done
+- Cron itself never touches /tmp or filesystem outside /root/c4 via c4/git
