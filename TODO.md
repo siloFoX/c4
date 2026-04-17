@@ -444,7 +444,7 @@ Level 4이면:
 | 7.16 | PreToolUse hook error 인코딩 깨짐 | **done** | compound-check.js stderr 완전 ASCII 전환 + PowerShell/curl 후크 커맨드에 try/catch + SilentlyContinue 적용하여 localized 에러 메시지 차단. tests/hook-ascii.test.js로 non-ASCII 회귀 방지. |
 | 7.17 | pendingTask 5.51 수정 후에도 재발 | **done** | docs/analysis/pending-task.md 후보 A~D 한꺼번에 차단: (1) setupDone 후 1000ms stabilization window (`_setupStableAt`), (2) active polling 2-consecutive ready (`_readyConfirmedAt`), (3) timeout fallback setupDone 가드 + 1회 defer, (4) `_chunkedWrite` fast path drain 동기화, (5) `enterDelayMs` 설정화(default 100→200). 9개 delivery 경로가 모두 `_getEnterDelayMs()` 경유. 테스트: pending-task-polling 14→18, chunked-write 7→9. |
 | 7.18 | worker 영어 전용 모드 | **done** | workerDefaults.workerLanguage: "en" 옵션 추가. _getRulesSummary()가 rules 끝에 "Respond in English only..." 지시문을 자동 덧붙인다. 한국어 인코딩 깨짐(7.16) 우회 + hook error 방지. |
-| 7.19 | worker setup /effort + /model 슬래시 명령 대응 | **todo** | Claude Code v2.1.112+에서 /effort max, /model <model> 슬래시 명령으로 설정 필요. _executeSetupPhase2 로직 업데이트. MSYS_NO_PATHCONV=1 적용 (Git Bash 경로 변환 방지). config workerDefaults.model 반영. |
+| 7.19 | worker setup /effort + /model 슬래시 명령 대응 | **done** | Claude Code v2.1.112+에서 `/effort <level>` + 옵션 `/model <value>` 슬래시 명령으로 설정. `_executeSetupPhase2`가 TUI 화살표 대신 슬래시 명령 전송, `_finishSetup` 헬퍼 추출. MSYS_NO_PATHCONV=1 방어 재확인 (Git Bash `/effort` 경로 변환 방지). `workerDefaults.model !== 'default'`일 때만 `/model` 전송. `tests/setup-slash.test.js` 추가. |
 
 ## 완료
 

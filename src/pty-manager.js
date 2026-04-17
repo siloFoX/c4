@@ -1197,82 +1197,77 @@ class PtyManager extends EventEmitter {
   }
 
   /**
-   * Execute effort setup Phase 2: send arrow keys + Enter to set effort level.
-   * Extracted to avoid duplication between idle timer and polling timer.
+   * Execute worker setup via slash commands (Claude Code v2.1.112+).
+   * Sends `/effort <level>` and optionally `/model <value>` — replaces the
+   * legacy TUI menu navigation (arrow keys) that broke when Claude Code
+   * switched to slash-command configuration.
    */
   _executeSetupPhase2(worker, proc) {
     if (worker.setupPhase !== 'waitMenu') return; // guard against double execution
 
-    const effortLevel = worker._dynamicEffort || this.config.workerDefaults?.effortLevel;
+    const effortLevel = worker._dynamicEffort || this.config.workerDefaults?.effortLevel || 'max';
+    const model = this.config.workerDefaults?.model;
     const setupCfg = this.config.workerDefaults?.effortSetup || {};
     const inputDelayMs = setupCfg.inputDelayMs ?? 500;
     const confirmDelayMs = setupCfg.confirmDelayMs ?? 500;
     // (7.17) stabilization window after menu close; covers TUI redraw latency
     const stabilizeMs = setupCfg.stabilizeMs ?? 1000;
 
+    // Git Bash (MSYS) rewrites `/effort` to `C:/Program Files/Git/effort` when
+    // MSYS_NO_PATHCONV is unset. cli.js:6 sets it at startup; re-assert here
+    // in case the env was mutated after boot.
+    if (process.env.MSYS_NO_PATHCONV !== '1') {
+      process.env.MSYS_NO_PATHCONV = '1';
+    }
+
     worker.setupPhase = 'done';
 
     setTimeout(() => {
-      const effortKeys = this._termInterface.getEffortKeys(effortLevel);
-      // Send arrow keys (all but the trailing Enter)
-      const arrowKeys = effortKeys.slice(0, -1);
-      if (arrowKeys) proc.write(arrowKeys);
+      proc.write(`/effort ${effortLevel}\r`);
       setTimeout(() => {
-        proc.write('\r'); // Enter to confirm
-        worker.setupDone = true;
-        worker._setupStableAt = Date.now() + stabilizeMs;
-        worker._readyConfirmedAt = 0;
-        worker.setupPhase = null;
-        worker.setupPhaseStart = null;
-        worker.snapshots.push({
-          time: Date.now(),
-          screen: `[C4 SETUP] effort level → ${effortLevel}` +
-            (worker.setupRetries ? ` (after ${worker.setupRetries} retries)` : ''),
-          autoAction: true
-        });
-        // (5.51) Trigger pending task delivery after setup completes.
-        // (7.17) Post-setup delay must exceed the stabilization window.
-        if (worker._pendingTask && !worker._pendingTaskSent) {
-          const postSetupMs = Math.max(2000, stabilizeMs + 500);
-          setTimeout(async () => {
-            if (!worker._pendingTask || worker._pendingTaskSent || !worker.alive) return;
-            if (Date.now() < (worker._setupStableAt || 0)) return;
-            const text = this._getScreenText(worker.screen);
-            if (this._termInterface.isReady(text)) {
-              worker._pendingTaskSent = true;
-              const pt = worker._pendingTask;
-              const fullTask = this._buildTaskText(worker, pt.task, pt.options);
-              await this._writeTaskAndEnter(proc, fullTask, this._getEnterDelayMs());
-              worker._taskText = pt.task;
-              worker._taskStartedAt = new Date().toISOString();
-              worker._pendingTask = null;
-            }
-          }, postSetupMs);
+        if (model && model !== 'default') {
+          proc.write(`/model ${model}\r`);
+          setTimeout(() => this._finishSetup(worker, proc, effortLevel, model), confirmDelayMs);
+        } else {
+          this._finishSetup(worker, proc, effortLevel, null);
         }
       }, confirmDelayMs);
     }, inputDelayMs);
   }
 
-  /**
-   * Start periodic polling for model menu detection during waitMenu phase.
-   * Independent of the idle timer, so detection doesn't depend on data events.
-   */
-  _startSetupPolling(worker, screen, proc) {
-    if (worker._setupPollTimer) clearInterval(worker._setupPollTimer);
-
-    worker._setupPollTimer = setInterval(() => {
-      if (worker.setupPhase !== 'waitMenu' || worker.setupDone) {
-        clearInterval(worker._setupPollTimer);
-        worker._setupPollTimer = null;
-        return;
-      }
-      const text = this._getScreenText(screen);
-      if (this._termInterface.isModelMenu(text)) {
-        clearInterval(worker._setupPollTimer);
-        worker._setupPollTimer = null;
-        this._executeSetupPhase2(worker, proc);
-      }
-    }, 500);
+  _finishSetup(worker, proc, effortLevel, model) {
+    const stabilizeMs = this.config.workerDefaults?.effortSetup?.stabilizeMs ?? 1000;
+    worker.setupDone = true;
+    worker._setupStableAt = Date.now() + stabilizeMs;
+    worker._readyConfirmedAt = 0;
+    worker.setupPhase = null;
+    worker.setupPhaseStart = null;
+    worker.snapshots.push({
+      time: Date.now(),
+      screen: `[C4 SETUP] /effort ${effortLevel}` +
+        (model ? ` + /model ${model}` : '') +
+        (worker.setupRetries ? ` (after ${worker.setupRetries} retries)` : ''),
+      autoAction: true
+    });
+    // (5.51) Trigger pending task delivery after setup completes.
+    // (7.17) Post-setup delay must exceed the stabilization window.
+    if (worker._pendingTask && !worker._pendingTaskSent) {
+      const postSetupMs = Math.max(2000, stabilizeMs + 500);
+      setTimeout(async () => {
+        if (!worker._pendingTask || worker._pendingTaskSent || !worker.alive) return;
+        if (Date.now() < (worker._setupStableAt || 0)) return;
+        const text = this._getScreenText(worker.screen);
+        if (this._termInterface.isReady(text)) {
+          worker._pendingTaskSent = true;
+          const pt = worker._pendingTask;
+          const fullTask = this._buildTaskText(worker, pt.task, pt.options);
+          await this._writeTaskAndEnter(proc, fullTask, this._getEnterDelayMs());
+          worker._taskText = pt.task;
+          worker._taskStartedAt = new Date().toISOString();
+          worker._pendingTask = null;
+        }
+      }, postSetupMs);
+    }
   }
 
   _resolveTarget(targetName) {
@@ -2772,18 +2767,10 @@ class PtyManager extends EventEmitter {
           }
 
           if (!worker.setupPhase && hasPrompt) {
-            // Phase 1: Claude Code ready, send /model
+            // Claude Code v2.1.112+ takes /effort and /model as slash commands
+            // directly — no TUI menu navigation. Trigger setup immediately.
             worker.setupPhase = 'waitMenu';
             worker.setupPhaseStart = Date.now();
-            proc.write(this._termInterface.getModelMenuKeys());
-            // Start periodic menu detection (independent of idle timer)
-            this._startSetupPolling(worker, screen, proc);
-            return;
-          }
-
-          if (worker.setupPhase === 'waitMenu' && hasModelMenu) {
-            // Phase 2: Menu rendered — use extracted method
-            if (worker._setupPollTimer) { clearInterval(worker._setupPollTimer); worker._setupPollTimer = null; }
             this._executeSetupPhase2(worker, proc);
             return;
           }

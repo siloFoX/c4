@@ -2,20 +2,11 @@
 
 ## [1.6.14] - 2026-04-17
 
+### Changed
+- **worker setup 슬래시 명령 전환** (7.19): `/effort <level>` + `/model <value>` 슬래시 명령 기반으로 전환. `_finishSetup` 헬퍼 분리. `tests/setup-slash.test.js` 16개 테스트
+
 ### Fixed
-- **pendingTask Enter 미인식 재발 — 5-point 방어 (7.17)**:
-  7.1 적용 후에도 3/3 worker Enter 누락이 재현되어, docs/analysis/pending-task.md
-  후보 원인 A~D를 한꺼번에 차단.
-  1. setupDone 후 1000ms stabilization window — `_setupStableAt` 타임스탬프로
-     TUI 메뉴 close 애니메이션 동안 pendingTask 송신 차단
-  2. isReady 2-consecutive 확인 — active polling이 첫 ready에서는 타임스탬프만 기록,
-     다음 tick에서도 ready여야 송신 (false-positive transient ready 방어)
-  3. timeout fallback setupDone 가드 — setup 미완료 상태에서는 한 번(half delay)
-     재스케줄한 뒤에만 force-send
-  4. `_chunkedWrite` 단일-청크 fast path drain — `proc.write() === false` 시
-     `drain` 이벤트 대기. Windows conpty 백프레셔에서 CR이 text 앞에 끼어드는 문제 차단
-  5. `enterDelayMs` 설정화 — default 100→200ms, `workerDefaults.enterDelayMs` 로
-     조정 가능. pendingTask 전달 9개 경로 전부 `_getEnterDelayMs()` 경유
+- **pendingTask 5-point 방어** (7.17): setupDone 후 stabilization window, isReady 2연속 확인, timeout fallback 가드, drain 동기화, enterDelayMs 설정화
 
 ## [1.6.13] - 2026-04-17
 

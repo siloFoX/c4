@@ -143,14 +143,12 @@ worker 초기 설정.
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `trustFolder` | boolean | `true` | 자동 trust folder 응답 |
-| `effortLevel` | string | `"max"` | effort level (`low`/`medium`/`high`/`max`) |
-| `effortSetup.retries` | number | `3` | effort 설정 실패 시 재시도 횟수 |
-| `effortSetup.phaseTimeoutMs` | number | `8000` | 메뉴 감지 타임아웃 (ms) |
-| `effortSetup.inputDelayMs` | number | `500` | 키 입력 전 딜레이 (ms) |
-| `effortSetup.confirmDelayMs` | number | `500` | Enter 전 딜레이 (ms) |
-| `effortSetup.stabilizeMs` | number | `1000` | setupDone 직후 pendingTask 전송 금지 창 (ms) — TUI 메뉴 close 애니메이션 대기 (7.17) |
-| `enterDelayMs` | number | `200` | `_writeTaskAndEnter`에서 text 전송 후 CR 전송까지 대기 시간 (ms). Windows conpty 고부하 환경에서 250~500까지 조정 (7.17) |
-| `model` | string | `"default"` | 기본 모델 |
+| `effortLevel` | string | `"max"` | effort level (`low`/`medium`/`high`/`max`). worker 생성 직후 `/effort <level>` 슬래시 명령으로 설정 (Claude Code v2.1.112+). |
+| `effortSetup.retries` | number | `3` | effort 설정 실패 시 재시도 횟수 (레거시, 현재 슬래시 명령 경로에서는 사용되지 않음) |
+| `effortSetup.phaseTimeoutMs` | number | `8000` | 설정 단계 타임아웃 (ms) |
+| `effortSetup.inputDelayMs` | number | `500` | 첫 슬래시 명령 전 딜레이 (ms) |
+| `effortSetup.confirmDelayMs` | number | `500` | 후속 명령 전 딜레이 (ms) |
+| `model` | string | `"default"` | 기본 모델. `"default"`가 아니면 worker 생성 직후 `/model <value>` 슬래시 명령 실행 (Claude Code v2.1.112+). |
 
 ## logs
 
