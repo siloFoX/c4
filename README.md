@@ -9,9 +9,9 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Node >= 18](https://img.shields.io/badge/node-%3E%3D18%20(tested%20v24.11.1)-brightgreen.svg)
-![Claude Code](https://img.shields.io/badge/Claude_Code-v2.1.85--2.1.110-8A2BE2.svg)
+![Claude Code](https://img.shields.io/badge/Claude_Code-v2.1.85--2.1.112-8A2BE2.svg)
 ![Platform](https://img.shields.io/badge/platform-Win11%2022H2%2B%20%7C%20Ubuntu%2022.04%2B-blue.svg)
-![Version](https://img.shields.io/badge/version-1.6.10-green.svg)
+![Version](https://img.shields.io/badge/version-1.6.14-green.svg)
 
 > **The only multi-agent orchestrator for Claude Code** — parallel workers, manager rotation, recursive delegation, overnight autonomous coding. No screenshots, just PTY.
 
