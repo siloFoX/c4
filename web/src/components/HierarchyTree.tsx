@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ChevronDown, ChevronRight, Dot, WifiOff } from 'lucide-react';
 import type { ListResponse, SSEEvent, Worker } from '../types';
 import { apiFetch, eventSourceUrl } from '../lib/api';
+import { Badge, Button, type BadgeProps } from './ui';
+import { cn } from '../lib/cn';
 
 // 8.2 Hierarchy tree sidebar view. Builds a parent/child forest from the
 // flat /api/list worker array (same endpoint as WorkerList) and renders it
 // with expand/collapse + per-subtree status rollup badges. Kept in the
 // frontend (vs. consuming /api/tree) so SSE-triggered re-renders reuse the
 // list cache and do not double-fetch.
+
+type BadgeVariant = NonNullable<BadgeProps['variant']>;
 
 interface Rollup {
   total: number;
@@ -100,11 +105,11 @@ function statusLabel(w: Worker): string {
   return w.status;
 }
 
-function statusClass(w: Worker): string {
-  if (isInterventionActive(w)) return 'bg-red-500/20 text-red-300';
-  if (w.status === 'busy') return 'bg-yellow-500/20 text-yellow-300';
-  if (w.status === 'idle') return 'bg-green-500/20 text-green-300';
-  return 'bg-gray-700/60 text-gray-300';
+function statusVariant(w: Worker): BadgeVariant {
+  if (isInterventionActive(w)) return 'destructive';
+  if (w.status === 'busy') return 'warning';
+  if (w.status === 'idle') return 'success';
+  return 'secondary';
 }
 
 interface HierarchyTreeProps {
@@ -138,46 +143,55 @@ function TreeRow({ node, depth, expanded, toggle, selectedWorker, onSelect }: Ro
   return (
     <div>
       <div
-        className={`flex items-center gap-2 rounded px-2 py-1 text-sm ${
-          isSelected ? 'bg-gray-700 ring-1 ring-blue-500' : 'hover:bg-gray-800'
-        }`}
+        className={cn(
+          'flex items-center gap-2 rounded-md px-2 py-1 text-sm',
+          isSelected
+            ? 'bg-accent text-accent-foreground ring-1 ring-ring'
+            : 'hover:bg-accent/60'
+        )}
         style={{ paddingLeft: 8 + depth * 16 }}
       >
         <button
           type="button"
-          className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded bg-gray-800 text-xs text-gray-300 hover:bg-gray-700"
+          className={cn(
+            'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:hover:bg-transparent'
+          )}
           onClick={() => hasChildren && toggle(node.worker.name)}
           aria-label={hasChildren ? (isOpen ? 'Collapse' : 'Expand') : 'Leaf'}
           aria-expanded={hasChildren ? isOpen : undefined}
           disabled={!hasChildren}
         >
-          {hasChildren ? (isOpen ? '-' : '+') : '\u00B7'}
+          {hasChildren ? (
+            isOpen ? (
+              <ChevronDown className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5" />
+            )
+          ) : (
+            <Dot className="h-3.5 w-3.5" />
+          )}
         </button>
         <button
           type="button"
-          className="min-w-0 flex-1 truncate text-left font-medium text-gray-100"
+          className="min-w-0 flex-1 truncate text-left font-medium text-foreground"
           onClick={() => onSelect(node.worker.name)}
           title={node.worker.name}
         >
           {node.worker.name}
         </button>
-        <span
-          className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold uppercase ${statusClass(
-            node.worker,
-          )}`}
-        >
+        <Badge variant={statusVariant(node.worker)} className="shrink-0 uppercase">
           {statusLabel(node.worker)}
-        </span>
+        </Badge>
       </div>
       {rollupBadges.length > 0 && (
         <div
-          className="flex flex-wrap gap-1 pb-1 text-[10px] text-gray-400"
+          className="flex flex-wrap gap-1 pb-1 text-[10px] text-muted-foreground"
           style={{ paddingLeft: 28 + depth * 16 }}
         >
           {rollupBadges.map((b) => (
-            <span key={b} className="rounded bg-gray-800 px-1.5 py-0.5">
+            <Badge key={b} variant="outline" className="px-1.5 py-0 text-[10px] normal-case">
               {b}
-            </span>
+            </Badge>
           ))}
         </div>
       )}
@@ -271,32 +285,30 @@ export default function HierarchyTree({ selectedWorker, onSelect }: HierarchyTre
   return (
     <div className="space-y-2">
       {!sseConnected && (
-        <div className="text-xs text-gray-500">Live updates disconnected - polling</div>
+        <div className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs text-muted-foreground">
+          <WifiOff aria-hidden="true" className="h-3.5 w-3.5" />
+          <span>Live updates disconnected - polling</span>
+        </div>
       )}
       {error && (
-        <div className="rounded-lg bg-red-900/40 p-3 text-sm text-red-300">
-          Failed to load workers: {error}
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+        >
+          <span className="min-w-0 break-words">Failed to load workers: {error}</span>
         </div>
       )}
       {!error && workers.length === 0 && (
-        <div className="text-sm text-gray-500">No workers yet.</div>
+        <div className="text-sm text-muted-foreground">No workers yet.</div>
       )}
       {workers.length > 0 && (
-        <div className="flex gap-2 text-xs text-gray-400">
-          <button
-            type="button"
-            onClick={expandAll}
-            className="rounded bg-gray-800 px-2 py-0.5 hover:bg-gray-700"
-          >
+        <div className="flex gap-2 text-xs">
+          <Button type="button" variant="secondary" size="sm" onClick={expandAll}>
             Expand all
-          </button>
-          <button
-            type="button"
-            onClick={collapseAll}
-            className="rounded bg-gray-800 px-2 py-0.5 hover:bg-gray-700"
-          >
+          </Button>
+          <Button type="button" variant="secondary" size="sm" onClick={collapseAll}>
             Collapse all
-          </button>
+          </Button>
         </div>
       )}
       <div>
