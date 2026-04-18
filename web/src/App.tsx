@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Menu, X } from 'lucide-react';
 import WorkerList from './components/WorkerList';
 import WorkerDetail from './components/WorkerDetail';
 import ChatView from './components/ChatView';
@@ -138,9 +139,11 @@ export default function App() {
             className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded bg-gray-700 text-gray-100 hover:bg-gray-600 md:hidden"
             aria-label={sidebarOpen ? 'Close worker list' : 'Open worker list'}
           >
-            <span aria-hidden="true" className="text-lg leading-none">
-              {sidebarOpen ? '\u2715' : '\u2630'}
-            </span>
+            {sidebarOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
           </button>
           <h1 className="truncate text-lg font-semibold text-gray-100 md:text-xl">C4 Dashboard</h1>
         </div>
