@@ -1,6 +1,13 @@
-// Shared formatting helpers used across feature pages.
+// Shared formatting helpers used across feature pages. Kept in plain
+// JavaScript (with JSDoc types) so tests/run-all.js can load it via
+// dynamic import without a TypeScript transpile step.
 
-export function formatNumber(n: number | null | undefined, digits = 0): string {
+/**
+ * @param {number | null | undefined} n
+ * @param {number} [digits]
+ * @returns {string}
+ */
+export function formatNumber(n, digits = 0) {
   if (n == null || Number.isNaN(n)) return '-';
   return n.toLocaleString(undefined, {
     minimumFractionDigits: digits,
@@ -8,7 +15,11 @@ export function formatNumber(n: number | null | undefined, digits = 0): string {
   });
 }
 
-export function formatBytes(bytes: number | null | undefined): string {
+/**
+ * @param {number | null | undefined} bytes
+ * @returns {string}
+ */
+export function formatBytes(bytes) {
   if (bytes == null || Number.isNaN(bytes) || bytes < 0) return '-';
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   let i = 0;
@@ -21,7 +32,11 @@ export function formatBytes(bytes: number | null | undefined): string {
   return `${n.toFixed(digits)} ${units[i]}`;
 }
 
-export function formatDuration(ms: number | null | undefined): string {
+/**
+ * @param {number | null | undefined} ms
+ * @returns {string}
+ */
+export function formatDuration(ms) {
   if (ms == null || Number.isNaN(ms) || ms < 0) return '-';
   const s = Math.floor(ms / 1000);
   const d = Math.floor(s / 86400);
@@ -34,17 +49,23 @@ export function formatDuration(ms: number | null | undefined): string {
   return `${sec}s`;
 }
 
-export function formatTimestamp(input: number | string | null | undefined): string {
+/**
+ * @param {number | string | null | undefined} input
+ * @returns {string}
+ */
+export function formatTimestamp(input) {
   if (input == null) return '-';
   const d = typeof input === 'string' ? new Date(input) : new Date(input);
   if (Number.isNaN(d.getTime())) return '-';
   return d.toLocaleString();
 }
 
-export function formatRelativeTime(
-  input: number | string | null | undefined,
-  now: number = Date.now(),
-): string {
+/**
+ * @param {number | string | null | undefined} input
+ * @param {number} [now]
+ * @returns {string}
+ */
+export function formatRelativeTime(input, now = Date.now()) {
   if (input == null) return '-';
   const ts = typeof input === 'string' ? Date.parse(input) : Number(input);
   if (!Number.isFinite(ts)) return '-';
@@ -52,18 +73,26 @@ export function formatRelativeTime(
   return formatDuration(delta) + ' ago';
 }
 
-// Date-range helper used by TokenUsage / History-style filters. Returns
-// [start, end] ISO date strings (YYYY-MM-DD).
-export function dateRange(days: number, now: Date = new Date()): { start: string; end: string } {
-  if (!Number.isFinite(days) || days < 1) days = 1;
+/**
+ * @param {number} days
+ * @param {Date} [now]
+ * @returns {{ start: string; end: string }}
+ */
+export function dateRange(days, now = new Date()) {
+  let d = days;
+  if (!Number.isFinite(d) || d < 1) d = 1;
   const end = new Date(now);
   const start = new Date(now);
-  start.setDate(start.getDate() - (days - 1));
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  start.setDate(start.getDate() - (d - 1));
+  const fmt = (x) => x.toISOString().slice(0, 10);
   return { start: fmt(start), end: fmt(end) };
 }
 
-export function dateRangeLabel(days: number): string {
+/**
+ * @param {number} days
+ * @returns {string}
+ */
+export function dateRangeLabel(days) {
   if (days === 1) return 'Today';
   if (days === 7) return 'Last 7 days';
   if (days === 30) return 'Last 30 days';
