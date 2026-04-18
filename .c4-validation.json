@@ -1,1 +1,1 @@
-{"test_passed": true, "test_count": 100, "build": "pass", "branch": "c4/web-components", "notes": "shadcn-style primitives + lucide adoption in App.tsx sidebar toggle only"}
+{"test_passed": true, "test_count": 100, "build": "pass", "branch": "c4/web-layout", "notes": "AppHeader / TopTabs / Sidebar / DetailTabs / EmptyState + App.tsx recomposition, no page internals touched"}

@@ -343,12 +343,24 @@ describe('App.tsx Control tab wiring (8.8)', () => {
   });
 
   it('extends DetailMode with "control"', () => {
-    assert.match(src, /DetailMode = 'terminal' \| 'chat' \| 'control'/);
+    // After c4/web-layout the DetailMode union moved to DetailTabs.tsx.
+    const detailTabsSrc = fs.readFileSync(
+      path.join(REPO_ROOT, 'web', 'src', 'components', 'layout', 'DetailTabs.tsx'),
+      'utf8',
+    );
+    assert.match(detailTabsSrc, /DetailMode = 'terminal' \| 'chat' \| 'control'/);
   });
 
   it('renders the Control tab button + mounts ControlPanel when selected', () => {
-    assert.match(src, /aria-selected=\{detailMode === 'control'\}/);
-    assert.match(src, /setDetailMode\('control'\)/);
+    // Control tab lives in DetailTabs; App.tsx is responsible for mounting
+    // <ControlPanel/> when detailMode === 'control'.
+    const detailTabsSrc = fs.readFileSync(
+      path.join(REPO_ROOT, 'web', 'src', 'components', 'layout', 'DetailTabs.tsx'),
+      'utf8',
+    );
+    assert.match(detailTabsSrc, /aria-selected=\{active\}/);
+    assert.match(detailTabsSrc, /value: 'control'/);
+    assert.match(detailTabsSrc, /label: 'Control'/);
     assert.match(src, /<ControlPanel key=\{`control-\$\{selectedWorker\}`\}/);
   });
 

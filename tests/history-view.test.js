@@ -316,10 +316,17 @@ describe('App.tsx integration for history tab', () => {
   });
 
   it('renders Workers + History top-level tab buttons', () => {
-    assert.match(src, /setTopView\('workers'\)/);
-    assert.match(src, /setTopView\('history'\)/);
-    assert.match(src, /\n\s*Workers\s*\n/);
-    assert.match(src, /\n\s*History\s*\n/);
+    // After c4/web-layout the top-tab chrome moved into TopTabs; App.tsx only
+    // wires setTopView through onChange. Verify both ends.
+    const topTabsSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'components', 'layout', 'TopTabs.tsx'),
+      'utf8',
+    );
+    assert.match(topTabsSrc, /label: 'Workers'/);
+    assert.match(topTabsSrc, /label: 'History'/);
+    assert.match(topTabsSrc, /value: 'workers'/);
+    assert.match(topTabsSrc, /value: 'history'/);
+    assert.match(src, /onTopViewChange=\{setTopView\}/);
   });
 
   it('renders <HistoryView /> when topView === history', () => {
