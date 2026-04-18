@@ -27,6 +27,7 @@ const workflowMod = require('./workflow');
 const computerUseMod = require('./computer-use');
 const mergeCore = require('./merge-core');
 const slackEvents = require('./slack-events');
+const tierQuotaMod = require('./tier-quota');
 
 // (8.5) Allow-list for POST /key. Web UI needs to drive Enter, Escape,
 // Ctrl-C and the arrow keys without sending raw control bytes. The list
@@ -92,6 +93,16 @@ function safeEmit(eventType, payload) {
     return original(workerName, reason);
   };
 })();
+
+// (8.3) Tier-based daily token quota + complexity-based model selection.
+// One process-wide TierQuota instance keyed by config.tierConfig override.
+// Daemon endpoints below (/quota, /create, /task) read this instance so a
+// `c4 quota` snapshot, a `c4 new --tier mid`, and a `c4 task --model auto`
+// all share the same view of the daily budget. The tierWorkerMap holds
+// `worker name -> tier` so a later /task can resolve the worker's tier
+// without depending on pty-manager-internal worker fields.
+const tierQuota = tierQuotaMod.getShared({ tiers: cfg.tierConfig, force: true });
+const tierWorkerMap = new Map();
 
 // (10.2) Shared audit logger. Writes to ~/.c4/audit.jsonl by default so
 // the trail survives daemon restarts. Every security-relevant endpoint
@@ -817,16 +828,29 @@ async function handleRequest(req, res) {
       };
 
     } else if (req.method === 'POST' && route === '/create') {
-      const { name, command, args, target, cwd, parent } = await parseBody(req);
+      const { name, command, args, target, cwd, parent, tier } = await parseBody(req);
       const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE,
         target ? { type: 'machine', id: target } : null);
       if (denyOr(res, gate)) return;
+      // (8.3) Validate tier against the live tier config, default to "worker"
+      // when omitted so existing callers keep working without breakage.
+      const requestedTier = typeof tier === 'string' && tier.length > 0 ? tier : 'worker';
+      if (!tierQuota.knownTier(requestedTier)) {
+        res.writeHead(400);
+        res.end(JSON.stringify({
+          error: `Unknown tier: ${requestedTier}`,
+          allowed: Object.keys(tierQuota.tiers),
+        }));
+        return;
+      }
       result = manager.create(name, command, args || [], { target, cwd, parent });
       if (result && !result.error) {
+        tierWorkerMap.set(name, requestedTier);
+        if (result && typeof result === 'object') result.tier = requestedTier;
         _safeAudit('worker.created',
-          { command, args: args || [], target: target || 'local', cwd: cwd || '', parent: parent || '', pid: result.pid || null },
+          { command, args: args || [], target: target || 'local', cwd: cwd || '', parent: parent || '', pid: result.pid || null, tier: requestedTier },
           { target: name, actor: _auditActor(authCheck) });
-        safeEmit('worker_spawn', { worker: name, target: target || 'local', command });
+        safeEmit('worker_spawn', { worker: name, target: target || 'local', command, tier: requestedTier });
       }
 
     } else if (req.method === 'POST' && route === '/send') {
@@ -896,19 +920,47 @@ async function handleRequest(req, res) {
       };
 
     } else if (req.method === 'POST' && route === '/task') {
-      const { name, task, branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, budgetUsd, maxRetries } = await parseBody(req);
+      const { name, task, branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, budgetUsd, maxRetries, tier, model } = await parseBody(req);
       const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_TASK,
         target ? { type: 'machine', id: target } : null);
       if (denyOr(res, gate)) return;
+      // (8.3) Resolve tier (explicit > worker map > default 'worker') and
+      // reject up-front if the daily quota is already drained, so a worker
+      // is never spawned just to be cancelled. Model selection: 'auto' (or
+      // unset) runs through tierQuota.selectModel; an explicit model passes
+      // through unchanged so operators can still pin a specific size.
+      const taskTier = typeof tier === 'string' && tierQuota.knownTier(tier)
+        ? tier
+        : (tierWorkerMap.get(name) || 'worker');
+      const remaining = tierQuota.getRemaining(taskTier);
+      if (remaining === 0) {
+        res.writeHead(429);
+        res.end(JSON.stringify({
+          error: `Quota exceeded for tier '${taskTier}'`,
+          tier: taskTier,
+          remaining: 0,
+        }));
+        return;
+      }
+      let resolvedModel = model;
+      if (!resolvedModel || resolvedModel === 'auto') {
+        resolvedModel = tierQuota.selectModel(typeof task === 'string' ? task : '', taskTier);
+      }
       result = manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, budgetUsd, maxRetries });
       if (result && !result.error) {
+        if (typeof result === 'object') {
+          result.tier = taskTier;
+          if (resolvedModel) result.model = resolvedModel;
+        }
         _safeAudit('task.sent',
-          { task: typeof task === 'string' ? task.slice(0, 500) : '', branch: branch || '', profile: profile || '', autoMode: Boolean(autoMode) },
+          { task: typeof task === 'string' ? task.slice(0, 500) : '', branch: branch || '', profile: profile || '', autoMode: Boolean(autoMode), tier: taskTier, model: resolvedModel || '' },
           { target: name, actor: _auditActor(authCheck) });
         safeEmit('task_start', {
           worker: name,
           branch: branch || '',
           task: typeof task === 'string' ? task.split('\n')[0].slice(0, 120) : '',
+          tier: taskTier,
+          model: resolvedModel || '',
         });
       }
 
@@ -2280,6 +2332,9 @@ async function handleRequest(req, res) {
         // (8.15) Re-apply config.slack so a live edit of enabled /
         // webhookUrl / minLevel takes effect without a restart.
         try { slackEmitter.configure(manager.getConfig().slack || {}); } catch {}
+        // (8.3) Re-apply tierConfig overrides so a live edit of daily
+        // limits or model allow-lists takes effect on the next dispatch.
+        try { tierQuota.setTiers(manager.getConfig().tierConfig); } catch {}
       }
 
     } else if (req.method === 'POST' && route === '/scribe/start') {
@@ -2297,6 +2352,19 @@ async function handleRequest(req, res) {
     } else if (req.method === 'GET' && route === '/token-usage') {
       const perTask = url.searchParams.get('perTask') === '1';
       result = manager.getTokenUsage({ perTask });
+
+    } else if (req.method === 'GET' && route === '/quota') {
+      // (8.3) Snapshot of tier quota usage. CLI: `c4 quota`.
+      result = tierQuota.snapshot();
+
+    } else if (req.method === 'GET' && route.startsWith('/quota/')) {
+      const tierName = route.slice('/quota/'.length);
+      if (!tierQuota.knownTier(tierName)) {
+        result = { error: `Unknown tier: ${tierName}`, allowed: Object.keys(tierQuota.tiers) };
+      } else {
+        const snap = tierQuota.snapshot();
+        result = { date: snap.date, tier: tierName, ...snap.tiers[tierName] };
+      }
 
     } else if (req.method === 'GET' && (route === '/validation' || workerValidationName)) {
       // Validation object (9.9): returns parsed JSON from
