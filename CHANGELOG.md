@@ -3,6 +3,48 @@
 ## [Unreleased]
 
 ### Added
+- **(web-layout) dashboard shell composed of reusable layout
+  components.** New directory `web/src/components/layout/` hosts
+  `AppHeader.tsx` (header shell `rounded-none border-b border-border
+  bg-card`, left slot = md:hidden sidebar-toggle `IconButton` with
+  lucide `Menu` / `X`, center = `TopTabs`, right = lucide `LogOut`
+  `IconButton` shown only when `authState === 'authed'`; controlled
+  via `sidebarOpen` + `onToggleSidebar` props so App.tsx keeps
+  ownership of the open state), `TopTabs.tsx` (segmented control for
+  Workers / History / Chat / Workflows with lucide `Users` / `History`
+  / `MessageSquare` / `Workflow` glyphs, `role="tablist"` +
+  `aria-selected` + `role="tab"`, active tab = `bg-primary/10
+  text-primary`, inactive = `text-muted-foreground hover:bg-accent`,
+  exports `TopView` union), `Sidebar.tsx` (aside `md:w-72` with
+  inline logo + Workers label + List/Tree segmented control that
+  uses lucide `List` / `Network`; hosts `<WorkerList/>` or
+  `<HierarchyTree/>` based on mode; returns `null` when `open=false`
+  so mobile keeps its current hide-behaviour; exports `SidebarMode`
+  union), `DetailTabs.tsx` (segmented control for Terminal / Chat /
+  Control with lucide `TerminalSquare` / `MessageSquare` /
+  `SlidersHorizontal`; exports `DetailMode` union), and
+  `EmptyState.tsx` (`Card` + `CardHeader` + `CardTitle` "Worker
+  detail" + `CardDescription` "Select a worker from the sidebar to
+  view details.").
+- **(web-layout) App.tsx recomposed onto the new shell.**
+  `web/src/App.tsx` drops the inline header / sidebar / detail-tabs
+  markup and imports the layout components instead. Outer wrapper
+  now carries `bg-background text-foreground` and the loading
+  early-return swaps `bg-gray-900 text-gray-400` for `bg-background
+  text-muted-foreground`. All existing behaviour is preserved:
+  `AuthState` + helper functions (`readSidebarMode` / `readDetailMode`
+  / `readTopView`) stay in App.tsx, the three localStorage keys
+  (`c4.sidebar.mode`, `c4.detail.mode`, `c4.topView`) keep their
+  names and effects, `refreshAuth` / `handleLogout` / `handleSelect`
+  retain their signatures, the top-view conditional structure
+  (history / chat / workflows / default) is unchanged, and the anon
+  early return still renders `<Login/>`. File shrinks from 353 to
+  172 LOC.
+- **(web-layout) Login outer background swapped to bg-background.**
+  The pre-authed screen replaces `bg-gray-900` with `bg-background`
+  on its outer wrapper only; the form JSX / state / submit handler
+  are untouched so Login's full re-skin remains the upcoming
+  web-pages worker's responsibility.
 - **(web-components) shadcn-style UI primitive set.** New files under
   `web/src/components/ui/`: `button.tsx` (cva, variants default /
   destructive / outline / secondary / ghost / link, sizes sm / md / lg /

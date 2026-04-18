@@ -147,10 +147,17 @@ describe('App.tsx integration', () => {
   });
 
   it('renders Terminal + Chat tabs for the selected worker', () => {
-    assert.match(src, /\n\s*Terminal\s*\n/);
-    assert.match(src, /\n\s*Chat\s*\n/);
-    assert.match(src, /setDetailMode\('chat'\)/);
-    assert.match(src, /setDetailMode\('terminal'\)/);
+    // After c4/web-layout the tab chrome moved into DetailTabs; App.tsx only
+    // wires setDetailMode via onChange. Verify both ends.
+    const detailTabsSrc = fs.readFileSync(
+      path.join(WEB_SRC, 'components', 'layout', 'DetailTabs.tsx'),
+      'utf8',
+    );
+    assert.match(detailTabsSrc, /label: 'Terminal'/);
+    assert.match(detailTabsSrc, /label: 'Chat'/);
+    assert.match(detailTabsSrc, /value: 'terminal'/);
+    assert.match(detailTabsSrc, /value: 'chat'/);
+    assert.match(src, /<DetailTabs[\s\S]*?onChange=\{setDetailMode\}/);
   });
 
   it('keeps WorkerDetail mounted in the terminal branch (backwards compatible)', () => {
