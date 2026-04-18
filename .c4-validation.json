@@ -1,6 +1,6 @@
 {
   "test_passed": true,
-  "test_count": 96,
-  "branch": "c4/scribe-v2",
-  "todo": "10.9"
+  "test_count": 97,
+  "branch": "c4/planner-loop",
+  "todo": "9.12"
 }
