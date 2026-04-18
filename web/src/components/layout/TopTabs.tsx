@@ -1,8 +1,21 @@
 import type { ComponentType, SVGProps } from 'react';
-import { FolderTree, History, MessageSquare, Users, Workflow } from 'lucide-react';
+import {
+  FolderTree,
+  History,
+  MessageSquare,
+  Settings,
+  Users,
+  Workflow,
+} from 'lucide-react';
 import { cn } from '../../lib/cn';
 
-export type TopView = 'workers' | 'history' | 'chat' | 'workflows' | 'sessions';
+export type TopView =
+  | 'workers'
+  | 'history'
+  | 'chat'
+  | 'workflows'
+  | 'sessions'
+  | 'settings';
 
 interface TabDef {
   value: TopView;
@@ -16,6 +29,7 @@ const TABS: TabDef[] = [
   { value: 'sessions', label: 'Sessions', Icon: FolderTree },
   { value: 'chat', label: 'Chat', Icon: MessageSquare },
   { value: 'workflows', label: 'Workflows', Icon: Workflow },
+  { value: 'settings', label: 'Settings', Icon: Settings },
 ];
 
 interface TopTabsProps {

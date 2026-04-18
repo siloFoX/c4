@@ -7,53 +7,30 @@ import SessionsView from './components/SessionsView';
 import Chat from './components/Chat';
 import Login from './components/Login';
 import WorkflowEditor from './components/WorkflowEditor';
+import SettingsView from './components/SettingsView';
 import AppHeader from './components/layout/AppHeader';
 import Sidebar, { type SidebarMode } from './components/layout/Sidebar';
 import DetailTabs, { type DetailMode } from './components/layout/DetailTabs';
 import EmptyState from './components/layout/EmptyState';
 import { type TopView } from './components/layout/TopTabs';
 import { AUTH_EVENT, fetchAuthStatus, getToken, logout } from './lib/api';
+import {
+  applyTheme,
+  DEFAULT_DETAIL_MODE,
+  DEFAULT_SIDEBAR_MODE,
+  DEFAULT_THEME,
+  readDetailMode,
+  readSidebarMode,
+  readTheme,
+  readTopView,
+  writeDetailMode,
+  writeSidebarMode,
+  writeTheme,
+  writeTopView,
+  type ThemeMode,
+} from './lib/preferences';
 
 type AuthState = 'loading' | 'anon' | 'authed' | 'disabled';
-const SIDEBAR_MODE_KEY = 'c4.sidebar.mode';
-const DETAIL_MODE_KEY = 'c4.detail.mode';
-const TOP_VIEW_KEY = 'c4.topView';
-
-function readSidebarMode(): SidebarMode {
-  if (typeof window === 'undefined') return 'list';
-  try {
-    const v = window.localStorage.getItem(SIDEBAR_MODE_KEY);
-    return v === 'tree' ? 'tree' : 'list';
-  } catch {
-    return 'list';
-  }
-}
-
-function readDetailMode(): DetailMode {
-  if (typeof window === 'undefined') return 'terminal';
-  try {
-    const v = window.localStorage.getItem(DETAIL_MODE_KEY);
-    if (v === 'chat') return 'chat';
-    if (v === 'control') return 'control';
-    return 'terminal';
-  } catch {
-    return 'terminal';
-  }
-}
-
-function readTopView(): TopView {
-  if (typeof window === 'undefined') return 'workers';
-  try {
-    const v = window.localStorage.getItem(TOP_VIEW_KEY);
-    if (v === 'history') return 'history';
-    if (v === 'chat') return 'chat';
-    if (v === 'workflows') return 'workflows';
-    if (v === 'sessions') return 'sessions';
-    return 'workers';
-  } catch {
-    return 'workers';
-  }
-}
 
 export default function App() {
   const [selectedWorker, setSelectedWorker] = useState<string | null>(null);
@@ -65,16 +42,34 @@ export default function App() {
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>(readSidebarMode);
   const [detailMode, setDetailMode] = useState<DetailMode>(readDetailMode);
   const [topView, setTopView] = useState<TopView>(readTopView);
+  const [theme, setTheme] = useState<ThemeMode>(readTheme);
 
+  useEffect(() => { writeSidebarMode(sidebarMode); }, [sidebarMode]);
+  useEffect(() => { writeDetailMode(detailMode); }, [detailMode]);
+  useEffect(() => { writeTopView(topView); }, [topView]);
+  useEffect(() => { writeTheme(theme); applyTheme(theme); }, [theme]);
+
+  // Track OS theme changes when user picked 'system'.
   useEffect(() => {
-    try { window.localStorage.setItem(SIDEBAR_MODE_KEY, sidebarMode); } catch { /* private mode */ }
-  }, [sidebarMode]);
+    if (theme !== 'system' || typeof window === 'undefined') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = () => applyTheme('system');
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, [theme]);
+
+  // Re-sync state if another tab updates the same preferences.
   useEffect(() => {
-    try { window.localStorage.setItem(DETAIL_MODE_KEY, detailMode); } catch { /* private mode */ }
-  }, [detailMode]);
-  useEffect(() => {
-    try { window.localStorage.setItem(TOP_VIEW_KEY, topView); } catch { /* private mode */ }
-  }, [topView]);
+    if (typeof window === 'undefined') return;
+    const onStorage = () => {
+      setSidebarMode(readSidebarMode());
+      setDetailMode(readDetailMode());
+      setTopView(readTopView());
+      setTheme(readTheme());
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   const refreshAuth = useCallback(async () => {
     const status = await fetchAuthStatus();
@@ -141,6 +136,22 @@ export default function App() {
       ) : topView === 'workflows' ? (
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <WorkflowEditor />
+        </div>
+      ) : topView === 'settings' ? (
+        <div className="flex min-h-0 flex-1 overflow-auto">
+          <SettingsView
+            theme={theme}
+            onThemeChange={setTheme}
+            sidebarMode={sidebarMode}
+            onSidebarModeChange={setSidebarMode}
+            detailMode={detailMode}
+            onDetailModeChange={setDetailMode}
+            onReset={() => {
+              setTheme(DEFAULT_THEME);
+              setSidebarMode(DEFAULT_SIDEBAR_MODE);
+              setDetailMode(DEFAULT_DETAIL_MODE);
+            }}
+          />
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 overflow-hidden">
