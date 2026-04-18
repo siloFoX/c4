@@ -2347,6 +2347,55 @@ async function handleRequest(req, res) {
       const { dryRun } = await parseBody(req);
       result = manager.cleanup(dryRun);
 
+    } else if (req.method === 'POST' && route === '/batch') {
+      // (8.20B) Batch task dispatch. Mirrors `c4 batch` on the CLI:
+      // accepts either a string `task` + `count` (same task N times), or
+      // an array `tasks` (one task per entry). Each task is dispatched
+      // through manager.sendTask as `batch-<N>` unless the caller provides
+      // an explicit `namePrefix`. Returns per-item outcomes so the UI
+      // can render a results table without looping /task itself.
+      const body = await parseBody(req);
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_TASK,
+        body.target ? { type: 'machine', id: body.target } : null);
+      if (denyOr(res, gate)) return;
+      const namePrefix = typeof body.namePrefix === 'string' && body.namePrefix
+        ? body.namePrefix
+        : 'batch';
+      let tasks = Array.isArray(body.tasks) ? body.tasks.filter((t) => typeof t === 'string' && t.trim()) : [];
+      if (tasks.length === 0 && typeof body.task === 'string' && body.task.trim()) {
+        const count = Math.max(0, parseInt(body.count, 10) || 0);
+        for (let i = 0; i < count; i++) tasks.push(body.task);
+      }
+      if (tasks.length === 0) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Missing tasks (provide tasks[] or task + count)' }));
+        return;
+      }
+      const results = [];
+      for (let i = 0; i < tasks.length; i++) {
+        const n = `${namePrefix}-${i + 1}`;
+        const branchName = typeof body.branch === 'string' && body.branch
+          ? `${body.branch}-${i + 1}`
+          : undefined;
+        const opts = { useBranch: true };
+        if (branchName) opts.branch = branchName;
+        if (body.autoMode) opts.autoMode = true;
+        if (typeof body.profile === 'string' && body.profile) opts.profile = body.profile;
+        if (typeof body.target === 'string' && body.target) opts.target = body.target;
+        try {
+          const r = manager.sendTask(n, tasks[i], opts);
+          if (r && r.error) {
+            results.push({ name: n, ok: false, error: r.error });
+          } else {
+            results.push({ name: n, ok: true });
+          }
+        } catch (e) {
+          results.push({ name: n, ok: false, error: e && e.message ? e.message : String(e) });
+        }
+      }
+      const ok = results.filter((r) => r.ok).length;
+      result = { ok, fail: results.length - ok, total: results.length, results };
+
     } else if (req.method === 'POST' && route === '/close') {
       const { name } = await parseBody(req);
       const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CLOSE);
