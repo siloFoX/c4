@@ -46,3 +46,8 @@ tests/_real_test*
 # Web scaffold build artifacts
 web/node_modules
 web/dist
+
+# UX exploration artifacts (runtime screenshots / reports / throwaway deps)
+ux-reports/
+tools/ux/node_modules/
+tools/ux/package-lock.json
