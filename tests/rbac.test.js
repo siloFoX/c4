@@ -75,7 +75,8 @@ describe('(10.1) RBAC helpers', () => {
     expect(ACTIONS.NL_CHAT).toBe('nl.chat');
     expect(ACTIONS.WORKFLOW_READ).toBe('workflow.read');
     expect(ACTIONS.WORKFLOW_MANAGE).toBe('workflow.manage');
-    expect(ALL_ACTIONS.length).toBe(23);
+    expect(ACTIONS.COMPUTER_USE).toBe('computer.use');
+    expect(ALL_ACTIONS.length).toBe(24);
   });
 
   test('(d) isRole/isAction/isUsername validators', () => {

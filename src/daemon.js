@@ -24,6 +24,7 @@ const scheduleMgmt = require('./schedule-mgmt');
 const mcpHub = require('./mcp-hub');
 const nlInterface = require('./nl-interface');
 const workflowMod = require('./workflow');
+const computerUseMod = require('./computer-use');
 
 const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
 
@@ -295,6 +296,25 @@ function getNlInterface() {
   };
   _nlInstance = new nlInterface.NlInterface({ adapter, sessionsPath });
   return _nlInstance;
+}
+
+// (11.2) Shared ComputerUseAgent. Writes sessions to
+// ~/.c4/computer-use-sessions.json and screenshots to
+// ~/.c4/screenshots/<sessionId>/ by default; honours
+// config.computerUse.{sessionsPath,screenshotsDir}. Tests construct
+// their own agent with a tmpdir and never touch this singleton. The
+// agent refuses to start a session until config.computerUse.enabled is
+// true - it's a high-risk capability and we prefer opt-in.
+let _computerUseAgent = null;
+function getComputerUseAgent() {
+  if (_computerUseAgent) return _computerUseAgent;
+  const currentCfg = manager.getConfig() || {};
+  const cu = currentCfg.computerUse || {};
+  const opts = { config: currentCfg };
+  if (typeof cu.sessionsPath === 'string') opts.storePath = cu.sessionsPath;
+  if (typeof cu.screenshotsDir === 'string') opts.screenshotsDir = cu.screenshotsDir;
+  _computerUseAgent = new computerUseMod.ComputerUseAgent(opts);
+  return _computerUseAgent;
 }
 
 // (10.7) scheduleTick dispatcher. When a schedule fires we spawn a
@@ -622,6 +642,30 @@ async function handleRequest(req, res) {
     else if (mRuns) workflowParams = { kind: 'runs', id: decodeURIComponent(mRuns[1]) };
     else if (mOne) workflowParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
     else if (mRunOne) workflowParams = { kind: 'runOne', id: decodeURIComponent(mRunOne[1]) };
+  }
+
+  // (11.2) Computer Use: decode /computer-use/sessions/<id>/... path
+  // params here so the route dispatch below stays as a flat string
+  // match. Sub-resources: /screenshot (POST triggers a capture), /click,
+  // /type, /key, /screenshots/<screenshotId> (GET image file).
+  let cuParams = null;
+  {
+    const mShot = route.match(/^\/computer-use\/sessions\/([^\/]+)\/screenshot$/);
+    const mClick = route.match(/^\/computer-use\/sessions\/([^\/]+)\/click$/);
+    const mType = route.match(/^\/computer-use\/sessions\/([^\/]+)\/type$/);
+    const mKey = route.match(/^\/computer-use\/sessions\/([^\/]+)\/key$/);
+    const mScreenshotOne = route.match(/^\/computer-use\/sessions\/([^\/]+)\/screenshots\/([^\/]+)$/);
+    const mOne = route.match(/^\/computer-use\/sessions\/([^\/]+)$/);
+    if (mShot) cuParams = { kind: 'screenshot', id: decodeURIComponent(mShot[1]) };
+    else if (mClick) cuParams = { kind: 'click', id: decodeURIComponent(mClick[1]) };
+    else if (mType) cuParams = { kind: 'type', id: decodeURIComponent(mType[1]) };
+    else if (mKey) cuParams = { kind: 'key', id: decodeURIComponent(mKey[1]) };
+    else if (mScreenshotOne) cuParams = {
+      kind: 'screenshotOne',
+      id: decodeURIComponent(mScreenshotOne[1]),
+      shotId: decodeURIComponent(mScreenshotOne[2]),
+    };
+    else if (mOne) cuParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
   }
 
   // (11.1) MCP hub: decode /mcp/servers/<name>/... path params here so
@@ -1578,6 +1622,158 @@ async function handleRequest(req, res) {
       }
       result = run;
 
+    } else if (req.method === 'GET' && route === '/computer-use/sessions') {
+      // (11.2) List computer-use sessions with their recorded actions
+      // and screenshots. Single powerful `computer.use` action guards the
+      // whole surface — granting this is effectively remote desktop.
+      const gate = requireRole(authCheck, rbac.ACTIONS.COMPUTER_USE);
+      if (denyOr(res, gate)) return;
+      try {
+        const agent = getComputerUseAgent();
+        const sessions = agent.listSessions();
+        const backends = computerUseMod.detectAvailableBackends();
+        result = { sessions, count: sessions.length, backends };
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && route === '/computer-use/sessions') {
+      // (11.2) Start a computer-use session. Body: { backend? }. Refuses
+      // when config.computerUse.enabled is false.
+      const gate = requireRole(authCheck, rbac.ACTIONS.COMPUTER_USE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const agent = getComputerUseAgent();
+        const entry = agent.startSession(typeof body.backend === 'string' ? body.backend : 'auto');
+        _safeAudit('computer-use.session.started',
+          { sessionId: entry.id, backend: entry.backend },
+          { actor: _auditActor(authCheck), target: entry.id });
+        result = entry;
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && cuParams && cuParams.kind === 'one') {
+      // (11.2) Show one computer-use session (full action history).
+      const gate = requireRole(authCheck, rbac.ACTIONS.COMPUTER_USE);
+      if (denyOr(res, gate)) return;
+      const agent = getComputerUseAgent();
+      const session = agent.getSession(cuParams.id);
+      if (!session) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Session not found: ' + cuParams.id }));
+        return;
+      }
+      result = session;
+
+    } else if (req.method === 'DELETE' && cuParams && cuParams.kind === 'one') {
+      // (11.2) End (soft-delete) a computer-use session. 404 when not
+      // found. Use endSession rather than deleteSession so the audit
+      // trail keeps the recorded actions.
+      const gate = requireRole(authCheck, rbac.ACTIONS.COMPUTER_USE);
+      if (denyOr(res, gate)) return;
+      const agent = getComputerUseAgent();
+      const ended = agent.endSession(cuParams.id);
+      if (!ended) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Session not found: ' + cuParams.id }));
+        return;
+      }
+      _safeAudit('computer-use.session.ended', { sessionId: cuParams.id },
+        { actor: _auditActor(authCheck), target: cuParams.id });
+      result = ended;
+
+    } else if (req.method === 'POST' && cuParams && cuParams.kind === 'screenshot') {
+      // (11.2) Capture a screenshot in the given session. Returns the
+      // screenshot metadata; the raw image is served by the /screenshots
+      // sub-endpoint below.
+      const gate = requireRole(authCheck, rbac.ACTIONS.COMPUTER_USE);
+      if (denyOr(res, gate)) return;
+      try {
+        const agent = getComputerUseAgent();
+        result = await agent.screenshot(cuParams.id);
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && cuParams && cuParams.kind === 'click') {
+      // (11.2) Click. Body: { x, y, button? }.
+      const gate = requireRole(authCheck, rbac.ACTIONS.COMPUTER_USE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const agent = getComputerUseAgent();
+        result = await agent.click(cuParams.id, body.x, body.y, body.button);
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && cuParams && cuParams.kind === 'type') {
+      // (11.2) Type. Body: { text, delayMs? }.
+      const gate = requireRole(authCheck, rbac.ACTIONS.COMPUTER_USE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const agent = getComputerUseAgent();
+        result = await agent.type(cuParams.id, body.text, body.delayMs);
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && cuParams && cuParams.kind === 'key') {
+      // (11.2) Key press. Body: { key }.
+      const gate = requireRole(authCheck, rbac.ACTIONS.COMPUTER_USE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const agent = getComputerUseAgent();
+        result = await agent.keyPress(cuParams.id, body.key);
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && cuParams && cuParams.kind === 'screenshotOne') {
+      // (11.2) Serve the raw screenshot file for a given session +
+      // screenshot id. Streams the file to the client; returns 404 when
+      // either the session, screenshot, or on-disk file is missing.
+      const gate = requireRole(authCheck, rbac.ACTIONS.COMPUTER_USE);
+      if (denyOr(res, gate)) return;
+      try {
+        const agent = getComputerUseAgent();
+        const meta = agent.getScreenshot(cuParams.id, cuParams.shotId);
+        if (!meta || !meta.imagePath) {
+          res.writeHead(404);
+          res.end(JSON.stringify({ error: 'Screenshot not found: ' + cuParams.shotId }));
+          return;
+        }
+        const fs2 = require('fs');
+        if (!fs2.existsSync(meta.imagePath)) {
+          res.writeHead(404);
+          res.end(JSON.stringify({ error: 'Screenshot file missing on disk' }));
+          return;
+        }
+        const stat = fs2.statSync(meta.imagePath);
+        res.writeHead(200, {
+          'Content-Type': 'image/png',
+          'Content-Length': stat.size,
+          'Cache-Control': 'no-cache',
+        });
+        const stream = fs2.createReadStream(meta.imagePath);
+        stream.on('error', () => {
+          if (!res.headersSent) {
+            res.writeHead(500);
+            res.end(JSON.stringify({ error: 'Read error' }));
+          } else {
+            res.end();
+          }
+        });
+        stream.pipe(res);
+        return;
+      } catch (e) {
+        result = { error: e.message };
+      }
+
     } else if (req.method === 'GET' && route === '/projects') {
       // (10.8) List all projects. Returns the full board objects so a
       // caller can render a per-project dashboard without a second trip
@@ -1949,6 +2145,9 @@ async function handleRequest(req, res) {
         // (11.4) Drop the cached NlInterface so nl.sessionsPath changes
         // take effect on the next request.
         _nlInstance = null;
+        // (11.2) Drop the cached ComputerUseAgent so config.computerUse.*
+        // edits take effect on the next request.
+        _computerUseAgent = null;
         // (10.3) Rebuild the dashboard on the next hit so it binds to
         // the fresh board + any updated cost config.
         _projectDashboard = null;

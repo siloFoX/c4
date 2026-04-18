@@ -464,5 +464,10 @@
     "transport": "streamable-http",
     "logLevel": "info",
     "allowedTools": []
+  },
+
+  "computerUse": {
+    "enabled": false,
+    "backend": "auto"
   }
 }

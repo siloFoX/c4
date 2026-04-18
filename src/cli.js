@@ -3099,6 +3099,109 @@ async function main() {
         return;
       }
 
+      case 'computer': {
+        // (11.2) Computer Use agent. Thin wrapper around
+        // /computer-use/* daemon endpoints. Single powerful `computer.use`
+        // RBAC action guards the whole surface — granting it is
+        // effectively remote desktop.
+        //   c4 computer start [--backend auto|stub|xdotool|mock]
+        //   c4 computer list
+        //   c4 computer status
+        //   c4 computer show <sessionId>
+        //   c4 computer end <sessionId>
+        //   c4 computer screenshot <sessionId>
+        //   c4 computer click <sessionId> <X> <Y> [--button left|right|middle]
+        //   c4 computer type <sessionId> <text>
+        //   c4 computer key <sessionId> <KeyName>
+        const sub = args[0];
+        const validSubs = ['start', 'list', 'status', 'show', 'end', 'screenshot', 'click', 'type', 'key'];
+        if (!sub || !validSubs.includes(sub)) {
+          console.log('Usage: c4 computer <' + validSubs.join('|') + '> [flags]');
+          console.log('  start [--backend auto|stub|xdotool|mock]');
+          console.log('  list');
+          console.log('  status');
+          console.log('  show <sessionId>');
+          console.log('  end <sessionId>');
+          console.log('  screenshot <sessionId>');
+          console.log('  click <sessionId> <X> <Y> [--button left|right|middle]');
+          console.log('  type <sessionId> <text...>');
+          console.log('  key <sessionId> <KeyName>');
+          return;
+        }
+
+        function flagAt(startIdx, flag) {
+          for (let i = startIdx; i < args.length - 1; i++) {
+            if (args[i] === flag) return args[i + 1];
+          }
+          return '';
+        }
+
+        if (sub === 'start') {
+          const backend = flagAt(1, '--backend') || 'auto';
+          result = await request('POST', '/computer-use/sessions', { backend });
+        } else if (sub === 'list') {
+          result = await request('GET', '/computer-use/sessions');
+        } else if (sub === 'status') {
+          const listed = await request('GET', '/computer-use/sessions');
+          if (listed && listed.error) {
+            console.error('Error: ' + listed.error);
+            process.exit(1);
+          }
+          const backends = (listed && listed.backends) || { stub: true, mock: true, xdotool: false };
+          const active = Array.isArray(listed && listed.sessions)
+            ? listed.sessions.filter((s) => !s.endedAt) : [];
+          console.log('Available backends: ' + Object.keys(backends).filter((k) => backends[k]).join(', '));
+          console.log('Active sessions: ' + active.length);
+          console.log('Total sessions: ' + (listed && listed.count || 0));
+          return;
+        } else if (sub === 'show') {
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 computer show <sessionId>'); process.exit(1); }
+          result = await request('GET', '/computer-use/sessions/' + encodeURIComponent(id));
+        } else if (sub === 'end') {
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 computer end <sessionId>'); process.exit(1); }
+          result = await request('DELETE', '/computer-use/sessions/' + encodeURIComponent(id));
+        } else if (sub === 'screenshot') {
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 computer screenshot <sessionId>'); process.exit(1); }
+          result = await request('POST', '/computer-use/sessions/' + encodeURIComponent(id) + '/screenshot', {});
+        } else if (sub === 'click') {
+          const id = args[1];
+          const x = Number(args[2]);
+          const y = Number(args[3]);
+          if (!id || !Number.isFinite(x) || !Number.isFinite(y)) {
+            console.error('Usage: c4 computer click <sessionId> <X> <Y> [--button left|right|middle]');
+            process.exit(1);
+          }
+          const button = flagAt(4, '--button') || 'left';
+          result = await request('POST', '/computer-use/sessions/' + encodeURIComponent(id) + '/click', { x, y, button });
+        } else if (sub === 'type') {
+          const id = args[1];
+          if (!id || args.length < 3) {
+            console.error("Usage: c4 computer type <sessionId> <text...>");
+            process.exit(1);
+          }
+          const text = args.slice(2).join(' ');
+          result = await request('POST', '/computer-use/sessions/' + encodeURIComponent(id) + '/type', { text });
+        } else if (sub === 'key') {
+          const id = args[1];
+          const key = args[2];
+          if (!id || !key) {
+            console.error('Usage: c4 computer key <sessionId> <KeyName>');
+            process.exit(1);
+          }
+          result = await request('POST', '/computer-use/sessions/' + encodeURIComponent(id) + '/key', { key });
+        }
+
+        if (result && result.error) {
+          console.error('Error: ' + result.error);
+          process.exit(1);
+        }
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+
       case 'workflow': {
         // (11.3) Workflow engine management. Thin wrapper around
         // /workflows/* daemon endpoints.
@@ -3465,6 +3568,14 @@ Commands:
   cicd pipeline delete <id>        Remove a pipeline
   cicd trigger <id>                Replay a registered pipeline's actions
   cicd trigger --repo R --workflow W [--ref REF] [--input K=V]  One-off workflow_dispatch
+  computer start [--backend auto|stub|xdotool|mock]  Start a computer-use session (11.2)
+  computer list / status                             List / summarise sessions
+  computer show <sessionId>                          Show one session's actions
+  computer end <sessionId>                           End a session
+  computer screenshot <sessionId>                    Capture a screenshot
+  computer click <sessionId> <X> <Y> [--button B]    Send a mouse click
+  computer type <sessionId> <text...>                Type text
+  computer key <sessionId> <KeyName>                 Send a key (Enter, Tab, Ctrl+C)
 
 Special keys: Enter, C-c, C-b, C-d, C-z, C-l, C-a, C-e, Escape, Tab, Backspace, Up, Down, Left, Right
 
