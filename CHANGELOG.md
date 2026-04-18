@@ -36,6 +36,58 @@
   synchronous child blocks the parent's event loop and the capture
   server would never respond.
 
+### 1.11.9 - Claude session JSONL viewer (2026-04)
+
+### Added
+- **(session-parser) new `src/session-parser.js` dependency-free
+  parser** that normalizes Claude Code transcript files
+  (`~/.claude/projects/<encoded-cwd>/<session-id>.jsonl`) into a
+  flat `Conversation {sessionId, projectPath, createdAt, updatedAt,
+  model, totalInputTokens, totalOutputTokens, turns:Turn[], warnings}`
+  stream. One Turn per content block (thinking + text + tool_use from
+  one assistant event fan out to three turns) with tokens attached
+  only to the first block so totals stay truthful after fan-out. Tool
+  calls + results are paired by `tool_use_id` so the UI can collapse
+  them into one card. Malformed lines become warnings instead of
+  throws so a corrupt line cannot break a whole transcript. Exports
+  `parseJsonl` / `parseJsonlStream` (async iterator for tail / import)
+  / `listSessions` / `groupSessionsByProject` / `defaultProjectsRoot`
+  (honours `$CLAUDE_PROJECTS_DIR`, falls back to `~/.claude/projects`).
+- **(daemon) three new endpoints behind the 8.14 auth middleware:**
+  `GET /api/sessions` (list + group by project + `?q=` filter),
+  `GET /api/sessions/:id` (parsed Conversation; 404 when unknown),
+  `GET /api/sessions/:id/stream` (SSE - emits the full snapshot as
+  `event: conversation`, then `event: turn` per newly parsed Turn as
+  the JSONL grows via `fs.watch` + byte-offset tracking, with
+  stat-polling fallback when watch is unavailable and a 30s keepalive
+  heartbeat). Override the transcript root via
+  `config.sessions.projectsDir`.
+- **(web) Sessions tab** with a 2-pane layout:
+  `web/src/components/SessionsView.tsx` (collapsible per-project
+  groups, search, short-id + snippet + relative timestamp rows)
+  plus `web/src/components/ConversationView.tsx` (claude.ai-style
+  chat: user right-aligned with `bg-primary/10`, assistant left-
+  aligned full width with a zero-dep minimal markdown renderer,
+  thinking collapsible, tool_use expandable with paired result,
+  tool_result code block, system chip). Auto-scrolls only when the
+  user is near the bottom, with a Jump-to-latest button otherwise.
+  Live mode subscribes to the stream endpoint through EventSource
+  (auth via `?token=` fallback). TopTabs grows a `Sessions` value and
+  App.tsx routes `topView === 'sessions'`; existing worker list,
+  history, chat, and workflow tabs are untouched.
+- **(docs) `docs/patches/8.18-session-view.md`** documents the module
+  layout, the stable `Conversation` / `Turn` JSON shape consumed by
+  TODO 8.17 (external session import), JSONL schema assumptions, and
+  the daemon endpoint contracts.
+- **(tests) `tests/fixtures/session.jsonl` + `tests/session-parser.test.js`**
+  (32 assertions / 8 suites) covering parseJsonl metadata + token
+  totals + block fan-out + thinking text + tool pairing + warning on
+  malformed line + per-message token attribution, parseJsonlStream
+  order equivalence, listSessions + groupSessionsByProject, meta-type
+  handling, decodeProjectDir, plus source-wiring greps on daemon.js,
+  ConversationView.tsx, SessionsView.tsx, App.tsx, and TopTabs.tsx.
+  Full suite 101 / 101 pass.
+
 ### 1.11.8 - Web redesign (2026-04)
 
 ### Added
