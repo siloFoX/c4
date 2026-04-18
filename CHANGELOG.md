@@ -1,5 +1,86 @@
 # Changelog
 
+## [v7.5] - 2026-04-18
+
+### Added
+- **(10.9) Scribe v2 structured event log.** New `src/scribe-v2.js`
+  module writes an append-only JSONL file per UTC day at
+  `~/.c4/events-YYYY-MM-DD.jsonl` (overridable via
+  `config.scribeV2.logDir`). Each line is one event with shape
+  `{id, ts, type, worker, task_id, payload}`. Canonical 11-type
+  enum: `task_start`, `task_complete`, `worker_spawn`,
+  `worker_close`, `tool_call`, `approval_request`, `approval_grant`,
+  `merge_attempt`, `merge_success`, `halt`, `error`. `ts` is ISO 8601
+  UTC; `id` is `Date.now().toString(36) + '-' + 8 hex` so ids are
+  roughly sorted yet collision-safe inside one millisecond.
+- **`ScribeV2` class.** `record(event)` validates type against the
+  enum and writes one line via `appendFileSync` wrapped in try/catch
+  so the daemon request path never blows up on a disk error.
+  `query({from, to, types, workers, limit, reverse})` accepts
+  `from`/`to` as ISO string, numeric ms, or `Date`; `types`/`workers`
+  as string or array; prunes non-overlapping day files without
+  reading them and survives corrupt JSONL lines (JSON.parse errors
+  are skipped, not thrown). `contextAround(target, minutesBefore=5,
+  minutesAfter=5)` resolves `target` from an event id, ISO
+  timestamp, `Date`, or ms and returns every event in the window.
+  `findById(id)` walks day files newest-first. `listDays()` returns
+  every discovered `YYYY-MM-DD` newest-first. Module helpers:
+  `EVENT_TYPES`, `FILE_PREFIX`/`FILE_SUFFIX`/`FILE_PATTERN`,
+  `defaultLogDir`, `isValidEventType`, `formatYMD` (UTC so DST never
+  splits a day across two files), `parseYMD`, `nextId`,
+  `normalizePayload`, `getShared`, `resetShared`.
+- **Daemon wiring (src/daemon.js).** Shared `scribeLog` singleton via
+  `scribeV2Mod.getShared({logDir: cfg.scribeV2?.logDir})`. A
+  `safeRecord(type, {worker, task_id, payload})` wrapper runs
+  alongside every existing `safeEmit` call so the new structured
+  timeline stays in sync with the Slack event fabric without
+  replacing it. Wired points: `worker_spawn` on /create (payload
+  `{target, command, tier, pid}`), `task_start` on /task (payload
+  `{branch, task, profile, autoMode, tier, model}`),
+  `approval_request` / `approval_grant` on /approve (split on the
+  `granted` flag), `merge_attempt` pre-check (payload
+  `{branch, skipChecks, resolvedFrom}`) + `merge_success` on a
+  clean merge (payload `{branch, sha, summary}`) + `error` on a
+  failed merge (payload `{source:'merge', branch, message}`),
+  `worker_close` on /close, `halt` on the `notifyStall` bridge
+  (payload `{reason}`). Existing `src/scribe.js` (session transcript
+  summariser) stays untouched — v2 is strictly additive.
+- **New daemon endpoints.** `GET /events/query?from&to&types&workers
+  &limit&reverse` (types/workers comma-separated) returns
+  `{events, count}`. `GET /events/context?target&minutesBefore
+  &minutesAfter` returns the window around an event id or
+  timestamp.
+- **CLI wiring (src/cli.js).** `c4 events [--from ISO] [--to ISO]
+  [--type a,b] [--worker x,y] [--limit N] [--reverse] [--json]`
+  filters the structured log; default output is one event per line
+  (`ts type worker key=value ...`) so it stays tail-able, `--json`
+  mode dumps raw JSONL so operators can pipe through `jq`.
+  `c4 events --around <id|ISO> [--window MINUTES]` pulls the +/-
+  window for a single event id or timestamp; default window is
+  5 minutes.
+
+### Tests
+- **`tests/scribe-v2.test.js`** — 38 assertions across six suites:
+  helpers (`EVENT_TYPES` membership, `defaultLogDir` under
+  `$HOME/.c4`, `isValidEventType` rejections, `formatYMD` UTC
+  behavior, `parseYMD` round-trip, `FILE_PATTERN` match,
+  `nextId` uniqueness, `normalizePayload` coercions), `record()`
+  (shape, invalid-type rejection, null-object rejection, default
+  null fields, caller-supplied `ts`, dir auto-create, ordered
+  append, cross-day file split), `query()` (no-filter chronological
+  order, cross-day time range, single-type filter, string-form type,
+  worker filter, limit cap, reverse+limit, empty-array filter,
+  unknown type, corrupt-line resilience, empty log dir, day-file
+  pruning), `contextAround()` (ISO target, event id target, default
+  +/- 5 window, distant target, unresolvable target, `Date`
+  target), `findById` + `listDays` (recorded event lookup, newest-
+  first day order, unrelated-file filter), shared instance
+  (singleton identity across `getShared` calls).
+- Full suite: **97 / 97 pass** (96 pre-existing + 1 scribe-v2).
+
+### Patch note
+- `patches/1.11.5-scribe-v2.md`.
+
 ## [v7.4] - 2026-04-18
 
 ### Added
