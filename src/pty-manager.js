@@ -1651,7 +1651,11 @@ class PtyManager extends EventEmitter {
       result[name] = {
         description: prof.description || '',
         allow: (prof.permissions && prof.permissions.allow) || [],
-        deny: (prof.permissions && prof.permissions.deny) || []
+        deny: (prof.permissions && prof.permissions.deny) || [],
+        // (11.1) Surface the profile's MCP server bundle so operators
+        // can see which servers a worker will auto-load before running
+        // `c4 task` with --profile.
+        mcpServers: Array.isArray(prof.mcpServers) ? prof.mcpServers.slice() : [],
       };
     }
     return result;
@@ -1797,7 +1801,41 @@ class PtyManager extends EventEmitter {
     }
 
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+
+    // (11.1) MCP Hub: emit .mcp.json driven by the profile's mcpServers
+    // list. Skipped silently when the profile opts out — callers keep
+    // working even if the operator has not configured a hub yet.
+    try {
+      this._writeWorkerMcpJson(worktreePath, options);
+    } catch (e) {
+      // Non-fatal: MCP generation failure must not block worker spawn.
+      // Surface via snapshots if the caller passed a worker name so the
+      // operator notices without killing the boot path.
+    }
+
     return settingsPath;
+  }
+
+  // (11.1) Write .mcp.json based on profile.mcpServers. Returns the
+  // written path, or null when the profile specifies no servers (the
+  // common case today). The hub enforces the enabled gate so disabled
+  // servers never leak into the worker's MCP surface.
+  _writeWorkerMcpJson(worktreePath, options = {}) {
+    const profileName = options.profile || options.template || '';
+    if (!profileName) return null;
+    const profile = this._getProfile(profileName);
+    if (!profile) return null;
+    const names = Array.isArray(profile.mcpServers) ? profile.mcpServers : [];
+    if (names.length === 0) return null;
+    const mcpHub = require('./mcp-hub');
+    const mcpCfg = (this.config && this.config.mcp && typeof this.config.mcp.path === 'string')
+      ? { storePath: this.config.mcp.path }
+      : {};
+    const hub = mcpHub.getShared(mcpCfg);
+    // The shared hub caches state; reload so a recent `c4 mcp add`
+    // that happened after daemon boot is visible to this worker spawn.
+    try { hub.reload(); } catch {}
+    return hub.writeWorkerMcpJson(worktreePath, names);
   }
 
   // --- Git Worktree helpers ---

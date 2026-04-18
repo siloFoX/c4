@@ -1702,10 +1702,109 @@ async function main() {
       }
 
       case 'mcp': {
-        // MCP stdio transport proxy (TODO 9.4). Bridges newline-delimited
-        // JSON-RPC from stdin/stdout to the daemon's POST /mcp endpoint so
-        // Claude Desktop can launch `c4 mcp start` as an MCP server.
+        // MCP stdio transport proxy (TODO 9.4) + MCP Hub (TODO 11.1).
+        //
+        // Hub subcommands (11.1) manage the shared server registry that
+        // profiles reference by name:
+        //   c4 mcp list [--enabled] [--disabled] [--transport T]
+        //   c4 mcp add --name N --command CMD [--args 'a,b,c'] [--env 'K=V,K2=V2'] [--transport stdio|http] [--description D] [--disabled]
+        //   c4 mcp show <name>
+        //   c4 mcp enable <name>
+        //   c4 mcp disable <name>
+        //   c4 mcp remove <name>
+        //   c4 mcp test <name>
+        //
+        // Stdio proxy subcommands (9.4) bridge JSON-RPC over the
+        // daemon's POST /mcp endpoint so Claude Desktop can launch
+        // `c4 mcp start` as an MCP server:
+        //   c4 mcp start [--base URL]
+        //   c4 mcp status
+        //   c4 mcp tools
         const sub = args[0] || 'start';
+        const hubSubs = ['list', 'add', 'show', 'enable', 'disable', 'remove', 'test'];
+
+        if (hubSubs.includes(sub)) {
+          function flagAt(startIdx, flag) {
+            for (let i = startIdx; i < args.length - 1; i++) {
+              if (args[i] === flag) return args[i + 1];
+            }
+            return '';
+          }
+          function hasFlag(startIdx, flag) {
+            for (let i = startIdx; i < args.length; i++) {
+              if (args[i] === flag) return true;
+            }
+            return false;
+          }
+
+          if (sub === 'list') {
+            const qs = [];
+            if (hasFlag(1, '--enabled')) qs.push('enabled=true');
+            if (hasFlag(1, '--disabled')) qs.push('enabled=false');
+            const transport = flagAt(1, '--transport');
+            if (transport) qs.push('transport=' + encodeURIComponent(transport));
+            const query = qs.length > 0 ? '?' + qs.join('&') : '';
+            result = await request('GET', '/mcp/servers' + query);
+          } else if (sub === 'add') {
+            const name = flagAt(1, '--name');
+            const command = flagAt(1, '--command');
+            const argsStr = flagAt(1, '--args');
+            const envStr = flagAt(1, '--env');
+            const transport = flagAt(1, '--transport');
+            const description = flagAt(1, '--description');
+            if (!name || !command) {
+              console.error("Usage: c4 mcp add --name N --command CMD [--args 'a,b,c'] [--env 'K=V,K2=V2'] [--transport stdio|http] [--description D] [--disabled]");
+              process.exit(1);
+            }
+            const body = { name, command };
+            if (argsStr) {
+              body.args = argsStr.split(',').map((a) => a.trim()).filter((a) => a.length > 0);
+            }
+            if (envStr) {
+              const env = {};
+              for (const pair of envStr.split(',')) {
+                const trimmed = pair.trim();
+                if (!trimmed) continue;
+                const eq = trimmed.indexOf('=');
+                if (eq <= 0) continue;
+                env[trimmed.slice(0, eq)] = trimmed.slice(eq + 1);
+              }
+              body.env = env;
+            }
+            if (transport) body.transport = transport;
+            if (description) body.description = description;
+            if (hasFlag(1, '--disabled')) body.enabled = false;
+            result = await request('POST', '/mcp/servers', body);
+          } else if (sub === 'show') {
+            const name = args[1];
+            if (!name) { console.error('Usage: c4 mcp show <name>'); process.exit(1); }
+            result = await request('GET', '/mcp/servers/' + encodeURIComponent(name));
+          } else if (sub === 'enable') {
+            const name = args[1];
+            if (!name) { console.error('Usage: c4 mcp enable <name>'); process.exit(1); }
+            result = await request('POST', '/mcp/servers/' + encodeURIComponent(name) + '/enable', {});
+          } else if (sub === 'disable') {
+            const name = args[1];
+            if (!name) { console.error('Usage: c4 mcp disable <name>'); process.exit(1); }
+            result = await request('POST', '/mcp/servers/' + encodeURIComponent(name) + '/disable', {});
+          } else if (sub === 'remove') {
+            const name = args[1];
+            if (!name) { console.error('Usage: c4 mcp remove <name>'); process.exit(1); }
+            result = await request('DELETE', '/mcp/servers/' + encodeURIComponent(name));
+          } else if (sub === 'test') {
+            const name = args[1];
+            if (!name) { console.error('Usage: c4 mcp test <name>'); process.exit(1); }
+            result = await request('POST', '/mcp/servers/' + encodeURIComponent(name) + '/test', {});
+          }
+
+          if (result && result.error) {
+            console.error('Error: ' + result.error);
+            process.exit(1);
+          }
+          console.log(JSON.stringify(result, null, 2));
+          return;
+        }
+
         if (sub === 'start') {
           const { startStdio } = require('./mcp-server');
           const baseIdx = args.indexOf('--base');
@@ -1735,7 +1834,12 @@ async function main() {
           result = await request('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/list' });
           break;
         }
-        console.log('Usage: c4 mcp <start|status|tools> [--base URL]');
+        console.log('Usage: c4 mcp <start|status|tools|list|add|show|enable|disable|remove|test> [flags]');
+        console.log('  Stdio proxy: c4 mcp <start|status|tools> [--base URL]');
+        console.log('  Hub: c4 mcp list [--enabled] [--disabled] [--transport T]');
+        console.log("       c4 mcp add --name N --command CMD [--args 'a,b,c'] [--env 'K=V,K2=V2']");
+        console.log('             [--transport stdio|http] [--description D] [--disabled]');
+        console.log('       c4 mcp <show|enable|disable|remove|test> <name>');
         return;
       }
 
