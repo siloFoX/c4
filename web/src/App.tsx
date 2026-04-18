@@ -6,6 +6,7 @@ import HistoryView from './components/HistoryView';
 import Chat from './components/Chat';
 import Login from './components/Login';
 import WorkflowEditor from './components/WorkflowEditor';
+import SettingsView from './components/SettingsView';
 import AppHeader from './components/layout/AppHeader';
 import Sidebar, { type SidebarMode } from './components/layout/Sidebar';
 import DetailTabs, { type DetailMode } from './components/layout/DetailTabs';
@@ -14,12 +15,16 @@ import { type TopView } from './components/layout/TopTabs';
 import { AUTH_EVENT, fetchAuthStatus, getToken, logout } from './lib/api';
 import {
   applyTheme,
+  DEFAULT_DETAIL_MODE,
+  DEFAULT_SIDEBAR_MODE,
+  DEFAULT_THEME,
   readDetailMode,
   readSidebarMode,
   readTheme,
   readTopView,
   writeDetailMode,
   writeSidebarMode,
+  writeTheme,
   writeTopView,
   type ThemeMode,
 } from './lib/preferences';
@@ -41,8 +46,7 @@ export default function App() {
   useEffect(() => { writeSidebarMode(sidebarMode); }, [sidebarMode]);
   useEffect(() => { writeDetailMode(detailMode); }, [detailMode]);
   useEffect(() => { writeTopView(topView); }, [topView]);
-
-  useEffect(() => { applyTheme(theme); }, [theme]);
+  useEffect(() => { writeTheme(theme); applyTheme(theme); }, [theme]);
 
   // Track OS theme changes when user picked 'system'.
   useEffect(() => {
@@ -127,6 +131,22 @@ export default function App() {
       ) : topView === 'workflows' ? (
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <WorkflowEditor />
+        </div>
+      ) : topView === 'settings' ? (
+        <div className="flex min-h-0 flex-1 overflow-auto">
+          <SettingsView
+            theme={theme}
+            onThemeChange={setTheme}
+            sidebarMode={sidebarMode}
+            onSidebarModeChange={setSidebarMode}
+            detailMode={detailMode}
+            onDetailModeChange={setDetailMode}
+            onReset={() => {
+              setTheme(DEFAULT_THEME);
+              setSidebarMode(DEFAULT_SIDEBAR_MODE);
+              setDetailMode(DEFAULT_DETAIL_MODE);
+            }}
+          />
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 overflow-hidden">

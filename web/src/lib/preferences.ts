@@ -16,6 +16,8 @@ export const DEFAULT_THEME: ThemeMode = 'dark';
 
 const SIDEBAR_VALUES: readonly SidebarMode[] = ['list', 'tree'];
 const DETAIL_VALUES: readonly DetailMode[] = ['terminal', 'chat', 'control'];
+// 'settings' is intentionally excluded — the saved value represents the
+// content tab the app should restore to on load, never the settings screen.
 const TOP_VIEW_VALUES: readonly TopView[] = [
   'workers',
   'history',
@@ -86,7 +88,10 @@ export function writeDetailMode(value: DetailMode): void {
   writeString(DETAIL_MODE_KEY, value);
 }
 
+// The 'settings' tab is a transient destination — we persist the last
+// content tab so the user doesn't reopen into the settings screen.
 export function writeTopView(value: TopView): void {
+  if (value === 'settings') return;
   writeString(TOP_VIEW_KEY, value);
 }
 
