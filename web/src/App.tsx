@@ -12,6 +12,7 @@ import AppHeader from './components/layout/AppHeader';
 import Sidebar, { type SidebarMode } from './components/layout/Sidebar';
 import DetailTabs, { type DetailMode } from './components/layout/DetailTabs';
 import EmptyState from './components/layout/EmptyState';
+import FeatureView from './components/layout/FeatureView';
 import { type TopView } from './components/layout/TopTabs';
 import { AUTH_EVENT, fetchAuthStatus, getToken, logout } from './lib/api';
 import {
@@ -137,6 +138,8 @@ export default function App() {
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <WorkflowEditor />
         </div>
+      ) : topView === 'features' ? (
+        <FeatureView sidebarOpen={sidebarOpen} />
       ) : topView === 'settings' ? (
         <div className="flex min-h-0 flex-1 overflow-auto">
           <SettingsView

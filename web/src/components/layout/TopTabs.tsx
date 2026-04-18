@@ -2,6 +2,7 @@ import type { ComponentType, SVGProps } from 'react';
 import {
   FolderTree,
   History,
+  LayoutGrid,
   MessageSquare,
   Settings,
   Users,
@@ -15,6 +16,7 @@ export type TopView =
   | 'chat'
   | 'workflows'
   | 'sessions'
+  | 'features'
   | 'settings';
 
 interface TabDef {
@@ -29,6 +31,7 @@ const TABS: TabDef[] = [
   { value: 'sessions', label: 'Sessions', Icon: FolderTree },
   { value: 'chat', label: 'Chat', Icon: MessageSquare },
   { value: 'workflows', label: 'Workflows', Icon: Workflow },
+  { value: 'features', label: 'Features', Icon: LayoutGrid },
   { value: 'settings', label: 'Settings', Icon: Settings },
 ];
 

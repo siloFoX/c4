@@ -24,6 +24,7 @@ const TOP_VIEW_VALUES: readonly TopView[] = [
   'chat',
   'workflows',
   'sessions',
+  'features',
 ];
 const THEME_VALUES: readonly ThemeMode[] = ['light', 'dark', 'system'];
 

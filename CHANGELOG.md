@@ -103,6 +103,52 @@
   and excludes the transient `settings` destination from the persisted
   top-view value so relaunching returns the user to their last content
   tab. Coverage added in `tests/web-ui-settings.test.js`.
+### 1.11.9 - UI CLI coverage (2026-04)
+
+### Added
+- **(8.20b) Features top-tab + 12 new pages wrapping CLI-only flows.**
+  `web/src/pages/{Scribe,Batch,Cleanup,Swarm,Health,TokenUsage,
+  Validation,Plan,Morning,Auto,Templates,Profiles}.tsx`, grouped in a
+  new `FeatureSidebar` under Operations / Cost / Automation / Config /
+  Diagnostics. Pages are lazy-loaded through `web/src/pages/registry.ts`
+  so the main bundle stays in the ~80 KB gzip range; each feature
+  ships as its own 2-6 KB code-split chunk. Selection persists to
+  `localStorage` and reflects in the URL hash as `#/feature/<id>`.
+- **(8.20b) `POST /batch` daemon endpoint.** Accepts either `tasks[]` or
+  `task + count` plus optional `branch / profile / autoMode /
+  namePrefix / target`. Sits behind `rbac.ACTIONS.WORKER_TASK`,
+  dispatches each item through `manager.sendTask`, returns
+  `{ok, fail, total, results}` so the UI renders results without
+  fanning out N `/task` calls.
+- **(8.20b) `StatusMessageCard` on `ControlPanel`.** Posts to
+  `/api/status-update` so operators can ship oncall handoff notes to
+  Slack without dropping to the terminal. Rollback was already on the
+  panel (1.7.5).
+- **(8.20b) Shared UI helpers.** `web/src/lib/format.{js,d.ts}`
+  (formatNumber / formatBytes / formatDuration / formatRelativeTime /
+  formatTimestamp / dateRange / dateRangeLabel),
+  `web/src/lib/fuzzyFilter.{js,d.ts}` (substring-ranking filter with
+  prefix boost), `web/src/lib/markdown.tsx` (minimal markdown renderer
+  covering ATX headings, fenced code, lists, blockquote, inline code,
+  bold / italic / links; no new runtime deps).
+
+### Tests
+- **(8.20b) `tests/ui-cli-coverage.test.js` — 56 assertions, 15
+  suites.** Unit tests for the format + fuzzy helpers (including NaN /
+  negative / empty-query / prefix-rank / case-insensitivity), source-
+  wiring for `POST /batch` (RBAC, body shape, 400 on missing input,
+  sendTask dispatch, per-item results), Features tab + registry
+  coverage (every feature id, category ordering, lazy-loader count),
+  and Batch / Plan / TokenUsage / ControlPanel `StatusMessageCard`
+  component wiring via the same source-grep strategy the existing
+  chat-view and web-control suites use. Full suite 101 / 101 pass.
+
+### Notes
+- Templates and Profiles add/edit/remove actions currently toast
+  "not implemented yet" — the GET endpoints exist, the write routes
+  do not. Tracked as sub-TODOs. `/health` event-loop-lag and loaded-
+  modules fields render as `-` for the same reason; extension is
+  contained to the server.
 
 ### 1.11.8 - Web redesign (2026-04)
 
