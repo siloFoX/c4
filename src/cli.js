@@ -1021,12 +1021,14 @@ async function main() {
         const path = require('path');
         const mergeGuard = require('./merge-guard');
         const mergeCore = require('./merge-core');
+        const slackEventsMod = require('./slack-events');
         const skipChecks = args.includes('--skip-checks');
         const autoStash = args.includes('--auto-stash');
-        const target = args.filter(a => a !== '--skip-checks' && a !== '--auto-stash')[0];
+        const pushAfter = args.includes('--push');
+        const target = args.filter(a => a !== '--skip-checks' && a !== '--auto-stash' && a !== '--push')[0];
 
         if (!target) {
-          console.error('Usage: c4 merge <worker-name|branch-name> [--skip-checks] [--auto-stash]');
+          console.error('Usage: c4 merge <worker-name|branch-name> [--skip-checks] [--auto-stash] [--push]');
           process.exit(1);
         }
 
@@ -1226,7 +1228,27 @@ async function main() {
 
           console.log('\nAll checks passed. Merging...\n');
         }
-        const mergeOutcome = mergeCore.performMerge(branch, { repoRoot });
+        // (8.15) Load the daemon's Slack config so the CLI's merge/push
+        // events ride the same emitter config the daemon uses. Best-effort:
+        // if the config file is absent or unreadable, we just skip the
+        // emit — merge behaviour itself stays untouched.
+        let cliSlackEmit = () => {};
+        try {
+          const cfgPath = path.resolve(__dirname, '..', 'config.json');
+          let slackCfg = {};
+          if (require('fs').existsSync(cfgPath)) {
+            const parsed = JSON.parse(require('fs').readFileSync(cfgPath, 'utf8'));
+            slackCfg = (parsed && parsed.slack) || {};
+          }
+          const emitter = new slackEventsMod.SlackEventEmitter({ config: slackCfg });
+          cliSlackEmit = (type, payload) => {
+            try {
+              const p = emitter.emit(type, payload);
+              if (p && typeof p.catch === 'function') p.catch(() => {});
+            } catch {}
+          };
+        } catch { cliSlackEmit = () => {}; }
+        const mergeOutcome = mergeCore.performMerge(branch, { repoRoot, emit: cliSlackEmit });
         if (!mergeOutcome.success) {
           console.error('Merge failed:', mergeOutcome.error);
           if (stashedLabel) {
@@ -1264,6 +1286,22 @@ async function main() {
             process.exit(1);
           }
           console.log(`Stashed changes restored from "${stashedLabel}".`);
+        }
+
+        // (8.15) --push pushes main to origin and emits push_success.
+        // Kept behind an opt-in flag so operators who never want the CLI
+        // to touch the remote keep the previous behaviour.
+        if (pushAfter) {
+          process.stdout.write('  [push] origin main ... ');
+          try {
+            execSync('git push origin main', { cwd: repoRoot, encoding: 'utf8', stdio: 'pipe' });
+            console.log('OK');
+            cliSlackEmit('push_success', { branch, sha: mergeOutcome.sha });
+          } catch (e) {
+            console.log('FAIL');
+            console.error(`    ${e.message}`);
+            process.exit(1);
+          }
         }
         return;
       }
@@ -1504,6 +1542,75 @@ async function main() {
         }
         result = await request('POST', '/status-update', { worker: statusWorker, message: statusMsg });
         break;
+      }
+
+      case 'slack': {
+        // (8.15) Slack autonomous event emitter CLI.
+        //   c4 slack test [--type <eventType>] [--worker <name>] [--message <text>]
+        //   c4 slack status [--limit N]
+        const sub = args[0];
+        if (!sub || (sub !== 'test' && sub !== 'status')) {
+          console.log('Usage: c4 slack <test|status>');
+          console.log('  test [--type <eventType>] [--worker <name>] [--message <text>]');
+          console.log('  status [--limit N]');
+          return;
+        }
+        if (sub === 'test') {
+          let evType = 'task_start';
+          let worker = 'c4-cli';
+          let message = 'slack event emitter test';
+          for (let i = 1; i < args.length; i++) {
+            if (args[i] === '--type' && args[i + 1]) { evType = args[++i]; }
+            else if (args[i] === '--worker' && args[i + 1]) { worker = args[++i]; }
+            else if (args[i] === '--message' && args[i + 1]) { message = args[++i]; }
+          }
+          result = await request('POST', '/slack/emit', {
+            eventType: evType,
+            payload: { worker, message, test: true },
+          });
+          if (result && result.error) {
+            console.error(`Error: ${result.error}`);
+            if (Array.isArray(result.allowed)) {
+              console.error('  allowed types: ' + result.allowed.join(', '));
+            }
+            process.exit(1);
+          }
+          if (result && result.sent === false) {
+            console.log(`[skip] ${result.reason}${result.eventType ? ' (' + result.eventType + ')' : ''}`);
+          } else if (result && result.sent) {
+            const wh = result.webhook || {};
+            const okBit = wh.ok ? 'OK' : (wh.reason || wh.error || 'no-webhook');
+            console.log(`[ok] emitted ${result.eventType} level=${result.level} webhook=${okBit}`);
+          } else {
+            console.log(JSON.stringify(result));
+          }
+          return;
+        }
+        // sub === 'status'
+        let limit = 0;
+        for (let i = 1; i < args.length; i++) {
+          if (args[i] === '--limit' && args[i + 1]) { limit = parseInt(args[++i], 10) || 0; }
+        }
+        const qs = limit > 0 ? `?limit=${limit}` : '';
+        result = await request('GET', '/slack/events' + qs);
+        if (result && result.error) {
+          console.error(`Error: ${result.error}`);
+          process.exit(1);
+        }
+        const cfg = (result && result.config) || {};
+        console.log('Slack event emitter:');
+        console.log(`  enabled:        ${cfg.enabled}`);
+        console.log(`  webhookUrl:     ${cfg.webhookUrl ? '(set)' : '(not set)'}`);
+        console.log(`  minLevel:       ${cfg.minLevel}`);
+        console.log(`  dedupeWindowMs: ${cfg.dedupeWindowMs}`);
+        console.log(`  events:         ${(cfg.events || []).join(', ')}`);
+        const events = Array.isArray(result && result.events) ? result.events : [];
+        console.log(`Recent events (${events.length}):`);
+        for (const ev of events.slice(-20)) {
+          const when = ev.ts ? new Date(ev.ts).toISOString() : '?';
+          console.log(`  [${ev.level}] ${when} ${ev.eventType} ${ev.message || ''}`);
+        }
+        return;
       }
 
       case 'history': {

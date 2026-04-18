@@ -142,6 +142,7 @@ function runPreMergeChecks(branch, opts) {
 function performMerge(branch, opts) {
   const options = opts || {};
   const repoRoot = options.repoRoot;
+  const emit = typeof options.emit === 'function' ? options.emit : null;
   if (!branch || typeof branch !== 'string') {
     return { success: false, error: 'branch name required' };
   }
@@ -159,9 +160,19 @@ function performMerge(branch, opts) {
     } catch {
       sha = '';
     }
+    // (8.15) Slack event emitter hook. Caller passes an `emit` callback
+    // when it wants merge_success / merge_fail to flow out to Slack.
+    // Daemon already emits via its own wrapper, so it leaves this null
+    // to avoid double-firing; CLI path passes its emit here.
+    if (emit) {
+      try { emit('merge_success', { branch, sha }); } catch {}
+    }
     return { success: true, sha, summary: String(summary || '').trim() };
   } catch (e) {
     const stderr = (e && e.stderr) ? String(e.stderr) : '';
+    if (emit) {
+      try { emit('merge_fail', { branch, error: e.message || stderr || 'unknown error' }); } catch {}
+    }
     return { success: false, error: 'git merge failed: ' + (e.message || stderr || 'unknown error'), stderr };
   }
 }

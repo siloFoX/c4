@@ -26,6 +26,7 @@ const nlInterface = require('./nl-interface');
 const workflowMod = require('./workflow');
 const computerUseMod = require('./computer-use');
 const mergeCore = require('./merge-core');
+const slackEvents = require('./slack-events');
 
 // (8.5) Allow-list for POST /key. Web UI needs to drive Enter, Escape,
 // Ctrl-C and the arrow keys without sending raw control bytes. The list
@@ -63,6 +64,34 @@ const PORT = parseInt(process.env.PORT || cfg.daemon?.port || '3456');
 const HOST = process.env.C4_BIND_HOST || resolveBindHost(cfg);
 const notifications = new Notifications(cfg.notifications || {});
 manager.setNotifications(notifications);
+
+// (8.15) Daemon-level Slack event emitter. Separate from Notifications
+// because this one is event-driven (task_start / merge_success / ...)
+// rather than buffered digests. configure() is called on config reload
+// below so a live edit of config.slack.enabled turns emission on/off
+// without a daemon restart. A safeEmit() wrapper drops any failure so
+// a broken webhook or a misconfigured URL never breaks the request path.
+const slackEmitter = slackEvents.getShared();
+slackEmitter.configure(cfg.slack || {});
+function safeEmit(eventType, payload) {
+  try {
+    const p = slackEmitter.emit(eventType, payload);
+    if (p && typeof p.catch === 'function') p.catch(() => {});
+  } catch { /* emit() must never break callers */ }
+}
+// (8.15) Bridge Notifications.notifyStall -> slackEmitter emit so every
+// halt/intervention the pty-manager already surfaces becomes a
+// halt_detected event on the Slack side too. Wraps rather than replaces
+// so the existing buffered-send path keeps working untouched.
+(function bridgeStallToSlackEvents() {
+  if (!notifications || typeof notifications.notifyStall !== 'function') return;
+  const original = notifications.notifyStall.bind(notifications);
+  notifications.notifyStall = async function (workerName, reason) {
+    try { safeEmit('halt_detected', { worker: workerName, reason: String(reason || '') }); }
+    catch { /* emit failure never blocks the legacy stall send */ }
+    return original(workerName, reason);
+  };
+})();
 
 // (10.2) Shared audit logger. Writes to ~/.c4/audit.jsonl by default so
 // the trail survives daemon restarts. Every security-relevant endpoint
@@ -797,6 +826,7 @@ async function handleRequest(req, res) {
         _safeAudit('worker.created',
           { command, args: args || [], target: target || 'local', cwd: cwd || '', parent: parent || '', pid: result.pid || null },
           { target: name, actor: _auditActor(authCheck) });
+        safeEmit('worker_spawn', { worker: name, target: target || 'local', command });
       }
 
     } else if (req.method === 'POST' && route === '/send') {
@@ -875,6 +905,11 @@ async function handleRequest(req, res) {
         _safeAudit('task.sent',
           { task: typeof task === 'string' ? task.slice(0, 500) : '', branch: branch || '', profile: profile || '', autoMode: Boolean(autoMode) },
           { target: name, actor: _auditActor(authCheck) });
+        safeEmit('task_start', {
+          worker: name,
+          branch: branch || '',
+          task: typeof task === 'string' ? task.split('\n')[0].slice(0, 120) : '',
+        });
       }
 
     } else if (req.method === 'POST' && route === '/merge') {
@@ -932,6 +967,7 @@ async function handleRequest(req, res) {
         _safeAudit('merge.failed',
           { branch, skipChecks, error: mergeOutcome.error, workerName: nameInput || null },
           { target: branch, actor: _auditActor(authCheck) });
+        safeEmit('merge_fail', { branch, error: mergeOutcome.error, worker: nameInput || '' });
         res.writeHead(500);
         res.end(JSON.stringify({
           error: mergeOutcome.error,
@@ -944,6 +980,7 @@ async function handleRequest(req, res) {
       _safeAudit('merge.performed',
         { branch, skipChecks, sha: mergeOutcome.sha, workerName: nameInput || null },
         { target: branch, actor: _auditActor(authCheck) });
+      safeEmit('merge_success', { branch, sha: mergeOutcome.sha, worker: nameInput || '' });
       result = {
         success: true,
         branch,
@@ -965,6 +1002,11 @@ async function handleRequest(req, res) {
         _safeAudit(granted ? 'approval.granted' : 'approval.denied',
           { optionNumber: optionNumber == null ? null : Number(optionNumber) },
           { target: name, actor: _auditActor(authCheck) });
+        safeEmit('approval_request', {
+          worker: name,
+          optionNumber: optionNumber == null ? null : Number(optionNumber),
+          granted,
+        });
       }
 
     } else if (req.method === 'POST' && route === '/rollback') {
@@ -2196,6 +2238,7 @@ async function handleRequest(req, res) {
       result = manager.close(name);
       if (result && !result.error) {
         _safeAudit('worker.closed', {}, { target: name, actor: _auditActor(authCheck) });
+        safeEmit('worker_close', { worker: name });
       }
 
     } else if (req.method === 'GET' && route === '/config') {
@@ -2234,6 +2277,9 @@ async function handleRequest(req, res) {
         // (10.4) Refresh the CicdManager with the new webhook secret +
         // repo token list so cicd responses honour edits immediately.
         try { cicdManager.applyConfig(manager.getConfig().cicd || {}); } catch {}
+        // (8.15) Re-apply config.slack so a live edit of enabled /
+        // webhookUrl / minLevel takes effect without a restart.
+        try { slackEmitter.configure(manager.getConfig().slack || {}); } catch {}
       }
 
     } else if (req.method === 'POST' && route === '/scribe/start') {
@@ -2360,6 +2406,37 @@ async function handleRequest(req, res) {
       const { worker, message } = await parseBody(req);
       notifications.statusUpdate(worker || 'C4', message);
       result = { sent: true };
+
+    } else if (req.method === 'GET' && route === '/slack/events') {
+      // (8.15) Tail of the in-memory event buffer. Open to any
+      // authenticated caller so dashboards can render the recent feed
+      // without holding the SLACK_WRITE permission.
+      const limit = parseInt(url.searchParams.get('limit') || '0', 10);
+      const events = slackEmitter.recentEvents(Number.isFinite(limit) && limit > 0 ? limit : undefined);
+      result = {
+        events,
+        count: events.length,
+        config: slackEmitter.getConfig(),
+      };
+
+    } else if (req.method === 'POST' && route === '/slack/emit') {
+      // (8.15) Manual event injection. Only operators with SLACK_WRITE
+      // can call this — the CLI `c4 slack test` uses the same route so
+      // a viewer JWT cannot flood the channel.
+      const gate = requireRole(authCheck, rbac.ACTIONS.SLACK_WRITE);
+      if (denyOr(res, gate)) return;
+      const body = await parseBody(req);
+      const eventType = typeof body.eventType === 'string' ? body.eventType : '';
+      const payload = body.payload && typeof body.payload === 'object' ? body.payload : {};
+      if (!slackEvents.isEventType(eventType)) {
+        res.writeHead(400);
+        res.end(JSON.stringify({
+          error: 'Invalid eventType',
+          allowed: slackEvents.EVENT_TYPES.slice(),
+        }));
+        return;
+      }
+      result = await slackEmitter.emit(eventType, payload);
 
     } else if (req.method === 'GET' && route === '/history') {
       // 8.7: richer summary shape for the Web UI. Query params stay
