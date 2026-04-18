@@ -20,6 +20,7 @@ const projectDashboard = require('./project-dashboard');
 const rbac = require('./rbac');
 const cicd = require('./cicd');
 const orgMgmt = require('./org-mgmt');
+const scheduleMgmt = require('./schedule-mgmt');
 
 const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
 
@@ -158,6 +159,57 @@ function getOrgManager() {
     : {};
   _orgManager = new orgMgmt.OrgManager(om);
   return _orgManager;
+}
+
+// (10.7) Shared ScheduleManager. Writes to ~/.c4/schedules.json by
+// default; honours config.schedules.path. Rebuilt on config reload so
+// a new storage path picks up without a daemon restart. Tests build
+// their own ScheduleManager with a tmpdir and never touch this
+// instance.
+let _scheduleManager = null;
+function getScheduleManager() {
+  if (_scheduleManager) return _scheduleManager;
+  const currentCfg = manager.getConfig();
+  const sm = currentCfg && currentCfg.schedules && typeof currentCfg.schedules.path === 'string'
+    ? { storePath: currentCfg.schedules.path }
+    : {};
+  _scheduleManager = new scheduleMgmt.ScheduleManager(sm);
+  return _scheduleManager;
+}
+
+// (10.7) scheduleTick dispatcher. When a schedule fires we spawn a
+// worker and hand it the templated task. Name collisions are avoided by
+// suffixing the tick minute so two schedules that fire at the same
+// instant produce distinct workers. The caller is tolerant of dispatch
+// failures (they surface as history entries on the schedule) so we
+// never rethrow here.
+function _scheduleDispatch(schedule, ctx) {
+  if (!schedule || typeof schedule !== 'object') return;
+  const tickAt = ctx && ctx.tickAt instanceof Date ? ctx.tickAt : new Date();
+  const base = 'sched-' + schedule.id + '-' + Math.floor(tickAt.getTime() / 60000);
+  const name = base.replace(/[^A-Za-z0-9._-]/g, '-');
+  try {
+    const created = manager.create(name, 'claude', [], { target: 'local' });
+    if (created && created.error) return;
+    manager.sendTask(name, schedule.taskTemplate || '', {
+      branch: schedule.projectId ? ('c4/' + schedule.projectId) : '',
+      autoMode: true,
+    });
+  } catch {}
+}
+
+// (10.7) Kick the scheduler tick. Returns the tick summary so the
+// caller can log or emit SSE; the underlying ScheduleManager handles
+// persisting run history + recomputing nextRun. Safe to call from any
+// polling loop - dispatch is best-effort and never throws.
+function runScheduleTick(now) {
+  try {
+    const mgr = getScheduleManager();
+    return mgr.scheduleTick(now || new Date(), _scheduleDispatch);
+  } catch (e) {
+    console.error('[SCHEDULE] tick failed:', e && e.message ? e.message : e);
+    return { tickAt: new Date().toISOString(), dueIds: [], schedules: [] };
+  }
 }
 
 // (10.8) Shared ProjectBoard. Writes to ~/.c4/projects/<id>.json by
@@ -414,6 +466,18 @@ async function handleRequest(req, res) {
     else if (mDept) orgParams = { kind: 'dept', deptId: decodeURIComponent(mDept[1]) };
     else if (mTeamMember) orgParams = { kind: 'team.member', teamId: decodeURIComponent(mTeamMember[1]) };
     else if (mTeam) orgParams = { kind: 'team', teamId: decodeURIComponent(mTeam[1]) };
+  }
+
+  // (10.7) Schedule management: decode /schedules/<id>/... path params
+  // here so the route dispatch below stays as a flat string match.
+  let scheduleParams = null;
+  {
+    const mRun = route.match(/^\/schedules\/([^\/]+)\/run$/);
+    const mHistory = route.match(/^\/schedules\/([^\/]+)\/history$/);
+    const mOne = route.match(/^\/schedules\/([^\/]+)$/);
+    if (mRun) scheduleParams = { kind: 'run', id: decodeURIComponent(mRun[1]) };
+    else if (mHistory) scheduleParams = { kind: 'history', id: decodeURIComponent(mHistory[1]) };
+    else if (mOne) scheduleParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
   }
 
   // (10.8) Project management: decode /projects/<id>/... path params
@@ -936,6 +1000,118 @@ async function handleRequest(req, res) {
         result = { error: e.message };
       }
 
+    } else if (req.method === 'GET' && route === '/schedules') {
+      // (10.7) List every schedule. Filters: ?enabled=true|false,
+      // ?projectId=, ?assignee=. Read-only so viewers can inspect the
+      // timeline without getting write access.
+      const gate = requireRole(authCheck, rbac.ACTIONS.SCHEDULE_READ);
+      if (denyOr(res, gate)) return;
+      try {
+        const mgr = getScheduleManager();
+        const filter = {};
+        const enabledParam = url.searchParams.get('enabled');
+        if (enabledParam === 'true') filter.enabled = true;
+        else if (enabledParam === 'false') filter.enabled = false;
+        const projectId = url.searchParams.get('projectId');
+        if (projectId) filter.projectId = projectId;
+        const assignee = url.searchParams.get('assignee');
+        if (assignee) filter.assignee = assignee;
+        const schedules = mgr.listSchedules(filter);
+        result = { schedules, count: schedules.length };
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && route === '/schedules') {
+      // (10.7) Create a schedule. Body: { id?, name, cronExpr,
+      // taskTemplate, projectId?, assignee?, timezone?, enabled? }.
+      const gate = requireRole(authCheck, rbac.ACTIONS.SCHEDULE_MANAGE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const mgr = getScheduleManager();
+        result = mgr.createSchedule(body || {});
+        _safeAudit('schedule.created',
+          { id: result.id, cronExpr: result.cronExpr, timezone: result.timezone },
+          { actor: _auditActor(authCheck), target: result.id });
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && scheduleParams && scheduleParams.kind === 'one') {
+      // (10.7) Show one schedule.
+      const gate = requireRole(authCheck, rbac.ACTIONS.SCHEDULE_READ);
+      if (denyOr(res, gate)) return;
+      const mgr = getScheduleManager();
+      const s = mgr.getSchedule(scheduleParams.id);
+      if (!s) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Schedule not found: ' + scheduleParams.id }));
+        return;
+      }
+      result = s;
+
+    } else if (req.method === 'PUT' && scheduleParams && scheduleParams.kind === 'one') {
+      // (10.7) Patch a schedule. Any subset of createSchedule's fields
+      // is accepted; enabled is normalised to a boolean.
+      const gate = requireRole(authCheck, rbac.ACTIONS.SCHEDULE_MANAGE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const mgr = getScheduleManager();
+        result = mgr.updateSchedule(scheduleParams.id, body || {});
+        _safeAudit('schedule.updated', { id: scheduleParams.id },
+          { actor: _auditActor(authCheck), target: scheduleParams.id });
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'DELETE' && scheduleParams && scheduleParams.kind === 'one') {
+      // (10.7) Delete a schedule. 404 when not found.
+      const gate = requireRole(authCheck, rbac.ACTIONS.SCHEDULE_MANAGE);
+      if (denyOr(res, gate)) return;
+      const mgr = getScheduleManager();
+      const ok = mgr.deleteSchedule(scheduleParams.id);
+      if (!ok) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Schedule not found: ' + scheduleParams.id }));
+        return;
+      }
+      _safeAudit('schedule.deleted', { id: scheduleParams.id },
+        { actor: _auditActor(authCheck), target: scheduleParams.id });
+      result = { deleted: true, id: scheduleParams.id };
+
+    } else if (req.method === 'POST' && scheduleParams && scheduleParams.kind === 'run') {
+      // (10.7) Force-run a schedule now. Does not recompute nextRun so
+      // the regular cadence still fires.
+      const gate = requireRole(authCheck, rbac.ACTIONS.SCHEDULE_MANAGE);
+      if (denyOr(res, gate)) return;
+      try {
+        const mgr = getScheduleManager();
+        const schedule = mgr.forceRun(scheduleParams.id);
+        _scheduleDispatch(schedule, { tickAt: new Date() });
+        _safeAudit('schedule.forced', { id: scheduleParams.id },
+          { actor: _auditActor(authCheck), target: scheduleParams.id });
+        result = schedule;
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && scheduleParams && scheduleParams.kind === 'history') {
+      // (10.7) Return the per-schedule run history (trimmed to the last
+      // HISTORY_LIMIT entries by the storage layer).
+      const gate = requireRole(authCheck, rbac.ACTIONS.SCHEDULE_READ);
+      if (denyOr(res, gate)) return;
+      try {
+        const mgr = getScheduleManager();
+        const history = mgr.history(scheduleParams.id);
+        result = { id: scheduleParams.id, history, count: history.length };
+      } catch (e) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: e.message }));
+        return;
+      }
+
     } else if (req.method === 'GET' && route === '/projects') {
       // (10.8) List all projects. Returns the full board objects so a
       // caller can render a per-project dashboard without a second trip
@@ -1298,6 +1474,9 @@ async function handleRequest(req, res) {
         // (10.6) Drop the cached OrgManager so a new org.path kicks in
         // on the next request.
         _orgManager = null;
+        // (10.7) Drop the cached ScheduleManager so schedules.path
+        // changes take effect on the next request.
+        _scheduleManager = null;
         // (10.3) Rebuild the dashboard on the next hit so it binds to
         // the fresh board + any updated cost config.
         _projectDashboard = null;
@@ -1893,6 +2072,31 @@ manager.on('sse', (event) => {
   }
 });
 
+// (10.7) Scheduler tick: poll the ScheduleManager once a minute so any
+// due schedule fires on or shortly after its nextRun. Kept as a thin
+// setInterval rather than piggybacking on healthCheck so the tick
+// cadence does not drift when healthCheckInterval changes.
+let _scheduleTickTimer = null;
+function _startScheduleTick() {
+  if (_scheduleTickTimer) return;
+  const cfgNow = manager.getConfig() || {};
+  const scheduleCfg = cfgNow.schedules || {};
+  if (scheduleCfg.enabled === false) return;
+  const intervalMs = Number.isFinite(Number(scheduleCfg.tickIntervalMs)) && Number(scheduleCfg.tickIntervalMs) > 0
+    ? Number(scheduleCfg.tickIntervalMs)
+    : 60000;
+  // Kick immediately so a schedule whose nextRun landed while the
+  // daemon was down fires on startup instead of after a full interval.
+  try { runScheduleTick(new Date()); } catch {}
+  _scheduleTickTimer = setInterval(() => { runScheduleTick(new Date()); }, intervalMs);
+}
+function _stopScheduleTick() {
+  if (_scheduleTickTimer) {
+    clearInterval(_scheduleTickTimer);
+    _scheduleTickTimer = null;
+  }
+}
+
 server.listen(PORT, HOST, () => {
   console.log(`C4 daemon running on http://${HOST}:${PORT} (version ${manager._daemonVersion || 'unknown'})`);
   // Persist daemon version to state.json (7.15)
@@ -1900,12 +2104,14 @@ server.listen(PORT, HOST, () => {
   manager.startHealthCheck();
   manager.startWorktreeGc();
   notifications.startPeriodicSlack();
+  _startScheduleTick();
 });
 
 process.on('SIGINT', () => {
   notifications.stopPeriodicSlack();
   manager.stopHealthCheck();
   manager.stopWorktreeGc();
+  _stopScheduleTick();
   manager.closeAll();
   server.close();
   process.exit(0);
@@ -1915,6 +2121,7 @@ process.on('SIGTERM', () => {
   notifications.stopPeriodicSlack();
   manager.stopHealthCheck();
   manager.stopWorktreeGc();
+  _stopScheduleTick();
   manager.closeAll();
   server.close();
   process.exit(0);

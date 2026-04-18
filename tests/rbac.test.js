@@ -68,7 +68,9 @@ describe('(10.1) RBAC helpers', () => {
     expect(ACTIONS.CICD_MANAGE).toBe('cicd.manage');
     expect(ACTIONS.ORG_READ).toBe('org.read');
     expect(ACTIONS.ORG_MANAGE).toBe('org.manage');
-    expect(ALL_ACTIONS.length).toBe(16);
+    expect(ACTIONS.SCHEDULE_READ).toBe('schedule.read');
+    expect(ACTIONS.SCHEDULE_MANAGE).toBe('schedule.manage');
+    expect(ALL_ACTIONS.length).toBe(18);
   });
 
   test('(d) isRole/isAction/isUsername validators', () => {
