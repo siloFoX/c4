@@ -5,6 +5,7 @@ import {
   Play,
   RefreshCw,
   RotateCcw,
+  Send,
   X,
 } from 'lucide-react';
 import Toast, { type ToastType } from './Toast';
@@ -148,6 +149,75 @@ function buildActions(workerName: string): SingleAction[] {
       successMessage: (n) => `Closed ${n}`,
     },
   ];
+}
+
+// 8.20B: Slack status message form. Fire-and-forget POST /api/status-update
+// that routes the operator's message through the notifications layer so
+// oncall can see "worker X hit intervention" without opening the
+// terminal. Kept as a tiny sibling component so the main ControlPanel
+// stays focused on session control.
+function StatusMessageCard({
+  workerName,
+  onToast,
+}: {
+  workerName: string;
+  onToast: (message: string, type: ToastType) => void;
+}) {
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const send = useCallback(async () => {
+    const text = message.trim();
+    if (!text) return;
+    setSending(true);
+    try {
+      const res = await apiFetch('/api/status-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ worker: workerName, message: text }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      onToast(`Status message sent for ${workerName}`, 'success');
+      setMessage('');
+    } catch (e) {
+      onToast(`Status send failed: ${(e as Error).message}`, 'error');
+    }
+    setSending(false);
+  }, [message, workerName, onToast]);
+
+  return (
+    <Card aria-label="Status message to Slack">
+      <CardHeader className="p-4 md:p-5">
+        <CardTitle>Status message</CardTitle>
+        <CardDescription>
+          Post a short status update to Slack tagged with this worker. Used for
+          oncall handoffs and incident notes.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2 p-4 pt-0 md:p-5 md:pt-0">
+        <textarea
+          rows={2}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          placeholder={`status for ${workerName}...`}
+          aria-label={`Status message for ${workerName}`}
+        />
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={send}
+            disabled={sending || !message.trim()}
+          >
+            <Send className="h-3.5 w-3.5" />
+            <span>{sending ? 'Sending...' : 'Send to Slack'}</span>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 async function postAction(
@@ -440,6 +510,8 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
           )}
         </CardContent>
       </Card>
+
+      <StatusMessageCard workerName={workerName} onToast={showToast} />
 
       <div className="pointer-events-none fixed right-4 top-4 z-50 flex flex-col gap-2">
         {toast && (
