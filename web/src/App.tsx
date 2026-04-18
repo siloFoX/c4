@@ -10,6 +10,7 @@ import AppHeader from './components/layout/AppHeader';
 import Sidebar, { type SidebarMode } from './components/layout/Sidebar';
 import DetailTabs, { type DetailMode } from './components/layout/DetailTabs';
 import EmptyState from './components/layout/EmptyState';
+import FeatureView from './components/layout/FeatureView';
 import { type TopView } from './components/layout/TopTabs';
 import { AUTH_EVENT, fetchAuthStatus, getToken, logout } from './lib/api';
 
@@ -47,6 +48,7 @@ function readTopView(): TopView {
     if (v === 'history') return 'history';
     if (v === 'chat') return 'chat';
     if (v === 'workflows') return 'workflows';
+    if (v === 'features') return 'features';
     return 'workers';
   } catch {
     return 'workers';
@@ -136,6 +138,8 @@ export default function App() {
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <WorkflowEditor />
         </div>
+      ) : topView === 'features' ? (
+        <FeatureView sidebarOpen={sidebarOpen} />
       ) : (
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <Sidebar
