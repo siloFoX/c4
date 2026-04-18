@@ -94,9 +94,19 @@ function extractFlag(argv, flag) {
   return argv[idx + 1];
 }
 
+// Every handler-table route on the daemon lives behind the /api prefix
+// so the session-auth middleware (8.14) can gate them. Callers throughout
+// this file still write paths as '/create' etc, so prepend here once to
+// avoid touching every call site. Existing '/api/...' callers stay as-is.
+function withApiPrefix(p) {
+  if (typeof p !== 'string' || p.length === 0) return p;
+  if (p === '/api' || p.startsWith('/api/')) return p;
+  return '/api' + (p.startsWith('/') ? p : '/' + p);
+}
+
 function request(method, path, body = null, timeout = 10000) {
   return new Promise((resolve, reject) => {
-    const url = new URL(path, BASE);
+    const url = new URL(withApiPrefix(path), BASE);
     const headers = { 'Content-Type': 'application/json' };
     const token = readToken();
     if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -2106,7 +2116,14 @@ async function main() {
           process.exit(1);
         }
 
-        const watchUrl = new URL(`/watch?name=${encodeURIComponent(name)}`, BASE);
+        // SSE stream must also go through /api so the session-auth
+        // middleware (8.14) classifies it correctly. EventSource-style
+        // clients cannot set headers, so the token rides as ?token= which
+        // auth.extractBearerToken accepts as a fallback.
+        const watchToken = readToken();
+        const watchQs = `name=${encodeURIComponent(name)}`
+          + (watchToken ? `&token=${encodeURIComponent(watchToken)}` : '');
+        const watchUrl = new URL(`/api/watch?${watchQs}`, BASE);
         const watchReq = http.get(watchUrl, (res) => {
           if (res.statusCode !== 200) {
             let data = '';
@@ -3882,4 +3899,10 @@ Scope examples:
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+} else {
+  // Expose helpers so tests can exercise them without spawning the CLI
+  // or stubbing argv. Keep this list narrow on purpose.
+  module.exports = { withApiPrefix };
+}
