@@ -21,6 +21,7 @@ const rbac = require('./rbac');
 const cicd = require('./cicd');
 const orgMgmt = require('./org-mgmt');
 const scheduleMgmt = require('./schedule-mgmt');
+const mcpHub = require('./mcp-hub');
 
 const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
 
@@ -175,6 +176,23 @@ function getScheduleManager() {
     : {};
   _scheduleManager = new scheduleMgmt.ScheduleManager(sm);
   return _scheduleManager;
+}
+
+// (11.1) Shared McpHub. Writes to ~/.c4/mcp-servers.json by default;
+// honours config.mcp.path. Rebuilt on config reload so a new storage
+// path picks up without a daemon restart. Tests build their own McpHub
+// with a tmpdir and never touch this instance. pty-manager also reads
+// through this singleton so profile -> .mcp.json generation sees live
+// registry mutations immediately.
+let _mcpHub = null;
+function getMcpHub() {
+  if (_mcpHub) return _mcpHub;
+  const currentCfg = manager.getConfig();
+  const opts = currentCfg && currentCfg.mcp && typeof currentCfg.mcp.path === 'string'
+    ? { storePath: currentCfg.mcp.path }
+    : {};
+  _mcpHub = new mcpHub.McpHub(opts);
+  return _mcpHub;
 }
 
 // (10.7) scheduleTick dispatcher. When a schedule fires we spawn a
@@ -478,6 +496,20 @@ async function handleRequest(req, res) {
     if (mRun) scheduleParams = { kind: 'run', id: decodeURIComponent(mRun[1]) };
     else if (mHistory) scheduleParams = { kind: 'history', id: decodeURIComponent(mHistory[1]) };
     else if (mOne) scheduleParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
+  }
+
+  // (11.1) MCP hub: decode /mcp/servers/<name>/... path params here so
+  // the route dispatch below stays as a flat string match.
+  let mcpParams = null;
+  {
+    const mEnable = route.match(/^\/mcp\/servers\/([^\/]+)\/enable$/);
+    const mDisable = route.match(/^\/mcp\/servers\/([^\/]+)\/disable$/);
+    const mTest = route.match(/^\/mcp\/servers\/([^\/]+)\/test$/);
+    const mOne = route.match(/^\/mcp\/servers\/([^\/]+)$/);
+    if (mEnable) mcpParams = { kind: 'enable', name: decodeURIComponent(mEnable[1]) };
+    else if (mDisable) mcpParams = { kind: 'disable', name: decodeURIComponent(mDisable[1]) };
+    else if (mTest) mcpParams = { kind: 'test', name: decodeURIComponent(mTest[1]) };
+    else if (mOne) mcpParams = { kind: 'one', name: decodeURIComponent(mOne[1]) };
   }
 
   // (10.8) Project management: decode /projects/<id>/... path params
@@ -1112,6 +1144,126 @@ async function handleRequest(req, res) {
         return;
       }
 
+    } else if (req.method === 'GET' && route === '/mcp/servers') {
+      // (11.1) List every MCP server in the hub. Filters: ?enabled=
+      // true|false, ?transport=stdio|http. Read-only so viewers can
+      // inspect the registry without mcp.manage.
+      const gate = requireRole(authCheck, rbac.ACTIONS.MCP_READ);
+      if (denyOr(res, gate)) return;
+      try {
+        const hub = getMcpHub();
+        const filter = {};
+        const enabledParam = url.searchParams.get('enabled');
+        if (enabledParam === 'true') filter.enabled = true;
+        else if (enabledParam === 'false') filter.enabled = false;
+        const transport = url.searchParams.get('transport');
+        if (transport) filter.transport = transport;
+        const servers = hub.listServers(filter);
+        result = { servers, count: servers.length };
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && route === '/mcp/servers') {
+      // (11.1) Register a new MCP server. Body: { name, command, args?,
+      // env?, description?, enabled?, transport? }. Duplicate names
+      // and invalid transports are rejected by the hub.
+      const gate = requireRole(authCheck, rbac.ACTIONS.MCP_MANAGE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const hub = getMcpHub();
+        result = hub.registerServer(body || {});
+        _safeAudit('mcp.registered',
+          { name: result.name, transport: result.transport, enabled: result.enabled },
+          { actor: _auditActor(authCheck), target: result.name });
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && mcpParams && mcpParams.kind === 'one') {
+      // (11.1) Show a single MCP server.
+      const gate = requireRole(authCheck, rbac.ACTIONS.MCP_READ);
+      if (denyOr(res, gate)) return;
+      const hub = getMcpHub();
+      const server = hub.getServerConfig(mcpParams.name);
+      if (!server) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'MCP server not found: ' + mcpParams.name }));
+        return;
+      }
+      result = server;
+
+    } else if (req.method === 'PUT' && mcpParams && mcpParams.kind === 'one') {
+      // (11.1) Patch an MCP server. Accepts any subset of the register
+      // fields. Invalid transport is rejected by the hub.
+      const gate = requireRole(authCheck, rbac.ACTIONS.MCP_MANAGE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const hub = getMcpHub();
+        result = hub.updateServer(mcpParams.name, body || {});
+        _safeAudit('mcp.updated', { name: mcpParams.name },
+          { actor: _auditActor(authCheck), target: mcpParams.name });
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'DELETE' && mcpParams && mcpParams.kind === 'one') {
+      // (11.1) Unregister an MCP server. 404 when not found.
+      const gate = requireRole(authCheck, rbac.ACTIONS.MCP_MANAGE);
+      if (denyOr(res, gate)) return;
+      const hub = getMcpHub();
+      const ok = hub.unregisterServer(mcpParams.name);
+      if (!ok) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'MCP server not found: ' + mcpParams.name }));
+        return;
+      }
+      _safeAudit('mcp.unregistered', { name: mcpParams.name },
+        { actor: _auditActor(authCheck), target: mcpParams.name });
+      result = { deleted: true, name: mcpParams.name };
+
+    } else if (req.method === 'POST' && mcpParams && mcpParams.kind === 'enable') {
+      // (11.1) Enable an MCP server so the next worker spawn picks it
+      // up in .mcp.json when the profile lists it.
+      const gate = requireRole(authCheck, rbac.ACTIONS.MCP_MANAGE);
+      if (denyOr(res, gate)) return;
+      try {
+        const hub = getMcpHub();
+        result = hub.enableServer(mcpParams.name);
+        _safeAudit('mcp.enabled', { name: mcpParams.name },
+          { actor: _auditActor(authCheck), target: mcpParams.name });
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && mcpParams && mcpParams.kind === 'disable') {
+      // (11.1) Disable an MCP server. Existing workers keep their
+      // .mcp.json; future spawns will skip the server until re-enabled.
+      const gate = requireRole(authCheck, rbac.ACTIONS.MCP_MANAGE);
+      if (denyOr(res, gate)) return;
+      try {
+        const hub = getMcpHub();
+        result = hub.disableServer(mcpParams.name);
+        _safeAudit('mcp.disabled', { name: mcpParams.name },
+          { actor: _auditActor(authCheck), target: mcpParams.name });
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && mcpParams && mcpParams.kind === 'test') {
+      // (11.1) Attempt to launch the server and verify it starts.
+      // Manage-level because a launch burns resources and shells out.
+      const gate = requireRole(authCheck, rbac.ACTIONS.MCP_MANAGE);
+      if (denyOr(res, gate)) return;
+      try {
+        const hub = getMcpHub();
+        result = hub.testServer(mcpParams.name);
+      } catch (e) {
+        result = { error: e.message };
+      }
+
     } else if (req.method === 'GET' && route === '/projects') {
       // (10.8) List all projects. Returns the full board objects so a
       // caller can render a per-project dashboard without a second trip
@@ -1477,6 +1629,9 @@ async function handleRequest(req, res) {
         // (10.7) Drop the cached ScheduleManager so schedules.path
         // changes take effect on the next request.
         _scheduleManager = null;
+        // (11.1) Drop the cached McpHub so mcp.path changes take effect
+        // on the next request.
+        _mcpHub = null;
         // (10.3) Rebuild the dashboard on the next hit so it binds to
         // the fresh board + any updated cost config.
         _projectDashboard = null;

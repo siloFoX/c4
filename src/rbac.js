@@ -61,6 +61,8 @@ const ACTIONS = Object.freeze({
   ORG_MANAGE: 'org.manage',
   SCHEDULE_READ: 'schedule.read',
   SCHEDULE_MANAGE: 'schedule.manage',
+  MCP_READ: 'mcp.read',
+  MCP_MANAGE: 'mcp.manage',
 });
 
 const ALL_ACTIONS = Object.freeze(Object.values(ACTIONS));
@@ -87,6 +89,8 @@ const DEFAULT_PERMISSIONS = Object.freeze({
     'org.manage',
     'schedule.read',
     'schedule.manage',
+    'mcp.read',
+    'mcp.manage',
   ]),
   viewer: Object.freeze([
     'project.read',
@@ -94,6 +98,7 @@ const DEFAULT_PERMISSIONS = Object.freeze({
     'cicd.read',
     'org.read',
     'schedule.read',
+    'mcp.read',
   ]),
 });
 

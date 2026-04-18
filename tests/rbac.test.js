@@ -70,7 +70,9 @@ describe('(10.1) RBAC helpers', () => {
     expect(ACTIONS.ORG_MANAGE).toBe('org.manage');
     expect(ACTIONS.SCHEDULE_READ).toBe('schedule.read');
     expect(ACTIONS.SCHEDULE_MANAGE).toBe('schedule.manage');
-    expect(ALL_ACTIONS.length).toBe(18);
+    expect(ACTIONS.MCP_READ).toBe('mcp.read');
+    expect(ACTIONS.MCP_MANAGE).toBe('mcp.manage');
+    expect(ALL_ACTIONS.length).toBe(20);
   });
 
   test('(d) isRole/isAction/isUsername validators', () => {

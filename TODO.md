@@ -511,7 +511,7 @@ Level 4이면:
 
 | # | 항목 | 상태 | 설명 |
 |---|------|------|------|
-| 11.1 | MCP 허브 | **todo** | worker에 MCP 서버를 동적으로 연결. config에 MCP 서버 목록 등록, worker 생성 시 필요한 MCP 자동 로드. Chrome DevTools, Google Calendar, Gmail 등 기존 MCP + 커뮤니티 MCP 무한 확장. |
+| ~~11.1~~ | MCP 허브 | **done** | worker에 MCP 서버를 동적으로 연결. ~/.c4/mcp-servers.json 레지스트리 + 프로파일의 mcpServers 리스트에 따라 worker worktree에 .mcp.json 자동 생성. 데몬에 /mcp/servers/* 엔드포인트, CLI에 `c4 mcp list/add/show/enable/disable/remove/test` 추가. stdio + http 전송 지원. RBAC mcp.read / mcp.manage. 2026-04-18. |
 | 11.2 | Computer Use agent | **todo** | 화면 조작 기반 범용 자동화. 카카오톡, 네이버, 은행 등 API 없는 앱도 computer use로 제어. worker type으로 "computer-use" 추가. 스크린샷 + 클릭/타이핑 파이프라인. |
 | 11.3 | 워크플로우 엔진 | **todo** | 여러 도구/MCP를 연결하는 자동화 워크플로우 정의. "매일 아침 이메일 확인 → 중요한 건 카톡으로 전달 → 코드 관련이면 worker 생성" 같은 체인. YAML/JSON으로 워크플로우 정의. Web UI에서 시각적 편집. |
 | 11.4 | 자연어 인터페이스 | **todo** | Web UI 채팅창에서 자연어로 모든 자동화 실행. "DGX에서 모델 학습 시키고 끝나면 카톡으로 알려줘" → dispatcher + worker + computer use + notification 자동 체이닝. 사람은 말만 하면 됨. |
