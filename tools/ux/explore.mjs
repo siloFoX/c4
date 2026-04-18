@@ -397,8 +397,16 @@ async function runForViewport(launchBrowser, vpKey) {
     expectAuth = false;
     await page.evaluate(() => { try { localStorage.removeItem('c4.authToken'); } catch {} });
     await page.reload({ waitUntil: 'networkidle2' });
-    await delay(600);
-    const stillAuthed = await page.$('#c4-user') === null;
+    let stillAuthed = false;
+    try {
+      await page.waitForFunction(() => {
+        const t = (document.body && document.body.innerText) || '';
+        return !t.startsWith('Loading') && !t.includes('Loading...');
+      }, { timeout: 8000 });
+      stillAuthed = (await page.$('#c4-user')) === null;
+    } catch {
+      stillAuthed = (await page.$('#c4-user')) === null;
+    }
     if (stillAuthed) {
       pushIssue('warn', 'auth-clear', 'after removing c4.authToken + reload, login form did not render (auth state stuck)');
     }
