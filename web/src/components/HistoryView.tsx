@@ -251,7 +251,16 @@ export default function HistoryView() {
               <div className="text-xs text-muted-foreground">No history yet.</div>
             )}
             <ul className="space-y-1">
-              {summary.map((w) => {
+              {(query
+                ? summary.filter((w) => {
+                    const needle = query.toLowerCase();
+                    if (w.name.toLowerCase().includes(needle)) return true;
+                    if (w.lastTask && w.lastTask.toLowerCase().includes(needle)) return true;
+                    if (w.branches.some((b) => b.toLowerCase().includes(needle))) return true;
+                    return false;
+                  })
+                : summary
+              ).map((w) => {
                 const isSelected = selected === w.name;
                 return (
                   <li key={w.name}>
