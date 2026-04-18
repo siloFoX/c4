@@ -125,6 +125,116 @@ function request(method, path, body = null, timeout = 10000) {
   });
 }
 
+// (11.3) Minimal YAML loader for `c4 workflow create --file`. Supports
+// the slice of YAML workflow definitions actually use: nested mappings,
+// sequences of mappings, scalars (string / number / boolean / null),
+// `#` comments, and quoted strings ('...' or "..."). Falls through to
+// the JSON parser first - this only runs when JSON.parse fails.
+function parseSimpleYaml(text) {
+  if (typeof text !== 'string') throw new Error('YAML input must be a string');
+  const rawLines = text.split(/\r?\n/);
+  const lines = [];
+  for (const line of rawLines) {
+    let stripped = line.replace(/^\uFEFF/, '');
+    const hashIdx = findCommentIndex(stripped);
+    if (hashIdx >= 0) stripped = stripped.slice(0, hashIdx);
+    stripped = stripped.replace(/\s+$/, '');
+    if (stripped.length === 0) continue;
+    const indent = stripped.match(/^ */)[0].length;
+    const content = stripped.slice(indent);
+    lines.push({ indent, content });
+  }
+  let pos = 0;
+  function parseValueScalar(s) {
+    const t = s.trim();
+    if (t === '') return '';
+    if (t === 'null' || t === '~') return null;
+    if (t === 'true') return true;
+    if (t === 'false') return false;
+    if ((t.startsWith('"') && t.endsWith('"') && t.length >= 2) ||
+        (t.startsWith("'") && t.endsWith("'") && t.length >= 2)) {
+      return t.slice(1, -1);
+    }
+    if (/^-?\d+$/.test(t)) return parseInt(t, 10);
+    if (/^-?\d+\.\d+$/.test(t)) return parseFloat(t);
+    return t;
+  }
+  function findCommentIndex(s) {
+    let inSingle = false, inDouble = false;
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      if (c === '"' && !inSingle) inDouble = !inDouble;
+      else if (c === "'" && !inDouble) inSingle = !inSingle;
+      else if (c === '#' && !inSingle && !inDouble) return i;
+    }
+    return -1;
+  }
+  function parseBlock(parentIndent) {
+    let result = null;
+    while (pos < lines.length) {
+      const { indent, content } = lines[pos];
+      if (indent <= parentIndent) break;
+      if (content.startsWith('- ')) {
+        if (result === null) result = [];
+        if (!Array.isArray(result)) throw new Error('Mixed map/list at line ' + (pos + 1));
+        const itemBody = content.slice(2);
+        pos++;
+        if (itemBody.includes(':') && !/^['"]/.test(itemBody)) {
+          // List item is a mapping starting on the same line, e.g.
+          //   - id: foo
+          //     type: task
+          // Inject a synthetic indent so parseBlock collects the rest.
+          const colonIdx = itemBody.indexOf(':');
+          const key = itemBody.slice(0, colonIdx).trim();
+          const valueRaw = itemBody.slice(colonIdx + 1).trim();
+          let map;
+          if (valueRaw.length === 0) {
+            const child = parseBlock(indent + 2);
+            map = { [key]: child };
+          } else {
+            map = { [key]: parseValueScalar(valueRaw) };
+          }
+          // Continue collecting more mapping fields belonging to this list item.
+          while (pos < lines.length && lines[pos].indent > indent) {
+            const ln = lines[pos];
+            if (ln.content.startsWith('- ')) break;
+            const colon2 = ln.content.indexOf(':');
+            if (colon2 < 0) throw new Error('Expected mapping at line ' + (pos + 1));
+            const key2 = ln.content.slice(0, colon2).trim();
+            const value2 = ln.content.slice(colon2 + 1).trim();
+            pos++;
+            if (value2.length === 0) {
+              map[key2] = parseBlock(ln.indent);
+            } else {
+              map[key2] = parseValueScalar(value2);
+            }
+          }
+          result.push(map);
+        } else if (itemBody.length === 0) {
+          result.push(parseBlock(indent));
+        } else {
+          result.push(parseValueScalar(itemBody));
+        }
+      } else {
+        if (result === null) result = {};
+        if (Array.isArray(result)) throw new Error('Mixed list/map at line ' + (pos + 1));
+        const colon = content.indexOf(':');
+        if (colon < 0) throw new Error('Expected "key: value" at line ' + (pos + 1));
+        const key = content.slice(0, colon).trim();
+        const value = content.slice(colon + 1).trim();
+        pos++;
+        if (value.length === 0) {
+          result[key] = parseBlock(indent);
+        } else {
+          result[key] = parseValueScalar(value);
+        }
+      }
+    }
+    return result === null ? {} : result;
+  }
+  return parseBlock(-1);
+}
+
 async function main() {
   const [cmd, ...args] = process.argv.slice(2);
 
@@ -2979,6 +3089,113 @@ async function main() {
             process.stdout.write(tmpMgr.renderGanttText(weeks, new Date()));
             return;
           }
+        }
+
+        if (result && result.error) {
+          console.error('Error: ' + result.error);
+          process.exit(1);
+        }
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+
+      case 'workflow': {
+        // (11.3) Workflow engine management. Thin wrapper around
+        // /workflows/* daemon endpoints.
+        //   c4 workflow list [--enabled] [--disabled] [--name N]
+        //   c4 workflow create --file <workflow.yaml|workflow.json>
+        //   c4 workflow show <id>
+        //   c4 workflow run <id> [--inputs '{...}']
+        //   c4 workflow runs <id>
+        //   c4 workflow delete <id>
+        //   c4 workflow export <id>
+        const sub = args[0];
+        const validSubs = ['list', 'create', 'show', 'run', 'runs', 'delete', 'export'];
+        if (!sub || !validSubs.includes(sub)) {
+          console.log('Usage: c4 workflow <list|create|show|run|runs|delete|export> [flags]');
+          console.log('  list [--enabled] [--disabled] [--name N]');
+          console.log('  create --file <workflow.yaml|workflow.json>');
+          console.log('  show <id>');
+          console.log("  run <id> [--inputs '{...}']");
+          console.log('  runs <id>');
+          console.log('  delete <id>');
+          console.log('  export <id>');
+          return;
+        }
+
+        function flagAt(startIdx, flag) {
+          for (let i = startIdx; i < args.length - 1; i++) {
+            if (args[i] === flag) return args[i + 1];
+          }
+          return '';
+        }
+        function hasFlag(startIdx, flag) {
+          for (let i = startIdx; i < args.length; i++) {
+            if (args[i] === flag) return true;
+          }
+          return false;
+        }
+
+        if (sub === 'list') {
+          const qs = [];
+          if (hasFlag(1, '--enabled')) qs.push('enabled=true');
+          if (hasFlag(1, '--disabled')) qs.push('enabled=false');
+          const nm = flagAt(1, '--name');
+          if (nm) qs.push('nameContains=' + encodeURIComponent(nm));
+          const query = qs.length > 0 ? '?' + qs.join('&') : '';
+          result = await request('GET', '/workflows' + query);
+        } else if (sub === 'create') {
+          const file = flagAt(1, '--file');
+          if (!file) {
+            console.error('Usage: c4 workflow create --file <workflow.yaml|workflow.json>');
+            process.exit(1);
+          }
+          const fs = require('fs');
+          let raw;
+          try { raw = fs.readFileSync(file, 'utf8'); }
+          catch (e) {
+            console.error('Failed to read ' + file + ': ' + e.message);
+            process.exit(1);
+          }
+          let body = null;
+          try { body = JSON.parse(raw); }
+          catch {
+            try { body = parseSimpleYaml(raw); }
+            catch (e) {
+              console.error('Failed to parse workflow file: ' + e.message);
+              process.exit(1);
+            }
+          }
+          result = await request('POST', '/workflows', body);
+        } else if (sub === 'show') {
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 workflow show <id>'); process.exit(1); }
+          result = await request('GET', '/workflows/' + encodeURIComponent(id));
+        } else if (sub === 'run') {
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 workflow run <id> [--inputs \'{...}\']'); process.exit(1); }
+          const inputsStr = flagAt(2, '--inputs');
+          let inputs = {};
+          if (inputsStr) {
+            try { inputs = JSON.parse(inputsStr); }
+            catch (e) {
+              console.error('--inputs must be JSON: ' + e.message);
+              process.exit(1);
+            }
+          }
+          result = await request('POST', '/workflows/' + encodeURIComponent(id) + '/run', { inputs });
+        } else if (sub === 'runs') {
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 workflow runs <id>'); process.exit(1); }
+          result = await request('GET', '/workflows/' + encodeURIComponent(id) + '/runs');
+        } else if (sub === 'delete') {
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 workflow delete <id>'); process.exit(1); }
+          result = await request('DELETE', '/workflows/' + encodeURIComponent(id));
+        } else if (sub === 'export') {
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 workflow export <id>'); process.exit(1); }
+          result = await request('GET', '/workflows/' + encodeURIComponent(id));
         }
 
         if (result && result.error) {

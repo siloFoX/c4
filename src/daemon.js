@@ -23,6 +23,7 @@ const orgMgmt = require('./org-mgmt');
 const scheduleMgmt = require('./schedule-mgmt');
 const mcpHub = require('./mcp-hub');
 const nlInterface = require('./nl-interface');
+const workflowMod = require('./workflow');
 
 const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
 
@@ -194,6 +195,55 @@ function getMcpHub() {
     : {};
   _mcpHub = new mcpHub.McpHub(opts);
   return _mcpHub;
+}
+
+// (11.3) Shared WorkflowManager + WorkflowExecutor. Writes definitions
+// to ~/.c4/workflows.json and run history to ~/.c4/workflow-runs.json
+// by default; honours config.workflows.{path,runsPath}. The executor's
+// task dispatcher delegates to the in-process PtyManager so a workflow
+// can spawn the same workers `c4 task` does. Tests construct their own
+// WorkflowManager pointed at a tmpdir and never touch this singleton.
+let _workflowManager = null;
+let _workflowExecutor = null;
+function getWorkflowManager() {
+  if (_workflowManager) return _workflowManager;
+  const currentCfg = manager.getConfig() || {};
+  const wfCfg = currentCfg.workflows || {};
+  const opts = {};
+  if (typeof wfCfg.path === 'string') opts.workflowsPath = wfCfg.path;
+  if (typeof wfCfg.runsPath === 'string') opts.runsPath = wfCfg.runsPath;
+  _workflowManager = new workflowMod.WorkflowManager(opts);
+  return _workflowManager;
+}
+function getWorkflowExecutor() {
+  if (_workflowExecutor) return _workflowExecutor;
+  const wfMgr = getWorkflowManager();
+  _workflowExecutor = new workflowMod.WorkflowExecutor({
+    manager: wfMgr,
+    dispatcher: async ({ node, runId }) => {
+      const cfg = node && node.config ? node.config : {};
+      const baseName = (cfg.workerName && typeof cfg.workerName === 'string')
+        ? cfg.workerName : ('wf-' + (node && node.id ? node.id : 'node'));
+      const safe = baseName.replace(/[^A-Za-z0-9._-]/g, '-');
+      const name = safe + '-' + (runId ? runId.slice(-6) : Math.floor(Date.now() / 1000).toString(36));
+      try {
+        const created = manager.create(name, 'claude', [], { target: 'local' });
+        if (created && created.error) {
+          return { ok: false, error: created.error, name };
+        }
+        if (typeof cfg.taskTemplate === 'string' && cfg.taskTemplate.length > 0) {
+          manager.sendTask(name, cfg.taskTemplate, {
+            branch: cfg.branch || (cfg.projectId ? ('c4/' + cfg.projectId) : ''),
+            autoMode: cfg.autoMode === false ? false : true,
+          });
+        }
+        return { ok: true, worker: name, branch: cfg.branch || null };
+      } catch (e) {
+        return { ok: false, error: (e && e.message) ? e.message : String(e), name };
+      }
+    },
+  });
+  return _workflowExecutor;
 }
 
 // (11.4) Shared NlInterface. Writes chat sessions to
@@ -556,6 +606,22 @@ async function handleRequest(req, res) {
   {
     const m = route.match(/^\/nl\/sessions\/([^\/]+)$/);
     if (m) nlSessionId = decodeURIComponent(m[1]);
+  }
+
+  // (11.3) Workflow engine: decode /workflows/<id>/... path params here
+  // so the route dispatch below stays as a flat string match. Two
+  // sub-resources today: /run (POST kicks off an execution) and /runs
+  // (GET lists historical runs for the workflow).
+  let workflowParams = null;
+  {
+    const mRun = route.match(/^\/workflows\/([^\/]+)\/run$/);
+    const mRuns = route.match(/^\/workflows\/([^\/]+)\/runs$/);
+    const mOne = route.match(/^\/workflows\/([^\/]+)$/);
+    const mRunOne = route.match(/^\/workflow-runs\/([^\/]+)$/);
+    if (mRun) workflowParams = { kind: 'run', id: decodeURIComponent(mRun[1]) };
+    else if (mRuns) workflowParams = { kind: 'runs', id: decodeURIComponent(mRuns[1]) };
+    else if (mOne) workflowParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
+    else if (mRunOne) workflowParams = { kind: 'runOne', id: decodeURIComponent(mRunOne[1]) };
   }
 
   // (11.1) MCP hub: decode /mcp/servers/<name>/... path params here so
@@ -1387,6 +1453,130 @@ async function handleRequest(req, res) {
       } catch (e) {
         result = { error: e.message };
       }
+
+    } else if (req.method === 'GET' && route === '/workflows') {
+      // (11.3) List every workflow definition. Filters: ?enabled=true|false,
+      // ?nameContains=. Read-only so viewers can inspect the catalog
+      // without workflow.manage.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKFLOW_READ);
+      if (denyOr(res, gate)) return;
+      try {
+        const wfMgr = getWorkflowManager();
+        const filter = {};
+        const enabledParam = url.searchParams.get('enabled');
+        if (enabledParam === 'true') filter.enabled = true;
+        else if (enabledParam === 'false') filter.enabled = false;
+        const nameContains = url.searchParams.get('nameContains');
+        if (nameContains) filter.nameContains = nameContains;
+        const workflows = wfMgr.listWorkflows(filter);
+        result = { workflows, count: workflows.length };
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'POST' && route === '/workflows') {
+      // (11.3) Create a workflow. Body: { id?, name, description, nodes,
+      // edges, enabled? }. validateGraph runs before the persist call so
+      // an invalid graph never lands in workflows.json.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKFLOW_MANAGE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const wfMgr = getWorkflowManager();
+        result = wfMgr.createWorkflow(body || {});
+        _safeAudit('workflow.created',
+          { id: result.id, nodes: result.nodes.length, edges: result.edges.length },
+          { actor: _auditActor(authCheck), target: result.id });
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && workflowParams && workflowParams.kind === 'one') {
+      // (11.3) Show one workflow definition.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKFLOW_READ);
+      if (denyOr(res, gate)) return;
+      const wfMgr = getWorkflowManager();
+      const wf = wfMgr.getWorkflow(workflowParams.id);
+      if (!wf) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Workflow not found: ' + workflowParams.id }));
+        return;
+      }
+      result = wf;
+
+    } else if (req.method === 'PUT' && workflowParams && workflowParams.kind === 'one') {
+      // (11.3) Patch a workflow. Re-runs validateGraph when nodes or
+      // edges change so the store never holds an invalid graph.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKFLOW_MANAGE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const wfMgr = getWorkflowManager();
+        result = wfMgr.updateWorkflow(workflowParams.id, body || {});
+        _safeAudit('workflow.updated', { id: workflowParams.id },
+          { actor: _auditActor(authCheck), target: workflowParams.id });
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'DELETE' && workflowParams && workflowParams.kind === 'one') {
+      // (11.3) Delete a workflow definition. 404 when not found.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKFLOW_MANAGE);
+      if (denyOr(res, gate)) return;
+      const wfMgr = getWorkflowManager();
+      const ok = wfMgr.deleteWorkflow(workflowParams.id);
+      if (!ok) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Workflow not found: ' + workflowParams.id }));
+        return;
+      }
+      _safeAudit('workflow.deleted', { id: workflowParams.id },
+        { actor: _auditActor(authCheck), target: workflowParams.id });
+      result = { deleted: true, id: workflowParams.id };
+
+    } else if (req.method === 'POST' && workflowParams && workflowParams.kind === 'run') {
+      // (11.3) Kick off a workflow run. Body: { inputs?: {} }. Returns
+      // the WorkflowRun synchronously - the executor is in-process and
+      // each task hands off to manager.create which is itself non-blocking.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKFLOW_MANAGE);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const exec = getWorkflowExecutor();
+        const inputs = (body && body.inputs && typeof body.inputs === 'object') ? body.inputs : {};
+        const run = await exec.executeWorkflow(workflowParams.id, inputs, {});
+        _safeAudit('workflow.run',
+          { workflowId: workflowParams.id, runId: run.id, status: run.status },
+          { actor: _auditActor(authCheck), target: workflowParams.id });
+        result = run;
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && workflowParams && workflowParams.kind === 'runs') {
+      // (11.3) List historical runs for one workflow.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKFLOW_READ);
+      if (denyOr(res, gate)) return;
+      try {
+        const wfMgr = getWorkflowManager();
+        const runs = wfMgr.store.listRunsForWorkflow(workflowParams.id);
+        result = { workflowId: workflowParams.id, runs, count: runs.length };
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && workflowParams && workflowParams.kind === 'runOne') {
+      // (11.3) Show one historical run by id (any workflow).
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKFLOW_READ);
+      if (denyOr(res, gate)) return;
+      const wfMgr = getWorkflowManager();
+      const run = wfMgr.store.getRun(workflowParams.id);
+      if (!run) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Workflow run not found: ' + workflowParams.id }));
+        return;
+      }
+      result = run;
 
     } else if (req.method === 'GET' && route === '/projects') {
       // (10.8) List all projects. Returns the full board objects so a
