@@ -3,6 +3,30 @@
 ## [Unreleased]
 
 ### Added
+- **(web-components) shadcn-style UI primitive set.** New files under
+  `web/src/components/ui/`: `button.tsx` (cva, variants default /
+  destructive / outline / secondary / ghost / link, sizes sm / md / lg /
+  icon, forwardRef, `Button` + `buttonVariants` exported),
+  `card.tsx` (composable `Card` / `CardHeader` / `CardTitle` /
+  `CardDescription` / `CardContent` / `CardFooter`, all forwardRef'd and
+  token-driven), `panel.tsx` (`Panel` dense-surface wrapper with
+  optional `icon` / `title` / `action` header row on `bg-muted/40`),
+  `input.tsx` + `label.tsx` (forwardRef, ARPS login-compatible classes),
+  `badge.tsx` (cva, variants default / secondary / destructive /
+  outline / success / warning / info), `icon-button.tsx` (square lucide
+  wrapper requiring `aria-label`), and `index.ts` barrel re-exporting
+  every primitive. Every class string composes through `cn()` so
+  overrides from consumers merge correctly with the base tokens. No
+  existing component was rewritten.
+- **(web-components) lucide icons in the sidebar toggle.** `App.tsx`
+  swaps the two Unicode glyphs (`\u2715` close, `\u2630` open) for
+  `<X className="h-5 w-5" />` and `<Menu className="h-5 w-5" />` from
+  `lucide-react`. The enclosing `<button>`, its Tailwind classes, and
+  the dynamic `aria-label` are preserved — the change is a pure
+  rendering swap that proves the primitive-layer wiring without
+  touching `WorkerList`, `WorkerDetail`, `ChatView`, `ControlPanel`,
+  `HierarchyTree`, `HistoryView`, `Chat`, `Login`, `WorkflowEditor`,
+  `Toast`, or `WorkerActions`.
 - **(web-theme) shadcn/ui-style token system + design deps.** `web/src/index.css`
   now declares the full HSL token set (`--background`, `--foreground`,
   `--card`, `--popover`, `--primary`, `--secondary`, `--muted`, `--accent`,

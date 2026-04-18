@@ -1,1 +1,1 @@
-{"test_passed": true, "test_count": 99, "build": "pass", "branch": "c4/web-theme", "notes": "theme tokens + lucide/cn deps introduced; no component JSX rewritten"}
+{"test_passed": true, "test_count": 100, "build": "pass", "branch": "c4/web-components", "notes": "shadcn-style primitives + lucide adoption in App.tsx sidebar toggle only"}

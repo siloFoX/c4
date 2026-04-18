@@ -480,6 +480,7 @@ Level 4이면:
 ### 8.1 / 8.9 — web-redesign progress notes (not yet done)
 
   - [web-redesign worker] c4/web-theme: zinc HSL tokens + lucide/cn deps landed, no JSX rewrites
+  - [web-redesign worker] c4/web-components: ui primitives (button/card/panel/input/label/badge/icon-button) landed; App.tsx sidebar toggle now uses lucide Menu/X
 
 ## Phase 9 — Framework + 생태계
 
