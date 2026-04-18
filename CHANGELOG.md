@@ -1,5 +1,35 @@
 # Changelog
 
+## [v8.1] - 2026-04-18
+
+### Fixed
+- **(merge-core) worktreePath dropped slashes from branch names.**
+  `runPreMergeChecks` built the worktree lookup path with regex
+  `[^A-Za-z0-9._/-]` which left `/` intact, so a branch like
+  `c4/slack-events` resolved to `../c4-worktree-c4/slack-events` —
+  a path that never existed on disk. The downstream `existsSync`
+  check therefore short-circuited, and `validation.test_passed`
+  silently degraded to `SKIP (no worktree for branch)` for every
+  worker branch (every branch carries a slash by convention). The
+  regex now omits `/` from the allowed set so slashes get rewritten
+  to hyphens, producing `../c4-worktree-c4-slack-events` which lines
+  up with how worktrees are actually created. `resolveBranchForWorker`
+  was audited and does not share the bug — it builds its path from
+  worker name (no slash) and applies no regex.
+- **TODO.md duplicate row 8.16.** The `8.16` row appeared twice in
+  Phase 8 — once as the canonical **done** entry (still present at
+  line 478) and once as a stale **todo** copy carrying the original
+  pre-implementation incident notes. The stale copy has been removed;
+  the surviving row is the implementation summary.
+
+### Added
+- **tests/merge-core.test.js.** Six `node:test` assertions — plain
+  branch name passes through, single-slash branch maps to hyphen,
+  multi-segment branch maps every slash, dot/underscore/hyphen
+  preserved, every other special character gets hyphenated, plus a
+  source-grep guard to keep the buggy regex from being reintroduced.
+  Pure path computation (no filesystem touch).
+
 ## [v7.6] - 2026-04-18
 
 ### Added

@@ -96,7 +96,12 @@ function runPreMergeChecks(branch, opts) {
   // location, require test_passed=true. Missing worktree is a soft
   // skip — the CLI path also degrades to SKIP rather than hard-failing
   // when the caller merges a branch that never had a worker.
-  const worktreePath = path.resolve(repoRoot, '..', 'c4-worktree-' + branch.replace(/[^A-Za-z0-9._/-]/g, '-'));
+  // (v8.1 hygiene) Drop '/' from the allowed set so a branch name like
+  // 'c4/slack-events' becomes 'c4-slack-events' on disk. Previously '/'
+  // was kept verbatim, producing '../c4-worktree-c4/slack-events' which
+  // existsSync() would never resolve, so validation.test_passed always
+  // SKIP-ed for any branch carrying a slash (i.e. all worker branches).
+  const worktreePath = path.resolve(repoRoot, '..', 'c4-worktree-' + branch.replace(/[^A-Za-z0-9._-]/g, '-'));
   let validationObj = null;
   try {
     if (fs.existsSync(worktreePath)) {
