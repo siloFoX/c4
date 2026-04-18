@@ -1220,6 +1220,41 @@ async function main() {
             allPassed = false;
           }
 
+          // Check 4: package-deps-installed (8.16). When package.json
+          // changed between main and the branch, installs against the
+          // updated lockfile and verifies every newly added dependency
+          // is require()-able. Catches the bcryptjs-style regression
+          // where `npm install` never ran on main after a merge added
+          // a new dep. No-op when package.json did not change.
+          process.stdout.write('  [check] package-deps-installed ... ');
+          try {
+            const baseSha = execSync(`git merge-base main "${branch}"`, {
+              cwd: repoRoot, encoding: 'utf8',
+            }).trim();
+            const headSha = execSync(`git rev-parse "${branch}"`, {
+              cwd: repoRoot, encoding: 'utf8',
+            }).trim();
+            const depResult = validationLib.checkPackageDepsInstalled({
+              baseSha, headSha, repoRoot,
+            });
+            if (depResult.ok && depResult.skipped) {
+              console.log(`SKIP (${depResult.reason})`);
+            } else if (depResult.ok) {
+              const added = depResult.detect && depResult.detect.deps
+                ? depResult.detect.deps.map(d => d.name).join(', ')
+                : '';
+              console.log(`PASS${added ? ` (verified: ${added})` : ''}`);
+            } else {
+              console.log('FAIL');
+              console.error(`    ${depResult.reason}`);
+              if (depResult.detail) console.error(depResult.detail);
+              allPassed = false;
+            }
+          } catch (e) {
+            console.log(`FAIL (${e.message})`);
+            allPassed = false;
+          }
+
           if (!allPassed) {
             console.log('\nMerge REJECTED — fix the above issues first.');
             process.exit(1);
