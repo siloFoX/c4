@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
+import { Check, GitMerge, Loader2, OctagonAlert, X } from 'lucide-react';
 import Toast, { type ToastType } from './Toast';
 import { apiFetch } from '../lib/api';
+import { Button, type ButtonProps } from './ui';
 
 export interface WorkerActionsProps {
   workerName: string;
@@ -21,7 +23,8 @@ interface ActionConfig {
   endpoint: string;
   body: Record<string, unknown>;
   successMessage: string;
-  className: string;
+  icon: JSX.Element;
+  variant: NonNullable<ButtonProps['variant']>;
   disabled?: boolean;
   disabledTitle?: string;
 }
@@ -42,7 +45,8 @@ export default function WorkerActions({ workerName }: WorkerActionsProps) {
       endpoint: '/api/merge',
       body: { name: workerName },
       successMessage: `Merged ${workerName}`,
-      className: 'bg-gray-700 hover:bg-gray-600',
+      icon: <GitMerge className="h-4 w-4" />,
+      variant: 'outline',
     },
     {
       kind: 'approve',
@@ -51,7 +55,8 @@ export default function WorkerActions({ workerName }: WorkerActionsProps) {
       endpoint: '/api/key',
       body: { name: workerName, key: 'Enter' },
       successMessage: `Sent Enter to ${workerName}`,
-      className: 'bg-gray-700 hover:bg-gray-600',
+      icon: <Check className="h-4 w-4" />,
+      variant: 'outline',
     },
     {
       kind: 'interrupt',
@@ -60,7 +65,8 @@ export default function WorkerActions({ workerName }: WorkerActionsProps) {
       endpoint: '/api/key',
       body: { name: workerName, key: 'C-c' },
       successMessage: `Sent Ctrl+C to ${workerName}`,
-      className: 'bg-gray-700 hover:bg-gray-600',
+      icon: <OctagonAlert className="h-4 w-4" />,
+      variant: 'outline',
     },
     {
       kind: 'close',
@@ -69,7 +75,8 @@ export default function WorkerActions({ workerName }: WorkerActionsProps) {
       endpoint: '/api/close',
       body: { name: workerName },
       successMessage: `Closed ${workerName}`,
-      className: 'bg-red-700 hover:bg-red-600',
+      icon: <X className="h-4 w-4" />,
+      variant: 'destructive',
     },
   ];
 
@@ -122,17 +129,24 @@ export default function WorkerActions({ workerName }: WorkerActionsProps) {
       <div className="flex flex-wrap gap-2">
         {actions.map((action) => {
           const isDisabled = action.disabled || busyKind !== null;
+          const isBusy = busyKind === action.kind;
           return (
-            <button
+            <Button
               key={action.kind}
               type="button"
+              variant={action.variant}
+              size="sm"
               onClick={() => runAction(action)}
               disabled={isDisabled}
               title={action.disabled ? action.disabledTitle : undefined}
-              className={`rounded px-3 py-1.5 text-xs font-medium text-gray-100 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${action.className}`}
             >
-              {busyKind === action.kind ? '…' : action.label}
-            </button>
+              {isBusy ? (
+                <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+              ) : (
+                action.icon
+              )}
+              <span>{action.label}</span>
+            </Button>
           );
         })}
       </div>
