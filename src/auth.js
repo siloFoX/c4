@@ -22,9 +22,12 @@ const DEFAULT_BCRYPT_ROUNDS = 10;
 
 // Routes the middleware must let through even when auth is enabled.
 // The login endpoint is needed to obtain a token in the first place,
-// and the health check stays public for daemon probes.
+// /auth/status is polled by the Web UI before login to decide whether to
+// render the login screen at all (so it cannot require a token), and
+// the health check stays public for daemon probes.
 const OPEN_API_ROUTES = new Set([
   '/auth/login',
+  '/auth/status',
   '/health',
 ]);
 
