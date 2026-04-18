@@ -2652,6 +2652,146 @@ async function main() {
         return;
       }
 
+      case 'schedule': {
+        // (10.7) Cron-driven schedule management. Thin wrapper around
+        // /schedules/* daemon endpoints.
+        //   c4 schedule list [--enabled] [--disabled] [--project P]
+        //   c4 schedule create --name N --cron 'EXPR' --template T [--project P] [--timezone TZ] [--assignee A] [--id ID]
+        //   c4 schedule show <id>
+        //   c4 schedule enable <id>
+        //   c4 schedule disable <id>
+        //   c4 schedule run <id>
+        //   c4 schedule delete <id>
+        //   c4 schedule next <id>
+        //   c4 schedule history <id>
+        //   c4 schedule gantt [--weeks N] [--json]
+        const sub = args[0];
+        const validSubs = ['list', 'create', 'show', 'enable', 'disable', 'run', 'delete', 'next', 'history', 'gantt'];
+        if (!sub || !validSubs.includes(sub)) {
+          console.log('Usage: c4 schedule <list|create|show|enable|disable|run|delete|next|history|gantt> [flags]');
+          console.log('  list [--enabled] [--disabled] [--project P]');
+          console.log("  create --name N --cron 'EXPR' --template T [--project P] [--timezone TZ] [--assignee A] [--id ID]");
+          console.log('  show <id>');
+          console.log('  enable <id>');
+          console.log('  disable <id>');
+          console.log('  run <id>');
+          console.log('  delete <id>');
+          console.log('  next <id>');
+          console.log('  history <id>');
+          console.log('  gantt [--weeks N] [--json]');
+          return;
+        }
+
+        function flagAt(startIdx, flag) {
+          for (let i = startIdx; i < args.length - 1; i++) {
+            if (args[i] === flag) return args[i + 1];
+          }
+          return '';
+        }
+        function hasFlag(startIdx, flag) {
+          for (let i = startIdx; i < args.length; i++) {
+            if (args[i] === flag) return true;
+          }
+          return false;
+        }
+
+        if (sub === 'list') {
+          const qs = [];
+          if (hasFlag(1, '--enabled')) qs.push('enabled=true');
+          if (hasFlag(1, '--disabled')) qs.push('enabled=false');
+          const proj = flagAt(1, '--project');
+          if (proj) qs.push('projectId=' + encodeURIComponent(proj));
+          const assignee = flagAt(1, '--assignee');
+          if (assignee) qs.push('assignee=' + encodeURIComponent(assignee));
+          const query = qs.length > 0 ? '?' + qs.join('&') : '';
+          result = await request('GET', '/schedules' + query);
+        } else if (sub === 'create') {
+          const name = flagAt(1, '--name');
+          const cronExpr = flagAt(1, '--cron');
+          const template = flagAt(1, '--template');
+          const project = flagAt(1, '--project');
+          const timezone = flagAt(1, '--timezone');
+          const assignee = flagAt(1, '--assignee');
+          const id = flagAt(1, '--id');
+          if (!cronExpr || !template) {
+            console.error("Usage: c4 schedule create --name N --cron 'EXPR' --template T [--project P] [--timezone TZ] [--assignee A] [--id ID]");
+            process.exit(1);
+          }
+          const body = { cronExpr, taskTemplate: template };
+          if (id) body.id = id;
+          if (name) body.name = name;
+          if (project) body.projectId = project;
+          if (timezone) body.timezone = timezone;
+          if (assignee) body.assignee = assignee;
+          result = await request('POST', '/schedules', body);
+        } else if (sub === 'show') {
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 schedule show <id>'); process.exit(1); }
+          result = await request('GET', '/schedules/' + encodeURIComponent(id));
+        } else if (sub === 'enable') {
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 schedule enable <id>'); process.exit(1); }
+          result = await request('PUT', '/schedules/' + encodeURIComponent(id), { enabled: true });
+        } else if (sub === 'disable') {
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 schedule disable <id>'); process.exit(1); }
+          result = await request('PUT', '/schedules/' + encodeURIComponent(id), { enabled: false });
+        } else if (sub === 'run') {
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 schedule run <id>'); process.exit(1); }
+          result = await request('POST', '/schedules/' + encodeURIComponent(id) + '/run', {});
+        } else if (sub === 'delete') {
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 schedule delete <id>'); process.exit(1); }
+          result = await request('DELETE', '/schedules/' + encodeURIComponent(id));
+        } else if (sub === 'next') {
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 schedule next <id>'); process.exit(1); }
+          const schedule = await request('GET', '/schedules/' + encodeURIComponent(id));
+          if (schedule && schedule.error) {
+            console.error('Error: ' + schedule.error);
+            process.exit(1);
+          }
+          result = { id: schedule.id, nextRun: schedule.nextRun, timezone: schedule.timezone };
+        } else if (sub === 'history') {
+          const id = args[1];
+          if (!id) { console.error('Usage: c4 schedule history <id>'); process.exit(1); }
+          result = await request('GET', '/schedules/' + encodeURIComponent(id) + '/history');
+        } else if (sub === 'gantt') {
+          const weeksRaw = flagAt(1, '--weeks');
+          const weeks = weeksRaw ? Math.max(1, parseInt(weeksRaw, 10) || 4) : 4;
+          const jsonOut = hasFlag(1, '--json');
+          const listResp = await request('GET', '/schedules');
+          if (listResp && listResp.error) {
+            console.error('Error: ' + listResp.error);
+            process.exit(1);
+          }
+          // Render client-side so the --json branch gives the raw rows
+          // and the text branch gives the ASCII timeline. Uses the
+          // shared module directly - no new daemon endpoint needed for
+          // the visual view.
+          const scheduleMgmt = require('./schedule-mgmt');
+          const tmpMgr = new scheduleMgmt.ScheduleManager({ storePath: '/dev/null' });
+          tmpMgr._state = { schedules: {} };
+          for (const s of (listResp.schedules || [])) {
+            tmpMgr._state.schedules[s.id] = s;
+          }
+          if (jsonOut) {
+            result = tmpMgr.gantt(weeks, new Date());
+          } else {
+            process.stdout.write(tmpMgr.renderGanttText(weeks, new Date()));
+            return;
+          }
+        }
+
+        if (result && result.error) {
+          console.error('Error: ' + result.error);
+          process.exit(1);
+        }
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+
       case 'cicd': {
         // (10.4) CI/CD pipeline management.
         //   c4 cicd pipeline list
