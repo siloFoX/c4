@@ -66,6 +66,7 @@ const ACTIONS = Object.freeze({
   NL_CHAT: 'nl.chat',
   WORKFLOW_READ: 'workflow.read',
   WORKFLOW_MANAGE: 'workflow.manage',
+  COMPUTER_USE: 'computer.use',
 });
 
 const ALL_ACTIONS = Object.freeze(Object.values(ACTIONS));
