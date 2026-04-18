@@ -1,5 +1,27 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **(web-theme) shadcn/ui-style token system + design deps.** `web/src/index.css`
+  now declares the full HSL token set (`--background`, `--foreground`,
+  `--card`, `--popover`, `--primary`, `--secondary`, `--muted`, `--accent`,
+  `--destructive`, `--border`, `--input`, `--ring`, `--chart-1..5`, `--radius`)
+  under `@layer base` for both `:root` (light) and `.dark`, using the zinc
+  base color family. The legacy `body @apply bg-gray-900 text-gray-100` was
+  replaced with `bg-background text-foreground`, and a `* { @apply border-border }`
+  base reset was added so every component inherits the token border color by
+  default. `web/tailwind.config.js` now opts into `darkMode: ["class"]` and
+  exposes every token through `hsl(var(--...))` under `theme.extend.colors`,
+  plus a `borderRadius.{lg,md,sm}` scale derived from `--radius`. `web/index.html`
+  pins `class="dark"` on `<html>` so the SPA renders dark-only until a toggle
+  ships. New runtime deps added to `web/package.json`: `lucide-react ^0.514.0`,
+  `clsx ^2.1.1`, `tailwind-merge ^3.3.1`, `class-variance-authority ^0.7.1`.
+  `web/src/lib/cn.ts` exports the standard `cn(...inputs: ClassValue[])` helper
+  wrapping `twMerge(clsx(inputs))` so downstream component workers can compose
+  class strings idiomatically. No existing component JSX was rewritten as part
+  of this change; `App.tsx` and all children keep their current markup.
+
 ## [v8.1] - 2026-04-18
 
 ### Fixed
