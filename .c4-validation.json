@@ -1,1 +1,1 @@
-{"test_passed": true, "test_count": 100, "build": "pass", "branch": "c4/web-layout", "notes": "AppHeader / TopTabs / Sidebar / DetailTabs / EmptyState + App.tsx recomposition, no page internals touched"}
+{"test_passed": true, "test_count": 100, "build": "pass", "branch": "c4/web-pages", "notes": "Login/WorkerList/WorkerDetail/ChatView/ControlPanel/Chat/HierarchyTree/HistoryView/WorkflowEditor/Toast/WorkerActions re-skinned with primitives + lucide"}
