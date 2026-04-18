@@ -73,6 +73,11 @@ const ACTIONS = Object.freeze({
   // still runs locally under the operator's git identity.
   KEY_WRITE: 'key.write',
   MERGE_WRITE: 'merge.write',
+  // (8.15) Slack event emitter surface. SLACK_WRITE gates POST /slack/emit
+  // (manual event injection) so a compromised viewer JWT cannot spam the
+  // channel. GET /slack/events stays open to any authenticated caller —
+  // reading the recent buffer is as privileged as reading the audit log.
+  SLACK_WRITE: 'slack.write',
 });
 
 const ALL_ACTIONS = Object.freeze(Object.values(ACTIONS));
@@ -106,6 +111,7 @@ const DEFAULT_PERMISSIONS = Object.freeze({
     'workflow.manage',
     'key.write',
     'merge.write',
+    'slack.write',
   ]),
   viewer: Object.freeze([
     'project.read',

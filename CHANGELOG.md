@@ -8,6 +8,118 @@
 ## [Unreleased]
 
 ### Added
+- **(8.15) Slack autonomous event notification integration.** The only
+  way to watch c4 from Slack before 8.15 was the buffered stall/health
+  digest that `src/notifications.js` flushed every five minutes; there
+  was no per-event fabric, so autonomous merges, approvals, and worker
+  lifecycle changes were invisible unless an operator tailed the Web UI.
+  New `src/slack-events.js` introduces a daemon-level event emitter with
+  a tiny, testable surface: `SlackEventEmitter` exports
+  `emit(eventType, payload)` (validates the type, checks
+  `config.slack.enabled`, filters by `config.slack.minLevel`, filters by
+  `config.slack.events` allowlist, dedupes within
+  `config.slack.dedupeWindowMs` via a SHA-1 LRU keyed by event type plus
+  canonical payload JSON, POSTs `{text: "[c4:event] <type> <fields>"}`
+  through an injectable `httpClient`, appends the record to an LRU
+  recent-event buffer capped at 100 by default, and fans out to every
+  `listen()` subscriber without letting a listener throw block the
+  webhook call), `configure(partial)` (live config swap that purges
+  stale dedupe hashes on window changes), `listen(cb)` (returns an
+  unsubscribe function), `recentEvents(limit?)` (tail slice of the
+  in-memory buffer), `clearRecent()` (drops buffer + dedupe), and a
+  shared singleton via `getShared()` / `resetShared()`. Ten canonical
+  event types land with pinned default severity so the filter stays
+  deterministic: `task_start` / `task_complete` / `worker_spawn` /
+  `worker_close` / `merge_success` / `push_success` at `info`,
+  `halt_detected` / `approval_request` at `warn`, `merge_fail` /
+  `error` at `error`; any caller can still escalate a specific emit by
+  passing `payload.level`. The webhook payload format is the
+  Slack-compatible `{text: "[c4:event] <type> key=val key=val ..."}`
+  line that matches the TODO 8.15 spec (`[c4:task] 7.29 pkglock-fix
+  done, pushed 0ecf4d9` shape), with 200-char truncation per field so
+  a long task prompt cannot fill the channel.
+- **Daemon wiring (src/daemon.js).** Imports `./slack-events`, builds the
+  shared emitter via `getShared()`, calls `configure(cfg.slack)` at boot
+  and again on `POST /config/reload` so live edits of
+  `config.slack.enabled` / `webhookUrl` / `minLevel` /
+  `dedupeWindowMs` / `events` take effect without a daemon restart,
+  defines a `safeEmit(eventType, payload)` wrapper that catches every
+  throw and swallows promise rejections so a broken webhook never
+  breaks the request path, and fires events at five daemon lifecycle
+  points: `POST /create` → `worker_spawn {worker, target, command}`,
+  `POST /task` → `task_start {worker, branch, task}` (task preview
+  capped at 120 chars), `POST /close` → `worker_close {worker}`,
+  `POST /approve` → `approval_request {worker, optionNumber, granted}`,
+  plus a `Notifications.notifyStall` monkey-wrap that converts every
+  stall / intervention / escalation the pty-manager already surfaces
+  into a `halt_detected {worker, reason}` event (the existing buffered
+  stall send stays intact so 8.15 does not regress 1.5.x). The
+  `POST /merge` handler emits `merge_success {branch, sha, worker}` on
+  the success path and `merge_fail {branch, error, worker}` on git
+  failure, right next to the existing `_safeAudit` records, so the
+  Slack feed mirrors the audit trail without extra bookkeeping.
+- **Daemon HTTP surface.** Two new endpoints: `GET /slack/events
+  [?limit=N]` returns `{events, count, config}` where `events` is the
+  tail of the in-memory buffer and `config` is the normalised live
+  config shape (enabled / webhookUrl-presence-only / minLevel /
+  dedupeWindowMs / events); open to any authenticated caller so Web UI
+  dashboards can render the recent feed without elevated privileges.
+  `POST /slack/emit {eventType, payload}` is gated by the new
+  `rbac.ACTIONS.SLACK_WRITE='slack.write'` permission (manager + admin
+  by default, viewer denied); rejects unknown event types with `400
+  {error, allowed[]}` so a typoed CLI call fails fast instead of
+  silently dropping the emit. `src/rbac.js` bumps `ALL_ACTIONS` to 27 and
+  seeds `DEFAULT_PERMISSIONS.manager` with the new action so the manager
+  role keeps its "can drive every daemon endpoint" guarantee.
+- **Merge-core emit callback (src/merge-core.js).** `performMerge` now
+  takes an optional `opts.emit` callback that receives `('merge_success',
+  {branch, sha})` or `('merge_fail', {branch, error})`; the daemon
+  passes `null` here because it emits from the request handler itself
+  (avoids double-firing), but the CLI path wires its own emitter so
+  `c4 merge` surfaces the same event even when the operator is working
+  offline from the web UI. The wrap is defensive: `emit` throws are
+  caught so a misbehaving callback never blocks the merge result.
+- **CLI additions (src/cli.js).** `c4 slack test [--type <eventType>]
+  [--worker <name>] [--message <text>]` POSTs `/slack/emit` (defaults
+  to a `task_start` test payload), pretty-prints the webhook result
+  (`[ok] emitted task_start level=info webhook=OK`), and uses the
+  endpoint's allowlist when the type is rejected so operators
+  immediately see which names are valid. `c4 slack status [--limit N]`
+  hits `/slack/events`, prints the current config (with the webhook URL
+  presence summarised as `(set)` / `(not set)` so we do not leak the
+  secret), and tails the last 20 events as `[level] <iso-ts> <type>
+  <message>`. `c4 merge` now accepts `--push`: on a successful merge it
+  runs `git push origin main` and emits `push_success {branch, sha}`
+  via a locally-constructed emitter that reads `config.slack` from
+  `config.json`; the flag is opt-in so operators who never want the CLI
+  to touch the remote keep the previous behaviour. The CLI emitter is
+  built defensively (missing config file -> no-op emit) so a fresh
+  checkout without a `config.json` does not break `c4 merge`.
+- **Tests (`tests/slack-events.test.js`).** 32 assertions across 5
+  node:test suites run against an injected mock httpClient and a
+  controllable `now()` clock so CI never hits the network. Helpers
+  suite covers `EVENT_TYPES` count + membership, `EVENT_LEVELS` group
+  assignment, `LEVELS` + `LEVEL_ORDER` priority, `isEventType` /
+  `isLevel` validators, `levelFor` default-plus-payload-override,
+  `dedupeKey` determinism + payload-key-order independence,
+  `formatMessage` field assembly + 200-char truncation, and
+  `defaultHttpClient` shape. The emit suite exercises sent=true with
+  webhook result on success, `enabled=false` suppression with
+  `reason='disabled'`, invalid event type rejection without webhook
+  call, dedupe within window plus re-fire after advancing past the
+  window, payload-scoped dedupe (different workers do not collapse
+  together), `minLevel='warn'` filtering, `events` allowlist
+  filtering, webhook 500 returned as `ok=false` without throwing,
+  missing `webhookUrl` yielding the `no-webhook` reason, `recentEvents`
+  buffer capture with tail-slice limit, and the `recentCap` hard limit.
+  The configure + listen suite covers live config swap, malformed-field
+  fallback to defaults, listener subscribe + unsubscribe, listener
+  throws that do not break emit, `clearRecent` dropping buffer + dedupe
+  state, and `getConfig` returning a defensive copy. The singleton
+  suite verifies `getShared` caching + `resetShared` lifecycle. The
+  payload suite asserts the Slack-style `{text:"[c4:event] ..."}` shape
+  and that `payload.level` overrides the event default for the minLevel
+  filter. Full suite 95/95 pass.
 - **(8.5) daemon API: POST /key and POST /merge for Web UI parity.** The
   Web UI used to work around two missing endpoints - sending special keys
   went through `POST /send` with `{keys: true}` (ambiguous contract, easy
