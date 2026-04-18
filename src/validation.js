@@ -13,6 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync: _execSync } = require('child_process');
+const depSmoke = require('./dep-smoke');
 
 const VALIDATION_FILENAME = '.c4-validation.json';
 const TEST_STDOUT_FILENAME = '.c4-last-test.txt';
@@ -184,6 +185,119 @@ function checkPreMerge(validation, { npmTestCount = null } = {}) {
   return { ok: true };
 }
 
+// (8.16) package-deps-installed gate. Prevents the regression where a
+// branch adds a new entry to package.json dependencies but main never
+// gets `npm install` run against it, so the first consumer on main hits
+// `Cannot find module <newDep>` (the bcryptjs/8.14 pattern).
+//
+// Flow when package.json changed on the branch:
+//   1. detectNewDeps via git diff-tree
+//   2. If new prod deps exist, run `npm ci` in repoRoot so main's
+//      node_modules matches the branch's package-lock.json exactly
+//   3. For each new dep, spawn `node -e "require(dep)"` in repoRoot
+//   4. Return {ok, reason, detail, detect} -- ok:true only when every
+//      new prod dep is loadable
+//
+// devDependencies are reported separately (warn-only) so test-only deps
+// do not block a merge. `skipInstall:true` lets unit tests exercise the
+// gate without shelling out to npm.
+function checkPackageDepsInstalled(opts = {}) {
+  const {
+    baseSha,
+    headSha,
+    repoRoot,
+    exec = execSafe,
+    spawn = null,
+    skipInstall = false,
+    includeDev = false,
+  } = opts || {};
+  if (!baseSha || !headSha || !repoRoot) {
+    return {
+      ok: true,
+      skipped: true,
+      reason: 'missing-args',
+      detail: 'baseSha, headSha, or repoRoot missing -- package-deps-installed check cannot run.',
+    };
+  }
+  let detect;
+  try {
+    detect = depSmoke.detectNewDeps(baseSha, headSha, repoRoot, { exec });
+  } catch (err) {
+    return {
+      ok: false,
+      skipped: false,
+      reason: 'invalid-package-json',
+      detail: (err && err.message) || 'package.json parse error',
+    };
+  }
+  if (!detect.hasChanges) {
+    return {
+      ok: true,
+      skipped: true,
+      reason: 'package-json-unchanged',
+      detail: 'package.json did not change in this branch.',
+      detect,
+    };
+  }
+  if (detect.deps.length === 0 && detect.devDeps.length === 0) {
+    return {
+      ok: true,
+      skipped: true,
+      reason: 'no-new-deps',
+      detail: 'package.json changed but no new dependency entries were added.',
+      detect,
+    };
+  }
+  if (detect.deps.length > 0 && !skipInstall) {
+    try {
+      exec(`npm ci`, {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+        timeout: 300000,
+      });
+    } catch (err) {
+      const stderr = String((err && err.stderr) || '').trim();
+      const msg = stderr || (err && err.message) || 'npm ci failed';
+      return {
+        ok: false,
+        skipped: false,
+        reason: 'npm-ci-failed',
+        detail: `npm ci failed in ${repoRoot}: ${msg.slice(0, 500)}`,
+        detect,
+      };
+    }
+  }
+  const prodNames = detect.deps.map(d => d.name);
+  const devNames = detect.devDeps.map(d => d.name);
+  const verifyOpts = spawn ? { spawn } : {};
+  const prodResult = depSmoke.verifyDepsLoadable(prodNames, repoRoot, verifyOpts);
+  const devResult = includeDev
+    ? depSmoke.verifyDepsLoadable(devNames, repoRoot, verifyOpts)
+    : { ok: true, failed: [] };
+  if (!prodResult.ok) {
+    return {
+      ok: false,
+      skipped: false,
+      reason: 'require-failed',
+      detail: depSmoke.formatFailure(prodResult),
+      detect,
+      prod: prodResult,
+      dev: devResult,
+    };
+  }
+  return {
+    ok: true,
+    skipped: false,
+    reason: 'ok',
+    detail: `Verified ${prodNames.length} new prod dep(s)` +
+      (devNames.length > 0 ? `, ${devNames.length} devDep(s) reported` : ''),
+    detect,
+    prod: prodResult,
+    dev: devResult,
+  };
+}
+
 module.exports = {
   VALIDATION_FILENAME,
   TEST_STDOUT_FILENAME,
@@ -193,4 +307,5 @@ module.exports = {
   captureValidation,
   extractNpmTestCount,
   checkPreMerge,
+  checkPackageDepsInstalled,
 };
