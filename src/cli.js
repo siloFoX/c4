@@ -1190,6 +1190,99 @@ async function main() {
         break;
       }
 
+      case 'chat': {
+        // (11.4) Natural-language chat.
+        //   c4 chat "query text"        one-shot query
+        //   c4 chat --interactive       REPL (readline)
+        //   c4 chat sessions            list stored sessions
+        //   c4 chat history <id>        dump a session's messages
+        const sub = args[0];
+        const sessionFile = require('path').join(require('os').homedir(), '.c4-nl-session');
+        function readPinnedSession() {
+          try { return require('fs').readFileSync(sessionFile, 'utf8').trim() || null; }
+          catch { return null; }
+        }
+        function writePinnedSession(id) {
+          try { require('fs').writeFileSync(sessionFile, String(id || '')); } catch {}
+        }
+
+        if (sub === 'sessions') {
+          result = await request('GET', '/nl/sessions');
+          if (result.sessions) {
+            if (result.sessions.length === 0) {
+              console.log('No chat sessions.');
+              return;
+            }
+            for (const s of result.sessions) {
+              console.log(`${s.id}  messages=${s.messageCount}  lastWorker=${s.lastWorker || '-'}  updated=${s.updatedAt || '-'}`);
+            }
+            return;
+          }
+          break;
+        }
+        if (sub === 'history') {
+          const id = args[1];
+          if (!id) {
+            console.error('Usage: c4 chat history <sessionId>');
+            process.exit(1);
+          }
+          result = await request('GET', `/nl/sessions/${encodeURIComponent(id)}`);
+          if (result.error) break;
+          const history = Array.isArray(result.history) ? result.history : [];
+          if (history.length === 0) {
+            console.log('(empty session)');
+          } else {
+            for (const m of history) {
+              console.log(`[${m.role}] ${m.text}`);
+            }
+          }
+          return;
+        }
+        if (sub === '--interactive' || sub === '-i') {
+          const readline = require('readline');
+          const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+          let sessionId = readPinnedSession();
+          console.log('c4 chat (interactive). Type "exit" or "quit" to leave.');
+          process.stdout.write('> ');
+          rl.on('line', async (line) => {
+            const text = (line || '').trim();
+            if (!text) { process.stdout.write('> '); return; }
+            if (text === 'exit' || text === 'quit') { rl.close(); return; }
+            try {
+              const out = await request('POST', '/nl/chat', { sessionId, text });
+              if (out.error) {
+                console.error('Error:', out.error);
+              } else {
+                if (out.sessionId) {
+                  sessionId = out.sessionId;
+                  writePinnedSession(sessionId);
+                }
+                console.log(out.response || '(no response)');
+              }
+            } catch (e) {
+              console.error('Error:', e.message);
+            }
+            process.stdout.write('> ');
+          });
+          rl.on('close', () => {
+            console.log('\nbye.');
+            process.exit(0);
+          });
+          return;
+        }
+        const text = args.join(' ').trim();
+        if (!text) {
+          console.error('Usage: c4 chat "query" | c4 chat --interactive | c4 chat sessions | c4 chat history <id>');
+          process.exit(1);
+        }
+        let sessionId = readPinnedSession();
+        result = await request('POST', '/nl/chat', { sessionId, text });
+        if (result.error) break;
+        if (result.sessionId) writePinnedSession(result.sessionId);
+        console.log(result.response || '(no response)');
+        return;
+      }
+
       case 'templates': {
         result = await request('GET', '/templates');
         if (result.templates) {
@@ -3109,6 +3202,10 @@ Commands:
        [--delete] [--exclude pattern] [--dry-run] [--allow-system]
   push-repo <alias> [branch] --remote-repo <path>              Push a git repo to a fleet machine (9.8)
        [--repo <localPath>] [--force] [--allow-system]
+  chat "query"                     Natural-language query (11.4)
+  chat --interactive               REPL (readline) — 'exit' to quit
+  chat sessions                    List stored chat sessions
+  chat history <id>                Dump a session's messages
   scribe start                     Start session context recording
   scribe stop                      Stop scribe
   scribe status                    Show scribe status

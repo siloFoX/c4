@@ -22,6 +22,7 @@ const cicd = require('./cicd');
 const orgMgmt = require('./org-mgmt');
 const scheduleMgmt = require('./schedule-mgmt');
 const mcpHub = require('./mcp-hub');
+const nlInterface = require('./nl-interface');
 
 const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
 
@@ -193,6 +194,57 @@ function getMcpHub() {
     : {};
   _mcpHub = new mcpHub.McpHub(opts);
   return _mcpHub;
+}
+
+// (11.4) Shared NlInterface. Writes chat sessions to
+// ~/.c4/nl-sessions.json by default; honours config.nl.sessionsPath.
+// Tests construct their own NlInterface with a tmpdir and never touch
+// this instance. The adapter wraps the in-process PtyManager so the
+// daemon does not have to make HTTP calls against itself.
+let _nlInstance = null;
+function getNlInterface() {
+  if (_nlInstance) return _nlInstance;
+  const cfgNow = manager.getConfig();
+  const sessionsPath = (cfgNow && cfgNow.nl && typeof cfgNow.nl.sessionsPath === 'string')
+    ? cfgNow.nl.sessionsPath : undefined;
+  const adapter = {
+    async listWorkers() {
+      const data = manager.list();
+      return { workers: data.workers || [] };
+    },
+    async createWorker(name) {
+      return manager.create(name, 'claude', [], { target: 'local' });
+    },
+    async sendTask(name, task) {
+      return manager.sendTask(name, task, {});
+    },
+    async getStatus() {
+      return {
+        ok: true,
+        workers: (manager.list().workers || []).length,
+        version: manager._daemonVersion || null,
+      };
+    },
+    async getHistory(name) {
+      const all = manager.getHistory();
+      const records = Array.isArray(all.records) ? all.records : [];
+      const filtered = name ? records.filter((r) => r.worker === name || r.name === name) : records;
+      return { entries: filtered.slice(-10) };
+    },
+    async readOutput(name) {
+      const r = (manager.readNow ? manager.readNow(name) : manager.read(name)) || {};
+      const output = typeof r.output === 'string' ? r.output
+        : typeof r.screen === 'string' ? r.screen
+        : typeof r.text === 'string' ? r.text
+        : '';
+      return { output, raw: r };
+    },
+    async closeWorker(name) {
+      return manager.close(name);
+    },
+  };
+  _nlInstance = new nlInterface.NlInterface({ adapter, sessionsPath });
+  return _nlInstance;
 }
 
 // (10.7) scheduleTick dispatcher. When a schedule fires we spawn a
@@ -496,6 +548,14 @@ async function handleRequest(req, res) {
     if (mRun) scheduleParams = { kind: 'run', id: decodeURIComponent(mRun[1]) };
     else if (mHistory) scheduleParams = { kind: 'history', id: decodeURIComponent(mHistory[1]) };
     else if (mOne) scheduleParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
+  }
+
+  // (11.4) NL interface: decode /nl/sessions/<id> path params here so
+  // the route dispatch below stays as a flat string match.
+  let nlSessionId = null;
+  {
+    const m = route.match(/^\/nl\/sessions\/([^\/]+)$/);
+    if (m) nlSessionId = decodeURIComponent(m[1]);
   }
 
   // (11.1) MCP hub: decode /mcp/servers/<name>/... path params here so
@@ -1144,6 +1204,70 @@ async function handleRequest(req, res) {
         return;
       }
 
+    } else if (req.method === 'POST' && route === '/nl/chat') {
+      // (11.4) Natural-language chat turn. Body: { sessionId?, text }.
+      // Returns { sessionId, response, intent, params, confidence,
+      // result, actions }. Missing sessionId starts a fresh session.
+      const gate = requireRole(authCheck, rbac.ACTIONS.NL_CHAT);
+      if (denyOr(res, gate)) return;
+      try {
+        const body = await parseBody(req);
+        const text = typeof body.text === 'string' ? body.text : '';
+        const sessionId = typeof body.sessionId === 'string' ? body.sessionId : null;
+        if (!text.trim()) {
+          result = { error: 'Missing text' };
+        } else {
+          const nl = getNlInterface();
+          const out = await nl.handle(sessionId, text);
+          _safeAudit('nl.chat',
+            { intent: out.intent, confidence: out.confidence },
+            { target: out.sessionId, actor: _auditActor(authCheck) });
+          result = out;
+        }
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && route === '/nl/sessions') {
+      // (11.4) List all chat sessions with lightweight metadata.
+      const gate = requireRole(authCheck, rbac.ACTIONS.NL_CHAT);
+      if (denyOr(res, gate)) return;
+      try {
+        const nl = getNlInterface();
+        const sessions = nl.sessions.listSessions();
+        result = { sessions, count: sessions.length };
+      } catch (e) {
+        result = { error: e.message };
+      }
+
+    } else if (req.method === 'GET' && nlSessionId) {
+      // (11.4) Fetch a single chat session (full history).
+      const gate = requireRole(authCheck, rbac.ACTIONS.NL_CHAT);
+      if (denyOr(res, gate)) return;
+      const nl = getNlInterface();
+      const session = nl.sessions.getSession(nlSessionId);
+      if (!session) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Session not found: ' + nlSessionId }));
+        return;
+      }
+      result = session;
+
+    } else if (req.method === 'DELETE' && nlSessionId) {
+      // (11.4) Delete a chat session. 404 when not found.
+      const gate = requireRole(authCheck, rbac.ACTIONS.NL_CHAT);
+      if (denyOr(res, gate)) return;
+      const nl = getNlInterface();
+      const ok = nl.sessions.deleteSession(nlSessionId);
+      if (!ok) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Session not found: ' + nlSessionId }));
+        return;
+      }
+      _safeAudit('nl.session.deleted', { sessionId: nlSessionId },
+        { target: nlSessionId, actor: _auditActor(authCheck) });
+      result = { deleted: true, id: nlSessionId };
+
     } else if (req.method === 'GET' && route === '/mcp/servers') {
       // (11.1) List every MCP server in the hub. Filters: ?enabled=
       // true|false, ?transport=stdio|http. Read-only so viewers can
@@ -1632,6 +1756,9 @@ async function handleRequest(req, res) {
         // (11.1) Drop the cached McpHub so mcp.path changes take effect
         // on the next request.
         _mcpHub = null;
+        // (11.4) Drop the cached NlInterface so nl.sessionsPath changes
+        // take effect on the next request.
+        _nlInstance = null;
         // (10.3) Rebuild the dashboard on the next hit so it binds to
         // the fresh board + any updated cost config.
         _projectDashboard = null;
