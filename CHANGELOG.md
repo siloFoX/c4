@@ -2,7 +2,82 @@
 
 ## [Unreleased]
 
+(empty)
+
+### 1.11.8 - Web redesign (2026-04)
+
 ### Added
+- **(web-pages) every page component re-skinned onto the new
+  primitives + lucide-react vocabulary.** `web/src/components/Login.tsx`
+  moves onto a `Card` + `CardHeader` + `CardContent` + `CardFooter`
+  composition with a `CardTitle` "C4 Sign in" / `CardDescription`
+  "Session required to access the dashboard." header, lucide
+  `User` + `KeyRound` icon-prefix inputs (`pl-10` on the `<Input/>`
+  primitive with an absolute-positioned icon), a destructive-token
+  error row with lucide `AlertTriangle`, and a full-width
+  `<Button variant="default">` submit that swaps its leading glyph
+  between `LogIn` and a spinning `Loader2` when `busy`; a subtle
+  dotted radial backdrop (`opacity-5 text-foreground` inline
+  `background-image`) approximates the ARPS login aesthetic without
+  new deps. `web/src/components/WorkerList.tsx` flips each row to
+  a `Card` whose header pairs the worker name with a status `Badge`
+  selected by `mapWorkerStatusToBadgeVariant` (success/warning/
+  destructive/secondary), with unread + intervention chips also
+  rendered through `Badge`; selection state applies
+  `ring-2 ring-ring ring-offset-2 ring-offset-background` via
+  `cn()` and the SSE-disconnected notice is a muted-foreground pill
+  with lucide `WifiOff`. `web/src/components/WorkerDetail.tsx` wraps
+  the terminal viewport in a `Card` with `CardTitle` = worker name +
+  `CardDescription` = "Terminal session - dims {cols x rows}";
+  Screen / Scrollback becomes a segmented `Button` group inside the
+  header, font +/- uses `IconButton` with lucide `Minus` / `Plus`,
+  Send + arrow keys use `Button` variants (default / secondary) so
+  primary tones come from the primitive, and Merge / Close upgrade
+  to default / destructive `Button` with lucide `GitMerge` / `X`.
+  `web/src/components/ChatView.tsx` wraps the live-worker stream in
+  a `Card` whose header pairs "Chat" with a live/disconnected
+  `Badge` (success/secondary) and a `Jump to latest` `Button`
+  (lucide `ArrowDown`); user / worker bubbles switch to token
+  surfaces (`bg-primary` / `bg-muted`) and Send becomes a default
+  `Button` with a lucide `Send` icon. `web/src/components/ControlPanel.tsx`
+  splits into two `Card`s (Controls / Batch) with per-action
+  `Button` variants driven by a `TONE_VARIANT` map; the batch-list
+  lives inside a `Panel`, row statuses are outline `Badge`s, and
+  the last-run outcomes list renders through a result `Panel` with
+  emerald/destructive tinting. `web/src/components/Chat.tsx` (the
+  top-level NL chat tab) wraps its pane in a `Card` with a session
+  `Badge`, a secondary Reset `Button` (lucide `RotateCcw`), action
+  chips inside a `Panel` via secondary `Button`s, the composer on
+  the `Input` primitive, and Send promoted to a default `Button`
+  with a lucide `Send`. `web/src/components/HierarchyTree.tsx` keeps
+  its expand/collapse semantics but swaps `+ / -` glyphs for lucide
+  `ChevronDown` / `ChevronRight` (with `Dot` for leaves), rewrites
+  row surfaces to token classes (`bg-accent` selected / `hover:bg-accent/60`
+  hover / `ring-ring` focus), replaces status colour classes with
+  `Badge` variants, and uses outline `Badge`s for rollup pills plus
+  a muted WifiOff pill for SSE disconnect. `web/src/components/HistoryView.tsx`
+  frames the sidebar and main views in `Card`s; search uses an
+  `<Input/>` with a prefixed lucide `Search`, the Scribe shortcut is
+  a secondary `Button` with lucide `NotebookText`, worker rows use
+  token surfaces + a status `Badge`, and past-task records land in
+  a `Panel` with lucide `Clock` / `Hash` / `GitBranch` chrome.
+  `web/src/components/WorkflowEditor.tsx` moves the catalog + main
+  columns into `Card`s, adds lucide `Workflow` + `RefreshCw` +
+  `Play` icons to the header actions, and renders runs / node
+  properties as `Panel` instances with run statuses projected
+  through a `runStatusVariant` helper; the SVG node fills keep their
+  concrete hex colours because the DAG markers / labels need
+  non-token shades. `web/src/components/Toast.tsx` renders inside a
+  `Card` + `CardContent` with variant-aware emerald / destructive /
+  sky backgrounds picked by a `TONE` map and lucide `CheckCircle2`
+  / `AlertTriangle` / `Info` leading icons (adds `info` to
+  `ToastType`). `web/src/components/WorkerActions.tsx` swaps each
+  action for a `Button` with a lucide icon (GitMerge / Check /
+  OctagonAlert / X), outline for the safe actions + destructive for
+  Close, and a spinning `Loader2` replacing the old `\u2026` glyph
+  during the busy state. No `bg-gray-*` / `text-gray-*` /
+  `border-gray-*` utility classes survive in the touched files;
+  no non-ASCII glyphs remain either.
 - **(web-layout) dashboard shell composed of reusable layout
   components.** New directory `web/src/components/layout/` hosts
   `AppHeader.tsx` (header shell `rounded-none border-b border-border

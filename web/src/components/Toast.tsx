@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
+import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import { Card, CardContent } from './ui';
+import { cn } from '../lib/cn';
 
-export type ToastType = 'success' | 'error';
+export type ToastType = 'success' | 'error' | 'info';
 
 export interface ToastProps {
   message: string;
@@ -9,23 +12,37 @@ export interface ToastProps {
   duration?: number;
 }
 
-export default function Toast({ message, type, onDismiss, duration = 3000 }: ToastProps) {
+const TONE: Record<ToastType, string> = {
+  success: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-100',
+  error: 'border-destructive/40 bg-destructive/10 text-destructive-foreground',
+  info: 'border-sky-500/40 bg-sky-500/15 text-sky-100',
+};
+
+export default function Toast({
+  message,
+  type,
+  onDismiss,
+  duration = 3000,
+}: ToastProps) {
   useEffect(() => {
     const id = setTimeout(onDismiss, duration);
     return () => clearTimeout(id);
   }, [onDismiss, duration]);
 
-  const tone =
-    type === 'success'
-      ? 'bg-green-700 text-green-50 border-green-500'
-      : 'bg-red-700 text-red-50 border-red-500';
+  const Icon = type === 'success' ? CheckCircle2 : type === 'error' ? AlertTriangle : Info;
 
   return (
-    <div
+    <Card
       role="status"
-      className={`pointer-events-auto rounded-lg border px-4 py-2 text-sm shadow-lg ${tone}`}
+      className={cn(
+        'pointer-events-auto border shadow-lg',
+        TONE[type]
+      )}
     >
-      {message}
-    </div>
+      <CardContent className="flex items-start gap-2 p-3 text-sm">
+        <Icon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+        <span className="min-w-0 break-words">{message}</span>
+      </CardContent>
+    </Card>
   );
 }
