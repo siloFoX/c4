@@ -2,7 +2,23 @@
 
 ## [Unreleased]
 
-(empty)
+### Added
+- **(ui-settings) Settings top tab with centralized UI preferences.**
+  A new `Settings` entry in the top navigation rail (`web/src/components/layout/TopTabs.tsx`,
+  lucide `Settings` icon) opens `web/src/components/SettingsView.tsx`, a
+  `Card` / `Panel`-based page that groups user preferences into
+  **Appearance** (theme: Light / Dark / System, selected via icon
+  `radiogroup`s that toggle the `dark` class on the document root) and
+  **Layout** (sidebar mode — List / Tree; detail view — Terminal / Chat /
+  Control). A `Reset to defaults` button clears stored values and snaps
+  every preference back to its built-in default. `App.tsx` reads and
+  writes preferences through the new `web/src/lib/preferences.ts`
+  helper, which consolidates the `c4.sidebar.mode` / `c4.detail.mode` /
+  `c4.topView` / `c4.theme` localStorage keys, adds `resolveTheme()` +
+  `applyTheme()`, keeps multiple tabs in sync via the `storage` event,
+  and excludes the transient `settings` destination from the persisted
+  top-view value so relaunching returns the user to their last content
+  tab. Coverage added in `tests/web-ui-settings.test.js`.
 
 ### 1.11.8 - Web redesign (2026-04)
 
