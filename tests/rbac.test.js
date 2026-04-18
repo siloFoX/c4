@@ -78,7 +78,8 @@ describe('(10.1) RBAC helpers', () => {
     expect(ACTIONS.COMPUTER_USE).toBe('computer.use');
     expect(ACTIONS.KEY_WRITE).toBe('key.write');
     expect(ACTIONS.MERGE_WRITE).toBe('merge.write');
-    expect(ALL_ACTIONS.length).toBe(26);
+    expect(ACTIONS.SLACK_WRITE).toBe('slack.write');
+    expect(ALL_ACTIONS.length).toBe(27);
   });
 
   test('(d) isRole/isAction/isUsername validators', () => {
