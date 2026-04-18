@@ -67,6 +67,12 @@ const ACTIONS = Object.freeze({
   WORKFLOW_READ: 'workflow.read',
   WORKFLOW_MANAGE: 'workflow.manage',
   COMPUTER_USE: 'computer.use',
+  // (8.5) daemon API surface that used to live only behind the CLI.
+  // KEY_WRITE gates POST /key (send Enter/Escape/Ctrl-C/arrows). MERGE_WRITE
+  // gates POST /merge so Web UI merges require an explicit grant; the CLI
+  // still runs locally under the operator's git identity.
+  KEY_WRITE: 'key.write',
+  MERGE_WRITE: 'merge.write',
 });
 
 const ALL_ACTIONS = Object.freeze(Object.values(ACTIONS));
@@ -98,6 +104,8 @@ const DEFAULT_PERMISSIONS = Object.freeze({
     'nl.chat',
     'workflow.read',
     'workflow.manage',
+    'key.write',
+    'merge.write',
   ]),
   viewer: Object.freeze([
     'project.read',

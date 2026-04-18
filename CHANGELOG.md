@@ -8,6 +8,41 @@
 ## [Unreleased]
 
 ### Added
+- **(8.5) daemon API: POST /key and POST /merge for Web UI parity.** The
+  Web UI used to work around two missing endpoints - sending special keys
+  went through `POST /send` with `{keys: true}` (ambiguous contract, easy
+  to misuse), and the "merge" button was a stub because only the CLI knew
+  how to run the pre-merge gate. `POST /key {name, key}` now validates
+  `key` against an allow-list (`KEY_ALLOWLIST` in `src/daemon.js`:
+  `Enter`, `Escape`, `Tab`, `Backspace`, `Up`, `Down`, `Left`, `Right`,
+  `C-a`..`C-e`, `C-l`, `C-n`, `C-p`, `C-r`, `C-z`), returns
+  `{success, key}` on success and `400 {error, allowed}` for unknown
+  labels. `POST /merge {branch | name, skipChecks?}` goes through the new
+  `src/merge-core.js` so the HTTP surface runs the exact same
+  `runPreMergeChecks` + `performMerge` sequence as `c4 merge`, returning
+  `{success, branch, sha, summary, reasons, resolvedFrom}` on success and
+  surfacing `reasons[]` (check/status/detail) on failure (`404` for
+  missing branch, `409` for failing checks, `500` for git merge errors).
+  The `name` payload resolves to a branch via `manager.workers.get(name)`
+  first and `mergeCore.resolveBranchForWorker(name, repoRoot)` second
+  (worktree HEAD probe), so Web UI callers keep passing worker names.
+  RBAC: new `ACTIONS.KEY_WRITE` (`key.write`) and `ACTIONS.MERGE_WRITE`
+  (`merge.write`) gate each endpoint; manager role gets both by default,
+  viewer gets neither. `src/cli.js` `merge` command refactored to call
+  `mergeCore.runPreMergeChecks` and `mergeCore.performMerge` so the CLI
+  and HTTP paths share the same reasoning - CLI still owns the `npm test`
+  / `package-deps-installed` / dirty-tree + auto-stash logic because
+  those have side effects we don't want to run from the daemon. Web UI:
+  `web/src/components/WorkerDetail.tsx` adds a "Keys" button row
+  (`Esc`, `Ctrl-C`, `Ctrl-D`, `Tab`, arrow keys) that calls `POST /key`,
+  and a new `Merge` button that confirms then calls `POST /merge {name}`.
+  Tests: `tests/daemon-api.test.js` (39 assertions) spins up minimal
+  in-process HTTP servers that wire the real `merge-core` + `rbac` to
+  cover pre-merge check branches (missing branch -> 404, failing doc
+  check -> 409, skipChecks short-circuit, branch resolution from worker
+  or worktree) and `/key` behaviour (valid + invalid keys, RBAC 401/403,
+  missing fields). `tests/rbac.test.js` asserts the two new actions and
+  bumps `ALL_ACTIONS.length` to 26.
 - **(8.16) dep smoke check — prevent bcryptjs-style regression.** `c4 merge`
   gains a fourth pre-merge gate `package-deps-installed`. When a branch
   changes `package.json`, the check computes

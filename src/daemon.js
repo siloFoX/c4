@@ -25,6 +25,33 @@ const mcpHub = require('./mcp-hub');
 const nlInterface = require('./nl-interface');
 const workflowMod = require('./workflow');
 const computerUseMod = require('./computer-use');
+const mergeCore = require('./merge-core');
+
+// (8.5) Allow-list for POST /key. Web UI needs to drive Enter, Escape,
+// Ctrl-C and the arrow keys without sending raw control bytes. The list
+// intentionally mirrors the keys pty-manager.send already knows about —
+// any addition on the pty side should land here too or the daemon will
+// reject the key before the worker ever sees it.
+const KEY_ALLOWLIST = Object.freeze([
+  'Enter',
+  'Escape',
+  'Tab',
+  'Backspace',
+  'Up',
+  'Down',
+  'Left',
+  'Right',
+  'C-a',
+  'C-b',
+  'C-c',
+  'C-d',
+  'C-e',
+  'C-l',
+  'C-n',
+  'C-p',
+  'C-r',
+  'C-z',
+]);
 
 const WEB_DIST = path.resolve(__dirname, '..', 'web', 'dist');
 
@@ -778,10 +805,26 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && route === '/key') {
       const { name, key } = await parseBody(req);
+      const gate = requireRole(authCheck, rbac.ACTIONS.KEY_WRITE);
+      if (denyOr(res, gate)) return;
       if (!name || !key) {
-        result = { error: 'Missing name or key' };
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Missing name or key' }));
+        return;
+      }
+      if (!KEY_ALLOWLIST.includes(key)) {
+        res.writeHead(400);
+        res.end(JSON.stringify({
+          error: 'Unknown key: ' + key,
+          allowed: KEY_ALLOWLIST.slice(),
+        }));
+        return;
+      }
+      const sendResult = await manager.send(name, key, true);
+      if (sendResult && sendResult.error) {
+        result = { error: sendResult.error };
       } else {
-        result = manager.send(name, key, true);
+        result = { success: true, key };
       }
 
     } else if (req.method === 'GET' && route === '/read') {
@@ -835,43 +878,80 @@ async function handleRequest(req, res) {
       }
 
     } else if (req.method === 'POST' && route === '/merge') {
-      const { name, skipChecks } = await parseBody(req);
-      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_MERGE);
+      // (8.5) Refactored to route through src/merge-core.js so the CLI
+      // (`c4 merge`) and the Web UI hit the same check + merge pipeline.
+      // The endpoint accepts either {branch} directly or {name} (legacy /
+      // Web UI path that passes a worker name — we resolve it to a branch
+      // via the worktree).
+      const body = await parseBody(req);
+      const branchInput = typeof body.branch === 'string' ? body.branch : '';
+      const nameInput = typeof body.name === 'string' ? body.name : '';
+      const skipChecks = Boolean(body.skipChecks);
+      const gate = requireRole(authCheck, rbac.ACTIONS.MERGE_WRITE);
       if (denyOr(res, gate)) return;
-      if (!name) {
-        result = { error: 'Missing name' };
-      } else {
-        try {
-          const { execSync } = require('child_process');
-          const repoRoot = manager.config.worktree?.projectRoot || path.resolve(__dirname, '..');
-          // Resolve worker name to branch
-          let branch = name;
-          const workerEntry = manager.workers?.get(name);
-          if (workerEntry && workerEntry.branch) {
-            branch = workerEntry.branch;
-          } else {
-            const wtPath = path.resolve(repoRoot, '..', `c4-worktree-${name}`);
-            try {
-              if (fs.existsSync(wtPath)) {
-                branch = execSync(`git -C "${wtPath.replace(/\\/g, '/')}" rev-parse --abbrev-ref HEAD`, { encoding: 'utf8', stdio: 'pipe' }).trim();
-              }
-            } catch {}
-          }
-          // Verify on main
-          const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: repoRoot, encoding: 'utf8', stdio: 'pipe' }).trim();
-          if (currentBranch !== 'main') {
-            result = { error: `Must be on main branch (currently on ${currentBranch})` };
-          } else {
-            execSync(`git merge "${branch}" --no-ff -m "Merge branch '${branch}'"`, { cwd: repoRoot, encoding: 'utf8', stdio: 'pipe' });
-            result = { success: true, merged: branch };
-            _safeAudit('merge.performed',
-              { branch, skipChecks: Boolean(skipChecks), workerName: name },
-              { target: branch, actor: _auditActor(authCheck) });
-          }
-        } catch (e) {
-          result = { error: `Merge failed: ${e.message}` };
+      if (!branchInput && !nameInput) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Missing branch' }));
+        return;
+      }
+      const repoRoot = (manager.config && manager.config.worktree && manager.config.worktree.projectRoot)
+        || path.resolve(__dirname, '..');
+      // Resolve to branch: prefer explicit {branch}, else resolve {name}
+      // via the worker table, falling back to the worktree HEAD probe.
+      let branch = branchInput;
+      let resolvedFrom = 'branch';
+      if (!branch && nameInput) {
+        const workerEntry = manager.workers && typeof manager.workers.get === 'function'
+          ? manager.workers.get(nameInput) : null;
+        if (workerEntry && workerEntry.branch) {
+          branch = workerEntry.branch;
+          resolvedFrom = 'worker';
+        } else {
+          branch = mergeCore.resolveBranchForWorker(nameInput, repoRoot);
+          resolvedFrom = branch && branch !== nameInput ? 'worktree' : 'name';
         }
       }
+      // 404 when the branch could not be resolved to something that
+      // exists. runPreMergeChecks verifies existence with git rev-parse
+      // --verify, so we forward its reason list to the client.
+      const preChecks = mergeCore.runPreMergeChecks(branch, { skipChecks, repoRoot });
+      if (!preChecks.passed) {
+        const branchMissing = preChecks.reasons.some((r) =>
+          r.check === 'branch-exists' && r.status === 'FAIL');
+        res.writeHead(branchMissing ? 404 : 409);
+        res.end(JSON.stringify({
+          error: 'Pre-merge checks failed',
+          branch,
+          reasons: preChecks.reasons,
+          resolvedFrom,
+        }));
+        return;
+      }
+      const mergeOutcome = mergeCore.performMerge(branch, { repoRoot });
+      if (!mergeOutcome.success) {
+        _safeAudit('merge.failed',
+          { branch, skipChecks, error: mergeOutcome.error, workerName: nameInput || null },
+          { target: branch, actor: _auditActor(authCheck) });
+        res.writeHead(500);
+        res.end(JSON.stringify({
+          error: mergeOutcome.error,
+          branch,
+          reasons: preChecks.reasons,
+          resolvedFrom,
+        }));
+        return;
+      }
+      _safeAudit('merge.performed',
+        { branch, skipChecks, sha: mergeOutcome.sha, workerName: nameInput || null },
+        { target: branch, actor: _auditActor(authCheck) });
+      result = {
+        success: true,
+        branch,
+        sha: mergeOutcome.sha,
+        summary: mergeOutcome.summary,
+        reasons: preChecks.reasons,
+        resolvedFrom,
+      };
 
     } else if (req.method === 'POST' && route === '/approve') {
       const { name, optionNumber } = await parseBody(req);

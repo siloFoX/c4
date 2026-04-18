@@ -76,7 +76,9 @@ describe('(10.1) RBAC helpers', () => {
     expect(ACTIONS.WORKFLOW_READ).toBe('workflow.read');
     expect(ACTIONS.WORKFLOW_MANAGE).toBe('workflow.manage');
     expect(ACTIONS.COMPUTER_USE).toBe('computer.use');
-    expect(ALL_ACTIONS.length).toBe(24);
+    expect(ACTIONS.KEY_WRITE).toBe('key.write');
+    expect(ACTIONS.MERGE_WRITE).toBe('merge.write');
+    expect(ALL_ACTIONS.length).toBe(26);
   });
 
   test('(d) isRole/isAction/isUsername validators', () => {
@@ -137,6 +139,8 @@ describe('(10.1) DEFAULT_PERMISSIONS matrix', () => {
     expect(DEFAULT_PERMISSIONS.manager).toContain('fleet.add');
     expect(DEFAULT_PERMISSIONS.manager).toContain('config.reload');
     expect(DEFAULT_PERMISSIONS.manager).toContain('audit.read');
+    expect(DEFAULT_PERMISSIONS.manager).toContain('key.write');
+    expect(DEFAULT_PERMISSIONS.manager).toContain('merge.write');
   });
 
   test('(c) manager is denied auth.user.create + fleet.remove by default', () => {
@@ -153,6 +157,8 @@ describe('(10.1) DEFAULT_PERMISSIONS matrix', () => {
     expect(DEFAULT_PERMISSIONS.viewer).not.toContain('project.create');
     expect(DEFAULT_PERMISSIONS.viewer).not.toContain('project.update');
     expect(DEFAULT_PERMISSIONS.viewer).not.toContain('config.reload');
+    expect(DEFAULT_PERMISSIONS.viewer).not.toContain('key.write');
+    expect(DEFAULT_PERMISSIONS.viewer).not.toContain('merge.write');
   });
 });
 
