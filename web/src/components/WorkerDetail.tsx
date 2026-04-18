@@ -6,7 +6,30 @@ import {
   useRef,
   useState,
 } from 'react';
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  GitMerge,
+  Minus,
+  Plus,
+  Send,
+  X,
+} from 'lucide-react';
 import { apiFetch } from '../lib/api';
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  IconButton,
+  Input,
+  Label,
+} from './ui';
+import { cn } from '../lib/cn';
 
 interface WorkerDetailProps {
   workerName: string;
@@ -265,7 +288,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
     runAction('key Enter', () => postJson('/api/key', { name: workerName, key: 'Enter' }));
   };
 
-  // (8.5) Key helpers. POST /key enforces a server-side allow-list —
+  // (8.5) Key helpers. POST /key enforces a server-side allow-list --
   // calling with an unknown label is a 400. Labels here must stay in
   // sync with KEY_ALLOWLIST in src/daemon.js.
   const sendKey = (key: string) => {
@@ -302,232 +325,242 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
     : `${cols} x ${DEFAULT_ROWS}`;
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-col">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="min-w-0 truncate text-base font-semibold text-gray-100 md:text-lg">
-          {workerName}
-        </h2>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex gap-1 rounded-lg bg-gray-800 p-1 text-sm">
-            <button
+    <Card className="flex h-full min-h-0 min-w-0 flex-col">
+      <CardHeader className="gap-3 p-4 md:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle className="truncate">{workerName}</CardTitle>
+            <CardDescription>
+              Terminal session - dims {dimsLabel}
+            </CardDescription>
+          </div>
+          <div
+            role="tablist"
+            aria-label="Terminal view"
+            className="flex gap-1 rounded-lg border border-border bg-muted/40 p-1 text-sm"
+          >
+            <Button
               type="button"
+              role="tab"
+              aria-selected={tab === 'screen'}
+              variant={tab === 'screen' ? 'secondary' : 'ghost'}
+              size="sm"
               onClick={() => setTab('screen')}
-              className={`rounded px-3 py-1 transition ${
-                tab === 'screen'
-                  ? 'bg-gray-700 text-gray-100'
-                  : 'text-gray-400 hover:text-gray-200'
-              }`}
             >
               Screen
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              role="tab"
+              aria-selected={tab === 'scrollback'}
+              variant={tab === 'scrollback' ? 'secondary' : 'ghost'}
+              size="sm"
               onClick={() => setTab('scrollback')}
-              className={`rounded px-3 py-1 transition ${
-                tab === 'scrollback'
-                  ? 'bg-gray-700 text-gray-100'
-                  : 'text-gray-400 hover:text-gray-200'
-              }`}
             >
               Scrollback
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
 
-      <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-gray-400">
-        <span className="font-mono text-gray-500">dims: {dimsLabel}</span>
-        <div className="flex items-center gap-1 rounded bg-gray-800 p-1">
-          <button
-            type="button"
-            onClick={() => bumpFont(-1)}
-            className="rounded px-2 py-0.5 hover:bg-gray-700"
-            aria-label="Decrease font size"
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <div
+            className="flex items-center gap-1 rounded-md border border-border bg-muted/40 p-1"
+            aria-label="Font size"
           >
-            A-
-          </button>
-          <span className="min-w-[2.5rem] text-center font-mono text-gray-300">
-            {fontSize}px
-          </span>
-          <button
-            type="button"
-            onClick={() => bumpFont(1)}
-            className="rounded px-2 py-0.5 hover:bg-gray-700"
-            aria-label="Increase font size"
+            <IconButton
+              aria-label="Decrease font size"
+              className="h-7 w-7"
+              onClick={() => bumpFont(-1)}
+              icon={<Minus className="h-3.5 w-3.5" />}
+            />
+            <span className="min-w-[2.5rem] text-center font-mono text-foreground">
+              {fontSize}px
+            </span>
+            <IconButton
+              aria-label="Increase font size"
+              className="h-7 w-7"
+              onClick={() => bumpFont(1)}
+              icon={<Plus className="h-3.5 w-3.5" />}
+            />
+          </div>
+          <Label className="flex items-center gap-1 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-normal text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={autoFit}
+              onChange={(e) => setAutoFit(e.target.checked)}
+            />
+            <span>Auto-fit</span>
+          </Label>
+          <Label className="flex items-center gap-1 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-normal text-muted-foreground">
+            <span>cols</span>
+            <Input
+              type="number"
+              min={MIN_COLS}
+              max={MAX_COLS}
+              value={cols}
+              onChange={(e) => manualCols(Number(e.target.value))}
+              className="h-6 w-16 rounded-md bg-background px-1 py-0 text-right text-xs"
+              disabled={autoFit}
+            />
+          </Label>
+        </div>
+      </CardHeader>
+
+      <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 p-4 pt-0 md:p-5 md:pt-0">
+        {error && (
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
           >
-            A+
-          </button>
-        </div>
-        <label className="flex items-center gap-1 rounded bg-gray-800 px-2 py-1">
-          <input
-            type="checkbox"
-            checked={autoFit}
-            onChange={(e) => setAutoFit(e.target.checked)}
+            <span className="min-w-0 break-words">{error}</span>
+          </div>
+        )}
+
+        <span
+          ref={rulerRef}
+          aria-hidden="true"
+          className="pointer-events-none absolute font-mono opacity-0"
+          style={{ fontSize, lineHeight: `${lineHeight}px`, visibility: 'hidden' }}
+        >
+          0
+        </span>
+
+        <pre
+          ref={preRef}
+          className={cn(
+            'min-h-0 min-w-0 flex-1 overflow-auto whitespace-pre rounded-md border border-border bg-background p-3 font-mono text-foreground md:p-4'
+          )}
+          style={{ fontSize, lineHeight: `${lineHeight}px` }}
+        >
+          {content || <span className="text-muted-foreground">(empty)</span>}
+        </pre>
+
+        {actionMsg && (
+          <div className="text-xs text-muted-foreground">{actionMsg}</div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder="Send text to worker..."
+            className="h-9 min-w-0 flex-1"
+            disabled={busy}
           />
-          <span>Auto-fit</span>
-        </label>
-        <label className="flex items-center gap-1 rounded bg-gray-800 px-2 py-1">
-          <span>cols</span>
-          <input
-            type="number"
-            min={MIN_COLS}
-            max={MAX_COLS}
-            value={cols}
-            onChange={(e) => manualCols(Number(e.target.value))}
-            className="w-16 rounded bg-gray-900 px-1 py-0.5 text-right text-gray-100 focus:outline-none"
-            disabled={autoFit}
+          <IconButton
+            aria-label="Send text"
+            onClick={handleSend}
+            disabled={busy || !inputText.trim()}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            icon={<Send className="h-4 w-4" />}
           />
-        </label>
-      </div>
-
-      {error && (
-        <div className="mb-2 rounded bg-red-900/40 px-3 py-2 text-sm text-red-300">
-          {error}
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={handleEnter}
+            disabled={busy}
+          >
+            Enter
+          </Button>
+          <Button
+            type="button"
+            variant="default"
+            size="sm"
+            onClick={handleMerge}
+            disabled={busy}
+            title="Run pre-merge checks and merge this worker's branch into main"
+          >
+            <GitMerge className="h-4 w-4" />
+            <span>Merge</span>
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={handleClose}
+            disabled={busy}
+          >
+            <X className="h-4 w-4" />
+            <span>Close</span>
+          </Button>
         </div>
-      )}
 
-      <span
-        ref={rulerRef}
-        aria-hidden="true"
-        className="pointer-events-none absolute font-mono opacity-0"
-        style={{ fontSize, lineHeight: `${lineHeight}px`, visibility: 'hidden' }}
-      >
-        0
-      </span>
-
-      <pre
-        ref={preRef}
-        className="min-h-0 min-w-0 flex-1 overflow-auto whitespace-pre rounded bg-gray-950 p-3 font-mono text-gray-200 md:p-4"
-        style={{ fontSize, lineHeight: `${lineHeight}px` }}
-      >
-        {content || <span className="text-gray-600">(empty)</span>}
-      </pre>
-
-      {actionMsg && (
-        <div className="mt-2 text-xs text-gray-400">{actionMsg}</div>
-      )}
-
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <input
-          type="text"
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
-          placeholder="Send text to worker..."
-          className="min-w-0 flex-1 rounded border border-gray-700 bg-gray-900 px-3 py-1.5 text-sm text-gray-100 placeholder-gray-500 focus:border-blue-500 focus:outline-none"
-          disabled={busy}
-        />
-        <button
-          type="button"
-          onClick={handleSend}
-          disabled={busy || !inputText.trim()}
-          className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Send
-        </button>
-        <button
-          type="button"
-          onClick={handleEnter}
-          disabled={busy}
-          className="rounded bg-gray-700 px-3 py-1.5 text-sm font-medium text-gray-100 hover:bg-gray-600 disabled:opacity-50"
-        >
-          Enter
-        </button>
-        <button
-          type="button"
-          onClick={handleMerge}
-          disabled={busy}
-          className="rounded bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50"
-          title="Run pre-merge checks and merge this worker's branch into main"
-        >
-          Merge
-        </button>
-        <button
-          type="button"
-          onClick={handleClose}
-          disabled={busy}
-          className="rounded bg-red-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
-        >
-          Close
-        </button>
-      </div>
-
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        <span className="text-xs uppercase tracking-wide text-gray-500">Keys</span>
-        <button
-          type="button"
-          onClick={() => sendKey('Escape')}
-          disabled={busy}
-          className="rounded bg-gray-700 px-2 py-1 text-xs font-medium text-gray-100 hover:bg-gray-600 disabled:opacity-50"
-        >
-          Esc
-        </button>
-        <button
-          type="button"
-          onClick={() => sendKey('C-c')}
-          disabled={busy}
-          className="rounded bg-gray-700 px-2 py-1 text-xs font-medium text-gray-100 hover:bg-gray-600 disabled:opacity-50"
-        >
-          Ctrl-C
-        </button>
-        <button
-          type="button"
-          onClick={() => sendKey('C-d')}
-          disabled={busy}
-          className="rounded bg-gray-700 px-2 py-1 text-xs font-medium text-gray-100 hover:bg-gray-600 disabled:opacity-50"
-        >
-          Ctrl-D
-        </button>
-        <button
-          type="button"
-          onClick={() => sendKey('Tab')}
-          disabled={busy}
-          className="rounded bg-gray-700 px-2 py-1 text-xs font-medium text-gray-100 hover:bg-gray-600 disabled:opacity-50"
-        >
-          Tab
-        </button>
-        <button
-          type="button"
-          onClick={() => sendKey('Up')}
-          disabled={busy}
-          className="rounded bg-gray-700 px-2 py-1 text-xs font-medium text-gray-100 hover:bg-gray-600 disabled:opacity-50"
-          aria-label="Arrow Up"
-        >
-          Up
-        </button>
-        <button
-          type="button"
-          onClick={() => sendKey('Down')}
-          disabled={busy}
-          className="rounded bg-gray-700 px-2 py-1 text-xs font-medium text-gray-100 hover:bg-gray-600 disabled:opacity-50"
-          aria-label="Arrow Down"
-        >
-          Down
-        </button>
-        <button
-          type="button"
-          onClick={() => sendKey('Left')}
-          disabled={busy}
-          className="rounded bg-gray-700 px-2 py-1 text-xs font-medium text-gray-100 hover:bg-gray-600 disabled:opacity-50"
-          aria-label="Arrow Left"
-        >
-          Left
-        </button>
-        <button
-          type="button"
-          onClick={() => sendKey('Right')}
-          disabled={busy}
-          className="rounded bg-gray-700 px-2 py-1 text-xs font-medium text-gray-100 hover:bg-gray-600 disabled:opacity-50"
-          aria-label="Arrow Right"
-        >
-          Right
-        </button>
-      </div>
-    </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-wide text-muted-foreground">Keys</span>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => sendKey('Escape')}
+            disabled={busy}
+          >
+            Esc
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => sendKey('C-c')}
+            disabled={busy}
+          >
+            Ctrl-C
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => sendKey('C-d')}
+            disabled={busy}
+          >
+            Ctrl-D
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => sendKey('Tab')}
+            disabled={busy}
+          >
+            Tab
+          </Button>
+          <IconButton
+            aria-label="Arrow Up"
+            className="h-8 w-8 bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-secondary-foreground"
+            onClick={() => sendKey('Up')}
+            disabled={busy}
+            icon={<ArrowUp className="h-4 w-4" />}
+          />
+          <IconButton
+            aria-label="Arrow Down"
+            className="h-8 w-8 bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-secondary-foreground"
+            onClick={() => sendKey('Down')}
+            disabled={busy}
+            icon={<ArrowDown className="h-4 w-4" />}
+          />
+          <IconButton
+            aria-label="Arrow Left"
+            className="h-8 w-8 bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-secondary-foreground"
+            onClick={() => sendKey('Left')}
+            disabled={busy}
+            icon={<ArrowLeft className="h-4 w-4" />}
+          />
+          <IconButton
+            aria-label="Arrow Right"
+            className="h-8 w-8 bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-secondary-foreground"
+            onClick={() => sendKey('Right')}
+            disabled={busy}
+            icon={<ArrowRight className="h-4 w-4" />}
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 }
