@@ -25,7 +25,12 @@ fs.mkdirSync(SHOTS_DIR, { recursive: true });
 
 const password = fs.readFileSync(CRED_FILE, 'utf8').trim();
 const issues = [];
+const seenIssue = new Set();
+let expectAuth = false; // set true once we are logged in; false during deliberate token-clear / pre-login
 const pushIssue = (severity, view, message, extra = {}) => {
+  const key = `${severity}|${view}|${message}`;
+  if (seenIssue.has(key)) return;
+  seenIssue.add(key);
   issues.push({ severity, view, message, ...extra });
   console.log(`[${severity}] ${view}: ${message}`);
 };
@@ -44,11 +49,21 @@ function attachListeners(page, tag) {
   page.on('pageerror', (err) => {
     pushIssue('critical', tag, `pageerror: ${err.message}`);
   });
+  page.on('response', async (res) => {
+    if (res.url().includes('/auth/status')) {
+      let body = '';
+      try { body = (await res.text()).slice(0, 120); } catch {}
+      console.log(`[auth-status ${tag}] HTTP ${res.status()} body=${body}`);
+    }
+  });
   page.on('console', (msg) => {
     const type = msg.type();
     if (type === 'error') {
       const text = msg.text();
       if (text.includes('Failed to load resource') && text.includes('404') && text.includes('favicon')) return;
+      // Suppress generic "Failed to load resource" 401 lines — the response handler below
+      // captures real 401s with the URL; this dup just adds noise.
+      if (text.includes('Failed to load resource') && text.includes('401')) return;
       pushIssue('warn', tag, `console.error: ${text.slice(0, 400)}`);
     }
   });
@@ -56,6 +71,8 @@ function attachListeners(page, tag) {
     const f = req.failure();
     const url = req.url();
     if (url.includes('hot-update') || url.endsWith('favicon.ico')) return;
+    // EventSource (SSE) reconnect aborts on logout / token clear are normal.
+    if (url.includes('/api/events') && (f?.errorText === 'net::ERR_ABORTED')) return;
     pushIssue('warn', tag, `request failed ${url}: ${f?.errorText || 'unknown'}`);
   });
   page.on('response', async (res) => {
@@ -63,6 +80,8 @@ function attachListeners(page, tag) {
     const url = res.url();
     if (status >= 500) pushIssue('critical', tag, `HTTP ${status} ${url}`);
     else if (status === 401 && !url.endsWith('/auth/login') && !url.endsWith('/auth/status')) {
+      // 401s while we deliberately clear the token / are on the login page are expected.
+      if (!expectAuth) return;
       pushIssue('warn', tag, `HTTP 401 ${url}`);
     }
   });
@@ -80,6 +99,24 @@ async function shot(page, name, vp) {
 
 async function loginFlow(page, vp) {
   await page.goto(BASE + '/', { waitUntil: 'networkidle2', timeout: 30000 });
+  // Wait until React leaves the initial 'Loading...' splash so that we can
+  // tell apart "still booting" from "fail-open dashboard".
+  try {
+    await page.waitForFunction(() => {
+      const t = (document.body && document.body.innerText) || '';
+      return !t.startsWith('Loading');
+    }, { timeout: 10000 });
+  } catch { /* fall through to probe */ }
+  const probe = await page.evaluate(() => ({
+    hasUser: !!document.getElementById('c4-user'),
+    bodyText: (document.body && document.body.innerText || '').slice(0, 240),
+  }));
+  if (!probe.hasUser && !probe.bodyText.startsWith('Loading')) {
+    pushIssue('critical', 'auth-fail-open',
+      `dashboard rendered with no token. bodyText="${probe.bodyText.replace(/\s+/g, ' ').slice(0, 160)}"`);
+    throw new Error('login form not rendered without token');
+  }
+  await page.waitForSelector('#c4-user', { timeout: 15000 });
   await shot(page, 'login', vp);
 
   // Invalid creds attempt
@@ -112,6 +149,7 @@ async function loginFlow(page, vp) {
     page.keyboard.press('Enter'),
   ]);
   await page.waitForSelector('header', { timeout: 15000 });
+  expectAuth = true;
   await shot(page, 'post_login', vp);
 }
 
@@ -308,6 +346,7 @@ async function ariaLabelCheck(page, vp) {
 }
 
 async function logoutFlow(page, vp) {
+  expectAuth = false; // any 401 after this point is expected
   // Look for logout/sign-out button
   const logoutBtn = await page.$('button[aria-label*="ogout" i], button[aria-label*="ign out" i], button[title*="ogout" i]');
   if (logoutBtn) {
@@ -326,13 +365,15 @@ async function logoutFlow(page, vp) {
   }
 }
 
-async function runForViewport(browser, vpKey) {
+async function runForViewport(launchBrowser, vpKey) {
   const vp = VIEWPORTS[vpKey];
-  const ctx = await browser.createBrowserContext();
-  const page = await ctx.newPage();
+  // Fresh browser per viewport so localStorage is guaranteed isolated.
+  const browser = await launchBrowser();
+  const page = await browser.newPage();
   await page.setViewport({ width: vp.width, height: vp.height });
   attachListeners(page, vpKey);
 
+  expectAuth = false;
   try {
     await loginFlow(page, vp.label);
     // workers
@@ -351,25 +392,33 @@ async function runForViewport(browser, vpKey) {
     // workflows
     await visitTopView(page, 'workflows', vp.label);
     await exploreWorkflows(page, vp.label);
-    // 401 simulation: clear token, reload
-    await page.evaluate(() => { try { localStorage.removeItem('c4.token'); } catch {} });
+    // 401 simulation: clear token, reload. Mark as deliberately unauth so the
+    // 401 noise during the logout race is not counted as a regression.
+    expectAuth = false;
+    await page.evaluate(() => { try { localStorage.removeItem('c4.authToken'); } catch {} });
     await page.reload({ waitUntil: 'networkidle2' });
+    await delay(600);
+    const stillAuthed = await page.$('#c4-user') === null;
+    if (stillAuthed) {
+      pushIssue('warn', 'auth-clear', 'after removing c4.authToken + reload, login form did not render (auth state stuck)');
+    }
     await shot(page, 'after_token_clear', vp.label);
-    // logout (should land on login)
-    // Re-login to test the full cycle
-    await loginFlow(page, vp.label);
-    await logoutFlow(page, vp.label);
+    // Re-login + sign out cycle (only if we actually got back to login)
+    if (!stillAuthed) {
+      await loginFlow(page, vp.label);
+      await logoutFlow(page, vp.label);
+    }
   } catch (e) {
     pushIssue('critical', `flow-${vpKey}`, `unhandled: ${e.message}`);
     try { await shot(page, `crash_${vpKey}`, vp.label); } catch {}
   } finally {
     await page.close();
-    await ctx.close();
+    await browser.close();
   }
 }
 
 async function main() {
-  const browser = await puppeteer.launch({
+  const launchBrowser = () => puppeteer.launch({
     executablePath: CHROME,
     headless: 'new',
     args: [
@@ -380,12 +429,8 @@ async function main() {
     ],
   });
 
-  try {
-    for (const vp of Object.keys(VIEWPORTS)) {
-      await runForViewport(browser, vp);
-    }
-  } finally {
-    await browser.close();
+  for (const vp of Object.keys(VIEWPORTS)) {
+    await runForViewport(launchBrowser, vp);
   }
 
   const grouped = { critical: [], warn: [], info: [] };
