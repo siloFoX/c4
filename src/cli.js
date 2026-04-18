@@ -244,8 +244,8 @@ async function main() {
     switch (cmd) {
       case 'new': {
         const name = args[0];
-        // Parse --target, --cwd, --template, --parent flags
-        let target = 'local', cwd = '', template = '', parent = '';
+        // Parse --target, --cwd, --template, --parent, --tier flags
+        let target = 'local', cwd = '', template = '', parent = '', tier = '';
         const filteredArgs = [];
         let command = 'claude';
         let commandSet = false;
@@ -254,6 +254,7 @@ async function main() {
           else if (args[i] === '--cwd' && args[i + 1]) { cwd = args[++i]; }
           else if (args[i] === '--template' && args[i + 1]) { template = args[++i]; }
           else if (args[i] === '--parent' && args[i + 1]) { parent = args[++i]; }
+          else if (args[i] === '--tier' && args[i + 1]) { tier = args[++i]; }
           else if (!commandSet) { command = args[i]; commandSet = true; }
           else { filteredArgs.push(args[i]); }
         }
@@ -266,6 +267,7 @@ async function main() {
         const body = { name, command, args: filteredArgs, target, cwd };
         if (template) body.template = template;
         if (parent) body.parent = parent;
+        if (tier) body.tier = tier;
         result = await request('POST', '/create', body);
         break;
       }
@@ -292,7 +294,7 @@ async function main() {
         }
 
         let branch = '', useBranch = true, scope = null, scopePreset = '', after = '', contextFrom = '', reuse = undefined, profile = '', autoMode = false, projectRoot = '', cwd = '';
-        let budgetUsd = null, maxRetries = null;
+        let budgetUsd = null, maxRetries = null, tier = '', model = '';
         const taskParts = [];
         for (let i = argStart; i < effectiveArgs.length; i++) {
           if (effectiveArgs[i] === '--branch' && effectiveArgs[i + 1]) { branch = effectiveArgs[++i]; }
@@ -306,6 +308,8 @@ async function main() {
           else if (effectiveArgs[i] === '--auto-mode') { autoMode = true; }
           else if (effectiveArgs[i] === '--repo' && effectiveArgs[i + 1]) { projectRoot = effectiveArgs[++i]; }
           else if (effectiveArgs[i] === '--cwd' && effectiveArgs[i + 1]) { cwd = effectiveArgs[++i]; }
+          else if (effectiveArgs[i] === '--tier' && effectiveArgs[i + 1]) { tier = effectiveArgs[++i]; }
+          else if (effectiveArgs[i] === '--model' && effectiveArgs[i + 1]) { model = effectiveArgs[++i]; }
           else if (effectiveArgs[i] === '--budget' && effectiveArgs[i + 1]) {
             const v = parseFloat(effectiveArgs[++i]);
             if (!Number.isFinite(v)) { console.error('Error: --budget must be a number (USD)'); process.exit(1); }
@@ -336,6 +340,8 @@ async function main() {
         if (cwd) body.cwd = cwd;
         if (budgetUsd !== null) body.budgetUsd = budgetUsd;
         if (maxRetries !== null) body.maxRetries = maxRetries;
+        if (tier) body.tier = tier;
+        if (model) body.model = model;
         result = await request('POST', '/task', body);
         break;
       }
@@ -1527,6 +1533,32 @@ async function main() {
                 }
               }
             }
+          }
+        }
+        return;
+      }
+
+      case 'quota': {
+        // (8.3) c4 quota [tier]  — show daily token quota usage per tier.
+        const requestedTier = args[0] && !args[0].startsWith('--') ? args[0] : '';
+        const route = requestedTier ? `/quota/${encodeURIComponent(requestedTier)}` : '/quota';
+        result = await request('GET', route);
+        if (result.error) {
+          console.log(`Error: ${result.error}`);
+          if (Array.isArray(result.allowed)) console.log(`  Allowed tiers: ${result.allowed.join(', ')}`);
+        } else if (requestedTier) {
+          const fmtRem = result.remaining < 0 ? 'unlimited' : result.remaining.toLocaleString();
+          console.log(`Tier quota (${result.date}) — ${result.tier}:`);
+          console.log(`  Daily limit: ${result.dailyTokens.toLocaleString()} tokens`);
+          console.log(`  Models:      ${result.models.join(', ')}`);
+          console.log(`  Used:        ${result.used.toLocaleString()} tokens`);
+          console.log(`  Remaining:   ${fmtRem}`);
+        } else {
+          console.log(`Tier quota (${result.date}):`);
+          for (const t of Object.keys(result.tiers)) {
+            const d = result.tiers[t];
+            const fmtRem = d.remaining < 0 ? 'unlimited' : d.remaining.toLocaleString();
+            console.log(`  ${t.padEnd(8)} used=${d.used.toLocaleString().padStart(8)} / ${d.dailyTokens.toLocaleString()} (remaining=${fmtRem}) models=[${d.models.join(', ')}]`);
           }
         }
         return;
@@ -3636,6 +3668,7 @@ Commands:
   scribe status                    Show scribe status
   scribe scan                      Run one-time scan now
   token-usage [--per-task]         Show daily token usage (per-task adds worker-level aggregation)
+  quota [tier]                     Show daily tier-based token quota (8.3, manager|mid|worker)
   auto <task>                      Autonomous mode: manager + scribe + task (4.8)
   morning                          Generate morning report (4.4)
   profiles                         List available permission profiles

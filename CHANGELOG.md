@@ -1,5 +1,69 @@
 # Changelog
 
+## [v7.4] - 2026-04-18
+
+### Added
+- **(8.3) Tier-based daily token quota + complexity-based model selection.**
+  Three tiers (`manager` / `mid` / `worker`) each declare a daily token
+  budget and a Claude model allow-list, persisted under
+  `~/.c4/tier-quota-YYYY-MM-DD.json` so daily roll-over is automatic and
+  survives daemon restarts. Defaults: manager = 500k tokens / `[opus]`,
+  mid = 200k / `[opus, sonnet]`, worker = 100k / `[sonnet, haiku]`.
+  `config.tierConfig` overlays per-tier fields without losing the others
+  (set `worker.dailyTokens=50000` and the worker model list stays put).
+- **`src/tier-quota.js` pure module.** `mergeTiers(override)`,
+  `selectModel(taskDescription, tier, opts?)` (keyword score: `design` /
+  `plan` / `architect` / `refactor` / `investigate` / `audit` -> opus,
+  `typo` / `rename` / `format` / `lint` / `comment` -> haiku, `implement`
+  / `fix` / `add` / `update` / `write` -> sonnet, length fallback >500
+  chars -> opus / <80 chars -> haiku / else sonnet), `class TierQuota`
+  (`chargeTier(tier, tokens)` increments + saves and throws
+  `Error{code:'QUOTA_EXCEEDED', tier, used, requested, limit}` when the
+  next charge would cross the cap; the failed charge does NOT advance
+  the counter), `getRemaining(tier)` (returns `Infinity` when
+  `dailyTokens=0` = unlimited), `resetDaily(tier?)` (zeroes one tier or
+  all), `_rolloverIfNeeded()` auto-loads a new file when the injected
+  clock crosses midnight UTC so day 1 totals stay intact in the
+  original file, `snapshot()` returns
+  `{date, tiers:{tier:{dailyTokens, models, used, remaining}}}`
+  (`remaining = -1` for unlimited tiers), `selectModel(task, tier)`
+  delegates to the module function with the instance tier override.
+- **Daemon wiring (src/daemon.js).** `tierQuota = tierQuotaMod.getShared({tiers: cfg.tierConfig, force:true})`
+  + `tierWorkerMap` (worker name -> tier). `POST /create` parses
+  `{tier}` (default `'worker'`, validates against the live tier config
+  and returns `400 {error, allowed[]}` on unknown), records tier in
+  audit + Slack `worker_spawn` event, stamps `result.tier`.
+  `POST /task` parses `{tier, model}` (explicit tier > tierWorkerMap >
+  default `'worker'`), short-circuits with
+  `429 {error, tier, remaining:0}` when `getRemaining(tier) === 0`,
+  runs `tierQuota.selectModel(task, tier)` when `model === 'auto'` or
+  omitted, stamps `result.tier` + `result.model`, threads tier+model
+  into the audit + Slack `task_start` event. New `GET /quota` returns
+  the full snapshot, `GET /quota/:tier` returns one tier's slice
+  (`{error, allowed[]}` on unknown). `POST /config/reload` calls
+  `tierQuota.setTiers(newCfg.tierConfig)` so live edits of daily caps
+  or model allow-lists take effect on the next dispatch without a
+  daemon restart.
+- **CLI wiring (src/cli.js).** `c4 new <name> [--tier manager|mid|worker]`
+  (defaults to worker server-side), `c4 task <name> "task"
+  [--tier T] [--model auto|opus|sonnet|haiku]` (default `--model auto`
+  resolves through `tierQuota.selectModel`), new `c4 quota [tier]`
+  subcommand pretty-prints either the full table
+  `worker  used=  X / 100,000 (remaining=Y) models=[sonnet, haiku]`
+  or a single-tier detail block (`unlimited` rendered when limit=0).
+  Help text gains a `quota [tier]` line under `token-usage`.
+- **Tests (tests/tier-quota.test.js).** 23 node:test assertions across
+  6 suites: defaults + `mergeTiers` (3), `chargeTier` + `getRemaining`
+  + persistence round-trip + canonical file shape + unknown-tier
+  rejects + non-numeric rejects (5), quota exceeded reject (3 incl.
+  failed charge does not advance counter, `dailyTokens=0` = unlimited),
+  daily reset + roll-over (3 incl. day-1 file kept intact when the
+  clock crosses midnight, day-2 file written separately),
+  `selectModel` keyword + length heuristic + tier allow-list constraint
+  (6), `snapshot` output (2). All tests use isolated `tmpdir()` +
+  injected `now()` so no real clock or HOME mutation. Full suite
+  96 / 96 pass. Patch note: `patches/1.11.4-tier-quota.md`.
+
 ## [1.7.0] - 2026-04-17
 
 ### Added (security milestone)
