@@ -1,6 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Inbox, WifiOff } from 'lucide-react';
 import type { ListResponse, SSEEvent, Worker } from '../types';
 import { apiFetch, eventSourceUrl } from '../lib/api';
+import {
+  Badge,
+  Card,
+  CardContent,
+  CardHeader,
+  type BadgeProps,
+} from './ui';
+import { cn } from '../lib/cn';
+
+type BadgeVariant = NonNullable<BadgeProps['variant']>;
 
 function isInterventionActive(w: Worker): boolean {
   if (!w.intervention) return false;
@@ -8,11 +19,11 @@ function isInterventionActive(w: Worker): boolean {
   return active === undefined ? true : Boolean(active);
 }
 
-function statusColor(w: Worker): string {
-  if (isInterventionActive(w)) return 'text-red-400';
-  if (w.status === 'busy') return 'text-yellow-400';
-  if (w.status === 'idle') return 'text-green-400';
-  return 'text-gray-400';
+function mapWorkerStatusToBadgeVariant(w: Worker): BadgeVariant {
+  if (isInterventionActive(w)) return 'destructive';
+  if (w.status === 'busy') return 'warning';
+  if (w.status === 'idle') return 'success';
+  return 'secondary';
 }
 
 function statusLabel(w: Worker): string {
@@ -68,57 +79,81 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
   return (
     <div className="space-y-2">
       {!sseConnected && (
-        <div className="text-xs text-gray-500">Live updates disconnected — polling</div>
+        <div className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs text-muted-foreground">
+          <WifiOff aria-hidden="true" className="h-3.5 w-3.5" />
+          <span>Live updates disconnected - polling</span>
+        </div>
       )}
 
       {error && (
-        <div className="rounded-lg bg-red-900/40 p-3 text-sm text-red-300">
-          Failed to load workers: {error}
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+        >
+          <span className="min-w-0 break-words">
+            Failed to load workers: {error}
+          </span>
         </div>
       )}
 
       {!error && workers.length === 0 && (
-        <div className="text-sm text-gray-500">No workers yet.</div>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Inbox aria-hidden="true" className="h-4 w-4" />
+          <span>No workers yet.</span>
+        </div>
       )}
 
       {workers.map((w) => {
         const interventionActive = isInterventionActive(w);
         const isSelected = selectedWorker === w.name;
         return (
-          <button
+          <Card
             key={w.name}
-            type="button"
+            role="button"
+            tabIndex={0}
             onClick={() => onSelect(w.name)}
-            className={`w-full rounded-lg p-4 text-left transition ${
-              isSelected
-                ? 'bg-gray-700 ring-1 ring-blue-500'
-                : 'bg-gray-800 hover:bg-gray-700'
-            }`}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="truncate font-medium text-gray-100">{w.name}</span>
-              <span className={`text-xs font-semibold uppercase ${statusColor(w)}`}>
-                {statusLabel(w)}
-              </span>
-            </div>
-
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-              {w.unreadSnapshots > 0 && (
-                <span className="rounded bg-blue-500/20 px-1.5 py-0.5 text-blue-300">
-                  {w.unreadSnapshots} unread
-                </span>
-              )}
-              {interventionActive && (
-                <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-red-300">
-                  {String((w.intervention as { reason?: unknown })?.reason ?? 'intervention')}
-                </span>
-              )}
-            </div>
-
-            {w.branch && (
-              <div className="mt-2 truncate text-xs text-gray-500">{w.branch}</div>
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelect(w.name);
+              }
+            }}
+            className={cn(
+              'cursor-pointer transition-colors hover:bg-accent/40',
+              isSelected &&
+                'ring-2 ring-ring ring-offset-2 ring-offset-background'
             )}
-          </button>
+          >
+            <CardHeader className="flex-row items-center justify-between gap-2 p-4">
+              <span className="min-w-0 truncate text-sm font-medium text-foreground">
+                {w.name}
+              </span>
+              <Badge variant={mapWorkerStatusToBadgeVariant(w)} className="shrink-0 uppercase">
+                {statusLabel(w)}
+              </Badge>
+            </CardHeader>
+            <CardContent className="space-y-1.5 p-4 pt-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {w.unreadSnapshots > 0 && (
+                  <Badge variant="info" className="px-1.5 py-0 text-[11px] font-medium">
+                    {w.unreadSnapshots} unread
+                  </Badge>
+                )}
+                {interventionActive && (
+                  <Badge variant="destructive" className="px-1.5 py-0 text-[11px] font-medium">
+                    {String(
+                      (w.intervention as { reason?: unknown })?.reason ?? 'intervention'
+                    )}
+                  </Badge>
+                )}
+              </div>
+              {w.branch && (
+                <div className="truncate font-mono text-xs text-muted-foreground">
+                  {w.branch}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         );
       })}
     </div>
