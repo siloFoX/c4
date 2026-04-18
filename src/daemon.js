@@ -28,6 +28,7 @@ const computerUseMod = require('./computer-use');
 const mergeCore = require('./merge-core');
 const slackEvents = require('./slack-events');
 const tierQuotaMod = require('./tier-quota');
+const scribeV2Mod = require('./scribe-v2');
 
 // (8.5) Allow-list for POST /key. Web UI needs to drive Enter, Escape,
 // Ctrl-C and the arrow keys without sending raw control bytes. The list
@@ -90,9 +91,33 @@ function safeEmit(eventType, payload) {
   notifications.notifyStall = async function (workerName, reason) {
     try { safeEmit('halt_detected', { worker: workerName, reason: String(reason || '') }); }
     catch { /* emit failure never blocks the legacy stall send */ }
+    try { safeRecord('halt', { worker: workerName, payload: { reason: String(reason || '') } }); }
+    catch { /* record failure never blocks the legacy stall send */ }
     return original(workerName, reason);
   };
 })();
+
+// (10.9) Structured event log. Runs alongside the existing src/scribe.js
+// (which owns session transcript summaries) — this one writes typed
+// JSONL so the `c4 events` CLI + Web UI timeline can reconstruct a
+// cross-worker timeline without replaying an entire Claude Code
+// transcript. logDir defaults to ~/.c4 via the module; config.scribeV2
+// can override it for test clusters without touching the operator's
+// real events log.
+const scribeLog = scribeV2Mod.getShared(
+  cfg.scribeV2 && typeof cfg.scribeV2.logDir === 'string' ? { logDir: cfg.scribeV2.logDir } : {}
+);
+function safeRecord(type, fields) {
+  try {
+    const f = fields && typeof fields === 'object' ? fields : {};
+    scribeLog.record({
+      type,
+      worker: f.worker || null,
+      task_id: f.task_id || null,
+      payload: f.payload || {},
+    });
+  } catch { /* record() must never break callers */ }
+}
 
 // (8.3) Tier-based daily token quota + complexity-based model selection.
 // One process-wide TierQuota instance keyed by config.tierConfig override.
@@ -851,6 +876,10 @@ async function handleRequest(req, res) {
           { command, args: args || [], target: target || 'local', cwd: cwd || '', parent: parent || '', pid: result.pid || null, tier: requestedTier },
           { target: name, actor: _auditActor(authCheck) });
         safeEmit('worker_spawn', { worker: name, target: target || 'local', command, tier: requestedTier });
+        safeRecord('worker_spawn', {
+          worker: name,
+          payload: { target: target || 'local', command: command || '', tier: requestedTier, pid: result.pid || null },
+        });
       }
 
     } else if (req.method === 'POST' && route === '/send') {
@@ -962,6 +991,17 @@ async function handleRequest(req, res) {
           tier: taskTier,
           model: resolvedModel || '',
         });
+        safeRecord('task_start', {
+          worker: name,
+          payload: {
+            branch: branch || '',
+            task: typeof task === 'string' ? task.slice(0, 500) : '',
+            profile: profile || '',
+            autoMode: Boolean(autoMode),
+            tier: taskTier,
+            model: resolvedModel || '',
+          },
+        });
       }
 
     } else if (req.method === 'POST' && route === '/merge') {
@@ -1001,6 +1041,10 @@ async function handleRequest(req, res) {
       // 404 when the branch could not be resolved to something that
       // exists. runPreMergeChecks verifies existence with git rev-parse
       // --verify, so we forward its reason list to the client.
+      safeRecord('merge_attempt', {
+        worker: nameInput || null,
+        payload: { branch, skipChecks, resolvedFrom },
+      });
       const preChecks = mergeCore.runPreMergeChecks(branch, { skipChecks, repoRoot });
       if (!preChecks.passed) {
         const branchMissing = preChecks.reasons.some((r) =>
@@ -1020,6 +1064,10 @@ async function handleRequest(req, res) {
           { branch, skipChecks, error: mergeOutcome.error, workerName: nameInput || null },
           { target: branch, actor: _auditActor(authCheck) });
         safeEmit('merge_fail', { branch, error: mergeOutcome.error, worker: nameInput || '' });
+        safeRecord('error', {
+          worker: nameInput || null,
+          payload: { source: 'merge', branch, message: mergeOutcome.error },
+        });
         res.writeHead(500);
         res.end(JSON.stringify({
           error: mergeOutcome.error,
@@ -1033,6 +1081,10 @@ async function handleRequest(req, res) {
         { branch, skipChecks, sha: mergeOutcome.sha, workerName: nameInput || null },
         { target: branch, actor: _auditActor(authCheck) });
       safeEmit('merge_success', { branch, sha: mergeOutcome.sha, worker: nameInput || '' });
+      safeRecord('merge_success', {
+        worker: nameInput || null,
+        payload: { branch, sha: mergeOutcome.sha, summary: mergeOutcome.summary || '' },
+      });
       result = {
         success: true,
         branch,
@@ -1058,6 +1110,10 @@ async function handleRequest(req, res) {
           worker: name,
           optionNumber: optionNumber == null ? null : Number(optionNumber),
           granted,
+        });
+        safeRecord(granted ? 'approval_grant' : 'approval_request', {
+          worker: name,
+          payload: { optionNumber: optionNumber == null ? null : Number(optionNumber), granted },
         });
       }
 
@@ -2291,6 +2347,7 @@ async function handleRequest(req, res) {
       if (result && !result.error) {
         _safeAudit('worker.closed', {}, { target: name, actor: _auditActor(authCheck) });
         safeEmit('worker_close', { worker: name });
+        safeRecord('worker_close', { worker: name, payload: {} });
       }
 
     } else if (req.method === 'GET' && route === '/config') {
@@ -2348,6 +2405,44 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && route === '/scribe/scan') {
       result = manager.scribeScan();
+
+    } else if (req.method === 'GET' && route === '/events/query') {
+      // (10.9) Structured event timeline. Powers `c4 events`. Every
+      // query param is optional; omit them all to get every recorded
+      // event. Types / workers accept comma-separated lists.
+      const q = {};
+      const from = url.searchParams.get('from');
+      const to = url.searchParams.get('to');
+      const types = url.searchParams.get('types');
+      const workers = url.searchParams.get('workers');
+      const limit = url.searchParams.get('limit');
+      const reverse = url.searchParams.get('reverse');
+      if (from) q.from = from;
+      if (to) q.to = to;
+      if (types) q.types = types.split(',').filter(Boolean);
+      if (workers) q.workers = workers.split(',').filter(Boolean);
+      if (limit) q.limit = parseInt(limit, 10) || 0;
+      if (reverse === '1' || reverse === 'true') q.reverse = true;
+      const events = scribeLog.query(q);
+      result = { events, count: events.length };
+
+    } else if (req.method === 'GET' && route === '/events/context') {
+      // (10.9) Surrounding events for a given id or timestamp. Powers
+      // `c4 events --around <ts>`.
+      const target = url.searchParams.get('target');
+      const minutesBeforeRaw = url.searchParams.get('minutesBefore');
+      const minutesAfterRaw = url.searchParams.get('minutesAfter');
+      const minutesBefore = minutesBeforeRaw != null && minutesBeforeRaw !== ''
+        ? Number(minutesBeforeRaw) : undefined;
+      const minutesAfter = minutesAfterRaw != null && minutesAfterRaw !== ''
+        ? Number(minutesAfterRaw) : undefined;
+      if (!target) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Missing target' }));
+        return;
+      }
+      const events = scribeLog.contextAround(target, minutesBefore, minutesAfter);
+      result = { events, count: events.length, target };
 
     } else if (req.method === 'GET' && route === '/token-usage') {
       const perTask = url.searchParams.get('perTask') === '1';

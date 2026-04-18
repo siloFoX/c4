@@ -1342,6 +1342,93 @@ async function main() {
         break;
       }
 
+      case 'events': {
+        // (10.9) Scribe v2 structured event log query.
+        //   c4 events [--from ISO] [--to ISO] [--type T[,T...]] [--worker W[,W...]]
+        //             [--limit N] [--reverse] [--json]
+        //   c4 events --around <id|ISO> [--window N]
+        //
+        // The --around form pulls the surrounding context for an error id
+        // or a timestamp; default window is +/- 5 minutes. Without --json
+        // events print one per line in a fixed human-friendly layout so
+        // the output stays tail-able.
+        let from = '', to = '', types = '', workers = '';
+        let limit = 0;
+        let reverse = false;
+        let jsonOut = false;
+        let around = '';
+        let window = 5;
+        for (let i = 0; i < args.length; i++) {
+          if (args[i] === '--from' && args[i + 1]) from = args[++i];
+          else if (args[i] === '--to' && args[i + 1]) to = args[++i];
+          else if (args[i] === '--type' && args[i + 1]) types = args[++i];
+          else if (args[i] === '--worker' && args[i + 1]) workers = args[++i];
+          else if (args[i] === '--limit' && args[i + 1]) {
+            const n = parseInt(args[++i], 10);
+            if (Number.isFinite(n) && n > 0) limit = n;
+          } else if (args[i] === '--reverse') reverse = true;
+          else if (args[i] === '--json') jsonOut = true;
+          else if (args[i] === '--around' && args[i + 1]) around = args[++i];
+          else if (args[i] === '--window' && args[i + 1]) {
+            const w = Number(args[++i]);
+            if (Number.isFinite(w) && w >= 0) window = w;
+          }
+        }
+
+        let events = [];
+        if (around) {
+          const qs = new URLSearchParams();
+          qs.set('target', around);
+          qs.set('minutesBefore', String(window));
+          qs.set('minutesAfter', String(window));
+          const resp = await request('GET', '/events/context?' + qs.toString());
+          if (resp && resp.error) {
+            console.error(`Error: ${resp.error}`);
+            process.exit(1);
+          }
+          events = (resp && resp.events) || [];
+        } else {
+          const qs = new URLSearchParams();
+          if (from) qs.set('from', from);
+          if (to) qs.set('to', to);
+          if (types) qs.set('types', types);
+          if (workers) qs.set('workers', workers);
+          if (limit > 0) qs.set('limit', String(limit));
+          if (reverse) qs.set('reverse', '1');
+          const qsStr = qs.toString();
+          const resp = await request('GET', '/events/query' + (qsStr ? '?' + qsStr : ''));
+          if (resp && resp.error) {
+            console.error(`Error: ${resp.error}`);
+            process.exit(1);
+          }
+          events = (resp && resp.events) || [];
+        }
+
+        if (jsonOut) {
+          for (const ev of events) console.log(JSON.stringify(ev));
+          return;
+        }
+        if (events.length === 0) {
+          console.log('No events.');
+          return;
+        }
+        for (const ev of events) {
+          const worker = ev.worker ? ev.worker : '-';
+          const payload = ev.payload && typeof ev.payload === 'object'
+            ? Object.entries(ev.payload)
+                .filter(([, v]) => v != null && v !== '')
+                .map(([k, v]) => {
+                  const s = typeof v === 'string' ? v : JSON.stringify(v);
+                  const short = s.length > 120 ? s.slice(0, 120) + '...' : s;
+                  return `${k}=${short}`;
+                })
+                .join(' ')
+            : '';
+          console.log(`${ev.ts}  ${ev.type.padEnd(16)} ${worker.padEnd(14)} ${payload}`);
+        }
+        return;
+      }
+
       case 'chat': {
         // (11.4) Natural-language chat.
         //   c4 chat "query text"        one-shot query
