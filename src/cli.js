@@ -1020,6 +1020,7 @@ async function main() {
         const { execSync } = require('child_process');
         const path = require('path');
         const mergeGuard = require('./merge-guard');
+        const mergeCore = require('./merge-core');
         const skipChecks = args.includes('--skip-checks');
         const autoStash = args.includes('--auto-stash');
         const target = args.filter(a => a !== '--skip-checks' && a !== '--auto-stash')[0];
@@ -1062,43 +1063,17 @@ async function main() {
         }
 
         // Determine branch name: if target matches a worktree worker name, derive branch
-        let branch = target;
         const worktreePath = path.resolve(repoRoot, '..', `c4-worktree-${target}`);
-        try {
-          const fs = require('fs');
-          if (fs.existsSync(worktreePath)) {
-            // It's a worker name — get the branch from the worktree
-            const wtBranch = execSync(`git -C "${worktreePath.replace(/\\/g, '/')}" rev-parse --abbrev-ref HEAD`, { encoding: 'utf8' }).trim();
-            if (wtBranch) {
-              branch = wtBranch;
-              console.log(`Worker "${target}" → branch "${branch}"`);
-            }
-          }
-        } catch {}
-
-        // Verify the branch exists
-        try {
-          execSync(`git rev-parse --verify "${branch}"`, { cwd: repoRoot, encoding: 'utf8', stdio: 'pipe' });
-        } catch {
-          console.error(`Error: branch "${branch}" does not exist`);
-          process.exit(1);
-        }
-
-        // Ensure we're on main
-        const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: repoRoot, encoding: 'utf8' }).trim();
-        if (currentBranch !== 'main') {
-          console.error(`Error: must be on main branch to merge (currently on "${currentBranch}")`);
-          process.exit(1);
-        }
-
-        // Don't merge main into itself
-        if (branch === 'main') {
-          console.error('Error: cannot merge main into itself');
-          process.exit(1);
+        const resolvedBranch = mergeCore.resolveBranchForWorker(target, repoRoot);
+        const branch = resolvedBranch;
+        if (branch !== target) {
+          console.log(`Worker "${target}" -> branch "${branch}"`);
         }
 
         // Dirty-tree guard (7.28). Runs before any other pre-merge work so
         // automated runs do not enter the stash/pop dance unexpectedly.
+        // Must precede runPreMergeChecks because we don't want the shared
+        // module to have to care about stash semantics.
         let stashedLabel = null;
         try {
           const dirty = mergeGuard.getDirtyEntries(repoRoot);
@@ -1117,42 +1092,71 @@ async function main() {
           process.exit(1);
         }
 
+        // Pre-merge checks via shared module so CLI + daemon stay in sync.
+        // CLI still prints a per-check progress line; the shared module
+        // returns a structured reasons[] we format here. npm test and the
+        // package-deps-installed probe stay in the CLI because they have
+        // side effects (actual install) we don't want to run from the
+        // daemon context.
+        const validationLib = require('./validation');
+        const preChecks = mergeCore.runPreMergeChecks(branch, { skipChecks, repoRoot });
+        if (!preChecks.passed) {
+          const branchMissing = preChecks.reasons.some(r => r.check === 'branch-exists' && r.status === 'FAIL');
+          if (branchMissing) {
+            console.error(`Error: branch "${branch}" does not exist`);
+            process.exit(1);
+          }
+          const notMain = preChecks.reasons.find(r => r.check === 'on-main' && r.status === 'FAIL');
+          if (notMain) {
+            console.error(`Error: ${notMain.detail}`);
+            process.exit(1);
+          }
+          const mainItself = preChecks.reasons.find(r => r.check === 'not-main' && r.status === 'FAIL');
+          if (mainItself) {
+            console.error(`Error: ${mainItself.detail}`);
+            process.exit(1);
+          }
+        }
+
         if (skipChecks) {
           console.log(`\nSkipping pre-merge checks (--skip-checks).\nMerging...\n`);
         } else {
           console.log(`\nPre-merge checks for branch "${branch}":\n`);
 
-          let allPassed = true;
+          let allPassed = preChecks.passed;
           let npmTestCount = null;
-          const validationLib = require('./validation');
 
-          // Check 0: validation.test_passed (9.9). Reads
-          // <worktree>/.c4-validation.json (or synthesizes from git state)
-          // and rejects when the worker did not confirm green tests.
-          process.stdout.write('  [check] validation.test_passed ... ');
+          // Render reasons from merge-core so CLI and daemon mirror each
+          // other. Filter out the structural checks already enforced
+          // above (branch-exists / on-main / not-main) — those only show
+          // up on FAIL and we exited there.
+          const RENDERABLE = new Set(['validation.test_passed', 'TODO.md', 'CHANGELOG.md']);
+          for (const r of preChecks.reasons) {
+            if (!RENDERABLE.has(r.check)) continue;
+            const label = r.check === 'validation.test_passed' ? 'validation.test_passed'
+              : r.check === 'TODO.md' ? 'TODO.md modified'
+              : 'CHANGELOG.md modified';
+            process.stdout.write(`  [check] ${label} ... `);
+            if (r.status === 'PASS') {
+              console.log(r.detail ? `PASS (${r.detail})` : 'PASS');
+            } else if (r.status === 'SKIP') {
+              console.log(r.detail ? `SKIP (${r.detail})` : 'SKIP');
+            } else {
+              console.log('FAIL');
+              if (r.detail) console.error(`    ${r.detail}`);
+              allPassed = false;
+            }
+          }
+
+          // Local-only check: run npm test and compare against validation.
+          process.stdout.write('  [check] npm test ... ');
           let validationObj = null;
           try {
             const fsRef = require('fs');
             if (fsRef.existsSync(worktreePath)) {
               validationObj = validationLib.captureValidation(worktreePath, branch);
             }
-            if (!validationObj) {
-              console.log('SKIP (no worktree for branch)');
-            } else if (validationObj.test_passed === true) {
-              console.log(`PASS (source: ${validationObj._source})`);
-            } else {
-              console.log('FAIL');
-              console.error(`    validation.test_passed = ${String(validationObj.test_passed)} (source: ${validationObj._source}). Worker did not confirm green tests.`);
-              allPassed = false;
-            }
-          } catch (e) {
-            console.log(`FAIL (${e.message})`);
-            allPassed = false;
-          }
-
-          // Check 1: tests pass (if test script exists). Capture stdout so
-          // the count can be cross-checked against validation.test_count.
-          process.stdout.write('  [check] npm test ... ');
+          } catch {}
           try {
             const pkg = JSON.parse(require('fs').readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
             if (pkg.scripts && pkg.scripts.test) {
@@ -1172,7 +1176,6 @@ async function main() {
             allPassed = false;
           }
 
-          // Check 1b: validation.test_count matches npm test output (9.9).
           if (validationObj && npmTestCount !== null) {
             process.stdout.write('  [check] validation.test_count matches npm test ... ');
             const gate = validationLib.checkPreMerge(validationObj, { npmTestCount });
@@ -1183,49 +1186,10 @@ async function main() {
               console.error(`    ${gate.detail}`);
               allPassed = false;
             } else {
-              // test-not-passed already surfaced by check 0; skip here.
               console.log(`SKIP (${gate.reason})`);
             }
           }
 
-          // Check 2: TODO.md modified
-          process.stdout.write('  [check] TODO.md modified ... ');
-          try {
-            const diff = execSync(`git diff main..."${branch}" --name-only`, { cwd: repoRoot, encoding: 'utf8' });
-            if (diff.split('\n').some(f => f.trim() === 'TODO.md')) {
-              console.log('PASS');
-            } else {
-              console.log('FAIL');
-              console.error('    TODO.md was not modified in this branch.');
-              allPassed = false;
-            }
-          } catch {
-            console.log('FAIL (could not diff)');
-            allPassed = false;
-          }
-
-          // Check 3: CHANGELOG.md modified
-          process.stdout.write('  [check] CHANGELOG.md modified ... ');
-          try {
-            const diff = execSync(`git diff main..."${branch}" --name-only`, { cwd: repoRoot, encoding: 'utf8' });
-            if (diff.split('\n').some(f => f.trim() === 'CHANGELOG.md')) {
-              console.log('PASS');
-            } else {
-              console.log('FAIL');
-              console.error('    CHANGELOG.md was not modified in this branch.');
-              allPassed = false;
-            }
-          } catch {
-            console.log('FAIL (could not diff)');
-            allPassed = false;
-          }
-
-          // Check 4: package-deps-installed (8.16). When package.json
-          // changed between main and the branch, installs against the
-          // updated lockfile and verifies every newly added dependency
-          // is require()-able. Catches the bcryptjs-style regression
-          // where `npm install` never ran on main after a merge added
-          // a new dep. No-op when package.json did not change.
           process.stdout.write('  [check] package-deps-installed ... ');
           try {
             const baseSha = execSync(`git merge-base main "${branch}"`, {
@@ -1256,51 +1220,50 @@ async function main() {
           }
 
           if (!allPassed) {
-            console.log('\nMerge REJECTED — fix the above issues first.');
+            console.log('\nMerge REJECTED - fix the above issues first.');
             process.exit(1);
           }
 
           console.log('\nAll checks passed. Merging...\n');
         }
-        try {
-          const output = execSync(`git merge "${branch}" --no-ff -m "Merge branch '${branch}'"`, { cwd: repoRoot, encoding: 'utf8' });
-          console.log(output);
-          console.log(`Merge complete: ${branch} → main`);
-
-          // Show diff stat with submodule details (5.30)
-          try {
-            const diffStat = execSync(`git diff --stat --submodule=diff HEAD~1..HEAD`, { cwd: repoRoot, encoding: 'utf8' });
-            if (diffStat.trim()) {
-              console.log('\nDiff summary (with submodule details):');
-              console.log(diffStat);
-            }
-          } catch {}
-
-          // Show merged commits (5.30)
-          try {
-            const logOutput = execSync(`git log --oneline HEAD~1..HEAD --first-parent`, { cwd: repoRoot, encoding: 'utf8' });
-            if (logOutput.trim()) {
-              console.log('Merged commits:');
-              console.log(logOutput);
-            }
-          } catch {}
-
-          // Auto-stash pop (7.28). Runs only when --auto-stash stashed changes.
-          if (stashedLabel) {
-            const popResult = mergeGuard.stashPop(repoRoot);
-            if (popResult.status !== 0) {
-              console.error(mergeGuard.buildPopConflictMessage(stashedLabel, popResult));
-              process.exit(1);
-            }
-            console.log(`Stashed changes restored from "${stashedLabel}".`);
-          }
-        } catch (e) {
-          console.error('Merge failed:', e.message);
+        const mergeOutcome = mergeCore.performMerge(branch, { repoRoot });
+        if (!mergeOutcome.success) {
+          console.error('Merge failed:', mergeOutcome.error);
           if (stashedLabel) {
             console.error(`Note: --auto-stash saved your changes as "${stashedLabel}".`);
             console.error('Run `git stash list` then `git stash pop` after resolving the merge issue.');
           }
           process.exit(1);
+        }
+        if (mergeOutcome.summary) console.log(mergeOutcome.summary);
+        console.log(`Merge complete: ${branch} -> main`);
+
+        // Show diff stat with submodule details (5.30)
+        try {
+          const diffStat = execSync(`git diff --stat --submodule=diff HEAD~1..HEAD`, { cwd: repoRoot, encoding: 'utf8' });
+          if (diffStat.trim()) {
+            console.log('\nDiff summary (with submodule details):');
+            console.log(diffStat);
+          }
+        } catch {}
+
+        // Show merged commits (5.30)
+        try {
+          const logOutput = execSync(`git log --oneline HEAD~1..HEAD --first-parent`, { cwd: repoRoot, encoding: 'utf8' });
+          if (logOutput.trim()) {
+            console.log('Merged commits:');
+            console.log(logOutput);
+          }
+        } catch {}
+
+        // Auto-stash pop (7.28). Runs only when --auto-stash stashed changes.
+        if (stashedLabel) {
+          const popResult = mergeGuard.stashPop(repoRoot);
+          if (popResult.status !== 0) {
+            console.error(mergeGuard.buildPopConflictMessage(stashedLabel, popResult));
+            process.exit(1);
+          }
+          console.log(`Stashed changes restored from "${stashedLabel}".`);
         }
         return;
       }

@@ -265,6 +265,23 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
     runAction('key Enter', () => postJson('/api/key', { name: workerName, key: 'Enter' }));
   };
 
+  // (8.5) Key helpers. POST /key enforces a server-side allow-list —
+  // calling with an unknown label is a 400. Labels here must stay in
+  // sync with KEY_ALLOWLIST in src/daemon.js.
+  const sendKey = (key: string) => {
+    runAction(`key ${key}`, () => postJson('/api/key', { name: workerName, key }));
+  };
+
+  const handleMerge = () => {
+    if (typeof window !== 'undefined') {
+      const ok = window.confirm(
+        `Merge worker "${workerName}" into main?\n\nThis runs the pre-merge checks and performs git merge --no-ff.`
+      );
+      if (!ok) return;
+    }
+    runAction('merge', () => postJson('/api/merge', { name: workerName }));
+  };
+
   const handleClose = () => {
     runAction('close', () => postJson('/api/close', { name: workerName }));
   };
@@ -423,11 +440,92 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
         </button>
         <button
           type="button"
+          onClick={handleMerge}
+          disabled={busy}
+          className="rounded bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50"
+          title="Run pre-merge checks and merge this worker's branch into main"
+        >
+          Merge
+        </button>
+        <button
+          type="button"
           onClick={handleClose}
           disabled={busy}
           className="rounded bg-red-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
         >
           Close
+        </button>
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <span className="text-xs uppercase tracking-wide text-gray-500">Keys</span>
+        <button
+          type="button"
+          onClick={() => sendKey('Escape')}
+          disabled={busy}
+          className="rounded bg-gray-700 px-2 py-1 text-xs font-medium text-gray-100 hover:bg-gray-600 disabled:opacity-50"
+        >
+          Esc
+        </button>
+        <button
+          type="button"
+          onClick={() => sendKey('C-c')}
+          disabled={busy}
+          className="rounded bg-gray-700 px-2 py-1 text-xs font-medium text-gray-100 hover:bg-gray-600 disabled:opacity-50"
+        >
+          Ctrl-C
+        </button>
+        <button
+          type="button"
+          onClick={() => sendKey('C-d')}
+          disabled={busy}
+          className="rounded bg-gray-700 px-2 py-1 text-xs font-medium text-gray-100 hover:bg-gray-600 disabled:opacity-50"
+        >
+          Ctrl-D
+        </button>
+        <button
+          type="button"
+          onClick={() => sendKey('Tab')}
+          disabled={busy}
+          className="rounded bg-gray-700 px-2 py-1 text-xs font-medium text-gray-100 hover:bg-gray-600 disabled:opacity-50"
+        >
+          Tab
+        </button>
+        <button
+          type="button"
+          onClick={() => sendKey('Up')}
+          disabled={busy}
+          className="rounded bg-gray-700 px-2 py-1 text-xs font-medium text-gray-100 hover:bg-gray-600 disabled:opacity-50"
+          aria-label="Arrow Up"
+        >
+          Up
+        </button>
+        <button
+          type="button"
+          onClick={() => sendKey('Down')}
+          disabled={busy}
+          className="rounded bg-gray-700 px-2 py-1 text-xs font-medium text-gray-100 hover:bg-gray-600 disabled:opacity-50"
+          aria-label="Arrow Down"
+        >
+          Down
+        </button>
+        <button
+          type="button"
+          onClick={() => sendKey('Left')}
+          disabled={busy}
+          className="rounded bg-gray-700 px-2 py-1 text-xs font-medium text-gray-100 hover:bg-gray-600 disabled:opacity-50"
+          aria-label="Arrow Left"
+        >
+          Left
+        </button>
+        <button
+          type="button"
+          onClick={() => sendKey('Right')}
+          disabled={busy}
+          className="rounded bg-gray-700 px-2 py-1 text-xs font-medium text-gray-100 hover:bg-gray-600 disabled:opacity-50"
+          aria-label="Arrow Right"
+        >
+          Right
         </button>
       </div>
     </div>
