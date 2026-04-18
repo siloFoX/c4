@@ -112,12 +112,16 @@ export interface AuthStatus {
 }
 
 export async function fetchAuthStatus(): Promise<AuthStatus> {
+  // Fail safe: if the status check itself errors or returns non-OK we
+  // assume auth is enabled. Treating an error as "auth disabled" would
+  // silently render the dashboard for unauthenticated users when the
+  // daemon is mid-restart or behind a misconfigured proxy.
   try {
     const res = await fetch('/api/auth/status');
-    if (!res.ok) return { enabled: false };
+    if (!res.ok) return { enabled: true };
     const data = (await res.json()) as AuthStatus;
     return { enabled: Boolean(data.enabled) };
   } catch {
-    return { enabled: false };
+    return { enabled: true };
   }
 }
