@@ -7,7 +7,20 @@
 // engine + viewer; full edit UI is tracked under future work).
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Play, RefreshCw, Workflow as WorkflowIcon } from 'lucide-react';
 import { apiGet, apiPost } from '../lib/api';
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Panel,
+  type BadgeProps,
+} from './ui';
+import { cn } from '../lib/cn';
 
 export type WorkflowNodeType = 'task' | 'condition' | 'parallel' | 'wait' | 'end';
 
@@ -64,6 +77,8 @@ export interface WorkflowRunsResponse {
   count: number;
 }
 
+type BadgeVariant = NonNullable<BadgeProps['variant']>;
+
 const NODE_W = 140;
 const NODE_H = 56;
 const COL_GAP = 70;
@@ -76,6 +91,12 @@ const TYPE_FILL: Record<WorkflowNodeType, string> = {
   wait: '#d29922',
   end: '#6e7681',
 };
+
+function runStatusVariant(status: WorkflowRun['status']): BadgeVariant {
+  if (status === 'completed') return 'success';
+  if (status === 'failed') return 'destructive';
+  return 'outline';
+}
 
 // Layered layout: assign each node a column equal to the longest path
 // to it from any source. Within a column nodes are stacked vertically
@@ -238,30 +259,34 @@ function NodeProperties(props: { node: WorkflowNode | null }) {
   const { node } = props;
   if (!node) {
     return (
-      <div className="rounded border border-gray-700 bg-gray-900 p-3 text-sm text-gray-400">
+      <Panel className="text-sm text-muted-foreground">
         Select a node to inspect its config.
-      </div>
+      </Panel>
     );
   }
   return (
-    <div className="rounded border border-gray-700 bg-gray-900 p-3 text-sm text-gray-200">
+    <Panel className="text-sm text-foreground">
       <div className="mb-2 flex items-center justify-between">
-        <h4 className="text-base font-semibold text-gray-100">{node.name || node.id}</h4>
+        <h4 className="text-base font-semibold text-foreground">
+          {node.name || node.id}
+        </h4>
         <span
-          className="rounded px-2 py-0.5 text-xs"
-          style={{ background: TYPE_FILL[node.type] || '#444', color: '#fff' }}
+          className="rounded-full px-2 py-0.5 text-xs font-semibold text-white"
+          style={{ background: TYPE_FILL[node.type] || '#444' }}
         >
           {node.type}
         </span>
       </div>
-      <div className="text-xs text-gray-400">id: {node.id}</div>
+      <div className="text-xs text-muted-foreground">id: {node.id}</div>
       <div className="mt-2">
-        <div className="text-xs uppercase tracking-wide text-gray-500">config</div>
-        <pre className="mt-1 max-h-48 overflow-auto rounded bg-gray-950 p-2 text-xs text-gray-200">
+        <div className="text-xs uppercase tracking-wide text-muted-foreground">
+          config
+        </div>
+        <pre className="mt-1 max-h-48 overflow-auto rounded-md border border-border bg-background p-2 text-xs text-foreground">
           {JSON.stringify(node.config || {}, null, 2)}
         </pre>
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -327,124 +352,155 @@ export default function WorkflowEditor() {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 text-gray-100 md:flex-row md:p-6">
-      <aside className="w-full shrink-0 overflow-y-auto rounded border border-gray-700 bg-gray-900 p-3 md:w-72">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">Workflows</h2>
-          <button
-            type="button"
-            onClick={refresh}
-            disabled={busy}
-            className="rounded bg-gray-700 px-2 py-0.5 text-xs text-gray-200 hover:bg-gray-600 disabled:opacity-50"
-          >
-            Refresh
-          </button>
-        </div>
-        {error ? <div className="mb-2 rounded bg-red-900/40 p-2 text-xs text-red-300">{error}</div> : null}
-        {workflows.length === 0 ? (
-          <div className="text-xs text-gray-400">
-            No workflows yet. Use <code>c4 workflow create --file</code> to add one.
-          </div>
-        ) : (
-          <ul className="space-y-1">
-            {workflows.map((wf) => (
-              <li key={wf.id}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedId(wf.id);
-                    setSelectedNodeId(null);
-                  }}
-                  className={`w-full rounded px-2 py-1 text-left text-sm ${
-                    wf.id === selectedId
-                      ? 'bg-blue-700 text-white'
-                      : 'bg-gray-800 text-gray-200 hover:bg-gray-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate font-medium">{wf.name}</span>
-                    <span
-                      className={`shrink-0 rounded px-1 text-xs ${
-                        wf.enabled ? 'bg-green-700 text-white' : 'bg-gray-700 text-gray-300'
-                      }`}
-                    >
-                      {wf.enabled ? 'on' : 'off'}
-                    </span>
-                  </div>
-                  <div className="text-xs text-gray-300">
-                    {wf.nodes.length} nodes / {wf.edges.length} edges
-                  </div>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+    <div className="flex h-full min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 text-foreground md:flex-row md:p-6">
+      <aside className="w-full shrink-0 overflow-y-auto md:w-72">
+        <Card>
+          <CardHeader className="flex-row items-center justify-between p-4 md:p-5">
+            <div className="flex items-center gap-2">
+              <WorkflowIcon aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
+              <CardTitle>Workflows</CardTitle>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={refresh}
+              disabled={busy}
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span>Refresh</span>
+            </Button>
+          </CardHeader>
+          <CardContent className="p-4 pt-0 md:p-5 md:pt-0">
+            {error ? (
+              <div
+                role="alert"
+                className="mb-2 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive"
+              >
+                {error}
+              </div>
+            ) : null}
+            {workflows.length === 0 ? (
+              <div className="text-xs text-muted-foreground">
+                No workflows yet. Use <code className="font-mono text-foreground">c4 workflow create --file</code>
+                {' '}to add one.
+              </div>
+            ) : (
+              <ul className="space-y-1">
+                {workflows.map((wf) => {
+                  const isSelected = wf.id === selectedId;
+                  return (
+                    <li key={wf.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedId(wf.id);
+                          setSelectedNodeId(null);
+                        }}
+                        className={cn(
+                          'w-full rounded-md border border-transparent px-2 py-1.5 text-left text-sm transition-colors',
+                          isSelected
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted/30 text-foreground hover:bg-muted'
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate font-medium">{wf.name}</span>
+                          <Badge
+                            variant={wf.enabled ? 'success' : 'secondary'}
+                            className="shrink-0 uppercase"
+                          >
+                            {wf.enabled ? 'on' : 'off'}
+                          </Badge>
+                        </div>
+                        <div className="text-xs opacity-80">
+                          {wf.nodes.length} nodes / {wf.edges.length} edges
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
       </aside>
+
       <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden">
         {selected ? (
           <>
-            <div className="flex items-center justify-between gap-2 rounded border border-gray-700 bg-gray-900 p-3">
-              <div className="min-w-0">
-                <h3 className="truncate text-lg font-semibold text-gray-100">{selected.name}</h3>
-                <p className="truncate text-xs text-gray-400">
-                  {selected.description || 'No description.'}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleRun}
-                disabled={busy || !selected.enabled}
-                className="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-500 disabled:bg-gray-700 disabled:opacity-50"
-              >
-                Run
-              </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-auto rounded border border-gray-700 bg-gray-950 p-3">
-              <WorkflowGraph
-                workflow={selected}
-                selectedNode={selectedNodeId}
-                onSelectNode={setSelectedNodeId}
-              />
-            </div>
+            <Card>
+              <CardHeader className="flex-row items-start justify-between gap-2 p-4 md:p-5">
+                <div className="min-w-0">
+                  <CardTitle className="truncate">{selected.name}</CardTitle>
+                  <CardDescription className="truncate">
+                    {selected.description || 'No description.'}
+                  </CardDescription>
+                </div>
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  onClick={handleRun}
+                  disabled={busy || !selected.enabled}
+                >
+                  <Play className="h-4 w-4" />
+                  <span>Run</span>
+                </Button>
+              </CardHeader>
+            </Card>
+
+            <Card className="min-h-0 flex-1 overflow-auto">
+              <CardContent className="min-h-0 p-3 md:p-4">
+                <WorkflowGraph
+                  workflow={selected}
+                  selectedNode={selectedNodeId}
+                  onSelectNode={setSelectedNodeId}
+                />
+              </CardContent>
+            </Card>
+
             <div className="grid gap-3 md:grid-cols-2">
               <NodeProperties node={selectedNode} />
-              <div className="rounded border border-gray-700 bg-gray-900 p-3 text-sm text-gray-200">
+              <Panel className="text-sm text-foreground">
                 <div className="mb-2 flex items-center justify-between">
-                  <h4 className="text-base font-semibold text-gray-100">Recent runs</h4>
-                  <span className="text-xs text-gray-400">{runs.length}</span>
+                  <h4 className="text-base font-semibold text-foreground">
+                    Recent runs
+                  </h4>
+                  <span className="text-xs text-muted-foreground">{runs.length}</span>
                 </div>
                 {runs.length === 0 ? (
-                  <div className="text-xs text-gray-400">No runs yet.</div>
+                  <div className="text-xs text-muted-foreground">No runs yet.</div>
                 ) : (
                   <ul className="max-h-48 overflow-y-auto text-xs">
                     {runs.slice(-10).reverse().map((r) => (
-                      <li key={r.id} className="border-b border-gray-800 py-1 last:border-b-0">
-                        <div className="flex justify-between">
-                          <span className="truncate text-gray-200">{r.id}</span>
-                          <span
-                            className={
-                              r.status === 'completed'
-                                ? 'text-green-400'
-                                : r.status === 'failed'
-                                ? 'text-red-400'
-                                : 'text-gray-300'
-                            }
-                          >
-                            {r.status}
-                          </span>
+                      <li
+                        key={r.id}
+                        className="flex items-center justify-between border-b border-border py-1 last:border-b-0"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-foreground">{r.id}</div>
+                          <div className="text-muted-foreground">{r.startedAt}</div>
                         </div>
-                        <div className="text-gray-500">{r.startedAt}</div>
+                        <Badge
+                          variant={runStatusVariant(r.status)}
+                          className="shrink-0 uppercase"
+                        >
+                          {r.status}
+                        </Badge>
                       </li>
                     ))}
                   </ul>
                 )}
-              </div>
+              </Panel>
             </div>
           </>
         ) : (
-          <div className="rounded border border-gray-700 bg-gray-900 p-4 text-sm text-gray-300">
-            Select a workflow on the left to view its DAG.
-          </div>
+          <Card>
+            <CardContent className="p-4 text-sm text-muted-foreground md:p-5">
+              Select a workflow on the left to view its DAG.
+            </CardContent>
+          </Card>
         )}
       </main>
     </div>
