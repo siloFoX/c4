@@ -51,7 +51,12 @@ const FIELD_ORDER = Object.freeze(['minute', 'hour', 'dom', 'month', 'dow']);
 
 const DEFAULT_TIMEZONE = 'UTC';
 const HISTORY_LIMIT = 100;
-const WALK_CAP_MINUTES = 366 * 24 * 60; // ~1 year, covers Feb 29.
+// Cap the walk at 5 years of minutes. This covers leap-year corner
+// cases like `0 0 29 2 *` (next Feb 29 can be up to 4 years out) while
+// still terminating fast enough on genuinely-unreachable expressions
+// that a misconfigured schedule surfaces as an error instead of
+// spinning forever.
+const WALK_CAP_MINUTES = 5 * 366 * 24 * 60;
 const ID_PATTERN = /^[A-Za-z0-9._-]+$/;
 
 function defaultSchedulesPath() {
