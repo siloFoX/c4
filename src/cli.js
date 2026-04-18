@@ -294,7 +294,7 @@ async function main() {
         }
 
         let branch = '', useBranch = true, scope = null, scopePreset = '', after = '', contextFrom = '', reuse = undefined, profile = '', autoMode = false, projectRoot = '', cwd = '';
-        let budgetUsd = null, maxRetries = null, tier = '', model = '';
+        let budgetUsd = null, maxRetries = null, tier = '', model = '', planDoc = '';
         const taskParts = [];
         for (let i = argStart; i < effectiveArgs.length; i++) {
           if (effectiveArgs[i] === '--branch' && effectiveArgs[i + 1]) { branch = effectiveArgs[++i]; }
@@ -325,6 +325,7 @@ async function main() {
             catch { console.error('Error: --scope must be valid JSON'); process.exit(1); }
           }
           else if (effectiveArgs[i] === '--scope-preset' && effectiveArgs[i + 1]) { scopePreset = effectiveArgs[++i]; }
+          else if (effectiveArgs[i] === '--plan-doc' && effectiveArgs[i + 1]) { planDoc = effectiveArgs[++i]; }
           else { taskParts.push(effectiveArgs[i]); }
         }
         const task = taskParts.join(' ');
@@ -342,6 +343,7 @@ async function main() {
         if (maxRetries !== null) body.maxRetries = maxRetries;
         if (tier) body.tier = tier;
         if (model) body.model = model;
+        if (planDoc) body.planDocPath = planDoc;
         result = await request('POST', '/task', body);
         break;
       }
@@ -1815,6 +1817,39 @@ async function main() {
           process.stdout.write(result.content + '\n');
           return;
         }
+        break;
+      }
+
+      case 'plan-update': {
+        // (9.12) Worker flags its current plan as needing revision.
+        // Optional flags: --replan invokes the planner factory to produce a
+        // new revision file; --redispatch re-sends the revised plan back to
+        // the worker. Without --replan the command just appends a
+        // "Needs Revision" block to the existing plan document.
+        const name = args[0];
+        let reason = '', evidence = '', replan = false, redispatch = false;
+        for (let i = 1; i < args.length; i++) {
+          if (args[i] === '--reason' && args[i + 1]) { reason = args[++i]; }
+          else if (args[i] === '--evidence' && args[i + 1]) { evidence = args[++i]; }
+          else if (args[i] === '--replan') { replan = true; }
+          else if (args[i] === '--redispatch') { replan = true; redispatch = true; }
+        }
+        if (!name || !reason) {
+          console.error('Usage: c4 plan-update <name> --reason <text> [--evidence <text>] [--replan] [--redispatch]');
+          process.exit(1);
+        }
+        result = await request('POST', '/plan-update', { name, reason, evidence, replan, redispatch });
+        break;
+      }
+
+      case 'plan-revisions': {
+        // (9.12) Show every plan revision recorded for a worker.
+        const name = args[0];
+        if (!name) {
+          console.error('Usage: c4 plan-revisions <name>');
+          process.exit(1);
+        }
+        result = await request('GET', `/plan-revisions?name=${encodeURIComponent(name)}`);
         break;
       }
 
@@ -3721,6 +3756,9 @@ Commands:
   validation <worker>              Show stored validation object for the worker (9.9)
   plan <name> <task> [--output f]   Plan-only mode: write plan.md without executing
   plan-read <name> [--output f]    Read generated plan.md from worker
+  plan-update <name> --reason <t> [--evidence <t>] [--replan] [--redispatch]
+                                    Flag plan as needing revision; optionally re-plan + re-dispatch (9.12)
+  plan-revisions <name>             List plan revisions recorded for a worker (9.12)
   rollback <name>                  Rollback worker to pre-task commit (git reset --soft)
   recover <name> [--category X]    Smart recovery pass on a stuck worker (8.4)
        [--history] [--limit N]     Show recovery history instead of running a pass

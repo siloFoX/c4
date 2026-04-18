@@ -949,7 +949,7 @@ async function handleRequest(req, res) {
       };
 
     } else if (req.method === 'POST' && route === '/task') {
-      const { name, task, branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, budgetUsd, maxRetries, tier, model } = await parseBody(req);
+      const { name, task, branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, budgetUsd, maxRetries, tier, model, planDocPath } = await parseBody(req);
       const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_TASK,
         target ? { type: 'machine', id: target } : null);
       if (denyOr(res, gate)) return;
@@ -980,6 +980,14 @@ async function handleRequest(req, res) {
         if (typeof result === 'object') {
           result.tier = taskTier;
           if (resolvedModel) result.model = resolvedModel;
+        }
+        // (9.12) plan-back-prop loop: remember which plan doc this task is
+        // anchored to so `c4 plan-update` can locate it later.
+        if (planDocPath && typeof planDocPath === 'string') {
+          const setRes = planner.setPlanDocPath(name, planDocPath);
+          if (setRes && !setRes.error && typeof result === 'object') {
+            result.plan_doc_path = planDocPath;
+          }
         }
         _safeAudit('task.sent',
           { task: typeof task === 'string' ? task.slice(0, 500) : '', branch: branch || '', profile: profile || '', autoMode: Boolean(autoMode), tier: taskTier, model: resolvedModel || '' },
@@ -2536,6 +2544,22 @@ async function handleRequest(req, res) {
       const name = url.searchParams.get('name');
       const outputPath = url.searchParams.get('outputPath') || '';
       result = planner.readPlan(name, { outputPath: outputPath || undefined });
+
+    } else if (req.method === 'POST' && route === '/plan-update') {
+      // (9.12) Planner Back-propagation loop entry point.
+      const { name, reason, evidence, replan, redispatch } = await parseBody(req);
+      result = planner.updateAndMaybeReplan(name, reason, evidence, {
+        replan: Boolean(replan) || Boolean(redispatch),
+        redispatch: Boolean(redispatch),
+      });
+
+    } else if (req.method === 'GET' && route === '/plan-revisions') {
+      const name = url.searchParams.get('name');
+      if (!name) {
+        result = { error: 'Missing name parameter' };
+      } else {
+        result = planner.listRevisions(name);
+      }
 
     } else if (req.method === 'POST' && route === '/mcp') {
       const body = await parseBody(req);

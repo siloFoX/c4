@@ -1,5 +1,60 @@
 # Changelog
 
+## [v7.6] - 2026-04-18
+
+### Added
+- **(9.12) Planner Back-propagation loop.** Workers can now flag the
+  plan they were dispatched against as broken, get a revised plan from
+  the planner, and continue execution — without losing the original task
+  context. `src/planner.js` grows `setPlanDocPath` / `getPlanDocPath`,
+  `appendNeedsRevision`, `replan`, `redispatch`, `updateAndMaybeReplan`,
+  and `listRevisions`. Worker records gain three fields: `plan_doc_path`
+  (which plan the run is anchored to), `replan_count` (how many
+  revisions have been produced), and `plan_revisions` (an array of
+  `{rev, path, reason, evidence, when}` entries). The planner factory
+  is abstracted: `setPlannerFactory(fn)` lets production wire a real
+  Claude session while tests pass a mock; a deterministic
+  `_defaultPlannerFactory` makes the loop end-to-end functional even
+  without wiring.
+- **`c4 task --plan-doc <path>`.** New option records which plan
+  document this task is implementing. The daemon `/task` route forwards
+  `planDocPath` and calls `planner.setPlanDocPath` after a successful
+  `sendTask`; the response echoes `plan_doc_path` for confirmation.
+- **`c4 plan-update <name> --reason <t> [--evidence <t>] [--replan]
+  [--redispatch]`.** Append-only mode (no flags) writes a
+  `## Needs Revision` block (When / Reason / Evidence) to the worker's
+  current plan document. `--replan` invokes the planner factory with
+  `{workerName, originalTask, reason, evidence, previousPlanPath,
+  revisionNumber, revisionPath, partialState}` and saves the revised
+  plan to `docs/plans/<name>-rev<N>.md`, then advances
+  `replan_count` and points `plan_doc_path` at the new file.
+  `--redispatch` additionally calls `manager.sendTask` with a templated
+  prompt that references the new plan path + the original task and
+  uses `contextFrom=<name>` so prior snapshots stay attached. The
+  daemon route is `POST /plan-update`.
+- **`c4 plan-revisions <name>`.** New CLI mirrors daemon
+  `GET /plan-revisions?name=`. Returns
+  `{worker, current, replanCount, maxReplans, revisions[]}`.
+- **Loop limit (default 3).** When `replan_count >= maxReplans` a
+  further `replan` (or `--replan` / `--redispatch`) is rejected with the
+  exact message `"Loop limit N exceeded — manual intervention required"`
+  and the worker record is left untouched. `_notifications.pushAll`
+  fires a `[PLANNER LOOP LIMIT] <name>: <count>/<limit> — manual
+  intervention required (<reason>)` line so a configured Slack webhook
+  pages the operator. Override per call (`options.maxReplans`) or per
+  daemon (`config.plannerLoop.maxReplans`); set to 0 to disable.
+- **Tests.** `tests/planner-loop.test.js` adds 16 assertions across one
+  suite covering: setPlanDocPath round-trip, append block contents,
+  rev1/rev2 file creation + `replan_count` increment + `plan_doc_path`
+  rotation, loop-limit rejection wording + Slack notification side
+  effect, `maxReplans` config override, redispatch sends the right
+  prompt with `contextFrom`, `updateAndMaybeReplan` chaining
+  (append+replan+redispatch), no-flag mode skipping the factory,
+  loop-limit short-circuiting redispatch, listRevisions output, default
+  factory fallback, and factory error/empty content rejection. Existing
+  `tests/planner.test.js` (8 assertions) untouched. Patch note:
+  `patches/1.11.6-planner-loop.md`.
+
 ## [v7.5] - 2026-04-18
 
 ### Added
