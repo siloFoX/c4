@@ -22,9 +22,13 @@ const DEFAULT_BCRYPT_ROUNDS = 10;
 
 // Routes the middleware must let through even when auth is enabled.
 // The login endpoint is needed to obtain a token in the first place,
-// and the health check stays public for daemon probes.
+// the health check stays public for daemon probes, and /auth/status is
+// the very first call the Web UI makes to decide whether to render the
+// login page - if it returns 401 unauthed clients get stuck in a
+// chicken-and-egg loop and the React app falls open to the dashboard.
 const OPEN_API_ROUTES = new Set([
   '/auth/login',
+  '/auth/status',
   '/health',
 ]);
 
