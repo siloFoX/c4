@@ -73,7 +73,9 @@ describe('(10.1) RBAC helpers', () => {
     expect(ACTIONS.MCP_READ).toBe('mcp.read');
     expect(ACTIONS.MCP_MANAGE).toBe('mcp.manage');
     expect(ACTIONS.NL_CHAT).toBe('nl.chat');
-    expect(ALL_ACTIONS.length).toBe(21);
+    expect(ACTIONS.WORKFLOW_READ).toBe('workflow.read');
+    expect(ACTIONS.WORKFLOW_MANAGE).toBe('workflow.manage');
+    expect(ALL_ACTIONS.length).toBe(23);
   });
 
   test('(d) isRole/isAction/isUsername validators', () => {

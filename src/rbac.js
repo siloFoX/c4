@@ -64,6 +64,8 @@ const ACTIONS = Object.freeze({
   MCP_READ: 'mcp.read',
   MCP_MANAGE: 'mcp.manage',
   NL_CHAT: 'nl.chat',
+  WORKFLOW_READ: 'workflow.read',
+  WORKFLOW_MANAGE: 'workflow.manage',
 });
 
 const ALL_ACTIONS = Object.freeze(Object.values(ACTIONS));
@@ -93,6 +95,8 @@ const DEFAULT_PERMISSIONS = Object.freeze({
     'mcp.read',
     'mcp.manage',
     'nl.chat',
+    'workflow.read',
+    'workflow.manage',
   ]),
   viewer: Object.freeze([
     'project.read',
@@ -102,6 +106,7 @@ const DEFAULT_PERMISSIONS = Object.freeze({
     'schedule.read',
     'mcp.read',
     'nl.chat',
+    'workflow.read',
   ]),
 });
 

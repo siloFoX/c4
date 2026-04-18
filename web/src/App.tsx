@@ -7,12 +7,13 @@ import HierarchyTree from './components/HierarchyTree';
 import HistoryView from './components/HistoryView';
 import Chat from './components/Chat';
 import Login from './components/Login';
+import WorkflowEditor from './components/WorkflowEditor';
 import { AUTH_EVENT, fetchAuthStatus, getToken, logout } from './lib/api';
 
 type AuthState = 'loading' | 'anon' | 'authed' | 'disabled';
 type SidebarMode = 'list' | 'tree';
 type DetailMode = 'terminal' | 'chat' | 'control';
-type TopView = 'workers' | 'history' | 'chat';
+type TopView = 'workers' | 'history' | 'chat' | 'workflows';
 const SIDEBAR_MODE_KEY = 'c4.sidebar.mode';
 const DETAIL_MODE_KEY = 'c4.detail.mode';
 const TOP_VIEW_KEY = 'c4.topView';
@@ -45,6 +46,7 @@ function readTopView(): TopView {
     const v = window.localStorage.getItem(TOP_VIEW_KEY);
     if (v === 'history') return 'history';
     if (v === 'chat') return 'chat';
+    if (v === 'workflows') return 'workflows';
     return 'workers';
   } catch {
     return 'workers';
@@ -187,6 +189,19 @@ export default function App() {
             >
               Chat
             </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={topView === 'workflows'}
+              onClick={() => setTopView('workflows')}
+              className={`px-3 py-1 ${
+                topView === 'workflows'
+                  ? 'bg-gray-700 text-gray-100'
+                  : 'bg-gray-900 text-gray-400 hover:bg-gray-800'
+              }`}
+            >
+              Workflows
+            </button>
           </div>
           {authState === 'authed' && (
             <button
@@ -206,6 +221,10 @@ export default function App() {
       ) : topView === 'chat' ? (
         <div className="flex min-h-0 flex-1 overflow-hidden p-3 md:p-6">
           <Chat />
+        </div>
+      ) : topView === 'workflows' ? (
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          <WorkflowEditor />
         </div>
       ) : (
       <div className="flex min-h-0 flex-1 overflow-hidden">
