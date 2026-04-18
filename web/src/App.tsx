@@ -3,6 +3,7 @@ import WorkerDetail from './components/WorkerDetail';
 import ChatView from './components/ChatView';
 import ControlPanel from './components/ControlPanel';
 import HistoryView from './components/HistoryView';
+import SessionsView from './components/SessionsView';
 import Chat from './components/Chat';
 import Login from './components/Login';
 import WorkflowEditor from './components/WorkflowEditor';
@@ -47,6 +48,7 @@ function readTopView(): TopView {
     if (v === 'history') return 'history';
     if (v === 'chat') return 'chat';
     if (v === 'workflows') return 'workflows';
+    if (v === 'sessions') return 'sessions';
     return 'workers';
   } catch {
     return 'workers';
@@ -127,6 +129,10 @@ export default function App() {
       {topView === 'history' ? (
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <HistoryView />
+        </div>
+      ) : topView === 'sessions' ? (
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          <SessionsView />
         </div>
       ) : topView === 'chat' ? (
         <div className="flex min-h-0 flex-1 overflow-hidden p-3 md:p-6">
