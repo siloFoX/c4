@@ -63,6 +63,7 @@ const ACTIONS = Object.freeze({
   SCHEDULE_MANAGE: 'schedule.manage',
   MCP_READ: 'mcp.read',
   MCP_MANAGE: 'mcp.manage',
+  NL_CHAT: 'nl.chat',
 });
 
 const ALL_ACTIONS = Object.freeze(Object.values(ACTIONS));
@@ -91,6 +92,7 @@ const DEFAULT_PERMISSIONS = Object.freeze({
     'schedule.manage',
     'mcp.read',
     'mcp.manage',
+    'nl.chat',
   ]),
   viewer: Object.freeze([
     'project.read',
@@ -99,6 +101,7 @@ const DEFAULT_PERMISSIONS = Object.freeze({
     'org.read',
     'schedule.read',
     'mcp.read',
+    'nl.chat',
   ]),
 });
 

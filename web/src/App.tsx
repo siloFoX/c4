@@ -5,13 +5,14 @@ import ChatView from './components/ChatView';
 import ControlPanel from './components/ControlPanel';
 import HierarchyTree from './components/HierarchyTree';
 import HistoryView from './components/HistoryView';
+import Chat from './components/Chat';
 import Login from './components/Login';
 import { AUTH_EVENT, fetchAuthStatus, getToken, logout } from './lib/api';
 
 type AuthState = 'loading' | 'anon' | 'authed' | 'disabled';
 type SidebarMode = 'list' | 'tree';
 type DetailMode = 'terminal' | 'chat' | 'control';
-type TopView = 'workers' | 'history';
+type TopView = 'workers' | 'history' | 'chat';
 const SIDEBAR_MODE_KEY = 'c4.sidebar.mode';
 const DETAIL_MODE_KEY = 'c4.detail.mode';
 const TOP_VIEW_KEY = 'c4.topView';
@@ -42,7 +43,9 @@ function readTopView(): TopView {
   if (typeof window === 'undefined') return 'workers';
   try {
     const v = window.localStorage.getItem(TOP_VIEW_KEY);
-    return v === 'history' ? 'history' : 'workers';
+    if (v === 'history') return 'history';
+    if (v === 'chat') return 'chat';
+    return 'workers';
   } catch {
     return 'workers';
   }
@@ -171,6 +174,19 @@ export default function App() {
             >
               History
             </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={topView === 'chat'}
+              onClick={() => setTopView('chat')}
+              className={`px-3 py-1 ${
+                topView === 'chat'
+                  ? 'bg-gray-700 text-gray-100'
+                  : 'bg-gray-900 text-gray-400 hover:bg-gray-800'
+              }`}
+            >
+              Chat
+            </button>
           </div>
           {authState === 'authed' && (
             <button
@@ -186,6 +202,10 @@ export default function App() {
       {topView === 'history' ? (
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <HistoryView />
+        </div>
+      ) : topView === 'chat' ? (
+        <div className="flex min-h-0 flex-1 overflow-hidden p-3 md:p-6">
+          <Chat />
         </div>
       ) : (
       <div className="flex min-h-0 flex-1 overflow-hidden">
