@@ -1,6 +1,6 @@
 {
-  "test_passed": true,
-  "test_count": 98,
-  "branch": "c4/hygiene-v8",
-  "todo": "hygiene"
+  "test_count": 99,
+  "build": "pass",
+  "branch": "c4/web-theme",
+  "notes": "theme tokens + lucide/cn deps introduced; no component JSX rewritten"
 }
