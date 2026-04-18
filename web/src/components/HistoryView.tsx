@@ -191,7 +191,9 @@ export default function HistoryView() {
             </div>
             <Button type="button" variant="secondary" size="sm" onClick={openScribe}>
               <NotebookText className="h-3.5 w-3.5" />
-              <span>Scribe</span>
+              <span>
+                Scribe
+              </span>
             </Button>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 p-0 pt-3">

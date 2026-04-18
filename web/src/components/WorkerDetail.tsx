@@ -454,13 +454,16 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
             className="h-9 min-w-0 flex-1"
             disabled={busy}
           />
-          <IconButton
+          <Button
+            type="button"
+            variant="default"
+            size="icon"
             aria-label="Send text"
             onClick={handleSend}
             disabled={busy || !inputText.trim()}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
-            icon={<Send className="h-4 w-4" />}
-          />
+          >
+            <Send className="h-4 w-4" />
+          </Button>
           <Button
             type="button"
             variant="secondary"
@@ -531,34 +534,50 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
           >
             Tab
           </Button>
-          <IconButton
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
             aria-label="Arrow Up"
-            className="h-8 w-8 bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-secondary-foreground"
             onClick={() => sendKey('Up')}
             disabled={busy}
-            icon={<ArrowUp className="h-4 w-4" />}
-          />
-          <IconButton
+            className="h-8 w-8 p-0"
+          >
+            <ArrowUp className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
             aria-label="Arrow Down"
-            className="h-8 w-8 bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-secondary-foreground"
             onClick={() => sendKey('Down')}
             disabled={busy}
-            icon={<ArrowDown className="h-4 w-4" />}
-          />
-          <IconButton
+            className="h-8 w-8 p-0"
+          >
+            <ArrowDown className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
             aria-label="Arrow Left"
-            className="h-8 w-8 bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-secondary-foreground"
             onClick={() => sendKey('Left')}
             disabled={busy}
-            icon={<ArrowLeft className="h-4 w-4" />}
-          />
-          <IconButton
+            className="h-8 w-8 p-0"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
             aria-label="Arrow Right"
-            className="h-8 w-8 bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-secondary-foreground"
             onClick={() => sendKey('Right')}
             disabled={busy}
-            icon={<ArrowRight className="h-4 w-4" />}
-          />
+            className="h-8 w-8 p-0"
+          >
+            <ArrowRight className="h-4 w-4" />
+          </Button>
         </div>
       </CardContent>
     </Card>
