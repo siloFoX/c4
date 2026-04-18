@@ -1,7 +1,27 @@
 import { useCallback, useEffect, useState } from 'react';
+import {
+  CircleSlash,
+  Pause,
+  Play,
+  RefreshCw,
+  RotateCcw,
+  X,
+} from 'lucide-react';
 import Toast, { type ToastType } from './Toast';
 import { apiFetch } from '../lib/api';
 import type { ListResponse, Worker } from '../types';
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Panel,
+  type ButtonProps,
+} from './ui';
+import { cn } from '../lib/cn';
 
 // 8.8: Per-worker control panel + batch control for bulk close/cancel.
 // Keeps the existing WorkerActions toolbar and /api/* endpoints intact --
@@ -20,6 +40,8 @@ type ActionKind =
   | 'rollback'
   | 'close';
 
+type ActionTone = 'neutral' | 'warn' | 'danger';
+
 interface SingleAction {
   kind: ActionKind;
   label: string;
@@ -27,7 +49,8 @@ interface SingleAction {
   endpoint: string;
   body: Record<string, unknown>;
   confirm: string | null;
-  tone: 'neutral' | 'warn' | 'danger';
+  tone: ActionTone;
+  icon: JSX.Element;
   successMessage: (workerName: string) => string;
 }
 
@@ -45,10 +68,10 @@ interface BatchOutcome {
   error?: string;
 }
 
-const TONE_CLASS: Record<SingleAction['tone'], string> = {
-  neutral: 'bg-gray-700 hover:bg-gray-600',
-  warn: 'bg-amber-700 hover:bg-amber-600',
-  danger: 'bg-red-700 hover:bg-red-600',
+const TONE_VARIANT: Record<ActionTone, NonNullable<ButtonProps['variant']>> = {
+  neutral: 'secondary',
+  warn: 'outline',
+  danger: 'destructive',
 };
 
 function buildActions(workerName: string): SingleAction[] {
@@ -56,21 +79,25 @@ function buildActions(workerName: string): SingleAction[] {
     {
       kind: 'pause',
       label: 'Pause (Ctrl+C)',
-      description: 'Send Ctrl+C to interrupt the current work without terminating the session.',
+      description:
+        'Send Ctrl+C to interrupt the current work without terminating the session.',
       endpoint: '/api/key',
       body: { name: workerName, key: 'C-c' },
       confirm: null,
       tone: 'neutral',
+      icon: <Pause className="h-4 w-4" />,
       successMessage: (n) => `Pause (Ctrl+C) sent to ${n}`,
     },
     {
       kind: 'resume',
       label: 'Resume (Enter)',
-      description: 'Send Enter to resume an idle prompt or approve a pending confirmation.',
+      description:
+        'Send Enter to resume an idle prompt or approve a pending confirmation.',
       endpoint: '/api/key',
       body: { name: workerName, key: 'Enter' },
       confirm: null,
       tone: 'neutral',
+      icon: <Play className="h-4 w-4" />,
       successMessage: (n) => `Resume (Enter) sent to ${n}`,
     },
     {
@@ -81,39 +108,43 @@ function buildActions(workerName: string): SingleAction[] {
       body: { name: workerName },
       confirm: `Cancel the current or pending task for "${workerName}"?`,
       tone: 'warn',
+      icon: <CircleSlash className="h-4 w-4" />,
       successMessage: (n) => `Task cancel requested for ${n}`,
     },
     {
       kind: 'restart',
       label: 'Restart',
-      description: 'Kill the PTY process and spawn a fresh one on the same branch/worktree.',
+      description:
+        'Kill the PTY process and spawn a fresh one on the same branch/worktree.',
       endpoint: '/api/restart',
       body: { name: workerName },
-      confirm:
-        `Restart "${workerName}"? The current process will be killed and a fresh session will start on the same branch.`,
+      confirm: `Restart "${workerName}"? The current process will be killed and a fresh session will start on the same branch.`,
       tone: 'warn',
+      icon: <RefreshCw className="h-4 w-4" />,
       successMessage: (n) => `Restart requested for ${n}`,
     },
     {
       kind: 'rollback',
       label: 'Rollback',
-      description: 'git reset --soft back to the worker start commit. Staged changes are preserved.',
+      description:
+        'git reset --soft back to the worker start commit. Staged changes are preserved.',
       endpoint: '/api/rollback',
       body: { name: workerName },
-      confirm:
-        `Rollback "${workerName}" to its start commit? Commits made during the session will be unstaged.`,
+      confirm: `Rollback "${workerName}" to its start commit? Commits made during the session will be unstaged.`,
       tone: 'danger',
+      icon: <RotateCcw className="h-4 w-4" />,
       successMessage: (n) => `Rollback executed for ${n}`,
     },
     {
       kind: 'close',
       label: 'Stop / Close',
-      description: 'Terminate the worker, remove its worktree, and delete the c4/ branch.',
+      description:
+        'Terminate the worker, remove its worktree, and delete the c4/ branch.',
       endpoint: '/api/close',
       body: { name: workerName },
-      confirm:
-        `Close "${workerName}"? This terminates the session and removes its worktree and branch.`,
+      confirm: `Close "${workerName}"? This terminates the session and removes its worktree and branch.`,
       tone: 'danger',
+      icon: <X className="h-4 w-4" />,
       successMessage: (n) => `Closed ${n}`,
     },
   ];
@@ -242,10 +273,7 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
       const okCount = outcomes.filter((o) => o.ok).length;
       const failCount = outcomes.length - okCount;
       if (failCount === 0) {
-        showToast(
-          `Batch ${kind}: ${okCount} ok`,
-          'success',
-        );
+        showToast(`Batch ${kind}: ${okCount} ok`, 'success');
       } else {
         showToast(
           `Batch ${kind}: ${okCount} ok / ${failCount} failed`,
@@ -267,134 +295,151 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto pr-1">
-      <section
-        aria-label="Worker control panel"
-        className="rounded border border-gray-800 bg-gray-900 p-4"
-      >
-        <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">
-            Controls - {workerName}
-          </h3>
-        </div>
-        <p className="mb-3 text-xs text-gray-500">
-          All destructive actions prompt for confirmation. Pause/Resume are instant.
-        </p>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {actions.map((action) => {
-            const isBusy = busyKind === action.kind;
-            const disabled = busyKind !== null;
-            return (
-              <button
-                key={action.kind}
-                type="button"
-                onClick={() => runSingle(action)}
-                disabled={disabled}
-                title={action.description}
-                className={`flex flex-col items-start gap-1 rounded px-3 py-2 text-left text-sm text-gray-100 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                  TONE_CLASS[action.tone]
-                }`}
-              >
-                <span className="font-semibold">
-                  {isBusy ? `${action.label} ...` : action.label}
-                </span>
-                <span className="text-xs font-normal text-gray-200/80">
-                  {action.description}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <section
-        aria-label="Batch controls"
-        className="rounded border border-gray-800 bg-gray-900 p-4"
-      >
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">
-            Batch - {selectedCount} selected
-          </h3>
-          <div className="flex gap-2 text-xs">
-            <button
-              type="button"
-              onClick={selectAll}
-              disabled={selectableWorkers.length === 0}
-              className="rounded bg-gray-700 px-2 py-1 text-gray-100 hover:bg-gray-600 disabled:opacity-50"
-            >
-              Select all
-            </button>
-            <button
-              type="button"
-              onClick={clearSelection}
-              disabled={selectedCount === 0}
-              className="rounded bg-gray-700 px-2 py-1 text-gray-100 hover:bg-gray-600 disabled:opacity-50"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-
-        {selectableWorkers.length === 0 ? (
-          <div className="text-xs text-gray-500">No workers available.</div>
-        ) : (
-          <ul className="mb-3 max-h-48 overflow-y-auto rounded bg-gray-950/50 p-2 text-xs text-gray-200">
-            {selectableWorkers.map((w) => {
-              const checked = selected.has(w.name);
+      <Card aria-label="Worker control panel">
+        <CardHeader className="p-4 md:p-5">
+          <CardTitle>Control</CardTitle>
+          <CardDescription>
+            {`Actions for ${workerName}. Destructive actions prompt for confirmation; Pause / Resume fire immediately.`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4 pt-0 md:p-5 md:pt-0">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {actions.map((action) => {
+              const isBusy = busyKind === action.kind;
+              const disabled = busyKind !== null;
               return (
-                <li key={w.name} className="flex items-center gap-2 py-0.5">
-                  <label className="flex flex-1 items-center gap-2 truncate">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleSelected(w.name)}
-                      aria-label={`Select ${w.name}`}
-                    />
-                    <span className="truncate font-mono">{w.name}</span>
-                  </label>
-                  <span className="shrink-0 text-gray-500">{w.status}</span>
-                </li>
+                <Button
+                  key={action.kind}
+                  type="button"
+                  variant={TONE_VARIANT[action.tone]}
+                  size="md"
+                  onClick={() => runSingle(action)}
+                  disabled={disabled}
+                  title={action.description}
+                  className={cn(
+                    'h-auto min-h-[4rem] flex-col items-start gap-1 py-2 text-left'
+                  )}
+                >
+                  <span className="flex items-center gap-2 text-sm font-semibold">
+                    {action.icon}
+                    <span>{isBusy ? `${action.label} ...` : action.label}</span>
+                  </span>
+                  <span className="w-full whitespace-normal text-xs font-normal opacity-80">
+                    {action.description}
+                  </span>
+                </Button>
               );
             })}
-          </ul>
-        )}
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => runBatch('cancel')}
-            disabled={disableBatch}
-            className="rounded bg-amber-700 px-3 py-1.5 text-sm font-medium text-gray-100 hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {batchBusy === 'cancel' ? 'Cancel selected ...' : 'Cancel selected'}
-          </button>
-          <button
-            type="button"
-            onClick={() => runBatch('close')}
-            disabled={disableBatch}
-            className="rounded bg-red-700 px-3 py-1.5 text-sm font-medium text-gray-100 hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {batchBusy === 'close' ? 'Close selected ...' : 'Close selected'}
-          </button>
-        </div>
-
-        {batchResults && batchResults.length > 0 && (
-          <div className="mt-3 rounded bg-gray-950/60 p-2 text-xs">
-            <div className="mb-1 text-gray-400">Last batch results:</div>
-            <ul className="space-y-0.5">
-              {batchResults.map((r) => (
-                <li
-                  key={r.name}
-                  className={r.ok ? 'text-green-400' : 'text-red-400'}
-                >
-                  <span className="font-mono">{r.name}</span>
-                  {': '}
-                  {r.ok ? 'ok' : r.error || 'failed'}
-                </li>
-              ))}
-            </ul>
           </div>
-        )}
-      </section>
+        </CardContent>
+      </Card>
+
+      <Card aria-label="Batch controls">
+        <CardHeader className="flex-row items-start justify-between gap-2 p-4 md:p-5">
+          <div>
+            <CardTitle>Batch</CardTitle>
+            <CardDescription>
+              {`${selectedCount} selected - target multiple workers at once.`}
+            </CardDescription>
+          </div>
+          <div className="flex gap-2 text-xs">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={selectAll}
+              disabled={selectableWorkers.length === 0}
+            >
+              Select all
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={clearSelection}
+              disabled={selectedCount === 0}
+            >
+              Clear
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 p-4 pt-0 md:p-5 md:pt-0">
+          {selectableWorkers.length === 0 ? (
+            <div className="text-xs text-muted-foreground">No workers available.</div>
+          ) : (
+            <Panel className="max-h-48 overflow-y-auto p-2">
+              <ul className="text-xs text-foreground">
+                {selectableWorkers.map((w) => {
+                  const checked = selected.has(w.name);
+                  return (
+                    <li key={w.name} className="flex items-center gap-2 py-0.5">
+                      <label className="flex flex-1 items-center gap-2 truncate">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleSelected(w.name)}
+                          aria-label={`Select ${w.name}`}
+                        />
+                        <span className="truncate font-mono">{w.name}</span>
+                      </label>
+                      <Badge variant="outline" className="shrink-0 uppercase">
+                        {w.status}
+                      </Badge>
+                    </li>
+                  );
+                })}
+              </ul>
+            </Panel>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => runBatch('cancel')}
+              disabled={disableBatch}
+            >
+              <CircleSlash className="h-3.5 w-3.5" />
+              <span>
+                {batchBusy === 'cancel' ? 'Cancel selected ...' : 'Cancel selected'}
+              </span>
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={() => runBatch('close')}
+              disabled={disableBatch}
+            >
+              <X className="h-3.5 w-3.5" />
+              <span>
+                {batchBusy === 'close' ? 'Close selected ...' : 'Close selected'}
+              </span>
+            </Button>
+          </div>
+
+          {batchResults && batchResults.length > 0 && (
+            <Panel
+              title="Last batch results"
+              className="p-3 text-xs"
+            >
+              <ul className="space-y-0.5">
+                {batchResults.map((r) => (
+                  <li
+                    key={r.name}
+                    className={r.ok ? 'text-emerald-400' : 'text-destructive'}
+                  >
+                    <span className="font-mono">{r.name}</span>
+                    {': '}
+                    {r.ok ? 'ok' : r.error || 'failed'}
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="pointer-events-none fixed right-4 top-4 z-50 flex flex-col gap-2">
         {toast && (
