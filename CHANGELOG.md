@@ -2,7 +2,39 @@
 
 ## [Unreleased]
 
-(empty)
+### Fixed
+- **(8.19) CLI request helper now routes every call through `/api/*`.**
+  After the 1.7.0 session-auth work (TODO 8.14), the middleware only
+  runs for requests that arrive under the `/api` prefix. `src/cli.js`
+  still addressed handlers by their legacy bare paths
+  (`/create`, `/send`, `/task`, ...), so `auth.checkRequest` skipped
+  the request, `authCheck.decoded` stayed unset, and the handler-level
+  `requireRole` gate returned `401 Authentication required` on every
+  CLI write even though the same token posted to `/api/create` by
+  curl succeeded. New `withApiPrefix(p)` helper in `src/cli.js` runs
+  every `request()` call through `/api/<route>` while call sites keep
+  writing `/create`, `/list`, etc.; `c4 watch` now hits
+  `/api/watch?name=<n>&token=<jwt>` (EventSource-style clients cannot
+  set an `Authorization` header so the token rides via the `?token=`
+  fallback that `auth.extractBearerToken` already honours). `main()`
+  is guarded by `require.main === module` and `withApiPrefix` is
+  exported so tests can exercise the classification without spawning
+  a child process. See `patches/1.11.9-auth-fix.md`.
+- **(8.19) `/auth/status` added to `OPEN_API_ROUTES`.** The Web UI
+  polls `/api/auth/status` before rendering the login form to decide
+  whether auth is enabled. Pre-fix that endpoint 401'd when
+  `auth.enabled=true` and the UI fell back to `{enabled:false}`,
+  skipping login entirely and then flipping to `'anon'` the moment
+  the first `/api/*` call 401'd. `/auth/status` only exposes a
+  boolean and carries no sensitive data, so opening it is safe.
+- **(8.19) New `tests/cli-api-prefix.test.js`** pins the contract:
+  three suites covering `withApiPrefix` unit behaviour, an in-process
+  integration spawn of `src/cli.js` that asserts `/api/*` + bearer on
+  the wire, and `auth.checkRequest` path classification
+  (`/auth/login`, `/auth/status`, `/health` open; every other route
+  default-deny). `spawn` + promise (not `spawnSync`) because a
+  synchronous child blocks the parent's event loop and the capture
+  server would never respond.
 
 ### 1.11.8 - Web redesign (2026-04)
 
