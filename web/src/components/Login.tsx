@@ -31,7 +31,7 @@ export default function Login({ onSuccess }: LoginProps) {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-900 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-sm space-y-4 rounded-lg bg-gray-800 p-6 shadow"
