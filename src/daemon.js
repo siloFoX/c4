@@ -1,5 +1,7 @@
+const fs = require('fs');
 const http = require('http');
 const path = require('path');
+const readline = require('readline');
 const PtyManager = require('./pty-manager');
 const McpHandler = require('./mcp-handler');
 const Planner = require('./planner');
@@ -29,6 +31,7 @@ const mergeCore = require('./merge-core');
 const slackEvents = require('./slack-events');
 const tierQuotaMod = require('./tier-quota');
 const scribeV2Mod = require('./scribe-v2');
+const sessionParser = require('./session-parser');
 
 // (8.5) Allow-list for POST /key. Web UI needs to drive Enter, Escape,
 // Ctrl-C and the arrow keys without sending raw control bytes. The list
@@ -664,6 +667,17 @@ async function handleRequest(req, res) {
   {
     const m = route.match(/^\/history\/([^\/]+)$/);
     if (m) historyWorkerName = decodeURIComponent(m[1]);
+  }
+
+  // Session JSONL viewer (8.18): GET /sessions/<id> and
+  // GET /sessions/<id>/stream. Two forms so the dispatcher only needs
+  // a string comparison plus a boolean for the SSE variant.
+  let sessionParams = null;
+  {
+    const mStream = route.match(/^\/sessions\/([^\/]+)\/stream$/);
+    const mOne = route.match(/^\/sessions\/([^\/]+)$/);
+    if (mStream) sessionParams = { kind: 'stream', id: decodeURIComponent(mStream[1]) };
+    else if (mOne) sessionParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
   }
 
   // (10.5) Monthly cost report: GET /cost/monthly/<year>/<month>. Path
@@ -2683,6 +2697,133 @@ async function handleRequest(req, res) {
         outputPath: scribeCfg.outputPath,
         maxBytes: maxBytesParam || undefined,
       });
+
+    } else if (req.method === 'GET' && route === '/sessions') {
+      // (8.18) Session JSONL viewer list endpoint. Returns every
+      // session under the configured Claude Code projects root grouped
+      // by project directory, sorted newest-first. Uses listSessions +
+      // groupSessionsByProject from the pure parser so the shape is
+      // identical to the external importer (8.17) consumer contract.
+      const cfgNow = manager.getConfig();
+      const rootOverride = (cfgNow.sessions && typeof cfgNow.sessions.projectsDir === 'string')
+        ? cfgNow.sessions.projectsDir
+        : null;
+      const rootDir = rootOverride || sessionParser.defaultProjectsRoot();
+      const q = (url.searchParams.get('q') || '').toLowerCase();
+      let sessions = sessionParser.listSessions(rootDir);
+      if (q) {
+        sessions = sessions.filter((s) => {
+          const hay = `${s.projectPath || ''} ${s.projectDir || ''} ${s.sessionId || ''} ${s.lastAssistantSnippet || ''}`.toLowerCase();
+          return hay.includes(q);
+        });
+      }
+      const groups = sessionParser.groupSessionsByProject(sessions);
+      result = { rootDir, sessions, groups, total: sessions.length };
+
+    } else if (req.method === 'GET' && sessionParams && sessionParams.kind === 'one') {
+      // (8.18) Parsed Conversation for a single session id. Searches
+      // under rootDir for a <id>.jsonl in any project directory so the
+      // client does not need to carry the project segment.
+      const cfgNow = manager.getConfig();
+      const rootOverride = (cfgNow.sessions && typeof cfgNow.sessions.projectsDir === 'string')
+        ? cfgNow.sessions.projectsDir
+        : null;
+      const rootDir = rootOverride || sessionParser.defaultProjectsRoot();
+      const sessions = sessionParser.listSessions(rootDir);
+      const match = sessions.find((s) => s.sessionId === sessionParams.id);
+      if (!match) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Session not found', sessionId: sessionParams.id }));
+        return;
+      }
+      result = sessionParser.parseJsonl(match.path);
+
+    } else if (req.method === 'GET' && sessionParams && sessionParams.kind === 'stream') {
+      // (8.18) SSE tail of a single session JSONL. Emits the initial
+      // snapshot as a `conversation` event then tails subsequent turns
+      // as the file grows. fs.watch + byte-offset tracking avoids
+      // re-parsing already-seen lines. Uses a 30s keepalive heartbeat
+      // so proxies do not kill the connection mid-session.
+      const cfgNow = manager.getConfig();
+      const rootOverride = (cfgNow.sessions && typeof cfgNow.sessions.projectsDir === 'string')
+        ? cfgNow.sessions.projectsDir
+        : null;
+      const rootDir = rootOverride || sessionParser.defaultProjectsRoot();
+      const sessions = sessionParser.listSessions(rootDir);
+      const match = sessions.find((s) => s.sessionId === sessionParams.id);
+      if (!match) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Session not found', sessionId: sessionParams.id }));
+        return;
+      }
+
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      });
+
+      const snapshot = sessionParser.parseJsonl(match.path);
+      res.write(`event: conversation\ndata: ${JSON.stringify(snapshot)}\n\n`);
+
+      let offset = 0;
+      try { offset = fs.statSync(match.path).size; } catch { offset = 0; }
+      let closed = false;
+      let pending = null;
+
+      async function drainFromOffset() {
+        if (closed) return;
+        let stat;
+        try { stat = fs.statSync(match.path); }
+        catch { return; }
+        if (stat.size <= offset) return;
+        const stream = fs.createReadStream(match.path, {
+          encoding: 'utf8',
+          start: offset,
+          end: stat.size - 1,
+        });
+        const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+        const warnings = [];
+        for await (const line of rl) {
+          const turns = sessionParser.parseLine(line, warnings);
+          for (const turn of turns) {
+            if (closed) return;
+            res.write(`event: turn\ndata: ${JSON.stringify(turn)}\n\n`);
+          }
+        }
+        offset = stat.size;
+      }
+
+      let watcher = null;
+      try {
+        watcher = fs.watch(match.path, { persistent: false }, () => {
+          if (pending) return;
+          pending = drainFromOffset()
+            .catch(() => {})
+            .then(() => { pending = null; });
+        });
+      } catch {
+        // fs.watch can fail on network filesystems - fall back to
+        // stat polling so the endpoint still tails correctly.
+      }
+      const pollTimer = watcher ? null : setInterval(() => {
+        if (pending) return;
+        pending = drainFromOffset()
+          .catch(() => {})
+          .then(() => { pending = null; });
+      }, 2000);
+
+      const heartbeat = setInterval(() => {
+        if (!closed) res.write(': keepalive\n\n');
+      }, 30000);
+
+      req.on('close', () => {
+        closed = true;
+        if (watcher) { try { watcher.close(); } catch {} }
+        if (pollTimer) clearInterval(pollTimer);
+        clearInterval(heartbeat);
+      });
+      return;
 
     } else if (req.method === 'GET' && route === '/fleet/overview') {
       // Fleet management (9.6): aggregate this daemon's state plus
