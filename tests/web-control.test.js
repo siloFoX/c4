@@ -365,7 +365,12 @@ describe('App.tsx Control tab wiring (8.8)', () => {
   });
 
   it('persists "control" in the c4.detail.mode localStorage key', () => {
-    // readDetailMode handles the 'control' literal alongside the existing ones.
-    assert.match(src, /v === 'control'/);
+    // After ui-settings, the detail-mode validation lives in preferences.ts.
+    const prefsSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'preferences.ts'),
+      'utf8',
+    );
+    assert.match(prefsSrc, /'control'/);
+    assert.match(prefsSrc, /DETAIL_VALUES/);
   });
 });
