@@ -2,7 +2,211 @@
 
 ## [Unreleased]
 
-(empty)
+### Fixed
+- **(8.19) CLI request helper now routes every call through `/api/*`.**
+  After the 1.7.0 session-auth work (TODO 8.14), the middleware only
+  runs for requests that arrive under the `/api` prefix. `src/cli.js`
+  still addressed handlers by their legacy bare paths
+  (`/create`, `/send`, `/task`, ...), so `auth.checkRequest` skipped
+  the request, `authCheck.decoded` stayed unset, and the handler-level
+  `requireRole` gate returned `401 Authentication required` on every
+  CLI write even though the same token posted to `/api/create` by
+  curl succeeded. New `withApiPrefix(p)` helper in `src/cli.js` runs
+  every `request()` call through `/api/<route>` while call sites keep
+  writing `/create`, `/list`, etc.; `c4 watch` now hits
+  `/api/watch?name=<n>&token=<jwt>` (EventSource-style clients cannot
+  set an `Authorization` header so the token rides via the `?token=`
+  fallback that `auth.extractBearerToken` already honours). `main()`
+  is guarded by `require.main === module` and `withApiPrefix` is
+  exported so tests can exercise the classification without spawning
+  a child process. See `patches/1.11.9-auth-fix.md`.
+- **(8.19) `/auth/status` added to `OPEN_API_ROUTES`.** The Web UI
+  polls `/api/auth/status` before rendering the login form to decide
+  whether auth is enabled. Pre-fix that endpoint 401'd when
+  `auth.enabled=true` and the UI fell back to `{enabled:false}`,
+  skipping login entirely and then flipping to `'anon'` the moment
+  the first `/api/*` call 401'd. `/auth/status` only exposes a
+  boolean and carries no sensitive data, so opening it is safe.
+- **(8.19) New `tests/cli-api-prefix.test.js`** pins the contract:
+  three suites covering `withApiPrefix` unit behaviour, an in-process
+  integration spawn of `src/cli.js` that asserts `/api/*` + bearer on
+  the wire, and `auth.checkRequest` path classification
+  (`/auth/login`, `/auth/status`, `/health` open; every other route
+  default-deny). `spawn` + promise (not `spawnSync`) because a
+  synchronous child blocks the parent's event loop and the capture
+  server would never respond.
+### 1.11.10 - External Claude session import (2026-04)
+
+### Added
+- **(session-attach) new `src/session-attach.js` zero-dep module**
+  that registers external Claude Code JSONL transcripts as read-only
+  "attached" workers. Public surface: `AttachStore` (load / list / add
+  / remove against `~/.c4/attached.json`), `resolveSessionPath` (path
+  or bare UUID lookup under `defaultProjectsRoot()` with structured
+  ambiguity / not-found / bad-extension errors), `attach` +
+  `detach` + `summarize` + `listAttached`, plus `getShared()` for the
+  daemon singleton. Re-uses the 8.18 `session-parser` contract via
+  `parseJsonl` + `listSessions` instead of re-implementing JSONL
+  parsing. Attempting to attach the same path twice returns
+  `ALREADY_ATTACHED`; duplicate aliases auto-suffix up to `-99` before
+  surfacing `NAME_COLLISION`.
+- **(daemon) four new endpoints behind the 8.14 auth middleware and
+  gated by `rbac.ACTIONS.WORKER_CREATE`:** `POST /api/attach`
+  (`{ path?, sessionId?, name? }` -> `{ name, sessionId, projectPath,
+  jsonlPath, turns, tokens, model, warnings }`), `GET /api/attach/list`
+  (persisted registrations), `DELETE /api/attach/:name` (pointer-only
+  removal; the underlying `.jsonl` is never touched), and
+  `GET /api/attach/:name/conversation` which returns the same parsed
+  `Conversation` shape as `/api/sessions/:id` so the viewer can stay
+  source-agnostic. `GET /api/attach/:name` returns `{ record, summary }`
+  for list rows. Status codes: `400` on missing input, `404` on ENOENT
+  / NOT_FOUND, `409` on AMBIGUOUS / ALREADY_ATTACHED, `410 Gone` when
+  the underlying JSONL has been deleted under a live registration.
+- **(pty-manager) `kind: 'spawned'` stamp on every list() row** so
+  consumers that merge in attached records only need to branch on one
+  field. `kind: 'attached'` lives on the 8.17 attach records.
+- **(cli) `c4 attach` command group:** `c4 attach <id|path>
+  [--name alias]` POSTs to `/api/attach` and pretty-prints
+  name / sessionId / project / turns / tokens / model / warnings;
+  `c4 attach list` prints a compact table of registered attachments;
+  `c4 attach detach <name>` removes the pointer. Input type (path vs
+  UUID) is auto-detected from the first positional argument.
+- **(web) Attached sub-section on the Sessions tab:** distinct group
+  header above the per-project session list, with a `+ Attach new...`
+  button that opens a modal (JSONL path or session UUID + optional
+  alias) POSTing to `/api/attach`. Clicking an attached row feeds
+  `ConversationView` through a new `snapshotUrl` prop pointed at
+  `/api/attach/<name>/conversation` so all markdown / tool / thinking
+  rendering stays in one component. Trash-icon row action calls
+  `DELETE /api/attach/:name`. `apiDelete` helper added to
+  `web/src/lib/api.ts`.
+- **(docs) `docs/patches/8.17-session-attach.md`** covers module
+  layout, persisted shape, four endpoint contracts, CLI pretty-print
+  format, Web UI wiring, the `kind` field migration, and explicitly
+  records the P2 (bidirectional resume) and P3 (per-owner ACL) gaps
+  that land after this ships.
+- **(tests) `tests/session-attach.test.js`** (39 assertions / 11
+  suites) covering attach-by-path (happy + ENOENT + BAD_EXT),
+  attach-by-UUID (single / ambiguous multi / zero), duplicate path +
+  duplicate name auto-suffix, persistence round-trip through a tmpdir
+  store, malformed-store fallback, `summarize` vs `parseJsonl`
+  equivalence, plus source-grep wiring tests against `daemon.js`,
+  `cli.js`, `pty-manager.js`, `api.ts`, `ConversationView.tsx`, and
+  `SessionsView.tsx`. Full suite stays green at 102 / 102.
+
+### 1.11.9 - Claude session JSONL viewer (2026-04)
+
+### Added
+- **(session-parser) new `src/session-parser.js` dependency-free
+  parser** that normalizes Claude Code transcript files
+  (`~/.claude/projects/<encoded-cwd>/<session-id>.jsonl`) into a
+  flat `Conversation {sessionId, projectPath, createdAt, updatedAt,
+  model, totalInputTokens, totalOutputTokens, turns:Turn[], warnings}`
+  stream. One Turn per content block (thinking + text + tool_use from
+  one assistant event fan out to three turns) with tokens attached
+  only to the first block so totals stay truthful after fan-out. Tool
+  calls + results are paired by `tool_use_id` so the UI can collapse
+  them into one card. Malformed lines become warnings instead of
+  throws so a corrupt line cannot break a whole transcript. Exports
+  `parseJsonl` / `parseJsonlStream` (async iterator for tail / import)
+  / `listSessions` / `groupSessionsByProject` / `defaultProjectsRoot`
+  (honours `$CLAUDE_PROJECTS_DIR`, falls back to `~/.claude/projects`).
+- **(daemon) three new endpoints behind the 8.14 auth middleware:**
+  `GET /api/sessions` (list + group by project + `?q=` filter),
+  `GET /api/sessions/:id` (parsed Conversation; 404 when unknown),
+  `GET /api/sessions/:id/stream` (SSE - emits the full snapshot as
+  `event: conversation`, then `event: turn` per newly parsed Turn as
+  the JSONL grows via `fs.watch` + byte-offset tracking, with
+  stat-polling fallback when watch is unavailable and a 30s keepalive
+  heartbeat). Override the transcript root via
+  `config.sessions.projectsDir`.
+- **(web) Sessions tab** with a 2-pane layout:
+  `web/src/components/SessionsView.tsx` (collapsible per-project
+  groups, search, short-id + snippet + relative timestamp rows)
+  plus `web/src/components/ConversationView.tsx` (claude.ai-style
+  chat: user right-aligned with `bg-primary/10`, assistant left-
+  aligned full width with a zero-dep minimal markdown renderer,
+  thinking collapsible, tool_use expandable with paired result,
+  tool_result code block, system chip). Auto-scrolls only when the
+  user is near the bottom, with a Jump-to-latest button otherwise.
+  Live mode subscribes to the stream endpoint through EventSource
+  (auth via `?token=` fallback). TopTabs grows a `Sessions` value and
+  App.tsx routes `topView === 'sessions'`; existing worker list,
+  history, chat, and workflow tabs are untouched.
+- **(docs) `docs/patches/8.18-session-view.md`** documents the module
+  layout, the stable `Conversation` / `Turn` JSON shape consumed by
+  TODO 8.17 (external session import), JSONL schema assumptions, and
+  the daemon endpoint contracts.
+- **(tests) `tests/fixtures/session.jsonl` + `tests/session-parser.test.js`**
+  (32 assertions / 8 suites) covering parseJsonl metadata + token
+  totals + block fan-out + thinking text + tool pairing + warning on
+  malformed line + per-message token attribution, parseJsonlStream
+  order equivalence, listSessions + groupSessionsByProject, meta-type
+  handling, decodeProjectDir, plus source-wiring greps on daemon.js,
+  ConversationView.tsx, SessionsView.tsx, App.tsx, and TopTabs.tsx.
+  Full suite 101 / 101 pass.
+- **(ui-settings) Settings top tab with centralized UI preferences.**
+  A new `Settings` entry in the top navigation rail (`web/src/components/layout/TopTabs.tsx`,
+  lucide `Settings` icon) opens `web/src/components/SettingsView.tsx`, a
+  `Card` / `Panel`-based page that groups user preferences into
+  **Appearance** (theme: Light / Dark / System, selected via icon
+  `radiogroup`s that toggle the `dark` class on the document root) and
+  **Layout** (sidebar mode — List / Tree; detail view — Terminal / Chat /
+  Control). A `Reset to defaults` button clears stored values and snaps
+  every preference back to its built-in default. `App.tsx` reads and
+  writes preferences through the new `web/src/lib/preferences.ts`
+  helper, which consolidates the `c4.sidebar.mode` / `c4.detail.mode` /
+  `c4.topView` / `c4.theme` localStorage keys, adds `resolveTheme()` +
+  `applyTheme()`, keeps multiple tabs in sync via the `storage` event,
+  and excludes the transient `settings` destination from the persisted
+  top-view value so relaunching returns the user to their last content
+  tab. Coverage added in `tests/web-ui-settings.test.js`.
+### 1.11.9 - UI CLI coverage (2026-04)
+
+### Added
+- **(8.20b) Features top-tab + 12 new pages wrapping CLI-only flows.**
+  `web/src/pages/{Scribe,Batch,Cleanup,Swarm,Health,TokenUsage,
+  Validation,Plan,Morning,Auto,Templates,Profiles}.tsx`, grouped in a
+  new `FeatureSidebar` under Operations / Cost / Automation / Config /
+  Diagnostics. Pages are lazy-loaded through `web/src/pages/registry.ts`
+  so the main bundle stays in the ~80 KB gzip range; each feature
+  ships as its own 2-6 KB code-split chunk. Selection persists to
+  `localStorage` and reflects in the URL hash as `#/feature/<id>`.
+- **(8.20b) `POST /batch` daemon endpoint.** Accepts either `tasks[]` or
+  `task + count` plus optional `branch / profile / autoMode /
+  namePrefix / target`. Sits behind `rbac.ACTIONS.WORKER_TASK`,
+  dispatches each item through `manager.sendTask`, returns
+  `{ok, fail, total, results}` so the UI renders results without
+  fanning out N `/task` calls.
+- **(8.20b) `StatusMessageCard` on `ControlPanel`.** Posts to
+  `/api/status-update` so operators can ship oncall handoff notes to
+  Slack without dropping to the terminal. Rollback was already on the
+  panel (1.7.5).
+- **(8.20b) Shared UI helpers.** `web/src/lib/format.{js,d.ts}`
+  (formatNumber / formatBytes / formatDuration / formatRelativeTime /
+  formatTimestamp / dateRange / dateRangeLabel),
+  `web/src/lib/fuzzyFilter.{js,d.ts}` (substring-ranking filter with
+  prefix boost), `web/src/lib/markdown.tsx` (minimal markdown renderer
+  covering ATX headings, fenced code, lists, blockquote, inline code,
+  bold / italic / links; no new runtime deps).
+
+### Tests
+- **(8.20b) `tests/ui-cli-coverage.test.js` — 56 assertions, 15
+  suites.** Unit tests for the format + fuzzy helpers (including NaN /
+  negative / empty-query / prefix-rank / case-insensitivity), source-
+  wiring for `POST /batch` (RBAC, body shape, 400 on missing input,
+  sendTask dispatch, per-item results), Features tab + registry
+  coverage (every feature id, category ordering, lazy-loader count),
+  and Batch / Plan / TokenUsage / ControlPanel `StatusMessageCard`
+  component wiring via the same source-grep strategy the existing
+  chat-view and web-control suites use. Full suite 101 / 101 pass.
+
+### Notes
+- Templates and Profiles add/edit/remove actions currently toast
+  "not implemented yet" — the GET endpoints exist, the write routes
+  do not. Tracked as sub-TODOs. `/health` event-loop-lag and loaded-
+  modules fields render as `-` for the same reason; extension is
+  contained to the server.
 
 ### 1.11.8 - Web redesign (2026-04)
 

@@ -1,8 +1,23 @@
 import type { ComponentType, SVGProps } from 'react';
-import { History, MessageSquare, Users, Workflow } from 'lucide-react';
+import {
+  FolderTree,
+  History,
+  LayoutGrid,
+  MessageSquare,
+  Settings,
+  Users,
+  Workflow,
+} from 'lucide-react';
 import { cn } from '../../lib/cn';
 
-export type TopView = 'workers' | 'history' | 'chat' | 'workflows';
+export type TopView =
+  | 'workers'
+  | 'history'
+  | 'chat'
+  | 'workflows'
+  | 'sessions'
+  | 'features'
+  | 'settings';
 
 interface TabDef {
   value: TopView;
@@ -13,8 +28,11 @@ interface TabDef {
 const TABS: TabDef[] = [
   { value: 'workers', label: 'Workers', Icon: Users },
   { value: 'history', label: 'History', Icon: History },
+  { value: 'sessions', label: 'Sessions', Icon: FolderTree },
   { value: 'chat', label: 'Chat', Icon: MessageSquare },
   { value: 'workflows', label: 'Workflows', Icon: Workflow },
+  { value: 'features', label: 'Features', Icon: LayoutGrid },
+  { value: 'settings', label: 'Settings', Icon: Settings },
 ];
 
 interface TopTabsProps {
@@ -37,16 +55,18 @@ export default function TopTabs({ value, onChange }: TopTabsProps) {
             type="button"
             role="tab"
             aria-selected={active}
+            aria-label={label}
+            title={label}
             onClick={() => onChange(v)}
             className={cn(
-              'inline-flex items-center gap-1.5 px-3 py-1.5 transition-colors',
+              'inline-flex items-center gap-1.5 px-2 py-1.5 transition-colors sm:px-3',
               active
                 ? 'bg-primary/10 text-primary'
                 : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
             )}
           >
             <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-            {label}
+            <span className="hidden sm:inline">{label}</span>
           </button>
         );
       })}

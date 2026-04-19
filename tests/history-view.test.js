@@ -311,8 +311,13 @@ describe('App.tsx integration for history tab', () => {
   });
 
   it('persists topView selection to localStorage', () => {
-    assert.match(src, /TOP_VIEW_KEY\s*=\s*'c4\.topView'/);
-    assert.match(src, /localStorage\.setItem\(TOP_VIEW_KEY/);
+    const prefsSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'preferences.ts'),
+      'utf8',
+    );
+    assert.match(prefsSrc, /TOP_VIEW_KEY\s*=\s*'c4\.topView'/);
+    assert.match(prefsSrc, /localStorage\.setItem/);
+    assert.match(src, /writeTopView|setTopView/);
   });
 
   it('renders Workers + History top-level tab buttons', () => {

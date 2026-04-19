@@ -64,6 +64,17 @@ export async function apiPost<T = unknown>(url: string, body: unknown): Promise<
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
+  if (!res.ok) {
+    let errBody = '';
+    try { errBody = await res.text(); } catch { /* ignore */ }
+    const err = new Error(`HTTP ${res.status}${errBody ? `: ${errBody}` : ''}`);
+    throw err;
+  }
+  return (await res.json()) as T;
+}
+
+export async function apiDelete<T = unknown>(url: string): Promise<T> {
+  const res = await apiFetch(url, { method: 'DELETE' });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return (await res.json()) as T;
 }
@@ -112,12 +123,16 @@ export interface AuthStatus {
 }
 
 export async function fetchAuthStatus(): Promise<AuthStatus> {
+  // Fail safe: if the status check itself errors or returns non-OK we
+  // assume auth is enabled. Treating an error as "auth disabled" would
+  // silently render the dashboard for unauthenticated users when the
+  // daemon is mid-restart or behind a misconfigured proxy.
   try {
     const res = await fetch('/api/auth/status');
-    if (!res.ok) return { enabled: false };
+    if (!res.ok) return { enabled: true };
     const data = (await res.json()) as AuthStatus;
     return { enabled: Boolean(data.enabled) };
   } catch {
-    return { enabled: false };
+    return { enabled: true };
   }
 }

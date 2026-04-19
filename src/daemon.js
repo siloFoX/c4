@@ -1,5 +1,7 @@
+const fs = require('fs');
 const http = require('http');
 const path = require('path');
+const readline = require('readline');
 const PtyManager = require('./pty-manager');
 const McpHandler = require('./mcp-handler');
 const Planner = require('./planner');
@@ -29,6 +31,8 @@ const mergeCore = require('./merge-core');
 const slackEvents = require('./slack-events');
 const tierQuotaMod = require('./tier-quota');
 const scribeV2Mod = require('./scribe-v2');
+const sessionParser = require('./session-parser');
+const sessionAttach = require('./session-attach');
 
 // (8.5) Allow-list for POST /key. Web UI needs to drive Enter, Escape,
 // Ctrl-C and the arrow keys without sending raw control bytes. The list
@@ -664,6 +668,32 @@ async function handleRequest(req, res) {
   {
     const m = route.match(/^\/history\/([^\/]+)$/);
     if (m) historyWorkerName = decodeURIComponent(m[1]);
+  }
+
+  // Session JSONL viewer (8.18): GET /sessions/<id> and
+  // GET /sessions/<id>/stream. Two forms so the dispatcher only needs
+  // a string comparison plus a boolean for the SSE variant.
+  let sessionParams = null;
+  {
+    const mStream = route.match(/^\/sessions\/([^\/]+)\/stream$/);
+    const mOne = route.match(/^\/sessions\/([^\/]+)$/);
+    if (mStream) sessionParams = { kind: 'stream', id: decodeURIComponent(mStream[1]) };
+    else if (mOne) sessionParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
+  }
+
+  // External session import (8.17): /attach/<name> + /attach/<name>/conversation.
+  // The plain /attach (no name) and /attach/list routes are handled by
+  // string compare in the dispatch table below. Separate decoder here
+  // so path-parameter routes stay a single regex match.
+  let attachParams = null;
+  {
+    const mConv = route.match(/^\/attach\/([^\/]+)\/conversation$/);
+    const mOne = route.match(/^\/attach\/([^\/]+)$/);
+    if (mConv) attachParams = { kind: 'conversation', name: decodeURIComponent(mConv[1]) };
+    else if (mOne) attachParams = { kind: 'one', name: decodeURIComponent(mOne[1]) };
+    // /attach/list is covered by the string-compare branch below; the
+    // regex would pick it up as a name, so reject that shape here.
+    if (attachParams && attachParams.name === 'list') attachParams = null;
   }
 
   // (10.5) Monthly cost report: GET /cost/monthly/<year>/<month>. Path
@@ -2347,6 +2377,55 @@ async function handleRequest(req, res) {
       const { dryRun } = await parseBody(req);
       result = manager.cleanup(dryRun);
 
+    } else if (req.method === 'POST' && route === '/batch') {
+      // (8.20B) Batch task dispatch. Mirrors `c4 batch` on the CLI:
+      // accepts either a string `task` + `count` (same task N times), or
+      // an array `tasks` (one task per entry). Each task is dispatched
+      // through manager.sendTask as `batch-<N>` unless the caller provides
+      // an explicit `namePrefix`. Returns per-item outcomes so the UI
+      // can render a results table without looping /task itself.
+      const body = await parseBody(req);
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_TASK,
+        body.target ? { type: 'machine', id: body.target } : null);
+      if (denyOr(res, gate)) return;
+      const namePrefix = typeof body.namePrefix === 'string' && body.namePrefix
+        ? body.namePrefix
+        : 'batch';
+      let tasks = Array.isArray(body.tasks) ? body.tasks.filter((t) => typeof t === 'string' && t.trim()) : [];
+      if (tasks.length === 0 && typeof body.task === 'string' && body.task.trim()) {
+        const count = Math.max(0, parseInt(body.count, 10) || 0);
+        for (let i = 0; i < count; i++) tasks.push(body.task);
+      }
+      if (tasks.length === 0) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Missing tasks (provide tasks[] or task + count)' }));
+        return;
+      }
+      const results = [];
+      for (let i = 0; i < tasks.length; i++) {
+        const n = `${namePrefix}-${i + 1}`;
+        const branchName = typeof body.branch === 'string' && body.branch
+          ? `${body.branch}-${i + 1}`
+          : undefined;
+        const opts = { useBranch: true };
+        if (branchName) opts.branch = branchName;
+        if (body.autoMode) opts.autoMode = true;
+        if (typeof body.profile === 'string' && body.profile) opts.profile = body.profile;
+        if (typeof body.target === 'string' && body.target) opts.target = body.target;
+        try {
+          const r = manager.sendTask(n, tasks[i], opts);
+          if (r && r.error) {
+            results.push({ name: n, ok: false, error: r.error });
+          } else {
+            results.push({ name: n, ok: true });
+          }
+        } catch (e) {
+          results.push({ name: n, ok: false, error: e && e.message ? e.message : String(e) });
+        }
+      }
+      const ok = results.filter((r) => r.ok).length;
+      result = { ok, fail: results.length - ok, total: results.length, results };
+
     } else if (req.method === 'POST' && route === '/close') {
       const { name } = await parseBody(req);
       const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CLOSE);
@@ -2683,6 +2762,268 @@ async function handleRequest(req, res) {
         outputPath: scribeCfg.outputPath,
         maxBytes: maxBytesParam || undefined,
       });
+
+    } else if (req.method === 'GET' && route === '/sessions') {
+      // (8.18) Session JSONL viewer list endpoint. Returns every
+      // session under the configured Claude Code projects root grouped
+      // by project directory, sorted newest-first. Uses listSessions +
+      // groupSessionsByProject from the pure parser so the shape is
+      // identical to the external importer (8.17) consumer contract.
+      const cfgNow = manager.getConfig();
+      const rootOverride = (cfgNow.sessions && typeof cfgNow.sessions.projectsDir === 'string')
+        ? cfgNow.sessions.projectsDir
+        : null;
+      const rootDir = rootOverride || sessionParser.defaultProjectsRoot();
+      const q = (url.searchParams.get('q') || '').toLowerCase();
+      let sessions = sessionParser.listSessions(rootDir);
+      if (q) {
+        sessions = sessions.filter((s) => {
+          const hay = `${s.projectPath || ''} ${s.projectDir || ''} ${s.sessionId || ''} ${s.lastAssistantSnippet || ''}`.toLowerCase();
+          return hay.includes(q);
+        });
+      }
+      const groups = sessionParser.groupSessionsByProject(sessions);
+      result = { rootDir, sessions, groups, total: sessions.length };
+
+    } else if (req.method === 'GET' && sessionParams && sessionParams.kind === 'one') {
+      // (8.18) Parsed Conversation for a single session id. Searches
+      // under rootDir for a <id>.jsonl in any project directory so the
+      // client does not need to carry the project segment.
+      const cfgNow = manager.getConfig();
+      const rootOverride = (cfgNow.sessions && typeof cfgNow.sessions.projectsDir === 'string')
+        ? cfgNow.sessions.projectsDir
+        : null;
+      const rootDir = rootOverride || sessionParser.defaultProjectsRoot();
+      const sessions = sessionParser.listSessions(rootDir);
+      const match = sessions.find((s) => s.sessionId === sessionParams.id);
+      if (!match) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Session not found', sessionId: sessionParams.id }));
+        return;
+      }
+      result = sessionParser.parseJsonl(match.path);
+
+    } else if (req.method === 'GET' && sessionParams && sessionParams.kind === 'stream') {
+      // (8.18) SSE tail of a single session JSONL. Emits the initial
+      // snapshot as a `conversation` event then tails subsequent turns
+      // as the file grows. fs.watch + byte-offset tracking avoids
+      // re-parsing already-seen lines. Uses a 30s keepalive heartbeat
+      // so proxies do not kill the connection mid-session.
+      const cfgNow = manager.getConfig();
+      const rootOverride = (cfgNow.sessions && typeof cfgNow.sessions.projectsDir === 'string')
+        ? cfgNow.sessions.projectsDir
+        : null;
+      const rootDir = rootOverride || sessionParser.defaultProjectsRoot();
+      const sessions = sessionParser.listSessions(rootDir);
+      const match = sessions.find((s) => s.sessionId === sessionParams.id);
+      if (!match) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Session not found', sessionId: sessionParams.id }));
+        return;
+      }
+
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      });
+
+      const snapshot = sessionParser.parseJsonl(match.path);
+      res.write(`event: conversation\ndata: ${JSON.stringify(snapshot)}\n\n`);
+
+      let offset = 0;
+      try { offset = fs.statSync(match.path).size; } catch { offset = 0; }
+      let closed = false;
+      let pending = null;
+
+      async function drainFromOffset() {
+        if (closed) return;
+        let stat;
+        try { stat = fs.statSync(match.path); }
+        catch { return; }
+        if (stat.size <= offset) return;
+        const stream = fs.createReadStream(match.path, {
+          encoding: 'utf8',
+          start: offset,
+          end: stat.size - 1,
+        });
+        const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+        const warnings = [];
+        for await (const line of rl) {
+          const turns = sessionParser.parseLine(line, warnings);
+          for (const turn of turns) {
+            if (closed) return;
+            res.write(`event: turn\ndata: ${JSON.stringify(turn)}\n\n`);
+          }
+        }
+        offset = stat.size;
+      }
+
+      let watcher = null;
+      try {
+        watcher = fs.watch(match.path, { persistent: false }, () => {
+          if (pending) return;
+          pending = drainFromOffset()
+            .catch(() => {})
+            .then(() => { pending = null; });
+        });
+      } catch {
+        // fs.watch can fail on network filesystems - fall back to
+        // stat polling so the endpoint still tails correctly.
+      }
+      const pollTimer = watcher ? null : setInterval(() => {
+        if (pending) return;
+        pending = drainFromOffset()
+          .catch(() => {})
+          .then(() => { pending = null; });
+      }, 2000);
+
+      const heartbeat = setInterval(() => {
+        if (!closed) res.write(': keepalive\n\n');
+      }, 30000);
+
+      req.on('close', () => {
+        closed = true;
+        if (watcher) { try { watcher.close(); } catch {} }
+        if (pollTimer) clearInterval(pollTimer);
+        clearInterval(heartbeat);
+      });
+      return;
+
+    } else if (req.method === 'POST' && route === '/attach') {
+      // (8.17) External Claude session import. Registers a JSONL at a
+      // filesystem path (or resolved from a bare session UUID) as a
+      // read-only 'attached' worker and persists the pointer in
+      // ~/.c4/attached.json so it survives daemon restart. Gated behind
+      // WORKER_CREATE: attaching an external session is conceptually a
+      // spawn with zero pty, so reusing the existing role keeps the
+      // permission matrix minimal instead of growing a new ATTACH_*
+      // action for a single endpoint.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE);
+      if (denyOr(res, gate)) return;
+      const body = await parseBody(req);
+      const input = typeof body.path === 'string' && body.path
+        ? body.path
+        : (typeof body.sessionId === 'string' ? body.sessionId : '');
+      if (!input) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Either path or sessionId is required' }));
+        return;
+      }
+      const cfgNow = manager.getConfig();
+      const projectsRoot = (cfgNow.sessions && typeof cfgNow.sessions.projectsDir === 'string')
+        ? cfgNow.sessions.projectsDir
+        : sessionParser.defaultProjectsRoot();
+      const store = sessionAttach.getShared();
+      const outcome = sessionAttach.attach(input, {
+        store,
+        projectsRoot,
+        name: typeof body.name === 'string' ? body.name : '',
+      });
+      if (outcome.error) {
+        const status = outcome.code === 'AMBIGUOUS' ? 409
+          : outcome.code === 'NOT_FOUND' ? 404
+          : outcome.code === 'ENOENT' ? 404
+          : outcome.code === 'ALREADY_ATTACHED' ? 409
+          : 400;
+        res.writeHead(status);
+        res.end(JSON.stringify(outcome));
+        return;
+      }
+      _safeAudit('attach.created',
+        { path: outcome.record.jsonlPath, sessionId: outcome.record.sessionId, projectPath: outcome.record.projectPath },
+        { target: outcome.record.name, actor: _auditActor(authCheck) });
+      result = {
+        name: outcome.record.name,
+        sessionId: outcome.record.sessionId,
+        projectPath: outcome.record.projectPath,
+        jsonlPath: outcome.record.jsonlPath,
+        createdAt: outcome.record.createdAt,
+        turns: outcome.summary.turns,
+        tokens: outcome.summary.tokens,
+        model: outcome.summary.model,
+        warnings: outcome.summary.warnings,
+      };
+
+    } else if (req.method === 'GET' && route === '/attach/list') {
+      // (8.17) Enumerate registered attachments. Same RBAC gate as
+      // POST /attach so a viewer-only token cannot enumerate external
+      // sessions the admin imported.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE);
+      if (denyOr(res, gate)) return;
+      const store = sessionAttach.getShared();
+      const records = store.list();
+      result = { sessions: records, total: records.length };
+
+    } else if (req.method === 'DELETE' && attachParams && attachParams.kind === 'one') {
+      // (8.17) Remove a single attachment pointer. Does NOT touch the
+      // underlying JSONL file - only the persisted registration goes
+      // away. An operator who wants to purge the transcript itself can
+      // still rm the file manually.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE);
+      if (denyOr(res, gate)) return;
+      const store = sessionAttach.getShared();
+      const existing = store.get(attachParams.name);
+      if (!existing) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Attachment not found', name: attachParams.name }));
+        return;
+      }
+      const outcome = sessionAttach.detach(attachParams.name, { store });
+      if (outcome.error) {
+        res.writeHead(400);
+        res.end(JSON.stringify(outcome));
+        return;
+      }
+      _safeAudit('attach.removed',
+        { path: existing.jsonlPath, sessionId: existing.sessionId },
+        { target: existing.name, actor: _auditActor(authCheck) });
+      result = { ok: true, name: existing.name };
+
+    } else if (req.method === 'GET' && attachParams && attachParams.kind === 'one') {
+      // (8.17) Return the persisted record plus a fresh parse summary
+      // so the Web UI can render a title + totals without loading the
+      // full Conversation. For the full body the client hits
+      // /attach/:name/conversation below.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE);
+      if (denyOr(res, gate)) return;
+      const store = sessionAttach.getShared();
+      const record = store.get(attachParams.name);
+      if (!record) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Attachment not found', name: attachParams.name }));
+        return;
+      }
+      let summary = null;
+      try { summary = sessionAttach.summarize(record.jsonlPath); }
+      catch { summary = null; }
+      result = { record, summary };
+
+    } else if (req.method === 'GET' && attachParams && attachParams.kind === 'conversation') {
+      // (8.17) Parse the attached JSONL and return the full
+      // Conversation payload. This is the endpoint ConversationView
+      // hits when the user clicks an attached row; it mirrors the
+      // 8.18 /sessions/:id shape exactly so the component can stay
+      // agnostic to the source.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE);
+      if (denyOr(res, gate)) return;
+      const store = sessionAttach.getShared();
+      const record = store.get(attachParams.name);
+      if (!record) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Attachment not found', name: attachParams.name }));
+        return;
+      }
+      if (!fs.existsSync(record.jsonlPath)) {
+        res.writeHead(410);
+        res.end(JSON.stringify({
+          error: 'Underlying JSONL no longer exists',
+          name: record.name,
+          jsonlPath: record.jsonlPath,
+        }));
+        return;
+      }
+      result = sessionParser.parseJsonl(record.jsonlPath);
 
     } else if (req.method === 'GET' && route === '/fleet/overview') {
       // Fleet management (9.6): aggregate this daemon's state plus

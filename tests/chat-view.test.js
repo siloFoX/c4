@@ -142,8 +142,10 @@ describe('App.tsx integration', () => {
   });
 
   it('persists the detail-mode selection to localStorage', () => {
-    assert.match(src, /DETAIL_MODE_KEY\s*=\s*'c4\.detail\.mode'/);
-    assert.match(src, /localStorage\.setItem\(DETAIL_MODE_KEY/);
+    const prefsSrc = fs.readFileSync(path.join(WEB_SRC, 'lib', 'preferences.ts'), 'utf8');
+    assert.match(prefsSrc, /DETAIL_MODE_KEY\s*=\s*'c4\.detail\.mode'/);
+    assert.match(prefsSrc, /localStorage\.setItem/);
+    assert.match(src, /writeDetailMode|setDetailMode/);
   });
 
   it('renders Terminal + Chat tabs for the selected worker', () => {

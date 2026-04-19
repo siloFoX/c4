@@ -94,9 +94,19 @@ function extractFlag(argv, flag) {
   return argv[idx + 1];
 }
 
+// Every handler-table route on the daemon lives behind the /api prefix
+// so the session-auth middleware (8.14) can gate them. Callers throughout
+// this file still write paths as '/create' etc, so prepend here once to
+// avoid touching every call site. Existing '/api/...' callers stay as-is.
+function withApiPrefix(p) {
+  if (typeof p !== 'string' || p.length === 0) return p;
+  if (p === '/api' || p.startsWith('/api/')) return p;
+  return '/api' + (p.startsWith('/') ? p : '/' + p);
+}
+
 function request(method, path, body = null, timeout = 10000) {
   return new Promise((resolve, reject) => {
-    const url = new URL(path, BASE);
+    const url = new URL(withApiPrefix(path), BASE);
     const headers = { 'Content-Type': 'application/json' };
     const token = readToken();
     if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -1344,6 +1354,79 @@ async function main() {
         break;
       }
 
+      case 'attach': {
+        // (8.17) External Claude session import.
+        //   c4 attach <session-id-or-path> [--name alias]
+        //   c4 attach list
+        //   c4 attach detach <name>
+        // Attaches a Claude Code JSONL transcript (by absolute path or
+        // by session UUID under ~/.claude/projects) as a read-only
+        // 'attached' worker. The daemon persists attachment records so
+        // the Web UI viewer keeps seeing them across restarts.
+        const sub = args[0] || '';
+        if (sub === 'list') {
+          result = await request('GET', '/attach/list');
+          const sessions = Array.isArray(result && result.sessions) ? result.sessions : [];
+          if (sessions.length === 0) {
+            console.log('No attached sessions.');
+            return;
+          }
+          console.log(`Attached sessions: ${sessions.length}`);
+          for (const s of sessions) {
+            const id = s.sessionId ? s.sessionId.slice(0, 8) : '-';
+            const proj = s.projectPath || '-';
+            console.log(`  ${s.name}  id=${id}  project=${proj}  path=${s.jsonlPath}`);
+          }
+          return;
+        }
+        if (sub === 'detach') {
+          const name = args[1];
+          if (!name) {
+            console.error('Usage: c4 attach detach <name>');
+            process.exit(1);
+          }
+          result = await request('DELETE', `/attach/${encodeURIComponent(name)}`);
+          if (result && result.ok) {
+            console.log(`Detached ${result.name || name}`);
+            return;
+          }
+          console.log(result && result.error ? result.error : JSON.stringify(result));
+          return;
+        }
+        // Default: c4 attach <session-id-or-path> [--name alias]
+        if (!sub) {
+          console.error('Usage: c4 attach <session-id-or-path> [--name alias]');
+          console.error('       c4 attach list');
+          console.error('       c4 attach detach <name>');
+          process.exit(1);
+        }
+        let attachName = '';
+        const rest = args.slice(1);
+        for (let i = 0; i < rest.length; i++) {
+          if (rest[i] === '--name' && rest[i + 1]) { attachName = rest[++i]; }
+        }
+        const isPathy = sub.includes('/') || sub.includes('\\') || sub.endsWith('.jsonl');
+        const body = isPathy ? { path: sub } : { sessionId: sub };
+        if (attachName) body.name = attachName;
+        result = await request('POST', '/attach', body);
+        if (result && result.name) {
+          const tok = result.tokens || { input: 0, output: 0 };
+          console.log(`Attached as ${result.name}`);
+          console.log(`  sessionId: ${result.sessionId || '-'}`);
+          console.log(`  project:   ${result.projectPath || '-'}`);
+          console.log(`  turns:     ${result.turns || 0}`);
+          console.log(`  tokens:    ${tok.input || 0} in / ${tok.output || 0} out`);
+          if (result.model) console.log(`  model:     ${result.model}`);
+          if (result.warnings) console.log(`  warnings:  ${result.warnings}`);
+          return;
+        }
+        if (result && result.error) {
+          console.error(result.error);
+          process.exit(1);
+        }
+        break;
+      }
+
       case 'events': {
         // (10.9) Scribe v2 structured event log query.
         //   c4 events [--from ISO] [--to ISO] [--type T[,T...]] [--worker W[,W...]]
@@ -2106,7 +2189,14 @@ async function main() {
           process.exit(1);
         }
 
-        const watchUrl = new URL(`/watch?name=${encodeURIComponent(name)}`, BASE);
+        // SSE stream must also go through /api so the session-auth
+        // middleware (8.14) classifies it correctly. EventSource-style
+        // clients cannot set headers, so the token rides as ?token= which
+        // auth.extractBearerToken accepts as a fallback.
+        const watchToken = readToken();
+        const watchQs = `name=${encodeURIComponent(name)}`
+          + (watchToken ? `&token=${encodeURIComponent(watchToken)}` : '');
+        const watchUrl = new URL(`/api/watch?${watchQs}`, BASE);
         const watchReq = http.get(watchUrl, (res) => {
           if (res.statusCode !== 200) {
             let data = '';
@@ -3792,6 +3882,9 @@ Commands:
   scribe stop                      Stop scribe
   scribe status                    Show scribe status
   scribe scan                      Run one-time scan now
+  attach <id|path> [--name alias]  Attach external Claude JSONL as read-only worker (8.17)
+  attach list                      List attached sessions
+  attach detach <name>             Remove an attachment pointer
   token-usage [--per-task]         Show daily token usage (per-task adds worker-level aggregation)
   quota [tier]                     Show daily tier-based token quota (8.3, manager|mid|worker)
   auto <task>                      Autonomous mode: manager + scribe + task (4.8)
@@ -3882,4 +3975,10 @@ Scope examples:
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+} else {
+  // Expose helpers so tests can exercise them without spawning the CLI
+  // or stubbing argv. Keep this list narrow on purpose.
+  module.exports = { withApiPrefix };
+}
