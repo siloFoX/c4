@@ -4406,6 +4406,10 @@ class PtyManager extends EventEmitter {
       const unreadSnapshots = w.snapshots.length - w.snapshotIndex;
       result.push({
         name,
+        // (8.17) 'spawned' is the default on every PTY-backed worker so
+        // the attach importer can add 'attached' rows without the Web UI
+        // needing a per-field undefined guard.
+        kind: w.kind || 'spawned',
         command: w.command,
         target: w.target || 'local',
         branch: w.branch || null,

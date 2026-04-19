@@ -35,6 +35,64 @@
   default-deny). `spawn` + promise (not `spawnSync`) because a
   synchronous child blocks the parent's event loop and the capture
   server would never respond.
+### 1.11.10 - External Claude session import (2026-04)
+
+### Added
+- **(session-attach) new `src/session-attach.js` zero-dep module**
+  that registers external Claude Code JSONL transcripts as read-only
+  "attached" workers. Public surface: `AttachStore` (load / list / add
+  / remove against `~/.c4/attached.json`), `resolveSessionPath` (path
+  or bare UUID lookup under `defaultProjectsRoot()` with structured
+  ambiguity / not-found / bad-extension errors), `attach` +
+  `detach` + `summarize` + `listAttached`, plus `getShared()` for the
+  daemon singleton. Re-uses the 8.18 `session-parser` contract via
+  `parseJsonl` + `listSessions` instead of re-implementing JSONL
+  parsing. Attempting to attach the same path twice returns
+  `ALREADY_ATTACHED`; duplicate aliases auto-suffix up to `-99` before
+  surfacing `NAME_COLLISION`.
+- **(daemon) four new endpoints behind the 8.14 auth middleware and
+  gated by `rbac.ACTIONS.WORKER_CREATE`:** `POST /api/attach`
+  (`{ path?, sessionId?, name? }` -> `{ name, sessionId, projectPath,
+  jsonlPath, turns, tokens, model, warnings }`), `GET /api/attach/list`
+  (persisted registrations), `DELETE /api/attach/:name` (pointer-only
+  removal; the underlying `.jsonl` is never touched), and
+  `GET /api/attach/:name/conversation` which returns the same parsed
+  `Conversation` shape as `/api/sessions/:id` so the viewer can stay
+  source-agnostic. `GET /api/attach/:name` returns `{ record, summary }`
+  for list rows. Status codes: `400` on missing input, `404` on ENOENT
+  / NOT_FOUND, `409` on AMBIGUOUS / ALREADY_ATTACHED, `410 Gone` when
+  the underlying JSONL has been deleted under a live registration.
+- **(pty-manager) `kind: 'spawned'` stamp on every list() row** so
+  consumers that merge in attached records only need to branch on one
+  field. `kind: 'attached'` lives on the 8.17 attach records.
+- **(cli) `c4 attach` command group:** `c4 attach <id|path>
+  [--name alias]` POSTs to `/api/attach` and pretty-prints
+  name / sessionId / project / turns / tokens / model / warnings;
+  `c4 attach list` prints a compact table of registered attachments;
+  `c4 attach detach <name>` removes the pointer. Input type (path vs
+  UUID) is auto-detected from the first positional argument.
+- **(web) Attached sub-section on the Sessions tab:** distinct group
+  header above the per-project session list, with a `+ Attach new...`
+  button that opens a modal (JSONL path or session UUID + optional
+  alias) POSTing to `/api/attach`. Clicking an attached row feeds
+  `ConversationView` through a new `snapshotUrl` prop pointed at
+  `/api/attach/<name>/conversation` so all markdown / tool / thinking
+  rendering stays in one component. Trash-icon row action calls
+  `DELETE /api/attach/:name`. `apiDelete` helper added to
+  `web/src/lib/api.ts`.
+- **(docs) `docs/patches/8.17-session-attach.md`** covers module
+  layout, persisted shape, four endpoint contracts, CLI pretty-print
+  format, Web UI wiring, the `kind` field migration, and explicitly
+  records the P2 (bidirectional resume) and P3 (per-owner ACL) gaps
+  that land after this ships.
+- **(tests) `tests/session-attach.test.js`** (39 assertions / 11
+  suites) covering attach-by-path (happy + ENOENT + BAD_EXT),
+  attach-by-UUID (single / ambiguous multi / zero), duplicate path +
+  duplicate name auto-suffix, persistence round-trip through a tmpdir
+  store, malformed-store fallback, `summarize` vs `parseJsonl`
+  equivalence, plus source-grep wiring tests against `daemon.js`,
+  `cli.js`, `pty-manager.js`, `api.ts`, `ConversationView.tsx`, and
+  `SessionsView.tsx`. Full suite stays green at 102 / 102.
 
 ### 1.11.9 - Claude session JSONL viewer (2026-04)
 

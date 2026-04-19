@@ -64,6 +64,17 @@ export async function apiPost<T = unknown>(url: string, body: unknown): Promise<
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
+  if (!res.ok) {
+    let errBody = '';
+    try { errBody = await res.text(); } catch { /* ignore */ }
+    const err = new Error(`HTTP ${res.status}${errBody ? `: ${errBody}` : ''}`);
+    throw err;
+  }
+  return (await res.json()) as T;
+}
+
+export async function apiDelete<T = unknown>(url: string): Promise<T> {
+  const res = await apiFetch(url, { method: 'DELETE' });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return (await res.json()) as T;
 }

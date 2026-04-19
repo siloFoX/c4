@@ -32,6 +32,7 @@ const slackEvents = require('./slack-events');
 const tierQuotaMod = require('./tier-quota');
 const scribeV2Mod = require('./scribe-v2');
 const sessionParser = require('./session-parser');
+const sessionAttach = require('./session-attach');
 
 // (8.5) Allow-list for POST /key. Web UI needs to drive Enter, Escape,
 // Ctrl-C and the arrow keys without sending raw control bytes. The list
@@ -678,6 +679,21 @@ async function handleRequest(req, res) {
     const mOne = route.match(/^\/sessions\/([^\/]+)$/);
     if (mStream) sessionParams = { kind: 'stream', id: decodeURIComponent(mStream[1]) };
     else if (mOne) sessionParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
+  }
+
+  // External session import (8.17): /attach/<name> + /attach/<name>/conversation.
+  // The plain /attach (no name) and /attach/list routes are handled by
+  // string compare in the dispatch table below. Separate decoder here
+  // so path-parameter routes stay a single regex match.
+  let attachParams = null;
+  {
+    const mConv = route.match(/^\/attach\/([^\/]+)\/conversation$/);
+    const mOne = route.match(/^\/attach\/([^\/]+)$/);
+    if (mConv) attachParams = { kind: 'conversation', name: decodeURIComponent(mConv[1]) };
+    else if (mOne) attachParams = { kind: 'one', name: decodeURIComponent(mOne[1]) };
+    // /attach/list is covered by the string-compare branch below; the
+    // regex would pick it up as a name, so reject that shape here.
+    if (attachParams && attachParams.name === 'list') attachParams = null;
   }
 
   // (10.5) Monthly cost report: GET /cost/monthly/<year>/<month>. Path
@@ -2873,6 +2889,141 @@ async function handleRequest(req, res) {
         clearInterval(heartbeat);
       });
       return;
+
+    } else if (req.method === 'POST' && route === '/attach') {
+      // (8.17) External Claude session import. Registers a JSONL at a
+      // filesystem path (or resolved from a bare session UUID) as a
+      // read-only 'attached' worker and persists the pointer in
+      // ~/.c4/attached.json so it survives daemon restart. Gated behind
+      // WORKER_CREATE: attaching an external session is conceptually a
+      // spawn with zero pty, so reusing the existing role keeps the
+      // permission matrix minimal instead of growing a new ATTACH_*
+      // action for a single endpoint.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE);
+      if (denyOr(res, gate)) return;
+      const body = await parseBody(req);
+      const input = typeof body.path === 'string' && body.path
+        ? body.path
+        : (typeof body.sessionId === 'string' ? body.sessionId : '');
+      if (!input) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Either path or sessionId is required' }));
+        return;
+      }
+      const cfgNow = manager.getConfig();
+      const projectsRoot = (cfgNow.sessions && typeof cfgNow.sessions.projectsDir === 'string')
+        ? cfgNow.sessions.projectsDir
+        : sessionParser.defaultProjectsRoot();
+      const store = sessionAttach.getShared();
+      const outcome = sessionAttach.attach(input, {
+        store,
+        projectsRoot,
+        name: typeof body.name === 'string' ? body.name : '',
+      });
+      if (outcome.error) {
+        const status = outcome.code === 'AMBIGUOUS' ? 409
+          : outcome.code === 'NOT_FOUND' ? 404
+          : outcome.code === 'ENOENT' ? 404
+          : outcome.code === 'ALREADY_ATTACHED' ? 409
+          : 400;
+        res.writeHead(status);
+        res.end(JSON.stringify(outcome));
+        return;
+      }
+      _safeAudit('attach.created',
+        { path: outcome.record.jsonlPath, sessionId: outcome.record.sessionId, projectPath: outcome.record.projectPath },
+        { target: outcome.record.name, actor: _auditActor(authCheck) });
+      result = {
+        name: outcome.record.name,
+        sessionId: outcome.record.sessionId,
+        projectPath: outcome.record.projectPath,
+        jsonlPath: outcome.record.jsonlPath,
+        createdAt: outcome.record.createdAt,
+        turns: outcome.summary.turns,
+        tokens: outcome.summary.tokens,
+        model: outcome.summary.model,
+        warnings: outcome.summary.warnings,
+      };
+
+    } else if (req.method === 'GET' && route === '/attach/list') {
+      // (8.17) Enumerate registered attachments. Same RBAC gate as
+      // POST /attach so a viewer-only token cannot enumerate external
+      // sessions the admin imported.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE);
+      if (denyOr(res, gate)) return;
+      const store = sessionAttach.getShared();
+      const records = store.list();
+      result = { sessions: records, total: records.length };
+
+    } else if (req.method === 'DELETE' && attachParams && attachParams.kind === 'one') {
+      // (8.17) Remove a single attachment pointer. Does NOT touch the
+      // underlying JSONL file - only the persisted registration goes
+      // away. An operator who wants to purge the transcript itself can
+      // still rm the file manually.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE);
+      if (denyOr(res, gate)) return;
+      const store = sessionAttach.getShared();
+      const existing = store.get(attachParams.name);
+      if (!existing) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Attachment not found', name: attachParams.name }));
+        return;
+      }
+      const outcome = sessionAttach.detach(attachParams.name, { store });
+      if (outcome.error) {
+        res.writeHead(400);
+        res.end(JSON.stringify(outcome));
+        return;
+      }
+      _safeAudit('attach.removed',
+        { path: existing.jsonlPath, sessionId: existing.sessionId },
+        { target: existing.name, actor: _auditActor(authCheck) });
+      result = { ok: true, name: existing.name };
+
+    } else if (req.method === 'GET' && attachParams && attachParams.kind === 'one') {
+      // (8.17) Return the persisted record plus a fresh parse summary
+      // so the Web UI can render a title + totals without loading the
+      // full Conversation. For the full body the client hits
+      // /attach/:name/conversation below.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE);
+      if (denyOr(res, gate)) return;
+      const store = sessionAttach.getShared();
+      const record = store.get(attachParams.name);
+      if (!record) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Attachment not found', name: attachParams.name }));
+        return;
+      }
+      let summary = null;
+      try { summary = sessionAttach.summarize(record.jsonlPath); }
+      catch { summary = null; }
+      result = { record, summary };
+
+    } else if (req.method === 'GET' && attachParams && attachParams.kind === 'conversation') {
+      // (8.17) Parse the attached JSONL and return the full
+      // Conversation payload. This is the endpoint ConversationView
+      // hits when the user clicks an attached row; it mirrors the
+      // 8.18 /sessions/:id shape exactly so the component can stay
+      // agnostic to the source.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE);
+      if (denyOr(res, gate)) return;
+      const store = sessionAttach.getShared();
+      const record = store.get(attachParams.name);
+      if (!record) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Attachment not found', name: attachParams.name }));
+        return;
+      }
+      if (!fs.existsSync(record.jsonlPath)) {
+        res.writeHead(410);
+        res.end(JSON.stringify({
+          error: 'Underlying JSONL no longer exists',
+          name: record.name,
+          jsonlPath: record.jsonlPath,
+        }));
+        return;
+      }
+      result = sessionParser.parseJsonl(record.jsonlPath);
 
     } else if (req.method === 'GET' && route === '/fleet/overview') {
       // Fleet management (9.6): aggregate this daemon's state plus

@@ -75,6 +75,12 @@ interface ConversationViewProps {
   sessionId: string;
   live?: boolean;
   className?: string;
+  // (8.17) Optional override for the snapshot URL. The Sessions tab
+  // passes `/api/attach/<name>/conversation` when the user clicks an
+  // attached row so the viewer reuses all rendering code without
+  // duplicating markup.
+  snapshotUrl?: string;
+  streamUrl?: string;
 }
 
 const AUTOSCROLL_THRESHOLD_PX = 24;
@@ -583,6 +589,8 @@ export default function ConversationView({
   sessionId,
   live = false,
   className,
+  snapshotUrl,
+  streamUrl,
 }: ConversationViewProps) {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -592,29 +600,29 @@ export default function ConversationView({
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const fetchSnapshot = useCallback(async () => {
-    if (!sessionId) return;
+    if (!sessionId && !snapshotUrl) return;
     setLoading(true);
     setError(null);
     try {
-      const data = await apiGet<Conversation>(
-        `/api/sessions/${encodeURIComponent(sessionId)}`,
-      );
+      const url = snapshotUrl || `/api/sessions/${encodeURIComponent(sessionId)}`;
+      const data = await apiGet<Conversation>(url);
       setConversation(data);
     } catch (err) {
       setError((err as Error).message || 'Failed to load session');
     } finally {
       setLoading(false);
     }
-  }, [sessionId]);
+  }, [sessionId, snapshotUrl]);
 
   useEffect(() => {
     fetchSnapshot();
   }, [fetchSnapshot]);
 
   useEffect(() => {
-    if (!live || !sessionId) return;
+    if (!live) return;
+    if (!sessionId && !streamUrl) return;
     const url = eventSourceUrl(
-      `/api/sessions/${encodeURIComponent(sessionId)}/stream`,
+      streamUrl || `/api/sessions/${encodeURIComponent(sessionId)}/stream`,
     );
     let es: EventSource | null = null;
     try {
@@ -651,7 +659,7 @@ export default function ConversationView({
       if (es) es.close();
       setStreaming(false);
     };
-  }, [live, sessionId]);
+  }, [live, sessionId, streamUrl]);
 
   // Auto-scroll on new turns, but only if the user has not scrolled up.
   useLayoutEffect(() => {
