@@ -18,6 +18,7 @@ const TerminalInterface = require('./terminal-interface');
 const SummaryLayer = require('./summary-layer');
 const validationLib = require('./validation');
 const interventionState = require('./intervention-state');
+const { ApprovalMonitor } = require('./approval-monitor');
 
 // L4 Critical Deny List (5.13) — these commands are NEVER auto-approved, even at full autonomy
 const CRITICAL_DENY_PATTERNS = [
@@ -159,10 +160,127 @@ class PtyManager extends EventEmitter {
     });
     this._hookEvents = new Map(); // name → [events] — hook event buffer per worker (3.15)
     this._notifications = null; // set by daemon via setNotifications()
+    this._slackEmitFn = null;   // (8.26) set by daemon via setSlackEmitter()
+    // (8.26) Approval-miss prevention monitor. Wires a persistent
+    // watcher on top of the list()-derived public intervention shape
+    // so SSE subscribers / c4 wait --follow / c4 watch-interventions
+    // all observe the same state transitions without polling read-now.
+    // Fed by the health-check tick and a dedicated 1s interval.
+    const monitorCfg = this.config.monitor || {};
+    this._approvalMonitor = new ApprovalMonitor({
+      getWorkers: () => this._getApprovalWatchRows(),
+      slackEmit: (eventType, payload) => {
+        if (typeof this._slackEmitFn === 'function') {
+          try { this._slackEmitFn(eventType, payload); } catch { /* best-effort */ }
+        }
+      },
+      onAutoReject: (workerName, message) => {
+        try { this._autoRejectApproval(workerName, message); }
+        catch { /* never let a corrective write break the tick */ }
+      },
+      tickMs: monitorCfg.tickMs,
+      slackAlertAfterMs: monitorCfg.slackAlertAfterMs,
+      approvalTimeoutMs: monitorCfg.approvalTimeoutMs,
+      autoReject: monitorCfg.autoReject,
+      autoRejectMessage: monitorCfg.autoRejectMessage,
+    });
+    this._approvalMonitorTimer = null;
+    this._startApprovalMonitor();
   }
 
   setNotifications(notifications) {
     this._notifications = notifications;
+  }
+
+  // (8.26) Daemon wires the shared slack emitter so the approval
+  // monitor can reuse the 8.15 event fabric without pulling in the
+  // full emitter here.
+  setSlackEmitter(fn) {
+    this._slackEmitFn = typeof fn === 'function' ? fn : null;
+  }
+
+  // (8.26) Public hook for the SSE route and CLI consumers. The
+  // callback receives { type, worker, ... } events. Returns an
+  // unsubscribe function.
+  watchApprovals(callback) {
+    return this._approvalMonitor.subscribe(callback);
+  }
+
+  approvalsSnapshot() {
+    return this._approvalMonitor.snapshot();
+  }
+
+  // (8.26) Collect rows the approval monitor inspects. Kept separate
+  // from list() so the monitor tick has no dependency on every
+  // list() enrichment (queuedTasks / lostWorkers / history timers).
+  _getApprovalWatchRows() {
+    const rows = [];
+    for (const [name, w] of this.workers) {
+      if (!w || !w.alive) continue;
+      const snap = w.screen ? this._getScreenText(w.screen) : '';
+      if (w._interventionState) {
+        w._lastInterventionAt = w._lastInterventionAt || new Date().toISOString();
+      }
+      interventionState.clearInterventionIfResolved(w, snap);
+      const publicIntervention = interventionState.mapInterventionToPublic(w);
+      rows.push({
+        name,
+        publicIntervention,
+        internalState: w._interventionState || null,
+        lastInterventionAt: w._lastInterventionAt || null,
+      });
+    }
+    return rows;
+  }
+
+  _startApprovalMonitor() {
+    if (this._approvalMonitorTimer) return;
+    const cfg = this._approvalMonitor.getConfig();
+    const tickMs = cfg.tickMs;
+    // Run immediately on startup so the first SSE client sees real
+    // data even before the first interval fires.
+    const run = () => {
+      try { this._approvalMonitor.tick(); }
+      catch { /* tick must never crash the daemon */ }
+    };
+    this._approvalMonitorTimer = setInterval(run, tickMs);
+    if (typeof this._approvalMonitorTimer.unref === 'function') {
+      // Do not block Node process exit on this timer.
+      this._approvalMonitorTimer.unref();
+    }
+  }
+
+  _stopApprovalMonitor() {
+    if (this._approvalMonitorTimer) {
+      clearInterval(this._approvalMonitorTimer);
+      this._approvalMonitorTimer = null;
+    }
+  }
+
+  // (8.26) Default auto-reject action: send a corrective message to
+  // the worker and clear the live intervention flag so the monitor
+  // fires `exit` on the next tick. Real sends only happen if the
+  // worker is still alive.
+  _autoRejectApproval(workerName, message) {
+    const w = this.workers.get(workerName);
+    if (!w || !w.alive) return { ok: false, reason: 'not_alive' };
+    const text = typeof message === 'string' && message ? message : '';
+    if (!text) return { ok: false, reason: 'empty_message' };
+    try {
+      // Best-effort: reuse the public send() so the existing PTY
+      // write + snapshot recording path stays consistent.
+      const sendResult = this.send(workerName, text, false);
+      // Drop the intervention flag so downstream consumers stop
+      // treating this worker as needing an operator.
+      if (w._interventionState && w._interventionState !== 'critical_deny') {
+        w._interventionState = null;
+        w._hadIntervention = true;
+        w._lastInterventionAt = new Date().toISOString();
+      }
+      return { ok: true, sendResult };
+    } catch (e) {
+      return { ok: false, reason: 'send_failed', error: e && e.message ? e.message : String(e) };
+    }
   }
 
   get logsDir() {

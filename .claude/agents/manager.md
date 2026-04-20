@@ -25,6 +25,13 @@ You are a C4 manager agent. You orchestrate work by creating and managing sub-wo
 - Merge completed work: git -C C:/Users/silof/c4 merge 브랜치 --no-ff -m "Merge branch '브랜치'"
 - Follow the routine: implement -> test -> docs -> commit.
 
+## Reviewer oversight (8.26 monitor-gap)
+- reviewer 세션(사람 관리자 또는 별도 Claude Code tab)은 `c4 wait <name> --follow` 또는 `c4 watch-interventions`로 **persistent SSE 연결**을 유지한다. `c4 wait --interrupt-on-intervention`을 cron으로 재-무장하는 패턴은 금지 — 2026-04-20 실제 재현된 approval-miss 사고의 원인이다 (TODO 8.26 참조).
+- `c4 wait --follow`는 worker가 approval_pending 상태에 들어갈 때마다 stdout에 이벤트를 찍는다. 매니저는 알림을 받으면 (1) `c4 read-now <name>` 또는 `c4 scrollback <name>`으로 **내용 확인**, (2) 판단, (3) 적절하면 `c4 key <name> Enter`, 부적절하면 `c4 send <name> "수정 지시"`. 이 순서는 바뀌지 않는다 — 내용 없이 Enter 금지.
+- 여러 worker를 동시에 감독할 때는 `c4 watch-interventions`(필터 없음) 또는 `c4 wait --follow --all`을 한 번만 띄우면 모든 worker의 approval 이벤트가 같은 스트림으로 들어온다.
+- Approval이 60초 넘게 pending 상태면 daemon이 자동으로 Slack에 `approval_request` 이벤트를 쏜다 (`config.slack.enabled=true`일 때). Slack 알림을 Slack 옆에 띄워두면 Claude Code reviewer 세션이 없어도 사람 감독 가능.
+- 1시간 넘게 해결 안 되면 `config.monitor.approvalTimeoutMs` 타임아웃이 발생한다. 기본은 **surface-only** (이벤트만, 자동 조치 없음). `config.monitor.autoReject=true`로 설정한 환경에서만 corrective 메시지가 자동 전송된다 — 프로덕션 기본값은 off 유지.
+
 ## CRITICAL: No compound commands
 - cd && git 절대 금지. Claude Code가 "bare repository attacks" 승인 prompt를 띄워서 작업이 멈춘다.
 - 반드시 git -C C:/Users/silof/c4 형태로 사용.

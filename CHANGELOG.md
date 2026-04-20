@@ -3,6 +3,47 @@
 ## [Unreleased]
 
 ### Added
+- **(8.26) Approval-miss prevention mechanism.** Close the gap where
+  `c4 wait --interrupt-on-intervention` returned on a worker's first
+  idle and left subsequent approval prompts unattended until the
+  30-minute stall-detection cron. New module
+  `src/approval-monitor.js` is a pure diff-tracker that receives
+  worker rows with their `publicIntervention` shape and fires
+  `enter` / `exit` / `slack_alert` / `timeout` events on state
+  transitions. `PtyManager` spins it on a 1-second interval (unref'd
+  so it doesn't block process exit) with three collaborators:
+  `getWorkers()` returns the live worker rows with
+  `_interventionState` auto-cleared via the existing
+  `intervention-state` helper, `slackEmit()` defers to the 8.15
+  shared emitter through a new `setSlackEmitter` bridge, and
+  `onAutoReject(name, message)` calls into `_autoRejectApproval`
+  which sends a corrective line through the normal `send()` path
+  and clears the intervention flag so the next tick fires `exit`.
+  New daemon routes `GET /api/approvals` (one-shot snapshot) and
+  `GET /api/approvals/stream` (SSE) let reviewer sessions subscribe
+  once and receive every transition for every worker; the stream
+  writes an initial snapshot frame so a mid-approval connect sees
+  the current pending set without waiting for the next transition.
+  New CLI: `c4 wait --follow` (persistent-connection reviewer mode
+  on the existing wait command) and `c4 watch-interventions`
+  (standalone command, safe to run outside a Claude Code reviewer
+  session). Slack alert fires exactly once per pending span when
+  `pendingMs >= slackAlertAfterMs` (default 60s) through the
+  existing 8.15 `approval_request` event type — same webhook,
+  dedup, level filter; `slackAlertAfterMs: 0` disables it. Per-
+  approval timeout (default 1h, configurable via
+  `config.monitor.approvalTimeoutMs`) fires a `timeout` event; when
+  `autoReject: true` the monitor dispatches a corrective message to
+  the worker and clears the intervention state. `.claude/agents/manager.md`
+  now recommends `c4 wait --follow` over cron re-arming, with the
+  existing "inspect before approving" rule preserved. Regression
+  guards: `tests/monitor-gap.test.js` - 19 assertions across 5
+  suites covering defaults, state transitions, slack / timeout /
+  auto-reject thresholds, subscription semantics, and the SSE event
+  formatter contract. Full suite delta: **+19 tests, 0 new
+  failures**. Spec: `.c4-task.md` (TODO 8.26 row). Patch note:
+  `docs/patches/8.26-monitor-gap.md`.
+
 - **(8.25) Chat tab past-history backfill.** `web/src/components/ChatView.tsx`
   now fetches past conversation on mount (and on every `workerName`
   change) before attaching the SSE live stream. Primary path is

@@ -85,6 +85,12 @@ function safeEmit(eventType, payload) {
     if (p && typeof p.catch === 'function') p.catch(() => {});
   } catch { /* emit() must never break callers */ }
 }
+// (8.26) Expose safeEmit to the approval monitor so stale approvals
+// reach the Slack webhook through the existing 8.15 dedup / level
+// filter path without the monitor importing slack-events directly.
+if (typeof manager.setSlackEmitter === 'function') {
+  manager.setSlackEmitter(safeEmit);
+}
 // (8.15) Bridge Notifications.notifyStall -> slackEmitter emit so every
 // halt/intervention the pty-manager already surfaces becomes a
 // halt_detected event on the Slack side too. Wraps rather than replaces
@@ -2612,6 +2618,59 @@ async function handleRequest(req, res) {
 
       req.on('close', () => {
         manager.removeListener('sse', onEvent);
+      });
+      return; // Don't end the response
+
+    } else if (req.method === 'GET' && route === '/approvals') {
+      // (8.26) Snapshot of the approval_pending set. Cheap to call,
+      // used by `c4 watch-interventions` on initial connect and by
+      // tests that want a non-streaming view.
+      if (typeof manager.approvalsSnapshot === 'function') {
+        result = manager.approvalsSnapshot();
+      } else {
+        result = { type: 'snapshot', ts: Date.now(), workers: [] };
+      }
+
+    } else if (req.method === 'GET' && route === '/approvals/stream') {
+      // (8.26) Persistent SSE stream of approval_pending transitions.
+      // Reviewer sessions subscribe once and receive enter / exit /
+      // slack_alert / timeout events for every worker without needing
+      // to poll read-now or re-arm a per-worker wait.
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+      });
+      res.write('data: {"type":"connected"}\n\n');
+
+      // Initial snapshot so a reviewer connecting mid-approval sees
+      // the existing pending set right away.
+      try {
+        if (typeof manager.approvalsSnapshot === 'function') {
+          const snap = manager.approvalsSnapshot();
+          res.write(`data: ${JSON.stringify(snap)}\n\n`);
+        }
+      } catch { /* best-effort */ }
+
+      let unsubscribe = () => {};
+      if (typeof manager.watchApprovals === 'function') {
+        unsubscribe = manager.watchApprovals((event) => {
+          try { res.write(`data: ${JSON.stringify(event)}\n\n`); }
+          catch { /* client probably closed */ }
+        });
+      }
+
+      // Heartbeat so reverse proxies and browsers do not time out the
+      // idle connection. The payload is a comment line (SSE keep-alive
+      // convention) so clients ignore it.
+      const heartbeat = setInterval(() => {
+        try { res.write(': keep-alive\n\n'); } catch { /* closed */ }
+      }, 25000);
+      if (typeof heartbeat.unref === 'function') heartbeat.unref();
+
+      req.on('close', () => {
+        clearInterval(heartbeat);
+        try { unsubscribe(); } catch { /* already unwired */ }
       });
       return; // Don't end the response
 
