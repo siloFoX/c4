@@ -178,6 +178,17 @@ export default function HistoryView() {
 
   const closeScribe = () => setShowScribe(false);
 
+  const selectWorker = useCallback((name: string) => {
+    setShowScribe(false);
+    setSelected(name);
+  }, []);
+
+  const activeSection: 'scribe' | 'detail' | 'placeholder' = showScribe
+    ? 'scribe'
+    : detail
+      ? 'detail'
+      : 'placeholder';
+
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col md:flex-row">
       <aside className="w-full shrink-0 overflow-y-auto border-b border-border bg-card p-4 md:w-80 md:border-b-0 md:border-r">
@@ -189,7 +200,14 @@ export default function HistoryView() {
                 History
               </CardTitle>
             </div>
-            <Button type="button" variant="secondary" size="sm" onClick={openScribe}>
+            <Button
+              type="button"
+              variant={showScribe ? 'default' : 'secondary'}
+              size="sm"
+              onClick={openScribe}
+              aria-pressed={showScribe}
+              data-active={showScribe ? 'true' : 'false'}
+            >
               <NotebookText className="h-3.5 w-3.5" />
               <span>
                 Scribe
@@ -261,12 +279,13 @@ export default function HistoryView() {
                   })
                 : summary
               ).map((w) => {
-                const isSelected = selected === w.name;
+                const isSelected = !showScribe && selected === w.name;
                 return (
                   <li key={w.name}>
                     <button
                       type="button"
-                      onClick={() => setSelected(w.name)}
+                      onClick={() => selectWorker(w.name)}
+                      aria-pressed={isSelected}
                       className={cn(
                         'w-full rounded-md border border-transparent px-2 py-1.5 text-left text-sm transition-colors',
                         isSelected
@@ -296,7 +315,11 @@ export default function HistoryView() {
         </Card>
       </aside>
 
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-3 md:p-6">
+      <main
+        key={activeSection}
+        data-section={activeSection}
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-3 md:p-6"
+      >
         {showScribe ? (
           <Card className="flex h-full min-h-0 min-w-0 flex-col">
             <CardHeader className="flex-row items-center justify-between gap-2 p-4 md:p-5">
