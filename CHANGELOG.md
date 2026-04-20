@@ -3,6 +3,54 @@
 ## [Unreleased]
 
 ### Added
+- **(8.28) Autonomous TODO dispatch loop.** New `src/auto-dispatcher.js`
+  module exports `parseTodos(markdown)`, `sortByPriority`, `pickNext`,
+  `detectPriority`, `detectUnsafe`, `extractDependencies`,
+  `buildDispatchPrompt`, and an `AutoDispatcher` class with
+  `tick()` / `pause()` / `resume()` / `recordHalt()` / `recordSuccess()`
+  / `start()` / `stop()` / `reload()`. `parseTodos` handles GFM table
+  rows including strikethrough ids (`~~7.8~~`) and bolded status
+  markers (`**done**`). `detectPriority` uses explicit tag markers
+  (`[urgent]` / `[긴급]` / `urgent:` / `[halt]`) so narrative mentions
+  of "urgent" inside a long detail string stay `normal`; the priority
+  ordering is `urgent > halt > normal` with numeric id tie-break.
+  `detectUnsafe` matches compound shell connectors (`&&` / `||` /
+  unescaped `;`) and the destructive patterns (`rm -rf`, `sudo`,
+  `git push --force`, `shutdown`, `reboot`, `chmod -R 777`, fork-bomb)
+  the spec calls out; tick pauses the loop when the picked todo trips
+  the gate. Circuit breaker: 3 consecutive halt/rollback signals
+  auto-pause with `pauseReason = "circuit-breaker: N consecutive
+  halts"`; `resume()` zeroes the counter. Throttle window defaults to
+  5 min and runs regardless of manager idle state. `src/daemon.js`
+  owns one `AutoDispatcher` instance: `_buildAutoDispatcher()` returns
+  `null` when `config.autonomous.mode !== true`, keeping the feature
+  opt-in and backwards-compatible; `notifier` bridges
+  `auto_dispatch_sent` → `safeEmit('task_start', {source:
+  'auto-dispatch', ...})` and `auto_dispatch_paused` →
+  `safeEmit('halt_detected', ...)` so the 8.15 event vocabulary stays
+  at 10 types; `idleCheck` reads `manager.list()` and blocks dispatch
+  unless the manager is `idle` without `approval_pending`; `dispatch`
+  calls `manager.autoStart` for a missing manager else
+  `manager.sendTask` for an idle one. Lifecycle hooks run
+  `_startAutoDispatcher()` alongside `_startScheduleTick()` and
+  `_stopAutoDispatcher()` in the SIGINT/SIGTERM/reload paths; the
+  reload path preserves pause state + halt counter across a rebuild.
+  New HTTP routes `GET /autonomous/status`, `POST /autonomous/pause`
+  (body `{reason?}`), `POST /autonomous/resume`, `POST /autonomous/tick`.
+  New CLI `c4 autonomous <status|pause|resume|tick> [reason]`. Config
+  section `autonomous: {mode, throttleMs, circuitThreshold,
+  managerName, todoPath}` with `mode: false` default so existing
+  deployments stay untouched. Tests: `tests/auto-dispatch.test.js` —
+  54 assertions across 12 sections (parseTodos, detectPriority,
+  detectUnsafe, extractDependencies, sortByPriority + pickNext,
+  comparators, AutoDispatcher core, circuit breaker, notifier hooks,
+  status contract, buildDispatchPrompt, smoke against real TODO.md).
+  Full suite: 106 pass / 5 pre-existing bcryptjs-not-found failures in
+  `tests/{cli-api-prefix,mcp-hub,rbac,session-auth,web-control}.test.js`
+  unchanged by this patch. Patch note: `docs/patches/8.28-auto-dispatch.md`.
+  Reproduction base: 2026-04-20 session stalled for hours because
+  reviewer forgot to nudge the next todo after manager went idle.
+
 - **(8.25) Chat tab past-history backfill.** `web/src/components/ChatView.tsx`
   now fetches past conversation on mount (and on every `workerName`
   change) before attaching the SSE live stream. Primary path is
