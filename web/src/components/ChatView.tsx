@@ -3,11 +3,12 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
-import { ArrowDown, Send, Sparkles } from 'lucide-react';
-import { apiFetch, eventSourceUrl } from '../lib/api';
+import { ArrowDown, Loader2, Send, Sparkles } from 'lucide-react';
+import { apiFetch, apiGet, eventSourceUrl } from '../lib/api';
 import {
   Badge,
   Button,
@@ -24,12 +25,43 @@ interface ChatViewProps {
 }
 
 type Role = 'user' | 'worker';
+type Source = 'backfill' | 'live';
 
 interface ChatMessage {
   id: string;
   role: Role;
   text: string;
   ts: number;
+  source: Source;
+}
+
+// 8.25: shapes that match what the daemon returns for /api/sessions
+// when workerName is provided. Kept loose so a partial session still
+// renders.
+interface ConversationTurn {
+  id: string;
+  role: 'user' | 'assistant' | 'thinking' | 'tool_use' | 'tool_result' | 'system';
+  createdAt: string | null;
+  content: string;
+  toolName: string | null;
+}
+
+interface ConversationShape {
+  sessionId: string;
+  turns: ConversationTurn[];
+}
+
+interface SessionByWorkerResponse {
+  sessionId: string | null;
+  conversation: ConversationShape | null;
+  workerName?: string;
+}
+
+interface ScrollbackResponse {
+  content?: string;
+  lines?: number;
+  totalScrollback?: number;
+  error?: string;
 }
 
 // Amount of quiet time after the last SSE frame before we finalize the buffer
@@ -39,6 +71,8 @@ interface ChatMessage {
 const WORKER_FLUSH_MS = 1200;
 const MAX_MESSAGES = 300;
 const AUTOSCROLL_THRESHOLD_PX = 24;
+const SCROLLBACK_PAGE = 2000;
+const SCROLLBACK_MAX = 10000;
 
 const ANSI_OSC = /\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g;
 const ANSI_CSI = /\x1b\[[\d;?=]*[ -/]*[@-~]/g;
@@ -65,8 +99,8 @@ export function b64decode(b64: string): string {
   }
 }
 
-function makeId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+function makeId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function formatTime(ts: number): string {
@@ -77,27 +111,139 @@ function formatTime(ts: number): string {
   return `${hh}:${mm}:${ss}`;
 }
 
+// 8.25: turn the structured conversation returned by /api/sessions into
+// the flat user/worker bubble list the chat renderer consumes. Only
+// roles that make sense as a conversation (user text, assistant text,
+// tool_use as an inline marker) are rendered; thinking, tool_result,
+// and system meta are collapsed because they would double the noise
+// and are better viewed in the dedicated ConversationView tab.
+export function conversationToMessages(
+  conv: ConversationShape | null | undefined,
+): ChatMessage[] {
+  if (!conv || !Array.isArray(conv.turns)) return [];
+  const out: ChatMessage[] = [];
+  for (const turn of conv.turns) {
+    if (!turn || typeof turn !== 'object') continue;
+    const ts = turn.createdAt ? Date.parse(turn.createdAt) : NaN;
+    const safeTs = Number.isFinite(ts) ? ts : Date.now();
+    if (turn.role === 'user' && turn.content && turn.content.trim()) {
+      out.push({ id: turn.id, role: 'user', text: turn.content.trim(), ts: safeTs, source: 'backfill' });
+    } else if (turn.role === 'assistant' && turn.content && turn.content.trim()) {
+      out.push({ id: turn.id, role: 'worker', text: turn.content.trim(), ts: safeTs, source: 'backfill' });
+    } else if (turn.role === 'tool_use' && turn.toolName) {
+      out.push({
+        id: turn.id,
+        role: 'worker',
+        text: `[tool: ${turn.toolName}]`,
+        ts: safeTs,
+        source: 'backfill',
+      });
+    }
+  }
+  return out;
+}
+
+// 8.25: fallback parser for raw PTY scrollback when the session JSONL
+// is not yet resolvable (new worker / LOST state / --resume missed). We
+// split on the Claude-TUI input prompt marker "> " at the start of a
+// line so user lines get their own bubble; everything else collapses
+// into worker bubbles between user turns. Best effort only - the
+// ConversationView tab is still the source of truth.
+export function scrollbackToMessages(raw: string): ChatMessage[] {
+  if (!raw) return [];
+  const cleaned = stripAnsi(raw);
+  const lines = cleaned.split('\n');
+  const out: ChatMessage[] = [];
+  let workerBuf: string[] = [];
+  const flushWorker = () => {
+    const joined = workerBuf.join('\n').trim();
+    workerBuf = [];
+    if (!joined) return;
+    out.push({
+      id: makeId('bk-w'),
+      role: 'worker',
+      text: joined,
+      ts: Date.now(),
+      source: 'backfill',
+    });
+  };
+  for (const line of lines) {
+    const m = line.match(/^>\s+(.*\S)/);
+    if (m) {
+      flushWorker();
+      out.push({
+        id: makeId('bk-u'),
+        role: 'user',
+        text: m[1],
+        ts: Date.now(),
+        source: 'backfill',
+      });
+    } else {
+      workerBuf.push(line);
+    }
+  }
+  flushWorker();
+  return out;
+}
+
 export default function ChatView({ workerName }: ChatViewProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [history, setHistory] = useState<ChatMessage[]>([]);
+  const [liveMessages, setLiveMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sseConnected, setSseConnected] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [backfillLoading, setBackfillLoading] = useState(true);
+  const [backfillCount, setBackfillCount] = useState(0);
+  const [backfillSource, setBackfillSource] = useState<'session' | 'scrollback' | null>(null);
+  const [backfillError, setBackfillError] = useState<string | null>(null);
+  const [hasOlder, setHasOlder] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const pendingBufRef = useRef<string>('');
   const flushTimerRef = useRef<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const scrollbackLinesRef = useRef<number>(SCROLLBACK_PAGE);
+  const seenIdsRef = useRef<Set<string>>(new Set());
+  const seenTextsRef = useRef<Set<string>>(new Set());
+  const backfillReadyRef = useRef<boolean>(false);
 
-  const appendMessage = useCallback((role: Role, text: string) => {
-    const trimmed = text.replace(/^\s+|\s+$/g, '');
-    if (!trimmed) return;
-    setMessages((prev) => {
-      const next = [...prev, { id: makeId(), role, text: trimmed, ts: Date.now() }];
-      return next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next;
-    });
+  const messages = useMemo<ChatMessage[]>(() => {
+    const merged = [...history, ...liveMessages];
+    return merged.length > MAX_MESSAGES ? merged.slice(-MAX_MESSAGES) : merged;
+  }, [history, liveMessages]);
+
+  const rememberMessage = useCallback((m: ChatMessage) => {
+    seenIdsRef.current.add(m.id);
+    seenTextsRef.current.add(m.text);
   }, []);
+
+  const appendLive = useCallback(
+    (role: Role, text: string) => {
+      const trimmed = text.replace(/^\s+|\s+$/g, '');
+      if (!trimmed) return;
+      // 8.25 dedup: if the same text was rendered by the backfill pass
+      // (e.g. SSE delivers the tail of an assistant message whose full
+      // body already landed in the session JSONL), skip it so the user
+      // does not see doubled bubbles.
+      if (seenTextsRef.current.has(trimmed)) return;
+      const msg: ChatMessage = {
+        id: makeId(role === 'user' ? 'live-u' : 'live-w'),
+        role,
+        text: trimmed,
+        ts: Date.now(),
+        source: 'live',
+      };
+      rememberMessage(msg);
+      setLiveMessages((prev) => {
+        const next = [...prev, msg];
+        return next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next;
+      });
+    },
+    [rememberMessage],
+  );
 
   const flushWorkerBuffer = useCallback(() => {
     const raw = pendingBufRef.current;
@@ -109,8 +255,8 @@ export default function ChatView({ workerName }: ChatViewProps) {
     if (!raw) return;
     const clean = stripAnsi(raw).trim();
     if (!clean) return;
-    appendMessage('worker', clean);
-  }, [appendMessage]);
+    appendLive('worker', clean);
+  }, [appendLive]);
 
   const scheduleFlush = useCallback(() => {
     if (flushTimerRef.current != null) {
@@ -119,16 +265,90 @@ export default function ChatView({ workerName }: ChatViewProps) {
     flushTimerRef.current = window.setTimeout(flushWorkerBuffer, WORKER_FLUSH_MS);
   }, [flushWorkerBuffer]);
 
+  // 8.25: worker-change reset + past-history backfill. Runs once per
+  // workerName; cancels in-flight fetches via the `cancelled` closure
+  // so a fast worker swap does not race stale state into the UI.
   useEffect(() => {
-    setMessages([]);
+    let cancelled = false;
+    setHistory([]);
+    setLiveMessages([]);
     setInput('');
     setError(null);
     setAutoScroll(true);
+    setBackfillLoading(true);
+    setBackfillCount(0);
+    setBackfillSource(null);
+    setBackfillError(null);
+    setHasOlder(false);
     pendingBufRef.current = '';
     if (flushTimerRef.current != null) {
       window.clearTimeout(flushTimerRef.current);
       flushTimerRef.current = null;
     }
+    scrollbackLinesRef.current = SCROLLBACK_PAGE;
+    seenIdsRef.current = new Set();
+    seenTextsRef.current = new Set();
+    backfillReadyRef.current = false;
+
+    async function loadBackfill() {
+      try {
+        const sessionUrl = `/api/sessions?workerName=${encodeURIComponent(workerName)}`;
+        const sess = await apiGet<SessionByWorkerResponse>(sessionUrl);
+        if (cancelled) return;
+        if (sess && sess.conversation && Array.isArray(sess.conversation.turns) && sess.conversation.turns.length > 0) {
+          const msgs = conversationToMessages(sess.conversation);
+          for (const m of msgs) {
+            seenIdsRef.current.add(m.id);
+            seenTextsRef.current.add(m.text);
+          }
+          if (cancelled) return;
+          setHistory(msgs);
+          setBackfillCount(msgs.length);
+          setBackfillSource('session');
+          setHasOlder(false);
+          setBackfillLoading(false);
+          backfillReadyRef.current = true;
+          return;
+        }
+      } catch (err) {
+        if (cancelled) return;
+        setBackfillError((err as Error).message);
+      }
+
+      try {
+        const scrollbackUrl = `/api/scrollback?name=${encodeURIComponent(workerName)}&lines=${scrollbackLinesRef.current}`;
+        const sb = await apiGet<ScrollbackResponse>(scrollbackUrl);
+        if (cancelled) return;
+        if (sb.error) {
+          setBackfillError(sb.error);
+          setBackfillSource(null);
+          setBackfillLoading(false);
+          backfillReadyRef.current = true;
+          return;
+        }
+        const msgs = scrollbackToMessages(sb.content || '');
+        for (const m of msgs) {
+          seenIdsRef.current.add(m.id);
+          seenTextsRef.current.add(m.text);
+        }
+        setHistory(msgs);
+        setBackfillCount(msgs.length);
+        setBackfillSource('scrollback');
+        setHasOlder(Boolean(sb.totalScrollback && sb.lines && sb.totalScrollback > sb.lines));
+        setBackfillLoading(false);
+        backfillReadyRef.current = true;
+      } catch (err) {
+        if (cancelled) return;
+        setBackfillError((err as Error).message);
+        setBackfillLoading(false);
+        backfillReadyRef.current = true;
+      }
+    }
+
+    void loadBackfill();
+    return () => {
+      cancelled = true;
+    };
   }, [workerName]);
 
   useEffect(() => {
@@ -164,12 +384,57 @@ export default function ChatView({ workerName }: ChatViewProps) {
     el.scrollTop = el.scrollHeight;
   }, [messages, autoScroll]);
 
+  // 8.25: load-older handler. Only scrollback-mode has a "more history"
+  // story - session JSONL already contains the full conversation.
+  const loadOlder = useCallback(async () => {
+    if (loadingOlder || !hasOlder || backfillSource !== 'scrollback') return;
+    const nextLines = Math.min(scrollbackLinesRef.current + SCROLLBACK_PAGE, SCROLLBACK_MAX);
+    if (nextLines === scrollbackLinesRef.current) {
+      setHasOlder(false);
+      return;
+    }
+    setLoadingOlder(true);
+    try {
+      const url = `/api/scrollback?name=${encodeURIComponent(workerName)}&lines=${nextLines}`;
+      const sb = await apiGet<ScrollbackResponse>(url);
+      if (sb.error) {
+        setBackfillError(sb.error);
+        return;
+      }
+      const msgs = scrollbackToMessages(sb.content || '');
+      const nextIds = new Set<string>();
+      const nextTexts = new Set<string>();
+      for (const m of msgs) {
+        nextIds.add(m.id);
+        nextTexts.add(m.text);
+      }
+      // Preserve any live-stream texts that were already rendered so
+      // they stay recognized by the dedup check after rehydration.
+      for (const m of liveMessages) nextTexts.add(m.text);
+      seenIdsRef.current = nextIds;
+      seenTextsRef.current = nextTexts;
+      scrollbackLinesRef.current = nextLines;
+      setHistory(msgs);
+      setBackfillCount(msgs.length);
+      setHasOlder(Boolean(sb.totalScrollback && sb.lines && sb.totalScrollback > sb.lines) && nextLines < SCROLLBACK_MAX);
+    } catch (err) {
+      setBackfillError((err as Error).message);
+    } finally {
+      setLoadingOlder(false);
+    }
+  }, [backfillSource, hasOlder, liveMessages, loadingOlder, workerName]);
+
   const onScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     const atBottom = distanceFromBottom <= AUTOSCROLL_THRESHOLD_PX;
     setAutoScroll(atBottom);
+    // 8.25 infinite scroll: when the user hits the top of the log in
+    // scrollback fallback mode, pull the next page of past lines.
+    if (el.scrollTop <= 8 && hasOlder && !loadingOlder && backfillSource === 'scrollback') {
+      void loadOlder();
+    }
   };
 
   const jumpToBottom = () => {
@@ -186,7 +451,7 @@ export default function ChatView({ workerName }: ChatViewProps) {
     setSending(true);
     setError(null);
     flushWorkerBuffer();
-    appendMessage('user', text);
+    appendLive('user', text);
     setInput('');
     setAutoScroll(true);
     try {
@@ -235,6 +500,11 @@ export default function ChatView({ workerName }: ChatViewProps) {
           </CardDescription>
         </div>
         <div className="flex items-center gap-2 text-xs">
+          {backfillCount > 0 && (
+            <Badge variant="secondary" className="flex items-center gap-1" title={backfillSource === 'session' ? 'Loaded from session JSONL' : 'Loaded from scrollback'}>
+              <span>Loaded {backfillCount} past {backfillCount === 1 ? 'message' : 'messages'}</span>
+            </Badge>
+          )}
           <Badge
             variant={sseConnected ? 'success' : 'secondary'}
             className="flex items-center gap-1"
@@ -267,6 +537,16 @@ export default function ChatView({ workerName }: ChatViewProps) {
             <span className="min-w-0 break-words">{error}</span>
           </div>
         )}
+        {backfillError && !error && (
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300"
+          >
+            <span className="min-w-0 break-words">
+              Past-message backfill failed: {backfillError}. Live stream is still connected.
+            </span>
+          </div>
+        )}
 
         <div
           ref={scrollRef}
@@ -276,13 +556,37 @@ export default function ChatView({ workerName }: ChatViewProps) {
           aria-live="polite"
           aria-label={`Chat with ${workerName}`}
         >
-          {messages.length === 0 ? (
+          {backfillLoading ? (
+            <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+              <span>Loading past messages...</span>
+              <ul className="mt-4 w-full max-w-sm space-y-2" aria-hidden="true">
+                <li className="h-8 animate-pulse rounded-md bg-muted/60" />
+                <li className="h-12 animate-pulse rounded-md bg-muted/50" />
+                <li className="h-8 animate-pulse rounded-md bg-muted/60" />
+              </ul>
+            </div>
+          ) : messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
               <Sparkles aria-hidden="true" className="h-4 w-4" />
               <span>No messages yet. Type below to talk to the worker.</span>
             </div>
           ) : (
             <ul className="flex flex-col gap-2">
+              {hasOlder && backfillSource === 'scrollback' && (
+                <li className="flex items-center justify-center py-1 text-xs text-muted-foreground">
+                  {loadingOlder ? (
+                    <span className="inline-flex items-center gap-1">
+                      <Loader2 aria-hidden="true" className="h-3 w-3 animate-spin" />
+                      Loading older messages...
+                    </span>
+                  ) : (
+                    <Button type="button" variant="ghost" size="sm" onClick={() => void loadOlder()}>
+                      Load older
+                    </Button>
+                  )}
+                </li>
+              )}
               {messages.map((msg) => {
                 const isUser = msg.role === 'user';
                 return (
@@ -295,7 +599,8 @@ export default function ChatView({ workerName }: ChatViewProps) {
                         'max-w-[85%] rounded-lg px-3 py-2 text-sm shadow-sm md:max-w-[75%]',
                         isUser
                           ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-foreground'
+                          : 'bg-muted text-foreground',
+                        msg.source === 'backfill' && 'opacity-90'
                       )}
                     >
                       <div
@@ -308,6 +613,9 @@ export default function ChatView({ workerName }: ChatViewProps) {
                       >
                         <span>{isUser ? 'You' : workerName}</span>
                         <span className="font-mono">{formatTime(msg.ts)}</span>
+                        {msg.source === 'backfill' && (
+                          <span className="font-mono text-[9px] opacity-70">past</span>
+                        )}
                       </div>
                       <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-relaxed md:text-sm">
                         {msg.text}

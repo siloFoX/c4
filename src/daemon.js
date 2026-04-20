@@ -2769,21 +2769,46 @@ async function handleRequest(req, res) {
       // by project directory, sorted newest-first. Uses listSessions +
       // groupSessionsByProject from the pure parser so the shape is
       // identical to the external importer (8.17) consumer contract.
+      //
+      // (8.25) When called with `workerName=<name>` the endpoint resolves
+      // the worker's current session via manager.getSessionId + parseJsonl
+      // and returns a single Conversation instead of the list shape. The
+      // ChatView backfill uses this to render past turns on mount without
+      // a two-step (session-id lookup + parse) round trip. Returns
+      // { sessionId: null } with 200 if the worker exists but has no
+      // resolvable JSONL yet, so the client can fall back to /scrollback.
       const cfgNow = manager.getConfig();
       const rootOverride = (cfgNow.sessions && typeof cfgNow.sessions.projectsDir === 'string')
         ? cfgNow.sessions.projectsDir
         : null;
       const rootDir = rootOverride || sessionParser.defaultProjectsRoot();
-      const q = (url.searchParams.get('q') || '').toLowerCase();
-      let sessions = sessionParser.listSessions(rootDir);
-      if (q) {
-        sessions = sessions.filter((s) => {
-          const hay = `${s.projectPath || ''} ${s.projectDir || ''} ${s.sessionId || ''} ${s.lastAssistantSnippet || ''}`.toLowerCase();
-          return hay.includes(q);
-        });
+      const workerName = url.searchParams.get('workerName');
+      if (workerName) {
+        const sid = manager.getSessionId(workerName);
+        if (!sid) {
+          result = { sessionId: null, conversation: null, workerName };
+        } else {
+          const sessions = sessionParser.listSessions(rootDir);
+          const match = sessions.find((s) => s.sessionId === sid);
+          if (!match) {
+            result = { sessionId: sid, conversation: null, workerName };
+          } else {
+            const conversation = sessionParser.parseJsonl(match.path);
+            result = { sessionId: sid, conversation, workerName };
+          }
+        }
+      } else {
+        const q = (url.searchParams.get('q') || '').toLowerCase();
+        let sessions = sessionParser.listSessions(rootDir);
+        if (q) {
+          sessions = sessions.filter((s) => {
+            const hay = `${s.projectPath || ''} ${s.projectDir || ''} ${s.sessionId || ''} ${s.lastAssistantSnippet || ''}`.toLowerCase();
+            return hay.includes(q);
+          });
+        }
+        const groups = sessionParser.groupSessionsByProject(sessions);
+        result = { rootDir, sessions, groups, total: sessions.length };
       }
-      const groups = sessionParser.groupSessionsByProject(sessions);
-      result = { rootDir, sessions, groups, total: sessions.length };
 
     } else if (req.method === 'GET' && sessionParams && sessionParams.kind === 'one') {
       // (8.18) Parsed Conversation for a single session id. Searches

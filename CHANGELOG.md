@@ -2,6 +2,50 @@
 
 ## [Unreleased]
 
+### Added
+- **(8.25) Chat tab past-history backfill.** `web/src/components/ChatView.tsx`
+  now fetches past conversation on mount (and on every `workerName`
+  change) before attaching the SSE live stream. Primary path is
+  `GET /api/sessions?workerName=<name>`; the daemon resolves the
+  worker's current session id via `manager.getSessionId`, parses the
+  JSONL through the 8.18 `session-parser`, and returns the full
+  `Conversation`. ChatView maps `user`, `assistant`, and `tool_use`
+  turns into chat bubbles (`thinking` / `tool_result` / `system`
+  collapse into the dedicated ConversationView tab). Fallback is
+  `GET /api/scrollback?name=<name>&lines=2000` with a naive `> `
+  user-prompt splitter when the session JSONL is not yet resolvable
+  (new worker / LOST / `--resume` miss). SSE chunks whose text already
+  appears in the backfill are deduped via a `seenTextsRef` Set, plus a
+  `seenIdsRef` mirror of JSONL turn ids so infinite-scroll reloads do
+  not double-count either. Worker-change swaps reset history, live
+  messages, dedup sets, scrollback cursor, and buffers; a
+  closure-scoped `cancelled` flag short-circuits stale fetches when a
+  fast swap races a slow backfill. UI additions: loading skeleton +
+  "Loaded N past messages" badge, per-bubble "past" marker + opacity
+  on historical bubbles, and an infinite-scroll `Load older` control
+  (both auto-fires at scroll-to-top and exposes a manual button) that
+  bumps the scrollback `lines` parameter by 2000 up to a 10000 cap.
+  Regression guards: `tests/chat-backfill.test.js` - 27 assertions
+  across 5 suites covering `conversationToMessages` / `scrollbackToMessages`
+  pure helpers, SSE dedup contract, ChatView source wiring, and the
+  daemon `/api/sessions?workerName=<name>` route contract. Full suite
+  **108 -> 109 pass**. `npm --prefix web run build` succeeds. Spec:
+  `.c4-task.md` (TODO 8.25 row). Patch note:
+  `docs/patches/8.25-chat-backfill.md`.
+
+### Changed
+- **(8.25) `GET /api/sessions` accepts `workerName`.** When called
+  with `workerName=<name>` the daemon resolves the worker's current
+  session id via `manager.getSessionId` + `sessionParser.parseJsonl`
+  and responds with
+  `{ sessionId, conversation, workerName }`. When no session resolves
+  the endpoint returns `{ sessionId: null, conversation: null,
+  workerName }` at HTTP 200 (not 404) so the client can fall back to
+  `/api/scrollback`. Calling `/api/sessions` without `workerName`
+  returns the legacy list-shape
+  (`{ rootDir, sessions, groups, total }`) untouched - `SessionsView`
+  and the 8.18 session-list consumers stay unaffected.
+
 ### Fixed
 - **(8.30) HistoryView scribe section transition.**
   Clicking a worker in the sidebar while the scribe viewer was open
