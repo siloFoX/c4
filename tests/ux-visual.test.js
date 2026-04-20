@@ -16,7 +16,6 @@ const { describe, it } = require('node:test');
 const REPO_ROOT = path.join(__dirname, '..');
 const EXPLORE = path.join(REPO_ROOT, 'tools', 'ux', 'explore.mjs');
 const UX_PKG = path.join(REPO_ROOT, 'tools', 'ux', 'package.json');
-const WORKER_DETAIL = path.join(REPO_ROOT, 'web', 'src', 'components', 'WorkerDetail.tsx');
 const SCREEN_BUFFER = path.join(REPO_ROOT, 'src', 'screen-buffer.js');
 
 // -----------------------------------------------------------------
@@ -117,11 +116,20 @@ describe('tools/ux/package.json dependencies', () => {
 });
 
 // -----------------------------------------------------------------
-// (c) web/src/components/WorkerDetail.tsx -- auto-fit regression fix.
+// (c) web/src/components/XtermView.tsx -- auto-fit regression fix.
+//
+// 8.22 originally landed this wiring inside WorkerDetail.tsx against a
+// stripAnsi pre-block. 8.24 + 8.27 replaced that pre-block with an
+// xterm.js Terminal so Claude Code's in-place redraws (spinner/thinking
+// box, alt-screen TUI) render correctly. The auto-fit + debounce +
+// POST /api/resize contract from 8.22 moved with the implementation; the
+// checks below follow so the regression guard is still live, just against
+// the current code path.
 // -----------------------------------------------------------------
 
-describe('WorkerDetail auto-fit wiring (8.22 P1)', () => {
-  const src = fs.readFileSync(WORKER_DETAIL, 'utf8');
+describe('XtermView auto-fit wiring (8.22 P1 carried into 8.24)', () => {
+  const xtermView = path.join(REPO_ROOT, 'web', 'src', 'components', 'XtermView.tsx');
+  const src = fs.readFileSync(xtermView, 'utf8');
 
   it('reads the VITE_AUTOFIT_DEBUG env and leaves the toggle in place', () => {
     assert.match(src, /VITE_AUTOFIT_DEBUG/);
@@ -134,33 +142,35 @@ describe('WorkerDetail auto-fit wiring (8.22 P1)', () => {
   });
 
   it('POSTs to /api/resize (the 8.19 withApiPrefix path, not bare /resize)', () => {
-    assert.match(src, /apiFetch\('\/api\/resize'/);
+    assert.match(src, /apiFetch\(['"]\/api\/resize['"]/);
     // Should never carry the pre-8.19 bare path.
     assert.ok(!/apiFetch\(['"]\/resize['"]/.test(src), 'bare /resize POST must be gone');
   });
 
-  it('clamps measured cols to the daemon 20..400 range', () => {
+  it('clamps cols + rows to the daemon 20..400 / 5..200 range', () => {
     assert.match(src, /MIN_COLS\s*=\s*20/);
     assert.match(src, /MAX_COLS\s*=\s*400/);
-    assert.match(src, /clamp\(raw,\s*MIN_COLS,\s*MAX_COLS\)/);
+    assert.match(src, /MIN_ROWS\s*=\s*5/);
+    assert.match(src, /MAX_ROWS\s*=\s*200/);
+    assert.match(src, /clampInt\(/);
   });
 
-  it('wires a ResizeObserver on the pre alongside window.addEventListener(resize)', () => {
+  it('wires a ResizeObserver on the xterm container alongside window.addEventListener(resize)', () => {
     assert.match(src, /new ResizeObserver\(/);
-    assert.match(src, /obs\.observe\(pre\)/);
-    assert.match(src, /window\.addEventListener\('resize'/);
+    assert.match(src, /obs\.observe\(container\)/);
+    assert.match(src, /window\.addEventListener\(['"]resize['"]/);
   });
 
   it('debounces recompute at 120ms and dedupes the POST against the last dims', () => {
-    // 120ms lives on its own line at the end of the setTimeout call; the
-    // debounce ref name survives rename only if we key on it too.
-    assert.match(src, /\},\s*120\s*\)/);
-    assert.match(src, /lastRequestedRef/);
+    assert.match(src, /FIT_DEBOUNCE_MS\s*=\s*120/);
+    assert.match(src, /lastResizeRef/);
   });
 
-  it('guards against inner<=0 and non-finite measurements (never POST 0)', () => {
-    assert.match(src, /if\s*\(\s*inner\s*<=\s*0\s*\)/);
-    assert.match(src, /Number\.isFinite\(raw\)/);
+  it('guards against zero-sized container + non-finite measurements (never POST 0)', () => {
+    // xterm's fit-addon throws on a 0x0 container; Number.isFinite guards
+    // the raw cols/rows before we clamp + POST.
+    assert.match(src, /rawCols\s*<=\s*0/);
+    assert.match(src, /Number\.isFinite\(rawCols\)/);
   });
 });
 
