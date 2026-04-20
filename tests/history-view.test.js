@@ -303,6 +303,48 @@ describe('HistoryView.tsx wiring', () => {
   });
 });
 
+// TODO 8.30 - section transition bug: clicking a worker while the scribe
+// viewer is open must swap the main pane to the worker detail (not keep
+// rendering scribe). Source-grep the discriminator, the selectWorker helper
+// that clears showScribe, the key-on-main remount guard, and the active
+// highlight so the fix cannot silently regress.
+describe('HistoryView.tsx section transition (8.30)', () => {
+  const file = path.join(__dirname, '..', 'web', 'src', 'components', 'HistoryView.tsx');
+  const src = fs.readFileSync(file, 'utf8');
+
+  it('derives a single activeSection discriminator from showScribe + detail', () => {
+    assert.match(src, /const activeSection:\s*'scribe'\s*\|\s*'detail'\s*\|\s*'placeholder'/);
+    assert.match(src, /showScribe\s*\n?\s*\?\s*'scribe'/);
+    assert.match(src, /:\s*detail\s*\n?\s*\?\s*'detail'\s*\n?\s*:\s*'placeholder'/);
+  });
+
+  it('exposes selectWorker that clears showScribe before setting selected', () => {
+    assert.match(src, /const selectWorker = useCallback\(\(name: string\) => \{[\s\S]*?setShowScribe\(false\)[\s\S]*?setSelected\(name\)[\s\S]*?\}, \[\]\);/);
+  });
+
+  it('routes worker list clicks through selectWorker (no raw setSelected)', () => {
+    assert.match(src, /onClick=\{\(\)\s*=>\s*selectWorker\(w\.name\)\}/);
+    assert.doesNotMatch(src, /onClick=\{\(\)\s*=>\s*setSelected\(w\.name\)\}/);
+  });
+
+  it('narrows the sidebar isSelected highlight so scribe wins when active', () => {
+    assert.match(src, /const isSelected = !showScribe && selected === w\.name;/);
+  });
+
+  it('keys the <main> pane on activeSection so section swap remounts content', () => {
+    assert.match(src, /<main[\s\S]*?key=\{activeSection\}[\s\S]*?data-section=\{activeSection\}/);
+  });
+
+  it('marks the Scribe button active when showScribe (variant + aria-pressed)', () => {
+    assert.match(src, /variant=\{showScribe \? 'default' : 'secondary'\}/);
+    assert.match(src, /aria-pressed=\{showScribe\}/);
+  });
+
+  it('carries aria-pressed on worker list items mirroring isSelected', () => {
+    assert.match(src, /aria-pressed=\{isSelected\}/);
+  });
+});
+
 describe('App.tsx integration for history tab', () => {
   const src = fs.readFileSync(path.join(__dirname, '..', 'web', 'src', 'App.tsx'), 'utf8');
 
