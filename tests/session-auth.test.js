@@ -22,6 +22,7 @@ const { describe, it } = require('node:test');
 
 const auth = require('../src/auth');
 const authSetup = require('../src/auth-setup');
+const { resolveApiRoute } = require('../src/static-server');
 
 function buildEnabledConfig({ user = 'admin', password = 'hunter2' } = {}) {
   const secret = auth.generateSecret();
@@ -106,6 +107,23 @@ describe('auth.checkRequest (HTTP middleware)', () => {
     const { cfg } = buildEnabledConfig();
     const check = auth.checkRequest(cfg, { headers: {} }, '/health');
     assert.strictEqual(check.allow, true);
+  });
+
+  // 8.21b regression: /auth/status is the React app's first request when it
+  // has no token yet. It must stay in OPEN_API_ROUTES so the UI can decide
+  // whether to render the login page. A prior regression returned 401 here
+  // and silently knocked anonymous users out of the login flow entirely.
+  it('allows /auth/status without a token so the Web UI can probe auth state', () => {
+    const { cfg } = buildEnabledConfig();
+    const check = auth.checkRequest(cfg, { headers: {} }, '/auth/status');
+    assert.strictEqual(check.allow, true);
+  });
+
+  it('still rejects /list without a token (regression guard for auth coverage)', () => {
+    const { cfg } = buildEnabledConfig();
+    const check = auth.checkRequest(cfg, { headers: {} }, '/list');
+    assert.strictEqual(check.allow, false);
+    assert.strictEqual(check.status, 401);
   });
 
   it('rejects other /api/* routes without a token', () => {
@@ -259,6 +277,44 @@ describe('auth-setup.provisionAuth', () => {
       configPath, user: 'admin', passwordFile: emptyPath,
     });
     assert.strictEqual(empty.status, 'error');
+  });
+});
+
+// 8.21b end-to-end: resolveApiRoute + checkRequest together must allow
+// an unauthenticated GET of /api/auth/status whether or not the client
+// (or an upstream proxy) added a trailing slash. The standalone
+// resolveApiRoute unit tests live in daemon-static-serve.test.js; this
+// block asserts the composed behavior that actually breaks Web UI login.
+describe('auth.checkRequest composed with resolveApiRoute (8.21b)', () => {
+  const paths = [
+    '/api/auth/status',
+    '/api/auth/status/',
+    '/api/auth/status///',
+  ];
+  for (const rawPath of paths) {
+    it(`GET ${rawPath} is allowed without a token`, () => {
+      const { cfg } = buildEnabledConfig();
+      const { route } = resolveApiRoute(rawPath);
+      const check = auth.checkRequest(cfg, { headers: {} }, route);
+      assert.strictEqual(check.allow, true,
+        `expected allow=true for ${rawPath} -> ${route}`);
+    });
+  }
+
+  it('GET /api/list is still rejected without a token (no blanket opening)', () => {
+    const { cfg } = buildEnabledConfig();
+    const { route } = resolveApiRoute('/api/list');
+    const check = auth.checkRequest(cfg, { headers: {} }, route);
+    assert.strictEqual(check.allow, false);
+    assert.strictEqual(check.status, 401);
+  });
+
+  it('GET /api/list/ stays rejected too (trailing slash does not open new holes)', () => {
+    const { cfg } = buildEnabledConfig();
+    const { route } = resolveApiRoute('/api/list/');
+    const check = auth.checkRequest(cfg, { headers: {} }, route);
+    assert.strictEqual(check.allow, false);
+    assert.strictEqual(check.status, 401);
   });
 });
 

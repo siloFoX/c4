@@ -179,6 +179,34 @@ describe('resolveApiRoute', () => {
     assert.deepStrictEqual(resolveApiRoute('/api/wait-read-multi'),
       { isApi: true, route: '/wait-read-multi' });
   });
+
+  // Trailing-slash normalization (8.21b). Proxies and URL canonicalizers
+  // frequently append "/" to GET requests. Without normalization the open
+  // allowlist misses /auth/status/ and the React app's unauthenticated
+  // "is auth on?" probe bounces off a 401, breaking the login flow.
+  it('normalizes a single trailing slash on API routes', () => {
+    assert.deepStrictEqual(resolveApiRoute('/api/auth/status/'),
+      { isApi: true, route: '/auth/status' });
+    assert.deepStrictEqual(resolveApiRoute('/api/auth/login/'),
+      { isApi: true, route: '/auth/login' });
+    assert.deepStrictEqual(resolveApiRoute('/api/list/'),
+      { isApi: true, route: '/list' });
+  });
+
+  it('collapses multiple trailing slashes', () => {
+    assert.deepStrictEqual(resolveApiRoute('/api/auth/status///'),
+      { isApi: true, route: '/auth/status' });
+  });
+
+  it('preserves bare root route', () => {
+    assert.deepStrictEqual(resolveApiRoute('/api/'), { isApi: true, route: '/' });
+    assert.deepStrictEqual(resolveApiRoute('/'),      { isApi: false, route: '/' });
+  });
+
+  it('normalizes trailing slash on non-api paths too (e.g., /dashboard/)', () => {
+    assert.deepStrictEqual(resolveApiRoute('/dashboard/'),
+      { isApi: false, route: '/dashboard' });
+  });
 });
 
 describe('serveStatic', () => {

@@ -156,10 +156,18 @@ function webDistExists(webDist = DEFAULT_WEB_DIST) {
 // Alias /api/<x> -> /<x> so the built frontend (which fetches /api/*) hits the
 // existing daemon routes. Pure function so daemon.js can call it and tests can
 // exercise it without spinning up a server.
+//
+// The route is also trailing-slash-normalized. Proxies, URL canonicalizers,
+// and some client libs silently append "/" to GETs, which would otherwise
+// miss OPEN_API_ROUTES (anonymous /auth/status bounced to 401) and cause
+// every exact-match route handler to fall through to 404.
 function resolveApiRoute(rawPath) {
   const p = rawPath || '/';
   const isApi = p === '/api' || p.startsWith('/api/');
-  const route = isApi ? (p.slice(4) || '/') : p;
+  let route = isApi ? (p.slice(4) || '/') : p;
+  if (route.length > 1 && route.endsWith('/')) {
+    route = route.replace(/\/+$/, '') || '/';
+  }
   return { isApi, route };
 }
 
