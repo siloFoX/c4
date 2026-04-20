@@ -323,8 +323,11 @@ class ScreenBuffer {
 
   // Resize the virtual terminal (8.13). Shrinking rows pushes the oldest
   // visible lines into scrollback so nothing is silently dropped. Shrinking
-  // cols truncates each line on the right. Cursor and scroll region are
-  // clamped to the new bounds. Returns {cols, rows}.
+  // cols truncates the active grid on the right AND re-flows the scrollback
+  // so historical lines re-wrap at the new column count (8.22); otherwise
+  // those wide stored lines stayed at the old wrap and the client rendered
+  // them wrapped against the new narrower <pre>. Cursor and scroll region
+  // are clamped to the new bounds. Returns {cols, rows}.
   resize(cols, rows) {
     const c = Math.max(1, Math.floor(Number(cols) || 0));
     const r = Math.max(1, Math.floor(Number(rows) || 0));
@@ -345,11 +348,28 @@ class ScreenBuffer {
       for (let i = 0; i < extra; i++) this.lines.push('');
     }
 
-    // Column adjustment: truncate each existing line to the new width.
+    // Column adjustment: truncate the active grid and re-flow scrollback.
     if (c < this.cols) {
       for (let i = 0; i < this.lines.length; i++) {
         const line = this.lines[i] || '';
         if (line.length > c) this.lines[i] = line.slice(0, c);
+      }
+      if (this.scrollback.length > 0) {
+        const reflowed = [];
+        for (const raw of this.scrollback) {
+          const line = raw == null ? '' : raw;
+          if (line.length <= c) {
+            reflowed.push(line);
+            continue;
+          }
+          for (let k = 0; k < line.length; k += c) {
+            reflowed.push(line.slice(k, k + c));
+          }
+        }
+        // Re-wrapping grows the scrollback line count; honour maxScrollback.
+        this.scrollback = reflowed.length > this.maxScrollback
+          ? reflowed.slice(reflowed.length - this.maxScrollback)
+          : reflowed;
       }
     }
 
