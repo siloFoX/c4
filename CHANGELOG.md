@@ -91,6 +91,65 @@
   source-grep style so no live browser boots during `npm test`.
   `tests/screen-buffer-resize.test.js` grows three assertions
   covering the re-flow behaviour. Full suite 106 / 106 pass.
+- **(8.23) Mobile device emulation pass on `tools/ux/explore.mjs`.**
+  Extends the 8.22 visual-regression surface without touching 8.22
+  scope: a `KnownDevices` import joins the existing `puppeteer-core`
+  line, a new `MOBILE_DEVICES` array binds the four device ids to
+  `KnownDevices['iPhone 13' | 'iPhone SE' | 'Galaxy S20' | 'iPad
+  Mini']`, and `ORIENTATIONS = ['portrait', 'landscape']` drives a
+  4 x 2 x 8 = 64-screenshot sweep. The mobile pass runs *after* the
+  8.22 `runVisualAudit` call in `main()` so a mobile failure cannot
+  swallow the desktop/tablet report. Landscape swaps width + height on
+  `page.setViewport` after `page.emulate(device)` with `isMobile:
+  true`, `hasTouch: true`, `isLandscape: true` so the layout sees the
+  device touch + orientation signals alongside the swapped dimensions.
+  Single `puppeteer.launch` + single page across the whole sweep;
+  login runs once at a neutral 1440x900 desktop viewport before the
+  first `emulate` call, then auth carries through every `page.reload
+  ({waitUntil:'networkidle2'})`. Screenshots land at stable
+  `patches/ui-audit-<date>/mobile/<device>-<orientation>-<slug>.png`,
+  baselines persist at `patches/ui-audit-baseline/mobile/` (both
+  already gitignored via the 8.22 `patches/ui-audit-*` + `patches/
+  ui-audit-baseline/` patterns), pixelmatch diff stays at the 0.5%
+  threshold, and mobile diff overlays use a `mobile-<tag>.png`
+  filename prefix inside `patches/ui-audit-<date>/diffs/` so the
+  operator muscle memory from 8.22 carries over. First-run cells
+  copy the candidate in and record `baseline: 'captured'`.
+- **(8.23) Mobile-specific in-page checks.** Per (device, orientation,
+  page) cell `runMobileAudit` records `mobile.overflow` (reused
+  `detectOverflow` verbatim), `mobile.touchTargets` (new
+  `detectTouchTargets`: `button, a[href], [role="button"], input,
+  [role="link"], [tabindex]:not([tabindex="-1"])` with `r.width < 44
+  || r.height < 44`, skipping `offsetParent === null`, capped 30),
+  `mobile.smallFonts` (new `detectSmallFonts`: `TreeWalker(document.
+  body, SHOW_TEXT)` with `MIN = 14` and `parseFloat(getComputedStyle.
+  fontSize) < MIN`, capped 20), `mobile.hoverOnly` (new
+  `detectHoverOnly`: walks `document.styleSheets` with a silent
+  `try/catch` around CORS-blocked sheets, filters `:hover` selectors
+  whose cssText matches `/visibility|display|opacity/i`, capped 20 -
+  advisory only per spec P2 step 4), `mobile.clipping` (reused
+  `detectClipping` verbatim but stored separately from the 8.22
+  `visual.clipping` array), and `mobile.softKeyboard` (new
+  `probeSoftKeyboard`: focuses first `<input>`/`<textarea>`, measures
+  `window.visualViewport.height` before + after, records `obscured`
+  when the focused element's bottom sits below the shrunken viewport;
+  runs only on `/`, `/workflows`, `/settings` x iPhone 13 portrait +
+  Galaxy S20 portrait to keep runtime bounded; silently skips pages
+  with no input).
+- **(8.23) `--skip-mobile` CLI flag on `tools/ux/explore.mjs`.**
+  Minimal parsing via `process.argv.includes('--skip-mobile')` + a
+  `if (!skipMobile) { runMobileAudit(...) }` guard so the 8.22
+  desktop pass can still run stand-alone for fast dev iteration.
+  Report-write gate relaxes from `if (visual)` to `if (visual ||
+  mobile)` so `ui-audit-report.json` still lands when the visual
+  pass crashes but the mobile pass completed (or vice versa).
+- **(8.23) `tests/mobile-audit.test.js`** - 19 source-grep assertions
+  across two suites (explore.mjs mobile wiring + tools/ux/package.json
+  dep stability). No live browser boots during `npm test`; the
+  pattern mirrors the 8.22 `ux-visual.test.js` approach. Full suite
+  **107 / 107 pass** (106 pre-existing + 1 new file). No runtime deps
+  added - puppeteer-core, pixelmatch, and pngjs were already listed
+  from 8.22.
 
 ### 1.11.10 - External Claude session import (2026-04)
 
