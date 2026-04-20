@@ -3,6 +3,25 @@
 ## [Unreleased]
 
 ### Fixed
+- **(8.22) Terminal auto-fit catches parent reflows + scrollback re-wraps.**
+  `web/src/components/WorkerDetail.tsx` now wires a `ResizeObserver` on
+  the terminal `<pre>` alongside the existing `window.addEventListener
+  ('resize')` listener so sidebar toggles and flex reflows no longer
+  leave the client rendering server output at the stale 160-col PTY.
+  Both paths share a single 120 ms debounce (`scheduleRecompute()`) so
+  we still issue at most one `POST /api/resize` per gesture. Functional
+  `setCols(prev => ...)` drops `cols` out of the callback's dep list so
+  the observer stops tearing down on every fit cycle. Guards against
+  `inner <= 0` and non-finite measurements ensure we never
+  `POST { cols: 0 }` during initial layout. The 20..400 clamp and the
+  `/api/resize` path (8.19 `withApiPrefix` refactor) are regression-
+  locked by `tests/ux-visual.test.js`. `src/screen-buffer.js`'s
+  `resize(cols, rows)` also re-flows `scrollback` when cols shrink —
+  stored lines longer than the new width split into chunks of `c`
+  characters, capped at `maxScrollback` — so historical rows render at
+  the new cols instead of wrapping against the narrower `<pre>`.
+  Cols-grow stays a no-op.
+
 - **(8.19) CLI request helper now routes every call through `/api/*`.**
   After the 1.7.0 session-auth work (TODO 8.14), the middleware only
   runs for requests that arrive under the `/api` prefix. `src/cli.js`
@@ -35,6 +54,44 @@
   default-deny). `spawn` + promise (not `spawnSync`) because a
   synchronous child blocks the parent's event loop and the capture
   server would never respond.
+
+### Added
+- **(8.22) `VITE_AUTOFIT_DEBUG` toggle.** Flip `VITE_AUTOFIT_DEBUG=1`
+  in `web/.env.local` before `npm --prefix web run dev` to log every
+  auto-fit measurement (`[autofit] measured cols=%d (inner=%d,
+  charW=%f, font=%d)`) plus every resize POST
+  (`[autofit] cols=%d rows=%d -> POST /api/resize`). Default off, read
+  once at module load, so future regressions can be diagnosed without
+  code changes.
+- **(8.22) Puppeteer visual-regression pass on `tools/ux/explore.mjs`.**
+  Runs after the existing click-through flow so a crash in visual
+  logic cannot swallow functional issues. New `VIEWPORTS_VISUAL`
+  (`desktop-xl 1920x1080`, `desktop-md 1366x768`, `tablet 1024x768`)
+  times `VISUAL_PAGES` (`/`, `/workers`, `/chat`, `/history`,
+  `/workflows`, `/features`, `/sessions`, `/settings`) = 24
+  screenshots per run written with stable filenames to
+  `patches/ui-audit-<date>/screens/<viewport>-<page>.png`. Per (viewport,
+  page): overflow detector (`r.right > window.innerWidth + 1`) and
+  clipping detector (`scrollWidth > clientWidth` on `text-overflow:
+  ellipsis` / `overflow: hidden`) capped at 20 samples; pixelmatch +
+  pngjs baseline diff against `patches/ui-audit-baseline/` flagged at
+  `> 0.5%` with diff overlays under `patches/ui-audit-<date>/diffs/`;
+  first-run seeds baselines and reports `baseline: 'captured'`;
+  size mismatches count as 100% diff. A standalone
+  `captureAutofitAnchor` pass resizes to 2000 then 600 px and captures
+  the `Terminal session - dims {cols} x {rows}` label so 8.22 P1 has
+  a browser-side regression anchor. Audit artifacts are gitignored
+  (`patches/ui-audit-*/` + `patches/ui-audit-baseline/`).
+- **(8.22) `pixelmatch` + `pngjs` added to `tools/ux/package.json`** as
+  dev-only dependencies; dynamic-imported from `explore.mjs` so they
+  never ship with the main runtime.
+- **(8.22) `tests/ux-visual.test.js`** — 21 assertions across four
+  suites (explore.mjs wiring, tools/ux/package.json deps, WorkerDetail
+  auto-fit wiring, screen-buffer re-flow). Pattern matches 8.20B's
+  source-grep style so no live browser boots during `npm test`.
+  `tests/screen-buffer-resize.test.js` grows three assertions
+  covering the re-flow behaviour. Full suite 106 / 106 pass.
+
 ### 1.11.10 - External Claude session import (2026-04)
 
 ### Added
