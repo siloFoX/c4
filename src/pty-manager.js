@@ -4963,6 +4963,12 @@ class PtyManager extends EventEmitter {
     });
 
     this._emitSSE('compact', { worker: workerName, count: w._compactCount });
+    // 8.46: notify the pinned-memory scheduler (and anyone else that
+    // subscribed through EventEmitter) so user-defined rules can be
+    // re-injected immediately after an auto-compact. Kept separate from
+    // the SSE stream so non-web subscribers do not have to open an SSE
+    // connection just to observe a local in-process event.
+    this.emit('post-compact', { worker: workerName, count: w._compactCount });
 
     // Check if auto-replacement threshold reached
     const threshold = this.config.managerRotation?.compactThreshold ?? 0;

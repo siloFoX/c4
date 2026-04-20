@@ -145,6 +145,10 @@
     "default": "high"
   },
 
+  "pinnedMemory": {
+    "intervalMs": 300000
+  },
+
   "workerDefaults": {
     "trustFolder": true,
     "effortLevel": "max",

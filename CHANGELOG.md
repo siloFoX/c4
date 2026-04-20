@@ -3,6 +3,28 @@
 ## [Unreleased]
 
 ### Added
+- **(8.46) Per-worker pinned memory.** `c4 new` now accepts `--pin-memory
+  <file>` (read client-side, repeatable), `--pin-rules "<text>"`
+  (repeatable), and `--pin-role <manager|worker|attached>` so operators can
+  attach persistent rules to a worker at creation time. A new `c4
+  pinned-memory get|set <name>` subcommand mutates the rule set after the
+  fact. `src/pinned-memory-scheduler.js` owns one `setInterval` per worker
+  (default every 5 minutes via `config.pinnedMemory.intervalMs`) and
+  subscribes to the manager's `post-compact` event (now emitted from
+  `compactEvent()` so 8.45's PostCompact hook path triggers a refresh) and
+  its `pinned-memory-updated` event. Each refresh writes `PINNED RULES
+  REFRESHED:\n<role template>\n---\n<userRules>` into the worker PTY via
+  `manager.send`. `pty-manager` persists `pinnedMemory` through
+  `_saveState`/`_loadState` so daemon restarts do not drop the rule set.
+  Web UI: `web/src/components/PinnedRulesEditor.tsx` renders a `Persistent
+  Rules` textarea + role-template select under `WorkerDetail`, calls
+  `GET/POST /api/workers/:name/pinned-memory`, and exposes a "Save and
+  refresh now" button. Role defaults ship as `docs/rules/role-manager.md`,
+  `role-worker.md`, `role-attached.md`. Tests: `tests/pinned-memory.test.js`
+  - 29 assertions covering CLI parsing, scheduler ticks, post-compact
+  subscription, role-default resolution, API route shape, metadata
+  persistence, and Web UI source-grep. Patch note:
+  `docs/patches/8.46-pinned-memory.md`.
 - **(8.25) Chat tab past-history backfill.** `web/src/components/ChatView.tsx`
   now fetches past conversation on mount (and on every `workerName`
   change) before attaching the SSE live stream. Primary path is
