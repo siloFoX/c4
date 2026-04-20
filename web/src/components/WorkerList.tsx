@@ -15,6 +15,13 @@ type BadgeVariant = NonNullable<BadgeProps['variant']>;
 
 function isInterventionActive(w: Worker): boolean {
   if (!w.intervention) return false;
+  // (8.21) Server now emits the narrowed string enum:
+  // 'approval_pending' | 'background_exit' | 'past_resolved' | null.
+  // Only approval_pending counts as "needs human"; bg-exit and
+  // past_resolved are informational breadcrumbs.
+  if (typeof w.intervention === 'string') {
+    return w.intervention === 'approval_pending';
+  }
   const active = (w.intervention as { active?: unknown }).active;
   return active === undefined ? true : Boolean(active);
 }

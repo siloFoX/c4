@@ -17,6 +17,7 @@ const AdaptivePolling = require('./adaptive-polling');
 const TerminalInterface = require('./terminal-interface');
 const SummaryLayer = require('./summary-layer');
 const validationLib = require('./validation');
+const interventionState = require('./intervention-state');
 
 // L4 Critical Deny List (5.13) — these commands are NEVER auto-approved, even at full autonomy
 const CRITICAL_DENY_PATTERNS = [
@@ -498,17 +499,28 @@ class PtyManager extends EventEmitter {
       if (existing) {
         existing.count++;
         if (existing.count >= maxRetries) {
-          worker._interventionState = 'escalation';
+          // (8.21) Downgrade to bg_exit when the parent worker is still alive
+          // and there is no live approval prompt on screen. vite port-in-use
+          // or "Failed with non-blocking status code" loops land here and
+          // should be informational, not an escalation page.
+          const snapshot = worker.screen ? this._getScreenText(worker.screen) : '';
+          const hasPrompt = interventionState.detectApprovalPrompt(snapshot);
+          const nextState = (hasPrompt || !worker.alive) ? 'escalation' : 'bg_exit';
+          worker._interventionState = nextState;
+          worker._hadIntervention = true;
+          worker._lastInterventionAt = new Date().toISOString();
+          const tag = nextState === 'bg_exit' ? 'HOOK BG EXIT' : 'HOOK ESCALATION';
           worker.snapshots.push({
             time: Date.now(),
-            screen: `[HOOK ESCALATION] repeated error (${existing.count}x): ${errLine}`,
+            screen: `[${tag}] repeated error (${existing.count}x): ${errLine}`,
             autoAction: true,
-            intervention: 'escalation',
+            intervention: nextState,
             hookEvent: true
           });
-          this._emitSSE('error', { worker: workerName, line: errLine, count: existing.count, escalation: true, source: 'hook' });
-          // Immediate intervention notification (5.29)
-          if (this._notifications) {
+          this._emitSSE('error', { worker: workerName, line: errLine, count: existing.count, escalation: nextState === 'escalation', source: 'hook' });
+          // Only page on true approval_pending — bg_exit stays quiet until
+          // the stall promoter flips it in healthCheck (see 8.21).
+          if (nextState === 'escalation' && this._notifications) {
             this._notifications.notifyStall(workerName, `intervention: escalation — ${errLine.slice(0, 100)}`);
           }
           existing.count = 0;
@@ -2400,6 +2412,8 @@ class PtyManager extends EventEmitter {
       if (isCritical) {
         if (worker) {
           worker._interventionState = 'critical_deny';
+          worker._hadIntervention = true;
+          worker._lastInterventionAt = new Date().toISOString();
           worker._criticalCommand = command;
           worker.snapshots = worker.snapshots || [];
           worker.snapshots.push({
@@ -3094,8 +3108,14 @@ class PtyManager extends EventEmitter {
       _setupPollTimer: null,  // periodic menu detection timer during waitMenu
       _setupStableAt: 0,      // (7.17) earliest time pendingTask may be sent after setupDone
       _readyConfirmedAt: 0,   // (7.17) timestamp of first consecutive ready tick (0 = not confirmed)
-      // Intervention state (1.9)
-      _interventionState: null,  // null | 'question' | 'escalation'
+      // Intervention state (1.9; narrowed 8.21)
+      // Internal legacy values: 'question' | 'escalation' | 'critical_deny'
+      // | 'bg_exit' | null. Use interventionState.mapInterventionToPublic()
+      // to derive the public surface (approval_pending | background_exit
+      // | past_resolved | null).
+      _interventionState: null,
+      _hadIntervention: false,    // (8.21) breadcrumb so list() can emit past_resolved
+      _lastInterventionAt: null,  // (8.21) ISO timestamp of last state set/clear
       _lastQuestion: null,       // last detected question text
       _errorHistory: [],         // recent error lines for repeat detection
       _permissionNotified: false, // (5.29) prevent duplicate permission notifications
@@ -3426,6 +3446,8 @@ class PtyManager extends EventEmitter {
             }
             if (smResult.escalation) {
               worker._interventionState = 'escalation';
+              worker._hadIntervention = true;
+              worker._lastInterventionAt = new Date().toISOString();
               worker.snapshots.push({
                 time: Date.now(),
                 screen: `[ESCALATION] ${smResult.escalation.reason}`,
@@ -3450,6 +3472,8 @@ class PtyManager extends EventEmitter {
           const questionResult = this._detectQuestion(text);
           if (questionResult.detected) {
             worker._interventionState = 'question';
+            worker._hadIntervention = true;
+            worker._lastInterventionAt = new Date().toISOString();
             worker._lastQuestion = questionResult.line;
             worker.snapshots.push({
               time: Date.now(),
@@ -3476,16 +3500,24 @@ class PtyManager extends EventEmitter {
               if (existing) {
                 existing.count++;
                 if (existing.count >= maxRetries) {
-                  worker._interventionState = 'escalation';
+                  // (8.21) Repeat-error escalation: use the same downgrade
+                  // rule as the hook path. No live prompt + live worker
+                  // means this is informational (bg_exit), not a page.
+                  const snapshot2 = worker.screen ? this._getScreenText(worker.screen) : '';
+                  const hasPrompt = interventionState.detectApprovalPrompt(snapshot2);
+                  const nextState = (hasPrompt || !worker.alive) ? 'escalation' : 'bg_exit';
+                  worker._interventionState = nextState;
+                  worker._hadIntervention = true;
+                  worker._lastInterventionAt = new Date().toISOString();
+                  const tag = nextState === 'bg_exit' ? 'BG EXIT' : 'ESCALATION';
                   worker.snapshots.push({
                     time: Date.now(),
-                    screen: `[ESCALATION] repeated error (${existing.count}x): ${errLine}`,
+                    screen: `[${tag}] repeated error (${existing.count}x): ${errLine}`,
                     autoAction: true,
-                    intervention: 'escalation'
+                    intervention: nextState
                   });
-                  this._emitSSE('error', { worker: name, line: errLine, count: existing.count, escalation: true });
-                  // Immediate intervention notification (5.29)
-                  if (this._notifications) {
+                  this._emitSSE('error', { worker: name, line: errLine, count: existing.count, escalation: nextState === 'escalation' });
+                  if (nextState === 'escalation' && this._notifications) {
                     this._notifications.notifyStall(name, `intervention: escalation — ${errLine.slice(0, 100)}`);
                   }
                   existing.count = 0;
@@ -4288,15 +4320,34 @@ class PtyManager extends EventEmitter {
       }
     }
 
-    // Stall detection: intervention state or 5min+ no output (4.14)
+    // Stall detection: intervention state or 5min+ no output (4.14; narrowed 8.21)
+    //
+    // Monitor cron predicate: only page when the public mapping reads
+    // approval_pending. bg_exit / past_resolved workers are ignored so
+    // the autonomous loop stops burning read-now tokens on every tick.
+    // After 10min of no output a bg_exit promotes back to 'escalation'
+    // (the original stall intent for a stuck background process).
     const stallThresholdMs = 300000; // 5 minutes
+    const bgExitPromoteMs = 600000;  // 10 minutes
     if (this._notifications) {
       for (const r of results) {
         const w = this.workers.get(r.name);
         if (!w || !w.alive) continue;
-        if (w._interventionState) {
-          this._notifications.notifyStall(r.name, `intervention: ${w._interventionState}`);
-        } else if (w._taskText && r.idleMs >= stallThresholdMs) {
+        const snap = w.screen ? this._getScreenText(w.screen) : '';
+        if (w._interventionState === 'bg_exit' && r.idleMs >= bgExitPromoteMs && !interventionState.detectApprovalPrompt(snap)) {
+          w._interventionState = 'escalation';
+          w._lastInterventionAt = new Date().toISOString();
+          w.snapshots.push({
+            time: Date.now(),
+            screen: `[STALL PROMOTE] bg_exit -> escalation after ${Math.round(r.idleMs / 60000)}min idle`,
+            autoAction: true,
+            intervention: 'escalation'
+          });
+        }
+        const mapped = interventionState.mapInterventionToPublic(w);
+        if (mapped === 'approval_pending') {
+          this._notifications.notifyStall(r.name, `intervention: approval_pending (${w._interventionState || 'unknown'})`);
+        } else if (w._taskText && r.idleMs >= stallThresholdMs && !w._interventionState) {
           this._notifications.notifyStall(r.name, `no output for ${Math.round(r.idleMs / 60000)}min`);
         }
       }
@@ -4404,6 +4455,16 @@ class PtyManager extends EventEmitter {
     for (const [name, w] of this.workers) {
       const idleMs = Date.now() - w.lastDataTime;
       const unreadSnapshots = w.snapshots.length - w.snapshotIndex;
+      // (8.21) Auto-clear stale intervention flags and publish the narrowed
+      // shape: approval_pending | background_exit | past_resolved | null.
+      // The detector is a cheap tail-regex; running it per list() keeps
+      // the flag honest without coordinating with every set site.
+      const snapshot = w.screen ? this._getScreenText(w.screen) : '';
+      if (w._interventionState) {
+        w._lastInterventionAt = w._lastInterventionAt || new Date().toISOString();
+      }
+      interventionState.clearInterventionIfResolved(w, snapshot);
+      const publicIntervention = interventionState.mapInterventionToPublic(w);
       result.push({
         name,
         // (8.17) 'spawned' is the default on every PTY-backed worker so
@@ -4420,7 +4481,9 @@ class PtyManager extends EventEmitter {
         status: w.alive ? (idleMs > this.idleThresholdMs ? 'idle' : 'busy') : 'exited',
         unreadSnapshots,
         totalSnapshots: w.snapshots.length,
-        intervention: w._interventionState || null,
+        intervention: publicIntervention,
+        hasPastIntervention: !!w._hadIntervention,
+        lastInterventionAt: w._lastInterventionAt || null,
         lastQuestion: w._lastQuestion || null,
         errorCount: (w._errorHistory || []).reduce((sum, e) => sum + e.count, 0),
         phase: w._smState ? w._smState.phase : null,
