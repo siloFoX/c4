@@ -104,6 +104,112 @@ function withApiPrefix(p) {
   return '/api' + (p.startsWith('/') ? p : '/' + p);
 }
 
+// (8.26) Shared SSE subscriber for `c4 wait --follow` and
+// `c4 watch-interventions`. Opens a persistent connection to
+// /api/approvals/stream and prints every transition. Optional scope:
+//   null      -> all workers (implicit)
+//   'all'     -> all workers (explicit)
+//   [names]   -> filter to these worker names
+// Exits on Ctrl+C or daemon disconnect.
+function runApprovalFollow({ scope = null } = {}) {
+  const token = readToken();
+  const qs = token ? `?token=${encodeURIComponent(token)}` : '';
+  const streamUrl = new URL(`/api/approvals/stream${qs}`, BASE);
+  const filterNames = Array.isArray(scope)
+    ? new Set(scope.filter((n) => typeof n === 'string' && n))
+    : null;
+
+  const formatEvent = (event) => {
+    if (!event || typeof event !== 'object') return '';
+    const ts = event.ts ? new Date(event.ts).toISOString() : '';
+    const worker = event.worker || '';
+    switch (event.type) {
+      case 'connected':
+        return `[${ts}] connected`;
+      case 'snapshot': {
+        const rows = Array.isArray(event.workers) ? event.workers : [];
+        if (rows.length === 0) return `[${ts}] snapshot: no pending approvals`;
+        const items = rows.map((r) => {
+          const pending = Math.round((r.pendingMs || 0) / 1000);
+          return `${r.name}(${r.internalState || '?'}, ${pending}s)`;
+        });
+        return `[${ts}] snapshot: ${items.join(', ')}`;
+      }
+      case 'enter':
+        return `[${ts}] APPROVAL ENTER worker=${worker} state=${event.internalState || '?'}`;
+      case 'exit': {
+        const dur = Math.round((event.durationMs || 0) / 1000);
+        const tag = event.reason ? ` reason=${event.reason}` : '';
+        return `[${ts}] approval exit worker=${worker} duration=${dur}s${tag}`;
+      }
+      case 'slack_alert': {
+        const pending = Math.round((event.pendingMs || 0) / 1000);
+        return `[${ts}] SLACK ALERT worker=${worker} pending=${pending}s`;
+      }
+      case 'timeout': {
+        const pending = Math.round((event.pendingMs || 0) / 1000);
+        return `[${ts}] TIMEOUT worker=${worker} pending=${pending}s action=${event.action || 'none'}`;
+      }
+      default:
+        return `[${ts}] ${event.type || 'event'}: ${JSON.stringify(event)}`;
+    }
+  };
+
+  return new Promise((resolve, reject) => {
+    const streamReq = http.get(streamUrl, (res) => {
+      if (res.statusCode !== 200) {
+        let data = '';
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+          try {
+            const err = JSON.parse(data);
+            console.error(`Error: ${err.error || data}`);
+          } catch { console.error(`Error: ${data}`); }
+          reject(new Error(`HTTP ${res.statusCode}`));
+        });
+        return;
+      }
+
+      const label = Array.isArray(scope) && scope.length > 0
+        ? `workers ${scope.join(', ')}`
+        : 'all workers';
+      process.stderr.write(`Watching approvals for ${label} (Ctrl+C to stop)...\n`);
+
+      let buffer = '';
+      res.on('data', (chunk) => {
+        buffer += chunk;
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          let event;
+          try { event = JSON.parse(line.slice(6)); }
+          catch { continue; }
+          if (filterNames && event.worker && !filterNames.has(event.worker)) continue;
+          const formatted = formatEvent(event);
+          if (formatted) process.stdout.write(formatted + '\n');
+        }
+      });
+
+      res.on('end', () => {
+        process.stderr.write('\n--- stream ended ---\n');
+        resolve();
+      });
+    });
+
+    streamReq.on('error', (err) => {
+      console.error(`Error: ${err.message}`);
+      reject(err);
+    });
+
+    process.on('SIGINT', () => {
+      streamReq.destroy();
+      process.stderr.write('\n');
+      process.exit(0);
+    });
+  });
+}
+
 function request(method, path, body = null, timeout = 10000) {
   return new Promise((resolve, reject) => {
     const url = new URL(withApiPrefix(path), BASE);
@@ -393,17 +499,31 @@ async function main() {
 
       case 'wait': {
         // Wait until idle, then read
-        // Supports: c4 wait <name>, c4 wait w1 w2 w3, c4 wait --all
+        // Supports: c4 wait <name>, c4 wait w1 w2 w3, c4 wait --all,
+        // c4 wait <name> --follow (8.26 persistent re-arm)
         let waitTimeout = '120000';
         let waitAll = false;
         let interruptOnIntervention = false;
+        let followMode = false;
         const waitNames = [];
         for (let i = 0; i < args.length; i++) {
           if (args[i] === '--timeout' && args[i + 1]) { waitTimeout = args[++i]; }
           else if (args[i] === '--all') { waitAll = true; }
           else if (args[i] === '--interrupt-on-intervention') { interruptOnIntervention = true; }
+          else if (args[i] === '--follow') { followMode = true; }
           else if (/^\d+$/.test(args[i]) && waitNames.length > 0) { waitTimeout = args[i]; }
           else if (!args[i].startsWith('-')) { waitNames.push(args[i]); }
+        }
+
+        // (8.26) --follow: persistent-connection reviewer mode.
+        // Subscribes to the approvals SSE stream and prints transitions
+        // forever until Ctrl+C. Independent of single/multi/all wait so
+        // the reviewer only needs one daemon connection to monitor every
+        // worker. Implies --interrupt-on-intervention semantics.
+        if (followMode) {
+          return runApprovalFollow({
+            scope: waitAll ? 'all' : (waitNames.length > 0 ? waitNames : null),
+          });
         }
 
         const ioiParam = interruptOnIntervention ? '&interruptOnIntervention=1' : '';
@@ -443,6 +563,21 @@ async function main() {
           }
         }
         break;
+      }
+
+      case 'watch-interventions': {
+        // (8.26) Standalone approval monitor. Subscribes to the
+        // approvals SSE stream and prints every enter / exit /
+        // slack_alert / timeout transition until Ctrl+C. Unlike
+        // `c4 wait --follow` this command does not consume a worker
+        // name and is safe to run outside of a Claude Code reviewer
+        // session (e.g. from a terminal tab or a cron-less watchdog).
+        let scope = null;
+        for (let i = 0; i < args.length; i++) {
+          if (args[i] === '--worker' && args[i + 1]) { scope = [args[++i]]; }
+          else if (args[i] === '--all') { scope = 'all'; }
+        }
+        return runApprovalFollow({ scope });
       }
 
       case 'scrollback': {
@@ -3846,8 +3981,12 @@ Commands:
   read-now <name>                  Read current screen immediately
   wait <name> [timeout_ms]         Wait until idle, then read screen
        [--all] [--interrupt-on-intervention]  Multi-worker / intervention wait
+       [--follow]                  Persistent approval watcher (8.26 monitor-gap)
   scrollback <name> [--lines N]    Read scrollback buffer (default 200 lines)
   watch <name>                     Watch worker output in real-time (Ctrl+C to stop)
+  watch-interventions              Stream approval_pending transitions for all workers (8.26)
+       [--worker <name>]           Filter to a single worker
+       [--all]                     Explicit all-worker form
   list [--tree]                    List all workers (--tree for hierarchy view)
   merge <worker|branch>            Merge branch to main (with pre-checks)
        [--skip-checks]             Skip test/TODO/CHANGELOG checks
@@ -3954,6 +4093,8 @@ Examples:
   c4 wait w1 w2 w3               # 여러 worker 동시 대기, 첫 완료 시 반환
   c4 wait --all                  # 모든 worker 동시 대기
   c4 wait --all --interrupt-on-intervention  # intervention 발생 시 즉시 종료
+  c4 wait arps --follow         # approval 대기 persistent re-arm (8.26)
+  c4 watch-interventions         # 모든 worker의 approval 이벤트 실시간 구독 (8.26)
   c4 read-now arps              # 지금 당장 화면 보기 (스피너 포함)
   c4 list
   c4 close arps
