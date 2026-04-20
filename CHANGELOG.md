@@ -3,6 +3,29 @@
 ## [Unreleased]
 
 ### Fixed
+- **(8.30) HistoryView scribe section transition.**
+  Clicking a worker in the sidebar while the scribe viewer was open
+  kept `showScribe = true` in `web/src/components/HistoryView.tsx`, so
+  the main pane stayed on the scribe card and the newly fetched
+  worker detail was invisible until the user manually pressed
+  `Close`. Added a derived
+  `activeSection: 'scribe' | 'detail' | 'placeholder'` discriminator,
+  a `selectWorker(name)` helper that clears `showScribe` before
+  `setSelected`, and `<main key={activeSection} ...>` so the content
+  subtree remounts on section change (scroll resets with it). The
+  `Scribe` button now flips to `variant='default'` +
+  `aria-pressed={showScribe}` so the active section is visible, and
+  the sidebar list `isSelected` predicate is narrowed to
+  `!showScribe && selected === w.name` so a worker row loses the
+  selection ring while scribe is the active section. Each list row
+  also carries `aria-pressed={isSelected}`. Regression guards:
+  `tests/history-view.test.js` gains a `section transition (8.30)`
+  suite with 7 source-grep assertions (discriminator, selectWorker
+  helper, onClick rewiring, narrowed isSelected, `key=activeSection`
+  on `<main>`, Scribe button variant + aria-pressed, list
+  aria-pressed). Full suite **108 / 108 pass**. Patch note:
+  `docs/patches/8.30-history-section-fix.md`.
+
 - **(8.21) Sticky intervention flag and monitor-cron token waste.**
   Before 8.21 the daemon tracked one `_interventionState` string and
   treated every truthy value as "needs human" forever: a helper that
