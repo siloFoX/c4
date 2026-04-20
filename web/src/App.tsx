@@ -13,6 +13,7 @@ import Sidebar, { type SidebarMode } from './components/layout/Sidebar';
 import DetailTabs, { type DetailMode } from './components/layout/DetailTabs';
 import EmptyState from './components/layout/EmptyState';
 import FeatureView from './components/layout/FeatureView';
+import HelpUIRoot from './components/HelpUIRoot';
 import { type TopView } from './components/layout/TopTabs';
 import { AUTH_EVENT, fetchAuthStatus, getToken, logout } from './lib/api';
 import {
@@ -114,6 +115,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
+      <HelpUIRoot />
       <AppHeader
         sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen((open) => !open)}
