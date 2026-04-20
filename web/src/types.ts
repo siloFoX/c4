@@ -1,5 +1,12 @@
 export type WorkerStatus = 'idle' | 'busy' | 'exited';
 
+// (8.21) Daemon now emits a narrowed string enum; the object form is kept
+// as a fallback for older daemons / cached payloads.
+export type PublicIntervention =
+  | 'approval_pending'
+  | 'background_exit'
+  | 'past_resolved';
+
 export interface InterventionState {
   active?: boolean;
   reason?: string;
@@ -19,7 +26,9 @@ export interface Worker {
   status: WorkerStatus;
   unreadSnapshots: number;
   totalSnapshots: number;
-  intervention: InterventionState | null;
+  intervention: PublicIntervention | InterventionState | null;
+  hasPastIntervention?: boolean;
+  lastInterventionAt?: string | null;
   lastQuestion: unknown | null;
   errorCount: number;
   phase: string | null;

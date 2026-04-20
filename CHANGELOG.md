@@ -3,6 +3,62 @@
 ## [Unreleased]
 
 ### Fixed
+- **(8.21) Sticky intervention flag and monitor-cron token waste.**
+  Before 8.21 the daemon tracked one `_interventionState` string and
+  treated every truthy value as "needs human" forever: a helper that
+  exited non-zero on teardown (ux-explorer / vite 5174, 2026-04-19)
+  looked identical to a live approval prompt, and `c4-mgr-auto`
+  carried a stale `escalation` flag for hours after the original
+  intervention had already been resolved. Every healthCheck tick
+  re-fired `notifyStall` against those workers and the autonomous
+  loop burned `c4 read-now` tokens on each one.
+  New `src/intervention-state.js` module splits the public surface
+  into `approval_pending` | `background_exit` | `past_resolved` |
+  `null`, with a tail-regex `detectApprovalPrompt` covering the
+  Claude Code TUI prompt family (`Do you want to proceed/create/
+  make this edit`, `Continue? [y/N]`, `[y/N]` / `(y/n)`, trust-folder,
+  numbered `1. Yes`, Korean `계속하시겠습니까`) run fresh per
+  `list()` - no caching, so flags clear as soon as the prompt leaves
+  the tail. `clearInterventionIfResolved` drops the flag and stamps
+  `_hadIntervention` + `_lastInterventionAt` so `past_resolved` stays
+  available as a read-only breadcrumb. `critical_deny` is excluded
+  from auto-clear so `c4 approve` still gates critical commands.
+  `src/pty-manager.js` `_handlePostToolUse` + `_detectErrors` now
+  downgrade to `bg_exit` whenever the parent worker is alive and no
+  prompt is visible; the hook path no longer fires `notifyStall` on
+  this path. healthCheck's stall-detection predicate narrows to
+  `approval_pending` so `bg_exit` + `past_resolved` workers are
+  ignored by the monitor cron; a 10-minute bg_exit stall promoter
+  re-escalates back to `approval_pending` when a truly stuck
+  background job goes idle with no output. `src/cli.js` `c4 list`
+  renders the column as `APPROVAL` (red, TTY-only) / `bg-exit`
+  (yellow) / blank; NO_COLOR honoured. `src/hierarchy-tree.js`
+  `isInterventionActive` only treats `approval_pending` as active so
+  the tree rollup + `[intervention]` badge stop lighting up on
+  informational states. `web/src/components/WorkerList.tsx` matches.
+  Regression guards: `tests/intervention-fix.test.js` - 6 suites /
+  32 assertions - includes a source-grep on pty-manager.js that
+  forbids restoring the old truthy-only `if (w._interventionState)`
+  notifyStall predicate. Full suite **107 -> 108 pass**. Spec:
+  `docs/tasks/intervention-fix.md`. Patch note:
+  `docs/patches/8.21-intervention-fix.md`.
+
+### Changed
+- **(8.21) `manager.list()` row shape: `intervention` narrowed + new
+  fields.** The `intervention` field on each worker row now publishes
+  the string enum `'approval_pending' | 'background_exit' |
+  'past_resolved' | null` instead of the raw internal state. Two new
+  optional fields land alongside it: `hasPastIntervention: boolean`
+  (ever-flagged breadcrumb) and `lastInterventionAt: string | null`
+  (ISO of last set/clear). Callers that check "needs human" must
+  compare explicitly to `'approval_pending'` now; truthy checks still
+  treat `background_exit` and `past_resolved` as informational. The
+  internal `_interventionState` keeps its legacy values (`question` |
+  `escalation` | `critical_deny` | `bg_exit` | null) so hot-paths
+  (`wait --interrupt-on-intervention`, `cancelCriticalCommand`, SSE
+  events, existing tests) do not need a coordinated rewrite. Web UI
+  types updated (`PublicIntervention` union + optional past fields).
+
 - **(8.22) Terminal auto-fit catches parent reflows + scrollback re-wraps.**
   `web/src/components/WorkerDetail.tsx` now wires a `ResizeObserver` on
   the terminal `<pre>` alongside the existing `window.addEventListener

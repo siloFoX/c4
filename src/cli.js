@@ -514,8 +514,17 @@ async function main() {
           } else {
             console.log('NAME\t\tSTATUS\t\tUNREAD\tINTERVENTION\tCOMMAND');
             for (const w of result.workers) {
-              const intervention = w.intervention || '-';
-              console.log(`${w.name}\t\t${w.status}\t\t${w.unreadSnapshots}\t${intervention}\t\t${w.command}`);
+              // (8.21) Intervention column: only highlight approval_pending
+              // in red; background_exit is yellow; past_resolved / idle /
+              // null render as blank so the table stays scannable.
+              const useColor = process.stdout.isTTY && !process.env.NO_COLOR;
+              let interventionCell = '-';
+              if (w.intervention === 'approval_pending') {
+                interventionCell = useColor ? '\u001b[31mAPPROVAL\u001b[0m' : 'APPROVAL';
+              } else if (w.intervention === 'background_exit') {
+                interventionCell = useColor ? '\u001b[33mbg-exit\u001b[0m' : 'bg-exit';
+              }
+              console.log(`${w.name}\t\t${w.status}\t\t${w.unreadSnapshots}\t${interventionCell}\t\t${w.command}`);
             }
           }
           if (result.queuedTasks && result.queuedTasks.length > 0) {
