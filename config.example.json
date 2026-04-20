@@ -261,6 +261,14 @@
     "enabled": false
   },
 
+  "postCompactHook": {
+    "enabled": true,
+    "templateDir": "docs/rules",
+    "verifyTimeoutMs": 10000,
+    "debounceMs": 60000,
+    "driftWindow": 3
+  },
+
   "templates": {
     "planner": {
       "description": "Planner — 설계 전담, Opus 모델",
