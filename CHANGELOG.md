@@ -2,6 +2,60 @@
 
 ## [Unreleased]
 
+### Added
+- **(8.31) Sessions attach UX guidance and onboarding.** After 8.17
+  shipped `c4 attach` and the Sessions tab gained an "Attach new..."
+  button, operators reported the workflow was opaque — the button did
+  not explain why, the modal asked for a JSONL path with no preview of
+  what was available, post-attach rows carried a single trash icon with
+  no visible "view the conversation" affordance, and nothing contrasted
+  attached sessions against live workers. `web/src/components/Sessions
+  View.tsx` grows five UX pieces (no new runtime deps, no backend route
+  changes): (1) an `EmptyAttachBanner` with a "What is attach?"
+  headline + the canonical `Import external Claude Code sessions
+  (~/.claude/projects/*.jsonl) to view conversation history in c4 Web
+  UI.` sentence + an `Attach your first session` primary button that
+  replaces the bare empty-state string inside the Attached sub-section;
+  (2) an expanded `AttachModal` that threads the already-fetched
+  `/api/sessions` payload as an `available: SessionSummary[]` prop and
+  renders a top-10 preview (project path, relative updated-at, turn
+  count, shortened UUID, last assistant snippet) with a `Use this id`
+  button per row that auto-fills the UUID input, plus a dashed
+  `After attach you can:` help card listing `view full conversation
+  timeline` / `search messages across sessions` / `resume the session
+  via claude --resume`; (3) an
+  `AttachedRowActions` panel beneath every attached row exposing
+  `View conversation` (Eye icon, routes through setSelection),
+  `Resume in terminal` (Terminal icon, expands an inline code block
+  with the exact `claude --resume <sessionId>` command + copy button
+  backed by a `copyToClipboard` helper that no-ops when the Clipboard
+  API is absent), and `Detach` (Trash2 icon, unchanged call to
+  `handleDetach`) — every button ships a contextual aria-label; (4) a
+  `ComparisonCard` four-row table contrasting Attached vs Live along
+  Mode / Source / Updates / Resume, rendered in two places (the empty
+  right-pane card and as a self-ending side-card below the attached
+  conversation view) so the distinction surfaces regardless of where
+  the operator lands; (5) a dismissable 3-step onboarding `Tour`
+  overlay gated on `localStorage['sessions-tour-v1']` (guarded
+  by try/catch at both the read and write sites so private-browsing
+  throws cannot crash the page) covering Welcome / Attach external
+  sessions / View or resume, with Skip tour / Next / Done controls
+  and an `N/3` step counter. All UX strings are exported module
+  constants (`EMPTY_ATTACH_BANNER_TITLE`, `EMPTY_ATTACH_BANNER_BODY`,
+  `POST_ATTACH_HELP_TITLE`, `POST_ATTACH_HELP_ITEMS`,
+  `COMPARISON_TITLE`, `COMPARISON_ROWS`, `TOUR_STORAGE_KEY`,
+  `TOUR_STEPS`) so the source-grep tests can pin them. The 8.17 wire
+  contracts (`apiGet /api/attach/list`, `apiPost /api/attach`,
+  `apiDelete /api/attach/:name`, `ConversationView` snapshotUrl =
+  `/api/attach/${name}/conversation`) are preserved verbatim — the
+  existing `tests/session-attach.test.js` SessionsView-wiring block
+  still passes without edit. Tests: `tests/sessions-view.test.js` — 29
+  source-grep assertions across 6 suites (empty-state banner 4, modal
+  preview + help 7, row actions 8, comparison card 3, onboarding tour
+  5, 8.17 wiring regression guards 4). Full suite 107 -> 108 pass.
+  Patch note: `docs/patches/8.31-attach-ux.md`. Reproduction base:
+  2026-04-20 operator note `User does not know what attach does`.
+
 ### Fixed
 - **(8.21) Sticky intervention flag and monitor-cron token waste.**
   Before 8.21 the daemon tracked one `_interventionState` string and

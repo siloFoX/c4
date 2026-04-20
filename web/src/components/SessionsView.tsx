@@ -1,11 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  BookOpen,
   ChevronDown,
   ChevronRight,
+  Copy,
+  Eye,
   FolderTree,
+  Info,
   Link2,
   Plus,
   Search,
+  Terminal,
   Trash2,
   X,
 } from 'lucide-react';
@@ -75,6 +80,41 @@ type Selection =
   | { kind: 'session'; id: string }
   | { kind: 'attached'; name: string };
 
+// (8.31) UX strings — kept as module constants so tests source-grep
+// against stable literals. Changing copy here must flow through
+// tests/sessions-view.test.js.
+export const EMPTY_ATTACH_BANNER_TITLE = 'What is attach?';
+export const EMPTY_ATTACH_BANNER_BODY =
+  'Import external Claude Code sessions (~/.claude/projects/*.jsonl) to view conversation history in c4 Web UI.';
+export const POST_ATTACH_HELP_TITLE = 'After attach you can:';
+export const POST_ATTACH_HELP_ITEMS = [
+  'view full conversation timeline',
+  'search messages across sessions',
+  'resume the session via claude --resume',
+];
+export const COMPARISON_TITLE = 'Attached session vs Live worker';
+export const COMPARISON_ROWS: Array<[string, string, string]> = [
+  ['Mode', 'Read-only view', 'Interactive PTY'],
+  ['Source', 'JSONL transcript', 'Live pty stream'],
+  ['Updates', 'Re-parse on refresh', 'Real-time SSE'],
+  ['Resume', 'claude --resume <id>', 'Already running'],
+];
+export const TOUR_STORAGE_KEY = 'sessions-tour-v1';
+export const TOUR_STEPS: Array<{ title: string; body: string }> = [
+  {
+    title: 'Welcome to Sessions',
+    body: 'Browse past Claude Code conversations recorded under ~/.claude/projects.',
+  },
+  {
+    title: 'Attach external sessions',
+    body: 'Click "Attach new..." to pin a JSONL transcript so it shows up in this tab.',
+  },
+  {
+    title: 'View or resume',
+    body: 'Open an attached row to read the timeline, or copy the claude --resume command to pick it back up.',
+  },
+];
+
 function formatRelative(iso: string | null): string {
   if (!iso) return '';
   const t = new Date(iso).getTime();
@@ -114,15 +154,30 @@ function attachedMatchesQuery(a: AttachedSession, q: string): boolean {
   return hay.includes(needle);
 }
 
+function copyToClipboard(text: string): Promise<void> {
+  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+    return navigator.clipboard.writeText(text);
+  }
+  return Promise.resolve();
+}
+
 interface AttachModalProps {
   open: boolean;
   busy: boolean;
   error: string | null;
+  available: SessionSummary[];
   onClose: () => void;
   onSubmit: (path: string, name: string) => void;
 }
 
-function AttachModal({ open, busy, error, onClose, onSubmit }: AttachModalProps) {
+function AttachModal({
+  open,
+  busy,
+  error,
+  available,
+  onClose,
+  onSubmit,
+}: AttachModalProps) {
   const [pathValue, setPathValue] = useState('');
   const [nameValue, setNameValue] = useState('');
   useEffect(() => {
@@ -132,13 +187,14 @@ function AttachModal({ open, busy, error, onClose, onSubmit }: AttachModalProps)
     }
   }, [open]);
   if (!open) return null;
+  const preview = available.slice(0, 10);
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       role="dialog"
       aria-modal="true"
     >
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-2xl">
         <CardHeader className="flex flex-row items-center justify-between gap-2 border-b border-border p-4">
           <CardTitle className="flex items-center gap-2 text-base">
             <Link2 className="h-4 w-4" aria-hidden /> Attach session
@@ -152,7 +208,54 @@ function AttachModal({ open, busy, error, onClose, onSubmit }: AttachModalProps)
             <X className="h-4 w-4" aria-hidden />
           </button>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3 p-4">
+        <CardContent className="flex flex-col gap-4 p-4">
+          <p className="text-xs text-muted-foreground">
+            Paste an absolute JSONL path or a session UUID. Attach is pointer-only —
+            the original transcript is never copied or modified.
+          </p>
+
+          {preview.length > 0 ? (
+            <section
+              className="rounded-md border border-border bg-muted/40"
+              aria-label="Available sessions preview"
+            >
+              <header className="flex items-center justify-between border-b border-border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <span>Available sessions</span>
+                <span>{available.length} found</span>
+              </header>
+              <ul className="max-h-48 divide-y divide-border overflow-y-auto">
+                {preview.map((s) => (
+                  <li key={s.sessionId} className="px-3 py-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate font-medium text-foreground">
+                        {s.projectPath || s.projectDir || 'unknown project'}
+                      </span>
+                      <span className="ml-auto text-muted-foreground">
+                        {formatRelative(s.updatedAt)}
+                      </span>
+                      <Badge variant="secondary">{s.turnCount} msgs</Badge>
+                    </div>
+                    <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+                      <span className="font-mono">{shortId(s.sessionId)}</span>
+                      {s.lastAssistantSnippet ? (
+                        <span className="truncate">- {s.lastAssistantSnippet}</span>
+                      ) : null}
+                    </div>
+                    <div className="mt-1 flex justify-end">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setPathValue(s.sessionId)}
+                      >
+                        Use this id
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-xs font-medium text-muted-foreground">
               JSONL path or session UUID
@@ -179,6 +282,21 @@ function AttachModal({ open, busy, error, onClose, onSubmit }: AttachModalProps)
               {error}
             </div>
           ) : null}
+
+          <aside
+            className="rounded-md border border-dashed border-border bg-background/60 p-3 text-xs text-muted-foreground"
+            aria-label="Post-attach help"
+          >
+            <div className="mb-1 font-semibold text-foreground">
+              {POST_ATTACH_HELP_TITLE}
+            </div>
+            <ul className="list-disc pl-5">
+              {POST_ATTACH_HELP_ITEMS.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </aside>
+
           <div className="flex justify-end gap-2 pt-2">
             <Button size="sm" variant="outline" onClick={onClose} disabled={busy}>
               Cancel
@@ -193,6 +311,219 @@ function AttachModal({ open, busy, error, onClose, onSubmit }: AttachModalProps)
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+interface EmptyAttachBannerProps {
+  onAttachClick: () => void;
+}
+
+function EmptyAttachBanner({ onAttachClick }: EmptyAttachBannerProps) {
+  return (
+    <div
+      className="flex items-start gap-2 rounded-md border border-dashed border-border bg-muted/30 p-3 text-xs"
+      role="note"
+      aria-label="Attach introduction"
+    >
+      <Info
+        className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"
+        aria-hidden
+      />
+      <div className="flex-1">
+        <div className="font-semibold text-foreground">
+          {EMPTY_ATTACH_BANNER_TITLE}
+        </div>
+        <p className="mt-1 text-muted-foreground">{EMPTY_ATTACH_BANNER_BODY}</p>
+        <Button
+          size="sm"
+          variant="outline"
+          className="mt-2"
+          onClick={onAttachClick}
+        >
+          <Plus className="mr-1 h-3.5 w-3.5" aria-hidden />
+          Attach your first session
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+interface ComparisonCardProps {
+  className?: string;
+}
+
+function ComparisonCard({ className }: ComparisonCardProps) {
+  return (
+    <Card className={cn('max-w-md', className)}>
+      <CardHeader className="gap-1 border-b border-border p-4">
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <BookOpen className="h-4 w-4" aria-hidden /> {COMPARISON_TITLE}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        <table
+          className="w-full text-left text-xs"
+          aria-label="Attached vs Live comparison"
+        >
+          <thead>
+            <tr className="border-b border-border text-[11px] uppercase tracking-wide text-muted-foreground">
+              <th className="px-4 py-2 font-medium"></th>
+              <th className="px-4 py-2 font-medium">Attached</th>
+              <th className="px-4 py-2 font-medium">Live worker</th>
+            </tr>
+          </thead>
+          <tbody>
+            {COMPARISON_ROWS.map(([label, attached, live]) => (
+              <tr key={label} className="border-b border-border last:border-b-0">
+                <td className="px-4 py-2 font-medium text-muted-foreground">
+                  {label}
+                </td>
+                <td className="px-4 py-2 text-foreground">{attached}</td>
+                <td className="px-4 py-2 text-foreground">{live}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface TourProps {
+  onDismiss: () => void;
+}
+
+function Tour({ onDismiss }: TourProps) {
+  const [step, setStep] = useState(0);
+  const current = TOUR_STEPS[step];
+  const last = step === TOUR_STEPS.length - 1;
+  return (
+    <div
+      className="fixed inset-0 z-40 flex items-end justify-end bg-black/30 p-4 md:items-start md:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Sessions onboarding"
+    >
+      <Card className="w-full max-w-sm">
+        <CardHeader className="gap-1 border-b border-border p-4">
+          <CardTitle className="flex items-center justify-between text-sm">
+            <span>
+              {current.title}
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                {step + 1}/{TOUR_STEPS.length}
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={onDismiss}
+              aria-label="Dismiss tour"
+              className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            >
+              <X className="h-4 w-4" aria-hidden />
+            </button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 p-4 text-sm">
+          <p className="text-muted-foreground">{current.body}</p>
+          <div className="flex items-center justify-between">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onDismiss}
+            >
+              Skip tour
+            </Button>
+            {last ? (
+              <Button size="sm" onClick={onDismiss}>
+                Done
+              </Button>
+            ) : (
+              <Button size="sm" onClick={() => setStep((s) => s + 1)}>
+                Next
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+interface AttachedRowActionsProps {
+  session: AttachedSession;
+  isSelected: boolean;
+  onView: () => void;
+  onDetach: () => void;
+}
+
+function AttachedRowActions({
+  session,
+  isSelected,
+  onView,
+  onDetach,
+}: AttachedRowActionsProps) {
+  const [showResume, setShowResume] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const resumeCmd = session.sessionId
+    ? `claude --resume ${session.sessionId}`
+    : `claude --resume <unknown-session-id>`;
+  const handleCopy = useCallback(async () => {
+    await copyToClipboard(resumeCmd);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  }, [resumeCmd]);
+  return (
+    <div className="flex flex-col gap-2 border-t border-border/60 bg-muted/30 px-4 py-2">
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant={isSelected ? 'default' : 'outline'}
+          onClick={onView}
+          aria-label={`View conversation for ${session.name}`}
+        >
+          <Eye className="mr-1 h-3.5 w-3.5" aria-hidden />
+          View conversation
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setShowResume((v) => !v)}
+          aria-label={`Resume ${session.name} in terminal`}
+          aria-expanded={showResume}
+        >
+          <Terminal className="mr-1 h-3.5 w-3.5" aria-hidden />
+          Resume in terminal
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onDetach}
+          aria-label={`Detach ${session.name}`}
+          className="text-destructive hover:bg-destructive/10"
+        >
+          <Trash2 className="mr-1 h-3.5 w-3.5" aria-hidden />
+          Detach
+        </Button>
+      </div>
+      {showResume ? (
+        <div
+          className="flex items-center gap-2 rounded border border-border bg-background px-2 py-1 text-[11px]"
+          role="region"
+          aria-label="Resume command"
+        >
+          <code className="flex-1 truncate font-mono">{resumeCmd}</code>
+          <button
+            type="button"
+            onClick={handleCopy}
+            aria-label="Copy resume command"
+            className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <Copy className="h-3.5 w-3.5" aria-hidden />
+          </button>
+          {copied ? <span className="text-muted-foreground">copied</span> : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -213,6 +544,28 @@ export default function SessionsView() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalBusy, setModalBusy] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
+  const [showTour, setShowTour] = useState(false);
+  const tourChecked = useRef(false);
+
+  useEffect(() => {
+    if (tourChecked.current) return;
+    tourChecked.current = true;
+    try {
+      const done = window.localStorage.getItem(TOUR_STORAGE_KEY);
+      if (!done) setShowTour(true);
+    } catch {
+      // localStorage can throw in private modes; skip tour silently.
+    }
+  }, []);
+
+  const dismissTour = useCallback(() => {
+    setShowTour(false);
+    try {
+      window.localStorage.setItem(TOUR_STORAGE_KEY, 'done');
+    } catch {
+      // non-fatal
+    }
+  }, []);
 
   const refreshSessions = useCallback(async () => {
     setLoading(true);
@@ -320,6 +673,8 @@ export default function SessionsView() {
   const selectedAttachmentName =
     selection && selection.kind === 'attached' ? selection.name : null;
 
+  const availableSessions = data?.sessions ?? [];
+
   return (
     <div className="flex w-full min-h-0 flex-1 flex-col gap-3 p-3 md:flex-row md:p-6">
       <Card className="flex w-full min-h-0 flex-col md:w-80 lg:w-96">
@@ -392,9 +747,13 @@ export default function SessionsView() {
               attachError ? (
                 <div className="p-4 text-sm text-destructive">{attachError}</div>
               ) : filteredAttached.length === 0 ? (
-                <div className="px-4 py-3 text-xs text-muted-foreground">
-                  No attached sessions. Use "Attach new..." to import an external
-                  JSONL.
+                <div className="p-3">
+                  <EmptyAttachBanner
+                    onAttachClick={() => {
+                      setModalError(null);
+                      setModalOpen(true);
+                    }}
+                  />
                 </div>
               ) : (
                 <ul className="divide-y divide-border">
@@ -432,19 +791,19 @@ export default function SessionsView() {
                             <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
                               <span>{shortId(a.sessionId)}</span>
                               {a.createdAt ? (
-                                <span>· {formatRelative(a.createdAt)}</span>
+                                <span>- {formatRelative(a.createdAt)}</span>
                               ) : null}
                             </div>
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDetach(a.name)}
-                            aria-label={`Detach ${a.name}`}
-                            className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                          </button>
                         </div>
+                        <AttachedRowActions
+                          session={a}
+                          isSelected={active}
+                          onView={() =>
+                            setSelection({ kind: 'attached', name: a.name })
+                          }
+                          onDetach={() => handleDetach(a.name)}
+                        />
                       </li>
                     );
                   })}
@@ -536,7 +895,7 @@ export default function SessionsView() {
         </CardContent>
       </Card>
 
-      <div className="flex min-h-0 min-w-0 flex-1">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
         {selection && selection.kind === 'session' ? (
           <ConversationView
             key={`session-${selection.id}`}
@@ -545,17 +904,21 @@ export default function SessionsView() {
             className="flex-1"
           />
         ) : selection && selection.kind === 'attached' ? (
-          <ConversationView
-            key={`attached-${selection.name}`}
-            sessionId={selection.name}
-            live={false}
-            snapshotUrl={`/api/attach/${encodeURIComponent(selection.name)}/conversation`}
-            className="flex-1"
-          />
+          <>
+            <ConversationView
+              key={`attached-${selection.name}`}
+              sessionId={selection.name}
+              live={false}
+              snapshotUrl={`/api/attach/${encodeURIComponent(selection.name)}/conversation`}
+              className="flex-1"
+            />
+            <ComparisonCard className="self-end" />
+          </>
         ) : (
           <Card className="flex flex-1 items-center justify-center border-dashed">
-            <CardContent className="p-6 text-center text-sm text-muted-foreground">
-              Select a session to view the conversation.
+            <CardContent className="flex flex-col items-center gap-4 p-6 text-center text-sm text-muted-foreground">
+              <span>Select a session to view the conversation.</span>
+              <ComparisonCard />
             </CardContent>
           </Card>
         )}
@@ -565,9 +928,12 @@ export default function SessionsView() {
         open={modalOpen}
         busy={modalBusy}
         error={modalError}
+        available={availableSessions}
         onClose={() => setModalOpen(false)}
         onSubmit={handleAttachSubmit}
       />
+
+      {showTour ? <Tour onDismiss={dismissTour} /> : null}
     </div>
   );
 }
