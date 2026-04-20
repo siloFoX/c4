@@ -256,6 +256,14 @@
     "allowOverride": true
   },
 
+  "autonomous": {
+    "mode": false,
+    "throttleMs": 300000,
+    "circuitThreshold": 3,
+    "managerName": "c4-mgr-auto",
+    "todoPath": ""
+  },
+
   "managerRotation": {
     "compactThreshold": 0,
     "enabled": false

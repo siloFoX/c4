@@ -2325,6 +2325,52 @@ async function main() {
         break;
       }
 
+      case 'autonomous': {
+        // (8.28) Control the daemon-internal TODO auto-dispatch loop.
+        //   c4 autonomous status           show current state
+        //   c4 autonomous pause [reason]   stop dispatching until resumed
+        //   c4 autonomous resume           clear pause + halt counter
+        //   c4 autonomous tick             force a single tick (debug)
+        const sub = (args[0] || 'status').toLowerCase();
+        if (!['status', 'pause', 'resume', 'tick'].includes(sub)) {
+          console.error('Usage: c4 autonomous <status|pause|resume|tick> [reason]');
+          process.exit(1);
+        }
+        if (sub === 'status') {
+          result = await request('GET', '/autonomous/status');
+        } else if (sub === 'pause') {
+          const reason = args.slice(1).join(' ') || 'manual via cli';
+          result = await request('POST', '/autonomous/pause', { reason });
+        } else if (sub === 'resume') {
+          result = await request('POST', '/autonomous/resume');
+        } else {
+          result = await request('POST', '/autonomous/tick');
+        }
+        if (result && typeof result === 'object') {
+          if (result.error) {
+            console.error('Error: ' + result.error);
+            process.exit(1);
+          }
+          if (result.skipped || result.dispatched) {
+            if (result.dispatched) {
+              console.log('Dispatched TODO ' + result.dispatched + ' (priority=' + (result.priority || 'normal') + ')');
+            } else {
+              console.log('Skipped: ' + result.skipped + (result.reason ? ' (' + result.reason + ')' : ''));
+            }
+          } else if (result.enabled !== undefined) {
+            const on = result.enabled ? 'ON' : 'OFF';
+            const paused = result.paused ? ' PAUSED' : '';
+            console.log('autonomous: ' + on + paused + (result.pauseReason ? ' (' + result.pauseReason + ')' : ''));
+            if (result.managerName) console.log('  manager: ' + result.managerName);
+            if (result.todoPath) console.log('  todoPath: ' + result.todoPath);
+            console.log('  consecutive halts: ' + (result.consecutiveHalts || 0) + '/' + (result.circuitThreshold || 3));
+            console.log('  last dispatch: ' + (result.lastDispatchId || '(none)') + ' at ' + (result.lastDispatchAt || '(never)'));
+            if (result.lastError) console.log('  last error: ' + result.lastError);
+          }
+        }
+        break;
+      }
+
       case 'watch': {
         // Real-time worker output streaming (5.42)
         const name = args[0];
@@ -4036,6 +4082,7 @@ Commands:
   token-usage [--per-task]         Show daily token usage (per-task adds worker-level aggregation)
   quota [tier]                     Show daily tier-based token quota (8.3, manager|mid|worker)
   auto <task>                      Autonomous mode: manager + scribe + task (4.8)
+  autonomous <status|pause|resume|tick>  Control the TODO auto-dispatch loop (8.28)
   morning                          Generate morning report (4.4)
   profiles                         List available permission profiles
   batch "task" --count N           Same task to N workers in parallel

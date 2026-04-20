@@ -33,6 +33,7 @@ const tierQuotaMod = require('./tier-quota');
 const scribeV2Mod = require('./scribe-v2');
 const sessionParser = require('./session-parser');
 const sessionAttach = require('./session-attach');
+const autoDispatcherMod = require('./auto-dispatcher');
 
 // (8.5) Allow-list for POST /key. Web UI needs to drive Enter, Escape,
 // Ctrl-C and the arrow keys without sending raw control bytes. The list
@@ -2485,6 +2486,66 @@ async function handleRequest(req, res) {
         // (8.3) Re-apply tierConfig overrides so a live edit of daily
         // limits or model allow-lists takes effect on the next dispatch.
         try { tierQuota.setTiers(manager.getConfig().tierConfig); } catch {}
+        // (8.28) Rebuild the AutoDispatcher in place so an operator can
+        // flip config.autonomous.mode on/off without a daemon restart.
+        // Preserve pause state across reload only when the instance
+        // already existed so a mid-run pause does not get wiped by an
+        // unrelated /config/reload call.
+        try {
+          const prev = autoDispatcher;
+          _stopAutoDispatcher();
+          autoDispatcher = _buildAutoDispatcher();
+          if (autoDispatcher) {
+            if (prev) {
+              autoDispatcher.paused = prev.paused;
+              autoDispatcher.pauseReason = prev.pauseReason;
+              autoDispatcher.consecutiveHalts = prev.consecutiveHalts;
+              autoDispatcher.lastDispatchAt = prev.lastDispatchAt;
+              autoDispatcher.lastDispatchId = prev.lastDispatchId;
+              autoDispatcher.dispatchLog = prev.dispatchLog.slice(-20);
+            }
+            autoDispatcher.start();
+          }
+        } catch { /* best-effort */ }
+      }
+
+    } else if (req.method === 'GET' && route === '/autonomous/status') {
+      // (8.28) Autonomous dispatcher inspection. Returns a static
+      // disabled payload when the instance is null so the CLI never has
+      // to disambiguate a 404 from a real response.
+      if (!autoDispatcher) {
+        result = {
+          enabled: false,
+          paused: false,
+          reason: 'autonomous.mode=false (set config.autonomous.mode=true to enable)',
+        };
+      } else {
+        result = autoDispatcher.getStatus();
+      }
+
+    } else if (req.method === 'POST' && route === '/autonomous/pause') {
+      if (!autoDispatcher) {
+        result = { error: 'autonomous mode not enabled' };
+      } else {
+        let body = {};
+        try { body = await parseBody(req); } catch { body = {}; }
+        result = autoDispatcher.pause((body && body.reason) || 'manual via cli');
+      }
+
+    } else if (req.method === 'POST' && route === '/autonomous/resume') {
+      if (!autoDispatcher) {
+        result = { error: 'autonomous mode not enabled' };
+      } else {
+        result = autoDispatcher.resume();
+      }
+
+    } else if (req.method === 'POST' && route === '/autonomous/tick') {
+      // Manual tick for tests + operators who want to kick the loop
+      // without waiting for the throttle window.
+      if (!autoDispatcher) {
+        result = { error: 'autonomous mode not enabled' };
+      } else {
+        result = await autoDispatcher.tick();
       }
 
     } else if (req.method === 'POST' && route === '/scribe/start') {
@@ -3537,6 +3598,104 @@ function _stopScheduleTick() {
   }
 }
 
+// (8.28) Autonomous TODO dispatch loop. Lifted into module scope so the
+// /autonomous/* route handlers and the SIGINT/SIGTERM cleanup paths can
+// share the same instance. The instance stays null until the config
+// flag enables it; every route below guards for that.
+let autoDispatcher = null;
+
+function _buildAutoDispatcher() {
+  const cfgNow = manager.getConfig() || {};
+  const auto = cfgNow.autonomous || {};
+  if (auto.mode !== true) return null;
+  const repoRoot = (cfgNow.worktree && cfgNow.worktree.projectRoot) || process.cwd();
+  const todoPath = typeof auto.todoPath === 'string' && auto.todoPath.length > 0
+    ? auto.todoPath
+    : path.join(repoRoot, 'TODO.md');
+  const managerName = typeof auto.managerName === 'string' && auto.managerName.length > 0
+    ? auto.managerName
+    : 'c4-mgr-auto';
+  const throttleMs = Number.isFinite(auto.throttleMs) && auto.throttleMs > 0
+    ? auto.throttleMs
+    : autoDispatcherMod.DEFAULT_THROTTLE_MS;
+  const circuitThreshold = Number.isFinite(auto.circuitThreshold) && auto.circuitThreshold > 0
+    ? auto.circuitThreshold
+    : autoDispatcherMod.DEFAULT_CIRCUIT_THRESHOLD;
+
+  const instance = new autoDispatcherMod.AutoDispatcher({
+    enabled: true,
+    todoPath,
+    managerName,
+    throttleMs,
+    circuitThreshold,
+    notifier: (event, payload) => {
+      // Reuse the 8.15 slack emitter via task_start so an operator can
+      // watch autonomous progress from Slack alone. The event type stays
+      // inside the existing 10-type vocabulary so adding the autonomous
+      // path does not force slack-events schema churn. A `source`
+      // discriminator lets Slack consumers filter if they want.
+      if (event === 'auto_dispatch_sent') {
+        safeEmit('task_start', {
+          worker: payload.manager,
+          task: payload.title,
+          source: 'auto-dispatch',
+          todo: payload.id,
+          priority: payload.priority,
+        });
+      } else if (event === 'auto_dispatch_paused') {
+        safeEmit('halt_detected', {
+          worker: instance.managerName,
+          reason: 'auto-dispatch paused: ' + payload.reason,
+        });
+      }
+    },
+    idleCheck: () => {
+      const listing = manager.list();
+      const mgr = listing.workers.find((w) => w.name === instance.managerName);
+      if (!mgr) return true;
+      if (mgr.status !== 'idle') return false;
+      if (mgr.intervention === 'approval_pending') return false;
+      return true;
+    },
+    dispatch: async (todo) => {
+      const prompt = autoDispatcherMod.buildDispatchPrompt(todo, { repoRoot });
+      const listing = manager.list();
+      const mgr = listing.workers.find((w) => w.name === instance.managerName);
+      if (!mgr || mgr.status === 'exited') {
+        return manager.autoStart(prompt, { name: instance.managerName });
+      }
+      return manager.sendTask(instance.managerName, prompt, { autoMode: true });
+    },
+  });
+  return instance;
+}
+
+function _startAutoDispatcher() {
+  autoDispatcher = _buildAutoDispatcher();
+  if (autoDispatcher) autoDispatcher.start();
+}
+
+function _stopAutoDispatcher() {
+  if (autoDispatcher) {
+    autoDispatcher.stop();
+  }
+}
+
+// (8.28) Rewire the circuit breaker off existing halt signals. The
+// bridgeStallToSlackEvents block above already intercepts notifyStall;
+// here we piggyback on the same event so a halt that fires during an
+// auto-dispatched task increments the consecutive-halt counter.
+manager.on('sse', (event) => {
+  if (!autoDispatcher) return;
+  if (!event || !event.worker) return;
+  if (event.worker !== autoDispatcher.managerName) return;
+  if (event.type === 'error' && event.escalation) {
+    autoDispatcher.recordHalt(autoDispatcher.lastDispatchId, event.message || 'escalation');
+  } else if (event.type === 'task_complete') {
+    autoDispatcher.recordSuccess(autoDispatcher.lastDispatchId);
+  }
+});
+
 server.listen(PORT, HOST, () => {
   console.log(`C4 daemon running on http://${HOST}:${PORT} (version ${manager._daemonVersion || 'unknown'})`);
   // Persist daemon version to state.json (7.15)
@@ -3545,6 +3704,7 @@ server.listen(PORT, HOST, () => {
   manager.startWorktreeGc();
   notifications.startPeriodicSlack();
   _startScheduleTick();
+  _startAutoDispatcher();
 });
 
 process.on('SIGINT', () => {
@@ -3552,6 +3712,7 @@ process.on('SIGINT', () => {
   manager.stopHealthCheck();
   manager.stopWorktreeGc();
   _stopScheduleTick();
+  _stopAutoDispatcher();
   manager.closeAll();
   server.close();
   process.exit(0);
@@ -3562,6 +3723,7 @@ process.on('SIGTERM', () => {
   manager.stopHealthCheck();
   manager.stopWorktreeGc();
   _stopScheduleTick();
+  _stopAutoDispatcher();
   manager.closeAll();
   server.close();
   process.exit(0);
