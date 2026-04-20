@@ -1,0 +1,2220 @@
+diff --git a/.gitignore b/.gitignore
+index aca38ce..8fddd25 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -35,6 +35,12 @@ config.json
+ 
+ # Generated reports (runtime)
+ docs/morning-report.md
++scripts/ui-audit-report.json
++
++# c4 per-worker runtime files
++.c4-task.md
++.c4-validation.json
++.c4-last-test.txt
+ 
+ # Test artifacts
+ tests/_real_test*
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index d94dddd..f9276ac 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -2,7 +2,58 @@
+ 
+ ## [Unreleased]
+ 
+-(empty)
++### 1.11.9 - Web UI audit + graceful backend-drift handling (2026-04)
++
++### Added
++- **(ui-audit) puppeteer-driven UI audit script.** `scripts/ui-audit.js`
++  launches headless Chromium (bundled by `puppeteer`) and walks every C4
++  view by priming `localStorage` (`c4.authToken`, `c4.topView`,
++  `c4.sidebar.mode`, `c4.detail.mode`) on a root load, reloading, and
++  clicking the first worker row for the three detail variants. Per view
++  it captures console errors/warnings (vite + SSE-nav-timeout noise
++  filtered), `pageerror` uncaught throws, `requestfailed` + 4xx response
++  entries (same-origin only, source-map / `@vite/client` ignored), and a
++  layout probe that walks ancestor computed styles before flagging
++  zero-size `<svg>` or missing-icon elements (so tailwind `md:hidden`
++  sidebar glyphs stop showing up as bugs). A sibling
++  `scripts/ui-audit-login.js` reads the silofox password from
++  `/tmp/c4-silofox-cred` via `fs.readFileSync`, posts to
++  `/api/auth/login`, and writes the JWT to `/tmp/c4-audit-token.json`
++  (mode 600) so the password never lands on argv / shell history. Audit
++  output is `scripts/ui-audit-report.json` (git-ignored).
++- **(ui-audit) environment-drift classification.** Before the view loop,
++  the audit probes `/api/resize`, `/api/workflows`, and
++  `/api/slack/events` against the live daemon. If those return 404 or
++  the 200 SPA-HTML fallback, the URLs land in
++  `report.staleDaemonRoutes` and subsequent 404s on those routes are
++  counted under `summary.environment` instead of `summary.critical`, so
++  the iterative audit is not gated on a daemon restart that would kill
++  the worker running the audit.
++
++### Changed
++- **(web) `apiGet` / `apiPost` guard against static-server HTML
++  fallbacks.** `web/src/lib/api.ts` now routes every read through a
++  private `readJson<T>(res, url)` helper that requires
++  `content-type: application/json` before calling `res.json()`. When
++  the daemon is missing a route and the static fallback replies
++  `200 index.html`, callers see
++  `Expected JSON from /api/workflows but got text/html; charset=utf-8`
++  instead of the opaque
++  `Unexpected token '<', "<!doctype "... is not valid JSON`
++  that `WorkflowEditor` was pushing into its `role="alert"` surface.
++- **(web) `WorkerDetail` resize degrades gracefully against older
++  daemons.** `web/src/components/WorkerDetail.tsx` adds
++  `resizeUnsupportedRef`: the first 404 from `POST /api/resize` (daemon
++  predates the 8.13 route) flips the flag, the callback short-circuits
++  on entry, and the auto-fit + manual-cols effects stop re-posting.
++  Previously each window resize or font-size change re-hit the 404 and
++  stamped `resize failed: HTTP 404` into `actionMsg`, so users on
++  older daemons saw a permanent error pill.
++- **(dev) `package.json` gains `puppeteer` as a `devDependency`.** The
++  bundled Chromium needs `libatk1.0-0`, `libatk-bridge2.0-0`, `libcups2`,
++  `libxcomposite1`, `libxdamage1`, `libatspi2.0-0` on Ubuntu — see
++  `patches/1.11.9-ui-audit.md` for the one-shot apt line. `.gitignore`
++  updated so the generated report JSON is not committed.
+ 
+ ### 1.11.8 - Web redesign (2026-04)
+ 
+diff --git a/TODO.md b/TODO.md
+index 2c92e93..96d65e2 100644
+--- a/TODO.md
++++ b/TODO.md
+@@ -475,6 +475,7 @@ Level 4이면:
+ | 8.13 | Web UI 터미널 뷰 해상도/줄바꿈 개선 | **done** | 서버 PTY가 160x48 고정이라 브라우저 viewport보다 넓을 때 `src/screen-buffer.js`가 먼저 줄을 싸서 클라이언트에서 "줄 깨짐"으로 보이던 문제 해결. `ScreenBuffer.resize(cols, rows)` 추가 - 행 축소 시 상단 라인을 scrollback으로 밀고(maxScrollback 준수), 열 축소 시 오른쪽 잘라냄, 행/열 확대 시 빈 줄 패딩, 커서/저장 커서/스크롤 리전 모두 새 경계 안으로 클램프. `PtyManager.resize(name, cols, rows)`가 node-pty `proc.resize` + `screen.resize`를 static `_clampResizeDims`(기본 20..400 cols / 5..200 rows, `config.pty.min*/max*` override 가능) 통과 후 호출. `src/daemon.js`에 `POST /resize {name, cols, rows}` 라우트 추가. Web UI `WorkerDetail`은 터미널 툴바(Auto-fit 토글, 폰트 사이즈 +/- 9..24px, 수동 cols 입력, dims 라이브 표시)를 노출하고 `localStorage`(c4.term.fontSize/autoFit/cols) 저장. Auto-fit은 숨김 1-char ruler 스팬의 getBoundingClientRect로 char 폭을 측정해 `cols = floor(pre-inner-width / char-width)` 계산, mount/font-size 변경/window resize(120ms 디바운스)에서 `/api/resize` POST. 동일 dims 재요청은 ref로 dedupe. 레이아웃은 `<main>`과 detail 컬럼에 `min-w-0`/`min-h-0`을 붙여 `<pre>` 스크롤이 flex row 안에서 실제로 동작하게 하고, 768px 미만에서 hamburger 토글로 사이드바 접힘 + 패딩을 `p-6`에서 `p-3`로 줄임. xterm.js는 검토 결과 미채택 - 현행 ScreenBuffer가 ANSI 파싱된 텍스트 모델을 CLI(`c4 scrollback`), stall 감지, hook event log 등이 공유해서 xterm.js로 교체하려면 이중 모델 유지 또는 다수 소비자 재작성이 필요하고, 보고된 증상은 렌더 fidelity가 아니라 dims mismatch라서 resize + auto-fit이 직접 해결. `tests/screen-buffer-resize.test.js`(10 assertions) + `tests/pty-resize.test.js`(16 assertions = clamp 6 + resize instance 7 + daemon source-grep 3). Full suite 68/68 pass. 재현 근거: 2026-04-17 사용자 보고 "터미널 뜨는데 해상도 달라서 줄이 깨진다". 상세: `patches/1.7.1-web-terminal-resize.md`. |
+ | 8.14 | **긴급** Web UI 세션 관리 + 인증 (injection 차단) | **done** | bcryptjs + jsonwebtoken 기반 세션 인증 구현. `src/auth.js` 모듈 (hashPassword/verifyPassword, signToken/verifyToken HS256 24h, checkRequest 미들웨어, OPEN_API_ROUTES={/auth/login, /health}), `src/auth-setup.js` (provisionAuth: loadConfig + ensureAuthSection + generateSecret 최초1회 + readPasswordFile + bcrypt hash 저장, 원본 password file 미수정). daemon.js는 매 /api/* 요청 + /dashboard에서 auth.checkRequest(cfg, req, route) 호출해 config.auth.enabled=true일 때 401 거부. 신규 라우트: POST /auth/login (user+password 검증 → JWT 반환), POST /auth/logout (stateless ok), GET /auth/status (Web UI가 로그인 화면 분기용). EventSource는 custom header 불가하므로 `?token=` 쿼리 파라미터 fallback 추가. cli.js는 C4_TOKEN env 또는 `~/.c4-token` 파일에서 토큰 읽어 Authorization: Bearer 자동 부착. Web UI: `web/src/lib/api.ts` 중앙 fetch 래퍼(getToken/setToken/clearToken + AUTH_EVENT 이벤트 + apiFetch/apiPost/apiGet + eventSourceUrl + login/logout/fetchAuthStatus), `web/src/components/Login.tsx` 로그인 폼, App.tsx가 /api/auth/status + localStorage 토큰 기반으로 'loading'/'anon'/'authed'/'disabled' 상태 분기 및 401 수신 시 자동 login 화면 전환, Sign out 버튼. WorkerList/WorkerDetail/WorkerActions 모두 apiFetch로 마이그레이션. c4 init이 `--user <name> --password-file <path>` 비대화형(원본 파일 건드리지 않음) + TTY 대화형(readline 프롬프트, password silent) 지원, 최초 1회 auth.secret 생성 + 기존 사용자 해시 존재 시 skip. config.auth 스키마: `{enabled:bool, secret:string(96hex), users:{<name>:{passwordHash:string}}}`. tests/session-auth.test.js 22 assertions 4 suites: (a) login 성공/실패(잘못된 비밀번호/미존재 사용자/누락 필드/secret 누락), (b) 인증 비활성 + /auth/login + /health bypass, (c) /api/* token 없음/malformed/tampered 401 + 유효 Bearer + SSE `?token=` 허용, (d) provisionAuth hash 저장 + source file 미변경 + secret 재실행 시 재생성 안 함 + 중복 사용자 skip + flag 쌍 + missing/empty file 에러, daemon.js 소스에서 require('./auth')/route '/auth/login'/auth.checkRequest 존재 grep. Full suite 66/66 pass. 검증: 인증 없이 /api/list 호출 → 401 {"error":"Authentication required"}; POST /auth/login {user,password} 정답 → {token, user}; 만료/변조 토큰 → 401. 재현 근거: 2026-04-17 포트포워딩 세션 관점의 injection 공격 가능성 사용자 지적. |
+ | 8.15 | Slack autonomous event notification integration | **done** | New `src/slack-events.js` module exports `SlackEventEmitter` (config-driven emitter with `emit(eventType, payload)` / `configure(partial)` / `listen(cb)` / `recentEvents(limit)` / `clearRecent()` / `getConfig()`) plus helpers `isEventType` / `isLevel` / `levelFor` / `dedupeKey` / `formatMessage` / `defaultHttpClient` and a shared singleton `getShared` / `resetShared`. Ten canonical event types with default levels: `task_start` / `task_complete` / `worker_spawn` / `worker_close` / `merge_success` / `push_success` (info), `halt_detected` / `approval_request` (warn), `merge_fail` / `error` (error); payload.level overrides the default so callers can escalate on demand. Dedupe uses an LRU keyed by `sha1(eventType + canonical payload JSON)` with a sliding window (default 60000 ms, config.slack.dedupeWindowMs) and auto-purges stale entries on every emit. Recent-event buffer capped at 100 records by default (`recentCap` constructor option) so `GET /slack/events` is cheap. Webhook POST uses an injectable `httpClient` so tests never hit the network; default client wraps node `https`/`http` with `new URL()` parsing + Content-Length, posts Slack-style `{text: "[c4:event] <type> <fields>"}`, and returns `{ok, status}` or `{ok:false, error}` without throwing. Daemon wiring in `src/daemon.js`: imports `slackEvents`, builds shared emitter via `getShared()`, calls `configure(cfg.slack)` at boot and on `POST /config/reload`, defines `safeEmit` (catches every throw/reject so a broken webhook never breaks the request path), and emits at five lifecycle points — `POST /create` → `worker_spawn {worker,target,command}`, `POST /task` → `task_start {worker,branch,task}`, `POST /close` → `worker_close {worker}`, `POST /approve` → `approval_request {worker,optionNumber,granted}`, and a Notifications.notifyStall monkey-wrap → `halt_detected {worker,reason}` (keeps the legacy buffered stall path untouched). `POST /merge` success/fail fires `merge_success {branch,sha,worker}` / `merge_fail {branch,error,worker}` right next to the audit record. New daemon endpoints: `GET /slack/events[?limit=N]` (returns `{events, count, config}` from the in-memory buffer) and `POST /slack/emit {eventType, payload}` gated by `rbac.ACTIONS.SLACK_WRITE='slack.write'` (manager + admin default, viewer denied; rejects unknown event types with 400 + `allowed[]`). `src/merge-core.js` `performMerge` gains an optional `emit` callback so CLI-path merges feed the same event fabric without double-firing when the daemon is the caller. `src/cli.js` additions: new `c4 slack test [--type T] [--worker W] [--message M]` (POST /slack/emit) + `c4 slack status [--limit N]` (GET /slack/events + pretty-print config & recent feed); `c4 merge --push` pushes origin main after a successful merge and emits `push_success`; CLI loads `config.slack` from config.json to build a local emitter so merge/push events flow even when running offline. `src/rbac.js` adds `ACTIONS.SLACK_WRITE='slack.write'` to `DEFAULT_PERMISSIONS.manager` (ALL_ACTIONS=27). `tests/slack-events.test.js` (32 assertions, 5 node:test suites): (a) helpers — EVENT_TYPES has all 10 types, EVENT_LEVELS groups by info/warn/error, LEVELS + LEVEL_ORDER priority, isEventType/isLevel validators, levelFor default + payload override, dedupeKey deterministic + payload-key-order independent, formatMessage field assembly + 200-char truncation, defaultHttpClient shape; (b) emit — sent=true with webhook result on success, enabled=false suppresses with reason='disabled', invalid type rejected without webhook call, dedupe within window + re-fires after advance past window, different payloads not deduped, minLevel=warn filters info out, events allowlist filters by type, webhook 500 returned as ok=false without throwing, missing webhookUrl yields no-webhook reason, recentEvents captures structured records with tail-slice limit, recent buffer respects recentCap; (c) configure + listen — live config swap, malformed fields fall back to defaults, listener receives each record + unsubscribe works, listener throws do not break emit, clearRecent drops buffer + dedupe, getConfig returns defensive copy; (d) shared singleton — getShared/resetShared lifecycle; (e) payload — Slack-style {text:"[c4:event] ..."} shape + payload.level override defeats minLevel filter. All tests run against an injected mock httpClient + controllable `now()` — zero network calls. Full suite 95/95 pass. Reason we care: before 8.15 the only Slack traffic was buffered stall/health digests; operators could not watch autonomous merges or approvals without tailing the Web UI. Patch note: `patches/1.11.3-slack-events.md`. |
++| 8.17 | Web UI audit + graceful backend-drift handling | **done** | Added `scripts/ui-audit.js` (puppeteer-driven headless Chromium) + `scripts/ui-audit-login.js` (reads `/tmp/c4-silofox-cred` via `fs.readFileSync`, writes JWT to `/tmp/c4-audit-token.json`; the password never lands on argv). Audit drives every C4 view (Login / WorkerList / HierarchyTree / WorkerDetail terminal+chat+control / HistoryView / Chat / WorkflowEditor) by priming localStorage (`c4.topView`, `c4.sidebar.mode`, `c4.detail.mode`, `c4.authToken`) on a root load, reloading, and clicking the first worker row for the three detail variants; captures console errors/warnings (vite/React-devtools/SSE-nav-timeout noise filtered), pageerror uncaught throws, requestfailed + 4xx response entries (same-origin only, source-map/@vite/client ignored), and a layout probe that walks ancestor computed styles to decide rendering so tailwind `md:hidden` icons stop being counted as zero-size SVG bugs. Summary classifies into `critical` (pageErrors, JS errors, real 4xx, visible red alerts, broken lucide), `warning` (zero-size imgs/svgs, viewport overflow), `info` (role=alert text surfaced), and `environment` (404s on `/api/resize` / `/api/workflows` / `/api/slack/events` when the running daemon predates those routes — probed once at audit start so the loop is not gated on a daemon restart that would kill the worker running the audit). UI fixes driven by the audit: `web/src/lib/api.ts` `apiGet` / `apiPost` now route through `readJson` which checks `Content-Type` contains `application/json` before `res.json()`, so the static-server HTML fallback no longer bubbles up as the opaque `Unexpected token '<', "<!doctype "... is not valid JSON` alert the WorkflowEditor was showing — callers now see `Expected JSON from <url> but got text/html; charset=utf-8`. `web/src/components/WorkerDetail.tsx` adds `resizeUnsupportedRef`: the first 404 from `POST /api/resize` flips the flag, the callback short-circuits on entry, and auto-fit + manual-cols effects stop re-posting so older daemons (pre-8.13) no longer flood `actionMsg` with `resize failed: HTTP 404` on every window resize. Audit report lives at `scripts/ui-audit-report.json` (git-ignored). Against a worktree-served vite (`--prefix /root/c4-worktree-ui-audit/web --port 5174`) + same running daemon: totals `critical=0, warning=0, info=1, environment=2`; the single info alert is the WorkflowEditor correctly surfacing the env-drift message, and the two environment entries are the unavoidable first-call probes to the pre-8.13 daemon. Dev-dep: `puppeteer ^24` (bundled Chromium; apt-installed `libatk1.0-0 libatk-bridge2.0-0 libcups2 libxcomposite1 libxdamage1 libatspi2.0-0` at the system level — noted in the patch note). Patch note: `patches/1.11.9-ui-audit.md`. |
+ | 8.16 | dep smoke check (prevent missing-module regression) | **done** | New `src/dep-smoke.js` pure module exposes `detectNewDeps(baseSha, headSha, repoRoot)` (walks `git diff-tree` to confirm package.json changed, then diffs the dependencies / devDependencies maps between the two commits and returns `{deps:[{name,version}], devDeps:[...], hasChanges, reason}`; malformed package.json throws `code:'INVALID_PACKAGE_JSON'`), `verifyDepsLoadable(depNames, cwd)` (spawns `node -e "require(name)"` per dep so the internal require cache cannot mask a missing module and a broken package cannot crash the caller; returns `{ok, failed:[{name, error}]}`), plus `runCheck` orchestrator + `formatFailure` pretty-printer + `parsePkgJson`/`depMap`/`diffDepMaps` helpers. `src/validation.js` grows `checkPackageDepsInstalled({baseSha, headSha, repoRoot, skipInstall?, includeDev?})` which short-circuits with `skipped:true, reason:'package-json-unchanged'` when the diff is clean, runs `npm ci` in `repoRoot` (skippable for unit tests), probes each new prod dep via `verifyDepsLoadable`, reports devDeps warn-only by default, and returns `{ok, reason, detail, detect, prod, dev}` — never throws. `src/cli.js` pre-merge flow gains a Check 4 `package-deps-installed` after the TODO / CHANGELOG checks: computes `baseSha = git merge-base main <branch>`, `headSha = git rev-parse <branch>`, calls `validationLib.checkPackageDepsInstalled`, surfaces `PASS (verified: bcryptjs, ...)` / `SKIP (package-json-unchanged)` / `FAIL` with the formatted detail, and gates `allPassed`. Reason we care: 8.14 added bcryptjs to package.json but `npm install` was never run on main — pre-merge `npm test` passed because the worker's worktree already had node_modules from an earlier install, and the first user who ran `c4 init --user silofox` on main hit `Cannot find module 'bcryptjs'`. `tests/dep-smoke.test.js` (35 assertions across 9 node:test suites): parsePkgJson (valid / invalid JSON / array / null), depMap drops non-string values + diffDepMaps sorted added-only + version-change ignored, detectNewDeps against a real tmpdir git repo (hasChanges true, prod+dev lists, unchanged short-circuit, missing-args), detectNewDeps rejects malformed head package.json with `code='INVALID_PACKAGE_JSON'`, verifyDepsLoadable with `path` built-in passing + fake name failing + mixed-list partition + empty list + invalid-name without spawn + injected spawn stub call count, formatFailure output shape (includes dep name + error + `npm ci` hint) + empty-on-ok, runCheck (skipped / passing / afterInstall hook called exactly once / install failure surfaced as `install-failed`), validation.checkPackageDepsInstalled gate using `skipInstall:true` (unchanged / passing / missing-args / require-failed with formatted detail / devDep warn-only not included by default), plus source-wiring greps on src/cli.js (`validationLib.checkPackageDepsInstalled`, `'package-deps-installed'`) and src/validation.js (`require('./dep-smoke')`, `checkPackageDepsInstalled` export). Full suite 93 / 93 pass. Patch note: `patches/1.11.1-dep-smoke.md`. |
+ 
+ ### 8.1 / 8.9 — web-redesign progress notes (done)
+diff --git a/package-lock.json b/package-lock.json
+index de4ac63..6668d1d 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -22,10 +22,267 @@
+       "bin": {
+         "c4": "src/cli.js"
+       },
++      "devDependencies": {
++        "puppeteer": "^24.41.0"
++      },
+       "engines": {
+         "node": ">=18.0.0"
+       }
+     },
++    "node_modules/@babel/code-frame": {
++      "version": "7.29.0",
++      "resolved": "https://registry.npmjs.org/@babel/code-frame/-/code-frame-7.29.0.tgz",
++      "integrity": "sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@babel/helper-validator-identifier": "^7.28.5",
++        "js-tokens": "^4.0.0",
++        "picocolors": "^1.1.1"
++      },
++      "engines": {
++        "node": ">=6.9.0"
++      }
++    },
++    "node_modules/@babel/helper-validator-identifier": {
++      "version": "7.28.5",
++      "resolved": "https://registry.npmjs.org/@babel/helper-validator-identifier/-/helper-validator-identifier-7.28.5.tgz",
++      "integrity": "sha512-qSs4ifwzKJSV39ucNjsvc6WVHs6b7S03sOh2OcHF9UHfVPqWWALUsNUVzhSBiItjRZoLHx7nIarVjqKVusUZ1Q==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=6.9.0"
++      }
++    },
++    "node_modules/@puppeteer/browsers": {
++      "version": "2.13.0",
++      "resolved": "https://registry.npmjs.org/@puppeteer/browsers/-/browsers-2.13.0.tgz",
++      "integrity": "sha512-46BZJYJjc/WwmKjsvDFykHtXrtomsCIrwYQPOP7VfMJoZY2bsDF9oROBABR3paDjDcmkUye1Pb1BqdcdiipaWA==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "dependencies": {
++        "debug": "^4.4.3",
++        "extract-zip": "^2.0.1",
++        "progress": "^2.0.3",
++        "proxy-agent": "^6.5.0",
++        "semver": "^7.7.4",
++        "tar-fs": "^3.1.1",
++        "yargs": "^17.7.2"
++      },
++      "bin": {
++        "browsers": "lib/cjs/main-cli.js"
++      },
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@tootallnate/quickjs-emscripten": {
++      "version": "0.23.0",
++      "resolved": "https://registry.npmjs.org/@tootallnate/quickjs-emscripten/-/quickjs-emscripten-0.23.0.tgz",
++      "integrity": "sha512-C5Mc6rdnsaJDjO3UpGW/CQTHtCKaYlScZTly4JIu97Jxo/odCiH0ITnDXSJPTOrEKk/ycSZ0AOgTmkDtkOsvIA==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/@types/node": {
++      "version": "25.6.0",
++      "resolved": "https://registry.npmjs.org/@types/node/-/node-25.6.0.tgz",
++      "integrity": "sha512-+qIYRKdNYJwY3vRCZMdJbPLJAtGjQBudzZzdzwQYkEPQd+PJGixUL5QfvCLDaULoLv+RhT3LDkwEfKaAkgSmNQ==",
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "dependencies": {
++        "undici-types": "~7.19.0"
++      }
++    },
++    "node_modules/@types/yauzl": {
++      "version": "2.10.3",
++      "resolved": "https://registry.npmjs.org/@types/yauzl/-/yauzl-2.10.3.tgz",
++      "integrity": "sha512-oJoftv0LSuaDZE3Le4DbKX+KS9G36NzOeSap90UIK0yMA/NhKJhqlSGtNDORNRaIbQfzjXDrQa0ytJ6mNRGz/Q==",
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "dependencies": {
++        "@types/node": "*"
++      }
++    },
++    "node_modules/agent-base": {
++      "version": "7.1.4",
++      "resolved": "https://registry.npmjs.org/agent-base/-/agent-base-7.1.4.tgz",
++      "integrity": "sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">= 14"
++      }
++    },
++    "node_modules/ansi-regex": {
++      "version": "5.0.1",
++      "resolved": "https://registry.npmjs.org/ansi-regex/-/ansi-regex-5.0.1.tgz",
++      "integrity": "sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=8"
++      }
++    },
++    "node_modules/ansi-styles": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-4.3.0.tgz",
++      "integrity": "sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "color-convert": "^2.0.1"
++      },
++      "engines": {
++        "node": ">=8"
++      },
++      "funding": {
++        "url": "https://github.com/chalk/ansi-styles?sponsor=1"
++      }
++    },
++    "node_modules/argparse": {
++      "version": "2.0.1",
++      "resolved": "https://registry.npmjs.org/argparse/-/argparse-2.0.1.tgz",
++      "integrity": "sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==",
++      "dev": true,
++      "license": "Python-2.0"
++    },
++    "node_modules/ast-types": {
++      "version": "0.13.4",
++      "resolved": "https://registry.npmjs.org/ast-types/-/ast-types-0.13.4.tgz",
++      "integrity": "sha512-x1FCFnFifvYDDzTaLII71vG5uvDwgtmDTEVWAxrgeiR8VjMONcCXJx7E+USjDtHlwFmt9MysbqgF9b9Vjr6w+w==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "tslib": "^2.0.1"
++      },
++      "engines": {
++        "node": ">=4"
++      }
++    },
++    "node_modules/b4a": {
++      "version": "1.8.0",
++      "resolved": "https://registry.npmjs.org/b4a/-/b4a-1.8.0.tgz",
++      "integrity": "sha512-qRuSmNSkGQaHwNbM7J78Wwy+ghLEYF1zNrSeMxj4Kgw6y33O3mXcQ6Ie9fRvfU/YnxWkOchPXbaLb73TkIsfdg==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "peerDependencies": {
++        "react-native-b4a": "*"
++      },
++      "peerDependenciesMeta": {
++        "react-native-b4a": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/bare-events": {
++      "version": "2.8.2",
++      "resolved": "https://registry.npmjs.org/bare-events/-/bare-events-2.8.2.tgz",
++      "integrity": "sha512-riJjyv1/mHLIPX4RwiK+oW9/4c3TEUeORHKefKAKnZ5kyslbN+HXowtbaVEqt4IMUB7OXlfixcs6gsFeo/jhiQ==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "peerDependencies": {
++        "bare-abort-controller": "*"
++      },
++      "peerDependenciesMeta": {
++        "bare-abort-controller": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/bare-fs": {
++      "version": "4.7.1",
++      "resolved": "https://registry.npmjs.org/bare-fs/-/bare-fs-4.7.1.tgz",
++      "integrity": "sha512-WDRsyVN52eAx/lBamKD6uyw8H4228h/x0sGGGegOamM2cd7Pag88GfMQalobXI+HaEUxpCkbKQUDOQqt9wawRw==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "dependencies": {
++        "bare-events": "^2.5.4",
++        "bare-path": "^3.0.0",
++        "bare-stream": "^2.6.4",
++        "bare-url": "^2.2.2",
++        "fast-fifo": "^1.3.2"
++      },
++      "engines": {
++        "bare": ">=1.16.0"
++      },
++      "peerDependencies": {
++        "bare-buffer": "*"
++      },
++      "peerDependenciesMeta": {
++        "bare-buffer": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/bare-os": {
++      "version": "3.8.7",
++      "resolved": "https://registry.npmjs.org/bare-os/-/bare-os-3.8.7.tgz",
++      "integrity": "sha512-G4Gr1UsGeEy2qtDTZwL7JFLo2wapUarz7iTMcYcMFdS89AIQuBoyjgXZz0Utv7uHs3xA9LckhVbeBi8lEQrC+w==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "engines": {
++        "bare": ">=1.14.0"
++      }
++    },
++    "node_modules/bare-path": {
++      "version": "3.0.0",
++      "resolved": "https://registry.npmjs.org/bare-path/-/bare-path-3.0.0.tgz",
++      "integrity": "sha512-tyfW2cQcB5NN8Saijrhqn0Zh7AnFNsnczRcuWODH0eYAXBsJ5gVxAUuNr7tsHSC6IZ77cA0SitzT+s47kot8Mw==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "dependencies": {
++        "bare-os": "^3.0.1"
++      }
++    },
++    "node_modules/bare-stream": {
++      "version": "2.13.0",
++      "resolved": "https://registry.npmjs.org/bare-stream/-/bare-stream-2.13.0.tgz",
++      "integrity": "sha512-3zAJRZMDFGjdn+RVnNpF9kuELw+0Fl3lpndM4NcEOhb9zwtSo/deETfuIwMSE5BXanA0FrN1qVjffGwAg2Y7EA==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "dependencies": {
++        "streamx": "^2.25.0",
++        "teex": "^1.0.1"
++      },
++      "peerDependencies": {
++        "bare-abort-controller": "*",
++        "bare-buffer": "*",
++        "bare-events": "*"
++      },
++      "peerDependenciesMeta": {
++        "bare-abort-controller": {
++          "optional": true
++        },
++        "bare-buffer": {
++          "optional": true
++        },
++        "bare-events": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/bare-url": {
++      "version": "2.4.1",
++      "resolved": "https://registry.npmjs.org/bare-url/-/bare-url-2.4.1.tgz",
++      "integrity": "sha512-fZapLWNB25gS+etK27NV9KgBNXgo2yeYHuj+OyPblQd6GYAE3JVy6aKxszMV5jhGGFwraXQKA5fldvf3lMyEqw==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "dependencies": {
++        "bare-path": "^3.0.0"
++      }
++    },
++    "node_modules/basic-ftp": {
++      "version": "5.3.0",
++      "resolved": "https://registry.npmjs.org/basic-ftp/-/basic-ftp-5.3.0.tgz",
++      "integrity": "sha512-5K9eNNn7ywHPsYnFwjKgYH8Hf8B5emh7JKcPaVjjrMJFQQwGpwowEnZNEtHs7DfR7hCZsmaK3VA4HUK0YarT+w==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=10.0.0"
++      }
++    },
+     "node_modules/bcryptjs": {
+       "version": "3.0.3",
+       "resolved": "https://registry.npmjs.org/bcryptjs/-/bcryptjs-3.0.3.tgz",
+@@ -35,12 +292,158 @@
+         "bcrypt": "bin/bcrypt"
+       }
+     },
++    "node_modules/buffer-crc32": {
++      "version": "0.2.13",
++      "resolved": "https://registry.npmjs.org/buffer-crc32/-/buffer-crc32-0.2.13.tgz",
++      "integrity": "sha512-VO9Ht/+p3SN7SKWqcrgEzjGbRSJYTx+Q1pTQC0wrWqHx0vpJraQ6GtHx8tvcg1rlK1byhU5gccxgOgj7B0TDkQ==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": "*"
++      }
++    },
+     "node_modules/buffer-equal-constant-time": {
+       "version": "1.0.1",
+       "resolved": "https://registry.npmjs.org/buffer-equal-constant-time/-/buffer-equal-constant-time-1.0.1.tgz",
+       "integrity": "sha512-zRpUiDwd/xk6ADqPMATG8vc9VPrkck7T07OIx0gnjmJAnHnTVXNQG3vfvWNuiZIkwu9KrKdA1iJKfsfTVxE6NA==",
+       "license": "BSD-3-Clause"
+     },
++    "node_modules/callsites": {
++      "version": "3.1.0",
++      "resolved": "https://registry.npmjs.org/callsites/-/callsites-3.1.0.tgz",
++      "integrity": "sha512-P8BjAsXvZS+VIDUI11hHCQEv74YT67YUi5JJFNWIqL235sBmjX4+qx9Muvls5ivyNENctx46xQLQ3aTuE7ssaQ==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=6"
++      }
++    },
++    "node_modules/chromium-bidi": {
++      "version": "14.0.0",
++      "resolved": "https://registry.npmjs.org/chromium-bidi/-/chromium-bidi-14.0.0.tgz",
++      "integrity": "sha512-9gYlLtS6tStdRWzrtXaTMnqcM4dudNegMXJxkR0I/CXObHalYeYcAMPrL19eroNZHtJ8DQmu1E+ZNOYu/IXMXw==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "dependencies": {
++        "mitt": "^3.0.1",
++        "zod": "^3.24.1"
++      },
++      "peerDependencies": {
++        "devtools-protocol": "*"
++      }
++    },
++    "node_modules/cliui": {
++      "version": "8.0.1",
++      "resolved": "https://registry.npmjs.org/cliui/-/cliui-8.0.1.tgz",
++      "integrity": "sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==",
++      "dev": true,
++      "license": "ISC",
++      "dependencies": {
++        "string-width": "^4.2.0",
++        "strip-ansi": "^6.0.1",
++        "wrap-ansi": "^7.0.0"
++      },
++      "engines": {
++        "node": ">=12"
++      }
++    },
++    "node_modules/color-convert": {
++      "version": "2.0.1",
++      "resolved": "https://registry.npmjs.org/color-convert/-/color-convert-2.0.1.tgz",
++      "integrity": "sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "color-name": "~1.1.4"
++      },
++      "engines": {
++        "node": ">=7.0.0"
++      }
++    },
++    "node_modules/color-name": {
++      "version": "1.1.4",
++      "resolved": "https://registry.npmjs.org/color-name/-/color-name-1.1.4.tgz",
++      "integrity": "sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/cosmiconfig": {
++      "version": "9.0.1",
++      "resolved": "https://registry.npmjs.org/cosmiconfig/-/cosmiconfig-9.0.1.tgz",
++      "integrity": "sha512-hr4ihw+DBqcvrsEDioRO31Z17x71pUYoNe/4h6Z0wB72p7MU7/9gH8Q3s12NFhHPfYBBOV3qyfUxmr/Yn3shnQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "env-paths": "^2.2.1",
++        "import-fresh": "^3.3.0",
++        "js-yaml": "^4.1.0",
++        "parse-json": "^5.2.0"
++      },
++      "engines": {
++        "node": ">=14"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/d-fischer"
++      },
++      "peerDependencies": {
++        "typescript": ">=4.9.5"
++      },
++      "peerDependenciesMeta": {
++        "typescript": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/data-uri-to-buffer": {
++      "version": "6.0.2",
++      "resolved": "https://registry.npmjs.org/data-uri-to-buffer/-/data-uri-to-buffer-6.0.2.tgz",
++      "integrity": "sha512-7hvf7/GW8e86rW0ptuwS3OcBGDjIi6SZva7hCyWC0yYry2cOPmLIjXAUHI6DK2HsnwJd9ifmt57i8eV2n4YNpw==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">= 14"
++      }
++    },
++    "node_modules/debug": {
++      "version": "4.4.3",
++      "resolved": "https://registry.npmjs.org/debug/-/debug-4.4.3.tgz",
++      "integrity": "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "ms": "^2.1.3"
++      },
++      "engines": {
++        "node": ">=6.0"
++      },
++      "peerDependenciesMeta": {
++        "supports-color": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/degenerator": {
++      "version": "5.0.1",
++      "resolved": "https://registry.npmjs.org/degenerator/-/degenerator-5.0.1.tgz",
++      "integrity": "sha512-TllpMR/t0M5sqCXfj85i4XaAzxmS5tVA16dqvdkMwGmzI+dXLXnw3J+3Vdv7VKw+ThlTMboK6i9rnZ6Nntj5CQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "ast-types": "^0.13.4",
++        "escodegen": "^2.1.0",
++        "esprima": "^4.0.1"
++      },
++      "engines": {
++        "node": ">= 14"
++      }
++    },
++    "node_modules/devtools-protocol": {
++      "version": "0.0.1595872",
++      "resolved": "https://registry.npmjs.org/devtools-protocol/-/devtools-protocol-0.0.1595872.tgz",
++      "integrity": "sha512-kRfgp8vWVjBu/fbYCiVFiOqsCk3CrMKEo3WbgGT2NXK2dG7vawWPBljixajVgGK9II8rDO9G0oD0zLt3I1daRg==",
++      "dev": true,
++      "license": "BSD-3-Clause"
++    },
+     "node_modules/ecdsa-sig-formatter": {
+       "version": "1.0.11",
+       "resolved": "https://registry.npmjs.org/ecdsa-sig-formatter/-/ecdsa-sig-formatter-1.0.11.tgz",
+@@ -50,6 +453,297 @@
+         "safe-buffer": "^5.0.1"
+       }
+     },
++    "node_modules/emoji-regex": {
++      "version": "8.0.0",
++      "resolved": "https://registry.npmjs.org/emoji-regex/-/emoji-regex-8.0.0.tgz",
++      "integrity": "sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/end-of-stream": {
++      "version": "1.4.5",
++      "resolved": "https://registry.npmjs.org/end-of-stream/-/end-of-stream-1.4.5.tgz",
++      "integrity": "sha512-ooEGc6HP26xXq/N+GCGOT0JKCLDGrq2bQUZrQ7gyrJiZANJ/8YDTxTpQBXGMn+WbIQXNVpyWymm7KYVICQnyOg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "once": "^1.4.0"
++      }
++    },
++    "node_modules/env-paths": {
++      "version": "2.2.1",
++      "resolved": "https://registry.npmjs.org/env-paths/-/env-paths-2.2.1.tgz",
++      "integrity": "sha512-+h1lkLKhZMTYjog1VEpJNG7NZJWcuc2DDk/qsqSTRRCOXiLjeQ1d1/udrUGhqMxUgAlwKNZ0cf2uqan5GLuS2A==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=6"
++      }
++    },
++    "node_modules/error-ex": {
++      "version": "1.3.4",
++      "resolved": "https://registry.npmjs.org/error-ex/-/error-ex-1.3.4.tgz",
++      "integrity": "sha512-sqQamAnR14VgCr1A618A3sGrygcpK+HEbenA/HiEAkkUwcZIIB/tgWqHFxWgOyDh4nB4JCRimh79dR5Ywc9MDQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "is-arrayish": "^0.2.1"
++      }
++    },
++    "node_modules/escalade": {
++      "version": "3.2.0",
++      "resolved": "https://registry.npmjs.org/escalade/-/escalade-3.2.0.tgz",
++      "integrity": "sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=6"
++      }
++    },
++    "node_modules/escodegen": {
++      "version": "2.1.0",
++      "resolved": "https://registry.npmjs.org/escodegen/-/escodegen-2.1.0.tgz",
++      "integrity": "sha512-2NlIDTwUWJN0mRPQOdtQBzbUHvdGY2P1VXSyU83Q3xKxM7WHX2Ql8dKq782Q9TgQUNOLEzEYu9bzLNj1q88I5w==",
++      "dev": true,
++      "license": "BSD-2-Clause",
++      "dependencies": {
++        "esprima": "^4.0.1",
++        "estraverse": "^5.2.0",
++        "esutils": "^2.0.2"
++      },
++      "bin": {
++        "escodegen": "bin/escodegen.js",
++        "esgenerate": "bin/esgenerate.js"
++      },
++      "engines": {
++        "node": ">=6.0"
++      },
++      "optionalDependencies": {
++        "source-map": "~0.6.1"
++      }
++    },
++    "node_modules/esprima": {
++      "version": "4.0.1",
++      "resolved": "https://registry.npmjs.org/esprima/-/esprima-4.0.1.tgz",
++      "integrity": "sha512-eGuFFw7Upda+g4p+QHvnW0RyTX/SVeJBDM/gCtMARO0cLuT2HcEKnTPvhjV6aGeqrCB/sbNop0Kszm0jsaWU4A==",
++      "dev": true,
++      "license": "BSD-2-Clause",
++      "bin": {
++        "esparse": "bin/esparse.js",
++        "esvalidate": "bin/esvalidate.js"
++      },
++      "engines": {
++        "node": ">=4"
++      }
++    },
++    "node_modules/estraverse": {
++      "version": "5.3.0",
++      "resolved": "https://registry.npmjs.org/estraverse/-/estraverse-5.3.0.tgz",
++      "integrity": "sha512-MMdARuVEQziNTeJD8DgMqmhwR11BRQ/cBP+pLtYdSTnf3MIO8fFeiINEbX36ZdNlfU/7A9f3gUw49B3oQsvwBA==",
++      "dev": true,
++      "license": "BSD-2-Clause",
++      "engines": {
++        "node": ">=4.0"
++      }
++    },
++    "node_modules/esutils": {
++      "version": "2.0.3",
++      "resolved": "https://registry.npmjs.org/esutils/-/esutils-2.0.3.tgz",
++      "integrity": "sha512-kVscqXk4OCp68SZ0dkgEKVi6/8ij300KBWTJq32P/dYeWTSwK41WyTxalN1eRmA5Z9UU/LX9D7FWSmV9SAYx6g==",
++      "dev": true,
++      "license": "BSD-2-Clause",
++      "engines": {
++        "node": ">=0.10.0"
++      }
++    },
++    "node_modules/events-universal": {
++      "version": "1.0.1",
++      "resolved": "https://registry.npmjs.org/events-universal/-/events-universal-1.0.1.tgz",
++      "integrity": "sha512-LUd5euvbMLpwOF8m6ivPCbhQeSiYVNb8Vs0fQ8QjXo0JTkEHpz8pxdQf0gStltaPpw0Cca8b39KxvK9cfKRiAw==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "dependencies": {
++        "bare-events": "^2.7.0"
++      }
++    },
++    "node_modules/extract-zip": {
++      "version": "2.0.1",
++      "resolved": "https://registry.npmjs.org/extract-zip/-/extract-zip-2.0.1.tgz",
++      "integrity": "sha512-GDhU9ntwuKyGXdZBUgTIe+vXnWj0fppUEtMDL0+idd5Sta8TGpHssn/eusA9mrPr9qNDym6SxAYZjNvCn/9RBg==",
++      "dev": true,
++      "license": "BSD-2-Clause",
++      "dependencies": {
++        "debug": "^4.1.1",
++        "get-stream": "^5.1.0",
++        "yauzl": "^2.10.0"
++      },
++      "bin": {
++        "extract-zip": "cli.js"
++      },
++      "engines": {
++        "node": ">= 10.17.0"
++      },
++      "optionalDependencies": {
++        "@types/yauzl": "^2.9.1"
++      }
++    },
++    "node_modules/fast-fifo": {
++      "version": "1.3.2",
++      "resolved": "https://registry.npmjs.org/fast-fifo/-/fast-fifo-1.3.2.tgz",
++      "integrity": "sha512-/d9sfos4yxzpwkDkuN7k2SqFKtYNmCTzgfEpz82x34IM9/zc8KGxQoXg1liNC/izpRM/MBdt44Nmx41ZWqk+FQ==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/fd-slicer": {
++      "version": "1.1.0",
++      "resolved": "https://registry.npmjs.org/fd-slicer/-/fd-slicer-1.1.0.tgz",
++      "integrity": "sha512-cE1qsB/VwyQozZ+q1dGxR8LBYNZeofhEdUNGSMbQD3Gw2lAzX9Zb3uIU6Ebc/Fmyjo9AWWfnn0AUCHqtevs/8g==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "pend": "~1.2.0"
++      }
++    },
++    "node_modules/get-caller-file": {
++      "version": "2.0.5",
++      "resolved": "https://registry.npmjs.org/get-caller-file/-/get-caller-file-2.0.5.tgz",
++      "integrity": "sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg==",
++      "dev": true,
++      "license": "ISC",
++      "engines": {
++        "node": "6.* || 8.* || >= 10.*"
++      }
++    },
++    "node_modules/get-stream": {
++      "version": "5.2.0",
++      "resolved": "https://registry.npmjs.org/get-stream/-/get-stream-5.2.0.tgz",
++      "integrity": "sha512-nBF+F1rAZVCu/p7rjzgA+Yb4lfYXrpl7a6VmJrU8wF9I1CKvP/QwPNZHnOlwbTkY6dvtFIzFMSyQXbLoTQPRpA==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "pump": "^3.0.0"
++      },
++      "engines": {
++        "node": ">=8"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/sindresorhus"
++      }
++    },
++    "node_modules/get-uri": {
++      "version": "6.0.5",
++      "resolved": "https://registry.npmjs.org/get-uri/-/get-uri-6.0.5.tgz",
++      "integrity": "sha512-b1O07XYq8eRuVzBNgJLstU6FYc1tS6wnMtF1I1D9lE8LxZSOGZ7LhxN54yPP6mGw5f2CkXY2BQUL9Fx41qvcIg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "basic-ftp": "^5.0.2",
++        "data-uri-to-buffer": "^6.0.2",
++        "debug": "^4.3.4"
++      },
++      "engines": {
++        "node": ">= 14"
++      }
++    },
++    "node_modules/http-proxy-agent": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/http-proxy-agent/-/http-proxy-agent-7.0.2.tgz",
++      "integrity": "sha512-T1gkAiYYDWYx3V5Bmyu7HcfcvL7mUrTWiM6yOfa3PIphViJ/gFPbvidQ+veqSOHci/PxBcDabeUNCzpOODJZig==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "agent-base": "^7.1.0",
++        "debug": "^4.3.4"
++      },
++      "engines": {
++        "node": ">= 14"
++      }
++    },
++    "node_modules/https-proxy-agent": {
++      "version": "7.0.6",
++      "resolved": "https://registry.npmjs.org/https-proxy-agent/-/https-proxy-agent-7.0.6.tgz",
++      "integrity": "sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "agent-base": "^7.1.2",
++        "debug": "4"
++      },
++      "engines": {
++        "node": ">= 14"
++      }
++    },
++    "node_modules/import-fresh": {
++      "version": "3.3.1",
++      "resolved": "https://registry.npmjs.org/import-fresh/-/import-fresh-3.3.1.tgz",
++      "integrity": "sha512-TR3KfrTZTYLPB6jUjfx6MF9WcWrHL9su5TObK4ZkYgBdWKPOFoSoQIdEuTuR82pmtxH2spWG9h6etwfr1pLBqQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "parent-module": "^1.0.0",
++        "resolve-from": "^4.0.0"
++      },
++      "engines": {
++        "node": ">=6"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/sindresorhus"
++      }
++    },
++    "node_modules/ip-address": {
++      "version": "10.1.0",
++      "resolved": "https://registry.npmjs.org/ip-address/-/ip-address-10.1.0.tgz",
++      "integrity": "sha512-XXADHxXmvT9+CRxhXg56LJovE+bmWnEWB78LB83VZTprKTmaC5QfruXocxzTZ2Kl0DNwKuBdlIhjL8LeY8Sf8Q==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">= 12"
++      }
++    },
++    "node_modules/is-arrayish": {
++      "version": "0.2.1",
++      "resolved": "https://registry.npmjs.org/is-arrayish/-/is-arrayish-0.2.1.tgz",
++      "integrity": "sha512-zz06S8t0ozoDXMG+ube26zeCTNXcKIPJZJi8hBrF4idCLms4CG9QtK7qBl1boi5ODzFpjswb5JPmHCbMpjaYzg==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/is-fullwidth-code-point": {
++      "version": "3.0.0",
++      "resolved": "https://registry.npmjs.org/is-fullwidth-code-point/-/is-fullwidth-code-point-3.0.0.tgz",
++      "integrity": "sha512-zymm5+u+sCsSWyD9qNaejV3DFvhCKclKdizYaJUuHA83RLjb7nSuGnddCHGv0hk+KY7BMAlsWeK4Ueg6EV6XQg==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=8"
++      }
++    },
++    "node_modules/js-tokens": {
++      "version": "4.0.0",
++      "resolved": "https://registry.npmjs.org/js-tokens/-/js-tokens-4.0.0.tgz",
++      "integrity": "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/js-yaml": {
++      "version": "4.1.1",
++      "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-4.1.1.tgz",
++      "integrity": "sha512-qQKT4zQxXl8lLwBtHMWwaTcGfFOZviOJet3Oy/xmGk2gZH677CJM9EvtfdSkgWcATZhj/55JZ0rmy3myCT5lsA==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "argparse": "^2.0.1"
++      },
++      "bin": {
++        "js-yaml": "bin/js-yaml.js"
++      }
++    },
++    "node_modules/json-parse-even-better-errors": {
++      "version": "2.3.1",
++      "resolved": "https://registry.npmjs.org/json-parse-even-better-errors/-/json-parse-even-better-errors-2.3.1.tgz",
++      "integrity": "sha512-xyFwyhro/JEof6Ghe2iz2NcXoj2sloNsWr/XsERDK/oiPCfaNhl5ONfp+jQdAZRQQ0IJWNzH9zIZF7li91kh2w==",
++      "dev": true,
++      "license": "MIT"
++    },
+     "node_modules/jsonwebtoken": {
+       "version": "9.0.3",
+       "resolved": "https://registry.npmjs.org/jsonwebtoken/-/jsonwebtoken-9.0.3.tgz",
+@@ -93,6 +787,13 @@
+         "safe-buffer": "^5.0.1"
+       }
+     },
++    "node_modules/lines-and-columns": {
++      "version": "1.2.4",
++      "resolved": "https://registry.npmjs.org/lines-and-columns/-/lines-and-columns-1.2.4.tgz",
++      "integrity": "sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==",
++      "dev": true,
++      "license": "MIT"
++    },
+     "node_modules/lodash.includes": {
+       "version": "4.3.0",
+       "resolved": "https://registry.npmjs.org/lodash.includes/-/lodash.includes-4.3.0.tgz",
+@@ -135,12 +836,39 @@
+       "integrity": "sha512-Sb487aTOCr9drQVL8pIxOzVhafOjZN9UU54hiN8PU3uAiSV7lx1yYNpbNmex2PK6dSJoNTSJUUswT651yww3Mg==",
+       "license": "MIT"
+     },
++    "node_modules/lru-cache": {
++      "version": "7.18.3",
++      "resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-7.18.3.tgz",
++      "integrity": "sha512-jumlc0BIUrS3qJGgIkWZsyfAM7NCWiBcCDhnd+3NNM5KbBmLTgHVfWBcg6W+rLUsIpzpERPsvwUP7CckAQSOoA==",
++      "dev": true,
++      "license": "ISC",
++      "engines": {
++        "node": ">=12"
++      }
++    },
++    "node_modules/mitt": {
++      "version": "3.0.1",
++      "resolved": "https://registry.npmjs.org/mitt/-/mitt-3.0.1.tgz",
++      "integrity": "sha512-vKivATfr97l2/QBCYAkXYDbrIWPM2IIKEl7YPhjCvKlG3kE2gm+uBo6nEXK3M5/Ffh/FLpKExzOQ3JJoJGFKBw==",
++      "dev": true,
++      "license": "MIT"
++    },
+     "node_modules/ms": {
+       "version": "2.1.3",
+       "resolved": "https://registry.npmjs.org/ms/-/ms-2.1.3.tgz",
+       "integrity": "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==",
+       "license": "MIT"
+     },
++    "node_modules/netmask": {
++      "version": "2.1.1",
++      "resolved": "https://registry.npmjs.org/netmask/-/netmask-2.1.1.tgz",
++      "integrity": "sha512-eonl3sLUha+S1GzTPxychyhnUzKyeQkZ7jLjKrBagJgPla13F+uQ71HgpFefyHgqrjEbCPkDArxYsjY8/+gLKA==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">= 0.4.0"
++      }
++    },
+     "node_modules/node-addon-api": {
+       "version": "7.1.1",
+       "resolved": "https://registry.npmjs.org/node-addon-api/-/node-addon-api-7.1.1.tgz",
+@@ -166,6 +894,205 @@
+         "node": ">=6.0.0"
+       }
+     },
++    "node_modules/once": {
++      "version": "1.4.0",
++      "resolved": "https://registry.npmjs.org/once/-/once-1.4.0.tgz",
++      "integrity": "sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==",
++      "dev": true,
++      "license": "ISC",
++      "dependencies": {
++        "wrappy": "1"
++      }
++    },
++    "node_modules/pac-proxy-agent": {
++      "version": "7.2.0",
++      "resolved": "https://registry.npmjs.org/pac-proxy-agent/-/pac-proxy-agent-7.2.0.tgz",
++      "integrity": "sha512-TEB8ESquiLMc0lV8vcd5Ql/JAKAoyzHFXaStwjkzpOpC5Yv+pIzLfHvjTSdf3vpa2bMiUQrg9i6276yn8666aA==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@tootallnate/quickjs-emscripten": "^0.23.0",
++        "agent-base": "^7.1.2",
++        "debug": "^4.3.4",
++        "get-uri": "^6.0.1",
++        "http-proxy-agent": "^7.0.0",
++        "https-proxy-agent": "^7.0.6",
++        "pac-resolver": "^7.0.1",
++        "socks-proxy-agent": "^8.0.5"
++      },
++      "engines": {
++        "node": ">= 14"
++      }
++    },
++    "node_modules/pac-resolver": {
++      "version": "7.0.1",
++      "resolved": "https://registry.npmjs.org/pac-resolver/-/pac-resolver-7.0.1.tgz",
++      "integrity": "sha512-5NPgf87AT2STgwa2ntRMr45jTKrYBGkVU36yT0ig/n/GMAa3oPqhZfIQ2kMEimReg0+t9kZViDVZ83qfVUlckg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "degenerator": "^5.0.0",
++        "netmask": "^2.0.2"
++      },
++      "engines": {
++        "node": ">= 14"
++      }
++    },
++    "node_modules/parent-module": {
++      "version": "1.0.1",
++      "resolved": "https://registry.npmjs.org/parent-module/-/parent-module-1.0.1.tgz",
++      "integrity": "sha512-GQ2EWRpQV8/o+Aw8YqtfZZPfNRWZYkbidE9k5rpl/hC3vtHHBfGm2Ifi6qWV+coDGkrUKZAxE3Lot5kcsRlh+g==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "callsites": "^3.0.0"
++      },
++      "engines": {
++        "node": ">=6"
++      }
++    },
++    "node_modules/parse-json": {
++      "version": "5.2.0",
++      "resolved": "https://registry.npmjs.org/parse-json/-/parse-json-5.2.0.tgz",
++      "integrity": "sha512-ayCKvm/phCGxOkYRSCM82iDwct8/EonSEgCSxWxD7ve6jHggsFl4fZVQBPRNgQoKiuV/odhFrGzQXZwbifC8Rg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@babel/code-frame": "^7.0.0",
++        "error-ex": "^1.3.1",
++        "json-parse-even-better-errors": "^2.3.0",
++        "lines-and-columns": "^1.1.6"
++      },
++      "engines": {
++        "node": ">=8"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/sindresorhus"
++      }
++    },
++    "node_modules/pend": {
++      "version": "1.2.0",
++      "resolved": "https://registry.npmjs.org/pend/-/pend-1.2.0.tgz",
++      "integrity": "sha512-F3asv42UuXchdzt+xXqfW1OGlVBe+mxa2mqI0pg5yAHZPvFmY3Y6drSf/GQ1A86WgWEN9Kzh/WrgKa6iGcHXLg==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/picocolors": {
++      "version": "1.1.1",
++      "resolved": "https://registry.npmjs.org/picocolors/-/picocolors-1.1.1.tgz",
++      "integrity": "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==",
++      "dev": true,
++      "license": "ISC"
++    },
++    "node_modules/progress": {
++      "version": "2.0.3",
++      "resolved": "https://registry.npmjs.org/progress/-/progress-2.0.3.tgz",
++      "integrity": "sha512-7PiHtLll5LdnKIMw100I+8xJXR5gW2QwWYkT6iJva0bXitZKa/XMrSbdmg3r2Xnaidz9Qumd0VPaMrZlF9V9sA==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=0.4.0"
++      }
++    },
++    "node_modules/proxy-agent": {
++      "version": "6.5.0",
++      "resolved": "https://registry.npmjs.org/proxy-agent/-/proxy-agent-6.5.0.tgz",
++      "integrity": "sha512-TmatMXdr2KlRiA2CyDu8GqR8EjahTG3aY3nXjdzFyoZbmB8hrBsTyMezhULIXKnC0jpfjlmiZ3+EaCzoInSu/A==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "agent-base": "^7.1.2",
++        "debug": "^4.3.4",
++        "http-proxy-agent": "^7.0.1",
++        "https-proxy-agent": "^7.0.6",
++        "lru-cache": "^7.14.1",
++        "pac-proxy-agent": "^7.1.0",
++        "proxy-from-env": "^1.1.0",
++        "socks-proxy-agent": "^8.0.5"
++      },
++      "engines": {
++        "node": ">= 14"
++      }
++    },
++    "node_modules/proxy-from-env": {
++      "version": "1.1.0",
++      "resolved": "https://registry.npmjs.org/proxy-from-env/-/proxy-from-env-1.1.0.tgz",
++      "integrity": "sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/pump": {
++      "version": "3.0.4",
++      "resolved": "https://registry.npmjs.org/pump/-/pump-3.0.4.tgz",
++      "integrity": "sha512-VS7sjc6KR7e1ukRFhQSY5LM2uBWAUPiOPa/A3mkKmiMwSmRFUITt0xuj+/lesgnCv+dPIEYlkzrcyXgquIHMcA==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "end-of-stream": "^1.1.0",
++        "once": "^1.3.1"
++      }
++    },
++    "node_modules/puppeteer": {
++      "version": "24.41.0",
++      "resolved": "https://registry.npmjs.org/puppeteer/-/puppeteer-24.41.0.tgz",
++      "integrity": "sha512-W6Fk0J3TPjjtwjXOyR/qf+YaL0H/Uq8HIgHcXG4mNM/IgbKMCH/HPyK0Fi2qbTU/QpSl9bCte2yBpGHKejTpIw==",
++      "dev": true,
++      "hasInstallScript": true,
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@puppeteer/browsers": "2.13.0",
++        "chromium-bidi": "14.0.0",
++        "cosmiconfig": "^9.0.0",
++        "devtools-protocol": "0.0.1595872",
++        "puppeteer-core": "24.41.0",
++        "typed-query-selector": "^2.12.1"
++      },
++      "bin": {
++        "puppeteer": "lib/cjs/puppeteer/node/cli.js"
++      },
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/puppeteer-core": {
++      "version": "24.41.0",
++      "resolved": "https://registry.npmjs.org/puppeteer-core/-/puppeteer-core-24.41.0.tgz",
++      "integrity": "sha512-rLIUri7E/NQ3APSEYCCozaSJx0u8Tu9wxO6BJwnvXmIgILSK3L0TombaVh3izp1njAGrO6H2ru0hcIrLF+gWLw==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@puppeteer/browsers": "2.13.0",
++        "chromium-bidi": "14.0.0",
++        "debug": "^4.4.3",
++        "devtools-protocol": "0.0.1595872",
++        "typed-query-selector": "^2.12.1",
++        "webdriver-bidi-protocol": "0.4.1",
++        "ws": "^8.19.0"
++      },
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/require-directory": {
++      "version": "2.1.1",
++      "resolved": "https://registry.npmjs.org/require-directory/-/require-directory-2.1.1.tgz",
++      "integrity": "sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=0.10.0"
++      }
++    },
++    "node_modules/resolve-from": {
++      "version": "4.0.0",
++      "resolved": "https://registry.npmjs.org/resolve-from/-/resolve-from-4.0.0.tgz",
++      "integrity": "sha512-pb/MYmXstAkysRFx8piNI1tGFNQIFA3vkE3Gq4EuA1dF6gHp/+vgZqsCGJapvy8N3Q+4o7FwvquPJcnZ7RYy4g==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=4"
++      }
++    },
+     "node_modules/safe-buffer": {
+       "version": "5.2.1",
+       "resolved": "https://registry.npmjs.org/safe-buffer/-/safe-buffer-5.2.1.tgz",
+@@ -197,6 +1124,282 @@
+       "engines": {
+         "node": ">=10"
+       }
++    },
++    "node_modules/smart-buffer": {
++      "version": "4.2.0",
++      "resolved": "https://registry.npmjs.org/smart-buffer/-/smart-buffer-4.2.0.tgz",
++      "integrity": "sha512-94hK0Hh8rPqQl2xXc3HsaBoOXKV20MToPkcXvwbISWLEs+64sBq5kFgn2kJDHb1Pry9yrP0dxrCI9RRci7RXKg==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">= 6.0.0",
++        "npm": ">= 3.0.0"
++      }
++    },
++    "node_modules/socks": {
++      "version": "2.8.7",
++      "resolved": "https://registry.npmjs.org/socks/-/socks-2.8.7.tgz",
++      "integrity": "sha512-HLpt+uLy/pxB+bum/9DzAgiKS8CX1EvbWxI4zlmgGCExImLdiad2iCwXT5Z4c9c3Eq8rP2318mPW2c+QbtjK8A==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "ip-address": "^10.0.1",
++        "smart-buffer": "^4.2.0"
++      },
++      "engines": {
++        "node": ">= 10.0.0",
++        "npm": ">= 3.0.0"
++      }
++    },
++    "node_modules/socks-proxy-agent": {
++      "version": "8.0.5",
++      "resolved": "https://registry.npmjs.org/socks-proxy-agent/-/socks-proxy-agent-8.0.5.tgz",
++      "integrity": "sha512-HehCEsotFqbPW9sJ8WVYB6UbmIMv7kUUORIF2Nncq4VQvBfNBLibW9YZR5dlYCSUhwcD628pRllm7n+E+YTzJw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "agent-base": "^7.1.2",
++        "debug": "^4.3.4",
++        "socks": "^2.8.3"
++      },
++      "engines": {
++        "node": ">= 14"
++      }
++    },
++    "node_modules/source-map": {
++      "version": "0.6.1",
++      "resolved": "https://registry.npmjs.org/source-map/-/source-map-0.6.1.tgz",
++      "integrity": "sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==",
++      "dev": true,
++      "license": "BSD-3-Clause",
++      "optional": true,
++      "engines": {
++        "node": ">=0.10.0"
++      }
++    },
++    "node_modules/streamx": {
++      "version": "2.25.0",
++      "resolved": "https://registry.npmjs.org/streamx/-/streamx-2.25.0.tgz",
++      "integrity": "sha512-0nQuG6jf1w+wddNEEXCF4nTg3LtufWINB5eFEN+5TNZW7KWJp6x87+JFL43vaAUPyCfH1wID+mNVyW6OHtFamg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "events-universal": "^1.0.0",
++        "fast-fifo": "^1.3.2",
++        "text-decoder": "^1.1.0"
++      }
++    },
++    "node_modules/string-width": {
++      "version": "4.2.3",
++      "resolved": "https://registry.npmjs.org/string-width/-/string-width-4.2.3.tgz",
++      "integrity": "sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "emoji-regex": "^8.0.0",
++        "is-fullwidth-code-point": "^3.0.0",
++        "strip-ansi": "^6.0.1"
++      },
++      "engines": {
++        "node": ">=8"
++      }
++    },
++    "node_modules/strip-ansi": {
++      "version": "6.0.1",
++      "resolved": "https://registry.npmjs.org/strip-ansi/-/strip-ansi-6.0.1.tgz",
++      "integrity": "sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "ansi-regex": "^5.0.1"
++      },
++      "engines": {
++        "node": ">=8"
++      }
++    },
++    "node_modules/tar-fs": {
++      "version": "3.1.2",
++      "resolved": "https://registry.npmjs.org/tar-fs/-/tar-fs-3.1.2.tgz",
++      "integrity": "sha512-QGxxTxxyleAdyM3kpFs14ymbYmNFrfY+pHj7Z8FgtbZ7w2//VAgLMac7sT6nRpIHjppXO2AwwEOg0bPFVRcmXw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "pump": "^3.0.0",
++        "tar-stream": "^3.1.5"
++      },
++      "optionalDependencies": {
++        "bare-fs": "^4.0.1",
++        "bare-path": "^3.0.0"
++      }
++    },
++    "node_modules/tar-stream": {
++      "version": "3.1.8",
++      "resolved": "https://registry.npmjs.org/tar-stream/-/tar-stream-3.1.8.tgz",
++      "integrity": "sha512-U6QpVRyCGHva435KoNWy9PRoi2IFYCgtEhq9nmrPPpbRacPs9IH4aJ3gbrFC8dPcXvdSZ4XXfXT5Fshbp2MtlQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "b4a": "^1.6.4",
++        "bare-fs": "^4.5.5",
++        "fast-fifo": "^1.2.0",
++        "streamx": "^2.15.0"
++      }
++    },
++    "node_modules/teex": {
++      "version": "1.0.1",
++      "resolved": "https://registry.npmjs.org/teex/-/teex-1.0.1.tgz",
++      "integrity": "sha512-eYE6iEI62Ni1H8oIa7KlDU6uQBtqr4Eajni3wX7rpfXD8ysFx8z0+dri+KWEPWpBsxXfxu58x/0jvTVT1ekOSg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "streamx": "^2.12.5"
++      }
++    },
++    "node_modules/text-decoder": {
++      "version": "1.2.7",
++      "resolved": "https://registry.npmjs.org/text-decoder/-/text-decoder-1.2.7.tgz",
++      "integrity": "sha512-vlLytXkeP4xvEq2otHeJfSQIRyWxo/oZGEbXrtEEF9Hnmrdly59sUbzZ/QgyWuLYHctCHxFF4tRQZNQ9k60ExQ==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "dependencies": {
++        "b4a": "^1.6.4"
++      }
++    },
++    "node_modules/tslib": {
++      "version": "2.8.1",
++      "resolved": "https://registry.npmjs.org/tslib/-/tslib-2.8.1.tgz",
++      "integrity": "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==",
++      "dev": true,
++      "license": "0BSD"
++    },
++    "node_modules/typed-query-selector": {
++      "version": "2.12.1",
++      "resolved": "https://registry.npmjs.org/typed-query-selector/-/typed-query-selector-2.12.1.tgz",
++      "integrity": "sha512-uzR+FzI8qrUEIu96oaeBJmd9E7CFEiQ3goA5qCVgc4s5llSubcfGHq9yUstZx/k4s9dXHVKsE35YWoFyvEqEHA==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/undici-types": {
++      "version": "7.19.2",
++      "resolved": "https://registry.npmjs.org/undici-types/-/undici-types-7.19.2.tgz",
++      "integrity": "sha512-qYVnV5OEm2AW8cJMCpdV20CDyaN3g0AjDlOGf1OW4iaDEx8MwdtChUp4zu4H0VP3nDRF/8RKWH+IPp9uW0YGZg==",
++      "dev": true,
++      "license": "MIT",
++      "optional": true
++    },
++    "node_modules/webdriver-bidi-protocol": {
++      "version": "0.4.1",
++      "resolved": "https://registry.npmjs.org/webdriver-bidi-protocol/-/webdriver-bidi-protocol-0.4.1.tgz",
++      "integrity": "sha512-ARrjNjtWRRs2w4Tk7nqrf2gBI0QXWuOmMCx2hU+1jUt6d00MjMxURrhxhGbrsoiZKJrhTSTzbIrc554iKI10qw==",
++      "dev": true,
++      "license": "Apache-2.0"
++    },
++    "node_modules/wrap-ansi": {
++      "version": "7.0.0",
++      "resolved": "https://registry.npmjs.org/wrap-ansi/-/wrap-ansi-7.0.0.tgz",
++      "integrity": "sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "ansi-styles": "^4.0.0",
++        "string-width": "^4.1.0",
++        "strip-ansi": "^6.0.0"
++      },
++      "engines": {
++        "node": ">=10"
++      },
++      "funding": {
++        "url": "https://github.com/chalk/wrap-ansi?sponsor=1"
++      }
++    },
++    "node_modules/wrappy": {
++      "version": "1.0.2",
++      "resolved": "https://registry.npmjs.org/wrappy/-/wrappy-1.0.2.tgz",
++      "integrity": "sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==",
++      "dev": true,
++      "license": "ISC"
++    },
++    "node_modules/ws": {
++      "version": "8.20.0",
++      "resolved": "https://registry.npmjs.org/ws/-/ws-8.20.0.tgz",
++      "integrity": "sha512-sAt8BhgNbzCtgGbt2OxmpuryO63ZoDk/sqaB/znQm94T4fCEsy/yV+7CdC1kJhOU9lboAEU7R3kquuycDoibVA==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=10.0.0"
++      },
++      "peerDependencies": {
++        "bufferutil": "^4.0.1",
++        "utf-8-validate": ">=5.0.2"
++      },
++      "peerDependenciesMeta": {
++        "bufferutil": {
++          "optional": true
++        },
++        "utf-8-validate": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/y18n": {
++      "version": "5.0.8",
++      "resolved": "https://registry.npmjs.org/y18n/-/y18n-5.0.8.tgz",
++      "integrity": "sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA==",
++      "dev": true,
++      "license": "ISC",
++      "engines": {
++        "node": ">=10"
++      }
++    },
++    "node_modules/yargs": {
++      "version": "17.7.2",
++      "resolved": "https://registry.npmjs.org/yargs/-/yargs-17.7.2.tgz",
++      "integrity": "sha512-7dSzzRQ++CKnNI/krKnYRV7JKKPUXMEh61soaHKg9mrWEhzFWhFnxPxGl+69cD1Ou63C13NUPCnmIcrvqCuM6w==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "cliui": "^8.0.1",
++        "escalade": "^3.1.1",
++        "get-caller-file": "^2.0.5",
++        "require-directory": "^2.1.1",
++        "string-width": "^4.2.3",
++        "y18n": "^5.0.5",
++        "yargs-parser": "^21.1.1"
++      },
++      "engines": {
++        "node": ">=12"
++      }
++    },
++    "node_modules/yargs-parser": {
++      "version": "21.1.1",
++      "resolved": "https://registry.npmjs.org/yargs-parser/-/yargs-parser-21.1.1.tgz",
++      "integrity": "sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw==",
++      "dev": true,
++      "license": "ISC",
++      "engines": {
++        "node": ">=12"
++      }
++    },
++    "node_modules/yauzl": {
++      "version": "2.10.0",
++      "resolved": "https://registry.npmjs.org/yauzl/-/yauzl-2.10.0.tgz",
++      "integrity": "sha512-p4a9I6X6nu6IhoGmBqAcbJy1mlC4j27vEPZX9F4L4/vZT3Lyq1VkFHw/V/PUcB9Buo+DG3iHkT0x3Qya58zc3g==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "buffer-crc32": "~0.2.3",
++        "fd-slicer": "~1.1.0"
++      }
++    },
++    "node_modules/zod": {
++      "version": "3.25.76",
++      "resolved": "https://registry.npmjs.org/zod/-/zod-3.25.76.tgz",
++      "integrity": "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==",
++      "dev": true,
++      "license": "MIT",
++      "funding": {
++        "url": "https://github.com/sponsors/colinhacks"
++      }
+     }
+   }
+ }
+diff --git a/package.json b/package.json
+index adfff44..bd4c48a 100644
+--- a/package.json
++++ b/package.json
+@@ -63,5 +63,8 @@
+     "jsonwebtoken": "^9.0.3",
+     "node-pty": "^1.1.0",
+     "nodemailer": "^8.0.4"
++  },
++  "devDependencies": {
++    "puppeteer": "^24.41.0"
+   }
+ }
+diff --git a/patches/1.11.9-ui-audit.md b/patches/1.11.9-ui-audit.md
+new file mode 100644
+index 0000000..0c063b5
+--- /dev/null
++++ b/patches/1.11.9-ui-audit.md
+@@ -0,0 +1,158 @@
++# 1.11.9 - Web UI audit + graceful backend-drift handling (2026-04)
++
++## Goal
++
++Stand up an autonomous UI audit for the C4 web console and land the
++web-side fixes the audit surfaces. The audit must (a) be runnable from
++inside a c4 worker without touching the running daemon/vite (restarting
++either would kill the worker doing the audit), and (b) never hold
++credentials on argv.
++
++Addresses TODO 8.17.
++
++## What lands
++
++### Audit tooling
++
++- `scripts/ui-audit-login.js` — reads the silofox password from
++  `/tmp/c4-silofox-cred` via `fs.readFileSync`, posts
++  `/api/auth/login`, and writes the JWT to
++  `/tmp/c4-audit-token.json` (mode 600). The password never shows
++  up on argv or in shell history. The downstream audit script only
++  reads the token file, never the credential file.
++- `scripts/ui-audit.js` — puppeteer-driven headless Chromium. Walks
++  every user-facing view of the console:
++  - `login` (unauthenticated)
++  - `worker-list` (`topView=workers, sidebarMode=list`)
++  - `hierarchy-tree` (`topView=workers, sidebarMode=tree`)
++  - `worker-detail-terminal` / `worker-detail-chat` /
++    `worker-detail-control` (after clicking the first worker row)
++  - `history` / `chat` / `workflows` (`topView` switches)
++
++  Each view runs through the same pipeline: load root, prime
++  `localStorage` (`c4.authToken` + the per-view keys), reload with
++  `waitUntil: 'domcontentloaded'` (an SSE `EventSource` keeps
++  `networkidle0` from ever settling), sleep 1.5s, run an optional
++  `postLoad` click, 600ms settle, probe.
++
++  Collectors:
++  - `page.on('console', ...)` — keep only `error` + `warning`;
++    filter `[vite]` HMR chatter, `Download the React DevTools`,
++    and the audit-internal `nav fallback:` notice.
++  - `page.on('pageerror', ...)` — uncaught throws + rejections.
++  - `page.on('response', ...)` — same-origin 4xx+, skipping
++    `.map`, `/.well-known/`, `@vite/client`, `@react-refresh`,
++    `__open-in-editor`.
++  - `page.on('requestfailed', ...)` — transport / DNS / abort.
++  - In-page layout probe — zero-size visible images, zero-size or
++    empty `<svg>`, `role="alert"` surfaced text. Visibility is
++    decided by walking ancestors' computed styles so Tailwind's
++    `md:hidden` responsive utilities do not masquerade as zero-size
++    bugs.
++
++  Output: `scripts/ui-audit-report.json` (git-ignored). Summary has
++  four buckets:
++  - `critical` — page errors, console.error, same-origin 4xx,
++    visible red alerts, broken lucide.
++  - `warning` — console.warning, zero-size imgs/svgs, empty svgs,
++    viewport overflow.
++  - `info` — neutral role=alert surfaces.
++  - `environment` — 4xx responses on routes that the running
++    daemon is missing (probed once at audit start against the
++    known post-main routes `/api/resize`, `/api/workflows`,
++    `/api/slack/events`). These are held out of `critical` so the
++    audit loop is not gated on a daemon restart — restarting the
++    daemon from inside a worker kills the worker.
++
++### Web fixes surfaced by the audit
++
++1. **`web/src/lib/api.ts` now guards against HTML-as-JSON fallback
++   bodies.** Both `apiGet` and `apiPost` go through a private
++   `readJson<T>(res, url)` that short-circuits when
++   `content-type` is missing `application/json` and throws
++   `Expected JSON from <url> but got <content-type>`. Previously
++   the daemon's static-server fallback (unknown non-/api GET → 200
++   `index.html`) caused `res.json()` to throw the opaque
++   `Unexpected token '<', "<!doctype "... is not valid JSON`
++   which the `WorkflowEditor` surfaced to users as-is through its
++   `role="alert"` surface.
++
++2. **`web/src/components/WorkerDetail.tsx` stops retrying resize
++   against older daemons.** Added `resizeUnsupportedRef`. On the
++   first `404` from `POST /api/resize` (daemon predates the 8.13
++   `/resize` route) the flag flips, `requestResize` short-circuits
++   on entry, and the auto-fit / manual-cols effects stop posting
++   further attempts. Previously every window resize or font-size
++   bump re-hit the 404 and stamped
++   `resize failed: HTTP 404` into `actionMsg`, so users on older
++   daemons saw a permanent red pill.
++
++Both fixes are defensive. On a fully-deployed stack they are
++no-ops because the endpoints reply 200 + JSON.
++
++### Dev-deps + runtime
++
++- `package.json` picks up `puppeteer` as a devDependency
++  (bundled Chromium, no system browser required).
++- `package-lock.json` regenerates accordingly.
++- `.gitignore` now excludes `scripts/ui-audit-report.json`.
++
++## One-time system deps (Ubuntu)
++
++Puppeteer's bundled Chromium needs the following apt packages. Run once
++per machine:
++
++```bash
++apt-get install -y libatk1.0-0 libatk-bridge2.0-0 libcups2 \
++  libxcomposite1 libxdamage1 libatspi2.0-0
++```
++
++(Single command; no compound chain. All transitive deps come in via
++standard apt resolution.)
++
++## How to run
++
++```bash
++node scripts/ui-audit-login.js            # writes /tmp/c4-audit-token.json
++node scripts/ui-audit.js                  # writes scripts/ui-audit-report.json
++```
++
++Override the target with `C4_AUDIT_BASE_URL=http://localhost:5174` when
++the daemon or a second vite instance is on a different port. Override
++the token path with `C4_AUDIT_TOKEN_FILE=...` and the credential path
++with `C4_CRED_FILE=...`.
++
++## Verification
++
++Audit against a worktree-served vite (`npm --prefix web run dev --
++--host 127.0.0.1 --port 5174`) + the same running daemon:
++
++```
++[audit] note: running daemon is missing these routes (treated as
++  environment drift, not UI bugs):
++  /api/resize, /api/workflows, /api/slack/events
++[audit] totals: critical=0 warning=0 info=1 environment=2
++```
++
++The single info alert is the `WorkflowEditor` correctly surfacing the
++new, readable env-drift message (`Expected JSON from /api/workflows
++but got text/html; charset=utf-8`). The two environment entries are the
++unavoidable first probes to the pre-8.13 daemon — after each first 404,
++`resizeUnsupportedRef` prevents further attempts and the UI stays
++quiet.
++
++`npm --prefix web run build` (tsc --noEmit + vite build) passes clean
++after the edits.
++
++## Non-goals
++
++- The audit does not restart the daemon or vite; those would kill the
++  worker running the audit. Environment drift is classified, not
++  fixed, at runtime.
++- The audit does not synthesize workers or tasks. It reuses the first
++  worker returned by `/api/list`, which is enough to exercise the
++  three `WorkerDetail` variants.
++- The lucide `brokenLucide` probe only flags SVGs with zero children
++  today. Tree-shaken icon paths still render with their path elements
++  intact, so the probe is future-proofing more than a current-state
++  check.
+diff --git a/scripts/ui-audit-login.js b/scripts/ui-audit-login.js
+new file mode 100644
+index 0000000..00363c4
+--- /dev/null
++++ b/scripts/ui-audit-login.js
+@@ -0,0 +1,46 @@
++#!/usr/bin/env node
++// Login helper for ui-audit.
++//
++// Reads the silofox password from a credential file (default
++// /tmp/c4-silofox-cred; override with C4_CRED_FILE), exchanges it for a JWT
++// against /api/auth/login, and writes the token to /tmp/c4-audit-token.json
++// (override with C4_AUDIT_TOKEN_FILE).
++//
++// The password never appears on argv or in process-level env written by this
++// script. Downstream audit scripts read the token from the JSON file.
++
++const fs = require('fs');
++
++const CRED_FILE = process.env.C4_CRED_FILE || '/tmp/c4-silofox-cred';
++const TOKEN_FILE = process.env.C4_AUDIT_TOKEN_FILE || '/tmp/c4-audit-token.json';
++const BASE_URL = process.env.C4_AUDIT_BASE_URL || 'http://localhost:5173';
++const USER = process.env.C4_AUDIT_USER || 'silofox';
++
++async function main() {
++  if (!fs.existsSync(CRED_FILE)) {
++    throw new Error(`credential file not found: ${CRED_FILE}`);
++  }
++  const password = fs.readFileSync(CRED_FILE, 'utf8').replace(/[\r\n]+$/, '');
++  if (!password) throw new Error(`credential file empty: ${CRED_FILE}`);
++
++  const res = await fetch(`${BASE_URL}/api/auth/login`, {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json' },
++    body: JSON.stringify({ user: USER, password }),
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok || !data.token) {
++    throw new Error(`login failed: HTTP ${res.status} ${JSON.stringify(data)}`);
++  }
++  fs.writeFileSync(
++    TOKEN_FILE,
++    JSON.stringify({ token: data.token, user: data.user, baseUrl: BASE_URL, obtainedAt: new Date().toISOString() }, null, 2),
++    { mode: 0o600 }
++  );
++  console.log(`token saved -> ${TOKEN_FILE} (user=${data.user})`);
++}
++
++main().catch((err) => {
++  console.error(`[ui-audit-login] ${err.message}`);
++  process.exit(1);
++});
+diff --git a/scripts/ui-audit.js b/scripts/ui-audit.js
+new file mode 100644
+index 0000000..1eb3ae0
+--- /dev/null
++++ b/scripts/ui-audit.js
+@@ -0,0 +1,545 @@
++#!/usr/bin/env node
++// UI audit for the C4 web console.
++//
++// Drives every user-facing view of /root/c4-worktree-ui-audit/web with a
++// puppeteer-bundled Chromium, logs in with the silofox JWT stored on disk
++// (produced by scripts/ui-audit-login.js), and records:
++//   - console.error / console.warning messages (with ignore-list)
++//   - unhandled page errors
++//   - unhandled promise rejections
++//   - non-2xx network responses for app-origin requests
++//   - request failures (DNS / transport / abort)
++//   - a cheap layout probe per view: zero-size visible images/SVGs, broken
++//     icon srcs, overflow past the viewport, role=alert surfaced, broken
++//     lucide <svg> elements (0-size or empty path list)
++//
++// Output: scripts/ui-audit-report.json with one `views[i]` entry per route
++// plus a top-level summary grouped into "critical" / "warning" / "info".
++//
++// The script never writes anywhere outside the worktree's scripts/ dir and
++// it never touches /tmp credential files (that is the login helper's job).
++
++const fs = require('fs');
++const path = require('path');
++
++const puppeteer = require('puppeteer');
++
++const TOKEN_FILE = process.env.C4_AUDIT_TOKEN_FILE || '/tmp/c4-audit-token.json';
++const BASE_URL = process.env.C4_AUDIT_BASE_URL || 'http://localhost:5173';
++const REPORT_FILE =
++  process.env.C4_AUDIT_REPORT ||
++  path.join(__dirname, 'ui-audit-report.json');
++const VIEWPORT = { width: 1440, height: 900, deviceScaleFactor: 1 };
++const WAIT_AFTER_NAV_MS = 1500;
++const SETTLE_MS = 600;
++
++// Things that are expected noise and we do not treat as issues.
++const CONSOLE_IGNORE = [
++  // vite dev client hot reload chatter
++  /\[vite\]/i,
++  // React dev-mode performance warnings we cannot silence from the audit
++  /Download the React DevTools/i,
++  // Audit-internal: SSE keeps the network alive so networkidle0 never settles.
++  /^nav fallback:/,
++];
++
++// Ignore source-map 404s and any request to the well-known chrome DevTools
++// probe - puppeteer's own traffic - and Vite dep pre-bundle meta requests.
++const NETWORK_IGNORE = [
++  /\.map(\?|$)/,
++  /\/\.well-known\//,
++  /@vite\/client/,
++  /@react-refresh/,
++  /\/__open-in-editor/,
++];
++
++function isIgnoredConsole(text) {
++  return CONSOLE_IGNORE.some((re) => re.test(text));
++}
++
++function isIgnoredNetwork(url) {
++  return NETWORK_IGNORE.some((re) => re.test(url));
++}
++
++function loadToken() {
++  if (!fs.existsSync(TOKEN_FILE)) {
++    throw new Error(
++      `token file missing: ${TOKEN_FILE} - run scripts/ui-audit-login.js first`
++    );
++  }
++  const raw = JSON.parse(fs.readFileSync(TOKEN_FILE, 'utf8'));
++  if (!raw.token) throw new Error('token file has no token');
++  return raw.token;
++}
++
++// Probe the live daemon for routes that exist in the checked-in daemon.js but
++// may be missing from the process currently holding port 3456 (daemon was
++// started before those commits landed). Treat those 404s as environment
++// drift, not UI bugs, so the iterative audit loop is not gated on a daemon
++// restart that would kill the very worker running this script.
++async function detectStaleDaemonEndpoints(token) {
++  const probes = ['/api/resize', '/api/workflows', '/api/slack/events'];
++  const stale = [];
++  for (const path of probes) {
++    try {
++      const method = path === '/api/resize' ? 'POST' : 'GET';
++      const init = {
++        method,
++        headers: {
++          Authorization: `Bearer ${token}`,
++        },
++      };
++      if (method === 'POST') {
++        init.headers['Content-Type'] = 'application/json';
++        init.body = JSON.stringify({ probe: true });
++      }
++      const res = await fetch(`${BASE_URL}${path}`, init);
++      const ct = res.headers.get('content-type') || '';
++      const servedStatic = res.status === 200 && ct.toLowerCase().includes('text/html');
++      if (res.status === 404 || servedStatic) {
++        stale.push(path);
++      }
++    } catch {
++      // A transport failure is not an environment drift signal - leave the
++      // route out so the audit still flags a genuine regression later.
++    }
++  }
++  return stale;
++}
++
++function sleep(ms) {
++  return new Promise((r) => setTimeout(r, ms));
++}
++
++// A ViewPlan describes one page state to audit.
++// localStorage entries are applied before reload; postLoad runs after the
++// page is loaded so it can click into worker detail etc.
++function buildViewPlans(pickWorker) {
++  const plans = [
++    {
++      id: 'login',
++      title: 'Login (unauthenticated)',
++      auth: false,
++      localStorage: {},
++      postLoad: null,
++    },
++    {
++      id: 'worker-list',
++      title: 'Worker list (sidebar mode=list)',
++      auth: true,
++      localStorage: {
++        'c4.topView': 'workers',
++        'c4.sidebar.mode': 'list',
++      },
++      postLoad: null,
++    },
++    {
++      id: 'hierarchy-tree',
++      title: 'Hierarchy tree (sidebar mode=tree)',
++      auth: true,
++      localStorage: {
++        'c4.topView': 'workers',
++        'c4.sidebar.mode': 'tree',
++      },
++      postLoad: null,
++    },
++    {
++      id: 'worker-detail-terminal',
++      title: 'Worker detail - terminal',
++      auth: true,
++      localStorage: {
++        'c4.topView': 'workers',
++        'c4.sidebar.mode': 'list',
++        'c4.detail.mode': 'terminal',
++      },
++      postLoad: pickWorker,
++    },
++    {
++      id: 'worker-detail-chat',
++      title: 'Worker detail - chat',
++      auth: true,
++      localStorage: {
++        'c4.topView': 'workers',
++        'c4.sidebar.mode': 'list',
++        'c4.detail.mode': 'chat',
++      },
++      postLoad: pickWorker,
++    },
++    {
++      id: 'worker-detail-control',
++      title: 'Worker detail - control panel',
++      auth: true,
++      localStorage: {
++        'c4.topView': 'workers',
++        'c4.sidebar.mode': 'list',
++        'c4.detail.mode': 'control',
++      },
++      postLoad: pickWorker,
++    },
++    {
++      id: 'history',
++      title: 'History view',
++      auth: true,
++      localStorage: { 'c4.topView': 'history' },
++      postLoad: null,
++    },
++    {
++      id: 'chat',
++      title: 'Top-level Chat',
++      auth: true,
++      localStorage: { 'c4.topView': 'chat' },
++      postLoad: null,
++    },
++    {
++      id: 'workflows',
++      title: 'Workflow editor',
++      auth: true,
++      localStorage: { 'c4.topView': 'workflows' },
++      postLoad: null,
++    },
++  ];
++  return plans;
++}
++
++function makePage(browser, token) {
++  return browser.newPage().then(async (page) => {
++    await page.setViewport(VIEWPORT);
++    await page.setDefaultNavigationTimeout(30000);
++    await page.setDefaultTimeout(15000);
++    return page;
++  });
++}
++
++function attachCollectors(page, state) {
++  page.on('console', (msg) => {
++    const type = msg.type();
++    if (type !== 'error' && type !== 'warning') return;
++    const text = msg.text();
++    if (isIgnoredConsole(text)) return;
++    state.console.push({
++      level: type,
++      text,
++      location: msg.location() || null,
++    });
++  });
++  page.on('pageerror', (err) => {
++    state.pageErrors.push({
++      message: err.message,
++      stack: err.stack || null,
++    });
++  });
++  // Chromium exposes `unhandledrejection` through a special event on the
++  // target. The cleanest path: listen via page.on('pageerror') for uncaught
++  // promises with reason.stack, plus an in-page hook that re-dispatches.
++  page.on('response', (res) => {
++    const url = res.url();
++    if (isIgnoredNetwork(url)) return;
++    const req = res.request();
++    const ru = new URL(url, BASE_URL);
++    if (!ru.origin.startsWith('http://localhost')) return;
++    if (res.status() >= 400) {
++      state.network.push({
++        phase: 'response',
++        status: res.status(),
++        method: req.method(),
++        url,
++        resourceType: req.resourceType(),
++      });
++    }
++  });
++  page.on('requestfailed', (req) => {
++    const url = req.url();
++    if (isIgnoredNetwork(url)) return;
++    state.network.push({
++      phase: 'failed',
++      status: null,
++      method: req.method(),
++      url,
++      resourceType: req.resourceType(),
++      failure: req.failure() && req.failure().errorText,
++    });
++  });
++}
++
++async function setAppLocalStorage(page, token, entries, authed) {
++  await page.evaluate(
++    (data) => {
++      try {
++        if (data.token) {
++          localStorage.setItem('c4.authToken', data.token);
++        } else {
++          localStorage.removeItem('c4.authToken');
++        }
++        for (const [k, v] of Object.entries(data.entries || {})) {
++          localStorage.setItem(k, v);
++        }
++      } catch {
++        /* ignore */
++      }
++    },
++    { token: authed ? token : null, entries }
++  );
++}
++
++async function probeLayout(page) {
++  return page.evaluate(() => {
++    const out = {
++      zeroSizeImages: [],
++      zeroSizeSvgs: [],
++      emptySvgs: [],
++      overflowViewport: null,
++      alerts: [],
++      visibleErrors: [],
++      brokenLucide: [],
++    };
++
++    const docW = Math.max(document.documentElement.scrollWidth || 0, 0);
++    const winW = window.innerWidth || 0;
++    if (docW > winW + 2) out.overflowViewport = { docW, winW };
++
++    for (const img of document.querySelectorAll('img')) {
++      const rect = img.getBoundingClientRect();
++      const visible =
++        rect.width > 0 ||
++        rect.height > 0 ||
++        img.offsetParent != null;
++      if (!visible) continue;
++      if (img.naturalWidth === 0 && img.complete) {
++        out.zeroSizeImages.push({ src: img.src, alt: img.alt || null });
++      }
++    }
++
++    // Walk ancestors to decide whether the element is actually rendered -
++    // offsetParent+computedStyle alone misses SVG inside a display:none
++    // parent (Tailwind's md:hidden, responsive utilities, etc).
++    function isRendered(el) {
++      if (el.getClientRects().length === 0) return false;
++      for (let node = el; node; node = node.parentElement) {
++        const s = window.getComputedStyle(node);
++        if (s.display === 'none') return false;
++        if (s.visibility === 'hidden') return false;
++      }
++      return true;
++    }
++
++    // lucide icons render as <svg class="lucide-*">. If the bounding box is
++    // zero OR the <svg> has no children, flag it - a very common symptom of
++    // tree-shaken-but-still-rendered icon imports.
++    for (const svg of document.querySelectorAll('svg')) {
++      if (!isRendered(svg)) continue;
++      const rect = svg.getBoundingClientRect();
++      if (rect.width === 0 && rect.height === 0) {
++        out.zeroSizeSvgs.push({
++          classes: svg.getAttribute('class') || '',
++          ariaLabel: svg.getAttribute('aria-label') || null,
++        });
++      }
++      if (svg.children.length === 0) {
++        out.emptySvgs.push({
++          classes: svg.getAttribute('class') || '',
++          ariaLabel: svg.getAttribute('aria-label') || null,
++        });
++      }
++      const cls = svg.getAttribute('class') || '';
++      if (cls.includes('lucide')) {
++        if (svg.children.length === 0) {
++          out.brokenLucide.push({ classes: cls, reason: 'no-children' });
++        }
++      }
++    }
++
++    for (const el of document.querySelectorAll('[role="alert"]')) {
++      const text = (el.textContent || '').trim().slice(0, 240);
++      if (!text) continue;
++      out.alerts.push({ text });
++      if (/failed|error|cannot|missing|HTTP [45]\d{2}/i.test(text)) {
++        out.visibleErrors.push({ text });
++      }
++    }
++
++    return out;
++  });
++}
++
++async function runView(browser, token, plan, pickWorkerFn) {
++  const page = await makePage(browser, token);
++  const state = {
++    console: [],
++    pageErrors: [],
++    network: [],
++  };
++  attachCollectors(page, state);
++
++  // 1) Load the root once so we have a document to touch localStorage on.
++  await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
++  // 2) Apply auth + view state.
++  await setAppLocalStorage(page, token, plan.localStorage, plan.auth);
++  // 3) Reload so the app picks up the new localStorage. We intentionally use
++  // domcontentloaded + an explicit settle delay: networkidle0 never settles
++  // because WorkerList opens an EventSource as soon as it mounts.
++  await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
++  await sleep(WAIT_AFTER_NAV_MS);
++
++  if (plan.postLoad) {
++    try {
++      await plan.postLoad(page);
++      await sleep(SETTLE_MS);
++    } catch (e) {
++      state.pageErrors.push({
++        message: `postLoad: ${e.message}`,
++        stack: e.stack || null,
++      });
++    }
++  }
++
++  const layout = await probeLayout(page).catch((e) => ({
++    error: `layout probe failed: ${e.message}`,
++  }));
++
++  const view = {
++    id: plan.id,
++    title: plan.title,
++    consoleIssues: state.console,
++    pageErrors: state.pageErrors,
++    network: state.network,
++    layout,
++  };
++  await page.close().catch(() => {});
++  return view;
++}
++
++function isStaleDaemonNetworkIssue(entry, staleRoutes) {
++  if (!entry || entry.phase !== 'response') return false;
++  if (entry.status !== 404) return false;
++  try {
++    const u = new URL(entry.url);
++    return staleRoutes.includes(u.pathname);
++  } catch {
++    return false;
++  }
++}
++
++function isStaleDaemonConsoleIssue(entry, staleRoutes) {
++  if (!entry || entry.level !== 'error') return false;
++  const loc = entry.location || {};
++  if (!/404/.test(entry.text || '')) return false;
++  try {
++    const u = new URL(loc.url || '');
++    return staleRoutes.includes(u.pathname);
++  } catch {
++    return false;
++  }
++}
++
++function summarise(views, staleRoutes) {
++  const summary = {
++    critical: 0,
++    warning: 0,
++    info: 0,
++    environment: 0,
++    byView: {},
++  };
++  for (const v of views) {
++    const netEnv = v.network.filter((e) => isStaleDaemonNetworkIssue(e, staleRoutes)).length;
++    const netReal = v.network.length - netEnv;
++    const conErrAll = v.consoleIssues.filter((c) => c.level === 'error');
++    const conErrEnv = conErrAll.filter((c) => isStaleDaemonConsoleIssue(c, staleRoutes)).length;
++    const conErrReal = conErrAll.length - conErrEnv;
++
++    const crit =
++      v.pageErrors.length +
++      conErrReal +
++      netReal +
++      (v.layout.visibleErrors ? v.layout.visibleErrors.length : 0) +
++      (v.layout.brokenLucide ? v.layout.brokenLucide.length : 0);
++    const warn =
++      v.consoleIssues.filter((c) => c.level === 'warning').length +
++      (v.layout.zeroSizeImages ? v.layout.zeroSizeImages.length : 0) +
++      (v.layout.zeroSizeSvgs ? v.layout.zeroSizeSvgs.length : 0) +
++      (v.layout.emptySvgs ? v.layout.emptySvgs.length : 0) +
++      (v.layout.overflowViewport ? 1 : 0);
++    const info = v.layout.alerts ? v.layout.alerts.length : 0;
++    const env = netEnv + conErrEnv;
++    summary.critical += crit;
++    summary.warning += warn;
++    summary.info += info;
++    summary.environment += env;
++    summary.byView[v.id] = { critical: crit, warning: warn, info, environment: env };
++  }
++  return summary;
++}
++
++async function pickFirstWorker(page) {
++  // The Card rows in WorkerList use role="button" with tabindex=0.
++  await page.waitForSelector('[role="button"]', { timeout: 8000 }).catch(() => null);
++  const handle = await page.$('[role="button"]');
++  if (!handle) {
++    throw new Error('no worker row to click');
++  }
++  // click + wait for the detail card to appear.
++  await handle.click();
++  await page.waitForFunction(
++    () => !!document.querySelector('main [class*="overflow-hidden"]'),
++    { timeout: 4000 }
++  ).catch(() => null);
++}
++
++async function main() {
++  const token = loadToken();
++  const browser = await puppeteer.launch({
++    headless: 'new',
++    args: [
++      '--no-sandbox',
++      '--disable-setuid-sandbox',
++      '--disable-dev-shm-usage',
++    ],
++  });
++  const startedAt = new Date().toISOString();
++  const staleRoutes = await detectStaleDaemonEndpoints(token);
++  if (staleRoutes.length > 0) {
++    console.log(
++      `[audit] note: running daemon is missing these routes (treated as environment drift, not UI bugs): ${staleRoutes.join(', ')}`
++    );
++  }
++  const plans = buildViewPlans(pickFirstWorker);
++  const views = [];
++  try {
++    for (const plan of plans) {
++      process.stdout.write(`[audit] ${plan.id} ... `);
++      const v = await runView(browser, token, plan);
++      views.push(v);
++      const counts = {
++        console: v.consoleIssues.length,
++        pageErr: v.pageErrors.length,
++        network: v.network.length,
++      };
++      process.stdout.write(
++        `console=${counts.console} pageErr=${counts.pageErr} net=${counts.network}\n`
++      );
++    }
++  } finally {
++    await browser.close();
++  }
++
++  const report = {
++    startedAt,
++    finishedAt: new Date().toISOString(),
++    baseUrl: BASE_URL,
++    staleDaemonRoutes: staleRoutes,
++    summary: summarise(views, staleRoutes),
++    views,
++  };
++  fs.writeFileSync(REPORT_FILE, JSON.stringify(report, null, 2));
++  console.log(`\n[audit] report -> ${REPORT_FILE}`);
++  console.log(
++    `[audit] totals: critical=${report.summary.critical} warning=${report.summary.warning} info=${report.summary.info} environment=${report.summary.environment}`
++  );
++  // Exit 0 always so the caller can inspect the JSON; CI wrappers can fail
++  // on summary.critical > 0 themselves.
++}
++
++main().catch((err) => {
++  console.error(`[audit] fatal: ${err.message}`);
++  if (err.stack) console.error(err.stack);
++  process.exit(1);
++});
+diff --git a/web/src/components/WorkerDetail.tsx b/web/src/components/WorkerDetail.tsx
+index 8464634..1829580 100644
+--- a/web/src/components/WorkerDetail.tsx
++++ b/web/src/components/WorkerDetail.tsx
+@@ -124,6 +124,10 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
+   const rulerRef = useRef<HTMLSpanElement | null>(null);
+   const resizeTimerRef = useRef<number | null>(null);
+   const lastRequestedRef = useRef<{ cols: number; rows: number } | null>(null);
++  // Older daemons do not expose /api/resize. The first 404 flips this flag
++  // so auto-fit + manual-cols effects stop re-sending, and we swallow the
++  // error silently instead of writing it to actionMsg every cycle.
++  const resizeUnsupportedRef = useRef<boolean>(false);
+ 
+   const fetchContent = useCallback(async () => {
+     try {
+@@ -180,6 +184,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
+ 
+   const requestResize = useCallback(
+     async (nextCols: number, nextRows: number) => {
++      if (resizeUnsupportedRef.current) return;
+       const c = clamp(nextCols, MIN_COLS, MAX_COLS);
+       const r = clamp(nextRows, MIN_ROWS, MAX_ROWS);
+       const last = lastRequestedRef.current;
+@@ -191,6 +196,12 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({ name: workerName, cols: c, rows: r }),
+         });
++        if (res.status === 404) {
++          // Daemon predates the 8.13 /resize route. Stop asking and let the
++          // UI fall back to the server's PTY default dims.
++          resizeUnsupportedRef.current = true;
++          return;
++        }
+         if (!res.ok) throw new Error(`HTTP ${res.status}`);
+         const data = (await res.json()) as ResizeResponse;
+         if (data.error) {
+diff --git a/web/src/lib/api.ts b/web/src/lib/api.ts
+index 7293184..0735796 100644
+--- a/web/src/lib/api.ts
++++ b/web/src/lib/api.ts
+@@ -52,10 +52,24 @@ export async function apiFetch(input: string, init: RequestInit = {}): Promise<R
+   return res;
+ }
+ 
++// Parses a Response as JSON, but first verifies that the server actually
++// sent JSON. When the daemon is missing a route, its static-server fallback
++// replies with 200 + index.html; calling .json() on that yields the opaque
++// "Unexpected token '<', \"<!doctype \"..." error, which propagates up as a
++// user-visible alert. Surface a friendlier message so callers can either
++// display it directly or detect a stale backend.
++async function readJson<T>(res: Response, url: string): Promise<T> {
++  const ct = res.headers.get('content-type') || '';
++  if (!ct.toLowerCase().includes('application/json')) {
++    throw new Error(`Expected JSON from ${url} but got ${ct || 'no content-type'}`);
++  }
++  return (await res.json()) as T;
++}
++
+ export async function apiGet<T = unknown>(url: string): Promise<T> {
+   const res = await apiFetch(url);
+   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+-  return (await res.json()) as T;
++  return readJson<T>(res, url);
+ }
+ 
+ export async function apiPost<T = unknown>(url: string, body: unknown): Promise<T> {
+@@ -65,7 +79,7 @@ export async function apiPost<T = unknown>(url: string, body: unknown): Promise<
+     body: JSON.stringify(body),
+   });
+   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+-  return (await res.json()) as T;
++  return readJson<T>(res, url);
+ }
+ 
+ // Builds an EventSource URL with the token attached as ?token=... since

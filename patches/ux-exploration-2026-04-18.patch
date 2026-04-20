@@ -1,0 +1,934 @@
+From e08bbae2736719dcc88af33fd2ce9474ca03ea5c Mon Sep 17 00:00:00 2001
+From: c4-worker <c4-worker@c4.local>
+Date: Sat, 18 Apr 2026 17:12:16 +0000
+Subject: [PATCH 1/6] chore(ux): add Puppeteer-based UX exploration runner
+
+Adds tools/ux/ with a click-through runner that logs in, walks every
+top tab, exercises detail tabs, captures full-page screenshots at
+desktop + mobile viewports, and writes report.json + summary.md
+grouped by severity. Used to drive the auto-patch loop in
+docs/tasks/ux-exploration.md.
+---
+ .gitignore            |   7 +-
+ tools/ux/explore.mjs  | 439 ++++++++++++++++++++++++++++++++++++++++++
+ tools/ux/package.json |   9 +
+ 3 files changed, 454 insertions(+), 1 deletion(-)
+ create mode 100644 tools/ux/explore.mjs
+ create mode 100644 tools/ux/package.json
+
+diff --git a/.gitignore b/.gitignore
+index aca38ce..20c5052 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -45,4 +45,9 @@ tests/_real_test*
+ 
+ # Web scaffold build artifacts
+ web/node_modules
+-web/dist
+\ No newline at end of file
++web/dist
++
++# UX exploration artifacts (runtime screenshots / reports / throwaway deps)
++ux-reports/
++tools/ux/node_modules/
++tools/ux/package-lock.json
+diff --git a/tools/ux/explore.mjs b/tools/ux/explore.mjs
+new file mode 100644
+index 0000000..bda79be
+--- /dev/null
++++ b/tools/ux/explore.mjs
+@@ -0,0 +1,439 @@
++#!/usr/bin/env node
++// UX exploration runner: click-through every view, screenshot, collect issues.
++// Usage: node explore.mjs --iteration N
++// Credentials: reads /tmp/c4-silofox-cred as password, username 'silofox'.
++
++import puppeteer from 'puppeteer-core';
++import fs from 'node:fs';
++import path from 'node:path';
++import crypto from 'node:crypto';
++
++const CHROME = '/root/.cache/puppeteer/chrome/linux-147.0.7727.56/chrome-linux64/chrome';
++const BASE = process.env.UX_BASE || 'http://localhost:5174';
++const CRED_FILE = '/tmp/c4-silofox-cred';
++const USER = 'silofox';
++
++const args = process.argv.slice(2);
++let iteration = 1;
++for (let i = 0; i < args.length; i++) {
++  if (args[i] === '--iteration' && args[i + 1]) iteration = Number(args[i + 1]);
++}
++
++const REPORT_ROOT = path.resolve('/root/c4-worktree-ux-explorer/ux-reports', String(iteration));
++const SHOTS_DIR = path.join(REPORT_ROOT, 'screenshots');
++fs.mkdirSync(SHOTS_DIR, { recursive: true });
++
++const password = fs.readFileSync(CRED_FILE, 'utf8').trim();
++const issues = [];
++const pushIssue = (severity, view, message, extra = {}) => {
++  issues.push({ severity, view, message, ...extra });
++  console.log(`[${severity}] ${view}: ${message}`);
++};
++
++const VIEWPORTS = {
++  desktop: { width: 1440, height: 900, label: 'desktop' },
++  mobile: { width: 375, height: 667, label: 'mobile' },
++};
++
++const TOP_VIEWS = ['workers', 'chat', 'history', 'workflows'];
++const DETAIL_MODES = ['terminal', 'chat', 'control'];
++
++function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
++
++function attachListeners(page, tag) {
++  page.on('pageerror', (err) => {
++    pushIssue('critical', tag, `pageerror: ${err.message}`);
++  });
++  page.on('console', (msg) => {
++    const type = msg.type();
++    if (type === 'error') {
++      const text = msg.text();
++      if (text.includes('Failed to load resource') && text.includes('404') && text.includes('favicon')) return;
++      pushIssue('warn', tag, `console.error: ${text.slice(0, 400)}`);
++    }
++  });
++  page.on('requestfailed', (req) => {
++    const f = req.failure();
++    const url = req.url();
++    if (url.includes('hot-update') || url.endsWith('favicon.ico')) return;
++    pushIssue('warn', tag, `request failed ${url}: ${f?.errorText || 'unknown'}`);
++  });
++  page.on('response', async (res) => {
++    const status = res.status();
++    const url = res.url();
++    if (status >= 500) pushIssue('critical', tag, `HTTP ${status} ${url}`);
++    else if (status === 401 && !url.endsWith('/auth/login') && !url.endsWith('/auth/status')) {
++      pushIssue('warn', tag, `HTTP 401 ${url}`);
++    }
++  });
++}
++
++async function shot(page, name, vp) {
++  const safe = name.replace(/[^a-z0-9_-]/gi, '_');
++  const file = path.join(SHOTS_DIR, `${vp}_${safe}.png`);
++  try {
++    await page.screenshot({ path: file, fullPage: true });
++  } catch (e) {
++    pushIssue('warn', name, `screenshot failed: ${e.message}`);
++  }
++}
++
++async function loginFlow(page, vp) {
++  await page.goto(BASE + '/', { waitUntil: 'networkidle2', timeout: 30000 });
++  await shot(page, 'login', vp);
++
++  // Invalid creds attempt
++  await page.type('#c4-user', 'wronguser');
++  await page.type('#c4-password', 'wrongpass');
++  const [resp] = await Promise.all([
++    page.waitForResponse(r => r.url().includes('/auth/login')).catch(() => null),
++    page.click('button[type="submit"]'),
++  ]);
++  if (resp) {
++    const st = resp.status();
++    if (st !== 401 && st !== 403) pushIssue('warn', 'login-invalid', `expected 401 got ${st}`);
++  }
++  await delay(400);
++  await shot(page, 'login_invalid', vp);
++
++  // Check for error role="alert"
++  const hasAlert = await page.$('[role="alert"]');
++  if (!hasAlert) pushIssue('warn', 'login-invalid', 'no role="alert" on invalid login');
++
++  // Clear fields via keyboard (React-safe) and submit valid creds
++  await page.click('#c4-user', { clickCount: 3 });
++  await page.keyboard.press('Backspace');
++  await page.type('#c4-user', USER);
++  await page.click('#c4-password', { clickCount: 3 });
++  await page.keyboard.press('Backspace');
++  await page.type('#c4-password', password);
++  await Promise.all([
++    page.waitForResponse(r => r.url().includes('/auth/login') && r.status() === 200, { timeout: 15000 }),
++    page.keyboard.press('Enter'),
++  ]);
++  await page.waitForSelector('header', { timeout: 15000 });
++  await shot(page, 'post_login', vp);
++}
++
++async function visitTopView(page, view, vp) {
++  const sel = `button[data-testid="top-tab-${view}"]`;
++  const selGeneric = `button:has-text("${view}")`;
++  let clicked = false;
++  const exists = await page.$(sel);
++  if (exists) {
++    await page.click(sel);
++    clicked = true;
++  } else {
++    // try by role/name
++    const candidates = await page.$$eval('header button', btns =>
++      btns.map((b, i) => ({ i, text: (b.textContent || '').trim().toLowerCase() }))
++    );
++    const cap = view.toLowerCase();
++    const hit = candidates.find(c => c.text === cap || c.text.includes(cap));
++    if (hit) {
++      const elHandle = (await page.$$('header button'))[hit.i];
++      await elHandle.click();
++      clicked = true;
++    }
++  }
++  if (!clicked) {
++    pushIssue('warn', `top-${view}`, 'top tab button not found');
++    return;
++  }
++  await delay(800);
++  await shot(page, `top_${view}`, vp);
++}
++
++async function exploreWorkersView(page, vp) {
++  // Ensure sidebar open (desktop defaults open)
++  await shot(page, 'workers_initial', vp);
++
++  // Toggle sidebar mode (list/tree)
++  const modeButtons = await page.$$('button[aria-label*="list"], button[aria-label*="tree"], button[aria-label*="List"], button[aria-label*="Tree"]');
++  if (modeButtons.length) {
++    for (const btn of modeButtons) {
++      try { await btn.click(); await delay(300); } catch {}
++    }
++    await shot(page, 'workers_mode_toggle', vp);
++  }
++
++  // Click refresh if present
++  const refreshBtn = await page.$('button[aria-label*="efresh"], button[title*="efresh"]');
++  if (refreshBtn) {
++    await refreshBtn.click();
++    await delay(400);
++  }
++
++  // Select first worker if any
++  const firstWorker = await page.$('aside li button, aside [role="button"]');
++  if (firstWorker) {
++    await firstWorker.click();
++    await delay(600);
++    await shot(page, 'worker_selected', vp);
++
++    // Cycle detail tabs
++    for (const mode of DETAIL_MODES) {
++      const btn = await page.$(`button[data-tab="${mode}"], button[aria-label*="${mode}"]`);
++      if (btn) {
++        await btn.click();
++        await delay(500);
++      } else {
++        // try by visible text
++        const all = await page.$$('button');
++        for (const b of all) {
++          const t = await b.evaluate(el => (el.textContent || '').trim().toLowerCase());
++          if (t === mode || t.includes(mode)) {
++            try { await b.click(); await delay(500); break; } catch {}
++          }
++        }
++      }
++      await shot(page, `detail_${mode}`, vp);
++    }
++  } else {
++    pushIssue('info', 'workers', 'no workers in sidebar list');
++  }
++}
++
++async function exploreChatGlobal(page, vp) {
++  await shot(page, 'global_chat', vp);
++  const input = await page.$('textarea, input[type="text"]');
++  if (input) {
++    await input.focus();
++    await page.keyboard.type('ping from ux-explorer');
++    await shot(page, 'global_chat_typed', vp);
++    // Do NOT actually submit global chat — may spawn work. Clear it.
++    await page.keyboard.down('Control');
++    await page.keyboard.press('A');
++    await page.keyboard.up('Control');
++    await page.keyboard.press('Backspace');
++  } else {
++    pushIssue('info', 'global-chat', 'no input field visible');
++  }
++}
++
++async function exploreHistory(page, vp) {
++  await shot(page, 'history_initial', vp);
++  // Try search input
++  const search = await page.$('input[type="search"], input[placeholder*="earch" i]');
++  if (search) {
++    await search.type('test');
++    await delay(400);
++    await shot(page, 'history_search', vp);
++    await search.click({ clickCount: 3 });
++    await page.keyboard.press('Backspace');
++  }
++  // Row click if any
++  const firstRow = await page.$('table tbody tr, [role="row"]');
++  if (firstRow) {
++    try { await firstRow.click(); await delay(400); await shot(page, 'history_row_open', vp); } catch {}
++  }
++}
++
++async function exploreWorkflows(page, vp) {
++  await shot(page, 'workflows_initial', vp);
++  const refresh = await page.$('button[aria-label*="efresh" i], button[title*="efresh" i]');
++  if (refresh) { await refresh.click(); await delay(300); }
++}
++
++async function escapeCheck(page, vp) {
++  // Open any menu/dropdown and press Escape
++  const btns = await page.$$('button[aria-haspopup], button[aria-expanded]');
++  for (const b of btns.slice(0, 2)) {
++    try {
++      await b.click();
++      await delay(200);
++      await page.keyboard.press('Escape');
++      await delay(200);
++    } catch {}
++  }
++}
++
++async function keyboardFocusCheck(page, vp) {
++  await page.keyboard.press('Tab');
++  await delay(100);
++  await page.keyboard.press('Tab');
++  await delay(100);
++  const active = await page.evaluate(() => {
++    const el = document.activeElement;
++    if (!el) return null;
++    const style = getComputedStyle(el);
++    return { tag: el.tagName, outline: style.outlineStyle, outlineWidth: style.outlineWidth, boxShadow: style.boxShadow };
++  });
++  if (active && active.outline === 'none' && (!active.boxShadow || active.boxShadow === 'none')) {
++    pushIssue('warn', 'a11y-focus', `tabbed focus has no visible focus ring on ${active.tag}`);
++  }
++  await shot(page, 'focus_ring', vp);
++}
++
++async function checkTextTruncation(page, vp) {
++  const overflow = await page.evaluate(() => {
++    const out = [];
++    const els = document.querySelectorAll('button, a, span, div, li, td');
++    for (const el of els) {
++      if (el.scrollWidth > el.clientWidth + 4) {
++        const cs = getComputedStyle(el);
++        if (cs.overflow === 'visible' && cs.textOverflow !== 'ellipsis' && cs.whiteSpace === 'nowrap') {
++          out.push({
++            tag: el.tagName,
++            id: el.id,
++            cls: (el.className || '').toString().slice(0, 80),
++            text: (el.textContent || '').slice(0, 80),
++          });
++          if (out.length > 6) break;
++        }
++      }
++    }
++    return out;
++  });
++  for (const o of overflow) {
++    pushIssue('info', 'text-overflow', `possible overflow on <${o.tag}> class="${o.cls}" text="${o.text}"`);
++  }
++}
++
++async function ariaLabelCheck(page, vp) {
++  const missing = await page.evaluate(() => {
++    const icons = document.querySelectorAll('button');
++    const out = [];
++    icons.forEach(b => {
++      const text = (b.textContent || '').trim();
++      const aria = b.getAttribute('aria-label');
++      const title = b.getAttribute('title');
++      if (!text && !aria && !title) {
++        out.push({ html: b.outerHTML.slice(0, 180) });
++      }
++    });
++    return out.slice(0, 10);
++  });
++  for (const m of missing) pushIssue('warn', 'a11y-aria', `icon-only button missing label: ${m.html}`);
++}
++
++async function logoutFlow(page, vp) {
++  // Look for logout/sign-out button
++  const logoutBtn = await page.$('button[aria-label*="ogout" i], button[aria-label*="ign out" i], button[title*="ogout" i]');
++  if (logoutBtn) {
++    await logoutBtn.click();
++    await delay(600);
++    await shot(page, 'post_logout', vp);
++  } else {
++    // search by text
++    const candidates = await page.$$('button');
++    for (const b of candidates) {
++      const t = await b.evaluate(el => (el.textContent || '').trim().toLowerCase());
++      if (t === 'sign out' || t === 'logout' || t === 'log out') {
++        try { await b.click(); await delay(600); await shot(page, 'post_logout', vp); break; } catch {}
++      }
++    }
++  }
++}
++
++async function runForViewport(browser, vpKey) {
++  const vp = VIEWPORTS[vpKey];
++  const ctx = await browser.createBrowserContext();
++  const page = await ctx.newPage();
++  await page.setViewport({ width: vp.width, height: vp.height });
++  attachListeners(page, vpKey);
++
++  try {
++    await loginFlow(page, vp.label);
++    // workers
++    await visitTopView(page, 'workers', vp.label);
++    await exploreWorkersView(page, vp.label);
++    await ariaLabelCheck(page, vp.label);
++    await checkTextTruncation(page, vp.label);
++    await keyboardFocusCheck(page, vp.label);
++    await escapeCheck(page, vp.label);
++    // chat
++    await visitTopView(page, 'chat', vp.label);
++    await exploreChatGlobal(page, vp.label);
++    // history
++    await visitTopView(page, 'history', vp.label);
++    await exploreHistory(page, vp.label);
++    // workflows
++    await visitTopView(page, 'workflows', vp.label);
++    await exploreWorkflows(page, vp.label);
++    // 401 simulation: clear token, reload
++    await page.evaluate(() => { try { localStorage.removeItem('c4.token'); } catch {} });
++    await page.reload({ waitUntil: 'networkidle2' });
++    await shot(page, 'after_token_clear', vp.label);
++    // logout (should land on login)
++    // Re-login to test the full cycle
++    await loginFlow(page, vp.label);
++    await logoutFlow(page, vp.label);
++  } catch (e) {
++    pushIssue('critical', `flow-${vpKey}`, `unhandled: ${e.message}`);
++    try { await shot(page, `crash_${vpKey}`, vp.label); } catch {}
++  } finally {
++    await page.close();
++    await ctx.close();
++  }
++}
++
++async function main() {
++  const browser = await puppeteer.launch({
++    executablePath: CHROME,
++    headless: 'new',
++    args: [
++      '--no-sandbox',
++      '--disable-setuid-sandbox',
++      '--disable-dev-shm-usage',
++      '--disable-gpu',
++    ],
++  });
++
++  try {
++    for (const vp of Object.keys(VIEWPORTS)) {
++      await runForViewport(browser, vp);
++    }
++  } finally {
++    await browser.close();
++  }
++
++  const grouped = { critical: [], warn: [], info: [] };
++  for (const i of issues) grouped[i.severity].push(i);
++
++  const report = {
++    iteration,
++    timestamp: new Date().toISOString(),
++    counts: { critical: grouped.critical.length, warn: grouped.warn.length, info: grouped.info.length },
++    issues: grouped,
++  };
++  fs.writeFileSync(path.join(REPORT_ROOT, 'report.json'), JSON.stringify(report, null, 2));
++
++  const md = [];
++  md.push(`# UX Exploration Report (iteration ${iteration})`);
++  md.push('');
++  md.push(`Generated: ${report.timestamp}`);
++  md.push('');
++  md.push(`- Critical: ${report.counts.critical}`);
++  md.push(`- Warn: ${report.counts.warn}`);
++  md.push(`- Info: ${report.counts.info}`);
++  md.push('');
++  for (const sev of ['critical', 'warn', 'info']) {
++    if (!grouped[sev].length) continue;
++    md.push(`## ${sev.toUpperCase()}`);
++    md.push('');
++    const seen = new Set();
++    for (const it of grouped[sev]) {
++      const key = `${it.view}:${it.message}`;
++      if (seen.has(key)) continue;
++      seen.add(key);
++      md.push(`- **${it.view}**: ${it.message}`);
++    }
++    md.push('');
++  }
++  md.push('## Screenshots');
++  const shots = fs.readdirSync(SHOTS_DIR).filter(f => f.endsWith('.png'));
++  for (const s of shots) md.push(`- screenshots/${s}`);
++  fs.writeFileSync(path.join(REPORT_ROOT, 'summary.md'), md.join('\n'));
++
++  console.log('--- SUMMARY ---');
++  console.log(JSON.stringify(report.counts, null, 2));
++  console.log('Report:', path.join(REPORT_ROOT, 'report.json'));
++  // Exit with non-zero if anything critical
++  if (report.counts.critical > 0) process.exitCode = 2;
++}
++
++main().catch(e => {
++  console.error('FATAL', e);
++  process.exitCode = 1;
++});
+diff --git a/tools/ux/package.json b/tools/ux/package.json
+new file mode 100644
+index 0000000..dc5e31e
+--- /dev/null
++++ b/tools/ux/package.json
+@@ -0,0 +1,9 @@
++{
++  "name": "c4-ux-explorer",
++  "version": "0.0.0",
++  "private": true,
++  "type": "module",
++  "dependencies": {
++    "puppeteer-core": "^23.0.0"
++  }
++}
+-- 
+2.34.1
+
+
+From d04533aaf4ace584fb937f5732b698d83d64f00e Mon Sep 17 00:00:00 2001
+From: c4-worker <c4-worker@c4.local>
+Date: Sat, 18 Apr 2026 17:12:26 +0000
+Subject: [PATCH 2/6] fix(web): stop stripping /api in vite proxy so auth check
+ runs
+
+The daemon's session-auth middleware only runs the JWT check when the
+incoming path keeps its /api prefix (resolveApiRoute returns
+isApi=true). Vite's rewrite previously stripped the prefix, so every
+proxied request reached the daemon as /<route>, the auth check was
+skipped, and authCheck.decoded stayed undefined. The route-level
+RBAC gate (requireRole) then 401'd with "Authentication required"
+even when the browser sent a valid Bearer token, breaking
+/api/workflows and any other RBAC-gated GET in dev.
+
+Forwarding /api/* unchanged lets the daemon decode the token in the
+middleware as it already does in production (where the built UI hits
+the daemon directly on :3456).
+---
+ web/vite.config.ts | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/web/vite.config.ts b/web/vite.config.ts
+index 6dd7d11..057fa91 100644
+--- a/web/vite.config.ts
++++ b/web/vite.config.ts
+@@ -7,10 +7,13 @@ export default defineConfig({
+     host: '0.0.0.0',
+     port: 5173,
+     proxy: {
++      // Forward /api/* unchanged so the daemon's resolveApiRoute() still
++      // sees the /api prefix. The auth middleware only runs the JWT check
++      // when isApiPrefixed is true; stripping /api here would skip it and
++      // make every authed route 401 even with a valid token.
+       '/api': {
+         target: 'http://localhost:3456',
+         changeOrigin: true,
+-        rewrite: (path) => path.replace(/^\/api/, ''),
+       },
+     },
+   },
+-- 
+2.34.1
+
+
+From 4aa808b0a5e9b5ec830bfae1306547742185f727 Mon Sep 17 00:00:00 2001
+From: c4-worker <c4-worker@c4.local>
+Date: Sat, 18 Apr 2026 17:32:56 +0000
+Subject: [PATCH 3/6] fix(auth): keep /auth/status open and fail safe in the
+ Web UI
+
+Two related defects surfaced by the UX exploration runner:
+
+1. /auth/status was protected by the JWT middleware. /api/auth/status
+   therefore returned 401 to anonymous clients, which is the very
+   request the React app makes to decide whether to render the login
+   page in the first place. Add it to OPEN_API_ROUTES so unauthed
+   browsers can still ask "is auth on?".
+
+2. fetchAuthStatus() previously translated any non-OK response (or any
+   thrown error) into { enabled: false }. App.tsx then set authState
+   to 'disabled' and fell through to the dashboard render branch -
+   meaning a misconfigured proxy, a daemon restart, or any transient
+   network blip silently rendered the operator UI to anonymous users.
+   Default to { enabled: true } on error so the worst case is showing
+   the login screen instead of the dashboard.
+
+Together they remove a UI-level fail-open: even with a bad
+/auth/status response the user is now stopped at the sign-in card.
+---
+ src/auth.js        | 6 +++++-
+ web/src/lib/api.ts | 8 ++++++--
+ 2 files changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/src/auth.js b/src/auth.js
+index 2bf775f..7607790 100644
+--- a/src/auth.js
++++ b/src/auth.js
+@@ -22,9 +22,13 @@ const DEFAULT_BCRYPT_ROUNDS = 10;
+ 
+ // Routes the middleware must let through even when auth is enabled.
+ // The login endpoint is needed to obtain a token in the first place,
+-// and the health check stays public for daemon probes.
++// the health check stays public for daemon probes, and /auth/status is
++// the very first call the Web UI makes to decide whether to render the
++// login page - if it returns 401 unauthed clients get stuck in a
++// chicken-and-egg loop and the React app falls open to the dashboard.
+ const OPEN_API_ROUTES = new Set([
+   '/auth/login',
++  '/auth/status',
+   '/health',
+ ]);
+ 
+diff --git a/web/src/lib/api.ts b/web/src/lib/api.ts
+index 7293184..742414e 100644
+--- a/web/src/lib/api.ts
++++ b/web/src/lib/api.ts
+@@ -112,12 +112,16 @@ export interface AuthStatus {
+ }
+ 
+ export async function fetchAuthStatus(): Promise<AuthStatus> {
++  // Fail safe: if the status check itself errors or returns non-OK we
++  // assume auth is enabled. Treating an error as "auth disabled" would
++  // silently render the dashboard for unauthenticated users when the
++  // daemon is mid-restart or behind a misconfigured proxy.
+   try {
+     const res = await fetch('/api/auth/status');
+-    if (!res.ok) return { enabled: false };
++    if (!res.ok) return { enabled: true };
+     const data = (await res.json()) as AuthStatus;
+     return { enabled: Boolean(data.enabled) };
+   } catch {
+-    return { enabled: false };
++    return { enabled: true };
+   }
+ }
+-- 
+2.34.1
+
+
+From ba33ef1b374ee62fea83af8c8ce45c8f1976d6f4 Mon Sep 17 00:00:00 2001
+From: c4-worker <c4-worker@c4.local>
+Date: Sat, 18 Apr 2026 17:33:06 +0000
+Subject: [PATCH 4/6] chore(ux): harden runner (per-viewport browser, fail-open
+ probe, dedup)
+
+- Spawn a fresh Chrome per viewport so localStorage isolation no longer
+  depends on createBrowserContext semantics that vary across
+  puppeteer-core builds.
+- Wait for React to leave its 'Loading...' splash before probing for
+  the login form; otherwise a slow /auth/status round-trip looks
+  identical to a fail-open render of the dashboard.
+- Probe for the sign-in card after every goto and report a critical
+  'auth-fail-open' issue when the dashboard renders without a token.
+- Dedupe issues by (severity, view, message) so 5s polling no longer
+  floods the report with identical 401 lines.
+- Clear localStorage between flows and respect an expectAuth flag so
+  401 noise during deliberate token-clear / logout windows is not
+  counted as a regression.
+---
+ tools/ux/explore.mjs | 79 ++++++++++++++++++++++++++++++++++----------
+ 1 file changed, 62 insertions(+), 17 deletions(-)
+
+diff --git a/tools/ux/explore.mjs b/tools/ux/explore.mjs
+index bda79be..e686745 100644
+--- a/tools/ux/explore.mjs
++++ b/tools/ux/explore.mjs
+@@ -25,7 +25,12 @@ fs.mkdirSync(SHOTS_DIR, { recursive: true });
+ 
+ const password = fs.readFileSync(CRED_FILE, 'utf8').trim();
+ const issues = [];
++const seenIssue = new Set();
++let expectAuth = false; // set true once we are logged in; false during deliberate token-clear / pre-login
+ const pushIssue = (severity, view, message, extra = {}) => {
++  const key = `${severity}|${view}|${message}`;
++  if (seenIssue.has(key)) return;
++  seenIssue.add(key);
+   issues.push({ severity, view, message, ...extra });
+   console.log(`[${severity}] ${view}: ${message}`);
+ };
+@@ -44,11 +49,21 @@ function attachListeners(page, tag) {
+   page.on('pageerror', (err) => {
+     pushIssue('critical', tag, `pageerror: ${err.message}`);
+   });
++  page.on('response', async (res) => {
++    if (res.url().includes('/auth/status')) {
++      let body = '';
++      try { body = (await res.text()).slice(0, 120); } catch {}
++      console.log(`[auth-status ${tag}] HTTP ${res.status()} body=${body}`);
++    }
++  });
+   page.on('console', (msg) => {
+     const type = msg.type();
+     if (type === 'error') {
+       const text = msg.text();
+       if (text.includes('Failed to load resource') && text.includes('404') && text.includes('favicon')) return;
++      // Suppress generic "Failed to load resource" 401 lines — the response handler below
++      // captures real 401s with the URL; this dup just adds noise.
++      if (text.includes('Failed to load resource') && text.includes('401')) return;
+       pushIssue('warn', tag, `console.error: ${text.slice(0, 400)}`);
+     }
+   });
+@@ -56,6 +71,8 @@ function attachListeners(page, tag) {
+     const f = req.failure();
+     const url = req.url();
+     if (url.includes('hot-update') || url.endsWith('favicon.ico')) return;
++    // EventSource (SSE) reconnect aborts on logout / token clear are normal.
++    if (url.includes('/api/events') && (f?.errorText === 'net::ERR_ABORTED')) return;
+     pushIssue('warn', tag, `request failed ${url}: ${f?.errorText || 'unknown'}`);
+   });
+   page.on('response', async (res) => {
+@@ -63,6 +80,8 @@ function attachListeners(page, tag) {
+     const url = res.url();
+     if (status >= 500) pushIssue('critical', tag, `HTTP ${status} ${url}`);
+     else if (status === 401 && !url.endsWith('/auth/login') && !url.endsWith('/auth/status')) {
++      // 401s while we deliberately clear the token / are on the login page are expected.
++      if (!expectAuth) return;
+       pushIssue('warn', tag, `HTTP 401 ${url}`);
+     }
+   });
+@@ -80,6 +99,24 @@ async function shot(page, name, vp) {
+ 
+ async function loginFlow(page, vp) {
+   await page.goto(BASE + '/', { waitUntil: 'networkidle2', timeout: 30000 });
++  // Wait until React leaves the initial 'Loading...' splash so that we can
++  // tell apart "still booting" from "fail-open dashboard".
++  try {
++    await page.waitForFunction(() => {
++      const t = (document.body && document.body.innerText) || '';
++      return !t.startsWith('Loading');
++    }, { timeout: 10000 });
++  } catch { /* fall through to probe */ }
++  const probe = await page.evaluate(() => ({
++    hasUser: !!document.getElementById('c4-user'),
++    bodyText: (document.body && document.body.innerText || '').slice(0, 240),
++  }));
++  if (!probe.hasUser && !probe.bodyText.startsWith('Loading')) {
++    pushIssue('critical', 'auth-fail-open',
++      `dashboard rendered with no token. bodyText="${probe.bodyText.replace(/\s+/g, ' ').slice(0, 160)}"`);
++    throw new Error('login form not rendered without token');
++  }
++  await page.waitForSelector('#c4-user', { timeout: 15000 });
+   await shot(page, 'login', vp);
+ 
+   // Invalid creds attempt
+@@ -112,6 +149,7 @@ async function loginFlow(page, vp) {
+     page.keyboard.press('Enter'),
+   ]);
+   await page.waitForSelector('header', { timeout: 15000 });
++  expectAuth = true;
+   await shot(page, 'post_login', vp);
+ }
+ 
+@@ -308,6 +346,7 @@ async function ariaLabelCheck(page, vp) {
+ }
+ 
+ async function logoutFlow(page, vp) {
++  expectAuth = false; // any 401 after this point is expected
+   // Look for logout/sign-out button
+   const logoutBtn = await page.$('button[aria-label*="ogout" i], button[aria-label*="ign out" i], button[title*="ogout" i]');
+   if (logoutBtn) {
+@@ -326,13 +365,15 @@ async function logoutFlow(page, vp) {
+   }
+ }
+ 
+-async function runForViewport(browser, vpKey) {
++async function runForViewport(launchBrowser, vpKey) {
+   const vp = VIEWPORTS[vpKey];
+-  const ctx = await browser.createBrowserContext();
+-  const page = await ctx.newPage();
++  // Fresh browser per viewport so localStorage is guaranteed isolated.
++  const browser = await launchBrowser();
++  const page = await browser.newPage();
+   await page.setViewport({ width: vp.width, height: vp.height });
+   attachListeners(page, vpKey);
+ 
++  expectAuth = false;
+   try {
+     await loginFlow(page, vp.label);
+     // workers
+@@ -351,25 +392,33 @@ async function runForViewport(browser, vpKey) {
+     // workflows
+     await visitTopView(page, 'workflows', vp.label);
+     await exploreWorkflows(page, vp.label);
+-    // 401 simulation: clear token, reload
+-    await page.evaluate(() => { try { localStorage.removeItem('c4.token'); } catch {} });
++    // 401 simulation: clear token, reload. Mark as deliberately unauth so the
++    // 401 noise during the logout race is not counted as a regression.
++    expectAuth = false;
++    await page.evaluate(() => { try { localStorage.removeItem('c4.authToken'); } catch {} });
+     await page.reload({ waitUntil: 'networkidle2' });
++    await delay(600);
++    const stillAuthed = await page.$('#c4-user') === null;
++    if (stillAuthed) {
++      pushIssue('warn', 'auth-clear', 'after removing c4.authToken + reload, login form did not render (auth state stuck)');
++    }
+     await shot(page, 'after_token_clear', vp.label);
+-    // logout (should land on login)
+-    // Re-login to test the full cycle
+-    await loginFlow(page, vp.label);
+-    await logoutFlow(page, vp.label);
++    // Re-login + sign out cycle (only if we actually got back to login)
++    if (!stillAuthed) {
++      await loginFlow(page, vp.label);
++      await logoutFlow(page, vp.label);
++    }
+   } catch (e) {
+     pushIssue('critical', `flow-${vpKey}`, `unhandled: ${e.message}`);
+     try { await shot(page, `crash_${vpKey}`, vp.label); } catch {}
+   } finally {
+     await page.close();
+-    await ctx.close();
++    await browser.close();
+   }
+ }
+ 
+ async function main() {
+-  const browser = await puppeteer.launch({
++  const launchBrowser = () => puppeteer.launch({
+     executablePath: CHROME,
+     headless: 'new',
+     args: [
+@@ -380,12 +429,8 @@ async function main() {
+     ],
+   });
+ 
+-  try {
+-    for (const vp of Object.keys(VIEWPORTS)) {
+-      await runForViewport(browser, vp);
+-    }
+-  } finally {
+-    await browser.close();
++  for (const vp of Object.keys(VIEWPORTS)) {
++    await runForViewport(launchBrowser, vp);
+   }
+ 
+   const grouped = { critical: [], warn: [], info: [] };
+-- 
+2.34.1
+
+
+From 47ff99ce33b9dc855537ed5dcc686027f68a0eb3 Mon Sep 17 00:00:00 2001
+From: c4-worker <c4-worker@c4.local>
+Date: Sat, 18 Apr 2026 17:39:25 +0000
+Subject: [PATCH 5/6] fix(web): mobile header overflow + history search that
+ did nothing
+
+TopTabs: on the 375px viewport the four icon+label tabs and the sign
+out button overflowed the header, clipping the logout icon and
+hiding the dashboard title. Hide the tab labels below the sm
+breakpoint and fall back to the icon plus aria-label / title so
+screen readers and tooltips still announce them.
+
+HistoryView: typing in the sidebar search box only filtered the
+records array on the server response - the workers list rendered in
+the sidebar was always the unfiltered catalog, so the search felt
+broken. Filter the visible worker summaries client-side by name,
+lastTask, or branch when a query is set.
+---
+ web/src/components/HistoryView.tsx    | 11 ++++++++++-
+ web/src/components/layout/TopTabs.tsx |  6 ++++--
+ 2 files changed, 14 insertions(+), 3 deletions(-)
+
+diff --git a/web/src/components/HistoryView.tsx b/web/src/components/HistoryView.tsx
+index aa65f7b..e820622 100644
+--- a/web/src/components/HistoryView.tsx
++++ b/web/src/components/HistoryView.tsx
+@@ -251,7 +251,16 @@ export default function HistoryView() {
+               <div className="text-xs text-muted-foreground">No history yet.</div>
+             )}
+             <ul className="space-y-1">
+-              {summary.map((w) => {
++              {(query
++                ? summary.filter((w) => {
++                    const needle = query.toLowerCase();
++                    if (w.name.toLowerCase().includes(needle)) return true;
++                    if (w.lastTask && w.lastTask.toLowerCase().includes(needle)) return true;
++                    if (w.branches.some((b) => b.toLowerCase().includes(needle))) return true;
++                    return false;
++                  })
++                : summary
++              ).map((w) => {
+                 const isSelected = selected === w.name;
+                 return (
+                   <li key={w.name}>
+diff --git a/web/src/components/layout/TopTabs.tsx b/web/src/components/layout/TopTabs.tsx
+index ae1922e..b951244 100644
+--- a/web/src/components/layout/TopTabs.tsx
++++ b/web/src/components/layout/TopTabs.tsx
+@@ -37,16 +37,18 @@ export default function TopTabs({ value, onChange }: TopTabsProps) {
+             type="button"
+             role="tab"
+             aria-selected={active}
++            aria-label={label}
++            title={label}
+             onClick={() => onChange(v)}
+             className={cn(
+-              'inline-flex items-center gap-1.5 px-3 py-1.5 transition-colors',
++              'inline-flex items-center gap-1.5 px-2 py-1.5 transition-colors sm:px-3',
+               active
+                 ? 'bg-primary/10 text-primary'
+                 : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+             )}
+           >
+             <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+-            {label}
++            <span className="hidden sm:inline">{label}</span>
+           </button>
+         );
+       })}
+-- 
+2.34.1
+
+
+From f8c516e52cd0285a1c5ceb77fccd5eb8f4a840f3 Mon Sep 17 00:00:00 2001
+From: c4-worker <c4-worker@c4.local>
+Date: Sat, 18 Apr 2026 17:43:58 +0000
+Subject: [PATCH 6/6] chore(ux): wait for React 'Loading...' to clear before
+ token-clear probe
+
+After clearing the JWT and reloading, the mobile context occasionally
+captured the React 'Loading...' splash before fetchAuthStatus had
+returned, then flagged a false-positive 'auth state stuck' warning.
+Wait for the splash text to disappear (or 8s timeout) before deciding
+whether the login form rendered, so the assertion only fires when the
+app has actually settled into a state.
+---
+ tools/ux/explore.mjs | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/tools/ux/explore.mjs b/tools/ux/explore.mjs
+index e686745..37bf786 100644
+--- a/tools/ux/explore.mjs
++++ b/tools/ux/explore.mjs
+@@ -397,8 +397,16 @@ async function runForViewport(launchBrowser, vpKey) {
+     expectAuth = false;
+     await page.evaluate(() => { try { localStorage.removeItem('c4.authToken'); } catch {} });
+     await page.reload({ waitUntil: 'networkidle2' });
+-    await delay(600);
+-    const stillAuthed = await page.$('#c4-user') === null;
++    let stillAuthed = false;
++    try {
++      await page.waitForFunction(() => {
++        const t = (document.body && document.body.innerText) || '';
++        return !t.startsWith('Loading') && !t.includes('Loading...');
++      }, { timeout: 8000 });
++      stillAuthed = (await page.$('#c4-user')) === null;
++    } catch {
++      stillAuthed = (await page.$('#c4-user')) === null;
++    }
+     if (stillAuthed) {
+       pushIssue('warn', 'auth-clear', 'after removing c4.authToken + reload, login form did not render (auth state stuck)');
+     }
+-- 
+2.34.1
+
