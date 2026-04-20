@@ -19,6 +19,7 @@ const SummaryLayer = require('./summary-layer');
 const validationLib = require('./validation');
 const interventionState = require('./intervention-state');
 const { ApprovalMonitor } = require('./approval-monitor');
+const postCompactHook = require('./post-compact-hook');
 
 // L4 Critical Deny List (5.13) — these commands are NEVER auto-approved, even at full autonomy
 const CRITICAL_DENY_PATTERNS = [
@@ -3204,6 +3205,7 @@ class PtyManager extends EventEmitter {
     screen.maxScrollback = scrollback;
 
     const worker = {
+      name,
       proc,
       screen,
       alive: true,
@@ -3267,6 +3269,14 @@ class PtyManager extends EventEmitter {
       _stopReason: null,
       // Validation object (9.9)
       _validation: null,
+      // Post-compact hook state (8.45): debounce + drift window + ack wait
+      _postCompactState: {
+        lastFiredAt: 0,
+        driftWindow: postCompactHook.createDriftWindow(),
+        ackDeadline: 0,
+        lastInjectionAt: 0,
+        lastInjectionType: null,
+      },
     };
 
     // Raw log
@@ -3281,6 +3291,13 @@ class PtyManager extends EventEmitter {
       this._adaptivePolling.recordActivity(worker._pollState);
 
       screen.write(data);
+
+      // Post-compact detection (8.45). Checks the raw chunk for
+      // Claude Code's compact-completion markers. Debounced per
+      // worker so a marker that survives into the scrollback tail
+      // does not re-fire within the same window. Rule re-injection
+      // happens asynchronously - we do not await it from onData.
+      this._handlePostCompactChunk(worker, data);
 
       // Notify watch stream listeners (5.42)
       if (worker._watchers && worker._watchers.size > 0) {
@@ -3458,6 +3475,12 @@ class PtyManager extends EventEmitter {
           const detail = promptType === 'bash'
             ? this._termInterface.extractBashCommand(text)
             : this._termInterface.extractFileName(text);
+          // Post-compact drift inspection (8.45): if the worker is in
+          // its post-compact window, audit the Bash command for the
+          // compound patterns the rule template forbade.
+          if (promptType === 'bash' && detail) {
+            this._inspectPostCompactDrift(worker, detail, proc, text);
+          }
           this._emitSSE('permission', { worker: name, promptType, detail });
           // Immediate intervention notification for permission prompts (5.29)
           if (this._notifications && !worker._permissionNotified) {
@@ -5007,6 +5030,11 @@ class PtyManager extends EventEmitter {
 
     this._emitSSE('compact', { worker: workerName, count: w._compactCount });
 
+    // 8.45: re-inject role-specific rules so halt-prevention survives
+    // the compaction. Source 'hook' marks this path as the settings-
+    // backed PostCompact curl, distinct from the PTY-tail detector.
+    this._triggerPostCompactInjection(workerName, 'hook');
+
     // Check if auto-replacement threshold reached
     const threshold = this.config.managerRotation?.compactThreshold ?? 0;
     if (threshold > 0 && w._compactCount >= threshold && w._autoWorker) {
@@ -5018,6 +5046,145 @@ class PtyManager extends EventEmitter {
     }
 
     return { received: true, worker: workerName, compactCount: w._compactCount };
+  }
+
+  // --- Post-Compact Hook (8.45) ---
+
+  _postCompactConfig() {
+    const cfg = this.config.postCompactHook || {};
+    return {
+      enabled: cfg.enabled !== false,
+      templateDir: cfg.templateDir
+        ? path.resolve(__dirname, '..', cfg.templateDir)
+        : postCompactHook.DEFAULT_TEMPLATE_DIR,
+      verifyTimeoutMs: Number.isFinite(cfg.verifyTimeoutMs)
+        ? cfg.verifyTimeoutMs
+        : postCompactHook.DEFAULT_VERIFY_TIMEOUT_MS,
+      debounceMs: Number.isFinite(cfg.debounceMs)
+        ? cfg.debounceMs
+        : postCompactHook.DEFAULT_DEBOUNCE_MS,
+      driftWindow: Number.isFinite(cfg.driftWindow)
+        ? cfg.driftWindow
+        : postCompactHook.DEFAULT_DRIFT_WINDOW,
+    };
+  }
+
+  // Called from the PTY onData handler for every chunk. Fast path -
+  // the regex scan is cheap; injection only runs when debouncing
+  // lets it through.
+  _handlePostCompactChunk(worker, chunk) {
+    const cfg = this._postCompactConfig();
+    if (!cfg.enabled) return;
+    const state = worker._postCompactState;
+    if (!state) return;
+    // Ack detection: if we are waiting on an ack after an injection,
+    // treat any chunk containing "rules received" as acknowledgement.
+    if (state.ackDeadline && state.ackDeadline > Date.now()) {
+      const lower = String(chunk || '').toLowerCase();
+      if (lower.includes('rules received')) {
+        state.ackDeadline = 0;
+        worker.snapshots = worker.snapshots || [];
+        worker.snapshots.push({
+          time: Date.now(),
+          screen: `[C4 POST-COMPACT] ack received from ${worker.name}`,
+          autoAction: true,
+        });
+      }
+    }
+    const result = postCompactHook.detectCompactEvent(chunk, {
+      lastFiredAt: state.lastFiredAt,
+      debounceMs: cfg.debounceMs,
+      now: Date.now(),
+    });
+    if (!result.fired) return;
+    state.lastFiredAt = result.at;
+    // Fire-and-forget - injection is async but we do not block onData.
+    this._triggerPostCompactInjection(worker.name, 'pty-tail').catch(() => {});
+  }
+
+  async _triggerPostCompactInjection(workerName, source) {
+    const cfg = this._postCompactConfig();
+    if (!cfg.enabled) return { injected: false, reason: 'disabled' };
+    const w = this.workers.get(workerName);
+    if (!w) return { injected: false, error: `Worker '${workerName}' not found` };
+    const state = w._postCompactState || (w._postCompactState = {
+      lastFiredAt: 0,
+      driftWindow: postCompactHook.createDriftWindow(),
+      ackDeadline: 0,
+      lastInjectionAt: 0,
+      lastInjectionType: null,
+    });
+    const now = Date.now();
+    const result = await postCompactHook.injectRules(this, workerName, {
+      templateDir: cfg.templateDir,
+      now,
+    });
+    if (!result.injected) {
+      w.snapshots = w.snapshots || [];
+      w.snapshots.push({
+        time: now,
+        screen: `[C4 POST-COMPACT WARN] injection failed (source=${source}): ${result.error || 'unknown'}`,
+        autoAction: true,
+      });
+      return result;
+    }
+    state.lastInjectionAt = now;
+    state.lastInjectionType = result.workerType;
+    state.ackDeadline = now + cfg.verifyTimeoutMs;
+    postCompactHook.armDriftWindow(state.driftWindow, { now });
+    // Verify ack landed within the window.
+    setTimeout(() => {
+      if (!w._postCompactState) return;
+      if (w._postCompactState.ackDeadline === 0) return; // acked
+      if (Date.now() < w._postCompactState.ackDeadline) return; // extended
+      w._postCompactState.ackDeadline = 0;
+      w.snapshots = w.snapshots || [];
+      w.snapshots.push({
+        time: Date.now(),
+        screen: `[C4 POST-COMPACT WARN] ${workerName} did not ack rules within ${cfg.verifyTimeoutMs}ms`,
+        autoAction: true,
+      });
+      if (this._notifications && typeof this._notifications.pushAll === 'function') {
+        try {
+          this._notifications.pushAll(
+            `[POST-COMPACT] ${workerName} did not acknowledge re-injected rules in ${cfg.verifyTimeoutMs}ms`
+          );
+        } catch {}
+      }
+    }, cfg.verifyTimeoutMs + 100);
+    return { ...result, source, ackDeadline: state.ackDeadline };
+  }
+
+  // Inspect a Bash command surfaced in a permission prompt for drift
+  // against the post-compact rule template. If the worker is inside
+  // its drift window and we match a forbidden pattern, force a deny
+  // keystroke and a stronger re-injection.
+  _inspectPostCompactDrift(worker, bashCommand, proc, screenText) {
+    const cfg = this._postCompactConfig();
+    if (!cfg.enabled) return;
+    const state = worker._postCompactState;
+    if (!state || !state.driftWindow || !state.driftWindow.active) return;
+    const obs = postCompactHook.updateDriftWindow(state.driftWindow, bashCommand, {
+      windowSize: cfg.driftWindow,
+    });
+    if (!obs.drift) return;
+    // Force-deny and mark critical so the daemon surfaces intervention.
+    try {
+      const denyKeys = this._termInterface.getDenyKeys(screenText);
+      worker.proc.write(denyKeys);
+    } catch {}
+    worker._interventionState = 'critical_deny';
+    worker._hadIntervention = true;
+    worker._lastInterventionAt = new Date().toISOString();
+    worker.snapshots = worker.snapshots || [];
+    worker.snapshots.push({
+      time: Date.now(),
+      screen: `[C4 POST-COMPACT DRIFT] ${worker.name} used '${obs.drift.name}' within ${obs.windowSize} post-compact Bash calls: ${obs.drift.command}`,
+      autoAction: true,
+      postCompactDrift: true,
+    });
+    // Fire a second, stronger re-injection (fire-and-forget).
+    this._triggerPostCompactInjection(worker.name, 'drift').catch(() => {});
   }
 
   // Decision summary injection before manager handoff (5.12)

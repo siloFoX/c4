@@ -135,6 +135,34 @@
   Cleanup/Batch/Auto specifics. Full suite
   **110 -> 111 pass**. `npm --prefix web run build` succeeds. Patch
   note: `docs/patches/8.33-ui-docs.md`.
+- **(8.45) Post-compact hook: auto-detect + rule auto-reinject.**
+  `src/post-compact-hook.js` is a new pure-logic module that watches
+  worker PTY chunks for Claude Code's compact-completion markers
+  (`Context compacted`, `Compacting conversation`,
+  `/compact complete`, `Previous Conversation Compacted`, ...),
+  debounces per worker (default 60s), and routes a role-specific rule
+  template back into the worker via `manager.send`. `pty-manager` wires
+  the module at three call sites: the `onData` handler scans every
+  chunk, the existing `compactEvent` curl endpoint shares the same
+  injection path, and the Bash permission branch runs a drift
+  inspector over the first `driftWindow` (default 3) Bash commands
+  that follow a compact. Forbidden patterns (`&&`, `||`, `|`, `;`
+  before a word, `cd ... git`, `sleep`, `for`, `while`) force a deny
+  keystroke, flip the worker to `critical_deny`, and fire a second
+  re-injection. Three templates ship under `docs/rules/`: manager
+  (halt-prevention + approval protocol + merge criteria + anti-spawn),
+  worker (halt-prevention + task discipline + merge prep), attached
+  (short form for read-only sessions). Each ends with an explicit
+  `rules received` ack; the daemon arms a `verifyTimeoutMs` (default
+  10s) timer and pushes a warning + Slack notification when the ack
+  does not arrive. `config.example.json` grows a `postCompactHook`
+  block (`enabled`, `templateDir`, `verifyTimeoutMs`, `debounceMs`,
+  `driftWindow`). Tests: `tests/post-compact-hook.test.js` - 40
+  node:test assertions across regex coverage, worker-type resolution,
+  template fallback, banner composition, `injectRules` wiring against
+  a stub manager, drift detector, and drift window lifecycle. Full
+  suite: 112 passed, 0 failed. Patch note:
+  `docs/patches/8.45-post-compact-hook.md`.
 - **(8.25) Chat tab past-history backfill.** `web/src/components/ChatView.tsx`
   now fetches past conversation on mount (and on every `workerName`
   change) before attaching the SSE live stream. Primary path is
