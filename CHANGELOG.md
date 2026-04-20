@@ -3,6 +3,27 @@
 ## [Unreleased]
 
 ### Fixed
+- **(8.21b) `/api/auth/status` 401 on trailing-slash variants.**
+  The Web UI's first call after boot is `GET /api/auth/status` with
+  no bearer; any proxy or URL canonicalizer that rewrote it to
+  `/api/auth/status/` tripped `resolveApiRoute` into returning the
+  route as `/auth/status/`, which is not in `auth.OPEN_API_ROUTES`.
+  The middleware then 401'd the probe and the React app fell back to
+  the login card with `fetchAuthStatus()` silently assuming
+  `{ enabled: true }` (8.21 fail-safe). The same trailing-slash
+  mismatch silently 404'd every exact-match handler in `daemon.js`
+  too. `src/static-server.js` `resolveApiRoute` now strips one or
+  more trailing slashes from the resolved route (the bare `/` root is
+  preserved), so `/api/auth/status` and `/api/auth/status/` are
+  indistinguishable downstream. `OPEN_API_ROUTES` semantics are
+  untouched; protected routes (`/api/list/` etc.) remain 401 without
+  a bearer. Tests: `tests/daemon-static-serve.test.js` grows
+  `resolveApiRoute` cases for single/multiple trailing slashes, bare
+  `/api/`, and non-api `/dashboard/`; `tests/session-auth.test.js`
+  adds an explicit `/auth/status` open-route assertion, a `/list`
+  401 regression guard, and a composed resolveApiRoute +
+  checkRequest block. Full suite **108 / 108 pass**. Patch note:
+  `docs/patches/8.21b-auth-status-401.md`.
 - **(8.21) Sticky intervention flag and monitor-cron token waste.**
   Before 8.21 the daemon tracked one `_interventionState` string and
   treated every truthy value as "needs human" forever: a helper that
