@@ -45,6 +45,55 @@
   returns the legacy list-shape
   (`{ rootDir, sessions, groups, total }`) untouched - `SessionsView`
   and the 8.18 session-list consumers stay unaffected.
+- **(8.24 + 8.27) WorkerDetail terminal now runs xterm.js.** The old
+  append-only pre-block stripped ANSI in the browser, which meant
+  Claude Code's in-place redraws (spinner frames, thinking box,
+  alt-screen TUIs like htop / fzf / the prompt list) stacked up line
+  by line instead of replacing the previous frame. 8.24 mounts a
+  real `@xterm/xterm` Terminal inside a new
+  `web/src/components/XtermView.tsx`, loads `FitAddon` +
+  `SearchAddon` + `WebLinksAddon`, and hands raw base64 PTY chunks
+  from `/api/watch` straight to `term.write(...)` without
+  stripping. Cursor-up / ESC[2K / save-restore / alt-screen
+  (`ESC[?1049h`) all render correctly and the terminal pane now
+  reflects what the worker is showing right now instead of the full
+  history of redraws. 8.27 (auto-fit needed a tab-switch) is
+  resolved by the same change: the `<XtermView>` component stays
+  mounted while the Scrollback tab is active
+  (`tab === 'screen' ? 'block' : 'hidden'`) so the
+  `ResizeObserver(container)` + `window.addEventListener('resize')`
+  + `fit.fit()` pipeline keeps firing across tab switches, and a
+  `useLayoutEffect` re-fits whenever the `visible` prop flips back
+  to true. Auto-fit carries the 8.22 debounce + POST dedupe
+  (`FIT_DEBOUNCE_MS = 120`, `lastResizeRef`) and the daemon-side
+  clamp (`MIN_COLS=20` / `MAX_COLS=400` / `MIN_ROWS=5` /
+  `MAX_ROWS=200`, mirrors `src/pty-manager.js _clampResizeDims`).
+  Theme maps xterm tokens onto shadcn CSS vars (`--background`,
+  `--foreground`, `--muted-foreground`, `--primary`, `--accent`,
+  `--destructive`) via `readShadcnColor` + `buildXtermTheme` and
+  re-applies whenever the `<html>` `class` attribute flips, so
+  dark-mode parity stays. Alt-screen tracking reads
+  `term.buffer.active.type` through `term.buffer.onBufferChange`;
+  xterm already freezes the scrollbar while the alt buffer is
+  active so no bespoke scroll-lock is needed. Ctrl+F opens an
+  in-panel search overlay (SearchAddon `findNext` /
+  `findPrevious`), Escape closes. The Scrollback tab keeps the
+  existing stripAnsi pre for grep-style historical reads (we do
+  not re-emit past frames there). Dropped from `WorkerDetail.tsx`:
+  the ruler-based char-width measurement, `rulerRef`, `autoFit`
+  toggle, and the manual `cols` input - xterm owns measurement now.
+  `VITE_AUTOFIT_DEBUG` + `[autofit] ... POST /api/resize`
+  console.debug carried over from 8.22 so operators can still trace
+  the fit pipeline. Regression guards: `tests/xterm-view.test.js`
+  (21 assertions / 3 suites) + `tests/ux-visual.test.js` P1 block
+  redirected from `WorkerDetail.tsx` to `XtermView.tsx`. Full suite
+  **109 pass**. Patch note: `docs/patches/8.24-xterm-terminal.md`.
+  Spec: `docs/tasks/xterm-terminal.md`.
+
+### Dependencies
+- `web/package.json`: added `@xterm/xterm ^6.0.0`,
+  `@xterm/addon-fit ^0.11.0`, `@xterm/addon-search ^0.16.0`,
+  `@xterm/addon-web-links ^0.12.0` (8.24).
 
 ### Fixed
 - **(8.30) HistoryView scribe section transition.**

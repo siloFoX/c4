@@ -1,8 +1,6 @@
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -30,6 +28,7 @@ import {
   Label,
 } from './ui';
 import { cn } from '../lib/cn';
+import XtermView from './XtermView';
 
 interface WorkerDetailProps {
   workerName: string;
@@ -45,45 +44,33 @@ interface ReadResponse {
   totalScrollback?: number;
 }
 
-interface ResizeResponse {
-  success?: boolean;
-  cols?: number;
-  rows?: number;
-  error?: string;
-}
-
 interface ActionResponse {
   error?: string;
   [key: string]: unknown;
 }
 
-// 8.13: UI bounds mirror the server-side clamp (src/pty-manager.js
-// _clampResizeDims defaults). Keep them in sync if the server defaults change.
-const MIN_COLS = 20;
-const MAX_COLS = 400;
-const MIN_ROWS = 5;
-const MAX_ROWS = 200;
 const MIN_FONT = 9;
 const MAX_FONT = 24;
 const DEFAULT_FONT = 12;
-const DEFAULT_ROWS = 48;
 
 const FONT_STORAGE_KEY = 'c4.term.fontSize';
-const FIT_STORAGE_KEY = 'c4.term.autoFit';
-const COLS_STORAGE_KEY = 'c4.term.cols';
 
-// 8.22: flip VITE_AUTOFIT_DEBUG=1 in web/.env.local to log every auto-fit
-// recompute + the POST /api/resize it produces. Toggle stays wired so future
-// terminal auto-fit regressions can be diagnosed without code changes.
-const AUTOFIT_DEBUG: boolean = (() => {
-  try {
-    const env = (import.meta as unknown as { env?: Record<string, unknown> }).env;
-    const v = env?.VITE_AUTOFIT_DEBUG;
-    return v === '1' || v === 'true' || v === true;
-  } catch {
-    return false;
-  }
-})();
+// 8.24 scrollback-tab ANSI filter. The xterm.js view on the Screen tab
+// processes raw PTY bytes; the Scrollback tab is a read-now text dump, so
+// we still strip ANSI for that view to keep historical grep-style reading
+// usable. Mirrors the strings ChatView uses for consistency.
+const ANSI_OSC = /\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g;
+const ANSI_CSI = /\x1b\[[\d;?=]*[ -/]*[@-~]/g;
+const ANSI_OTHER = /\x1b[=>()][0-9A-Za-z]?/g;
+const CONTROL_CHARS = /[\x00-\x08\x0b-\x1f\x7f]/g;
+function stripAnsi(input: string): string {
+  return input
+    .replace(ANSI_OSC, '')
+    .replace(ANSI_CSI, '')
+    .replace(ANSI_OTHER, '')
+    .replace(/\r(?!\n)/g, '\n')
+    .replace(CONTROL_CHARS, '');
+}
 
 async function postJson(url: string, body: unknown): Promise<ActionResponse> {
   const res = await apiFetch(url, {
@@ -108,50 +95,32 @@ function readNumberStorage(key: string, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-function readBoolStorage(key: string, fallback: boolean): boolean {
-  if (typeof window === 'undefined') return fallback;
-  const raw = window.localStorage.getItem(key);
-  if (raw == null) return fallback;
-  return raw === '1' || raw === 'true';
-}
-
 export default function WorkerDetail({ workerName }: WorkerDetailProps) {
   const [tab, setTab] = useState<Tab>('screen');
-  const [content, setContent] = useState<string>('');
+  const [scrollbackContent, setScrollbackContent] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [inputText, setInputText] = useState<string>('');
   const [busy, setBusy] = useState(false);
 
-  // Terminal presentation state (8.13).
   const [fontSize, setFontSize] = useState<number>(() =>
     clamp(readNumberStorage(FONT_STORAGE_KEY, DEFAULT_FONT), MIN_FONT, MAX_FONT)
   );
-  const [autoFit, setAutoFit] = useState<boolean>(() => readBoolStorage(FIT_STORAGE_KEY, true));
-  const [cols, setCols] = useState<number>(() =>
-    clamp(readNumberStorage(COLS_STORAGE_KEY, 120), MIN_COLS, MAX_COLS)
-  );
-  const [serverDims, setServerDims] = useState<{ cols: number; rows: number } | null>(null);
 
-  const preRef = useRef<HTMLPreElement | null>(null);
-  const rulerRef = useRef<HTMLSpanElement | null>(null);
-  const resizeTimerRef = useRef<number | null>(null);
-  const lastRequestedRef = useRef<{ cols: number; rows: number } | null>(null);
+  const scrollbackRef = useRef<HTMLPreElement | null>(null);
 
-  const fetchContent = useCallback(async () => {
+  const fetchScrollback = useCallback(async () => {
+    if (tab !== 'scrollback') return;
     try {
-      const url =
-        tab === 'screen'
-          ? `/api/read-now?name=${encodeURIComponent(workerName)}`
-          : `/api/scrollback?name=${encodeURIComponent(workerName)}&lines=200`;
+      const url = `/api/scrollback?name=${encodeURIComponent(workerName)}&lines=200`;
       const res = await apiFetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as ReadResponse;
       if (data.error) {
         setError(data.error);
-        setContent('');
+        setScrollbackContent('');
       } else {
-        setContent(typeof data.content === 'string' ? data.content : '');
+        setScrollbackContent(typeof data.content === 'string' ? data.content : '');
         setError(null);
       }
     } catch (e) {
@@ -160,15 +129,14 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
   }, [tab, workerName]);
 
   useEffect(() => {
-    setContent('');
     setError(null);
     setActionMsg(null);
-    fetchContent();
-    const interval = setInterval(fetchContent, 3000);
+    if (tab !== 'scrollback') return;
+    fetchScrollback();
+    const interval = setInterval(fetchScrollback, 3000);
     return () => clearInterval(interval);
-  }, [fetchContent]);
+  }, [fetchScrollback, tab]);
 
-  // Persist presentation prefs.
   useEffect(() => {
     try {
       window.localStorage.setItem(FONT_STORAGE_KEY, String(fontSize));
@@ -176,145 +144,6 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
       /* ignore quota / disabled storage */
     }
   }, [fontSize]);
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(FIT_STORAGE_KEY, autoFit ? '1' : '0');
-    } catch {
-      /* ignore */
-    }
-  }, [autoFit]);
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(COLS_STORAGE_KEY, String(cols));
-    } catch {
-      /* ignore */
-    }
-  }, [cols]);
-
-  const requestResize = useCallback(
-    async (nextCols: number, nextRows: number) => {
-      const c = clamp(nextCols, MIN_COLS, MAX_COLS);
-      const r = clamp(nextRows, MIN_ROWS, MAX_ROWS);
-      const last = lastRequestedRef.current;
-      if (last && last.cols === c && last.rows === r) return;
-      lastRequestedRef.current = { cols: c, rows: r };
-      if (AUTOFIT_DEBUG) {
-        // eslint-disable-next-line no-console
-        console.debug('[autofit] cols=%d rows=%d -> POST /api/resize', c, r);
-      }
-      try {
-        const res = await apiFetch('/api/resize', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: workerName, cols: c, rows: r }),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as ResizeResponse;
-        if (data.error) {
-          setActionMsg(`resize failed: ${data.error}`);
-          return;
-        }
-        if (typeof data.cols === 'number' && typeof data.rows === 'number') {
-          setServerDims({ cols: data.cols, rows: data.rows });
-        }
-      } catch (e) {
-        setActionMsg(`resize failed: ${(e as Error).message}`);
-      }
-    },
-    [workerName]
-  );
-
-  // Measure char width and compute fit cols. setCols uses functional form so
-  // this callback stays stable across cols changes -- otherwise the observers
-  // below would tear down and re-attach on every fit cycle.
-  const recomputeFit = useCallback(() => {
-    if (!autoFit) return;
-    const pre = preRef.current;
-    const ruler = rulerRef.current;
-    if (!pre || !ruler) return;
-    const charW = ruler.getBoundingClientRect().width;
-    if (charW <= 0) return;
-    const style = window.getComputedStyle(pre);
-    const padL = parseFloat(style.paddingLeft) || 0;
-    const padR = parseFloat(style.paddingRight) || 0;
-    const inner = pre.clientWidth - padL - padR;
-    if (inner <= 0) return;
-    const raw = Math.floor(inner / charW);
-    if (!Number.isFinite(raw) || raw <= 0) return;
-    const nextCols = clamp(raw, MIN_COLS, MAX_COLS);
-    if (AUTOFIT_DEBUG) {
-      // eslint-disable-next-line no-console
-      console.debug(
-        '[autofit] measured cols=%d (inner=%d, charW=%f, font=%d)',
-        nextCols,
-        inner,
-        charW,
-        fontSize,
-      );
-    }
-    setCols((prev) => (prev === nextCols ? prev : nextCols));
-    requestResize(nextCols, DEFAULT_ROWS);
-  }, [autoFit, fontSize, requestResize]);
-
-  // Shared 120ms debounce across window.resize + ResizeObserver so we never
-  // issue two POST /api/resize calls for a single user gesture.
-  const scheduleRecompute = useCallback(() => {
-    if (!autoFit) return;
-    if (resizeTimerRef.current != null) {
-      window.clearTimeout(resizeTimerRef.current);
-    }
-    resizeTimerRef.current = window.setTimeout(() => {
-      resizeTimerRef.current = null;
-      recomputeFit();
-    }, 120);
-  }, [autoFit, recomputeFit]);
-
-  useLayoutEffect(() => {
-    if (!autoFit) return;
-    recomputeFit();
-  }, [autoFit, fontSize, recomputeFit]);
-
-  useEffect(() => {
-    const onResize = () => scheduleRecompute();
-    window.addEventListener('resize', onResize);
-    return () => {
-      window.removeEventListener('resize', onResize);
-      if (resizeTimerRef.current != null) {
-        window.clearTimeout(resizeTimerRef.current);
-        resizeTimerRef.current = null;
-      }
-    };
-  }, [scheduleRecompute]);
-
-  // ResizeObserver on the <pre> catches layout shifts that do not fire a
-  // window.resize (sidebar toggle, font-size changes, parent flex reflow).
-  // Some mobile Safari builds do not deliver ResizeObserver on a flex child,
-  // hence the window-resize listener above stays wired as a fallback.
-  useEffect(() => {
-    if (!autoFit) return;
-    const pre = preRef.current;
-    if (!pre) return;
-    if (typeof ResizeObserver === 'undefined') return;
-    const obs = new ResizeObserver(() => {
-      scheduleRecompute();
-    });
-    obs.observe(pre);
-    return () => {
-      try {
-        obs.disconnect();
-      } catch {
-        /* ignore teardown race */
-      }
-    };
-  }, [autoFit, scheduleRecompute]);
-
-  // When auto-fit is off, push the manual cols value to the server whenever
-  // it changes. Debounced by React's batching alone -- requestResize itself
-  // dedupes against the last-sent dims.
-  useEffect(() => {
-    if (autoFit) return;
-    requestResize(cols, DEFAULT_ROWS);
-  }, [autoFit, cols, requestResize]);
 
   const runAction = async (label: string, fn: () => Promise<ActionResponse>) => {
     setBusy(true);
@@ -325,7 +154,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
         setActionMsg(`${label} failed: ${res.error}`);
       } else {
         setActionMsg(`${label} ok`);
-        fetchContent();
+        fetchScrollback();
       }
     } catch (e) {
       setActionMsg(`${label} failed: ${(e as Error).message}`);
@@ -346,9 +175,6 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
     runAction('key Enter', () => postJson('/api/key', { name: workerName, key: 'Enter' }));
   };
 
-  // (8.5) Key helpers. POST /key enforces a server-side allow-list --
-  // calling with an unknown label is a 400. Labels here must stay in
-  // sync with KEY_ALLOWLIST in src/daemon.js.
   const sendKey = (key: string) => {
     runAction(`key ${key}`, () => postJson('/api/key', { name: workerName, key }));
   };
@@ -371,16 +197,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
     setFontSize((prev) => clamp(prev + delta, MIN_FONT, MAX_FONT));
   };
 
-  const manualCols = (next: number) => {
-    const c = clamp(next, MIN_COLS, MAX_COLS);
-    setCols(c);
-    if (autoFit) setAutoFit(false);
-  };
-
-  const lineHeight = useMemo(() => Math.round(fontSize * 1.25 * 100) / 100, [fontSize]);
-  const dimsLabel = serverDims
-    ? `${serverDims.cols} x ${serverDims.rows}`
-    : `${cols} x ${DEFAULT_ROWS}`;
+  const lineHeight = Math.round(fontSize * 1.25 * 100) / 100;
 
   return (
     <Card className="flex h-full min-h-0 min-w-0 flex-col">
@@ -389,7 +206,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
           <div className="min-w-0">
             <CardTitle className="truncate">{workerName}</CardTitle>
             <CardDescription>
-              Terminal session - dims {dimsLabel}
+              Terminal session
             </CardDescription>
           </div>
           <div
@@ -442,24 +259,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
             />
           </div>
           <Label className="flex items-center gap-1 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-normal text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={autoFit}
-              onChange={(e) => setAutoFit(e.target.checked)}
-            />
-            <span>Auto-fit</span>
-          </Label>
-          <Label className="flex items-center gap-1 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-normal text-muted-foreground">
-            <span>cols</span>
-            <Input
-              type="number"
-              min={MIN_COLS}
-              max={MAX_COLS}
-              value={cols}
-              onChange={(e) => manualCols(Number(e.target.value))}
-              className="h-6 w-16 rounded-md bg-background px-1 py-0 text-right text-xs"
-              disabled={autoFit}
-            />
+            <span>auto-fit via xterm.js</span>
           </Label>
         </div>
       </CardHeader>
@@ -474,24 +274,23 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
           </div>
         )}
 
-        <span
-          ref={rulerRef}
-          aria-hidden="true"
-          className="pointer-events-none absolute font-mono opacity-0"
-          style={{ fontSize, lineHeight: `${lineHeight}px`, visibility: 'hidden' }}
-        >
-          0
-        </span>
+        <div className={cn('min-h-0 min-w-0 flex-1', tab === 'screen' ? 'block' : 'hidden')}>
+          <XtermView workerName={workerName} fontSize={fontSize} visible={tab === 'screen'} />
+        </div>
 
-        <pre
-          ref={preRef}
-          className={cn(
-            'min-h-0 min-w-0 flex-1 overflow-auto whitespace-pre rounded-md border border-border bg-background p-3 font-mono text-foreground md:p-4'
-          )}
-          style={{ fontSize, lineHeight: `${lineHeight}px` }}
-        >
-          {content || <span className="text-muted-foreground">(empty)</span>}
-        </pre>
+        {tab === 'scrollback' && (
+          <pre
+            ref={scrollbackRef}
+            className={cn(
+              'min-h-0 min-w-0 flex-1 overflow-auto whitespace-pre rounded-md border border-border bg-background p-3 font-mono text-foreground md:p-4'
+            )}
+            style={{ fontSize, lineHeight: `${lineHeight}px` }}
+          >
+            {scrollbackContent
+              ? stripAnsi(scrollbackContent)
+              : <span className="text-muted-foreground">(empty)</span>}
+          </pre>
+        )}
 
         {actionMsg && (
           <div className="text-xs text-muted-foreground">{actionMsg}</div>
