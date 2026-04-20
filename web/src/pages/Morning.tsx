@@ -2,9 +2,12 @@ import { useCallback, useState } from 'react';
 import { Clipboard, RefreshCw, Sunrise } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel } from './PageFrame';
 import Toast, { type ToastType } from '../components/Toast';
-import { Button, Panel } from '../components/ui';
+import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
+import { openHelpDrawer } from '../components/HelpUIRoot';
+import { Button, Panel, Tooltip } from '../components/ui';
 import { apiPost } from '../lib/api';
 import { renderMarkdown } from '../lib/markdown';
+import { t, useLocale } from '../lib/i18n';
 
 // 8.20B Morning report. POST /api/morning triggers generation; the
 // response includes the rendered markdown. A "Copy" button grabs the
@@ -21,6 +24,7 @@ interface MorningResponse {
 interface ToastState { id: number; message: string; type: ToastType }
 
 export default function Morning() {
+  useLocale();
   const [report, setReport] = useState<MorningResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,26 +68,37 @@ export default function Morning() {
       description="Daily overview — yesterday's activity, open TODOs, token spend. Mirrors `c4 morning`."
       actions={
         <>
-          <Button type="button" variant="default" size="sm" onClick={generate} disabled={loading}>
-            {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sunrise className="h-3.5 w-3.5" />}
-            <span>Generate</span>
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={copy}
-            disabled={!report?.content}
-          >
-            <Clipboard className="h-3.5 w-3.5" />
-            <span>Copy</span>
-          </Button>
+          <Tooltip label={t('morning.tooltip.generate')}>
+            <Button type="button" variant="default" size="sm" onClick={generate} disabled={loading}>
+              {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sunrise className="h-3.5 w-3.5" />}
+              <span>Generate</span>
+            </Button>
+          </Tooltip>
+          <Tooltip label={t('morning.tooltip.copy')}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={copy}
+              disabled={!report?.content}
+            >
+              <Clipboard className="h-3.5 w-3.5" />
+              <span>Copy</span>
+            </Button>
+          </Tooltip>
         </>
       }
     >
+      <PageDescriptionBanner
+        summaryKey="morning.summary"
+        cliKey="morning.cli"
+        exampleKey="morning.example"
+        useCasesKey="morning.useCases"
+        onOpenHelp={openHelpDrawer}
+      />
       {error && <ErrorPanel message={error} />}
       {!report ? (
-        <EmptyPanel message="No report generated yet. Click Generate to produce today's report." />
+        <EmptyPanel message={t('morning.empty')} />
       ) : (
         <>
           {report.generatedAt && (

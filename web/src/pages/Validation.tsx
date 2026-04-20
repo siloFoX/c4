@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
-import { Badge, Button, Input, Panel } from '../components/ui';
+import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
+import { openHelpDrawer } from '../components/HelpUIRoot';
+import { Badge, Button, Input, Panel, Tooltip } from '../components/ui';
 import { apiFetch, apiGet } from '../lib/api';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
 import type { ListResponse, Worker } from '../types';
+import { t, useLocale } from '../lib/i18n';
 
 // 8.20B Validation. Fetches /api/list for workers and calls
 // /api/validation?name=<worker> per worker. Renders pass/fail badges
@@ -25,6 +28,7 @@ interface ValidationResponse {
 }
 
 export default function Validation() {
+  useLocale();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [filter, setFilter] = useState('');
   const [validations, setValidations] = useState<Record<string, ValidationResponse>>({});
@@ -75,24 +79,35 @@ export default function Validation() {
       description="Per-worker validation object — tests / typecheck / lint status from .c4-validation.json in each worktree."
       actions={
         <>
-          <Input
-            className="h-8 w-48"
-            placeholder="Filter workers"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            aria-label="Filter workers"
-          />
-          <Button type="button" variant="ghost" size="sm" onClick={refresh} disabled={loading}>
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span className="sr-only">Refresh</span>
-          </Button>
+          <Tooltip label={t('validation.tooltip.filter')}>
+            <Input
+              className="h-8 w-48"
+              placeholder="Filter workers"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              aria-label="Filter workers"
+            />
+          </Tooltip>
+          <Tooltip label={t('validation.tooltip.refresh')}>
+            <Button type="button" variant="ghost" size="sm" onClick={refresh} disabled={loading}>
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span className="sr-only">Refresh</span>
+            </Button>
+          </Tooltip>
         </>
       }
     >
+      <PageDescriptionBanner
+        summaryKey="validation.summary"
+        cliKey="validation.cli"
+        exampleKey="validation.example"
+        useCasesKey="validation.useCases"
+        onOpenHelp={openHelpDrawer}
+      />
       {loading && workers.length === 0 ? <LoadingSkeleton rows={4} /> : null}
       {error && <ErrorPanel message={error} />}
       {!loading && filtered.length === 0 ? (
-        <EmptyPanel message="No workers to validate. Create a worker first." />
+        <EmptyPanel message={t('validation.empty')} />
       ) : (
         <ul className="flex flex-col gap-2">
           {filtered.map((w) => (

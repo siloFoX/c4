@@ -90,7 +90,51 @@
   unchanged by this patch. Patch note: `docs/patches/8.28-auto-dispatch.md`.
   Reproduction base: 2026-04-20 session stalled for hours because
   reviewer forgot to nudge the next todo after manager went idle.
-
+- **(8.33) Web UI feature docs + intuition.** Every page in the
+  Features tab now opens with a shared `PageDescriptionBanner`
+  (`web/src/components/PageDescriptionBanner.tsx`) carrying a 1-2 line
+  summary, the matching `c4 <cmd>` CLI equivalent, a collapsible "When
+  to use" list, and a collapsible concrete example, plus a Learn more
+  button that opens the new help drawer. A `Tooltip` primitive
+  (`web/src/components/ui/tooltip.tsx`) is wrapped around every action
+  button, filter input, and checkbox across the 12 CLI-coverage pages
+  so hover (and focus for keyboard users) reveals what each control
+  does. A new help drawer
+  (`web/src/components/HelpDrawer.tsx`) is reachable from a new Help
+  icon in `AppHeader` or the `h` keyboard shortcut; it renders one
+  searchable card per feature from the registry and scrolls the active
+  feature into view on open. A keyboard shortcut cheat sheet
+  (`web/src/components/KeyboardShortcutsModal.tsx`) is reachable via
+  `?` / `Shift+/`. A dismissable 4-step onboarding tour
+  (`web/src/components/OnboardingTour.tsx`) auto-opens on first visit
+  (tracked by `c4.onboardingTour.v1` in localStorage) and can be
+  replayed programmatically via the exported `startOnboardingTour()`
+  helper. A shared `ConfirmDialog`
+  (`web/src/components/ConfirmDialog.tsx`) replaces Cleanup's
+  `window.confirm` with a concrete preview of the branches /
+  worktrees / directories about to be removed before the user commits.
+  Batch gains a "Try example" button that prefills task + count in
+  count mode or tasksText in file mode from
+  `batch.example` / `batch.exampleMulti`. Auto surfaces three typical
+  scenarios (overnight refactor, triage backlog, spike a design) as a
+  bulleted panel. All user-facing copy is loaded through a new tiny
+  i18n layer (`web/src/lib/i18n.ts` + `web/src/i18n/en.json` +
+  `web/src/i18n/ko.json`) with English fallback for missing ko keys;
+  locale persists under `c4.locale` in localStorage, auto-detects from
+  `navigator.language`, and is togglable from a new Language icon in
+  the header. `HelpUIRoot` (`web/src/components/HelpUIRoot.tsx`) mounts
+  the three overlays and wires the global keyboard shortcut + custom
+  event contract (`HELP_EVENT_OPEN_DRAWER`,
+  `HELP_EVENT_OPEN_SHORTCUTS`). Regression guard:
+  `tests/ui-docs.test.js` - 100 assertions across 27 suites covering
+  i18n-bundle integrity (parse, identical key set, per-page
+  summary/cli/example/useCases coverage, required help/tour/shortcut
+  keys, pipe-delimited useCases), component contracts for every new
+  surface, per-page wiring (banner mount + summaryKey binding +
+  onOpenHelp + localized Tooltip + useLocale subscription), and
+  Cleanup/Batch/Auto specifics. Full suite
+  **110 -> 111 pass**. `npm --prefix web run build` succeeds. Patch
+  note: `docs/patches/8.33-ui-docs.md`.
 - **(8.25) Chat tab past-history backfill.** `web/src/components/ChatView.tsx`
   now fetches past conversation on mount (and on every `workerName`
   change) before attaching the SSE live stream. Primary path is
