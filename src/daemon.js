@@ -34,6 +34,7 @@ const scribeV2Mod = require('./scribe-v2');
 const sessionParser = require('./session-parser');
 const sessionAttach = require('./session-attach');
 const autoDispatcherMod = require('./auto-dispatcher');
+const { PinnedMemoryScheduler, DEFAULT_INTERVAL_MS: PIN_DEFAULT_INTERVAL_MS } = require('./pinned-memory-scheduler');
 
 // (8.5) Allow-list for POST /key. Web UI needs to drive Enter, Escape,
 // Ctrl-C and the arrow keys without sending raw control bytes. The list
@@ -71,6 +72,16 @@ const PORT = parseInt(process.env.PORT || cfg.daemon?.port || '3456');
 const HOST = process.env.C4_BIND_HOST || resolveBindHost(cfg);
 const notifications = new Notifications(cfg.notifications || {});
 manager.setNotifications(notifications);
+
+// 8.46: per-worker pinned memory scheduler. Subscribes to manager events
+// (post-compact, pinned-memory-updated) and re-injects the effective rule
+// set on a timer. intervalMs is configurable via config.pinnedMemory.
+const pinIntervalMs = (cfg.pinnedMemory && cfg.pinnedMemory.intervalMs) || PIN_DEFAULT_INTERVAL_MS;
+const pinnedMemoryScheduler = new PinnedMemoryScheduler(manager, { intervalMs: pinIntervalMs });
+pinnedMemoryScheduler.attach();
+manager.on('pinned-memory-updated', (payload) => {
+  if (payload && payload.worker) pinnedMemoryScheduler.refreshNow(payload.worker, 'updated');
+});
 
 // (8.15) Daemon-level Slack event emitter. Separate from Notifications
 // because this one is event-driven (task_start / merge_success / ...)
@@ -890,7 +901,7 @@ async function handleRequest(req, res) {
       };
 
     } else if (req.method === 'POST' && route === '/create') {
-      const { name, command, args, target, cwd, parent, tier } = await parseBody(req);
+      const { name, command, args, target, cwd, parent, tier, pinnedMemory, pinRole } = await parseBody(req);
       const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE,
         target ? { type: 'machine', id: target } : null);
       if (denyOr(res, gate)) return;
@@ -905,10 +916,24 @@ async function handleRequest(req, res) {
         }));
         return;
       }
-      result = manager.create(name, command, args || [], { target, cwd, parent });
+      // 8.46: forward persistent pinned rules into pty-manager.create().
+      // Default template follows pinRole if supplied, else matches the tier
+      // (tier 'manager' -> role-manager, anything else -> role-worker).
+      const effectivePinRole = typeof pinRole === 'string' && pinRole
+        ? pinRole
+        : (requestedTier === 'manager' ? 'manager' : 'worker');
+      const createOpts = { target, cwd, parent };
+      if (Array.isArray(pinnedMemory) && pinnedMemory.length > 0) {
+        createOpts.pinnedMemory = pinnedMemory;
+      }
+      createOpts.pinRole = effectivePinRole;
+      result = manager.create(name, command, args || [], createOpts);
       if (result && !result.error) {
         tierWorkerMap.set(name, requestedTier);
         if (result && typeof result === 'object') result.tier = requestedTier;
+        // 8.46: start the per-worker pinned-memory timer. Scheduler picks
+        // up the rules via manager.getPinnedMemory(name) on each tick.
+        pinnedMemoryScheduler.register(name);
         _safeAudit('worker.created',
           { command, args: args || [], target: target || 'local', cwd: cwd || '', parent: parent || '', pid: result.pid || null, tier: requestedTier },
           { target: name, actor: _auditActor(authCheck) });
@@ -2442,6 +2467,60 @@ async function handleRequest(req, res) {
         _safeAudit('worker.closed', {}, { target: name, actor: _auditActor(authCheck) });
         safeEmit('worker_close', { worker: name });
         safeRecord('worker_close', { worker: name, payload: {} });
+        // 8.46: stop re-injecting pinned memory for a closed worker so we
+        // do not send rules into a dead PTY.
+        try { pinnedMemoryScheduler.unregister(name); } catch {}
+      }
+
+    } else if (req.method === 'GET' && /^\/workers\/[^\/]+\/pinned-memory$/.test(route)) {
+      // 8.46: read the current pinned memory for a worker. Matches the
+      // `c4 pinned-memory get <name>` CLI path. Read-side is gated by the
+      // outer JWT auth middleware only; any authenticated role can read.
+      const name = decodeURIComponent(route.split('/')[2] || '');
+      const pm = manager.getPinnedMemory(name);
+      if (!pm) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: `Worker '${name}' not found` }));
+        return;
+      }
+      result = {
+        worker: name,
+        pinnedMemory: pm,
+        lastRefreshAt: pinnedMemoryScheduler.lastRefreshAt(name),
+        intervalMs: pinnedMemoryScheduler.intervalMs,
+      };
+
+    } else if (req.method === 'POST' && /^\/workers\/[^\/]+\/pinned-memory$/.test(route)) {
+      // 8.46: write pinned memory. Body shape: { userRules?: string[],
+      // defaultTemplate?: 'manager'|'worker'|'attached'|null, refresh?: bool }.
+      // `refresh: true` forces an immediate re-injection so the Web UI
+      // "Apply now" button has a one-call path.
+      const name = decodeURIComponent(route.split('/')[2] || '');
+      // Writing pinned memory feeds directly into the worker's PTY, so it
+      // is gated by the same action as sending a task.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_TASK);
+      if (denyOr(res, gate)) return;
+      const body = await parseBody(req);
+      const patch = {};
+      if (Array.isArray(body.userRules)) patch.userRules = body.userRules;
+      if (Object.prototype.hasOwnProperty.call(body, 'defaultTemplate')) {
+        patch.defaultTemplate = body.defaultTemplate;
+      }
+      result = manager.setPinnedMemory(name, patch);
+      if (result && !result.error) {
+        _safeAudit('worker.pinnedMemory.updated',
+          { userRulesCount: (patch.userRules || []).length, defaultTemplate: patch.defaultTemplate || null },
+          { target: name, actor: _auditActor(authCheck) });
+        let refreshResult = null;
+        if (body && body.refresh) {
+          try { refreshResult = pinnedMemoryScheduler.refreshNow(name, 'api'); } catch {}
+        }
+        result.lastRefreshAt = pinnedMemoryScheduler.lastRefreshAt(name);
+        if (refreshResult) result.refresh = refreshResult;
+      } else if (result && result.error) {
+        res.writeHead(404);
+        res.end(JSON.stringify(result));
+        return;
       }
 
     } else if (req.method === 'GET' && route === '/config') {

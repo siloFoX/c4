@@ -313,6 +313,9 @@ class PtyManager extends EventEmitter {
               worktree: w.worktree || null,
               parent: w.parent || null,
               sessionId: w.sessionId || null,
+              // 8.46: stash pinnedMemory on the lostWorkers record so the
+              // operator can restore it when re-spawning the same name.
+              pinnedMemory: w.pinnedMemory || null,
               lostAt: new Date().toISOString()
             });
           }
@@ -349,7 +352,18 @@ class PtyManager extends EventEmitter {
         worktree: w.worktree || null,
         parent: w.parent || null,
         sessionId: w._sessionId || null,
-        exitedAt: exitSnapshot ? new Date(exitSnapshot.time).toISOString() : null
+        exitedAt: exitSnapshot ? new Date(exitSnapshot.time).toISOString() : null,
+        // 8.46: persistent rules survive daemon restart so reattached
+        // workers keep their pinned memory without the operator re-issuing
+        // --pin-rules flags.
+        pinnedMemory: w._pinnedMemory
+          ? {
+              userRules: Array.isArray(w._pinnedMemory.userRules)
+                ? w._pinnedMemory.userRules.slice()
+                : [],
+              defaultTemplate: w._pinnedMemory.defaultTemplate || null,
+            }
+          : null,
       });
     }
     fs.writeFileSync(STATE_FILE, JSON.stringify(data, null, 2));
@@ -3277,6 +3291,13 @@ class PtyManager extends EventEmitter {
         lastInjectionAt: 0,
         lastInjectionType: null,
       },
+      // Pinned memory (8.46) — persistent rules re-injected on a timer
+      // and on post-compact events. userRules is the raw user-specified
+      // list; defaultTemplate picks a role-based role-<name>.md file.
+      _pinnedMemory: {
+        userRules: Array.isArray(options.pinnedMemory) ? options.pinnedMemory.slice() : [],
+        defaultTemplate: typeof options.pinRole === 'string' && options.pinRole ? options.pinRole : null,
+      },
     };
 
     // Raw log
@@ -4591,6 +4612,50 @@ class PtyManager extends EventEmitter {
     return this.config;
   }
 
+  // --- Pinned Memory (8.46) ---
+  //
+  // Per-worker persistent rule set, re-injected by PinnedMemoryScheduler.
+  // The manager itself does not schedule anything; it just owns the data so
+  // _saveState/_loadState can round-trip it. Operators can mutate it via
+  // `c4 pinned-memory set`, the daemon's POST /workers/:name/pinned-memory
+  // route, or SDK clients - so the setter emits 'pinned-memory-updated' and
+  // callers can hook that to trigger an immediate refresh.
+
+  getPinnedMemory(name) {
+    const w = this.workers.get(name);
+    if (!w) return null;
+    const pm = w._pinnedMemory || { userRules: [], defaultTemplate: null };
+    return {
+      userRules: Array.isArray(pm.userRules) ? pm.userRules.slice() : [],
+      defaultTemplate: pm.defaultTemplate || null,
+    };
+  }
+
+  setPinnedMemory(name, patch) {
+    const w = this.workers.get(name);
+    if (!w) return { error: `Worker '${name}' not found` };
+    if (!w._pinnedMemory) {
+      w._pinnedMemory = { userRules: [], defaultTemplate: null };
+    }
+    if (patch && Array.isArray(patch.userRules)) {
+      w._pinnedMemory.userRules = patch.userRules
+        .map(r => String(r || '').trim())
+        .filter(Boolean);
+    }
+    if (patch && typeof patch.defaultTemplate === 'string') {
+      w._pinnedMemory.defaultTemplate = patch.defaultTemplate.trim() || null;
+    } else if (patch && patch.defaultTemplate === null) {
+      w._pinnedMemory.defaultTemplate = null;
+    }
+    try { this._saveState(); } catch {}
+    this.emit('pinned-memory-updated', { worker: name });
+    return {
+      ok: true,
+      worker: name,
+      pinnedMemory: this.getPinnedMemory(name),
+    };
+  }
+
   list() {
     const result = [];
     for (const [name, w] of this.workers) {
@@ -4628,7 +4693,17 @@ class PtyManager extends EventEmitter {
         lastQuestion: w._lastQuestion || null,
         errorCount: (w._errorHistory || []).reduce((sum, e) => sum + e.count, 0),
         phase: w._smState ? w._smState.phase : null,
-        testFailCount: w._smState ? w._smState.testFailCount : 0
+        testFailCount: w._smState ? w._smState.testFailCount : 0,
+        // 8.46: expose pinned rules so the Web UI can render a "Persistent
+        // Rules" editor without a second round-trip.
+        pinnedMemory: w._pinnedMemory
+          ? {
+              userRules: Array.isArray(w._pinnedMemory.userRules)
+                ? w._pinnedMemory.userRules.slice()
+                : [],
+              defaultTemplate: w._pinnedMemory.defaultTemplate || null,
+            }
+          : { userRules: [], defaultTemplate: null }
       });
     }
     // Include queued tasks (2.8)
@@ -5029,6 +5104,12 @@ class PtyManager extends EventEmitter {
     });
 
     this._emitSSE('compact', { worker: workerName, count: w._compactCount });
+    // 8.46: notify the pinned-memory scheduler (and anyone else that
+    // subscribed through EventEmitter) so user-defined rules can be
+    // re-injected immediately after an auto-compact. Kept separate from
+    // the SSE stream so non-web subscribers do not have to open an SSE
+    // connection just to observe a local in-process event.
+    this.emit('post-compact', { worker: workerName, count: w._compactCount });
 
     // 8.45: re-inject role-specific rules so halt-prevention survives
     // the compaction. Source 'hook' marks this path as the settings-
