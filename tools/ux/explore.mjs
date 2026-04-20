@@ -8,7 +8,7 @@
 // terminal auto-fit anchor capture). Artifacts land under
 // patches/ui-audit-<date>/ with baselines at patches/ui-audit-baseline/.
 
-import puppeteer from 'puppeteer-core';
+import puppeteer, { KnownDevices } from 'puppeteer-core';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -79,6 +79,26 @@ const AUDIT_SCREENS_DIR = path.join(AUDIT_DIR, 'screens');
 const AUDIT_DIFF_DIR = path.join(AUDIT_DIR, 'diffs');
 const BASELINE_DIR = path.join(REPO_ROOT, 'patches', 'ui-audit-baseline');
 const AUDIT_REPORT_PATH = path.join(AUDIT_DIR, 'ui-audit-report.json');
+
+// 8.23 -- mobile device emulations. puppeteer's KnownDevices carries
+// device pixel ratio + user agent + touch/isMobile flags so the layout
+// sees the same inputs as a real handset instead of a naked resize.
+const MOBILE_DEVICES = [
+  { id: 'iphone-13',  device: KnownDevices['iPhone 13']  },
+  { id: 'iphone-se',  device: KnownDevices['iPhone SE']  },
+  { id: 'galaxy-s20', device: KnownDevices['Galaxy S20'] },
+  { id: 'ipad-mini',  device: KnownDevices['iPad Mini']  },
+];
+
+const ORIENTATIONS = ['portrait', 'landscape'];
+
+// Soft-keyboard probe scope: only the largest portrait device per family
+// runs this check so we don't burn runtime on the 64-screenshot sweep.
+const SOFT_KEYBOARD_PAGES = ['/', '/workflows', '/settings'];
+const SOFT_KEYBOARD_DEVICES = new Set(['iphone-13', 'galaxy-s20']);
+
+const AUDIT_MOBILE_DIR    = path.join(AUDIT_DIR, 'mobile');
+const BASELINE_MOBILE_DIR = path.join(BASELINE_DIR, 'mobile');
 
 const TOP_VIEWS = ['workers', 'chat', 'history', 'workflows'];
 const DETAIL_MODES = ['terminal', 'chat', 'control'];
@@ -741,6 +761,317 @@ async function runVisualAudit(launchBrowser) {
   return visual;
 }
 
+// -------------------------------------------------------------------
+// 8.23 -- mobile audit helpers.
+// -------------------------------------------------------------------
+
+// Touch-target detector: flags interactive elements smaller than the
+// iOS/Android guideline (44x44 CSS px). Skip hidden elements so
+// collapsed menus do not pollute the sample.
+async function detectTouchTargets(page) {
+  return await page.evaluate(() => {
+    const SELECTOR = 'button, a[href], [role="button"], input, [role="link"], [tabindex]:not([tabindex="-1"])';
+    const bad = [];
+    document.querySelectorAll(SELECTOR).forEach((el) => {
+      if (el.offsetParent === null) return;
+      const r = el.getBoundingClientRect();
+      if (r.width < 44 || r.height < 44) {
+        bad.push({
+          tag: el.tagName,
+          class: (el.className || '').toString().slice(0, 80),
+          w: Math.round(r.width),
+          h: Math.round(r.height),
+          text: (el.textContent || '').trim().slice(0, 40),
+        });
+      }
+    });
+    return bad.slice(0, 30);
+  });
+}
+
+// Small-font detector: TreeWalker over text nodes, flag resolved
+// font-size < 14px. Skip whitespace-only nodes.
+async function detectSmallFonts(page) {
+  return await page.evaluate(() => {
+    const MIN = 14;
+    const out = [];
+    if (!document.body) return out;
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      const raw = node.nodeValue || '';
+      if (!raw.trim()) continue;
+      const parent = node.parentElement;
+      if (!parent) continue;
+      const cs = getComputedStyle(parent);
+      const size = parseFloat(cs.fontSize);
+      if (Number.isFinite(size) && size < MIN) {
+        out.push({
+          tag: parent.tagName,
+          class: (parent.className || '').toString().slice(0, 80),
+          text: raw.trim().slice(0, 80),
+          size: Math.round(size * 10) / 10,
+        });
+        if (out.length >= 20) break;
+      }
+    }
+    return out;
+  });
+}
+
+// Hover-only affordance detector: walk document.styleSheets, look for
+// :hover selectors whose declaration touches visibility / display /
+// opacity. Best-effort -- CORS-blocked sheets throw on cssRules access
+// and are skipped silently. This is advisory (spec 8.23 P2 step 4).
+async function detectHoverOnly(page) {
+  return await page.evaluate(() => {
+    const hits = [];
+    const changes = /visibility|display|opacity/i;
+    const sheets = Array.from(document.styleSheets || []);
+    for (const sheet of sheets) {
+      let rules = null;
+      try { rules = sheet.cssRules; } catch { continue; }
+      if (!rules) continue;
+      for (const rule of Array.from(rules)) {
+        const sel = rule.selectorText || '';
+        if (!sel.includes(':hover')) continue;
+        const cssText = rule.cssText || '';
+        if (!changes.test(cssText)) continue;
+        hits.push({
+          selector: sel.slice(0, 120),
+          cssText: cssText.slice(0, 200),
+        });
+        if (hits.length >= 20) return hits;
+      }
+    }
+    return hits;
+  });
+}
+
+// Soft-keyboard probe: focus the first input, compare visualViewport
+// height before + after. If the focused element's bottom sits past the
+// shrunken viewport, report obscured:true. Returns null when the page
+// has no input (spec says skip in that case).
+async function probeSoftKeyboard(page) {
+  try {
+    const before = await page.evaluate(() => {
+      const vv = window.visualViewport;
+      return vv ? vv.height : window.innerHeight;
+    });
+    const inputSelector = await page.evaluate(() => {
+      const el = document.querySelector('input, textarea');
+      if (!el) return null;
+      if (el.id) return `#${CSS.escape(el.id)}`;
+      return el.tagName.toLowerCase();
+    });
+    if (!inputSelector) return null;
+    try { await page.focus(inputSelector); } catch { /* best-effort */ }
+    await delay(400);
+    const after = await page.evaluate(() => {
+      const vv = window.visualViewport;
+      return vv ? vv.height : window.innerHeight;
+    });
+    const rect = await page.evaluate(() => {
+      const el = document.activeElement;
+      if (!el || typeof el.getBoundingClientRect !== 'function') return null;
+      const r = el.getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom };
+    });
+    const obscured = !!(rect && rect.bottom > after);
+    return { viewportBefore: before, viewportAfter: after, obscured };
+  } catch {
+    return null;
+  }
+}
+
+async function runMobileAudit(launchBrowser) {
+  fs.mkdirSync(AUDIT_DIR, { recursive: true });
+  fs.mkdirSync(AUDIT_DIFF_DIR, { recursive: true });
+  fs.mkdirSync(AUDIT_MOBILE_DIR, { recursive: true });
+  fs.mkdirSync(BASELINE_DIR, { recursive: true });
+  fs.mkdirSync(BASELINE_MOBILE_DIR, { recursive: true });
+
+  const mobile = {
+    devices: MOBILE_DEVICES.map((d) => d.id),
+    orientations: ORIENTATIONS,
+    pages: VISUAL_PAGES.map((p) => p.route),
+    overflow: [],
+    touchTargets: [],
+    smallFonts: [],
+    hoverOnly: [],
+    softKeyboard: [],
+    clipping: [],
+    diff: [],
+    auditDir:    path.relative(REPO_ROOT, AUDIT_MOBILE_DIR),
+    baselineDir: path.relative(REPO_ROOT, BASELINE_MOBILE_DIR),
+  };
+
+  // Single browser + single page across the whole sweep so we don't
+  // re-launch Chrome 8 times (spec 8.23 P4: share the instance).
+  const browser = await launchBrowser();
+  try {
+    const page = await browser.newPage();
+    // Log in under a neutral desktop viewport so the form renders in
+    // its familiar layout; we flip to the mobile emulation once
+    // authenticated and then cycle emulate() + setViewport().
+    await page.setViewport({ width: 1440, height: 900 });
+    attachListeners(page, 'mobile');
+    await loginFlow(page, 'mobile');
+
+    for (const { id, device } of MOBILE_DEVICES) {
+      for (const orientation of ORIENTATIONS) {
+        try {
+          await page.emulate(device);
+          if (orientation === 'landscape') {
+            await page.setViewport({
+              width: device.viewport.height,
+              height: device.viewport.width,
+              deviceScaleFactor: device.viewport.deviceScaleFactor,
+              isMobile: true,
+              hasTouch: true,
+              isLandscape: true,
+            });
+          }
+          // Reload so React re-measures against the new viewport + UA.
+          try {
+            await page.reload({ waitUntil: 'networkidle2', timeout: 15000 });
+          } catch { /* best-effort */ }
+        } catch (e) {
+          pushIssue('warn', `mobile-${id}`, `emulate failed (${orientation}): ${e.message}`);
+          continue;
+        }
+
+        for (const entry of VISUAL_PAGES) {
+          const slug = routeSlug(entry.route);
+          const tag = `${id}-${orientation}-${slug}`;
+          try {
+            await navigateTo(page, entry);
+            await delay(500);
+          } catch (e) {
+            pushIssue('warn', `mobile-${id}`, `nav ${entry.route} failed: ${e.message}`);
+            continue;
+          }
+
+          const shotPath = path.join(AUDIT_MOBILE_DIR, `${tag}.png`);
+          try {
+            await page.screenshot({ path: shotPath, fullPage: false });
+          } catch (e) {
+            pushIssue('warn', `mobile-${id}`, `screenshot ${entry.route} failed: ${e.message}`);
+            continue;
+          }
+
+          const overflow = await detectOverflow(page).catch(() => []);
+          mobile.overflow.push({
+            device: id,
+            orientation,
+            page: entry.route,
+            count: overflow.length,
+            sample: overflow,
+          });
+
+          const touch = await detectTouchTargets(page).catch(() => []);
+          mobile.touchTargets.push({
+            device: id,
+            orientation,
+            page: entry.route,
+            count: touch.length,
+            sample: touch,
+          });
+
+          const fonts = await detectSmallFonts(page).catch(() => []);
+          mobile.smallFonts.push({
+            device: id,
+            orientation,
+            page: entry.route,
+            count: fonts.length,
+            sample: fonts,
+          });
+
+          const hover = await detectHoverOnly(page).catch(() => []);
+          mobile.hoverOnly.push({
+            device: id,
+            orientation,
+            page: entry.route,
+            count: hover.length,
+            sample: hover,
+          });
+
+          const clipping = await detectClipping(page).catch(() => []);
+          mobile.clipping.push({
+            device: id,
+            orientation,
+            page: entry.route,
+            count: clipping.length,
+            sample: clipping,
+          });
+
+          if (
+            orientation === 'portrait' &&
+            SOFT_KEYBOARD_DEVICES.has(id) &&
+            SOFT_KEYBOARD_PAGES.includes(entry.route)
+          ) {
+            const probe = await probeSoftKeyboard(page).catch(() => null);
+            if (probe) {
+              mobile.softKeyboard.push({
+                device: id,
+                page: entry.route,
+                viewportBefore: probe.viewportBefore,
+                viewportAfter: probe.viewportAfter,
+                obscured: probe.obscured,
+              });
+            }
+          }
+
+          const baselinePath = path.join(BASELINE_MOBILE_DIR, `${tag}.png`);
+          if (fs.existsSync(baselinePath)) {
+            const diffPath = path.join(AUDIT_DIFF_DIR, `mobile-${tag}.png`);
+            try {
+              const { percent, sizeMismatch } = await pixelDiffAgainstBaseline(
+                baselinePath,
+                shotPath,
+                diffPath,
+              );
+              mobile.diff.push({
+                device: id,
+                orientation,
+                page: entry.route,
+                percent: Number(percent.toFixed(4)),
+                flagged: percent > 0.5,
+                sizeMismatch: sizeMismatch || undefined,
+              });
+            } catch (e) {
+              mobile.diff.push({
+                device: id,
+                orientation,
+                page: entry.route,
+                percent: null,
+                baseline: 'error',
+                error: e.message,
+              });
+            }
+          } else {
+            try {
+              fs.copyFileSync(shotPath, baselinePath);
+            } catch { /* best-effort */ }
+            mobile.diff.push({
+              device: id,
+              orientation,
+              page: entry.route,
+              baseline: 'captured',
+            });
+          }
+        }
+      }
+    }
+  } catch (e) {
+    pushIssue('warn', 'mobile', `unhandled: ${e.message}`);
+  } finally {
+    await browser.close().catch(() => {});
+  }
+
+  return mobile;
+}
+
 async function main() {
   const launchBrowser = () => puppeteer.launch({
     executablePath: CHROME,
@@ -766,6 +1097,20 @@ async function main() {
     pushIssue('warn', 'visual', `runVisualAudit crashed: ${e.message}`);
   }
 
+  // 8.23 mobile device emulation pass. Runs AFTER the 8.22 visual pass
+  // so a mobile failure cannot swallow the desktop/tablet report. The
+  // --skip-mobile flag short-circuits this block so 8.22's desktop pass
+  // can still run stand-alone during dev iteration.
+  const skipMobile = process.argv.includes('--skip-mobile');
+  let mobile = null;
+  if (!skipMobile) {
+    try {
+      mobile = await runMobileAudit(launchBrowser);
+    } catch (e) {
+      pushIssue('warn', 'mobile', `runMobileAudit crashed: ${e.message}`);
+    }
+  }
+
   const grouped = { critical: [], warn: [], info: [] };
   for (const i of issues) grouped[i.severity].push(i);
 
@@ -775,9 +1120,10 @@ async function main() {
     counts: { critical: grouped.critical.length, warn: grouped.warn.length, info: grouped.info.length },
     issues: grouped,
     visual,
+    mobile,
   };
   fs.writeFileSync(path.join(REPORT_ROOT, 'report.json'), JSON.stringify(report, null, 2));
-  if (visual) {
+  if (visual || mobile) {
     try {
       fs.writeFileSync(AUDIT_REPORT_PATH, JSON.stringify(report, null, 2));
     } catch (e) {
