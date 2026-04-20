@@ -14,6 +14,14 @@ export interface InterventionState {
   [key: string]: unknown;
 }
 
+// 8.46: per-worker persistent pinned rules. defaultTemplate picks one of
+// the role-<name>.md files under docs/rules/; userRules is the operator's
+// custom list, appended after the template when the scheduler ticks.
+export interface PinnedMemory {
+  userRules: string[];
+  defaultTemplate: string | null;
+}
+
 export interface Worker {
   name: string;
   command: string;
@@ -33,6 +41,7 @@ export interface Worker {
   errorCount: number;
   phase: string | null;
   testFailCount: number;
+  pinnedMemory?: PinnedMemory;
 }
 
 export interface QueuedTask {

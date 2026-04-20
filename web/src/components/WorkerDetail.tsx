@@ -29,6 +29,7 @@ import {
 } from './ui';
 import { cn } from '../lib/cn';
 import XtermView from './XtermView';
+import PinnedRulesEditor from './PinnedRulesEditor';
 
 interface WorkerDetailProps {
   workerName: string;
@@ -200,6 +201,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
   const lineHeight = Math.round(fontSize * 1.25 * 100) / 100;
 
   return (
+    <div className="flex h-full min-h-0 min-w-0 flex-col gap-3">
     <Card className="flex h-full min-h-0 min-w-0 flex-col">
       <CardHeader className="gap-3 p-4 md:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -438,5 +440,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
         </div>
       </CardContent>
     </Card>
+    <PinnedRulesEditor workerName={workerName} />
+    </div>
   );
 }
