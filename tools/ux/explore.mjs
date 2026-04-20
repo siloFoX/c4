@@ -2,16 +2,27 @@
 // UX exploration runner: click-through every view, screenshot, collect issues.
 // Usage: node explore.mjs --iteration N
 // Credentials: reads /tmp/c4-silofox-cred as password, username 'silofox'.
+//
+// 8.22 adds a visual regression pass (per-viewport screenshot sweeps,
+// overflow + ellipsis-clipping detectors, pixelmatch baseline diff,
+// terminal auto-fit anchor capture). Artifacts land under
+// patches/ui-audit-<date>/ with baselines at patches/ui-audit-baseline/.
 
 import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 
 const CHROME = '/root/.cache/puppeteer/chrome/linux-147.0.7727.56/chrome-linux64/chrome';
 const BASE = process.env.UX_BASE || 'http://localhost:5174';
 const CRED_FILE = '/tmp/c4-silofox-cred';
 const USER = 'silofox';
+
+// Repo root inferred from this file's path (tools/ux/explore.mjs -> ../..).
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
 const args = process.argv.slice(2);
 let iteration = 1;
@@ -39,6 +50,35 @@ const VIEWPORTS = {
   desktop: { width: 1440, height: 900, label: 'desktop' },
   mobile: { width: 375, height: 667, label: 'mobile' },
 };
+
+// 8.22 P2 visual regression viewports. P3 in 8.23 will add mobile
+// device emulations (iPhone 13 / iPhone SE / Galaxy S20 / iPad mini) on
+// top of this list without touching the existing entries.
+const VIEWPORTS_VISUAL = [
+  { name: 'desktop-xl', width: 1920, height: 1080 },
+  { name: 'desktop-md', width: 1366, height: 768 },
+  { name: 'tablet',     width: 1024, height: 768 },
+];
+
+const VISUAL_PAGES = [
+  { route: '/',          tabId: null },
+  { route: '/workers',   tabId: 'workers' },
+  { route: '/chat',      tabId: 'chat' },
+  { route: '/history',   tabId: 'history' },
+  { route: '/workflows', tabId: 'workflows' },
+  { route: '/features',  tabId: 'features' },
+  { route: '/sessions',  tabId: 'sessions' },
+  { route: '/settings',  tabId: 'settings' },
+];
+
+// Audit output layout (8.22). Baselines are persistent across runs;
+// per-run artifacts go under patches/ui-audit-<date>/.
+const AUDIT_DATE = new Date().toISOString().slice(0, 10);
+const AUDIT_DIR = path.join(REPO_ROOT, 'patches', `ui-audit-${AUDIT_DATE}`);
+const AUDIT_SCREENS_DIR = path.join(AUDIT_DIR, 'screens');
+const AUDIT_DIFF_DIR = path.join(AUDIT_DIR, 'diffs');
+const BASELINE_DIR = path.join(REPO_ROOT, 'patches', 'ui-audit-baseline');
+const AUDIT_REPORT_PATH = path.join(AUDIT_DIR, 'ui-audit-report.json');
 
 const TOP_VIEWS = ['workers', 'chat', 'history', 'workflows'];
 const DETAIL_MODES = ['terminal', 'chat', 'control'];
@@ -425,6 +465,282 @@ async function runForViewport(launchBrowser, vpKey) {
   }
 }
 
+// -------------------------------------------------------------------
+// 8.22 P2 -- visual regression helpers.
+// -------------------------------------------------------------------
+
+function routeSlug(route) {
+  if (route === '/') return 'root';
+  return route.replace(/^\//, '').replace(/[^a-z0-9_-]/gi, '_') || 'root';
+}
+
+async function pixelDiffAgainstBaseline(baselinePath, candidatePath, diffOutPath) {
+  // Dynamic import keeps pixelmatch + pngjs out of the main runtime
+  // module graph. pixelmatch v6 publishes as ESM; pngjs ships CJS so it
+  // lands on the default export.
+  const [{ default: pixelmatch }, pngMod] = await Promise.all([
+    import('pixelmatch'),
+    import('pngjs'),
+  ]);
+  const PNG = pngMod.PNG || pngMod.default?.PNG || pngMod.default;
+  const a = PNG.sync.read(fs.readFileSync(baselinePath));
+  const b = PNG.sync.read(fs.readFileSync(candidatePath));
+  if (a.width !== b.width || a.height !== b.height) {
+    // Size mismatch is a 100% diff -- the flag threshold treats it as flagged.
+    return { percent: 100, sizeMismatch: true };
+  }
+  const diff = new PNG({ width: a.width, height: a.height });
+  const changed = pixelmatch(a.data, b.data, diff.data, a.width, a.height, {
+    threshold: 0.1,
+  });
+  try {
+    fs.writeFileSync(diffOutPath, PNG.sync.write(diff));
+  } catch {
+    /* best-effort */
+  }
+  return { percent: (changed / (a.width * a.height)) * 100, sizeMismatch: false };
+}
+
+// Overflow detector -- flags any element whose right edge escapes the
+// viewport. Matches spec 8.22 P2 step 2.
+async function detectOverflow(page) {
+  return await page.evaluate(() => {
+    const bad = [];
+    document.querySelectorAll('*').forEach((el) => {
+      const r = el.getBoundingClientRect();
+      if (r.right > window.innerWidth + 1) bad.push({
+        tag: el.tagName,
+        class: (el.className || '').toString().slice(0, 80),
+        right: Math.round(r.right),
+        vw: window.innerWidth,
+      });
+    });
+    return bad.slice(0, 20);
+  });
+}
+
+// Clipping detector -- looks for scrollWidth > clientWidth on elements
+// that use overflow:hidden OR text-overflow: ellipsis.
+async function detectClipping(page) {
+  return await page.evaluate(() => {
+    const bad = [];
+    document.querySelectorAll('*').forEach((el) => {
+      const cs = getComputedStyle(el);
+      const hasEllipsis = cs.textOverflow === 'ellipsis';
+      const hasHidden = cs.overflow === 'hidden' || cs.overflowX === 'hidden';
+      if (!hasEllipsis && !hasHidden) return;
+      if (el.scrollWidth > el.clientWidth + 1) {
+        bad.push({
+          tag: el.tagName,
+          class: (el.className || '').toString().slice(0, 80),
+          // Truncate captured text to 80 chars so the report stays readable.
+          text: (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80),
+          scrollWidth: el.scrollWidth,
+          clientWidth: el.clientWidth,
+        });
+      }
+    });
+    return bad.slice(0, 20);
+  });
+}
+
+async function navigateTo(page, entry) {
+  if (entry.tabId) {
+    const sel = `button[data-testid="top-tab-${entry.tabId}"]`;
+    const btn = await page.$(sel);
+    if (btn) {
+      await btn.click().catch(() => {});
+      await delay(600);
+      return;
+    }
+  }
+  // Fallback: ensure we're on the root shell.
+  await page.goto(BASE + '/', { waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {});
+  await delay(400);
+}
+
+// Terminal auto-fit regression anchor for 8.22 P1. Selects the first
+// worker in the sidebar, flips auto-fit on, resizes the viewport to
+// 2000px then 600px, and captures the server dims label reported by the
+// UI each time.
+async function captureAutofitAnchor(launchBrowser) {
+  const out = { before2000: null, after600: null, note: null };
+  const browser = await launchBrowser();
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1440, height: 900 });
+    attachListeners(page, 'autofit-anchor');
+    await loginFlow(page, 'desktop');
+    // Make sure we're on the workers tab so a worker row is in the sidebar.
+    await visitTopView(page, 'workers', 'desktop');
+    const first = await page.$('aside li button, aside [role="button"]');
+    if (!first) {
+      out.note = 'no workers in sidebar; autofit anchor skipped';
+      return out;
+    }
+    await first.click();
+    await delay(700);
+
+    // Ensure the auto-fit checkbox is on. The label text is 'Auto-fit'.
+    const autofitOn = await page.evaluate(() => {
+      const labels = [...document.querySelectorAll('label')];
+      const target = labels.find((l) => /auto-fit/i.test(l.textContent || ''));
+      if (!target) return false;
+      const cb = target.querySelector('input[type="checkbox"]');
+      if (!cb) return false;
+      if (!cb.checked) cb.click();
+      return true;
+    });
+    if (!autofitOn) {
+      out.note = 'auto-fit toggle not found';
+      return out;
+    }
+
+    await page.setViewport({ width: 2000, height: 1200 });
+    await delay(600);
+    out.before2000 = await readAutofitDims(page);
+
+    await page.setViewport({ width: 600, height: 900 });
+    await delay(600);
+    out.after600 = await readAutofitDims(page);
+  } catch (e) {
+    out.note = `autofit anchor error: ${e.message}`;
+  } finally {
+    await browser.close();
+  }
+  return out;
+}
+
+async function readAutofitDims(page) {
+  return await page.evaluate(() => {
+    const text = (document.body && document.body.innerText) || '';
+    const m = text.match(/dims\s+(\d+)\s*x\s*(\d+)/i);
+    if (m) return { cols: Number(m[1]), rows: Number(m[2]) };
+    const input = document.querySelector('input[type="number"]');
+    if (input && input.value) return { cols: Number(input.value), rows: null };
+    return null;
+  });
+}
+
+async function runVisualAudit(launchBrowser) {
+  fs.mkdirSync(AUDIT_DIR, { recursive: true });
+  fs.mkdirSync(AUDIT_SCREENS_DIR, { recursive: true });
+  fs.mkdirSync(AUDIT_DIFF_DIR, { recursive: true });
+  const baselineExisted = fs.existsSync(BASELINE_DIR);
+  fs.mkdirSync(BASELINE_DIR, { recursive: true });
+
+  const visual = {
+    viewports: VIEWPORTS_VISUAL.map((v) => v.name),
+    pages: VISUAL_PAGES.map((p) => p.route),
+    overflow: [],
+    clipping: [],
+    diff: [],
+    autofit: { before2000: null, after600: null, note: null },
+    auditDir: path.relative(REPO_ROOT, AUDIT_DIR),
+    baselineDir: path.relative(REPO_ROOT, BASELINE_DIR),
+    baselineSeededThisRun: !baselineExisted,
+  };
+
+  for (const vp of VIEWPORTS_VISUAL) {
+    const browser = await launchBrowser();
+    try {
+      const page = await browser.newPage();
+      await page.setViewport({ width: vp.width, height: vp.height });
+      attachListeners(page, `visual-${vp.name}`);
+      await loginFlow(page, vp.name);
+
+      for (const entry of VISUAL_PAGES) {
+        const slug = routeSlug(entry.route);
+        try {
+          await navigateTo(page, entry);
+          // Small settle wait so layout + lazy content catches up.
+          await delay(500);
+        } catch (e) {
+          pushIssue('warn', `visual-${vp.name}`, `nav ${entry.route} failed: ${e.message}`);
+          continue;
+        }
+
+        const shotPath = path.join(AUDIT_SCREENS_DIR, `${vp.name}-${slug}.png`);
+        try {
+          await page.screenshot({ path: shotPath, fullPage: false });
+        } catch (e) {
+          pushIssue('warn', `visual-${vp.name}`, `screenshot ${entry.route} failed: ${e.message}`);
+          continue;
+        }
+
+        const overflow = await detectOverflow(page).catch(() => []);
+        visual.overflow.push({
+          viewport: vp.name,
+          page: entry.route,
+          count: overflow.length,
+          sample: overflow,
+        });
+
+        const clipping = await detectClipping(page).catch(() => []);
+        visual.clipping.push({
+          viewport: vp.name,
+          page: entry.route,
+          count: clipping.length,
+          sample: clipping,
+        });
+
+        const baselinePath = path.join(BASELINE_DIR, `${vp.name}-${slug}.png`);
+        if (fs.existsSync(baselinePath)) {
+          const diffPath = path.join(AUDIT_DIFF_DIR, `${vp.name}-${slug}.png`);
+          try {
+            const { percent, sizeMismatch } = await pixelDiffAgainstBaseline(
+              baselinePath,
+              shotPath,
+              diffPath,
+            );
+            visual.diff.push({
+              viewport: vp.name,
+              page: entry.route,
+              percent: Number(percent.toFixed(4)),
+              flagged: percent > 0.5,
+              sizeMismatch: sizeMismatch || undefined,
+            });
+          } catch (e) {
+            visual.diff.push({
+              viewport: vp.name,
+              page: entry.route,
+              percent: null,
+              baseline: 'error',
+              error: e.message,
+            });
+          }
+        } else {
+          try {
+            fs.copyFileSync(shotPath, baselinePath);
+          } catch {
+            /* ignore */
+          }
+          visual.diff.push({
+            viewport: vp.name,
+            page: entry.route,
+            baseline: 'captured',
+          });
+        }
+      }
+    } catch (e) {
+      pushIssue('warn', `visual-${vp.name}`, `unhandled: ${e.message}`);
+    } finally {
+      await browser.close().catch(() => {});
+    }
+  }
+
+  // Terminal auto-fit anchor (once, independent of the sweep above so a
+  // viewport launch crash does not swallow the P1 regression anchor).
+  try {
+    const anchor = await captureAutofitAnchor(launchBrowser);
+    visual.autofit = anchor;
+  } catch (e) {
+    visual.autofit.note = `autofit anchor crashed: ${e.message}`;
+  }
+
+  return visual;
+}
+
 async function main() {
   const launchBrowser = () => puppeteer.launch({
     executablePath: CHROME,
@@ -441,6 +757,15 @@ async function main() {
     await runForViewport(launchBrowser, vp);
   }
 
+  // 8.22 P2 visual regression pass. Runs after the main click-through so
+  // a crash here cannot block the existing report from landing on disk.
+  let visual = null;
+  try {
+    visual = await runVisualAudit(launchBrowser);
+  } catch (e) {
+    pushIssue('warn', 'visual', `runVisualAudit crashed: ${e.message}`);
+  }
+
   const grouped = { critical: [], warn: [], info: [] };
   for (const i of issues) grouped[i.severity].push(i);
 
@@ -449,8 +774,16 @@ async function main() {
     timestamp: new Date().toISOString(),
     counts: { critical: grouped.critical.length, warn: grouped.warn.length, info: grouped.info.length },
     issues: grouped,
+    visual,
   };
   fs.writeFileSync(path.join(REPORT_ROOT, 'report.json'), JSON.stringify(report, null, 2));
+  if (visual) {
+    try {
+      fs.writeFileSync(AUDIT_REPORT_PATH, JSON.stringify(report, null, 2));
+    } catch (e) {
+      pushIssue('warn', 'visual', `failed to write ${AUDIT_REPORT_PATH}: ${e.message}`);
+    }
+  }
 
   const md = [];
   md.push(`# UX Exploration Report (iteration ${iteration})`);
