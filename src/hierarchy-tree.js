@@ -43,6 +43,10 @@ function isInterventionActive(node) {
     }
     return Object.keys(iv).length > 0;
   }
+  // (8.21) Only approval_pending is actionable. background_exit and
+  // past_resolved are informational — do not count toward the rollup
+  // or trigger the [intervention] badge.
+  if (typeof iv === 'string') return iv === 'approval_pending';
   return Boolean(iv);
 }
 
