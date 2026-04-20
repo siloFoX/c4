@@ -2,9 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ListChecks, RefreshCw } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast, { type ToastType } from '../components/Toast';
-import { Badge, Button, Input, Panel } from '../components/ui';
+import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
+import { openHelpDrawer } from '../components/HelpUIRoot';
+import { Badge, Button, Input, Panel, Tooltip } from '../components/ui';
 import { apiGet } from '../lib/api';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
+import { t, useLocale } from '../lib/i18n';
 
 // 8.20B Profiles. Read-only list from GET /api/profiles. Add/edit/remove
 // endpoints are tracked as a follow-up TODO; the UI toasts "Not
@@ -28,6 +31,7 @@ interface ProfilesResponse {
 interface ToastState { id: number; message: string; type: ToastType }
 
 export default function Profiles() {
+  useLocale();
   const [items, setItems] = useState<ProfileItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,28 +83,41 @@ export default function Profiles() {
       description="Permission profiles — allow / deny patterns a worker inherits when spawned with --profile."
       actions={
         <>
-          <Input
-            className="h-8 w-48"
-            placeholder="Filter"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            aria-label="Filter profiles"
-          />
-          <Button type="button" variant="outline" size="sm" onClick={notImplemented}>
-            <ListChecks className="h-3.5 w-3.5" />
-            <span>Add</span>
-          </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={refresh} disabled={loading}>
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span className="sr-only">Refresh</span>
-          </Button>
+          <Tooltip label={t('profiles.tooltip.filter')}>
+            <Input
+              className="h-8 w-48"
+              placeholder="Filter"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              aria-label="Filter profiles"
+            />
+          </Tooltip>
+          <Tooltip label={t('profiles.tooltip.add')}>
+            <Button type="button" variant="outline" size="sm" onClick={notImplemented}>
+              <ListChecks className="h-3.5 w-3.5" />
+              <span>Add</span>
+            </Button>
+          </Tooltip>
+          <Tooltip label={t('profiles.tooltip.refresh')}>
+            <Button type="button" variant="ghost" size="sm" onClick={refresh} disabled={loading}>
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span className="sr-only">Refresh</span>
+            </Button>
+          </Tooltip>
         </>
       }
     >
+      <PageDescriptionBanner
+        summaryKey="profiles.summary"
+        cliKey="profiles.cli"
+        exampleKey="profiles.example"
+        useCasesKey="profiles.useCases"
+        onOpenHelp={openHelpDrawer}
+      />
       {error && <ErrorPanel message={error} />}
       {loading && items.length === 0 ? <LoadingSkeleton rows={3} /> : null}
       {!loading && filtered.length === 0 ? (
-        <EmptyPanel message="No profiles defined yet." />
+        <EmptyPanel message={t('profiles.empty')} />
       ) : (
         <ul className="flex flex-col gap-2">
           {filtered.map((p) => {

@@ -1,9 +1,12 @@
 import { useCallback, useState } from 'react';
-import { Play, RefreshCw } from 'lucide-react';
+import { Play, RefreshCw, Sparkles } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
 import Toast, { type ToastType } from '../components/Toast';
-import { Button, Input, Label, Panel } from '../components/ui';
+import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
+import { openHelpDrawer } from '../components/HelpUIRoot';
+import { Button, Input, Label, Panel, Tooltip } from '../components/ui';
 import { apiPost } from '../lib/api';
+import { t, useLocale } from '../lib/i18n';
 
 // 8.20B Batch dispatcher. POSTs to the new /api/batch endpoint that
 // this patch adds to daemon.js. Lets the operator fan out the same
@@ -22,6 +25,7 @@ interface BatchResponse {
 interface ToastState { id: number; message: string; type: ToastType }
 
 export default function Batch() {
+  useLocale();
   const [task, setTask] = useState('');
   const [count, setCount] = useState<number>(1);
   const [tasksText, setTasksText] = useState('');
@@ -88,36 +92,70 @@ export default function Batch() {
     setBusy(false);
   }, [autoMode, branch, count, mode, namePrefix, profile, task, tasksText, showToast]);
 
+  const prefillExample = useCallback(() => {
+    if (mode === 'count') {
+      setTask(t('batch.example'));
+      if (count < 2) setCount(3);
+    } else {
+      setTasksText(t('batch.exampleMulti'));
+    }
+  }, [mode, count]);
+
   return (
     <PageFrame
       title="Batch dispatch"
       description="Send the same task to N workers or one task per line from a pasted list. Mirrors `c4 batch`."
       actions={
         <>
-          <Button type="button" variant="default" size="sm" onClick={submit} disabled={busy}>
-            {busy ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-            <span>{busy ? 'Dispatching...' : 'Dispatch'}</span>
-          </Button>
+          <Tooltip label={t('batch.tooltip.dispatch')}>
+            <Button type="button" variant="default" size="sm" onClick={submit} disabled={busy}>
+              {busy ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+              <span>{busy ? 'Dispatching...' : 'Dispatch'}</span>
+            </Button>
+          </Tooltip>
         </>
       }
     >
+      <PageDescriptionBanner
+        summaryKey="batch.summary"
+        cliKey="batch.cli"
+        exampleKey="batch.example"
+        useCasesKey="batch.useCases"
+        onOpenHelp={openHelpDrawer}
+        action={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={prefillExample}
+            aria-label={t('batch.tryExample')}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>{t('batch.tryExample')}</span>
+          </Button>
+        }
+      />
       <div className="flex gap-2 text-xs">
-        <Button
-          type="button"
-          variant={mode === 'count' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setMode('count')}
-        >
-          Same task N times
-        </Button>
-        <Button
-          type="button"
-          variant={mode === 'file' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setMode('file')}
-        >
-          One task per line
-        </Button>
+        <Tooltip label={t('batch.tooltip.modeCount')}>
+          <Button
+            type="button"
+            variant={mode === 'count' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setMode('count')}
+          >
+            Same task N times
+          </Button>
+        </Tooltip>
+        <Tooltip label={t('batch.tooltip.modeFile')}>
+          <Button
+            type="button"
+            variant={mode === 'file' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setMode('file')}
+          >
+            One task per line
+          </Button>
+        </Tooltip>
       </div>
 
       {mode === 'count' ? (
@@ -146,12 +184,14 @@ export default function Batch() {
           </div>
           <div>
             <Label htmlFor="batch-prefix">Name prefix</Label>
-            <Input
-              id="batch-prefix"
-              value={namePrefix}
-              onChange={(e) => setNamePrefix(e.target.value)}
-              placeholder="batch"
-            />
+            <Tooltip label={t('batch.tooltip.prefix')} placement="top">
+              <Input
+                id="batch-prefix"
+                value={namePrefix}
+                onChange={(e) => setNamePrefix(e.target.value)}
+                placeholder="batch"
+              />
+            </Tooltip>
           </div>
         </div>
       ) : (
@@ -171,31 +211,37 @@ export default function Batch() {
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <div>
           <Label htmlFor="batch-branch">Branch prefix</Label>
-          <Input
-            id="batch-branch"
-            value={branch}
-            onChange={(e) => setBranch(e.target.value)}
-            placeholder="feature"
-          />
+          <Tooltip label={t('batch.tooltip.branch')} placement="top">
+            <Input
+              id="batch-branch"
+              value={branch}
+              onChange={(e) => setBranch(e.target.value)}
+              placeholder="feature"
+            />
+          </Tooltip>
         </div>
         <div>
           <Label htmlFor="batch-profile">Profile</Label>
-          <Input
-            id="batch-profile"
-            value={profile}
-            onChange={(e) => setProfile(e.target.value)}
-            placeholder="web, planner, ..."
-          />
+          <Tooltip label={t('batch.tooltip.profile')} placement="top">
+            <Input
+              id="batch-profile"
+              value={profile}
+              onChange={(e) => setProfile(e.target.value)}
+              placeholder="web, planner, ..."
+            />
+          </Tooltip>
         </div>
         <div className="flex items-end gap-2">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={autoMode}
-              onChange={(e) => setAutoMode(e.target.checked)}
-            />
-            <span>Auto mode</span>
-          </label>
+          <Tooltip label={t('batch.tooltip.autoMode')} placement="top">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={autoMode}
+                onChange={(e) => setAutoMode(e.target.checked)}
+              />
+              <span>Auto mode</span>
+            </label>
+          </Tooltip>
         </div>
       </div>
 

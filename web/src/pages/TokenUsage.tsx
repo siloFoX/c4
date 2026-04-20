@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
-import { Badge, Button, Panel } from '../components/ui';
+import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
+import { openHelpDrawer } from '../components/HelpUIRoot';
+import { Badge, Button, Panel, Tooltip } from '../components/ui';
 import { apiGet } from '../lib/api';
 import { cn } from '../lib/cn';
 import { dateRange, dateRangeLabel, formatNumber } from '../lib/format';
+import { t, useLocale } from '../lib/i18n';
 
 // 8.20B Token usage. Calls GET /api/token-usage (with optional
 // ?perTask=1) and renders:
@@ -67,6 +70,7 @@ function coerceTotal(v: unknown): number {
 }
 
 export default function TokenUsage() {
+  useLocale();
   const [data, setData] = useState<TokenUsagePayload | null>(null);
   const [quota, setQuota] = useState<QuotaPayload | null>(null);
   const [days, setDays] = useState<number>(7);
@@ -129,31 +133,43 @@ export default function TokenUsage() {
       actions={
         <>
           {DAY_OPTIONS.map((d) => (
-            <Button
-              key={d}
-              type="button"
-              variant={d === days ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setDays(d)}
-            >
-              {dateRangeLabel(d)}
-            </Button>
+            <Tooltip key={d} label={t('tokenUsage.tooltip.days')}>
+              <Button
+                type="button"
+                variant={d === days ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setDays(d)}
+              >
+                {dateRangeLabel(d)}
+              </Button>
+            </Tooltip>
           ))}
-          <label className="inline-flex items-center gap-1.5 text-xs">
-            <input
-              type="checkbox"
-              checked={perTask}
-              onChange={(e) => setPerTask(e.target.checked)}
-            />
-            Per-task
-          </label>
-          <Button type="button" variant="ghost" size="sm" onClick={refresh} disabled={loading}>
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span className="sr-only">Refresh</span>
-          </Button>
+          <Tooltip label={t('tokenUsage.tooltip.perTask')}>
+            <label className="inline-flex items-center gap-1.5 text-xs">
+              <input
+                type="checkbox"
+                checked={perTask}
+                onChange={(e) => setPerTask(e.target.checked)}
+              />
+              Per-task
+            </label>
+          </Tooltip>
+          <Tooltip label={t('tokenUsage.tooltip.refresh')}>
+            <Button type="button" variant="ghost" size="sm" onClick={refresh} disabled={loading}>
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span className="sr-only">Refresh</span>
+            </Button>
+          </Tooltip>
         </>
       }
     >
+      <PageDescriptionBanner
+        summaryKey="tokenUsage.summary"
+        cliKey="tokenUsage.cli"
+        exampleKey="tokenUsage.example"
+        useCasesKey="tokenUsage.useCases"
+        onOpenHelp={openHelpDrawer}
+      />
       {loading && !data ? <LoadingSkeleton rows={4} /> : null}
       {error && <ErrorPanel message={error} />}
       {data && (
@@ -179,7 +195,7 @@ export default function TokenUsage() {
 
           <Panel title={`By worker (${perWorker.length})`} className="p-3">
             {perWorker.length === 0 ? (
-              <EmptyPanel message="No per-worker usage recorded yet." />
+              <EmptyPanel message={t('tokenUsage.empty')} />
             ) : (
               <ul className="flex flex-col gap-1.5">
                 {perWorker.map((e) => (

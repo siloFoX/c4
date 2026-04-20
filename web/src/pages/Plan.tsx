@@ -2,10 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { Brain, RefreshCw, Send, Upload } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast, { type ToastType } from '../components/Toast';
-import { Button, Input, Label, Panel } from '../components/ui';
+import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
+import { openHelpDrawer } from '../components/HelpUIRoot';
+import { Button, Input, Label, Panel, Tooltip } from '../components/ui';
 import { apiFetch, apiGet, apiPost } from '../lib/api';
 import { renderMarkdown } from '../lib/markdown';
 import type { ListResponse, Worker } from '../types';
+import { t, useLocale } from '../lib/i18n';
 
 // 8.20B Plan. Dispatches a planning task via POST /api/plan and polls
 // GET /api/plan?name=<worker> to display the resulting plan.md with
@@ -25,6 +28,7 @@ interface PlanResponse {
 interface ToastState { id: number; message: string; type: ToastType }
 
 export default function Plan() {
+  useLocale();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [selected, setSelected] = useState<string>('');
   const [task, setTask] = useState('');
@@ -127,13 +131,22 @@ export default function Plan() {
       description="Dispatch a planning task and render the worker's plan.md. Re-dispatch the plan as real work with one click."
       actions={
         <>
-          <Button type="button" variant="ghost" size="sm" onClick={loadPlan} disabled={loading || !selected}>
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span className="sr-only">Refresh plan</span>
-          </Button>
+          <Tooltip label={t('plan.tooltip.refresh')}>
+            <Button type="button" variant="ghost" size="sm" onClick={loadPlan} disabled={loading || !selected}>
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span className="sr-only">Refresh plan</span>
+            </Button>
+          </Tooltip>
         </>
       }
     >
+      <PageDescriptionBanner
+        summaryKey="plan.summary"
+        cliKey="plan.cli"
+        exampleKey="plan.example"
+        useCasesKey="plan.useCases"
+        onOpenHelp={openHelpDrawer}
+      />
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div>
           <Label htmlFor="plan-worker">Worker</Label>
@@ -151,12 +164,14 @@ export default function Plan() {
         </div>
         <div>
           <Label htmlFor="plan-branch">Branch (optional)</Label>
-          <Input
-            id="plan-branch"
-            value={branch}
-            onChange={(e) => setBranch(e.target.value)}
-            placeholder="c4/my-plan"
-          />
+          <Tooltip label={t('plan.tooltip.branch')} placement="top">
+            <Input
+              id="plan-branch"
+              value={branch}
+              onChange={(e) => setBranch(e.target.value)}
+              placeholder="c4/my-plan"
+            />
+          </Tooltip>
         </div>
         <div className="md:col-span-2">
           <Label htmlFor="plan-task">Plan task</Label>
@@ -171,30 +186,36 @@ export default function Plan() {
         </div>
         <div>
           <Label htmlFor="plan-output">Output path (optional)</Label>
-          <Input
-            id="plan-output"
-            value={output}
-            onChange={(e) => setOutput(e.target.value)}
-            placeholder="docs/plans/my-plan.md"
-          />
+          <Tooltip label={t('plan.tooltip.output')} placement="top">
+            <Input
+              id="plan-output"
+              value={output}
+              onChange={(e) => setOutput(e.target.value)}
+              placeholder="docs/plans/my-plan.md"
+            />
+          </Tooltip>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="default" size="sm" onClick={dispatchPlan} disabled={dispatching}>
-          {dispatching ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-          <span>Send plan</span>
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={redispatch}
-          disabled={dispatching || !plan?.content}
-        >
-          <Upload className="h-3.5 w-3.5" />
-          <span>Re-dispatch as task</span>
-        </Button>
+        <Tooltip label={t('plan.tooltip.dispatch')}>
+          <Button type="button" variant="default" size="sm" onClick={dispatchPlan} disabled={dispatching}>
+            {dispatching ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+            <span>Send plan</span>
+          </Button>
+        </Tooltip>
+        <Tooltip label={t('plan.tooltip.redispatch')}>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={redispatch}
+            disabled={dispatching || !plan?.content}
+          >
+            <Upload className="h-3.5 w-3.5" />
+            <span>Re-dispatch as task</span>
+          </Button>
+        </Tooltip>
       </div>
 
       {error && <ErrorPanel message={error} />}
@@ -211,7 +232,7 @@ export default function Plan() {
             {renderMarkdown(plan.content)}
           </div>
         ) : (
-          <EmptyPanel message="No plan generated yet for this worker. Dispatch a planning task to begin." />
+          <EmptyPanel message={t('plan.empty')} />
         )}
       </Panel>
 

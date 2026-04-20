@@ -7,6 +7,27 @@ export const HELP_EVENT_OPEN_DRAWER = 'c4:help-drawer-open';
 export const HELP_EVENT_OPEN_SHORTCUTS = 'c4:shortcuts-open';
 export const HELP_EVENT_TOGGLE_LOCALE = 'c4:locale-toggle';
 
+// Convenience helpers so pages do not each hand-roll the custom-event
+// dispatch. Each returns void so callers can drop them straight into an
+// onClick handler.
+export function openHelpDrawer(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.dispatchEvent(new CustomEvent(HELP_EVENT_OPEN_DRAWER));
+  } catch {
+    // ignore
+  }
+}
+
+export function openShortcutsModal(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.dispatchEvent(new CustomEvent(HELP_EVENT_OPEN_SHORTCUTS));
+  } catch {
+    // ignore
+  }
+}
+
 const HASH_PREFIX = '#/feature/';
 
 function readActiveFeatureId(): string | null {

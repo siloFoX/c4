@@ -2,9 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { FileText, Play, RefreshCw, Square } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast, { type ToastType } from '../components/Toast';
-import { Button, Panel } from '../components/ui';
+import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
+import { openHelpDrawer } from '../components/HelpUIRoot';
+import { Button, Panel, Tooltip } from '../components/ui';
 import { apiFetch, apiPost } from '../lib/api';
 import { formatRelativeTime } from '../lib/format';
+import { t, useLocale } from '../lib/i18n';
 
 // 8.20B Scribe feature page. Wraps POST /scribe/start|stop|scan, GET
 // /scribe/status, and GET /scribe-context. No business logic -- just a
@@ -31,6 +34,7 @@ interface ContextResponse {
 interface ToastState { id: number; message: string; type: ToastType }
 
 export default function Scribe() {
+  useLocale();
   const [status, setStatus] = useState<ScribeStatus | null>(null);
   const [context, setContext] = useState<ContextResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -95,50 +99,65 @@ export default function Scribe() {
       description="Session context recorder. Tail activity into docs/session-context.md so the next manager session picks up where the last one left off."
       actions={
         <>
-          <Button
-            type="button"
-            variant={running ? 'secondary' : 'default'}
-            size="sm"
-            onClick={() => act('/api/scribe/start', 'Scribe start')}
-            disabled={busy !== null || running}
-          >
-            <Play className="h-3.5 w-3.5" />
-            <span>Start</span>
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => act('/api/scribe/stop', 'Scribe stop')}
-            disabled={busy !== null || !running}
-          >
-            <Square className="h-3.5 w-3.5" />
-            <span>Stop</span>
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => act('/api/scribe/scan', 'Scribe scan')}
-            disabled={busy !== null}
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            <span>Scan</span>
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={refresh}
-            disabled={loading}
-            aria-label="Refresh scribe status"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span className="sr-only">Refresh</span>
-          </Button>
+          <Tooltip label={t('scribe.tooltip.start')}>
+            <Button
+              type="button"
+              variant={running ? 'secondary' : 'default'}
+              size="sm"
+              onClick={() => act('/api/scribe/start', 'Scribe start')}
+              disabled={busy !== null || running}
+            >
+              <Play className="h-3.5 w-3.5" />
+              <span>Start</span>
+            </Button>
+          </Tooltip>
+          <Tooltip label={t('scribe.tooltip.stop')}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => act('/api/scribe/stop', 'Scribe stop')}
+              disabled={busy !== null || !running}
+            >
+              <Square className="h-3.5 w-3.5" />
+              <span>Stop</span>
+            </Button>
+          </Tooltip>
+          <Tooltip label={t('scribe.tooltip.scan')}>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => act('/api/scribe/scan', 'Scribe scan')}
+              disabled={busy !== null}
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span>Scan</span>
+            </Button>
+          </Tooltip>
+          <Tooltip label={t('scribe.tooltip.refresh')}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={refresh}
+              disabled={loading}
+              aria-label="Refresh scribe status"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span className="sr-only">Refresh</span>
+            </Button>
+          </Tooltip>
         </>
       }
     >
+      <PageDescriptionBanner
+        summaryKey="scribe.summary"
+        cliKey="scribe.cli"
+        exampleKey="scribe.example"
+        useCasesKey="scribe.useCases"
+        onOpenHelp={openHelpDrawer}
+      />
       {loading && !status ? <LoadingSkeleton rows={3} /> : null}
       {error && <ErrorPanel message={error} />}
       {status && (
@@ -160,7 +179,7 @@ export default function Scribe() {
             {context.content}
           </pre>
         ) : (
-          <EmptyPanel message="No context snapshot available yet. Start scribe and run scan to generate one." />
+          <EmptyPanel message={t('scribe.empty')} />
         )}
       </div>
       <div className="pointer-events-none fixed right-4 top-4 z-50 flex flex-col gap-2">

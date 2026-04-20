@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
-import { Badge, Button, Panel } from '../components/ui';
+import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
+import { openHelpDrawer } from '../components/HelpUIRoot';
+import { Badge, Button, Panel, Tooltip } from '../components/ui';
 import { apiGet } from '../lib/api';
 import { formatDuration, formatNumber, formatRelativeTime } from '../lib/format';
+import { t, useLocale } from '../lib/i18n';
 
 // 8.20B Health dashboard. Reads GET /api/health and renders the fields
 // the daemon surfaces today (pid, uptime, worker counts). Fields the
@@ -30,6 +33,7 @@ interface HealthPayload {
 }
 
 export default function Health() {
+  useLocale();
   const [data, setData] = useState<HealthPayload | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,19 +64,28 @@ export default function Health() {
       title="Health"
       description="Daemon heartbeat. Uptime, worker counts, queue depth, and a snapshot of loaded modules."
       actions={
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={refresh}
-          disabled={loading}
-          aria-label="Refresh health"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span className="sr-only">Refresh</span>
-        </Button>
+        <Tooltip label={t('health.tooltip.refresh')}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={refresh}
+            disabled={loading}
+            aria-label="Refresh health"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span className="sr-only">Refresh</span>
+          </Button>
+        </Tooltip>
       }
     >
+      <PageDescriptionBanner
+        summaryKey="health.summary"
+        cliKey="health.cli"
+        exampleKey="health.example"
+        useCasesKey="health.useCases"
+        onOpenHelp={openHelpDrawer}
+      />
       {loading && !data ? <LoadingSkeleton rows={3} /> : null}
       {error && <ErrorPanel message={error} />}
       {data && (
