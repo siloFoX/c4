@@ -72,6 +72,19 @@ const FONT_STORAGE_KEY = 'c4.term.fontSize';
 const FIT_STORAGE_KEY = 'c4.term.autoFit';
 const COLS_STORAGE_KEY = 'c4.term.cols';
 
+// 8.22: flip VITE_AUTOFIT_DEBUG=1 in web/.env.local to log every auto-fit
+// recompute + the POST /api/resize it produces. Toggle stays wired so future
+// terminal auto-fit regressions can be diagnosed without code changes.
+const AUTOFIT_DEBUG: boolean = (() => {
+  try {
+    const env = (import.meta as unknown as { env?: Record<string, unknown> }).env;
+    const v = env?.VITE_AUTOFIT_DEBUG;
+    return v === '1' || v === 'true' || v === true;
+  } catch {
+    return false;
+  }
+})();
+
 async function postJson(url: string, body: unknown): Promise<ActionResponse> {
   const res = await apiFetch(url, {
     method: 'POST',
@@ -185,6 +198,10 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
       const last = lastRequestedRef.current;
       if (last && last.cols === c && last.rows === r) return;
       lastRequestedRef.current = { cols: c, rows: r };
+      if (AUTOFIT_DEBUG) {
+        // eslint-disable-next-line no-console
+        console.debug('[autofit] cols=%d rows=%d -> POST /api/resize', c, r);
+      }
       try {
         const res = await apiFetch('/api/resize', {
           method: 'POST',
@@ -207,7 +224,9 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
     [workerName]
   );
 
-  // Measure char width and compute fit cols. Debounced via rAF + timer.
+  // Measure char width and compute fit cols. setCols uses functional form so
+  // this callback stays stable across cols changes -- otherwise the observers
+  // below would tear down and re-attach on every fit cycle.
   const recomputeFit = useCallback(() => {
     if (!autoFit) return;
     const pre = preRef.current;
@@ -219,12 +238,36 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
     const padL = parseFloat(style.paddingLeft) || 0;
     const padR = parseFloat(style.paddingRight) || 0;
     const inner = pre.clientWidth - padL - padR;
-    const nextCols = clamp(Math.floor(inner / charW), MIN_COLS, MAX_COLS);
-    if (nextCols !== cols) {
-      setCols(nextCols);
+    if (inner <= 0) return;
+    const raw = Math.floor(inner / charW);
+    if (!Number.isFinite(raw) || raw <= 0) return;
+    const nextCols = clamp(raw, MIN_COLS, MAX_COLS);
+    if (AUTOFIT_DEBUG) {
+      // eslint-disable-next-line no-console
+      console.debug(
+        '[autofit] measured cols=%d (inner=%d, charW=%f, font=%d)',
+        nextCols,
+        inner,
+        charW,
+        fontSize,
+      );
     }
+    setCols((prev) => (prev === nextCols ? prev : nextCols));
     requestResize(nextCols, DEFAULT_ROWS);
-  }, [autoFit, cols, requestResize]);
+  }, [autoFit, fontSize, requestResize]);
+
+  // Shared 120ms debounce across window.resize + ResizeObserver so we never
+  // issue two POST /api/resize calls for a single user gesture.
+  const scheduleRecompute = useCallback(() => {
+    if (!autoFit) return;
+    if (resizeTimerRef.current != null) {
+      window.clearTimeout(resizeTimerRef.current);
+    }
+    resizeTimerRef.current = window.setTimeout(() => {
+      resizeTimerRef.current = null;
+      recomputeFit();
+    }, 120);
+  }, [autoFit, recomputeFit]);
 
   useLayoutEffect(() => {
     if (!autoFit) return;
@@ -232,23 +275,38 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
   }, [autoFit, fontSize, recomputeFit]);
 
   useEffect(() => {
-    const onResize = () => {
-      if (!autoFit) return;
-      if (resizeTimerRef.current != null) {
-        window.clearTimeout(resizeTimerRef.current);
-      }
-      resizeTimerRef.current = window.setTimeout(() => {
-        recomputeFit();
-      }, 120);
-    };
+    const onResize = () => scheduleRecompute();
     window.addEventListener('resize', onResize);
     return () => {
       window.removeEventListener('resize', onResize);
       if (resizeTimerRef.current != null) {
         window.clearTimeout(resizeTimerRef.current);
+        resizeTimerRef.current = null;
       }
     };
-  }, [autoFit, recomputeFit]);
+  }, [scheduleRecompute]);
+
+  // ResizeObserver on the <pre> catches layout shifts that do not fire a
+  // window.resize (sidebar toggle, font-size changes, parent flex reflow).
+  // Some mobile Safari builds do not deliver ResizeObserver on a flex child,
+  // hence the window-resize listener above stays wired as a fallback.
+  useEffect(() => {
+    if (!autoFit) return;
+    const pre = preRef.current;
+    if (!pre) return;
+    if (typeof ResizeObserver === 'undefined') return;
+    const obs = new ResizeObserver(() => {
+      scheduleRecompute();
+    });
+    obs.observe(pre);
+    return () => {
+      try {
+        obs.disconnect();
+      } catch {
+        /* ignore teardown race */
+      }
+    };
+  }, [autoFit, scheduleRecompute]);
 
   // When auto-fit is off, push the manual cols value to the server whenever
   // it changes. Debounced by React's batching alone -- requestResize itself

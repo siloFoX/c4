@@ -114,4 +114,54 @@ describe('ScreenBuffer.resize (8.13)', () => {
     assert.strictEqual(sb.cols, 40);
     assert.strictEqual(sb.rows, 3);
   });
+
+  it('re-flows scrollback lines to the new cols when cols shrink (8.22)', () => {
+    const sb = new ScreenBuffer(80, 3);
+    sb.maxScrollback = 100;
+    // Manually seed scrollback with three lines whose lengths span one,
+    // two, and three full new-width wraps.
+    sb.scrollback = [
+      'abcdefghij',          // 10 chars, fits into 10-col wraps as one chunk
+      'AAAAAAAAAABBBBBBBBBB', // 20 chars -> two wraps
+      'xxxxxxxxxxyyyyyyyyyyzzzzzzzzzz', // 30 chars -> three wraps
+    ];
+    sb.resize(10, 3);
+    assert.strictEqual(sb.cols, 10);
+    // 1 + 2 + 3 = 6 scrollback entries after re-flow, each <= 10 chars.
+    assert.strictEqual(sb.scrollback.length, 6);
+    for (const line of sb.scrollback) {
+      assert.ok(line.length <= 10, `line exceeds new cols: ${line}`);
+    }
+    assert.deepStrictEqual(sb.scrollback, [
+      'abcdefghij',
+      'AAAAAAAAAA', 'BBBBBBBBBB',
+      'xxxxxxxxxx', 'yyyyyyyyyy', 'zzzzzzzzzz',
+    ]);
+  });
+
+  it('caps re-flowed scrollback at maxScrollback, keeping the newest rows', () => {
+    const sb = new ScreenBuffer(80, 3);
+    sb.maxScrollback = 4;
+    // Seed five 30-char lines that each re-flow to three 10-col chunks
+    // (15 chunks total); the cap should keep only the last 4.
+    sb.scrollback = [
+      'aaaaaaaaaabbbbbbbbbbcccccccccc',
+      'ddddddddddeeeeeeeeeeffffffffff',
+      'ggggggggggHHHHHHHHHHiiiiiiiiii',
+      'jjjjjjjjjjkkkkkkkkkkllllllllll',
+      'mmmmmmmmmmnnnnnnnnnnoooooooooo',
+    ];
+    sb.resize(10, 3);
+    assert.strictEqual(sb.scrollback.length, 4);
+    // The last entry of the last source line must still be present.
+    assert.strictEqual(sb.scrollback[sb.scrollback.length - 1], 'oooooooooo');
+  });
+
+  it('leaves scrollback untouched when cols grow', () => {
+    const sb = new ScreenBuffer(40, 3);
+    const before = ['short', 'another short'];
+    sb.scrollback = before.slice();
+    sb.resize(80, 3);
+    assert.deepStrictEqual(sb.scrollback, before);
+  });
 });
