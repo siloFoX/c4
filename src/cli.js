@@ -256,6 +256,12 @@ async function main() {
         const name = args[0];
         // Parse --target, --cwd, --template, --parent, --tier flags
         let target = 'local', cwd = '', template = '', parent = '', tier = '';
+        // 8.46: persistent pinned rules. --pin-memory <file> reads a file,
+        // --pin-rules <text> is repeatable inline text, --pin-role picks a
+        // role-based default template (manager|worker|attached).
+        const pinRulesInline = [];
+        const pinMemoryFiles = [];
+        let pinRole = '';
         const filteredArgs = [];
         let command = 'claude';
         let commandSet = false;
@@ -265,6 +271,9 @@ async function main() {
           else if (args[i] === '--template' && args[i + 1]) { template = args[++i]; }
           else if (args[i] === '--parent' && args[i + 1]) { parent = args[++i]; }
           else if (args[i] === '--tier' && args[i + 1]) { tier = args[++i]; }
+          else if (args[i] === '--pin-memory' && args[i + 1]) { pinMemoryFiles.push(args[++i]); }
+          else if (args[i] === '--pin-rules' && args[i + 1]) { pinRulesInline.push(args[++i]); }
+          else if (args[i] === '--pin-role' && args[i + 1]) { pinRole = args[++i]; }
           else if (!commandSet) { command = args[i]; commandSet = true; }
           else { filteredArgs.push(args[i]); }
         }
@@ -274,10 +283,29 @@ async function main() {
         if (!parent && process.env.C4_WORKER_NAME) {
           parent = process.env.C4_WORKER_NAME;
         }
+        // 8.46: resolve --pin-memory file paths to their contents here so
+        // the daemon only has to deal with a flat string[]. File errors
+        // fail fast so operators do not silently lose their pinned rules.
+        const pinnedMemory = [];
+        for (const f of pinMemoryFiles) {
+          try {
+            const text = fs.readFileSync(f, 'utf8').trim();
+            if (text) pinnedMemory.push(text);
+          } catch (e) {
+            console.error(`Error reading --pin-memory file '${f}': ${e.message}`);
+            process.exit(1);
+          }
+        }
+        for (const r of pinRulesInline) {
+          const t = String(r || '').trim();
+          if (t) pinnedMemory.push(t);
+        }
         const body = { name, command, args: filteredArgs, target, cwd };
         if (template) body.template = template;
         if (parent) body.parent = parent;
         if (tier) body.tier = tier;
+        if (pinnedMemory.length > 0) body.pinnedMemory = pinnedMemory;
+        if (pinRole) body.pinRole = pinRole;
         result = await request('POST', '/create', body);
         break;
       }
@@ -2105,6 +2133,57 @@ async function main() {
         const fail = results.filter(r => !r.ok).length;
         console.log(`\nBatch complete: ${ok} created, ${fail} failed`);
         return;
+      }
+
+      case 'pinned-memory':
+      case 'pin-memory': {
+        // 8.46: manage a worker's persistent rule set after creation.
+        //   c4 pinned-memory get <name>
+        //   c4 pinned-memory set <name> [--file <path>] [--rule <text>]...
+        //                               [--role <manager|worker|attached>]
+        //                               [--refresh]
+        const action = args[0];
+        const name = args[1];
+        if (!action || !name || (action !== 'get' && action !== 'set')) {
+          console.error('Usage:');
+          console.error('  c4 pinned-memory get <name>');
+          console.error('  c4 pinned-memory set <name> [--file <path>] [--rule <text>]... [--role <role>] [--refresh]');
+          process.exit(1);
+        }
+        if (action === 'get') {
+          result = await request('GET', `/workers/${encodeURIComponent(name)}/pinned-memory`);
+          if (result && result.pinnedMemory !== undefined) {
+            console.log(JSON.stringify(result, null, 2));
+            return;
+          }
+          break;
+        }
+        const body = { userRules: [] };
+        let rolePicked = '';
+        let refresh = false;
+        for (let i = 2; i < args.length; i++) {
+          if (args[i] === '--file' && args[i + 1]) {
+            const f = args[++i];
+            try {
+              const text = fs.readFileSync(f, 'utf8').trim();
+              if (text) body.userRules.push(text);
+            } catch (e) {
+              console.error(`Error reading --file '${f}': ${e.message}`);
+              process.exit(1);
+            }
+          } else if (args[i] === '--rule' && args[i + 1]) {
+            const t = String(args[++i] || '').trim();
+            if (t) body.userRules.push(t);
+          } else if (args[i] === '--role' && args[i + 1]) {
+            rolePicked = args[++i];
+          } else if (args[i] === '--refresh') {
+            refresh = true;
+          }
+        }
+        if (rolePicked) body.defaultTemplate = rolePicked;
+        if (refresh) body.refresh = true;
+        result = await request('POST', `/workers/${encodeURIComponent(name)}/pinned-memory`, body);
+        break;
       }
 
       case 'cleanup': {
