@@ -5,6 +5,10 @@
 Phase 12 release — wraps up the 1.6.16 cumulative work into a tagged
 version so the SDK / plugin / docs publish with a clean number.
 
+### Phase 14 follow-ups (config validation / openapi summaries)
+- **Config validator** (TODO #113) — `src/config-validate.js`: 검증 카테고리 errors / warnings / info. daemon.port 범위, auth.enabled+secret 부재, departments[].projects가 projects에 없는 이름 참조, workerQuota/monthlyBudgetUSD 음수/비숫자, workspaces 경로 존재, nl.llm.enabled+API key 부재, pm.todoSync+todoFile 부재, audit.maxSizeBytes 타입, maxWorkers 음수 등 12개 케이스. CLI `c4 config validate [path]`로 호출, errors > 0 이면 exit 1. 신규 테스트 12개.
+- **OpenAPI 모든 라우트 summary** (TODO #112) — `OVERRIDES`에 fleet/board/scheduler/scribe/auth/audit/workflow/nl/transfer 포함 86 라우트 모두 큐레이션. 자동 생성 `GET /<path>` 패턴 0건 — `/openapi.json`이 실제 API reference로 사용 가능.
+
 ### Phase 13 follow-ups (rotation / retry / CLI metrics)
 - **Audit log rotation** (TODO #107) — `config.audit.maxSizeBytes`로 audit.jsonl 크기 cap, 초과 시 `audit-<isoTs>.jsonl`로 rename + fresh 파일 시작. `keep` 설정으로 retain count 제한. `audit_rotate` SSE 이벤트 발행. config.example.json에 `audit` 블록 + 사용법 doc 추가. 신규 테스트 3개.
 - **Workflow on_failure='retry'** (TODO #108) — step에 `on_failure: 'retry', maxRetries: N, backoffMs: M` 옵션. handler가 error 반환 시 N회 재실행, backoff 사이 sleep, 모두 실패하면 abort로 fallback. 결과에 `retries: count` 메타데이터 첨부. 기존 abort/continue policy와 호환. 신규 테스트 3개 (총 11).

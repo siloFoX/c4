@@ -396,6 +396,26 @@ async function main() {
         if (args[0] === 'reload') {
           result = await request('POST', '/config/reload');
           console.log('Config reloaded.');
+        } else if (args[0] === 'validate') {
+          // (TODO #113) Local config validation — read config.json from
+          // the project root and report errors/warnings/info. Exits 1
+          // when errors are present so it's CI-friendly.
+          const cfgPath = args[1] || path.resolve(__dirname, '..', 'config.json');
+          const fs2 = require('fs');
+          if (!fs2.existsSync(cfgPath)) {
+            console.error(`config not found: ${cfgPath}`);
+            process.exit(1);
+          }
+          let cfg;
+          try { cfg = JSON.parse(fs2.readFileSync(cfgPath, 'utf8')); }
+          catch (e) {
+            console.error(`config is not valid JSON: ${e.message}`);
+            process.exit(1);
+          }
+          const { validate, printReport } = require('./config-validate');
+          const report = validate(cfg);
+          const ok = printReport(report);
+          process.exit(ok ? 0 : 1);
         } else {
           result = await request('GET', '/config');
         }
