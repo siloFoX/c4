@@ -615,12 +615,34 @@ class WorkflowExecutor {
       const prev = lastOutputForNode.has(nodeId) ? lastOutputForNode.get(nodeId) : (inputs || null);
       const startedAt = nowIso();
       const result = { status: NODE_STATUS.COMPLETED, output: null, error: null, startedAt, completedAt: null };
-      try {
-        result.output = await this._executeNode(node, prev, inputs, runId);
-      } catch (e) {
-        result.status = NODE_STATUS.FAILED;
-        result.error = (e && e.message) ? e.message : String(e);
+      // Per-node retry policy via node.config.retry: { maxRetries, backoffMs }.
+      // maxRetries is the *additional* attempts after the first call; total
+      // calls = 1 + maxRetries. backoffMs sleeps between attempts so flaky
+      // network steps don't hammer. Disabled (single attempt) when omitted.
+      const retryCfg = (node.config && node.config.retry) || {};
+      const maxRetries = Number.isFinite(retryCfg.maxRetries) ? Math.max(0, retryCfg.maxRetries) : 0;
+      const backoffMs = Number.isFinite(retryCfg.backoffMs) ? Math.max(0, retryCfg.backoffMs) : 0;
+      let attempts = 0;
+      let lastErr = null;
+      let success = false;
+      for (let i = 0; i <= maxRetries; i++) {
+        attempts = i + 1;
+        try {
+          result.output = await this._executeNode(node, prev, inputs, runId);
+          success = true;
+          break;
+        } catch (e) {
+          lastErr = e;
+          if (i < maxRetries && backoffMs > 0) {
+            await this.waitImpl(backoffMs);
+          }
+        }
       }
+      if (!success) {
+        result.status = NODE_STATUS.FAILED;
+        result.error = (lastErr && lastErr.message) ? lastErr.message : String(lastErr);
+      }
+      if (maxRetries > 0) result.attempts = attempts;
       result.completedAt = nowIso();
       run.nodeResults[nodeId] = result;
 
