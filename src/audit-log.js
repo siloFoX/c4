@@ -73,6 +73,14 @@ class AuditLogger {
     this.actor = (opts && opts.actor) || DEFAULT_ACTOR;
     this._lastHash = null;
     this._initialized = false;
+    // Optional SQLite read accelerator. JSONL stays the source of
+    // truth (the hash chain lives there); when opts.useSqlite is true,
+    // record() also INSERTs into a sibling .db so query() can use
+    // proper indexes for filter combinations on bursts of events.
+    // SQLite append failure is swallowed — the JSONL write already
+    // succeeded so the audit record itself isn't lost.
+    this._sqliteEnabled = !!(opts && opts.useSqlite);
+    this._sqlite = null;
   }
 
   _init() {
@@ -84,6 +92,19 @@ class AuditLogger {
     } catch {
       // Directory creation failures surface on the first appendFileSync
       // below — no point swallowing the error twice.
+    }
+    // Optional SQLite mirror. Initialised on first init so the require
+    // is paid only by callers who opt in.
+    if (this._sqliteEnabled && !this._sqlite) {
+      try {
+        const { AuditSqlite } = require('./audit-sqlite');
+        const dbPath = this.logPath.replace(/\.jsonl$/, '') + '.db';
+        const inst = new AuditSqlite(dbPath);
+        if (inst.isReady()) this._sqlite = inst;
+      } catch {
+        // node:sqlite missing or load error — silently fall back to
+        // JSONL-only. _sqlite stays null so query()/append() short-circuit.
+      }
     }
     if (!fs.existsSync(this.logPath)) return;
     try {
@@ -128,7 +149,28 @@ class AuditLogger {
     const fullEvent = Object.assign({}, event, { hash });
     fs.appendFileSync(this.logPath, JSON.stringify(fullEvent) + '\n');
     this._lastHash = hash;
+    // SQLite mirror — non-blocking on failure since JSONL is source of
+    // truth. The mirror exists only to accelerate query().
+    if (this._sqlite) {
+      try { this._sqlite.append(this._toSqliteRow(fullEvent)); }
+      catch { /* swallow — JSONL already persisted */ }
+    }
     return fullEvent;
+  }
+
+  // Translate an audit-log event (with hash + nested details) into the
+  // flat row shape AuditSqlite stores.
+  _toSqliteRow(fullEvent) {
+    return {
+      ts: fullEvent.timestamp,
+      actor: fullEvent.actor,
+      action: fullEvent.type,
+      worker: fullEvent.target,
+      ok: !(fullEvent.details && fullEvent.details.error),
+      error: (fullEvent.details && fullEvent.details.error) || null,
+      bodyKeys: fullEvent.details ? Object.keys(fullEvent.details) : [],
+      hash: fullEvent.hash,
+    };
   }
 
   // Kept as an alias for call sites that used the previous async name.
