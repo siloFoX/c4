@@ -53,7 +53,7 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 
-const NODE_TYPES = Object.freeze(['task', 'condition', 'parallel', 'wait', 'end']);
+const NODE_TYPES = Object.freeze(['task', 'condition', 'parallel', 'wait', 'audit', 'end']);
 const RUN_STATUS = Object.freeze({
   RUNNING: 'running',
   COMPLETED: 'completed',
@@ -566,6 +566,10 @@ class WorkflowExecutor {
     this.waitImpl = (opts && typeof opts.waitImpl === 'function')
       ? opts.waitImpl
       : (ms) => new Promise((res) => setTimeout(res, ms));
+    // Optional AuditLogger so 'audit' nodes can record() into the
+    // tamper-evident hash chain. When omitted those nodes are no-ops
+    // (return { skipped: true }) instead of failing the run.
+    this.auditLogger = (opts && opts.auditLogger) || null;
   }
 
   async executeWorkflow(workflowId, inputs, context) {
@@ -690,6 +694,35 @@ class WorkflowExecutor {
     }
     if (node.type === 'parallel') {
       return { kind: 'parallel', name: node.name };
+    }
+    if (node.type === 'audit') {
+      // Records an entry in the AuditLogger hash chain so workflow
+      // execution leaves a tamper-evident trail for compliance audits.
+      // Config:
+      //   { eventType: 'task.completed', target?: '...', details?: {...} }
+      // The previous node's output is merged into details under
+      // `prevOutput` so condition / task results flow forward.
+      if (!this.auditLogger || typeof this.auditLogger.record !== 'function') {
+        return { skipped: true, reason: 'no auditLogger configured' };
+      }
+      const cfg = node.config || {};
+      const eventType = typeof cfg.eventType === 'string' && cfg.eventType.length > 0
+        ? cfg.eventType
+        : 'workflow.audit';
+      const detailsOut = Object.assign({}, cfg.details || {});
+      if (prev !== undefined) detailsOut.prevOutput = prev;
+      detailsOut.runId = runId;
+      detailsOut.nodeId = node.id;
+      const overrides = {};
+      if (typeof cfg.target === 'string' && cfg.target.length > 0) {
+        overrides.target = cfg.target;
+      }
+      try {
+        const recorded = this.auditLogger.record(eventType, detailsOut, overrides);
+        return { recorded: true, hash: recorded.hash, eventType };
+      } catch (e) {
+        return { recorded: false, error: e && e.message ? e.message : String(e) };
+      }
     }
     if (node.type === 'end') {
       return { terminal: true };
