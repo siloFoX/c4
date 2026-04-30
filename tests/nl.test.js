@@ -111,4 +111,108 @@ describe('NL parser (11.4)', () => {
     assert.strictEqual(called, 0);
     assert.strictEqual(r.executed, false);
   });
+
+  // (TODO #104) Direct parseLLM contract — short-circuit, SDK missing,
+  // and end-to-end with a mocked Anthropic client.
+  it('parseLLM returns null when nl.llm.enabled is false', async () => {
+    const nl = new NLInterface({ config: { nl: { llm: { enabled: false } } } });
+    const r = await nl.parseLLM('hi');
+    assert.strictEqual(r, null);
+  });
+
+  it('parseLLM returns null when no API key is available', async () => {
+    const saved = process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
+    try {
+      const nl = new NLInterface({ config: { nl: { llm: { enabled: true } } } });
+      const r = await nl.parseLLM('hi');
+      assert.strictEqual(r, null);
+    } finally {
+      if (saved !== undefined) process.env.ANTHROPIC_API_KEY = saved;
+    }
+  });
+
+  it('parseLLM returns "llm-unavailable" when @anthropic-ai/sdk is not installed', async (t) => {
+    const Module = require('module');
+    const realResolve = Module._resolveFilename;
+    Module._resolveFilename = function (req, ...rest) {
+      if (req === '@anthropic-ai/sdk') {
+        const err = new Error('Cannot find module @anthropic-ai/sdk');
+        err.code = 'MODULE_NOT_FOUND';
+        throw err;
+      }
+      return realResolve.call(this, req, ...rest);
+    };
+    t.after(() => { Module._resolveFilename = realResolve; });
+
+    const nl = new NLInterface({
+      config: { nl: { llm: { enabled: true, apiKey: 'sk-fake' } } },
+    });
+    const r = await nl.parseLLM('do something');
+    assert.strictEqual(r.intent, 'llm-unavailable');
+    assert.match(r.reason, /not installed/);
+    assert.strictEqual(r.plan, null);
+  });
+
+  it('parseLLM parses a JSON plan from a mocked Anthropic client', async (t) => {
+    const Module = require('module');
+    const realLoad = Module._load;
+    Module._load = function (req, ...rest) {
+      if (req === '@anthropic-ai/sdk') {
+        return {
+          default: function MockClient() {
+            this.messages = {
+              create: async () => ({
+                content: [
+                  {
+                    type: 'text',
+                    text: JSON.stringify({
+                      intent: 'list',
+                      plan: { name: 'list', steps: [{ id: 'l', action: 'list' }] },
+                      confidence: 0.9,
+                    }),
+                  },
+                ],
+              }),
+            };
+          },
+        };
+      }
+      return realLoad.call(this, req, ...rest);
+    };
+    t.after(() => { Module._load = realLoad; });
+
+    const nl = new NLInterface({
+      config: { nl: { llm: { enabled: true, apiKey: 'sk-fake', model: 'claude-sonnet-4-6' } } },
+    });
+    const r = await nl.parseLLM('show me the workers');
+    assert.strictEqual(r.intent, 'list');
+    assert.strictEqual(r.plan.name, 'list');
+    assert.strictEqual(r.confidence, 0.9);
+    assert.strictEqual(r.args.llm, true);
+    assert.strictEqual(r.args.model, 'claude-sonnet-4-6');
+  });
+
+  it('parseLLM returns "llm-error" on API failure', async (t) => {
+    const Module = require('module');
+    const realLoad = Module._load;
+    Module._load = function (req, ...rest) {
+      if (req === '@anthropic-ai/sdk') {
+        return {
+          default: function () {
+            this.messages = { create: async () => { throw new Error('rate limited'); } };
+          },
+        };
+      }
+      return realLoad.call(this, req, ...rest);
+    };
+    t.after(() => { Module._load = realLoad; });
+
+    const nl = new NLInterface({
+      config: { nl: { llm: { enabled: true, apiKey: 'sk-fake' } } },
+    });
+    const r = await nl.parseLLM('anything');
+    assert.strictEqual(r.intent, 'llm-error');
+    assert.match(r.args.error, /rate limited/);
+  });
 });

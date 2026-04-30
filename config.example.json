@@ -195,6 +195,14 @@
   "_workspaces_doc": "TODO #98 multi-repo workspace mode. Each entry maps a short name to an absolute repo root. Use 'c4 task --workspace <name> ...' or POST /task with body {workspace}.",
   "workspaces": {},
 
+  "_nl_doc": "TODO #104 NL Anthropic fallback. When the heuristic parser misses, optionally fall back to a Claude API call that emits a structured plan. Off by default — set nl.llm.enabled=true and provide an API key (env ANTHROPIC_API_KEY or nl.llm.apiKey) to opt in. Requires @anthropic-ai/sdk.",
+  "nl": {
+    "llm": {
+      "enabled": false,
+      "model": "claude-sonnet-4-6"
+    }
+  },
+
   "autoMode": {
     "enabled": false,
     "allowOverride": true

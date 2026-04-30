@@ -41,6 +41,7 @@
 ### 1.6.16 누적 (11차 — 알림 재배선 + PM board 양방향 sync)
 - **Workflow / Scheduler 실패 → Slack 알림 검증** (TODO #102) — 코드는 이미 `[WORKFLOW FAIL]` / `[SCHEDULE FAIL]` prefix로 `pushAll`을 호출하지만 회귀 방지 테스트가 없어 추가. workflow.test.js + scheduler.test.js에 4개 케이스 신규 (성공/실패 양방향). prefix가 `notifications.js`의 SLACK_SEVERITY 매처를 거쳐 Block Kit warning 색상으로 변환되는 흐름 보장.
 - **PM board ↔ TODO.md 양방향 sync** (TODO 10.8 / #103) — `config.pm.todoSync = true` + `config.pm.todoFile` 설정 시 `moveCard`가 카드 제목의 `[<id>]` prefix를 추출해 TODO.md 해당 행의 status 셀(`**todo**`/`**partial**`/`**done**`)을 업데이트. board.done→done, board.in_progress/review→partial, board.backlog→todo로 매핑. 변경 시 `board_todo_sync` SSE 발행. 상태 동일하면 churn 방지(파일 쓰기 스킵). Free-form 카드는 prefix 없으면 sync 무시. 신규 테스트 4개 (pm-board, total 10).
+- **NL Anthropic fallback 직접 검증** (TODO 11.4 / #104) — `parseLLM`은 이미 구현되어 있었지만 회귀 방지 테스트 부재 → 5개 신규 케이스 추가: nl.llm.enabled=false / API 키 부재 / `@anthropic-ai/sdk` 미설치(MODULE_NOT_FOUND 모킹) / 정상 JSON plan 파싱 / API 실패 시 `llm-error` 반환. config.example.json에 빈 `nl.llm` 블록 + opt-in 안내 doc 추가.
 
 ### 1.6.16 누적 (10차 — Phase 8 deferred 재개: 계층 트리)
 - **Web UI 워커 계층 트리** (TODO 8.2 / #99) — `_parent` 필드를 worker 레코드에 저장하고 `list()` 응답에 `parent` 노출. CLI `c4 task --parent <name>` 플래그, POST `/task` body `parent` 필드, 큐 엔트리에도 보존. WorkerList가 parent → children 맵을 만들어 트리로 렌더링하고 자식은 16px 들여쓰기 + 16px 가로 connector. 부모가 사라진 orphan은 root로 승격. children.length가 있으면 "{n} sub" 뱃지 표시. 신규 테스트 3개 (worker-tree).
