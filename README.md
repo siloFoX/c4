@@ -370,6 +370,15 @@ c4 restart worker1                  # close + respawn (resumes session)
 c4 cancel  worker1                  # Ctrl+C × 2
 c4 suspend worker1                  # SIGSTOP (Unix only)
 c4 resume  worker1                  # SIGCONT
+
+# 1.6.17 ops surfaces
+c4 doctor                          # daemon + config + dist + plugin checks
+c4 metrics                         # daemon RSS/heap + per-worker CPU/RSS
+c4 metrics --json                  # raw JSON
+c4 workspaces                      # list config.workspaces entries
+c4 task w1 --workspace arps "..."  # dispatch against a named repo root
+c4 task w2 --parent w1 "..."       # mark w1 as parent (sidebar tree)
+c4 config validate [path]          # exit 1 on errors, prints warnings
 ```
 
 ### Authentication (off by default)

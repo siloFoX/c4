@@ -374,6 +374,15 @@ c4 workflow run my-workflow.json
 c4 schedule add daily-report '0 9 * * *' send daily report
 c4 board    my-project add "신규 카드"
 c4 transfer local dgx /home/shinc/data /home/dgx/data
+
+# 1.6.17 운영 명령
+c4 doctor                          # 데몬 + config + dist + plugin 종합 체크
+c4 metrics                         # 데몬 RSS/heap + 워커별 CPU/RSS
+c4 metrics --json                  # raw JSON
+c4 workspaces                      # config.workspaces 항목 나열
+c4 task w1 --workspace arps "..."  # 지정 repo root에서 dispatch
+c4 task w2 --parent w1 "..."       # w1을 부모로 표시 (사이드바 트리)
+c4 config validate [path]          # error >0이면 exit 1
 ```
 
 ### 인증 (기본 비활성)
