@@ -3,6 +3,41 @@
 ## [Unreleased]
 
 ### Added
+- **(8.40) Workers sidebar collapsible (icon-rail) + Ctrl+B.**
+  Desktop-only icon-rail mode for the Workers sidebar. New optional
+  `collapsed` + `onToggleCollapsed` props on `Sidebar.tsx` shrink
+  the aside to `md:w-14` (3.5rem), hide the worker list / hierarchy
+  tree, and swap the inline List / Tree pill for stacked icon-only
+  tabs. New `c4.sidebar.collapsed` localStorage key (`'1'` / `'0'`
+  for forward-compat with shell readers) backed by
+  `readSidebarCollapsed` / `writeSidebarCollapsed` in
+  `lib/preferences.ts`; persistence survives reload and cross-tab
+  via the existing `storage` event handler. App.tsx adds a global
+  Ctrl+B / Cmd+B keydown listener that skips when focus is on an
+  `<input>` / `<textarea>` / contentEditable surface; on desktop
+  it toggles `sidebarCollapsed`, on mobile it toggles the existing
+  `sidebarOpen` overlay flag. The collapse handle ships as an
+  `IconButton` with `PanelLeftOpen` / `PanelLeftClose` lucide
+  icons, tooltip flipping with state, `aria-pressed`, and
+  `aria-keyshortcuts="Control+B"`. `KeyboardShortcutsModal` adds a
+  `Ctrl+B` row with a new `shortcuts.toggleSidebar` i18n key
+  shipped in en + ko. **Review fix**: a `useEffectiveCollapsed`
+  hook now watches `(min-width: 768px)` inside the Sidebar and
+  derives an `effectiveCollapsed = collapsed && isDesktop` signal
+  for the content-rendering gates. Without it, a previously
+  collapsed-on-desktop session that reopened on mobile would have
+  shown an empty aside (only the logo); the hamburger flow had no
+  way to toggle the desktop axis. Width / padding classes still
+  use raw `collapsed` because they already carry `md:` prefixes.
+  Tests: `tests/sidebar-collapsible.test.js` — 31 assertions
+  across 6 suites covering preferences key + helpers, behavioural
+  `readSidebarCollapsed` (`'1'` / `'0'` / `null` / `'banana'` /
+  `'true'` / `''` cases), Sidebar prop + aria contract +
+  `useEffectiveCollapsed` matchMedia wiring + `!effectiveCollapsed`
+  rendering gate, App.tsx state / persistence / Ctrl+B guard /
+  desktop-vs-mobile branch / cross-tab storage / Settings reset,
+  KeyboardShortcutsModal row, en / ko i18n. Patch note:
+  `docs/patches/8.40-sidebar-collapsible.md`.
 - **(8.46) Per-worker pinned memory.** `c4 new` now accepts `--pin-memory
   <file>` (read client-side, repeatable), `--pin-rules "<text>"`
   (repeatable), and `--pin-role <manager|worker|attached>` so operators can

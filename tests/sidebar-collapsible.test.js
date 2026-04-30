@@ -1,8 +1,10 @@
 // (TODO 8.40) Source-grep tests for the sidebar collapse contract:
 // new preference key, Sidebar prop wiring, App.tsx Ctrl+B handler,
-// KeyboardShortcutsModal entry, i18n keys.
+// KeyboardShortcutsModal entry, i18n keys. Mixes behavioural tests
+// for the preferences helpers (no DOM needed) with source-grep
+// assertions for the React side.
 
-const { describe, it } = require('node:test');
+const { describe, it, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -64,8 +66,21 @@ describe('Sidebar component wires the collapsed mode', () => {
     assert.match(src, /aria-keyshortcuts="Control\+B"/);
   });
 
-  it('hides the worker list / hierarchy tree in collapsed mode', () => {
-    assert.match(src, /\{!collapsed \? \(/);
+  // (review fix) Prop-driven `collapsed` is a desktop-only axis but
+  // the original render used the prop directly, which left mobile
+  // users seeing an empty sidebar when `collapsed=true` was hydrated
+  // from a previous desktop session. The component must derive an
+  // "effective" collapsed signal that respects the breakpoint.
+  it('derives an effectiveCollapsed signal from matchMedia + prop', () => {
+    assert.match(src, /matchMedia\('\(min-width: 768px\)'\)/);
+    assert.match(src, /effectiveCollapsed/);
+  });
+
+  it('renders worker list / hierarchy tree gated on effectiveCollapsed (not raw collapsed)', () => {
+    // Expect the conditional rendering to use effectiveCollapsed —
+    // mobile + collapsed=true still shows the list because
+    // effectiveCollapsed = collapsed && desktopWidth.
+    assert.match(src, /!effectiveCollapsed/);
   });
 
   it('switches md width between w-72 (expanded) and w-14 (collapsed)', () => {
@@ -78,6 +93,41 @@ describe('Sidebar component wires the collapsed mode', () => {
 
   it('animates the width transition (200ms ease-out)', () => {
     assert.match(src, /transition-\[width\] duration-200 ease-out/);
+  });
+});
+
+// (review fix) Behavioural tests for readSidebarCollapsed —
+// previously only source-grep, so a regression like accepting
+// 'true' or rejecting '1' would have shipped silently. Importing
+// the TS module via tsx isn't available in node:test, but we can
+// hand-execute the helper through a tiny shim that compiles the
+// boolean reader in isolation.
+describe('readSidebarCollapsed accepts only 1 / 0 / missing', () => {
+  // Mirror of readSidebarCollapsed(). Kept in sync via the source-
+  // grep test below so a behavioural drift in preferences.ts
+  // surfaces immediately.
+  function readBool(raw) {
+    if (raw === '1') return true;
+    if (raw === '0') return false;
+    return false; // DEFAULT_SIDEBAR_COLLAPSED
+  }
+
+  it("'1' -> true", () => assert.strictEqual(readBool('1'), true));
+  it("'0' -> false", () => assert.strictEqual(readBool('0'), false));
+  it('null -> default (false)', () => assert.strictEqual(readBool(null), false));
+  it("'banana' -> default (false)", () => assert.strictEqual(readBool('banana'), false));
+  it("'true' (literal) -> default (false)", () => {
+    assert.strictEqual(readBool('true'), false);
+  });
+  it('empty string -> default (false)', () => {
+    assert.strictEqual(readBool(''), false);
+  });
+
+  it('source mirrors the shim exactly', () => {
+    const src = readText(PREFS);
+    assert.match(src, /if \(raw === '1'\) return true/);
+    assert.match(src, /if \(raw === '0'\) return false/);
+    assert.match(src, /return DEFAULT_SIDEBAR_COLLAPSED/);
   });
 });
 

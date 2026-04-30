@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { List, Network, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { IconButton, Tooltip } from '../ui';
@@ -19,6 +20,28 @@ interface SidebarProps {
   onToggleCollapsed?: () => void;
 }
 
+// (TODO 8.40 review fix) `collapsed` is a desktop-only axis. Mobile
+// users open the sidebar via the hamburger and expect the full
+// worker list — they never had a way to expand from the icon rail
+// (the collapse handle is `hidden md:inline-flex`). Without this
+// guard, a previously-collapsed-on-desktop session that's reopened
+// on mobile would render an empty aside (logo only). Treat
+// collapsed as effectively false on widths below the md breakpoint.
+function useEffectiveCollapsed(collapsed: boolean): boolean {
+  const [isDesktop, setIsDesktop] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return window.matchMedia('(min-width: 768px)').matches;
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(min-width: 768px)');
+    const onChange = () => setIsDesktop(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return collapsed && isDesktop;
+}
+
 export default function Sidebar({
   open,
   mode,
@@ -28,6 +51,9 @@ export default function Sidebar({
   collapsed = false,
   onToggleCollapsed,
 }: SidebarProps) {
+  // Hooks must run unconditionally (React rules of hooks). The
+  // open-gated early return moved below.
+  const effectiveCollapsed = useEffectiveCollapsed(collapsed);
   if (!open) return null;
 
   // Tailwind doesn't see template literals at scan time, so the
@@ -55,7 +81,7 @@ export default function Sidebar({
           alt="C4"
           className={cn('h-8 shrink-0', collapsed ? 'md:mx-auto' : '')}
         />
-        {!collapsed ? (
+        {!effectiveCollapsed ? (
           <span className="text-xs uppercase tracking-wide text-muted-foreground">
             Workers
           </span>
@@ -81,7 +107,7 @@ export default function Sidebar({
             />
           </Tooltip>
         ) : null}
-        {!collapsed ? (
+        {!effectiveCollapsed ? (
           <div
             role="tablist"
             aria-label="Worker view mode"
@@ -161,11 +187,14 @@ export default function Sidebar({
           </div>
         )}
       </div>
-      {/* (TODO 8.40) In collapsed mode the worker list / hierarchy
-          tree are intentionally hidden — the icon rail focuses on
-          navigation (logo / view-mode toggle / collapse handle).
-          Expanding restores the full list. */}
-      {!collapsed ? (
+      {/* (TODO 8.40) In collapsed mode (desktop only) the worker list
+          / hierarchy tree are intentionally hidden — the icon rail
+          focuses on navigation (logo / view-mode toggle / collapse
+          handle). On mobile widths the full sidebar always renders
+          regardless of the persisted `collapsed` flag, since the
+          mobile flow uses the hamburger overlay rather than the
+          icon rail. */}
+      {!effectiveCollapsed ? (
         mode === 'tree' ? (
           <HierarchyTree selectedWorker={selectedWorker} onSelect={onSelect} />
         ) : (
