@@ -85,9 +85,46 @@ class Channel {
 
 // --- Slack Channel ---
 
+// Block Kit upgrade: when the message has a recognised severity prefix
+// (`[CRITICAL DENY]`, `[WORKFLOW FAIL]`, `[SCHEDULE FAIL]`, `[COST BUDGET]`,
+// `[STALL]`, `[ESCALATION]`, etc.), we render a Block Kit attachment with a
+// color bar. Plain `text` is kept too so Slack notifications, search, and
+// mobile previews work uniformly.
+const SLACK_SEVERITY = [
+  { match: /^\[(CRITICAL DENY|ESCALATION)\b/i, color: '#dc2626', emoji: ':rotating_light:' },
+  { match: /^\[(STALL|WORKFLOW FAIL|SCHEDULE FAIL)\b/i, color: '#f59e0b', emoji: ':warning:' },
+  { match: /^\[(COST BUDGET|TOKEN WARN)\b/i, color: '#a855f7', emoji: ':moneybag:' },
+  { match: /^\[CI (PASS|FAIL)\b/i, color: '#10b981', emoji: ':white_check_mark:' },
+];
+
+function buildSlackPayload(text) {
+  const firstLine = (text || '').split('\n')[0];
+  const sev = SLACK_SEVERITY.find((s) => s.match.test(firstLine));
+  if (!sev) {
+    return { text };
+  }
+  const headerLine = firstLine;
+  const body = (text || '').slice(firstLine.length).trim();
+  return {
+    text: `${sev.emoji} ${text}`, // fallback for previews / search
+    attachments: [
+      {
+        color: sev.color,
+        blocks: [
+          { type: 'header', text: { type: 'plain_text', text: headerLine.slice(0, 150), emoji: true } },
+          ...(body
+            ? [{ type: 'section', text: { type: 'mrkdwn', text: '```' + body.slice(0, 2900) + '```' } }]
+            : []),
+          { type: 'context', elements: [{ type: 'mrkdwn', text: `c4 daemon · ${new Date().toISOString()}` }] },
+        ],
+      },
+    ],
+  };
+}
+
 class SlackChannel extends Channel {
   async _send(text) {
-    return _postWebhook(this.config.webhookUrl, { text });
+    return _postWebhook(this.config.webhookUrl, buildSlackPayload(text));
   }
 }
 
@@ -436,3 +473,6 @@ Notifications.KakaoWorkChannel = KakaoWorkChannel;
 Notifications.CHANNEL_TYPES = CHANNEL_TYPES;
 
 module.exports = Notifications;
+// Test surface — kept on the exported function/class so consumers can
+// assert against the pure Block Kit builder without spinning up a webhook.
+module.exports.buildSlackPayload = buildSlackPayload;

@@ -31,6 +31,14 @@
 - **9.4 MCP 프로토콜 최신화** — protocolVersion 협상(`2025-03-26` ↔ `2024-11-05`), `ping` 응답, `notifications/initialized` 외 `initialized` 별칭, `capabilities.tools.listChanged=true` + `capabilities.logging`.
 - **9.6 Fleet write-through** — `/fleet/create` `/fleet/task` `/fleet/close` `/fleet/send`. SDK `fleetCreate`/`fleetTask`/`fleetClose`/`fleetSend`/`fleetKey`. 4개 단위 테스트 추가 (총 7개).
 
+### 1.6.16 누적 (8차 — Computer Use 단위 테스트 / TODO 정리 / audit export / pool 가시성 / project RBAC / Slack Block Kit)
+- **Computer Use runner 단위 테스트** — `tests/computer-use-runner.test.js`. Module._load 후킹으로 `@anthropic-ai/sdk` 모킹 후 `_buildAnthropicRunner`의 액션 매핑 검증 (left_click → click, type → type, key → key, scroll → scroll, wait → wait*1000, no tool_use → done). SDK 미설치 케이스도 helpful 에러 검증. 8개 케이스.
+- **TODO.md 정리** — Phase 8.1을 done(완료)으로, 8.2/8.3/8.4를 todo(deferred)로 명시 + 보류 사유 기록.
+- **Audit export** — `manager.exportAudit({ format: 'json'|'jsonl'|'csv', ...filters })`. CSV는 헤더 row + comma/newline 안전 quoting. GET `/audit/export` (admin-only) + Content-Disposition으로 다운로드. SDK `auditExport`. 5개 신규 테스트.
+- **Worker pool 가시성** — `_reuseWorker`가 snapshot에 `[C4 POOL] reused worker '<from>' as '<to>'` 마커 + `pool_reuse` SSE + audit 항목(`actor:'pool'`) 추가. dashboard / 감사 로그에서 reuse가 눈에 띄게.
+- **Project-scoped RBAC** — `Auth.enforceProjectScope(payload, manager, body)`. 사용자 레코드에 `projects: [...]` 있으면 다른 프로젝트의 워커 mutation 거부. admin은 면제. daemon이 mutation 후 post-handler에서 검증 + 거부 시 audit. 4개 신규 케이스.
+- **Slack Block Kit 알림** — `buildSlackPayload(text)` 추가. 알림 첫 줄 prefix(`[CRITICAL DENY]`/`[WORKFLOW FAIL]`/`[SCHEDULE FAIL]`/`[COST BUDGET]`/`[STALL]`/`[ESCALATION]`/`[CI PASS|FAIL]`)에 따라 색깔 + header + code-block section + context block. 일반 텍스트는 `{ text }` 그대로. 8개 케이스.
+
 ### 1.6.16 누적 (7차 — Plugin MCP / e2e 라이브 / 토큰화 sweep / Computer Use API / 메타데이터 마감)
 - **Plugin MCP shim** — `plugin/.mcp.json` + `plugin/scripts/mcp-stdio.js`. Claude Code가 워커 부팅 시 c4 plugin을 로드하면 stdio MCP로 c4 daemon의 HTTP `/mcp`를 자동 브리지. `C4_DAEMON_TOKEN` env로 RBAC 토큰 forwarding. 라이브 검증: `tools/list` JSON-RPC 응답 정상 (15 tools 반환).
 - **라이브 e2e chain** — daemon restart 후 workflow.run(3 step) → board.card → board.move → nl.run(schedule-daily, cron `30 8 * * *` 정확 파싱) → audit이 모든 mutation 기록 + workflow 내부 audit('actor: workflow') 분리 캡처. 완전 통과.

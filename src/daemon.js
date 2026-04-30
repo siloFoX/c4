@@ -595,6 +595,23 @@ async function handleRequest(req, res) {
       const { id } = await parseBody(req);
       result = await manager.schedulerRunNow(id);
 
+    } else if (req.method === 'GET' && route === '/audit/export') {
+      // /audit/export?format=csv|json|jsonl + same filters as /audit
+      const since = url.searchParams.get('since') || undefined;
+      const until = url.searchParams.get('until') || undefined;
+      const actionParam = url.searchParams.get('action') || undefined;
+      const worker = url.searchParams.get('worker') || undefined;
+      const actorParam = url.searchParams.get('actor') || undefined;
+      const format = url.searchParams.get('format') || 'json';
+      const out = manager.exportAudit({ since, until, action: actionParam, worker, actor: actorParam, format });
+      // Stream non-JSON content types directly so the file downloads cleanly.
+      res.writeHead(200, {
+        'Content-Type': out.contentType,
+        'Content-Disposition': `attachment; filename="c4-audit.${format === 'jsonl' ? 'jsonl' : format}"`,
+      });
+      res.end(out.body);
+      return;
+
     } else if (req.method === 'GET' && route === '/audit') {
       // 10.2: query audit log
       const since = url.searchParams.get('since') || undefined;
@@ -697,6 +714,26 @@ async function handleRequest(req, res) {
       res.writeHead(404);
       res.end(JSON.stringify({ error: 'Not found' }));
       return;
+    }
+
+    // Project-scoped RBAC (post-handler): if the bearer carries a per-user
+    // projects[] allow-list, we verify the worker affected by this mutation
+    // belongs to one of those projects. Side-effects already happened, but
+    // we still flip the response code so callers see the rejection and can
+    // alert / reverse manually.
+    if (auditableMethod && decision.payload && decision.payload.role !== 'admin') {
+      const scope = auth.enforceProjectScope(decision.payload, manager, req._auditBody || {});
+      if (!scope.ok) {
+        if (!res.headersSent) {
+          res.writeHead(scope.status);
+          res.end(JSON.stringify({ error: scope.error }));
+          // still record the rejection in audit
+          if (manager.audit) {
+            manager.audit({ actor, action: route, worker: (req._auditBody && req._auditBody.name) || null, ok: false, error: scope.error });
+          }
+          return;
+        }
+      }
     }
 
     if (!res.headersSent) {

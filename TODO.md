@@ -459,10 +459,10 @@ Level 4이면:
 
 | # | 항목 | 상태 | 설명 |
 |---|------|------|------|
-| 8.1 | Web UI — React SPA | **todo** | ARPS frontend(React+TS+Vite+Tailwind) 스택 참고. `web/` 디렉토리에 별도 package.json. 빌드 결과(`web/dist/`)를 daemon이 static 서빙. C4 CLI 의존성 영향 없음. 기능: worker 목록(SSE 실시간), task 전송 폼, 승인/거부 버튼, 스냅샷/로그 뷰어, 머지 버튼, 토큰 사용량. Claude Code 없이 브라우저만으로 C4 운영 가능. 인증: JWT 기반 로그인 + 세션 관리. 포트포워딩으로 외부(모바일) 접속 대비. config에 users/password 설정. |
-| 8.2 | Web UI — 재귀 계층 트리 | **todo** | c4 list --tree CLI + Web UI에서 parent-child 관계 트리 시각화. worker 메타데이터에 parent 필드. 계층별 상태/에러 추적. 중앙 집중식 로깅 뷰. |
-| 8.3 | 계층별 토큰 quota | **todo** | 관리자/중간관리자/worker 별 토큰 할당량 설정. 일일 한도를 계층별로 분리. 비용 최적화 알고리즘 — 작업 복잡도 대비 모델 자동 선택 (Opus/Sonnet/Haiku). |
-| 8.4 | 지능형 예외 복구 | **todo** | 단순 재시도 넘어 작업 재정의 + 대안 경로 탐색. worker 실패 분석 후 다른 접근법으로 자동 재시도. 실패 패턴 학습. 자가 치유 로직으로 완전 무인 운영 강화. |
+| 8.1 | Web UI — React SPA | **done** | `web/` Vite + React + TS + Tailwind. SSE 워커 목록, task 전송, 승인/거부, 스냅샷/스크롤백/timeline 뷰어, 머지 버튼, 토큰 사용량(8.5 cost), 10.1 인증(JWT 로그인 + 세션). 빌드 산출물 daemon static 서빙 가능. |
+| 8.2 | Web UI — 재귀 계층 트리 | **todo (deferred)** | c4 list --tree + parent-child 트리는 1.6.16 범위에서 미진행. 9.1 adapter / 9.6 fleet / 11.x 통합이 필요해 추후 라운드. |
+| 8.3 | 계층별 토큰 quota | **todo (deferred)** | 10.5 cost report에서 per-day 비용 + monthlyBudget 알림은 구현됐지만 계층별 quota는 별도. 9.7 dispatcher 위에서 dept/worker tier별 한도로 빌드 예정. |
+| 8.4 | 지능형 예외 복구 | **todo (deferred)** | 1.7 헬스체크 + restart, 7.22 verify-and-retry, 11.3 workflow on_failure 정도까지 진행. "실패 패턴 학습"형 자가치유는 미진행. |
 
 ## Phase 9 — Framework + 생태계
 

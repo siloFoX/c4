@@ -2458,6 +2458,21 @@ class PtyManager extends EventEmitter {
     w._taskStartedAt = null;
     w.snapshotIndex = w.snapshots.length; // mark all old snapshots as read
 
+    // Visibility: log the reuse so /list, audit, and the dashboard reflect
+    // that a pool worker was recycled instead of a fresh spawn.
+    w.snapshots.push({
+      time: Date.now(),
+      screen: `[C4 POOL] reused worker '${poolName}' as '${newName}' (saved one spawn)`,
+      autoAction: true,
+      poolReuse: { from: poolName, to: newName },
+    });
+    if (typeof this._emitSSE === 'function') {
+      this._emitSSE('pool_reuse', { from: poolName, to: newName });
+    }
+    if (typeof this.audit === 'function') {
+      this.audit({ actor: 'pool', action: '/pool/reuse', worker: newName, ok: true, from: poolName });
+    }
+
     // Now send the task directly
     return this.sendTask(newName, task, options);
   }
@@ -4710,6 +4725,31 @@ class PtyManager extends EventEmitter {
     } catch {
       // never throw from audit — security logs must not crash the daemon
     }
+  }
+
+  // (TODO /audit/export) Stream audit records as CSV or JSONL for
+  // compliance / external archival. CSV header is fixed so spreadsheets
+  // pick up columns. Filters mirror getAudit().
+  exportAudit({ since, until, action, worker, actor, format = 'json' } = {}) {
+    const result = this.getAudit({ since, until, action, worker, actor, limit: 100000 });
+    const records = result.records || [];
+    if (format === 'jsonl') {
+      return { contentType: 'application/x-ndjson', body: records.map((r) => JSON.stringify(r)).join('\n') + '\n' };
+    }
+    if (format === 'csv') {
+      const cols = ['ts', 'actor', 'action', 'worker', 'ok', 'error', 'bodyKeys'];
+      const esc = (v) => {
+        if (v == null) return '';
+        const s = typeof v === 'string' ? v : JSON.stringify(v);
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      const rows = [cols.join(',')];
+      for (const r of records) {
+        rows.push(cols.map((c) => esc(c === 'bodyKeys' ? (r.bodyKeys || []).join('|') : r[c])).join(','));
+      }
+      return { contentType: 'text/csv', body: rows.join('\n') + '\n' };
+    }
+    return { contentType: 'application/json', body: JSON.stringify(records, null, 2) };
   }
 
   getAudit({ since, until, action, worker, actor, limit = 200 } = {}) {

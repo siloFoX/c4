@@ -47,6 +47,7 @@ const ROUTE_ROLES = {
   '/schedule/enable': 'admin',
   '/schedule/run':    'admin',
   '/audit':           'admin',
+  '/audit/export':    'admin',
   '/config/reload':   'admin',
   '/backup':          'admin',
   '/restore':         'admin',
@@ -183,6 +184,34 @@ class Auth {
       return { ok: false, status: 403, error: `auth: role '${payload.role}' insufficient (needs '${need}')` };
     }
     return { ok: true, payload };
+  }
+
+  // Project-scoped RBAC. When a user has `projects: [...]` in their config
+  // record, mutating routes that target a worker outside that allow-list
+  // are rejected. Admins are exempt. The mapping is best-effort: we look
+  // up the worker's resolved project via PtyManager.
+  //
+  //   user: { password, role: 'manager', projects: ['arps', 'datalake'] }
+  //
+  // The daemon calls this AFTER authorize() has accepted the bearer.
+  // Returns { ok: true } / { ok: false, status, error }.
+  enforceProjectScope(payload, manager, body) {
+    if (!this.enabled || !payload) return { ok: true };
+    if (payload.role === 'admin') return { ok: true };
+    const user = this.users[payload.sub];
+    if (!user || !Array.isArray(user.projects) || user.projects.length === 0) return { ok: true };
+    if (!manager || typeof manager._resolveWorkerProject !== 'function') return { ok: true };
+    const workerName = body && (body.name || body.worker);
+    if (!workerName) return { ok: true };
+    const w = manager.workers && manager.workers.get && manager.workers.get(workerName);
+    if (!w) return { ok: true }; // worker does not exist yet (POST /create); skip
+    const project = manager._resolveWorkerProject(w);
+    if (user.projects.includes(project)) return { ok: true };
+    return {
+      ok: false,
+      status: 403,
+      error: `auth: user '${payload.sub}' is scoped to projects [${user.projects.join(', ')}] but worker '${workerName}' belongs to '${project}'`,
+    };
   }
 }
 

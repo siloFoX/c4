@@ -115,4 +115,51 @@ describe('Auth.authorize / route gating', () => {
       assert.strictEqual(r.ok, true, `admin should access ${route}`);
     }
   });
+
+  // --- enforceProjectScope (per-user allow-list) ---
+
+  it('enforceProjectScope passes when user has no projects[]', () => {
+    const a = newAuth();
+    const payload = { sub: 'bob', role: 'manager' };
+    const r = a.enforceProjectScope(payload, null, { name: 'w1' });
+    assert.strictEqual(r.ok, true);
+  });
+
+  it('enforceProjectScope rejects when worker is in another project', () => {
+    const a = new Auth({ auth: { enabled: true, secret: 't', users: {
+      bob: { password: 'pb', role: 'manager', projects: ['arps'] },
+    } } });
+    const payload = { sub: 'bob', role: 'manager' };
+    const fakeManager = {
+      workers: new Map([['otherproj-w', {}]]),
+      _resolveWorkerProject: () => 'datalake',
+    };
+    const r = a.enforceProjectScope(payload, fakeManager, { name: 'otherproj-w' });
+    assert.strictEqual(r.ok, false);
+    assert.strictEqual(r.status, 403);
+  });
+
+  it('enforceProjectScope passes when worker is in user\'s allow-list', () => {
+    const a = new Auth({ auth: { enabled: true, secret: 't', users: {
+      bob: { password: 'pb', role: 'manager', projects: ['arps'] },
+    } } });
+    const fakeManager = {
+      workers: new Map([['mine', {}]]),
+      _resolveWorkerProject: () => 'arps',
+    };
+    const r = a.enforceProjectScope({ sub: 'bob', role: 'manager' }, fakeManager, { name: 'mine' });
+    assert.strictEqual(r.ok, true);
+  });
+
+  it('admin role bypasses project scope', () => {
+    const a = new Auth({ auth: { enabled: true, secret: 't', users: {
+      alice: { password: 'pa', role: 'admin', projects: ['arps'] },
+    } } });
+    const fakeManager = {
+      workers: new Map([['anywhere', {}]]),
+      _resolveWorkerProject: () => 'whatever',
+    };
+    const r = a.enforceProjectScope({ sub: 'alice', role: 'admin' }, fakeManager, { name: 'anywhere' });
+    assert.strictEqual(r.ok, true);
+  });
 });

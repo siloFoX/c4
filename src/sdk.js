@@ -166,6 +166,9 @@ class C4Client {
   audit({ since, until, action, worker, actor, limit = 200 } = {}) {
     return this.request('GET', '/audit', { params: { since, until, action, worker, actor, limit } });
   }
+  auditExport({ since, until, action, worker, actor, format = 'json' } = {}) {
+    return this.request('GET', '/audit/export', { params: { since, until, action, worker, actor, format } });
+  }
 
   // 10.3 projects
   projects() { return this.request('GET', '/projects'); }

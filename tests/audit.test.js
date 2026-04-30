@@ -89,4 +89,56 @@ describe('audit log (10.2)', () => {
     mgr.logsDir = '/nonexistent/forbidden/dir';
     assert.doesNotThrow(() => mgr.audit({ actor: 'a', action: '/x' }));
   });
+
+  // --- export ---
+
+  it('exportAudit json returns parsed array as a string body', () => {
+    const mgr = makeManager();
+    mgr.audit({ actor: 'alice', action: '/create', worker: 'w1' });
+    mgr.audit({ actor: 'bob',   action: '/task',   worker: 'w1' });
+    const out = mgr.exportAudit({ format: 'json' });
+    assert.strictEqual(out.contentType, 'application/json');
+    const parsed = JSON.parse(out.body);
+    assert.strictEqual(parsed.length, 2);
+  });
+
+  it('exportAudit csv emits header + rows', () => {
+    const mgr = makeManager();
+    mgr.audit({ actor: 'alice', action: '/create', worker: 'w1' });
+    const out = mgr.exportAudit({ format: 'csv' });
+    assert.strictEqual(out.contentType, 'text/csv');
+    const lines = out.body.trim().split('\n');
+    assert.strictEqual(lines[0], 'ts,actor,action,worker,ok,error,bodyKeys');
+    assert.match(lines[1], /alice,\/create,w1/);
+  });
+
+  it('exportAudit jsonl emits one record per line', () => {
+    const mgr = makeManager();
+    mgr.audit({ actor: 'alice', action: '/create' });
+    mgr.audit({ actor: 'alice', action: '/close'  });
+    const out = mgr.exportAudit({ format: 'jsonl' });
+    assert.strictEqual(out.contentType, 'application/x-ndjson');
+    const lines = out.body.trim().split('\n');
+    assert.strictEqual(lines.length, 2);
+    assert.doesNotThrow(() => JSON.parse(lines[0]));
+  });
+
+  it('exportAudit honors filters', () => {
+    const mgr = makeManager();
+    mgr.audit({ actor: 'alice', action: '/create', worker: 'w1' });
+    mgr.audit({ actor: 'bob',   action: '/task',   worker: 'w2' });
+    const out = mgr.exportAudit({ format: 'csv', actor: 'alice' });
+    const rows = out.body.trim().split('\n').slice(1);
+    assert.strictEqual(rows.length, 1);
+    assert.match(rows[0], /alice,\/create/);
+  });
+
+  it('exportAudit csv quotes commas/newlines safely', () => {
+    const mgr = makeManager();
+    mgr.audit({ actor: 'alice', action: '/x', worker: 'has,comma', error: 'line1\nline2' });
+    const out = mgr.exportAudit({ format: 'csv' });
+    // Quoted worker + quoted error with embedded newline.
+    assert.match(out.body, /"has,comma"/);
+    assert.match(out.body, /"line1\nline2"/);
+  });
 });
