@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { GitBranch, Wifi, WifiOff } from 'lucide-react';
+import { GitBranch, Wifi, WifiOff, Lightbulb } from 'lucide-react';
 import type { ListResponse, SSEEvent, Worker } from '../types';
 import { cn } from '../lib/cn';
 import BatchControls from './BatchControls';
@@ -210,6 +210,26 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
                   <div className="mt-2 flex items-center gap-1.5 truncate text-[11px] text-muted">
                     <GitBranch size={11} className="shrink-0" />
                     <span className="truncate font-mono">{w.branch}</span>
+                  </div>
+                )}
+
+                {/* (TODO 8.4 / #101) Failure-pattern hint badge — actionable
+                    next step for the operator without opening scrollback. */}
+                {w.failureHint && (
+                  <div
+                    className="mt-2 flex items-start gap-1.5 rounded border border-warning/40 bg-warning/10 px-2 py-1 text-[11px] text-warning"
+                    title={w.failureHint.sample || ''}
+                  >
+                    <Lightbulb size={11} className="mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="font-semibold">
+                        {w.failureHint.label}
+                        {w.failureHint.count > 1 && (
+                          <span className="ml-1 text-[10px] opacity-80">×{w.failureHint.count}</span>
+                        )}
+                      </div>
+                      <div className="text-foreground/85">{w.failureHint.hint}</div>
+                    </div>
                   </div>
                 )}
               </div>

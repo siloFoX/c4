@@ -28,6 +28,13 @@ export interface Worker {
   rssKb?: number | null;
   threads?: number | null;
   parent?: string | null;
+  failureHint?: {
+    id: string;
+    label: string;
+    hint: string;
+    sample?: string | null;
+    count: number;
+  } | null;
 }
 
 export interface MetricsResponse {
