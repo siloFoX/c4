@@ -1,4 +1,4 @@
-export type WorkerStatus = 'idle' | 'busy' | 'exited';
+export type WorkerStatus = 'idle' | 'busy' | 'exited' | 'suspended';
 
 export interface InterventionState {
   active?: boolean;
@@ -16,6 +16,7 @@ export interface Worker {
   scope: boolean;
   pid: number | null;
   status: WorkerStatus;
+  suspended?: boolean;
   unreadSnapshots: number;
   totalSnapshots: number;
   intervention: InterventionState | null;

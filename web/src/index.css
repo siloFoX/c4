@@ -2,6 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * 8.9: token system. Dark theme by default — dashboards run on a dim
+ * background so worker output (mostly white-on-dark TUI) reads well.
+ * Tokens are HSL so individual components can tweak via opacity modifiers.
+ */
+@layer base {
+  :root {
+    --background: 224 14% 8%;          /* page bg */
+    --surface: 224 14% 11%;            /* sidebars, header */
+    --surface-2: 224 14% 14%;          /* cards, panels */
+    --surface-3: 224 14% 17%;          /* hover, active */
+    --border: 224 12% 22%;
+    --foreground: 220 14% 92%;
+    --muted: 220 10% 60%;
+    --primary: 217 91% 60%;            /* blue-500 */
+    --primary-foreground: 220 14% 98%;
+    --success: 152 60% 48%;
+    --warning: 38 95% 60%;
+    --danger: 0 72% 60%;
+    --intervention: 322 80% 65%;       /* magenta — pop alert */
+    --suspended: 270 60% 65%;          /* purple */
+  }
+}
+
 body {
-  @apply bg-gray-900 text-gray-100;
+  @apply bg-[hsl(var(--background))] text-[hsl(var(--foreground))];
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Tighten the default focus ring so it matches our token palette. */
+*:focus-visible {
+  outline: 2px solid hsl(var(--primary) / 0.6);
+  outline-offset: 2px;
+}
+
+/* Subtle scrollbar to match the dark surface. */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted) / 0.5);
+}
+
+/* fade-in helper for newly-rendered chat bubbles, etc. */
+@keyframes c4-fade-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.c4-fade-in {
+  animation: c4-fade-in 160ms ease-out both;
 }

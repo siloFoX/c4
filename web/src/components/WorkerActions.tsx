@@ -1,5 +1,18 @@
 import { useCallback, useState } from 'react';
+import {
+  GitMerge,
+  CornerDownLeft,
+  Octagon,
+  Pause,
+  Play,
+  Undo2,
+  Power,
+  RefreshCw,
+  Ban,
+  type LucideIcon,
+} from 'lucide-react';
 import Toast, { type ToastType } from './Toast';
+import { cn } from '../lib/cn';
 
 export interface WorkerActionsProps {
   workerName: string;
@@ -11,19 +24,35 @@ interface ToastState {
   type: ToastType;
 }
 
-type ActionKind = 'merge' | 'approve' | 'interrupt' | 'close';
+type ActionKind =
+  | 'merge'
+  | 'approve'
+  | 'interrupt'
+  | 'cancel'
+  | 'suspend'
+  | 'resume'
+  | 'restart'
+  | 'rollback'
+  | 'close';
+
+type Tone = 'neutral' | 'warning' | 'danger';
 
 interface ActionConfig {
   kind: ActionKind;
   label: string;
+  Icon: LucideIcon;
   confirm: string;
   endpoint: string;
   body: Record<string, unknown>;
   successMessage: string;
-  className: string;
-  disabled?: boolean;
-  disabledTitle?: string;
+  tone: Tone;
 }
+
+const TONE_CLASS: Record<Tone, string> = {
+  neutral: 'border-border bg-surface-2 text-foreground hover:bg-surface-3',
+  warning: 'border-warning/50 bg-warning/10 text-warning hover:bg-warning/15',
+  danger: 'border-danger/60 bg-danger/15 text-danger hover:bg-danger/20',
+};
 
 export default function WorkerActions({ workerName }: WorkerActionsProps) {
   const [toast, setToast] = useState<ToastState | null>(null);
@@ -37,44 +66,97 @@ export default function WorkerActions({ workerName }: WorkerActionsProps) {
     {
       kind: 'merge',
       label: 'Merge',
+      Icon: GitMerge,
       confirm: `Merge worker "${workerName}" into main?`,
       endpoint: '/api/merge',
       body: { name: workerName },
       successMessage: `Merged ${workerName}`,
-      className: 'bg-gray-700 hover:bg-gray-600',
+      tone: 'neutral',
     },
     {
       kind: 'approve',
       label: 'Approve',
+      Icon: CornerDownLeft,
       confirm: `Send Enter (approve) to "${workerName}"?`,
       endpoint: '/api/key',
       body: { name: workerName, key: 'Enter' },
       successMessage: `Sent Enter to ${workerName}`,
-      className: 'bg-gray-700 hover:bg-gray-600',
+      tone: 'neutral',
     },
     {
       kind: 'interrupt',
       label: 'Ctrl+C',
+      Icon: Octagon,
       confirm: `Send Ctrl+C to "${workerName}"?`,
       endpoint: '/api/key',
       body: { name: workerName, key: 'C-c' },
       successMessage: `Sent Ctrl+C to ${workerName}`,
-      className: 'bg-gray-700 hover:bg-gray-600',
+      tone: 'warning',
+    },
+    {
+      kind: 'cancel',
+      label: 'Cancel task',
+      Icon: Ban,
+      confirm: `Cancel the running task on "${workerName}"? (Ctrl+C × 2)`,
+      endpoint: '/api/cancel',
+      body: { name: workerName },
+      successMessage: `Cancelled task on ${workerName}`,
+      tone: 'warning',
+    },
+    {
+      kind: 'suspend',
+      label: 'Suspend',
+      Icon: Pause,
+      confirm: `Pause worker "${workerName}" (SIGSTOP)?`,
+      endpoint: '/api/suspend',
+      body: { name: workerName },
+      successMessage: `Suspended ${workerName}`,
+      tone: 'neutral',
+    },
+    {
+      kind: 'resume',
+      label: 'Resume',
+      Icon: Play,
+      confirm: `Resume worker "${workerName}" (SIGCONT)?`,
+      endpoint: '/api/resume',
+      body: { name: workerName },
+      successMessage: `Resumed ${workerName}`,
+      tone: 'neutral',
+    },
+    {
+      kind: 'restart',
+      label: 'Restart',
+      Icon: RefreshCw,
+      confirm: `Restart worker "${workerName}"? Resumes the previous Claude session if available.`,
+      endpoint: '/api/restart',
+      body: { name: workerName, resume: true },
+      successMessage: `Restarted ${workerName}`,
+      tone: 'warning',
+    },
+    {
+      kind: 'rollback',
+      label: 'Rollback',
+      Icon: Undo2,
+      confirm: `Reset worker "${workerName}"'s branch to the pre-task commit? Uncommitted changes are lost.`,
+      endpoint: '/api/rollback',
+      body: { name: workerName },
+      successMessage: `Rolled back ${workerName}`,
+      tone: 'warning',
     },
     {
       kind: 'close',
       label: 'Close',
+      Icon: Power,
       confirm: `Close worker "${workerName}"? This will terminate the session.`,
       endpoint: '/api/close',
       body: { name: workerName },
       successMessage: `Closed ${workerName}`,
-      className: 'bg-red-700 hover:bg-red-600',
+      tone: 'danger',
     },
   ];
 
   const runAction = useCallback(
     async (action: ActionConfig) => {
-      if (action.disabled) return;
       if (!window.confirm(action.confirm)) return;
 
       setBusyKind(action.kind);
@@ -118,19 +200,24 @@ export default function WorkerActions({ workerName }: WorkerActionsProps) {
 
   return (
     <>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {actions.map((action) => {
-          const isDisabled = action.disabled || busyKind !== null;
+          const isDisabled = busyKind !== null;
+          const Icon = action.Icon;
           return (
             <button
               key={action.kind}
               type="button"
               onClick={() => runAction(action)}
               disabled={isDisabled}
-              title={action.disabled ? action.disabledTitle : undefined}
-              className={`rounded px-3 py-1.5 text-xs font-medium text-gray-100 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${action.className}`}
+              title={action.confirm}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors duration-150 ease-snappy disabled:cursor-not-allowed disabled:opacity-50',
+                TONE_CLASS[action.tone],
+              )}
             >
-              {busyKind === action.kind ? '…' : action.label}
+              <Icon size={13} />
+              {busyKind === action.kind ? '...' : action.label}
             </button>
           );
         })}

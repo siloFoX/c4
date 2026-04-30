@@ -1,4 +1,6 @@
 import { useEffect } from 'react';
+import { CheckCircle2, XCircle } from 'lucide-react';
+import { cn } from '../lib/cn';
 
 export type ToastType = 'success' | 'error';
 
@@ -15,17 +17,19 @@ export default function Toast({ message, type, onDismiss, duration = 3000 }: Toa
     return () => clearTimeout(id);
   }, [onDismiss, duration]);
 
-  const tone =
-    type === 'success'
-      ? 'bg-green-700 text-green-50 border-green-500'
-      : 'bg-red-700 text-red-50 border-red-500';
-
+  const Icon = type === 'success' ? CheckCircle2 : XCircle;
   return (
     <div
       role="status"
-      className={`pointer-events-auto rounded-lg border px-4 py-2 text-sm shadow-lg ${tone}`}
+      className={cn(
+        'pointer-events-auto flex items-center gap-2 rounded-lg border bg-surface-2 px-3 py-2 text-sm shadow-soft c4-fade-in',
+        type === 'success'
+          ? 'border-success/40 text-success'
+          : 'border-danger/40 text-danger',
+      )}
     >
-      {message}
+      <Icon size={16} />
+      <span className="text-foreground">{message}</span>
     </div>
   );
 }
