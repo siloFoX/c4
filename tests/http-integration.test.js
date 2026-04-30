@@ -57,7 +57,11 @@ async function handle(req, res) {
 
   let result;
   if (method === 'GET' && route === '/health') {
-    result = { ok: true, workers: 0, version: '1.6.16' };
+    result = { ok: true, workers: 0, version: '1.6.17' };
+  } else if (method === 'GET' && route === '/metrics') {
+    result = mgr.metrics();
+  } else if (method === 'GET' && route === '/workspaces') {
+    result = mgr.listWorkspaces();
   } else if (method === 'GET' && route === '/projects') {
     result = mgr.listProjects();
   } else if (method === 'GET' && route === '/cost-report') {
@@ -140,5 +144,20 @@ describe('HTTP integration (sdk → handler)', () => {
     const r = await sdk.nlRun('list workers');
     assert.strictEqual(r.executed, true);
     assert.strictEqual(r.intent, 'list');
+  });
+
+  it('metrics returns daemon snapshot + worker totals (TODO #95)', async () => {
+    const sdk = createSdk({ host: '127.0.0.1', port: Number(new URL(baseUrl).port) });
+    const r = await sdk.metrics();
+    assert.ok(r.daemon);
+    assert.ok(r.daemon.pid > 0);
+    assert.ok(r.totals);
+    assert.strictEqual(typeof r.totals.totalWorkers, 'number');
+  });
+
+  it('workspaces returns list (TODO #98)', async () => {
+    const sdk = createSdk({ host: '127.0.0.1', port: Number(new URL(baseUrl).port) });
+    const r = await sdk.workspaces();
+    assert.ok(Array.isArray(r.workspaces));
   });
 });
