@@ -190,6 +190,19 @@ class AuditLogger {
     // make filtered queries O(log n) instead of full-file scans. Falls
     // back to the JSONL scan on miss / unavailable / parse error so the
     // public API contract is identical either way.
+    // (review fix 2026-05-01) Both paths must default to the same
+    // safe cap when the caller doesn't supply a limit. The original
+    // commit had SQLite default to 200 events but JSONL default to
+    // unbounded — depending on whether useSqlite was enabled, the
+    // exact same query() call returned different result counts.
+    // DEFAULT_LIMIT = 200 keeps the SQLite path unchanged and bounds
+    // the JSONL scan to the same window so an unbounded grep on a
+    // multi-MB audit.jsonl can't blow up memory either.
+    const DEFAULT_LIMIT = 200;
+    const resolvedLimit = Number.isFinite(f.limit) && f.limit > 0
+      ? Math.floor(f.limit)
+      : DEFAULT_LIMIT;
+
     if (this._sqlite) {
       try {
         const rows = this._sqlite.query({
@@ -197,7 +210,7 @@ class AuditLogger {
           until: f.to || undefined,
           action: typeof f.type === 'string' && f.type.length > 0 ? f.type : undefined,
           worker: typeof f.target === 'string' && f.target.length > 0 ? f.target : undefined,
-          limit: Number.isFinite(f.limit) && f.limit > 0 ? Math.floor(f.limit) : 200,
+          limit: resolvedLimit,
         });
         if (Array.isArray(rows)) {
           // _toSqliteRow nests the original hash-chain event under `event`;
@@ -214,7 +227,7 @@ class AuditLogger {
     const toTime = f.to ? Date.parse(f.to) : NaN;
     const type = typeof f.type === 'string' && f.type.length > 0 ? f.type : null;
     const target = typeof f.target === 'string' && f.target.length > 0 ? f.target : null;
-    const limit = Number.isFinite(f.limit) && f.limit > 0 ? Math.floor(f.limit) : 0;
+    const limit = resolvedLimit;
 
     // Read line by line. For typical audit volumes (one event per worker
     // action, so thousands per day at most) a full-file read is cheaper

@@ -117,4 +117,32 @@ describe('AuditLogger.query routes through SQLite when enabled', { skip: !sqlite
       cleanup(dir);
     }
   });
+
+  // (review fix 2026-05-01) Default-limit parity. Without this fix
+  // the SQLite path defaulted to LIMIT 200 while the JSONL path
+  // returned every event when the caller didn't supply `limit`.
+  // A query for the same data through the same public API would
+  // return different counts depending on whether useSqlite was on.
+  it('default limit caps at 200 on BOTH SQLite and JSONL paths', () => {
+    const { dir: dirA, logPath: logA } = freshTmp();
+    const { dir: dirB, logPath: logB } = freshTmp();
+    try {
+      // SQLite-backed
+      const aSqlite = new AuditLogger({ logPath: logA, useSqlite: true });
+      // JSONL-only
+      const aJsonl = new AuditLogger({ logPath: logB });
+      for (let i = 0; i < 250; i++) {
+        aSqlite.record('task.sent', { i }, { target: `w${i}` });
+        aJsonl.record('task.sent', { i }, { target: `w${i}` });
+      }
+      const rSqlite = aSqlite.query({}); // no limit specified
+      const rJsonl = aJsonl.query({});  // no limit specified
+      assert.strictEqual(rSqlite.length, 200, 'SQLite default limit = 200');
+      assert.strictEqual(rJsonl.length, 200, 'JSONL default limit = 200 (parity fix)');
+      aSqlite._sqlite && aSqlite._sqlite.close && aSqlite._sqlite.close();
+    } finally {
+      cleanup(dirA);
+      cleanup(dirB);
+    }
+  });
 });
