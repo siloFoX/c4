@@ -438,7 +438,7 @@ async function main() {
         }
 
         let branch = '', useBranch = true, scope = null, scopePreset = '', after = '', contextFrom = '', reuse = undefined, profile = '', autoMode = false, projectRoot = '', cwd = '';
-        let budgetUsd = null, maxRetries = null, tier = '', model = '', planDoc = '';
+        let budgetUsd = null, maxRetries = null, tier = '', model = '', planDoc = '', workspace = '';
         const taskParts = [];
         for (let i = argStart; i < effectiveArgs.length; i++) {
           if (effectiveArgs[i] === '--branch' && effectiveArgs[i + 1]) { branch = effectiveArgs[++i]; }
@@ -452,6 +452,7 @@ async function main() {
           else if (effectiveArgs[i] === '--auto-mode') { autoMode = true; }
           else if (effectiveArgs[i] === '--repo' && effectiveArgs[i + 1]) { projectRoot = effectiveArgs[++i]; }
           else if (effectiveArgs[i] === '--cwd' && effectiveArgs[i + 1]) { cwd = effectiveArgs[++i]; }
+          else if (effectiveArgs[i] === '--workspace' && effectiveArgs[i + 1]) { workspace = effectiveArgs[++i]; }
           else if (effectiveArgs[i] === '--tier' && effectiveArgs[i + 1]) { tier = effectiveArgs[++i]; }
           else if (effectiveArgs[i] === '--model' && effectiveArgs[i + 1]) { model = effectiveArgs[++i]; }
           else if (effectiveArgs[i] === '--budget' && effectiveArgs[i + 1]) {
@@ -483,6 +484,7 @@ async function main() {
         if (autoMode) body.autoMode = true;
         if (projectRoot) body.projectRoot = projectRoot;
         if (cwd) body.cwd = cwd;
+        if (workspace) body.workspace = workspace;
         if (budgetUsd !== null) body.budgetUsd = budgetUsd;
         if (maxRetries !== null) body.maxRetries = maxRetries;
         if (tier) body.tier = tier;
@@ -730,6 +732,28 @@ async function main() {
             console.warn(`  Run 'c4 daemon restart' to reload the daemon with the latest code.`);
           }
         } catch {}
+        break;
+      }
+
+      // List configured multi-repo workspaces (config.workspaces).
+      case 'workspaces': {
+        const wantJson = args.includes('--json');
+        result = await request('GET', '/workspaces');
+        if (wantJson) break;
+        if (!result || result.error) break;
+        if (!result.workspaces || result.workspaces.length === 0) {
+          console.log('No workspaces configured. Add to config.workspaces (see config.example.json).');
+        } else {
+          console.log('  NAME              PATH                                            EXISTS  GIT');
+          for (const w of result.workspaces) {
+            const name = String(w.name).slice(0, 16).padEnd(16);
+            const p = String(w.path).slice(-46).padEnd(46);
+            const exists = w.exists ? 'yes   ' : 'NO    ';
+            const git = w.isGitRepo ? 'yes' : 'no';
+            console.log(`  ${name}  ${p}  ${exists}  ${git}`);
+          }
+        }
+        result = null;
         break;
       }
 
@@ -4244,7 +4268,9 @@ Scope examples:
         return;
     }
 
-    console.log(JSON.stringify(result, null, 2));
+    if (result !== null && result !== undefined) {
+      console.log(JSON.stringify(result, null, 2));
+    }
   } catch (err) {
     console.error('Error:', err.message);
     process.exit(1);
