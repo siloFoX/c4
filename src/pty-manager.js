@@ -341,7 +341,9 @@ class PtyManager extends EventEmitter {
   // instead of relying on ScreenBuffer parsing for permission/action detection.
 
   hookEvent(workerName, event) {
-    console.error(`[C4] hookEvent: worker=${workerName} hook_type=${event.hook_type || event.hook_event_name || ''} tool=${event.tool_name || ''}`);
+    if (this.config.debug && this.config.debug.hookEvents) {
+      console.error(`[C4] hookEvent: worker=${workerName} hook_type=${event.hook_type || event.hook_event_name || ''} tool=${event.tool_name || ''}`);
+    }
     const w = this.workers.get(workerName);
     if (!w) return { error: `Worker '${workerName}' not found` };
 

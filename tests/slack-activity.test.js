@@ -124,11 +124,14 @@ describe('hook debugging logs', () => {
     const daemonSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'daemon.js'), 'utf8');
     expect(daemonSrc).toContain('[DAEMON] /hook-event received:');
     expect(daemonSrc).toContain('[DAEMON] /hook-event rejected:');
+    expect(daemonSrc).toContain('debug.hookEvents');
   });
 
-  test('hookEvent() logs worker name and event on entry', () => {
+  test('hookEvent() has debug-gated log line', () => {
     const ptySrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'pty-manager.js'), 'utf8');
+    // Debug-gated so we don't spam stderr on every PreToolUse / PostToolUse.
     expect(ptySrc).toContain('[C4] hookEvent:');
+    expect(ptySrc).toContain('this.config.debug.hookEvents');
   });
 
   test('_appendEventLog() exists with debug-gated error log', () => {

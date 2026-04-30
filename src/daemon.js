@@ -487,8 +487,12 @@ async function handleRequest(req, res) {
       const workerName = body.worker || '';
       const hookType = body.hook_type || body.hook_event_name || '';
       if (!body.hook_type && body.hook_event_name) body.hook_type = body.hook_event_name;
-      console.error(`[DAEMON] /hook-event received: worker=${workerName} hook_type=${hookType} tool=${body.tool_name || ''}`);
+      const debugHooks = manager.config.debug && manager.config.debug.hookEvents;
+      if (debugHooks) {
+        console.error(`[DAEMON] /hook-event received: worker=${workerName} hook_type=${hookType} tool=${body.tool_name || ''}`);
+      }
       if (!workerName) {
+        // Always log the rejection — that's a real bug signal, not steady-state noise.
         console.error('[DAEMON] /hook-event rejected: missing worker name');
         result = { error: 'Missing worker name in hook event' };
       } else {
