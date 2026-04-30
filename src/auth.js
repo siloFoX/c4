@@ -66,10 +66,57 @@ function _b64urlDecode(str) {
 
 class Auth {
   constructor(config = {}) {
-    this.enabled = !!(config.auth && config.auth.enabled);
-    this.users = (config.auth && config.auth.users) || {};
-    this.secret = (config.auth && config.auth.secret) || crypto.randomBytes(32).toString('hex');
-    this.tokenTtlMs = (config.auth && config.auth.tokenTtlMs) || 24 * 60 * 60 * 1000;
+    this.applyConfig(config);
+  }
+
+  // (TODO Auth bootstrap check) Re-apply config — called from Auth() init
+  // and from PtyManager.reloadConfig() when config.json is hot-reloaded.
+  // - Generates an ephemeral secret only when auth is disabled OR explicitly
+  //   missing. When enabled+missing, we surface a stderr warning so an
+  //   operator notices that bouncing the daemon will invalidate every
+  //   already-issued token.
+  // - Empty users + enabled is also flagged (everyone gets 401).
+  applyConfig(config = {}) {
+    const cfg = (config && config.auth) || {};
+    this.enabled = !!cfg.enabled;
+    this.users = cfg.users || {};
+    const provided = typeof cfg.secret === 'string' && cfg.secret.length >= 16;
+    if (provided) {
+      this.secret = cfg.secret;
+      this._secretEphemeral = false;
+    } else {
+      // Reuse existing ephemeral secret across reloads so live tokens
+      // survive a `c4 config reload` even if config.json doesn't gain a
+      // proper secret. Re-randomize on first construction only.
+      if (!this.secret) this.secret = crypto.randomBytes(32).toString('hex');
+      this._secretEphemeral = true;
+      if (this.enabled) {
+        // eslint-disable-next-line no-console
+        console.error(
+          '[C4 AUTH WARN] config.auth.enabled=true but config.auth.secret is missing or too short (<16 chars). ' +
+          'Using an ephemeral secret — restarting the daemon will invalidate every active token. ' +
+          'Set a stable hex/random string in config.auth.secret for production.'
+        );
+      }
+    }
+    this.tokenTtlMs = (typeof cfg.tokenTtlMs === 'number' && cfg.tokenTtlMs > 0)
+      ? cfg.tokenTtlMs
+      : 24 * 60 * 60 * 1000;
+
+    if (this.enabled && Object.keys(this.users).length === 0) {
+      // eslint-disable-next-line no-console
+      console.error('[C4 AUTH WARN] config.auth.enabled=true with empty users{}. All authenticated routes will return 401.');
+    }
+  }
+
+  // Public probe used by /auth/whoami callers + tests.
+  status() {
+    return {
+      enabled: this.enabled,
+      users: Object.keys(this.users),
+      secretEphemeral: !!this._secretEphemeral,
+      tokenTtlMs: this.tokenTtlMs,
+    };
   }
 
   // ---- token issuance ----

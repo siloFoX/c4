@@ -115,7 +115,29 @@ class Scheduler {
   }
 
   list() {
-    return { schedules: Array.from(this._entries.values()) };
+    const now = new Date();
+    return {
+      schedules: Array.from(this._entries.values()).map((entry) => ({
+        ...entry,
+        nextRunAt: entry.enabled ? Scheduler._nextRunAfter(entry.cron, now) : null,
+      })),
+    };
+  }
+
+  // Compute the next datetime (>= base) that matches the cron expression.
+  // Brute-force minute-by-minute scan capped at 31 days. Returns ISO string
+  // or null when no match is found in window / invalid cron.
+  static _nextRunAfter(expr, base) {
+    if (!Scheduler._validateCron(expr)) return null;
+    const t = new Date(base);
+    t.setSeconds(0, 0);
+    t.setMinutes(t.getMinutes() + 1); // start scan at next whole minute
+    const limitMin = 31 * 24 * 60;
+    for (let i = 0; i < limitMin; i++) {
+      if (Scheduler._cronMatches(expr, t)) return t.toISOString();
+      t.setMinutes(t.getMinutes() + 1);
+    }
+    return null;
   }
 
   // Force-run an entry immediately, ignoring cron + enabled.

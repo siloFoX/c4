@@ -31,6 +31,14 @@
 - **9.4 MCP 프로토콜 최신화** — protocolVersion 협상(`2025-03-26` ↔ `2024-11-05`), `ping` 응답, `notifications/initialized` 외 `initialized` 별칭, `capabilities.tools.listChanged=true` + `capabilities.logging`.
 - **9.6 Fleet write-through** — `/fleet/create` `/fleet/task` `/fleet/close` `/fleet/send`. SDK `fleetCreate`/`fleetTask`/`fleetClose`/`fleetSend`/`fleetKey`. 4개 단위 테스트 추가 (총 7개).
 
+### 1.6.16 누적 (6차 — auth bootstrap / OpenAPI 자동추출 / shell completion / scheduler nextRunAt / 라이트 테마 / marketplace)
+- **Auth bootstrap 체크** — `Auth.applyConfig()`로 분리. enabled+secret 누락 시 stderr 경고 (재시작이 토큰 무효화). 빈 users 경고. 핫 리로드 시에도 secret 일관성 유지. `manager._auth = auth`로 hot-reload 경로에 노출.
+- **OpenAPI 자동 추출** — `_extractRoutes()`가 `daemon.js` 정규식으로 모든 `req.method === ... && route === ...` 매치 + 직전 주석 라인을 summary로 끌어옴. `OVERRIDES`로 핵심 라우트는 hand-tuned 설명. 86 routes 자동 발견. 캐시 + reset hook.
+- **CLI auto-completion** — `scripts/c4-completion.{bash,zsh}` + `c4 completion bash|zsh`로 출력. `source <(c4 completion bash)`로 바로 활성화. 워커 이름은 `c4 list`로 동적 보완.
+- **Scheduler nextRunAt** — `Scheduler._nextRunAfter(cron, base)`가 minute-by-minute 스캔 (31일 cap)으로 다음 실행 시각 계산. `list()`가 enabled 항목에 nextRunAt 포함. Web UI에 "Next run" 컬럼.
+- **Web UI 라이트 테마** — `index.css`에 `html[data-theme="light"]` + `prefers-color-scheme` 토큰 세트 추가. `web/src/lib/theme.ts`로 dark/light/auto 사이클. App 헤더에 토글 버튼 (Sun/Moon/Monitor 아이콘).
+- **Marketplace 정리** — root `.claude-plugin/marketplace.json`이 `plugin/` subdir의 c4 plugin을 git-subdir source로 가리킴. stale root `plugin.json` 제거. `claude plugin validate /home/shinc/c4` ✔ 통과 (marketplace) + `claude plugin validate /home/shinc/c4/plugin` ✔ 통과 (plugin).
+
 ### 1.6.16 누적 (5차 — README.ko / ops 가이드 / Worker timeline / scribe 확장 / workflow graph / plugin 정합)
 - **README.ko.md 동기화** — Phase 9-11 surface / CLI cheat sheet / auth / SDK 섹션을 한국어로 추가.
 - **`docs/ops.md`** — daemon 라이프사이클(start/restart/hot-reload), 인증(RBAC), 모니터링(audit/SSE/cost/notifications), 백업/복원, fleet 운영, 트러블슈팅, OpenAPI, 운영 체크리스트.

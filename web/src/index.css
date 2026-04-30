@@ -8,21 +8,60 @@
  * Tokens are HSL so individual components can tweak via opacity modifiers.
  */
 @layer base {
+  /* Default = dark theme. Tokens are HSL so opacity modifiers compose. */
   :root {
-    --background: 224 14% 8%;          /* page bg */
-    --surface: 224 14% 11%;            /* sidebars, header */
-    --surface-2: 224 14% 14%;          /* cards, panels */
-    --surface-3: 224 14% 17%;          /* hover, active */
+    --background: 224 14% 8%;
+    --surface: 224 14% 11%;
+    --surface-2: 224 14% 14%;
+    --surface-3: 224 14% 17%;
     --border: 224 12% 22%;
     --foreground: 220 14% 92%;
     --muted: 220 10% 60%;
-    --primary: 217 91% 60%;            /* blue-500 */
+    --primary: 217 91% 60%;
     --primary-foreground: 220 14% 98%;
     --success: 152 60% 48%;
     --warning: 38 95% 60%;
     --danger: 0 72% 60%;
-    --intervention: 322 80% 65%;       /* magenta — pop alert */
-    --suspended: 270 60% 65%;          /* purple */
+    --intervention: 322 80% 65%;
+    --suspended: 270 60% 65%;
+  }
+
+  /* Light theme — applied when <html data-theme="light"> is set. */
+  html[data-theme="light"] {
+    --background: 220 22% 97%;
+    --surface: 0 0% 100%;
+    --surface-2: 220 22% 95%;
+    --surface-3: 220 22% 90%;
+    --border: 220 13% 85%;
+    --foreground: 224 14% 14%;
+    --muted: 224 10% 40%;
+    --primary: 217 91% 50%;
+    --primary-foreground: 0 0% 100%;
+    --success: 152 60% 38%;
+    --warning: 38 92% 45%;
+    --danger: 0 70% 50%;
+    --intervention: 322 70% 50%;
+    --suspended: 270 50% 50%;
+  }
+
+  /* Honor OS setting if no explicit attribute is set. */
+  @media (prefers-color-scheme: light) {
+    html:not([data-theme]) {
+      --background: 220 22% 97%;
+      --surface: 0 0% 100%;
+      --surface-2: 220 22% 95%;
+      --surface-3: 220 22% 90%;
+      --border: 220 13% 85%;
+      --foreground: 224 14% 14%;
+      --muted: 224 10% 40%;
+      --primary: 217 91% 50%;
+      --primary-foreground: 0 0% 100%;
+      --success: 152 60% 38%;
+      --warning: 38 92% 45%;
+      --danger: 0 70% 50%;
+      --intervention: 322 70% 50%;
+      --suspended: 270 50% 50%;
+    }
   }
 }
 

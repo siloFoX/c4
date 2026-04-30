@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Activity, History, BookOpen, Briefcase, Menu, X,
   DollarSign, Users, Kanban, Clock, Shield, Network, LogOut, Workflow,
+  Sun, Moon, Monitor as MonitorIcon,
 } from 'lucide-react';
 import WorkerList from './components/WorkerList';
 import WorkerDetail from './components/WorkerDetail';
@@ -19,6 +20,7 @@ import NLCommandBar from './components/NLCommandBar';
 import LoginForm from './components/LoginForm';
 import { cn } from './lib/cn';
 import { authEnabled, clearSession, getRole, getToken, getUser, onUnauthorized } from './lib/auth';
+import { getTheme, setTheme, type Theme } from './lib/theme';
 
 type View =
   | 'workers' | 'projects' | 'fleet' | 'history'
@@ -45,6 +47,13 @@ export default function App() {
   const [view, setView] = useState<View>('workers');
   const [selectedWorker, setSelectedWorker] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [theme, setThemeState] = useState<Theme>(() => getTheme());
+  const cycleTheme = useCallback(() => {
+    const next: Theme = theme === 'auto' ? 'dark' : theme === 'dark' ? 'light' : 'auto';
+    setTheme(next);
+    setThemeState(next);
+  }, [theme]);
+
   // 10.1: probe auth on boot. Show login form if daemon requires auth and
   // we have no token (or token rejected with 401 mid-session).
   const [authState, setAuthState] = useState<'unknown' | 'login' | 'authed' | 'open'>('unknown');
@@ -109,6 +118,14 @@ export default function App() {
               </button>
             </div>
           )}
+          <button
+            type="button"
+            onClick={cycleTheme}
+            title={`Theme: ${theme} (click to cycle)`}
+            className="ml-1 rounded-md border border-border bg-surface-2 p-1.5 text-muted hover:text-foreground"
+          >
+            {theme === 'light' ? <Sun size={13} /> : theme === 'dark' ? <Moon size={13} /> : <MonitorIcon size={13} />}
+          </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

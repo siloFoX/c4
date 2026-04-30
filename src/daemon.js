@@ -17,6 +17,9 @@ const notifications = new Notifications(cfg.notifications || {});
 manager.setNotifications(notifications);
 // (TODO 10.1) Auth gate. Off by default — config.auth.enabled toggles it.
 const auth = new Auth(cfg);
+// Expose to manager so PtyManager.reloadConfig() can refresh users / secret
+// without a restart (hot-reload path).
+manager._auth = auth;
 // (TODO 10.4) CI/CD webhook receiver
 const cicd = new CicdWebhooks(manager);
 // Daemon hot-reload: watch config.json so live changes (users, schedules,

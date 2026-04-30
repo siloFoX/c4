@@ -9,12 +9,27 @@ const { build } = require('../src/openapi');
 
 describe('OpenAPI generator', () => {
   it('builds a 3.1.0 document with paths', () => {
+    const { _resetCache } = require('../src/openapi');
+    _resetCache();
     const doc = build('1.6.16');
     assert.strictEqual(doc.openapi, '3.1.0');
     assert.strictEqual(doc.info.version, '1.6.16');
     assert.ok(doc.paths['/health']);
     assert.ok(doc.paths['/dispatch']);
     assert.ok(doc.paths['/workflow/run']);
+  });
+
+  it('auto-extracts routes from daemon.js (>= 50 paths)', () => {
+    const { _resetCache, _extractRoutes } = require('../src/openapi');
+    _resetCache();
+    const routes = _extractRoutes();
+    assert.ok(routes.length >= 50, `expected at least 50 routes, got ${routes.length}`);
+    // Every entry has method + route + (possibly empty) summary string.
+    for (const r of routes) {
+      assert.ok(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].includes(r.method));
+      assert.match(r.route, /^\//);
+      assert.strictEqual(typeof r.summary, 'string');
+    }
   });
 
   it('marks every path with at least one operation', () => {

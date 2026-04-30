@@ -1150,6 +1150,24 @@ async function main() {
         process.exit(1);
       }
 
+      case 'completion': {
+        // c4 completion bash | zsh
+        // Prints the appropriate completion script. Usage:
+        //   echo 'source <(c4 completion bash)' >> ~/.bashrc
+        //   echo 'source <(c4 completion zsh)'  >> ~/.zshrc
+        const shell = args[0] || 'bash';
+        const fname = shell === 'zsh' ? 'c4-completion.zsh' : 'c4-completion.bash';
+        const fs2 = require('fs');
+        const path2 = require('path');
+        const file = path2.join(__dirname, '..', 'scripts', fname);
+        if (!fs2.existsSync(file)) {
+          console.error(`completion script not found: ${file}`);
+          process.exit(1);
+        }
+        process.stdout.write(fs2.readFileSync(file, 'utf8'));
+        return;
+      }
+
       case 'audit': {
         // c4 audit [--worker X] [--action Y] [--actor Z] [--since ISO] [--limit N]
         const params = {};

@@ -16,6 +16,7 @@ interface Schedule {
   fromConfig?: boolean;
   lastRunAt?: string | null;
   lastResult?: unknown;
+  nextRunAt?: string | null;
 }
 
 interface Resp { schedules?: Schedule[]; error?: string }
@@ -125,13 +126,14 @@ export default function SchedulerView() {
               <th className="px-3 py-2 font-medium">Cron</th>
               <th className="px-3 py-2 font-medium">Task</th>
               <th className="px-3 py-2 font-medium">Last run</th>
+              <th className="px-3 py-2 font-medium">Next run</th>
               <th className="px-3 py-2 font-medium">Enabled</th>
               <th className="px-3 py-2 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-3 text-center text-muted">No schedules.</td></tr>
+              <tr><td colSpan={7} className="px-3 py-3 text-center text-muted">No schedules.</td></tr>
             )}
             {items.map((s) => (
               <tr key={s.id} className="border-t border-border">
@@ -139,6 +141,7 @@ export default function SchedulerView() {
                 <td className="px-3 py-2 font-mono">{s.cron}</td>
                 <td className="px-3 py-2"><div className="line-clamp-2 max-w-md">{s.task}</div></td>
                 <td className="px-3 py-2 text-muted">{s.lastRunAt ? new Date(s.lastRunAt).toLocaleString() : '—'}</td>
+                <td className="px-3 py-2 text-muted">{s.nextRunAt ? new Date(s.nextRunAt).toLocaleString() : '—'}</td>
                 <td className="px-3 py-2">
                   <button
                     type="button"

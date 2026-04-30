@@ -1,6 +1,7 @@
 {
-  "name": "c4",
-  "description": "Claude {Claude Code} Code — Agent-on-agent orchestrator plugins",
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "c4-marketplace",
+  "description": "Claude {Claude Code} Code orchestrator. Multi-machine fleet dispatch, cron scheduler, RBAC + audit log, PM kanban, workflow engine, NL → plan.",
   "owner": {
     "name": "siloFoX",
     "url": "https://github.com/siloFoX"
@@ -8,9 +9,16 @@
   "plugins": [
     {
       "name": "c4",
-      "description": "Manage multiple Claude Code workers from a single Claude Code session. Includes skills and commands for the C4 orchestrator.",
-      "version": "0.1.0",
-      "source": "./"
+      "description": "Spawn, supervise, and merge parallel Claude Code workers via the c4 daemon. Includes the c4-orchestrator skill that teaches Claude how to use the c4 CLI for fleet dispatch, scheduler, audit, board, and workflows.",
+      "author": { "name": "siloFoX", "url": "https://github.com/siloFoX" },
+      "category": "automation",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/siloFoX/c4.git",
+        "path": "plugin"
+      },
+      "homepage": "https://github.com/siloFoX/c4",
+      "license": "MIT"
     }
   ]
 }
