@@ -18,6 +18,9 @@ const TerminalInterface = require('./terminal-interface');
 const SummaryLayer = require('./summary-layer');
 
 // L4 Critical Deny List (5.13) — these commands are NEVER auto-approved, even at full autonomy
+// 7.26: extended with chmod -R 777 / fork bomb / mass-delete patterns to
+// reduce gaps in fully autonomous mode. Patterns deliberately conservative —
+// they must match real destructive commands and not common safe flags.
 const CRITICAL_DENY_PATTERNS = [
   /\brm\s+-rf\s+[\/\\]/,
   /\bgit\s+push\s+--force/,
@@ -29,6 +32,12 @@ const CRITICAL_DENY_PATTERNS = [
   /\bmkfs\b/,
   /\bdd\s+if=/,
   /\bgit\s+reset\s+--hard\s+origin/,
+  /\bgit\s+filter-branch\b/,           // history rewrite
+  /\bchmod\s+-R\s+777\b/,              // wide-open recursive perms
+  /\bchmod\s+777\s+\//,                // wide-open root
+  /\bfind\s+\/[^|]*\s-delete\b/,       // mass delete starting at absolute path
+  />\s*\/dev\/sd[a-z]\b/,              // raw disk write
+  /:\s*\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;\s*:/,  // fork bomb
 ];
 
 const CONFIG_FILE = path.join(__dirname, '..', 'config.json');
@@ -129,6 +138,7 @@ class PtyManager extends EventEmitter {
     this._healthTimer = null;
     this._lastHealthCheck = null;
     this._scribe = null;
+    this._scheduler = null;
     this._sshReconnects = new Map(); // name → { count, lastAttempt }
     this._sessionIds = {};  // name → sessionId for --resume (4.1)
     this._tokenUsage = { daily: {}, lastScan: 0, offsets: {} };
@@ -143,10 +153,22 @@ class PtyManager extends EventEmitter {
       tailLines: slCfg.tailLines,
       maxSummary: slCfg.maxSummary,
     });
-    this._termInterface = new TerminalInterface(
-      this.config.compatibility?.patterns || {},
-      { alwaysApproveForSession: this.config.autoApprove?.alwaysApproveForSession || false }
-    );
+    // (TODO 9.1) Adapter pattern. Default 'claude-code' adapter wraps the
+    // TerminalInterface and pins its patterns. Future targets can swap
+    // adapters via config.agentDefaults.adapter without changing this file.
+    {
+      const adapterName = (this.config.agentDefaults && this.config.agentDefaults.adapter) || 'claude-code';
+      const adapterOpts = {
+        version: this.config.compatibility?.testedVersions?.[0] || '',
+        patterns: this.config.compatibility?.patterns || {},
+        alwaysApproveForSession: this.config.autoApprove?.alwaysApproveForSession || false,
+      };
+      const { getAdapter } = require('./adapters');
+      this._agentAdapter = getAdapter(adapterName, adapterOpts);
+      // Back-compat alias — existing code paths still call _termInterface.*.
+      // The adapter exposes the same methods so they keep working unchanged.
+      this._termInterface = this._agentAdapter;
+    }
     const apCfg = this.config.adaptivePolling || {};
     this._adaptivePolling = new AdaptivePolling({
       minIntervalMs: apCfg.minIntervalMs,
@@ -164,7 +186,10 @@ class PtyManager extends EventEmitter {
   }
 
   get logsDir() {
-    return path.join(__dirname, '..', 'logs');
+    return this._logsDir || path.join(__dirname, '..', 'logs');
+  }
+  set logsDir(v) {
+    this._logsDir = v;
   }
 
   get idleThresholdMs() {
@@ -314,7 +339,7 @@ class PtyManager extends EventEmitter {
   // instead of relying on ScreenBuffer parsing for permission/action detection.
 
   hookEvent(workerName, event) {
-    console.error(`[C4] hookEvent: worker=${workerName} hook_type=${event.hook_type || ''} tool=${event.tool_name || ''}`);
+    console.error(`[C4] hookEvent: worker=${workerName} hook_type=${event.hook_type || event.hook_event_name || ''} tool=${event.tool_name || ''}`);
     const w = this.workers.get(workerName);
     if (!w) return { error: `Worker '${workerName}' not found` };
 
@@ -340,7 +365,9 @@ class PtyManager extends EventEmitter {
     // Persist to JSONL file (4.2)
     this._appendEventLog(workerName, hookEntry);
 
-    const hookType = event.hook_type; // 'PreToolUse' or 'PostToolUse'
+    // 7.24: Claude Code's payload uses `hook_event_name`. Existing tests
+    // and internal callers pass `hook_type`; accept either.
+    const hookType = event.hook_type || event.hook_event_name;
     const toolName = event.tool_name || '';
     const toolInput = event.tool_input || {};
 
@@ -573,8 +600,12 @@ class PtyManager extends EventEmitter {
     // Windows encoding issues and non-zero exit codes that cause
     // Claude Code to report "Failed with non-blocking status code" repeatedly,
     // triggering escalation false positives (7.16, 7.23).
+    // 7.24: pass workerName so hook-relay can inject it into the payload —
+    // Claude Code's stdin JSON has no `worker` field, daemon would otherwise
+    // reject every event with "missing worker name".
     const scriptPath = path.join(__dirname, 'hook-relay.js').replace(/\\/g, '/');
-    const curlCmd = `node "${scriptPath}" ${baseUrl}/hook-event`;
+    const safeName = String(workerName).replace(/"/g, '\\"');
+    const curlCmd = `node "${scriptPath}" "${baseUrl}/hook-event" "${safeName}"`;
 
     return {
       PreToolUse: [{
@@ -858,6 +889,20 @@ class PtyManager extends EventEmitter {
       }
     }
 
+    // (TODO Notifications 다양화) Cost budget alert — once-per-month transition.
+    try {
+      const report = this.getCostReport({});
+      if (report && report.budget && report.budget.overBudget) {
+        const month = report.monthly && report.monthly.month;
+        const lastSent = (this._tokenUsage._budgetAlertSentMonth || null);
+        if (month && month !== lastSent && this._notifications && typeof this._notifications.pushAll === 'function') {
+          this._notifications.pushAll(`[COST BUDGET] ${month} cost ${report.monthly.costUSD?.toFixed(2)} USD exceeds budget ${report.budget.monthlyUSD} USD`);
+          this._tokenUsage._budgetAlertSentMonth = month;
+          this._saveTokenState();
+        }
+      }
+    } catch { /* swallow */ }
+
     return {
       today,
       input: dailyTotal.input,
@@ -942,7 +987,7 @@ class PtyManager extends EventEmitter {
       const existingWorker = this.workers.get(entry.name);
       if (existingWorker && existingWorker.alive && !existingWorker._pendingTask && !existingWorker._taskText) {
         const fullTask = this._buildTaskText(existingWorker, entry.task, entry);
-        this._writeTaskAndEnter(existingWorker.proc, fullTask, this._getEnterDelayMs());
+        this._writeTaskAndEnter(existingWorker.proc, fullTask, this._getEnterDelayMs(), { verifyWith: existingWorker });
         existingWorker._taskText = entry.task;
         existingWorker._taskStartedAt = new Date().toISOString();
         started.push({ name: entry.name, result: { sent: true } });
@@ -1081,7 +1126,7 @@ class PtyManager extends EventEmitter {
       }
 
       const text = this._getScreenText(worker.screen);
-      const isReady = this._termInterface.isReady(text);
+      const isReady = worker._adapter.isReady(text);
       const effortLevel = worker._dynamicEffort || this.config.workerDefaults?.effortLevel;
       const needsSetup = effortLevel && !worker.setupDone;
 
@@ -1106,7 +1151,7 @@ class PtyManager extends EventEmitter {
       worker._pendingTaskSent = true;
       const pt = worker._pendingTask;
       const fullTask = this._buildTaskText(worker, pt.task, pt.options);
-      await this._writeTaskAndEnter(worker.proc, fullTask, this._getEnterDelayMs());
+      await this._writeTaskAndEnter(worker.proc, fullTask, this._getEnterDelayMs(), { verifyWith: worker });
       worker._taskText = pt.task;
       worker._taskStartedAt = new Date().toISOString();
       worker._pendingTask = null;
@@ -1142,15 +1187,28 @@ class PtyManager extends EventEmitter {
       worker._pendingTaskSent = true;
       const pt = worker._pendingTask;
       const fullTask = this._buildTaskText(worker, pt.task, pt.options);
-      await this._writeTaskAndEnter(worker.proc, fullTask, this._getEnterDelayMs());
+
+      // (7.25 / TODO 7.22) If task text is already in the input prompt
+      // (the original write succeeded but Enter was dropped), only re-send
+      // Enter — re-typing the full task would double-submit.
+      const screenBefore = this._getScreenText(worker.screen);
+      const enterOnly = this._isTaskTextInInput(screenBefore, fullTask);
+      if (enterOnly) {
+        try { worker.proc.write('\r'); } catch { /* proc closed */ }
+        await this._verifyEnterCommitted(worker, fullTask);
+      } else {
+        await this._writeTaskAndEnter(worker.proc, fullTask, this._getEnterDelayMs(), { verifyWith: worker });
+      }
       worker._taskText = pt.task;
       worker._taskStartedAt = new Date().toISOString();
       worker._pendingTask = null;
       worker.snapshots = worker.snapshots || [];
       worker.snapshots.push({
         time: Date.now(),
-        screen: `[C4 WARN] pendingTask sent via timeout fallback (${pendingTimeoutMs}ms)` +
-          (setupNeeded ? ' [setup incomplete]' : ''),
+        screen: enterOnly
+          ? `[C4 WARN] pendingTask Enter-only fallback (${pendingTimeoutMs}ms) — task text was typed but Enter missed`
+          : `[C4 WARN] pendingTask sent via timeout fallback (${pendingTimeoutMs}ms)` +
+            (setupNeeded ? ' [setup incomplete]' : ''),
         autoAction: true
       });
     };
@@ -1195,6 +1253,43 @@ class PtyManager extends EventEmitter {
 
   _getScreenText(screen) {
     return screen.getScreen();
+  }
+
+  // 7.25: Compact TUI noise (box-drawing/block-element separator lines)
+  // before returning to read clients. The 2.1.123 fullscreen TUI fills the
+  // 160x48 buffer with horizontal `─` separators and `▔` underlines that
+  // carry no semantic content but inflate token usage 2-3x in `c4 read`,
+  // `c4 read-now`, and `c4 wait` output. Pattern matching paths
+  // (isPermissionPrompt, etc.) keep using raw _getScreenText.
+  _compactReadText(text) {
+    if (!text || this.config.compactRead?.enabled === false) return text;
+    // Lines made up entirely of whitespace + Box Drawing (U+2500–257F)
+    // + Block Elements (U+2580–259F) are pure visual noise.
+    const NOISE_LINE = /^[\s─-▟]+$/;
+    const lines = text.split('\n');
+    const out = [];
+    let lastWasNoise = false;
+    for (const raw of lines) {
+      const line = raw.replace(/\s+$/, '');
+      if (line === '') {
+        if (lastWasNoise) continue;
+        out.push('');
+        lastWasNoise = true;
+        continue;
+      }
+      if (NOISE_LINE.test(line)) {
+        if (lastWasNoise) continue;
+        out.push('───');
+        lastWasNoise = true;
+        continue;
+      }
+      out.push(line);
+      lastWasNoise = false;
+    }
+    while (out.length > 0 && (out[out.length - 1] === '' || out[out.length - 1] === '───')) {
+      out.pop();
+    }
+    return out.join('\n');
   }
 
   /**
@@ -1258,11 +1353,11 @@ class PtyManager extends EventEmitter {
         if (!worker._pendingTask || worker._pendingTaskSent || !worker.alive) return;
         if (Date.now() < (worker._setupStableAt || 0)) return;
         const text = this._getScreenText(worker.screen);
-        if (this._termInterface.isReady(text)) {
+        if (worker._adapter.isReady(text)) {
           worker._pendingTaskSent = true;
           const pt = worker._pendingTask;
           const fullTask = this._buildTaskText(worker, pt.task, pt.options);
-          await this._writeTaskAndEnter(proc, fullTask, this._getEnterDelayMs());
+          await this._writeTaskAndEnter(proc, fullTask, this._getEnterDelayMs(), { verifyWith: worker });
           worker._taskText = pt.task;
           worker._taskStartedAt = new Date().toISOString();
           worker._pendingTask = null;
@@ -1631,7 +1726,38 @@ class PtyManager extends EventEmitter {
       this._applyAutoMode(settings, true);
     }
 
+    // (TODO 11.1) MCP hub. Resolve which MCP servers this worker should
+    // get from `config.mcp.servers`, optionally filtered by:
+    //  - profile.mcp        : array of server names (preset)
+    //  - options.mcpServers : array of server names (per-task override)
+    //  - workerDefaults.mcpServers : array of server names (default for all)
+    // Server definitions live in config.mcp.servers as
+    //   { "filesystem": { "command": "npx", "args": [...], "env": {...} } }
+    // and are written verbatim under settings.mcpServers, the field Claude
+    // Code reads on worker boot.
+    const mcpResolved = this._resolveMcpServersForWorker(profile, options);
+    if (mcpResolved && Object.keys(mcpResolved).length > 0) {
+      settings.mcpServers = mcpResolved;
+    }
+
     return settings;
+  }
+
+  _resolveMcpServersForWorker(profile, options = {}) {
+    const hub = (this.config.mcp && this.config.mcp.servers) || {};
+    const wantNames = (() => {
+      if (Array.isArray(options.mcpServers)) return options.mcpServers;
+      if (profile && Array.isArray(profile.mcp)) return profile.mcp;
+      const def = this.config.workerDefaults && this.config.workerDefaults.mcpServers;
+      if (Array.isArray(def)) return def;
+      return [];
+    })();
+    if (wantNames.length === 0) return null;
+    const out = {};
+    for (const name of wantNames) {
+      if (hub[name]) out[name] = hub[name];
+    }
+    return out;
   }
 
   _writeWorkerSettings(worktreePath, workerName, options = {}) {
@@ -2110,16 +2236,24 @@ class PtyManager extends EventEmitter {
   _getQuestionPatterns() {
     const cfg = this._getInterventionConfig();
     const custom = cfg.questionPatterns || [];
-    // Default patterns: Korean + English question indicators
+    // Default patterns: Korean + English question indicators.
+    // 7.26: expanded for Claude Code 2.1.x phrasing — broader confirm /
+    // permission / proceed asks now trigger intervention.
     const defaults = [
       // Korean question patterns
       '할까요\\?', '해도 될까요\\?', '어떻게', '선택지',
       '어느 걸로', '방식.*vs.*방식', '확장.*요청',
       '명확하지 않', '어떤 방향', '결정해.*주',
+      '진행할까요', '확인해 주세요', '맞나요\\?', '선택해 주세요',
+      '계속.*진행', '동의하시',
       // English question patterns
       'should I', 'which approach', 'A or B',
       'not sure whether', 'could you clarify',
       'what do you think', 'how should',
+      'do you want me to', 'please confirm',
+      'can you confirm', 'shall I proceed',
+      'is this what you', 'would you like me to',
+      'let me know if', 'which option',
     ];
     return [...defaults, ...custom];
   }
@@ -2532,7 +2666,7 @@ class PtyManager extends EventEmitter {
     commands.push(task);
 
     const fullTask = this._maybeWriteTaskFile(w, commands.join('\n\n'));
-    this._writeTaskAndEnter(w.proc, fullTask, this._getEnterDelayMs());
+    this._writeTaskAndEnter(w.proc, fullTask, this._getEnterDelayMs(), { verifyWith: w });
     w.branch = branch;
 
     // Save start commit for rollback (3.6)
@@ -2580,14 +2714,58 @@ class PtyManager extends EventEmitter {
     const t = this._resolveTarget(targetName);
     if (!t) return { error: `Unknown target: '${targetName}'` };
 
+    // (TODO 11.2) Non-PTY worker types — handled before any PTY plumbing.
+    // The adapter declares a non-PTY `mode` (e.g. 'computer-use') and we
+    // book-keep the worker without spawning a child process. Lifecycle
+    // (close / list) still works through the same daemon API.
+    {
+      const adapterName = options.adapter
+        || (t && t.adapter)
+        || (this.config.workerDefaults && this.config.workerDefaults.adapter)
+        || null;
+      if (adapterName) {
+        try {
+          const { getAdapter } = require('./adapters');
+          const probe = getAdapter(adapterName, options.adapterOpts || {});
+          if (probe && probe.mode && probe.mode !== 'pty') {
+            return this._createNonPty(name, adapterName, probe, options);
+          }
+        } catch { /* fall through to normal PTY path */ }
+      }
+    }
+
     let shell, shellArgs, pendingCommands;
 
     if (t.type === 'local' || targetName === 'local') {
       const commandMap = t.commandMap || {};
-      const resolvedCmd = commandMap[command] || command;
+      // (TODO 9.1/9.2/11.2 integration) Honor adapter spawn override.
+      // Order:
+      //   1. options.adapter / config.targets[*].adapter / workerDefaults.adapter
+      //   2. Adapter's spawnCommand() if it provides one (local-llm does)
+      //   3. Default: command + args (existing behaviour)
+      const adapterName = options.adapter
+        || (t && t.adapter)
+        || (this.config.workerDefaults && this.config.workerDefaults.adapter)
+        || null;
+      let resolvedCmd = commandMap[command] || command;
+      let finalArgs = [...args];
+      if (adapterName) {
+        try {
+          const { getAdapter } = require('./adapters');
+          const adapter = getAdapter(adapterName, options.adapterOpts || {});
+          if (typeof adapter.spawnCommand === 'function') {
+            const [spawnCmd, spawnArgs] = adapter.spawnCommand();
+            if (spawnCmd) {
+              resolvedCmd = spawnCmd;
+              finalArgs = Array.isArray(spawnArgs) ? [...spawnArgs] : [];
+            }
+          }
+        } catch (e) {
+          return { error: `adapter '${adapterName}' load failed: ${e.message}` };
+        }
+      }
       // Resume support (4.1): append --resume <sessionId> to claude command
-      const finalArgs = [...args];
-      if (options.resume && command === 'claude') {
+      if (options.resume && command === 'claude' && !adapterName) {
         finalArgs.push('--resume', options.resume);
       }
       shell = platformShell();
@@ -2676,7 +2854,24 @@ class PtyManager extends EventEmitter {
       // Session resume (4.1)
       _sessionId: options.resume || null,
       _resumed: !!options.resume,
+      // 8.8: track the cwd used to spawn so restart can reuse it.
+      _spawnCwd: spawnCwd || cwd || '',
+      // 9.1/9.2/11.2: which adapter routed this worker's spawn.
+      _adapterName: options.adapter
+        || (t && t.adapter)
+        || (this.config.workerDefaults && this.config.workerDefaults.adapter)
+        || null,
+      // (TODO Per-worker adapter) Concrete adapter instance used for THIS
+      // worker's pattern detection. Falls back to the manager-level
+      // ClaudeCodeAdapter for backwards compat when no adapter selected.
+      _adapter: null,
     };
+    {
+      const { getAdapter } = require('./adapters');
+      worker._adapter = worker._adapterName
+        ? getAdapter(worker._adapterName, options.adapterOpts || {})
+        : this._agentAdapter;
+    }
 
     // Raw log
     if (worker.rawLogPath) {
@@ -2718,8 +2913,8 @@ class PtyManager extends EventEmitter {
         const text = this._getScreenText(screen);
 
         // Auto-trust folder (via terminal interface 3.13)
-        if (this.config.workerDefaults?.trustFolder && this._termInterface.isTrustPrompt(text)) {
-          proc.write(this._termInterface.getTrustKeys());
+        if (this.config.workerDefaults?.trustFolder && worker._adapter.isTrustPrompt(text)) {
+          proc.write(worker._adapter.getTrustKeys());
           return;
         }
 
@@ -2732,8 +2927,8 @@ class PtyManager extends EventEmitter {
           const inputDelayMs = setupCfg.inputDelayMs ?? 500;
           const confirmDelayMs = setupCfg.confirmDelayMs ?? 500;
 
-          const hasPrompt = this._termInterface.isReady(text);
-          const hasModelMenu = this._termInterface.isModelMenu(text);
+          const hasPrompt = worker._adapter.isReady(text);
+          const hasModelMenu = worker._adapter.isModelMenu(text);
 
           // Timeout: if stuck in waitMenu phase too long, retry
           if (worker.setupPhase === 'waitMenu' && worker.setupPhaseStart) {
@@ -2762,7 +2957,7 @@ class PtyManager extends EventEmitter {
                 screen: `[C4 SETUP] effort setup retry ${worker.setupRetries}/${maxRetries} (phase timeout)`,
                 autoAction: true
               });
-              proc.write(this._termInterface.getEscapeKey()); // Escape to clear any partial state
+              proc.write(worker._adapter.getEscapeKey()); // Escape to clear any partial state
               return;
             }
           }
@@ -2787,7 +2982,7 @@ class PtyManager extends EventEmitter {
           const fullTask = this._buildTaskText(worker, pt.task, pt.options);
           const enterDelayMs = this._getEnterDelayMs();
           setTimeout(async () => {
-            await this._writeTaskAndEnter(proc, fullTask, enterDelayMs);
+            await this._writeTaskAndEnter(proc, fullTask, enterDelayMs, { verifyWith: worker });
             worker._taskText = pt.task;
             worker._taskStartedAt = new Date().toISOString();
             worker._pendingTask = null;
@@ -2803,7 +2998,7 @@ class PtyManager extends EventEmitter {
             const fullTask = this._buildTaskText(worker, entry.task, entry);
             const queueEnterDelayMs = this._getEnterDelayMs();
             setTimeout(() => {
-              this._writeTaskAndEnter(proc, fullTask, queueEnterDelayMs);
+              this._writeTaskAndEnter(proc, fullTask, queueEnterDelayMs, { verifyWith: worker });
               worker._taskText = entry.task;
               worker._taskStartedAt = new Date().toISOString();
             }, 500);
@@ -2813,11 +3008,11 @@ class PtyManager extends EventEmitter {
         }
 
         // Auto-approve logic + SSE permission event (3.5)
-        if (this._termInterface.isPermissionPrompt(text)) {
-          const promptType = this._termInterface.getPromptType(text);
+        if (worker._adapter.isPermissionPrompt(text)) {
+          const promptType = worker._adapter.getPromptType(text);
           const detail = promptType === 'bash'
-            ? this._termInterface.extractBashCommand(text)
-            : this._termInterface.extractFileName(text);
+            ? worker._adapter.extractBashCommand(text)
+            : worker._adapter.extractFileName(text);
           this._emitSSE('permission', { worker: name, promptType, detail });
           // Immediate intervention notification for permission prompts (5.29)
           if (this._notifications && !worker._permissionNotified) {
@@ -2826,10 +3021,10 @@ class PtyManager extends EventEmitter {
           }
         }
         // Block git reset --hard on main (unconditional, regardless of autoApprove)
-        if (this._termInterface.isPermissionPrompt(text)) {
-          const _pt = this._termInterface.getPromptType(text);
+        if (worker._adapter.isPermissionPrompt(text)) {
+          const _pt = worker._adapter.getPromptType(text);
           if (_pt === 'bash') {
-            const _cmd = this._termInterface.extractBashCommand(text);
+            const _cmd = worker._adapter.extractBashCommand(text);
             if (_cmd && /\bgit\b.*\breset\b.*--hard/.test(_cmd)) {
               const gitDir = (worker.worktree || this._detectRepoRoot() || '').replace(/\\/g, '/');
               let branch = null;
@@ -2841,7 +3036,7 @@ class PtyManager extends EventEmitter {
                 } catch {}
               }
               if (branch === 'main') {
-                const denyKeys = this._termInterface.getDenyKeys(text);
+                const denyKeys = worker._adapter.getDenyKeys(text);
                 worker.snapshots.push({
                   time: Date.now(),
                   screen: `[C4 BLOCK] git reset --hard denied on main branch`,
@@ -2854,13 +3049,13 @@ class PtyManager extends EventEmitter {
           }
         }
 
-        if (this.config.autoApprove?.enabled && this._termInterface.isPermissionPrompt(text)) {
+        if (this.config.autoApprove?.enabled && worker._adapter.isPermissionPrompt(text)) {
           // Scope guard check — override autoApprove if out of scope
           if (worker.scopeGuard && worker.scopeGuard.hasRestrictions()) {
             const scopeResult = this._checkScope(worker.scopeGuard, text);
             if (scopeResult && !scopeResult.allowed) {
               // Out of scope → force deny
-              const denyKeys = this._termInterface.getDenyKeys(text);
+              const denyKeys = worker._adapter.getDenyKeys(text);
 
               worker.snapshots.push({
                 time: Date.now(),
@@ -2879,10 +3074,10 @@ class PtyManager extends EventEmitter {
 
           if (keys) {
             // Log the decision
-            const approvePromptType = this._termInterface.getPromptType(text);
+            const approvePromptType = worker._adapter.getPromptType(text);
             const approveDetail = approvePromptType === 'bash'
-              ? this._termInterface.extractBashCommand(text)
-              : this._termInterface.extractFileName(text);
+              ? worker._adapter.extractBashCommand(text)
+              : worker._adapter.extractFileName(text);
             worker.snapshots.push({
               time: Date.now(),
               screen: `[C4 AUTO-${action.toUpperCase()}] ${approvePromptType}: ${approveDetail}`,
@@ -3029,7 +3224,7 @@ class PtyManager extends EventEmitter {
           }
         }
         // Reset permission notification flag when prompt is no longer visible (5.29)
-        if (worker._permissionNotified && !this._termInterface.isPermissionPrompt(text)) {
+        if (worker._permissionNotified && !worker._adapter.isPermissionPrompt(text)) {
           worker._permissionNotified = false;
         }
 
@@ -3236,10 +3431,71 @@ class PtyManager extends EventEmitter {
   // the Enter lands after the input field has received the text.
   // (7.17) Default raised to 200ms; configurable via workerDefaults.enterDelayMs
   // because Windows conpty under 3-worker load can exceed 100ms write→child read.
-  async _writeTaskAndEnter(proc, text, enterDelayMs = 200) {
+  // (7.25 / TODO 7.22) Optional verify-and-retry: when caller passes
+  // `verifyWith: worker`, we observe the screen after CR. If the task text is
+  // still sitting in the input prompt area (CR was swallowed by a TUI redraw
+  // or conpty backpressure), we re-send `\r` up to 3 times with backoff.
+  async _writeTaskAndEnter(proc, text, enterDelayMs = 200, options = {}) {
+    // (TODO 7.22 instrumentation) Optional timing log for diagnosing CR
+    // misses. Off by default; enable via config.workerDefaults.logEnterTiming.
+    const log = this.config.workerDefaults?.logEnterTiming === true;
+    const startedAt = Date.now();
     await this._chunkedWrite(proc, text);
+    const writeMs = Date.now() - startedAt;
     await new Promise(resolve => setTimeout(resolve, enterDelayMs));
-    try { proc.write('\r'); } catch { /* proc closed */ }
+    let crSent = false;
+    try { proc.write('\r'); crSent = true; } catch { /* proc closed */ }
+    if (log && options.verifyWith) {
+      try {
+        const w = options.verifyWith;
+        w.snapshots = w.snapshots || [];
+        w.snapshots.push({
+          time: Date.now(),
+          screen: `[C4 TIMING] write=${writeMs}ms delay=${enterDelayMs}ms cr=${crSent ? 'ok' : 'fail'} len=${text.length}`,
+          autoAction: true,
+          enterTiming: { writeMs, enterDelayMs, crSent, len: text.length, startedAt }
+        });
+      } catch { /* swallow */ }
+    }
+    if (!crSent) return;
+    if (options.verifyWith) {
+      await this._verifyEnterCommitted(options.verifyWith, text);
+    }
+  }
+
+  // (7.25 / TODO 7.22) Detect when the task text is still sitting in the
+  // input prompt at the bottom of the screen — i.e. the task was typed but
+  // the Enter never reached Claude Code. Only the last few rows are checked
+  // so chat-history occurrences of the same text do not trip a false retry.
+  _isTaskTextInInput(screen, fullTask) {
+    if (!screen || !fullTask) return false;
+    const fingerprint = String(fullTask).slice(0, 40).replace(/\s+/g, ' ').trim();
+    if (fingerprint.length < 8) return false;
+    const tail = screen.split('\n').slice(-6).join('\n');
+    const escaped = fingerprint.slice(0, 30).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp('❯\\s*' + escaped).test(tail);
+  }
+
+  // (7.25 / TODO 7.22) Resend `\r` while the input prompt still shows the
+  // task text. Bounded retries with backoff to avoid runaway retries on
+  // transient state.
+  async _verifyEnterCommitted(worker, fullTask) {
+    if (!worker || !worker.alive || !worker.proc) return false;
+    const delays = [300, 700, 1000];
+    for (let i = 0; i < delays.length; i++) {
+      await new Promise(resolve => setTimeout(resolve, delays[i]));
+      if (!worker.alive) return false;
+      const screen = this._getScreenText(worker.screen);
+      if (!this._isTaskTextInInput(screen, fullTask)) return true;
+      try { worker.proc.write('\r'); } catch { return false; }
+      worker.snapshots = worker.snapshots || [];
+      worker.snapshots.push({
+        time: Date.now(),
+        screen: `[C4] pendingTask Enter retry #${i + 1} — task text still in input prompt`,
+        autoAction: true
+      });
+    }
+    return false;
   }
 
   // (7.17) Central resolver so every pendingTask delivery path uses the same
@@ -3269,7 +3525,7 @@ class PtyManager extends EventEmitter {
     // Apply summary layer (3.14) for long snapshots
     const processed = this._summaryLayer.process(latest);
     return {
-      content: processed.screen,
+      content: this._compactReadText(processed.screen),
       status: w.alive ? 'idle' : 'exited',
       snapshotsRead: newSnapshots.length,
       exitCode: latest.exitCode,
@@ -3285,7 +3541,7 @@ class PtyManager extends EventEmitter {
     const idleMs = Date.now() - w.lastDataTime;
 
     return {
-      content: screenText,
+      content: this._compactReadText(screenText),
       status: w.alive ? (idleMs > this.idleThresholdMs ? 'idle' : 'busy') : 'exited'
     };
   }
@@ -3294,7 +3550,7 @@ class PtyManager extends EventEmitter {
     const w = this.workers.get(name);
     if (!w) return { error: `Worker '${name}' not found` };
     return {
-      content: w.screen.getScrollback(lastN),
+      content: this._compactReadText(w.screen.getScrollback(lastN)),
       lines: Math.min(lastN, w.screen.scrollback.length),
       totalScrollback: w.screen.scrollback.length
     };
@@ -3322,16 +3578,16 @@ class PtyManager extends EventEmitter {
     return new Promise((resolve) => {
       const check = () => {
         if (Date.now() - startTime > timeoutMs) {
-          resolve({ content: this._getScreenText(w.screen), status: 'timeout' });
+          resolve({ content: this._compactReadText(this._getScreenText(w.screen)), status: 'timeout' });
           return;
         }
         if (!w.alive) {
-          resolve({ content: this._getScreenText(w.screen), status: 'exited' });
+          resolve({ content: this._compactReadText(this._getScreenText(w.screen)), status: 'exited' });
           return;
         }
         if (interruptOnIntervention && w._interventionState) {
           resolve({
-            content: this._getScreenText(w.screen),
+            content: this._compactReadText(this._getScreenText(w.screen)),
             status: 'intervention',
             intervention: w._interventionState
           });
@@ -3339,7 +3595,7 @@ class PtyManager extends EventEmitter {
         }
         const idleMs = Date.now() - w.lastDataTime;
         if (idleMs >= this.idleThresholdMs) {
-          resolve({ content: this._getScreenText(w.screen), status: 'idle' });
+          resolve({ content: this._compactReadText(this._getScreenText(w.screen)), status: 'idle' });
           return;
         }
         setTimeout(check, 500);
@@ -3349,7 +3605,11 @@ class PtyManager extends EventEmitter {
   }
 
   async waitAndReadMulti(names, timeoutMs = 120000, options = {}) {
-    const { interruptOnIntervention = false } = options;
+    // 7.21: `mode` distinguishes first-completion ('first') vs collect-all
+    // ('all'). `c4 wait --all` defaults to 'all' so a single worker stuck in
+    // intervention no longer blocks idle/exited siblings — every worker is
+    // reported once they all settle (idle | exited | intervention).
+    const { interruptOnIntervention = false, mode = 'first' } = options;
 
     // Resolve names: '*' means all active workers
     let resolvedNames = names;
@@ -3372,6 +3632,46 @@ class PtyManager extends EventEmitter {
     }
 
     const startTime = Date.now();
+    const buildResult = (name, worker) => {
+      const idleMs = Date.now() - worker.lastDataTime;
+      return {
+        name,
+        status: !worker.alive ? 'exited' :
+                worker._interventionState ? 'intervention' :
+                (idleMs >= this.idleThresholdMs ? 'idle' : 'busy'),
+        intervention: worker._interventionState || null,
+        content: this._compactReadText(this._getScreenText(worker.screen))
+      };
+    };
+    const isSettled = (worker) => {
+      if (!worker.alive) return true;
+      if (worker._interventionState) return true;
+      const idleMs = Date.now() - worker.lastDataTime;
+      return idleMs >= this.idleThresholdMs;
+    };
+
+    if (mode === 'all') {
+      return new Promise((resolve) => {
+        const check = () => {
+          if (Date.now() - startTime > timeoutMs) {
+            resolve({
+              status: 'timeout',
+              results: entries.map(({ name, worker }) => buildResult(name, worker))
+            });
+            return;
+          }
+          if (entries.every(({ worker }) => isSettled(worker))) {
+            resolve({
+              status: 'done',
+              results: entries.map(({ name, worker }) => buildResult(name, worker))
+            });
+            return;
+          }
+          setTimeout(check, 500);
+        };
+        check();
+      });
+    }
 
     return new Promise((resolve) => {
       const check = () => {
@@ -3396,7 +3696,7 @@ class PtyManager extends EventEmitter {
             resolve({
               name,
               status: 'exited',
-              content: this._getScreenText(worker.screen)
+              content: this._compactReadText(this._getScreenText(worker.screen))
             });
             return;
           }
@@ -3406,7 +3706,7 @@ class PtyManager extends EventEmitter {
             resolve({
               name,
               status: 'idle',
-              content: this._getScreenText(worker.screen)
+              content: this._compactReadText(this._getScreenText(worker.screen))
             });
             return;
           }
@@ -3416,7 +3716,7 @@ class PtyManager extends EventEmitter {
               name,
               status: 'intervention',
               intervention: worker._interventionState,
-              content: this._getScreenText(worker.screen)
+              content: this._compactReadText(this._getScreenText(worker.screen))
             });
             return;
           }
@@ -3738,13 +4038,1018 @@ class PtyManager extends EventEmitter {
     return scribe.scan();
   }
 
+  // (TODO 8.8) Restart a worker — close existing PTY and recreate with the
+  // same name/target/cwd. If the worker had a session id, --resume that
+  // session so Claude reopens its prior conversation.
+  async restart(name, options = {}) {
+    const w = this.workers.get(name);
+    if (!w) return { error: `Worker '${name}' not found` };
+    const target = w.target || 'local';
+    const cwd = w._spawnCwd || '';
+    const sessionId = options.resume === false ? null : (this._sessionIds && this._sessionIds[name]) || null;
+
+    try {
+      this.close(name);
+    } catch (e) {
+      return { error: `restart: close failed: ${e.message}` };
+    }
+
+    const createOpts = { target, cwd };
+    if (sessionId) createOpts.resume = sessionId;
+    const created = this.create(name, 'claude', [], createOpts);
+    if (created && created.error) return { error: `restart: create failed: ${created.error}` };
+    return { success: true, name, resumed: !!sessionId };
+  }
+
+  // (TODO 8.8) Cancel the worker's currently-running task. Two consecutive
+  // SIGINTs (Ctrl+C) — the first interrupts Claude's tool/stream, the second
+  // dismisses any "press Ctrl+C again to exit" prompt without terminating
+  // the process.
+  async cancelTask(name) {
+    const w = this.workers.get(name);
+    if (!w) return { error: `Worker '${name}' not found` };
+    if (!w.alive) return { error: `Worker '${name}' has exited` };
+    try {
+      w.proc.write('\x03');
+      await new Promise((r) => setTimeout(r, 150));
+      w.proc.write('\x03');
+      w.snapshots = w.snapshots || [];
+      w.snapshots.push({
+        time: Date.now(),
+        screen: '[C4] task cancel sent (Ctrl+C × 2)',
+        autoAction: true
+      });
+      // Clear pending task state so a queued task can be re-sent.
+      w._taskText = null;
+      w._taskStartedAt = null;
+      return { success: true };
+    } catch (e) {
+      return { error: `cancelTask failed: ${e.message}` };
+    }
+  }
+
+  // (TODO 8.8) Apply an action to multiple workers in one call. Returns a
+  // per-worker result map so the UI can highlight partial failures.
+  async batch(names, action, args = {}) {
+    if (!Array.isArray(names) || names.length === 0) {
+      return { error: 'names must be a non-empty array' };
+    }
+    const ALLOWED = new Set(['close', 'suspend', 'resume', 'rollback', 'cancel', 'restart']);
+    if (!ALLOWED.has(action)) {
+      return { error: `Unsupported batch action: ${action}` };
+    }
+    const results = {};
+    for (const n of names) {
+      try {
+        let r;
+        switch (action) {
+          case 'close':    r = this.close(n); break;
+          case 'suspend':  r = this.suspend(n); break;
+          case 'resume':   r = this.resumeWorker(n); break;
+          case 'rollback': r = this.rollback(n); break;
+          case 'cancel':   r = await this.cancelTask(n); break;
+          case 'restart':  r = await this.restart(n, args); break;
+          default:         r = { error: 'unreachable' };
+        }
+        results[n] = r;
+      } catch (e) {
+        results[n] = { error: e.message };
+      }
+    }
+    return { results };
+  }
+
+  // 8.8: pause / unpause a worker process via POSIX signals. The PTY child
+  // is sent SIGSTOP (suspend) or SIGCONT (resume); claude itself is unaware
+  // of the freeze. No-op on platforms that lack SIGSTOP (Windows). State is
+  // tracked on the worker so the UI/CLI can report it without re-checking
+  // the OS.
+  suspend(name) {
+    const w = this.workers.get(name);
+    if (!w) return { error: `Worker '${name}' not found` };
+    if (!w.alive) return { error: `Worker '${name}' has exited` };
+    if (w._suspended) return { success: true, alreadySuspended: true };
+    if (IS_WIN) return { error: 'suspend is not supported on Windows' };
+    const pid = w.proc?.pid;
+    if (!pid) return { error: 'No process pid for worker' };
+    try {
+      process.kill(pid, 'SIGSTOP');
+      w._suspended = true;
+      w._suspendedAt = Date.now();
+      w.snapshots = w.snapshots || [];
+      w.snapshots.push({
+        time: Date.now(),
+        screen: '[C4] worker suspended (SIGSTOP)',
+        autoAction: true
+      });
+      return { success: true, suspended: true };
+    } catch (e) {
+      return { error: `suspend failed: ${e.message}` };
+    }
+  }
+
+  resumeWorker(name) {
+    const w = this.workers.get(name);
+    if (!w) return { error: `Worker '${name}' not found` };
+    if (!w.alive) return { error: `Worker '${name}' has exited` };
+    if (!w._suspended) return { success: true, alreadyRunning: true };
+    if (IS_WIN) return { error: 'resume is not supported on Windows' };
+    const pid = w.proc?.pid;
+    if (!pid) return { error: 'No process pid for worker' };
+    try {
+      process.kill(pid, 'SIGCONT');
+      w._suspended = false;
+      w._suspendedAt = null;
+      w.snapshots = w.snapshots || [];
+      w.snapshots.push({
+        time: Date.now(),
+        screen: '[C4] worker resumed (SIGCONT)',
+        autoAction: true
+      });
+      return { success: true, resumed: true };
+    } catch (e) {
+      return { error: `resume failed: ${e.message}` };
+    }
+  }
+
+  // 8.7: expose the scribe's accumulated session-context.md to the Web UI.
+  // Returns { path, content, exists, size, mtime } so the dashboard can
+  // render the context the way PostCompact hooks would inject it.
+  scribeContext() {
+    const root = this.projectRoot || path.join(__dirname, '..');
+    const sessionContextPath = path.join(root, 'docs', 'session-context.md');
+    if (!fs.existsSync(sessionContextPath)) {
+      return { path: sessionContextPath, exists: false, content: '', size: 0, mtime: null };
+    }
+    try {
+      const stat = fs.statSync(sessionContextPath);
+      const content = fs.readFileSync(sessionContextPath, 'utf8');
+      return {
+        path: sessionContextPath,
+        exists: true,
+        content,
+        size: stat.size,
+        mtime: stat.mtime.toISOString(),
+      };
+    } catch (e) {
+      return { path: sessionContextPath, exists: true, content: '', error: e.message };
+    }
+  }
+
   reloadConfig() {
     this.config = loadConfig();
+    // Refresh subsystems that cache config-derived state.
+    if (this._auth && typeof this._auth.applyConfig === 'function') {
+      this._auth.applyConfig(this.config);
+    }
+    if (this._scheduler && typeof this._scheduler._mergeConfig === 'function') {
+      this._scheduler._mergeConfig();
+    }
+    if (typeof this._emitSSE === 'function') {
+      this._emitSSE('config_reload', { ok: true });
+    }
     return { success: true, config: this.config };
+  }
+
+  // (TODO Daemon hot-reload) Watch config.json and auto-reload on change.
+  // Idempotent — calling twice is safe. Off when config.daemon.watchConfig === false.
+  watchConfig() {
+    if (this._configWatcher) return;
+    if (this.config.daemon && this.config.daemon.watchConfig === false) return;
+    try {
+      let lastSize = -1;
+      let lastMtime = 0;
+      const debounce = (() => {
+        let t = null;
+        return (fn) => { if (t) clearTimeout(t); t = setTimeout(fn, 300); };
+      })();
+      this._configWatcher = fs.watch(CONFIG_FILE, () => {
+        debounce(() => {
+          try {
+            const stat = fs.statSync(CONFIG_FILE);
+            if (stat.size === lastSize && stat.mtimeMs === lastMtime) return;
+            lastSize = stat.size;
+            lastMtime = stat.mtimeMs;
+            this.reloadConfig();
+          } catch { /* file may have been replaced atomically */ }
+        });
+      });
+    } catch { /* fs.watch unsupported on this platform — silent no-op */ }
   }
 
   getConfig() {
     return this.config;
+  }
+
+  // (TODO 9.6) Fleet aggregation. Peer daemons listed in `config.fleet.peers`
+  // are queried in parallel and merged into a single view. This is read-only
+  // scaffolding — dispatcher (9.7) and file transfer (9.8) build on top.
+  async fleetPeers() {
+    const peers = (this.config.fleet && this.config.fleet.peers) || {};
+    const entries = Object.entries(peers);
+    if (entries.length === 0) return { peers: [] };
+    const { create: createSdk } = require('./sdk');
+    const results = await Promise.all(
+      entries.map(async ([name, peer]) => {
+        const start = Date.now();
+        const client = createSdk({
+          host: peer.host || '127.0.0.1',
+          port: peer.port || 3456,
+          timeout: 3000,
+        });
+        try {
+          const health = await client.health();
+          return {
+            name,
+            label: peer.label || name,
+            host: peer.host,
+            port: peer.port,
+            status: health.error ? 'unreachable' : 'online',
+            latencyMs: Date.now() - start,
+            health: health.error ? null : health,
+            error: health.error || null,
+          };
+        } catch (e) {
+          return {
+            name,
+            label: peer.label || name,
+            host: peer.host,
+            port: peer.port,
+            status: 'unreachable',
+            latencyMs: Date.now() - start,
+            health: null,
+            error: e.message,
+          };
+        }
+      })
+    );
+    return { peers: results };
+  }
+
+  // (TODO 11.4) Natural-language interface accessor.
+  _ensureNL() {
+    if (!this._nl) {
+      const NLInterface = require('./nl-interface');
+      this._nl = new NLInterface(this);
+    }
+    return this._nl;
+  }
+  parseNL(text) { return this._ensureNL().parse(text); }
+  runNL(text, opts) { return this._ensureNL().run(text, opts); }
+
+  // (TODO Backup/restore) Snapshot persistent state into a single tar.gz so
+  // ops can mirror a c4 daemon. Includes: config.json, state.json,
+  // history.jsonl, scheduler-state.json, token-state.json, scribe-state.json,
+  // logs/audit.jsonl, logs/workflow-runs.jsonl, logs/board-*.jsonl.
+  // Returns { archive, size, files } describing the produced bundle.
+  backup({ outPath } = {}) {
+    const root = path.join(__dirname, '..');
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const target = outPath || path.join(this.logsDir, `c4-backup-${stamp}.tar.gz`);
+
+    const candidates = [
+      'config.json',
+      'state.json',
+      'history.jsonl',
+      'scheduler-state.json',
+      'token-state.json',
+      'scribe-state.json',
+    ];
+    const files = candidates.filter((f) => fs.existsSync(path.join(root, f)));
+
+    // Optional log files — include if present.
+    const logCandidates = ['audit.jsonl', 'workflow-runs.jsonl'];
+    for (const f of logCandidates) {
+      if (fs.existsSync(path.join(this.logsDir, f))) files.push(path.relative(root, path.join(this.logsDir, f)));
+    }
+    // Board JSONLs (any project)
+    try {
+      for (const entry of fs.readdirSync(this.logsDir)) {
+        if (entry.startsWith('board-') && entry.endsWith('.jsonl')) {
+          files.push(path.relative(root, path.join(this.logsDir, entry)));
+        }
+      }
+    } catch { /* logs dir missing — skip */ }
+
+    if (files.length === 0) return { error: 'no files to back up' };
+
+    try {
+      const { spawnSync } = require('child_process');
+      const r = spawnSync('tar', ['-czf', target, '-C', root, ...files], {
+        encoding: 'utf8',
+        timeout: 30000,
+      });
+      if (r.status !== 0) {
+        return { error: `tar exit=${r.status}: ${(r.stderr || '').slice(0, 400)}` };
+      }
+      const size = fs.statSync(target).size;
+      return { archive: target, size, files };
+    } catch (e) {
+      return { error: `backup failed: ${e.message}` };
+    }
+  }
+
+  restore({ archive, dryRun = false } = {}) {
+    if (!archive) return { error: 'archive path is required' };
+    if (!fs.existsSync(archive)) return { error: `archive not found: ${archive}` };
+    const root = path.join(__dirname, '..');
+    try {
+      const { spawnSync } = require('child_process');
+      const listFlags = dryRun ? ['-tzf'] : ['-xzf'];
+      const args = [...listFlags, archive];
+      if (!dryRun) args.push('-C', root);
+      const r = spawnSync('tar', args, { encoding: 'utf8', timeout: 30000 });
+      if (r.status !== 0) {
+        return { error: `tar exit=${r.status}: ${(r.stderr || '').slice(0, 400)}` };
+      }
+      const filesOut = (r.stdout || '').split('\n').filter(Boolean);
+      if (!dryRun) {
+        // Reload config since config.json may have changed.
+        try { this.reloadConfig(); } catch { /* swallow */ }
+      }
+      return { success: true, dryRun, files: filesOut };
+    } catch (e) {
+      return { error: `restore failed: ${e.message}` };
+    }
+  }
+
+  // (TODO 11.3) Workflow engine accessor.
+  _ensureWorkflow() {
+    if (!this._workflow) {
+      const Workflow = require('./workflow');
+      this._workflow = new Workflow(this);
+    }
+    return this._workflow;
+  }
+  runWorkflow(wf) { return this._ensureWorkflow().run(wf); }
+  registerWorkflowHandler(name, fn) { return this._ensureWorkflow().register(name, fn); }
+
+  // (TODO 11.3 follow-up) Read past workflow runs from logs/workflow-runs.jsonl.
+  // Most-recent first, capped by `limit`.
+  getWorkflowRuns({ limit = 50, name } = {}) {
+    const file = path.join(this.logsDir, 'workflow-runs.jsonl');
+    if (!fs.existsSync(file)) return { runs: [] };
+    let text;
+    try { text = fs.readFileSync(file, 'utf8'); } catch (e) { return { error: e.message, runs: [] }; }
+    const runs = [];
+    const lines = text.split('\n');
+    for (let i = lines.length - 1; i >= 0 && runs.length < limit; i--) {
+      const line = lines[i];
+      if (!line) continue;
+      let rec;
+      try { rec = JSON.parse(line); } catch { continue; }
+      if (name && rec.name !== name) continue;
+      runs.push(rec);
+    }
+    return { runs };
+  }
+
+  // (TODO 10.8) PM board accessor.
+  _ensurePmBoard() {
+    if (!this._pmBoard) {
+      const PmBoard = require('./pm-board');
+      this._pmBoard = new PmBoard(this);
+    }
+    return this._pmBoard;
+  }
+
+  // (TODO 10.6) Departments. Lightweight org structure on top of projects +
+  // RBAC users. config.departments = { eng: { members: ['alice'], machines: ['dgx'], projects: ['arps'], workerQuota: 5 } }.
+  // We expose:
+  //   - listDepartments()       → roll-up with active worker counts + quota usage
+  //   - resolveUserDepartment() → first dept that lists the user
+  //   - quotaCheck(name, dept)  → can this department spawn another worker?
+  // Used by Web UI dashboards and by future quota enforcement in dispatch.
+  listDepartments() {
+    const depts = this.config.departments || {};
+    const projects = this.listProjects().projects || [];
+    const projectByName = Object.fromEntries(projects.map((p) => [p.name, p]));
+    const out = [];
+    for (const [name, cfg] of Object.entries(depts)) {
+      const dProjects = (cfg.projects || []).map((pn) => projectByName[pn]).filter(Boolean);
+      const activeWorkers = dProjects.reduce((sum, p) => sum + (p.workers || []).length, 0);
+      out.push({
+        name,
+        description: cfg.description || '',
+        members: cfg.members || [],
+        machines: cfg.machines || [],
+        projects: cfg.projects || [],
+        workerQuota: cfg.workerQuota || 0,
+        activeWorkers,
+        quotaRemaining: cfg.workerQuota ? Math.max(0, cfg.workerQuota - activeWorkers) : null,
+        overQuota: cfg.workerQuota ? activeWorkers >= cfg.workerQuota : false,
+      });
+    }
+    return { departments: out };
+  }
+
+  resolveUserDepartment(username) {
+    const depts = this.config.departments || {};
+    for (const [name, cfg] of Object.entries(depts)) {
+      if ((cfg.members || []).includes(username)) return name;
+    }
+    return null;
+  }
+
+  // Returns { allowed: bool, reason? }. Called from dispatcher / sendTask
+  // when config.departments[*].workerQuota > 0.
+  quotaCheck(deptName) {
+    if (!deptName) return { allowed: true };
+    const depts = this.config.departments || {};
+    const cfg = depts[deptName];
+    if (!cfg) return { allowed: false, reason: `unknown department: ${deptName}` };
+    if (!cfg.workerQuota) return { allowed: true };
+    const list = this.listDepartments().departments;
+    const entry = list.find((d) => d.name === deptName);
+    if (!entry) return { allowed: false, reason: `department snapshot missing` };
+    if (entry.overQuota) {
+      return { allowed: false, reason: `quota exhausted: ${entry.activeWorkers}/${entry.workerQuota}` };
+    }
+    return { allowed: true };
+  }
+
+  // (TODO 10.5) Cost report. Wraps existing token monitoring with per-day
+  // pricing math + budget checks. Pricing comes from
+  // config.tokenMonitor.pricing as { modelName: { inputPer1M, outputPer1M } }.
+  // Per-project attribution is heuristic for now (token data is keyed by
+  // Claude session, not c4 project) — falls back to a single 'all' bucket.
+  getCostReport({ since, until, model = null } = {}) {
+    const monitor = this.config.tokenMonitor || {};
+    const daily = this._tokenUsage && this._tokenUsage.daily ? this._tokenUsage.daily : {};
+    const sinceTs = since ? new Date(since) : null;
+    const untilTs = until ? new Date(until) : null;
+
+    const rows = [];
+    let totalInput = 0, totalOutput = 0;
+    for (const day of Object.keys(daily).sort()) {
+      const dayTs = new Date(day);
+      if (sinceTs && dayTs < sinceTs) continue;
+      if (untilTs && dayTs > untilTs) continue;
+      const v = daily[day];
+      rows.push({ day, input: v.input || 0, output: v.output || 0 });
+      totalInput += v.input || 0;
+      totalOutput += v.output || 0;
+    }
+
+    const pricing = monitor.pricing || {};
+    const useModel = model || (monitor.defaultModel || Object.keys(pricing)[0] || null);
+    const rate = (useModel && pricing[useModel]) || null;
+    const costUSD = rate
+      ? (totalInput / 1e6) * (rate.inputPer1M || 0) + (totalOutput / 1e6) * (rate.outputPer1M || 0)
+      : null;
+
+    const budget = monitor.monthlyBudget || {};
+    const monthly = monthFromRows(rows);
+    const monthlyCost = (rate && monthly)
+      ? (monthly.input / 1e6) * (rate.inputPer1M || 0) + (monthly.output / 1e6) * (rate.outputPer1M || 0)
+      : null;
+    const budgetUSD = (typeof budget === 'number' ? budget : (budget.default || 0));
+    const overBudget = budgetUSD > 0 && monthlyCost != null && monthlyCost > budgetUSD;
+
+    return {
+      range: { since: sinceTs ? sinceTs.toISOString() : null, until: untilTs ? untilTs.toISOString() : null },
+      model: useModel,
+      pricing: rate,
+      daily: rows,
+      totals: { input: totalInput, output: totalOutput, costUSD },
+      monthly: monthly ? { ...monthly, costUSD: monthlyCost } : null,
+      budget: { monthlyUSD: budgetUSD, overBudget },
+      note: 'per-project attribution not yet plumbed (TODO 10.5 follow-up)',
+    };
+
+    function monthFromRows(rs) {
+      if (rs.length === 0) return null;
+      const last = new Date(rs[rs.length - 1].day);
+      const month = `${last.getUTCFullYear()}-${String(last.getUTCMonth() + 1).padStart(2, '0')}`;
+      let i = 0, o = 0;
+      for (const r of rs) {
+        if (r.day.startsWith(month)) { i += r.input; o += r.output; }
+      }
+      return { month, input: i, output: o };
+    }
+  }
+
+  // (TODO 10.3) Project metadata. A worker is assigned to a project either:
+  //  - via task option `project: 'foo'`        (per-task)
+  //  - via worktree path → config.projects[*].rootMatch regex
+  //  - via tag fallback                         (worker tag === project name)
+  // The aggregate view groups workers + queued tasks + history under each
+  // project so the Web UI can show progress at a glance.
+  _resolveWorkerProject(worker) {
+    if (worker._project) return worker._project;
+    const projects = this.config.projects || {};
+    if (worker.worktree) {
+      for (const [pname, pcfg] of Object.entries(projects)) {
+        if (pcfg.rootMatch) {
+          try {
+            if (new RegExp(pcfg.rootMatch).test(worker.worktree)) return pname;
+          } catch { /* invalid regex, ignore */ }
+        }
+        if (pcfg.root && worker.worktree.startsWith(pcfg.root)) return pname;
+      }
+    }
+    return 'unassigned';
+  }
+
+  listProjects() {
+    const projects = this.config.projects || {};
+    const out = {};
+    for (const [name, cfg] of Object.entries(projects)) {
+      out[name] = {
+        name,
+        description: cfg.description || '',
+        root: cfg.root || null,
+        owners: cfg.owners || [],
+        workers: [],
+        queued: [],
+        recentTasks: [],
+        tokenUsage: null,
+      };
+    }
+    out.unassigned = {
+      name: 'unassigned',
+      description: 'Workers without a project mapping',
+      workers: [],
+      queued: [],
+      recentTasks: [],
+    };
+
+    // Workers
+    for (const [name, w] of this.workers) {
+      const pname = this._resolveWorkerProject(w);
+      const bucket = out[pname] || out.unassigned;
+      bucket.workers.push({
+        name,
+        status: w.alive ? (w._suspended ? 'suspended' : 'alive') : 'exited',
+        branch: w.branch || null,
+        pid: w.proc ? w.proc.pid : null,
+        intervention: w._interventionState || null,
+      });
+    }
+
+    // Queued
+    for (const q of this._taskQueue || []) {
+      const pname = q.project || 'unassigned';
+      const bucket = out[pname] || out.unassigned;
+      bucket.queued.push({ name: q.name, task: (q.task || '').slice(0, 200), branch: q.branch || null });
+    }
+
+    // History (last 50 per project)
+    try {
+      const history = this.getHistory({ limit: 500 }).records || [];
+      for (const rec of history) {
+        // Project tag is best-effort via worker name lookup against existing
+        // workers. Closed workers won't have a live project, so we leave
+        // them in 'unassigned' unless rec.project was stored at write time.
+        const pname = rec.project || 'unassigned';
+        const bucket = out[pname] || out.unassigned;
+        bucket.recentTasks.push(rec);
+        if (bucket.recentTasks.length > 50) bucket.recentTasks.length = 50;
+      }
+    } catch { /* history file may be missing */ }
+
+    return { projects: Object.values(out) };
+  }
+
+  // (TODO 10.7) Scheduler. Lazy-initialised; loads cron schedules from
+  // config + scheduler-state.json. Auto-starts when config.scheduler.autoStart
+  // is true (default false).
+  _ensureScheduler() {
+    if (!this._scheduler) {
+      const Scheduler = require('./scheduler');
+      const cfg = this.config.scheduler || {};
+      this._scheduler = new Scheduler(this, { tickMs: cfg.tickMs || 30000 });
+    }
+    return this._scheduler;
+  }
+  schedulerStart()       { return this._ensureScheduler().start(); }
+  schedulerStop()        { return this._scheduler ? this._scheduler.stop() : { running: false }; }
+  schedulerList()        { return this._ensureScheduler().list(); }
+  schedulerAdd(entry)    { return this._ensureScheduler().add(entry); }
+  schedulerRemove(id)    { return this._ensureScheduler().remove(id); }
+  schedulerEnable(id, on){ return this._ensureScheduler().enable(id, on); }
+  schedulerRunNow(id)    { return this._ensureScheduler().runNow(id); }
+
+  // (TODO 10.2) Audit log. Append-only JSONL at logs/audit.jsonl. Daemon
+  // calls `manager.audit(entry)` from each mutating route so the log
+  // captures actor (best-effort), action, target, args, result, timestamp.
+  audit(entry) {
+    if (this.config.audit && this.config.audit.enabled === false) return;
+    try {
+      const file = path.join(this.logsDir, 'audit.jsonl');
+      if (!fs.existsSync(this.logsDir)) fs.mkdirSync(this.logsDir, { recursive: true });
+      const record = {
+        ts: new Date().toISOString(),
+        ...entry,
+      };
+      fs.appendFileSync(file, JSON.stringify(record) + '\n');
+    } catch {
+      // never throw from audit — security logs must not crash the daemon
+    }
+  }
+
+  getAudit({ since, until, action, worker, actor, limit = 200 } = {}) {
+    const file = path.join(this.logsDir, 'audit.jsonl');
+    if (!fs.existsSync(file)) return { records: [] };
+    const sinceTs = since ? Date.parse(since) : null;
+    const untilTs = until ? Date.parse(until) : null;
+    const out = [];
+    try {
+      const text = fs.readFileSync(file, 'utf8');
+      const lines = text.split('\n');
+      for (let i = lines.length - 1; i >= 0 && out.length < limit; i--) {
+        const line = lines[i];
+        if (!line) continue;
+        let rec;
+        try { rec = JSON.parse(line); } catch { continue; }
+        if (action && rec.action !== action) continue;
+        if (worker && rec.worker !== worker) continue;
+        if (actor && rec.actor !== actor) continue;
+        if (sinceTs && Date.parse(rec.ts) < sinceTs) continue;
+        if (untilTs && Date.parse(rec.ts) > untilTs) continue;
+        out.push(rec);
+      }
+    } catch (e) {
+      return { error: e.message, records: [] };
+    }
+    return { records: out };
+  }
+
+  // (TODO 9.8) Inter-peer file transfer. rsync-based; runs locally and uses
+  // ssh transport (host derived from `config.fleet.peers[name].sshHost`).
+  // Returns a transferId; progress is captured into `_transfers[id]` and
+  // surfaced via getTransfer / listTransfers.
+  fileTransfer({ from, to, src, dst, mode = 'rsync', flags = '-aP' } = {}) {
+    if (!src || !dst) return { error: 'src and dst are required' };
+    if (!from && !to) return { error: 'from and to peer names are required (one may be "local")' };
+    const peers = (this.config.fleet && this.config.fleet.peers) || {};
+    const resolveSsh = (peerName) => {
+      if (peerName === 'local' || !peerName) return null;
+      const peer = peers[peerName];
+      if (!peer) return { error: `Unknown peer: '${peerName}'` };
+      if (!peer.sshHost) {
+        return { error: `Peer '${peerName}' has no sshHost in config.fleet.peers (rsync transport requires SSH)` };
+      }
+      return { sshHost: peer.sshHost };
+    };
+
+    const fromSsh = resolveSsh(from);
+    const toSsh = resolveSsh(to);
+    if (fromSsh && fromSsh.error) return fromSsh;
+    if (toSsh && toSsh.error) return toSsh;
+
+    const fromArg = fromSsh ? `${fromSsh.sshHost}:${src}` : src;
+    const toArg = toSsh ? `${toSsh.sshHost}:${dst}` : dst;
+
+    if (mode !== 'rsync' && mode !== 'scp') {
+      return { error: `Unsupported transfer mode: ${mode} (use rsync|scp)` };
+    }
+    const flagSet = String(flags || '').trim();
+    if (flagSet && !/^[\s\-A-Za-z0-9]+$/.test(flagSet)) {
+      return { error: 'flags contain unsupported characters' };
+    }
+    const flagArgs = flagSet ? flagSet.split(/\s+/) : [];
+
+    const cmd = mode === 'rsync' ? 'rsync' : 'scp';
+    const args = [...flagArgs, fromArg, toArg];
+
+    const id = `xfer-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    if (!this._transfers) this._transfers = new Map();
+    const record = {
+      id, from, to, src, dst, mode, flags: flagSet,
+      cmd: `${cmd} ${args.join(' ')}`,
+      startedAt: new Date().toISOString(),
+      completedAt: null,
+      status: 'running',
+      stdoutTail: '',
+      stderrTail: '',
+      exitCode: null,
+    };
+    this._transfers.set(id, record);
+
+    const { spawn } = require('child_process');
+    let child;
+    try {
+      child = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    } catch (e) {
+      record.status = 'failed';
+      record.exitCode = -1;
+      record.stderrTail = `spawn failed: ${e.message}`;
+      record.completedAt = new Date().toISOString();
+      return { id, status: 'failed', error: e.message };
+    }
+    record.pid = child.pid;
+
+    const TAIL_LIMIT = 8192;
+    const append = (key, chunk) => {
+      record[key] = (record[key] + chunk.toString()).slice(-TAIL_LIMIT);
+    };
+    child.stdout.on('data', (c) => append('stdoutTail', c));
+    child.stderr.on('data', (c) => append('stderrTail', c));
+    child.on('close', (code) => {
+      record.exitCode = code;
+      record.status = code === 0 ? 'done' : 'failed';
+      record.completedAt = new Date().toISOString();
+    });
+    child.on('error', (e) => {
+      record.status = 'failed';
+      record.stderrTail = (record.stderrTail + '\n' + e.message).slice(-TAIL_LIMIT);
+      record.completedAt = new Date().toISOString();
+    });
+
+    return { id, status: 'running', cmd: record.cmd };
+  }
+
+  getTransfer(id) {
+    const t = this._transfers && this._transfers.get(id);
+    if (!t) return { error: `Unknown transfer id: ${id}` };
+    return { ...t };
+  }
+
+  listTransfers({ limit = 50 } = {}) {
+    const all = this._transfers ? Array.from(this._transfers.values()) : [];
+    return { transfers: all.slice(-limit) };
+  }
+
+  cancelTransfer(id) {
+    const t = this._transfers && this._transfers.get(id);
+    if (!t) return { error: `Unknown transfer id: ${id}` };
+    if (t.status !== 'running') return { error: `Transfer '${id}' is not running (status=${t.status})` };
+    if (!t.pid) return { error: `Transfer '${id}' has no pid` };
+    try {
+      process.kill(t.pid, 'SIGTERM');
+      t.status = 'cancelled';
+      t.completedAt = new Date().toISOString();
+      return { success: true };
+    } catch (e) {
+      return { error: `cancel failed: ${e.message}` };
+    }
+  }
+
+  // (TODO 9.7) Dispatcher — pick the best peer (or local) for a new task
+  // and run it there. Strategies:
+  //   - 'least-load' : the peer with the fewest live workers (default)
+  //   - 'round-robin': cycle through eligible peers
+  //   - 'tag-match'  : highest tag overlap; fall back to least-load
+  // Eligibility: peer is reachable AND workers < (maxWorkers || Infinity)
+  // AND tags include all required tags (if any).
+  async dispatch({ name, task, tags = [], strategy = 'least-load', dryRun = false, ...taskOpts } = {}) {
+    if (!task) return { error: 'task is required' };
+
+    const fleetCfg = this.config.fleet || {};
+    const peers = fleetCfg.peers || {};
+    const localCfg = fleetCfg.local || {};
+
+    // 1) Probe local + peers in parallel.
+    const probes = [];
+
+    probes.push((async () => {
+      const list = this.list();
+      return {
+        peer: 'local',
+        ok: true,
+        workers: list.workers.length,
+        maxWorkers: localCfg.maxWorkers || this.config.maxWorkers || 0,
+        tags: localCfg.tags || [],
+        client: null, // local — call directly
+      };
+    })());
+
+    const { create: createSdk } = require('./sdk');
+    for (const [pname, peer] of Object.entries(peers)) {
+      probes.push((async () => {
+        const client = createSdk({
+          host: peer.host || '127.0.0.1',
+          port: peer.port || 3456,
+          timeout: 3000,
+        });
+        try {
+          const list = await client.list();
+          if (list.error) return { peer: pname, ok: false, error: list.error };
+          return {
+            peer: pname,
+            ok: true,
+            workers: (list.workers || []).length,
+            maxWorkers: peer.maxWorkers || 0,
+            tags: peer.tags || [],
+            client,
+          };
+        } catch (e) {
+          return { peer: pname, ok: false, error: e.message };
+        }
+      })());
+    }
+
+    const results = await Promise.all(probes);
+    const candidates = results.filter((p) => {
+      if (!p.ok) return false;
+      const cap = p.maxWorkers || Infinity;
+      if (p.workers >= cap) return false;
+      if (tags && tags.length > 0) {
+        const have = new Set(p.tags);
+        for (const t of tags) if (!have.has(t)) return false;
+      }
+      return true;
+    });
+
+    if (candidates.length === 0) {
+      return {
+        error: 'No eligible peer for dispatch',
+        attempted: results.map((r) => ({ peer: r.peer, ok: r.ok, workers: r.workers, tags: r.tags, error: r.error })),
+      };
+    }
+
+    // 2) Strategy.
+    let chosen;
+    if (strategy === 'round-robin') {
+      this._dispatchCursor = (this._dispatchCursor || 0) + 1;
+      chosen = candidates[this._dispatchCursor % candidates.length];
+    } else if (strategy === 'tag-match') {
+      const score = (p) => (tags.length === 0 ? 0 : p.tags.filter((t) => tags.includes(t)).length);
+      candidates.sort((a, b) => score(b) - score(a) || a.workers - b.workers);
+      chosen = candidates[0];
+    } else {
+      // least-load (default)
+      candidates.sort((a, b) => a.workers - b.workers);
+      chosen = candidates[0];
+    }
+
+    const generatedName = name || `dispatch-${Date.now().toString(36)}`;
+
+    if (dryRun) {
+      return {
+        decision: { peer: chosen.peer, name: generatedName, strategy, tags },
+        candidates: candidates.map((c) => ({ peer: c.peer, workers: c.workers, tags: c.tags })),
+      };
+    }
+
+    // 3) Execute on chosen peer.
+    let createRes;
+    let taskRes;
+    if (chosen.peer === 'local') {
+      createRes = this.create(generatedName, 'claude', [], {});
+      if (createRes && createRes.error) return { error: `dispatch create failed: ${createRes.error}` };
+      taskRes = await this.sendTask(generatedName, task, taskOpts);
+    } else {
+      createRes = await chosen.client.create(generatedName);
+      if (createRes && createRes.error && !/already exists/.test(createRes.error)) {
+        return { error: `dispatch create failed on ${chosen.peer}: ${createRes.error}` };
+      }
+      taskRes = await chosen.client.task(generatedName, task, taskOpts);
+    }
+
+    return {
+      success: true,
+      peer: chosen.peer,
+      name: generatedName,
+      strategy,
+      tags,
+      task: taskRes,
+    };
+  }
+
+  // (TODO 11.2 non-PTY worker) Register a worker without spawning a PTY
+  // child. Lifecycle calls (list / close / suspend / etc.) operate on the
+  // in-memory record only. Detection methods are no-ops because the
+  // adapter's pattern set short-circuits.
+  _createNonPty(name, adapterName, adapter, options = {}) {
+    const worker = {
+      proc: null,
+      screen: { getScreen: () => `[non-pty worker: ${adapterName}]` },
+      alive: true,
+      command: `${adapterName}:${adapter.model || ''}`,
+      target: options.target || 'local',
+      lastDataTime: Date.now(),
+      snapshots: [{
+        time: Date.now(),
+        screen: `[C4] non-pty worker started (adapter=${adapterName})`,
+        autoAction: true,
+      }],
+      snapshotIndex: 0,
+      idleTimer: null,
+      rawLogPath: null,
+      rawLogStream: null,
+      pendingCommands: null,
+      setupDone: true,
+      setupPhase: null,
+      setupRetries: 0,
+      setupPhaseStart: null,
+      _setupPollTimer: null,
+      _setupStableAt: 0,
+      _readyConfirmedAt: 0,
+      _interventionState: null,
+      _lastQuestion: null,
+      _errorHistory: [],
+      _permissionNotified: false,
+      _lastCiResult: null,
+      _routineState: { tested: false, docsUpdated: false },
+      _pollState: this._adaptivePolling.createState(),
+      _sessionId: null,
+      _resumed: false,
+      _spawnCwd: options.cwd || '',
+      _adapterName: adapterName,
+      _adapter: adapter,
+      _nonPty: true,
+    };
+    this.workers.set(name, worker);
+    if (typeof this._emitSSE === 'function') {
+      this._emitSSE('worker_start', { name, adapter: adapterName, mode: adapter.mode });
+    }
+    return { name, pid: null, target: worker.target, status: 'running', mode: adapter.mode };
+  }
+
+  // (TODO 9.6 write-through) Forward an SDK call to a named fleet peer.
+  // Returns { error } if the peer is unknown or unreachable. The peer's
+  // own response is returned otherwise so the caller can react to errors
+  // (e.g. peer maxWorkers cap, unknown command).
+  _peerClient(peerName) {
+    const peers = (this.config.fleet && this.config.fleet.peers) || {};
+    const peer = peers[peerName];
+    if (!peer) return { error: `Unknown peer: '${peerName}'` };
+    const { create: createSdk } = require('./sdk');
+    const client = createSdk({
+      host: peer.host || '127.0.0.1',
+      port: peer.port || 3456,
+      timeout: 10000,
+    });
+    return { client, peer };
+  }
+
+  async fleetCreate(peerName, args) {
+    const r = this._peerClient(peerName);
+    if (r.error) return r;
+    const { name, command, target, cwd } = args || {};
+    if (!name) return { error: 'name is required' };
+    return r.client.create(name, command || 'claude', { target: target || 'local', cwd: cwd || '' });
+  }
+
+  async fleetTask(peerName, args) {
+    const r = this._peerClient(peerName);
+    if (r.error) return r;
+    const { name, task, ...rest } = args || {};
+    if (!name) return { error: 'name is required' };
+    if (!task) return { error: 'task is required' };
+    return r.client.task(name, task, rest);
+  }
+
+  async fleetClose(peerName, args) {
+    const r = this._peerClient(peerName);
+    if (r.error) return r;
+    const { name } = args || {};
+    if (!name) return { error: 'name is required' };
+    return r.client.close(name);
+  }
+
+  async fleetSend(peerName, args) {
+    const r = this._peerClient(peerName);
+    if (r.error) return r;
+    const { name, input, key } = args || {};
+    if (!name) return { error: 'name is required' };
+    if (key) return r.client.key(name, key);
+    if (input != null) return r.client.send(name, input);
+    return { error: 'input or key is required' };
+  }
+
+  async fleetList() {
+    const peers = (this.config.fleet && this.config.fleet.peers) || {};
+    const local = this.list();
+    const localEntry = {
+      peer: 'local',
+      label: 'local',
+      ok: true,
+      ...local,
+    };
+    const peerEntries = Object.entries(peers);
+    if (peerEntries.length === 0) {
+      return { peers: [localEntry] };
+    }
+    const { create: createSdk } = require('./sdk');
+    const remote = await Promise.all(
+      peerEntries.map(async ([name, peer]) => {
+        const client = createSdk({
+          host: peer.host || '127.0.0.1',
+          port: peer.port || 3456,
+          timeout: 3000,
+        });
+        try {
+          const list = await client.list();
+          if (list.error) {
+            return { peer: name, label: peer.label || name, ok: false, error: list.error };
+          }
+          return {
+            peer: name,
+            label: peer.label || name,
+            ok: true,
+            workers: (list.workers || []).map(w => ({ ...w, peer: name })),
+            queuedTasks: list.queuedTasks || [],
+            lostWorkers: list.lostWorkers || [],
+          };
+        } catch (e) {
+          return { peer: name, label: peer.label || name, ok: false, error: e.message };
+        }
+      })
+    );
+    return { peers: [localEntry, ...remote] };
   }
 
   list() {
@@ -3760,7 +5065,11 @@ class PtyManager extends EventEmitter {
         worktree: w.worktree || null,
         scope: w.scopeGuard ? w.scopeGuard.hasRestrictions() : false,
         pid: w.proc ? w.proc.pid : null,
-        status: w.alive ? (idleMs > this.idleThresholdMs ? 'idle' : 'busy') : 'exited',
+        status: w.alive
+          ? (w._suspended ? 'suspended' : (idleMs > this.idleThresholdMs ? 'idle' : 'busy'))
+          : 'exited',
+        suspended: !!w._suspended,
+        adapter: w._adapterName || null,
         unreadSnapshots,
         totalSnapshots: w.snapshots.length,
         intervention: w._interventionState || null,
@@ -3982,7 +5291,12 @@ class PtyManager extends EventEmitter {
     if (w.idleTimer) clearTimeout(w.idleTimer);
     if (w._pendingTaskTimer) { clearInterval(w._pendingTaskTimer); w._pendingTaskTimer = null; }
     if (w._pendingTaskTimeoutTimer) { clearTimeout(w._pendingTaskTimeoutTimer); w._pendingTaskTimeoutTimer = null; }
-    if (w.alive) w.proc.kill();
+    // (TODO 11.2) non-PTY workers have no proc; just flip alive.
+    if (w._nonPty) {
+      w.alive = false;
+    } else {
+      if (w.alive && w.proc) w.proc.kill();
+    }
     if (w.rawLogStream && !w.rawLogStream.destroyed) w.rawLogStream.end();
 
     // Cleanup worktree

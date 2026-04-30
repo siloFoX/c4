@@ -31,14 +31,18 @@ function firstNonAsciiAt(str) {
 
 // Mirrors pty-manager.js _buildHookCommands — kept in sync so this file can
 // verify the string without requiring node-pty.
-function buildHookCommandsLike(workerName, { port = 3456, host = '127.0.0.1', isWin = process.platform === 'win32' } = {}) {
+// 7.23: switched to a Node.js relay (src/hook-relay.js) — fire-and-forget,
+// always exits 0, identical command on every platform.
+// 7.24: workerName is appended as argv[3] so the relay can inject `worker`
+// into the payload (Claude Code's hook JSON has no `worker` field).
+function buildHookCommandsLike(workerName, { port = 3456, host = '127.0.0.1', scriptPath } = {}) {
   const baseUrl = `http://${host}:${port}`;
-  const curlCmd = isWin
-    ? `powershell -NoProfile -Command "$ErrorActionPreference='SilentlyContinue';try{$body=[Console]::In.ReadToEnd();Invoke-RestMethod -Uri '${baseUrl}/hook-event' -Method Post -ContentType 'application/json' -Body $body -ErrorAction SilentlyContinue | Out-Null}catch{};exit 0"`
-    : `curl -s -X POST -H 'Content-Type: application/json' -d @- '${baseUrl}/hook-event' 2>/dev/null; exit 0`;
+  const safeName = String(workerName).replace(/"/g, '\\"');
+  const resolved = (scriptPath || path.join(SRC_DIR, 'hook-relay.js')).replace(/\\/g, '/');
+  const cmd = `node "${resolved}" "${baseUrl}/hook-event" "${safeName}"`;
   return {
-    PreToolUse: [{ hooks: [{ type: 'command', command: curlCmd }] }],
-    PostToolUse: [{ hooks: [{ type: 'command', command: curlCmd }] }]
+    PreToolUse: [{ hooks: [{ type: 'command', command: cmd }] }],
+    PostToolUse: [{ hooks: [{ type: 'command', command: cmd }] }]
   };
 }
 
@@ -84,20 +88,35 @@ describe('7.16: hook error messages are ASCII-only', () => {
     expect(r.stderr).toBe('');
   });
 
-  test('_buildHookCommands output is ASCII (windows branch)', () => {
-    const hooks = buildHookCommandsLike('w1', { isWin: true });
+  test('_buildHookCommands output is ASCII (node relay)', () => {
+    const hooks = buildHookCommandsLike('w1');
     const cmd = hooks.PreToolUse[0].hooks[0].command;
     expect(isAscii(cmd)).toBe(true);
-    expect(cmd).toContain('SilentlyContinue');
-    expect(cmd).toContain('exit 0');
+    expect(cmd).toContain('hook-relay.js');
+    expect(cmd).toContain('/hook-event');
+    expect(cmd).toContain('"w1"');
   });
 
-  test('_buildHookCommands output is ASCII (unix branch)', () => {
-    const hooks = buildHookCommandsLike('w1', { isWin: false });
+  test('_buildHookCommands escapes embedded quotes in worker name', () => {
+    const hooks = buildHookCommandsLike('w1"; rm -rf /');
     const cmd = hooks.PreToolUse[0].hooks[0].command;
-    expect(isAscii(cmd)).toBe(true);
-    expect(cmd).toContain('2>/dev/null');
-    expect(cmd).toContain('exit 0');
+    // Each `"` in the name must be preceded by a backslash so the shell
+    // sees the whole worker name as a single quoted argument and the
+    // injection attempt becomes literal data rather than a new command.
+    const re = /(.)"; rm/g;
+    let match;
+    let occurrences = 0;
+    while ((match = re.exec(cmd)) !== null) {
+      expect(match[1]).toBe('\\');
+      occurrences++;
+    }
+    expect(occurrences).toBeGreaterThan(0);
+  });
+
+  test('src/hook-relay.js source is pure ASCII', () => {
+    const src = fs.readFileSync(path.join(SRC_DIR, 'hook-relay.js'), 'utf8');
+    const bad = firstNonAsciiAt(src);
+    expect(bad).toBeNull();
   });
 
   test('hook commands in real pty-manager.js source are ASCII', () => {

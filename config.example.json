@@ -383,5 +383,36 @@
 
   "gitBash": {
     "disablePathConversion": true
+  },
+
+  "fleet": {
+    "_comment": "9.6 multi-daemon scaffolding. Listed peers are queried by /fleet/peers and /fleet/list. Each peer is another c4 daemon's HTTP endpoint. Add tags + maxWorkers + sshHost to expose to dispatcher (9.7) / file-transfer (9.8).",
+    "local": { "tags": [], "maxWorkers": 0 },
+    "peers": {}
+  },
+
+  "mcp": {
+    "_comment": "11.1 MCP hub. Server definitions are written under settings.mcpServers in worker .claude/settings.json. Per-worker selection comes from workerDefaults.mcpServers, profiles[*].mcp, or task option.mcpServers (subset of these names).",
+    "servers": {}
+  },
+
+  "schedules": [
+    {
+      "_comment": "10.7 scheduler. Each entry: { id, cron (5-field), task, target: 'local'|'dispatch', tags?, strategy?, workerName?, options? }. Empty by default.",
+      "id": "_example",
+      "cron": "0 2 * * *",
+      "task": "Run nightly cleanup",
+      "target": "local",
+      "enabled": false
+    }
+  ],
+
+  "scheduler": {
+    "autoStart": false,
+    "tickMs": 30000
+  },
+
+  "audit": {
+    "enabled": true
   }
 }

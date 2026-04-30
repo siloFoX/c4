@@ -62,7 +62,7 @@ function createMockManager(workerDefs) {
     },
 
     async waitAndReadMulti(names, timeoutMs = 120000, options = {}) {
-      const { interruptOnIntervention = false } = options;
+      const { interruptOnIntervention = false, mode = 'first' } = options;
 
       let resolvedNames = names;
       if (names.length === 1 && names[0] === '*') {
@@ -83,6 +83,47 @@ function createMockManager(workerDefs) {
       }
 
       const startTime = Date.now();
+      const buildResult = (name, worker) => {
+        const idleMs = Date.now() - worker.lastDataTime;
+        return {
+          name,
+          status: !worker.alive ? 'exited' :
+                  worker._interventionState ? 'intervention' :
+                  (idleMs >= idleThresholdMs ? 'idle' : 'busy'),
+          intervention: worker._interventionState || null,
+          content: _getScreenText(worker.screen)
+        };
+      };
+      const isSettled = (worker) => {
+        if (!worker.alive) return true;
+        if (worker._interventionState) return true;
+        const idleMs = Date.now() - worker.lastDataTime;
+        return idleMs >= idleThresholdMs;
+      };
+
+      if (mode === 'all') {
+        return new Promise((resolve) => {
+          const check = () => {
+            if (Date.now() - startTime > timeoutMs) {
+              resolve({
+                status: 'timeout',
+                results: entries.map(({ name, worker }) => buildResult(name, worker))
+              });
+              return;
+            }
+            if (entries.every(({ worker }) => isSettled(worker))) {
+              resolve({
+                status: 'done',
+                results: entries.map(({ name, worker }) => buildResult(name, worker))
+              });
+              return;
+            }
+            setTimeout(check, 100);
+          };
+          check();
+        });
+      }
+
       return new Promise((resolve) => {
         const check = () => {
           if (Date.now() - startTime > timeoutMs) {
@@ -271,5 +312,62 @@ describe('waitAndReadMulti', () => {
     assert.strictEqual(result.results.length, 2);
     assert.strictEqual(result.results[0].name, 'w1');
     assert.strictEqual(result.results[1].name, 'w2');
+  });
+
+  // 7.21: collect-all mode — every worker reported once settled,
+  // intervention does not block siblings.
+  it('mode=all returns done with all settled when every worker idle/exited/intervention', async () => {
+    const mgr = createMockManager({
+      w1: { lastDataTime: Date.now() - 5000 },                                          // idle
+      w2: { alive: false },                                                             // exited
+      w3: { lastDataTime: Date.now(), _interventionState: 'question' }                  // intervention
+    });
+    const result = await mgr.waitAndReadMulti(['w1', 'w2', 'w3'], 5000, { mode: 'all' });
+    assert.strictEqual(result.status, 'done');
+    assert.strictEqual(result.results.length, 3);
+    const byName = Object.fromEntries(result.results.map(r => [r.name, r]));
+    assert.strictEqual(byName.w1.status, 'idle');
+    assert.strictEqual(byName.w2.status, 'exited');
+    assert.strictEqual(byName.w3.status, 'intervention');
+    assert.strictEqual(byName.w3.intervention, 'question');
+  });
+
+  it('mode=all waits for last busy worker before resolving', async () => {
+    const mgr = createMockManager({
+      w1: { lastDataTime: Date.now() - 5000 },  // already idle
+      w2: { lastDataTime: Date.now() }           // busy initially
+    });
+    setTimeout(() => {
+      mgr.workers.get('w2').lastDataTime = Date.now() - 5000;
+    }, 200);
+
+    const start = Date.now();
+    const result = await mgr.waitAndReadMulti(['w1', 'w2'], 5000, { mode: 'all' });
+    const elapsed = Date.now() - start;
+
+    assert.strictEqual(result.status, 'done');
+    assert.ok(elapsed >= 150, `expected to wait for w2 (elapsed ${elapsed}ms)`);
+    assert.strictEqual(result.results.length, 2);
+    assert.ok(result.results.every(r => r.status === 'idle'));
+  });
+
+  it('mode=all returns timeout with partial settled when some still busy', async () => {
+    const now = Date.now();
+    const mgr = createMockManager({
+      w1: { lastDataTime: now - 5000 },  // idle
+      w2: { lastDataTime: now }           // busy and stays busy
+    });
+    const keepBusy = setInterval(() => {
+      mgr.workers.get('w2').lastDataTime = Date.now();
+    }, 50);
+
+    const result = await mgr.waitAndReadMulti(['w1', 'w2'], 300, { mode: 'all' });
+    clearInterval(keepBusy);
+
+    assert.strictEqual(result.status, 'timeout');
+    assert.strictEqual(result.results.length, 2);
+    const byName = Object.fromEntries(result.results.map(r => [r.name, r]));
+    assert.strictEqual(byName.w1.status, 'idle');
+    assert.strictEqual(byName.w2.status, 'busy');
   });
 });

@@ -209,11 +209,16 @@ async function main() {
 
         if (waitAll || waitNames.length > 1) {
           // Multi-worker wait
+          // 7.21: `--all` defaults to mode=all (collect every worker once
+          // settled — idle/exited/intervention) so an intervention worker no
+          // longer blocks idle siblings. Multi-name without `--all` keeps
+          // legacy first-completion semantics.
           const names = waitAll ? '*' : waitNames.join(',');
+          const mode = waitAll ? 'all' : 'first';
           process.stderr.write(`Waiting for ${waitAll ? 'all workers' : waitNames.join(', ')}...\n`);
-          result = await request('GET', `/wait-read-multi?names=${names}&timeout=${waitTimeout}${ioiParam}`, null, timeoutNum + 5000);
-          if (result.status === 'timeout') {
-            process.stderr.write('--- status=timeout ---\n');
+          result = await request('GET', `/wait-read-multi?names=${names}&timeout=${waitTimeout}&mode=${mode}${ioiParam}`, null, timeoutNum + 5000);
+          if (result.status === 'timeout' || result.status === 'done') {
+            process.stderr.write(`--- status=${result.status} ---\n`);
             if (result.results) {
               for (const r of result.results) {
                 process.stderr.write(`  ${r.name}: ${r.status}${r.intervention ? ` (intervention: ${r.intervention})` : ''}\n`);
@@ -1072,6 +1077,317 @@ async function main() {
         break;
       }
 
+      case 'dispatch': {
+        // c4 dispatch "task..." [--name x] [--tags a,b] [--strategy least-load|round-robin|tag-match] [--dry-run]
+        let dispatchName = '', dispatchTags = [], dispatchStrategy = 'least-load', dryRun = false;
+        const taskParts = [];
+        for (let i = 0; i < args.length; i++) {
+          if (args[i] === '--name' && args[i + 1]) dispatchName = args[++i];
+          else if (args[i] === '--tags' && args[i + 1]) dispatchTags = args[++i].split(',').filter(Boolean);
+          else if (args[i] === '--strategy' && args[i + 1]) dispatchStrategy = args[++i];
+          else if (args[i] === '--dry-run') dryRun = true;
+          else taskParts.push(args[i]);
+        }
+        const dispatchTask = taskParts.join(' ');
+        if (!dispatchTask) {
+          console.error('Usage: c4 dispatch "task" [--name x] [--tags gpu,build] [--strategy least-load|round-robin|tag-match] [--dry-run]');
+          process.exit(1);
+        }
+        result = await request('POST', '/dispatch', {
+          name: dispatchName || undefined,
+          task: dispatchTask,
+          tags: dispatchTags,
+          strategy: dispatchStrategy,
+          dryRun,
+        });
+        if (result.success) {
+          console.log(`Dispatched '${result.name}' → peer=${result.peer} (strategy=${result.strategy})`);
+          return;
+        }
+        if (result.decision) {
+          console.log(`[dry-run] would dispatch to peer=${result.decision.peer} as '${result.decision.name}' (strategy=${result.decision.strategy})`);
+          for (const c of result.candidates || []) {
+            console.log(`  candidate ${c.peer}: ${c.workers} workers, tags=[${(c.tags || []).join(',')}]`);
+          }
+          return;
+        }
+        break;
+      }
+
+      case 'fleet': {
+        // 9.6: c4 fleet peers | c4 fleet list
+        const sub = args[0] || 'peers';
+        if (sub === 'peers') {
+          result = await request('GET', '/fleet/peers');
+          if (Array.isArray(result.peers)) {
+            console.log('PEER\t\tSTATUS\t\tLATENCY\tHOST');
+            for (const p of result.peers) {
+              const host = `${p.host || ''}:${p.port || ''}`;
+              console.log(`${p.label}\t\t${p.status}\t\t${p.latencyMs}ms\t${host}`);
+            }
+            return;
+          }
+          break;
+        }
+        if (sub === 'list') {
+          result = await request('GET', '/fleet/list');
+          if (Array.isArray(result.peers)) {
+            for (const p of result.peers) {
+              if (!p.ok) {
+                console.log(`# ${p.label}: ${p.error}`);
+                continue;
+              }
+              console.log(`# ${p.label} (${(p.workers || []).length} workers)`);
+              for (const w of p.workers || []) {
+                console.log(`  ${w.name}\t${w.status}\t${w.branch || '-'}\t${w.command || ''}`);
+              }
+            }
+            return;
+          }
+          break;
+        }
+        console.error('Usage: c4 fleet peers|list');
+        process.exit(1);
+      }
+
+      case 'audit': {
+        // c4 audit [--worker X] [--action Y] [--actor Z] [--since ISO] [--limit N]
+        const params = {};
+        for (let i = 0; i < args.length; i++) {
+          if (args[i] === '--worker' && args[i + 1]) params.worker = args[++i];
+          else if (args[i] === '--action' && args[i + 1]) params.action = args[++i];
+          else if (args[i] === '--actor' && args[i + 1]) params.actor = args[++i];
+          else if (args[i] === '--since' && args[i + 1]) params.since = args[++i];
+          else if (args[i] === '--until' && args[i + 1]) params.until = args[++i];
+          else if (args[i] === '--limit' && args[i + 1]) params.limit = args[++i];
+        }
+        const qs = new URLSearchParams(params).toString();
+        result = await request('GET', '/audit' + (qs ? `?${qs}` : ''));
+        if (Array.isArray(result.records)) {
+          if (result.records.length === 0) { console.log('No audit records.'); return; }
+          for (const r of result.records) {
+            const time = new Date(r.ts).toLocaleString();
+            const ok = r.error ? `\x1b[31merror: ${r.error}\x1b[0m` : '\x1b[32mok\x1b[0m';
+            console.log(`${time}  ${(r.actor || '?').padEnd(12)}  ${(r.action || '').padEnd(20)}  ${(r.worker || '-').padEnd(16)}  ${ok}`);
+          }
+          return;
+        }
+        break;
+      }
+
+      case 'projects': {
+        result = await request('GET', '/projects');
+        if (Array.isArray(result.projects)) {
+          for (const p of result.projects) {
+            console.log(`# ${p.name}\t(${p.workers.length} workers, ${p.queued.length} queued, ${p.recentTasks.length} recent)`);
+            for (const w of p.workers.slice(0, 3)) {
+              console.log(`  - ${w.name} (${w.status})${w.intervention ? ` ${w.intervention}` : ''}`);
+            }
+          }
+          return;
+        }
+        break;
+      }
+
+      case 'departments': {
+        result = await request('GET', '/departments');
+        if (Array.isArray(result.departments)) {
+          if (result.departments.length === 0) { console.log('No departments configured.'); return; }
+          for (const d of result.departments) {
+            const quota = d.workerQuota ? `${d.activeWorkers}/${d.workerQuota}` : `${d.activeWorkers}`;
+            const flag = d.overQuota ? ' \x1b[33m[over quota]\x1b[0m' : '';
+            console.log(`# ${d.name}\t${quota}${flag}`);
+            if (d.members && d.members.length) console.log(`  members: ${d.members.join(', ')}`);
+            if (d.projects && d.projects.length) console.log(`  projects: ${d.projects.join(', ')}`);
+            if (d.machines && d.machines.length) console.log(`  machines: ${d.machines.join(', ')}`);
+          }
+          return;
+        }
+        break;
+      }
+
+      case 'cost': {
+        // c4 cost [--model X] [--since YYYY-MM-DD] [--until YYYY-MM-DD]
+        const params = {};
+        for (let i = 0; i < args.length; i++) {
+          if (args[i] === '--model' && args[i + 1]) params.model = args[++i];
+          else if (args[i] === '--since' && args[i + 1]) params.since = args[++i];
+          else if (args[i] === '--until' && args[i + 1]) params.until = args[++i];
+        }
+        const qs = new URLSearchParams(params).toString();
+        result = await request('GET', '/cost-report' + (qs ? `?${qs}` : ''));
+        if (result.totals) {
+          console.log(`Model: ${result.model || '—'}`);
+          console.log(`Range: ${result.range.since || 'all'} → ${result.range.until || 'now'}`);
+          console.log(`Tokens: input=${result.totals.input.toLocaleString()}  output=${result.totals.output.toLocaleString()}`);
+          console.log(`Cost: ${result.totals.costUSD == null ? '—' : '$' + result.totals.costUSD.toFixed(2)}`);
+          if (result.monthly) {
+            console.log(`Month ${result.monthly.month}: ${result.monthly.costUSD == null ? '—' : '$' + result.monthly.costUSD.toFixed(2)}` +
+              (result.budget && result.budget.overBudget ? '  \x1b[33m[over budget]\x1b[0m' : ''));
+          }
+          return;
+        }
+        break;
+      }
+
+      case 'nl': {
+        // c4 nl "<text>" [--preview] [--min-confidence 0.6]
+        let preview = false, minConfidence;
+        const parts = [];
+        for (let i = 0; i < args.length; i++) {
+          if (args[i] === '--preview') preview = true;
+          else if (args[i] === '--min-confidence' && args[i + 1]) minConfidence = parseFloat(args[++i]);
+          else parts.push(args[i]);
+        }
+        const text = parts.join(' ');
+        if (!text) { console.error('Usage: c4 nl "<sentence>" [--preview]'); process.exit(1); }
+        const route = preview ? '/nl/parse' : '/nl/run';
+        const body = preview ? { text } : { text, minConfidence };
+        result = await request('POST', route, body);
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+
+      case 'workflow': {
+        // c4 workflow run <file.json>
+        const sub = args[0];
+        if (sub === 'run' && args[1]) {
+          let wf;
+          try { wf = JSON.parse(require('fs').readFileSync(args[1], 'utf8')); }
+          catch (e) { console.error(`Cannot read workflow file: ${e.message}`); process.exit(1); }
+          result = await request('POST', '/workflow/run', wf);
+          console.log(JSON.stringify(result, null, 2));
+          return;
+        }
+        console.error('Usage: c4 workflow run <file.json>');
+        process.exit(1);
+      }
+
+      case 'schedules': {
+        result = await request('GET', '/schedules');
+        if (Array.isArray(result.schedules)) {
+          if (result.schedules.length === 0) { console.log('No schedules.'); return; }
+          for (const s of result.schedules) {
+            const flag = s.enabled ? '\x1b[32mon\x1b[0m' : '\x1b[90moff\x1b[0m';
+            const last = s.lastRunAt ? new Date(s.lastRunAt).toLocaleString() : 'never';
+            console.log(`${flag}  ${s.id.padEnd(20)}  ${s.cron.padEnd(20)}  last: ${last}`);
+            console.log(`         ${s.task}`);
+          }
+          return;
+        }
+        break;
+      }
+
+      case 'schedule': {
+        // c4 schedule add <id> <cron> <task...>
+        // c4 schedule remove <id>
+        // c4 schedule enable <id> on|off
+        // c4 schedule run <id>
+        const sub = args[0];
+        if (sub === 'add' && args.length >= 4) {
+          const [, id, cron, ...taskParts] = args;
+          result = await request('POST', '/schedule', { id, cron, task: taskParts.join(' ') });
+        } else if (sub === 'remove' && args[1]) {
+          result = await request('POST', '/schedule/remove', { id: args[1] });
+        } else if (sub === 'enable' && args[1] && args[2]) {
+          result = await request('POST', '/schedule/enable', { id: args[1], enabled: args[2] === 'on' });
+        } else if (sub === 'run' && args[1]) {
+          result = await request('POST', '/schedule/run', { id: args[1] });
+        } else {
+          console.error('Usage:');
+          console.error('  c4 schedule add <id> <cron> <task...>');
+          console.error('  c4 schedule remove <id>');
+          console.error('  c4 schedule enable <id> on|off');
+          console.error('  c4 schedule run <id>');
+          process.exit(1);
+        }
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+
+      case 'board': {
+        // c4 board <project>
+        // c4 board add <project> <title...>
+        // c4 board move <project> <cardId> <to>
+        // c4 board delete <project> <cardId>
+        if (args[0] === 'add' && args.length >= 3) {
+          const [, project, ...titleParts] = args;
+          result = await request('POST', '/board/card', { project, title: titleParts.join(' ') });
+        } else if (args[0] === 'move' && args.length === 4) {
+          const [, project, cardId, to] = args;
+          result = await request('POST', '/board/move', { project, cardId, to });
+        } else if (args[0] === 'delete' && args.length === 3) {
+          const [, project, cardId] = args;
+          result = await request('POST', '/board/delete', { project, cardId });
+        } else if (args[0]) {
+          result = await request('GET', `/board?project=${encodeURIComponent(args[0])}`);
+          if (result.columns) {
+            for (const status of result.statuses) {
+              const cards = result.columns[status] || [];
+              console.log(`# ${status} (${cards.length})`);
+              for (const c of cards) console.log(`  ${c.id}  ${c.title}`);
+            }
+            return;
+          }
+        } else {
+          console.error('Usage:');
+          console.error('  c4 board <project>');
+          console.error('  c4 board add <project> <title...>');
+          console.error('  c4 board move <project> <cardId> <to>');
+          console.error('  c4 board delete <project> <cardId>');
+          process.exit(1);
+        }
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+
+      case 'backup': {
+        // c4 backup [--out path]
+        let outPath;
+        for (let i = 0; i < args.length; i++) {
+          if (args[i] === '--out' && args[i + 1]) outPath = args[++i];
+        }
+        result = await request('POST', '/backup', outPath ? { outPath } : {});
+        if (result.archive) {
+          console.log(`Backed up ${result.files.length} files to ${result.archive} (${result.size} bytes)`);
+          return;
+        }
+        break;
+      }
+
+      case 'restore': {
+        // c4 restore <archive> [--dry-run]
+        const archive = args[0];
+        if (!archive) {
+          console.error('Usage: c4 restore <archive.tar.gz> [--dry-run]');
+          process.exit(1);
+        }
+        const dryRun = args.includes('--dry-run');
+        result = await request('POST', '/restore', { archive, dryRun });
+        if (result.success) {
+          console.log(`${dryRun ? '[dry-run] would restore' : 'Restored'} ${result.files.length} file(s):`);
+          for (const f of result.files) console.log(`  ${f}`);
+          return;
+        }
+        break;
+      }
+
+      case 'transfer': {
+        // c4 transfer <from> <to> <src> <dst> [--mode rsync|scp]
+        if (args.length < 4) {
+          console.error('Usage: c4 transfer <from> <to> <src> <dst> [--mode rsync|scp]');
+          process.exit(1);
+        }
+        const [from, to, src, dst] = args;
+        let mode = 'rsync';
+        for (let i = 4; i < args.length; i++) {
+          if (args[i] === '--mode' && args[i + 1]) mode = args[++i];
+        }
+        result = await request('POST', '/fleet/transfer', { from, to, src, dst, mode });
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+
       case 'rollback': {
         const name = args[0];
         if (!name) {
@@ -1084,6 +1400,82 @@ async function main() {
             console.log(`Rolled back '${name}': ${result.from} → ${result.to}`);
           } else {
             console.log(result.message);
+          }
+          return;
+        }
+        break;
+      }
+
+      case 'suspend': {
+        const name = args[0];
+        if (!name) {
+          console.error('Usage: c4 suspend <worker-name>');
+          process.exit(1);
+        }
+        result = await request('POST', '/suspend', { name });
+        if (result.success) {
+          console.log(result.alreadySuspended ? `Worker '${name}' was already suspended.` : `Suspended '${name}'.`);
+          return;
+        }
+        break;
+      }
+
+      case 'resume': {
+        const name = args[0];
+        if (!name) {
+          console.error('Usage: c4 resume <worker-name>');
+          process.exit(1);
+        }
+        result = await request('POST', '/resume', { name });
+        if (result.success) {
+          console.log(result.alreadyRunning ? `Worker '${name}' was not suspended.` : `Resumed '${name}'.`);
+          return;
+        }
+        break;
+      }
+
+      case 'restart': {
+        const name = args[0];
+        if (!name) {
+          console.error('Usage: c4 restart <worker-name> [--no-resume]');
+          process.exit(1);
+        }
+        const noResume = args.includes('--no-resume');
+        result = await request('POST', '/restart', { name, resume: !noResume });
+        if (result.success) {
+          console.log(`Restarted '${name}'${result.resumed ? ' (resumed previous session)' : ''}.`);
+          return;
+        }
+        break;
+      }
+
+      case 'cancel': {
+        const name = args[0];
+        if (!name) {
+          console.error('Usage: c4 cancel <worker-name>');
+          process.exit(1);
+        }
+        result = await request('POST', '/cancel', { name });
+        if (result.success) {
+          console.log(`Sent cancel to '${name}'.`);
+          return;
+        }
+        break;
+      }
+
+      case 'batch-action': {
+        // c4 batch-action <action> <name1> [name2 ...] — single action across many workers
+        const action = args[0];
+        const names = args.slice(1).filter(a => !a.startsWith('--'));
+        if (!action || names.length === 0) {
+          console.error('Usage: c4 batch-action <close|suspend|resume|rollback|cancel|restart> <name1> [name2 ...]');
+          process.exit(1);
+        }
+        result = await request('POST', '/batch-action', { names, action });
+        if (result.results) {
+          for (const [n, r] of Object.entries(result.results)) {
+            if (r.error) console.log(`  ${n}: error - ${r.error}`);
+            else console.log(`  ${n}: ${action} ok`);
           }
           return;
         }

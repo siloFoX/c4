@@ -4,6 +4,8 @@ const McpHandler = require('./mcp-handler');
 const Planner = require('./planner');
 const Scribe = require('./scribe');
 const Notifications = require('./notifications');
+const { Auth } = require('./auth');
+const CicdWebhooks = require('./webhooks');
 
 const manager = new PtyManager();
 const mcpHandler = new McpHandler(manager);
@@ -13,14 +15,26 @@ const PORT = parseInt(process.env.PORT || cfg.daemon?.port || '3456');
 const HOST = cfg.daemon?.host || '127.0.0.1';
 const notifications = new Notifications(cfg.notifications || {});
 manager.setNotifications(notifications);
+// (TODO 10.1) Auth gate. Off by default — config.auth.enabled toggles it.
+const auth = new Auth(cfg);
+// (TODO 10.4) CI/CD webhook receiver
+const cicd = new CicdWebhooks(manager);
+// Daemon hot-reload: watch config.json so live changes (users, schedules,
+// projects, fleet peers) take effect without a restart.
+if (typeof manager.watchConfig === 'function') manager.watchConfig();
 
 function parseBody(req) {
   return new Promise((resolve, reject) => {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
-      try { resolve(JSON.parse(body)); }
-      catch { resolve({}); }
+      let parsed = {};
+      try { parsed = body ? JSON.parse(body) : {}; }
+      catch { parsed = {}; }
+      // (TODO 10.2) Stash the parsed body on req so the audit step at the
+      // end of handleRequest can record it without re-reading the stream.
+      req._auditBody = parsed;
+      resolve(parsed);
     });
     req.on('error', reject);
   });
@@ -142,9 +156,36 @@ async function handleRequest(req, res) {
 
   const url = new URL(req.url, `http://${HOST}`);
   const route = url.pathname;
+  // (TODO 10.1) Auth gate. Skipped entirely when config.auth.enabled=false.
+  const decision = auth.authorize(req, route);
+  if (!decision.ok) {
+    res.writeHead(decision.status);
+    res.end(JSON.stringify({ error: decision.error }));
+    return;
+  }
+  // Replace anonymous actor with authenticated subject when available.
+  const actor = (decision.payload && decision.payload.sub)
+    || req.headers['x-c4-actor']
+    || 'anonymous';
+  // (TODO 10.2) Audit metadata. parseBody stashes the parsed body on req.
+  const auditableMethod = req.method !== 'GET' && req.method !== 'OPTIONS';
 
   try {
     let result;
+
+    if (req.method === 'POST' && route === '/auth/login') {
+      const { username, password } = await parseBody(req);
+      result = auth.issueToken(username, password);
+      res.writeHead(result.error ? 401 : 200);
+      res.end(JSON.stringify(result));
+      return;
+    }
+    if (req.method === 'GET' && route === '/auth/whoami') {
+      result = decision.payload || { sub: 'anonymous' };
+      res.writeHead(200);
+      res.end(JSON.stringify(result));
+      return;
+    }
 
     if (req.method === 'GET' && route === '/health') {
       result = {
@@ -153,9 +194,56 @@ async function handleRequest(req, res) {
         version: manager._daemonVersion || null,
       };
 
+    } else if (req.method === 'GET' && route === '/fleet/peers') {
+      // 9.6: peer health snapshot across configured fleet daemons.
+      result = await manager.fleetPeers();
+
+    } else if (req.method === 'GET' && route === '/fleet/list') {
+      // 9.6: aggregated worker list from local + every fleet peer.
+      result = await manager.fleetList();
+
+    } else if (req.method === 'POST' && route === '/fleet/create') {
+      const { peer, ...args } = await parseBody(req);
+      if (!peer) result = { error: 'peer is required' };
+      else result = await manager.fleetCreate(peer, args);
+
+    } else if (req.method === 'POST' && route === '/fleet/task') {
+      const { peer, ...args } = await parseBody(req);
+      if (!peer) result = { error: 'peer is required' };
+      else result = await manager.fleetTask(peer, args);
+
+    } else if (req.method === 'POST' && route === '/fleet/close') {
+      const { peer, ...args } = await parseBody(req);
+      if (!peer) result = { error: 'peer is required' };
+      else result = await manager.fleetClose(peer, args);
+
+    } else if (req.method === 'POST' && route === '/fleet/send') {
+      const { peer, ...args } = await parseBody(req);
+      if (!peer) result = { error: 'peer is required' };
+      else result = await manager.fleetSend(peer, args);
+
+    } else if (req.method === 'POST' && route === '/dispatch') {
+      // 9.7: pick a peer (local or fleet) and run task there.
+      const body = await parseBody(req);
+      result = await manager.dispatch(body);
+
+    } else if (req.method === 'POST' && route === '/fleet/transfer') {
+      // 9.8: rsync/scp file transfer between local + peers.
+      const body = await parseBody(req);
+      result = manager.fileTransfer(body);
+
+    } else if (req.method === 'GET' && route === '/fleet/transfer') {
+      const id = url.searchParams.get('id');
+      if (!id) result = manager.listTransfers({ limit: parseInt(url.searchParams.get('limit') || '50') });
+      else result = manager.getTransfer(id);
+
+    } else if (req.method === 'POST' && route === '/fleet/transfer/cancel') {
+      const { id } = await parseBody(req);
+      result = manager.cancelTransfer(id);
+
     } else if (req.method === 'POST' && route === '/create') {
-      const { name, command, args, target, cwd } = await parseBody(req);
-      result = manager.create(name, command, args || [], { target, cwd });
+      const { name, command, args, target, cwd, adapter, adapterOpts, resume } = await parseBody(req);
+      result = manager.create(name, command, args || [], { target, cwd, adapter, adapterOpts, resume });
 
     } else if (req.method === 'POST' && route === '/send') {
       const { name, input, keys } = await parseBody(req);
@@ -188,10 +276,11 @@ async function handleRequest(req, res) {
       const names = namesParam.split(',').filter(Boolean);
       const timeout = parseInt(url.searchParams.get('timeout') || '120000');
       const interruptOnIntervention = url.searchParams.get('interruptOnIntervention') === '1';
+      const mode = url.searchParams.get('mode') === 'all' ? 'all' : 'first';
       if (names.length === 0) {
         result = { error: 'No worker names specified' };
       } else {
-        result = await manager.waitAndReadMulti(names, timeout, { interruptOnIntervention });
+        result = await manager.waitAndReadMulti(names, timeout, { interruptOnIntervention, mode });
       }
 
     } else if (req.method === 'GET' && route === '/list') {
@@ -243,6 +332,26 @@ async function handleRequest(req, res) {
       const { name } = await parseBody(req);
       result = manager.rollback(name);
 
+    } else if (req.method === 'POST' && route === '/suspend') {
+      const { name } = await parseBody(req);
+      result = manager.suspend(name);
+
+    } else if (req.method === 'POST' && route === '/resume') {
+      const { name } = await parseBody(req);
+      result = manager.resumeWorker(name);
+
+    } else if (req.method === 'POST' && route === '/restart') {
+      const { name, resume } = await parseBody(req);
+      result = await manager.restart(name, { resume: resume !== false });
+
+    } else if (req.method === 'POST' && route === '/cancel') {
+      const { name } = await parseBody(req);
+      result = await manager.cancelTask(name);
+
+    } else if (req.method === 'POST' && route === '/batch-action') {
+      const { names, action, args } = await parseBody(req);
+      result = await manager.batch(names || [], action, args || {});
+
     } else if (req.method === 'POST' && route === '/cleanup') {
       const { dryRun } = await parseBody(req);
       result = manager.cleanup(dryRun);
@@ -257,6 +366,15 @@ async function handleRequest(req, res) {
     } else if (req.method === 'POST' && route === '/config/reload') {
       result = manager.reloadConfig();
 
+    } else if (req.method === 'POST' && route === '/backup') {
+      // Backup/restore — admin-only via auth route table.
+      const { outPath } = await parseBody(req);
+      result = manager.backup({ outPath });
+
+    } else if (req.method === 'POST' && route === '/restore') {
+      const { archive, dryRun } = await parseBody(req);
+      result = manager.restore({ archive, dryRun: !!dryRun });
+
     } else if (req.method === 'POST' && route === '/scribe/start') {
       result = manager.scribeStart();
 
@@ -265,6 +383,10 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'GET' && route === '/scribe/status') {
       result = manager.scribeStatus();
+
+    } else if (req.method === 'GET' && route === '/scribe/context') {
+      // 8.7: read the accumulated docs/session-context.md for the Web UI.
+      result = manager.scribeContext();
 
     } else if (req.method === 'POST' && route === '/scribe/scan') {
       result = manager.scribeScan();
@@ -279,9 +401,14 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && route === '/hook-event') {
       // Hook architecture (3.15): receive structured events from Claude Code hooks
+      // 7.24: hook-relay.js injects `worker` and aliases hook_event_name →
+      // hook_type. Re-apply both fallbacks here so direct POSTs (tests,
+      // external relays) also work without going through hook-relay.
       const body = await parseBody(req);
       const workerName = body.worker || '';
-      console.error(`[DAEMON] /hook-event received: worker=${workerName} hook_type=${body.hook_type || ''} tool=${body.tool_name || ''}`);
+      const hookType = body.hook_type || body.hook_event_name || '';
+      if (!body.hook_type && body.hook_event_name) body.hook_type = body.hook_event_name;
+      console.error(`[DAEMON] /hook-event received: worker=${workerName} hook_type=${hookType} tool=${body.tool_name || ''}`);
       if (!workerName) {
         console.error('[DAEMON] /hook-event rejected: missing worker name');
         result = { error: 'Missing worker name in hook event' };
@@ -360,6 +487,104 @@ async function handleRequest(req, res) {
       const { worker, message } = await parseBody(req);
       notifications.statusUpdate(worker || 'C4', message);
       result = { sent: true };
+
+    } else if (req.method === 'POST' && (route === '/webhook/github' || route === '/webhook/gitlab')) {
+      // 10.4 — read raw body for HMAC verification, then JSON.parse for handler.
+      const rawBody = await new Promise((resolve, reject) => {
+        let buf = '';
+        req.on('data', (c) => { buf += c; });
+        req.on('end', () => resolve(buf));
+        req.on('error', reject);
+      });
+      let parsed = {};
+      try { parsed = rawBody ? JSON.parse(rawBody) : {}; } catch { parsed = {}; }
+      req._auditBody = { vendor: route.split('/').pop(), event: req.headers['x-github-event'] || req.headers['x-gitlab-event'] || null };
+      const vendor = route === '/webhook/github' ? 'github' : 'gitlab';
+      result = await cicd.handle(vendor, req.headers, rawBody, parsed);
+
+    } else if (req.method === 'POST' && route === '/nl/parse') {
+      // 11.4 — preview only
+      const { text } = await parseBody(req);
+      result = manager.parseNL(text || '');
+    } else if (req.method === 'POST' && route === '/nl/run') {
+      // 11.4 — parse + execute (if confidence > threshold)
+      const { text, execute, minConfidence } = await parseBody(req);
+      result = await manager.runNL(text || '', { execute, minConfidence });
+
+    } else if (req.method === 'POST' && route === '/workflow/run') {
+      // 11.3 — run a workflow definition (JSON in body)
+      const body = await parseBody(req);
+      result = await manager.runWorkflow(body);
+
+    } else if (req.method === 'GET' && route === '/workflow/runs') {
+      // 11.3 follow-up — past workflow runs
+      const limit = parseInt(url.searchParams.get('limit') || '50') || 50;
+      const name = url.searchParams.get('name') || undefined;
+      result = manager.getWorkflowRuns({ limit, name });
+
+    } else if (req.method === 'GET' && route === '/board') {
+      // 10.8 kanban
+      const project = url.searchParams.get('project') || 'default';
+      result = manager._ensurePmBoard().get(project);
+    } else if (req.method === 'POST' && route === '/board/card') {
+      const { project = 'default', ...body } = await parseBody(req);
+      result = manager._ensurePmBoard().createCard(project, body);
+    } else if (req.method === 'POST' && route === '/board/update') {
+      const { project = 'default', cardId, ...patch } = await parseBody(req);
+      result = manager._ensurePmBoard().updateCard(project, cardId, patch);
+    } else if (req.method === 'POST' && route === '/board/move') {
+      const { project = 'default', cardId, to } = await parseBody(req);
+      result = manager._ensurePmBoard().moveCard(project, cardId, to);
+    } else if (req.method === 'POST' && route === '/board/delete') {
+      const { project = 'default', cardId } = await parseBody(req);
+      result = manager._ensurePmBoard().deleteCard(project, cardId);
+    } else if (req.method === 'POST' && route === '/board/import-todo') {
+      const { project = 'default', todoPath } = await parseBody(req);
+      result = manager._ensurePmBoard().importTodoMd(project, todoPath);
+
+    } else if (req.method === 'GET' && route === '/departments') {
+      // 10.6: department roll-up
+      result = manager.listDepartments();
+
+    } else if (req.method === 'GET' && route === '/cost-report') {
+      // 10.5: monthly token cost rollup
+      const since = url.searchParams.get('since') || undefined;
+      const until = url.searchParams.get('until') || undefined;
+      const model = url.searchParams.get('model') || undefined;
+      result = manager.getCostReport({ since, until, model });
+
+    } else if (req.method === 'GET' && route === '/projects') {
+      // 10.3: aggregated project view
+      result = manager.listProjects();
+
+    } else if (req.method === 'GET' && route === '/schedules') {
+      result = manager.schedulerList();
+    } else if (req.method === 'POST' && route === '/scheduler/start') {
+      result = manager.schedulerStart();
+    } else if (req.method === 'POST' && route === '/scheduler/stop') {
+      result = manager.schedulerStop();
+    } else if (req.method === 'POST' && route === '/schedule') {
+      const body = await parseBody(req);
+      result = manager.schedulerAdd(body);
+    } else if (req.method === 'POST' && route === '/schedule/remove') {
+      const { id } = await parseBody(req);
+      result = manager.schedulerRemove(id);
+    } else if (req.method === 'POST' && route === '/schedule/enable') {
+      const { id, enabled } = await parseBody(req);
+      result = manager.schedulerEnable(id, enabled !== false);
+    } else if (req.method === 'POST' && route === '/schedule/run') {
+      const { id } = await parseBody(req);
+      result = await manager.schedulerRunNow(id);
+
+    } else if (req.method === 'GET' && route === '/audit') {
+      // 10.2: query audit log
+      const since = url.searchParams.get('since') || undefined;
+      const until = url.searchParams.get('until') || undefined;
+      const action = url.searchParams.get('action') || undefined;
+      const worker = url.searchParams.get('worker') || undefined;
+      const actorParam = url.searchParams.get('actor') || undefined;
+      const limit = parseInt(url.searchParams.get('limit') || '200') || 200;
+      result = manager.getAudit({ since, until, action, worker, actor: actorParam, limit });
 
     } else if (req.method === 'GET' && route === '/history') {
       const worker = url.searchParams.get('worker') || '';
@@ -459,6 +684,23 @@ async function handleRequest(req, res) {
       res.writeHead(result.error ? 400 : 200);
     }
     res.end(JSON.stringify(result));
+
+    // (TODO 10.2) Record the mutation. Skip GET/OPTIONS, hook events
+    // (huge volume), and dashboard HTML.
+    if (auditableMethod && route !== '/hook-event') {
+      const body = req._auditBody || {};
+      manager.audit({
+        actor,
+        action: route,
+        worker: body.name || body.worker || null,
+        ok: !result.error,
+        error: result.error || null,
+        bodyKeys: Object.keys(body).slice(0, 12),
+        bodySummary: typeof body.task === 'string'
+          ? { task: body.task.slice(0, 200) }
+          : null,
+      });
+    }
 
   } catch (err) {
     if (!res.headersSent) {

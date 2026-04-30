@@ -1,7 +1,7 @@
 const assert = require('assert');
 const { describe, it } = require('node:test');
 
-// Mirror of CRITICAL_DENY_PATTERNS from src/pty-manager.js (5.13)
+// Mirror of CRITICAL_DENY_PATTERNS from src/pty-manager.js (5.13 / 7.26)
 const CRITICAL_DENY_PATTERNS = [
   /\brm\s+-rf\s+[\/\\]/,
   /\bgit\s+push\s+--force/,
@@ -13,6 +13,12 @@ const CRITICAL_DENY_PATTERNS = [
   /\bmkfs\b/,
   /\bdd\s+if=/,
   /\bgit\s+reset\s+--hard\s+origin/,
+  /\bgit\s+filter-branch\b/,
+  /\bchmod\s+-R\s+777\b/,
+  /\bchmod\s+777\s+\//,
+  /\bfind\s+\/[^|]*\s-delete\b/,
+  />\s*\/dev\/sd[a-z]\b/,
+  /:\s*\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;\s*:/,
 ];
 
 describe('CRITICAL_DENY_PATTERNS (5.13)', () => {
@@ -87,6 +93,41 @@ describe('CRITICAL_DENY_PATTERNS (5.13)', () => {
 
   it('does NOT match ls -la', () => {
     assert.ok(!CRITICAL_DENY_PATTERNS.some(p => p.test('ls -la')));
+  });
+
+  // --- 7.26 additions ---
+
+  it('matches git filter-branch', () => {
+    assert.ok(CRITICAL_DENY_PATTERNS.some(p => p.test('git filter-branch --tree-filter foo')));
+  });
+
+  it('matches chmod -R 777 anywhere', () => {
+    assert.ok(CRITICAL_DENY_PATTERNS.some(p => p.test('chmod -R 777 /var/www')));
+  });
+
+  it('matches chmod 777 / (root)', () => {
+    assert.ok(CRITICAL_DENY_PATTERNS.some(p => p.test('chmod 777 /')));
+  });
+
+  it('matches find / -delete', () => {
+    assert.ok(CRITICAL_DENY_PATTERNS.some(p => p.test('find /etc -name "*.conf" -delete')));
+  });
+
+  it('matches raw disk write', () => {
+    assert.ok(CRITICAL_DENY_PATTERNS.some(p => p.test('cat junk > /dev/sda')));
+  });
+
+  it('matches fork bomb', () => {
+    assert.ok(CRITICAL_DENY_PATTERNS.some(p => p.test(':(){ :|:& };:')));
+  });
+
+  it('does NOT match safe chmod 755', () => {
+    assert.ok(!CRITICAL_DENY_PATTERNS.some(p => p.test('chmod 755 script.sh')));
+  });
+
+  it('does NOT match find . -delete in cwd-relative path', () => {
+    // Restricted to absolute paths starting with /
+    assert.ok(!CRITICAL_DENY_PATTERNS.some(p => p.test('find . -name "*.tmp" -delete')));
   });
 });
 

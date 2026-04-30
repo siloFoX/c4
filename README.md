@@ -330,6 +330,85 @@ These are used by Claude Code (manager), not by you directly:
 - **ScreenBuffer**: Enhanced ANSI CSI parser with scrollback API
 - **Cross-platform**: Windows, Linux, macOS support
 
+## Phase 9-11 features (1.6.16)
+
+c4 grew a fleet, scheduler, audit log, kanban board, workflow engine, and
+natural-language entry point on top of the worker manager. Everything is
+opt-in — defaults preserve the single-machine, single-user behavior.
+
+| Surface | Highlights |
+|---------|-----------|
+| **Adapters** (`src/adapters/`) | `claude-code` (default), `local-llm`, `computer-use` (non-PTY). Worker spawn + pattern detection are routed per-worker. |
+| **Fleet** (9.6 / 9.7 / 9.8) | `config.fleet.peers` register peer daemons. `c4 fleet peers/list`, `c4 dispatch <task>` (least-load / round-robin / tag-match), `POST /fleet/transfer` rsync. |
+| **RBAC + Audit** (10.1 / 10.2) | HMAC bearer tokens, viewer/manager/admin tiers, append-only `logs/audit.jsonl`, Web UI login form. |
+| **Projects / Cost / Departments** (10.3 / 10.5 / 10.6) | worktree → project mapping, daily token cost rollup with budget alerts, department member/quota tracking. |
+| **Scheduler** (10.7) | 5-field cron parser, `config.schedules` + runtime add/remove via `POST /schedule`. `target='dispatch'` routes through 9.7. |
+| **PM kanban** (10.8) | Append-only board JSONL, drag-and-drop Web UI, TODO.md import. |
+| **MCP hub** (11.1) | `config.mcp.servers` injected into worker `.claude/settings.json` per profile / option. |
+| **Workflow engine** (11.3) | JSON DAG with `dependsOn` + `on_failure`, builtin actions (task/dispatch/wait/shell/notify/sleep/list/create/close/schedule), persisted to `logs/workflow-runs.jsonl`. |
+| **NL interface** (11.4) | Heuristic intent parser → workflow plan. Optional LLM fallback via `config.nl.llm.enabled` + `ANTHROPIC_API_KEY`. |
+| **CI/CD webhooks** (10.4) | `POST /webhook/github` (HMAC) and `POST /webhook/gitlab` (token) auto-spawn review/deploy workers. |
+| **Web UI** | Dashboard adds Projects, Fleet, Cost, Departments, Board, Scheduler, Audit, Context views + a global NL command bar. |
+
+### CLI cheat sheet (new commands)
+
+```bash
+c4 dispatch "review yesterday's PRs" --tags review --strategy least-load
+c4 fleet peers
+c4 fleet list
+c4 batch-action close worker1 worker2 worker3
+c4 restart worker1                  # close + respawn (resumes session)
+c4 cancel  worker1                  # Ctrl+C × 2
+c4 suspend worker1                  # SIGSTOP (Unix only)
+c4 resume  worker1                  # SIGCONT
+```
+
+### Authentication (off by default)
+
+```jsonc
+{
+  "auth": {
+    "enabled": true,
+    "users": {
+      "alice": { "password": "…", "role": "admin" },
+      "bob":   { "password": "…", "role": "manager" },
+      "carol": { "password": "…", "role": "viewer" }
+    }
+  }
+}
+```
+
+The Web UI shows a login form when the daemon returns 401, stores the JWT
+in localStorage, and adds `Authorization: Bearer <token>` to every API
+call.
+
+## SDK (programmatic API)
+
+`c4-cli/sdk` is a thin client around the daemon's HTTP API for scripts and other Node tools that want to drive workers without going through the CLI.
+
+```js
+const { create } = require('c4-cli/sdk');
+
+const c4 = create({ host: '127.0.0.1', port: 3456 });
+
+await c4.create('reviewer');
+await c4.task('reviewer', 'Review this PR', { branch: 'c4/review' });
+const result = await c4.wait('reviewer', { timeoutMs: 60_000 });
+console.log(result.content);
+await c4.close('reviewer');
+```
+
+Highlights:
+
+- Worker lifecycle: `create`, `task`, `send`, `key`, `approve`, `suspend`, `resume`, `restart`, `cancel`, `rollback`, `merge`, `close`
+- Reads: `read`, `readNow`, `scrollback`, `wait`, `waitMulti({ mode: 'all' })`, `list`, `history`
+- Scribe: `scribeStart` / `scribeStop` / `scribeStatus` / `scribeContext` / `scribeScan`
+- Fleet: `fleetPeers`, `fleetList`, `fleetCreate`, `fleetTask`, `fleetClose`, `fleetSend`
+- Live stream: `events({ onMessage })` returns an SSE handle (`{ close }`)
+- Convenience: `untilIdle(name, { timeoutMs })`
+
+TypeScript types ship at `c4-cli/sdk` (see `src/sdk.d.ts`).
+
 ## FAQ
 
 **Q: C4 is not a standalone CLI tool?**

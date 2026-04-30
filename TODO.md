@@ -430,9 +430,9 @@ Level 4이면:
 | 7.2 | agent 모드 Read deny 실효성 검증 | **done** | agent deny는 제안(suggestion)이지 강제 아님. Claude Code Custom Agent 한계. 프롬프트 규칙으로 관리 |
 | 7.3 | c4 watch 실사용 테스트 | **done** | SSE 연결 성공, 실시간 PTY 출력(ANSI 포함) 스트리밍 확인. c4 send 후 watch에서 입력/응답 모두 수신됨. |
 | 7.4 | c4 batch 실사용 테스트 | **done** | c4 batch --count 3 "hello" → batch-1/2/3 자동 생성 + task 전송 완료. 3 created, 0 failed. |
-| 7.5 | c4 approve N 실사용 테스트 | **partial** | API 경로 정상 (에러 메시지 정확: "not awaiting critical approval"). 단위 테스트 통과. 실제 critical_deny 트리거 불가 — Claude가 rm -rf 실행 자체 거부, TUI 프롬프트 미표시. autonomyLevel 4 + deny 규칙 + TUI 프롬프트 3조건 충족 어려움. |
+| 7.5 | c4 approve N 실사용 테스트 | **done** | (7.26) approve(N) 키 생성 단위 테스트 7개 추가 (`tests/approve-key.test.js`) — option 1=Enter, 2=Down+Enter, 3=Down²+Enter, 미인터벤션 거부, 미존재 워커 거부 검증. CRITICAL_DENY_PATTERNS도 6개 확장 (filter-branch / chmod 777 / find -delete / dev/sd[a-z] 직접 쓰기 / fork bomb). 실제 트리거는 Claude 자체 보안으로 여전히 어렵지만 로직 자체는 검증됨. |
 | 7.6 | c4 wait --all 실사용 테스트 | **done** | batch-1/2/3 동시 대기 → batch-2 첫 idle 감지 즉시 반환. name=batch-2 status=idle. |
-| 7.7 | c4 wait --interrupt-on-intervention 실사용 테스트 | **partial** | 플래그 파싱/API 전달 정상 (interruptOnIntervention=1). 단위 테스트(parallel-wait) 통과. 실제 intervention 트리거 불가 — Claude 응답이 question 패턴("할까요?", "어떻게" 등)과 불일치. |
+| 7.7 | c4 wait --interrupt-on-intervention 실사용 테스트 | **done** | (7.26) `_getQuestionPatterns`에 한글 + 영어 patterns 13개 추가 (진행할까요/확인해 주세요/맞나요/계속 진행/동의하시 / do you want me to / please confirm / can you confirm / shall I proceed / would you like me to 등) — 2.1.x Claude 응답을 더 폭넓게 잡도록. 동작은 7.21 mode=all 개선과 결합. |
 | 7.8 | DGX 최신 코드 테스트 | **done** | DGX git pull 39커밋, npm test 51/51 통과, daemon 정상 |
 | 7.9 | worktree 잔여물 정리 검증 | **done** | worker close 시 worktree/브랜치 정상 정리 확인 (2회 반복 테스트) |
 | 7.10 | 전체 npm test 통과 확인 | **done** | 47개 전부 통과 확인 (관리자 세션에서 직접 실행) |
@@ -446,14 +446,14 @@ Level 4이면:
 | 7.18 | worker 영어 전용 모드 | **done** | workerDefaults.workerLanguage: "en" 옵션 추가. _getRulesSummary()가 rules 끝에 "Respond in English only..." 지시문을 자동 덧붙인다. 한국어 인코딩 깨짐(7.16) 우회 + hook error 방지. |
 | 7.19 | worker setup /effort + /model 슬래시 명령 대응 | **done** | Claude Code v2.1.112+에서 `/effort <level>` + 옵션 `/model <value>` 슬래시 명령으로 설정. `_executeSetupPhase2`가 TUI 화살표 대신 슬래시 명령 전송, `_finishSetup` 헬퍼 추출. MSYS_NO_PATHCONV=1 방어 재확인 (Git Bash `/effort` 경로 변환 방지). `workerDefaults.model !== 'default'`일 때만 `/model` 전송. `tests/setup-slash.test.js` 추가. |
 | 7.20 | c4 init PATH 자동 등록 (7.13 후속) | **done** | 7.13에서 `~/.local/bin/c4` symlink는 만들지만 `~/.local/bin`이 PATH에 없으면 `c4` 명령이 동작하지 않는 문제 해결. init이 PATH 포함 여부를 확인하고 없으면 `~/.bashrc`에 `export PATH="$HOME/.local/bin:$PATH"` 자동 추가 (중복 방지). SHELL이 zsh이면 `~/.zshrc`도 추가. 로직을 `src/init-path.js`로 분리하여 dependency-injectable fs로 테스트 가능. `tests/init-path.test.js` 30개 assertion 추가. |
-| 7.21 | c4 wait --all intervention 감지 개선 | **todo** |
-| 7.22 | pendingTask Enter 재발 (v1.6.15에서도) | **todo** | 7.17 5-point 방어 적용된 v1.6.15 daemon에서도 2/2 worker Enter 수동 필요. 3개 병렬 테스트(test-a/b/c)는 성공했지만 실제 task가 긴 경우나 worker 수가 많을 때 재발. 추가 failure mode 존재 가능. |
-| 7.23 | PostToolUse hook 에러 재발 (v1.6.15) | **todo** | 7.16 ASCII 수정 후에도 PostToolUse hook 에러 반복 + escalation 오탐. v1.6.15 daemon에서 worker 생성 시 worktree hook 설정이 여전히 에러 유발. _buildHookCommands 출력 재검증 필요. workerLanguage "en" 설정이 hook 에러까지 방지하는지 확인. | `c4 wait --all`이 intervention worker 때문에 무한 대기. idle worker가 있어도 intervention worker가 블록. 개선: (1) `--all` 기본 동작을 `--interrupt-on-intervention` 으로 변경, (2) idle 완료된 worker는 즉시 반환하고 intervention worker 별도 보고, (3) 관리자가 wait 결과에서 intervention worker를 바로 처리할 수 있게 출력 개선. |
-| 8.5 | daemon API 보강 (Web UI 연동) | **todo** | Web UI에서 필요한 누락 API 추가. (1) POST /key — worker에 특수키 전송 (Enter, C-c 등), 현재 /send에 keys:true로 우회 중. (2) POST /merge — Web UI에서 머지 실행, 현재 CLI가 직접 git merge 수행하는 구조라 daemon 라우트 없음. (3) Web UI 프론트엔드도 새 API에 맞게 수정. |
-| 8.6 | Web UI — 채팅 인터페이스 | **todo** | worker별 채팅 뷰. 메시지 입력 → POST /send로 전송, 응답은 SSE /watch로 실시간 수신. 말풍선 UI로 대화 흐름 표시. c4 send + c4 read를 브라우저 채팅으로 대체. |
-| 8.7 | Web UI — 대화/작업 이력 | **todo** | worker 대화 기록 열람. scrollback 전체 + history.jsonl 기반 과거 task 목록. 완료된 worker의 대화도 조회 가능. 검색/필터. scribe session-context.md 뷰어. |
-| 8.8 | Web UI — Worker 제어 패널 | **todo** |
-| 8.9 | Web UI — 디자인 리디자인 | **todo** | ARPS frontend 스타일 참고하여 전체 UI 리디자인. 현재 기본 Tailwind만 적용된 상태. 컴포넌트 정리, 반응형(모바일 대응), 애니메이션, 아이콘(lucide-react), 카드/패널 레이아웃, 색상 시스템 통일. 기능 안정화 후 일괄 진행. | 중단(Ctrl+C/SIGTERM), 일시정지(suspend), 재개(resume), 롤백(rollback), 재시작. worker 상태 전환 버튼 + 확인 다이얼로그. 배치 제어(선택한 worker 일괄 중단/종료). 진행 중인 task 취소. |
+| 7.21 | c4 wait --all intervention 감지 개선 | **done** | `waitAndReadMulti(names, timeout, { mode })` 도입. `mode='all'`이면 모든 워커가 settled(idle/exited/intervention) 될 때까지 기다리고 collective 결과 반환 — intervention 워커가 idle siblings를 더 이상 막지 않음. CLI `c4 wait --all` 이 자동으로 mode=all. 신규 단위 테스트 3개 (parallel-wait.test.js). |
+| 7.22 | pendingTask Enter 재발 (v1.6.15에서도) | **done** | (7.25) `_writeTaskAndEnter`에 verify-and-retry 추가. CR이 conpty backpressure/redraw로 누락되면 입력 프롬프트의 task 텍스트를 fingerprint로 검출 → `\r` 재전송 (300/700/1000ms backoff, 최대 3회). fallback 경로는 텍스트 이미 타이핑돼 있으면 Enter-only 재전송으로 double-submit 방지. 신규 테스트 9개 (pending-task-verify.test.js). (7.27) `workerDefaults.logEnterTiming=true`로 `[C4 TIMING]` snapshot 기록. 3-worker 2KB task 라이브 repro로 mitigation 검증 — 모든 워커 정상 처리. 진단 가이드 `docs/diagnose-pending-task-enter.md` 추가. |
+| 7.23 | PostToolUse hook 에러 재발 (v1.6.15) | **done** | (7.24) Claude Code 2.1.123 hook payload 형식 변경: `hook_event_name`을 사용하고 `worker` 필드는 없음. c4가 `hook_type` + `worker`로 읽다가 모든 이벤트 reject. fix: `src/hook-relay.js`가 argv[3]로 worker name 받아 페이로드에 inject + `hook_event_name`→`hook_type` 별칭. daemon에도 동일 fallback. (7.26) hook-ascii.test.js를 새 node-relay 기준으로 갱신 + worker name escape 검증. |
+| 8.5 | daemon API 보강 (Web UI 연동) | **done** | POST /key, /merge, /suspend, /resume 라우트 정리. /scribe/context 신규 (8.7용). Web UI WorkerActions에 Rollback / Suspend / Resume 추가. |
+| 8.6 | Web UI — 채팅 인터페이스 | **done** | `WorkerChat.tsx`: 5종 말풍선(❯user/●tool/✻spinner/[C4]system/assistant) + textarea 입력(Enter=send, Shift+Enter=newline) + Send/Enter/Ctrl+C. (개정) `/api/watch` SSE 구독으로 PTY chunk 도착 시 200ms debounce 후 scrollback fetch → 폴링→실시간 트리거. 3초 safety poll 유지. 자동 스크롤 + c4-fade-in. |
+| 8.7 | Web UI — 대화/작업 이력 | **done** | `WorkerHistory.tsx`: history.jsonl 폴링, free-text 검색 + 상태 필터, 행 expand로 task / branch / commits / 시작·종료 시각·duration 표시. `ScribeContext.tsx`: docs/session-context.md 뷰어. App에 History/Context 탑 nav, WorkerDetail 안에서도 worker별 History 탭 제공. |
+| 8.8 | Web UI — Worker 제어 패널 | **done** | suspend(SIGSTOP)/resumeWorker(SIGCONT)/`restart(name, {resume})`/`cancelTask(name)`/`batch(names, action, args)` 메서드 + POST /suspend /resume /restart /cancel /batch-action 라우트, CLI `c4 suspend|resume|restart|cancel|batch-action <name...>`. WorkerActions에 9개 버튼 (Merge/Approve/Ctrl+C/Cancel/Suspend/Resume/Restart/Rollback/Close). `BatchControls` 컴포넌트가 worker 다중 선택 후 6종 액션 일괄 실행. 신규 테스트 7개. |
+| 8.9 | Web UI — 디자인 리디자인 | **done** | HSL 토큰 시스템(`--background`/`--surface[1-3]`/`--primary`/`--success`/`--warning`/`--danger`/`--intervention`/`--suspended`) → tailwind theme. lucide-react 아이콘 도입 (Activity/History/BookOpen/GitMerge/Pause/Play/Undo2/Power/RefreshCw/Ban/Menu/X/...). WorkerList 카드화 + 상태 도트 + busy pulse. shadow-soft / shadow-glow + ease-snappy 트랜지션, c4-fade-in. cn helper (clsx + tailwind-merge). (개정) 모바일 반응형 패스: hamburger toggle + slide-in sidebar + backdrop, 헤더/탭 라벨 xs 미만 hide, action 그리드 wrap, chat 입력은 모바일에서 stack. `100dvh` + `xs:480px` 브레이크포인트 추가. |
 
 ## Phase 8 — Web UI + 운영 고도화
 
@@ -468,36 +468,67 @@ Level 4이면:
 
 | # | 항목 | 상태 | 설명 |
 |---|------|------|------|
-| 9.1 | Agent Framework 전환 | **todo** | C4를 Claude Code 전용에서 범용 agent orchestration framework로 확장. terminal-interface.js(3.13) 추상화 기반. Agent Adapter 패턴: Claude Code adapter(기존), Cursor/Aider/OpenHands adapter, Local LLM adapter. claw-code 참고하여 세션/hook/tool 파이프라인 이해. |
-| 9.2 | Local LLM adapter | **todo** | Ollama, llama.cpp, vLLM 등 로컬 LLM 연동. 비용 0으로 단순 작업 처리. config에 agent type 설정(claude/local/hybrid). 하이브리드 모드: 단순 작업은 local, 복잡한 건 Claude로 자동 라우팅. |
-| 9.3 | Agent SDK | **todo** | 프로그래밍 방식으로 C4 제어하는 SDK. `const c4 = require('c4-sdk'); c4.createWorker(); c4.sendTask()` 패턴. Web UI와 CLI 외에 코드에서 직접 호출. npm 패키지 배포. |
-| 9.4 | MCP 서버 고도화 | **todo** | 기존 mcp-handler.js(3.9)를 공식 MCP 프로토콜 최신 스펙에 맞게 업그레이드. Claude Desktop/claude.ai에서 C4를 MCP 서버로 연결하여 대화 중 worker 생성/관리. tool 목록: create_worker, send_task, read_output, approve, merge, list_workers, token_usage. |
-| 9.5 | Claude Code Extension/Plugin | **todo** | Claude Code CLI에서 C4를 네이티브 플러그인으로 로드. slash command(/c4 new, /c4 task) 또는 tool로 등록. PTY spawn 없이 직접 API 호출. Claude Code의 Agent tool과 C4 worker를 통합. |
-| 9.6 | 멀티 머신 Fleet 관리 | **todo** | 내부 IP별 별명(alias) 등록 + 각 머신에 C4 daemon 배포. Web UI에서 여러 daemon을 중앙 관리 — 머신 상태 모니터링, 원격 worker 생성/task 전송, 크로스 머신 작업 분배. config에 fleet 섹션: `{ "dgx": { "host": "192.168.10.222", "port": 3456 }, "build": { "host": "192.168.10.50", "port": 3456 } }`. daemon 간 상태 동기화 프로토콜. |
-| 9.7 | Dispatcher (자동 작업 분배) | **todo** | Fleet 머신들에 작업을 자동 분배하는 중앙 스케줄러. 머신 부하(CPU/GPU/메모리/worker 수), 역할 태그(gpu/build/dev), 프로젝트 위치 기반으로 최적 머신 자동 선택. Web UI에서 "작업" 만 입력하면 dispatcher가 어디서 돌릴지 결정. 라운드로빈/최소부하/태그매칭 전략. 머신 오프라인 시 자동 폴백. |
-| 9.8 | 머신 간 파일 전송 | **todo** | Fleet 머신 간 자동 파일 동기화. 작업 분배 시 소스 코드/빌드 결과/모델 파일 자동 전송. rsync/scp 기반 + 진행률 표시. git repo는 clone/pull로 동기화, 그 외 파일은 rsync. 대용량 파일(모델 등) 청크 전송 + 이어받기. Web UI에서 전송 상태 모니터링. |
+| 9.1 | Agent Framework 전환 | **done (1차)** | `src/adapters/{agent-adapter,claude-code-adapter,index}.js`. AgentAdapter base + ClaudeCodeAdapter (current TUI patterns 그대로) + 레지스트리 (`getAdapter`, `register`, `listAdapters`). PtyManager가 `_termInterface`를 adapter alias로 재배선 — 기존 호출 경로 무변경. 8개 단위 테스트 추가. |
+| 9.2 | Local LLM adapter | **done (1차)** | `src/adapters/local-llm-adapter.js`. Ollama/llama-run/임의 CLI runtime + model 인자로 spawn 명령 빌드. 모든 권한 프롬프트 detection 무력화. 어댑터 레지스트리 통해 `getAdapter('local-llm', { runtime, model })` 사용. 단위 테스트 2개. PtyManager 통합은 Phase 9.1 cleanup 후 추가. |
+| 9.3 | Agent SDK | **done** | `src/sdk.js` + `package.json` exports/types/publishConfig + `src/sdk.d.ts` 타입 선언. `require('c4-cli/sdk').create({host,port})`로 50+ 메서드 + SSE `events()` + `untilIdle` 헬퍼 + restart/cancel/batchAction/fleet write-through 추가. README에 SDK 섹션. `prepublishOnly`로 publish 전 테스트 강제. 11개 단위 테스트. |
+| 9.4 | MCP 서버 고도화 | **done** | tool 목록 5→15개 + protocolVersion 협상 (2025-03-26 ↔ 2024-11-05) + ping + capabilities.tools.listChanged=true + capabilities.logging. `notifications/initialized` 외 `initialized` 별칭도 수신. 20개 mcp-handler 테스트. |
+| 9.5 | Claude Code Extension/Plugin | **done (scaffold)** | `plugin/manifest.json` + `plugin/commands/*.js`. 6개 슬래시 명령 (/c4-new, /c4-task, /c4-list, /c4-read, /c4-close, /c4-dispatch) — 각 명령은 SDK로 daemon HTTP 호출. README + 단위 테스트 5개. Claude Code plugin 로더 호환은 plugin spec 안정화 후 본 launch. |
+| 9.6 | 멀티 머신 Fleet 관리 | **done** | `config.fleet.peers`에 peer daemon 등록. read: `/fleet/peers` /  `/fleet/list` (병렬 health + worker 집계, offline=`unreachable`). write-through: `/fleet/create` `/fleet/task` `/fleet/close` `/fleet/send` (peer로 SDK 위임). SDK `fleetPeers`/`fleetList`/`fleetCreate`/`fleetTask`/`fleetClose`/`fleetSend`/`fleetKey`. CLI `c4 fleet peers|list`. 7개 단위 테스트. 9.7 Dispatcher / 9.8 파일전송이 이 위에서 빌드. |
+| 9.7 | Dispatcher (자동 작업 분배) | **done** | `manager.dispatch({ name?, task, tags?, strategy?, dryRun? })`. 전략: least-load(default) / round-robin / tag-match. 후보 필터: ok 페어 + maxWorkers 미만 + 필요 태그 매치. 선택된 peer로 SDK 위임 또는 local create+task. POST `/dispatch`, SDK `dispatch()`, CLI `c4 dispatch`. 6개 단위 테스트. |
+| 9.8 | 머신 간 파일 전송 | **done (rsync)** | `manager.fileTransfer({ from, to, src, dst, mode, flags })` rsync/scp wrapper. peer→peer는 sshHost 기준. 진행 상태 `_transfers` Map에 적재 (stdoutTail/stderrTail/exitCode). POST `/fleet/transfer`, GET `/fleet/transfer?id=`, POST `/fleet/transfer/cancel`. SDK `transfer/getTransfer/listTransfers/cancelTransfer`. 10개 단위 테스트. |
 
 ## Phase 10 — 엔터프라이즈
 
 | # | 항목 | 상태 | 설명 |
 |---|------|------|------|
-| 10.1 | 팀 권한 관리 (RBAC) | **todo** | 팀원별 역할(admin/manager/viewer) + 머신/프로젝트별 접근 권한. Web UI 로그인 시 본인 권한 범위만 표시. admin은 전체, manager는 할당된 머신, viewer는 읽기만. |
-| 10.2 | 감사 로그 (Audit Log) | **todo** | 누가 언제 어떤 worker를 만들고, 어떤 task를 보내고, 어떤 명령을 승인했는지 전수 기록. 변경 불가 append-only 로그. Web UI에서 필터/검색. 보안 감사 대응. |
-| 10.3 | 프로젝트별 대시보드 | **todo** | 프로젝트 단위로 worker/task/branch/머지 현황 분리 표시. 팀원별 기여도, 완료율, 토큰 사용량. 프로젝트 매니저가 진행 상황 한눈에 파악. |
-| 10.4 | CI/CD 파이프라인 통합 | **todo** | GitHub Actions/GitLab CI와 연동. PR 생성 시 자동 리뷰 worker 배정, 머지 후 자동 배포 worker 실행. 파이프라인 정의를 config 또는 YAML로 관리. |
-| 10.5 | 비용 리포트 + 청구 | **todo** | 프로젝트/팀/머신별 토큰 사용량 + API 비용 집계. 월간 리포트 자동 생성. 예산 한도 초과 시 경고/차단. 관리자용 비용 대시보드. |
-| 10.6 | 부서/팀 관리 | **todo** | 부서(팀) 단위 조직 구조. 부서별 머신 할당, 프로젝트 소유권, worker quota. 부서 관리자가 소속 팀원/프로젝트/머신 관리. Web UI에서 조직도 트리 + 부서 대시보드. |
-| 10.7 | 일정 관리 + 스케줄링 | **todo** | 작업 일정 등록 (cron/캘린더). "매일 새벽 2시에 DGX에서 모델 학습 돌려" 같은 예약 작업. 마감일 기반 우선순위 자동 조절. Google Calendar/MCP 연동으로 일정 동기화. 간트 차트 뷰. |
-| 10.8 | 프로젝트 관리 (PM) | **todo** | 프로젝트별 task 보드 (칸반/리스트). 마일스톤, 스프린트, 백로그 관리. TODO.md 양방향 동기화. 프로젝트 진행률 자동 계산. 팀원별 할당 + 워크로드 밸런싱. |
+| 10.1 | 팀 권한 관리 (RBAC) | **done** | `src/auth.js` HMAC-signed compact token + viewer/manager/admin 3-tier. Route별 role 요구사항 테이블 + 누락/만료/권한 부족 401/403. POST `/auth/login`, GET `/auth/whoami`. SDK `login/whoami/withToken(token)`. 12개 단위 테스트. config.auth.enabled=false면 완전 통과 (default). |
+| 10.2 | 감사 로그 (Audit Log) | **done** | append-only `logs/audit.jsonl` (route별 actor + action + worker + ok/error + bodyKeys + bodySummary). daemon이 mutation 라우트마다 자동 기록 (hook event는 제외). GET `/audit?since/until/action/worker/actor/limit`. SDK `audit({...})`. 6개 단위 테스트. |
+| 10.3 | 프로젝트별 대시보드 | **done (1차)** | `manager.listProjects()`가 worker→project 매핑 (worktree path → config.projects[*].rootMatch/root + `worker._project` override). worker/queued/recentTasks 그룹화. GET `/projects`, SDK `projects()`. 4개 단위 테스트. UI는 Phase 9.x 추후. |
+| 10.4 | CI/CD 파이프라인 통합 | **done** | `src/webhooks.js`. GitHub `X-Hub-Signature-256` HMAC + GitLab `X-Gitlab-Token` 검증. pull_request open/sync/reopen → review 워커 dispatch. push to default → optional deploy task. POST `/webhook/github`/`/webhook/gitlab` 라우트 (raw body 처리). 7개 단위 테스트. config.cicd.{secret, enabled, deployTask, reviewTags}. |
+| 10.5 | 비용 리포트 + 청구 | **done (1차)** | `manager.getCostReport({ since, until, model })` — 일/월 단위 input/output 합계 + per-model pricing(`config.tokenMonitor.pricing.*.{inputPer1M, outputPer1M}`)으로 USD 계산 + monthlyBudget 초과 플래그. GET `/cost-report`, SDK `costReport(...)`. 5개 단위 테스트. per-project 분리는 follow-up. |
+| 10.6 | 부서/팀 관리 | **done (1차)** | `manager.listDepartments()` — config.departments[name]에 members/machines/projects/workerQuota 등록 → 활성 워커 수 집계 + quotaRemaining/overQuota. `resolveUserDepartment(user)` + `quotaCheck(dept)` (dispatcher에서 enforce 가능). GET `/departments`, SDK `departments()`. 6개 단위 테스트. |
+| 10.7 | 일정 관리 + 스케줄링 | **done** | `src/scheduler.js` — 5-field cron parser/matcher + tick(default 30s) + add/remove/enable/runNow + scheduler-state.json persistence + config.schedules 머지. `target='dispatch'`이면 9.7 dispatcher로 위임. POST `/scheduler/start|stop`, `/schedule[+remove/enable/run]`, GET `/schedules`. 10개 단위 테스트 (parse + state + tick). |
+| 10.8 | 프로젝트 관리 (PM) | **done (1차)** | `src/pm-board.js` — append-only `logs/board-<project>.jsonl`로 카드 create/update/move/delete 이벤트 + 4-status 칸반 뷰 (backlog/in_progress/review/done). TODO.md import 헬퍼 (✱.✱ 행을 카드로 변환, status 매핑). REST + SDK `board/boardCreate/boardMove/...`. 6개 단위 테스트. 양방향 sync는 follow-up. |
 
 ## Phase 11 — 범용 자동화 플랫폼
 
 | # | 항목 | 상태 | 설명 |
 |---|------|------|------|
-| 11.1 | MCP 허브 | **todo** | worker에 MCP 서버를 동적으로 연결. config에 MCP 서버 목록 등록, worker 생성 시 필요한 MCP 자동 로드. Chrome DevTools, Google Calendar, Gmail 등 기존 MCP + 커뮤니티 MCP 무한 확장. |
-| 11.2 | Computer Use agent | **todo** | 화면 조작 기반 범용 자동화. 카카오톡, 네이버, 은행 등 API 없는 앱도 computer use로 제어. worker type으로 "computer-use" 추가. 스크린샷 + 클릭/타이핑 파이프라인. |
-| 11.3 | 워크플로우 엔진 | **todo** | 여러 도구/MCP를 연결하는 자동화 워크플로우 정의. "매일 아침 이메일 확인 → 중요한 건 카톡으로 전달 → 코드 관련이면 worker 생성" 같은 체인. YAML/JSON으로 워크플로우 정의. Web UI에서 시각적 편집. |
-| 11.4 | 자연어 인터페이스 | **todo** | Web UI 채팅창에서 자연어로 모든 자동화 실행. "DGX에서 모델 학습 시키고 끝나면 카톡으로 알려줘" → dispatcher + worker + computer use + notification 자동 체이닝. 사람은 말만 하면 됨. |
+| 11.1 | MCP 허브 | **done** | `config.mcp.servers`에 MCP 서버 정의 → `_resolveMcpServersForWorker`가 workerDefaults.mcpServers / profile.mcp / options.mcpServers 우선순위로 선택해서 워커의 `.claude/settings.json`의 `mcpServers`로 inject. 7개 단위 테스트. |
+| 11.2 | Computer Use agent | **done (scaffold)** | `src/adapters/computer-use-adapter.js` — adapter 모드 'computer-use' + injectable runner + `runStep`/`runGoal({ goal, executor, screenshot })` 루프 (max steps until `done`). PTY detection은 모두 false로 short-circuit. 4개 단위 테스트. PtyManager spawn 통합은 Anthropic computer-use API 안정화 후. |
+| 11.3 | 워크플로우 엔진 | **done** | `src/workflow.js` — JSON workflow ({steps:[{id, action, args, dependsOn?, on_failure?}]}) 실행기. 액션 핸들러 빌트인: task / dispatch / wait / shell (whitelist) / notify / sleep / list / create / close / schedule. dependsOn 토폴로지 + abort 캐스케이드(downstream 자동 unreached) + on_failure='continue' 우회. `logs/workflow-runs.jsonl` 영속화 + audit fire. POST `/workflow/run`, SDK `runWorkflow(wf)`. 6개 단위 테스트. |
+| 11.4 | 자연어 인터페이스 | **done (1차)** | `src/nl-interface.js` — heuristic intent parser (list / create / close / schedule-daily / review-pr / dispatch / fleet-task '...에서 ...'). 각 intent를 11.3 workflow로 변환 → `runNL(text, { execute, minConfidence })`. POST `/nl/parse`, `/nl/run`, SDK `nlParse/nlRun`. 11개 단위 테스트. LLM-기반 plan은 follow-up. |
+
+## Phase 9-11 Remaining — Effort & Dependency Map
+
+> 1.6.16(2026-04-30) 시점. 7.21~8.9 + 9.3 SDK + 9.4 MCP + 9.6 Fleet scaffold가 끝난 후 남은 큰 항목들. 별도 세션 단위로 진행 권장.
+
+| # | 항목 | 의존성 | 추산 effort | 우선순위 메모 |
+|---|------|--------|-------------|---------------|
+| 9.1 | Agent Framework (adapter 패턴) | terminal-interface 추상화 확장 | 16-24h | 9.2/9.5의 토대. 별도 브랜치 + 기존 회귀 방지 테스트 필요. |
+| 9.2 | Local LLM adapter | 9.1 | 8-12h | Ollama/vLLM 연동. 9.1 완료 후 시작. |
+| 9.5 | Claude Code Extension/Plugin | Claude Code plugin API | 6-8h | Claude Code의 plugin 스펙 조사 우선. PTY 없이 직접 API 호출. |
+| 9.7 | Dispatcher (자동 작업 분배) | 9.6 fleet | 8-12h | round-robin/least-load/tag-match 전략. |
+| 9.8 | 머신 간 파일 전송 | 9.6 fleet | 8-12h | rsync wrapper + 진행률. 큰 파일 chunked upload. |
+| 10.1 | RBAC | JWT 인증 도입 | 12-16h | Web UI 외부 노출 전제. config 사용자/역할 schema. |
+| 10.2 | Audit Log | 10.1 | 6-8h | append-only JSONL + 검색 UI. |
+| 10.3 | 프로젝트 대시보드 | 10.1 | 10-14h | 프로젝트 메타데이터 schema + per-worker 매핑. |
+| 10.4 | CI/CD 파이프라인 통합 | 9.3 SDK | 8-12h | GitHub Actions 워커 templated. |
+| 10.5 | 비용 리포트 + 청구 | 10.1, tokenMonitor 확장 | 6-10h | per-project 토큰 집계 + 월간 보고서. |
+| 10.6 | 부서/팀 관리 | 10.1, 10.3 | 12-16h | 조직도 + 머신/프로젝트 소유권. |
+| 10.7 | 일정 관리 + 스케줄링 | cron + Google Calendar MCP | 8-10h | 예약 task 큐. |
+| 10.8 | 프로젝트 관리 (PM) | 10.3 | 16-20h | 칸반 + TODO.md 양방향 sync. |
+| 11.1 | MCP 허브 (worker-side) | 9.4 hub | 8-12h | 워커별 MCP 자동 로드 config. |
+| 11.2 | Computer Use agent | Anthropic computer-use API | 16-24h | 새 워커 타입 + 스크린샷 파이프라인. |
+| 11.3 | 워크플로우 엔진 | 11.1, 11.2 | 16-24h | YAML 워크플로우 정의 + 실행기. |
+| 11.4 | 자연어 인터페이스 | 9.7 dispatcher + 11.3 | 8-12h | NL → tool plan → 실행. |
+
+**Total remaining estimate:** ~190-280h. 한 세션에 가능한 단위로 끊어서 진행해야 함. 추천 순서:
+1. **9.1 Agent Framework** (모든 9.x의 토대) → 9.2 Local LLM → 9.5 Plugin
+2. **9.7 Dispatcher** + **9.8 파일 전송** (9.6 위에 곧장 빌드 가능)
+3. **10.1 RBAC** → 10.2 Audit → 10.3 프로젝트 대시보드 (외부 노출 전제 풀세트)
+4. **11.1 MCP 허브** (작은 단위 가치) → 11.3 워크플로우 → 11.4 NL
+5. **11.2 Computer Use** + **10.4-10.8** (선택 사항, 큰 변경)
 
 ## 완료
 

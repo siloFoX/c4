@@ -1,5 +1,79 @@
 # Changelog
 
+## [1.6.16] - 2026-04-30
+
+### Fixed
+- **Hook 페이로드 매칭** (7.24, TODO 7.23): Claude Code 2.1.123이 hook stdin에 `hook_event_name`/`worker` 없이 실제 페이로드를 보내면서 c4 daemon이 모든 PreToolUse/PostToolUse 이벤트를 `missing worker name`으로 거부 → auto-approve / scope guard / escalation 추적 / CI feedback / subagent swarm 전부 무력화돼 있던 회귀를 복원. `src/hook-relay.js`가 argv[3]로 worker 이름을 받아 stdin JSON에 `worker` 필드 + `hook_event_name`→`hook_type` 별칭을 inject. `_buildHookCommands`가 워커 이름을 인자로 전달하고 `\"`로 escape. daemon에도 같은 fallback 추가해 직접 POST(테스트/외부 relay)도 받음.
+- **pendingTask Enter verify-and-retry** (7.25, TODO 7.22): conpty backpressure나 TUI redraw로 CR이 누락되는 long task / 다중 worker 케이스용 안전망. `_writeTaskAndEnter(... { verifyWith: worker })` 옵션이 입력 프롬프트에 task 텍스트가 그대로 남아 있는지 fingerprint 매칭으로 감지하고 300/700/1000ms backoff로 `\r`을 재전송 (최대 3회). pendingTask timeout fallback도 텍스트가 이미 타이핑된 상태면 Enter-only로 복귀해 double-submit 방지. 정규 task delivery 5개 경로 + `_createAndSendTask`/큐 자동 재개에 적용.
+- **`c4 wait --all` intervention 블로킹** (TODO 7.21): `waitAndReadMulti`에 `mode: 'first' | 'all'` 옵션 추가. CLI `--all`이 자동으로 mode=all로 전환되며, 모든 워커가 idle/exited/intervention 어느 쪽이든 settled 될 때까지 기다린 뒤 collective 결과를 반환. intervention 워커 한 명 때문에 idle siblings가 blocking 되던 문제 해결.
+
+### Added
+- **워커 suspend/resume** (TODO 8.8): `suspend(name)` / `resumeWorker(name)`이 PTY child에 SIGSTOP/SIGCONT를 보내 일시정지/재개. `list()`에 `status='suspended'` + `suspended: bool` 필드. POST `/suspend` `/resume`, CLI `c4 suspend|resume <name>`, Web UI WorkerActions에 Pause/Play 아이콘 버튼.
+- **read 토큰 절감** (TODO 별건, c4 read/wait/scrollback 등): `_compactReadText` 헬퍼가 box-drawing(U+2500-259F) + 공백만으로 채워진 노이즈 라인을 단일 `───`로 압축, 연속 빈 줄도 한 줄로 정리. `read`/`readNow`/`waitAndRead`/`waitAndReadMulti`/`getScrollback` 5개 read API 모두에 적용. `config.compactRead.enabled = false`로 끌 수 있음. 패턴 매칭 흐름은 raw text 그대로 사용.
+- **L4 critical deny 추가 패턴** (TODO 7.5): `git filter-branch`, `chmod -R 777`, `chmod 777 /`, `find /<path> -delete`, `> /dev/sd[a-z]`, fork bomb 6종 추가. `tests/critical-deny.test.js`에 8개 테스트 추가.
+- **question 패턴 보강** (TODO 7.7): 한글 6종 + 영어 7종 추가 (진행할까요/확인해 주세요/맞나요/계속 진행/동의하시 / do you want me to / please confirm / can you confirm / shall I proceed / would you like me to ...).
+- **POST `/scribe/context`** (TODO 8.7): docs/session-context.md를 Web UI에서 조회. `scribeContext()` 메서드가 path/exists/content/size/mtime 반환.
+- **Web UI 채팅 인터페이스** (TODO 8.6): `WorkerChat.tsx` — scrollback 폴링 → ❯ user / ● tool / ✻ spinner / [C4 system / 일반 assistant 5종 분류 말풍선. textarea 입력(Enter=send, Shift+Enter=newline) + Send/Enter/Ctrl+C 버튼. 자동 스크롤 + fade-in 애니메이션. WorkerDetail 디폴트 탭.
+- **Web UI 이력 뷰** (TODO 8.7): `WorkerHistory.tsx`에서 history.jsonl을 free-text 검색 + 상태 필터로 조회, 행 expand로 task/branch/commits/시간 상세. `ScribeContext.tsx`로 session-context.md 별도 뷰어. App에 Workers/History/Context 톱 nav 추가, WorkerDetail에도 per-worker History 탭.
+- **Web UI 디자인 시스템** (TODO 8.9): HSL 토큰 (`--background`/`--surface[1-3]`/`--border`/`--foreground`/`--muted`/`--primary`/`--success`/`--warning`/`--danger`/`--intervention`/`--suspended`)을 tailwind theme에 매핑. lucide-react 아이콘, `cn` 헬퍼 (clsx + tailwind-merge), shadow-soft/shadow-glow, ease-snappy 트랜지션, c4-fade-in 키프레임. WorkerList를 카드화하고 상태 dot + busy pulse + SSE/polling indicator 추가. WorkerActions를 tone(neutral/warning/danger)으로 분류하고 아이콘으로 통일.
+
+### Tests
+- 신규 테스트 4개 파일 + 27개 케이스 추가 (`pending-task-verify.test.js` 9, `approve-key.test.js` 7, `suspend-resume.test.js` 7, `parallel-wait` mode='all' 3, `critical-deny` 8개 보강, `hook-ascii` 갱신). 총 55개 테스트 통과.
+
+### Phase 7-8 follow-ups (잔여 보강)
+- **8.6 SSE 채팅** — 폴링을 `/api/watch` SSE 트리거 기반으로 교체. PTY chunk 도착마다 200ms debounce 후 scrollback fetch. 3초 safety poll 유지.
+- **8.8 재시작 / 배치 / 취소** — `restart(name, {resume})` (close+respawn + --resume sessionId 옵션), `cancelTask(name)` (Ctrl+C × 2), `batch(names, action, args)`. POST `/restart` `/cancel` `/batch-action` 라우트, CLI `c4 restart|cancel|batch-action`. Web UI: WorkerActions에 Restart/Cancel 버튼 + `BatchControls` 컴포넌트(다중 선택 후 6종 액션 일괄 실행).
+- **8.9 모바일 반응형** — hamburger toggle + slide-in sidebar + backdrop, 헤더/탭 라벨 xs 미만 숨김, chat 입력 모바일 stack 레이아웃, History table min-width로 가로 스크롤. `xs:480px` 브레이크포인트 + `100dvh` 사용.
+- **7.22 instrumentation + 진단 가이드** — `workerDefaults.logEnterTiming=true`로 `[C4 TIMING]` snapshot. `docs/diagnose-pending-task-enter.md`로 재현/조사 절차 문서화. 3-worker 2KB task 라이브 repro 검증 — 통과.
+
+### Phase 9 follow-ups
+- **9.3 SDK publish 준비** — `src/sdk.d.ts` 타입 선언, package.json `types`/`publishConfig.access`/`prepublishOnly`/`files` 정리, README에 SDK 섹션.
+- **9.4 MCP 프로토콜 최신화** — protocolVersion 협상(`2025-03-26` ↔ `2024-11-05`), `ping` 응답, `notifications/initialized` 외 `initialized` 별칭, `capabilities.tools.listChanged=true` + `capabilities.logging`.
+- **9.6 Fleet write-through** — `/fleet/create` `/fleet/task` `/fleet/close` `/fleet/send`. SDK `fleetCreate`/`fleetTask`/`fleetClose`/`fleetSend`/`fleetKey`. 4개 단위 테스트 추가 (총 7개).
+
+### 1.6.16 누적 (3차 — CLI / 백업 / hot-reload / 알림 / workflow UI)
+- **CLI 신규 명령** — `c4 audit / projects / departments / cost / nl / workflow run / schedules / schedule add|remove|enable|run / board (view|add|move|delete) / transfer / backup / restore`. 새 daemon 라우트들을 모두 CLI로 노출.
+- **Workflow runs reader + Web UI** — `manager.getWorkflowRuns({ limit, name })` + GET `/workflow/runs`. Web UI에 `WorkflowView` (JSON 편집기 + 템플릿 + 실행 결과 + 최근 run 히스토리 details).
+- **Notifications 다양화** — workflow 실패 / scheduler 실패 / cost budget 월간 초과 시 `_notifications.pushAll()` 자동 호출 (월별 once-per-month 가드).
+- **Daemon hot-reload** — `manager.watchConfig()` (fs.watch + 300ms debounce)로 config.json 변경 자동 reload. SSE `config_reload` emit. `config.daemon.watchConfig=false`로 비활성.
+- **Backup/restore** — `manager.backup({ outPath })`로 config + state + history + audit + workflow runs + board JSONL 모두 tar.gz 묶음. `manager.restore({ archive, dryRun })`. POST `/backup` `/restore` (admin 전용), CLI `c4 backup` `c4 restore`.
+- **/create 라우트 adapter forward** — `/create`가 body의 `adapter`/`adapterOpts`/`resume`을 manager.create에 전달. local-llm 등 alternative runtime 라이브 검증 가능.
+- **라이브 검증** — local-llm adapter spawn override를 echo 런타임으로 실증 (raw log 2바이트 newline). 다른 daemon 변경 없이 adapter만 끼워서 alternative process 띄움.
+
+### Phase 9-11 (2차 — depth + UI + integration)
+- **Per-worker adapter** — 워커별 `_adapter` 인스턴스로 모든 detection 라우팅. PTY 핫패스의 `this._termInterface.*` 호출을 전부 `worker._adapter.*`로 마이그레이션해서 local-llm / computer-use 워커가 ClaudeCode TUI 패턴을 끼지 않도록 분리.
+- **Auth login Web UI** — `web/src/lib/auth.ts`가 `installAuthFetch()`로 글로벌 fetch 래핑 + 401 자동 로그아웃. `LoginForm.tsx` + 헤더 사용자 배지 + 로그아웃 버튼. App boot가 `/api/list`로 auth 활성 여부 probe.
+- **SSE 이벤트 확장** — workflow `workflow_start/workflow_end`, scheduler `schedule_fire`, board `board_event`, non-pty 워커 `worker_start` emit. Web UI 자동 갱신 트리거.
+- **Non-PTY worker 흐름** — `_createNonPty()`가 PTY 없이 worker 등록 (computer-use 등). close 시 SIGTERM 대신 alive=false flip.
+- **HTTP integration tests** — http.createServer + SDK로 round-trip 검증 (health/projects/board/workflow/nl).
+- **README 보강** — Phase 9-11 새 surface 표 + CLI 치트시트 + auth 설정 예제.
+
+### Phase 9-11 (1차 일괄 마무리)
+- **9.1 Agent adapter 패턴** — `src/adapters/{agent-adapter,claude-code-adapter,index}.js`. PtyManager `_termInterface`를 adapter alias로 재배선 (호출 경로 무변경). `getAdapter(name, opts)` / `register(name, ctor)` / `listAdapters()`.
+- **9.2 Local LLM adapter** — `local-llm-adapter.js`. Ollama / llama-run / 임의 CLI runtime + model 인자로 spawn 명령. 권한 프롬프트 detection 무력화.
+- **9.5 Plugin scaffolding** — `plugin/manifest.json` + 6개 슬래시 명령 (`/c4-new` `/c4-task` `/c4-list` `/c4-read` `/c4-close` `/c4-dispatch`). 각각 SDK 통해 daemon 호출.
+- **9.7 Dispatcher** — `manager.dispatch({ task, tags?, strategy? })` (least-load / round-robin / tag-match) + maxWorkers 캡 + dryRun. CLI `c4 dispatch ...`.
+- **9.8 Fleet 파일 전송** — rsync/scp wrapper, `_transfers` 영속화, sshHost 기반 peer→peer 전송. POST `/fleet/transfer` + cancel.
+- **10.1 RBAC** — HMAC compact token + viewer/manager/admin tier + route 요구 매트릭스. POST `/auth/login` GET `/auth/whoami`. 기본 disabled.
+- **10.2 Audit log** — append-only `logs/audit.jsonl` 자동 기록 + GET `/audit` 검색. parseBody가 `req._auditBody`에 stash.
+- **10.3 Project view** — worktree 경로 → config.projects[*].root/rootMatch 매핑 + per-project worker/queued/recentTasks 그룹.
+- **10.4 CI/CD webhooks** — GitHub HMAC + GitLab token, PR/MR 자동 review dispatch + push deploy task. POST `/webhook/github` `/webhook/gitlab` (raw body).
+- **10.5 Cost report** — daily 집계 + per-model pricing (`tokenMonitor.pricing`) → USD + 월간 합계 + monthlyBudget 초과 플래그.
+- **10.6 Departments** — `config.departments[*]`에 members/machines/projects/workerQuota → activeWorkers 집계 + `quotaCheck(dept)`.
+- **10.7 Scheduler** — 5-field cron parser/matcher + tick + add/remove/enable/runNow + `scheduler-state.json` 영속 + config.schedules 머지. POST `/scheduler/start|stop`, `/schedule[+remove/enable/run]`.
+- **10.8 PM kanban** — append-only board JSONL + create/update/move/delete + TODO.md import 헬퍼. 4-status 칸반 뷰.
+- **11.1 MCP hub** — `config.mcp.servers` + workerDefaults/profile/options 우선순위로 워커별 `.claude/settings.json`의 mcpServers inject.
+- **11.2 Computer Use adapter** — `runStep/runGoal({ goal, executor, screenshot })` 루프 + injectable runner. PTY surface short-circuit.
+- **11.3 Workflow engine** — JSON workflow {steps:[{id, action, args, dependsOn?, on_failure?}]} + 빌트인 핸들러 11종 (task/dispatch/wait/shell whitelist/notify/sleep/list/create/close/schedule). abort 캐스케이드 + `logs/workflow-runs.jsonl` 영속. POST `/workflow/run`.
+- **11.4 NL interface** — heuristic intent parser (list/create/close/schedule-daily/review-pr/dispatch/fleet-task '에서') → 11.3 workflow로 변환 → `runNL(text, { execute, minConfidence })`. POST `/nl/parse` `/nl/run`.
+
+신규 파일: `src/adapters/{agent-adapter,claude-code-adapter,local-llm-adapter,computer-use-adapter,index}.js`, `src/sdk.js` + `src/sdk.d.ts`, `src/auth.js`, `src/scheduler.js`, `src/pm-board.js`, `src/webhooks.js`, `src/workflow.js`, `src/nl-interface.js`, `plugin/manifest.json`, `plugin/commands/c4-*.js`, `plugin/README.md`. 신규 테스트 13개 파일 (총 72 file passing).
+
+### Phase 9 (1차)
+- **Agent SDK** (TODO 9.3): `src/sdk.js` + `package.json` exports. `require('c4-cli/sdk').create({host,port})`로 createWorker / sendTask / wait / waitMulti / approve / suspend / resume / merge / rollback / readNow / scrollback / list / history / scribe / fleet / SSE events / untilIdle 헬퍼까지 데몬 HTTP API 풀 매핑. 11개 단위 테스트 (`tests/sdk.test.js`).
+- **MCP server 확장** (TODO 9.4): `src/mcp-handler.js` tool 목록 5→15개. send_input/send_key/approve_critical/suspend_worker/resume_worker/rollback_worker/merge_worker/task_history/token_usage/scribe_context 추가. serverInfo.version을 package.json에서 동적 로드. 기존 18개 단위 테스트 갱신.
+- **Fleet scaffold** (TODO 9.6): `config.fleet.peers` 등록. `fleetPeers()`/`fleetList()` 메서드가 SDK로 peer 데몬 health/list 병렬 조회 (offline은 unreachable). `/fleet/peers` `/fleet/list` 라우트, SDK `fleetPeers/fleetList`, CLI `c4 fleet peers|list`. 3개 단위 테스트 (`tests/fleet.test.js`). 9.7 dispatcher / 9.8 파일전송 토대.
+
 ## [1.6.15] - 2026-04-17
 
 ### Fixed

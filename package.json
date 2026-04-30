@@ -1,15 +1,27 @@
 {
   "name": "c4-cli",
-  "version": "1.6.15",
+  "version": "1.6.16",
   "description": "Claude {Claude Code} Code — An agent-on-agent orchestrator that lets Claude manage multiple Claude Code instances via virtual terminals",
   "main": "src/daemon.js",
+  "types": "src/sdk.d.ts",
+  "exports": {
+    ".": "./src/daemon.js",
+    "./sdk": {
+      "types": "./src/sdk.d.ts",
+      "default": "./src/sdk.js"
+    }
+  },
   "bin": {
     "c4": "./src/cli.js"
   },
   "scripts": {
     "start": "node src/daemon.js",
     "daemon": "node src/daemon.js",
-    "test": "node tests/run-all.js"
+    "test": "node tests/run-all.js",
+    "prepublishOnly": "node tests/run-all.js"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "keywords": [
     "claude",
@@ -53,8 +65,12 @@
   ],
   "files": [
     "src/",
-    "config.json",
+    "commands/",
+    "skills/",
+    "config.example.json",
     "README.md",
+    "README.ko.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "dependencies": {

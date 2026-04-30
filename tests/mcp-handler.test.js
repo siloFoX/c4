@@ -34,21 +34,38 @@ describe('McpHandler', () => {
     assert.strictEqual(res.error.code, -32600);
   });
 
-  test('initialize returns server info', async () => {
-    const res = await handler.handle({ jsonrpc: '2.0', id: 1, method: 'initialize' });
+  test('initialize returns server info and negotiates protocol version', async () => {
+    const res = await handler.handle({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-03-26' } });
     assert.strictEqual(res.result.serverInfo.name, 'c4-mcp');
     assert.ok(res.result.capabilities.tools !== undefined);
+    assert.strictEqual(res.result.protocolVersion, '2025-03-26');
   });
 
-  test('tools/list returns all 5 tools', async () => {
+  test('initialize falls back to latest supported version when client requests unknown', async () => {
+    const res = await handler.handle({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '1900-01-01' } });
+    assert.strictEqual(res.result.protocolVersion, '2025-03-26');
+  });
+
+  test('ping responds with empty result', async () => {
+    const res = await handler.handle({ jsonrpc: '2.0', id: 99, method: 'ping' });
+    assert.ok(res.result !== undefined);
+    assert.strictEqual(Object.keys(res.result).length, 0);
+  });
+
+  test('tools/list exposes the c4 tool surface', async () => {
     const res = await handler.handle({ jsonrpc: '2.0', id: 2, method: 'tools/list' });
-    assert.strictEqual(res.result.tools.length, 5);
     const names = res.result.tools.map(t => t.name);
-    assert.ok(names.includes('create_worker'));
-    assert.ok(names.includes('send_task'));
-    assert.ok(names.includes('list_workers'));
-    assert.ok(names.includes('read_output'));
-    assert.ok(names.includes('close_worker'));
+    // (TODO 9.4) tool list grew from 5 to a full per-route surface; assert
+    // membership rather than count so future additions don't regress.
+    for (const expected of [
+      'create_worker', 'send_task', 'list_workers', 'read_output',
+      'send_input', 'send_key', 'approve_critical',
+      'suspend_worker', 'resume_worker', 'rollback_worker',
+      'merge_worker', 'close_worker',
+      'task_history', 'token_usage', 'scribe_context',
+    ]) {
+      assert.ok(names.includes(expected), `missing tool: ${expected}`);
+    }
   });
 
   test('tools/call create_worker', async () => {
