@@ -350,6 +350,12 @@ function normalizeWorkflow(input) {
     if (typeof e.condition === 'string' && e.condition.length > 0) out.condition = e.condition;
     return out;
   });
+  // (11.5) Workflow-level config block. The only field today is
+  // maxConcurrency (executor parallelism cap). Kept as an open object so
+  // future executor knobs land here without another schema migration.
+  const config = (input.config && typeof input.config === 'object' && !Array.isArray(input.config))
+    ? clone(input.config)
+    : {};
   return {
     id,
     name,
@@ -357,6 +363,7 @@ function normalizeWorkflow(input) {
     nodes,
     edges,
     enabled,
+    config,
     createdAt: typeof input.createdAt === 'string' ? input.createdAt : nowIso(),
     updatedAt: typeof input.updatedAt === 'string' ? input.updatedAt : nowIso(),
   };
@@ -608,54 +615,105 @@ class WorkflowExecutor {
     const idToNode = new Map(wf.nodes.map((n) => [n.id, n]));
     let halted = false;
 
-    for (const nodeId of order) {
-      if (halted) break;
-      if (!activated.has(nodeId)) continue;
-      const node = idToNode.get(nodeId);
-      const prev = lastOutputForNode.has(nodeId) ? lastOutputForNode.get(nodeId) : (inputs || null);
-      const startedAt = nowIso();
-      const result = { status: NODE_STATUS.COMPLETED, output: null, error: null, startedAt, completedAt: null };
-      try {
-        result.output = await this._executeNode(node, prev, inputs, runId);
-      } catch (e) {
-        result.status = NODE_STATUS.FAILED;
-        result.error = (e && e.message) ? e.message : String(e);
-      }
-      result.completedAt = nowIso();
-      run.nodeResults[nodeId] = result;
+    // Per-node deps cache for the ready() check below.
+    const depsByNode = new Map();
+    for (const e of wf.edges) {
+      if (!depsByNode.has(e.to)) depsByNode.set(e.to, []);
+      depsByNode.get(e.to).push(e.from);
+    }
 
-      if (result.status === NODE_STATUS.FAILED) {
-        run.status = RUN_STATUS.FAILED;
-        halted = true;
-        break;
-      }
+    // (11.5) Bounded parallel execution. When wf.config.maxConcurrency > 1
+    // (the default is 1, preserving the previous strict-sequential walk),
+    // ready peer nodes run concurrently up to that cap. The DAG order is
+    // still respected via the per-node deps gate; only nodes whose
+    // dependencies all completed AND are activated dispatch in the same
+    // batch. parallel-node fan-out branches now actually share the
+    // wall-clock with their siblings instead of serializing.
+    const maxConcurrency = (wf.config && Number.isFinite(wf.config.maxConcurrency))
+      ? Math.max(1, Math.floor(wf.config.maxConcurrency))
+      : 1;
 
+    const completedNodes = new Set();
+    const inFlight = new Map(); // nodeId → Promise<{ id, result }>
+
+    const isReady = (id) => {
+      if (completedNodes.has(id) || inFlight.has(id)) return false;
+      if (!activated.has(id)) return false;
+      const deps = depsByNode.get(id) || [];
+      return deps.every((d) => completedNodes.has(d));
+    };
+    const findReady = () => order.filter(isReady);
+
+    const followEdges = (nodeId, output) => {
       const outEdges = wf.edges.filter((e) => e.from === nodeId);
-      const followed = [];
       for (const edge of outEdges) {
         let follow = true;
         if (edge.condition) {
           try {
             follow = Boolean(evalCondition(edge.condition, {
-              output: result.output, input: inputs, env: {},
+              output, input: inputs, env: {},
             }));
           } catch (e) {
             follow = false;
           }
         }
         if (follow) {
-          followed.push(edge);
           activated.add(edge.to);
           if (!lastOutputForNode.has(edge.to)) {
-            lastOutputForNode.set(edge.to, result.output);
+            lastOutputForNode.set(edge.to, output);
           }
         }
       }
-      // For parallel nodes, branches still execute sequentially in topo
-      // order downstream; the in-process dispatcher is awaited per node
-      // anyway, so true concurrency would require a different runtime
-      // (deferred for the worker-pool integration in 11.5).
-      void followed;
+    };
+
+    const startNode = (nodeId) => {
+      const node = idToNode.get(nodeId);
+      const prev = lastOutputForNode.has(nodeId) ? lastOutputForNode.get(nodeId) : (inputs || null);
+      const startedAt = nowIso();
+      const promise = (async () => {
+        const result = { status: NODE_STATUS.COMPLETED, output: null, error: null, startedAt, completedAt: null };
+        try {
+          result.output = await this._executeNode(node, prev, inputs, runId);
+        } catch (e) {
+          result.status = NODE_STATUS.FAILED;
+          result.error = (e && e.message) ? e.message : String(e);
+        }
+        result.completedAt = nowIso();
+        return { id: nodeId, result };
+      })();
+      inFlight.set(nodeId, promise);
+    };
+
+    while (!halted) {
+      // Saturate the in-flight pool with whatever's ready, up to the cap.
+      let candidates = findReady();
+      while (candidates.length && inFlight.size < maxConcurrency) {
+        startNode(candidates.shift());
+      }
+      if (inFlight.size === 0) break; // nothing more reachable
+      // Wait for the first node in flight to finish so we can refill the
+      // pool and propagate its edges.
+      const settled = await Promise.race(Array.from(inFlight.values()));
+      inFlight.delete(settled.id);
+      run.nodeResults[settled.id] = settled.result;
+      completedNodes.add(settled.id);
+
+      if (settled.result.status === NODE_STATUS.FAILED) {
+        run.status = RUN_STATUS.FAILED;
+        halted = true;
+        // Drain remaining in-flight nodes so we don't leave detached
+        // promises after the run is reported FAILED.
+        if (inFlight.size > 0) {
+          const remaining = await Promise.all(Array.from(inFlight.values()));
+          for (const r of remaining) {
+            run.nodeResults[r.id] = r.result;
+            completedNodes.add(r.id);
+          }
+        }
+        break;
+      }
+
+      followEdges(settled.id, settled.result.output);
     }
 
     if (run.status === RUN_STATUS.RUNNING) {
