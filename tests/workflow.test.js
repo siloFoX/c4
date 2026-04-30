@@ -119,13 +119,14 @@ function parallelWf(idPrefix = 'wf-par') {
 }
 
 describe('(11.3) helpers + constants', () => {
-  test('(a) NODE_TYPES exposes the five canonical types', () => {
+  test('(a) NODE_TYPES exposes the canonical types', () => {
     expect(NODE_TYPES).toContain('task');
     expect(NODE_TYPES).toContain('condition');
     expect(NODE_TYPES).toContain('parallel');
     expect(NODE_TYPES).toContain('wait');
+    expect(NODE_TYPES).toContain('audit');
     expect(NODE_TYPES).toContain('end');
-    expect(NODE_TYPES.length).toBe(5);
+    expect(NODE_TYPES.length).toBe(6);
   });
 
   test('(b) RUN_STATUS / NODE_STATUS expose lifecycle constants', () => {
