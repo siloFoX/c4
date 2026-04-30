@@ -5,6 +5,9 @@
 Phase 12 release — wraps up the 1.6.16 cumulative work into a tagged
 version so the SDK / plugin / docs publish with a clean number.
 
+### Phase 15 follow-ups (workflow 병렬)
+- **Workflow 병렬 step 실행** (TODO #116) — 기존 ready batch가 for-loop으로 직렬 실행되던 것을 `Promise.all` 기반으로 변경. 독립적 step 3개가 직렬 시 90ms+, 병렬 시 30ms 수준으로 단축. `workflow.maxConcurrency` 옵션으로 동시 실행 폭 제한 가능 (1은 sequential debugging, 기본은 Infinity = "DAG가 허용하는 만큼 다 같이"). step retry/on_failure 로직을 `runStep` 함수로 추출해 readability 개선. 기존 dependsOn 그래프는 그대로 보존 — peer step만 병렬, 후행 step은 dependency 완료 대기. 신규 테스트 3개 (peakInflight 추적, maxConcurrency=1, mixed dependsOn).
+
 ### Phase 14 follow-ups (config validation / openapi summaries)
 - **Config validator** (TODO #113) — `src/config-validate.js`: 검증 카테고리 errors / warnings / info. daemon.port 범위, auth.enabled+secret 부재, departments[].projects가 projects에 없는 이름 참조, workerQuota/monthlyBudgetUSD 음수/비숫자, workspaces 경로 존재, nl.llm.enabled+API key 부재, pm.todoSync+todoFile 부재, audit.maxSizeBytes 타입, maxWorkers 음수 등 12개 케이스. CLI `c4 config validate [path]`로 호출, errors > 0 이면 exit 1. 신규 테스트 12개.
 - **OpenAPI 모든 라우트 summary** (TODO #112) — `OVERRIDES`에 fleet/board/scheduler/scribe/auth/audit/workflow/nl/transfer 포함 86 라우트 모두 큐레이션. 자동 생성 `GET /<path>` 패턴 0건 — `/openapi.json`이 실제 API reference로 사용 가능.

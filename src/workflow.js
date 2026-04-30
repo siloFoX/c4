@@ -160,6 +160,48 @@ class WorkflowEngine {
       }
     };
 
+    // (TODO #116) Run a single step (with retry / on_failure semantics).
+    // Extracted from the inner loop so we can drive parallel execution
+    // via Promise.all over a ready batch.
+    const runStep = async (step) => {
+      if (!step.id) {
+        results['_unnamed_' + order.length] = { error: 'step missing id' };
+        return { id: null, result: null, failed: false, policy: 'abort' };
+      }
+      const handler = this.handlers.get(step.action);
+      const policy = step.on_failure || 'abort';
+      const maxRetries = policy === 'retry' ? (step.maxRetries ?? 2) : 0;
+      const backoffMs = step.backoffMs || 0;
+      let stepResult;
+      let attempts = 0;
+      for (let i = 0; i <= maxRetries; i++) {
+        attempts = i + 1;
+        if (!handler) {
+          stepResult = { error: `unknown action: ${step.action}` };
+          break;
+        }
+        try {
+          stepResult = await handler(step.args || {}, ctx);
+        } catch (e) {
+          stepResult = { error: e.message };
+        }
+        if (!(stepResult && stepResult.error)) break;
+        if (i < maxRetries && backoffMs > 0) {
+          await new Promise((r) => setTimeout(r, backoffMs));
+        }
+      }
+      if (policy === 'retry' && attempts > 1) {
+        stepResult.retries = attempts - 1;
+      }
+      return { id: step.id, step, result: stepResult, failed: !!(stepResult && stepResult.error), policy };
+    };
+
+    // (TODO #116) Bounded parallelism. workflow.maxConcurrency caps how
+    // many ready steps run at once. Defaults to Infinity → all ready
+    // steps fire together (matches user intent of "DAG, run anything you
+    // can"). Set to 1 for sequential debugging.
+    const maxConcurrency = workflow.maxConcurrency || Infinity;
+
     let safety = workflow.steps.length * 4;
     while ((completed.size + aborted.size) < workflow.steps.length && safety > 0) {
       safety--;
@@ -174,48 +216,21 @@ class WorkflowEngine {
         }
         break;
       }
-      for (const step of next) {
-        if (!step.id) { results['_unnamed_' + order.length] = { error: 'step missing id' }; completed.add(step.id); continue; }
-        const handler = this.handlers.get(step.action);
-        // (TODO #108) on_failure='retry' wraps the handler in a small
-        // retry loop. maxRetries (default 2) bounds total *additional*
-        // attempts; backoffMs (default 0) sleeps between attempts so
-        // flaky network steps don't hammer.
-        const policy = step.on_failure || 'abort';
-        const maxRetries = policy === 'retry' ? (step.maxRetries ?? 2) : 0;
-        const backoffMs = step.backoffMs || 0;
-        let stepResult;
-        let attempts = 0;
-        for (let i = 0; i <= maxRetries; i++) {
-          attempts = i + 1;
-          if (!handler) {
-            stepResult = { error: `unknown action: ${step.action}` };
-            break;
-          }
-          try {
-            stepResult = await handler(step.args || {}, ctx);
-          } catch (e) {
-            stepResult = { error: e.message };
-          }
-          if (!(stepResult && stepResult.error)) break;
-          if (i < maxRetries && backoffMs > 0) {
-            await new Promise((r) => setTimeout(r, backoffMs));
-          }
-        }
-        if (policy === 'retry' && attempts > 1) {
-          stepResult.retries = attempts - 1;
-        }
-        results[step.id] = stepResult;
-        order.push(step.id);
 
-        const failed = stepResult && stepResult.error;
-        // 'retry' that exhausted attempts behaves like 'abort'.
-        const effectivePolicy = (policy === 'retry' && failed) ? 'abort' : policy;
-        if (failed && effectivePolicy === 'abort') {
-          aborted.add(step.id);
-          propagateAbort(step);
+      // Batch within maxConcurrency; await each batch before pulling the
+      // next ready set so dependsOn ordering is still respected.
+      const batch = next.slice(0, Math.max(1, maxConcurrency));
+      const settled = await Promise.all(batch.map(runStep));
+      for (const r of settled) {
+        if (!r.id) continue; // already recorded as _unnamed_
+        results[r.id] = r.result;
+        order.push(r.id);
+        const effectivePolicy = (r.policy === 'retry' && r.failed) ? 'abort' : r.policy;
+        if (r.failed && effectivePolicy === 'abort') {
+          aborted.add(r.id);
+          propagateAbort(r.step);
         } else {
-          completed.add(step.id);
+          completed.add(r.id);
         }
       }
     }

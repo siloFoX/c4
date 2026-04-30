@@ -170,6 +170,84 @@ describe('WorkflowEngine (11.3)', () => {
     assert.ok(elapsed >= 50, `expected ≥50ms (2 backoffs * 30ms), got ${elapsed}`);
   });
 
+  // (TODO #116) Parallel step execution.
+  it('runs ready steps in parallel (Promise.all over the ready batch)', async () => {
+    const mgr = makeMgr();
+    const wf = new Workflow(mgr);
+    let inflight = 0;
+    let peakInflight = 0;
+    wf.register('slow', async () => {
+      inflight++;
+      peakInflight = Math.max(peakInflight, inflight);
+      await new Promise((r) => setTimeout(r, 30));
+      inflight--;
+      return { ok: true };
+    });
+    const start = Date.now();
+    const r = await wf.run({
+      name: 'parallel',
+      steps: [
+        { id: 'a', action: 'slow' },
+        { id: 'b', action: 'slow' },
+        { id: 'c', action: 'slow' },
+      ],
+    });
+    const elapsed = Date.now() - start;
+    assert.strictEqual(r.ok, true);
+    // All three independent — should run in parallel, so total elapsed
+    // is closer to 30ms than 90ms. Allow generous slack for CI jitter.
+    assert.ok(elapsed < 75, `expected parallel <75ms, got ${elapsed}ms`);
+    assert.strictEqual(peakInflight, 3, 'all three were inflight at once');
+  });
+
+  it('respects maxConcurrency=1 for sequential debugging', async () => {
+    const mgr = makeMgr();
+    const wf = new Workflow(mgr);
+    let inflight = 0;
+    let peakInflight = 0;
+    wf.register('slow', async () => {
+      inflight++;
+      peakInflight = Math.max(peakInflight, inflight);
+      await new Promise((r) => setTimeout(r, 10));
+      inflight--;
+      return { ok: true };
+    });
+    await wf.run({
+      name: 'sequential',
+      maxConcurrency: 1,
+      steps: [
+        { id: 'a', action: 'slow' },
+        { id: 'b', action: 'slow' },
+        { id: 'c', action: 'slow' },
+      ],
+    });
+    assert.strictEqual(peakInflight, 1, 'never more than 1 inflight at maxConcurrency=1');
+  });
+
+  it('still respects dependsOn while running peers in parallel', async () => {
+    const mgr = makeMgr();
+    const wf = new Workflow(mgr);
+    const completed = [];
+    wf.register('mark', async (args) => {
+      await new Promise((r) => setTimeout(r, 5));
+      completed.push(args.id);
+      return { ok: true };
+    });
+    await wf.run({
+      name: 'mixed',
+      steps: [
+        { id: 'a', action: 'mark', args: { id: 'a' } },
+        { id: 'b', action: 'mark', args: { id: 'b' }, dependsOn: ['a'] },
+        { id: 'c', action: 'mark', args: { id: 'c' }, dependsOn: ['a'] },
+        { id: 'd', action: 'mark', args: { id: 'd' }, dependsOn: ['b', 'c'] },
+      ],
+    });
+    // a must run before b/c; b and c may complete in either order; d last.
+    assert.strictEqual(completed[0], 'a');
+    assert.ok(completed.indexOf('b') < completed.indexOf('d'));
+    assert.ok(completed.indexOf('c') < completed.indexOf('d'));
+  });
+
   it('does not push when workflow succeeds', async () => {
     const mgr = makeMgr();
     const pushed = [];
