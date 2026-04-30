@@ -12,6 +12,7 @@ const path = require('path');
 const OVERRIDES = {
   'GET /health':          'Daemon health probe',
   'GET /metrics':         'Daemon + per-worker CPU/RSS snapshot',
+  'GET /workspaces':      'List configured multi-repo workspaces',
   'POST /auth/login':     '10.1 issue HMAC token',
   'GET /auth/whoami':     'Return current bearer payload',
   'GET /openapi.json':    'This document',

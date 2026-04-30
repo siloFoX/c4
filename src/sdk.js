@@ -179,6 +179,12 @@ class C4Client {
   // 10.6 departments
   departments() { return this.request('GET', '/departments'); }
 
+  // (TODO #98) multi-repo workspaces
+  workspaces() { return this.request('GET', '/workspaces'); }
+
+  // Per-worker + daemon CPU/RSS metrics (TODO #95)
+  metrics() { return this.request('GET', '/metrics'); }
+
   // 11.3 workflow
   runWorkflow(workflow) { return this.request('POST', '/workflow/run', { body: workflow }); }
   workflowRuns({ limit = 50, name } = {}) { return this.request('GET', '/workflow/runs', { params: { limit, name } }); }

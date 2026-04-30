@@ -192,6 +192,9 @@
     "maxIdleMs": 300000
   },
 
+  "_workspaces_doc": "TODO #98 multi-repo workspace mode. Each entry maps a short name to an absolute repo root. Use 'c4 task --workspace <name> ...' or POST /task with body {workspace}.",
+  "workspaces": {},
+
   "autoMode": {
     "enabled": false,
     "allowOverride": true

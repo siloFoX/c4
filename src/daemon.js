@@ -351,8 +351,23 @@ async function handleRequest(req, res) {
       result = manager.list();
 
     } else if (req.method === 'POST' && route === '/task') {
-      const { name, task, branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode } = await parseBody(req);
-      result = manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode });
+      const { name, task, branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, workspace } = await parseBody(req);
+      // (TODO #98) Multi-repo workspace mode. `workspace` looks up
+      // config.workspaces[name] and overrides projectRoot when matched.
+      let resolvedRoot = projectRoot;
+      let workspaceErr = null;
+      if (workspace && !resolvedRoot) {
+        const ws = manager.resolveWorkspace(workspace);
+        if (ws.error) workspaceErr = ws;
+        else resolvedRoot = ws.path;
+      }
+      result = workspaceErr
+        ? workspaceErr
+        : manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot: resolvedRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode });
+
+    } else if (req.method === 'GET' && route === '/workspaces') {
+      // (TODO #98) List configured multi-repo workspaces.
+      result = manager.listWorkspaces();
 
     } else if (req.method === 'POST' && route === '/merge') {
       const { name, skipChecks } = await parseBody(req);

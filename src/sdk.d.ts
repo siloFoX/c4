@@ -96,6 +96,10 @@ export class C4Client {
   scribeContext(): Promise<ApiResponse>;
   scribeScan(): Promise<ApiResponse>;
 
+  // Multi-repo (TODO #98) + metrics (TODO #95)
+  workspaces(): Promise<{ workspaces: Array<{ name: string; path: string; exists: boolean; isGitRepo: boolean }> }>;
+  metrics(): Promise<{ daemon: Record<string, unknown>; workers: Array<Record<string, unknown>>; totals: Record<string, number> }>;
+
   // Fleet (9.6)
   fleetPeers(): Promise<{ peers: FleetPeerStatus[] }>;
   fleetList(): Promise<FleetListResult>;
