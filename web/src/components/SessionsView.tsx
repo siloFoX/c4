@@ -510,6 +510,11 @@ function AttachedRowActions({
     window.setTimeout(() => setCopied(false), 1500);
   }, [resumeCmd]);
   const role: AttachedRole = session.role || 'generic';
+  // (TODO 8.38 review fix 2026-05-01) Stable id for the
+  // confirmation strip so the Detach trigger's `aria-controls`
+  // points at a real element. Suffix with the session name so
+  // multiple AttachedRowActions on the same page never collide.
+  const detachConfirmId = `detach-confirm-${session.name}`;
   return (
     <div className="flex flex-col gap-2 border-t border-border/60 bg-muted/30 px-4 py-2">
       {/* (TODO 8.38) Role badge + an explicit "the original terminal
@@ -553,13 +558,21 @@ function AttachedRowActions({
         {/* (TODO 8.38) Two-step detach. The first click expands an
             inline confirmation strip with the explicit "your terminal
             keeps running" sentence so the operator never wonders
-            whether detach is destructive. */}
+            whether detach is destructive.
+            (review fix 2026-05-01) `aria-controls` references the
+            stable `detachConfirmId` so the trigger's
+            `aria-expanded` state has a real target — without the id
+            screen readers were left to guess what the expand
+            relationship pointed at. The strip itself renders only
+            when expanded, so we drop aria-controls when collapsed
+            (per ARIA, the controlled element must exist). */}
         <Button
           size="sm"
           variant="outline"
           onClick={() => setShowDetachConfirm((v) => !v)}
           aria-label={`Detach ${session.name}`}
           aria-expanded={showDetachConfirm}
+          aria-controls={showDetachConfirm ? detachConfirmId : undefined}
           className="text-destructive hover:bg-destructive/10"
         >
           <Trash2 className="mr-1 h-3.5 w-3.5" aria-hidden />
@@ -568,6 +581,7 @@ function AttachedRowActions({
       </div>
       {showDetachConfirm ? (
         <div
+          id={detachConfirmId}
           role="alert"
           className="flex flex-wrap items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs"
         >
