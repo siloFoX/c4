@@ -102,8 +102,9 @@ const OVERRIDES = {
   'GET /dashboard':       'HTML dashboard (legacy template)',
 };
 
-// 87 raw routes in daemon.js as of 1.6.16 — but the source-of-truth is the
-// daemon file itself. This list is parsed dynamically on first request.
+// 86 routes in daemon.js as of 1.6.17 (88 — 2 dups) — but the source-of-
+// truth is the daemon file itself. This list is parsed dynamically on
+// first request, then cached.
 let _cache = null;
 
 function _extractRoutes() {
