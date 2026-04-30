@@ -100,6 +100,53 @@ export class C4Client {
   workspaces(): Promise<{ workspaces: Array<{ name: string; path: string; exists: boolean; isGitRepo: boolean }> }>;
   metrics(): Promise<{ daemon: Record<string, unknown>; workers: Array<Record<string, unknown>>; totals: Record<string, number> }>;
 
+  // 10.x — audit / projects / cost / departments
+  audit(opts?: { since?: string; until?: string; action?: string; worker?: string; actor?: string; limit?: number }): Promise<{ records: Array<Record<string, unknown>> }>;
+  auditExport(opts?: { since?: string; until?: string; action?: string; worker?: string; actor?: string; format?: 'json' | 'jsonl' | 'csv' }): Promise<ApiResponse>;
+  projects(): Promise<{ projects: Array<Record<string, unknown>> }>;
+  costReport(opts?: { since?: string; until?: string; model?: string }): Promise<ApiResponse>;
+  departments(): Promise<{ departments: Array<Record<string, unknown>> }>;
+
+  // 10.7 scheduler
+  schedules(): Promise<ApiResponse>;
+  scheduleAdd(entry: { id: string; cron: string; task?: string; workerName?: string; target?: string; tags?: string[]; strategy?: string; options?: Record<string, unknown> }): Promise<ApiResponse>;
+  scheduleRemove(id: string): Promise<ApiResponse>;
+  scheduleEnable(id: string, enabled: boolean): Promise<ApiResponse>;
+  scheduleRun(id: string): Promise<ApiResponse>;
+
+  // 10.8 board
+  board(project?: string): Promise<{ project: string; statuses: string[]; columns: Record<string, Array<Record<string, unknown>>> }>;
+  boardCreate(project: string, card: { title: string; description?: string; status?: string; assignee?: string; tags?: string[] }): Promise<{ success: boolean; cardId?: string; error?: string }>;
+  boardUpdate(project: string, cardId: string, patch: Record<string, unknown>): Promise<ApiResponse>;
+  boardMove(project: string, cardId: string, to: string): Promise<ApiResponse>;
+  boardDelete(project: string, cardId: string): Promise<ApiResponse>;
+
+  // 11.3 workflow
+  runWorkflow(workflow: Record<string, unknown>): Promise<ApiResponse>;
+  workflowRuns(opts?: { limit?: number; name?: string }): Promise<ApiResponse>;
+  workflowTemplates(): Promise<ApiResponse>;
+  workflowTemplate(name: string): Promise<ApiResponse>;
+  saveWorkflowTemplate(name: string, workflow: Record<string, unknown>): Promise<ApiResponse>;
+  deleteWorkflowTemplate(name: string): Promise<ApiResponse>;
+
+  // 11.4 NL
+  nlRun(text: string, opts?: { execute?: boolean; minConfidence?: number; useLLM?: boolean }): Promise<ApiResponse>;
+
+  // Backup / restore
+  backup(opts?: { outPath?: string }): Promise<ApiResponse>;
+  restore(opts: { archive: string; dryRun?: boolean }): Promise<ApiResponse>;
+
+  // OpenAPI doc
+  openapi(): Promise<Record<string, unknown>>;
+
+  // Auth (10.1)
+  login(username: string, password: string): Promise<ApiResponse>;
+  whoami(): Promise<ApiResponse>;
+
+  // Dispatch / transfer
+  dispatch(opts: { name?: string; task: string; tags?: string[]; strategy?: string; dryRun?: boolean; [k: string]: unknown }): Promise<ApiResponse>;
+  transfer(opts: { from?: string; to?: string; src: string; dst: string; mode?: string; flags?: string }): Promise<ApiResponse>;
+
   // Fleet (9.6)
   fleetPeers(): Promise<{ peers: FleetPeerStatus[] }>;
   fleetList(): Promise<FleetListResult>;
