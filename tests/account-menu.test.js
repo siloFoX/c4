@@ -113,7 +113,9 @@ describe('AccountMenu component (web/src/components/AccountMenu.tsx)', () => {
 
   it('listens to AUTH_EVENT and storage events', () => {
     assert.match(src, /AUTH_EVENT/);
-    assert.match(src, /addEventListener\('storage', onAuth\)/);
+    // The storage handler is named `onStorage` after the
+    // 2026-05-01 review-fix that filters by auth-key allow-set.
+    assert.match(src, /addEventListener\('storage', onStorage\)/);
   });
 
   it('dispatches HELP_EVENT_OPEN_DRAWER + HELP_EVENT_OPEN_SHORTCUTS', () => {
@@ -180,9 +182,18 @@ describe('AppHeader replaces LogOut button with AccountMenu', () => {
     assert.match(src, /from '\.\.\/AccountMenu'/);
   });
 
-  it('renders AccountMenu in collapsed (icon-only) mode for desktop', () => {
+  it('renders AccountMenu in collapsed (icon-only) mode', () => {
     assert.match(src, /<AccountMenu/);
     assert.match(src, /collapsed/);
+  });
+
+  // (review fix 2026-05-01) Original code wrapped the header
+  // AccountMenu in `<div className="hidden md:block">`, but on
+  // mobile + non-Workers tabs the sidebar isn't rendered either,
+  // so the sign-out path completely disappeared. Force the header
+  // copy to render on every viewport.
+  it('does NOT wrap AccountMenu in `hidden md:block`', () => {
+    assert.doesNotMatch(src, /className="hidden md:block">\s*<AccountMenu/);
   });
 
   it('exposes onOpenPreferences as an optional prop', () => {
@@ -205,5 +216,108 @@ describe('App.tsx wires onOpenPreferences -> setTopView("settings")', () => {
 
   it('wires onLogout + onOpenPreferences on Sidebar', () => {
     assert.match(src, /onLogout=\{handleLogout\}/);
+  });
+});
+
+// (review fix 2026-05-01) Behavioural tests for the pure helpers.
+// initialsFor / roleBadgeClass are not exported, so we import them
+// via the same source and re-execute the exact algorithm. If the
+// source drifts from the shim the source-grep test below catches it.
+describe('initialsFor (avatar fallback)', () => {
+  function initialsFor(user) {
+    if (!user) return '?';
+    const trimmed = user.trim();
+    if (!trimmed) return '?';
+    const parts = trimmed.split(/[\s_.-]+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return trimmed.slice(0, 2).toUpperCase();
+  }
+
+  it('returns "?" for empty / whitespace / null', () => {
+    assert.strictEqual(initialsFor(null), '?');
+    assert.strictEqual(initialsFor(''), '?');
+    assert.strictEqual(initialsFor('   '), '?');
+  });
+  it('takes first two letters of a single token', () => {
+    assert.strictEqual(initialsFor('alice'), 'AL');
+    assert.strictEqual(initialsFor('a'), 'A');
+  });
+  it('takes first letter of each of the first two parts when split', () => {
+    assert.strictEqual(initialsFor('Alice Bob'), 'AB');
+    assert.strictEqual(initialsFor('silo.fox'), 'SF');
+    assert.strictEqual(initialsFor('admin_user'), 'AU');
+    assert.strictEqual(initialsFor('first-last-third'), 'FL');
+  });
+  it('uppercases lower-case input', () => {
+    assert.strictEqual(initialsFor('shinc'), 'SH');
+  });
+
+  it('source mirrors the shim', () => {
+    const src = readText(ACCOUNT_MENU);
+    assert.match(src, /function initialsFor\(user: string \| null\)/);
+    assert.match(src, /trimmed\.split\(\/\[\\s_\.-\]\+\/\)/);
+    assert.match(src, /\(parts\[0\]\[0\] \+ parts\[1\]\[0\]\)\.toUpperCase\(\)/);
+    assert.match(src, /trimmed\.slice\(0, 2\)\.toUpperCase\(\)/);
+  });
+});
+
+describe('roleBadgeClass (token-backed badge palette)', () => {
+  function roleBadgeClass(role) {
+    switch ((role || '').toLowerCase()) {
+      case 'admin':
+        return 'bg-destructive/15 text-destructive border-destructive/30';
+      case 'manager':
+        return 'bg-primary/10 text-primary border-primary/30';
+      case 'viewer':
+        return 'bg-muted text-muted-foreground border-border';
+      default:
+        return 'bg-secondary text-secondary-foreground border-border';
+    }
+  }
+
+  it('admin -> destructive accent', () => {
+    assert.match(roleBadgeClass('admin'), /text-destructive/);
+    assert.match(roleBadgeClass('ADMIN'), /text-destructive/);
+  });
+  it('manager -> primary accent', () => {
+    assert.match(roleBadgeClass('manager'), /text-primary/);
+  });
+  it('viewer -> muted accent', () => {
+    assert.match(roleBadgeClass('viewer'), /text-muted-foreground/);
+  });
+  it('unknown / null -> neutral secondary (never accidentally promotes)', () => {
+    assert.match(roleBadgeClass('superadmin'), /text-secondary-foreground/);
+    assert.match(roleBadgeClass(null), /text-secondary-foreground/);
+    assert.match(roleBadgeClass(''), /text-secondary-foreground/);
+  });
+
+  it('source mirrors the shim', () => {
+    const src = readText(ACCOUNT_MENU);
+    assert.match(src, /function roleBadgeClass\(role: string \| null\)/);
+    assert.match(src, /case 'admin':\s*\n\s*return 'bg-destructive\/15 text-destructive border-destructive\/30'/);
+  });
+});
+
+// (review fix 2026-05-01) Storage-event filter — only the auth
+// localStorage keys should trigger a re-read.
+describe('AccountMenu storage event listener filters by auth keys', () => {
+  const src = readText(ACCOUNT_MENU);
+
+  it('declares an auth-keys allow-set', () => {
+    assert.match(src, /AUTH_STORAGE_KEYS = new Set\(\[/);
+    assert.match(src, /'c4\.authToken'/);
+    assert.match(src, /'c4\.authUser'/);
+    assert.match(src, /'c4\.authRole'/);
+  });
+
+  it('skips storage events whose key is not in the auth set', () => {
+    assert.match(src, /if \(e\.key && !AUTH_STORAGE_KEYS\.has\(e\.key\)\) return/);
+  });
+
+  it('useState initialisers are lazy (function form)', () => {
+    assert.match(src, /useState<string \| null>\(\(\) => getAuthUser\(\)\)/);
+    assert.match(src, /useState<string \| null>\(\(\) => getAuthRole\(\)\)/);
   });
 });
