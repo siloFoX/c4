@@ -177,22 +177,41 @@ class WorkflowEngine {
       for (const step of next) {
         if (!step.id) { results['_unnamed_' + order.length] = { error: 'step missing id' }; completed.add(step.id); continue; }
         const handler = this.handlers.get(step.action);
+        // (TODO #108) on_failure='retry' wraps the handler in a small
+        // retry loop. maxRetries (default 2) bounds total *additional*
+        // attempts; backoffMs (default 0) sleeps between attempts so
+        // flaky network steps don't hammer.
+        const policy = step.on_failure || 'abort';
+        const maxRetries = policy === 'retry' ? (step.maxRetries ?? 2) : 0;
+        const backoffMs = step.backoffMs || 0;
         let stepResult;
-        if (!handler) {
-          stepResult = { error: `unknown action: ${step.action}` };
-        } else {
+        let attempts = 0;
+        for (let i = 0; i <= maxRetries; i++) {
+          attempts = i + 1;
+          if (!handler) {
+            stepResult = { error: `unknown action: ${step.action}` };
+            break;
+          }
           try {
             stepResult = await handler(step.args || {}, ctx);
           } catch (e) {
             stepResult = { error: e.message };
           }
+          if (!(stepResult && stepResult.error)) break;
+          if (i < maxRetries && backoffMs > 0) {
+            await new Promise((r) => setTimeout(r, backoffMs));
+          }
+        }
+        if (policy === 'retry' && attempts > 1) {
+          stepResult.retries = attempts - 1;
         }
         results[step.id] = stepResult;
         order.push(step.id);
 
         const failed = stepResult && stepResult.error;
-        const policy = step.on_failure || 'abort';
-        if (failed && policy === 'abort') {
+        // 'retry' that exhausted attempts behaves like 'abort'.
+        const effectivePolicy = (policy === 'retry' && failed) ? 'abort' : policy;
+        if (failed && effectivePolicy === 'abort') {
           aborted.add(step.id);
           propagateAbort(step);
         } else {

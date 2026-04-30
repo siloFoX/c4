@@ -4801,11 +4801,18 @@ class PtyManager extends EventEmitter {
   // (TODO 10.2) Audit log. Append-only JSONL at logs/audit.jsonl. Daemon
   // calls `manager.audit(entry)` from each mutating route so the log
   // captures actor (best-effort), action, target, args, result, timestamp.
+  //
+  // (TODO #107) Size-based rotation. When audit.jsonl exceeds
+  // config.audit.maxSizeBytes (default 10 MB), the file is renamed to
+  // audit-<isoTs>.jsonl and a fresh file starts. config.audit.keep limits
+  // how many rotated files are retained; older ones are deleted. Both
+  // settings are opt-in (rotation off when maxSizeBytes <= 0).
   audit(entry) {
     if (this.config.audit && this.config.audit.enabled === false) return;
     try {
       const file = path.join(this.logsDir, 'audit.jsonl');
       if (!fs.existsSync(this.logsDir)) fs.mkdirSync(this.logsDir, { recursive: true });
+      this._maybeRotateAudit(file);
       const record = {
         ts: new Date().toISOString(),
         ...entry,
@@ -4813,6 +4820,37 @@ class PtyManager extends EventEmitter {
       fs.appendFileSync(file, JSON.stringify(record) + '\n');
     } catch {
       // never throw from audit — security logs must not crash the daemon
+    }
+  }
+
+  // (TODO #107) Rotate audit.jsonl when it grows past maxSizeBytes. We
+  // rotate at the start of each append so the file before the rename is
+  // never half-written. Failure is swallowed — audit.jsonl missing is
+  // worse than a one-off rotation glitch.
+  _maybeRotateAudit(file) {
+    const cfg = (this.config && this.config.audit) || {};
+    const maxBytes = cfg.maxSizeBytes || 0;
+    if (maxBytes <= 0) return;
+    let size = 0;
+    try { size = fs.statSync(file).size; } catch { return; }
+    if (size < maxBytes) return;
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const rotated = path.join(this.logsDir, `audit-${stamp}.jsonl`);
+    try { fs.renameSync(file, rotated); } catch { return; }
+    if (typeof this._emitSSE === 'function') {
+      this._emitSSE('audit_rotate', { from: 'audit.jsonl', to: path.basename(rotated), bytes: size });
+    }
+    const keep = cfg.keep || 0;
+    if (keep > 0) {
+      try {
+        const olds = fs.readdirSync(this.logsDir)
+          .filter((n) => /^audit-.*\.jsonl(\.gz)?$/.test(n))
+          .map((n) => ({ name: n, full: path.join(this.logsDir, n), mtime: fs.statSync(path.join(this.logsDir, n)).mtimeMs }))
+          .sort((a, b) => b.mtime - a.mtime);
+        for (const old of olds.slice(keep)) {
+          try { fs.unlinkSync(old.full); } catch { /* ignore */ }
+        }
+      } catch { /* ignore */ }
     }
   }
 

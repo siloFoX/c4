@@ -5,6 +5,11 @@
 Phase 12 release — wraps up the 1.6.16 cumulative work into a tagged
 version so the SDK / plugin / docs publish with a clean number.
 
+### Phase 13 follow-ups (rotation / retry / CLI metrics)
+- **Audit log rotation** (TODO #107) — `config.audit.maxSizeBytes`로 audit.jsonl 크기 cap, 초과 시 `audit-<isoTs>.jsonl`로 rename + fresh 파일 시작. `keep` 설정으로 retain count 제한. `audit_rotate` SSE 이벤트 발행. config.example.json에 `audit` 블록 + 사용법 doc 추가. 신규 테스트 3개.
+- **Workflow on_failure='retry'** (TODO #108) — step에 `on_failure: 'retry', maxRetries: N, backoffMs: M` 옵션. handler가 error 반환 시 N회 재실행, backoff 사이 sleep, 모두 실패하면 abort로 fallback. 결과에 `retries: count` 메타데이터 첨부. 기존 abort/continue policy와 호환. 신규 테스트 3개 (총 11).
+- **CLI `c4 metrics` / `c4 workspaces`** (TODO #109 / #98) — `/metrics` / `/workspaces` 라우트를 pretty-printed table로 출력. `--json` 플래그로 raw JSON pass-through. 데몬 RSS/heap/loadavg + 워커별 CPU/RSS/threads 컬럼. 동시에 main() 마지막의 default JSON dump가 `result == null/undefined`이면 skip하도록 수정 (이미 console.log된 명령이 빈 줄 추가하지 않음).
+
 ### Highlights
 - **Daemon ships its own SPA** — `c4 daemon start` now serves `web/dist/`
   with proper SPA fallback + immutable asset cache. No more `vite preview`

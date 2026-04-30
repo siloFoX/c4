@@ -124,6 +124,52 @@ describe('WorkflowEngine (11.3)', () => {
     assert.match(pushed[0], /a: boom from mock/);
   });
 
+  // (TODO #108) on_failure='retry' semantics.
+  it("on_failure: 'retry' re-runs a flaky step until it succeeds", async () => {
+    const mgr = makeMgr();
+    let calls = 0;
+    const wf = new Workflow(mgr);
+    wf.register('flaky', async () => {
+      calls++;
+      if (calls < 3) return { error: `still flaky (call ${calls})` };
+      return { ok: true };
+    });
+    const r = await wf.run({
+      name: 'flaky-flow',
+      steps: [{ id: 'a', action: 'flaky', on_failure: 'retry', maxRetries: 5 }],
+    });
+    assert.strictEqual(r.ok, true);
+    assert.strictEqual(calls, 3);
+    assert.strictEqual(r.results.a.retries, 2);
+  });
+
+  it("on_failure: 'retry' aborts when retries exhausted", async () => {
+    const mgr = makeMgr();
+    const wf = new Workflow(mgr);
+    let calls = 0;
+    wf.register('always-fails', async () => { calls++; return { error: `nope (call ${calls})` }; });
+    const r = await wf.run({
+      name: 'doomed',
+      steps: [{ id: 'a', action: 'always-fails', on_failure: 'retry', maxRetries: 2 }],
+    });
+    assert.strictEqual(r.ok, false);
+    assert.strictEqual(calls, 3, 'initial + 2 retries');
+    assert.match(r.results.a.error, /nope/);
+  });
+
+  it("on_failure: 'retry' with backoffMs sleeps between attempts", async () => {
+    const mgr = makeMgr();
+    const wf = new Workflow(mgr);
+    wf.register('tries', async () => ({ error: 'no' }));
+    const start = Date.now();
+    await wf.run({
+      name: 'backoff',
+      steps: [{ id: 'a', action: 'tries', on_failure: 'retry', maxRetries: 2, backoffMs: 30 }],
+    });
+    const elapsed = Date.now() - start;
+    assert.ok(elapsed >= 50, `expected ≥50ms (2 backoffs * 30ms), got ${elapsed}`);
+  });
+
   it('does not push when workflow succeeds', async () => {
     const mgr = makeMgr();
     const pushed = [];

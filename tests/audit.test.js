@@ -125,6 +125,52 @@ describe('audit log (10.2)', () => {
     assert.strictEqual(lines[0], 'ts,actor,action,worker,ok,error,bodyKeys');
   });
 
+  // (TODO #107) Rotation.
+  it('rotates audit.jsonl when it exceeds config.audit.maxSizeBytes', () => {
+    const mgr = makeManager({ audit: { maxSizeBytes: 500, keep: 5 } });
+    // Two pre-rotation writes — each ~80 bytes — keep the file under 500.
+    mgr.audit({ actor: 'pre-1', action: '/create', error: 'pad'.repeat(10) });
+    mgr.audit({ actor: 'pre-2', action: '/create', error: 'pad'.repeat(10) });
+    let dir = fs.readdirSync(tmpDir);
+    assert.strictEqual(dir.filter((n) => /^audit-/.test(n)).length, 0, 'no rotation yet');
+
+    // Now push the file past 500 bytes with one big record.
+    mgr.audit({ actor: 'big', action: '/x', error: 'X'.repeat(800) });
+    // The next call must rotate (size already > 500 before append).
+    mgr.audit({ actor: 'after-rotate', action: '/create', worker: 'wn' });
+
+    dir = fs.readdirSync(tmpDir);
+    const rotated = dir.filter((n) => /^audit-.*\.jsonl$/.test(n));
+    assert.strictEqual(rotated.length, 1, 'one rotated file');
+    const fileBefore = path.join(tmpDir, 'audit.jsonl');
+    const fresh = fs.readFileSync(fileBefore, 'utf8').trim().split('\n');
+    assert.strictEqual(fresh.length, 1, 'fresh audit.jsonl has only the post-rotation entry');
+    assert.match(fresh[0], /after-rotate/);
+  });
+
+  it('keeps only N rotated files when audit.keep is set', () => {
+    const mgr = makeManager({ audit: { maxSizeBytes: 100, keep: 2 } });
+    // Each iteration must write enough to exceed 100 bytes so a rotation
+    // happens on the *next* call.
+    for (let round = 0; round < 5; round++) {
+      mgr.audit({ actor: `r${round}`, action: '/x', error: 'pad'.repeat(20) });
+      mgr.audit({ actor: `r${round}b`, action: '/x', error: 'pad'.repeat(20) });
+    }
+    const dir = fs.readdirSync(tmpDir);
+    const rotated = dir.filter((n) => /^audit-.*\.jsonl$/.test(n));
+    assert.ok(rotated.length <= 2, `expected ≤2 rotated, got ${rotated.length}`);
+  });
+
+  it('does not rotate when audit.maxSizeBytes is 0 / unset', () => {
+    const mgr = makeManager(); // no audit config
+    for (let i = 0; i < 10; i++) {
+      mgr.audit({ actor: `a${i}`, action: '/x', error: 'x'.repeat(100) });
+    }
+    const dir = fs.readdirSync(tmpDir);
+    const rotated = dir.filter((n) => /^audit-.*\.jsonl$/.test(n));
+    assert.strictEqual(rotated.length, 0);
+  });
+
   it('exportAudit csv encodes Korean text correctly with UTF-8 BOM', () => {
     const mgr = makeManager();
     mgr.audit({ actor: '관리자', action: '/create', worker: '워커-1', error: '오류 메시지' });
