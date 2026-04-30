@@ -2723,8 +2723,12 @@ async function handleRequest(req, res) {
       // Hook architecture (3.15): receive structured events from Claude Code hooks
       const body = await parseBody(req);
       const workerName = body.worker || '';
-      console.error(`[DAEMON] /hook-event received: worker=${workerName} hook_type=${body.hook_type || ''} tool=${body.tool_name || ''}`);
+      const debugHooks = manager.config && manager.config.debug && manager.config.debug.hookEvents;
+      if (debugHooks) {
+        console.error(`[DAEMON] /hook-event received: worker=${workerName} hook_type=${body.hook_type || ''} tool=${body.tool_name || ''}`);
+      }
       if (!workerName) {
+        // Always log the rejection — that's a real bug signal, not steady-state noise.
         console.error('[DAEMON] /hook-event rejected: missing worker name');
         result = { error: 'Missing worker name in hook event' };
       } else {

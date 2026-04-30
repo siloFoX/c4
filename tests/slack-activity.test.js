@@ -118,22 +118,29 @@ describe('notifyHealthCheck status handling', () => {
   });
 });
 
-describe('hook debugging logs', () => {
-  test('daemon /hook-event handler logs on receive', () => {
-    // Verify the log format exists in daemon.js
+describe('hook debugging logs (debug-gated)', () => {
+  test('daemon /hook-event has debug-gated receive log + always-on rejection log', () => {
     const daemonSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'daemon.js'), 'utf8');
+    // Receive log only fires when config.debug.hookEvents is on.
+    expect(daemonSrc).toContain('debug.hookEvents');
     expect(daemonSrc).toContain('[DAEMON] /hook-event received:');
+    // Rejection (missing worker name) is a real bug signal — keep always-on.
     expect(daemonSrc).toContain('[DAEMON] /hook-event rejected:');
   });
 
-  test('hookEvent() logs worker name and event on entry', () => {
+  test('hookEvent() has debug-gated entry log', () => {
     const ptySrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'pty-manager.js'), 'utf8');
     expect(ptySrc).toContain('[C4] hookEvent:');
+    expect(ptySrc).toContain('this.config.debug.hookEvents');
   });
 
-  test('_appendEventLog() logs file path on write', () => {
+  test('_appendEventLog() error path is debug-gated; per-write log removed', () => {
     const ptySrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'pty-manager.js'), 'utf8');
-    expect(ptySrc).toContain('[C4] _appendEventLog:');
+    // Function still defined.
+    expect(ptySrc).toContain('_appendEventLog(workerName');
+    // Error path keys off config.debug.hookEventLog so it doesn't spam
+    // stderr on every PreToolUse / PostToolUse failure.
+    expect(ptySrc).toContain("config.debug.hookEventLog");
     expect(ptySrc).toContain('[C4] _appendEventLog error:');
   });
 });
