@@ -1821,6 +1821,41 @@ async function main() {
         break;
       }
 
+      // (Polish) Tail the global daemon SSE stream — useful for ops
+      // watching workflow_start/end, schedule_fire, audit_rotate,
+      // worker_start/exit, pool_reuse, etc. Filter via --type.
+      case 'events': {
+        const filter = args.includes('--type') ? args[args.indexOf('--type') + 1] : null;
+        const url = new URL('/events', BASE);
+        const req = http.get(url, (res) => {
+          if (res.statusCode !== 200) {
+            console.error(`Error: HTTP ${res.statusCode}`);
+            process.exit(1);
+          }
+          process.stderr.write(`Tailing /events${filter ? ` (filter: type=${filter})` : ''}... Ctrl+C to stop\n`);
+          let buffer = '';
+          res.on('data', (chunk) => {
+            buffer += chunk;
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue;
+              let evt;
+              try { evt = JSON.parse(line.slice(6)); } catch { continue; }
+              if (filter && evt.type !== filter) continue;
+              const ts = new Date().toISOString().slice(11, 23);
+              const tag = String(evt.type || '?').padEnd(18);
+              const rest = JSON.stringify(evt);
+              console.log(`${ts} \x1b[36m${tag}\x1b[0m ${rest.length > 200 ? rest.slice(0, 200) + '…' : rest}`);
+            }
+          });
+          res.on('end', () => process.exit(0));
+        });
+        req.on('error', (e) => { console.error(`Error: ${e.message}`); process.exit(1); });
+        process.on('SIGINT', () => { req.destroy(); process.stderr.write('\n'); process.exit(0); });
+        return;
+      }
+
       case 'watch': {
         // Real-time worker output streaming (5.42)
         const name = args[0];
