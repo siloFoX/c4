@@ -27,6 +27,7 @@ export interface Worker {
   cpuPct?: number | null;
   rssKb?: number | null;
   threads?: number | null;
+  parent?: string | null;
 }
 
 export interface MetricsResponse {

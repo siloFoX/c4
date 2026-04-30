@@ -120,7 +120,7 @@ async function main() {
           argStart = 1;
         }
 
-        let branch = '', useBranch = true, scope = null, scopePreset = '', after = '', contextFrom = '', reuse = undefined, profile = '', autoMode = false, projectRoot = '', cwd = '', workspace = '';
+        let branch = '', useBranch = true, scope = null, scopePreset = '', after = '', contextFrom = '', reuse = undefined, profile = '', autoMode = false, projectRoot = '', cwd = '', workspace = '', parent = '';
         const taskParts = [];
         for (let i = argStart; i < effectiveArgs.length; i++) {
           if (effectiveArgs[i] === '--branch' && effectiveArgs[i + 1]) { branch = effectiveArgs[++i]; }
@@ -135,6 +135,7 @@ async function main() {
           else if (effectiveArgs[i] === '--repo' && effectiveArgs[i + 1]) { projectRoot = effectiveArgs[++i]; }
           else if (effectiveArgs[i] === '--cwd' && effectiveArgs[i + 1]) { cwd = effectiveArgs[++i]; }
           else if (effectiveArgs[i] === '--workspace' && effectiveArgs[i + 1]) { workspace = effectiveArgs[++i]; }
+          else if (effectiveArgs[i] === '--parent' && effectiveArgs[i + 1]) { parent = effectiveArgs[++i]; }
           else if (effectiveArgs[i] === '--scope' && effectiveArgs[i + 1]) {
             try { scope = JSON.parse(effectiveArgs[++i]); }
             catch { console.error('Error: --scope must be valid JSON'); process.exit(1); }
@@ -154,6 +155,7 @@ async function main() {
         if (projectRoot) body.projectRoot = projectRoot;
         if (cwd) body.cwd = cwd;
         if (workspace) body.workspace = workspace;
+        if (parent) body.parent = parent;
         result = await request('POST', '/task', body);
         break;
       }

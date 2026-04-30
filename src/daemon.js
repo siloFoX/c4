@@ -351,7 +351,7 @@ async function handleRequest(req, res) {
       result = manager.list();
 
     } else if (req.method === 'POST' && route === '/task') {
-      const { name, task, branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, workspace } = await parseBody(req);
+      const { name, task, branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, workspace, parent } = await parseBody(req);
       // (TODO #98) Multi-repo workspace mode. `workspace` looks up
       // config.workspaces[name] and overrides projectRoot when matched.
       let resolvedRoot = projectRoot;
@@ -363,7 +363,7 @@ async function handleRequest(req, res) {
       }
       result = workspaceErr
         ? workspaceErr
-        : manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot: resolvedRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode });
+        : manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot: resolvedRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, parent });
 
     } else if (req.method === 'GET' && route === '/workspaces') {
       // (TODO #98) List configured multi-repo workspaces.

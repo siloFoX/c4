@@ -952,6 +952,7 @@ class PtyManager extends EventEmitter {
       scopePreset: options.scopePreset || '',
       after: options.after || null,
       contextFrom: options.contextFrom || null,
+      parent: options.parent || null,
       queuedAt: Date.now()
     };
     this._taskQueue.push(entry);
@@ -1063,6 +1064,7 @@ class PtyManager extends EventEmitter {
     // Spawn worker with cwd set to worktree so Claude Code loads project settings
     const createOpts = { target: entry.target };
     if (worktreePath) createOpts.cwd = worktreePath;
+    if (entry.parent) createOpts.parent = entry.parent;
     const createResult = this.create(entry.name, entry.command, entry.args, createOpts);
     if (createResult.error) return createResult;
 
@@ -2650,6 +2652,7 @@ class PtyManager extends EventEmitter {
         scopePreset: options.scopePreset,
         contextFrom: options.contextFrom,
         autoMode: options.autoMode,
+        parent: options.parent,
         _autoWorker: options._autoWorker
       });
     }
@@ -2929,6 +2932,10 @@ class PtyManager extends EventEmitter {
         || (t && t.adapter)
         || (this.config.workerDefaults && this.config.workerDefaults.adapter)
         || null,
+      // (TODO #99 worker hierarchy) Parent worker that spawned this one
+      // (auto-mode manager, subagent dispatch, --parent flag). Stored as
+      // worker name; resolved into a tree at list() time.
+      _parent: options.parent || null,
       // (TODO Per-worker adapter) Concrete adapter instance used for THIS
       // worker's pattern detection. Falls back to the manager-level
       // ClaudeCodeAdapter for backwards compat when no adapter selected.
@@ -5111,6 +5118,7 @@ class PtyManager extends EventEmitter {
       _adapterName: adapterName,
       _adapter: adapter,
       _nonPty: true,
+      _parent: options.parent || null,
     };
     this.workers.set(name, worker);
     if (typeof this._emitSSE === 'function') {
@@ -5247,6 +5255,7 @@ class PtyManager extends EventEmitter {
         cpuPct: ms.cpuPct,
         rssKb: ms.rssKb,
         threads: ms.threads,
+        parent: w._parent || null,
       });
     }
     // Include queued tasks (2.8)
