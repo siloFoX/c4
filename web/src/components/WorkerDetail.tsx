@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
-import { MessageSquare, Monitor, ScrollText, History } from 'lucide-react';
+import { MessageSquare, Monitor, ScrollText, History, Activity } from 'lucide-react';
 import WorkerChat from './WorkerChat';
 import WorkerHistory from './WorkerHistory';
 import WorkerActions from './WorkerActions';
+import WorkerTimeline from './WorkerTimeline';
 import { cn } from '../lib/cn';
 
 interface WorkerDetailProps {
   workerName: string;
 }
 
-type Tab = 'chat' | 'screen' | 'scrollback' | 'history';
+type Tab = 'chat' | 'screen' | 'scrollback' | 'timeline' | 'history';
 
 interface ReadResponse {
   content?: string;
@@ -23,6 +24,7 @@ const TABS: { id: Tab; label: string; Icon: typeof MessageSquare }[] = [
   { id: 'chat', label: 'Chat', Icon: MessageSquare },
   { id: 'screen', label: 'Screen', Icon: Monitor },
   { id: 'scrollback', label: 'Scrollback', Icon: ScrollText },
+  { id: 'timeline', label: 'Timeline', Icon: Activity },
   { id: 'history', label: 'History', Icon: History },
 ];
 
@@ -32,7 +34,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
   const [error, setError] = useState<string | null>(null);
 
   const fetchContent = useCallback(async () => {
-    if (tab === 'chat' || tab === 'history') return;
+    if (tab === 'chat' || tab === 'history' || tab === 'timeline') return;
     try {
       const url =
         tab === 'screen'
@@ -56,7 +58,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
   useEffect(() => {
     setContent('');
     setError(null);
-    if (tab === 'chat' || tab === 'history') return;
+    if (tab === 'chat' || tab === 'history' || tab === 'timeline') return;
     fetchContent();
     const interval = setInterval(fetchContent, 3000);
     return () => clearInterval(interval);
@@ -101,6 +103,8 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
         <WorkerChat workerName={workerName} />
       ) : tab === 'history' ? (
         <WorkerHistory workerFilter={workerName} />
+      ) : tab === 'timeline' ? (
+        <WorkerTimeline workerName={workerName} />
       ) : (
         <>
           {error && (

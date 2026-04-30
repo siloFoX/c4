@@ -1,32 +1,37 @@
-# C4 Claude Code plugin (TODO 9.5)
+# C4 Claude Code plugin
 
-Drop the `plugin/` directory into the Claude Code plugin discovery path
-(see Claude Code docs for the per-platform location) or symlink it from
-the project root:
+Validated against the Claude Code plugin spec (`claude plugin validate`).
 
-```bash
-ln -s /path/to/c4/plugin ~/.claude/plugins/c4
+## Layout
+
+```
+plugin/
+├── .claude-plugin/
+│   └── plugin.json            # name / description / author / version
+└── skills/
+    └── c4-orchestrator/
+        └── SKILL.md           # frontmatter (name/description/version) + body
 ```
 
-The slash commands speak to a running c4 daemon via the SDK
-(`src/sdk.js`):
+## Install for development
 
-| Slash command | What it calls |
-|---------------|---------------|
-| `/c4-new <name>`              | `POST /create` |
-| `/c4-task <name> <task...>`   | `POST /task` (auto branch + worktree) |
-| `/c4-list`                    | `GET /list` |
-| `/c4-read <name>`             | `GET /read-now` |
-| `/c4-close <name>`            | `POST /close` |
-| `/c4-dispatch <task...>`      | `POST /dispatch` (least-load) |
+```bash
+# Per-session (no permanent install): use --plugin-dir
+claude --plugin-dir /home/shinc/c4/plugin
 
-If the daemon isn't on `127.0.0.1:3456`, override with the plugin's
-`config.daemon` block in `manifest.json` or the host's plugin settings.
+# Or install into the user scope through Claude Code:
+claude plugin install c4@<marketplace>           # once published
+```
 
-## Status
+The skill auto-activates when the user mentions c4-style orchestration
+("use c4", "spawn a worker", "run on DGX", "schedule…", etc.). The
+skill body teaches Claude how to use the `c4` CLI from Bash; it does
+not call the daemon directly. Make sure `c4 daemon start` runs once
+before the skill issues any task command.
 
-This is **scaffolding** — wired to the existing daemon API and ready to
-be picked up by Claude Code's plugin loader once that loader stabilises.
-Once the plugin host API is finalised, the slash commands' return shape
-may need to wrap into Claude Code's content-block format (similar to
-MCP tools/call), but the SDK calls themselves stay the same.
+## Validation
+
+```bash
+claude plugin validate /home/shinc/c4/plugin
+# ✔ Validation passed
+```

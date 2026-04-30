@@ -31,6 +31,14 @@
 - **9.4 MCP 프로토콜 최신화** — protocolVersion 협상(`2025-03-26` ↔ `2024-11-05`), `ping` 응답, `notifications/initialized` 외 `initialized` 별칭, `capabilities.tools.listChanged=true` + `capabilities.logging`.
 - **9.6 Fleet write-through** — `/fleet/create` `/fleet/task` `/fleet/close` `/fleet/send`. SDK `fleetCreate`/`fleetTask`/`fleetClose`/`fleetSend`/`fleetKey`. 4개 단위 테스트 추가 (총 7개).
 
+### 1.6.16 누적 (5차 — README.ko / ops 가이드 / Worker timeline / scribe 확장 / workflow graph / plugin 정합)
+- **README.ko.md 동기화** — Phase 9-11 surface / CLI cheat sheet / auth / SDK 섹션을 한국어로 추가.
+- **`docs/ops.md`** — daemon 라이프사이클(start/restart/hot-reload), 인증(RBAC), 모니터링(audit/SSE/cost/notifications), 백업/복원, fleet 운영, 트러블슈팅, OpenAPI, 운영 체크리스트.
+- **Worker timeline 탭** — `WorkerTimeline.tsx` (`/api/hook-events?name=` 폴링 + SSE `hook` 라이브 갱신). PreToolUse/PostToolUse 별 색깔 dot + Bash/Edit/Write 등 툴 아이콘.
+- **scribe 메시지 폭 확장** — Bash 커밋/push/test 명령은 `milestone`/`progress`로 기록. `TaskCreate/TaskUpdate/Agent` 도구 사용도 entry. `system` / `error` 메시지 타입도 entry로 적재.
+- **Workflow graph 뷰** — `WorkflowGraph.tsx`: 토폴로지 layering으로 step 노드 + dependsOn 시각화. JSON 편집기 옆 `Code/Graph` 토글. 그래프에서 step 삭제/promote가 JSON으로 양방향.
+- **Plugin spec 정합** — Claude Code 실제 플러그인 형식 점검: `.claude-plugin/plugin.json` + `skills/<name>/SKILL.md`. 기존 `plugin/manifest.json` + `plugin/commands/*.js` 제거 후 `c4-orchestrator` 단일 Skill로 통합 (모든 c4 명령 사용법 + 의사결정 트리 + 워크플로우 schema). `claude plugin validate /home/shinc/c4/plugin` ✔ 통과. tests/plugin.test.js 4 케이스로 재작성.
+
 ### 1.6.16 누적 (4차 — SSE 훅 / 풀 재사용 / 워크플로우 템플릿 / OpenAPI / .gitignore)
 - **Web UI SSE 훅** — `web/src/lib/useSSE.ts`로 EventSource 단일 공유 + `useSSE(['type'], cb)` 훅. BoardView / SchedulerView / WorkflowView가 board_event / schedule_fire / workflow_end 도착 시 즉시 refetch.
 - **Worker pool 보강** — `_findPoolWorker(options.adapter)`가 suspended/intervention/branch/worktree 워커 제외 + adapter 매칭 검증. claude pool은 local-llm task에 재사용 안 됨. 8개 단위 테스트.

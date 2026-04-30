@@ -1,0 +1,11 @@
+{
+  "name": "c4",
+  "description": "C4 — Claude Code orchestrator. Spawn, supervise, and merge parallel Claude Code workers via the c4 daemon (PTY-native virtual terminal, fleet dispatch, scheduler, audit log).",
+  "version": "1.6.16",
+  "author": {
+    "name": "siloFoX",
+    "url": "https://github.com/siloFoX/c4"
+  },
+  "homepage": "https://github.com/siloFoX/c4",
+  "license": "MIT"
+}

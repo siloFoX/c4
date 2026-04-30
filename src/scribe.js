@@ -276,7 +276,7 @@ class Scribe {
             }
           }
 
-          // Track significant tool uses (file writes, edits)
+          // Track significant tool uses (file writes, edits, commits, tests)
           const tools = this._extractToolUses(msg);
           for (const t of tools) {
             if (['Write', 'Edit'].includes(t.tool)) {
@@ -289,8 +289,63 @@ class Scribe {
                 text: `${t.tool}: ${this._shortenPath(filePath)}`
               });
               newEntries++;
+            } else if (t.tool === 'Bash') {
+              // Capture commits, push, test runs, build commands.
+              const cmd = String(t.input.command || '');
+              if (/(?:^|\s)(git\s+(commit|push|merge|reset|tag)|npm\s+(test|run|publish)|cargo\s+(test|build)|pytest|poetry\s+run|make\b)/i.test(cmd)) {
+                this._state.entries.push({
+                  time: msg.timestamp || new Date().toISOString(),
+                  session: sessionId.substring(0, 8),
+                  role: 'tool',
+                  category: /commit|push|merge|tag/i.test(cmd) ? 'milestone' : 'progress',
+                  text: `Bash: ${cmd.slice(0, 200)}`,
+                });
+                newEntries++;
+              }
+            } else if (t.tool === 'TaskCreate' || t.tool === 'TaskUpdate') {
+              this._state.entries.push({
+                time: msg.timestamp || new Date().toISOString(),
+                session: sessionId.substring(0, 8),
+                role: 'tool',
+                category: 'progress',
+                text: `${t.tool}: ${(t.input.subject || t.input.description || '').slice(0, 150)}`,
+              });
+              newEntries++;
+            } else if (t.tool === 'Agent') {
+              this._state.entries.push({
+                time: msg.timestamp || new Date().toISOString(),
+                session: sessionId.substring(0, 8),
+                role: 'tool',
+                category: 'progress',
+                text: `Subagent (${t.input.subagent_type || 'general'}): ${(t.input.description || '').slice(0, 150)}`,
+              });
+              newEntries++;
             }
           }
+        }
+
+        // (TODO scribe 확장) Track system / error / compact-event messages.
+        if (msg.type === 'system') {
+          const text = (msg.content || '').toString().slice(0, 300);
+          if (text) {
+            this._state.entries.push({
+              time: msg.timestamp || new Date().toISOString(),
+              session: sessionId.substring(0, 8),
+              role: 'system',
+              category: /compact|summariz/i.test(text) ? 'milestone' : 'context',
+              text,
+            });
+            newEntries++;
+          }
+        } else if (msg.type === 'error') {
+          this._state.entries.push({
+            time: msg.timestamp || new Date().toISOString(),
+            session: sessionId.substring(0, 8),
+            role: 'system',
+            category: 'error',
+            text: (msg.error || msg.message || JSON.stringify(msg).slice(0, 300)).toString().slice(0, 300),
+          });
+          newEntries++;
         }
       }
     }

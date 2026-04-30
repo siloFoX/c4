@@ -2,10 +2,11 @@
 // Left: JSON editor with templates, Run button.
 // Right: recent runs from /api/workflow/runs with per-step status.
 
-import { useCallback, useEffect, useState } from 'react';
-import { Workflow, Play, FileText, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Workflow, Play, FileText, RefreshCw, Layers, Code } from 'lucide-react';
 import { cn } from '../lib/cn';
 import { useSSE } from '../lib/useSSE';
+import WorkflowGraph from './WorkflowGraph';
 
 interface StepResult { error?: string; [k: string]: unknown }
 interface RunRecord {
@@ -58,6 +59,11 @@ export default function WorkflowView() {
   const [busy, setBusy] = useState(false);
   const [runs, setRuns] = useState<RunRecord[]>([]);
   const [last, setLast] = useState<RunRecord | null>(null);
+  const [editorMode, setEditorMode] = useState<'json' | 'graph'>('json');
+
+  const parsedWorkflow = useMemo(() => {
+    try { return JSON.parse(json); } catch { return null; }
+  }, [json]);
 
   const fetchRuns = useCallback(async () => {
     try {
@@ -131,13 +137,44 @@ export default function WorkflowView() {
                 {t.name}
               </button>
             ))}
+            <div className="ml-auto flex gap-1 rounded bg-surface-2 p-0.5 text-[10px]">
+              <button
+                type="button"
+                onClick={() => setEditorMode('json')}
+                className={cn(
+                  'inline-flex items-center gap-1 rounded px-1.5 py-0.5',
+                  editorMode === 'json' ? 'bg-surface-3 text-foreground' : 'text-muted hover:text-foreground',
+                )}
+              >
+                <Code size={10} /> JSON
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditorMode('graph')}
+                className={cn(
+                  'inline-flex items-center gap-1 rounded px-1.5 py-0.5',
+                  editorMode === 'graph' ? 'bg-surface-3 text-foreground' : 'text-muted hover:text-foreground',
+                )}
+              >
+                <Layers size={10} /> Graph
+              </button>
+            </div>
           </div>
-          <textarea
-            value={json}
-            onChange={(e) => setJson(e.target.value)}
-            spellCheck={false}
-            className="min-h-[280px] flex-1 resize-none rounded-lg border border-border bg-background p-3 font-mono text-xs leading-relaxed text-foreground focus:border-primary focus:outline-none"
-          />
+          {editorMode === 'json' ? (
+            <textarea
+              value={json}
+              onChange={(e) => setJson(e.target.value)}
+              spellCheck={false}
+              className="min-h-[280px] flex-1 resize-none rounded-lg border border-border bg-background p-3 font-mono text-xs leading-relaxed text-foreground focus:border-primary focus:outline-none"
+            />
+          ) : (
+            <div className="min-h-[280px] flex-1">
+              <WorkflowGraph
+                workflow={parsedWorkflow}
+                onChange={(next) => setJson(JSON.stringify(next, null, 2))}
+              />
+            </div>
+          )}
           {error && (
             <div className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-xs text-danger">{error}</div>
           )}

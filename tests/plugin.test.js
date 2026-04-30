@@ -1,8 +1,9 @@
-// 9.5 Claude Code plugin scaffold tests. Verify each command module is
-// loadable, exports an async function, and returns a usage error for the
-// "missing args" path. Network calls are stubbed by pointing at an SDK
-// instance with an unreachable port; commands that branch early on
-// missing args never reach the network.
+// Claude Code plugin scaffold tests (1.6.16 — real spec).
+//
+// The plugin layout follows `.claude-plugin/plugin.json` + `skills/<name>/SKILL.md`,
+// validated against `claude plugin validate`. We don't shell out to claude
+// here (test host doesn't always have the CLI), but we mirror the
+// schema validation it performs.
 
 'use strict';
 
@@ -13,41 +14,42 @@ const path = require('path');
 
 const PLUGIN = path.join(__dirname, '..', 'plugin');
 
-describe('Claude Code plugin scaffold (9.5)', () => {
-  it('manifest.json declares the expected commands', () => {
-    const manifest = JSON.parse(fs.readFileSync(path.join(PLUGIN, 'manifest.json'), 'utf8'));
-    assert.strictEqual(manifest.name, 'c4');
-    const triggers = (manifest.commands || []).map((c) => c.trigger);
-    for (const t of ['/c4-new', '/c4-task', '/c4-list', '/c4-read', '/c4-close', '/c4-dispatch']) {
-      assert.ok(triggers.includes(t), `missing trigger: ${t}`);
+describe('Claude Code plugin scaffold', () => {
+  it('has .claude-plugin/plugin.json with required fields', () => {
+    const file = path.join(PLUGIN, '.claude-plugin', 'plugin.json');
+    assert.ok(fs.existsSync(file), 'plugin.json missing');
+    const m = JSON.parse(fs.readFileSync(file, 'utf8'));
+    assert.strictEqual(m.name, 'c4');
+    assert.ok(m.description && m.description.length > 0);
+    assert.ok(m.version);
+  });
+
+  it('ships at least one skill with valid frontmatter', () => {
+    const skillsDir = path.join(PLUGIN, 'skills');
+    assert.ok(fs.existsSync(skillsDir), 'skills/ missing');
+    const skills = fs.readdirSync(skillsDir).filter((d) =>
+      fs.existsSync(path.join(skillsDir, d, 'SKILL.md')));
+    assert.ok(skills.length >= 1, 'no SKILL.md found');
+    const first = path.join(skillsDir, skills[0], 'SKILL.md');
+    const text = fs.readFileSync(first, 'utf8');
+    assert.match(text, /^---\n[\s\S]+?\n---/, 'SKILL.md missing frontmatter block');
+    assert.match(text, /\nname:\s*\S+/);
+    assert.match(text, /\ndescription:\s*\S+/);
+  });
+
+  it('skill description triggers on c4-style asks', () => {
+    const file = path.join(PLUGIN, 'skills', 'c4-orchestrator', 'SKILL.md');
+    const text = fs.readFileSync(file, 'utf8');
+    for (const trigger of ['spawn a worker', 'use c4', 'schedule', 'fleet peer']) {
+      assert.ok(text.toLowerCase().includes(trigger.toLowerCase()),
+        `skill description should hint at "${trigger}"`);
     }
   });
 
-  it('every command module exports an async function', () => {
-    const cmds = ['c4-new', 'c4-task', 'c4-list', 'c4-read', 'c4-close', 'c4-dispatch'];
-    for (const c of cmds) {
-      const mod = require(path.join(PLUGIN, 'commands', `${c}.js`));
-      assert.strictEqual(typeof mod, 'function', `${c} should export a function`);
-    }
-  });
-
-  it('c4-new rejects missing name with usage error', async () => {
-    const cmd = require(path.join(PLUGIN, 'commands', 'c4-new.js'));
-    const r = await cmd([], {});
-    assert.ok(r.error && /Usage/.test(r.error));
-  });
-
-  it('c4-task rejects missing task with usage error', async () => {
-    const cmd = require(path.join(PLUGIN, 'commands', 'c4-task.js'));
-    const r1 = await cmd([], {});
-    assert.ok(r1.error);
-    const r2 = await cmd(['only-name'], {});
-    assert.ok(r2.error);
-  });
-
-  it('c4-dispatch rejects missing task', async () => {
-    const cmd = require(path.join(PLUGIN, 'commands', 'c4-dispatch.js'));
-    const r = await cmd([], {});
-    assert.ok(r.error);
+  it('does not ship the legacy manifest.json or commands/*.js (1.6.16 cleanup)', () => {
+    assert.ok(!fs.existsSync(path.join(PLUGIN, 'manifest.json')),
+      'legacy manifest.json should be removed (1.6.16)');
+    assert.ok(!fs.existsSync(path.join(PLUGIN, 'commands')),
+      'legacy commands/ should be removed (1.6.16)');
   });
 });
