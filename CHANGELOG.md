@@ -1,5 +1,41 @@
 # Changelog
 
+## [1.6.17] - 2026-04-30
+
+Phase 12 release — wraps up the 1.6.16 cumulative work into a tagged
+version so the SDK / plugin / docs publish with a clean number.
+
+### Highlights
+- **Daemon ships its own SPA** — `c4 daemon start` now serves `web/dist/`
+  with proper SPA fallback + immutable asset cache. No more `vite preview`
+  side-car.
+- **Per-worker CPU/RSS metrics** — Linux `/proc` sampling with CPU% delta
+  math, exposed in `/list` and `/metrics`. Web UI shows a live MetricsBar
+  above the workspace.
+- **Multi-repo workspaces** — `config.workspaces` maps short names to
+  repo roots; `c4 task --workspace <name>` dispatches against any of them
+  without per-call `--repo`.
+- **Worker hierarchy tree** — `_parent` field in worker records, rendered
+  as an indented tree in the sidebar.
+- **Department $ budgets + tier labels** — `monthlyBudgetUSD` sits next
+  to `workerQuota`; `quotaCheck()` rejects new workers when either cap
+  is hit. DepartmentsView gets a $ progress bar.
+- **Failure-pattern hints** — 13 curated regex patterns (ENOSPC, ESLint,
+  rate-limit, OOM, port collision, …) emit a short "suggested fix" line
+  on each worker card.
+- **CSV exports are Excel-friendly** — `/audit/export?format=csv` ships
+  UTF-8 BOM + CRLF so Korean/non-ASCII renders correctly out of the box.
+- **PM board ↔ TODO.md two-way sync** — moveCard mirrors status back to
+  the canonical TODO.md row when `pm.todoSync=true`.
+- **NL Anthropic fallback** — `parseLLM` is now exercised end-to-end
+  with a mocked SDK; opt-in via `nl.llm.enabled=true`.
+- **84 tests passing** (was 77).
+
+### Detail
+See the cumulative 1.6.16 sections below for per-commit context. The
+tag boundary is purely organizational — no functional regressions
+between 1.6.16 and 1.6.17.
+
 ## [1.6.16] - 2026-04-30
 
 ### Fixed

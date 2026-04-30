@@ -11,8 +11,8 @@
 ![Node >= 18](https://img.shields.io/badge/node-%3E%3D18%20(tested%20v24.11.1)-brightgreen.svg)
 ![Claude Code](https://img.shields.io/badge/Claude_Code-v2.1.85--2.1.123-8A2BE2.svg)
 ![Platform](https://img.shields.io/badge/platform-Win11%2022H2%2B%20%7C%20Ubuntu%2022.04%2B-blue.svg)
-![Version](https://img.shields.io/badge/version-1.6.16-green.svg)
-![Tests](https://img.shields.io/badge/tests-77%20passed-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-1.6.17-green.svg)
+![Tests](https://img.shields.io/badge/tests-84%20passed-brightgreen.svg)
 
 > **The only multi-agent orchestrator for Claude Code** — parallel workers, manager rotation, recursive delegation, overnight autonomous coding. No screenshots, just PTY.
 
@@ -331,7 +331,7 @@ These are used by Claude Code (manager), not by you directly:
 - **ScreenBuffer**: Enhanced ANSI CSI parser with scrollback API
 - **Cross-platform**: Windows, Linux, macOS support
 
-## Phase 9-11 features (1.6.16)
+## Phase 9-12 features (1.6.16 - 1.6.17)
 
 c4 grew a fleet, scheduler, audit log, kanban board, workflow engine, and
 natural-language entry point on top of the worker manager. Everything is
@@ -350,6 +350,14 @@ opt-in — defaults preserve the single-machine, single-user behavior.
 | **NL interface** (11.4) | Heuristic intent parser → workflow plan. Optional LLM fallback via `config.nl.llm.enabled` + `ANTHROPIC_API_KEY`. |
 | **CI/CD webhooks** (10.4) | `POST /webhook/github` (HMAC) and `POST /webhook/gitlab` (token) auto-spawn review/deploy workers. |
 | **Web UI** | Dashboard adds Projects, Fleet, Cost, Departments, Board, Scheduler, Audit, Context views + a global NL command bar. |
+| **Static SPA serving** (1.6.17 / #94) | `c4 daemon start` serves `web/dist/` directly with SPA fallback + immutable asset cache — no `vite preview` needed. |
+| **Per-worker metrics** (1.6.17 / #95) | Linux `/proc` sampling adds `cpuPct`/`rssKb`/`threads` to `/list` and exposes `GET /metrics` with daemon load + worker totals. MetricsBar in the Web UI. |
+| **Multi-repo workspaces** (1.6.17 / #98) | `config.workspaces` maps short names to repo roots. `c4 task --workspace <name>` dispatches without `--repo`. |
+| **Worker hierarchy tree** (1.6.17 / 8.2) | `_parent` field on workers, sidebar renders a tree with connectors + sub-counter. |
+| **Dept $ budget + tier** (1.6.17 / 8.3) | `monthlyBudgetUSD` + `tier` on `config.departments[*]`. `quotaCheck` enforces both worker count and rolling cost. |
+| **Failure-pattern hints** (1.6.17 / 8.4) | 13 curated regex patterns map to short suggested fixes; appears as a yellow badge on the worker card. |
+| **Excel-friendly CSV** (1.6.17 / #97) | `/audit/export?format=csv` emits UTF-8 BOM + CRLF for direct Excel/LibreOffice/Sheets opens. |
+| **PM board ↔ TODO.md sync** (1.6.17 / 10.8) | `pm.todoSync` mirrors card moves back into the source-of-truth TODO.md row. |
 
 ### CLI cheat sheet (new commands)
 
