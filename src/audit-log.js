@@ -236,6 +236,30 @@ class AuditLogger {
 
   query(filter) {
     const f = filter && typeof filter === 'object' ? filter : {};
+    // Use the SQLite mirror when it's been initialised (useSqlite:true on
+    // the constructor). Proper indexes on (ts, action, worker, actor)
+    // make filtered queries O(log n) instead of full-file scans. Falls
+    // back to the JSONL scan on miss / unavailable / parse error so the
+    // public API contract is identical either way.
+    if (this._sqlite) {
+      try {
+        const rows = this._sqlite.query({
+          since: f.from || undefined,
+          until: f.to || undefined,
+          action: typeof f.type === 'string' && f.type.length > 0 ? f.type : undefined,
+          worker: typeof f.target === 'string' && f.target.length > 0 ? f.target : undefined,
+          limit: Number.isFinite(f.limit) && f.limit > 0 ? Math.floor(f.limit) : 200,
+        });
+        if (Array.isArray(rows)) {
+          // _toSqliteRow nests the original hash-chain event under `event`;
+          // unwrap it so callers see the same shape as the JSONL path.
+          // Reverse order (DESC → ASC) for parity with the line-scan path.
+          return rows.slice().reverse().map((r) => (r && r.event) ? r.event : r);
+        }
+      } catch {
+        // Drop through to JSONL fallback.
+      }
+    }
     if (!fs.existsSync(this.logPath)) return [];
     const fromTime = f.from ? Date.parse(f.from) : NaN;
     const toTime = f.to ? Date.parse(f.to) : NaN;
