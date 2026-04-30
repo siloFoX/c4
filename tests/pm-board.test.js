@@ -92,4 +92,86 @@ describe('PmBoard (10.8)', () => {
     assert.strictEqual(view.columns.backlog.length, 1);
     assert.strictEqual(view.columns.in_progress.length, 1);
   });
+
+  // (TODO #103) Two-way sync.
+  it('moveCard writes status back to TODO.md when config.pm.todoSync is on', () => {
+    const todo = [
+      '# Stuff',
+      '',
+      '| # | 항목 | 상태 | 설명 |',
+      '|---|------|------|------|',
+      '| 1.1 | First task | **todo** | next |',
+      '| 1.2 | Second task | **todo** | also |',
+      '',
+    ].join('\n');
+    const todoPath = path.join(tmpDir, 'TODO.md');
+    fs.writeFileSync(todoPath, todo, 'utf8');
+
+    const mgr = { logsDir: tmpDir, config: { pm: { todoSync: true, todoFile: todoPath } } };
+    const board = new PmBoard(mgr);
+    board.importTodoMd('p', todoPath);
+
+    // Find the card matching the [1.1] prefix.
+    const view = board.get('p');
+    const target = [
+      ...view.columns.backlog, ...view.columns.in_progress,
+      ...view.columns.done, ...view.columns.review,
+    ].find((c) => c.title.startsWith('[1.1]'));
+    assert.ok(target, 'imported card present');
+
+    board.moveCard('p', target.id, 'done');
+    const updated = fs.readFileSync(todoPath, 'utf8');
+    assert.match(updated, /\| 1\.1 \| First task \| \*\*done\*\* \|/);
+    // 1.2 should remain unchanged.
+    assert.match(updated, /\| 1\.2 \| Second task \| \*\*todo\*\* \|/);
+  });
+
+  it('moveCard is a no-op on TODO.md when card has no [<id>] prefix', () => {
+    const todoPath = path.join(tmpDir, 'TODO.md');
+    fs.writeFileSync(todoPath, '| 1.1 | x | **todo** | n |\n', 'utf8');
+    const before = fs.readFileSync(todoPath, 'utf8');
+    const mgr = { logsDir: tmpDir, config: { pm: { todoSync: true, todoFile: todoPath } } };
+    const board = new PmBoard(mgr);
+    const c = board.createCard('p', { title: 'free-form card', status: 'backlog' });
+    board.moveCard('p', c.cardId, 'done');
+    assert.strictEqual(fs.readFileSync(todoPath, 'utf8'), before);
+  });
+
+  it('moveCard skips TODO.md write when config.pm.todoSync is off', () => {
+    const todoPath = path.join(tmpDir, 'TODO.md');
+    fs.writeFileSync(todoPath, '| 1.1 | First | **todo** | n |\n', 'utf8');
+    const before = fs.readFileSync(todoPath, 'utf8');
+    const mgr = { logsDir: tmpDir, config: { pm: { todoSync: false, todoFile: todoPath } } };
+    const board = new PmBoard(mgr);
+    board.importTodoMd('p', todoPath);
+    const view = board.get('p');
+    const target = view.columns.backlog.find((c) => c.title.startsWith('[1.1]'));
+    board.moveCard('p', target.id, 'done');
+    assert.strictEqual(fs.readFileSync(todoPath, 'utf8'), before);
+  });
+
+  it('skip TODO.md rewrite when status already matches (no churn)', () => {
+    const todo = '| 1.1 | First | **done** | n |\n';
+    const todoPath = path.join(tmpDir, 'TODO.md');
+    fs.writeFileSync(todoPath, todo, 'utf8');
+    const writes = [];
+    const realWrite = fs.writeFileSync;
+    fs.writeFileSync = (...args) => {
+      // Only count writes that target our TODO.md (board jsonl writes go via
+      // appendFileSync, so they don't show up here).
+      if (args[0] === todoPath) writes.push(args);
+      return realWrite.apply(fs, args);
+    };
+    try {
+      const mgr = { logsDir: tmpDir, config: { pm: { todoSync: true, todoFile: todoPath } } };
+      const board = new PmBoard(mgr);
+      board.importTodoMd('p', todoPath);
+      const view = board.get('p');
+      const target = view.columns.done.find((c) => c.title.startsWith('[1.1]'));
+      board.moveCard('p', target.id, 'done');
+    } finally {
+      fs.writeFileSync = realWrite;
+    }
+    assert.strictEqual(writes.length, 0, 'no churn write when status unchanged');
+  });
 });

@@ -124,6 +124,10 @@ class PmBoard {
     if (!cardId) return { error: 'cardId is required' };
     if (!STATUSES.includes(to)) return { error: `invalid status: ${to}` };
     this._append(project, { type: 'move', cardId, to });
+    // (TODO #103) two-way sync: when config.pm.todoSync is enabled, mirror
+    // the new status back into TODO.md so the on-disk file stays
+    // canonical.
+    this._maybeSyncToTodo(project, cardId);
     return { success: true };
   }
 
@@ -131,6 +135,52 @@ class PmBoard {
     if (!cardId) return { error: 'cardId is required' };
     this._append(project, { type: 'delete', cardId });
     return { success: true };
+  }
+
+  // (TODO #103) Two-way sync. When the card's title carries an `[<id>]`
+  // prefix (assigned at import time) and config.pm.todoSync is on, locate
+  // the matching `| <id> | <title> | **<status>** |` row and update its
+  // status column to match the board move.
+  //
+  // Mapping back to TODO.md status vocabulary:
+  //   board.done         → **done**
+  //   board.in_progress  → **partial**  (closest semantic match)
+  //   board.review       → **partial**  (still mid-flight)
+  //   board.backlog      → **todo**
+  _maybeSyncToTodo(project, cardId) {
+    const cfg = (this.manager.config && this.manager.config.pm) || {};
+    if (!cfg.todoSync || !cfg.todoFile) return;
+    if (!fs.existsSync(cfg.todoFile)) return;
+    const cards = this._load(project);
+    const card = cards.get(cardId);
+    if (!card) return;
+    const m = String(card.title).match(/^\[(\d+\.\d+)\]/);
+    if (!m) return;
+    const id = m[1];
+    const wantedStatus = ({
+      done: 'done',
+      in_progress: 'partial',
+      review: 'partial',
+      backlog: 'todo',
+    })[card.status] || 'todo';
+    const text = fs.readFileSync(cfg.todoFile, 'utf8');
+    const lines = text.split('\n');
+    let mutated = false;
+    for (let i = 0; i < lines.length; i++) {
+      const row = lines[i].match(/^(\|\s*)(\d+\.\d+)(\s*\|\s*[^|]+?\s*\|\s*\*\*)(\w+)(\*\*\s*\|.*)$/);
+      if (!row) continue;
+      if (row[2] !== id) continue;
+      if (row[4] === wantedStatus) return; // already matches — no churn
+      lines[i] = row[1] + row[2] + row[3] + wantedStatus + row[5];
+      mutated = true;
+      break;
+    }
+    if (mutated) {
+      fs.writeFileSync(cfg.todoFile, lines.join('\n'));
+      if (typeof this.manager._emitSSE === 'function') {
+        this.manager._emitSSE('board_todo_sync', { project, cardId, id, status: wantedStatus });
+      }
+    }
   }
 
   // ---- TODO.md sync (10.8 follow-up) ----

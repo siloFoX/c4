@@ -38,8 +38,9 @@
 - **Audit CSV Excel 호환** (TODO #97) — `exportAudit({format:'csv'})`가 UTF-8 BOM + CRLF 줄바꿈으로 응답해 Excel/LibreOffice/Google Sheets에서 한글이 그대로 보인다. Content-Type도 `text/csv; charset=utf-8`로 명시. `bom:false` / `lineEnd:'\n'` 옵션으로 awk/csvkit 파이프라인용 plain LF 출력 가능. quote 정규식이 CR도 감지하도록 `[",\r\n]`로 확장. 라이브 검증: `curl /audit/export?format=csv` → 첫 3바이트 `EF BB BF`, 줄 끝 `0D 0A`. 신규 테스트 2개 + 기존 4개 마이그레이션.
 - **Multi-repo workspace mode** (TODO #98) — `config.workspaces`에 name → 절대 경로 맵을 두면 한 데몬이 여러 repo에 대해 worker를 분배할 수 있다. `manager.listWorkspaces()` (resolved path / exists / isGitRepo 플래그) + `resolveWorkspace(name)` (unknown name / 존재하지 않는 경로에 친절한 에러), `GET /workspaces`, CLI `c4 task --workspace <name>`, SDK `workspaces()` / `metrics()` 추가. POST `/task` body에 `workspace`가 있으면 projectRoot로 해석. config.example.json에 빈 `workspaces: {}` 자리 + 사용법 doc 키. 신규 테스트 7개 + 라이브 `/workspaces` 200 OK 검증.
 
-### 1.6.16 누적 (11차 — 알림 재배선)
+### 1.6.16 누적 (11차 — 알림 재배선 + PM board 양방향 sync)
 - **Workflow / Scheduler 실패 → Slack 알림 검증** (TODO #102) — 코드는 이미 `[WORKFLOW FAIL]` / `[SCHEDULE FAIL]` prefix로 `pushAll`을 호출하지만 회귀 방지 테스트가 없어 추가. workflow.test.js + scheduler.test.js에 4개 케이스 신규 (성공/실패 양방향). prefix가 `notifications.js`의 SLACK_SEVERITY 매처를 거쳐 Block Kit warning 색상으로 변환되는 흐름 보장.
+- **PM board ↔ TODO.md 양방향 sync** (TODO 10.8 / #103) — `config.pm.todoSync = true` + `config.pm.todoFile` 설정 시 `moveCard`가 카드 제목의 `[<id>]` prefix를 추출해 TODO.md 해당 행의 status 셀(`**todo**`/`**partial**`/`**done**`)을 업데이트. board.done→done, board.in_progress/review→partial, board.backlog→todo로 매핑. 변경 시 `board_todo_sync` SSE 발행. 상태 동일하면 churn 방지(파일 쓰기 스킵). Free-form 카드는 prefix 없으면 sync 무시. 신규 테스트 4개 (pm-board, total 10).
 
 ### 1.6.16 누적 (10차 — Phase 8 deferred 재개: 계층 트리)
 - **Web UI 워커 계층 트리** (TODO 8.2 / #99) — `_parent` 필드를 worker 레코드에 저장하고 `list()` 응답에 `parent` 노출. CLI `c4 task --parent <name>` 플래그, POST `/task` body `parent` 필드, 큐 엔트리에도 보존. WorkerList가 parent → children 맵을 만들어 트리로 렌더링하고 자식은 16px 들여쓰기 + 16px 가로 connector. 부모가 사라진 orphan은 root로 승격. children.length가 있으면 "{n} sub" 뱃지 표시. 신규 테스트 3개 (worker-tree).
