@@ -47,6 +47,20 @@ interface SessionsResponse {
 // (8.17) Attached session record shape - mirrors the persisted form on
 // the daemon side (~/.c4/attached.json). The Web UI is read-only aside
 // from the attach/detach affordances below.
+//
+// (TODO 8.38) `role` is sniffed at attach-time from the JSONL prelude
+// (manager / planner / executor / reviewer) or path-pattern (c4-mgr-*
+// -> manager, c4-worktree-* -> worker). 'generic' covers everything
+// else. Pre-8.38 attached.json records may lack role; the daemon
+// re-derives it on `attach.list` reads.
+export type AttachedRole =
+  | 'manager'
+  | 'worker'
+  | 'planner'
+  | 'executor'
+  | 'reviewer'
+  | 'generic';
+
 export interface AttachedSession {
   name: string;
   jsonlPath: string;
@@ -54,6 +68,7 @@ export interface AttachedSession {
   projectPath: string | null;
   createdAt: string | null;
   lastOffset: number;
+  role?: AttachedRole;
 }
 
 interface AttachedListResponse {
@@ -450,6 +465,26 @@ function Tour({ onDismiss }: TourProps) {
   );
 }
 
+// (TODO 8.38) Map an attached role to badge copy + token-backed
+// styling. Manager gets the primary accent (matches WorkerList in
+// 8.37); Worker / Planner / Executor / Reviewer share a neutral
+// secondary; Generic falls back to muted. Kept as a helper so source-
+// grep tests pin the role -> class mapping.
+function attachedRoleStyle(role: AttachedRole | undefined): string {
+  switch (role) {
+    case 'manager':
+      return 'border-primary/30 bg-primary/10 text-primary';
+    case 'planner':
+    case 'executor':
+    case 'reviewer':
+      return 'border-secondary-foreground/20 bg-secondary text-secondary-foreground';
+    case 'worker':
+      return 'border-border bg-muted/60 text-foreground';
+    default:
+      return 'border-border bg-muted text-muted-foreground';
+  }
+}
+
 interface AttachedRowActionsProps {
   session: AttachedSession;
   isSelected: boolean;
@@ -464,6 +499,7 @@ function AttachedRowActions({
   onDetach,
 }: AttachedRowActionsProps) {
   const [showResume, setShowResume] = useState(false);
+  const [showDetachConfirm, setShowDetachConfirm] = useState(false);
   const [copied, setCopied] = useState(false);
   const resumeCmd = session.sessionId
     ? `claude --resume ${session.sessionId}`
@@ -473,8 +509,27 @@ function AttachedRowActions({
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
   }, [resumeCmd]);
+  const role: AttachedRole = session.role || 'generic';
   return (
     <div className="flex flex-col gap-2 border-t border-border/60 bg-muted/30 px-4 py-2">
+      {/* (TODO 8.38) Role badge + an explicit "the original terminal
+          keeps running" hint. Operators were uncertain whether
+          detaching killed the underlying claude process — making the
+          read-only nature explicit at the row level was the cheapest
+          way to remove that doubt. */}
+      <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+        <span
+          className={cn(
+            'inline-flex items-center rounded-full border px-1.5 py-0 uppercase tracking-wide',
+            attachedRoleStyle(role),
+          )}
+          aria-label={`Agent role: ${role}`}
+          title={`Detected agent role: ${role}`}
+        >
+          {role}
+        </span>
+        <span className="text-muted-foreground">read-only mirror</span>
+      </div>
       <div className="flex flex-wrap gap-2">
         <Button
           size="sm"
@@ -495,17 +550,53 @@ function AttachedRowActions({
           <Terminal className="mr-1 h-3.5 w-3.5" aria-hidden />
           Resume in terminal
         </Button>
+        {/* (TODO 8.38) Two-step detach. The first click expands an
+            inline confirmation strip with the explicit "your terminal
+            keeps running" sentence so the operator never wonders
+            whether detach is destructive. */}
         <Button
           size="sm"
           variant="outline"
-          onClick={onDetach}
+          onClick={() => setShowDetachConfirm((v) => !v)}
           aria-label={`Detach ${session.name}`}
+          aria-expanded={showDetachConfirm}
           className="text-destructive hover:bg-destructive/10"
         >
           <Trash2 className="mr-1 h-3.5 w-3.5" aria-hidden />
           Detach
         </Button>
       </div>
+      {showDetachConfirm ? (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs"
+        >
+          <span className="text-destructive">
+            Remove this session from the c4 list. Your terminal session
+            keeps running — only the read-only mirror is dropped.
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowDetachConfirm(false)}
+            aria-label="Cancel detach"
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            variant="default"
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => {
+              setShowDetachConfirm(false);
+              onDetach();
+            }}
+            aria-label={`Confirm detach for ${session.name}`}
+          >
+            Detach session
+          </Button>
+        </div>
+      ) : null}
       {showResume ? (
         <div
           className="flex items-center gap-2 rounded border border-border bg-background px-2 py-1 text-[11px]"
