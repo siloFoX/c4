@@ -42,6 +42,16 @@ export interface Worker {
   phase: string | null;
   testFailCount: number;
   pinnedMemory?: PinnedMemory;
+  // Failure-pattern hint surface (failure-patterns module): null when no
+  // curated pattern matched the worker's recent error history / latest
+  // snapshot, otherwise a { id, label, hint, sample, count } payload.
+  failureHint?: {
+    id: string;
+    label: string;
+    hint: string;
+    sample?: string | null;
+    count: number;
+  } | null;
 }
 
 export interface QueuedTask {

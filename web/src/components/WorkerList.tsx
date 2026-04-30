@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Inbox, WifiOff } from 'lucide-react';
+import { Inbox, Lightbulb, WifiOff } from 'lucide-react';
 import type { ListResponse, SSEEvent, Worker } from '../types';
 import { apiFetch, eventSourceUrl } from '../lib/api';
 import {
@@ -189,6 +189,30 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
                   {w.branch && (
                     <div className="truncate font-mono text-xs text-muted-foreground">
                       {w.branch}
+                    </div>
+                  )}
+                  {/* Failure-pattern hint surface (failure-patterns module).
+                      Yellow alert with the suggested fix when daemon's
+                      list().failureHint matches one of the curated 13
+                      patterns (ENOSPC, ESLint, OOM, port collision, …).
+                      Sample text goes into the title attribute as a tooltip. */}
+                  {w.failureHint && (
+                    <div
+                      className="mt-2 flex items-start gap-1.5 rounded border border-warning/40 bg-warning/10 px-2 py-1 text-[11px] text-warning-foreground"
+                      title={w.failureHint.sample || ''}
+                    >
+                      <Lightbulb size={11} className="mt-0.5 shrink-0" aria-hidden="true" />
+                      <div className="min-w-0">
+                        <div className="font-semibold">
+                          {w.failureHint.label}
+                          {w.failureHint.count > 1 && (
+                            <span className="ml-1 text-[10px] opacity-80">
+                              ×{w.failureHint.count}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-foreground/85">{w.failureHint.hint}</div>
+                      </div>
                     </div>
                   )}
                 </CardContent>
