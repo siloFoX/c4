@@ -2,7 +2,7 @@
 // project allocation, machines, and quota progress bar.
 
 import { useCallback, useEffect, useState } from 'react';
-import { Users, Server, Briefcase, Gauge } from 'lucide-react';
+import { Users, Server, Briefcase, Gauge, DollarSign } from 'lucide-react';
 import { cn } from '../lib/cn';
 
 interface Dept {
@@ -11,10 +11,15 @@ interface Dept {
   members?: string[];
   machines?: string[];
   projects?: string[];
+  tier?: string | null;
   workerQuota?: number;
   activeWorkers: number;
   quotaRemaining: number | null;
   overQuota: boolean;
+  monthlyBudgetUSD?: number;
+  attributedCostUSD?: number;
+  budgetRemainingUSD?: number | null;
+  overBudget?: boolean;
 }
 
 interface Resp { departments?: Dept[]; error?: string }
@@ -66,21 +71,32 @@ export default function DepartmentsView() {
 function DeptCard({ dept }: { dept: Dept }) {
   const quota = dept.workerQuota || 0;
   const ratio = quota > 0 ? Math.min(1, dept.activeWorkers / quota) : 0;
+  const budget = dept.monthlyBudgetUSD || 0;
+  const cost = dept.attributedCostUSD || 0;
+  const budgetRatio = budget > 0 ? Math.min(1, cost / budget) : 0;
+  const flagged = dept.overQuota || dept.overBudget;
   return (
     <div className={cn(
       'flex flex-col gap-2 rounded-lg border bg-surface-2 p-3 shadow-soft',
-      dept.overQuota ? 'border-warning/50' : 'border-border',
+      flagged ? 'border-warning/50' : 'border-border',
     )}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="truncate font-mono text-sm font-semibold">{dept.name}</div>
+          <div className="flex items-center gap-2">
+            <span className="truncate font-mono text-sm font-semibold">{dept.name}</span>
+            {dept.tier && (
+              <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                {dept.tier}
+              </span>
+            )}
+          </div>
           {dept.description && (
             <div className="mt-0.5 line-clamp-2 text-[11px] text-muted">{dept.description}</div>
           )}
         </div>
         <span className={cn(
           'rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
-          dept.overQuota ? 'bg-warning/20 text-warning' : 'bg-success/15 text-success',
+          flagged ? 'bg-warning/20 text-warning' : 'bg-success/15 text-success',
         )}>
           {dept.activeWorkers}{quota ? ` / ${quota}` : ''}
         </span>
@@ -89,7 +105,7 @@ function DeptCard({ dept }: { dept: Dept }) {
       {quota > 0 && (
         <div>
           <div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted">
-            <Gauge size={10} /> quota usage
+            <Gauge size={10} /> worker quota
           </div>
           <div className="h-2 w-full overflow-hidden rounded bg-surface-3">
             <div
@@ -99,6 +115,24 @@ function DeptCard({ dept }: { dept: Dept }) {
           </div>
           <div className="mt-1 text-right text-[10px] text-muted">
             {dept.quotaRemaining ?? '—'} remaining
+          </div>
+        </div>
+      )}
+
+      {budget > 0 && (
+        <div>
+          <div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted">
+            <DollarSign size={10} /> monthly budget
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded bg-surface-3">
+            <div
+              className={cn('h-full transition-all', dept.overBudget ? 'bg-danger' : 'bg-success')}
+              style={{ width: `${Math.round(budgetRatio * 100)}%` }}
+            />
+          </div>
+          <div className="mt-1 flex justify-between text-[10px] text-muted">
+            <span>${cost.toFixed(2)} / ${budget.toFixed(2)}</span>
+            <span>{dept.budgetRemainingUSD != null ? `$${dept.budgetRemainingUSD.toFixed(2)} left` : '—'}</span>
           </div>
         </div>
       )}

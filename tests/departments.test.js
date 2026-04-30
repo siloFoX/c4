@@ -76,7 +76,7 @@ describe('listDepartments (10.6)', () => {
     );
     const r = mgr.quotaCheck('team');
     assert.strictEqual(r.allowed, false);
-    assert.match(r.reason, /quota exhausted/);
+    assert.match(r.reason, /worker quota exhausted/);
   });
 
   it('quotaCheck allows when no quota set', () => {
@@ -90,5 +90,82 @@ describe('listDepartments (10.6)', () => {
     const mgr = makeManager({});
     const r = mgr.quotaCheck('nope');
     assert.strictEqual(r.allowed, false);
+  });
+
+  // (TODO 8.3 / #100) Monthly $ budget enforcement.
+  it('attributes monthly cost proportional to active worker share', () => {
+    // Disjoint projects per dept — eng owns 3 of 4 active workers, ops owns 1.
+    const mgr = makeManager(
+      {
+        projects: { p: { root: '/p' }, q: { root: '/q' } },
+        departments: {
+          eng: { projects: ['p'], monthlyBudgetUSD: 100 },
+          ops: { projects: ['q'] },
+        },
+      },
+      new Map([
+        ['w1', { alive: true, worktree: '/p/a' }],
+        ['w2', { alive: true, worktree: '/p/b' }],
+        ['w3', { alive: true, worktree: '/p/c' }],
+        ['w4', { alive: true, worktree: '/q/d' }],
+      ]),
+    );
+    // Pin a deterministic monthly cost so attribution math is testable.
+    mgr.getCostReport = () => ({ monthly: { costUSD: 80 }, daily: [], totals: {} });
+    const r = mgr.listDepartments();
+    const eng = r.departments.find((d) => d.name === 'eng');
+    const ops = r.departments.find((d) => d.name === 'ops');
+    // eng has 3 of 4 active workers → 3/4 * $80 = $60.
+    assert.strictEqual(eng.attributedCostUSD, 60);
+    assert.strictEqual(eng.budgetRemainingUSD, 40);
+    assert.strictEqual(eng.overBudget, false);
+    assert.strictEqual(ops.attributedCostUSD, 20);
+    // ops has no monthlyBudgetUSD set → null remaining + not overBudget.
+    assert.strictEqual(ops.budgetRemainingUSD, null);
+    assert.strictEqual(ops.overBudget, false);
+  });
+
+  it('flags overBudget when attributed cost meets monthlyBudgetUSD', () => {
+    const mgr = makeManager(
+      {
+        projects: { p: { root: '/p' } },
+        departments: {
+          eng: { projects: ['p'], monthlyBudgetUSD: 50 },
+        },
+      },
+      new Map([['w1', { alive: true, worktree: '/p/a' }]]),
+    );
+    mgr.getCostReport = () => ({ monthly: { costUSD: 50 }, daily: [], totals: {} });
+    const eng = mgr.listDepartments().departments.find((d) => d.name === 'eng');
+    assert.strictEqual(eng.attributedCostUSD, 50);
+    assert.strictEqual(eng.overBudget, true);
+    const r = mgr.quotaCheck('eng');
+    assert.strictEqual(r.allowed, false);
+    assert.match(r.reason, /monthly budget exhausted/);
+    assert.match(r.reason, /\$50\.00/);
+  });
+
+  it('exposes tier label when configured', () => {
+    const mgr = makeManager({
+      departments: {
+        eng: { projects: [], tier: 'tier-a' },
+      },
+    });
+    const r = mgr.listDepartments();
+    assert.strictEqual(r.departments[0].tier, 'tier-a');
+  });
+
+  it('budget check survives missing cost report (no crash)', () => {
+    const mgr = makeManager(
+      {
+        projects: { p: { root: '/p' } },
+        departments: { eng: { projects: ['p'], monthlyBudgetUSD: 10 } },
+      },
+      new Map([['w1', { alive: true, worktree: '/p/a' }]]),
+    );
+    mgr.getCostReport = () => { throw new Error('boom'); };
+    const r = mgr.listDepartments();
+    assert.strictEqual(r.departments[0].attributedCostUSD, 0);
+    assert.strictEqual(r.departments[0].overBudget, false);
   });
 });

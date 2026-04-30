@@ -4556,20 +4556,48 @@ class PtyManager extends EventEmitter {
     const depts = this.config.departments || {};
     const projects = this.listProjects().projects || [];
     const projectByName = Object.fromEntries(projects.map((p) => [p.name, p]));
+    // (TODO 8.3 / #100) Compute per-dept cost attribution. The existing
+    // token monitor doesn't tag tokens by user / dept, so we proportionally
+    // split the rolling monthly cost by share of active workers — a coarse
+    // but useful approximation for budget signaling. When monthlyBudgetUSD
+    // is set we surface remaining and overBudget alongside the existing
+    // worker-count quota.
+    const totalActive = Object.values(depts).reduce((sum, cfg) => {
+      const dProjects = (cfg.projects || []).map((pn) => projectByName[pn]).filter(Boolean);
+      return sum + dProjects.reduce((s, p) => s + (p.workers || []).length, 0);
+    }, 0);
+    let monthlyCostUSD = 0;
+    try {
+      const cost = this.getCostReport({});
+      if (cost && cost.monthly && typeof cost.monthly.costUSD === 'number') {
+        monthlyCostUSD = cost.monthly.costUSD;
+      }
+    } catch {
+      // cost report failure shouldn't break dept listing
+    }
     const out = [];
     for (const [name, cfg] of Object.entries(depts)) {
       const dProjects = (cfg.projects || []).map((pn) => projectByName[pn]).filter(Boolean);
       const activeWorkers = dProjects.reduce((sum, p) => sum + (p.workers || []).length, 0);
+      const share = totalActive > 0 ? activeWorkers / totalActive : 0;
+      const attributedCostUSD = +(monthlyCostUSD * share).toFixed(2);
+      const monthlyBudgetUSD = cfg.monthlyBudgetUSD || 0;
+      const overBudget = monthlyBudgetUSD > 0 && attributedCostUSD >= monthlyBudgetUSD;
       out.push({
         name,
         description: cfg.description || '',
         members: cfg.members || [],
         machines: cfg.machines || [],
         projects: cfg.projects || [],
+        tier: cfg.tier || null,
         workerQuota: cfg.workerQuota || 0,
         activeWorkers,
         quotaRemaining: cfg.workerQuota ? Math.max(0, cfg.workerQuota - activeWorkers) : null,
         overQuota: cfg.workerQuota ? activeWorkers >= cfg.workerQuota : false,
+        monthlyBudgetUSD,
+        attributedCostUSD,
+        budgetRemainingUSD: monthlyBudgetUSD > 0 ? +(Math.max(0, monthlyBudgetUSD - attributedCostUSD)).toFixed(2) : null,
+        overBudget,
       });
     }
     return { departments: out };
@@ -4584,18 +4612,25 @@ class PtyManager extends EventEmitter {
   }
 
   // Returns { allowed: bool, reason? }. Called from dispatcher / sendTask
-  // when config.departments[*].workerQuota > 0.
+  // when config.departments[*].workerQuota or monthlyBudgetUSD is set.
   quotaCheck(deptName) {
     if (!deptName) return { allowed: true };
     const depts = this.config.departments || {};
     const cfg = depts[deptName];
     if (!cfg) return { allowed: false, reason: `unknown department: ${deptName}` };
-    if (!cfg.workerQuota) return { allowed: true };
     const list = this.listDepartments().departments;
     const entry = list.find((d) => d.name === deptName);
     if (!entry) return { allowed: false, reason: `department snapshot missing` };
-    if (entry.overQuota) {
-      return { allowed: false, reason: `quota exhausted: ${entry.activeWorkers}/${entry.workerQuota}` };
+    // Worker-count quota.
+    if (cfg.workerQuota && entry.overQuota) {
+      return { allowed: false, reason: `worker quota exhausted: ${entry.activeWorkers}/${entry.workerQuota}` };
+    }
+    // (TODO 8.3 / #100) Monthly $ quota.
+    if (cfg.monthlyBudgetUSD && entry.overBudget) {
+      return {
+        allowed: false,
+        reason: `monthly budget exhausted: $${entry.attributedCostUSD.toFixed(2)}/$${cfg.monthlyBudgetUSD.toFixed(2)}`,
+      };
     }
     return { allowed: true };
   }

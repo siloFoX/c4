@@ -40,6 +40,7 @@
 
 ### 1.6.16 누적 (10차 — Phase 8 deferred 재개: 계층 트리)
 - **Web UI 워커 계층 트리** (TODO 8.2 / #99) — `_parent` 필드를 worker 레코드에 저장하고 `list()` 응답에 `parent` 노출. CLI `c4 task --parent <name>` 플래그, POST `/task` body `parent` 필드, 큐 엔트리에도 보존. WorkerList가 parent → children 맵을 만들어 트리로 렌더링하고 자식은 16px 들여쓰기 + 16px 가로 connector. 부모가 사라진 orphan은 root로 승격. children.length가 있으면 "{n} sub" 뱃지 표시. 신규 테스트 3개 (worker-tree).
+- **부서별 월간 비용 quota** (TODO 8.3 / #100) — `config.departments[name].monthlyBudgetUSD`로 부서별 월 예산 설정. `listDepartments()`가 활성 워커 share 비례로 월간 비용을 분배해서 `attributedCostUSD` / `budgetRemainingUSD` / `overBudget` 노출 (분배 휴리스틱 — 토큰 모니터에 actor 태깅이 없어 정확 attribution은 follow-up). `quotaCheck()`가 worker count 외 monthly $ budget도 검증해 `monthly budget exhausted: $X.XX/$Y.YY` 사유 반환. `tier` 메타데이터 필드 추가(`tier-a/b/c` 등). DepartmentsView에 budget progress bar + remaining USD + tier 뱃지 추가. 신규 테스트 4개 (departments).
 
 ### 1.6.16 누적 (8차 — Computer Use 단위 테스트 / TODO 정리 / audit export / pool 가시성 / project RBAC / Slack Block Kit)
 - **Computer Use runner 단위 테스트** — `tests/computer-use-runner.test.js`. Module._load 후킹으로 `@anthropic-ai/sdk` 모킹 후 `_buildAnthropicRunner`의 액션 매핑 검증 (left_click → click, type → type, key → key, scroll → scroll, wait → wait*1000, no tool_use → done). SDK 미설치 케이스도 helpful 에러 검증. 8개 케이스.
