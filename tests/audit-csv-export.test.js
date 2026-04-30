@@ -69,4 +69,26 @@ describe('AuditLogger.exportCsv', () => {
     assert.strictEqual(rows.length, 2);
     rows.forEach((r) => assert.match(r, /worker\.created/));
   });
+
+  // (review fix 2026-05-01) Source must use the explicit
+  // escape, not a literal BOM byte sequence. Editors / lint tools
+  // can silently strip / mangle the bare BOM, and a future drop
+  // of the BOM bytes would only show up at runtime when Excel
+  // displays Korean text as garbled characters.
+  it('source uses the \\uFEFF escape, not a literal BOM byte', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'src', 'audit-log.js'));
+    // Find the prefix line bytes around `const prefix = bom`.
+    const idx = src.indexOf(Buffer.from('const prefix = bom'));
+    assert.notStrictEqual(idx, -1, 'prefix declaration not found in audit-log.js');
+    const slice = src.slice(idx, idx + 80).toString('utf8');
+    assert.match(slice, /\\uFEFF/);
+    // And the bare BOM byte sequence (EF BB BF) MUST NOT appear in
+    // the line itself — the literal would defeat the escape.
+    const lineBytes = src.slice(idx, idx + 80);
+    assert.strictEqual(
+      lineBytes.includes(Buffer.from([0xEF, 0xBB, 0xBF])),
+      false,
+      'literal BOM bytes should not appear in source',
+    );
+  });
 });

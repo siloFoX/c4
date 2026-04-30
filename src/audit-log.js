@@ -208,7 +208,10 @@ class AuditLogger {
         esc(r.hash),
       ].join(','));
     }
-    const prefix = bom ? '﻿' : '';
+    // Use the \uFEFF escape rather than a literal BOM byte in source
+    // -- editors / lint can strip the bare BOM and the escape is
+    // self-documenting for the reviewer.
+    const prefix = bom ? '\uFEFF' : '';
     return {
       contentType: 'text/csv; charset=utf-8',
       body: prefix + rows.join(eol) + eol,
