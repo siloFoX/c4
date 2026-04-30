@@ -341,6 +341,104 @@ async function main() {
         break;
       }
 
+      // (TODO #115) Aggregate health/sanity checks. Surfaces "what's
+      // wrong" without forcing the user to chain multiple commands.
+      case 'doctor': {
+        const fs2 = require('fs');
+        const checks = [];
+        const tick = '\x1b[32m✓\x1b[0m';
+        const cross = '\x1b[31m✗\x1b[0m';
+        const warn = '\x1b[33m!\x1b[0m';
+
+        // 1. daemon reachable + version
+        const installedVersion = require('../package.json').version;
+        try {
+          const h = await request('GET', '/health');
+          if (h && h.ok) {
+            const match = h.version === installedVersion;
+            checks.push({ ok: match, label: `daemon reachable (v${h.version})${match ? '' : ` ⚠ does not match installed v${installedVersion}`}` });
+          } else {
+            checks.push({ ok: false, label: 'daemon reachable' });
+          }
+        } catch (e) {
+          checks.push({ ok: false, label: `daemon reachable: ${e.message}` });
+        }
+
+        // 2. config.json present + validates
+        const cfgPath = path.resolve(__dirname, '..', 'config.json');
+        if (fs2.existsSync(cfgPath)) {
+          let cfg;
+          try {
+            cfg = JSON.parse(fs2.readFileSync(cfgPath, 'utf8'));
+            const { validate } = require('./config-validate');
+            const r = validate(cfg);
+            checks.push({
+              ok: r.errors.length === 0,
+              level: r.errors.length === 0 && r.warnings.length > 0 ? 'warn' : null,
+              label: `config.json: ${r.errors.length} error(s), ${r.warnings.length} warning(s)`,
+            });
+          } catch (e) {
+            checks.push({ ok: false, label: `config.json malformed: ${e.message}` });
+          }
+        } else {
+          checks.push({ ok: true, level: 'warn', label: `config.json missing — using defaults at ${cfgPath}` });
+        }
+
+        // 3. web/dist exists
+        const distDir = path.resolve(__dirname, '..', 'web', 'dist');
+        const distOk = fs2.existsSync(distDir) && fs2.existsSync(path.join(distDir, 'index.html'));
+        checks.push({
+          ok: distOk,
+          level: distOk ? null : 'warn',
+          label: distOk ? 'web/dist built' : 'web/dist missing — run `npm run build` in web/',
+        });
+
+        // 4. plugin manifest version matches package.json
+        const pluginPath = path.resolve(__dirname, '..', 'plugin', '.claude-plugin', 'plugin.json');
+        if (fs2.existsSync(pluginPath)) {
+          try {
+            const pj = JSON.parse(fs2.readFileSync(pluginPath, 'utf8'));
+            checks.push({
+              ok: pj.version === installedVersion,
+              level: pj.version === installedVersion ? null : 'warn',
+              label: `plugin manifest v${pj.version} ${pj.version === installedVersion ? '== package.json' : `≠ package.json v${installedVersion}`}`,
+            });
+          } catch (e) {
+            checks.push({ ok: false, label: `plugin manifest malformed: ${e.message}` });
+          }
+        }
+
+        // 5. logs dir writable
+        const logsDir = path.resolve(__dirname, '..', 'logs');
+        try {
+          if (!fs2.existsSync(logsDir)) fs2.mkdirSync(logsDir, { recursive: true });
+          const probe = path.join(logsDir, '.doctor-probe');
+          fs2.writeFileSync(probe, '');
+          fs2.unlinkSync(probe);
+          checks.push({ ok: true, label: `logs/ writable (${logsDir})` });
+        } catch (e) {
+          checks.push({ ok: false, label: `logs/ not writable: ${e.message}` });
+        }
+
+        // Print and exit
+        for (const c of checks) {
+          const mark = c.ok ? (c.level === 'warn' ? warn : tick) : cross;
+          console.log(`  ${mark} ${c.label}`);
+        }
+        const failed = checks.filter((c) => !c.ok).length;
+        const warned = checks.filter((c) => c.ok && c.level === 'warn').length;
+        if (failed) {
+          console.log(`\n${failed} failed, ${warned} warning(s).`);
+          process.exit(1);
+        }
+        if (warned) {
+          console.log(`\nAll checks passed; ${warned} warning(s).`);
+        } else {
+          console.log('\nAll checks passed.');
+        }
+        return;
+      }
+
       // (TODO #109) Pretty-printed CPU / RSS snapshot for ops without
       // opening the Web UI. JSON pass-through with --json.
       case 'metrics': {
