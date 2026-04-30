@@ -145,6 +145,56 @@ function validateGraph(nodes, edges) {
     if (!NODE_TYPES.includes(n.type)) {
       errors.push('unknown node type for ' + n.id + ': ' + String(n.type));
     }
+
+    // Per-config validation for the node types that carry typed config
+    // fields. Catches typos / negative numbers up-front so a workflow
+    // never persists a config that the executor would reject at runtime.
+    const cfg = (n.config && typeof n.config === 'object' && !Array.isArray(n.config)) ? n.config : null;
+    if (cfg) {
+      // retry block (any node type may declare it).
+      if (cfg.retry !== undefined && cfg.retry !== null) {
+        if (typeof cfg.retry !== 'object' || Array.isArray(cfg.retry)) {
+          errors.push(`node ${n.id}: config.retry must be an object`);
+        } else {
+          if (cfg.retry.maxRetries !== undefined &&
+              !(Number.isFinite(cfg.retry.maxRetries) && cfg.retry.maxRetries >= 0)) {
+            errors.push(`node ${n.id}: config.retry.maxRetries must be a non-negative number`);
+          }
+          if (cfg.retry.backoffMs !== undefined &&
+              !(Number.isFinite(cfg.retry.backoffMs) && cfg.retry.backoffMs >= 0)) {
+            errors.push(`node ${n.id}: config.retry.backoffMs must be a non-negative number`);
+          }
+        }
+      }
+      // wait node — delayMs / event must have correct types.
+      if (n.type === 'wait') {
+        if (cfg.delayMs !== undefined &&
+            !(Number.isFinite(cfg.delayMs) && cfg.delayMs >= 0)) {
+          errors.push(`node ${n.id}: config.delayMs must be a non-negative number`);
+        }
+        if (cfg.event !== undefined && typeof cfg.event !== 'string') {
+          errors.push(`node ${n.id}: config.event must be a string`);
+        }
+      }
+      // condition node — expression must be a string when present.
+      if (n.type === 'condition' && cfg.expression !== undefined &&
+          typeof cfg.expression !== 'string') {
+        errors.push(`node ${n.id}: config.expression must be a string`);
+      }
+      // audit node — eventType / target / details type checks.
+      if (n.type === 'audit') {
+        if (cfg.eventType !== undefined && typeof cfg.eventType !== 'string') {
+          errors.push(`node ${n.id}: config.eventType must be a string`);
+        }
+        if (cfg.target !== undefined && typeof cfg.target !== 'string') {
+          errors.push(`node ${n.id}: config.target must be a string`);
+        }
+        if (cfg.details !== undefined &&
+            (typeof cfg.details !== 'object' || Array.isArray(cfg.details) || cfg.details === null)) {
+          errors.push(`node ${n.id}: config.details must be an object`);
+        }
+      }
+    }
   }
 
   const edgeKeys = new Set();
