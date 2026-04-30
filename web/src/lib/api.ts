@@ -7,6 +7,11 @@
 // and 401 handling stays in one place.
 
 const TOKEN_KEY = 'c4.authToken';
+// (TODO 8.41) Cache user + role from the login response so the
+// AccountMenu in the sidebar can render avatar / name / role badge
+// without a follow-up /me round-trip. Cleared on logout / 401.
+const USER_KEY = 'c4.authUser';
+const ROLE_KEY = 'c4.authRole';
 
 export function getToken(): string | null {
   try {
@@ -27,6 +32,33 @@ export function setToken(token: string): void {
 export function clearToken(): void {
   try {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(ROLE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export function getAuthUser(): string | null {
+  try {
+    return localStorage.getItem(USER_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function getAuthRole(): string | null {
+  try {
+    return localStorage.getItem(ROLE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function setAuthUser(user: string | null, role: string | null): void {
+  try {
+    if (user) localStorage.setItem(USER_KEY, user); else localStorage.removeItem(USER_KEY);
+    if (role) localStorage.setItem(ROLE_KEY, role); else localStorage.removeItem(ROLE_KEY);
   } catch {
     // ignore
   }
@@ -91,6 +123,11 @@ export function eventSourceUrl(path: string): string {
 export interface LoginResponse {
   token?: string;
   user?: string;
+  // (TODO 8.41) Daemon's /auth/login response carries the resolved
+  // role from auth.login(roleResolver: roleFor). The Web UI caches
+  // this so AccountMenu can render the role badge without a follow-up
+  // /me probe.
+  role?: string | null;
   error?: string;
 }
 
@@ -103,6 +140,7 @@ export async function login(user: string, password: string): Promise<LoginRespon
   const data = (await res.json().catch(() => ({}))) as LoginResponse;
   if (res.ok && data.token) {
     setToken(data.token);
+    setAuthUser(data.user || user, data.role || null);
     return data;
   }
   return { error: data.error || `HTTP ${res.status}` };

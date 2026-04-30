@@ -123,6 +123,7 @@ export default function App() {
         onTopViewChange={setTopView}
         authed={authState === 'authed'}
         onLogout={handleLogout}
+        onOpenPreferences={() => setTopView('settings')}
       />
       {topView === 'history' ? (
         <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -166,6 +167,8 @@ export default function App() {
             onModeChange={setSidebarMode}
             selectedWorker={selectedWorker}
             onSelect={handleSelect}
+            onLogout={handleLogout}
+            onOpenPreferences={() => setTopView('settings')}
           />
           <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-3 md:p-6">
             {selectedWorker ? (

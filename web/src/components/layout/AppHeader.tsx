@@ -1,4 +1,5 @@
-import { HelpCircle, Keyboard, Languages, LogOut, Menu, X } from 'lucide-react';
+import { HelpCircle, Keyboard, Languages, Menu, X } from 'lucide-react';
+import AccountMenu from '../AccountMenu';
 import { IconButton, Tooltip } from '../ui';
 import TopTabs, { type TopView } from './TopTabs';
 import {
@@ -14,6 +15,11 @@ interface AppHeaderProps {
   onTopViewChange: (v: TopView) => void;
   authed: boolean;
   onLogout: () => void;
+  // (TODO 8.41) Pulled up from App.tsx so the AccountMenu's
+  // Preferences row can flip to the Settings tab. Optional so the
+  // header still renders for tests / pages that wire only the locale
+  // toggle.
+  onOpenPreferences?: () => void;
 }
 
 function dispatch(name: string): void {
@@ -32,6 +38,7 @@ export default function AppHeader({
   onTopViewChange,
   authed,
   onLogout,
+  onOpenPreferences,
 }: AppHeaderProps) {
   useLocale();
   const locale = getLocale();
@@ -82,13 +89,23 @@ export default function AppHeader({
             }
           />
         </Tooltip>
-        {authed && (
-          <IconButton
-            aria-label="Sign out"
-            onClick={onLogout}
-            icon={<LogOut className="h-4 w-4" />}
-          />
-        )}
+        {/* (TODO 8.41) Replaced the standalone LogOut IconButton with a
+            compact AccountMenu — the avatar+chevron trigger opens the
+            same dropdown the sidebar uses (Profile / Preferences /
+            Keyboard shortcuts / Help / Sign out). The full-width
+            sidebar version stays as the primary surface; the header
+            copy is the fallback for tabs (Sessions, Chat, History,
+            Workflows, Settings, Features) where the sidebar doesn't
+            render. */}
+        {authed ? (
+          <div className="hidden md:block">
+            <AccountMenu
+              onLogout={onLogout}
+              onOpenPreferences={onOpenPreferences}
+              collapsed
+            />
+          </div>
+        ) : null}
       </div>
     </header>
   );
