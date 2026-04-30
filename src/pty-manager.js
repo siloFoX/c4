@@ -903,16 +903,22 @@ class PtyManager extends EventEmitter {
   }
 
   _parseTokensFromJsonl(filePath) {
+    // Per-session attribution. Claude Code stores one JSONL per session at
+    // ~/.claude/projects/<projectId>/<sessionId>.jsonl, so the basename
+    // (without .jsonl) is the session ID. Computed up-front so the early
+    // returns below still surface the session even when the file isn't
+    // readable yet.
+    const sessionId = path.basename(filePath, '.jsonl');
     const offset = this._tokenUsage.offsets[filePath] || 0;
     let content;
     try {
       content = fs.readFileSync(filePath, 'utf8');
     } catch {
-      return { input: 0, output: 0 };
+      return { input: 0, output: 0, sessionId };
     }
 
     const lines = content.split('\n');
-    if (offset >= lines.length) return { input: 0, output: 0 };
+    if (offset >= lines.length) return { input: 0, output: 0, sessionId };
 
     let inputTokens = 0;
     let outputTokens = 0;
@@ -937,7 +943,7 @@ class PtyManager extends EventEmitter {
     }
 
     this._tokenUsage.offsets[filePath] = lines.length;
-    return { input: inputTokens, output: outputTokens };
+    return { input: inputTokens, output: outputTokens, sessionId };
   }
 
   _getLastActivity(w) {
@@ -967,7 +973,10 @@ class PtyManager extends EventEmitter {
 
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     if (!this._tokenUsage.daily[today]) {
-      this._tokenUsage.daily[today] = { input: 0, output: 0 };
+      this._tokenUsage.daily[today] = { input: 0, output: 0, bySession: {} };
+    } else if (!this._tokenUsage.daily[today].bySession) {
+      // Backfill the field for state files written by older daemons.
+      this._tokenUsage.daily[today].bySession = {};
     }
 
     let newInput = 0;
@@ -977,6 +986,14 @@ class PtyManager extends EventEmitter {
       const tokens = this._parseTokensFromJsonl(filePath);
       newInput += tokens.input;
       newOutput += tokens.output;
+      // Per-session attribution. monthlyBySession() and worker / dept
+      // rollups read this map.
+      if (tokens.sessionId && (tokens.input || tokens.output)) {
+        const slot = this._tokenUsage.daily[today].bySession[tokens.sessionId]
+          || (this._tokenUsage.daily[today].bySession[tokens.sessionId] = { input: 0, output: 0 });
+        slot.input += tokens.input;
+        slot.output += tokens.output;
+      }
     }
 
     this._tokenUsage.daily[today].input += newInput;
@@ -1030,7 +1047,31 @@ class PtyManager extends EventEmitter {
     if (opts.perTask) {
       out.perTask = this._getPerTaskUsage();
     }
+    if (opts.bySession) {
+      out.bySession = dailyTotal.bySession || {};
+      out.monthlyBySession = this.monthlyBySession();
+    }
     return out;
+  }
+
+  // Aggregate the current month's per-session token totals across days.
+  // Returns { sessionId: { input, output } }. Used by callers that need
+  // worker / department attribution beyond the global daily/monthly
+  // numbers (e.g., dashboards that show "which worker burned the budget").
+  monthlyBySession() {
+    const now = new Date();
+    const month = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+    const acc = {};
+    for (const [day, v] of Object.entries(this._tokenUsage?.daily || {})) {
+      if (!day.startsWith(month)) continue;
+      const bs = v.bySession || {};
+      for (const [sid, usage] of Object.entries(bs)) {
+        const slot = acc[sid] || (acc[sid] = { input: 0, output: 0 });
+        slot.input += usage.input || 0;
+        slot.output += usage.output || 0;
+      }
+    }
+    return acc;
   }
 
   // Cost/retry guardrails (9.10): aggregate token counts per active worker's
