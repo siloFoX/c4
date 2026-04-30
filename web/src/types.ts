@@ -42,6 +42,11 @@ export interface Worker {
   phase: string | null;
   testFailCount: number;
   pinnedMemory?: PinnedMemory;
+  // (TODO 8.37) Daemon's /api/list now folds the tierWorkerMap into
+  // each worker so the sidebar can group Managers / Workers without a
+  // second round-trip. Pre-8.3 daemons may omit this — the Web UI
+  // defaults to 'worker' on read.
+  tier?: 'manager' | 'worker' | string;
 }
 
 export interface QueuedTask {

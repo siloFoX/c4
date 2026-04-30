@@ -24,8 +24,11 @@ export default function Sidebar({
 
   return (
     <aside className="w-full shrink-0 overflow-y-auto border-b border-border bg-background p-4 md:w-72 md:border-b-0 md:border-r">
+      {/* (TODO 8.37) Logo moved to AppHeader. Sidebar header now just
+          labels the section — keeps the IA tidy when other tabs
+          (Sessions / History / Workflows) reuse this sidebar in
+          follow-ups. */}
       <div className="mb-4 flex items-center gap-2">
-        <img src="/logo.svg" alt="C4" className="h-8 shrink-0" />
         <span className="text-xs uppercase tracking-wide text-muted-foreground">
           Workers
         </span>

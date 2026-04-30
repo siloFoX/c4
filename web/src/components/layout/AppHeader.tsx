@@ -50,6 +50,17 @@ export default function AppHeader({
             )
           }
         />
+        {/* (TODO 8.37) Logo + wordmark relocate from the Workers
+            sidebar into the AppHeader so every tab shows the C4
+            brand in the same spot — claude.ai / Linear / VS Code
+            convention. The sidebar's "Workers" header drops the
+            logo image and just labels the section. */}
+        <img
+          src="/logo.svg"
+          alt="C4"
+          className="h-7 w-7 shrink-0"
+          aria-hidden="true"
+        />
         <h1 className="truncate text-lg font-semibold text-foreground md:text-xl">
           C4 Dashboard
         </h1>
