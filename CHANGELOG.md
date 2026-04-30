@@ -3,6 +3,18 @@
 ## [Unreleased]
 
 ### Added
+- **(8.42 partial) Composer special-keys hidden on desktop.**
+  WorkerDetail's composer "Keys" row (Esc / Ctrl-C / Ctrl-D /
+  Tab / arrows) now carries `md:hidden`, so desktop users with a
+  physical keyboard see a clean composer area while mobile
+  soft-keyboard users still get the buttons. One-line CSS class
+  change + a comment citing the rationale so a future composer
+  refactor doesn't silently revert. Tests:
+  `tests/composer-mobile-keys.test.js` (2 source-grep
+  assertions). The rest of TODO 8.42 — composer redesign,
+  `useMediaQuery` hook, built-in keyboard shortcuts, ControlPanel
+  consolidation, send-button states — lands in follow-up patches.
+  Patch note: `docs/patches/8.42-composer-mobile-keys.md`.
 - **(8.46) Per-worker pinned memory.** `c4 new` now accepts `--pin-memory
   <file>` (read client-side, repeatable), `--pin-rules "<text>"`
   (repeatable), and `--pin-role <manager|worker|attached>` so operators can
