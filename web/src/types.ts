@@ -24,6 +24,36 @@ export interface Worker {
   errorCount: number;
   phase: string | null;
   testFailCount: number;
+  cpuPct?: number | null;
+  rssKb?: number | null;
+  threads?: number | null;
+}
+
+export interface MetricsResponse {
+  daemon: {
+    platform: string;
+    pid: number;
+    uptimeSec: number;
+    rssKb: number;
+    heapUsedKb: number;
+    heapTotalKb: number;
+    cpus: number;
+    loadavg: number[];
+  };
+  workers: Array<{
+    name: string;
+    pid: number | null;
+    status: WorkerStatus;
+    cpuPct: number | null;
+    rssKb: number | null;
+    threads: number | null;
+  }>;
+  totals: {
+    liveWorkers: number;
+    totalWorkers: number;
+    totalRssKb: number;
+    totalCpuPct: number;
+  };
 }
 
 export interface QueuedTask {

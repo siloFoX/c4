@@ -17,6 +17,7 @@ import AuditView from './components/AuditView';
 import FleetView from './components/FleetView';
 import WorkflowView from './components/WorkflowView';
 import NLCommandBar from './components/NLCommandBar';
+import MetricsBar from './components/MetricsBar';
 import LoginForm from './components/LoginForm';
 import { cn } from './lib/cn';
 import { authEnabled, clearSession, getRole, getToken, getUser, onUnauthorized } from './lib/auth';
@@ -139,6 +140,8 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      <MetricsBar />
 
       {view === 'workers' && (
         <div className="relative flex flex-1 overflow-hidden">

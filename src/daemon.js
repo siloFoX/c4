@@ -254,6 +254,10 @@ async function handleRequest(req, res) {
         version: manager._daemonVersion || null,
       };
 
+    } else if (req.method === 'GET' && route === '/metrics') {
+      // (TODO #95) Per-worker + daemon process metrics snapshot.
+      result = manager.metrics();
+
     } else if (req.method === 'GET' && route === '/fleet/peers') {
       // 9.6: peer health snapshot across configured fleet daemons.
       result = await manager.fleetPeers();

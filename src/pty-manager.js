@@ -11,6 +11,7 @@ function execSyncSafe(cmd, opts = {}) {
 }
 const ScreenBuffer = require('./screen-buffer');
 const Scribe = require('./scribe');
+const workerMetrics = require('./worker-metrics');
 const { ScopeGuard, resolveScope } = require('./scope-guard');
 const StateMachine = require('./state-machine');
 const AdaptivePolling = require('./adaptive-polling');
@@ -5161,6 +5162,12 @@ class PtyManager extends EventEmitter {
     for (const [name, w] of this.workers) {
       const idleMs = Date.now() - w.lastDataTime;
       const unreadSnapshots = w.snapshots.length - w.snapshotIndex;
+      // (TODO #95) Per-worker CPU/RSS sampling. First call seeds the cache;
+      // subsequent calls compute CPU% over the delta. Read failures degrade
+      // gracefully to null — no crash on dead pids or non-Linux hosts.
+      const pid = w.proc ? w.proc.pid : null;
+      const ms = workerMetrics.sample(pid, w._lastCpuSample || null);
+      if (ms.sample) w._lastCpuSample = ms.sample;
       result.push({
         name,
         command: w.command,
@@ -5168,7 +5175,7 @@ class PtyManager extends EventEmitter {
         branch: w.branch || null,
         worktree: w.worktree || null,
         scope: w.scopeGuard ? w.scopeGuard.hasRestrictions() : false,
-        pid: w.proc ? w.proc.pid : null,
+        pid,
         status: w.alive
           ? (w._suspended ? 'suspended' : (idleMs > this.idleThresholdMs ? 'idle' : 'busy'))
           : 'exited',
@@ -5180,7 +5187,10 @@ class PtyManager extends EventEmitter {
         lastQuestion: w._lastQuestion || null,
         errorCount: (w._errorHistory || []).reduce((sum, e) => sum + e.count, 0),
         phase: w._smState ? w._smState.phase : null,
-        testFailCount: w._smState ? w._smState.testFailCount : 0
+        testFailCount: w._smState ? w._smState.testFailCount : 0,
+        cpuPct: ms.cpuPct,
+        rssKb: ms.rssKb,
+        threads: ms.threads,
       });
     }
     // Include queued tasks (2.8)
@@ -5198,6 +5208,40 @@ class PtyManager extends EventEmitter {
       queuedTasks,
       lostWorkers: this.lostWorkers || [],
       lastHealthCheck: this._lastHealthCheck
+    };
+  }
+
+  // (TODO #95) Daemon-wide metrics snapshot — used by GET /metrics.
+  // Aggregates daemon RSS/heap/loadavg + per-worker rollup so dashboards
+  // can show fleet pressure at a glance.
+  metrics() {
+    const list = this.list();
+    const daemon = workerMetrics.daemonSnapshot();
+    let totalRssKb = 0;
+    let totalCpuPct = 0;
+    let liveWorkers = 0;
+    for (const w of list.workers) {
+      if (w.status === 'exited') continue;
+      liveWorkers++;
+      if (typeof w.rssKb === 'number') totalRssKb += w.rssKb;
+      if (typeof w.cpuPct === 'number') totalCpuPct += w.cpuPct;
+    }
+    return {
+      daemon,
+      workers: list.workers.map(w => ({
+        name: w.name,
+        pid: w.pid,
+        status: w.status,
+        cpuPct: w.cpuPct,
+        rssKb: w.rssKb,
+        threads: w.threads,
+      })),
+      totals: {
+        liveWorkers,
+        totalWorkers: list.workers.length,
+        totalRssKb,
+        totalCpuPct: Math.round(totalCpuPct * 10) / 10,
+      },
     };
   }
 
