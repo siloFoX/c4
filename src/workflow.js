@@ -244,7 +244,9 @@ class WorkflowEngine {
     if (typeof this.manager._emitSSE === 'function') {
       this.manager._emitSSE('workflow_end', { name: record.name, ok: record.ok, steps: record.order });
     }
-    // (TODO Notifications 다양화) Slack/notification on failure.
+    // (TODO #102) Slack/notification on workflow failure. Block Kit
+    // formatter in notifications.js maps the [WORKFLOW FAIL] prefix to a
+    // warning-color attachment.
     if (!record.ok && this.manager._notifications && typeof this.manager._notifications.pushAll === 'function') {
       const failed = Object.entries(record.results || {})
         .filter(([, r]) => r && r.error)

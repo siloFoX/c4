@@ -210,7 +210,9 @@ class Scheduler {
         ok: !(result && result.error),
       });
     }
-    // (TODO Notifications 다양화) Notify on schedule failure.
+    // (TODO #102) Slack/notification on schedule failure. Block Kit
+    // formatter maps the [SCHEDULE FAIL] prefix to a warning-color
+    // attachment.
     if (result && result.error && this.manager._notifications && typeof this.manager._notifications.pushAll === 'function') {
       try {
         this.manager._notifications.pushAll(`[SCHEDULE FAIL] ${entry.id} (${entry.cron}): ${String(result.error).slice(0, 200)}`);

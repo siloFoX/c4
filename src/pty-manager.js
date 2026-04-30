@@ -896,7 +896,8 @@ class PtyManager extends EventEmitter {
       }
     }
 
-    // (TODO Notifications 다양화) Cost budget alert — once-per-month transition.
+    // Cost budget alert — once-per-month transition. The [COST BUDGET]
+    // prefix triggers the moneybag-emoji Block Kit attachment.
     try {
       const report = this.getCostReport({});
       if (report && report.budget && report.budget.overBudget) {
