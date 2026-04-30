@@ -546,9 +546,12 @@ describe('transferFiles', () => {
     const capture = [];
     const events = [];
     const spawn = makeFakeSpawn(capture);
+    // /root/project assumes the test runs as root; allowSystem skips the
+    // home/cwd allow-list check so the test passes for any user.
     const handle = ft.transferFiles('/root/project', 'dest/', {
       machine,
       spawn,
+      allowSystem: true,
       onProgress: (ev) => events.push(ev),
     });
     const child = capture.lastChild;
@@ -572,6 +575,7 @@ describe('transferFiles', () => {
     ft.transferFiles('/root/project', 'dest/', {
       machine,
       spawn,
+      allowSystem: true,
       onComplete: (info) => { completed = info; },
       onError: (err) => { errored = err; },
     });
