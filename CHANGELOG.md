@@ -3,6 +3,35 @@
 ## [Unreleased]
 
 ### Added
+- **(8.39) Sessions tab New Chat modal.** claude.ai-style "start a
+  new conversation" entry point. New `NewChatModal` component in
+  `web/src/components/SessionsView.tsx` (model + agent + prompt
+  selectors, stop-propagation backdrop, autofocus on textarea,
+  field reset on re-open). Models: `default` / Opus 4.7 /
+  Sonnet 4.6 / Haiku 4.5. Agents: `generic` / `planner` /
+  `executor` / `reviewer` (mirrors
+  `pty-manager._getBuiltinTemplates()`). New Chat button in the
+  Sessions tab header next to `Attach new...`. `handleNewChatSubmit`
+  POSTs `/api/task` with the trimmed prompt as `task`; `model`
+  attached only when not `'default'`, `profile` only when agent
+  isn't `'generic'`. Daemon-side `/task` route gained a
+  `resolvedName` fallback so audit / Slack-emit / history
+  records reference the auto-generated worker name when the
+  caller omits `name` (instead of logging
+  `worker: undefined`). **Review fixes (2026-05-01)**: (a)
+  added Escape key handler to satisfy the
+  `role="dialog" aria-modal="true"` contract — listener no-ops
+  while submitting so an accidental Esc during the POST doesn't
+  drop the in-flight result; (b) the original
+  `onClick={onClose}` on the backdrop unconditionally closed the
+  modal, including mid-submit, which silently dropped any error
+  response — split into `handleBackdropClick` that no-ops while
+  busy; (c) PR shipped originally with zero tests — added
+  `tests/new-chat-modal.test.js` with 21 assertions across 3
+  suites covering NewChatModal contract,
+  handleNewChatSubmit body shape, and daemon resolvedName
+  fallback (source-grep + behavioural shim). Patch note:
+  `docs/patches/8.39-new-chat-modal.md`.
 - **(8.46) Per-worker pinned memory.** `c4 new` now accepts `--pin-memory
   <file>` (read client-side, repeatable), `--pin-rules "<text>"`
   (repeatable), and `--pin-role <manager|worker|attached>` so operators can

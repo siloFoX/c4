@@ -364,9 +364,33 @@ function NewChatModal({ open, busy, error, onClose, onSubmit }: NewChatModalProp
     }
   }, [open]);
 
+  // (review fix 2026-05-01) Esc closes the modal — standard
+  // expectation for `role="dialog" aria-modal="true"`. The
+  // listener is no-op while busy so an accidental Esc during
+  // submit doesn't drop the in-flight POST result.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !busy) {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, busy, onClose]);
+
   if (!open) return null;
   const trimmed = prompt.trim();
   const canSubmit = !busy && trimmed.length > 0;
+  // (review fix 2026-05-01) Backdrop click closes only when not
+  // submitting — otherwise an accidental click while the POST is
+  // in flight would unmount the modal while busy=true / open=false,
+  // leaking any subsequent error into nowhere (the alert region
+  // wouldn't be visible).
+  const handleBackdropClick = () => {
+    if (!busy) onClose();
+  };
 
   return (
     <div
@@ -374,7 +398,7 @@ function NewChatModal({ open, busy, error, onClose, onSubmit }: NewChatModalProp
       aria-modal="true"
       aria-labelledby="new-chat-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm"
-      onClick={onClose}
+      onClick={handleBackdropClick}
     >
       <Card
         className="w-full max-w-xl"
