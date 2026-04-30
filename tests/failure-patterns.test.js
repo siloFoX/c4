@@ -57,6 +57,16 @@ describe('failure-patterns.findHint', () => {
     assert.match(r.sample, /heap out of memory/);
   });
 
+  it('matches Korean disk-full message', () => {
+    const r = findHint([{ line: '디스크 공간이 부족합니다 — 작업 중단', count: 1 }]);
+    assert.strictEqual(r && r.id, 'enospc');
+  });
+
+  it('matches Korean permission-denied message', () => {
+    const r = findHint([{ line: '파일 접근 권한이 없습니다', count: 1 }]);
+    assert.strictEqual(r && r.id, 'eacces');
+  });
+
   it('returns null when nothing matches', () => {
     assert.strictEqual(findHint([{ line: 'all good, just a status update', count: 1 }]), null);
   });

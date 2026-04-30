@@ -22,13 +22,13 @@ const PATTERNS = [
   {
     id: 'enospc',
     label: 'Disk full',
-    regex: /\bENOSPC\b|\bno space left on device\b/i,
+    regex: /\bENOSPC\b|\bno space left on device\b|디스크\s*공간|공간이\s*부족/i,
     hint: 'Disk full — clean logs/, .git/objects, or move worktrees off the partition before retrying.',
   },
   {
     id: 'eacces',
     label: 'Permission denied',
-    regex: /\bEACCES\b|\bpermission denied\b/i,
+    regex: /\bEACCES\b|\bpermission denied\b|권한이\s*없|권한\s*거부/i,
     hint: 'Permission issue — check file ownership and run mode. Avoid elevating with sudo unless required.',
   },
   {
