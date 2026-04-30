@@ -102,4 +102,35 @@ describe('WorkflowEngine (11.3)', () => {
     const log = fs.readFileSync(file, 'utf8');
     assert.match(log, /"name":"log-me"/);
   });
+
+  // (TODO #102) Slack notify on failure — verify the [WORKFLOW FAIL]
+  // prefix is emitted so notifications.js Block Kit formatter colors it.
+  it('pushes a [WORKFLOW FAIL] Slack message when overall ok=false', async () => {
+    const mgr = makeMgr();
+    // Force step failure by giving a task that the mock sendTask rejects.
+    mgr.sendTask = async () => ({ error: 'boom from mock' });
+    const pushed = [];
+    mgr._notifications = {
+      pushAll: (msg) => pushed.push(msg),
+    };
+    const wf = new Workflow(mgr);
+    const r = await wf.run({
+      name: 'failing',
+      steps: [{ id: 'a', action: 'task', args: { name: 'a', task: 't' } }],
+    });
+    assert.strictEqual(r.ok, false);
+    assert.strictEqual(pushed.length, 1);
+    assert.match(pushed[0], /^\[WORKFLOW FAIL\] failing/);
+    assert.match(pushed[0], /a: boom from mock/);
+  });
+
+  it('does not push when workflow succeeds', async () => {
+    const mgr = makeMgr();
+    const pushed = [];
+    mgr._notifications = { pushAll: (m) => pushed.push(m) };
+    const wf = new Workflow(mgr);
+    const r = await wf.run({ name: 'happy', steps: [{ id: 'a', action: 'sleep', args: { ms: 1 } }] });
+    assert.strictEqual(r.ok, true);
+    assert.strictEqual(pushed.length, 0);
+  });
 });

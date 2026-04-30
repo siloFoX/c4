@@ -133,3 +133,38 @@ describe('Scheduler add/remove/enable', () => {
     assert.strictEqual(mgr.sendTaskCalls.length, 1);
   });
 });
+
+// (TODO #102) Verify failure → Slack notify path emits the [SCHEDULE FAIL]
+// prefix that notifications.js Block Kit formatter colors.
+describe('Scheduler failure → notify', () => {
+  it('pushes a [SCHEDULE FAIL] message when sendTask returns error', async () => {
+    const mgr = {
+      config: {},
+      sendTask: async () => ({ error: 'task explosion' }),
+      create: () => ({}),
+      audit: () => {},
+      _notifications: { _pushed: [], pushAll(msg) { this._pushed.push(msg); } },
+    };
+    const sched = new Scheduler(mgr, { stateFile: null });
+    sched.add({ id: 'cron-x', cron: '* * * * *', task: 't' });
+    await sched._fire(sched._entries.get('cron-x'), new Date());
+    const pushed = mgr._notifications._pushed;
+    assert.strictEqual(pushed.length, 1);
+    assert.match(pushed[0], /^\[SCHEDULE FAIL\] cron-x/);
+    assert.match(pushed[0], /task explosion/);
+  });
+
+  it('does not push when fire succeeds', async () => {
+    const mgr = {
+      config: {},
+      sendTask: async () => ({ sent: true }),
+      create: () => ({}),
+      audit: () => {},
+      _notifications: { _pushed: [], pushAll(msg) { this._pushed.push(msg); } },
+    };
+    const sched = new Scheduler(mgr, { stateFile: null });
+    sched.add({ id: 'cron-y', cron: '* * * * *', task: 't' });
+    await sched._fire(sched._entries.get('cron-y'), new Date());
+    assert.strictEqual(mgr._notifications._pushed.length, 0);
+  });
+});
