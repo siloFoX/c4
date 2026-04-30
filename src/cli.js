@@ -733,6 +733,35 @@ async function main() {
         break;
       }
 
+      // Pretty-printed CPU/RSS snapshot for ops without opening the
+      // Web UI. JSON pass-through with --json.
+      case 'metrics': {
+        const wantJson = args.includes('--json');
+        result = await request('GET', '/metrics');
+        if (wantJson) break;
+        if (!result || result.error) break;
+        const fmtKb = (kb) => kb == null ? '—' : (kb < 1024 ? `${kb} KB` : `${(kb / 1024).toFixed(1)} MB`);
+        const fmtPct = (pct) => pct == null ? '—' : `${pct.toFixed(1)}%`;
+        console.log(`Daemon  pid=${result.daemon.pid}  uptime=${result.daemon.uptimeSec}s  cpus=${result.daemon.cpus}  load=[${result.daemon.loadavg.map((l) => l.toFixed(2)).join(', ')}]`);
+        console.log(`        rss=${fmtKb(result.daemon.rssKb)}  heap=${fmtKb(result.daemon.heapUsedKb)}/${fmtKb(result.daemon.heapTotalKb)}`);
+        console.log(`Workers ${result.totals.liveWorkers} live / ${result.totals.totalWorkers} total  cpu=${fmtPct(result.totals.totalCpuPct)}  rss=${fmtKb(result.totals.totalRssKb)}`);
+        if (result.workers.length > 0) {
+          console.log('');
+          console.log('  NAME              STATUS     PID    CPU%      RSS    THREADS');
+          for (const w of result.workers) {
+            const name = String(w.name).slice(0, 16).padEnd(16);
+            const status = String(w.status).padEnd(10);
+            const pid = String(w.pid ?? '—').padEnd(6);
+            const cpu = fmtPct(w.cpuPct).padStart(7);
+            const rss = fmtKb(w.rssKb).padStart(8);
+            const threads = (w.threads != null ? String(w.threads) : '—').padStart(7);
+            console.log(`  ${name}  ${status} ${pid} ${cpu}  ${rss}  ${threads}`);
+          }
+        }
+        result = null;
+        break;
+      }
+
       case 'config': {
         if (args[0] === 'reload') {
           result = await request('POST', '/config/reload');
@@ -4244,7 +4273,9 @@ Scope examples:
         return;
     }
 
-    console.log(JSON.stringify(result, null, 2));
+    if (result !== null && result !== undefined) {
+      console.log(JSON.stringify(result, null, 2));
+    }
   } catch (err) {
     console.error('Error:', err.message);
     process.exit(1);
