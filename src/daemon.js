@@ -900,6 +900,10 @@ async function handleRequest(req, res) {
         version: manager._daemonVersion || null,
       };
 
+    } else if (req.method === 'GET' && route === '/workspaces') {
+      // Multi-repo workspace listing (config.workspaces).
+      result = manager.listWorkspaces();
+
     } else if (req.method === 'POST' && route === '/create') {
       const { name, command, args, target, cwd, parent, tier, pinnedMemory, pinRole } = await parseBody(req);
       const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE,
@@ -1011,7 +1015,7 @@ async function handleRequest(req, res) {
       };
 
     } else if (req.method === 'POST' && route === '/task') {
-      const { name, task, branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, budgetUsd, maxRetries, tier, model, planDocPath } = await parseBody(req);
+      const { name, task, branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, budgetUsd, maxRetries, tier, model, planDocPath, workspace } = await parseBody(req);
       const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_TASK,
         target ? { type: 'machine', id: target } : null);
       if (denyOr(res, gate)) return;
@@ -1037,7 +1041,21 @@ async function handleRequest(req, res) {
       if (!resolvedModel || resolvedModel === 'auto') {
         resolvedModel = tierQuota.selectModel(typeof task === 'string' ? task : '', taskTier);
       }
-      result = manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, budgetUsd, maxRetries });
+      // Multi-repo workspace mode. `workspace` looks up
+      // config.workspaces[name] and overrides projectRoot when matched
+      // (explicit projectRoot wins so callers can still target arbitrary
+      // paths).
+      let resolvedRoot = projectRoot;
+      if (workspace && !resolvedRoot) {
+        const ws = manager.resolveWorkspace(workspace);
+        if (ws.error) {
+          res.writeHead(400);
+          res.end(JSON.stringify(ws));
+          return;
+        }
+        resolvedRoot = ws.path;
+      }
+      result = manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot: resolvedRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, budgetUsd, maxRetries });
       if (result && !result.error) {
         if (typeof result === 'object') {
           result.tier = taskTier;

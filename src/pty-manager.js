@@ -2001,6 +2001,52 @@ class PtyManager extends EventEmitter {
     }
   }
 
+  // Multi-repo workspace mode.
+  //
+  // config.workspaces is a flat name → path map:
+  //
+  //   "workspaces": {
+  //     "arps":     "/home/shinc/arps",
+  //     "datalake": "/home/shinc/arps-datalake"
+  //   }
+  //
+  // `c4 task --workspace arps "..."` resolves to the matching path and uses
+  // it as the projectRoot, so a single daemon can manage workers across
+  // multiple checkouts without juggling config.worktree.projectRoot per
+  // call.
+  listWorkspaces() {
+    const map = (this.config && this.config.workspaces) || {};
+    const out = [];
+    for (const [name, p] of Object.entries(map)) {
+      if (typeof p !== 'string' || !p) continue;
+      const resolved = path.resolve(p);
+      let exists = false;
+      let isGitRepo = false;
+      try {
+        exists = fs.existsSync(resolved) && fs.statSync(resolved).isDirectory();
+        if (exists) isGitRepo = fs.existsSync(path.join(resolved, '.git'));
+      } catch {
+        // EPERM / ELOOP — surface as exists:false rather than crash.
+      }
+      out.push({ name, path: resolved, exists, isGitRepo });
+    }
+    return { workspaces: out };
+  }
+
+  resolveWorkspace(name) {
+    const map = (this.config && this.config.workspaces) || {};
+    const raw = map[name];
+    if (!raw) {
+      const known = Object.keys(map).join(', ') || '(none configured)';
+      return { error: `Unknown workspace '${name}'. Known: ${known}` };
+    }
+    const resolved = path.resolve(raw);
+    if (!fs.existsSync(resolved)) {
+      return { error: `Workspace '${name}' path does not exist: ${resolved}` };
+    }
+    return { name, path: resolved };
+  }
+
   _worktreePath(repoRoot, name) {
     return path.resolve(repoRoot, '..', `c4-worktree-${name}`);
   }
