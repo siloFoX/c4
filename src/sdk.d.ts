@@ -109,10 +109,12 @@ export class C4Client {
 
   // 10.7 scheduler
   schedules(): Promise<ApiResponse>;
+  schedulerStart(): Promise<ApiResponse>;
+  schedulerStop(): Promise<ApiResponse>;
   scheduleAdd(entry: { id: string; cron: string; task?: string; workerName?: string; target?: string; tags?: string[]; strategy?: string; options?: Record<string, unknown> }): Promise<ApiResponse>;
   scheduleRemove(id: string): Promise<ApiResponse>;
-  scheduleEnable(id: string, enabled: boolean): Promise<ApiResponse>;
-  scheduleRun(id: string): Promise<ApiResponse>;
+  scheduleEnable(id: string, enabled?: boolean): Promise<ApiResponse>;
+  scheduleRunNow(id: string): Promise<ApiResponse>;
 
   // 10.8 board
   board(project?: string): Promise<{ project: string; statuses: string[]; columns: Record<string, Array<Record<string, unknown>>> }>;
@@ -120,6 +122,7 @@ export class C4Client {
   boardUpdate(project: string, cardId: string, patch: Record<string, unknown>): Promise<ApiResponse>;
   boardMove(project: string, cardId: string, to: string): Promise<ApiResponse>;
   boardDelete(project: string, cardId: string): Promise<ApiResponse>;
+  boardImportTodo(project: string, todoPath: string): Promise<ApiResponse>;
 
   // 11.3 workflow
   runWorkflow(workflow: Record<string, unknown>): Promise<ApiResponse>;
