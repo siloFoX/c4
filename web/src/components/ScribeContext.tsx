@@ -64,7 +64,7 @@ export default function ScribeContext() {
             type="button"
             onClick={fetchContext}
             disabled={loading}
-            className="rounded bg-surface-3 px-3 py-1 text-xs font-medium text-foreground hover:bg-gray-600 disabled:opacity-50"
+            className="rounded bg-surface-3 px-3 py-1 text-xs font-medium text-foreground hover:bg-surface-2 disabled:opacity-50"
           >
             {loading ? '…' : 'Refresh'}
           </button>
@@ -72,7 +72,7 @@ export default function ScribeContext() {
       </div>
 
       {error && (
-        <div className="mb-2 rounded bg-red-900/40 px-3 py-2 text-sm text-red-300">{error}</div>
+        <div className="mb-2 rounded border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</div>
       )}
 
       <div className="flex-1 overflow-auto rounded border border-border bg-background p-4">

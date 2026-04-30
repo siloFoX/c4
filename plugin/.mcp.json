@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "c4": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/mcp-stdio.js"],
+      "env": {
+        "C4_DAEMON_URL": "http://127.0.0.1:3456"
+      }
+    }
+  }
+}

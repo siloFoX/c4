@@ -43,8 +43,91 @@ class ComputerUseAdapter extends AgentAdapter {
     super({ name: 'computer-use', patterns: SAFE_PATTERNS });
     this.mode = 'computer-use';
     this.model = opts.model || 'claude-sonnet-4-6';
-    this.runner = opts.runner || null; // injectable; default: Anthropic API
     this.maxSteps = opts.maxSteps || 20;
+    this.viewport = opts.viewport || { width: 1280, height: 800 };
+    // Resolution priority for the per-step runner:
+    // 1. opts.runner explicit injection (used by tests / custom hosts).
+    // 2. config.adapters.computerUse.apiKey or env ANTHROPIC_API_KEY →
+    //    real Anthropic API call via @anthropic-ai/sdk.
+    // 3. null — caller must inject one via setRunner() or runStep returns
+    //    "no runner configured" error.
+    if (opts.runner) {
+      this.runner = opts.runner;
+    } else if (opts.apiKey || process.env.ANTHROPIC_API_KEY) {
+      this.runner = ComputerUseAdapter._buildAnthropicRunner({
+        apiKey: opts.apiKey || process.env.ANTHROPIC_API_KEY,
+        model: this.model,
+        viewport: this.viewport,
+      });
+    } else {
+      this.runner = null;
+    }
+  }
+
+  setRunner(fn) { this.runner = fn; }
+
+  // Build a runner that posts to Claude's beta computer-use API. We keep
+  // this lazy + isolated so the SDK is only required at runtime if the
+  // adapter is actually used with a real API key.
+  static _buildAnthropicRunner({ apiKey, model, viewport }) {
+    return async function anthropicRunner({ goal, screenshot, history }) {
+      let Anthropic;
+      try { Anthropic = require('@anthropic-ai/sdk'); }
+      catch {
+        return { error: '@anthropic-ai/sdk not installed (npm i @anthropic-ai/sdk)' };
+      }
+      const client = new (Anthropic.default || Anthropic.Anthropic)({ apiKey });
+      const screenshotBlock = typeof screenshot === 'string'
+        ? { type: 'image', source: { type: 'base64', media_type: 'image/png', data: screenshot } }
+        : screenshot;
+      try {
+        const resp = await client.beta.messages.create({
+          model,
+          max_tokens: 1024,
+          tools: [{
+            type: 'computer_20241022',
+            name: 'computer',
+            display_width_px: viewport.width,
+            display_height_px: viewport.height,
+            display_number: 1,
+          }],
+          betas: ['computer-use-2024-10-22'],
+          messages: [
+            ...history.flatMap((h) => h.message ? [h.message] : []),
+            { role: 'user', content: [
+              { type: 'text', text: `Goal: ${goal}` },
+              screenshotBlock,
+            ] },
+          ],
+        });
+        const block = (resp.content || []).find((b) => b && b.type === 'tool_use' && b.name === 'computer');
+        if (!block) {
+          // No tool call → adapter treats as "done".
+          const text = (resp.content || []).map((b) => b.text || '').join('').trim();
+          return { type: 'done', summary: text || 'no tool call returned' };
+        }
+        const input = block.input || {};
+        switch (input.action) {
+          case 'left_click':
+          case 'mouse_move':
+            return { type: 'click', x: (input.coordinate || [])[0], y: (input.coordinate || [])[1] };
+          case 'type':
+            return { type: 'type', text: input.text || '' };
+          case 'key':
+            return { type: 'key', key: input.text || '' };
+          case 'scroll':
+            return { type: 'scroll', dx: input.dx || 0, dy: input.dy || 0 };
+          case 'wait':
+            return { type: 'wait', ms: (input.duration || 1) * 1000 };
+          case 'screenshot':
+            return { type: 'screenshot' };
+          default:
+            return { type: 'done', summary: `unsupported action: ${input.action}` };
+        }
+      } catch (e) {
+        return { error: `anthropic computer-use call failed: ${e.message}` };
+      }
+    };
   }
 
   isPermissionPrompt() { return false; }

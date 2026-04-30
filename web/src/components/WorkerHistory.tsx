@@ -114,12 +114,12 @@ export default function WorkerHistory({ workerFilter }: WorkerHistoryProps) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search task / branch / commit..."
-          className="min-w-0 flex-1 rounded border border-border bg-surface px-3 py-1.5 text-sm text-foreground placeholder:text-muted/70 focus:border-blue-500 focus:outline-none"
+          className="min-w-0 flex-1 rounded border border-border bg-surface px-3 py-1.5 text-sm text-foreground placeholder:text-muted/70 focus:border-primary focus:outline-none"
         />
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded border border-border bg-surface px-2 py-1.5 text-sm text-foreground focus:border-blue-500 focus:outline-none"
+          className="rounded border border-border bg-surface px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
         >
           <option value="all">All status</option>
           {statuses.map((s) => (
@@ -131,7 +131,7 @@ export default function WorkerHistory({ workerFilter }: WorkerHistoryProps) {
       </div>
 
       {error && (
-        <div className="mb-2 rounded bg-red-900/40 px-3 py-2 text-sm text-red-300">{error}</div>
+        <div className="mb-2 rounded border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</div>
       )}
 
       <div className="flex-1 overflow-auto rounded border border-border bg-background">
@@ -189,9 +189,9 @@ function statusClasses(status: string | undefined): string {
     case 'merged':
       return 'text-emerald-300';
     case 'lost':
-      return 'text-amber-300';
+      return 'text-warning';
     case 'exited':
-      return 'text-red-300';
+      return 'text-danger';
     default:
       return 'text-muted';
   }

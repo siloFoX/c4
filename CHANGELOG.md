@@ -31,6 +31,14 @@
 - **9.4 MCP 프로토콜 최신화** — protocolVersion 협상(`2025-03-26` ↔ `2024-11-05`), `ping` 응답, `notifications/initialized` 외 `initialized` 별칭, `capabilities.tools.listChanged=true` + `capabilities.logging`.
 - **9.6 Fleet write-through** — `/fleet/create` `/fleet/task` `/fleet/close` `/fleet/send`. SDK `fleetCreate`/`fleetTask`/`fleetClose`/`fleetSend`/`fleetKey`. 4개 단위 테스트 추가 (총 7개).
 
+### 1.6.16 누적 (7차 — Plugin MCP / e2e 라이브 / 토큰화 sweep / Computer Use API / 메타데이터 마감)
+- **Plugin MCP shim** — `plugin/.mcp.json` + `plugin/scripts/mcp-stdio.js`. Claude Code가 워커 부팅 시 c4 plugin을 로드하면 stdio MCP로 c4 daemon의 HTTP `/mcp`를 자동 브리지. `C4_DAEMON_TOKEN` env로 RBAC 토큰 forwarding. 라이브 검증: `tools/list` JSON-RPC 응답 정상 (15 tools 반환).
+- **라이브 e2e chain** — daemon restart 후 workflow.run(3 step) → board.card → board.move → nl.run(schedule-daily, cron `30 8 * * *` 정확 파싱) → audit이 모든 mutation 기록 + workflow 내부 audit('actor: workflow') 분리 캡처. 완전 통과.
+- **CLI completion 라이브 활성화** — `compgen -F _c4_complete`로 52개 후보 + `c4 schedule <tab>` → add/remove/enable/run 4개 서브커맨드 검증.
+- **Web UI 토큰 sweep** — ScribeContext / WorkerHistory / WorkerChat의 잔여 hard-coded `gray-X / red-X / blue-X / amber-X` 클래스를 `surface*/foreground/muted/primary/danger/warning` 토큰으로 교체. 라이트 테마에서 깨지지 않게.
+- **Computer Use Anthropic API 옵션** — `ComputerUseAdapter`가 `opts.apiKey` 또는 `ANTHROPIC_API_KEY`로 실제 `client.beta.messages.create` 호출 (computer-use-2024-10-22 beta + tool `computer_20241022`). API key 없으면 runner=null로 mock 주입 가능. left_click/type/key/scroll/wait/screenshot/done 매핑.
+- **버전 metadata** — README/README.ko 배지를 1.6.16 + Claude Code v2.1.85-2.1.123 + 77 tests로 갱신.
+
 ### 1.6.16 누적 (6차 — auth bootstrap / OpenAPI 자동추출 / shell completion / scheduler nextRunAt / 라이트 테마 / marketplace)
 - **Auth bootstrap 체크** — `Auth.applyConfig()`로 분리. enabled+secret 누락 시 stderr 경고 (재시작이 토큰 무효화). 빈 users 경고. 핫 리로드 시에도 secret 일관성 유지. `manager._auth = auth`로 hot-reload 경로에 노출.
 - **OpenAPI 자동 추출** — `_extractRoutes()`가 `daemon.js` 정규식으로 모든 `req.method === ... && route === ...` 매치 + 직전 주석 라인을 summary로 끌어옴. `OVERRIDES`로 핵심 라우트는 hand-tuned 설명. 86 routes 자동 발견. 캐시 + reset hook.

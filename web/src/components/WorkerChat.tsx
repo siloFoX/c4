@@ -186,7 +186,7 @@ export default function WorkerChat({ workerName }: WorkerChatProps) {
   return (
     <div className="flex h-full flex-col">
       {error && (
-        <div className="mb-2 rounded bg-red-900/40 px-3 py-2 text-sm text-red-300">
+        <div className="mb-2 rounded border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
           {error}
         </div>
       )}
@@ -207,7 +207,7 @@ export default function WorkerChat({ workerName }: WorkerChatProps) {
       </div>
 
       {statusMsg && (
-        <div className="mt-2 text-xs text-amber-400">{statusMsg}</div>
+        <div className="mt-2 text-xs text-warning">{statusMsg}</div>
       )}
 
       <div className="mt-3 flex flex-col items-stretch gap-2 sm:flex-row sm:items-end">
@@ -224,14 +224,14 @@ export default function WorkerChat({ workerName }: WorkerChatProps) {
           placeholder="Message worker (Enter to send, Shift+Enter for newline)"
           rows={2}
           disabled={busy}
-          className="min-w-0 flex-1 resize-none rounded border border-border bg-surface px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted/70 focus:border-blue-500 focus:outline-none disabled:opacity-60"
+          className="min-w-0 flex-1 resize-none rounded border border-border bg-surface px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted/70 focus:border-primary focus:outline-none disabled:opacity-60"
         />
         <div className="flex flex-row gap-1.5 sm:flex-col">
           <button
             type="button"
             onClick={() => void send()}
             disabled={busy || !input.trim()}
-            className="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded bg-primary/15 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/25 ring-1 ring-primary/40 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Send
           </button>
@@ -239,7 +239,7 @@ export default function WorkerChat({ workerName }: WorkerChatProps) {
             type="button"
             onClick={() => void sendEnter()}
             disabled={busy}
-            className="rounded bg-surface-3 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-gray-600 disabled:opacity-50"
+            className="rounded bg-surface-3 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-2 disabled:opacity-50"
           >
             Enter
           </button>
@@ -247,7 +247,7 @@ export default function WorkerChat({ workerName }: WorkerChatProps) {
             type="button"
             onClick={() => void interrupt()}
             disabled={busy}
-            className="rounded bg-red-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600 disabled:opacity-50"
+            className="rounded bg-danger/15 px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/25 ring-1 ring-danger/40 disabled:opacity-50"
             title="Send Ctrl+C to the worker"
           >
             Ctrl+C
@@ -264,7 +264,7 @@ function ChatBubble({ line }: { line: ChatLine }) {
     case 'user':
       return (
         <div className="flex justify-end">
-          <div className={`${base} max-w-[80%] bg-blue-600/20 text-blue-100 ring-1 ring-blue-600/40`}>
+          <div className={`${base} max-w-[80%] bg-primary/15 text-foreground ring-1 ring-primary/40`}>
             {line.text.replace(/^\s*❯\s?/, '')}
           </div>
         </div>
@@ -283,7 +283,7 @@ function ChatBubble({ line }: { line: ChatLine }) {
       );
     case 'system':
       return (
-        <div className={`${base} max-w-[90%] self-start bg-amber-900/30 text-amber-200 ring-1 ring-amber-700/40`}>
+        <div className={`${base} max-w-[90%] self-start bg-warning/15 text-warning ring-1 ring-warning/40`}>
           {line.text}
         </div>
       );
