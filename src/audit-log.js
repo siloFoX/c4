@@ -175,6 +175,46 @@ class AuditLogger {
     return results;
   }
 
+  // Excel-friendly CSV export. Defaults to UTF-8 BOM + CRLF so the file
+  // opens correctly in Excel / LibreOffice / Google Sheets without the
+  // operator having to pick a codec at import time. Pass { bom: false,
+  // lineEnd: '\n' } for shell pipelines (awk / csvkit) that don't
+  // tolerate the BOM on the first line.
+  //
+  // Filter shape mirrors query() (from / to / type / target / limit).
+  // Returns { contentType, body } so the daemon can write straight to
+  // the response without a second indirection.
+  exportCsv(filter, opts) {
+    const records = this.query(filter || {});
+    const { bom = true, lineEnd } = (opts && typeof opts === 'object') ? opts : {};
+    const eol = lineEnd || '\r\n';
+    const cols = ['timestamp', 'type', 'actor', 'target', 'detailsKeys', 'hash'];
+    const esc = (v) => {
+      if (v == null) return '';
+      const s = typeof v === 'string' ? v : JSON.stringify(v);
+      return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows = [cols.join(',')];
+    for (const r of records) {
+      const detailsKeys = r.details && typeof r.details === 'object'
+        ? Object.keys(r.details).join('|')
+        : '';
+      rows.push([
+        esc(r.timestamp),
+        esc(r.type),
+        esc(r.actor),
+        esc(r.target),
+        esc(detailsKeys),
+        esc(r.hash),
+      ].join(','));
+    }
+    const prefix = bom ? '﻿' : '';
+    return {
+      contentType: 'text/csv; charset=utf-8',
+      body: prefix + rows.join(eol) + eol,
+    };
+  }
+
   verify() {
     if (!fs.existsSync(this.logPath)) {
       return { valid: true, corruptedAt: null, total: 0 };

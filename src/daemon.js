@@ -1255,6 +1255,35 @@ async function handleRequest(req, res) {
         result = { error: e.message };
       }
 
+    } else if (req.method === 'GET' && route === '/audit/export') {
+      // Excel-friendly CSV export of the audit log. Defaults to UTF-8 BOM
+      // + CRLF; ?bom=0 / ?lineEnd=lf opt out for shell pipelines.
+      const gate = requireRole(authCheck, rbac.ACTIONS.AUDIT_READ);
+      if (denyOr(res, gate)) return;
+      const typeParam = url.searchParams.get('type') || '';
+      const fromParam = url.searchParams.get('from') || '';
+      const toParam = url.searchParams.get('to') || '';
+      const targetParam = url.searchParams.get('target') || '';
+      const limitParam = parseInt(url.searchParams.get('limit') || '0', 10);
+      const bom = url.searchParams.get('bom') !== '0';
+      const lineEnd = url.searchParams.get('lineEnd') === 'lf' ? '\n' : '\r\n';
+      try {
+        const csv = audit.exportCsv({
+          type: typeParam || undefined,
+          from: fromParam || undefined,
+          to: toParam || undefined,
+          target: targetParam || undefined,
+          limit: Number.isFinite(limitParam) && limitParam > 0 ? limitParam : undefined,
+        }, { bom, lineEnd });
+        res.setHeader('Content-Type', csv.contentType);
+        res.setHeader('Content-Disposition', 'attachment; filename="audit.csv"');
+        res.writeHead(200);
+        res.end(csv.body);
+        return;
+      } catch (e) {
+        result = { error: e.message };
+      }
+
     } else if (req.method === 'GET' && route === '/audit/verify') {
       // (10.2) Hash chain integrity check. Returns valid=false +
       // corruptedAt=<line index> when the log has been tampered with or
