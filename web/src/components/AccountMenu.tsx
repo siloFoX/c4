@@ -81,27 +81,45 @@ function roleBadgeClass(role: string | null): string {
   }
 }
 
+// Keys that the storage-event handler should react to. Anything else
+// (theme, sidebar.collapsed, top-view, etc) is irrelevant to the
+// avatar / role badge and shouldn't trigger a re-read.
+const AUTH_STORAGE_KEYS = new Set([
+  'c4.authToken',
+  'c4.authUser',
+  'c4.authRole',
+]);
+
 export default function AccountMenu({
   onLogout,
   onOpenPreferences,
   collapsed = false,
 }: AccountMenuProps) {
-  const [user, setUser] = useState<string | null>(getAuthUser());
-  const [role, setRole] = useState<string | null>(getAuthRole());
+  // (review fix 2026-05-01) Lazy initializers — we don't want to
+  // touch localStorage on every render, only the first.
+  const [user, setUser] = useState<string | null>(() => getAuthUser());
+  const [role, setRole] = useState<string | null>(() => getAuthRole());
 
   // Re-read on AUTH_EVENT so logout in another tab (or 401-clearing)
-  // wipes the avatar without a manual refresh.
+  // wipes the avatar without a manual refresh. The cross-tab `storage`
+  // event also fires on unrelated key writes (theme toggle etc.) — we
+  // filter to only the auth keys to avoid pointless re-renders.
   useEffect(() => {
-    const onAuth = () => {
+    const refresh = () => {
       setUser(getAuthUser());
       setRole(getAuthRole());
     };
-    window.addEventListener(AUTH_EVENT, onAuth);
-    // Cross-tab sync.
-    window.addEventListener('storage', onAuth);
+    const onStorage = (e: StorageEvent) => {
+      // e.key === null when localStorage is cleared wholesale; treat
+      // that as a relevant signal.
+      if (e.key && !AUTH_STORAGE_KEYS.has(e.key)) return;
+      refresh();
+    };
+    window.addEventListener(AUTH_EVENT, refresh);
+    window.addEventListener('storage', onStorage);
     return () => {
-      window.removeEventListener(AUTH_EVENT, onAuth);
-      window.removeEventListener('storage', onAuth);
+      window.removeEventListener(AUTH_EVENT, refresh);
+      window.removeEventListener('storage', onStorage);
     };
   }, []);
 

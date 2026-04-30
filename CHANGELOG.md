@@ -3,6 +3,52 @@
 ## [Unreleased]
 
 ### Added
+- **(8.41) claude.ai-style account menu.** Removes the standalone
+  `Sign out` IconButton from `AppHeader`. New
+  `web/src/components/AccountMenu.tsx` renders an avatar + name +
+  role badge + chevron at the bottom of the Workers sidebar, plus a
+  compact icon-only fallback in the header. Both triggers open the
+  same dropdown: Profile (disabled, `soon` hint), Preferences (→
+  Settings tab), Keyboard shortcuts (`?` / dispatches
+  `HELP_EVENT_OPEN_SHORTCUTS`), Help center (dispatches
+  `HELP_EVENT_OPEN_DRAWER`), Sign out (danger variant). New
+  hand-rolled `web/src/components/ui/dropdown-menu.tsx` primitive
+  (no radix-ui dep) wires `aria-haspopup` / `aria-expanded` /
+  `aria-controls` on the trigger via `cloneElement`, click-outside
+  + Escape dismiss, ArrowUp / ArrowDown roving focus that skips
+  disabled rows, optional `header` slot, and a `variant: 'default' |
+  'danger'` switch per row. `lib/api.ts` adds `c4.authUser` /
+  `c4.authRole` localStorage keys; `LoginResponse` gains an
+  optional `role`; `login()` persists the user + role from the
+  daemon's `/auth/login` response so `AccountMenu` can render the
+  badge without a `/me` round-trip; `clearToken()` wipes both keys
+  on logout / 401 so a stale identity never leaks. AccountMenu
+  re-syncs on `AUTH_EVENT` and the cross-tab `storage` event.
+  `roleBadgeClass` maps `admin / manager / viewer` to
+  destructive / primary / muted token-backed classes; unknown
+  roles fall back to neutral secondary so an undefined role never
+  paints itself as admin. **Review fixes (2026-05-01)**: (a) the
+  header copy was originally wrapped in `<div className="hidden
+  md:block">` which removed the mobile sign-out path on non-Workers
+  tabs (Sessions / Chat / Workflows / History / Settings /
+  Features) where the sidebar isn't rendered — now renders on every
+  viewport, (b) `useState(getAuthUser())` re-read localStorage on
+  every render — switched to lazy `useState(() => getAuthUser())`
+  initialisers, (c) the `storage` event handler fired on every
+  unrelated key write — added an `AUTH_STORAGE_KEYS` allow-set
+  (`c4.authToken` / `c4.authUser` / `c4.authRole`) so theme /
+  sidebar / top-view writes don't bounce the AccountMenu. Tests:
+  `tests/account-menu.test.js` — 47 assertions across 10 suites
+  covering the DropdownMenu primitive contract, UI primitive
+  re-export, `lib/api.ts` user+role caching, AccountMenu component
+  contract, Sidebar mount, AppHeader replacement (incl.
+  regression-guard against the `hidden md:block` wrapper),
+  App.tsx prop wiring, behavioural `initialsFor` (empty / single /
+  multi-token / dotted / underscored / dashed), behavioural
+  `roleBadgeClass` (admin / manager / viewer / unknown), and the
+  storage-filter contract (`AUTH_STORAGE_KEYS` allow-set + lazy
+  `useState` initialisers). Patch note:
+  `docs/patches/8.41-account-menu.md`.
 - **(8.46) Per-worker pinned memory.** `c4 new` now accepts `--pin-memory
   <file>` (read client-side, repeatable), `--pin-rules "<text>"`
   (repeatable), and `--pin-role <manager|worker|attached>` so operators can

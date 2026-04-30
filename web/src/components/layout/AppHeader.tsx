@@ -96,15 +96,19 @@ export default function AppHeader({
             sidebar version stays as the primary surface; the header
             copy is the fallback for tabs (Sessions, Chat, History,
             Workflows, Settings, Features) where the sidebar doesn't
-            render. */}
+            render.
+            (review fix 2026-05-01) Originally `hidden md:block`
+            scoped this to desktop only, but on mobile + non-Workers
+            tabs the sidebar isn't rendered either, leaving mobile
+            users with no path to sign out. Show on every viewport;
+            collapsed mode is icon-only so it stays compact even at
+            narrow widths. */}
         {authed ? (
-          <div className="hidden md:block">
-            <AccountMenu
-              onLogout={onLogout}
-              onOpenPreferences={onOpenPreferences}
-              collapsed
-            />
-          </div>
+          <AccountMenu
+            onLogout={onLogout}
+            onOpenPreferences={onOpenPreferences}
+            collapsed
+          />
         ) : null}
       </div>
     </header>
