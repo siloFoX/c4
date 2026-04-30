@@ -14,6 +14,7 @@ import DetailTabs, { type DetailMode } from './components/layout/DetailTabs';
 import EmptyState from './components/layout/EmptyState';
 import FeatureView from './components/layout/FeatureView';
 import HelpUIRoot from './components/HelpUIRoot';
+import MetricsBar from './components/MetricsBar';
 import { type TopView } from './components/layout/TopTabs';
 import { AUTH_EVENT, fetchAuthStatus, getToken, logout } from './lib/api';
 import {
@@ -124,6 +125,12 @@ export default function App() {
         authed={authState === 'authed'}
         onLogout={handleLogout}
       />
+      {/* MetricsBar polls /api/metrics every 5s and renders a thin strip
+          of daemon RSS/heap/loadavg + worker CPU/RSS totals just below
+          the header. Component returns null until the first response,
+          so it doesn't introduce layout jumps when the daemon is
+          unreachable or auth-gated. */}
+      <MetricsBar />
       {topView === 'history' ? (
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <HistoryView />
