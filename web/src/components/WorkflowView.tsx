@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Workflow, Play, FileText, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/cn';
+import { useSSE } from '../lib/useSSE';
 
 interface StepResult { error?: string; [k: string]: unknown }
 interface RunRecord {
@@ -73,6 +74,9 @@ export default function WorkflowView() {
     const t = setInterval(fetchRuns, 5000);
     return () => clearInterval(t);
   }, [fetchRuns]);
+
+  // Live refresh whenever a workflow finishes.
+  useSSE(['workflow_end', 'workflow_start'], () => fetchRuns());
 
   const run = async () => {
     setError(null);

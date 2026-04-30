@@ -179,6 +179,10 @@ class C4Client {
   // 11.3 workflow
   runWorkflow(workflow) { return this.request('POST', '/workflow/run', { body: workflow }); }
   workflowRuns({ limit = 50, name } = {}) { return this.request('GET', '/workflow/runs', { params: { limit, name } }); }
+  workflowTemplates() { return this.request('GET', '/workflow/templates'); }
+  workflowTemplate(name) { return this.request('GET', '/workflow/template', { params: { name } }); }
+  saveWorkflowTemplate(name, workflow) { return this.request('POST', '/workflow/template', { body: { name, workflow } }); }
+  deleteWorkflowTemplate(name) { return this.request('POST', '/workflow/template/delete', { body: { name } }); }
 
   // backup / restore (admin)
   backup({ outPath } = {}) { return this.request('POST', '/backup', { body: { outPath } }); }
@@ -253,6 +257,10 @@ class C4Client {
 
   health() {
     return this.request('GET', '/health');
+  }
+
+  openapi() {
+    return this.request('GET', '/openapi.json');
   }
 
   config() {

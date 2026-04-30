@@ -50,6 +50,8 @@ const ROUTE_ROLES = {
   '/config/reload':   'admin',
   '/backup':          'admin',
   '/restore':         'admin',
+  '/workflow/template':         'admin',
+  '/workflow/template/delete':  'admin',
 };
 
 function _b64urlEncode(buf) {
@@ -118,8 +120,8 @@ class Auth {
   authorize(req, route) {
     if (!this.enabled) return { ok: true, payload: { sub: 'anonymous', role: 'admin' } };
 
-    // Allow login + health without auth
-    if (route === '/auth/login' || route === '/health') return { ok: true, payload: null };
+    // Allow login + health + openapi without auth (public discovery surface).
+    if (route === '/auth/login' || route === '/health' || route === '/openapi.json') return { ok: true, payload: null };
 
     const header = req.headers && (req.headers.authorization || req.headers.Authorization);
     if (!header || !/^Bearer\s+/i.test(header)) {

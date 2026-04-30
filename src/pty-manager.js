@@ -2413,23 +2413,30 @@ class PtyManager extends EventEmitter {
 
   // --- Worker Pooling (3.4) ---
 
-  _findPoolWorker() {
+  _findPoolWorker(options = {}) {
     const poolCfg = this.config.pool || {};
     if (!poolCfg.enabled) return null;
 
     const maxIdleMs = poolCfg.maxIdleMs || 300000;
     const now = Date.now();
+    const wantAdapter = options.adapter
+      || (this.config.workerDefaults && this.config.workerDefaults.adapter)
+      || null;
 
     for (const [name, w] of this.workers) {
       if (!w.alive) continue;
+      // Suspended / intervention workers are NOT reuse candidates.
+      if (w._suspended) continue;
+      if (w._interventionState) continue;
       const idleMs = now - w.lastDataTime;
-      // Must be idle (past threshold) but not too old (within maxIdleMs)
-      if (idleMs >= this.idleThresholdMs && idleMs <= maxIdleMs) {
-        // Must not have an active task or pending task
-        if (!w._pendingTask && !w._pendingTaskSent) {
-          return name;
-        }
-      }
+      if (idleMs < this.idleThresholdMs || idleMs > maxIdleMs) continue;
+      if (w._pendingTask || w._pendingTaskSent) continue;
+      // Adapter must match (claude pool can't be reused for local-llm).
+      if ((w._adapterName || null) !== wantAdapter) continue;
+      // A worker that already owns a branch/worktree carries that state into
+      // the new task — only reuse "blank" pool workers.
+      if (w.branch || w.worktree) continue;
+      return name;
     }
     return null;
   }
@@ -2561,7 +2568,7 @@ class PtyManager extends EventEmitter {
 
       // Pool reuse (3.4): try to recycle an idle worker instead of creating new
       if (options.reuse !== false) {
-        const poolName = this._findPoolWorker();
+        const poolName = this._findPoolWorker({ adapter: options.adapter });
         if (poolName) {
           return this._reuseWorker(poolName, name, task, options);
         }
@@ -4383,6 +4390,63 @@ class PtyManager extends EventEmitter {
   }
   runWorkflow(wf) { return this._ensureWorkflow().run(wf); }
   registerWorkflowHandler(name, fn) { return this._ensureWorkflow().register(name, fn); }
+
+  // (TODO Workflow templates) Save / load / list / delete named workflow
+  // definitions in logs/workflows/<name>.json. Names sanitized to
+  // [A-Za-z0-9._-] to prevent path traversal.
+  _workflowTemplatesDir() { return path.join(this.logsDir, 'workflows'); }
+
+  _safeWorkflowName(name) {
+    return typeof name === 'string' && /^[A-Za-z0-9._-]+$/.test(name) ? name : '';
+  }
+
+  saveWorkflowTemplate(name, workflow) {
+    const safe = this._safeWorkflowName(name);
+    if (!safe) return { error: 'invalid template name (allowed: A-Z a-z 0-9 . _ -)' };
+    if (!workflow || !Array.isArray(workflow.steps)) return { error: 'workflow.steps array required' };
+    const dir = this._workflowTemplatesDir();
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    try {
+      fs.writeFileSync(path.join(dir, `${safe}.json`), JSON.stringify(workflow, null, 2));
+      return { success: true, name: safe };
+    } catch (e) { return { error: `save failed: ${e.message}` }; }
+  }
+
+  loadWorkflowTemplate(name) {
+    const safe = this._safeWorkflowName(name);
+    if (!safe) return { error: 'invalid template name' };
+    const file = path.join(this._workflowTemplatesDir(), `${safe}.json`);
+    if (!fs.existsSync(file)) return { error: `template not found: ${safe}` };
+    try {
+      return { name: safe, workflow: JSON.parse(fs.readFileSync(file, 'utf8')) };
+    } catch (e) { return { error: `load failed: ${e.message}` }; }
+  }
+
+  listWorkflowTemplates() {
+    const dir = this._workflowTemplatesDir();
+    if (!fs.existsSync(dir)) return { templates: [] };
+    const out = [];
+    try {
+      for (const entry of fs.readdirSync(dir)) {
+        if (!entry.endsWith('.json')) continue;
+        const name = entry.slice(0, -5);
+        try {
+          const wf = JSON.parse(fs.readFileSync(path.join(dir, entry), 'utf8'));
+          out.push({ name, displayName: wf.name, steps: (wf.steps || []).length });
+        } catch { /* skip malformed */ }
+      }
+    } catch { /* skip */ }
+    return { templates: out.sort((a, b) => a.name.localeCompare(b.name)) };
+  }
+
+  deleteWorkflowTemplate(name) {
+    const safe = this._safeWorkflowName(name);
+    if (!safe) return { error: 'invalid template name' };
+    const file = path.join(this._workflowTemplatesDir(), `${safe}.json`);
+    if (!fs.existsSync(file)) return { error: `template not found: ${safe}` };
+    try { fs.unlinkSync(file); return { success: true }; }
+    catch (e) { return { error: `delete failed: ${e.message}` }; }
+  }
 
   // (TODO 11.3 follow-up) Read past workflow runs from logs/workflow-runs.jsonl.
   // Most-recent first, capped by `limit`.

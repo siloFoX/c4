@@ -31,6 +31,13 @@
 - **9.4 MCP 프로토콜 최신화** — protocolVersion 협상(`2025-03-26` ↔ `2024-11-05`), `ping` 응답, `notifications/initialized` 외 `initialized` 별칭, `capabilities.tools.listChanged=true` + `capabilities.logging`.
 - **9.6 Fleet write-through** — `/fleet/create` `/fleet/task` `/fleet/close` `/fleet/send`. SDK `fleetCreate`/`fleetTask`/`fleetClose`/`fleetSend`/`fleetKey`. 4개 단위 테스트 추가 (총 7개).
 
+### 1.6.16 누적 (4차 — SSE 훅 / 풀 재사용 / 워크플로우 템플릿 / OpenAPI / .gitignore)
+- **Web UI SSE 훅** — `web/src/lib/useSSE.ts`로 EventSource 단일 공유 + `useSSE(['type'], cb)` 훅. BoardView / SchedulerView / WorkflowView가 board_event / schedule_fire / workflow_end 도착 시 즉시 refetch.
+- **Worker pool 보강** — `_findPoolWorker(options.adapter)`가 suspended/intervention/branch/worktree 워커 제외 + adapter 매칭 검증. claude pool은 local-llm task에 재사용 안 됨. 8개 단위 테스트.
+- **Workflow templates store** — `manager.{save,load,list,delete}WorkflowTemplate(name)`. logs/workflows/&lt;name&gt;.json 영속, name sanitization (`[A-Za-z0-9._-]`)으로 path traversal 방지. GET/POST `/workflow/templates`, `/workflow/template`, POST `/workflow/template/delete` (admin). SDK 4개 메서드. 5개 단위 테스트.
+- **OpenAPI 3.1 스펙** — `src/openapi.js`가 모든 daemon 라우트 메타데이터를 빌드. GET `/openapi.json` (auth bypass — public discovery). SDK `openapi()`. 3개 단위 테스트로 매핑 검증.
+- **.gitignore 보강** — `scheduler-state.json` 추가.
+
 ### 1.6.16 누적 (3차 — CLI / 백업 / hot-reload / 알림 / workflow UI)
 - **CLI 신규 명령** — `c4 audit / projects / departments / cost / nl / workflow run / schedules / schedule add|remove|enable|run / board (view|add|move|delete) / transfer / backup / restore`. 새 daemon 라우트들을 모두 CLI로 노출.
 - **Workflow runs reader + Web UI** — `manager.getWorkflowRuns({ limit, name })` + GET `/workflow/runs`. Web UI에 `WorkflowView` (JSON 편집기 + 템플릿 + 실행 결과 + 최근 run 히스토리 details).

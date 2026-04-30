@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Clock, Plus, Play, Power, Trash2, Pause } from 'lucide-react';
 import { cn } from '../lib/cn';
+import { useSSE } from '../lib/useSSE';
 
 interface Schedule {
   id: string;
@@ -40,6 +41,9 @@ export default function SchedulerView() {
     const t = setInterval(fetchData, 10000);
     return () => clearInterval(t);
   }, [fetchData]);
+
+  // Live refresh on schedule fires.
+  useSSE(['schedule_fire'], () => fetchData());
 
   const post = async (path: string, body: unknown) => {
     const res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });

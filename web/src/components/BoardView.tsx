@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Kanban, Plus, Trash2, GripVertical } from 'lucide-react';
 import { cn } from '../lib/cn';
+import { useSSE } from '../lib/useSSE';
 
 type Status = 'backlog' | 'in_progress' | 'review' | 'done';
 const STATUSES: Status[] = ['backlog', 'in_progress', 'review', 'done'];
@@ -56,6 +57,11 @@ export default function BoardView() {
     const t = setInterval(fetchBoard, 10000);
     return () => clearInterval(t);
   }, [fetchBoard]);
+
+  // Live refresh on board events for the current project.
+  useSSE(['board_event'], (ev) => {
+    if ((ev as { project?: string }).project === project) fetchBoard();
+  });
 
   const post = async (path: string, body: unknown) => {
     const res = await fetch(path, {

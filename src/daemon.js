@@ -187,7 +187,11 @@ async function handleRequest(req, res) {
       return;
     }
 
-    if (req.method === 'GET' && route === '/health') {
+    if (req.method === 'GET' && route === '/openapi.json') {
+      const { build } = require('./openapi');
+      result = build(manager._daemonVersion || null);
+
+    } else if (req.method === 'GET' && route === '/health') {
       result = {
         ok: true,
         workers: manager.list().workers.length,
@@ -521,6 +525,18 @@ async function handleRequest(req, res) {
       const limit = parseInt(url.searchParams.get('limit') || '50') || 50;
       const name = url.searchParams.get('name') || undefined;
       result = manager.getWorkflowRuns({ limit, name });
+
+    } else if (req.method === 'GET' && route === '/workflow/templates') {
+      result = manager.listWorkflowTemplates();
+    } else if (req.method === 'GET' && route === '/workflow/template') {
+      const name = url.searchParams.get('name');
+      result = manager.loadWorkflowTemplate(name);
+    } else if (req.method === 'POST' && route === '/workflow/template') {
+      const { name, workflow } = await parseBody(req);
+      result = manager.saveWorkflowTemplate(name, workflow);
+    } else if (req.method === 'POST' && route === '/workflow/template/delete') {
+      const { name } = await parseBody(req);
+      result = manager.deleteWorkflowTemplate(name);
 
     } else if (req.method === 'GET' && route === '/board') {
       // 10.8 kanban
