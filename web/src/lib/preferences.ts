@@ -5,11 +5,16 @@ import type { TopView } from '../components/layout/TopTabs';
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 export const SIDEBAR_MODE_KEY = 'c4.sidebar.mode';
+// (TODO 8.40) Desktop-only icon-rail mode for the workers Sidebar.
+// Mobile show/hide is still owned by App.tsx's transient sidebarOpen
+// state — collapsed is a separate axis (narrow vs wide on desktop).
+export const SIDEBAR_COLLAPSED_KEY = 'c4.sidebar.collapsed';
 export const DETAIL_MODE_KEY = 'c4.detail.mode';
 export const TOP_VIEW_KEY = 'c4.topView';
 export const THEME_KEY = 'c4.theme';
 
 export const DEFAULT_SIDEBAR_MODE: SidebarMode = 'list';
+export const DEFAULT_SIDEBAR_COLLAPSED = false;
 export const DEFAULT_DETAIL_MODE: DetailMode = 'terminal';
 export const DEFAULT_TOP_VIEW: TopView = 'workers';
 export const DEFAULT_THEME: ThemeMode = 'dark';
@@ -70,6 +75,20 @@ export function readSidebarMode(): SidebarMode {
   return readEnum(SIDEBAR_MODE_KEY, SIDEBAR_VALUES, DEFAULT_SIDEBAR_MODE);
 }
 
+// (TODO 8.40) Boolean preference reader/writer. We store '1' / '0'
+// rather than the JSON literals so the value is forward-compatible
+// with shell scripts that read localStorage via curl + js eval.
+export function readSidebarCollapsed(): boolean {
+  const raw = readString(SIDEBAR_COLLAPSED_KEY);
+  if (raw === '1') return true;
+  if (raw === '0') return false;
+  return DEFAULT_SIDEBAR_COLLAPSED;
+}
+
+export function writeSidebarCollapsed(value: boolean): void {
+  writeString(SIDEBAR_COLLAPSED_KEY, value ? '1' : '0');
+}
+
 export function readDetailMode(): DetailMode {
   return readEnum(DETAIL_MODE_KEY, DETAIL_VALUES, DEFAULT_DETAIL_MODE);
 }
@@ -103,6 +122,7 @@ export function writeTheme(value: ThemeMode): void {
 
 export function resetPreferences(): void {
   removeString(SIDEBAR_MODE_KEY);
+  removeString(SIDEBAR_COLLAPSED_KEY);
   removeString(DETAIL_MODE_KEY);
   removeString(TOP_VIEW_KEY);
   removeString(THEME_KEY);

@@ -47,6 +47,7 @@
   "shortcuts.sendChat": "채팅 메시지 전송",
   "shortcuts.newLine": "입력창에 줄바꿈",
   "shortcuts.toggleTour": "온보딩 투어 다시 보기",
+  "shortcuts.toggleSidebar": "사이드바 접기 / 펼치기",
 
   "scribe.summary": "세션 컨텍스트 기록기. 워커와 관리자 JSONL을 docs/session-context.md로 주기적으로 요약해 다음 세션이 맥락을 이어받게 합니다.",
   "scribe.cli": "c4 scribe start|stop|scan|status",

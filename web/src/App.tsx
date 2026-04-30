@@ -19,13 +19,16 @@ import { AUTH_EVENT, fetchAuthStatus, getToken, logout } from './lib/api';
 import {
   applyTheme,
   DEFAULT_DETAIL_MODE,
+  DEFAULT_SIDEBAR_COLLAPSED,
   DEFAULT_SIDEBAR_MODE,
   DEFAULT_THEME,
   readDetailMode,
+  readSidebarCollapsed,
   readSidebarMode,
   readTheme,
   readTopView,
   writeDetailMode,
+  writeSidebarCollapsed,
   writeSidebarMode,
   writeTheme,
   writeTopView,
@@ -42,14 +45,48 @@ export default function App() {
     return window.matchMedia('(min-width: 768px)').matches;
   });
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>(readSidebarMode);
+  // (TODO 8.40) Desktop icon-rail mode. Persisted, separate from the
+  // transient mobile sidebarOpen flag so a power user's collapsed
+  // preference survives reloads.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(readSidebarCollapsed);
   const [detailMode, setDetailMode] = useState<DetailMode>(readDetailMode);
   const [topView, setTopView] = useState<TopView>(readTopView);
   const [theme, setTheme] = useState<ThemeMode>(readTheme);
 
   useEffect(() => { writeSidebarMode(sidebarMode); }, [sidebarMode]);
+  useEffect(() => { writeSidebarCollapsed(sidebarCollapsed); }, [sidebarCollapsed]);
   useEffect(() => { writeDetailMode(detailMode); }, [detailMode]);
   useEffect(() => { writeTopView(topView); }, [topView]);
   useEffect(() => { writeTheme(theme); applyTheme(theme); }, [theme]);
+
+  // (TODO 8.40) Ctrl+B / Cmd+B sidebar toggle (VS Code convention).
+  // Skip the binding when the focus is on a text-entry surface so we
+  // don't hijack typing. The handler also no-ops in mobile widths —
+  // hamburger flow already covers that path.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'b') return;
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (
+          tag === 'INPUT' ||
+          tag === 'TEXTAREA' ||
+          target.isContentEditable
+        ) return;
+      }
+      e.preventDefault();
+      const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+      if (isDesktop) {
+        setSidebarCollapsed((v) => !v);
+      } else {
+        setSidebarOpen((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Track OS theme changes when user picked 'system'.
   useEffect(() => {
@@ -65,6 +102,7 @@ export default function App() {
     if (typeof window === 'undefined') return;
     const onStorage = () => {
       setSidebarMode(readSidebarMode());
+      setSidebarCollapsed(readSidebarCollapsed());
       setDetailMode(readDetailMode());
       setTopView(readTopView());
       setTheme(readTheme());
@@ -154,6 +192,7 @@ export default function App() {
             onReset={() => {
               setTheme(DEFAULT_THEME);
               setSidebarMode(DEFAULT_SIDEBAR_MODE);
+              setSidebarCollapsed(DEFAULT_SIDEBAR_COLLAPSED);
               setDetailMode(DEFAULT_DETAIL_MODE);
             }}
           />
@@ -166,6 +205,8 @@ export default function App() {
             onModeChange={setSidebarMode}
             selectedWorker={selectedWorker}
             onSelect={handleSelect}
+            collapsed={sidebarCollapsed}
+            onToggleCollapsed={() => setSidebarCollapsed((v) => !v)}
           />
           <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-3 md:p-6">
             {selectedWorker ? (

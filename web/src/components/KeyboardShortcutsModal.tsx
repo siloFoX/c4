@@ -25,6 +25,10 @@ export const SHORTCUT_ROWS: Row[] = [
   { keys: 'Enter', descriptionKey: 'shortcuts.sendChat' },
   { keys: 'Shift+Enter', descriptionKey: 'shortcuts.newLine' },
   { keys: 'T', descriptionKey: 'shortcuts.toggleTour' },
+  // (TODO 8.40) Sidebar collapse — VS Code convention, mirrors
+  // App.tsx's keydown handler. Both Ctrl and Cmd trigger; we list
+  // Ctrl+B since the rest of the table uses Ctrl naming.
+  { keys: 'Ctrl+B', descriptionKey: 'shortcuts.toggleSidebar' },
 ];
 
 // 8.33: ? key cheat sheet. Rendered as an overlay modal so the user can
