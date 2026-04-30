@@ -11,6 +11,7 @@ function execSyncSafe(cmd, opts = {}) {
 }
 const ScreenBuffer = require('./screen-buffer');
 const Scribe = require('./scribe');
+const failurePatterns = require('./failure-patterns');
 const { ScopeGuard, resolveScope } = require('./scope-guard');
 const StateMachine = require('./state-machine');
 const AdaptivePolling = require('./adaptive-polling');
@@ -4656,6 +4657,28 @@ class PtyManager extends EventEmitter {
     };
   }
 
+  // Run failure-pattern detection on the worker's recent error history +
+  // latest snapshot screen text. Returns { id, label, hint, sample, count }
+  // when a curated pattern matches, else null. Memoized per-worker against
+  // (errCount, snapIdx) so list() polling doesn't re-scan the same data.
+  _computeFailureHint(worker) {
+    const errCount = (worker._errorHistory || []).length;
+    const snapIdx = (worker.snapshots || []).length;
+    const memo = worker._failureHintMemo;
+    if (memo && memo.errCount === errCount && memo.snapIdx === snapIdx) return memo.value;
+    let recentText = null;
+    if (Array.isArray(worker.snapshots) && worker.snapshots.length) {
+      const latest = worker.snapshots[worker.snapshots.length - 1];
+      if (latest && typeof latest.screen === 'string') recentText = latest.screen;
+    }
+    const hint = failurePatterns.findHint(worker._errorHistory || [], recentText);
+    const value = hint
+      ? { id: hint.id, label: hint.label, hint: hint.hint, sample: hint.sample || null, count: hint.count || 1 }
+      : null;
+    worker._failureHintMemo = { errCount, snapIdx, value };
+    return value;
+  }
+
   list() {
     const result = [];
     for (const [name, w] of this.workers) {
@@ -4703,7 +4726,9 @@ class PtyManager extends EventEmitter {
                 : [],
               defaultTemplate: w._pinnedMemory.defaultTemplate || null,
             }
-          : { userRules: [], defaultTemplate: null }
+          : { userRules: [], defaultTemplate: null },
+        // Failure-pattern hint surface (failure-patterns module).
+        failureHint: this._computeFailureHint(w),
       });
     }
     // Include queued tasks (2.8)
