@@ -798,11 +798,11 @@ class PtyManager extends EventEmitter {
     try {
       content = fs.readFileSync(filePath, 'utf8');
     } catch {
-      return { input: 0, output: 0 };
+      return { input: 0, output: 0, sessionId: null };
     }
 
     const lines = content.split('\n');
-    if (offset >= lines.length) return { input: 0, output: 0 };
+    if (offset >= lines.length) return { input: 0, output: 0, sessionId: null };
 
     let inputTokens = 0;
     let outputTokens = 0;
@@ -827,7 +827,13 @@ class PtyManager extends EventEmitter {
     }
 
     this._tokenUsage.offsets[filePath] = lines.length;
-    return { input: inputTokens, output: outputTokens };
+    // (TODO #117) Session attribution. Claude Code stores one JSONL per
+    // session at ~/.claude/projects/<projectId>/<sessionId>.jsonl, so the
+    // basename without the .jsonl suffix is the session ID. Workers carry
+    // _sessionId after spawn, which lets us roll usage back to a worker /
+    // department instead of just a global daily total.
+    const sessionId = path.basename(filePath, '.jsonl');
+    return { input: inputTokens, output: outputTokens, sessionId };
   }
 
   _getLastActivity(w) {
@@ -857,7 +863,10 @@ class PtyManager extends EventEmitter {
 
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     if (!this._tokenUsage.daily[today]) {
-      this._tokenUsage.daily[today] = { input: 0, output: 0 };
+      this._tokenUsage.daily[today] = { input: 0, output: 0, bySession: {} };
+    } else if (!this._tokenUsage.daily[today].bySession) {
+      // Backfill the field for state files written by pre-#117 daemons.
+      this._tokenUsage.daily[today].bySession = {};
     }
 
     let newInput = 0;
@@ -867,6 +876,14 @@ class PtyManager extends EventEmitter {
       const tokens = this._parseTokensFromJsonl(filePath);
       newInput += tokens.input;
       newOutput += tokens.output;
+      // (TODO #117) Per-session attribution. listDepartments() and per-
+      // worker rollups read this map.
+      if (tokens.sessionId && (tokens.input || tokens.output)) {
+        const slot = this._tokenUsage.daily[today].bySession[tokens.sessionId]
+          || (this._tokenUsage.daily[today].bySession[tokens.sessionId] = { input: 0, output: 0 });
+        slot.input += tokens.input;
+        slot.output += tokens.output;
+      }
     }
 
     this._tokenUsage.daily[today].input += newInput;
@@ -4582,12 +4599,64 @@ class PtyManager extends EventEmitter {
     } catch {
       // cost report failure shouldn't break dept listing
     }
+    // (TODO #117) Real attribution path. When _tokenUsage.daily has
+    // per-session breakdown, we map each live worker's _sessionId to its
+    // department (via project lookup) and roll the actual cost back to
+    // that dept. Falls back to share-based heuristic when sessions can't
+    // be resolved (e.g., tokens accrued before #117 landed).
+    const pricing = (this.config.tokenMonitor && this.config.tokenMonitor.pricing) || {};
+    const useModel = (this.config.tokenMonitor && this.config.tokenMonitor.defaultModel) || Object.keys(pricing)[0] || null;
+    const rate = (useModel && pricing[useModel]) || null;
+    const tokensToUSD = (input, output) => {
+      if (!rate) return 0;
+      return (input / 1e6) * (rate.inputPer1M || 0) + (output / 1e6) * (rate.outputPer1M || 0);
+    };
+
+    // Build sessionId → dept map by walking workers and resolving their
+    // worktree → project → containing dept.
+    const sessionDept = {};
+    const projectDept = {};
+    for (const [dName, dCfg] of Object.entries(depts)) {
+      for (const p of (dCfg.projects || [])) projectDept[p] = dName;
+    }
+    for (const [, w] of (this.workers || new Map())) {
+      if (!w._sessionId) continue;
+      const proj = this._resolveWorkerProject(w);
+      if (proj && projectDept[proj]) sessionDept[w._sessionId] = projectDept[proj];
+    }
+
+    // Sum per-dept actual cost from monthly bySession data, falling back
+    // to share split for sessions we can't attribute.
+    const monthBySession = this._monthlyBySession();
+    const attributedByDept = {};
+    let unattributedCostUSD = 0;
+    let bySessionCostTotal = 0;
+    for (const [sid, usage] of Object.entries(monthBySession)) {
+      const cost = tokensToUSD(usage.input, usage.output);
+      bySessionCostTotal += cost;
+      if (sessionDept[sid]) {
+        attributedByDept[sessionDept[sid]] = (attributedByDept[sessionDept[sid]] || 0) + cost;
+      } else {
+        unattributedCostUSD += cost;
+      }
+    }
+    // Reconcile with the cost report monthly total — when bySession data
+    // doesn't yet cover the full month (e.g., legacy state, or sessions
+    // tracked outside .claude/projects), the difference still needs to be
+    // distributed via share heuristic so totals add up to the bill.
+    const reportRemainder = Math.max(0, monthlyCostUSD - bySessionCostTotal);
+    unattributedCostUSD += reportRemainder;
+
     const out = [];
     for (const [name, cfg] of Object.entries(depts)) {
       const dProjects = (cfg.projects || []).map((pn) => projectByName[pn]).filter(Boolean);
       const activeWorkers = dProjects.reduce((sum, p) => sum + (p.workers || []).length, 0);
       const share = totalActive > 0 ? activeWorkers / totalActive : 0;
-      const attributedCostUSD = +(monthlyCostUSD * share).toFixed(2);
+      // Prefer real attribution; sprinkle the unattributable remainder
+      // proportionally so monthlyCost still adds up.
+      const realCost = attributedByDept[name] || 0;
+      const fallback = unattributedCostUSD * share;
+      const attributedCostUSD = +(realCost + fallback).toFixed(2);
       const monthlyBudgetUSD = cfg.monthlyBudgetUSD || 0;
       const overBudget = monthlyBudgetUSD > 0 && attributedCostUSD >= monthlyBudgetUSD;
       out.push({
@@ -4603,11 +4672,30 @@ class PtyManager extends EventEmitter {
         overQuota: cfg.workerQuota ? activeWorkers >= cfg.workerQuota : false,
         monthlyBudgetUSD,
         attributedCostUSD,
+        attributedSource: realCost > 0 ? (fallback > 0 ? 'mixed' : 'session') : 'share',
         budgetRemainingUSD: monthlyBudgetUSD > 0 ? +(Math.max(0, monthlyBudgetUSD - attributedCostUSD)).toFixed(2) : null,
         overBudget,
       });
     }
     return { departments: out };
+  }
+
+  // (TODO #117) Aggregate the current month's per-session token totals
+  // across days. Returns { sessionId: { input, output } }.
+  _monthlyBySession() {
+    const now = new Date();
+    const month = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+    const acc = {};
+    for (const [day, v] of Object.entries(this._tokenUsage?.daily || {})) {
+      if (!day.startsWith(month)) continue;
+      const bs = v.bySession || {};
+      for (const [sid, usage] of Object.entries(bs)) {
+        const slot = acc[sid] || (acc[sid] = { input: 0, output: 0 });
+        slot.input += usage.input || 0;
+        slot.output += usage.output || 0;
+      }
+    }
+    return acc;
   }
 
   resolveUserDepartment(username) {

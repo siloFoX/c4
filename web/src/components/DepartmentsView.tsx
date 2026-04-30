@@ -18,6 +18,7 @@ interface Dept {
   overQuota: boolean;
   monthlyBudgetUSD?: number;
   attributedCostUSD?: number;
+  attributedSource?: 'session' | 'mixed' | 'share';
   budgetRemainingUSD?: number | null;
   overBudget?: boolean;
 }
@@ -134,6 +135,20 @@ function DeptCard({ dept }: { dept: Dept }) {
             <span>${cost.toFixed(2)} / ${budget.toFixed(2)}</span>
             <span>{dept.budgetRemainingUSD != null ? `$${dept.budgetRemainingUSD.toFixed(2)} left` : '—'}</span>
           </div>
+          {dept.attributedSource && (
+            <div
+              className="mt-0.5 text-right text-[10px] text-muted/70"
+              title={
+                dept.attributedSource === 'session'
+                  ? 'Cost attributed via worker session IDs (real)'
+                  : dept.attributedSource === 'mixed'
+                    ? 'Some workers attributed via session, rest via active-worker share'
+                    : 'No session data — cost split by active-worker share'
+              }
+            >
+              src: {dept.attributedSource}
+            </div>
+          )}
         </div>
       )}
 

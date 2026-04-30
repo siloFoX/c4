@@ -5,8 +5,9 @@
 Phase 12 release — wraps up the 1.6.16 cumulative work into a tagged
 version so the SDK / plugin / docs publish with a clean number.
 
-### Phase 15 follow-ups (workflow 병렬)
+### Phase 15 follow-ups (workflow 병렬 / 토큰 attribution)
 - **Workflow 병렬 step 실행** (TODO #116) — 기존 ready batch가 for-loop으로 직렬 실행되던 것을 `Promise.all` 기반으로 변경. 독립적 step 3개가 직렬 시 90ms+, 병렬 시 30ms 수준으로 단축. `workflow.maxConcurrency` 옵션으로 동시 실행 폭 제한 가능 (1은 sequential debugging, 기본은 Infinity = "DAG가 허용하는 만큼 다 같이"). step retry/on_failure 로직을 `runStep` 함수로 추출해 readability 개선. 기존 dependsOn 그래프는 그대로 보존 — peer step만 병렬, 후행 step은 dependency 완료 대기. 신규 테스트 3개 (peakInflight 추적, maxConcurrency=1, mixed dependsOn).
+- **토큰 actor attribution** (TODO #117) — `_tokenUsage.daily[*].bySession`에 sessionId별 input/output 토큰 누적. JSONL 파일명(=sessionId)과 worker._sessionId를 매칭해서 실제 사용량을 부서별로 attribution. `listDepartments()`가 이전의 휴리스틱 share 분배 → 실제 session 기반 attribution + 미식별 토큰만 share로 분배하는 hybrid로 전환. `attributedSource` 필드(`session`/`mixed`/`share`)로 출처 명시. cost report monthly total과 reconcile 보장 (legacy state, .claude/projects 외 세션도 합계 누락 안 됨). DepartmentsView에 attribution source 라벨 + tooltip 추가. 신규 테스트 2개 (departments).
 
 ### Phase 14 follow-ups (config validation / openapi summaries)
 - **Config validator** (TODO #113) — `src/config-validate.js`: 검증 카테고리 errors / warnings / info. daemon.port 범위, auth.enabled+secret 부재, departments[].projects가 projects에 없는 이름 참조, workerQuota/monthlyBudgetUSD 음수/비숫자, workspaces 경로 존재, nl.llm.enabled+API key 부재, pm.todoSync+todoFile 부재, audit.maxSizeBytes 타입, maxWorkers 음수 등 12개 케이스. CLI `c4 config validate [path]`로 호출, errors > 0 이면 exit 1. 신규 테스트 12개.
