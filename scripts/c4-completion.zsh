@@ -50,6 +50,10 @@ _c4() {
     'transfer:Inter-peer file transfer'
     'backup:Snapshot persistent state'
     'restore:Restore from backup'
+    'metrics:Daemon + per-worker CPU/RSS table'
+    'workspaces:List configured multi-repo workspaces'
+    'doctor:Aggregated health + sanity checks'
+    'events:Tail the daemon SSE event stream'
   )
 
   if (( CURRENT == 2 )); then

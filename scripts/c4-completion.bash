@@ -13,7 +13,8 @@ _c4_complete() {
     plan plan-read approve dispatch fleet rollback suspend resume restart cancel \
     batch-action batch cleanup auto resume session-id morning watch \
     audit projects departments cost nl workflow schedules schedule board transfer \
-    backup restore"
+    backup restore \
+    metrics workspaces doctor events"
 
   if [[ ${COMP_CWORD} -eq 1 ]]; then
     COMPREPLY=( $(compgen -W "${commands}" -- "${cur}") )
