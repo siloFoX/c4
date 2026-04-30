@@ -10,7 +10,8 @@
     "start": "node src/daemon.js",
     "daemon": "node src/daemon.js",
     "build:web": "npm --prefix web install && npm --prefix web run build",
-    "test": "node tests/run-all.js"
+    "test": "node tests/run-all.js",
+    "prepublishOnly": "npm run build:web && node tests/run-all.js"
   },
   "keywords": [
     "claude",
@@ -54,8 +55,12 @@
   ],
   "files": [
     "src/",
+    "web/dist/",
     "config.json",
+    "config.example.json",
     "README.md",
+    "README.ko.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "dependencies": {
