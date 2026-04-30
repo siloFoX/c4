@@ -131,9 +131,12 @@ describe('hook debugging logs', () => {
     expect(ptySrc).toContain('[C4] hookEvent:');
   });
 
-  test('_appendEventLog() logs file path on write', () => {
+  test('_appendEventLog() exists with debug-gated error log', () => {
     const ptySrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'pty-manager.js'), 'utf8');
-    expect(ptySrc).toContain('[C4] _appendEventLog:');
+    // Function is defined, error path keys off config.debug.hookEventLog so
+    // it doesn't spam stderr on every PreToolUse / PostToolUse.
+    expect(ptySrc).toContain('_appendEventLog(workerName');
+    expect(ptySrc).toContain("config.debug && this.config.debug.hookEventLog");
     expect(ptySrc).toContain('[C4] _appendEventLog error:');
   });
 });

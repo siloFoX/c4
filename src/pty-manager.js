@@ -578,11 +578,14 @@ class PtyManager extends EventEmitter {
         fs.mkdirSync(dir, { recursive: true });
       }
       const logFile = path.join(dir, `events-${workerName}.jsonl`);
-      console.error(`[C4] _appendEventLog: ${logFile} tool=${hookEntry.tool_name || ''}`);
       const line = JSON.stringify(hookEntry) + '\n';
       fs.appendFileSync(logFile, line, 'utf8');
     } catch (err) {
-      console.error(`[C4] _appendEventLog error: ${err.message}`);
+      // Silent — hook event log is best-effort. Surface only when explicit
+      // debug is on so we don't spam stderr on every PreToolUse / PostToolUse.
+      if (this.config.debug && this.config.debug.hookEventLog) {
+        console.error(`[C4] _appendEventLog error: ${err.message}`);
+      }
     }
   }
 
