@@ -195,4 +195,111 @@ describe('SessionsView surfaces role + two-step detach', () => {
     assert.match(src, /onClick=\{\(\) => setShowDetachConfirm\(\(v\) => !v\)\}/);
     assert.match(src, /aria-expanded=\{showDetachConfirm\}/);
   });
+
+  // (review fix 2026-05-01) The Detach button declared aria-expanded
+  // but didn't have an aria-controls reference, so the
+  // expand/collapse relationship had no target for screen readers.
+  // The fix adds a stable id on the confirmation strip and points
+  // aria-controls at it (only when expanded — collapsed state drops
+  // aria-controls so it never references a non-existent element).
+  it('Detach trigger references the confirmation strip via aria-controls', () => {
+    assert.match(src, /const detachConfirmId = `detach-confirm-\$\{session\.name\}`/);
+    assert.match(src, /id=\{detachConfirmId\}/);
+    assert.match(src, /aria-controls=\{showDetachConfirm \? detachConfirmId : undefined\}/);
+  });
+});
+
+// (review fix 2026-05-01) Behavioural tests for attachedRoleStyle
+// — pure, six-branch switch. Lock the role -> token-class mapping
+// so a future palette refactor can't silently demote `manager` to
+// muted styling.
+describe('attachedRoleStyle (badge palette)', () => {
+  function attachedRoleStyle(role) {
+    switch (role) {
+      case 'manager':
+        return 'border-primary/30 bg-primary/10 text-primary';
+      case 'planner':
+      case 'executor':
+      case 'reviewer':
+        return 'border-secondary-foreground/20 bg-secondary text-secondary-foreground';
+      case 'worker':
+        return 'border-border bg-muted/60 text-foreground';
+      default:
+        return 'border-border bg-muted text-muted-foreground';
+    }
+  }
+
+  it('manager -> primary tokens', () => {
+    assert.match(attachedRoleStyle('manager'), /text-primary/);
+  });
+  it('planner / executor / reviewer share the secondary palette', () => {
+    const planner = attachedRoleStyle('planner');
+    assert.match(planner, /text-secondary-foreground/);
+    assert.strictEqual(attachedRoleStyle('executor'), planner);
+    assert.strictEqual(attachedRoleStyle('reviewer'), planner);
+  });
+  it('worker -> muted/60 (sits between secondary and generic)', () => {
+    assert.match(attachedRoleStyle('worker'), /bg-muted\/60 text-foreground/);
+  });
+  it('generic / undefined / unknown -> neutral muted', () => {
+    const expected = 'border-border bg-muted text-muted-foreground';
+    assert.strictEqual(attachedRoleStyle('generic'), expected);
+    assert.strictEqual(attachedRoleStyle(undefined), expected);
+    assert.strictEqual(attachedRoleStyle('admin'), expected);
+  });
+
+  it('source mirrors the shim', () => {
+    const src = readText(SESSIONS_VIEW);
+    assert.match(src, /case 'manager':\s*\n\s*return 'border-primary\/30 bg-primary\/10 text-primary'/);
+    assert.match(src, /case 'planner':\s*\n\s*case 'executor':\s*\n\s*case 'reviewer':/);
+    assert.match(src, /case 'worker':\s*\n\s*return 'border-border bg-muted\/60 text-foreground'/);
+  });
+});
+
+// (review fix 2026-05-01) AttachStore.add() must preserve an
+// explicit non-generic role rather than re-sniffing. Confirms the
+// `role === 'generic'` guard is the right shape — operators that
+// override role manually (CLI flag, future API) should win.
+describe('AttachStore.add preserves explicit non-generic role', () => {
+  it("manual role='reviewer' wins over JSONL prelude that says 'manager'", () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'c4-attach-explicit-'));
+    const storePath = path.join(tmpDir, 'attached.json');
+    // JSONL says manager but caller pins reviewer.
+    const jsonl = makeTempJsonl(JSON.stringify({
+      content: '[Role: Manager] orchestrate.',
+    }) + '\n');
+
+    const store = new AttachStore({ storePath });
+    const created = store.add({
+      name: 'manual-pin',
+      jsonlPath: jsonl,
+      sessionId: 'pin1',
+      projectPath: null,
+      createdAt: new Date().toISOString(),
+      lastOffset: 0,
+      role: 'reviewer',
+    });
+    assert.strictEqual(created.role, 'reviewer');
+  });
+
+  it('invalid roles get coerced to generic and re-sniffed', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'c4-attach-invalid-'));
+    const storePath = path.join(tmpDir, 'attached.json');
+    const jsonl = makeTempJsonl(JSON.stringify({
+      content: '[Role: Planner] design.',
+    }) + '\n');
+
+    const store = new AttachStore({ storePath });
+    const created = store.add({
+      name: 'invalid-role',
+      jsonlPath: jsonl,
+      sessionId: 'inv1',
+      projectPath: null,
+      createdAt: new Date().toISOString(),
+      lastOffset: 0,
+      role: 'admin', // not in ROLE_VALUES
+    });
+    // 'admin' rejected -> 'generic' default -> re-sniff -> 'planner'.
+    assert.strictEqual(created.role, 'planner');
+  });
 });

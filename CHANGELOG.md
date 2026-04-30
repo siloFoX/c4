@@ -3,6 +3,46 @@
 ## [Unreleased]
 
 ### Added
+- **(8.38) Attach role detection + two-step detach confirmation.**
+  Two halves of TODO 8.38: role-aware attach so manager / worker /
+  planner / executor / reviewer / generic transcripts can be told
+  apart, and a two-step detach with explicit "your terminal
+  session keeps running" copy. The Detach surface itself was
+  shipped in 8.31 — what was missing was the role signal and the
+  confirmation strip. New `detectAgentRole(jsonlPath)` in
+  `src/session-attach.js` walks the first 64 KiB of the JSONL for
+  `[Role: Manager]` / `[역할: Manager]` / Auto-spawn signals plus
+  planner / executor / reviewer prefixes; falls back to a path
+  heuristic (`c4-mgr-*` / `auto-mgr-*` → manager,
+  `c4-worktree-*` → worker, otherwise generic). Returns
+  `'generic'` rather than throwing on missing files so attach is
+  never blocked by a bad transcript header. `AttachStore.add()`
+  sniffs the role at attach-time when `role === 'generic'` (so an
+  explicit caller-supplied role wins); `_load()` heals legacy
+  records that landed before role detection existed and persists
+  the upgrade back to disk. New `ROLE_VALUES` enum export so
+  `normalizeRecord` coerces invalid roles to `'generic'` rather
+  than letting arbitrary strings through. `web/src/components/
+  SessionsView.tsx` declares an `AttachedRole` union, threads the
+  optional `role` field through `AttachedSession`, and renders a
+  role badge above each attached row's actions —
+  `attachedRoleStyle(role)` maps manager → primary, planner /
+  executor / reviewer → secondary, worker → muted/60, generic →
+  muted; unknown roles never accidentally promote to admin styling.
+  Detach is two-step: first click expands an inline destructive
+  strip with the keeps-running copy + Cancel / Detach session;
+  `aria-expanded` on the trigger reflects strip state. **Review
+  fixes (2026-05-01)**: (a) the trigger declared `aria-expanded`
+  but no `aria-controls`, leaving the expand relationship without
+  a target — added a stable `detach-confirm-${session.name}` id
+  on the strip and pointed `aria-controls` at it (only when
+  expanded so it never references a missing element). (b) New
+  behavioural test for `attachedRoleStyle` (six-branch palette
+  switch). (c) New behavioural test for `AttachStore.add`
+  preserving explicit non-generic roles vs re-sniffing only
+  generic / invalid ones. Tests:
+  `tests/attach-detach-symmetry.test.js` — 26 assertions across 5
+  suites. Patch note: `docs/patches/8.38-attach-detach-symmetry.md`.
 - **(8.46) Per-worker pinned memory.** `c4 new` now accepts `--pin-memory
   <file>` (read client-side, repeatable), `--pin-rules "<text>"`
   (repeatable), and `--pin-role <manager|worker|attached>` so operators can
