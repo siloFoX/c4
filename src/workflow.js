@@ -53,7 +53,7 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 
-const NODE_TYPES = Object.freeze(['task', 'condition', 'parallel', 'wait', 'audit', 'end']);
+const NODE_TYPES = Object.freeze(['task', 'condition', 'parallel', 'wait', 'audit', 'notify', 'end']);
 const RUN_STATUS = Object.freeze({
   RUNNING: 'running',
   COMPLETED: 'completed',
@@ -570,6 +570,10 @@ class WorkflowExecutor {
     // tamper-evident hash chain. When omitted those nodes are no-ops
     // (return { skipped: true }) instead of failing the run.
     this.auditLogger = (opts && opts.auditLogger) || null;
+    // Optional Notifications surface so 'notify' nodes can pushAll()
+    // a Slack / email line. Same skip-rather-than-fail semantics as
+    // auditLogger when omitted.
+    this.notifications = (opts && opts.notifications) || null;
   }
 
   async executeWorkflow(workflowId, inputs, context) {
@@ -722,6 +726,40 @@ class WorkflowExecutor {
         return { recorded: true, hash: recorded.hash, eventType };
       } catch (e) {
         return { recorded: false, error: e && e.message ? e.message : String(e) };
+      }
+    }
+    if (node.type === 'notify') {
+      // Pushes a Slack / email line via the injected Notifications
+      // instance. Config:
+      //   { message: '...' }              // literal text
+      //   { template: 'Run ${runId} done — prev=${prev}' }  // simple
+      //                                                       interpolation
+      //   { prefix: '[WORKFLOW]' }        // optional severity prefix so
+      //                                    the Block Kit formatter colors it
+      // The previous node's output is exposed as ${prev} (JSON.stringify)
+      // and the runId as ${runId} for downstream context.
+      if (!this.notifications || typeof this.notifications.pushAll !== 'function') {
+        return { skipped: true, reason: 'no notifications configured' };
+      }
+      const cfg = node.config || {};
+      let body = '';
+      if (typeof cfg.message === 'string' && cfg.message.length > 0) {
+        body = cfg.message;
+      } else if (typeof cfg.template === 'string' && cfg.template.length > 0) {
+        body = cfg.template
+          .replace(/\$\{runId\}/g, String(runId))
+          .replace(/\$\{nodeId\}/g, String(node.id))
+          .replace(/\$\{prev\}/g, prev === undefined ? '' : JSON.stringify(prev));
+      } else {
+        return { skipped: true, reason: 'config.message or config.template required' };
+      }
+      const prefix = typeof cfg.prefix === 'string' && cfg.prefix.length > 0
+        ? `${cfg.prefix} ` : '';
+      try {
+        this.notifications.pushAll(prefix + body);
+        return { sent: true, length: (prefix + body).length };
+      } catch (e) {
+        return { sent: false, error: e && e.message ? e.message : String(e) };
       }
     }
     if (node.type === 'end') {
