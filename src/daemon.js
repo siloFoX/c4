@@ -154,6 +154,59 @@ function renderDashboard(listData) {
     + '</body></html>';
 }
 
+// (1.6.16) Static serving for the React SPA bundle in web/dist. Returns
+// true if the response was handled. Maps:
+//   GET /                 → web/dist/index.html
+//   GET /assets/foo.css   → web/dist/assets/foo.css
+//   GET /favicon.ico      → web/dist/favicon.ico
+//   GET /<anything-else>  → web/dist/index.html (SPA fallback) — only when
+//                           the bundle directory exists; otherwise false so
+//                           the caller emits a JSON 404.
+const path = require('path');
+const fsStatic = require('fs');
+const STATIC_ROOT = path.resolve(__dirname, '..', 'web', 'dist');
+const STATIC_MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.css':  'text/css; charset=utf-8',
+  '.js':   'application/javascript; charset=utf-8',
+  '.mjs':  'application/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg':  'image/svg+xml',
+  '.png':  'image/png',
+  '.jpg':  'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.ico':  'image/x-icon',
+  '.map':  'application/json; charset=utf-8',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+};
+
+function _serveStatic(route, res) {
+  if (!fsStatic.existsSync(STATIC_ROOT)) return false;
+  // Path traversal hardening: resolve and ensure inside STATIC_ROOT.
+  let rel = decodeURIComponent(route);
+  if (rel === '/' || rel === '') rel = '/index.html';
+  const target = path.resolve(STATIC_ROOT, '.' + rel);
+  if (!target.startsWith(STATIC_ROOT)) return false;
+  let filePath = target;
+  if (!fsStatic.existsSync(filePath) || fsStatic.statSync(filePath).isDirectory()) {
+    // SPA fallback — non-asset routes hit index.html so React Router can pick up.
+    if (rel.startsWith('/api/') || rel.startsWith('/assets/')) return false;
+    filePath = path.join(STATIC_ROOT, 'index.html');
+    if (!fsStatic.existsSync(filePath)) return false;
+  }
+  const ext = path.extname(filePath).toLowerCase();
+  const mime = STATIC_MIME[ext] || 'application/octet-stream';
+  res.setHeader('Content-Type', mime);
+  // Long cache for /assets/* (vite content-hashes filenames). Short cache
+  // for index.html so deploys are immediate.
+  res.setHeader('Cache-Control',
+    rel.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache');
+  res.writeHead(200);
+  res.end(fsStatic.readFileSync(filePath));
+  return true;
+}
+
 async function handleRequest(req, res) {
   res.setHeader('Content-Type', 'application/json');
 
@@ -708,6 +761,11 @@ async function handleRequest(req, res) {
       const html = renderDashboard(listData);
       res.writeHead(200);
       res.end(html);
+      return;
+
+    } else if (req.method === 'GET' && _serveStatic(route, res)) {
+      // Daemon-served SPA from web/dist (1.6.16). Falls through to 404
+      // when the bundle isn't built yet — explicit hint included.
       return;
 
     } else {

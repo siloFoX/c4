@@ -31,6 +31,9 @@
 - **9.4 MCP 프로토콜 최신화** — protocolVersion 협상(`2025-03-26` ↔ `2024-11-05`), `ping` 응답, `notifications/initialized` 외 `initialized` 별칭, `capabilities.tools.listChanged=true` + `capabilities.logging`.
 - **9.6 Fleet write-through** — `/fleet/create` `/fleet/task` `/fleet/close` `/fleet/send`. SDK `fleetCreate`/`fleetTask`/`fleetClose`/`fleetSend`/`fleetKey`. 4개 단위 테스트 추가 (총 7개).
 
+### 1.6.16 누적 (9차 — Daemon static serving)
+- **Daemon static serving** (TODO #94) — `c4 daemon start`만으로 Web UI(`web/dist`)가 같이 서빙된다. `_serveStatic(route, res)` 헬퍼가 `index.html`/asset/SPA fallback을 처리하고, `/assets/*`는 `Cache-Control: public, max-age=31536000, immutable`로, 그 외 HTML은 `no-cache`로 보낸다. `/api/*`나 누락된 `/assets/*`는 `false`를 반환해 daemon이 JSON 404로 떨어지게 했다. STATIC_ROOT(`web/dist`)가 없으면 helper가 즉시 `false`를 반환해 `vite preview` 환경과 충돌하지 않는다. Path traversal 하드닝(`path.resolve` + `startsWith(STATIC_ROOT)`)도 포함. `tests/static-serving.test.js` 8개 케이스 추가 (총 80 passed).
+
 ### 1.6.16 누적 (8차 — Computer Use 단위 테스트 / TODO 정리 / audit export / pool 가시성 / project RBAC / Slack Block Kit)
 - **Computer Use runner 단위 테스트** — `tests/computer-use-runner.test.js`. Module._load 후킹으로 `@anthropic-ai/sdk` 모킹 후 `_buildAnthropicRunner`의 액션 매핑 검증 (left_click → click, type → type, key → key, scroll → scroll, wait → wait*1000, no tool_use → done). SDK 미설치 케이스도 helpful 에러 검증. 8개 케이스.
 - **TODO.md 정리** — Phase 8.1을 done(완료)으로, 8.2/8.3/8.4를 todo(deferred)로 명시 + 보류 사유 기록.

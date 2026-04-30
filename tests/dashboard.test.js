@@ -44,8 +44,10 @@ const fs = require('fs');
 const path = require('path');
 const daemonSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'daemon.js'), 'utf8');
 
-// Extract escapeHtml and renderDashboard functions
-const fnMatch = daemonSrc.match(/(function escapeHtml[\s\S]*?)(?=async function handleRequest)/);
+// Extract escapeHtml and renderDashboard functions. Stop at the next
+// non-render top-level declaration so we don't pick up later helpers that
+// reference `require`/etc., which `new Function` evaluation can't resolve.
+const fnMatch = daemonSrc.match(/(function escapeHtml[\s\S]*?\n\}\n)\s*\n(?:\/\/|const path)/);
 const fnCode = fnMatch[1];
 const mod = {};
 const fn = new Function('module', 'exports', fnCode + '\nmodule.exports = { escapeHtml, renderDashboard };');
