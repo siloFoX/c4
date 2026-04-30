@@ -353,3 +353,76 @@ Git Bash (MSYS2) 호환 설정.
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `disablePathConversion` | boolean | `true` | `MSYS_NO_PATHCONV=1` 자동 설정 |
+
+## workspaces (1.6.17 / TODO #98)
+
+멀티 레포 워크스페이스. name → 절대 경로 매핑. `c4 task --workspace <name>`이 매핑된 경로를 projectRoot로 사용.
+
+```jsonc
+{
+  "workspaces": {
+    "arps":     "/home/shinc/arps",
+    "datalake": "/home/shinc/arps-datalake"
+  }
+}
+```
+
+조회: `c4 workspaces` 또는 `GET /workspaces` → `[{ name, path, exists, isGitRepo }]`.
+
+## audit (1.6.17 / TODO #107)
+
+감사 로그 회전 / 보존 정책.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `enabled` | boolean | `true` | `false`면 audit() 호출이 no-op |
+| `maxSizeBytes` | number | `0` (회전 비활성) | 초과 시 `audit-<isoTs>.jsonl`로 rename + fresh 파일 시작 |
+| `keep` | number | `0` | retain할 회전 파일 개수 (mtime 기준 newest-first, 그 외 삭제) |
+
+회전 시 `audit_rotate` SSE 이벤트가 발행됨.
+
+`getAudit()`은 `includeRotated:true` (기본값)일 때 회전 파일도 newest-first로 스캔하여 `since` 컷오프까지 읽음.
+
+## departments — monthlyBudgetUSD / tier (1.6.17 / TODO #100)
+
+`config.departments[name]`에 다음 필드 추가:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `monthlyBudgetUSD` | number | `0` (무제한) | 부서 월 예산. `quotaCheck()`이 attributedCostUSD ≥ 한도면 거부 |
+| `tier` | string | `null` | `tier-a`/`tier-b`/`tier-c` 등 metadata. DepartmentsView 카드에 뱃지로 표시 |
+
+비용 attribution은 활성 워커 share 비례 — 토큰 모니터에 actor 태깅이 추가되기 전까지 휴리스틱.
+
+## nl.llm (1.6.17 / TODO #104)
+
+자연어 인터페이스 LLM 폴백 (정규식 매칭 실패 시).
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `enabled` | boolean | `false` | true일 때만 fallback 활성 |
+| `model` | string | `claude-sonnet-4-6` | Anthropic 모델 ID |
+| `apiKey` | string | (env) | API 키. `ANTHROPIC_API_KEY` env로 대체 가능 |
+| `systemPrompt` | string | (built-in) | 커스텀 system prompt |
+
+`@anthropic-ai/sdk`가 미설치면 fallback이 graceful skip.
+
+## pm (1.6.17 / TODO #103)
+
+PM kanban 보드 ↔ TODO.md 양방향 sync.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `todoSync` | boolean | `false` | 카드 이동 시 todoFile의 status 셀 자동 업데이트 |
+| `todoFile` | string | `null` | TODO.md 절대 경로 |
+
+매핑: `done`→done, `in_progress`/`review`→partial, `backlog`→todo. 카드 제목에 `[<id>]` prefix가 있어야 매칭.
+
+## debug (1.6.17 / 노이즈 게이팅)
+
+steady-state 로그를 silent하게. 디버깅 시에만 활성화.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `hookEvents` | boolean | `false` | true면 `[DAEMON] /hook-event received:` + `[C4] hookEvent:` 로그 활성화 |
+| `hookEventLog` | boolean | `false` | true면 `_appendEventLog` 실패 시 stderr로 출력 |
