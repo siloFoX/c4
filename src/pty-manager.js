@@ -4890,29 +4890,61 @@ class PtyManager extends EventEmitter {
     return { contentType: 'application/json', body: JSON.stringify(records, null, 2) };
   }
 
-  getAudit({ since, until, action, worker, actor, limit = 200 } = {}) {
-    const file = path.join(this.logsDir, 'audit.jsonl');
-    if (!fs.existsSync(file)) return { records: [] };
+  // (TODO 10.2 / #107 follow-up) Read audit records, walking rotated
+  // files (`audit-*.jsonl`) when the live file alone can't satisfy the
+  // requested `since` window. Files are scanned newest-first; we stop
+  // as soon as the limit is reached or all records older than `since`.
+  getAudit({ since, until, action, worker, actor, limit = 200, includeRotated = true } = {}) {
+    const live = path.join(this.logsDir, 'audit.jsonl');
+    if (!fs.existsSync(this.logsDir)) return { records: [] };
     const sinceTs = since ? Date.parse(since) : null;
     const untilTs = until ? Date.parse(until) : null;
     const out = [];
-    try {
-      const text = fs.readFileSync(file, 'utf8');
-      const lines = text.split('\n');
-      for (let i = lines.length - 1; i >= 0 && out.length < limit; i--) {
-        const line = lines[i];
-        if (!line) continue;
-        let rec;
-        try { rec = JSON.parse(line); } catch { continue; }
-        if (action && rec.action !== action) continue;
-        if (worker && rec.worker !== worker) continue;
-        if (actor && rec.actor !== actor) continue;
-        if (sinceTs && Date.parse(rec.ts) < sinceTs) continue;
-        if (untilTs && Date.parse(rec.ts) > untilTs) continue;
-        out.push(rec);
+    const matchOne = (rec) => {
+      if (action && rec.action !== action) return false;
+      if (worker && rec.worker !== worker) return false;
+      if (actor && rec.actor !== actor) return false;
+      if (sinceTs && Date.parse(rec.ts) < sinceTs) return false;
+      if (untilTs && Date.parse(rec.ts) > untilTs) return false;
+      return true;
+    };
+    const scanFile = (file) => {
+      let stoppedEarly = false;
+      try {
+        const text = fs.readFileSync(file, 'utf8');
+        const lines = text.split('\n');
+        for (let i = lines.length - 1; i >= 0 && out.length < limit; i--) {
+          const line = lines[i];
+          if (!line) continue;
+          let rec;
+          try { rec = JSON.parse(line); } catch { continue; }
+          // If sinceTs is set and we hit a record older than it,
+          // every earlier line in this file is also out of range.
+          if (sinceTs && Date.parse(rec.ts) < sinceTs) { stoppedEarly = true; break; }
+          if (matchOne(rec)) out.push(rec);
+        }
+      } catch (e) {
+        out._readError = e.message;
       }
-    } catch (e) {
-      return { error: e.message, records: [] };
+      return stoppedEarly;
+    };
+    if (fs.existsSync(live)) scanFile(live);
+    if (includeRotated && out.length < limit) {
+      let rotated;
+      try {
+        rotated = fs.readdirSync(this.logsDir)
+          .filter((n) => /^audit-.*\.jsonl$/.test(n))
+          .map((n) => ({ name: n, full: path.join(this.logsDir, n), mtime: fs.statSync(path.join(this.logsDir, n)).mtimeMs }))
+          .sort((a, b) => b.mtime - a.mtime);
+      } catch { rotated = []; }
+      for (const r of rotated) {
+        if (out.length >= limit) break;
+        const stoppedEarly = scanFile(r.full);
+        if (stoppedEarly) break; // we walked past `since` — older files only have older records
+      }
+    }
+    if (out._readError) {
+      return { error: out._readError, records: out.filter(Boolean) };
     }
     return { records: out };
   }

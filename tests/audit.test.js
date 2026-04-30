@@ -161,6 +161,24 @@ describe('audit log (10.2)', () => {
     assert.ok(rotated.length <= 2, `expected ≤2 rotated, got ${rotated.length}`);
   });
 
+  it('getAudit walks rotated files to fulfill the limit', () => {
+    const mgr = makeManager({ audit: { maxSizeBytes: 300 } });
+    // Force a rotation by writing past 300 bytes, then write more.
+    for (let i = 0; i < 6; i++) {
+      mgr.audit({ actor: `user-${i}`, action: '/x', error: 'pad'.repeat(15) });
+    }
+    // At this point at least one rotation has happened. Confirm rotated file exists.
+    const dir = fs.readdirSync(tmpDir);
+    const rotated = dir.filter((n) => /^audit-.*\.jsonl$/.test(n));
+    assert.ok(rotated.length >= 1, 'rotation occurred');
+    // Get a wide query — should pull from both live + rotated.
+    const r = mgr.getAudit({ limit: 100 });
+    assert.ok(r.records.length >= 6, `expected at least 6 records, got ${r.records.length}`);
+    // includeRotated:false should only return live file records.
+    const r2 = mgr.getAudit({ limit: 100, includeRotated: false });
+    assert.ok(r2.records.length < r.records.length, 'rotated records excluded');
+  });
+
   it('does not rotate when audit.maxSizeBytes is 0 / unset', () => {
     const mgr = makeManager(); // no audit config
     for (let i = 0; i < 10; i++) {
