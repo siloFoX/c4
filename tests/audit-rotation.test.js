@@ -79,4 +79,56 @@ describe('AuditLogger rotation', () => {
     const rotated = dir.filter((n) => /^audit-.*\.jsonl$/.test(n));
     assert.ok(rotated.length <= 2, `expected ≤2 rotated, got ${rotated.length}`);
   });
+
+  // (review fix 2026-05-01) The original verify() walked only
+  // audit.jsonl, so post-rotation a fresh AuditLogger instance
+  // would always report `valid: false` at index 0 (the live
+  // file's first event was hashed against the rotated file's
+  // last hash, which verify started reconstructing from `null`).
+  // The comment above maxSizeBytes promised
+  // `verify(includeRotated:true)` walks the entire history —
+  // the option now actually exists.
+  it('verify({includeRotated:true}) walks rotated + live as one chain', () => {
+    const a = new AuditLogger({ logPath, maxSizeBytes: 200 });
+    for (let i = 0; i < 8; i++) {
+      a.record('task.sent', { i, pad: 'p'.repeat(60) });
+    }
+    // A fresh AuditLogger (post-rotation, no in-memory chain)
+    // pointed at the same logPath.
+    const verifier = new AuditLogger({ logPath });
+    const baseline = verifier.verify();
+    // Without includeRotated, the live-file-only walk should fail
+    // at the first event because its prev_hash was computed
+    // against the rotated predecessor's last hash.
+    assert.strictEqual(baseline.valid, false, 'live-only walk must surface the rotation gap');
+    assert.strictEqual(baseline.rotatedTotal, 0);
+
+    // With includeRotated, the full chain reconstructs cleanly.
+    const full = verifier.verify({ includeRotated: true });
+    assert.strictEqual(full.valid, true, 'merged walk must validate');
+    assert.ok(full.rotatedTotal > 0, 'rotatedTotal counts pre-live events');
+    assert.ok(full.total >= 8, `${full.total} events`);
+  });
+
+  it('verify({includeRotated:true}) detects mid-history corruption', () => {
+    const a = new AuditLogger({ logPath, maxSizeBytes: 200 });
+    for (let i = 0; i < 8; i++) {
+      a.record('task.sent', { i, pad: 'p'.repeat(60) });
+    }
+    // Corrupt one of the rotated files.
+    const dir = fs.readdirSync(tmpDir);
+    const rotated = dir.filter((n) => /^audit-.*\.jsonl$/.test(n)).map((n) => path.join(tmpDir, n));
+    assert.ok(rotated.length >= 1);
+    const target = rotated[0];
+    const lines = fs.readFileSync(target, 'utf8').split('\n');
+    if (lines[0]) {
+      const ev = JSON.parse(lines[0]);
+      ev.actor = 'TAMPERED'; // hash no longer matches
+      lines[0] = JSON.stringify(ev);
+      fs.writeFileSync(target, lines.join('\n'));
+    }
+    const r = new AuditLogger({ logPath }).verify({ includeRotated: true });
+    assert.strictEqual(r.valid, false);
+    assert.ok(typeof r.corruptedAt === 'number' && r.corruptedAt >= 0);
+  });
 });

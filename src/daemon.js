@@ -1259,11 +1259,19 @@ async function handleRequest(req, res) {
       // (10.2) Hash chain integrity check. Returns valid=false +
       // corruptedAt=<line index> when the log has been tampered with or
       // truncated in the middle.
+      // Pass `?includeRotated=1` to walk the rotated audit-*.jsonl
+      // siblings as well — without it the live file alone reports
+      // valid:false at index 0 after a rotation has happened (the
+      // live file's first event chains back to a hash that lives in
+      // the rotated predecessor).
       const gate = requireRole(authCheck, rbac.ACTIONS.AUDIT_READ);
       if (denyOr(res, gate)) return;
       try {
-        result = audit.verify();
+        const includeRotated = url.searchParams.get('includeRotated') === '1'
+          || url.searchParams.get('includeRotated') === 'true';
+        result = audit.verify({ includeRotated });
         result.path = audit.logPath;
+        result.includeRotated = includeRotated;
       } catch (e) {
         result = { error: e.message };
       }
