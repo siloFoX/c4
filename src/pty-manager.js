@@ -4731,7 +4731,13 @@ class PtyManager extends EventEmitter {
   // (TODO /audit/export) Stream audit records as CSV or JSONL for
   // compliance / external archival. CSV header is fixed so spreadsheets
   // pick up columns. Filters mirror getAudit().
-  exportAudit({ since, until, action, worker, actor, format = 'json' } = {}) {
+  //
+  // (TODO #97) CSV defaults to Excel-friendly: UTF-8 BOM + CRLF line endings
+  // so Korean / multi-byte content renders correctly when opened in Excel,
+  // LibreOffice, and Google Sheets without the user having to pick a
+  // codec. Pass `bom:false` / `lineEnd:'\n'` to opt out for shell pipelines
+  // that don't tolerate the BOM (awk/sort/csvkit on the first line).
+  exportAudit({ since, until, action, worker, actor, format = 'json', bom = true, lineEnd } = {}) {
     const result = this.getAudit({ since, until, action, worker, actor, limit: 100000 });
     const records = result.records || [];
     if (format === 'jsonl') {
@@ -4742,13 +4748,18 @@ class PtyManager extends EventEmitter {
       const esc = (v) => {
         if (v == null) return '';
         const s = typeof v === 'string' ? v : JSON.stringify(v);
-        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
       };
+      const eol = lineEnd || '\r\n';
       const rows = [cols.join(',')];
       for (const r of records) {
         rows.push(cols.map((c) => esc(c === 'bodyKeys' ? (r.bodyKeys || []).join('|') : r[c])).join(','));
       }
-      return { contentType: 'text/csv', body: rows.join('\n') + '\n' };
+      const prefix = bom ? '﻿' : '';
+      return {
+        contentType: 'text/csv; charset=utf-8',
+        body: prefix + rows.join(eol) + eol,
+      };
     }
     return { contentType: 'application/json', body: JSON.stringify(records, null, 2) };
   }

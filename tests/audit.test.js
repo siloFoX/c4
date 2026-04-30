@@ -106,10 +106,35 @@ describe('audit log (10.2)', () => {
     const mgr = makeManager();
     mgr.audit({ actor: 'alice', action: '/create', worker: 'w1' });
     const out = mgr.exportAudit({ format: 'csv' });
-    assert.strictEqual(out.contentType, 'text/csv');
-    const lines = out.body.trim().split('\n');
+    assert.strictEqual(out.contentType, 'text/csv; charset=utf-8');
+    // (TODO #97) BOM-prefixed + CRLF for Excel compatibility.
+    assert.strictEqual(out.body.charCodeAt(0), 0xFEFF, 'starts with UTF-8 BOM');
+    const trimmed = out.body.slice(1).trimEnd();
+    const lines = trimmed.split('\r\n');
     assert.strictEqual(lines[0], 'ts,actor,action,worker,ok,error,bodyKeys');
     assert.match(lines[1], /alice,\/create,w1/);
+  });
+
+  it('exportAudit csv supports bom:false / lineEnd:LF for shell pipelines', () => {
+    const mgr = makeManager();
+    mgr.audit({ actor: 'alice', action: '/create', worker: 'w1' });
+    const out = mgr.exportAudit({ format: 'csv', bom: false, lineEnd: '\n' });
+    assert.notStrictEqual(out.body.charCodeAt(0), 0xFEFF, 'BOM omitted');
+    assert.ok(!out.body.includes('\r\n'), 'no CRLF');
+    const lines = out.body.trim().split('\n');
+    assert.strictEqual(lines[0], 'ts,actor,action,worker,ok,error,bodyKeys');
+  });
+
+  it('exportAudit csv encodes Korean text correctly with UTF-8 BOM', () => {
+    const mgr = makeManager();
+    mgr.audit({ actor: '관리자', action: '/create', worker: '워커-1', error: '오류 메시지' });
+    const out = mgr.exportAudit({ format: 'csv' });
+    // Body without BOM still contains the Korean text byte-for-byte.
+    assert.ok(out.body.includes('관리자'));
+    assert.ok(out.body.includes('워커-1'));
+    assert.ok(out.body.includes('오류 메시지'));
+    // The BOM is the first character; downstream Excel decodes UTF-8.
+    assert.strictEqual(out.body.charCodeAt(0), 0xFEFF);
   });
 
   it('exportAudit jsonl emits one record per line', () => {
@@ -128,7 +153,8 @@ describe('audit log (10.2)', () => {
     mgr.audit({ actor: 'alice', action: '/create', worker: 'w1' });
     mgr.audit({ actor: 'bob',   action: '/task',   worker: 'w2' });
     const out = mgr.exportAudit({ format: 'csv', actor: 'alice' });
-    const rows = out.body.trim().split('\n').slice(1);
+    // Strip BOM, split on CRLF.
+    const rows = out.body.slice(1).trimEnd().split('\r\n').slice(1);
     assert.strictEqual(rows.length, 1);
     assert.match(rows[0], /alice,\/create/);
   });
