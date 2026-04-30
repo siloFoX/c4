@@ -3,6 +3,36 @@
 ## [Unreleased]
 
 ### Added
+- **(11.5) Risk classifier (Shadow Execution building block).** New
+  `src/risk-classifier.js` — pure synchronous module, zero runtime
+  dependencies. `classifyCommand(cmd)` returns `{ level: 'low' |
+  'medium' | 'high' | 'critical', reasons: [{code, label, snippet}],
+  suggestedAction: 'allow' | 'review' | 'deny', decoded }`. 28
+  patterns across 3 tiers — critical (rm-rf-root, fork-bomb, mkfs,
+  dd-block-device, curl-pipe-shell, eval-base64, etc.), high
+  (rm-rf-dir incl. absolute paths like `/etc` and env-var dirs like
+  `$TMPDIR`, chmod -R 777, kill-all, find-delete, git-force-push,
+  system-files, ssh-known-hosts, docker-privileged,
+  reboot-shutdown), medium (sudo, git-push, npm-publish,
+  --no-verify, curl-script, apt-install, cron-edit). Obfuscation
+  defeat: `echo "<b64>" | base64 -d` inline decode, `$()` /
+  backtick command-substitution unwrap, alphabetic quoted segment
+  splitting (`r"m"` → `rm`, `p"k"i"l"l` → `pkill`) without mangling
+  normal quoted args. Both `rm-rf-root` and `rm-rf-tilde` accept
+  long-flag forms (`rm --recursive --force ~`). The flag-block
+  uses `\s+` (not `\s*`) to block backtracking exploits like
+  `rm -rfffffff` from false-positiving as high. Exports
+  `PATTERN_CATALOG` (codes unique across tiers) and
+  `ACTION_BY_LEVEL` (`{critical: 'deny', high: 'review', medium:
+  'review', low: 'allow'}`). Tests: `tests/risk-classifier.test.js`
+  — 57 assertions across 10 suites covering tier coverage with
+  variants, obfuscation defeat, multi-segment chain collapse in a
+  single pass, return shape contract, PATTERN_CATALOG uniqueness,
+  ACTION_BY_LEVEL mapping, _denoise idempotency. No daemon /
+  web-side wiring yet — sandbox dispatcher, PreToolUse hook
+  integration, per-machine rule overrides, and audit-log
+  integration ship in follow-up patches. Patch note:
+  `docs/patches/11.5-risk-classifier.md`.
 - **(8.46) Per-worker pinned memory.** `c4 new` now accepts `--pin-memory
   <file>` (read client-side, repeatable), `--pin-rules "<text>"`
   (repeatable), and `--pin-role <manager|worker|attached>` so operators can

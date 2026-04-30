@@ -62,6 +62,18 @@ describe('classifyCommand — critical tier', () => {
     assert.strictEqual(levelOf('rm -rf "$HOME"'), 'critical');
   });
 
+  // (review fix) Long-flag forms — operators that paste from
+  // documentation often write `rm --recursive --force ~`.
+  it('flags rm --recursive --force ~ (long flag form)', () => {
+    assert.strictEqual(levelOf('rm --recursive --force ~'), 'critical');
+    assert.strictEqual(levelOf('rm --recursive ~'), 'critical');
+    assert.strictEqual(levelOf('rm --force --recursive $HOME'), 'critical');
+  });
+
+  it('flags rm --recursive --force / (long flag at root)', () => {
+    assert.strictEqual(levelOf('rm --recursive --force /'), 'critical');
+  });
+
   it('flags fork bombs', () => {
     assert.strictEqual(levelOf(':(){ :|:& };:'), 'critical');
     assert.strictEqual(levelOf(': ( ) { : | : & } ; :'), 'critical');
@@ -96,6 +108,32 @@ describe('classifyCommand — high tier', () => {
     assert.strictEqual(r.level, 'high');
     assert.strictEqual(r.suggestedAction, 'review');
     assert.ok(r.reasons.some((x) => x.code === 'rm-rf-dir'));
+  });
+
+  // (review fix) rm -rf with an absolute path that isn't bare `/` must
+  // still escalate. Previously the lookahead's `\b` after the slash
+  // matched `/foo`, blocking the rm-rf-dir pattern entirely.
+  it('flags rm -rf with absolute paths (not just bare /)', () => {
+    assert.strictEqual(levelOf('rm -rf /foo'), 'high');
+    assert.strictEqual(levelOf('rm -rf /etc'), 'high');
+    assert.strictEqual(levelOf('rm -rf /var/lib/cache'), 'high');
+    assert.strictEqual(levelOf('rm -rf "/srv/data"'), 'high');
+  });
+
+  it('flags rm -rf $TMPDIR / arbitrary env-var dirs', () => {
+    assert.strictEqual(levelOf('rm -rf $TMPDIR'), 'high');
+    assert.strictEqual(levelOf('rm -rf "$BUILD_DIR"'), 'high');
+  });
+
+  // (review fix) Backtracking exploit: \s* on the short flag block
+  // let the engine split `-rfffff` into `-r` (flag) + `fffff` (fake
+  // target), so `rm -rfffffff` (a typo) used to false-positive as
+  // high. Pin the no-target / typo cases so the \s+ tightening
+  // doesn't regress.
+  it('does not match rm -rf with no target (typo / incomplete)', () => {
+    assert.strictEqual(levelOf('rm -rf'), 'low');
+    assert.strictEqual(levelOf('rm -rfffffff'), 'low');
+    assert.strictEqual(levelOf('rm -rf '), 'low');
   });
 
   it('flags chmod -R 777', () => {
@@ -240,6 +278,16 @@ describe('classifyCommand — obfuscation defeat', () => {
     // r"m" -> rm, su"do" -> sudo
     assert.strictEqual(levelOf('r"m" -rf /'), 'critical');
     assert.strictEqual(levelOf('su"do" apt update'), 'medium');
+  });
+
+  // (review fix) Lock in the multi-segment chain behaviour the
+  // _denoiseCommand comment claims. p"k"i"l"l must collapse fully
+  // in the single global pass — if the regex engine ever changes
+  // and leaves leftover quotes, this test catches it before the
+  // pkill pattern silently misses.
+  it('collapses multi-segment quoted chains in one pass', () => {
+    assert.strictEqual(_denoiseCommand('p"k"i"l"l -9 node'), 'pkill -9 node');
+    assert.strictEqual(_denoiseCommand("p'k'i'l'l -9 node"), 'pkill -9 node');
   });
 });
 

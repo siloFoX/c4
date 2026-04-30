@@ -51,13 +51,21 @@ const CRITICAL_PATTERNS = [
     code: 'rm-rf-root',
     label: 'rm -rf at filesystem root',
     // Matches `rm -rf /`, `rm -rf --no-preserve-root /`, `rm -rf '/'`,
-    // and `rm -rf $HOME` (env-var pointing at /).
-    re: /\brm\s+(?:-[rRf]+\s*|--recursive\s+|--force\s+|--no-preserve-root\s+)+(?:["']?\/+["']?(?:\s|$|;|&|\|))/,
+    // and `rm -rf $HOME` (env-var pointing at /). Each flag form
+    // requires trailing whitespace so the regex can't backtrack into
+    // partial flag consumption (e.g. `rm -rfffff` would otherwise
+    // match by splitting `-rfffff` into `-r` + a fake "directory").
+    re: /\brm\s+(?:-[rRf]+\s+|--recursive\s+|--force\s+|--no-preserve-root\s+)+(?:["']?\/+["']?(?:\s|$|;|&|\|))/,
   },
   {
     code: 'rm-rf-tilde',
     label: 'rm -rf $HOME',
-    re: /\brm\s+(?:-[rRf]+\s+)+(?:~|\$HOME|"\$HOME"|'\$HOME')(?:\s|$|;|&|\|)/,
+    // Accept both short (-rf) and long (--recursive / --force) flag
+    // forms — operators paste from docs and the long form is common
+    // in scripts ("rm --recursive --force ~"). Trailing \s+ on every
+    // flag alt blocks the same backtracking abuse documented on
+    // rm-rf-root above.
+    re: /\brm\s+(?:-[rRf]+\s+|--recursive\s+|--force\s+|--no-preserve-root\s+)+(?:~|\$HOME|"\$HOME"|'\$HOME')(?:\s|$|;|&|\|)/,
   },
   {
     code: 'fork-bomb',
@@ -101,9 +109,14 @@ const HIGH_PATTERNS = [
   {
     code: 'rm-rf-dir',
     label: 'rm -rf <directory>',
-    // rm -rf foo/, rm -rf $TMPDIR, but NOT already matched by the
-    // critical /-or-$HOME variants above.
-    re: /\brm\s+(?:-[rRf]+\s+)+(?!["']?\/+["']?\b)(?!~|\$HOME)(?:\S+)/,
+    // rm -rf foo/, rm -rf /etc, rm -rf $TMPDIR — but skip the cases
+    // already covered by the critical /-or-$HOME variants. The
+    // lookahead must mirror the critical pattern's terminator class
+    // (whitespace / EOL / ;&|) rather than `\b`, otherwise `\b` fires
+    // between `/` and any subsequent letter ("/foo") and silently
+    // suppresses the match for every absolute path. Same applies to
+    // the tilde / $HOME case.
+    re: /\brm\s+(?:-[rRf]+\s+|--recursive\s+|--force\s+|--no-preserve-root\s+)+(?!["']?\/+["']?(?:\s|$|;|&|\|))(?!(?:~|\$HOME|"\$HOME"|'\$HOME')(?:\s|$|;|&|\|))(?:\S+)/,
   },
   {
     code: 'chmod-recursive-777',
@@ -243,12 +256,11 @@ function _denoiseCommand(cmd) {
   // alphabetic quoted segments only when they're adjacent to another
   // letter (so r"m" -> rm, su"do" -> sudo, c"url" -> curl) without
   // mangling normal quoted arguments like `git commit -m "fix bug"`.
-  // We run several passes so multi-piece obfuscation collapses fully:
-  //   p"k"ill -> pk + ill = pkill
-  out = out.replace(/(?<=[A-Za-z])"([A-Za-z]+)"|"([A-Za-z]+)"(?=[A-Za-z])/g, (_m, a, b) => a || b);
-  out = out.replace(/(?<=[A-Za-z])'([A-Za-z]+)'|'([A-Za-z]+)'(?=[A-Za-z])/g, (_m, a, b) => a || b);
-  // Second pass for chains like p"k"i"l"l where the first pass leaves
-  // `pki"l"l` (the middle quote loses its left alphabetic context).
+  // The /g flag scans the input once; consecutive segments such as
+  // p"k"i"l"l collapse fully because each match advances past its
+  // trailing quote, leaving the next letter as the lookbehind for
+  // the following match. A locked-in test in the obfuscation suite
+  // pins this behaviour.
   out = out.replace(/(?<=[A-Za-z])"([A-Za-z]+)"|"([A-Za-z]+)"(?=[A-Za-z])/g, (_m, a, b) => a || b);
   out = out.replace(/(?<=[A-Za-z])'([A-Za-z]+)'|'([A-Za-z]+)'(?=[A-Za-z])/g, (_m, a, b) => a || b);
 
