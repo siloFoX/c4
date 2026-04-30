@@ -315,6 +315,161 @@ function AttachModal({
   );
 }
 
+// (TODO 8.39) New Chat modal — claude.ai-style "start a new conversation"
+// flow. Pick a model (Opus / Sonnet / Haiku / default), an agent
+// (generic for now; manager / custom roles land in a follow-up), and
+// an initial prompt. Submitting spawns a worker via POST /api/task with
+// auto-name so the daemon picks a worker name from the prompt — the
+// resulting JSONL will then show up in the existing Sessions list and
+// the worker is ready to receive follow-up turns through the regular
+// chat surface.
+const MODEL_CHOICES: Array<{ value: string; label: string; hint: string }> = [
+  { value: 'default',          label: 'Default',           hint: 'Use config.workerDefaults.model' },
+  { value: 'claude-opus-4-7',  label: 'Opus 4.7 (1M)',     hint: 'Best for hard tasks; slower & expensive' },
+  { value: 'claude-sonnet-4-6', label: 'Sonnet 4.6',        hint: 'Balanced; default for most work' },
+  { value: 'claude-haiku-4-5', label: 'Haiku 4.5',         hint: 'Fast & cheap; small / scripted tasks' },
+];
+// Mirrors the builtin templates in src/pty-manager.js _getBuiltinTemplates().
+// 'profile' and 'template' are aliased on the /api/task path so passing
+// profile: 'planner' applies the planner template (model + prompt prefix).
+// Manager-style auto orchestration goes through POST /api/auto in a
+// follow-up — for now the modal stays focused on plain chat spawns.
+const AGENT_CHOICES: Array<{ value: string; label: string; hint: string }> = [
+  { value: 'generic',  label: 'Generic',  hint: 'Plain Claude Code session — no template applied' },
+  { value: 'planner',  label: 'Planner',  hint: 'Design/plan focus — Opus, drafts plan.md' },
+  { value: 'executor', label: 'Executor', hint: 'Implementation focus — Sonnet, writes code' },
+  { value: 'reviewer', label: 'Reviewer', hint: 'Review-only — Haiku, leaves comments' },
+];
+
+interface NewChatModalProps {
+  open: boolean;
+  busy: boolean;
+  error: string | null;
+  onClose: () => void;
+  onSubmit: (req: { prompt: string; model: string; agent: string }) => void;
+}
+
+function NewChatModal({ open, busy, error, onClose, onSubmit }: NewChatModalProps) {
+  const [prompt, setPrompt] = useState('');
+  const [model, setModel] = useState('default');
+  const [agent, setAgent] = useState('generic');
+
+  // Reset on open so a previous typed-but-cancelled prompt doesn't
+  // bleed into the next session.
+  useEffect(() => {
+    if (open) {
+      setPrompt('');
+      setModel('default');
+      setAgent('generic');
+    }
+  }, [open]);
+
+  if (!open) return null;
+  const trimmed = prompt.trim();
+  const canSubmit = !busy && trimmed.length > 0;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="new-chat-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <Card
+        className="w-full max-w-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <CardHeader className="flex flex-row items-center justify-between gap-2 p-4">
+          <CardTitle id="new-chat-title" className="flex items-center gap-2 text-base">
+            <Plus aria-hidden="true" className="h-4 w-4" />
+            New Chat
+          </CardTitle>
+          <Button size="sm" variant="ghost" onClick={onClose} disabled={busy} aria-label="Close">
+            <X className="h-4 w-4" />
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-3 p-4 pt-0">
+          {error ? (
+            <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="new-chat-prompt">
+              Initial prompt
+            </label>
+            <textarea
+              id="new-chat-prompt"
+              className="min-h-[120px] w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="What should this session work on?"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              disabled={busy}
+              autoFocus
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="space-y-1">
+              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="new-chat-model">
+                Model
+              </label>
+              <select
+                id="new-chat-model"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                disabled={busy}
+              >
+                {MODEL_CHOICES.map((m) => (
+                  <option key={m.value} value={m.value} title={m.hint}>{m.label}</option>
+                ))}
+              </select>
+              <p className="text-[11px] text-muted-foreground">
+                {MODEL_CHOICES.find((m) => m.value === model)?.hint}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="new-chat-agent">
+                Agent
+              </label>
+              <select
+                id="new-chat-agent"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                value={agent}
+                onChange={(e) => setAgent(e.target.value)}
+                disabled={busy}
+              >
+                {AGENT_CHOICES.map((a) => (
+                  <option key={a.value} value={a.value} title={a.hint}>{a.label}</option>
+                ))}
+              </select>
+              <p className="text-[11px] text-muted-foreground">
+                {AGENT_CHOICES.find((a) => a.value === agent)?.hint}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button size="sm" variant="outline" onClick={onClose} disabled={busy}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => onSubmit({ prompt: trimmed, model, agent })}
+              disabled={!canSubmit}
+            >
+              {busy ? 'Starting...' : 'Start chat'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 interface EmptyAttachBannerProps {
   onAttachClick: () => void;
 }
@@ -544,6 +699,11 @@ export default function SessionsView() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalBusy, setModalBusy] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
+  // (TODO 8.39) New Chat modal state — separate from Attach so the
+  // two flows don't fight each other when both are wired.
+  const [newChatOpen, setNewChatOpen] = useState(false);
+  const [newChatBusy, setNewChatBusy] = useState(false);
+  const [newChatError, setNewChatError] = useState<string | null>(null);
   const [showTour, setShowTour] = useState(false);
   const tourChecked = useRef(false);
 
@@ -653,6 +813,48 @@ export default function SessionsView() {
     [refreshAttached],
   );
 
+  // (TODO 8.39) New Chat — POST /api/task with no name. The daemon
+  // auto-generates a worker name from the prompt's first words, spawns
+  // a worker (default command 'claude'), and queues the task. The
+  // worker's JSONL session takes a moment to appear in /api/sessions
+  // (Claude Code writes it on first response), so we refresh after a
+  // short delay and rely on the user re-pulling if needed.
+  const handleNewChatSubmit = useCallback(
+    async (req: { prompt: string; model: string; agent: string }) => {
+      setNewChatBusy(true);
+      setNewChatError(null);
+      const body: Record<string, unknown> = {
+        task: req.prompt,
+        autoMode: false,
+      };
+      if (req.model && req.model !== 'default') body.model = req.model;
+      // 'agent' currently maps to a profile name; 'generic' = no profile.
+      // Manager-style auto orchestration goes through POST /api/auto in a
+      // follow-up — for now the modal stays focused on plain chat spawns.
+      if (req.agent && req.agent !== 'generic') body.profile = req.agent;
+      try {
+        const resp = await apiPost<{ name?: string; error?: string }>(
+          '/api/task',
+          body,
+        );
+        if (resp && resp.error) {
+          setNewChatError(resp.error);
+          return;
+        }
+        setNewChatOpen(false);
+        // Refresh both lists; the new session JSONL may take a beat to
+        // appear, so a follow-up manual refresh is fine if it doesn't
+        // show up on the first poll.
+        await Promise.all([refreshSessions(), refreshAttached()]);
+      } catch (err) {
+        setNewChatError((err as Error).message || 'Failed to start new chat');
+      } finally {
+        setNewChatBusy(false);
+      }
+    },
+    [refreshSessions, refreshAttached],
+  );
+
   const handleDetach = useCallback(
     async (name: string) => {
       try {
@@ -700,6 +902,15 @@ export default function SessionsView() {
               {totalFiltered}/{data?.total ?? 0}
             </span>
             <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                onClick={() => {
+                  setNewChatError(null);
+                  setNewChatOpen(true);
+                }}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" aria-hidden /> New Chat
+              </Button>
               <Button
                 size="sm"
                 variant="outline"
@@ -931,6 +1142,14 @@ export default function SessionsView() {
         available={availableSessions}
         onClose={() => setModalOpen(false)}
         onSubmit={handleAttachSubmit}
+      />
+
+      <NewChatModal
+        open={newChatOpen}
+        busy={newChatBusy}
+        error={newChatError}
+        onClose={() => setNewChatOpen(false)}
+        onSubmit={handleNewChatSubmit}
       />
 
       {showTour ? <Tour onDismiss={dismissTour} /> : null}

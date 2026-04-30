@@ -1038,6 +1038,14 @@ async function handleRequest(req, res) {
         resolvedModel = tierQuota.selectModel(typeof task === 'string' ? task : '', taskTier);
       }
       result = manager.sendTask(name, task, { branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, budgetUsd, maxRetries });
+      // (TODO 8.39) When the caller omits `name` we let pty-manager
+      // generate one from the prompt's first words. The audit / Slack /
+      // history records below should reference *that* name, not the
+      // missing input — otherwise the operator sees `worker: undefined`
+      // for every Web UI New Chat spawn.
+      const resolvedName = (name && typeof name === 'string')
+        ? name
+        : (result && typeof result === 'object' && typeof result.name === 'string' ? result.name : '');
       if (result && !result.error) {
         if (typeof result === 'object') {
           result.tier = taskTier;
@@ -1046,23 +1054,23 @@ async function handleRequest(req, res) {
         // (9.12) plan-back-prop loop: remember which plan doc this task is
         // anchored to so `c4 plan-update` can locate it later.
         if (planDocPath && typeof planDocPath === 'string') {
-          const setRes = planner.setPlanDocPath(name, planDocPath);
+          const setRes = planner.setPlanDocPath(resolvedName, planDocPath);
           if (setRes && !setRes.error && typeof result === 'object') {
             result.plan_doc_path = planDocPath;
           }
         }
         _safeAudit('task.sent',
           { task: typeof task === 'string' ? task.slice(0, 500) : '', branch: branch || '', profile: profile || '', autoMode: Boolean(autoMode), tier: taskTier, model: resolvedModel || '' },
-          { target: name, actor: _auditActor(authCheck) });
+          { target: resolvedName, actor: _auditActor(authCheck) });
         safeEmit('task_start', {
-          worker: name,
+          worker: resolvedName,
           branch: branch || '',
           task: typeof task === 'string' ? task.split('\n')[0].slice(0, 120) : '',
           tier: taskTier,
           model: resolvedModel || '',
         });
         safeRecord('task_start', {
-          worker: name,
+          worker: resolvedName,
           payload: {
             branch: branch || '',
             task: typeof task === 'string' ? task.slice(0, 500) : '',
