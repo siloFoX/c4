@@ -71,6 +71,16 @@ class AuditLogger {
   constructor(opts = {}) {
     this.logPath = (opts && opts.logPath) || defaultLogPath();
     this.actor = (opts && opts.actor) || DEFAULT_ACTOR;
+    // Size-based rotation. When set, record() renames audit.jsonl to
+    // audit-<isoTs>.jsonl on the next append once the file exceeds
+    // maxSizeBytes, then starts a fresh file. The hash chain continues
+    // across rotation because _lastHash lives in memory — the new file's
+    // first line still references the rotated file's last hash, so
+    // verify(includeRotated:true) walks the entire history as one chain.
+    // keep limits how many rotated files are retained (mtime newest-first).
+    // Both defaults are 0 (rotation off) for backwards compatibility.
+    this.maxSizeBytes = (opts && Number.isFinite(opts.maxSizeBytes)) ? Math.max(0, opts.maxSizeBytes) : 0;
+    this.keep = (opts && Number.isFinite(opts.keep)) ? Math.max(0, opts.keep) : 0;
     this._lastHash = null;
     this._initialized = false;
   }
@@ -123,12 +133,49 @@ class AuditLogger {
 
   record(type, details, overrides) {
     this._init();
+    this._maybeRotate();
     const event = this._buildEvent(type, details, overrides);
     const hash = hashEvent(this._lastHash, event);
     const fullEvent = Object.assign({}, event, { hash });
     fs.appendFileSync(this.logPath, JSON.stringify(fullEvent) + '\n');
     this._lastHash = hash;
     return fullEvent;
+  }
+
+  // Rotate audit.jsonl when it grows past maxSizeBytes. Renaming happens
+  // before the next append so the rotated file is never half-written.
+  // Hash chain continues across the rotation via _lastHash. Failure is
+  // swallowed — losing one rotation is preferable to losing audit events.
+  _maybeRotate() {
+    if (this.maxSizeBytes <= 0) return;
+    let size = 0;
+    try { size = fs.statSync(this.logPath).size; } catch { return; }
+    if (size < this.maxSizeBytes) return;
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const dir = path.dirname(this.logPath);
+    const base = path.basename(this.logPath, '.jsonl');
+    // ISOString resolution is ms; bursty rotations can collide on the
+    // same stamp. Append a numeric suffix until we find a free name so
+    // renameSync never silently replaces an existing rotated file.
+    let rotated = path.join(dir, `${base}-${stamp}.jsonl`);
+    let n = 0;
+    while (fs.existsSync(rotated)) {
+      n++;
+      rotated = path.join(dir, `${base}-${stamp}-${n}.jsonl`);
+    }
+    try { fs.renameSync(this.logPath, rotated); } catch { return; }
+    if (this.keep > 0) {
+      try {
+        const re = new RegExp('^' + base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-.*\\.jsonl$');
+        const olds = fs.readdirSync(dir)
+          .filter((n) => re.test(n))
+          .map((n) => ({ name: n, full: path.join(dir, n), mtime: fs.statSync(path.join(dir, n)).mtimeMs }))
+          .sort((a, b) => b.mtime - a.mtime);
+        for (const old of olds.slice(this.keep)) {
+          try { fs.unlinkSync(old.full); } catch { /* ignore */ }
+        }
+      } catch { /* ignore */ }
+    }
   }
 
   // Kept as an alias for call sites that used the previous async name.
