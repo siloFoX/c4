@@ -1074,6 +1074,51 @@ class PtyManager extends EventEmitter {
     return acc;
   }
 
+  // Roll the current month's per-session token totals into the byGroup
+  // shape OrgManager.computeUsage expects (group → {tokens, costUSD}).
+  // Each "group" here is a worker name, an attached user, or the project
+  // root, depending on which dimension OrgManager wants to attribute on.
+  // The org-mgmt module then matches its dept member / project /
+  // machine sets against these group names.
+  //
+  // Pricing comes from config.costs.models[<model>] (or 'default' bucket).
+  // When pricing is missing we still emit tokens so the byTokens cap
+  // works even before USD pricing is configured.
+  attributedCostsByGroup(opts = {}) {
+    const monthly = (typeof this.monthlyBySession === 'function') ? this.monthlyBySession() : {};
+    const pricing = (this.config && this.config.costs && this.config.costs.models) || {};
+    const rate = pricing[opts.model || 'default'] || pricing.default || null;
+    const cost = (input, output) => {
+      if (!rate) return 0;
+      // costs.models entries store $ per million tokens.
+      return (input / 1e6) * (rate.input || 0) + (output / 1e6) * (rate.output || 0);
+    };
+    // sessionId → workerName so we attribute on the worker dimension.
+    const sessionToWorker = {};
+    for (const [name, w] of (this.workers || new Map())) {
+      if (w && w._sessionId) sessionToWorker[w._sessionId] = name;
+    }
+    // worker → { tokens, costUSD }, plus an 'unattributed' bucket for
+    // sessions whose worker is no longer in the live map.
+    const groups = {};
+    for (const [sid, usage] of Object.entries(monthly)) {
+      const worker = sessionToWorker[sid] || null;
+      const groupKey = worker || 'unattributed';
+      const slot = groups[groupKey] || (groups[groupKey] = { tokens: 0, costUSD: 0 });
+      const tokens = (usage.input || 0) + (usage.output || 0);
+      slot.tokens += tokens;
+      slot.costUSD += cost(usage.input || 0, usage.output || 0);
+    }
+    // OrgManager.computeUsage wants an array of { name, tokens, costUSD }.
+    return {
+      byGroup: Object.entries(groups).map(([name, v]) => ({
+        name,
+        tokens: v.tokens,
+        costUSD: Math.round(v.costUSD * 10000) / 10000,
+      })),
+    };
+  }
+
   // Cost/retry guardrails (9.10): aggregate token counts per active worker's
   // JSONL session so operators can see which worker is burning through budget.
   // Returns an array of { name, sessionId, branch, task, input, output, total,
