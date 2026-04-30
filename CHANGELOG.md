@@ -3,6 +3,42 @@
 ## [Unreleased]
 
 ### Added
+- **(8.37) Header IA + Manager / Worker grouping.** Logo + wordmark
+  relocate from the Workers sidebar header into `AppHeader`'s left
+  slot (claude.ai / Linear / VS Code convention). The sidebar's
+  inline `<img src="/logo.svg" />` is gone; the section header now
+  just labels Workers. `Worker` type gains an optional
+  `tier?: 'manager' | 'worker' | string` so the Web UI can group
+  without a follow-up round-trip. `src/daemon.js` `/list` route
+  walks `manager.list().workers` and writes
+  `w.tier = tierWorkerMap.get(w.name) || 'worker'` onto every entry
+  before responding. `WorkerList.tsx` partitions workers into
+  Managers / Workers buckets with a `groupOf(w)` helper that
+  prefers `w.tier === 'manager'` and falls back to a
+  name-pattern heuristic (`c4-mgr-*`, `auto-mgr-*`, `*-mgr-*`,
+  case-insensitive) so pre-8.37 daemons keep working. Each bucket
+  renders a `GroupHeader` (chevron + Crown / Wrench lucide icon +
+  count badge + `aria-expanded` + `aria-controls`); per-group open
+  state persists via `c4.workerList.managers.open` /
+  `c4.workerList.workers.open` localStorage keys (`'1'` / `'0'`).
+  Empty buckets do not render their header so single-tier
+  environments stay tidy. Manager rows wear a left
+  `border-l-primary/40` accent so the role distinction stays
+  visible at a glance. **Review fixes (2026-05-01)**: (a) the
+  AppHeader logo paired `alt="C4"` with `aria-hidden="true"`, which
+  is internally inconsistent (aria-hidden hides the image,
+  rendering alt unreachable). Switched to `alt=""` + `aria-hidden`
+  so the visible "C4 Dashboard" wordmark is the single accessible
+  name; (b) the GroupHeader's `aria-controls={id}` referenced a
+  panel that was only rendered when the group was open, leaving a
+  dangling ARIA reference whenever a bucket was collapsed. The
+  panel now renders unconditionally and toggles via the native
+  `hidden` attribute so the reference always resolves. Tests:
+  `tests/header-ia.test.js` — 23 assertions across 7 suites
+  including a behavioural `groupOf` (tier-wins / heuristic-fallback
+  / case-insensitive / negative cases) and a11y regression guards
+  against the two review-fixed bugs. Patch note:
+  `docs/patches/8.37-header-ia.md`.
 - **(8.46) Per-worker pinned memory.** `c4 new` now accepts `--pin-memory
   <file>` (read client-side, repeatable), `--pin-rules "<text>"`
   (repeatable), and `--pin-role <manager|worker|attached>` so operators can

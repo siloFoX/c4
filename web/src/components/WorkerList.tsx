@@ -277,7 +277,11 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
       )}
 
       {/* (TODO 8.37) Managers group — only renders when there's at
-          least one manager to avoid a permanently empty section. */}
+          least one manager to avoid a permanently empty section.
+          (review fix 2026-05-01) The controlled `worker-group-*`
+          panel renders unconditionally with the native `hidden`
+          attribute toggling visibility, so the GroupHeader's
+          `aria-controls={id}` never points at a missing element. */}
       {managers.length > 0 && (
         <div className="space-y-1">
           <GroupHeader
@@ -288,17 +292,20 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
             icon="crown"
             accent="primary"
           />
-          {managersOpen && (
-            <div id="worker-group-managers" className="space-y-2">
-              {managers.map((w) => renderRow(w, 'primary'))}
-            </div>
-          )}
+          <div
+            id="worker-group-managers"
+            className="space-y-2"
+            hidden={!managersOpen}
+          >
+            {managers.map((w) => renderRow(w, 'primary'))}
+          </div>
         </div>
       )}
 
       {/* (TODO 8.37) Workers group — only renders when there's at
           least one worker. Always-visible header would be confusing
-          when there's a single bucket. */}
+          when there's a single bucket. Same `hidden`-attribute
+          ARIA fix as Managers group above. */}
       {regular.length > 0 && (
         <div className="space-y-1">
           <GroupHeader
@@ -309,11 +316,13 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
             icon="wrench"
             accent="muted"
           />
-          {workersOpen && (
-            <div id="worker-group-workers" className="space-y-2">
-              {regular.map((w) => renderRow(w, 'muted'))}
-            </div>
-          )}
+          <div
+            id="worker-group-workers"
+            className="space-y-2"
+            hidden={!workersOpen}
+          >
+            {regular.map((w) => renderRow(w, 'muted'))}
+          </div>
         </div>
       )}
     </div>
