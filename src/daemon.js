@@ -900,6 +900,10 @@ async function handleRequest(req, res) {
         version: manager._daemonVersion || null,
       };
 
+    } else if (req.method === 'GET' && route === '/metrics') {
+      // Per-worker + daemon CPU/RSS snapshot (worker-metrics module).
+      result = manager.metrics();
+
     } else if (req.method === 'POST' && route === '/create') {
       const { name, command, args, target, cwd, parent, tier, pinnedMemory, pinRole } = await parseBody(req);
       const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE,
