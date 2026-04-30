@@ -89,4 +89,24 @@ describe('config validate', () => {
     const r = validate({ maxWorkers: -1 });
     assert.ok(r.errors.find((e) => e.path === 'maxWorkers'));
   });
+
+  it('flags ssh target without host', () => {
+    const r = validate({ targets: { dgx: { type: 'ssh' } } });
+    assert.ok(r.errors.find((e) => e.path === 'targets.dgx.host'));
+  });
+
+  it('flags unknown target type', () => {
+    const r = validate({ targets: { x: { type: 'magic' } } });
+    assert.ok(r.errors.find((e) => e.path === 'targets.x.type'));
+  });
+
+  it('warns on fleet peer without host/url', () => {
+    const r = validate({ fleet: { peers: { dgx: { port: 3456 } } } });
+    assert.ok(r.warnings.find((w) => w.path === 'fleet.peers.dgx'));
+  });
+
+  it('flags fleet peer with bad port', () => {
+    const r = validate({ fleet: { peers: { dgx: { host: '1.2.3.4', port: 70000 } } } });
+    assert.ok(r.errors.find((e) => e.path === 'fleet.peers.dgx.port'));
+  });
 });

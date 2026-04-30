@@ -159,6 +159,39 @@ function validate(config = {}) {
     errors.push({ path: 'maxWorkers', message: 'must be a non-negative number' });
   }
 
+  // -- targets (custom remote/local target definitions)
+  for (const [name, t] of Object.entries(config.targets || {})) {
+    if (!t || typeof t !== 'object') {
+      errors.push({ path: `targets.${name}`, message: 'must be an object' });
+      continue;
+    }
+    if (t.type && !['local', 'ssh'].includes(t.type)) {
+      errors.push({ path: `targets.${name}.type`, message: `must be 'local' or 'ssh', got '${t.type}'` });
+    }
+    if (t.type === 'ssh') {
+      if (!t.host) {
+        errors.push({ path: `targets.${name}.host`, message: "ssh target requires 'host'" });
+      }
+    }
+  }
+
+  // -- fleet.peers
+  for (const [name, peer] of Object.entries((config.fleet && config.fleet.peers) || {})) {
+    if (!peer || typeof peer !== 'object') {
+      errors.push({ path: `fleet.peers.${name}`, message: 'must be an object' });
+      continue;
+    }
+    if (!peer.host && !peer.url) {
+      warnings.push({
+        path: `fleet.peers.${name}`,
+        message: 'no host/url — peer is unreachable',
+      });
+    }
+    if (peer.port != null && (typeof peer.port !== 'number' || peer.port < 1 || peer.port > 65535)) {
+      errors.push({ path: `fleet.peers.${name}.port`, message: 'must be 1-65535' });
+    }
+  }
+
   return { errors, warnings, info };
 }
 
