@@ -110,59 +110,101 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
         </div>
       )}
 
-      {workers.map((w) => {
-        const interventionActive = isInterventionActive(w);
-        const isSelected = selectedWorker === w.name;
-        return (
-          <Card
-            key={w.name}
-            role="button"
-            tabIndex={0}
-            onClick={() => onSelect(w.name)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onSelect(w.name);
-              }
-            }}
-            className={cn(
-              'cursor-pointer transition-colors hover:bg-accent/40',
-              isSelected &&
-                'ring-2 ring-ring ring-offset-2 ring-offset-background'
-            )}
-          >
-            <CardHeader className="flex-row items-center justify-between gap-2 p-4">
-              <span className="min-w-0 truncate text-sm font-medium text-foreground">
-                {w.name}
-              </span>
-              <Badge variant={mapWorkerStatusToBadgeVariant(w)} className="shrink-0 uppercase">
-                {statusLabel(w)}
-              </Badge>
-            </CardHeader>
-            <CardContent className="space-y-1.5 p-4 pt-0">
-              <div className="flex flex-wrap items-center gap-1.5">
-                {w.unreadSnapshots > 0 && (
-                  <Badge variant="info" className="px-1.5 py-0 text-[11px] font-medium">
-                    {w.unreadSnapshots} unread
-                  </Badge>
+      {/* Render workers as a tree by their `parent` field. Roots are
+          workers whose parent is null OR whose parent name isn't in the
+          current list (e.g., parent already exited — we promote orphans
+          to roots so they don't disappear). Each child indents one
+          level and gets a left connector line. */}
+      {(() => {
+        const byName = new Map<string, Worker>();
+        const childrenOf = new Map<string | null, Worker[]>();
+        for (const w of workers) byName.set(w.name, w);
+        for (const w of workers) {
+          const parentKey = w.parent && byName.has(w.parent) ? w.parent : null;
+          if (!childrenOf.has(parentKey)) childrenOf.set(parentKey, []);
+          childrenOf.get(parentKey)!.push(w);
+        }
+
+        const renderNode = (w: Worker, depth: number): JSX.Element => {
+          const interventionActive = isInterventionActive(w);
+          const isSelected = selectedWorker === w.name;
+          const children = childrenOf.get(w.name) || [];
+          return (
+            <div
+              key={w.name}
+              style={{ marginLeft: depth > 0 ? `${depth * 16}px` : 0 }}
+            >
+              <Card
+                role="button"
+                tabIndex={0}
+                onClick={() => onSelect(w.name)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelect(w.name);
+                  }
+                }}
+                className={cn(
+                  'relative cursor-pointer transition-colors hover:bg-accent/40',
+                  isSelected &&
+                    'ring-2 ring-ring ring-offset-2 ring-offset-background'
                 )}
-                {interventionActive && (
-                  <Badge variant="destructive" className="px-1.5 py-0 text-[11px] font-medium">
-                    {String(
-                      (w.intervention as { reason?: unknown })?.reason ?? 'intervention'
+              >
+                {/* connector line for non-root nodes — bridges the indent
+                    gap to the parent card visually. */}
+                {depth > 0 && (
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -left-3 top-1/2 h-px w-3 bg-border"
+                  />
+                )}
+                <CardHeader className="flex-row items-center justify-between gap-2 p-4">
+                  <span className="min-w-0 truncate text-sm font-medium text-foreground">
+                    {w.name}
+                  </span>
+                  <Badge variant={mapWorkerStatusToBadgeVariant(w)} className="shrink-0 uppercase">
+                    {statusLabel(w)}
+                  </Badge>
+                </CardHeader>
+                <CardContent className="space-y-1.5 p-4 pt-0">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {w.unreadSnapshots > 0 && (
+                      <Badge variant="info" className="px-1.5 py-0 text-[11px] font-medium">
+                        {w.unreadSnapshots} unread
+                      </Badge>
                     )}
-                  </Badge>
-                )}
-              </div>
-              {w.branch && (
-                <div className="truncate font-mono text-xs text-muted-foreground">
-                  {w.branch}
+                    {interventionActive && (
+                      <Badge variant="destructive" className="px-1.5 py-0 text-[11px] font-medium">
+                        {String(
+                          (w.intervention as { reason?: unknown })?.reason ?? 'intervention'
+                        )}
+                      </Badge>
+                    )}
+                    {children.length > 0 && (
+                      <Badge variant="secondary" className="px-1.5 py-0 text-[11px] font-medium">
+                        {children.length} sub
+                      </Badge>
+                    )}
+                  </div>
+                  {w.branch && (
+                    <div className="truncate font-mono text-xs text-muted-foreground">
+                      {w.branch}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              {children.length > 0 && (
+                <div className="mt-2 space-y-2">
+                  {children.map((c) => renderNode(c, depth + 1))}
                 </div>
               )}
-            </CardContent>
-          </Card>
-        );
-      })}
+            </div>
+          );
+        };
+
+        const roots = childrenOf.get(null) || [];
+        return <div className="space-y-2">{roots.map((w) => renderNode(w, 0))}</div>;
+      })()}
     </div>
   );
 }
