@@ -999,7 +999,19 @@ async function handleRequest(req, res) {
       }
 
     } else if (req.method === 'GET' && route === '/list') {
-      result = manager.list();
+      // (TODO 8.37) Enrich every worker with its tier so the Web UI can
+      // group Managers / Workers without a follow-up round-trip and
+      // without having to guess from the name pattern. tier defaults to
+      // 'worker' when no explicit /create call mapped it (e.g. older
+      // sessions before 8.3 landed). The CLI was already printing tier
+      // via this map; the Web UI just lacked the field.
+      const listed = manager.list();
+      if (listed && Array.isArray(listed.workers)) {
+        for (const w of listed.workers) {
+          w.tier = tierWorkerMap.get(w.name) || 'worker';
+        }
+      }
+      result = listed;
 
     } else if (req.method === 'GET' && route === '/tree') {
       const tree = require('./hierarchy-tree');

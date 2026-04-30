@@ -70,17 +70,16 @@ export default function Sidebar({
       data-collapsed={collapsed ? 'true' : 'false'}
       aria-label="Workers sidebar"
     >
+      {/* (TODO 8.37) Logo moved to AppHeader so every tab shows the
+          C4 brand in the same spot (claude.ai / Linear / VS Code
+          convention). The sidebar header now just labels the
+          section + carries the collapse / view-mode controls. */}
       <div
         className={cn(
           'mb-4 flex items-center gap-2',
           collapsed ? 'md:flex-col md:gap-1' : '',
         )}
       >
-        <img
-          src="/logo.svg"
-          alt="C4"
-          className={cn('h-8 shrink-0', collapsed ? 'md:mx-auto' : '')}
-        />
         {!effectiveCollapsed ? (
           <span className="text-xs uppercase tracking-wide text-muted-foreground">
             Workers
