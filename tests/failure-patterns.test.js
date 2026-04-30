@@ -79,4 +79,40 @@ describe('failure-patterns.findHint', () => {
       assert.ok(p.regex instanceof RegExp);
     }
   });
+
+  // Extended pattern coverage.
+  it('matches connection-refused', () => {
+    const r = findHint([{ line: 'Error: connect ECONNREFUSED 127.0.0.1:3456', count: 1 }]);
+    assert.strictEqual(r && r.id, 'connection-refused');
+  });
+  it('matches connection-reset', () => {
+    const r = findHint([{ line: 'read ECONNRESET', count: 1 }]);
+    assert.strictEqual(r && r.id, 'connection-reset');
+  });
+  it('matches DNS lookup failure', () => {
+    const r = findHint([{ line: 'getaddrinfo ENOTFOUND api.example.com', count: 1 }]);
+    assert.strictEqual(r && r.id, 'dns-fail');
+  });
+  it('matches expired TLS cert', () => {
+    const r = findHint([{ line: 'Error: certificate has expired (CERT_HAS_EXPIRED)', count: 1 }]);
+    assert.strictEqual(r && r.id, 'tls-cert');
+  });
+  it('matches SIGKILL', () => {
+    const r = findHint([{ line: 'process killed by signal SIGKILL', count: 1 }]);
+    assert.strictEqual(r && r.id, 'subprocess-killed');
+  });
+  it('matches Node heap allocation', () => {
+    const r = findHint([{ line: 'FATAL ERROR: CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory', count: 1 }]);
+    // OOM matches first (more specific phrase); node-stack covers the
+    // broader 'Allocation failed' line. Either is acceptable.
+    assert.ok(r && (r.id === 'oom' || r.id === 'node-stack'));
+  });
+  it('matches git index.lock contention', () => {
+    const r = findHint([{ line: "fatal: Unable to create '/repo/.git/index.lock': File exists. Another git process seems to be running", count: 1 }]);
+    assert.strictEqual(r && r.id, 'lockfile');
+  });
+  it('matches npm EINTEGRITY', () => {
+    const r = findHint([{ line: 'npm ERR! code EINTEGRITY npm ERR! sha512-... integrity checksum failed', count: 1 }]);
+    assert.strictEqual(r && r.id, 'npm-eintegrity');
+  });
 });

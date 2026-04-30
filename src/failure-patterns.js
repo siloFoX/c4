@@ -70,7 +70,11 @@ const PATTERNS = [
   {
     id: 'oom',
     label: 'Out of memory',
-    regex: /\b(killed|out of memory|allocation failed|JavaScript heap out of memory|OOM)\b/i,
+    // Bare \bkilled\b conflicted with subprocess-killed (SIGKILL etc.) so
+    // OOM now requires an OOM-specific phrasing or the kernel oom-killer
+    // breadcrumb. This keeps OOM precise and lets subprocess-killed catch
+    // generic SIGKILL / SIGTERM signals.
+    regex: /\b(out of memory|allocation failed|JavaScript heap out of memory|\bOOM[\b -]?(?:killer)?|killed by oom|memory cgroup out of memory|oom_reaper)\b/i,
     hint: 'Process OOM — split the workload, raise --max-old-space-size, or move to a larger box.',
   },
   {
@@ -90,6 +94,54 @@ const PATTERNS = [
     label: 'Operation timed out',
     regex: /\b(ETIMEDOUT|timed?\s*out\b|operation timed out)/i,
     hint: 'Network or operation timeout. Check connectivity / queue depth before raising the timeout.',
+  },
+  {
+    id: 'connection-refused',
+    label: 'Connection refused',
+    regex: /\bECONNREFUSED\b|\bconnection refused\b|connection\s*refused\s*by\s*peer/i,
+    hint: 'Target service is not listening on that host:port. Verify the service is up and the port is correct.',
+  },
+  {
+    id: 'connection-reset',
+    label: 'Connection reset',
+    regex: /\b(ECONNRESET|connection reset by peer|broken pipe|EPIPE)\b/i,
+    hint: 'Peer dropped the TCP connection mid-stream. Likely a peer crash, idle timeout, or aggressive load balancer.',
+  },
+  {
+    id: 'dns-fail',
+    label: 'DNS lookup failed',
+    regex: /\b(ENOTFOUND|EAI_AGAIN|getaddrinfo\s+(?:ENOTFOUND|EAI_AGAIN))\b|host name lookup fail/i,
+    hint: 'Hostname did not resolve. Check /etc/resolv.conf, the host is spelled right, and the network has DNS access.',
+  },
+  {
+    id: 'tls-cert',
+    label: 'TLS certificate problem',
+    regex: /\b(UNABLE_TO_VERIFY_LEAF_SIGNATURE|CERT_HAS_EXPIRED|self[- ]signed certificate|SELF_SIGNED_CERT_IN_CHAIN|DEPTH_ZERO_SELF_SIGNED_CERT)\b/i,
+    hint: 'TLS handshake failed on cert validation. Check expiry / chain / NODE_EXTRA_CA_CERTS — do not blindly disable verification in production.',
+  },
+  {
+    id: 'subprocess-killed',
+    label: 'Subprocess killed',
+    regex: /\b(SIGKILL|SIGTERM|signal 9|killed by signal|process killed)\b/i,
+    hint: 'A child process was killed externally (oom-killer, supervisor, manual kill). Check dmesg + parent supervisor logs.',
+  },
+  {
+    id: 'node-stack',
+    label: 'Node.js crash',
+    regex: /\b(Maximum call stack size exceeded|RangeError: Maximum call stack|FATAL ERROR: .*JavaScript|Allocation failed - JavaScript heap)\b/i,
+    hint: 'Node runtime crashed (stack overflow or heap exhaustion). Look for unbounded recursion / streaming buffer / leaking listener.',
+  },
+  {
+    id: 'lockfile',
+    label: 'Lockfile / mutex contention',
+    regex: /\b(another git process|index\.lock|database is locked|SQLITE_BUSY|EAGAIN.*lock|stale\s*lockfile)\b/i,
+    hint: 'A required lock is held by another process or stale. Confirm the previous run finished cleanly before forcing the lock.',
+  },
+  {
+    id: 'npm-eintegrity',
+    label: 'npm integrity / lockfile drift',
+    regex: /\b(EINTEGRITY|lockfile (out of date|version drift)|npm WARN reify|invalid: lock file)\b/i,
+    hint: 'package-lock.json out of sync with registry hashes. Re-run `npm install` to refresh, or delete node_modules/+lock and reinstall.',
   },
 ];
 
