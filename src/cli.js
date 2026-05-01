@@ -866,10 +866,43 @@ async function main() {
 
       // OpenAPI spec inspection. `c4 openapi` lists every documented
       // path; `c4 openapi --json` dumps the raw spec; `c4 openapi
-      // --path <regex>` filters to matching paths.
+      // --yaml` dumps as YAML; `c4 openapi --path <regex>` filters
+      // to matching paths; `c4 openapi --sdk` emits the auto-generated
+      // TypeScript client.
       case 'openapi': {
         const wantJson = args.includes('--json');
+        const wantYaml = args.includes('--yaml');
+        const wantSdk = args.includes('--sdk');
         const pathFilter = args.includes('--path') ? args[args.indexOf('--path') + 1] : null;
+        if (wantYaml) {
+          // YAML dump — daemon serves it pre-rendered, no CLI-side
+          // serialization needed.
+          const url = new URL('/openapi.yaml', BASE);
+          const yaml = await new Promise((resolve, reject) => {
+            http.get(url, (res) => {
+              let buf = '';
+              res.on('data', (c) => { buf += c; });
+              res.on('end', () => resolve(buf));
+              res.on('error', reject);
+            }).on('error', reject);
+          });
+          process.stdout.write(yaml);
+          result = null;
+          break;
+        }
+        if (wantSdk) {
+          // SDK generation — fetch JSON then run sdk-gen locally so
+          // the daemon doesn't need a route for every output format.
+          const spec = await request('GET', '/openapi.json');
+          if (!spec || spec.error) {
+            console.error('Failed to fetch spec:', spec?.error || 'unknown error');
+            process.exit(1);
+          }
+          const { generateSdk } = require('./openapi-sdk-gen');
+          process.stdout.write(generateSdk(spec));
+          result = null;
+          break;
+        }
         result = await request('GET', '/openapi.json');
         if (wantJson) break;
         if (!result || result.error) break;
