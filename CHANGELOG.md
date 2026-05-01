@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.44] - 2026-05-02
+
+C4ApiError.body is now typed (was `unknown`).
+
+### Added
+- **(spec) `details` field on the standard error envelope.**
+  The validation 400 path returns
+  `{error: 'Validation failed', details: ['body.X: required',
+  ...]}` — that array was undocumented before. Now `details`
+  is part of `ERROR_BODY_SCHEMA` (optional — only the
+  validation path populates it).
+- **(sdk-gen) `C4ErrorBody` interface.** Auto-generated as
+  `{error?: string, details?: string[]}`. The SDK exports it
+  alongside C4ApiError.
+- **(sdk-gen) C4ApiError.body now types as C4ErrorBody.**
+  Callers can destructure `e.body.error` / `e.body.details`
+  without a cast, and TypeScript catches typos like
+  `e.body.errors` (note the s).
+
+Suite 153/153.
+
 ## [1.10.43] - 2026-05-02
 
 `config-validate.js` now checks the `openapi.*` block — catches

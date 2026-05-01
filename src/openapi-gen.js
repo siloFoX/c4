@@ -86,10 +86,19 @@ const ROUTE_SUMMARIES = {
 // response goes through `res.end(JSON.stringify({ error: <msg> }))`
 // so the schema is uniform across the surface. Hoisting it to a
 // constant keeps the per-route response envelope thin.
+//
+// `details` populates on the validation 400 path
+// (`{error: 'Validation failed', details: ['body.X: required', ...]}`)
+// — kept optional so unrelated 4xx responses don't get penalised.
 const ERROR_BODY_SCHEMA = {
   type: 'object',
   properties: {
     error: { type: 'string', description: 'Human-readable error message' },
+    details: {
+      type: 'array',
+      items: { type: 'string' },
+      description: 'Per-field validation errors (only present on 400 from validateRequests)',
+    },
   },
 };
 

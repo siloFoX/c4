@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.43
-// Generated at: 2026-05-01T18:00:27.441Z
+// Spec version: 1.10.44
+// Generated at: 2026-05-01T18:05:07.908Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -1245,15 +1245,27 @@ export interface C4SSEEvent {
   id?: string;
 }
 
+// Standard error envelope every daemon non-2xx response uses.
+// `details` populates on the validation 400 path (one entry per
+// failed field, e.g. `body.user: required`).
+export interface C4ErrorBody {
+  error?: string;
+  details?: string[];
+}
+
 // Error class — typed wrapper around non-2xx responses.
 // Carries the HTTP status, the parsed body (when JSON), and
 // the operationId so callers can switch on it.
+//
+// `body` is typed as the standard `{error?, details?}` envelope
+// the daemon emits for every 4xx/5xx. Cast to `unknown` if you
+// need to inspect a non-standard body (legacy callers / proxies).
 export class C4ApiError extends Error {
   status: number;
   statusText: string;
-  body: unknown;
+  body: C4ErrorBody;
   operationId?: string;
-  constructor(status: number, statusText: string, body: unknown, operationId?: string) {
+  constructor(status: number, statusText: string, body: C4ErrorBody, operationId?: string) {
     super(`HTTP ${status} ${statusText}${operationId ? ` (${operationId})` : ""}`);
     this.name = "C4ApiError";
     this.status = status;
@@ -1406,7 +1418,7 @@ export class C4Client {
             await this._sleep(this.backoffMs * Math.pow(2, attempt));
             continue;
           }
-          throw new C4ApiError(respCtx.status, res.statusText, respCtx.body, spec.operationId);
+          throw new C4ApiError(respCtx.status, res.statusText, respCtx.body as C4ErrorBody, spec.operationId);
         }
         return respCtx.body as T;
       } catch (e) {
@@ -1437,7 +1449,7 @@ export class C4Client {
     if (!res.ok) {
       const ct = res.headers.get("content-type") || "";
       const body = ct.includes("json") ? await res.json() : await res.text();
-      throw new C4ApiError(res.status, res.statusText, body);
+      throw new C4ApiError(res.status, res.statusText, body as C4ErrorBody);
     }
     if (!res.body) return;
     const reader = res.body.getReader();
