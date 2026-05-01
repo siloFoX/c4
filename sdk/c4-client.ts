@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.12
-// Generated at: 2026-05-01T14:33:57.722Z
+// Spec version: 1.10.13
+// Generated at: 2026-05-01T14:47:13.040Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -56,6 +56,7 @@ export type getApiDocsResponse = Record<string, unknown>;
 export interface postCreateBody {
   name: string; /** Worker name (unique) */
   command?: string; /** Override claude binary path */
+  args?: string[]; /** Additional CLI args passed to the worker process */
   target?: string; /** 'local' | 'dgx' | fleet alias */
   cwd?: string; /** Working directory */
   parent?: string; /** Parent worker name (for hierarchy) */
@@ -129,12 +130,21 @@ export interface postTaskBody {
   useWorktree?: boolean;
   projectRoot?: string;
   cwd?: string;
+  scope?: string; /** Path scope hint passed to the worker (whitelist for tool access) */
+  scopePreset?: string; /** Named scope preset from config */
+  after?: string; /** Wait for this worker to idle before starting */
+  command?: string; /** Override claude binary path */
+  target?: string;
+  contextFrom?: string; /** Worker name to inherit context from */
+  reuse?: boolean; /** Reuse an existing worker if name matches */
+  tier?: string; /** 'manager' | 'worker' | string */
   workspace?: string; /** config.workspaces[name] lookup */
   profile?: string; /** Built-in template alias */
   autoMode?: boolean;
   budgetUsd?: number;
   maxRetries?: number;
   model?: string; /** Override Claude model */
+  planDocPath?: string; /** Anchor a plan-back-prop loop to this doc */
 }
 export interface postTaskResponse {
   success?: boolean;
@@ -364,7 +374,13 @@ export interface getComputerUseSessionsResponse {
 }
 
 export interface postComputerUseSessionsBody {
-  backend: "stub" | "xdotool" | "mock" | "auto";
+  backend?: "stub" | "xdotool" | "mock" | "auto";
+  x?: number; /** Click / move x coordinate */
+  y?: number; /** Click / move y coordinate */
+  button?: "left" | "right" | "middle";
+  text?: string; /** Text to type */
+  delayMs?: number; /** Inter-keystroke delay */
+  key?: string; /** Key name (e.g., Return / Escape / Ctrl+A) */
 }
 export interface postComputerUseSessionsResponse {
   id?: string;
@@ -379,6 +395,8 @@ export interface postProjectsBody {
   id: string;
   name: string;
   description?: string;
+  repoPath?: string; /** Filesystem path to the project repo (for TODO sync) */
+  todoPath?: string; /** Path to TODO.md within the repo (default: TODO.md) */
 }
 export interface postProjectsResponse {
   id?: string;
@@ -577,7 +595,9 @@ export interface postPlanBody {
   name: string;
   task: string;
   branch?: string;
-  output?: string; /** Path for the plan markdown output */
+  outputPath?: string; /** Path for the plan markdown output */
+  scopePreset?: string;
+  contextFrom?: string;
 }
 export interface postPlanResponse {
   success?: boolean;
@@ -594,7 +614,10 @@ export interface getPlanResponse {
 
 export interface postPlanUpdateBody {
   name: string;
-  feedback?: string;
+  reason?: string; /** Why the plan is being updated */
+  evidence?: string; /** Supporting evidence / scrollback excerpt */
+  replan?: boolean; /** Trigger a fresh planning pass */
+  redispatch?: boolean; /** Redispatch the plan to its anchor task */
 }
 export interface postPlanUpdateResponse {
   success?: boolean;
@@ -741,6 +764,7 @@ export interface getSessionIdResponse {
 
 export interface postResumeBody {
   name: string;
+  sessionId?: string; /** Specific JSONL session id to resume (default: latest) */
 }
 export interface postResumeResponse {
   success?: boolean;

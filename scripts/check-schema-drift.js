@@ -113,14 +113,49 @@ for (const [key, schemas] of Object.entries(ROUTE_SCHEMAS)) {
   const inSchemaUsed = [...schemaKeys].filter((k) => handlerKeys.has(k));
   const noOverlap = inSchemaUsed.length === 0 && schemaKeys.size > 0;
 
+  // Common locals that show up in destructurings but aren't body
+  // fields — filter them out before reporting handler-only.
+  const COMMON_LOCALS = new Set([
+    'req', 'res', 'method', 'route', 'cfg', 'gate', 'authCheck',
+    'manager', 'rbac', 'result', 'ok', 'errors', 'success',
+    // parseBody artifacts
+    'raw', 'json',
+    // common temporary destructurings inside handlers
+    'data', 'payload', 'value', 'response', 'response',
+  ]);
+  const inHandlerOnly = [...handlerKeys].filter((k) =>
+    !schemaKeys.has(k) && !COMMON_LOCALS.has(k));
+
   if (noOverlap) {
     console.log(`✗ ${key}: handler doesn't use ANY schema field (full drift)`);
     console.log(`    schema fields: ${[...schemaKeys].join(', ')}`);
     driftFound++;
-  } else if (process.argv.includes('--verbose') && inSchemaOnly.length > 0) {
-    console.log(`? ${key}: ${inSchemaOnly.length} schema field(s) not directly referenced by handler`);
-    console.log(`    in schema only: ${inSchemaOnly.join(', ')}`);
-    console.log(`    handler uses: ${inSchemaUsed.join(', ')}`);
+    continue;
+  }
+
+  // Schema gap — handler reads body fields the spec doesn't document.
+  // We only flag this when there's at least one inSchemaUsed (so it's
+  // not a wholesale-pass-through misread) AND the handler-only count
+  // is small (so we don't flag entire RPC envelopes).
+  const STRICT = process.argv.includes('--strict');
+  if (STRICT && inHandlerOnly.length > 0 && inSchemaUsed.length > 0) {
+    console.log(`✗ ${key}: handler reads ${inHandlerOnly.length} body field(s) the schema doesn't document`);
+    console.log(`    schema fields:  ${[...schemaKeys].join(', ')}`);
+    console.log(`    handler reads also: ${inHandlerOnly.join(', ')}`);
+    driftFound++;
+    continue;
+  }
+
+  if (process.argv.includes('--verbose')) {
+    if (inSchemaOnly.length > 0) {
+      console.log(`? ${key}: ${inSchemaOnly.length} schema field(s) not directly referenced by handler`);
+      console.log(`    in schema only: ${inSchemaOnly.join(', ')}`);
+      console.log(`    handler uses:   ${inSchemaUsed.join(', ')}`);
+    }
+    if (inHandlerOnly.length > 0) {
+      console.log(`? ${key}: ${inHandlerOnly.length} handler field(s) not in schema`);
+      console.log(`    handler-only: ${inHandlerOnly.join(', ')}`);
+    }
   }
 }
 

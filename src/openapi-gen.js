@@ -160,6 +160,7 @@ const ROUTE_SCHEMAS = {
       properties: {
         name: { type: 'string', description: 'Worker name (unique)' },
         command: { type: 'string', description: 'Override claude binary path' },
+        args: { type: 'array', items: { type: 'string' }, description: 'Additional CLI args passed to the worker process' },
         target: { type: 'string', description: "'local' | 'dgx' | fleet alias" },
         cwd: { type: 'string', description: 'Working directory' },
         parent: { type: 'string', description: 'Parent worker name (for hierarchy)' },
@@ -246,12 +247,21 @@ const ROUTE_SCHEMAS = {
         useWorktree: { type: 'boolean' },
         projectRoot: { type: 'string' },
         cwd: { type: 'string' },
+        scope: { type: 'string', description: 'Path scope hint passed to the worker (whitelist for tool access)' },
+        scopePreset: { type: 'string', description: 'Named scope preset from config' },
+        after: { type: 'string', description: 'Wait for this worker to idle before starting' },
+        command: { type: 'string', description: 'Override claude binary path' },
+        target: { type: 'string' },
+        contextFrom: { type: 'string', description: 'Worker name to inherit context from' },
+        reuse: { type: 'boolean', description: 'Reuse an existing worker if name matches' },
+        tier: { type: 'string', description: "'manager' | 'worker' | string" },
         workspace: { type: 'string', description: 'config.workspaces[name] lookup' },
         profile: { type: 'string', description: 'Built-in template alias' },
         autoMode: { type: 'boolean' },
         budgetUsd: { type: 'number' },
         maxRetries: { type: 'integer' },
         model: { type: 'string', description: 'Override Claude model' },
+        planDocPath: { type: 'string', description: 'Anchor a plan-back-prop loop to this doc' },
       },
       example: { task: 'Add a unit test for the parseConfig() helper', autoMode: true },
     },
@@ -635,6 +645,8 @@ const ROUTE_SCHEMAS = {
         id: { type: 'string' },
         name: { type: 'string' },
         description: { type: 'string' },
+        repoPath: { type: 'string', description: 'Filesystem path to the project repo (for TODO sync)' },
+        todoPath: { type: 'string', description: 'Path to TODO.md within the repo (default: TODO.md)' },
       },
     },
     response: {
@@ -702,7 +714,10 @@ const ROUTE_SCHEMAS = {
   'POST /resume': {
     requestBody: {
       required: ['name'],
-      properties: { name: { type: 'string' } },
+      properties: {
+        name: { type: 'string' },
+        sessionId: { type: 'string', description: 'Specific JSONL session id to resume (default: latest)' },
+      },
     },
     response: { properties: { success: { type: 'boolean' }, sessionId: { type: 'string' } } },
   },
@@ -734,9 +749,11 @@ const ROUTE_SCHEMAS = {
         name: { type: 'string' },
         task: { type: 'string' },
         branch: { type: 'string' },
-        output: { type: 'string', description: 'Path for the plan markdown output' },
+        outputPath: { type: 'string', description: 'Path for the plan markdown output' },
+        scopePreset: { type: 'string' },
+        contextFrom: { type: 'string' },
       },
-      example: { name: 'planner-1', task: 'Design the migration plan', branch: 'plan/migration', output: 'docs/plan.md' },
+      example: { name: 'planner-1', task: 'Design the migration plan', branch: 'plan/migration', outputPath: 'docs/plan.md' },
     },
     response: { properties: { success: { type: 'boolean' }, planPath: { type: 'string' } } },
   },
@@ -753,7 +770,10 @@ const ROUTE_SCHEMAS = {
       required: ['name'],
       properties: {
         name: { type: 'string' },
-        feedback: { type: 'string' },
+        reason: { type: 'string', description: 'Why the plan is being updated' },
+        evidence: { type: 'string', description: 'Supporting evidence / scrollback excerpt' },
+        replan: { type: 'boolean', description: 'Trigger a fresh planning pass' },
+        redispatch: { type: 'boolean', description: 'Redispatch the plan to its anchor task' },
       },
     },
     response: { properties: { success: { type: 'boolean' }, revision: { type: 'integer' } } },
@@ -782,8 +802,19 @@ const ROUTE_SCHEMAS = {
   },
   'POST /computer-use/sessions': {
     requestBody: {
-      required: ['backend'],
-      properties: { backend: { type: 'string', enum: ['stub', 'xdotool', 'mock', 'auto'] } },
+      // Action-multiplexer route — backend selects the session, x/y/
+      // button/text/delayMs/key are action-specific args. The router
+      // dispatches to click / move / type / keyPress / etc based on
+      // which fields are populated.
+      properties: {
+        backend: { type: 'string', enum: ['stub', 'xdotool', 'mock', 'auto'] },
+        x: { type: 'integer', description: 'Click / move x coordinate' },
+        y: { type: 'integer', description: 'Click / move y coordinate' },
+        button: { type: 'string', enum: ['left', 'right', 'middle'] },
+        text: { type: 'string', description: 'Text to type' },
+        delayMs: { type: 'integer', description: 'Inter-keystroke delay' },
+        key: { type: 'string', description: 'Key name (e.g., Return / Escape / Ctrl+A)' },
+      },
     },
     response: { properties: { id: { type: 'string' }, backend: { type: 'string' } } },
   },

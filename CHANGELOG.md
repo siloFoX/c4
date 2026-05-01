@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.10.14] - 2026-05-01
+
+Strict drift mode + 7 schema-gap fixes (handler accepts fields the
+spec didn't document).
+
+### Added
+- **(`scripts/check-schema-drift.js --strict`) Schema-gap detector.**
+  Reports body fields the handler reads but the spec doesn't list.
+  Filters obvious locals (req / res / cfg / gate / etc) and skips
+  wholesale-pass-through routes. Default mode keeps the original
+  full-drift behaviour; `--strict` adds the schema-gap check. The
+  `npm run lint:schema-drift` script now runs `--strict` so CI
+  fails on either side of the gap.
+
+### Fixed
+- **7 routes where the handler reads body fields the schema didn't
+  document:**
+  - `/create`: + `args` (extra CLI args array)
+  - `/task`: + `scope`, `scopePreset`, `after`, `command`, `target`,
+    `contextFrom`, `reuse`, `tier`, `planDocPath` (9 missing)
+  - `/projects`: + `repoPath`, `todoPath` (TODO sync wiring)
+  - `/resume`: + `sessionId` (specific session resume)
+  - `/plan`: `output` → `outputPath` (rename) + `scopePreset`,
+    `contextFrom`
+  - `/plan-update`: `feedback` → `reason`, `evidence`, `replan`,
+    `redispatch` (revision metadata)
+  - `/computer-use/sessions`: + `x`, `y`, `button`, `text`,
+    `delayMs`, `key` (action multiplexer args — click / move /
+    type / keyPress dispatch)
+
+After fixes: 0 drift across 41 routes in strict mode. SDK
+regenerated 1940 → 1964 lines (+24 with the new typed fields).
+
+Suite 151/151. The schema-drift test re-runs the script with
+`--strict` (via the npm script).
+
 ## [1.10.13] - 2026-05-01
 
 Schema-drift detector + 7 schema accuracy fixes uncovered by it.
