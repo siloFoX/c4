@@ -921,12 +921,19 @@ async function main() {
       // path; `c4 openapi --json` dumps the raw spec; `c4 openapi
       // --yaml` dumps as YAML; `c4 openapi --path <regex>` filters
       // to matching paths; `c4 openapi --sdk` emits the auto-generated
-      // TypeScript client.
+      // TypeScript client. (v1.10.40) `--rbac <regex>` filters to
+      // routes whose x-rbac-action matches the regex (e.g.,
+      // `--rbac 'WORKER'` shows worker.* gated endpoints);
+      // `--untyped` lists open routes (no x-rbac-action). When either
+      // RBAC filter is active the listing adds a column for the
+      // gating action.
       case 'openapi': {
         const wantJson = args.includes('--json');
         const wantYaml = args.includes('--yaml');
         const wantSdk = args.includes('--sdk');
         const pathFilter = args.includes('--path') ? args[args.indexOf('--path') + 1] : null;
+        const rbacFilter = args.includes('--rbac') ? args[args.indexOf('--rbac') + 1] : null;
+        const wantUntyped = args.includes('--untyped');
         if (wantYaml) {
           // YAML dump — daemon serves it pre-rendered, no CLI-side
           // serialization needed.
@@ -960,20 +967,35 @@ async function main() {
         if (wantJson) break;
         if (!result || result.error) break;
         const re = pathFilter ? new RegExp(pathFilter) : null;
+        const rbacRe = rbacFilter ? new RegExp(rbacFilter) : null;
         const entries = [];
         for (const [p, ops] of Object.entries(result.paths)) {
           if (re && !re.test(p)) continue;
           for (const [method, op] of Object.entries(ops)) {
-            entries.push({ method: method.toUpperCase(), path: p, summary: op.summary });
+            const rbac = op['x-rbac-action'] || null;
+            if (rbacRe && (!rbac || !rbacRe.test(rbac))) continue;
+            if (wantUntyped && rbac) continue;
+            entries.push({ method: method.toUpperCase(), path: p, summary: op.summary, rbac });
           }
         }
         entries.sort((a, b) => a.path.localeCompare(b.path) || a.method.localeCompare(b.method));
-        console.log(`Daemon API ${result.info.title} v${result.info.version} — ${entries.length} operation(s)${re ? ` matching /${re.source}/` : ''}`);
+        const filterDesc = [];
+        if (re) filterDesc.push(`path /${re.source}/`);
+        if (rbacRe) filterDesc.push(`rbac /${rbacRe.source}/`);
+        if (wantUntyped) filterDesc.push('untyped (no x-rbac-action)');
+        const filterStr = filterDesc.length ? ` matching ${filterDesc.join(' + ')}` : '';
+        console.log(`Daemon API ${result.info.title} v${result.info.version} — ${entries.length} operation(s)${filterStr}`);
+        const showRbac = rbacRe || wantUntyped;
         for (const e of entries) {
           const method = e.method.padEnd(6);
           const path = e.path.padEnd(40);
           const summary = e.summary.length > 80 ? e.summary.slice(0, 77) + '...' : e.summary;
-          console.log(`  ${method} ${path} ${summary}`);
+          if (showRbac) {
+            const rbacCol = (e.rbac || '(open)').padEnd(22);
+            console.log(`  ${method} ${path} ${rbacCol} ${summary}`);
+          } else {
+            console.log(`  ${method} ${path} ${summary}`);
+          }
         }
         result = null;
         break;

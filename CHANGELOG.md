@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.40] - 2026-05-02
+
+`c4 openapi` grows two RBAC-aware filters.
+
+### Added
+- **(cli) `c4 openapi --rbac <regex>`** filters the listing
+  to routes whose `x-rbac-action` matches the regex. e.g.
+  `c4 openapi --rbac 'WORKER'` shows the 6 worker.* gated
+  endpoints. The output gains a column for the gating action.
+- **(cli) `c4 openapi --untyped`** lists routes without an
+  `x-rbac-action` (i.e., routes the daemon serves without an
+  RBAC gate — health, openapi, dashboard, etc). 74 of the
+  current 110 ops are currently open; the surface is mostly
+  read-only data the Web UI needs without a permission round
+  trip.
+
+CLAUDE.md updated to mention the new flags. Composes with
+`--path <regex>` so `c4 openapi --path '/rbac' --rbac 'AUTH'`
+narrows further.
+
+Suite 152/152.
+
 ## [1.10.39] - 2026-05-02
 
 Daemon-side validateResponses now has full unit-test coverage —
