@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.46] - 2026-05-02
+
+Runtime drift checker now validates 400/404 error envelopes
+too.
+
+### Added
+- **(scripts/check-runtime-drift.js) Error body validation.**
+  When a route returns 400 or 404 (resource missing, body
+  validation failed, etc), the checker validates the body
+  against the standard `{error: string, details?: string[]}`
+  envelope. Catches handlers that accidentally return a bare
+  string or a non-standard error shape — both common drift
+  modes that the spec documents but Phase 1-3 don't catch
+  because they only look at the 200 path.
+
+  Currently every 4xx body matches; the check sits in the
+  background flagging future regressions.
+
+Suite 153/153.
+
 ## [1.10.45] - 2026-05-02
 
 SDK runtime test gains validation-error coverage.

@@ -282,10 +282,24 @@ async function main() {
     }
 
     // Routes that require a specific resource (worker name / session id)
-    // return 400 with `{error: ...}`. That IS a valid response — but
-    // not the happy path we're trying to validate. Skip instead of
-    // flagging.
+    // return 400/404 with `{error: ...}` — that's an error envelope, not
+    // a happy-path body. We don't validate it against the route's
+    // response schema (which describes the 200 path), but DO validate
+    // that the error body itself matches the standard ERROR_BODY shape.
     if (result.status === 400 || result.status === 404) {
+      const errSchema = {
+        type: 'object',
+        properties: {
+          error: { type: 'string' },
+          details: { type: 'array', items: { type: 'string' } },
+        },
+      };
+      const ev = validate(errSchema, result.body, 'error-body');
+      if (!ev.valid) {
+        _fail(key, `${result.status} body off-spec: ${ev.errors.slice(0, 2).join('; ')}`);
+        fail++;
+        continue;
+      }
       skipped++;
       continue;
     }
