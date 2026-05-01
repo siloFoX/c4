@@ -3,6 +3,16 @@
 ## [Unreleased]
 
 ### Added
+- **(GET /api-docs) Swagger UI rendering of the openapi.json spec.**
+  Static HTML that loads `swagger-ui-dist@5` from jsdelivr CDN and
+  points at the sibling `/api/openapi.json` endpoint. No new runtime
+  deps — operators running offline still get the raw spec via
+  `curl /openapi.json` and can render it locally with their own
+  swagger / redoc install. Whitelisted in `OPEN_API_ROUTES` so
+  introspection works without authentication. Live verified: 99
+  operations render as collapsible blocks; deep-linking + request
+  duration display enabled. Browser smoke
+  (`verify-api-docs.js`) 5/5 pass.
 - **(openapi-gen) Inline-comment summary harvest.** `extractRoutes`
   now captures the first contiguous run of `//` comments inside each
   route's body and exposes it as `inlineSummary`. `buildSpec` falls

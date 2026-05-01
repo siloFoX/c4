@@ -31,6 +31,7 @@ const OPEN_API_ROUTES = new Set([
   '/auth/status',
   '/health',
   '/openapi.json',
+  '/api-docs',
 ]);
 
 function generateSecret() {

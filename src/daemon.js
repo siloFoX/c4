@@ -917,6 +917,40 @@ async function handleRequest(req, res) {
         baseUrl: `http://${req.headers.host || 'localhost:3456'}`,
       });
 
+    } else if (req.method === 'GET' && route === '/api-docs') {
+      // Swagger UI rendering of the openapi.json spec. Static HTML
+      // that loads swagger-ui from jsdelivr CDN and points at the
+      // sibling /api/openapi.json. No new runtime dep — operators
+      // running offline can just curl /openapi.json directly. The
+      // page is whitelisted in OPEN_API_ROUTES so introspection
+      // works without authentication.
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>C4 daemon API · Swagger UI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+  <style>body{margin:0;background:#fafafa}</style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script>
+    window.ui = SwaggerUIBundle({
+      url: '/api/openapi.json',
+      dom_id: '#swagger-ui',
+      deepLinking: true,
+      defaultModelsExpandDepth: -1,
+      displayRequestDuration: true,
+    });
+  </script>
+</body>
+</html>`;
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.writeHead(200);
+      res.end(html);
+      return;
+
     } else if (req.method === 'POST' && route === '/create') {
       const { name, command, args, target, cwd, parent, tier, pinnedMemory, pinRole } = await parseBody(req);
       const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE,
