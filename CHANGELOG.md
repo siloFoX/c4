@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.25] - 2026-05-02
+
+Item shape sweep — every list/array response in the spec now
+declares its element type so the SDK emits real interfaces
+instead of `Record<string, unknown>[]`.
+
+### Added
+- **(spec) Detailed item shapes on 7 more list responses:**
+  /attach/list (sessions[]), /mcp/servers (servers[]),
+  /cicd/pipelines (pipelines[]), /projects (projects[]),
+  /schedules (schedules[]), /workflows (workflows[]),
+  /approvals (workers[]). Plus shape rewrites:
+  - `/approvals` was `{ approvals: array }` but the handler
+    returns `{ type: 'snapshot', ts, workers[] }`. Spec now
+    matches the actual snapshot envelope.
+  - `/templates` and `/profiles` were declared as arrays but
+    the handlers return name-keyed object maps. Spec now uses
+    `type: 'object'` with a description noting the shape.
+
+Suite 151/151. SDK 2255 → 2322 lines.
+
 ## [1.10.24] - 2026-05-02
 
 SDK type richness — array item shapes that used to emit `unknown[]`

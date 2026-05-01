@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.24
-// Generated at: 2026-05-01T16:15:51.196Z
+// Spec version: 1.10.25
+// Generated at: 2026-05-01T16:20:56.275Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -480,7 +480,21 @@ export interface getSchedulesParams {
   assignee?: string;
 }
 export interface getSchedulesResponse {
-  schedules?: Record<string, unknown>[];
+  schedules?: {
+  id?: string;
+  name?: string;
+  cronExpr?: string;
+  taskTemplate?: string;
+  projectId?: string | null;
+  assignee?: string | null;
+  enabled?: boolean;
+  timezone?: string;
+  nextRun?: string | null;
+  lastRun?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  history?: Record<string, unknown>[];
+}[];
   count?: number;
 }
 
@@ -524,7 +538,15 @@ export interface getMcpServersParams {
   transport?: "stdio" | "http";
 }
 export interface getMcpServersResponse {
-  servers?: Record<string, unknown>[];
+  servers?: {
+  name?: string;
+  command?: string;
+  args?: string[];
+  env?: Record<string, unknown>; /** String→string env var map */
+  description?: string;
+  enabled?: boolean;
+  transport?: "stdio" | "http";
+}[];
   count?: number;
 }
 
@@ -545,7 +567,15 @@ export interface getWorkflowsParams {
   nameContains?: string;
 }
 export interface getWorkflowsResponse {
-  workflows?: Record<string, unknown>[];
+  workflows?: {
+  id?: string;
+  name?: string;
+  description?: string;
+  enabled?: boolean;
+  nodes?: Record<string, unknown>[];
+  edges?: Record<string, unknown>[];
+  config?: Record<string, unknown>; /** Executor knobs (maxConcurrency, etc) */
+}[];
   count?: number;
 }
 
@@ -585,7 +615,18 @@ export interface postComputerUseSessionsResponse {
 }
 
 export interface getProjectsResponse {
-  projects?: unknown[];
+  projects?: {
+  id?: string;
+  name?: string;
+  description?: string | null;
+  repoPath?: string | null;
+  todoPath?: string | null;
+  createdAt?: string;
+  milestones?: Record<string, unknown>[];
+  sprints?: Record<string, unknown>[];
+  tasks?: Record<string, unknown>[];
+  backlog?: Record<string, unknown>[];
+}[];
 }
 
 export interface postProjectsBody {
@@ -613,7 +654,16 @@ export interface postCicdWebhookResponse {
 }
 
 export interface getCicdPipelinesResponse {
-  pipelines?: Record<string, unknown>[];
+  pipelines?: {
+  id?: string;
+  name?: string;
+  provider?: "github-actions";
+  repo?: string;
+  workflow?: string;
+  triggers?: "pr.opened" | "pr.merged" | "pr.closed" | "merge.main" | "tag.created"[];
+  actions?: Record<string, unknown>[];
+  createdAt?: string;
+}[];
 }
 
 export interface postCicdPipelinesBody {
@@ -816,7 +866,16 @@ export interface getHookEventsResponse {
 export type getEventsResponse = unknown;
 
 export interface getApprovalsResponse {
-  approvals?: Record<string, unknown>[];
+  type?: "snapshot";
+  ts?: number; /** Unix epoch milliseconds when the snapshot was taken */
+  workers?: {
+  name?: string;
+  enteredAt?: number;
+  internalState?: Record<string, unknown> | null;
+  pendingMs?: number; /** How long the worker has been waiting for approval */
+  slackAlertedAt?: number | null;
+  timeoutFiredAt?: number | null;
+}[];
 }
 
 export type getApprovalsStreamResponse = unknown;
@@ -871,11 +930,11 @@ export interface postMcpResponse {
 }
 
 export interface getTemplatesResponse {
-  templates?: Record<string, unknown>[];
+  templates?: Record<string, unknown>; /** Map keyed by template name. Each value carries the template config (model, profile, scope) plus source = builtin | config. */
 }
 
 export interface getProfilesResponse {
-  profiles?: Record<string, unknown>[];
+  profiles?: Record<string, unknown>; /** Map keyed by profile name. Each value: { description, allow[], deny[], mcpServers[] } */
 }
 
 export interface getSwarmParams {
@@ -986,7 +1045,15 @@ export interface postAttachResponse {
 }
 
 export interface getAttachListResponse {
-  sessions?: unknown[];
+  sessions?: {
+  name?: string; /** Display name (may equal session UUID) */
+  jsonlPath?: string; /** Absolute path to the claude session JSONL */
+  sessionId?: string | null;
+  projectPath?: string | null; /** Original project root the JSONL was recorded in */
+  createdAt?: string | null;
+  lastOffset?: number; /** Byte offset into JSONL of the last replayed line */
+  role?: "manager" | "worker" | "planner" | "executor" | "reviewer" | "generic";
+}[];
   total?: number;
 }
 

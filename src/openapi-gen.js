@@ -687,7 +687,20 @@ const ROUTE_SCHEMAS = {
     ],
     response: {
       properties: {
-        workflows: { type: 'array', items: { type: 'object' } },
+        workflows: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              description: { type: 'string' },
+              enabled: { type: 'boolean' },
+              nodes: { type: 'array', items: { type: 'object' } },
+              edges: { type: 'array', items: { type: 'object' } },
+              config: { type: 'object', description: 'Executor knobs (maxConcurrency, etc)' },
+            },
+          },
+        },
         count: { type: 'integer' },
       },
     },
@@ -723,7 +736,26 @@ const ROUTE_SCHEMAS = {
     ],
     response: {
       properties: {
-        schedules: { type: 'array', items: { type: 'object' } },
+        schedules: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              cronExpr: { type: 'string' },
+              taskTemplate: { type: 'string' },
+              projectId: { type: 'string', nullable: true },
+              assignee: { type: 'string', nullable: true },
+              enabled: { type: 'boolean' },
+              timezone: { type: 'string' },
+              nextRun: { type: 'string', nullable: true },
+              lastRun: { type: 'string', nullable: true },
+              createdAt: { type: 'string', nullable: true },
+              updatedAt: { type: 'string', nullable: true },
+              history: { type: 'array', items: { type: 'object' } },
+            },
+          },
+        },
         count: { type: 'integer' },
       },
     },
@@ -750,7 +782,25 @@ const ROUTE_SCHEMAS = {
   },
   'GET /projects': {
     response: {
-      properties: { projects: { type: 'array' } },
+      properties: {
+        projects: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              description: { type: 'string', nullable: true },
+              repoPath: { type: 'string', nullable: true },
+              todoPath: { type: 'string', nullable: true },
+              createdAt: { type: 'string' },
+              milestones: { type: 'array', items: { type: 'object' } },
+              sprints: { type: 'array', items: { type: 'object' } },
+              tasks: { type: 'array', items: { type: 'object' } },
+              backlog: { type: 'array', items: { type: 'object' } },
+            },
+          },
+        },
+      },
     },
   },
   'POST /recover': {
@@ -858,8 +908,26 @@ const ROUTE_SCHEMAS = {
   'POST /autonomous/tick': { response: { properties: { dispatched: { type: 'string', nullable: true }, skipped: { type: 'string', nullable: true }, reason: { type: 'string', nullable: true } } } },
   'POST /config/reload': { response: { properties: { ok: { type: 'boolean' } } } },
   'GET /config': { response: { properties: { config: { type: 'object', description: 'Sanitised config (secrets stripped)' } } } },
-  'GET /templates': { response: { properties: { templates: { type: 'array', items: { type: 'object' } } } } },
-  'GET /profiles': { response: { properties: { profiles: { type: 'array', items: { type: 'object' } } } } },
+  'GET /templates': {
+    response: {
+      properties: {
+        templates: {
+          type: 'object',
+          description: 'Map keyed by template name. Each value carries the template config (model, profile, scope) plus source = builtin | config.',
+        },
+      },
+    },
+  },
+  'GET /profiles': {
+    response: {
+      properties: {
+        profiles: {
+          type: 'object',
+          description: 'Map keyed by profile name. Each value: { description, allow[], deny[], mcpServers[] }',
+        },
+      },
+    },
+  },
   'GET /quota': { response: { properties: { tiers: { type: 'array' }, depts: { type: 'array' } } } },
   'GET /swarm': { parameters: [{ name: 'name', in: 'query', schema: { type: 'string' } }], response: { properties: { swarm: { type: 'array' } } } },
   'POST /plan': {
@@ -926,7 +994,20 @@ const ROUTE_SCHEMAS = {
     ],
     response: {
       properties: {
-        servers: { type: 'array', items: { type: 'object' } },
+        servers: {
+          type: 'array',
+          items: {
+            properties: {
+              name: { type: 'string' },
+              command: { type: 'string' },
+              args: { type: 'array', items: { type: 'string' } },
+              env: { type: 'object', description: 'String→string env var map' },
+              description: { type: 'string' },
+              enabled: { type: 'boolean' },
+              transport: { type: 'string', enum: ['stdio', 'http'] },
+            },
+          },
+        },
         count: { type: 'integer' },
       },
     },
@@ -963,7 +1044,25 @@ const ROUTE_SCHEMAS = {
     response: { type: 'string', description: 'SSE stream of worker output — Content-Type: text/event-stream' },
   },
   'GET /approvals': {
-    response: { properties: { approvals: { type: 'array', items: { type: 'object' } } } },
+    response: {
+      properties: {
+        type: { type: 'string', enum: ['snapshot'] },
+        ts: { type: 'integer', description: 'Unix epoch milliseconds when the snapshot was taken' },
+        workers: {
+          type: 'array',
+          items: {
+            properties: {
+              name: { type: 'string' },
+              enteredAt: { type: 'integer' },
+              internalState: { type: 'object', nullable: true },
+              pendingMs: { type: 'integer', description: 'How long the worker has been waiting for approval' },
+              slackAlertedAt: { type: 'integer', nullable: true },
+              timeoutFiredAt: { type: 'integer', nullable: true },
+            },
+          },
+        },
+      },
+    },
   },
   'GET /approvals/stream': {
     response: { type: 'string', description: 'SSE stream of approval transitions' },
@@ -1074,7 +1173,25 @@ const ROUTE_SCHEMAS = {
     response: { properties: { success: { type: 'boolean' } } },
   },
   'GET /cicd/pipelines': {
-    response: { properties: { pipelines: { type: 'array', items: { type: 'object' } } } },
+    response: {
+      properties: {
+        pipelines: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              provider: { type: 'string', enum: ['github-actions'] },
+              repo: { type: 'string' },
+              workflow: { type: 'string' },
+              triggers: { type: 'array', items: { type: 'string', enum: ['pr.opened', 'pr.merged', 'pr.closed', 'merge.main', 'tag.created'] } },
+              actions: { type: 'array', items: { type: 'object' } },
+              createdAt: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
   },
   'GET /nl/sessions': {
     response: {
@@ -1358,7 +1475,20 @@ const ROUTE_SCHEMAS = {
   'GET /attach/list': {
     response: {
       properties: {
-        sessions: { type: 'array' },
+        sessions: {
+          type: 'array',
+          items: {
+            properties: {
+              name: { type: 'string', description: 'Display name (may equal session UUID)' },
+              jsonlPath: { type: 'string', description: 'Absolute path to the claude session JSONL' },
+              sessionId: { type: 'string', nullable: true },
+              projectPath: { type: 'string', nullable: true, description: 'Original project root the JSONL was recorded in' },
+              createdAt: { type: 'string', nullable: true },
+              lastOffset: { type: 'integer', description: 'Byte offset into JSONL of the last replayed line' },
+              role: { type: 'string', enum: ['manager', 'worker', 'planner', 'executor', 'reviewer', 'generic'] },
+            },
+          },
+        },
         total: { type: 'integer' },
       },
     },
