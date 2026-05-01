@@ -504,6 +504,7 @@ const ROUTE_SCHEMAS = {
       },
       example: { username: 'alice', role: 'manager' },
     },
+    response: { properties: { username: { type: 'string' }, role: { type: 'string' } } },
   },
   'POST /rbac/grant/project': {
     requestBody: {
@@ -513,6 +514,7 @@ const ROUTE_SCHEMAS = {
         projectId: { type: 'string' },
       },
     },
+    response: { properties: { granted: { type: 'boolean' }, username: { type: 'string' }, projectId: { type: 'string' } } },
   },
   'POST /rbac/grant/machine': {
     requestBody: {
@@ -522,6 +524,7 @@ const ROUTE_SCHEMAS = {
         alias: { type: 'string', description: 'Fleet peer alias' },
       },
     },
+    response: { properties: { granted: { type: 'boolean' }, username: { type: 'string' }, alias: { type: 'string' } } },
   },
   'POST /rbac/revoke/project': {
     requestBody: {
@@ -531,6 +534,7 @@ const ROUTE_SCHEMAS = {
         projectId: { type: 'string' },
       },
     },
+    response: { properties: { ok: { type: 'boolean' } } },
   },
   'POST /rbac/revoke/machine': {
     requestBody: {
@@ -540,6 +544,7 @@ const ROUTE_SCHEMAS = {
         alias: { type: 'string' },
       },
     },
+    response: { properties: { ok: { type: 'boolean' } } },
   },
   'POST /rbac/check': {
     requestBody: {
@@ -688,6 +693,11 @@ const ROUTE_SCHEMAS = {
       { name: 'name', in: 'query', schema: { type: 'string' } },
       { name: 'limit', in: 'query', schema: { type: 'integer', default: 50 } },
     ],
+    response: {
+      properties: {
+        history: { type: 'array', items: { type: 'object' } },
+      },
+    },
   },
   'POST /cancel': {
     requestBody: {
@@ -756,7 +766,7 @@ const ROUTE_SCHEMAS = {
     },
     response: { properties: { sent: { type: 'boolean' } } },
   },
-  'POST /scribe/start': { response: { properties: { success: { type: 'boolean' }, intervalMs: { type: 'integer' } } } },
+  'POST /scribe/start': { response: { properties: { active: { type: 'boolean' }, intervalMs: { type: 'integer' } } } },
   'POST /scribe/stop': { response: { properties: { success: { type: 'boolean' } } } },
   'POST /scribe/scan': { response: { properties: { success: { type: 'boolean' }, scannedAt: { type: 'string' } } } },
   'GET /scribe/status': { response: { properties: { active: { type: 'boolean' }, intervalMs: { type: 'integer' }, lastRecordAt: { type: 'string', nullable: true } } } },
@@ -982,6 +992,13 @@ const ROUTE_SCHEMAS = {
       properties: {
         reason: { type: 'string', description: 'Operator-supplied pause reason' },
       },
+      example: { reason: 'manual via cli' },
+    },
+    response: {
+      properties: {
+        paused: { type: 'boolean' },
+        reason: { type: 'string' },
+      },
     },
   },
   'GET /autonomous/status': {
@@ -1029,12 +1046,14 @@ const ROUTE_SCHEMAS = {
       { name: 'limit', in: 'query', schema: { type: 'integer' } },
       { name: 'reverse', in: 'query', schema: { type: 'string', enum: ['0', '1'] } },
     ],
+    response: { properties: { events: { type: 'array', items: { type: 'object' } } } },
   },
   'GET /events/context': {
     parameters: [
       { name: 'around', in: 'query', required: true, schema: { type: 'string', description: 'Event id or ISO timestamp' } },
       { name: 'window', in: 'query', schema: { type: 'integer', default: 5 } },
     ],
+    response: { properties: { events: { type: 'array', items: { type: 'object' } } } },
   },
   'GET /quota': {
     response: {
@@ -1049,6 +1068,12 @@ const ROUTE_SCHEMAS = {
       { name: 'name', in: 'query', schema: { type: 'string' } },
       { name: 'groupBy', in: 'query', schema: { type: 'string', enum: ['session', 'project', 'tier', 'dept'] } },
     ],
+    response: {
+      properties: {
+        usage: { type: 'array', items: { type: 'object' } },
+        totals: { type: 'object' },
+      },
+    },
   },
   'GET /watch': {
     parameters: [
@@ -1094,6 +1119,17 @@ const ROUTE_SCHEMAS = {
       },
       example: { text: 'Spawn a worker called demo and run the linter on src/' },
     },
+    response: {
+      properties: {
+        sessionId: { type: 'string' },
+        response: { type: 'string' },
+        intent: { type: 'string' },
+        params: { type: 'object' },
+        confidence: { type: 'number' },
+        result: { type: 'object' },
+        actions: { type: 'array' },
+      },
+    },
   },
   'POST /mcp/servers': {
     requestBody: {
@@ -1105,6 +1141,13 @@ const ROUTE_SCHEMAS = {
         env: { type: 'object' },
       },
       example: { name: 'figma', command: 'npx', args: ['-y', '@figma/mcp-server'] },
+    },
+    response: {
+      properties: {
+        name: { type: 'string' },
+        transport: { type: 'string' },
+        enabled: { type: 'boolean' },
+      },
     },
   },
   'POST /cicd/webhook': {
@@ -1130,6 +1173,13 @@ const ROUTE_SCHEMAS = {
           items: { type: 'string', enum: ['pr.opened', 'pr.merged', 'pr.closed', 'merge.main', 'tag.created'] },
         },
         actions: { type: 'array', items: { type: 'object' } },
+      },
+    },
+    response: {
+      properties: {
+        id: { type: 'string' },
+        repo: { type: 'string' },
+        triggers: { type: 'array', items: { type: 'string' } },
       },
     },
   },

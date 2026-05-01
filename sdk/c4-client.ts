@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.19
-// Generated at: 2026-05-01T15:38:59.044Z
+// Spec version: 1.10.20
+// Generated at: 2026-05-01T15:43:31.988Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -200,7 +200,9 @@ export interface getRecoveryHistoryParams {
   name?: string;
   limit?: number;
 }
-export type getRecoveryHistoryResponse = unknown;
+export interface getRecoveryHistoryResponse {
+  history?: Record<string, unknown>[];
+}
 
 export interface postCancelBody {
   name: string;
@@ -261,31 +263,46 @@ export interface postRbacRoleAssignBody {
   username: string;
   role: "admin" | "manager" | "viewer";
 }
-export type postRbacRoleAssignResponse = unknown;
+export interface postRbacRoleAssignResponse {
+  username?: string;
+  role?: string;
+}
 
 export interface postRbacGrantProjectBody {
   username: string;
   projectId: string;
 }
-export type postRbacGrantProjectResponse = unknown;
+export interface postRbacGrantProjectResponse {
+  granted?: boolean;
+  username?: string;
+  projectId?: string;
+}
 
 export interface postRbacGrantMachineBody {
   username: string;
   alias: string; /** Fleet peer alias */
 }
-export type postRbacGrantMachineResponse = unknown;
+export interface postRbacGrantMachineResponse {
+  granted?: boolean;
+  username?: string;
+  alias?: string;
+}
 
 export interface postRbacRevokeProjectBody {
   username: string;
   projectId: string;
 }
-export type postRbacRevokeProjectResponse = unknown;
+export interface postRbacRevokeProjectResponse {
+  ok?: boolean;
+}
 
 export interface postRbacRevokeMachineBody {
   username: string;
   alias: string;
 }
-export type postRbacRevokeMachineResponse = unknown;
+export interface postRbacRevokeMachineResponse {
+  ok?: boolean;
+}
 
 export interface postRbacCheckBody {
   username: string;
@@ -330,7 +347,15 @@ export interface postNlChatBody {
   text: string; /** Natural-language command */
   sessionId?: string;
 }
-export type postNlChatResponse = unknown;
+export interface postNlChatResponse {
+  sessionId?: string;
+  response?: string;
+  intent?: string;
+  params?: Record<string, unknown>;
+  confidence?: number;
+  result?: Record<string, unknown>;
+  actions?: unknown[];
+}
 
 export interface getNlSessionsResponse {
   sessions?: unknown[];
@@ -346,7 +371,11 @@ export interface postMcpServersBody {
   args?: string[];
   env?: Record<string, unknown>;
 }
-export type postMcpServersResponse = unknown;
+export interface postMcpServersResponse {
+  name?: string;
+  transport?: string;
+  enabled?: boolean;
+}
 
 export interface getWorkflowsParams {
   enabled?: "true" | "false";
@@ -425,7 +454,11 @@ export interface postCicdPipelinesBody {
   triggers: "pr.opened" | "pr.merged" | "pr.closed" | "merge.main" | "tag.created"[];
   actions: Record<string, unknown>[];
 }
-export type postCicdPipelinesResponse = unknown;
+export interface postCicdPipelinesResponse {
+  id?: string;
+  repo?: string;
+  triggers?: string[];
+}
 
 export interface postCicdTriggerBody {
   id?: string; /** Pipeline id (replay) */
@@ -490,7 +523,10 @@ export interface getAutonomousStatusResponse {
 export interface postAutonomousPauseBody {
   reason?: string; /** Operator-supplied pause reason */
 }
-export type postAutonomousPauseResponse = unknown;
+export interface postAutonomousPauseResponse {
+  paused?: boolean;
+  reason?: string;
+}
 
 export interface postAutonomousResumeResponse {
   paused?: boolean;
@@ -527,19 +563,26 @@ export interface getEventsQueryParams {
   limit?: number;
   reverse?: "0" | "1";
 }
-export type getEventsQueryResponse = unknown;
+export interface getEventsQueryResponse {
+  events?: Record<string, unknown>[];
+}
 
 export interface getEventsContextParams {
   around: string;
   window?: number;
 }
-export type getEventsContextResponse = unknown;
+export interface getEventsContextResponse {
+  events?: Record<string, unknown>[];
+}
 
 export interface getTokenUsageParams {
   name?: string;
   groupBy?: "session" | "project" | "tier" | "dept";
 }
-export type getTokenUsageResponse = unknown;
+export interface getTokenUsageResponse {
+  usage?: Record<string, unknown>[];
+  totals?: Record<string, unknown>;
+}
 
 export interface getQuotaResponse {
   tiers?: unknown[];

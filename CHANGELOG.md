@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.21] - 2026-05-02
+
+Response schema coverage 85 → 98 of 110 ops (89%).
+
+### Added
+- **(spec) Response schemas added to 13 more routes:**
+  rbac.role.assign / rbac.grant.{project,machine} /
+  rbac.revoke.{project,machine}, nl.chat (full
+  intent/params/confidence/result envelope), mcp.servers,
+  cicd.pipelines, token-usage, events.query, events.context,
+  recovery-history, autonomous.pause. Plus `success` →
+  `active` rename on scribe.start (matches actual response).
+- **(spec) Example payload on /autonomous/pause** —
+  `{reason: 'manual via cli'}`.
+
+Coverage:
+- response schemas: 85 → 98 (77% → 89%)
+- examples: 29 → 30 of 43 requestBody routes (70%)
+- requestBody schemas unchanged at 43/110
+- parameter schemas unchanged at 20/110
+
+Suite 151/151. SDK 1976 → 2019 lines.
+
 ## [1.10.20] - 2026-05-02
 
 Example payload coverage 15 → 29 of 43 requestBody routes (67%).
