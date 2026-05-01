@@ -67,3 +67,54 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Global scrollbar theme (TODO 8.34)
+ *
+ * Custom scrollbars across the whole app, mapped to the shadcn color
+ * tokens so they pick up dark/light mode for free. Without this rule
+ * macOS hides the scrollbars entirely while every other OS shows the
+ * fat default OS scrollbar — the result is inconsistent between
+ * environments and dominates the tasteful UI design.
+ *
+ * Width: 10px (chrome/safari) / `thin` (firefox). Subtle muted track,
+ * rounded thumb that brightens slightly on hover. Dark mode swaps to
+ * the same tokens since both --muted and --border resolve correctly
+ * under .dark.
+ * ────────────────────────────────────────────────────────────────── */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.4) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground) / 0.35);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground) / 0.6);
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Opt-out helper — drop on a wrapper to hide scrollbars entirely while
+ * still allowing scroll (e.g. snap-scroll carousels, soft-keyboard
+ * panels on mobile where the chrome competes with content). */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
