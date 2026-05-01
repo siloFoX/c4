@@ -80,8 +80,21 @@ function generateSdk(spec) {
   lines.push(`// Generated at: ${new Date().toISOString()}`);
   lines.push('');
 
+  // SSE route detection — these return text/event-stream and need a
+  // streaming method instead of fetch().json(). We can't reliably
+  // tell from the spec alone (responses[200] schema is unknown for
+  // streams), so we name-match the routes that the daemon actually
+  // serves as SSE.
+  const SSE_ROUTES = new Set([
+    'GET /events',
+    'GET /watch',
+    'GET /approvals/stream',
+    'GET /slack/events',
+  ]);
+
   // Per-operation argument + response types, then the class.
   const methods = [];
+  const sseMethods = [];
   for (const [pth, ops] of Object.entries(spec.paths || {})) {
     for (const [method, op] of Object.entries(ops)) {
       const opId = op.operationId;
@@ -122,10 +135,24 @@ function generateSdk(spec) {
       lines.push('');
       // Method signature
       const sigArgs = argParts.map(([n, t, optional]) => `${n}${optional ? '?' : ''}: ${t}`).join(', ');
-      methods.push({ opId, method, pth, op, sigArgs, respName });
+      const routeKey = `${method.toUpperCase()} ${pth.replace(/^\/api/, '')}`;
+      const isSSE = SSE_ROUTES.has(routeKey);
+      if (isSSE) sseMethods.push({ opId, method, pth, op, sigArgs });
+      else methods.push({ opId, method, pth, op, sigArgs, respName });
     }
   }
 
+  lines.push('// SSE event payload yielded by streaming methods. `data` is the');
+  lines.push('// parsed JSON when the line was JSON, otherwise the raw string.');
+  lines.push('// `type` defaults to "message" per the SSE spec; daemon-emitted');
+  lines.push('// events carry their own `type` field inside `data`.');
+  lines.push('export interface C4SSEEvent {');
+  lines.push('  type: string;');
+  lines.push('  data: unknown;');
+  lines.push('  raw: string;');
+  lines.push('  id?: string;');
+  lines.push('}');
+  lines.push('');
   lines.push('// Error class — typed wrapper around non-2xx responses.');
   lines.push('// Carries the HTTP status, the parsed body (when JSON), and');
   lines.push('// the operationId so callers can switch on it.');
@@ -232,12 +259,92 @@ function generateSdk(spec) {
   lines.push('  private _sleep(ms: number): Promise<void> {');
   lines.push('    return new Promise((resolve) => setTimeout(resolve, ms));');
   lines.push('  }');
+  lines.push('  /**');
+  lines.push('   * Open an SSE stream at the given URL and yield parsed events.');
+  lines.push('   * Honours the same Authorization header as the request() helper.');
+  lines.push('   * The async generator returns when the underlying stream ends');
+  lines.push('   * (server-side close); callers can also break out of the for-await');
+  lines.push('   * loop to abort the connection.');
+  lines.push('   */');
+  lines.push('  private async *_sse(url: URL): AsyncGenerator<C4SSEEvent> {');
+  lines.push('    const headers: Record<string, string> = { Accept: "text/event-stream" };');
+  lines.push('    if (this.token) headers.Authorization = `Bearer ${this.token}`;');
+  lines.push('    const res = await this.fetch(url.toString(), { method: "GET", headers });');
+  lines.push('    if (!res.ok) {');
+  lines.push('      const ct = res.headers.get("content-type") || "";');
+  lines.push('      const body = ct.includes("json") ? await res.json() : await res.text();');
+  lines.push('      throw new C4ApiError(res.status, res.statusText, body);');
+  lines.push('    }');
+  lines.push('    if (!res.body) return;');
+  lines.push('    const reader = res.body.getReader();');
+  lines.push('    const decoder = new TextDecoder();');
+  lines.push('    let buffer = "";');
+  lines.push('    try {');
+  lines.push('      while (true) {');
+  lines.push('        const { value, done } = await reader.read();');
+  lines.push('        if (done) break;');
+  lines.push('        buffer += decoder.decode(value, { stream: true });');
+  lines.push('        // SSE messages are separated by a blank line. Split on');
+  lines.push('        // \\n\\n and keep the trailing partial in the buffer.');
+  lines.push('        let sep;');
+  lines.push('        while ((sep = buffer.indexOf("\\n\\n")) !== -1) {');
+  lines.push('          const message = buffer.slice(0, sep);');
+  lines.push('          buffer = buffer.slice(sep + 2);');
+  lines.push('          const parsed = this._parseSSEMessage(message);');
+  lines.push('          if (parsed) yield parsed;');
+  lines.push('        }');
+  lines.push('      }');
+  lines.push('    } finally {');
+  lines.push('      try { reader.releaseLock(); } catch { /* already released */ }');
+  lines.push('    }');
+  lines.push('  }');
+  lines.push('  private _parseSSEMessage(message: string): C4SSEEvent | null {');
+  lines.push('    const lines = message.split("\\n");');
+  lines.push('    let event = "message";');
+  lines.push('    let dataLines: string[] = [];');
+  lines.push('    let id: string | undefined;');
+  lines.push('    for (const line of lines) {');
+  lines.push('      if (!line || line.startsWith(":")) continue;');
+  lines.push('      const colon = line.indexOf(":");');
+  lines.push('      const field = colon === -1 ? line : line.slice(0, colon);');
+  lines.push('      const value = colon === -1 ? "" : line.slice(colon + 1).replace(/^ /, "");');
+  lines.push('      if (field === "event") event = value;');
+  lines.push('      else if (field === "data") dataLines.push(value);');
+  lines.push('      else if (field === "id") id = value;');
+  lines.push('    }');
+  lines.push('    if (dataLines.length === 0) return null;');
+  lines.push('    const raw = dataLines.join("\\n");');
+  lines.push('    let data: unknown = raw;');
+  lines.push('    try { data = JSON.parse(raw); } catch { /* keep raw string */ }');
+  lines.push('    return { type: event, data, raw, ...(id !== undefined ? { id } : {}) };');
+  lines.push('  }');
   for (const { opId, method, pth, op, sigArgs, respName } of methods) {
     const summary = op.summary || `${method.toUpperCase()} ${pth}`;
     lines.push('');
     lines.push(`  /** ${summary.replace(/\*\//g, '* /')} */`);
     lines.push(`  async ${opId}(${sigArgs}): Promise<${respName}> {`);
     lines.push(_methodBody(method, pth, op));
+    lines.push(`  }`);
+  }
+  // SSE methods — return an AsyncIterable of parsed event objects.
+  // Each method threads query params + token through the same URL +
+  // header build as fetch routes, then opens a streaming connection
+  // and yields {type, data, raw} events as they arrive.
+  for (const { opId, method, pth, op, sigArgs } of sseMethods) {
+    const summary = op.summary || `${method.toUpperCase()} ${pth}`;
+    lines.push('');
+    lines.push(`  /** ${summary.replace(/\*\//g, '* /')} (SSE stream) */`);
+    lines.push(`  async *${opId}(${sigArgs}): AsyncGenerator<C4SSEEvent> {`);
+    lines.push(`    const url = new URL('${pth}', this.baseUrl);`);
+    const queryParams = (op.parameters || []).filter((p) => p.in === 'query');
+    if (queryParams.length) {
+      lines.push(`    if (params) {`);
+      for (const p of queryParams) {
+        lines.push(`      if (params.${p.name} !== undefined) url.searchParams.set('${p.name}', String(params.${p.name}));`);
+      }
+      lines.push(`    }`);
+    }
+    lines.push(`    yield* this._sse(url);`);
     lines.push(`  }`);
   }
   lines.push('}');

@@ -60,7 +60,16 @@ async function main() {
   });
   console.log(`recent worker.created events: ${audit.events?.length ?? 0}`);
 
-  // 7) Cleanup.
+  // 7) Stream events for a few seconds to demonstrate SSE.
+  console.log('streaming events for 3 seconds…');
+  const eventStream = c4.getEvents();
+  const tail = setTimeout(() => eventStream.return(undefined), 3000);
+  for await (const ev of eventStream) {
+    console.log(`  [${ev.type}]`, ev.data);
+  }
+  clearTimeout(tail);
+
+  // 8) Cleanup.
   await c4.postClose({ name: 'demo-worker' });
   console.log('closed demo-worker');
 }

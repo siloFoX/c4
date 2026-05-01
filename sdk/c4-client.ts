@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.3
-// Generated at: 2026-05-01T11:31:38.357Z
+// Spec version: 1.10.5
+// Generated at: 2026-05-01T12:16:18.176Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -615,6 +615,17 @@ export type getWatchResponse = unknown;
 
 export type getDashboardResponse = unknown;
 
+// SSE event payload yielded by streaming methods. `data` is the
+// parsed JSON when the line was JSON, otherwise the raw string.
+// `type` defaults to "message" per the SSE spec; daemon-emitted
+// events carry their own `type` field inside `data`.
+export interface C4SSEEvent {
+  type: string;
+  data: unknown;
+  raw: string;
+  id?: string;
+}
+
 // Error class — typed wrapper around non-2xx responses.
 // Carries the HTTP status, the parsed body (when JSON), and
 // the operationId so callers can switch on it.
@@ -720,6 +731,65 @@ export class C4Client {
   }
   private _sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+  /**
+   * Open an SSE stream at the given URL and yield parsed events.
+   * Honours the same Authorization header as the request() helper.
+   * The async generator returns when the underlying stream ends
+   * (server-side close); callers can also break out of the for-await
+   * loop to abort the connection.
+   */
+  private async *_sse(url: URL): AsyncGenerator<C4SSEEvent> {
+    const headers: Record<string, string> = { Accept: "text/event-stream" };
+    if (this.token) headers.Authorization = `Bearer ${this.token}`;
+    const res = await this.fetch(url.toString(), { method: "GET", headers });
+    if (!res.ok) {
+      const ct = res.headers.get("content-type") || "";
+      const body = ct.includes("json") ? await res.json() : await res.text();
+      throw new C4ApiError(res.status, res.statusText, body);
+    }
+    if (!res.body) return;
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        // SSE messages are separated by a blank line. Split on
+        // \n\n and keep the trailing partial in the buffer.
+        let sep;
+        while ((sep = buffer.indexOf("\n\n")) !== -1) {
+          const message = buffer.slice(0, sep);
+          buffer = buffer.slice(sep + 2);
+          const parsed = this._parseSSEMessage(message);
+          if (parsed) yield parsed;
+        }
+      }
+    } finally {
+      try { reader.releaseLock(); } catch { /* already released */ }
+    }
+  }
+  private _parseSSEMessage(message: string): C4SSEEvent | null {
+    const lines = message.split("\n");
+    let event = "message";
+    let dataLines: string[] = [];
+    let id: string | undefined;
+    for (const line of lines) {
+      if (!line || line.startsWith(":")) continue;
+      const colon = line.indexOf(":");
+      const field = colon === -1 ? line : line.slice(0, colon);
+      const value = colon === -1 ? "" : line.slice(colon + 1).replace(/^ /, "");
+      if (field === "event") event = value;
+      else if (field === "data") dataLines.push(value);
+      else if (field === "id") id = value;
+    }
+    if (dataLines.length === 0) return null;
+    const raw = dataLines.join("\n");
+    let data: unknown = raw;
+    try { data = JSON.parse(raw); } catch { /* keep raw string */ }
+    return { type: event, data, raw, ...(id !== undefined ? { id } : {}) };
   }
 
   /** Authenticate with username/password — returns JWT. */
@@ -1411,27 +1481,11 @@ export class C4Client {
     });
   }
 
-  /** SSE stream of all daemon events. */
-  async getEvents(): Promise<getEventsResponse> {
-    return this.request<getEventsResponse>({
-      method: 'GET',
-      path: '/api/events',
-    });
-  }
-
   /** (8.26) Snapshot of the approval_pending set. Cheap to call, used by `c4 watch-interventions` on initial connect and by tests that want a non-streaming view. */
   async getApprovals(): Promise<getApprovalsResponse> {
     return this.request<getApprovalsResponse>({
       method: 'GET',
       path: '/api/approvals',
-    });
-  }
-
-  /** (8.26) Persistent SSE stream of approval_pending transitions. Reviewer sessions subscribe once and receive enter / exit / slack_alert / timeout events for every worker without needing to poll read-now or re-arm a per-worker wait. */
-  async getApprovalsStream(): Promise<getApprovalsStreamResponse> {
-    return this.request<getApprovalsStreamResponse>({
-      method: 'GET',
-      path: '/api/approvals/stream',
     });
   }
 
@@ -1520,14 +1574,6 @@ export class C4Client {
     return this.request<postStatusUpdateResponse>({
       method: 'POST',
       path: '/api/status-update',
-    });
-  }
-
-  /** (8.15) Tail of the in-memory event buffer. Open to any authenticated caller so dashboards can render the recent feed without holding the SLACK_WRITE permission. */
-  async getSlackEvents(): Promise<getSlackEventsResponse> {
-    return this.request<getSlackEventsResponse>({
-      method: 'GET',
-      path: '/api/slack/events',
     });
   }
 
@@ -1632,20 +1678,38 @@ export class C4Client {
     });
   }
 
-  /** Watch worker output stream (5.42) — SSE with base64-encoded PTY data */
-  async getWatch(params: getWatchParams): Promise<getWatchResponse> {
-    return this.request<getWatchResponse>({
-      method: 'GET',
-      path: '/api/watch',
-      params: params as unknown as Record<string, unknown> | undefined,
-    });
-  }
-
   /** Dashboard Web UI (4.3) */
   async getDashboard(): Promise<getDashboardResponse> {
     return this.request<getDashboardResponse>({
       method: 'GET',
       path: '/api/dashboard',
     });
+  }
+
+  /** SSE stream of all daemon events. (SSE stream) */
+  async *getEvents(): AsyncGenerator<C4SSEEvent> {
+    const url = new URL('/api/events', this.baseUrl);
+    yield* this._sse(url);
+  }
+
+  /** (8.26) Persistent SSE stream of approval_pending transitions. Reviewer sessions subscribe once and receive enter / exit / slack_alert / timeout events for every worker without needing to poll read-now or re-arm a per-worker wait. (SSE stream) */
+  async *getApprovalsStream(): AsyncGenerator<C4SSEEvent> {
+    const url = new URL('/api/approvals/stream', this.baseUrl);
+    yield* this._sse(url);
+  }
+
+  /** (8.15) Tail of the in-memory event buffer. Open to any authenticated caller so dashboards can render the recent feed without holding the SLACK_WRITE permission. (SSE stream) */
+  async *getSlackEvents(): AsyncGenerator<C4SSEEvent> {
+    const url = new URL('/api/slack/events', this.baseUrl);
+    yield* this._sse(url);
+  }
+
+  /** Watch worker output stream (5.42) — SSE with base64-encoded PTY data (SSE stream) */
+  async *getWatch(params: getWatchParams): AsyncGenerator<C4SSEEvent> {
+    const url = new URL('/api/watch', this.baseUrl);
+    if (params) {
+      if (params.name !== undefined) url.searchParams.set('name', String(params.name));
+    }
+    yield* this._sse(url);
   }
 }

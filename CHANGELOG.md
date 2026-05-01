@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.6] - 2026-05-01
+
+SDK SSE streaming support — typed `AsyncGenerator<C4SSEEvent>` for
+event / watch / approval-stream / slack-event routes.
+
+### Added
+- **(SDK) SSE streaming methods.** `getEvents()`, `getWatch({name})`,
+  `getApprovalsStream()`, `getSlackEvents()` now return
+  `AsyncGenerator<C4SSEEvent>` (was opaque `Promise<unknown>`). The
+  generator yields parsed events: `{type, data, raw, id?}`. `data` is
+  the parsed JSON payload when the line was JSON, otherwise the raw
+  string. `type` honours the SSE `event:` field (defaults to
+  `"message"`). Authorization header threads through; query params
+  populate the URL search string. Callers can `break` the
+  `for await` loop to abort the stream, or call `.return(undefined)`
+  on the iterator.
+- **(SDK) `_sse(url)` private helper + SSE message parser.** Pure-
+  fetch implementation (no `EventSource` polyfill needed —
+  WHATWG fetch + ReadableStream are universal). Buffers cross-chunk
+  message boundaries (`\n\n` separator), splits `event:` / `data:` /
+  `id:` fields per the SSE spec, attempts `JSON.parse` on the
+  `data` field with raw-string fallback.
+- **(test) SSE runtime coverage.** `tests/_helpers/run-sdk-runtime.mjs`
+  grows 19 → 25 runtime checks: SSE yields parsed events from a
+  ReadableStream-backed mock fetch, SSE second event uses
+  `event:` header, raw payload preserved, query params land in URL,
+  `Accept: text/event-stream` header sent. Suite still 148 pass
+  (the test is a single suite that asserts ≥ 25 checks).
+- **(sdk/examples/typed-client.ts) SSE demo.** Worked example tails
+  `c4.getEvents()` for 3 seconds, then aborts via `setTimeout` +
+  `iterator.return(undefined)`.
+
 ## [1.10.5] - 2026-05-01
 
 SDK runtime test suite — exercises the generated TS SDK end-to-end.

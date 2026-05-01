@@ -127,6 +127,52 @@ function jsonResponse(status, body) {
   check('5xx → 200 made 2 calls', fetch.calls.length === 2);
 }
 
+// --- 9. SSE streaming — yields parsed events
+{
+  // Build a Response whose body is a ReadableStream emitting two SSE messages.
+  function sseResponse(messages) {
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      start(controller) {
+        for (const m of messages) controller.enqueue(encoder.encode(m));
+        controller.close();
+      },
+    });
+    return new Response(stream, {
+      status: 200,
+      headers: { 'Content-Type': 'text/event-stream' },
+    });
+  }
+  const fetch = makeMockFetch([
+    sseResponse([
+      'data: {"type":"connected"}\n\n',
+      'event: worker.created\ndata: {"name":"w1"}\n\n',
+    ]),
+  ]);
+  const c4 = new C4Client({ baseUrl: 'http://test', fetch });
+  const events = [];
+  for await (const ev of c4.getEvents()) events.push(ev);
+  check('SSE yields 2 events', events.length === 2, `got ${events.length}`);
+  check('SSE first event has type=message + parsed JSON', events[0].type === 'message' && events[0].data.type === 'connected');
+  check('SSE second event uses event: header', events[1].type === 'worker.created');
+  check('SSE preserves raw payload', events[1].raw === '{"name":"w1"}');
+}
+
+// --- 10. SSE with query params
+{
+  const stream = new ReadableStream({
+    start(c) { c.close(); },
+  });
+  const empty = new Response(stream, { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
+  const fetch = makeMockFetch([empty]);
+  const c4 = new C4Client({ baseUrl: 'http://test', fetch });
+  const it = c4.getWatch({ name: 'worker-1' });
+  await it.next(); // exhaust the generator
+  const u = new URL(String(fetch.calls[0].url));
+  check('SSE getWatch passes name query param', u.searchParams.get('name') === 'worker-1');
+  check('SSE sends Accept: text/event-stream', fetch.calls[0].init.headers.Accept === 'text/event-stream');
+}
+
 // --- summary
 console.log(`\n${passed} pass, ${failed} fail`);
 if (failed > 0) process.exit(1);
