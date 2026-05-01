@@ -39,6 +39,9 @@ jobs:
       - name: openapi spec lint
         run: npm run lint:openapi
 
+      - name: openapi schema-drift check
+        run: npm run lint:schema-drift
+
       - name: web build
         run: npm --prefix web run build
 

@@ -487,55 +487,55 @@ const ROUTE_SCHEMAS = {
   },
   'POST /rbac/role/assign': {
     requestBody: {
-      required: ['user', 'role'],
+      required: ['username', 'role'],
       properties: {
-        user: { type: 'string' },
+        username: { type: 'string' },
         role: { type: 'string', enum: ['admin', 'manager', 'viewer'] },
       },
-      example: { user: 'alice', role: 'manager' },
+      example: { username: 'alice', role: 'manager' },
     },
   },
   'POST /rbac/grant/project': {
     requestBody: {
-      required: ['user', 'project'],
+      required: ['username', 'projectId'],
       properties: {
-        user: { type: 'string' },
-        project: { type: 'string' },
+        username: { type: 'string' },
+        projectId: { type: 'string' },
       },
     },
   },
   'POST /rbac/grant/machine': {
     requestBody: {
-      required: ['user', 'machine'],
+      required: ['username', 'alias'],
       properties: {
-        user: { type: 'string' },
-        machine: { type: 'string' },
+        username: { type: 'string' },
+        alias: { type: 'string', description: 'Fleet peer alias' },
       },
     },
   },
   'POST /rbac/revoke/project': {
     requestBody: {
-      required: ['user', 'project'],
+      required: ['username', 'projectId'],
       properties: {
-        user: { type: 'string' },
-        project: { type: 'string' },
+        username: { type: 'string' },
+        projectId: { type: 'string' },
       },
     },
   },
   'POST /rbac/revoke/machine': {
     requestBody: {
-      required: ['user', 'machine'],
+      required: ['username', 'alias'],
       properties: {
-        user: { type: 'string' },
-        machine: { type: 'string' },
+        username: { type: 'string' },
+        alias: { type: 'string' },
       },
     },
   },
   'POST /rbac/check': {
     requestBody: {
-      required: ['user', 'action'],
+      required: ['username', 'action'],
       properties: {
-        user: { type: 'string' },
+        username: { type: 'string' },
         action: { type: 'string', description: 'Canonical action name (e.g., worker.create)' },
         resource: {
           properties: {
@@ -544,7 +544,7 @@ const ROUTE_SCHEMAS = {
           },
         },
       },
-      example: { user: 'alice', action: 'worker.create', resource: { type: 'project', id: 'main' } },
+      example: { username: 'alice', action: 'worker.create', resource: { type: 'project', id: 'main' } },
     },
     response: {
       properties: { allowed: { type: 'boolean' } },
@@ -804,11 +804,10 @@ const ROUTE_SCHEMAS = {
   },
   'POST /slack/emit': {
     requestBody: {
-      required: ['type', 'message'],
+      required: ['eventType'],
       properties: {
-        type: { type: 'string' },
-        message: { type: 'string' },
-        worker: { type: 'string' },
+        eventType: { type: 'string', description: 'One of slackEvents.EVENT_TYPES' },
+        payload: { type: 'object', description: 'Event-specific payload (worker, message, etc)' },
       },
     },
     response: { properties: { success: { type: 'boolean' } } },
@@ -835,11 +834,12 @@ const ROUTE_SCHEMAS = {
   },
   'POST /hook-event': {
     requestBody: {
-      required: ['type'],
       properties: {
-        type: { type: 'string', description: 'Hook event type (PreToolUse / PostToolUse / etc)' },
-        target: { type: 'string' },
-        payload: { type: 'object' },
+        worker: { type: 'string', description: 'Worker name the hook fired for' },
+        hook_type: { type: 'string', description: 'PreToolUse / PostToolUse / etc' },
+        tool_name: { type: 'string' },
+        tool_input: { type: 'object' },
+        tool_response: { type: 'object' },
       },
     },
     response: { properties: { success: { type: 'boolean' } } },
@@ -853,8 +853,10 @@ const ROUTE_SCHEMAS = {
   },
   'POST /compact-event': {
     requestBody: {
-      required: ['name'],
-      properties: { name: { type: 'string' } },
+      required: ['worker'],
+      properties: {
+        worker: { type: 'string', description: 'Worker name the compact event fired for' },
+      },
     },
     response: { properties: { success: { type: 'boolean' } } },
   },
@@ -911,11 +913,8 @@ const ROUTE_SCHEMAS = {
     },
   },
   'POST /scribe/start': {
-    requestBody: {
-      properties: {
-        intervalMs: { type: 'integer', description: 'Sampling interval (default 5min)' },
-      },
-    },
+    // Handler reads no body fields — interval is config-driven.
+    // Empty body still accepted; schema documents the no-op shape.
   },
   'POST /autonomous/pause': {
     requestBody: {

@@ -4,6 +4,48 @@
 
 (no entries — next release window)
 
+## [1.10.13] - 2026-05-01
+
+Schema-drift detector + 7 schema accuracy fixes uncovered by it.
+
+### Added
+- **(`scripts/check-schema-drift.js`) Drift detector.** Pure-node,
+  zero deps. For each ROUTE_SCHEMAS entry with a requestBody:
+  locates the handler block in `daemon.js`, walks ~50 lines forward
+  for `parseBody` destructurings + `body.<field>` accesses, compares
+  against the schema's `properties` keys. Recognises wholesale
+  pass-through patterns (`manager.X(body)`, `parseBodyRaw`) so
+  pipe-through routes don't false-positive. Flags routes where the
+  handler uses NONE of the schema's fields (full drift). Verbose
+  mode (`--verbose`) prints partial-overlap diagnostics for manual
+  audit.
+- **(npm) `npm run lint:schema-drift`** + **CI workflow step.**
+  Runs after `npm run lint:openapi`. CI fails the build when drift
+  is detected, so future schema/handler renames can't ship without
+  one or the other being updated.
+- **(test) `tests/check-schema-drift.test.js`** — runs the detector
+  and asserts `No drift detected`.
+
+### Fixed
+- **7 schema↔handler mismatches uncovered by the detector:**
+  - `/rbac/role/assign`: `user` → `username` (handler reads `body.username`)
+  - `/rbac/grant/project`: `{user, project}` → `{username, projectId}`
+  - `/rbac/grant/machine`: `{user, machine}` → `{username, alias}`
+  - `/rbac/revoke/project`: `{user, project}` → `{username, projectId}`
+  - `/rbac/revoke/machine`: `{user, machine}` → `{username, alias}`
+  - `/rbac/check`: `user` → `username`
+  - `/scribe/start`: removed phantom `intervalMs` (handler ignores body)
+  - `/slack/emit`: `{type, message, worker}` → `{eventType, payload}`
+    (handler reads `body.eventType` + validates against
+    `slackEvents.EVENT_TYPES`)
+  - `/hook-event`: `{type, target, payload}` → `{worker, hook_type,
+    tool_name, tool_input, tool_response}` (Claude Code hook payload
+    shape)
+  - `/compact-event`: `name` → `worker` (handler reads `body.worker`)
+
+Suite 150 → 151. SDK regenerated (1943 → 1940 lines) with the
+corrected property names.
+
 ## [1.10.12] - 2026-05-01
 
 Validation wired into 8 mutator routes + schema accuracy fixes.

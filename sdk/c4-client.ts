@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.11
-// Generated at: 2026-05-01T14:18:02.811Z
+// Spec version: 1.10.12
+// Generated at: 2026-05-01T14:33:57.722Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -248,37 +248,37 @@ export interface getRbacUsersResponse {
 }
 
 export interface postRbacRoleAssignBody {
-  user: string;
+  username: string;
   role: "admin" | "manager" | "viewer";
 }
 export type postRbacRoleAssignResponse = unknown;
 
 export interface postRbacGrantProjectBody {
-  user: string;
-  project: string;
+  username: string;
+  projectId: string;
 }
 export type postRbacGrantProjectResponse = unknown;
 
 export interface postRbacGrantMachineBody {
-  user: string;
-  machine: string;
+  username: string;
+  alias: string; /** Fleet peer alias */
 }
 export type postRbacGrantMachineResponse = unknown;
 
 export interface postRbacRevokeProjectBody {
-  user: string;
-  project: string;
+  username: string;
+  projectId: string;
 }
 export type postRbacRevokeProjectResponse = unknown;
 
 export interface postRbacRevokeMachineBody {
-  user: string;
-  machine: string;
+  username: string;
+  alias: string;
 }
 export type postRbacRevokeMachineResponse = unknown;
 
 export interface postRbacCheckBody {
-  user: string;
+  username: string;
   action: string; /** Canonical action name (e.g., worker.create) */
   resource?: unknown;
 }
@@ -482,9 +482,6 @@ export interface postAutonomousTickResponse {
   reason?: string | null;
 }
 
-export interface postScribeStartBody {
-  intervalMs?: number; /** Sampling interval (default 5min) */
-}
 export type postScribeStartResponse = unknown;
 
 export interface postScribeStopResponse {
@@ -548,9 +545,11 @@ export interface postResizeResponse {
 }
 
 export interface postHookEventBody {
-  type: string; /** Hook event type (PreToolUse / PostToolUse / etc) */
-  target?: string;
-  payload?: Record<string, unknown>;
+  worker?: string; /** Worker name the hook fired for */
+  hook_type?: string; /** PreToolUse / PostToolUse / etc */
+  tool_name?: string;
+  tool_input?: Record<string, unknown>;
+  tool_response?: Record<string, unknown>;
 }
 export interface postHookEventResponse {
   success?: boolean;
@@ -649,9 +648,8 @@ export interface postStatusUpdateResponse {
 export type getSlackEventsResponse = Record<string, unknown>;
 
 export interface postSlackEmitBody {
-  type: string;
-  message: string;
-  worker?: string;
+  eventType: string; /** One of slackEvents.EVENT_TYPES */
+  payload?: Record<string, unknown>; /** Event-specific payload (worker, message, etc) */
 }
 export interface postSlackEmitResponse {
   success?: boolean;
@@ -728,7 +726,7 @@ export interface postTransferResponse {
 }
 
 export interface postCompactEventBody {
-  name: string;
+  worker: string; /** Worker name the compact event fired for */
 }
 export interface postCompactEventResponse {
   success?: boolean;
@@ -1595,11 +1593,10 @@ export class C4Client {
   }
 
   /** Start a scribe session — record manager context periodically. */
-  async postScribeStart(body: postScribeStartBody): Promise<postScribeStartResponse> {
+  async postScribeStart(): Promise<postScribeStartResponse> {
     return this.request<postScribeStartResponse>({
       method: 'POST',
       path: '/api/scribe/start',
-      body: body as unknown,
     });
   }
 
