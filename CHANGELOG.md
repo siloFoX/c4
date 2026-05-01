@@ -4,6 +4,52 @@
 
 (no entries — next release window)
 
+## [1.10.9] - 2026-05-01
+
+SDK npm package distribution polish.
+
+### Added
+- **(sdk/package.json) `c4-sdk/typed` sub-export.** Modern `exports`
+  field exposes the auto-generated TypeScript client at
+  `c4-sdk/typed` alongside the existing legacy `c4-sdk` default
+  export. ESM (`./dist/c4-client.js`) + CJS shim
+  (`./dist/c4-client.cjs`) + `.d.ts` (`./dist/c4-client.d.ts`) all
+  shipped. Source TS available at `c4-sdk/typed-source` for
+  TypeScript projects that prefer to compile it themselves.
+- **(sdk/tsconfig.json) Build pipeline.** `npm --prefix sdk run
+  build` compiles `c4-client.ts` → `dist/c4-client.{js,d.ts}` (tsc
+  --strict --noEmit clean). `npm --prefix sdk run regen` re-fetches
+  the spec from the running daemon and rewrites `c4-client.ts`.
+  `prepublishOnly` chains `regen → build` so `npm publish` always
+  ships the latest spec.
+- **(sdk/scripts/wrap-cjs.js) CJS shim generator.** Emits
+  `dist/c4-client.cjs` — a Proxy-based async shim that lets CJS
+  callers `const { C4Client } = require('c4-sdk/typed')` despite
+  the underlying ESM module.
+- **(sdk/dist/package.json) `{"type": "module"}`.** Silences
+  Node's MODULE_TYPELESS_PACKAGE_JSON warning + makes the ESM
+  intent explicit at the directory level.
+- **(test) `tests/c4-client-compiled.test.js`** + helper. Verifies
+  the tsc → dist pipeline produces a runnable ESM that:
+  - resolves `getHealth()` to a parsed body
+  - throws `C4ApiError` on 4xx with status preserved
+  - exposes 100+ methods on the prototype (regression guard against
+    tsc accidentally dropping methods).
+  Suite gracefully skips when `sdk/dist/` doesn't exist (CI runs
+  the SDK build before this test fires).
+- **(.gitignore) `sdk/dist` + `sdk/node_modules`.** Build output is
+  regenerable via `npm --prefix sdk run build`; tracked source
+  stays at `sdk/c4-client.ts`. `npm pack` still ships `dist/`
+  via the `files` whitelist in `sdk/package.json`.
+- **(sdk/README.md) Updated quick-start.** Walks through the
+  `c4-sdk/typed` flavour first (TypeScript example with
+  `onAuthExpired` + `onResponse` interceptor + SSE for-await +
+  C4ApiError catch) then the legacy JS quick-start.
+- **(sdk version) 0.1.0 → 0.2.0.** First release that ships the
+  typed sub-export.
+
+Suite 148 → 149.
+
 ## [1.10.8] - 2026-05-01
 
 SDK request/response interceptor pattern.

@@ -1,9 +1,20 @@
 # c4-sdk
 
-Programmatic control of the C4 daemon from Node.js. Every c4 CLI
-command has a matching method on `C4Client`, so callers can spin up
-workers, send tasks, stream output, and merge branches without
-shelling out.
+Programmatic control of the C4 daemon from Node.js. Two flavours
+coexist in the same package:
+
+1. **`c4-sdk`** (legacy hand-rolled JS) — `const { C4Client } = require('c4-sdk')`
+   — small, stable, JS-only.
+2. **`c4-sdk/typed`** (auto-generated from the daemon's OpenAPI spec)
+   — `import { C4Client } from 'c4-sdk/typed'` — fully typed methods
+   for all 110+ daemon endpoints (TypeScript inference for request
+   bodies + responses), built-in retry, typed error class, SSE
+   streaming, token auto-refresh on 401, request/response
+   interceptors. Regenerate with `npm run regen` (calls `c4 openapi
+   --sdk` against the running daemon).
+
+Both flavours coexist. Use `/typed` if you're on TypeScript or need
+SSE / interceptors; the default export remains for backwards compat.
 
 ## Install
 
@@ -14,7 +25,48 @@ npm install c4-sdk
 Requires Node.js >= 18. The package has zero runtime dependencies and
 uses the platform `fetch` to talk to the daemon.
 
-## Quick start
+## Quick start (typed)
+
+```ts
+import { C4Client, C4ApiError } from 'c4-sdk/typed';
+
+const c4 = new C4Client({
+  baseUrl: 'http://127.0.0.1:3456',
+  retries: 2,
+  onAuthExpired: async () => {
+    // re-login flow when the JWT expires mid-session
+    return localStorage.getItem('jwt') || null;
+  },
+  onResponse: (ctx) => {
+    metrics.histogram(`c4.${ctx.operationId}.duration`, ctx.durationMs);
+    return ctx;
+  },
+});
+
+const auth = await c4.postAuthLogin({ user: 'admin', password: 'admin123' });
+c4.setToken(auth.token!);
+
+// Typed methods + responses
+const m = await c4.getMetrics();
+console.log(m.daemon, m.workers, m.totals);
+
+// SSE streaming
+for await (const ev of c4.getEvents()) {
+  if (ev.type === 'shutdown') break;
+  console.log(ev.type, ev.data);
+}
+
+// Typed errors
+try {
+  await c4.postCreate({ name: 'w1', target: 'local' });
+} catch (e) {
+  if (e instanceof C4ApiError && e.status === 403) {
+    // RBAC denied
+  } else throw e;
+}
+```
+
+## Quick start (legacy)
 
 ```js
 const { C4Client } = require('c4-sdk');

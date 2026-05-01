@@ -1,9 +1,30 @@
 {
   "name": "c4-sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Programmatic control SDK for the C4 (Claude Code Code) daemon HTTP API",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./typed": {
+      "types": "./dist/c4-client.d.ts",
+      "import": "./dist/c4-client.js",
+      "require": "./dist/c4-client.cjs",
+      "default": "./dist/c4-client.js"
+    },
+    "./typed-source": {
+      "types": "./c4-client.ts",
+      "default": "./c4-client.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json && node scripts/wrap-cjs.js",
+    "regen": "node ../src/cli.js openapi --sdk > c4-client.ts",
+    "prepublishOnly": "npm run regen && npm run build"
+  },
   "license": "MIT",
   "author": "siloFoX",
   "repository": {
@@ -20,7 +41,10 @@
   },
   "files": [
     "lib/",
+    "dist/",
     "examples/",
+    "c4-client.ts",
+    "tsconfig.json",
     "README.md"
   ],
   "keywords": [
@@ -31,6 +55,11 @@
     "sdk",
     "orchestrator",
     "multi-agent",
-    "daemon"
-  ]
+    "daemon",
+    "openapi",
+    "typescript"
+  ],
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
 }
