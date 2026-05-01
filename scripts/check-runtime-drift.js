@@ -80,6 +80,16 @@ const PARAMETERIZED_ROUTES = {
   'GET /plan':            (ctx) => ctx.workerName ? `?name=${ctx.workerName}` : null,
 };
 
+// Idempotent POST routes that don't mutate state (just validate or
+// query). Each entry: route → request body factory.
+const IDEMPOTENT_POSTS = {
+  'POST /rbac/check': () => ({
+    username: 'admin',
+    action: 'worker.create',
+    resource: { type: 'project', id: 'main' },
+  }),
+};
+
 function _ok(label) { console.log(`✔ ${label}`); }
 function _fail(label, detail) { console.log(`✗ ${label}${detail ? ` :: ${detail}` : ''}`); }
 
@@ -129,25 +139,32 @@ async function main() {
   else if (!NO_FIXTURE) console.log(`(no fixture worker — ${ctx.reason}; parameterised routes will be skipped)\n`);
 
   for (const key of Object.keys(ROUTE_SCHEMAS).sort()) {
-    if (!key.startsWith('GET ')) continue;
     if (SKIP_ROUTES.has(key)) { skipped++; continue; }
-    const route = key.slice(4); // drop "GET "
+    const isGet = key.startsWith('GET ');
+    const isIdempotentPost = IDEMPOTENT_POSTS[key];
+    if (!isGet && !isIdempotentPost) continue;
+    const method = isGet ? 'GET' : 'POST';
+    const route = key.slice(method.length + 1); // drop "GET " or "POST "
     const schemas = ROUTE_SCHEMAS[key];
     if (!schemas.response) { skipped++; continue; }
     if (schemas.response.type === 'string') { skipped++; continue; }
 
-    // Build the URL — append fixture query params for routes that
-    // need them.
+    // Build the URL — append fixture query params for GET routes
+    // that need them.
     let pathWithQuery = route;
-    if (PARAMETERIZED_ROUTES[key]) {
+    let body;
+    if (isGet && PARAMETERIZED_ROUTES[key]) {
       const qs = PARAMETERIZED_ROUTES[key](ctx);
       if (!qs) { skipped++; continue; }
       pathWithQuery = route + qs;
     }
+    if (isIdempotentPost) {
+      body = isIdempotentPost();
+    }
 
     let result;
     try {
-      result = await _hit('GET', pathWithQuery);
+      result = await _hit(method, pathWithQuery, body);
     } catch (e) {
       _fail(key, `fetch failed: ${e.message}`);
       fail++;

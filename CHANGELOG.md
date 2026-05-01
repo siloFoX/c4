@@ -4,6 +4,19 @@
 
 (no entries — next release window)
 
+## [1.10.33] - 2026-05-02
+
+Runtime drift now covers idempotent POSTs.
+
+### Added
+- **(scripts/check-runtime-drift.js) IDEMPOTENT_POSTS map.**
+  POST routes that don't mutate state — currently
+  `POST /rbac/check` (just queries the permission table) —
+  get exercised with a fixture payload and validated like
+  any GET. Coverage: 43 → 44 routes runtime-validated.
+
+Suite 151/151. All four drift phases lint-clean.
+
 ## [1.10.32] - 2026-05-02
 
 Runtime drift checker now spawns a fixture worker so it can
