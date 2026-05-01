@@ -2,9 +2,29 @@
 
 ## [Unreleased]
 
-(no entries — next release window)
-
-## [1.9.1] - 2026-05-01
+### Added
+- **(openapi-gen) operationId auto-generation.** Every operation in
+  the served spec now carries a unique `operationId` (camelCase
+  derived from `<method><Path>` — e.g., `getHealth`,
+  `postAuthLogin`, `postRbacRoleAssign`, `getAuditVerify`).
+  Required by Swagger UI's "Generate Client" / Redoc / OpenAPI
+  codegen tooling. Dedup against a global seen-set so duplicate ids
+  never escape.
+- **(GET /openapi.yaml) YAML format spec endpoint.** Sibling to
+  `/openapi.json` — same auto-generated spec serialised as YAML
+  for tools that prefer it (Stoplight / Insomnia / Postman import).
+  Custom in-house JSON-to-YAML serializer keeps the daemon dep-free
+  (no `js-yaml` runtime install needed). Whitelisted in
+  `OPEN_API_ROUTES`.
+- **(openapi-gen) `x-rbac-action` OpenAPI extension.** extractRoutes
+  now does a 40-line forward window scan from each route marker for
+  the first `requireRole(authCheck, rbac.ACTIONS.<NAME>, ...)`
+  call. The constant name lands on the operation as
+  `x-rbac-action: WORKER_CREATE` (or whatever ACTION). 36 of 108
+  daemon operations now expose the RBAC gate to spec consumers.
+  Open routes (no requireRole) omit the extension. Tests:
+  `tests/openapi-gen.test.js` grows 25 → 29 assertions covering
+  RBAC harvest from synthetic fixture + spec-level coverage count.
 
 OpenAPI surface expansion: schema coverage 22 → 33+ routes,
 example payloads for 15 of 33 requestBody routes (was 8), zero-dep

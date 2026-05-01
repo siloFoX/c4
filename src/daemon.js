@@ -917,6 +917,20 @@ async function handleRequest(req, res) {
         baseUrl: `http://${req.headers.host || 'localhost:3456'}`,
       });
 
+    } else if (req.method === 'GET' && route === '/openapi.yaml') {
+      // YAML serialization of the same spec — convenient for tools
+      // that prefer YAML (Stoplight / Insomnia / Postman import).
+      // Custom in-house serializer keeps the daemon dep-free.
+      const { buildYaml } = require('./openapi-gen');
+      const yaml = buildYaml({
+        version: manager._daemonVersion || null,
+        baseUrl: `http://${req.headers.host || 'localhost:3456'}`,
+      });
+      res.setHeader('Content-Type', 'application/yaml; charset=utf-8');
+      res.writeHead(200);
+      res.end(yaml);
+      return;
+
     } else if (req.method === 'GET' && route === '/api-docs') {
       // Swagger UI rendering of the openapi.json spec. Static HTML
       // that loads swagger-ui-dist from node_modules/ via the

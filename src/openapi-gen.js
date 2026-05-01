@@ -39,6 +39,7 @@ const ROUTE_SUMMARIES = {
   'GET /workflows': 'List defined workflows.',
   'POST /workflows': 'Create a new workflow definition.',
   'GET /openapi.json': 'This document — auto-generated OpenAPI spec.',
+  'GET /openapi.yaml': 'Same spec as /openapi.json, serialised as YAML.',
   'POST /auth/login': 'Authenticate with username/password — returns JWT.',
   'POST /auth/logout': 'Invalidate the caller\'s session.',
   'GET /auth/status': 'Whether auth is enabled + which actions allowed.',
@@ -734,23 +735,34 @@ function _readDaemonSource(daemonPath) {
 // wins; this is the fallback for routes the curated map has not
 // caught up with yet.
 function extractRoutes(source) {
-  const re = /req\.method\s*===\s*'(GET|POST|PUT|DELETE|PATCH)'\s*&&\s*route\s*===\s*'([^']+)'\)\s*\{([^}]{0,400})/g;
+  // Two-pass scan. Pass 1 locates each `req.method === 'X' && route
+  // === '/y') {` marker and records its line index. Pass 2 walks
+  // forward up to 40 lines from each marker, harvesting:
+  //   (a) the leading `//` comment block (already-existing summary
+  //       behaviour)
+  //   (b) the first `requireRole(authCheck, rbac.ACTIONS.<NAME>, ...)`
+  //       inside the route body (new — feeds `x-rbac-action`).
+  // The regex-only approach hit a ceiling on routes with destructured
+  // `parseBody` calls because `[^}]` stopped at the destructuring
+  // closing brace before the rbac line; the line-window walk is more
+  // forgiving without giving up the dedup semantics.
+  const lines = source.split('\n');
+  const re = /req\.method\s*===\s*'(GET|POST|PUT|DELETE|PATCH)'\s*&&\s*route\s*===\s*'([^']+)'/;
   const seen = new Set();
   const routes = [];
-  let m;
-  while ((m = re.exec(source)) !== null) {
+  for (let i = 0; i < lines.length; i++) {
+    const m = re.exec(lines[i]);
+    if (!m) continue;
     const method = m[1];
     const routePath = m[2];
-    const body = m[3] || '';
     const key = `${method} ${routePath}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    // First contiguous run of `//` comment lines from the start of
-    // the body (skipping leading whitespace/newlines).
-    const lines = body.split('\n');
+    // Comment harvest: scan forward until first non-empty,
+    // non-`//` line.
     const commentLines = [];
-    for (let i = 0; i < lines.length; i++) {
-      const l = lines[i].trim();
+    for (let j = i + 1; j < Math.min(i + 40, lines.length); j++) {
+      const l = lines[j].trim();
       if (l === '') {
         if (commentLines.length === 0) continue;
         break;
@@ -759,9 +771,47 @@ function extractRoutes(source) {
       else break;
     }
     const inlineSummary = commentLines.join(' ').trim();
-    routes.push({ method, path: routePath, inlineSummary });
+    // RBAC action: walk forward up to 40 lines for the first
+    // requireRole(...) call. Once we hit `else if (req.method === 'X'`
+    // for a different route we stop — no rbac → null.
+    let rbacAction = null;
+    for (let j = i + 1; j < Math.min(i + 40, lines.length); j++) {
+      if (re.test(lines[j])) break; // entered the next route
+      const r = lines[j].match(/requireRole\s*\(\s*\w+\s*,\s*rbac\.ACTIONS\.([A-Z_]+)/);
+      if (r) { rbacAction = r[1]; break; }
+    }
+    routes.push({ method, path: routePath, inlineSummary, rbacAction });
   }
   return routes;
+}
+
+// Auto-generate a stable operationId from `<method> <path>` —
+// required for Swagger UI's "Generate Client" / Redoc / OpenAPI
+// codegen tooling. The id is camelCase, idempotent, and dedupes
+// against the global seen-set so duplicate ids never escape.
+//
+//   GET /api/health                → getHealth
+//   POST /api/auth/login           → postAuthLogin
+//   GET /api/audit/verify          → getAuditVerify
+//   POST /api/rbac/role/assign     → postRbacRoleAssign
+function _operationIdFor(method, routePath, seen) {
+  const parts = String(routePath).split('/').filter(Boolean);
+  const camel = parts
+    .map((p) => p.replace(/[^a-zA-Z0-9]+(.)?/g, (_, c) => (c ? c.toUpperCase() : '')))
+    .map((p) => p.replace(/^[a-z]/, (c) => c.toUpperCase()))
+    .join('');
+  let id = method.toLowerCase() + camel;
+  if (!seen.has(id)) {
+    seen.add(id);
+    return id;
+  }
+  // Disambiguate via numeric suffix (rare — only happens if path
+  // collides after camel-case collapse).
+  let n = 2;
+  while (seen.has(`${id}${n}`)) n++;
+  const dedup = `${id}${n}`;
+  seen.add(dedup);
+  return dedup;
 }
 
 function buildSpec({ daemonPath, version, baseUrl } = {}) {
@@ -770,6 +820,7 @@ function buildSpec({ daemonPath, version, baseUrl } = {}) {
   const routes = extractRoutes(source);
 
   const paths = {};
+  const seenOpIds = new Set();
   for (const r of routes) {
     const apiPath = `/api${r.path}`;
     if (!paths[apiPath]) paths[apiPath] = {};
@@ -779,7 +830,9 @@ function buildSpec({ daemonPath, version, baseUrl } = {}) {
     const harvested = !curated && r.inlineSummary ? r.inlineSummary : '';
     const summary = curated || harvested || key;
     const op = {
+      operationId: _operationIdFor(r.method, r.path, seenOpIds),
       summary,
+      ...(r.rbacAction ? { 'x-rbac-action': r.rbacAction } : {}),
       responses: {
         '200': { description: 'Success' },
         '400': { description: 'Bad request (invalid params)' },
@@ -845,8 +898,56 @@ function buildSpec({ daemonPath, version, baseUrl } = {}) {
   };
 }
 
+// Minimal JSON-to-YAML serializer for the spec — handles the subset
+// of YAML the OpenAPI envelope needs (strings, numbers, bools, null,
+// arrays, objects). Avoids a runtime YAML dep + keeps the daemon
+// stays lean. Strings get quoted only when they contain special
+// chars; numbers + booleans + null pass through unquoted.
+function _yamlSerialize(value, indent = 0) {
+  const pad = (n) => '  '.repeat(n);
+  const needsQuote = (s) => /[:#&*!|>'"%@`,\[\]{}\n]/.test(s) || /^[\s]/.test(s) || /[\s]$/.test(s) || /^(?:true|false|null|yes|no|on|off|~|-?\d)/i.test(s) || s === '';
+  const quoteString = (s) => '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"';
+  if (value === null || value === undefined) return 'null';
+  if (typeof value === 'boolean') return String(value);
+  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : 'null';
+  if (typeof value === 'string') return needsQuote(value) ? quoteString(value) : value;
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '[]';
+    return value.map((v) => {
+      const inner = _yamlSerialize(v, indent + 1);
+      // Object/array element: continue on next line (each key indents
+      // under the dash). Scalar: keep inline after the dash.
+      if (typeof v === 'object' && v !== null) {
+        const lines = inner.split('\n').filter((l) => l.length);
+        if (lines.length === 0) return `\n${pad(indent)}- {}`;
+        // First line attaches to the dash; subsequent lines indent.
+        return `\n${pad(indent)}- ${lines[0].trimStart()}` +
+          lines.slice(1).map((l) => `\n${pad(indent)}  ${l.replace(/^ {2}/, '')}`).join('');
+      }
+      return `\n${pad(indent)}- ${inner.replace(/^\n/, '')}`;
+    }).join('');
+  }
+  if (typeof value === 'object') {
+    const keys = Object.keys(value);
+    if (keys.length === 0) return '{}';
+    return keys.map((k) => {
+      const v = _yamlSerialize(value[k], indent + 1);
+      const isComplex = (typeof value[k] === 'object' && value[k] !== null && (Array.isArray(value[k]) ? value[k].length : Object.keys(value[k]).length));
+      if (isComplex) return `\n${pad(indent)}${k}:${v}`;
+      return `\n${pad(indent)}${k}: ${v}`;
+    }).join('');
+  }
+  return 'null';
+}
+
+function buildYaml(opts) {
+  const spec = buildSpec(opts);
+  return _yamlSerialize(spec).replace(/^\n/, '');
+}
+
 module.exports = {
   buildSpec,
+  buildYaml,
   extractRoutes,
   ROUTE_SUMMARIES,
   ROUTE_SCHEMAS,

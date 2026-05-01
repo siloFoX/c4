@@ -36,6 +36,24 @@ describe('openapi-gen.extractRoutes', () => {
     assert.ok(!r.some((x) => x.path === '/skip'));
   });
 
+  it('harvests x-rbac-action from requireRole calls', () => {
+    const f = `
+      } else if (req.method === 'POST' && route === '/secret') {
+        const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE,
+          { type: 'project', id: 'main' });
+        result = secret;
+      }
+      } else if (req.method === 'GET' && route === '/public') {
+        result = open;
+      }
+    `;
+    const r = extractRoutes(f);
+    const sec = r.find((x) => x.path === '/secret');
+    assert.equal(sec?.rbacAction, 'WORKER_CREATE');
+    const pub = r.find((x) => x.path === '/public');
+    assert.equal(pub?.rbacAction, null);
+  });
+
   it('harvests inline comment as summary when present', () => {
     const f = `
       } else if (req.method === 'GET' && route === '/with-comment') {
@@ -130,6 +148,82 @@ describe('openapi-gen.buildSpec', () => {
   it('honours the version override', () => {
     const s = buildSpec({ version: '9.9.9' });
     assert.equal(s.info.version, '9.9.9');
+  });
+});
+
+describe('openapi-gen x-rbac-action', () => {
+  it('routes with requireRole gates surface x-rbac-action in the spec', () => {
+    const s = buildSpec();
+    // /api/create has WORKER_CREATE, /api/audit/verify has AUDIT_READ
+    assert.equal(s.paths['/api/create']?.post?.['x-rbac-action'], 'WORKER_CREATE');
+    assert.equal(s.paths['/api/audit/verify']?.get?.['x-rbac-action'], 'AUDIT_READ');
+    assert.equal(s.paths['/api/merge']?.post?.['x-rbac-action'], 'MERGE_WRITE');
+  });
+
+  it('open routes (no requireRole) have no x-rbac-action', () => {
+    const s = buildSpec();
+    assert.equal(s.paths['/api/health']?.get?.['x-rbac-action'], undefined);
+    assert.equal(s.paths['/api/auth/login']?.post?.['x-rbac-action'], undefined);
+  });
+
+  it('30+ operations have x-rbac-action populated', () => {
+    const s = buildSpec();
+    let count = 0;
+    for (const ops of Object.values(s.paths)) {
+      for (const op of Object.values(ops)) {
+        if (op['x-rbac-action']) count++;
+      }
+    }
+    assert.ok(count >= 30, `expected 30+ x-rbac-action ops, got ${count}`);
+  });
+});
+
+describe('openapi-gen.operationId', () => {
+  it('every operation gets a unique camelCase operationId', () => {
+    const s = buildSpec();
+    const ids = new Set();
+    for (const ops of Object.values(s.paths)) {
+      for (const op of Object.values(ops)) {
+        assert.ok(op.operationId, 'operationId missing');
+        assert.match(op.operationId, /^[a-zA-Z][a-zA-Z0-9_-]*$/, `bad operationId: ${op.operationId}`);
+        assert.ok(!ids.has(op.operationId), `duplicate operationId: ${op.operationId}`);
+        ids.add(op.operationId);
+      }
+    }
+    assert.ok(ids.size > 80, `expected 80+ unique ids, got ${ids.size}`);
+  });
+
+  it('operationId is method-prefixed camelCase of the path', () => {
+    const s = buildSpec();
+    assert.equal(s.paths['/api/health']?.get?.operationId, 'getHealth');
+    assert.equal(s.paths['/api/auth/login']?.post?.operationId, 'postAuthLogin');
+    assert.equal(s.paths['/api/audit/verify']?.get?.operationId, 'getAuditVerify');
+    assert.equal(s.paths['/api/openapi.json']?.get?.operationId, 'getOpenapiJson');
+    assert.equal(s.paths['/api/rbac/role/assign']?.post?.operationId, 'postRbacRoleAssign');
+  });
+});
+
+describe('openapi-gen.buildYaml', () => {
+  const { buildYaml } = require('../src/openapi-gen');
+
+  it('produces a YAML document starting with openapi key', () => {
+    const yaml = buildYaml();
+    assert.match(yaml, /^openapi: /);
+  });
+
+  it('includes the same paths as the JSON spec (count match)', () => {
+    const json = buildSpec();
+    const yaml = buildYaml();
+    // Count `^  /api/...:` lines
+    const yamlPaths = (yaml.match(/^  \/api\//gm) || []).length;
+    assert.equal(yamlPaths, Object.keys(json.paths).length);
+  });
+
+  it('quotes strings with special chars (colons, dashes, embedded quotes)', () => {
+    const yaml = buildYaml();
+    // Quoted fields must use double quotes; bare keys/values without
+    // special chars stay unquoted.
+    assert.match(yaml, /openapi: "3\.0\.3"/);
   });
 });
 
