@@ -4,6 +4,25 @@
 
 (no entries — next release window)
 
+## [1.10.26] - 2026-05-02
+
+More item shape fills + one drift fix.
+
+### Fixed
+- **(spec) /recovery-history** — declared `history` but the
+  handler returns `records`. Spec now matches; record items
+  fully shaped (worker, category, signal, attempt, strategy,
+  phase, reason, manual). Also adds `path` to the response.
+
+### Added
+- **(spec) /list.lostWorkers item shape** — name, pid, branch,
+  worktree, parent, sessionId, pinnedMemory, lostAt. Lets
+  Web UI render the LOST list without `as any`.
+- **(spec) /nl/sessions item shape** — id, createdAt,
+  updatedAt, messageCount, lastWorker.
+
+Suite 151/151. SDK 2322 → 2348 lines. Linters clean.
+
 ## [1.10.25] - 2026-05-02
 
 Item shape sweep — every list/array response in the spec now

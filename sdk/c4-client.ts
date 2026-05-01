@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.25
-// Generated at: 2026-05-01T16:20:56.275Z
+// Spec version: 1.10.26
+// Generated at: 2026-05-01T16:24:07.701Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -192,7 +192,16 @@ export interface getListResponse {
   queuedAt?: string;
   status?: "queued";
 }[];
-  lostWorkers?: Record<string, unknown>[];
+  lostWorkers?: {
+  name?: string;
+  pid?: number | null;
+  branch?: string | null;
+  worktree?: string | null;
+  parent?: string | null;
+  sessionId?: string | null;
+  pinnedMemory?: Record<string, unknown> | null;
+  lostAt?: string; /** ISO timestamp of last save before daemon restart */
+}[];
   lastHealthCheck?: string | null;
 }
 
@@ -279,7 +288,18 @@ export interface getRecoveryHistoryParams {
   limit?: number;
 }
 export interface getRecoveryHistoryResponse {
-  history?: Record<string, unknown>[];
+  records?: {
+  time?: string; /** ISO timestamp */
+  worker?: string;
+  category?: "tool-deny" | "timeout" | "test-fail" | "build-fail" | "dependency" | "unknown";
+  signal?: string | null;
+  attempt?: number;
+  strategy?: string; /** Recovery strategy chosen (e.g., retry, ask-manager) */
+  phase?: string; /** Strategy phase (e.g., dispatched, give-up, notified) */
+  reason?: string | null;
+  manual?: boolean;
+}[];
+  path?: string; /** Filesystem path to the recovery-history JSONL */
 }
 
 export interface postCancelBody {
@@ -529,7 +549,13 @@ export interface postNlChatResponse {
 }
 
 export interface getNlSessionsResponse {
-  sessions?: Record<string, unknown>[];
+  sessions?: {
+  id?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  messageCount?: number;
+  lastWorker?: string | null;
+}[];
   count?: number;
 }
 

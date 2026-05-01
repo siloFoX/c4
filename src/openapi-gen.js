@@ -376,7 +376,21 @@ const ROUTE_SCHEMAS = {
             },
           },
         },
-        lostWorkers: { type: 'array', items: { type: 'object' } },
+        lostWorkers: {
+          type: 'array',
+          items: {
+            properties: {
+              name: { type: 'string' },
+              pid: { type: 'integer', nullable: true },
+              branch: { type: 'string', nullable: true },
+              worktree: { type: 'string', nullable: true },
+              parent: { type: 'string', nullable: true },
+              sessionId: { type: 'string', nullable: true },
+              pinnedMemory: { type: 'object', nullable: true },
+              lostAt: { type: 'string', description: 'ISO timestamp of last save before daemon restart' },
+            },
+          },
+        },
         lastHealthCheck: { type: 'string', nullable: true },
       },
     },
@@ -824,12 +838,28 @@ const ROUTE_SCHEMAS = {
   },
   'GET /recovery-history': {
     parameters: [
-      { name: 'name', in: 'query', schema: { type: 'string' } },
-      { name: 'limit', in: 'query', schema: { type: 'integer', default: 50 } },
+      { name: 'name', in: 'query', schema: { type: 'string', description: 'Filter to records for this worker' } },
+      { name: 'limit', in: 'query', schema: { type: 'integer', description: 'Cap to the latest N entries (0 = all)' } },
     ],
     response: {
       properties: {
-        history: { type: 'array', items: { type: 'object' } },
+        records: {
+          type: 'array',
+          items: {
+            properties: {
+              time: { type: 'string', description: 'ISO timestamp' },
+              worker: { type: 'string' },
+              category: { type: 'string', enum: ['tool-deny', 'timeout', 'test-fail', 'build-fail', 'dependency', 'unknown'] },
+              signal: { type: 'string', nullable: true },
+              attempt: { type: 'integer' },
+              strategy: { type: 'string', description: 'Recovery strategy chosen (e.g., retry, ask-manager)' },
+              phase: { type: 'string', description: 'Strategy phase (e.g., dispatched, give-up, notified)' },
+              reason: { type: 'string', nullable: true },
+              manual: { type: 'boolean' },
+            },
+          },
+        },
+        path: { type: 'string', description: 'Filesystem path to the recovery-history JSONL' },
       },
     },
   },
@@ -1196,7 +1226,18 @@ const ROUTE_SCHEMAS = {
   'GET /nl/sessions': {
     response: {
       properties: {
-        sessions: { type: 'array', items: { type: 'object' } },
+        sessions: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string' },
+              createdAt: { type: 'string' },
+              updatedAt: { type: 'string' },
+              messageCount: { type: 'integer' },
+              lastWorker: { type: 'string', nullable: true },
+            },
+          },
+        },
         count: { type: 'integer' },
       },
     },
