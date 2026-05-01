@@ -1505,9 +1505,14 @@ function buildSpec({ daemonPath, version, baseUrl } = {}) {
         if (!mediaType) {
           if (isString) {
             const desc = (respShape.description || '').toLowerCase();
-            if (desc.includes('text/event-stream')) mediaType = 'text/event-stream';
-            else if (desc.includes('text/html')) mediaType = 'text/html';
-            else if (desc.includes('application/yaml')) mediaType = 'application/yaml';
+            if (desc.includes('text/event-stream') ||
+                desc.includes('sse stream') ||
+                desc.includes('event stream')) mediaType = 'text/event-stream';
+            else if (desc.includes('text/html') ||
+                     desc.includes('html page') ||
+                     desc.includes(' html')) mediaType = 'text/html';
+            else if (desc.includes('application/yaml') ||
+                     desc.includes(' yaml')) mediaType = 'application/yaml';
             else mediaType = 'text/plain';
           } else {
             mediaType = 'application/json';
