@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.29] - 2026-05-02
+
+Phase 3 drift checker hardening — caught 3 more drift bugs the
+previous regex missed.
+
+### Fixed
+- **(scripts/check-schema-drift.js) Regex consumed boundary
+  chars on consecutive shorthand keys.** Old `/[\{,\n]/` group
+  consumed the comma, so `{ a, b, c }` only emitted `a` and
+  `c` (the engine couldn't anchor `b` because the leading
+  comma was already gone). Replaced with a depth-tracking
+  segment splitter that walks top-level commas only — flat
+  keys + nested objects + spread (`...x`) all parse correctly.
+- **(spec) /projects, /cicd/pipelines, /session-id** —
+  caught the new strict pass: missing `count` (projects,
+  pipelines) and `name` echo (session-id).
+
+Suite 151/151. SDK 2430 → 2433 lines. All three drift phases
+clean.
+
 ## [1.10.28] - 2026-05-02
 
 Phase 3 drift checker — response shape comparison — caught 6

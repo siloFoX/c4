@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.28
-// Generated at: 2026-05-01T16:44:32.292Z
+// Spec version: 1.10.29
+// Generated at: 2026-05-01T16:48:17.472Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -722,6 +722,7 @@ export interface getProjectsResponse {
   tasks?: Record<string, unknown>[];
   backlog?: Record<string, unknown>[];
 }[];
+  count?: number;
 }
 
 export interface postProjectsBody {
@@ -759,6 +760,7 @@ export interface getCicdPipelinesResponse {
   actions?: Record<string, unknown>[];
   createdAt?: string;
 }[];
+  count?: number;
 }
 
 export interface postCicdPipelinesBody {
@@ -1210,6 +1212,7 @@ export interface getSessionIdParams {
   name: string;
 }
 export interface getSessionIdResponse {
+  name?: string; /** Echo of the requested worker name */
   sessionId?: string | null;
 }
 

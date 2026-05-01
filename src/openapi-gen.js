@@ -898,6 +898,7 @@ const ROUTE_SCHEMAS = {
             },
           },
         },
+        count: { type: 'integer' },
       },
     },
   },
@@ -1268,7 +1269,12 @@ const ROUTE_SCHEMAS = {
   },
   'GET /session-id': {
     parameters: [{ name: 'name', in: 'query', required: true, schema: { type: 'string' } }],
-    response: { properties: { sessionId: { type: 'string', nullable: true } } },
+    response: {
+      properties: {
+        name: { type: 'string', description: 'Echo of the requested worker name' },
+        sessionId: { type: 'string', nullable: true },
+      },
+    },
   },
   'POST /hook-event': {
     requestBody: {
@@ -1331,6 +1337,7 @@ const ROUTE_SCHEMAS = {
             },
           },
         },
+        count: { type: 'integer' },
       },
     },
   },
