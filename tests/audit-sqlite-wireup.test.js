@@ -100,4 +100,36 @@ describe('AuditLogger SQLite wire-up', { skip: !sqliteAvailable }, () => {
       cleanup(dir);
     }
   });
+
+  // (review fix 2026-05-01) The SQLite row must round-trip the full
+  // audit event so a future reader can reconstruct the original
+  // shape (timestamp/type/target/details/hash) — not just the flat
+  // index columns. Without the nested `event` field, the `details`
+  // payload (reason, branch, command, etc.) is lost; only `bodyKeys`
+  // (the list of keys) survives.
+  it('SQLite row carries the full event verbatim under `event`', () => {
+    const { dir, logPath } = freshTmp();
+    try {
+      const a = new AuditLogger({ logPath, useSqlite: true });
+      a.record(
+        'approval.granted',
+        { reason: 'manual', branch: 'c4/test-branch' },
+        { target: 'worker-1' }
+      );
+      // Pull the raw row from SQLite and reconstruct via JSON.parse —
+      // matches what a future query() would do.
+      const stmt = a._sqlite.db.prepare('SELECT raw FROM audit ORDER BY id DESC LIMIT 1');
+      const row = stmt.get();
+      const parsed = JSON.parse(row.raw);
+      assert.ok(parsed.event, '`event` field must be present');
+      assert.strictEqual(parsed.event.type, 'approval.granted');
+      assert.strictEqual(parsed.event.target, 'worker-1');
+      assert.strictEqual(parsed.event.details.reason, 'manual');
+      assert.strictEqual(parsed.event.details.branch, 'c4/test-branch');
+      assert.ok(typeof parsed.event.hash === 'string', 'hash carried through');
+      a._sqlite.close();
+    } finally {
+      cleanup(dir);
+    }
+  });
 });

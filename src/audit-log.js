@@ -206,7 +206,14 @@ class AuditLogger {
   }
 
   // Translate an audit-log event (with hash + nested details) into the
-  // flat row shape AuditSqlite stores.
+  // row shape AuditSqlite stores. The flat columns
+  // (ts/actor/action/worker/ok/error/body_keys) feed the SQLite indexes
+  // used by query(); `event: fullEvent` carries the full audit event
+  // verbatim so the `raw` column round-trips losslessly.
+  // (review fix 2026-05-01) Without the nested `event` field a future
+  // reader wanting the original `details` object would only see
+  // `bodyKeys` (a list of keys, not the values) — which loses the
+  // security-relevant payload (reason / branch / command / etc).
   _toSqliteRow(fullEvent) {
     return {
       ts: fullEvent.timestamp,
@@ -217,6 +224,7 @@ class AuditLogger {
       error: (fullEvent.details && fullEvent.details.error) || null,
       bodyKeys: fullEvent.details ? Object.keys(fullEvent.details) : [],
       hash: fullEvent.hash,
+      event: fullEvent,
     };
   }
 
