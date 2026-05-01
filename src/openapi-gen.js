@@ -579,12 +579,23 @@ const ROUTE_SCHEMAS = {
         config: { maxConcurrency: 2 },
       },
     },
+    response: {
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string' },
+        enabled: { type: 'boolean' },
+        createdAt: { type: 'string' },
+      },
+    },
   },
   'GET /workflows': {
     parameters: [
       { name: 'enabled', in: 'query', schema: { type: 'string', enum: ['true', 'false'] } },
       { name: 'nameContains', in: 'query', schema: { type: 'string' } },
     ],
+    response: {
+      properties: { workflows: { type: 'array', items: { type: 'object' } } },
+    },
   },
   'POST /schedules': {
     requestBody: {
@@ -598,6 +609,13 @@ const ROUTE_SCHEMAS = {
         enabled: { type: 'boolean', default: true },
       },
       example: { name: 'morning-report', cron: '0 9 * * 1-5', task: 'Run morning report', enabled: true },
+    },
+    response: {
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string' },
+        nextRunAt: { type: 'string', nullable: true },
+      },
     },
   },
   'GET /schedules': {
@@ -614,6 +632,13 @@ const ROUTE_SCHEMAS = {
         description: { type: 'string' },
       },
     },
+    response: {
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string' },
+        createdAt: { type: 'string' },
+      },
+    },
   },
   'GET /projects': {
     response: {
@@ -628,6 +653,15 @@ const ROUTE_SCHEMAS = {
         category: { type: 'string', enum: ['tool-deny', 'timeout', 'test-fail', 'build-fail', 'dependency', 'unknown'] },
       },
     },
+    response: {
+      properties: {
+        recovered: { type: 'boolean' },
+        strategy: { type: 'string' },
+        category: { type: 'string' },
+        attempt: { type: 'integer' },
+        action: { type: 'string' },
+      },
+    },
   },
   'GET /recovery-history': {
     parameters: [
@@ -640,12 +674,14 @@ const ROUTE_SCHEMAS = {
       required: ['name'],
       properties: { name: { type: 'string' } },
     },
+    response: { properties: { success: { type: 'boolean' } } },
   },
   'POST /restart': {
     requestBody: {
       required: ['name'],
       properties: { name: { type: 'string' } },
     },
+    response: { properties: { success: { type: 'boolean' }, pid: { type: 'integer' } } },
   },
   'POST /resize': {
     requestBody: {
@@ -656,12 +692,14 @@ const ROUTE_SCHEMAS = {
         rows: { type: 'integer' },
       },
     },
+    response: { properties: { success: { type: 'boolean' } } },
   },
   'POST /resume': {
     requestBody: {
       required: ['name'],
       properties: { name: { type: 'string' } },
     },
+    response: { properties: { success: { type: 'boolean' }, sessionId: { type: 'string' } } },
   },
   'POST /batch': {
     requestBody: {
@@ -675,11 +713,25 @@ const ROUTE_SCHEMAS = {
       },
       example: { task: 'Fix lint errors in src/', count: 3, autoMode: true },
     },
+    response: {
+      properties: {
+        success: { type: 'boolean' },
+        spawned: { type: 'array', items: { type: 'string' } },
+        count: { type: 'integer' },
+      },
+    },
   },
   'POST /cleanup': {
     requestBody: {
       properties: {
         dryRun: { type: 'boolean', default: false },
+      },
+    },
+    response: {
+      properties: {
+        branchesRemoved: { type: 'array', items: { type: 'string' } },
+        worktreesRemoved: { type: 'array', items: { type: 'string' } },
+        directoriesRemoved: { type: 'array', items: { type: 'string' } },
       },
     },
   },
@@ -715,6 +767,23 @@ const ROUTE_SCHEMAS = {
       { name: 'name', in: 'query', schema: { type: 'string' } },
       { name: 'last', in: 'query', schema: { type: 'integer' } },
     ],
+    response: {
+      properties: {
+        history: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string' },
+              worker: { type: 'string' },
+              task: { type: 'string' },
+              startedAt: { type: 'string' },
+              completedAt: { type: 'string', nullable: true },
+              status: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
   },
   'GET /events/query': {
     parameters: [
@@ -769,6 +838,14 @@ const ROUTE_SCHEMAS = {
         branch: { type: 'string', description: 'For type=git' },
         remoteRepoPath: { type: 'string', description: 'For type=git' },
         opts: { type: 'object' },
+      },
+    },
+    response: {
+      properties: {
+        started: { type: 'boolean' },
+        pid: { type: 'integer' },
+        transferId: { type: 'string' },
+        cmd: { type: 'string' },
       },
     },
   },

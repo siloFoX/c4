@@ -931,6 +931,53 @@ async function handleRequest(req, res) {
       res.end(yaml);
       return;
 
+    } else if (req.method === 'GET' && route === '/api-docs/index') {
+      // Landing page — picks between Swagger UI and Redoc. Lets
+      // operators choose the renderer that fits their workflow
+      // (Swagger UI = "Try it out" interactive; Redoc = polished
+      // 3-pane reference docs).
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>C4 daemon API · Docs</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 720px; margin: 60px auto; padding: 0 24px; color: #2d3748; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    p.lead { color: #718096; margin-top: 0; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 32px; }
+    a.card { display: block; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px; text-decoration: none; color: inherit; transition: border-color 0.15s, box-shadow 0.15s; }
+    a.card:hover { border-color: #4299e1; box-shadow: 0 2px 8px rgba(66, 153, 225, 0.12); }
+    a.card h2 { margin: 0 0 8px; font-size: 18px; color: #2b6cb0; }
+    a.card p { margin: 0; font-size: 14px; color: #4a5568; }
+    .raw { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 14px; }
+    .raw a { color: #4299e1; text-decoration: none; margin-right: 16px; }
+    .raw a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>C4 daemon API</h1>
+  <p class="lead">Pick a renderer for the OpenAPI 3.0 spec.</p>
+  <div class="grid">
+    <a class="card" href="/api-docs">
+      <h2>Swagger UI →</h2>
+      <p>Interactive — every operation has a "Try it out" button that fires real requests against the daemon. Best for exploration + ad-hoc API calls.</p>
+    </a>
+    <a class="card" href="/api-docs/redoc">
+      <h2>Redoc →</h2>
+      <p>Polished — 3-pane reference layout (nav / detail / examples). Best for browsing the catalog without firing requests.</p>
+    </a>
+  </div>
+  <div class="raw">
+    Raw spec: <a href="/api/openapi.json">JSON</a> <a href="/api/openapi.yaml">YAML</a>
+  </div>
+</body>
+</html>`;
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.writeHead(200);
+      res.end(html);
+      return;
+
     } else if (req.method === 'GET' && route === '/api-docs/redoc') {
       // Redoc — alternative spec rendering. 3-pane layout (nav /
       // path detail / response samples) preferred by API docs

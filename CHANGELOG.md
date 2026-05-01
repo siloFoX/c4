@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.2] - 2026-05-01
+
+OpenAPI surface polish: docs landing page + 13 more response schemas.
+
+### Added
+- **(GET /api-docs/index) Docs landing page.** Lightweight HTML
+  picker that lets operators choose between Swagger UI (interactive,
+  "Try it out") and Redoc (polished, 3-pane reference). Also surfaces
+  raw spec links (JSON + YAML). No external CSS — self-contained
+  inline styles. Browser smoke `verify-api-docs-landing.js` 5/5 pass.
+- **(openapi-gen) Response schemas for 13 more routes.** create / send
+  / key / read / read-now / task / merge / close / sessions / attach /
+  approve / rollback / scrollback / audit.export / audit.query / tree
+  / workflows POST+GET / schedules / projects / recover / cancel /
+  restart / resize / resume / batch / cleanup / history / transfer
+  now ship `responses[200].content.application/json.schema` describing
+  the success shape. Coverage 35 → 48 of 110 ops.
+
 ## [1.10.1] - 2026-05-01
 
 Redoc renderer + response schema coverage expansion.
