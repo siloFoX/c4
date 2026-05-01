@@ -47,6 +47,7 @@
   "shortcuts.sendChat": "Send chat message",
   "shortcuts.newLine": "Insert newline in composer",
   "shortcuts.toggleTour": "Replay onboarding tour",
+  "shortcuts.toggleSidebar": "Collapse / expand the workers sidebar",
 
   "scribe.summary": "Session context recorder. Tails worker + manager JSONL into docs/session-context.md so the next session picks up where the last one left off.",
   "scribe.cli": "c4 scribe start|stop|scan|status",
