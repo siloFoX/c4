@@ -151,4 +151,20 @@ function validateResponse(method, route, body, ROUTE_SCHEMAS, opts) {
   return validate(schema, body, 'response');
 }
 
-module.exports = { validate, validateRequestBody, validateResponse };
+// Format a drift warning for log output. Returns a single-line
+// string like:
+//   [openapi-drift] GET /list: 2 field(s) — response.lastHealthCheck:
+//     expected string, got number; response.workers[0].pid: expected
+//     integer, got null
+// Returns null when there's no drift. Used by daemon's
+// validateResponses path; pulled out into the validator module so
+// tests can exercise the formatting without spawning a daemon.
+function formatDriftWarning(method, route, errors, opts) {
+  if (!errors || errors.length === 0) return null;
+  const max = (opts && opts.max) || 3;
+  const head = errors.slice(0, max).join('; ');
+  const tail = errors.length > max ? ' …' : '';
+  return `[openapi-drift] ${method} ${route}: ${errors.length} field(s) — ${head}${tail}`;
+}
+
+module.exports = { validate, validateRequestBody, validateResponse, formatDriftWarning };

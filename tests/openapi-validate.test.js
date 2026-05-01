@@ -2,7 +2,7 @@
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { validate, validateRequestBody, validateResponse } = require('../src/openapi-validate');
+const { validate, validateRequestBody, validateResponse, formatDriftWarning } = require('../src/openapi-validate');
 const { ROUTE_SCHEMAS } = require('../src/openapi-gen');
 
 describe('openapi-validate.validate (primitives)', () => {
@@ -200,5 +200,39 @@ describe('openapi-validate.validateResponse (against ROUTE_SCHEMAS)', () => {
     const r = validateResponse('GET', '/health',
       { ok: 'not-a-bool' }, ROUTE_SCHEMAS, { skipDelegated: true });
     assert.equal(r.valid, true);
+  });
+});
+
+describe('openapi-validate.formatDriftWarning', () => {
+  // (v1.10.38) Pulled out of daemon.js so the daemon-side
+  // validateResponses path can be tested without spawning a process.
+
+  it('returns null when there are no errors', () => {
+    assert.equal(formatDriftWarning('GET', '/x', []), null);
+    assert.equal(formatDriftWarning('GET', '/x', null), null);
+    assert.equal(formatDriftWarning('GET', '/x', undefined), null);
+  });
+
+  it('formats a single-line warning prefixed with [openapi-drift]', () => {
+    const line = formatDriftWarning('GET', '/health', ['response.workers: expected integer, got string']);
+    assert.match(line, /^\[openapi-drift\] GET \/health: 1 field\(s\) — response\.workers/);
+  });
+
+  it('caps the first N errors and adds an ellipsis when there are more', () => {
+    const errs = Array.from({ length: 5 }, (_, i) => `err${i}`);
+    const line = formatDriftWarning('GET', '/x', errs); // default max=3
+    assert.match(line, /err0; err1; err2 …$/);
+    assert.ok(!/err3/.test(line));
+  });
+
+  it('honours an explicit max', () => {
+    const errs = ['a', 'b', 'c', 'd'];
+    const line = formatDriftWarning('GET', '/x', errs, { max: 2 });
+    assert.match(line, /a; b …$/);
+  });
+
+  it('omits the ellipsis when errors fit under the cap', () => {
+    const line = formatDriftWarning('POST', '/y', ['only one']);
+    assert.ok(!/…/.test(line), `unexpected ellipsis: ${line}`);
   });
 });

@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.38] - 2026-05-02
+
+Refactor: extract drift warning formatter so daemon-side
+validateResponses gets unit-test coverage without spawning a
+subprocess.
+
+### Added
+- **(src/openapi-validate.js) `formatDriftWarning()`** — pulled
+  out of daemon.js's `_validateResponseAndWarn`. Builds the
+  single-line `[openapi-drift] METHOD route: N field(s) — …`
+  string with configurable max-errors cap. Returns null when
+  there's no drift so callers can skip the log call.
+- **(tests) 5 unit tests for formatDriftWarning** — null
+  inputs, single error, multi-error truncation with ellipsis,
+  custom max, and the no-ellipsis edge case. Locks in the log
+  format so future code can rely on the prefix for grep'ing
+  daemon stderr.
+
+### Changed
+- **(daemon) `_validateResponseAndWarn` uses the shared
+  helper.** Behaviour unchanged; daemon line count drops by 5.
+
+Suite 152/152 + 5 new helper tests = 157 individual checks
+in openapi-validate.test.js (was 28). All four drift phases
+clean.
+
 ## [1.10.37] - 2026-05-02
 
 Runtime drift checker now validates the first frame of every

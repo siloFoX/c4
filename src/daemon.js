@@ -253,16 +253,12 @@ function _validateResponseAndWarn(method, route, body, cfgNow) {
   if (!cfgNow || !cfgNow.openapi || !cfgNow.openapi.validateResponses) return;
   if (body && body.error) return; // error envelopes are off-spec by design
   try {
-    const { validateResponse } = require('./openapi-validate');
+    const { validateResponse, formatDriftWarning } = require('./openapi-validate');
     const { ROUTE_SCHEMAS } = require('./openapi-gen');
     const v = validateResponse(method, route, body, ROUTE_SCHEMAS);
-    if (!v.valid && v.errors.length > 0) {
-      console.warn(
-        `[openapi-drift] ${method} ${route}: ${v.errors.length} field(s) — `
-        + v.errors.slice(0, 3).join('; ')
-        + (v.errors.length > 3 ? ' …' : '')
-      );
-    }
+    if (v.valid) return;
+    const line = formatDriftWarning(method, route, v.errors);
+    if (line) console.warn(line);
   } catch (e) {
     // Validator bug shouldn't break the response; log + continue.
     console.warn('[openapi-drift] validator threw:', e.message);
