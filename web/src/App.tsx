@@ -159,8 +159,9 @@ export default function App() {
         onToggleSidebar={() => setSidebarOpen((open) => !open)}
         topView={topView}
         onTopViewChange={setTopView}
-        authed={authState === 'authed'}
+        authed={authState === 'authed' || authState === 'disabled'}
         onLogout={handleLogout}
+        onOpenPreferences={() => setTopView('settings')}
       />
       {topView === 'history' ? (
         <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -207,6 +208,8 @@ export default function App() {
             onSelect={handleSelect}
             collapsed={sidebarCollapsed}
             onToggleCollapsed={() => setSidebarCollapsed((v) => !v)}
+            onLogout={handleLogout}
+            onOpenPreferences={() => setTopView('settings')}
           />
           <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-3 md:p-6">
             {selectedWorker ? (
