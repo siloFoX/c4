@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+(no entries — next release window)
+
+## [1.10.0] - 2026-05-01
+
+OpenAPI surface expansion: per-operation `operationId` for codegen tooling,
+sibling `/openapi.yaml` endpoint, `x-rbac-action` extension exposing the
+RBAC gate (WORKER_CREATE / AUDIT_READ / MERGE_WRITE / etc) for 36 of 108
+ops. Two-pass extractRoutes refactor handles routes with destructured
+parseBody calls.
+
 ### Added
 - **(openapi-gen) operationId auto-generation.** Every operation in
   the served spec now carries a unique `operationId` (camelCase
