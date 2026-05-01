@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.46
-// Generated at: 2026-05-01T18:10:45.103Z
+// Spec version: 1.10.47
+// Generated at: 2026-05-01T18:16:13.322Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -923,6 +923,14 @@ export interface getTokenUsageResponse {
 export interface getQuotaResponse {
   date?: string; /** ISO date the snapshot was generated for (rolls over at UTC midnight) */
   tiers?: Record<string, unknown>; /** Map keyed by tier name. Each value: { dailyTokens, models[], used, remaining } */
+}
+
+export interface getValidationParams {
+  name: string;
+}
+export interface getValidationResponse {
+  name?: string;
+  validation?: Record<string, unknown> | null; /** Parsed JSON from <worktree>/.c4-validation.json, or a synthesised object from git state when the file is missing. Null when the worker exists but has no validation data yet. */
 }
 
 export interface getScrollbackParams {
@@ -2156,6 +2164,15 @@ export class C4Client {
     return this.request<getQuotaResponse>({
       method: 'GET',
       path: '/api/quota',
+    });
+  }
+
+  /** Read the worker's .c4-validation.json (typecheck/lint/tests results) — synthesised from git state when missing. */
+  async getValidation(params: getValidationParams): Promise<getValidationResponse> {
+    return this.request<getValidationResponse>({
+      method: 'GET',
+      path: '/api/validation',
+      params: params as unknown as Record<string, unknown> | undefined,
     });
   }
 

@@ -27,7 +27,10 @@ const { ROUTE_SCHEMAS } = require(path.join(__dirname, '..', 'src', 'openapi-gen
 const daemonPath = path.join(__dirname, '..', 'src', 'daemon.js');
 const lines = fs.readFileSync(daemonPath, 'utf8').split('\n');
 
-const ROUTE_LINE = /req\.method\s*===\s*'(POST|PUT|PATCH|DELETE|GET)'\s*&&\s*route\s*===\s*'([^']+)'/;
+// Match `req.method === 'X' && route === '/y'` AND the parenthesised
+// form `req.method === 'X' && (route === '/y' || ...)` — see
+// openapi-gen.js for the same pattern.
+const ROUTE_LINE = /req\.method\s*===\s*'(POST|PUT|PATCH|DELETE|GET)'\s*&&\s*\(?\s*route\s*===\s*'([^']+)'/;
 
 // Locate every route's handler line range so we can scope the
 // destructuring + body.<x> extraction to that block only.

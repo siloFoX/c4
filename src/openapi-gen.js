@@ -71,6 +71,7 @@ const ROUTE_SUMMARIES = {
   'POST /auto': 'Spawn the autonomous manager + scribe pair.',
   'POST /morning': 'Generate the morning report (overnight activity summary).',
   'POST /status-update': 'Post a manual Slack status message tagged with a worker.',
+  'GET /validation': 'Read the worker\'s .c4-validation.json (typecheck/lint/tests results) — synthesised from git state when missing.',
 };
 
 // Optional curated request/response schemas — populates the OpenAPI
@@ -1675,6 +1676,21 @@ const ROUTE_SCHEMAS = {
       type: 'string',
     },
   },
+  'GET /validation': {
+    parameters: [
+      { name: 'name', in: 'query', required: true, schema: { type: 'string' } },
+    ],
+    response: {
+      properties: {
+        name: { type: 'string' },
+        validation: {
+          type: 'object',
+          nullable: true,
+          description: 'Parsed JSON from <worktree>/.c4-validation.json, or a synthesised object from git state when the file is missing. Null when the worker exists but has no validation data yet.',
+        },
+      },
+    },
+  },
   'GET /attach/list': {
     response: {
       properties: {
@@ -1907,7 +1923,11 @@ function extractRoutes(source) {
   // closing brace before the rbac line; the line-window walk is more
   // forgiving without giving up the dedup semantics.
   const lines = source.split('\n');
-  const re = /req\.method\s*===\s*'(GET|POST|PUT|DELETE|PATCH)'\s*&&\s*route\s*===\s*'([^']+)'/;
+  // Match `req.method === 'X' && route === '/y'` AND the parenthesised
+  // form `req.method === 'X' && (route === '/y' || ...)` — the latter
+  // shows up when a handler dispatches to either a literal route or a
+  // dynamic match (e.g., `(route === '/validation' || workerValidationName)`).
+  const re = /req\.method\s*===\s*'(GET|POST|PUT|DELETE|PATCH)'\s*&&\s*\(?\s*route\s*===\s*'([^']+)'/;
   const seen = new Set();
   const routes = [];
   for (let i = 0; i < lines.length; i++) {

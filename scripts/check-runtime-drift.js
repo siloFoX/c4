@@ -78,6 +78,7 @@ const PARAMETERIZED_ROUTES = {
   'GET /scribe-context':  () => '?maxBytes=1024',
   'GET /events/context':  () => '?target=' + encodeURIComponent(new Date().toISOString()) + '&minutesBefore=1&minutesAfter=1',
   'GET /plan':            (ctx) => ctx.workerName ? `?name=${ctx.workerName}` : null,
+  'GET /validation':      (ctx) => ctx.workerName ? `?name=${ctx.workerName}` : null,
 };
 
 // Idempotent POST routes that don't mutate state (just validate or

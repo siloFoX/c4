@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.47] - 2026-05-02
+
+Picked up a route the spec was missing. Caught by an
+operation-count audit — daemon has 111 literal route handlers
+but the spec listed 110.
+
+### Added
+- **(spec) `GET /validation`** — reads
+  `<worktree>/.c4-validation.json` (typecheck/lint/test
+  results), falls back to a synthesised object from git state
+  when the file is missing. The route was wired in 9.9 but the
+  extractor regex skipped it because the daemon writes the
+  match clause as `(route === '/validation' || workerValidationName)`
+  — a parenthesised OR — and the regex required `&&\s*route`
+  with no opening paren in between.
+
+### Fixed
+- **(src/openapi-gen.js, scripts/check-schema-drift.js) Route
+  extractor regex.** Now matches both `&& route === 'X'` AND
+  `&& (route === 'X' || ...)`. Spec ops: 110 → 111. Static
+  drift checker also picks up the new route.
+
+Coverage:
+- Spec ops: 110 → 111
+- Runtime drift: 47 → 48 routes runtime-validated
+- Static drift: 28 GET routes with query param schemas
+  (was 27)
+
+Suite 153/153.
+
 ## [1.10.46] - 2026-05-02
 
 Runtime drift checker now validates 400/404 error envelopes
