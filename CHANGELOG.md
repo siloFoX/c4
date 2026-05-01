@@ -3,6 +3,217 @@
 ## [Unreleased]
 
 ### Added
+- **(8.34) Global scrollbar theme.** `web/src/index.css` adds a 51-line
+  scrollbar-style block: `::-webkit-scrollbar` (8px, transparent track,
+  rounded muted thumb, accent on hover), Firefox `scrollbar-width:
+  thin` + `scrollbar-color: hsl(var(--muted-foreground)/.4)
+  transparent`, and an opt-in `.no-scrollbar` utility for snap
+  carousels / mobile composer panels where the chrome would dominate.
+  Both light + dark theme tokens map cleanly via `--muted-foreground`.
+  Branched off origin/main directly; no JS / TS deltas. Patch note:
+  `docs/patches/8.34-global-scrollbar.md`.
+- **(8.35) Transparent logo background.** `web/public/logo.svg` —
+  removed the opaque `#0D1B2A` background `<path>` that wrapped the
+  C4 mark, leaving the silhouette to render against whatever surface
+  hosts it (sidebar / header / login modal / tab favicon). Single
+  60-byte deletion. Patch note: `docs/patches/8.35-logo-transparent.md`.
+- **(c4 doctor) Aggregated environment health check.** New `c4 doctor`
+  CLI command (`src/cli.js`) probes daemon reachability + version
+  match, `config.json` validation (errors / warnings via
+  `config-validate.js`), `web/dist` presence, and `logs/` write
+  permission. Each check renders with green ✓ / red ✗ / yellow ! and
+  an exit code: 0 = all pass, 1 = any failure (warnings alone exit 0
+  with a count). The five base modules also land here:
+  `src/worker-metrics.js` (per-worker CPU/RSS sampling via /proc with
+  Linux + macOS branches), `src/failure-patterns.js` (curated pattern
+  catalog — ENOSPC / EACCES / OOM / port collision / ESLint / etc),
+  `src/config-validate.js` (schema + types + cross-field invariants),
+  `src/audit-sqlite.js` (opt-in SQLite mirror module via node:sqlite),
+  and `web/src/components/MetricsBar.tsx` (live CPU/RSS strip).
+  Tests: `tests/worker-metrics.test.js`, `tests/failure-patterns.test.js`,
+  `tests/config-validate.test.js`. Branched off origin/main as a
+  6-commit stack; the stack underlies cli-metrics / cli-workspaces /
+  audit-sqlite-wireup / audit-rotation siblings.
+- **(c4 metrics) Pretty-print /metrics output.** New `GET /metrics`
+  daemon route returns `manager.metrics()` (per-worker + daemon
+  CPU/RSS snapshot via `worker-metrics`). New `c4 metrics` CLI
+  formatter prints a daemon header (pid/uptime/cpus/load/rss/heap),
+  totals row (live workers / cpu% / rss), and per-worker table
+  (NAME/STATUS/PID/CPU%/RSS/THREADS). `--json` passes through the
+  raw payload for piping. Tests: `tests/metrics-wireup.test.js` (112
+  assertions on /metrics shape, threading, sample lifecycle).
+- **MetricsBar mounted in App.tsx.** The MetricsBar component (live
+  CPU/RSS strip from cli-doctor) now mounts in the App shell, so
+  every tab shows the daemon health at a glance.
+- **(c4 config validate) Local config validator.** `c4 config
+  validate [path]` reads `config.json` (or the supplied path),
+  reports errors / warnings / info via the shared
+  `config-validate.js` module, and exits 1 when errors are present
+  so it's CI-friendly. **Review fix (2026-05-01)**: switched from
+  inline `require('fs')` / `require('path')` to the top-level
+  imports for consistency with the rest of `cli.js`. Tests:
+  `tests/config-validate.test.js` (50 assertions on CLI parse +
+  validate path resolution + exit-code matrix). Patch note:
+  `docs/patches/cli-config-validate-bundle.md`.
+- **(audit) Size-based log rotation with hash-chain continuity.**
+  `AuditLogger` gains `maxSizeBytes` + `keep` constructor opts.
+  When set, `record()` renames `audit.jsonl` →
+  `audit-<isoTs>.jsonl` once the file exceeds the threshold, then
+  starts a fresh file. Hash chain continues across rotation
+  because `_lastHash` lives in memory — the new file's first line
+  references the rotated file's last hash. `verify({
+  includeRotated })` walks the combined chain (rotated files
+  oldest-first by mtime + live file) and returns
+  `corruptedAt` / `total` / `rotatedTotal` so callers can map back
+  to file boundaries. **Review fix**: `verify({ includeRotated:
+  true })` actually walks rotated files (was a TODO before).
+  Daemon `GET /audit/verify?includeRotated=1` route added. Tests:
+  `tests/audit-rotation.test.js` (6 cases). Patch note:
+  `docs/patches/audit-rotation-bundle.md`.
+- **(audit) SQLite read accelerator wired into AuditLogger.**
+  When `useSqlite: true` constructor opt is set, `record()` also
+  INSERTs into a sibling `.db` so `query()` can use proper indexes
+  for filter combinations on bursts of events. JSONL stays the
+  source of truth (the hash chain lives there); SQLite append
+  failure is swallowed since the JSONL write already succeeded.
+  `_toSqliteRow(fullEvent)` flattens the event into
+  `ts/actor/action/worker/ok/error/bodyKeys/hash` columns. **Review
+  fix**: round-trips `event: fullEvent` in the `raw` column so
+  future readers see the original `details` payload, not just the
+  `bodyKeys` summary. Tests: `tests/audit-sqlite-wireup.test.js`
+  (135 lines). Patch note:
+  `docs/patches/audit-sqlite-wireup-bundle.md`.
+- **(audit) `query()` routes through SQLite mirror when available.**
+  When the SQLite mirror is initialised, `query()` issues a
+  parameterised SELECT with indexes on `ts` / `actor` / `action` /
+  `worker`. JSONL fallback stays for unmirrored deployments + as a
+  rebuild path. **Review fix**: SQLite default limit matches JSONL
+  default (1000) so paginated readers see consistent counts. Tests:
+  `tests/audit-sqlite-query.test.js` (148 lines). Patch note:
+  `docs/patches/audit-sqlite-query-bundle.md`.
+- **(audit) Excel-friendly CSV export (UTF-8 BOM + CRLF).** New
+  `AuditLogger.exportCsv(filter, opts)` produces a `{contentType,
+  body}` payload that opens correctly in Excel / LibreOffice /
+  Google Sheets without the operator picking a codec at import
+  time. Defaults: UTF-8 BOM + CRLF; pass `{bom: false, lineEnd:
+  '\n'}` for shell pipelines (awk / csvkit) that don't tolerate
+  the BOM. Daemon `GET /audit/export.csv` route added. **Review
+  fix**: literal BOM character (﻿) replaced the escaped form
+  for clarity + a regression-guard test (asserts the body starts
+  with the literal BOM byte sequence). Tests:
+  `tests/audit-csv-export.test.js` (94 lines). Patch note:
+  `docs/patches/audit-csv-bom-bundle.md`.
+- **(failure-patterns) 8 more pattern entries.** Catalog grows from
+  13 → 21: TypeScript module-not-found, Python ModuleNotFoundError,
+  postgres connection-refused, redis ECONNREFUSED, npm peer-dep
+  conflict, git remote ahead, JSON parse error, EROFS read-only
+  filesystem. Each entry carries `id` / `label` / `regex` / `hint`
+  / `sample` so the WorkerList badge surface (failure-hint-ui)
+  renders an actionable suggestion next to the failing worker.
+- **(failure-hint) Wired into `manager.list()`.** `pty-manager.js`
+  imports `failure-patterns` and adds a `_computeFailureHint(w)`
+  helper that runs the catalog against the worker's recent
+  scrollback / errorHistory / latest snapshot. The result lands on
+  the `Worker` row as `failureHint: {id, label, hint, sample,
+  count} | null` so the Web UI surface (failure-hint-ui) doesn't
+  need a follow-up round-trip. Tests:
+  `tests/failure-hint-wireup.test.js` (105 lines).
+- **(ui) Lightbulb failure-hint badge in WorkerList card.** New
+  badge renders below the worker branch: yellow alert with
+  `Lightbulb` icon, the curated pattern's label + count + hint,
+  and the matched sample text in the `title` attribute as a
+  tooltip. `Worker` type gains `failureHint?:
+  {id,label,hint,sample,count} | null`. Worker tier? field also
+  flows through the type for the 8.37 grouping. *Note*: the
+  worker hierarchy tree (780381a) was dropped during merge —
+  it conflicts with 8.37's Managers / Workers grouping; tree-view
+  ships as a follow-up under a separate axis (e.g., a view-mode
+  toggle) so both rendering modes can coexist.
+- **(workspace) Multi-repo workspaces.** `pty-manager` gains
+  `listWorkspaces()` + `resolveWorkspace(name)` that read
+  `config.workspaces[name] = {path, branch?}`. New daemon `GET
+  /workspaces` route + `POST /task` `workspace` parameter that
+  overrides `projectRoot` (explicit `projectRoot` still wins so
+  callers can target arbitrary paths). New `c4 workspaces` CLI
+  command prints a NAME / PATH / EXISTS / GIT table. New `c4 task
+  --workspace <name>` flag. Tests: `tests/workspaces.test.js` (91
+  lines). The workspace branch rebase produced a clean coexistence
+  with 8.39's `resolvedName` (workspace lookup runs first → sendTask
+  → resolvedName fallback → audit/Slack/history records reference
+  the auto-generated worker name).
+- **(token-attribution) Per-session token attribution + dept budget
+  bridge.** `pty-manager` tracks tokens per session ID across the
+  worker's lifetime. New `attributedCostsByGroup({groupBy:
+  'session'|'project'|'tier'|'dept'})` rolls up per-group totals so
+  the dept-monthly-budget tier can charge against actual usage
+  instead of a flat per-worker estimate. Tests:
+  `tests/token-attribution.test.js`, `tests/dept-attribution.test.js`.
+- **(nl-llm-fallback) Anthropic API fallback module (opt-in).** New
+  `src/nl-llm-fallback.js` provides `parseLLM(text, {apiKey, model})`
+  — calls Anthropic Messages API with a tightly-scoped prompt that
+  returns either a parsed intent (`{action, args}`) or `null`. Used
+  as a fallback when the local rule-based `parseIntent` returns no
+  match. Disabled by default; enable via
+  `config.nl.fallback.enabled = true` + ANTHROPIC_API_KEY env. Tests:
+  `tests/nl-llm-fallback.test.js`.
+- **(nl) `parseIntentWithLLM` wires Anthropic fallback into
+  nl-interface.** Top-level `parseIntent` first runs the local
+  rule-based parser; on miss, if `config.nl.fallback.enabled`, falls
+  through to `parseLLM`. The rule-based path stays the cheap default
+  so most commands never hit the network. Tests:
+  `tests/nl-fallback-wireup.test.js` (151 lines).
+- **(workflow) `audit` node type — record events into hash chain.**
+  New workflow node type that records an audit event when reached.
+  `node.config = { type, target, details? }` becomes the event
+  payload. Hash chain stays tamper-evident across workflow runs. Tests:
+  `tests/workflow-audit-action.test.js` (135 lines).
+- **(workflow) `validateGraph` checks per-node config field types.**
+  Beyond structural DAG validation, each node type now declares its
+  `config` field schema and the validator surfaces type mismatches
+  early (e.g., `wait.config.ms` must be a finite number, `audit.config.type`
+  must be a non-empty string). Tests:
+  `tests/workflow-config-validate.test.js` (107 lines).
+- **(workflow) `notify` node type — Slack/email push from workflow.**
+  Workflows can now fire `notify` nodes that push to Slack (via the
+  existing webhook plumbing) or email (via SMTP config). `node.config
+  = {channel: 'slack'|'email', target, body}` with template
+  interpolation from upstream node outputs. Tests:
+  `tests/workflow-notify-node.test.js`.
+- **(workflow) Bounded parallel execution.** `wf.config.maxConcurrency`
+  (default 1, preserves the previous strict-sequential walk) lets ready
+  peer nodes run concurrently up to the cap. The DAG order is still
+  respected via the per-node deps gate; only nodes whose dependencies
+  all completed AND are activated dispatch in the same batch. Parallel
+  fan-out branches now actually share the wall-clock with their
+  siblings instead of serializing. Tests:
+  `tests/workflow-parallel.test.js` (218 lines).
+- **(workflow) Per-node retry policy.** `node.config.retry =
+  {maxRetries, backoffMs}` re-runs the node up to `1 + maxRetries`
+  times with `backoffMs` sleeps between attempts. `result.attempts`
+  surfaces the final attempt count when retries occurred. Combines
+  cleanly with bounded parallel — retries happen inside `startNode`'s
+  per-node async closure so a flaky branch doesn't block its peers'
+  in-flight execution. Tests: `tests/workflow-retry.test.js` (118 lines).
+- **(pm-board) Append-only kanban + TODO.md two-way sync.** New
+  `src/pm-board.js` ships a lightweight `PmBoard` distinct from the
+  10.8 `ProjectBoard`: append-only JSONL event log at
+  `~/.c4/pm-board.jsonl` (move / create / delete / rename) replays
+  into a card map at boot, columns default to `backlog / todo /
+  in_progress / done`, and `syncTodoMd(repoPath)` is bidirectional —
+  imports unmatched TODO.md rows as new cards and writes back the
+  current board state on the next pass so external editors and the
+  board agree on truth. Tests: `tests/pm-board.test.js`.
+- **(noise) Debug-gate per-event hook chatter.** `pty-manager` and
+  `daemon` now route `_appendEventLog` / hook-event stderr through
+  a `config.debug.hookEvents` gate (default `false`). Stderr stays
+  clean unless an operator explicitly opts in for debugging. Tests:
+  `tests/slack-activity.test.js` updated to assert the gating
+  behavior.
+- **(packaging) Include `web/dist` + `prepublishOnly` build hook.**
+  `package.json` `files` array now whitelists `web/dist` so the
+  npm-published tarball ships a runnable web bundle. New
+  `prepublishOnly` script runs `npm run build:web` so the tarball
+  always matches the source.
 - **(11.5) Risk classifier (Shadow Execution building block).** New
   `src/risk-classifier.js` — pure synchronous module, zero runtime
   dependencies. `classifyCommand(cmd)` returns `{ level: 'low' |

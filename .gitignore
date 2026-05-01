@@ -11,6 +11,7 @@ yarn-error.log*
 
 # Runtime data
 state.json
+scheduler-state.json
 scribe-state.json
 token-state.json
 history.jsonl
