@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.23
-// Generated at: 2026-05-01T16:10:11.726Z
+// Spec version: 1.10.24
+// Generated at: 2026-05-01T16:15:51.196Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -30,13 +30,38 @@ export interface getHealthResponse {
 }
 
 export interface getMetricsResponse {
-  daemon?: unknown;
-  workers?: unknown[];
-  totals?: Record<string, unknown>;
+  daemon?: {
+  pid?: number;
+  uptimeSec?: number;
+  rssKb?: number;
+  heapUsedKb?: number;
+  heapTotalKb?: number;
+  cpus?: number;
+  loadavg?: number[];
+};
+  workers?: {
+  name?: string;
+  pid?: number | null;
+  status?: string; /** idle / busy / exited / etc */
+  cpuPct?: number | null;
+  rssKb?: number | null;
+  threads?: number | null;
+}[];
+  totals?: {
+  liveWorkers?: number;
+  totalWorkers?: number;
+  totalRssKb?: number;
+  totalCpuPct?: number;
+};
 }
 
 export interface getWorkspacesResponse {
-  workspaces?: unknown[];
+  workspaces?: {
+  name?: string;
+  path?: string;
+  exists?: boolean;
+  isGitRepo?: boolean;
+}[];
 }
 
 export interface getOpenapiJsonResponse {
@@ -135,9 +160,40 @@ export interface getWaitReadMultiResponse {
 }
 
 export interface getListResponse {
-  workers?: unknown[];
-  queuedTasks?: unknown[];
-  lostWorkers?: unknown[];
+  workers?: {
+  name?: string;
+  kind?: string; /** spawned (PTY-backed) | attached (imported JSONL) */
+  command?: string | null;
+  target?: string; /** local / dgx / fleet alias */
+  branch?: string | null;
+  worktree?: string | null;
+  parent?: string | null; /** Parent worker name (hierarchy) */
+  tier?: string; /** manager / worker */
+  pid?: number | null;
+  status?: "idle" | "busy" | "exited";
+  unreadSnapshots?: number;
+  totalSnapshots?: number;
+  intervention?: null | "approval_pending" | "background_exit" | "past_resolved";
+  hasPastIntervention?: boolean;
+  lastInterventionAt?: string | null;
+  cpuPct?: number | null;
+  rssKb?: number | null;
+  threads?: number | null;
+  errorCount?: number;
+  phase?: string | null;
+  testFailCount?: number;
+  failureHint?: Record<string, unknown> | null;
+}[];
+  queuedTasks?: {
+  name?: string;
+  task?: string;
+  branch?: string | null;
+  after?: string | null;
+  queuedAt?: string;
+  status?: "queued";
+}[];
+  lostWorkers?: Record<string, unknown>[];
+  lastHealthCheck?: string | null;
 }
 
 export interface getTreeResponse {
@@ -249,7 +305,14 @@ export interface getAuditQueryParams {
   limit?: number;
 }
 export interface getAuditQueryResponse {
-  events?: unknown[];
+  events?: {
+  timestamp?: string;
+  type?: string;
+  actor?: string;
+  target?: string;
+  details?: Record<string, unknown>;
+  hash?: string; /** SHA-256 hash chain link */
+}[];
   count?: number;
   path?: string; /** Path to the live audit log file */
 }
@@ -276,11 +339,18 @@ export interface getAuditVerifyResponse {
 }
 
 export interface getRbacRolesResponse {
-  roles?: unknown[];
+  roles?: {
+  name?: "admin" | "manager" | "viewer";
+  actions?: string[];
+}[];
 }
 
 export interface getRbacUsersResponse {
-  users?: unknown[];
+  users?: {
+  user?: string;
+  role?: string;
+  grants?: Record<string, unknown>;
+}[];
 }
 
 export interface postRbacRoleAssignBody {
@@ -331,7 +401,10 @@ export interface postRbacRevokeMachineResponse {
 export interface postRbacCheckBody {
   username: string;
   action: string; /** Canonical action name (e.g., worker.create) */
-  resource?: unknown;
+  resource?: {
+  type?: "project" | "machine";
+  id?: string;
+};
 }
 export interface postRbacCheckResponse {
   allowed?: boolean;
@@ -368,7 +441,14 @@ export interface postCostBudgetResponse {
 }
 
 export interface getOrgsTreeResponse {
-  roots?: unknown[];
+  roots?: {
+  id?: string;
+  name?: string;
+  parentId?: string | null;
+  subDepts?: unknown[]; /** Nested departments */
+  teams?: Record<string, unknown>[];
+  members?: Record<string, unknown>[];
+}[];
   count?: number;
 }
 
@@ -475,7 +555,9 @@ export interface postWorkflowsBody {
   description?: string;
   nodes: Record<string, unknown>[];
   edges: Record<string, unknown>[];
-  config?: unknown;
+  config?: {
+  maxConcurrency?: number;
+};
 }
 export interface postWorkflowsResponse {
   id?: string;
@@ -655,7 +737,13 @@ export interface getEventsQueryParams {
   reverse?: "0" | "1" | "true" | "false";
 }
 export interface getEventsQueryResponse {
-  events?: unknown[];
+  events?: {
+  id?: string; /** Monotonic event id */
+  ts?: string; /** ISO timestamp */
+  type?: string; /** Event type (dotted: domain.action) */
+  worker?: string | null;
+  data?: Record<string, unknown>; /** Event-specific payload */
+}[];
   count?: number;
 }
 
@@ -845,7 +933,15 @@ export interface getHistoryParams {
   q?: string;
 }
 export interface getHistoryResponse {
-  records?: unknown[];
+  records?: {
+  id?: string;
+  worker?: string;
+  task?: string;
+  startedAt?: string;
+  completedAt?: string | null;
+  status?: string;
+  branch?: string | null;
+}[];
   workers?: Record<string, unknown>[]; /** Per-worker rollup summary */
   total?: number; /** Total record count before filtering */
 }
@@ -866,7 +962,13 @@ export interface getSessionsParams {
 }
 export interface getSessionsResponse {
   rootDir?: string;
-  sessions?: unknown[];
+  sessions?: {
+  sessionId?: string;
+  path?: string;
+  projectPath?: string | null;
+  projectDir?: string | null;
+  lastAssistantSnippet?: string | null;
+}[];
   groups?: Record<string, unknown>[];
   total?: number;
 }
@@ -2005,6 +2107,15 @@ export class C4Client {
     });
   }
 
+  /** (8.15) Tail of the in-memory event buffer. Open to any authenticated caller so dashboards can render the recent feed without holding the SLACK_WRITE permission. */
+  async getSlackEvents(params?: getSlackEventsParams): Promise<getSlackEventsResponse> {
+    return this.request<getSlackEventsResponse>({
+      method: 'GET',
+      path: '/api/slack/events',
+      params: params as unknown as Record<string, unknown> | undefined,
+    });
+  }
+
   /** (8.15) Manual event injection. Only operators with SLACK_WRITE can call this — the CLI `c4 slack test` uses the same route so a viewer JWT cannot flood the channel. */
   async postSlackEmit(body: postSlackEmitBody): Promise<postSlackEmitResponse> {
     return this.request<postSlackEmitResponse>({
@@ -2129,15 +2240,6 @@ export class C4Client {
   /** (8.26) Persistent SSE stream of approval_pending transitions. Reviewer sessions subscribe once and receive enter / exit / slack_alert / timeout events for every worker without needing to poll read-now or re-arm a per-worker wait. (SSE stream) */
   async *getApprovalsStream(): AsyncGenerator<C4SSEEvent> {
     const url = new URL('/api/approvals/stream', this.baseUrl);
-    yield* this._sse(url);
-  }
-
-  /** (8.15) Tail of the in-memory event buffer. Open to any authenticated caller so dashboards can render the recent feed without holding the SLACK_WRITE permission. (SSE stream) */
-  async *getSlackEvents(params?: getSlackEventsParams): AsyncGenerator<C4SSEEvent> {
-    const url = new URL('/api/slack/events', this.baseUrl);
-    if (params) {
-      if (params.limit !== undefined) url.searchParams.set('limit', String(params.limit));
-    }
     yield* this._sse(url);
   }
 

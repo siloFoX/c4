@@ -122,6 +122,7 @@ const ROUTE_SCHEMAS = {
     response: {
       properties: {
         daemon: {
+          type: 'object',
           properties: {
             pid: { type: 'integer' },
             uptimeSec: { type: 'number' },
@@ -132,8 +133,28 @@ const ROUTE_SCHEMAS = {
             loadavg: { type: 'array', items: { type: 'number' } },
           },
         },
-        workers: { type: 'array' },
-        totals: { type: 'object' },
+        workers: {
+          type: 'array',
+          items: {
+            properties: {
+              name: { type: 'string' },
+              pid: { type: 'integer', nullable: true },
+              status: { type: 'string', description: 'idle / busy / exited / etc' },
+              cpuPct: { type: 'number', nullable: true },
+              rssKb: { type: 'number', nullable: true },
+              threads: { type: 'integer', nullable: true },
+            },
+          },
+        },
+        totals: {
+          type: 'object',
+          properties: {
+            liveWorkers: { type: 'integer' },
+            totalWorkers: { type: 'integer' },
+            totalRssKb: { type: 'number' },
+            totalCpuPct: { type: 'number' },
+          },
+        },
       },
     },
   },
@@ -313,9 +334,50 @@ const ROUTE_SCHEMAS = {
   'GET /list': {
     response: {
       properties: {
-        workers: { type: 'array' },
-        queuedTasks: { type: 'array' },
-        lostWorkers: { type: 'array' },
+        workers: {
+          type: 'array',
+          items: {
+            properties: {
+              name: { type: 'string' },
+              kind: { type: 'string', description: "spawned (PTY-backed) | attached (imported JSONL)" },
+              command: { type: 'string', nullable: true },
+              target: { type: 'string', description: 'local / dgx / fleet alias' },
+              branch: { type: 'string', nullable: true },
+              worktree: { type: 'string', nullable: true },
+              parent: { type: 'string', nullable: true, description: 'Parent worker name (hierarchy)' },
+              tier: { type: 'string', description: 'manager / worker' },
+              pid: { type: 'integer', nullable: true },
+              status: { type: 'string', enum: ['idle', 'busy', 'exited'] },
+              unreadSnapshots: { type: 'integer' },
+              totalSnapshots: { type: 'integer' },
+              intervention: { type: 'string', nullable: true, enum: [null, 'approval_pending', 'background_exit', 'past_resolved'] },
+              hasPastIntervention: { type: 'boolean' },
+              lastInterventionAt: { type: 'string', nullable: true },
+              cpuPct: { type: 'number', nullable: true },
+              rssKb: { type: 'number', nullable: true },
+              threads: { type: 'integer', nullable: true },
+              errorCount: { type: 'integer' },
+              phase: { type: 'string', nullable: true },
+              testFailCount: { type: 'integer' },
+              failureHint: { type: 'object', nullable: true },
+            },
+          },
+        },
+        queuedTasks: {
+          type: 'array',
+          items: {
+            properties: {
+              name: { type: 'string' },
+              task: { type: 'string' },
+              branch: { type: 'string', nullable: true },
+              after: { type: 'string', nullable: true },
+              queuedAt: { type: 'string' },
+              status: { type: 'string', enum: ['queued'] },
+            },
+          },
+        },
+        lostWorkers: { type: 'array', items: { type: 'object' } },
+        lastHealthCheck: { type: 'string', nullable: true },
       },
     },
   },

@@ -34,7 +34,13 @@ function _tsTypeFor(schema) {
     case 'boolean': base = 'boolean'; break;
     case 'array': base = `${_tsTypeFor(schema.items || {})}[]`; break;
     case 'object': base = _tsObjectShape(schema); break;
-    default: base = 'unknown';
+    default:
+      // Treat as object when `properties` is set, even without an
+      // explicit `type: 'object'` — many OpenAPI authors leave it
+      // implicit. Fixes the case where array items have a properties
+      // map but no type field, which used to emit `unknown[]`.
+      if (schema.properties) base = _tsObjectShape(schema);
+      else base = 'unknown';
   }
   if (schema.nullable) base = `${base} | null`;
   return base;
@@ -85,11 +91,14 @@ function generateSdk(spec) {
   // tell from the spec alone (responses[200] schema is unknown for
   // streams), so we name-match the routes that the daemon actually
   // serves as SSE.
+  // /slack/events used to be in this list, but the daemon actually
+  // returns plain JSON (a tail of the in-memory event buffer) — the
+  // route name is a historical accident. The real SSE feeds are
+  // /events, /watch, and /approvals/stream.
   const SSE_ROUTES = new Set([
     'GET /events',
     'GET /watch',
     'GET /approvals/stream',
-    'GET /slack/events',
   ]);
 
   // Per-operation argument + response types, then the class.

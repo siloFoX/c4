@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.24] - 2026-05-02
+
+SDK type richness — array item shapes that used to emit `unknown[]`
+now expand into full inline interfaces.
+
+### Fixed
+- **(sdk-gen) `_tsTypeFor` falls through to object shape when a
+  schema has `properties` but no explicit `type: 'object'`.**
+  Many OpenAPI authors (the c4 spec included) leave the type
+  implicit on nested item shapes. Previously, this caused the
+  SDK to emit `T[]` as `unknown[]` whenever the items lacked
+  the explicit type annotation. Now the items expand to their
+  full property map.
+- **(sdk-gen) `/slack/events` no longer in SSE_ROUTES.** It
+  returns plain JSON; the SDK now generates a regular
+  `getSlackEvents()` instead of an AsyncGenerator.
+
+### Added
+- **(spec) Detailed item shapes on `/list` and `/metrics`
+  responses.** /list.workers expanded from `array` to per-row
+  shape (name, kind, branch, status, intervention, cpuPct, etc).
+  /metrics.daemon, .workers[], .totals all gained explicit
+  `type: object` markers + populated property maps.
+
+The two improvements compound: SDK now sees each `/list.workers[i]`
+typed as `{ name, status, intervention?, cpuPct?, ... }` — IDE
+autocomplete on `c4.getList()` finally works the way it should.
+
+Suite 151/151. SDK 2153 → 2255 lines. Linters clean.
+
 ## [1.10.23] - 2026-05-02
 
 GET parameter drift sweep — caught and fixed 8 routes where the
