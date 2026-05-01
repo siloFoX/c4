@@ -30,7 +30,10 @@ jobs:
       - name: install web deps
         run: npm --prefix web ci
 
-      - name: unit tests
+      - name: install sdk dev deps
+        run: npm --prefix sdk install
+
+      - name: unit tests (excl. compiled-SDK suite, runs after build)
         run: npm test
 
       - name: openapi spec lint
@@ -38,3 +41,9 @@ jobs:
 
       - name: web build
         run: npm --prefix web run build
+
+      - name: sdk build (tsc → dist + cjs shim)
+        run: npm --prefix sdk run build
+
+      - name: sdk compiled-runtime test
+        run: node --test tests/c4-client-compiled.test.js

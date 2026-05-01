@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.10] - 2026-05-01
+
+OpenAPI surface near-complete + SDK build in CI.
+
+### Added
+- **(openapi-gen) Long-tail schema coverage.** ROUTE_SCHEMAS grows
+  for ~37 more daemon routes — auto / morning / status-update,
+  scribe.{start,stop,scan,status}, autonomous.{pause,resume,tick},
+  config / config.reload, templates, profiles, quota, swarm,
+  plan / plan-update / plan-revisions, mcp / mcp.servers,
+  computer-use.sessions, events / watch / approvals.stream /
+  slack.events (SSE descriptions), slack.emit, scribe-context,
+  fleet.overview, dispatch, session-id, hook-event / hook-events,
+  compact-event, cicd.{trigger,pipelines}, nl.sessions, plus the
+  api-docs HTML routes. Coverage jumped:
+  - requestBody schemas: 33 → 42 (+9 routes)
+  - parameter schemas: 14 → 20 (+6 routes)
+  - response schemas: 48 → 85 (+37 routes)
+  Spec lint clean — every new schema has the required {200, 4xx, 5xx}
+  envelope shape. Generated SDK grows 1787 → 1941 lines (+154) with
+  matching new typed methods.
+- **(ci) SDK build + compiled-runtime test in workflow.**
+  `.github/workflows/test.yml` grows two steps:
+  - `npm --prefix sdk install` (devDeps for tsc)
+  - `npm --prefix sdk run build` (regen + tsc + cjs shim)
+  - `node --test tests/c4-client-compiled.test.js` (verifies
+    the compiled ESM runs end-to-end)
+  Catches drift between the source TS and the published dist
+  before it ships.
+
 ## [1.10.9] - 2026-05-01
 
 SDK npm package distribution polish.

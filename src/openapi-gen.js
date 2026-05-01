@@ -701,6 +701,176 @@ const ROUTE_SCHEMAS = {
     },
     response: { properties: { success: { type: 'boolean' }, sessionId: { type: 'string' } } },
   },
+
+  // Bulk-defined response shapes for the long tail. Each is the
+  // canonical {success: boolean} envelope used by daemon mutators
+  // that don't carry richer state. Listed individually so future
+  // edits to a specific route don't fall through to a shared shape.
+  'POST /auto': { response: { properties: { success: { type: 'boolean' }, name: { type: 'string' } } } },
+  'POST /morning': { response: { properties: { success: { type: 'boolean' }, path: { type: 'string', description: 'Path to the generated report' } } } },
+  'POST /status-update': { response: { properties: { success: { type: 'boolean' } } } },
+  'POST /scribe/start': { response: { properties: { success: { type: 'boolean' }, intervalMs: { type: 'integer' } } } },
+  'POST /scribe/stop': { response: { properties: { success: { type: 'boolean' } } } },
+  'POST /scribe/scan': { response: { properties: { success: { type: 'boolean' }, scannedAt: { type: 'string' } } } },
+  'GET /scribe/status': { response: { properties: { active: { type: 'boolean' }, intervalMs: { type: 'integer' }, lastRecordAt: { type: 'string', nullable: true } } } },
+  'POST /autonomous/pause': { response: { properties: { paused: { type: 'boolean' }, reason: { type: 'string' } } } },
+  'POST /autonomous/resume': { response: { properties: { paused: { type: 'boolean' } } } },
+  'POST /autonomous/tick': { response: { properties: { dispatched: { type: 'string', nullable: true }, skipped: { type: 'string', nullable: true }, reason: { type: 'string', nullable: true } } } },
+  'POST /config/reload': { response: { properties: { ok: { type: 'boolean' } } } },
+  'GET /config': { response: { properties: { config: { type: 'object', description: 'Sanitised config (secrets stripped)' } } } },
+  'GET /templates': { response: { properties: { templates: { type: 'array', items: { type: 'object' } } } } },
+  'GET /profiles': { response: { properties: { profiles: { type: 'array', items: { type: 'object' } } } } },
+  'GET /quota': { response: { properties: { tiers: { type: 'array' }, depts: { type: 'array' } } } },
+  'GET /swarm': { parameters: [{ name: 'name', in: 'query', schema: { type: 'string' } }], response: { properties: { swarm: { type: 'array' } } } },
+  'POST /plan': {
+    requestBody: {
+      required: ['name', 'task'],
+      properties: {
+        name: { type: 'string' },
+        task: { type: 'string' },
+        branch: { type: 'string' },
+        output: { type: 'string', description: 'Path for the plan markdown output' },
+      },
+      example: { name: 'planner-1', task: 'Design the migration plan', branch: 'plan/migration', output: 'docs/plan.md' },
+    },
+    response: { properties: { success: { type: 'boolean' }, planPath: { type: 'string' } } },
+  },
+  'GET /plan': {
+    parameters: [{ name: 'name', in: 'query', required: true, schema: { type: 'string' } }],
+    response: { properties: { plan: { type: 'string' }, path: { type: 'string' } } },
+  },
+  'GET /plan-revisions': {
+    parameters: [{ name: 'name', in: 'query', required: true, schema: { type: 'string' } }],
+    response: { properties: { revisions: { type: 'array', items: { type: 'object' } } } },
+  },
+  'POST /plan-update': {
+    requestBody: {
+      required: ['name'],
+      properties: {
+        name: { type: 'string' },
+        feedback: { type: 'string' },
+      },
+    },
+    response: { properties: { success: { type: 'boolean' }, revision: { type: 'integer' } } },
+  },
+  'GET /api-docs/redoc': {
+    response: { type: 'string', description: 'Redoc HTML page (text/html)' },
+  },
+  'GET /api-docs/index': {
+    response: { type: 'string', description: 'Docs landing page HTML (Swagger UI / Redoc picker)' },
+  },
+  'POST /mcp': {
+    requestBody: {
+      required: ['method'],
+      properties: {
+        method: { type: 'string', description: 'MCP tool name' },
+        params: { type: 'object' },
+      },
+    },
+    response: { properties: { result: { type: 'object' } } },
+  },
+  'GET /mcp/servers': {
+    response: { properties: { servers: { type: 'array', items: { type: 'object' } } } },
+  },
+  'GET /computer-use/sessions': {
+    response: { properties: { sessions: { type: 'array' } } },
+  },
+  'POST /computer-use/sessions': {
+    requestBody: {
+      required: ['backend'],
+      properties: { backend: { type: 'string', enum: ['stub', 'xdotool', 'mock', 'auto'] } },
+    },
+    response: { properties: { id: { type: 'string' }, backend: { type: 'string' } } },
+  },
+  'GET /events': {
+    response: { type: 'string', description: 'SSE stream — Content-Type: text/event-stream' },
+  },
+  'GET /watch': {
+    response: { type: 'string', description: 'SSE stream of worker output — Content-Type: text/event-stream' },
+  },
+  'GET /approvals': {
+    response: { properties: { approvals: { type: 'array', items: { type: 'object' } } } },
+  },
+  'GET /approvals/stream': {
+    response: { type: 'string', description: 'SSE stream of approval transitions' },
+  },
+  'GET /slack/events': {
+    response: { type: 'string', description: 'SSE stream of Slack interaction events' },
+  },
+  'POST /slack/emit': {
+    requestBody: {
+      required: ['type', 'message'],
+      properties: {
+        type: { type: 'string' },
+        message: { type: 'string' },
+        worker: { type: 'string' },
+      },
+    },
+    response: { properties: { success: { type: 'boolean' } } },
+  },
+  'GET /scribe-context': {
+    parameters: [{ name: 'name', in: 'query', required: true, schema: { type: 'string' } }],
+    response: { properties: { context: { type: 'array' } } },
+  },
+  'GET /fleet/overview': {
+    response: { properties: { peers: { type: 'array' }, totalWorkers: { type: 'integer' } } },
+  },
+  'POST /dispatch': {
+    requestBody: {
+      properties: {
+        task: { type: 'string' },
+        target: { type: 'string' },
+      },
+    },
+    response: { properties: { success: { type: 'boolean' }, dispatched: { type: 'string' } } },
+  },
+  'GET /session-id': {
+    parameters: [{ name: 'name', in: 'query', required: true, schema: { type: 'string' } }],
+    response: { properties: { sessionId: { type: 'string', nullable: true } } },
+  },
+  'POST /hook-event': {
+    requestBody: {
+      required: ['type'],
+      properties: {
+        type: { type: 'string', description: 'Hook event type (PreToolUse / PostToolUse / etc)' },
+        target: { type: 'string' },
+        payload: { type: 'object' },
+      },
+    },
+    response: { properties: { success: { type: 'boolean' } } },
+  },
+  'GET /hook-events': {
+    parameters: [
+      { name: 'name', in: 'query', schema: { type: 'string' } },
+      { name: 'limit', in: 'query', schema: { type: 'integer' } },
+    ],
+    response: { properties: { events: { type: 'array', items: { type: 'object' } } } },
+  },
+  'POST /compact-event': {
+    requestBody: {
+      required: ['name'],
+      properties: { name: { type: 'string' } },
+    },
+    response: { properties: { success: { type: 'boolean' } } },
+  },
+  'POST /cicd/trigger': {
+    requestBody: {
+      properties: {
+        id: { type: 'string', description: 'Pipeline id (replay)' },
+        repo: { type: 'string', description: 'For one-off workflow_dispatch' },
+        workflow: { type: 'string' },
+        ref: { type: 'string' },
+        inputs: { type: 'object' },
+      },
+    },
+    response: { properties: { success: { type: 'boolean' } } },
+  },
+  'GET /cicd/pipelines': {
+    response: { properties: { pipelines: { type: 'array', items: { type: 'object' } } } },
+  },
+  'GET /nl/sessions': {
+    response: { properties: { sessions: { type: 'array' } } },
+  },
   'POST /batch': {
     requestBody: {
       properties: {

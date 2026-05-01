@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.7
-// Generated at: 2026-05-01T13:16:35.916Z
+// Spec version: 1.10.9
+// Generated at: 2026-05-01T13:51:34.846Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -47,9 +47,9 @@ export interface getOpenapiJsonResponse {
 
 export type getOpenapiYamlResponse = unknown;
 
-export type getApiDocsIndexResponse = unknown;
+export type getApiDocsIndexResponse = Record<string, unknown>;
 
-export type getApiDocsRedocResponse = unknown;
+export type getApiDocsRedocResponse = Record<string, unknown>;
 
 export type getApiDocsResponse = Record<string, unknown>;
 
@@ -319,9 +319,13 @@ export interface postNlChatBody {
 }
 export type postNlChatResponse = unknown;
 
-export type getNlSessionsResponse = unknown;
+export interface getNlSessionsResponse {
+  sessions?: unknown[];
+}
 
-export type getMcpServersResponse = unknown;
+export interface getMcpServersResponse {
+  servers?: Record<string, unknown>[];
+}
 
 export interface postMcpServersBody {
   name: string;
@@ -354,9 +358,17 @@ export interface postWorkflowsResponse {
   createdAt?: string;
 }
 
-export type getComputerUseSessionsResponse = unknown;
+export interface getComputerUseSessionsResponse {
+  sessions?: unknown[];
+}
 
-export type postComputerUseSessionsResponse = unknown;
+export interface postComputerUseSessionsBody {
+  backend: "stub" | "xdotool" | "mock" | "auto";
+}
+export interface postComputerUseSessionsResponse {
+  id?: string;
+  backend?: string;
+}
 
 export interface getProjectsResponse {
   projects?: unknown[];
@@ -380,7 +392,9 @@ export interface postCicdWebhookBody {
 }
 export type postCicdWebhookResponse = unknown;
 
-export type getCicdPipelinesResponse = unknown;
+export interface getCicdPipelinesResponse {
+  pipelines?: Record<string, unknown>[];
+}
 
 export interface postCicdPipelinesBody {
   id?: string;
@@ -392,7 +406,16 @@ export interface postCicdPipelinesBody {
 }
 export type postCicdPipelinesResponse = unknown;
 
-export type postCicdTriggerResponse = unknown;
+export interface postCicdTriggerBody {
+  id?: string; /** Pipeline id (replay) */
+  repo?: string; /** For one-off workflow_dispatch */
+  workflow?: string;
+  ref?: string;
+  inputs?: Record<string, unknown>;
+}
+export interface postCicdTriggerResponse {
+  success?: boolean;
+}
 
 export interface postCleanupBody {
   dryRun?: boolean;
@@ -425,9 +448,13 @@ export interface postCloseResponse {
   name?: string;
 }
 
-export type getConfigResponse = unknown;
+export interface getConfigResponse {
+  config?: Record<string, unknown>; /** Sanitised config (secrets stripped) */
+}
 
-export type postConfigReloadResponse = unknown;
+export interface postConfigReloadResponse {
+  ok?: boolean;
+}
 
 export interface getAutonomousStatusResponse {
   enabled?: boolean;
@@ -444,20 +471,35 @@ export interface postAutonomousPauseBody {
 }
 export type postAutonomousPauseResponse = unknown;
 
-export type postAutonomousResumeResponse = unknown;
+export interface postAutonomousResumeResponse {
+  paused?: boolean;
+}
 
-export type postAutonomousTickResponse = unknown;
+export interface postAutonomousTickResponse {
+  dispatched?: string | null;
+  skipped?: string | null;
+  reason?: string | null;
+}
 
 export interface postScribeStartBody {
   intervalMs?: number; /** Sampling interval (default 5min) */
 }
 export type postScribeStartResponse = unknown;
 
-export type postScribeStopResponse = unknown;
+export interface postScribeStopResponse {
+  success?: boolean;
+}
 
-export type getScribeStatusResponse = unknown;
+export interface getScribeStatusResponse {
+  active?: boolean;
+  intervalMs?: number;
+  lastRecordAt?: string | null;
+}
 
-export type postScribeScanResponse = unknown;
+export interface postScribeScanResponse {
+  success?: boolean;
+  scannedAt?: string;
+}
 
 export interface getEventsQueryParams {
   from?: string;
@@ -504,43 +546,115 @@ export interface postResizeResponse {
   success?: boolean;
 }
 
-export type postHookEventResponse = unknown;
+export interface postHookEventBody {
+  type: string; /** Hook event type (PreToolUse / PostToolUse / etc) */
+  target?: string;
+  payload?: Record<string, unknown>;
+}
+export interface postHookEventResponse {
+  success?: boolean;
+}
 
-export type getHookEventsResponse = unknown;
+export interface getHookEventsParams {
+  name?: string;
+  limit?: number;
+}
+export interface getHookEventsResponse {
+  events?: Record<string, unknown>[];
+}
 
 export interface getEventsResponse {
   type?: string; /** SSE event type ("connected" first, then live events) */
 }
 
-export type getApprovalsResponse = unknown;
+export interface getApprovalsResponse {
+  approvals?: Record<string, unknown>[];
+}
 
-export type getApprovalsStreamResponse = unknown;
+export type getApprovalsStreamResponse = Record<string, unknown>;
 
-export type postPlanResponse = unknown;
+export interface postPlanBody {
+  name: string;
+  task: string;
+  branch?: string;
+  output?: string; /** Path for the plan markdown output */
+}
+export interface postPlanResponse {
+  success?: boolean;
+  planPath?: string;
+}
 
-export type getPlanResponse = unknown;
+export interface getPlanParams {
+  name: string;
+}
+export interface getPlanResponse {
+  plan?: string;
+  path?: string;
+}
 
-export type postPlanUpdateResponse = unknown;
+export interface postPlanUpdateBody {
+  name: string;
+  feedback?: string;
+}
+export interface postPlanUpdateResponse {
+  success?: boolean;
+  revision?: number;
+}
 
-export type getPlanRevisionsResponse = unknown;
+export interface getPlanRevisionsParams {
+  name: string;
+}
+export interface getPlanRevisionsResponse {
+  revisions?: Record<string, unknown>[];
+}
 
-export type postMcpResponse = unknown;
+export interface postMcpBody {
+  method: string; /** MCP tool name */
+  params?: Record<string, unknown>;
+}
+export interface postMcpResponse {
+  result?: Record<string, unknown>;
+}
 
-export type getTemplatesResponse = unknown;
+export interface getTemplatesResponse {
+  templates?: Record<string, unknown>[];
+}
 
-export type getProfilesResponse = unknown;
+export interface getProfilesResponse {
+  profiles?: Record<string, unknown>[];
+}
 
-export type getSwarmResponse = unknown;
+export interface getSwarmParams {
+  name?: string;
+}
+export interface getSwarmResponse {
+  swarm?: unknown[];
+}
 
-export type postAutoResponse = unknown;
+export interface postAutoResponse {
+  success?: boolean;
+  name?: string;
+}
 
-export type postMorningResponse = unknown;
+export interface postMorningResponse {
+  success?: boolean;
+  path?: string; /** Path to the generated report */
+}
 
-export type postStatusUpdateResponse = unknown;
+export interface postStatusUpdateResponse {
+  success?: boolean;
+}
 
-export type getSlackEventsResponse = unknown;
+export type getSlackEventsResponse = Record<string, unknown>;
 
-export type postSlackEmitResponse = unknown;
+export interface postSlackEmitBody {
+  type: string;
+  message: string;
+  worker?: string;
+}
+export interface postSlackEmitResponse {
+  success?: boolean;
+}
 
 export interface getHistoryParams {
   name?: string;
@@ -550,7 +664,12 @@ export interface getHistoryResponse {
   history?: unknown[];
 }
 
-export type getScribeContextResponse = unknown;
+export interface getScribeContextParams {
+  name: string;
+}
+export interface getScribeContextResponse {
+  context?: unknown[];
+}
 
 export interface getSessionsParams {
   workerName?: string;
@@ -576,9 +695,19 @@ export interface getAttachListResponse {
   total?: number;
 }
 
-export type getFleetOverviewResponse = unknown;
+export interface getFleetOverviewResponse {
+  peers?: unknown[];
+  totalWorkers?: number;
+}
 
-export type postDispatchResponse = unknown;
+export interface postDispatchBody {
+  task?: string;
+  target?: string;
+}
+export interface postDispatchResponse {
+  success?: boolean;
+  dispatched?: string;
+}
 
 export interface postTransferBody {
   alias: string; /** Fleet peer alias */
@@ -596,9 +725,19 @@ export interface postTransferResponse {
   cmd?: string;
 }
 
-export type postCompactEventResponse = unknown;
+export interface postCompactEventBody {
+  name: string;
+}
+export interface postCompactEventResponse {
+  success?: boolean;
+}
 
-export type getSessionIdResponse = unknown;
+export interface getSessionIdParams {
+  name: string;
+}
+export interface getSessionIdResponse {
+  sessionId?: string | null;
+}
 
 export interface postResumeBody {
   name: string;
@@ -1317,10 +1456,11 @@ export class C4Client {
   }
 
   /** (11.2) Start a computer-use session. Body: { backend? }. Refuses when config.computerUse.enabled is false. */
-  async postComputerUseSessions(): Promise<postComputerUseSessionsResponse> {
+  async postComputerUseSessions(body: postComputerUseSessionsBody): Promise<postComputerUseSessionsResponse> {
     return this.request<postComputerUseSessionsResponse>({
       method: 'POST',
       path: '/api/computer-use/sessions',
+      body: body as unknown,
     });
   }
 
@@ -1368,10 +1508,11 @@ export class C4Client {
   }
 
   /** (10.4) Manual run of a registered pipeline. Body:   { id }                     -> replay every action on the pipeline   { repo, workflow, inputs } -> one-off workflow_dispatch without a pipeline */
-  async postCicdTrigger(): Promise<postCicdTriggerResponse> {
+  async postCicdTrigger(body: postCicdTriggerBody): Promise<postCicdTriggerResponse> {
     return this.request<postCicdTriggerResponse>({
       method: 'POST',
       path: '/api/cicd/trigger',
+      body: body as unknown,
     });
   }
 
@@ -1538,18 +1679,20 @@ export class C4Client {
   }
 
   /** Hook architecture (3.15): receive structured events from Claude Code hooks */
-  async postHookEvent(): Promise<postHookEventResponse> {
+  async postHookEvent(body: postHookEventBody): Promise<postHookEventResponse> {
     return this.request<postHookEventResponse>({
       method: 'POST',
       path: '/api/hook-event',
+      body: body as unknown,
     });
   }
 
   /** Query hook events for a worker (3.15) */
-  async getHookEvents(): Promise<getHookEventsResponse> {
+  async getHookEvents(params?: getHookEventsParams): Promise<getHookEventsResponse> {
     return this.request<getHookEventsResponse>({
       method: 'GET',
       path: '/api/hook-events',
+      params: params as unknown as Record<string, unknown> | undefined,
     });
   }
 
@@ -1562,42 +1705,47 @@ export class C4Client {
   }
 
   /** Send a planner-mode task to a worker (--branch, --output). */
-  async postPlan(): Promise<postPlanResponse> {
+  async postPlan(body: postPlanBody): Promise<postPlanResponse> {
     return this.request<postPlanResponse>({
       method: 'POST',
       path: '/api/plan',
+      body: body as unknown,
     });
   }
 
   /** Read the most recent plan output for a worker. */
-  async getPlan(): Promise<getPlanResponse> {
+  async getPlan(params: getPlanParams): Promise<getPlanResponse> {
     return this.request<getPlanResponse>({
       method: 'GET',
       path: '/api/plan',
+      params: params as unknown as Record<string, unknown> | undefined,
     });
   }
 
   /** (9.12) Planner Back-propagation loop entry point. */
-  async postPlanUpdate(): Promise<postPlanUpdateResponse> {
+  async postPlanUpdate(body: postPlanUpdateBody): Promise<postPlanUpdateResponse> {
     return this.request<postPlanUpdateResponse>({
       method: 'POST',
       path: '/api/plan-update',
+      body: body as unknown,
     });
   }
 
   /** List plan revisions for a worker. */
-  async getPlanRevisions(): Promise<getPlanRevisionsResponse> {
+  async getPlanRevisions(params: getPlanRevisionsParams): Promise<getPlanRevisionsResponse> {
     return this.request<getPlanRevisionsResponse>({
       method: 'GET',
       path: '/api/plan-revisions',
+      params: params as unknown as Record<string, unknown> | undefined,
     });
   }
 
   /** MCP tool invocation passthrough. */
-  async postMcp(): Promise<postMcpResponse> {
+  async postMcp(body: postMcpBody): Promise<postMcpResponse> {
     return this.request<postMcpResponse>({
       method: 'POST',
       path: '/api/mcp',
+      body: body as unknown,
     });
   }
 
@@ -1618,10 +1766,11 @@ export class C4Client {
   }
 
   /** Get sub-worker swarm topology for a manager. */
-  async getSwarm(): Promise<getSwarmResponse> {
+  async getSwarm(params?: getSwarmParams): Promise<getSwarmResponse> {
     return this.request<getSwarmResponse>({
       method: 'GET',
       path: '/api/swarm',
+      params: params as unknown as Record<string, unknown> | undefined,
     });
   }
 
@@ -1650,10 +1799,11 @@ export class C4Client {
   }
 
   /** (8.15) Manual event injection. Only operators with SLACK_WRITE can call this — the CLI `c4 slack test` uses the same route so a viewer JWT cannot flood the channel. */
-  async postSlackEmit(): Promise<postSlackEmitResponse> {
+  async postSlackEmit(body: postSlackEmitBody): Promise<postSlackEmitResponse> {
     return this.request<postSlackEmitResponse>({
       method: 'POST',
       path: '/api/slack/emit',
+      body: body as unknown,
     });
   }
 
@@ -1667,10 +1817,11 @@ export class C4Client {
   }
 
   /** 8.7: scribe session-context.md viewer. Reads docs/session-context.md from the project root (or from config.scribe.outputPath if set). */
-  async getScribeContext(): Promise<getScribeContextResponse> {
+  async getScribeContext(params: getScribeContextParams): Promise<getScribeContextResponse> {
     return this.request<getScribeContextResponse>({
       method: 'GET',
       path: '/api/scribe-context',
+      params: params as unknown as Record<string, unknown> | undefined,
     });
   }
 
@@ -1709,10 +1860,11 @@ export class C4Client {
   }
 
   /** Fleet task distribution (9.7). Build a placement plan across reachable fleet machines (plus the local daemon) using the requested strategy, then fan out /create + /task to each slot. When no fleet machines are configured everything lands on localhost. Every remote unreachable -> fall back to local too. */
-  async postDispatch(): Promise<postDispatchResponse> {
+  async postDispatch(body: postDispatchBody): Promise<postDispatchResponse> {
     return this.request<postDispatchResponse>({
       method: 'POST',
       path: '/api/dispatch',
+      body: body as unknown,
     });
   }
 
@@ -1726,18 +1878,20 @@ export class C4Client {
   }
 
   /** Manager auto-replacement (4.7): compact event from PostCompact hook */
-  async postCompactEvent(): Promise<postCompactEventResponse> {
+  async postCompactEvent(body: postCompactEventBody): Promise<postCompactEventResponse> {
     return this.request<postCompactEventResponse>({
       method: 'POST',
       path: '/api/compact-event',
+      body: body as unknown,
     });
   }
 
   /** Resume support (4.1): get session ID for a worker */
-  async getSessionId(): Promise<getSessionIdResponse> {
+  async getSessionId(params: getSessionIdParams): Promise<getSessionIdResponse> {
     return this.request<getSessionIdResponse>({
       method: 'GET',
       path: '/api/session-id',
+      params: params as unknown as Record<string, unknown> | undefined,
     });
   }
 
