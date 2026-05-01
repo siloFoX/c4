@@ -614,16 +614,18 @@ const ROUTE_SCHEMAS = {
   },
   'POST /schedules': {
     requestBody: {
-      required: ['name', 'cron', 'task'],
+      required: ['name', 'cronExpr', 'taskTemplate'],
       properties: {
         id: { type: 'string' },
         name: { type: 'string' },
-        cron: { type: 'string' },
-        task: { type: 'string', description: 'Task prompt' },
-        target: { type: 'string' },
+        cronExpr: { type: 'string', description: 'Cron expression — minute hour dom month dow' },
+        taskTemplate: { type: 'string', description: 'Task prompt template' },
+        projectId: { type: 'string' },
+        assignee: { type: 'string' },
+        timezone: { type: 'string', description: 'IANA tz name (e.g., Asia/Seoul)' },
         enabled: { type: 'boolean', default: true },
       },
-      example: { name: 'morning-report', cron: '0 9 * * 1-5', task: 'Run morning report', enabled: true },
+      example: { name: 'morning-report', cronExpr: '0 9 * * 1-5', taskTemplate: 'Run morning report', timezone: 'Asia/Seoul', enabled: true },
     },
     response: {
       properties: {

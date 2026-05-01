@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.15] - 2026-05-02
+
+Validation wire-up expansion + `/schedules` schema correction.
+
+### Added
+- **(daemon) `_validateOrFail()` wired into 12 more routes.** When
+  `config.openapi.validateRequests === true`, malformed bodies on
+  /recover, /cancel, /restart, /resize, /resume, /cleanup,
+  /transfer, /compact-event, /workflows, /projects, /nl/chat, and
+  all 6 RBAC mutators (role.assign / grant.{project,machine} /
+  revoke.{project,machine} / check) now short-circuit with 400
+  + dotted-path errors before route logic runs. Full mutator
+  coverage now stands at 21/33 schema-bearing routes.
+
+### Fixed
+- **(spec) `/schedules` body shape.** Schema said `{name, cron,
+  task, target, enabled}`; route comment + handler pass-through
+  expects `{id?, name, cronExpr, taskTemplate, projectId?,
+  assignee?, timezone?, enabled?}`. Schema rewritten to match —
+  `cron` → `cronExpr`, `task` → `taskTemplate`, added
+  `projectId` / `assignee` / `timezone`.
+
+Suite 151/151. Lint + drift checks clean. SDK regenerated.
+
 ## [1.10.14] - 2026-05-01
 
 Strict drift mode + 7 schema-gap fixes (handler accepts fields the

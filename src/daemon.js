@@ -1430,7 +1430,9 @@ async function handleRequest(req, res) {
       // 8.4: manual recovery pass. Runs the same strategy picker as the
       // automatic escalation hook but forces enabled=true so operators can
       // trigger recovery even when config.recovery.enabled is false.
-      const { name, category } = await parseBody(req);
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/recover', _body, res, cfg)) return;
+      const { name, category } = _body;
       if (!name) {
         result = { error: 'Missing name' };
       } else {
@@ -1451,7 +1453,9 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && route === '/cancel') {
       // 8.8: cancel pending/queued/active task without destroying the worker.
-      const { name } = await parseBody(req);
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/cancel', _body, res, cfg)) return;
+      const { name } = _body;
       if (!name) {
         result = { error: 'Missing name' };
       } else {
@@ -1460,7 +1464,9 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && route === '/restart') {
       // 8.8: kill + respawn a worker's PTY while preserving branch/worktree.
-      const { name } = await parseBody(req);
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/restart', _body, res, cfg)) return;
+      const { name } = _body;
       if (!name) {
         result = { error: 'Missing name' };
       } else {
@@ -1556,6 +1562,7 @@ async function handleRequest(req, res) {
       if (denyOr(res, gate)) return;
       try {
         const body = await parseBody(req);
+        if (_validateOrFail('POST', '/rbac/role/assign', body, res, cfg)) return;
         const u = rbacManager.assignRole(body.username, body.role);
         result = { username: body.username, ...u };
       } catch (e) {
@@ -1568,6 +1575,7 @@ async function handleRequest(req, res) {
       if (denyOr(res, gate)) return;
       try {
         const body = await parseBody(req);
+        if (_validateOrFail('POST', '/rbac/grant/project', body, res, cfg)) return;
         result = rbacManager.grantProjectAccess(body.username, body.projectId);
       } catch (e) {
         result = { error: e.message };
@@ -1579,6 +1587,7 @@ async function handleRequest(req, res) {
       if (denyOr(res, gate)) return;
       try {
         const body = await parseBody(req);
+        if (_validateOrFail('POST', '/rbac/grant/machine', body, res, cfg)) return;
         result = rbacManager.grantMachineAccess(body.username, body.alias);
       } catch (e) {
         result = { error: e.message };
@@ -1590,6 +1599,7 @@ async function handleRequest(req, res) {
       if (denyOr(res, gate)) return;
       try {
         const body = await parseBody(req);
+        if (_validateOrFail('POST', '/rbac/revoke/project', body, res, cfg)) return;
         const ok = rbacManager.revokeProjectAccess(body.username, body.projectId);
         result = { ok };
       } catch (e) {
@@ -1602,6 +1612,7 @@ async function handleRequest(req, res) {
       if (denyOr(res, gate)) return;
       try {
         const body = await parseBody(req);
+        if (_validateOrFail('POST', '/rbac/revoke/machine', body, res, cfg)) return;
         const ok = rbacManager.revokeMachineAccess(body.username, body.alias);
         result = { ok };
       } catch (e) {
@@ -1613,6 +1624,7 @@ async function handleRequest(req, res) {
       // Useful for the Web UI to hide buttons the caller cannot reach.
       try {
         const body = await parseBody(req);
+        if (_validateOrFail('POST', '/rbac/check', body, res, cfg)) return;
         const allowed = rbacManager.checkPermission(body.username, body.action, body.resource);
         result = { allowed, username: body.username, action: body.action };
       } catch (e) {
@@ -1894,6 +1906,7 @@ async function handleRequest(req, res) {
       if (denyOr(res, gate)) return;
       try {
         const body = await parseBody(req);
+        if (_validateOrFail('POST', '/nl/chat', body, res, cfg)) return;
         const text = typeof body.text === 'string' ? body.text : '';
         const sessionId = typeof body.sessionId === 'string' ? body.sessionId : null;
         if (!text.trim()) {
@@ -2098,6 +2111,7 @@ async function handleRequest(req, res) {
       if (denyOr(res, gate)) return;
       try {
         const body = await parseBody(req);
+        if (_validateOrFail('POST', '/workflows', body, res, cfg)) return;
         const wfMgr = getWorkflowManager();
         result = wfMgr.createWorkflow(body || {});
         _safeAudit('workflow.created',
@@ -2366,6 +2380,7 @@ async function handleRequest(req, res) {
       if (denyOr(res, gate)) return;
       try {
         const body = await parseBody(req);
+        if (_validateOrFail('POST', '/projects', body, res, cfg)) return;
         const board = getProjectBoard();
         result = board.createProject({
           id: body.id,
@@ -2678,7 +2693,9 @@ async function handleRequest(req, res) {
       }
 
     } else if (req.method === 'POST' && route === '/cleanup') {
-      const { dryRun } = await parseBody(req);
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/cleanup', _body, res, cfg)) return;
+      const { dryRun } = _body;
       result = manager.cleanup(dryRun);
 
     } else if (req.method === 'POST' && route === '/batch') {
@@ -2986,7 +3003,9 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && route === '/resize') {
       // 8.13: Web UI viewport resize -> server PTY + ScreenBuffer resize
-      const { name, cols, rows } = await parseBody(req);
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/resize', _body, res, cfg)) return;
+      const { name, cols, rows } = _body;
       if (!name || cols == null || rows == null) {
         result = { error: 'Missing name, cols or rows' };
       } else {
@@ -3690,6 +3709,7 @@ async function handleRequest(req, res) {
       // the caller can poll /events for the progress stream. Progress,
       // completion and error events arrive on the existing SSE bus.
       const body = await parseBody(req);
+      if (_validateOrFail('POST', '/transfer', body, res, cfg)) return;
       const alias = body.alias;
       const type = body.type || 'rsync';
       const src = body.src;
@@ -3790,7 +3810,9 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && route === '/compact-event') {
       // Manager auto-replacement (4.7): compact event from PostCompact hook
-      const { worker } = await parseBody(req);
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/compact-event', _body, res, cfg)) return;
+      const { worker } = _body;
       if (!worker) {
         result = { error: 'Missing worker name in compact event' };
       } else {
@@ -3809,7 +3831,9 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && route === '/resume') {
       // Resume support (4.1): restart worker with --resume
-      const { name, sessionId } = await parseBody(req);
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/resume', _body, res, cfg)) return;
+      const { name, sessionId } = _body;
       if (!name) {
         result = { error: 'Missing name parameter' };
       } else {

@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.13
-// Generated at: 2026-05-01T14:47:13.040Z
+// Spec version: 1.10.14
+// Generated at: 2026-05-01T15:00:35.275Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -313,9 +313,11 @@ export interface getSchedulesResponse {
 export interface postSchedulesBody {
   id?: string;
   name: string;
-  cron: string;
-  task: string; /** Task prompt */
-  target?: string;
+  cronExpr: string; /** Cron expression — minute hour dom month dow */
+  taskTemplate: string; /** Task prompt template */
+  projectId?: string;
+  assignee?: string;
+  timezone?: string; /** IANA tz name (e.g., Asia/Seoul) */
   enabled?: boolean;
 }
 export interface postSchedulesResponse {
