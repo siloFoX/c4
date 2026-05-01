@@ -74,21 +74,43 @@ describe('openapi-sdk-gen.generateSdk', () => {
     assert.match(ts, /export interface postTaskBody/);
   });
 
-  it('method body builds URL + sets headers + JSON-encodes the body', () => {
+  it('method delegates to this.request() with method/path/body spec', () => {
     const spec = buildSpec();
     const ts = generateSdk(spec);
     const idx = ts.indexOf('async postAuthLogin');
-    const body = ts.slice(idx, idx + 600);
-    assert.match(body, /new URL\('\/api\/auth\/login', this\.baseUrl\)/);
+    const body = ts.slice(idx, idx + 400);
+    assert.match(body, /this\.request<postAuthLoginResponse>\(\{/);
     assert.match(body, /method: 'POST'/);
-    assert.match(body, /JSON\.stringify\(body\)/);
-    assert.match(body, /this\.fetch\(url\.toString\(\), init\)/);
+    assert.match(body, /path: '\/api\/auth\/login'/);
+    assert.match(body, /body: body as unknown/);
   });
 
-  it('includes Authorization: Bearer header when token is set', () => {
+  it('shared request() helper builds URL + injects Authorization header', () => {
     const spec = buildSpec();
     const ts = generateSdk(spec);
-    assert.match(ts, /Authorization: `Bearer \$\{this\.token\}`/);
+    // Helper now lives once on the class; check its bones.
+    assert.match(ts, /async request<T>\(spec: RequestSpec\): Promise<T>/);
+    assert.match(ts, /new URL\(spec\.path, this\.baseUrl\)/);
+    assert.match(ts, /JSON\.stringify\(spec\.body\)/);
+    assert.match(ts, /Authorization = `Bearer \$\{this\.token\}`/);
+  });
+
+  it('emits C4ApiError class with status / body / operationId fields', () => {
+    const spec = buildSpec();
+    const ts = generateSdk(spec);
+    assert.match(ts, /export class C4ApiError extends Error/);
+    assert.match(ts, /status: number;/);
+    assert.match(ts, /body: unknown;/);
+    assert.match(ts, /operationId\?: string;/);
+  });
+
+  it('exposes retries + backoffMs config + exponential backoff loop', () => {
+    const spec = buildSpec();
+    const ts = generateSdk(spec);
+    assert.match(ts, /retries\?: number/);
+    assert.match(ts, /backoffMs\?: number/);
+    assert.match(ts, /Math\.pow\(2, attempt\)/);
+    assert.match(ts, /res\.status >= 500/);
   });
 
   it('GET routes with query params expose a Params interface', () => {

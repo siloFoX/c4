@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.4] - 2026-05-01
+
+SDK polish: typed error class + retry budget + worked example.
+
+### Added
+- **(SDK) `C4ApiError` typed error class.** Wraps non-2xx responses
+  with `status` / `statusText` / `body` (parsed JSON when
+  `Content-Type` is JSON, else text) / `operationId`. Callers can
+  `instanceof C4ApiError` and switch on `e.status` instead of
+  parsing free-form `Error.message`.
+- **(SDK) Exponential-backoff retry budget.** `C4ClientOptions`
+  grows `retries` (default `0`) + `backoffMs` (default `200`).
+  5xx responses + thrown network errors retry up to `retries`
+  times with `2^attempt * backoffMs` delays; 4xx never retries.
+  4xx still throws `C4ApiError` synchronously.
+- **(SDK) `setToken(token)` instance method.** Lets callers swap
+  the JWT after login without reconstructing the client.
+- **(SDK) Refactored method bodies to delegate to `this.request()`.**
+  Each generated method now passes `{method, path, params?, body?}`
+  to a shared request helper that owns retries, headers, URL
+  building, and JSON parsing. Generated TS shrunk 2053 → 1651
+  lines (-19%) without losing behaviour.
+- **(sdk/examples/typed-client.ts) Worked example.** Demonstrates
+  login → setToken → metrics → spawn worker → task → scrollback
+  → audit query → close, with `C4ApiError` catch handler that
+  branches on status code (e.g., 401 = auth disabled fallback).
+
+Tests: `tests/openapi-sdk-gen.test.js` grows 12 → 14 assertions
+covering the request() delegation, C4ApiError class shape, and the
+retry/backoff loop. Generated `sdk/c4-client.ts` passes
+`tsc --strict --noEmit` against es2020 + DOM lib.
+
 ## [1.10.3] - 2026-05-01
 
 TypeScript SDK auto-generation from the OpenAPI spec.
