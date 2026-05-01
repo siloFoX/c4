@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.26
-// Generated at: 2026-05-01T16:24:07.701Z
+// Spec version: 1.10.27
+// Generated at: 2026-05-01T16:37:55.129Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -206,7 +206,26 @@ export interface getListResponse {
 }
 
 export interface getTreeResponse {
-  tree?: unknown[]; /** Worker tree (nested by parent/child) */
+  roots?: {
+  name?: string;
+  parent?: string | null;
+  status?: null | "idle" | "busy" | "exited";
+  intervention?: string | null;
+  branch?: string | null;
+  errorCount?: number;
+  unreadSnapshots?: number;
+  children?: Record<string, unknown>[]; /** Recursive: same shape as roots[i] */
+  rollup?: {
+  total?: number;
+  idle?: number;
+  busy?: number;
+  exited?: number;
+  intervention?: number;
+  error?: number;
+} | null;
+}[]; /** Top-level workers (no parent or unresolved parent). Each root carries a `children` array of TreeNode and a `rollup` summary aggregated across the subtree. */
+  queuedTasks?: Record<string, unknown>[];
+  lostWorkers?: Record<string, unknown>[];
 }
 
 export interface postTaskBody {
@@ -437,11 +456,27 @@ export interface getCostReportParams {
   models?: "0" | "1";
 }
 export interface getCostReportResponse {
-  totals?: Record<string, unknown>; /** Aggregate cost / token counts */
-  groups?: Record<string, unknown>[]; /** Per-group rows (group key + cost + tokens) */
-  models?: Record<string, unknown>[]; /** Populated when ?models=1 */
+  total?: {
+  tokens?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  costUSD?: number;
+  records?: number;
+};
+  byGroup?: {
+  name?: string; /** Group key (project id / tier name / etc; "unknown" for missing) */
+  tokens?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  costUSD?: number;
+  records?: number;
+  perModel?: Record<string, unknown>; /** Populated when ?models=1; keyed by model name */
+}[]; /** Per-group rows sorted by costUSD descending */
+  groupBy?: "project" | "tier" | "dept" | "session";
+  period?: {
   from?: string | null;
   to?: string | null;
+};
 }
 
 export interface postCostBudgetBody {
@@ -462,13 +497,21 @@ export interface postCostBudgetResponse {
 
 export interface getOrgsTreeResponse {
   roots?: {
+  dept?: {
   id?: string;
   name?: string;
   parentId?: string | null;
-  subDepts?: unknown[]; /** Nested departments */
-  teams?: Record<string, unknown>[];
-  members?: Record<string, unknown>[];
+  memberUserIds?: string[];
+};
+  subdepts?: Record<string, unknown>[]; /** Recursive: same shape as roots[i] */
+  teams?: {
+  id?: string;
+  deptId?: string;
+  name?: string;
+  memberUserIds?: string[];
 }[];
+  members?: string[]; /** Deduped user ids from the dept + its teams */
+}[]; /** Top-level departments. Each node has dept (the dept record), subdepts (recursive), teams, and a deduped members[] across the dept + its teams. */
   count?: number;
 }
 
@@ -609,8 +652,17 @@ export interface postWorkflowsBody {
   id?: string; /** Auto-generated if omitted */
   name: string;
   description?: string;
-  nodes: Record<string, unknown>[];
-  edges: Record<string, unknown>[];
+  nodes: {
+  id?: string;
+  type?: "task" | "condition" | "parallel" | "wait" | "audit" | "notify" | "end";
+  name?: string;
+  config?: Record<string, unknown>; /** Node-type-specific knobs (template, expression, durationMs, etc) */
+}[];
+  edges: {
+  from?: string; /** Source node id */
+  to?: string; /** Target node id */
+  condition?: string; /** Optional guard expression for conditional branches */
+}[];
   config?: {
   maxConcurrency?: number;
 };
@@ -623,7 +675,16 @@ export interface postWorkflowsResponse {
 }
 
 export interface getComputerUseSessionsResponse {
-  sessions?: unknown[];
+  sessions?: {
+  id?: string;
+  backend?: "stub" | "xdotool" | "mock";
+  actions?: Record<string, unknown>[];
+  screenshots?: Record<string, unknown>[];
+  startedAt?: string;
+  endedAt?: string | null;
+}[];
+  count?: number;
+  backends?: string[]; /** Backend names available on this host */
 }
 
 export interface postComputerUseSessionsBody {
@@ -638,6 +699,10 @@ export interface postComputerUseSessionsBody {
 export interface postComputerUseSessionsResponse {
   id?: string;
   backend?: string;
+  actions?: Record<string, unknown>[];
+  screenshots?: Record<string, unknown>[];
+  startedAt?: string;
+  endedAt?: string | null;
 }
 
 export interface getProjectsResponse {

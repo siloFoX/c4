@@ -4,6 +4,41 @@
 
 (no entries — next release window)
 
+## [1.10.27] - 2026-05-02
+
+Error body schema + 5 more drift fixes / item shapes.
+
+### Added
+- **(spec) `{error: string}` schema on every 4xx/5xx response.**
+  Hoisted to `ERROR_BODY_SCHEMA` constant since every daemon
+  error path returns the same envelope. Fills out 400, 401, 403,
+  404, 500 across all 110 operations. SDK clients can now
+  destructure `e.body.error` with a known type instead of
+  `Record<string, unknown>`.
+
+### Fixed
+- **(spec) /tree** — handler returns `{roots, queuedTasks,
+  lostWorkers}` but spec said `{tree: array}`. Tree node shape
+  now includes children (recursive), rollup (total/idle/busy/
+  exited/intervention/error counts).
+- **(spec) /cost/report** — handler returns `{total, byGroup,
+  groupBy, period: {from, to}}` but spec said `{totals, groups,
+  models, from, to}` (3 fields wrong). All four corrected; per-
+  group rows fully shaped.
+- **(spec) /orgs/tree** — root nodes are
+  `{dept, subdepts, teams, members}`, not `{id, name, parentId,
+  ...}`. Spec now matches; nested team / dept member shapes
+  filled in.
+
+### Added (continued)
+- **(spec) /computer-use/sessions** — session item shape +
+  missing `backends` field on response.
+- **(spec) workflow nodes/edges item shapes** — node.type
+  enum (task/condition/parallel/wait/audit/notify/end), edge
+  shape (from/to/condition).
+
+Suite 151/151. SDK 2348 → 2413 lines. Linters clean.
+
 ## [1.10.26] - 2026-05-02
 
 More item shape fills + one drift fix.

@@ -81,6 +81,18 @@ const ROUTE_SUMMARIES = {
 // Schema dialect: subset of JSON Schema Draft-07 (OpenAPI 3.0
 // compatible). When a route has no entry here, the generated spec
 // is still valid — Swagger UI just shows "(no parameters)".
+//
+// Standard error body for 4xx/5xx responses. Every daemon error
+// response goes through `res.end(JSON.stringify({ error: <msg> }))`
+// so the schema is uniform across the surface. Hoisting it to a
+// constant keeps the per-route response envelope thin.
+const ERROR_BODY_SCHEMA = {
+  type: 'object',
+  properties: {
+    error: { type: 'string', description: 'Human-readable error message' },
+  },
+};
+
 const ROUTE_SCHEMAS = {
   'POST /auth/login': {
     requestBody: {
@@ -654,7 +666,36 @@ const ROUTE_SCHEMAS = {
   'GET /tree': {
     response: {
       properties: {
-        tree: { type: 'array', description: 'Worker tree (nested by parent/child)' },
+        roots: {
+          type: 'array',
+          description: 'Top-level workers (no parent or unresolved parent). Each root carries a `children` array of TreeNode and a `rollup` summary aggregated across the subtree.',
+          items: {
+            properties: {
+              name: { type: 'string' },
+              parent: { type: 'string', nullable: true },
+              status: { type: 'string', nullable: true, enum: [null, 'idle', 'busy', 'exited'] },
+              intervention: { type: 'string', nullable: true },
+              branch: { type: 'string', nullable: true },
+              errorCount: { type: 'integer' },
+              unreadSnapshots: { type: 'integer' },
+              children: { type: 'array', items: { type: 'object' }, description: 'Recursive: same shape as roots[i]' },
+              rollup: {
+                type: 'object',
+                nullable: true,
+                properties: {
+                  total: { type: 'integer' },
+                  idle: { type: 'integer' },
+                  busy: { type: 'integer' },
+                  exited: { type: 'integer' },
+                  intervention: { type: 'integer' },
+                  error: { type: 'integer' },
+                },
+              },
+            },
+          },
+        },
+        queuedTasks: { type: 'array', items: { type: 'object' } },
+        lostWorkers: { type: 'array', items: { type: 'object' } },
       },
     },
   },
@@ -665,8 +706,27 @@ const ROUTE_SCHEMAS = {
         id: { type: 'string', description: 'Auto-generated if omitted' },
         name: { type: 'string' },
         description: { type: 'string' },
-        nodes: { type: 'array', items: { type: 'object' } },
-        edges: { type: 'array', items: { type: 'object' } },
+        nodes: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string' },
+              type: { type: 'string', enum: ['task', 'condition', 'parallel', 'wait', 'audit', 'notify', 'end'] },
+              name: { type: 'string' },
+              config: { type: 'object', description: 'Node-type-specific knobs (template, expression, durationMs, etc)' },
+            },
+          },
+        },
+        edges: {
+          type: 'array',
+          items: {
+            properties: {
+              from: { type: 'string', description: 'Source node id' },
+              to: { type: 'string', description: 'Target node id' },
+              condition: { type: 'string', description: 'Optional guard expression for conditional branches' },
+            },
+          },
+        },
         config: {
           properties: {
             maxConcurrency: { type: 'integer', default: 1 },
@@ -1043,7 +1103,25 @@ const ROUTE_SCHEMAS = {
     },
   },
   'GET /computer-use/sessions': {
-    response: { properties: { sessions: { type: 'array' } } },
+    response: {
+      properties: {
+        sessions: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string' },
+              backend: { type: 'string', enum: ['stub', 'xdotool', 'mock'] },
+              actions: { type: 'array', items: { type: 'object' } },
+              screenshots: { type: 'array', items: { type: 'object' } },
+              startedAt: { type: 'string' },
+              endedAt: { type: 'string', nullable: true },
+            },
+          },
+        },
+        count: { type: 'integer' },
+        backends: { type: 'array', items: { type: 'string' }, description: 'Backend names available on this host' },
+      },
+    },
   },
   'POST /computer-use/sessions': {
     requestBody: {
@@ -1062,7 +1140,16 @@ const ROUTE_SCHEMAS = {
       },
       example: { backend: 'auto', x: 100, y: 200, button: 'left' },
     },
-    response: { properties: { id: { type: 'string' }, backend: { type: 'string' } } },
+    response: {
+      properties: {
+        id: { type: 'string' },
+        backend: { type: 'string' },
+        actions: { type: 'array', items: { type: 'object' } },
+        screenshots: { type: 'array', items: { type: 'object' } },
+        startedAt: { type: 'string' },
+        endedAt: { type: 'string', nullable: true },
+      },
+    },
   },
   'GET /events': {
     response: { type: 'string', description: 'SSE stream — Content-Type: text/event-stream' },
@@ -1577,15 +1664,43 @@ const ROUTE_SCHEMAS = {
       { name: 'from', in: 'query', schema: { type: 'string', description: 'ISO date — inclusive lower bound' } },
       { name: 'to', in: 'query', schema: { type: 'string', description: 'ISO date — exclusive upper bound' } },
       { name: 'group', in: 'query', schema: { type: 'string', enum: ['project', 'tier', 'dept', 'session'], default: 'project' } },
-      { name: 'models', in: 'query', schema: { type: 'string', enum: ['0', '1'], description: 'Set 1 to break out per-model totals' } },
+      { name: 'models', in: 'query', schema: { type: 'string', enum: ['0', '1'], description: 'Set 1 to break out per-model totals (lands as `perModel` map on each byGroup row)' } },
     ],
     response: {
       properties: {
-        totals: { type: 'object', description: 'Aggregate cost / token counts' },
-        groups: { type: 'array', items: { type: 'object' }, description: 'Per-group rows (group key + cost + tokens)' },
-        models: { type: 'array', items: { type: 'object' }, description: 'Populated when ?models=1' },
-        from: { type: 'string', nullable: true },
-        to: { type: 'string', nullable: true },
+        total: {
+          type: 'object',
+          properties: {
+            tokens: { type: 'integer' },
+            inputTokens: { type: 'integer' },
+            outputTokens: { type: 'integer' },
+            costUSD: { type: 'number' },
+            records: { type: 'integer' },
+          },
+        },
+        byGroup: {
+          type: 'array',
+          description: 'Per-group rows sorted by costUSD descending',
+          items: {
+            properties: {
+              name: { type: 'string', description: 'Group key (project id / tier name / etc; "unknown" for missing)' },
+              tokens: { type: 'integer' },
+              inputTokens: { type: 'integer' },
+              outputTokens: { type: 'integer' },
+              costUSD: { type: 'number' },
+              records: { type: 'integer' },
+              perModel: { type: 'object', description: 'Populated when ?models=1; keyed by model name' },
+            },
+          },
+        },
+        groupBy: { type: 'string', enum: ['project', 'tier', 'dept', 'session'] },
+        period: {
+          type: 'object',
+          properties: {
+            from: { type: 'string', nullable: true },
+            to: { type: 'string', nullable: true },
+          },
+        },
       },
     },
   },
@@ -1617,14 +1732,31 @@ const ROUTE_SCHEMAS = {
       properties: {
         roots: {
           type: 'array',
+          description: 'Top-level departments. Each node has dept (the dept record), subdepts (recursive), teams, and a deduped members[] across the dept + its teams.',
           items: {
             properties: {
-              id: { type: 'string' },
-              name: { type: 'string' },
-              parentId: { type: 'string', nullable: true },
-              subDepts: { type: 'array', description: 'Nested departments' },
-              teams: { type: 'array', items: { type: 'object' } },
-              members: { type: 'array', items: { type: 'object' } },
+              dept: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  name: { type: 'string' },
+                  parentId: { type: 'string', nullable: true },
+                  memberUserIds: { type: 'array', items: { type: 'string' } },
+                },
+              },
+              subdepts: { type: 'array', items: { type: 'object' }, description: 'Recursive: same shape as roots[i]' },
+              teams: {
+                type: 'array',
+                items: {
+                  properties: {
+                    id: { type: 'string' },
+                    deptId: { type: 'string' },
+                    name: { type: 'string' },
+                    memberUserIds: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+              members: { type: 'array', items: { type: 'string' }, description: 'Deduped user ids from the dept + its teams' },
             },
           },
         },
@@ -1788,11 +1920,26 @@ function buildSpec({ daemonPath, version, baseUrl } = {}) {
       ...(r.rbacAction ? { 'x-rbac-action': r.rbacAction } : {}),
       responses: {
         '200': { description: 'Success' },
-        '400': { description: 'Bad request (invalid params)' },
-        '401': { description: 'Unauthorized (auth required)' },
-        '403': { description: 'Forbidden (RBAC)' },
-        '404': { description: 'Not found' },
-        '500': { description: 'Internal error' },
+        '400': {
+          description: 'Bad request (invalid params)',
+          content: { 'application/json': { schema: ERROR_BODY_SCHEMA } },
+        },
+        '401': {
+          description: 'Unauthorized (auth required)',
+          content: { 'application/json': { schema: ERROR_BODY_SCHEMA } },
+        },
+        '403': {
+          description: 'Forbidden (RBAC)',
+          content: { 'application/json': { schema: ERROR_BODY_SCHEMA } },
+        },
+        '404': {
+          description: 'Not found',
+          content: { 'application/json': { schema: ERROR_BODY_SCHEMA } },
+        },
+        '500': {
+          description: 'Internal error',
+          content: { 'application/json': { schema: ERROR_BODY_SCHEMA } },
+        },
       },
     };
     // Curated parameter / requestBody / response schemas. Each entry
