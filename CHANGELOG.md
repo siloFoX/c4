@@ -3,6 +3,23 @@
 ## [Unreleased]
 
 ### Added
+- **(GET /openapi.json) Auto-generated OpenAPI 3.0 spec.** New
+  `src/openapi-gen.js` walks `src/daemon.js` for every literal `route
+  === '/...'` clause, deduplicates `(method, path)` pairs, and maps
+  each entry to a curated summary from `ROUTE_SUMMARIES` (or a
+  fallback `<METHOD> <path>`). Returns OpenAPI 3.0.3 envelope:
+  `{openapi, info: {title, version, description}, servers: [{url}],
+  paths: {<path>: {<method>: {summary, responses}}}}`. Daemon `GET
+  /openapi.json` route serves the generated spec; `OPEN_API_ROUTES`
+  whitelists the route so unauth'd clients can introspect the API
+  surface (consistent with `/health` + `/auth/status`). Tests:
+  `tests/openapi-gen.test.js` — 12 assertions across 3 suites
+  (extractRoutes deduplication + non-literal skip + version override
+  + path namespacing + every-op summary + ROUTE_SUMMARIES shape).
+  Live verified: `curl /openapi.json` returns a 99-path spec; the
+  CHANGELOG cherry-pick (1262b3e) reference now resolves to a real
+  endpoint instead of the SPA HTML fallback. Patch note:
+  `docs/patches/openapi-gen-bundle.md`.
 - **(c4 sse / sse-tail) Tail the global daemon SSE stream.** New `c4
   sse [--type <name>]` CLI command (also `c4 sse-tail`) tails
   `/api/events` so ops can watch `workflow_start/end`,

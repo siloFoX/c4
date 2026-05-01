@@ -908,6 +908,15 @@ async function handleRequest(req, res) {
       // Multi-repo workspace listing (config.workspaces).
       result = manager.listWorkspaces();
 
+    } else if (req.method === 'GET' && route === '/openapi.json') {
+      // Auto-generated OpenAPI 3.0 spec from this file's route handlers.
+      // See src/openapi-gen.js for the extractor + curated summaries.
+      const { buildSpec } = require('./openapi-gen');
+      result = buildSpec({
+        version: manager._daemonVersion || null,
+        baseUrl: `http://${req.headers.host || 'localhost:3456'}`,
+      });
+
     } else if (req.method === 'POST' && route === '/create') {
       const { name, command, args, target, cwd, parent, tier, pinnedMemory, pinRole } = await parseBody(req);
       const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE,

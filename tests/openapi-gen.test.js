@@ -1,0 +1,107 @@
+'use strict';
+
+const { describe, it } = require('node:test');
+const assert = require('node:assert/strict');
+const path = require('path');
+const { buildSpec, extractRoutes, ROUTE_SUMMARIES } = require('../src/openapi-gen');
+
+describe('openapi-gen.extractRoutes', () => {
+  const fixture = `
+    if (req.method === 'GET' && route === '/health') { result = ok; }
+    else if (req.method === 'POST' && route === '/foo') { return; }
+    else if (req.method === 'GET' && route === '/health') { dup; }
+    else if (route.startsWith('/skip')) { skipped; }
+    else if (req.method === 'PATCH' && route === '/bar') { result = patch; }
+  `;
+
+  it('extracts (method, path) literal-string branches', () => {
+    const r = extractRoutes(fixture);
+    assert.equal(r.length, 3);
+    assert.deepEqual(r.map((x) => `${x.method} ${x.path}`), [
+      'GET /health',
+      'POST /foo',
+      'PATCH /bar',
+    ]);
+  });
+
+  it('deduplicates repeat (method, path) pairs', () => {
+    // The third clause repeats GET /health — should NOT appear twice.
+    const r = extractRoutes(fixture);
+    const healthCount = r.filter((x) => x.method === 'GET' && x.path === '/health').length;
+    assert.equal(healthCount, 1);
+  });
+
+  it('skips non-literal route checks (startsWith / regex / etc)', () => {
+    const r = extractRoutes(fixture);
+    assert.ok(!r.some((x) => x.path === '/skip'));
+  });
+});
+
+describe('openapi-gen.buildSpec', () => {
+  it('produces a valid OpenAPI 3.0 envelope', () => {
+    const s = buildSpec({ daemonPath: path.join(__dirname, '..', 'src', 'daemon.js') });
+    assert.equal(s.openapi, '3.0.3');
+    assert.ok(s.info && typeof s.info.title === 'string');
+    assert.ok(s.info.version, 'info.version present');
+    assert.ok(Array.isArray(s.servers) && s.servers.length > 0);
+    assert.ok(typeof s.paths === 'object' && s.paths !== null);
+  });
+
+  it('extracts all daemon routes into paths', () => {
+    const s = buildSpec();
+    const pathCount = Object.keys(s.paths).length;
+    // The daemon has 95+ literal route handlers — guard against a future
+    // refactor that accidentally collapses them.
+    assert.ok(pathCount > 80, `expected 80+ paths, got ${pathCount}`);
+  });
+
+  it('every path is namespaced under /api/', () => {
+    const s = buildSpec();
+    for (const p of Object.keys(s.paths)) {
+      assert.match(p, /^\/api\//, `path ${p} not under /api/`);
+    }
+  });
+
+  it('every operation has a summary + responses', () => {
+    const s = buildSpec();
+    for (const [pth, ops] of Object.entries(s.paths)) {
+      for (const [method, op] of Object.entries(ops)) {
+        assert.ok(typeof op.summary === 'string', `${method} ${pth} missing summary`);
+        assert.ok(op.responses && op.responses['200'], `${method} ${pth} missing 200 response`);
+      }
+    }
+  });
+
+  it('curated summaries from ROUTE_SUMMARIES override the default', () => {
+    const s = buildSpec();
+    // /api/health is in ROUTE_SUMMARIES — should match the curated string.
+    const healthSummary = s.paths['/api/health']?.get?.summary || '';
+    assert.match(healthSummary, /liveness probe/);
+  });
+
+  it('exposes the openapi route itself in the spec', () => {
+    const s = buildSpec();
+    assert.ok(s.paths['/api/openapi.json'], '/api/openapi.json missing from paths');
+    assert.ok(s.paths['/api/openapi.json'].get, 'GET method missing on /api/openapi.json');
+  });
+
+  it('honours the version override', () => {
+    const s = buildSpec({ version: '9.9.9' });
+    assert.equal(s.info.version, '9.9.9');
+  });
+});
+
+describe('openapi-gen.ROUTE_SUMMARIES', () => {
+  it('every key is `<METHOD> <path>` shape', () => {
+    for (const key of Object.keys(ROUTE_SUMMARIES)) {
+      assert.match(key, /^(GET|POST|PUT|DELETE|PATCH) \//, `bad key shape: ${key}`);
+    }
+  });
+
+  it('every value is a non-empty string', () => {
+    for (const [key, val] of Object.entries(ROUTE_SUMMARIES)) {
+      assert.equal(typeof val, 'string', `${key} value not string`);
+      assert.ok(val.length > 0, `${key} empty summary`);
+    }
+  });
+});
