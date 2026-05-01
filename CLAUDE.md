@@ -74,6 +74,7 @@ c4 openapi [--path <re>] [--json]    OpenAPI 3.0 spec 조회 (전체 라우트 +
                                      # --sdk: TypeScript client 자동 생성 (stdout)
                                      # --rbac <regex>: x-rbac-action 으로 필터 (e.g., --rbac WORKER)
                                      # --untyped: x-rbac-action 없는 open route 만 listing
+                                     # --role admin|manager|viewer: 해당 role 이 호출 가능한 route 만
                                      # 인터렉티브 뷰: http://127.0.0.1:3456/api-docs (Swagger), /api-docs/redoc (Redoc), /api-docs/index (선택지)
 c4 merge <name|branch>               워커 브랜치 main에 머지
 c4 auto "작업"                       자율 모드 (관리자 + scribe 자동 생성)

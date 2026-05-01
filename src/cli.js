@@ -934,6 +934,7 @@ async function main() {
         const pathFilter = args.includes('--path') ? args[args.indexOf('--path') + 1] : null;
         const rbacFilter = args.includes('--rbac') ? args[args.indexOf('--rbac') + 1] : null;
         const wantUntyped = args.includes('--untyped');
+        const roleFilter = args.includes('--role') ? args[args.indexOf('--role') + 1] : null;
         if (wantYaml) {
           // YAML dump — daemon serves it pre-rendered, no CLI-side
           // serialization needed.
@@ -968,6 +969,33 @@ async function main() {
         if (!result || result.error) break;
         const re = pathFilter ? new RegExp(pathFilter) : null;
         const rbacRe = rbacFilter ? new RegExp(rbacFilter) : null;
+        // Resolve --role <name> into the set of x-rbac-action KEYs
+        // that role can call. ACTIONS maps KEY → 'dot.action' value;
+        // DEFAULT_PERMISSIONS lists role's allowed values; we invert
+        // that so the filter accepts the spec's KEY annotation.
+        let roleAllowedKeys = null;
+        if (roleFilter) {
+          try {
+            const rbac = require('./rbac');
+            const roleVals = rbac.DEFAULT_PERMISSIONS[roleFilter];
+            if (!roleVals) {
+              console.error(`Unknown role: ${roleFilter} (valid: ${Object.keys(rbac.DEFAULT_PERMISSIONS).join(', ')})`);
+              process.exit(1);
+            }
+            const isWildcard = Array.isArray(roleVals) && roleVals.includes('*');
+            if (isWildcard) {
+              roleAllowedKeys = new Set(Object.keys(rbac.ACTIONS));
+            } else {
+              roleAllowedKeys = new Set();
+              for (const [key, val] of Object.entries(rbac.ACTIONS)) {
+                if (roleVals.includes(val)) roleAllowedKeys.add(key);
+              }
+            }
+          } catch (e) {
+            console.error(`Failed to resolve --role: ${e.message}`);
+            process.exit(1);
+          }
+        }
         const entries = [];
         for (const [p, ops] of Object.entries(result.paths)) {
           if (re && !re.test(p)) continue;
@@ -975,6 +1003,9 @@ async function main() {
             const rbac = op['x-rbac-action'] || null;
             if (rbacRe && (!rbac || !rbacRe.test(rbac))) continue;
             if (wantUntyped && rbac) continue;
+            // --role: keep open routes (no rbac) AND routes the
+            // role's actions cover. Drop routes the role can't hit.
+            if (roleAllowedKeys && rbac && !roleAllowedKeys.has(rbac)) continue;
             entries.push({ method: method.toUpperCase(), path: p, summary: op.summary, rbac });
           }
         }
@@ -983,9 +1014,10 @@ async function main() {
         if (re) filterDesc.push(`path /${re.source}/`);
         if (rbacRe) filterDesc.push(`rbac /${rbacRe.source}/`);
         if (wantUntyped) filterDesc.push('untyped (no x-rbac-action)');
+        if (roleFilter) filterDesc.push(`role=${roleFilter}`);
         const filterStr = filterDesc.length ? ` matching ${filterDesc.join(' + ')}` : '';
         console.log(`Daemon API ${result.info.title} v${result.info.version} — ${entries.length} operation(s)${filterStr}`);
-        const showRbac = rbacRe || wantUntyped;
+        const showRbac = rbacRe || wantUntyped || roleFilter;
         for (const e of entries) {
           const method = e.method.padEnd(6);
           const path = e.path.padEnd(40);

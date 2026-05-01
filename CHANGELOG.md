@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.41] - 2026-05-02
+
+`c4 openapi --role <admin|manager|viewer>` — quickly answer
+"which routes can a viewer call?"
+
+### Added
+- **(cli) `c4 openapi --role <name>`** filters the listing
+  to routes the named role's `DEFAULT_PERMISSIONS` cover, plus
+  every open route (no `x-rbac-action`). Resolution: invert
+  the rbac.ACTIONS map (KEY → 'dot.action' value), look up the
+  role's allowed values, keep ops whose `x-rbac-action` KEY
+  maps to one of those values. `admin` gets the wildcard so
+  it sees every op.
+
+  Snapshot of the role surfaces today:
+  - admin   → 110 ops (full surface)
+  - manager → 103 ops
+  - viewer  → 85 ops (read-only + open routes)
+
+  Composes with `--path` and `--rbac` so:
+  `c4 openapi --role viewer --path '/cicd'`
+  shows the read-only CI/CD endpoints a viewer can hit.
+
+CLAUDE.md updated to document the new flag.
+
+Suite 152/152.
+
 ## [1.10.40] - 2026-05-02
 
 `c4 openapi` grows two RBAC-aware filters.
