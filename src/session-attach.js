@@ -72,6 +72,67 @@ function defaultNameFor(sessionId, jsonlPath) {
   return 'attached-' + Date.now().toString(36);
 }
 
+// (TODO 8.38) Sniff the agent role from a JSONL transcript. We read
+// the first ~64KB and look for telltale signals:
+//
+//   - "[역할: Manager]" / "[Role: Manager]" / "Auto-spawned by c4 auto"
+//     -> manager
+//   - "[역할: Planner]" / "[Role: Planner]" -> planner (worker template)
+//   - "[역할: Reviewer]" -> reviewer (worker template)
+//   - "[역할: Executor]" -> executor (worker template)
+//   - File path contains 'c4-mgr-' or 'auto-mgr-' -> manager
+//   - File path contains 'c4-worktree-' (any non-mgr) -> worker
+//   - Otherwise -> generic
+//
+// Exposed standalone so the CLI / daemon / Web UI all derive the role
+// the same way. Returns one of:
+//   'manager' | 'worker' | 'planner' | 'executor' | 'reviewer' | 'generic'
+//
+// We deliberately do NOT throw — a fatal read error returns 'generic'
+// so attach is never blocked by a bad transcript header.
+const ROLE_VALUES = ['manager', 'worker', 'planner', 'executor', 'reviewer', 'generic'];
+const ROLE_RE_MANAGER = /\[(?:역할|role):\s*manager\]/i;
+const ROLE_RE_PLANNER = /\[(?:역할|role):\s*planner\]/i;
+const ROLE_RE_EXECUTOR = /\[(?:역할|role):\s*executor\]/i;
+const ROLE_RE_REVIEWER = /\[(?:역할|role):\s*reviewer\]/i;
+const ROLE_RE_AUTO = /Auto-spawned by c4 auto|c4-mgr-auto|halt-prevention|approval protocol/i;
+
+function detectAgentRole(jsonlPath) {
+  if (!jsonlPath || typeof jsonlPath !== 'string') return 'generic';
+
+  // Fast path: path-based heuristic. A file path that lives inside a
+  // manager worktree is almost certainly a manager session, even if
+  // the prompt prefix never made it into the transcript (e.g. resumed
+  // from /compact).
+  if (/c4-mgr-|auto-mgr-/i.test(jsonlPath)) return 'manager';
+
+  let buf = '';
+  try {
+    const fd = fs.openSync(jsonlPath, 'r');
+    try {
+      const sz = Buffer.alloc(64 * 1024);
+      const read = fs.readSync(fd, sz, 0, sz.length, 0);
+      buf = sz.slice(0, read).toString('utf8');
+    } finally {
+      fs.closeSync(fd);
+    }
+  } catch {
+    return 'generic';
+  }
+  if (!buf) return 'generic';
+
+  if (ROLE_RE_MANAGER.test(buf) || ROLE_RE_AUTO.test(buf)) return 'manager';
+  if (ROLE_RE_PLANNER.test(buf)) return 'planner';
+  if (ROLE_RE_EXECUTOR.test(buf)) return 'executor';
+  if (ROLE_RE_REVIEWER.test(buf)) return 'reviewer';
+
+  // Path-based heuristic for non-manager c4 worktrees — these are
+  // almost always worker sessions even without an explicit role prefix.
+  if (/c4-worktree-|\/c4\//i.test(jsonlPath)) return 'worker';
+
+  return 'generic';
+}
+
 // Centralize shape normalization so tests and the daemon load the same
 // records even if the file was written by an older c4 build.
 function normalizeRecord(rec) {
@@ -80,6 +141,12 @@ function normalizeRecord(rec) {
   if (!isValidName(name)) return null;
   const jsonlPath = typeof rec.jsonlPath === 'string' ? rec.jsonlPath : '';
   if (!jsonlPath) return null;
+  // (TODO 8.38) Persist agent role on each record so /api/attach/list
+  // can render the badge without re-sniffing every JSONL on each
+  // refresh. Stored once at attach-time; re-derived (and re-saved)
+  // whenever the file is opened so role can heal over time as the
+  // transcript grows new role prefixes.
+  const role = ROLE_VALUES.includes(rec.role) ? rec.role : 'generic';
   return {
     name,
     jsonlPath,
@@ -87,6 +154,7 @@ function normalizeRecord(rec) {
     projectPath: typeof rec.projectPath === 'string' ? rec.projectPath : null,
     createdAt: typeof rec.createdAt === 'string' ? rec.createdAt : null,
     lastOffset: Number.isFinite(rec.lastOffset) ? rec.lastOffset : 0,
+    role,
   };
 }
 
@@ -111,6 +179,27 @@ class AttachStore {
       };
     } catch {
       this._state = freshState();
+    }
+    // (TODO 8.38) Heal pre-8.38 records that landed before role
+    // detection existed. We sniff once on load; if anything was
+    // upgraded, we persist back so the next list() doesn't re-do
+    // the work.
+    let mutated = false;
+    for (const s of this._state.sessions) {
+      if (!s.role || s.role === 'generic') {
+        try {
+          const sniffed = detectAgentRole(s.jsonlPath);
+          if (sniffed !== s.role) {
+            s.role = sniffed;
+            mutated = true;
+          }
+        } catch {
+          // ignore — record already defaults to 'generic'
+        }
+      }
+    }
+    if (mutated) {
+      try { this._persist(); } catch { /* best-effort heal */ }
     }
     return this._state;
   }
@@ -153,6 +242,15 @@ class AttachStore {
   add(record) {
     const normalized = normalizeRecord(record);
     if (!normalized) throw new Error('Invalid attachment record');
+    // (TODO 8.38) Sniff role at attach-time — the JSONL is on disk
+    // already, this avoids a re-read on every list call.
+    if (normalized.role === 'generic' && normalized.jsonlPath) {
+      try {
+        normalized.role = detectAgentRole(normalized.jsonlPath);
+      } catch {
+        normalized.role = 'generic';
+      }
+    }
     const state = this._load();
     if (state.sessions.some((s) => s.name === normalized.name)) {
       throw new Error(`Attachment '${normalized.name}' already exists`);
@@ -380,4 +478,6 @@ module.exports = {
   listAttached,
   getShared,
   resetShared,
+  detectAgentRole,
+  ROLE_VALUES,
 };
