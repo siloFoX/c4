@@ -1073,7 +1073,22 @@ async function handleRequest(req, res) {
       }
 
     } else if (req.method === 'POST' && route === '/create') {
-      const { name, command, args, target, cwd, parent, tier, pinnedMemory, pinRole } = await parseBody(req);
+      const body = await parseBody(req);
+      // Opt-in spec validation. Set config.openapi.validateRequests=true
+      // to enforce ROUTE_SCHEMAS as the source of truth for request body
+      // shapes. When enabled, malformed bodies short-circuit with 400 +
+      // the dotted-path error list before route logic runs.
+      if (cfg.openapi && cfg.openapi.validateRequests) {
+        const { validateRequestBody } = require('./openapi-validate');
+        const { ROUTE_SCHEMAS } = require('./openapi-gen');
+        const v = validateRequestBody('POST', '/create', body, ROUTE_SCHEMAS);
+        if (!v.valid) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ error: 'Validation failed', details: v.errors }));
+          return;
+        }
+      }
+      const { name, command, args, target, cwd, parent, tier, pinnedMemory, pinRole } = body;
       const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE,
         target ? { type: 'machine', id: target } : null);
       if (denyOr(res, gate)) return;

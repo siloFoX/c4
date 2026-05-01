@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.11] - 2026-05-01
+
+OpenAPI request body validation — daemon enforces ROUTE_SCHEMAS as
+the contract, opt-in via `config.openapi.validateRequests`.
+
+### Added
+- **(`src/openapi-validate.js`) Tiny JSON Schema validator.** Pure-
+  node, zero deps. Supports the subset that ROUTE_SCHEMAS emits:
+  primitives (string / integer / number / boolean), nullable, enum
+  unions, arrays with item schemas, objects with required + nested
+  properties. Returns `{valid, errors}` with dotted-path error
+  messages (`body.password: required`, `body.role: not in enum
+  [admin, manager, viewer]`, `body[2]: expected integer, got string`).
+  `validateRequestBody(method, route, body, ROUTE_SCHEMAS)` is the
+  daemon-side entry point — passes through with `valid: true` for
+  routes that have no schema, so existing behaviour stays intact.
+- **(daemon) Opt-in body validation on POST /create.** First demo
+  wire-up. When `config.openapi.validateRequests === true`, the
+  /create handler runs validateRequestBody before route logic;
+  invalid bodies short-circuit with `400 {error, details}` carrying
+  the dotted-path error list. Default off so existing deployments
+  don't see behaviour changes.
+- **(`config.example.json`) `openapi.validateRequests` flag.**
+  `false` by default; flip to `true` to make ROUTE_SCHEMAS the
+  source of truth for /create's request shape.
+- **(test) `tests/openapi-validate.test.js`** — 23 assertions across
+  5 suites: primitives, enum + nullable, object + required, arrays
+  with item schemas, validateRequestBody against the live
+  ROUTE_SCHEMAS map (auth.login required fields, /create tier
+  type, /attach role enum).
+
+Suite 149 → 150.
+
 ## [1.10.10] - 2026-05-01
 
 OpenAPI surface near-complete + SDK build in CI.

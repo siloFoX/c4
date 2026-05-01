@@ -520,5 +520,8 @@
   "debug": {
     "hookEvents": false,
     "hookEventLog": false
+  },
+  "openapi": {
+    "validateRequests": false
   }
 }

@@ -251,7 +251,11 @@ describe('hierarchy-tree wiring: source-level integration (8.2)', () => {
 
   it('daemon /create forwards parent and exposes GET /tree', () => {
     const src = READ('src/daemon.js');
-    assert.ok(/route === '\/create'[\s\S]{0,400}parent/.test(src),
+    // Window expanded from 400 to 1200 chars to accommodate the
+    // openapi.validateRequests opt-in block (added in the v1.10.x
+    // OpenAPI surface work) that sits between the route check and the
+    // destructuring.
+    assert.ok(/route === '\/create'[\s\S]{0,1200}parent/.test(src),
       '/create should pass parent through parseBody');
     assert.ok(/route === '\/tree'/.test(src),
       'daemon should expose /tree endpoint');
