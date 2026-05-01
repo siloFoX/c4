@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.27
-// Generated at: 2026-05-01T16:37:55.129Z
+// Spec version: 1.10.28
+// Generated at: 2026-05-01T16:44:32.292Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -119,18 +119,20 @@ export interface getReadParams {
   name: string;
 }
 export interface getReadResponse {
-  name?: string;
-  scrollback?: string; /** PTY output (ANSI stripped) */
-  cursor?: number; /** Last byte offset read */
+  content?: string; /** Latest PTY snapshot since the last read (ANSI stripped). Empty when no new snapshots are pending. */
+  status?: "idle" | "busy" | "exited";
+  snapshotsRead?: number; /** How many pending snapshots were consumed by this call */
+  pendingSnapshots?: number; /** Always 0 on the empty path; informational */
+  exitCode?: number | null; /** Exit code on the last snapshot when the worker has exited */
+  summarized?: boolean; /** 3.14 summary layer applied (true when the snapshot was long enough to trigger a summary) */
 }
 
 export interface getReadNowParams {
   name: string;
 }
 export interface getReadNowResponse {
-  name?: string;
-  scrollback?: string;
-  idle?: boolean;
+  content?: string; /** Current PTY screen contents (rendered, not snapshot history) */
+  status?: "idle" | "busy" | "exited";
 }
 
 export interface getWaitReadParams {
@@ -447,6 +449,8 @@ export interface postRbacCheckBody {
 }
 export interface postRbacCheckResponse {
   allowed?: boolean;
+  username?: string; /** Echo of the requested username */
+  action?: string; /** Echo of the requested action */
 }
 
 export interface getCostReportParams {
@@ -922,8 +926,9 @@ export interface getScrollbackParams {
   lines?: number;
 }
 export interface getScrollbackResponse {
-  scrollback?: string;
-  lines?: number;
+  content?: string; /** PTY scrollback as a single newline-joined string */
+  lines?: number; /** Actual number of lines returned (capped by lastN and total scrollback) */
+  totalScrollback?: number; /** Total lines in the buffer regardless of lastN */
 }
 
 export interface postResizeBody {
@@ -1111,16 +1116,19 @@ export interface getSessionsParams {
   q?: string;
 }
 export interface getSessionsResponse {
-  rootDir?: string;
+  sessionId?: string | null; /** (workerName branch) Resolved session UUID for the worker, or null if no JSONL is available yet */
+  conversation?: Record<string, unknown> | null; /** (workerName branch) Parsed Conversation from the JSONL */
+  workerName?: string; /** (workerName branch) Echo of the request param */
+  rootDir?: string; /** (list branch) Resolved Claude Code projects root the daemon is scanning */
   sessions?: {
   sessionId?: string;
   path?: string;
   projectPath?: string | null;
   projectDir?: string | null;
   lastAssistantSnippet?: string | null;
-}[];
-  groups?: Record<string, unknown>[];
-  total?: number;
+}[]; /** (list branch) All sessions found under rootDir */
+  groups?: Record<string, unknown>[]; /** (list branch) Sessions grouped by project directory */
+  total?: number; /** (list branch) Total session count */
 }
 
 export interface postAttachBody {
@@ -1130,9 +1138,15 @@ export interface postAttachBody {
   role?: "manager" | "worker" | "planner" | "executor" | "reviewer" | "generic";
 }
 export interface postAttachResponse {
-  success?: boolean;
-  name?: string;
-  role?: string;
+  name?: string; /** Display name (UUID-derived when not supplied) */
+  sessionId?: string | null;
+  projectPath?: string | null; /** Original project root the JSONL was recorded in */
+  jsonlPath?: string;
+  createdAt?: string | null;
+  turns?: number; /** Number of conversation turns parsed from the JSONL */
+  tokens?: number; /** Total tokens summed across all turns */
+  model?: string | null; /** Last model id seen in the transcript */
+  warnings?: string[]; /** Non-fatal parse warnings */
 }
 
 export interface getAttachListResponse {
@@ -1178,8 +1192,11 @@ export interface postTransferBody {
 export interface postTransferResponse {
   started?: boolean;
   pid?: number;
-  transferId?: string;
-  cmd?: string;
+  alias?: string; /** Echo of the requested fleet alias */
+  type?: "rsync" | "git";
+  transferId?: string; /** Use this id when listening on /events for transfer-progress / -complete / -error frames */
+  cmd?: string; /** Resolved CLI binary (rsync or git) */
+  args?: string[]; /** Full argv passed to the spawned process */
 }
 
 export interface postCompactEventBody {

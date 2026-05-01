@@ -4,6 +4,51 @@
 
 (no entries — next release window)
 
+## [1.10.28] - 2026-05-02
+
+Phase 3 drift checker — response shape comparison — caught 6
+more drift bugs in routes whose handlers return more (or
+different) fields than the spec advertised.
+
+### Added
+- **(scripts/check-schema-drift.js) Phase 3: response shape
+  drift detection.** Walks each handler block looking for
+  `result = { ... }` literals, extracts the field names, and
+  compares against the spec's `response.properties`. Pass-
+  through (`result = mgr.X(...)`) is detected and skipped to
+  avoid false positives. 39 routes now lint-clean at the
+  response level.
+- **(tests) Error response schema regression guards.** Two new
+  assertions verify every 4xx/5xx response carries the
+  `{error: string}` body schema and that the description
+  matches a real error message shape.
+
+### Fixed
+- **(spec) /scrollback** — handler returns
+  `{content, lines, totalScrollback}`, spec said
+  `{scrollback, lines}`. Field name was wrong all along.
+- **(spec) /read** — handler returns
+  `{content, status, snapshotsRead, exitCode, summarized,
+  pendingSnapshots}`, spec said `{name, scrollback, cursor}`.
+  Three fields wrong, three missing.
+- **(spec) /read-now** — handler returns `{content, status}`,
+  spec said `{name, scrollback, idle}`. All wrong.
+- **(spec) /attach** — handler returns 9 fields (name,
+  sessionId, projectPath, jsonlPath, createdAt, turns, tokens,
+  model, warnings), spec listed 3 (success, name, role). The
+  full attach summary is now documented.
+- **(spec) /rbac/check** — handler echoes `username` + `action`
+  along with `allowed`. Spec only listed `allowed`.
+- **(spec) /transfer** — handler returns alias, type, args
+  alongside started/pid/transferId/cmd. Now all 7 documented.
+- **(spec) /sessions** — handler returns two different shapes
+  depending on the `workerName` query param. Both branches
+  now in the spec with `(workerName branch)` /
+  `(list branch)` prefix annotations.
+
+Suite 151/151. SDK 2413 → 2430 lines. All three drift phases
+(requestBody, query params, response shape) lint-clean.
+
 ## [1.10.27] - 2026-05-02
 
 Error body schema + 5 more drift fixes / item shapes.

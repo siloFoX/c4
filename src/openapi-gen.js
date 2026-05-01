@@ -251,9 +251,12 @@ const ROUTE_SCHEMAS = {
     ],
     response: {
       properties: {
-        name: { type: 'string' },
-        scrollback: { type: 'string', description: 'PTY output (ANSI stripped)' },
-        cursor: { type: 'integer', description: 'Last byte offset read' },
+        content: { type: 'string', description: 'Latest PTY snapshot since the last read (ANSI stripped). Empty when no new snapshots are pending.' },
+        status: { type: 'string', enum: ['idle', 'busy', 'exited'] },
+        snapshotsRead: { type: 'integer', description: 'How many pending snapshots were consumed by this call' },
+        pendingSnapshots: { type: 'integer', description: 'Always 0 on the empty path; informational' },
+        exitCode: { type: 'integer', nullable: true, description: 'Exit code on the last snapshot when the worker has exited' },
+        summarized: { type: 'boolean', description: '3.14 summary layer applied (true when the snapshot was long enough to trigger a summary)' },
       },
     },
   },
@@ -263,9 +266,8 @@ const ROUTE_SCHEMAS = {
     ],
     response: {
       properties: {
-        name: { type: 'string' },
-        scrollback: { type: 'string' },
-        idle: { type: 'boolean' },
+        content: { type: 'string', description: 'Current PTY screen contents (rendered, not snapshot history)' },
+        status: { type: 'string', enum: ['idle', 'busy', 'exited'] },
       },
     },
   },
@@ -413,10 +415,21 @@ const ROUTE_SCHEMAS = {
       { name: 'q', in: 'query', schema: { type: 'string', description: 'Substring filter against project path / session id / last assistant snippet' } },
     ],
     response: {
+      // Two response shapes depending on the `workerName` parameter:
+      //   - workerName set: { sessionId, conversation, workerName }
+      //   - else:           { rootDir, sessions, groups, total }
+      // We document both in one envelope; SDK callers branch on
+      // workerName presence at the call site.
       properties: {
-        rootDir: { type: 'string' },
+        // Shape A (workerName branch)
+        sessionId: { type: 'string', nullable: true, description: '(workerName branch) Resolved session UUID for the worker, or null if no JSONL is available yet' },
+        conversation: { type: 'object', nullable: true, description: '(workerName branch) Parsed Conversation from the JSONL' },
+        workerName: { type: 'string', description: '(workerName branch) Echo of the request param' },
+        // Shape B (list branch)
+        rootDir: { type: 'string', description: '(list branch) Resolved Claude Code projects root the daemon is scanning' },
         sessions: {
           type: 'array',
+          description: '(list branch) All sessions found under rootDir',
           items: {
             properties: {
               sessionId: { type: 'string' },
@@ -427,8 +440,8 @@ const ROUTE_SCHEMAS = {
             },
           },
         },
-        groups: { type: 'array', items: { type: 'object' } },
-        total: { type: 'integer' },
+        groups: { type: 'array', items: { type: 'object' }, description: '(list branch) Sessions grouped by project directory' },
+        total: { type: 'integer', description: '(list branch) Total session count' },
       },
     },
   },
@@ -448,9 +461,15 @@ const ROUTE_SCHEMAS = {
     },
     response: {
       properties: {
-        success: { type: 'boolean' },
-        name: { type: 'string' },
-        role: { type: 'string' },
+        name: { type: 'string', description: 'Display name (UUID-derived when not supplied)' },
+        sessionId: { type: 'string', nullable: true },
+        projectPath: { type: 'string', nullable: true, description: 'Original project root the JSONL was recorded in' },
+        jsonlPath: { type: 'string' },
+        createdAt: { type: 'string', nullable: true },
+        turns: { type: 'integer', description: 'Number of conversation turns parsed from the JSONL' },
+        tokens: { type: 'integer', description: 'Total tokens summed across all turns' },
+        model: { type: 'string', nullable: true, description: 'Last model id seen in the transcript' },
+        warnings: { type: 'array', items: { type: 'string' }, description: 'Non-fatal parse warnings' },
       },
     },
   },
@@ -483,12 +502,13 @@ const ROUTE_SCHEMAS = {
   'GET /scrollback': {
     parameters: [
       { name: 'name', in: 'query', required: true, schema: { type: 'string' } },
-      { name: 'lines', in: 'query', schema: { type: 'integer' } },
+      { name: 'lines', in: 'query', schema: { type: 'integer', description: 'Last N lines to return (default 200)' } },
     ],
     response: {
       properties: {
-        scrollback: { type: 'string' },
-        lines: { type: 'integer' },
+        content: { type: 'string', description: 'PTY scrollback as a single newline-joined string' },
+        lines: { type: 'integer', description: 'Actual number of lines returned (capped by lastN and total scrollback)' },
+        totalScrollback: { type: 'integer', description: 'Total lines in the buffer regardless of lastN' },
       },
     },
   },
@@ -660,7 +680,11 @@ const ROUTE_SCHEMAS = {
       example: { username: 'alice', action: 'worker.create', resource: { type: 'project', id: 'main' } },
     },
     response: {
-      properties: { allowed: { type: 'boolean' } },
+      properties: {
+        allowed: { type: 'boolean' },
+        username: { type: 'string', description: 'Echo of the requested username' },
+        action: { type: 'string', description: 'Echo of the requested action' },
+      },
     },
   },
   'GET /tree': {
@@ -1496,8 +1520,11 @@ const ROUTE_SCHEMAS = {
       properties: {
         started: { type: 'boolean' },
         pid: { type: 'integer' },
-        transferId: { type: 'string' },
-        cmd: { type: 'string' },
+        alias: { type: 'string', description: 'Echo of the requested fleet alias' },
+        type: { type: 'string', enum: ['rsync', 'git'] },
+        transferId: { type: 'string', description: 'Use this id when listening on /events for transfer-progress / -complete / -error frames' },
+        cmd: { type: 'string', description: 'Resolved CLI binary (rsync or git)' },
+        args: { type: 'array', items: { type: 'string' }, description: 'Full argv passed to the spawned process' },
       },
     },
   },

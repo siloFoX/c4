@@ -115,6 +115,47 @@ function _extractQueryParamsFromHandler(start, end) {
   return params;
 }
 
+// (Phase 3) Extract response field names from a handler block.
+// Looks for `result = { a, b, c, ... }` literal patterns inside the
+// range. Returns null when the handler delegates wholesale to a
+// manager method (`result = manager.X(...)`) — drift can't be
+// statically inferred in that case.
+//
+// Limitations:
+// - Only catches inline object literals on `result =`.
+// - Multi-line literals get joined; nested objects get flattened.
+// - Computed keys, conditional fields, and spread are best-effort.
+function _extractResponseFieldsFromHandler(start, end) {
+  // Concatenate the handler block into one string.
+  const block = lines.slice(start, end + 1).join('\n');
+  // Hunt for the LAST `result = { ... }` literal — daemons often have
+  // an early-return error path then a final happy-path assignment.
+  const literalRe = /result\s*=\s*\{([\s\S]*?)\};/g;
+  const literals = [];
+  let m;
+  while ((m = literalRe.exec(block)) !== null) literals.push(m[1]);
+  // Bail if we see a `result = manager.X(...)` style pass-through; the
+  // shape is the callee's, not the route's, so drift is N/A here.
+  const passThroughRe = /result\s*=\s*(?:await\s+)?[a-zA-Z_]\w*\.[a-zA-Z_]\w*\(/;
+  if (passThroughRe.test(block)) return null;
+  if (literals.length === 0) return null;
+  const fields = new Set();
+  for (const body of literals) {
+    // Trim string literals and inline functions to avoid harvesting
+    // their inner identifiers as keys.
+    const sanitized = body
+      .replace(/'(?:[^'\\]|\\.)*'/g, "''")
+      .replace(/"(?:[^"\\]|\\.)*"/g, '""')
+      .replace(/`(?:[^`\\]|\\.)*`/g, '``');
+    // Match `key:` and shorthand `key,` / `key }` patterns at the top
+    // level. Best-effort regex; nested braces are not balanced.
+    const keyRe = /(?:^|[\{,\n])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*(?::|,|\}|$)/g;
+    let km;
+    while ((km = keyRe.exec(sanitized)) !== null) fields.add(km[1]);
+  }
+  return fields;
+}
+
 let driftFound = 0;
 let routesChecked = 0;
 
@@ -225,8 +266,58 @@ for (const [key, schemas] of Object.entries(ROUTE_SCHEMAS)) {
   }
 }
 
+// Phase 3: response shape drift. Compare `result = { ... }` field
+// names against the spec's response.properties. Only catches inline
+// object literals — wholesale pass-through (result = mgr.X()) and
+// dynamic assignments stay opaque, but the literal-return cases
+// (which is most of the daemon's surface) get coverage.
+let respRoutesChecked = 0;
+for (const [key, schemas] of Object.entries(ROUTE_SCHEMAS)) {
+  if (!schemas.response || !schemas.response.properties) continue;
+  const range = routeRanges.get(key);
+  if (!range) continue;
+  const handlerFields = _extractResponseFieldsFromHandler(range.start, range.end);
+  if (handlerFields === null) continue; // pass-through, skip
+  if (handlerFields.size === 0) continue;
+  respRoutesChecked++;
+  const specKeys = new Set(Object.keys(schemas.response.properties));
+  const RESP_LOCALS = new Set([
+    'error', // every handler can return { error: msg } on the failure path
+  ]);
+  const inSpecOnly = [...specKeys].filter((k) => !handlerFields.has(k));
+  const inHandlerOnly = [...handlerFields].filter((k) => !specKeys.has(k) && !RESP_LOCALS.has(k));
+  // Heuristic: only flag when we have at least one overlap (otherwise
+  // we're probably looking at the wrong literal — the actual happy
+  // path may be in a deeper branch).
+  const overlap = [...specKeys].some((k) => handlerFields.has(k));
+  if (!overlap) continue;
+  if (STRICT && inHandlerOnly.length > 0) {
+    console.log(`✗ ${key}: handler returns ${inHandlerOnly.length} response field(s) the spec doesn't document`);
+    console.log(`    spec props:        ${[...specKeys].join(', ')}`);
+    console.log(`    handler returns also: ${inHandlerOnly.join(', ')}`);
+    driftFound++;
+    continue;
+  }
+  if (STRICT && inSpecOnly.length > 0) {
+    // De-prioritised — many spec fields are conditional (only present
+    // in some code paths). Only flag when more than half are missing.
+    if (inSpecOnly.length > specKeys.size / 2) {
+      console.log(`✗ ${key}: spec lists ${inSpecOnly.length} response field(s) the handler never returns`);
+      console.log(`    in spec only: ${inSpecOnly.join(', ')}`);
+      console.log(`    handler returns: ${[...handlerFields].join(', ')}`);
+      driftFound++;
+      continue;
+    }
+  }
+  if (VERBOSE && (inSpecOnly.length || inHandlerOnly.length)) {
+    if (inSpecOnly.length) console.log(`? ${key}: ${inSpecOnly.length} response field(s) in spec only: ${inSpecOnly.join(', ')}`);
+    if (inHandlerOnly.length) console.log(`? ${key}: ${inHandlerOnly.length} response field(s) in handler only: ${inHandlerOnly.join(', ')}`);
+  }
+}
+
 console.log(`\nChecked ${routesChecked} route(s) with requestBody schemas.`);
 console.log(`Checked ${paramRoutesChecked} GET route(s) with query parameter schemas.`);
+console.log(`Checked ${respRoutesChecked} route(s) with response shape schemas.`);
 if (driftFound === 0) {
   console.log('No drift detected — all spec fields match handler usage.');
   process.exit(0);

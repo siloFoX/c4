@@ -404,3 +404,37 @@ describe('openapi-gen ROUTE_SCHEMAS structural integrity', () => {
     assert.ok(!content['application/json']);
   });
 });
+
+describe('openapi-gen error response schemas', () => {
+  // Regression guard for v1.10.27 — every 4xx/5xx response now
+  // declares the actual error body shape ({error: string}) instead
+  // of just a description. SDK clients rely on this to type
+  // C4ApiError.body without falling back to Record<string, unknown>.
+
+  it('every 4xx/5xx response has the {error: string} body schema', () => {
+    const s = buildSpec();
+    const codes = ['400', '401', '403', '404', '500'];
+    let total = 0, missing = 0;
+    for (const ops of Object.values(s.paths)) {
+      for (const op of Object.values(ops)) {
+        if (typeof op !== 'object' || !op.responses) continue;
+        for (const code of codes) {
+          const r = op.responses[code];
+          if (!r) continue;
+          total++;
+          const schema = r.content?.['application/json']?.schema;
+          if (!schema || schema.type !== 'object' || !schema.properties?.error) missing++;
+        }
+      }
+    }
+    assert.equal(missing, 0, `${missing}/${total} error responses missing {error: string} schema`);
+  });
+
+  it('error body schema description matches a real error message shape', () => {
+    const s = buildSpec();
+    const sample = s.paths['/api/health']?.get?.responses?.['401']?.content?.['application/json']?.schema;
+    assert.equal(sample?.type, 'object');
+    assert.equal(sample?.properties?.error?.type, 'string');
+    assert.match(sample?.properties?.error?.description || '', /error message/i);
+  });
+});
