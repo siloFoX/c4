@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.6
-// Generated at: 2026-05-01T13:07:19.531Z
+// Spec version: 1.10.7
+// Generated at: 2026-05-01T13:16:35.916Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -659,6 +659,38 @@ export interface C4ClientOptions {
    * with the new token; further 401s throw without re-calling.
    */
   onAuthExpired?: () => Promise<string | null>;
+  /**
+   * Pre-flight hook — fires before each fetch with the request
+   * spec + headers. Mutate or return a replacement to inject
+   * tracing / logging / X-Request-Id / etc. Return value is the
+   * source of truth for the actual request.
+   */
+  onRequest?: (ctx: C4RequestContext) => C4RequestContext | Promise<C4RequestContext>;
+  /**
+   * Post-flight hook — fires after each response (success OR
+   * failure) with the parsed body. Useful for response logging,
+   * metrics, or stripping wrapper envelopes. Return value is what
+   * the caller sees.
+   */
+  onResponse?: (ctx: C4ResponseContext) => C4ResponseContext | Promise<C4ResponseContext>;
+}
+
+export interface C4RequestContext {
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+  body?: string;
+  operationId?: string;
+  attempt: number;
+}
+
+export interface C4ResponseContext {
+  status: number;
+  ok: boolean;
+  body: unknown;
+  operationId?: string;
+  durationMs: number;
+  attempt: number;
 }
 
 interface RequestSpec {
@@ -676,6 +708,8 @@ export class C4Client {
   private retries: number;
   private backoffMs: number;
   private onAuthExpired?: () => Promise<string | null>;
+  private onRequest?: (ctx: C4RequestContext) => C4RequestContext | Promise<C4RequestContext>;
+  private onResponse?: (ctx: C4ResponseContext) => C4ResponseContext | Promise<C4ResponseContext>;
   constructor(opts: C4ClientOptions = {}) {
     this.baseUrl = opts.baseUrl || "http://localhost:3456";
     this.token = opts.token;
@@ -683,6 +717,8 @@ export class C4Client {
     this.retries = opts.retries ?? 0;
     this.backoffMs = opts.backoffMs ?? 200;
     this.onAuthExpired = opts.onAuthExpired;
+    this.onRequest = opts.onRequest;
+    this.onResponse = opts.onResponse;
   }
   setToken(token: string | undefined): void {
     this.token = token;
@@ -705,21 +741,41 @@ export class C4Client {
         if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
       }
     }
-    const init: RequestInit = {
-      method: spec.method,
-      headers: this.headers(),
-    };
-    if (spec.body !== undefined) init.body = JSON.stringify(spec.body);
     let lastErr: unknown;
     for (let attempt = 0; attempt <= this.retries; attempt++) {
+      // Build request context — interceptor sees + can mutate.
+      let reqCtx: C4RequestContext = {
+        method: spec.method,
+        url: url.toString(),
+        headers: this.headers(),
+        body: spec.body !== undefined ? JSON.stringify(spec.body) : undefined,
+        operationId: spec.operationId,
+        attempt,
+      };
+      if (this.onRequest) reqCtx = await this.onRequest(reqCtx);
+      const init: RequestInit = {
+        method: reqCtx.method,
+        headers: reqCtx.headers,
+      };
+      if (reqCtx.body !== undefined) init.body = reqCtx.body;
+      const t0 = Date.now();
       try {
-        const res = await this.fetch(url.toString(), init);
-        if (!res.ok) {
-          const ct = res.headers.get("content-type") || "";
-          const body = ct.includes("json") ? await res.json() : await res.text();
+        const res = await this.fetch(reqCtx.url, init);
+        const ct = res.headers.get("content-type") || "";
+        const body = ct.includes("json") ? await res.json() : await res.text();
+        let respCtx: C4ResponseContext = {
+          status: res.status,
+          ok: res.ok,
+          body,
+          operationId: spec.operationId,
+          durationMs: Date.now() - t0,
+          attempt,
+        };
+        if (this.onResponse) respCtx = await this.onResponse(respCtx);
+        if (!respCtx.ok) {
           // 401 → call onAuthExpired and replay once with the new token.
           // _refreshed flag prevents an infinite refresh loop on persistent 401s.
-          if (res.status === 401 && !_refreshed && this.onAuthExpired) {
+          if (respCtx.status === 401 && !_refreshed && this.onAuthExpired) {
             const newToken = await this.onAuthExpired();
             if (newToken) {
               this.token = newToken;
@@ -727,15 +783,13 @@ export class C4Client {
             }
           }
           // 5xx is retryable; other 4xx is not.
-          if (res.status >= 500 && attempt < this.retries) {
+          if (respCtx.status >= 500 && attempt < this.retries) {
             await this._sleep(this.backoffMs * Math.pow(2, attempt));
             continue;
           }
-          throw new C4ApiError(res.status, res.statusText, body, spec.operationId);
+          throw new C4ApiError(respCtx.status, res.statusText, respCtx.body, spec.operationId);
         }
-        const ct = res.headers.get("content-type") || "";
-        if (ct.includes("json")) return await res.json() as T;
-        return await res.text() as unknown as T;
+        return respCtx.body as T;
       } catch (e) {
         if (e instanceof C4ApiError) throw e;
         lastErr = e;

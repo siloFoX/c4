@@ -99,9 +99,20 @@ describe('openapi-sdk-gen.generateSdk', () => {
     const spec = buildSpec();
     const ts = generateSdk(spec);
     assert.match(ts, /onAuthExpired\?: \(\) => Promise<string \| null>/);
-    assert.match(ts, /res\.status === 401 && !_refreshed/);
+    assert.match(ts, /respCtx\.status === 401 && !_refreshed/);
     assert.match(ts, /this\.onAuthExpired\(\)/);
     assert.match(ts, /return this\.request<T>\(spec, true\)/);
+  });
+
+  it('emits onRequest + onResponse interceptor wiring', () => {
+    const spec = buildSpec();
+    const ts = generateSdk(spec);
+    assert.match(ts, /onRequest\?: \(ctx: C4RequestContext\)/);
+    assert.match(ts, /onResponse\?: \(ctx: C4ResponseContext\)/);
+    assert.match(ts, /export interface C4RequestContext/);
+    assert.match(ts, /export interface C4ResponseContext/);
+    assert.match(ts, /if \(this\.onRequest\) reqCtx = await this\.onRequest\(reqCtx\)/);
+    assert.match(ts, /if \(this\.onResponse\) respCtx = await this\.onResponse\(respCtx\)/);
   });
 
   it('emits C4ApiError class with status / body / operationId fields', () => {
@@ -119,7 +130,7 @@ describe('openapi-sdk-gen.generateSdk', () => {
     assert.match(ts, /retries\?: number/);
     assert.match(ts, /backoffMs\?: number/);
     assert.match(ts, /Math\.pow\(2, attempt\)/);
-    assert.match(ts, /res\.status >= 500/);
+    assert.match(ts, /respCtx\.status >= 500/);
   });
 
   it('GET routes with query params expose a Params interface', () => {

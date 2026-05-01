@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.8] - 2026-05-01
+
+SDK request/response interceptor pattern.
+
+### Added
+- **(SDK) `onRequest` / `onResponse` interceptors.** Pre/post-flight
+  hooks plug into `request()` for tracing / logging / metrics /
+  envelope unwrapping / `X-Request-Id` injection. Both optional, both
+  can be sync or async, both must return the (possibly mutated)
+  context object.
+- **(SDK) `C4RequestContext` interface** — `{method, url, headers,
+  body, operationId, attempt}`. Mutate any field to change the actual
+  request. `attempt` increments on retries so interceptors can
+  log retry attempts.
+- **(SDK) `C4ResponseContext` interface** — `{status, ok, body,
+  operationId, durationMs, attempt}`. `body` is the parsed JSON
+  payload (or text fallback) — interceptors can rewrite it before
+  the caller sees it. `durationMs` is fetch elapsed time.
+- **(SDK) onResponse fires on 4xx + 5xx**, not just success. So
+  metrics interceptors capture failure timings + status codes
+  uniformly without a separate hook for errors.
+
+Runtime checks: 33 → 47 (5 new scenarios — onRequest mutation,
+onResponse body rewrite + duration, onResponse on 4xx, retry attempt
+counter passthrough).
+
+Build-time SDK gen test: 15 → 17 (interceptor wiring + 5xx string
+match update for the refactored request body).
+
 ## [1.10.7] - 2026-05-01
 
 SDK auto token refresh on 401.

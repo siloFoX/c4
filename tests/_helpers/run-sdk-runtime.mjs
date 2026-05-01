@@ -226,6 +226,97 @@ function jsonResponse(status, body) {
   check('persistent 401 → exactly 2 calls (no infinite loop)', fetch.calls.length === 2);
 }
 
+// --- 14. onRequest interceptor — mutate headers + URL
+{
+  const fetch = makeMockFetch([jsonResponse(200, { ok: true, version: '1', workers: 0 })]);
+  const seen = [];
+  const c4 = new C4Client({
+    baseUrl: 'http://test',
+    fetch,
+    onRequest: (ctx) => {
+      seen.push({ method: ctx.method, url: ctx.url, attempt: ctx.attempt });
+      ctx.headers['X-Request-Id'] = 'req-42';
+      return ctx;
+    },
+  });
+  await c4.getHealth();
+  check('onRequest fires once before fetch', seen.length === 1);
+  check('onRequest sees method', seen[0].method === 'GET');
+  check('onRequest sees URL', seen[0].url.endsWith('/api/health'));
+  check('onRequest mutation reaches fetch (X-Request-Id)', fetch.calls[0].init.headers['X-Request-Id'] === 'req-42');
+}
+
+// --- 15. onResponse interceptor — sees parsed body + duration
+{
+  const fetch = makeMockFetch([jsonResponse(200, { ok: true, version: 'X', workers: 0 })]);
+  const seen = [];
+  const c4 = new C4Client({
+    baseUrl: 'http://test',
+    fetch,
+    onResponse: (ctx) => {
+      seen.push({ status: ctx.status, ok: ctx.ok, hasBody: !!ctx.body, hasDuration: typeof ctx.durationMs === 'number' });
+      return ctx;
+    },
+  });
+  const r = await c4.getHealth();
+  check('onResponse fires once', seen.length === 1);
+  check('onResponse sees 200 status', seen[0].status === 200);
+  check('onResponse ok=true', seen[0].ok === true);
+  check('onResponse has parsed body', seen[0].hasBody);
+  check('onResponse has durationMs', seen[0].hasDuration);
+  check('onResponse return propagates to caller', r.version === 'X');
+}
+
+// --- 16. onResponse can rewrite the body before caller sees it
+{
+  const fetch = makeMockFetch([jsonResponse(200, { wrapped: { ok: true, version: 'inner', workers: 0 } })]);
+  const c4 = new C4Client({
+    baseUrl: 'http://test',
+    fetch,
+    onResponse: (ctx) => {
+      // Strip a hypothetical wrapper envelope.
+      if (ctx.body && typeof ctx.body === 'object' && 'wrapped' in ctx.body) {
+        return { ...ctx, body: (ctx.body).wrapped };
+      }
+      return ctx;
+    },
+  });
+  const r = await c4.getHealth();
+  check('onResponse body rewrite reaches caller', r.version === 'inner');
+}
+
+// --- 17. onResponse fires on 4xx before C4ApiError throws
+{
+  const fetch = makeMockFetch([jsonResponse(403, { error: 'forbidden' })]);
+  let seenStatus;
+  const c4 = new C4Client({
+    baseUrl: 'http://test',
+    fetch,
+    onResponse: (ctx) => { seenStatus = ctx.status; return ctx; },
+  });
+  try { await c4.getHealth(); } catch {}
+  check('onResponse fires on 403 before throw', seenStatus === 403);
+}
+
+// --- 18. attempt counter increments on retry
+{
+  const fetch = makeMockFetch([
+    jsonResponse(503, { error: 'busy' }),
+    jsonResponse(200, { ok: true, version: 'r', workers: 0 }),
+  ]);
+  const reqAttempts = [];
+  const c4 = new C4Client({
+    baseUrl: 'http://test',
+    fetch,
+    retries: 1,
+    backoffMs: 0,
+    onRequest: (ctx) => { reqAttempts.push(ctx.attempt); return ctx; },
+  });
+  await c4.getHealth();
+  check('attempt counter passes 0 on first try', reqAttempts[0] === 0);
+  check('attempt counter passes 1 on retry', reqAttempts[1] === 1);
+}
+
 // --- summary
 console.log(`\n${passed} pass, ${failed} fail`);
 if (failed > 0) process.exit(1);
