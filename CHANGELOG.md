@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+(no entries — next release window)
+
+## [1.9.0] - 2026-05-01
+
+OpenAPI surface: auto-generated `/openapi.json` + Swagger UI rendering at
+`/api-docs` (CDN-free local vendor) + `c4 openapi` CLI for spec inspection +
+inline-comment summary harvest (107/107 ops summarised) + per-route
+parameter/requestBody/response schemas for 22 high-traffic routes. CI
+workflow added. Test count 144 → 145 (+ 7 integration assertions for the
+openapi routes themselves).
+
 ### Added
 - **(GET /api-docs) Swagger UI rendering of the openapi.json spec.**
   Static HTML that loads `swagger-ui-dist@5` (now vendored as a
