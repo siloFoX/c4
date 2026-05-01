@@ -110,6 +110,61 @@ async function _hit(method, routePath, body) {
   return { status: res.status, body: respBody, contentType: ct };
 }
 
+// Read the first SSE frame from a streaming endpoint, parse it,
+// and tear down the connection. Returns { ok, contentType, frame }
+// where `frame` is either a parsed event object or the raw text of
+// the first frame seen.
+async function _readFirstSseFrame(routePath, opts) {
+  const url = `${base}/api${routePath}`;
+  const headers = { 'Accept': 'text/event-stream' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const controller = new AbortController();
+  const timeoutMs = (opts && opts.timeoutMs) || 5000;
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { method: 'GET', headers, signal: controller.signal });
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('text/event-stream')) {
+      return { ok: false, contentType: ct, error: `expected text/event-stream, got ${ct}`, status: res.status };
+    }
+    if (!res.body) return { ok: false, contentType: ct, error: 'no response body' };
+    // Read until we see a blank line (SSE frame separator) or the
+    // 5-second budget elapses.
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const idx = buf.indexOf('\n\n');
+      if (idx >= 0) {
+        controller.abort();
+        const frameText = buf.slice(0, idx);
+        // Parse `event: X` + `data: Y` lines.
+        const evMatch = frameText.match(/^event:\s*(.+)$/m);
+        const dataMatch = frameText.match(/^data:\s*(.+)$/m);
+        const frame = {
+          type: evMatch ? evMatch[1].trim() : 'message',
+          data: null,
+        };
+        if (dataMatch) {
+          const raw = dataMatch[1].trim();
+          try { frame.data = JSON.parse(raw); }
+          catch { frame.data = raw; }
+        }
+        return { ok: true, contentType: ct, frame };
+      }
+    }
+    return { ok: false, contentType: ct, error: 'stream ended before first frame' };
+  } catch (e) {
+    if (e.name === 'AbortError') return { ok: false, error: 'timed out waiting for first frame' };
+    return { ok: false, error: e.message };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // Spawn a short-lived worker we can use to exercise routes that
 // need `?name=<worker>`. Cleaned up at the end. When --no-fixture
 // is passed (or the daemon refuses to spawn), the parameterised
@@ -131,12 +186,55 @@ async function _teardownFixture(ctx) {
   try { await _hit('POST', '/close', { name: ctx.workerName }); } catch {}
 }
 
+// SSE routes — exercised separately. Each entry: route → expected
+// shape of the first frame the daemon emits (the "connected" /
+// initial-snapshot frame). The runtime checker reads one frame, then
+// aborts the connection, then validates.
+const SSE_FIRST_FRAME = {
+  // /events: opening frame is `data: {"type":"connected"}`
+  'GET /events': (frame) => frame.data && frame.data.type === 'connected',
+  // /watch: opening frame is `{type: "output", data: <base64>}` once
+  // the worker writes anything; for an idle fixture worker we may
+  // get nothing within the budget. Skip when the fixture is missing.
+  'GET /watch': (frame) => frame.data && (frame.data.type === 'output' || frame.data.type === 'connected'),
+  // /approvals/stream: opening frame is `{type: "connected"}` then a
+  // snapshot frame; either is acceptable.
+  'GET /approvals/stream': (frame) => frame.data && (frame.data.type === 'connected' || frame.data.type === 'snapshot'),
+};
+
 async function main() {
   let pass = 0, fail = 0, skipped = 0;
   const NO_FIXTURE = args.includes('--no-fixture');
   const ctx = NO_FIXTURE ? { workerName: null } : await _setupFixture();
   if (ctx.workerName) console.log(`(fixture worker: ${ctx.workerName})\n`);
   else if (!NO_FIXTURE) console.log(`(no fixture worker — ${ctx.reason}; parameterised routes will be skipped)\n`);
+
+  // Phase: SSE first-frame validation. Hit each streaming route,
+  // pull the first frame, parse it, run the route's validator
+  // predicate. /watch needs the fixture worker; the others don't.
+  for (const [key, validator] of Object.entries(SSE_FIRST_FRAME)) {
+    const route = key.slice(4);
+    if (key === 'GET /watch') {
+      if (!ctx.workerName) { skipped++; continue; }
+    }
+    const url = key === 'GET /watch' ? route + `?name=${ctx.workerName}` : route;
+    const r = await _readFirstSseFrame(url, { timeoutMs: 3000 });
+    if (!r.ok) {
+      // /watch may not emit anything within the budget for an idle
+      // worker — that's not drift, just timing. Skip when we time out.
+      if (key === 'GET /watch' && /timed out/.test(r.error || '')) { skipped++; continue; }
+      _fail(key, `SSE first frame: ${r.error}`);
+      fail++;
+      continue;
+    }
+    if (!validator(r.frame)) {
+      _fail(key, `SSE first frame did not match validator: ${JSON.stringify(r.frame).slice(0, 120)}`);
+      fail++;
+      continue;
+    }
+    _ok(key + ' (SSE first frame)');
+    pass++;
+  }
 
   for (const key of Object.keys(ROUTE_SCHEMAS).sort()) {
     if (SKIP_ROUTES.has(key)) { skipped++; continue; }

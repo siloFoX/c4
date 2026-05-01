@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.37] - 2026-05-02
+
+Runtime drift checker now validates the first frame of every
+SSE stream.
+
+### Added
+- **(scripts/check-runtime-drift.js) SSE first-frame
+  validation.** New `_readFirstSseFrame()` helper opens a
+  streaming route, reads exactly one SSE frame (delimited by
+  `\n\n`), parses `event:` + `data:` lines, then aborts the
+  connection. Runs against /events, /watch, and
+  /approvals/stream. /watch needs the fixture worker;
+  /events and /approvals/stream connect immediately and emit
+  a `{type: "connected"}` opening frame. /watch is gracefully
+  skipped when the worker hasn't written anything within a
+  3-second budget (idle worker = no drift, just timing).
+- **(scripts/check-runtime-drift.js) SSE_FIRST_FRAME map**
+  drives per-route validators. Coverage: 44 → 47 routes
+  runtime-validated.
+
+Suite 152/152.
+
 ## [1.10.36] - 2026-05-02
 
 Doctor regression test + SDK example refresh.
