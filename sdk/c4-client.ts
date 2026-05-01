@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.29
-// Generated at: 2026-05-01T16:48:17.472Z
+// Spec version: 1.10.30
+// Generated at: 2026-05-01T16:52:00.491Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -401,6 +401,8 @@ export interface postRbacRoleAssignBody {
 export interface postRbacRoleAssignResponse {
   username?: string;
   role?: string;
+  projectIds?: string[]; /** Project ids the user already had access to (preserved on role change) */
+  machineAliases?: string[]; /** Fleet machine aliases the user already had access to */
 }
 
 export interface postRbacGrantProjectBody {
@@ -408,9 +410,9 @@ export interface postRbacGrantProjectBody {
   projectId: string;
 }
 export interface postRbacGrantProjectResponse {
-  granted?: boolean;
   username?: string;
   projectId?: string;
+  projectIds?: string[]; /** Full updated project access list for the user */
 }
 
 export interface postRbacGrantMachineBody {
@@ -418,9 +420,9 @@ export interface postRbacGrantMachineBody {
   alias: string; /** Fleet peer alias */
 }
 export interface postRbacGrantMachineResponse {
-  granted?: boolean;
   username?: string;
   alias?: string;
+  machineAliases?: string[]; /** Full updated machine access list for the user */
 }
 
 export interface postRbacRevokeProjectBody {

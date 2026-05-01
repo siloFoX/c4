@@ -618,7 +618,14 @@ const ROUTE_SCHEMAS = {
       },
       example: { username: 'alice', role: 'manager' },
     },
-    response: { properties: { username: { type: 'string' }, role: { type: 'string' } } },
+    response: {
+      properties: {
+        username: { type: 'string' },
+        role: { type: 'string' },
+        projectIds: { type: 'array', items: { type: 'string' }, description: 'Project ids the user already had access to (preserved on role change)' },
+        machineAliases: { type: 'array', items: { type: 'string' }, description: 'Fleet machine aliases the user already had access to' },
+      },
+    },
   },
   'POST /rbac/grant/project': {
     requestBody: {
@@ -629,7 +636,13 @@ const ROUTE_SCHEMAS = {
       },
       example: { username: 'alice', projectId: 'main' },
     },
-    response: { properties: { granted: { type: 'boolean' }, username: { type: 'string' }, projectId: { type: 'string' } } },
+    response: {
+      properties: {
+        username: { type: 'string' },
+        projectId: { type: 'string' },
+        projectIds: { type: 'array', items: { type: 'string' }, description: 'Full updated project access list for the user' },
+      },
+    },
   },
   'POST /rbac/grant/machine': {
     requestBody: {
@@ -640,7 +653,13 @@ const ROUTE_SCHEMAS = {
       },
       example: { username: 'alice', alias: 'dgx' },
     },
-    response: { properties: { granted: { type: 'boolean' }, username: { type: 'string' }, alias: { type: 'string' } } },
+    response: {
+      properties: {
+        username: { type: 'string' },
+        alias: { type: 'string' },
+        machineAliases: { type: 'array', items: { type: 'string' }, description: 'Full updated machine access list for the user' },
+      },
+    },
   },
   'POST /rbac/revoke/project': {
     requestBody: {

@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.30] - 2026-05-02
+
+Phase 3 spread-aware drift detection + 3 RBAC response shape
+fixes.
+
+### Fixed
+- **(spec) /rbac/role/assign** — handler returns
+  `{username, ...rbacManager.assignRole(...)}` which spreads
+  in `{role, projectIds, machineAliases}`. Spec only listed
+  `username, role`. The two access lists were undocumented
+  even though they're part of every successful response.
+- **(spec) /rbac/grant/project** — wrong field `granted`
+  (handler doesn't return it); missing `projectIds` in spec.
+- **(spec) /rbac/grant/machine** — wrong field `granted`;
+  missing `machineAliases` in spec.
+
+### Added
+- **(scripts/check-schema-drift.js) Spread-aware response
+  drift detection.** When a handler does `result = { ...x }`,
+  the checker now records `hasSpread: true` and skips the
+  inSpecOnly check (the spread brings in fields we can't
+  enumerate statically). Verbose mode tags the route with
+  `(handler uses spread)` so the human reader knows why the
+  diagnostic was suppressed.
+
+Suite 151/151. SDK 2433 → 2435 lines. All three drift phases
+clean.
+
 ## [1.10.29] - 2026-05-02
 
 Phase 3 drift checker hardening — caught 3 more drift bugs the

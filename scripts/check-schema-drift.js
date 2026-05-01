@@ -121,10 +121,15 @@ function _extractQueryParamsFromHandler(start, end) {
 // manager method (`result = manager.X(...)`) — drift can't be
 // statically inferred in that case.
 //
+// Returns { fields: Set, hasSpread: boolean }. hasSpread is true
+// when any `result = { ..., ...x }` spread is detected — this means
+// the spec may have fields the handler appears to omit (the spread
+// brings them in dynamically) so inSpecOnly checks should be relaxed.
+//
 // Limitations:
 // - Only catches inline object literals on `result =`.
 // - Multi-line literals get joined; nested objects get flattened.
-// - Computed keys, conditional fields, and spread are best-effort.
+// - Computed keys and conditional fields are best-effort.
 function _extractResponseFieldsFromHandler(start, end) {
   // Concatenate the handler block into one string.
   const block = lines.slice(start, end + 1).join('\n');
@@ -140,6 +145,7 @@ function _extractResponseFieldsFromHandler(start, end) {
   if (passThroughRe.test(block)) return null;
   if (literals.length === 0) return null;
   const fields = new Set();
+  let hasSpread = false;
   for (const body of literals) {
     // Trim string literals and inline functions to avoid harvesting
     // their inner identifiers as keys.
@@ -167,12 +173,15 @@ function _extractResponseFieldsFromHandler(start, end) {
     // segments — those mix in a callee's shape and we can't enumerate
     // it statically.
     for (const seg of segs) {
-      if (/^\s*\.\.\./.test(seg)) continue;
+      if (/^\s*\.\.\./.test(seg)) {
+        hasSpread = true;
+        continue;
+      }
       const m = seg.match(/^\s*([a-zA-Z_][a-zA-Z0-9_]*)/);
       if (m) fields.add(m[1]);
     }
   }
-  return fields;
+  return { fields, hasSpread };
 }
 
 let driftFound = 0;
@@ -295,8 +304,9 @@ for (const [key, schemas] of Object.entries(ROUTE_SCHEMAS)) {
   if (!schemas.response || !schemas.response.properties) continue;
   const range = routeRanges.get(key);
   if (!range) continue;
-  const handlerFields = _extractResponseFieldsFromHandler(range.start, range.end);
-  if (handlerFields === null) continue; // pass-through, skip
+  const extracted = _extractResponseFieldsFromHandler(range.start, range.end);
+  if (extracted === null) continue; // pass-through, skip
+  const { fields: handlerFields, hasSpread } = extracted;
   if (handlerFields.size === 0) continue;
   respRoutesChecked++;
   const specKeys = new Set(Object.keys(schemas.response.properties));
@@ -317,7 +327,10 @@ for (const [key, schemas] of Object.entries(ROUTE_SCHEMAS)) {
     driftFound++;
     continue;
   }
-  if (STRICT && inSpecOnly.length > 0) {
+  // inSpecOnly check: skip when the handler uses a spread, because
+  // the spread mixes in fields we can't enumerate statically (they
+  // come from the callee's return shape).
+  if (STRICT && inSpecOnly.length > 0 && !hasSpread) {
     // De-prioritised — many spec fields are conditional (only present
     // in some code paths). Only flag when more than half are missing.
     if (inSpecOnly.length > specKeys.size / 2) {
@@ -329,7 +342,7 @@ for (const [key, schemas] of Object.entries(ROUTE_SCHEMAS)) {
     }
   }
   if (VERBOSE && (inSpecOnly.length || inHandlerOnly.length)) {
-    if (inSpecOnly.length) console.log(`? ${key}: ${inSpecOnly.length} response field(s) in spec only: ${inSpecOnly.join(', ')}`);
+    if (inSpecOnly.length) console.log(`? ${key}: ${inSpecOnly.length} response field(s) in spec only${hasSpread ? ' (handler uses spread)' : ''}: ${inSpecOnly.join(', ')}`);
     if (inHandlerOnly.length) console.log(`? ${key}: ${inHandlerOnly.length} response field(s) in handler only: ${inHandlerOnly.join(', ')}`);
   }
 }
