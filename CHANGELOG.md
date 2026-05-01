@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.42] - 2026-05-02
+
+Regression test suite for the v1.10.40-41 CLI filters.
+
+### Added
+- **(tests) cli-openapi-filters.test.js** locks in
+  `--role`, `--rbac`, `--untyped` behaviour:
+  - admin = full surface (wildcard ACL)
+  - viewer < manager < admin in route count
+  - viewer always sees /health + /openapi.json (open routes)
+  - --role bogus returns null (CLI rejects)
+  - --rbac WORKER catches all worker.* gated routes
+  - --untyped + rbac-typed adds up to total ops
+
+  10 new test cases. The CLI flags resolve route lists
+  via the same logic as production; the test mirrors that
+  logic locally so it doesn't need to spawn a subprocess.
+
+Suite 152 → 153. All four drift phases clean.
+
 ## [1.10.41] - 2026-05-02
 
 `c4 openapi --role <admin|manager|viewer>` — quickly answer
