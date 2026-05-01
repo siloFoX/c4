@@ -887,6 +887,7 @@ async function handleRequest(req, res) {
 
     if (req.method === 'POST' && route === '/auth/login') {
       const body = await parseBody(req);
+      if (_validateOrFail('POST', '/auth/login', body, res, cfg)) return;
       const loginResult = auth.login(cfg, body, { roleResolver: roleFor });
       if (!loginResult.ok) {
         _safeAudit('auth.login', { ok: false, reason: loginResult.error || 'failed' },
@@ -1815,6 +1816,7 @@ async function handleRequest(req, res) {
       if (denyOr(res, gate)) return;
       try {
         const body = await parseBody(req);
+        if (_validateOrFail('POST', '/schedules', body, res, cfg)) return;
         const mgr = getScheduleManager();
         result = mgr.createSchedule(body || {});
         _safeAudit('schedule.created',

@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.19] - 2026-05-02
+
+Validation wired to /auth/login + /schedules. Mutator coverage near-complete.
+
+### Added
+- **(daemon)** validation wired into /auth/login + /schedules.
+  Mutator validation coverage 35 → 37 of 43 schema-bearing routes.
+- **(unwired)** Only 6 schema-bearing mutators remain unwired:
+  - `/cicd/webhook` — GitHub-shaped payload via parseBodyRaw, HMAC
+    + parseGithubEvent already validates; route schema is
+    descriptive only.
+  - 5 routes whose handlers don't read body fields (no parseBody
+    call): /scribe/stop, /scribe/scan, /autonomous/resume,
+    /autonomous/tick, /morning, /config/reload — validator pass-
+    through is a no-op for these even when wired.
+
+Suite 151/151. Lint + drift clean.
+
 ## [1.10.18] - 2026-05-02
 
 Validation wired to /mcp, /auto + /auto requestBody schema added.
