@@ -532,12 +532,53 @@ function buildActions(parsed, result) {
   return out;
 }
 
+// Async wrapper that runs parseIntent first, then routes 'unknown'
+// (or low-confidence) results through the optional Anthropic API
+// fallback in nl-llm-fallback. Off unless config.nl.llm.enabled is
+// true (or opts.llm.enabled). Returns the same envelope shape as
+// parseIntent so callers treat both paths identically.
+async function parseIntentWithLLM(text, opts = {}) {
+  const fast = parseIntent(text);
+  const minConfidence = Number.isFinite(opts.minConfidence) ? opts.minConfidence : 0.5;
+  if (fast.intent !== INTENTS.UNKNOWN && fast.confidence >= minConfidence) {
+    return Object.assign({}, fast, { _source: 'regex' });
+  }
+  const llmCfg = (opts && opts.llm) || (opts.config && opts.config.nl && opts.config.nl.llm) || {};
+  if (!llmCfg.enabled) return fast;
+  // Lazy require so the module load cost is paid only when fallback is on.
+  let parseLLM;
+  try { ({ parseLLM } = require('./nl-llm-fallback')); }
+  catch { return fast; }
+  const llm = await parseLLM(text, {
+    enabled: true,
+    apiKey: llmCfg.apiKey,
+    model: llmCfg.model,
+    systemPrompt: llmCfg.systemPrompt,
+    maxTokens: llmCfg.maxTokens,
+  });
+  if (!llm) return fast;
+  // Diagnostic fall-throughs (llm-unavailable / llm-error / llm-unparsed)
+  // are returned as-is so the caller can surface a helpful message
+  // instead of silently masquerading as a real intent.
+  if (llm.intent && llm.intent.startsWith('llm-')) return llm;
+  // Real LLM intent — preserve the LLM's params/confidence shape but
+  // tag it so executeIntent / formatResponse can show provenance.
+  return {
+    intent: llm.intent || fast.intent,
+    params: llm.params || {},
+    confidence: typeof llm.confidence === 'number' ? llm.confidence : 0.6,
+    _source: 'llm',
+    _model: llm._model,
+  };
+}
+
 module.exports = {
   INTENTS,
   INTENT_LIST,
   NlInterface,
   SessionStore,
   parseIntent,
+  parseIntentWithLLM,
   executeIntent,
   formatResponse,
   defaultSessionsPath,
