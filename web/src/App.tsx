@@ -159,7 +159,7 @@ export default function App() {
         onToggleSidebar={() => setSidebarOpen((open) => !open)}
         topView={topView}
         onTopViewChange={setTopView}
-        authed={authState === 'authed'}
+        authed={authState === 'authed' || authState === 'disabled'}
         onLogout={handleLogout}
         onOpenPreferences={() => setTopView('settings')}
       />
