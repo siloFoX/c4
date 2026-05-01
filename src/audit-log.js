@@ -71,6 +71,16 @@ class AuditLogger {
   constructor(opts = {}) {
     this.logPath = (opts && opts.logPath) || defaultLogPath();
     this.actor = (opts && opts.actor) || DEFAULT_ACTOR;
+    // Size-based rotation. When set, record() renames audit.jsonl to
+    // audit-<isoTs>.jsonl on the next append once the file exceeds
+    // maxSizeBytes, then starts a fresh file. The hash chain continues
+    // across rotation because _lastHash lives in memory — the new file's
+    // first line still references the rotated file's last hash, so
+    // verify(includeRotated:true) walks the entire history as one chain.
+    // keep limits how many rotated files are retained (mtime newest-first).
+    // Both defaults are 0 (rotation off) for backwards compatibility.
+    this.maxSizeBytes = (opts && Number.isFinite(opts.maxSizeBytes)) ? Math.max(0, opts.maxSizeBytes) : 0;
+    this.keep = (opts && Number.isFinite(opts.keep)) ? Math.max(0, opts.keep) : 0;
     this._lastHash = null;
     this._initialized = false;
   }
@@ -123,12 +133,49 @@ class AuditLogger {
 
   record(type, details, overrides) {
     this._init();
+    this._maybeRotate();
     const event = this._buildEvent(type, details, overrides);
     const hash = hashEvent(this._lastHash, event);
     const fullEvent = Object.assign({}, event, { hash });
     fs.appendFileSync(this.logPath, JSON.stringify(fullEvent) + '\n');
     this._lastHash = hash;
     return fullEvent;
+  }
+
+  // Rotate audit.jsonl when it grows past maxSizeBytes. Renaming happens
+  // before the next append so the rotated file is never half-written.
+  // Hash chain continues across the rotation via _lastHash. Failure is
+  // swallowed — losing one rotation is preferable to losing audit events.
+  _maybeRotate() {
+    if (this.maxSizeBytes <= 0) return;
+    let size = 0;
+    try { size = fs.statSync(this.logPath).size; } catch { return; }
+    if (size < this.maxSizeBytes) return;
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const dir = path.dirname(this.logPath);
+    const base = path.basename(this.logPath, '.jsonl');
+    // ISOString resolution is ms; bursty rotations can collide on the
+    // same stamp. Append a numeric suffix until we find a free name so
+    // renameSync never silently replaces an existing rotated file.
+    let rotated = path.join(dir, `${base}-${stamp}.jsonl`);
+    let n = 0;
+    while (fs.existsSync(rotated)) {
+      n++;
+      rotated = path.join(dir, `${base}-${stamp}-${n}.jsonl`);
+    }
+    try { fs.renameSync(this.logPath, rotated); } catch { return; }
+    if (this.keep > 0) {
+      try {
+        const re = new RegExp('^' + base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-.*\\.jsonl$');
+        const olds = fs.readdirSync(dir)
+          .filter((n) => re.test(n))
+          .map((n) => ({ name: n, full: path.join(dir, n), mtime: fs.statSync(path.join(dir, n)).mtimeMs }))
+          .sort((a, b) => b.mtime - a.mtime);
+        for (const old of olds.slice(this.keep)) {
+          try { fs.unlinkSync(old.full); } catch { /* ignore */ }
+        }
+      } catch { /* ignore */ }
+    }
   }
 
   // Kept as an alias for call sites that used the previous async name.
@@ -175,22 +222,79 @@ class AuditLogger {
     return results;
   }
 
-  verify() {
-    if (!fs.existsSync(this.logPath)) {
-      return { valid: true, corruptedAt: null, total: 0 };
+  // verify({ includeRotated }) walks the hash chain.
+  //
+  // Default (no args / { includeRotated: false }): walks only the
+  // current `audit.jsonl`. Note that AFTER a rotation, the live
+  // file's first event was hashed against the rotated file's last
+  // hash — so verifying the live file alone reports `valid: false`
+  // at index 0 even though the chain is internally consistent.
+  // That's a feature: the operator should know they're looking at
+  // a partial slice and call with `includeRotated: true` to walk
+  // the full history.
+  //
+  // includeRotated: true — discovers `audit-*.jsonl` siblings,
+  // sorts them by mtime oldest-first, concatenates with the live
+  // file, and walks the combined chain. corruptedAt indices are
+  // relative to the merged stream so a 3-event live file with a
+  // bad event at line 1 would surface as e.g.
+  // `corruptedAt: 124, total: 200` if there were 123 rotated
+  // events ahead of it. The split point is also returned as
+  // `rotatedTotal` so callers can map back to file boundaries.
+  verify(opts) {
+    const includeRotated = !!(opts && opts.includeRotated);
+    const liveExists = fs.existsSync(this.logPath);
+
+    // Collect rotated file paths (oldest first) when requested.
+    const rotatedFiles = [];
+    if (includeRotated) {
+      try {
+        const dir = path.dirname(this.logPath);
+        const base = path.basename(this.logPath, '.jsonl');
+        const re = new RegExp('^' + base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-.*\\.jsonl$');
+        const rotated = fs.readdirSync(dir)
+          .filter((n) => re.test(n))
+          .map((n) => ({
+            full: path.join(dir, n),
+            mtime: fs.statSync(path.join(dir, n)).mtimeMs,
+          }))
+          .sort((a, b) => a.mtime - b.mtime);
+        for (const r of rotated) rotatedFiles.push(r.full);
+      } catch {
+        // Treat directory read failures as "no rotated files" — the
+        // live-file walk below still happens.
+      }
     }
-    const content = fs.readFileSync(this.logPath, 'utf8');
-    const lines = content.split(/\r?\n/).filter((l) => l.length > 0);
+
+    if (!liveExists && rotatedFiles.length === 0) {
+      return { valid: true, corruptedAt: null, total: 0, rotatedTotal: 0 };
+    }
+
+    // Concatenate rotated + live without an explicit merged file —
+    // we just stream lines through the same loop.
+    const allFiles = rotatedFiles.slice();
+    if (liveExists) allFiles.push(this.logPath);
+    const lines = [];
+    let rotatedTotal = 0;
+    for (let f = 0; f < allFiles.length; f++) {
+      const file = allFiles[f];
+      let content;
+      try { content = fs.readFileSync(file, 'utf8'); } catch { continue; }
+      const fileLines = content.split(/\r?\n/).filter((l) => l.length > 0);
+      if (file !== this.logPath) rotatedTotal += fileLines.length;
+      for (const l of fileLines) lines.push(l);
+    }
+
     let prevHash = null;
     for (let i = 0; i < lines.length; i++) {
       let event;
       try {
         event = JSON.parse(lines[i]);
       } catch {
-        return { valid: false, corruptedAt: i, total: lines.length };
+        return { valid: false, corruptedAt: i, total: lines.length, rotatedTotal };
       }
       if (!event || typeof event !== 'object' || typeof event.hash !== 'string') {
-        return { valid: false, corruptedAt: i, total: lines.length };
+        return { valid: false, corruptedAt: i, total: lines.length, rotatedTotal };
       }
       const hash = event.hash;
       const core = {
@@ -202,11 +306,11 @@ class AuditLogger {
       };
       const expected = hashEvent(prevHash, core);
       if (expected !== hash) {
-        return { valid: false, corruptedAt: i, total: lines.length };
+        return { valid: false, corruptedAt: i, total: lines.length, rotatedTotal };
       }
       prevHash = hash;
     }
-    return { valid: true, corruptedAt: null, total: lines.length };
+    return { valid: true, corruptedAt: null, total: lines.length, rotatedTotal };
   }
 }
 
