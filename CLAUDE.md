@@ -64,6 +64,11 @@ c4 list                              모든 워커 상태 조회
 c4 close <name>                      워커 종료
 c4 health                            데몬 헬스체크
 c4 config [reload]                   설정 조회/리로드
+c4 config validate [path]            config.json 검증 (errors / warnings)
+c4 doctor                            환경 종합 헬스 체크 (daemon + config + dist + logs)
+c4 metrics [--json]                  per-worker + daemon CPU/RSS 스냅샷
+c4 workspaces [--json]               멀티 repo workspace 목록 (config.workspaces)
+c4 sse [--type <name>]               daemon SSE 스트림 실시간 tail (filter by type)
 c4 merge <name|branch>               워커 브랜치 main에 머지
 c4 auto "작업"                       자율 모드 (관리자 + scribe 자동 생성)
 c4 status <name> "message"           Slack에 상태 메시지 전송
