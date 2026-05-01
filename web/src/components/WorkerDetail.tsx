@@ -355,7 +355,12 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
           </Button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        {/* (TODO 8.42) Special-key buttons exist for soft-keyboard
+            users on mobile, where Esc / Ctrl-C / Ctrl-D / Tab / arrows
+            aren't reachable. Desktops have a physical keyboard that
+            already sends those, so the row is hidden at md+ breakpoints
+            to keep the composer area uncluttered. */}
+        <div className="flex flex-wrap items-center gap-2 md:hidden">
           <span className="text-xs uppercase tracking-wide text-muted-foreground">Keys</span>
           <Button
             type="button"
