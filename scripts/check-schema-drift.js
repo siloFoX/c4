@@ -103,6 +103,18 @@ function _extractFieldsFromHandler(start, end) {
   return { fields, wholesalePassThrough };
 }
 
+// (Phase 2) Extract every searchParams.get('X') call inside a handler
+// range. Returns the set of query param names the handler reads.
+function _extractQueryParamsFromHandler(start, end) {
+  const params = new Set();
+  const re = /url\.searchParams\.get\(['"]([^'"]+)['"]\)/g;
+  for (let i = start; i <= end; i++) {
+    let m;
+    while ((m = re.exec(lines[i])) !== null) params.add(m[1]);
+  }
+  return params;
+}
+
 let driftFound = 0;
 let routesChecked = 0;
 
@@ -174,7 +186,47 @@ for (const [key, schemas] of Object.entries(ROUTE_SCHEMAS)) {
   }
 }
 
+// Phase 2: GET parameter drift. Flag when the spec lists a parameter
+// the handler never reads, OR when the handler reads a query param
+// that's not documented in the spec.
+let paramRoutesChecked = 0;
+const STRICT = process.argv.includes('--strict');
+const VERBOSE = process.argv.includes('--verbose');
+for (const [key, schemas] of Object.entries(ROUTE_SCHEMAS)) {
+  if (!schemas.parameters || schemas.parameters.length === 0) continue;
+  if (!key.startsWith('GET ')) continue;
+  const range = routeRanges.get(key);
+  if (!range) continue;
+  paramRoutesChecked++;
+  const specParams = new Set(schemas.parameters
+    .filter((p) => p.in === 'query')
+    .map((p) => p.name));
+  const handlerParams = _extractQueryParamsFromHandler(range.start, range.end);
+  const inSpecOnly = [...specParams].filter((p) => !handlerParams.has(p));
+  const inHandlerOnly = [...handlerParams].filter((p) => !specParams.has(p));
+
+  if (STRICT && inHandlerOnly.length > 0) {
+    console.log(`✗ ${key}: handler reads ${inHandlerOnly.length} query param(s) the spec doesn't document`);
+    console.log(`    spec params:        ${[...specParams].join(', ') || '(none)'}`);
+    console.log(`    handler reads also: ${inHandlerOnly.join(', ')}`);
+    driftFound++;
+    continue;
+  }
+  if (STRICT && inSpecOnly.length > 0) {
+    console.log(`✗ ${key}: spec lists ${inSpecOnly.length} query param(s) the handler never reads`);
+    console.log(`    in spec only: ${inSpecOnly.join(', ')}`);
+    console.log(`    handler uses: ${[...handlerParams].join(', ') || '(none)'}`);
+    driftFound++;
+    continue;
+  }
+  if (VERBOSE && (inSpecOnly.length || inHandlerOnly.length)) {
+    if (inSpecOnly.length) console.log(`? ${key}: ${inSpecOnly.length} param(s) in spec only: ${inSpecOnly.join(', ')}`);
+    if (inHandlerOnly.length) console.log(`? ${key}: ${inHandlerOnly.length} param(s) in handler only: ${inHandlerOnly.join(', ')}`);
+  }
+}
+
 console.log(`\nChecked ${routesChecked} route(s) with requestBody schemas.`);
+console.log(`Checked ${paramRoutesChecked} GET route(s) with query parameter schemas.`);
 if (driftFound === 0) {
   console.log('No drift detected — all spec fields match handler usage.');
   process.exit(0);

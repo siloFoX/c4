@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.22
-// Generated at: 2026-05-01T15:56:54.569Z
+// Spec version: 1.10.23
+// Generated at: 2026-05-01T16:10:11.726Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -246,11 +246,12 @@ export interface getAuditQueryParams {
   to?: string;
   type?: string;
   target?: string;
-  actor?: string;
   limit?: number;
 }
 export interface getAuditQueryResponse {
   events?: unknown[];
+  count?: number;
+  path?: string; /** Path to the live audit log file */
 }
 
 export interface getAuditExportParams {
@@ -260,6 +261,7 @@ export interface getAuditExportParams {
   target?: string;
   limit?: number;
   bom?: "0" | "1";
+  lineEnd?: "crlf" | "lf";
 }
 export type getAuditExportResponse = unknown;
 
@@ -392,8 +394,14 @@ export interface postOrgsTeamResponse {
   name?: string;
 }
 
+export interface getSchedulesParams {
+  enabled?: "true" | "false";
+  projectId?: string;
+  assignee?: string;
+}
 export interface getSchedulesResponse {
-  schedules?: unknown[];
+  schedules?: Record<string, unknown>[];
+  count?: number;
 }
 
 export interface postSchedulesBody {
@@ -427,11 +435,17 @@ export interface postNlChatResponse {
 }
 
 export interface getNlSessionsResponse {
-  sessions?: unknown[];
+  sessions?: Record<string, unknown>[];
+  count?: number;
 }
 
+export interface getMcpServersParams {
+  enabled?: "true" | "false";
+  transport?: "stdio" | "http";
+}
 export interface getMcpServersResponse {
   servers?: Record<string, unknown>[];
+  count?: number;
 }
 
 export interface postMcpServersBody {
@@ -452,6 +466,7 @@ export interface getWorkflowsParams {
 }
 export interface getWorkflowsResponse {
   workflows?: Record<string, unknown>[];
+  count?: number;
 }
 
 export interface postWorkflowsBody {
@@ -634,30 +649,38 @@ export interface postScribeScanResponse {
 export interface getEventsQueryParams {
   from?: string;
   to?: string;
-  type?: string;
-  worker?: string;
+  types?: string;
+  workers?: string;
   limit?: number;
-  reverse?: "0" | "1";
+  reverse?: "0" | "1" | "true" | "false";
 }
 export interface getEventsQueryResponse {
-  events?: Record<string, unknown>[];
+  events?: unknown[];
+  count?: number;
 }
 
 export interface getEventsContextParams {
-  around: string;
-  window?: number;
+  target: string;
+  minutesBefore?: number;
+  minutesAfter?: number;
 }
 export interface getEventsContextResponse {
   events?: Record<string, unknown>[];
+  count?: number;
+  target?: string;
 }
 
 export interface getTokenUsageParams {
-  name?: string;
-  groupBy?: "session" | "project" | "tier" | "dept";
+  perTask?: "0" | "1";
 }
 export interface getTokenUsageResponse {
-  usage?: Record<string, unknown>[];
-  totals?: Record<string, unknown>;
+  today?: string; /** ISO date (UTC) */
+  input?: number;
+  output?: number;
+  total?: number;
+  dailyLimit?: number; /** Configured daily cap (0 = unlimited) */
+  history?: Record<string, unknown>; /** Daily history map keyed by date */
+  perTask?: Record<string, unknown>; /** Populated when ?perTask=1 */
 }
 
 export interface getQuotaResponse {
@@ -725,6 +748,7 @@ export interface postPlanResponse {
 
 export interface getPlanParams {
   name: string;
+  outputPath?: string;
 }
 export interface getPlanResponse {
   plan?: string;
@@ -795,7 +819,14 @@ export interface postStatusUpdateResponse {
   sent?: boolean;
 }
 
-export type getSlackEventsResponse = unknown;
+export interface getSlackEventsParams {
+  limit?: number;
+}
+export interface getSlackEventsResponse {
+  events?: Record<string, unknown>[]; /** Recent slack events from the in-memory buffer */
+  count?: number;
+  config?: Record<string, unknown>; /** Effective slack config (channel, webhook URL stripped) */
+}
 
 export interface postSlackEmitBody {
   eventType: string; /** One of slackEvents.EVENT_TYPES */
@@ -806,26 +837,38 @@ export interface postSlackEmitResponse {
 }
 
 export interface getHistoryParams {
-  name?: string;
-  last?: number;
+  worker?: string;
+  limit?: number;
+  status?: string;
+  since?: string;
+  until?: string;
+  q?: string;
 }
 export interface getHistoryResponse {
-  history?: unknown[];
+  records?: unknown[];
+  workers?: Record<string, unknown>[]; /** Per-worker rollup summary */
+  total?: number; /** Total record count before filtering */
 }
 
 export interface getScribeContextParams {
-  name: string;
+  maxBytes?: number;
 }
 export interface getScribeContextResponse {
-  context?: unknown[];
+  path?: string; /** Resolved session-context.md path */
+  body?: string; /** File contents (capped to maxBytes when set) */
+  bytes?: number; /** Total file size on disk */
+  truncated?: boolean; /** True when bytes > maxBytes */
 }
 
 export interface getSessionsParams {
   workerName?: string;
-  limit?: number;
+  q?: string;
 }
 export interface getSessionsResponse {
+  rootDir?: string;
   sessions?: unknown[];
+  groups?: Record<string, unknown>[];
+  total?: number;
 }
 
 export interface postAttachBody {
@@ -845,9 +888,13 @@ export interface getAttachListResponse {
   total?: number;
 }
 
+export interface getFleetOverviewParams {
+  timeout?: number;
+}
 export interface getFleetOverviewResponse {
-  peers?: unknown[];
+  peers?: Record<string, unknown>[]; /** Per-machine probe result (alias, host, ok, workers, version) */
   totalWorkers?: number;
+  self?: Record<string, unknown>; /** Local daemon snapshot */
 }
 
 export interface postDispatchBody {
@@ -1536,10 +1583,11 @@ export class C4Client {
   }
 
   /** (10.7) List every schedule. Filters: ?enabled=true|false, ?projectId=, ?assignee=. Read-only so viewers can inspect the timeline without getting write access. */
-  async getSchedules(): Promise<getSchedulesResponse> {
+  async getSchedules(params?: getSchedulesParams): Promise<getSchedulesResponse> {
     return this.request<getSchedulesResponse>({
       method: 'GET',
       path: '/api/schedules',
+      params: params as unknown as Record<string, unknown> | undefined,
     });
   }
 
@@ -1570,10 +1618,11 @@ export class C4Client {
   }
 
   /** (11.1) List every MCP server in the hub. Filters: ?enabled= true|false, ?transport=stdio|http. Read-only so viewers can inspect the registry without mcp.manage. */
-  async getMcpServers(): Promise<getMcpServersResponse> {
+  async getMcpServers(params?: getMcpServersParams): Promise<getMcpServersResponse> {
     return this.request<getMcpServersResponse>({
       method: 'GET',
       path: '/api/mcp/servers',
+      params: params as unknown as Record<string, unknown> | undefined,
     });
   }
 
@@ -1975,7 +2024,7 @@ export class C4Client {
   }
 
   /** 8.7: scribe session-context.md viewer. Reads docs/session-context.md from the project root (or from config.scribe.outputPath if set). */
-  async getScribeContext(params: getScribeContextParams): Promise<getScribeContextResponse> {
+  async getScribeContext(params?: getScribeContextParams): Promise<getScribeContextResponse> {
     return this.request<getScribeContextResponse>({
       method: 'GET',
       path: '/api/scribe-context',
@@ -2010,10 +2059,11 @@ export class C4Client {
   }
 
   /** Fleet management (9.6): aggregate this daemon's state plus every registered peer in ~/.c4/fleet.json. Best-effort with a per-machine timeout so one unreachable peer cannot stall the endpoint — see src/fleet.js for the sampling contract. */
-  async getFleetOverview(): Promise<getFleetOverviewResponse> {
+  async getFleetOverview(params?: getFleetOverviewParams): Promise<getFleetOverviewResponse> {
     return this.request<getFleetOverviewResponse>({
       method: 'GET',
       path: '/api/fleet/overview',
+      params: params as unknown as Record<string, unknown> | undefined,
     });
   }
 
@@ -2083,8 +2133,11 @@ export class C4Client {
   }
 
   /** (8.15) Tail of the in-memory event buffer. Open to any authenticated caller so dashboards can render the recent feed without holding the SLACK_WRITE permission. (SSE stream) */
-  async *getSlackEvents(): AsyncGenerator<C4SSEEvent> {
+  async *getSlackEvents(params?: getSlackEventsParams): AsyncGenerator<C4SSEEvent> {
     const url = new URL('/api/slack/events', this.baseUrl);
+    if (params) {
+      if (params.limit !== undefined) url.searchParams.set('limit', String(params.limit));
+    }
     yield* this._sse(url);
   }
 

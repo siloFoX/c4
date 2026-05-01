@@ -321,23 +321,26 @@ const ROUTE_SCHEMAS = {
   },
   'GET /sessions': {
     parameters: [
-      { name: 'workerName', in: 'query', schema: { type: 'string' } },
-      { name: 'limit', in: 'query', schema: { type: 'integer' } },
+      { name: 'workerName', in: 'query', schema: { type: 'string', description: 'When set, returns the single Conversation for that worker instead of the list shape' } },
+      { name: 'q', in: 'query', schema: { type: 'string', description: 'Substring filter against project path / session id / last assistant snippet' } },
     ],
     response: {
       properties: {
+        rootDir: { type: 'string' },
         sessions: {
           type: 'array',
           items: {
             properties: {
-              id: { type: 'string' },
+              sessionId: { type: 'string' },
               path: { type: 'string' },
-              workerName: { type: 'string', nullable: true },
-              createdAt: { type: 'string' },
-              messageCount: { type: 'integer' },
+              projectPath: { type: 'string', nullable: true },
+              projectDir: { type: 'string', nullable: true },
+              lastAssistantSnippet: { type: 'string', nullable: true },
             },
           },
         },
+        groups: { type: 'array', items: { type: 'object' } },
+        total: { type: 'integer' },
       },
     },
   },
@@ -421,9 +424,11 @@ const ROUTE_SCHEMAS = {
       { name: 'type', in: 'query', schema: { type: 'string' } },
       { name: 'target', in: 'query', schema: { type: 'string' } },
       { name: 'limit', in: 'query', schema: { type: 'integer' } },
-      { name: 'bom', in: 'query', schema: { type: 'string', enum: ['0', '1'] } },
+      { name: 'bom', in: 'query', schema: { type: 'string', enum: ['0', '1'], description: 'Set 0 to omit the UTF-8 BOM (default 1 for Excel-friendliness)' } },
+      { name: 'lineEnd', in: 'query', schema: { type: 'string', enum: ['crlf', 'lf'], description: 'Set lf for Unix line endings (default crlf for Windows/Excel)' } },
     ],
     response: {
+      contentType: 'text/csv',
       description: 'CSV body with UTF-8 BOM + CRLF (text/csv content-type)',
       type: 'string',
     },
@@ -443,8 +448,7 @@ const ROUTE_SCHEMAS = {
       { name: 'to', in: 'query', schema: { type: 'string' } },
       { name: 'type', in: 'query', schema: { type: 'string' } },
       { name: 'target', in: 'query', schema: { type: 'string' } },
-      { name: 'actor', in: 'query', schema: { type: 'string' } },
-      { name: 'limit', in: 'query', schema: { type: 'integer', default: 1000 } },
+      { name: 'limit', in: 'query', schema: { type: 'integer' } },
     ],
     response: {
       properties: {
@@ -461,6 +465,8 @@ const ROUTE_SCHEMAS = {
             },
           },
         },
+        count: { type: 'integer' },
+        path: { type: 'string', description: 'Path to the live audit log file' },
       },
     },
   },
@@ -615,10 +621,13 @@ const ROUTE_SCHEMAS = {
   'GET /workflows': {
     parameters: [
       { name: 'enabled', in: 'query', schema: { type: 'string', enum: ['true', 'false'] } },
-      { name: 'nameContains', in: 'query', schema: { type: 'string' } },
+      { name: 'nameContains', in: 'query', schema: { type: 'string', description: 'Substring match against workflow name' } },
     ],
     response: {
-      properties: { workflows: { type: 'array', items: { type: 'object' } } },
+      properties: {
+        workflows: { type: 'array', items: { type: 'object' } },
+        count: { type: 'integer' },
+      },
     },
   },
   'POST /schedules': {
@@ -645,8 +654,16 @@ const ROUTE_SCHEMAS = {
     },
   },
   'GET /schedules': {
+    parameters: [
+      { name: 'enabled', in: 'query', schema: { type: 'string', enum: ['true', 'false'] } },
+      { name: 'projectId', in: 'query', schema: { type: 'string' } },
+      { name: 'assignee', in: 'query', schema: { type: 'string', description: 'Worker name the schedule dispatches to' } },
+    ],
     response: {
-      properties: { schedules: { type: 'array' } },
+      properties: {
+        schedules: { type: 'array', items: { type: 'object' } },
+        count: { type: 'integer' },
+      },
     },
   },
   'POST /projects': {
@@ -799,7 +816,10 @@ const ROUTE_SCHEMAS = {
     response: { properties: { success: { type: 'boolean' }, planPath: { type: 'string' } } },
   },
   'GET /plan': {
-    parameters: [{ name: 'name', in: 'query', required: true, schema: { type: 'string' } }],
+    parameters: [
+      { name: 'name', in: 'query', required: true, schema: { type: 'string' } },
+      { name: 'outputPath', in: 'query', schema: { type: 'string', description: 'Override the plan markdown path (defaults to the worker config)' } },
+    ],
     response: { properties: { plan: { type: 'string' }, path: { type: 'string' } } },
   },
   'GET /plan-revisions': {
@@ -838,7 +858,16 @@ const ROUTE_SCHEMAS = {
     response: { properties: { result: { type: 'object' } } },
   },
   'GET /mcp/servers': {
-    response: { properties: { servers: { type: 'array', items: { type: 'object' } } } },
+    parameters: [
+      { name: 'enabled', in: 'query', schema: { type: 'string', enum: ['true', 'false'] } },
+      { name: 'transport', in: 'query', schema: { type: 'string', enum: ['stdio', 'http'] } },
+    ],
+    response: {
+      properties: {
+        servers: { type: 'array', items: { type: 'object' } },
+        count: { type: 'integer' },
+      },
+    },
   },
   'GET /computer-use/sessions': {
     response: { properties: { sessions: { type: 'array' } } },
@@ -878,7 +907,16 @@ const ROUTE_SCHEMAS = {
     response: { type: 'string', description: 'SSE stream of approval transitions' },
   },
   'GET /slack/events': {
-    response: { type: 'string', description: 'SSE stream of Slack interaction events' },
+    parameters: [
+      { name: 'limit', in: 'query', schema: { type: 'integer', description: 'Cap the number of returned events (default: full in-memory buffer)' } },
+    ],
+    response: {
+      properties: {
+        events: { type: 'array', items: { type: 'object' }, description: 'Recent slack events from the in-memory buffer' },
+        count: { type: 'integer' },
+        config: { type: 'object', description: 'Effective slack config (channel, webhook URL stripped)' },
+      },
+    },
   },
   'POST /slack/emit': {
     requestBody: {
@@ -892,11 +930,29 @@ const ROUTE_SCHEMAS = {
     response: { properties: { success: { type: 'boolean' } } },
   },
   'GET /scribe-context': {
-    parameters: [{ name: 'name', in: 'query', required: true, schema: { type: 'string' } }],
-    response: { properties: { context: { type: 'array' } } },
+    parameters: [
+      { name: 'maxBytes', in: 'query', schema: { type: 'integer', description: 'Cap the response body size (omit to read full session-context.md)' } },
+    ],
+    response: {
+      properties: {
+        path: { type: 'string', description: 'Resolved session-context.md path' },
+        body: { type: 'string', description: 'File contents (capped to maxBytes when set)' },
+        bytes: { type: 'integer', description: 'Total file size on disk' },
+        truncated: { type: 'boolean', description: 'True when bytes > maxBytes' },
+      },
+    },
   },
   'GET /fleet/overview': {
-    response: { properties: { peers: { type: 'array' }, totalWorkers: { type: 'integer' } } },
+    parameters: [
+      { name: 'timeout', in: 'query', schema: { type: 'integer', description: 'Per-peer probe timeout in ms (0 / unset uses fleet defaults)' } },
+    ],
+    response: {
+      properties: {
+        peers: { type: 'array', items: { type: 'object' }, description: 'Per-machine probe result (alias, host, ok, workers, version)' },
+        totalWorkers: { type: 'integer' },
+        self: { type: 'object', description: 'Local daemon snapshot' },
+      },
+    },
   },
   'POST /dispatch': {
     requestBody: {
@@ -959,7 +1015,12 @@ const ROUTE_SCHEMAS = {
     response: { properties: { pipelines: { type: 'array', items: { type: 'object' } } } },
   },
   'GET /nl/sessions': {
-    response: { properties: { sessions: { type: 'array' } } },
+    response: {
+      properties: {
+        sessions: { type: 'array', items: { type: 'object' } },
+        count: { type: 'integer' },
+      },
+    },
   },
   'POST /batch': {
     requestBody: {
@@ -1025,12 +1086,16 @@ const ROUTE_SCHEMAS = {
   },
   'GET /history': {
     parameters: [
-      { name: 'name', in: 'query', schema: { type: 'string' } },
-      { name: 'last', in: 'query', schema: { type: 'integer' } },
+      { name: 'worker', in: 'query', schema: { type: 'string' } },
+      { name: 'limit', in: 'query', schema: { type: 'integer' } },
+      { name: 'status', in: 'query', schema: { type: 'string', description: 'Filter to records matching status (e.g., completed, failed)' } },
+      { name: 'since', in: 'query', schema: { type: 'string', description: 'ISO timestamp — inclusive lower bound' } },
+      { name: 'until', in: 'query', schema: { type: 'string', description: 'ISO timestamp — exclusive upper bound' } },
+      { name: 'q', in: 'query', schema: { type: 'string', description: 'Substring filter against task / worker / branch' } },
     ],
     response: {
       properties: {
-        history: {
+        records: {
           type: 'array',
           items: {
             properties: {
@@ -1040,39 +1105,69 @@ const ROUTE_SCHEMAS = {
               startedAt: { type: 'string' },
               completedAt: { type: 'string', nullable: true },
               status: { type: 'string' },
+              branch: { type: 'string', nullable: true },
             },
           },
         },
+        workers: { type: 'array', items: { type: 'object' }, description: 'Per-worker rollup summary' },
+        total: { type: 'integer', description: 'Total record count before filtering' },
       },
     },
   },
   'GET /events/query': {
     parameters: [
-      { name: 'from', in: 'query', schema: { type: 'string' } },
-      { name: 'to', in: 'query', schema: { type: 'string' } },
-      { name: 'type', in: 'query', schema: { type: 'string' } },
-      { name: 'worker', in: 'query', schema: { type: 'string' } },
+      { name: 'from', in: 'query', schema: { type: 'string', description: 'ISO timestamp — inclusive lower bound' } },
+      { name: 'to', in: 'query', schema: { type: 'string', description: 'ISO timestamp — exclusive upper bound' } },
+      { name: 'types', in: 'query', schema: { type: 'string', description: 'Comma-separated event types (e.g., "worker.created,task.completed")' } },
+      { name: 'workers', in: 'query', schema: { type: 'string', description: 'Comma-separated worker names' } },
       { name: 'limit', in: 'query', schema: { type: 'integer' } },
-      { name: 'reverse', in: 'query', schema: { type: 'string', enum: ['0', '1'] } },
-    ],
-    response: { properties: { events: { type: 'array', items: { type: 'object' } } } },
-  },
-  'GET /events/context': {
-    parameters: [
-      { name: 'around', in: 'query', required: true, schema: { type: 'string', description: 'Event id or ISO timestamp' } },
-      { name: 'window', in: 'query', schema: { type: 'integer', default: 5 } },
-    ],
-    response: { properties: { events: { type: 'array', items: { type: 'object' } } } },
-  },
-  'GET /token-usage': {
-    parameters: [
-      { name: 'name', in: 'query', schema: { type: 'string' } },
-      { name: 'groupBy', in: 'query', schema: { type: 'string', enum: ['session', 'project', 'tier', 'dept'] } },
+      { name: 'reverse', in: 'query', schema: { type: 'string', enum: ['0', '1', 'true', 'false'], description: 'Set 1/true for newest-first ordering' } },
     ],
     response: {
       properties: {
-        usage: { type: 'array', items: { type: 'object' } },
-        totals: { type: 'object' },
+        events: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string', description: 'Monotonic event id' },
+              ts: { type: 'string', description: 'ISO timestamp' },
+              type: { type: 'string', description: 'Event type (dotted: domain.action)' },
+              worker: { type: 'string', nullable: true },
+              data: { type: 'object', description: 'Event-specific payload' },
+            },
+          },
+        },
+        count: { type: 'integer' },
+      },
+    },
+  },
+  'GET /events/context': {
+    parameters: [
+      { name: 'target', in: 'query', required: true, schema: { type: 'string', description: 'Event id or ISO timestamp to anchor the window' } },
+      { name: 'minutesBefore', in: 'query', schema: { type: 'number', description: 'Window before target (default 1)' } },
+      { name: 'minutesAfter', in: 'query', schema: { type: 'number', description: 'Window after target (default 1)' } },
+    ],
+    response: {
+      properties: {
+        events: { type: 'array', items: { type: 'object' } },
+        count: { type: 'integer' },
+        target: { type: 'string' },
+      },
+    },
+  },
+  'GET /token-usage': {
+    parameters: [
+      { name: 'perTask', in: 'query', schema: { type: 'string', enum: ['0', '1'], description: 'Set 1 to include per-task usage breakdown' } },
+    ],
+    response: {
+      properties: {
+        today: { type: 'string', description: 'ISO date (UTC)' },
+        input: { type: 'integer' },
+        output: { type: 'integer' },
+        total: { type: 'integer' },
+        dailyLimit: { type: 'integer', description: 'Configured daily cap (0 = unlimited)' },
+        history: { type: 'object', description: 'Daily history map keyed by date' },
+        perTask: { type: 'object', description: 'Populated when ?perTask=1' },
       },
     },
   },

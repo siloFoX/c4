@@ -315,8 +315,12 @@ describe('openapi-gen content-type detection', () => {
   // schema (string vs object) and the description hint.
 
   it('SSE routes (text/event-stream) emit the right content type', () => {
+    // Note: /api/slack/events is NOT in this list — it returns JSON
+    // (a tail of the in-memory event buffer), the route name is a
+    // historical accident. The actual SSE feeds are /events and
+    // /watch + the typed approvals stream.
     const s = buildSpec();
-    for (const route of ['/api/watch', '/api/events', '/api/approvals/stream', '/api/slack/events']) {
+    for (const route of ['/api/watch', '/api/events', '/api/approvals/stream']) {
       const op = s.paths[route]?.get;
       const content = op?.responses?.['200']?.content;
       assert.ok(content, `${route} response content missing`);

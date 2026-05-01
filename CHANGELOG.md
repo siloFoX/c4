@@ -4,6 +4,57 @@
 
 (no entries — next release window)
 
+## [1.10.23] - 2026-05-02
+
+GET parameter drift sweep — caught and fixed 8 routes where the
+spec advertised query params the handler doesn't read (or vice
+versa). Drift checker extended to flag the same class of bug
+going forward.
+
+### Fixed
+- **(spec) /events/query** — listed `type`, `worker` (singular)
+  but handler reads `types`, `workers` (CSV). Spec now matches.
+- **(spec) /events/context** — listed `around`, `window` (in
+  events). Handler reads `target`, `minutesBefore`,
+  `minutesAfter`. Spec now matches.
+- **(spec) /history** — listed only `name`, `last`. Handler
+  reads `worker`, `limit`, `status`, `since`, `until`, `q`. All
+  six now in the spec; response shape corrected (`records` +
+  `workers` + `total`, not `history`).
+- **(spec) /sessions** — listed `workerName`, `limit`. Handler
+  reads `workerName`, `q` (no limit). Spec corrected; response
+  shape filled in (rootDir, sessions[], groups[], total).
+- **(spec) /plan** — missing `outputPath` query param.
+- **(spec) /scribe-context** — missing `maxBytes` query param.
+- **(spec) /audit/query** — listed `actor` (handler doesn't
+  read it), missing `count` + `path` in response.
+- **(spec) /audit/export** — missing `lineEnd` query param.
+- **(spec) /token-usage** — listed phantom `name`, `groupBy`.
+  Handler reads `perTask`. Response shape filled in (today,
+  input, output, total, dailyLimit, history, perTask).
+- **(spec) /schedules, /mcp/servers, /workflows** — missing
+  the filter query params (`enabled`, `projectId`, `assignee`,
+  `transport`, `nameContains`).
+- **(spec) /slack/events** — was advertised as SSE stream, but
+  the handler returns plain JSON `{events, count, config}`.
+  Spec now matches the actual non-streaming shape.
+- **(spec) /fleet/overview** — missing `timeout` query param,
+  response shape filled in (peers, totalWorkers, self).
+
+### Added
+- **(scripts/check-schema-drift.js) GET parameter drift
+  detection.** Phase 2 of the drift checker compares
+  `searchParams.get('X')` calls in handlers against the
+  `parameters` array in the spec. Strict mode flags both
+  directions: spec-only params (handler never reads them) and
+  handler-only params (spec doesn't document them). 27 GET
+  routes now checked.
+- **(spec) /openapi.json** content-type check + extra dedupe
+  guard in the test suite (regression coverage for v1.10.22's
+  100% milestone).
+
+Suite 151/151. SDK 2100 → 2153 lines. Linters clean.
+
 ## [1.10.22] - 2026-05-02
 
 OpenAPI spec coverage hits 100% — every operation has a response
