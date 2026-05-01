@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.43] - 2026-05-02
+
+`config-validate.js` now checks the `openapi.*` block — catches
+typos like `validateRequsts: true` (note missing 'e') before
+they silently no-op for weeks.
+
+### Added
+- **(src/config-validate.js)** validates the `openapi.*` block:
+  - flags non-boolean values on known keys as errors
+  - flags unknown sibling keys as warnings (typo guard)
+  - allows `_*_doc` sibling annotations from
+    `config.example.json` so users can paste-then-edit safely
+
+  Known keys: `validateRequests`, `validateResponses`. Future
+  daemon flags get added to `KNOWN_OPENAPI_KEYS` in one spot.
+
+- **(tests) 4 new openapi config validation tests** in
+  `tests/config-validate.test.js`. Locks in clean-block,
+  bad-type, typo, and _doc-allow behaviour.
+
+Suite 153/153.
+
 ## [1.10.42] - 2026-05-02
 
 Regression test suite for the v1.10.40-41 CLI filters.

@@ -109,6 +109,41 @@ describe('config validate', () => {
     const r = validate({ fleet: { peers: { dgx: { host: '1.2.3.4', port: 70000 } } } });
     assert.ok(r.errors.find((e) => e.path === 'fleet.peers.dgx.port'));
   });
+
+  // (v1.10.43) openapi.* validation. Catches typos before they
+  // silently no-op — `validateRequsts: true` would never enforce
+  // anything because the daemon checks `validateRequests` (correct
+  // spelling). The validator now flags the typo as an unknown key.
+
+  it('clean openapi block passes', () => {
+    const r = validate({
+      openapi: { validateRequests: true, validateResponses: false },
+    });
+    assert.strictEqual(r.errors.length, 0);
+    assert.strictEqual(r.warnings.length, 0);
+  });
+
+  it('flags non-boolean openapi.validateRequests', () => {
+    const r = validate({ openapi: { validateRequests: 'yes' } });
+    assert.ok(r.errors.find((e) => e.path === 'openapi.validateRequests'));
+  });
+
+  it('warns on unknown openapi keys (likely typo)', () => {
+    const r = validate({ openapi: { validateRequsts: true } });
+    assert.ok(r.warnings.find((w) => w.path === 'openapi.validateRequsts'),
+      'expected typo to be flagged');
+  });
+
+  it('allows _doc-suffix sibling annotations from config.example.json', () => {
+    const r = validate({
+      openapi: {
+        _validateResponses_doc: 'When true, …',
+        validateResponses: false,
+      },
+    });
+    assert.strictEqual(r.errors.length, 0);
+    assert.strictEqual(r.warnings.length, 0);
+  });
 });
 
 // (review fix 2026-05-01) CLI integration — the `c4 config

@@ -175,6 +175,35 @@ function validate(config = {}) {
     }
   }
 
+  // -- openapi.* (v1.10.43): catch typos before they silently no-op.
+  // Fields that look like booleans get a type check; unknown sibling
+  // keys get a warning so `validateRequsts: true` (typo) doesn't sit
+  // there as a dormant flag forever.
+  if (config.openapi && typeof config.openapi === 'object') {
+    const KNOWN_OPENAPI_KEYS = new Set([
+      'validateRequests',
+      'validateResponses',
+      // _doc-suffix keys are sibling annotations from config.example.json
+      // — keep them legal so users can paste the example verbatim.
+    ]);
+    for (const [k, v] of Object.entries(config.openapi)) {
+      if (k.startsWith('_') && k.endsWith('_doc')) continue;
+      if (!KNOWN_OPENAPI_KEYS.has(k)) {
+        warnings.push({
+          path: `openapi.${k}`,
+          message: `unknown openapi key — known: ${[...KNOWN_OPENAPI_KEYS].join(', ')}`,
+        });
+        continue;
+      }
+      if (typeof v !== 'boolean') {
+        errors.push({
+          path: `openapi.${k}`,
+          message: `must be a boolean, got ${typeof v}`,
+        });
+      }
+    }
+  }
+
   // -- fleet.peers
   for (const [name, peer] of Object.entries((config.fleet && config.fleet.peers) || {})) {
     if (!peer || typeof peer !== 'object') {
