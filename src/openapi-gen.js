@@ -71,6 +71,248 @@ const ROUTE_SUMMARIES = {
   'POST /status-update': 'Post a manual Slack status message tagged with a worker.',
 };
 
+// Optional curated request/response schemas — populates the OpenAPI
+// `requestBody` (for POST/PUT/PATCH) and `parameters` (for GET query
+// strings). Only seed routes operators actually call from Swagger UI;
+// the rest get the bare `summary + responses[200..500]` envelope.
+//
+// Schema dialect: subset of JSON Schema Draft-07 (OpenAPI 3.0
+// compatible). When a route has no entry here, the generated spec
+// is still valid — Swagger UI just shows "(no parameters)".
+const ROUTE_SCHEMAS = {
+  'POST /auth/login': {
+    requestBody: {
+      required: ['user', 'password'],
+      properties: {
+        user: { type: 'string', description: 'Username' },
+        password: { type: 'string', description: 'Plain-text password' },
+      },
+    },
+    response: {
+      properties: {
+        token: { type: 'string', description: 'JWT bearer token' },
+        user: { type: 'string' },
+        role: { type: 'string', enum: ['admin', 'manager', 'viewer'] },
+      },
+    },
+  },
+  'POST /auth/logout': {
+    response: { properties: { ok: { type: 'boolean' } } },
+  },
+  'GET /auth/status': {
+    response: {
+      properties: {
+        enabled: { type: 'boolean' },
+      },
+    },
+  },
+  'GET /health': {
+    response: {
+      properties: {
+        ok: { type: 'boolean' },
+        workers: { type: 'integer' },
+        version: { type: 'string', nullable: true },
+      },
+    },
+  },
+  'GET /metrics': {
+    response: {
+      properties: {
+        daemon: {
+          properties: {
+            pid: { type: 'integer' },
+            uptimeSec: { type: 'number' },
+            rssKb: { type: 'number' },
+            heapUsedKb: { type: 'number' },
+            heapTotalKb: { type: 'number' },
+            cpus: { type: 'integer' },
+            loadavg: { type: 'array', items: { type: 'number' } },
+          },
+        },
+        workers: { type: 'array' },
+        totals: { type: 'object' },
+      },
+    },
+  },
+  'GET /workspaces': {
+    response: {
+      properties: {
+        workspaces: {
+          type: 'array',
+          items: {
+            properties: {
+              name: { type: 'string' },
+              path: { type: 'string' },
+              exists: { type: 'boolean' },
+              isGitRepo: { type: 'boolean' },
+            },
+          },
+        },
+      },
+    },
+  },
+  'POST /create': {
+    requestBody: {
+      required: ['name'],
+      properties: {
+        name: { type: 'string', description: 'Worker name (unique)' },
+        command: { type: 'string', description: 'Override claude binary path' },
+        target: { type: 'string', description: "'local' | 'dgx' | fleet alias" },
+        cwd: { type: 'string', description: 'Working directory' },
+        parent: { type: 'string', description: 'Parent worker name (for hierarchy)' },
+        tier: { type: 'string', description: "'manager' | 'worker' | string" },
+        pinnedMemory: { type: 'array', items: { type: 'string' } },
+        pinRole: { type: 'string', enum: ['manager', 'worker', 'attached'] },
+      },
+    },
+  },
+  'POST /send': {
+    requestBody: {
+      required: ['name', 'text'],
+      properties: {
+        name: { type: 'string' },
+        text: { type: 'string' },
+      },
+    },
+  },
+  'POST /key': {
+    requestBody: {
+      required: ['name', 'key'],
+      properties: {
+        name: { type: 'string' },
+        key: { type: 'string', description: 'Enter | Escape | Tab | C-c | Up | Down | etc' },
+      },
+    },
+  },
+  'GET /read': {
+    parameters: [
+      { name: 'name', in: 'query', required: true, schema: { type: 'string' } },
+    ],
+  },
+  'GET /read-now': {
+    parameters: [
+      { name: 'name', in: 'query', required: true, schema: { type: 'string' } },
+    ],
+  },
+  'POST /task': {
+    requestBody: {
+      required: ['task'],
+      properties: {
+        name: { type: 'string', description: 'Worker name (auto-generated if omitted)' },
+        task: { type: 'string', description: 'Task prompt' },
+        branch: { type: 'string' },
+        useBranch: { type: 'boolean' },
+        useWorktree: { type: 'boolean' },
+        projectRoot: { type: 'string' },
+        cwd: { type: 'string' },
+        workspace: { type: 'string', description: 'config.workspaces[name] lookup' },
+        profile: { type: 'string', description: 'Built-in template alias' },
+        autoMode: { type: 'boolean' },
+        budgetUsd: { type: 'number' },
+        maxRetries: { type: 'integer' },
+        model: { type: 'string', description: 'Override Claude model' },
+      },
+    },
+  },
+  'POST /merge': {
+    requestBody: {
+      properties: {
+        name: { type: 'string' },
+        branch: { type: 'string' },
+        skipChecks: { type: 'boolean' },
+      },
+    },
+  },
+  'POST /close': {
+    requestBody: {
+      required: ['name'],
+      properties: {
+        name: { type: 'string' },
+      },
+    },
+  },
+  'GET /list': {
+    response: {
+      properties: {
+        workers: { type: 'array' },
+        queuedTasks: { type: 'array' },
+        lostWorkers: { type: 'array' },
+      },
+    },
+  },
+  'GET /sessions': {
+    parameters: [
+      { name: 'workerName', in: 'query', schema: { type: 'string' } },
+      { name: 'limit', in: 'query', schema: { type: 'integer' } },
+    ],
+  },
+  'POST /attach': {
+    requestBody: {
+      required: ['jsonlPath'],
+      properties: {
+        jsonlPath: { type: 'string', description: 'Absolute path to claude session JSONL' },
+        name: { type: 'string', description: 'Display name (defaults to UUID)' },
+        role: { type: 'string', enum: ['manager', 'worker', 'planner', 'executor', 'reviewer', 'generic'] },
+      },
+    },
+  },
+  'POST /approve': {
+    requestBody: {
+      required: ['name'],
+      properties: {
+        name: { type: 'string' },
+        option: { type: 'integer', description: 'Option number for TUI prompts' },
+      },
+    },
+  },
+  'POST /rollback': {
+    requestBody: {
+      required: ['name'],
+      properties: {
+        name: { type: 'string' },
+      },
+    },
+  },
+  'GET /scrollback': {
+    parameters: [
+      { name: 'name', in: 'query', required: true, schema: { type: 'string' } },
+      { name: 'lines', in: 'query', schema: { type: 'integer' } },
+    ],
+  },
+  'GET /audit/verify': {
+    parameters: [
+      { name: 'includeRotated', in: 'query', schema: { type: 'string', enum: ['0', '1'] } },
+    ],
+    response: {
+      properties: {
+        valid: { type: 'boolean' },
+        corruptedAt: { type: 'integer', nullable: true },
+        total: { type: 'integer' },
+        rotatedTotal: { type: 'integer' },
+      },
+    },
+  },
+  'GET /audit/export': {
+    parameters: [
+      { name: 'from', in: 'query', schema: { type: 'string', description: 'ISO timestamp' } },
+      { name: 'to', in: 'query', schema: { type: 'string' } },
+      { name: 'type', in: 'query', schema: { type: 'string' } },
+      { name: 'target', in: 'query', schema: { type: 'string' } },
+      { name: 'limit', in: 'query', schema: { type: 'integer' } },
+      { name: 'bom', in: 'query', schema: { type: 'string', enum: ['0', '1'] } },
+    ],
+  },
+  'GET /openapi.json': {
+    response: {
+      properties: {
+        openapi: { type: 'string', example: '3.0.3' },
+        info: { type: 'object' },
+        paths: { type: 'object' },
+      },
+    },
+  },
+};
+
 function _readDaemonSource(daemonPath) {
   return fs.readFileSync(daemonPath, 'utf8');
 }
@@ -129,10 +371,11 @@ function buildSpec({ daemonPath, version, baseUrl } = {}) {
     const apiPath = `/api${r.path}`;
     if (!paths[apiPath]) paths[apiPath] = {};
     // Resolution order: curated > inline-comment harvest > fallback.
-    const curated = ROUTE_SUMMARIES[`${r.method} ${r.path}`] || '';
+    const key = `${r.method} ${r.path}`;
+    const curated = ROUTE_SUMMARIES[key] || '';
     const harvested = !curated && r.inlineSummary ? r.inlineSummary : '';
-    const summary = curated || harvested || `${r.method} ${r.path}`;
-    paths[apiPath][r.method.toLowerCase()] = {
+    const summary = curated || harvested || key;
+    const op = {
       summary,
       responses: {
         '200': { description: 'Success' },
@@ -143,6 +386,38 @@ function buildSpec({ daemonPath, version, baseUrl } = {}) {
         '500': { description: 'Internal error' },
       },
     };
+    // Curated parameter / requestBody / response schemas. Each entry
+    // is a partial spec — buildSpec coerces the body schema into the
+    // OpenAPI 3.0 `requestBody.content.application/json.schema`
+    // envelope and the response schema into `responses.200.content.
+    // application/json.schema`.
+    const schemas = ROUTE_SCHEMAS[key];
+    if (schemas) {
+      if (schemas.parameters) {
+        op.parameters = schemas.parameters;
+      }
+      if (schemas.requestBody) {
+        op.requestBody = {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { type: 'object', ...schemas.requestBody },
+            },
+          },
+        };
+      }
+      if (schemas.response) {
+        op.responses['200'] = {
+          description: 'Success',
+          content: {
+            'application/json': {
+              schema: { type: 'object', ...schemas.response },
+            },
+          },
+        };
+      }
+    }
+    paths[apiPath][r.method.toLowerCase()] = op;
   }
 
   return {
@@ -164,4 +439,5 @@ module.exports = {
   buildSpec,
   extractRoutes,
   ROUTE_SUMMARIES,
+  ROUTE_SCHEMAS,
 };

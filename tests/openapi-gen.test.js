@@ -133,6 +133,56 @@ describe('openapi-gen.buildSpec', () => {
   });
 });
 
+describe('openapi-gen.ROUTE_SCHEMAS', () => {
+  const { ROUTE_SCHEMAS } = require('../src/openapi-gen');
+
+  it('every key is `<METHOD> <path>` shape', () => {
+    for (const key of Object.keys(ROUTE_SCHEMAS)) {
+      assert.match(key, /^(GET|POST|PUT|DELETE|PATCH) \//, `bad key shape: ${key}`);
+    }
+  });
+
+  it('requestBody schemas are populated into the operation envelope', () => {
+    const s = buildSpec();
+    const op = s.paths['/api/auth/login']?.post;
+    assert.ok(op?.requestBody, 'POST /api/auth/login requestBody missing');
+    assert.equal(op.requestBody.required, true);
+    const schema = op.requestBody.content['application/json'].schema;
+    assert.equal(schema.type, 'object');
+    assert.deepEqual(schema.required.sort(), ['password', 'user']);
+    assert.ok(schema.properties.user);
+  });
+
+  it('parameters schemas are populated for GET routes', () => {
+    const s = buildSpec();
+    const op = s.paths['/api/read']?.get;
+    assert.ok(Array.isArray(op?.parameters));
+    const nameParam = op.parameters.find((p) => p.name === 'name');
+    assert.ok(nameParam, 'name query param missing');
+    assert.equal(nameParam.in, 'query');
+    assert.equal(nameParam.required, true);
+  });
+
+  it('response schemas land under responses[200].content.application/json', () => {
+    const s = buildSpec();
+    const op = s.paths['/api/health']?.get;
+    const schema = op?.responses?.['200']?.content?.['application/json']?.schema;
+    assert.ok(schema, 'GET /api/health 200 response schema missing');
+    assert.ok(schema.properties.ok);
+  });
+
+  it('routes without ROUTE_SCHEMAS still get the bare envelope', () => {
+    const s = buildSpec();
+    // Pick a route that's not in ROUTE_SCHEMAS — e.g., POST /scribe/start.
+    const op = s.paths['/api/scribe/start']?.post;
+    assert.ok(op, 'POST /api/scribe/start operation missing');
+    assert.ok(op.summary, 'still has summary');
+    assert.ok(op.responses['200'], 'still has 200 response');
+    assert.ok(!op.requestBody, 'no requestBody when not in ROUTE_SCHEMAS');
+    assert.ok(!op.parameters, 'no parameters when not in ROUTE_SCHEMAS');
+  });
+});
+
 describe('openapi-gen.ROUTE_SUMMARIES', () => {
   it('every key is `<METHOD> <path>` shape', () => {
     for (const key of Object.keys(ROUTE_SUMMARIES)) {

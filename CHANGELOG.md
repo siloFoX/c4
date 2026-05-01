@@ -15,6 +15,23 @@
   without authentication. Live verified: 99 operations render as
   collapsible blocks; deep-linking + request duration display
   enabled. Browser smoke (`verify-api-docs.js`) 5/5 pass.
+- **(openapi-gen) Per-route parameter / requestBody / response
+  schemas.** New `ROUTE_SCHEMAS` map seeds curated JSON-Schema
+  fragments for ~22 high-traffic routes (auth.login / health /
+  metrics / workspaces / create / send / key / read / read-now /
+  task / merge / close / list / sessions / attach / approve /
+  rollback / scrollback / audit.verify / audit.export /
+  openapi.json). buildSpec coerces each into the OpenAPI 3.0
+  `requestBody.content.application/json.schema` envelope (POST/PUT)
+  or `parameters` array (GET). Routes without an entry still ship
+  with the bare `summary + responses[200..500]` shell — incremental
+  coverage. Result: Swagger UI's "Try it out" surface for the
+  curated routes now shows expected fields with descriptions; the
+  rest get a clean operation block. Tests:
+  `tests/openapi-gen.test.js` grows 14 → 19 assertions covering
+  ROUTE_SCHEMAS key shape, requestBody envelope wiring, parameter
+  array wiring, response schema placement, and the no-schema
+  fallback.
 - **(openapi-gen) 100% summary coverage.** Curated 26 additional
   `ROUTE_SUMMARIES` entries (wait-read, tree, approve, rollback,
   cleanup, config, scribe.*, autonomous.*, plan.*, mcp, templates,
