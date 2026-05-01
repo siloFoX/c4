@@ -69,6 +69,7 @@
     "jsonwebtoken": "^9.0.3",
     "node-pty": "^1.1.0",
     "nodemailer": "^8.0.4",
+    "redoc": "^2.5.2",
     "swagger-ui-dist": "^5.32.5"
   }
 }

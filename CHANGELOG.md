@@ -2,9 +2,21 @@
 
 ## [Unreleased]
 
-(no entries — next release window)
-
-## [1.10.0] - 2026-05-01
+### Added
+- **(GET /api-docs/redoc) Redoc rendering of the openapi.json spec.**
+  Alternative to Swagger UI — 3-pane layout (nav / path detail /
+  response samples) preferred for polished API docs. `redoc@2.5.2`
+  vendored locally (no CDN). Static handler grew an `assetMap`
+  pattern that maps allowlisted filenames to their concrete fs path
+  in node_modules; `redoc.standalone.js` (~940KB) joins the swagger
+  bundle list. Verified via `verify-redoc.js` — Redoc loads, parses
+  the spec, and renders "C4 daemon API" with nav.
+- **(openapi-gen) Response schemas for 11 more routes.** create /
+  send / key / read / read-now / task / merge / close / sessions /
+  attach / approve / rollback / scrollback / audit.export / audit.query
+  now ship `responses[200].content.application/json.schema`. Coverage
+  20 → 35 of 108 ops. Operators inspecting the spec can see what
+  shape comes back without `curl`-ing the route first.
 
 OpenAPI surface expansion: per-operation `operationId` for codegen tooling,
 sibling `/openapi.yaml` endpoint, `x-rbac-action` extension exposing the

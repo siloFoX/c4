@@ -931,12 +931,36 @@ async function handleRequest(req, res) {
       res.end(yaml);
       return;
 
+    } else if (req.method === 'GET' && route === '/api-docs/redoc') {
+      // Redoc — alternative spec rendering. 3-pane layout (nav /
+      // path detail / response samples) preferred by API docs
+      // teams who want a more polished visual than Swagger UI.
+      // Loaded from local redoc/bundles/redoc.standalone.js.
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>C4 daemon API · Redoc</title>
+  <style>body{margin:0;padding:0}</style>
+</head>
+<body>
+  <redoc spec-url="/api/openapi.json"></redoc>
+  <script src="/api-docs/redoc.standalone.js"></script>
+</body>
+</html>`;
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.writeHead(200);
+      res.end(html);
+      return;
+
     } else if (req.method === 'GET' && route === '/api-docs') {
       // Swagger UI rendering of the openapi.json spec. Static HTML
       // that loads swagger-ui-dist from node_modules/ via the
       // /api-docs/<asset> static handler below — works offline /
       // air-gapped (no CDN dependency). Whitelisted in
       // OPEN_API_ROUTES so introspection works without auth.
+      // Sister route /api-docs/redoc renders the same spec via
+      // Redoc for teams who prefer that layout.
       const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -965,28 +989,29 @@ async function handleRequest(req, res) {
       return;
 
     } else if (req.method === 'GET' && route.startsWith('/api-docs/')) {
-      // Static file handler for swagger-ui-dist assets. Hardcoded
-      // allowlist of three filenames (CSS + JS bundle + standalone
-      // preset) keeps path traversal closed off — anything else
-      // falls through to a 404. Path comes from the npm package's
-      // getAbsoluteFSPath() so vendoring stays in sync with the
-      // dependency version.
-      const allowed = new Set([
-        'swagger-ui.css',
-        'swagger-ui-bundle.js',
-        'swagger-ui-standalone-preset.js',
-      ]);
+      // Static file handler for swagger-ui-dist + redoc assets.
+      // Allowlist closes off path traversal — anything not in the
+      // map below falls through to 404. Asset path comes from each
+      // npm package's known location so vendoring stays in sync
+      // with the dependency version.
+      const fsLocal = require('fs');
+      const pathLocal = require('path');
+      const swaggerDir = require('swagger-ui-dist').getAbsoluteFSPath();
+      const redocDir = pathLocal.join(__dirname, '..', 'node_modules', 'redoc', 'bundles');
+      const assetMap = {
+        'swagger-ui.css': pathLocal.join(swaggerDir, 'swagger-ui.css'),
+        'swagger-ui-bundle.js': pathLocal.join(swaggerDir, 'swagger-ui-bundle.js'),
+        'swagger-ui-standalone-preset.js': pathLocal.join(swaggerDir, 'swagger-ui-standalone-preset.js'),
+        'redoc.standalone.js': pathLocal.join(redocDir, 'redoc.standalone.js'),
+      };
       const filename = route.slice('/api-docs/'.length);
-      if (!allowed.has(filename)) {
+      const filePath = assetMap[filename];
+      if (!filePath) {
         res.writeHead(404);
         res.end(JSON.stringify({ error: 'Not found' }));
         return;
       }
       try {
-        const swagger = require('swagger-ui-dist');
-        const fsLocal = require('fs');
-        const pathLocal = require('path');
-        const filePath = pathLocal.join(swagger.getAbsoluteFSPath(), filename);
         const content = fsLocal.readFileSync(filePath);
         const ct = filename.endsWith('.css') ? 'text/css' : 'application/javascript';
         res.setHeader('Content-Type', ct + '; charset=utf-8');

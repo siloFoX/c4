@@ -40,6 +40,7 @@ const ROUTE_SUMMARIES = {
   'POST /workflows': 'Create a new workflow definition.',
   'GET /openapi.json': 'This document — auto-generated OpenAPI spec.',
   'GET /openapi.yaml': 'Same spec as /openapi.json, serialised as YAML.',
+  'GET /api-docs/redoc': 'Redoc rendering of the openapi.json spec (alternative to Swagger UI).',
   'POST /auth/login': 'Authenticate with username/password — returns JWT.',
   'POST /auth/logout': 'Invalidate the caller\'s session.',
   'GET /auth/status': 'Whether auth is enabled + which actions allowed.',
@@ -168,6 +169,14 @@ const ROUTE_SCHEMAS = {
       },
       example: { name: 'worker-1', target: 'local', tier: 'worker' },
     },
+    response: {
+      properties: {
+        success: { type: 'boolean' },
+        name: { type: 'string' },
+        pid: { type: 'integer' },
+        branch: { type: 'string' },
+      },
+    },
   },
   'POST /send': {
     requestBody: {
@@ -177,6 +186,12 @@ const ROUTE_SCHEMAS = {
         text: { type: 'string' },
       },
       example: { name: 'worker-1', text: 'List the files in src/' },
+    },
+    response: {
+      properties: {
+        success: { type: 'boolean' },
+        bytesWritten: { type: 'integer' },
+      },
     },
   },
   'POST /key': {
@@ -188,16 +203,36 @@ const ROUTE_SCHEMAS = {
       },
       example: { name: 'worker-1', key: 'Enter' },
     },
+    response: {
+      properties: {
+        success: { type: 'boolean' },
+        key: { type: 'string', description: 'Echoed back for confirmation' },
+      },
+    },
   },
   'GET /read': {
     parameters: [
       { name: 'name', in: 'query', required: true, schema: { type: 'string' } },
     ],
+    response: {
+      properties: {
+        name: { type: 'string' },
+        scrollback: { type: 'string', description: 'PTY output (ANSI stripped)' },
+        cursor: { type: 'integer', description: 'Last byte offset read' },
+      },
+    },
   },
   'GET /read-now': {
     parameters: [
       { name: 'name', in: 'query', required: true, schema: { type: 'string' } },
     ],
+    response: {
+      properties: {
+        name: { type: 'string' },
+        scrollback: { type: 'string' },
+        idle: { type: 'boolean' },
+      },
+    },
   },
   'POST /task': {
     requestBody: {
@@ -219,6 +254,15 @@ const ROUTE_SCHEMAS = {
       },
       example: { task: 'Add a unit test for the parseConfig() helper', autoMode: true },
     },
+    response: {
+      properties: {
+        success: { type: 'boolean' },
+        name: { type: 'string', description: 'Auto-generated when caller omitted name' },
+        tier: { type: 'string' },
+        model: { type: 'string', nullable: true },
+        queued: { type: 'boolean', description: 'true when worker spawned + task queued' },
+      },
+    },
   },
   'POST /merge': {
     requestBody: {
@@ -229,6 +273,16 @@ const ROUTE_SCHEMAS = {
       },
       example: { name: 'worker-1' },
     },
+    response: {
+      properties: {
+        success: { type: 'boolean' },
+        branch: { type: 'string' },
+        sha: { type: 'string', description: 'Merge commit SHA' },
+        summary: { type: 'string' },
+        reasons: { type: 'array', items: { type: 'string' } },
+        resolvedFrom: { type: 'string', enum: ['name', 'branch'] },
+      },
+    },
   },
   'POST /close': {
     requestBody: {
@@ -237,6 +291,12 @@ const ROUTE_SCHEMAS = {
         name: { type: 'string' },
       },
       example: { name: 'worker-1' },
+    },
+    response: {
+      properties: {
+        success: { type: 'boolean' },
+        name: { type: 'string' },
+      },
     },
   },
   'GET /list': {
@@ -253,6 +313,22 @@ const ROUTE_SCHEMAS = {
       { name: 'workerName', in: 'query', schema: { type: 'string' } },
       { name: 'limit', in: 'query', schema: { type: 'integer' } },
     ],
+    response: {
+      properties: {
+        sessions: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string' },
+              path: { type: 'string' },
+              workerName: { type: 'string', nullable: true },
+              createdAt: { type: 'string' },
+              messageCount: { type: 'integer' },
+            },
+          },
+        },
+      },
+    },
   },
   'POST /attach': {
     requestBody: {
@@ -264,6 +340,13 @@ const ROUTE_SCHEMAS = {
       },
       example: { jsonlPath: '/home/user/.claude/projects/-myproject/abc-uuid.jsonl' },
     },
+    response: {
+      properties: {
+        success: { type: 'boolean' },
+        name: { type: 'string' },
+        role: { type: 'string' },
+      },
+    },
   },
   'POST /approve': {
     requestBody: {
@@ -274,6 +357,7 @@ const ROUTE_SCHEMAS = {
       },
       example: { name: 'worker-1', option: 1 },
     },
+    response: { properties: { success: { type: 'boolean' } } },
   },
   'POST /rollback': {
     requestBody: {
@@ -283,12 +367,24 @@ const ROUTE_SCHEMAS = {
       },
       example: { name: 'worker-1' },
     },
+    response: {
+      properties: {
+        success: { type: 'boolean' },
+        rolled_back: { type: 'string', description: 'Branch reset target' },
+      },
+    },
   },
   'GET /scrollback': {
     parameters: [
       { name: 'name', in: 'query', required: true, schema: { type: 'string' } },
       { name: 'lines', in: 'query', schema: { type: 'integer' } },
     ],
+    response: {
+      properties: {
+        scrollback: { type: 'string' },
+        lines: { type: 'integer' },
+      },
+    },
   },
   'GET /audit/verify': {
     parameters: [
@@ -312,6 +408,10 @@ const ROUTE_SCHEMAS = {
       { name: 'limit', in: 'query', schema: { type: 'integer' } },
       { name: 'bom', in: 'query', schema: { type: 'string', enum: ['0', '1'] } },
     ],
+    response: {
+      description: 'CSV body with UTF-8 BOM + CRLF (text/csv content-type)',
+      type: 'string',
+    },
   },
   'GET /openapi.json': {
     response: {
@@ -331,6 +431,23 @@ const ROUTE_SCHEMAS = {
       { name: 'actor', in: 'query', schema: { type: 'string' } },
       { name: 'limit', in: 'query', schema: { type: 'integer', default: 1000 } },
     ],
+    response: {
+      properties: {
+        events: {
+          type: 'array',
+          items: {
+            properties: {
+              timestamp: { type: 'string' },
+              type: { type: 'string' },
+              actor: { type: 'string' },
+              target: { type: 'string' },
+              details: { type: 'object' },
+              hash: { type: 'string', description: 'SHA-256 hash chain link' },
+            },
+          },
+        },
+      },
+    },
   },
   'GET /rbac/roles': {
     response: {
