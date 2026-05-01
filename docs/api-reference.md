@@ -10,11 +10,11 @@
 
 기존 `docs/api.md` 는 페이로드 상세 예시(스키마 샘플) 중심 문서이고, 본 문서는 daemon.js 라우트 **전수 매핑표** 이다.
 
-> **1.6.17 NOTE:** 이 문서는 39개 라우트를 다루지만 데몬은 86개의 라우트를 노출한다. 각 라우트의 큐레이션된 summary + parameter 목록은 라이브 OpenAPI 문서에서 확인:
+> **NOTE:** 이 문서는 39개 라우트를 다루지만 데몬은 80+개의 라우트를 노출한다. 누락된 라우트의 정의는 `src/daemon.js` 의 `route === '/...'` 분기를 직접 grep:
 > ```
-> curl -s http://127.0.0.1:3456/openapi.json | jq '.paths'
+> grep -nE "route === '/[a-zA-Z]" src/daemon.js
 > ```
-> Swagger UI / Redoc 등에서 그대로 import 가능.
+> 1.6.17 의 `/openapi.json` curated summary 라우트는 main 에 미포함 (origin/dgx-spark/1.6.17-cumulative 의 8a43044 commit 참조 — 충돌로 cherry-pick 보류).
 
 ---
 
