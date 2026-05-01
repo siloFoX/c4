@@ -3,6 +3,13 @@
 ## [Unreleased]
 
 ### Added
+- **(c4 events) Tail the global daemon SSE stream.** New `c4 events
+  [--type <name>]` CLI command tails `/events` so ops can watch
+  `workflow_start/end`, `schedule_fire`, `audit_rotate`,
+  `worker_start/exit`, `pool_reuse`, etc. as they happen. Output is
+  one line per event: ISO time + cyan-bold type + JSON payload
+  (truncated at 200 chars). `--type <name>` filters to a single
+  event type. Ctrl+C exits cleanly.
 - **(8.34) Global scrollbar theme.** `web/src/index.css` adds a 51-line
   scrollbar-style block: `::-webkit-scrollbar` (8px, transparent track,
   rounded muted thumb, accent on hover), Firefox `scrollbar-width:
