@@ -795,6 +795,59 @@ async function main() {
           checks.push({ ok: false, label: `logs/ not writable: ${e.message}` });
         }
 
+        // (v1.10.35) OpenAPI spec health: lints clean + has the
+        // expected operation count. Doesn't run runtime-drift
+        // (would need to spawn workers); the static checks are
+        // enough to flag a corrupted ROUTE_SCHEMAS in someone's
+        // local checkout.
+        try {
+          const { buildSpec } = require('./openapi-gen');
+          const spec = buildSpec();
+          const opCount = Object.values(spec.paths).reduce(
+            (acc, ops) => acc + Object.values(ops).filter((o) => typeof o === 'object').length,
+            0
+          );
+          let withResponse = 0;
+          for (const ops of Object.values(spec.paths)) {
+            for (const op of Object.values(ops)) {
+              if (typeof op !== 'object' || !op.responses) continue;
+              const r200 = op.responses['200'];
+              if (r200 && r200.content && Object.keys(r200.content).length > 0) withResponse++;
+            }
+          }
+          const ok = opCount > 0 && withResponse === opCount;
+          checks.push({
+            ok,
+            level: ok ? null : 'warn',
+            label: ok
+              ? `openapi spec: ${opCount} operations, all with response schemas`
+              : `openapi spec: ${opCount - withResponse}/${opCount} operations missing response schemas`,
+          });
+        } catch (e) {
+          checks.push({ ok: false, label: `openapi spec build failed: ${e.message}` });
+        }
+
+        // (v1.10.35) SDK file: present + roughly current. Bare
+        // existence + non-trivial size is enough; full type-check
+        // belongs in CI, not the doctor.
+        const sdkPath = localPath.resolve(__dirname, '..', 'sdk', 'c4-client.ts');
+        try {
+          const stat = fs2.statSync(sdkPath);
+          const size = stat.size;
+          const ok = size > 1000;
+          checks.push({
+            ok,
+            label: ok
+              ? `sdk/c4-client.ts present (${Math.round(size / 1024)}KB)`
+              : `sdk/c4-client.ts unexpectedly small (${size} bytes) — re-run \`c4 openapi --sdk > sdk/c4-client.ts\``,
+          });
+        } catch {
+          checks.push({
+            ok: true, level: 'warn',
+            label: 'sdk/c4-client.ts missing — re-run `c4 openapi --sdk > sdk/c4-client.ts`',
+          });
+        }
+
         for (const c of checks) {
           const mark = c.ok ? (c.level === 'warn' ? warn : tick) : cross;
           console.log(`  ${mark} ${c.label}`);

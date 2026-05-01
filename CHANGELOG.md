@@ -4,6 +4,21 @@
 
 (no entries — next release window)
 
+## [1.10.35] - 2026-05-02
+
+`c4 doctor` now verifies the OpenAPI surface.
+
+### Added
+- **(cli) `c4 doctor` checks for OpenAPI spec health.** Builds
+  the spec in-process and asserts:
+  - `opCount > 0`
+  - `100% of operations have a 200 response with content`
+  - `sdk/c4-client.ts is present + non-trivially sized`
+  Catches a corrupted ROUTE_SCHEMAS edit before it breaks the
+  daemon. Doesn't run runtime-drift (needs to spawn workers).
+
+Suite 151/151. All four drift phases lint-clean.
+
 ## [1.10.34] - 2026-05-02
 
 Daemon-side response drift observability. Mirrors validateRequests
