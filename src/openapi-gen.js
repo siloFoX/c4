@@ -671,6 +671,7 @@ const ROUTE_SCHEMAS = {
         name: { type: 'string' },
         category: { type: 'string', enum: ['tool-deny', 'timeout', 'test-fail', 'build-fail', 'dependency', 'unknown'] },
       },
+      example: { name: 'worker-1', category: 'test-fail' },
     },
     response: {
       properties: {
@@ -692,6 +693,7 @@ const ROUTE_SCHEMAS = {
     requestBody: {
       required: ['name'],
       properties: { name: { type: 'string' } },
+      example: { name: 'worker-1' },
     },
     response: { properties: { success: { type: 'boolean' } } },
   },
@@ -699,6 +701,7 @@ const ROUTE_SCHEMAS = {
     requestBody: {
       required: ['name'],
       properties: { name: { type: 'string' } },
+      example: { name: 'worker-1' },
     },
     response: { properties: { success: { type: 'boolean' }, pid: { type: 'integer' } } },
   },
@@ -710,6 +713,7 @@ const ROUTE_SCHEMAS = {
         cols: { type: 'integer' },
         rows: { type: 'integer' },
       },
+      example: { name: 'worker-1', cols: 120, rows: 32 },
     },
     response: { properties: { success: { type: 'boolean' } } },
   },
@@ -720,6 +724,7 @@ const ROUTE_SCHEMAS = {
         name: { type: 'string' },
         sessionId: { type: 'string', description: 'Specific JSONL session id to resume (default: latest)' },
       },
+      example: { name: 'worker-1' },
     },
     response: { properties: { success: { type: 'boolean' }, sessionId: { type: 'string' } } },
   },
@@ -862,6 +867,7 @@ const ROUTE_SCHEMAS = {
         eventType: { type: 'string', description: 'One of slackEvents.EVENT_TYPES' },
         payload: { type: 'object', description: 'Event-specific payload (worker, message, etc)' },
       },
+      example: { eventType: 'worker.created', payload: { worker: 'demo' } },
     },
     response: { properties: { success: { type: 'boolean' } } },
   },
@@ -894,6 +900,7 @@ const ROUTE_SCHEMAS = {
         tool_input: { type: 'object' },
         tool_response: { type: 'object' },
       },
+      example: { worker: 'worker-1', hook_type: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'ls' } },
     },
     response: { properties: { success: { type: 'boolean' } } },
   },
@@ -910,6 +917,7 @@ const ROUTE_SCHEMAS = {
       properties: {
         worker: { type: 'string', description: 'Worker name the compact event fired for' },
       },
+      example: { worker: 'worker-1' },
     },
     response: { properties: { success: { type: 'boolean' } } },
   },
@@ -1066,6 +1074,7 @@ const ROUTE_SCHEMAS = {
         remoteRepoPath: { type: 'string', description: 'For type=git' },
         opts: { type: 'object' },
       },
+      example: { alias: 'dgx', type: 'rsync', src: '/home/local/proj/', dest: '/home/remote/proj/', opts: { delete: true } },
     },
     response: {
       properties: {
@@ -1083,6 +1092,7 @@ const ROUTE_SCHEMAS = {
         text: { type: 'string', description: 'Natural-language command' },
         sessionId: { type: 'string' },
       },
+      example: { text: 'Spawn a worker called demo and run the linter on src/' },
     },
   },
   'POST /mcp/servers': {
@@ -1094,6 +1104,7 @@ const ROUTE_SCHEMAS = {
         args: { type: 'array', items: { type: 'string' } },
         env: { type: 'object' },
       },
+      example: { name: 'figma', command: 'npx', args: ['-y', '@figma/mcp-server'] },
     },
   },
   'POST /cicd/webhook': {

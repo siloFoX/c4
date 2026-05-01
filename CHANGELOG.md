@@ -4,6 +4,22 @@
 
 (no entries — next release window)
 
+## [1.10.20] - 2026-05-02
+
+Example payload coverage 15 → 29 of 43 requestBody routes (67%).
+
+### Added
+- **(spec) Inline `example` payloads on 14 more routes:** /recover,
+  /cancel, /restart, /resize, /resume, /transfer, /nl/chat,
+  /mcp/servers, /hook-event, /compact-event, /slack/emit (plus
+  earlier /create, /send, /key, /task, /merge, /attach, /close,
+  /approve, /rollback, /workflows, /schedules, /rbac/role/assign,
+  /rbac/check, /batch, /auth/login, /auto from prior versions).
+  Swagger UI's "Try it out" button now pre-fills sensible
+  defaults for these routes.
+
+Suite 151/151. SDK regen still clean.
+
 ## [1.10.19] - 2026-05-02
 
 Validation wired to /auth/login + /schedules. Mutator coverage near-complete.
