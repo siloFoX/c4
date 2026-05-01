@@ -910,16 +910,22 @@ class PtyManager extends EventEmitter {
   }
 
   _parseTokensFromJsonl(filePath) {
+    // Per-session attribution. Claude Code stores one JSONL per session at
+    // ~/.claude/projects/<projectId>/<sessionId>.jsonl, so the basename
+    // (without .jsonl) is the session ID. Computed up-front so the early
+    // returns below still surface the session even when the file isn't
+    // readable yet.
+    const sessionId = path.basename(filePath, '.jsonl');
     const offset = this._tokenUsage.offsets[filePath] || 0;
     let content;
     try {
       content = fs.readFileSync(filePath, 'utf8');
     } catch {
-      return { input: 0, output: 0 };
+      return { input: 0, output: 0, sessionId };
     }
 
     const lines = content.split('\n');
-    if (offset >= lines.length) return { input: 0, output: 0 };
+    if (offset >= lines.length) return { input: 0, output: 0, sessionId };
 
     let inputTokens = 0;
     let outputTokens = 0;
@@ -944,7 +950,7 @@ class PtyManager extends EventEmitter {
     }
 
     this._tokenUsage.offsets[filePath] = lines.length;
-    return { input: inputTokens, output: outputTokens };
+    return { input: inputTokens, output: outputTokens, sessionId };
   }
 
   _getLastActivity(w) {
@@ -974,7 +980,10 @@ class PtyManager extends EventEmitter {
 
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     if (!this._tokenUsage.daily[today]) {
-      this._tokenUsage.daily[today] = { input: 0, output: 0 };
+      this._tokenUsage.daily[today] = { input: 0, output: 0, bySession: {} };
+    } else if (!this._tokenUsage.daily[today].bySession) {
+      // Backfill the field for state files written by older daemons.
+      this._tokenUsage.daily[today].bySession = {};
     }
 
     let newInput = 0;
@@ -984,6 +993,14 @@ class PtyManager extends EventEmitter {
       const tokens = this._parseTokensFromJsonl(filePath);
       newInput += tokens.input;
       newOutput += tokens.output;
+      // Per-session attribution. monthlyBySession() and worker / dept
+      // rollups read this map.
+      if (tokens.sessionId && (tokens.input || tokens.output)) {
+        const slot = this._tokenUsage.daily[today].bySession[tokens.sessionId]
+          || (this._tokenUsage.daily[today].bySession[tokens.sessionId] = { input: 0, output: 0 });
+        slot.input += tokens.input;
+        slot.output += tokens.output;
+      }
     }
 
     this._tokenUsage.daily[today].input += newInput;
@@ -1037,7 +1054,76 @@ class PtyManager extends EventEmitter {
     if (opts.perTask) {
       out.perTask = this._getPerTaskUsage();
     }
+    if (opts.bySession) {
+      out.bySession = dailyTotal.bySession || {};
+      out.monthlyBySession = this.monthlyBySession();
+    }
     return out;
+  }
+
+  // Aggregate the current month's per-session token totals across days.
+  // Returns { sessionId: { input, output } }. Used by callers that need
+  // worker / department attribution beyond the global daily/monthly
+  // numbers (e.g., dashboards that show "which worker burned the budget").
+  monthlyBySession() {
+    const now = new Date();
+    const month = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+    const acc = {};
+    for (const [day, v] of Object.entries(this._tokenUsage?.daily || {})) {
+      if (!day.startsWith(month)) continue;
+      const bs = v.bySession || {};
+      for (const [sid, usage] of Object.entries(bs)) {
+        const slot = acc[sid] || (acc[sid] = { input: 0, output: 0 });
+        slot.input += usage.input || 0;
+        slot.output += usage.output || 0;
+      }
+    }
+    return acc;
+  }
+
+  // Roll the current month's per-session token totals into the byGroup
+  // shape OrgManager.computeUsage expects (group → {tokens, costUSD}).
+  // Each "group" here is a worker name, an attached user, or the project
+  // root, depending on which dimension OrgManager wants to attribute on.
+  // The org-mgmt module then matches its dept member / project /
+  // machine sets against these group names.
+  //
+  // Pricing comes from config.costs.models[<model>] (or 'default' bucket).
+  // When pricing is missing we still emit tokens so the byTokens cap
+  // works even before USD pricing is configured.
+  attributedCostsByGroup(opts = {}) {
+    const monthly = (typeof this.monthlyBySession === 'function') ? this.monthlyBySession() : {};
+    const pricing = (this.config && this.config.costs && this.config.costs.models) || {};
+    const rate = pricing[opts.model || 'default'] || pricing.default || null;
+    const cost = (input, output) => {
+      if (!rate) return 0;
+      // costs.models entries store $ per million tokens.
+      return (input / 1e6) * (rate.input || 0) + (output / 1e6) * (rate.output || 0);
+    };
+    // sessionId → workerName so we attribute on the worker dimension.
+    const sessionToWorker = {};
+    for (const [name, w] of (this.workers || new Map())) {
+      if (w && w._sessionId) sessionToWorker[w._sessionId] = name;
+    }
+    // worker → { tokens, costUSD }, plus an 'unattributed' bucket for
+    // sessions whose worker is no longer in the live map.
+    const groups = {};
+    for (const [sid, usage] of Object.entries(monthly)) {
+      const worker = sessionToWorker[sid] || null;
+      const groupKey = worker || 'unattributed';
+      const slot = groups[groupKey] || (groups[groupKey] = { tokens: 0, costUSD: 0 });
+      const tokens = (usage.input || 0) + (usage.output || 0);
+      slot.tokens += tokens;
+      slot.costUSD += cost(usage.input || 0, usage.output || 0);
+    }
+    // OrgManager.computeUsage wants an array of { name, tokens, costUSD }.
+    return {
+      byGroup: Object.entries(groups).map(([name, v]) => ({
+        name,
+        tokens: v.tokens,
+        costUSD: Math.round(v.costUSD * 10000) / 10000,
+      })),
+    };
   }
 
   // Cost/retry guardrails (9.10): aggregate token counts per active worker's
