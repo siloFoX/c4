@@ -244,25 +244,13 @@ function _validateOrFail(method, route, body, res, cfgNow) {
 
 // Opt-in OpenAPI response shape validation. Logs (non-blocking) when
 // the live response shape diverges from the spec. Gated on
-// config.openapi.validateResponses to avoid log spam in prod.
-//
-// Used for dev / staging environments where you want to catch
-// handler→spec drift without rejecting client traffic. Failures
-// emit a single-line warning via console.warn — never a 500.
+// config.openapi.validateResponses; off by default. Implementation
+// lives in openapi-validate.checkResponseDriftAndWarn so unit tests
+// can exercise it without spawning a daemon subprocess.
 function _validateResponseAndWarn(method, route, body, cfgNow) {
-  if (!cfgNow || !cfgNow.openapi || !cfgNow.openapi.validateResponses) return;
-  if (body && body.error) return; // error envelopes are off-spec by design
-  try {
-    const { validateResponse, formatDriftWarning } = require('./openapi-validate');
-    const { ROUTE_SCHEMAS } = require('./openapi-gen');
-    const v = validateResponse(method, route, body, ROUTE_SCHEMAS);
-    if (v.valid) return;
-    const line = formatDriftWarning(method, route, v.errors);
-    if (line) console.warn(line);
-  } catch (e) {
-    // Validator bug shouldn't break the response; log + continue.
-    console.warn('[openapi-drift] validator threw:', e.message);
-  }
+  const { checkResponseDriftAndWarn } = require('./openapi-validate');
+  const { ROUTE_SCHEMAS } = require('./openapi-gen');
+  checkResponseDriftAndWarn(method, route, body, ROUTE_SCHEMAS, cfgNow);
 }
 
 // (10.4) Shared CicdManager. Writes to ~/.c4/cicd.json by default;

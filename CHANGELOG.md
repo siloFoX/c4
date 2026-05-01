@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.39] - 2026-05-02
+
+Daemon-side validateResponses now has full unit-test coverage —
+no subprocess required.
+
+### Added
+- **(src/openapi-validate.js) `checkResponseDriftAndWarn()`** —
+  the entire daemon-side path moves into the validator module.
+  Honours `cfgNow.openapi.validateResponses`, skips error
+  envelopes, catches validator bugs without throwing, accepts
+  an injectable `logger` for tests. Returns the warning line
+  (or null) so tests can assert without scraping stderr.
+- **(tests) 5 unit tests for checkResponseDriftAndWarn** — flag
+  off / happy path / drift detected / error envelope / validator
+  bug. Locks in the cfg gating + log dispatch behaviour.
+
+### Changed
+- **(daemon) `_validateResponseAndWarn` shrinks to 4 lines** —
+  thin shim around the validator helper. Same observable
+  behaviour, much shorter.
+
+Suite 152/152 + 5 new tests = 38 in openapi-validate
+(was 33). All four drift phases clean.
+
 ## [1.10.38] - 2026-05-02
 
 Refactor: extract drift warning formatter so daemon-side

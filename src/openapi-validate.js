@@ -167,4 +167,37 @@ function formatDriftWarning(method, route, errors, opts) {
   return `[openapi-drift] ${method} ${route}: ${errors.length} field(s) — ${head}${tail}`;
 }
 
-module.exports = { validate, validateRequestBody, validateResponse, formatDriftWarning };
+// Validate a daemon response and log a warning when it doesn't
+// match the spec. Gated on `cfgNow.openapi.validateResponses` so
+// existing deployments stay quiet by default. Error envelopes
+// (`{error: msg}`) are skipped — they're off-spec by design.
+//
+// Returns the warning line that was logged (or null when nothing
+// fired). Tests use the return value to assert on; the daemon
+// ignores it.
+//
+// `logger` defaults to console.warn; tests can pass a spy.
+function checkResponseDriftAndWarn(method, route, body, ROUTE_SCHEMAS, cfgNow, logger) {
+  if (!cfgNow || !cfgNow.openapi || !cfgNow.openapi.validateResponses) return null;
+  if (body && body.error) return null;
+  const log = logger || console.warn;
+  try {
+    const v = validateResponse(method, route, body, ROUTE_SCHEMAS);
+    if (v.valid) return null;
+    const line = formatDriftWarning(method, route, v.errors);
+    if (line) log(line);
+    return line;
+  } catch (e) {
+    const line = '[openapi-drift] validator threw: ' + e.message;
+    log(line);
+    return line;
+  }
+}
+
+module.exports = {
+  validate,
+  validateRequestBody,
+  validateResponse,
+  formatDriftWarning,
+  checkResponseDriftAndWarn,
+};

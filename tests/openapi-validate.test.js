@@ -2,7 +2,13 @@
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { validate, validateRequestBody, validateResponse, formatDriftWarning } = require('../src/openapi-validate');
+const {
+  validate,
+  validateRequestBody,
+  validateResponse,
+  formatDriftWarning,
+  checkResponseDriftAndWarn,
+} = require('../src/openapi-validate');
 const { ROUTE_SCHEMAS } = require('../src/openapi-gen');
 
 describe('openapi-validate.validate (primitives)', () => {
@@ -234,5 +240,91 @@ describe('openapi-validate.formatDriftWarning', () => {
   it('omits the ellipsis when errors fit under the cap', () => {
     const line = formatDriftWarning('POST', '/y', ['only one']);
     assert.ok(!/…/.test(line), `unexpected ellipsis: ${line}`);
+  });
+});
+
+describe('openapi-validate.checkResponseDriftAndWarn', () => {
+  // (v1.10.39) Daemon-side validateResponses path. Lets the daemon
+  // test surface stay one require() away from a mock cfg + logger
+  // without spawning a subprocess.
+
+  function _spy() {
+    const calls = [];
+    const fn = (...args) => calls.push(args);
+    fn.calls = calls;
+    return fn;
+  }
+
+  it('returns null + does NOT log when validateResponses is off', () => {
+    const log = _spy();
+    const out = checkResponseDriftAndWarn(
+      'GET', '/health',
+      { ok: 'wrong-type' }, // would be drift if validation ran
+      ROUTE_SCHEMAS,
+      { openapi: { validateResponses: false } },
+      log,
+    );
+    assert.equal(out, null);
+    assert.equal(log.calls.length, 0);
+  });
+
+  it('returns null + does NOT log on the happy path', () => {
+    const log = _spy();
+    const out = checkResponseDriftAndWarn(
+      'GET', '/health',
+      { ok: true, workers: 0, version: '1.10.39' },
+      ROUTE_SCHEMAS,
+      { openapi: { validateResponses: true } },
+      log,
+    );
+    assert.equal(out, null);
+    assert.equal(log.calls.length, 0);
+  });
+
+  it('logs + returns the formatted line when drift is detected', () => {
+    const log = _spy();
+    const out = checkResponseDriftAndWarn(
+      'GET', '/health',
+      { ok: true, workers: 'zero' /* should be int */, version: 'v1' },
+      ROUTE_SCHEMAS,
+      { openapi: { validateResponses: true } },
+      log,
+    );
+    assert.ok(out, 'expected a warning line');
+    assert.match(out, /^\[openapi-drift\] GET \/health/);
+    assert.match(out, /workers: expected integer/);
+    assert.equal(log.calls.length, 1, 'log should fire exactly once');
+    assert.equal(log.calls[0][0], out, 'logged line == returned line');
+  });
+
+  it('skips error envelopes ({error: msg}) — off-spec by design', () => {
+    const log = _spy();
+    const out = checkResponseDriftAndWarn(
+      'GET', '/health',
+      { error: 'something failed' },
+      ROUTE_SCHEMAS,
+      { openapi: { validateResponses: true } },
+      log,
+    );
+    assert.equal(out, null);
+    assert.equal(log.calls.length, 0);
+  });
+
+  it('catches validator bugs without breaking the response', () => {
+    const log = _spy();
+    // Pass a malformed ROUTE_SCHEMAS object that triggers a throw.
+    const badSchemas = { 'GET /health': { response: { properties: null } } };
+    const out = checkResponseDriftAndWarn(
+      'GET', '/health',
+      { ok: true },
+      badSchemas,
+      { openapi: { validateResponses: true } },
+      log,
+    );
+    // Either silent (validator coped) or logged a "validator threw"
+    // line. Both are acceptable; what's NOT acceptable is throwing.
+    if (out !== null) {
+      assert.match(out, /openapi-drift/);
+    }
   });
 });
