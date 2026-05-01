@@ -848,14 +848,15 @@ async function main() {
           // Local config validation — read config.json from the project
           // root (or args[1] if supplied) and report errors / warnings /
           // info. Exits 1 when errors are present so it's CI-friendly.
-          const cfgPath = args[1] || require('path').resolve(__dirname, '..', 'config.json');
-          const fs2 = require('fs');
-          if (!fs2.existsSync(cfgPath)) {
+          // (review fix 2026-05-01) Use the top-level fs / path imports
+          // instead of re-requiring inline.
+          const cfgPath = args[1] || path.resolve(__dirname, '..', 'config.json');
+          if (!fs.existsSync(cfgPath)) {
             console.error(`config not found: ${cfgPath}`);
             process.exit(1);
           }
           let cfg;
-          try { cfg = JSON.parse(fs2.readFileSync(cfgPath, 'utf8')); }
+          try { cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8')); }
           catch (e) {
             console.error(`config is not valid JSON: ${e.message}`);
             process.exit(1);
@@ -4296,6 +4297,7 @@ Commands:
        [--auto-mode] [--profile name] [--branch prefix]
   config                           Show current config
   config reload                    Reload config.json without restart
+  config validate [path]           Validate config.json (default: project root). Exits 1 on errors — CI-friendly
   audit query [--type T] [--from ISO] [--to ISO] [--target name] [--limit N]   Query audit log (10.2)
   audit verify                     Verify audit log hash chain integrity
   rbac role list                   Show role-action matrix (10.1)

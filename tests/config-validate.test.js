@@ -110,3 +110,53 @@ describe('config validate', () => {
     assert.ok(r.errors.find((e) => e.path === 'fleet.peers.dgx.port'));
   });
 });
+
+// (review fix 2026-05-01) CLI integration — the `c4 config
+// validate` subcommand reads a config file, runs the validator,
+// prints the report, and exits with 1 on errors. Source-grep
+// asserts the wireup contract because spawning the full CLI
+// in-process is heavyweight.
+describe('c4 config validate CLI wireup', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const cliSrc = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'cli.js'),
+    'utf8',
+  );
+
+  it('handles the validate subcommand alongside reload', () => {
+    assert.match(cliSrc, /args\[0\] === 'validate'/);
+  });
+
+  it('defaults to <repo>/config.json when no path supplied', () => {
+    assert.match(cliSrc, /args\[1\] \|\| path\.resolve\(__dirname, '\.\.', 'config\.json'\)/);
+  });
+
+  it('exits 1 on missing file or invalid JSON', () => {
+    assert.match(cliSrc, /config not found:/);
+    assert.match(cliSrc, /config is not valid JSON:/);
+    assert.match(cliSrc, /process\.exit\(1\)/);
+  });
+
+  it('runs the validator + printReport and exits with the report status', () => {
+    assert.match(cliSrc, /const \{ validate, printReport \} = require\('\.\/config-validate'\)/);
+    assert.match(cliSrc, /const ok = printReport\(report\)/);
+    assert.match(cliSrc, /process\.exit\(ok \? 0 : 1\)/);
+  });
+
+  it('uses the top-level fs / path imports (no inline require)', () => {
+    // Locate the validate-block region. Block runs from
+    // `args[0] === 'validate'` through `process.exit(ok ? 0 : 1)`.
+    const validateIdx = cliSrc.indexOf("args[0] === 'validate'");
+    assert.notStrictEqual(validateIdx, -1);
+    const exitIdx = cliSrc.indexOf('process.exit(ok ? 0 : 1)', validateIdx);
+    assert.notStrictEqual(exitIdx, -1);
+    const block = cliSrc.slice(validateIdx, exitIdx + 30);
+    assert.doesNotMatch(block, /require\('fs'\)/);
+    assert.doesNotMatch(block, /require\('path'\)/);
+  });
+
+  it('help text lists `config validate`', () => {
+    assert.match(cliSrc, /config validate \[path\]\s+Validate/);
+  });
+});
