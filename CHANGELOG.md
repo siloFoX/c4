@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+(no entries — next release window)
+
+## [1.9.1] - 2026-05-01
+
+OpenAPI surface expansion: schema coverage 22 → 33+ routes,
+example payloads for 15 of 33 requestBody routes (was 8), zero-dep
+spec linter wired into CI.
+
 ### Added
 - **(openapi-gen) ROUTE_SCHEMAS coverage expansion + example
   payloads.** Curated 22 → 33+ requestBody schemas, 6 → 14

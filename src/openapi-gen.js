@@ -235,6 +235,7 @@ const ROUTE_SCHEMAS = {
       properties: {
         name: { type: 'string' },
       },
+      example: { name: 'worker-1' },
     },
   },
   'GET /list': {
@@ -270,6 +271,7 @@ const ROUTE_SCHEMAS = {
         name: { type: 'string' },
         option: { type: 'integer', description: 'Option number for TUI prompts' },
       },
+      example: { name: 'worker-1', option: 1 },
     },
   },
   'POST /rollback': {
@@ -278,6 +280,7 @@ const ROUTE_SCHEMAS = {
       properties: {
         name: { type: 'string' },
       },
+      example: { name: 'worker-1' },
     },
   },
   'GET /scrollback': {
@@ -366,6 +369,7 @@ const ROUTE_SCHEMAS = {
         user: { type: 'string' },
         role: { type: 'string', enum: ['admin', 'manager', 'viewer'] },
       },
+      example: { user: 'alice', role: 'manager' },
     },
   },
   'POST /rbac/grant/project': {
@@ -417,6 +421,7 @@ const ROUTE_SCHEMAS = {
           },
         },
       },
+      example: { user: 'alice', action: 'worker.create', resource: { type: 'project', id: 'main' } },
     },
     response: {
       properties: { allowed: { type: 'boolean' } },
@@ -444,6 +449,17 @@ const ROUTE_SCHEMAS = {
           },
         },
       },
+      example: {
+        id: 'wf-deploy',
+        name: 'Deploy pipeline',
+        nodes: [
+          { id: 'a', type: 'task', name: 'build', config: { template: 'executor' } },
+          { id: 'b', type: 'task', name: 'test', config: { template: 'reviewer' } },
+          { id: 'end1', type: 'end', name: 'end' },
+        ],
+        edges: [{ from: 'a', to: 'b' }, { from: 'b', to: 'end1' }],
+        config: { maxConcurrency: 2 },
+      },
     },
   },
   'GET /workflows': {
@@ -458,11 +474,12 @@ const ROUTE_SCHEMAS = {
       properties: {
         id: { type: 'string' },
         name: { type: 'string' },
-        cron: { type: 'string', example: '0 9 * * 1-5' },
+        cron: { type: 'string' },
         task: { type: 'string', description: 'Task prompt' },
         target: { type: 'string' },
         enabled: { type: 'boolean', default: true },
       },
+      example: { name: 'morning-report', cron: '0 9 * * 1-5', task: 'Run morning report', enabled: true },
     },
   },
   'GET /schedules': {
@@ -538,6 +555,7 @@ const ROUTE_SCHEMAS = {
         autoMode: { type: 'boolean' },
         profile: { type: 'string' },
       },
+      example: { task: 'Fix lint errors in src/', count: 3, autoMode: true },
     },
   },
   'POST /cleanup': {
