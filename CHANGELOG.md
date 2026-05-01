@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.34] - 2026-05-02
+
+Daemon-side response drift observability. Mirrors validateRequests
+on the response side — opt-in dev / staging mode that logs a
+warning when the live response shape diverges from the spec.
+
+### Added
+- **(daemon) `config.openapi.validateResponses` flag.** When
+  true, every JSON response gets fed through
+  `validateResponse()` from openapi-validate before
+  `res.end()`. Drift triggers a single-line `console.warn`
+  with the route, error count, and first three field paths.
+  Pure observability — never rejects the response. Off by
+  default so prod doesn't see log churn.
+- **(config.example.json)** Documents the new flag with the
+  `_validateResponses_doc` sibling.
+- **(daemon) `_validateResponseAndWarn()` helper** — error
+  envelopes (`{error: msg}`) get short-circuited so 4xx bodies
+  don't trip warnings.
+
+Suite 151/151. All four drift phases lint-clean. Daemon healthy
+on v1.10.34.
+
 ## [1.10.33] - 2026-05-02
 
 Runtime drift now covers idempotent POSTs.

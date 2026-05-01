@@ -522,6 +522,8 @@
     "hookEventLog": false
   },
   "openapi": {
-    "validateRequests": false
+    "validateRequests": false,
+    "_validateResponses_doc": "When true, every JSON response gets validated against the spec's response schema and a warning logged on drift. Doesn't reject responses — pure observability for dev / staging. Default false.",
+    "validateResponses": false
   }
 }
