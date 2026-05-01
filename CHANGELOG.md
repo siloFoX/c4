@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+(no entries — next release window)
+
+## [1.8.0] - 2026-05-01
+
+The dgx-spark merge sweep — 30 PRs landed to main from individual feature
+branches (UI / CLI / observability / audit / workflow / NL / packaging) plus
+follow-up work for OpenAPI auto-generation and documentation backfill. Full
+test count grew from 105 → 144; web build holds 0 TS errors. Live verified
+end-to-end: c4 doctor / metrics / workspaces / config-validate / sse all
+green; audit rotation + CSV + SQLite query + workflow retry + parallel +
+pm-board e2e all pass; daemon route shape (10 routes) all conform.
+
 ### Added
 - **(GET /openapi.json) Auto-generated OpenAPI 3.0 spec.** New
   `src/openapi-gen.js` walks `src/daemon.js` for every literal `route
@@ -151,10 +163,13 @@
   tooltip. `Worker` type gains `failureHint?:
   {id,label,hint,sample,count} | null`. Worker tier? field also
   flows through the type for the 8.37 grouping. *Note*: the
-  worker hierarchy tree (780381a) was dropped during merge —
-  it conflicts with 8.37's Managers / Workers grouping; tree-view
-  ships as a follow-up under a separate axis (e.g., a view-mode
-  toggle) so both rendering modes can coexist.
+  worker-tree-ui branch's `780381a` commit was dropped during merge —
+  it conflicts with 8.37's Managers / Workers grouping. The tree-view
+  feature itself is **already shipped** via 8.2's `HierarchyTree`
+  component, accessible from the existing List / Tree pill toggle in
+  the Workers sidebar header (the toggle persists to
+  `c4.sidebar.mode`). Both rendering modes coexist on the same axis
+  the original tree branch was trying to introduce.
 - **(workspace) Multi-repo workspaces.** `pty-manager` gains
   `listWorkspaces()` + `resolveWorkspace(name)` that read
   `config.workspaces[name] = {path, branch?}`. New daemon `GET

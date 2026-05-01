@@ -33,7 +33,7 @@ New badge in `WorkerList.tsx` renders below the worker branch:
 
 `Worker` type gains `failureHint?: {id,label,hint,sample,count} | null` and `tier?: 'manager' | 'worker' | string` (latter for 8.37 grouping).
 
-**Note**: The original `worker-tree-ui` branch (`780381a`) was dropped during merge — it conflicts with 8.37's Managers / Workers grouping. Tree-view ships as a follow-up under a separate axis (e.g., a view-mode toggle) so both rendering modes can coexist.
+**Note**: The original `worker-tree-ui` branch (`780381a`) was dropped during merge — it conflicts with 8.37's Managers / Workers grouping. The tree-view feature itself is already shipped via 8.2's `HierarchyTree` component, accessible from the existing List / Tree pill toggle in the Workers sidebar header (persists to `c4.sidebar.mode`). Both rendering modes coexist on the same axis the original tree branch was trying to introduce.
 
 ### Pattern catalog growth (`failure-patterns-extra`)
 
