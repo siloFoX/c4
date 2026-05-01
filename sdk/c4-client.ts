@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.14
-// Generated at: 2026-05-01T15:00:35.275Z
+// Spec version: 1.10.15
+// Generated at: 2026-05-01T15:05:24.758Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -666,8 +666,12 @@ export interface postMorningResponse {
   path?: string; /** Path to the generated report */
 }
 
+export interface postStatusUpdateBody {
+  worker?: string; /** Worker name (defaults to "C4" when omitted) */
+  message: string; /** Slack message body */
+}
 export interface postStatusUpdateResponse {
-  success?: boolean;
+  sent?: boolean;
 }
 
 export type getSlackEventsResponse = Record<string, unknown>;
@@ -1816,10 +1820,11 @@ export class C4Client {
   }
 
   /** Post a manual Slack status message tagged with a worker. */
-  async postStatusUpdate(): Promise<postStatusUpdateResponse> {
+  async postStatusUpdate(body: postStatusUpdateBody): Promise<postStatusUpdateResponse> {
     return this.request<postStatusUpdateResponse>({
       method: 'POST',
       path: '/api/status-update',
+      body: body as unknown,
     });
   }
 

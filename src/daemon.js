@@ -3015,6 +3015,7 @@ async function handleRequest(req, res) {
     } else if (req.method === 'POST' && route === '/hook-event') {
       // Hook architecture (3.15): receive structured events from Claude Code hooks
       const body = await parseBody(req);
+      if (_validateOrFail('POST', '/hook-event', body, res, cfg)) return;
       const workerName = body.worker || '';
       const debugHooks = manager.config && manager.config.debug && manager.config.debug.hookEvents;
       if (debugHooks) {
@@ -3112,7 +3113,9 @@ async function handleRequest(req, res) {
       return; // Don't end the response
 
     } else if (req.method === 'POST' && route === '/plan') {
-      const { name, task, branch, outputPath, scopePreset, contextFrom } = await parseBody(req);
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/plan', _body, res, cfg)) return;
+      const { name, task, branch, outputPath, scopePreset, contextFrom } = _body;
       result = planner.sendPlan(name, task, { branch, outputPath, scopePreset, contextFrom });
 
     } else if (req.method === 'GET' && route === '/plan') {
@@ -3122,7 +3125,9 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && route === '/plan-update') {
       // (9.12) Planner Back-propagation loop entry point.
-      const { name, reason, evidence, replan, redispatch } = await parseBody(req);
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/plan-update', _body, res, cfg)) return;
+      const { name, reason, evidence, replan, redispatch } = _body;
       result = planner.updateAndMaybeReplan(name, reason, evidence, {
         replan: Boolean(replan) || Boolean(redispatch),
         redispatch: Boolean(redispatch),
@@ -3165,7 +3170,9 @@ async function handleRequest(req, res) {
       result = manager.generateMorningReport();
 
     } else if (req.method === 'POST' && route === '/status-update') {
-      const { worker, message } = await parseBody(req);
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/status-update', _body, res, cfg)) return;
+      const { worker, message } = _body;
       notifications.statusUpdate(worker || 'C4', message);
       result = { sent: true };
 
@@ -3188,6 +3195,7 @@ async function handleRequest(req, res) {
       const gate = requireRole(authCheck, rbac.ACTIONS.SLACK_WRITE);
       if (denyOr(res, gate)) return;
       const body = await parseBody(req);
+      if (_validateOrFail('POST', '/slack/emit', body, res, cfg)) return;
       const eventType = typeof body.eventType === 'string' ? body.eventType : '';
       const payload = body.payload && typeof body.payload === 'object' ? body.payload : {};
       if (!slackEvents.isEventType(eventType)) {

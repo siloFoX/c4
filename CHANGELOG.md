@@ -4,6 +4,20 @@
 
 (no entries — next release window)
 
+## [1.10.16] - 2026-05-02
+
+Validation wired to /plan, /plan-update, /status-update, /hook-event,
+/slack/emit + status-update requestBody schema added.
+
+### Added
+- **(daemon) `_validateOrFail()` wired into 5 more routes:** /plan,
+  /plan-update, /status-update, /hook-event, /slack/emit. Mutator
+  coverage 21 → 26 of 42 schema-bearing routes.
+- **(spec) `/status-update` requestBody schema.** Was response-only
+  (handler reads `body.worker` + `body.message`); schema now matches.
+
+Suite 151/151. Lint + drift clean. SDK 1966 → 1971 lines.
+
 ## [1.10.15] - 2026-05-02
 
 Validation wire-up expansion + `/schedules` schema correction.

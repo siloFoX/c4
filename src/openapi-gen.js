@@ -730,7 +730,17 @@ const ROUTE_SCHEMAS = {
   // edits to a specific route don't fall through to a shared shape.
   'POST /auto': { response: { properties: { success: { type: 'boolean' }, name: { type: 'string' } } } },
   'POST /morning': { response: { properties: { success: { type: 'boolean' }, path: { type: 'string', description: 'Path to the generated report' } } } },
-  'POST /status-update': { response: { properties: { success: { type: 'boolean' } } } },
+  'POST /status-update': {
+    requestBody: {
+      required: ['message'],
+      properties: {
+        worker: { type: 'string', description: 'Worker name (defaults to "C4" when omitted)' },
+        message: { type: 'string', description: 'Slack message body' },
+      },
+      example: { worker: 'demo-worker', message: 'Test status update' },
+    },
+    response: { properties: { sent: { type: 'boolean' } } },
+  },
   'POST /scribe/start': { response: { properties: { success: { type: 'boolean' }, intervalMs: { type: 'integer' } } } },
   'POST /scribe/stop': { response: { properties: { success: { type: 'boolean' } } } },
   'POST /scribe/scan': { response: { properties: { success: { type: 'boolean' }, scannedAt: { type: 'string' } } } },
