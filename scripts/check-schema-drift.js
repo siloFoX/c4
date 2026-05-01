@@ -39,12 +39,27 @@ for (let i = 0; i < lines.length; i++) {
     if (!routeRanges.has(key)) routeRanges.set(key, { start: i, end: i });
   }
 }
-// End of each range = line just before the next route or end of file.
+// End of each range = line just before the next route OR the next
+// `else if (req.method ===` boundary (catches parametric routes
+// like `orgParams && orgParams.kind === 'dept.member'` that don't
+// match the literal `route === 'X'` pattern).
 const sortedKeys = [...routeRanges.keys()];
 const routeStarts = sortedKeys.map((k) => routeRanges.get(k).start).sort((a, b) => a - b);
+const ELSE_IF_METHOD = /^\s*\}\s*else\s+if\s*\(\s*req\.method/;
 for (const [key, range] of routeRanges) {
   const idx = routeStarts.indexOf(range.start);
-  range.end = idx + 1 < routeStarts.length ? routeStarts[idx + 1] - 1 : lines.length - 1;
+  const literalEnd = idx + 1 < routeStarts.length ? routeStarts[idx + 1] - 1 : lines.length - 1;
+  // Walk forward from range.start+1 looking for the first `} else if
+  // (req.method` boundary — that's where the literal-route handler
+  // block ends, even if the next handler is parametric (regex-based).
+  let parametricEnd = literalEnd;
+  for (let i = range.start + 1; i <= literalEnd; i++) {
+    if (ELSE_IF_METHOD.test(lines[i])) {
+      parametricEnd = i - 1;
+      break;
+    }
+  }
+  range.end = parametricEnd;
 }
 
 function _extractFieldsFromHandler(start, end) {

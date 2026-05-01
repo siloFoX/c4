@@ -513,6 +513,7 @@ const ROUTE_SCHEMAS = {
         username: { type: 'string' },
         projectId: { type: 'string' },
       },
+      example: { username: 'alice', projectId: 'main' },
     },
     response: { properties: { granted: { type: 'boolean' }, username: { type: 'string' }, projectId: { type: 'string' } } },
   },
@@ -523,6 +524,7 @@ const ROUTE_SCHEMAS = {
         username: { type: 'string' },
         alias: { type: 'string', description: 'Fleet peer alias' },
       },
+      example: { username: 'alice', alias: 'dgx' },
     },
     response: { properties: { granted: { type: 'boolean' }, username: { type: 'string' }, alias: { type: 'string' } } },
   },
@@ -533,6 +535,7 @@ const ROUTE_SCHEMAS = {
         username: { type: 'string' },
         projectId: { type: 'string' },
       },
+      example: { username: 'alice', projectId: 'main' },
     },
     response: { properties: { ok: { type: 'boolean' } } },
   },
@@ -543,6 +546,7 @@ const ROUTE_SCHEMAS = {
         username: { type: 'string' },
         alias: { type: 'string' },
       },
+      example: { username: 'alice', alias: 'dgx' },
     },
     response: { properties: { ok: { type: 'boolean' } } },
   },
@@ -655,6 +659,7 @@ const ROUTE_SCHEMAS = {
         repoPath: { type: 'string', description: 'Filesystem path to the project repo (for TODO sync)' },
         todoPath: { type: 'string', description: 'Path to TODO.md within the repo (default: TODO.md)' },
       },
+      example: { id: 'c4', name: 'C4 Daemon', repoPath: '/home/shinc/c4', todoPath: 'TODO.md' },
     },
     response: {
       properties: {
@@ -770,7 +775,6 @@ const ROUTE_SCHEMAS = {
   'POST /scribe/stop': { response: { properties: { success: { type: 'boolean' } } } },
   'POST /scribe/scan': { response: { properties: { success: { type: 'boolean' }, scannedAt: { type: 'string' } } } },
   'GET /scribe/status': { response: { properties: { active: { type: 'boolean' }, intervalMs: { type: 'integer' }, lastRecordAt: { type: 'string', nullable: true } } } },
-  'POST /autonomous/pause': { response: { properties: { paused: { type: 'boolean' }, reason: { type: 'string' } } } },
   'POST /autonomous/resume': { response: { properties: { paused: { type: 'boolean' } } } },
   'POST /autonomous/tick': { response: { properties: { dispatched: { type: 'string', nullable: true }, skipped: { type: 'string', nullable: true }, reason: { type: 'string', nullable: true } } } },
   'POST /config/reload': { response: { properties: { ok: { type: 'boolean' } } } },
@@ -812,6 +816,7 @@ const ROUTE_SCHEMAS = {
         replan: { type: 'boolean', description: 'Trigger a fresh planning pass' },
         redispatch: { type: 'boolean', description: 'Redispatch the plan to its anchor task' },
       },
+      example: { name: 'planner-1', reason: 'Coverage gap on auth flow', replan: true },
     },
     response: { properties: { success: { type: 'boolean' }, revision: { type: 'integer' } } },
   },
@@ -828,6 +833,7 @@ const ROUTE_SCHEMAS = {
         method: { type: 'string', description: 'MCP tool name' },
         params: { type: 'object' },
       },
+      example: { method: 'figma__get_screenshot', params: { fileKey: 'abc123' } },
     },
     response: { properties: { result: { type: 'object' } } },
   },
@@ -852,6 +858,7 @@ const ROUTE_SCHEMAS = {
         delayMs: { type: 'integer', description: 'Inter-keystroke delay' },
         key: { type: 'string', description: 'Key name (e.g., Return / Escape / Ctrl+A)' },
       },
+      example: { backend: 'auto', x: 100, y: 200, button: 'left' },
     },
     response: { properties: { id: { type: 'string' }, backend: { type: 'string' } } },
   },
@@ -859,6 +866,9 @@ const ROUTE_SCHEMAS = {
     response: { type: 'string', description: 'SSE stream — Content-Type: text/event-stream' },
   },
   'GET /watch': {
+    parameters: [
+      { name: 'name', in: 'query', required: true, schema: { type: 'string', description: 'Worker name to tail' } },
+    ],
     response: { type: 'string', description: 'SSE stream of worker output — Content-Type: text/event-stream' },
   },
   'GET /approvals': {
@@ -894,6 +904,7 @@ const ROUTE_SCHEMAS = {
         task: { type: 'string' },
         target: { type: 'string' },
       },
+      example: { task: 'Lint the src/ tree', target: 'local' },
     },
     response: { properties: { success: { type: 'boolean' }, dispatched: { type: 'string' } } },
   },
@@ -940,6 +951,7 @@ const ROUTE_SCHEMAS = {
         ref: { type: 'string' },
         inputs: { type: 'object' },
       },
+      example: { repo: 'siloFoX/c4', workflow: 'test.yml', ref: 'main' },
     },
     response: { properties: { success: { type: 'boolean' } } },
   },
@@ -974,6 +986,7 @@ const ROUTE_SCHEMAS = {
       properties: {
         dryRun: { type: 'boolean', default: false },
       },
+      example: { dryRun: true },
     },
     response: {
       properties: {
@@ -982,10 +995,6 @@ const ROUTE_SCHEMAS = {
         directoriesRemoved: { type: 'array', items: { type: 'string' } },
       },
     },
-  },
-  'POST /scribe/start': {
-    // Handler reads no body fields — interval is config-driven.
-    // Empty body still accepted; schema documents the no-op shape.
   },
   'POST /autonomous/pause': {
     requestBody: {
@@ -1055,14 +1064,6 @@ const ROUTE_SCHEMAS = {
     ],
     response: { properties: { events: { type: 'array', items: { type: 'object' } } } },
   },
-  'GET /quota': {
-    response: {
-      properties: {
-        tiers: { type: 'array' },
-        depts: { type: 'array' },
-      },
-    },
-  },
   'GET /token-usage': {
     parameters: [
       { name: 'name', in: 'query', schema: { type: 'string' } },
@@ -1072,18 +1073,6 @@ const ROUTE_SCHEMAS = {
       properties: {
         usage: { type: 'array', items: { type: 'object' } },
         totals: { type: 'object' },
-      },
-    },
-  },
-  'GET /watch': {
-    parameters: [
-      { name: 'name', in: 'query', required: true, schema: { type: 'string', description: 'Worker name to tail' } },
-    ],
-  },
-  'GET /events': {
-    response: {
-      properties: {
-        type: { type: 'string', description: 'SSE event type ("connected" first, then live events)' },
       },
     },
   },
@@ -1158,6 +1147,18 @@ const ROUTE_SCHEMAS = {
         repository: { type: 'object' },
         pull_request: { type: 'object' },
       },
+      example: {
+        action: 'opened',
+        repository: { full_name: 'siloFoX/c4' },
+        pull_request: { number: 42, head: { ref: 'feature-branch' } },
+      },
+    },
+    response: {
+      properties: {
+        ok: { type: 'boolean' },
+        event: { type: 'string', description: 'Internal event name (e.g., pr.opened)' },
+        dispatched: { type: 'integer', description: 'Number of pipelines triggered' },
+      },
     },
   },
   'POST /cicd/pipelines': {
@@ -1173,6 +1174,14 @@ const ROUTE_SCHEMAS = {
           items: { type: 'string', enum: ['pr.opened', 'pr.merged', 'pr.closed', 'merge.main', 'tag.created'] },
         },
         actions: { type: 'array', items: { type: 'object' } },
+      },
+      example: {
+        id: 'pr-test',
+        name: 'PR test runner',
+        repo: 'siloFoX/c4',
+        workflow: 'test.yml',
+        triggers: ['pr.opened'],
+        actions: [{ type: 'spawn-worker', task: 'Run npm test' }],
       },
     },
     response: {
@@ -1194,6 +1203,140 @@ const ROUTE_SCHEMAS = {
       properties: {
         sessions: { type: 'array' },
         total: { type: 'integer' },
+      },
+    },
+  },
+  'GET /openapi.yaml': {
+    response: { type: 'string', description: 'Spec serialised as YAML — Content-Type: application/yaml' },
+  },
+  'GET /dashboard': {
+    response: { type: 'string', description: 'Web UI shell HTML — Content-Type: text/html' },
+  },
+  'GET /wait-read': {
+    parameters: [
+      { name: 'name', in: 'query', required: true, schema: { type: 'string' } },
+      { name: 'timeout', in: 'query', schema: { type: 'integer', default: 120000, description: 'Idle timeout in ms' } },
+      { name: 'interruptOnIntervention', in: 'query', schema: { type: 'string', enum: ['0', '1'] } },
+    ],
+    response: {
+      properties: {
+        success: { type: 'boolean' },
+        idle: { type: 'boolean' },
+        output: { type: 'string', description: 'Worker scrollback at the moment idle was detected' },
+        timedOut: { type: 'boolean' },
+        intervention: { type: 'object', nullable: true, description: 'Populated if interruptOnIntervention=1 and an intervention was detected' },
+      },
+    },
+  },
+  'GET /wait-read-multi': {
+    parameters: [
+      { name: 'names', in: 'query', required: true, schema: { type: 'string', description: 'Comma-separated worker names' } },
+      { name: 'timeout', in: 'query', schema: { type: 'integer', default: 120000 } },
+      { name: 'interruptOnIntervention', in: 'query', schema: { type: 'string', enum: ['0', '1'] } },
+      { name: 'waitAll', in: 'query', schema: { type: 'string', enum: ['0', '1'], description: 'When 1, wait for every worker to be idle (default: first idle wins)' } },
+    ],
+    response: {
+      properties: {
+        success: { type: 'boolean' },
+        firstIdle: { type: 'string', nullable: true, description: 'Name of the worker that hit idle first (single-winner mode)' },
+        results: { type: 'array', items: { type: 'object' }, description: 'Per-worker {name, idle, output} records' },
+        timedOut: { type: 'boolean' },
+      },
+    },
+  },
+  'GET /cost/report': {
+    parameters: [
+      { name: 'from', in: 'query', schema: { type: 'string', description: 'ISO date — inclusive lower bound' } },
+      { name: 'to', in: 'query', schema: { type: 'string', description: 'ISO date — exclusive upper bound' } },
+      { name: 'group', in: 'query', schema: { type: 'string', enum: ['project', 'tier', 'dept', 'session'], default: 'project' } },
+      { name: 'models', in: 'query', schema: { type: 'string', enum: ['0', '1'], description: 'Set 1 to break out per-model totals' } },
+    ],
+    response: {
+      properties: {
+        totals: { type: 'object', description: 'Aggregate cost / token counts' },
+        groups: { type: 'array', items: { type: 'object' }, description: 'Per-group rows (group key + cost + tokens)' },
+        models: { type: 'array', items: { type: 'object' }, description: 'Populated when ?models=1' },
+        from: { type: 'string', nullable: true },
+        to: { type: 'string', nullable: true },
+      },
+    },
+  },
+  'POST /cost/budget': {
+    requestBody: {
+      required: ['limit'],
+      properties: {
+        limit: { type: 'number', description: 'Budget limit in dollars' },
+        period: { type: 'string', enum: ['day', 'week', 'month'], default: 'month' },
+        group: { type: 'string', nullable: true, description: 'Specific group key (project id, tier name, dept id) — omit for global' },
+        groupBy: { type: 'string', enum: ['project', 'tier', 'dept'], default: 'project' },
+        warnAt: { type: 'number', description: 'Fractional threshold for warning (default 0.8)' },
+      },
+      example: { limit: 100, period: 'month', groupBy: 'project', warnAt: 0.8 },
+    },
+    response: {
+      properties: {
+        used: { type: 'number' },
+        limit: { type: 'number' },
+        remaining: { type: 'number' },
+        exceeded: { type: 'boolean' },
+        warning: { type: 'boolean' },
+        period: { type: 'string' },
+      },
+    },
+  },
+  'GET /orgs/tree': {
+    response: {
+      properties: {
+        roots: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              parentId: { type: 'string', nullable: true },
+              subDepts: { type: 'array', description: 'Nested departments' },
+              teams: { type: 'array', items: { type: 'object' } },
+              members: { type: 'array', items: { type: 'object' } },
+            },
+          },
+        },
+        count: { type: 'integer' },
+      },
+    },
+  },
+  'POST /orgs/dept': {
+    requestBody: {
+      required: ['id', 'name'],
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string' },
+        parentId: { type: 'string', nullable: true, description: 'Parent department id (null for root)' },
+      },
+      example: { id: 'eng', name: 'Engineering', parentId: null },
+    },
+    response: {
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string' },
+        parentId: { type: 'string', nullable: true },
+      },
+    },
+  },
+  'POST /orgs/team': {
+    requestBody: {
+      required: ['id', 'deptId', 'name'],
+      properties: {
+        id: { type: 'string' },
+        deptId: { type: 'string' },
+        name: { type: 'string' },
+      },
+      example: { id: 'platform', deptId: 'eng', name: 'Platform Team' },
+    },
+    response: {
+      properties: {
+        id: { type: 'string' },
+        deptId: { type: 'string' },
+        name: { type: 'string' },
       },
     },
   },
@@ -1352,13 +1495,28 @@ function buildSpec({ daemonPath, version, baseUrl } = {}) {
         };
       }
       if (schemas.response) {
+        // Pick the content-type. Curated `contentType` wins; otherwise
+        // detect non-JSON shapes (SSE / HTML / YAML / plain string) so
+        // Swagger UI renders them correctly. Default: application/json.
+        const explicitCT = schemas.response.contentType;
+        const { contentType: _ct, ...respShape } = schemas.response;
+        const isString = respShape.type === 'string';
+        let mediaType = explicitCT;
+        if (!mediaType) {
+          if (isString) {
+            const desc = (respShape.description || '').toLowerCase();
+            if (desc.includes('text/event-stream')) mediaType = 'text/event-stream';
+            else if (desc.includes('text/html')) mediaType = 'text/html';
+            else if (desc.includes('application/yaml')) mediaType = 'application/yaml';
+            else mediaType = 'text/plain';
+          } else {
+            mediaType = 'application/json';
+          }
+        }
+        const schemaBody = isString ? respShape : { type: 'object', ...respShape };
         op.responses['200'] = {
           description: 'Success',
-          content: {
-            'application/json': {
-              schema: { type: 'object', ...schemas.response },
-            },
-          },
+          content: { [mediaType]: { schema: schemaBody } },
         };
       }
     }

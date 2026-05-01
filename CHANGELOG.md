@@ -4,6 +4,49 @@
 
 (no entries — next release window)
 
+## [1.10.22] - 2026-05-02
+
+OpenAPI spec coverage hits 100% — every operation has a response
+schema, every requestBody route has an example.
+
+### Added
+- **(spec) Response schemas + examples on the last 10 routes:**
+  /openapi.yaml, /dashboard, /watch, /wait-read, /wait-read-multi,
+  /cost/report, /cost/budget, /orgs/tree, /orgs/dept, /orgs/team
+  (response schemas) plus inline examples on /rbac/grant/{project,
+  machine}, /rbac/revoke/{project,machine}, /computer-use/sessions,
+  /projects, /cicd/webhook, /cicd/pipelines, /cicd/trigger, /cleanup,
+  /plan-update, /mcp, /dispatch (15 example payloads).
+
+### Changed
+- **(spec) Non-JSON content types now emitted correctly.** Previously
+  the spec hard-coded `application/json` even for SSE / HTML / YAML
+  routes. buildSpec now picks the content type from the curated
+  `contentType` field or auto-detects from the response description
+  (text/event-stream, text/html, application/yaml, text/plain).
+  Affected: /openapi.yaml → application/yaml, /dashboard → text/html,
+  /watch → text/event-stream, /events → text/event-stream,
+  /api-docs{,/redoc,/index} → text/html.
+- **(spec) Deduplicated 4 routes** that had two ROUTE_SCHEMAS entries
+  silently overriding each other (POST /scribe/start, POST
+  /autonomous/pause, GET /quota, GET /events) — kept the richer
+  entry, dropped the stub. Merged GET /watch (parameters from one
+  entry, response from the other).
+- **(scripts/check-schema-drift.js) Parametric-route boundary
+  detection.** The drift checker now treats `} else if (req.method`
+  as a soft handler-block boundary, so routes followed by parametric
+  `req.method === 'X' && orgParams.kind === 'Y'` branches no longer
+  get their handler range extended into the next branch's body.
+  Caught false positives on /orgs/dept and /orgs/team.
+
+Coverage:
+- response schemas: 98 → 110 of 110 ops (100%)
+- examples: 30 → 46 of 46 requestBody routes (100%)
+- requestBody schemas: 43 → 46 (added cost/budget + orgs routes)
+- parameter schemas: 20 → 24 (added wait-read{,-multi}, cost/report)
+
+Suite 151/151. SDK 2019 → 2100 lines. Linters clean.
+
 ## [1.10.21] - 2026-05-02
 
 Response schema coverage 85 → 98 of 110 ops (89%).

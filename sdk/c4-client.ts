@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.20
-// Generated at: 2026-05-01T15:43:31.988Z
+// Spec version: 1.10.22
+// Generated at: 2026-05-01T15:56:54.569Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -47,11 +47,11 @@ export interface getOpenapiJsonResponse {
 
 export type getOpenapiYamlResponse = unknown;
 
-export type getApiDocsIndexResponse = Record<string, unknown>;
+export type getApiDocsIndexResponse = unknown;
 
-export type getApiDocsRedocResponse = Record<string, unknown>;
+export type getApiDocsRedocResponse = unknown;
 
-export type getApiDocsResponse = Record<string, unknown>;
+export type getApiDocsResponse = unknown;
 
 export interface postCreateBody {
   name: string; /** Worker name (unique) */
@@ -108,9 +108,31 @@ export interface getReadNowResponse {
   idle?: boolean;
 }
 
-export type getWaitReadResponse = unknown;
+export interface getWaitReadParams {
+  name: string;
+  timeout?: number;
+  interruptOnIntervention?: "0" | "1";
+}
+export interface getWaitReadResponse {
+  success?: boolean;
+  idle?: boolean;
+  output?: string; /** Worker scrollback at the moment idle was detected */
+  timedOut?: boolean;
+  intervention?: Record<string, unknown> | null; /** Populated if interruptOnIntervention=1 and an intervention was detected */
+}
 
-export type getWaitReadMultiResponse = unknown;
+export interface getWaitReadMultiParams {
+  names: string;
+  timeout?: number;
+  interruptOnIntervention?: "0" | "1";
+  waitAll?: "0" | "1";
+}
+export interface getWaitReadMultiResponse {
+  success?: boolean;
+  firstIdle?: string | null; /** Name of the worker that hit idle first (single-winner mode) */
+  results?: Record<string, unknown>[]; /** Per-worker {name, idle, output} records */
+  timedOut?: boolean;
+}
 
 export interface getListResponse {
   workers?: unknown[];
@@ -239,7 +261,7 @@ export interface getAuditExportParams {
   limit?: number;
   bom?: "0" | "1";
 }
-export type getAuditExportResponse = Record<string, unknown>;
+export type getAuditExportResponse = unknown;
 
 export interface getAuditVerifyParams {
   includeRotated?: "0" | "1";
@@ -313,15 +335,62 @@ export interface postRbacCheckResponse {
   allowed?: boolean;
 }
 
-export type getCostReportResponse = unknown;
+export interface getCostReportParams {
+  from?: string;
+  to?: string;
+  group?: "project" | "tier" | "dept" | "session";
+  models?: "0" | "1";
+}
+export interface getCostReportResponse {
+  totals?: Record<string, unknown>; /** Aggregate cost / token counts */
+  groups?: Record<string, unknown>[]; /** Per-group rows (group key + cost + tokens) */
+  models?: Record<string, unknown>[]; /** Populated when ?models=1 */
+  from?: string | null;
+  to?: string | null;
+}
 
-export type postCostBudgetResponse = unknown;
+export interface postCostBudgetBody {
+  limit: number; /** Budget limit in dollars */
+  period?: "day" | "week" | "month";
+  group?: string | null; /** Specific group key (project id, tier name, dept id) — omit for global */
+  groupBy?: "project" | "tier" | "dept";
+  warnAt?: number; /** Fractional threshold for warning (default 0.8) */
+}
+export interface postCostBudgetResponse {
+  used?: number;
+  limit?: number;
+  remaining?: number;
+  exceeded?: boolean;
+  warning?: boolean;
+  period?: string;
+}
 
-export type getOrgsTreeResponse = unknown;
+export interface getOrgsTreeResponse {
+  roots?: unknown[];
+  count?: number;
+}
 
-export type postOrgsDeptResponse = unknown;
+export interface postOrgsDeptBody {
+  id: string;
+  name: string;
+  parentId?: string | null; /** Parent department id (null for root) */
+}
+export interface postOrgsDeptResponse {
+  id?: string;
+  name?: string;
+  parentId?: string | null;
+}
 
-export type postOrgsTeamResponse = unknown;
+export interface postOrgsTeamBody {
+  id: string;
+  deptId: string;
+  name: string;
+}
+export interface postOrgsTeamResponse {
+  id?: string;
+  deptId?: string;
+  name?: string;
+}
 
 export interface getSchedulesResponse {
   schedules?: unknown[];
@@ -440,7 +509,11 @@ export interface postCicdWebhookBody {
   repository?: Record<string, unknown>;
   pull_request?: Record<string, unknown>;
 }
-export type postCicdWebhookResponse = unknown;
+export interface postCicdWebhookResponse {
+  ok?: boolean;
+  event?: string; /** Internal event name (e.g., pr.opened) */
+  dispatched?: number; /** Number of pipelines triggered */
+}
 
 export interface getCicdPipelinesResponse {
   pipelines?: Record<string, unknown>[];
@@ -538,7 +611,10 @@ export interface postAutonomousTickResponse {
   reason?: string | null;
 }
 
-export type postScribeStartResponse = unknown;
+export interface postScribeStartResponse {
+  active?: boolean;
+  intervalMs?: number;
+}
 
 export interface postScribeStopResponse {
   success?: boolean;
@@ -626,15 +702,13 @@ export interface getHookEventsResponse {
   events?: Record<string, unknown>[];
 }
 
-export interface getEventsResponse {
-  type?: string; /** SSE event type ("connected" first, then live events) */
-}
+export type getEventsResponse = unknown;
 
 export interface getApprovalsResponse {
   approvals?: Record<string, unknown>[];
 }
 
-export type getApprovalsStreamResponse = Record<string, unknown>;
+export type getApprovalsStreamResponse = unknown;
 
 export interface postPlanBody {
   name: string;
@@ -721,7 +795,7 @@ export interface postStatusUpdateResponse {
   sent?: boolean;
 }
 
-export type getSlackEventsResponse = Record<string, unknown>;
+export type getSlackEventsResponse = unknown;
 
 export interface postSlackEmitBody {
   eventType: string; /** One of slackEvents.EVENT_TYPES */
@@ -1215,18 +1289,20 @@ export class C4Client {
   }
 
   /** Block until a worker is idle, then return its scrollback. */
-  async getWaitRead(): Promise<getWaitReadResponse> {
+  async getWaitRead(params: getWaitReadParams): Promise<getWaitReadResponse> {
     return this.request<getWaitReadResponse>({
       method: 'GET',
       path: '/api/wait-read',
+      params: params as unknown as Record<string, unknown> | undefined,
     });
   }
 
   /** Multi-worker waitRead — first idle worker returns first. */
-  async getWaitReadMulti(): Promise<getWaitReadMultiResponse> {
+  async getWaitReadMulti(params: getWaitReadMultiParams): Promise<getWaitReadMultiResponse> {
     return this.request<getWaitReadMultiResponse>({
       method: 'GET',
       path: '/api/wait-read-multi',
+      params: params as unknown as Record<string, unknown> | undefined,
     });
   }
 
@@ -1416,18 +1492,20 @@ export class C4Client {
   }
 
   /** (10.5) Cost + token aggregation over the daemon's history.jsonl. Never touches live worker state so it is safe to call at any time — the report is pure aggregation over immutable rows. */
-  async getCostReport(): Promise<getCostReportResponse> {
+  async getCostReport(params?: getCostReportParams): Promise<getCostReportResponse> {
     return this.request<getCostReportResponse>({
       method: 'GET',
       path: '/api/cost/report',
+      params: params as unknown as Record<string, unknown> | undefined,
     });
   }
 
   /** (10.5) Budget check. Body: { limit, period, group, warnAt }. Returns exceeded=true once used >= limit, warning=true once used crosses warnAt (defaults to 0.8) but has not yet exceeded. */
-  async postCostBudget(): Promise<postCostBudgetResponse> {
+  async postCostBudget(body: postCostBudgetBody): Promise<postCostBudgetResponse> {
     return this.request<postCostBudgetResponse>({
       method: 'POST',
       path: '/api/cost/budget',
+      body: body as unknown,
     });
   }
 
@@ -1440,18 +1518,20 @@ export class C4Client {
   }
 
   /** (10.6) Create a department. Body: { id, name, parentId? }. */
-  async postOrgsDept(): Promise<postOrgsDeptResponse> {
+  async postOrgsDept(body: postOrgsDeptBody): Promise<postOrgsDeptResponse> {
     return this.request<postOrgsDeptResponse>({
       method: 'POST',
       path: '/api/orgs/dept',
+      body: body as unknown,
     });
   }
 
   /** (10.6) Create a team under a department. Body: { id, deptId, name }. */
-  async postOrgsTeam(): Promise<postOrgsTeamResponse> {
+  async postOrgsTeam(body: postOrgsTeamBody): Promise<postOrgsTeamResponse> {
     return this.request<postOrgsTeamResponse>({
       method: 'POST',
       path: '/api/orgs/team',
+      body: body as unknown,
     });
   }
 
