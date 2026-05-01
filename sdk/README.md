@@ -13,6 +13,12 @@ coexist in the same package:
    interceptors. Regenerate with `npm run regen` (calls `c4 openapi
    --sdk` against the running daemon).
 
+   As of **v1.10.35**, the spec backing the SDK has 100% response
+   coverage and four phases of drift detection (requestBody / query
+   params / response shape / runtime types). Most array responses
+   now declare item shapes, so `c4.getList().workers[i].cpuPct`
+   autocompletes as `number | null` instead of `unknown`.
+
 Both flavours coexist. Use `/typed` if you're on TypeScript or need
 SSE / interceptors; the default export remains for backwards compat.
 

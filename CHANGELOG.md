@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.36] - 2026-05-02
+
+Doctor regression test + SDK example refresh.
+
+### Added
+- **(tests) cli-doctor-openapi.test.js** locks in the
+  v1.10.35 doctor checks: 100% response coverage,
+  opCount ≥ 100, sdk/c4-client.ts present + ≥ 1000 bytes.
+  Future spec edits that regress these get caught at the
+  unit level before doctor ever runs.
+
+### Changed
+- **(sdk/examples/typed-client.ts)** updated to use the rich
+  /metrics shape (`m.daemon.pid`, `m.totals.liveWorkers`)
+  and the corrected /scrollback shape
+  (`{content, lines, totalScrollback}`). Stale "(typed as
+  unknown)" comment removed — types are now real.
+- **(sdk/README.md)** notes the v1.10.35 milestone: 100%
+  response coverage + four phases of drift detection.
+
+Suite 152/152 (was 151). All four drift phases lint-clean.
+
 ## [1.10.35] - 2026-05-02
 
 `c4 doctor` now verifies the OpenAPI surface.

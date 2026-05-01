@@ -29,10 +29,13 @@ async function main() {
   const health = await c4.getHealth();
   console.log(`daemon v${health.version} — ${health.workers} workers`);
 
-  // 3) CPU/RSS metrics.
+  // 3) CPU/RSS metrics. v1.10.24+ types the response richly:
+  //    m.daemon.pid / .rssKb / .uptimeSec / etc
+  //    m.workers[i].name / .status / .cpuPct
+  //    m.totals.liveWorkers / .totalRssKb
   const m = await c4.getMetrics();
-  console.log(`daemon pid ${m.daemon} (typed as unknown — see m.daemon below)`);
-  console.log(`live workers: ${m.totals}`);
+  console.log(`daemon pid ${m.daemon?.pid} — uptime ${m.daemon?.uptimeSec}s`);
+  console.log(`live workers: ${m.totals?.liveWorkers} / ${m.totals?.totalWorkers}`);
 
   // 4) Spawn a worker + send it a task.
   const created = await c4.postCreate({
@@ -50,8 +53,9 @@ async function main() {
   console.log('task queued:', taskResult);
 
   // 5) Read scrollback (typed query params).
+  // Response shape (v1.10.28+): { content, lines, totalScrollback }.
   const scroll = await c4.getScrollback({ name: 'demo-worker', lines: 50 });
-  console.log(`scrollback: ${scroll.lines} lines`);
+  console.log(`scrollback: ${scroll.lines}/${scroll.totalScrollback} lines`);
 
   // 6) Audit log query with typed filters.
   const audit = await c4.getAuditQuery({
