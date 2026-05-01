@@ -4,6 +4,19 @@
 
 (no entries — next release window)
 
+## [1.10.17] - 2026-05-02
+
+Validation wired to 7 more routes — autonomous.pause, mcp.servers,
+computer-use.sessions, cicd.pipelines, cicd.trigger, batch, dispatch.
+
+### Added
+- **(daemon) `_validateOrFail()` wired into 7 more routes:**
+  /autonomous/pause, /mcp/servers, /computer-use/sessions,
+  /cicd/pipelines, /cicd/trigger, /batch, /dispatch. Mutator
+  validation coverage 26 → 33 of 42 schema-bearing routes.
+
+Suite 151/151. Lint + drift clean.
+
 ## [1.10.16] - 2026-05-02
 
 Validation wired to /plan, /plan-update, /status-update, /hook-event,

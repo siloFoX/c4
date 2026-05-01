@@ -1991,6 +1991,7 @@ async function handleRequest(req, res) {
       if (denyOr(res, gate)) return;
       try {
         const body = await parseBody(req);
+        if (_validateOrFail('POST', '/mcp/servers', body, res, cfg)) return;
         const hub = getMcpHub();
         result = hub.registerServer(body || {});
         _safeAudit('mcp.registered',
@@ -2230,6 +2231,7 @@ async function handleRequest(req, res) {
       if (denyOr(res, gate)) return;
       try {
         const body = await parseBody(req);
+        if (_validateOrFail('POST', '/computer-use/sessions', body, res, cfg)) return;
         const agent = getComputerUseAgent();
         const entry = agent.startSession(typeof body.backend === 'string' ? body.backend : 'auto');
         _safeAudit('computer-use.session.started',
@@ -2619,6 +2621,7 @@ async function handleRequest(req, res) {
       if (denyOr(res, gate)) return;
       try {
         const body = await parseBody(req);
+        if (_validateOrFail('POST', '/cicd/pipelines', body, res, cfg)) return;
         result = cicdManager.registerPipeline(body || {});
         _safeAudit('cicd.pipeline.created',
           { id: result.id, repo: result.repo, triggers: result.triggers },
@@ -2661,6 +2664,7 @@ async function handleRequest(req, res) {
       if (denyOr(res, gate)) return;
       try {
         const body = await parseBody(req);
+        if (_validateOrFail('POST', '/cicd/trigger', body, res, cfg)) return;
         if (body && body.id) {
           const pipeline = cicdManager.getPipeline(body.id);
           if (!pipeline) {
@@ -2706,6 +2710,7 @@ async function handleRequest(req, res) {
       // an explicit `namePrefix`. Returns per-item outcomes so the UI
       // can render a results table without looping /task itself.
       const body = await parseBody(req);
+      if (_validateOrFail('POST', '/batch', body, res, cfg)) return;
       const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_TASK,
         body.target ? { type: 'machine', id: body.target } : null);
       if (denyOr(res, gate)) return;
@@ -2899,6 +2904,7 @@ async function handleRequest(req, res) {
       } else {
         let body = {};
         try { body = await parseBody(req); } catch { body = {}; }
+        if (_validateOrFail('POST', '/autonomous/pause', body, res, cfg)) return;
         result = autoDispatcher.pause((body && body.reason) || 'manual via cli');
       }
 
@@ -3590,6 +3596,7 @@ async function handleRequest(req, res) {
       // When no fleet machines are configured everything lands on
       // localhost. Every remote unreachable -> fall back to local too.
       const body = await parseBody(req);
+      if (_validateOrFail('POST', '/dispatch', body, res, cfg)) return;
       const count = Math.max(1, parseInt(body.count, 10) || 1);
       const strategy = body.strategy || 'least-loaded';
       const tags = Array.isArray(body.tags) ? body.tags : [];
