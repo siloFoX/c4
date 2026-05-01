@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.30
-// Generated at: 2026-05-01T16:52:00.491Z
+// Spec version: 1.10.31
+// Generated at: 2026-05-01T17:01:21.731Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -204,7 +204,7 @@ export interface getListResponse {
   pinnedMemory?: Record<string, unknown> | null;
   lostAt?: string; /** ISO timestamp of last save before daemon restart */
 }[];
-  lastHealthCheck?: string | null;
+  lastHealthCheck?: number | null; /** Unix epoch milliseconds; null on a fresh daemon */
 }
 
 export interface getTreeResponse {
@@ -690,7 +690,7 @@ export interface getComputerUseSessionsResponse {
   endedAt?: string | null;
 }[];
   count?: number;
-  backends?: string[]; /** Backend names available on this host */
+  backends?: Record<string, unknown>; /** Map of backend name → availability boolean ({stub, mock, xdotool}) */
 }
 
 export interface postComputerUseSessionsBody {
@@ -921,8 +921,8 @@ export interface getTokenUsageResponse {
 }
 
 export interface getQuotaResponse {
-  tiers?: unknown[];
-  depts?: unknown[];
+  date?: string; /** ISO date the snapshot was generated for (rolls over at UTC midnight) */
+  tiers?: Record<string, unknown>; /** Map keyed by tier name. Each value: { dailyTokens, models[], used, remaining } */
 }
 
 export interface getScrollbackParams {
@@ -1093,13 +1093,13 @@ export interface getHistoryParams {
 }
 export interface getHistoryResponse {
   records?: {
-  id?: string;
-  worker?: string;
-  task?: string;
-  startedAt?: string;
-  completedAt?: string | null;
-  status?: string;
+  name?: string | null; /** Worker name (history-view normaliser sets null when absent) */
+  task?: string | null; /** Null on resume / non-task lifecycle events */
   branch?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  commits?: Record<string, unknown>[];
+  status?: string | null;
 }[];
   workers?: Record<string, unknown>[]; /** Per-worker rollup summary */
   total?: number; /** Total record count before filtering */

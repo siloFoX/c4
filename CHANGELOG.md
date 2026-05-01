@@ -4,6 +4,58 @@
 
 (no entries — next release window)
 
+## [1.10.31] - 2026-05-02
+
+Phase 4 of the drift detection family — runtime validation
+against a live daemon. Caught 5 type-level drift bugs that
+static analysis can't see.
+
+### Added
+- **(scripts/check-runtime-drift.js)** New runtime drift
+  checker. Hits every safe GET route on a live daemon, parses
+  the response, validates against the spec's response schema
+  via `openapi-validate.validateResponse`. Skips mutators, SSE
+  streams, HTML/YAML responses, auth-protected routes, and
+  routes that need specific resource ids. Exits 0 when 35/35
+  routes runtime-validate clean.
+- **(src/openapi-validate.js) `validateResponse()`** — mirrors
+  `validateRequestBody` for the response side. Skips
+  string-typed responses (HTML / SSE / YAML) and supports a
+  `skipDelegated: true` flag for routes whose handler
+  wholesale-passes through to a manager method.
+- **(.github/workflows/test.yml) CI step** that boots the
+  daemon, polls /health for ≤30s, runs `lint:runtime-drift`,
+  and tears the daemon down. Catches handler→spec drift
+  before it reaches main.
+- **(npm scripts) `lint:runtime-drift`.**
+
+### Fixed (caught at runtime)
+- **(spec) /computer-use/sessions** — `backends` was declared
+  as `array` but the handler returns `{stub, mock, xdotool}`
+  object map (backend name → availability boolean).
+- **(spec) /quota** — declared `{tiers: array, depts: array}`
+  but the handler returns `{date, tiers: object}` (no depts,
+  tiers is a name-keyed map).
+- **(spec) /list.lastHealthCheck** — declared as `string`,
+  handler returns `Date.now()` integer (epoch ms).
+- **(spec) /history.records** — wholesale shape mismatch.
+  Spec said `{id, worker, task, startedAt, completedAt,
+  status, branch}`. Handler runs every record through
+  `historyView.normalizeRecord` which produces
+  `{name, task, branch, startedAt, completedAt, commits[],
+  status}` — different field names + null tolerance for
+  every text field. All seven fields fixed and `commits[]`
+  added.
+- **(spec) /history.records[i] nullable.** Every text field
+  comes back as null when the underlying entry was an
+  older-format record without that property. Spec now
+  declares them nullable to match.
+
+Suite 151+5 = 156 (new validateResponse tests). SDK 2435
+lines unchanged (no surface change). All four drift phases
+(requestBody, query params, response shape, runtime types)
+lint-clean.
+
 ## [1.10.30] - 2026-05-02
 
 Phase 3 spread-aware drift detection + 3 RBAC response shape

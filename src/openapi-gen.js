@@ -405,7 +405,7 @@ const ROUTE_SCHEMAS = {
             },
           },
         },
-        lastHealthCheck: { type: 'string', nullable: true },
+        lastHealthCheck: { type: 'integer', nullable: true, description: 'Unix epoch milliseconds; null on a fresh daemon' },
       },
     },
   },
@@ -1062,7 +1062,17 @@ const ROUTE_SCHEMAS = {
       },
     },
   },
-  'GET /quota': { response: { properties: { tiers: { type: 'array' }, depts: { type: 'array' } } } },
+  'GET /quota': {
+    response: {
+      properties: {
+        date: { type: 'string', description: 'ISO date the snapshot was generated for (rolls over at UTC midnight)' },
+        tiers: {
+          type: 'object',
+          description: 'Map keyed by tier name. Each value: { dailyTokens, models[], used, remaining }',
+        },
+      },
+    },
+  },
   'GET /swarm': { parameters: [{ name: 'name', in: 'query', schema: { type: 'string' } }], response: { properties: { swarm: { type: 'array' } } } },
   'POST /plan': {
     requestBody: {
@@ -1163,7 +1173,10 @@ const ROUTE_SCHEMAS = {
           },
         },
         count: { type: 'integer' },
-        backends: { type: 'array', items: { type: 'string' }, description: 'Backend names available on this host' },
+        backends: {
+          type: 'object',
+          description: 'Map of backend name → availability boolean ({stub, mock, xdotool})',
+        },
       },
     },
   },
@@ -1456,13 +1469,13 @@ const ROUTE_SCHEMAS = {
           type: 'array',
           items: {
             properties: {
-              id: { type: 'string' },
-              worker: { type: 'string' },
-              task: { type: 'string' },
-              startedAt: { type: 'string' },
-              completedAt: { type: 'string', nullable: true },
-              status: { type: 'string' },
+              name: { type: 'string', nullable: true, description: 'Worker name (history-view normaliser sets null when absent)' },
+              task: { type: 'string', nullable: true, description: 'Null on resume / non-task lifecycle events' },
               branch: { type: 'string', nullable: true },
+              startedAt: { type: 'string', nullable: true },
+              completedAt: { type: 'string', nullable: true },
+              commits: { type: 'array', items: { type: 'object' } },
+              status: { type: 'string', nullable: true },
             },
           },
         },

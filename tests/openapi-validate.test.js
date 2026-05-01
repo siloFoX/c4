@@ -2,7 +2,7 @@
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { validate, validateRequestBody } = require('../src/openapi-validate');
+const { validate, validateRequestBody, validateResponse } = require('../src/openapi-validate');
 const { ROUTE_SCHEMAS } = require('../src/openapi-gen');
 
 describe('openapi-validate.validate (primitives)', () => {
@@ -157,5 +157,48 @@ describe('openapi-validate.validateRequestBody (against ROUTE_SCHEMAS)', () => {
     }, ROUTE_SCHEMAS);
     assert.equal(r.valid, false);
     assert.match(r.errors[0], /role: not in enum/);
+  });
+});
+
+describe('openapi-validate.validateResponse (against ROUTE_SCHEMAS)', () => {
+  // (v1.10.31) Phase 4 of the drift detection family —
+  // scripts/check-runtime-drift.js hits the live daemon and feeds
+  // each response through validateResponse. The unit tests below
+  // lock in the validator behavior so the runtime checker keeps
+  // working even after future spec edits.
+
+  it('accepts a valid GET /health response', () => {
+    const r = validateResponse('GET', '/health',
+      { ok: true, workers: 0, version: '1.10.30' }, ROUTE_SCHEMAS);
+    assert.equal(r.valid, true, r.errors.join(', '));
+  });
+
+  it('rejects /health response with wrong type on workers', () => {
+    const r = validateResponse('GET', '/health',
+      { ok: true, workers: 'zero', version: '1.10.30' }, ROUTE_SCHEMAS);
+    assert.equal(r.valid, false);
+    assert.match(r.errors[0], /workers: expected integer/);
+  });
+
+  it('passes through routes without a response schema', () => {
+    const r = validateResponse('POST', '/no-schema-here', {}, ROUTE_SCHEMAS);
+    assert.equal(r.valid, true);
+  });
+
+  it('skips string-typed responses (HTML / SSE / YAML)', () => {
+    // /api-docs is a text/html string response — runtime body would
+    // be HTML, not JSON. Validator must short-circuit, not try to
+    // walk the schema as object.
+    const r = validateResponse('GET', '/api-docs', '<html>...</html>', ROUTE_SCHEMAS);
+    assert.equal(r.valid, true);
+  });
+
+  it('skipDelegated suppresses validation when handler delegates', () => {
+    // Caller can set skipDelegated when they know the handler
+    // wholesale-passes through (result = mgr.X(body)) — the spec
+    // describes the callee's shape, runtime may include extras.
+    const r = validateResponse('GET', '/health',
+      { ok: 'not-a-bool' }, ROUTE_SCHEMAS, { skipDelegated: true });
+    assert.equal(r.valid, true);
   });
 });

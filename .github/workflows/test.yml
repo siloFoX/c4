@@ -42,6 +42,21 @@ jobs:
       - name: openapi schema-drift check
         run: npm run lint:schema-drift
 
+      - name: openapi runtime-drift check (boot daemon, hit every GET, validate response)
+        run: |
+          npm start &
+          DAEMON_PID=$!
+          # Wait for /health to come up (<= 30s)
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:3456/api/health > /dev/null; then break; fi
+            sleep 1
+          done
+          set +e
+          npm run lint:runtime-drift
+          STATUS=$?
+          kill $DAEMON_PID 2>/dev/null
+          exit $STATUS
+
       - name: web build
         run: npm --prefix web run build
 

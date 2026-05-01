@@ -122,4 +122,33 @@ function validateRequestBody(method, route, body, ROUTE_SCHEMAS) {
   return validate(schema, body, 'body');
 }
 
-module.exports = { validate, validateRequestBody };
+// Look up the response schema for a (method, path) and validate the
+// parsed response body against it. Mirrors validateRequestBody but
+// pulls from `schemas.response`. Used by the runtime drift checker
+// (scripts/check-runtime-drift.js) to catch handler responses that
+// don't match the spec — Phase 4 of the drift detection family.
+//
+// `strict` defaults to false: absent fields are tolerated (most spec
+// fields are conditional / optional). When strict=true, missing
+// fields the spec marks as required get flagged. The strict flag is
+// orthogonal to the schema's own `required` list because runtime
+// validation needs a knob the spec author can't override.
+function validateResponse(method, route, body, ROUTE_SCHEMAS, opts) {
+  if (!ROUTE_SCHEMAS) return { valid: true, errors: [] };
+  const key = `${method} ${route}`;
+  const schemas = ROUTE_SCHEMAS[key];
+  if (!schemas || !schemas.response) return { valid: true, errors: [] };
+  // The response schema is stored directly under `response`. Like
+  // requestBody, no mediaType envelope. String-typed responses
+  // (text/event-stream, text/html, etc) bypass JSON validation —
+  // they aren't JSON.
+  if (schemas.response.type === 'string') return { valid: true, errors: [] };
+  // Skip validation when handler delegates wholesale (the schema
+  // describes the callee's shape, not a literal — opts.skipDelegated
+  // is set by the runtime checker on routes flagged as such).
+  if (opts && opts.skipDelegated) return { valid: true, errors: [] };
+  const schema = { type: 'object', ...schemas.response };
+  return validate(schema, body, 'response');
+}
+
+module.exports = { validate, validateRequestBody, validateResponse };
