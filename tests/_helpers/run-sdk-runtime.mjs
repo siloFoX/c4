@@ -173,6 +173,59 @@ function jsonResponse(status, body) {
   check('SSE sends Accept: text/event-stream', fetch.calls[0].init.headers.Accept === 'text/event-stream');
 }
 
+// --- 11. onAuthExpired → token refresh + replay
+{
+  const fetch = makeMockFetch([
+    jsonResponse(401, { error: 'token expired' }),
+    jsonResponse(200, { ok: true, version: 'r', workers: 0 }),
+  ]);
+  let refreshCalls = 0;
+  const c4 = new C4Client({
+    baseUrl: 'http://test',
+    fetch,
+    token: 'old-token',
+    onAuthExpired: async () => { refreshCalls++; return 'new-token'; },
+  });
+  const h = await c4.getHealth();
+  check('401 → refresh callback fires', refreshCalls === 1);
+  check('401 → replay succeeds with new token', h.version === 'r');
+  check('401 → replay uses Authorization Bearer new-token', fetch.calls[1].init.headers.Authorization === 'Bearer new-token');
+  check('401 → 2 calls total (original + replay)', fetch.calls.length === 2);
+}
+
+// --- 12. onAuthExpired returns null → throw without replay
+{
+  const fetch = makeMockFetch([
+    jsonResponse(401, { error: 'token expired' }),
+  ]);
+  const c4 = new C4Client({
+    baseUrl: 'http://test',
+    fetch,
+    onAuthExpired: async () => null,
+  });
+  let err;
+  try { await c4.getHealth(); } catch (e) { err = e; }
+  check('401 + null refresh → throws C4ApiError', err instanceof C4ApiError && err.status === 401);
+  check('401 + null refresh → no replay', fetch.calls.length === 1);
+}
+
+// --- 13. Persistent 401 → no infinite loop (_refreshed guard)
+{
+  const fetch = makeMockFetch([
+    jsonResponse(401, { error: 'expired' }),
+    jsonResponse(401, { error: 'still expired' }),
+  ]);
+  const c4 = new C4Client({
+    baseUrl: 'http://test',
+    fetch,
+    onAuthExpired: async () => 'maybe-new',
+  });
+  let err;
+  try { await c4.getHealth(); } catch (e) { err = e; }
+  check('persistent 401 → throws after one replay', err instanceof C4ApiError);
+  check('persistent 401 → exactly 2 calls (no infinite loop)', fetch.calls.length === 2);
+}
+
 // --- summary
 console.log(`\n${passed} pass, ${failed} fail`);
 if (failed > 0) process.exit(1);

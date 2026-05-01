@@ -89,10 +89,19 @@ describe('openapi-sdk-gen.generateSdk', () => {
     const spec = buildSpec();
     const ts = generateSdk(spec);
     // Helper now lives once on the class; check its bones.
-    assert.match(ts, /async request<T>\(spec: RequestSpec\): Promise<T>/);
+    assert.match(ts, /async request<T>\(spec: RequestSpec/);
     assert.match(ts, /new URL\(spec\.path, this\.baseUrl\)/);
     assert.match(ts, /JSON\.stringify\(spec\.body\)/);
     assert.match(ts, /Authorization = `Bearer \$\{this\.token\}`/);
+  });
+
+  it('emits 401 → onAuthExpired refresh + replay loop guard', () => {
+    const spec = buildSpec();
+    const ts = generateSdk(spec);
+    assert.match(ts, /onAuthExpired\?: \(\) => Promise<string \| null>/);
+    assert.match(ts, /res\.status === 401 && !_refreshed/);
+    assert.match(ts, /this\.onAuthExpired\(\)/);
+    assert.match(ts, /return this\.request<T>\(spec, true\)/);
   });
 
   it('emits C4ApiError class with status / body / operationId fields', () => {

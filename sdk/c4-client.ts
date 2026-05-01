@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.5
-// Generated at: 2026-05-01T12:16:18.176Z
+// Spec version: 1.10.6
+// Generated at: 2026-05-01T13:07:19.531Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -652,6 +652,13 @@ export interface C4ClientOptions {
   retries?: number;
   /** Base backoff in ms — exponential 2^n * backoffMs between attempts. */
   backoffMs?: number;
+  /**
+   * Called when the daemon returns 401 — the callback should
+   * acquire a fresh token (e.g., re-login) and resolve to it
+   * (or null to give up). The original request is replayed once
+   * with the new token; further 401s throw without re-calling.
+   */
+  onAuthExpired?: () => Promise<string | null>;
 }
 
 interface RequestSpec {
@@ -668,12 +675,14 @@ export class C4Client {
   private fetch: typeof fetch;
   private retries: number;
   private backoffMs: number;
+  private onAuthExpired?: () => Promise<string | null>;
   constructor(opts: C4ClientOptions = {}) {
     this.baseUrl = opts.baseUrl || "http://localhost:3456";
     this.token = opts.token;
     this.fetch = opts.fetch || fetch;
     this.retries = opts.retries ?? 0;
     this.backoffMs = opts.backoffMs ?? 200;
+    this.onAuthExpired = opts.onAuthExpired;
   }
   setToken(token: string | undefined): void {
     this.token = token;
@@ -689,7 +698,7 @@ export class C4Client {
    * survive the retry budget. Returns parsed JSON when the response
    * Content-Type is JSON, raw text otherwise.
    */
-  async request<T>(spec: RequestSpec): Promise<T> {
+  async request<T>(spec: RequestSpec, _refreshed = false): Promise<T> {
     const url = new URL(spec.path, this.baseUrl);
     if (spec.params) {
       for (const [k, v] of Object.entries(spec.params)) {
@@ -708,7 +717,16 @@ export class C4Client {
         if (!res.ok) {
           const ct = res.headers.get("content-type") || "";
           const body = ct.includes("json") ? await res.json() : await res.text();
-          // 5xx is retryable; 4xx is not.
+          // 401 → call onAuthExpired and replay once with the new token.
+          // _refreshed flag prevents an infinite refresh loop on persistent 401s.
+          if (res.status === 401 && !_refreshed && this.onAuthExpired) {
+            const newToken = await this.onAuthExpired();
+            if (newToken) {
+              this.token = newToken;
+              return this.request<T>(spec, true);
+            }
+          }
+          // 5xx is retryable; other 4xx is not.
           if (res.status >= 500 && attempt < this.retries) {
             await this._sleep(this.backoffMs * Math.pow(2, attempt));
             continue;

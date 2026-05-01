@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.7] - 2026-05-01
+
+SDK auto token refresh on 401.
+
+### Added
+- **(SDK) `onAuthExpired` callback.** `C4ClientOptions` grows
+  `onAuthExpired?: () => Promise<string | null>`. When the daemon
+  returns `401`, `request()` invokes the callback (caller-supplied,
+  e.g., re-login flow), captures the returned token via
+  `this.token = newToken`, and replays the original request once.
+  A `_refreshed` flag passed through the recursive call prevents
+  infinite refresh loops on persistent 401s. If the callback
+  resolves to `null`, the original `C4ApiError` propagates.
+  Runtime checks: 33 (was 25) — three new scenarios cover the
+  refresh/replay path, the null-callback fallthrough, and the
+  loop-guard against persistent 401.
+- **(SDK gen test) Emit-time assertion for the 401 branch.**
+  `tests/openapi-sdk-gen.test.js` grows 14 → 15 assertions —
+  spec-level guard that the generated TS contains the
+  `_refreshed` guard + `this.onAuthExpired()` invocation.
+
 ## [1.10.6] - 2026-05-01
 
 SDK SSE streaming support — typed `AsyncGenerator<C4SSEEvent>` for
