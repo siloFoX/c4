@@ -4,6 +4,22 @@
 
 (no entries — next release window)
 
+## [1.10.48] - 2026-05-02
+
+Regression guard for the v1.10.47 missing-route fix.
+
+### Added
+- **(tests/openapi-gen.test.js) Daemon ↔ spec route diff
+  test.** Scrapes every `req.method === 'X' && route === '/y'`
+  literal from daemon.js, builds the spec via buildSpec(),
+  and asserts the two sets are equal. Catches future cases
+  like /validation where a new route ships but the spec
+  extractor doesn't index it. Bidirectional — flags
+  daemon-only AND spec-only routes.
+
+Suite 153/153 + 1 new diff test = 39 in openapi-gen
+(was 38).
+
 ## [1.10.47] - 2026-05-02
 
 Picked up a route the spec was missing. Caught by an

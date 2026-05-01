@@ -353,6 +353,45 @@ describe('openapi-gen content-type detection', () => {
   });
 });
 
+describe('openapi-gen extractor matches every literal daemon route', () => {
+  // (v1.10.47) Regression guard. The extractor regex used to
+  // miss the parenthesised OR pattern
+  // `(route === '/validation' || workerValidationName)` so
+  // /validation went unindexed for several versions. This test
+  // diffs the literal `req.method === 'X' && route === '/y'`
+  // patterns scraped from daemon.js against the spec's path map.
+  // Any divergence (route in daemon, missing from spec — or
+  // vice versa) fails the test.
+  it('every literal `req.method && route ===` clause is in the spec', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const daemonSrc = fs.readFileSync(
+      path.resolve(__dirname, '..', 'src', 'daemon.js'),
+      'utf8',
+    );
+    const re = /req\.method\s*===\s*'(GET|POST|PUT|DELETE|PATCH)'\s*&&\s*\(?\s*route\s*===\s*'([^']+)'/g;
+    const handlers = new Set();
+    let m;
+    while ((m = re.exec(daemonSrc)) !== null) {
+      handlers.add(`${m[1]} ${m[2]}`);
+    }
+    const spec = buildSpec();
+    const specRoutes = new Set();
+    for (const [p, ops] of Object.entries(spec.paths)) {
+      for (const method of Object.keys(ops)) {
+        if (typeof ops[method] !== 'object') continue;
+        // Spec paths are /api/X, daemon routes are /X.
+        const bare = p.replace(/^\/api/, '');
+        specRoutes.add(`${method.toUpperCase()} ${bare}`);
+      }
+    }
+    const inHandlerOnly = [...handlers].filter((r) => !specRoutes.has(r));
+    const inSpecOnly = [...specRoutes].filter((r) => !handlers.has(r));
+    assert.equal(inHandlerOnly.length, 0, `daemon has handlers the spec doesn't list: ${inHandlerOnly.join(', ')}`);
+    assert.equal(inSpecOnly.length, 0, `spec lists routes the daemon doesn't handle: ${inSpecOnly.join(', ')}`);
+  });
+});
+
 describe('openapi-gen ROUTE_SCHEMAS structural integrity', () => {
   // Regression guards for v1.10.22 — caught a case where the
   // ROUTE_SCHEMAS object had four keys defined twice (POST
