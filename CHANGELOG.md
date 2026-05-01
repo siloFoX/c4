@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.5] - 2026-05-01
+
+SDK runtime test suite — exercises the generated TS SDK end-to-end.
+
+### Added
+- **(test) `tests/c4-client-runtime.test.js`** + **`tests/_helpers/
+  run-sdk-runtime.mjs`** — runtime exercise of the auto-generated
+  `sdk/c4-client.ts` against a mock fetch. Spawns a child node with
+  `--experimental-strip-types` (Node 22.6+) pointed at the helper;
+  parent parses `OK <label>` / `FAIL <label>` lines from stdout. 19
+  runtime checks across 8 scenarios:
+  - happy path: `getHealth` returns parsed body, GET method,
+    `/api/health` URL
+  - POST with body: `postAuthLogin` returns token, JSON-encoded body,
+    `Content-Type: application/json`
+  - `setToken()` adds `Authorization: Bearer <jwt>` header
+  - GET query params: `getScrollback({name, lines})` populates the
+    URL search string
+  - 4xx → throws `C4ApiError` with `status` + parsed `body`
+  - 4xx → does NOT consume retry budget
+  - 5xx → retries to budget, throws `C4ApiError` with status
+    preserved
+  - 5xx → 200 retry succeeds + only 2 calls made
+  Suite gracefully skips on Node < 22.6 (strip-types is a
+  Node 22.6+ feature) so the CI Node 20 leg doesn't fail.
+  Suite 147 → 148 pass.
+
 ## [1.10.4] - 2026-05-01
 
 SDK polish: typed error class + retry budget + worked example.
