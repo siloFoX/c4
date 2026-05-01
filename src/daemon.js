@@ -919,22 +919,21 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'GET' && route === '/api-docs') {
       // Swagger UI rendering of the openapi.json spec. Static HTML
-      // that loads swagger-ui from jsdelivr CDN and points at the
-      // sibling /api/openapi.json. No new runtime dep — operators
-      // running offline can just curl /openapi.json directly. The
-      // page is whitelisted in OPEN_API_ROUTES so introspection
-      // works without authentication.
+      // that loads swagger-ui-dist from node_modules/ via the
+      // /api-docs/<asset> static handler below — works offline /
+      // air-gapped (no CDN dependency). Whitelisted in
+      // OPEN_API_ROUTES so introspection works without auth.
       const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>C4 daemon API · Swagger UI</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+  <link rel="stylesheet" href="/api-docs/swagger-ui.css">
   <style>body{margin:0;background:#fafafa}</style>
 </head>
 <body>
   <div id="swagger-ui"></div>
-  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script src="/api-docs/swagger-ui-bundle.js"></script>
   <script>
     window.ui = SwaggerUIBundle({
       url: '/api/openapi.json',
@@ -950,6 +949,42 @@ async function handleRequest(req, res) {
       res.writeHead(200);
       res.end(html);
       return;
+
+    } else if (req.method === 'GET' && route.startsWith('/api-docs/')) {
+      // Static file handler for swagger-ui-dist assets. Hardcoded
+      // allowlist of three filenames (CSS + JS bundle + standalone
+      // preset) keeps path traversal closed off — anything else
+      // falls through to a 404. Path comes from the npm package's
+      // getAbsoluteFSPath() so vendoring stays in sync with the
+      // dependency version.
+      const allowed = new Set([
+        'swagger-ui.css',
+        'swagger-ui-bundle.js',
+        'swagger-ui-standalone-preset.js',
+      ]);
+      const filename = route.slice('/api-docs/'.length);
+      if (!allowed.has(filename)) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Not found' }));
+        return;
+      }
+      try {
+        const swagger = require('swagger-ui-dist');
+        const fsLocal = require('fs');
+        const pathLocal = require('path');
+        const filePath = pathLocal.join(swagger.getAbsoluteFSPath(), filename);
+        const content = fsLocal.readFileSync(filePath);
+        const ct = filename.endsWith('.css') ? 'text/css' : 'application/javascript';
+        res.setHeader('Content-Type', ct + '; charset=utf-8');
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        res.writeHead(200);
+        res.end(content);
+        return;
+      } catch (e) {
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: e.message }));
+        return;
+      }
 
     } else if (req.method === 'POST' && route === '/create') {
       const { name, command, args, target, cwd, parent, tier, pinnedMemory, pinRole } = await parseBody(req);

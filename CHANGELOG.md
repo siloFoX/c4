@@ -4,15 +4,23 @@
 
 ### Added
 - **(GET /api-docs) Swagger UI rendering of the openapi.json spec.**
-  Static HTML that loads `swagger-ui-dist@5` from jsdelivr CDN and
-  points at the sibling `/api/openapi.json` endpoint. No new runtime
-  deps — operators running offline still get the raw spec via
-  `curl /openapi.json` and can render it locally with their own
-  swagger / redoc install. Whitelisted in `OPEN_API_ROUTES` so
-  introspection works without authentication. Live verified: 99
-  operations render as collapsible blocks; deep-linking + request
-  duration display enabled. Browser smoke
-  (`verify-api-docs.js`) 5/5 pass.
+  Static HTML that loads `swagger-ui-dist@5` (now vendored as a
+  runtime dep — no CDN dependency, works air-gapped) and points at
+  the sibling `/api/openapi.json` endpoint. Static asset handler
+  serves `swagger-ui.css`, `swagger-ui-bundle.js`,
+  `swagger-ui-standalone-preset.js` from the npm package's
+  `getAbsoluteFSPath()`; hardcoded allowlist closes off path
+  traversal. Whitelisted in `OPEN_API_ROUTES` (incl. wildcard
+  `/api-docs/*` for the static assets) so introspection works
+  without authentication. Live verified: 99 operations render as
+  collapsible blocks; deep-linking + request duration display
+  enabled. Browser smoke (`verify-api-docs.js`) 5/5 pass.
+- **(openapi-gen) 100% summary coverage.** Curated 26 additional
+  `ROUTE_SUMMARIES` entries (wait-read, tree, approve, rollback,
+  cleanup, config, scribe.*, autonomous.*, plan.*, mcp, templates,
+  profiles, swarm, auto, morning, status-update, etc) plus the
+  inline-comment harvest. Every one of 107 daemon operations now
+  carries a meaningful summary (was 80/106).
 - **(openapi-gen) Inline-comment summary harvest.** `extractRoutes`
   now captures the first contiguous run of `//` comments inside each
   route's body and exposes it as `inlineSummary`. `buildSpec` falls

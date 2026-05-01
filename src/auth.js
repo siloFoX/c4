@@ -145,6 +145,10 @@ function checkRequest(cfg, req, route) {
   if (!isAuthEnabled(cfg)) return { allow: true };
   if (!route || typeof route !== 'string') return { allow: true };
   if (OPEN_API_ROUTES.has(route)) return { allow: true };
+  // Static swagger-ui assets land at /api-docs/<file> — let them
+  // through alongside /api-docs itself so the browser can fetch the
+  // stylesheet + bundle without authenticating first.
+  if (route.startsWith('/api-docs/')) return { allow: true };
 
   const token = extractBearerToken(req);
   if (!token) {
