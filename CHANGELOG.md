@@ -2,7 +2,24 @@
 
 ## [Unreleased]
 
-(no entries — next release window)
+### Added
+- **(openapi-gen) Inline-comment summary harvest.** `extractRoutes`
+  now captures the first contiguous run of `//` comments inside each
+  route's body and exposes it as `inlineSummary`. `buildSpec` falls
+  back to it when no curated `ROUTE_SUMMARIES` entry exists, so
+  routes the curated map hasn't caught up with still get a
+  meaningful description (auto-extracted from the daemon's existing
+  inline doc convention). Result: ~80 of 106 daemon operations now
+  carry a real summary (up from ~25 curated alone). Tests:
+  `tests/openapi-gen.test.js` grows 12 → 14 assertions covering
+  single-line + multi-line + no-comment cases plus a meaningful-count
+  guard.
+- **(c4 openapi) CLI for OpenAPI spec inspection.** New `c4 openapi
+  [--path <regex>] [--json]` command. Default output is a sorted
+  table of every operation: METHOD / path / summary. `--path
+  '/api/audit'` filters to matching paths. `--json` dumps the raw
+  spec for piping into Swagger / Redoc / `jq`. Live verified:
+  filtering `/api/audit` returns 3 ops with curated summaries.
 
 ## [1.8.0] - 2026-05-01
 

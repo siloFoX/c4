@@ -69,6 +69,7 @@ c4 doctor                            환경 종합 헬스 체크 (daemon + confi
 c4 metrics [--json]                  per-worker + daemon CPU/RSS 스냅샷
 c4 workspaces [--json]               멀티 repo workspace 목록 (config.workspaces)
 c4 sse [--type <name>]               daemon SSE 스트림 실시간 tail (filter by type)
+c4 openapi [--path <re>] [--json]    OpenAPI 3.0 spec 조회 (전체 라우트 + curated summary)
 c4 merge <name|branch>               워커 브랜치 main에 머지
 c4 auto "작업"                       자율 모드 (관리자 + scribe 자동 생성)
 c4 status <name> "message"           Slack에 상태 메시지 전송

@@ -864,6 +864,35 @@ async function main() {
         break;
       }
 
+      // OpenAPI spec inspection. `c4 openapi` lists every documented
+      // path; `c4 openapi --json` dumps the raw spec; `c4 openapi
+      // --path <regex>` filters to matching paths.
+      case 'openapi': {
+        const wantJson = args.includes('--json');
+        const pathFilter = args.includes('--path') ? args[args.indexOf('--path') + 1] : null;
+        result = await request('GET', '/openapi.json');
+        if (wantJson) break;
+        if (!result || result.error) break;
+        const re = pathFilter ? new RegExp(pathFilter) : null;
+        const entries = [];
+        for (const [p, ops] of Object.entries(result.paths)) {
+          if (re && !re.test(p)) continue;
+          for (const [method, op] of Object.entries(ops)) {
+            entries.push({ method: method.toUpperCase(), path: p, summary: op.summary });
+          }
+        }
+        entries.sort((a, b) => a.path.localeCompare(b.path) || a.method.localeCompare(b.method));
+        console.log(`Daemon API ${result.info.title} v${result.info.version} — ${entries.length} operation(s)${re ? ` matching /${re.source}/` : ''}`);
+        for (const e of entries) {
+          const method = e.method.padEnd(6);
+          const path = e.path.padEnd(40);
+          const summary = e.summary.length > 80 ? e.summary.slice(0, 77) + '...' : e.summary;
+          console.log(`  ${method} ${path} ${summary}`);
+        }
+        result = null;
+        break;
+      }
+
       case 'config': {
         if (args[0] === 'reload') {
           result = await request('POST', '/config/reload');

@@ -35,6 +35,30 @@ describe('openapi-gen.extractRoutes', () => {
     const r = extractRoutes(fixture);
     assert.ok(!r.some((x) => x.path === '/skip'));
   });
+
+  it('harvests inline comment as summary when present', () => {
+    const f = `
+      } else if (req.method === 'GET' && route === '/with-comment') {
+        // Single-line description of what this route does.
+        result = something;
+      }
+      } else if (req.method === 'POST' && route === '/multiline') {
+        // First comment line.
+        // Second comment line.
+        const x = 1;
+      }
+      } else if (req.method === 'GET' && route === '/no-comment') {
+        result = bare;
+      }
+    `;
+    const r = extractRoutes(f);
+    const wc = r.find((x) => x.path === '/with-comment');
+    assert.equal(wc.inlineSummary, 'Single-line description of what this route does.');
+    const ml = r.find((x) => x.path === '/multiline');
+    assert.equal(ml.inlineSummary, 'First comment line. Second comment line.');
+    const nc = r.find((x) => x.path === '/no-comment');
+    assert.equal(nc.inlineSummary, '');
+  });
 });
 
 describe('openapi-gen.buildSpec', () => {
@@ -77,6 +101,24 @@ describe('openapi-gen.buildSpec', () => {
     // /api/health is in ROUTE_SUMMARIES — should match the curated string.
     const healthSummary = s.paths['/api/health']?.get?.summary || '';
     assert.match(healthSummary, /liveness probe/);
+  });
+
+  it('inline comment harvest fills routes the curated map has not caught up with', () => {
+    const s = buildSpec();
+    // Count operations whose summary is a meaningful sentence (not the
+    // `<METHOD> /path` fallback). Should be substantially > the curated
+    // ROUTE_SUMMARIES count once harvest is wired in.
+    let meaningful = 0;
+    for (const ops of Object.values(s.paths)) {
+      for (const op of Object.values(ops)) {
+        const fb = `${Object.keys({}).length}`; // unused
+        const isFallback = /^(GET|POST|PUT|DELETE|PATCH) \//.test(op.summary);
+        if (!isFallback) meaningful++;
+      }
+    }
+    // Curated map has ~25 entries; harvest should push the meaningful
+    // count well above that.
+    assert.ok(meaningful > 50, `expected 50+ meaningful summaries, got ${meaningful}`);
   });
 
   it('exposes the openapi route itself in the spec', () => {
