@@ -3149,6 +3149,7 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && route === '/mcp') {
       const body = await parseBody(req);
+      if (_validateOrFail('POST', '/mcp', body, res, cfg)) return;
       result = await mcpHandler.handle(body);
       res.writeHead(200);
       res.end(JSON.stringify(result));
@@ -3169,7 +3170,9 @@ async function handleRequest(req, res) {
       }
 
     } else if (req.method === 'POST' && route === '/auto') {
-      const { task, name } = await parseBody(req);
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/auto', _body, res, cfg)) return;
+      const { task, name } = _body;
       result = manager.autoStart(task, { name });
 
     } else if (req.method === 'POST' && route === '/morning') {

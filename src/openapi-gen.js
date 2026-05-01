@@ -728,7 +728,17 @@ const ROUTE_SCHEMAS = {
   // canonical {success: boolean} envelope used by daemon mutators
   // that don't carry richer state. Listed individually so future
   // edits to a specific route don't fall through to a shared shape.
-  'POST /auto': { response: { properties: { success: { type: 'boolean' }, name: { type: 'string' } } } },
+  'POST /auto': {
+    requestBody: {
+      required: ['task'],
+      properties: {
+        task: { type: 'string', description: 'Initial task prompt for the autonomous manager' },
+        name: { type: 'string', description: 'Manager name (auto-generated when omitted)' },
+      },
+      example: { task: 'Triage open issues and propose fixes' },
+    },
+    response: { properties: { success: { type: 'boolean' }, name: { type: 'string' } } },
+  },
   'POST /morning': { response: { properties: { success: { type: 'boolean' }, path: { type: 'string', description: 'Path to the generated report' } } } },
   'POST /status-update': {
     requestBody: {

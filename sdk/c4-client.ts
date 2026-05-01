@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.15
-// Generated at: 2026-05-01T15:05:24.758Z
+// Spec version: 1.10.17
+// Generated at: 2026-05-01T15:31:15.915Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -656,6 +656,10 @@ export interface getSwarmResponse {
   swarm?: unknown[];
 }
 
+export interface postAutoBody {
+  task: string; /** Initial task prompt for the autonomous manager */
+  name?: string; /** Manager name (auto-generated when omitted) */
+}
 export interface postAutoResponse {
   success?: boolean;
   name?: string;
@@ -1804,10 +1808,11 @@ export class C4Client {
   }
 
   /** Spawn the autonomous manager + scribe pair. */
-  async postAuto(): Promise<postAutoResponse> {
+  async postAuto(body: postAutoBody): Promise<postAutoResponse> {
     return this.request<postAutoResponse>({
       method: 'POST',
       path: '/api/auto',
+      body: body as unknown,
     });
   }
 

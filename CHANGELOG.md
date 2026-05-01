@@ -4,6 +4,19 @@
 
 (no entries — next release window)
 
+## [1.10.18] - 2026-05-02
+
+Validation wired to /mcp, /auto + /auto requestBody schema added.
+
+### Added
+- **(daemon)** validation wired into /mcp + /auto. Mutator coverage
+  33 → 35 of 43 schema-bearing routes.
+- **(spec) `/auto` requestBody schema** — was response-only.
+  Handler reads `body.task` + `body.name`; schema documents both
+  with `task` required.
+
+Suite 151/151. SDK 1971 → 1976 lines.
+
 ## [1.10.17] - 2026-05-02
 
 Validation wired to 7 more routes — autonomous.pause, mcp.servers,
