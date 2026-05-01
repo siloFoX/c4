@@ -48,7 +48,6 @@ const STRICT = args.includes('--strict');
 // Routes that should NOT be hit at runtime:
 //   - Mutators (POST/PUT/PATCH/DELETE) — would corrupt state.
 //   - SSE streams — they don't return a JSON body.
-//   - Routes that need a specific resource id we can't fabricate.
 //   - Routes that take seconds (wait-read with 120s default timeout).
 const SKIP_ROUTES = new Set([
   'GET /watch',                      // SSE
@@ -60,37 +59,75 @@ const SKIP_ROUTES = new Set([
   'GET /api-docs/redoc',             // HTML
   'GET /api-docs/index',             // HTML
   'GET /audit/export',               // CSV body
-  'GET /wait-read',                  // blocks for a worker
-  'GET /wait-read-multi',            // blocks for a worker
-  'GET /watch',                      // SSE
-  'GET /read',                       // requires worker name + a live worker
-  'GET /read-now',                   // requires live worker
-  'GET /scrollback',                 // requires live worker
-  'GET /session-id',                 // requires worker
-  'GET /plan',                       // requires worker + plan
-  'GET /plan-revisions',             // requires worker
-  'GET /scribe-context',             // queries scribe with no worker arg
-  'GET /swarm',                      // requires worker
-  'GET /events/context',             // requires `target` param
+  'GET /wait-read',                  // blocks for a worker (120s timeout)
+  'GET /wait-read-multi',            // blocks for a worker (120s timeout)
 ]);
+
+// Routes that need a query parameter to return the happy-path 200.
+// We supply sensible defaults so the runtime checker can validate
+// these too. Without this, the daemon returns 400 ({error: 'Missing
+// name parameter'}) which is a valid error envelope but not the
+// shape we want to verify.
+const PARAMETERIZED_ROUTES = {
+  'GET /read':            (ctx) => ctx.workerName ? `?name=${ctx.workerName}` : null,
+  'GET /read-now':        (ctx) => ctx.workerName ? `?name=${ctx.workerName}` : null,
+  'GET /scrollback':      (ctx) => ctx.workerName ? `?name=${ctx.workerName}&lines=10` : null,
+  'GET /session-id':      (ctx) => ctx.workerName ? `?name=${ctx.workerName}` : null,
+  'GET /swarm':           (ctx) => ctx.workerName ? `?name=${ctx.workerName}` : null,
+  'GET /plan-revisions':  (ctx) => ctx.workerName ? `?name=${ctx.workerName}` : null,
+  'GET /scribe-context':  () => '?maxBytes=1024',
+  'GET /events/context':  () => '?target=' + encodeURIComponent(new Date().toISOString()) + '&minutesBefore=1&minutesAfter=1',
+  'GET /plan':            (ctx) => ctx.workerName ? `?name=${ctx.workerName}` : null,
+};
 
 function _ok(label) { console.log(`✔ ${label}`); }
 function _fail(label, detail) { console.log(`✗ ${label}${detail ? ` :: ${detail}` : ''}`); }
 
-async function _hit(method, routePath) {
+async function _hit(method, routePath, body) {
   const url = `${base}/api${routePath}`;
   const headers = { 'Accept': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { method, headers });
+  const init = { method, headers };
+  if (body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+    init.body = JSON.stringify(body);
+  }
+  const res = await fetch(url, init);
   // SSE / HTML / non-JSON: accept and skip
   const ct = res.headers.get('content-type') || '';
   if (!ct.includes('application/json')) return { skip: true, status: res.status, contentType: ct };
-  const body = await res.json().catch(() => null);
-  return { status: res.status, body, contentType: ct };
+  const respBody = await res.json().catch(() => null);
+  return { status: res.status, body: respBody, contentType: ct };
+}
+
+// Spawn a short-lived worker we can use to exercise routes that
+// need `?name=<worker>`. Cleaned up at the end. When --no-fixture
+// is passed (or the daemon refuses to spawn), the parameterised
+// routes get skipped instead of flagged.
+async function _setupFixture() {
+  const NAME = `runtime-drift-${Date.now()}`;
+  try {
+    const r = await _hit('POST', '/create', { name: NAME, target: 'local' });
+    if (r.status === 200 && r.body && (r.body.success || r.body.name)) {
+      return { workerName: NAME };
+    }
+    return { workerName: null, reason: `create returned ${r.status}` };
+  } catch (e) {
+    return { workerName: null, reason: e.message };
+  }
+}
+async function _teardownFixture(ctx) {
+  if (!ctx || !ctx.workerName) return;
+  try { await _hit('POST', '/close', { name: ctx.workerName }); } catch {}
 }
 
 async function main() {
   let pass = 0, fail = 0, skipped = 0;
+  const NO_FIXTURE = args.includes('--no-fixture');
+  const ctx = NO_FIXTURE ? { workerName: null } : await _setupFixture();
+  if (ctx.workerName) console.log(`(fixture worker: ${ctx.workerName})\n`);
+  else if (!NO_FIXTURE) console.log(`(no fixture worker — ${ctx.reason}; parameterised routes will be skipped)\n`);
+
   for (const key of Object.keys(ROUTE_SCHEMAS).sort()) {
     if (!key.startsWith('GET ')) continue;
     if (SKIP_ROUTES.has(key)) { skipped++; continue; }
@@ -99,9 +136,18 @@ async function main() {
     if (!schemas.response) { skipped++; continue; }
     if (schemas.response.type === 'string') { skipped++; continue; }
 
+    // Build the URL — append fixture query params for routes that
+    // need them.
+    let pathWithQuery = route;
+    if (PARAMETERIZED_ROUTES[key]) {
+      const qs = PARAMETERIZED_ROUTES[key](ctx);
+      if (!qs) { skipped++; continue; }
+      pathWithQuery = route + qs;
+    }
+
     let result;
     try {
-      result = await _hit('GET', route);
+      result = await _hit('GET', pathWithQuery);
     } catch (e) {
       _fail(key, `fetch failed: ${e.message}`);
       fail++;
@@ -146,6 +192,7 @@ async function main() {
     pass++;
   }
 
+  await _teardownFixture(ctx);
   console.log('');
   console.log(`Runtime drift: ${pass} pass, ${fail} fail, ${skipped} skipped (mutators / streams / auth / unfillable params)`);
   if (fail > 0) process.exit(1);

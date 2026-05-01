@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.32] - 2026-05-02
+
+Runtime drift checker now spawns a fixture worker so it can
+exercise the `?name=<worker>` routes that were skipped before.
+
+### Added
+- **(scripts/check-runtime-drift.js) Fixture worker setup +
+  teardown.** POSTs `/create` with a unique name at the start,
+  hits the worker-required routes (`/read`, `/read-now`,
+  `/scrollback`, `/session-id`, `/swarm`, `/plan-revisions`,
+  `/scribe-context`, `/events/context`), POSTs `/close` at the
+  end. `--no-fixture` flag skips fixture creation when running
+  against a daemon you don't want to mutate. Coverage:
+  35 → 43 routes runtime-validated (8 new routes).
+- **(scripts/check-runtime-drift.js) PARAMETERIZED_ROUTES map**
+  drives the per-route query string lookup so future
+  `?name=`-style routes can be added in one place.
+
+Suite 151/151. All four drift phases lint-clean.
+
 ## [1.10.31] - 2026-05-02
 
 Phase 4 of the drift detection family — runtime validation
