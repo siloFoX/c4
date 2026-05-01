@@ -89,6 +89,20 @@ function jsonResponse(status, body) {
   check('C4ApiError carries parsed body', err && err.body && err.body.error === 'unauthorized');
 }
 
+// --- 5b. C4ApiError.body.details lands on validation 400
+{
+  const fetch = makeMockFetch([jsonResponse(400, {
+    error: 'Validation failed',
+    details: ['body.user: required', 'body.password: required'],
+  })]);
+  const c4 = new C4Client({ baseUrl: 'http://test', fetch });
+  let err;
+  try { await c4.postAuthLogin({ user: '', password: '' }); } catch (e) { err = e; }
+  check('validation 400 throws C4ApiError', err instanceof C4ApiError);
+  check('details array reaches body.details', err && Array.isArray(err.body.details) && err.body.details.length === 2);
+  check('details entries are strings', err && err.body.details && typeof err.body.details[0] === 'string');
+}
+
 // --- 6. 4xx does NOT retry
 {
   const fetch = makeMockFetch([

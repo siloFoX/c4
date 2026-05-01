@@ -45,7 +45,7 @@ describe('sdk/c4-client.ts runtime (via --experimental-strip-types)', () => {
     const failures = stdout.split('\n').filter((l) => l.startsWith('FAIL'));
 
     assert.equal(fail, 0, `${fail} runtime checks failed:\n  ${failures.join('\n  ')}`);
-    assert.ok(pass >= 47, `expected 47+ passing checks, got ${pass}`);
+    assert.ok(pass >= 50, `expected 50+ passing checks, got ${pass}`);
     assert.equal(result.status, 0, `helper exited ${result.status}`);
   });
 });

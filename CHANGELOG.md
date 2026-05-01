@@ -4,6 +4,19 @@
 
 (no entries — next release window)
 
+## [1.10.45] - 2026-05-02
+
+SDK runtime test gains validation-error coverage.
+
+### Added
+- **(tests/_helpers/run-sdk-runtime.mjs) Test 5b: validation
+  400 → C4ApiError.body.details.** Mocks the 400 envelope the
+  daemon emits when validateRequests rejects a request,
+  asserts that the parsed details array reaches the SDK
+  caller via `e.body.details`. Runtime check count: 47 → 50.
+
+Suite 153/153.
+
 ## [1.10.44] - 2026-05-02
 
 C4ApiError.body is now typed (was `unknown`).
