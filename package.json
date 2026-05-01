@@ -11,6 +11,7 @@
     "daemon": "node src/daemon.js",
     "build:web": "npm --prefix web install && npm --prefix web run build",
     "test": "node tests/run-all.js",
+    "lint:openapi": "node scripts/validate-openapi.js",
     "prepublishOnly": "npm run build:web && node tests/run-all.js"
   },
   "keywords": [

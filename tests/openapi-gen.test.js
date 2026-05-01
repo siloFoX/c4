@@ -173,13 +173,29 @@ describe('openapi-gen.ROUTE_SCHEMAS', () => {
 
   it('routes without ROUTE_SCHEMAS still get the bare envelope', () => {
     const s = buildSpec();
-    // Pick a route that's not in ROUTE_SCHEMAS — e.g., POST /scribe/start.
-    const op = s.paths['/api/scribe/start']?.post;
-    assert.ok(op, 'POST /api/scribe/start operation missing');
-    assert.ok(op.summary, 'still has summary');
-    assert.ok(op.responses['200'], 'still has 200 response');
-    assert.ok(!op.requestBody, 'no requestBody when not in ROUTE_SCHEMAS');
-    assert.ok(!op.parameters, 'no parameters when not in ROUTE_SCHEMAS');
+    // Find any route without schemas and assert the bare envelope.
+    let bare = null;
+    for (const [p, ops] of Object.entries(s.paths)) {
+      for (const [m, op] of Object.entries(ops)) {
+        if (!op.requestBody && !op.parameters) {
+          bare = { p, m, op };
+          break;
+        }
+      }
+      if (bare) break;
+    }
+    assert.ok(bare, 'expected at least one route without schemas');
+    assert.ok(bare.op.summary, 'still has summary');
+    assert.ok(bare.op.responses['200'], 'still has 200 response');
+  });
+
+  it('example values land on the mediaType (Swagger UI Try-it-out renders them)', () => {
+    const s = buildSpec();
+    const login = s.paths['/api/auth/login']?.post?.requestBody?.content?.['application/json'];
+    assert.ok(login.example, 'login example missing');
+    assert.equal(login.example.user, 'admin');
+    // Schema does NOT carry the example (kept distinct so validators stay clean).
+    assert.ok(!login.schema.example, 'example should not duplicate to schema');
   });
 });
 

@@ -2,9 +2,32 @@
 
 ## [Unreleased]
 
-(no entries — next release window)
-
-## [1.9.0] - 2026-05-01
+### Added
+- **(openapi-gen) ROUTE_SCHEMAS coverage expansion + example
+  payloads.** Curated 22 → 33+ requestBody schemas, 6 → 14
+  parameter schemas, 8 → 20 response schemas. New routes covered:
+  RBAC (roles / users / role.assign / grant.* / revoke.* / check),
+  workflows (POST/GET filters), schedules, projects, recover /
+  recovery-history / cancel / restart / resize / resume / batch /
+  cleanup, scribe.start interval, autonomous.pause reason +
+  autonomous.status response, history / events.query /
+  events.context, quota / token-usage groupBy / watch, transfer
+  (rsync + git), nl.chat, mcp.servers, cicd.webhook + pipelines,
+  api-docs / attach.list / tree / audit.query. Top-10 operator
+  routes (auth.login / create / send / key / task / merge / attach)
+  ship inline `example` payloads — Swagger UI's "Try it out" surface
+  now pre-fills `{user: 'admin', password: 'admin123'}` /
+  `{name: 'worker-1', text: '...'}` / etc instead of empty fields.
+- **(scripts/validate-openapi.js) OpenAPI 3.0 spec linter.** Pure-node,
+  zero deps. Checks: required top-level fields (openapi / info /
+  paths), info.title + version non-empty, every path has at least
+  one HTTP method, every operation has summary + responses, response
+  code keys are 3 digits or 'default', requestBody.content keys are
+  mime types, parameters[].in matches the OpenAPI enum, no duplicate
+  operationIds (warn). Wired into `npm run lint:openapi` + GitHub
+  Actions CI step. Tests: `tests/openapi-lint.test.js` — 7
+  assertions (live spec clean + 5 synthetic-failure asserts +
+  duplicate operationId warning).
 
 OpenAPI surface: auto-generated `/openapi.json` + Swagger UI rendering at
 `/api-docs` (CDN-free local vendor) + `c4 openapi` CLI for spec inspection +

@@ -87,6 +87,7 @@ const ROUTE_SCHEMAS = {
         user: { type: 'string', description: 'Username' },
         password: { type: 'string', description: 'Plain-text password' },
       },
+      example: { user: 'admin', password: 'admin123' },
     },
     response: {
       properties: {
@@ -164,6 +165,7 @@ const ROUTE_SCHEMAS = {
         pinnedMemory: { type: 'array', items: { type: 'string' } },
         pinRole: { type: 'string', enum: ['manager', 'worker', 'attached'] },
       },
+      example: { name: 'worker-1', target: 'local', tier: 'worker' },
     },
   },
   'POST /send': {
@@ -173,6 +175,7 @@ const ROUTE_SCHEMAS = {
         name: { type: 'string' },
         text: { type: 'string' },
       },
+      example: { name: 'worker-1', text: 'List the files in src/' },
     },
   },
   'POST /key': {
@@ -182,6 +185,7 @@ const ROUTE_SCHEMAS = {
         name: { type: 'string' },
         key: { type: 'string', description: 'Enter | Escape | Tab | C-c | Up | Down | etc' },
       },
+      example: { name: 'worker-1', key: 'Enter' },
     },
   },
   'GET /read': {
@@ -212,6 +216,7 @@ const ROUTE_SCHEMAS = {
         maxRetries: { type: 'integer' },
         model: { type: 'string', description: 'Override Claude model' },
       },
+      example: { task: 'Add a unit test for the parseConfig() helper', autoMode: true },
     },
   },
   'POST /merge': {
@@ -221,6 +226,7 @@ const ROUTE_SCHEMAS = {
         branch: { type: 'string' },
         skipChecks: { type: 'boolean' },
       },
+      example: { name: 'worker-1' },
     },
   },
   'POST /close': {
@@ -254,6 +260,7 @@ const ROUTE_SCHEMAS = {
         name: { type: 'string', description: 'Display name (defaults to UUID)' },
         role: { type: 'string', enum: ['manager', 'worker', 'planner', 'executor', 'reviewer', 'generic'] },
       },
+      example: { jsonlPath: '/home/user/.claude/projects/-myproject/abc-uuid.jsonl' },
     },
   },
   'POST /approve': {
@@ -308,6 +315,384 @@ const ROUTE_SCHEMAS = {
         openapi: { type: 'string', example: '3.0.3' },
         info: { type: 'object' },
         paths: { type: 'object' },
+      },
+    },
+  },
+  'GET /audit/query': {
+    parameters: [
+      { name: 'from', in: 'query', schema: { type: 'string', description: 'ISO timestamp' } },
+      { name: 'to', in: 'query', schema: { type: 'string' } },
+      { name: 'type', in: 'query', schema: { type: 'string' } },
+      { name: 'target', in: 'query', schema: { type: 'string' } },
+      { name: 'actor', in: 'query', schema: { type: 'string' } },
+      { name: 'limit', in: 'query', schema: { type: 'integer', default: 1000 } },
+    ],
+  },
+  'GET /rbac/roles': {
+    response: {
+      properties: {
+        roles: {
+          type: 'array',
+          items: {
+            properties: {
+              name: { type: 'string', enum: ['admin', 'manager', 'viewer'] },
+              actions: { type: 'array', items: { type: 'string' } },
+            },
+          },
+        },
+      },
+    },
+  },
+  'GET /rbac/users': {
+    response: {
+      properties: {
+        users: {
+          type: 'array',
+          items: {
+            properties: {
+              user: { type: 'string' },
+              role: { type: 'string' },
+              grants: { type: 'object' },
+            },
+          },
+        },
+      },
+    },
+  },
+  'POST /rbac/role/assign': {
+    requestBody: {
+      required: ['user', 'role'],
+      properties: {
+        user: { type: 'string' },
+        role: { type: 'string', enum: ['admin', 'manager', 'viewer'] },
+      },
+    },
+  },
+  'POST /rbac/grant/project': {
+    requestBody: {
+      required: ['user', 'project'],
+      properties: {
+        user: { type: 'string' },
+        project: { type: 'string' },
+      },
+    },
+  },
+  'POST /rbac/grant/machine': {
+    requestBody: {
+      required: ['user', 'machine'],
+      properties: {
+        user: { type: 'string' },
+        machine: { type: 'string' },
+      },
+    },
+  },
+  'POST /rbac/revoke/project': {
+    requestBody: {
+      required: ['user', 'project'],
+      properties: {
+        user: { type: 'string' },
+        project: { type: 'string' },
+      },
+    },
+  },
+  'POST /rbac/revoke/machine': {
+    requestBody: {
+      required: ['user', 'machine'],
+      properties: {
+        user: { type: 'string' },
+        machine: { type: 'string' },
+      },
+    },
+  },
+  'POST /rbac/check': {
+    requestBody: {
+      required: ['user', 'action'],
+      properties: {
+        user: { type: 'string' },
+        action: { type: 'string', description: 'Canonical action name (e.g., worker.create)' },
+        resource: {
+          properties: {
+            type: { type: 'string', enum: ['project', 'machine'] },
+            id: { type: 'string' },
+          },
+        },
+      },
+    },
+    response: {
+      properties: { allowed: { type: 'boolean' } },
+    },
+  },
+  'GET /tree': {
+    response: {
+      properties: {
+        tree: { type: 'array', description: 'Worker tree (nested by parent/child)' },
+      },
+    },
+  },
+  'POST /workflows': {
+    requestBody: {
+      required: ['name', 'nodes', 'edges'],
+      properties: {
+        id: { type: 'string', description: 'Auto-generated if omitted' },
+        name: { type: 'string' },
+        description: { type: 'string' },
+        nodes: { type: 'array', items: { type: 'object' } },
+        edges: { type: 'array', items: { type: 'object' } },
+        config: {
+          properties: {
+            maxConcurrency: { type: 'integer', default: 1 },
+          },
+        },
+      },
+    },
+  },
+  'GET /workflows': {
+    parameters: [
+      { name: 'enabled', in: 'query', schema: { type: 'string', enum: ['true', 'false'] } },
+      { name: 'nameContains', in: 'query', schema: { type: 'string' } },
+    ],
+  },
+  'POST /schedules': {
+    requestBody: {
+      required: ['name', 'cron', 'task'],
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string' },
+        cron: { type: 'string', example: '0 9 * * 1-5' },
+        task: { type: 'string', description: 'Task prompt' },
+        target: { type: 'string' },
+        enabled: { type: 'boolean', default: true },
+      },
+    },
+  },
+  'GET /schedules': {
+    response: {
+      properties: { schedules: { type: 'array' } },
+    },
+  },
+  'POST /projects': {
+    requestBody: {
+      required: ['id', 'name'],
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string' },
+        description: { type: 'string' },
+      },
+    },
+  },
+  'GET /projects': {
+    response: {
+      properties: { projects: { type: 'array' } },
+    },
+  },
+  'POST /recover': {
+    requestBody: {
+      required: ['name'],
+      properties: {
+        name: { type: 'string' },
+        category: { type: 'string', enum: ['tool-deny', 'timeout', 'test-fail', 'build-fail', 'dependency', 'unknown'] },
+      },
+    },
+  },
+  'GET /recovery-history': {
+    parameters: [
+      { name: 'name', in: 'query', schema: { type: 'string' } },
+      { name: 'limit', in: 'query', schema: { type: 'integer', default: 50 } },
+    ],
+  },
+  'POST /cancel': {
+    requestBody: {
+      required: ['name'],
+      properties: { name: { type: 'string' } },
+    },
+  },
+  'POST /restart': {
+    requestBody: {
+      required: ['name'],
+      properties: { name: { type: 'string' } },
+    },
+  },
+  'POST /resize': {
+    requestBody: {
+      required: ['name', 'cols', 'rows'],
+      properties: {
+        name: { type: 'string' },
+        cols: { type: 'integer' },
+        rows: { type: 'integer' },
+      },
+    },
+  },
+  'POST /resume': {
+    requestBody: {
+      required: ['name'],
+      properties: { name: { type: 'string' } },
+    },
+  },
+  'POST /batch': {
+    requestBody: {
+      properties: {
+        task: { type: 'string', description: 'Task prompt for all workers' },
+        count: { type: 'integer', description: 'Number of workers (count mode)' },
+        tasksText: { type: 'string', description: 'Newline-separated tasks (file mode)' },
+        branch: { type: 'string', description: 'Branch prefix' },
+        autoMode: { type: 'boolean' },
+        profile: { type: 'string' },
+      },
+    },
+  },
+  'POST /cleanup': {
+    requestBody: {
+      properties: {
+        dryRun: { type: 'boolean', default: false },
+      },
+    },
+  },
+  'POST /scribe/start': {
+    requestBody: {
+      properties: {
+        intervalMs: { type: 'integer', description: 'Sampling interval (default 5min)' },
+      },
+    },
+  },
+  'POST /autonomous/pause': {
+    requestBody: {
+      properties: {
+        reason: { type: 'string', description: 'Operator-supplied pause reason' },
+      },
+    },
+  },
+  'GET /autonomous/status': {
+    response: {
+      properties: {
+        enabled: { type: 'boolean' },
+        paused: { type: 'boolean' },
+        pauseReason: { type: 'string', nullable: true },
+        consecutiveHalts: { type: 'integer' },
+        circuitThreshold: { type: 'integer' },
+        lastDispatchId: { type: 'string', nullable: true },
+        lastDispatchAt: { type: 'string', nullable: true },
+      },
+    },
+  },
+  'GET /history': {
+    parameters: [
+      { name: 'name', in: 'query', schema: { type: 'string' } },
+      { name: 'last', in: 'query', schema: { type: 'integer' } },
+    ],
+  },
+  'GET /events/query': {
+    parameters: [
+      { name: 'from', in: 'query', schema: { type: 'string' } },
+      { name: 'to', in: 'query', schema: { type: 'string' } },
+      { name: 'type', in: 'query', schema: { type: 'string' } },
+      { name: 'worker', in: 'query', schema: { type: 'string' } },
+      { name: 'limit', in: 'query', schema: { type: 'integer' } },
+      { name: 'reverse', in: 'query', schema: { type: 'string', enum: ['0', '1'] } },
+    ],
+  },
+  'GET /events/context': {
+    parameters: [
+      { name: 'around', in: 'query', required: true, schema: { type: 'string', description: 'Event id or ISO timestamp' } },
+      { name: 'window', in: 'query', schema: { type: 'integer', default: 5 } },
+    ],
+  },
+  'GET /quota': {
+    response: {
+      properties: {
+        tiers: { type: 'array' },
+        depts: { type: 'array' },
+      },
+    },
+  },
+  'GET /token-usage': {
+    parameters: [
+      { name: 'name', in: 'query', schema: { type: 'string' } },
+      { name: 'groupBy', in: 'query', schema: { type: 'string', enum: ['session', 'project', 'tier', 'dept'] } },
+    ],
+  },
+  'GET /watch': {
+    parameters: [
+      { name: 'name', in: 'query', required: true, schema: { type: 'string', description: 'Worker name to tail' } },
+    ],
+  },
+  'GET /events': {
+    response: {
+      properties: {
+        type: { type: 'string', description: 'SSE event type ("connected" first, then live events)' },
+      },
+    },
+  },
+  'POST /transfer': {
+    requestBody: {
+      required: ['alias', 'type'],
+      properties: {
+        alias: { type: 'string', description: 'Fleet peer alias' },
+        type: { type: 'string', enum: ['rsync', 'git'] },
+        src: { type: 'string', description: 'For type=rsync' },
+        dest: { type: 'string', description: 'For type=rsync' },
+        branch: { type: 'string', description: 'For type=git' },
+        remoteRepoPath: { type: 'string', description: 'For type=git' },
+        opts: { type: 'object' },
+      },
+    },
+  },
+  'POST /nl/chat': {
+    requestBody: {
+      required: ['text'],
+      properties: {
+        text: { type: 'string', description: 'Natural-language command' },
+        sessionId: { type: 'string' },
+      },
+    },
+  },
+  'POST /mcp/servers': {
+    requestBody: {
+      required: ['name', 'command'],
+      properties: {
+        name: { type: 'string' },
+        command: { type: 'string' },
+        args: { type: 'array', items: { type: 'string' } },
+        env: { type: 'object' },
+      },
+    },
+  },
+  'POST /cicd/webhook': {
+    requestBody: {
+      description: 'GitHub webhook payload (HMAC verified via X-Hub-Signature-256)',
+      properties: {
+        action: { type: 'string' },
+        repository: { type: 'object' },
+        pull_request: { type: 'object' },
+      },
+    },
+  },
+  'POST /cicd/pipelines': {
+    requestBody: {
+      required: ['name', 'repo', 'workflow', 'triggers', 'actions'],
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string' },
+        repo: { type: 'string' },
+        workflow: { type: 'string' },
+        triggers: {
+          type: 'array',
+          items: { type: 'string', enum: ['pr.opened', 'pr.merged', 'pr.closed', 'merge.main', 'tag.created'] },
+        },
+        actions: { type: 'array', items: { type: 'object' } },
+      },
+    },
+  },
+  'GET /api-docs': {
+    response: {
+      description: 'Swagger UI HTML page (Content-Type: text/html)',
+      type: 'string',
+    },
+  },
+  'GET /attach/list': {
+    response: {
+      properties: {
+        sessions: { type: 'array' },
+        total: { type: 'integer' },
       },
     },
   },
@@ -397,13 +782,20 @@ function buildSpec({ daemonPath, version, baseUrl } = {}) {
         op.parameters = schemas.parameters;
       }
       if (schemas.requestBody) {
+        // OpenAPI 3.0 distinguishes between schema (the type
+        // contract) and example (a concrete value rendered in
+        // Swagger UI's "Try it out" surface). Pull out `example`
+        // before merging so it lands on the mediaType, not the
+        // schema, and keeps `additionalProperties: false`-style
+        // validators happy.
+        const { example, ...bodyShape } = schemas.requestBody;
+        const mediaType = {
+          schema: { type: 'object', ...bodyShape },
+        };
+        if (example !== undefined) mediaType.example = example;
         op.requestBody = {
           required: true,
-          content: {
-            'application/json': {
-              schema: { type: 'object', ...schemas.requestBody },
-            },
-          },
+          content: { 'application/json': mediaType },
         };
       }
       if (schemas.response) {
