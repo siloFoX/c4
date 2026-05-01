@@ -2605,15 +2605,18 @@ async function main() {
       // (Polish) Tail the global daemon SSE stream — useful for ops
       // watching workflow_start/end, schedule_fire, audit_rotate,
       // worker_start/exit, pool_reuse, etc. Filter via --type.
-      case 'events': {
+      // Renamed from `events` to `sse-tail` to avoid collision with
+      // the 10.9 Scribe v2 event log query already on `events`.
+      case 'sse-tail':
+      case 'sse': {
         const filter = args.includes('--type') ? args[args.indexOf('--type') + 1] : null;
-        const url = new URL('/events', BASE);
+        const url = new URL('/api/events', BASE);
         const req = http.get(url, (res) => {
           if (res.statusCode !== 200) {
             console.error(`Error: HTTP ${res.statusCode}`);
             process.exit(1);
           }
-          process.stderr.write(`Tailing /events${filter ? ` (filter: type=${filter})` : ''}... Ctrl+C to stop\n`);
+          process.stderr.write(`Tailing /api/events${filter ? ` (filter: type=${filter})` : ''}... Ctrl+C to stop\n`);
           let buffer = '';
           res.on('data', (chunk) => {
             buffer += chunk;
