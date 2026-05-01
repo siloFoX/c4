@@ -180,12 +180,13 @@ const ROUTE_SCHEMAS = {
   },
   'POST /send': {
     requestBody: {
-      required: ['name', 'text'],
+      required: ['name', 'input'],
       properties: {
         name: { type: 'string' },
-        text: { type: 'string' },
+        input: { type: 'string', description: 'Text or keystrokes to write to the PTY' },
+        keys: { type: 'boolean', description: 'When true, treat input as keys (Enter / C-c / etc) — see /key for the canonical surface' },
       },
-      example: { name: 'worker-1', text: 'List the files in src/' },
+      example: { name: 'worker-1', input: 'List the files in src/' },
     },
     response: {
       properties: {
@@ -332,13 +333,17 @@ const ROUTE_SCHEMAS = {
   },
   'POST /attach': {
     requestBody: {
-      required: ['jsonlPath'],
+      // Accept either path OR sessionId — at least one must be set.
+      // The validator can't express the "either-or" rule, so neither
+      // field is `required`; the route handler returns 400 when both
+      // are absent.
       properties: {
-        jsonlPath: { type: 'string', description: 'Absolute path to claude session JSONL' },
+        path: { type: 'string', description: 'Absolute path to claude session JSONL' },
+        sessionId: { type: 'string', description: 'Bare UUID — daemon resolves to JSONL via sessions.projectsDir' },
         name: { type: 'string', description: 'Display name (defaults to UUID)' },
         role: { type: 'string', enum: ['manager', 'worker', 'planner', 'executor', 'reviewer', 'generic'] },
       },
-      example: { jsonlPath: '/home/user/.claude/projects/-myproject/abc-uuid.jsonl' },
+      example: { path: '/home/user/.claude/projects/-myproject/abc-uuid.jsonl' },
     },
     response: {
       properties: {
@@ -353,9 +358,9 @@ const ROUTE_SCHEMAS = {
       required: ['name'],
       properties: {
         name: { type: 'string' },
-        option: { type: 'integer', description: 'Option number for TUI prompts' },
+        optionNumber: { type: 'integer', description: 'Option number for TUI prompts (1 = Yes/proceed, others = decline/custom)' },
       },
-      example: { name: 'worker-1', option: 1 },
+      example: { name: 'worker-1', optionNumber: 1 },
     },
     response: { properties: { success: { type: 'boolean' } } },
   },

@@ -4,6 +4,40 @@
 
 (no entries — next release window)
 
+## [1.10.12] - 2026-05-01
+
+Validation wired into 8 mutator routes + schema accuracy fixes.
+
+### Added
+- **(daemon) `_validateOrFail()` helper.** Single-line opt-in for
+  per-route validation: `if (_validateOrFail('POST', '/x', body,
+  res, cfg)) return;`. Reads `cfg.openapi.validateRequests` (default
+  off so existing deployments are unchanged), looks up
+  ROUTE_SCHEMAS, runs validateRequestBody, writes
+  `400 {error, details}` and short-circuits on failure.
+- **(daemon) Validation wired into 8 routes.** `/create` / `/send`
+  / `/key` / `/task` / `/merge` / `/approve` / `/rollback` /
+  `/close` / `/attach` now opt into the helper. When the flag is
+  on, malformed bodies for any of these get the dotted-path
+  error response before route logic runs.
+
+### Fixed
+- **(spec) `/send` body shape.** Schema said `{name, text}`; route
+  actually parses `{name, input, keys?}`. Schema rewritten to
+  match. SDK regenerated — `c4.postSend({name, input})` now
+  matches the wire contract.
+- **(spec) `/approve.optionNumber`.** Schema said `option`; route
+  parses `optionNumber`. Schema field renamed to match.
+- **(spec) `/attach` body.** Schema required `jsonlPath`; route
+  accepts `{path}` OR `{sessionId}` (either-or, neither is
+  individually required). Schema fields renamed; `required` array
+  dropped (validator can't express "either-or"; the route handler
+  still 400s when both are absent).
+
+Generated SDK refreshed (1941 → 1943 lines, +2 from updated
+property names). Suite 150/150. Validation tests 23/23 with the
+corrected enum scenario.
+
 ## [1.10.11] - 2026-05-01
 
 OpenAPI request body validation — daemon enforces ROUTE_SCHEMAS as

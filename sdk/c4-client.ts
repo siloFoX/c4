@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.9
-// Generated at: 2026-05-01T13:51:34.846Z
+// Spec version: 1.10.11
+// Generated at: 2026-05-01T14:18:02.811Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -72,7 +72,8 @@ export interface postCreateResponse {
 
 export interface postSendBody {
   name: string;
-  text: string;
+  input: string; /** Text or keystrokes to write to the PTY */
+  keys?: boolean; /** When true, treat input as keys (Enter / C-c / etc) — see /key for the canonical surface */
 }
 export interface postSendResponse {
   success?: boolean;
@@ -159,7 +160,7 @@ export interface postMergeResponse {
 
 export interface postApproveBody {
   name: string;
-  option?: number; /** Option number for TUI prompts */
+  optionNumber?: number; /** Option number for TUI prompts (1 = Yes/proceed, others = decline/custom) */
 }
 export interface postApproveResponse {
   success?: boolean;
@@ -680,7 +681,8 @@ export interface getSessionsResponse {
 }
 
 export interface postAttachBody {
-  jsonlPath: string; /** Absolute path to claude session JSONL */
+  path?: string; /** Absolute path to claude session JSONL */
+  sessionId?: string; /** Bare UUID — daemon resolves to JSONL via sessions.projectsDir */
   name?: string; /** Display name (defaults to UUID) */
   role?: "manager" | "worker" | "planner" | "executor" | "reviewer" | "generic";
 }

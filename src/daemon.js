@@ -226,6 +226,22 @@ function denyOr(res, gate) {
   return true;
 }
 
+// Opt-in OpenAPI request body validation. Returns true if the request
+// should short-circuit (response already written), false to proceed.
+// Gated on config.openapi.validateRequests so existing deployments
+// don't see behaviour changes — flip to true to enforce ROUTE_SCHEMAS
+// as the contract source of truth.
+function _validateOrFail(method, route, body, res, cfgNow) {
+  if (!cfgNow || !cfgNow.openapi || !cfgNow.openapi.validateRequests) return false;
+  const { validateRequestBody } = require('./openapi-validate');
+  const { ROUTE_SCHEMAS } = require('./openapi-gen');
+  const v = validateRequestBody(method, route, body, ROUTE_SCHEMAS);
+  if (v.valid) return false;
+  res.writeHead(400);
+  res.end(JSON.stringify({ error: 'Validation failed', details: v.errors }));
+  return true;
+}
+
 // (10.4) Shared CicdManager. Writes to ~/.c4/cicd.json by default;
 // honours config.cicd.path. The dispatchWorker callback auto-creates
 // a worker and queues a task whenever a pipeline action of type
@@ -1074,20 +1090,7 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && route === '/create') {
       const body = await parseBody(req);
-      // Opt-in spec validation. Set config.openapi.validateRequests=true
-      // to enforce ROUTE_SCHEMAS as the source of truth for request body
-      // shapes. When enabled, malformed bodies short-circuit with 400 +
-      // the dotted-path error list before route logic runs.
-      if (cfg.openapi && cfg.openapi.validateRequests) {
-        const { validateRequestBody } = require('./openapi-validate');
-        const { ROUTE_SCHEMAS } = require('./openapi-gen');
-        const v = validateRequestBody('POST', '/create', body, ROUTE_SCHEMAS);
-        if (!v.valid) {
-          res.writeHead(400);
-          res.end(JSON.stringify({ error: 'Validation failed', details: v.errors }));
-          return;
-        }
-      }
+      if (_validateOrFail('POST', '/create', body, res, cfg)) return;
       const { name, command, args, target, cwd, parent, tier, pinnedMemory, pinRole } = body;
       const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE,
         target ? { type: 'machine', id: target } : null);
@@ -1132,11 +1135,15 @@ async function handleRequest(req, res) {
       }
 
     } else if (req.method === 'POST' && route === '/send') {
-      const { name, input, keys } = await parseBody(req);
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/send', _body, res, cfg)) return;
+      const { name, input, keys } = _body;
       result = await manager.send(name, input, keys || false);
 
     } else if (req.method === 'POST' && route === '/key') {
-      const { name, key } = await parseBody(req);
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/key', _body, res, cfg)) return;
+      const { name, key } = _body;
       const gate = requireRole(authCheck, rbac.ACTIONS.KEY_WRITE);
       if (denyOr(res, gate)) return;
       if (!name || !key) {
@@ -1210,7 +1217,9 @@ async function handleRequest(req, res) {
       };
 
     } else if (req.method === 'POST' && route === '/task') {
-      const { name, task, branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, budgetUsd, maxRetries, tier, model, planDocPath, workspace } = await parseBody(req);
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/task', _body, res, cfg)) return;
+      const { name, task, branch, useBranch, useWorktree, projectRoot, cwd, scope, scopePreset, after, command, target, contextFrom, reuse, profile, autoMode, budgetUsd, maxRetries, tier, model, planDocPath, workspace } = _body;
       const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_TASK,
         target ? { type: 'machine', id: target } : null);
       if (denyOr(res, gate)) return;
@@ -1302,6 +1311,7 @@ async function handleRequest(req, res) {
       // Web UI path that passes a worker name — we resolve it to a branch
       // via the worktree).
       const body = await parseBody(req);
+      if (_validateOrFail('POST', '/merge', body, res, cfg)) return;
       const branchInput = typeof body.branch === 'string' ? body.branch : '';
       const nameInput = typeof body.name === 'string' ? body.name : '';
       const skipChecks = Boolean(body.skipChecks);
@@ -1386,7 +1396,9 @@ async function handleRequest(req, res) {
       };
 
     } else if (req.method === 'POST' && route === '/approve') {
-      const { name, optionNumber } = await parseBody(req);
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/approve', _body, res, cfg)) return;
+      const { name, optionNumber } = _body;
       result = manager.approve(name, optionNumber);
       if (result && !result.error) {
         // optionNumber 1 is the common "Yes, proceed" slot in Claude
@@ -1409,7 +1421,9 @@ async function handleRequest(req, res) {
       }
 
     } else if (req.method === 'POST' && route === '/rollback') {
-      const { name } = await parseBody(req);
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/rollback', _body, res, cfg)) return;
+      const { name } = _body;
       result = manager.rollback(name);
 
     } else if (req.method === 'POST' && route === '/recover') {
@@ -2717,7 +2731,9 @@ async function handleRequest(req, res) {
       result = { ok, fail: results.length - ok, total: results.length, results };
 
     } else if (req.method === 'POST' && route === '/close') {
-      const { name } = await parseBody(req);
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/close', _body, res, cfg)) return;
+      const { name } = _body;
       const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CLOSE);
       if (denyOr(res, gate)) return;
       result = manager.close(name);
@@ -3388,6 +3404,7 @@ async function handleRequest(req, res) {
       const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE);
       if (denyOr(res, gate)) return;
       const body = await parseBody(req);
+      if (_validateOrFail('POST', '/attach', body, res, cfg)) return;
       const input = typeof body.path === 'string' && body.path
         ? body.path
         : (typeof body.sessionId === 'string' ? body.sessionId : '');

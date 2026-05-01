@@ -152,7 +152,7 @@ describe('openapi-validate.validateRequestBody (against ROUTE_SCHEMAS)', () => {
 
   it('rejects bad enum on POST /attach.role', () => {
     const r = validateRequestBody('POST', '/attach', {
-      jsonlPath: '/some/path.jsonl',
+      path: '/some/path.jsonl',
       role: 'pirate-king',
     }, ROUTE_SCHEMAS);
     assert.equal(r.valid, false);
