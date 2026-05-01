@@ -489,5 +489,36 @@
   "computerUse": {
     "enabled": false,
     "backend": "auto"
+  },
+
+  "_workspaces_doc": "Multi-repo workspace mode. Each entry maps a short name to an absolute repo root. Use 'c4 task --workspace <name> ...' or POST /task body {workspace}.",
+  "workspaces": {},
+
+  "_audit_doc": "Audit log rotation + SQLite read accelerator. maxSizeBytes triggers rename to audit-<isoTs>.jsonl when audit.jsonl exceeds it; keep retains the newest N rotated files. useSqlite mirrors records into a sibling .db so query() can use indexes (Node 22+).",
+  "audit": {
+    "maxSizeBytes": 0,
+    "keep": 0,
+    "useSqlite": false
+  },
+
+  "_pm_doc": "PM kanban board (logs/board-<project>.jsonl). When todoSync is true and todoFile is set, moveCard() rewrites the matching '| <id> | ... | **<status>** |' row in TODO.md to mirror the new board status.",
+  "pm": {
+    "todoSync": false,
+    "todoFile": ""
+  },
+
+  "_nl_doc": "Natural-language interface LLM fallback (Anthropic API). Off by default; opt in with enabled=true and ANTHROPIC_API_KEY. Falls back to the regex-based parseIntent when this module is unavailable.",
+  "nl": {
+    "llm": {
+      "enabled": false,
+      "model": "claude-sonnet-4-6",
+      "apiKey": ""
+    }
+  },
+
+  "_debug_doc": "Per-event hook log gates. Off by default; toggle when chasing intervention / hook routing bugs. The 'rejected: missing worker name' log stays always-on.",
+  "debug": {
+    "hookEvents": false,
+    "hookEventLog": false
   }
 }
