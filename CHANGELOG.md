@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+(no entries — next release window)
+
+## [1.10.1] - 2026-05-01
+
+Redoc renderer + response schema coverage expansion.
+
 ### Added
 - **(GET /api-docs/redoc) Redoc rendering of the openapi.json spec.**
   Alternative to Swagger UI — 3-pane layout (nav / path detail /
