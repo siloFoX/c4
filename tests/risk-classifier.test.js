@@ -335,6 +335,45 @@ describe('classifyCommand — obfuscation defeat', () => {
     assert.strictEqual(_denoiseCommand('echo ${PATH}'), 'echo ${PATH}');
     assert.strictEqual(_denoiseCommand('echo $HOME'), 'echo $HOME');
   });
+
+  // (v1.10.111) Bash brace expansion. Two cases handled:
+  // (a) compact form (no prefix word chars before `{`) — strip
+  //     braces, replace commas with spaces.
+  // (b) suffix-attached form (`prefix{...}` with whitespace right
+  //     after `}`) — distribute prefix across each alternative.
+  // Prefixed-with-suffix-data form (`r{m,} -rf /`) is a known
+  // residual gap because the suffix `-rf /` doesn't get
+  // distributed across alternatives.
+  it('strips compact {a,b,c} brace expansion (v1.10.111)', () => {
+    assert.match(_denoiseCommand('{rm,} -rf /'), /rm\s+-rf\s+\//);
+    // The empty trailing alternative produces an extra space; check
+    // the regex-relevant substring.
+    const out = _denoiseCommand('{rm,wat} -rf /');
+    assert.match(out, /rm/);
+    assert.match(out, /-rf \//);
+  });
+
+  it('distributes prefix across suffix-attached braces (v1.10.111)', () => {
+    // `rm{,}` → `rm rm` (prefix `rm` × each of 2 alternatives)
+    assert.match(_denoiseCommand('rm{,} -rf /'), /rm rm/);
+    // `rm{a,b}` → `rma rmb`
+    assert.match(_denoiseCommand('rm{a,b} -rf /'), /rma rmb/);
+  });
+
+  it('classifies rm{,} -rf / as critical (v1.10.111)', () => {
+    assert.strictEqual(levelOf('rm{,} -rf /'), 'critical');
+  });
+
+  it('classifies {rm,} -rf / as critical (v1.10.111)', () => {
+    assert.strictEqual(levelOf('{rm,} -rf /'), 'critical');
+  });
+
+  it('plain `find {a,b}` (no comma in braces) is left alone (regression)', () => {
+    // Single-element brace `{}` passed to find shouldn't be
+    // eaten — the rule requires at least one comma.
+    assert.strictEqual(_denoiseCommand('find . -name "{}" -delete'),
+      'find . -name "{}" -delete');
+  });
 });
 
 describe('classifyCommand — return shape contract', () => {

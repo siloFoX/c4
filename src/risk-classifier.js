@@ -531,6 +531,43 @@ function _denoiseCommand(cmd) {
   out = out.replace(/\$\{IFS\}/g, '');
   out = out.replace(/\$IFS\b/g, '');
 
+  // (v1.10.111) Bash brace expansion (limited form):
+  //   rm{,} -rf /     → rm rm -rf /     (catalog catches rm -rf /)
+  //   {rm,} -rf /     → rm   -rf /
+  // Bash expands `{a,b}` to space-separated alternatives. The
+  // empty alternation (`{a,}`) yields the alternative OR nothing,
+  // which attackers exploit to hide tokens.
+  //
+  // We handle only the COMPACT form (`{...}` with no prefix or
+  // suffix word chars) — strip the braces and replace commas with
+  // spaces. The prefixed form (`r{m,}` → `rm r`) requires
+  // suffix-aware expansion that doesn't fit a single regex pass;
+  // residual gap accepted since the prefixed form requires the
+  // attacker to also deal with how bash distributes the suffix
+  // across alternatives.
+  //
+  // Only matches braces that contain no nested braces, no
+  // whitespace, and at least one comma — avoids eating shell glob
+  // `[abc]` (unrelated) and bare parameter expansion `${var}`
+  // (handled above). Lookbehind `(?<=^|\s)` keeps us in the
+  // compact form (no letters immediately before the `{`).
+  out = out.replace(
+    /(?<=^|\s)\{([^{}\s,]*(?:,[^{}\s,]*)+)\}/g,
+    (_m, inner) => ' ' + inner.replace(/,/g, ' ') + ' '
+  );
+  // Also handle suffix-attached form where the brace appears at
+  // end-of-token (e.g. `rm{,} -rf /`) — the brace contents collapse
+  // and the catalog still catches `rm -rf /` because the leading
+  // `rm` is preserved.
+  out = out.replace(
+    /(\S+?)\{([^{}\s,]*(?:,[^{}\s,]*)+)\}(?=\s|$)/g,
+    (_m, prefix, inner) => {
+      // Each alt gets the prefix; emit space-separated.
+      const alts = inner.split(',');
+      return alts.map((a) => prefix + a).join(' ');
+    }
+  );
+
   // (v1.10.109) Parameter expansion default value:
   //   r${VAR:-m} -rf /     → r m -rf /     (then quote splitting / IFS catch)
   //   r${V:+m} -rf /       → r m -rf /

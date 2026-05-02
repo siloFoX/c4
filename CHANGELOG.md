@@ -4,6 +4,68 @@
 
 (no entries — next release window)
 
+## [1.10.111] - 2026-05-03
+
+**Risk classifier — bash brace expansion obfuscation defeat
+(12th)**. Closes the `rm{,} -rf /` and `{rm,} -rf /` hiding
+patterns. The prefixed-with-suffix-data form (`r{m,} -rf /`)
+remains a known residual gap because suffix distribution
+across alternatives requires multi-pass expansion that a
+single regex pass can't model.
+
+```sh
+# Pre-1.10.111
+$ c4 risk "rm{,} -rf /"          # LOW
+$ c4 risk "{rm,} -rf /"          # LOW
+
+# Post-1.10.111
+$ c4 risk "rm{,} -rf /"          # CRITICAL [rm-rf-root]
+$ c4 risk "{rm,} -rf /"          # CRITICAL [rm-rf-root]
+```
+
+### Changed
+- **`_denoiseCommand`** handles two brace expansion forms:
+  - **Compact form** — `{a,b,c}` not preceded by word chars
+    (lookbehind `^|\s`). Strips braces, replaces commas with
+    spaces. So `{rm,} -rf /` → ` rm   -rf /`.
+  - **Suffix-attached form** — `prefix{a,b}` followed by
+    whitespace or end. Distributes prefix across each
+    alternative. So `rm{,} -rf /` → `rm rm -rf /` (catalog
+    catches the `rm -rf /` substring).
+
+  Single-pass; no recursion. Empty alternations (`{a,}`) yield
+  the alternative — matches bash semantics.
+
+  Single-element braces `{}` (no comma) are left alone — the
+  regex requires at least one comma. So `find -name "{}"`
+  doesn't get eaten.
+
+### Known residual gap
+
+`r{m,} -rf /` decodes to `rm r -rf /`. Bash actually runs this
+as `rm` with args `r`, `-rf`, `/` — semantically equivalent to
+`rm -rf /` with extra noise. The catalog's `rm-rf-root` regex
+requires `rm` immediately followed by `-rf` so this slips
+through. Closing this requires either:
+1. A more permissive `rm-rf-root` regex (risk: over-matching)
+2. Multi-alternative expansion that emits each alt + suffix as
+   separate semicolon segments
+
+Deliberately deferred — the simpler obfuscations are caught
+and the prefixed form is more conspicuous in the audit trail
+since the result is `rm r -rf /` not just `rm -rf /`.
+
+### Test coverage
+- **`tests/risk-classifier.test.js`** — 5 new cases:
+  - compact `{a,b,c}` denoise
+  - suffix-attached `prefix{a,b}` distributes prefix
+  - `rm{,} -rf /` → critical
+  - `{rm,} -rf /` → critical
+  - regression: single-element `{}` left alone
+
+  Suite stays at 175. risk-classifier file 143 → 148 cases.
+  Obfuscation defeats: 11 → 12.
+
 ## [1.10.110] - 2026-05-03
 
 **New catalog pattern: `pip-install-user` (high)**. Closes a gap
