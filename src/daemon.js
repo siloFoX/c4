@@ -4113,6 +4113,28 @@ manager.on('sse', (event) => {
   }
 });
 
+// (11.5d) Audit-log hash chain integration for risk-classifier denies.
+// PreToolUse hook emits `risk_deny` whenever a Bash command crosses the
+// autoDenyLevel threshold; the audit chain is where compliance reviewers
+// look, so the deny + reasons + decoded payload need to land there in
+// addition to SSE/Slack. Hash chained alongside auth.login,
+// worker.created, etc. so tampering at this layer is detectable via
+// /api/audit/verify.
+manager.on('sse', (event) => {
+  if (!event || event.type !== 'risk_deny' || !event.worker) return;
+  _safeAudit('risk.denied',
+    {
+      level: event.level,
+      reasons: Array.isArray(event.reasons)
+        ? event.reasons.map((r) => ({ code: r.code, label: r.label })).slice(0, 8)
+        : [],
+      command: typeof event.command === 'string' ? event.command.slice(0, 500) : '',
+      decoded: typeof event.decoded === 'string' ? event.decoded.slice(0, 500) : null,
+    },
+    { actor: event.worker, target: event.worker },
+  );
+});
+
 server.listen(PORT, HOST, () => {
   console.log(`C4 daemon running on http://${HOST}:${PORT} (version ${manager._daemonVersion || 'unknown'})`);
   // Persist daemon version to state.json (7.15)

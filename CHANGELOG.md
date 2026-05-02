@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.51] - 2026-05-02
+
+11.5 follow-up (d): risk_deny events now land in the audit
+hash chain.
+
+### Added
+- **(daemon) `manager.on('sse', risk_deny → _safeAudit)`
+  handler.** PreToolUse hook emits `risk_deny` whenever a
+  Bash command crosses the autoDenyLevel threshold; the
+  daemon now records `risk.denied` against the audit chain
+  alongside auth.login / worker.created / merge.performed.
+  Tampering is detectable via the existing
+  `/api/audit/verify` endpoint.
+
+  The audit detail captures level, reasons[] (capped at 8
+  entries), command (truncated to 500 chars), and the
+  decoded payload when the command was obfuscated. Actor +
+  target = the worker name.
+
+- **(tests) `tests/risk-classifier-audit.test.js`** — 6
+  integration tests with a tmpdir AuditLogger + EventEmitter:
+  - basic record (level / reasons / command land correctly)
+  - hash chain stays valid via `audit.verify()` after deny
+  - decoded payload preserved on obfuscated commands
+  - reasons[] capped at 8 entries
+  - command truncated at 500 chars
+  - non-risk_deny SSE events don't trigger audit writes
+
+Suite 154 → 155.
+
 ## [1.10.50] - 2026-05-02
 
 11.5 follow-up (c): per-machine rule override layer for the
