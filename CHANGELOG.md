@@ -4,6 +4,54 @@
 
 (no entries — next release window)
 
+## [1.10.70] - 2026-05-02
+
+11.5 (e) **AI second-pass plumbing** shipped — closes the
+last 11.5 follow-up. C4 itself never calls an LLM; operators
+wire their own (Anthropic / OpenAI / Ollama / etc) and POST
+the verdict to the new endpoint.
+
+### Added
+- **`POST /api/risk/ai-feedback`** — accepts
+  `{worker, command, classifierLevel, suggestedLevel,
+  reason, model?}`. Records `risk.ai_feedback` audit event,
+  broadcasts SSE `risk_ai_feedback` event, and Slack-alerts
+  when the AI would have caught a command past the
+  autoDenyLevel that the catalog missed (`wouldHaveBeenDenied`).
+  Response: `{recorded, escalated, wouldHaveBeenDenied,
+  severity}`.
+
+  Decision matrix:
+  - AI escalates past autoDenyLevel + classifier was below →
+    Slack + audit-as-escalation
+  - AI escalates but still below autoDenyLevel → audit only
+  - AI agrees with classifier → audit only (`escalated:false`)
+  - AI de-escalates → audit row keeps the disagreement
+    visible; severity stays at the higher (classifier) level
+
+  Spec ops 114 → 115. Runtime drift 51 → 52.
+
+- **(scribe-v2 mirror)** AI escalations land in scribe-v2
+  under the existing `risk_deny` event type with
+  `aiSecondPass: true` + `classifierLevel` + `model` flags so
+  reviewers see catalog denials and AI escalations
+  side-by-side via `c4 events --type risk_deny`.
+
+- **(tests) `tests/risk-ai-feedback.test.js`** — 9 cases
+  covering the decision matrix:
+  - escalation past autoDenyLevel triggers Slack
+  - escalation below autoDenyLevel does not
+  - agreement / de-escalation / SSE shape /
+    audit-every-feedback / 500-char truncation /
+    missing-fields / invalid-level boundaries
+
+Suite 159 → 160.
+
+**11.5 status now**: (a) Stage 1 ✅, (b) ✅, (c) ✅, (d) ✅,
+(e) ✅. Stage 2 sandbox (Docker/firejail OS-binary backend)
+is the only remaining 11.5 follow-up — env-specific by
+design and warranted as a separate effort.
+
 ## [1.10.69] - 2026-05-02
 
 Intent extractor reaches the operator surface — `c4 risk` CLI

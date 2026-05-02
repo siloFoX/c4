@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.69
-// Generated at: 2026-05-02T03:51:29.948Z
+// Spec version: 1.10.70
+// Generated at: 2026-05-02T04:06:16.651Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -460,6 +460,21 @@ export interface postRiskCheckResponse {
   destructiveVerbs?: string[];
   empty?: boolean; /** True when no signal extracted; pair with classifier level for actual gating */
 }; /** (v1.10.68) Static intent report — what files / network peers / privileges this command would touch, extracted via risk-sandbox.extractIntent without executing anything. */
+}
+
+export interface postRiskAiFeedbackBody {
+  worker: string;
+  command: string; /** The candidate Bash command the AI evaluated */
+  classifierLevel: "low" | "medium" | "high" | "critical"; /** What the built-in classifier returned */
+  suggestedLevel: "low" | "medium" | "high" | "critical"; /** The AI's verdict */
+  reason?: string; /** Free-text rationale (truncated to 500 chars in audit) */
+  model?: string; /** Optional — provider/model name for audit traceability */
+}
+export interface postRiskAiFeedbackResponse {
+  recorded?: boolean;
+  escalated?: boolean; /** True when suggestedLevel > classifierLevel */
+  wouldHaveBeenDenied?: boolean; /** True when AI level ≥ autoDenyLevel AND classifier level was below — i.e., catalog miss the AI caught */
+  severity?: "low" | "medium" | "high" | "critical"; /** max(classifierLevel, suggestedLevel) */
 }
 
 export interface getAuditVerifyParams {
@@ -1876,6 +1891,15 @@ export class C4Client {
     return this.request<postRiskCheckResponse>({
       method: 'POST',
       path: '/api/risk/check',
+      body: body as unknown,
+    });
+  }
+
+  /** AI second-pass feedback hook. External LLM (operator-supplied) POSTs its level assessment of a command; daemon records to audit chain, broadcasts via SSE, and Slack-alerts when the AI escalates a command past the autoDenyLevel that the catalog missed. */
+  async postRiskAiFeedback(body: postRiskAiFeedbackBody): Promise<postRiskAiFeedbackResponse> {
+    return this.request<postRiskAiFeedbackResponse>({
+      method: 'POST',
+      path: '/api/risk/ai-feedback',
       body: body as unknown,
     });
   }

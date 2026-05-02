@@ -1685,6 +1685,104 @@ async function handleRequest(req, res) {
         }
       }
 
+    } else if (req.method === 'POST' && route === '/risk/ai-feedback') {
+      // (11.5e) AI second-pass plumbing. C4 itself never calls an LLM
+      // — operators wire their own (Anthropic / OpenAI / local Ollama
+      // / whatever) and POST the result here. Use cases:
+      //   1. Async catch-up: run a low/medium classification past the
+      //      LLM after the command already executed; if the LLM
+      //      thinks it was actually dangerous, emit an audit
+      //      escalation + Slack alert so an operator can review.
+      //   2. Pre-flight tuning: external system POSTs candidate
+      //      commands for review during policy-development without
+      //      going through the live hook path.
+      //
+      // Body:
+      //   { worker: string,
+      //     command: string,
+      //     classifierLevel: 'low'|'medium'|'high'|'critical',
+      //     suggestedLevel: 'low'|'medium'|'high'|'critical',
+      //     reason: string,
+      //     model?: string }   // optional — for audit traceability
+      //
+      // Response: { recorded: true, escalated: bool, severity: string }
+      //   escalated=true when suggestedLevel > classifierLevel.
+      //
+      // Side effects (escalation only):
+      //   - audit.record('risk.ai_feedback', ...)
+      //   - SSE `risk_ai_feedback` event broadcast
+      //   - Slack notification when classifierLevel < autoDenyLevel
+      //     ≤ suggestedLevel (i.e., the command would have been
+      //     blocked if the AI had been the gate)
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/risk/ai-feedback', _body, res, cfg)) return;
+      const VALID_LEVELS = ['low', 'medium', 'high', 'critical'];
+      const worker = typeof _body.worker === 'string' ? _body.worker : '';
+      const command = typeof _body.command === 'string' ? _body.command : '';
+      const classifierLevel = VALID_LEVELS.includes(_body.classifierLevel) ? _body.classifierLevel : null;
+      const suggestedLevel = VALID_LEVELS.includes(_body.suggestedLevel) ? _body.suggestedLevel : null;
+      const reason = typeof _body.reason === 'string' ? _body.reason : '';
+      const model = typeof _body.model === 'string' ? _body.model : null;
+      if (!worker || !command || !classifierLevel || !suggestedLevel) {
+        result = { error: 'Missing worker / command / classifierLevel / suggestedLevel' };
+      } else {
+        try {
+          const RANK = { low: 0, medium: 1, high: 2, critical: 3 };
+          const escalated = RANK[suggestedLevel] > RANK[classifierLevel];
+          const cfgNow = manager.getConfig() || {};
+          const riskCfg = cfgNow.riskClassifier || {};
+          const autoDenyLevel = VALID_LEVELS.includes(riskCfg.autoDenyLevel) ? riskCfg.autoDenyLevel : 'critical';
+          const wouldHaveBeenDenied = RANK[suggestedLevel] >= RANK[autoDenyLevel]
+            && RANK[classifierLevel] < RANK[autoDenyLevel];
+          // Truncate command for audit storage so a multi-KB
+          // operator paste doesn't blow up the chain.
+          _safeAudit('risk.ai_feedback',
+            {
+              classifierLevel,
+              suggestedLevel,
+              reason: reason.slice(0, 500),
+              command: command.slice(0, 500),
+              model,
+              escalated,
+              wouldHaveBeenDenied,
+            },
+            { actor: worker, target: worker },
+          );
+          // SSE broadcast for live dashboards. We use a distinct
+          // event type so subscribers can filter without conflating
+          // with risk_deny.
+          manager.emit('sse', {
+            type: 'risk_ai_feedback',
+            worker,
+            classifierLevel,
+            suggestedLevel,
+            reason: reason.slice(0, 200),
+            model,
+            escalated,
+            wouldHaveBeenDenied,
+            command: command.slice(0, 200),
+          });
+          // Slack only when AI would have escalated past the gate —
+          // routine "AI confirmed low" feedback stays quiet.
+          if (wouldHaveBeenDenied && riskCfg.notifySlack !== false && notifications) {
+            try {
+              notifications.pushAll(
+                `[RISK AI ESCALATE] ${worker}: classifier said ${classifierLevel}, AI says ${suggestedLevel}\n  reason: ${reason.slice(0, 200)}\n  cmd: ${command.slice(0, 200)}`,
+              );
+              notifications._flushSlack && notifications._flushSlack();
+            } catch { /* non-fatal */ }
+          }
+          result = {
+            recorded: true,
+            escalated,
+            wouldHaveBeenDenied,
+            severity: escalated ? suggestedLevel : classifierLevel,
+          };
+        } catch (e) {
+          result = { error: e.message };
+        }
+      }
+
     } else if (req.method === 'GET' && route === '/audit/verify') {
       // (10.2) Hash chain integrity check. Returns valid=false +
       // corruptedAt=<line index> when the log has been tampered with or
@@ -4313,6 +4411,29 @@ manager.on('sse', (event) => {
         : [],
       command: typeof event.command === 'string' ? event.command.slice(0, 500) : '',
       dryRun: event.dryRun === true,
+    },
+  });
+});
+
+// (11.5e v1.10.70) AI second-pass mirror: when the AI feedback
+// endpoint produces an escalation, scribe-v2 captures it under
+// the same `risk_deny` timeline type so a reviewer sees catalog
+// denials and AI escalations side-by-side. dryRun-style label
+// kept consistent with the audit type so an operator who's used
+// to risk_deny rows can read these without re-learning.
+manager.on('sse', (event) => {
+  if (!event || event.type !== 'risk_ai_feedback' || !event.worker) return;
+  if (!event.escalated) return;
+  safeRecord('risk_deny', {
+    worker: event.worker,
+    payload: {
+      level: event.suggestedLevel,
+      reasons: [{ code: 'ai-second-pass', label: event.reason || '' }],
+      command: typeof event.command === 'string' ? event.command : '',
+      dryRun: !event.wouldHaveBeenDenied, // AI would have caught it but enforcement didn't trip
+      aiSecondPass: true,
+      classifierLevel: event.classifierLevel,
+      model: event.model,
     },
   });
 });

@@ -92,6 +92,15 @@ const IDEMPOTENT_POSTS = {
   'POST /risk/check': () => ({
     command: 'rm -rf /tmp/test',
   }),
+  // (v1.10.70) AI second-pass feedback. Idempotent at the audit
+  // layer (each call appends a row but doesn't mutate live state).
+  'POST /risk/ai-feedback': () => ({
+    worker: 'runtime-drift-probe',
+    command: 'echo runtime-drift-probe',
+    classifierLevel: 'low',
+    suggestedLevel: 'low',
+    reason: 'runtime drift checker probe',
+  }),
 };
 
 function _ok(label) { console.log(`✔ ${label}`); }

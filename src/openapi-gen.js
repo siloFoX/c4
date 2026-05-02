@@ -75,6 +75,7 @@ const ROUTE_SUMMARIES = {
   'POST /risk/check': 'Run a Bash command through the risk classifier without dispatching it. Mirrors `c4 risk` + the PreToolUse hook so the Web UI can preview risk levels before sending.',
   'GET /risk/stats': 'Aggregate risk.denied audit events from the last N hours (windowHours, default 24, max 720). Returns total + breakdown by level + top reasons + top workers.',
   'GET /risk/patterns': 'Built-in risk classifier pattern catalog + operator-configured customRules / allowList / denyList counts. Useful for policy reviewers auditing the effective rule set.',
+  'POST /risk/ai-feedback': 'AI second-pass feedback hook. External LLM (operator-supplied) POSTs its level assessment of a command; daemon records to audit chain, broadcasts via SSE, and Slack-alerts when the AI escalates a command past the autoDenyLevel that the catalog missed.',
 };
 
 // Optional curated request/response schemas — populates the OpenAPI
@@ -1781,6 +1782,33 @@ const ROUTE_SCHEMAS = {
             },
           },
         },
+      },
+    },
+  },
+  'POST /risk/ai-feedback': {
+    requestBody: {
+      required: ['worker', 'command', 'classifierLevel', 'suggestedLevel'],
+      properties: {
+        worker: { type: 'string' },
+        command: { type: 'string', description: 'The candidate Bash command the AI evaluated' },
+        classifierLevel: { type: 'string', enum: ['low', 'medium', 'high', 'critical'], description: "What the built-in classifier returned" },
+        suggestedLevel: { type: 'string', enum: ['low', 'medium', 'high', 'critical'], description: "The AI's verdict" },
+        reason: { type: 'string', description: 'Free-text rationale (truncated to 500 chars in audit)' },
+        model: { type: 'string', description: 'Optional — provider/model name for audit traceability' },
+      },
+      example: {
+        worker: 'demo-1', command: 'tar czf /tmp/x.tgz /home/alice/.ssh',
+        classifierLevel: 'low', suggestedLevel: 'high',
+        reason: 'archives an entire .ssh directory which contains private keys',
+        model: 'claude-haiku-4-5',
+      },
+    },
+    response: {
+      properties: {
+        recorded: { type: 'boolean' },
+        escalated: { type: 'boolean', description: 'True when suggestedLevel > classifierLevel' },
+        wouldHaveBeenDenied: { type: 'boolean', description: 'True when AI level ≥ autoDenyLevel AND classifier level was below — i.e., catalog miss the AI caught' },
+        severity: { type: 'string', enum: ['low', 'medium', 'high', 'critical'], description: 'max(classifierLevel, suggestedLevel)' },
       },
     },
   },
