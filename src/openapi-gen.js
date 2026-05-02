@@ -73,6 +73,7 @@ const ROUTE_SUMMARIES = {
   'POST /status-update': 'Post a manual Slack status message tagged with a worker.',
   'GET /validation': 'Read the worker\'s .c4-validation.json (typecheck/lint/tests results) — synthesised from git state when missing.',
   'POST /risk/check': 'Run a Bash command through the risk classifier without dispatching it. Mirrors `c4 risk` + the PreToolUse hook so the Web UI can preview risk levels before sending.',
+  'GET /risk/stats': 'Aggregate risk.denied audit events from the last N hours (windowHours, default 24, max 720). Returns total + breakdown by level + top reasons + top workers.',
 };
 
 // Optional curated request/response schemas — populates the OpenAPI
@@ -1688,6 +1689,46 @@ const ROUTE_SCHEMAS = {
           type: 'object',
           nullable: true,
           description: 'Parsed JSON from <worktree>/.c4-validation.json, or a synthesised object from git state when the file is missing. Null when the worker exists but has no validation data yet.',
+        },
+      },
+    },
+  },
+  'GET /risk/stats': {
+    parameters: [
+      { name: 'windowHours', in: 'query', schema: { type: 'integer', default: 24, description: 'Lookback window in hours. Min 1, max 720 (30 days). Default 24.' } },
+    ],
+    response: {
+      properties: {
+        windowHours: { type: 'integer' },
+        from: { type: 'string', description: 'ISO timestamp — inclusive lower bound used for the audit query' },
+        to: { type: 'string' },
+        total: { type: 'integer', description: 'Total risk.denied events in the window' },
+        byLevel: {
+          type: 'object',
+          properties: {
+            critical: { type: 'integer' },
+            high: { type: 'integer' },
+            medium: { type: 'integer' },
+            low: { type: 'integer' },
+          },
+        },
+        topReasons: {
+          type: 'array',
+          items: {
+            properties: {
+              key: { type: 'string', description: 'Reason code (e.g., rm-rf-root)' },
+              count: { type: 'integer' },
+            },
+          },
+        },
+        topWorkers: {
+          type: 'array',
+          items: {
+            properties: {
+              key: { type: 'string', description: 'Worker name' },
+              count: { type: 'integer' },
+            },
+          },
         },
       },
     },

@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.55] - 2026-05-02
+
+Risk denial roll-up — operators can ask "what got blocked in
+the last 24h?" without grep'ing the audit log.
+
+### Added
+- **(daemon) `GET /api/risk/stats`** aggregates `risk.denied`
+  audit events from the last `windowHours` (default 24, max
+  720). Returns:
+  - `total` — count over the window
+  - `byLevel` — critical / high / medium / low counts
+  - `topReasons` — top 5 reason codes by frequency
+  - `topWorkers` — top 5 worker names by deny count
+  - `from` / `to` — exact window bounds (ISO timestamps)
+  - `windowHours` — echoed back so the caller can label the
+    output without doing its own clock math
+  Gated on `audit.read` (same role as /audit/query). Spec ops
+  112 → 113. Runtime drift coverage 49 → 50 routes.
+
+- **(cli) `c4 risk stats [--window-hours N] [--json]`** —
+  pretty-prints the same data. Indent / column-aligned output;
+  `--json` gives the raw response. Exits 1 when the daemon is
+  unreachable (regression-tested).
+
+- **(tests) `tests/cli-risk.test.js`** gains a `risk stats`
+  describe block (1 test currently — the unreachable-daemon
+  path; integration tests with seeded audit data live with the
+  full daemon-spawn suite).
+
+Suite 156/156. All four drift phases clean.
+
 ## [1.10.54] - 2026-05-02
 
 Risk classifier catalog gains 12 patterns drawn from real

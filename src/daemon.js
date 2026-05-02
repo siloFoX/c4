@@ -1537,6 +1537,56 @@ async function handleRequest(req, res) {
         result = { error: e.message };
       }
 
+    } else if (req.method === 'GET' && route === '/risk/stats') {
+      // (11.5) Aggregate risk.denied audit events into a quick-look
+      // summary. Window is `?windowHours=N` (default 24, max 720 / 30
+      // days). Returns total deny count, breakdown by level, top 5
+      // most-blocked reason codes, top 5 most-affected workers, and
+      // the time bounds used for the query so the caller can render
+      // "12 denies in the last 24h" without a follow-up clock check.
+      const gate = requireRole(authCheck, rbac.ACTIONS.AUDIT_READ);
+      if (denyOr(res, gate)) return;
+      try {
+        const windowHoursRaw = parseInt(url.searchParams.get('windowHours') || '24', 10);
+        const windowHours = Math.min(
+          Math.max(Number.isFinite(windowHoursRaw) && windowHoursRaw > 0 ? windowHoursRaw : 24, 1),
+          720,
+        );
+        const now = Date.now();
+        const fromIso = new Date(now - windowHours * 3600 * 1000).toISOString();
+        const events = audit.query({ type: 'risk.denied', from: fromIso, limit: 10000 });
+        const total = events.length;
+        const byLevel = { critical: 0, high: 0, medium: 0, low: 0 };
+        const reasonCounts = new Map();
+        const workerCounts = new Map();
+        for (const ev of events) {
+          const lvl = ev.details && ev.details.level;
+          if (lvl && Object.prototype.hasOwnProperty.call(byLevel, lvl)) byLevel[lvl] += 1;
+          const reasons = (ev.details && Array.isArray(ev.details.reasons)) ? ev.details.reasons : [];
+          for (const r of reasons) {
+            if (!r || typeof r.code !== 'string') continue;
+            reasonCounts.set(r.code, (reasonCounts.get(r.code) || 0) + 1);
+          }
+          const w = ev.actor || ev.target;
+          if (w) workerCounts.set(w, (workerCounts.get(w) || 0) + 1);
+        }
+        const top = (m, n) => Array.from(m.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, n)
+          .map(([key, count]) => ({ key, count }));
+        result = {
+          windowHours,
+          from: fromIso,
+          to: new Date(now).toISOString(),
+          total,
+          byLevel,
+          topReasons: top(reasonCounts, 5),
+          topWorkers: top(workerCounts, 5),
+        };
+      } catch (e) {
+        result = { error: e.message };
+      }
+
     } else if (req.method === 'POST' && route === '/risk/check') {
       // (11.5) Run a candidate command through the risk classifier
       // without dispatching it. Mirrors `c4 risk "<cmd>"` over HTTP so

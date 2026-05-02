@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.54
-// Generated at: 2026-05-02T02:11:53.005Z
+// Spec version: 1.10.55
+// Generated at: 2026-05-02T02:37:18.535Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -368,6 +368,30 @@ export interface getAuditExportParams {
   lineEnd?: "crlf" | "lf";
 }
 export type getAuditExportResponse = unknown;
+
+export interface getRiskStatsParams {
+  windowHours?: number;
+}
+export interface getRiskStatsResponse {
+  windowHours?: number;
+  from?: string; /** ISO timestamp — inclusive lower bound used for the audit query */
+  to?: string;
+  total?: number; /** Total risk.denied events in the window */
+  byLevel?: {
+  critical?: number;
+  high?: number;
+  medium?: number;
+  low?: number;
+};
+  topReasons?: {
+  key?: string; /** Reason code (e.g., rm-rf-root) */
+  count?: number;
+}[];
+  topWorkers?: {
+  key?: string; /** Worker name */
+  count?: number;
+}[];
+}
 
 export interface postRiskCheckBody {
   command: string; /** Candidate Bash command to classify */
@@ -1777,6 +1801,15 @@ export class C4Client {
     return this.request<getAuditExportResponse>({
       method: 'GET',
       path: '/api/audit/export',
+      params: params as unknown as Record<string, unknown> | undefined,
+    });
+  }
+
+  /** Aggregate risk.denied audit events from the last N hours (windowHours, default 24, max 720). Returns total + breakdown by level + top reasons + top workers. */
+  async getRiskStats(params?: getRiskStatsParams): Promise<getRiskStatsResponse> {
+    return this.request<getRiskStatsResponse>({
+      method: 'GET',
+      path: '/api/risk/stats',
       params: params as unknown as Record<string, unknown> | undefined,
     });
   }

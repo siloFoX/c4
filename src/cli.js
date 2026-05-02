@@ -4405,9 +4405,38 @@ async function main() {
         const wantJson = args.includes('--json');
         const wantDecoded = args.includes('--decoded');
         const positional = args.filter((a) => !a.startsWith('--'));
+        // Subcommand: `c4 risk stats` — aggregate audit chain denies.
+        if (positional[0] === 'stats') {
+          const windowIdx = args.indexOf('--window-hours');
+          const windowHours = windowIdx >= 0 ? args[windowIdx + 1] : '24';
+          const stats = await request('GET', `/risk/stats?windowHours=${encodeURIComponent(windowHours)}`);
+          if (!stats || stats.error) {
+            console.error('Failed:', stats?.error || 'unknown error');
+            process.exit(1);
+          }
+          if (wantJson) { console.log(JSON.stringify(stats, null, 2)); return; }
+          console.log(`Risk denies (last ${stats.windowHours}h): ${stats.total}`);
+          console.log(`  Window: ${stats.from} → ${stats.to}`);
+          console.log(`  By level:`);
+          for (const lvl of ['critical', 'high', 'medium', 'low']) {
+            const n = (stats.byLevel && stats.byLevel[lvl]) || 0;
+            if (n > 0) console.log(`    ${lvl.padEnd(8)} ${n}`);
+          }
+          if (stats.topReasons.length) {
+            console.log(`  Top reasons:`);
+            for (const r of stats.topReasons) console.log(`    [${r.key}] ${r.count}`);
+          }
+          if (stats.topWorkers.length) {
+            console.log(`  Top workers:`);
+            for (const w of stats.topWorkers) console.log(`    ${w.key.padEnd(20)} ${w.count}`);
+          }
+          return;
+        }
         const command = positional.join(' ');
         if (!command) {
-          console.error('Usage: c4 risk "<command>" [--json] [--decoded]');
+          console.error('Usage:');
+          console.error('  c4 risk "<command>" [--json] [--decoded]   classify a candidate command');
+          console.error('  c4 risk stats [--window-hours N] [--json]  aggregate denies from the audit chain');
           process.exit(1);
         }
         const { classifyCommand } = require('./risk-classifier');

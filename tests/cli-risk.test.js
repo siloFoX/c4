@@ -25,7 +25,7 @@ function _run(args, env) {
     // Force daemon URL to a port that won't respond so the CLI
     // takes the "config fetch failed" path — keeps the test
     // hermetic even when a real daemon is running on 3456.
-    env: { ...process.env, C4_DAEMON_URL: 'http://127.0.0.1:1', ...env },
+    env: { ...process.env, C4_URL: 'http://127.0.0.1:1', ...env },
   });
 }
 
@@ -64,7 +64,10 @@ describe('c4 risk CLI', () => {
   it('missing argument → exit 1 with usage on stderr', () => {
     const r = _run([]);
     assert.equal(r.status, 1);
-    assert.match(r.stderr, /Usage: c4 risk/);
+    // v1.10.55 added the `stats` subcommand, so usage now spans two
+    // lines under a leading "Usage:" header.
+    assert.match(r.stderr, /Usage:[\s\S]*c4 risk "<command>"/);
+    assert.match(r.stderr, /c4 risk stats/);
   });
 
   it('--decoded surfaces the inspected source on obfuscated cases', () => {
@@ -82,5 +85,24 @@ describe('c4 risk CLI', () => {
     const r = _run(['rm', '-rf', '/']);
     assert.equal(r.status, 1);
     assert.match(r.stdout, /CRITICAL/);
+  });
+});
+
+describe('c4 risk stats CLI (v1.10.55)', () => {
+  // The stats subcommand calls the running daemon. With the unit
+  // env's bogus C4_DAEMON_URL the request fails and the CLI exits
+  // non-zero, which is itself a useful regression to lock in. A
+  // separate integration test (full daemon) lives downstream.
+  it('subcommand fails cleanly when daemon unreachable', () => {
+    const r = spawnSync('node', [CLI, 'risk', 'stats'], {
+      encoding: 'utf8',
+      timeout: 10000,
+      env: { ...process.env, C4_URL: 'http://127.0.0.1:1' },
+    });
+    assert.equal(r.status, 1, 'should exit non-zero on unreachable daemon');
+    // The CLI's request() helper throws a "Daemon not running?" error
+    // before our code path sees it — matches either prefix to stay
+    // robust against future error-message tweaks.
+    assert.match(r.stderr, /Daemon not running|Failed:/);
   });
 });
