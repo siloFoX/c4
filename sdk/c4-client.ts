@@ -3,7 +3,7 @@
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
 // Spec version: 1.10.94
-// Generated at: 2026-05-02T07:27:20.220Z
+// Generated at: 2026-05-02T07:28:48.787Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -1963,7 +1963,7 @@ export class C4Client {
     });
   }
 
-  /** Shadow execution. Refuses unless `riskClassifier.sandbox.allowExec===true` in config (defaults off). Refuses NullRuntime. Captures stdout/stderr/exitCode/duration with hard timeout + buffer caps; emits scribe-v2 `risk_shadow_exec` + audit-chain `risk.shadow_exec`. Returns the result envelope on every code path (incl. refused). */
+  /** Shadow execution. Refuses unless `riskClassifier.sandbox.allowExec===true` in config (defaults off). Refuses NullRuntime. Captures stdout/stderr/exitCode/duration with hard timeout + buffer caps; emits scribe-v2 `risk_shadow_exec` + audit-chain `risk.shadow_exec` (with stdoutHash/stderrHash fingerprints). (v1.10.94) Slack-alerts on anomalies (KILLED / EXIT-N / SPAWN-ERROR) — routine successes stay silent. Returns the result envelope on every code path (incl. refused). */
   async postRiskExec(body: postRiskExecBody): Promise<postRiskExecResponse> {
     return this.request<postRiskExecResponse>({
       method: 'POST',
