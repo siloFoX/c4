@@ -3274,4 +3274,176 @@ describe('classifyCommand v1.10.157+ recent additions', () => {
         `${cmd}: should not match`);
     }
   });
+
+  // (v1.10.176) Backfill tests for v1.10.167-175 rules.
+  it('system-files /etc/issue + /etc/motd extension (v1.10.167)', () => {
+    for (const cmd of [
+      'echo backdoor > /etc/issue',
+      'echo backdoor >> /etc/issue.net',
+      'echo motd > /etc/motd',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'system-files'),
+        `${cmd}: expected system-files`);
+    }
+  });
+
+  it('sshd-config-write (v1.10.168)', () => {
+    for (const cmd of [
+      'echo "PermitRootLogin yes" >> /etc/ssh/sshd_config',
+      'echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config',
+      'cat config | tee /etc/ssh/sshd_config',
+      'echo evil > /etc/ssh/sshd_config.d/00-evil.conf',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'sshd-config-write'),
+        `${cmd}: expected sshd-config-write`);
+    }
+    // reads stay low
+    assert.strictEqual(classifyCommand('cat /etc/ssh/sshd_config').level, 'low');
+  });
+
+  it('ca-cert-trust (v1.10.168)', () => {
+    for (const cmd of [
+      'echo evil > /etc/ssl/certs/evil.pem',
+      'cp /tmp/evil.pem /usr/local/share/ca-certificates/',
+      'cp /tmp/evil.crt /etc/pki/ca-trust/source/anchors/',
+      'update-ca-certificates',
+      'sudo update-ca-trust',
+      'trust anchor /tmp/evil.crt',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'ca-cert-trust'),
+        `${cmd}: expected ca-cert-trust`);
+    }
+    // reads stay low
+    assert.strictEqual(classifyCommand('cat /etc/ssl/certs/ca-bundle.crt').level, 'low');
+  });
+
+  it('passwd-no-auth (v1.10.169)', () => {
+    for (const cmd of [
+      'usermod -p "" root',
+      "usermod -p '' root",
+      'passwd -d root',
+      'useradd -u 0 evil',
+      'useradd -o -u 0 evil',
+      'groupadd -g 0 evilgroup',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'passwd-no-auth'),
+        `${cmd}: expected passwd-no-auth`);
+    }
+    // legitimate forms stay low
+    for (const cmd of ['passwd user', 'passwd --status user', 'useradd -u 1001 newuser', 'groupadd newgroup']) {
+      assert.ok(!classifyCommand(cmd).reasons.some((x) => x.code === 'passwd-no-auth'),
+        `${cmd}: should not match`);
+    }
+  });
+
+  it('setfacl-sensitive (v1.10.170)', () => {
+    for (const cmd of [
+      'setfacl -m u:evil:rwx /etc/shadow',
+      'setfacl -m g:hackers:rwx /etc/passwd',
+      'setfacl -m u:evil:r ~/.ssh/id_rsa',
+      'setfacl -m u:evil:r /root/.aws/credentials',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'setfacl-sensitive'),
+        `${cmd}: expected setfacl-sensitive`);
+    }
+    // user files stay low
+    assert.ok(!classifyCommand('setfacl -m u:user:rwx /home/user/proj').reasons.some(
+      (x) => x.code === 'setfacl-sensitive'));
+  });
+
+  it('chattr -i on system paths (v1.10.171)', () => {
+    for (const cmd of [
+      'chattr -i /usr/bin/ssh',
+      'chattr -i /etc/passwd',
+      'chattr -i /var/log/auth.log',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'chattr-immutable'),
+        `${cmd}: expected chattr-immutable`);
+    }
+  });
+
+  it('cloud-metadata-fetch (v1.10.172)', () => {
+    for (const cmd of [
+      'curl http://169.254.169.254/latest/meta-data/iam/security-credentials/role',
+      'curl http://metadata.google.internal/computeMetadata/v1/',
+      'wget http://169.254.169.254/',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'cloud-metadata-fetch'),
+        `${cmd}: expected cloud-metadata-fetch`);
+    }
+    // unrelated curls stay low
+    assert.ok(!classifyCommand('curl http://example.com/api').reasons.some(
+      (x) => x.code === 'cloud-metadata-fetch'));
+  });
+
+  it('fs-destroy (v1.10.173)', () => {
+    for (const cmd of [
+      'wipefs -a /dev/sda',
+      'wipefs --all /dev/nvme0n1',
+      'lvremove -f /dev/vg/lv',
+      'zfs destroy -r tank/data',
+      'btrfs subvolume delete /mnt/snapshot',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'fs-destroy'),
+        `${cmd}: expected fs-destroy`);
+    }
+    // non-destructive forms stay low
+    for (const cmd of [
+      'btrfs subvolume snapshot / /mnt/backup',
+      'lvremove /dev/vg/lv',
+      'zfs destroy tank/data',
+    ]) {
+      assert.ok(!classifyCommand(cmd).reasons.some((x) => x.code === 'fs-destroy'),
+        `${cmd}: should not match`);
+    }
+  });
+
+  it('firewall-allow extension to ufw / fail2ban (v1.10.174)', () => {
+    for (const cmd of [
+      'ufw default allow incoming',
+      'ufw allow from 0.0.0.0/0',
+      'ufw allow from ::/0',
+      'fail2ban-client unban 1.2.3.4',
+      'fail2ban-client set jail unbanip 1.2.3.4',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'firewall-allow'),
+        `${cmd}: expected firewall-allow`);
+    }
+    // benign forms stay low
+    for (const cmd of ['ufw status', 'ufw allow ssh', 'fail2ban-client status']) {
+      assert.ok(!classifyCommand(cmd).reasons.some((x) => x.code === 'firewall-allow'),
+        `${cmd}: should not match`);
+    }
+  });
+
+  it('cron-spool-write extension to anacron / incron (v1.10.175)', () => {
+    for (const cmd of [
+      'echo "@reboot /tmp/evil" >> /etc/anacrontab',
+      'echo data > /var/spool/anacron/cron.daily',
+      'echo "/tmp evil_event /tmp/evil.sh" > /etc/incron.d/evil',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'cron-spool-write'),
+        `${cmd}: expected cron-spool-write`);
+    }
+  });
 });

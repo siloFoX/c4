@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.176] - 2026-05-03
+
+**Backfill unit tests for v1.10.167-175 catalog rules.** The
+recent 9 ships shipped with manual node-eval verification
+only; this release locks them in with proper unit tests.
+
+### Added
+- **`tests/risk-classifier.test.js`**: 9 new `it()` cases under
+  the existing `v1.10.157+ recent additions` describe block
+  covering:
+  - `system-files` /etc/issue + /etc/motd extension (v1.10.167)
+  - `sshd-config-write` (v1.10.168)
+  - `ca-cert-trust` (v1.10.168)
+  - `passwd-no-auth` (v1.10.169)
+  - `setfacl-sensitive` (v1.10.170)
+  - `chattr-immutable` -i extension (v1.10.171)
+  - `cloud-metadata-fetch` (v1.10.172)
+  - `fs-destroy` (v1.10.173)
+  - `firewall-allow` ufw + fail2ban extension (v1.10.174)
+  - `cron-spool-write` anacron + incron extension (v1.10.175)
+  Each block exercises representative attack shells AND
+  regression cases. Suite stays at 178 (full); risk-classifier
+  file 289 → 299 cases.
+
 ## [1.10.175] - 2026-05-03
 
 **`cron-spool-write` extended to anacron + incron.** The
