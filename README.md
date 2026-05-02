@@ -390,12 +390,16 @@ These are used by Claude Code (manager), not by you directly:
 
 **Safety**
 - **L4 Critical Deny List**: Absolutely block destructive commands (rm -rf, drop table, etc.)
+- **Risk classifier**: 54 patterns (critical/high/medium tiers) with 9 obfuscation defeats (base64, $(), backtick, ${IFS}, \xHH, etc.) catch hook-time. Per-machine `allowList` / `denyList` / `customRules` overrides. `dryRun` observation mode for tuning. AI second-pass plumbing for external LLM verdicts. See [`docs/risk-sandbox.md`](docs/risk-sandbox.md).
+- **Sandbox dispatcher (11.5)**: DockerRuntime command builder + shadow execution endpoint. Pure-builder preview shows the exact `docker run` argv that would isolate a command; `allowExec`-gated `POST /api/risk/exec` actually runs it with hardened defaults (`--network=none --read-only --cap-drop=ALL --user=nobody --pids-limit=64` + 5s timeout + 16KB buffer cap). Content fingerprints (16-char SHA-256) on every result so audit chain stays lean.
 - **CI feedback loop**: Auto-run `npm test` after commit
 - **Intervention Slack alert**: Immediate notification on worker intervention
 - **Manager Handoff Summary**: Inject decision context on manager rotation
 - **Custom Agent definition**: Define agent roles via `.claude/agents/manager.md`
+- **Audit chain**: Hash-chained `audit.jsonl` with tamper detection via `GET /api/audit/verify`
 
 **Infrastructure**
+- **Agent Framework (9.1)**: 7 adapters across 4 shapes — claude-code (PTY), codex (PTY), local-{ollama,llama-cpp,vllm} (HTTP-stream), claude-agent-sdk (DI-callable), mock (in-memory test fixture). Rules-based router + hybrid heuristic for cross-adapter routing. See [`docs/agent-framework.md`](docs/agent-framework.md).
 - **Hook architecture**: PreToolUse/PostToolUse JSON event processing
 - **MCP server**: HTTP MCP protocol endpoint for external tool integration
 - **Adaptive polling**: Dynamic idle detection interval based on output activity
