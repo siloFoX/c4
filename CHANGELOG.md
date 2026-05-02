@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.103] - 2026-05-03
+
+**Sidebar collapse Ctrl+B browser test** (TODO 8.40). Verifies
+the keyboard shortcut actually toggles the sidebar's CSS width
+class — `md:w-72` (288px) ↔ `md:w-14` (56px) — and the v1.10.40
+animation classes are present.
+
+### Added
+- **`tests/web-smoke.test.js`** — 4 new cases under
+  "Sidebar collapse keyboard shortcut (8.40)" describe:
+  - sidebar starts in expanded state (`md:w-72`)
+  - Ctrl+B collapses (`md:w-72` → `md:w-14`)
+  - Ctrl+B again expands (`md:w-14` → `md:w-72`)
+  - sidebar carries `transition-[width] duration-200` (the
+    8.40 animation spec)
+
+  Sidebar lookup uses `aside.className.includes('shrink-0')`
+  to skip the onboarding tour overlay (which is positioned
+  `absolute` and doesn't carry `shrink-0`).
+
+### Changed
+- **`tests/run-all.js`** — per-file timeout 60s → 120s.
+  Web-smoke now has 13 cases across 3 describes (smoke +
+  AppHeader IA + sidebar collapse) and total runtime is ~63s
+  for the file. The cap is set to ~2× the actual runtime to
+  allow the file to grow as more 8.x UI tracks land.
+
+### Test impact
+Suite stays at 175. Full `npm test` runtime ~90s on this host
+(~30s pre-Playwright). The web smoke tests are the bulk of the
+new time; per-test overhead is dominated by Chromium boot
+(~3s) which is amortized across cases via shared context.
+
 ## [1.10.102] - 2026-05-03
 
 **AppHeader + main IA browser tests** (TODO 8.37). Builds on

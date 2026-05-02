@@ -216,3 +216,77 @@ describe('AppHeader + main IA (8.37)', () => {
     assert.ok(hasSidebarWorkers, 'sidebar Workers section not found');
   });
 });
+
+// (v1.10.103) Sidebar collapse via Ctrl+B (TODO 8.40). Verifies
+// the keyboard shortcut actually toggles the sidebar's width
+// class from `md:w-72` (288px) to `md:w-14` (56px) and back.
+describe('Sidebar collapse keyboard shortcut (8.40)', () => {
+  let ctx, page;
+
+  before(async () => {
+    if (!chromiumReady) return;
+    ctx = await browser.newContext();
+    page = await ctx.newPage();
+    await page.goto('http://127.0.0.1:3456/', { timeout: 10000 });
+    await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
+    for (const text of ['투어 건너뛰기', 'Skip tour', '닫기', 'Close']) {
+      const btn = await page.$(`button:has-text("${text}")`).catch(() => null);
+      if (btn) {
+        await btn.click().catch(() => {});
+        await page.waitForTimeout(150);
+      }
+    }
+  });
+
+  after(async () => {
+    if (ctx) await ctx.close().catch(() => {});
+  });
+
+  // Helper: locate the Workers sidebar (the <aside> with the
+  // shrink-0 utility — the onboarding overlay uses absolute
+  // positioning instead).
+  async function _sidebarSnapshot() {
+    return page.evaluate(() => {
+      const aside = Array.from(document.querySelectorAll('aside')).find(
+        (a) => a.className.includes('shrink-0')
+      );
+      if (!aside) return null;
+      return {
+        className: aside.className,
+        width: aside.offsetWidth,
+      };
+    });
+  }
+
+  it('sidebar starts in expanded state (md:w-72)', async (t) => {
+    if (!chromiumReady) return t.skip('chromium / daemon not ready');
+    const s = await _sidebarSnapshot();
+    assert.ok(s, 'shrink-0 sidebar not found');
+    assert.match(s.className, /md:w-72/, 'expanded sidebar should carry md:w-72');
+  });
+
+  it('Ctrl+B collapses the sidebar (md:w-72 → md:w-14)', async (t) => {
+    if (!chromiumReady) return t.skip('chromium / daemon not ready');
+    await page.keyboard.press('Control+b');
+    await page.waitForTimeout(300);
+    const s = await _sidebarSnapshot();
+    assert.match(s.className, /md:w-14/, `expected md:w-14 after toggle; got ${s.className.slice(0, 100)}`);
+    assert.ok(!/md:w-72(?!\d)/.test(s.className), 'md:w-72 should be removed when collapsed');
+  });
+
+  it('Ctrl+B again expands the sidebar back (md:w-14 → md:w-72)', async (t) => {
+    if (!chromiumReady) return t.skip('chromium / daemon not ready');
+    await page.keyboard.press('Control+b');
+    await page.waitForTimeout(300);
+    const s = await _sidebarSnapshot();
+    assert.match(s.className, /md:w-72/, 'expected md:w-72 after second toggle');
+  });
+
+  it('sidebar carries the v1.10.40 transition class', async (t) => {
+    if (!chromiumReady) return t.skip('chromium / daemon not ready');
+    const s = await _sidebarSnapshot();
+    // 200ms ease-out animation is part of the 8.40 spec
+    assert.match(s.className, /transition-\[width\]/, 'animation class missing');
+    assert.match(s.className, /duration-200/);
+  });
+});
