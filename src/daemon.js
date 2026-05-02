@@ -1597,7 +1597,13 @@ async function handleRequest(req, res) {
         );
         const now = Date.now();
         const fromIso = new Date(now - windowHours * 3600 * 1000).toISOString();
-        const events = audit.query({ type: 'risk.denied', from: fromIso, limit: 10000 });
+        // (v1.10.63) Stats includes both real denies AND dry-run hits
+        // so an operator running in observation mode still sees the
+        // numbers. Each event carries a `dryRun` flag in details so
+        // callers can filter further.
+        const denied = audit.query({ type: 'risk.denied', from: fromIso, limit: 10000 });
+        const dryRun = audit.query({ type: 'risk.dryRun', from: fromIso, limit: 10000 });
+        const events = denied.concat(dryRun);
         const total = events.length;
         const byLevel = { critical: 0, high: 0, medium: 0, low: 0 };
         const reasonCounts = new Map();
@@ -1622,6 +1628,8 @@ async function handleRequest(req, res) {
           from: fromIso,
           to: new Date(now).toISOString(),
           total,
+          enforced: denied.length,
+          dryRun: dryRun.length,
           byLevel,
           topReasons: top(reasonCounts, 5),
           topWorkers: top(workerCounts, 5),
@@ -4257,7 +4265,13 @@ manager.on('sse', (event) => {
 // /api/audit/verify.
 manager.on('sse', (event) => {
   if (!event || event.type !== 'risk_deny' || !event.worker) return;
-  _safeAudit('risk.denied',
+  // (v1.10.63) Audit type splits on dryRun so reviewers can filter:
+  //   - risk.denied: enforcement actually blocked the command
+  //   - risk.dryRun: classifier matched but enforcement was off
+  //                  (operator running in observation mode)
+  // Detail shape stays identical so existing dashboards keep working.
+  const auditType = event.dryRun ? 'risk.dryRun' : 'risk.denied';
+  _safeAudit(auditType,
     {
       level: event.level,
       reasons: Array.isArray(event.reasons)
@@ -4265,6 +4279,7 @@ manager.on('sse', (event) => {
         : [],
       command: typeof event.command === 'string' ? event.command.slice(0, 500) : '',
       decoded: typeof event.decoded === 'string' ? event.decoded.slice(0, 500) : null,
+      dryRun: event.dryRun === true,
     },
     { actor: event.worker, target: event.worker },
   );

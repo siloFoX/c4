@@ -182,13 +182,14 @@ function validate(config = {}) {
   if (config.riskClassifier && typeof config.riskClassifier === 'object') {
     const KNOWN_RISK_KEYS = new Set([
       'enabled',
+      'dryRun',
       'autoDenyLevel',
       'notifySlack',
       'allowList',
       'denyList',
       'customRules',
     ]);
-    const BOOL_KEYS = new Set(['enabled', 'notifySlack']);
+    const BOOL_KEYS = new Set(['enabled', 'dryRun', 'notifySlack']);
     for (const [k, v] of Object.entries(config.riskClassifier)) {
       if (k.startsWith('_') && k.endsWith('_doc')) continue;
       if (!KNOWN_RISK_KEYS.has(k)) {

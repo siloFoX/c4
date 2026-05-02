@@ -1751,7 +1751,9 @@ const ROUTE_SCHEMAS = {
         windowHours: { type: 'integer' },
         from: { type: 'string', description: 'ISO timestamp — inclusive lower bound used for the audit query' },
         to: { type: 'string' },
-        total: { type: 'integer', description: 'Total risk.denied events in the window' },
+        total: { type: 'integer', description: 'Total events in the window (enforced + dryRun)' },
+        enforced: { type: 'integer', description: 'risk.denied events — gate actually blocked the command' },
+        dryRun: { type: 'integer', description: 'risk.dryRun events — would have been blocked if dryRun was off' },
         byLevel: {
           type: 'object',
           properties: {

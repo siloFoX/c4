@@ -27,10 +27,11 @@ before(() => {
   audit = new AuditLogger({ logPath: path.join(tmpdir, 'audit.jsonl') });
   manager = new EventEmitter();
 
-  // Mirror the daemon wiring (src/daemon.js v1.10.51).
+  // Mirror the daemon wiring (src/daemon.js v1.10.51 + v1.10.63).
   manager.on('sse', (event) => {
     if (!event || event.type !== 'risk_deny' || !event.worker) return;
-    audit.record('risk.denied',
+    const auditType = event.dryRun ? 'risk.dryRun' : 'risk.denied';
+    audit.record(auditType,
       {
         level: event.level,
         reasons: Array.isArray(event.reasons)
@@ -38,6 +39,7 @@ before(() => {
           : [],
         command: typeof event.command === 'string' ? event.command.slice(0, 500) : '',
         decoded: typeof event.decoded === 'string' ? event.decoded.slice(0, 500) : null,
+        dryRun: event.dryRun === true,
       },
       { actor: event.worker, target: event.worker },
     );
@@ -128,6 +130,22 @@ describe('risk_deny → audit chain', () => {
     const events = audit.query({ type: 'risk.denied', target: 'fixture-5' });
     assert.equal(events.length, 1);
     assert.ok(events[0].details.command.length <= 500);
+  });
+
+  it('dryRun event lands in risk.dryRun (not risk.denied)', () => {
+    manager.emit('sse', {
+      type: 'risk_deny',
+      worker: 'fixture-dryrun',
+      level: 'critical',
+      command: 'rm -rf /',
+      reasons: [{ code: 'rm-rf-root', label: 'rm -rf /' }],
+      dryRun: true,
+    });
+    const denied = audit.query({ type: 'risk.denied', target: 'fixture-dryrun' });
+    const dryRun = audit.query({ type: 'risk.dryRun', target: 'fixture-dryrun' });
+    assert.equal(denied.length, 0, 'should NOT land in risk.denied');
+    assert.equal(dryRun.length, 1, 'should land in risk.dryRun');
+    assert.equal(dryRun[0].details.dryRun, true);
   });
 
   it('non-risk_deny SSE events do NOT touch the audit log', () => {

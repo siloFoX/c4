@@ -526,33 +526,51 @@ class PtyManager extends EventEmitter {
         if (LEVEL_RANK[classification.level] >= LEVEL_RANK[autoDenyLevel]) {
           const reasonCodes = classification.reasons.map((r) => r.code).join(', ');
           const reasonLabel = classification.reasons[0] ? classification.reasons[0].label : classification.level;
+          // (v1.10.63) dryRun mode: classify + audit + Slack like the
+          // enforcement path, but DON'T return action:'deny'. Lets
+          // operators tune thresholds against real worker traffic
+          // before flipping enforcement on.
+          const dryRun = riskCfg.dryRun === true;
+          const screenTag = dryRun ? 'RISK DRYRUN' : 'HOOK RISK';
           worker.snapshots.push({
             time: Date.now(),
-            screen: `[HOOK RISK ${classification.level.toUpperCase()}] Bash: ${command}\n  reasons: ${reasonCodes}`,
+            screen: `[${screenTag} ${classification.level.toUpperCase()}] Bash: ${command}\n  reasons: ${reasonCodes}`,
             autoAction: true,
-            riskBlock: true,
+            riskBlock: !dryRun,
+            riskDryRun: dryRun,
             hookEvent: true,
           });
+          // SSE event type stays 'risk_deny' even in dry-run so the
+          // audit handler captures it the same way; subscribers can
+          // branch on the new `dryRun` field if they want to render
+          // dry-run rows differently.
           this._emitSSE('risk_deny', {
             worker: workerName,
             level: classification.level,
             command,
             reasons: classification.reasons.map((r) => ({ code: r.code, label: r.label })),
             decoded: classification.decoded || null,
+            dryRun,
           });
           if (riskCfg.notifySlack !== false && this._notifications) {
             try {
+              const slackTag = dryRun ? 'DRYRUN' : 'DENY';
               this._notifications.pushAll(
-                `[RISK ${classification.level.toUpperCase()} DENY] ${workerName}: ${reasonLabel}\n  cmd: ${command.slice(0, 200)}`,
+                `[RISK ${classification.level.toUpperCase()} ${slackTag}] ${workerName}: ${reasonLabel}\n  cmd: ${command.slice(0, 200)}`,
               );
               this._notifications._flushSlack();
             } catch { /* non-fatal */ }
           }
-          result.action = 'deny';
-          result.reason = `risk-classifier ${classification.level}: ${reasonLabel}`;
-          result.riskLevel = classification.level;
-          result.riskReasons = reasonCodes;
-          return result;
+          if (dryRun) {
+            // Annotate the result with what the gate WOULD have done —
+            // useful for operators tailing /api/events. Don't deny.
+          } else {
+            result.action = 'deny';
+            result.reason = `risk-classifier ${classification.level}: ${reasonLabel}`;
+            result.riskLevel = classification.level;
+            result.riskReasons = reasonCodes;
+            return result;
+          }
         }
       }
     }

@@ -136,6 +136,36 @@ describe('PreToolUse → risk-classifier integration', () => {
     assert.equal(r2.action, 'deny');
   });
 
+  it('dryRun mode: classifies + audits but does NOT deny', () => {
+    const m = _makeManager({ enabled: true, dryRun: true });
+    const w = _makeWorker();
+    const r = m._handlePreToolUse('w1', w, 'Bash',
+      { command: 'rm -rf /' }, { hook_type: 'PreToolUse' });
+    // Action must NOT be deny — dryRun is observation mode.
+    assert.notEqual(r.action, 'deny');
+    // SSE event still fires (with dryRun:true), so audit chain
+    // captures it as risk.dryRun.
+    const ev = m._sseEvents.find((e) => e.type === 'risk_deny');
+    assert.ok(ev, 'risk_deny SSE event still emitted');
+    assert.equal(ev.payload.dryRun, true);
+    // Snapshot tag uses RISK DRYRUN (not HOOK RISK).
+    assert.equal(w.snapshots.length, 1);
+    assert.match(w.snapshots[0].screen, /RISK DRYRUN CRITICAL/);
+    assert.equal(w.snapshots[0].riskBlock, false);
+    assert.equal(w.snapshots[0].riskDryRun, true);
+  });
+
+  it('dryRun=false (default) preserves enforcement behaviour', () => {
+    const m = _makeManager({ enabled: true });
+    const w = _makeWorker();
+    const r = m._handlePreToolUse('w1', w, 'Bash',
+      { command: 'rm -rf /' }, { hook_type: 'PreToolUse' });
+    assert.equal(r.action, 'deny');
+    const ev = m._sseEvents.find((e) => e.type === 'risk_deny');
+    // dryRun should be false (or undefined) on the SSE event.
+    assert.notEqual(ev.payload.dryRun, true);
+  });
+
   it('runs BEFORE scope guard (catastrophic commands blocked even when scope is permissive)', () => {
     const m = _makeManager({ enabled: true });
     const w = _makeWorker();

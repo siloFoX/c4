@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.62
-// Generated at: 2026-05-02T03:16:49.940Z
+// Spec version: 1.10.63
+// Generated at: 2026-05-02T03:21:51.142Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -414,7 +414,9 @@ export interface getRiskStatsResponse {
   windowHours?: number;
   from?: string; /** ISO timestamp — inclusive lower bound used for the audit query */
   to?: string;
-  total?: number; /** Total risk.denied events in the window */
+  total?: number; /** Total events in the window (enforced + dryRun) */
+  enforced?: number; /** risk.denied events — gate actually blocked the command */
+  dryRun?: number; /** risk.dryRun events — would have been blocked if dryRun was off */
   byLevel?: {
   critical?: number;
   high?: number;

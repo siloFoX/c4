@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.10.63] - 2026-05-02
+
+Risk classifier dry-run mode — observe-only enforcement.
+
+### Added
+- **(config) `riskClassifier.dryRun: true`** runs the
+  classifier and audits hits but DOESN'T return
+  `action: 'deny'`. Lets operators tune thresholds and
+  `customRules`/`allowList` against real worker traffic
+  before flipping enforcement on. Default false.
+- **(daemon) Audit type splits on dryRun:**
+  - `risk.denied` — gate actually blocked
+  - `risk.dryRun` — would have blocked if dryRun was off
+  Same detail shape (level / reasons / command / decoded)
+  plus a `dryRun: boolean` flag. Existing dashboards keep
+  working; new dashboards can filter on the audit type.
+- **(daemon) `/api/risk/stats`** now returns `enforced` and
+  `dryRun` counts in addition to `total`. Stats include both
+  audit types so an operator running in dry-run still sees
+  the rollup.
+- **(SSE)** `risk_deny` event gains a `dryRun: boolean` field.
+  Snapshot tag uses `RISK DRYRUN` (not `HOOK RISK`) so the
+  worker scrollback lets a reader tell the modes apart.
+  `riskBlock`/`riskDryRun` flags on the snapshot row mirror
+  the SSE field.
+- **(config-validate)** `dryRun` added to known riskClassifier
+  keys + boolean type-check.
+
+### Tests
+- `risk-classifier-hook.test.js` — 2 new tests covering
+  dryRun flow + dryRun=false default.
+- `risk-classifier-audit.test.js` — 1 new test asserting
+  dryRun events land in `risk.dryRun` not `risk.denied`.
+
+Suite 157/157. All four drift phases clean.
+
 ## [1.10.62] - 2026-05-02
 
 Two new patterns + a terminator-class extension. Catalog
