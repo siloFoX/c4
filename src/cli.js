@@ -4607,6 +4607,15 @@ async function main() {
               console.log(`  non-zero exit:    ${stats.shadowExecNonZero}`);
             }
           }
+          // (v1.10.97) Rule-set rotation detector — flag when the
+          // classifier config changed mid-window. Operators rotating
+          // rules during an audit window need to know.
+          if (typeof stats.ruleSetRotations === 'number' && stats.ruleSetRotations > 1) {
+            console.log(`Rule-set rotations: ${stats.ruleSetRotations} (config changed mid-window)`);
+            if (Array.isArray(stats.fingerprintsObserved)) {
+              for (const fp of stats.fingerprintsObserved) console.log(`  - ${fp}`);
+            }
+          }
           return;
         }
         const command = positional.join(' ');

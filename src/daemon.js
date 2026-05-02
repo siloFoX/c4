@@ -1645,6 +1645,15 @@ async function handleRequest(req, res) {
           if (d.killed === true) shadowExecKilled += 1;
           if (typeof d.exitCode === 'number' && d.exitCode !== 0) shadowExecNonZero += 1;
         }
+        // (v1.10.97) Rule-set rotation detector — collect the unique
+        // ruleFingerprint values seen in this window across all four
+        // typed audit rows. >1 means the operator changed classifier
+        // config mid-window. Sorted so the response is deterministic.
+        const fingerprintsObserved = new Set();
+        for (const ev of events.concat(shadowExec)) {
+          const fp = ev.details && ev.details.ruleFingerprint;
+          if (typeof fp === 'string' && fp.length > 0) fingerprintsObserved.add(fp);
+        }
         result = {
           windowHours,
           from: fromIso,
@@ -1658,6 +1667,8 @@ async function handleRequest(req, res) {
           byLevel,
           topReasons: top(reasonCounts, 5),
           topWorkers: top(workerCounts, 5),
+          fingerprintsObserved: [...fingerprintsObserved].sort(),
+          ruleSetRotations: fingerprintsObserved.size,
         };
       } catch (e) {
         result = { error: e.message };

@@ -1761,6 +1761,8 @@ const ROUTE_SCHEMAS = {
         shadowExec: { type: 'integer', description: '(v1.10.90) risk.shadow_exec events — explicit /risk/exec calls that ran in the configured sandbox. Separate from `total` since shadow exec is operator-initiated, not a denial.' },
         shadowExecKilled: { type: 'integer', description: '(v1.10.90) Subset of shadowExec where killed=true (timeout fired)' },
         shadowExecNonZero: { type: 'integer', description: '(v1.10.90) Subset of shadowExec where exitCode != 0' },
+        fingerprintsObserved: { type: 'array', items: { type: 'string' }, description: '(v1.10.97) Unique 16-char ruleFingerprint values seen across all risk audit rows in this window. >1 means the rule set rotated mid-window.' },
+        ruleSetRotations: { type: 'integer', description: '(v1.10.97) Count of distinct fingerprints observed (= fingerprintsObserved.length). 0 = no risk audit rows in window. 1 = consistent rule set. >1 = operator changed classifier config mid-window.' },
         byLevel: {
           type: 'object',
           properties: {

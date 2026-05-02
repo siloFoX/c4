@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.96
-// Generated at: 2026-05-02T07:43:41.774Z
+// Spec version: 1.10.97
+// Generated at: 2026-05-02T07:46:51.720Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -421,6 +421,8 @@ export interface getRiskStatsResponse {
   shadowExec?: number; /** (v1.10.90) risk.shadow_exec events — explicit /risk/exec calls that ran in the configured sandbox. Separate from `total` since shadow exec is operator-initiated, not a denial. */
   shadowExecKilled?: number; /** (v1.10.90) Subset of shadowExec where killed=true (timeout fired) */
   shadowExecNonZero?: number; /** (v1.10.90) Subset of shadowExec where exitCode != 0 */
+  fingerprintsObserved?: string[]; /** (v1.10.97) Unique 16-char ruleFingerprint values seen across all risk audit rows in this window. >1 means the rule set rotated mid-window. */
+  ruleSetRotations?: number; /** (v1.10.97) Count of distinct fingerprints observed (= fingerprintsObserved.length). 0 = no risk audit rows in window. 1 = consistent rule set. >1 = operator changed classifier config mid-window. */
   byLevel?: {
   critical?: number;
   high?: number;

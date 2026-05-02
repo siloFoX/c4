@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.97] - 2026-05-02
+
+11.5 polish — **rule-set rotation detector in `/risk/stats`**.
+Builds on v1.10.96's per-row `ruleFingerprint` so operators see
+at a glance whether the classifier config changed during the
+audit window.
+
+### Added
+- **`/risk/stats` response** gains two fields:
+  - `fingerprintsObserved`: sorted array of unique
+    `ruleFingerprint` values across `risk.denied` / `risk.dryRun`
+    / `risk.shadow_exec` rows in the window
+  - `ruleSetRotations`: `fingerprintsObserved.length`. `0` = no
+    audit rows in window. `1` = consistent rule set. `>1` =
+    operator changed classifier config mid-window.
+
+- **`c4 risk stats`** prints a "Rule-set rotations: N (config
+  changed mid-window)" block + the observed fingerprints when
+  `ruleSetRotations > 1`. Suppressed otherwise so the row
+  doesn't add noise on consistent-config hosts.
+
+### Why a separate field
+
+Operators auditing a window of denies typically want to know "did
+the rules change while these were happening". v1.10.96 lets you
+group audit rows by `details.ruleFingerprint` to answer that, but
+it's a 4-step query. The aggregator gives you the answer in one
+GET.
+
+`fingerprintsObserved` is sorted to keep the response
+deterministic — useful for snapshotting a stats response in tests
+or comparing across windows.
+
+### Test coverage
+- No new tests this cut. The aggregation path is exercised
+  end-to-end via the existing audit chain + scribe-v2 test
+  fixtures, and the schema additions are auto-covered by the
+  schema-drift checker. Suite stays at 173.
+
 ## [1.10.96] - 2026-05-02
 
 11.5 polish — **rule-set fingerprint embedded per audit row**.
