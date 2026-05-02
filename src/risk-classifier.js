@@ -540,7 +540,7 @@ const HIGH_PATTERNS = [
     // Also extended to cover the `tee [-a]` write form, mirroring
     // authorized-keys-append. `cat payload | sudo tee /etc/passwd`
     // previously slipped because tee writes weren't caught.
-    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/etc\/(?:passwd|shadow|gshadow|group|sudoers|hosts(?:\.(?:allow|deny))?|crontab|fstab|resolv\.conf|nsswitch\.conf|securetty|login\.defs|aliases|(?:cron|at)\.(?:allow|deny))\b/,
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/etc\/(?:passwd|shadow|gshadow|group|sudoers|hosts(?:\.(?:allow|deny))?|crontab|fstab|resolv\.conf|nsswitch\.conf|securetty|login\.defs|aliases|(?:cron|at)\.(?:allow|deny)|issue(?:\.net)?|motd)\b/,
   },
   // (v1.10.119) Drop-in config directory writes — same threat surface
   // as the top-level files but reached through `<file>.d/`. Not caught
@@ -981,7 +981,7 @@ const HIGH_PATTERNS = [
   {
     code: 'download-into-system-file',
     label: 'curl -o / wget -O directly into /etc/<system-file>',
-    re: /\b(?:curl|wget)\s+(?:[^\n;|&]*\s)?-[oO]\s+\/etc\/(?:passwd|shadow|gshadow|group|sudoers|hosts(?:\.(?:allow|deny))?|crontab|fstab|resolv\.conf|nsswitch\.conf|securetty|login\.defs|aliases|(?:cron|at)\.(?:allow|deny))\b/,
+    re: /\b(?:curl|wget)\s+(?:[^\n;|&]*\s)?-[oO]\s+\/etc\/(?:passwd|shadow|gshadow|group|sudoers|hosts(?:\.(?:allow|deny))?|crontab|fstab|resolv\.conf|nsswitch\.conf|securetty|login\.defs|aliases|(?:cron|at)\.(?:allow|deny)|issue(?:\.net)?|motd)\b/,
   },
   // (v1.10.130) bpftrace / bpftool / bpf load — eBPF kernel
   // tracing has legitimate uses (perf debugging, syscall
@@ -1051,7 +1051,7 @@ const HIGH_PATTERNS = [
   {
     code: 'sed-system-file-edit',
     label: 'sed -i / awk -i inplace / perl -pi on /etc/<system-file>',
-    re: /\b(?:sed\s+(?:-[a-zA-Z]*i[a-zA-Z]*(?:\.\S+)?\s+|--in-place\s+)|awk\s+-i\s+inplace\s+|perl\s+-[a-zA-Z]*p[a-zA-Z]*i\b)[^\n;|&]*\/etc\/(?:passwd|shadow|gshadow|group|sudoers|hosts(?:\.(?:allow|deny))?|crontab|fstab|resolv\.conf|nsswitch\.conf|securetty|login\.defs|aliases|(?:cron|at)\.(?:allow|deny))\b/,
+    re: /\b(?:sed\s+(?:-[a-zA-Z]*i[a-zA-Z]*(?:\.\S+)?\s+|--in-place\s+)|awk\s+-i\s+inplace\s+|perl\s+-[a-zA-Z]*p[a-zA-Z]*i\b)[^\n;|&]*\/etc\/(?:passwd|shadow|gshadow|group|sudoers|hosts(?:\.(?:allow|deny))?|crontab|fstab|resolv\.conf|nsswitch\.conf|securetty|login\.defs|aliases|(?:cron|at)\.(?:allow|deny)|issue(?:\.net)?|motd)\b/,
   },
   // (v1.10.131) tar -xPf or tar --absolute-names — absolute
   // path extraction. Without -P, tar strips leading slashes;

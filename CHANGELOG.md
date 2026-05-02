@@ -4,6 +4,20 @@
 
 (no entries — next release window)
 
+## [1.10.167] - 2026-05-03
+
+**`system-files` / `sed-system-file-edit` /
+`download-into-system-file` extended to /etc/issue + /etc/motd.**
+Login banner spoofing — replacing `/etc/issue` (pre-login
+prompt), `/etc/issue.net` (network login banner), or
+`/etc/motd` (post-login motd) — is a phishing primitive that
+fakes login screens for harvesting credentials.
+
+### Changed
+- All three rules' file lists extended with `issue`,
+  `issue.net`, and `motd`. Same threat tier (HIGH) as the
+  rest of the rule's targets.
+
 ## [1.10.166] - 2026-05-03
 
 **Backfill unit tests for v1.10.157+ catalog rules.** The
