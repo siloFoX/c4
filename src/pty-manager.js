@@ -5845,6 +5845,39 @@ class PtyManager extends EventEmitter {
       sections.push('_Could not read token usage._');
     }
 
+    // 5. Cost summary (v1.10.100) — bills the last 24h of history
+    // records against the configured rate table. Skipped silently
+    // when cost-report can't be required or no records have token
+    // counts (pre-1.10.99 history files).
+    try {
+      const costReport = require('./cost-report');
+      const cfg = this.config && this.config.costs ? this.config.costs : {};
+      const reporter = new costReport.CostReporter({
+        costs: cfg.models,
+        loadRecords: () => costReport.loadHistoryRecords(HISTORY_FILE),
+      });
+      const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+      const report = reporter.report({ from: since, groupBy: 'project' });
+      const total = report && report.total;
+      if (total && total.records > 0 && total.costUSD > 0) {
+        sections.push('');
+        sections.push('## Cost (last 24h)');
+        sections.push(`- Total: $${total.costUSD.toFixed(4)} USD`);
+        sections.push(`- Records: ${total.records}`);
+        sections.push(`- Tokens: ${total.inputTokens.toLocaleString()} in / ${total.outputTokens.toLocaleString()} out`);
+        if (Array.isArray(report.byGroup) && report.byGroup.length > 0) {
+          sections.push('');
+          sections.push('Top 3 by project:');
+          for (const g of report.byGroup.slice(0, 3)) {
+            sections.push(`  - ${g.name}: $${g.costUSD.toFixed(4)} (${g.records} records)`);
+          }
+        }
+      }
+    } catch {
+      // Cost summary is best-effort — never break the morning
+      // report if cost-report fails to load.
+    }
+
     // Write report
     const reportDir = path.dirname(reportPath);
     if (!fs.existsSync(reportDir)) {

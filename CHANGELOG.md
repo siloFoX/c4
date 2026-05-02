@@ -4,6 +4,58 @@
 
 (no entries — next release window)
 
+## [1.10.100] - 2026-05-02
+
+**Morning report includes Cost (last 24h)** section. Operators
+running `c4 morning` get a daily dollar summary alongside the
+existing token-usage block — no separate `c4 cost report`
+invocation needed.
+
+### Added
+- **`PtyManager.generateMorningReport()`** — new "## Cost (last
+  24h)" section appended to the report when:
+  - cost-report module loads cleanly
+  - history.jsonl has records with non-zero token counts
+    (introduced in v1.10.99)
+  - total cost > 0
+
+  Output:
+  ```
+  ## Cost (last 24h)
+  - Total: $4.5212 USD
+  - Records: 17
+  - Tokens: 234,560 in / 67,890 out
+
+  Top 3 by project:
+    - main: $3.2110 (12 records)
+    - feature-x: $1.0500 (3 records)
+    - docs: $0.2602 (2 records)
+  ```
+
+  Best-effort — when cost-report fails to load OR no records
+  carry token data OR total cost is zero, the section is
+  silently omitted. Legacy morning reports (pre-1.10.99 history
+  data) see no output change.
+
+### Why this completes the cost loop
+
+| ship      | piece                                              |
+|-----------|----------------------------------------------------|
+| 1.10.98   | rate table recognizes claude-opus-4-7 etc.         |
+| 1.10.99   | history.jsonl carries inputTokens / outputTokens / model |
+| **1.10.100**| **morning report bills against the records**     |
+
+Operators running `c4 auto` overnight now get a real dollar
+number in the morning. Before this chain (1.10.97 and earlier),
+the morning report had token counts but no cost — operators had
+to multiply by published rates in their head.
+
+### Test impact
+
+No new tests. The cost summary path is best-effort and existing
+morning report behavioural tests continue to pass; cost-report
+itself has its own test suite. Suite stays at 174.
+
 ## [1.10.99] - 2026-05-02
 
 **Cost-report data enrichment**: history.jsonl now carries token
