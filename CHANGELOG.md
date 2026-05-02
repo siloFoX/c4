@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.57] - 2026-05-02
+
+Risk classifier denoise: shell-comment false-positive fix.
+
+### Fixed
+- **(risk-classifier) `# rm -rf / would be dangerous`** — a
+  pure comment line — used to classify as critical because
+  the inner pattern matched against the comment text. Shell
+  never executes a comment, so the classifier shouldn't pretend
+  it does. The denoise pass now drops everything from `#`
+  (after whitespace or start-of-line) through the end of the
+  line before the catalog runs.
+
+  Boundary documented in tests:
+  - pure comment → low
+  - `cmd # comment` keeps `cmd`'s classification
+  - `# inside "string"` is NOT stripped (no shell tokeniser —
+    requires whitespace or BOL before the `#`)
+  - smuggling: `rm -rf / # nvm` still classifies critical
+    (attacker can't comment-out the danger after the fact)
+
+5 new tests in `tests/risk-classifier.test.js` (88 in that
+suite, was 83). Suite 156/156. All four drift phases clean.
+
+### Known limitation
+Echo with a literal dangerous string still flags
+(`echo "do not run rm -rf /"` → critical). Fixing requires
+real shell tokenisation, which we don't do. The recommended
+workaround is `riskClassifier.allowList: ["^echo "]` for
+machines that emit a lot of documentation commands.
+
 ## [1.10.56] - 2026-05-02
 
 Pattern catalog inspection — operator can now ask "what

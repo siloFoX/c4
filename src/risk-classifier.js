@@ -331,6 +331,15 @@ const MEDIUM_PATTERNS = [
 function _denoiseCommand(cmd) {
   let out = cmd;
 
+  // (v1.10.57) Strip shell line comments BEFORE pattern matching so
+  // documentation like `# rm -rf / would be dangerous` doesn't trip
+  // the rm-rf-root rule. We do NOT strip inline `#` (e.g. inside
+  // a string literal) — that would require real tokenisation. Only
+  // a `#` that follows whitespace OR start-of-line is treated as a
+  // comment; everything from that point through the next newline is
+  // dropped.
+  out = out.replace(/(^|\s)#[^\n]*/g, '$1');
+
   // Base64 decode hint: if we see `base64 -d` followed by a quoted
   // literal, decode and inline so downstream patterns match.
   const b64Re = /(?:echo|printf)\s+["']([A-Za-z0-9+/=]{8,})["']\s*\|\s*base64\s+(?:-d|--decode|-D)\b/g;

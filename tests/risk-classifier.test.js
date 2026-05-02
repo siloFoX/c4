@@ -371,6 +371,46 @@ describe('_denoiseCommand helper', () => {
   });
 });
 
+describe('classifyCommand v1.10.57 comment stripping', () => {
+  // Shell line comments (`# ...`) used to trigger the inner pattern.
+  // `# rm -rf / would be dangerous` would classify as critical even
+  // though shell never executes the comment text. The denoise pass
+  // now drops everything from `#` (after whitespace or start-of-line)
+  // through the end of the line before the patterns run.
+
+  it('pure comment line classifies as low (was critical)', () => {
+    const r = classifyCommand('# rm -rf / would be dangerous');
+    assert.strictEqual(r.level, 'low');
+  });
+
+  it('command + trailing comment uses only the command part', () => {
+    // Command stays high (legitimate cleanup); comment is stripped.
+    const r = classifyCommand('rm -rf node_modules # cleanup');
+    assert.strictEqual(r.level, 'high');
+  });
+
+  it('# inside a quoted string is NOT stripped (no shell tokeniser)', () => {
+    // We only strip when `#` follows whitespace or starts the line.
+    // Documents the boundary; `echo "#abc"` should remain low (the
+    // # is preceded by `"`, not whitespace).
+    const r = classifyCommand('echo "#abc" hi');
+    assert.strictEqual(r.level, 'low');
+  });
+
+  it('comment at end of dangerous command keeps the command flagged', () => {
+    // A would-be attacker can't smuggle a critical past the
+    // classifier by tacking a `#` onto the end.
+    const r = classifyCommand('rm -rf / # please don\'t actually');
+    assert.strictEqual(r.level, 'critical');
+  });
+
+  it('regression: rm -rf / still classifies critical (sanity)', () => {
+    // The comment fix shouldn't have broken the base catalog.
+    const r = classifyCommand('rm -rf /');
+    assert.strictEqual(r.level, 'critical');
+  });
+});
+
 describe('classifyCommand v1.10.54 patterns', () => {
   // New patterns shipped to fill gaps the original 28 missed.
   // Each test asserts the level the operator should see — not
