@@ -416,6 +416,21 @@ const CRITICAL_PATTERNS = [
     label: 'write to /etc/ssh/sshd_config (sshd auth policy tampering)',
     re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/etc\/ssh\/sshd_config(?:\.d\/[\w.-]+)?\b/,
   },
+  // (v1.10.179) APT keyring trust manipulation — adding an
+  // attacker GPG key to apt's trust store means apt-get
+  // update / install will accept signed packages from the
+  // attacker's repo. Critical because it bypasses the
+  // signing-based supply-chain controls that apt provides.
+  // Forms covered:
+  //   apt-key add <file>                    legacy
+  //   apt-key adv --keyserver <X> --recv... legacy
+  //   write to /etc/apt/trusted.gpg.d/      modern
+  //   write to /usr/share/keyrings/         modern
+  {
+    code: 'apt-key-trust',
+    label: 'apt-key add / write to /etc/apt/trusted.gpg.d/ or /usr/share/keyrings/ (apt trust tampering)',
+    re: /\bapt-key\s+(?:add\b|adv\s+(?:[^\n;|&]*\s)?--recv-keys\b)|(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?|\b(?:cp|mv|install)\s+\S+\s+)(?:\/etc\/apt\/trusted\.gpg\.d|\/usr\/share\/keyrings)(?:\/\S*)?(?=\s|$|;|&|\|)/,
+  },
   // (v1.10.168) Trusted CA certificate write — adding a
   // malicious cert to the system trust store means every TLS
   // connection on the host can be MITM'd by the attacker.

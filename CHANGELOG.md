@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.179] - 2026-05-03
+
+**`apt-key-trust` (critical) catalog pattern.** Adding an
+attacker GPG key to apt's trust store means apt-get update /
+install will accept signed packages from the attacker's
+repo. Critical because it bypasses the signing-based
+supply-chain controls that apt provides.
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `apt-key-trust`. Catches:
+  - `apt-key add <file>` (legacy)
+  - `apt-key adv --keyserver <X> --recv-keys ...` (legacy)
+  - Redirects/tees/cp/mv/install into
+    `/etc/apt/trusted.gpg.d/` or `/usr/share/keyrings/`
+    (modern key install paths)
+  Reads (`apt-key list`, `cat <keyring>`, `ls`) and deletion
+  (`apt-key del`) stay LOW.
+
 ## [1.10.178] - 2026-05-03
 
 **`boot-config-write` extended to /etc/default/grub +
