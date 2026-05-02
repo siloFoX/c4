@@ -4,6 +4,51 @@
 
 (no entries — next release window)
 
+## [1.10.134] - 2026-05-03
+
+**Two new docker container-escape patterns**: `docker-root-mount`
+(critical) and `docker-escape-flags` (high). The existing
+`docker-privileged` and `docker-sock-mount` rules cover the
+two most catastrophic escape forms; this release fills in the
+intermediate gaps that achieve nearly the same effect through
+individual flag combinations.
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `docker-root-mount`. Catches
+  `docker run -v /:/<target>`, `docker create -v /:/...`, and
+  `docker exec -v /:/...`. Mounting host root into a container
+  gives full read/write access to the host filesystem — same
+  severity as `docker-sock-mount` and `--privileged`. Partial
+  mounts (`-v /tmp:/tmp`, `-v $PWD:/app`) stay LOW.
+
+- **`PATTERN_CATALOG.high`** entry `docker-escape-flags`. Catches:
+  - `--network=host` / `--network host` — host networking
+  - `--pid=host` — host PID namespace
+  - `--ipc=host` — host IPC namespace
+  - `--userns=host` — host user namespace
+  - `--cap-add=SYS_ADMIN` / `NET_ADMIN` / `SYS_PTRACE` /
+    `SYS_MODULE` / `ALL` — kernel privilege escalation
+  - `--security-opt apparmor=unconfined` /
+    `seccomp=unconfined` / `no-new-privileges=false` — drops
+    mandatory access controls
+  Each turns the container into something close to a normal
+  host process. The all-in-one `--privileged` form is already
+  caught; this rule covers the partial-privileged shapes.
+  Defensive flags (`--cap-drop=ALL`) and benign flags
+  (`--network=bridge`, `--cap-add=NET_BIND_SERVICE`,
+  `-p 80:80`) stay LOW.
+
+- **`tests/risk-classifier.test.js`**: 4 new `it()` cases —
+  2 attack assertions (5 + 10 commands) + 2 regression
+  assertions (4 + 7 commands). Suite stays at 175.
+  Risk-classifier file 222 → 226 cases.
+
+### Catalog totals
+- Critical: 24 patterns (+1: docker-root-mount)
+- High: 37 patterns (+1: docker-escape-flags)
+- Medium: 18 patterns (+0)
+- **Total: 80 → 82**
+
 ## [1.10.133] - 2026-05-03
 
 **`git-history-destructive` pattern.** The existing

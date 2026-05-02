@@ -134,6 +134,17 @@ const CRITICAL_PATTERNS = [
     // privileged: catastrophic, no benign cause.
     re: /\bdocker\s+(?:run|create|exec)\s+[^\n;|&]*-v\s+\/var\/run\/docker\.sock/,
   },
+  // (v1.10.134) Docker root-fs mount — `-v /:/host` (or any
+  // mount of host `/`) gives the container read/write to the
+  // entire host filesystem. Same severity as docker.sock mount
+  // and `--privileged`: container escape primitive, no benign
+  // cause. The path can land in any container target dir, so
+  // we match `/` followed by `:` and any non-space target.
+  {
+    code: 'docker-root-mount',
+    label: 'docker run -v /:/<target> (mount host root into container)',
+    re: /\bdocker\s+(?:run|create|exec)\s+[^\n;|&]*-v\s+\/:\S/,
+  },
   {
     code: 'curl-pipe-interpreter',
     label: 'curl | python / perl / ruby / node (remote code exec)',
@@ -476,6 +487,22 @@ const HIGH_PATTERNS = [
     code: 'docker-privileged',
     label: 'docker run --privileged',
     re: /\bdocker\s+(?:run|exec)\s+[^\n;|&]*--privileged\b/,
+  },
+  // (v1.10.134) Docker host-namespace shares + capability adds
+  // — each turns the container into something close to a normal
+  // host process. `--network=host` (host networking), `--pid=host`
+  // (host PID namespace), `--ipc=host`, `--userns=host` are the
+  // four host-namespace flags. `--cap-add=SYS_ADMIN`/`NET_ADMIN`/
+  // `ALL` grants kernel privileges that defeat the default cap
+  // drop. `--security-opt=apparmor=unconfined` /
+  // `seccomp=unconfined` drops mandatory access controls.
+  // Tier: high (--privileged catches the all-in-one form;
+  // these individual flags are equivalent to partial privileged
+  // mode and review-worthy).
+  {
+    code: 'docker-escape-flags',
+    label: 'docker --network=host / --pid=host / --cap-add / --security-opt unconfined',
+    re: /\bdocker\s+(?:run|create|exec)\s+(?:[^\n;|&]*\s)?(?:--network[\s=]+host\b|--pid[\s=]+host\b|--ipc[\s=]+host\b|--userns[\s=]+host\b|--cap-add[\s=]+(?:SYS_ADMIN|NET_ADMIN|SYS_PTRACE|SYS_MODULE|ALL)\b|--security-opt[\s=]+(?:apparmor=unconfined|seccomp=unconfined|no-new-privileges=false)\b)/,
   },
   {
     code: 'reboot-shutdown',

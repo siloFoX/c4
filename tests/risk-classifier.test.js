@@ -668,6 +668,74 @@ describe('classifyCommand v1.10.67 patterns', () => {
     }
   });
 
+  // (v1.10.134) Docker container escape patterns. Two new rules:
+  // docker-root-mount (critical) for `-v /:/...` and
+  // docker-escape-flags (high) for host-namespace shares and
+  // dangerous capability/security-opt grants.
+  it('docker-root-mount: -v /:/<target> → critical (v1.10.134)', () => {
+    for (const cmd of [
+      'docker run -v /:/host alpine',
+      'docker run -v /:/host -it alpine',
+      'docker create -v /:/h alpine',
+      'docker exec -v /:/h c1 sh',
+      'sudo docker run -v /:/host -it alpine sh',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'docker-root-mount'),
+        `${cmd}: expected docker-root-mount`);
+    }
+  });
+
+  it('docker-root-mount — partial mount stays low (regression)', () => {
+    for (const cmd of [
+      'docker run -v /tmp:/tmp alpine',
+      'docker run -v /home/user:/work alpine',
+      'docker run -v ./data:/data alpine',
+      'docker run -v $PWD:/app alpine',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'docker-root-mount'),
+        `${cmd}: should not match docker-root-mount`);
+    }
+  });
+
+  it('docker-escape-flags: --network=host / --pid=host / --cap-add=SYS_ADMIN → high (v1.10.134)', () => {
+    for (const cmd of [
+      'docker run --network host alpine',
+      'docker run --network=host alpine sh',
+      'docker run --pid=host alpine',
+      'docker run --ipc=host alpine',
+      'docker run --userns=host alpine',
+      'docker run --cap-add=SYS_ADMIN alpine',
+      'docker run --cap-add=ALL alpine',
+      'docker run --cap-add=NET_ADMIN alpine',
+      'docker run --security-opt apparmor=unconfined alpine',
+      'docker run --security-opt seccomp=unconfined alpine',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'docker-escape-flags'),
+        `${cmd}: expected docker-escape-flags`);
+    }
+  });
+
+  it('docker-escape-flags — benign flags stay low (regression)', () => {
+    for (const cmd of [
+      'docker run alpine',                            // no flags
+      'docker run --network=bridge alpine',           // explicit bridge (default)
+      'docker run --cap-drop=ALL alpine',             // defensive cap-drop
+      'docker run --cap-add=NET_BIND_SERVICE alpine', // benign cap
+      'docker run --cap-add=NET_RAW alpine',          // ping/traceroute, lower-tier
+      'docker run -p 80:80 alpine',                   // port mapping
+      'docker ps',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'docker-escape-flags'),
+        `${cmd}: should not match docker-escape-flags`);
+    }
+  });
+
   it('reading non-credential dotfiles stays low (regression)', () => {
     for (const cmd of [
       'cat ~/.bashrc',         // routine
