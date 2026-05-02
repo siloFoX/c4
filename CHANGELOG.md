@@ -4,6 +4,59 @@
 
 (no entries — next release window)
 
+## [1.10.101] - 2026-05-02
+
+**Web UI smoke tests via Playwright + Chromium**. Closes the gap
+where the React Web UI had only source-grep coverage and no
+browser-level verification. Operators editing the bundle now
+catch render regressions before they ship.
+
+### Added
+- **`playwright`** as a `devDependencies` entry. Bundled
+  Chromium installs on `npx playwright install chromium` (one-
+  shot post-install).
+
+- **`tests/web-smoke.test.js`** — 6 cases under one describe.
+  All gated on three checks:
+  1. Playwright module loadable (`require('playwright')`)
+  2. Daemon reachable on `:3456`
+  3. Chromium binary launches headless
+
+  Any gate fail → all behavioural cases skip cleanly. CI hosts
+  without the browser see one passing "gates" placeholder + 5
+  skipped cases (no false failures).
+
+  Cases:
+  - `/` loads with title "C4 Dashboard" (HTML shell + JS bundle,
+    no 5xx)
+  - `/api/health` returns `{ok:true, version}` JSON
+  - Initial paint produces no console errors (filters known-
+    expected `401` from `/api/list` pre-login)
+  - Login form renders when unauthenticated (any `<input>`
+    appears — bundle render check)
+  - `/openapi.json` renders the spec (50+ paths, not the SPA
+    shell)
+  - Gate placeholder always passes (visible state row)
+
+### Why this matters
+
+Pre-1.10.101, every UI track in TODO 8.x was implicitly
+"untestable on the dev box without a browser" — operators
+shipped UI changes blind, relying on manual `c4 daemon start +
+open browser` verification. Playwright + bundled Chromium now
+runs the same smoke checks under `npm test`, gated cleanly so
+hosts without the browser fall through.
+
+The 6 cases focus on render-level regressions (bundle 404,
+title broken, console errors, missing inputs). Per-feature UI
+tests for 8.34 / 8.37 / 8.38 / etc. land as separate cuts on
+top of this scaffold.
+
+### Test impact
+
+Suite 174 → 175. Adds ~5s to `npm test` when Chromium is
+available; near-zero when gates fail through.
+
 ## [1.10.100] - 2026-05-02
 
 **Morning report includes Cost (last 24h)** section. Operators
