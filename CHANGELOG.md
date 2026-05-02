@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.173] - 2026-05-03
+
+**`fs-destroy` (critical) catalog pattern.** Filesystem &
+volume destruction tools that complement mkfs /
+dd-block-device / shred-block-device / overwrite-block-device:
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `fs-destroy`. Catches:
+  - `wipefs -a` / `--all <disk>` (filesystem signature wipe)
+  - `lvremove -f` / `--force <lv>` (LVM logical volume
+    removal)
+  - `zfs destroy -r` / `-R <dataset>` (ZFS recursive
+    destroy)
+  - `btrfs subvolume delete <path>` (btrfs subvolume
+    deletion)
+  Critical because these turn a disk / volume into unmounted
+  bits with no recovery. Operators occasionally use them; in
+  a worker context, the catalog flags for review.
+  Non-destructive forms (`btrfs subvolume snapshot/list`,
+  `wipefs --help`, `lvremove` without -f, `zfs destroy`
+  without -r) stay LOW.
+
 ## [1.10.172] - 2026-05-03
 
 **`cloud-metadata-fetch` (critical) catalog pattern.** Cloud

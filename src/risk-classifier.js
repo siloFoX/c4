@@ -106,6 +106,18 @@ const CRITICAL_PATTERNS = [
     label: 'shred /dev/* (irreversible disk wipe)',
     re: /\bshred\b[^\n;|&]*\s\/dev\/(?:sd[a-z]\d*|nvme\d+(?:n\d+)?|hd[a-z]\d*|mmcblk\d+(?:p\d+)?)(?:\s|$|;|&|\|)/,
   },
+  // (v1.10.173) wipefs / lvremove / zfs destroy / btrfs delete —
+  // filesystem & volume destruction tools. Same critical-tier
+  // family as mkfs / dd-block-device — these turn a disk into
+  // unmounted bits. Operators occasionally use them; in a
+  // worker context, they're catastrophic.
+  // wipefs supports both `-a` (short) and `--all` (long); same
+  // for the others.
+  {
+    code: 'fs-destroy',
+    label: 'wipefs -a / lvremove -f / zfs destroy -r / btrfs subvolume delete (filesystem wipe)',
+    re: /\b(?:wipefs\s+(?:[^\n;|&]*\s)?(?:-a\b|--all\b)|lvremove\s+(?:[^\n;|&]*\s)?(?:-f\b|--force\b)|zfs\s+destroy\s+(?:[^\n;|&]*\s)?(?:-r\b|-R\b)|btrfs\s+subvolume\s+delete\b)/,
+  },
   {
     code: 'curl-pipe-shell',
     label: 'curl | sh / wget | bash (remote execution)',
