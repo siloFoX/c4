@@ -1904,6 +1904,8 @@ const ROUTE_SCHEMAS = {
         exitCode: { type: 'number', nullable: true, description: 'null when killed by signal/timeout' },
         stdout: { type: 'string', description: 'Truncated to bufferLimit; appended marker `\\n[...truncated]\\n`' },
         stderr: { type: 'string' },
+        stdoutHash: { type: 'string', description: '(v1.10.86) 16-char SHA-256 hex fingerprint of stdout (post-truncation). Empty stdout still gets a hash so audit rows have stable shape.' },
+        stderrHash: { type: 'string', description: '(v1.10.86) 16-char SHA-256 hex fingerprint of stderr.' },
         durationMs: { type: 'number' },
         killed: { type: 'boolean', description: 'True when the host-side timeout fired' },
         command: { type: 'string', description: 'Echoed verbatim for audit cross-checks' },

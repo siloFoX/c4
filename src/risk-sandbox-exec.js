@@ -50,7 +50,19 @@
  */
 
 const { spawn } = require('child_process');
+const { createHash } = require('crypto');
 const { NullRuntime } = require('./risk-sandbox-runtime');
+
+// (v1.10.86) Compact fingerprint for stdout/stderr content. SHA-256
+// hex truncated to 16 chars — 64 bits of collision space, plenty
+// for audit cross-checks ("did this run produce the same output as
+// last time"), and short enough that a hash pair adds ~36 bytes
+// per audit row instead of 16KB. Empty strings still get a hash so
+// audit rows have a stable shape.
+const HASH_LENGTH = 16;
+function _fingerprint(text) {
+  return createHash('sha256').update(text || '', 'utf8').digest('hex').slice(0, HASH_LENGTH);
+}
 
 class BlockedByRuntimeError extends Error {
   constructor(message) {
@@ -104,10 +116,13 @@ async function executeInSandbox(runtime, command, opts) {
 
   // Result envelope — built up as exec progresses, returned in
   // every code path.
+  const emptyHash = _fingerprint('');
   const result = {
     exitCode: null,
     stdout: '',
     stderr: '',
+    stdoutHash: emptyHash,
+    stderrHash: emptyHash,
     durationMs: 0,
     killed: false,
     command,
@@ -199,6 +214,14 @@ async function executeInSandbox(runtime, command, opts) {
         + (stdoutTruncated ? TRUNC_MARKER : '');
       result.stderr = Buffer.concat(stderrChunks).toString('utf8')
         + (stderrTruncated ? TRUNC_MARKER : '');
+      // (v1.10.86) Content fingerprints — added BEFORE the truncation
+      // marker so two runs that produce identical content but differ
+      // in whether they hit the cap don't collide on hash. Practical
+      // upshot: the hash represents exactly what got captured, marker
+      // included; auditors comparing two hashes know whether the runs
+      // produced byte-identical output.
+      result.stdoutHash = _fingerprint(result.stdout);
+      result.stderrHash = _fingerprint(result.stderr);
       resolve(result);
     });
   });
@@ -214,4 +237,9 @@ module.exports = {
   MIN_BUFFER_LIMIT,
   MAX_BUFFER_LIMIT,
   TRUNC_MARKER,
+  HASH_LENGTH,
+  // (v1.10.86) Exported for tests + ad-hoc audit cross-check
+  // ("recompute the fingerprint of THIS captured stdout and
+  // compare to the one in the audit row").
+  _fingerprint,
 };

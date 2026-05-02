@@ -57,6 +57,14 @@ describe('POST /risk/exec — daemon route wireup', () => {
     assert.match(block, /manager\._audit/);
   });
 
+  it('audit emission includes stdoutHash + stderrHash (v1.10.86)', () => {
+    const start = daemonSrc.indexOf("route === '/risk/exec'");
+    const end = daemonSrc.indexOf("route === '/risk/preview'", start);
+    const block = daemonSrc.slice(start, end);
+    assert.match(block, /stdoutHash:\s*execResult\.stdoutHash/);
+    assert.match(block, /stderrHash:\s*execResult\.stderrHash/);
+  });
+
   it('handler catches BlockedByRuntimeError and surfaces refused:true', () => {
     const start = daemonSrc.indexOf("route === '/risk/exec'");
     const end = daemonSrc.indexOf("route === '/risk/preview'", start);

@@ -4,6 +4,89 @@
 
 (no entries — next release window)
 
+## [1.10.86] - 2026-05-02
+
+11.5 Stage 2 — **content fingerprints** for shadow exec output.
+Adds `stdoutHash` / `stderrHash` (16-char SHA-256 prefix) to the
+`executeInSandbox()` result envelope and propagates them into
+the `risk.shadow_exec` audit row. Closes the "audit chain stays
+lean but loses content visibility" concern from 1.10.84's
+pending list.
+
+### Added
+- **`stdoutHash` / `stderrHash`** on the `executeInSandbox`
+  result envelope. Fingerprint = SHA-256 of the captured stream
+  text (post-truncation), hex, truncated to 16 chars. 64 bits
+  of collision space — plenty for "did this run produce the
+  same output as last time" audit cross-checks. Empty streams
+  still get a hash so audit rows have a stable shape across
+  every code path (refused / spawn-error / happy).
+
+  The hash includes the `\n[...truncated]\n` marker when the
+  buffer cap fired — auditors comparing two hashes know
+  whether the runs produced byte-identical output, marker
+  included.
+
+- **Daemon `risk.shadow_exec` audit emission** carries
+  `stdoutHash` + `stderrHash`. Audit chain row gains ~36 bytes
+  per shadow exec (instead of up to 32KB if we inlined full
+  stdout/stderr), preserves content cross-check capability via
+  fingerprint comparison.
+
+- **Exported helper**: `_fingerprint(text)` so tests + ad-hoc
+  audit cross-checks can recompute the hash of a captured
+  stream and compare to the audit row.
+
+- **`HASH_LENGTH`** export = 16.
+
+### Test coverage
+- **`tests/risk-sandbox-exec.test.js`** — new "content
+  fingerprints" suite, 6 cases:
+  - result envelope always carries `stdoutHash` + `stderrHash`
+  - byte-equivalent stdout produces identical hashes
+  - hashes differ for one-byte-different output
+  - truncated output hashed including the truncation marker
+    (so the hash represents the captured content faithfully)
+  - refused/error paths still carry stable empty-string hashes
+    (consistent shape across the envelope)
+  - exported `_fingerprint()` helper matches manual SHA-256
+    prefix
+
+- **`tests/risk-exec-endpoint.test.js`** — added one regression
+  guard:
+  - audit emission includes `stdoutHash` + `stderrHash`
+    (source-grep against the daemon's `manager._audit.record`
+    call site)
+
+Suite stays at 170 (the new exec-side cases live inside the
+existing test files).
+
+### Why fingerprints instead of full inline content
+
+Three reasons:
+
+1. **Audit chain is hash-chained.** Inlining 16KB stdout per
+   row blows up chain row size; the daemon's `audit-log.js`
+   doesn't enforce per-row size today, but doing so later
+   becomes harder if rows are already chunky. Fingerprints
+   keep rows lean.
+2. **Privacy / leakage.** Some shadow execs probe stuff that
+   shouldn't be persisted (config files, env contents). A
+   fingerprint preserves "did this happen" without persisting
+   the contents. Operators who explicitly want full content
+   can query scribe-v2 (which carries the full payload).
+3. **Cross-check use cases.** "Did this run produce the same
+   output as the previous run" is the dominant audit
+   question. A 64-bit fingerprint answers it with effectively
+   zero collision risk for the volume real systems generate.
+
+### Backwards compatibility
+
+Pure addition. Existing consumers of the `executeInSandbox`
+result get two new fields; existing audit consumers see the
+new fields as additional payload. No field renamed, no shape
+broken.
+
 ## [1.10.85] - 2026-05-02
 
 11.5 Stage 2 polish — **`c4 risk "<cmd>" --shadow-exec`** CLI

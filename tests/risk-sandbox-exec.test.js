@@ -331,6 +331,105 @@ describe('executeInSandbox — spawn errors', () => {
   });
 });
 
+describe('executeInSandbox — content fingerprints (v1.10.86)', () => {
+  const { _fingerprint, HASH_LENGTH } = require('../src/risk-sandbox-exec');
+
+  it('result envelope always carries stdoutHash + stderrHash', async () => {
+    const rt = new DockerRuntime();
+    rt.available = () => ({ ok: true });
+    const controller = {
+      onSpawn: (c) => {
+        c._emitStdout('hello');
+        c._emitStderr('boom');
+        setImmediate(() => c._close(0));
+      },
+    };
+    const result = await executeInSandbox(rt, 'hi', {
+      spawnImpl: makeSpawnImpl(controller),
+    });
+    assert.equal(typeof result.stdoutHash, 'string');
+    assert.equal(typeof result.stderrHash, 'string');
+    assert.equal(result.stdoutHash.length, HASH_LENGTH);
+    assert.equal(result.stderrHash.length, HASH_LENGTH);
+    assert.equal(result.stdoutHash, _fingerprint('hello'));
+    assert.equal(result.stderrHash, _fingerprint('boom'));
+  });
+
+  it('hashes byte-equivalent stdout produce identical hashes', async () => {
+    const rt = new DockerRuntime();
+    rt.available = () => ({ ok: true });
+    const ctrl = (text) => ({
+      onSpawn: (c) => {
+        c._emitStdout(text);
+        setImmediate(() => c._close(0));
+      },
+    });
+    const a = await executeInSandbox(rt, 'a', {
+      spawnImpl: makeSpawnImpl(ctrl('exact-output')),
+    });
+    const b = await executeInSandbox(rt, 'a', {
+      spawnImpl: makeSpawnImpl(ctrl('exact-output')),
+    });
+    assert.equal(a.stdoutHash, b.stdoutHash);
+  });
+
+  it('hashes differ for one-byte-different output', async () => {
+    const rt = new DockerRuntime();
+    rt.available = () => ({ ok: true });
+    const ctrl = (text) => ({
+      onSpawn: (c) => {
+        c._emitStdout(text);
+        setImmediate(() => c._close(0));
+      },
+    });
+    const a = await executeInSandbox(rt, 'a', {
+      spawnImpl: makeSpawnImpl(ctrl('output-a')),
+    });
+    const b = await executeInSandbox(rt, 'a', {
+      spawnImpl: makeSpawnImpl(ctrl('output-b')),
+    });
+    assert.notEqual(a.stdoutHash, b.stdoutHash);
+  });
+
+  it('truncated output is hashed including the truncation marker', async () => {
+    const rt = new DockerRuntime();
+    rt.available = () => ({ ok: true });
+    const big = 'X'.repeat(3000);
+    const controller = {
+      onSpawn: (c) => {
+        c._emitStdout(big);
+        setImmediate(() => c._close(0));
+      },
+    };
+    const result = await executeInSandbox(rt, 'noisy', {
+      bufferLimit: 2048,
+      spawnImpl: makeSpawnImpl(controller),
+    });
+    // Hash matches the recorded stdout (which carries the marker)
+    assert.equal(result.stdoutHash, _fingerprint(result.stdout));
+  });
+
+  it('refused/error paths still carry stable empty-string hashes', async () => {
+    // Build a runtime whose available() reports not-ok — exec is
+    // skipped, result.stdout/stderr are '' (default), hashes
+    // should match _fingerprint('').
+    const rt = new DockerRuntime({ dockerBinary: '/no/such/docker' });
+    rt.available = () => ({ ok: false, reason: 'no docker' });
+    const result = await executeInSandbox(rt, 'hi', {
+      spawnImpl: () => { throw new Error('should not reach spawn'); },
+    });
+    const expected = _fingerprint('');
+    assert.equal(result.stdoutHash, expected);
+    assert.equal(result.stderrHash, expected);
+  });
+
+  it('_fingerprint() exported helper matches manual SHA-256 prefix', () => {
+    const { createHash } = require('crypto');
+    const expected = createHash('sha256').update('hello', 'utf8').digest('hex').slice(0, HASH_LENGTH);
+    assert.equal(_fingerprint('hello'), expected);
+  });
+});
+
 describe('executeInSandbox — buffer limit clamping', () => {
   it('non-numeric bufferLimit falls back to default (16KB)', async () => {
     const rt = new DockerRuntime();

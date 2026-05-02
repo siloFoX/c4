@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.85
-// Generated at: 2026-05-02T06:38:00.038Z
+// Spec version: 1.10.86
+// Generated at: 2026-05-02T06:43:43.915Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -490,6 +490,8 @@ export interface postRiskExecResponse {
   exitCode?: number | null; /** null when killed by signal/timeout */
   stdout?: string; /** Truncated to bufferLimit; appended marker `\n[...truncated]\n` */
   stderr?: string;
+  stdoutHash?: string; /** (v1.10.86) 16-char SHA-256 hex fingerprint of stdout (post-truncation). Empty stdout still gets a hash so audit rows have stable shape. */
+  stderrHash?: string; /** (v1.10.86) 16-char SHA-256 hex fingerprint of stderr. */
   durationMs?: number;
   killed?: boolean; /** True when the host-side timeout fired */
   command?: string; /** Echoed verbatim for audit cross-checks */

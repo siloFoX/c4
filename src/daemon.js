@@ -1792,6 +1792,12 @@ async function handleRequest(req, res) {
                     exitCode: execResult.exitCode,
                     durationMs: execResult.durationMs,
                     killed: execResult.killed,
+                    // (v1.10.86) Content fingerprints — 16-char SHA-256
+                    // prefix per stream. Lets two audit rows be
+                    // compared for byte-equivalent output without
+                    // bloating the chain row with full stdout.
+                    stdoutHash: execResult.stdoutHash,
+                    stderrHash: execResult.stderrHash,
                   });
                 }
               } catch { /* swallow audit failures */ }
