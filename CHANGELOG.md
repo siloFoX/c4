@@ -4,6 +4,66 @@
 
 (no entries — next release window)
 
+## [1.10.96] - 2026-05-02
+
+11.5 polish — **rule-set fingerprint embedded per audit row**.
+Audit consumers can now correlate `risk.denied` / `risk.dryRun`
+/ `risk.shadow_exec` rows with the classifier config that
+produced them. Closes the "did the rule set change between these
+denies" question that v1.10.95's standalone fingerprint endpoint
+couldn't answer for historical events.
+
+### Added
+- **`ruleFingerprint(cfg)`** helper exported from
+  `src/risk-classifier.js` — extracted from the v1.10.95 inline
+  daemon code so audit emissions can reuse the same algorithm.
+  Same hash inputs (built-in catalog codes + custom rules +
+  allow/denyList sources), same 16-char SHA-256 prefix.
+
+- **Audit row `ruleFingerprint` field** on:
+  - `risk.denied` / `risk.dryRun` (via the `risk_deny` SSE →
+    audit handler)
+  - `risk.shadow_exec` (via the `/risk/exec` endpoint emission)
+
+  Computed lazily from `manager.getConfig().riskClassifier`,
+  wrapped in try/swallow so a fingerprint failure never breaks
+  audit emission. Falls through to `null` on any error path.
+
+### Changed
+- **`/risk/patterns`** handler refactored to call
+  `ruleFingerprint()` instead of inlining the algorithm. Behavior
+  identical; the inline copy is gone.
+
+### Test coverage
+- **`tests/risk-patterns-fingerprint.test.js`** — restructured:
+  - Algorithm tests now grep `risk-classifier.js` (where the
+    helper lives) instead of `daemon.js`.
+  - New "Audit row carries ruleFingerprint" describe with 3
+    cases:
+    - `risk_deny` SSE handler embeds `ruleFingerprint:
+      ruleFingerprintHash`
+    - `/risk/exec` handler embeds `ruleFingerprint: ruleFp`
+    - Both wrap the fingerprint compute in try/swallow
+  - One regression case verifying `ruleFingerprint(cfg)` matches
+    the test reimplementation.
+
+  Suite stays at 173 (cases inside the existing fingerprint test
+  file).
+
+### Why per-row matters
+
+`/risk/patterns` returns the *current* fingerprint. Embedding it
+per audit row means an auditor can:
+
+1. Pull the audit chain for a given window
+2. Group by `details.ruleFingerprint`
+3. See whether all rows came from one config or whether the rule
+   set rotated mid-window
+
+Without the per-row field, that question requires correlating
+audit timestamps with `/risk/patterns` poll history — which the
+daemon doesn't keep.
+
 ## [1.10.95] - 2026-05-02
 
 11.5 polish — **classifier rule-set fingerprint**. `GET

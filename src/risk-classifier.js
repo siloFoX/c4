@@ -734,9 +734,43 @@ const PATTERN_CATALOG = {
   medium: MEDIUM_PATTERNS.map((p) => ({ code: p.code, label: p.label })),
 };
 
+/**
+ * (v1.10.96) Stable 16-char SHA-256 prefix over the effective rule
+ * set. Lets operators correlate audit rows with the rule-set
+ * version that produced them — embedded in risk.denied /
+ * risk.dryRun / risk.shadow_exec audit emissions.
+ *
+ * @param {{ customRules?: object, allowList?: any[], denyList?: any[] }} cfg
+ * @returns {string} 16 hex chars
+ */
+function ruleFingerprint(cfg) {
+  const c = cfg || {};
+  const customRules = c.customRules && typeof c.customRules === 'object' ? c.customRules : {};
+  const tiered = ['critical', 'high', 'medium'].flatMap((tier) =>
+    (Array.isArray(customRules[tier]) ? customRules[tier] : []).map((r) => ({
+      tier,
+      code: r && r.code,
+      pattern: r && r.pattern,
+      flags: r && r.flags,
+    }))
+  );
+  const fpInput = JSON.stringify({
+    builtin: [
+      ...PATTERN_CATALOG.critical.map((r) => `c:${r.code}`),
+      ...PATTERN_CATALOG.high.map((r) => `h:${r.code}`),
+      ...PATTERN_CATALOG.medium.map((r) => `m:${r.code}`),
+    ],
+    custom: tiered,
+    allowList: Array.isArray(c.allowList) ? c.allowList : [],
+    denyList: Array.isArray(c.denyList) ? c.denyList : [],
+  });
+  return require('crypto').createHash('sha256').update(fpInput, 'utf8').digest('hex').slice(0, 16);
+}
+
 module.exports = {
   classifyCommand,
   PATTERN_CATALOG,
   ACTION_BY_LEVEL,
+  ruleFingerprint,
   _denoiseCommand,
 };

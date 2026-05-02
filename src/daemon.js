@@ -1543,7 +1543,7 @@ async function handleRequest(req, res) {
       // operator's customRules (when configured) so a policy
       // reviewer can see the full effective rule set in one place.
       try {
-        const { PATTERN_CATALOG } = require('./risk-classifier');
+        const { PATTERN_CATALOG, ruleFingerprint } = require('./risk-classifier');
         const cfgNow = manager.getConfig() || {};
         const riskCfg = cfgNow.riskClassifier || {};
         // Reflect customRules without compiling them (operator may
@@ -1579,33 +1579,10 @@ async function handleRequest(req, res) {
         // (v1.10.95) Stable fingerprint over the effective rule set.
         // Operators on multiple machines compare the fingerprint to
         // verify identical classifier config without diffing the
-        // entire rule list. Hash inputs: built-in pattern codes
-        // (in catalog order), custom rule shapes (sorted by code +
-        // tier), allowList + denyList sources (in array order).
-        // Truncated to 16 hex chars — same convention as
-        // stdoutHash / stderrHash from v1.10.86.
-        const fpInput = JSON.stringify({
-          builtin: [
-            ...PATTERN_CATALOG.critical.map((r) => `c:${r.code}`),
-            ...PATTERN_CATALOG.high.map((r) => `h:${r.code}`),
-            ...PATTERN_CATALOG.medium.map((r) => `m:${r.code}`),
-          ],
-          custom: ['critical', 'high', 'medium'].flatMap((tier) =>
-            (custom[tier] || []).map((r) => ({
-              tier,
-              code: r && r.code,
-              pattern: r && r.pattern,
-              flags: r && r.flags,
-            })),
-          ),
-          allowList: Array.isArray(riskCfg.allowList) ? riskCfg.allowList : [],
-          denyList: Array.isArray(riskCfg.denyList) ? riskCfg.denyList : [],
-        });
-        result.fingerprint = require('crypto')
-          .createHash('sha256')
-          .update(fpInput, 'utf8')
-          .digest('hex')
-          .slice(0, 16);
+        // entire rule list. (v1.10.96) Helper extracted to
+        // risk-classifier.ruleFingerprint() so audit emissions can
+        // embed the same hash.
+        result.fingerprint = ruleFingerprint(riskCfg);
       } catch (e) {
         result = { error: e.message };
       }
@@ -1834,6 +1811,13 @@ async function handleRequest(req, res) {
               // existing risk.denied / risk.ai_feedback paths.
               try {
                 if (manager._audit && typeof manager._audit.record === 'function') {
+                  // (v1.10.96) Rule-set fingerprint for cross-row
+                  // correlation — same helper /risk/patterns uses.
+                  let ruleFp = null;
+                  try {
+                    const { ruleFingerprint } = require('./risk-classifier');
+                    ruleFp = ruleFingerprint(cfgNow2.riskClassifier || {});
+                  } catch { /* swallow */ }
                   manager._audit.record('risk.shadow_exec', {
                     command: command.slice(0, 500),
                     runtime: execResult.runtime.name,
@@ -1846,6 +1830,7 @@ async function handleRequest(req, res) {
                     // bloating the chain row with full stdout.
                     stdoutHash: execResult.stdoutHash,
                     stderrHash: execResult.stderrHash,
+                    ruleFingerprint: ruleFp,
                   });
                 }
               } catch { /* swallow audit failures */ }
@@ -4643,6 +4628,17 @@ manager.on('sse', (event) => {
     scriptSources: trimList(event.intent.scriptSources),
     destructiveVerbs: trimList(event.intent.destructiveVerbs),
   } : null;
+  // (v1.10.96) Embed rule-set fingerprint per audit row so
+  // reviewers can correlate events with the classifier config
+  // that produced them. Computed lazily — falls through to null
+  // if anything throws so a fingerprint failure never breaks
+  // audit emission.
+  let ruleFingerprintHash = null;
+  try {
+    const { ruleFingerprint } = require('./risk-classifier');
+    const cfgNow = manager.getConfig() || {};
+    ruleFingerprintHash = ruleFingerprint(cfgNow.riskClassifier || {});
+  } catch { /* swallow — audit must not depend on classifier require */ }
   _safeAudit(auditType,
     {
       level: event.level,
@@ -4653,6 +4649,7 @@ manager.on('sse', (event) => {
       decoded: typeof event.decoded === 'string' ? event.decoded.slice(0, 500) : null,
       dryRun: event.dryRun === true,
       intent,
+      ruleFingerprint: ruleFingerprintHash,
     },
     { actor: event.worker, target: event.worker },
   );
