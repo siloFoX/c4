@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.186] - 2026-05-03
+
+**`time-tamper` (medium) catalog pattern.** System clock
+tampering is an anti-forensic technique — backdating the
+clock can fool log timestamp correlation and cron schedules.
+NTP-off prevents resync. Same defense-evasion family as
+`history-tamper` / `journalctl-vacuum` / `log-truncate`.
+
+### Added
+- **`PATTERN_CATALOG.medium`** entry `time-tamper`. Catches:
+  - `date -s` / `date --set`
+  - `timedatectl set-time`
+  - `timedatectl set-ntp no|false|0`
+  - `hwclock --set --date`
+  Read forms (`date`, `date +%Y-%m-%d`, `timedatectl
+  status`) and re-enable (`timedatectl set-ntp true`)
+  stay LOW.
+
 ## [1.10.185] - 2026-05-03
 
 **`shell-env-inject` (critical) catalog pattern.** Same

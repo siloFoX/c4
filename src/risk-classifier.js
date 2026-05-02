@@ -1356,6 +1356,21 @@ const MEDIUM_PATTERNS = [
     label: 'clear / disable bash / zsh history',
     re: /\b(?:history\s+-c\b|set\s+\+o\s+history\b|unset\s+HISTFILE\b|export\s+HISTFILE=\/dev\/null\b)|(?:^|[\s;|&])>\s*(?:~|\$HOME|\/home\/[^\s/]+|\/root)\/\.(?:bash_history|zsh_history|zhistory)\b/,
   },
+  // (v1.10.186) System time tampering — anti-forensic.
+  // Backdating the clock can fool log timestamp correlation
+  // and cron schedules. NTP-off prevents resync. Same
+  // defense-evasion family as history-tamper /
+  // journalctl-vacuum / log-truncate.
+  //   date -s / --set "TIMESTAMP"     manual clock set
+  //   timedatectl set-time             timedatectl form
+  //   timedatectl set-ntp false        disable NTP sync
+  //   hwclock --set --date             hardware clock set
+  // Read forms (`date`, `timedatectl status`) stay LOW.
+  {
+    code: 'time-tamper',
+    label: 'date -s / timedatectl set-time / set-ntp false / hwclock --set (clock tampering)',
+    re: /\b(?:date\s+(?:-s|--set)\b|timedatectl\s+(?:set-time|set-ntp\s+(?:no|false|0))\b|hwclock\s+(?:[^\n;|&]*\s)?--set\b)/,
+  },
   // (v1.10.137) Log file truncation / destruction — anti-forensic
   // via three forms:
   //   echo > /var/log/auth.log     truncate to zero via redirect
