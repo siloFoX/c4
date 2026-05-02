@@ -1,15 +1,41 @@
 # Agent Framework — Writing a New Adapter
 
 C4's daemon (PtyManager) talks to a backend agent through a single
-abstraction: an **Adapter**. The framework today ships four production
-adapters (`claude-code`, `local-ollama`, `local-llama-cpp`,
-`local-vllm`) plus one test fixture (`mock`). This document is the
-reference for adding a fifth.
+abstraction: an **Adapter**. The framework today ships seven adapters:
+
+| key                | shape         | use case                          |
+|--------------------|---------------|-----------------------------------|
+| `claude-code`      | PTY-binary    | production Claude Code CLI        |
+| `codex`            | PTY-binary    | OpenAI codex CLI scaffold         |
+| `local-ollama`     | HTTP-stream   | self-hosted Ollama                |
+| `local-llama-cpp`  | HTTP-stream   | llama.cpp server                  |
+| `local-vllm`       | HTTP-stream   | vLLM server                       |
+| `claude-agent-sdk` | DI-callable   | Anthropic Agent SDK scaffold      |
+| `mock`             | in-memory     | test fixture / canonical reference|
+
+Plus a rules-based router (`type: 'router'`) that picks between
+them by length / regex / default rules.
 
 The contract lives in [`src/agents/adapter.js`](../src/agents/adapter.js).
-The minimal-but-correct implementation lives in
-[`src/agents/mock.js`](../src/agents/mock.js) — copy-paste it as your
-starting point.
+**Pick your starting point by adapter shape:**
+
+- **PTY-binary** (you spawn an external CLI like claude-code or
+  codex) → extend
+  [`PtyAdapterBase`](../src/agents/pty-adapter-base.js). It gives
+  you `init` / `sendInput` / `sendKey` + `DEFAULT_KEY_MAP` for free.
+  See [`src/agents/codex.js`](../src/agents/codex.js) for a 130-line
+  reference.
+- **HTTP-stream** (your backend speaks JSONL or SSE over HTTP) →
+  copy [`src/agents/local-llm.js`](../src/agents/local-llm.js); it
+  handles fragmented JSONL / SSE, AbortController dispose, fallback
+  prompts.
+- **DI-callable** (your backend is a Node library, not a binary) →
+  copy
+  [`src/agents/claude-agent-sdk.js`](../src/agents/claude-agent-sdk.js);
+  the operator wires `queryFn` programmatically.
+- **In-memory** (test fixture) → copy
+  [`src/agents/mock.js`](../src/agents/mock.js); the
+  minimal-but-correct contract reference.
 
 ## Why the abstraction exists
 
