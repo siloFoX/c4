@@ -20,6 +20,7 @@ const TerminalInterface = require('./terminal-interface');
 const SummaryLayer = require('./summary-layer');
 const validationLib = require('./validation');
 const riskClassifier = require('./risk-classifier');
+const riskSandbox = require('./risk-sandbox');
 const interventionState = require('./intervention-state');
 const { ApprovalMonitor } = require('./approval-monitor');
 const postCompactHook = require('./post-compact-hook');
@@ -532,13 +533,22 @@ class PtyManager extends EventEmitter {
           // before flipping enforcement on.
           const dryRun = riskCfg.dryRun === true;
           const screenTag = dryRun ? 'RISK DRYRUN' : 'HOOK RISK';
+          // (v1.10.68) Static intent extraction — what files /
+          // network peers / privilege bits the command would touch.
+          // Attached to the snapshot, SSE event, and (downstream)
+          // audit row so reviewers see the "what does this actually
+          // do" view alongside the rule label.
+          const intent = riskSandbox.extractIntent(command);
+          const intentSummary = riskSandbox.summariseIntent(intent);
+          const screenIntent = intentSummary ? `\n  intent: ${intentSummary}` : '';
           worker.snapshots.push({
             time: Date.now(),
-            screen: `[${screenTag} ${classification.level.toUpperCase()}] Bash: ${command}\n  reasons: ${reasonCodes}`,
+            screen: `[${screenTag} ${classification.level.toUpperCase()}] Bash: ${command}\n  reasons: ${reasonCodes}${screenIntent}`,
             autoAction: true,
             riskBlock: !dryRun,
             riskDryRun: dryRun,
             hookEvent: true,
+            intent,
           });
           // SSE event type stays 'risk_deny' even in dry-run so the
           // audit handler captures it the same way; subscribers can
@@ -551,12 +561,14 @@ class PtyManager extends EventEmitter {
             reasons: classification.reasons.map((r) => ({ code: r.code, label: r.label })),
             decoded: classification.decoded || null,
             dryRun,
+            intent,
           });
           if (riskCfg.notifySlack !== false && this._notifications) {
             try {
               const slackTag = dryRun ? 'DRYRUN' : 'DENY';
+              const slackIntent = intentSummary ? `\n  intent: ${intentSummary}` : '';
               this._notifications.pushAll(
-                `[RISK ${classification.level.toUpperCase()} ${slackTag}] ${workerName}: ${reasonLabel}\n  cmd: ${command.slice(0, 200)}`,
+                `[RISK ${classification.level.toUpperCase()} ${slackTag}] ${workerName}: ${reasonLabel}\n  cmd: ${command.slice(0, 200)}${slackIntent}`,
               );
               this._notifications._flushSlack();
             } catch { /* non-fatal */ }
@@ -569,6 +581,7 @@ class PtyManager extends EventEmitter {
             result.reason = `risk-classifier ${classification.level}: ${reasonLabel}`;
             result.riskLevel = classification.level;
             result.riskReasons = reasonCodes;
+            result.intent = intent;
             return result;
           }
         }

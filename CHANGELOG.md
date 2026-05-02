@@ -4,6 +4,61 @@
 
 (no entries — next release window)
 
+## [1.10.68] - 2026-05-02
+
+11.5 Stage 1 (sandbox dispatcher): static command-intent
+extractor. Closes the third remaining 11.5 follow-up item.
+
+### Added
+- **(`src/risk-sandbox.js`) `extractIntent(command)` →
+  `IntentReport`** — pure synchronous best-effort regex
+  parser that turns a Bash one-liner into:
+  - `filesWritten[]` — `>` / `>>` / `tee` / cp / mv / rsync
+    / scp targets
+  - `filesRead[]` — operands of cat / less / head / tail /
+    grep / awk / sed / strings / etc, capped at the first
+    redirection operator
+  - `networkPeers[]` — http(s) / git / ssh / sftp / rsync
+    URLs and `user@host[:path]` forms
+  - `privileged: bool` — sudo / doas / pkexec / `su -` /
+    chmod with setuid (4xxx-7xxx) / `+s`
+  - `scriptSources[]` — bash -c / sh -c / eval inner
+    strings, source / `.` targets, `bash <(curl ...)`
+    process-substitution targets
+  - `destructiveVerbs[]` — rm / shred / dd / mkfs(.fs?)
+    / mkswap / fdisk / parted / wipefs / chmod 666|777|setuid
+    / chown -R, with up to 5 args per verb. Trailing
+    `"`/`)`/`]`/`}` stripped so `bash -c "rm -rf /"` emits
+    `rm /` not `rm /"`.
+  - `empty: bool` — true when no signal extracted; pair
+    with classifier level for actual gating.
+- **(risk-sandbox) `summariseIntent(report)`** — one-line
+  string for log / Slack / SSE trimming. Returns null when
+  empty so callers can suppress the row.
+- **(pty-manager hook)** Every `risk_deny` SSE event now
+  carries an `intent` field. The worker snapshot's screen
+  text gains an `  intent: writes=... reads=... net=...`
+  line. Slack / audit / scribe-v2 all pick up the same
+  payload.
+- **(daemon audit handler)** Trims intent lists to top 5
+  entries (200 char cap each) before writing to the audit
+  hash chain — keeps audit rows bounded while preserving
+  the most-actionable signal.
+
+### Tests
+- New suite `tests/risk-sandbox.test.js` — 39 cases across
+  8 describe blocks (file writes / reads / network / priv /
+  scripts / destructive / empty boundary / summary). Locks
+  in the boundary that `chmod 644` is not privileged and
+  `mkfs.ext4` is captured (the bare `mkfs` regex needed an
+  optional `.<fs>` suffix).
+
+Suite 157 → 158. All four drift phases clean.
+
+11.5 follow-ups now: (a) sandbox dispatcher Stage 1
+**done — Stage 2 (Docker/firejail backends) pending**, (e)
+LLM second-pass pending.
+
 ## [1.10.67] - 2026-05-02
 
 4 new patterns covering MITRE ATT&CK persistence + defense-

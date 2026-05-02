@@ -4271,6 +4271,18 @@ manager.on('sse', (event) => {
   //                  (operator running in observation mode)
   // Detail shape stays identical so existing dashboards keep working.
   const auditType = event.dryRun ? 'risk.dryRun' : 'risk.denied';
+  // (v1.10.68) Trim intent lists to bounded size so audit rows stay
+  // small. Top 5 of each list is enough for forensic review; full
+  // payload still rides the SSE event for live dashboards.
+  const trimList = (arr) => Array.isArray(arr) ? arr.slice(0, 5).map((s) => String(s).slice(0, 200)) : [];
+  const intent = event.intent && typeof event.intent === 'object' ? {
+    filesWritten: trimList(event.intent.filesWritten),
+    filesRead: trimList(event.intent.filesRead),
+    networkPeers: trimList(event.intent.networkPeers),
+    privileged: event.intent.privileged === true,
+    scriptSources: trimList(event.intent.scriptSources),
+    destructiveVerbs: trimList(event.intent.destructiveVerbs),
+  } : null;
   _safeAudit(auditType,
     {
       level: event.level,
@@ -4280,6 +4292,7 @@ manager.on('sse', (event) => {
       command: typeof event.command === 'string' ? event.command.slice(0, 500) : '',
       decoded: typeof event.decoded === 'string' ? event.decoded.slice(0, 500) : null,
       dryRun: event.dryRun === true,
+      intent,
     },
     { actor: event.worker, target: event.worker },
   );
