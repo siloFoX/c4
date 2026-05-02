@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.180] - 2026-05-03
+
+**`apt-key-trust` extended to RHEL/Fedora package trust.**
+v1.10.179 covered apt (Debian/Ubuntu); this release extends
+to the RHEL/Fedora/SUSE equivalents.
+
+### Changed
+- **`apt-key-trust`** regex extended with:
+  - `rpm --import <file|URL>` (RHEL/Fedora key import)
+  - `rpmkeys --import <file|URL>` (modern alias)
+  - `dnf config-manager --add-repo <URL>` (add untrusted
+    repo)
+  - Writes to `/etc/yum.repos.d/<file>` (yum/dnf repo
+    config drop-in)
+  - Writes to `/etc/zypp/repos.d/<file>` (SUSE)
+  Same critical tier. Reads (`rpm --query`, `dnf list`, `cat
+  <repo>`) stay LOW.
+
 ## [1.10.179] - 2026-05-03
 
 **`apt-key-trust` (critical) catalog pattern.** Adding an

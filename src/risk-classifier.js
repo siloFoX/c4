@@ -426,10 +426,14 @@ const CRITICAL_PATTERNS = [
   //   apt-key adv --keyserver <X> --recv... legacy
   //   write to /etc/apt/trusted.gpg.d/      modern
   //   write to /usr/share/keyrings/         modern
+  // (v1.10.180) Extended to RHEL/Fedora equivalents:
+  //   rpm --import / rpmkeys --import       (key import)
+  //   dnf config-manager --add-repo URL     (add untrusted repo)
+  //   write to /etc/yum.repos.d/            (repo config drop-in)
   {
     code: 'apt-key-trust',
-    label: 'apt-key add / write to /etc/apt/trusted.gpg.d/ or /usr/share/keyrings/ (apt trust tampering)',
-    re: /\bapt-key\s+(?:add\b|adv\s+(?:[^\n;|&]*\s)?--recv-keys\b)|(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?|\b(?:cp|mv|install)\s+\S+\s+)(?:\/etc\/apt\/trusted\.gpg\.d|\/usr\/share\/keyrings)(?:\/\S*)?(?=\s|$|;|&|\|)/,
+    label: 'apt-key add / rpm --import / write to trusted keyring or yum repo dir (pkg trust tampering)',
+    re: /\bapt-key\s+(?:add\b|adv\s+(?:[^\n;|&]*\s)?--recv-keys\b)|(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?|\b(?:cp|mv|install)\s+\S+\s+)(?:\/etc\/apt\/trusted\.gpg\.d|\/usr\/share\/keyrings|\/etc\/yum\.repos\.d|\/etc\/zypp\/repos\.d)(?:\/\S*)?(?=\s|$|;|&|\|)|\b(?:rpm|rpmkeys)\s+(?:[^\n;|&]*\s)?--import\b|\bdnf\s+config-manager\s+(?:[^\n;|&]*\s)?--add-repo\b/,
   },
   // (v1.10.168) Trusted CA certificate write — adding a
   // malicious cert to the system trust store means every TLS
