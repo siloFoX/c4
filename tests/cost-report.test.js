@@ -141,6 +141,57 @@ describe('(10.5) CostReporter.getRate', () => {
     const c2 = r.costForRecord({ timestamp: 't', model: 'local', inputTokens: 9999, outputTokens: 9999 });
     expect(c2).toBe(0);
   });
+
+  // (v1.10.98) Specific 4.x model IDs land in DEFAULT_COSTS so reports
+  // against actual session data don't fall through to the 'default'
+  // sonnet-tier rate.
+  test('(m) claude-opus-4-7 returns the opus family rate', () => {
+    const r = new CostReporter();
+    const rate = r.getRate('claude-opus-4-7');
+    expect(rate.input).toBe(15);
+    expect(rate.output).toBe(75);
+  });
+
+  test('(n) claude-sonnet-4-6 returns the sonnet family rate', () => {
+    const r = new CostReporter();
+    const rate = r.getRate('claude-sonnet-4-6');
+    expect(rate.input).toBe(3);
+    expect(rate.output).toBe(15);
+  });
+
+  test('(o) claude-haiku-4-5-20251001 returns the haiku family rate', () => {
+    const r = new CostReporter();
+    const rate = r.getRate('claude-haiku-4-5-20251001');
+    expect(rate.input).toBe(0.8);
+    expect(rate.output).toBe(4);
+  });
+
+  test('(p) prefix fallback — unknown opus suffix lands on opus rate', () => {
+    // Anthropic ships claude-opus-4-99 next month before operator
+    // updates config — should still bill at opus rate, not default.
+    const r = new CostReporter();
+    const rate = r.getRate('claude-opus-4-99');
+    expect(rate.input).toBe(15);
+    expect(rate.output).toBe(75);
+  });
+
+  test('(q) unknown family still falls to default (no over-match)', () => {
+    const r = new CostReporter();
+    const rate = r.getRate('claude-ultra-mega');
+    expect(rate.input).toBe(DEFAULT_COSTS.default.input);
+    expect(rate.output).toBe(DEFAULT_COSTS.default.output);
+  });
+
+  test('(r) prefix fallback respects operator override of family rate', () => {
+    // Operator overrides claude-opus rate — prefix match should pick
+    // up the override, not the original DEFAULT_COSTS value.
+    const r = new CostReporter({
+      costs: { 'claude-opus': { input: 100, output: 500 } },
+    });
+    const rate = r.getRate('claude-opus-4-99');
+    expect(rate.input).toBe(100);
+    expect(rate.output).toBe(500);
+  });
 });
 
 describe('(10.5) CostReporter.report groupBy variations', () => {

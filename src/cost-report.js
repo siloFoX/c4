@@ -34,12 +34,24 @@
 const fs = require('fs');
 const path = require('path');
 
+// Rate per 1K tokens (USD). Operators override via config.costs.models
+// for new model IDs that ship after this release. (v1.10.98) Specific
+// 4.x model IDs are aliased to the same rates as the family-key
+// entries above so reports against actual Claude Code session data
+// (which uses full IDs like 'claude-opus-4-7') don't fall through to
+// the 'default' bucket. When Anthropic publishes new families,
+// operators add entries via config rather than waiting for a c4 bump.
 const DEFAULT_COSTS = Object.freeze({
-  'claude-opus':   { input: 15,  output: 75 },
-  'claude-sonnet': { input: 3,   output: 15 },
-  'claude-haiku':  { input: 0.8, output: 4 },
-  'local':         { input: 0,   output: 0 },
-  'default':       { input: 3,   output: 15 },
+  'claude-opus':            { input: 15,  output: 75 },
+  'claude-opus-4-7':        { input: 15,  output: 75 },
+  'claude-opus-4-6':        { input: 15,  output: 75 },
+  'claude-sonnet':          { input: 3,   output: 15 },
+  'claude-sonnet-4-6':      { input: 3,   output: 15 },
+  'claude-haiku':           { input: 0.8, output: 4 },
+  'claude-haiku-4-5':       { input: 0.8, output: 4 },
+  'claude-haiku-4-5-20251001': { input: 0.8, output: 4 },
+  'local':                  { input: 0,   output: 0 },
+  'default':                { input: 3,   output: 15 },
 });
 
 const VALID_GROUP_BY = ['project', 'team', 'machine', 'user', 'worker'];
@@ -127,7 +139,21 @@ class CostReporter {
   // throwing) keeps reports resilient when new models show up mid-run.
   getRate(model) {
     const key = typeof model === 'string' && model.length > 0 ? model : 'default';
-    return this.costs[key] || this.costs.default || { input: 0, output: 0 };
+    if (this.costs[key]) return this.costs[key];
+    // (v1.10.98) Prefix-match safety net — when an unknown specific
+    // model ID like `claude-opus-4-9` rolls out before the operator
+    // adds it to config, fall through to the family rate (`claude-opus`)
+    // before the generic default. Avoids silently under-reporting cost
+    // for new opus / sonnet generations as a 'default' (sonnet-tier)
+    // billing rate.
+    if (typeof key === 'string') {
+      for (const family of ['claude-opus', 'claude-sonnet', 'claude-haiku']) {
+        if (key.startsWith(family + '-') && this.costs[family]) {
+          return this.costs[family];
+        }
+      }
+    }
+    return this.costs.default || { input: 0, output: 0 };
   }
 
   costForRecord(record) {

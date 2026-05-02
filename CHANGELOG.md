@@ -4,6 +4,55 @@
 
 (no entries — next release window)
 
+## [1.10.98] - 2026-05-02
+
+**Cost-report fix — recognize specific 4.x model IDs**. Reports
+against actual Claude Code session data were silently
+underbilling because the rate table only had family keys
+(`claude-opus`) but Claude Code session JSON carries full IDs
+(`claude-opus-4-7`).
+
+### Changed
+- **`src/cost-report.js` `DEFAULT_COSTS`** — added explicit
+  entries for the current Claude 4.x family:
+  - `claude-opus-4-7`, `claude-opus-4-6` → opus rate
+  - `claude-sonnet-4-6` → sonnet rate
+  - `claude-haiku-4-5`, `claude-haiku-4-5-20251001` → haiku rate
+
+  Same prices as the family-key entries; this is naming
+  alignment, not a pricing change.
+
+- **`getRate(model)` prefix-match safety net** — when an unknown
+  specific model ID like `claude-opus-4-99` rolls out before the
+  operator updates config, fall through to the family rate
+  (`claude-opus`) before the generic `default`. Avoids silently
+  under-reporting cost for new generations as a sonnet-tier rate.
+
+  Order: exact key → family prefix (claude-opus-/sonnet-/haiku-)
+  → operator-supplied default → `{input:0, output:0}`. Operator
+  overrides at any level still win.
+
+### Test coverage
+- **`tests/cost-report.test.js`** — 6 new cases:
+  - `(m)` claude-opus-4-7 returns opus rate
+  - `(n)` claude-sonnet-4-6 returns sonnet rate
+  - `(o)` claude-haiku-4-5-20251001 returns haiku rate
+  - `(p)` prefix fallback — unknown opus suffix → opus rate
+  - `(q)` unknown family still falls to default (no over-match)
+  - `(r)` prefix fallback respects operator override
+
+  Suite stays at 173 (cases land inside the existing
+  cost-report file).
+
+### Why this matters
+
+Pre-1.10.98, an operator running a `claude-opus-4-7` worker for
+1M output tokens would see a billing report estimating
+`(1M / 1K) * $15 = $15,000` (default rate, $15/1K out). Actual
+opus pricing is $75/1K out → real bill ~$75,000. 5x undercount.
+This patch closes that gap for the current generation and
+prefix-matches future generations defensively.
+
 ## [1.10.97] - 2026-05-02
 
 11.5 polish — **rule-set rotation detector in `/risk/stats`**.
