@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.91] - 2026-05-02
+
+Hygiene — **`npm run lint` umbrella** that runs both static
+lints (`lint:openapi` + `lint:schema-drift`) in sequence.
+
+`lint:runtime-drift` is deliberately excluded because it
+requires a running daemon (sends real HTTP requests to verify
+the OpenAPI spec matches actual handler behavior). The two
+static lints are CI-friendly and don't need any setup beyond
+`npm install`.
+
+```sh
+$ npm run lint
+> npm run lint:openapi && npm run lint:schema-drift
+…
+Spec lint clean.
+…
+No drift detected — all spec fields match handler usage.
+```
+
+No source change; pure scripts addition. Suite stays at 171.
+
 ## [1.10.90] - 2026-05-02
 
 11.5 Stage 2 polish — **`c4 risk stats` + `GET /risk/stats`
