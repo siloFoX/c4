@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.115] - 2026-05-03
+
+**`GET /audit/query` accepts `ruleFingerprint` filter**. Pairs
+with the v1.10.97 rule-set rotation detector — when stats
+reports `fingerprintsObserved=[a,b,c]`, the operator can now
+pull just the audit rows from one fingerprint via
+`?ruleFingerprint=a`.
+
+### Added
+- **`GET /audit/query?ruleFingerprint=<hash>`** — filters the
+  audit query result to events whose
+  `details.ruleFingerprint` matches the provided 16-char
+  SHA-256 prefix. Combine with `type=risk.denied` /
+  `type=risk.shadow_exec` for narrower scopes.
+
+  Implementation: post-filter (audit query path doesn't
+  natively support nested-key filtering). Operator pulls the
+  type-window first, then the fingerprint match.
+
+### Test impact
+No new behavioural test (audit is exercised end-to-end via
+the existing `risk-classifier-e2e` and `audit-log` tests).
+Schema drift checker auto-picked up the new query parameter.
+Suite stays at 175.
+
 ## [1.10.114] - 2026-05-03
 
 **New catalog pattern: `data-exfil-pipe` (high)**. Catches the

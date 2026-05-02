@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.114
-// Generated at: 2026-05-02T16:41:54.645Z
+// Spec version: 1.10.115
+// Generated at: 2026-05-02T16:46:33.194Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -344,6 +344,7 @@ export interface getAuditQueryParams {
   type?: string;
   target?: string;
   limit?: number;
+  ruleFingerprint?: string;
 }
 export interface getAuditQueryResponse {
   events?: {

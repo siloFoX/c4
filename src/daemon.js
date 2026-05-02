@@ -1495,14 +1495,27 @@ async function handleRequest(req, res) {
       const toParam = url.searchParams.get('to') || '';
       const targetParam = url.searchParams.get('target') || '';
       const limitParam = parseInt(url.searchParams.get('limit') || '0', 10);
+      // (v1.10.115) Optional fingerprint filter — pairs with the
+      // /risk/stats rule-set rotation detector (v1.10.97). When the
+      // stats endpoint reports fingerprintsObserved=[a,b,c], the
+      // operator can pull just the rows from one fingerprint via
+      // ?ruleFingerprint=a. Audit query path doesn't natively
+      // support nested-key filtering, so we fetch + post-filter.
+      const fpParam = url.searchParams.get('ruleFingerprint') || '';
       try {
-        const events = audit.query({
+        let events = audit.query({
           type: typeParam || undefined,
           from: fromParam || undefined,
           to: toParam || undefined,
           target: targetParam || undefined,
           limit: Number.isFinite(limitParam) && limitParam > 0 ? limitParam : undefined,
         });
+        if (fpParam) {
+          events = events.filter((ev) =>
+            ev.details && typeof ev.details.ruleFingerprint === 'string'
+              && ev.details.ruleFingerprint === fpParam
+          );
+        }
         result = { events, count: events.length, path: audit.logPath };
       } catch (e) {
         result = { error: e.message };

@@ -573,6 +573,7 @@ const ROUTE_SCHEMAS = {
       { name: 'type', in: 'query', schema: { type: 'string' } },
       { name: 'target', in: 'query', schema: { type: 'string' } },
       { name: 'limit', in: 'query', schema: { type: 'integer' } },
+      { name: 'ruleFingerprint', in: 'query', schema: { type: 'string', description: '(v1.10.115) 16-char SHA-256 prefix from details.ruleFingerprint. Pairs with the /risk/stats fingerprintsObserved list to pull all rows produced by one classifier config version.' } },
     ],
     response: {
       properties: {
