@@ -858,6 +858,21 @@ const HIGH_PATTERNS = [
     label: 'resolvectl dns <iface> (systemd-resolved DNS hijack)',
     re: /\bresolvectl\s+(?:[^\n;|&]*\s)?(?:dns\b|domain\b|llmnr\b|mdns\b|dnssec\b)/,
   },
+  // (v1.10.148) Local package install from arbitrary file —
+  // dpkg -i / rpm -i / snap install --dangerous / flatpak
+  // install --bundle. Each runs the package's postinstall /
+  // hooks as root, so an attacker-supplied package = root RCE.
+  // The existing apt-install rule (medium) covers `apt
+  // install <name>` (network fetch from configured repo);
+  // this rule covers the bypass form that takes a LOCAL FILE
+  // argument, which is HIGH for the same reason as
+  // npm-global-install / pip-install-user (script runs at
+  // install time, no published-package vetting).
+  {
+    code: 'local-pkg-install',
+    label: 'dpkg -i / rpm -i / snap install --dangerous / flatpak install --bundle',
+    re: /\b(?:dpkg\s+(?:[^\n;|&]*\s)?-i\b|rpm\s+(?:[^\n;|&]*\s)?-(?:i|U|F)\b|snap\s+install\s+(?:[^\n;|&]*\s)?--dangerous\b|flatpak\s+install\s+(?:[^\n;|&]*\s)?--bundle\b)/,
+  },
   // (v1.10.135) Per-user crontab write — direct write to
   // /var/spool/cron/<user> or /var/spool/cron/crontabs/<user>
   // bypasses the existing `cron-edit` rule (which catches

@@ -2095,6 +2095,42 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.148) Local package install from arbitrary file.
+  // Postinstall scripts run as root → attacker-supplied package
+  // = root RCE.
+  it('local-pkg-install: dpkg -i / rpm -i / snap --dangerous / flatpak --bundle → high (v1.10.148)', () => {
+    for (const cmd of [
+      'dpkg -i /tmp/evil.deb',
+      'sudo dpkg -i /tmp/evil.deb',
+      'rpm -i /tmp/evil.rpm',
+      'rpm -U /tmp/evil.rpm',
+      'rpm -F /tmp/evil.rpm',
+      'snap install --dangerous /tmp/evil.snap',
+      'flatpak install --bundle /tmp/evil.flatpak',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'local-pkg-install'),
+        `${cmd}: expected local-pkg-install`);
+    }
+  });
+
+  it('local-pkg-install — query / store install stays low (regression)', () => {
+    for (const cmd of [
+      'dpkg -l',                                // list packages
+      'dpkg -L pkg',                            // list files in package
+      'dpkg --status pkg',
+      'rpm -q pkg',                             // query
+      'rpm -qa',                                // query all
+      'snap install signal-desktop',            // store install (not --dangerous)
+      'flatpak install flathub org.gimp.GIMP',  // store install (not --bundle)
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'local-pkg-install'),
+        `${cmd}: should not match local-pkg-install`);
+    }
+  });
+
   it('kexec-load: kexec -l / --load / -e → critical (v1.10.129)', () => {
     for (const cmd of [
       'kexec -l /boot/vmlinuz --initrd=/boot/initrd',

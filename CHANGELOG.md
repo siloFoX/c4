@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.148] - 2026-05-03
+
+**`local-pkg-install` (high) catalog pattern.** The existing
+`apt-install` rule (medium) covers `apt install <name>` —
+network fetch from a configured repo, with the registry's
+auth and signing. The bypass form takes a LOCAL FILE
+argument, runs the package's postinstall scripts as root, and
+skips publish-package vetting entirely.
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `local-pkg-install`. Catches:
+  - `dpkg -i /tmp/evil.deb` (Debian)
+  - `rpm -i /tmp/evil.rpm`, `rpm -U`, `rpm -F` (RHEL/Fedora/SUSE)
+  - `snap install --dangerous /tmp/evil.snap`
+  - `flatpak install --bundle /tmp/evil.flatpak`
+  HIGH (matches the npm-global-install / pip-install-user
+  tier) because each form runs install-time scripts as
+  root — same threat model. Query forms (`dpkg -l`, `rpm -q`),
+  store installs (`snap install <name>`, `flatpak install
+  flathub <name>`) stay LOW.
+
+- **`tests/risk-classifier.test.js`**: 2 new `it()` cases —
+  attack assertion (7 commands) + regression (7 query / store
+  forms). Suite stays at 178. Risk-classifier file 253 → 255
+  cases.
+
+### Catalog totals
+- Critical: 29 patterns (+0)
+- High: 41 patterns (+1: local-pkg-install)
+- Medium: 21 patterns (+0)
+- **Total: 93 → 94** (effective; daemon will report after
+  restart)
+
 ## [1.10.147] - 2026-05-03
 
 **Three more critical patterns**: `proc-namespace-write`
