@@ -956,6 +956,30 @@ describe('classifyCommand v1.10.54 patterns', () => {
     assert.strictEqual(r.level, 'low');
   });
 
+  // (v1.10.112) ssh -o StrictHostKeyChecking=no — disabling the
+  // first-use host-key fingerprint guard. MITM-prone.
+  it('ssh -o StrictHostKeyChecking=no → high', () => {
+    for (const cmd of [
+      'ssh -o StrictHostKeyChecking=no user@evil.com',
+      'scp -o StrictHostKeyChecking=no file user@host:',
+      'sftp -o StrictHostKeyChecking=no user@host',
+      'rsync -o StrictHostKeyChecking=no -av src/ user@host:dst/',
+      'SSH -o stricthostkeychecking=no host',  // case-insensitive
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'ssh-strict-host-off'),
+        `${cmd}: expected ssh-strict-host-off`);
+    }
+  });
+
+  it('plain ssh user@host (no -o) → low (regression)', () => {
+    // Routine ssh is not flagged. Only the explicit
+    // StrictHostKeyChecking=no flag triggers the catalog.
+    assert.strictEqual(classifyCommand('ssh user@host').level, 'low');
+    assert.strictEqual(classifyCommand('ssh -i /home/u/.ssh/id_rsa user@h').level, 'low');
+  });
+
   it('npm install -g and yarn global add → high', () => {
     for (const cmd of ['npm install -g pm2', 'npm install --global typescript', 'yarn global add eslint']) {
       const r = classifyCommand(cmd);

@@ -4,6 +4,40 @@
 
 (no entries — next release window)
 
+## [1.10.112] - 2026-05-03
+
+**New catalog pattern: `ssh-strict-host-off` (high)**. Closes
+the gap where `ssh -o StrictHostKeyChecking=no` was classified
+LOW despite trivially enabling MITM on the session.
+
+### Why high
+
+`StrictHostKeyChecking=no` accepts any host key the server
+presents — first-use OR mid-session. An attacker on the path
+can swap their key in and the user's ssh client won't notice.
+Operators do this for ephemeral CI VMs (where the host key
+genuinely changes per spawn), but on a persistent destination
+it disables the only built-in defense against active MITM.
+
+Per-machine `allowList` lets operators carve out CI hosts
+deliberately — the catalog flags it by default, the operator
+opts back in when they have justification.
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `ssh-strict-host-off`
+  matching `ssh / scp / sftp / rsync` with
+  `-o StrictHostKeyChecking=no` (case-insensitive). Catalog
+  count: 55 → 56 patterns.
+
+### Test coverage
+- **`tests/risk-classifier.test.js`** — 2 new cases:
+  - `ssh -o StrictHostKeyChecking=no` (5 variants: ssh / scp /
+    sftp / rsync / case-insensitive) → high
+  - regression: plain `ssh user@host` and `ssh -i key host` →
+    low
+
+  Suite stays at 175. risk-classifier file 148 → 150 cases.
+
 ## [1.10.111] - 2026-05-03
 
 **Risk classifier — bash brace expansion obfuscation defeat

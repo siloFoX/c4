@@ -272,6 +272,18 @@ const HIGH_PATTERNS = [
     re: />\s*(?:~|\$HOME|\/home\/[^\s/]+)\/\.ssh\/(?:known_hosts|authorized_keys)\b/,
   },
   {
+    code: 'ssh-strict-host-off',
+    label: 'ssh / scp -o StrictHostKeyChecking=no (MITM-prone)',
+    // (v1.10.112) Disabling StrictHostKeyChecking turns off the
+    // first-use host-key fingerprint guard — accepts any key the
+    // server presents. Operators do this for ephemeral CI VMs, but
+    // an attacker on the path can man-in-the-middle the session
+    // without the user noticing. High because the threat model
+    // matches per-machine rule overrides (`allowList` lets
+    // operators carve out CI hosts deliberately).
+    re: /\b(?:ssh|scp|sftp|rsync)\b[^\n;|&]*-o\s+StrictHostKeyChecking[=\s]+no\b/i,
+  },
+  {
     code: 'docker-privileged',
     label: 'docker run --privileged',
     re: /\bdocker\s+(?:run|exec)\s+[^\n;|&]*--privileged\b/,
