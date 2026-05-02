@@ -59,6 +59,10 @@ This efficiency makes C4 viable for overnight autonomous coding with multiple pa
 
 - [Node.js](https://nodejs.org/) >= 18
 - [Claude Code](https://claude.ai/code) CLI installed
+- (Optional) [Docker](https://docs.docker.com/get-docker/) — for the
+  Stage 2 sandbox dispatcher (`c4 risk --sandbox-preview docker`,
+  `POST /api/risk/exec`). Not needed unless you opt into shadow
+  execution. See [`docs/risk-sandbox.md`](docs/risk-sandbox.md).
 
 ## Install
 
