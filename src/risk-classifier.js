@@ -165,6 +165,15 @@ const CRITICAL_PATTERNS = [
     label: 'write into /etc/cron.{d,hourly,daily,weekly,monthly}/',
     re: />>?\s*\/etc\/cron\.(?:d|hourly|daily|weekly|monthly)\/[\w.-]+/,
   },
+  // (v1.10.67) Systemd unit write — persistence vehicle. Anything
+  // landed under /etc/systemd/system/*.service or user equivalent
+  // gets started by systemd on boot or login. No benign bash-line
+  // form — admins use `systemctl edit` for legit edits.
+  {
+    code: 'systemd-unit-write',
+    label: 'write to /etc/systemd/system/ or ~/.config/systemd/user/',
+    re: />>?\s*(?:\/etc\/systemd\/system\/|\/lib\/systemd\/system\/|\/usr\/lib\/systemd\/system\/|(?:~|\$HOME|\/home\/[^\s/]+|\/root)\/\.config\/systemd\/user\/)[\w.-]+/,
+  },
   // (v1.10.62) Inline interpreter exec invoking system shells:
   //   python -c "import os; os.system('rm -rf /')"
   //   node -e "require('child_process').execSync('rm -rf /')"
@@ -324,6 +333,26 @@ const HIGH_PATTERNS = [
     label: 'curl/wget downloading into a system PATH directory',
     re: /\b(?:curl|wget)\s[^\n;|&]*-[oO]\s+(?:\/usr\/(?:local\/)?(?:s?bin)|\/opt\/(?:[\w.-]+\/)?bin|\/sbin)\/[\w.-]+/,
   },
+  // (v1.10.67) Persistent rc-file modification — anything appended
+  // to a shell rc-file runs every time the user opens a shell.
+  // Classic persistence vehicle for post-exploit footholds.
+  // Distinct from authorized_keys (covered separately) since this
+  // form survives even after the SSH key is rotated.
+  {
+    code: 'rc-file-write',
+    label: 'append to shell rc-file (~/.bashrc / .zshrc / .profile / etc)',
+    re: />>?\s*(?:~|\$HOME|\/home\/[^\s/]+|\/root|\/etc)\/(?:\.bashrc|\.bash_profile|\.zshrc|\.zshenv|\.profile|\.config\/fish\/config\.fish|profile|bash\.bashrc|bash\.bash_profile)\b/,
+  },
+  // (v1.10.67) Reading the password / shadow file or a private SSH
+  // key. Classic credential dump primitive — no benign reason for
+  // a non-root worker to slurp these on its own. The negative
+  // lookahead on `\.pub` keeps reading public keys (id_rsa.pub) low
+  // while flagging the bare private form (id_rsa).
+  {
+    code: 'credential-read',
+    label: 'cat /etc/shadow or ~/.ssh/id_* (credential dump)',
+    re: /\b(?:cat|less|more|head|tail|cp|mv|tar|gzip|base64)\s+[^\n;|&]*(?:\/etc\/shadow\b|\/etc\/gshadow\b|(?:~|\$HOME|\/home\/[^\s/]+|\/root)\/\.ssh\/id_(?:rsa|ecdsa|ed25519|dsa)(?!\.pub)\b)/,
+  },
   {
     code: 'sshpass-credential',
     label: 'sshpass -p <literal> (password on the command line)',
@@ -421,6 +450,14 @@ const MEDIUM_PATTERNS = [
     code: 'path-hijack',
     label: 'export PATH= prepending /tmp / /var/tmp / cache dir',
     re: /\bexport\s+PATH\s*=\s*(?:\/tmp|\/var\/tmp|~\/\.cache|\$HOME\/\.cache)\b/,
+  },
+  // (v1.10.67) History clearing / disabling — common defense-evasion
+  // step in post-exploit playbooks. Even if the operator did this
+  // by accident, the trail loss is review-worthy.
+  {
+    code: 'history-tamper',
+    label: 'clear / disable bash / zsh history',
+    re: /\b(?:history\s+-c\b|set\s+\+o\s+history\b|unset\s+HISTFILE\b|export\s+HISTFILE=\/dev\/null\b)/,
   },
 ];
 

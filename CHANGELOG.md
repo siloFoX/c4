@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.67] - 2026-05-02
+
+4 new patterns covering MITRE ATT&CK persistence + defense-
+evasion + credential-dump shapes. Catalog 50 → 54.
+
+### Added (critical)
+- **`systemd-unit-write`** — `> /etc/systemd/system/*.service`,
+  `/lib/systemd/system/`, `/usr/lib/systemd/system/`, and
+  user units under `~/.config/systemd/user/`. Persistence
+  vehicle that survives reboots; admins use `systemctl edit`
+  for legit edits, not raw redirects.
+
+### Added (high)
+- **`rc-file-write`** — `>>` into `~/.bashrc`, `.zshrc`,
+  `.bash_profile`, `/etc/profile`, fish config, etc.
+  Classic post-exploit foothold that runs every time the
+  user opens a shell. Distinct from authorized_keys (which
+  survives even after SSH key rotation, this one survives
+  even after the SSH key is removed).
+- **`credential-read`** — `cat`/`less`/`head`/`tail`/`cp`/`mv`/
+  `tar`/`gzip`/`base64` against `/etc/shadow`, `/etc/gshadow`,
+  or `~/.ssh/id_{rsa,ecdsa,ed25519,dsa}`. Reading public
+  keys (`id_rsa.pub`) and `known_hosts` does NOT trigger
+  (negative lookahead on `\.pub`).
+
+### Added (medium)
+- **`history-tamper`** — `history -c`, `set +o history`,
+  `unset HISTFILE`, `export HISTFILE=/dev/null`. Common
+  defense-evasion step in post-exploit playbooks.
+
+### Tested
+- 8 new tests covering positive cases + benign boundaries:
+  - `cat /etc/passwd` (world-readable) stays low
+  - `cat ~/.ssh/known_hosts` (not a private key) stays low
+  - `cat ~/.ssh/id_rsa.pub` (public key) stays low — locked
+    in via negative-lookahead boundary test
+  - `echo hi >> ~/notes.md` stays low (rc-file rule
+    boundary)
+
+risk-classifier.test.js: 135 cases (was 127). Suite 157/157.
+
 ## [1.10.66] - 2026-05-02
 
 scribe-v2 timeline now carries `risk_deny` events alongside

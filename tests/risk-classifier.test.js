@@ -371,6 +371,96 @@ describe('_denoiseCommand helper', () => {
   });
 });
 
+describe('classifyCommand v1.10.67 patterns', () => {
+  // 4 new patterns covering persistence + defense-evasion +
+  // credential dump.
+
+  it('systemd unit write → critical (system-wide persistence)', () => {
+    for (const cmd of [
+      'echo "[Unit]" > /etc/systemd/system/evil.service',
+      'cat unit > /lib/systemd/system/x.service',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'systemd-unit-write'));
+    }
+  });
+
+  it('user systemd unit write → critical', () => {
+    const r = classifyCommand('cat unit > ~/.config/systemd/user/evil.service');
+    assert.strictEqual(r.level, 'critical');
+  });
+
+  it('rc-file persistence (~/.bashrc / .zshrc / /etc/profile) → high', () => {
+    for (const cmd of [
+      'echo "evil" >> ~/.bashrc',
+      'echo "x" >> ~/.zshrc',
+      'echo "x" >> ~/.bash_profile',
+      'echo "x" >> /etc/profile',
+      'echo "x" >> /home/alice/.profile',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'rc-file-write'));
+    }
+  });
+
+  it('appending to a non-rc-file (e.g., notes.md) stays low', () => {
+    const r = classifyCommand('echo hi >> ~/notes.md');
+    assert.strictEqual(r.level, 'low');
+  });
+
+  it('credential dump: cat /etc/shadow → high', () => {
+    for (const cmd of [
+      'cat /etc/shadow',
+      'less /etc/shadow',
+      'head /etc/gshadow',
+      'cat /etc/shadow > /tmp/copy',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'credential-read'));
+    }
+  });
+
+  it('credential dump: read SSH private keys → high', () => {
+    for (const cmd of [
+      'cat /root/.ssh/id_rsa',
+      'cat /home/alice/.ssh/id_ed25519',
+      'tar czf /tmp/x.tgz /home/alice/.ssh/id_ecdsa',
+      'cp /home/x/.ssh/id_dsa /tmp/',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+    }
+  });
+
+  it('reading benign files stays low', () => {
+    for (const cmd of [
+      'cat /etc/hosts',          // world-readable, low sensitivity
+      'cat /etc/passwd',         // world-readable
+      'cat ~/.ssh/known_hosts',  // not a private key
+      'cat ~/.ssh/id_rsa.pub',   // public key, not private
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'low', `${cmd} should be low`);
+    }
+  });
+
+  it('history clearing / disabling → medium', () => {
+    for (const cmd of [
+      'history -c',
+      'set +o history',
+      'unset HISTFILE',
+      'export HISTFILE=/dev/null',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'medium', `${cmd} should be medium`);
+      assert.ok(r.reasons.some((x) => x.code === 'history-tamper'));
+    }
+  });
+});
+
 describe('classifyCommand v1.10.65 patterns', () => {
   // shellc-network-fetch + Unicode escape decoder.
 
