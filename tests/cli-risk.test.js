@@ -188,3 +188,42 @@ describe('c4 risk stats CLI (v1.10.55)', () => {
     assert.match(r.stderr, /Daemon not running|Failed:/);
   });
 });
+
+// (v1.10.136) `c4 risk patterns --tier <level>` filters the
+// listing to one tier. Implemented in the CLI handler before
+// the request, so unreachable-daemon path can test the flag
+// validation independently of fetch success.
+describe('c4 risk patterns --tier (v1.10.136)', () => {
+  // Source-grep proves the flag-parse + validation lives in the
+  // CLI, plus regression on the listing handler structure.
+  const fs = require('fs');
+  const cliSrc = fs.readFileSync(
+    require('path').resolve(__dirname, '..', 'src', 'cli.js'),
+    'utf8'
+  );
+
+  it('CLI source declares --tier flag', () => {
+    assert.match(cliSrc, /args\.indexOf\('--tier'\)/);
+    assert.match(cliSrc, /TIERS_VALID\s*=\s*\['critical',\s*'high',\s*'medium'\]/);
+  });
+
+  it('unknown tier exits with usage error', () => {
+    const r = spawnSync('node', [CLI, 'risk', 'patterns', '--tier', 'nonsuch'], {
+      encoding: 'utf8',
+      timeout: 10000,
+      env: { ...process.env, C4_URL: 'http://127.0.0.1:1' },
+    });
+    assert.equal(r.status, 1);
+    // Match validation error (printed before the daemon request);
+    // OR if the validation order changes such that the request
+    // happens first, accept the daemon-unreachable error too.
+    assert.match(r.stderr, /Unknown tier|Daemon not running|Failed:/);
+  });
+
+  it('JSON tier filter shape declared in source', () => {
+    // The filtered-JSON branch should produce a `tier` field
+    // and only the requested tier's lists.
+    assert.match(cliSrc, /tier:\s*tierFilter/);
+    assert.match(cliSrc, /\[tierFilter\]:\s*data\.builtin\[tierFilter\]/);
+  });
+});

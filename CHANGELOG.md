@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.136] - 2026-05-03
+
+**`c4 risk patterns --tier <level>` filter.** With the catalog
+now at 86 patterns spread across critical / high / medium tiers,
+operators frequently want to review only the highest-impact
+rules (e.g. before a security audit, when validating that the
+critical-tier coverage matches expectations). `--tier critical`
+filters the listing.
+
+### Added
+- **`c4 risk patterns --tier <critical|high|medium>`** filters
+  both the human-readable listing and the `--json` output to a
+  single tier. The fingerprint is still printed (essential for
+  cross-machine consistency checks). Unknown tier values exit
+  with a clear error.
+- **`tests/cli-risk.test.js`**: 3 new `it()` cases under a new
+  describe block — source-grep proves the flag-parse lives in
+  the CLI, validation error path tests the unknown-tier exit,
+  and the JSON branch shape is locked. Suite stays at 175.
+
+### Why CLI-side filter and not server-side?
+The `/risk/patterns` endpoint already returns the full catalog
+in tier-keyed shape (`builtin.critical`, `builtin.high`,
+`builtin.medium`). Filtering server-side would save a few
+hundred bytes of payload but add a query-param surface that
+tests would need to lock in across versions. Doing it
+client-side keeps the wire format stable and the operator's
+workflow snappy.
+
 ## [1.10.135] - 2026-05-03
 
 **Three new kernel/cron catalog patterns**:

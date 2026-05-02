@@ -4540,24 +4540,66 @@ async function main() {
             console.error('Failed:', data?.error || 'unknown error');
             process.exit(1);
           }
-          if (wantJson) { console.log(JSON.stringify(data, null, 2)); return; }
-          console.log(`Built-in patterns: ${data.counts.builtin.total} total`);
-          for (const tier of ['critical', 'high', 'medium']) {
+          // (v1.10.136) `--tier <critical|high|medium>` filters
+          // the listing to a single tier — useful when operators
+          // want to review just the highest-impact rules.
+          const tierIdx = args.indexOf('--tier');
+          const tierFilter = tierIdx >= 0 ? args[tierIdx + 1] : '';
+          const TIERS_VALID = ['critical', 'high', 'medium'];
+          if (tierFilter && !TIERS_VALID.includes(tierFilter)) {
+            console.error(`Unknown tier: ${tierFilter} (expected one of ${TIERS_VALID.join('|')})`);
+            process.exit(1);
+          }
+          const tiersToShow = tierFilter ? [tierFilter] : TIERS_VALID;
+          if (wantJson) {
+            // When --tier is provided, return only that tier's
+            // builtin + custom + counts. Otherwise pass through.
+            if (tierFilter) {
+              const filtered = {
+                builtin: { [tierFilter]: data.builtin[tierFilter] || [] },
+                custom: { [tierFilter]: data.custom[tierFilter] || [] },
+                counts: {
+                  builtin: { [tierFilter]: data.counts.builtin[tierFilter] || 0, total: (data.builtin[tierFilter] || []).length },
+                  custom: { [tierFilter]: data.counts.custom[tierFilter] || 0, total: (data.custom[tierFilter] || []).length },
+                },
+                fingerprint: data.fingerprint,
+                tier: tierFilter,
+              };
+              console.log(JSON.stringify(filtered, null, 2));
+            } else {
+              console.log(JSON.stringify(data, null, 2));
+            }
+            return;
+          }
+          // Human-readable listing — same as before, but the
+          // header reflects the filter when one is applied.
+          if (tierFilter) {
+            const list = data.builtin[tierFilter] || [];
+            console.log(`Built-in ${tierFilter} patterns: ${list.length}`);
+          } else {
+            console.log(`Built-in patterns: ${data.counts.builtin.total} total`);
+          }
+          for (const tier of tiersToShow) {
             const list = data.builtin[tier] || [];
             if (list.length === 0) continue;
-            console.log(`  ${tier} (${list.length}):`);
-            for (const r of list) console.log(`    [${r.code}] ${r.label}`);
+            // When a single tier is filtered, the header above
+            // already reflects the count — skip the inner header.
+            if (!tierFilter) console.log(`  ${tier} (${list.length}):`);
+            const indent = tierFilter ? '  ' : '    ';
+            for (const r of list) console.log(`${indent}[${r.code}] ${r.label}`);
           }
-          if (data.counts.custom.total > 0) {
-            console.log(`\nCustom rules: ${data.counts.custom.total} total`);
-            for (const tier of ['critical', 'high', 'medium']) {
+          if (data.counts.custom.total > 0 && (!tierFilter || (data.custom[tierFilter] || []).length > 0)) {
+            const customCount = tierFilter ? (data.custom[tierFilter] || []).length : data.counts.custom.total;
+            console.log(`\nCustom ${tierFilter || ''} rules: ${customCount} total`);
+            for (const tier of tiersToShow) {
               const list = data.custom[tier] || [];
               if (list.length === 0) continue;
-              console.log(`  ${tier} (${list.length}):`);
-              for (const r of list) console.log(`    [${r.code || '(no code)'}] ${r.label || '(no label)'} — /${r.pattern}/${r.flags || ''}`);
+              if (!tierFilter) console.log(`  ${tier} (${list.length}):`);
+              const indent = tierFilter ? '  ' : '    ';
+              for (const r of list) console.log(`${indent}[${r.code || '(no code)'}] ${r.label || '(no label)'} — /${r.pattern}/${r.flags || ''}`);
             }
           }
-          if (data.allowList > 0 || data.denyList > 0) {
+          if (!tierFilter && (data.allowList > 0 || data.denyList > 0)) {
             console.log(`\nOverrides: allowList=${data.allowList}, denyList=${data.denyList}`);
           }
           // (v1.10.95) Fingerprint — operators compare across machines
@@ -4627,7 +4669,9 @@ async function main() {
           console.error('  c4 risk "<command>" --shadow-exec          run the command in the configured sandbox');
           console.error('                                              (daemon must have riskClassifier.sandbox.allowExec=true)');
           console.error('  c4 risk stats [--window-hours N] [--json]  aggregate denies from the audit chain');
-          console.error('  c4 risk patterns [--json]                  list built-in catalog + custom rules');
+          console.error('  c4 risk patterns [--json] [--tier <critical|high|medium>]');
+          console.error('                                              list built-in catalog + custom rules');
+          console.error('                                              (--tier filters to a single tier)');
           console.error('');
           console.error('Operator guide: docs/risk-sandbox.md');
           process.exit(1);
