@@ -4,6 +4,126 @@
 
 (no entries — next release window)
 
+## [1.10.77] - 2026-05-02
+
+9.1 phase 2 follow-up — **ClaudeAgentSdkAdapter** scaffold lands as
+the last 9.1 phase 2 adapter. Closes the phase 2 adapter set:
+mock + codex + claude-agent-sdk + the existing claude-code + local
+trio + the rules-based router that picks between them.
+
+Unlike codex (PTY-driven CLI) or local-llm (HTTP-streaming), the
+Anthropic Agent SDK is a Node library — there's no binary to
+spawn. The adapter accepts a `queryFn` callable from the operator
+and fans the streamed events through the standard `onOutput`
+surface.
+
+### Added
+- **`src/agents/claude-agent-sdk.js`** —
+  `ClaudeAgentSdkAdapter`. Adapter contract (`init` / `sendInput`
+  / `sendKey` / `onOutput` / `detectIdle` + `metadata` /
+  `supportsPause`) plus an `async runQuery(prompt)` runtime
+  method that drives the wired SDK.
+
+  **Why dependency-injected `queryFn`** instead of a baked-in
+  `require('@anthropic-ai/claude-agent-sdk')`:
+  1. The SDK iterates rapidly. Hard-pinning a version in C4's
+     package.json would force C4 releases on every SDK release.
+  2. The SDK has its own auth + setup (env vars, MCP servers,
+     tool registries). Operators already know how to wire it; C4
+     just needs the protocol.
+  3. Some operators may want to plug a different SDK with the
+     same shape (an OpenAI Assistants port, an Aider library,
+     etc.). DI keeps the door open.
+
+  **`queryFn` signature**:
+  ```ts
+  async (prompt: string, opts: { model?, systemPrompt?, signal? })
+    => AsyncIterable<{
+      type: 'text' | 'tool_use' | 'error',
+      text?: string,
+    }>
+  ```
+
+  **Wiring pattern** (programmatic, since `config.json` can't
+  carry functions):
+  ```js
+  const { query } = require('@anthropic-ai/claude-agent-sdk');
+  const a = createAdapter({
+    type: 'claude-agent-sdk',
+    options: { model: 'claude-opus-4-7' },
+  });
+  a.queryFn = (prompt, opts) => query({ prompt, ...opts });
+  ```
+
+  **Behaviour**:
+  - Errors are surfaced through `onOutput` with a
+    `[claude-agent-sdk] error: <msg>\n` prefix; no throws leak.
+    Same pattern as `LocalLLMAdapter`.
+  - Concurrent `runQuery` rejected with a busy-guard error
+    (in-band, no throw).
+  - `tool_use` events are ignored by the scaffold — operators
+    who need tool dispatch subclass and intercept.
+  - `dispose()` aborts any in-flight query via `AbortController`,
+    clears listeners, and is safe to call repeatedly.
+
+  **`metadata.model`** carries the configured model so audit /
+  snapshot consumers can distinguish which model an SDK adapter
+  is pointed at without reaching into options.
+
+- **factory registration** — `'claude-agent-sdk'` joins
+  `REGISTRY` next to the prior six keys. `createAdapter({type:
+  'claude-agent-sdk'})` returns a `ClaudeAgentSdkAdapter`.
+
+- **`tests/agent-claude-agent-sdk.test.js`** — 28 cases across 7
+  suites:
+  - Adapter contract (validateAdapter, metadata.name + version +
+    model, supportsPause defaults + override, default model is
+    `claude-opus-4-7`)
+  - Input / key / trace plumbing (`sendInput` / `sendKey`
+    recording mirroring the MockAdapter shape, `trace()`
+    snapshot)
+  - `onOutput` plumbing (returns unsubscribe fn, rejects
+    non-function callback, listener errors swallowed
+    per-handler)
+  - `runQuery` streaming (text events stream + assemble, queryFn
+    receives prompt+model+systemPrompt+signal, error events
+    surface, `tool_use` ignored, `detectIdle` true after success,
+    thrown queryFn errors surface inline, non-AsyncIterable
+    return surfaces as error, scaffold-mode error when no
+    queryFn, busy-guard rejection)
+  - `dispose()` aborts in-flight + clears handlers
+  - Factory registration + opts forwarding
+  - `init()` context handling
+
+- The cross-adapter contract test
+  (`tests/agent-adapter-contract.test.js`) automatically picked
+  up the new key — 49 → 57 cases (+8 for claude-agent-sdk).
+
+### Changed
+- `tests/local-llm.test.js` REGISTRY canary widened to 7 keys
+  (claude-agent-sdk + claude-code + codex + 3 local + mock) with
+  comment listing the addition history (v1.10.71 mock → v1.10.75
+  codex → v1.10.77 claude-agent-sdk).
+
+Suite 164 → 165.
+
+**9.1 phase 2 — adapter set complete**:
+| key                | shipped  | notes                              |
+|--------------------|----------|------------------------------------|
+| claude-code        | 1.7.9    | phase 1 baseline                   |
+| local-{ollama,llama-cpp,vllm} | 1.8.4 | 9.2 done                  |
+| mock               | 1.10.71  | test fixture + reference impl      |
+| codex              | 1.10.75  | PTY scaffold for OpenAI codex      |
+| claude-agent-sdk   | 1.10.77  | DI scaffold for Anthropic SDK      |
+
+Plus framework-level work in 1.10.72 (authoring guide), 1.10.74
+(cross-adapter contract test), 1.10.76 (rules-based router).
+
+The remaining 9.1 phase 2 thread is whether to refactor the PTY
+adapters (claude-code + codex) onto a shared `PtyAdapterBase`
+since they duplicate ~30 lines of input/key/init plumbing. That's
+optional — both adapters work and the duplication is read-only.
+
 ## [1.10.76] - 2026-05-02
 
 9.1 phase 2 follow-up — **rules-based router** lands as a multi-tier

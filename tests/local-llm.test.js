@@ -428,13 +428,22 @@ describe('hybrid routing heuristic', () => {
 // ---------------------------------------------------------------------------
 
 describe('createAdapter factory - local + hybrid wiring', () => {
-  test('REGISTRY exposes the 3 local keys + mock + codex alongside claude-code', () => {
+  test('REGISTRY exposes 7 keys: claude-code + claude-agent-sdk + codex + 3 local + mock', () => {
     const keys = listAdapterTypes().sort();
-    // (v1.10.75) 'codex' joined the registry as a PTY-driven scaffold
-    // for OpenAI's codex CLI. (v1.10.71) 'mock' is the deterministic
-    // test fixture / reference implementation. Listed here so any
-    // further additions break this canary first.
-    assert.deepStrictEqual(keys, ['claude-code', 'codex', 'local-llama-cpp', 'local-ollama', 'local-vllm', 'mock']);
+    // Order of additions — listed here so any further additions
+    // break this canary first:
+    //   v1.10.71 'mock'              — deterministic test fixture / reference
+    //   v1.10.75 'codex'             — PTY-driven scaffold for OpenAI codex
+    //   v1.10.77 'claude-agent-sdk'  — Anthropic Agent SDK scaffold
+    assert.deepStrictEqual(keys, [
+      'claude-agent-sdk',
+      'claude-code',
+      'codex',
+      'local-llama-cpp',
+      'local-ollama',
+      'local-vllm',
+      'mock',
+    ]);
     assert.strictEqual(REGISTRY['local-ollama'], LocalOllamaAdapter);
     assert.strictEqual(REGISTRY['local-llama-cpp'], LocalLlamaCppAdapter);
     assert.strictEqual(REGISTRY['local-vllm'], LocalVllmAdapter);

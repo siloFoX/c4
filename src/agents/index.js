@@ -49,6 +49,7 @@ const {
 } = require('./local-llm');
 const MockAdapter = require('./mock');
 const CodexAdapter = require('./codex');
+const ClaudeAgentSdkAdapter = require('./claude-agent-sdk');
 
 const REGISTRY = {
   'claude-code': ClaudeCodeAdapter,
@@ -65,6 +66,11 @@ const REGISTRY = {
   // readyIndicator patterns via config; C4 doesn't hard-code codex
   // UI strings since they drift release-to-release.
   'codex': CodexAdapter,
+  // (v1.10.77) claude-agent-sdk adapter — scaffold for Anthropic's
+  // Claude Agent SDK. Operator wires `queryFn` programmatically
+  // (config.json can't carry functions). C4 ships the protocol;
+  // the SDK iterates rapidly so we don't pin its version.
+  'claude-agent-sdk': ClaudeAgentSdkAdapter,
 };
 
 const DEFAULT_HYBRID_THRESHOLD = 2000;
@@ -272,4 +278,5 @@ module.exports = {
   LocalVllmAdapter,
   MockAdapter,
   CodexAdapter,
+  ClaudeAgentSdkAdapter,
 };
