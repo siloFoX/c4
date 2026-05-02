@@ -358,7 +358,7 @@ NOT be the default.
 ## Further reading
 
 - [`src/risk-classifier.js`](../src/risk-classifier.js) — pattern
-  catalog (104 patterns + 13 obfuscation defeats as of v1.10.160;
+  catalog (105 patterns + 13 obfuscation defeats as of v1.10.161;
   `c4 risk patterns` lists the current effective rule set,
   `c4 risk patterns --tier <critical|high|medium>` filters to
   one tier)
