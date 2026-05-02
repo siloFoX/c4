@@ -848,6 +848,51 @@ async function main() {
           });
         }
 
+        // (v1.10.61) Risk classifier status — surfaces enabled/level so an
+        // operator running `c4 doctor` after a fresh deployment can spot
+        // that enforcement is still off, or that autoDenyLevel was
+        // accidentally left at 'low' (which blocks every command).
+        try {
+          const riskCfg = await request('GET', '/risk/patterns');
+          const cfgRes = await request('GET', '/config');
+          const riskRunning = cfgRes && cfgRes.config && cfgRes.config.riskClassifier
+            ? cfgRes.config.riskClassifier
+            : {};
+          const enabled = riskRunning.enabled === true;
+          const level = riskRunning.autoDenyLevel || 'critical';
+          const builtin = riskCfg && riskCfg.counts && riskCfg.counts.builtin
+            ? riskCfg.counts.builtin.total : 0;
+          const custom = riskCfg && riskCfg.counts && riskCfg.counts.custom
+            ? riskCfg.counts.custom.total : 0;
+          const allowList = riskCfg && riskCfg.allowList ? riskCfg.allowList : 0;
+          const denyList = riskCfg && riskCfg.denyList ? riskCfg.denyList : 0;
+          const overrideStr = (custom + allowList + denyList) > 0
+            ? ` + ${custom} custom / ${allowList} allow / ${denyList} deny`
+            : '';
+          if (!enabled) {
+            checks.push({
+              ok: true, level: 'warn',
+              label: `risk classifier: DISABLED (${builtin} patterns loaded${overrideStr}) — flip riskClassifier.enabled=true to enforce`,
+            });
+          } else {
+            // 'low' as autoDenyLevel blocks everything — almost certainly
+            // a misconfig. Flag.
+            const dangerLevel = level === 'low';
+            checks.push({
+              ok: !dangerLevel,
+              level: dangerLevel ? null : null,
+              label: dangerLevel
+                ? `risk classifier: enabled at autoDenyLevel='low' — blocks ALL commands. Did you mean 'high' or 'critical'?`
+                : `risk classifier: enabled (autoDenyLevel='${level}', ${builtin} patterns${overrideStr})`,
+            });
+          }
+        } catch (e) {
+          checks.push({
+            ok: true, level: 'warn',
+            label: `risk classifier: status unavailable (${e.message})`,
+          });
+        }
+
         for (const c of checks) {
           const mark = c.ok ? (c.level === 'warn' ? warn : tick) : cross;
           console.log(`  ${mark} ${c.label}`);

@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.61] - 2026-05-02
+
+`c4 doctor` now surfaces risk-classifier status.
+
+### Added
+- **(cli) Doctor risk classifier check.** New row reports
+  one of three states:
+  1. **DISABLED** (warn) — `riskClassifier.enabled=false`.
+     Common after a fresh deployment; doctor reminds the
+     operator to flip the flag if they want enforcement.
+     Shows pattern count + override count for context.
+  2. **ENABLED at level 'low'** (error) — almost always a
+     misconfig since 'low' blocks every command. Doctor
+     fails the check so a CI run catches it.
+  3. **ENABLED at level X** (ok) — happy path. Reports the
+     active autoDenyLevel + N built-in patterns + custom /
+     allow / deny override counts when present.
+
+  Doesn't touch state — pure HTTP query against /risk/patterns
+  and /config. Falls back to a neutral warn line when the
+  daemon is unreachable.
+
+Suite 157/157.
+
 ## [1.10.60] - 2026-05-02
 
 End-to-end integration test for the risk gate.
