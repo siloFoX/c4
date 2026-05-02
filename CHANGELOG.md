@@ -4,6 +4,41 @@
 
 (no entries — next release window)
 
+## [1.10.74] - 2026-05-02
+
+9.1 phase 2 follow-up — cross-adapter contract test that exercises
+the same shape + behaviour checks against every entry in REGISTRY.
+Catches regressions in any registered adapter and forces new
+adapters to satisfy the same baseline before they ship.
+
+### Added
+- **`tests/agent-adapter-contract.test.js`** — 41 cases (8 per
+  adapter × 5 adapters + 1 REGISTRY-non-empty canary):
+  1. `validateAdapter()` returns true on a fresh instance
+  2. `metadata.name` is a non-empty string
+  3. `metadata.version` is a non-empty string
+  4. `supportsPause` is a boolean
+  5. `onOutput(fn)` returns an unsubscribe function
+  6. unsubscribe is idempotent (calling twice does not throw)
+  7. `init(null)` does not throw
+  8. `init({})` does not throw
+
+  Adapter-specific construction needs (e.g. `local-llm` wants
+  `fetch: null` so it does not bind global fetch in the
+  constructor) live in a per-type `ADAPTER_OPTS` table at the top
+  of the test file. Adding a new adapter to `REGISTRY` automatically
+  picks up the suite — if construction needs special opts, add one
+  line to `ADAPTER_OPTS`.
+
+  Suite 161 → 162.
+
+This complements the per-adapter test files (`agent-mock.test.js`,
+`local-llm.test.js`, etc.) which deeply exercise their adapter's
+behaviour. The contract test is shallow but uniform: it does not
+care _what_ each adapter does, only that the shape is honored.
+Together they form a "narrow + deep" matrix where the shallow row
+catches drift, the deep column catches behavioural regressions.
+
 ## [1.10.73] - 2026-05-02
 
 Roadmap-and-patch backfill so the recent 9.1 phase 2 work is
