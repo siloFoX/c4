@@ -605,7 +605,7 @@ const HIGH_PATTERNS = [
     // avoid false-flagging routine `cmd | curl` calls that
     // aren't carrying file data (e.g. `echo OK | curl ...`
     // is fine because `echo` isn't in the prefix list).
-    re: /\b(?:tar|zip|gzip|bzip2|xz|cat|base64|hexdump|xxd)\b[^\n;&|]*\|\s*(?:curl\b[^\n;&|]*(?:-X\s+(?:POST|PUT)|-T\b|--upload-file|-d\s*@|--data-binary\s*@|--data\s*@)|nc\s+[^\n;&|]+\s+\d+|wget\b[^\n;&|]*--post-file)/i,
+    re: /\b(?:tar|zip|gzip|bzip2|xz|cat|base64|hexdump|xxd|env|printenv|mongoexport|mysqldump|pg_dump)\b[^\n;&|]*\|\s*(?:curl\b[^\n;&|]*(?:-X\s+(?:POST|PUT)|-T\b|--upload-file|-d\s*@|--data-binary\s*@|--data\s*@)|nc\s+[^\n;&|]+\s+\d+|wget\b[^\n;&|]*--post-file)/i,
   },
   {
     code: 'cloud-destroy',

