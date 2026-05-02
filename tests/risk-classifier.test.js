@@ -2304,6 +2304,35 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.153) SystemTap kernel module injection. Same threat
+  // as insmod / modprobe via a different path.
+  it('stap-kernel-inject: stap -e / -c / -g → critical (v1.10.153)', () => {
+    for (const cmd of [
+      'stap -e "probe begin { exit() }"',
+      'stap -c /bin/sh -e "probe begin { exit() }"',
+      'sudo stap -g /tmp/script.stp',
+      'stap --script-only -e "probe begin {}"',
+      'stap -e "probe syscall.open { printf(\\"open %s\\", filename) }"',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'stap-kernel-inject'),
+        `${cmd}: expected stap-kernel-inject`);
+    }
+  });
+
+  it('stap-kernel-inject — info forms stay low (regression)', () => {
+    for (const cmd of [
+      'stap --version',
+      'stap --help',
+      'stap -h',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'stap-kernel-inject'),
+        `${cmd}: should not match stap-kernel-inject`);
+    }
+  });
+
   it('kexec-load: kexec -l / --load / -e → critical (v1.10.129)', () => {
     for (const cmd of [
       'kexec -l /boot/vmlinuz --initrd=/boot/initrd',

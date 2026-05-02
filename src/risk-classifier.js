@@ -373,6 +373,17 @@ const CRITICAL_PATTERNS = [
     label: 'write to /boot/* or efibootmgr -c (boot-time tampering)',
     re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/boot\/(?:grub\/[\w.-]+|efi\/[\w.\/-]+|loader\/[\w.\/-]+|vmlinuz[\w.-]*|initrd\.img[\w.-]*|initramfs[\w.-]*)|\befibootmgr\s+(?:[^\n;|&]*\s)?(?:-c\b|--create\b)/,
   },
+  // (v1.10.153) SystemTap (`stap`) — generates and loads
+  // dynamic kernel modules from a script. Same threat as
+  // insmod / modprobe but reached via a different path.
+  // `-e` runs an inline script; `-c` runs as a child of the
+  // command. Same critical tier as kernel-module-load.
+  // Read forms (`stap --version`, `stap --help`) stay LOW.
+  {
+    code: 'stap-kernel-inject',
+    label: 'stap (SystemTap) inline script — dynamic kernel module injection',
+    re: /\bstap\s+(?:[^\n;|&]*\s)?(?:-e\s+\S|-c\s+\S|-g\b|--script-only\b)/,
+  },
   // (v1.10.135) Kernel module load — `insmod` and `modprobe`
   // load a `.ko` blob into the running kernel. Loaded modules
   // run at ring 0; a malicious .ko has full kernel access

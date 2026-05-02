@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.153] - 2026-05-03
+
+**`stap-kernel-inject` (critical) catalog pattern.** `stap`
+(SystemTap) generates and loads dynamic kernel modules from
+script source. `kernel-module-load` covers `insmod` /
+`modprobe` (load existing .ko); this rule covers the
+generate-and-load form via SystemTap.
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `stap-kernel-inject`. Catches:
+  - `stap -e "<script>"` (inline script)
+  - `stap -c <cmd> -e "<script>"` (run as child)
+  - `stap -g <script.stp>` (guru mode)
+  - `stap --script-only -e ...`
+  Critical tier matches `kernel-module-load`. Info forms
+  (`--version`, `--help`, `-h`) stay LOW.
+
+- **`tests/risk-classifier.test.js`**: 2 new `it()` cases —
+  attack assertion (5 commands) + regression (3 info forms).
+  Suite stays at 178. Risk-classifier file 267 → 269 cases.
+
+### Catalog totals
+- Critical: 32 patterns (+1: stap-kernel-inject)
+- High: 44 patterns (+0)
+- Medium: 21 patterns (+0)
+- **Total: 99 → 100** (effective; daemon will report 101 after
+  restart)
+
 ## [1.10.152] - 2026-05-03
 
 **`dbus-systemd-stop` (high) catalog pattern.** The
