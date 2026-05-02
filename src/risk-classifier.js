@@ -159,6 +159,20 @@ const CRITICAL_PATTERNS = [
     label: 'nsenter -t 1 / pivot_root (namespace escape)',
     re: /\b(?:nsenter\s+(?:[^\n;|&]*\s)?(?:-t\s+1\b|--target\s+1\b)|pivot_root\b)/,
   },
+  // (v1.10.172) Cloud metadata service exfil — `curl
+  // http://169.254.169.254/...` (AWS IMDS, also Azure
+  // unless using IMDSv2 with token), `curl
+  // http://metadata.google.internal/...` (GCP metadata).
+  // Each returns IAM credentials / OAuth tokens that
+  // compromise the entire cloud account. No benign worker
+  // reason to query the link-local metadata service from a
+  // user shell — workloads accessing it should use cloud
+  // SDK clients, not raw curl.
+  {
+    code: 'cloud-metadata-fetch',
+    label: 'curl/wget against cloud metadata service (169.254.169.254 / metadata.google.internal)',
+    re: /\b(?:curl|wget)\s+(?:[^\n;|&]*\s)?(?:https?:\/\/)?(?:169\.254\.169\.254\b|metadata\.(?:google|aws|azure)\.\w+\b|metadata\.internal\b)/,
+  },
   // (v1.10.151) Direct docker socket API access via curl /
   // socat — when the worker has access to /var/run/docker.sock
   // but not the docker CLI, this is the standard escape path:

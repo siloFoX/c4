@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.172] - 2026-05-03
+
+**`cloud-metadata-fetch` (critical) catalog pattern.** Cloud
+metadata services return IAM credentials and OAuth tokens
+that compromise the entire cloud account. Querying them from
+a user shell via raw curl/wget — instead of through the
+cloud SDK — is the canonical token-exfil shape.
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `cloud-metadata-fetch`. Catches
+  `curl` / `wget` against:
+  - `169.254.169.254` — AWS IMDS / Azure IMDS link-local
+    address
+  - `metadata.google.internal` — GCP metadata
+  - `metadata.{google,aws,azure}.<tld>` — DNS variants
+  Plain curl/wget against `example.com`, `localhost`, etc.
+  stay LOW.
+
 ## [1.10.171] - 2026-05-03
 
 **`chattr-immutable` extended to `chattr -i` direction.**
