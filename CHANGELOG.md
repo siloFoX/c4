@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.149] - 2026-05-03
+
+**`ld-preload-env` (critical) catalog pattern.** `ld-preload-write`
+covered `>> /etc/ld.so.preload` (system-wide library injection
+via filesystem). The per-process equivalent — `export LD_PRELOAD=
+/tmp/evil.so` or `LD_PRELOAD=... cmd` prefix — was silent until
+now. Same threat at the shell level: every subsequent exec
+loads the malicious library.
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `ld-preload-env`. Catches:
+  - `export LD_PRELOAD=/tmp/evil.so`
+  - `LD_PRELOAD=/tmp/evil.so curl https://api` (one-shot prefix)
+  - `export LD_PRELOAD=/tmp/foo.so:/tmp/bar.so` (multi-lib)
+  - `sudo LD_PRELOAD=/tmp/evil.so cmd`
+  Critical tier matches `ld-preload-write`. `unset LD_PRELOAD`,
+  reads, and grep stay LOW.
+
+- **`tests/risk-classifier.test.js`**: 2 new `it()` cases —
+  attack assertion (4 commands) + regression (4 unset/read).
+  Suite stays at 178. Risk-classifier file 255 → 257 cases.
+
+### Catalog totals
+- Critical: 30 patterns (+1: ld-preload-env)
+- High: 41 patterns (+0)
+- Medium: 21 patterns (+0)
+- **Total: 94 → 95** (effective; daemon already reported 95
+  before this ship via cumulative count)
+
 ## [1.10.148] - 2026-05-03
 
 **`local-pkg-install` (high) catalog pattern.** The existing

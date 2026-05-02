@@ -210,6 +210,17 @@ const CRITICAL_PATTERNS = [
     label: 'write to /etc/ld.so.preload (library injection)',
     re: />>?\s*\/etc\/ld\.so\.(?:preload|conf(?:\.d\/[\w.-]+)?)\b/,
   },
+  // (v1.10.149) LD_PRELOAD env var assignment — library
+  // injection via per-process env (no /etc write needed). Same
+  // threat shape as ld-preload-write but at the shell level.
+  // `export LD_PRELOAD=/tmp/evil.so` makes every subsequent
+  // exec in the shell load the malicious library first; `LD_
+  // PRELOAD=... cmd` does it for one invocation.
+  {
+    code: 'ld-preload-env',
+    label: 'export LD_PRELOAD / LD_PRELOAD= prefix (per-process library injection)',
+    re: /\b(?:export\s+)?LD_PRELOAD\s*=\s*\S+/,
+  },
   // (v1.10.64) Cron.d entry creation — anything written under
   // /etc/cron.{d,daily,hourly,weekly,monthly} runs as root on a
   // schedule. The existing system-files rule catches /etc/crontab

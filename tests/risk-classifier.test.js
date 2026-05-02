@@ -2131,6 +2131,35 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.149) LD_PRELOAD env var injection — same threat as
+  // ld-preload-write but at the shell level (per-process).
+  it('ld-preload-env: export LD_PRELOAD / LD_PRELOAD= prefix → critical (v1.10.149)', () => {
+    for (const cmd of [
+      'export LD_PRELOAD=/tmp/evil.so',
+      'LD_PRELOAD=/tmp/evil.so curl https://api',
+      'export LD_PRELOAD=/tmp/foo.so:/tmp/bar.so',
+      'sudo LD_PRELOAD=/tmp/evil.so vim',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'ld-preload-env'),
+        `${cmd}: expected ld-preload-env`);
+    }
+  });
+
+  it('ld-preload-env — unset / read / grep stays low (regression)', () => {
+    for (const cmd of [
+      'unset LD_PRELOAD',
+      'env | grep LD_PRELOAD',
+      'echo $LD_PRELOAD',
+      'cat /proc/self/environ | tr "\\0" "\\n" | grep LD_PRELOAD',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'ld-preload-env'),
+        `${cmd}: should not match ld-preload-env`);
+    }
+  });
+
   it('kexec-load: kexec -l / --load / -e → critical (v1.10.129)', () => {
     for (const cmd of [
       'kexec -l /boot/vmlinuz --initrd=/boot/initrd',
