@@ -1155,8 +1155,16 @@ const HIGH_PATTERNS = [
   // (space). Match `-j` literally without `\b` prefix.
   {
     code: 'firewall-allow',
-    label: 'iptables / nftables ACCEPT a specific source IP',
-    re: /\b(?:iptables|ip6tables|nft)\s+(?:[^\n;|&]*\s)?(?:-A\s+(?:INPUT|FORWARD)|add\s+rule\s+inet)\b[^\n;|&]*(?:-j\s+ACCEPT\b|\baccept\b)/,
+    label: 'iptables / nftables / ufw / fail2ban ACCEPT or unban',
+    // (v1.10.174) Extended with:
+    //   - ufw default allow incoming           (open everything)
+    //   - ufw allow from 0.0.0.0/0             (whitelist all v4)
+    //   - ufw allow from ::/0                  (whitelist all v6)
+    //   - fail2ban-client unban / set unbanip  (unblock attacker)
+    // The IP-class boundary uses `(?=[\s/]|$)` not `\b` because
+    // `0.0.0.0` ends in a digit (word char) but the natural
+    // suffix is `/`, and `::` ends in non-word so `\b` fails.
+    re: /\b(?:iptables|ip6tables|nft)\s+(?:[^\n;|&]*\s)?(?:-A\s+(?:INPUT|FORWARD)|add\s+rule\s+inet)\b[^\n;|&]*(?:-j\s+ACCEPT\b|\baccept\b)|\bufw\s+(?:default\s+allow\b|allow\s+from\s+(?:0\.0\.0\.0|::)(?=[\s/]|$))|\bfail2ban-client\s+(?:[^\n;|&]*\s)?(?:unban\b|set\s+\S+\s+unbanip\b)/,
   },
 ];
 

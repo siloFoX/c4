@@ -4,6 +4,22 @@
 
 (no entries — next release window)
 
+## [1.10.174] - 2026-05-03
+
+**`firewall-allow` extended to ufw + fail2ban.** The original
+rule covered iptables / nft ACCEPT; this release adds
+universal-allow + unban forms.
+
+### Changed
+- **`firewall-allow`** regex extended with:
+  - `ufw default allow incoming` (open everything)
+  - `ufw allow from 0.0.0.0/0` (whitelist all v4)
+  - `ufw allow from ::/0` (whitelist all v6)
+  - `fail2ban-client unban <ip>` (unblock previously-banned IP)
+  - `fail2ban-client set <jail> unbanip <ip>` (same)
+  Same HIGH tier. `ufw status`, `ufw allow ssh` (specific
+  service), `fail2ban-client status` stay LOW.
+
 ## [1.10.173] - 2026-05-03
 
 **`fs-destroy` (critical) catalog pattern.** Filesystem &
