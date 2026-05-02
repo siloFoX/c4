@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.154] - 2026-05-03
+
+**`docker-*` rules extended to podman + ctr.** Previous
+docker-* rules only matched the `docker` CLI; podman (rootless
+docker alternative on RHEL/Fedora/etc) and ctr (containerd
+CLI) were silent. Same threat across all OCI runtimes.
+
+### Changed
+- **`docker-privileged`** extended from `docker` to
+  `(docker|podman|ctr)`.
+- **`docker-root-mount`** extended same way (covers
+  `podman run -v /:/host` etc).
+- **`docker-escape-flags`** extended same way + added
+  `--net-host` (ctr's spelling for `--network=host`).
+
+### Added
+- **`tests/risk-classifier.test.js`**: 4 new `it()` cases —
+  one each for the three rule extensions + one regression
+  (bare podman/ctr/crictl invocations stay LOW). Suite stays
+  at 178. Risk-classifier file 269 → 273 cases.
+
+### Catalog totals
+- Critical: 32 patterns (+0; existing rules extended in place)
+- High: 44 patterns (+0)
+- Medium: 21 patterns (+0)
+- **Total: 100 → 100** (no new rules; effective coverage
+  expanded across docker / podman / ctr)
+
 ## [1.10.153] - 2026-05-03
 
 **`stap-kernel-inject` (critical) catalog pattern.** `stap`

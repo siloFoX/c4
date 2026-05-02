@@ -156,10 +156,12 @@ const CRITICAL_PATTERNS = [
   // and `--privileged`: container escape primitive, no benign
   // cause. The path can land in any container target dir, so
   // we match `/` followed by `:` and any non-space target.
+  // (v1.10.154) Extended to include podman + ctr (containerd
+  // CLI). Same threat across all OCI runtimes.
   {
     code: 'docker-root-mount',
-    label: 'docker run -v /:/<target> (mount host root into container)',
-    re: /\bdocker\s+(?:run|create|exec)\s+[^\n;|&]*-v\s+\/:\S/,
+    label: 'docker/podman/ctr run -v /:/<target> (mount host root into container)',
+    re: /\b(?:docker|podman|ctr)\s+(?:run|create|exec)\s+[^\n;|&]*-v\s+\/:\S/,
   },
   {
     code: 'curl-pipe-interpreter',
@@ -589,8 +591,11 @@ const HIGH_PATTERNS = [
   },
   {
     code: 'docker-privileged',
-    label: 'docker run --privileged',
-    re: /\bdocker\s+(?:run|exec)\s+[^\n;|&]*--privileged\b/,
+    label: 'docker / podman / ctr run --privileged',
+    // (v1.10.154) Extended to podman (rootless docker
+    // alternative on RHEL/Fedora) and ctr (containerd CLI).
+    // Same threat shape.
+    re: /\b(?:docker|podman|ctr)\s+(?:run|exec)\s+[^\n;|&]*--privileged\b/,
   },
   // (v1.10.134) Docker host-namespace shares + capability adds
   // — each turns the container into something close to a normal
@@ -603,10 +608,12 @@ const HIGH_PATTERNS = [
   // Tier: high (--privileged catches the all-in-one form;
   // these individual flags are equivalent to partial privileged
   // mode and review-worthy).
+  // (v1.10.154) Extended to podman (rootless docker
+  // alternative) and ctr (containerd CLI).
   {
     code: 'docker-escape-flags',
-    label: 'docker --network=host / --pid=host / --cap-add / --security-opt unconfined',
-    re: /\bdocker\s+(?:run|create|exec)\s+(?:[^\n;|&]*\s)?(?:--network[\s=]+host\b|--pid[\s=]+host\b|--ipc[\s=]+host\b|--userns[\s=]+host\b|--cap-add[\s=]+(?:SYS_ADMIN|NET_ADMIN|SYS_PTRACE|SYS_MODULE|ALL)\b|--security-opt[\s=]+(?:apparmor=unconfined|seccomp=unconfined|no-new-privileges=false)\b)/,
+    label: 'docker/podman/ctr --network=host / --pid=host / --cap-add / --security-opt unconfined',
+    re: /\b(?:docker|podman|ctr)\s+(?:run|create|exec)\s+(?:[^\n;|&]*\s)?(?:--network[\s=]+host\b|--pid[\s=]+host\b|--ipc[\s=]+host\b|--userns[\s=]+host\b|--cap-add[\s=]+(?:SYS_ADMIN|NET_ADMIN|SYS_PTRACE|SYS_MODULE|ALL)\b|--security-opt[\s=]+(?:apparmor=unconfined|seccomp=unconfined|no-new-privileges=false)\b|--net-host\b)/,
   },
   {
     code: 'reboot-shutdown',

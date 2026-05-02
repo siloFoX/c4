@@ -2333,6 +2333,66 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.154) docker-* rules extended to podman + ctr (the
+  // two main docker alternatives). Same threat across all OCI
+  // runtimes.
+  it('docker-privileged: extended to podman / ctr → high (v1.10.154)', () => {
+    for (const cmd of [
+      'docker run --privileged alpine',          // regression
+      'podman run --privileged alpine',
+      'ctr run --privileged docker.io/library/alpine /test',
+      'sudo podman run --privileged alpine sh',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'docker-privileged'),
+        `${cmd}: expected docker-privileged`);
+    }
+  });
+
+  it('docker-root-mount: extended to podman / ctr → critical (v1.10.154)', () => {
+    for (const cmd of [
+      'docker run -v /:/host alpine',           // regression
+      'podman run -v /:/host alpine',
+      'ctr run -v /:/host docker.io/library/alpine /test',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'docker-root-mount'),
+        `${cmd}: expected docker-root-mount`);
+    }
+  });
+
+  it('docker-escape-flags: extended to podman / ctr + ctr --net-host → high (v1.10.154)', () => {
+    for (const cmd of [
+      'docker run --network=host alpine',       // regression
+      'podman run --network=host alpine',
+      'podman run --pid=host alpine',
+      'podman run --cap-add=SYS_ADMIN alpine',
+      'ctr run -t --net-host docker.io/library/alpine /test sh',  // ctr uses --net-host
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'docker-escape-flags'),
+        `${cmd}: expected docker-escape-flags`);
+    }
+  });
+
+  it('docker-* podman extension — bare run / list stays low (regression)', () => {
+    for (const cmd of [
+      'podman run alpine',                       // bare run
+      'podman ps',                               // list
+      'podman images',
+      'ctr task ls',
+      'crictl ps',                               // not yet covered
+    ]) {
+      const r = classifyCommand(cmd);
+      // All of these should NOT match any docker-* rule
+      assert.ok(!r.reasons.some((x) => x.code.startsWith('docker-')),
+        `${cmd}: should not match any docker-* rule`);
+    }
+  });
+
   it('kexec-load: kexec -l / --load / -e → critical (v1.10.129)', () => {
     for (const cmd of [
       'kexec -l /boot/vmlinuz --initrd=/boot/initrd',
