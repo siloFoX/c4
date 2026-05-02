@@ -4,6 +4,40 @@
 
 (no entries — next release window)
 
+## [1.10.102] - 2026-05-03
+
+**AppHeader + main IA browser tests** (TODO 8.37). Builds on
+v1.10.101's Playwright scaffold to verify the dashboard's
+information architecture renders correctly in a real browser.
+
+### Added
+- **`tests/web-smoke.test.js`** — 3 new cases under
+  "AppHeader + main IA (8.37)" describe (shared Chromium
+  context with onboarding-tour dismissal in `before`):
+  - main header carries the "C4 Dashboard" wordmark
+  - tab bar includes Workers / History / Sessions / Chat
+  - sidebar renders Workers panel — scans all `<aside>`
+    elements (the c4 dev shell ships an onboarding tour as a
+    second `<aside>` overlay; matches against the one labeled
+    "Workers" / "WORKERS")
+
+### Changed
+- **`tests/run-all.js`** — per-file timeout 30s → 60s. Web
+  smoke tests + the existing risk-shadow-exec-docker tests
+  legitimately need real-browser / real-Docker boot time;
+  the prior 30s cap was clipping passing tests at the timeout
+  boundary.
+
+- **`tests/web-smoke.test.js`** existing 6 cases refactored to
+  share a single Chromium context (was: one context per case)
+  so the file completes in ~6s instead of ~36s. Console
+  listeners attach/detach per case where needed.
+
+### Test impact
+Suite stays at 175 (the 3 new cases are inside the existing
+web-smoke file). Full `npm test` runtime ~58s (was ~33s pre-
+Playwright); ~22s of that is the web-smoke + Chromium boot.
+
 ## [1.10.101] - 2026-05-02
 
 **Web UI smoke tests via Playwright + Chromium**. Closes the gap

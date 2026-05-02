@@ -63,7 +63,7 @@ for (const file of testFiles) {
 
   const start = Date.now();
   try {
-    execSync(cmd, { cwd: rootDir, stdio: 'pipe', timeout: 30000 });
+    execSync(cmd, { cwd: rootDir, stdio: 'pipe', timeout: 60000 });
     const ms = Date.now() - start;
     results.push({ file: label, pass: true, ms });
     console.log(`  \x1b[32mPASS\x1b[0m  ${label} \x1b[90m(${ms}ms)\x1b[0m`);
