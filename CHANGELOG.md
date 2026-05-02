@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.190] - 2026-05-03
+
+**`cloud-iam-tamper` (critical) catalog pattern.** Cloud IAM
+privilege escalation — creating access keys, attaching admin
+policies, or creating new IAM users / service accounts. The
+classic cloud post-exploit chain. Critical because these are
+quasi-irreversible (key rotation rituals) and the policies
+grant deep cross-service access.
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `cloud-iam-tamper`. Catches:
+  - `aws iam create-access-key` / `create-login-profile`
+  - `aws iam attach-{user,role,group}-policy`
+  - `aws iam put-{user,role,group}-policy`
+  - `aws iam create-{user,role,group}`
+  - `gcloud iam service-accounts create` / `roles create`
+  - `gcloud projects add-iam-policy-binding`
+  - `az ad sp|user create`
+  - `az role assignment create`
+  Read forms (`list-access-keys`, `get-caller-identity`,
+  `service-accounts list`, etc.) stay LOW.
+
 ## [1.10.189] - 2026-05-03
 
 **Backfill unit tests for v1.10.183-188 catalog rules.**

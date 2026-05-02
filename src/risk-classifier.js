@@ -171,6 +171,17 @@ const CRITICAL_PATTERNS = [
     label: 'nsenter -t 1 / pivot_root (namespace escape)',
     re: /\b(?:nsenter\s+(?:[^\n;|&]*\s)?(?:-t\s+1\b|--target\s+1\b)|pivot_root\b)/,
   },
+  // (v1.10.190) Cloud IAM privilege escalation — creating
+  // access keys, attaching admin policies, or modifying
+  // service accounts. Classic cloud post-exploit chain.
+  // Tier critical because these are quasi-irreversible
+  // (key rotation rituals) and the policies grant deep
+  // cross-service access.
+  {
+    code: 'cloud-iam-tamper',
+    label: 'aws iam create-access-key / attach-user-policy / gcloud iam / az ad sp create',
+    re: /\b(?:aws\s+iam\s+(?:create-access-key|create-login-profile|attach-(?:user|role|group)-policy|put-(?:user|role|group)-policy|create-(?:user|role|group))\b|gcloud\s+iam\s+(?:service-accounts\s+create|roles\s+create)\b|gcloud\s+projects\s+add-iam-policy-binding\b|az\s+ad\s+(?:sp|user)\s+create\b|az\s+role\s+assignment\s+create\b)/,
+  },
   // (v1.10.172) Cloud metadata service exfil — `curl
   // http://169.254.169.254/...` (AWS IMDS, also Azure
   // unless using IMDSv2 with token), `curl
