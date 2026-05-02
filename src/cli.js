@@ -895,6 +895,34 @@ async function main() {
                 : `risk classifier: enabled (autoDenyLevel='${level}', ${builtin} patterns${overrideStr})`,
             });
           }
+          // (v1.10.143) Fingerprint + recent activity. Surfaces
+          // the rule-set hash (operators compare across machines)
+          // and 24h denies count so the doctor reports both the
+          // configured state AND the operational signal.
+          if (riskCfg && typeof riskCfg.fingerprint === 'string') {
+            checks.push({
+              ok: true, level: null,
+              label: `risk fingerprint: ${riskCfg.fingerprint}`,
+            });
+          }
+          try {
+            const stats = await request('GET', '/risk/stats?windowHours=24');
+            if (stats && !stats.error) {
+              const total = (stats.total || 0);
+              const shadow = (stats.shadowExec || 0);
+              const rotations = (stats.ruleSetRotations || 0);
+              const detail = [
+                `${total} denies`,
+                shadow > 0 ? `${shadow} shadow exec` : null,
+                rotations > 1 ? `${rotations} fingerprint rotations` : null,
+              ].filter(Boolean).join(', ');
+              checks.push({
+                ok: rotations <= 1,
+                level: rotations > 1 ? 'warn' : null,
+                label: `risk activity (24h): ${detail}`,
+              });
+            }
+          } catch { /* stats endpoint optional */ }
         } catch (e) {
           checks.push({
             ok: true, level: 'warn',

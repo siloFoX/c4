@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.143] - 2026-05-03
+
+**`c4 doctor` risk classifier rows extended.** Earlier rows
+showed enabled / autoDenyLevel / pattern count. This release
+adds two more signals: the rule-set fingerprint (cross-machine
+consistency check) and 24h activity (denies + shadow exec +
+fingerprint rotations).
+
+### Added
+- **`c4 doctor`** new check: `risk fingerprint: <hash>`. Pulled
+  from the same `/risk/patterns` endpoint as the other rows.
+  Operators compare across machines to verify identical
+  classifier config.
+- **`c4 doctor`** new check: `risk activity (24h): N denies[, N
+  shadow exec][, N fingerprint rotations]`. Pulled from
+  `/risk/stats?windowHours=24`. Rotations > 1 (config changed
+  mid-window) flags as warn.
+- **`tests/cli-doctor-risk.test.js`**: NEW file with 4
+  source-grep cases — fingerprint emission, /risk/stats query,
+  multi-signal summary, rotation>1 warn-level escalation. Suite
+  stays at 178.
+
+### Why surface these in doctor?
+Doctor is the operator's "everything OK?" check. Configured
+state (enabled / level / pattern count) tells you whether the
+classifier is wired up. Fingerprint tells you whether THIS
+machine's rule set matches the rest of the fleet. Activity
+tells you whether the classifier is actually firing — silent
+classifier on a busy worker often means the hook isn't called.
+
 ## [1.10.142] - 2026-05-03
 
 **`c4 audit query --ruleFingerprint <fp>` CLI flag.** v1.10.115
