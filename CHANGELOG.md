@@ -4,6 +4,21 @@
 
 (no entries — next release window)
 
+## [1.10.175] - 2026-05-03
+
+**`cron-spool-write` extended to anacron + incron.** The
+original rule covered `/var/spool/cron/<user>` only.
+This release adds three more cron-family scheduling targets.
+
+### Changed
+- **`cron-spool-write`** regex extended with:
+  - `/etc/anacrontab` (anacron job table)
+  - `/var/spool/anacron/<file>` (anacron job state)
+  - `/etc/incron.d/<file>` (incron event-trigger jobs)
+  Same HIGH tier — all are scheduled or event-triggered
+  execution targets that bypass the existing `cron-edit`
+  (crontab CLI) and `cron-d-write` (/etc/cron.d/) rules.
+
 ## [1.10.174] - 2026-05-03
 
 **`firewall-allow` extended to ufw + fail2ban.** The original

@@ -1108,8 +1108,11 @@ const HIGH_PATTERNS = [
   // pop a malicious cron entry directly into the spool file.
   {
     code: 'cron-spool-write',
-    label: 'write to /var/spool/cron/<user> (direct user-cron write)',
-    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/var\/spool\/cron\/(?:crontabs\/)?[\w.-]+/,
+    label: 'write to /var/spool/cron/, /etc/anacrontab, /var/spool/anacron/, /etc/incron.d/',
+    // (v1.10.175) Extended with /etc/anacrontab,
+    // /var/spool/anacron/, and /etc/incron.d/. Same threat
+    // family — scheduled / event-triggered execution.
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)(?:\/var\/spool\/cron\/(?:crontabs\/)?[\w.-]+|\/etc\/anacrontab\b|\/var\/spool\/anacron\/[\w.-]+|\/etc\/incron\.d\/[\w.-]+)/,
   },
   // (v1.10.135) Kernel module persistence — entries in
   // /etc/modules or /etc/modules-load.d/*.conf get loaded at
