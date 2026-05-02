@@ -2244,6 +2244,37 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.151) Direct docker socket API access — same escape
+  // primitive as docker-sock-mount but reached without the
+  // docker CLI.
+  it('docker-sock-api: curl --unix-socket / socat to /var/run/docker.sock → critical (v1.10.151)', () => {
+    for (const cmd of [
+      'curl --unix-socket /var/run/docker.sock http://localhost/containers/json',
+      'curl -X POST --unix-socket /var/run/docker.sock http://localhost/containers/create',
+      'socat - UNIX-CONNECT:/var/run/docker.sock',
+      'socat -d -d UNIX-CONNECT:/var/run/docker.sock',
+      'curl -s --unix-socket /var/run/docker.sock http://localhost/_ping',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'docker-sock-api'),
+        `${cmd}: expected docker-sock-api`);
+    }
+  });
+
+  it('docker-sock-api — unrelated curl / sockets stay low (regression)', () => {
+    for (const cmd of [
+      'curl http://localhost:8080/api',
+      'curl --unix-socket /tmp/myapp.sock http://localhost/health',
+      'ls -la /var/run/docker.sock',
+      'cat /var/run/docker.sock',                // (binary, but not API call)
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'docker-sock-api'),
+        `${cmd}: should not match docker-sock-api`);
+    }
+  });
+
   it('kexec-load: kexec -l / --load / -e → critical (v1.10.129)', () => {
     for (const cmd of [
       'kexec -l /boot/vmlinuz --initrd=/boot/initrd',

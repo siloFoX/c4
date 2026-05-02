@@ -134,6 +134,22 @@ const CRITICAL_PATTERNS = [
     // privileged: catastrophic, no benign cause.
     re: /\bdocker\s+(?:run|create|exec)\s+[^\n;|&]*-v\s+\/var\/run\/docker\.sock/,
   },
+  // (v1.10.151) Direct docker socket API access via curl /
+  // socat — when the worker has access to /var/run/docker.sock
+  // but not the docker CLI, this is the standard escape path:
+  //   curl --unix-socket /var/run/docker.sock ...
+  //   socat - UNIX-CONNECT:/var/run/docker.sock
+  // Same threat as docker-sock-mount: anyone talking to the
+  // socket can spawn a privileged container that mounts the
+  // host root. Same critical tier.
+  // socat path can be preceded by URI scheme prefix
+  // (`UNIX-CONNECT:`) without a space, so the inner negation
+  // is non-greedy without requiring a separator.
+  {
+    code: 'docker-sock-api',
+    label: 'curl/socat against /var/run/docker.sock (container escape via API)',
+    re: /\b(?:curl\s+(?:[^\n;|&]*\s)?--unix-socket\s+(?:[^\n;|&]*\s)?\/var\/run\/docker\.sock|socat\s+[^\n;|&]*\/var\/run\/docker\.sock)/,
+  },
   // (v1.10.134) Docker root-fs mount — `-v /:/host` (or any
   // mount of host `/`) gives the container read/write to the
   // entire host filesystem. Same severity as docker.sock mount

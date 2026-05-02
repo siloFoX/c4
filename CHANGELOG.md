@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.151] - 2026-05-03
+
+**`docker-sock-api` (critical) catalog pattern.** The
+existing `docker-sock-mount` rule covers `docker run -v
+/var/run/docker.sock:` (escape via mount). The
+without-docker-CLI escape path — direct API talk via curl /
+socat against the socket — was silent. Same threat: anyone
+talking to the socket can spawn a privileged container that
+mounts host root.
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `docker-sock-api`. Catches:
+  - `curl --unix-socket /var/run/docker.sock <api-path>`
+  - `socat - UNIX-CONNECT:/var/run/docker.sock`
+  - `socat -d -d UNIX-CONNECT:/var/run/docker.sock`
+  Critical tier matches `docker-sock-mount`. Unrelated curl
+  invocations (different sockets, plain HTTP) stay LOW.
+
+- **`tests/risk-classifier.test.js`**: 2 new `it()` cases —
+  attack assertion (5 commands) + regression (4 unrelated
+  invocations). Suite stays at 178. Risk-classifier file
+  263 → 265 cases.
+
+### Catalog totals
+- Critical: 31 patterns (+1: docker-sock-api)
+- High: 43 patterns (+0)
+- Medium: 21 patterns (+0)
+- **Total: 97 → 98** (effective; daemon will report 99 after
+  restart due to cumulative count)
+
 ## [1.10.150] - 2026-05-03
 
 **Defense-evasion + history extensions**: `auditctl-disable`
