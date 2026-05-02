@@ -4,6 +4,63 @@
 
 (no entries — next release window)
 
+## [1.10.71] - 2026-05-02
+
+9.1 phase 2 follow-up — **MockAdapter** lands as a deterministic
+test fixture + reference implementation for new backend authors
+(codex, claude-agent-sdk, future locals). Production behavior is
+unchanged; the mock is opt-in via `agent.type = "mock"`.
+
+### Added
+- **`src/agents/mock.js`** — full Adapter contract without a
+  PTY/LLM. Inputs / keys land on internal buffers; output is
+  whatever the test scripts via `setScript(chunks)` /
+  `pushOutput(chunk)`; idle is whatever `setIdle(bool)` set.
+  Listener queue: `pushOutput` before `onOutput` queues the
+  chunk and flushes on the first listener attach (mirrors a
+  backend that buffers stdout). Listener errors are swallowed
+  per-handler so one broken consumer can't starve the rest.
+
+  Surface:
+  - `metadata` / `supportsPause` honour `opts.{name, version,
+    supportsPause}` so a mock can pose as a different backend.
+  - `init(workerCtx)` / `init(null)` to swap or clear the
+    worker context (e.g. tests that re-init).
+  - `trace()` returns `{inputs, keys, idle, pending}` for
+    assertions; `reset()` clears inputs / keys / pending output
+    while leaving the idle flag in place.
+
+- **factory registration** — `'mock'` joins `REGISTRY` in
+  `src/agents/index.js` next to claude-code / local-*. Always
+  available; the factory does not load production credentials,
+  so registering it costs nothing.
+
+- **`tests/agent-mock.test.js`** — 20 cases across 6 suites:
+  - Adapter contract (`validateAdapter()`, metadata,
+    `supportsPause`)
+  - Input / key plumbing + `reset()` semantics (idle stays)
+  - Output listener (queueing, flush-on-attach,
+    `setScript`, unsubscribe, error isolation)
+  - `detectIdle` (`true === true` only — no truthy coercion)
+  - Factory registration (`listAdapterTypes()`,
+    `createAdapter({type:"mock"})`, options forwarding,
+    `REGISTRY` exposure)
+  - `init()` worker-ctx storage / clearing
+
+  Suite 160 → 161.
+
+### Changed
+- `tests/local-llm.test.js` REGISTRY canary updated to expect
+  `mock` alongside the four prior keys, with a comment marking
+  it as the canonical "addition trip-wire" so future adapter
+  additions break this test first.
+
+**Why this exists**: lets agent-aware code (PtyManager state
+machine, hooks, scope guard) get exercised without a live PTY
+or LLM, gives new backend authors a minimal but correct
+template, and locks `validateAdapter()`'s contract surface to
+something other than the production claude-code adapter.
+
 ## [1.10.70] - 2026-05-02
 
 11.5 (e) **AI second-pass plumbing** shipped — closes the

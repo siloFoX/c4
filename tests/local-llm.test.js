@@ -428,9 +428,12 @@ describe('hybrid routing heuristic', () => {
 // ---------------------------------------------------------------------------
 
 describe('createAdapter factory - local + hybrid wiring', () => {
-  test('REGISTRY exposes the 3 new local keys alongside claude-code', () => {
+  test('REGISTRY exposes the 3 local keys + mock alongside claude-code', () => {
     const keys = listAdapterTypes().sort();
-    assert.deepStrictEqual(keys, ['claude-code', 'local-llama-cpp', 'local-ollama', 'local-vllm']);
+    // (v1.10.71) 'mock' joined the registry as a deterministic test
+    // adapter / reference implementation. Listed here so any further
+    // additions break this canary first.
+    assert.deepStrictEqual(keys, ['claude-code', 'local-llama-cpp', 'local-ollama', 'local-vllm', 'mock']);
     assert.strictEqual(REGISTRY['local-ollama'], LocalOllamaAdapter);
     assert.strictEqual(REGISTRY['local-llama-cpp'], LocalLlamaCppAdapter);
     assert.strictEqual(REGISTRY['local-vllm'], LocalVllmAdapter);

@@ -47,12 +47,18 @@ const {
   LocalLlamaCppAdapter,
   LocalVllmAdapter,
 } = require('./local-llm');
+const MockAdapter = require('./mock');
 
 const REGISTRY = {
   'claude-code': ClaudeCodeAdapter,
   'local-ollama': LocalOllamaAdapter,
   'local-llama-cpp': LocalLlamaCppAdapter,
   'local-vllm': LocalVllmAdapter,
+  // (v1.10.71) mock adapter — test infra + reference for new
+  // backends (codex, claude-agent-sdk, …). Always available; the
+  // factory doesn't load production credentials so registering it
+  // costs nothing.
+  'mock': MockAdapter,
 };
 
 const DEFAULT_HYBRID_THRESHOLD = 2000;
@@ -166,4 +172,5 @@ module.exports = {
   LocalOllamaAdapter,
   LocalLlamaCppAdapter,
   LocalVllmAdapter,
+  MockAdapter,
 };
