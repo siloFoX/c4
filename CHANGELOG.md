@@ -4,6 +4,23 @@
 
 (no entries — next release window)
 
+## [1.10.184] - 2026-05-03
+
+**`pkg-config-set` extended to direct config file writes.**
+The original rule covered the CLI form (`npm/yarn/pnpm
+config set ...`); persistent equivalents via direct file
+write (`echo registry=http://evil.com > ~/.npmrc`) were
+silent.
+
+### Changed
+- **`pkg-config-set`** regex extended with redirects/tees to:
+  - `~/.npmrc` / `/etc/npmrc`
+  - `~/.yarnrc` / `~/.yarnrc.yml` / `/etc/yarnrc(.yml)?`
+  - `~/.pypirc`
+  - `~/.config/pip/pip.conf` / `~/.pip/pip.conf` / `/etc/pip.conf`
+  Same MEDIUM tier. Reads (`cat ~/.npmrc` — fires
+  credential-read separately) stay LOW for this rule.
+
 ## [1.10.183] - 2026-05-03
 
 **`external-tunnel` (high) catalog pattern.** Third-party

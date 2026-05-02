@@ -1299,8 +1299,12 @@ const MEDIUM_PATTERNS = [
   },
   {
     code: 'pkg-config-set',
-    label: 'npm config set / yarn config set (registry / token writes)',
-    re: /\b(?:npm|yarn|pnpm)\s+config\s+set\s+\S/,
+    label: 'npm/yarn/pnpm config set OR direct write to .npmrc / pip.conf / .pypirc / .yarnrc',
+    // (v1.10.184) Extended to catch DIRECT writes to package
+    // manager config files (.npmrc, pip.conf, .pypirc,
+    // .yarnrc), which is the persistent equivalent of `npm
+    // config set registry http://evil.com`.
+    re: /\b(?:npm|yarn|pnpm)\s+config\s+set\s+\S|(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)(?:(?:~|\$HOME|\/home\/[^\s/]+|\/root)\/\.(?:npmrc|yarnrc(?:\.yml)?|pypirc|pip\/pip\.conf|config\/pip\/pip\.conf)|\/etc\/(?:npmrc|pip\.conf|yarnrc(?:\.yml)?))\b/,
   },
   {
     code: 'netcat-listen',
