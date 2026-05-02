@@ -217,6 +217,55 @@ describe('config validate', () => {
     const r = validate({ riskClassifier: { autoDenialLevel: 'critical' } });
     assert.ok(r.warnings.find((w) => w.path === 'riskClassifier.autoDenialLevel'));
   });
+
+  // (v1.10.80) sandbox config wiring — the new sandbox key feeds the
+  // SandboxRuntime factory.
+  describe('riskClassifier.sandbox', () => {
+    it('clean sandbox=null block passes', () => {
+      const r = validate({ riskClassifier: { sandbox: { name: 'null' } } });
+      assert.equal(r.errors.length, 0);
+    });
+
+    it('clean sandbox=docker block passes (with opts)', () => {
+      const r = validate({
+        riskClassifier: {
+          sandbox: { name: 'docker', opts: { memory: '256m' } },
+        },
+      });
+      // Docker may probe-fail if not on PATH; that's a warning not an
+      // error. But there must be NO errors.
+      assert.equal(r.errors.length, 0);
+    });
+
+    it('non-object sandbox value rejected', () => {
+      const r = validate({ riskClassifier: { sandbox: 'docker' } });
+      assert.ok(r.errors.find((e) => e.path === 'riskClassifier.sandbox'));
+    });
+
+    it('unknown sandbox name rejected', () => {
+      const r = validate({ riskClassifier: { sandbox: { name: 'firejail' } } });
+      assert.ok(r.errors.find((e) => e.path === 'riskClassifier.sandbox.name'));
+    });
+
+    it('non-object sandbox.opts rejected', () => {
+      const r = validate({
+        riskClassifier: { sandbox: { name: 'docker', opts: 'tight' } },
+      });
+      assert.ok(r.errors.find((e) => e.path === 'riskClassifier.sandbox.opts'));
+    });
+
+    it('docker probe failure surfaces as warning (not error)', () => {
+      const r = validate({
+        riskClassifier: {
+          sandbox: { name: 'docker', opts: { dockerBinary: '/no/such/docker' } },
+        },
+      });
+      assert.equal(r.errors.length, 0);
+      const w = r.warnings.find((w) => w.path === 'riskClassifier.sandbox');
+      assert.ok(w, 'expected docker-probe warning');
+      assert.match(w.message, /probe failed/);
+    });
+  });
 });
 
 // (review fix 2026-05-01) CLI integration — the `c4 config

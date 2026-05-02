@@ -188,6 +188,11 @@ function validate(config = {}) {
       'allowList',
       'denyList',
       'customRules',
+      // (v1.10.80) sandbox: { name: 'docker'|'null', opts: {...} }
+      // Pure config wiring — no shadow-exec yet, just so the daemon
+      // can pin a runtime that future shadow-exec / preview paths
+      // pick up without callers re-passing config every call.
+      'sandbox',
     ]);
     const BOOL_KEYS = new Set(['enabled', 'dryRun', 'notifySlack']);
     for (const [k, v] of Object.entries(config.riskClassifier)) {
@@ -297,6 +302,50 @@ function validate(config = {}) {
                 errors.push({ path: `${base}.pattern`, message: `invalid regex: ${e.message}` });
               }
             }
+          }
+        }
+      }
+      // (v1.10.80) sandbox: { name: 'docker'|'null', opts?: {...} }
+      if (k === 'sandbox') {
+        if (!v || typeof v !== 'object' || Array.isArray(v)) {
+          errors.push({
+            path: 'riskClassifier.sandbox',
+            message: 'must be an object with {name, opts?} fields',
+          });
+          continue;
+        }
+        const KNOWN_SB_RUNTIMES = new Set(['docker', 'null']);
+        if (typeof v.name !== 'string' || !KNOWN_SB_RUNTIMES.has(v.name)) {
+          errors.push({
+            path: 'riskClassifier.sandbox.name',
+            message: `must be one of ${[...KNOWN_SB_RUNTIMES].join('|')}, got ${JSON.stringify(v.name)}`,
+          });
+        }
+        if (v.opts !== undefined && (typeof v.opts !== 'object' || v.opts === null || Array.isArray(v.opts))) {
+          errors.push({
+            path: 'riskClassifier.sandbox.opts',
+            message: `must be an object when provided, got ${typeof v.opts}`,
+          });
+        }
+        // Probe Docker availability when name === 'docker' so a typo
+        // in dockerBinary surfaces at config-validate time, not at the
+        // first preview/exec call. Non-fatal warning — operator might
+        // be validating config on a host that doesn't have docker yet.
+        if (v.name === 'docker') {
+          try {
+            const { getRuntime } = require('./risk-sandbox-runtime');
+            const probe = getRuntime('docker', v.opts).available();
+            if (!probe.ok) {
+              warnings.push({
+                path: 'riskClassifier.sandbox',
+                message: `docker probe failed: ${probe.reason}`,
+              });
+            }
+          } catch (err) {
+            warnings.push({
+              path: 'riskClassifier.sandbox',
+              message: `runtime construction failed: ${(err && err.message) || err}`,
+            });
           }
         }
       }

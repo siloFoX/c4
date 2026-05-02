@@ -893,6 +893,49 @@ async function main() {
           });
         }
 
+        // (v1.10.80) Sandbox runtime — show the configured runtime and
+        // its availability probe so an operator can spot a Docker-not-
+        // running situation before relying on `--sandbox-preview` /
+        // future shadow-exec paths.
+        try {
+          const cfgRes2 = await request('GET', '/config');
+          const sb = cfgRes2 && cfgRes2.config && cfgRes2.config.riskClassifier
+            ? cfgRes2.config.riskClassifier.sandbox
+            : null;
+          if (sb && typeof sb === 'object' && typeof sb.name === 'string') {
+            const { getRuntime } = require('./risk-sandbox-runtime');
+            try {
+              const rt = getRuntime(sb.name, sb.opts);
+              const probe = rt.available();
+              const iso = rt.describeIsolation();
+              if (sb.name === 'null') {
+                checks.push({
+                  ok: true, level: 'warn',
+                  label: `sandbox runtime: NullRuntime (no isolation) — set riskClassifier.sandbox.name='docker' for hardened previews`,
+                });
+              } else if (probe.ok) {
+                checks.push({
+                  ok: true,
+                  label: `sandbox runtime: ${sb.name} reachable — network=${iso.network}, ${iso.resources}`,
+                });
+              } else {
+                checks.push({
+                  ok: false,
+                  label: `sandbox runtime: ${sb.name} probe failed — ${probe.reason}`,
+                });
+              }
+            } catch (rtErr) {
+              checks.push({
+                ok: false,
+                label: `sandbox runtime: construction failed — ${(rtErr && rtErr.message) || rtErr}`,
+              });
+            }
+          } else {
+            // No sandbox config — that's fine, it's purely opt-in.
+            // Don't push a check; doctor noise is a real problem.
+          }
+        } catch { /* daemon unavailable — already covered by risk check */ }
+
         for (const c of checks) {
           const mark = c.ok ? (c.level === 'warn' ? warn : tick) : cross;
           console.log(`  ${mark} ${c.label}`);

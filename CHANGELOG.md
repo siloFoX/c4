@@ -4,6 +4,87 @@
 
 (no entries — next release window)
 
+## [1.10.80] - 2026-05-02
+
+11.5 Stage 2 follow-up — **sandbox config wiring**. The
+SandboxRuntime that 1.10.79 introduced now has a permanent home in
+`config.json`, validated at config-validate time and surfaced via
+`c4 doctor`. Still no shadow execution; this is the plumbing that
+shadow-exec / preview paths will read once they land.
+
+### Added
+- **`config.riskClassifier.sandbox: {name, opts?}`** — validated
+  schema:
+  - `name`: required, must be `'docker'` or `'null'`. Unknown
+    values rejected at config load.
+  - `opts`: optional object passed verbatim to `getRuntime(name,
+    opts)`. Forwards to DockerRuntime (image / network / memory /
+    cpus / mounts / env / dockerBinary) when `name === 'docker'`.
+  - Docker probe is run at config-validate time when
+    `name === 'docker'` so a typo in `dockerBinary` (or a
+    docker-not-running situation) surfaces as a non-fatal
+    **warning** at validate time, not at the first
+    `--sandbox-preview` call.
+  - When `name === 'null'`, no probe (NullRuntime is always
+    available).
+
+- **`c4 doctor` shows sandbox runtime status** — between the
+  existing risk-classifier check and the bottom of the report:
+  - Configured + reachable → `sandbox runtime: docker reachable —
+    network=none, memory=128m cpus=0.5 ...` (✓)
+  - Configured + unreachable → `sandbox runtime: docker probe
+    failed — ...` (✗ — counts as a doctor failure since the
+    operator explicitly opted in to docker)
+  - Configured as `null` → `sandbox runtime: NullRuntime (no
+    isolation) — set riskClassifier.sandbox.name='docker' for
+    hardened previews` (warning — operator should know the config
+    is no-op)
+  - Not configured → no row (sandbox is opt-in; doctor noise is
+    a real problem)
+
+- **`tests/config-validate.test.js`** — 6 new cases under a
+  `riskClassifier.sandbox` describe block:
+  - clean `sandbox=null` block passes
+  - clean `sandbox=docker` block (with opts) passes
+  - non-object sandbox value rejected as error
+  - unknown sandbox name rejected as error
+  - non-object `sandbox.opts` rejected as error
+  - docker probe failure surfaces as **warning** (not error) so
+    a config can be validated on a host without docker installed
+    yet — operator gets the heads-up but the validate doesn't
+    block
+
+Suite still 167 (config-validate suite grew but base count is the
+same; the new cases live inside the existing config-validate
+test file).
+
+### Why opt-in via config
+
+The 1.10.79 cut shipped `--sandbox-preview` as a one-off CLI flag
+— operators had to type it on every classification call. That's
+fine for ad-hoc previews but doesn't scale to "I want every
+risky command in this org's daemon to be previewed against the
+hardened docker image we use in CI". This patch lets the org pin
+the runtime once in `config.json` and have every consumer (CLI,
+doctor, future shadow-exec, future API) inherit it.
+
+The runtime config is **read** by future paths but doesn't
+mutate any classification behavior on its own. Setting it today
+only affects: doctor display + (future) shadow-exec defaults.
+
+### Pending Stage 2 follow-ups
+
+1. **Shadow execution path** — pick up the configured runtime,
+   actually run the prepared argv, capture stdout/stderr/exit
+   code, surface as audit event. This is the security-sensitive
+   cut.
+2. **`risk.shadow_exec` audit event type** — distinguish from
+   `risk.denied` / `risk.dryRun` so timeline consumers can
+   tell which operations were shadow-executed.
+3. **`POST /api/risk/preview`** — HTTP equivalent of `c4 risk
+   --sandbox-preview` for daemon-side automation that doesn't
+   want to shell out.
+
 ## [1.10.79] - 2026-05-02
 
 11.5 Stage 2 first cut — **SandboxRuntime interface + DockerRuntime
