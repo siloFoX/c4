@@ -1537,6 +1537,48 @@ async function handleRequest(req, res) {
         result = { error: e.message };
       }
 
+    } else if (req.method === 'POST' && route === '/risk/check') {
+      // (11.5) Run a candidate command through the risk classifier
+      // without dispatching it. Mirrors `c4 risk "<cmd>"` over HTTP so
+      // the Web UI / Web SDK can preview risk levels before sending a
+      // command to a worker. Pulls the same allowList / denyList /
+      // customRules the in-process hook uses, so the response matches
+      // what the daemon would actually do at PreToolUse time.
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/risk/check', _body, res, cfg)) return;
+      const command = typeof _body.command === 'string' ? _body.command : '';
+      if (!command) {
+        result = { error: 'Missing command' };
+      } else {
+        try {
+          const { classifyCommand } = require('./risk-classifier');
+          const cfgNow = manager.getConfig() || {};
+          const riskCfg = cfgNow.riskClassifier || {};
+          const classification = classifyCommand(command, {
+            allowList: riskCfg.allowList,
+            denyList: riskCfg.denyList,
+            customRules: riskCfg.customRules,
+            includeInspected: _body.includeInspected === true,
+          });
+          // Mirror daemon enforcement: include the wouldDeny flag the
+          // hook would use, so a caller doesn't have to re-implement
+          // the level/threshold comparison.
+          const LEVEL_RANK = { low: 0, medium: 1, high: 2, critical: 3 };
+          const autoDenyLevel = ['low', 'medium', 'high', 'critical'].includes(riskCfg.autoDenyLevel)
+            ? riskCfg.autoDenyLevel
+            : 'critical';
+          const wouldDeny = riskCfg.enabled === true
+            && LEVEL_RANK[classification.level] >= LEVEL_RANK[autoDenyLevel];
+          result = Object.assign({}, classification, {
+            wouldDeny,
+            autoDenyLevel,
+            enforcementEnabled: riskCfg.enabled === true,
+          });
+        } catch (e) {
+          result = { error: e.message };
+        }
+      }
+
     } else if (req.method === 'GET' && route === '/audit/verify') {
       // (10.2) Hash chain integrity check. Returns valid=false +
       // corruptedAt=<line index> when the log has been tampered with or

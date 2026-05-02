@@ -89,6 +89,9 @@ const IDEMPOTENT_POSTS = {
     action: 'worker.create',
     resource: { type: 'project', id: 'main' },
   }),
+  'POST /risk/check': () => ({
+    command: 'rm -rf /tmp/test',
+  }),
 };
 
 function _ok(label) { console.log(`✔ ${label}`); }

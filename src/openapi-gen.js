@@ -72,6 +72,7 @@ const ROUTE_SUMMARIES = {
   'POST /morning': 'Generate the morning report (overnight activity summary).',
   'POST /status-update': 'Post a manual Slack status message tagged with a worker.',
   'GET /validation': 'Read the worker\'s .c4-validation.json (typecheck/lint/tests results) — synthesised from git state when missing.',
+  'POST /risk/check': 'Run a Bash command through the risk classifier without dispatching it. Mirrors `c4 risk` + the PreToolUse hook so the Web UI can preview risk levels before sending.',
 };
 
 // Optional curated request/response schemas — populates the OpenAPI
@@ -1688,6 +1689,38 @@ const ROUTE_SCHEMAS = {
           nullable: true,
           description: 'Parsed JSON from <worktree>/.c4-validation.json, or a synthesised object from git state when the file is missing. Null when the worker exists but has no validation data yet.',
         },
+      },
+    },
+  },
+  'POST /risk/check': {
+    requestBody: {
+      required: ['command'],
+      properties: {
+        command: { type: 'string', description: 'Candidate Bash command to classify' },
+        includeInspected: { type: 'boolean', description: 'When true, the response carries the post-denoise inspectedSource' },
+      },
+      example: { command: 'rm -rf /tmp/test', includeInspected: false },
+    },
+    response: {
+      properties: {
+        level: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
+        suggestedAction: { type: 'string', enum: ['allow', 'review', 'deny'] },
+        reasons: {
+          type: 'array',
+          items: {
+            properties: {
+              code: { type: 'string', description: 'Stable rule id (e.g., rm-rf-root, allowlist-bypass)' },
+              label: { type: 'string', description: 'Human-readable description' },
+              snippet: { type: 'string', description: 'Matched substring (capped at 160 chars)' },
+            },
+          },
+        },
+        decoded: { type: 'string', nullable: true, description: 'Denoised command when obfuscation was detected (base64 / $() / quote splitting)' },
+        inspectedSource: { type: 'string', description: 'Post-denoise text actually fed to the regex pass — only present when includeInspected=true' },
+        denyForced: { type: 'boolean', description: 'True when the level was forced by the denyList (independent of the built-in catalog)' },
+        wouldDeny: { type: 'boolean', description: 'True when the in-process hook would block this command at the current autoDenyLevel' },
+        autoDenyLevel: { type: 'string', enum: ['low', 'medium', 'high', 'critical'], description: 'The currently configured threshold (so callers don\'t have to fetch /config)' },
+        enforcementEnabled: { type: 'boolean', description: 'config.riskClassifier.enabled — when false, wouldDeny is always false' },
       },
     },
   },

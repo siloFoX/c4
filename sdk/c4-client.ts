@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.52
-// Generated at: 2026-05-02T02:02:16.893Z
+// Spec version: 1.10.53
+// Generated at: 2026-05-02T02:06:02.513Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -368,6 +368,26 @@ export interface getAuditExportParams {
   lineEnd?: "crlf" | "lf";
 }
 export type getAuditExportResponse = unknown;
+
+export interface postRiskCheckBody {
+  command: string; /** Candidate Bash command to classify */
+  includeInspected?: boolean; /** When true, the response carries the post-denoise inspectedSource */
+}
+export interface postRiskCheckResponse {
+  level?: "low" | "medium" | "high" | "critical";
+  suggestedAction?: "allow" | "review" | "deny";
+  reasons?: {
+  code?: string; /** Stable rule id (e.g., rm-rf-root, allowlist-bypass) */
+  label?: string; /** Human-readable description */
+  snippet?: string; /** Matched substring (capped at 160 chars) */
+}[];
+  decoded?: string | null; /** Denoised command when obfuscation was detected (base64 / $() / quote splitting) */
+  inspectedSource?: string; /** Post-denoise text actually fed to the regex pass — only present when includeInspected=true */
+  denyForced?: boolean; /** True when the level was forced by the denyList (independent of the built-in catalog) */
+  wouldDeny?: boolean; /** True when the in-process hook would block this command at the current autoDenyLevel */
+  autoDenyLevel?: "low" | "medium" | "high" | "critical"; /** The currently configured threshold (so callers don't have to fetch /config) */
+  enforcementEnabled?: boolean; /** config.riskClassifier.enabled — when false, wouldDeny is always false */
+}
 
 export interface getAuditVerifyParams {
   includeRotated?: "0" | "1";
@@ -1758,6 +1778,15 @@ export class C4Client {
       method: 'GET',
       path: '/api/audit/export',
       params: params as unknown as Record<string, unknown> | undefined,
+    });
+  }
+
+  /** Run a Bash command through the risk classifier without dispatching it. Mirrors `c4 risk` + the PreToolUse hook so the Web UI can preview risk levels before sending. */
+  async postRiskCheck(body: postRiskCheckBody): Promise<postRiskCheckResponse> {
+    return this.request<postRiskCheckResponse>({
+      method: 'POST',
+      path: '/api/risk/check',
+      body: body as unknown,
     });
   }
 

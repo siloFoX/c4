@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.53] - 2026-05-02
+
+`POST /risk/check` — daemon-side classifier endpoint. Web UI
+and SDK callers can now preview risk levels over HTTP without
+shelling out to `c4 risk`.
+
+### Added
+- **(daemon) `POST /risk/check`** classifies a candidate Bash
+  command using the same allowList / denyList / customRules
+  the in-process PreToolUse hook uses, so the response matches
+  what enforcement would actually do. Body: `{command,
+  includeInspected?}`. Response carries the full classification
+  (level / reasons / decoded) plus three convenience fields:
+  - `wouldDeny`: whether the in-process hook would block this
+    command at the current autoDenyLevel
+  - `autoDenyLevel`: the current threshold (so callers don't
+    need a follow-up /config call)
+  - `enforcementEnabled`: mirror of
+    `config.riskClassifier.enabled` — when false, wouldDeny
+    always returns false even for criticals.
+
+  Spec ops: 111 → 112. SDK gets `postRiskCheck()` with typed
+  request + response. Runtime drift checker exercises the
+  endpoint as an idempotent POST (49 routes runtime-validated,
+  was 48).
+
+Suite 156/156. All four drift phases clean.
+
 ## [1.10.52] - 2026-05-02
 
 `c4 risk "<command>"` — operator-facing classifier inspector.
