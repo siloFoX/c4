@@ -277,6 +277,18 @@ const CRITICAL_PATTERNS = [
     label: 'write to /etc/init.d/, /etc/rc.d/, or /etc/rc.local (SysV persistence)',
     re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/etc\/(?:init\.d\/[\w.-]+|rc\.d\/[\w.-]+|rc\.local\b)/,
   },
+  // (v1.10.131) cgroup release_agent escape — classic
+  // cgroup-v1 container escape. Writing an arbitrary script
+  // path into the cgroup's release_agent file then triggering
+  // an empty-cgroup release runs that script AS ROOT in the
+  // host namespace. The notify_on_release toggle is the trigger
+  // half. Both writes catastrophic in any worker / container
+  // context.
+  {
+    code: 'cgroup-release-agent',
+    label: 'write to /sys/fs/cgroup/.../release_agent or notify_on_release (container escape)',
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)(?:\/sys\/fs\/cgroup\/[^\n;|&]*?)(?:release_agent|notify_on_release)\b/,
+  },
 ];
 
 // High: dangerous but legitimately useful. Escalate to operator.
@@ -718,6 +730,28 @@ const HIGH_PATTERNS = [
     code: 'resolvectl-dns',
     label: 'resolvectl dns <iface> (systemd-resolved DNS hijack)',
     re: /\bresolvectl\s+(?:[^\n;|&]*\s)?(?:dns\b|domain\b|llmnr\b|mdns\b|dnssec\b)/,
+  },
+  // (v1.10.131) sed -i on a system file — in-place editing
+  // bypasses the redirect / tee detection of system-files. The
+  // flag combo `-i` can appear standalone or combined with
+  // other flags (`-iE`, `-Ei`, `-i.bak`). Same file list as
+  // system-files for parity. `awk -i inplace` and `perl -pi -e`
+  // (similar in-place editors) are subsumed by this rule for
+  // the same /etc/<file> targets.
+  {
+    code: 'sed-system-file-edit',
+    label: 'sed -i / awk -i inplace / perl -pi on /etc/<system-file>',
+    re: /\b(?:sed\s+(?:-[a-zA-Z]*i[a-zA-Z]*(?:\.\S+)?\s+|--in-place\s+)|awk\s+-i\s+inplace\s+|perl\s+-[a-zA-Z]*p[a-zA-Z]*i\b)[^\n;|&]*\/etc\/(?:passwd|shadow|sudoers|hosts(?:\.(?:allow|deny))?|crontab|fstab|resolv\.conf|nsswitch\.conf|securetty|login\.defs)\b/,
+  },
+  // (v1.10.131) tar -xPf or tar --absolute-names — absolute
+  // path extraction. Without -P, tar strips leading slashes;
+  // with -P, the archive can write to / (overwriting system
+  // files like /etc/passwd, /usr/bin/ssh). Untrusted tarballs
+  // extracted with -P become a system-file-overwrite primitive.
+  {
+    code: 'tar-absolute-extract',
+    label: 'tar -xPf / --absolute-names (extract to absolute paths)',
+    re: /\btar\s+(?:[^\n;|&]*\s)?(?:-[a-zA-Z]*x[a-zA-Z]*P[a-zA-Z]*|-[a-zA-Z]*P[a-zA-Z]*x[a-zA-Z]*|--absolute-names\b)/,
   },
   // (v1.10.130) iptables / nftables ACCEPT for arbitrary source
   // — whitelisting an attacker IP/CIDR through the firewall.

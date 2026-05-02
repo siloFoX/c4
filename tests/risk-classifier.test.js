@@ -1661,6 +1661,98 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.131) sed -i (and awk -i inplace, perl -pi) on a
+  // system file. system-files only catches > / >> / tee writes;
+  // in-place editors slip through.
+  it('sed-system-file-edit: sed -i / awk -i / perl -pi on /etc/<file> → high (v1.10.131)', () => {
+    for (const cmd of [
+      'sed -i "s/old/new/g" /etc/sudoers',
+      'sed -i "s/old/new/g" /etc/passwd',
+      'sed -Ei "s/old/new/" /etc/shadow',
+      'sed -i.bak "s/x/y/" /etc/hosts',
+      'sed --in-place "s/x/y/" /etc/resolv.conf',
+      'awk -i inplace "{ print }" /etc/passwd',
+      'perl -pi -e "s/x/y/" /etc/sudoers',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'sed-system-file-edit'),
+        `${cmd}: expected sed-system-file-edit`);
+    }
+  });
+
+  it('sed-system-file-edit — non-inplace / user files stay low (regression)', () => {
+    for (const cmd of [
+      'sed "s/old/new/g" /etc/passwd',         // not in-place (just print)
+      'sed -i "s/x/y/" file.txt',              // user file
+      'sed -n "1,10p" /etc/passwd',            // not in-place
+      'cat /etc/passwd | sed "s/x/y/"',        // pipe, not in-place
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'sed-system-file-edit'),
+        `${cmd}: should not match sed-system-file-edit`);
+    }
+  });
+
+  // (v1.10.131) tar -xPf / --absolute-names — extracts archive
+  // entries to absolute paths, defeating tar's default leading-/
+  // strip. Untrusted archives with -P become a primitive for
+  // overwriting any file on the host (/etc/passwd, /usr/bin/*).
+  it('tar-absolute-extract: -xPf / --absolute-names → high (v1.10.131)', () => {
+    for (const cmd of [
+      'tar -xPf evil.tar -C /',
+      'tar --absolute-names -xf evil.tar',
+      'tar -xvPf evil.tar',
+      'sudo tar -xPf evil.tar',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'tar-absolute-extract'),
+        `${cmd}: expected tar-absolute-extract`);
+    }
+  });
+
+  it('tar-absolute-extract — normal extract / create stays low (regression)', () => {
+    for (const cmd of [
+      'tar -xf normal.tar',                    // no -P
+      'tar -xvf normal.tar -C /tmp',
+      'tar -czf backup.tar /home',             // create
+      'tar -tf archive.tar',                   // list
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'tar-absolute-extract'),
+        `${cmd}: should not match tar-absolute-extract`);
+    }
+  });
+
+  // (v1.10.131) cgroup release_agent / notify_on_release — the
+  // canonical cgroup-v1 container escape primitive.
+  it('cgroup-release-agent: writes to /sys/fs/cgroup/.../release_agent → critical (v1.10.131)', () => {
+    for (const cmd of [
+      'echo /tmp/evil.sh > /sys/fs/cgroup/release_agent',
+      'echo "1" > /sys/fs/cgroup/test/notify_on_release',
+      'cat path | tee /sys/fs/cgroup/cgroup.procs/release_agent',
+      'echo "/host/script" >> /sys/fs/cgroup/memory/release_agent',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'cgroup-release-agent'),
+        `${cmd}: expected cgroup-release-agent`);
+    }
+  });
+
+  it('cgroup-release-agent — read / unrelated cgroup files stay low (regression)', () => {
+    for (const cmd of [
+      'cat /sys/fs/cgroup/release_agent',              // read
+      'echo 1 > /sys/fs/cgroup/cpu/cpu.shares',        // unrelated cgroup file
+      'ls /sys/fs/cgroup/',                            // listing
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'cgroup-release-agent'),
+        `${cmd}: should not match cgroup-release-agent`);
+    }
+  });
+
   it('setcap-cap — getcap / read / mention stays low (regression)', () => {
     for (const cmd of [
       'getcap /usr/bin/ping',                       // read, not set

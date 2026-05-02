@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.131] - 2026-05-03
+
+**Three more catalog patterns**: `sed-system-file-edit` (high),
+`tar-absolute-extract` (high), `cgroup-release-agent` (critical).
+Each closes a specific real-world threat surface left silent.
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `sed-system-file-edit`. Catches
+  `sed -i`, `sed -Ei`, `sed -i.bak`, `sed --in-place`, `awk -i
+  inplace`, and `perl -pi -e` against any of the same `/etc/<file>`
+  list as `system-files`. Rationale: `system-files` only matches
+  redirect (`>`/`>>`) and `tee` writes; in-place editors slip
+  through silently. Non-inplace `sed` (cat | sed pipes), user
+  files, and read-only `sed -n` stay LOW.
+
+- **`PATTERN_CATALOG.high`** entry `tar-absolute-extract`. Catches
+  `tar -xPf`, `tar -xvPf`, `tar --absolute-names -xf`. Without
+  `-P`, tar strips leading slashes during extraction; with `-P`,
+  the archive can write to `/`, overwriting `/etc/passwd`,
+  `/usr/bin/ssh`, etc. Untrusted tarballs extracted with `-P` are
+  a system-file-overwrite primitive. Normal extract/create/list
+  stay LOW.
+
+- **`PATTERN_CATALOG.critical`** entry `cgroup-release-agent`.
+  Catches redirects/tees into `/sys/fs/cgroup/.../release_agent`
+  or `/sys/fs/cgroup/.../notify_on_release`. The canonical
+  cgroup-v1 container escape: write a script path to
+  release_agent, trigger via empty cgroup → kernel runs the
+  script as root in the host namespace. Reads and unrelated
+  cgroup files (`cpu.shares`, etc.) stay LOW.
+
+- **`tests/risk-classifier.test.js`**: 6 new `it()` cases —
+  3 attack assertions + 3 regression assertions covering each
+  rule. Suite stays at 175. Risk-classifier file 212 → 218 cases.
+
+### Catalog totals
+- Critical: 23 patterns (+1: cgroup-release-agent)
+- High: 35 patterns (+2: sed-system-file-edit, tar-absolute-extract)
+- Medium: 18 patterns (+0)
+- **Total: 76 → 79**
+
 ## [1.10.130] - 2026-05-03
 
 **Three new high-tier patterns**: eBPF kernel hooking,
