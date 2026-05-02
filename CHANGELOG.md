@@ -4,6 +4,23 @@
 
 (no entries — next release window)
 
+## [1.10.160] - 2026-05-03
+
+**`ssh-tunnel` (high) catalog pattern.** SSH tunneling
+primitives turn an SSH connection into a covert channel:
+- `ssh -R port:host:port user@remote` — reverse tunnel
+  exposes a local port on the remote host (attacker can
+  reach the local network)
+- `ssh -D 1080 user@host` — dynamic SOCKS proxy via the
+  SSH connection (outbound proxy bypass)
+- `ssh -L 0.0.0.0:8080:internal:80 user@host` — local
+  forwarding bound to `0.0.0.0` (exposed to network)
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `ssh-tunnel`. Catches the
+  three forms above. Plain `ssh user@host`, `ssh -p`, and
+  loopback-only `-L` (without `0.0.0.0:` bind) stay LOW.
+
 ## [1.10.159] - 2026-05-03
 
 **`credential-read` extended to stdin-redirect form.** The

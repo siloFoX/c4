@@ -538,6 +538,20 @@ const HIGH_PATTERNS = [
     label: 'overwrite ~/.ssh/known_hosts or authorized_keys',
     re: />\s*(?:~|\$HOME|\/home\/[^\s/]+)\/\.ssh\/(?:known_hosts|authorized_keys)\b/,
   },
+  // (v1.10.160) SSH tunneling primitives — `ssh -R` (reverse
+  // tunnel exposes a local port on the remote host),
+  // `ssh -D` (dynamic SOCKS proxy via the SSH connection),
+  // `ssh -L` with `0.0.0.0` bind (local forwarding exposed to
+  // network). Each turns an SSH connection into a covert
+  // channel. -R is the most concerning (operator-visible tunnel
+  // to attacker host); -D is the next most concerning (SOCKS
+  // proxy outbound). -L without 0.0.0.0 is local-only and
+  // less concerning, so we don't catch it broadly.
+  {
+    code: 'ssh-tunnel',
+    label: 'ssh -R / -D / -L 0.0.0.0:* (tunneling)',
+    re: /\bssh\s+(?:[^\n;|&]*\s)?(?:-R\s+\S|-D\s+\S|-L\s+0\.0\.0\.0:)/,
+  },
   {
     code: 'ssh-strict-host-off',
     label: 'ssh / scp -o StrictHostKeyChecking=no (MITM-prone)',
