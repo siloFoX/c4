@@ -4,6 +4,91 @@
 
 (no entries — next release window)
 
+## [1.10.76] - 2026-05-02
+
+9.1 phase 2 follow-up — **rules-based router** lands as a multi-tier
+alternative to the binary `'hybrid'` heuristic. Backwards-compatible:
+existing `'hybrid'` callers keep the same length+keyword behavior.
+
+### Added
+- **`pickRoutedType(task, agentConfig)`** in `src/agents/index.js` —
+  pure function. Each rule is `{ if?: <Condition>, default?: true,
+  use: <REGISTRY key> }`. Rules evaluated in order; first match
+  wins. Falls back to `agentConfig.fallback` (or
+  `DEFAULT_HYBRID_COMPLEX`) if no rule matches.
+
+  **Condition keys** (AND semantics — all specified must hold):
+  - `lengthLte: number` — `task.length <= n`
+  - `lengthGte: number` — `task.length >= n`
+  - `matches: string` — regex source, case-insensitive
+  - `notMatches: string` — regex source, case-insensitive
+
+  **Bad rules skipped silently**: missing `use`, empty `use`,
+  invalid regex source, null entries, non-object entries. Operator
+  config errors must not crash the daemon — the worst case is the
+  router falling through to `fallback`.
+
+  Empty `if: {}` does NOT match (operator misconfig). At least one
+  criterion must be specified.
+
+- **`'router'` agent type** — `createAdapter({type: 'router',
+  rules, fallback, options})` evaluates the rules to pick a
+  registry key, then constructs that adapter normally. Per-type
+  options sub-bag (`options[resolvedKey]`) reaches the chosen
+  adapter.
+
+- **`tests/agent-router.test.js`** — 23 cases across 4 suites:
+  basic dispatch (fallback / first-match-wins / default-rule
+  short-circuit / order matters), Condition keys (each individually,
+  combined ranges, AND semantics, empty-if-no-match), silent
+  skipping (non-string use, empty use, invalid regex, null entries),
+  `createAdapter` end-to-end wiring (matching rule → instance,
+  default fallback, no-match-no-default → `fallback`, options
+  forwarding, `'hybrid'` backwards compat, unknown `use` throws via
+  `createAdapter`).
+
+  Suite 163 → 164.
+
+### Configuration example
+
+```json
+{
+  "agent": {
+    "type": "router",
+    "fallback": "claude-code",
+    "rules": [
+      { "if": { "lengthLte": 200 }, "use": "local-ollama" },
+      { "if": { "matches": "\\bdesign\\b" }, "use": "claude-code" },
+      { "if": { "lengthGte": 3000 }, "use": "claude-code" },
+      { "default": true, "use": "local-llama-cpp" }
+    ],
+    "options": {
+      "local-ollama": { "model": "llama3.1" },
+      "local-llama-cpp": { "model": "qwen2.5-coder" }
+    }
+  }
+}
+```
+
+### Why router instead of extending hybrid
+
+The `'hybrid'` type splits binary: simple → local, complex →
+claude-code. That works for two-tier setups but loses fidelity
+when operators want three or more tiers (e.g. cheap-local for
+short, mid-tier-local for medium, claude-code for complex /
+keyword-tagged). Adding a third tier to `'hybrid'` would have
+required changing a stable signature.
+
+`'router'` is additive — it lives next to `'hybrid'`, both are
+exported, both are tested, and operators pick whichever shape fits
+their config.
+
+**9.1 phase 2 progress now**: (a) local-llm done under 9.2, (b)
+MockAdapter (1.10.71), (c) authoring guide (1.10.72), (d) cross-
+adapter contract test (1.10.74), (e) CodexAdapter (1.10.75),
+(f) **rules-based router (1.10.76)**. Pending: claude-agent-sdk
+adapter.
+
 ## [1.10.75] - 2026-05-02
 
 9.1 phase 2 follow-up — **CodexAdapter** scaffold lands as the

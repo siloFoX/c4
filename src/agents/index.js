@@ -112,6 +112,87 @@ function pickHybridType(task, agentConfig) {
 }
 
 /**
+ * Rules-based router (v1.10.76) — supersedes the binary hybrid heuristic
+ * for callers who need multi-tier routing (e.g. local-ollama for short,
+ * local-vllm for medium, claude-code for complex).
+ *
+ * Each rule is `{ if?: <Condition>, default?: true, use: <REGISTRY key> }`.
+ * Rules are evaluated in order; first match wins. A `default: true` rule
+ * (typically last) catches anything that didn't match upstream.
+ *
+ * Condition shape (all keys optional, all must be true if multiple
+ * specified — AND semantics):
+ *   - lengthLte:  number   — task.length <= n
+ *   - lengthGte:  number   — task.length >= n
+ *   - matches:    string   — regex source (case-insensitive); task matches
+ *   - notMatches: string   — regex source (case-insensitive); task does NOT match
+ *
+ * Returns the first matching rule's `use`. Falls back to
+ * `agentConfig.fallback` (or DEFAULT_HYBRID_COMPLEX) if no rule matches
+ * AND no default rule was supplied.
+ *
+ * Bad rule entries (missing `use`, invalid regex, non-array `rules`) are
+ * skipped silently — operator config errors should not crash the daemon.
+ *
+ * @param {string} task
+ * @param {object} [agentConfig]
+ * @returns {string}
+ */
+function pickRoutedType(task, agentConfig) {
+  const cfg = agentConfig || {};
+  const fallback = typeof cfg.fallback === 'string' && cfg.fallback
+    ? cfg.fallback
+    : DEFAULT_HYBRID_COMPLEX;
+  const rules = Array.isArray(cfg.rules) ? cfg.rules : [];
+  const t = typeof task === 'string' ? task : '';
+
+  for (const rule of rules) {
+    if (!rule || typeof rule !== 'object') continue;
+    if (typeof rule.use !== 'string' || rule.use.length === 0) continue;
+    if (rule.default === true) {
+      return rule.use;
+    }
+    if (_matchesRule(t, rule.if)) {
+      return rule.use;
+    }
+  }
+  return fallback;
+}
+
+/**
+ * Pure helper: evaluate one Condition. Empty / missing condition matches
+ * (so `{ default: true, use: ... }` doesn't need an empty `if: {}`).
+ * @param {string} task
+ * @param {object|undefined} cond
+ * @returns {boolean}
+ */
+function _matchesRule(task, cond) {
+  if (!cond || typeof cond !== 'object') return false;
+  if (typeof cond.lengthLte === 'number' && Number.isFinite(cond.lengthLte)) {
+    if (task.length > cond.lengthLte) return false;
+  }
+  if (typeof cond.lengthGte === 'number' && Number.isFinite(cond.lengthGte)) {
+    if (task.length < cond.lengthGte) return false;
+  }
+  if (typeof cond.matches === 'string' && cond.matches.length > 0) {
+    let re;
+    try { re = new RegExp(cond.matches, 'i'); } catch { return false; }
+    if (!re.test(task)) return false;
+  }
+  if (typeof cond.notMatches === 'string' && cond.notMatches.length > 0) {
+    let re;
+    try { re = new RegExp(cond.notMatches, 'i'); } catch { return false; }
+    if (re.test(task)) return false;
+  }
+  // At least one criterion must have been specified — empty `if: {}`
+  // is a configuration smell, treat as no-match so the operator
+  // notices.
+  const hasAny = ['lengthLte', 'lengthGte', 'matches', 'notMatches']
+    .some((k) => cond[k] !== undefined);
+  return hasAny;
+}
+
+/**
  * Prefer per-type sub-bag under options[type]; fall back to flat options so
  * legacy callers that pass a flat options object keep working.
  */
@@ -142,6 +223,16 @@ function createAdapter(agentConfig = {}, legacyOpts = {}) {
     );
     type = pickHybridType(task, agentConfig);
   }
+  // (v1.10.76) Rules-based router — multi-tier alternative to hybrid.
+  // Evaluated AFTER hybrid resolution so a `'router'` type takes the
+  // routing path; existing `'hybrid'` callers keep their behavior
+  // unchanged.
+  if (type === 'router') {
+    const task = String(
+      (legacyOpts && (legacyOpts.task || legacyOpts.prompt)) || ''
+    );
+    type = pickRoutedType(task, agentConfig);
+  }
   const AdapterClass = REGISTRY[type];
   if (!AdapterClass) {
     const known = Object.keys(REGISTRY).join(', ');
@@ -169,6 +260,7 @@ module.exports = {
   REGISTRY,
   isComplexTask,
   pickHybridType,
+  pickRoutedType,
   resolveAdapterOptions,
   DEFAULT_HYBRID_THRESHOLD,
   DEFAULT_COMPLEX_KEYWORDS,
