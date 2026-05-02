@@ -1222,6 +1222,28 @@ const MEDIUM_PATTERNS = [
     label: 'truncate / wipe a /var/log/* file (anti-forensic)',
     re: /(?:^|[\s;|&])(?:>\s*\/var\/log\/[\w\/.-]+|(?:truncate|shred)\s+(?:[^\n;|&]*\s)?\/var\/log\/[\w\/.-]+)/,
   },
+  // (v1.10.164) Network packet capture — `tcpdump -w`,
+  // `tshark`, `wireshark`. Live-captured traffic can include
+  // plaintext credentials (HTTP Basic, FTP, SMTP, etc.) plus
+  // session cookies and tokens. Operators legitimately
+  // diagnose with these tools, so MEDIUM tier (review-worthy)
+  // matches netcat-listen / http-file-server.
+  {
+    code: 'network-sniff',
+    label: 'tcpdump -w / tshark / wireshark (packet capture)',
+    re: /\b(?:tcpdump\s+(?:[^\n;|&]*\s)?-w\b|tshark\s+(?:[^\n;|&]*\s)?-w\b|wireshark\s+(?:[^\n;|&]*\s)?-(?:k|i)\b|dumpcap\b)/,
+  },
+  // (v1.10.164) Process-attach snooping — `strace -p`,
+  // `ltrace -p`, `gdb -p`. Each attaches to a running process
+  // and can read the process's memory (including secrets) and
+  // intercept its syscalls. Operators legitimately debug with
+  // these, but autonomous attachment to an arbitrary PID is
+  // review-worthy.
+  {
+    code: 'process-snoop',
+    label: 'strace / ltrace / gdb -p <pid> (attach to running process)',
+    re: /\b(?:strace|ltrace|gdb)\s+(?:[^\n;|&]*\s)?-p\s+\d+/,
+  },
   // (v1.10.122) journalctl log destruction — same defense-evasion
   // family as history-tamper, but for systemd journal rather than
   // shell history. Operators legitimately rotate / vacuum journals

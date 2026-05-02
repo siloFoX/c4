@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.164] - 2026-05-03
+
+**Two new medium catalog patterns**: `network-sniff` and
+`process-snoop`. Both are review-worthy operator tools that
+can extract credentials when used against the wrong process /
+interface.
+
+### Added
+- **`PATTERN_CATALOG.medium`** entry `network-sniff`. Catches
+  `tcpdump -w`, `tshark -w`, `wireshark -k|-i`, `dumpcap`.
+  Live-captured traffic can include plaintext credentials.
+  Operators legitimately diagnose with these tools, so
+  medium tier matches `netcat-listen` / `http-file-server`.
+  Read forms (`tshark -r dump.pcap`) stay LOW.
+
+- **`PATTERN_CATALOG.medium`** entry `process-snoop`. Catches
+  `strace -p <pid>`, `ltrace -p <pid>`, `gdb -p <pid>`.
+  Each attaches to a running process and can read its memory
+  (including secrets) or intercept syscalls. Non-attach
+  forms (`strace ./myapp`, `gdb ./myapp`, `gdb --version`)
+  stay LOW.
+
 ## [1.10.163] - 2026-05-03
 
 **`ip-route-tamper` (high) catalog pattern.** Network-pivot
