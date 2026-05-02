@@ -4,6 +4,102 @@
 
 (no entries — next release window)
 
+## [1.10.83] - 2026-05-02
+
+11.5 Stage 2 — **executeInSandbox()** function module. Internal
+capability only — NOT yet wired to the daemon's HTTP surface or
+the CLI. Surface lives in a follow-up once the
+`risk.shadow_exec` audit event type lands.
+
+### Added
+- **`src/risk-sandbox-exec.js`** — the function that actually
+  runs a command inside a configured `SandboxRuntime`.
+  Dependency-injected `spawnImpl` opt so tests drive a stub
+  `child_process` without burning real docker invocations.
+
+  Safety guarantees:
+  - **Refuses NullRuntime.** No isolation == no exec.
+    `BlockedByRuntimeError` thrown synchronously before any
+    spawn. Even with `--sandbox-preview null` the exec path
+    can't be tricked into running on host.
+  - **Hard timeout.** Default 5s; SIGKILL after timeout. Caller
+    can override via `opts.timeoutMs` but clamped to
+    `[100ms, 5min]` silently. Accidental "sleep 1d" inputs
+    can't pin the host.
+  - **Stdout/stderr capped.** Default 16KB each, truncated tail
+    marker `\n[...truncated]\n` appended. Caller can override
+    via `opts.bufferLimit` clamped to `[1KB, 1MB]`. Prevents
+    OOM from a chatty containerized payload.
+  - **No leaked errors.** Spawn failures, timeouts, and
+    runtime-not-available probes all surface in the result
+    shape — no thrown error reaches the caller. The only
+    thrown errors are `BlockedByRuntimeError` (NullRuntime) and
+    `TypeError` (bad arg shape). Both are synchronous and
+    happen before the spawn.
+
+  **Result envelope** (always returned, every code path):
+  ```
+  {
+    exitCode:   number | null,        // null when killed
+    stdout:     string,                // truncated to bufferLimit
+    stderr:     string,
+    durationMs: number,
+    killed:     boolean,               // true when timeout fired
+    command:    string,                // echoed for audit
+    runtime:    { name, isolation },   // copied from prepareArgs
+    spawnError: string | null,         // when spawn itself failed
+                                       // (binary missing, perms,
+                                       // not-available probe)
+  }
+  ```
+
+  Probes `runtime.available()` first — if the runtime reports
+  not-ok, spawn is skipped and `spawnError` carries the reason.
+  Saves a noisy ENOENT when docker isn't on PATH.
+
+- **`tests/risk-sandbox-exec.test.js`** — 19 cases / 7 suites:
+  - input validation (TypeError for missing prepareArgs / non-
+    string command; BlockedByRuntimeError for NullRuntime)
+  - happy path (stdout/stderr/exitCode/durationMs captured;
+    runtime.isolation echoed; binary+args match prepared argv)
+  - runtime availability gating (skip spawn when not-ok; runtime
+    without `available()` proceeds — POJO with no method, not a
+    SandboxRuntime subclass that has the inherited stub)
+  - buffer truncation (stdout / stderr independently; below cap
+    not marked truncated)
+  - timeout / kill (killed=true on timeout; non-numeric timeoutMs
+    falls back to default; below MIN clamps to MIN; above MAX
+    clamps to MAX)
+  - spawn errors (synchronous throw; async error event)
+  - buffer limit clamping (non-numeric → default; below MIN →
+    MIN)
+
+  Suite 168 → 169.
+
+### Why function-module first instead of endpoint+CLI all in one
+
+Same rationale as 1.10.79's "builder first":
+
+1. **Audit event type isn't designed yet.** `risk.shadow_exec` is
+   the right name but the payload shape (does it carry stdout?
+   redacted? truncated? linked to the classifier event by id?)
+   is the next design decision. Wiring an endpoint that emits
+   half-baked audit events would mean a breaking change later.
+2. **The exec capability is testable in isolation.** Stub-spawn
+   tests cover every branch without needing a daemon, an
+   endpoint, or docker. That's a proper unit boundary.
+3. **The module can be required by the future endpoint without
+   re-shaping.** Once the audit event ships, the endpoint is a
+   ~30 line wrapper.
+
+### Pending Stage 2 follow-ups
+
+- `risk.shadow_exec` audit event type + scribe-v2 mirror
+- `POST /api/risk/exec` endpoint (gated by config flag,
+  refuses NullRuntime, emits the audit event)
+- CLI `c4 risk "<cmd>" --shadow-exec` (gated, refuses
+  NullRuntime)
+
 ## [1.10.82] - 2026-05-02
 
 11.5 Stage 2 polish — **auto-attach sandbox preview to `c4 risk` +
