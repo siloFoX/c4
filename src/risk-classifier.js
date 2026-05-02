@@ -813,6 +813,17 @@ const HIGH_PATTERNS = [
     // specifically.
     re: /\b(?:gem\s+install\b|cargo\s+install\s+(?!--path\b))/,
   },
+  // (v1.10.170) setfacl on a sensitive file — POSIX ACL grant
+  // bypasses standard unix perms. `setfacl -m u:evil:rwx
+  // /etc/shadow` lets the attacker user read shadow even
+  // though it's owned by root with 600 perms. Same threat as
+  // direct file modification but reaches it through a
+  // different vehicle.
+  {
+    code: 'setfacl-sensitive',
+    label: 'setfacl on credential / system file (ACL bypass)',
+    re: /\bsetfacl\s+(?:[^\n;|&]*\s)?-m\b[^\n;|&]*(?:\/etc\/(?:shadow|gshadow|sudoers|passwd|group|ssh\/sshd_config)|(?:~|\$HOME|\/home\/[^\s/]+|\/root)\/\.(?:ssh\/id_(?:rsa|ecdsa|ed25519|dsa)|aws\/credentials|kube\/config))/,
+  },
   // (v1.10.124) setcap — Linux file capabilities. Same family as
   // suid-set: hands a binary specific kernel privileges (cap_net_raw,
   // cap_sys_admin, cap_dac_read_search, etc.) without needing root.

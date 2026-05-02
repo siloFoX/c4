@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.170] - 2026-05-03
+
+**`setfacl-sensitive` (high) catalog pattern.** POSIX ACLs
+override standard unix perms — `setfacl -m u:evil:rwx
+/etc/shadow` lets `evil` read shadow even though it's owned
+by root with 600 perms. Same threat shape as direct file
+modification but reaches the result through a different
+vehicle.
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `setfacl-sensitive`. Catches
+  `setfacl -m` against credential paths
+  (`/etc/shadow`, `/etc/gshadow`, `/etc/sudoers`,
+  `/etc/passwd`, `/etc/group`, `/etc/ssh/sshd_config`,
+  `~/.ssh/id_*`, `~/.aws/credentials`, `~/.kube/config`).
+  ACL grants on user files / `getfacl` reads /
+  `setfacl --remove-all` on /tmp stay LOW.
+
 ## [1.10.169] - 2026-05-03
 
 **`passwd-no-auth` (high) catalog pattern.** Account auth
