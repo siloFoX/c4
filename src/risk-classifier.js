@@ -533,6 +533,17 @@ const HIGH_PATTERNS = [
     label: 'systemctl stop|disable on a critical service (ssh / firewall / audit)',
     re: /\bsystemctl\s+(?:stop|disable|mask)\s+(?:ssh|sshd|firewalld|ufw|nftables|auditd|apparmor|fail2ban)\b/,
   },
+  // (v1.10.140) AppArmor profile disable — `aa-disable` and
+  // `aa-complain` move profiles out of enforcement. Same threat
+  // shape as `systemctl-disable-critical apparmor` but via the
+  // AppArmor CLI rather than systemd. Operators legitimately
+  // do this when troubleshooting, but autonomous review should
+  // catch it.
+  {
+    code: 'apparmor-disable',
+    label: 'aa-disable / aa-complain (drop AppArmor profile from enforcement)',
+    re: /\b(?:aa-disable|aa-complain|apparmor_parser\s+(?:[^\n;|&]*\s)?-R\b)/,
+  },
   {
     code: 'pip-break-system',
     label: 'pip install --break-system-packages (PEP 668 override)',
@@ -885,6 +896,19 @@ const MEDIUM_PATTERNS = [
     code: 'apt-install',
     label: 'apt-get / apt install (system package)',
     re: /\b(?:apt|apt-get|yum|dnf|pacman|zypper|brew)\s+(?:install|add|-S)\b/,
+  },
+  // (v1.10.140) Package install from untrusted index. The
+  // `--extra-index-url` (pip), `--registry` (npm),
+  // `--index` (cargo) flags accept arbitrary HTTP(S) hosts.
+  // Operators legitimately use private registries (e.g.,
+  // npm-mirror.internal) but a worker writing this URL into
+  // an install command is review-worthy because it bypasses
+  // the configured registry's auth + supply-chain controls.
+  // Match http:// or https:// hosts (not file:// or relative).
+  {
+    code: 'pkg-install-untrusted-index',
+    label: 'pip/npm/cargo install with --extra-index-url / --registry / --index pointing at a URL',
+    re: /\b(?:pip3?\s+install\s+(?:[^\n;|&]*\s)?(?:--extra-index-url|--index-url|--trusted-host)\s+https?:\/\/|npm\s+(?:install|i)\s+(?:[^\n;|&]*\s)?--registry[\s=]+https?:\/\/|cargo\s+install\s+(?:[^\n;|&]*\s)?--index\s+https?:\/\/|yarn\s+(?:install|add)\s+(?:[^\n;|&]*\s)?--registry[\s=]+https?:\/\/)/,
   },
   {
     code: 'cron-edit',

