@@ -1705,6 +1705,119 @@ async function handleRequest(req, res) {
         }
       }
 
+    } else if (req.method === 'POST' && route === '/risk/exec') {
+      // (v1.10.84 / 11.5 Stage 2) Shadow execution. Refuses unless
+      // riskClassifier.sandbox.allowExec === true in config (defaults
+      // off — shadow exec is an explicit opt-in, never automatic).
+      // Also refuses NullRuntime (no isolation == no exec) at the
+      // executeInSandbox layer.
+      //
+      // Body:
+      //   { command: string,
+      //     runtime?: 'docker' | 'null',
+      //     opts?: object,
+      //     timeoutMs?: number,
+      //     bufferLimit?: number }
+      //
+      // Response (always — even on refusal/error):
+      //   { exitCode, stdout, stderr, durationMs, killed, command,
+      //     runtime: { name, isolation }, spawnError, refused?,
+      //     refusedReason? }
+      //
+      // Side effects (when actually executed):
+      //   - scribe-v2 risk_shadow_exec event with exitCode +
+      //     durationMs + killed + truncated stdout/stderr
+      //   - audit chain risk.shadow_exec (same shape, hash-chained)
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/risk/exec', _body, res, cfg)) return;
+      const command = typeof _body.command === 'string' ? _body.command : '';
+      if (!command) {
+        result = { error: 'Missing command' };
+      } else {
+        const cfgNow2 = manager.getConfig() || {};
+        const sbCfg2 = (cfgNow2.riskClassifier && cfgNow2.riskClassifier.sandbox) || {};
+        const allowExec = sbCfg2.allowExec === true;
+        if (!allowExec) {
+          // Surface the refusal in the standard envelope so callers
+          // can branch on `refused: true` without parsing strings.
+          result = {
+            exitCode: null, stdout: '', stderr: '', durationMs: 0,
+            killed: false, command, runtime: { name: 'unknown', isolation: {} },
+            spawnError: null,
+            refused: true,
+            refusedReason: 'riskClassifier.sandbox.allowExec is not true — set to enable shadow exec',
+          };
+        } else {
+          try {
+            const { getRuntime } = require('./risk-sandbox-runtime');
+            const { executeInSandbox, BlockedByRuntimeError } = require('./risk-sandbox-exec');
+            const runtimeName = typeof _body.runtime === 'string'
+              ? _body.runtime
+              : (typeof sbCfg2.name === 'string' ? sbCfg2.name : 'docker');
+            const runtimeOpts = (_body.opts && typeof _body.opts === 'object')
+              ? _body.opts
+              : (sbCfg2.opts || {});
+            const rt = getRuntime(runtimeName, runtimeOpts);
+            try {
+              const execResult = await executeInSandbox(rt, command, {
+                timeoutMs: _body.timeoutMs,
+                bufferLimit: _body.bufferLimit,
+              });
+              // Mirror to scribe-v2 timeline. Best-effort — never
+              // block the response on observability failures.
+              try {
+                if (manager._scribeV2 && typeof manager._scribeV2.record === 'function') {
+                  manager._scribeV2.record({
+                    type: 'risk_shadow_exec',
+                    payload: {
+                      command,
+                      runtime: execResult.runtime,
+                      exitCode: execResult.exitCode,
+                      durationMs: execResult.durationMs,
+                      killed: execResult.killed,
+                      stdout: execResult.stdout,
+                      stderr: execResult.stderr,
+                      spawnError: execResult.spawnError,
+                    },
+                  });
+                }
+              } catch { /* swallow scribe failures */ }
+              // Audit chain mirror. Same best-effort pattern as the
+              // existing risk.denied / risk.ai_feedback paths.
+              try {
+                if (manager._audit && typeof manager._audit.record === 'function') {
+                  manager._audit.record('risk.shadow_exec', {
+                    command: command.slice(0, 500),
+                    runtime: execResult.runtime.name,
+                    exitCode: execResult.exitCode,
+                    durationMs: execResult.durationMs,
+                    killed: execResult.killed,
+                  });
+                }
+              } catch { /* swallow audit failures */ }
+              result = execResult;
+            } catch (innerErr) {
+              if (innerErr instanceof BlockedByRuntimeError) {
+                result = {
+                  exitCode: null, stdout: '', stderr: '', durationMs: 0,
+                  killed: false, command,
+                  runtime: { name: runtimeName, isolation: {} },
+                  spawnError: null,
+                  refused: true,
+                  refusedReason: innerErr.message,
+                };
+              } else {
+                throw innerErr;
+              }
+            }
+          } catch (e) {
+            // Bad runtime name / unexpected throw: surface as error
+            // rather than crashing the route handler.
+            result = { error: (e && e.message) || String(e) };
+          }
+        }
+      }
+
     } else if (req.method === 'POST' && route === '/risk/preview') {
       // (v1.10.81 / 11.5 Stage 2) Pure builder — return the OS-binary
       // argv that the configured (or operator-supplied) sandbox

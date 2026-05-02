@@ -4,6 +4,108 @@
 
 (no entries — next release window)
 
+## [1.10.84] - 2026-05-02
+
+11.5 Stage 2 — **shadow execution endpoint**: `POST /api/risk/exec`
++ `risk_shadow_exec` scribe-v2 event + `risk.shadow_exec` audit
+chain entry. Closes the Stage 2 loop opened by 1.10.79.
+
+### Why this is the last Stage 2 cut
+
+Five cuts brought Stage 2 to a complete loop:
+
+| ship      | piece                                              |
+|-----------|----------------------------------------------------|
+| 1.10.79   | SandboxRuntime + DockerRuntime command builder     |
+| 1.10.80   | sandbox config wiring + doctor display             |
+| 1.10.81   | POST /api/risk/preview (HTTP builder)              |
+| 1.10.82   | auto-attach sandbox to /risk/check + c4 risk       |
+| 1.10.83   | executeInSandbox() function module (no surface)    |
+| **1.10.84** | **HTTP endpoint + audit/scribe wiring (this cut)** |
+
+Each cut shipped behind a clean unit boundary so the full chain
+could be exercised end-to-end without committing to policy until
+the final wiring landed.
+
+### Added
+
+- **`POST /api/risk/exec`** — shadow exec endpoint. Body:
+  ```json
+  {
+    "command": "echo hi",
+    "runtime": "docker",       // optional override; default = config
+    "opts": {},                // optional override
+    "timeoutMs": 5000,         // clamped to [100, 300000]
+    "bufferLimit": 16384       // clamped to [1024, 1048576]
+  }
+  ```
+
+  Three layers of refusal, all surfaced in the standard envelope
+  (`{exitCode, stdout, stderr, durationMs, killed, command,
+  runtime, spawnError, refused?, refusedReason?}`) — caller can
+  branch on `refused: true` without parsing strings:
+
+  1. `riskClassifier.sandbox.allowExec !== true` → refused
+     (`"allowExec is not true — set to enable shadow exec"`).
+  2. Effective runtime resolves to NullRuntime → refused via
+     `BlockedByRuntimeError` from `executeInSandbox` (caught and
+     wrapped into the envelope).
+  3. Runtime probe reports not-ok → `spawnError` carries the
+     reason; spawn skipped.
+
+  Side effects (only when actually executed):
+  - **scribe-v2 `risk_shadow_exec`** event — payload carries
+    `command`, `runtime: {name, isolation}`, `exitCode`,
+    `durationMs`, `killed`, `stdout`, `stderr`, `spawnError`.
+    Best-effort — observability failures don't block the
+    response.
+  - **audit-chain `risk.shadow_exec`** entry — same shape minus
+    stdout/stderr (audit is hash-chained; truncating per-row
+    stdout to fit the chain block size is a future cut).
+
+  Spec ops 116 → 117. Schema-drift checker now covers 43
+  response-shape routes (was 42).
+
+- **scribe-v2 `EVENT_TYPES`** — `risk_shadow_exec` joins the
+  canonical list, positioned right after `risk_deny` in the
+  ordered freeze. Existing scribe-v2 timeline consumers
+  (`c4 events --type risk_shadow_exec`) auto-pick-up the new
+  type.
+
+- **`config.riskClassifier.sandbox.allowExec`** — boolean,
+  defaults off. Gates the new endpoint. Validated at
+  config-validate time:
+  - non-boolean → error
+  - `allowExec=true` + `sandbox.name='null'` → warning
+    (NullRuntime refuses exec anyway, so the combo is
+    meaningless config noise — surface to the operator)
+
+- **`tests/risk-exec-endpoint.test.js`** — 16 cases / 4 suites:
+  - daemon route wireup (8 source-grep checks: handler exists,
+    `allowExec===true` gating, scribe-v2 mirror, audit-chain
+    mirror, `BlockedByRuntimeError` catch, scribe + audit
+    swallow comments, OpenAPI ROUTE_SCHEMAS entry, summary
+    mention)
+  - scribe-v2 `EVENT_TYPES` (includes `risk_shadow_exec`,
+    positioned right after `risk_deny`)
+  - config-validate `allowExec` (boolean accepted both ways,
+    non-boolean rejected, `true + null` combo warning, absent
+    is fine)
+  - OpenAPI response shape (exitCode + spawnError + refused all
+    declared `nullable: true`)
+
+  Suite 169 → 170.
+
+### Pending
+
+- **stdout/stderr truncation in audit chain** — current cut
+  skips them in the audit row (chain rows have a size budget;
+  16KB stdout would dominate). A separate cut adds a
+  fingerprint or first/last N bytes.
+- **`c4 risk "<cmd>" --shadow-exec`** CLI surface — same
+  daemon endpoint over HTTP. Trivial wrapper but warrants its
+  own ship for the CLI test cases.
+
 ## [1.10.83] - 2026-05-02
 
 11.5 Stage 2 — **executeInSandbox()** function module. Internal

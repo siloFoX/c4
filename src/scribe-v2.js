@@ -47,6 +47,14 @@ const EVENT_TYPES = Object.freeze([
   // the audit-chain risk.denied / risk.dryRun rows so scribe-v2
   // can be queried independently of audit hash chain.
   'risk_deny',
+  // (v1.10.84) Shadow execution — fires when an operator runs a
+  // command through executeInSandbox via POST /api/risk/exec.
+  // Payload carries the configured runtime, command, exitCode,
+  // durationMs, killed flag, and truncated stdout/stderr (capped
+  // at the same buffer limit the exec used). Distinct event from
+  // risk_deny because shadow exec is an explicit operator action,
+  // not a hook-time block.
+  'risk_shadow_exec',
 ]);
 
 const EVENT_TYPE_SET = new Set(EVENT_TYPES);

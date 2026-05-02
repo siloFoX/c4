@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.83
-// Generated at: 2026-05-02T06:28:57.826Z
+// Spec version: 1.10.84
+// Generated at: 2026-05-02T06:34:28.490Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -477,6 +477,29 @@ export interface postRiskCheckResponse {
 };
   runtime?: "docker" | "null";
 } | null; /** (v1.10.82) When config.riskClassifier.sandbox is configured, this echoes the same shape POST /risk/preview returns — pure builder, no exec. null when sandbox is unset. */
+}
+
+export interface postRiskExecBody {
+  command: string;
+  runtime?: "docker" | "null";
+  opts?: Record<string, unknown> | null;
+  timeoutMs?: number | null; /** Clamped to [100, 300000]ms by the runtime */
+  bufferLimit?: number | null; /** Clamped to [1024, 1048576] bytes per stream */
+}
+export interface postRiskExecResponse {
+  exitCode?: number | null; /** null when killed by signal/timeout */
+  stdout?: string; /** Truncated to bufferLimit; appended marker `\n[...truncated]\n` */
+  stderr?: string;
+  durationMs?: number;
+  killed?: boolean; /** True when the host-side timeout fired */
+  command?: string; /** Echoed verbatim for audit cross-checks */
+  runtime?: {
+  name?: string;
+  isolation?: Record<string, unknown>;
+};
+  spawnError?: string | null; /** Set when the spawn itself failed (binary missing / not-available probe / runtime construction) */
+  refused?: boolean | null; /** True when the request was refused before exec (allowExec=false or NullRuntime) */
+  refusedReason?: string | null;
 }
 
 export interface postRiskPreviewBody {
@@ -1931,6 +1954,15 @@ export class C4Client {
     return this.request<postRiskCheckResponse>({
       method: 'POST',
       path: '/api/risk/check',
+      body: body as unknown,
+    });
+  }
+
+  /** Shadow execution. Refuses unless `riskClassifier.sandbox.allowExec===true` in config (defaults off). Refuses NullRuntime. Captures stdout/stderr/exitCode/duration with hard timeout + buffer caps; emits scribe-v2 `risk_shadow_exec` + audit-chain `risk.shadow_exec`. Returns the result envelope on every code path (incl. refused). */
+  async postRiskExec(body: postRiskExecBody): Promise<postRiskExecResponse> {
+    return this.request<postRiskExecResponse>({
+      method: 'POST',
+      path: '/api/risk/exec',
       body: body as unknown,
     });
   }

@@ -74,6 +74,7 @@ const ROUTE_SUMMARIES = {
   'GET /validation': 'Read the worker\'s .c4-validation.json (typecheck/lint/tests results) — synthesised from git state when missing.',
   'POST /risk/check': 'Run a Bash command through the risk classifier without dispatching it. Mirrors `c4 risk` + the PreToolUse hook so the Web UI can preview risk levels before sending.',
   'POST /risk/preview': 'Pure builder — return the OS-binary argv that the configured (or operator-supplied) sandbox runtime would use to isolate `command`. No exec, no classification. HTTP equivalent of `c4 risk <cmd> --sandbox-preview`.',
+  'POST /risk/exec': 'Shadow execution. Refuses unless `riskClassifier.sandbox.allowExec===true` in config (defaults off). Refuses NullRuntime. Captures stdout/stderr/exitCode/duration with hard timeout + buffer caps; emits scribe-v2 `risk_shadow_exec` + audit-chain `risk.shadow_exec`. Returns the result envelope on every code path (incl. refused).',
   'GET /risk/stats': 'Aggregate risk.denied audit events from the last N hours (windowHours, default 24, max 720). Returns total + breakdown by level + top reasons + top workers.',
   'GET /risk/patterns': 'Built-in risk classifier pattern catalog + operator-configured customRules / allowList / denyList counts. Useful for policy reviewers auditing the effective rule set.',
   'POST /risk/ai-feedback': 'AI second-pass feedback hook. External LLM (operator-supplied) POSTs its level assessment of a command; daemon records to audit chain, broadcasts via SSE, and Slack-alerts when the AI escalates a command past the autoDenyLevel that the catalog missed.',
@@ -1883,6 +1884,39 @@ const ROUTE_SCHEMAS = {
             runtime: { type: 'string', enum: ['docker', 'null'] },
           },
         },
+      },
+    },
+  },
+  'POST /risk/exec': {
+    requestBody: {
+      required: ['command'],
+      properties: {
+        command: { type: 'string' },
+        runtime: { type: 'string', enum: ['docker', 'null'], nullable: true },
+        opts: { type: 'object', additionalProperties: true, nullable: true },
+        timeoutMs: { type: 'number', nullable: true, description: 'Clamped to [100, 300000]ms by the runtime' },
+        bufferLimit: { type: 'number', nullable: true, description: 'Clamped to [1024, 1048576] bytes per stream' },
+      },
+      example: { command: 'echo hi', runtime: 'docker', timeoutMs: 5000 },
+    },
+    response: {
+      properties: {
+        exitCode: { type: 'number', nullable: true, description: 'null when killed by signal/timeout' },
+        stdout: { type: 'string', description: 'Truncated to bufferLimit; appended marker `\\n[...truncated]\\n`' },
+        stderr: { type: 'string' },
+        durationMs: { type: 'number' },
+        killed: { type: 'boolean', description: 'True when the host-side timeout fired' },
+        command: { type: 'string', description: 'Echoed verbatim for audit cross-checks' },
+        runtime: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            isolation: { type: 'object', additionalProperties: true },
+          },
+        },
+        spawnError: { type: 'string', nullable: true, description: 'Set when the spawn itself failed (binary missing / not-available probe / runtime construction)' },
+        refused: { type: 'boolean', nullable: true, description: 'True when the request was refused before exec (allowExec=false or NullRuntime)' },
+        refusedReason: { type: 'string', nullable: true },
       },
     },
   },

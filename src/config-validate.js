@@ -305,12 +305,13 @@ function validate(config = {}) {
           }
         }
       }
-      // (v1.10.80) sandbox: { name: 'docker'|'null', opts?: {...} }
+      // (v1.10.80) sandbox: { name: 'docker'|'null', opts?: {...},
+      // allowExec?: boolean (v1.10.84) }
       if (k === 'sandbox') {
         if (!v || typeof v !== 'object' || Array.isArray(v)) {
           errors.push({
             path: 'riskClassifier.sandbox',
-            message: 'must be an object with {name, opts?} fields',
+            message: 'must be an object with {name, opts?, allowExec?} fields',
           });
           continue;
         }
@@ -325,6 +326,22 @@ function validate(config = {}) {
           errors.push({
             path: 'riskClassifier.sandbox.opts',
             message: `must be an object when provided, got ${typeof v.opts}`,
+          });
+        }
+        // (v1.10.84) allowExec gates the POST /api/risk/exec
+        // endpoint. Defaults off — shadow exec is opt-in.
+        if (v.allowExec !== undefined && typeof v.allowExec !== 'boolean') {
+          errors.push({
+            path: 'riskClassifier.sandbox.allowExec',
+            message: `must be a boolean when provided, got ${typeof v.allowExec}`,
+          });
+        }
+        // Combo guard: allowExec=true + name='null' is meaningless
+        // (NullRuntime refuses exec anyway). Surface as a warning.
+        if (v.allowExec === true && v.name === 'null') {
+          warnings.push({
+            path: 'riskClassifier.sandbox',
+            message: "allowExec=true is meaningless when sandbox.name='null' — NullRuntime refuses exec",
           });
         }
         // Probe Docker availability when name === 'docker' so a typo

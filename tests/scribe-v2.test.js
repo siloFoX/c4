@@ -51,6 +51,9 @@ describe('(10.9) scribe-v2 helpers', () => {
       // scribe-v2 type so the timeline carries the same shape as
       // task_start / merge_attempt rows.
       'risk_deny',
+      // (v1.10.84) Shadow execution — fires when an operator runs
+      // a command via POST /api/risk/exec.
+      'risk_shadow_exec',
     ];
     for (const t of expected) expect(EVENT_TYPES).toContain(t);
     expect(EVENT_TYPES.length).toBe(expected.length);
