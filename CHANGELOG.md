@@ -4,6 +4,102 @@
 
 (no entries — next release window)
 
+## [1.10.78] - 2026-05-02
+
+9.1 phase 2 polish — extract a shared **PtyAdapterBase** so the
+two PTY-driven adapters (claude-code, codex) stop duplicating the
+~30 lines of input/key/init plumbing they each shipped on. Pure
+refactor; no behavior change. The full suite keeps 165 cases
+green and adds 23 new cases that lock in the base contract for
+future PTY adapter authors.
+
+### Added
+- **`src/agents/pty-adapter-base.js`** — `PtyAdapterBase extends
+  Adapter`. Provides:
+  - `DEFAULT_KEY_MAP` (frozen) — Enter / Return / Escape / Esc /
+    Tab / Backspace / arrows / C-c / C-d. Re-exported as a
+    module-level constant so subclasses can spread it.
+  - `init(workerCtx)` — stores ctx on `_workerCtx`; accepts
+    `null` / `undefined` to clear.
+  - `sendInput(text)` — strict-string check (TypeError on
+    non-string), writes to `ctx.proc.write` when present,
+    no-op when no proc / no ctx. Empty string is forwarded
+    (not coerced to no-op).
+  - `sendKey(key)` — maps via `this._keyMap` (defaults to
+    `DEFAULT_KEY_MAP`), falls through to raw bytes for unknown
+    names. Subclasses can reassign `this._keyMap` to spread
+    `DEFAULT_KEY_MAP` with additional bindings.
+
+  Subclasses must still implement `metadata`, `supportsPause`,
+  and `detectIdle` — those are adapter-specific. `validateAdapter`
+  passes once the subclass fills them in.
+
+- **`tests/agent-pty-adapter-base.test.js`** — 23 cases across
+  7 suites:
+  - abstract / inheritance (instanceof PtyAdapterBase + Adapter,
+    PtyAdapterBase is constructable, validateAdapter passes for
+    a minimal subclass)
+  - DEFAULT_KEY_MAP (frozen, covers required keys, arrows are
+    CSI sequences, control sequences match POSIX)
+  - init() lifecycle (ctx storage, null clear, no-arg fall-through)
+  - sendInput (proc forward, no-op when not attached, no-op when
+    ctx has no proc, TypeError on non-string, empty string
+    forwarded)
+  - sendKey (DEFAULT_KEY_MAP mapping, unknown names pass through
+    as raw bytes, subclass `_keyMap` precedence with spread +
+    override + new key)
+  - onOutput inherited from Adapter base (unsubscribe fn,
+    non-function rejection, _emitOutput fan-out with per-handler
+    error isolation)
+  - production adapters use it (ClaudeCodeAdapter + CodexAdapter
+    both `instanceof PtyAdapterBase` regression guards)
+
+### Changed
+- **`src/agents/claude-code.js`** — `extends Adapter` →
+  `extends PtyAdapterBase`. Removed the inline `KEY_MAP`
+  declaration (now `KEY_MAP = PtyAdapterBase.DEFAULT_KEY_MAP`
+  re-export for backwards compatibility with callers that
+  imported `require('./claude-code').KEY_MAP`). Removed the
+  inline `init` / `sendInput` / `sendKey` overrides — they're
+  now inherited identically. The claude-code-specific helpers
+  (`isTrustPrompt`, `isPermissionPrompt`, `isReady`,
+  `isModelMenu`, `getPromptType`, `extractBashCommand`,
+  `extractFileName`, `countOptions`, `getApproveKeys`,
+  `getDenyKeys`, `getTrustKeys`, `getModelMenuKeys`,
+  `getEffortKeys`, `getEscapeKey`) all stay — those are not
+  shared.
+
+- **`src/agents/codex.js`** — `extends Adapter` → `extends
+  PtyAdapterBase`. Same treatment: removed the inline
+  `KEY_MAP` (re-exported as `PtyAdapterBase.DEFAULT_KEY_MAP`),
+  removed `init` / `sendInput` / `sendKey` overrides.
+  Codex-specific config (binary, args, conservative
+  detectIdle) stays.
+
+### Why a shared base instead of a utility module
+
+Three reasons:
+1. The PTY adapters share the same `_workerCtx` lifecycle;
+   keeping `init` / `sendInput` / `sendKey` on a base class
+   means they share the same private state shape too.
+2. The cross-adapter contract test (1.10.74) iterates the
+   REGISTRY; a shared base means every PTY adapter passes the
+   same shape checks for free.
+3. New PTY adapters (e.g. Aider integration) get the
+   boilerplate for free.
+
+### Backwards compatibility
+
+None broken:
+- `ClaudeCodeAdapter` / `CodexAdapter` external API unchanged
+  (same constructor signature, same exported helpers,
+  `KEY_MAP` re-exported)
+- All 165 prior tests still pass
+- Cross-adapter contract test continues to cover all 7
+  registered keys
+
+Suite 165 → 166. SDK spec version field 1.10.77 → 1.10.78.
+
 ## [1.10.77] - 2026-05-02
 
 9.1 phase 2 follow-up — **ClaudeAgentSdkAdapter** scaffold lands as

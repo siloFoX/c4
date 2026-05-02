@@ -11,7 +11,7 @@
  * once the PTY is attached via init(workerCtx).
  */
 
-const { Adapter } = require('./adapter');
+const PtyAdapterBase = require('./pty-adapter-base');
 
 const DEFAULT_PATTERNS = {
   trustPrompt: 'trust this folder',
@@ -32,22 +32,12 @@ const DEFAULT_PATTERNS = {
   effortIndicator: 'effort',
 };
 
-const KEY_MAP = {
-  Enter: '\r',
-  Return: '\r',
-  Escape: '\x1b',
-  Esc: '\x1b',
-  Tab: '\t',
-  Backspace: '\x7f',
-  Up: '\x1b[A',
-  Down: '\x1b[B',
-  Right: '\x1b[C',
-  Left: '\x1b[D',
-  'C-c': '\x03',
-  'C-d': '\x04',
-};
+// (v1.10.78) KEY_MAP re-exported from PtyAdapterBase.DEFAULT_KEY_MAP
+// for backwards compatibility with callers that imported it from
+// this module.
+const KEY_MAP = PtyAdapterBase.DEFAULT_KEY_MAP;
 
-class ClaudeCodeAdapter extends Adapter {
+class ClaudeCodeAdapter extends PtyAdapterBase {
   /**
    * @param {object} patterns - Pattern overrides (from config.compatibility.patterns)
    * @param {object} options
@@ -69,24 +59,7 @@ class ClaudeCodeAdapter extends Adapter {
     return false;
   }
 
-  init(workerCtx) {
-    this._workerCtx = workerCtx || null;
-  }
-
-  sendInput(text) {
-    if (typeof text !== 'string') {
-      throw new TypeError('sendInput requires a string');
-    }
-    const proc = this._workerCtx && this._workerCtx.proc;
-    if (proc && typeof proc.write === 'function') {
-      proc.write(text);
-    }
-  }
-
-  sendKey(key) {
-    const mapped = Object.prototype.hasOwnProperty.call(KEY_MAP, key) ? KEY_MAP[key] : key;
-    this.sendInput(mapped);
-  }
+  // init / sendInput / sendKey inherited from PtyAdapterBase.
 
   detectIdle(chunk) {
     return this.isReady(String(chunk == null ? '' : chunk));
