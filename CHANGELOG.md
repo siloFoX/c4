@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.92] - 2026-05-02
+
+Hygiene — **runtime-drift checker now probes `/risk/preview` +
+`/risk/exec`**. The two Stage 2 endpoints had been silently
+skipped because they weren't in `IDEMPOTENT_POSTS`; now they are.
+
+### Added
+- **`scripts/check-runtime-drift.js`** — two new entries in
+  `IDEMPOTENT_POSTS`:
+  - `POST /risk/preview` → `{command:'echo runtime-drift-probe',
+    runtime:'null'}`. Pure builder; never spawns; never writes
+    audit. Always safe.
+  - `POST /risk/exec` → same body. The `runtime: 'null'`
+    override forces NullRuntime; `executeInSandbox()` rejects
+    with `BlockedByRuntimeError` BEFORE any spawn; daemon
+    catches and returns `refused:true`. No audit, no scribe,
+    no actual exec — regardless of whether the host has
+    `riskClassifier.sandbox.allowExec=true`.
+
+  Runtime drift now covers 54 routes (was 52). The 13 skipped
+  routes (mutators, streams, auth, unfillable params) are
+  unchanged.
+
+```sh
+$ npm run lint:runtime-drift
+…
+✔ POST /risk/exec
+✔ POST /risk/preview
+Runtime drift: 54 pass, 0 fail, 13 skipped
+```
+
+No code change; pure scripts addition. Suite stays at 171.
+
 ## [1.10.91] - 2026-05-02
 
 Hygiene — **`npm run lint` umbrella** that runs both static

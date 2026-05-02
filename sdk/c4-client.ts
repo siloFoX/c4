@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.91
-// Generated at: 2026-05-02T07:05:51.226Z
+// Spec version: 1.10.92
+// Generated at: 2026-05-02T07:13:14.368Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */

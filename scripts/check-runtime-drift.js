@@ -101,6 +101,23 @@ const IDEMPOTENT_POSTS = {
     suggestedLevel: 'low',
     reason: 'runtime drift checker probe',
   }),
+  // (v1.10.92) Sandbox preview is a pure builder — no exec, no
+  // audit event. Always safe to probe.
+  'POST /risk/preview': () => ({
+    command: 'echo runtime-drift-probe',
+    runtime: 'null',
+  }),
+  // (v1.10.92) Shadow exec endpoint. Always-safe probe variant —
+  // the body explicitly forces runtime='null' which the
+  // executeInSandbox() function refuses with BlockedByRuntimeError
+  // before any spawn. Daemon catches the refusal and returns the
+  // standard envelope with refused:true, refusedReason. No audit
+  // event written, no actual exec, no side effects regardless of
+  // the daemon's riskClassifier.sandbox.allowExec setting.
+  'POST /risk/exec': () => ({
+    command: 'echo runtime-drift-probe',
+    runtime: 'null',
+  }),
 };
 
 function _ok(label) { console.log(`✔ ${label}`); }
