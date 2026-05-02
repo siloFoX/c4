@@ -5912,6 +5912,22 @@ class PtyManager extends EventEmitter {
               sections.push('Top reasons:');
               for (const [code, n] of topReasons) sections.push(`  - [${code}] ${n}`);
             }
+            // (v1.10.145) Fingerprint rotation indicator — when
+            // multiple distinct ruleFingerprints appear in the
+            // window, the classifier config changed mid-window.
+            // Operators reviewing the morning report need to
+            // know whether the denies were under the same rule
+            // set or split across versions.
+            const fingerprints = new Set();
+            for (const ev of [...denied, ...dryRun]) {
+              const fp = ev.details && ev.details.ruleFingerprint;
+              if (typeof fp === 'string' && fp.length > 0) fingerprints.add(fp);
+            }
+            if (fingerprints.size > 1) {
+              sections.push('');
+              sections.push(`- ⚠ Rule-set rotated mid-window: **${fingerprints.size}** distinct fingerprints observed`);
+              for (const fp of fingerprints) sections.push(`  - ${fp}`);
+            }
           }
           if (shadow.length > 0) {
             sections.push('');

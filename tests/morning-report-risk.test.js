@@ -46,4 +46,15 @@ describe('morning report — Risk Activity section (v1.10.138)', () => {
     // so a missing audit module never breaks the morning report.
     assert.match(ptySrc, /auditLog\.getShared\s*&&\s*auditLog\.getShared\(\)/);
   });
+
+  // (v1.10.145) Rotation indicator — when multiple distinct
+  // ruleFingerprints appear in the 24h window, the morning
+  // report flags it (config changed mid-window). Pairs with
+  // the corresponding signal in c4 doctor and c4 risk stats.
+  it('flags rule-set rotation when multiple fingerprints observed (v1.10.145)', () => {
+    assert.match(ptySrc, /Rule-set rotated mid-window/);
+    assert.match(ptySrc, /fingerprints\.size\s*>\s*1/);
+    // The set is built from each event's details.ruleFingerprint
+    assert.match(ptySrc, /ev\.details\s*&&\s*ev\.details\.ruleFingerprint/);
+  });
 });

@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.10.145] - 2026-05-03
+
+**Morning report Risk Activity rotation indicator.** When the
+classifier rule set rotated mid-window (multiple distinct
+`ruleFingerprint` values across denied + dryRun events), the
+morning report now flags the rotation explicitly so reviewers
+can see whether the denies were under one rule version or
+split across versions. Pairs with the existing rotation signal
+in `c4 risk stats` (since v1.10.97) and the new one in `c4
+doctor` (v1.10.143).
+
+### Added
+- **`generateMorningReport`** Risk Activity section now collects
+  the set of `ruleFingerprint` values seen across the 24h
+  window. When `>1` distinct fingerprints, emits:
+  ```
+  - ⚠ Rule-set rotated mid-window: **N** distinct fingerprints observed
+    - <fp-1>
+    - <fp-2>
+    ...
+  ```
+- **`tests/morning-report-risk.test.js`**: 1 new `it()` case
+  proving the rotation block is wired (3 source-grep
+  assertions). Suite stays at 178.
+
+### Why surface fingerprint rotation here?
+Three places now flag this same signal: `c4 risk stats`, `c4
+doctor`, and the morning report. Each serves a different
+audience:
+- `risk stats`: ad-hoc operator query
+- `doctor`: end-of-deployment health check
+- morning report: persistent record for daily review
+
+A rotation event invalidates one-rule-set assumptions across
+the whole audit window, so all three surfaces need to flag it.
+
 ## [1.10.144] - 2026-05-03
 
 **`http-file-server` (medium) catalog pattern.** Most language
