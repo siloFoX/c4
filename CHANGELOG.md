@@ -4,6 +4,43 @@
 
 (no entries — next release window)
 
+## [1.10.139] - 2026-05-03
+
+**`system-files` / `sed-system-file-edit` /
+`download-into-system-file` reach extended.** Four more
+`/etc/<file>` targets added in lockstep across all three
+rules so the threat surface stays consistent regardless of
+write vehicle.
+
+### Changed
+- All three rules' file lists extended:
+  - **`/etc/group`** / **`/etc/gshadow`** — group membership /
+    group password tampering. `echo "sudo:x:27:attacker" >>
+    /etc/group` adds attacker to the sudo group; same threat
+    family as `usermod-sudo`/`useradd -G` but via direct file
+    write.
+  - **`/etc/cron.allow`** / **`/etc/cron.deny`** — cron
+    scheduler ACL bypass. Adding self to cron.allow grants
+    cron access; flipping cron.deny to ALL locks legitimate
+    users out.
+  - **`/etc/at.allow`** / **`/etc/at.deny`** — `at` scheduler
+    ACL, same threat shape as the cron variant.
+
+### Added
+- **`tests/risk-classifier.test.js`**: 3 new `it()` cases —
+  attack assertions for the four new files (7 commands), a
+  cross-rule consistency check (sed + download forms), and a
+  regression case ensuring read forms (cat, getent) stay LOW.
+  Suite stays at 176. Risk-classifier file 235 → 238 cases.
+
+### Why three rules in lockstep?
+Without it, an attacker could pick the write form not yet
+covered. `system-files` only catches `>` / `>>` / `tee`;
+`sed-system-file-edit` catches in-place editors (`sed -i`,
+`awk -i inplace`, `perl -pi`); `download-into-system-file`
+catches `curl -o` / `wget -O`. Each form needs the same
+target list, so we extend together.
+
 ## [1.10.138] - 2026-05-03
 
 **Morning report `Risk Activity (last 24h)` section.** The
