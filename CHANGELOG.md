@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.52] - 2026-05-02
+
+`c4 risk "<command>"` — operator-facing classifier inspector.
+
+### Added
+- **(cli) `c4 risk "<command>"`** runs a candidate command
+  through the risk classifier and prints level / reasons /
+  decoded payload. Pulls `riskClassifier.allowList /
+  denyList / customRules` from the running daemon when
+  available; classifies with built-ins only when the daemon
+  is unreachable. Useful for vetting candidate commands
+  during policy review or debugging why a command was
+  blocked.
+  - `--json` for the raw classification object
+  - `--decoded` to also surface the post-denoise inspected
+    source (resolves base64 / `$()` / quote-splitting
+    obfuscation)
+  - exit code mirrors daemon enforcement: 1 when the level
+    crosses the daemon's `autoDenyLevel` (default critical),
+    0 otherwise. Lets shell pipelines gate the same way the
+    in-process hook does:
+    `c4 risk "$cmd" --json > /dev/null && eval "$cmd"`
+- **(tests) `tests/cli-risk.test.js`** — 7 subprocess
+  integration tests covering critical/high/low classification,
+  JSON output, missing-arg usage, --decoded path, and
+  multi-positional concatenation.
+- **(CLAUDE.md)** documents the new command alongside
+  `c4 openapi`.
+
+Suite 155 → 156. All four drift phases clean.
+
 ## [1.10.51] - 2026-05-02
 
 11.5 follow-up (d): risk_deny events now land in the audit

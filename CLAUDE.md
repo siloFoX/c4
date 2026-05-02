@@ -69,6 +69,9 @@ c4 doctor                            환경 종합 헬스 체크 (daemon + confi
 c4 metrics [--json]                  per-worker + daemon CPU/RSS 스냅샷
 c4 workspaces [--json]               멀티 repo workspace 목록 (config.workspaces)
 c4 sse [--type <name>]               daemon SSE 스트림 실시간 tail (filter by type)
+c4 risk "<command>" [--json] [--decoded]  명령어 risk classifier 분류 결과 출력 (level/reasons/decoded)
+                                     # critical/high level 시 exit 1 (shell pre-check 용)
+                                     # daemon 의 config.riskClassifier override 자동 반영
 c4 openapi [--path <re>] [--json]    OpenAPI 3.0 spec 조회 (전체 라우트 + curated summary)
                                      # --yaml: YAML 포맷 dump
                                      # --sdk: TypeScript client 자동 생성 (stdout)

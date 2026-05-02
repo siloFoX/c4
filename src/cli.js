@@ -4394,6 +4394,82 @@ async function main() {
         return;
       }
 
+      // (11.5) Run a command through the risk classifier without
+      // dispatching it. Useful for vetting candidate commands during
+      // policy review or for debugging why a command was blocked.
+      //
+      //   c4 risk "<command>"           # classify a single command
+      //   c4 risk --json "<command>"    # raw classification JSON
+      //   c4 risk --decoded "<command>" # also print _denoiseCommand output
+      case 'risk': {
+        const wantJson = args.includes('--json');
+        const wantDecoded = args.includes('--decoded');
+        const positional = args.filter((a) => !a.startsWith('--'));
+        const command = positional.join(' ');
+        if (!command) {
+          console.error('Usage: c4 risk "<command>" [--json] [--decoded]');
+          process.exit(1);
+        }
+        const { classifyCommand } = require('./risk-classifier');
+        // Pull operator override config from the running daemon when
+        // available; classifying offline still works (config stays
+        // null) so this command also runs when the daemon is down.
+        let cfgRisk = {};
+        try {
+          const cfgRes = await request('GET', '/config');
+          if (cfgRes && cfgRes.config && cfgRes.config.riskClassifier) {
+            cfgRisk = cfgRes.config.riskClassifier;
+          }
+        } catch { /* daemon down — classify with built-ins only */ }
+        const classification = classifyCommand(command, {
+          allowList: cfgRisk.allowList,
+          denyList: cfgRisk.denyList,
+          customRules: cfgRisk.customRules,
+          includeInspected: wantDecoded,
+        });
+        // Exit code mirrors daemon enforcement so shell pipelines
+        // can gate identically to the in-process hook (computed up
+        // front so both --json and human-readable paths use it).
+        const LEVEL_RANK = { low: 0, medium: 1, high: 2, critical: 3 };
+        const autoDenyLevel = ['low', 'medium', 'high', 'critical'].includes(cfgRisk.autoDenyLevel)
+          ? cfgRisk.autoDenyLevel
+          : 'critical';
+        const shouldExit1 = LEVEL_RANK[classification.level] >= LEVEL_RANK[autoDenyLevel];
+        if (wantJson) {
+          console.log(JSON.stringify(classification, null, 2));
+          if (shouldExit1) process.exit(1);
+          return;
+        }
+        const COLOR = {
+          critical: '\x1b[31m',  // red
+          high:     '\x1b[33m',  // yellow
+          medium:   '\x1b[35m',  // magenta
+          low:      '\x1b[32m',  // green
+        };
+        const RESET = '\x1b[0m';
+        const colour = (process.stdout.isTTY ? COLOR[classification.level] : '') || '';
+        const off = colour ? RESET : '';
+        console.log(`Level:    ${colour}${classification.level.toUpperCase()}${off}`);
+        console.log(`Action:   ${classification.suggestedAction}`);
+        if (classification.denyForced) console.log('Source:   denyList (forced critical)');
+        if (classification.reasons.length === 0) {
+          console.log('Reasons:  (no patterns matched)');
+        } else {
+          console.log('Reasons:');
+          for (const r of classification.reasons) {
+            console.log(`  - [${r.code}] ${r.label}`);
+          }
+        }
+        if (classification.decoded) {
+          console.log(`Decoded:  ${classification.decoded}`);
+        }
+        if (wantDecoded && classification.inspectedSource) {
+          console.log(`Inspected source: ${classification.inspectedSource}`);
+        }
+        if (shouldExit1) process.exit(1);
+        return;
+      }
+
       case 'daemon': {
         const DaemonManager = require(require('path').join(__dirname, 'daemon-manager'));
         const sub = args[0];
