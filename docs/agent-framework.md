@@ -193,8 +193,31 @@ need to do anything beyond registering both keys.
 
 ## Testing your adapter
 
-Mirror [`tests/agent-mock.test.js`](../tests/agent-mock.test.js)
-which covers, in order, the contract checks every adapter should pass:
+The framework runs an automatic shape check against every entry in
+`REGISTRY` via
+[`tests/agent-adapter-contract.test.js`](../tests/agent-adapter-contract.test.js).
+Adding your adapter to `REGISTRY` automatically picks up the
+suite. If your constructor needs special opts (e.g. `fetch: null` to
+avoid binding `globalThis.fetch`), add one line to the
+`ADAPTER_OPTS` table at the top of that file. The contract test
+covers eight uniform checks per adapter:
+
+```
+1. validateAdapter() returns true on a fresh instance
+2. metadata.name is a non-empty string
+3. metadata.version is a non-empty string
+4. supportsPause is a boolean
+5. onOutput(fn) returns an unsubscribe function
+6. unsubscribe is idempotent (calling twice does not throw)
+7. init(null) does not throw
+8. init({}) does not throw
+```
+
+That's the **shallow** layer — uniform across all adapters.
+
+For the **deep** layer (what your adapter actually does), mirror
+[`tests/agent-mock.test.js`](../tests/agent-mock.test.js) which
+covers, in order, the contract checks every adapter should pass:
 
 1. `validateAdapter()` returns `true` on a freshly-constructed
    instance.
@@ -243,5 +266,8 @@ error-isolation tests — add them.
   HTTP-streaming adapter (no PTY, ScreenBuffer simulated internally)
 - [`src/agents/index.js`](../src/agents/index.js) — factory + hybrid
   routing
-- [`tests/agent-mock.test.js`](../tests/agent-mock.test.js) — contract
-  test template
+- [`tests/agent-mock.test.js`](../tests/agent-mock.test.js) — deep
+  contract test template (per-adapter behaviour)
+- [`tests/agent-adapter-contract.test.js`](../tests/agent-adapter-contract.test.js)
+  — shallow contract test that runs uniformly across every entry in
+  `REGISTRY`
