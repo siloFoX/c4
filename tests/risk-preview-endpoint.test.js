@@ -123,6 +123,51 @@ describe('Response shape matches what the runtime produces', () => {
   });
 });
 
+describe('POST /risk/check — auto-include sandbox preview (v1.10.82)', () => {
+  it('handler reads riskClassifier.sandbox and attaches preview', () => {
+    // Locate the /risk/check handler region — between the route
+    // string match and the /risk/preview route below it.
+    const start = daemonSrc.indexOf("route === '/risk/check'");
+    assert.ok(start > 0);
+    const end = daemonSrc.indexOf("route === '/risk/preview'", start);
+    const block = daemonSrc.slice(start, end);
+    assert.match(block, /riskCfg\.sandbox/);
+    assert.match(block, /require\('\.\/risk-sandbox-runtime'\)/);
+    assert.match(block, /sandbox/);
+  });
+
+  it('handler attaches sandbox=null when config does not configure it', () => {
+    const start = daemonSrc.indexOf("route === '/risk/check'");
+    const end = daemonSrc.indexOf("route === '/risk/preview'", start);
+    const block = daemonSrc.slice(start, end);
+    // Initial state is `let sandbox = null;`
+    assert.match(block, /let sandbox = null/);
+  });
+
+  it('handler swallows runtime errors silently (classifier path stays clean)', () => {
+    const start = daemonSrc.indexOf("route === '/risk/check'");
+    const end = daemonSrc.indexOf("route === '/risk/preview'", start);
+    const block = daemonSrc.slice(start, end);
+    // /risk/check has TWO try/catch — the outer wraps classification
+    // (returns {error}), the inner wraps sandbox-attach (drops to
+    // sandbox=null silently). Verify the inner empty catch.
+    assert.match(block, /catch \{ \/\* misconfig — drop sandbox quietly/);
+  });
+
+  it('OpenAPI schema for POST /risk/check carries sandbox field', () => {
+    // The first occurrence of 'POST /risk/check' in openapi-gen.js
+    // is the route-summary table (line ~75); the ROUTE_SCHEMAS entry
+    // is the second occurrence. Skip past the first.
+    const first = openApiSrc.indexOf("'POST /risk/check'");
+    const checkStart = openApiSrc.indexOf("'POST /risk/check'", first + 10);
+    assert.ok(checkStart > first, 'expected ROUTE_SCHEMAS entry past summary');
+    const checkEnd = openApiSrc.indexOf("'POST /risk/preview'", checkStart);
+    const region = openApiSrc.slice(checkStart, checkEnd);
+    assert.match(region, /sandbox: \{/);
+    assert.match(region, /v1\.10\.82/);
+  });
+});
+
 describe('Live daemon integration (when reachable)', () => {
   // If the dev daemon is on :3456 we hit it for a real round-trip;
   // otherwise this whole describe block reports a single skip.

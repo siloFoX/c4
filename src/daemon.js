@@ -1674,11 +1674,31 @@ async function handleRequest(req, res) {
           // (v1.10.69) Attach the static intent report so callers
           // see classifier rule + concrete effect in one round-trip.
           const intent = extractIntent(command);
+          // (v1.10.82) When riskClassifier.sandbox is configured, also
+          // attach the sandbox preview so an operator sees classifier
+          // rule + concrete effect + would-be-exec in one round-trip.
+          // Pure builder; no exec. Skipped when sandbox unset to avoid
+          // noise.
+          let sandbox = null;
+          if (riskCfg.sandbox && typeof riskCfg.sandbox === 'object'
+              && typeof riskCfg.sandbox.name === 'string') {
+            try {
+              const { getRuntime } = require('./risk-sandbox-runtime');
+              const rt = getRuntime(riskCfg.sandbox.name, riskCfg.sandbox.opts);
+              const prep = rt.prepareArgs(command);
+              const probe = rt.available();
+              sandbox = Object.assign({}, prep, {
+                runtime: riskCfg.sandbox.name,
+                available: probe,
+              });
+            } catch { /* misconfig — drop sandbox quietly, classifier still works */ }
+          }
           result = Object.assign({}, classification, {
             wouldDeny,
             autoDenyLevel,
             enforcementEnabled: riskCfg.enabled === true,
             intent,
+            sandbox,
           });
         } catch (e) {
           result = { error: e.message };

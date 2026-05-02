@@ -4646,6 +4646,35 @@ async function main() {
             if (intent.destructiveVerbs.length) console.log(`  dest:   ${intent.destructiveVerbs.join(', ')}`);
           }
         } catch { /* non-fatal */ }
+        // (v1.10.82) Auto-include sandbox preview when config has
+        // riskClassifier.sandbox set — operator sees classifier rule
+        // + would-be-exec without needing --sandbox-preview each call.
+        // Suppressed when --sandbox-preview is explicit (avoids
+        // duplicate output).
+        if (!sandboxPreview && cfgRisk.sandbox && typeof cfgRisk.sandbox === 'object'
+            && typeof cfgRisk.sandbox.name === 'string') {
+          try {
+            const { getRuntime } = require('./risk-sandbox-runtime');
+            const rt = getRuntime(cfgRisk.sandbox.name, cfgRisk.sandbox.opts);
+            const prep = rt.prepareArgs(command);
+            const probe = rt.available();
+            console.log('');
+            console.log(`Sandbox runtime: ${cfgRisk.sandbox.name} (config default)`);
+            console.log(`  available: ${probe.ok}${probe.reason ? ' (' + probe.reason + ')' : ''}`);
+            const iso = prep.isolation;
+            console.log(`  isolation: network=${iso.network}, fs=${iso.filesystem}`);
+            console.log(`             ${iso.resources}`);
+            if (prep.binary) {
+              const cmdLine = [prep.binary, ...prep.args]
+                .map((a) => /[\s'"$\\]/.test(a) ? `'${a.replace(/'/g, "'\\''")}'` : a)
+                .join(' ');
+              console.log('  command:');
+              console.log(`    ${cmdLine}`);
+            } else {
+              console.log('  command: (no isolation — runs on host)');
+            }
+          } catch { /* misconfig — drop silently, classifier still printed */ }
+        }
         // (v1.10.79) Sandbox preview — show the OS-binary argv that the
         // chosen runtime would use to isolate this command. Pure builder
         // — no exec.

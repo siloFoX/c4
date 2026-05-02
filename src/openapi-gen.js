@@ -1855,6 +1855,34 @@ const ROUTE_SCHEMAS = {
             empty: { type: 'boolean', description: 'True when no signal extracted; pair with classifier level for actual gating' },
           },
         },
+        sandbox: {
+          type: 'object',
+          nullable: true,
+          description: '(v1.10.82) When config.riskClassifier.sandbox is configured, this echoes the same shape POST /risk/preview returns — pure builder, no exec. null when sandbox is unset.',
+          properties: {
+            binary: { type: 'string', nullable: true },
+            args: { type: 'array', items: { type: 'string' } },
+            env: { type: 'object', additionalProperties: { type: 'string' } },
+            command: { type: 'string' },
+            isolation: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                network: { type: 'string' },
+                filesystem: { type: 'string' },
+                resources: { type: 'string' },
+              },
+            },
+            available: {
+              type: 'object',
+              properties: {
+                ok: { type: 'boolean' },
+                reason: { type: 'string', nullable: true },
+              },
+            },
+            runtime: { type: 'string', enum: ['docker', 'null'] },
+          },
+        },
       },
     },
   },

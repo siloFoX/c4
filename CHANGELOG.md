@@ -4,6 +4,67 @@
 
 (no entries — next release window)
 
+## [1.10.82] - 2026-05-02
+
+11.5 Stage 2 polish — **auto-attach sandbox preview to `c4 risk` +
+`POST /api/risk/check` when sandbox is configured**. Operators see
+classifier rule + intent + would-be-exec in one round-trip instead
+of having to type `--sandbox-preview` on every call.
+
+### Added
+- **`POST /api/risk/check` response** carries a new optional
+  `sandbox` field. Same shape as `POST /risk/preview` returns
+  (`{binary, args, env, command, isolation, available, runtime}`)
+  when `config.riskClassifier.sandbox` is configured. `null` when
+  not. Pure builder; no exec.
+
+  Misconfig (bad runtime name / opts) is swallowed silently — the
+  classification path stays clean. Operator gets the classifier
+  result either way.
+
+- **`c4 risk "<cmd>"`** auto-prints a `Sandbox runtime: <name>
+  (config default)` block when sandbox is configured AND
+  `--sandbox-preview` is NOT explicitly passed. Suppressed when
+  `--sandbox-preview` is explicit so operators don't see the same
+  block twice.
+
+- **`tests/risk-preview-endpoint.test.js`** — 4 new cases under a
+  new "auto-include sandbox preview" describe:
+  - handler reads `riskCfg.sandbox` and attaches the preview
+  - default state is `let sandbox = null`
+  - inner try/catch swallows misconfig silently (drop quietly
+    comment regression guard)
+  - OpenAPI schema for `POST /risk/check` carries `sandbox: {…}`
+    + `v1.10.82` marker (using the second occurrence of `'POST
+    /risk/check'` in openapi-gen.js since the first is the
+    route-summary table, not the ROUTE_SCHEMAS entry)
+
+Suite stays at 168 (the 4 new cases live inside the existing
+risk-preview-endpoint test file, alongside the prior 17).
+
+### Why auto-attach instead of "operator must opt in per call"
+
+Three reasons:
+
+1. **Already opted in.** If the operator set
+   `riskClassifier.sandbox` in config, they want to see it. Making
+   them retype `--sandbox-preview docker` on every call is friction
+   without policy benefit.
+2. **Single round-trip.** Web UI / external automation that
+   already calls `/risk/check` (1.10.53) for the level + reasons
+   gets the preview bundled — saves a second HTTP call to
+   `/risk/preview`.
+3. **Symmetric with intent.** The `intent` field auto-attaches to
+   `/risk/check` since 1.10.69. Sandbox preview lives in the
+   same conceptual layer ("what would this command actually do
+   if it ran") and now follows the same pattern.
+
+### Pending Stage 2 follow-ups
+
+- Shadow execution path (run prepared argv, capture
+  stdout/stderr/exit, surface as `risk.shadow_exec` audit event)
+- `risk.shadow_exec` audit event type + scribe-v2 mirror
+
 ## [1.10.81] - 2026-05-02
 
 11.5 Stage 2 follow-up — **POST /api/risk/preview** HTTP endpoint.

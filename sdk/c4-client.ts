@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.81
-// Generated at: 2026-05-02T06:19:43.723Z
+// Spec version: 1.10.82
+// Generated at: 2026-05-02T06:24:14.243Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -460,6 +460,23 @@ export interface postRiskCheckResponse {
   destructiveVerbs?: string[];
   empty?: boolean; /** True when no signal extracted; pair with classifier level for actual gating */
 }; /** (v1.10.68) Static intent report — what files / network peers / privileges this command would touch, extracted via risk-sandbox.extractIntent without executing anything. */
+  sandbox?: {
+  binary?: string | null;
+  args?: string[];
+  env?: Record<string, unknown>;
+  command?: string;
+  isolation?: {
+  name?: string;
+  network?: string;
+  filesystem?: string;
+  resources?: string;
+};
+  available?: {
+  ok?: boolean;
+  reason?: string | null;
+};
+  runtime?: "docker" | "null";
+} | null; /** (v1.10.82) When config.riskClassifier.sandbox is configured, this echoes the same shape POST /risk/preview returns — pure builder, no exec. null when sandbox is unset. */
 }
 
 export interface postRiskPreviewBody {
