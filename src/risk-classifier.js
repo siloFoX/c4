@@ -452,7 +452,17 @@ const HIGH_PATTERNS = [
   {
     code: 'suid-set',
     label: 'chmod u+s / setuid bit (privilege escalation primitive)',
-    re: /\bchmod\s+(?:[0-7]{0,3}[0-9]?[0-7]{2,3}|u\+s|\+s)\s+\S/,
+    // (v1.10.123) Tightened. The previous regex fired on ANY 3-digit
+    // chmod numeric mode (`644`, `755`, etc.) because `[0-7]{2,3}` is
+    // unconstrained. Real SUID/SGID numeric modes have a leading
+    // 2/4/6 octet:
+    //   4XXX = setuid
+    //   2XXX = setgid
+    //   6XXX = setuid + setgid
+    // Symbolic forms `u+s`, `g+s`, `+s`, `[ugoa]+s` cover all
+    // single/multi-target setuid/setgid sets. Sticky bit (1XXX,
+    // `+t`) is excluded — it's not a privilege primitive.
+    re: /\bchmod\s+(?:[246][0-7]{3}\b|[ugoa]*\+s\b)\s+\S/,
   },
   {
     code: 'usermod-sudo',

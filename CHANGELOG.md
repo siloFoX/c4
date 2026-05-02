@@ -4,6 +4,43 @@
 
 (no entries — next release window)
 
+## [1.10.123] - 2026-05-03
+
+**`suid-set` false-positive fix.** The previous regex
+`[0-7]{0,3}[0-9]?[0-7]{2,3}` was unconstrained and fired on
+every 3-digit chmod numeric mode — `chmod 644 file`,
+`chmod 600 ~/.ssh/key`, `chmod 755 binary` all flagged HIGH
+with reason `suid-set`. The intent of the rule is real
+SUID/SGID privilege primitives only.
+
+### Fixed
+- **`suid-set`** regex tightened to:
+  ```
+  \bchmod\s+(?:[246][0-7]{3}\b|[ugoa]*\+s\b)\s+\S
+  ```
+  Numeric modes now require the leading octet to be 2 / 4 / 6
+  (the special-bits position for setgid / setuid /
+  setuid+setgid). Symbolic forms still cover all `[ugoa]*\+s`
+  variants. Sticky bit (1XXX, `+t`) is excluded from this
+  rule — it's a directory semantic, not a privilege primitive.
+
+### Added
+- **`tests/risk-classifier.test.js`**: 2 new `it()` cases —
+  `suid-set: real SUID/SGID forms match → high` (8 attack
+  shells) and `suid-set: regular numeric modes stay low`
+  (7 previously-false-positive cases). The existing
+  `chmod u+s → high` regression case still passes. Suite
+  stays at 175. Risk-classifier file 180 → 182 cases.
+
+### Why this is a real fix, not a tier change
+The rule already classified its hits as HIGH. The bug was in
+the matcher: any benign `chmod 644 some-file` got escalated
+to HIGH because the wide numeric regex didn't actually pin
+the SUID-bit position. Operators got `suid-set` reasons
+attached to entirely routine mode changes — meaning the
+audit trail was noisy AND HIGH escalations triggered for
+read-only chmods. Both go away with this fix.
+
 ## [1.10.122] - 2026-05-03
 
 **Three new catalog patterns**: anti-forensics + fileless +

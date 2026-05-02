@@ -1218,6 +1218,47 @@ describe('classifyCommand v1.10.54 patterns', () => {
     assert.ok(r.reasons.some((x) => x.code === 'suid-set'));
   });
 
+  // (v1.10.123) suid-set previously fired on ANY 3-digit chmod
+  // numeric mode (`644`, `755`, etc.) because the regex was
+  // `[0-7]{2,3}` unconstrained. Real SUID/SGID modes have a
+  // leading 2/4/6 octet — others should not trip the rule.
+  it('suid-set: real SUID/SGID forms match → high (v1.10.123)', () => {
+    for (const cmd of [
+      'chmod 4755 /tmp/exploit',   // setuid
+      'chmod 6755 /tmp/exploit',   // setuid + setgid
+      'chmod 2755 /tmp/exploit',   // setgid
+      'chmod u+s /tmp/exploit',
+      'chmod g+s /tmp/exploit',
+      'chmod +s /tmp/exploit',
+      'chmod a+s /tmp/exploit',
+      'chmod ug+s /tmp/exploit',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'suid-set'),
+        `${cmd}: expected suid-set`);
+    }
+  });
+
+  it('suid-set: regular numeric modes stay low (v1.10.123 false-positive fix)', () => {
+    // These previously matched `suid-set` because the old regex was
+    // `[0-7]{2,3}` unconstrained. With the leading-octet [246]
+    // constraint, only real SUID/SGID modes match.
+    for (const cmd of [
+      'chmod 644 /tmp/data',
+      'chmod 755 /usr/local/bin/foo',
+      'chmod 600 ~/.ssh/key',
+      'chmod 0755 /tmp/binary',     // 0755: leading 0 is "no special bits"
+      'chmod 700 /tmp/x',
+      'chmod u+x /tmp/binary',      // x without s
+      'chmod a+rx /tmp/binary',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'suid-set'),
+        `${cmd}: should not match suid-set`);
+    }
+  });
+
   // (v1.10.119) /etc/<dir>.d/ writes — bypasses the system-files rule
   // which pins literal filenames. Same threat as /etc/sudoers /
   // /etc/passwd writes, just one directory deeper.
