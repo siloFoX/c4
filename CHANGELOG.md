@@ -4,6 +4,52 @@
 
 (no entries — next release window)
 
+## [1.10.110] - 2026-05-03
+
+**New catalog pattern: `pip-install-user` (high)**. Closes a gap
+where `pip install --user evilpkg` was classified LOW despite
+the same threat model as the existing `npm-global-install`
+(high) — both write binaries to a PATH-prefix directory and
+both run arbitrary `setup.py` / install hook code.
+
+### Why high
+
+`pip install --user pkg`:
+1. Runs `setup.py` during install — arbitrary code execution as
+   the calling user.
+2. Writes `pkg/bin/...` to `~/.local/bin/` which precedes
+   `/usr/bin` on most distros' default PATH.
+3. The user's `console_scripts` entries can shadow common
+   commands (`ls`, `git`, `ssh`) for that user.
+
+Result: a malicious package installed via `--user` gets the
+same "easy persistence + ambient privilege" handle that
+`npm install -g` gets at the system level. Same tier (high)
+matches that.
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `pip-install-user` matching
+  `pip install ... --user` (any flag order). Catalog count:
+  54 → 55 patterns.
+
+### Test coverage
+- **`tests/risk-classifier.test.js`** — 2 new cases:
+  - `pip install --user` (4 variants: `pip` / `pip3`,
+    flag-before-pkg, flag-after-pkg, requirements file) → high
+  - regression: plain `pip install requests` (no flag) → low
+
+### What is still LOW
+
+- `pip install pkg` (no flag) — venv-bound installs are
+  routine; only operator-supplied safety-bypass flags trigger
+- `pip install -e .` (editable, no `--user`) — same reasoning
+
+The catalog deliberately scopes to "operator typed a flag that
+expanded the install scope". Unscoped pip install lives in the
+operator's environment, which is their responsibility.
+
+Suite stays at 175. risk-classifier file 141 → 143 cases.
+
 ## [1.10.109] - 2026-05-03
 
 **Risk classifier — parameter expansion default-value defeat

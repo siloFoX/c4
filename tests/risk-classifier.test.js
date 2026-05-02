@@ -891,6 +891,32 @@ describe('classifyCommand v1.10.54 patterns', () => {
     assert.ok(r.reasons.some((x) => x.code === 'pip-break-system'));
   });
 
+  // (v1.10.110) pip install --user — same threat model as
+  // npm install -g (writes binaries to a PATH-prefix directory,
+  // setup.py runs arbitrary code during install).
+  it('pip install --user → high', () => {
+    for (const cmd of [
+      'pip install --user evilpkg',
+      'pip3 install --user evilpkg',
+      'pip install evilpkg --user',
+      'pip install --user -r reqs.txt',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'pip-install-user'),
+        `${cmd}: expected pip-install-user; got ${r.reasons.map((x) => x.code).join(',')}`);
+    }
+  });
+
+  it('plain pip install (no --user / --break-system-packages) → low (regression)', () => {
+    // venv-bound installs are routine — only the operator-supplied
+    // safety-bypass flags (--user, --break-system-packages)
+    // trigger the catalog. This regression guard ensures we don't
+    // over-match plain `pip install foo`.
+    const r = classifyCommand('pip install requests');
+    assert.strictEqual(r.level, 'low');
+  });
+
   it('npm install -g and yarn global add → high', () => {
     for (const cmd of ['npm install -g pm2', 'npm install --global typescript', 'yarn global add eslint']) {
       const r = classifyCommand(cmd);

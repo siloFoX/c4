@@ -302,6 +302,18 @@ const HIGH_PATTERNS = [
     re: /\bpip3?\s+install\s+[^\n;|&]*--break-system-packages\b/,
   },
   {
+    code: 'pip-install-user',
+    label: 'pip install --user (writes to ~/.local/bin — shadows PATH)',
+    // (v1.10.110) `pip install --user pkg` writes binaries to
+    // ~/.local/bin which precedes /usr/bin on most PATHs (Debian
+    // / Ubuntu / Arch / brew). A malicious package's setup.py
+    // runs arbitrary code during install AND its console_scripts
+    // can shadow common commands (ls, git, ssh) for that user.
+    // Mirrors the npm-global-install threat model — same tier
+    // (high) for the same reason.
+    re: /\bpip3?\s+install\s+[^\n;|&]*--user\b/,
+  },
+  {
     code: 'npm-global-install',
     label: 'npm install -g / yarn global add (system-wide write)',
     // -g installs into a system-owned prefix; under sudo it can
