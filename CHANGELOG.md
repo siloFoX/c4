@@ -4,6 +4,21 @@
 
 (no entries — next release window)
 
+## [1.10.182] - 2026-05-03
+
+**Backfill unit tests for v1.10.177-181 catalog rules.**
+
+### Added
+- **`tests/risk-classifier.test.js`**: 4 new `it()` cases:
+  - `kernel-module-load` kpatch extension (v1.10.177)
+  - `boot-config-write` /etc/default/grub + update-grub
+    extension (v1.10.178)
+  - `apt-key-trust` (v1.10.179) + rpm/dnf extension (v1.10.180)
+  - `lang-pkg-global-install` pipx/poetry/uv/brew tap
+    extension (v1.10.181)
+  Suite stays at 178 (full); risk-classifier file 299 → 303
+  cases.
+
 ## [1.10.181] - 2026-05-03
 
 **`lang-pkg-global-install` extended to modern Python +
