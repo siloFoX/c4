@@ -4,6 +4,56 @@
 
 (no entries — next release window)
 
+## [1.10.88] - 2026-05-02
+
+11.5 Stage 2 polish — **`c4 doctor` surfaces shadow-exec gate
+state**. Operators now see at a glance whether the daemon would
+actually run a command if `/risk/exec` is hit, not just whether
+the runtime is reachable.
+
+### Changed
+- **`c4 doctor`** sandbox row gains a suffix when `sandbox` is
+  configured:
+  - `allowExec: true` → `[shadow exec ENABLED]` (promoted to
+    **warn** level so the row renders with a `⚠` mark; this is
+    a deliberate alert — the daemon WILL run commands if asked)
+  - `allowExec: false` (or absent) → `[shadow exec disabled —
+    set allowExec:true to enable]` (informational; default state)
+
+  Examples:
+  ```
+  ✓ sandbox runtime: docker reachable — network=none, memory=128m cpus=0.5 pids=64 timeout=5000ms [shadow exec disabled — set allowExec:true to enable]
+  ⚠ sandbox runtime: docker reachable — network=none, memory=128m cpus=0.5 pids=64 timeout=5000ms [shadow exec ENABLED]
+  ✗ sandbox runtime: docker probe failed — docker probe failed: Cannot connect to the Docker daemon
+  ```
+
+  Why warn instead of plain ok: shadow exec is a security-
+  sensitive default-off feature. An operator who set
+  `allowExec: true` and forgot about it should be surfaced when
+  they run `c4 doctor` rather than have it sit silently as a
+  green check. The warn level isn't an error (the config is
+  valid + intentional) — it's a "you have shadow exec on, make
+  sure that's still what you want" reminder.
+
+### Test coverage
+- **`tests/risk-exec-endpoint.test.js`** — new "doctor sandbox
+  check — shadow exec gate visibility" describe with 3 cases:
+  - `shadow exec ENABLED` literal present in CLI source
+  - `shadow exec disabled` + `allowExec:true` hint literal present
+  - reachable + `allowExec=true` flips level to `warn` via the
+    conditional `sb.allowExec === true ? 'warn' : null`
+
+  Suite stays at 171.
+
+### Backwards compatibility
+
+None broken. The check row is purely additive — operators with
+no sandbox config see no row (unchanged), operators with
+allowExec absent / false see the existing pass row + the new
+suffix, operators with allowExec=true see the existing pass
+mark replaced by warn (visual difference, no semantic change to
+any other code path).
+
 ## [1.10.87] - 2026-05-02
 
 11.5 Stage 2 — **real Docker integration tests**. Closes the gap

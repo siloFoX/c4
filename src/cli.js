@@ -908,6 +908,12 @@ async function main() {
               const rt = getRuntime(sb.name, sb.opts);
               const probe = rt.available();
               const iso = rt.describeIsolation();
+              // (v1.10.88) Append shadow-exec gate state so the
+              // operator sees BOTH "is the runtime reachable" AND
+              // "would the daemon actually run a command if asked".
+              const execSuffix = sb.allowExec === true
+                ? ' [shadow exec ENABLED]'
+                : ' [shadow exec disabled — set allowExec:true to enable]';
               if (sb.name === 'null') {
                 checks.push({
                   ok: true, level: 'warn',
@@ -916,7 +922,11 @@ async function main() {
               } else if (probe.ok) {
                 checks.push({
                   ok: true,
-                  label: `sandbox runtime: ${sb.name} reachable — network=${iso.network}, ${iso.resources}`,
+                  // Promote to warn when shadow exec is enabled so
+                  // operators are alerted that the daemon will
+                  // actually run commands if /risk/exec is hit.
+                  level: sb.allowExec === true ? 'warn' : null,
+                  label: `sandbox runtime: ${sb.name} reachable — network=${iso.network}, ${iso.resources}${execSuffix}`,
                 });
               } else {
                 checks.push({

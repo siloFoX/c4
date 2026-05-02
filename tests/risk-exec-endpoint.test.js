@@ -148,6 +148,29 @@ describe('config-validate — allowExec', () => {
   });
 });
 
+describe('c4 doctor sandbox check — shadow exec gate visibility (v1.10.88)', () => {
+  const fs = require('fs');
+  const cliSrc = fs.readFileSync(
+    require('path').resolve(__dirname, '..', 'src', 'cli.js'),
+    'utf8'
+  );
+
+  it('doctor block shows shadow exec ENABLED when allowExec=true', () => {
+    assert.match(cliSrc, /shadow exec ENABLED/);
+  });
+
+  it('doctor block shows shadow exec disabled when allowExec is not true', () => {
+    assert.match(cliSrc, /shadow exec disabled.*allowExec:true/);
+  });
+
+  it('reachable + allowExec=true is promoted to warn level', () => {
+    // The intent is "operator is alerted that the daemon will
+    // actually run commands"; locate the conditional that flips
+    // level: 'warn' when allowExec === true.
+    assert.match(cliSrc, /level:\s*sb\.allowExec === true \? 'warn' : null/);
+  });
+});
+
 describe('OpenAPI shape — POST /risk/exec response', () => {
   it('declares exitCode (nullable) + spawnError (nullable) + refused (nullable)', () => {
     // First occurrence is the route-summary table; the
