@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.73] - 2026-05-02
+
+Roadmap-and-patch backfill so the recent 9.1 phase 2 work is
+discoverable from the canonical entry points (TODO.md row + per-
+version patch dir). Pure documentation; no code change.
+
+### Added
+- **`patches/1.10.71-mock-adapter.md`** — full patch note for the
+  MockAdapter ship: why it exists (test infra + canonical reference
+  + validateAdapter harness), listener queueing semantics, listener
+  error isolation, strict `detectIdle === true`, mock-only test
+  surface, constructor option overrides, full test coverage
+  breakdown.
+- **`patches/1.10.72-agent-framework-docs.md`** — patch note for
+  the adapter authoring guide; explains why it shipped as a
+  separate version.
+
+### Changed
+- **`TODO.md`** — 9.1 row promoted from `in-progress (phase 1)` to
+  `in-progress (phase 2)`. Phase 2 progress now lists (a) local-llm
+  adapter (done under 9.2), (b) MockAdapter (1.10.71), (c) adapter
+  authoring guide (1.10.72). Pending: codex adapter,
+  claude-agent-sdk adapter, adapter-aware task-router.
+
+This patch is the bookkeeping that should have shipped alongside
+1.10.71 + 1.10.72; landing it as its own version makes the TODO
+roadmap honest about phase 2's actual progress.
+
 ## [1.10.72] - 2026-05-02
 
 9.1 phase 2 follow-up — operator-facing reference for writing a new
