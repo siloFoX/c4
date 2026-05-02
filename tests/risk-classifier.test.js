@@ -311,6 +311,30 @@ describe('classifyCommand — obfuscation defeat', () => {
     assert.ok(r.reasons.some((x) => x.code === 'sudo'),
       `expected sudo rule; got ${r.reasons.map((x) => x.code).join(',')}`);
   });
+
+  // (v1.10.109) Parameter expansion default-value obfuscation.
+  // `${VAR:-LITERAL}` returns LITERAL when VAR is unset, so an
+  // attacker can hide dangerous tokens inside the default. The
+  // denoise strips the `${name:OP` prefix and `}` suffix to
+  // surface the literal to the catalog regex.
+  it('strips ${VAR:-LITERAL} parameter expansion (v1.10.109)', () => {
+    assert.match(_denoiseCommand('r${VAR:-m} -rf /'), /rm -rf \//);
+    assert.match(_denoiseCommand('su${X:+do} apt'), /sudo apt/);
+    assert.match(_denoiseCommand('${V:=rm} -rf /'), /rm -rf \//);
+    assert.match(_denoiseCommand('${X:?rm} -rf /'), /rm -rf \//);
+  });
+
+  it('classifies r${VAR:-m} -rf / as critical (v1.10.109)', () => {
+    assert.strictEqual(levelOf('r${VAR:-m} -rf /'), 'critical');
+  });
+
+  it('plain ${VAR} (no :OP) is left alone (regression v1.10.109)', () => {
+    // The `:` is required — `${PATH}` should not be eaten because
+    // bash expands it at runtime and the literal alone says
+    // nothing about token shape.
+    assert.strictEqual(_denoiseCommand('echo ${PATH}'), 'echo ${PATH}');
+    assert.strictEqual(_denoiseCommand('echo $HOME'), 'echo $HOME');
+  });
 });
 
 describe('classifyCommand — return shape contract', () => {

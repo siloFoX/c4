@@ -519,6 +519,24 @@ function _denoiseCommand(cmd) {
   out = out.replace(/\$\{IFS\}/g, '');
   out = out.replace(/\$IFS\b/g, '');
 
+  // (v1.10.109) Parameter expansion default value:
+  //   r${VAR:-m} -rf /     → r m -rf /     (then quote splitting / IFS catch)
+  //   r${V:+m} -rf /       → r m -rf /
+  //   r${V:=m} -rf /       → r m -rf /
+  //   r${V:?m} -rf /       → r m -rf /
+  // Bash parameter expansion forms `${name:-default}`,
+  // `${name:+alt}`, `${name:=default}`, `${name:?error}` all
+  // return the LITERAL part after `:` when the variable is unset
+  // (or set, depending on operator). Attackers exploit these to
+  // hide dangerous tokens. We strip `${name:OP` / `}` keeping the
+  // literal so the catalog regex can see the dangerous chars. We
+  // keep the result in line (no extra spaces) so adjacent letters
+  // recombine — ${V:-m}m collapses to mm. The `:` prefix is
+  // required so we don't accidentally eat plain `${var}` (which
+  // bash leaves to expand at runtime; the literal alone tells us
+  // nothing about the token).
+  out = out.replace(/\$\{[A-Za-z_][A-Za-z0-9_]*:[-+=?]([^}]*)\}/g, '$1');
+
   // (v1.10.108) Backslash-letter no-op:
   //   r\m -rf /        → rm -rf /
   //   su\do            → sudo

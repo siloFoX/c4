@@ -4,6 +4,65 @@
 
 (no entries — next release window)
 
+## [1.10.109] - 2026-05-03
+
+**Risk classifier — parameter expansion default-value defeat
+(11th obfuscation defeat)**. Closes the bash `${VAR:-LITERAL}`
+hiding pattern that pre-1.10.109 slipped through as LOW.
+
+```sh
+# Pre-1.10.109
+$ c4 risk "r\${VAR:-m} -rf /"
+Level:    LOW
+
+# Post-1.10.109
+$ c4 risk "r\${VAR:-m} -rf /"
+Level:    CRITICAL
+Reasons:  - [rm-rf-root] rm -rf at filesystem root
+Decoded:  rm -rf /
+```
+
+### Changed
+- **`_denoiseCommand`** strips bash parameter-expansion forms
+  with `:` operators before pattern matching:
+  - `${name:-default}` (use default if unset)
+  - `${name:+alt}` (use alt if set)
+  - `${name:=default}` (assign default if unset)
+  - `${name:?error}` (error if unset)
+
+  All four forms carry a literal after `:` that bash returns at
+  runtime — attackers exploit them to hide dangerous tokens.
+  Regex: `\$\{[A-Za-z_][A-Za-z0-9_]*:[-+=?]([^}]*)\}` keeps just
+  the literal.
+
+  Plain `${VAR}` (no `:OP`) is left alone — bash expands at
+  runtime and the literal alone says nothing about token shape.
+
+### Test coverage
+- **`tests/risk-classifier.test.js`** — 3 new cases:
+  - `_denoiseCommand` strips all 4 expansion forms
+  - `r${VAR:-m} -rf /` classified critical
+  - regression: plain `${VAR}` and `$HOME` left alone
+
+  Suite stays at 175. risk-classifier file: 138 → 141 cases.
+  Obfuscation defeats: 10 → 11.
+
+### Defeats catalog (11 total)
+
+| # | obfuscation | example | defeat |
+|---|-------------|---------|--------|
+| 1 | base64 | `echo "..." \| base64 -d` | inline decode |
+| 2 | `$(...)` | `$(rm -rf /)` | one-level unwrap |
+| 3 | backtick | `` `rm -rf /` `` | one-level unwrap |
+| 4 | quote splitting | `r"m" -rf /` | letter-quoted segment collapse |
+| 5 | shell comments | `# rm -rf /` | strip BOL `#` |
+| 6 | `${IFS}` | `r${IFS}m` | strip to empty |
+| 7 | empty backtick | `r``m` | strip |
+| 8 | ANSI-C `\xHH` | `$'\x72m'` | hex decode |
+| 9 | ANSI-C `\uHHHH` | `$'rm'` | Unicode decode |
+| 10 | backslash-letter | `r\m -rf /` | strip `\<letter>` |
+| 11 | param expansion | `${VAR:-m}` | strip `${name:OP...}` |
+
 ## [1.10.108] - 2026-05-03
 
 **Risk classifier — backslash-letter obfuscation defeat (10th
