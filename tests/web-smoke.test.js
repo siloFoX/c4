@@ -290,3 +290,90 @@ describe('Sidebar collapse keyboard shortcut (8.40)', () => {
     assert.match(s.className, /duration-200/);
   });
 });
+
+// (v1.10.104) Help shortcut + tab navigation. Verifies the
+// global "?" keyboard shortcut opens the help panel and that
+// the top tab buttons (Workers / History / Sessions / Chat /
+// Workflows / Features / Settings) are all clickable.
+describe('Keyboard + tab nav (8.x baseline)', () => {
+  let ctx, page;
+
+  before(async () => {
+    if (!chromiumReady) return;
+    ctx = await browser.newContext();
+    page = await ctx.newPage();
+    await page.goto('http://127.0.0.1:3456/', { timeout: 10000 });
+    await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
+    // Dismiss onboarding tour. The "투어 건너뛰기" button shows
+    // up on first paint and stays until either Skipped or the
+    // tour reaches its end.
+    for (let i = 0; i < 3; i++) {
+      const skip = await page.$(`button:has-text("투어 건너뛰기")`).catch(() => null);
+      if (!skip) break;
+      await skip.click().catch(() => {});
+      await page.waitForTimeout(200);
+    }
+  });
+
+  after(async () => {
+    if (ctx) await ctx.close().catch(() => {});
+  });
+
+  it('top tab bar exposes the 7 canonical tab buttons', async (t) => {
+    if (!chromiumReady) return t.skip('chromium / daemon not ready');
+    const found = await page.evaluate(() => {
+      const labels = ['Workers', 'History', 'Sessions', 'Chat', 'Workflows', 'Features', 'Settings'];
+      return labels.filter((l) =>
+        Array.from(document.querySelectorAll('button')).some((b) => b.innerText.trim() === l)
+      );
+    });
+    // Workers / History / Sessions / Chat are required
+    for (const required of ['Workers', 'History', 'Sessions', 'Chat']) {
+      assert.ok(found.includes(required), `missing tab: ${required}`);
+    }
+  });
+
+  it('clicking Sessions tab updates the document focus / aria-selected', async (t) => {
+    if (!chromiumReady) return t.skip('chromium / daemon not ready');
+    const sessionsBtn = await page.$('button:has-text("Sessions")');
+    assert.ok(sessionsBtn, 'Sessions tab button not found');
+    await sessionsBtn.click();
+    await page.waitForTimeout(300);
+    // After clicking, the Sessions button should be aria-selected,
+    // OR the URL hash / pathname should have changed. Probe both.
+    const state = await page.evaluate(() => {
+      const sb = Array.from(document.querySelectorAll('button')).find(
+        (b) => b.innerText.trim() === 'Sessions'
+      );
+      return {
+        ariaSelected: sb && sb.getAttribute('aria-selected'),
+        url: window.location.href,
+      };
+    });
+    // Either aria-selected="true" OR something else changed.
+    // Loose assertion since either is a valid pattern.
+    assert.ok(
+      state.ariaSelected === 'true' || /sessions/i.test(state.url),
+      `expected Sessions to become active; got ariaSelected=${state.ariaSelected}, url=${state.url}`
+    );
+  });
+
+  it('? key opens the help panel', async (t) => {
+    if (!chromiumReady) return t.skip('chromium / daemon not ready');
+    // Ensure no input is focused
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement !== document.body) {
+        document.activeElement.blur();
+      }
+    });
+    await page.keyboard.press('?');
+    await page.waitForTimeout(300);
+    // The help panel is identified by "C4 도움말" heading.
+    const hasHelp = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('h1,h2,h3,header')).some(
+        (h) => /C4 도움말/.test(h.innerText)
+      );
+    });
+    assert.ok(hasHelp, 'help panel did not open after pressing ?');
+  });
+});

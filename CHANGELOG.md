@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.104] - 2026-05-03
+
+**Tab nav + ? help shortcut browser tests** (8.x baseline).
+Adds 3 cases under "Keyboard + tab nav" describe — verifies the
+top tab bar is wired and the global keyboard shortcuts work.
+
+### Added
+- **`tests/web-smoke.test.js`** — 3 new cases:
+  - top tab bar exposes 7 canonical buttons (Workers, History,
+    Sessions, Chat, Workflows, Features, Settings) — gates on
+    the 4 required (Workers/History/Sessions/Chat) so the test
+    survives feature-flag config drift on the optional 3
+  - clicking Sessions tab updates `aria-selected` OR URL
+    (loose assertion since either pattern is valid)
+  - `?` keyboard shortcut opens the help panel (verified by
+    "C4 도움말" heading appearing)
+
+  Tour-dismiss loop in `before()` clicks "투어 건너뛰기" up to 3
+  times since the tour can advance through cards before it
+  fully closes.
+
+Suite stays at 175 (cases inside web-smoke). Web smoke now has
+16 cases / 4 describes; total file runtime ~63s.
+
 ## [1.10.103] - 2026-05-03
 
 **Sidebar collapse Ctrl+B browser test** (TODO 8.40). Verifies
