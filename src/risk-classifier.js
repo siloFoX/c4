@@ -464,8 +464,14 @@ const CRITICAL_PATTERNS = [
   // pre-userland.
   {
     code: 'boot-config-write',
-    label: 'write to /boot/* or efibootmgr -c (boot-time tampering)',
-    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/boot\/(?:grub\/[\w.-]+|efi\/[\w.\/-]+|loader\/[\w.\/-]+|vmlinuz[\w.-]*|initrd\.img[\w.-]*|initramfs[\w.-]*)|\befibootmgr\s+(?:[^\n;|&]*\s)?(?:-c\b|--create\b)/,
+    label: 'write to /boot/* or /etc/default/grub or efibootmgr -c / update-grub (boot-time tampering)',
+    // (v1.10.178) Extended to include `/etc/default/grub`
+    // (the source-of-truth for grub configuration) and the
+    // `update-grub` / `grub-mkconfig -o` runners that
+    // regenerate /boot/grub/grub.cfg from it. Attacker
+    // tampering chain: edit /etc/default/grub to add
+    // init=/bin/bash, then run update-grub to commit.
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)(?:\/boot\/(?:grub\/[\w.-]+|efi\/[\w.\/-]+|loader\/[\w.\/-]+|vmlinuz[\w.-]*|initrd\.img[\w.-]*|initramfs[\w.-]*)|\/etc\/default\/grub\b)|\befibootmgr\s+(?:[^\n;|&]*\s)?(?:-c\b|--create\b)|\bupdate-grub\b|\bgrub-mkconfig\s+(?:[^\n;|&]*\s)?-o\b/,
   },
   // (v1.10.153) SystemTap (`stap`) — generates and loads
   // dynamic kernel modules from a script. Same threat as

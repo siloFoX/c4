@@ -4,6 +4,23 @@
 
 (no entries — next release window)
 
+## [1.10.178] - 2026-05-03
+
+**`boot-config-write` extended to /etc/default/grub +
+update-grub.** v1.10.146 caught direct writes to
+`/boot/grub/grub.cfg`. The canonical attacker chain is to
+edit `/etc/default/grub` (the source-of-truth) and then run
+`update-grub` (or `grub-mkconfig -o /boot/grub/grub.cfg`) to
+regenerate the cfg. Both steps were silent.
+
+### Changed
+- **`boot-config-write`** regex extended with:
+  - Writes to `/etc/default/grub`
+  - `update-grub` runner
+  - `grub-mkconfig -o <path>` runner
+  Same critical tier. Reads (`cat /etc/default/grub`) and
+  info forms (`grub-mkconfig --help`) stay LOW.
+
 ## [1.10.177] - 2026-05-03
 
 **`kernel-module-load` extended to `kpatch`.** Live kernel
