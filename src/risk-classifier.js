@@ -749,6 +749,17 @@ const HIGH_PATTERNS = [
     // is fine because `echo` isn't in the prefix list).
     re: /\b(?:tar|zip|gzip|bzip2|xz|cat|base64|hexdump|xxd|env|printenv|mongoexport|mysqldump|pg_dump)\b[^\n;&|]*\|\s*(?:curl\b[^\n;&|]*(?:-X\s+(?:POST|PUT)|-T\b|--upload-file|-d\s*@|--data-binary\s*@|--data\s*@)|nc\s+[^\n;&|]+\s+\d+|wget\b[^\n;&|]*--post-file)/i,
   },
+  // (v1.10.191) Cloud secret retrieval — `aws
+  // secretsmanager get-secret-value`, `gcloud secrets
+  // versions access`, `az keyvault secret show`. Each
+  // returns the raw secret value to stdout. Tier high
+  // (operators legitimately retrieve secrets, but in worker
+  // context this is review-worthy data exfil).
+  {
+    code: 'cloud-secret-fetch',
+    label: 'aws secretsmanager / gcloud secrets / az keyvault secret retrieval',
+    re: /\b(?:aws\s+secretsmanager\s+get-secret-value\b|aws\s+ssm\s+get-parameter(?:s)?\s+(?:[^\n;|&]*\s)?--with-decryption\b|gcloud\s+secrets\s+versions\s+access\b|az\s+keyvault\s+secret\s+(?:show|download)\b)/,
+  },
   {
     code: 'cloud-destroy',
     label: 'cloud infra destruction (terraform destroy / kubectl delete --all / aws s3 rm --recursive)',

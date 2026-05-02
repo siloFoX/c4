@@ -4,6 +4,22 @@
 
 (no entries — next release window)
 
+## [1.10.191] - 2026-05-03
+
+**`cloud-secret-fetch` (high) catalog pattern.** Cloud secret
+retrieval returns the raw secret value to stdout, where it
+can be exfiltrated. Operators legitimately retrieve secrets,
+so HIGH tier (review-worthy in worker context).
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `cloud-secret-fetch`. Catches:
+  - `aws secretsmanager get-secret-value`
+  - `aws ssm get-parameter[s] --with-decryption`
+  - `gcloud secrets versions access`
+  - `az keyvault secret show|download`
+  Listing forms (`list-secrets`, `secrets list`, `keyvault
+  list`) stay LOW.
+
 ## [1.10.190] - 2026-05-03
 
 **`cloud-iam-tamper` (critical) catalog pattern.** Cloud IAM
