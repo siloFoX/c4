@@ -4,6 +4,145 @@
 
 (no entries — next release window)
 
+## [1.10.79] - 2026-05-02
+
+11.5 Stage 2 first cut — **SandboxRuntime interface + DockerRuntime
+command builder**. Pure builder; no shadow execution yet. Operators
+preview the exact `docker run …` argv that WOULD isolate a command,
+copy/paste it, or pipe it through their own sandbox harness.
+
+### Why builder-first instead of shadow-exec-first
+
+Shadow execution of risky commands is itself risky:
+- Docker container escapes exist and get found
+- Resource exhaustion (fork bombs, CPU/IO/memory) can affect the
+  host even with cgroup limits if config is wrong
+- The classifier sometimes flags benign commands; running them in
+  a sandbox just to "verify" intent burns cycles
+- Some risky commands are dangerous BECAUSE of side effects — `rm
+  -rf /` doesn't damage the sandbox container, but
+  "shadow-running it" doesn't give us new information either
+
+The builder is the framework piece that's cleanly useful without
+policy commitments. Execution wiring lands in a follow-up after
+the runtime interface is settled.
+
+### Added
+- **`src/risk-sandbox-runtime.js`** — three classes + a factory:
+  - `SandboxRuntime` (abstract base)
+  - `NullRuntime extends SandboxRuntime` — no isolation; reports
+    `network=host, fs=host`. Used as the default when sandboxing
+    is off.
+  - `DockerRuntime extends SandboxRuntime` — real builder with
+    hardened defaults:
+    ```
+    image:         alpine:latest
+    network:       'none'                  (no egress)
+    --read-only:   true
+    --tmpfs=/tmp:  rw, size=64m
+    --memory:      128m
+    --cpus:        0.5
+    --pids-limit:  64                       (cap fork bombs)
+    --user:        nobody
+    --security-opt=no-new-privileges
+    --cap-drop=ALL
+    timeoutMs:     5000                    (host-side kill)
+    ```
+    Operators override per call (image / network / memory / cpus
+    / timeoutMs / mounts / env). Mounts are off by default — the
+    read-only root + tmpfs combo is enough for "what does this
+    do" probes.
+  - `getRuntime(name, opts)` factory — `'docker'`, `'null'`,
+    `undefined` / `null` (defaults to NullRuntime). Throws on
+    unknown names.
+
+  Each runtime exposes:
+  - `available()` — cheap probe; DockerRuntime runs `docker
+    version --format '{{.Server.Version}}'` with a 2s timeout
+    and reports `{ok:false, reason:'docker probe failed: <msg>'}`
+    when unreachable.
+  - `describeIsolation()` — `{ name, network, filesystem,
+    resources }` summary, copied into `prepareArgs()` output for
+    the audit trail.
+  - `prepareArgs(command, opts?)` — pure function; returns
+    `{binary, args, env, command, isolation}`. The
+    `command` field is echoed verbatim so tests / audits can
+    cross-check what was supposed to be sandboxed.
+
+  Commands are passed verbatim to `sh -c` so chains like `cmd1
+  && cmd2 || cmd3` survive without argv splitting issues.
+
+- **`c4 risk "<command>" --sandbox-preview <docker|null>`** — CLI
+  surface for the builder. Prints the runtime name, availability
+  probe result, isolation summary, and the full single-line
+  shell-quoted command that the operator can copy/paste or pipe.
+  Pure preview; never executes.
+
+  ```sh
+  $ c4 risk "rm -rf /tmp/test" --sandbox-preview docker
+  Level:    HIGH
+  …
+  Sandbox runtime: docker
+    available: true
+    isolation: network=none, fs=read-only root + tmpfs /tmp (64m)
+               memory=128m cpus=0.5 pids=64 timeout=5000ms
+    command:
+      docker run --rm --network=none --memory=128m --cpus=0.5 --pids-limit=64 \
+        --read-only --tmpfs=/tmp:rw,size=64m --user=nobody \
+        --security-opt=no-new-privileges --cap-drop=ALL \
+        alpine:latest sh -c 'rm -rf /tmp/test'
+  ```
+
+- **`tests/risk-sandbox-runtime.test.js`** — 29 cases / 7 suites:
+  - SandboxRuntime abstract base (defaults, prepareArgs throws)
+  - NullRuntime (host-everything, command echo, null/undefined
+    coercion)
+  - DOCKER_DEFAULTS frozen + canonical key set
+  - DockerRuntime describeIsolation (defaults + opts overrides +
+    readOnly:false branch)
+  - DockerRuntime prepareArgs (canonical hardened argv, command
+    verbatim under sh -c, opts overrides per call, mounts incl.
+    malformed-skip + readonly variant, env incl. empty/non-string
+    skip, null command coercion, custom dockerBinary)
+  - DockerRuntime.available() probe (gated on `which docker` so
+    CI without docker degrades to a single skipped placeholder
+    case; on this host, real probes verify `ok:true` for default
+    binary and `ok:false` with `docker probe failed:` reason for
+    a bogus path)
+  - getRuntime() factory (NullRuntime defaults, DockerRuntime
+    explicit, opts forwarding, unknown name throws)
+
+- **`tests/cli-risk.test.js`** — 4 new cases covering the
+  `--sandbox-preview` flag:
+  - docker preview prints the canonical argv (no exec)
+  - null preview reports "runs on host"
+  - unknown runtime name surfaces as a non-fatal stderr error
+    (classification still exits cleanly so shell pipelines don't
+    eat a flag typo)
+  - preview path does not eat positional command terms (regression
+    guard for the index-aware filter that drops `--sandbox-preview
+    <name>` without dropping the actual command words)
+
+Suite 166 → 167.
+
+### Bug fixed during rollout
+- The first cut of the positional filter
+  `args.filter((a, i) => !a.startsWith('--') && i !== (spIdx+1))`
+  also dropped `args[0]` when `--sandbox-preview` was absent
+  (because `spIdx === -1` makes `spIdx+1 === 0`). Caught by the
+  existing `cli-risk.test.js` cases. Fixed with a `spIdx >= 0`
+  guard before applying the filter.
+
+### Still pending under 11.5 Stage 2
+- Actual shadow execution path (run the prepared argv, capture
+  stdout/stderr/exit code, surface as audit event). Deliberately
+  separate so the runtime interface settles first.
+- Runtime config in `config.json` (`riskClassifier.sandbox.{name,
+  opts}`) so an operator can pin the daemon to "shadow-mode by
+  default" once the exec path lands.
+- Audit chain integration — `risk.shadow_exec` event type, mirror
+  to scribe-v2.
+
 ## [1.10.78] - 2026-05-02
 
 9.1 phase 2 polish — extract a shared **PtyAdapterBase** so the

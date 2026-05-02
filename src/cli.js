@@ -4446,10 +4446,26 @@ async function main() {
       //   c4 risk "<command>"           # classify a single command
       //   c4 risk --json "<command>"    # raw classification JSON
       //   c4 risk --decoded "<command>" # also print _denoiseCommand output
+      //   c4 risk --sandbox-preview docker "<command>"
+      //                                 # show the docker run argv that
+      //                                 # would isolate the command (no exec)
       case 'risk': {
         const wantJson = args.includes('--json');
         const wantDecoded = args.includes('--decoded');
-        const positional = args.filter((a) => !a.startsWith('--'));
+        // (v1.10.79) `--sandbox-preview <runtime>` — show the OS-binary
+        // argv the chosen runtime would use to isolate the command.
+        // Pure builder; no exec.
+        let sandboxPreview = null;
+        const spIdx = args.indexOf('--sandbox-preview');
+        if (spIdx >= 0 && args[spIdx + 1] && !args[spIdx + 1].startsWith('--')) {
+          sandboxPreview = args[spIdx + 1];
+        }
+        // The argument right after --sandbox-preview is the runtime
+        // name, not a command term — skip it. spIdx >= 0 guard
+        // prevents filtering args[0] when the flag is absent.
+        const positional = args.filter((a, i) =>
+          !a.startsWith('--') && !(spIdx >= 0 && i === spIdx + 1)
+        );
         // Subcommand: `c4 risk patterns` — list catalog + custom rules.
         if (positional[0] === 'patterns') {
           const data = await request('GET', '/risk/patterns');
@@ -4510,6 +4526,8 @@ async function main() {
         if (!command) {
           console.error('Usage:');
           console.error('  c4 risk "<command>" [--json] [--decoded]   classify a candidate command');
+          console.error('  c4 risk "<command>" --sandbox-preview <docker|null>');
+          console.error('                                              show the OS-binary argv that would isolate it');
           console.error('  c4 risk stats [--window-hours N] [--json]  aggregate denies from the audit chain');
           console.error('  c4 risk patterns [--json]                  list built-in catalog + custom rules');
           process.exit(1);
@@ -4585,6 +4603,34 @@ async function main() {
             if (intent.destructiveVerbs.length) console.log(`  dest:   ${intent.destructiveVerbs.join(', ')}`);
           }
         } catch { /* non-fatal */ }
+        // (v1.10.79) Sandbox preview — show the OS-binary argv that the
+        // chosen runtime would use to isolate this command. Pure builder
+        // — no exec.
+        if (sandboxPreview) {
+          try {
+            const { getRuntime } = require('./risk-sandbox-runtime');
+            const rt = getRuntime(sandboxPreview);
+            const avail = rt.available();
+            const prep = rt.prepareArgs(command);
+            console.log('');
+            console.log(`Sandbox runtime: ${sandboxPreview}`);
+            console.log(`  available: ${avail.ok}${avail.reason ? ' (' + avail.reason + ')' : ''}`);
+            const iso = prep.isolation;
+            console.log(`  isolation: network=${iso.network}, fs=${iso.filesystem}`);
+            console.log(`             ${iso.resources}`);
+            if (prep.binary) {
+              const cmdLine = [prep.binary, ...prep.args]
+                .map((a) => /[\s'"$\\]/.test(a) ? `'${a.replace(/'/g, "'\\''")}'` : a)
+                .join(' ');
+              console.log('  command:');
+              console.log(`    ${cmdLine}`);
+            } else {
+              console.log('  command: (no isolation — runs on host)');
+            }
+          } catch (err) {
+            console.error(`sandbox-preview error: ${(err && err.message) || err}`);
+          }
+        }
         if (shouldExit1) process.exit(1);
         return;
       }

@@ -88,6 +88,42 @@ describe('c4 risk CLI', () => {
   });
 });
 
+describe('c4 risk --sandbox-preview (v1.10.79)', () => {
+  it('docker preview prints the docker run argv (no exec)', () => {
+    const r = _run(['--sandbox-preview', 'docker', 'echo hi']);
+    // Always exit 0 — `echo hi` is benign so classification is `low`.
+    assert.equal(r.status, 0);
+    assert.match(r.stdout, /Sandbox runtime: docker/);
+    assert.match(r.stdout, /isolation: network=none/);
+    assert.match(r.stdout, /docker run --rm --network=none/);
+    assert.match(r.stdout, /alpine:latest/);
+    assert.match(r.stdout, /sh -c 'echo hi'/);
+  });
+
+  it('null preview reports "runs on host"', () => {
+    const r = _run(['--sandbox-preview', 'null', 'echo hi']);
+    assert.equal(r.status, 0);
+    assert.match(r.stdout, /Sandbox runtime: null/);
+    assert.match(r.stdout, /no isolation — runs on host/);
+  });
+
+  it('unknown runtime name surfaces as a non-fatal error', () => {
+    const r = _run(['--sandbox-preview', 'nonsuch', 'echo hi']);
+    // Classification still completes (exit 0), but stderr carries
+    // the runtime error so operators see the typo.
+    assert.equal(r.status, 0);
+    assert.match(r.stderr, /sandbox-preview error.*Unknown sandbox runtime/);
+  });
+
+  it('preview path does not eat positional command terms', () => {
+    const r = _run(['--sandbox-preview', 'docker', 'rm', '-rf', '/']);
+    // Critical → exit 1. The flag parser must NOT swallow `rm`.
+    assert.equal(r.status, 1);
+    assert.match(r.stdout, /CRITICAL/);
+    assert.match(r.stdout, /sh -c 'rm -rf \/'/);
+  });
+});
+
 describe('c4 risk stats CLI (v1.10.55)', () => {
   // The stats subcommand calls the running daemon. With the unit
   // env's bogus C4_DAEMON_URL the request fails and the CLI exits
