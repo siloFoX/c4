@@ -303,6 +303,17 @@ const CRITICAL_PATTERNS = [
     label: 'export LD_PRELOAD / LD_AUDIT / prefix= (per-process library injection)',
     re: /\b(?:export\s+)?LD_(?:PRELOAD|AUDIT)\s*=\s*\S+/,
   },
+  // (v1.10.185) BASH_ENV / ENV / SHELLOPTS — shell startup-file
+  // / option injection. `BASH_ENV=/tmp/evil bash script.sh`
+  // sources `/tmp/evil` BEFORE running script.sh. Same threat
+  // shape as LD_PRELOAD but at the shell-interpreter level.
+  // ENV (POSIX sh equivalent) and SHELLOPTS (xtrace etc)
+  // round out the set.
+  {
+    code: 'shell-env-inject',
+    label: 'BASH_ENV / ENV / SHELLOPTS env-var (shell startup-file injection)',
+    re: /\b(?:export\s+)?(?:BASH_ENV|ENV|SHELLOPTS|BASH_FUNC_\w+)\s*=\s*\S+/,
+  },
   // (v1.10.64) Cron.d entry creation — anything written under
   // /etc/cron.{d,daily,hourly,weekly,monthly} runs as root on a
   // schedule. The existing system-files rule catches /etc/crontab

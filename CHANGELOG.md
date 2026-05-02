@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.185] - 2026-05-03
+
+**`shell-env-inject` (critical) catalog pattern.** Same
+threat shape as `ld-preload-env` (which injects libraries
+into running binaries) but at the shell-interpreter level.
+`BASH_ENV=/tmp/evil bash script.sh` sources `/tmp/evil`
+BEFORE running `script.sh` — every subsequent shell
+invocation runs the malicious init code.
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `shell-env-inject`. Catches:
+  - `BASH_ENV=<file>` (bash interactive/login startup file)
+  - `ENV=<file>` (POSIX sh equivalent)
+  - `SHELLOPTS=<opts>` (bash option injection like xtrace
+    that may leak data)
+  - `BASH_FUNC_<name>%%=...` (Bash function exporter —
+    Shellshock CVE-2014-6271 vector)
+  Critical tier matches `ld-preload-env`. `unset`, reads,
+  and grep stay LOW.
+
 ## [1.10.184] - 2026-05-03
 
 **`pkg-config-set` extended to direct config file writes.**
