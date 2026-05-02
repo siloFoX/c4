@@ -265,6 +265,26 @@ describe('config validate', () => {
       assert.ok(w, 'expected docker-probe warning');
       assert.match(w.message, /probe failed/);
     });
+
+    // (v1.10.89) When allowExec=true, a probe failure is no longer
+    // tolerable as a warning — the operator wants the daemon to
+    // actually run commands in this docker, so a broken docker
+    // means broken shadow exec.
+    it('docker probe failure with allowExec=true is promoted to error', () => {
+      const r = validate({
+        riskClassifier: {
+          sandbox: {
+            name: 'docker',
+            allowExec: true,
+            opts: { dockerBinary: '/no/such/docker' },
+          },
+        },
+      });
+      const e = r.errors.find((e) => e.path === 'riskClassifier.sandbox');
+      assert.ok(e, 'expected docker-probe error when allowExec=true');
+      assert.match(e.message, /probe failed/);
+      assert.match(e.message, /allowExec=true requires a working runtime/);
+    });
   });
 });
 

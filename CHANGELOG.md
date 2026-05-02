@@ -4,6 +4,48 @@
 
 (no entries — next release window)
 
+## [1.10.89] - 2026-05-02
+
+11.5 Stage 2 polish — **config-validate promotes Docker probe
+failure to error when allowExec=true**. A docker-not-reachable
+combined with shadow-exec-enabled means broken shadow exec; the
+operator should fix it before the daemon starts taking
+`/risk/exec` requests.
+
+### Changed
+- **`config-validate`** for `riskClassifier.sandbox`:
+  - **`allowExec: false` (default)** + docker probe fails →
+    **warning** (config can be validated on a host without
+    docker installed yet — same as v1.10.80 behavior).
+  - **`allowExec: true`** + docker probe fails → **error**
+    (`riskClassifier.sandbox: docker probe failed: <reason>
+    (allowExec=true requires a working runtime)`). Validate
+    exits non-zero so a CI pipeline that runs `c4 config
+    validate` rejects the broken config before deploy.
+
+### Test coverage
+- **`tests/config-validate.test.js`** — 1 new case under
+  `riskClassifier.sandbox`:
+  - docker probe failure with `allowExec=true` is promoted to
+    error (matches `probe failed` + `allowExec=true requires a
+    working runtime`)
+
+  Suite stays at 171.
+
+### Why this is the right escalation
+
+The whole point of `allowExec: true` is "operator wants the
+daemon to actually run things in docker". A probe failure means
+the daemon can't deliver on that. Letting validate pass with a
+warning would be silent — the operator finds out only when the
+first `/risk/exec` request hits and returns `spawnError: docker
+probe failed`. Erroring at validate time catches the problem
+before deploy.
+
+When `allowExec: false`, the runtime might just be configured
+for `--sandbox-preview` (pure builder) — broken docker doesn't
+break that flow because preview never spawns. Warning is right.
+
 ## [1.10.88] - 2026-05-02
 
 11.5 Stage 2 polish — **`c4 doctor` surfaces shadow-exec gate

@@ -353,10 +353,22 @@ function validate(config = {}) {
             const { getRuntime } = require('./risk-sandbox-runtime');
             const probe = getRuntime('docker', v.opts).available();
             if (!probe.ok) {
-              warnings.push({
-                path: 'riskClassifier.sandbox',
-                message: `docker probe failed: ${probe.reason}`,
-              });
+              // (v1.10.89) When allowExec is on, the operator
+              // explicitly wants the daemon to run commands in
+              // this docker — a probe failure is much more
+              // concerning. Promote to error so config-validate
+              // exits non-zero.
+              if (v.allowExec === true) {
+                errors.push({
+                  path: 'riskClassifier.sandbox',
+                  message: `docker probe failed: ${probe.reason} (allowExec=true requires a working runtime)`,
+                });
+              } else {
+                warnings.push({
+                  path: 'riskClassifier.sandbox',
+                  message: `docker probe failed: ${probe.reason}`,
+                });
+              }
             }
           } catch (err) {
             warnings.push({
