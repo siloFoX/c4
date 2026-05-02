@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.156] - 2026-05-03
+
+**`k8s-untrusted-source` (medium) catalog pattern.** Same
+supply-chain vector as `pkg-install-untrusted-index` but for
+Kubernetes manifests / Helm charts. The URL form
+(`kubectl apply -f http://...`, `helm install foo http://...`)
+bypasses the cluster's RBAC and chart attestation — applies
+whatever YAML / chart binary is at that URL.
+
+### Added
+- **`PATTERN_CATALOG.medium`** entry `k8s-untrusted-source`. Catches:
+  - `kubectl apply -f https?://...`
+  - `kubectl create -f https?://...`
+  - `kubectl replace -f https?://...`
+  - `helm install <name> https?://...`
+  - `helm upgrade <name> https?://...`
+  Local file refs (`-f manifest.yaml`), bare get/list ops,
+  and installs from configured repos (no http:// in args)
+  stay LOW. Medium tier matches `pkg-install-untrusted-index`
+  since legitimate private cluster URLs exist.
+
+- **`tests/risk-classifier.test.js`**: 2 new `it()` cases —
+  attack assertion (5 commands) + regression (6 local /
+  store / list invocations). Suite stays at 178.
+  Risk-classifier file 275 → 277 cases.
+
+### Catalog totals
+- Critical: 33 patterns (+0)
+- High: 44 patterns (+0)
+- Medium: 22 patterns (+1: k8s-untrusted-source)
+- **Total: 101 → 102** (effective; daemon will report 103
+  after restart)
+
 ## [1.10.155] - 2026-05-03
 
 **`nsenter-pid1` (critical) catalog pattern.** `nsenter -t 1`

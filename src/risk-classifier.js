@@ -1070,6 +1070,17 @@ const MEDIUM_PATTERNS = [
     label: 'python -m http.server / php -S / npx serve / ruby httpd (file server)',
     re: /\b(?:python\d*\s+-m\s+(?:http\.server|SimpleHTTPServer)\b|php\s+-S\s+\S+|(?:npx|pnpm\s+dlx)\s+(?:serve|http-server)\b|ruby\s+-run\s+-e\s+httpd\b|busybox\s+httpd\b)/,
   },
+  // (v1.10.156) kubectl / helm install from arbitrary URL.
+  // Same supply-chain vector as `pkg-install-untrusted-index`
+  // but for k8s manifests / helm charts. The URL form
+  // (`-f http://...`) bypasses the cluster's RBAC + chart
+  // attestation — applies whatever YAML / chart binary is at
+  // that URL. Medium tier (legit private cluster URLs exist).
+  {
+    code: 'k8s-untrusted-source',
+    label: 'kubectl apply / create / replace -f URL or helm install URL (untrusted manifest)',
+    re: /\b(?:kubectl\s+(?:apply|create|replace)\s+(?:[^\n;|&]*\s)?-f\s+https?:\/\/|helm\s+(?:install|upgrade)\s+(?:[^\n;|&]*\s)?(?<!\bname=)https?:\/\/)/,
+  },
   // (v1.10.140) Package install from untrusted index. The
   // `--extra-index-url` (pip), `--registry` (npm),
   // `--index` (cargo) flags accept arbitrary HTTP(S) hosts.

