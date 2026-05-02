@@ -371,6 +371,58 @@ describe('_denoiseCommand helper', () => {
   });
 });
 
+describe('classifyCommand v1.10.58 obfuscation hardening', () => {
+  // Three new defeats added in v1.10.58 — each closes a real
+  // shell-injection bypass that the original 28 patterns missed.
+
+  it('${IFS} expansion exposes the dangerous token', () => {
+    // r${IFS}m -rf /  →  shell sees `r` and `m` as separate words,
+    // but a string-only scanner missed it. We collapse ${IFS} to
+    // empty so the catalog matches `rm -rf /`.
+    const r = classifyCommand('r${IFS}m -rf /');
+    assert.strictEqual(r.level, 'critical');
+  });
+
+  it('${IFS} mixed with quote splitting still resolves', () => {
+    // r${IFS}"m" -rf / → after IFS removal `r"m" -rf /`, then quote
+    // splitting collapses to `rm -rf /`. Order matters; IFS removal
+    // runs BEFORE the quote-splitting pass.
+    const r = classifyCommand('r${IFS}"m" -rf /');
+    assert.strictEqual(r.level, 'critical');
+  });
+
+  it('empty backtick injection (r``m) classifies as critical', () => {
+    const r = classifyCommand('r``m -rf /');
+    assert.strictEqual(r.level, 'critical');
+  });
+
+  it('ANSI-C $\'\\xHH\' hex escapes decode before pattern matching', () => {
+    // $'\x72m' → 'rm' (0x72 = 'r')
+    const r = classifyCommand("$'\\x72m' -rf /");
+    assert.strictEqual(r.level, 'critical');
+  });
+
+  it('ANSI-C decode handles partial escapes without crashing', () => {
+    // Malformed hex (\xZZ) shouldn't throw; rule should still
+    // run on the rest of the command.
+    const r = classifyCommand("$'\\xZZ' echo hi");
+    assert.strictEqual(typeof r.level, 'string');
+  });
+
+  it('benign $IFS reference (echo $IFS) stays low', () => {
+    const r = classifyCommand('echo $IFS');
+    assert.strictEqual(r.level, 'low');
+  });
+
+  it('regression: original obfuscation defeats still work', () => {
+    // base64 + $() + backtick + alphabetic-quote-splitting
+    assert.strictEqual(classifyCommand('echo "cm0gLXJmIC8=" | base64 -d | sh').level, 'critical');
+    assert.strictEqual(classifyCommand('eval $(echo cm0gLXJmIC8K | base64 -d)').level, 'critical');
+    assert.strictEqual(classifyCommand('r"m" -rf /').level, 'critical');
+    assert.strictEqual(classifyCommand("p'k'i'l'l -9 -1").level, 'high');
+  });
+});
+
 describe('classifyCommand v1.10.57 comment stripping', () => {
   // Shell line comments (`# ...`) used to trigger the inner pattern.
   // `# rm -rf / would be dangerous` would classify as critical even

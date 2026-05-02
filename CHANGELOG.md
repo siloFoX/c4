@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.58] - 2026-05-02
+
+Three new obfuscation defeats in the risk classifier denoise
+pass — each closes a real shell-injection bypass.
+
+### Added
+- **`${IFS}` expansion** — `r${IFS}m -rf /` previously slipped
+  through because the literal `rm` never appeared in the
+  source. Denoise now drops `${IFS}` and `$IFS` before the
+  catalog runs, exposing the contiguous token. Runs BEFORE
+  the alphabetic-quote-splitting pass so combined tricks like
+  `r${IFS}"m" -rf /` also resolve.
+- **Empty backtick injection** — `r\`\`m -rf /`. Bash
+  collapses empty `` `` to nothing during expansion; the
+  previous backtick unwrap missed this case because
+  `[^`]+` required at least one inner char.
+- **ANSI-C hex escape** — `$'\\x72m' -rf /` decodes to
+  `rm -rf /`. We handle the common `\\xHH` form (octal /
+  unicode / control-X stay out of scope — too many false
+  positives on regular argument text).
+
+### Tested
+7 new boundary tests:
+- ${IFS} alone → critical
+- ${IFS} + quote splitting → critical
+- empty backtick injection → critical
+- ANSI-C hex → critical
+- malformed hex doesn't crash
+- benign `echo $IFS` stays low
+- regression: all v1.10.x obfuscation defeats still match
+
+risk-classifier.test.js: 95 cases (was 88). Suite 156/156.
+
 ## [1.10.57] - 2026-05-02
 
 Risk classifier denoise: shell-comment false-positive fix.

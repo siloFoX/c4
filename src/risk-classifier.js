@@ -361,6 +361,26 @@ function _denoiseCommand(cmd) {
   // Backtick form: same idea.
   out = out.replace(/`([^`]+)`/g, (_m, inner) => ' ' + inner + ' ');
 
+  // (v1.10.58) Empty backtick injection inside a word:
+  //   r``m -rf / → rm -rf /
+  // Same intent as the quote-splitting case below. Bash collapses
+  // empty `` to nothing during expansion, so an attacker can hide a
+  // dangerous token from naive string scanners. The previous backtick
+  // unwrap left the empty case unhandled because [^`]+ requires at
+  // least one inner char.
+  out = out.replace(/(?<=[A-Za-z])``(?=[A-Za-z])/g, '');
+
+  // (v1.10.58) IFS expansion inside a word:
+  //   r${IFS}m   → rm
+  //   r$IFS"m"   → r"m" (then quote splitting below kicks in)
+  // ${IFS} expands to space-tab-newline. We replace with empty string
+  // to defeat the splitting trick — the goal is to expose the
+  // dangerous token to the catalog regex, not to faithfully simulate
+  // shell expansion. Runs BEFORE quote splitting so the resulting
+  // letter-quote-letter cases get caught.
+  out = out.replace(/\$\{IFS\}/g, '');
+  out = out.replace(/\$IFS\b/g, '');
+
   // IFS / quote insertions inside common dangerous tokens. Unwrap
   // alphabetic quoted segments only when they're adjacent to another
   // letter (so r"m" -> rm, su"do" -> sudo, c"url" -> curl) without
@@ -372,6 +392,26 @@ function _denoiseCommand(cmd) {
   // pins this behaviour.
   out = out.replace(/(?<=[A-Za-z])"([A-Za-z]+)"|"([A-Za-z]+)"(?=[A-Za-z])/g, (_m, a, b) => a || b);
   out = out.replace(/(?<=[A-Za-z])'([A-Za-z]+)'|'([A-Za-z]+)'(?=[A-Za-z])/g, (_m, a, b) => a || b);
+
+  // (v1.10.58) ANSI-C quoting: $'...' interprets \xHH / \nnn / \\n
+  // escapes. Most attack uses are simple hex sequences encoding
+  // alphabetic chars (e.g., $'\x72m' → rm). We decode \xHH only —
+  // covering the common case without taking on the full ANSI-C
+  // grammar (which includes octal, unicode \u, and \cX control
+  // sequences a static scanner would be wrong about more often
+  // than right).
+  out = out.replace(/\$'([^']*)'/g, (_m, inner) => {
+    let decoded = '';
+    for (let i = 0; i < inner.length; i++) {
+      if (inner[i] === '\\' && inner[i + 1] === 'x' && /[0-9a-fA-F]{2}/.test(inner.slice(i + 2, i + 4))) {
+        decoded += String.fromCharCode(parseInt(inner.slice(i + 2, i + 4), 16));
+        i += 3;
+      } else {
+        decoded += inner[i];
+      }
+    }
+    return decoded;
+  });
 
   return out;
 }
