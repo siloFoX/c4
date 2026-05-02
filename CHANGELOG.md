@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.65] - 2026-05-02
+
+shellc carrier pattern + Unicode escape decoder. Catalog
+49 → 50.
+
+### Added (critical)
+- **`shellc-network-fetch`** — `bash -c "..."` /
+  `sh -c "..."` / `zsh -c "..."` / `fish -c "..."` carrying
+  a `curl` / `wget` / `fetch` / `http` reference inside the
+  quoted string. After the denoise pass strips `$()` /
+  backticks the network call surfaces verbatim, and this
+  rule flags the carrier explicitly so audits document the
+  attacker's wrapper shape.
+
+### Added (denoise)
+- **ANSI-C `$'\\uHHHH'` Unicode escape** decoded alongside
+  the existing `\\xHH` form. `$'\\u0072m' -rf /` now
+  classifies as critical (was low). Octal `\\nnn` and
+  `\\cX` control sequences stay out of scope — too many
+  false positives on regular argument text.
+
+### Tests
+- 7 new tests in risk-classifier.test.js (127 cases, was 120):
+  shellc forms across bash / sh / zsh, Unicode hex+full-word,
+  benign `bash -c` boundary, and \\xHH regression.
+
+Suite 157/157. All four drift phases clean.
+
 ## [1.10.64] - 2026-05-02
 
 5 new patterns covering library injection, cron drop-ins,
