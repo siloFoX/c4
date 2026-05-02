@@ -658,6 +658,17 @@ const HIGH_PATTERNS = [
     label: 'ssh -R / -D / -L 0.0.0.0:* (tunneling)',
     re: /\bssh\s+(?:[^\n;|&]*\s)?(?:-R\s+\S|-D\s+\S|-L\s+0\.0\.0\.0:)/,
   },
+  // (v1.10.183) External tunnel services — ngrok / cloudflared
+  // / localtunnel / serveo / bore. Each creates a reverse
+  // tunnel through a third-party service to expose a local
+  // port to the public internet. Bypasses firewalls and
+  // typically used to expose internal services to attacker
+  // infrastructure.
+  {
+    code: 'external-tunnel',
+    label: 'ngrok / cloudflared tunnel / localtunnel / serveo / bore (3rd-party reverse tunnel)',
+    re: /\b(?:ngrok\s+(?:http|tcp|tls)\b|cloudflared\s+tunnel\b|lt\s+--port\b|localtunnel\s+--port\b|bore\s+local\b|frpc\b)/,
+  },
   {
     code: 'ssh-strict-host-off',
     label: 'ssh / scp -o StrictHostKeyChecking=no (MITM-prone)',

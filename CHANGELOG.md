@@ -4,6 +4,25 @@
 
 (no entries — next release window)
 
+## [1.10.183] - 2026-05-03
+
+**`external-tunnel` (high) catalog pattern.** Third-party
+reverse tunnel services expose a local port to the public
+internet through their relay infrastructure. Bypasses
+firewalls. Typically used to expose internal services to
+attacker hosts.
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `external-tunnel`. Catches:
+  - `ngrok http|tcp|tls <port>` (ngrok)
+  - `cloudflared tunnel <args>` (Cloudflare Tunnel)
+  - `lt --port` / `localtunnel --port` (localtunnel)
+  - `bore local <port>` (bore)
+  - `frpc -c <conf>` (frp client)
+  Same threat family as `ssh-tunnel` but reaches further
+  (third-party relay). Info forms (`--help`, `--version`,
+  cat config) stay LOW.
+
 ## [1.10.182] - 2026-05-03
 
 **Backfill unit tests for v1.10.177-181 catalog rules.**
