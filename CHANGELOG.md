@@ -4,6 +4,23 @@
 
 (no entries — next release window)
 
+## [1.10.163] - 2026-05-03
+
+**`ip-route-tamper` (high) catalog pattern.** Network-pivot
+primitives: changing the default route to attacker IP, adding
+routing rules that pin specific destinations, or running
+`arpspoof`. Each redirects host egress traffic through an
+attacker-controlled path.
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `ip-route-tamper`. Catches:
+  - `ip route add default via <ip>` (and `change` / `replace`)
+  - `ip rule add ...` (custom routing tables)
+  - `route add default gw <ip>` (legacy form)
+  - `arpspoof ...` (ARP poisoning tool)
+  Read forms (`ip addr show`, `ip route show`, `ip route get
+  <ip>`) stay LOW.
+
 ## [1.10.162] - 2026-05-03
 
 **`eval-network-fetch` (critical) catalog pattern.** `eval

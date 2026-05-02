@@ -696,6 +696,16 @@ const HIGH_PATTERNS = [
     label: 'dbus-send to org.freedesktop.systemd1 (Stop/Disable/Mask via D-Bus)',
     re: /\bdbus-send\b[^\n;|&]*\borg\.freedesktop\.systemd1\.Manager\.(?:Stop|Disable|Mask|Reload)(?:Unit|UnitFiles)\b/,
   },
+  // (v1.10.163) `ip route` / `route` tampering — adding a
+  // default route through an attacker IP redirects the host's
+  // egress traffic. `ip rule add` lets the attacker pin
+  // specific destinations to a routing table that's
+  // attacker-controlled. Both are network-pivot primitives.
+  {
+    code: 'ip-route-tamper',
+    label: 'ip route add default / ip rule add (egress redirection)',
+    re: /\b(?:ip\s+route\s+(?:add|change|replace)\s+default\b|ip\s+rule\s+add\b|route\s+add\s+default\s+gw\b|arpspoof\b)/,
+  },
   // (v1.10.150) auditctl rule subversion — auditd's runtime
   // CLI. `-e 0` disables enforcement; `-D` deletes all rules.
   // Same defense-evasion family as systemctl-disable-critical
