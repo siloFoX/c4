@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.166] - 2026-05-03
+
+**Backfill unit tests for v1.10.157+ catalog rules.** The
+recent ships through v1.10.165 added 9 new catalog patterns
+that had only manual node-eval verification at ship time;
+this release locks them in with proper unit tests so future
+regex tweaks don't silently regress.
+
+### Added
+- **`tests/risk-classifier.test.js`**: NEW describe block
+  `classifyCommand v1.10.157+ recent additions` with 10
+  `it()` cases covering:
+  - `ld-preload-env` extension to LD_AUDIT (v1.10.157)
+  - `config-dropin-write` /etc/sysctl.d/ extension (v1.10.158)
+  - `credential-read` stdin redirect form (v1.10.159)
+  - `ssh-tunnel` -R / -D / -L 0.0.0.0 (v1.10.160)
+  - `netcat-shell-exec` nc/ncat -e or -c (v1.10.161)
+  - `eval-network-fetch` eval $(curl ...) (v1.10.162)
+  - `ip-route-tamper` route changes / arpspoof (v1.10.163)
+  - `network-sniff` tcpdump -w / wireshark / dumpcap (v1.10.164)
+  - `process-snoop` strace/ltrace/gdb -p <pid> (v1.10.164)
+  - `data-exfil-pipe` env / DB dump extension (v1.10.165)
+
+  Each block exercises representative attack shells AND
+  regression cases (read forms / non-attach / local-only stay
+  LOW). Suite stays at 178 (full); risk-classifier file 278 →
+  288 cases.
+
 ## [1.10.165] - 2026-05-03
 
 **`data-exfil-pipe` extended to env / DB dumps.** The original
