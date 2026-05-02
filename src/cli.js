@@ -4565,6 +4565,9 @@ async function main() {
           if (wantJson) { console.log(JSON.stringify(stats, null, 2)); return; }
           console.log(`Risk denies (last ${stats.windowHours}h): ${stats.total}`);
           console.log(`  Window: ${stats.from} → ${stats.to}`);
+          if (typeof stats.enforced === 'number' || typeof stats.dryRun === 'number') {
+            console.log(`  Breakdown: enforced=${stats.enforced || 0}, dryRun=${stats.dryRun || 0}`);
+          }
           console.log(`  By level:`);
           for (const lvl of ['critical', 'high', 'medium', 'low']) {
             const n = (stats.byLevel && stats.byLevel[lvl]) || 0;
@@ -4577,6 +4580,18 @@ async function main() {
           if (stats.topWorkers.length) {
             console.log(`  Top workers:`);
             for (const w of stats.topWorkers) console.log(`    ${w.key.padEnd(20)} ${w.count}`);
+          }
+          // (v1.10.90) Shadow exec activity — separate from
+          // classifier denies. Suppressed when zero so the row
+          // doesn't add noise on hosts that haven't enabled it.
+          if (stats.shadowExec > 0) {
+            console.log(`Shadow exec (last ${stats.windowHours}h): ${stats.shadowExec}`);
+            if (stats.shadowExecKilled > 0) {
+              console.log(`  killed (timeout): ${stats.shadowExecKilled}`);
+            }
+            if (stats.shadowExecNonZero > 0) {
+              console.log(`  non-zero exit:    ${stats.shadowExecNonZero}`);
+            }
           }
           return;
         }

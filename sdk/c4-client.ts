@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.89
-// Generated at: 2026-05-02T06:56:37.252Z
+// Spec version: 1.10.90
+// Generated at: 2026-05-02T07:00:24.573Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -417,6 +417,9 @@ export interface getRiskStatsResponse {
   total?: number; /** Total events in the window (enforced + dryRun) */
   enforced?: number; /** risk.denied events — gate actually blocked the command */
   dryRun?: number; /** risk.dryRun events — would have been blocked if dryRun was off */
+  shadowExec?: number; /** (v1.10.90) risk.shadow_exec events — explicit /risk/exec calls that ran in the configured sandbox. Separate from `total` since shadow exec is operator-initiated, not a denial. */
+  shadowExecKilled?: number; /** (v1.10.90) Subset of shadowExec where killed=true (timeout fired) */
+  shadowExecNonZero?: number; /** (v1.10.90) Subset of shadowExec where exitCode != 0 */
   byLevel?: {
   critical?: number;
   high?: number;

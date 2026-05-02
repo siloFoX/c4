@@ -1757,6 +1757,9 @@ const ROUTE_SCHEMAS = {
         total: { type: 'integer', description: 'Total events in the window (enforced + dryRun)' },
         enforced: { type: 'integer', description: 'risk.denied events — gate actually blocked the command' },
         dryRun: { type: 'integer', description: 'risk.dryRun events — would have been blocked if dryRun was off' },
+        shadowExec: { type: 'integer', description: '(v1.10.90) risk.shadow_exec events — explicit /risk/exec calls that ran in the configured sandbox. Separate from `total` since shadow exec is operator-initiated, not a denial.' },
+        shadowExecKilled: { type: 'integer', description: '(v1.10.90) Subset of shadowExec where killed=true (timeout fired)' },
+        shadowExecNonZero: { type: 'integer', description: '(v1.10.90) Subset of shadowExec where exitCode != 0' },
         byLevel: {
           type: 'object',
           properties: {

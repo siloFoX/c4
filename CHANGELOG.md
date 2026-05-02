@@ -4,6 +4,75 @@
 
 (no entries — next release window)
 
+## [1.10.90] - 2026-05-02
+
+11.5 Stage 2 polish — **`c4 risk stats` + `GET /risk/stats`
+include shadow exec activity**. Operators get a single-pane view
+of classifier denials AND shadow exec runs over the same window.
+
+### Added
+- **`/risk/stats` response** gains three new fields:
+  - `shadowExec` — count of `risk.shadow_exec` audit events in
+    the window
+  - `shadowExecKilled` — subset where `killed=true` (host-side
+    timeout fired)
+  - `shadowExecNonZero` — subset where `exitCode !== 0`
+
+  Shadow exec is **separate from `total`** since shadow_exec
+  rows are explicit operator actions, not denials. The
+  classifier-rule aggregates (`byLevel`, `topReasons`,
+  `topWorkers`) stay denial-only as before — operators
+  comparing "what did the classifier block" vs "what did I
+  shadow-run" get clean separation.
+
+- **`c4 risk stats` CLI** prints a "Shadow exec (last Nh):"
+  block when `shadowExec > 0` (suppressed when zero so hosts
+  that haven't enabled the feature don't see noise). Sub-rows
+  show `killed (timeout)` and `non-zero exit` counts when
+  non-zero.
+
+  Also added a "Breakdown: enforced=N, dryRun=N" row to the
+  classifier section so operators in observation mode see the
+  split.
+
+  Example:
+  ```
+  Risk denies (last 24h): 12
+    Window: 2026-05-01T... → 2026-05-02T...
+    Breakdown: enforced=8, dryRun=4
+    By level:
+      critical 3
+      high     9
+    Top reasons:
+      [rm-rf-root]   5
+      [curl-pipe-shell] 4
+  Shadow exec (last 24h): 7
+    killed (timeout): 1
+    non-zero exit:    2
+  ```
+
+### Test impact
+
+Existing config-validate + risk-classifier-* tests still pass
+(171/171). The stats endpoint shape change is additive — the
+schema drift checker auto-picked up the new fields.
+
+### Why surface shadow exec in stats
+
+Three reasons:
+1. **Operations visibility.** A spike in `shadowExecKilled`
+   (timeouts) signals either a runtime config drift (memory
+   too low) or a workload pattern shift. Easier to spot in
+   the same window the operator already checks for denies.
+2. **Audit cross-check.** When an operator asks "did anyone
+   run dangerous things in the sandbox today", `shadowExec`
+   gives a number; `c4 events --type risk_shadow_exec` gives
+   the per-event detail. Stats is the entry point.
+3. **No new endpoint.** Fitting the count into the existing
+   `/risk/stats` keeps the surface area lean. A separate
+   `/api/shadow-exec/stats` would have meant another route
+   for callers to discover.
+
 ## [1.10.89] - 2026-05-02
 
 11.5 Stage 2 polish — **config-validate promotes Docker probe

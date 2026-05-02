@@ -1603,6 +1603,11 @@ async function handleRequest(req, res) {
         // callers can filter further.
         const denied = audit.query({ type: 'risk.denied', from: fromIso, limit: 10000 });
         const dryRun = audit.query({ type: 'risk.dryRun', from: fromIso, limit: 10000 });
+        // (v1.10.90) Shadow exec count — separate from total since
+        // shadow_exec rows are explicit operator actions, not
+        // denials. Reported alongside but not folded into byLevel /
+        // topReasons (those are classifier-rule aggregates).
+        const shadowExec = audit.query({ type: 'risk.shadow_exec', from: fromIso, limit: 10000 });
         const events = denied.concat(dryRun);
         const total = events.length;
         const byLevel = { critical: 0, high: 0, medium: 0, low: 0 };
@@ -1623,6 +1628,16 @@ async function handleRequest(req, res) {
           .sort((a, b) => b[1] - a[1])
           .slice(0, n)
           .map(([key, count]) => ({ key, count }));
+        // (v1.10.90) Aggregate shadow-exec exit codes so operators
+        // can spot a recent spike in killed runs (timeout-bound
+        // commands) or non-zero exits.
+        let shadowExecKilled = 0;
+        let shadowExecNonZero = 0;
+        for (const ev of shadowExec) {
+          const d = ev.details || {};
+          if (d.killed === true) shadowExecKilled += 1;
+          if (typeof d.exitCode === 'number' && d.exitCode !== 0) shadowExecNonZero += 1;
+        }
         result = {
           windowHours,
           from: fromIso,
@@ -1630,6 +1645,9 @@ async function handleRequest(req, res) {
           total,
           enforced: denied.length,
           dryRun: dryRun.length,
+          shadowExec: shadowExec.length,
+          shadowExecKilled,
+          shadowExecNonZero,
           byLevel,
           topReasons: top(reasonCounts, 5),
           topWorkers: top(workerCounts, 5),
