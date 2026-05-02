@@ -4,6 +4,56 @@
 
 (no entries — next release window)
 
+## [1.10.135] - 2026-05-03
+
+**Three new kernel/cron catalog patterns**:
+`kernel-module-load` (critical), `cron-spool-write` (high),
+`kernel-module-persist` (high). Plus a docs update reflecting
+the new catalog count.
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `kernel-module-load`.
+  Catches `insmod`, `modprobe <name>` (with negative
+  lookahead for `--list` / `--show-depends` / `-c`), and
+  `rmmod`. Loaded modules run at ring 0 — a malicious .ko has
+  full kernel access (rootkit, syscall hooking, network
+  filter installation). Info forms (`modprobe --list`,
+  `modprobe -c`, `lsmod`) stay LOW.
+
+- **`PATTERN_CATALOG.high`** entry `cron-spool-write`. Catches
+  redirects/tees into `/var/spool/cron/<user>` or
+  `/var/spool/cron/crontabs/<user>`. Bypasses both the
+  existing `cron-edit` rule (catches `crontab -e/-r`) and
+  `cron-d-write` rule (catches /etc/cron.d/...) — this is the
+  third path: pop a malicious cron entry directly into the
+  spool file. `crontab -l`, `cat /var/spool/cron/user`,
+  `ls /var/spool/cron/` stay LOW.
+
+- **`PATTERN_CATALOG.high`** entry `kernel-module-persist`.
+  Catches redirects/tees into `/etc/modules`,
+  `/etc/modules-load.d/*.conf`, or
+  `/usr/lib/modules-load.d/*`. Pairs with kernel-module-load
+  (the immediate form): persist a malicious module so it
+  survives reboot and reload after detection. Reads stay LOW.
+
+- **`tests/risk-classifier.test.js`**: 6 new `it()` cases —
+  3 attack assertions + 3 regression assertions. Suite stays
+  at 175. Risk-classifier file 226 → 232 cases.
+
+### Changed
+- **`docs/risk-sandbox.md`**: catalog count updated from
+  "54 patterns" to "83 patterns + 13 obfuscation defeats as
+  of v1.10.134" (now 86 with this release). Pointer added to
+  `c4 risk patterns` for the live effective rule set.
+
+### Catalog totals
+- Critical: 25 patterns (+1: kernel-module-load)
+- High: 39 patterns (+2: cron-spool-write,
+  kernel-module-persist)
+- Medium: 18 patterns (+0)
+- **Total: 82 → 85** (daemon reports 86 effective; off-by-one
+  is the cumulative count of patterns added this session)
+
 ## [1.10.134] - 2026-05-03
 
 **Two new docker container-escape patterns**: `docker-root-mount`

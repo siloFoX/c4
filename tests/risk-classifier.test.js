@@ -736,6 +736,88 @@ describe('classifyCommand v1.10.67 patterns', () => {
     }
   });
 
+  // (v1.10.135) Three new kernel/cron patterns.
+  it('kernel-module-load: insmod / modprobe / rmmod → critical (v1.10.135)', () => {
+    for (const cmd of [
+      'insmod /tmp/evil.ko',
+      'modprobe evil_module',
+      'rmmod safe_module',
+      'sudo insmod /lib/modules/x.ko',
+      'modprobe -v evil_module',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'kernel-module-load'),
+        `${cmd}: expected kernel-module-load`);
+    }
+  });
+
+  it('kernel-module-load — info forms / lsmod stay low (regression)', () => {
+    for (const cmd of [
+      'modprobe --list',
+      'modprobe -c',                  // print config
+      'modprobe --show-depends evil',
+      'lsmod',                         // listing
+      'cat /etc/modules',              // read
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'kernel-module-load'),
+        `${cmd}: should not match kernel-module-load`);
+    }
+  });
+
+  it('cron-spool-write: writes to /var/spool/cron/* → high (v1.10.135)', () => {
+    for (const cmd of [
+      'echo "* * * * * evil" > /var/spool/cron/crontabs/user',
+      'echo malicious > /var/spool/cron/user',
+      'cat job | tee -a /var/spool/cron/crontabs/root',
+      'echo "@reboot evil" >> /var/spool/cron/crontabs/admin',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'cron-spool-write'),
+        `${cmd}: expected cron-spool-write`);
+    }
+  });
+
+  it('cron-spool-write — read / list stays low (regression)', () => {
+    for (const cmd of [
+      'crontab -l',                    // list user cron
+      'cat /var/spool/cron/user',      // read
+      'ls /var/spool/cron/',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'cron-spool-write'),
+        `${cmd}: should not match cron-spool-write`);
+    }
+  });
+
+  it('kernel-module-persist: writes to /etc/modules{,-load.d/*} → high (v1.10.135)', () => {
+    for (const cmd of [
+      'echo evil_module >> /etc/modules',
+      'echo evil >> /etc/modules-load.d/x.conf',
+      'cat conf | tee /etc/modules-load.d/persist.conf',
+      'echo evil > /usr/lib/modules-load.d/persist.conf',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'kernel-module-persist'),
+        `${cmd}: expected kernel-module-persist`);
+    }
+  });
+
+  it('kernel-module-persist — read / list stays low (regression)', () => {
+    for (const cmd of [
+      'cat /etc/modules',
+      'ls /etc/modules-load.d/',
+      'cat /etc/modules-load.d/00-default.conf',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'kernel-module-persist'),
+        `${cmd}: should not match kernel-module-persist`);
+    }
+  });
+
   it('reading non-credential dotfiles stays low (regression)', () => {
     for (const cmd of [
       'cat ~/.bashrc',         // routine

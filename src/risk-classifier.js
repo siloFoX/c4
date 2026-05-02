@@ -300,6 +300,18 @@ const CRITICAL_PATTERNS = [
     label: 'write to /sys/fs/cgroup/.../release_agent or notify_on_release (container escape)',
     re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)(?:\/sys\/fs\/cgroup\/[^\n;|&]*?)(?:release_agent|notify_on_release)\b/,
   },
+  // (v1.10.135) Kernel module load — `insmod` and `modprobe`
+  // load a `.ko` blob into the running kernel. Loaded modules
+  // run at ring 0; a malicious .ko has full kernel access
+  // (rootkit, syscall hooking, network filter installation).
+  // No benign worker reason to load arbitrary modules. The
+  // unload form (`rmmod`) is also flagged because it's the
+  // counterpart for module-rotation attacks and review-worthy.
+  {
+    code: 'kernel-module-load',
+    label: 'insmod / modprobe / rmmod (kernel module load/unload)',
+    re: /\b(?:insmod\b|modprobe\s+(?:-[a-zA-Z]+\s+)?(?!--list\b|--show-depends\b|-c\b)\S+|rmmod\b)/,
+  },
 ];
 
 // High: dangerous but legitimately useful. Escalate to operator.
@@ -780,6 +792,27 @@ const HIGH_PATTERNS = [
     code: 'resolvectl-dns',
     label: 'resolvectl dns <iface> (systemd-resolved DNS hijack)',
     re: /\bresolvectl\s+(?:[^\n;|&]*\s)?(?:dns\b|domain\b|llmnr\b|mdns\b|dnssec\b)/,
+  },
+  // (v1.10.135) Per-user crontab write — direct write to
+  // /var/spool/cron/<user> or /var/spool/cron/crontabs/<user>
+  // bypasses the existing `cron-edit` rule (which catches
+  // `crontab -e/-r` invocations) and the `cron-d-write` rule
+  // (which catches /etc/cron.d/...). This is the third path:
+  // pop a malicious cron entry directly into the spool file.
+  {
+    code: 'cron-spool-write',
+    label: 'write to /var/spool/cron/<user> (direct user-cron write)',
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/var\/spool\/cron\/(?:crontabs\/)?[\w.-]+/,
+  },
+  // (v1.10.135) Kernel module persistence — entries in
+  // /etc/modules or /etc/modules-load.d/*.conf get loaded at
+  // every boot. Pairs with kernel-module-load (the immediate
+  // form): persist a malicious module so it survives reboot
+  // and reload after detection.
+  {
+    code: 'kernel-module-persist',
+    label: 'write to /etc/modules or /etc/modules-load.d/* (boot-time kernel module load)',
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)(?:\/etc\/modules\b|\/etc\/modules-load\.d\/[\w.-]+|\/usr\/lib\/modules-load\.d\/[\w.-]+)/,
   },
   // (v1.10.131) sed -i on a system file — in-place editing
   // bypasses the redirect / tee detection of system-files. The
