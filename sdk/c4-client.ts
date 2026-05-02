@@ -3,7 +3,7 @@
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
 // Spec version: 1.10.94
-// Generated at: 2026-05-02T07:25:47.933Z
+// Generated at: 2026-05-02T07:27:20.220Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -1945,7 +1945,7 @@ export class C4Client {
     });
   }
 
-  /** Aggregate risk.denied audit events from the last N hours (windowHours, default 24, max 720). Returns total + breakdown by level + top reasons + top workers. */
+  /** Aggregate risk.denied + risk.dryRun audit events from the last N hours (windowHours, default 24, max 720). Returns total + breakdown by level + top reasons + top workers. (v1.10.90) Also includes shadowExec / shadowExecKilled / shadowExecNonZero counts so operators see classifier denials AND shadow exec runs in one window. */
   async getRiskStats(params?: getRiskStatsParams): Promise<getRiskStatsResponse> {
     return this.request<getRiskStatsResponse>({
       method: 'GET',
