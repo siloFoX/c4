@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.157] - 2026-05-03
+
+**`ld-preload-env` extended to `LD_AUDIT`.** v1.10.149 covered
+`LD_PRELOAD` (the most common form). `LD_AUDIT` is the
+lesser-known sibling — also processed by the dynamic linker
+to load auditor libraries before any program runs. Same
+threat shape, same critical tier.
+
+### Changed
+- **`ld-preload-env`** regex extended from `LD_PRELOAD` to
+  `LD_(?:PRELOAD|AUDIT)`. Both env-var forms now match.
+
+### Added
+- **`tests/risk-classifier.test.js`**: 1 new `it()` case
+  (`LD_AUDIT` attack — 3 commands), regression case extended
+  with 2 more LD_AUDIT entries (unset / grep stay LOW).
+  Suite stays at 178. Risk-classifier file 277 → 278 cases.
+
 ## [1.10.156] - 2026-05-03
 
 **`k8s-untrusted-source` (medium) catalog pattern.** Same

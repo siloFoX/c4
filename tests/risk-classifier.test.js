@@ -2153,10 +2153,27 @@ describe('classifyCommand v1.10.54 patterns', () => {
       'env | grep LD_PRELOAD',
       'echo $LD_PRELOAD',
       'cat /proc/self/environ | tr "\\0" "\\n" | grep LD_PRELOAD',
+      'unset LD_AUDIT',           // (v1.10.157) covers LD_AUDIT
+      'env | grep LD_AUDIT',
     ]) {
       const r = classifyCommand(cmd);
       assert.ok(!r.reasons.some((x) => x.code === 'ld-preload-env'),
         `${cmd}: should not match ld-preload-env`);
+    }
+  });
+
+  // (v1.10.157) ld-preload-env extended to LD_AUDIT — same
+  // threat shape via glibc auditor interface.
+  it('ld-preload-env extended: LD_AUDIT → critical (v1.10.157)', () => {
+    for (const cmd of [
+      'export LD_AUDIT=/tmp/audit.so',
+      'LD_AUDIT=/tmp/x.so curl https://api',
+      'sudo LD_AUDIT=/tmp/x.so cmd',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'ld-preload-env'),
+        `${cmd}: expected ld-preload-env`);
     }
   });
 

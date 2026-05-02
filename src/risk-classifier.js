@@ -246,10 +246,12 @@ const CRITICAL_PATTERNS = [
   // `export LD_PRELOAD=/tmp/evil.so` makes every subsequent
   // exec in the shell load the malicious library first; `LD_
   // PRELOAD=... cmd` does it for one invocation.
+  // (v1.10.157) Extended to LD_AUDIT — same threat shape via
+  // glibc's auditor interface (loaded by the dynamic linker).
   {
     code: 'ld-preload-env',
-    label: 'export LD_PRELOAD / LD_PRELOAD= prefix (per-process library injection)',
-    re: /\b(?:export\s+)?LD_PRELOAD\s*=\s*\S+/,
+    label: 'export LD_PRELOAD / LD_AUDIT / prefix= (per-process library injection)',
+    re: /\b(?:export\s+)?LD_(?:PRELOAD|AUDIT)\s*=\s*\S+/,
   },
   // (v1.10.64) Cron.d entry creation — anything written under
   // /etc/cron.{d,daily,hourly,weekly,monthly} runs as root on a
