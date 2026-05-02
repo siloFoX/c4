@@ -4,6 +4,83 @@
 
 (no entries — next release window)
 
+## [1.10.87] - 2026-05-02
+
+11.5 Stage 2 — **real Docker integration tests**. Closes the gap
+where a flag typo could pass the stub-spawn unit tests but break
+in the field. 12 cases / 3 suites, all gated on `which docker` +
+`docker version` probe so CI hosts without docker fall through
+cleanly.
+
+### Added
+- **`tests/risk-shadow-exec-docker.test.js`** — end-to-end
+  exercising `executeInSandbox` + `DockerRuntime` against a real
+  `alpine:latest` container.
+  - **echo / exit / stderr separation** — basic exec contract
+    holds against the real spawn (exitCode propagates, stdout
+    captures the message, stderr separated from stdout).
+  - **timeout via SIGKILL** — `sleep 30` with 500ms timeout —
+    `killed=true`, exits in well under the 30s natural duration.
+    Accepts both `exitCode=null` (signal) and `exitCode=137`
+    (128 + 9, SIGKILL surfaced by docker).
+  - **`--network=none` actually blocks egress** — `wget
+    http://example.com` (wrapped in BusyBox `timeout 2`) fails
+    fast with no HTML in stdout.
+  - **`--read-only` root + tmpfs /tmp** — `touch /file` fails;
+    `touch /tmp/file` succeeds.
+  - **buffer truncation against real container output** —
+    `yes A | head -c 102400` capped at 8KB → exactly 8KB +
+    truncation marker.
+  - **isolation summary echo** — confirms the runtime block in
+    the result envelope matches `network=none, memory=128m`.
+  - **opts override flows through** — `image: 'alpine:latest'`
+    actually pulls the alpine `/etc/os-release`.
+  - **round-trip fingerprints** — two runs of the same
+    deterministic command produce byte-identical stdout AND
+    matching `stdoutHash`. One-byte-different runs produce
+    different hashes. Proves the v1.10.86 fingerprint is real,
+    not stub-only.
+
+  All gated. CI without docker reports a single placeholder
+  case in the "CI-safe placeholder" describe block ("dockerOk=
+  false, alpinePulled=false") so test output remains
+  informative.
+
+Suite 170 → 171.
+
+### Why this is the right closing test for Stage 2
+
+Five layers of stub-spawn tests have proven the result envelope
+shape, the safety guards, the truncation logic, and the
+fingerprint math. None of those answer "would the actual `docker
+run --network=none --read-only --user=nobody --cap-drop=ALL`
+combination work" — that question requires an actual Docker
+daemon. This file answers it.
+
+The integration test runs in ~5s on this host (mostly docker
+spawn overhead — alpine itself starts in <100ms). The test
+suite without docker stays at the prior ~21s.
+
+### Stage 2 — closed
+
+Eight ships from 1.10.79 → 1.10.87:
+
+| ship      | piece                                              |
+|-----------|----------------------------------------------------|
+| 1.10.79   | SandboxRuntime + DockerRuntime command builder     |
+| 1.10.80   | sandbox config wiring + doctor display             |
+| 1.10.81   | POST /api/risk/preview                             |
+| 1.10.82   | auto-attach sandbox to /risk/check + c4 risk       |
+| 1.10.83   | executeInSandbox() function module                 |
+| 1.10.84   | shadow exec endpoint + audit/scribe wiring         |
+| 1.10.85   | c4 risk --shadow-exec CLI                          |
+| 1.10.86   | content fingerprints (stdoutHash / stderrHash)     |
+| **1.10.87** | **real Docker integration tests**                  |
+
+Stage 2 ships the framework; further iteration on shadow-exec
+(richer audit metadata, Web UI surface, runtime authors beyond
+Docker) lands as discrete future cuts as needs arise.
+
 ## [1.10.86] - 2026-05-02
 
 11.5 Stage 2 — **content fingerprints** for shadow exec output.
