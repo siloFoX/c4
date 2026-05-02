@@ -297,3 +297,16 @@ error-isolation tests — add them.
 - [`tests/agent-adapter-contract.test.js`](../tests/agent-adapter-contract.test.js)
   — shallow contract test that runs uniformly across every entry in
   `REGISTRY`
+
+## Related: hook-time security
+
+The agent framework chooses *which* backend runs a command. The
+risk classifier + sandbox dispatcher choose *whether* a command
+should run at all. They live one layer above the adapter and
+fire on every Bash call regardless of which adapter is active.
+
+If you're shipping a new adapter that runs untrusted input, read
+[`docs/risk-sandbox.md`](risk-sandbox.md) — the same hook-time
+classifier + shadow exec capabilities are available to your
+adapter for free, and the cross-adapter contract test lives next
+to a 54-pattern catalog that catches dangerous shell sequences.
