@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.168] - 2026-05-03
+
+**Two new critical patterns**: `sshd-config-write` and
+`ca-cert-trust`. Closes the SSH auth policy + CA trust store
+threat surfaces.
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `sshd-config-write`. Catches
+  redirects/tees to `/etc/ssh/sshd_config` or
+  `/etc/ssh/sshd_config.d/<file>`. Adding `PermitRootLogin
+  yes`, `PasswordAuthentication yes`, or
+  `AuthorizedKeysFile /tmp/keys` re-opens auth paths that
+  the operator deliberately closed.
+
+- **`PATTERN_CATALOG.critical`** entry `ca-cert-trust`. Catches:
+  - Redirects/tees/cp/mv/install into the system CA store:
+    `/etc/ssl/certs/`, `/usr/local/share/ca-certificates/`,
+    `/etc/pki/ca-trust/source/anchors/`
+  - The `update-ca-certificates` / `update-ca-trust` /
+    `trust anchor` runners that commit changes to the store
+  Adding a malicious CA cert means every TLS connection on
+  the host can be MITM'd by the attacker. Reads stay LOW.
+
 ## [1.10.167] - 2026-05-03
 
 **`system-files` / `sed-system-file-edit` /

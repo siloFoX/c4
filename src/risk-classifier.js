@@ -377,6 +377,34 @@ const CRITICAL_PATTERNS = [
     label: 'write to /etc/init.d/, /etc/rc.d/, or /etc/rc.local (SysV persistence)',
     re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/etc\/(?:init\.d\/[\w.-]+|rc\.d\/[\w.-]+|rc\.local\b)/,
   },
+  // (v1.10.168) /etc/ssh/sshd_config write — sshd auth policy
+  // tampering. Adding `PermitRootLogin yes` or
+  // `PasswordAuthentication yes` re-opens login paths the
+  // operator deliberately closed. Adding `AuthorizedKeysFile`
+  // pointing at an attacker-controlled location grants SSH
+  // access without touching the per-user authorized_keys.
+  // Tier critical (system_files + ssh-key family already
+  // critical-adjacent).
+  {
+    code: 'sshd-config-write',
+    label: 'write to /etc/ssh/sshd_config (sshd auth policy tampering)',
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/etc\/ssh\/sshd_config(?:\.d\/[\w.-]+)?\b/,
+  },
+  // (v1.10.168) Trusted CA certificate write — adding a
+  // malicious cert to the system trust store means every TLS
+  // connection on the host can be MITM'd by the attacker.
+  // Common locations: /etc/ssl/certs/ (Debian),
+  // /usr/local/share/ca-certificates/ (Debian update path),
+  // /etc/pki/ca-trust/source/anchors/ (RHEL), plus the
+  // `update-ca-certificates` / `update-ca-trust` runner that
+  // commits writes to the trust store.
+  // Path tail (`\/?\S*`) accepts either trailing `/` (cp into
+  // dir) or `/<name>` (specific file).
+  {
+    code: 'ca-cert-trust',
+    label: 'write to /etc/ssl/certs/ or system CA store + update-ca-certificates',
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?|\b(?:cp|mv|install)\s+\S+\s+)(?:\/etc\/ssl\/certs|\/usr\/local\/share\/ca-certificates|\/etc\/pki\/ca-trust\/source\/anchors)(?:\/\S*)?(?=\s|$|;|&|\|)|\b(?:update-ca-certificates|update-ca-trust|trust\s+anchor)\b/,
+  },
   // (v1.10.131) cgroup release_agent escape — classic
   // cgroup-v1 container escape. Writing an arbitrary script
   // path into the cgroup's release_agent file then triggering
