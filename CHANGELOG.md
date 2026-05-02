@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.142] - 2026-05-03
+
+**`c4 audit query --ruleFingerprint <fp>` CLI flag.** v1.10.115
+added a `ruleFingerprint` query parameter to `/audit/query`
+(filter audit rows to those produced under a specific
+classifier rule set fingerprint), but the CLI didn't expose it.
+Operators investigating cross-fingerprint rule rotations had to
+hand-construct the URL via curl. This release wires the flag.
+
+### Added
+- **`c4 audit query --ruleFingerprint <fp>`**. Filters audit
+  events by the `details.ruleFingerprint` field. Pairs with
+  the rule-set rotation detector in `c4 risk stats` (which
+  surfaces the list of fingerprints observed in a window).
+  Workflow:
+  ```
+  c4 risk stats --window-hours 24
+  # → "Rule-set rotations: 2 (config changed mid-window)"
+  # → "  - 9c1fd96197be3243"
+  # → "  - 58e81dd49c66ace7"
+  c4 audit query --ruleFingerprint 9c1fd96197be3243 --limit 50
+  ```
+- **`tests/cli-audit-rulefingerprint.test.js`**: NEW file with
+  3 source-grep cases proving the flag-parse, query-string
+  passthrough, and help-text discoverability. Suite stays at
+  177.
+
 ## [1.10.141] - 2026-05-03
 
 **`kernel-module-load` false-positive fix.** The v1.10.135

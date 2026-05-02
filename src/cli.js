@@ -3581,7 +3581,7 @@ async function main() {
         const sub = args[0];
         if (!sub || (sub !== 'query' && sub !== 'verify')) {
           console.log('Usage: c4 audit <query|verify> [flags]');
-          console.log('  query [--type T] [--from ISO] [--to ISO] [--target name] [--limit N]');
+          console.log('  query [--type T] [--from ISO] [--to ISO] [--target name] [--limit N] [--ruleFingerprint FP]');
           console.log('  verify');
           return;
         }
@@ -3602,13 +3602,14 @@ async function main() {
         }
 
         // sub === 'query'
-        let type = '', from = '', to = '', target = '';
+        let type = '', from = '', to = '', target = '', ruleFingerprint = '';
         let limit = 0;
         for (let i = 1; i < args.length; i++) {
           if (args[i] === '--type' && args[i + 1]) type = args[++i];
           else if (args[i] === '--from' && args[i + 1]) from = args[++i];
           else if (args[i] === '--to' && args[i + 1]) to = args[++i];
           else if (args[i] === '--target' && args[i + 1]) target = args[++i];
+          else if (args[i] === '--ruleFingerprint' && args[i + 1]) ruleFingerprint = args[++i];
           else if (args[i] === '--limit' && args[i + 1]) {
             const n = parseInt(args[++i], 10);
             if (Number.isFinite(n) && n > 0) limit = n;
@@ -3619,6 +3620,7 @@ async function main() {
         if (from) qs.set('from', from);
         if (to) qs.set('to', to);
         if (target) qs.set('target', target);
+        if (ruleFingerprint) qs.set('ruleFingerprint', ruleFingerprint);
         if (limit > 0) qs.set('limit', String(limit));
         const qsStr = qs.toString();
         result = await request('GET', '/audit/query' + (qsStr ? '?' + qsStr : ''));
