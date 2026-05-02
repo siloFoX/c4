@@ -3527,4 +3527,125 @@ describe('classifyCommand v1.10.157+ recent additions', () => {
         `${cmd}: should not match`);
     }
   });
+
+  // (v1.10.189) Backfill tests for v1.10.183-188 rules.
+  it('external-tunnel: ngrok / cloudflared / lt / bore / frpc → high (v1.10.183)', () => {
+    for (const cmd of [
+      'ngrok http 8080',
+      'ngrok tcp 22',
+      'cloudflared tunnel --url http://localhost:8080',
+      'lt --port 8080',
+      'bore local 8080 --to bore.pub',
+      'frpc -c frpc.ini',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'external-tunnel'),
+        `${cmd}: expected external-tunnel`);
+    }
+    // info forms stay low
+    for (const cmd of ['ngrok --version', 'cloudflared --help', 'cat ~/.ngrok2/ngrok.yml']) {
+      assert.ok(!classifyCommand(cmd).reasons.some((x) => x.code === 'external-tunnel'),
+        `${cmd}: should not match`);
+    }
+  });
+
+  it('pkg-config-set: direct .npmrc / pip.conf writes (v1.10.184)', () => {
+    for (const cmd of [
+      'echo "registry=http://evil.com" > ~/.npmrc',
+      'echo evil > /etc/npmrc',
+      'echo evil > ~/.pypirc',
+      'echo evil > ~/.config/pip/pip.conf',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(r.reasons.some((x) => x.code === 'pkg-config-set'),
+        `${cmd}: expected pkg-config-set`);
+    }
+  });
+
+  it('shell-env-inject: BASH_ENV / ENV / SHELLOPTS → critical (v1.10.185)', () => {
+    for (const cmd of [
+      'BASH_ENV=/tmp/evil bash -c "true"',
+      'ENV=/tmp/evil sh -c "true"',
+      'export BASH_ENV=/tmp/evil',
+      'SHELLOPTS=xtrace bash script.sh',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'shell-env-inject'),
+        `${cmd}: expected shell-env-inject`);
+    }
+    // unset / read stays low
+    for (const cmd of ['unset BASH_ENV', 'echo $BASH_ENV', 'env | grep BASH_ENV']) {
+      assert.ok(!classifyCommand(cmd).reasons.some((x) => x.code === 'shell-env-inject'),
+        `${cmd}: should not match`);
+    }
+  });
+
+  it('time-tamper: date -s / timedatectl set-time / set-ntp false (v1.10.186)', () => {
+    for (const cmd of [
+      'date -s "1970-01-01"',
+      'date --set="1970-01-01"',
+      'timedatectl set-time "1970-01-01"',
+      'timedatectl set-ntp false',
+      'timedatectl set-ntp no',
+      'hwclock --set --date="1970-01-01"',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(['medium', 'high'].includes(r.level), `${cmd} should be medium+`);
+      assert.ok(r.reasons.some((x) => x.code === 'time-tamper'),
+        `${cmd}: expected time-tamper`);
+    }
+    // read forms / re-enable stay low
+    for (const cmd of ['date', 'date +%Y-%m-%d', 'timedatectl status', 'timedatectl set-ntp true']) {
+      assert.ok(!classifyCommand(cmd).reasons.some((x) => x.code === 'time-tamper'),
+        `${cmd}: should not match`);
+    }
+  });
+
+  it('chown-sensitive: chown/chgrp on /etc/<file> or /usr/(s)bin → high (v1.10.187)', () => {
+    for (const cmd of [
+      'chown attacker:attacker /etc/passwd',
+      'chown attacker /etc/shadow',
+      'chown attacker:attacker /usr/bin/sshd',
+      'chgrp evil /etc/sudoers',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'chown-sensitive'),
+        `${cmd}: expected chown-sensitive`);
+    }
+    // user files stay low
+    for (const cmd of ['chown user:user /home/user/file', 'chgrp users /home/user/dir']) {
+      assert.ok(!classifyCommand(cmd).reasons.some((x) => x.code === 'chown-sensitive'),
+        `${cmd}: should not match`);
+    }
+  });
+
+  it('chmod-sensitive-file: write/read perm loosening on /etc/<file> → high (v1.10.188)', () => {
+    for (const cmd of [
+      'chmod 777 /etc/sudoers',                // world-writable
+      'chmod 666 /etc/passwd',
+      'chmod 644 /etc/shadow',                 // world-readable shadow
+      'chmod 444 /etc/shadow',
+      'chmod o+r /etc/shadow',
+      'chmod a+w /etc/passwd',
+      'chmod 666 /usr/bin/sshd',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'chmod-sensitive-file'),
+        `${cmd}: expected chmod-sensitive-file`);
+    }
+    // safe defaults / user files stay low
+    for (const cmd of [
+      'chmod 600 /etc/shadow',
+      'chmod 644 /etc/passwd',
+      'chmod 440 /etc/sudoers',
+      'chmod 644 /tmp/file',
+    ]) {
+      assert.ok(!classifyCommand(cmd).reasons.some((x) => x.code === 'chmod-sensitive-file'),
+        `${cmd}: should not match`);
+    }
+  });
 });

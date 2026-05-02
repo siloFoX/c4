@@ -4,6 +4,21 @@
 
 (no entries — next release window)
 
+## [1.10.189] - 2026-05-03
+
+**Backfill unit tests for v1.10.183-188 catalog rules.**
+
+### Added
+- **`tests/risk-classifier.test.js`**: 6 new `it()` cases:
+  - `external-tunnel` (v1.10.183)
+  - `pkg-config-set` direct file write extension (v1.10.184)
+  - `shell-env-inject` (v1.10.185)
+  - `time-tamper` (v1.10.186)
+  - `chown-sensitive` (v1.10.187)
+  - `chmod-sensitive-file` (v1.10.188)
+  Suite stays at 178 (full); risk-classifier file 303 → 309
+  cases.
+
 ## [1.10.188] - 2026-05-03
 
 **`chmod-sensitive-file` (high) catalog pattern.** Loosening
