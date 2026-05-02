@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.124] - 2026-05-03
+
+**Two more catalog patterns**: `shred-block-device` (critical)
+and `setcap-cap` (high). Both fill specific gaps the existing
+catalog left silent — disk destruction via `shred` (parallel
+to existing `dd-block-device` / `overwrite-block-device`) and
+Linux file capabilities (parallel to existing `suid-set`).
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `shred-block-device`.
+  Catches `shred` invoked against `/dev/<disk>` partitions
+  (`sd[a-z]\d*`, `nvme\d+(?:n\d+)?`, `hd[a-z]\d*`,
+  `mmcblk\d+(?:p\d+)?`). Same device-name class as the
+  existing `dd-block-device` and `overwrite-block-device`
+  rules. User-file shreds (`/tmp/foo`, relative paths,
+  `~/private/notes`) stay LOW.
+
+- **`PATTERN_CATALOG.high`** entry `setcap-cap`. Catches
+  `setcap cap_<name>+e[ip]` (and the `=` form, and
+  comma-joined multi-cap lists like
+  `cap_setuid,cap_setgid+eip`). Linux file capabilities are
+  the modern privilege primitive — `cap_sys_admin+eip` is
+  effectively "be root", `cap_net_raw+ep` lets a binary
+  craft arbitrary network packets. Same tier as `suid-set`
+  since legitimate use exists (network test tools, container
+  runtimes) but worker-context use is review-worthy.
+
+- **`tests/risk-classifier.test.js`**: 4 new `it()` cases —
+  shred attack (5 disk forms) + shred regression (3 user-file
+  forms) + setcap attack (5 forms incl. multi-cap and `=`) +
+  setcap regression (4 read/doc/getcap forms). Suite stays at
+  175. Risk-classifier file 182 → 186 cases.
+
+### Catalog totals
+- Critical: 19 patterns (+1: shred-block-device)
+- High: 26 patterns (+1: setcap-cap)
+- Medium: 18 patterns (+0)
+- **Total: 64 → 66**
+
 ## [1.10.123] - 2026-05-03
 
 **`suid-set` false-positive fix.** The previous regex

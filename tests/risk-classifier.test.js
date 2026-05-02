@@ -1240,6 +1240,66 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.124) shred on /dev/<disk> — irreversible disk wipe.
+  // Same threat as dd-block-device + overwrite-block-device but
+  // with a different verb.
+  it('shred-block-device: shred /dev/<disk> → critical (v1.10.124)', () => {
+    for (const cmd of [
+      'shred -n 10 -uvz /dev/sda',
+      'shred /dev/nvme0n1',
+      'shred -uvz /dev/mmcblk0',
+      'shred --remove /dev/sda1',
+      'shred /dev/hdb2',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'shred-block-device'),
+        `${cmd}: expected shred-block-device`);
+    }
+  });
+
+  it('shred-block-device — shred on user files stays low (regression)', () => {
+    for (const cmd of [
+      'shred /tmp/file.bin',         // user temp file
+      'shred secret.txt',            // relative path
+      'shred ~/private/notes.md',    // home dir
+    ]) {
+      assert.strictEqual(classifyCommand(cmd).level, 'low',
+        `${cmd} should be low`);
+    }
+  });
+
+  // (v1.10.124) setcap — Linux file capabilities. Same privilege
+  // primitive family as suid-set; without -i in env or full root,
+  // setcap is effectively setting per-binary kernel privilege.
+  it('setcap-cap: setcap cap_*+e[ip] → high (v1.10.124)', () => {
+    for (const cmd of [
+      'setcap cap_net_raw+ep /tmp/exploit',
+      'setcap cap_sys_admin+eip /usr/bin/some',
+      'setcap cap_dac_read_search+ep /home/x/binary',
+      'setcap cap_setuid,cap_setgid+eip /tmp/x',     // multi-cap
+      'setcap "cap_net_raw=ep" /tmp/x',              // = form
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'setcap-cap'),
+        `${cmd}: expected setcap-cap`);
+    }
+  });
+
+  it('setcap-cap — getcap / read / mention stays low (regression)', () => {
+    for (const cmd of [
+      'getcap /usr/bin/ping',                       // read, not set
+      'cat /etc/security/capability.conf',          // doc read
+      'echo cap_net_raw test',                      // doc text
+      'man setcap',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'setcap-cap'),
+        `${cmd}: should not match setcap-cap`);
+    }
+  });
+
   it('suid-set: regular numeric modes stay low (v1.10.123 false-positive fix)', () => {
     // These previously matched `suid-set` because the old regex was
     // `[0-7]{2,3}` unconstrained. With the leading-octet [246]

@@ -95,6 +95,17 @@ const CRITICAL_PATTERNS = [
     label: 'redirect into a block device',
     re: />\s*\/dev\/(?:sd[a-z]\d*|nvme\d+(?:n\d+)?|hd[a-z]\d*|mmcblk\d+(?:p\d+)?)(?:\s|$|;|&|\|)/,
   },
+  // (v1.10.124) shred on a block device — secure-erase that
+  // destroys the partition / disk content unrecoverably. Same
+  // threat as dd-block-device + overwrite-block-device but with
+  // a different verb. The `-u` (truncate) and `-z` (final zero
+  // pass) flags don't matter for classification — any shred at
+  // /dev/<disk> is critical.
+  {
+    code: 'shred-block-device',
+    label: 'shred /dev/* (irreversible disk wipe)',
+    re: /\bshred\b[^\n;|&]*\s\/dev\/(?:sd[a-z]\d*|nvme\d+(?:n\d+)?|hd[a-z]\d*|mmcblk\d+(?:p\d+)?)(?:\s|$|;|&|\|)/,
+  },
   {
     code: 'curl-pipe-shell',
     label: 'curl | sh / wget | bash (remote execution)',
@@ -448,6 +459,23 @@ const HIGH_PATTERNS = [
     // `cargo build` (no install). Catches the global-install verb
     // specifically.
     re: /\b(?:gem\s+install\b|cargo\s+install\s+(?!--path\b))/,
+  },
+  // (v1.10.124) setcap — Linux file capabilities. Same family as
+  // suid-set: hands a binary specific kernel privileges (cap_net_raw,
+  // cap_sys_admin, cap_dac_read_search, etc.) without needing root.
+  // `setcap cap_sys_admin+eip` is essentially "be root". `setcap
+  // cap_net_raw+ep` lets a binary craft arbitrary network packets.
+  // Same tier as suid-set (high) since legitimate use exists
+  // (network test tools, container runtimes) but in a worker
+  // context, review-worthy.
+  // The regex requires `cap_<name>` somewhere AND `+[eip]` or
+  // `=[eip]` capability flags. Covers single-cap form
+  // (`cap_net_raw+ep`) and comma-joined multi-cap form
+  // (`cap_setuid,cap_setgid+eip`).
+  {
+    code: 'setcap-cap',
+    label: 'setcap cap_*+e[ip] (Linux file capability privilege escalation)',
+    re: /\bsetcap\s+[^\n;|&]*\bcap_[a-z_]+[^\n;|&]*[+=][eip]+\b/,
   },
   {
     code: 'suid-set',
