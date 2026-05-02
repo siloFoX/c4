@@ -1248,10 +1248,13 @@ class PtyManager extends EventEmitter {
   }
 
   _readSessionTokens(sessionId, workerDir) {
-    if (!sessionId) return { input: 0, output: 0 };
+    // (v1.10.99) Envelope always carries `model: null` on the
+    // early-return paths so cost-report consumers see a stable
+    // shape regardless of whether the JSONL was readable.
+    if (!sessionId) return { input: 0, output: 0, model: null };
     const home = os.homedir();
     const projectsDir = path.join(home, '.claude', 'projects');
-    if (!fs.existsSync(projectsDir)) return { input: 0, output: 0 };
+    if (!fs.existsSync(projectsDir)) return { input: 0, output: 0, model: null };
     const projectPath = (workerDir || '').replace(/\\/g, '/');
     let projectDir = null;
     if (projectPath) {
