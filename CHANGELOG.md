@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.59] - 2026-05-02
+
+Two more risk patterns for shapes the catalog was missing.
+Catalog 41 → 42.
+
+### Added (critical)
+- **`procsub-network-shell`** — `bash <(curl ...)` /
+  `source <(wget ...)` / `. <(curl ...)`. Process substitution
+  feeding a network fetch into a shell. Same severity as
+  curl-pipe-shell but bypasses scanners watching only for `|`.
+  Catches bash / sh / zsh / fish / source / `.` (POSIX
+  dot-source) — the dot-source path uses a custom boundary
+  since `\b` doesn't match at start-of-string before a `.`.
+
+### Changed
+- **`authorized-keys-append`** extended to catch the tee-piped
+  form: `cat key | sudo tee /root/.ssh/authorized_keys`. The
+  previous `>>` redirection rule missed this canonical
+  shell-pipe pattern.
+
+7 new boundary tests including the benign `cat <(ls /)` case
+which must stay low. risk-classifier.test.js: 102 cases (was
+95). Suite 156/156. All four drift phases clean.
+
 ## [1.10.58] - 2026-05-02
 
 Three new obfuscation defeats in the risk classifier denoise

