@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.105] - 2026-05-03
+
+**Locale toggle browser test**. Adds 1 case to web-smoke
+verifying the KO ↔ EN locale switcher in the AppHeader's
+top-right cluster actually toggles state.
+
+### Added
+- **`tests/web-smoke.test.js`** — 1 new case under
+  "Keyboard + tab nav (8.x baseline)":
+  - locale toggle switches KO ↔ EN — reads visible button,
+    clicks via `page.evaluate` (DOM-direct) to avoid
+    Playwright strict-mode ambiguity when help-panel text
+    overlaps the locale label, verifies the new state, and
+    flips back so subsequent tests see the original locale.
+
+### Why DOM-direct click
+
+`page.click('button:has-text("KO")')` waits up to 30s when the
+help panel is layered above the AppHeader because the help
+panel contains the substring "KO" in its content text and
+Playwright's strict mode can't pick a unique target. Using
+`page.evaluate` to filter visible buttons by exact-match regex
+and call `.click()` directly bypasses the selector ambiguity.
+
+Same pattern applies for any future tests that interact with
+buttons after the help panel opens.
+
+Suite stays at 175. Web smoke now 17 cases / 4 describes;
+total file runtime ~63s.
+
 ## [1.10.104] - 2026-05-03
 
 **Tab nav + ? help shortcut browser tests** (8.x baseline).

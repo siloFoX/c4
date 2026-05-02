@@ -376,4 +376,42 @@ describe('Keyboard + tab nav (8.x baseline)', () => {
     });
     assert.ok(hasHelp, 'help panel did not open after pressing ?');
   });
+
+  it('locale toggle switches KO ↔ EN', async (t) => {
+    if (!chromiumReady) return t.skip('chromium / daemon not ready');
+    // Close any open help panel from the prior `?` test.
+    // Escape key is the canonical close.
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    // Read state + click via DOM since button:has-text may be
+    // ambiguous when the help panel is layered. evaluate uses
+    // the first VISIBLE button matching /^(KO|EN)$/ and clicks
+    // it via .click() within page context.
+    const result = await page.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll('button'))
+        .filter((b) => b.offsetWidth > 0 && /^(KO|EN)$/.test(b.innerText.trim()));
+      const initial = btns[0]?.innerText.trim() || null;
+      if (initial) btns[0].click();
+      return { initial, found: btns.length };
+    });
+    if (!result.initial) {
+      return t.skip('locale button not visible — help panel may still be layered');
+    }
+    await page.waitForTimeout(300);
+    const expected = result.initial === 'KO' ? 'EN' : 'KO';
+    const after = await page.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll('button'))
+        .filter((b) => b.offsetWidth > 0 && /^(KO|EN)$/.test(b.innerText.trim()));
+      return btns[0]?.innerText.trim() || null;
+    });
+    assert.equal(after, expected,
+      `locale should have toggled from ${result.initial} → ${expected}; got ${after}`);
+    // Toggle back so subsequent tests see the original state.
+    await page.evaluate((target) => {
+      const btn = Array.from(document.querySelectorAll('button'))
+        .find((b) => b.offsetWidth > 0 && b.innerText.trim() === target);
+      if (btn) btn.click();
+    }, expected);
+    await page.waitForTimeout(150);
+  });
 });
