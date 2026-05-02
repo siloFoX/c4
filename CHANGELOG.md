@@ -4,6 +4,49 @@
 
 (no entries — next release window)
 
+## [1.10.118] - 2026-05-03
+
+**Two more catalog patterns**: `usermod-sudo` extended to
+`useradd -G sudo` (creating a sudoer is the same threat as
+adding to sudo), and a new `chattr-immutable` pattern for
+`chattr +i` on system paths (anti-tampering persistence).
+
+### Changed
+- **`usermod-sudo`** regex now matches `useradd ... -G
+  sudo|wheel|root|docker` in addition to `usermod -aG` and
+  `gpasswd -a`. Same tier (high). Threat: creating a user
+  that's already in a privileged group is just-in-time
+  privilege escalation that masquerades as routine user
+  management.
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `chattr-immutable`. Catches
+  `chattr +i` (or `+ia`, `+is`, etc.) on system-tier paths
+  (`/usr`, `/bin`, `/sbin`, `/etc`, `/var`, `/lib`, `/opt`,
+  `/root`, `/boot`, or `~/.<dotfile>`). The immutable flag
+  blocks even root from deleting/renaming until `-i` clears
+  it — attackers use it to make malicious files survive
+  remediation. User-owned files (`~/myfile.txt`, `/tmp/...`,
+  relative paths) stay LOW since operators legitimately use
+  `chattr +i` on their own backups / configs.
+
+  Catalog count: 59 → 60 patterns.
+
+### Regression-protected (stay low)
+- `chattr +i ~/myfile.txt` (user file)
+- `chattr +i /tmp/scratch` (tmp file)
+- `chattr +i ./local-file.txt` (relative path)
+- `chattr -i /usr/bin/ssh` (CLEARING immutable, not setting)
+- `chattr +a /var/log/audit.log` (append-only, not immutable)
+
+### Test coverage
+- **`tests/risk-classifier.test.js`** — 3 new cases:
+  - `useradd -G sudo / wheel / docker` (3 variants) → high
+  - `chattr +i` on 7 system-path variants → high
+  - regression: 5 user-file / -i / +a variants stay low
+
+  Suite stays at 175. risk-classifier file 163 → 166 cases.
+
 ## [1.10.117] - 2026-05-03
 
 **Package manager catalog expansion**: pnpm + gem install +

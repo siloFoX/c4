@@ -1165,6 +1165,53 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.118) usermod-sudo extended to useradd -G sudo —
+  // creating a sudoer is the same threat as adding to sudo.
+  it('useradd -G sudo / wheel / docker → high (v1.10.118)', () => {
+    for (const cmd of [
+      'useradd -m -G sudo malicious',
+      'useradd -G wheel evil',
+      'useradd -m -s /bin/bash -G docker mal',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'usermod-sudo'),
+        `${cmd}: expected usermod-sudo`);
+    }
+  });
+
+  // (v1.10.118) chattr +i on system paths — anti-tampering
+  // persistence. User-owned files are operator's responsibility.
+  it('chattr +i on system paths → high (v1.10.118)', () => {
+    for (const cmd of [
+      'chattr +i /usr/bin/ssh',
+      'chattr +i /etc/passwd',
+      'chattr +ia /etc/hosts',
+      'chattr +i /var/log/auth.log',
+      'chattr +i /sbin/init',
+      'chattr +i /opt/myapp/binary',
+      'chattr +i /boot/grub/grub.cfg',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'chattr-immutable'),
+        `${cmd}: expected chattr-immutable`);
+    }
+  });
+
+  it('chattr on user files / non-immutable flags → low (regression)', () => {
+    for (const cmd of [
+      'chattr +i ~/myfile.txt',         // user file
+      'chattr +i /tmp/scratch',         // tmp file
+      'chattr +i ./local-file.txt',     // relative path
+      'chattr -i /usr/bin/ssh',         // REMOVING immutable, not setting
+      'chattr +a /var/log/audit.log',   // append-only flag, not immutable
+    ]) {
+      assert.strictEqual(classifyCommand(cmd).level, 'low',
+        `${cmd} should be low`);
+    }
+  });
+
   it('chmod u+s → high (suid privilege escalation)', () => {
     const r = classifyCommand('chmod u+s /tmp/exploit');
     assert.strictEqual(r.level, 'high');

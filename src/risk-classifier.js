@@ -409,14 +409,28 @@ const HIGH_PATTERNS = [
   },
   {
     code: 'usermod-sudo',
-    label: 'usermod / gpasswd add to sudo / wheel / docker group',
+    label: 'usermod / useradd / gpasswd add to sudo / wheel / docker group',
     // Both argument orders matter:
     //   usermod -aG <groups> <user>     (group(s) first)
+    //   useradd -G <groups> <user>      (creating user already in group)
     //   gpasswd -a <user> <group>       (user first)
     // We don't pin the position — just that the privileged group
     // name appears anywhere on the same logical line after the
-    // membership-mutating verb.
-    re: /\b(?:usermod\s+-aG?|usermod\s+--append\s+--groups|gpasswd\s+-a)\b[^\n;]*\b(?:sudo|wheel|root|docker)\b/,
+    // membership-mutating verb. (v1.10.118) extended with useradd
+    // -G since creating a sudoer is the same threat as adding to
+    // sudo.
+    re: /\b(?:usermod\s+-aG?|usermod\s+--append\s+--groups|useradd\s+[^\n;|&]*-G\b|gpasswd\s+-a)\b[^\n;]*\b(?:sudo|wheel|root|docker)\b/,
+  },
+  {
+    code: 'chattr-immutable',
+    label: 'chattr +i on a system path (anti-tampering persistence)',
+    // (v1.10.118) chattr +i sets the ext2/3/4 immutable flag —
+    // even root can't delete or rename until -i is unset. Used by
+    // attackers to make their malicious binaries / hosts files
+    // resistant to remediation. Only flagged when the target is a
+    // privileged path (system bin / /etc / /var /lib) — operators
+    // legitimately use chattr +i on user-owned files.
+    re: /\bchattr\s+[+]i\w*\s+(?:\/(?:usr|bin|sbin|etc|var|lib|opt|root|boot)\b|~\/\.\w)/,
   },
   // (v1.10.64) Downloading a binary directly into a system PATH
   // location. `curl ... -o /usr/local/bin/foo` or `wget ... -O
