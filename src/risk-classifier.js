@@ -845,6 +845,16 @@ const HIGH_PATTERNS = [
     // `+t`) is excluded — it's not a privilege primitive.
     re: /\bchmod\s+(?:[246][0-7]{3}\b|[ugoa]*\+s\b)\s+\S/,
   },
+  // (v1.10.169) Account auth bypass via passwd CLI — empty
+  // password (`usermod -p ""`), removed password (`passwd -d
+  // <user>`), uid-0 user creation (`useradd -u 0` or
+  // `useradd -o -u 0`), and gid-0 group creation. Each
+  // creates an auth-bypass primitive on the host.
+  {
+    code: 'passwd-no-auth',
+    label: 'usermod -p "" / passwd -d / useradd -u 0 (auth bypass)',
+    re: /\b(?:usermod\s+(?:[^\n;|&]*\s)?-p\s+(?:""|''|"\s*"|'\s*')|passwd\s+(?:[^\n;|&]*\s)?-d\b|useradd\s+(?:[^\n;|&]*\s)?-(?:o\s+(?:[^\n;|&]*\s)?)?-?u\s+0\b|groupadd\s+(?:[^\n;|&]*\s)?-(?:o\s+(?:[^\n;|&]*\s)?)?-?g\s+0\b)/,
+  },
   {
     code: 'usermod-sudo',
     label: 'usermod / useradd / gpasswd add to sudo / wheel / docker group',

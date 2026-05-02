@@ -4,6 +4,22 @@
 
 (no entries — next release window)
 
+## [1.10.169] - 2026-05-03
+
+**`passwd-no-auth` (high) catalog pattern.** Account auth
+bypass primitives via the passwd / usermod / useradd /
+groupadd CLIs:
+- `usermod -p ""` / `usermod -p ''` (empty password)
+- `passwd -d <user>` (delete password — login allowed without password)
+- `useradd -u 0 evil` / `useradd -o -u 0 evil` (create
+  user with uid 0 = root, dual-account)
+- `groupadd -g 0 evil` (create group with gid 0)
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `passwd-no-auth`. Same threat
+  family as `usermod-sudo` (which catches sudo group adds);
+  this rule covers the password / uid-0 forms.
+
 ## [1.10.168] - 2026-05-03
 
 **Two new critical patterns**: `sshd-config-write` and
