@@ -759,6 +759,12 @@ describe('classifyCommand v1.10.67 patterns', () => {
       'modprobe --show-depends evil',
       'lsmod',                         // listing
       'cat /etc/modules',              // read
+      // (v1.10.141) `modprobe -c | grep blacklist` previously
+      // matched because the rule accepted any non-space token
+      // as the module name. Tightened to require a real
+      // module-name shape (alpha+underscore start).
+      'modprobe -c | grep blacklist',
+      'cat | modprobe -c',             // pipe in front
     ]) {
       const r = classifyCommand(cmd);
       assert.ok(!r.reasons.some((x) => x.code === 'kernel-module-load'),

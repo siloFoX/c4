@@ -307,10 +307,18 @@ const CRITICAL_PATTERNS = [
   // No benign worker reason to load arbitrary modules. The
   // unload form (`rmmod`) is also flagged because it's the
   // counterpart for module-rotation attacks and review-worthy.
+  // (v1.10.141) Tightened — `modprobe -c | grep ...` previously
+  // matched because the regex accepted any non-space token as
+  // the module name. Now requires an actual module-name shape
+  // (`[a-zA-Z_][a-zA-Z0-9_]+`), which excludes shell pipes /
+  // redirects from being misread as module names. Long flags
+  // (`--list`, `--show-depends`, `--show-config`) naturally
+  // don't match the short-flag group either since `-` isn't
+  // a word char in `[a-zA-Z]+`.
   {
     code: 'kernel-module-load',
     label: 'insmod / modprobe / rmmod (kernel module load/unload)',
-    re: /\b(?:insmod\b|modprobe\s+(?:-[a-zA-Z]+\s+)?(?!--list\b|--show-depends\b|-c\b)\S+|rmmod\b)/,
+    re: /\b(?:insmod\b|modprobe\s+(?:-[a-zA-Z]+\s+)*[a-zA-Z_][a-zA-Z0-9_]+(?:\s|$|;|&|\|)|rmmod\b)/,
   },
 ];
 

@@ -4,6 +4,41 @@
 
 (no entries — next release window)
 
+## [1.10.141] - 2026-05-03
+
+**`kernel-module-load` false-positive fix.** The v1.10.135
+rule accepted any non-space token as the module name, so
+`modprobe -c | grep blacklist` matched (the regex saw `|` as
+the "module name"). Tightened to require an actual module-name
+shape (`[a-zA-Z_][a-zA-Z0-9_]+`).
+
+### Fixed
+- **`kernel-module-load`** regex tightened from
+  `modprobe\s+(?:-[a-zA-Z]+\s+)?\S+` to
+  `modprobe\s+(?:-[a-zA-Z]+\s+)*[a-zA-Z_][a-zA-Z0-9_]+(?:\s|$|;|&|\|)`.
+  Module names are alphanumeric + underscore; pipes,
+  redirections, and other shell metachars no longer get
+  misread as module names.
+  - `modprobe -c | grep blacklist` → LOW (was critical, false positive)
+  - `cat | modprobe -c` → LOW (was critical, false positive)
+  - `modprobe evil_module` → CRITICAL (regression preserved)
+  - `modprobe -v evil_module` → CRITICAL (regression preserved)
+  - `modprobe -fv evil_module` → CRITICAL (combined flags)
+
+### Added
+- **`tests/risk-classifier.test.js`**: regression test extended
+  with 2 more cases (`modprobe -c | grep blacklist`, `cat |
+  modprobe -c`) that previously fired false-positive but now
+  correctly stay LOW. Suite stays at 176.
+
+### Why catch this here?
+The earlier negative-lookahead approach `(?!--list\b|-c\b)`
+worked for explicit `-c` / `--list` invocations but didn't
+prevent the regex from greedy-matching `\S+` AFTER the lookahead
+position, which let pipes leak through. Switching to a
+positive shape requirement is more robust — module names
+genuinely look like identifiers.
+
 ## [1.10.140] - 2026-05-03
 
 **Two more patterns**: `apparmor-disable` (high) +
