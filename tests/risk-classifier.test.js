@@ -1578,6 +1578,89 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.130) Three high-tier additions: eBPF kernel hooking,
+  // systemd-resolved DNS hijack, firewall whitelist for attacker.
+  it('bpf-tooling: bpftrace / bpftool prog load → high (v1.10.130)', () => {
+    for (const cmd of [
+      "bpftrace -e 'kretprobe:vfs_open { @[comm] = count() }'",
+      'bpftool prog load /tmp/bpf.o',
+      'bpftool map create /sys/fs/bpf/x',
+      'bpftrace -f json /tmp/script.bt',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'bpf-tooling'),
+        `${cmd}: expected bpf-tooling`);
+    }
+  });
+
+  it('bpf-tooling — informational stays low (regression)', () => {
+    for (const cmd of [
+      'bpftool prog list',
+      'bpftool map list',
+      'bpftrace --version',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'bpf-tooling'),
+        `${cmd}: should not match bpf-tooling`);
+    }
+  });
+
+  it('resolvectl-dns: resolvectl dns/domain config → high (v1.10.130)', () => {
+    for (const cmd of [
+      'resolvectl dns ens33 1.2.3.4',
+      'resolvectl domain ens33 ~example.com',
+      'resolvectl llmnr eth0 yes',
+      'resolvectl mdns wlp4s0 yes',
+      'resolvectl dnssec eth0 no',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'resolvectl-dns'),
+        `${cmd}: expected resolvectl-dns`);
+    }
+  });
+
+  it('resolvectl-dns — read / flush stays low (regression)', () => {
+    for (const cmd of [
+      'resolvectl status',
+      'resolvectl flush-caches',     // cache flush, not config tamper
+      'resolvectl --help',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'resolvectl-dns'),
+        `${cmd}: should not match resolvectl-dns`);
+    }
+  });
+
+  it('firewall-allow: iptables / nft ACCEPT specific source → high (v1.10.130)', () => {
+    for (const cmd of [
+      'iptables -A INPUT -s 10.0.0.1 -j ACCEPT',
+      'iptables -A FORWARD -s 192.168.1.0/24 -j ACCEPT',
+      'ip6tables -A INPUT -s ::1/128 -j ACCEPT',
+      'nft add rule inet filter input ip saddr 10.0.0.1 accept',
+      'sudo iptables -A INPUT -s evil.com -j ACCEPT',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'firewall-allow'),
+        `${cmd}: expected firewall-allow`);
+    }
+  });
+
+  it('firewall-allow — list / DROP / REJECT stays low (regression)', () => {
+    for (const cmd of [
+      'iptables -L',
+      'iptables -A INPUT -s 10.0.0.1 -j DROP',     // explicit deny is OK
+      'iptables -A INPUT -s 10.0.0.1 -j REJECT',
+      'iptables -F',                                // already covered by firewall-disable, not this
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'firewall-allow'),
+        `${cmd}: should not match firewall-allow`);
+    }
+  });
+
   it('setcap-cap — getcap / read / mention stays low (regression)', () => {
     for (const cmd of [
       'getcap /usr/bin/ping',                       // read, not set

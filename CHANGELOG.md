@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.130] - 2026-05-03
+
+**Three new high-tier patterns**: eBPF kernel hooking,
+systemd-resolved DNS hijack, firewall whitelist for attacker
+source. Each closes a specific high-impact threat surface.
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `bpf-tooling`. Catches
+  `bpftrace -e`, `bpftrace -f`, `bpftool prog load`, and
+  `bpftool map create`. eBPF lets userland programs attach
+  to kernel functions (kprobes / uprobes / tracepoints) for
+  syscall tracing and process monitoring — legitimate for
+  perf debugging, but a kernel-level intrusion primitive in
+  worker context. List forms (`bpftool prog list`,
+  `--version`) stay LOW.
+- **`PATTERN_CATALOG.high`** entry `resolvectl-dns`. Catches
+  `resolvectl dns`, `resolvectl domain`, `resolvectl llmnr`,
+  `resolvectl mdns`, `resolvectl dnssec`. Modern Linux distros
+  (Ubuntu, Fedora, Arch) use systemd-resolved instead of
+  `/etc/resolv.conf`, so the `system-files` rule didn't catch
+  the resolvectl CLI form. Status/flush/help stay LOW.
+- **`PATTERN_CATALOG.high`** entry `firewall-allow`. Catches
+  `iptables -A {INPUT,FORWARD} -s <ip> -j ACCEPT` and
+  `nft add rule inet filter input ip saddr <ip> accept`.
+  Different threat from `firewall-disable` (which clears all
+  rules) — this slips a single ACCEPT through to whitelist an
+  attacker IP/CIDR. Explicit DROP/REJECT rules stay LOW.
+
+- **`tests/risk-classifier.test.js`**: 6 new `it()` cases —
+  3 attack assertions + 3 regression assertions. Suite stays
+  at 175. Risk-classifier file 206 → 212 cases.
+
+### Catalog totals
+- Critical: 22 patterns (+0)
+- High: 33 patterns (+3: bpf-tooling, resolvectl-dns,
+  firewall-allow)
+- Medium: 18 patterns (+0)
+- **Total: 73 → 76**
+
 ## [1.10.129] - 2026-05-03
 
 **Three new critical patterns**: container escape via /proc

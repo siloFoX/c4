@@ -697,6 +697,43 @@ const HIGH_PATTERNS = [
     label: 'curl -o / wget -O directly into /etc/<system-file>',
     re: /\b(?:curl|wget)\s+(?:[^\n;|&]*\s)?-[oO]\s+\/etc\/(?:passwd|shadow|sudoers|hosts(?:\.(?:allow|deny))?|crontab|fstab|resolv\.conf|nsswitch\.conf|securetty|login\.defs)\b/,
   },
+  // (v1.10.130) bpftrace / bpftool / bpf load — eBPF kernel
+  // tracing has legitimate uses (perf debugging, syscall
+  // monitoring) but is also a kernel-level intrusion primitive
+  // that attaches to syscalls / kprobes / uprobes / tracepoints
+  // to dump kernel data, hook syscalls, or implement userspace
+  // process monitoring. Worker context: review-worthy.
+  {
+    code: 'bpf-tooling',
+    label: 'bpftrace / bpftool prog load (eBPF kernel hooking)',
+    re: /\b(?:bpftrace\s+(?:-e\b|-f\b)|bpftool\s+prog\s+load\b|bpftool\s+map\s+create\b)/,
+  },
+  // (v1.10.130) systemd-resolved DNS hijack — modern Linux
+  // distros (Ubuntu, Fedora, Arch) use systemd-resolved instead
+  // of /etc/resolv.conf for DNS. `resolvectl dns <iface> <ip>`
+  // installs a DNS server per-interface, bypassing the existing
+  // system-files rule (which catches /etc/resolv.conf writes
+  // but not the resolvectl CLI form).
+  {
+    code: 'resolvectl-dns',
+    label: 'resolvectl dns <iface> (systemd-resolved DNS hijack)',
+    re: /\bresolvectl\s+(?:[^\n;|&]*\s)?(?:dns\b|domain\b|llmnr\b|mdns\b|dnssec\b)/,
+  },
+  // (v1.10.130) iptables / nftables ACCEPT for arbitrary source
+  // — whitelisting an attacker IP/CIDR through the firewall.
+  // Different from firewall-disable (which clears all rules);
+  // this slips a single ACCEPT through. `iptables -A INPUT -s
+  // <attacker> -j ACCEPT` is the common form. Same shape for
+  // nftables: `nft add rule inet filter input ip saddr <X>
+  // accept`.
+  // Regex note: `-j` doesn't have a leading word boundary
+  // because `-` is non-word; previous char is also non-word
+  // (space). Match `-j` literally without `\b` prefix.
+  {
+    code: 'firewall-allow',
+    label: 'iptables / nftables ACCEPT a specific source IP',
+    re: /\b(?:iptables|ip6tables|nft)\s+(?:[^\n;|&]*\s)?(?:-A\s+(?:INPUT|FORWARD)|add\s+rule\s+inet)\b[^\n;|&]*(?:-j\s+ACCEPT\b|\baccept\b)/,
+  },
 ];
 
 // Medium: needs caution (usually ask in autonomous mode).
