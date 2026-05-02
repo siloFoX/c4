@@ -4,6 +4,41 @@
 
 (no entries — next release window)
 
+## [1.10.138] - 2026-05-03
+
+**Morning report `Risk Activity (last 24h)` section.** The
+morning report had Token Usage and Cost sections but no
+view of classifier activity. With the catalog now at 87
+patterns and operators reviewing autonomous-mode runs, the
+risk dimension belongs in the morning brief.
+
+### Added
+- **`generateMorningReport`** in `src/pty-manager.js` queries
+  the shared audit chain for `risk.denied`, `risk.dryRun`,
+  and `risk.shadow_exec` events from the last 24h and emits
+  a new section when any are present:
+  ```markdown
+  ## Risk Activity (last 24h)
+  - Classifier denies: **N** (enforced=N, dryRun=N)
+
+  Top reasons:
+    - [code-1] N
+    - [code-2] N
+    ...
+
+  - Shadow exec runs: **N**
+  ```
+  Same data the daemon's `/risk/stats` endpoint surfaces but
+  rendered inline for offline / morning-mail consumption.
+  Best-effort: silently skipped if `audit-log` can't be
+  required, the shared instance isn't available, or the
+  query fails — never breaks the morning report.
+- **`tests/morning-report-risk.test.js`**: NEW file with 4
+  source-grep cases proving the section is wired to all three
+  risk event types, aggregates top reasons across denied +
+  dryRun, and uses the same best-effort try/catch pattern as
+  the cost section. Suite 175 → 176.
+
 ## [1.10.137] - 2026-05-03
 
 **`log-truncate` (medium) + `/etc/aliases` extension.** Two

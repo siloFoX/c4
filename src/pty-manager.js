@@ -5878,6 +5878,52 @@ class PtyManager extends EventEmitter {
       // report if cost-report fails to load.
     }
 
+    // 6. Risk activity (v1.10.138) — classifier denies + shadow
+    // exec from the audit chain over the last 24h. Same data the
+    // daemon's /risk/stats endpoint surfaces but rendered inline
+    // for offline / morning-mail consumption. Best-effort: silently
+    // skipped if audit-log can't be required or query fails.
+    try {
+      const auditLog = require('./audit-log');
+      const audit = auditLog.getShared && auditLog.getShared();
+      if (audit && typeof audit.query === 'function') {
+        const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+        const denied = audit.query({ type: 'risk.denied', from: since, limit: 10000 }) || [];
+        const dryRun = audit.query({ type: 'risk.dryRun', from: since, limit: 10000 }) || [];
+        const shadow = audit.query({ type: 'risk.shadow_exec', from: since, limit: 10000 }) || [];
+        const total = denied.length + dryRun.length;
+        if (total > 0 || shadow.length > 0) {
+          sections.push('');
+          sections.push('## Risk Activity (last 24h)');
+          if (total > 0) {
+            sections.push(`- Classifier denies: **${total}** (enforced=${denied.length}, dryRun=${dryRun.length})`);
+            // Tally top reasons across both denied + dryRun.
+            const reasonCounts = new Map();
+            for (const ev of [...denied, ...dryRun]) {
+              const reasons = (ev.details && Array.isArray(ev.details.reasons)) ? ev.details.reasons : [];
+              for (const r of reasons) {
+                if (!r || typeof r.code !== 'string') continue;
+                reasonCounts.set(r.code, (reasonCounts.get(r.code) || 0) + 1);
+              }
+            }
+            const topReasons = Array.from(reasonCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            if (topReasons.length > 0) {
+              sections.push('');
+              sections.push('Top reasons:');
+              for (const [code, n] of topReasons) sections.push(`  - [${code}] ${n}`);
+            }
+          }
+          if (shadow.length > 0) {
+            sections.push('');
+            sections.push(`- Shadow exec runs: **${shadow.length}**`);
+          }
+        }
+      }
+    } catch {
+      // Risk activity is best-effort — never break the morning
+      // report if audit-log fails to load.
+    }
+
     // Write report
     const reportDir = path.dirname(reportPath);
     if (!fs.existsSync(reportDir)) {
