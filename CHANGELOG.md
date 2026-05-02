@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.152] - 2026-05-03
+
+**`dbus-systemd-stop` (high) catalog pattern.** The
+`systemctl-disable-critical` rule covers `systemctl
+stop|disable|mask sshd|auditd|firewalld|...`. The bypass form
+that reaches the same systemd Manager via D-Bus directly was
+silent. Same threat: drops critical services without going
+through systemctl.
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `dbus-systemd-stop`. Catches
+  `dbus-send` to `org.freedesktop.systemd1.Manager.<Method>`
+  where method is `StopUnit`, `DisableUnitFiles`,
+  `MaskUnitFiles`, or `ReloadUnit`. List methods (`ListUnits`)
+  and unrelated D-Bus targets (NetworkManager) stay LOW.
+
+- **`tests/risk-classifier.test.js`**: 2 new `it()` cases —
+  attack assertion (4 commands covering all 4 destructive
+  methods) + regression (4 listing / unrelated invocations).
+  Suite stays at 178. Risk-classifier file 265 → 267 cases.
+
+### Catalog totals
+- Critical: 31 patterns (+0)
+- High: 44 patterns (+1: dbus-systemd-stop)
+- Medium: 21 patterns (+0)
+- **Total: 98 → 99** (effective; daemon will report 100 after
+  restart)
+
 ## [1.10.151] - 2026-05-03
 
 **`docker-sock-api` (critical) catalog pattern.** The

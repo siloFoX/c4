@@ -614,6 +614,18 @@ const HIGH_PATTERNS = [
     label: 'systemctl stop|disable on a critical service (ssh / firewall / audit)',
     re: /\bsystemctl\s+(?:stop|disable|mask)\s+(?:ssh|sshd|firewalld|ufw|nftables|auditd|apparmor|fail2ban)\b/,
   },
+  // (v1.10.152) dbus-send against systemd1 Manager — same
+  // service-control surface as systemctl but reached via the
+  // D-Bus API. Stop/Disable/Mask on critical services (sshd /
+  // auditd / firewalld) is the same threat as
+  // systemctl-disable-critical. Methods are
+  // `StopUnit`, `DisableUnitFiles`, `MaskUnitFiles`,
+  // `ReloadUnit`. Listing methods (`ListUnits`) stay LOW.
+  {
+    code: 'dbus-systemd-stop',
+    label: 'dbus-send to org.freedesktop.systemd1 (Stop/Disable/Mask via D-Bus)',
+    re: /\bdbus-send\b[^\n;|&]*\borg\.freedesktop\.systemd1\.Manager\.(?:Stop|Disable|Mask|Reload)(?:Unit|UnitFiles)\b/,
+  },
   // (v1.10.150) auditctl rule subversion — auditd's runtime
   // CLI. `-e 0` disables enforcement; `-D` deletes all rules.
   // Same defense-evasion family as systemctl-disable-critical

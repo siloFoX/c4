@@ -2275,6 +2275,35 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.152) dbus-send to systemd Manager — bypass form of
+  // systemctl-disable-critical that uses the D-Bus API directly.
+  it('dbus-systemd-stop: dbus-send Stop/Disable/Mask Unit → high (v1.10.152)', () => {
+    for (const cmd of [
+      'dbus-send --system --print-reply --dest=org.freedesktop.systemd1 /org/freedesktop/systemd1 org.freedesktop.systemd1.Manager.StopUnit string:auditd.service',
+      'dbus-send --system --dest=org.freedesktop.systemd1 /org/freedesktop/systemd1 org.freedesktop.systemd1.Manager.DisableUnitFiles array:string:sshd.service boolean:false',
+      'dbus-send --system --print-reply --dest=org.freedesktop.systemd1 /org/freedesktop/systemd1 org.freedesktop.systemd1.Manager.MaskUnitFiles array:string:firewalld.service boolean:false boolean:false',
+      'dbus-send --system --dest=org.freedesktop.systemd1 /org/freedesktop/systemd1 org.freedesktop.systemd1.Manager.ReloadUnit string:apparmor.service',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'dbus-systemd-stop'),
+        `${cmd}: expected dbus-systemd-stop`);
+    }
+  });
+
+  it('dbus-systemd-stop — listing / unrelated D-Bus stays low (regression)', () => {
+    for (const cmd of [
+      'dbus-send --system --print-reply --dest=org.freedesktop.NetworkManager /org/freedesktop/NetworkManager org.freedesktop.NetworkManager.GetDevices',
+      'dbus-send --print-reply --dest=org.freedesktop.systemd1 /org/freedesktop/systemd1 org.freedesktop.systemd1.Manager.ListUnits',
+      'dbus-send --help',
+      'busctl status',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'dbus-systemd-stop'),
+        `${cmd}: should not match dbus-systemd-stop`);
+    }
+  });
+
   it('kexec-load: kexec -l / --load / -e → critical (v1.10.129)', () => {
     for (const cmd of [
       'kexec -l /boot/vmlinuz --initrd=/boot/initrd',
