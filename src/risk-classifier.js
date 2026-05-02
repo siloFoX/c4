@@ -613,7 +613,12 @@ const HIGH_PATTERNS = [
     //   ~/.npmrc                npm publish tokens (_authToken)
     //   ~/.netrc                generic HTTP creds for curl/wget
     //   ~/.pypirc               PyPI publish credentials
-    re: /\b(?:cat|less|more|head|tail|cp|mv|tar|gzip|base64|hexdump|xxd)\s+[^\n;|&]*(?:\/etc\/shadow\b|\/etc\/gshadow\b|(?:~|\$HOME|\/home\/[^\s/]+|\/root)\/(?:\.ssh\/id_(?:rsa|ecdsa|ed25519|dsa)(?!\.pub)\b|\.aws\/(?:credentials|config)\b|\.kube\/config\b|\.docker\/config\.json\b|\.npmrc\b|\.netrc\b|\.pypirc\b))/,
+    // (v1.10.132) `scp` and `rsync` added to the tool list —
+    // both transfer the file contents to a remote host, which
+    // exposes the credential just as effectively as `cat`.
+    // Same tier (high). The credential file paths are
+    // attacker-targeted regardless of which tool moves them.
+    re: /\b(?:cat|less|more|head|tail|cp|mv|tar|gzip|base64|hexdump|xxd|scp|rsync)\s+[^\n;|&]*(?:\/etc\/shadow\b|\/etc\/gshadow\b|(?:~|\$HOME|\/home\/[^\s/]+|\/root)\/(?:\.ssh\/id_(?:rsa|ecdsa|ed25519|dsa)(?!\.pub)\b|\.aws\/(?:credentials|config)\b|\.kube\/config\b|\.docker\/config\.json\b|\.npmrc\b|\.netrc\b|\.pypirc\b))/,
   },
   {
     code: 'sshpass-credential',

