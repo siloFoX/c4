@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.80
-// Generated at: 2026-05-02T06:13:18.467Z
+// Spec version: 1.10.81
+// Generated at: 2026-05-02T06:19:43.723Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -460,6 +460,29 @@ export interface postRiskCheckResponse {
   destructiveVerbs?: string[];
   empty?: boolean; /** True when no signal extracted; pair with classifier level for actual gating */
 }; /** (v1.10.68) Static intent report — what files / network peers / privileges this command would touch, extracted via risk-sandbox.extractIntent without executing anything. */
+}
+
+export interface postRiskPreviewBody {
+  command: string; /** Candidate Bash command — echoed verbatim into sh -c <cmd> */
+  runtime?: "docker" | "null"; /** Override the daemon-configured sandbox runtime (config.riskClassifier.sandbox.name) */
+  opts?: Record<string, unknown> | null; /** Override runtime opts (image / network / memory / cpus / mounts / env / dockerBinary). Forwarded verbatim to getRuntime(name, opts). */
+}
+export interface postRiskPreviewResponse {
+  binary?: string | null; /** OS binary that would run (e.g., "docker"); null for NullRuntime */
+  args?: string[]; /** argv to pass `binary`. Pure builder — never executed. */
+  env?: Record<string, unknown>;
+  command?: string; /** Echoed verbatim from request body for audit cross-checks */
+  isolation?: {
+  name?: string; /** docker | null | abstract */
+  network?: string; /** host | none | bridge | etc. */
+  filesystem?: string; /** host | "read-only root + tmpfs /tmp (NNm)" | "rw root" */
+  resources?: string; /** memory=NNm cpus=N pids=N timeout=NNms */
+};
+  available?: {
+  ok?: boolean;
+  reason?: string | null; /** When ok=false — e.g., "docker probe failed: <msg>" */
+};
+  runtime?: "docker" | "null"; /** Effective runtime name (request override OR config default OR "null" fallback) */
 }
 
 export interface postRiskAiFeedbackBody {
@@ -1891,6 +1914,15 @@ export class C4Client {
     return this.request<postRiskCheckResponse>({
       method: 'POST',
       path: '/api/risk/check',
+      body: body as unknown,
+    });
+  }
+
+  /** Pure builder — return the OS-binary argv that the configured (or operator-supplied) sandbox runtime would use to isolate `command`. No exec, no classification. HTTP equivalent of `c4 risk <cmd> --sandbox-preview`. */
+  async postRiskPreview(body: postRiskPreviewBody): Promise<postRiskPreviewResponse> {
+    return this.request<postRiskPreviewResponse>({
+      method: 'POST',
+      path: '/api/risk/preview',
       body: body as unknown,
     });
   }

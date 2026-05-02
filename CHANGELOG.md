@@ -4,6 +4,97 @@
 
 (no entries — next release window)
 
+## [1.10.81] - 2026-05-02
+
+11.5 Stage 2 follow-up — **POST /api/risk/preview** HTTP endpoint.
+Daemon-side parity with `c4 risk <cmd> --sandbox-preview`. Pure
+builder; no exec. Web UI / Web SDK / external automation can
+preview the OS-binary argv that the configured runtime would use
+without shelling out to the CLI.
+
+### Added
+- **`POST /api/risk/preview`** — body:
+  ```json
+  {
+    "command": "rm -rf /tmp/test",
+    "runtime": "docker",          // optional override
+    "opts": { "memory": "256m" }  // optional override
+  }
+  ```
+  Response:
+  ```json
+  {
+    "binary": "docker",
+    "args": ["run", "--rm", "--network=none", ..., "alpine:latest", "sh", "-c", "rm -rf /tmp/test"],
+    "env": {},
+    "command": "rm -rf /tmp/test",
+    "isolation": {
+      "name": "docker",
+      "network": "none",
+      "filesystem": "read-only root + tmpfs /tmp (64m)",
+      "resources": "memory=128m cpus=0.5 pids=64 timeout=5000ms"
+    },
+    "available": { "ok": true },
+    "runtime": "docker"
+  }
+  ```
+
+  Effective runtime resolution order:
+  1. `body.runtime` if provided
+  2. `config.riskClassifier.sandbox.name`
+  3. fallback to `'null'`
+
+  `body.opts`, when present, overrides the config-supplied opts
+  (forwarded verbatim to `getRuntime(name, opts)`).
+
+  Unknown runtime names are caught and returned as
+  `{error: "Unknown sandbox runtime: ..."}` rather than letting
+  the runtime constructor's throw bubble up as a 500.
+
+  Spec ops 115 → 116. Runtime drift surface stays balanced —
+  ROUTE_SCHEMAS entry covers requestBody + response.
+
+- **`tests/risk-preview-endpoint.test.js`** — 17 cases / 3 suites:
+  - daemon route wireup (8 source-grep checks: handler exists,
+    config read, request override, opts override, response shape,
+    error handling, OpenAPI ROUTE_SCHEMAS entry, summary mention)
+  - response shape parity with the runtime (5 unit cases driving
+    `getRuntime()` directly with the body shape the daemon
+    receives)
+  - live daemon integration when reachable (4 cases gated on
+    `:3456` reachability AND `which docker`; both probe and skip
+    cleanly so CI without a daemon doesn't fail)
+
+  The source-grep + unit approach beats spawning the full daemon
+  for a single endpoint — no port allocation, no flaky boot
+  wait, but the contract is still locked in (a future "cleanup"
+  PR that drops the route fails the wireup grep first).
+
+Suite 167 → 168.
+
+### Why an HTTP endpoint and not "just shell out to the CLI"
+
+Three reasons:
+
+1. **Web UI integration**. Once the Web UI gains a
+   "preview-this-command-in-sandbox" button (Phase 11.5 follow-
+   up), it can hit `/api/risk/preview` directly without an
+   exec-via-API trampoline.
+2. **External automation**. CI runners that already speak the
+   c4 daemon HTTP API don't have to bundle the c4 CLI just to
+   preview a runtime — saves a binary install on the runner.
+3. **Symmetry with `/api/risk/check`**. The check endpoint
+   already exists (1.10.53); having the preview endpoint live
+   next to it means a single round-trip `check` + `preview` is
+   one fan-out, not two.
+
+### Pending Stage 2 follow-ups
+
+- Shadow execution path — actually run the prepared argv,
+  capture stdout/stderr/exit, surface as `risk.shadow_exec`
+  audit event. Security-sensitive cut.
+- `risk.shadow_exec` audit event type + scribe-v2 mirror.
+
 ## [1.10.80] - 2026-05-02
 
 11.5 Stage 2 follow-up — **sandbox config wiring**. The

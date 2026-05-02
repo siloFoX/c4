@@ -1685,6 +1685,52 @@ async function handleRequest(req, res) {
         }
       }
 
+    } else if (req.method === 'POST' && route === '/risk/preview') {
+      // (v1.10.81 / 11.5 Stage 2) Pure builder — return the OS-binary
+      // argv that the configured (or operator-supplied) sandbox
+      // runtime would use to isolate `command`. No exec, no
+      // classification side effects. HTTP equivalent of `c4 risk
+      // <cmd> --sandbox-preview <runtime>` for daemon-side
+      // automation that doesn't want to shell out.
+      //
+      // Body:
+      //   { command: string,
+      //     runtime?: 'docker' | 'null',  // override config; default
+      //                                    // = riskClassifier.sandbox.name
+      //     opts?: object }                // override config opts
+      //
+      // Response:
+      //   { binary, args, env, command, isolation: {...},
+      //     available: { ok, reason? },
+      //     runtime: 'docker'|'null' }
+      const _body = await parseBody(req);
+      if (_validateOrFail('POST', '/risk/preview', _body, res, cfg)) return;
+      const command = typeof _body.command === 'string' ? _body.command : '';
+      if (!command) {
+        result = { error: 'Missing command' };
+      } else {
+        try {
+          const { getRuntime } = require('./risk-sandbox-runtime');
+          const cfgNow = manager.getConfig() || {};
+          const sbCfg = (cfgNow.riskClassifier && cfgNow.riskClassifier.sandbox)
+            || {};
+          const runtimeName = typeof _body.runtime === 'string'
+            ? _body.runtime
+            : (typeof sbCfg.name === 'string' ? sbCfg.name : 'null');
+          const runtimeOpts = (_body.opts && typeof _body.opts === 'object')
+            ? _body.opts
+            : (sbCfg.opts || {});
+          const rt = getRuntime(runtimeName, runtimeOpts);
+          const available = rt.available();
+          const prep = rt.prepareArgs(command);
+          result = Object.assign({}, prep, { available, runtime: runtimeName });
+        } catch (e) {
+          // Bad runtime name etc. — surface as 400-ish error in
+          // body since the wider request shape was OK.
+          result = { error: (e && e.message) || String(e) };
+        }
+      }
+
     } else if (req.method === 'POST' && route === '/risk/ai-feedback') {
       // (11.5e) AI second-pass plumbing. C4 itself never calls an LLM
       // — operators wire their own (Anthropic / OpenAI / local Ollama

@@ -73,6 +73,7 @@ const ROUTE_SUMMARIES = {
   'POST /status-update': 'Post a manual Slack status message tagged with a worker.',
   'GET /validation': 'Read the worker\'s .c4-validation.json (typecheck/lint/tests results) — synthesised from git state when missing.',
   'POST /risk/check': 'Run a Bash command through the risk classifier without dispatching it. Mirrors `c4 risk` + the PreToolUse hook so the Web UI can preview risk levels before sending.',
+  'POST /risk/preview': 'Pure builder — return the OS-binary argv that the configured (or operator-supplied) sandbox runtime would use to isolate `command`. No exec, no classification. HTTP equivalent of `c4 risk <cmd> --sandbox-preview`.',
   'GET /risk/stats': 'Aggregate risk.denied audit events from the last N hours (windowHours, default 24, max 720). Returns total + breakdown by level + top reasons + top workers.',
   'GET /risk/patterns': 'Built-in risk classifier pattern catalog + operator-configured customRules / allowList / denyList counts. Useful for policy reviewers auditing the effective rule set.',
   'POST /risk/ai-feedback': 'AI second-pass feedback hook. External LLM (operator-supplied) POSTs its level assessment of a command; daemon records to audit chain, broadcasts via SSE, and Slack-alerts when the AI escalates a command past the autoDenyLevel that the catalog missed.',
@@ -1854,6 +1855,42 @@ const ROUTE_SCHEMAS = {
             empty: { type: 'boolean', description: 'True when no signal extracted; pair with classifier level for actual gating' },
           },
         },
+      },
+    },
+  },
+  'POST /risk/preview': {
+    requestBody: {
+      required: ['command'],
+      properties: {
+        command: { type: 'string', description: 'Candidate Bash command — echoed verbatim into sh -c <cmd>' },
+        runtime: { type: 'string', enum: ['docker', 'null'], nullable: true, description: 'Override the daemon-configured sandbox runtime (config.riskClassifier.sandbox.name)' },
+        opts: { type: 'object', additionalProperties: true, nullable: true, description: 'Override runtime opts (image / network / memory / cpus / mounts / env / dockerBinary). Forwarded verbatim to getRuntime(name, opts).' },
+      },
+      example: { command: 'rm -rf /tmp/test', runtime: 'docker' },
+    },
+    response: {
+      properties: {
+        binary: { type: 'string', nullable: true, description: 'OS binary that would run (e.g., "docker"); null for NullRuntime' },
+        args: { type: 'array', items: { type: 'string' }, description: 'argv to pass `binary`. Pure builder — never executed.' },
+        env: { type: 'object', additionalProperties: { type: 'string' } },
+        command: { type: 'string', description: 'Echoed verbatim from request body for audit cross-checks' },
+        isolation: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: 'docker | null | abstract' },
+            network: { type: 'string', description: 'host | none | bridge | etc.' },
+            filesystem: { type: 'string', description: 'host | "read-only root + tmpfs /tmp (NNm)" | "rw root"' },
+            resources: { type: 'string', description: 'memory=NNm cpus=N pids=N timeout=NNms' },
+          },
+        },
+        available: {
+          type: 'object',
+          properties: {
+            ok: { type: 'boolean' },
+            reason: { type: 'string', nullable: true, description: 'When ok=false — e.g., "docker probe failed: <msg>"' },
+          },
+        },
+        runtime: { type: 'string', enum: ['docker', 'null'], description: 'Effective runtime name (request override OR config default OR "null" fallback)' },
       },
     },
   },
