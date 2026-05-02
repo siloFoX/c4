@@ -1351,6 +1351,97 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.122) journalctl --vacuum / --rotate — same defense-evasion
+  // family as history-tamper but for systemd journal. Medium tier
+  // because legitimate disk-pressure ops exist.
+  it('journalctl-vacuum: log destruction → medium (v1.10.122)', () => {
+    for (const cmd of [
+      'journalctl --vacuum-time=1s',
+      'journalctl --vacuum-size=1M',
+      'journalctl --vacuum-files=1',
+      'journalctl --rotate',
+      'sudo journalctl --vacuum-time=2d',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(r.level === 'medium' || r.level === 'high',
+        `${cmd} should be medium+ (got ${r.level})`);
+      assert.ok(r.reasons.some((x) => x.code === 'journalctl-vacuum'),
+        `${cmd}: expected journalctl-vacuum`);
+    }
+  });
+
+  it('journalctl-vacuum — read / filter forms stay low (regression)', () => {
+    for (const cmd of [
+      'journalctl -u sshd',
+      'journalctl --since yesterday',
+      'journalctl -f',
+      'journalctl --no-pager',
+    ]) {
+      assert.strictEqual(classifyCommand(cmd).level, 'low',
+        `${cmd} should be low`);
+    }
+  });
+
+  // (v1.10.122) chmod-shm-exec — fileless persistence. Tmpfs-based
+  // executable creation has no benign worker use case.
+  it('chmod-shm-exec: chmod +x in /dev/shm or /run/shm → high (v1.10.122)', () => {
+    for (const cmd of [
+      'chmod +x /dev/shm/payload',
+      'chmod 755 /dev/shm/loader',
+      'chmod u+x /run/shm/exploit',
+      'chmod 0755 /dev/shm/binary',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'chmod-shm-exec'),
+        `${cmd}: expected chmod-shm-exec`);
+    }
+  });
+
+  it('chmod-shm-exec — chmod outside tmpfs / non-exec stays low (regression)', () => {
+    for (const cmd of [
+      'chmod +x /tmp/binary',           // /tmp not /dev/shm
+      'chmod +x /usr/local/bin/foo',    // proper bin path
+      'chmod 644 /dev/shm/data',        // not executable
+      'cat /dev/shm/payload',           // read, not chmod
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'chmod-shm-exec'),
+        `${cmd}: should not match chmod-shm-exec`);
+    }
+  });
+
+  // (v1.10.122) git-hook-write — supply-chain via repo. High tier
+  // because hook fires on next git op, potentially under a
+  // different user.
+  it('git-hook-write: writing to .git/hooks/<name> → high (v1.10.122)', () => {
+    for (const cmd of [
+      'echo evil > .git/hooks/pre-commit',
+      'cat malware > /home/user/repo/.git/hooks/post-merge',
+      'cat key | tee .git/hooks/pre-push',
+      'tee -a .git/hooks/pre-commit < malicious',
+      'echo \\#!/bin/sh > .git/hooks/post-checkout',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'git-hook-write'),
+        `${cmd}: expected git-hook-write`);
+    }
+  });
+
+  it('git-hook-write — read / list stays low (regression)', () => {
+    for (const cmd of [
+      'cat .git/hooks/pre-commit',
+      'ls .git/hooks/',
+      'chmod +x .git/hooks/pre-commit',  // existing hook chmod, not write
+      'rm .git/hooks/old-hook',           // removal, not write
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'git-hook-write'),
+        `${cmd}: should not match git-hook-write`);
+    }
+  });
+
   it('usermod -aG sudo / wheel / docker → high (both arg orders)', () => {
     const r1 = classifyCommand('usermod -aG sudo alice');
     assert.strictEqual(r1.level, 'high');

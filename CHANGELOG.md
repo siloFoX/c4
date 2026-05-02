@@ -4,6 +4,53 @@
 
 (no entries — next release window)
 
+## [1.10.122] - 2026-05-03
+
+**Three new catalog patterns**: anti-forensics + fileless +
+supply-chain. Each closes a specific real-world threat
+surface that the existing 62-pattern catalog left silent.
+
+### Added
+- **`PATTERN_CATALOG.medium`** entry `journalctl-vacuum`.
+  Catches `journalctl --vacuum-time=*`, `--vacuum-size=*`,
+  `--vacuum-files=*`, `--rotate`. Same defense-evasion family
+  as `history-tamper` but for systemd journal rather than
+  shell history. Medium tier matches `history-tamper` because
+  legitimate disk-pressure ops exist; HIGH would over-fire on
+  routine recovery.
+
+- **`PATTERN_CATALOG.high`** entry `chmod-shm-exec`. Catches
+  any chmod that sets the execute bit on a path under
+  `/dev/shm/` or `/run/shm/` (both tmpfs, RAM-backed). The
+  classic fileless-malware foothold — files there don't survive
+  reboot but persist for the host's uptime, and avoid disk-based
+  forensics.
+  - Numeric mode: matches if any of the three permission octets
+    (user/group/other) is odd (1/3/5/7 = exec set). Read-only
+    modes like `644` and `0644` stay LOW.
+  - Symbolic mode: matches `[ugoa]*[+=][rwx]*x[rwx]*` — requires
+    `x` in the perm chars. `chmod u+r /dev/shm/data` stays LOW.
+
+- **`PATTERN_CATALOG.high`** entry `git-hook-write`. Catches
+  redirect (`>`, `>>`) and `tee [-a]` writes to any file under
+  `.git/hooks/`. Repo-level persistence — the hook fires on
+  the next git op, potentially under a different user (CI,
+  code review tooling, fellow contributor). Tools like husky /
+  lefthook write hooks via their own install scripts (which the
+  classifier doesn't see), so a worker writing here directly is
+  review-worthy.
+
+- **`tests/risk-classifier.test.js`**: 6 new `it()` cases —
+  3 attack assertions (5 / 4 / 5 commands) + 3 regression
+  assertions (read / list / non-exec / outside-tmpfs forms).
+  Suite stays at 175. Risk-classifier file 174 → 180 cases.
+
+### Catalog totals
+- Critical: 18 patterns (+0 this release)
+- High: 25 patterns (+2: chmod-shm-exec, git-hook-write)
+- Medium: 18 patterns (+1: journalctl-vacuum)
+- **Total: 61 → 64**
+
 ## [1.10.121] - 2026-05-03
 
 **Multi-stage pipe obfuscation closed**: `curl-pipe-shell` and

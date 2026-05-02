@@ -536,6 +536,34 @@ const HIGH_PATTERNS = [
     // the typical shell-pipe form.
     re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)(?:~|\$HOME|\/home\/[^\s/]+|\/root)\/\.ssh\/authorized_keys\b/,
   },
+  // (v1.10.122) Fileless / in-memory persistence: anything made
+  // executable in /dev/shm or /run/shm (both tmpfs, RAM-backed)
+  // is the classic fileless-malware foothold. Files there don't
+  // survive reboot but persist for the host's uptime, and avoid
+  // tripping disk-based forensics. No benign reason for a worker
+  // to chmod +x in tmpfs — high tier.
+  // The mode regex is restrictive: ONLY execute-bit-setting modes
+  // count. Numeric modes match if any of the three permission
+  // octets (user/group/other) is odd (1/3/5/7 = exec set).
+  // Symbolic forms `[ugoa]*[+=][rwx]*x[rwx]*` require x in the
+  // perm chars. `chmod 644 /dev/shm/data` (read-only) stays low.
+  {
+    code: 'chmod-shm-exec',
+    label: 'chmod +x on /dev/shm or /run/shm (fileless persistence)',
+    re: /\bchmod\s+(?:[0-7]?(?:[1357][0-7][0-7]|[0-7][1357][0-7]|[0-7][0-7][1357])|[ugoa]*[+=][rwx]*x[rwx]*)\s+(?:\/dev\/shm|\/run\/shm)\/\S+/,
+  },
+  // (v1.10.122) Git hook write — supply-chain via the repo. Any
+  // shell that lands in `.git/hooks/<name>` runs the next time
+  // the relevant git operation fires, potentially under a
+  // different user (CI, code review tooling, fellow contributor).
+  // husky / lefthook write hooks via their own install scripts
+  // (which classifier doesn't see), so a worker writing here
+  // directly is review-worthy.
+  {
+    code: 'git-hook-write',
+    label: 'write to .git/hooks/* (repo-level persistence)',
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)(?:[^\n;|&\s]*\/)?\.git\/hooks\/[\w.-]+/,
+  },
 ];
 
 // Medium: needs caution (usually ask in autonomous mode).
@@ -622,6 +650,22 @@ const MEDIUM_PATTERNS = [
     code: 'history-tamper',
     label: 'clear / disable bash / zsh history',
     re: /\b(?:history\s+-c\b|set\s+\+o\s+history\b|unset\s+HISTFILE\b|export\s+HISTFILE=\/dev\/null\b)/,
+  },
+  // (v1.10.122) journalctl log destruction — same defense-evasion
+  // family as history-tamper, but for systemd journal rather than
+  // shell history. Operators legitimately rotate / vacuum journals
+  // for disk pressure, but unattended autonomous runs should
+  // escalate so a human can see why the trail is being shortened.
+  //   journalctl --vacuum-time=1s        force-shrink to last second
+  //   journalctl --vacuum-size=1M        force-shrink to 1 MiB
+  //   journalctl --vacuum-files=1        keep only the active file
+  //   journalctl --rotate                close current + start new
+  // Tier matches history-tamper (medium) since legitimate ops
+  // exist; HIGH would over-fire on routine disk-pressure recovery.
+  {
+    code: 'journalctl-vacuum',
+    label: 'journalctl --vacuum-* / --rotate (log destruction)',
+    re: /\bjournalctl\s+(?:[^\n;|&]*?)(?:--vacuum-(?:time|size|files)=\S+|--rotate)\b/,
   },
 ];
 
