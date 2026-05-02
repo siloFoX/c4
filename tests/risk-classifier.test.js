@@ -2393,6 +2393,32 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.155) Namespace-escape primitives.
+  it('nsenter-pid1: nsenter -t 1 / pivot_root → critical (v1.10.155)', () => {
+    for (const cmd of [
+      'nsenter -t 1 -m -u -i -n -p -- /bin/bash',
+      'nsenter --target 1 --mount --uts --ipc --net --pid -- /bin/sh',
+      'sudo nsenter -t 1 -a',
+      'pivot_root /new /new/old',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'nsenter-pid1'),
+        `${cmd}: expected nsenter-pid1`);
+    }
+  });
+
+  it('nsenter-pid1 — non-PID-1 / info stays low (regression)', () => {
+    for (const cmd of [
+      'nsenter -t 1234 -m bash',     // different PID, debugging worker process
+      'nsenter --help',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'nsenter-pid1'),
+        `${cmd}: should not match nsenter-pid1`);
+    }
+  });
+
   it('kexec-load: kexec -l / --load / -e → critical (v1.10.129)', () => {
     for (const cmd of [
       'kexec -l /boot/vmlinuz --initrd=/boot/initrd',

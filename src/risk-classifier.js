@@ -134,6 +134,18 @@ const CRITICAL_PATTERNS = [
     // privileged: catastrophic, no benign cause.
     re: /\bdocker\s+(?:run|create|exec)\s+[^\n;|&]*-v\s+\/var\/run\/docker\.sock/,
   },
+  // (v1.10.155) nsenter into another process's namespace —
+  // container escape when /proc is mounted from a privileged
+  // PID namespace. `nsenter -t 1 -m -u -i -n -p ...` (or
+  // `--target 1 --mount ...`) enters PID 1's namespace,
+  // gaining full host filesystem access from inside a
+  // container. The pivot_root form is similar — switches
+  // root filesystem.
+  {
+    code: 'nsenter-pid1',
+    label: 'nsenter -t 1 / pivot_root (namespace escape)',
+    re: /\b(?:nsenter\s+(?:[^\n;|&]*\s)?(?:-t\s+1\b|--target\s+1\b)|pivot_root\b)/,
+  },
   // (v1.10.151) Direct docker socket API access via curl /
   // socat — when the worker has access to /var/run/docker.sock
   // but not the docker CLI, this is the standard escape path:

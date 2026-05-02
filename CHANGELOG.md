@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.155] - 2026-05-03
+
+**`nsenter-pid1` (critical) catalog pattern.** `nsenter -t 1`
+enters PID 1's namespace — a textbook container escape when
+the worker has /proc mounted from a privileged PID namespace.
+`pivot_root` is the filesystem-side equivalent: switches the
+root filesystem in place. Both are escape primitives that
+were silent until now.
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `nsenter-pid1`. Catches:
+  - `nsenter -t 1 -m -u -i -n -p ...` (enter PID 1
+    namespace)
+  - `nsenter --target 1 --mount --uts --ipc --net --pid ...`
+  - `pivot_root /new /new/old`
+  Non-PID-1 nsenter (debugging a specific worker process)
+  and `--help` stay LOW.
+
+- **`tests/risk-classifier.test.js`**: 2 new `it()` cases —
+  attack assertion (4 commands) + regression (2 non-PID-1 /
+  info forms). Suite stays at 178. Risk-classifier file
+  273 → 275 cases.
+
+### Catalog totals
+- Critical: 33 patterns (+1: nsenter-pid1)
+- High: 44 patterns (+0)
+- Medium: 21 patterns (+0)
+- **Total: 100 → 101** (effective; daemon will report 102
+  after restart)
+
 ## [1.10.154] - 2026-05-03
 
 **`docker-*` rules extended to podman + ctr.** Previous
