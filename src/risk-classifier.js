@@ -905,6 +905,17 @@ const MEDIUM_PATTERNS = [
     label: 'apt-get / apt install (system package)',
     re: /\b(?:apt|apt-get|yum|dnf|pacman|zypper|brew)\s+(?:install|add|-S)\b/,
   },
+  // (v1.10.144) Quick HTTP file servers — `python -m http.server`,
+  // `python -m SimpleHTTPServer` (Python 2), `php -S`, `npx serve`,
+  // `ruby -run -e httpd`. Serves the current directory over HTTP
+  // for any caller. Legitimately used for local dev (browser preview)
+  // but in a worker context exposes the work dir to anyone on the
+  // network — ad-hoc data exfil channel.
+  {
+    code: 'http-file-server',
+    label: 'python -m http.server / php -S / npx serve / ruby httpd (file server)',
+    re: /\b(?:python\d*\s+-m\s+(?:http\.server|SimpleHTTPServer)\b|php\s+-S\s+\S+|(?:npx|pnpm\s+dlx)\s+(?:serve|http-server)\b|ruby\s+-run\s+-e\s+httpd\b|busybox\s+httpd\b)/,
+  },
   // (v1.10.140) Package install from untrusted index. The
   // `--extra-index-url` (pip), `--registry` (npm),
   // `--index` (cargo) flags accept arbitrary HTTP(S) hosts.

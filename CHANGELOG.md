@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.144] - 2026-05-03
+
+**`http-file-server` (medium) catalog pattern.** Most language
+ecosystems ship a one-line HTTP server that serves the
+current working directory to the local network. Legitimate
+dev workflow tool, but in a worker context it's an ad-hoc
+data-exfil channel — anyone on the network can fetch any file
+in the work dir.
+
+### Added
+- **`PATTERN_CATALOG.medium`** entry `http-file-server`. Catches:
+  - `python -m http.server [port]`
+  - `python -m SimpleHTTPServer` (Python 2)
+  - `php -S host:port`
+  - `npx serve` / `pnpm dlx serve` / `npx http-server`
+  - `ruby -run -e httpd`
+  - `busybox httpd`
+  Same tier as `netcat-listen` (medium): legit but
+  review-worthy in autonomous context. Non-server invocations
+  (`python script.py`, `python -m unittest`, `npx eslint`)
+  stay LOW.
+- **`tests/risk-classifier.test.js`**: 2 new `it()` cases —
+  attack assertion (10 commands) + regression (7 non-server
+  invocations). Suite stays at 178. Risk-classifier file
+  242 → 244 cases.
+
+### Catalog totals
+- Critical: 25 patterns (+0)
+- High: 40 patterns (+0)
+- Medium: 21 patterns (+1: http-file-server)
+- **Total: 88 → 89** (effective; daemon will report after
+  restart)
+
 ## [1.10.143] - 2026-05-03
 
 **`c4 doctor` risk classifier rows extended.** Earlier rows

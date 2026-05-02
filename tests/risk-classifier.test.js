@@ -990,6 +990,47 @@ describe('classifyCommand v1.10.67 patterns', () => {
     }
   });
 
+  // (v1.10.144) Quick HTTP file servers exposed by language
+  // ecosystems. Legitimate dev workflow tool; in a worker
+  // context it exposes the work directory to the network — an
+  // ad-hoc data exfil channel.
+  it('http-file-server: python/php/npx/ruby quick HTTP server → medium (v1.10.144)', () => {
+    for (const cmd of [
+      'python -m http.server 8000',
+      'python3 -m http.server 8080',
+      'python -m SimpleHTTPServer',
+      'php -S 0.0.0.0:8080',
+      'php -S localhost:9000',
+      'npx serve',
+      'npx serve -p 3000',
+      'pnpm dlx serve',
+      'ruby -run -e httpd',
+      'busybox httpd',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(['medium', 'high'].includes(r.level),
+        `${cmd} should be medium+ (got ${r.level})`);
+      assert.ok(r.reasons.some((x) => x.code === 'http-file-server'),
+        `${cmd}: expected http-file-server`);
+    }
+  });
+
+  it('http-file-server — non-server invocations stay low (regression)', () => {
+    for (const cmd of [
+      'python script.py',
+      'python -m unittest',
+      'python -m venv env',
+      'php script.php',
+      'npx eslint',
+      'pnpm dlx prettier',
+      'ruby script.rb',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'http-file-server'),
+        `${cmd}: should not match http-file-server`);
+    }
+  });
+
   it('reading non-credential dotfiles stays low (regression)', () => {
     for (const cmd of [
       'cat ~/.bashrc',         // routine
