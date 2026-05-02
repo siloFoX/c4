@@ -495,8 +495,11 @@ const CRITICAL_PATTERNS = [
   // a word char in `[a-zA-Z]+`.
   {
     code: 'kernel-module-load',
-    label: 'insmod / modprobe / rmmod (kernel module load/unload)',
-    re: /\b(?:insmod\b|modprobe\s+(?:-[a-zA-Z]+\s+)*[a-zA-Z_][a-zA-Z0-9_]+(?:\s|$|;|&|\|)|rmmod\b)/,
+    label: 'insmod / modprobe / rmmod / kpatch load (kernel module load/unload)',
+    // (v1.10.177) Extended with `kpatch load <file>` and
+    // `kpatch-build` — live kernel hot-patching loads code
+    // into the running kernel just like insmod/modprobe.
+    re: /\b(?:insmod\b|modprobe\s+(?:-[a-zA-Z]+\s+)*[a-zA-Z_][a-zA-Z0-9_]+(?:\s|$|;|&|\|)|rmmod\b|kpatch\s+(?:load|enable)\b|kpatch-build\b)/,
   },
 ];
 

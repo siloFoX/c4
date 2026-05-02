@@ -4,6 +4,19 @@
 
 (no entries — next release window)
 
+## [1.10.177] - 2026-05-03
+
+**`kernel-module-load` extended to `kpatch`.** Live kernel
+hot-patching loads code into the running kernel just like
+insmod/modprobe but uses a different toolchain. v1.10.135
+caught only insmod/modprobe/rmmod; this release adds
+`kpatch load`, `kpatch enable`, and `kpatch-build`.
+
+### Changed
+- **`kernel-module-load`** regex extended with `kpatch
+  load|enable` and `kpatch-build`. Same critical tier. List
+  forms (`kpatch list`, `kpatch info`) stay LOW.
+
 ## [1.10.176] - 2026-05-03
 
 **Backfill unit tests for v1.10.167-175 catalog rules.** The
