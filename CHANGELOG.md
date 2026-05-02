@@ -4,6 +4,69 @@
 
 (no entries — next release window)
 
+## [1.10.75] - 2026-05-02
+
+9.1 phase 2 follow-up — **CodexAdapter** scaffold lands as the
+PTY-driven adapter for OpenAI's `codex` CLI. C4 ships the wiring;
+the operator supplies the binary path + idle-detection patterns
+via config (codex's UI text drifts release-to-release, so
+hard-coding it would break on every codex upgrade).
+
+### Added
+- **`src/agents/codex.js`** — `CodexAdapter extends Adapter`.
+  Architecturally identical to `ClaudeCodeAdapter` (both wrap a
+  node-pty proc handed in by PtyManager via `init(workerCtx)`)
+  but with no claude-code-specific helpers — no trust prompt, no
+  bash / edit / create header parsing. Standard `KEY_MAP` for
+  Enter / Escape / Tab / Backspace / arrows / C-c / C-d. Unknown
+  key names pass through as raw bytes. `binary` and `args` opts
+  are informational (PtyManager owns the spawn). `metadata.name`
+  is fixed to `'codex'` since the registry key already names the
+  backend.
+
+  **Conservative `detectIdle`**: returns `false` until BOTH
+  `patterns.readyPrompt` AND `patterns.readyIndicator` are
+  configured AND present in the chunk. The daemon treats `true`
+  as "task done", and a too-permissive default would silently
+  declare tasks complete mid-flight. If you've configured codex
+  but tasks aren't auto-completing, your patterns probably aren't
+  matching — this is by design.
+
+  Patterns may come from either the positional `patterns` arg
+  (legacy callers) or `options.patterns` (per-type sub-bag config).
+  Positional wins on conflict. Both forms work.
+
+- **factory registration** — `'codex'` joins `REGISTRY` in
+  `src/agents/index.js`. `createAdapter({type: 'codex'})` returns
+  a `CodexAdapter`.
+
+- **`tests/agent-codex.test.js`** — 27 cases across 6 suites:
+  Adapter contract, pattern + binary plumbing (incl.
+  args-is-copied invariant + positional-vs-options.patterns
+  precedence), input / key forwarding (incl. unknown-key
+  pass-through + non-string `sendInput` rejection + null-proc
+  no-op safety), `detectIdle` conservative semantics (false
+  unless both patterns set + present, null/undefined chunk
+  safety), factory registration + opts forwarding, `init()`
+  context handling.
+
+  The cross-adapter contract test
+  (`tests/agent-adapter-contract.test.js`) automatically picked
+  up the new key — 41 → 49 cases (+8 for codex).
+
+### Changed
+- `tests/local-llm.test.js` REGISTRY canary widened from 5 keys
+  (claude-code + 3 local + mock) to 6 (+ codex). Comment updated
+  to mention v1.10.75 as the addition trip-wire.
+
+Suite 162 → 163. SDK spec version field 1.10.74 → 1.10.75.
+
+**9.1 phase 2 progress now**: (a) local-llm done under 9.2,
+(b) MockAdapter done (1.10.71), (c) adapter authoring guide done
+(1.10.72), (d) cross-adapter contract test done (1.10.74),
+(e) **CodexAdapter scaffold done (1.10.75)**. Pending:
+claude-agent-sdk adapter, adapter-aware task router.
+
 ## [1.10.74] - 2026-05-02
 
 9.1 phase 2 follow-up — cross-adapter contract test that exercises

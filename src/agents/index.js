@@ -48,6 +48,7 @@ const {
   LocalVllmAdapter,
 } = require('./local-llm');
 const MockAdapter = require('./mock');
+const CodexAdapter = require('./codex');
 
 const REGISTRY = {
   'claude-code': ClaudeCodeAdapter,
@@ -59,6 +60,11 @@ const REGISTRY = {
   // factory doesn't load production credentials so registering it
   // costs nothing.
   'mock': MockAdapter,
+  // (v1.10.75) codex adapter — PTY-driven scaffold for OpenAI's
+  // codex CLI. Operator supplies binary path + readyPrompt /
+  // readyIndicator patterns via config; C4 doesn't hard-code codex
+  // UI strings since they drift release-to-release.
+  'codex': CodexAdapter,
 };
 
 const DEFAULT_HYBRID_THRESHOLD = 2000;
@@ -173,4 +179,5 @@ module.exports = {
   LocalLlamaCppAdapter,
   LocalVllmAdapter,
   MockAdapter,
+  CodexAdapter,
 };
