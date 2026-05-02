@@ -563,6 +563,16 @@ const HIGH_PATTERNS = [
     label: 'chown -R',
     re: /\bchown\s+(?:-R\s+|--recursive\s+)/,
   },
+  // (v1.10.187) chown / chgrp on a sensitive file — taking
+  // ownership of /etc/passwd or /usr/bin/sshd lets the
+  // attacker modify it without sudo. Same threat shape as
+  // setfacl-sensitive (which catches ACL grants); this rule
+  // catches the simpler ownership-change form.
+  {
+    code: 'chown-sensitive',
+    label: 'chown / chgrp on /etc/<sensitive-file> or /usr/(s)bin/* (ownership takeover)',
+    re: /\b(?:chown|chgrp)\s+(?:[^\n;|&]*\s)?(?:\/etc\/(?:passwd|shadow|gshadow|group|sudoers|ssh\/sshd_config|crontab|fstab)|\/usr\/(?:local\/)?(?:s?bin|lib(?:64|32)?)\/\S+|\/sbin\/\S+)/,
+  },
   {
     code: 'kill-all',
     label: 'kill -9 -1 (kill every process)',

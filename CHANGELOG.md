@@ -4,6 +4,25 @@
 
 (no entries — next release window)
 
+## [1.10.187] - 2026-05-03
+
+**`chown-sensitive` (high) catalog pattern.** Taking ownership
+of a sensitive file lets the attacker modify it without
+sudo. Same threat shape as `setfacl-sensitive` (which catches
+ACL grants); this rule catches the simpler ownership-change
+form via `chown` / `chgrp`.
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `chown-sensitive`. Catches
+  `chown` / `chgrp` against:
+  - `/etc/passwd`, `/etc/shadow`, `/etc/gshadow`,
+    `/etc/group`, `/etc/sudoers`,
+    `/etc/ssh/sshd_config`, `/etc/crontab`, `/etc/fstab`
+  - System binaries: `/usr/(local/)?(s)bin/<file>`,
+    `/usr/(local/)?lib(64|32)?/<file>`, `/sbin/<file>`
+  Same HIGH tier. User files (`/home/user/*`) and `/tmp/*`
+  stay LOW.
+
 ## [1.10.186] - 2026-05-03
 
 **`time-tamper` (medium) catalog pattern.** System clock
