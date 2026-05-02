@@ -4,6 +4,25 @@
 
 (no entries — next release window)
 
+## [1.10.181] - 2026-05-03
+
+**`lang-pkg-global-install` extended to modern Python +
+homebrew tooling.** Same install-time-script threat as
+gem/cargo, just different commands. Five additional package
+managers covered.
+
+### Changed
+- **`lang-pkg-global-install`** regex extended with:
+  - `pipx install <pkg>` (isolated venv installer)
+  - `poetry add <pkg>` (poetry-managed install)
+  - `uv pip install <pkg>` (Astral's pip wrapper)
+  - `uv tool install <pkg>` (uv's pipx-equivalent)
+  - `brew install <tap>/<formula>` (homebrew with explicit
+    tap — third-party formula path)
+  Same HIGH tier. Bare formula installs (`brew install
+  ripgrep`), `cargo install --path .`, and info forms
+  (`pipx list`, `poetry --version`) stay LOW.
+
 ## [1.10.180] - 2026-05-03
 
 **`apt-key-trust` extended to RHEL/Fedora package trust.**

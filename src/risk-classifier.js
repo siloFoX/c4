@@ -853,7 +853,7 @@ const HIGH_PATTERNS = [
   },
   {
     code: 'lang-pkg-global-install',
-    label: 'gem install / cargo install (writes binaries to PATH-prefix dir, runs native install hooks)',
+    label: 'gem install / cargo install / pipx / poetry / uv (writes binaries to PATH-prefix dir, runs native install hooks)',
     // (v1.10.117) Same threat model as npm-global-install +
     // pip-install-user: package managers that write executables to
     // PATH-prefix directories AND run arbitrary code during install
@@ -865,7 +865,14 @@ const HIGH_PATTERNS = [
     // Excludes `bundle install` (Gemfile-driven, scoped) and
     // `cargo build` (no install). Catches the global-install verb
     // specifically.
-    re: /\b(?:gem\s+install\b|cargo\s+install\s+(?!--path\b))/,
+    // (v1.10.181) Extended to modern Python tooling that has
+    // the same install-time-script threat model:
+    //   pipx install <pkg>            isolated venv install
+    //   poetry add <pkg>              poetry-managed install
+    //   uv pip install <pkg>          Astral's uv pip wrapper
+    //   uv tool install <pkg>         uv's pipx-equivalent
+    //   brew install <tap>/<formula>  homebrew tap install
+    re: /\b(?:gem\s+install\b|cargo\s+install\s+(?!--path\b)|pipx\s+install\b|poetry\s+add\b|uv\s+(?:pip\s+install|tool\s+install)\b|brew\s+install\s+\S+\/\S+)/,
   },
   // (v1.10.170) setfacl on a sensitive file — POSIX ACL grant
   // bypasses standard unix perms. `setfacl -m u:evil:rwx
