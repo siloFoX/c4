@@ -558,6 +558,23 @@ const HIGH_PATTERNS = [
     label: 'chmod -R 777',
     re: /\bchmod\s+(?:-R\s+|--recursive\s+)+(?:0?777|a\+rwx)\b/,
   },
+  // (v1.10.188) chmod loosening permissions on a sensitive
+  // file. Two separate threat shapes:
+  //   1. `chmod 777 /etc/sudoers` makes sudoers
+  //      world-writable (any user can edit + add NOPASSWD).
+  //      Catches: any mode where "other" octet has write
+  //      bit (2, 3, 6, 7) on system-files list.
+  //   2. `chmod 644 /etc/shadow` makes shadow world-readable
+  //      (every password hash exposed). Catches: any mode
+  //      where "other" octet has read bit (4, 5, 6, 7) on
+  //      shadow/gshadow specifically.
+  // Symbolic equivalents (`o+w`, `a+w`, `o+r`, `a+r`) are
+  // also caught.
+  {
+    code: 'chmod-sensitive-file',
+    label: 'chmod loose perms on /etc/<sensitive-file> or /usr/(s)bin/* (perm loosening)',
+    re: /\bchmod\s+(?:[^\n;|&]*\s)?(?:0?[0-7][0-7][2367]|[ugoa]*\+[rwx]*w[rwx]*|[oa]*\+rwx)\s+(?:\/etc\/(?:passwd|shadow|gshadow|group|sudoers|ssh\/sshd_config|crontab|fstab)|\/usr\/(?:local\/)?(?:s?bin|lib(?:64|32)?)\/\S+|\/sbin\/\S+)|\bchmod\s+(?:[^\n;|&]*\s)?(?:0?[0-7][0-7][4567]|[ugoa]*\+[rwx]*r[rwx]*|[oa]*\+rwx)\s+\/etc\/g?shadow\b/,
+  },
   {
     code: 'chown-recursive',
     label: 'chown -R',

@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.188] - 2026-05-03
+
+**`chmod-sensitive-file` (high) catalog pattern.** Loosening
+permissions on a sensitive file is a classic attack
+primitive. Two threat shapes:
+
+1. **Write granted to non-owner** on system-files
+   (`/etc/sudoers`, `/etc/passwd`, etc) and system binaries
+   (`/usr/(s)bin/*`, `/usr/lib*/*`). Modes with "other"
+   octet bit 2 set (2/3/6/7) — i.e. `chmod 666 /etc/passwd`,
+   `chmod 777 /etc/sudoers`. Symbolic forms `a+w`, `o+w`,
+   `+rwx` also caught.
+2. **Read granted to non-owner** on shadow/gshadow
+   specifically — these files MUST be 600. Modes with "other"
+   octet bit 4 set (4/5/6/7) leak password hashes — i.e.
+   `chmod 644 /etc/shadow`. Symbolic `o+r`, `a+r` also
+   caught.
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `chmod-sensitive-file`. Same
+  threat family as `setfacl-sensitive` / `chown-sensitive`
+  but uses standard unix perms. Safe defaults (`chmod 600
+  /etc/shadow`, `chmod 644 /etc/passwd`, `chmod 440
+  /etc/sudoers`) and user files (`/tmp/*`, `/home/*`) stay
+  LOW.
+
 ## [1.10.187] - 2026-05-03
 
 **`chown-sensitive` (high) catalog pattern.** Taking ownership
