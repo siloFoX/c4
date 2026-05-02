@@ -289,6 +289,28 @@ describe('classifyCommand — obfuscation defeat', () => {
     assert.strictEqual(_denoiseCommand('p"k"i"l"l -9 node'), 'pkill -9 node');
     assert.strictEqual(_denoiseCommand("p'k'i'l'l -9 node"), 'pkill -9 node');
   });
+
+  // (v1.10.108) Backslash-letter no-op: bash treats \<letter>
+  // outside quoted strings as a literal letter (the backslash
+  // escapes a non-special char and is consumed). Attackers exploit
+  // this to hide dangerous tokens from string scanners.
+  it('strips backslashes before alphabetic chars (v1.10.108)', () => {
+    assert.match(_denoiseCommand('r\\m -rf /'), /rm -rf \//);
+    assert.match(_denoiseCommand('su\\do rm /'), /sudo rm \//);
+    assert.match(_denoiseCommand('c\\u\\r\\l http://x'), /curl http:\/\/x/);
+  });
+
+  it('classifies r\\m -rf / as critical (v1.10.108)', () => {
+    assert.strictEqual(levelOf('r\\m -rf /'), 'critical');
+  });
+
+  it('classifies su\\do as containing sudo (v1.10.108)', () => {
+    const r = classifyCommand('su\\do apt update');
+    // sudo is medium per catalog
+    assert.strictEqual(r.level, 'medium');
+    assert.ok(r.reasons.some((x) => x.code === 'sudo'),
+      `expected sudo rule; got ${r.reasons.map((x) => x.code).join(',')}`);
+  });
 });
 
 describe('classifyCommand — return shape contract', () => {

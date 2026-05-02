@@ -4,6 +4,62 @@
 
 (no entries — next release window)
 
+## [1.10.108] - 2026-05-03
+
+**Risk classifier — backslash-letter obfuscation defeat (10th
+defeat)**. Closes a real gap where `r\m -rf /` and `su\do
+rm -rf /` were classified as LOW because the catalog's regexes
+couldn't see the dangerous tokens through the backslash
+escapes.
+
+### Why this matters
+
+Bash treats `\<letter>` outside quoted strings as a literal
+letter — the backslash escapes a non-special char and is
+consumed during shell expansion. So `r\m -rf /` runs as `rm -rf
+/`. An attacker controlling worker input could use this to
+slip past the classifier's prefix-deny patterns.
+
+Pre-1.10.108:
+```sh
+$ c4 risk "r\m -rf /"
+Level:    LOW
+Reasons:  (no patterns matched)
+```
+
+Post-1.10.108:
+```sh
+$ c4 risk "r\m -rf /"
+Level:    CRITICAL
+Reasons:
+  - [rm-rf-root] rm -rf at filesystem root
+Decoded:  rm -rf /
+```
+
+### Changed
+- **`_denoiseCommand`** in `src/risk-classifier.js` — strips
+  `\<letter>` before pattern matching. The regex carves out
+  `\u<hex>` and `\x<hex>` so the existing ANSI-C decoder
+  (v1.10.58 / v1.10.65) keeps working — without that carve-
+  out the strip would eat the `\u` / `\x` prefix and break
+  Unicode/hex obfuscation defeats.
+
+  Added 9 → 10 obfuscation defeats in the classifier.
+
+### Test coverage
+- **`tests/risk-classifier.test.js`** — 3 new cases:
+  - `_denoiseCommand` strips `\<letter>` (`r\m`, `su\do`,
+    `c\u\r\l`)
+  - `r\m -rf /` classified as critical
+  - `su\do apt update` includes the `sudo` reason
+
+  Suite stays at 175. risk-classifier file: 135 → 138 cases.
+
+### Verified compatibility
+- `$'\xHH'` ANSI-C hex escapes still work (regression-tested)
+- `$'\uHHHH'` ANSI-C Unicode escapes still work
+- All 9 prior obfuscation defeats unchanged
+
 ## [1.10.107] - 2026-05-03
 
 **AppHeader logo a11y + sidebar empty state browser tests**.

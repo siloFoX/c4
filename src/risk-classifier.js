@@ -519,6 +519,20 @@ function _denoiseCommand(cmd) {
   out = out.replace(/\$\{IFS\}/g, '');
   out = out.replace(/\$IFS\b/g, '');
 
+  // (v1.10.108) Backslash-letter no-op:
+  //   r\m -rf /        → rm -rf /
+  //   su\do            → sudo
+  //   c\u\r\l          → curl
+  // Bash treats `\<letter>` outside quoted strings as a no-op
+  // (the backslash escapes a non-special char). Attackers exploit
+  // this to hide dangerous tokens from naive scanners. We strip
+  // backslashes that appear before an alphabetic character — but
+  // NOT when the next char is `u` / `x` followed by a hex digit
+  // (those are ANSI-C escapes `$'\xHH' / $'\uHHHH'` decoded by the
+  // pass below). Without that carve-out, this strip would eat the
+  // \x / \u prefix and break the ANSI-C decoder.
+  out = out.replace(/\\(?![ux][0-9a-fA-F])([A-Za-z])/g, '$1');
+
   // IFS / quote insertions inside common dangerous tokens. Unwrap
   // alphabetic quoted segments only when they're adjacent to another
   // letter (so r"m" -> rm, su"do" -> sudo, c"url" -> curl) without
