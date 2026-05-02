@@ -4,6 +4,57 @@
 
 (no entries — next release window)
 
+## [1.10.94] - 2026-05-02
+
+11.5 Stage 2 polish — **Slack alerts on shadow exec anomalies**.
+Operators get a heads-up when a `/risk/exec` run kills on
+timeout, exits non-zero, or hits a spawn error. Routine
+successful runs stay silent so the channel doesn't flood.
+
+### Added
+- **Daemon `POST /risk/exec`** fires a Slack notification when:
+  - `killed === true` (host-side timeout fired) → tag `KILLED`
+  - `exitCode != 0` → tag `EXIT-N`
+  - `spawnError` is a non-empty string → tag `SPAWN-ERROR`
+
+  Format: `[SHADOW-EXEC <tag>] runtime=<name> cmd=<command 200>
+  <detail>` where `<detail>` is `dur=Nms` for timeout/exit cases
+  or the spawnError message (capped at 200 chars).
+
+  Respects the existing `riskClassifier.notifySlack` config —
+  setting it to `false` suppresses the alert.
+
+  Wrapped in try/swallow so a failing webhook never breaks the
+  response.
+
+### Why anomalies only
+
+Routine `c4 risk --shadow-exec "echo hi"` runs would flood the
+Slack channel if every success notified. The three anomaly
+triggers map to operationally interesting events:
+
+- **KILLED**: workload exceeded runtime budget (timeout config
+  drift OR a workload pattern that wants more time)
+- **EXIT-N**: command failed inside the sandbox (interesting for
+  failure-mode investigation)
+- **SPAWN-ERROR**: runtime broke (docker daemon down, image
+  pull failed, etc.) — actionable
+
+Successful runs still go to the audit chain + scribe-v2 timeline,
+so operators can query history without depending on Slack.
+
+### Test coverage
+- **`tests/risk-exec-endpoint.test.js`** — 6 new cases under
+  "Slack alert on shadow exec anomalies (v1.10.94)" describe:
+  - handler fires Slack on `killed=true`
+  - handler fires Slack on non-zero `exitCode`
+  - handler fires Slack on `spawnError`
+  - respects `riskClassifier.notifySlack=false`
+  - tag distinguishes `KILLED` / `SPAWN-ERROR` / `EXIT-N`
+  - notification path wrapped in try/swallow
+
+  Suite stays at 172.
+
 ## [1.10.93] - 2026-05-02
 
 UX — **`c4 --version` / `-v` / `version` print the package version

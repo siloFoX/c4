@@ -148,6 +148,53 @@ describe('config-validate — allowExec', () => {
   });
 });
 
+describe('Slack alert on shadow exec anomalies (v1.10.94)', () => {
+  it('handler fires Slack notification on killed=true', () => {
+    const start = daemonSrc.indexOf("route === '/risk/exec'");
+    const end = daemonSrc.indexOf("route === '/risk/preview'", start);
+    const block = daemonSrc.slice(start, end);
+    assert.match(block, /execResult\.killed === true/);
+    assert.match(block, /\[SHADOW-EXEC \$\{tag\}\]/);
+  });
+
+  it('handler fires Slack notification on non-zero exitCode', () => {
+    const start = daemonSrc.indexOf("route === '/risk/exec'");
+    const end = daemonSrc.indexOf("route === '/risk/preview'", start);
+    const block = daemonSrc.slice(start, end);
+    assert.match(block, /execResult\.exitCode !== 0/);
+  });
+
+  it('handler fires Slack notification on spawnError', () => {
+    const start = daemonSrc.indexOf("route === '/risk/exec'");
+    const end = daemonSrc.indexOf("route === '/risk/preview'", start);
+    const block = daemonSrc.slice(start, end);
+    assert.match(block, /typeof execResult\.spawnError === 'string'/);
+  });
+
+  it('respects riskClassifier.notifySlack=false override', () => {
+    const start = daemonSrc.indexOf("route === '/risk/exec'");
+    const end = daemonSrc.indexOf("route === '/risk/preview'", start);
+    const block = daemonSrc.slice(start, end);
+    assert.match(block, /riskCfg2\.notifySlack !== false/);
+  });
+
+  it('tag distinguishes KILLED / SPAWN-ERROR / EXIT-N', () => {
+    const start = daemonSrc.indexOf("route === '/risk/exec'");
+    const end = daemonSrc.indexOf("route === '/risk/preview'", start);
+    const block = daemonSrc.slice(start, end);
+    assert.match(block, /KILLED/);
+    assert.match(block, /SPAWN-ERROR/);
+    assert.match(block, /EXIT-\$\{execResult\.exitCode\}/);
+  });
+
+  it('notification path is wrapped in try/swallow (no notification failure breaks response)', () => {
+    const start = daemonSrc.indexOf("route === '/risk/exec'");
+    const end = daemonSrc.indexOf("route === '/risk/preview'", start);
+    const block = daemonSrc.slice(start, end);
+    assert.match(block, /swallow notification failures/);
+  });
+});
+
 describe('c4 doctor sandbox check — shadow exec gate visibility (v1.10.88)', () => {
   const fs = require('fs');
   const cliSrc = fs.readFileSync(

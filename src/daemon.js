@@ -1819,6 +1819,30 @@ async function handleRequest(req, res) {
                   });
                 }
               } catch { /* swallow audit failures */ }
+              // (v1.10.94) Slack alert on anomalies — fires only
+              // when something noteworthy happened so routine
+              // shadow exec runs don't flood the channel:
+              //   - killed=true (timeout fired)
+              //   - exitCode != 0 (command failed)
+              //   - spawnError set (runtime broke unexpectedly)
+              try {
+                const riskCfg2 = cfgNow2.riskClassifier || {};
+                const anomaly = execResult.killed === true
+                  || (typeof execResult.exitCode === 'number' && execResult.exitCode !== 0)
+                  || (typeof execResult.spawnError === 'string' && execResult.spawnError);
+                if (anomaly && (riskCfg2.notifySlack !== false) && manager._notifications) {
+                  const tag = execResult.killed ? 'KILLED'
+                    : execResult.spawnError ? 'SPAWN-ERROR'
+                    : `EXIT-${execResult.exitCode}`;
+                  const detail = execResult.spawnError
+                    ? execResult.spawnError.slice(0, 200)
+                    : `dur=${execResult.durationMs}ms`;
+                  manager._notifications.pushAll(
+                    `[SHADOW-EXEC ${tag}] runtime=${execResult.runtime.name} cmd=${command.slice(0, 200)} ${detail}`,
+                  );
+                  manager._notifications._flushSlack();
+                }
+              } catch { /* swallow notification failures */ }
               result = execResult;
             } catch (innerErr) {
               if (innerErr instanceof BlockedByRuntimeError) {
