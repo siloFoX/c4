@@ -4,6 +4,44 @@
 
 (no entries — next release window)
 
+## [1.10.64] - 2026-05-02
+
+5 new patterns covering library injection, cron drop-ins,
+PATH-write downloads, at scheduling, and PATH hijack via
+writable dirs. Catalog 44 → 49.
+
+### Added (critical)
+- **`ld-preload-write`** — `> /etc/ld.so.preload` and
+  `/etc/ld.so.conf.d/*` writes. Library injection primitive
+  with no benign cause.
+- **`cron-d-write`** — writes into `/etc/cron.{d,daily,
+  hourly,weekly,monthly}/`. Each lands a root-scheduled
+  job; the existing `system-files` rule covered
+  `/etc/crontab` but not the directory variants.
+
+### Added (high)
+- **`download-into-path`** — `curl/wget ... -o /usr/local/bin/foo`
+  / `/usr/bin/`, `/usr/sbin/`, `/sbin/`, `/opt/*/bin`. Typical
+  persistence vehicle on a compromised host. Downloads into
+  `/tmp` are NOT flagged (locked in via boundary test).
+
+### Added (medium)
+- **`at-schedule`** — `at midnight`, `at -f script.sh now`,
+  `at +1 hour`. Delayed execution scheduler — review-worthy
+  even with a benign-looking inner command since the queued
+  work runs detached. Lazy-match between `at` and the time
+  keyword so flag combinations + script paths resolve. Word
+  boundary `\bat\b` anchors so `cat`, `data`, `date` don't
+  collide.
+- **`path-hijack`** — `export PATH=/tmp:$PATH` (or
+  `/var/tmp`, `~/.cache`, `$HOME/.cache`). Anyone who can
+  write to that dir gets to shim subsequent commands.
+  Regular updates like `export PATH=$HOME/bin:$PATH` are
+  NOT flagged.
+
+10 new tests in risk-classifier.test.js (120 cases, was
+110). Suite 157/157.
+
 ## [1.10.63] - 2026-05-02
 
 Risk classifier dry-run mode — observe-only enforcement.
