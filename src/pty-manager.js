@@ -19,6 +19,7 @@ const AdaptivePolling = require('./adaptive-polling');
 const TerminalInterface = require('./terminal-interface');
 const SummaryLayer = require('./summary-layer');
 const validationLib = require('./validation');
+const riskClassifier = require('./risk-classifier');
 const interventionState = require('./intervention-state');
 const { ApprovalMonitor } = require('./approval-monitor');
 const postCompactHook = require('./post-compact-hook');
@@ -500,6 +501,57 @@ class PtyManager extends EventEmitter {
 
   _handlePreToolUse(workerName, worker, toolName, toolInput, event) {
     const result = { received: true, worker: workerName, hook_type: 'PreToolUse' };
+
+    // (11.5) Risk classifier check — runs BEFORE scope guard so the
+    // most dangerous commands get blocked even when scope is permissive.
+    // Opt-in via config.riskClassifier.enabled. autoDenyLevel governs
+    // the threshold: 'critical' blocks only the most catastrophic
+    // commands (rm -rf /, fork bombs, mkfs, dd to block devices…),
+    // 'high' tightens the net to also catch sudo, force pushes, system
+    // file writes, etc. Default off so existing deployments don't see
+    // surprise enforcement.
+    if (toolName === 'Bash' || toolName === 'bash') {
+      const command = toolInput.command || '';
+      const riskCfg = (this.config && this.config.riskClassifier) || {};
+      if (riskCfg.enabled && command) {
+        const classification = riskClassifier.classifyCommand(command);
+        const autoDenyLevel = ['low', 'medium', 'high', 'critical'].includes(riskCfg.autoDenyLevel)
+          ? riskCfg.autoDenyLevel
+          : 'critical';
+        const LEVEL_RANK = { low: 0, medium: 1, high: 2, critical: 3 };
+        if (LEVEL_RANK[classification.level] >= LEVEL_RANK[autoDenyLevel]) {
+          const reasonCodes = classification.reasons.map((r) => r.code).join(', ');
+          const reasonLabel = classification.reasons[0] ? classification.reasons[0].label : classification.level;
+          worker.snapshots.push({
+            time: Date.now(),
+            screen: `[HOOK RISK ${classification.level.toUpperCase()}] Bash: ${command}\n  reasons: ${reasonCodes}`,
+            autoAction: true,
+            riskBlock: true,
+            hookEvent: true,
+          });
+          this._emitSSE('risk_deny', {
+            worker: workerName,
+            level: classification.level,
+            command,
+            reasons: classification.reasons.map((r) => ({ code: r.code, label: r.label })),
+            decoded: classification.decoded || null,
+          });
+          if (riskCfg.notifySlack !== false && this._notifications) {
+            try {
+              this._notifications.pushAll(
+                `[RISK ${classification.level.toUpperCase()} DENY] ${workerName}: ${reasonLabel}\n  cmd: ${command.slice(0, 200)}`,
+              );
+              this._notifications._flushSlack();
+            } catch { /* non-fatal */ }
+          }
+          result.action = 'deny';
+          result.reason = `risk-classifier ${classification.level}: ${reasonLabel}`;
+          result.riskLevel = classification.level;
+          result.riskReasons = reasonCodes;
+          return result;
+        }
+      }
+    }
 
     // Scope guard check via structured data (more accurate than screen parsing)
     if (worker.scopeGuard && worker.scopeGuard.hasRestrictions()) {

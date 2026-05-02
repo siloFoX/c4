@@ -525,5 +525,12 @@
     "validateRequests": false,
     "_validateResponses_doc": "When true, every JSON response gets validated against the spec's response schema and a warning logged on drift. Doesn't reject responses — pure observability for dev / staging. Default false.",
     "validateResponses": false
+  },
+
+  "_riskClassifier_doc": "(11.5) Hook-level command risk gate. PreToolUse hook routes Bash commands through risk-classifier.js; commands at or above autoDenyLevel get auto-denied + Slack-alerted. Off by default — enable for L4 autonomous runs where the operator can't review every command.",
+  "riskClassifier": {
+    "enabled": false,
+    "autoDenyLevel": "critical",
+    "notifySlack": true
   }
 }

@@ -175,6 +175,43 @@ function validate(config = {}) {
     }
   }
 
+  // -- riskClassifier.* (v1.10.49): same typo-guard pattern as openapi.
+  // enabled=true with autoDenyLevel='high' is the L4 production setting
+  // — flag misspelt levels here so the daemon doesn't silently fall back
+  // to 'critical' (the safe default).
+  if (config.riskClassifier && typeof config.riskClassifier === 'object') {
+    const KNOWN_RISK_KEYS = new Set([
+      'enabled',
+      'autoDenyLevel',
+      'notifySlack',
+    ]);
+    for (const [k, v] of Object.entries(config.riskClassifier)) {
+      if (k.startsWith('_') && k.endsWith('_doc')) continue;
+      if (!KNOWN_RISK_KEYS.has(k)) {
+        warnings.push({
+          path: `riskClassifier.${k}`,
+          message: `unknown riskClassifier key — known: ${[...KNOWN_RISK_KEYS].join(', ')}`,
+        });
+        continue;
+      }
+      if (k === 'autoDenyLevel') {
+        if (typeof v !== 'string' || !['low', 'medium', 'high', 'critical'].includes(v)) {
+          errors.push({
+            path: 'riskClassifier.autoDenyLevel',
+            message: `must be one of low|medium|high|critical, got ${JSON.stringify(v)}`,
+          });
+        }
+        continue;
+      }
+      if (typeof v !== 'boolean') {
+        errors.push({
+          path: `riskClassifier.${k}`,
+          message: `must be a boolean, got ${typeof v}`,
+        });
+      }
+    }
+  }
+
   // -- openapi.* (v1.10.43): catch typos before they silently no-op.
   // Fields that look like booleans get a type check; unknown sibling
   // keys get a warning so `validateRequsts: true` (typo) doesn't sit

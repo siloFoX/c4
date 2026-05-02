@@ -4,6 +4,52 @@
 
 (no entries — next release window)
 
+## [1.10.49] - 2026-05-02
+
+11.5 follow-up: PreToolUse hook now routes Bash commands
+through risk-classifier. The classifier itself shipped in
+v1.10.x as a pure module with 28 patterns; this version
+turns it on as a working enforcement gate.
+
+### Added
+- **(pty-manager) PreToolUse risk gate.** Bash commands run
+  through `risk-classifier.classifyCommand()` before the
+  scope guard sees them. Levels at or above
+  `riskClassifier.autoDenyLevel` (default 'critical') get
+  auto-denied:
+  - snapshot recorded with `riskBlock: true` and human-
+    readable reason codes
+  - `risk_deny` SSE event fires with worker / level /
+    command / reasons[] / decoded payload
+  - Slack notification (suppress via `notifySlack: false`)
+  - hook return: `{action: 'deny', reason, riskLevel, riskReasons}`
+  - runs BEFORE scope guard so catastrophic commands stay
+    blocked even when scope is permissive
+
+  Off by default — enable for L4 autonomous runs where the
+  operator can't review every command.
+
+- **(config) `riskClassifier` block.** Three knobs:
+  `enabled` (default false), `autoDenyLevel` (default
+  'critical', also accepts 'high' / 'medium' / 'low'),
+  `notifySlack` (default true). config.example.json gets a
+  `_riskClassifier_doc` sibling describing the threshold
+  trade-off.
+
+- **(config-validate) Type-checks the riskClassifier block.**
+  Unknown keys → warning, non-boolean enabled/notifySlack
+  → error, autoDenyLevel outside the level set → error.
+  Mirrors the v1.10.43 openapi.* validator pattern.
+
+- **(tests) `tests/risk-classifier-hook.test.js`** — 10 unit
+  tests with a stubbed PtyManager: opt-in gating, level
+  threshold matrix (critical / high / low), SSE payload
+  shape, snapshot recording, scope-guard interleaving,
+  non-Bash bypass, empty-command short-circuit, invalid
+  autoDenyLevel fallback.
+
+Suite 153 → 154.
+
 ## [1.10.48] - 2026-05-02
 
 Regression guard for the v1.10.47 missing-route fix.
