@@ -1266,12 +1266,17 @@ class PtyManager extends EventEmitter {
       } catch {}
     }
     if (!projectDir) projectDir = this._getProjectDir();
-    if (!projectDir) return { input: 0, output: 0 };
+    if (!projectDir) return { input: 0, output: 0, model: null };
     const file = path.join(projectDir, `${sessionId}.jsonl`);
-    if (!fs.existsSync(file)) return { input: 0, output: 0 };
+    if (!fs.existsSync(file)) return { input: 0, output: 0, model: null };
     let content;
-    try { content = fs.readFileSync(file, 'utf8'); } catch { return { input: 0, output: 0 }; }
+    try { content = fs.readFileSync(file, 'utf8'); } catch { return { input: 0, output: 0, model: null }; }
     let input = 0, output = 0;
+    // (v1.10.99) Capture the dominant model — the one with the most
+    // assistant turns wins. Lets cost-report bill accurately when the
+    // worker switched models mid-session (rare but happens via
+    // /model). Tie goes to the last seen.
+    const modelCounts = new Map();
     for (const line of content.split('\n')) {
       const trimmed = line.trim();
       if (!trimmed) continue;
@@ -1282,9 +1287,18 @@ class PtyManager extends EventEmitter {
           if (usage.input_tokens) input += usage.input_tokens;
           if (usage.output_tokens) output += usage.output_tokens;
         }
+        const model = obj.message?.model || obj.model;
+        if (typeof model === 'string' && model.length > 0) {
+          modelCounts.set(model, (modelCounts.get(model) || 0) + 1);
+        }
       } catch {}
     }
-    return { input, output };
+    let dominantModel = null;
+    let bestCount = 0;
+    for (const [m, c] of modelCounts) {
+      if (c >= bestCount) { dominantModel = m; bestCount = c; }
+    }
+    return { input, output, model: dominantModel };
   }
 
   // --- Task Queue helpers (2.2, 2.3, 2.8) ---
@@ -5049,6 +5063,27 @@ class PtyManager extends EventEmitter {
       commits: this._getCommits(worker.branch),
       status: worker.alive ? 'closed' : 'exited'
     };
+    // (v1.10.99) Cost attribution — pull token usage + dominant model
+    // from the worker's Claude Code session JSONL so cost-report can
+    // bill accurately. Best-effort: any failure (no session, no
+    // project dir, unreadable JSONL) leaves the cost fields off the
+    // record entirely so legacy consumers see no shape change.
+    try {
+      const sessionId = worker._sessionId || null;
+      if (sessionId) {
+        const tokens = this._readSessionTokens(sessionId, worker.worktree);
+        if (tokens && (tokens.input > 0 || tokens.output > 0)) {
+          record.sessionId = sessionId;
+          record.inputTokens = tokens.input;
+          record.outputTokens = tokens.output;
+          if (tokens.model) record.model = tokens.model;
+          // ISO timestamp for cost-report's record-shape contract.
+          // record.completedAt already covers this but cost-report
+          // looks for `timestamp` specifically.
+          record.timestamp = record.completedAt;
+        }
+      }
+    } catch { /* swallow — history write must not depend on session JSONL */ }
     try {
       fs.appendFileSync(HISTORY_FILE, JSON.stringify(record) + '\n');
     } catch (e) {

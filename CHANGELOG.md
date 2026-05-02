@@ -4,6 +4,65 @@
 
 (no entries — next release window)
 
+## [1.10.99] - 2026-05-02
+
+**Cost-report data enrichment**: history.jsonl now carries token
+counts + model so cost-report has actual data to bill against.
+Pre-1.10.99, the cost-report module aggregated history records
+correctly but every record lacked the token + model fields it
+needed; v1.10.98 fixed the rate table, this fix populates the
+data path it operates on.
+
+### Changed
+- **`PtyManager._readSessionTokens(sessionId, workerDir)`** now
+  returns `{input, output, model}` (was `{input, output}`). The
+  model is the dominant model — the one with the most assistant
+  turns in the session JSONL — so workers that switched mid-
+  session get billed against where they spent most of their
+  time. Tie goes to the last seen.
+
+- **`PtyManager._recordHistory(name, worker)`** enriches the
+  history row with cost fields when `worker._sessionId` resolves
+  and the session has non-zero tokens:
+  ```js
+  record.sessionId    = '<session-id>';
+  record.inputTokens  = <n>;
+  record.outputTokens = <n>;
+  record.model        = '<dominant-model>';
+  record.timestamp    = record.completedAt;  // cost-report contract
+  ```
+
+  Best-effort: any failure (missing session, unreadable JSONL,
+  no project dir) falls through cleanly so the existing fields
+  always land. Legacy consumers see no shape change.
+
+### Test coverage
+- **`tests/cost-history-enrichment.test.js`** (new) — 12 cases /
+  3 suites:
+  - `_readSessionTokens` source-grep — model+tokens shape,
+    null-on-no-model, dominant-model tie-break logic
+  - `_recordHistory` source-grep — calls
+    `_readSessionTokens`, gates on non-zero tokens, attaches
+    `sessionId/inputTokens/outputTokens/model/timestamp`,
+    best-effort try/swallow
+  - **Behavioural** — synthetic claude JSONL → real
+    `readSessionTokens()` returns the expected
+    `{input, output, model}`. Covers token aggregation,
+    dominant-model selection, missing-model fallback,
+    missing-file fallback, malformed-JSONL skip.
+
+  Suite 173 → 174.
+
+### Cost-report end-to-end now usable
+
+With v1.10.98 (rate table for 4.x IDs) + v1.10.99 (enriched
+history records), `c4 cost report` over a window of real worker
+activity now produces the actual dollars spent, not the
+default-rate placeholder. No new endpoint, no config change —
+the existing `/cost/report` endpoint reads
+`loadHistoryRecords(history.jsonl)` and now sees the fields it
+needs.
+
 ## [1.10.98] - 2026-05-02
 
 **Cost-report fix — recognize specific 4.x model IDs**. Reports
