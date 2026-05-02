@@ -1493,6 +1493,91 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.129) Three new critical patterns: container escape
+  // via /proc namespace tricks, kernel replacement via kexec,
+  // SysV init persistence.
+  it('proc-namespace-write: /proc/<pid>/root/* and /proc/self/exe → critical (v1.10.129)', () => {
+    for (const cmd of [
+      'echo evil > /proc/self/exe',
+      'cat malicious > /proc/1/root/etc/passwd',
+      'cat key | sudo tee /proc/1/root/etc/sudoers',
+      'echo "backdoor" >> /proc/123/root/home/admin/.bashrc',
+      'cat shell | tee -a /proc/self/root/etc/profile',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'proc-namespace-write'),
+        `${cmd}: expected proc-namespace-write`);
+    }
+  });
+
+  it('proc-namespace-write — read stays low (regression)', () => {
+    for (const cmd of [
+      'cat /proc/self/exe',           // read the running binary path
+      'cat /proc/cpuinfo',
+      'cat /proc/self/cmdline',
+      'ls /proc/1/root/',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'proc-namespace-write'),
+        `${cmd}: should not match proc-namespace-write`);
+    }
+  });
+
+  it('kexec-load: kexec -l / --load / -e → critical (v1.10.129)', () => {
+    for (const cmd of [
+      'kexec -l /boot/vmlinuz --initrd=/boot/initrd',
+      'kexec --load /boot/new-kernel',
+      'kexec -e',
+      'kexec --exec',
+      'sudo kexec -l /boot/vmlinuz',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'kexec-load'),
+        `${cmd}: expected kexec-load`);
+    }
+  });
+
+  it('kexec-load — informational flags stay low (regression)', () => {
+    for (const cmd of [
+      'kexec --status',
+      'kexec --help',
+      'man kexec',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'kexec-load'),
+        `${cmd}: should not match kexec-load`);
+    }
+  });
+
+  it('sysv-init-write: writes to /etc/init.d/, /etc/rc.d/, /etc/rc.local → critical (v1.10.129)', () => {
+    for (const cmd of [
+      'cat malware > /etc/init.d/network',
+      'echo evil > /etc/rc.local',
+      'cat script | tee -a /etc/rc.d/local.start',
+      'echo "evil" >> /etc/init.d/sshd',
+      'cat payload | tee /etc/rc.d/init.d/persist',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'sysv-init-write'),
+        `${cmd}: expected sysv-init-write`);
+    }
+  });
+
+  it('sysv-init-write — read / list stays low (regression)', () => {
+    for (const cmd of [
+      'cat /etc/init.d/network',
+      'ls /etc/rc.d/',
+      'service network status',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'sysv-init-write'),
+        `${cmd}: should not match sysv-init-write`);
+    }
+  });
+
   it('setcap-cap — getcap / read / mention stays low (regression)', () => {
     for (const cmd of [
       'getcap /usr/bin/ping',                       // read, not set

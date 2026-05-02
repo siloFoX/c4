@@ -4,6 +4,44 @@
 
 (no entries — next release window)
 
+## [1.10.129] - 2026-05-03
+
+**Three new critical patterns**: container escape via /proc
+namespace tricks, kernel replacement via kexec, SysV init
+persistence. Each closes a catastrophic threat surface that
+the existing 70-pattern catalog left silent.
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `proc-namespace-write`.
+  Catches redirects/tees into `/proc/<pid>/root/...` (host
+  filesystem from a container with `pid_namespace=host`, or
+  PID 1 from any process — the canonical container escape
+  primitive) and `/proc/self/exe` (overwrites the running
+  binary's memory map for in-memory persistence).
+- **`PATTERN_CATALOG.critical`** entry `kexec-load`. Catches
+  `kexec -l`, `--load`, `-e`, `--exec`. Loads a replacement
+  kernel image — the running kernel can be hot-swapped without
+  touching disk-backed binaries, defeating disk-based forensics.
+  No benign worker reason to load a new kernel.
+- **`PATTERN_CATALOG.critical`** entry `sysv-init-write`.
+  Catches redirects/tees into `/etc/init.d/<service>`,
+  `/etc/rc.d/<script>`, or `/etc/rc.local`. Older but still
+  active on many distros (Debian/Ubuntu inherit init.d).
+  Parallel to `systemd-unit-write` but with different filesystem
+  locations that the existing rule doesn't cover.
+
+- **`tests/risk-classifier.test.js`**: 6 new `it()` cases —
+  3 attack assertions (5 commands each) + 3 regression
+  assertions (read/list/info-flags stay LOW). Suite stays at
+  175. Risk-classifier file 200 → 206 cases.
+
+### Catalog totals
+- Critical: 22 patterns (+3: proc-namespace-write, kexec-load,
+  sysv-init-write)
+- High: 30 patterns (+0)
+- Medium: 18 patterns (+0)
+- **Total: 70 → 73**
+
 ## [1.10.128] - 2026-05-03
 
 **`${VAR:?}` parameter expansion semantics fixed.** v1.10.109

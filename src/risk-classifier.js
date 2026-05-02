@@ -245,6 +245,38 @@ const CRITICAL_PATTERNS = [
     label: 'bash/sh/zsh -c "..." carrying a network fetch',
     re: /\b(?:bash|sh|zsh|fish)\s+-c\s+["'][^"'\n]*\b(?:curl|wget|fetch|http)\b/,
   },
+  // (v1.10.129) /proc/<pid>/root/* and /proc/self/exe writes —
+  // namespace-bypassing primitives. /proc/<pid>/root/ exposes
+  // the host filesystem when mounted from a container with
+  // pid_namespace=host (or PID 1 in any namespace). Writing to
+  // /proc/self/exe overwrites the running binary's memory map
+  // — classic in-memory persistence / privilege primitive.
+  // /proc/1/root/<anything> is the container-escape pattern.
+  {
+    code: 'proc-namespace-write',
+    label: 'write to /proc/<pid>/root/* or /proc/self/exe (container escape / binary overwrite)',
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/proc\/(?:\d+|self)\/(?:root\/\S+|exe\b)/,
+  },
+  // (v1.10.129) kexec --load / -l — schedule a replacement
+  // kernel for the next boot or hot-swap. Catastrophic
+  // persistence + anti-detection: the running kernel can be
+  // swapped without touching disk-backed binaries. No benign
+  // worker reason to load a new kernel image.
+  {
+    code: 'kexec-load',
+    label: 'kexec -l / --load (kernel replacement at boot)',
+    re: /\bkexec\s+(?:[^\n;|&]*\s)?(?:-l\b|--load\b|-e\b|--exec\b)/,
+  },
+  // (v1.10.129) SysV init persistence — /etc/init.d/<service>,
+  // /etc/rc.d/<script>, /etc/rc.local. Older but still active
+  // on many distros (Debian / Ubuntu inherit init.d). Parallel
+  // to systemd-unit-write but with a different filesystem
+  // location, so the existing rule misses these.
+  {
+    code: 'sysv-init-write',
+    label: 'write to /etc/init.d/, /etc/rc.d/, or /etc/rc.local (SysV persistence)',
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/etc\/(?:init\.d\/[\w.-]+|rc\.d\/[\w.-]+|rc\.local\b)/,
+  },
 ];
 
 // High: dangerous but legitimately useful. Escalate to operator.
