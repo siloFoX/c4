@@ -42,6 +42,11 @@ const EVENT_TYPES = Object.freeze([
   'merge_success',
   'halt',
   'error',
+  // (v1.10.66) Risk classifier denial — fires when the PreToolUse
+  // hook blocks (or dry-run-blocks) a Bash command. Distinct from
+  // the audit-chain risk.denied / risk.dryRun rows so scribe-v2
+  // can be queried independently of audit hash chain.
+  'risk_deny',
 ]);
 
 const EVENT_TYPE_SET = new Set(EVENT_TYPES);

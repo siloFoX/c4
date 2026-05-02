@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.66] - 2026-05-02
+
+scribe-v2 timeline now carries `risk_deny` events alongside
+task_start / merge_attempt / halt / etc.
+
+### Added
+- **(scribe-v2) `risk_deny` event type** — added as a
+  first-class entry in `EVENT_TYPES`. Fires whenever the
+  PreToolUse hook blocks (or dry-run-blocks) a Bash command.
+  Distinct from the audit-chain `risk.denied` /
+  `risk.dryRun` rows so the scribe-v2 timeline can be
+  queried via `c4 events --type risk_deny` independently of
+  the audit hash chain.
+- **(daemon) Mirror wiring**: `manager.on('sse', risk_deny
+  → safeRecord('risk_deny', ...))` runs alongside the
+  existing audit handler. Same payload shape (level /
+  reasons / command / dryRun) trimmed to the scribe-v2
+  conventions.
+- **(scribe-v2 test)** EVENT_TYPES regression now expects
+  all 12 canonical types (was 11).
+
+Two streams now carry every risk denial:
+- audit chain (hash-verified, gated on AUDIT_READ)
+- scribe-v2 timeline (cheap, queryable via /events)
+
+Suite 157/157.
+
 ## [1.10.65] - 2026-05-02
 
 shellc carrier pattern + Unicode escape decoder. Catalog

@@ -47,6 +47,10 @@ describe('(10.9) scribe-v2 helpers', () => {
       'task_start', 'task_complete', 'worker_spawn', 'worker_close',
       'tool_call', 'approval_request', 'approval_grant',
       'merge_attempt', 'merge_success', 'halt', 'error',
+      // (v1.10.66) risk classifier denial — added as a first-class
+      // scribe-v2 type so the timeline carries the same shape as
+      // task_start / merge_attempt rows.
+      'risk_deny',
     ];
     for (const t of expected) expect(EVENT_TYPES).toContain(t);
     expect(EVENT_TYPES.length).toBe(expected.length);

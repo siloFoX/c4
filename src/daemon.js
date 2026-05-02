@@ -4283,6 +4283,20 @@ manager.on('sse', (event) => {
     },
     { actor: event.worker, target: event.worker },
   );
+  // (v1.10.66) Mirror into scribe-v2 timeline so a reviewer can
+  // see risk denials interleaved with task_start / merge_attempt /
+  // halt events without joining audit + scribe streams.
+  safeRecord('risk_deny', {
+    worker: event.worker,
+    payload: {
+      level: event.level,
+      reasons: Array.isArray(event.reasons)
+        ? event.reasons.map((r) => ({ code: r.code, label: r.label })).slice(0, 8)
+        : [],
+      command: typeof event.command === 'string' ? event.command.slice(0, 500) : '',
+      dryRun: event.dryRun === true,
+    },
+  });
 });
 
 server.listen(PORT, HOST, () => {
