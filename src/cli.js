@@ -4614,6 +4614,8 @@ async function main() {
           console.error('                                              (daemon must have riskClassifier.sandbox.allowExec=true)');
           console.error('  c4 risk stats [--window-hours N] [--json]  aggregate denies from the audit chain');
           console.error('  c4 risk patterns [--json]                  list built-in catalog + custom rules');
+          console.error('');
+          console.error('Operator guide: docs/risk-sandbox.md');
           process.exit(1);
         }
         const { classifyCommand } = require('./risk-classifier');
