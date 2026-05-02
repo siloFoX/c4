@@ -408,7 +408,7 @@ const HIGH_PATTERNS = [
     // Also extended to cover the `tee [-a]` write form, mirroring
     // authorized-keys-append. `cat payload | sudo tee /etc/passwd`
     // previously slipped because tee writes weren't caught.
-    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/etc\/(?:passwd|shadow|sudoers|hosts(?:\.(?:allow|deny))?|crontab|fstab|resolv\.conf|nsswitch\.conf|securetty|login\.defs)\b/,
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/etc\/(?:passwd|shadow|sudoers|hosts(?:\.(?:allow|deny))?|crontab|fstab|resolv\.conf|nsswitch\.conf|securetty|login\.defs|aliases)\b/,
   },
   // (v1.10.119) Drop-in config directory writes — same threat surface
   // as the top-level files but reached through `<file>.d/`. Not caught
@@ -937,6 +937,24 @@ const MEDIUM_PATTERNS = [
     code: 'history-tamper',
     label: 'clear / disable bash / zsh history',
     re: /\b(?:history\s+-c\b|set\s+\+o\s+history\b|unset\s+HISTFILE\b|export\s+HISTFILE=\/dev\/null\b)/,
+  },
+  // (v1.10.137) Log file truncation / destruction — anti-forensic
+  // via three forms:
+  //   echo > /var/log/auth.log     truncate to zero via redirect
+  //   truncate -s 0 /var/log/x     truncate via tool
+  //   shred /var/log/x             irreversible secure-erase
+  // Same defense-evasion family as history-tamper /
+  // journalctl-vacuum but targets file-based logs (auth.log,
+  // syslog, kern.log, audit.log, etc). Medium tier matches
+  // history-tamper / journalctl-vacuum since legitimate ops
+  // rotation exists; HIGH would over-fire.
+  // Note: the regex uses `[^\n;|&]*` to allow shred/truncate
+  // flag-value pairs (e.g. `shred -n 0 -uvz /var/log/x`) where
+  // the path doesn't immediately follow the verb.
+  {
+    code: 'log-truncate',
+    label: 'truncate / wipe a /var/log/* file (anti-forensic)',
+    re: /(?:^|[\s;|&])(?:>\s*\/var\/log\/[\w\/.-]+|(?:truncate|shred)\s+(?:[^\n;|&]*\s)?\/var\/log\/[\w\/.-]+)/,
   },
   // (v1.10.122) journalctl log destruction — same defense-evasion
   // family as history-tamper, but for systemd journal rather than

