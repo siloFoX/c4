@@ -124,6 +124,52 @@ describe('c4 risk --sandbox-preview (v1.10.79)', () => {
   });
 });
 
+describe('c4 risk --shadow-exec (v1.10.85)', () => {
+  // The CLI relays to POST /risk/exec; daemon is authoritative on
+  // the allowExec gate. With our hermetic test env (C4_URL pointing
+  // at a closed port), the request will fail at the network layer
+  // before any classification — but the CLI's own flag-parse
+  // shouldn't crash.
+  //
+  // Source-grep proves the flag exists in the CLI; CLI subprocess
+  // smoke proves the path doesn't blow up.
+
+  const fs = require('fs');
+  const cliSrc = fs.readFileSync(
+    require('path').resolve(__dirname, '..', 'src', 'cli.js'),
+    'utf8'
+  );
+
+  it('CLI source declares --shadow-exec flag', () => {
+    assert.match(cliSrc, /args\.includes\('--shadow-exec'\)/);
+    assert.match(cliSrc, /POST.*'\/risk\/exec'/);
+  });
+
+  it('CLI source distinguishes refused from spawn-error from happy paths', () => {
+    // The handler must branch on `exec.refused` and `exec.error`
+    // separately from the happy path with stdout/stderr.
+    assert.match(cliSrc, /if \(exec && exec\.refused\)/);
+    assert.match(cliSrc, /if \(exec && exec\.error\)/);
+    assert.match(cliSrc, /spawnError:/);
+  });
+
+  it('usage line documents the new flag', () => {
+    assert.match(cliSrc, /--shadow-exec\s+run the command in the configured sandbox/);
+    assert.match(cliSrc, /allowExec=true/);
+  });
+
+  it('positional command terms not eaten by --shadow-exec', () => {
+    // Same regression guard as --sandbox-preview: --shadow-exec
+    // takes no arg, so `c4 risk --shadow-exec rm -rf /` should
+    // classify `rm -rf /` (CRITICAL) cleanly.
+    const r = _run(['--shadow-exec', 'rm -rf /']);
+    // Critical → exit 1 from classification (independent of
+    // whether shadow-exec succeeded or refused).
+    assert.equal(r.status, 1);
+    assert.match(r.stdout, /CRITICAL/);
+  });
+});
+
 describe('c4 risk stats CLI (v1.10.55)', () => {
   // The stats subcommand calls the running daemon. With the unit
   // env's bogus C4_DAEMON_URL the request fails and the CLI exits

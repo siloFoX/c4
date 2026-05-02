@@ -4503,6 +4503,11 @@ async function main() {
         if (spIdx >= 0 && args[spIdx + 1] && !args[spIdx + 1].startsWith('--')) {
           sandboxPreview = args[spIdx + 1];
         }
+        // (v1.10.85) `--shadow-exec` — actually run the command in
+        // the sandbox (POST /api/risk/exec). Daemon refuses unless
+        // riskClassifier.sandbox.allowExec === true. CLI does NOT
+        // duplicate the gate — the daemon is authoritative.
+        const wantShadowExec = args.includes('--shadow-exec');
         // The argument right after --sandbox-preview is the runtime
         // name, not a command term — skip it. spIdx >= 0 guard
         // prevents filtering args[0] when the flag is absent.
@@ -4571,6 +4576,8 @@ async function main() {
           console.error('  c4 risk "<command>" [--json] [--decoded]   classify a candidate command');
           console.error('  c4 risk "<command>" --sandbox-preview <docker|null>');
           console.error('                                              show the OS-binary argv that would isolate it');
+          console.error('  c4 risk "<command>" --shadow-exec          run the command in the configured sandbox');
+          console.error('                                              (daemon must have riskClassifier.sandbox.allowExec=true)');
           console.error('  c4 risk stats [--window-hours N] [--json]  aggregate denies from the audit chain');
           console.error('  c4 risk patterns [--json]                  list built-in catalog + custom rules');
           process.exit(1);
@@ -4701,6 +4708,45 @@ async function main() {
             }
           } catch (err) {
             console.error(`sandbox-preview error: ${(err && err.message) || err}`);
+          }
+        }
+        // (v1.10.85) Shadow execution — runs the command in the
+        // configured sandbox via daemon POST /risk/exec. Daemon is
+        // authoritative on the gate (allowExec must be true in
+        // config); CLI just relays the request and prints the
+        // result.
+        if (wantShadowExec) {
+          try {
+            const exec = await request('POST', '/risk/exec', {
+              command,
+              runtime: sandboxPreview || undefined,
+            });
+            console.log('');
+            console.log('Shadow execution:');
+            if (exec && exec.refused) {
+              console.log(`  refused: ${exec.refusedReason || 'unknown'}`);
+            } else if (exec && exec.error) {
+              console.log(`  error: ${exec.error}`);
+            } else if (exec && typeof exec === 'object') {
+              const rt = exec.runtime || {};
+              console.log(`  runtime:    ${rt.name || 'unknown'}`);
+              console.log(`  exitCode:   ${exec.exitCode === null ? 'null (signal/timeout)' : exec.exitCode}`);
+              console.log(`  durationMs: ${exec.durationMs}`);
+              console.log(`  killed:     ${exec.killed}`);
+              if (exec.spawnError) console.log(`  spawnError: ${exec.spawnError}`);
+              if (exec.stdout) {
+                console.log('  stdout:');
+                for (const line of exec.stdout.split('\n')) console.log(`    ${line}`);
+              }
+              if (exec.stderr) {
+                console.log('  stderr:');
+                for (const line of exec.stderr.split('\n')) console.log(`    ${line}`);
+              }
+            } else {
+              console.log('  (no response)');
+            }
+          } catch (err) {
+            console.error(`shadow-exec error: ${(err && err.message) || err}`);
           }
         }
         if (shouldExit1) process.exit(1);

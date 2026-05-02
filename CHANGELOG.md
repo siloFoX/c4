@@ -4,6 +4,63 @@
 
 (no entries — next release window)
 
+## [1.10.85] - 2026-05-02
+
+11.5 Stage 2 polish — **`c4 risk "<cmd>" --shadow-exec`** CLI
+wrapper around `POST /api/risk/exec`. Daemon stays authoritative
+on the gate (`riskClassifier.sandbox.allowExec === true`); CLI
+just relays + pretty-prints the result envelope.
+
+### Added
+- **`c4 risk "<command>" --shadow-exec`** flag. Pairs with the
+  existing classifier output: classification first, then a
+  "Shadow execution:" block underneath. Branches on the response
+  envelope:
+  - `refused: true` → `refused: <reason>`
+  - `error` → `error: <message>` (network / unexpected throw)
+  - happy path → `runtime / exitCode / durationMs / killed /
+    spawnError? / stdout / stderr`
+
+  The CLI does NOT duplicate the daemon's `allowExec` gate. If
+  the operator has the right config, they get the easy path; if
+  not, the daemon refuses with a clear `refusedReason` that
+  surfaces verbatim.
+
+  When `--sandbox-preview <runtime>` is also passed, the runtime
+  override flows through to the exec request — operator can
+  preview AND execute against the same runtime in a single
+  call.
+
+### Test coverage
+- **`tests/cli-risk.test.js`** — 4 new cases under a
+  `c4 risk --shadow-exec` describe:
+  - CLI source declares the flag + the POST `/risk/exec` call
+  - source distinguishes `refused` / `error` / happy paths
+  - usage line documents the new flag + mentions `allowExec=true`
+  - positional command terms not eaten by `--shadow-exec`
+    (regression guard mirroring the `--sandbox-preview` filter)
+
+  Suite stays at 170 (the new cases live in the existing
+  cli-risk file alongside the prior 12).
+
+### Stage 2 status — substantially complete
+
+| ship       | piece                                              |
+|------------|----------------------------------------------------|
+| 1.10.79    | SandboxRuntime + DockerRuntime command builder     |
+| 1.10.80    | sandbox config wiring + doctor display             |
+| 1.10.81    | POST /api/risk/preview (HTTP builder)              |
+| 1.10.82    | auto-attach sandbox to /risk/check + c4 risk       |
+| 1.10.83    | executeInSandbox() function module (no surface)    |
+| 1.10.84    | shadow exec endpoint + audit/scribe wiring        |
+| **1.10.85**| **CLI surface — c4 risk --shadow-exec**           |
+
+The remaining open thread is per-row stdout/stderr capture in
+the audit chain — current cut keeps audit rows lean (just
+exitCode + durationMs + killed + truncated command), which is
+the right default for a hash-chained log. A future cut could
+add an opt-in fingerprint or first/last N bytes.
+
 ## [1.10.84] - 2026-05-02
 
 11.5 Stage 2 — **shadow execution endpoint**: `POST /api/risk/exec`
