@@ -4,6 +4,55 @@
 
 (no entries — next release window)
 
+## [1.10.113] - 2026-05-03
+
+**New catalog pattern: `cloud-destroy` (high)**. Catches the
+six most-common cloud / k8s infrastructure wipe one-liners
+that pre-1.10.113 classified LOW despite being able to delete
+entire stacks in autonomous runs.
+
+### Why high
+
+Autonomous workers running infrastructure tasks routinely
+have credentials that can wipe production. These patterns all
+require explicit auto-approve flags / wildcards — they're
+deliberate operator actions, not accidental — but reviewable
+because the blast radius is huge.
+
+### Patterns covered
+
+| command | matches |
+|---------|---------|
+| `terraform destroy -auto-approve` | full stack wipe (single + double dash) |
+| `kubectl delete <kind> --all-namespaces` | cluster-wide |
+| `aws s3 rm s3://bucket --recursive` | S3 prefix wipe |
+| `gcloud projects delete <id> --quiet` | whole GCP project |
+| `gcloud compute instances delete --quiet` | VM wipe |
+| `az group delete --yes` | Azure resource group |
+| `helm uninstall --all` | helm release fan-out |
+
+Scoped variants stay LOW (regression-tested):
+- `terraform destroy -target=aws_s3_bucket.test` (single resource)
+- `kubectl delete pod my-pod -n default` (single resource)
+- `aws s3 rm s3://bucket/path/specific-key` (single object)
+
+The catalog scopes to "operator typed a wide-blast flag" —
+single-resource deletes are the operator's responsibility.
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `cloud-destroy`. Catalog
+  count: 56 → 57 patterns.
+
+### Test coverage
+- **`tests/risk-classifier.test.js`** — 5 new cases:
+  - terraform destroy auto-approve (3 variants)
+  - kubectl delete --all-namespaces
+  - aws s3 rm --recursive
+  - gcloud / az / helm wide-blast (4 variants)
+  - regression: 5 scoped/safe variants stay low
+
+  Suite stays at 175. risk-classifier file 150 → 155 cases.
+
 ## [1.10.112] - 2026-05-03
 
 **New catalog pattern: `ssh-strict-host-off` (high)**. Closes

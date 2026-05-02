@@ -284,6 +284,40 @@ const HIGH_PATTERNS = [
     re: /\b(?:ssh|scp|sftp|rsync)\b[^\n;|&]*-o\s+StrictHostKeyChecking[=\s]+no\b/i,
   },
   {
+    code: 'cloud-destroy',
+    label: 'cloud infra destruction (terraform destroy / kubectl delete --all / aws s3 rm --recursive)',
+    // (v1.10.113) Autonomous workers running infrastructure tasks
+    // can wipe entire stacks with these one-liners. All three
+    // require explicit auto-approve flags / wildcards, so the
+    // catalog flags the WIDE form. Per-task scope guards still let
+    // operators run scoped variants (terraform destroy -target=X).
+    //
+    //   terraform destroy -auto-approve              (full stack)
+    //   kubectl delete <kind> --all --all-namespaces  (cluster-wide)
+    //   aws s3 rm s3://<bucket> --recursive          (S3 prefix wipe)
+    //   gcloud projects delete <id> --quiet          (whole project)
+    //   az group delete --yes ...                    (Azure RG wipe)
+    //
+    // All are HIGH (operators run them legitimately) — per-machine
+    // denyList elevates to critical when a particular environment
+    // should never see them.
+    re: new RegExp([
+      // terraform destroy with auto-approve (terraform CLI uses
+      // single-dash long flags, but accept double-dash too)
+      '\\bterraform\\s+destroy\\b[^\\n;|&]*-{1,2}auto-approve\\b',
+      // kubectl delete with --all-namespaces (or --all + space + --all)
+      '\\bkubectl\\s+delete\\b[^\\n;|&]*--all-namespaces\\b',
+      // aws s3 rm --recursive
+      '\\baws\\s+s3\\s+rm\\b[^\\n;|&]*--recursive\\b',
+      // gcloud projects delete --quiet
+      '\\bgcloud\\s+(?:projects|compute)\\s+(?:delete|instances\\s+delete)\\b[^\\n;|&]*--quiet\\b',
+      // az group delete --yes (Azure resource-group wipe)
+      '\\baz\\s+group\\s+delete\\b[^\\n;|&]*--yes\\b',
+      // helm uninstall --all (rare but exists)
+      '\\bhelm\\s+uninstall\\b[^\\n;|&]*--all\\b',
+    ].join('|')),
+  },
+  {
     code: 'docker-privileged',
     label: 'docker run --privileged',
     re: /\bdocker\s+(?:run|exec)\s+[^\n;|&]*--privileged\b/,

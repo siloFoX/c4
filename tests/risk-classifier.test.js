@@ -980,6 +980,64 @@ describe('classifyCommand v1.10.54 patterns', () => {
     assert.strictEqual(classifyCommand('ssh -i /home/u/.ssh/id_rsa user@h').level, 'low');
   });
 
+  // (v1.10.113) cloud-destroy — autonomous workers running infra
+  // tasks can wipe entire stacks with these one-liners. All
+  // require explicit auto-approve flags / wildcards, so the
+  // catalog flags only the WIDE form.
+  it('terraform destroy -auto-approve → high (single + double dash)', () => {
+    for (const cmd of [
+      'terraform destroy -auto-approve',
+      'terraform destroy --auto-approve',
+      'terraform destroy -input=false -auto-approve',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'cloud-destroy'));
+    }
+  });
+
+  it('kubectl delete --all-namespaces → high', () => {
+    const r = classifyCommand('kubectl delete pods --all --all-namespaces');
+    assert.strictEqual(r.level, 'high');
+    assert.ok(r.reasons.some((x) => x.code === 'cloud-destroy'));
+  });
+
+  it('aws s3 rm --recursive → high', () => {
+    const r = classifyCommand('aws s3 rm s3://my-bucket --recursive');
+    assert.strictEqual(r.level, 'high');
+    assert.ok(r.reasons.some((x) => x.code === 'cloud-destroy'));
+  });
+
+  it('gcloud projects delete --quiet / az group delete --yes → high', () => {
+    for (const cmd of [
+      'gcloud projects delete my-proj --quiet',
+      'gcloud compute instances delete inst-1 --quiet',
+      'az group delete --name my-rg --yes',
+      'helm uninstall my-release --all',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'cloud-destroy'));
+    }
+  });
+
+  it('scoped infra commands → low (regression)', () => {
+    // `terraform destroy -target=...` (scoped) is the operator
+    // saying "I know this resource". Catalog should not flag.
+    // `kubectl delete pod my-pod` (single resource, no --all) is fine.
+    // `aws s3 rm s3://bucket/path/key` (single object) is fine.
+    for (const cmd of [
+      'terraform destroy -target=aws_s3_bucket.test',
+      'terraform plan',
+      'kubectl delete pod my-pod -n default',
+      'aws s3 rm s3://bucket/path/specific-key',
+      'gcloud compute instances list',
+    ]) {
+      assert.strictEqual(classifyCommand(cmd).level, 'low',
+        `${cmd} should be low (scoped/safe)`);
+    }
+  });
+
   it('npm install -g and yarn global add → high', () => {
     for (const cmd of ['npm install -g pm2', 'npm install --global typescript', 'yarn global add eslint']) {
       const r = classifyCommand(cmd);
