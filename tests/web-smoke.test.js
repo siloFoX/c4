@@ -377,6 +377,56 @@ describe('Keyboard + tab nav (8.x baseline)', () => {
     assert.ok(hasHelp, 'help panel did not open after pressing ?');
   });
 
+  it('Sessions tab → New Chat opens modal with model+agent selects + prompt textarea (8.39)', async (t) => {
+    if (!chromiumReady) return t.skip('chromium / daemon not ready');
+    // Switch to Sessions tab + click New Chat
+    await page.evaluate(() => {
+      const sb = Array.from(document.querySelectorAll('button')).find(
+        (b) => b.innerText.trim() === 'Sessions'
+      );
+      if (sb) sb.click();
+    });
+    await page.waitForTimeout(200);
+    const opened = await page.evaluate(() => {
+      const btn = Array.from(document.querySelectorAll('button')).find(
+        (b) => b.innerText.trim() === 'New Chat'
+      );
+      if (btn) { btn.click(); return true; }
+      return false;
+    });
+    assert.ok(opened, 'New Chat button not found on Sessions tab');
+    await page.waitForTimeout(400);
+    // Probe the dialog that just opened. The help-center dialog
+    // is also present so filter for the one with a textarea
+    // (uniquely the New Chat composer).
+    const newChat = await page.evaluate(() => {
+      const dialogs = Array.from(document.querySelectorAll('[role="dialog"]'));
+      const withTextarea = dialogs.find((d) => d.querySelector('textarea'));
+      if (!withTextarea) return null;
+      return {
+        ariaModal: withTextarea.getAttribute('aria-modal'),
+        hasTextarea: !!withTextarea.querySelector('textarea'),
+        selectCount: withTextarea.querySelectorAll('select').length,
+        submitText: Array.from(withTextarea.querySelectorAll('button'))
+          .map((b) => b.innerText.trim())
+          .filter((t) => /create|submit|new|시작/i.test(t))[0] || null,
+      };
+    });
+    assert.ok(newChat, 'New Chat modal not found (no dialog with textarea)');
+    assert.equal(newChat.ariaModal, 'true', 'New Chat modal must be aria-modal="true"');
+    assert.ok(newChat.hasTextarea, 'New Chat modal needs a prompt textarea');
+    assert.ok(newChat.selectCount >= 2,
+      `New Chat modal should have model + agent selects; got ${newChat.selectCount}`);
+    // Press Escape to close — verifies v1.10.39 round-1 fix
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    const closed = await page.evaluate(() => {
+      return !Array.from(document.querySelectorAll('[role="dialog"]'))
+        .some((d) => d.querySelector('textarea'));
+    });
+    assert.ok(closed, 'New Chat modal should close on Escape');
+  });
+
   it('locale toggle switches KO ↔ EN', async (t) => {
     if (!chromiumReady) return t.skip('chromium / daemon not ready');
     // Close any open help panel from the prior `?` test.

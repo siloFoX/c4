@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.106] - 2026-05-03
+
+**New Chat modal browser test** (TODO 8.39). Verifies the
+Sessions → New Chat → modal flow renders the canonical compose
+shape (model + agent selects + prompt textarea) and closes
+cleanly on Escape (the v1.10.39 round-1 fix).
+
+### Added
+- **`tests/web-smoke.test.js`** — 1 new case in
+  "Keyboard + tab nav" describe:
+  - clicks Sessions tab → New Chat → asserts the new dialog
+    has `aria-modal="true"`, a `<textarea>` (prompt), and ≥2
+    `<select>` (model + agent dropdowns)
+  - presses Escape → asserts the modal closes
+
+  Filter step picks the dialog with a textarea since multiple
+  dialogs can be open simultaneously (help center + new chat).
+  This avoids false matches against the persistent help panel.
+
+Suite stays at 175. Web smoke now 18 cases / 4 describes;
+total file runtime ~64s.
+
 ## [1.10.105] - 2026-05-03
 
 **Locale toggle browser test**. Adds 1 case to web-smoke
