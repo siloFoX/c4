@@ -882,14 +882,19 @@ const HIGH_PATTERNS = [
   },
   {
     code: 'chattr-immutable',
-    label: 'chattr +i on a system path (anti-tampering persistence)',
+    label: 'chattr +i / -i on a system path (immutable bit tampering)',
     // (v1.10.118) chattr +i sets the ext2/3/4 immutable flag —
     // even root can't delete or rename until -i is unset. Used by
     // attackers to make their malicious binaries / hosts files
     // resistant to remediation. Only flagged when the target is a
     // privileged path (system bin / /etc / /var /lib) — operators
     // legitimately use chattr +i on user-owned files.
-    re: /\bchattr\s+[+]i\w*\s+(?:\/(?:usr|bin|sbin|etc|var|lib|opt|root|boot)\b|~\/\.\w)/,
+    // (v1.10.171) Extended to ALSO catch `chattr -i` on the
+    // same paths. The -i direction (immutable removal) is
+    // even more concerning — it's the unlock step before
+    // modifying a protected system file. Same critical-tier
+    // family, same path filter.
+    re: /\bchattr\s+[-+]i\w*\s+(?:\/(?:usr|bin|sbin|etc|var|lib|opt|root|boot)\b|~\/\.\w)/,
   },
   // (v1.10.64) Downloading a binary directly into a system PATH
   // location. `curl ... -o /usr/local/bin/foo` or `wget ... -O

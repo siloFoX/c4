@@ -1744,15 +1744,36 @@ describe('classifyCommand v1.10.54 patterns', () => {
   });
 
   it('chattr on user files / non-immutable flags → low (regression)', () => {
+    // (v1.10.171) `chattr -i /usr/bin/ssh` was previously LOW; now
+    // HIGH because removing immutable from a system path is the
+    // unlock step before modification. See chattr-immutable rule
+    // comment.
     for (const cmd of [
       'chattr +i ~/myfile.txt',         // user file
       'chattr +i /tmp/scratch',         // tmp file
       'chattr +i ./local-file.txt',     // relative path
-      'chattr -i /usr/bin/ssh',         // REMOVING immutable, not setting
       'chattr +a /var/log/audit.log',   // append-only flag, not immutable
     ]) {
       assert.strictEqual(classifyCommand(cmd).level, 'low',
         `${cmd} should be low`);
+    }
+  });
+
+  // (v1.10.171) chattr -i on system paths — immutable removal
+  // as unlock step before tampering. Same critical-tier family
+  // as the +i form.
+  it('chattr -i on system paths → high (v1.10.171)', () => {
+    for (const cmd of [
+      'chattr -i /usr/bin/ssh',
+      'chattr -i /etc/passwd',
+      'chattr -i /usr/sbin/sshd',
+      'chattr -i /etc/shadow',
+      'chattr -i /var/log/auth.log',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'chattr-immutable'),
+        `${cmd}: expected chattr-immutable`);
     }
   });
 

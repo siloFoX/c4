@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.171] - 2026-05-03
+
+**`chattr-immutable` extended to `chattr -i` direction.**
+v1.10.118 caught only `chattr +i <system-path>` (immutable
+ON — anti-tampering persistence). The opposite direction —
+`chattr -i <system-path>` (immutable OFF — unlock step
+BEFORE tampering) — was treated as LOW because the original
+rule's regex pinned `+i`.
+
+### Changed
+- **`chattr-immutable`** regex extended from `\+i` to
+  `[-+]i`. Now both directions on system paths classify HIGH.
+- Earlier regression test case `chattr -i /usr/bin/ssh →
+  low` removed and replaced with positive `chattr -i ...
+  → high` test.
+
+### Why both directions?
+`chattr +i` makes attacker artifacts resistant to
+remediation. `chattr -i` is the unlock step before modifying
+a defensively-immutable system file. Both are operator-
+significant on system paths; user-owned files (`~/file.txt`,
+`/tmp/scratch`) stay LOW for either direction.
+
 ## [1.10.170] - 2026-05-03
 
 **`setfacl-sensitive` (high) catalog pattern.** POSIX ACLs
