@@ -4570,6 +4570,21 @@ async function main() {
         if (wantDecoded && classification.inspectedSource) {
           console.log(`Inspected source: ${classification.inspectedSource}`);
         }
+        // (v1.10.69) Intent — what files / network peers / privileges
+        // the command would touch, extracted statically.
+        try {
+          const { extractIntent } = require('./risk-sandbox');
+          const intent = extractIntent(command);
+          if (!intent.empty) {
+            console.log('Intent:');
+            if (intent.filesWritten.length) console.log(`  writes: ${intent.filesWritten.join(', ')}`);
+            if (intent.filesRead.length)    console.log(`  reads:  ${intent.filesRead.join(', ')}`);
+            if (intent.networkPeers.length) console.log(`  net:    ${intent.networkPeers.join(', ')}`);
+            if (intent.privileged)          console.log(`  priv:   true (sudo/setuid/etc)`);
+            if (intent.scriptSources.length) console.log(`  src:    ${intent.scriptSources.length} script source(s)`);
+            if (intent.destructiveVerbs.length) console.log(`  dest:   ${intent.destructiveVerbs.join(', ')}`);
+          }
+        } catch { /* non-fatal */ }
         if (shouldExit1) process.exit(1);
         return;
       }

@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.69] - 2026-05-02
+
+Intent extractor reaches the operator surface — `c4 risk` CLI
++ `POST /risk/check` API both carry the report.
+
+### Added
+- **(`POST /api/risk/check` response)** gains an `intent` field
+  with the full `filesWritten / filesRead / networkPeers /
+  privileged / scriptSources / destructiveVerbs / empty` shape.
+  Web UI / SDK preview now sees both the catalog rule and the
+  concrete effect in one round-trip.
+- **(`c4 risk "<cmd>"`)** prints an `Intent:` block when
+  non-empty, with one indented line per non-empty category.
+  Compounds a real attack into a clear summary, e.g.:
+  ```
+  Level:    CRITICAL
+  Reasons:
+    - [rm-rf-root] rm -rf at filesystem root
+    - [curl-pipe-shell] curl | sh / wget | bash
+  Intent:
+    net:    http://evil.com/x.sh
+    dest:   rm /
+  ```
+
+### Fixed
+- **(risk-sandbox `_networkPeers`)** strips trailing
+  `" ' \` ) ] } > ,` characters from extracted URLs / hostnames.
+  `eval "curl http://x"` now emits `http://x` instead of
+  `http://x"` — the closing quote was sticking to the URL when
+  it sat inside a shell-c quoted string.
+
+Suite 158/158. All four drift phases clean.
+
 ## [1.10.68] - 2026-05-02
 
 11.5 Stage 1 (sandbox dispatcher): static command-intent

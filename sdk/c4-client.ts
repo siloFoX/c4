@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.68
-// Generated at: 2026-05-02T03:46:05.741Z
+// Spec version: 1.10.69
+// Generated at: 2026-05-02T03:51:29.948Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -451,6 +451,15 @@ export interface postRiskCheckResponse {
   wouldDeny?: boolean; /** True when the in-process hook would block this command at the current autoDenyLevel */
   autoDenyLevel?: "low" | "medium" | "high" | "critical"; /** The currently configured threshold (so callers don't have to fetch /config) */
   enforcementEnabled?: boolean; /** config.riskClassifier.enabled — when false, wouldDeny is always false */
+  intent?: {
+  filesWritten?: string[];
+  filesRead?: string[];
+  networkPeers?: string[];
+  privileged?: boolean;
+  scriptSources?: string[];
+  destructiveVerbs?: string[];
+  empty?: boolean; /** True when no signal extracted; pair with classifier level for actual gating */
+}; /** (v1.10.68) Static intent report — what files / network peers / privileges this command would touch, extracted via risk-sandbox.extractIntent without executing anything. */
 }
 
 export interface getAuditVerifyParams {

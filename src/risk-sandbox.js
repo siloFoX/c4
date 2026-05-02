@@ -98,14 +98,19 @@ function _filesRead(cmd) {
 // argv positions where a peer is expected.
 function _networkPeers(cmd) {
   const out = [];
+  // Trailing quote / paren noise that can stick to URLs / hostnames
+  // when they sit inside a quoted shell-c string. e.g. `eval "curl
+  // http://x"` would otherwise emit `http://x"`. Strip a single
+  // trailing run of these chars.
+  const stripTail = (s) => s.replace(/["'`)\]}>,]+$/, '');
   // URL forms: http(s)://... and git@github.com:owner/repo
   const urlRe = /\b((?:https?|ftp|ssh|sftp|rsync|git):\/\/[^\s;&|]+)/g;
   let m;
-  while ((m = urlRe.exec(cmd)) !== null) out.push(m[1]);
+  while ((m = urlRe.exec(cmd)) !== null) out.push(stripTail(m[1]));
   // user@host or git@host:repo
   const userHostRe = /\b([\w.-]+@[\w.-]+(?::[\w./-]+)?)/g;
   while ((m = userHostRe.exec(cmd)) !== null) {
-    const tok = m[1];
+    const tok = stripTail(m[1]);
     // Filter out obvious non-network forms (e.g., email in a comment).
     // We accept anything that has a `:` (user@host:port or user@host:path)
     // OR sits adjacent to a network verb (curl/ssh/scp/rsync/wget/...).

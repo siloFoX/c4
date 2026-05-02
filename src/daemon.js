@@ -1653,6 +1653,7 @@ async function handleRequest(req, res) {
       } else {
         try {
           const { classifyCommand } = require('./risk-classifier');
+          const { extractIntent } = require('./risk-sandbox');
           const cfgNow = manager.getConfig() || {};
           const riskCfg = cfgNow.riskClassifier || {};
           const classification = classifyCommand(command, {
@@ -1670,10 +1671,14 @@ async function handleRequest(req, res) {
             : 'critical';
           const wouldDeny = riskCfg.enabled === true
             && LEVEL_RANK[classification.level] >= LEVEL_RANK[autoDenyLevel];
+          // (v1.10.69) Attach the static intent report so callers
+          // see classifier rule + concrete effect in one round-trip.
+          const intent = extractIntent(command);
           result = Object.assign({}, classification, {
             wouldDeny,
             autoDenyLevel,
             enforcementEnabled: riskCfg.enabled === true,
+            intent,
           });
         } catch (e) {
           result = { error: e.message };
