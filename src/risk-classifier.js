@@ -380,10 +380,27 @@ const HIGH_PATTERNS = [
   },
   {
     code: 'npm-global-install',
-    label: 'npm install -g / yarn global add (system-wide write)',
-    // -g installs into a system-owned prefix; under sudo it can
-    // shim binaries that other users depend on.
-    re: /\b(?:npm\s+install\s+(?:-g\b|--global\b)|yarn\s+global\s+add\b)/,
+    label: 'npm/pnpm/yarn install -g / global add (system-wide write)',
+    // (v1.10.117) Extended to pnpm. -g installs into a system-owned
+    // prefix; under sudo it can shim binaries that other users
+    // depend on.
+    re: /\b(?:npm\s+install\s+(?:-g\b|--global\b)|yarn\s+global\s+add\b|pnpm\s+(?:install|add)\s+(?:-g\b|--global\b))/,
+  },
+  {
+    code: 'lang-pkg-global-install',
+    label: 'gem install / cargo install (writes binaries to PATH-prefix dir, runs native install hooks)',
+    // (v1.10.117) Same threat model as npm-global-install +
+    // pip-install-user: package managers that write executables to
+    // PATH-prefix directories AND run arbitrary code during install
+    // (gem extconf.rb / cargo build.rs).
+    //
+    //   gem install <pkg>     ~/.gem/ruby/X.Y/bin or system-wide
+    //   cargo install <pkg>   ~/.cargo/bin (always on user PATH)
+    //
+    // Excludes `bundle install` (Gemfile-driven, scoped) and
+    // `cargo build` (no install). Catches the global-install verb
+    // specifically.
+    re: /\b(?:gem\s+install\b|cargo\s+install\s+(?!--path\b))/,
   },
   {
     code: 'suid-set',

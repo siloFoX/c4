@@ -4,6 +4,60 @@
 
 (no entries — next release window)
 
+## [1.10.117] - 2026-05-03
+
+**Package manager catalog expansion**: pnpm + gem install +
+cargo install. Closes the gap where these were classified LOW
+despite the same threat model as the existing `npm install -g`
+(high) — PATH-prefix binary installation + arbitrary code
+during install hooks.
+
+### Why these are dangerous
+
+| pkg mgr | install path | exec hook |
+|---------|--------------|-----------|
+| `npm install -g` | `/usr/lib/node_modules` | npm post-install scripts |
+| `pnpm add -g`    | `~/.local/share/pnpm`   | npm post-install scripts |
+| `gem install`    | `~/.gem/.../bin`         | extconf.rb / Rakefile |
+| `cargo install`  | `~/.cargo/bin` (always on PATH) | build.rs |
+| `pip install --user` | `~/.local/bin`       | setup.py |
+
+All of these run arbitrary code at install AND drop binaries
+into a directory that's already on the user's PATH. A malicious
+package can shadow common commands or run on every login via
+shell init.
+
+### Changed
+- **`npm-global-install`** label updated; regex extended with
+  `pnpm install -g` / `pnpm add -g`. Now matches:
+  - `npm install -g <pkg>` / `npm install --global <pkg>`
+  - `yarn global add <pkg>`
+  - `pnpm add -g <pkg>` / `pnpm install -g <pkg>` / `pnpm install --global`
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `lang-pkg-global-install`:
+  - `gem install <pkg>` (any flag form)
+  - `cargo install <pkg>` — but NOT `cargo install --path` (local
+    crate install is dev workflow, no remote download)
+
+  Catalog count: 58 → 59 patterns.
+
+### Regression-protected (stay low)
+- `cargo install --path .` / `cargo install --path ./mycrate`
+- `bundle install` (Gemfile-driven, scoped)
+- `cargo build` / `cargo build --release` (no install)
+- `pip install <pkg>` (no `--user` / `--break-system-packages`,
+  per v1.10.110 + v1.10.89 reasoning — venv-bound is routine)
+
+### Test coverage
+- **`tests/risk-classifier.test.js`** — 3 new cases:
+  - pnpm add -g / install -g / add --global → high
+  - gem install / cargo install (4 variants) → high
+  - regression: cargo install --path / bundle install / cargo
+    build (6 variants) stay low
+
+  Suite stays at 175. risk-classifier file 160 → 163 cases.
+
 ## [1.10.116] - 2026-05-03
 
 **`credential-read` extended to cover cloud / CLI credential

