@@ -348,6 +348,24 @@ const HIGH_PATTERNS = [
     label: 'git clean -fd',
     re: /\bgit\s+clean\s+(?:-[fdx]+\s*)+/,
   },
+  // (v1.10.133) git history-destructive operations. Each
+  // command below makes recovery hard or impossible:
+  //   filter-branch --force        rewrites all commits
+  //   branch -D                    force-delete branch (loses commits)
+  //   update-ref -d <ref>          delete ref directly
+  //   reflog expire --expire=now   wipe reflog (anti-recovery)
+  //   gc --prune=now               purge unreachable objects immediately
+  // git-force-push covers the remote-side rewrite; this rule
+  // covers local-side rewrite + cleanup chains that an attacker
+  // uses to cover tracks after credential commits or to
+  // reconstruct a "clean" history before push.
+  // Note: `gc --prune=2.weeks` (the default) is safe; only
+  // `--prune=now` (immediate) is included as destructive.
+  {
+    code: 'git-history-destructive',
+    label: 'git filter-branch / branch -D / update-ref -d / reflog expire / gc --prune=now',
+    re: /\bgit\s+(?:filter-branch\b|branch\s+-D\b|update-ref\s+-d\b|reflog\s+expire\b|gc\s+(?:[^\n;|&]*\s)?--prune\s*=\s*now\b)/,
+  },
   {
     code: 'system-files',
     label: 'redirect / tee into /etc/ system files',

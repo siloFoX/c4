@@ -4,6 +4,53 @@
 
 (no entries — next release window)
 
+## [1.10.133] - 2026-05-03
+
+**`git-history-destructive` pattern.** The existing
+`git-force-push`, `git-reset-hard`, and `git-clean-force`
+rules cover three forms of destruction, but five canonical
+local-side history rewrites and anti-recovery operations were
+silent. An attacker covering tracks after a credential commit
+chains these — `git reflog expire --expire=now --all && git gc
+--prune=now` makes the secret unreachable from any local
+recovery method.
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `git-history-destructive`.
+  Catches:
+  - `git filter-branch` — rewrites all commits
+  - `git branch -D <name>` — force-delete branch (loses
+    commits if not merged elsewhere)
+  - `git update-ref -d <ref>` — direct ref deletion
+  - `git reflog expire --expire=now` — wipe reflog
+    (defeats recovery via reflog)
+  - `git gc --prune=now` — purge unreachable objects
+    immediately
+- **Regression**: routine git ops stay LOW —
+  `git gc` (default `--prune=2.weeks`), `git branch -d`
+  (lowercase d, only deletes merged branches), `git reflog`
+  (read), `git update-ref refs/heads/main HEAD` (create not
+  delete), `git filter-repo` (newer separate tool).
+
+- **`tests/risk-classifier.test.js`**: 2 new `it()` cases —
+  attack assertion (7 commands) + regression (6 commands).
+  Suite stays at 175. Risk-classifier file 220 → 222 cases.
+
+### Why local-side and not just `git-force-push`?
+`git-force-push` catches the remote rewrite. The local rewrite
+chain is what an attacker uses BEFORE they push — strip a
+credential commit from history with `filter-branch`, expire
+the reflog so it can't be recovered, gc to purge orphan
+objects, then push. The remote-side rule only fires at the
+push step; this rule catches the upstream chain so review
+happens earlier.
+
+### Catalog totals
+- Critical: 23 patterns (+0)
+- High: 36 patterns (+1: git-history-destructive)
+- Medium: 18 patterns (+0)
+- **Total: 79 → 80**
+
 ## [1.10.132] - 2026-05-03
 
 **`credential-read` extended to scp / rsync.** The existing

@@ -632,6 +632,42 @@ describe('classifyCommand v1.10.67 patterns', () => {
     }
   });
 
+  // (v1.10.133) git history-destructive operations. Each makes
+  // recovery hard or impossible. Threat: an attacker covers
+  // tracks after credential commits or rewrites history before
+  // push to obscure commits.
+  it('git-history-destructive: filter-branch / branch -D / update-ref -d / reflog / gc → high (v1.10.133)', () => {
+    for (const cmd of [
+      'git filter-branch --force --index-filter "rm secret" -- --all',
+      'git branch -D main',
+      'git update-ref -d HEAD',
+      'git update-ref -d refs/heads/main',
+      'git reflog expire --expire=now --all',
+      'git gc --prune=now --aggressive',
+      'git gc --prune=now',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'git-history-destructive'),
+        `${cmd}: expected git-history-destructive`);
+    }
+  });
+
+  it('git-history-destructive — routine git ops stay low (regression)', () => {
+    for (const cmd of [
+      'git gc',                                // routine
+      'git gc --prune=2.weeks',                // safe default
+      'git branch -d feature',                  // lowercase d (only deletes merged)
+      'git reflog',                             // read
+      'git update-ref refs/heads/main HEAD',    // create ref
+      'git filter-repo --path src',             // newer tool, not filter-branch
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'git-history-destructive'),
+        `${cmd}: should not match git-history-destructive`);
+    }
+  });
+
   it('reading non-credential dotfiles stays low (regression)', () => {
     for (const cmd of [
       'cat ~/.bashrc',         // routine
