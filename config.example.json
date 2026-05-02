@@ -543,6 +543,16 @@
       "critical": [],
       "high": [],
       "medium": []
+    },
+    "_sandbox_doc": "(11.5 Stage 2 / v1.10.79+) Optional sandbox runtime — when set, /api/risk/check + `c4 risk` auto-attach a `sandbox` block showing the OS-binary argv that would isolate each command. With allowExec=true, POST /api/risk/exec actually runs commands. name='docker' is the production setting; name='null' is a typed escape hatch. opts override DockerRuntime defaults (image / network / memory / cpus / pids-limit / mounts / env / dockerBinary). Default: not set (no sandbox attachment, no shadow exec). Examples below are commented-out shapes — copy whichever fits.",
+    "_sandbox_example_preview_only": {
+      "name": "docker",
+      "opts": { "image": "alpine:latest", "memory": "128m", "cpus": "0.5" }
+    },
+    "_sandbox_example_with_exec": {
+      "name": "docker",
+      "allowExec": true,
+      "opts": { "image": "alpine:latest", "memory": "256m", "cpus": "1.0" }
     }
   }
 }
