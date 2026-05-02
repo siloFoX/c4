@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.72] - 2026-05-02
+
+9.1 phase 2 follow-up — operator-facing reference for writing a new
+agent adapter. Pure documentation; no code change.
+
+### Added
+- **`docs/agent-framework.md`** — "Writing a New Adapter" guide. Pulls
+  the contract straight from `src/agents/adapter.js`, points at
+  `MockAdapter` as the canonical minimal-but-correct reference, and
+  walks through the four hardest things to get right:
+  1. listener-before-output queueing
+  2. listener-error isolation (one bad consumer must not break
+     others)
+  3. `detectIdle` cheapness + strict `=== true` semantics
+  4. `init(workerCtx)` mutability across re-init / null-clear
+
+  Plus: factory registration in one line, hybrid routing without
+  building your own router, an 11-step contract test checklist
+  mirrored from `agent-mock.test.js`, and a "common mistakes" table
+  capturing the bugs that show up when authors copy-paste from
+  `claude-code.js` instead of `mock.js`.
+
+This is the doc that should have shipped alongside 1.10.71's
+MockAdapter — closing the loop on phase 2's "reference
+implementation" framing.
+
 ## [1.10.71] - 2026-05-02
 
 9.1 phase 2 follow-up — **MockAdapter** lands as a deterministic
