@@ -1218,6 +1218,40 @@ describe('classifyCommand v1.10.54 patterns', () => {
     assert.ok(r.reasons.some((x) => x.code === 'suid-set'));
   });
 
+  // (v1.10.119) /etc/<dir>.d/ writes — bypasses the system-files rule
+  // which pins literal filenames. Same threat as /etc/sudoers /
+  // /etc/passwd writes, just one directory deeper.
+  it('write to /etc/sudoers.d/, /etc/pam.d/, /etc/profile.d/, /etc/security/ → high (v1.10.119)', () => {
+    for (const cmd of [
+      'echo "user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/backdoor',
+      'echo "auth sufficient pam_permit.so" >> /etc/pam.d/sshd',
+      'cat key | tee /etc/sudoers.d/x',
+      'cat init.sh | tee -a /etc/profile.d/init.sh',
+      'echo "* hard nofile 99999" >> /etc/security/limits.conf',
+      'echo "+ : ALL : ALL" >> /etc/security/access.conf',
+      'echo evil > /etc/profile.d/00malicious.sh',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'config-dropin-write'),
+        `${cmd}: expected config-dropin-write`);
+    }
+  });
+
+  it('config-dropin-write — read / list / unrelated paths stay low (regression)', () => {
+    for (const cmd of [
+      'cat /etc/sudoers.d/01-admin',         // read, not write
+      'ls /etc/pam.d/',                      // listing
+      'echo hi > /etc/sudoers',              // top-level file → system-files, not this rule
+      'echo hi > /etc/profile',              // bash.bashrc / profile → rc-file-write tier
+      'echo hi > ~/.profile',                // user file → rc-file-write
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'config-dropin-write'),
+        `${cmd}: should not match config-dropin-write`);
+    }
+  });
+
   it('usermod -aG sudo / wheel / docker → high (both arg orders)', () => {
     const r1 = classifyCommand('usermod -aG sudo alice');
     assert.strictEqual(r1.level, 'high');

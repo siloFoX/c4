@@ -266,6 +266,21 @@ const HIGH_PATTERNS = [
     label: 'redirect into /etc/ system files',
     re: />>?\s*\/etc\/(?:passwd|shadow|sudoers|hosts|crontab|fstab)\b/,
   },
+  // (v1.10.119) Drop-in config directory writes — same threat surface
+  // as the top-level files but reached through `<file>.d/`. Not caught
+  // by system-files (which pins the literal filename).
+  //   /etc/sudoers.d/foo  → silent privilege escalation, NOPASSWD lines
+  //   /etc/pam.d/sshd     → auth bypass via `auth sufficient pam_permit.so`
+  //   /etc/profile.d/x.sh → global shell init, runs for every login user
+  //   /etc/security/*     → access.conf, limits.conf, login restrictions
+  // Same write forms as authorized-keys-append: redirect (`> / >>`)
+  // and `tee [-a]`. `cat key | sudo tee /etc/sudoers.d/x` is the
+  // canonical attack shell.
+  {
+    code: 'config-dropin-write',
+    label: 'write to /etc/{sudoers,pam,profile}.d/* or /etc/security/*',
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/etc\/(?:sudoers\.d|pam\.d|profile\.d|security)\/[\w.-]+/,
+  },
   {
     code: 'ssh-known-hosts',
     label: 'overwrite ~/.ssh/known_hosts or authorized_keys',

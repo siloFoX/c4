@@ -4,6 +4,53 @@
 
 (no entries — next release window)
 
+## [1.10.119] - 2026-05-03
+
+**Catalog gap closed**: drop-in config directory writes
+(`/etc/sudoers.d/*`, `/etc/pam.d/*`, `/etc/profile.d/*`,
+`/etc/security/*`) now caught as **high** under a new
+`config-dropin-write` rule. Previously the `system-files`
+rule pinned literal filenames (`/etc/sudoers`, `/etc/passwd`)
+and silently let drop-in directory writes through — the
+canonical post-exploit privilege escalation form is
+`echo "user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/x`,
+not modifying `/etc/sudoers` itself.
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `config-dropin-write`.
+  Matches both redirect (`>`, `>>`) and `tee [-a]` write
+  forms (since `cat key | sudo tee /etc/sudoers.d/x` is the
+  typical attack shell pipe). Covered drop-in directories:
+  - `/etc/sudoers.d/*` — silent privilege escalation,
+    NOPASSWD lines
+  - `/etc/pam.d/*` — auth bypass via
+    `auth sufficient pam_permit.so`, anti-MFA
+  - `/etc/profile.d/*` — global shell init that runs for
+    every login user
+  - `/etc/security/*` — `access.conf`, `limits.conf`,
+    login restrictions
+- **`tests/risk-classifier.test.js`**: 2 new `it()` cases
+  covering 7 attack shells (sudoers.d / pam.d / profile.d /
+  security writes, both `>` and `tee` forms) and 5 regression
+  cases (read with `cat` not flagged, listing not flagged,
+  top-level `/etc/sudoers` still goes to `system-files`,
+  `/etc/profile` and `~/.profile` go to `rc-file-write` not
+  this rule). Suite stays at 175. risk-classifier file
+  166 → 168 cases.
+
+### Why a new rule instead of extending `system-files`?
+Two reasons:
+1. The audit trail benefits from naming the attack vehicle
+   distinctly. A `system-files` reason on a `/etc/sudoers.d/`
+   write would lump it with raw `/etc/passwd` writes, losing
+   the drop-in directory signal that's specifically
+   interesting to incident response.
+2. The `tee` write form needed coverage too. Extending the
+   existing redirect-only `system-files` pattern to also
+   handle `tee` would have added regression risk on the
+   top-level files (the original rule has been stable for
+   ~50 versions). New rule, separate test.
+
 ## [1.10.118] - 2026-05-03
 
 **Two more catalog patterns**: `usermod-sudo` extended to
