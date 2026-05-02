@@ -532,6 +532,41 @@ describe('classifyCommand v1.10.67 patterns', () => {
     }
   });
 
+  // (v1.10.116) credential-read extended to cover cloud / CLI
+  // credential paths beyond /etc/shadow + SSH keys.
+  it('credential dump: AWS / k8s / Docker / npm / netrc / pypirc → high', () => {
+    for (const cmd of [
+      'cat ~/.aws/credentials',
+      'cat ~/.aws/config',
+      'cat /home/alice/.aws/credentials',
+      'cat ~/.kube/config',
+      'cat ~/.docker/config.json',
+      'cat ~/.npmrc',
+      'cat ~/.netrc',
+      'cat ~/.pypirc',
+      'tar czf /tmp/x.tgz /root/.aws/credentials',
+      'base64 ~/.kube/config',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'credential-read'),
+        `${cmd}: expected credential-read`);
+    }
+  });
+
+  it('reading non-credential dotfiles stays low (regression)', () => {
+    for (const cmd of [
+      'cat ~/.bashrc',         // routine
+      'cat ~/.gitconfig',      // not in catalog (no creds typically)
+      'cat ~/.vimrc',
+      'cat ~/.ssh/config',     // ssh client config, not keys
+      'cat ~/.aws/cli/cache/abc.json',  // cache, not credentials
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'low', `${cmd} should be low`);
+    }
+  });
+
   it('history clearing / disabling → medium', () => {
     for (const cmd of [
       'history -c',

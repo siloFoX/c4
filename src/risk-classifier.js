@@ -427,8 +427,17 @@ const HIGH_PATTERNS = [
   // while flagging the bare private form (id_rsa).
   {
     code: 'credential-read',
-    label: 'cat /etc/shadow or ~/.ssh/id_* (credential dump)',
-    re: /\b(?:cat|less|more|head|tail|cp|mv|tar|gzip|base64)\s+[^\n;|&]*(?:\/etc\/shadow\b|\/etc\/gshadow\b|(?:~|\$HOME|\/home\/[^\s/]+|\/root)\/\.ssh\/id_(?:rsa|ecdsa|ed25519|dsa)(?!\.pub)\b)/,
+    label: 'cat /etc/shadow or ~/.ssh/id_* / ~/.aws / ~/.kube (credential dump)',
+    // (v1.10.116) Extended to cover the dominant cloud + container
+    // CLI credential paths in addition to /etc/shadow + SSH keys:
+    //   ~/.aws/credentials      AWS access keys
+    //   ~/.aws/config           AWS profile config (sometimes has tokens)
+    //   ~/.kube/config          Kubernetes service account tokens
+    //   ~/.docker/config.json   Docker registry passwords
+    //   ~/.npmrc                npm publish tokens (_authToken)
+    //   ~/.netrc                generic HTTP creds for curl/wget
+    //   ~/.pypirc               PyPI publish credentials
+    re: /\b(?:cat|less|more|head|tail|cp|mv|tar|gzip|base64|hexdump|xxd)\s+[^\n;|&]*(?:\/etc\/shadow\b|\/etc\/gshadow\b|(?:~|\$HOME|\/home\/[^\s/]+|\/root)\/(?:\.ssh\/id_(?:rsa|ecdsa|ed25519|dsa)(?!\.pub)\b|\.aws\/(?:credentials|config)\b|\.kube\/config\b|\.docker\/config\.json\b|\.npmrc\b|\.netrc\b|\.pypirc\b))/,
   },
   {
     code: 'sshpass-credential',

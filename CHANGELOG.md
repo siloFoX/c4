@@ -4,6 +4,44 @@
 
 (no entries — next release window)
 
+## [1.10.116] - 2026-05-03
+
+**`credential-read` extended to cover cloud / CLI credential
+paths**. Pre-1.10.116 the pattern only flagged `/etc/shadow`
+and SSH private keys; now it also catches the dominant cloud
+SDK + container CLI credential file paths.
+
+### Added paths
+
+| path | tool / risk |
+|------|-------------|
+| `~/.aws/credentials`     | AWS access keys (root + per-profile) |
+| `~/.aws/config`          | AWS profile config (sometimes carries tokens) |
+| `~/.kube/config`         | Kubernetes service account tokens |
+| `~/.docker/config.json`  | Docker registry auth tokens |
+| `~/.npmrc`               | npm publish `_authToken` |
+| `~/.netrc`               | generic HTTP creds (curl/wget read this) |
+| `~/.pypirc`              | PyPI publish credentials |
+
+Same prefix tools as the prior pattern: `cat / less / more /
+head / tail / cp / mv / tar / gzip / base64 / hexdump / xxd`.
+
+### Regression-protected (stay low)
+
+- `cat ~/.bashrc` / `cat ~/.gitconfig` / `cat ~/.vimrc` — routine dotfiles
+- `cat ~/.ssh/config` — SSH client config (not the key)
+- `cat ~/.aws/cli/cache/abc.json` — CLI cache files (not credentials)
+
+### Test coverage
+- **`tests/risk-classifier.test.js`** — 2 new cases:
+  - 10 credential-path variants (AWS / k8s / Docker / npm /
+    netrc / pypirc + tar/base64 prefix variants) → high
+  - 5 routine dotfile reads → low (regression)
+
+  Suite stays at 175. risk-classifier file 158 → 160 cases.
+  Pattern `credential-read` covers ~7x more paths than v1.10.67
+  baseline. Catalog count unchanged at 58.
+
 ## [1.10.115] - 2026-05-03
 
 **`GET /audit/query` accepts `ruleFingerprint` filter**. Pairs
