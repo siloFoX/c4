@@ -55,7 +55,10 @@ const CRITICAL_PATTERNS = [
     // requires trailing whitespace so the regex can't backtrack into
     // partial flag consumption (e.g. `rm -rfffff` would otherwise
     // match by splitting `-rfffff` into `-r` + a fake "directory").
-    re: /\brm\s+(?:-[rRf]+\s+|--recursive\s+|--force\s+|--no-preserve-root\s+)+(?:["']?\/+["']?(?:\s|$|;|&|\|))/,
+    // (v1.10.62) Terminator class extended to also accept `)` and
+    // closing quotes so `os.system('rm -rf /')` and similar
+    // interpreter-embedded forms surface as critical (was high).
+    re: /\brm\s+(?:-[rRf]+\s+|--recursive\s+|--force\s+|--no-preserve-root\s+)+(?:["']?\/+["']?(?:\s|$|;|&|\||\)|"|'))/,
   },
   {
     code: 'rm-rf-tilde',
@@ -143,6 +146,21 @@ const CRITICAL_PATTERNS = [
     code: 'procsub-network-shell',
     label: 'process substitution feeding curl/wget into a shell',
     re: /(?:\b(?:bash|sh|zsh|fish|source)|(?:^|[\s;&|])\.)\s+<\(\s*(?:curl|wget|fetch|http)\b/,
+  },
+  // (v1.10.62) Inline interpreter exec invoking system shells:
+  //   python -c "import os; os.system('rm -rf /')"
+  //   node -e "require('child_process').execSync('rm -rf /')"
+  //   perl -e "system 'rm -rf /'"
+  // The classifier already catches the inner `rm -rf /` once we
+  // surface it (terminator-class fix above), but interpreters that
+  // call out to shell helpers like os.system / subprocess /
+  // child_process.exec / system() are critical even when the inner
+  // string isn't visibly dangerous — they're often the carrier for
+  // an obfuscated payload.
+  {
+    code: 'interpreter-shell-exec',
+    label: 'python/node/perl/ruby invoking shell exec helpers',
+    re: /\b(?:python\d*|node|perl|ruby|php)\s+-[ce]\b[^\n]*\b(?:os\.system|subprocess\.|child_process|require\(["']child_process|exec(?:Sync)?\(|system\s*\(|\bIO\.popen|backtick)/,
   },
 ];
 
@@ -265,6 +283,14 @@ const HIGH_PATTERNS = [
     // name appears anywhere on the same logical line after the
     // membership-mutating verb.
     re: /\b(?:usermod\s+-aG?|usermod\s+--append\s+--groups|gpasswd\s+-a)\b[^\n;]*\b(?:sudo|wheel|root|docker)\b/,
+  },
+  {
+    code: 'sshpass-credential',
+    label: 'sshpass -p <literal> (password on the command line)',
+    // sshpass takes the password on argv — the password leaks into
+    // /proc, audit, and bash history. Even when the operator means
+    // well, this is review-worthy enough to flag as high.
+    re: /\bsshpass\s+(?:-[a-zA-Z]+\s+)*-p\s+\S/,
   },
   {
     code: 'authorized-keys-append',

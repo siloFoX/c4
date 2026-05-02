@@ -371,6 +371,67 @@ describe('_denoiseCommand helper', () => {
   });
 });
 
+describe('classifyCommand v1.10.62 patterns', () => {
+  // Three new patterns + a terminator extension on rm-rf-root.
+
+  it('rm -rf / inside python os.system → critical', () => {
+    // Used to classify as high because the closing quote/paren
+    // didn't match the rm-rf-root terminator class. Now extended
+    // to accept ' " ) so interpreter-embedded forms surface
+    // correctly.
+    const r = classifyCommand("python -c \"import os; os.system('rm -rf /')\"");
+    assert.strictEqual(r.level, 'critical');
+    assert.ok(r.reasons.some((x) => x.code === 'rm-rf-root'));
+  });
+
+  it('node -e require(child_process).execSync → critical', () => {
+    const r = classifyCommand("node -e \"require('child_process').execSync('rm -rf /')\"");
+    assert.strictEqual(r.level, 'critical');
+  });
+
+  it('interpreter-shell-exec catches the carrier even without visible danger', () => {
+    // The inner payload is benign-looking but the carrier (python
+    // -c with os.system) is a known obfuscation vehicle. Critical
+    // because the catalog can't trust what os.system gets.
+    const r = classifyCommand("python -c \"import os; os.system('whoami')\"");
+    assert.strictEqual(r.level, 'critical');
+    assert.ok(r.reasons.some((x) => x.code === 'interpreter-shell-exec'));
+  });
+
+  it('benign python -c stays low', () => {
+    const r = classifyCommand('python -c "print(1+1)"');
+    assert.strictEqual(r.level, 'low');
+  });
+
+  it('benign node script.js (no -e) stays low', () => {
+    const r = classifyCommand('node script.js');
+    assert.strictEqual(r.level, 'low');
+  });
+
+  it('sshpass -p <secret> → high (credential on argv)', () => {
+    const r = classifyCommand('sshpass -p hunter2 ssh user@host');
+    assert.strictEqual(r.level, 'high');
+    assert.ok(r.reasons.some((x) => x.code === 'sshpass-credential'));
+  });
+
+  it('sshpass without -p (e.g., -e env-var) is NOT flagged', () => {
+    // -e reads from $SSHPASS — that's the recommended secure form.
+    const r = classifyCommand('sshpass -e ssh user@host');
+    // Should remain unflagged by the sshpass rule. Other rules may
+    // still hit (none here), so we only check our rule didn't fire.
+    assert.ok(!r.reasons.some((x) => x.code === 'sshpass-credential'));
+  });
+
+  it('regression: existing terminators still match', () => {
+    // Pre-1.10.62 the rm-rf-root terminator was {space, end, ; & |}.
+    // Adding ' " ) shouldn't break any of those.
+    assert.strictEqual(classifyCommand('rm -rf /').level, 'critical');
+    assert.strictEqual(classifyCommand('rm -rf /;ls').level, 'critical');
+    assert.strictEqual(classifyCommand('rm -rf / && ls').level, 'critical');
+    assert.strictEqual(classifyCommand('rm -rf / | tee log').level, 'critical');
+  });
+});
+
 describe('classifyCommand v1.10.59 patterns', () => {
   // Two new patterns drawn from real attack toolkits — process
   // substitution feeding network into shell, and tee-piped writes

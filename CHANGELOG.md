@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.62] - 2026-05-02
+
+Two new patterns + a terminator-class extension. Catalog
+42 → 44.
+
+### Added (critical)
+- **`interpreter-shell-exec`** — `python -c`, `python3 -c`,
+  `node -e`, `perl -e`, `ruby -e`, `php -e` invoking shell-
+  exec helpers (`os.system`, `subprocess`,
+  `child_process.execSync`, `system()`, `IO.popen`, backtick).
+  These are the canonical vehicles for embedding obfuscated
+  payloads — the carrier itself is critical regardless of
+  what's inside.
+
+### Added (high)
+- **`sshpass-credential`** — `sshpass -p <password>`. The
+  password lands on argv where it leaks into /proc, audit,
+  bash history. The recommended `sshpass -e` (env var) form
+  is NOT flagged — locked in via boundary test.
+
+### Fixed
+- **`rm-rf-root` terminator class** extended to accept
+  `' " )` so `os.system('rm -rf /')` and similar interpreter-
+  embedded forms surface as critical (was misclassified
+  high). Earlier terminator allowed only whitespace / EOL /
+  `; & |`. Regression-tested for the original four
+  terminators.
+
+8 new tests in risk-classifier.test.js (110 cases, was 102).
+Suite 157/157. All four drift phases clean.
+
 ## [1.10.61] - 2026-05-02
 
 `c4 doctor` now surfaces risk-classifier status.
