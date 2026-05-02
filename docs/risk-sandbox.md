@@ -358,8 +358,10 @@ NOT be the default.
 ## Further reading
 
 - [`src/risk-classifier.js`](../src/risk-classifier.js) — pattern
-  catalog (83 patterns + 13 obfuscation defeats as of v1.10.134;
-  `c4 risk patterns` lists the current effective rule set)
+  catalog (89 patterns + 13 obfuscation defeats as of v1.10.143;
+  `c4 risk patterns` lists the current effective rule set,
+  `c4 risk patterns --tier <critical|high|medium>` filters to
+  one tier)
 - [`src/risk-sandbox-runtime.js`](../src/risk-sandbox-runtime.js)
   — SandboxRuntime interface + DockerRuntime
 - [`src/risk-sandbox-exec.js`](../src/risk-sandbox-exec.js) —
