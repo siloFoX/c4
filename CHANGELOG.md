@@ -4,6 +4,43 @@
 
 (no entries — next release window)
 
+## [1.10.93] - 2026-05-02
+
+UX — **`c4 --version` / `-v` / `version` print the package version
++ exit cleanly**. Before this cut, those forms fell through to
+the default "unknown command" branch and printed the full usage
+block. Operators (and CI scripts that need to read the c4
+version) now have a stable, parseable surface.
+
+```sh
+$ c4 --version
+1.10.93
+$ c4 -v
+1.10.93
+$ c4 version
+1.10.93
+```
+
+### Added
+- **CLI version handler** — handled BEFORE the main `switch (cmd)`
+  so the entry doesn't fall through to "unknown command" usage.
+- **Usage block** — `version | --version | -v   Print package
+  version + exit` is now documented as a command.
+
+### Test coverage
+- **`tests/cli-version-flag.test.js`** — 6 cases:
+  - `c4 --version` → exits 0 + prints `PKG.version`
+  - `c4 -v` → same
+  - `c4 version` → same
+  - does NOT fall through to usage
+  - extra trailing args don't break the version path
+  - usage block lists `version` as a command (regression guard
+    for the docs)
+
+  Suite 171 → 172.
+
+No version surface change. SDK auto-regen.
+
 ## [1.10.92] - 2026-05-02
 
 Hygiene — **runtime-drift checker now probes `/risk/preview` +

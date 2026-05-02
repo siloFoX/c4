@@ -354,6 +354,15 @@ function parseSimpleYaml(text) {
 async function main() {
   const [cmd, ...args] = process.argv.slice(2);
 
+  // (v1.10.93) `c4 --version` / `-v` / `version` — print package
+  // version + exit. Handled before the switch so the entry doesn't
+  // fall through to "unknown command" usage.
+  if (cmd === '--version' || cmd === '-v' || cmd === 'version') {
+    const pkg = require('../package.json');
+    console.log(pkg.version);
+    return;
+  }
+
   try {
     let result;
 
@@ -4950,6 +4959,7 @@ Commands:
   computer click <sessionId> <X> <Y> [--button B]    Send a mouse click
   computer type <sessionId> <text...>                Type text
   computer key <sessionId> <KeyName>                 Send a key (Enter, Tab, Ctrl+C)
+  version | --version | -v                           Print package version + exit
 
 Special keys: Enter, C-c, C-b, C-d, C-z, C-l, C-a, C-e, Escape, Tab, Backspace, Up, Down, Left, Right
 
