@@ -144,6 +144,79 @@ describe('config validate', () => {
     assert.strictEqual(r.errors.length, 0);
     assert.strictEqual(r.warnings.length, 0);
   });
+
+  // (v1.10.49+50) riskClassifier validation. Catches level typos,
+  // bad regex sources, and malformed customRules.
+
+  it('clean riskClassifier block passes', () => {
+    const r = validate({
+      riskClassifier: {
+        enabled: true,
+        autoDenyLevel: 'high',
+        notifySlack: false,
+      },
+    });
+    assert.strictEqual(r.errors.length, 0);
+    assert.strictEqual(r.warnings.length, 0);
+  });
+
+  it('flags invalid autoDenyLevel', () => {
+    const r = validate({ riskClassifier: { autoDenyLevel: 'CRITICAL' } });
+    assert.ok(r.errors.find((e) => e.path === 'riskClassifier.autoDenyLevel'));
+  });
+
+  it('flags non-array allowList', () => {
+    const r = validate({ riskClassifier: { allowList: 'rm -rf /' } });
+    assert.ok(r.errors.find((e) => e.path === 'riskClassifier.allowList'));
+  });
+
+  it('flags invalid regex in allowList entries', () => {
+    const r = validate({ riskClassifier: { allowList: ['[unterminated'] } });
+    assert.ok(r.errors.find((e) => e.path === 'riskClassifier.allowList[0]'));
+  });
+
+  it('accepts valid regex strings + {pattern, flags} in allowList', () => {
+    const r = validate({
+      riskClassifier: {
+        allowList: ['^rm -rf /tmp', { pattern: '^sudo apt', flags: 'i' }],
+      },
+    });
+    assert.strictEqual(r.errors.length, 0);
+  });
+
+  it('flags malformed customRules entries (missing code/label/pattern)', () => {
+    const r = validate({
+      riskClassifier: {
+        customRules: {
+          critical: [
+            { label: 'no code', pattern: 'x' },
+            { code: 'no-label', pattern: 'x' },
+            { code: 'no-pattern', label: 'missing' },
+          ],
+        },
+      },
+    });
+    const codes = r.errors.map((e) => e.path);
+    assert.ok(codes.some((p) => /code/.test(p)));
+    assert.ok(codes.some((p) => /label/.test(p)));
+    assert.ok(codes.some((p) => /pattern/.test(p)));
+  });
+
+  it('warns on unknown customRules tier', () => {
+    const r = validate({
+      riskClassifier: {
+        customRules: {
+          extreme: [{ code: 'x', label: 'x', pattern: 'x' }],
+        },
+      },
+    });
+    assert.ok(r.warnings.find((w) => w.path === 'riskClassifier.customRules.extreme'));
+  });
+
+  it('flags unknown riskClassifier sibling keys (typo guard)', () => {
+    const r = validate({ riskClassifier: { autoDenialLevel: 'critical' } });
+    assert.ok(r.warnings.find((w) => w.path === 'riskClassifier.autoDenialLevel'));
+  });
 });
 
 // (review fix 2026-05-01) CLI integration — the `c4 config

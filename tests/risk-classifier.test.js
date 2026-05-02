@@ -370,3 +370,108 @@ describe('_denoiseCommand helper', () => {
     assert.strictEqual(typeof out, 'string');
   });
 });
+
+describe('classifyCommand per-machine overrides (v1.10.50)', () => {
+  it('allowList bypasses a built-in critical', () => {
+    const r = classifyCommand('rm -rf /', {
+      allowList: ['^rm -rf /$'],
+    });
+    assert.strictEqual(r.level, 'low');
+    assert.strictEqual(r.reasons[0].code, 'allowlist-bypass');
+    assert.strictEqual(r.suggestedAction, 'allow');
+  });
+
+  it('allowList accepts {pattern, flags} entries', () => {
+    const r = classifyCommand('SUDO apt update', {
+      allowList: [{ pattern: '^sudo apt', flags: 'i' }],
+    });
+    assert.strictEqual(r.level, 'low');
+    assert.strictEqual(r.reasons[0].code, 'allowlist-bypass');
+  });
+
+  it('allowList ignores invalid regex entries silently', () => {
+    // Bad regex shouldn't crash; classification falls through.
+    const r = classifyCommand('ls -la', {
+      allowList: ['[unterminated'],
+    });
+    assert.strictEqual(r.level, 'low');
+    // No allowlist-bypass marker because the bad regex was dropped.
+    assert.ok(!r.reasons.some((x) => x.code === 'allowlist-bypass'));
+  });
+
+  it('denyList forces a low command to critical', () => {
+    const r = classifyCommand('ls /etc/passwd', {
+      denyList: ['/etc/passwd'],
+    });
+    assert.strictEqual(r.level, 'critical');
+    assert.strictEqual(r.denyForced, true);
+    assert.ok(r.reasons.some((x) => x.code === 'denylist-forced'));
+  });
+
+  it('denyList runs after built-in classification — escalates high to critical', () => {
+    const r = classifyCommand('git push --force origin main', {
+      denyList: ['git push --force'],
+    });
+    assert.strictEqual(r.level, 'critical');
+    // Built-in `git-force-push` (high) and `denylist-forced` (critical)
+    // should both appear in reasons.
+    assert.ok(r.reasons.some((x) => x.code === 'git-force-push'));
+    assert.ok(r.reasons.some((x) => x.code === 'denylist-forced'));
+  });
+
+  it('customRules.high adds a new pattern at the high tier', () => {
+    const r = classifyCommand('npm install --unsafe-perm', {
+      customRules: {
+        high: [{ code: 'npm-unsafe-perm', label: 'npm --unsafe-perm', pattern: '--unsafe-perm' }],
+      },
+    });
+    assert.strictEqual(r.level, 'high');
+    assert.ok(r.reasons.some((x) => x.code === 'npm-unsafe-perm'));
+  });
+
+  it('customRules accepts pre-compiled RegExp via .regex', () => {
+    const r = classifyCommand('rsync -av --delete /home/ remote:', {
+      customRules: {
+        critical: [{ code: 'rsync-delete', label: 'rsync --delete', regex: /rsync\s.*--delete/ }],
+      },
+    });
+    assert.strictEqual(r.level, 'critical');
+    assert.ok(r.reasons.some((x) => x.code === 'rsync-delete'));
+  });
+
+  it('malformed customRules entries are silently dropped', () => {
+    const r = classifyCommand('echo hi', {
+      customRules: {
+        critical: [
+          { code: 'no-pattern', label: 'missing pattern' }, // dropped
+          { code: 'bad-regex', label: 'bad', pattern: '[unterminated' }, // dropped
+          { /* not even an object */ }, // dropped
+        ],
+      },
+    });
+    // Should still classify normally as low — no crashes from bad entries.
+    assert.strictEqual(r.level, 'low');
+  });
+
+  it('allowList wins over a denyList entry on the same command', () => {
+    // Documents the precedence: allowList runs before built-ins or
+    // denyList. An operator who explicitly allow-lists a pattern
+    // gets their way.
+    const r = classifyCommand('rm -rf /tmp/test', {
+      allowList: ['rm -rf /tmp'],
+      denyList: ['rm -rf /tmp'],
+    });
+    assert.strictEqual(r.level, 'low');
+    assert.strictEqual(r.reasons[0].code, 'allowlist-bypass');
+  });
+
+  it('empty / non-array opts are no-ops', () => {
+    const r = classifyCommand('rm -rf /', {
+      allowList: 'not-an-array',
+      denyList: null,
+      customRules: 'string',
+    });
+    // Falls through to built-in critical, no override interference.
+    assert.strictEqual(r.level, 'critical');
+  });
+});

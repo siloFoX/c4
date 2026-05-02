@@ -527,10 +527,20 @@
     "validateResponses": false
   },
 
-  "_riskClassifier_doc": "(11.5) Hook-level command risk gate. PreToolUse hook routes Bash commands through risk-classifier.js; commands at or above autoDenyLevel get auto-denied + Slack-alerted. Off by default — enable for L4 autonomous runs where the operator can't review every command.",
+  "_riskClassifier_doc": "(11.5) Hook-level command risk gate. PreToolUse hook routes Bash commands through risk-classifier.js; commands at or above autoDenyLevel get auto-denied + Slack-alerted. Off by default — enable for L4 autonomous runs where the operator can't review every command. allowList/denyList/customRules let each machine carve out exceptions or tighten the catalog without forking the source.",
   "riskClassifier": {
     "enabled": false,
     "autoDenyLevel": "critical",
-    "notifySlack": true
+    "notifySlack": true,
+    "_allowList_doc": "Array of regex strings (or {pattern, flags}). Matching commands bypass classification entirely and return level: low. Highest-priority override.",
+    "allowList": [],
+    "_denyList_doc": "Array of regex strings (or {pattern, flags}). Matching commands force level: critical regardless of the built-in catalog.",
+    "denyList": [],
+    "_customRules_doc": "Append-mode rules added to the built-in pattern set. Keyed by tier (critical / high / medium); each entry: {code, label, pattern, flags?}.",
+    "customRules": {
+      "critical": [],
+      "high": [],
+      "medium": []
+    }
   }
 }

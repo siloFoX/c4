@@ -4,6 +4,48 @@
 
 (no entries — next release window)
 
+## [1.10.50] - 2026-05-02
+
+11.5 follow-up (c): per-machine rule override layer for the
+risk classifier.
+
+### Added
+- **(risk-classifier) `opts.allowList`** — array of regex
+  strings (or `{pattern, flags}`). When a command matches any
+  entry the classifier returns level: low with a synthetic
+  `allowlist-bypass` reason. Highest-priority override; runs
+  before the built-in pattern set so an operator can carve
+  out an exception even for built-in critical hits (e.g., a
+  CI machine that genuinely needs `chmod -R 755` on a tmpdir).
+- **(risk-classifier) `opts.denyList`** — array of regex
+  strings. Matching commands force level: critical with a
+  synthetic `denylist-forced` reason. Useful when the built-
+  in catalog is too permissive for a high-stakes environment
+  ("any reference to /etc/passwd is critical here").
+- **(risk-classifier) `opts.customRules`** — append-mode
+  patterns keyed by tier (critical / high / medium). Each rule
+  is `{code, label, pattern, flags?}` — operator extends the
+  catalog without forking the source. Pre-compiled `RegExp`
+  objects also accepted via `.regex`.
+- **(pty-manager) Forwards allowList / denyList / customRules
+  from `config.riskClassifier` into every classification
+  call.** No new wiring at the call site — the hook reads
+  the config block once per check.
+- **(config-validate) Type-checks the override fields.** Bad
+  regex → error with the specific entry path
+  (`riskClassifier.allowList[0]`). Malformed customRules
+  entries flagged at the field level (missing code / label /
+  pattern). Unknown tiers under customRules → warning.
+
+### Changed
+- **(config.example.json) Documents the override layer** with
+  `_allowList_doc` / `_denyList_doc` / `_customRules_doc`
+  siblings + empty defaults so users can paste-and-edit.
+
+10 new override tests in `tests/risk-classifier.test.js`
+(67 total) plus 8 new config-validate tests for the override
+fields (34 total). Suite 154/154.
+
 ## [1.10.49] - 2026-05-02
 
 11.5 follow-up: PreToolUse hook now routes Bash commands

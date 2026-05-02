@@ -291,6 +291,64 @@ function _matches(patterns, cmd) {
   return hits;
 }
 
+// Normalise a config-shaped rule entry into the internal
+// `{code, label, re}` form. Accepts either:
+//   - { code, label, pattern: 'regex-source', flags: 'i' }
+//   - { code, label, regex: <RegExp> }
+// Returns null + a reason on bad input so the caller can warn
+// without throwing — operator config typos shouldn't crash the
+// classifier.
+function _normaliseRule(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  if (typeof raw.code !== 'string' || !raw.code) return null;
+  if (typeof raw.label !== 'string' || !raw.label) return null;
+  let re;
+  if (raw.regex instanceof RegExp) {
+    re = raw.regex;
+  } else if (typeof raw.pattern === 'string' && raw.pattern.length > 0) {
+    try { re = new RegExp(raw.pattern, raw.flags || ''); }
+    catch { return null; }
+  } else {
+    return null;
+  }
+  return { code: raw.code, label: raw.label, re };
+}
+
+// Compile a list of allow/deny patterns from the config-shaped
+// shape. Each entry can be a regex source string or
+// `{pattern, flags}`. Returns an array of RegExp; bad entries
+// are silently dropped so a single typo doesn't disable the
+// whole list.
+function _compilePatternList(list) {
+  if (!Array.isArray(list)) return [];
+  const out = [];
+  for (const entry of list) {
+    if (entry instanceof RegExp) { out.push(entry); continue; }
+    if (typeof entry === 'string') {
+      try { out.push(new RegExp(entry)); } catch { /* skip */ }
+      continue;
+    }
+    if (entry && typeof entry === 'object' && typeof entry.pattern === 'string') {
+      try { out.push(new RegExp(entry.pattern, entry.flags || '')); } catch { /* skip */ }
+    }
+  }
+  return out;
+}
+
+function _normaliseCustomRules(customRules) {
+  if (!customRules || typeof customRules !== 'object') return { critical: [], high: [], medium: [] };
+  const out = { critical: [], high: [], medium: [] };
+  for (const tier of ['critical', 'high', 'medium']) {
+    const list = customRules[tier];
+    if (!Array.isArray(list)) continue;
+    for (const raw of list) {
+      const r = _normaliseRule(raw);
+      if (r) out[tier].push(r);
+    }
+  }
+  return out;
+}
+
 function classifyCommand(cmd, opts = {}) {
   if (!cmd || typeof cmd !== 'string') {
     return {
@@ -312,17 +370,52 @@ function classifyCommand(cmd, opts = {}) {
   const denoised = _denoiseCommand(trimmed);
   const sourceForMatch = denoised !== trimmed ? denoised : trimmed;
 
-  const critical = _matches(CRITICAL_PATTERNS, sourceForMatch);
-  const high = _matches(HIGH_PATTERNS, sourceForMatch);
+  // (v1.10.50) Per-machine override: allowList. When any pattern
+  // matches the (denoised) command, classify as low with a synthetic
+  // 'allowlist-bypass' reason so audits see why the gate didn't fire.
+  // Comes BEFORE the built-in pattern set so an operator can carve
+  // out an exception even for built-in critical hits (e.g., a CI
+  // machine that genuinely needs `chmod -R 755` on a tmpdir).
+  const allowList = _compilePatternList(opts.allowList);
+  for (const re of allowList) {
+    if (re.test(sourceForMatch)) {
+      return {
+        level: 'low',
+        reasons: [{ code: 'allowlist-bypass', label: 'matches operator allowList', snippet: trimmed.slice(0, 160) }],
+        suggestedAction: 'allow',
+        decoded: denoised !== trimmed ? denoised : null,
+        inspectedSource: opts.includeInspected ? sourceForMatch : undefined,
+      };
+    }
+  }
+
+  const customRules = _normaliseCustomRules(opts.customRules);
+  const critical = _matches(CRITICAL_PATTERNS.concat(customRules.critical), sourceForMatch);
+  const high = _matches(HIGH_PATTERNS.concat(customRules.high), sourceForMatch);
+  const mediumRaw = _matches(MEDIUM_PATTERNS.concat(customRules.medium), sourceForMatch);
+  const highCodes = new Set(high.map((h) => h.code));
   // Filter medium hits that are already covered by the high tier so
   // `git push --force` doesn't double-emit as both `git-force-push`
   // and `git-push`.
-  const mediumRaw = _matches(MEDIUM_PATTERNS, sourceForMatch);
-  const highCodes = new Set(high.map((h) => h.code));
   const medium = mediumRaw.filter((m) => {
     if (m.code === 'git-push' && highCodes.has('git-force-push')) return false;
     return true;
   });
+
+  // (v1.10.50) Per-machine override: denyList. When any pattern
+  // matches, force the result to critical with a synthetic
+  // 'denylist-forced' reason. Useful when the built-in catalog is
+  // too permissive for a high-stakes environment ("any reference to
+  // /etc/passwd is critical here, full stop").
+  const denyList = _compilePatternList(opts.denyList);
+  let denyForced = false;
+  for (const re of denyList) {
+    if (re.test(sourceForMatch)) {
+      critical.push({ code: 'denylist-forced', label: 'matches operator denyList', snippet: trimmed.slice(0, 160) });
+      denyForced = true;
+      break;
+    }
+  }
 
   let level;
   if (critical.length > 0) level = 'critical';
@@ -340,6 +433,7 @@ function classifyCommand(cmd, opts = {}) {
     // Useful for auditors who want to see what we matched against
     // without re-running the regex set.
     inspectedSource: opts.includeInspected ? sourceForMatch : undefined,
+    denyForced: denyForced || undefined,
   };
 }
 

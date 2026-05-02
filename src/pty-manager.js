@@ -514,7 +514,11 @@ class PtyManager extends EventEmitter {
       const command = toolInput.command || '';
       const riskCfg = (this.config && this.config.riskClassifier) || {};
       if (riskCfg.enabled && command) {
-        const classification = riskClassifier.classifyCommand(command);
+        const classification = riskClassifier.classifyCommand(command, {
+          allowList: riskCfg.allowList,
+          denyList: riskCfg.denyList,
+          customRules: riskCfg.customRules,
+        });
         const autoDenyLevel = ['low', 'medium', 'high', 'critical'].includes(riskCfg.autoDenyLevel)
           ? riskCfg.autoDenyLevel
           : 'critical';

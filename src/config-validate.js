@@ -184,7 +184,11 @@ function validate(config = {}) {
       'enabled',
       'autoDenyLevel',
       'notifySlack',
+      'allowList',
+      'denyList',
+      'customRules',
     ]);
+    const BOOL_KEYS = new Set(['enabled', 'notifySlack']);
     for (const [k, v] of Object.entries(config.riskClassifier)) {
       if (k.startsWith('_') && k.endsWith('_doc')) continue;
       if (!KNOWN_RISK_KEYS.has(k)) {
@@ -203,11 +207,97 @@ function validate(config = {}) {
         }
         continue;
       }
-      if (typeof v !== 'boolean') {
-        errors.push({
-          path: `riskClassifier.${k}`,
-          message: `must be a boolean, got ${typeof v}`,
-        });
+      if (BOOL_KEYS.has(k)) {
+        if (typeof v !== 'boolean') {
+          errors.push({
+            path: `riskClassifier.${k}`,
+            message: `must be a boolean, got ${typeof v}`,
+          });
+        }
+        continue;
+      }
+      if (k === 'allowList' || k === 'denyList') {
+        if (!Array.isArray(v)) {
+          errors.push({
+            path: `riskClassifier.${k}`,
+            message: `must be an array of regex strings or {pattern, flags} objects, got ${typeof v}`,
+          });
+          continue;
+        }
+        for (let i = 0; i < v.length; i++) {
+          const entry = v[i];
+          if (typeof entry === 'string') {
+            try { new RegExp(entry); }
+            catch (e) {
+              errors.push({
+                path: `riskClassifier.${k}[${i}]`,
+                message: `invalid regex: ${e.message}`,
+              });
+            }
+          } else if (entry && typeof entry === 'object' && typeof entry.pattern === 'string') {
+            try { new RegExp(entry.pattern, entry.flags || ''); }
+            catch (e) {
+              errors.push({
+                path: `riskClassifier.${k}[${i}].pattern`,
+                message: `invalid regex: ${e.message}`,
+              });
+            }
+          } else {
+            errors.push({
+              path: `riskClassifier.${k}[${i}]`,
+              message: 'must be a regex string or {pattern, flags?} object',
+            });
+          }
+        }
+        continue;
+      }
+      if (k === 'customRules') {
+        if (!v || typeof v !== 'object' || Array.isArray(v)) {
+          errors.push({
+            path: 'riskClassifier.customRules',
+            message: 'must be an object keyed by tier (critical | high | medium)',
+          });
+          continue;
+        }
+        for (const tier of Object.keys(v)) {
+          if (!['critical', 'high', 'medium'].includes(tier)) {
+            warnings.push({
+              path: `riskClassifier.customRules.${tier}`,
+              message: 'unknown tier — known: critical, high, medium',
+            });
+            continue;
+          }
+          const rules = v[tier];
+          if (!Array.isArray(rules)) {
+            errors.push({
+              path: `riskClassifier.customRules.${tier}`,
+              message: `must be an array of {code, label, pattern, flags?} rules, got ${typeof rules}`,
+            });
+            continue;
+          }
+          for (let i = 0; i < rules.length; i++) {
+            const r = rules[i];
+            const base = `riskClassifier.customRules.${tier}[${i}]`;
+            if (!r || typeof r !== 'object') {
+              errors.push({ path: base, message: 'must be an object' });
+              continue;
+            }
+            if (typeof r.code !== 'string' || !r.code) {
+              errors.push({ path: `${base}.code`, message: 'required string' });
+            }
+            if (typeof r.label !== 'string' || !r.label) {
+              errors.push({ path: `${base}.label`, message: 'required string' });
+            }
+            if (typeof r.pattern !== 'string' || !r.pattern) {
+              errors.push({ path: `${base}.pattern`, message: 'required regex source string' });
+            } else {
+              try { new RegExp(r.pattern, r.flags || ''); }
+              catch (e) {
+                errors.push({ path: `${base}.pattern`, message: `invalid regex: ${e.message}` });
+              }
+            }
+          }
+        }
       }
     }
   }
