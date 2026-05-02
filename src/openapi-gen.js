@@ -1742,6 +1742,7 @@ const ROUTE_SCHEMAS = {
         },
         allowList: { type: 'integer', description: 'Number of configured allowList entries' },
         denyList: { type: 'integer', description: 'Number of configured denyList entries' },
+        fingerprint: { type: 'string', description: '(v1.10.95) 16-char SHA-256 prefix over the effective rule set (built-in catalog codes + custom rules + allowList + denyList sources). Operators compare across machines to verify identical classifier config without diffing the full rule list.' },
       },
     },
   },

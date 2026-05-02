@@ -1576,6 +1576,36 @@ async function handleRequest(req, res) {
           allowList: Array.isArray(riskCfg.allowList) ? riskCfg.allowList.length : 0,
           denyList: Array.isArray(riskCfg.denyList) ? riskCfg.denyList.length : 0,
         };
+        // (v1.10.95) Stable fingerprint over the effective rule set.
+        // Operators on multiple machines compare the fingerprint to
+        // verify identical classifier config without diffing the
+        // entire rule list. Hash inputs: built-in pattern codes
+        // (in catalog order), custom rule shapes (sorted by code +
+        // tier), allowList + denyList sources (in array order).
+        // Truncated to 16 hex chars — same convention as
+        // stdoutHash / stderrHash from v1.10.86.
+        const fpInput = JSON.stringify({
+          builtin: [
+            ...PATTERN_CATALOG.critical.map((r) => `c:${r.code}`),
+            ...PATTERN_CATALOG.high.map((r) => `h:${r.code}`),
+            ...PATTERN_CATALOG.medium.map((r) => `m:${r.code}`),
+          ],
+          custom: ['critical', 'high', 'medium'].flatMap((tier) =>
+            (custom[tier] || []).map((r) => ({
+              tier,
+              code: r && r.code,
+              pattern: r && r.pattern,
+              flags: r && r.flags,
+            })),
+          ),
+          allowList: Array.isArray(riskCfg.allowList) ? riskCfg.allowList : [],
+          denyList: Array.isArray(riskCfg.denyList) ? riskCfg.denyList : [],
+        });
+        result.fingerprint = require('crypto')
+          .createHash('sha256')
+          .update(fpInput, 'utf8')
+          .digest('hex')
+          .slice(0, 16);
       } catch (e) {
         result = { error: e.message };
       }

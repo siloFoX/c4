@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.94
-// Generated at: 2026-05-02T07:28:48.787Z
+// Spec version: 1.10.95
+// Generated at: 2026-05-02T07:38:02.289Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -405,6 +405,7 @@ export interface getRiskPatternsResponse {
 };
   allowList?: number; /** Number of configured allowList entries */
   denyList?: number; /** Number of configured denyList entries */
+  fingerprint?: string; /** (v1.10.95) 16-char SHA-256 prefix over the effective rule set (built-in catalog codes + custom rules + allowList + denyList sources). Operators compare across machines to verify identical classifier config without diffing the full rule list. */
 }
 
 export interface getRiskStatsParams {

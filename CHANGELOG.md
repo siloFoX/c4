@@ -4,6 +4,55 @@
 
 (no entries — next release window)
 
+## [1.10.95] - 2026-05-02
+
+11.5 polish — **classifier rule-set fingerprint**. `GET
+/risk/patterns` + `c4 risk patterns` now print a 16-char SHA-256
+prefix over the effective rule set. Operators on multiple
+machines compare the fingerprint to verify identical classifier
+config without diffing the full rule list.
+
+```
+…
+Fingerprint: ef5250c3f82d281a
+```
+
+### Added
+- **`fingerprint`** field on `GET /risk/patterns` response.
+  Hash inputs (in stable order):
+  - Built-in pattern codes prefixed by tier (`c:rm-rf-root`,
+    `h:git-push-force`, …) — captures catalog reorderings.
+  - Custom rule shapes (tier + code + pattern + flags) for
+    operator-extended catalog.
+  - `allowList` and `denyList` regex sources verbatim.
+- **`c4 risk patterns`** CLI prints `Fingerprint: <16-hex>` line
+  after the `Overrides:` line when the response carries one.
+  Suppressed on legacy daemons that don't return the field.
+
+### Test coverage
+- **`tests/risk-patterns-fingerprint.test.js`** — 10 cases / 2
+  suites:
+  - daemon source-grep locking the algorithm shape (sha256 +
+    16-char slice + tier-prefixed codes + custom rule projection)
+  - OpenAPI ROUTE_SCHEMAS declares the field with v1.10.95 marker
+  - determinism: identical inputs → identical fingerprints
+  - sensitivity: customRule / allowList / denyList changes flip
+    the fingerprint
+  - the live `PATTERN_CATALOG` fingerprints to a 16-hex string
+  - hash algorithm is order-sensitive (catalog reorder → different
+    fingerprint)
+
+  Suite 172 → 173.
+
+### Why expose this
+
+Operators running c4 across staging + prod machines have asked
+for "is my classifier config the same here as there" without
+having to diff `config.json` (which hides the built-in catalog
++ custom rule order behind opaque structures). 16 hex chars is
+enough collision-resistance for the operator volume; same
+convention as `stdoutHash` / `stderrHash` from v1.10.86.
+
 ## [1.10.94] - 2026-05-02
 
 11.5 Stage 2 polish — **Slack alerts on shadow exec anomalies**.

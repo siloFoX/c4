@@ -4560,6 +4560,11 @@ async function main() {
           if (data.allowList > 0 || data.denyList > 0) {
             console.log(`\nOverrides: allowList=${data.allowList}, denyList=${data.denyList}`);
           }
+          // (v1.10.95) Fingerprint — operators compare across machines
+          // to verify identical classifier config.
+          if (typeof data.fingerprint === 'string' && data.fingerprint.length > 0) {
+            console.log(`\nFingerprint: ${data.fingerprint}`);
+          }
           return;
         }
         // Subcommand: `c4 risk stats` — aggregate audit chain denies.
