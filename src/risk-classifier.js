@@ -300,6 +300,30 @@ const CRITICAL_PATTERNS = [
     label: 'write to /sys/fs/cgroup/.../release_agent or notify_on_release (container escape)',
     re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)(?:\/sys\/fs\/cgroup\/[^\n;|&]*?)(?:release_agent|notify_on_release)\b/,
   },
+  // (v1.10.146) System binary / library overwrite. Replacing
+  // a system binary (sshd, sudo, ssh, su, login), shared
+  // library (libc.so.*, ld-linux*), or kernel image
+  // (/boot/vmlinuz, /boot/initrd.img) is a textbook
+  // supply-chain / persistence attack — every subsequent
+  // invocation runs the attacker's payload at root level.
+  // download-into-path covers the curl -O form; this rule
+  // covers the cp / mv / install vehicles.
+  {
+    code: 'system-binary-overwrite',
+    label: 'cp / mv / install into /usr/bin, /usr/sbin, /bin, /sbin, /usr/lib, /boot (system binary replace)',
+    re: /\b(?:cp|mv|install)\s+(?:[^\n;|&]*\s)?(?:\/usr\/(?:local\/)?(?:s?bin|lib(?:64|32)?)|\/sbin|\/bin|\/lib(?:64|32)?|\/boot)\/\S+/,
+  },
+  // (v1.10.146) Boot configuration / kernel image writes —
+  // /boot/{grub/grub.cfg,vmlinuz,initrd.img}, EFI boot entry
+  // creation. Tampering here means the attacker's payload
+  // runs at every boot, before any userland defense. Covered
+  // separately from systemd-unit-write because boot is
+  // pre-userland.
+  {
+    code: 'boot-config-write',
+    label: 'write to /boot/* or efibootmgr -c (boot-time tampering)',
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/boot\/(?:grub\/[\w.-]+|efi\/[\w.\/-]+|loader\/[\w.\/-]+|vmlinuz[\w.-]*|initrd\.img[\w.-]*|initramfs[\w.-]*)|\befibootmgr\s+(?:[^\n;|&]*\s)?(?:-c\b|--create\b)/,
+  },
   // (v1.10.135) Kernel module load — `insmod` and `modprobe`
   // load a `.ko` blob into the running kernel. Loaded modules
   // run at ring 0; a malicious .ko has full kernel access

@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.146] - 2026-05-03
+
+**Two new critical patterns**: `system-binary-overwrite` and
+`boot-config-write`. Closes the binary-replacement /
+boot-tampering threat surface that catalog left silent.
+`download-into-path` covered the curl -O form for system PATH
+dirs; this release adds the cp/mv/install vehicles plus the
+boot-time pre-userland surfaces.
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `system-binary-overwrite`.
+  Catches `cp` / `mv` / `install` writing to `/usr/bin`,
+  `/usr/sbin`, `/usr/local/bin`, `/usr/local/sbin`, `/usr/lib`,
+  `/usr/lib64`, `/lib`, `/lib64`, `/sbin`, `/bin`, or `/boot`.
+  Replacing `sshd`, `sudo`, `ssh`, `su`, `login`, or shared
+  libs (libc.so.*, ld-linux*) is textbook persistence — every
+  subsequent invocation runs the attacker's payload at root
+  level. `/boot` included for kernel image / initrd tampering
+  via cp/mv. Non-system paths (`/tmp`, `/home`, `/opt/myapp/`)
+  stay LOW.
+
+- **`PATTERN_CATALOG.critical`** entry `boot-config-write`. Catches
+  redirects/tees into `/boot/grub/<file>`, `/boot/efi/...`,
+  `/boot/loader/...`, plus `efibootmgr -c` / `--create`.
+  Tampering at boot means the attacker's payload runs before
+  any userland defense. Read forms (`cat /boot/config-6.0`,
+  `efibootmgr -v`) stay LOW.
+
+- **`tests/risk-classifier.test.js`**: 4 new `it()` cases —
+  2 attack assertions + 2 regression assertions. Suite stays
+  at 178. Risk-classifier file 244 → 248 cases.
+
+### Catalog totals
+- Critical: 27 patterns (+2: system-binary-overwrite,
+  boot-config-write)
+- High: 40 patterns (+0)
+- Medium: 21 patterns (+0)
+- **Total: 89 → 91** (effective; daemon will report 91 after
+  restart)
+
 ## [1.10.145] - 2026-05-03
 
 **Morning report Risk Activity rotation indicator.** When the

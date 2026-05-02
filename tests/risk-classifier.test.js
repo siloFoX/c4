@@ -1015,6 +1015,73 @@ describe('classifyCommand v1.10.67 patterns', () => {
     }
   });
 
+  // (v1.10.146) Two new critical patterns: system-binary-overwrite
+  // (cp/mv/install into system bin / lib / boot dirs) and
+  // boot-config-write (redirects into /boot/* + efibootmgr -c).
+  it('system-binary-overwrite: cp/mv/install into /usr/bin, /usr/sbin, /usr/lib, /boot → critical (v1.10.146)', () => {
+    for (const cmd of [
+      'cp /tmp/evil /usr/bin/sshd',
+      'cp /tmp/evil /usr/local/bin/sudo',
+      'cp /tmp/evil /usr/bin/sudo',
+      'mv /tmp/evil /usr/sbin/sshd',
+      'install /tmp/evil /usr/bin/su',
+      'cp /tmp/evil.so /usr/lib/libc.so.6',
+      'cp /tmp/evil.so /lib64/libc.so.6',
+      'cp evil /boot/vmlinuz-6.0',
+      'cp evil /boot/initrd.img',
+      'mv /tmp/evil /sbin/init',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'system-binary-overwrite'),
+        `${cmd}: expected system-binary-overwrite`);
+    }
+  });
+
+  it('system-binary-overwrite — non-system paths stay low (regression)', () => {
+    for (const cmd of [
+      'cp file.txt /tmp/',
+      'cp file.txt /home/user/code/',
+      'mv /tmp/build /opt/myapp/bin/',     // /opt/myapp/bin is user opt
+      'cp /tmp/x /var/log/foo',            // /var/log not /usr/lib
+      'install -d /tmp/work',              // creating dir, not binary install
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'system-binary-overwrite'),
+        `${cmd}: should not match system-binary-overwrite`);
+    }
+  });
+
+  it('boot-config-write: redirect into /boot/ or efibootmgr -c → critical (v1.10.146)', () => {
+    for (const cmd of [
+      'echo "linux /vmlinuz init=/bin/bash" > /boot/grub/grub.cfg',
+      'cat evil > /boot/grub/grub.cfg',
+      'cat evil >> /boot/efi/EFI/grub/grub.cfg',
+      'tee /boot/loader/loader.conf < evil',
+      'efibootmgr -c -d /dev/sda -p 1',
+      'efibootmgr --create --label evil',
+      'sudo efibootmgr -c -d /dev/nvme0n1',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'boot-config-write'),
+        `${cmd}: expected boot-config-write`);
+    }
+  });
+
+  it('boot-config-write — read / info stays low (regression)', () => {
+    for (const cmd of [
+      'cat /boot/config-6.0',
+      'ls /boot/grub/',
+      'efibootmgr -v',                   // verbose info
+      'efibootmgr',                       // bare list
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'boot-config-write'),
+        `${cmd}: should not match boot-config-write`);
+    }
+  });
+
   it('http-file-server — non-server invocations stay low (regression)', () => {
     for (const cmd of [
       'python script.py',
