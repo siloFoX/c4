@@ -4,6 +4,53 @@
 
 (no entries — next release window)
 
+## [1.10.150] - 2026-05-03
+
+**Defense-evasion + history extensions**: `auditctl-disable`
+(high), `selinux-disable` (high), plus extensions of
+`config-dropin-write` (polkit) and `history-tamper` (direct
+file truncation).
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `auditctl-disable`. Catches
+  `auditctl -e 0` (disable enforcement), `auditctl -D` (delete
+  all rules), and `auditctl --reset`. Same defense-evasion
+  family as `systemctl-disable-critical auditd` but reaches
+  the kernel audit subsystem directly. Enable forms (`-e 1`),
+  list (`-l`), status, and ADD rules (`-a`) stay LOW.
+
+- **`PATTERN_CATALOG.high`** entry `selinux-disable`. Catches:
+  - `setenforce 0` (runtime enforce-off)
+  - Redirects/tees to `/etc/selinux/config` (persistent
+    config disable)
+  Same threat as `apparmor-disable`: drops mandatory access
+  control. `setenforce 1`, `getenforce`, `sestatus`, reads
+  stay LOW.
+
+### Changed
+- **`config-dropin-write`** regex extended to include
+  `/etc/polkit-1/rules.d/*` — polkit rules grant per-action
+  privileges, so writes here are equivalent to sudoers/PAM
+  drop-ins.
+- **`history-tamper`** regex extended with the brute-force
+  truncation form (`> ~/.bash_history`, `> ~/.zsh_history`).
+  The four original forms covered the API surface
+  (`history -c`, env-var fiddling); this catches operators
+  just blanking the file.
+
+### Added (tests)
+- **`tests/risk-classifier.test.js`**: 6 new `it()` cases —
+  3 attack assertions + 3 regression assertions covering
+  auditctl, selinux, and the history-tamper extension. Suite
+  stays at 178. Risk-classifier file 257 → 263 cases.
+
+### Catalog totals
+- Critical: 30 patterns (+0)
+- High: 43 patterns (+2: auditctl-disable, selinux-disable)
+- Medium: 21 patterns (+0; history-tamper extended in place)
+- **Total: 95 → 97** (effective; daemon will report 97 after
+  restart)
+
 ## [1.10.149] - 2026-05-03
 
 **`ld-preload-env` (critical) catalog pattern.** `ld-preload-write`

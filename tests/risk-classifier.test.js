@@ -2160,6 +2160,90 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.150) auditctl + selinux + history-tamper extension.
+  it('auditctl-disable: -e 0 / -D / --reset → high (v1.10.150)', () => {
+    for (const cmd of [
+      'auditctl -e 0',
+      'auditctl -D',
+      'auditctl --reset',
+      'sudo auditctl -e 0',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'auditctl-disable'),
+        `${cmd}: expected auditctl-disable`);
+    }
+  });
+
+  it('auditctl-disable — enable / list / add stays low (regression)', () => {
+    for (const cmd of [
+      'auditctl -e 1',                                 // ENABLE
+      'auditctl -a always,exit -F arch=b64 -S kill',  // ADD a rule
+      'auditctl -l',                                   // list
+      'auditctl --status',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'auditctl-disable'),
+        `${cmd}: should not match auditctl-disable`);
+    }
+  });
+
+  it('selinux-disable: setenforce 0 / SELINUX=disabled write → high (v1.10.150)', () => {
+    for (const cmd of [
+      'setenforce 0',
+      'sudo setenforce 0',
+      'echo SELINUX=disabled > /etc/selinux/config',
+      'echo SELINUX=disabled >> /etc/selinux/config',
+      'cat config | tee /etc/selinux/config',
+      'cat config | tee -a /etc/selinux/config',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'selinux-disable'),
+        `${cmd}: expected selinux-disable`);
+    }
+  });
+
+  it('selinux-disable — enforce-on / read stays low (regression)', () => {
+    for (const cmd of [
+      'setenforce 1',
+      'getenforce',
+      'cat /etc/selinux/config',
+      'sestatus',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'selinux-disable'),
+        `${cmd}: should not match selinux-disable`);
+    }
+  });
+
+  it('history-tamper extended: > ~/.bash_history → medium (v1.10.150 extension)', () => {
+    for (const cmd of [
+      '> ~/.bash_history',
+      '> /home/user/.bash_history',
+      '> ~/.zsh_history',
+      '> /root/.bash_history',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(['medium', 'high'].includes(r.level),
+        `${cmd} should be medium+ (got ${r.level})`);
+      assert.ok(r.reasons.some((x) => x.code === 'history-tamper'),
+        `${cmd}: expected history-tamper`);
+    }
+  });
+
+  it('history-tamper extension — append / read stays low (regression)', () => {
+    for (const cmd of [
+      'cat ~/.bash_history',
+      'echo entry >> ~/.bash_history',         // append, not truncate
+      'tail ~/.bash_history',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'history-tamper'),
+        `${cmd}: should not match history-tamper`);
+    }
+  });
+
   it('kexec-load: kexec -l / --load / -e → critical (v1.10.129)', () => {
     for (const cmd of [
       'kexec -l /boot/vmlinuz --initrd=/boot/initrd',

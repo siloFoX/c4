@@ -487,8 +487,8 @@ const HIGH_PATTERNS = [
   // canonical attack shell.
   {
     code: 'config-dropin-write',
-    label: 'write to /etc/{sudoers,pam,profile}.d/* or /etc/security/*',
-    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/etc\/(?:sudoers\.d|pam\.d|profile\.d|security)\/[\w.-]+/,
+    label: 'write to /etc/{sudoers,pam,profile,polkit-1/rules}.d/* or /etc/security/*',
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/etc\/(?:sudoers\.d|pam\.d|profile\.d|security|polkit-1\/rules\.d)\/[\w.-]+/,
   },
   {
     code: 'ssh-known-hosts',
@@ -597,6 +597,30 @@ const HIGH_PATTERNS = [
     code: 'systemctl-disable-critical',
     label: 'systemctl stop|disable on a critical service (ssh / firewall / audit)',
     re: /\bsystemctl\s+(?:stop|disable|mask)\s+(?:ssh|sshd|firewalld|ufw|nftables|auditd|apparmor|fail2ban)\b/,
+  },
+  // (v1.10.150) auditctl rule subversion — auditd's runtime
+  // CLI. `-e 0` disables enforcement; `-D` deletes all rules.
+  // Same defense-evasion family as systemctl-disable-critical
+  // for auditd, but reaches the kernel audit subsystem
+  // directly. No benign worker reason to disable audit
+  // collection.
+  {
+    code: 'auditctl-disable',
+    label: 'auditctl -e 0 / -D (disable audit collection / clear rules)',
+    re: /\bauditctl\s+(?:[^\n;|&]*\s)?(?:-e\s+0\b|-D\b|--reset\b)/,
+  },
+  // (v1.10.150) SELinux enforce-off — `setenforce 0` flips
+  // SELinux from Enforcing to Permissive at runtime; the
+  // /etc/selinux/config write does it persistently. Same
+  // threat shape as apparmor-disable: drops the mandatory
+  // access control layer.
+  // The two paths split into separate alternations because
+  // the redirect form anchor (`>` is non-word) doesn't fit
+  // the leading `\b` that `setenforce` needs.
+  {
+    code: 'selinux-disable',
+    label: 'setenforce 0 / SELINUX=disabled in /etc/selinux/config',
+    re: /\bsetenforce\s+0\b|(?:^|[\s;|&])(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/etc\/selinux\/config\b/,
   },
   // (v1.10.140) AppArmor profile disable — `aa-disable` and
   // `aa-complain` move profiles out of enforcement. Same threat
@@ -1048,10 +1072,14 @@ const MEDIUM_PATTERNS = [
   // (v1.10.67) History clearing / disabling — common defense-evasion
   // step in post-exploit playbooks. Even if the operator did this
   // by accident, the trail loss is review-worthy.
+  // (v1.10.150) Extended with direct file truncation of
+  // ~/.bash_history / ~/.zsh_history. The four original forms
+  // covered the API surface (`history -c`, env vars); this
+  // catches the brute-force "just blank the file" approach.
   {
     code: 'history-tamper',
     label: 'clear / disable bash / zsh history',
-    re: /\b(?:history\s+-c\b|set\s+\+o\s+history\b|unset\s+HISTFILE\b|export\s+HISTFILE=\/dev\/null\b)/,
+    re: /\b(?:history\s+-c\b|set\s+\+o\s+history\b|unset\s+HISTFILE\b|export\s+HISTFILE=\/dev\/null\b)|(?:^|[\s;|&])>\s*(?:~|\$HOME|\/home\/[^\s/]+|\/root)\/\.(?:bash_history|zsh_history|zhistory)\b/,
   },
   // (v1.10.137) Log file truncation / destruction — anti-forensic
   // via three forms:
