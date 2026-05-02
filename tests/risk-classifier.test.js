@@ -2016,10 +2016,82 @@ describe('classifyCommand v1.10.54 patterns', () => {
       'cat /proc/cpuinfo',
       'cat /proc/self/cmdline',
       'ls /proc/1/root/',
+      'cat /proc/1234/status',
+      'cat /proc/self/maps',          // read maps (not write mem)
     ]) {
       const r = classifyCommand(cmd);
       assert.ok(!r.reasons.some((x) => x.code === 'proc-namespace-write'),
         `${cmd}: should not match proc-namespace-write`);
+    }
+  });
+
+  // (v1.10.147) /proc/<pid>/mem extension to proc-namespace-write.
+  it('proc-namespace-write extended: /proc/<pid>/mem → critical (v1.10.147)', () => {
+    for (const cmd of [
+      'echo evil > /proc/1234/mem',
+      'cat malicious > /proc/self/mem',
+      'echo "shellcode" >> /proc/1/mem',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'proc-namespace-write'),
+        `${cmd}: expected proc-namespace-write`);
+    }
+  });
+
+  // (v1.10.147) Kernel memory devices.
+  it('kernel-memory-access: dd/cat /dev/mem|kmem|port → critical (v1.10.147)', () => {
+    for (const cmd of [
+      'dd if=/dev/kmem of=/tmp/dump',
+      'dd if=evil of=/dev/kmem',
+      'dd if=/dev/mem of=/tmp/x',
+      'cat /dev/mem',
+      'cat /dev/port',
+      'cp /dev/mem /tmp/snapshot',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'kernel-memory-access'),
+        `${cmd}: expected kernel-memory-access`);
+    }
+  });
+
+  it('kernel-memory-access — unrelated /dev paths stay low (regression)', () => {
+    for (const cmd of [
+      'cat /dev/null',
+      'cat /dev/random',
+      'cat /dev/urandom',
+      'dd if=/dev/zero of=/tmp/zeros bs=1M count=10',
+      'cat /dev/tty',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'kernel-memory-access'),
+        `${cmd}: should not match kernel-memory-access`);
+    }
+  });
+
+  it('kernel-lockdown-disable: writes to /sys/kernel/security/lockdown → critical (v1.10.147)', () => {
+    for (const cmd of [
+      'echo none > /sys/kernel/security/lockdown',
+      'cat lock | tee /sys/kernel/security/lockdown',
+      'echo integrity >> /sys/kernel/security/lockdown',
+      'sudo sh -c "echo none > /sys/kernel/security/lockdown"',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'kernel-lockdown-disable'),
+        `${cmd}: expected kernel-lockdown-disable`);
+    }
+  });
+
+  it('kernel-lockdown-disable — read stays low (regression)', () => {
+    for (const cmd of [
+      'cat /sys/kernel/security/lockdown',
+      'ls /sys/kernel/security/',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'kernel-lockdown-disable'),
+        `${cmd}: should not match kernel-lockdown-disable`);
     }
   });
 

@@ -4,6 +4,44 @@
 
 (no entries — next release window)
 
+## [1.10.147] - 2026-05-03
+
+**Three more critical patterns**: `proc-namespace-write`
+extended with `/proc/<pid>/mem`, plus new
+`kernel-memory-access` and `kernel-lockdown-disable`. Closes
+the kernel-memory and kernel-hardening-bypass surfaces.
+
+### Changed
+- **`proc-namespace-write`** regex extended to match
+  `/proc/<pid>/mem` writes — direct process memory injection
+  primitive (when ptrace_scope allows). Same critical tier as
+  the existing `/proc/<pid>/root/*` and `/proc/self/exe` cases.
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `kernel-memory-access`.
+  Catches `dd` / `cat` / `cp` / `mv` / `tee` against
+  `/dev/mem`, `/dev/kmem`, or `/dev/port`. Reading these
+  devices dumps kernel memory; writing is direct kernel write
+  — no benign worker reason. `/dev/null`, `/dev/random`,
+  `/dev/zero`, `/dev/tty` stay LOW.
+- **`PATTERN_CATALOG.critical`** entry `kernel-lockdown-disable`.
+  Catches redirects/tees to `/sys/kernel/security/lockdown`.
+  Lockdown mode (5.4+) hardens against runtime kernel
+  patching; writing "none" disables it.
+
+- **`tests/risk-classifier.test.js`**: 5 new `it()` cases —
+  3 attack assertions + 2 regression assertions. Suite stays
+  at 178. Risk-classifier file 248 → 253 cases.
+
+### Catalog totals
+- Critical: 29 patterns (+2: kernel-memory-access,
+  kernel-lockdown-disable; proc-namespace-write extended in
+  place, no count change)
+- High: 40 patterns (+0)
+- Medium: 21 patterns (+0)
+- **Total: 91 → 93** (effective; daemon will report 94 due to
+  cumulative count)
+
 ## [1.10.146] - 2026-05-03
 
 **Two new critical patterns**: `system-binary-overwrite` and

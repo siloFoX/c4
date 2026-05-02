@@ -263,10 +263,32 @@ const CRITICAL_PATTERNS = [
   // /proc/self/exe overwrites the running binary's memory map
   // — classic in-memory persistence / privilege primitive.
   // /proc/1/root/<anything> is the container-escape pattern.
+  // (v1.10.147) Extended to include /proc/<pid>/mem — direct
+  // process memory injection (when ptrace_scope allows; same
+  // class of primitive).
   {
     code: 'proc-namespace-write',
-    label: 'write to /proc/<pid>/root/* or /proc/self/exe (container escape / binary overwrite)',
-    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/proc\/(?:\d+|self)\/(?:root\/\S+|exe\b)/,
+    label: 'write to /proc/<pid>/root/* or /proc/self/exe or /proc/<pid>/mem (namespace / memory injection)',
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/proc\/(?:\d+|self)\/(?:root\/\S+|exe\b|mem\b)/,
+  },
+  // (v1.10.147) /dev/mem, /dev/kmem, /dev/port — direct kernel
+  // and physical memory access devices. Reading them dumps
+  // kernel memory (LSM bypass when not blocked); writing to
+  // them is direct kernel write. dd / cat / cp / mv against
+  // these devices is catastrophic — no benign worker reason.
+  {
+    code: 'kernel-memory-access',
+    label: 'read/write /dev/mem, /dev/kmem, or /dev/port (kernel memory)',
+    re: /\b(?:dd|cat|cp|mv|tee)\b[^\n;|&]*\/dev\/(?:k?mem|port)\b/,
+  },
+  // (v1.10.147) Kernel lockdown disable — `> /sys/kernel/
+  // security/lockdown` with content "none" drops kernel
+  // lockdown protection (introduced in 5.4 to harden against
+  // kernel patching at runtime). No benign worker reason.
+  {
+    code: 'kernel-lockdown-disable',
+    label: 'write to /sys/kernel/security/lockdown (drops lockdown mode)',
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/sys\/kernel\/security\/lockdown\b/,
   },
   // (v1.10.129) kexec --load / -l — schedule a replacement
   // kernel for the next boot or hot-swap. Catastrophic
