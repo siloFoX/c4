@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.60] - 2026-05-02
+
+End-to-end integration test for the risk gate.
+
+### Added
+- **(tests) `risk-classifier-e2e.test.js`** — full pipeline
+  through PtyManager.hookEvent. Earlier suites tested the
+  hook in isolation (stubbed manager) and the audit handler
+  in isolation (synthetic events); this one wires them
+  together: real PtyManager + real AuditLogger pointing at a
+  tmpdir + real `manager.on('sse', risk_deny → audit)` glue.
+  Verifies:
+  1. `hookEvent('w1', PreToolUse Bash 'rm -rf /')` returns
+     `{action: 'deny', riskLevel: 'critical'}`
+  2. The audit chain captures a matching `risk.denied` row
+     with the right level / actor / reasons
+  3. Benign commands skip the audit entirely
+  4. `audit.verify()` stays valid after a deny event
+  5. Disabling `riskClassifier.enabled` mid-test makes the
+     classifier pass through without auditing
+  6. Switching `autoDenyLevel='high'` blocks high-tier
+     commands and the audit row records `level: 'high'`
+
+  Closes the integration gap between v1.10.49 (hook
+  enforcement) and v1.10.51 (audit chain) — neither earlier
+  test exercised the public hookEvent() entry point the
+  daemon actually calls.
+
+Suite 156 → 157.
+
 ## [1.10.59] - 2026-05-02
 
 Two more risk patterns for shapes the catalog was missing.
