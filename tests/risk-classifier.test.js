@@ -374,6 +374,28 @@ describe('classifyCommand — obfuscation defeat', () => {
     assert.strictEqual(_denoiseCommand('find . -name "{}" -delete'),
       'find . -name "{}" -delete');
   });
+
+  // (v1.10.127) Compact-form expansion now distributes the
+  // immediately-following text across alternatives. Bash actually
+  // runs `{rm,echo} -rf /` as TWO commands (`rm -rf /` AND
+  // `echo -rf /`). The previous denoise only stripped braces,
+  // producing `rm echo -rf /` — which doesn't match rm-rf-root
+  // because of the intervening `echo` token.
+  it('compact brace distributes suffix across alts (v1.10.127)', () => {
+    // {rm,echo} -rf / should now classify critical because at
+    // least one alternative produces `rm -rf /`.
+    assert.strictEqual(levelOf('{rm,echo} -rf /'), 'critical');
+    assert.strictEqual(levelOf('{rm,echo,ls} -rf /'), 'critical');
+    assert.strictEqual(levelOf('{echo,rm} -rf /'), 'critical');
+    assert.strictEqual(levelOf('{echo,rm,echo} -rf /'), 'critical');
+  });
+
+  it('compact brace with non-dangerous alts stays low (regression)', () => {
+    // {ls,cat} -la /tmp expands to `ls -la /tmp\ncat -la /tmp`,
+    // neither alt triggers any catalog rule.
+    assert.strictEqual(levelOf('{ls,cat} -la /tmp'), 'low');
+    assert.strictEqual(levelOf('{echo,printf} hello'), 'low');
+  });
 });
 
 describe('classifyCommand — return shape contract', () => {

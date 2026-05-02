@@ -831,17 +831,19 @@ function _denoiseCommand(cmd) {
   // (v1.10.111) Bash brace expansion (limited form):
   //   rm{,} -rf /     → rm rm -rf /     (catalog catches rm -rf /)
   //   {rm,} -rf /     → rm   -rf /
+  //   {rm,echo} -rf / → rm -rf /\necho -rf /  (each alt + suffix)
   // Bash expands `{a,b}` to space-separated alternatives. The
   // empty alternation (`{a,}`) yields the alternative OR nothing,
-  // which attackers exploit to hide tokens.
+  // which attackers exploit to hide tokens. The {a,b} form runs
+  // the full command line ONCE PER ALTERNATIVE — i.e.,
+  // `{rm,echo} -rf /` runs `rm -rf /` AND `echo -rf /`.
   //
-  // We handle only the COMPACT form (`{...}` with no prefix or
-  // suffix word chars) — strip the braces and replace commas with
-  // spaces. The prefixed form (`r{m,}` → `rm r`) requires
-  // suffix-aware expansion that doesn't fit a single regex pass;
-  // residual gap accepted since the prefixed form requires the
-  // attacker to also deal with how bash distributes the suffix
-  // across alternatives.
+  // (v1.10.127) Compact-form expansion now distributes the
+  // immediately-following text (suffix) across each alternative
+  // as a separate synthetic statement (joined by `\n`). This
+  // lets the catalog regex match dangerous combinations like
+  // `{rm,echo} -rf /` where the rm appears as one alt with
+  // the dangerous suffix.
   //
   // Only matches braces that contain no nested braces, no
   // whitespace, and at least one comma — avoids eating shell glob
@@ -849,8 +851,11 @@ function _denoiseCommand(cmd) {
   // (handled above). Lookbehind `(?<=^|\s)` keeps us in the
   // compact form (no letters immediately before the `{`).
   out = out.replace(
-    /(?<=^|\s)\{([^{}\s,]*(?:,[^{}\s,]*)+)\}/g,
-    (_m, inner) => ' ' + inner.replace(/,/g, ' ') + ' '
+    /(?<=^|\s)\{([^{}\s,]*(?:,[^{}\s,]*)+)\}([^\n;]*)/g,
+    (_m, inner, suffix) => {
+      const alts = inner.split(',');
+      return alts.map((a) => a + suffix).join('\n');
+    }
   );
   // Also handle suffix-attached form where the brace appears at
   // end-of-token (e.g. `rm{,} -rf /`) — the brace contents collapse

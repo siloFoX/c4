@@ -4,6 +4,44 @@
 
 (no entries — next release window)
 
+## [1.10.127] - 2026-05-03
+
+**Brace-expansion obfuscation defeat extended.** Bash brace
+expansion semantically runs `{rm,echo} -rf /` as TWO commands
+(`rm -rf /` AND `echo -rf /`). The previous denoise only
+collapsed braces in place, producing `rm echo -rf /` — which
+doesn't match `rm-rf-root` because of the intervening `echo`
+token. Attackers exploited this by leading with the
+non-dangerous alternative.
+
+### Changed
+- **`_denoiseCommand`** compact-brace handler now distributes
+  the immediately-following text across each alternative as a
+  separate synthetic statement (joined by `\n`). For
+  `{rm,echo} -rf /` the denoise now emits:
+  ```
+  rm -rf /
+  echo -rf /
+  ```
+  At least one alternative carrying the dangerous suffix
+  surfaces to the catalog regex.
+
+### Added
+- **`tests/risk-classifier.test.js`**: 2 new `it()` cases
+  under the obfuscation suite — compact-brace distribution
+  test (4 attack shells: `{rm,echo} -rf /`, `{rm,echo,ls}
+  -rf /`, `{echo,rm} -rf /`, `{echo,rm,echo} -rf /` all →
+  critical) and a regression case (`{ls,cat} -la /tmp` and
+  `{echo,printf} hello` stay LOW). Suite stays at 175.
+  Risk-classifier file 197 → 199 cases.
+
+### Obfuscation defeats summary
+- 12 → 13 defeats: backslash-letter, `${VAR:-LIT}`,
+  brace-compact-form, brace-suffix-form, **brace-prefix-form
+  (NEW)**, base64-decode, `$(...)`, backticks, IFS expansion,
+  ANSI-C `$'...'`, quoted-letter splits, empty backticks,
+  shell line comments.
+
 ## [1.10.126] - 2026-05-03
 
 **Four new system-tampering catalog patterns**:
