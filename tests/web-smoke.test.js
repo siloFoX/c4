@@ -289,6 +289,49 @@ describe('Sidebar collapse keyboard shortcut (8.40)', () => {
     assert.match(s.className, /transition-\[width\]/, 'animation class missing');
     assert.match(s.className, /duration-200/);
   });
+
+  it('AppHeader logo is decorative SVG with aria-hidden="true" (8.37 a11y)', async (t) => {
+    if (!chromiumReady) return t.skip('chromium / daemon not ready');
+    const logo = await page.evaluate(() => {
+      // The AppHeader is the FIRST <header> on the page (the
+      // help/welcome dialogs also render headers but live inside
+      // [role="dialog"] containers).
+      const headers = Array.from(document.querySelectorAll('header'))
+        .filter((h) => !h.closest('[role="dialog"]'));
+      const main = headers[0];
+      if (!main) return null;
+      const img = main.querySelector('img, svg');
+      if (!img) return null;
+      return {
+        tag: img.tagName,
+        alt: img.getAttribute('alt'),
+        ariaHidden: img.getAttribute('aria-hidden'),
+      };
+    });
+    assert.ok(logo, 'no logo found in AppHeader');
+    // Per 8.37 round-1 fix: alt+aria-hidden contradiction was
+    // resolved by making the logo decorative (alt="" or no
+    // alt + aria-hidden="true").
+    assert.equal(logo.ariaHidden, 'true',
+      'AppHeader logo must be aria-hidden="true" — the wordmark provides accessible name');
+    assert.ok(!logo.alt || logo.alt === '',
+      `AppHeader logo must have empty/no alt; got "${logo.alt}"`);
+  });
+
+  it('sidebar empty state surfaces a "No workers" message', async (t) => {
+    if (!chromiumReady) return t.skip('chromium / daemon not ready');
+    // On a fresh daemon with no workers spawned, the sidebar
+    // should render an empty-state message rather than an empty
+    // panel. Operator should see something rather than nothing.
+    const hasEmpty = await page.evaluate(() => {
+      const aside = Array.from(document.querySelectorAll('aside'))
+        .find((a) => a.className.includes('shrink-0'));
+      if (!aside) return false;
+      return /no workers/i.test(aside.innerText);
+    });
+    assert.ok(hasEmpty,
+      'sidebar should surface a "No workers" empty-state message');
+  });
 });
 
 // (v1.10.104) Help shortcut + tab navigation. Verifies the

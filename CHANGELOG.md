@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.107] - 2026-05-03
+
+**AppHeader logo a11y + sidebar empty state browser tests**.
+2 cases under "Sidebar collapse keyboard shortcut (8.40)"
+that lock in the v1.10.37 round-1 a11y fix and the empty-
+state UX.
+
+### Added
+- **`tests/web-smoke.test.js`**:
+  - "AppHeader logo is decorative SVG with aria-hidden='true'
+    (8.37 a11y)" — verifies the logo SVG carries
+    `aria-hidden="true"` and has empty/no `alt`. Regression
+    guard for the alt+aria-hidden contradiction the v1.10.37
+    review-round-1 fix resolved (the visible "C4 Dashboard"
+    wordmark provides the accessible name; the logo should be
+    decorative). Filters out dialog-internal headers
+    (help/welcome dialogs) so the test targets the real
+    AppHeader.
+  - "sidebar empty state surfaces a 'No workers' message" —
+    on a fresh daemon, the sidebar must render an empty-state
+    label rather than a blank panel. Operator should see
+    something rather than nothing.
+
+Suite stays at 175. Web smoke now 20 cases / 4 describes;
+total file runtime ~65s.
+
 ## [1.10.106] - 2026-05-03
 
 **New Chat modal browser test** (TODO 8.39). Verifies the
