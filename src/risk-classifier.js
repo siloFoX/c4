@@ -530,8 +530,8 @@ const HIGH_PATTERNS = [
   // canonical attack shell.
   {
     code: 'config-dropin-write',
-    label: 'write to /etc/{sudoers,pam,profile,polkit-1/rules}.d/* or /etc/security/*',
-    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/etc\/(?:sudoers\.d|pam\.d|profile\.d|security|polkit-1\/rules\.d)\/[\w.-]+/,
+    label: 'write to /etc/{sudoers,pam,profile,polkit-1/rules,sysctl}.d/* or /etc/security/*',
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/etc\/(?:sudoers\.d|pam\.d|profile\.d|security|polkit-1\/rules\.d|sysctl\.d)\/[\w.-]+/,
   },
   {
     code: 'ssh-known-hosts',

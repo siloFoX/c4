@@ -4,6 +4,19 @@
 
 (no entries — next release window)
 
+## [1.10.158] - 2026-05-03
+
+**`config-dropin-write` extended to `/etc/sysctl.d/`.** Drop-in
+sysctl configs persist across reboots; the runtime form
+(`sysctl-proc-write` for `/proc/sys/...`) is already caught.
+This release closes the persist-on-disk form.
+
+### Changed
+- **`config-dropin-write`** regex extended to also match
+  `/etc/sysctl.d/<file>`. Same threat as
+  `sysctl-proc-write` (e.g., `kernel.randomize_va_space=0`
+  disables ASLR), but persists across reboots.
+
 ## [1.10.157] - 2026-05-03
 
 **`ld-preload-env` extended to `LD_AUDIT`.** v1.10.149 covered
