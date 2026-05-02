@@ -4,6 +4,65 @@
 
 (no entries — next release window)
 
+## [1.10.126] - 2026-05-03
+
+**Four new system-tampering catalog patterns**:
+`mount-tamper`, `sysctl-proc-write`, `udev-rule-write`, and
+`download-into-system-file`. Together they close gaps left
+by the existing tampering-tier rules — file-system mount
+games, runtime kernel parameter writes, USB/device
+persistence rules, and the curl/wget `-o` flag bypass of
+`system-files`.
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `mount-tamper`. Catches:
+  - `mount -o remount,rw /` — defeats read-only root
+    hardening
+  - `mount -o exec` — lifts noexec from /tmp / /home (common
+    hardening targets)
+  - `mount --bind /etc /mnt` — smuggles system config into
+    an attacker-readable spot
+  Basic mount of a fstab entry, `umount`, and `cat
+  /proc/mounts` stay LOW.
+
+- **`PATTERN_CATALOG.high`** entry `sysctl-proc-write`. Catches
+  redirects/tees into `/proc/sys/<path>`. Classic targets:
+  `kernel.randomize_va_space=0` (disable ASLR),
+  `net.ipv4.ip_forward=1` (enable routing),
+  `kernel.dmesg_restrict=0` (allow kernel log dump),
+  `net.ipv4.tcp_syncookies=0` (disable SYN flood guard).
+  Reading `/proc/sys/*` and `sysctl -a` stay LOW.
+
+- **`PATTERN_CATALOG.high`** entry `udev-rule-write`. Catches
+  redirects/tees into `/etc/udev/rules.d/`,
+  `/lib/udev/rules.d/`, or `/run/udev/rules.d/`. udev rules
+  fire when the matching device class appears, running
+  `RUN+="..."` commands as root. Typical attacker form: pin a
+  malicious rule to a USB SUBSYSTEM match so plugging in any
+  USB device triggers a payload. Listing/reading the rules.d
+  dir stays LOW.
+
+- **`PATTERN_CATALOG.high`** entry `download-into-system-file`.
+  Catches `curl -o` / `wget -O` writing directly into the
+  same `/etc/<file>` list as `system-files`. The `-O` / `-o`
+  flag form previously slipped silently because `system-files`
+  matched only shell redirects + `tee`. Same file list for
+  parity (passwd, shadow, sudoers, hosts, hosts.allow|deny,
+  crontab, fstab, resolv.conf, nsswitch.conf, securetty,
+  login.defs).
+
+- **`tests/risk-classifier.test.js`**: 8 new `it()` cases —
+  4 attack assertions + 4 regression assertions covering each
+  of the new rules. Suite stays at 175. Risk-classifier file
+  189 → 197 cases.
+
+### Catalog totals
+- Critical: 19 patterns (+0)
+- High: 30 patterns (+4: mount-tamper, sysctl-proc-write,
+  udev-rule-write, download-into-system-file)
+- Medium: 18 patterns (+0)
+- **Total: 66 → 70**
+
 ## [1.10.125] - 2026-05-03
 
 **`system-files` reach extended.** The original
