@@ -875,18 +875,28 @@ function _denoiseCommand(cmd) {
   //   r${V:+m} -rf /       → r m -rf /
   //   r${V:=m} -rf /       → r m -rf /
   //   r${V:?m} -rf /       → r m -rf /
-  // Bash parameter expansion forms `${name:-default}`,
-  // `${name:+alt}`, `${name:=default}`, `${name:?error}` all
-  // return the LITERAL part after `:` when the variable is unset
-  // (or set, depending on operator). Attackers exploit these to
-  // hide dangerous tokens. We strip `${name:OP` / `}` keeping the
-  // literal so the catalog regex can see the dangerous chars. We
-  // keep the result in line (no extra spaces) so adjacent letters
-  // recombine — ${V:-m}m collapses to mm. The `:` prefix is
-  // required so we don't accidentally eat plain `${var}` (which
-  // bash leaves to expand at runtime; the literal alone tells us
-  // nothing about the token).
-  out = out.replace(/\$\{[A-Za-z_][A-Za-z0-9_]*:[-+=?]([^}]*)\}/g, '$1');
+  // Bash parameter expansion `${name:-default}` / `:+alt` / `:=`
+  // surfaces the LITERAL when the variable is unset/empty (or
+  // set, depending on operator). Attackers exploit these to
+  // hide dangerous tokens. Strip `${name:OP` / `}` keeping the
+  // literal in-place so adjacent letters can recombine
+  // (`r${V:-m}m` → `rmm`). The `:` prefix is required so we
+  // don't accidentally eat plain `${var}` (which bash leaves
+  // to expand at runtime; the literal alone tells us nothing
+  // about the token).
+  out = out.replace(/\$\{[A-Za-z_][A-Za-z0-9_]*:[-+=]([^}]*)\}/g, '$1');
+  // (v1.10.128) `:?` operator is different — its "literal"
+  // payload is an error message printed when VAR is unset. The
+  // success case returns `$VAR`, so the danger sits in the
+  // variable, not the literal. `rm -rf ${HOME:?}` semantically
+  // expands to `rm -rf $HOME`. Surface `$VAR` instead of the
+  // literal so rm-rf-tilde / credential-read patterns catch
+  // the resolved path. The `$` is escaped via callback to
+  // avoid String.replace's $-substitution.
+  out = out.replace(
+    /\$\{([A-Za-z_][A-Za-z0-9_]*):\?[^}]*\}/g,
+    (_m, name) => '$' + name
+  );
 
   // (v1.10.108) Backslash-letter no-op:
   //   r\m -rf /        → rm -rf /

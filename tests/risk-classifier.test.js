@@ -317,11 +317,34 @@ describe('classifyCommand — obfuscation defeat', () => {
   // attacker can hide dangerous tokens inside the default. The
   // denoise strips the `${name:OP` prefix and `}` suffix to
   // surface the literal to the catalog regex.
+  // (v1.10.128) `:?` is split out — its literal is an error
+  // message, not a command. The actual return value (success
+  // case) is `$VAR`. So the denoise emits `$VAR` for the `:?`
+  // form. See the dedicated `:?` test below.
   it('strips ${VAR:-LITERAL} parameter expansion (v1.10.109)', () => {
     assert.match(_denoiseCommand('r${VAR:-m} -rf /'), /rm -rf \//);
     assert.match(_denoiseCommand('su${X:+do} apt'), /sudo apt/);
     assert.match(_denoiseCommand('${V:=rm} -rf /'), /rm -rf \//);
-    assert.match(_denoiseCommand('${X:?rm} -rf /'), /rm -rf \//);
+  });
+
+  // (v1.10.128) `${VAR:?}` operator handling. Unlike `:-` / `:+`
+  // / `:=` whose literal payload IS what bash returns when the
+  // operator triggers, the `:?` literal is just an error message
+  // printed to stderr and never executed. The dangerous payload
+  // sits in $VAR (the success-case return value). The denoise
+  // emits `$VAR`, surfacing the resolved path to rm-rf-tilde /
+  // credential-read for catalog matching.
+  it('emits $VAR for ${VAR:?} parameter expansion (v1.10.128)', () => {
+    // The literal "msg" is an error message, not a payload —
+    // shouldn't surface as `msg`. Only the variable does.
+    assert.match(_denoiseCommand('rm -rf ${HOME:?}'), /\$HOME/);
+    assert.match(_denoiseCommand('rm -rf ${HOME:?error msg}'), /\$HOME/);
+    assert.doesNotMatch(_denoiseCommand('rm -rf ${HOME:?error msg}'),
+      /error msg/);
+    // Classifier-level check: rm -rf ${HOME:?} should fire
+    // rm-rf-tilde because $HOME is the resolved path.
+    assert.strictEqual(levelOf('rm -rf ${HOME:?}'), 'critical');
+    assert.strictEqual(levelOf('rm -rf ${HOME:?must be set}'), 'critical');
   });
 
   it('classifies r${VAR:-m} -rf / as critical (v1.10.109)', () => {

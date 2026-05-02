@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.128] - 2026-05-03
+
+**`${VAR:?}` parameter expansion semantics fixed.** v1.10.109
+treated the four parameter-expansion operators (`:-`, `:+`,
+`:=`, `:?`) uniformly — strip prefix/suffix and surface the
+literal. That's correct for `:-` / `:+` / `:=` (the literal
+IS the value bash returns when the operator triggers) but
+WRONG for `:?` (whose literal is an error message printed to
+stderr and never executed; the success-case return value is
+`$VAR`).
+
+Result: `rm -rf ${HOME:?}` (semantically `rm -rf $HOME`)
+classified LOW because the denoise emitted an empty literal
+instead of `$HOME`.
+
+### Changed
+- **`_denoiseCommand`** parameter expansion now splits handling:
+  - `${VAR:-LITERAL}` / `:+` / `:=` → emit `LITERAL` (existing
+    v1.10.109 behavior, preserves inline concatenation like
+    `r${V:-m}` → `rm`)
+  - `${VAR:?MESSAGE}` → emit `$VAR` (new behavior; surfaces
+    the dangerous resolved value to rm-rf-tilde and similar
+    catalog rules)
+
+### Real-world impact
+Three previously-silent attack forms now classify critical:
+- `rm -rf ${HOME:?}`           → rm-rf-tilde (critical)
+- `rm -rf ${HOME:?must be set}` → rm-rf-tilde (critical)
+- `cat ${HOME:?}/.aws/credentials` → credential-read (high)
+
+### Test changes
+- The previously-failing test case `${X:?rm} -rf /` →
+  `rm -rf /` was based on the v1.10.109 misunderstanding (the
+  `rm` literal is a stderr message, never a command). Removed
+  from the strip-test suite.
+- New test `emits $VAR for ${VAR:?} parameter expansion`
+  pins the new semantics (`$HOME` surfaces, error message
+  doesn't, attack form classifies critical).
+- Suite stays at 175 (full). Risk-classifier file 199 → 200
+  cases.
+
 ## [1.10.127] - 2026-05-03
 
 **Brace-expansion obfuscation defeat extended.** Bash brace
