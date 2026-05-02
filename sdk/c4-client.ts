@@ -2,8 +2,8 @@
 // Generated from /openapi.json via src/openapi-sdk-gen.js.
 // Do not edit by hand — re-run `c4 openapi --sdk` to refresh.
 
-// Spec version: 1.10.55
-// Generated at: 2026-05-02T02:37:18.535Z
+// Spec version: 1.10.56
+// Generated at: 2026-05-02T02:40:47.990Z
 
 export interface postAuthLoginBody {
   user: string; /** Username */
@@ -368,6 +368,44 @@ export interface getAuditExportParams {
   lineEnd?: "crlf" | "lf";
 }
 export type getAuditExportResponse = unknown;
+
+export interface getRiskPatternsResponse {
+  builtin?: {
+  critical?: {
+  code?: string;
+  label?: string;
+}[];
+  high?: {
+  code?: string;
+  label?: string;
+}[];
+  medium?: {
+  code?: string;
+  label?: string;
+}[];
+};
+  custom?: {
+  critical?: Record<string, unknown>[];
+  high?: Record<string, unknown>[];
+  medium?: Record<string, unknown>[];
+}; /** Operator-configured customRules — shape mirrors the config (uncompiled, so a malformed regex still appears here for debugging) */
+  counts?: {
+  builtin?: {
+  critical?: number;
+  high?: number;
+  medium?: number;
+  total?: number;
+};
+  custom?: {
+  critical?: number;
+  high?: number;
+  medium?: number;
+  total?: number;
+};
+};
+  allowList?: number; /** Number of configured allowList entries */
+  denyList?: number; /** Number of configured denyList entries */
+}
 
 export interface getRiskStatsParams {
   windowHours?: number;
@@ -1802,6 +1840,14 @@ export class C4Client {
       method: 'GET',
       path: '/api/audit/export',
       params: params as unknown as Record<string, unknown> | undefined,
+    });
+  }
+
+  /** Built-in risk classifier pattern catalog + operator-configured customRules / allowList / denyList counts. Useful for policy reviewers auditing the effective rule set. */
+  async getRiskPatterns(): Promise<getRiskPatternsResponse> {
+    return this.request<getRiskPatternsResponse>({
+      method: 'GET',
+      path: '/api/risk/patterns',
     });
   }
 

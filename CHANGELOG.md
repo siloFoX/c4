@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.56] - 2026-05-02
+
+Pattern catalog inspection — operator can now ask "what
+exactly is the classifier matching against?" without reading
+risk-classifier.js.
+
+### Added
+- **(daemon) `GET /api/risk/patterns`** returns the
+  `PATTERN_CATALOG` export plus the operator-configured
+  customRules / allowList / denyList counts. Custom rules
+  reflect the raw config so a malformed regex still appears
+  here for debugging (it would silently get dropped at
+  classify time, but the inspector shows what was attempted).
+  Spec ops 113 → 114. Runtime drift coverage 50 → 51.
+
+- **(cli) `c4 risk patterns [--json]`** pretty-prints the
+  catalog grouped by tier with per-tier counts. Includes a
+  Custom Rules section + an Overrides line for
+  allowList / denyList sizes. Lets policy reviewers audit
+  the effective rule set in one step.
+
+### Note
+The 1.10.54 changelog said "28 → 40 patterns". Actual count
+is **28 → 41** (13 new patterns: 3 critical / 7 high / 3
+medium). The off-by-one was a counting error in the prior
+changelog; nothing's wrong with the catalog itself.
+
+Suite 156/156. All four drift phases clean.
+
 ## [1.10.55] - 2026-05-02
 
 Risk denial roll-up — operators can ask "what got blocked in

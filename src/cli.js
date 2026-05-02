@@ -4405,6 +4405,35 @@ async function main() {
         const wantJson = args.includes('--json');
         const wantDecoded = args.includes('--decoded');
         const positional = args.filter((a) => !a.startsWith('--'));
+        // Subcommand: `c4 risk patterns` — list catalog + custom rules.
+        if (positional[0] === 'patterns') {
+          const data = await request('GET', '/risk/patterns');
+          if (!data || data.error) {
+            console.error('Failed:', data?.error || 'unknown error');
+            process.exit(1);
+          }
+          if (wantJson) { console.log(JSON.stringify(data, null, 2)); return; }
+          console.log(`Built-in patterns: ${data.counts.builtin.total} total`);
+          for (const tier of ['critical', 'high', 'medium']) {
+            const list = data.builtin[tier] || [];
+            if (list.length === 0) continue;
+            console.log(`  ${tier} (${list.length}):`);
+            for (const r of list) console.log(`    [${r.code}] ${r.label}`);
+          }
+          if (data.counts.custom.total > 0) {
+            console.log(`\nCustom rules: ${data.counts.custom.total} total`);
+            for (const tier of ['critical', 'high', 'medium']) {
+              const list = data.custom[tier] || [];
+              if (list.length === 0) continue;
+              console.log(`  ${tier} (${list.length}):`);
+              for (const r of list) console.log(`    [${r.code || '(no code)'}] ${r.label || '(no label)'} — /${r.pattern}/${r.flags || ''}`);
+            }
+          }
+          if (data.allowList > 0 || data.denyList > 0) {
+            console.log(`\nOverrides: allowList=${data.allowList}, denyList=${data.denyList}`);
+          }
+          return;
+        }
         // Subcommand: `c4 risk stats` — aggregate audit chain denies.
         if (positional[0] === 'stats') {
           const windowIdx = args.indexOf('--window-hours');
@@ -4437,6 +4466,7 @@ async function main() {
           console.error('Usage:');
           console.error('  c4 risk "<command>" [--json] [--decoded]   classify a candidate command');
           console.error('  c4 risk stats [--window-hours N] [--json]  aggregate denies from the audit chain');
+          console.error('  c4 risk patterns [--json]                  list built-in catalog + custom rules');
           process.exit(1);
         }
         const { classifyCommand } = require('./risk-classifier');

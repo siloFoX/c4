@@ -74,6 +74,7 @@ const ROUTE_SUMMARIES = {
   'GET /validation': 'Read the worker\'s .c4-validation.json (typecheck/lint/tests results) — synthesised from git state when missing.',
   'POST /risk/check': 'Run a Bash command through the risk classifier without dispatching it. Mirrors `c4 risk` + the PreToolUse hook so the Web UI can preview risk levels before sending.',
   'GET /risk/stats': 'Aggregate risk.denied audit events from the last N hours (windowHours, default 24, max 720). Returns total + breakdown by level + top reasons + top workers.',
+  'GET /risk/patterns': 'Built-in risk classifier pattern catalog + operator-configured customRules / allowList / denyList counts. Useful for policy reviewers auditing the effective rule set.',
 };
 
 // Optional curated request/response schemas — populates the OpenAPI
@@ -1690,6 +1691,54 @@ const ROUTE_SCHEMAS = {
           nullable: true,
           description: 'Parsed JSON from <worktree>/.c4-validation.json, or a synthesised object from git state when the file is missing. Null when the worker exists but has no validation data yet.',
         },
+      },
+    },
+  },
+  'GET /risk/patterns': {
+    response: {
+      properties: {
+        builtin: {
+          type: 'object',
+          properties: {
+            critical: { type: 'array', items: { properties: { code: { type: 'string' }, label: { type: 'string' } } } },
+            high: { type: 'array', items: { properties: { code: { type: 'string' }, label: { type: 'string' } } } },
+            medium: { type: 'array', items: { properties: { code: { type: 'string' }, label: { type: 'string' } } } },
+          },
+        },
+        custom: {
+          type: 'object',
+          description: 'Operator-configured customRules — shape mirrors the config (uncompiled, so a malformed regex still appears here for debugging)',
+          properties: {
+            critical: { type: 'array', items: { type: 'object' } },
+            high: { type: 'array', items: { type: 'object' } },
+            medium: { type: 'array', items: { type: 'object' } },
+          },
+        },
+        counts: {
+          type: 'object',
+          properties: {
+            builtin: {
+              type: 'object',
+              properties: {
+                critical: { type: 'integer' },
+                high: { type: 'integer' },
+                medium: { type: 'integer' },
+                total: { type: 'integer' },
+              },
+            },
+            custom: {
+              type: 'object',
+              properties: {
+                critical: { type: 'integer' },
+                high: { type: 'integer' },
+                medium: { type: 'integer' },
+                total: { type: 'integer' },
+              },
+            },
+          },
+        },
+        allowList: { type: 'integer', description: 'Number of configured allowList entries' },
+        denyList: { type: 'integer', description: 'Number of configured denyList entries' },
       },
     },
   },

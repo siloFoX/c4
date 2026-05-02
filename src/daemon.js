@@ -1537,6 +1537,49 @@ async function handleRequest(req, res) {
         result = { error: e.message };
       }
 
+    } else if (req.method === 'GET' && route === '/risk/patterns') {
+      // (11.5) Built-in pattern catalog. Returns the same
+      // PATTERN_CATALOG export `c4 risk patterns` prints, plus the
+      // operator's customRules (when configured) so a policy
+      // reviewer can see the full effective rule set in one place.
+      try {
+        const { PATTERN_CATALOG } = require('./risk-classifier');
+        const cfgNow = manager.getConfig() || {};
+        const riskCfg = cfgNow.riskClassifier || {};
+        // Reflect customRules without compiling them (operator may
+        // have a malformed regex they're debugging — show what was
+        // configured rather than what survived parsing).
+        const custom = (riskCfg.customRules && typeof riskCfg.customRules === 'object')
+          ? {
+              critical: Array.isArray(riskCfg.customRules.critical) ? riskCfg.customRules.critical : [],
+              high: Array.isArray(riskCfg.customRules.high) ? riskCfg.customRules.high : [],
+              medium: Array.isArray(riskCfg.customRules.medium) ? riskCfg.customRules.medium : [],
+            }
+          : { critical: [], high: [], medium: [] };
+        result = {
+          builtin: PATTERN_CATALOG,
+          custom,
+          counts: {
+            builtin: {
+              critical: PATTERN_CATALOG.critical.length,
+              high: PATTERN_CATALOG.high.length,
+              medium: PATTERN_CATALOG.medium.length,
+              total: PATTERN_CATALOG.critical.length + PATTERN_CATALOG.high.length + PATTERN_CATALOG.medium.length,
+            },
+            custom: {
+              critical: custom.critical.length,
+              high: custom.high.length,
+              medium: custom.medium.length,
+              total: custom.critical.length + custom.high.length + custom.medium.length,
+            },
+          },
+          allowList: Array.isArray(riskCfg.allowList) ? riskCfg.allowList.length : 0,
+          denyList: Array.isArray(riskCfg.denyList) ? riskCfg.denyList.length : 0,
+        };
+      } catch (e) {
+        result = { error: e.message };
+      }
+
     } else if (req.method === 'GET' && route === '/risk/stats') {
       // (11.5) Aggregate risk.denied audit events into a quick-look
       // summary. Window is `?windowHours=N` (default 24, max 720 / 30
