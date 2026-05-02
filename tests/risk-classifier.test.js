@@ -1287,6 +1287,55 @@ describe('classifyCommand v1.10.54 patterns', () => {
     }
   });
 
+  // (v1.10.125) system-files extended to cover DNS / NSS / TCP
+  // wrappers / login config tampering, plus the `tee [-a]` write
+  // form (previously redirect-only).
+  it('system-files extended: resolv.conf / nsswitch / hosts.allow|deny / securetty / login.defs → high (v1.10.125)', () => {
+    for (const cmd of [
+      'echo nameserver 1.2.3.4 > /etc/resolv.conf',
+      'echo "hosts: files dns sss" > /etc/nsswitch.conf',
+      'echo "sshd: 10.0.0.1" >> /etc/hosts.allow',
+      'echo "ALL: ALL" > /etc/hosts.deny',
+      'echo tty1 >> /etc/securetty',
+      'echo PASS_MIN_DAYS 0 > /etc/login.defs',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'system-files'),
+        `${cmd}: expected system-files`);
+    }
+  });
+
+  it('system-files: tee write forms → high (v1.10.125)', () => {
+    // Previously system-files was redirect-only. The canonical
+    // `cat payload | sudo tee /etc/passwd` form slipped silently.
+    for (const cmd of [
+      'cat payload | sudo tee /etc/passwd',
+      'cat payload | sudo tee -a /etc/sudoers',
+      'cat payload | tee --append /etc/hosts',
+      'echo nameserver | tee /etc/resolv.conf',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'system-files'),
+        `${cmd}: expected system-files`);
+    }
+  });
+
+  it('system-files: read / mention stays low (regression)', () => {
+    for (const cmd of [
+      'cat /etc/passwd',
+      'cat /etc/resolv.conf',
+      'cat /etc/nsswitch.conf',
+      'echo /etc/passwd reference text',
+      'less /etc/hosts',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(!r.reasons.some((x) => x.code === 'system-files'),
+        `${cmd}: should not match system-files`);
+    }
+  });
+
   it('setcap-cap — getcap / read / mention stays low (regression)', () => {
     for (const cmd of [
       'getcap /usr/bin/ping',                       // read, not set

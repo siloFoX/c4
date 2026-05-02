@@ -4,6 +4,50 @@
 
 (no entries — next release window)
 
+## [1.10.125] - 2026-05-03
+
+**`system-files` reach extended.** The original
+`/etc/(?:passwd|shadow|sudoers|hosts|crontab|fstab)` list left
+six other canonical post-exploit tampering targets silent, and
+the `tee [-a]` write form was uncovered (only `>` / `>>`
+redirects matched).
+
+### Changed
+- **`system-files`** regex now covers six additional `/etc/`
+  files alongside the original six:
+  - **DNS / NSS auth**: `resolv.conf`, `nsswitch.conf`
+  - **TCP wrappers**: `hosts.allow`, `hosts.deny`
+  - **Console / TTY**: `securetty`
+  - **Login policy**: `login.defs`
+- **`system-files`** also extended to match the `tee [-a]`
+  write form, mirroring `authorized-keys-append` and
+  `config-dropin-write`. The canonical
+  `cat payload | sudo tee /etc/passwd` / `tee -a /etc/sudoers`
+  attack shell pipe previously slipped because tee writes
+  weren't caught.
+
+### Why these specific files matter
+- `/etc/resolv.conf` — DNS hijack swaps the resolver to
+  attacker-controlled IPs; everything from package update
+  fetches to OAuth flows now goes through the attacker.
+- `/etc/nsswitch.conf` — dictates which backends supply
+  user/group/host lookups; flipping to LDAP/sss with an
+  attacker server is an auth bypass.
+- `/etc/hosts.allow` / `hosts.deny` — gate tcp_wrappers
+  services like sshd; flipping `ALL: ALL` in deny locks out
+  legitimate ops, or an `allow` line whitelists the attacker.
+- `/etc/securetty` — controls which TTYs allow root login;
+  appending entries enables console-attached sessions.
+- `/etc/login.defs` — system-wide login policy; flipping
+  `PASS_MIN_DAYS 0` removes password-rotation guards.
+
+### Added
+- **`tests/risk-classifier.test.js`**: 3 new `it()` cases —
+  6 attack shells against the new files, 4 attack shells via
+  `tee` form, 5 regression cases (read forms / doc mentions
+  stay LOW). Suite stays at 175. Risk-classifier file 186 →
+  189 cases.
+
 ## [1.10.124] - 2026-05-03
 
 **Two more catalog patterns**: `shred-block-device` (critical)

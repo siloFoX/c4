@@ -306,8 +306,24 @@ const HIGH_PATTERNS = [
   },
   {
     code: 'system-files',
-    label: 'redirect into /etc/ system files',
-    re: />>?\s*\/etc\/(?:passwd|shadow|sudoers|hosts|crontab|fstab)\b/,
+    label: 'redirect / tee into /etc/ system files',
+    // (v1.10.125) Extended with:
+    //   - DNS / NSS auth: resolv.conf, nsswitch.conf
+    //   - TCP wrappers:   hosts.allow, hosts.deny
+    //   - Console / TTY:  securetty
+    //   - Login policy:   login.defs
+    // All canonical post-exploit tampering targets. resolv.conf
+    // hijack swaps the DNS resolver to attacker-controlled IPs.
+    // nsswitch.conf dictates which backends supply user/group/host
+    // lookups — flipping it to LDAP/sss with an attacker server is
+    // an auth bypass. hosts.allow / hosts.deny gate tcp_wrappers
+    // services. securetty enables root console login from a
+    // compromised TTY. login.defs sets system-wide login policies.
+    //
+    // Also extended to cover the `tee [-a]` write form, mirroring
+    // authorized-keys-append. `cat payload | sudo tee /etc/passwd`
+    // previously slipped because tee writes weren't caught.
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)\/etc\/(?:passwd|shadow|sudoers|hosts(?:\.(?:allow|deny))?|crontab|fstab|resolv\.conf|nsswitch\.conf|securetty|login\.defs)\b/,
   },
   // (v1.10.119) Drop-in config directory writes — same threat surface
   // as the top-level files but reached through `<file>.d/`. Not caught
