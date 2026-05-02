@@ -11,6 +11,8 @@
     "daemon": "node src/daemon.js",
     "build:web": "npm --prefix web install && npm --prefix web run build",
     "test": "node tests/run-all.js",
+    "test:browser": "node --test tests/web-smoke.test.js",
+    "test:docker": "node --test tests/risk-shadow-exec-docker.test.js",
     "lint:openapi": "node scripts/validate-openapi.js",
     "lint:schema-drift": "node scripts/check-schema-drift.js --strict",
     "lint:runtime-drift": "node scripts/check-runtime-drift.js",
