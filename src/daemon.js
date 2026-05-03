@@ -4449,8 +4449,12 @@ async function handleRequest(req, res) {
       // (Phase 8.1) Template resolution. When body.template is set,
       // pull the template's task / track / brain / etc and use them
       // as defaults; explicit body fields still win.
+      // (Phase 8.4) Optional body.vars expands {{var}} placeholders
+      // in the resolved task. Missing vars come back in the response
+      // so the caller can re-submit with full context.
       let resolvedTask = typeof body.task === 'string' ? body.task : '';
       let resolvedTrack = typeof body.track === 'string' ? body.track : null;
+      let templateMissing = [];
       if (typeof body.template === 'string' && body.template) {
         const tpl = meetingTemplates.getTemplate(body.template);
         if (!tpl) {
@@ -4460,6 +4464,19 @@ async function handleRequest(req, res) {
         }
         if (!resolvedTask) resolvedTask = tpl.task;
         if (!resolvedTrack && tpl.track) resolvedTrack = tpl.track;
+      }
+      if (resolvedTask && body.vars && typeof body.vars === 'object') {
+        const expanded = meetingTemplates.expandVars(resolvedTask, body.vars);
+        resolvedTask = expanded.task;
+        templateMissing = expanded.missing;
+      }
+      if (templateMissing.length > 0 && body.requireAllVars) {
+        res.writeHead(400);
+        res.end(JSON.stringify({
+          error: `template requires vars: ${templateMissing.join(', ')}`,
+          missing: templateMissing,
+        }));
+        return;
       }
       try {
         const plan = meetingPlan.planMeeting({

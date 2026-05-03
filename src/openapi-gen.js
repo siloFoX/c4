@@ -2318,8 +2318,10 @@ const ROUTE_SCHEMAS = {
         explorationRatio: { type: 'number', nullable: true },
         title: { type: 'string', nullable: true },
         template: { type: 'string', nullable: true, description: 'When set, look up a saved template and use its task / track as defaults (explicit body fields still win)' },
+        vars: { type: 'object', nullable: true, description: 'Variable map for {{var}} placeholders in the template task' },
+        requireAllVars: { type: 'boolean', description: 'When true and any {{var}} placeholder lacks a value, return 400 instead of leaving the placeholder' },
       },
-      example: { task: 'rotate auth secret in production' },
+      example: { template: 'rotate-secret', vars: { service: 'auth', env: 'prod' } },
     },
     response: {
       properties: {

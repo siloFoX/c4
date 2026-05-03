@@ -4,6 +4,54 @@
 
 (no entries — next release window)
 
+## [1.10.251] - 2026-05-04
+
+**Multi-Specialist System — Phase 8.4 (Parameterized
+templates).** Templates now embed `{{var}}` placeholders that
+the dispatcher expands at meeting-create time. The
+"rotate-secret" template body becomes `rotate {{service}}
+secret in {{env}}` and `c4 meeting create --template
+rotate-secret --var service=auth --var env=prod` produces
+the literal task `rotate auth secret in prod`.
+
+### Added
+- **`src/meeting-templates.js`**:
+  - `expandVars(text, vars)` does a strict `{{name}}`
+    substitution; returns
+    `{task, missing: [], replaced: []}` so the caller can
+    decide on partial expansion. Whitespace inside braces is
+    tolerated; bracket-only / single-brace / non-identifier
+    name patterns pass through unchanged.
+  - `extractVarNames(text)` returns the deduped placeholder
+    list — useful for surfacing the contract to operators
+    before they run a template.
+- **HTTP**: `POST /meetings` body grows two fields:
+  - `vars: {key: value, ...}` — substituted into the
+    resolved task.
+  - `requireAllVars: true` — return 400 with
+    `{error, missing: [...]}` when any placeholder lacks a
+    value (instead of leaving the placeholder verbatim).
+- **CLI**: `c4 meeting create / plan` gain `--var key=value`
+  (repeatable) and `--require-all-vars`.
+- **OpenAPI**: schema updated.
+- **Tests**: 6 new cases in
+  `tests/meeting-templates.test.js` (10 → 16) — extractVarNames
+  dedupe, partial expansion, all-supplied case, brace
+  whitespace tolerance, malformed-pattern pass-through, and
+  null/undefined input safety.
+
+End-to-end:
+```
+$ c4 meeting template-add rotate-secret "rotate {{service}} secret in {{env}}" --track full
+$ c4 meeting create --template rotate-secret --var service=auth --var env=prod
+Meeting m-... — rotate auth secret in prod  Track: full  …
+$ c4 meeting create --template rotate-secret --var service=auth --require-all-vars
+template requires vars: env
+  missing vars: env
+```
+
+Suite stays 194 PASS. Spec lint + drift checker clean.
+
 ## [1.10.250] - 2026-05-03
 
 **Multi-Specialist System — Phase 8.3 (Meeting prune).**

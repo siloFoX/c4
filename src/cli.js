@@ -2639,16 +2639,24 @@ async function main() {
           let track = null;
           let cap = null;
           let template = null;
+          const vars = {};
+          let requireAllVars = false;
           for (let i = 1; i < args.length; i += 1) {
             const a = args[i];
             if (a === '--track' && args[i + 1]) { track = args[i + 1]; i += 1; }
             else if (a === '--cap' && args[i + 1]) { cap = parseInt(args[i + 1], 10); i += 1; }
             else if (a === '--template' && args[i + 1]) { template = args[i + 1]; i += 1; }
+            else if (a === '--var' && args[i + 1]) {
+              const eq = args[i + 1].indexOf('=');
+              if (eq > 0) vars[args[i + 1].slice(0, eq)] = args[i + 1].slice(eq + 1);
+              i += 1;
+            }
+            else if (a === '--require-all-vars') { requireAllVars = true; }
             else { taskParts.push(a); }
           }
           const task = taskParts.join(' ').trim();
           if (!task && !template) {
-            console.error(`Usage: c4 meeting ${sub} "<task>" [--track X] [--cap N] [--template <name>]`);
+            console.error(`Usage: c4 meeting ${sub} "<task>" [--track X] [--cap N] [--template <name>] [--var key=value ...] [--require-all-vars]`);
             process.exit(1);
           }
           const body = {};
@@ -2656,10 +2664,18 @@ async function main() {
           if (template) body.template = template;
           if (track) body.track = track;
           if (Number.isFinite(cap)) body.overrideCap = cap;
+          if (Object.keys(vars).length > 0) body.vars = vars;
+          if (requireAllVars) body.requireAllVars = true;
           const path = sub === 'plan' ? '/meetings/plan' : '/meetings';
           result = await request('POST', path, body);
           if (args.includes('--json')) break;
-          if (result.error) { console.error(result.error); process.exit(1); }
+          if (result.error) {
+            console.error(result.error);
+            if (result.missing && result.missing.length) {
+              console.error(`  missing vars: ${result.missing.join(', ')}`);
+            }
+            process.exit(1);
+          }
           printPlan(result);
           return;
         }

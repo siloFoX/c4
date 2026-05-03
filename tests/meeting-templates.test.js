@@ -13,6 +13,8 @@ const {
   saveTemplate,
   deleteTemplate,
   validateTemplate,
+  expandVars,
+  extractVarNames,
   isValidName,
   VALID_TRACKS,
   VALID_BRAINS,
@@ -134,6 +136,48 @@ t('reading a corrupt JSON file returns [] (no throw)', () => {
   } finally {
     process.stderr.write = orig;
   }
+});
+
+// Phase 8.4 — parameterized templates.
+
+t('extractVarNames returns deduped placeholder names', () => {
+  assert.deepStrictEqual(
+    extractVarNames('rotate {{service}} secret in {{env}} for {{service}}').sort(),
+    ['env', 'service'],
+  );
+  assert.deepStrictEqual(extractVarNames('no vars here'), []);
+  assert.deepStrictEqual(extractVarNames(null), []);
+});
+
+t('expandVars substitutes provided values, leaves placeholders for missing', () => {
+  const r = expandVars('rotate {{service}} secret in {{env}}', { service: 'auth' });
+  assert.strictEqual(r.task, 'rotate auth secret in {{env}}');
+  assert.deepStrictEqual(r.missing, ['env']);
+  assert.deepStrictEqual(r.replaced, ['service']);
+});
+
+t('expandVars handles all-supplied case cleanly', () => {
+  const r = expandVars('rotate {{service}} secret in {{env}}', { service: 'auth', env: 'prod' });
+  assert.strictEqual(r.task, 'rotate auth secret in prod');
+  assert.deepStrictEqual(r.missing, []);
+  assert.deepStrictEqual(r.replaced.sort(), ['env', 'service']);
+});
+
+t('expandVars tolerates whitespace inside braces', () => {
+  const r = expandVars('{{ var_a }} and {{var_b}}', { var_a: 'x', var_b: 'y' });
+  assert.strictEqual(r.task, 'x and y');
+});
+
+t('expandVars skips bracket-only / double-bracket noise', () => {
+  // {{}} (no name), { {x} } (single braces), {{1bad}} (bad ident) — pass through.
+  const r = expandVars('{{}} { {x} } {{1bad}} {{ok}}', { ok: 'OK', '1bad': 'no' });
+  assert.strictEqual(r.task, '{{}} { {x} } {{1bad}} OK');
+  assert.deepStrictEqual(r.replaced, ['ok']);
+});
+
+t('expandVars handles non-string input', () => {
+  assert.deepStrictEqual(expandVars(null), { task: null, missing: [], replaced: [] });
+  assert.deepStrictEqual(expandVars(undefined, {}), { task: undefined, missing: [], replaced: [] });
 });
 
 (async () => {

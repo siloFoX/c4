@@ -125,12 +125,54 @@ function deleteTemplate(name, opts = {}) {
   return true;
 }
 
+// (Phase 8.4) Mustache-light variable substitution. Templates can
+// embed `{{var}}` placeholders in their `task` body; callers supply
+// `vars: {var: 'value'}` to expand them. We deliberately keep this
+// minimal — no helpers, no nesting, no escape syntax. Variables
+// that don't appear in `vars` are flagged in `missing` so the
+// caller can decide whether to error.
+//
+// Returns { task, missing: string[], replaced: string[] }.
+function expandVars(text, vars) {
+  if (typeof text !== 'string') return { task: text, missing: [], replaced: [] };
+  const provided = (vars && typeof vars === 'object') ? vars : {};
+  const missing = new Set();
+  const replaced = new Set();
+  const task = text.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g, (_, name) => {
+    if (Object.prototype.hasOwnProperty.call(provided, name)) {
+      replaced.add(name);
+      return String(provided[name]);
+    }
+    missing.add(name);
+    return _;
+  });
+  return {
+    task,
+    missing: [...missing],
+    replaced: [...replaced],
+  };
+}
+
+// Walk a template body to find every `{{var}}` placeholder name —
+// useful for surfacing the contract to the operator before they
+// run the template (web UI form generation, CLI prompt).
+function extractVarNames(text) {
+  if (typeof text !== 'string') return [];
+  const out = new Set();
+  const re = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g;
+  let m;
+  while ((m = re.exec(text)) !== null) out.add(m[1]);
+  return [...out];
+}
+
 module.exports = {
   listTemplates,
   getTemplate,
   saveTemplate,
   deleteTemplate,
   validateTemplate,
+  expandVars,
+  extractVarNames,
   isValidName,
   VALID_TRACKS,
   VALID_BRAINS,
