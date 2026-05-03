@@ -771,7 +771,10 @@ async function handleRequest(req, res) {
     // GET /specialists/underperformers (5.1) get caught by the
     // singleton handler.
     if (specialistParams && (
-      specialistParams.id === 'dispatch' || specialistParams.id === 'underperformers'
+      specialistParams.id === 'dispatch'
+      || specialistParams.id === 'underperformers'
+      || specialistParams.id === 'export'
+      || specialistParams.id === 'import'
     )) {
       specialistParams = null;
     }
@@ -4875,6 +4878,38 @@ async function handleRequest(req, res) {
       } catch (err) {
         const code = /not found/.test(err.message) ? 404 : 400;
         res.writeHead(code); res.end(JSON.stringify({ error: err.message })); return;
+      }
+
+    } else if (req.method === 'GET' && route === '/specialists/export') {
+      // (multi-specialist phase 1.3) Bulk export of the registry as
+      // a self-contained bundle. Score / probation / vetoPower
+      // drift from seed are preserved alongside the immutable
+      // fields so the bundle round-trips through importBundle on a
+      // host that may not have the same seed.
+      const reg = specialistRegistry.getShared();
+      result = reg.exportBundle();
+
+    } else if (req.method === 'POST' && route === '/specialists/import') {
+      // (multi-specialist phase 1.3) Apply a previously-exported
+      // bundle. Body:
+      //   bundle    required, the {version, specialists:[...]} blob
+      //   mode      'merge' (default) | 'replace'
+      //   dryRun    when true, just reports what would change
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/specialists/import', body, res, cfg)) return;
+      if (!body.bundle || !Array.isArray(body.bundle.specialists)) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'bundle.specialists array required' }));
+        return;
+      }
+      const reg = specialistRegistry.getShared();
+      try {
+        result = reg.importBundle(body.bundle, {
+          mode: body.mode === 'replace' ? 'replace' : 'merge',
+          dryRun: !!body.dryRun,
+        });
+      } catch (err) {
+        res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
       }
 
     } else if (req.method === 'GET' && route === '/specialists/underperformers') {

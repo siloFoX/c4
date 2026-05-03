@@ -4,6 +4,60 @@
 
 (no entries — next release window)
 
+## [1.10.246] - 2026-05-03
+
+**Multi-Specialist System — Phase 1.3 (Bulk
+export / import).** Operator can now snapshot the entire
+registry (seed + governance additions + score deltas) into a
+single JSON bundle and replay it on another host. Closes
+the gap between dev and prod when a tuned roster needs to be
+shared, branched, or rolled back.
+
+### Added
+- **`src/specialist-registry.js`**:
+  - `exportBundle()` returns
+    `{version, exportedAt, sourceVersion, specialists}`. Each
+    entry carries the immutable fields verbatim plus
+    `score / probation / vetoPower` only when they drift from
+    seed (matches the on-disk overlay shape).
+  - `importBundle(bundle, opts)` with `mode: 'merge' |
+    'replace'` and `dryRun: true` opt-ins. Merge keeps
+    governance entries absent from the bundle; replace drops
+    them (seed entries always survive). Malformed entries
+    surface as `errors[]` instead of aborting the whole
+    import.
+- **HTTP**:
+  - `GET /specialists/export` → bundle blob.
+  - `POST /specialists/import` body
+    `{bundle, mode?, dryRun?}` → `{mode, dryRun, added,
+      updated, removed, skipped, errors}`.
+- **CLI**:
+  - `c4 specialist export [--out FILE]` (stdout default for
+    pipes).
+  - `c4 specialist import <file | -> [--mode merge|replace]
+    [--dry-run]`.
+- **OpenAPI**: full schemas.
+- **Tests**: 7 new cases in
+  `tests/specialist-registry.test.js` (24 → 31) — exportBundle
+  shape, round-trip no-op, add path via bundle, malformed-
+  entry error capture, dryRun preservation, replace-mode
+  governance wipe, merge-mode governance survival.
+
+### Fixed
+- **`src/daemon.js`**: `/specialists/:id` parser now also
+  excludes `export` and `import` reserved suffixes alongside
+  `dispatch` and `underperformers`.
+
+End-to-end:
+```
+$ c4 specialist export --out /tmp/bundle.json
+exported 13 specialist(s) to /tmp/bundle.json
+$ c4 specialist import /tmp/bundle.json --dry-run
+[dry-run]mode=merge  added=0  updated=13  removed=0  errors=0
+```
+
+Suite stays 192 PASS. Spec lint + drift checker clean.
+
 ## [1.10.245] - 2026-05-03
 
 **Multi-Specialist System — Phase 5.2 (LLM prompt

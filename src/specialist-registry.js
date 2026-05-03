@@ -305,6 +305,135 @@ class SpecialistRegistry {
     return removed;
   }
 
+  // (Phase 1.3) Bulk import. Two modes:
+  //   - 'merge' (default): each entry in the bundle is added if
+  //     missing, or its score replaces the existing record. The
+  //     immutable fields (prompt / brain / tier / domain / triggers)
+  //     of an existing seed-backed specialist are preserved unless
+  //     the bundle entry overrides them explicitly.
+  //   - 'replace': the registry is wiped of everything not in the
+  //     bundle (governance-added entries dropped, seed entries
+  //     kept). Then the bundle's scores / governance entries land
+  //     on top.
+  //
+  // Returns { added, updated, removed, skipped, errors }.
+  importBundle(bundle, opts = {}) {
+    const mode = opts.mode === 'replace' ? 'replace' : 'merge';
+    const dryRun = !!opts.dryRun;
+    if (!bundle || !Array.isArray(bundle.specialists)) {
+      throw new Error('importBundle: bundle.specialists array required');
+    }
+
+    const stats = { added: [], updated: [], removed: [], skipped: [], errors: [] };
+
+    if (mode === 'replace') {
+      // Drop every governance-added (non-seed) entry. We re-derive
+      // the seed set from disk so we can tell which ids belong to
+      // the seed.
+      let seedIds;
+      try {
+        const loaded = loadSeed(SEED_PATH);
+        seedIds = new Set(loaded.specialists.map((s) => s.id));
+      } catch {
+        seedIds = new Set();
+      }
+      for (const id of [...this._byId.keys()]) {
+        if (!seedIds.has(id)) {
+          if (!dryRun) this._byId.delete(id);
+          stats.removed.push(id);
+        }
+      }
+    }
+
+    for (const entry of bundle.specialists) {
+      if (!entry || typeof entry.id !== 'string') {
+        stats.errors.push({ id: '?', reason: 'missing id' });
+        continue;
+      }
+      const existing = this._byId.get(entry.id);
+      if (existing) {
+        // Score + probation + vetoPower override; immutable fields
+        // come from the bundle ONLY if the bundle includes them.
+        const merged = {
+          ...existing,
+          ...(entry.systemPrompt ? { systemPrompt: entry.systemPrompt } : {}),
+          ...(entry.brain ? { brain: entry.brain } : {}),
+          ...(entry.tier ? { tier: entry.tier } : {}),
+          ...(entry.domain ? { domain: entry.domain } : {}),
+          ...(entry.triggers ? { triggers: entry.triggers } : {}),
+          ...(entry.deliverables ? { deliverables: entry.deliverables } : {}),
+          ...(entry.score ? { score: entry.score } : {}),
+          ...(entry.probation ? { probation: entry.probation } : {}),
+          ...(typeof entry.vetoPower === 'boolean' ? { vetoPower: entry.vetoPower } : {}),
+        };
+        try {
+          validateSpecialist(merged, `import[${entry.id}]`);
+          if (!dryRun) this._byId.set(entry.id, normalizeSpecialist(merged));
+          stats.updated.push(entry.id);
+        } catch (err) {
+          stats.errors.push({ id: entry.id, reason: err.message });
+        }
+      } else {
+        try {
+          validateSpecialist(entry, `import-add[${entry.id}]`);
+          if (!dryRun) this._byId.set(entry.id, normalizeSpecialist(entry));
+          stats.added.push(entry.id);
+        } catch (err) {
+          stats.errors.push({ id: entry.id, reason: err.message });
+        }
+      }
+    }
+
+    if (!dryRun) this._maybeAutoSave();
+    return {
+      mode,
+      dryRun,
+      added: stats.added,
+      updated: stats.updated,
+      removed: stats.removed,
+      skipped: stats.skipped,
+      errors: stats.errors,
+    };
+  }
+
+  // (Phase 1.3) Bulk export. Returns the full registry as a
+  // bundle suitable for `importBundle`. Score / probation /
+  // vetoPower drift from seed are preserved; the immutable
+  // fields are included so the bundle is self-contained on a
+  // host that may not have the same seed (e.g., copying a
+  // tuned registry from prod to staging).
+  exportBundle() {
+    const specialists = [];
+    for (const spec of this._byId.values()) {
+      specialists.push({
+        id: spec.id,
+        displayName: spec.displayName,
+        tier: spec.tier,
+        domain: spec.domain.slice(),
+        brain: { ...spec.brain },
+        systemPrompt: spec.systemPrompt,
+        triggers: {
+          keywords: spec.triggers.keywords.slice(),
+          stages: spec.triggers.stages.slice(),
+        },
+        deliverables: spec.deliverables.slice(),
+        ...(spec.vetoPower ? { vetoPower: true } : {}),
+        ...(spec.probation && spec.probation !== 'stable' ? { probation: spec.probation } : {}),
+        ...(spec.score && (
+          Object.keys(spec.score.byDomain || {}).length
+          + Object.keys(spec.score.byStage || {}).length
+          + Object.keys(spec.score.samples || {}).length
+        ) > 0 ? { score: spec.score } : {}),
+      });
+    }
+    return {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      sourceVersion: this._version,
+      specialists,
+    };
+  }
+
   // Called by retro applyRetroDeltas (which mutates spec.score
   // directly via the internal Map) so the registry state is flushed
   // after every score update without changing that contract.

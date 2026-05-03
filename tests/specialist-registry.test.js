@@ -329,6 +329,133 @@ t('inline construction (no seed) skips overlay by default', () => {
   assert.ok(!reg.has('should-not-load'));
 });
 
+// Phase 1.3 — bulk export / import.
+
+t('exportBundle returns a self-contained bundle with seed entries', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  const bundle = reg.exportBundle();
+  assert.strictEqual(bundle.version, 1);
+  assert.ok(Array.isArray(bundle.specialists));
+  assert.strictEqual(bundle.specialists.length, 13);
+  // Seed entries should NOT carry an empty score record (we only
+  // emit score when populated).
+  const pm = bundle.specialists.find((s) => s.id === 'pm');
+  assert.strictEqual(pm.score, undefined);
+});
+
+t('exportBundle round-trips through importBundle (no-op merge)', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  const bundle = reg.exportBundle();
+  const fresh = new SpecialistRegistry({ persistPath: null });
+  const result = fresh.importBundle(bundle);
+  // All 13 seed entries already exist → all "updated", 0 added/removed.
+  assert.strictEqual(result.added.length, 0);
+  assert.strictEqual(result.updated.length, 13);
+  assert.strictEqual(result.errors.length, 0);
+});
+
+t('importBundle add path: bundle introduces a governance specialist', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  const bundle = {
+    version: 1,
+    specialists: [{
+      id: 'data-engineer',
+      displayName: 'Data Engineer',
+      tier: 'implement',
+      domain: ['data', 'pipeline'],
+      brain: { adapter: 'mock' },
+      systemPrompt: '[Role: Data Engineer] do data',
+      triggers: { keywords: ['etl'], stages: ['implement'] },
+    }],
+  };
+  const r = reg.importBundle(bundle);
+  assert.deepStrictEqual(r.added, ['data-engineer']);
+  assert.ok(reg.has('data-engineer'));
+});
+
+t('importBundle errors out malformed entries without aborting', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  const bundle = {
+    version: 1,
+    specialists: [
+      { id: 'good',
+        displayName: 'Good',
+        tier: 'implement',
+        domain: ['x'],
+        brain: { adapter: 'mock' },
+        systemPrompt: '[Role: Good] sp',
+        triggers: { keywords: ['x'], stages: ['implement'] },
+      },
+      { id: 'bad' /* missing tier */ },
+    ],
+  };
+  const r = reg.importBundle(bundle);
+  assert.deepStrictEqual(r.added, ['good']);
+  assert.strictEqual(r.errors.length, 1);
+  assert.strictEqual(r.errors[0].id, 'bad');
+});
+
+t('importBundle dryRun preserves registry state', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  const before = reg.size;
+  const bundle = {
+    version: 1,
+    specialists: [{
+      id: 'dry-test',
+      displayName: 'Dry',
+      tier: 'implement',
+      domain: ['x'],
+      brain: { adapter: 'mock' },
+      systemPrompt: '[Role: Dry] sp',
+      triggers: { keywords: ['x'], stages: ['implement'] },
+    }],
+  };
+  const r = reg.importBundle(bundle, { dryRun: true });
+  assert.deepStrictEqual(r.added, ['dry-test']);
+  assert.strictEqual(reg.size, before, 'dryRun should not mutate');
+  assert.ok(!reg.has('dry-test'));
+});
+
+t('importBundle replace mode wipes governance-added entries not in bundle', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  // Add a governance specialist first.
+  reg.add({
+    id: 'doomed',
+    displayName: 'Doomed',
+    tier: 'implement',
+    domain: ['x'],
+    brain: { adapter: 'mock' },
+    systemPrompt: '[Role: Doomed] sp',
+    triggers: { keywords: ['x'], stages: ['implement'] },
+  });
+  assert.ok(reg.has('doomed'));
+  // Import a bundle that only lists seed entries — replace mode
+  // should drop the governance-added 'doomed'.
+  const bundle = { version: 1, specialists: [] };
+  const r = reg.importBundle(bundle, { mode: 'replace' });
+  assert.ok(r.removed.includes('doomed'));
+  assert.ok(!reg.has('doomed'));
+  // Seed entries must survive — importBundle in replace mode only
+  // wipes non-seed governance entries.
+  assert.ok(reg.has('pm'));
+});
+
+t('importBundle merge mode preserves governance-added entries', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  reg.add({
+    id: 'survivor',
+    displayName: 'Survivor',
+    tier: 'implement',
+    domain: ['x'],
+    brain: { adapter: 'mock' },
+    systemPrompt: '[Role: Survivor] sp',
+    triggers: { keywords: ['x'], stages: ['implement'] },
+  });
+  const bundle = { version: 1, specialists: [] };
+  reg.importBundle(bundle, { mode: 'merge' });
+  assert.ok(reg.has('survivor'), 'merge mode must not drop governance entries absent from bundle');
+});
+
 (async () => {
   for (const fn of pending) await fn();
   console.log(`\n  ${passed} passed, ${failed} failed (specialist-registry)`);

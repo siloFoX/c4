@@ -44,6 +44,8 @@ const ROUTE_SUMMARIES = {
   'DELETE /specialists/:id': 'Remove a specialist from the persistent registry — idempotent.',
   'POST /specialists/dispatch': 'Preview the dispatcher pick for a task description — no specialists are spawned.',
   'GET /specialists/underperformers': 'List specialists with sustained negative retro scores in their domains/stages — read-only analysis.',
+  'GET /specialists/export': 'Bulk export of the registry as a self-contained bundle suitable for /specialists/import.',
+  'POST /specialists/import': 'Apply a previously-exported bundle (merge | replace, optional dryRun preview).',
   'POST /specialists/:id/suggest-prompt': 'Ask a brain to draft a revised systemPrompt for an underperforming specialist — review-only (never auto-applied).',
   'POST /meetings/plan': 'Plan a full multi-stage meeting roster for a task — preview only, no specialists spawned.',
   'POST /meetings': 'Create a MeetingSession from a task — returns the session in pending state.',
@@ -2642,6 +2644,37 @@ const ROUTE_SCHEMAS = {
         revision: { type: 'string', nullable: true, description: 'Suggested replacement systemPrompt — null if brain output did not parse' },
         rationale: { type: 'string', nullable: true },
         raw: { type: 'string' },
+      },
+    },
+  },
+  'GET /specialists/export': {
+    response: {
+      properties: {
+        version: { type: 'integer' },
+        exportedAt: { type: 'string' },
+        sourceVersion: { type: 'integer' },
+        specialists: { type: 'array', items: { type: 'object' } },
+      },
+    },
+  },
+  'POST /specialists/import': {
+    requestBody: {
+      properties: {
+        bundle: { type: 'object', description: 'The {version, specialists:[...]} blob from /specialists/export' },
+        mode: { type: 'string', enum: ['merge', 'replace'] },
+        dryRun: { type: 'boolean', description: 'Preview the result without mutating the registry' },
+      },
+      example: { bundle: { version: 1, specialists: [] }, mode: 'merge' },
+    },
+    response: {
+      properties: {
+        mode: { type: 'string' },
+        dryRun: { type: 'boolean' },
+        added: { type: 'array', items: { type: 'string' } },
+        updated: { type: 'array', items: { type: 'string' } },
+        removed: { type: 'array', items: { type: 'string' } },
+        skipped: { type: 'array', items: { type: 'string' } },
+        errors: { type: 'array', items: { type: 'object' } },
       },
     },
   },

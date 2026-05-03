@@ -2062,8 +2062,8 @@ async function main() {
         //   c4 specialist dispatch "<task>" [--stage X] [--track X] [--cap N]
         //   c4 specialist score [--by-domain D | --by-stage S] [--limit N]
         const sub = (args[0] || 'list').toLowerCase();
-        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt'].includes(sub)) {
-          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt> [args]');
+        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt', 'export', 'import'].includes(sub)) {
+          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt|export|import> [args]');
           process.exit(1);
         }
         if (sub === 'list') {
@@ -2179,6 +2179,61 @@ async function main() {
             console.log(result.rationale);
           }
           console.log('\nReview-only — apply manually by editing src/specialists.seed.json.');
+          return;
+        }
+        if (sub === 'export') {
+          // c4 specialist export [--out <file>]
+          // Defaults to stdout for piping to jq / git diff.
+          let outFile = null;
+          for (let i = 1; i < args.length; i += 1) {
+            if (args[i] === '--out' && args[i + 1]) { outFile = args[i + 1]; i += 1; }
+          }
+          result = await request('GET', '/specialists/export');
+          if (args.includes('--json') && !outFile) break;
+          const blob = JSON.stringify(result, null, 2) + '\n';
+          if (outFile) {
+            require('fs').writeFileSync(outFile, blob);
+            console.log(`exported ${result.specialists.length} specialist(s) to ${outFile}`);
+          } else {
+            process.stdout.write(blob);
+          }
+          return;
+        }
+        if (sub === 'import') {
+          // c4 specialist import <file> [--mode merge|replace] [--dry-run]
+          const src = args[1];
+          if (!src) {
+            console.error('Usage: c4 specialist import <file> [--mode merge|replace] [--dry-run]');
+            process.exit(1);
+          }
+          let mode = 'merge';
+          let dryRun = false;
+          for (let i = 2; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--mode' && args[i + 1]) { mode = args[i + 1]; i += 1; }
+            else if (a === '--dry-run') { dryRun = true; }
+          }
+          let bundle;
+          try {
+            const raw = (src === '-')
+              ? require('fs').readFileSync(0, 'utf8')
+              : require('fs').readFileSync(src, 'utf8');
+            bundle = JSON.parse(raw);
+          } catch (err) {
+            console.error(`failed to read bundle: ${err.message}`);
+            process.exit(1);
+          }
+          result = await request('POST', '/specialists/import', { bundle, mode, dryRun });
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          const tag = result.dryRun ? '[dry-run]' : '';
+          console.log(`${tag}mode=${result.mode}  added=${result.added.length}  updated=${result.updated.length}  removed=${result.removed.length}  errors=${result.errors.length}`);
+          if (result.added.length) console.log(`  added:    ${result.added.join(', ')}`);
+          if (result.updated.length) console.log(`  updated:  ${result.updated.join(', ')}`);
+          if (result.removed.length) console.log(`  removed:  ${result.removed.join(', ')}`);
+          if (result.errors.length) {
+            for (const e of result.errors) console.log(`  ✗ ${e.id}: ${e.reason}`);
+          }
           return;
         }
         if (sub === 'underperformers') {
