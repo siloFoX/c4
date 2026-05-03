@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.252] - 2026-05-04
+
+**Multi-Specialist System — Phase 8.5 (Parameterized
+templates UI).** Closes the parity gap from 8.4. When the
+operator clicks a template chip with `{{var}}` placeholders,
+the composer now surfaces a small per-var input grid above
+the task field. Submit posts `{template, vars}` so the
+daemon does the substitution server-side and the meeting
+record carries the resolved task.
+
+### Changed
+- **`web/src/components/MeetingsView.tsx`**:
+  - Chip click stamps `templateName` and clears any prior
+    `templateVars`. The selected chip renders in primary
+    style with a `clear` chip alongside.
+  - `placeholderNames` derives from the current task body
+    (memoized regex scan). When non-empty AND a template is
+    selected, a 2-column input grid appears with one field
+    per placeholder.
+  - `handleCreate` switches to `{template, vars}` POST when
+    a template is active, falling back to free-text `task`
+    when not. Empty `vars` field values are filtered out so
+    partial expansion still works.
+
+End-to-end flow: pick `rotate-secret` chip → form shows
+`{{service}}` and `{{env}}` inputs → fill them → Create —
+meeting body lands as the literal task with placeholders
+replaced.
+
+Suite stays 194 PASS. Web build clean.
+
 ## [1.10.251] - 2026-05-04
 
 **Multi-Specialist System — Phase 8.4 (Parameterized

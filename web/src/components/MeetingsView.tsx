@@ -220,6 +220,24 @@ export default function MeetingsView() {
     load();
     return () => { cancelled = true; };
   }, [creating]);
+
+  // (8.4) Template-with-vars flow: when the operator picks a
+  // template chip whose body contains `{{var}}` placeholders, we
+  // surface a small per-var input row so they can supply values
+  // before submit. The chip click stamps `templateName` so the
+  // create POST passes `template:` + `vars:` instead of a literal
+  // `task:` (lets the daemon do the substitution server-side and
+  // keeps the UI cheap).
+  const [templateName, setTemplateName] = useState<string | null>(null);
+  const [templateVars, setTemplateVars] = useState<Record<string, string>>({});
+  const placeholderRe = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g;
+  const placeholderNames = useMemo(() => {
+    const out = new Set<string>();
+    let m;
+    placeholderRe.lastIndex = 0;
+    while ((m = placeholderRe.exec(newTask)) !== null) out.add(m[1]);
+    return [...out];
+  }, [newTask]);
   const [previewPlan, setPreviewPlan] = useState<{
     track: string;
     rosterSize: number;
@@ -334,14 +352,34 @@ export default function MeetingsView() {
 
   const handleCreate = useCallback(async () => {
     const task = newTask.trim();
-    if (!task) return;
+    if (!task && !templateName) return;
     setCreateBusy(true);
     setCreateError(null);
     try {
-      const body: { task: string; track?: string } = { task };
+      const body: {
+        task?: string;
+        track?: string;
+        template?: string;
+        vars?: Record<string, string>;
+        requireAllVars?: boolean;
+      } = {};
+      if (templateName) {
+        body.template = templateName;
+        // When operator supplied any vars, send them — daemon
+        // expands the placeholders. Otherwise let the placeholders
+        // pass through (operator may want a partial expansion).
+        const filled = Object.fromEntries(
+          Object.entries(templateVars).filter(([, v]) => v && v.length > 0),
+        );
+        if (Object.keys(filled).length) body.vars = filled;
+      } else {
+        body.task = task;
+      }
       if (newTrack !== 'auto') body.track = newTrack;
       const created = await apiPost<{ id: string }>('/api/meetings', body);
       setNewTask('');
+      setTemplateName(null);
+      setTemplateVars({});
       setCreating(false);
       await refresh();
       if (created && created.id) setSelectedId(created.id);
@@ -350,7 +388,7 @@ export default function MeetingsView() {
     } finally {
       setCreateBusy(false);
     }
-  }, [newTask, newTrack, refresh]);
+  }, [newTask, newTrack, refresh, templateName, templateVars]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 md:flex-row md:p-6">
@@ -389,12 +427,14 @@ export default function MeetingsView() {
                     <Button
                       key={tpl.name}
                       size="sm"
-                      variant="outline"
+                      variant={templateName === tpl.name ? 'default' : 'outline'}
                       onClick={() => {
                         setNewTask(tpl.task);
                         if (tpl.track) {
                           setNewTrack(tpl.track as typeof newTrack);
                         }
+                        setTemplateName(tpl.name);
+                        setTemplateVars({});
                       }}
                       title={tpl.description || tpl.task}
                       aria-label={`Apply template ${tpl.name}`}
@@ -402,6 +442,40 @@ export default function MeetingsView() {
                     >
                       {tpl.name}
                     </Button>
+                  ))}
+                  {templateName ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setTemplateName(null);
+                        setTemplateVars({});
+                      }}
+                      aria-label="Clear template selection"
+                      className="h-6 px-2 text-[11px] text-muted-foreground"
+                    >
+                      clear
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
+              {templateName && placeholderNames.length > 0 ? (
+                <div className="grid grid-cols-2 gap-1 rounded-md border border-border/40 bg-background/50 p-2 text-[11px]">
+                  <span className="col-span-2 text-muted-foreground">
+                    Template <span className="font-mono">{templateName}</span> needs values for:
+                  </span>
+                  {placeholderNames.map((name) => (
+                    <label key={name} className="flex flex-col gap-0.5">
+                      <span className="font-mono text-[10px] text-muted-foreground">{`{{${name}}}`}</span>
+                      <Input
+                        type="text"
+                        value={templateVars[name] || ''}
+                        onChange={(e) => setTemplateVars((v) => ({ ...v, [name]: e.target.value }))}
+                        placeholder={name}
+                        aria-label={`Value for ${name}`}
+                        className="h-7 text-[11px]"
+                      />
+                    </label>
                   ))}
                 </div>
               ) : null}
