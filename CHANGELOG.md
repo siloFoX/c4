@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.209] - 2026-05-03
+
+**Live tail wire format aligned with `/sessions/:id/stream` + UI
+consumption (8.32 slice 1.5).** The new `/attach/:name/tail`
+endpoint now uses named SSE events (`event: conversation` /
+`event: turn`) so the existing ConversationView component can
+drive it without modification. SessionsView wires the attached
+view to the live stream so new turns appear without a refresh.
+
+### Changed
+- **`src/daemon.js`**: `/attach/:name/tail` switched from
+  `data: {type:...}` JSON-tagged frames to named SSE events
+  matching `/sessions/:id/stream` (8.18). Default mode emits the
+  `parseJsonl` snapshot once as `event: conversation` then live
+  `event: turn` per appended line. New `?live=1` query opts out
+  of the upfront snapshot for callers that already have one.
+  Heartbeat is now `event: heartbeat`.
+- **`web/src/components/SessionsView.tsx`**: attached-session
+  pane now passes `live` and a `streamUrl` of
+  `/api/attach/:name/tail?live=1` so the snapshot still comes
+  from `fetchSnapshot` (avoids double-emit) and live turns are
+  appended to the local state via the existing `turn` listener.
+
+End-to-end verified — appended JSONL lines now flow into the
+ConversationView without remounting the component.
+
 ## [1.10.208] - 2026-05-03
 
 **Live tail SSE for attached sessions (8.32 slice 1).** Read-side

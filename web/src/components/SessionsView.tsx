@@ -1248,8 +1248,9 @@ export default function SessionsView() {
             <ConversationView
               key={`attached-${selection.name}`}
               sessionId={selection.name}
-              live={false}
+              live
               snapshotUrl={`/api/attach/${encodeURIComponent(selection.name)}/conversation`}
+              streamUrl={`/api/attach/${encodeURIComponent(selection.name)}/tail?live=1`}
               className="flex-1"
             />
             <ComparisonCard className="self-end" />

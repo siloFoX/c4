@@ -4149,13 +4149,13 @@ async function handleRequest(req, res) {
       // gate as the rest of /attach since it exposes the same data
       // surface, just streamed.
       //
-      // Query params:
-      //   from=beginning  — replay the entire file from offset 0
-      //                     (the web UI uses this to seed an empty
-      //                     view without a separate /conversation
-      //                     fetch).
-      //   from=<integer>  — explicit byte offset to resume from.
-      //   (omitted)       — live-only; existing content is skipped.
+      // Wire format mirrors `/sessions/:id/stream` (8.18) so the
+      // ConversationView component can drive both endpoints with
+      // its existing `event: conversation` / `event: turn`
+      // listeners. Default mode emits the parseJsonl snapshot as
+      // `event: conversation` upfront, then live `event: turn` per
+      // appended line. `?live=1` skips the snapshot when the caller
+      // already has one (CLI / test harness).
       const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE);
       if (denyOr(res, gate)) return;
       const store = sessionAttach.getShared();
@@ -4175,31 +4175,41 @@ async function handleRequest(req, res) {
         return;
       }
 
-      const fromQuery = url.searchParams.get('from');
-      let startOpts = {};
-      if (fromQuery === 'beginning') {
-        startOpts = { startOffset: 0 };
-      } else if (fromQuery && /^\d+$/.test(fromQuery)) {
-        startOpts = { startOffset: parseInt(fromQuery, 10) };
-      }
+      const liveOnly = url.searchParams.get('live') === '1';
 
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
       });
-      res.write(`data: ${JSON.stringify({ type: 'connected', name: record.name })}\n\n`);
 
-      const tail = attachTail.watchAttachedSession(record.jsonlPath, startOpts);
-      const safeWrite = (payload) => {
-        try { res.write(`data: ${JSON.stringify(payload)}\n\n`); }
-        catch { /* client gone */ }
+      const safeWrite = (event, payload) => {
+        try {
+          if (event) res.write(`event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`);
+          else res.write(`data: ${JSON.stringify(payload)}\n\n`);
+        } catch { /* client gone */ }
       };
-      tail.on('turn', (turn) => safeWrite({ type: 'turn', turn }));
-      tail.on('warning', (warning) => safeWrite({ type: 'warning', warning }));
-      tail.on('error', (err) => safeWrite({ type: 'error', message: err.message }));
 
-      const heartbeat = setInterval(() => safeWrite({ type: 'heartbeat', ts: Date.now() }), 15000);
+      if (!liveOnly) {
+        try {
+          const snapshot = sessionParser.parseJsonl(record.jsonlPath);
+          safeWrite('conversation', snapshot);
+        } catch (err) {
+          safeWrite('error', { message: `snapshot failed: ${err.message}` });
+        }
+      }
+
+      // Live tail starts at current EOF — the snapshot above already
+      // covered everything up to this point so we do not double-emit.
+      const tail = attachTail.watchAttachedSession(record.jsonlPath);
+      tail.on('turn', (turn) => safeWrite('turn', turn));
+      tail.on('warning', (warning) => safeWrite('warning', { warning }));
+      tail.on('error', (err) => safeWrite('error', { message: err.message }));
+
+      const heartbeat = setInterval(
+        () => safeWrite('heartbeat', { ts: Date.now() }),
+        15000,
+      );
 
       req.on('close', () => {
         clearInterval(heartbeat);
