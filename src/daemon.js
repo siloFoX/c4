@@ -791,7 +791,7 @@ async function handleRequest(req, res) {
   // Meeting session path-parameter parser (multi-specialist phase 2.2).
   let meetingParams = null;
   {
-    const mAct = route.match(/^\/meetings\/([^\/]+)\/(start|contribute|vote|advance|next-round|escalate|abort|transcript|run|retro|finalize|publish|peer-retro|stream|fork|action-items|lineage)$/);
+    const mAct = route.match(/^\/meetings\/([^\/]+)\/(start|contribute|vote|advance|next-round|escalate|abort|transcript|run|retro|finalize|publish|peer-retro|stream|fork|action-items|lineage|recap)$/);
     const mOne = route.match(/^\/meetings\/([^\/]+)$/);
     if (mAct) meetingParams = { kind: mAct[2], id: decodeURIComponent(mAct[1]) };
     else if (mOne) meetingParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
@@ -4891,6 +4891,52 @@ async function handleRequest(req, res) {
       } catch (err) {
         res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
       }
+
+    } else if (req.method === 'GET' && meetingParams && meetingParams.kind === 'recap') {
+      // (multi-specialist phase 6.10) One-shot operator view: stitch
+      // together status + per-stage consensus + extracted action items
+      // + the first contribution from each stage. Saves operators
+      // from chaining /meetings/:id + /transcript + /action-items
+      // when they just want a "what happened" summary.
+      const sess = meetingSession.getShared().get(meetingParams.id);
+      if (!sess) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Meeting not found', id: meetingParams.id }));
+        return;
+      }
+      const j = sess.toJSON();
+      const stagesSummary = (j.stages || []).map((stage, idx) => {
+        const turns = (j.transcripts && j.transcripts[idx]) || [];
+        const firstTurn = turns[0] || null;
+        return {
+          stage: stage.stage,
+          round: stage.round,
+          consensus: stage.consensus || null,
+          turnCount: turns.length,
+          firstTurn: firstTurn ? {
+            specialistId: firstTurn.specialistId,
+            round: firstTurn.round,
+            text: firstTurn.text,
+            ts: firstTurn.ts,
+          } : null,
+        };
+      });
+      let actions = { count: 0, byType: { decision: 0, action: 0, todo: 0, blocker: 0 }, items: [] };
+      try { actions = meetingActions.extractActionItems(sess); }
+      catch { /* fail-soft: recap still useful without action items */ }
+      result = {
+        id: j.id,
+        status: j.status,
+        track: j.track,
+        title: j.title,
+        task: j.task,
+        forkOf: j.forkOf || null,
+        createdAt: j.createdAt,
+        completedAt: j.completedAt,
+        stages: stagesSummary,
+        actions: { count: actions.count, byType: actions.byType, items: actions.items },
+        escalations: j.escalations || [],
+      };
 
     } else if (req.method === 'GET' && meetingParams && meetingParams.kind === 'lineage') {
       // (multi-specialist phase 6.9) Walk the forkOf chain so the

@@ -2871,7 +2871,7 @@ async function main() {
         //   c4 meeting escalate <id> ["reason"...]
         //   c4 meeting abort <id> ["reason"...]
         const sub = (args[0] || 'plan').toLowerCase();
-        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'templates', 'template-add', 'template-remove', 'prune', 'fork', 'actions', 'classify-track', 'lineage'];
+        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'templates', 'template-add', 'template-remove', 'prune', 'fork', 'actions', 'classify-track', 'lineage', 'recap'];
         if (!VALID.includes(sub)) {
           console.error(`Usage: c4 meeting <${VALID.join('|')}> [...]`);
           process.exit(1);
@@ -3233,6 +3233,42 @@ async function main() {
           if (result.error) { console.error(result.error); process.exit(1); }
           const c = result.consensus;
           console.log(`vote recorded — accepts=${c.accepts.length} objects=${c.objects.length} missing=${c.missing.length} reached=${c.reached}`);
+          return;
+        }
+        if (sub === 'recap') {
+          // c4 meeting recap <id> — one-shot summary
+          result = await request('GET', `/meetings/${idEnc}/recap`);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`${result.id}  status=${result.status}  track=${result.track}`);
+          console.log(`  ${result.title}`);
+          console.log(`  task: ${result.task}`);
+          if (result.forkOf) console.log(`  forkOf: ${result.forkOf}`);
+          if (result.completedAt) console.log(`  completed: ${result.completedAt}`);
+          for (const s of result.stages || []) {
+            const c = s.consensus || {};
+            console.log(`\n  [${s.stage}] round=${s.round}  turns=${s.turnCount}  consensus=${c.reached ? 'reached' : 'not-reached'} (a=${(c.accepts || []).length}/o=${(c.objects || []).length}/m=${(c.missing || []).length})`);
+            if (s.firstTurn) {
+              const txt = (s.firstTurn.text || '').slice(0, 160);
+              console.log(`    first: [${s.firstTurn.specialistId}] ${txt}${(s.firstTurn.text || '').length > 160 ? '…' : ''}`);
+            }
+          }
+          if (result.actions && result.actions.count > 0) {
+            console.log(`\n  actions: ${result.actions.count} (decision=${result.actions.byType.decision}, action=${result.actions.byType.action}, todo=${result.actions.byType.todo}, blocker=${result.actions.byType.blocker})`);
+            for (const it of result.actions.items.slice(0, 10)) {
+              const owner = it.owner ? ` @${it.owner}` : '';
+              console.log(`    [${it.type.toUpperCase()}]${owner}  ${it.text}`);
+            }
+            if (result.actions.count > 10) {
+              console.log(`    ... ${result.actions.count - 10} more (use c4 meeting actions for full list)`);
+            }
+          }
+          if (Array.isArray(result.escalations) && result.escalations.length > 0) {
+            console.log(`\n  escalations:`);
+            for (const e of result.escalations) {
+              console.log(`    ${e.ts} — ${e.reason}${e.terminal ? ' (terminal)' : ''}`);
+            }
+          }
           return;
         }
         if (sub === 'lineage') {

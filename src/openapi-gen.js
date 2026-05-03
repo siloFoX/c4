@@ -75,6 +75,7 @@ const ROUTE_SUMMARIES = {
   'POST /meetings/:id/fork': 'Clone an existing meeting as a brand-new pending session (replan or reuse mode); useful for retros / "redo with sharper question".',
   'GET /meetings/:id/action-items': 'Extract [DECISION] / [ACTION] / [TODO] / [BLOCKER] markers from the transcript — structured handoff to operator-side task tracking.',
   'GET /meetings/:id/lineage': 'Walk the forkOf chain back to the original ancestor — returns the full lineage with depth and a truncation flag if some ancestor was purged from the store.',
+  'GET /meetings/:id/recap': 'One-shot operator view: status + per-stage consensus + first contribution per stage + action items, in a single envelope.',
   'POST /meetings/:id/retro': 'Compute retro score deltas from a terminal meeting — preview only.',
   'POST /meetings/:id/finalize': 'Compute retro deltas AND apply them to the registry score record.',
   'POST /meetings/:id/peer-retro': 'Run a peer-vote retro — each speaker rates peers (0–5); aggregate becomes a score signal.',
@@ -2511,6 +2512,43 @@ const ROUTE_SCHEMAS = {
       example: { reason: 'operator changed direction' },
     },
     response: { properties: { id: { type: 'string' }, status: { type: 'string' } } },
+  },
+  'GET /meetings/:id/recap': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    response: {
+      properties: {
+        id: { type: 'string' },
+        status: { type: 'string' },
+        track: { type: 'string' },
+        title: { type: 'string' },
+        task: { type: 'string' },
+        forkOf: { type: 'string', nullable: true },
+        createdAt: { type: 'string' },
+        completedAt: { type: 'string', nullable: true },
+        stages: {
+          type: 'array',
+          items: {
+            properties: {
+              stage: { type: 'string' },
+              round: { type: 'integer' },
+              consensus: { type: 'object', nullable: true },
+              turnCount: { type: 'integer' },
+              firstTurn: { type: 'object', nullable: true },
+            },
+          },
+        },
+        actions: {
+          properties: {
+            count: { type: 'integer' },
+            byType: { type: 'object' },
+            items: { type: 'array', items: { type: 'object' } },
+          },
+        },
+        escalations: { type: 'array', items: { type: 'object' } },
+      },
+    },
   },
   'GET /meetings/:id/lineage': {
     parameters: [

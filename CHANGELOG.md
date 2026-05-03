@@ -4,6 +4,40 @@
 
 (no entries — next release window)
 
+## [1.10.269] - 2026-05-04
+
+**Multi-Specialist System — Phase 6.10 (Meeting recap combo).**
+A single endpoint now returns a "what happened" view for a
+meeting: status, per-stage consensus, first contribution per
+stage, plus extracted action items, all in one envelope. Saves
+operators from chaining /meetings/:id + /transcript +
+/action-items.
+
+### Added
+- **HTTP**: `GET /meetings/:id/recap` returns `{id, status,
+  track, title, task, forkOf, createdAt, completedAt, stages[],
+  actions: {count, byType, items}, escalations[]}`. Each
+  `stages[]` entry includes `stage`, `round`, `consensus`,
+  `turnCount`, and the optional `firstTurn` summary
+  (`{specialistId, round, text, ts}`). Action-items extraction
+  is fail-soft — if it errors, the recap still returns with an
+  empty actions list.
+- **CLI**: `c4 meeting recap <id>` — prints the envelope as
+  human-readable sections (header + per-stage block + actions
+  preview, capped at 10 with a "use `c4 meeting actions` for
+  full list" pointer + escalations).
+- **OpenAPI**: full response schema published.
+
+### Notes
+- e2e verified end-to-end: started a lightweight meeting,
+  contributed `[DECISION] use btree [ACTION] @alice add
+  migration`, ran `c4 meeting recap` — full render with stage
+  consensus, first turn, decision+action extracted with owner.
+- Composes existing primitives (`session.toJSON()` +
+  `meeting-actions.extractActionItems()`) so no new state or
+  schema. Meant as the main "look at this meeting" CLI for
+  operators going forward.
+
 ## [1.10.268] - 2026-05-04
 
 **Multi-Specialist System — Phase 6.9 (Meeting lineage view).**
