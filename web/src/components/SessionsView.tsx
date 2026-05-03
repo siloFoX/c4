@@ -535,7 +535,7 @@ function EmptyAttachBanner({ onAttachClick }: EmptyAttachBannerProps) {
           className="mt-2"
           onClick={onAttachClick}
         >
-          <Plus className="mr-1 h-3.5 w-3.5" aria-hidden />
+          <Plus className="h-3.5 w-3.5" aria-hidden />
           Attach your first session
         </Button>
       </div>
@@ -721,7 +721,7 @@ function AttachedRowActions({
           onClick={onView}
           aria-label={`View conversation for ${session.name}`}
         >
-          <Eye className="mr-1 h-3.5 w-3.5" aria-hidden />
+          <Eye className="h-3.5 w-3.5" aria-hidden />
           View conversation
         </Button>
         <Button
@@ -731,7 +731,7 @@ function AttachedRowActions({
           aria-label={`Resume ${session.name} in terminal`}
           aria-expanded={showResume}
         >
-          <Terminal className="mr-1 h-3.5 w-3.5" aria-hidden />
+          <Terminal className="h-3.5 w-3.5" aria-hidden />
           Resume in terminal
         </Button>
         {/* (TODO 8.38) Two-step detach. The first click expands an
@@ -754,7 +754,7 @@ function AttachedRowActions({
           aria-controls={showDetachConfirm ? detachConfirmId : undefined}
           className="text-destructive hover:bg-destructive/10"
         >
-          <Trash2 className="mr-1 h-3.5 w-3.5" aria-hidden />
+          <Trash2 className="h-3.5 w-3.5" aria-hidden />
           Detach
         </Button>
       </div>
@@ -1038,7 +1038,7 @@ export default function SessionsView() {
                   setNewChatOpen(true);
                 }}
               >
-                <Plus className="mr-1 h-3.5 w-3.5" aria-hidden /> New Chat
+                <Plus className="h-3.5 w-3.5" aria-hidden /> New Chat
               </Button>
               <Button
                 size="sm"
@@ -1048,7 +1048,7 @@ export default function SessionsView() {
                   setModalOpen(true);
                 }}
               >
-                <Plus className="mr-1 h-3.5 w-3.5" aria-hidden /> Attach new...
+                <Plus className="h-3.5 w-3.5" aria-hidden /> Attach new...
               </Button>
               <Button
                 size="sm"

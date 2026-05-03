@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.210] - 2026-05-03
+
+**Icon double-gap fix in SessionsView (8.36 partial).**
+Targeted fix for the most user-visible alignment bug surfaced
+by an audit of icon-in-button patterns. The `<Button>` CVA
+declares `inline-flex items-center justify-center gap-2`
+already, so additional `mr-1` on icons inside buttons was
+stacking a redundant 4 px on top of the 8 px gap and producing
+a 12 px icon-to-label spacing that didn't match other buttons.
+
+### Changed
+- **`web/src/components/SessionsView.tsx`**: removed `mr-1 `
+  from 6 icons (Plus / Eye / Terminal / Trash2) in
+  EmptyAttachBanner, AttachedRowActions, header New Chat /
+  Attach new... — Button's `gap-2` is now the single source of
+  truth for icon-to-label spacing.
+
+Other audited cases (Sidebar collapsed `h-4 w-4` vs expanded
+`h-3.5 w-3.5`, AppHeader language toggle) verified as
+intentional context-driven sizing, not regressions, and left
+unchanged. The original 2026-04-20 report ("아이콘 위치가 이상해")
+did not specify a page; this fix lands the highest-confidence
+hit and the row stays open until the user confirms.
+
 ## [1.10.209] - 2026-05-03
 
 **Live tail wire format aligned with `/sessions/:id/stream` + UI
