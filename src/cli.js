@@ -2924,7 +2924,7 @@ async function main() {
         //   c4 meeting escalate <id> ["reason"...]
         //   c4 meeting abort <id> ["reason"...]
         const sub = (args[0] || 'plan').toLowerCase();
-        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'templates', 'template-add', 'template-remove', 'prune', 'fork', 'actions', 'classify-track', 'lineage', 'recap', 'stuck'];
+        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'watch-all', 'templates', 'template-add', 'template-remove', 'prune', 'fork', 'actions', 'classify-track', 'lineage', 'recap', 'stuck'];
         if (!VALID.includes(sub)) {
           console.error(`Usage: c4 meeting <${VALID.join('|')}> [...]`);
           process.exit(1);
@@ -3112,6 +3112,63 @@ async function main() {
           return;
         }
 
+        if (sub === 'watch-all') {
+          // c4 meeting watch-all — tail GET /meetings/stream
+          // Multi-line SSE format ("event: NAME\ndata: JSON\n\n") so
+          // we buffer until each blank line and then dispatch.
+          const watchUrl = new URL('/meetings/stream', BASE);
+          process.stderr.write('Tailing /meetings/stream... Ctrl+C to stop\n');
+          const req = http.get(watchUrl, (res) => {
+            if (res.statusCode !== 200) {
+              console.error(`Error: HTTP ${res.statusCode}`);
+              process.exit(1);
+            }
+            let buffer = '';
+            res.on('data', (chunk) => {
+              buffer += chunk.toString();
+              while (true) {
+                const sep = buffer.indexOf('\n\n');
+                if (sep < 0) break;
+                const frame = buffer.slice(0, sep);
+                buffer = buffer.slice(sep + 2);
+                let evtName = 'message';
+                let dataStr = '';
+                for (const line of frame.split('\n')) {
+                  if (line.startsWith('event: ')) evtName = line.slice(7).trim();
+                  else if (line.startsWith('data: ')) dataStr += line.slice(6);
+                }
+                if (!dataStr) continue;
+                let payload;
+                try { payload = JSON.parse(dataStr); } catch { continue; }
+                if (evtName === 'heartbeat') continue;
+                const ts = new Date().toISOString().slice(11, 23);
+                if (evtName === 'snapshot') {
+                  console.log(`${ts} \x1b[36msnapshot\x1b[0m  ${payload.count} meeting(s)`);
+                  for (const m of payload.sessions || []) {
+                    console.log(`         ${m.id}  status=${m.status}  track=${m.track}  ${m.title || ''}`);
+                  }
+                } else if (evtName === 'meeting-added') {
+                  const s = payload.summary || {};
+                  console.log(`${ts} \x1b[32m+meeting\x1b[0m  ${payload.id}  status=${s.status || '?'}  ${s.title || ''}`);
+                } else if (evtName === 'meeting-removed') {
+                  console.log(`${ts} \x1b[31m-meeting\x1b[0m  ${payload.id}`);
+                } else if (evtName === 'state') {
+                  const e = (payload.payload || {});
+                  const eventStr = payload.event || '?';
+                  const detail = e.stage || e.specialistId || e.newStage || '';
+                  console.log(`${ts} \x1b[33mstate\x1b[0m     ${payload.meetingId || '?'}  ${eventStr}${detail ? '  ' + detail : ''}  status=${payload.status || '?'}`);
+                } else {
+                  const rest = JSON.stringify(payload);
+                  console.log(`${ts} ${evtName.padEnd(14)} ${rest.length > 200 ? rest.slice(0, 200) + '…' : rest}`);
+                }
+              }
+            });
+            res.on('end', () => process.exit(0));
+          });
+          req.on('error', (e) => { console.error(`Error: ${e.message}`); process.exit(1); });
+          process.on('SIGINT', () => { req.destroy(); process.stderr.write('\n'); process.exit(0); });
+          return;
+        }
         if (sub === 'stuck') {
           // c4 meeting stuck [--hours N] — meetings stuck in pending /
           // in-progress for >= N hours (default 1).

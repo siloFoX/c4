@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.279] - 2026-05-04
+
+**Multi-Specialist System — Phase 6.16 (CLI watch-all for meetings).**
+The `/meetings/stream` SSE endpoint shipped in v1.10.258 had no
+operator-friendly tail tool. This phase adds `c4 meeting
+watch-all` — a real-time terminal feed of meeting state
+transitions, meeting-added, meeting-removed events.
+
+### Added
+- **CLI**: `c4 meeting watch-all` connects to `/meetings/stream`,
+  parses the multi-line SSE format (`event: NAME\ndata: JSON\n\n`),
+  and prints color-coded lines per event:
+  - `snapshot` (cyan) — initial roster on connect
+  - `+meeting` (green) — meeting-added events
+  - `-meeting` (red) — meeting-removed events
+  - `state` (yellow) — per-session state transitions with
+    meetingId + event name + status + a short detail
+    (stage / specialistId / newStage)
+  - `heartbeat` events suppressed
+  Ctrl+C exits cleanly; tail-style behavior matches `c4 sse`.
+- Pairs with the existing `c4 specialist summary` and
+  `c4 meeting stuck` so an operator running all three in
+  separate terminals gets a complete live dashboard without a
+  web UI.
+
+### Notes
+- e2e verified end-to-end: tailed live; created a meeting
+  via `POST /meetings` → `+meeting m-949ea07c6f84 status=pending
+  watch e2e 2` rendered immediately. Initial `snapshot` correctly
+  enumerates pre-existing meetings.
+- This is a CLI-only addition — no daemon code changes, no
+  schema drift.
+
 ## [1.10.278] - 2026-05-04
 
 **Multi-Specialist System — Phase 6.15 (Meeting stuck detector).**
