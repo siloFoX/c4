@@ -4,6 +4,40 @@
 
 (no entries — next release window)
 
+## [1.10.228] - 2026-05-03
+
+**Multi-Specialist System — Phase 1.2 (Specialist add/remove
+governance HTTP/CLI).** The persistent registry now has an
+operator-facing surface so new specialists can be introduced
+post-seed without editing `src/specialists.seed.json` and
+restarting. Per the design doc §10 decision, full
+meeting-consensus gating on these mutations lands in a
+follow-up; this slice exposes the bare add/remove path so
+governance flows can build on top.
+
+### Added
+- **HTTP**:
+  - `POST /specialists` — body matches the seed schema; `id`
+    must be unique; persists via the registry's auto-save
+    path. Returns `{ok, specialist}`.
+  - `DELETE /specialists/:id` — idempotent, returns
+    `{ok, removed, id}`.
+- **CLI**:
+  - `c4 specialist add <file.json | ->` — reads the body from
+    a JSON file or stdin, POSTs to `/specialists`.
+  - `c4 specialist remove <id>` — DELETEs and reports whether
+    the id was actually present.
+- **OpenAPI**: full request/response schemas with example.
+
+End-to-end: `c4 specialist add /tmp/data-engineer.json`
+adds + persists, `c4 specialist describe data-engineer` shows
+the new entry, the overlay file contains the new id alongside
+the existing scored specialists, `c4 specialist remove
+data-engineer` cleans it back up. Daemon restart roundtrips
+through the persistence layer.
+
+Suite stays 191 PASS. Spec lint + drift checker clean.
+
 ## [1.10.227] - 2026-05-03
 
 **Multi-Specialist System — score visibility CLI.** Operator

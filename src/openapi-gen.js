@@ -40,6 +40,8 @@ const ROUTE_SUMMARIES = {
   'GET /attach/:name/process': 'Locate the running Claude Code process holding the attached JSONL — alive flag + pid/cmdline/cwd if found.',
   'GET /specialists': 'List the multi-specialist registry — optional ?tier / ?stage / ?domain / ?vetoOnly filters.',
   'GET /specialists/:id': 'Fetch a single specialist record by id.',
+  'POST /specialists': 'Add a new specialist to the persistent registry (governance path).',
+  'DELETE /specialists/:id': 'Remove a specialist from the persistent registry — idempotent.',
   'POST /specialists/dispatch': 'Preview the dispatcher pick for a task description — no specialists are spawned.',
   'POST /meetings/plan': 'Plan a full multi-stage meeting roster for a task — preview only, no specialists spawned.',
   'POST /meetings': 'Create a MeetingSession from a task — returns the session in pending state.',
@@ -2558,6 +2560,61 @@ const ROUTE_SCHEMAS = {
         retro: { type: 'object', nullable: true, description: 'Present when autoFinalize=true' },
         applied: { type: 'object', nullable: true, description: 'Per-specialist before/after score snapshots when autoFinalize=true' },
         publish: { type: 'object', nullable: true, description: 'Wiki write result when autoPublish=true' },
+      },
+    },
+  },
+  'POST /specialists': {
+    requestBody: {
+      properties: {
+        id: { type: 'string', description: 'lowercase-kebab unique key' },
+        displayName: { type: 'string' },
+        tier: { type: 'string', enum: ['meeting', 'design', 'implement', 'review', 'audit', 'test', 'deploy', 'docs'] },
+        domain: { type: 'array', items: { type: 'string' } },
+        brain: {
+          properties: {
+            adapter: { type: 'string' },
+            model: { type: 'string', nullable: true },
+            effort: { type: 'string', nullable: true },
+          },
+        },
+        systemPrompt: { type: 'string' },
+        triggers: {
+          properties: {
+            keywords: { type: 'array', items: { type: 'string' } },
+            stages: { type: 'array', items: { type: 'string' } },
+          },
+        },
+        deliverables: { type: 'array', items: { type: 'string' } },
+        vetoPower: { type: 'boolean' },
+        probation: { type: 'string', enum: ['stable', 'probation'] },
+      },
+      example: {
+        id: 'data-engineer',
+        displayName: 'Data Engineer',
+        tier: 'implement',
+        domain: ['data', 'pipeline', 'etl'],
+        brain: { adapter: 'claude-code', model: 'sonnet', effort: 'high' },
+        systemPrompt: '[Role: Data Engineer] You build the pipelines.',
+        triggers: { keywords: ['etl', 'pipeline', 'ingest'], stages: ['design', 'implement'] },
+        deliverables: ['pipeline_spec.md'],
+      },
+    },
+    response: {
+      properties: {
+        ok: { type: 'boolean' },
+        specialist: { type: 'object' },
+      },
+    },
+  },
+  'DELETE /specialists/:id': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    response: {
+      properties: {
+        ok: { type: 'boolean' },
+        removed: { type: 'boolean' },
+        id: { type: 'string' },
       },
     },
   },

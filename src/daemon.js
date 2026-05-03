@@ -4317,6 +4317,32 @@ async function handleRequest(req, res) {
       }
       result = spec;
 
+    } else if (req.method === 'POST' && route === '/specialists') {
+      // (multi-specialist phase 1.2) Add a specialist to the
+      // persistent registry. Body matches the seed schema (id,
+      // displayName, tier, domain, brain, systemPrompt, triggers,
+      // optional deliverables / vetoPower / probation). Validates +
+      // persists via the registry's auto-save path.
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/specialists', body, res, cfg)) return;
+      const reg = specialistRegistry.getShared();
+      try {
+        const added = reg.add(body);
+        result = { ok: true, specialist: added };
+      } catch (err) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: err.message }));
+        return;
+      }
+
+    } else if (req.method === 'DELETE' && specialistParams && specialistParams.kind === 'one') {
+      // (multi-specialist phase 1.2) Remove a specialist from the
+      // persistent registry. Idempotent — returns ok:true even if
+      // the id wasn't present (matches DELETE /attach/:name shape).
+      const reg = specialistRegistry.getShared();
+      const removed = reg.remove(specialistParams.id);
+      result = { ok: true, removed, id: specialistParams.id };
+
     } else if (req.method === 'POST' && route === '/meetings/plan') {
       // (multi-specialist phase 2.1) Preview a multi-stage meeting
       // roster for a task. Walks every stage of the chosen track and

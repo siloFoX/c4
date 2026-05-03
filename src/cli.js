@@ -2062,8 +2062,8 @@ async function main() {
         //   c4 specialist dispatch "<task>" [--stage X] [--track X] [--cap N]
         //   c4 specialist score [--by-domain D | --by-stage S] [--limit N]
         const sub = (args[0] || 'list').toLowerCase();
-        if (!['list', 'describe', 'dispatch', 'score'].includes(sub)) {
-          console.error('Usage: c4 specialist <list|describe|dispatch|score> [args]');
+        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove'].includes(sub)) {
+          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove> [args]');
           process.exit(1);
         }
         if (sub === 'list') {
@@ -2137,6 +2137,42 @@ async function main() {
             }
           }
           console.log(`\n  systemPrompt:\n    ${result.systemPrompt}`);
+          return;
+        }
+        if (sub === 'add') {
+          // c4 specialist add <file.json>     read body from JSON file
+          // c4 specialist add -                read body from stdin
+          const src = args[1];
+          if (!src) {
+            console.error('Usage: c4 specialist add <file.json | ->');
+            process.exit(1);
+          }
+          let body;
+          try {
+            const raw = (src === '-')
+              ? require('fs').readFileSync(0, 'utf8')
+              : require('fs').readFileSync(src, 'utf8');
+            body = JSON.parse(raw);
+          } catch (err) {
+            console.error(`failed to read specialist JSON: ${err.message}`);
+            process.exit(1);
+          }
+          result = await request('POST', '/specialists', body);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`added ${result.specialist.id} (${result.specialist.displayName})`);
+          return;
+        }
+        if (sub === 'remove') {
+          const id = args[1];
+          if (!id) {
+            console.error('Usage: c4 specialist remove <id>');
+            process.exit(1);
+          }
+          result = await request('DELETE', `/specialists/${encodeURIComponent(id)}`);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(result.removed ? `removed ${result.id}` : `${result.id} was not present`);
           return;
         }
         if (sub === 'score') {
