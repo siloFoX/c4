@@ -2056,15 +2056,14 @@ async function main() {
       }
 
       case 'specialist': {
-        // (multi-specialist phase 1) Inspect the registry + dispatcher.
+        // (multi-specialist phase 1+4) Inspect the registry + dispatcher.
         //   c4 specialist list [--tier X] [--stage X] [--domain X] [--veto-only]
         //   c4 specialist describe <id>
         //   c4 specialist dispatch "<task>" [--stage X] [--track X] [--cap N]
-        // No mutations yet — phase 4 will add c4 specialist add/remove/score
-        // through the meeting-consensus governance gate (§3.3).
+        //   c4 specialist score [--by-domain D | --by-stage S] [--limit N]
         const sub = (args[0] || 'list').toLowerCase();
-        if (!['list', 'describe', 'dispatch'].includes(sub)) {
-          console.error('Usage: c4 specialist <list|describe|dispatch> [args]');
+        if (!['list', 'describe', 'dispatch', 'score'].includes(sub)) {
+          console.error('Usage: c4 specialist <list|describe|dispatch|score> [args]');
           process.exit(1);
         }
         if (sub === 'list') {
@@ -2110,7 +2109,79 @@ async function main() {
           if (result.deliverables.length) console.log(`  deliverables:${result.deliverables.map((d) => `\n               - ${d}`).join('')}`);
           if (result.vetoPower) console.log(`  vetoPower:   true`);
           if (result.probation && result.probation !== 'stable') console.log(`  probation:   ${result.probation}`);
+          // (phase 4.1+ persistence) Show the per-domain / per-stage
+          // score record so an operator can see how the dispatcher
+          // weighs this specialist after past retros.
+          if (result.score) {
+            const byD = Object.entries(result.score.byDomain || {});
+            const byS = Object.entries(result.score.byStage || {});
+            const samples = result.score.samples || {};
+            const hasAny = byD.length > 0 || byS.length > 0;
+            if (hasAny) {
+              console.log(`  score:`);
+              if (byD.length) {
+                console.log(`    by domain:`);
+                for (const [d, v] of byD.sort()) {
+                  const n = samples[`domain:${d}`] || 0;
+                  console.log(`      ${d.padEnd(20)} ${v.toFixed(2)}  (n=${n})`);
+                }
+              }
+              if (byS.length) {
+                console.log(`    by stage:`);
+                for (const [s, v] of byS.sort()) {
+                  const n = samples[`stage:${s}`] || 0;
+                  console.log(`      ${s.padEnd(20)} ${v.toFixed(2)}  (n=${n})`);
+                }
+              }
+              if (result.score.lastUpdated) console.log(`    lastUpdated: ${result.score.lastUpdated}`);
+            }
+          }
           console.log(`\n  systemPrompt:\n    ${result.systemPrompt}`);
+          return;
+        }
+        if (sub === 'score') {
+          // c4 specialist score [--by-domain D | --by-stage S] [--limit N]
+          let byDomain = null;
+          let byStage = null;
+          let limit = 20;
+          for (let i = 1; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--by-domain' && args[i + 1]) { byDomain = args[i + 1]; i += 1; }
+            else if (a === '--by-stage' && args[i + 1]) { byStage = args[i + 1]; i += 1; }
+            else if (a === '--limit' && args[i + 1]) { limit = parseInt(args[i + 1], 10); i += 1; }
+          }
+          // Pull the full registry, sort by the requested axis,
+          // print as a compact table. No new HTTP route — reuses
+          // GET /specialists.
+          result = await request('GET', '/specialists');
+          if (args.includes('--json')) break;
+          const specs = (result && result.specialists) || [];
+          const rows = [];
+          for (const s of specs) {
+            const score = s.score || {};
+            let v = null;
+            let n = 0;
+            if (byDomain) {
+              v = (score.byDomain || {})[byDomain];
+              n = (score.samples || {})[`domain:${byDomain}`] || 0;
+            } else if (byStage) {
+              v = (score.byStage || {})[byStage];
+              n = (score.samples || {})[`stage:${byStage}`] || 0;
+            } else {
+              // No axis given — average across populated buckets.
+              const all = Object.values(score.byDomain || {}).concat(Object.values(score.byStage || {}));
+              v = all.length ? all.reduce((a, b) => a + b, 0) / all.length : null;
+              n = Object.values(score.samples || {}).reduce((a, b) => a + b, 0);
+            }
+            if (v == null) continue;
+            rows.push({ id: s.id, score: v, samples: n, displayName: s.displayName, tier: s.tier });
+          }
+          rows.sort((a, b) => b.score - a.score);
+          const axis = byDomain ? `domain:${byDomain}` : (byStage ? `stage:${byStage}` : 'mean');
+          console.log(`Specialist scoreboard (axis=${axis}, ${rows.length} ranked)`);
+          for (const r of rows.slice(0, limit)) {
+            console.log(`  ${r.id.padEnd(22)} ${r.score.toFixed(2).padStart(6)}  (n=${r.samples})  ${r.tier}`);
+          }
           return;
         }
         if (sub === 'dispatch') {

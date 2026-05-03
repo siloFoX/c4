@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.227] - 2026-05-03
+
+**Multi-Specialist System — score visibility CLI.** Operator
+can now see how the dispatcher weighs specialists after past
+retros. `c4 specialist describe <id>` includes a per-domain /
+per-stage score table; new `c4 specialist score [--by-domain D
+| --by-stage S] [--limit N]` ranks the registry on the
+requested axis (or mean across populated buckets).
+
+### Added
+- **`src/cli.js`** `c4 specialist describe`: appends a `score:`
+  block with `byDomain` + `byStage` rows (sorted) and the
+  `lastUpdated` timestamp. Empty-score specialists keep the
+  prior compact output.
+- **`src/cli.js`** `c4 specialist score`: pulls
+  `GET /specialists`, sorts by the requested axis, prints
+  rank / id / score / sample-count / tier. No new HTTP route
+  — pure client-side aggregation over the existing list
+  endpoint.
+
+End-to-end: after a few `c4 meeting run --auto-finalize`
+loops, `c4 specialist score` shows the actual adapted ranking
+that dispatcher's pick() now uses (e.g. backend-engineer at
+0.94 after participating in an escalated full-track auth
+meeting where it voted accept).
+
+Suite stays 191 PASS. No new tests — pure CLI formatting
+change against existing routes.
+
 ## [1.10.226] - 2026-05-03
 
 **Multi-Specialist System — Phase 4.3 (Auto-finalize +
