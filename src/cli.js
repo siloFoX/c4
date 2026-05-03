@@ -2924,7 +2924,7 @@ async function main() {
         //   c4 meeting escalate <id> ["reason"...]
         //   c4 meeting abort <id> ["reason"...]
         const sub = (args[0] || 'plan').toLowerCase();
-        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'templates', 'template-add', 'template-remove', 'prune', 'fork', 'actions', 'classify-track', 'lineage', 'recap'];
+        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'templates', 'template-add', 'template-remove', 'prune', 'fork', 'actions', 'classify-track', 'lineage', 'recap', 'stuck'];
         if (!VALID.includes(sub)) {
           console.error(`Usage: c4 meeting <${VALID.join('|')}> [...]`);
           process.exit(1);
@@ -3112,6 +3112,23 @@ async function main() {
           return;
         }
 
+        if (sub === 'stuck') {
+          // c4 meeting stuck [--hours N] — meetings stuck in pending /
+          // in-progress for >= N hours (default 1).
+          let hours = null;
+          for (let i = 1; i < args.length; i += 1) {
+            if (args[i] === '--hours' && args[i + 1]) { hours = args[i + 1]; i += 1; }
+          }
+          const path = hours ? `/meetings/stuck?hours=${encodeURIComponent(hours)}` : '/meetings/stuck';
+          result = await request('GET', path);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`${result.count} stuck meeting(s) (cutoff=${result.cutoffHours}h)`);
+          for (const m of result.stuck || []) {
+            console.log(`  ${m.id}  ${m.status.padEnd(11)}  age=${m.ageHours.toFixed(1)}h  stage=${m.currentStage || '-'}/r${m.currentRound || 0}  ${m.title}`);
+          }
+          return;
+        }
         if (sub === 'list') {
           let status = null;
           let track = null;

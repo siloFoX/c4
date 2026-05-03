@@ -798,7 +798,7 @@ async function handleRequest(req, res) {
     else if (mOne) meetingParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
     if (meetingParams && (
       meetingParams.id === 'plan' || meetingParams.id === 'templates' || meetingParams.id === 'stream'
-        || meetingParams.id === 'classify-track'
+        || meetingParams.id === 'classify-track' || meetingParams.id === 'stuck'
     )) meetingParams = null;
   }
 
@@ -4668,6 +4668,47 @@ async function handleRequest(req, res) {
         return;
       }
       result = { id: sess.id, transcript: sess.transcript() };
+
+    } else if (req.method === 'GET' && route === '/meetings/stuck') {
+      // (multi-specialist phase 6.15) Find meetings that have been
+      // pending or in-progress for too long without status change.
+      // Catches the failure mode where a meeting hangs (brain
+      // misconfigured, orchestrator crashed, etc) and an operator
+      // doesn't notice.
+      // Query:
+      //   ?hours=N    minimum staleness in hours (default 1)
+      const hoursRaw = url.searchParams.get('hours');
+      const hours = (hoursRaw && /^\d+(\.\d+)?$/.test(hoursRaw)) ? parseFloat(hoursRaw) : 1;
+      const cutoffMs = Date.now() - hours * 60 * 60 * 1000;
+      const all = meetingSession.getShared().list();
+      const stuck = [];
+      for (const sess of all) {
+        if (sess.status !== 'pending' && sess.status !== 'in-progress') continue;
+        // Use startedAt for in-progress (when work began) or createdAt
+        // for pending (when the meeting was planned). Both are
+        // reasonable "last activity" anchors when the session never
+        // advanced.
+        const lastActivityISO = sess.startedAt || sess.createdAt || null;
+        const ms = lastActivityISO ? Date.parse(lastActivityISO) : NaN;
+        if (!Number.isFinite(ms) || ms > cutoffMs) continue;
+        stuck.push({
+          id: sess.id,
+          status: sess.status,
+          track: sess.plan.track,
+          title: sess.plan.title,
+          currentStage: sess.currentStage,
+          currentRound: sess.currentRound,
+          createdAt: sess.createdAt,
+          startedAt: sess.startedAt,
+          ageHours: (Date.now() - ms) / (60 * 60 * 1000),
+        });
+      }
+      stuck.sort((a, b) => b.ageHours - a.ageHours);
+      result = {
+        cutoffHours: hours,
+        count: stuck.length,
+        stuck,
+      };
 
     } else if (req.method === 'GET' && route === '/meetings/classify-track') {
       // (multi-specialist phase 6.6) Preview the track classifier

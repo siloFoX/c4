@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.278] - 2026-05-04
+
+**Multi-Specialist System — Phase 6.15 (Meeting stuck detector).**
+A meeting that hangs in `pending` or `in-progress` for hours
+without status change is a real failure mode (brain misconfigured,
+orchestrator crashed mid-run, etc). This phase adds a watchable
+endpoint to surface those, complementing the
+`/specialists/summary` dashboard.
+
+### Added
+- **HTTP**: `GET /meetings/stuck?hours=N` (default 1) returns
+  `{cutoffHours, count, stuck[]}` where each entry is
+  `{id, status, track, title, currentStage, currentRound,
+  createdAt, startedAt, ageHours}`. Sorted by age (oldest first).
+  Uses `startedAt || createdAt` as the staleness anchor.
+- **CLI**: `c4 meeting stuck [--hours N]` prints one line per
+  stuck meeting with its age and current stage.
+- **OpenAPI**: query parameter + full response shape published;
+  `stuck` added to the parametric reserved-suffix list.
+
+### Notes
+- e2e verified: empty store → `0 stuck meeting(s) (cutoff=1h)`.
+- Pairs with `c4 specialist summary` for an operator dashboard
+  trio: registry health → recent activity → stuck signals. A
+  future phase can wire these into a single status SSE stream.
+- Decimal hours accepted (`?hours=0.5`) for finer-grained alerts.
+
 ## [1.10.277] - 2026-05-04
 
 **Multi-Specialist System — Phase 6.14 (Summary dashboard endpoint).**

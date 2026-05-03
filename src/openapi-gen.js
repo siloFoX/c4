@@ -54,6 +54,7 @@ const ROUTE_SUMMARIES = {
   'PATCH /specialists/:id/tags': 'Edit specialist tags (replace | add | remove modes). Audit log records the previous tag list.',
   'POST /meetings/plan': 'Plan a full multi-stage meeting roster for a task — preview only, no specialists spawned.',
   'GET /meetings/classify-track': 'Preview the track classifier for a task string — returns {track, matched, reason, tokenCount}. Useful for tuning task wording.',
+  'GET /meetings/stuck': 'Detect meetings stuck in pending/in-progress for more than ?hours= (default 1). Catches hung sessions an operator hasn`t noticed.',
   'GET /meetings/templates': 'List meeting templates persisted at ~/.c4/meeting-templates.json.',
   'POST /meetings/templates': 'Create or update a meeting template (upsert by name).',
   'GET /meetings/templates/:name': 'Fetch a single meeting template by name.',
@@ -2230,6 +2231,33 @@ const ROUTE_SCHEMAS = {
         scoreHistory: { type: 'array', items: { type: 'object' }, description: 'Present when ?include=scoreHistory. Last 20 score-applied entries.' },
         recentMeetings: { type: 'array', items: { type: 'object' }, description: 'Present when ?include=meetings. Up to 10 most recent meetings this specialist participated in.' },
         scoreEffective: { type: 'object', description: 'Present when ?include=scoreEffective. Post-decay scores the dispatcher would use, plus halfLifeDays and ageDays for context.' },
+      },
+    },
+  },
+  'GET /meetings/stuck': {
+    parameters: [
+      { name: 'hours', in: 'query', schema: { type: 'string', description: 'Minimum staleness in hours (default 1; decimal accepted)' } },
+    ],
+    response: {
+      properties: {
+        cutoffHours: { type: 'number' },
+        count: { type: 'integer' },
+        stuck: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string' },
+              status: { type: 'string', enum: ['pending', 'in-progress'] },
+              track: { type: 'string' },
+              title: { type: 'string' },
+              currentStage: { type: 'string', nullable: true },
+              currentRound: { type: 'integer' },
+              createdAt: { type: 'string' },
+              startedAt: { type: 'string', nullable: true },
+              ageHours: { type: 'number' },
+            },
+          },
+        },
       },
     },
   },
