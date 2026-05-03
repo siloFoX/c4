@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.216] - 2026-05-03
+
+**Multi-Specialist System — Phase 2.1 (Meeting Plan).**
+Walks a task through every stage of its track and returns the
+full multi-stage roster a meeting would assemble — preview only,
+no specialists are spawned. Phase 2.2 will plug `MeetingSession`
+into this output so the actual meeting runs against real agents.
+
+### Added
+- **`src/meeting-plan.js`** — `planMeeting({task, track?, overrideCap?,
+  explorationRatio?, title?})`. Iterates `TRACK_STAGES[track]`,
+  calls the dispatcher per stage, accumulates unique roster +
+  per-stage deliverables, attaches `consensusPolicy` (`dri` /
+  `quorum` / `consensus`) and a crude `estimatedTokens`
+  heuristic. `CONSENSUS_POLICY` constant exposed for the
+  orchestrator to read at runtime. `newMeetingId()` returns
+  `m-<12-hex>`.
+- **HTTP**: `POST /meetings/plan` returns the plan as JSON
+  (open route — preview surface, the actual meeting endpoint
+  with RBAC lands in phase 2.2).
+- **CLI**: `c4 meeting plan "<task>" [--track X] [--cap N]`
+  pretty-prints the per-stage roster with deliverables, score,
+  veto/exploration markers.
+- **OpenAPI**: summary + full request/response schemas with
+  example.
+- **Tests**: `tests/meeting-plan.test.js` (15 cases) — exports
+  surface, id format, title truncation, missing-task error,
+  unknown-track error, track inference (typo→lightweight,
+  generic→standard, auth→full), explicit track override,
+  consensus policy mapping, deliverable aggregation,
+  rosterSize dedup, token-estimate scaling, overrideCap clamp.
+
+End-to-end: `c4 meeting plan "rotate auth secret in production"`
+yields a full-track 8-stage meeting with 13 unique specialists,
+security-auditor surfacing at review with score 3.50 [veto] and
+estimated 111,200 tokens.
+
+Suite 182 → 183 PASS. Spec lint + drift checker clean.
+
 ## [1.10.215] - 2026-05-03
 
 **Multi-Specialist System — Phase 1 (Registry + Dispatcher).**

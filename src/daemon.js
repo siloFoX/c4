@@ -37,6 +37,7 @@ const attachTail = require('./attach-tail');
 const claudeProcessDiscovery = require('./claude-process-discovery');
 const specialistRegistry = require('./specialist-registry');
 const specialistDispatcher = require('./specialist-dispatcher');
+const meetingPlan = require('./meeting-plan');
 const autoDispatcherMod = require('./auto-dispatcher');
 const { PinnedMemoryScheduler, DEFAULT_INTERVAL_MS: PIN_DEFAULT_INTERVAL_MS } = require('./pinned-memory-scheduler');
 
@@ -4297,6 +4298,31 @@ async function handleRequest(req, res) {
         return;
       }
       result = spec;
+
+    } else if (req.method === 'POST' && route === '/meetings/plan') {
+      // (multi-specialist phase 2.1) Preview a multi-stage meeting
+      // roster for a task. Walks every stage of the chosen track and
+      // returns the assembled specialists per stage, deliverables,
+      // consensus policy, and a rough token estimate. No specialists
+      // are spawned — this is the planning step before phase 2.2's
+      // MeetingSession actually runs the meeting.
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/meetings/plan', body, res, cfg)) return;
+      try {
+        const plan = meetingPlan.planMeeting({
+          task: typeof body.task === 'string' ? body.task : '',
+          track: typeof body.track === 'string' ? body.track : null,
+          overrideCap: Number.isFinite(body.overrideCap) ? body.overrideCap : null,
+          explorationRatio: Number.isFinite(body.explorationRatio) ? body.explorationRatio : undefined,
+          title: typeof body.title === 'string' ? body.title : undefined,
+          registry: specialistRegistry.getShared(),
+        });
+        result = plan;
+      } catch (err) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: err.message }));
+        return;
+      }
 
     } else if (req.method === 'POST' && route === '/specialists/dispatch') {
       // (multi-specialist phase 1) Rule-based dispatcher preview.

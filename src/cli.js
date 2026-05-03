@@ -2156,6 +2156,57 @@ async function main() {
         break;
       }
 
+      case 'meeting': {
+        // (multi-specialist phase 2.1) Plan a multi-stage meeting.
+        //   c4 meeting plan "<task>" [--track X] [--cap N]
+        // Phase 2.2 will add c4 meeting start / status / transcript
+        // once MeetingSession lands the actual orchestrator.
+        const sub = (args[0] || 'plan').toLowerCase();
+        if (sub !== 'plan') {
+          console.error('Usage: c4 meeting plan "<task>" [--track X] [--cap N]');
+          process.exit(1);
+        }
+        const taskParts = [];
+        let track = null;
+        let cap = null;
+        for (let i = 1; i < args.length; i += 1) {
+          const a = args[i];
+          if (a === '--track' && args[i + 1]) { track = args[i + 1]; i += 1; }
+          else if (a === '--cap' && args[i + 1]) { cap = parseInt(args[i + 1], 10); i += 1; }
+          else { taskParts.push(a); }
+        }
+        const task = taskParts.join(' ').trim();
+        if (!task) {
+          console.error('Usage: c4 meeting plan "<task>" [--track X] [--cap N]');
+          process.exit(1);
+        }
+        const body = { task };
+        if (track) body.track = track;
+        if (Number.isFinite(cap)) body.overrideCap = cap;
+        result = await request('POST', '/meetings/plan', body);
+        if (args.includes('--json')) break;
+        if (result.error) {
+          console.error(result.error);
+          process.exit(1);
+        }
+        const inferred = result.inferredTrack ? ' (inferred)' : '';
+        console.log(`Meeting ${result.meetingId} — ${result.title}`);
+        console.log(`Track: ${result.track}${inferred}  Roster: ${result.rosterSize}  Est tokens: ${result.estimatedTokens}`);
+        console.log(`Consensus: ${result.consensusPolicy.mode}  RoundCap: ${result.consensusPolicy.roundCap}  Veto: ${result.consensusPolicy.allowVeto}`);
+        for (const s of result.stages) {
+          console.log(`\n  [${s.stage}]  cap=${s.cap}  candidates=${s.candidates}  explore=${s.exploreSlots}`);
+          for (const sp of s.specialists) {
+            const mark = sp.pickReason === 'exploration' ? '✦' : '·';
+            const veto = sp.vetoPower ? ' [veto]' : '';
+            console.log(`    ${mark} ${sp.id.padEnd(22)} score=${sp.score.toFixed(2)}${veto}`);
+          }
+          if (s.deliverables.length) {
+            console.log(`    deliverables: ${s.deliverables.join(', ')}`);
+          }
+        }
+        return;
+      }
+
       case 'events': {
         // (10.9) Scribe v2 structured event log query.
         //   c4 events [--from ISO] [--to ISO] [--type T[,T...]] [--worker W[,W...]]

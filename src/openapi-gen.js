@@ -41,6 +41,7 @@ const ROUTE_SUMMARIES = {
   'GET /specialists': 'List the multi-specialist registry — optional ?tier / ?stage / ?domain / ?vetoOnly filters.',
   'GET /specialists/{id}': 'Fetch a single specialist record by id.',
   'POST /specialists/dispatch': 'Preview the dispatcher pick for a task description — no specialists are spawned.',
+  'POST /meetings/plan': 'Plan a full multi-stage meeting roster for a task — preview only, no specialists spawned.',
   'GET /workflows': 'List defined workflows.',
   'POST /workflows': 'Create a new workflow definition.',
   'GET /openapi.json': 'This document — auto-generated OpenAPI spec.',
@@ -2178,6 +2179,50 @@ const ROUTE_SCHEMAS = {
         vetoPower: { type: 'boolean' },
         probation: { type: 'string' },
         score: { type: 'object' },
+      },
+    },
+  },
+  'POST /meetings/plan': {
+    requestBody: {
+      properties: {
+        task: { type: 'string', description: 'Free-text task description (required)' },
+        track: { type: 'string', nullable: true, enum: ['lightweight', 'standard', 'full', null] },
+        overrideCap: { type: 'integer', nullable: true },
+        explorationRatio: { type: 'number', nullable: true },
+        title: { type: 'string', nullable: true },
+      },
+      example: { task: 'rotate auth secret in production' },
+    },
+    response: {
+      properties: {
+        meetingId: { type: 'string' },
+        title: { type: 'string' },
+        task: { type: 'string' },
+        track: { type: 'string' },
+        inferredTrack: { type: 'boolean' },
+        consensusPolicy: {
+          properties: {
+            mode: { type: 'string', enum: ['dri', 'quorum', 'consensus'] },
+            roundCap: { type: 'integer' },
+            allowVeto: { type: 'boolean' },
+          },
+        },
+        stages: {
+          type: 'array',
+          items: {
+            properties: {
+              stage: { type: 'string' },
+              specialists: { type: 'array', items: { type: 'object' } },
+              deliverables: { type: 'array', items: { type: 'string' } },
+              candidates: { type: 'integer' },
+              exploreSlots: { type: 'integer' },
+              cap: { type: 'integer' },
+            },
+          },
+        },
+        rosterSize: { type: 'integer', description: 'Unique specialists across all stages' },
+        estimatedTokens: { type: 'integer', description: 'Rough heuristic — replaced by telemetry once meetings run' },
+        generatedAt: { type: 'string' },
       },
     },
   },
