@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.277] - 2026-05-04
+
+**Multi-Specialist System — Phase 6.14 (Summary dashboard endpoint).**
+Operators want one call to know "what's the organism doing right
+now". This phase adds an aggregate dashboard that pulls registry
+counts, meeting status, and score health into a single envelope —
+saves chaining 5+ separate routes for a status check.
+
+### Added
+- **HTTP**: `GET /specialists/summary` returns
+  ```
+  {
+    ts,
+    registry: { version, count, byTier, vetoCount },
+    meetings: { total, byStatus, byTrack, recent24h },
+    scores:   { specialistsWithSamples, averageSampleCount,
+                underperformerCount },
+  }
+  ```
+  All values are computed live from the in-memory registry and
+  meeting store. `recent24h` = meetings created in the last 24h
+  (a useful "is anything happening" pulse). `underperformerCount`
+  reuses `detectUnderperformers()` (Phase 5.1) — fail-soft if
+  the analyzer errors.
+- **CLI**: `c4 specialist summary` prints the same data as
+  human-readable lines (registry / meetings / scores blocks).
+- **OpenAPI**: full response schema documented; `summary` added
+  to the parametric reserved-suffix list so it doesn't collide
+  with `/specialists/:id`.
+
+### Notes
+- e2e verified: against the live daemon, returned 13 specialists
+  (8 tiers, 2 veto), 0 meetings (clean store after this iteration's
+  earlier cleanup), 11 score-sampled specialists averaging
+  ~22.8 samples each — all numbers consistent with the registry's
+  current state.
+- The endpoint is read-only and bounded — O(specialists +
+  meetings) walk. Cheap to poll; suitable for a `c4 watch
+  --signal organism` future feature.
+
 ## [1.10.276] - 2026-05-04
 
 **Multi-Specialist System — Phase 6.13 follow-up (Effective-score view).**

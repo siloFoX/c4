@@ -46,6 +46,7 @@ const ROUTE_SUMMARIES = {
   'GET /specialists/underperformers': 'List specialists with sustained negative retro scores in their domains/stages — read-only analysis.',
   'GET /specialists/export': 'Bulk export of the registry as a self-contained bundle suitable for /specialists/import.',
   'GET /specialists/audit': 'Append-only governance audit log — every add/remove/import event with optional filters.',
+  'GET /specialists/summary': 'Operator dashboard — aggregate registry/meeting/score-health stats in a single envelope.',
   'POST /specialists/propose': 'Propose adding a candidate specialist via meeting consensus — accepted only when the meta-meeting hits no objections.',
   'POST /specialists/import': 'Apply a previously-exported bundle (merge | replace, optional dryRun preview).',
   'POST /specialists/:id/suggest-prompt': 'Ask a brain to draft a revised systemPrompt for an underperforming specialist — review-only (never auto-applied).',
@@ -3023,6 +3024,36 @@ const ROUTE_SCHEMAS = {
         },
         added: { type: 'boolean' },
         sessionStatus: { type: 'string' },
+      },
+    },
+  },
+  'GET /specialists/summary': {
+    response: {
+      properties: {
+        ts: { type: 'string' },
+        registry: {
+          properties: {
+            version: { type: 'integer' },
+            count: { type: 'integer' },
+            byTier: { type: 'object' },
+            vetoCount: { type: 'integer' },
+          },
+        },
+        meetings: {
+          properties: {
+            total: { type: 'integer' },
+            byStatus: { type: 'object' },
+            byTrack: { type: 'object' },
+            recent24h: { type: 'integer' },
+          },
+        },
+        scores: {
+          properties: {
+            specialistsWithSamples: { type: 'integer' },
+            averageSampleCount: { type: 'number' },
+            underperformerCount: { type: 'integer' },
+          },
+        },
       },
     },
   },

@@ -783,6 +783,7 @@ async function handleRequest(req, res) {
       || specialistParams.id === 'import'
       || specialistParams.id === 'audit'
       || specialistParams.id === 'propose'
+      || specialistParams.id === 'summary'
     )) {
       specialistParams = null;
     }
@@ -5469,6 +5470,64 @@ async function handleRequest(req, res) {
         const code = /already exists/.test(err.message) ? 409 : 400;
         res.writeHead(code); res.end(JSON.stringify({ error: err.message })); return;
       }
+
+    } else if (req.method === 'GET' && route === '/specialists/summary') {
+      // (multi-specialist phase 6.14) Operator dashboard envelope:
+      // aggregate registry + meeting + score health stats in one call.
+      // Read-only; cheap. Useful as a watchable signal in the web UI
+      // and CLI without hitting 5+ separate routes.
+      const reg = specialistRegistry.getShared();
+      const allSpecs = reg.list();
+      const byTier = {};
+      let vetoCount = 0;
+      let withSamples = 0;
+      let totalSamples = 0;
+      for (const s of allSpecs) {
+        byTier[s.tier] = (byTier[s.tier] || 0) + 1;
+        if (s.vetoPower) vetoCount += 1;
+        const samples = s.score && s.score.samples ? s.score.samples : {};
+        const n = Object.values(samples).reduce((a, b) => a + (b || 0), 0);
+        if (n > 0) {
+          withSamples += 1;
+          totalSamples += n;
+        }
+      }
+      const allMeetings = meetingSession.getShared().list();
+      const byStatus = {};
+      const byTrack = {};
+      const cutoff24h = Date.now() - 24 * 60 * 60 * 1000;
+      let recent24h = 0;
+      for (const m of allMeetings) {
+        byStatus[m.status] = (byStatus[m.status] || 0) + 1;
+        if (m.plan && m.plan.track) byTrack[m.plan.track] = (byTrack[m.plan.track] || 0) + 1;
+        const created = m.createdAt ? Date.parse(m.createdAt) : NaN;
+        if (Number.isFinite(created) && created >= cutoff24h) recent24h += 1;
+      }
+      let underperformerCount = 0;
+      try {
+        const under = specialistPromptIterate.detectUnderperformers(reg);
+        underperformerCount = under.flagged || 0;
+      } catch { /* analyzer fail-soft */ }
+      result = {
+        ts: new Date().toISOString(),
+        registry: {
+          version: reg.version,
+          count: allSpecs.length,
+          byTier,
+          vetoCount,
+        },
+        meetings: {
+          total: allMeetings.length,
+          byStatus,
+          byTrack,
+          recent24h,
+        },
+        scores: {
+          specialistsWithSamples: withSamples,
+          averageSampleCount: withSamples > 0 ? totalSamples / withSamples : 0,
+          underperformerCount,
+        },
+      };
 
     } else if (req.method === 'GET' && route === '/specialists/audit') {
       // (multi-specialist phase 1.4) Read the governance audit log.

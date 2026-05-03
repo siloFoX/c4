@@ -2062,8 +2062,8 @@ async function main() {
         //   c4 specialist dispatch "<task>" [--stage X] [--track X] [--cap N]
         //   c4 specialist score [--by-domain D | --by-stage S] [--limit N]
         const sub = (args[0] || 'list').toLowerCase();
-        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt', 'export', 'import', 'audit', 'score-history', 'propose', 'apply-prompt', 'tag'].includes(sub)) {
-          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt|export|import|audit|score-history|propose|apply-prompt|tag> [args]');
+        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt', 'export', 'import', 'audit', 'score-history', 'propose', 'apply-prompt', 'tag', 'summary'].includes(sub)) {
+          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt|export|import|audit|score-history|propose|apply-prompt|tag|summary> [args]');
           process.exit(1);
         }
         if (sub === 'list') {
@@ -2403,6 +2403,29 @@ async function main() {
             console.log(`  ${it.id.padEnd(22)} deepest=${(b ? b.score : 0).toFixed(2)} (${where}, n=${b ? b.samples : 0})`);
             console.log(`    ${it.recommendation}`);
           }
+          return;
+        }
+        if (sub === 'summary') {
+          // c4 specialist summary — operator dashboard
+          result = await request('GET', '/specialists/summary');
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          const r = result.registry, m = result.meetings, s = result.scores;
+          console.log(`registry v${r.version}: ${r.count} specialist(s), ${r.vetoCount} veto`);
+          const tierEntries = Object.entries(r.byTier || {}).sort();
+          if (tierEntries.length > 0) {
+            console.log(`  byTier: ${tierEntries.map(([t, n]) => `${t}=${n}`).join(', ')}`);
+          }
+          console.log(`meetings: ${m.total} total, ${m.recent24h} in last 24h`);
+          const statusEntries = Object.entries(m.byStatus || {}).sort();
+          if (statusEntries.length > 0) {
+            console.log(`  byStatus: ${statusEntries.map(([k, n]) => `${k}=${n}`).join(', ')}`);
+          }
+          const trackEntries = Object.entries(m.byTrack || {}).sort();
+          if (trackEntries.length > 0) {
+            console.log(`  byTrack:  ${trackEntries.map(([k, n]) => `${k}=${n}`).join(', ')}`);
+          }
+          console.log(`scores: ${s.specialistsWithSamples} specialist(s) with samples; avg=${s.averageSampleCount.toFixed(1)}; underperformers=${s.underperformerCount}`);
           return;
         }
         if (sub === 'tag') {
