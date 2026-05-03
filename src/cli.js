@@ -3067,16 +3067,31 @@ async function main() {
 
         if (sub === 'list') {
           let status = null;
+          let track = null;
+          let since = null;
+          let limit = null;
           for (let i = 1; i < args.length; i += 1) {
             if (args[i] === '--status' && args[i + 1]) { status = args[i + 1]; i += 1; }
+            else if (args[i] === '--track' && args[i + 1]) { track = args[i + 1]; i += 1; }
+            else if (args[i] === '--since' && args[i + 1]) { since = args[i + 1]; i += 1; }
+            else if (args[i] === '--limit' && args[i + 1]) { limit = args[i + 1]; i += 1; }
           }
-          const path = status ? `/meetings?status=${encodeURIComponent(status)}` : '/meetings';
+          const qs = new URLSearchParams();
+          if (status) qs.set('status', status);
+          if (track) qs.set('track', track);
+          if (since) qs.set('since', since);
+          if (limit) qs.set('limit', limit);
+          const path = qs.toString() ? `/meetings?${qs.toString()}` : '/meetings';
           result = await request('GET', path);
           if (args.includes('--json')) break;
           if (result.error) { console.error(result.error); process.exit(1); }
-          console.log(`${result.count} meeting(s)`);
+          const cap = (typeof result.totalBeforeLimit === 'number' && result.totalBeforeLimit > result.count)
+            ? `  (showing ${result.count}/${result.totalBeforeLimit})`
+            : '';
+          console.log(`${result.count} meeting(s)${cap}`);
           for (const m of result.meetings) {
-            console.log(`  ${m.id}  ${m.status.padEnd(11)}  track=${m.track}  stage=${m.currentStage || '-'}/r${m.currentRound || 0}  ${m.title}`);
+            const fork = m.forkOf ? ` ← ${m.forkOf}` : '';
+            console.log(`  ${m.id}  ${m.status.padEnd(11)}  track=${m.track}  stage=${m.currentStage || '-'}/r${m.currentRound || 0}  ${m.title}${fork}`);
           }
           return;
         }

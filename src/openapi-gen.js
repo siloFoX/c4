@@ -58,7 +58,7 @@ const ROUTE_SUMMARIES = {
   'GET /meetings/templates/:name': 'Fetch a single meeting template by name.',
   'DELETE /meetings/templates/:name': 'Delete a meeting template (idempotent).',
   'POST /meetings': 'Create a MeetingSession from a task — returns the session in pending state.',
-  'GET /meetings': 'List all known meetings (optional ?status filter).',
+  'GET /meetings': 'List all known meetings (optional ?status / ?track / ?since=ISO / ?limit=N filters; sorted by createdAt desc).',
   'GET /meetings/:id': 'Fetch a single meeting (full state JSON).',
   'DELETE /meetings/:id': 'Drop a meeting from the in-memory store (idempotent; wiki copy untouched).',
   'GET /meetings/:id/transcript': 'Fetch the per-stage transcript for a meeting.',
@@ -2380,10 +2380,14 @@ const ROUTE_SCHEMAS = {
   'GET /meetings': {
     parameters: [
       { name: 'status', in: 'query', schema: { type: 'string', enum: ['pending', 'in-progress', 'completed', 'escalated', 'aborted'] } },
+      { name: 'track', in: 'query', schema: { type: 'string', enum: ['lightweight', 'standard', 'full'] } },
+      { name: 'since', in: 'query', schema: { type: 'string', description: 'ISO timestamp; only meetings with createdAt >= since are returned' } },
+      { name: 'limit', in: 'query', schema: { type: 'string', description: 'Cap result count (decimal integer)' } },
     ],
     response: {
       properties: {
         count: { type: 'integer' },
+        totalBeforeLimit: { type: 'integer', description: 'How many matched filters before limit was applied' },
         meetings: { type: 'array', items: { type: 'object' } },
       },
     },

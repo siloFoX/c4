@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.10.271] - 2026-05-04
+
+**Multi-Specialist System — Phase 6.11 (Meeting list filters).**
+`GET /meetings` previously accepted only `?status=`. This phase
+adds `?track`, `?since`, `?limit`, and sorts the result by
+`createdAt` desc so most-recent meetings come first. Each entry
+now includes `forkOf` for fork-tree-aware UIs. Useful for
+"last hour's meetings" / "recent fork chain" / paged dashboards.
+
+### Added
+- **HTTP**: `GET /meetings` accepts:
+  - `?track=lightweight|standard|full`
+  - `?since=<ISO timestamp>` — only meetings with createdAt at-or-
+    after the timestamp
+  - `?limit=<integer>` — caps result; the response carries
+    `totalBeforeLimit` so callers can show "showing N/M" displays
+  Result is now sorted createdAt desc unconditionally.
+- **HTTP** (response shape): each entry gains `forkOf` so
+  fork-aware UIs don't need a separate /lineage call to know if a
+  meeting is a fork.
+- **CLI**: `c4 meeting list [--status X] [--track X] [--since
+  ISO] [--limit N]`. Output shows `← <parent-id>` after the title
+  when `forkOf` is set, and a `(showing N/M)` line when `--limit`
+  truncated.
+- **OpenAPI**: query parameters + `totalBeforeLimit` field
+  documented.
+
+### Notes
+- e2e verified: `c4 meeting list --limit 1` → 0 meetings (clean
+  daemon); `c4 meeting list --since 2030-01-01` → 0 meetings
+  (filter applied).
+- Sort order is stable: tie-breaker is whatever
+  `localeCompare` returns for ISO timestamps with identical
+  prefixes (effectively id-string ordering at sub-ms collisions),
+  so successive calls render the same order.
+
 ## [1.10.270] - 2026-05-04
 
 **Multi-Specialist System — Phase 1.6 follow-up #2 (Export tag filter).**

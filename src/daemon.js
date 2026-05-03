@@ -4564,12 +4564,28 @@ async function handleRequest(req, res) {
       }
 
     } else if (req.method === 'GET' && route === '/meetings') {
-      // (multi-specialist phase 2.2) List meetings. Optional ?status=
-      // filter mirrors MeetingStore.list({ status }).
+      // (multi-specialist phase 2.2 + 6.11) List meetings.
+      // Optional filters:
+      //   ?status=pending|in-progress|completed|escalated|aborted
+      //   ?track=lightweight|standard|full
+      //   ?since=<ISO timestamp>   only meetings created at-or-after
+      //   ?limit=N                 cap result (default no cap)
+      // Result is sorted by createdAt desc so the most recent
+      // meetings come first regardless of MeetingStore ordering.
       const status = url.searchParams.get('status');
-      const list = meetingSession.getShared().list(status ? { status } : {});
+      const track = url.searchParams.get('track');
+      const since = url.searchParams.get('since');
+      const limitRaw = url.searchParams.get('limit');
+      const limit = (limitRaw && /^\d+$/.test(limitRaw)) ? parseInt(limitRaw, 10) : null;
+      let list = meetingSession.getShared().list(status ? { status } : {});
+      if (track) list = list.filter((s) => s.plan.track === track);
+      if (since) list = list.filter((s) => (s.createdAt || '') >= since);
+      list.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      const totalBeforeLimit = list.length;
+      if (limit != null && limit > 0) list = list.slice(0, limit);
       result = {
         count: list.length,
+        totalBeforeLimit,
         meetings: list.map((s) => ({
           id: s.id,
           status: s.status,
@@ -4580,6 +4596,7 @@ async function handleRequest(req, res) {
           createdAt: s.createdAt,
           startedAt: s.startedAt,
           completedAt: s.completedAt,
+          forkOf: s.plan.forkOf || null,
         })),
       };
 
