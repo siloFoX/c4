@@ -40,6 +40,7 @@ const specialistDispatcher = require('./specialist-dispatcher');
 const specialistPromptIterate = require('./specialist-prompt-iterate');
 const specialistAudit = require('./specialist-audit');
 const meetingPlan = require('./meeting-plan');
+const meetingTemplates = require('./meeting-templates');
 const meetingSession = require('./meeting-session');
 const meetingBrain = require('./meeting-brain');
 const meetingOrchestrator = require('./meeting-orchestrator');
@@ -789,7 +790,16 @@ async function handleRequest(req, res) {
     const mOne = route.match(/^\/meetings\/([^\/]+)$/);
     if (mAct) meetingParams = { kind: mAct[2], id: decodeURIComponent(mAct[1]) };
     else if (mOne) meetingParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
-    if (meetingParams && meetingParams.id === 'plan') meetingParams = null;
+    if (meetingParams && (
+      meetingParams.id === 'plan' || meetingParams.id === 'templates'
+    )) meetingParams = null;
+  }
+
+  // Meeting template path-parameter parser (phase 8.1).
+  let meetingTemplateParams = null;
+  {
+    const mOne = route.match(/^\/meetings\/templates\/([^\/]+)$/);
+    if (mOne) meetingTemplateParams = { name: decodeURIComponent(mOne[1]) };
   }
 
   // (10.5) Monthly cost report: GET /cost/monthly/<year>/<month>. Path
@@ -4385,6 +4395,49 @@ async function handleRequest(req, res) {
         return;
       }
 
+    } else if (req.method === 'GET' && route === '/meetings/templates') {
+      // (multi-specialist phase 8.1) List meeting templates.
+      try {
+        const tpls = meetingTemplates.listTemplates();
+        result = { count: tpls.length, templates: tpls };
+      } catch (err) {
+        res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
+      }
+
+    } else if (req.method === 'POST' && route === '/meetings/templates') {
+      // (multi-specialist phase 8.1) Create or update a template.
+      // Body: { name, task, track?, brain?, description?, notes? }
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/meetings/templates', body, res, cfg)) return;
+      try {
+        const stamped = meetingTemplates.saveTemplate({
+          name: body.name,
+          task: body.task,
+          track: body.track,
+          brain: body.brain,
+          description: body.description,
+          notes: body.notes,
+        });
+        result = { ok: true, template: stamped };
+      } catch (err) {
+        res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
+      }
+
+    } else if (req.method === 'GET' && meetingTemplateParams) {
+      // (multi-specialist phase 8.1) Fetch single template by name.
+      const tpl = meetingTemplates.getTemplate(meetingTemplateParams.name);
+      if (!tpl) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Template not found', name: meetingTemplateParams.name }));
+        return;
+      }
+      result = tpl;
+
+    } else if (req.method === 'DELETE' && meetingTemplateParams) {
+      // (multi-specialist phase 8.1) Remove template; idempotent.
+      const removed = meetingTemplates.deleteTemplate(meetingTemplateParams.name);
+      result = { ok: true, removed, name: meetingTemplateParams.name };
+
     } else if (req.method === 'POST' && route === '/meetings') {
       // (multi-specialist phase 2.2) Create a MeetingSession from a
       // task. Body matches POST /meetings/plan; we run the planner
@@ -4393,10 +4446,25 @@ async function handleRequest(req, res) {
       // POST /meetings/:id/start.
       const body = await parseBody(req);
       if (_validateOrFail('POST', '/meetings', body, res, cfg)) return;
+      // (Phase 8.1) Template resolution. When body.template is set,
+      // pull the template's task / track / brain / etc and use them
+      // as defaults; explicit body fields still win.
+      let resolvedTask = typeof body.task === 'string' ? body.task : '';
+      let resolvedTrack = typeof body.track === 'string' ? body.track : null;
+      if (typeof body.template === 'string' && body.template) {
+        const tpl = meetingTemplates.getTemplate(body.template);
+        if (!tpl) {
+          res.writeHead(404);
+          res.end(JSON.stringify({ error: `template "${body.template}" not found` }));
+          return;
+        }
+        if (!resolvedTask) resolvedTask = tpl.task;
+        if (!resolvedTrack && tpl.track) resolvedTrack = tpl.track;
+      }
       try {
         const plan = meetingPlan.planMeeting({
-          task: typeof body.task === 'string' ? body.task : '',
-          track: typeof body.track === 'string' ? body.track : null,
+          task: resolvedTask,
+          track: resolvedTrack,
           overrideCap: Number.isFinite(body.overrideCap) ? body.overrideCap : null,
           explorationRatio: Number.isFinite(body.explorationRatio) ? body.explorationRatio : undefined,
           title: typeof body.title === 'string' ? body.title : undefined,

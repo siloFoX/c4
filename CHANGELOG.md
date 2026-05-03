@@ -4,6 +4,58 @@
 
 (no entries — next release window)
 
+## [1.10.248] - 2026-05-03
+
+**Multi-Specialist System — Phase 8.1 (Meeting templates).**
+Operators define templates once for recurring patterns
+("rotate-secret", "fix-typo", "rename-column") and reuse them
+via `c4 meeting create --template <name>` or the new
+template-add/templates/template-remove subcommands. Web UI
+integration follows in 8.2.
+
+### Added
+- **`src/meeting-templates.js`**: persisted at
+  `~/.c4/meeting-templates.json` (configurable). CRUD via
+  `listTemplates / getTemplate / saveTemplate /
+  deleteTemplate`. `validateTemplate` enforces lowercase-kebab
+  names + non-empty task + valid track/brain enum + optional
+  description/notes.
+- **HTTP**:
+  - `GET /meetings/templates` → list
+  - `POST /meetings/templates` → upsert by name
+  - `GET /meetings/templates/:name` → fetch single (404 on miss)
+  - `DELETE /meetings/templates/:name` → idempotent
+  - `POST /meetings` body now accepts `template: <name>` —
+    template's task / track land as defaults; explicit body
+    fields still win.
+- **CLI**:
+  - `c4 meeting templates [name]` (list + show)
+  - `c4 meeting template-add <name> "<task>" [--track X]
+    [--brain X] [--desc "..."]`
+  - `c4 meeting template-remove <name>`
+  - `c4 meeting create --template <name>` short-circuits
+    typing the task by hand.
+- **OpenAPI**: full schemas + `template` field on `POST
+  /meetings`.
+- **Tests**: `tests/meeting-templates.test.js` (10 cases) —
+  exports surface, name validation, template validation,
+  missing-file empty list, save/get round-trip, upsert-by-name,
+  delete return value, insertion order preserved, corrupt JSON
+  no-throw fallback.
+
+End-to-end:
+```
+$ c4 meeting template-add fix-typo "fix typo in handler" --track lightweight
+saved template fix-typo
+$ c4 meeting templates
+1 template(s)
+  fix-typo [lightweight]  — fix typo in handler
+$ c4 meeting create --template fix-typo
+Meeting m-... — fix typo in handler  Track: lightweight  Status: pending …
+```
+
+Suite 193 → 194 PASS. Spec lint + drift checker clean.
+
 ## [1.10.247] - 2026-05-03
 
 **Multi-Specialist System — Phase 1.4 (Governance audit log).**

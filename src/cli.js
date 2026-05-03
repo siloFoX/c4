@@ -2593,7 +2593,7 @@ async function main() {
         //   c4 meeting escalate <id> ["reason"...]
         //   c4 meeting abort <id> ["reason"...]
         const sub = (args[0] || 'plan').toLowerCase();
-        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch'];
+        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'templates', 'template-add', 'template-remove'];
         if (!VALID.includes(sub)) {
           console.error(`Usage: c4 meeting <${VALID.join('|')}> [...]`);
           process.exit(1);
@@ -2638,18 +2638,22 @@ async function main() {
           const taskParts = [];
           let track = null;
           let cap = null;
+          let template = null;
           for (let i = 1; i < args.length; i += 1) {
             const a = args[i];
             if (a === '--track' && args[i + 1]) { track = args[i + 1]; i += 1; }
             else if (a === '--cap' && args[i + 1]) { cap = parseInt(args[i + 1], 10); i += 1; }
+            else if (a === '--template' && args[i + 1]) { template = args[i + 1]; i += 1; }
             else { taskParts.push(a); }
           }
           const task = taskParts.join(' ').trim();
-          if (!task) {
-            console.error(`Usage: c4 meeting ${sub} "<task>" [--track X] [--cap N]`);
+          if (!task && !template) {
+            console.error(`Usage: c4 meeting ${sub} "<task>" [--track X] [--cap N] [--template <name>]`);
             process.exit(1);
           }
-          const body = { task };
+          const body = {};
+          if (task) body.task = task;
+          if (template) body.template = template;
           if (track) body.track = track;
           if (Number.isFinite(cap)) body.overrideCap = cap;
           const path = sub === 'plan' ? '/meetings/plan' : '/meetings';
@@ -2657,6 +2661,78 @@ async function main() {
           if (args.includes('--json')) break;
           if (result.error) { console.error(result.error); process.exit(1); }
           printPlan(result);
+          return;
+        }
+        if (sub === 'templates') {
+          // c4 meeting templates           list
+          // c4 meeting templates <name>    show one
+          const name = args[1];
+          if (name) {
+            result = await request('GET', `/meetings/templates/${encodeURIComponent(name)}`);
+            if (args.includes('--json')) break;
+            if (result.error) { console.error(result.error); process.exit(1); }
+            console.log(`${result.name}: ${result.task}`);
+            if (result.track) console.log(`  track: ${result.track}`);
+            if (result.brain) console.log(`  brain: ${result.brain}`);
+            if (result.description) console.log(`  description: ${result.description}`);
+            if (result.notes) console.log(`  notes: ${result.notes}`);
+            console.log(`  created: ${result.createdAt}  updated: ${result.updatedAt}`);
+            return;
+          }
+          result = await request('GET', '/meetings/templates');
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`${result.count} template(s)`);
+          for (const t of result.templates) {
+            const trackBit = t.track ? ` [${t.track}]` : '';
+            const brainBit = t.brain ? ` (${t.brain})` : '';
+            console.log(`  ${t.name}${trackBit}${brainBit}  — ${t.task}`);
+          }
+          return;
+        }
+        if (sub === 'template-add') {
+          // c4 meeting template-add <name> "<task>" [--track X] [--brain X] [--desc "..."]
+          const name = args[1];
+          if (!name) {
+            console.error('Usage: c4 meeting template-add <name> "<task>" [--track X] [--brain X] [--desc "..."]');
+            process.exit(1);
+          }
+          let track = null;
+          let brain = null;
+          let description = null;
+          const taskParts = [];
+          for (let i = 2; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--track' && args[i + 1]) { track = args[i + 1]; i += 1; }
+            else if (a === '--brain' && args[i + 1]) { brain = args[i + 1]; i += 1; }
+            else if (a === '--desc' && args[i + 1]) { description = args[i + 1]; i += 1; }
+            else { taskParts.push(a); }
+          }
+          const task = taskParts.join(' ').trim();
+          if (!task) {
+            console.error('template-add: task required');
+            process.exit(1);
+          }
+          const body = { name, task };
+          if (track) body.track = track;
+          if (brain) body.brain = brain;
+          if (description) body.description = description;
+          result = await request('POST', '/meetings/templates', body);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`saved template ${result.template.name}`);
+          return;
+        }
+        if (sub === 'template-remove') {
+          const name = args[1];
+          if (!name) {
+            console.error('Usage: c4 meeting template-remove <name>');
+            process.exit(1);
+          }
+          result = await request('DELETE', `/meetings/templates/${encodeURIComponent(name)}`);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(result.removed ? `removed template ${result.name}` : `${result.name} not present`);
           return;
         }
 

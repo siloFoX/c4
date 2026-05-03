@@ -49,6 +49,10 @@ const ROUTE_SUMMARIES = {
   'POST /specialists/import': 'Apply a previously-exported bundle (merge | replace, optional dryRun preview).',
   'POST /specialists/:id/suggest-prompt': 'Ask a brain to draft a revised systemPrompt for an underperforming specialist — review-only (never auto-applied).',
   'POST /meetings/plan': 'Plan a full multi-stage meeting roster for a task — preview only, no specialists spawned.',
+  'GET /meetings/templates': 'List meeting templates persisted at ~/.c4/meeting-templates.json.',
+  'POST /meetings/templates': 'Create or update a meeting template (upsert by name).',
+  'GET /meetings/templates/:name': 'Fetch a single meeting template by name.',
+  'DELETE /meetings/templates/:name': 'Delete a meeting template (idempotent).',
   'POST /meetings': 'Create a MeetingSession from a task — returns the session in pending state.',
   'GET /meetings': 'List all known meetings (optional ?status filter).',
   'GET /meetings/:id': 'Fetch a single meeting (full state JSON).',
@@ -2253,6 +2257,57 @@ const ROUTE_SCHEMAS = {
       },
     },
   },
+  'GET /meetings/templates': {
+    response: {
+      properties: {
+        count: { type: 'integer' },
+        templates: { type: 'array', items: { type: 'object' } },
+      },
+    },
+  },
+  'POST /meetings/templates': {
+    requestBody: {
+      properties: {
+        name: { type: 'string', description: 'lowercase-kebab unique key' },
+        task: { type: 'string', description: 'free-text task description' },
+        track: { type: 'string', enum: ['lightweight', 'standard', 'full'], nullable: true },
+        brain: { type: 'string', enum: ['mock', 'claude'], nullable: true },
+        description: { type: 'string', nullable: true },
+        notes: { type: 'string', nullable: true },
+      },
+      example: {
+        name: 'rotate-secret',
+        task: 'rotate auth secret in production',
+        track: 'full',
+        brain: 'claude',
+        description: 'Quarterly secret rotation runbook',
+      },
+    },
+    response: {
+      properties: {
+        ok: { type: 'boolean' },
+        template: { type: 'object' },
+      },
+    },
+  },
+  'GET /meetings/templates/:name': {
+    parameters: [
+      { name: 'name', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    response: { properties: { name: { type: 'string' } } },
+  },
+  'DELETE /meetings/templates/:name': {
+    parameters: [
+      { name: 'name', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    response: {
+      properties: {
+        ok: { type: 'boolean' },
+        removed: { type: 'boolean' },
+        name: { type: 'string' },
+      },
+    },
+  },
   'POST /meetings': {
     requestBody: {
       properties: {
@@ -2261,6 +2316,7 @@ const ROUTE_SCHEMAS = {
         overrideCap: { type: 'integer', nullable: true },
         explorationRatio: { type: 'number', nullable: true },
         title: { type: 'string', nullable: true },
+        template: { type: 'string', nullable: true, description: 'When set, look up a saved template and use its task / track as defaults (explicit body fields still win)' },
       },
       example: { task: 'rotate auth secret in production' },
     },
