@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.258] - 2026-05-04
+
+**Multi-Specialist System — Phase 6.2 (Global meetings SSE).**
+A single SSE stream now surfaces every active meeting's state
+transitions plus meeting-added / meeting-removed events so the web
+UI can render an "all meetings" pane without managing N
+per-meeting subscriptions.
+
+### Added
+- **HTTP**: `GET /meetings/stream`. Events:
+  - `snapshot` once on connect: `{count, sessions: [...summaries], ts}`
+  - `state` per per-session transition, payload includes `meetingId`
+  - `meeting-added` when a new MeetingSession is registered
+  - `meeting-removed` when one is removed
+  - `heartbeat` every 30s
+- **`src/meeting-session.js`**: `MeetingStore` now extends
+  `EventEmitter` and emits `put` (only on first registration of an
+  id — re-puts are idempotent and silent) and `remove` (only when
+  a real entry is deleted). `setMaxListeners(64)` so multiple SSE
+  clients + web UI can subscribe without warnings.
+- **OpenAPI**: route summary + response shape with
+  `text/event-stream` mediaType so Swagger UI flags it correctly.
+- **Tests** (`tests/meeting-session.test.js`): new case
+  "MeetingStore emits put/remove events for global SSE
+  subscribers" — covers idempotent re-put, no-op remove for
+  unknown id. Suite total stays green at 196.
+
+### Notes
+- e2e verified end-to-end against the running daemon: connect →
+  snapshot, then `POST /meetings` → `meeting-added`. State
+  forwarding mirrors the existing per-meeting `/meetings/:id/stream`
+  contract (same EventEmitter chain).
+
 ## [1.10.257] - 2026-05-04
 
 **Multi-Specialist System — Phase 5.2 (Auto-apply prompt revision on consensus).**

@@ -794,7 +794,7 @@ async function handleRequest(req, res) {
     if (mAct) meetingParams = { kind: mAct[2], id: decodeURIComponent(mAct[1]) };
     else if (mOne) meetingParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
     if (meetingParams && (
-      meetingParams.id === 'plan' || meetingParams.id === 'templates'
+      meetingParams.id === 'plan' || meetingParams.id === 'templates' || meetingParams.id === 'stream'
     )) meetingParams = null;
   }
 
@@ -4548,6 +4548,81 @@ async function handleRequest(req, res) {
         return;
       }
       result = { id: sess.id, transcript: sess.transcript() };
+
+    } else if (req.method === 'GET' && route === '/meetings/stream') {
+      // (multi-specialist phase 6.2) Global meetings SSE.
+      // Aggregates state events across every active session so the
+      // web UI can render a "all meetings" pane without managing N
+      // per-meeting subscriptions.
+      // Events:
+      //   snapshot       — once on connect, {count, sessions: [summary,...]}
+      //   meeting-added  — when a new MeetingSession is put into the store
+      //   meeting-removed — when a session is removed
+      //   state          — per-session state transition; payload includes meetingId
+      //   heartbeat      — every 30s keepalive
+      const store = meetingSession.getShared();
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      });
+      const safeWrite = (event, payload) => {
+        try { res.write(`event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`); }
+        catch { /* client gone */ }
+      };
+      const summarize = (sess) => {
+        const json = sess.toJSON();
+        return {
+          id: json.id,
+          status: json.status,
+          title: json.title || null,
+          track: json.track || null,
+          currentStage: json.currentStage || null,
+          currentRound: json.currentRound || null,
+          stages: (json.stages || []).map((s) => ({ stage: s.stage, status: s.status, round: s.round })),
+        };
+      };
+      const sessions = store.list();
+      safeWrite('snapshot', {
+        count: sessions.length,
+        sessions: sessions.map(summarize),
+        ts: Date.now(),
+      });
+      // Per-session state listeners — keyed so we can detach when the
+      // session is removed.
+      const stateListeners = new Map();
+      const attach = (sess) => {
+        if (stateListeners.has(sess.id)) return;
+        const fn = (frame) => safeWrite('state', { meetingId: sess.id, ...frame });
+        sess.on('state', fn);
+        stateListeners.set(sess.id, fn);
+      };
+      const detach = (id) => {
+        const fn = stateListeners.get(id);
+        if (!fn) return;
+        const sess = store.get(id);
+        if (sess) sess.removeListener('state', fn);
+        stateListeners.delete(id);
+      };
+      for (const s of sessions) attach(s);
+      const onPut = (sess) => {
+        attach(sess);
+        safeWrite('meeting-added', { id: sess.id, summary: summarize(sess) });
+      };
+      const onRemove = (id) => {
+        detach(id);
+        safeWrite('meeting-removed', { id });
+      };
+      store.on('put', onPut);
+      store.on('remove', onRemove);
+      const heartbeat = setInterval(() => safeWrite('heartbeat', { ts: Date.now() }), 30000);
+      req.on('close', () => {
+        clearInterval(heartbeat);
+        store.removeListener('put', onPut);
+        store.removeListener('remove', onRemove);
+        for (const id of [...stateListeners.keys()]) detach(id);
+      });
+      return; // SSE keeps connection open
 
     } else if (req.method === 'GET' && meetingParams && meetingParams.kind === 'stream') {
       // (multi-specialist phase 6) SSE stream of meeting state

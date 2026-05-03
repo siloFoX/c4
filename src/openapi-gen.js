@@ -61,6 +61,7 @@ const ROUTE_SUMMARIES = {
   'DELETE /meetings/:id': 'Drop a meeting from the in-memory store (idempotent; wiki copy untouched).',
   'GET /meetings/:id/transcript': 'Fetch the per-stage transcript for a meeting.',
   'GET /meetings/:id/stream': 'SSE stream of meeting state transitions — snapshot on connect, then one event per state change.',
+  'GET /meetings/stream': 'Global SSE stream — every meeting state transition + meeting-added / meeting-removed events; lets the web UI watch all sessions in one connection.',
   'POST /meetings/:id/start': 'Transition a pending meeting to in-progress.',
   'POST /meetings/:id/contribute': 'Append a contribution from one specialist to the current stage.',
   'POST /meetings/:id/vote': 'Record a standalone accept|object vote without a contribution.',
@@ -2724,6 +2725,9 @@ const ROUTE_SCHEMAS = {
         raw: { type: 'string' },
       },
     },
+  },
+  'GET /meetings/stream': {
+    response: { type: 'string', description: 'SSE stream — Content-Type: text/event-stream. Events: snapshot (on connect), state, meeting-added, meeting-removed, heartbeat (every 30s).' },
   },
   'POST /specialists/:id/prompt-apply': {
     parameters: [

@@ -368,16 +368,25 @@ class MeetingSession extends EventEmitter {
 // `c4-wiki/meetings/<date>-<slug>.md` so they survive daemon
 // restart and feed the institutional memory described in §9.
 
-class MeetingStore {
+class MeetingStore extends EventEmitter {
   constructor() {
+    super();
     this._byId = new Map();
+    // Phase 6.2: lots of clients can subscribe to put/remove events
+    // (web UI, /meetings/stream). Bump the cap so the default
+    // 10-listener warning does not fire under normal usage.
+    this.setMaxListeners(64);
   }
 
   put(session) {
     if (!(session instanceof MeetingSession)) {
       throw new Error('MeetingStore.put: session must be a MeetingSession');
     }
+    const isNew = !this._byId.has(session.id);
     this._byId.set(session.id, session);
+    if (isNew) {
+      try { this.emit('put', session); } catch { /* never crash put on listener err */ }
+    }
     return session;
   }
 
@@ -392,7 +401,13 @@ class MeetingStore {
     return out;
   }
 
-  remove(id) { return this._byId.delete(id); }
+  remove(id) {
+    const had = this._byId.delete(id);
+    if (had) {
+      try { this.emit('remove', id); } catch { /* never crash remove on listener err */ }
+    }
+    return had;
+  }
 
   clear() { this._byId.clear(); }
 

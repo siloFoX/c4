@@ -239,6 +239,25 @@ t('MeetingStore put/get/list/remove', () => {
   assert.strictEqual(store.size, 1);
 });
 
+t('MeetingStore emits put/remove events for global SSE subscribers', () => {
+  const store = new MeetingStore();
+  const puts = [];
+  const removes = [];
+  store.on('put', (sess) => puts.push(sess.id));
+  store.on('remove', (id) => removes.push(id));
+  const s = new MeetingSession(makeLightPlan());
+  store.put(s);
+  assert.deepStrictEqual(puts, [s.id]);
+  // Re-putting the same session is idempotent — no duplicate emit.
+  store.put(s);
+  assert.deepStrictEqual(puts, [s.id], 're-put does not re-emit');
+  store.remove(s.id);
+  assert.deepStrictEqual(removes, [s.id]);
+  // Removing a non-existent session is a no-op (no emit).
+  store.remove('does-not-exist');
+  assert.deepStrictEqual(removes, [s.id], 'absent remove does not emit');
+});
+
 (async () => {
   for (const fn of pending) await fn();
   console.log(`\n  ${passed} passed, ${failed} failed (meeting-session)`);
