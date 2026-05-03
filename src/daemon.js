@@ -41,6 +41,7 @@ const meetingPlan = require('./meeting-plan');
 const meetingSession = require('./meeting-session');
 const meetingBrain = require('./meeting-brain');
 const meetingOrchestrator = require('./meeting-orchestrator');
+const meetingRetro = require('./meeting-retro');
 const autoDispatcherMod = require('./auto-dispatcher');
 const { PinnedMemoryScheduler, DEFAULT_INTERVAL_MS: PIN_DEFAULT_INTERVAL_MS } = require('./pinned-memory-scheduler');
 
@@ -763,7 +764,7 @@ async function handleRequest(req, res) {
   // Meeting session path-parameter parser (multi-specialist phase 2.2).
   let meetingParams = null;
   {
-    const mAct = route.match(/^\/meetings\/([^\/]+)\/(start|contribute|vote|advance|next-round|escalate|abort|transcript|run)$/);
+    const mAct = route.match(/^\/meetings\/([^\/]+)\/(start|contribute|vote|advance|next-round|escalate|abort|transcript|run|retro|finalize)$/);
     const mOne = route.match(/^\/meetings\/([^\/]+)$/);
     if (mAct) meetingParams = { kind: mAct[2], id: decodeURIComponent(mAct[1]) };
     else if (mOne) meetingParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
@@ -4468,6 +4469,47 @@ async function handleRequest(req, res) {
         sess.escalate(typeof body.reason === 'string' ? body.reason : 'unspecified');
         result = sess.toJSON();
       } catch (err) { res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return; }
+
+    } else if (req.method === 'POST' && meetingParams && meetingParams.kind === 'retro') {
+      // (multi-specialist phase 4.1) Compute retro deltas without
+      // applying them. Useful for previewing the score adjustment
+      // a finalize() would perform.
+      const sess = meetingSession.getShared().get(meetingParams.id);
+      if (!sess) { res.writeHead(404); res.end(JSON.stringify({ error: 'Meeting not found', id: meetingParams.id })); return; }
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/meetings/:id/retro', body, res, cfg)) return;
+      try {
+        const retro = meetingRetro.computeRetroDeltas(sess, {
+          registry: specialistRegistry.getShared(),
+        });
+        result = retro;
+      } catch (err) {
+        res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
+      }
+
+    } else if (req.method === 'POST' && meetingParams && meetingParams.kind === 'finalize') {
+      // (multi-specialist phase 4.1) Compute retro AND apply the
+      // resulting score deltas to the registry. Idempotent in the
+      // sense that re-running on the same session keeps blending the
+      // same signal in — operators normally call this exactly once
+      // per terminal session.
+      const sess = meetingSession.getShared().get(meetingParams.id);
+      if (!sess) { res.writeHead(404); res.end(JSON.stringify({ error: 'Meeting not found', id: meetingParams.id })); return; }
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/meetings/:id/finalize', body, res, cfg)) return;
+      try {
+        const retro = meetingRetro.computeRetroDeltas(sess, {
+          registry: specialistRegistry.getShared(),
+        });
+        const applied = meetingRetro.applyRetroDeltas(
+          specialistRegistry.getShared(),
+          retro,
+          { alpha: Number.isFinite(body.alpha) ? body.alpha : undefined },
+        );
+        result = { ok: true, retro, applied };
+      } catch (err) {
+        res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
+      }
 
     } else if (req.method === 'POST' && meetingParams && meetingParams.kind === 'run') {
       // (multi-specialist phase 2.3) Drive the meeting end-to-end

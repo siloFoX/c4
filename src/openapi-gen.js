@@ -54,6 +54,8 @@ const ROUTE_SUMMARIES = {
   'POST /meetings/:id/escalate': 'Mark the meeting as escalated (round cap or veto deadlock).',
   'POST /meetings/:id/abort': 'Operator abort — terminal state, mutations refused after.',
   'POST /meetings/:id/run': 'Drive a meeting to completion with a brain provider (phase 2.3 ships mock).',
+  'POST /meetings/:id/retro': 'Compute retro score deltas from a terminal meeting — preview only.',
+  'POST /meetings/:id/finalize': 'Compute retro deltas AND apply them to the registry score record.',
   'GET /workflows': 'List defined workflows.',
   'POST /workflows': 'Create a new workflow definition.',
   'GET /openapi.json': 'This document — auto-generated OpenAPI spec.',
@@ -2388,6 +2390,37 @@ const ROUTE_SCHEMAS = {
       example: { reason: 'operator changed direction' },
     },
     response: { properties: { id: { type: 'string' }, status: { type: 'string' } } },
+  },
+  'POST /meetings/:id/retro': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    requestBody: { properties: {}, example: {} },
+    response: {
+      properties: {
+        sessionId: { type: 'string' },
+        outcome: { type: 'string', enum: ['completed', 'escalated', 'aborted'] },
+        deltas: { type: 'object', description: 'Per-specialist score-delta map' },
+      },
+    },
+  },
+  'POST /meetings/:id/finalize': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    requestBody: {
+      properties: {
+        alpha: { type: 'number', description: 'Exponential-smoothing factor in [0,1] (default 0.3)' },
+      },
+      example: { alpha: 0.3 },
+    },
+    response: {
+      properties: {
+        ok: { type: 'boolean' },
+        retro: { type: 'object' },
+        applied: { type: 'object', description: 'Per-specialist before/after score snapshots' },
+      },
+    },
   },
   'POST /meetings/:id/run': {
     parameters: [

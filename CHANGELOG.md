@@ -4,6 +4,52 @@
 
 (no entries — next release window)
 
+## [1.10.220] - 2026-05-03
+
+**Multi-Specialist System — Phase 4.1 (Per-meeting retro
+scoring).** After a meeting reaches terminal status, the retro
+module computes per-specialist score adjustments and (optionally)
+folds them into the registry's per-domain / per-stage score
+record with exponential smoothing. This makes the system slightly
+adaptive — frequent participants in successful meetings see
+their score climb on the relevant domain, while specialists who
+roll over on stages that escalate take a dent.
+
+### Added
+- **`src/meeting-retro.js`** — `computeRetroDeltas(session, opts)`
+  returns `{sessionId, outcome, deltas: {<id>: {byStage, byDomain,
+  samples, contribution, stagesParticipated}}}` from a terminal
+  meeting. Signal table:
+  - completed + accept → +1.0
+  - completed + object → -0.5 (rebellious)
+  - escalated + object → +0.5 (held the line)
+  - escalated + accept → -0.25 (rolled over)
+  - aborted → 0 (operator gave up, no signal)
+  `applyRetroDeltas(registry, retro, {alpha=0.3})` blends each
+  signal into the existing score with exponential smoothing and
+  bumps sample counts; mutates the registry in-place and returns
+  before/after snapshots for audit.
+- **HTTP**:
+  - `POST /meetings/:id/retro` — compute deltas only (preview)
+  - `POST /meetings/:id/finalize` — compute + apply, body
+    `{alpha?}` overrides smoothing factor
+- **CLI**: `c4 meeting retro <id>` and
+  `c4 meeting finalize <id> [--alpha N]` pretty-print
+  per-specialist deltas + sample counts.
+- **OpenAPI**: summary + full schemas for both routes.
+- **Tests**: `tests/meeting-retro.test.js` (8 cases) — exports,
+  non-terminal rejection, completed-meeting +1 accept,
+  escalated-meeting +0.5 holdout / negative rollover,
+  aborted-meeting zero, smoothing blend math, no-prior seeding,
+  unknown-specialist silent skip.
+
+End-to-end: a completed lightweight `c4 meeting run` followed
+by `c4 meeting finalize <id>` updates each speaker's `score.byDomain`
++ `score.byStage` so subsequent dispatcher picks see the
+per-domain history.
+
+Suite 186 → 187 PASS. Spec lint + drift checker clean.
+
 ## [1.10.219] - 2026-05-03
 
 **Multi-Specialist System — Phase 2.4 (ClaudeBrainProvider).**

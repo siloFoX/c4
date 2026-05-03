@@ -2171,7 +2171,7 @@ async function main() {
         //   c4 meeting escalate <id> ["reason"...]
         //   c4 meeting abort <id> ["reason"...]
         const sub = (args[0] || 'plan').toLowerCase();
-        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run'];
+        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize'];
         if (!VALID.includes(sub)) {
           console.error(`Usage: c4 meeting <${VALID.join('|')}> [...]`);
           process.exit(1);
@@ -2363,6 +2363,29 @@ async function main() {
           if (args.includes('--json')) break;
           if (result.error) { console.error(result.error); process.exit(1); }
           console.log(`${sub} → status=${result.status}`);
+          return;
+        }
+        if (sub === 'retro' || sub === 'finalize') {
+          // c4 meeting retro <id>           preview score deltas
+          // c4 meeting finalize <id> [--alpha N]  apply to registry
+          let alpha = null;
+          for (let i = 2; i < args.length; i += 1) {
+            if (args[i] === '--alpha' && args[i + 1]) { alpha = parseFloat(args[i + 1]); i += 1; }
+          }
+          const body = {};
+          if (Number.isFinite(alpha)) body.alpha = alpha;
+          result = await request('POST', `/meetings/${idEnc}/${sub}`, body);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          const retro = sub === 'retro' ? result : result.retro;
+          console.log(`outcome: ${retro.outcome}  affected specialists: ${Object.keys(retro.deltas).length}`);
+          for (const [id, d] of Object.entries(retro.deltas)) {
+            const stages = Object.entries(d.byStage).map(([s, v]) => `${s}=${v.toFixed(2)}`).join(' ');
+            console.log(`  ${id.padEnd(22)} contribution=${d.contribution}  stages: ${stages}`);
+          }
+          if (sub === 'finalize') {
+            console.log(`applied to registry — ${Object.keys(result.applied).length} specialist(s) updated`);
+          }
           return;
         }
         if (sub === 'run') {
