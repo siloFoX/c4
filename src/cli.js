@@ -2802,7 +2802,7 @@ async function main() {
         //   c4 meeting escalate <id> ["reason"...]
         //   c4 meeting abort <id> ["reason"...]
         const sub = (args[0] || 'plan').toLowerCase();
-        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'templates', 'template-add', 'template-remove', 'prune', 'fork'];
+        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'templates', 'template-add', 'template-remove', 'prune', 'fork', 'actions'];
         if (!VALID.includes(sub)) {
           console.error(`Usage: c4 meeting <${VALID.join('|')}> [...]`);
           process.exit(1);
@@ -3164,6 +3164,20 @@ async function main() {
           if (result.error) { console.error(result.error); process.exit(1); }
           const c = result.consensus;
           console.log(`vote recorded — accepts=${c.accepts.length} objects=${c.objects.length} missing=${c.missing.length} reached=${c.reached}`);
+          return;
+        }
+        if (sub === 'actions') {
+          // c4 meeting actions <id> — list extracted [DECISION]/[ACTION]/etc
+          result = await request('GET', `/meetings/${idEnc}/action-items`);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          const items = result.items || [];
+          console.log(`${result.count} item(s)  decision=${result.byType.decision}  action=${result.byType.action}  todo=${result.byType.todo}  blocker=${result.byType.blocker}`);
+          for (const it of items) {
+            const owner = it.owner ? ` @${it.owner}` : '';
+            const where = `${it.stage}/r${it.round}/${it.specialistId || '?'}`;
+            console.log(`  [${it.type.toUpperCase()}]${owner}  ${it.text}  (${where})`);
+          }
           return;
         }
         if (sub === 'fork') {

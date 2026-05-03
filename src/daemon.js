@@ -48,6 +48,7 @@ const meetingBrain = require('./meeting-brain');
 const meetingOrchestrator = require('./meeting-orchestrator');
 const meetingRetro = require('./meeting-retro');
 const meetingFork = require('./meeting-fork');
+const meetingActions = require('./meeting-actions');
 const meetingPeerRetro = require('./meeting-peer-retro');
 const wikiWriter = require('./wiki-writer');
 const wikiReader = require('./wiki-reader');
@@ -790,7 +791,7 @@ async function handleRequest(req, res) {
   // Meeting session path-parameter parser (multi-specialist phase 2.2).
   let meetingParams = null;
   {
-    const mAct = route.match(/^\/meetings\/([^\/]+)\/(start|contribute|vote|advance|next-round|escalate|abort|transcript|run|retro|finalize|publish|peer-retro|stream|fork)$/);
+    const mAct = route.match(/^\/meetings\/([^\/]+)\/(start|contribute|vote|advance|next-round|escalate|abort|transcript|run|retro|finalize|publish|peer-retro|stream|fork|action-items)$/);
     const mOne = route.match(/^\/meetings\/([^\/]+)$/);
     if (mAct) meetingParams = { kind: mAct[2], id: decodeURIComponent(mAct[1]) };
     else if (mOne) meetingParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
@@ -4820,6 +4821,21 @@ async function handleRequest(req, res) {
         }
         result = { ok: true, peer, applied };
       } catch (err) {
+        res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
+      }
+
+    } else if (req.method === 'GET' && meetingParams && meetingParams.kind === 'action-items') {
+      // (multi-specialist phase 6.5) Extract structured action items
+      // from the transcript — bridge between consensus and operator
+      // task tracking. Body shape: { count, byType, items[] }.
+      const sess = meetingSession.getShared().get(meetingParams.id);
+      if (!sess) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Meeting not found', id: meetingParams.id }));
+        return;
+      }
+      try { result = meetingActions.extractActionItems(sess); }
+      catch (err) {
         res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
       }
 

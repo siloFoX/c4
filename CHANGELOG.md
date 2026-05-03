@@ -4,6 +4,49 @@
 
 (no entries — next release window)
 
+## [1.10.263] - 2026-05-04
+
+**Multi-Specialist System — Phase 6.5 (Action-items extractor).**
+A meeting transcript is the source of truth for who decided what,
+but it's prose. This phase adds a structured extractor that pulls
+`[DECISION]`, `[ACTION]`, `[TODO]`, and `[BLOCKER]` markers out of
+the transcript with optional owner attribution. Operators can copy
+the structured list into their own task tracker without re-reading
+the whole meeting.
+
+### Added
+- **`src/meeting-actions.js`** (new module):
+  - `extractActionItems(session)` — walks every stage's transcript,
+    returns `{count, byType: {decision, action, todo, blocker},
+    items: [{type, text, owner, stage, round, specialistId, ts}]}`.
+  - Marker grammar: case-insensitive `[DECISION]`, `[ACTION]`,
+    `[TODO]`, `[BLOCKER]`. Three owner forms — `[ACTION
+    owner=alice]`, `[ACTION by=bob]`, and inline `@alice` after
+    the tag. Bracket-enclosed inline form (`[DECISION: text]`) is
+    also recognised. Non-tag brackets like `[NOTE]` /
+    `[QUESTION]` are silently ignored.
+- **HTTP**: `GET /meetings/:id/action-items`. Returns the full
+  envelope. 404 when the meeting id is unknown.
+- **CLI**: `c4 meeting actions <id>` — prints the count summary +
+  one line per item with stage/round/specialistId trace.
+- **OpenAPI**: full response shape published; route added to the
+  parametric meeting-action regex.
+- **Tests** (`tests/meeting-actions.test.js`, 8 cases): module
+  surface, missing-session rejection, single-turn parse with all 4
+  marker types, owner-extraction across all 3 forms, multi-turn
+  aggregation with byType counts, case-insensitivity, non-matching
+  bracket exclusion, empty session. Suite total: **199 passing**.
+
+### Notes
+- e2e verified end-to-end: created lightweight meeting, started,
+  contributed a turn carrying `[DECISION] ... [ACTION] @alice ...`,
+  ran `c4 meeting actions <id>` — both items rendered with owner
+  + trace.
+- Builds the pipeline `meeting consensus → action-items extract →
+  operator-side task tracker` without locking c4 to any particular
+  external system. Structured handoff is the contract; operators
+  pick the destination.
+
 ## [1.10.262] - 2026-05-04
 
 **Multi-Specialist System — Phase 1.6 follow-up (Tag editing).**

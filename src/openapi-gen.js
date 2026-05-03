@@ -72,6 +72,7 @@ const ROUTE_SUMMARIES = {
   'POST /meetings/:id/abort': 'Operator abort — terminal state, mutations refused after.',
   'POST /meetings/:id/run': 'Drive a meeting to completion with a brain provider (phase 2.3 ships mock).',
   'POST /meetings/:id/fork': 'Clone an existing meeting as a brand-new pending session (replan or reuse mode); useful for retros / "redo with sharper question".',
+  'GET /meetings/:id/action-items': 'Extract [DECISION] / [ACTION] / [TODO] / [BLOCKER] markers from the transcript — structured handoff to operator-side task tracking.',
   'POST /meetings/:id/retro': 'Compute retro score deltas from a terminal meeting — preview only.',
   'POST /meetings/:id/finalize': 'Compute retro deltas AND apply them to the registry score record.',
   'POST /meetings/:id/peer-retro': 'Run a peer-vote retro — each speaker rates peers (0–5); aggregate becomes a score signal.',
@@ -2482,6 +2483,38 @@ const ROUTE_SCHEMAS = {
       example: { reason: 'operator changed direction' },
     },
     response: { properties: { id: { type: 'string' }, status: { type: 'string' } } },
+  },
+  'GET /meetings/:id/action-items': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    response: {
+      properties: {
+        count: { type: 'integer' },
+        byType: {
+          properties: {
+            decision: { type: 'integer' },
+            action: { type: 'integer' },
+            todo: { type: 'integer' },
+            blocker: { type: 'integer' },
+          },
+        },
+        items: {
+          type: 'array',
+          items: {
+            properties: {
+              type: { type: 'string', enum: ['decision', 'action', 'todo', 'blocker'] },
+              text: { type: 'string' },
+              owner: { type: 'string', nullable: true },
+              stage: { type: 'string' },
+              round: { type: 'integer' },
+              specialistId: { type: 'string', nullable: true },
+              ts: { type: 'string', nullable: true },
+            },
+          },
+        },
+      },
+    },
   },
   'POST /meetings/:id/fork': {
     parameters: [
