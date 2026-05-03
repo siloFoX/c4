@@ -1396,8 +1396,13 @@ const MEDIUM_PATTERNS = [
   // (`at -f script.sh now`) all hit the rule.
   {
     code: 'at-schedule',
-    label: 'at <time> (delayed execution scheduler)',
-    re: /\bat\s+[^\n;|&]*?\b(?:now\b|midnight\b|noon\b|teatime\b|tomorrow\b|next\s+\w+|\+\s*\d+\s*(?:minutes?|hours?|days?|weeks?))/,
+    label: 'at <time> / systemd-run --on-* (delayed execution scheduler)',
+    // (v1.10.196) Extended to systemd-run with timer flags
+    // (--on-active, --on-boot, --on-startup, --on-unit-active,
+    // --on-unit-inactive, --on-calendar). Same threat as `at`:
+    // detached / scheduled execution that survives the
+    // initiating shell.
+    re: /\bat\s+[^\n;|&]*?\b(?:now\b|midnight\b|noon\b|teatime\b|tomorrow\b|next\s+\w+|\+\s*\d+\s*(?:minutes?|hours?|days?|weeks?))|\bsystemd-run\s+(?:[^\n;|&]*\s)?--on-(?:active|boot|startup|unit-active|unit-inactive|calendar)\b/,
   },
   // (v1.10.64) PATH prepended with a writable directory (/tmp, /var/tmp,
   // ~/.cache, etc) — anyone who can write to that dir gets to shim

@@ -4,6 +4,19 @@
 
 (no entries — next release window)
 
+## [1.10.196] - 2026-05-03
+
+**`at-schedule` extended to `systemd-run --on-*` timers.**
+Same threat as `at` scheduler — detached / scheduled
+execution that survives the initiating shell.
+
+### Changed
+- **`at-schedule`** regex extended with `systemd-run --on-*`
+  variants: `--on-active`, `--on-boot`, `--on-startup`,
+  `--on-unit-active`, `--on-unit-inactive`, `--on-calendar`.
+  Same MEDIUM tier. Bare `systemd-run /cmd` (immediate
+  execution, no timer) and `--help` stay LOW.
+
 ## [1.10.195] - 2026-05-03
 
 **`nsenter-pid1` extended to `unshare --map-root-user`.**
