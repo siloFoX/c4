@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Eye, Plus, RefreshCw, Radio } from 'lucide-react';
+import { Eye, Play, Plus, RefreshCw, Radio } from 'lucide-react';
 import { apiGet, apiPost, eventSourceUrl } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
@@ -200,6 +200,30 @@ export default function MeetingsView() {
   const [createBusy, setCreateBusy] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
+  // Run the selected meeting with the chosen brain.
+  const [runBusy, setRunBusy] = useState(false);
+  const [runError, setRunError] = useState<string | null>(null);
+  const [runBrain, setRunBrain] = useState<'mock' | 'claude'>('mock');
+
+  const handleRun = useCallback(async (id: string) => {
+    setRunBusy(true);
+    setRunError(null);
+    try {
+      await apiPost(`/api/meetings/${encodeURIComponent(id)}/run`, {
+        brain: runBrain,
+        autoFinalize: true,
+      });
+      // The SSE detail subscription will pick up turn / advance /
+      // terminal events as the orchestrator drives the meeting,
+      // so we don't manually refetch here — the EventSource hook
+      // does that via apiGet on each `state` frame.
+    } catch (e) {
+      setRunError((e as Error).message || 'Failed to start meeting');
+    } finally {
+      setRunBusy(false);
+    }
+  }, [runBrain]);
+
   const handleCreate = useCallback(async () => {
     const task = newTask.trim();
     if (!task) return;
@@ -350,24 +374,55 @@ export default function MeetingsView() {
       </Card>
 
       <Card className="flex min-h-0 flex-1 flex-col">
-        <CardHeader className="flex flex-row items-center justify-between gap-2 border-b border-border p-4">
-          <CardTitle className="text-base">
-            {selectedSummary ? selectedSummary.title : 'Select a meeting'}
-          </CardTitle>
-          {selectedId ? (
-            <span
-              className={cn(
-                'inline-flex items-center gap-1 rounded-full border px-1.5 py-0 text-[10px] uppercase tracking-wide',
-                streaming
-                  ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                  : 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
-              )}
-              aria-live="polite"
-              title={streaming ? 'Receiving live state updates' : 'Reconnecting to stream'}
-            >
-              <Radio className="h-3 w-3" aria-hidden />
-              {streaming ? 'live' : 'offline'}
-            </span>
+        <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
+          <div className="flex flex-row items-center justify-between gap-2">
+            <CardTitle className="text-base">
+              {selectedSummary ? selectedSummary.title : 'Select a meeting'}
+            </CardTitle>
+            {selectedId ? (
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full border px-1.5 py-0 text-[10px] uppercase tracking-wide',
+                  streaming
+                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    : 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+                )}
+                aria-live="polite"
+                title={streaming ? 'Receiving live state updates' : 'Reconnecting to stream'}
+              >
+                <Radio className="h-3 w-3" aria-hidden />
+                {streaming ? 'live' : 'offline'}
+              </span>
+            ) : null}
+          </div>
+          {selectedId && detail && detail.status === 'pending' ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-[11px] text-muted-foreground">
+                brain:
+                <select
+                  className="ml-1 rounded border border-border bg-background px-1 py-0.5 text-[11px]"
+                  value={runBrain}
+                  onChange={(e) => setRunBrain(e.target.value as 'mock' | 'claude')}
+                  disabled={runBusy}
+                  aria-label="Run brain"
+                >
+                  <option value="mock">mock (instant)</option>
+                  <option value="claude">claude (slow, real)</option>
+                </select>
+              </label>
+              <Button
+                size="sm"
+                onClick={() => handleRun(selectedId)}
+                disabled={runBusy}
+                aria-label="Run meeting"
+              >
+                <Play className="h-3.5 w-3.5" aria-hidden />
+                Run + auto-finalize
+              </Button>
+              {runError ? (
+                <span className="text-[11px] text-destructive">{runError}</span>
+              ) : null}
+            </div>
           ) : null}
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">

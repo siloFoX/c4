@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.233] - 2026-05-03
+
+**Multi-Specialist System — Phase 7.3 (Run button in
+MeetingsView).** When a pending meeting is selected, the
+detail header now shows a brain picker (mock / claude) +
+`Run + auto-finalize` button. Click runs the orchestrator
+end-to-end via `POST /api/meetings/:id/run` with
+`autoFinalize: true`, and the SSE detail stream from 7.1
+paints turn / vote / advance / completed events live.
+
+The full operator lifecycle is now clickable:
+**+ New → click meeting → Run → watch live transcript →
+auto-finalized score record persists**.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**: `runBrain`
+  state + `handleRun` callback that calls
+  `apiPost('/api/meetings/:id/run')` with the chosen brain.
+  Button only renders when `detail.status === 'pending'` so
+  it can't be re-fired on an already-running or terminal
+  meeting. Error surfaces inline. The SSE hook from 7.1
+  picks up the resulting transitions automatically — no
+  manual refetch.
+
+Suite stays 191 PASS. Web build clean.
+
 ## [1.10.232] - 2026-05-03
 
 **Multi-Specialist System — Phase 7.2 (Create-meeting
