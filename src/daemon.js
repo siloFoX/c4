@@ -4679,6 +4679,8 @@ async function handleRequest(req, res) {
           wikiRoot: typeof body.wikiRoot === 'string' && body.wikiRoot ? body.wikiRoot : undefined,
           retro,
           applied,
+          gitCommit: !!body.gitCommit,
+          gitPush: !!body.gitPush,
         });
         result = { ok: true, ...out, retro: retro ? { outcome: retro.outcome, count: Object.keys(retro.deltas).length } : null };
       } catch (err) {
@@ -4838,6 +4840,8 @@ async function handleRequest(req, res) {
               wikiRoot: typeof body.wikiRoot === 'string' && body.wikiRoot ? body.wikiRoot : undefined,
               retro,
               applied,
+              gitCommit: !!body.gitCommit,
+              gitPush: !!body.gitPush,
             });
           } catch (err) {
             publish = { error: err.message };

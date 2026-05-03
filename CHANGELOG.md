@@ -4,6 +4,48 @@
 
 (no entries — next release window)
 
+## [1.10.255] - 2026-05-04
+
+**Multi-Specialist System — Phase 3.4 (Wiki git automation).**
+The wiki writer can now `git init` (if needed) + `git add` +
+`git commit` after each publish so the markdown-in-git design
+lands without operator-side bookkeeping. Best-effort — git
+failures surface in the response payload but never block the
+file write.
+
+### Added
+- **`src/wiki-writer.js`**:
+  - `_isGitRepo(dir)` / `_git(dir, args)` helpers (spawnSync).
+  - `_commitWiki(wikiRoot, sess, opts)` runs the
+    init→add→commit→(optional push) chain and returns
+    `{committed, pushed?, sha, message, log}`. Init also
+    sets a fallback `user.email` / `user.name` so newly-init
+    repos don't block on missing identity. Skips commit when
+    the working tree is clean.
+  - `publishMeeting` accepts `gitCommit` / `gitPush` opts;
+    return value gains `git: {...}`.
+- **HTTP**:
+  - `POST /meetings/:id/publish` body grows `gitCommit` +
+    `gitPush`.
+  - `POST /meetings/:id/run` body (auto-publish path) gains
+    the same fields.
+- **CLI**: `c4 meeting publish --git-commit` /
+  `--git-push` (push implies commit). Output reports
+  `committed <sha>  "<message>"` or the failing step + stderr.
+- **OpenAPI**: schemas updated for both routes.
+
+End-to-end:
+```
+$ c4 meeting publish <id> --retro --apply --git-commit --wiki-root /tmp/c4-wiki-git
+Published to /tmp/c4-wiki-git
+  /tmp/c4-wiki-git/meetings/2026-05-03-fix-log-handler-bug.md
+  /tmp/c4-wiki-git/adr/0001-fix-log-handler-bug.md
+  /tmp/c4-wiki-git/retros/2026-05-03-fix-log-handler-bug.md
+Git: committed b50b2da4  "meeting:m-... :: fix log handler bug"
+```
+
+Suite stays 194 PASS. Spec lint + drift checker clean.
+
 ## [1.10.254] - 2026-05-04
 
 **Multi-Specialist System — Phase 8.7 (Score history trace).**

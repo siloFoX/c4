@@ -17,6 +17,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { spawnSync } = require('child_process');
 
 const DEFAULT_WIKI_ROOT = path.join(process.env.HOME || '/tmp', '.c4', 'wiki');
 
@@ -221,13 +222,95 @@ function renderRetro(sess, retro, applied, opts = {}) {
   return out.join('\n');
 }
 
+// (Phase 3.4) Optional git automation. When opts.gitCommit is
+// truthy publishMeeting initializes the wiki dir as a git repo (if
+// not already), `git add -A`, and creates a commit referencing the
+// meeting id. opts.gitPush additionally pushes to origin if
+// configured. All best-effort: failure surfaces as `git: <stderr>`
+// in the return shape but never throws.
+function _isGitRepo(dir) {
+  try {
+    const out = spawnSync('git', ['-C', dir, 'rev-parse', '--is-inside-work-tree'], {
+      encoding: 'utf8',
+    });
+    return out.status === 0 && out.stdout.trim() === 'true';
+  } catch { return false; }
+}
+
+function _git(dir, args, opts = {}) {
+  const r = spawnSync('git', ['-C', dir, ...args], {
+    encoding: 'utf8',
+    env: opts.env || process.env,
+  });
+  return {
+    ok: r.status === 0,
+    stdout: (r.stdout || '').trim(),
+    stderr: (r.stderr || '').trim(),
+    code: r.status,
+  };
+}
+
+function _commitWiki(wikiRoot, sess, opts = {}) {
+  const log = [];
+  if (!_isGitRepo(wikiRoot)) {
+    const init = _git(wikiRoot, ['init']);
+    log.push({ step: 'init', ok: init.ok, stderr: init.stderr });
+    if (!init.ok) return { committed: false, log };
+    // Set up identity from the operator's global git if present;
+    // otherwise fall back to a sensible default so commits don't
+    // fail with "please tell me who you are". The fallback only
+    // kicks in for newly-init'd repos — operators with existing
+    // wikis get their normal config.
+    const cfgEmail = _git(wikiRoot, ['config', '--get', 'user.email']);
+    if (!cfgEmail.ok || !cfgEmail.stdout) {
+      _git(wikiRoot, ['config', 'user.email', 'c4-wiki@localhost']);
+    }
+    const cfgName = _git(wikiRoot, ['config', '--get', 'user.name']);
+    if (!cfgName.ok || !cfgName.stdout) {
+      _git(wikiRoot, ['config', 'user.name', 'c4-wiki']);
+    }
+  }
+  const add = _git(wikiRoot, ['add', '-A']);
+  log.push({ step: 'add', ok: add.ok, stderr: add.stderr });
+  if (!add.ok) return { committed: false, log };
+  // Skip commit if working tree is clean — re-publishing the same
+  // meeting twice with no transcript change shouldn't generate a
+  // noise commit.
+  const status = _git(wikiRoot, ['status', '--porcelain']);
+  if (!status.stdout) {
+    log.push({ step: 'commit', ok: true, skipped: 'clean tree' });
+    return { committed: false, log };
+  }
+  const title = (sess.title || sess.task || sess.id).replace(/\n.*$/s, '').slice(0, 72);
+  const msg = `meeting:${sess.id} :: ${title}`;
+  const commit = _git(wikiRoot, ['commit', '-m', msg]);
+  log.push({ step: 'commit', ok: commit.ok, stderr: commit.stderr, message: msg });
+  if (!commit.ok) return { committed: false, log };
+  let pushed = null;
+  if (opts.gitPush) {
+    const push = _git(wikiRoot, ['push']);
+    log.push({ step: 'push', ok: push.ok, stderr: push.stderr });
+    pushed = push.ok;
+  }
+  const head = _git(wikiRoot, ['rev-parse', 'HEAD']);
+  return {
+    committed: true,
+    pushed,
+    sha: head.ok ? head.stdout : null,
+    message: msg,
+    log,
+  };
+}
+
 // Public entrypoint. Returns the list of files written.
 //
 // opts:
-//   wikiRoot   override for default DEFAULT_WIKI_ROOT
-//   retro      result of computeRetroDeltas (optional)
-//   applied    result of applyRetroDeltas (optional)
-//   forceAdr   write ADR even if 'design' stage had no turns
+//   wikiRoot     override for default DEFAULT_WIKI_ROOT
+//   retro        result of computeRetroDeltas (optional)
+//   applied      result of applyRetroDeltas (optional)
+//   forceAdr     write ADR even if 'design' stage had no turns
+//   gitCommit    (Phase 3.4) auto git init+commit after writing
+//   gitPush      (Phase 3.4) also push to origin (requires gitCommit)
 function publishMeeting(sess, opts = {}) {
   const sessJson = (typeof sess.toJSON === 'function') ? sess.toJSON() : sess;
   if (!sessJson || !sessJson.id || !Array.isArray(sessJson.stages)) {
@@ -272,10 +355,17 @@ function publishMeeting(sess, opts = {}) {
     written.push(retroPath);
   }
 
+  let gitInfo = null;
+  if (opts.gitCommit) {
+    try { gitInfo = _commitWiki(wikiRoot, sessJson, { gitPush: !!opts.gitPush }); }
+    catch (err) { gitInfo = { committed: false, error: err.message }; }
+  }
+
   return {
     wikiRoot,
     written,
     meetingPath,
+    git: gitInfo,
   };
 }
 
@@ -287,5 +377,7 @@ module.exports = {
   slugify,
   frontmatter,
   nextAdrNumber,
+  _isGitRepo,
+  _commitWiki,
   DEFAULT_WIKI_ROOT,
 };
