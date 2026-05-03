@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.234] - 2026-05-03
+
+**Multi-Specialist System — Phase 7.4 (Wiki tab in web UI).**
+The wiki search-then-fetch surface from phase 3.2 is now
+operator-clickable in the dashboard. Mirrors `c4 wiki search`
++ `c4 wiki read` exactly so both surfaces stay in parity.
+
+### Added
+- **`web/src/components/WikiView.tsx`** — split-pane card
+  matching MeetingsView's layout. Left: query input + type
+  filter (any / meeting / adr / retro / specialist / docs) +
+  `include stale` checkbox + Search button. Right: page
+  reader with frontmatter pills (type / status /
+  last_reviewed / path) and the body in a monospace pre.
+  Empty-query bootstraps with the daemon's default ranking
+  so the operator sees every page right away.
+- **`web/src/components/layout/TopTabs.tsx`**: `wiki` tab
+  with the lucide `BookOpen` icon, between Meetings and
+  Chat. `TopView` union extended.
+- **`web/src/App.tsx`**: routes `wiki` view to `<WikiView />`.
+
+Suite stays 191 PASS. Web build clean.
+
 ## [1.10.233] - 2026-05-03
 
 **Multi-Specialist System — Phase 7.3 (Run button in

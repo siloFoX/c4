@@ -5,6 +5,7 @@ import ControlPanel from './components/ControlPanel';
 import HistoryView from './components/HistoryView';
 import SessionsView from './components/SessionsView';
 import MeetingsView from './components/MeetingsView';
+import WikiView from './components/WikiView';
 import Chat from './components/Chat';
 import Login from './components/Login';
 import WorkflowEditor from './components/WorkflowEditor';
@@ -182,6 +183,10 @@ export default function App() {
       ) : topView === 'meetings' ? (
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <MeetingsView />
+        </div>
+      ) : topView === 'wiki' ? (
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          <WikiView />
         </div>
       ) : topView === 'chat' ? (
         <div className="flex min-h-0 flex-1 overflow-hidden p-3 md:p-6">
