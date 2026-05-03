@@ -43,6 +43,7 @@ const ROUTE_SUMMARIES = {
   'POST /specialists': 'Add a new specialist to the persistent registry (governance path).',
   'DELETE /specialists/:id': 'Remove a specialist from the persistent registry — idempotent.',
   'POST /specialists/dispatch': 'Preview the dispatcher pick for a task description — no specialists are spawned.',
+  'GET /specialists/underperformers': 'List specialists with sustained negative retro scores in their domains/stages — read-only analysis.',
   'POST /meetings/plan': 'Plan a full multi-stage meeting roster for a task — preview only, no specialists spawned.',
   'POST /meetings': 'Create a MeetingSession from a task — returns the session in pending state.',
   'GET /meetings': 'List all known meetings (optional ?status filter).',
@@ -2616,6 +2617,34 @@ const ROUTE_SCHEMAS = {
         ok: { type: 'boolean' },
         removed: { type: 'boolean' },
         id: { type: 'string' },
+      },
+    },
+  },
+  'GET /specialists/underperformers': {
+    parameters: [
+      { name: 'threshold', in: 'query', schema: { type: 'number', description: 'per-bucket cutoff (default -0.3)' } },
+      { name: 'minSamples', in: 'query', schema: { type: 'integer', description: 'sample-count gate (default 5)' } },
+    ],
+    response: {
+      properties: {
+        total: { type: 'integer' },
+        flagged: { type: 'integer' },
+        threshold: { type: 'number' },
+        minSamples: { type: 'integer' },
+        items: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string' },
+              displayName: { type: 'string' },
+              tier: { type: 'string' },
+              flaggedDomains: { type: 'array', items: { type: 'object' } },
+              flaggedStages: { type: 'array', items: { type: 'object' } },
+              deepestBucket: { type: 'object' },
+              recommendation: { type: 'string' },
+            },
+          },
+        },
       },
     },
   },

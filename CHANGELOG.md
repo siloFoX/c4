@@ -4,6 +4,57 @@
 
 (no entries — next release window)
 
+## [1.10.242] - 2026-05-03
+
+**Multi-Specialist System — Phase 5.1 (Underperformer
+detection).** First slice of the prompt-iterate stack from
+design doc §8.4. Walks the registry, flags specialists whose
+persisted retro signal has stayed negative across enough
+samples that the dispatcher is now actively deprioritizing
+them. Read-only — no automatic prompt mutation. Phase 5.2
+will optionally feed each flagged specialist + recent
+transcripts into a brain to draft a system-prompt revision
+for manual review.
+
+### Added
+- **`src/specialist-prompt-iterate.js`**: pure-analysis
+  module. `analyzeSpecialist(spec, opts)` returns either
+  null (no flagged buckets) or
+  `{id, displayName, tier, flaggedDomains, flaggedStages,
+    deepestBucket, recommendation}`.
+  `detectUnderperformers(registry, opts)` walks the registry,
+  sorts by deepest signal ascending so the worst case is
+  visible first. Defaults: `negativeThreshold=-0.3`,
+  `minSamples=5` (conservative — false positives erode trust
+  faster than missed-marginal cases).
+- **HTTP**: `GET /specialists/underperformers
+  [?threshold=N&minSamples=N]`. Returns
+  `{total, flagged, threshold, minSamples, items}`.
+- **CLI**: `c4 specialist underperformers
+  [--threshold N] [--min-samples N]`.
+- **OpenAPI**: full schema.
+- **Tests**: `tests/specialist-prompt-iterate.test.js`
+  (9 cases) — exports surface, null on no-flag, null on
+  insufficient samples, flag both axes when both cross,
+  deepestBucket selection, custom threshold respected,
+  registry-required error, fresh-seed empty list, sort by
+  deepest score ascending.
+
+### Fixed
+- **`src/daemon.js`**: `/specialists/:id` parametric parser
+  now excludes the reserved `dispatch` and `underperformers`
+  suffixes so they don't get caught by the singleton handler.
+
+End-to-end on the dev daemon:
+```
+$ c4 specialist underperformers --threshold 0.9 --min-samples 3
+1/13 specialist(s) flagged (threshold=0.9, minSamples=3)
+  backend-engineer       deepest=0.88 (domain:backend, n=5)
+    consider tightening systemPrompt for the "backend" domain …
+```
+
+Suite 191 → 192 PASS. Spec lint + drift checker clean.
+
 ## [1.10.241] - 2026-05-03
 
 **Multi-Specialist System — Phase 4.4 (Dispatcher reads

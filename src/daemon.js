@@ -37,6 +37,7 @@ const attachTail = require('./attach-tail');
 const claudeProcessDiscovery = require('./claude-process-discovery');
 const specialistRegistry = require('./specialist-registry');
 const specialistDispatcher = require('./specialist-dispatcher');
+const specialistPromptIterate = require('./specialist-prompt-iterate');
 const meetingPlan = require('./meeting-plan');
 const meetingSession = require('./meeting-session');
 const meetingBrain = require('./meeting-brain');
@@ -763,6 +764,15 @@ async function handleRequest(req, res) {
   {
     const mOne = route.match(/^\/specialists\/([^\/]+)$/);
     if (mOne) specialistParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
+    // Reserved suffixes that look like /:id but are dedicated routes.
+    // Without this, GET /specialists/dispatch (POST in practice) and
+    // GET /specialists/underperformers (5.1) get caught by the
+    // singleton handler.
+    if (specialistParams && (
+      specialistParams.id === 'dispatch' || specialistParams.id === 'underperformers'
+    )) {
+      specialistParams = null;
+    }
   }
 
   // Meeting session path-parameter parser (multi-specialist phase 2.2).
@@ -4825,6 +4835,31 @@ async function handleRequest(req, res) {
       } catch (err) {
         const code = /not found/.test(err.message) ? 404 : 400;
         res.writeHead(code); res.end(JSON.stringify({ error: err.message })); return;
+      }
+
+    } else if (req.method === 'GET' && route === '/specialists/underperformers') {
+      // (multi-specialist phase 5.1) Detect specialists with
+      // sustained negative retro signal in their primary domains.
+      // Read-only — operator decides whether to revise prompts /
+      // remove the specialist. Optional query params:
+      //   threshold=-0.3       per-bucket cutoff (default -0.3)
+      //   minSamples=5         sample-count gate (default 5)
+      const reg = specialistRegistry.getShared();
+      const thresholdRaw = url.searchParams.get('threshold');
+      const minSamplesRaw = url.searchParams.get('minSamples');
+      const opts = {};
+      if (thresholdRaw != null) {
+        const t = parseFloat(thresholdRaw);
+        if (Number.isFinite(t)) opts.negativeThreshold = t;
+      }
+      if (minSamplesRaw != null) {
+        const m = parseInt(minSamplesRaw, 10);
+        if (Number.isFinite(m)) opts.minSamples = m;
+      }
+      try {
+        result = specialistPromptIterate.detectUnderperformers(reg, opts);
+      } catch (err) {
+        res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
       }
 
     } else if (req.method === 'POST' && route === '/specialists/dispatch') {

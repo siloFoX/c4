@@ -2062,8 +2062,8 @@ async function main() {
         //   c4 specialist dispatch "<task>" [--stage X] [--track X] [--cap N]
         //   c4 specialist score [--by-domain D | --by-stage S] [--limit N]
         const sub = (args[0] || 'list').toLowerCase();
-        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove'].includes(sub)) {
-          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove> [args]');
+        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers'].includes(sub)) {
+          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers> [args]');
           process.exit(1);
         }
         if (sub === 'list') {
@@ -2137,6 +2137,31 @@ async function main() {
             }
           }
           console.log(`\n  systemPrompt:\n    ${result.systemPrompt}`);
+          return;
+        }
+        if (sub === 'underperformers') {
+          // c4 specialist underperformers [--threshold N] [--min-samples N]
+          let threshold = null;
+          let minSamples = null;
+          for (let i = 1; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--threshold' && args[i + 1]) { threshold = parseFloat(args[i + 1]); i += 1; }
+            else if (a === '--min-samples' && args[i + 1]) { minSamples = parseInt(args[i + 1], 10); i += 1; }
+          }
+          const qs = new URLSearchParams();
+          if (Number.isFinite(threshold)) qs.set('threshold', String(threshold));
+          if (Number.isFinite(minSamples)) qs.set('minSamples', String(minSamples));
+          const path = qs.toString() ? `/specialists/underperformers?${qs.toString()}` : '/specialists/underperformers';
+          result = await request('GET', path);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`${result.flagged}/${result.total} specialist(s) flagged (threshold=${result.threshold}, minSamples=${result.minSamples})`);
+          for (const it of result.items) {
+            const b = it.deepestBucket;
+            const where = b ? `${b.kind}:${b.name}` : '?';
+            console.log(`  ${it.id.padEnd(22)} deepest=${(b ? b.score : 0).toFixed(2)} (${where}, n=${b ? b.samples : 0})`);
+            console.log(`    ${it.recommendation}`);
+          }
           return;
         }
         if (sub === 'add') {
