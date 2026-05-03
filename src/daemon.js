@@ -42,6 +42,7 @@ const meetingSession = require('./meeting-session');
 const meetingBrain = require('./meeting-brain');
 const meetingOrchestrator = require('./meeting-orchestrator');
 const meetingRetro = require('./meeting-retro');
+const wikiWriter = require('./wiki-writer');
 const autoDispatcherMod = require('./auto-dispatcher');
 const { PinnedMemoryScheduler, DEFAULT_INTERVAL_MS: PIN_DEFAULT_INTERVAL_MS } = require('./pinned-memory-scheduler');
 
@@ -764,7 +765,7 @@ async function handleRequest(req, res) {
   // Meeting session path-parameter parser (multi-specialist phase 2.2).
   let meetingParams = null;
   {
-    const mAct = route.match(/^\/meetings\/([^\/]+)\/(start|contribute|vote|advance|next-round|escalate|abort|transcript|run|retro|finalize)$/);
+    const mAct = route.match(/^\/meetings\/([^\/]+)\/(start|contribute|vote|advance|next-round|escalate|abort|transcript|run|retro|finalize|publish)$/);
     const mOne = route.match(/^\/meetings\/([^\/]+)$/);
     if (mAct) meetingParams = { kind: mAct[2], id: decodeURIComponent(mAct[1]) };
     else if (mOne) meetingParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
@@ -4469,6 +4470,43 @@ async function handleRequest(req, res) {
         sess.escalate(typeof body.reason === 'string' ? body.reason : 'unspecified');
         result = sess.toJSON();
       } catch (err) { res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return; }
+
+    } else if (req.method === 'POST' && meetingParams && meetingParams.kind === 'publish') {
+      // (multi-specialist phase 3.1) Publish a terminal meeting to
+      // the markdown-in-git wiki. Body:
+      //   wikiRoot       optional override (defaults to ~/.c4/wiki)
+      //   includeRetro   if true, compute retro and write retros/...md
+      //   alpha          retro smoothing factor (only used with apply=true)
+      //   apply          if true and includeRetro, also fold deltas
+      //                  into registry score record (same as finalize)
+      const sess = meetingSession.getShared().get(meetingParams.id);
+      if (!sess) { res.writeHead(404); res.end(JSON.stringify({ error: 'Meeting not found', id: meetingParams.id })); return; }
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/meetings/:id/publish', body, res, cfg)) return;
+      try {
+        let retro = null;
+        let applied = null;
+        if (body.includeRetro) {
+          retro = meetingRetro.computeRetroDeltas(sess, {
+            registry: specialistRegistry.getShared(),
+          });
+          if (body.apply) {
+            applied = meetingRetro.applyRetroDeltas(
+              specialistRegistry.getShared(),
+              retro,
+              { alpha: Number.isFinite(body.alpha) ? body.alpha : undefined },
+            );
+          }
+        }
+        const out = wikiWriter.publishMeeting(sess, {
+          wikiRoot: typeof body.wikiRoot === 'string' && body.wikiRoot ? body.wikiRoot : undefined,
+          retro,
+          applied,
+        });
+        result = { ok: true, ...out, retro: retro ? { outcome: retro.outcome, count: Object.keys(retro.deltas).length } : null };
+      } catch (err) {
+        res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
+      }
 
     } else if (req.method === 'POST' && meetingParams && meetingParams.kind === 'retro') {
       // (multi-specialist phase 4.1) Compute retro deltas without

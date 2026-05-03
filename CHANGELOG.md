@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.221] - 2026-05-03
+
+**Multi-Specialist System — Phase 3.1 (Wiki writer).** Publishes
+a terminal `MeetingSession` into the markdown-in-git wiki layout
+described in `docs/multi-specialist-system.md` §9. Default
+location is `~/.c4/wiki` (configurable per call). The reader
+side (search-then-fetch, Reopen action) lands in 3.2 / 3.3.
+
+### Added
+- **`src/wiki-writer.js`** — `publishMeeting(session, opts)`
+  always writes `meetings/<date>-<slug>.md`. Adds
+  `adr/<NNNN>-<slug>.md` when the design stage produced any
+  turn (architect spoke). Adds `retros/<date>-<slug>.md` when
+  the caller passes `retro` (and optional `applied`) deltas.
+  Helper exports: `renderMeeting / renderAdr / renderRetro /
+  slugify / frontmatter / nextAdrNumber`. Frontmatter
+  convention matches §9.3 — title, type, status, track,
+  meetingId, related, last_reviewed.
+- **HTTP**: `POST /meetings/:id/publish` with body
+  `{wikiRoot?, includeRetro?, apply?, alpha?}`. When
+  `includeRetro` is set the route also computes the retro
+  deltas (and folds them into the registry if `apply=true`)
+  before writing pages.
+- **CLI**: `c4 meeting publish <id> [--wiki-root PATH] [--retro]
+  [--apply] [--alpha N]` prints the list of files written and
+  any retro summary.
+- **OpenAPI**: full schema with example.
+- **Tests**: `tests/wiki-writer.test.js` (9 cases) — exports,
+  slugify edge cases (truncation, non-ascii), frontmatter
+  quoting, ADR numbering (empty / missing / sparse), publish
+  on lightweight (meeting only), full-track (meeting + ADR),
+  with retro (3 files), invalid session shape rejection.
+
+End-to-end: `c4 meeting create "fix typo in handler"` →
+`c4 meeting run` → `c4 meeting publish <id> --retro --apply
+--wiki-root /tmp/c4-wiki-demo` produces a structured markdown
+tree under that root with the meeting transcript + retro
+table, ready to commit into the c4-wiki repo.
+
+Suite 187 → 188 PASS. Spec lint + drift checker clean.
+
 ## [1.10.220] - 2026-05-03
 
 **Multi-Specialist System — Phase 4.1 (Per-meeting retro

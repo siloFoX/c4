@@ -2171,7 +2171,7 @@ async function main() {
         //   c4 meeting escalate <id> ["reason"...]
         //   c4 meeting abort <id> ["reason"...]
         const sub = (args[0] || 'plan').toLowerCase();
-        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize'];
+        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish'];
         if (!VALID.includes(sub)) {
           console.error(`Usage: c4 meeting <${VALID.join('|')}> [...]`);
           process.exit(1);
@@ -2363,6 +2363,32 @@ async function main() {
           if (args.includes('--json')) break;
           if (result.error) { console.error(result.error); process.exit(1); }
           console.log(`${sub} → status=${result.status}`);
+          return;
+        }
+        if (sub === 'publish') {
+          // c4 meeting publish <id> [--wiki-root PATH] [--retro] [--apply] [--alpha N]
+          let wikiRoot = null;
+          let includeRetro = false;
+          let apply = false;
+          let alpha = null;
+          for (let i = 2; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--wiki-root' && args[i + 1]) { wikiRoot = args[i + 1]; i += 1; }
+            else if (a === '--retro') { includeRetro = true; }
+            else if (a === '--apply') { apply = true; }
+            else if (a === '--alpha' && args[i + 1]) { alpha = parseFloat(args[i + 1]); i += 1; }
+          }
+          const body = {};
+          if (wikiRoot) body.wikiRoot = wikiRoot;
+          if (includeRetro) body.includeRetro = true;
+          if (apply) body.apply = true;
+          if (Number.isFinite(alpha)) body.alpha = alpha;
+          result = await request('POST', `/meetings/${idEnc}/publish`, body);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`Published to ${result.wikiRoot}`);
+          for (const f of result.written) console.log(`  ${f}`);
+          if (result.retro) console.log(`Retro: outcome=${result.retro.outcome}, ${result.retro.count} specialist(s)`);
           return;
         }
         if (sub === 'retro' || sub === 'finalize') {

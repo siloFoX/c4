@@ -56,6 +56,7 @@ const ROUTE_SUMMARIES = {
   'POST /meetings/:id/run': 'Drive a meeting to completion with a brain provider (phase 2.3 ships mock).',
   'POST /meetings/:id/retro': 'Compute retro score deltas from a terminal meeting — preview only.',
   'POST /meetings/:id/finalize': 'Compute retro deltas AND apply them to the registry score record.',
+  'POST /meetings/:id/publish': 'Publish a terminal meeting as markdown-in-git wiki pages (meeting + ADR + retro).',
   'GET /workflows': 'List defined workflows.',
   'POST /workflows': 'Create a new workflow definition.',
   'GET /openapi.json': 'This document — auto-generated OpenAPI spec.',
@@ -2419,6 +2420,29 @@ const ROUTE_SCHEMAS = {
         ok: { type: 'boolean' },
         retro: { type: 'object' },
         applied: { type: 'object', description: 'Per-specialist before/after score snapshots' },
+      },
+    },
+  },
+  'POST /meetings/:id/publish': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    requestBody: {
+      properties: {
+        wikiRoot: { type: 'string', description: 'Override default ~/.c4/wiki output directory' },
+        includeRetro: { type: 'boolean', description: 'Compute retro deltas and write retros/<date>-<slug>.md' },
+        apply: { type: 'boolean', description: 'When includeRetro=true, also fold deltas into registry score' },
+        alpha: { type: 'number', description: 'Smoothing factor (only used with apply=true)' },
+      },
+      example: { includeRetro: true, apply: false },
+    },
+    response: {
+      properties: {
+        ok: { type: 'boolean' },
+        wikiRoot: { type: 'string' },
+        meetingPath: { type: 'string' },
+        written: { type: 'array', items: { type: 'string' } },
+        retro: { type: 'object', nullable: true },
       },
     },
   },
