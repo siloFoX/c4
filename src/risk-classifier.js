@@ -1507,7 +1507,10 @@ function _denoiseCommand(cmd) {
 
   // Base64 decode hint: if we see `base64 -d` followed by a quoted
   // literal, decode and inline so downstream patterns match.
-  const b64Re = /(?:echo|printf)\s+["']([A-Za-z0-9+/=]{8,})["']\s*\|\s*base64\s+(?:-d|--decode|-D)\b/g;
+  // (v1.10.194) Also handle unquoted bare-token form
+  // `echo PAYLOAD | base64 -d` since attackers omit quotes
+  // when payload chars don't need shell escaping.
+  const b64Re = /(?:echo|printf)\s+["']?([A-Za-z0-9+/=]{8,})["']?\s*\|\s*base64\s+(?:-d|--decode|-D)\b/g;
   out = out.replace(b64Re, (_m, payload) => {
     try {
       const decoded = Buffer.from(payload, 'base64').toString('utf8');

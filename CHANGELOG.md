@@ -4,6 +4,22 @@
 
 (no entries — next release window)
 
+## [1.10.194] - 2026-05-03
+
+**Base64 decoder accepts unquoted payload.** The base64
+denoise step looked for `echo "PAYLOAD" | base64 -d` (with
+quotes around the payload). Attackers omit the quotes when
+the b64 chars don't need shell escaping, e.g. `echo
+cm0gLXJmIC8= | base64 -d | sh`. The unquoted form was
+silent until now.
+
+### Changed
+- **`_denoiseCommand`** base64 decoder regex changed
+  `["']([A-Za-z0-9+/=]{8,})["']` to
+  `["']?([A-Za-z0-9+/=]{8,})["']?` — quotes now optional.
+  Both quoted and unquoted forms decode and surface to the
+  catalog. Existing quoted-form tests still pass.
+
 ## [1.10.193] - 2026-05-03
 
 **`cloud-storage-public` (high) catalog pattern.** Making
