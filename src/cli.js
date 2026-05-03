@@ -2421,10 +2421,55 @@ async function main() {
       }
 
       case 'organism': {
-        // (multi-specialist phase 7.10) One-shot status summary —
-        // useful smoke-check after deploying or before kicking off a
-        // long-running meeting. Pulls /specialists, /meetings,
-        // /wiki/search to count surface area.
+        // (multi-specialist phase 7.10 + 8.6) Status surfaces:
+        //   c4 organism                 single-frame summary
+        //   c4 organism digest [--hours N]  windowed activity log
+        const sub = (args[0] || 'status').toLowerCase();
+        if (sub === 'digest') {
+          // Window defaults to 24h. Pulls audit + meetings + wiki
+          // search and filters by the recency cutoff.
+          let hours = 24;
+          for (let i = 1; i < args.length; i += 1) {
+            if (args[i] === '--hours' && args[i + 1]) { hours = parseInt(args[i + 1], 10); i += 1; }
+          }
+          const cutoffMs = Date.now() - (Number.isFinite(hours) ? hours * 3600 * 1000 : 24 * 3600 * 1000);
+          const [audit, meets] = await Promise.all([
+            request('GET', `/specialists/audit?limit=200`).catch((e) => ({ error: e.message })),
+            request('GET', '/meetings').catch((e) => ({ error: e.message })),
+          ]);
+          if (args.includes('--json')) {
+            result = { hours, cutoff: new Date(cutoffMs).toISOString(), audit, meetings: meets };
+            break;
+          }
+          const auditEntries = (audit && Array.isArray(audit.entries))
+            ? audit.entries.filter((e) => new Date(e.ts).getTime() >= cutoffMs)
+            : [];
+          const meetingsRecent = (meets && Array.isArray(meets.meetings))
+            ? meets.meetings.filter((m) => new Date(m.startedAt || m.createdAt).getTime() >= cutoffMs)
+            : [];
+          console.log(`Organism digest (last ${hours}h, cutoff ${new Date(cutoffMs).toISOString()})`);
+          console.log('');
+          console.log(`Governance events: ${auditEntries.length}`);
+          const byAction = {};
+          for (const e of auditEntries) byAction[e.action] = (byAction[e.action] || 0) + 1;
+          for (const [action, n] of Object.entries(byAction).sort()) {
+            console.log(`  ${action.padEnd(8)} ${n}`);
+          }
+          console.log('');
+          console.log(`Meetings started: ${meetingsRecent.length}`);
+          const byStatus = {};
+          for (const m of meetingsRecent) byStatus[m.status] = (byStatus[m.status] || 0) + 1;
+          for (const [status, n] of Object.entries(byStatus).sort()) {
+            console.log(`  ${status.padEnd(11)} ${n}`);
+          }
+          if (meetingsRecent.length > 0) {
+            console.log('  recent ids:');
+            for (const m of meetingsRecent.slice(-5)) {
+              console.log(`    ${m.id}  ${m.status.padEnd(11)} ${m.title}`);
+            }
+          }
+          return;
+        }
         const [specs, meets] = await Promise.all([
           request('GET', '/specialists').catch((e) => ({ error: e.message })),
           request('GET', '/meetings').catch((e) => ({ error: e.message })),

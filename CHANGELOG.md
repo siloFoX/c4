@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.253] - 2026-05-04
+
+**Multi-Specialist System — Phase 8.6 (Organism digest).**
+End-of-day review surface for the multi-specialist organism.
+`c4 organism digest [--hours N]` summarizes governance events
++ meeting activity within the recency window. Useful for
+operators to skim the day before signing off, and for
+on-call hand-off between shifts.
+
+### Added
+- **`src/cli.js`** `c4 organism digest`: pulls
+  `/specialists/audit?limit=200` + `/meetings` in parallel,
+  filters by `cutoff = now - hours*3600*1000`. Prints
+  governance counts grouped by action, meetings counts
+  grouped by status, and the last 5 meeting ids in window.
+  `--hours N` overrides the default 24-hour window. `--json`
+  returns the raw bag.
+
+End-to-end on the dev daemon:
+```
+$ c4 organism digest --hours 24
+Organism digest (last 24h, cutoff 2026-05-02T15:17:40.841Z)
+Governance events: 2
+  add      1
+  remove   1
+Meetings started: 0
+```
+
+Suite stays 194 PASS.
+
 ## [1.10.252] - 2026-05-04
 
 **Multi-Specialist System — Phase 8.5 (Parameterized
