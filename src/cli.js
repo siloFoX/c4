@@ -983,6 +983,39 @@ async function main() {
           }
         } catch { /* daemon unavailable — already covered by risk check */ }
 
+        // (v1.10.280) Multi-specialist organism health.
+        // Surfaces registry / meeting / score signals so an operator
+        // running c4 doctor sees the organism's state alongside daemon
+        // health. All checks read-only; no mutations.
+        try {
+          const summary = await request('GET', '/specialists/summary');
+          if (summary && summary.registry) {
+            checks.push({
+              ok: summary.registry.count > 0,
+              label: summary.registry.count > 0
+                ? `multi-specialist: ${summary.registry.count} specialist(s) (${summary.registry.vetoCount} veto, ${summary.meetings.total} meetings, ${summary.scores.specialistsWithSamples} scored)`
+                : `multi-specialist: registry empty — seed JSON failed to load`,
+            });
+            // Flag if there are stuck meetings (warn, not fail).
+            try {
+              const stuck = await request('GET', '/meetings/stuck?hours=1');
+              if (stuck && stuck.count > 0) {
+                checks.push({
+                  ok: true, level: 'warn',
+                  label: `multi-specialist: ${stuck.count} meeting(s) stuck >1h — run \`c4 meeting stuck\` to inspect`,
+                });
+              }
+            } catch { /* stuck endpoint may be missing on old daemons */ }
+            // Flag if there are underperformers (warn).
+            if (summary.scores.underperformerCount > 0) {
+              checks.push({
+                ok: true, level: 'warn',
+                label: `multi-specialist: ${summary.scores.underperformerCount} underperformer(s) — run \`c4 specialist underperformers\` to inspect`,
+              });
+            }
+          }
+        } catch { /* summary endpoint may be missing on old daemons */ }
+
         for (const c of checks) {
           const mark = c.ok ? (c.level === 'warn' ? warn : tick) : cross;
           console.log(`  ${mark} ${c.label}`);

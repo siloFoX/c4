@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.280] - 2026-05-04
+
+**Multi-Specialist System — Phase 6.17 (Doctor organism check).**
+`c4 doctor` already covers daemon / config / web-build / OpenAPI /
+risk-classifier health. This phase adds organism-specific checks
+so the operator's first-touch sanity command also surfaces
+multi-specialist state.
+
+### Added
+- **CLI**: `c4 doctor` now queries `/specialists/summary` and
+  reports:
+  - `multi-specialist: N specialist(s) (X veto, Y meetings, Z scored)`
+    — fail when N=0 (registry didn't load).
+  - Warn when `/meetings/stuck?hours=1` returns count > 0:
+    `N meeting(s) stuck >1h — run \`c4 meeting stuck\` to inspect`.
+  - Warn when summary's `underperformerCount > 0`:
+    `N underperformer(s) — run \`c4 specialist underperformers\``.
+- All three checks are wrapped in try/catch — older daemons that
+  predate the summary endpoint don't trip the doctor.
+
+### Notes
+- e2e verified: `c4 doctor` against the live daemon prints
+  `multi-specialist: 13 specialist(s) (2 veto, 0 meetings, 11
+  scored)` alongside the existing checks.
+- Composes with the dashboard trio (summary / stuck / watch-all)
+  shipped earlier this session: doctor surfaces the signals,
+  dashboard CLIs let the operator drill in.
+
 ## [1.10.279] - 2026-05-04
 
 **Multi-Specialist System — Phase 6.16 (CLI watch-all for meetings).**
