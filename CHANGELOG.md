@@ -4,6 +4,71 @@
 
 (no entries — next release window)
 
+## [1.10.215] - 2026-05-03
+
+**Multi-Specialist System — Phase 1 (Registry + Dispatcher).**
+First implementation slice of the multi-specialist organism design
+(see `docs/multi-specialist-system.md`).
+Registry catalog of 13 starter specialists across 8 pipeline tiers
+(meeting · design · implement · review · audit · test · deploy · docs);
+each specialist declares brain (LLM adapter + model + effort),
+triggers (keywords + eligible stages), deliverables, optional
+vetoPower, and a per-domain score record reserved for the phase 4
+retro/feedback loop.
+
+### Added
+- **`src/specialists.seed.json`** — 13 seed specialists per
+  design doc §3.2: pm, architect, ux-designer,
+  backend/frontend/dba/network/low-level engineers, devops-sre
+  (veto), code-reviewer, security-auditor (veto), qa-engineer,
+  tech-writer.
+- **`src/specialist-registry.js`** — `SpecialistRegistry` class
+  with `list / get / has / filter({tier, stage, domain, vetoOnly})
+  / add / remove`. `validateSpecialist` rejects malformed entries
+  on construction so a typo never reaches a meeting.
+- **`src/specialist-dispatcher.js`** — `SpecialistDispatcher.pick({task,
+  stage, track, overrideCap})` returns `{selected, candidates,
+  exploreSlots, ...}` with rule-based scoring (stage match +
+  keyword + domain hits + veto bump on audit/deploy + probation
+  damping). `classifyTrack(task)` infers
+  lightweight/standard/full from task keywords. Exploration
+  budget reserves a configurable share of slots
+  (default 15%) for low-rank specialists so newer entries get a
+  fair shot; reverts to no-op when candidates ≤ cap.
+- **HTTP** (in `src/daemon.js`):
+  - `GET /specialists` — list with `?tier / ?stage / ?domain /
+    ?vetoOnly=1` filters
+  - `GET /specialists/:id` — single fetch (404 on miss)
+  - `POST /specialists/dispatch` — preview the dispatcher pick
+    for a task (no specialists are spawned). Body:
+    `{task, stage?, track?, overrideCap?, explorationRatio?}`.
+- **CLI** (in `src/cli.js`):
+  - `c4 specialist list [--tier X] [--stage X] [--domain X] [--veto-only]`
+  - `c4 specialist describe <id>`
+  - `c4 specialist dispatch "<task>" [--stage X] [--track X] [--cap N]`
+- **OpenAPI** (in `src/openapi-gen.js`): summaries + full request/
+  response schemas for the three new routes.
+- **Tests**:
+  - `tests/specialist-registry.test.js` (14 cases) — exports,
+    seed integrity (13 specialists, every prompt non-empty), veto
+    role lock per design doc §10 (security-auditor + devops-sre),
+    validator rejects bad ids/tiers/stages/domains/deliverables,
+    list/filter defensive copies, governance add/remove.
+  - `tests/specialist-dispatcher.test.js` (18 cases) — track
+    classifier (typo/auth/migration etc.), pick at design/audit
+    stages, cap enforcement, stage filter, keyword bump, veto
+    bump, exploration budget (active when surplus + no-op when
+    not), determinism on tied scores.
+
+End-to-end verified against the live daemon — `c4 specialist
+dispatch "rotate auth secret in production" --stage audit`
+returns `security-auditor (4.00) [veto]` first as expected.
+Suite 180 → 182 PASS. Spec lint + drift checker clean.
+
+Phase 2 (meeting MVP, Layer-A context, circuit breaker, consensus
+policy) and Phase 3 (`c4-wiki` markdown-in-git memory + Reopen)
+land in subsequent ships per the doc §11 roadmap.
+
 ## [1.10.214] - 2026-05-03
 
 **WorkerDetail composer: stop wiping the textbox on send failure

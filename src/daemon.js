@@ -35,6 +35,8 @@ const sessionParser = require('./session-parser');
 const sessionAttach = require('./session-attach');
 const attachTail = require('./attach-tail');
 const claudeProcessDiscovery = require('./claude-process-discovery');
+const specialistRegistry = require('./specialist-registry');
+const specialistDispatcher = require('./specialist-dispatcher');
 const autoDispatcherMod = require('./auto-dispatcher');
 const { PinnedMemoryScheduler, DEFAULT_INTERVAL_MS: PIN_DEFAULT_INTERVAL_MS } = require('./pinned-memory-scheduler');
 
@@ -745,6 +747,13 @@ async function handleRequest(req, res) {
     // /attach/list is covered by the string-compare branch below; the
     // regex would pick it up as a name, so reject that shape here.
     if (attachParams && attachParams.name === 'list') attachParams = null;
+  }
+
+  // Specialist Registry path-parameter parser (multi-specialist phase 1).
+  let specialistParams = null;
+  {
+    const mOne = route.match(/^\/specialists\/([^\/]+)$/);
+    if (mOne) specialistParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
   }
 
   // (10.5) Monthly cost report: GET /cost/monthly/<year>/<month>. Path
@@ -4255,6 +4264,80 @@ async function handleRequest(req, res) {
           multipleCandidates: !!found.multipleCandidates,
           candidatePids: found.candidatePids || undefined,
         };
+      }
+
+    } else if (req.method === 'GET' && route === '/specialists') {
+      // (multi-specialist phase 1) List the registry. Optional query:
+      //   tier=<tier>      filter by pipeline stage tier
+      //   stage=<stage>    filter by triggers.stages match
+      //   domain=<token>   filter by domain tag
+      //   vetoOnly=1       only specialists with vetoPower
+      // Open route — no RBAC gate. The registry is config-shaped data
+      // (no secrets, no PII) and the dispatcher endpoints below already
+      // protect mutations.
+      const reg = specialistRegistry.getShared();
+      const filter = {
+        tier: url.searchParams.get('tier') || undefined,
+        stage: url.searchParams.get('stage') || undefined,
+        domain: url.searchParams.get('domain') || undefined,
+        vetoOnly: url.searchParams.get('vetoOnly') === '1' || undefined,
+      };
+      const list = (filter.tier || filter.stage || filter.domain || filter.vetoOnly)
+        ? reg.filter(filter)
+        : reg.list();
+      result = { count: list.length, version: reg.version, specialists: list };
+
+    } else if (req.method === 'GET' && specialistParams && specialistParams.kind === 'one') {
+      // (multi-specialist phase 1) Fetch a single specialist by id.
+      const reg = specialistRegistry.getShared();
+      const spec = reg.get(specialistParams.id);
+      if (!spec) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Specialist not found', id: specialistParams.id }));
+        return;
+      }
+      result = spec;
+
+    } else if (req.method === 'POST' && route === '/specialists/dispatch') {
+      // (multi-specialist phase 1) Rule-based dispatcher preview.
+      // Body: { task, stage?, track?, overrideCap?, explorationRatio? }
+      // Returns the {selected, candidates, exploreSlots, ...} that the
+      // dispatcher would pick — no specialists are spawned by this
+      // call. Phase 2 will add a sibling /specialists/meeting that
+      // actually fires up the meeting orchestrator.
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/specialists/dispatch', body, res, cfg)) return;
+      const task = typeof body.task === 'string' ? body.task : '';
+      const explicitStage = typeof body.stage === 'string' ? body.stage : null;
+      const explicitTrack = typeof body.track === 'string' ? body.track : null;
+      const overrideCap = Number.isFinite(body.overrideCap) ? body.overrideCap : null;
+      const explorationRatio = Number.isFinite(body.explorationRatio) ? body.explorationRatio : undefined;
+
+      // If no track is supplied use the rule classifier so callers can
+      // exercise the hybrid pipeline with a single round-trip.
+      const track = explicitTrack || specialistDispatcher.classifyTrack(task);
+      // Default stage: first stage of the chosen track. The orchestrator
+      // walks each stage in turn but a one-shot dispatch preview is
+      // most useful for the entry stage.
+      const stages = specialistDispatcher.TRACK_STAGES[track];
+      const stage = explicitStage || (stages && stages[0]) || 'meeting';
+
+      const reg = specialistRegistry.getShared();
+      const dispatcher = new specialistDispatcher.SpecialistDispatcher({
+        registry: reg,
+        explorationRatio,
+      });
+      try {
+        const picked = dispatcher.pick({ task, stage, track, overrideCap });
+        result = {
+          ...picked,
+          inferredTrack: !explicitTrack,
+          inferredStage: !explicitStage,
+        };
+      } catch (err) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: err.message }));
+        return;
       }
 
     } else if (req.method === 'GET' && route === '/fleet/overview') {

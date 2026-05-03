@@ -2055,6 +2055,107 @@ async function main() {
         break;
       }
 
+      case 'specialist': {
+        // (multi-specialist phase 1) Inspect the registry + dispatcher.
+        //   c4 specialist list [--tier X] [--stage X] [--domain X] [--veto-only]
+        //   c4 specialist describe <id>
+        //   c4 specialist dispatch "<task>" [--stage X] [--track X] [--cap N]
+        // No mutations yet — phase 4 will add c4 specialist add/remove/score
+        // through the meeting-consensus governance gate (§3.3).
+        const sub = (args[0] || 'list').toLowerCase();
+        if (!['list', 'describe', 'dispatch'].includes(sub)) {
+          console.error('Usage: c4 specialist <list|describe|dispatch> [args]');
+          process.exit(1);
+        }
+        if (sub === 'list') {
+          const qs = new URLSearchParams();
+          for (let i = 1; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--tier' && args[i + 1]) { qs.set('tier', args[i + 1]); i += 1; }
+            else if (a === '--stage' && args[i + 1]) { qs.set('stage', args[i + 1]); i += 1; }
+            else if (a === '--domain' && args[i + 1]) { qs.set('domain', args[i + 1]); i += 1; }
+            else if (a === '--veto-only') { qs.set('vetoOnly', '1'); }
+          }
+          const path = qs.toString() ? `/specialists?${qs.toString()}` : '/specialists';
+          result = await request('GET', path);
+          if (args.includes('--json')) break;
+          const specs = Array.isArray(result && result.specialists) ? result.specialists : [];
+          console.log(`${specs.length} specialist(s) (registry v${result.version || 0})`);
+          for (const s of specs) {
+            const veto = s.vetoPower ? ' [veto]' : '';
+            const probation = s.probation === 'probation' ? ' [probation]' : '';
+            console.log(`  ${s.id.padEnd(22)} tier=${s.tier.padEnd(10)} brain=${s.brain.adapter}/${s.brain.model || '-'}${veto}${probation}`);
+            console.log(`  ${' '.repeat(22)} domain=${s.domain.join(',')}`);
+          }
+          return;
+        }
+        if (sub === 'describe') {
+          const id = args[1];
+          if (!id) {
+            console.error('Usage: c4 specialist describe <id>');
+            process.exit(1);
+          }
+          result = await request('GET', `/specialists/${encodeURIComponent(id)}`);
+          if (args.includes('--json')) break;
+          if (result.error) {
+            console.error(result.error);
+            process.exit(1);
+          }
+          console.log(`${result.id} — ${result.displayName}`);
+          console.log(`  tier:        ${result.tier}`);
+          console.log(`  domain:      ${result.domain.join(', ')}`);
+          console.log(`  brain:       ${result.brain.adapter} (model=${result.brain.model || '-'}, effort=${result.brain.effort || '-'})`);
+          console.log(`  triggers:    keywords=[${result.triggers.keywords.join(', ')}]`);
+          console.log(`               stages=[${result.triggers.stages.join(', ')}]`);
+          if (result.deliverables.length) console.log(`  deliverables:${result.deliverables.map((d) => `\n               - ${d}`).join('')}`);
+          if (result.vetoPower) console.log(`  vetoPower:   true`);
+          if (result.probation && result.probation !== 'stable') console.log(`  probation:   ${result.probation}`);
+          console.log(`\n  systemPrompt:\n    ${result.systemPrompt}`);
+          return;
+        }
+        if (sub === 'dispatch') {
+          const taskParts = [];
+          let stage = null;
+          let track = null;
+          let cap = null;
+          for (let i = 1; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--stage' && args[i + 1]) { stage = args[i + 1]; i += 1; }
+            else if (a === '--track' && args[i + 1]) { track = args[i + 1]; i += 1; }
+            else if (a === '--cap' && args[i + 1]) { cap = parseInt(args[i + 1], 10); i += 1; }
+            else { taskParts.push(a); }
+          }
+          const task = taskParts.join(' ').trim();
+          if (!task) {
+            console.error('Usage: c4 specialist dispatch "<task description>" [--stage X] [--track X] [--cap N]');
+            process.exit(1);
+          }
+          const body = { task };
+          if (stage) body.stage = stage;
+          if (track) body.track = track;
+          if (Number.isFinite(cap)) body.overrideCap = cap;
+          result = await request('POST', '/specialists/dispatch', body);
+          if (args.includes('--json')) break;
+          if (result.error) {
+            console.error(result.error);
+            process.exit(1);
+          }
+          const inferTags = [
+            result.inferredTrack ? 'track inferred' : null,
+            result.inferredStage ? 'stage inferred' : null,
+          ].filter(Boolean).join(', ');
+          const inferSuffix = inferTags ? ` (${inferTags})` : '';
+          console.log(`Track: ${result.track}  Stage: ${result.stage}  Cap: ${result.cap}  Candidates: ${result.candidates}  Explore: ${result.exploreSlots}${inferSuffix}`);
+          for (const s of result.selected) {
+            const mark = s._picked === 'exploration' ? '✦' : '·';
+            const veto = s.vetoPower ? ' [veto]' : '';
+            console.log(`  ${mark} ${s.id.padEnd(22)} score=${s._score.toFixed(2)}${veto}`);
+          }
+          return;
+        }
+        break;
+      }
+
       case 'events': {
         // (10.9) Scribe v2 structured event log query.
         //   c4 events [--from ISO] [--to ISO] [--type T[,T...]] [--worker W[,W...]]

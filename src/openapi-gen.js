@@ -38,6 +38,9 @@ const ROUTE_SUMMARIES = {
   'GET /attach/list': 'List all attached external sessions.',
   'GET /attach/{name}/tail': 'SSE live tail of an attached session JSONL — emits new turns as they are appended.',
   'GET /attach/{name}/process': 'Locate the running Claude Code process holding the attached JSONL — alive flag + pid/cmdline/cwd if found.',
+  'GET /specialists': 'List the multi-specialist registry — optional ?tier / ?stage / ?domain / ?vetoOnly filters.',
+  'GET /specialists/{id}': 'Fetch a single specialist record by id.',
+  'POST /specialists/dispatch': 'Preview the dispatcher pick for a task description — no specialists are spawned.',
   'GET /workflows': 'List defined workflows.',
   'POST /workflows': 'Create a new workflow definition.',
   'GET /openapi.json': 'This document — auto-generated OpenAPI spec.',
@@ -2112,6 +2115,105 @@ const ROUTE_SCHEMAS = {
           },
         },
         total: { type: 'integer' },
+      },
+    },
+  },
+  'GET /specialists': {
+    parameters: [
+      { name: 'tier', in: 'query', schema: { type: 'string', enum: ['meeting', 'design', 'implement', 'review', 'audit', 'test', 'deploy', 'docs'] } },
+      { name: 'stage', in: 'query', schema: { type: 'string', enum: ['meeting', 'design', 'implement', 'review', 'audit', 'test', 'deploy', 'docs'] } },
+      { name: 'domain', in: 'query', schema: { type: 'string' } },
+      { name: 'vetoOnly', in: 'query', schema: { type: 'string', enum: ['1'] } },
+    ],
+    response: {
+      properties: {
+        count: { type: 'integer' },
+        version: { type: 'integer', description: 'Seed version' },
+        specialists: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string' },
+              displayName: { type: 'string' },
+              tier: { type: 'string' },
+              domain: { type: 'array', items: { type: 'string' } },
+              brain: {
+                properties: {
+                  adapter: { type: 'string', description: 'Existing agent-framework adapter key' },
+                  model: { type: 'string', nullable: true },
+                  effort: { type: 'string', nullable: true },
+                },
+              },
+              systemPrompt: { type: 'string' },
+              triggers: {
+                properties: {
+                  keywords: { type: 'array', items: { type: 'string' } },
+                  stages: { type: 'array', items: { type: 'string' } },
+                },
+              },
+              deliverables: { type: 'array', items: { type: 'string' } },
+              vetoPower: { type: 'boolean' },
+              probation: { type: 'string', enum: ['stable', 'probation'] },
+              score: { type: 'object', description: 'Per-domain / per-stage score record (phase 4)' },
+            },
+          },
+        },
+      },
+    },
+  },
+  'GET /specialists/{id}': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    response: {
+      properties: {
+        id: { type: 'string' },
+        displayName: { type: 'string' },
+        tier: { type: 'string' },
+        domain: { type: 'array', items: { type: 'string' } },
+        brain: { type: 'object' },
+        systemPrompt: { type: 'string' },
+        triggers: { type: 'object' },
+        deliverables: { type: 'array', items: { type: 'string' } },
+        vetoPower: { type: 'boolean' },
+        probation: { type: 'string' },
+        score: { type: 'object' },
+      },
+    },
+  },
+  'POST /specialists/dispatch': {
+    requestBody: {
+      properties: {
+        task: { type: 'string', description: 'Free-text task description used for keyword scoring' },
+        stage: { type: 'string', nullable: true, description: 'Pipeline stage; defaults to first stage of the chosen track' },
+        track: { type: 'string', nullable: true, enum: ['lightweight', 'standard', 'full', null], description: 'When omitted the rule classifier picks based on task keywords' },
+        overrideCap: { type: 'integer', nullable: true, description: 'Override the per-track cap on selected specialists' },
+        explorationRatio: { type: 'number', nullable: true, description: 'Override exploration budget (0..1, default 0.15)' },
+      },
+      example: { task: 'rotate auth secret in production', stage: 'audit', track: 'full' },
+    },
+    response: {
+      properties: {
+        track: { type: 'string' },
+        stage: { type: 'string' },
+        cap: { type: 'integer' },
+        candidates: { type: 'integer', description: 'Eligible specialist count before slicing' },
+        exploreSlots: { type: 'integer' },
+        inferredTrack: { type: 'boolean' },
+        inferredStage: { type: 'boolean' },
+        selected: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string' },
+              displayName: { type: 'string' },
+              tier: { type: 'string' },
+              brain: { type: 'object' },
+              _score: { type: 'number' },
+              _picked: { type: 'string', enum: ['top', 'exploration'] },
+            },
+          },
+        },
       },
     },
   },
