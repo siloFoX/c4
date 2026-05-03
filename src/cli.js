@@ -2866,9 +2866,15 @@ async function main() {
         //   c4 autonomous pause [reason]   stop dispatching until resumed
         //   c4 autonomous resume           clear pause + halt counter
         //   c4 autonomous tick             force a single tick (debug)
+        //   c4 autonomous escalations [--status pending|resolved|all] [--kind X]
+        //                                  list reviewer escalations (8.29)
+        //   c4 autonomous review <id> <approve|reject|modify> [note...]
+        //                                  resolve an escalation (8.29)
+        //   c4 autonomous digest [--window-hours N]
+        //                                  daily review summary (8.29)
         const sub = (args[0] || 'status').toLowerCase();
-        if (!['status', 'pause', 'resume', 'tick'].includes(sub)) {
-          console.error('Usage: c4 autonomous <status|pause|resume|tick> [reason]');
+        if (!['status', 'pause', 'resume', 'tick', 'escalations', 'review', 'digest'].includes(sub)) {
+          console.error('Usage: c4 autonomous <status|pause|resume|tick|escalations|review|digest> [args]');
           process.exit(1);
         }
         if (sub === 'status') {
@@ -2878,8 +2884,88 @@ async function main() {
           result = await request('POST', '/autonomous/pause', { reason });
         } else if (sub === 'resume') {
           result = await request('POST', '/autonomous/resume');
-        } else {
+        } else if (sub === 'tick') {
           result = await request('POST', '/autonomous/tick');
+        } else if (sub === 'escalations') {
+          // (8.29) List reviewer queue
+          const statusIdx = args.indexOf('--status');
+          const kindIdx = args.indexOf('--kind');
+          const params = new URLSearchParams();
+          if (statusIdx >= 0 && args[statusIdx + 1]) params.set('status', args[statusIdx + 1]);
+          if (kindIdx >= 0 && args[kindIdx + 1]) params.set('kind', args[kindIdx + 1]);
+          const qsStr = params.toString();
+          result = await request('GET', '/autonomous/escalations' + (qsStr ? '?' + qsStr : ''));
+          if (result && Array.isArray(result.escalations)) {
+            if (result.escalations.length === 0) {
+              console.log('No escalations.');
+            } else {
+              console.log('Escalations: ' + result.count);
+              for (const e of result.escalations) {
+                const status = e.status === 'pending' ? '[PENDING]' : '[' + e.resolvedAction.toUpperCase() + ']';
+                console.log('  #' + e.id + ' ' + status + ' kind=' + e.kind + ' todo=' + (e.todoId || '(none)'));
+                console.log('    reason: ' + e.reason);
+                if (e.suggestedAction) console.log('    suggested: ' + e.suggestedAction);
+                if (e.resolvedNote) console.log('    note: ' + e.resolvedNote);
+              }
+            }
+          }
+          break;
+        } else if (sub === 'review') {
+          // (8.29) Resolve escalation
+          const id = args[1];
+          const action = args[2];
+          const note = args.slice(3).join(' ');
+          if (!id || !action) {
+            console.error('Usage: c4 autonomous review <id> <approve|reject|modify> [note...]');
+            process.exit(1);
+          }
+          if (!['approve', 'reject', 'modify'].includes(action)) {
+            console.error("Action must be 'approve', 'reject', or 'modify'");
+            process.exit(1);
+          }
+          result = await request('POST', '/autonomous/escalations/' + encodeURIComponent(id), { action, note });
+          if (result && result.error) {
+            console.error('Error: ' + result.error);
+            process.exit(1);
+          }
+          if (result && result.id) {
+            console.log('Escalation #' + result.id + ' resolved: ' + result.resolvedAction);
+            if (result.todoId) console.log('  todo: ' + result.todoId);
+            if (result.resolvedNote) console.log('  note: ' + result.resolvedNote);
+          }
+          break;
+        } else if (sub === 'digest') {
+          // (8.29) Daily digest
+          const hoursIdx = args.indexOf('--window-hours');
+          const params = new URLSearchParams();
+          if (hoursIdx >= 0 && args[hoursIdx + 1]) {
+            const h = parseInt(args[hoursIdx + 1], 10);
+            if (Number.isFinite(h) && h > 0) {
+              params.set('windowMs', String(h * 3600 * 1000));
+            }
+          }
+          const qsStr = params.toString();
+          result = await request('GET', '/autonomous/digest' + (qsStr ? '?' + qsStr : ''));
+          if (result && !result.error) {
+            console.log('Autonomous digest (' + result.from + ' → ' + result.to + ')');
+            console.log('  Status: ' + (result.paused ? 'PAUSED (' + result.pauseReason + ')' : 'running'));
+            console.log('  Dispatched: ' + result.dispatched);
+            console.log('  Succeeded:  ' + result.succeeded);
+            console.log('  Halted:     ' + result.halted);
+            if (result.dispatchErrors > 0) console.log('  Dispatch errors: ' + result.dispatchErrors);
+            if (result.successRate !== null) {
+              console.log('  Success rate: ' + (result.successRate * 100).toFixed(1) + '%');
+            }
+            console.log('  Pending escalations: ' + result.pendingEscalations);
+            console.log('  Resolved (in window): ' + result.resolvedEscalations);
+            if (result.consecutiveHalts > 0) {
+              console.log('  Consecutive halts (current): ' + result.consecutiveHalts);
+            }
+          } else if (result && result.error) {
+            console.error('Error: ' + result.error);
+            process.exit(1);
+          }
+          break;
         }
         if (result && typeof result === 'object') {
           if (result.error) {
@@ -5004,6 +5090,11 @@ Commands:
   quota [tier]                     Show daily tier-based token quota (8.3, manager|mid|worker)
   auto <task>                      Autonomous mode: manager + scribe + task (4.8)
   autonomous <status|pause|resume|tick>  Control the TODO auto-dispatch loop (8.28)
+  autonomous escalations [--status pending|resolved|all] [--kind X]
+                                         List reviewer escalations (8.29)
+  autonomous review <id> <approve|reject|modify> [note...]
+                                         Resolve an escalation (8.29)
+  autonomous digest [--window-hours N]   Daily activity summary for review (8.29)
   morning                          Generate morning report (4.4)
   profiles                         List available permission profiles
   batch "task" --count N           Same task to N workers in parallel

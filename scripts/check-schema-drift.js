@@ -31,6 +31,11 @@ const lines = fs.readFileSync(daemonPath, 'utf8').split('\n');
 // form `req.method === 'X' && (route === '/y' || ...)` — see
 // openapi-gen.js for the same pattern.
 const ROUTE_LINE = /req\.method\s*===\s*'(POST|PUT|PATCH|DELETE|GET)'\s*&&\s*\(?\s*route\s*===\s*'([^']+)'/;
+// Also match parametric forms `req.method === 'X' && route.startsWith('/y/')`
+// — these handlers extract a path parameter (typically :id) from the
+// suffix. The schema uses `/y/:id` while the daemon checks startsWith,
+// so this regex maps the prefix back to the spec key shape.
+const ROUTE_LINE_PARAMETRIC = /req\.method\s*===\s*'(POST|PUT|PATCH|DELETE|GET)'\s*&&\s*route\.startsWith\(\s*'([^']+)'\s*\)/;
 
 // Locate every route's handler line range so we can scope the
 // destructuring + body.<x> extraction to that block only.
@@ -39,6 +44,14 @@ for (let i = 0; i < lines.length; i++) {
   const m = ROUTE_LINE.exec(lines[i]);
   if (m) {
     const key = `${m[1]} ${m[2]}`;
+    if (!routeRanges.has(key)) routeRanges.set(key, { start: i, end: i });
+    continue;
+  }
+  const pm = ROUTE_LINE_PARAMETRIC.exec(lines[i]);
+  if (pm) {
+    // Convert `/foo/bar/` (trailing slash) to spec-style `/foo/bar/:id`.
+    const prefix = pm[2].replace(/\/+$/, '');
+    const key = `${pm[1]} ${prefix}/:id`;
     if (!routeRanges.has(key)) routeRanges.set(key, { start: i, end: i });
   }
 }

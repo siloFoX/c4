@@ -559,6 +559,131 @@ t('parses the in-repo TODO.md and surfaces 8.28 as a known todo', () => {
   assert.ok(ids.includes('8.28'), 'TODO 8.28 must be present');
 });
 
+// --- (8.29) Reviewer lightweight oversight -----------------------------
+
+section('8.29 reviewer escalations');
+
+t('detectSecuritySensitive matches auth/secret/credential keywords', () => {
+  const fn = mod.detectSecuritySensitive;
+  assert.strictEqual(fn('Add new auth endpoint'), 'auth');
+  assert.strictEqual(fn('Rotate secret token'), 'secret');
+  assert.strictEqual(fn('Update RBAC matrix'), 'rbac');
+  assert.strictEqual(fn('Add bot credential cache'), 'credential');
+  assert.strictEqual(fn('Refactor button colors'), null);
+});
+
+t('recordEscalation appends entry with auto-id', () => {
+  const d = new AutoDispatcher({ todoPath: '/x' });
+  const e1 = d.recordEscalation({ todoId: '8.29', reason: 'test', kind: 'general' });
+  const e2 = d.recordEscalation({ todoId: '8.29', reason: 'test2', kind: 'general' });
+  assert.strictEqual(e1.id, 1);
+  assert.strictEqual(e2.id, 2);
+  assert.strictEqual(d.escalations.length, 2);
+  assert.strictEqual(e1.status, 'pending');
+});
+
+t('listEscalations filters by status and kind', () => {
+  const d = new AutoDispatcher({ todoPath: '/x' });
+  d.recordEscalation({ todoId: 'a', kind: 'halt-streak' });
+  d.recordEscalation({ todoId: 'b', kind: 'security-sensitive' });
+  d.resolveEscalation(1, 'approve');
+  const pend = d.listEscalations({ status: 'pending' });
+  assert.strictEqual(pend.length, 1);
+  assert.strictEqual(pend[0].kind, 'security-sensitive');
+  const halt = d.listEscalations({ kind: 'halt-streak' });
+  assert.strictEqual(halt.length, 1);
+  assert.strictEqual(halt[0].status, 'resolved');
+});
+
+t('resolveEscalation marks status resolved with action + note', () => {
+  const d = new AutoDispatcher({ todoPath: '/x' });
+  d.recordEscalation({ todoId: '8.29' });
+  const r = d.resolveEscalation(1, 'reject', 'too risky');
+  assert.strictEqual(r.status, 'resolved');
+  assert.strictEqual(r.resolvedAction, 'reject');
+  assert.strictEqual(r.resolvedNote, 'too risky');
+  // Resolving again is a no-op (returns the already-resolved record)
+  const again = d.resolveEscalation(1, 'approve');
+  assert.strictEqual(again.resolvedAction, 'reject');
+});
+
+t('resolveEscalation returns null for unknown id', () => {
+  const d = new AutoDispatcher({ todoPath: '/x' });
+  assert.strictEqual(d.resolveEscalation(999, 'approve'), null);
+});
+
+t('soft halt threshold emits escalation but does not pause', () => {
+  const d = new AutoDispatcher({
+    todoPath: '/x',
+    softHaltThreshold: 2,
+    circuitThreshold: 3,
+  });
+  d.lastDispatchId = '5.1';
+  d.recordHalt('5.1', 'first halt');
+  assert.strictEqual(d.escalations.length, 0);
+  assert.strictEqual(d.paused, false);
+  d.recordHalt('5.1', 'second halt');
+  assert.strictEqual(d.escalations.length, 1);
+  assert.strictEqual(d.escalations[0].kind, 'halt-streak');
+  assert.strictEqual(d.paused, false);
+  d.recordHalt('5.1', 'third halt');
+  // Still emits escalation? No — third halt hits circuit, pauses
+  assert.strictEqual(d.paused, true);
+});
+
+t('security-sensitive todo escalates, throttles, does not dispatch', async () => {
+  const todo = '| 9.1 | Add auth endpoint | todo | configure new login flow |';
+  let dispatchCalls = 0;
+  const d = new AutoDispatcher({
+    todoPath: '/x',
+    reader: () => todo,
+    dispatch: () => { dispatchCalls++; return { ok: true }; },
+    idleCheck: () => true,
+    throttleMs: 1,
+  });
+  const result = await d.tick();
+  assert.strictEqual(result.skipped, 'security-escalation');
+  assert.strictEqual(result.id, '9.1');
+  assert.strictEqual(result.keyword, 'auth');
+  assert.strictEqual(dispatchCalls, 0);
+  assert.strictEqual(d.listEscalations({ status: 'pending' }).length, 1);
+});
+
+t('digest aggregates dispatch stats over window', () => {
+  const baseTime = 1_700_000_000_000;
+  let now = baseTime;
+  const d = new AutoDispatcher({ todoPath: '/x', clock: () => now });
+  d.lastDispatchId = '1.1';
+  // dispatch + success at t0
+  d._append({ type: 'dispatch', id: '1.1', at: now });
+  d._append({ type: 'success', id: '1.1', at: now });
+  // dispatch + halt at t1 (still in window)
+  now += 1000;
+  d._append({ type: 'dispatch', id: '1.2', at: now });
+  d._append({ type: 'halt', id: '1.2', at: now });
+  // OLD entry outside window
+  const old = baseTime - 25 * 3600 * 1000;
+  d._append({ type: 'dispatch', id: '0.1', at: old });
+  d._append({ type: 'success', id: '0.1', at: old });
+
+  const dig = d.digest();
+  assert.strictEqual(dig.dispatched, 2);
+  assert.strictEqual(dig.succeeded, 1);
+  assert.strictEqual(dig.halted, 1);
+  assert.strictEqual(dig.successRate, 0.5);
+});
+
+t('escalations cap trims oldest entries', () => {
+  const d = new AutoDispatcher({ todoPath: '/x', escalationCap: 3 });
+  for (let i = 0; i < 10; i++) {
+    d.recordEscalation({ todoId: 'x' + i, reason: 'r' });
+  }
+  assert.strictEqual(d.escalations.length, 3);
+  // Tail is preserved; oldest dropped
+  assert.strictEqual(d.escalations[0].id, 8);
+  assert.strictEqual(d.escalations[2].id, 10);
+});
+
 // --- run buffered tests in order --------------------------------------
 
 (async () => {

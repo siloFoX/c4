@@ -4,6 +4,68 @@
 
 (no entries — next release window)
 
+## [1.10.207] - 2026-05-03
+
+**Reviewer lightweight oversight (8.29).** Adds an escalation
+queue + soft-halt threshold + security-sensitive keyword
+detection to `AutoDispatcher`, plus reviewer-facing surfaces
+(HTTP API + CLI + OpenAPI). The autonomous loop already had
+a circuit breaker (8.28); this layer gives a reviewer a
+chance to triage *before* the breaker trips, and pulls
+sensitive todos (auth/secret/credential/etc.) out of the
+auto-dispatch path entirely so a human resolves them.
+
+### Added
+- **`src/auto-dispatcher.js`**:
+  - `detectSecuritySensitive(text)` — substring match on
+    `auth`/`authn`/`authz`/`rbac`/`secret`/`credential`/
+    `token`/`password`/`private key`/`api key`/
+    `permission`/`sudoers`/`shadow`. Exported alongside
+    `SECURITY_SENSITIVE_KEYWORDS`.
+  - `recordEscalation({todoId, kind, reason, ...})` — pushes
+    onto in-memory queue with auto-incrementing id, capped
+    at `DEFAULT_ESCALATION_CAP=50` (oldest evicted).
+  - `listEscalations({status, kind})` — filters by
+    `pending`/`resolved`/`all` and optional kind.
+  - `resolveEscalation(id, action, note)` — idempotent;
+    returns `null` for unknown id, marks `resolved` once.
+  - `digest({windowMs})` — 24h-window aggregate of dispatches,
+    halts, escalations grouped by kind, success rate.
+  - State: `softHaltThreshold` (default 2, must be <
+    `circuitThreshold=3`), `escalations[]`, `_nextEscalationId`.
+  - `recordHalt`: between soft and circuit threshold emits
+    `halt-streak` escalation; circuit threshold still pauses.
+  - `tick()`: after `detectUnsafe`, runs
+    `detectSecuritySensitive` on combined title+body; on
+    match emits `security-sensitive` escalation, sets
+    throttle, returns `{skipped: 'security-escalation'}`.
+    De-dupes on `(todoId, kind)` so same todo doesn't
+    re-emit every cycle.
+- **`src/daemon.js`**:
+  - `GET /autonomous/escalations?status=&kind=` — list
+    escalations with optional filters.
+  - `POST /autonomous/escalations/:id` — body
+    `{action: approve|reject|modify, note?}` to resolve.
+  - `GET /autonomous/digest?windowMs=` — daily summary.
+- **`src/cli.js`** `c4 autonomous`:
+  - `escalations [--status pending|resolved|all] [--kind ...]`
+  - `review <id> <approve|reject|modify> [note...]`
+  - `digest [--window-hours N]`
+- **`src/openapi-gen.js`**: full schemas (parameters,
+  requestBody, response) + curated summary entries for
+  the three new routes, in both registry sections.
+- **`scripts/check-schema-drift.js`**: new
+  `ROUTE_LINE_PARAMETRIC` regex catches
+  `route.startsWith('/foo/bar/')` patterns and maps to
+  spec keys ending in `/:id`. Without this, parametric
+  POST routes failed drift validation.
+- **`tests/auto-dispatch.test.js`**: 9 new `t()` cases
+  under `8.29 reviewer escalations` covering keyword
+  detection, escalation auto-id, list filters, idempotent
+  resolve, soft-halt threshold semantics, security-sensitive
+  tick path, digest aggregates, escalation cap eviction.
+  Suite 54 → 63 cases; full suite stays at 178 PASS.
+
 ## [1.10.206] - 2026-05-03
 
 **`dns-exfil` (critical) catalog pattern.** Attackers encode

@@ -3449,6 +3449,55 @@ async function handleRequest(req, res) {
         result = await autoDispatcher.tick();
       }
 
+    } else if (req.method === 'GET' && route === '/autonomous/escalations') {
+      // (8.29) List reviewer escalations. Optional ?status=pending|resolved
+      // filter; defaults to pending so a reviewer's first call shows the
+      // queue. ?kind=halt-streak|security-sensitive filters by trigger.
+      if (!autoDispatcher) {
+        result = { error: 'autonomous mode not enabled' };
+      } else {
+        const status = url.searchParams.get('status') || 'pending';
+        const kind = url.searchParams.get('kind') || '';
+        const list = autoDispatcher.listEscalations({
+          status: status === 'all' ? null : status,
+          kind: kind || null,
+        });
+        result = { count: list.length, escalations: list };
+      }
+
+    } else if (req.method === 'POST' && route.startsWith('/autonomous/escalations/')) {
+      // (8.29) Resolve an escalation. Body: { action, note? }. Action
+      // is one of 'approve' | 'reject' | 'modify'. Returns updated row
+      // or { error } if id not found / autonomous disabled.
+      if (!autoDispatcher) {
+        result = { error: 'autonomous mode not enabled' };
+      } else {
+        const idStr = route.slice('/autonomous/escalations/'.length).split('/')[0];
+        let body = {};
+        try { body = await parseBody(req); } catch { body = {}; }
+        if (_validateOrFail('POST', '/autonomous/escalations/:id', body, res, cfg)) return;
+        const action = (body && typeof body.action === 'string') ? body.action : 'approve';
+        const note = (body && typeof body.note === 'string') ? body.note : '';
+        const updated = autoDispatcher.resolveEscalation(idStr, action, note);
+        if (!updated) {
+          result = { error: 'escalation not found: ' + idStr };
+        } else {
+          result = updated;
+        }
+      }
+
+    } else if (req.method === 'GET' && route === '/autonomous/digest') {
+      // (8.29) Daily digest — summary of last 24h activity for
+      // morning review. ?windowMs= overrides the default.
+      if (!autoDispatcher) {
+        result = { error: 'autonomous mode not enabled' };
+      } else {
+        const windowMs = parseInt(url.searchParams.get('windowMs') || '0', 10);
+        result = autoDispatcher.digest(
+          Number.isFinite(windowMs) && windowMs > 0 ? { windowMs } : {}
+        );
+      }
+
     } else if (req.method === 'POST' && route === '/scribe/start') {
       result = manager.scribeStart();
 

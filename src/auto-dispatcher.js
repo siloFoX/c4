@@ -184,6 +184,30 @@ function pickNext(todos, options) {
 const DEFAULT_THROTTLE_MS = 5 * 60 * 1000;
 const DEFAULT_CIRCUIT_THRESHOLD = 3;
 const DEFAULT_LOG_CAP = 50;
+// (8.29) Reviewer lightweight oversight — soft threshold below the
+// circuit breaker. After `softHaltThreshold` consecutive halts the
+// dispatcher emits a reviewer escalation but keeps running; only on
+// `circuitThreshold` does it auto-pause. Lets a reviewer triage
+// incidents before full lockout.
+const DEFAULT_SOFT_HALT_THRESHOLD = 2;
+const DEFAULT_ESCALATION_CAP = 50;
+// Security-sensitive keywords that bypass auto-dispatch and require
+// reviewer approval. Detected in todo title + detail + the prompt
+// the dispatcher would send.
+const SECURITY_SENSITIVE_KEYWORDS = Object.freeze([
+  'auth', 'authn', 'authz', 'rbac', 'secret', 'credential',
+  'token', 'password', 'private key', 'api key',
+  'permission', 'sudoers', 'shadow',
+]);
+
+function detectSecuritySensitive(text) {
+  if (typeof text !== 'string' || text.length === 0) return null;
+  const lower = text.toLowerCase();
+  for (const kw of SECURITY_SENSITIVE_KEYWORDS) {
+    if (lower.includes(kw)) return kw;
+  }
+  return null;
+}
 
 class AutoDispatcher {
   constructor(options) {
@@ -214,6 +238,15 @@ class AutoDispatcher {
     this._logCap = Number.isFinite(opts.logCap) && opts.logCap > 0
       ? opts.logCap
       : DEFAULT_LOG_CAP;
+    // (8.29) Reviewer lightweight oversight state.
+    this.softHaltThreshold = Number.isFinite(opts.softHaltThreshold) && opts.softHaltThreshold > 0
+      ? opts.softHaltThreshold
+      : DEFAULT_SOFT_HALT_THRESHOLD;
+    this._escalationCap = Number.isFinite(opts.escalationCap) && opts.escalationCap > 0
+      ? opts.escalationCap
+      : DEFAULT_ESCALATION_CAP;
+    this.escalations = [];
+    this._nextEscalationId = 1;
   }
 
   getStatus() {
@@ -223,6 +256,7 @@ class AutoDispatcher {
       pauseReason: this.pauseReason,
       consecutiveHalts: this.consecutiveHalts,
       circuitThreshold: this.circuitThreshold,
+      softHaltThreshold: this.softHaltThreshold,
       throttleMs: this.throttleMs,
       managerName: this.managerName,
       todoPath: this.todoPath,
@@ -232,6 +266,111 @@ class AutoDispatcher {
       lastDispatchId: this.lastDispatchId,
       lastError: this.lastError,
       recent: this.dispatchLog.slice(-10),
+      // (8.29) Pending reviewer escalations — items waiting for
+      // approve/reject/modify decision.
+      pendingEscalations: this.escalations.filter((e) => e.status === 'pending').length,
+      escalations: this.escalations.slice(-10),
+    };
+  }
+
+  // (8.29) Record a reviewer-attention event without auto-pausing
+  // the dispatcher. Caller passes a reason + suggested action so the
+  // reviewer interface can render context. Returns the escalation
+  // record (with id assigned).
+  recordEscalation(payload) {
+    const p = payload || {};
+    const entry = {
+      id: this._nextEscalationId++,
+      todoId: p.todoId || this.lastDispatchId || null,
+      reason: String(p.reason || 'unspecified'),
+      kind: String(p.kind || 'general'),
+      suggestedAction: String(p.suggestedAction || 'review'),
+      details: p.details && typeof p.details === 'object' ? p.details : {},
+      status: 'pending',
+      createdAt: this._clock(),
+      resolvedAt: null,
+      resolvedAction: null,
+      resolvedNote: null,
+    };
+    this.escalations.push(entry);
+    if (this.escalations.length > this._escalationCap) {
+      this.escalations = this.escalations.slice(-this._escalationCap);
+    }
+    this._emit('auto_dispatch_escalation', {
+      id: entry.id,
+      todoId: entry.todoId,
+      kind: entry.kind,
+      reason: entry.reason,
+      suggestedAction: entry.suggestedAction,
+    });
+    return entry;
+  }
+
+  listEscalations(opts) {
+    const o = opts || {};
+    let list = this.escalations.slice();
+    if (o.status) list = list.filter((e) => e.status === o.status);
+    if (o.kind) list = list.filter((e) => e.kind === o.kind);
+    return list;
+  }
+
+  resolveEscalation(id, action, note) {
+    const numId = Number(id);
+    const idx = this.escalations.findIndex((e) => e.id === numId);
+    if (idx < 0) return null;
+    const e = this.escalations[idx];
+    if (e.status !== 'pending') return e;
+    e.status = 'resolved';
+    e.resolvedAction = String(action || 'approved');
+    e.resolvedNote = note ? String(note) : null;
+    e.resolvedAt = this._clock();
+    this._emit('auto_dispatch_escalation_resolved', {
+      id: e.id,
+      todoId: e.todoId,
+      action: e.resolvedAction,
+    });
+    return e;
+  }
+
+  // (8.29) Daily digest — summary of the last `windowMs` of activity
+  // for reviewer's morning check. Bundles dispatch counts, halts,
+  // success rate, pending escalations.
+  digest(opts) {
+    const o = opts || {};
+    const windowMs = Number.isFinite(o.windowMs) && o.windowMs > 0
+      ? o.windowMs
+      : 24 * 3600 * 1000;
+    const now = this._clock();
+    const since = now - windowMs;
+    const inWindow = (e) => e && typeof e.at === 'number' && e.at >= since;
+
+    const recentLog = this.dispatchLog.filter(inWindow);
+    const dispatched = recentLog.filter((e) => e.type === 'dispatch').length;
+    const succeeded = recentLog.filter((e) => e.type === 'success').length;
+    const halted = recentLog.filter((e) => e.type === 'halt').length;
+    const dispatchErrors = recentLog.filter((e) => e.type === 'dispatch-error').length;
+
+    const pendingEsc = this.escalations.filter((e) => e.status === 'pending');
+    const resolvedEsc = this.escalations.filter(
+      (e) => e.status === 'resolved' && e.resolvedAt && e.resolvedAt >= since
+    );
+
+    return {
+      windowMs,
+      from: new Date(since).toISOString(),
+      to: new Date(now).toISOString(),
+      paused: this.paused,
+      pauseReason: this.pauseReason,
+      dispatched,
+      succeeded,
+      halted,
+      dispatchErrors,
+      successRate: dispatched > 0 ? succeeded / dispatched : null,
+      pendingEscalations: pendingEsc.length,
+      resolvedEscalations: resolvedEsc.length,
+      lastDispatchId: this.lastDispatchId,
+      consecutiveHalts: this.consecutiveHalts,
+      recentEscalations: pendingEsc.slice(-10),
     };
   }
 
@@ -255,12 +394,29 @@ class AutoDispatcher {
   // consecutive halt/rollback events.
   recordHalt(todoId, reason) {
     this.consecutiveHalts += 1;
+    const id = todoId || this.lastDispatchId;
     this._append({
       type: 'halt',
-      id: todoId || this.lastDispatchId,
+      id,
       reason: String(reason || ''),
       at: this._clock(),
     });
+    // (8.29) Soft threshold — emit a reviewer escalation (no pause)
+    // so the reviewer can intervene before the circuit breaker fully
+    // locks the dispatcher.
+    if (
+      this.consecutiveHalts >= this.softHaltThreshold &&
+      this.consecutiveHalts < this.circuitThreshold &&
+      !this.paused
+    ) {
+      this.recordEscalation({
+        todoId: id,
+        kind: 'halt-streak',
+        reason: 'consecutive halts: ' + this.consecutiveHalts,
+        suggestedAction: 'investigate',
+        details: { consecutiveHalts: this.consecutiveHalts, lastReason: String(reason || '') },
+      });
+    }
     if (this.consecutiveHalts >= this.circuitThreshold && !this.paused) {
       this.pause('circuit-breaker: ' + this.consecutiveHalts + ' consecutive halts');
     }
@@ -333,6 +489,30 @@ class AutoDispatcher {
     if (unsafe) {
       this.pause('unsafe-pattern:' + unsafe + ' in ' + next.id);
       return { skipped: 'unsafe-pattern', id: next.id, pattern: unsafe };
+    }
+
+    // (8.29) Security-sensitive todo — escalate to reviewer instead
+    // of auto-dispatching. The dispatcher stays running (other todos
+    // can proceed), but THIS todo is held until reviewer approves.
+    const sensitive = detectSecuritySensitive(combined);
+    if (sensitive) {
+      // De-dupe: don't re-emit if the same todo already has a pending
+      // escalation.
+      const existing = this.escalations.find(
+        (e) => e.todoId === next.id && e.status === 'pending' && e.kind === 'security-sensitive'
+      );
+      if (!existing) {
+        this.recordEscalation({
+          todoId: next.id,
+          kind: 'security-sensitive',
+          reason: 'security keyword detected: ' + sensitive,
+          suggestedAction: 'reviewer-approve-required',
+          details: { keyword: sensitive, title: next.title },
+        });
+      }
+      // Throttle so the same todo doesn't get re-evaluated every tick.
+      this.lastDispatchAt = now;
+      return { skipped: 'security-escalation', id: next.id, keyword: sensitive };
     }
 
     if (!this._dispatch) {
@@ -443,13 +623,16 @@ module.exports = {
   pickNext,
   detectPriority,
   detectUnsafe,
+  detectSecuritySensitive,
   extractDependencies,
   priorityRank,
   compareById,
   buildDispatchPrompt,
   UNSAFE_PATTERNS,
+  SECURITY_SENSITIVE_KEYWORDS,
   STATUS_DONE,
   STATUS_TODO,
   DEFAULT_THROTTLE_MS,
   DEFAULT_CIRCUIT_THRESHOLD,
+  DEFAULT_SOFT_HALT_THRESHOLD,
 };

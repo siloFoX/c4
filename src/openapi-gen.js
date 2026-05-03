@@ -55,6 +55,9 @@ const ROUTE_SUMMARIES = {
   'POST /config/reload': 'Reload config.json from disk; restart sub-systems as needed.',
   'POST /autonomous/pause': 'Pause the TODO auto-dispatch loop (8.28).',
   'POST /autonomous/resume': 'Resume the TODO auto-dispatch loop.',
+  'GET /autonomous/escalations': 'List reviewer escalations awaiting decision (8.29).',
+  'POST /autonomous/escalations/:id': 'Resolve a reviewer escalation: approve / reject / modify (8.29).',
+  'GET /autonomous/digest': 'Daily activity summary for reviewer (8.29).',
   'POST /scribe/start': 'Start a scribe session — record manager context periodically.',
   'POST /scribe/stop': 'Stop the active scribe session.',
   'GET /scribe/status': 'Get scribe session state (active / interval / last record).',
@@ -1057,6 +1060,59 @@ const ROUTE_SCHEMAS = {
   'GET /scribe/status': { response: { properties: { active: { type: 'boolean' }, intervalMs: { type: 'integer' }, lastRecordAt: { type: 'string', nullable: true } } } },
   'POST /autonomous/resume': { response: { properties: { paused: { type: 'boolean' } } } },
   'POST /autonomous/tick': { response: { properties: { dispatched: { type: 'string', nullable: true }, skipped: { type: 'string', nullable: true }, reason: { type: 'string', nullable: true } } } },
+  // (8.29) Reviewer lightweight oversight endpoints
+  'GET /autonomous/escalations': {
+    response: {
+      properties: {
+        count: { type: 'integer' },
+        escalations: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'integer' },
+              todoId: { type: 'string', nullable: true },
+              reason: { type: 'string' },
+              kind: { type: 'string' },
+              suggestedAction: { type: 'string' },
+              status: { type: 'string', enum: ['pending', 'resolved'] },
+              createdAt: { type: 'integer' },
+              resolvedAt: { type: 'integer', nullable: true },
+              resolvedAction: { type: 'string', nullable: true },
+              resolvedNote: { type: 'string', nullable: true },
+            },
+          },
+        },
+      },
+    },
+  },
+  'POST /autonomous/escalations/:id': {
+    response: {
+      properties: {
+        id: { type: 'integer' },
+        status: { type: 'string' },
+        resolvedAction: { type: 'string', nullable: true },
+        resolvedNote: { type: 'string', nullable: true },
+      },
+    },
+  },
+  'GET /autonomous/digest': {
+    response: {
+      properties: {
+        windowMs: { type: 'integer' },
+        from: { type: 'string' },
+        to: { type: 'string' },
+        paused: { type: 'boolean' },
+        dispatched: { type: 'integer' },
+        succeeded: { type: 'integer' },
+        halted: { type: 'integer' },
+        dispatchErrors: { type: 'integer' },
+        successRate: { type: 'number', nullable: true },
+        pendingEscalations: { type: 'integer' },
+        resolvedEscalations: { type: 'integer' },
+      },
+    },
+  },
   'POST /config/reload': { response: { properties: { ok: { type: 'boolean' } } } },
   'GET /config': { response: { properties: { config: { type: 'object', description: 'Sanitised config (secrets stripped)' } } } },
   'GET /templates': {
@@ -1468,6 +1524,77 @@ const ROUTE_SCHEMAS = {
         circuitThreshold: { type: 'integer' },
         lastDispatchId: { type: 'string', nullable: true },
         lastDispatchAt: { type: 'string', nullable: true },
+      },
+    },
+  },
+  // (8.29) Reviewer lightweight oversight endpoints
+  'GET /autonomous/escalations': {
+    parameters: [
+      { name: 'status', in: 'query', schema: { type: 'string', enum: ['pending', 'resolved', 'all'] } },
+      { name: 'kind', in: 'query', schema: { type: 'string' } },
+    ],
+    response: {
+      properties: {
+        count: { type: 'integer' },
+        escalations: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'integer' },
+              todoId: { type: 'string', nullable: true },
+              reason: { type: 'string' },
+              kind: { type: 'string' },
+              suggestedAction: { type: 'string' },
+              status: { type: 'string' },
+              createdAt: { type: 'integer' },
+              resolvedAt: { type: 'integer', nullable: true },
+              resolvedAction: { type: 'string', nullable: true },
+              resolvedNote: { type: 'string', nullable: true },
+            },
+          },
+        },
+      },
+    },
+  },
+  'POST /autonomous/escalations/:id': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    requestBody: {
+      properties: {
+        action: { type: 'string', enum: ['approve', 'reject', 'modify'] },
+        note: { type: 'string', description: 'Optional reviewer note' },
+      },
+      example: { action: 'approve', note: 'reviewed and OK' },
+    },
+    response: {
+      properties: {
+        id: { type: 'integer' },
+        status: { type: 'string' },
+        resolvedAction: { type: 'string', nullable: true },
+        resolvedNote: { type: 'string', nullable: true },
+      },
+    },
+  },
+  'GET /autonomous/digest': {
+    parameters: [
+      { name: 'windowMs', in: 'query', schema: { type: 'integer', description: 'Window in ms (default 24h)' } },
+    ],
+    response: {
+      properties: {
+        windowMs: { type: 'integer' },
+        from: { type: 'string' },
+        to: { type: 'string' },
+        paused: { type: 'boolean' },
+        dispatched: { type: 'integer' },
+        succeeded: { type: 'integer' },
+        halted: { type: 'integer' },
+        dispatchErrors: { type: 'integer' },
+        successRate: { type: 'number', nullable: true },
+        pendingEscalations: { type: 'integer' },
+        resolvedEscalations: { type: 'integer' },
+        consecutiveHalts: { type: 'integer' },
       },
     },
   },
