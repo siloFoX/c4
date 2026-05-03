@@ -49,6 +49,7 @@ const ROUTE_SUMMARIES = {
   'POST /specialists/propose': 'Propose adding a candidate specialist via meeting consensus — accepted only when the meta-meeting hits no objections.',
   'POST /specialists/import': 'Apply a previously-exported bundle (merge | replace, optional dryRun preview).',
   'POST /specialists/:id/suggest-prompt': 'Ask a brain to draft a revised systemPrompt for an underperforming specialist — review-only (never auto-applied).',
+  'POST /specialists/:id/prompt-apply': 'Draft a systemPrompt revision and (on meeting consensus) apply it to the registry — audit log records the meeting id.',
   'POST /meetings/plan': 'Plan a full multi-stage meeting roster for a task — preview only, no specialists spawned.',
   'GET /meetings/templates': 'List meeting templates persisted at ~/.c4/meeting-templates.json.',
   'POST /meetings/templates': 'Create or update a meeting template (upsert by name).',
@@ -2721,6 +2722,47 @@ const ROUTE_SCHEMAS = {
         revision: { type: 'string', nullable: true, description: 'Suggested replacement systemPrompt — null if brain output did not parse' },
         rationale: { type: 'string', nullable: true },
         raw: { type: 'string' },
+      },
+    },
+  },
+  'POST /specialists/:id/prompt-apply': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    requestBody: {
+      properties: {
+        brain: { type: 'string', enum: ['mock', 'claude'] },
+        track: { type: 'string', enum: ['lightweight', 'standard', 'full'] },
+        actor: { type: 'string' },
+        autoApply: { type: 'boolean', description: 'When true (default) and the meeting accepts, registry.updatePrompt() runs with audit reason "revision consensus"' },
+        threshold: { type: 'number', description: 'Override the negative-threshold for analysis' },
+        minSamples: { type: 'integer', description: 'Override the sample-count gate' },
+        askTimeoutMs: { type: 'integer', description: 'Per-ask timeout when brain=claude' },
+      },
+      example: { brain: 'mock' },
+    },
+    response: {
+      properties: {
+        specialistId: { type: 'string' },
+        meetingId: { type: 'string', nullable: true, description: 'Null if the brain produced no parseable revision (no meeting fired)' },
+        decision: {
+          properties: {
+            accepted: { type: 'boolean' },
+            accepts: { type: 'array', items: { type: 'string' } },
+            objects: { type: 'array', items: { type: 'object' } },
+            missing: { type: 'array', items: { type: 'string' } },
+            reason: { type: 'string', nullable: true },
+          },
+        },
+        applied: { type: 'boolean' },
+        suggestion: {
+          properties: {
+            revision: { type: 'string', nullable: true },
+            rationale: { type: 'string', nullable: true },
+            analysis: { type: 'object' },
+          },
+        },
+        sessionStatus: { type: 'string', nullable: true },
       },
     },
   },

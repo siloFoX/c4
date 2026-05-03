@@ -40,6 +40,7 @@ const specialistDispatcher = require('./specialist-dispatcher');
 const specialistPromptIterate = require('./specialist-prompt-iterate');
 const specialistAudit = require('./specialist-audit');
 const specialistProposal = require('./specialist-proposal');
+const specialistPromptApply = require('./specialist-prompt-apply');
 const meetingPlan = require('./meeting-plan');
 const meetingTemplates = require('./meeting-templates');
 const meetingSession = require('./meeting-session');
@@ -765,7 +766,7 @@ async function handleRequest(req, res) {
   // Specialist Registry path-parameter parser (multi-specialist phase 1).
   let specialistParams = null;
   {
-    const mAct = route.match(/^\/specialists\/([^\/]+)\/(suggest-prompt)$/);
+    const mAct = route.match(/^\/specialists\/([^\/]+)\/(suggest-prompt|prompt-apply)$/);
     const mOne = route.match(/^\/specialists\/([^\/]+)$/);
     if (mAct) specialistParams = { kind: mAct[2], id: decodeURIComponent(mAct[1]) };
     else if (mOne) specialistParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
@@ -4977,6 +4978,35 @@ async function handleRequest(req, res) {
           brain,
           negativeThreshold: Number.isFinite(body.threshold) ? body.threshold : undefined,
           minSamples: Number.isFinite(body.minSamples) ? body.minSamples : undefined,
+        });
+      } catch (err) {
+        const code = /not found/.test(err.message) ? 404 : 400;
+        res.writeHead(code); res.end(JSON.stringify({ error: err.message })); return;
+      }
+
+    } else if (req.method === 'POST' && specialistParams && specialistParams.kind === 'prompt-apply') {
+      // (multi-specialist phase 5.2) Auto-apply prompt revision after
+      // meta-meeting consensus. Body:
+      //   brain        'mock' | 'claude' (default 'mock')
+      //   track        'lightweight' | 'standard' | 'full'
+      //   actor        audit-log actor (default 'prompt-apply')
+      //   autoApply    default true — mutate registry on accept
+      //   threshold    override negativeThreshold for analyzer
+      //   minSamples   override sample-count gate
+      //   askTimeoutMs claude per-ask timeout
+      const id = specialistParams.id;
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/specialists/:id/prompt-apply', body, res, cfg)) return;
+      try {
+        result = await specialistPromptApply.applyPromptRevision(id, {
+          registry: specialistRegistry.getShared(),
+          brain: typeof body.brain === 'string' ? body.brain : 'mock',
+          track: typeof body.track === 'string' ? body.track : undefined,
+          actor: typeof body.actor === 'string' ? body.actor : undefined,
+          autoApply: body.autoApply !== false,
+          negativeThreshold: Number.isFinite(body.threshold) ? body.threshold : undefined,
+          minSamples: Number.isFinite(body.minSamples) ? body.minSamples : undefined,
+          askTimeoutMs: Number.isFinite(body.askTimeoutMs) ? body.askTimeoutMs : undefined,
         });
       } catch (err) {
         const code = /not found/.test(err.message) ? 404 : 400;

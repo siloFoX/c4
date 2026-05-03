@@ -2062,8 +2062,8 @@ async function main() {
         //   c4 specialist dispatch "<task>" [--stage X] [--track X] [--cap N]
         //   c4 specialist score [--by-domain D | --by-stage S] [--limit N]
         const sub = (args[0] || 'list').toLowerCase();
-        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt', 'export', 'import', 'audit', 'score-history', 'propose'].includes(sub)) {
-          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt|export|import|audit|score-history|propose> [args]');
+        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt', 'export', 'import', 'audit', 'score-history', 'propose', 'apply-prompt'].includes(sub)) {
+          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt|export|import|audit|score-history|propose|apply-prompt> [args]');
           process.exit(1);
         }
         if (sub === 'list') {
@@ -2331,6 +2331,54 @@ async function main() {
             const where = b ? `${b.kind}:${b.name}` : '?';
             console.log(`  ${it.id.padEnd(22)} deepest=${(b ? b.score : 0).toFixed(2)} (${where}, n=${b ? b.samples : 0})`);
             console.log(`    ${it.recommendation}`);
+          }
+          return;
+        }
+        if (sub === 'apply-prompt') {
+          // c4 specialist apply-prompt <id> [--brain mock|claude]
+          //                            [--track X] [--no-apply]
+          //                            [--threshold N] [--min-samples N]
+          const id = args[1];
+          if (!id) {
+            console.error('Usage: c4 specialist apply-prompt <id> [--brain mock|claude] [--track X] [--no-apply] [--threshold N] [--min-samples N]');
+            process.exit(1);
+          }
+          let brain = 'mock';
+          let track = null;
+          let autoApply = true;
+          let threshold = null;
+          let minSamples = null;
+          for (let i = 2; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--brain' && args[i + 1]) { brain = args[i + 1]; i += 1; }
+            else if (a === '--track' && args[i + 1]) { track = args[i + 1]; i += 1; }
+            else if (a === '--no-apply') { autoApply = false; }
+            else if (a === '--threshold' && args[i + 1]) { threshold = parseFloat(args[i + 1]); i += 1; }
+            else if (a === '--min-samples' && args[i + 1]) { minSamples = parseInt(args[i + 1], 10); i += 1; }
+          }
+          const body = { brain, autoApply };
+          if (track) body.track = track;
+          if (Number.isFinite(threshold)) body.threshold = threshold;
+          if (Number.isFinite(minSamples)) body.minSamples = minSamples;
+          result = await request('POST', `/specialists/${encodeURIComponent(id)}/prompt-apply`, body);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          const d = result.decision || {};
+          if (!result.meetingId) {
+            console.log(`prompt-apply ${result.specialistId}: NO REVISION  reason=${d.reason || '-'}`);
+            return;
+          }
+          console.log(`prompt-apply ${result.specialistId}: ${d.accepted ? 'ACCEPTED' : 'REJECTED'}  meeting=${result.meetingId}  status=${result.sessionStatus}`);
+          console.log(`  accepts: ${(d.accepts || []).join(', ') || '-'}`);
+          if ((d.objects || []).length > 0) {
+            console.log(`  objects: ${d.objects.map((o) => `${o.id}${o.reason ? ` (${o.reason})` : ''}`).join(', ')}`);
+          }
+          if (!d.accepted && d.reason) console.log(`  reason: ${d.reason}`);
+          if (d.accepted && result.applied) console.log(`  systemPrompt updated in registry`);
+          if (d.accepted && !result.applied) console.log(`  NOT applied (autoApply=false or no change)`);
+          if (result.suggestion && result.suggestion.revision) {
+            console.log(`  --- proposed revision ---`);
+            console.log(result.suggestion.revision);
           }
           return;
         }

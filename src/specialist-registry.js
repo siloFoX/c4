@@ -331,6 +331,44 @@ class SpecialistRegistry {
     return this.get(spec.id);
   }
 
+  // Phase 5.2: governance-driven systemPrompt update.
+  // Currently restricted to systemPrompt because that is the only
+  // mutable field §5 (auto-iterate) calls for; widening this surface
+  // requires fresh design (every other field affects dispatch /
+  // routing / persistence semantics).
+  // patch.systemPrompt: required, validated as non-empty string with
+  // a `[Role:` prefix preserved (the meeting orchestrator greps for
+  // it); throws on missing role tag so callers can never silently
+  // strip it.
+  updatePrompt(id, patch, opts = {}) {
+    const spec = this._byId.get(id);
+    if (!spec) throw new Error(`updatePrompt: specialist "${id}" not found`);
+    if (!patch || typeof patch.systemPrompt !== 'string' || patch.systemPrompt.trim() === '') {
+      throw new Error(`updatePrompt: patch.systemPrompt must be a non-empty string`);
+    }
+    const next = patch.systemPrompt.trim();
+    if (!/\[Role:/.test(next)) {
+      throw new Error(`updatePrompt: revised systemPrompt must keep the "[Role: ...]" prefix`);
+    }
+    if (next === spec.systemPrompt) {
+      return { spec, changed: false };
+    }
+    const before = { systemPrompt: spec.systemPrompt };
+    spec.systemPrompt = next;
+    this._maybeAutoSave();
+    if (this._auditLogEnabled !== false) {
+      audit.appendAuditEntry({
+        action: audit.ACTIONS.PROMPT_REVISED,
+        id,
+        actor: opts.actor || null,
+        meetingId: opts.meetingId || null,
+        reason: opts.reason || null,
+        before,
+      }, { auditPath: this._auditPath });
+    }
+    return { spec, changed: true };
+  }
+
   remove(id, opts = {}) {
     const before = this._byId.get(id);
     const removed = this._byId.delete(id);

@@ -25,6 +25,7 @@ const ACTIONS = Object.freeze({
   REMOVE: 'remove',
   IMPORT: 'import',
   SCORE_APPLIED: 'score-applied',
+  PROMPT_REVISED: 'prompt-revised',
 });
 
 function _ensureDir(filePath) {

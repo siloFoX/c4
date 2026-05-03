@@ -4,6 +4,69 @@
 
 (no entries — next release window)
 
+## [1.10.257] - 2026-05-04
+
+**Multi-Specialist System — Phase 5.2 (Auto-apply prompt revision on consensus).**
+The "system prompt auto-iterate" follow-up from §11 of the design
+doc now has its apply path. A meta-meeting reviews the brain's
+draft revision; on consensus without objection the new
+systemPrompt is written to the registry with audit reason
+`revision consensus`. Veto-holders (`security-auditor`, `sre`)
+participate in the standard track-driven roster — their objection
+alone blocks the apply. The previous `suggest-prompt` route
+remains as the review-only path.
+
+### Added
+- **`src/specialist-prompt-apply.js`** (new module):
+  - `applyPromptRevision(specialistId, opts)` — drafts a revision
+    via `suggestPromptRevision`, plans + runs a meta-meeting on
+    the configurable `track` (default `lightweight`), and on
+    accept calls `registry.updatePrompt()` with audit. Returns
+    `{specialistId, meetingId, decision, applied, suggestion,
+    sessionStatus}`. When the brain produces no parseable
+    revision, returns immediately with `applied:false` and no
+    meeting fired.
+  - `_buildRevisionTask(spec, suggestion)` — embeds current
+    prompt + revision + rationale + weak-bucket context + voting
+    hints (`Vote accept` / `Vote object`).
+- **`src/specialist-registry.js`**: `updatePrompt(id, patch, opts)`
+  governance-driven mutation. Restricted to systemPrompt; rejects
+  revisions that strip the `[Role: ...]` prefix or come back
+  empty; idempotent when prompt unchanged. Audit entry uses the
+  new `prompt-revised` action.
+- **`src/specialist-audit.js`**: `ACTIONS.PROMPT_REVISED =
+  'prompt-revised'`.
+- **HTTP**: `POST /specialists/:id/prompt-apply` accepts
+  `{brain, track, autoApply, threshold, minSamples,
+  askTimeoutMs}`. Same envelope as `/prompt-apply` returned by
+  the module.
+- **CLI**: `c4 specialist apply-prompt <id> [--brain X] [--track X]
+  [--no-apply] [--threshold N] [--min-samples N]` reads the
+  decision and prints accept/reject, meeting id, and the proposed
+  revision. Refuses on `not found`.
+- **OpenAPI**: full request/response schema with summary and
+  example payload.
+- **Tests** (`tests/specialist-prompt-apply.test.js`, 8 cases):
+  module-exports surface, `_buildRevisionTask` content shape,
+  unknown-id rejection, mock-brain "no parseable revision" early
+  return, stub-brain consensus accept (registry mutated),
+  `updatePrompt` rejecting `[Role:]`-stripped revisions,
+  `updatePrompt` idempotency on unchanged prompt, and
+  `autoApply:false` no-mutation guarantee.
+
+### Notes
+- The mock brain emits no `REVISION:` block, so production e2e
+  with `--brain mock` always early-returns. Tests inject a stub
+  brain via `BrainProvider` subclass to exercise the full
+  consensus path.
+- `applyPromptRevision` uses the same `_decideFromMeeting`
+  helper as `proposeSpecialist` (Phase 1.5) — same consensus
+  semantics for the same governance gate.
+- The pre-existing `POST /specialists/:id/suggest-prompt` route
+  is unchanged and remains the review-only path. Operators can
+  still call it for a non-binding draft if they prefer manual
+  application via `c4 specialist add`/edit-then-import.
+
 ## [1.10.256] - 2026-05-04
 
 **Multi-Specialist System — Phase 1.5 (Proposal via meeting consensus).**
