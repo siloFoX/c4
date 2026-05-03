@@ -2689,9 +2689,41 @@ async function main() {
         //   c4 wiki reopen <relative-path> [--track X] [--no-follow-related]
         //                                  [--max-related N] [--no-mark]
         const sub = (args[0] || 'search').toLowerCase();
-        if (!['search', 'read', 'reopen'].includes(sub)) {
-          console.error('Usage: c4 wiki <search|read|reopen> [...]');
+        if (!['search', 'read', 'reopen', 'publish-all'].includes(sub)) {
+          console.error('Usage: c4 wiki <search|read|reopen|publish-all> [...]');
           process.exit(1);
+        }
+        if (sub === 'publish-all') {
+          // c4 wiki publish-all [--wiki-root PATH] [--force]
+          //                     [--git-commit] [--git-push]
+          let wikiRoot = null;
+          let force = false;
+          let gitCommit = false;
+          let gitPush = false;
+          for (let i = 1; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--wiki-root' && args[i + 1]) { wikiRoot = args[i + 1]; i += 1; }
+            else if (a === '--force') { force = true; }
+            else if (a === '--git-commit') { gitCommit = true; }
+            else if (a === '--git-push') { gitPush = true; gitCommit = true; }
+          }
+          const body = {};
+          if (wikiRoot) body.wikiRoot = wikiRoot;
+          if (force) body.force = true;
+          if (gitCommit) body.gitCommit = true;
+          if (gitPush) body.gitPush = true;
+          result = await request('POST', '/wiki/publish-all', body);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`published ${result.publishedCount} / skipped ${result.skippedCount}  (${result.wikiRoot})`);
+          for (const p of result.published || []) {
+            console.log(`  + ${p.id}: ${(p.files || []).map((f) => f.replace(result.wikiRoot + '/', '')).join(', ')}`);
+            if (p.git && p.git.committed) console.log(`    git ${p.git.sha ? p.git.sha.slice(0, 7) : '-'} committed${p.git.pushed ? ' + pushed' : ''}`);
+          }
+          for (const s of result.skipped || []) {
+            console.log(`  - ${s.id}: ${s.reason}`);
+          }
+          return;
         }
         if (sub === 'search') {
           let type = 'any';

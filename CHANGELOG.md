@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.10.266] - 2026-05-04
+
+**Multi-Specialist System — Phase 6.7 (Bulk wiki publish).**
+A single command now publishes wiki pages for every terminal
+meeting that doesn't already have one. Idempotent by default;
+operator-friendly when many meetings finished and the
+operator wants the full backlog written to disk in one shot.
+
+### Added
+- **HTTP**: `POST /wiki/publish-all` body `{wikiRoot?, force?,
+  gitCommit?, gitPush?}`. Scans `MeetingStore` for
+  completed/escalated/aborted sessions, probes the writer's
+  derived wiki path, skips when the file already exists (unless
+  `force:true`), and calls `publishMeeting` per meeting. Returns
+  `{wikiRoot, publishedCount, skippedCount, published[],
+  skipped[]}`.
+- **CLI**: `c4 wiki publish-all [--wiki-root PATH] [--force]
+  [--git-commit] [--git-push]`. Prints per-meeting +/- lines and
+  a published/skipped summary.
+- **OpenAPI**: full request/response schema published.
+- **Tests** (`tests/wiki-writer.test.js`): regression guard
+  asserting the daemon-side path derivation matches the
+  writer's. If `wiki-writer.slugify` changes, the daemon would
+  silently re-publish or skip wrong files; this test catches
+  divergence at build time.
+
+### Notes
+- e2e verified end-to-end: empty-store run → `0/0`; one-meeting
+  run → `published 1`; idempotent re-run → `skipped 1 (wiki page
+  already exists)`; `--force` re-publishes the same meeting →
+  `published 1`.
+- `publish-all` does not run retro / finalize implicitly — that
+  affects scores, which is a different decision than "make the
+  wiki page exist". Operators run `c4 meeting finalize <id>`
+  themselves before bulk-publishing if they want retro pages.
+
 ## [1.10.265] - 2026-05-04
 
 **Multi-Specialist System — Phase 6.6 (Track classifier preview).**

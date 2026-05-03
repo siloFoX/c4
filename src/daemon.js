@@ -5072,6 +5072,69 @@ async function handleRequest(req, res) {
         res.writeHead(code); res.end(JSON.stringify({ error: err.message })); return;
       }
 
+    } else if (req.method === 'POST' && route === '/wiki/publish-all') {
+      // (multi-specialist phase 6.7) Bulk publish: scan terminal
+      // meetings (completed / escalated / aborted) and write a wiki
+      // page for any that don't already have one. Body:
+      //   wikiRoot   override default wiki dir
+      //   force      overwrite existing pages (default false)
+      //   gitCommit  forwarded to publishMeeting
+      //   gitPush    forwarded to publishMeeting (implies gitCommit)
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/wiki/publish-all', body, res, cfg)) return;
+      try {
+        const fs2 = require('fs');
+        const path2 = require('path');
+        const wikiRoot = (typeof body.wikiRoot === 'string' && body.wikiRoot)
+          ? body.wikiRoot
+          : wikiWriter.DEFAULT_WIKI_ROOT;
+        const force = !!body.force;
+        const gitCommit = !!body.gitCommit;
+        const gitPush = !!body.gitPush;
+        const all = meetingSession.getShared().list();
+        const TERMINAL = new Set(['completed', 'escalated', 'aborted']);
+        const published = [];
+        const skipped = [];
+        for (const sess of all) {
+          if (!TERMINAL.has(sess.status)) {
+            skipped.push({ id: sess.id, reason: `non-terminal status "${sess.status}"` });
+            continue;
+          }
+          const sessJson = sess.toJSON();
+          // Mirror wiki-writer's path derivation so we can probe
+          // whether the page already exists without a real publish.
+          const date = (sessJson.createdAt || '').slice(0, 10) || 'unknown-date';
+          const titleSrc = sessJson.title || sessJson.task || sessJson.id;
+          const slug = String(titleSrc).toLowerCase()
+            .replace(/[^a-z0-9-\s]+/g, '')
+            .trim()
+            .replace(/\s+/g, '-')
+            .slice(0, 40) || 'meeting';
+          const meetingPath = path2.join(wikiRoot, 'meetings', `${date}-${slug}.md`);
+          if (!force && fs2.existsSync(meetingPath)) {
+            skipped.push({ id: sess.id, reason: 'wiki page already exists' });
+            continue;
+          }
+          try {
+            const r = wikiWriter.publishMeeting(sess, {
+              wikiRoot, gitCommit, gitPush,
+            });
+            published.push({ id: sess.id, files: r.written, git: r.git || null });
+          } catch (err) {
+            skipped.push({ id: sess.id, reason: `publish failed: ${err.message}` });
+          }
+        }
+        result = {
+          wikiRoot,
+          publishedCount: published.length,
+          skippedCount: skipped.length,
+          published,
+          skipped,
+        };
+      } catch (err) {
+        res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
+      }
+
     } else if (req.method === 'POST' && route === '/wiki/read') {
       // (multi-specialist phase 3.2) Fetch a single wiki page body.
       // POST instead of GET because the path is in the body and may

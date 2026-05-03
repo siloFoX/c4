@@ -80,6 +80,7 @@ const ROUTE_SUMMARIES = {
   'POST /meetings/:id/publish': 'Publish a terminal meeting as markdown-in-git wiki pages (meeting + ADR + retro).',
   'GET /wiki/search': 'Search the markdown-in-git wiki (keyword + type + status filters).',
   'POST /wiki/read': 'Fetch a single wiki page body by relative path.',
+  'POST /wiki/publish-all': 'Bulk publish: write a wiki page for every terminal meeting that does not already have one. Idempotent unless ?force=1.',
   'POST /wiki/reopen': 'Re-agenda an existing wiki page — spawns a meeting seeded with the page + related context.',
   'GET /workflows': 'List defined workflows.',
   'POST /workflows': 'Create a new workflow definition.',
@@ -2633,6 +2634,43 @@ const ROUTE_SCHEMAS = {
         type: { type: 'string' },
         total: { type: 'integer' },
         hits: { type: 'array', items: { type: 'object' } },
+      },
+    },
+  },
+  'POST /wiki/publish-all': {
+    requestBody: {
+      properties: {
+        wikiRoot: { type: 'string', nullable: true, description: 'Override the default wiki root' },
+        force: { type: 'boolean', description: 'Overwrite existing pages (default false)' },
+        gitCommit: { type: 'boolean', description: 'Run git add+commit after writes' },
+        gitPush: { type: 'boolean', description: 'Push after commit (implies gitCommit)' },
+      },
+      example: { force: false, gitCommit: false },
+    },
+    response: {
+      properties: {
+        wikiRoot: { type: 'string' },
+        publishedCount: { type: 'integer' },
+        skippedCount: { type: 'integer' },
+        published: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string' },
+              files: { type: 'array', items: { type: 'string' } },
+              git: { type: 'object', nullable: true },
+            },
+          },
+        },
+        skipped: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string' },
+              reason: { type: 'string' },
+            },
+          },
+        },
       },
     },
   },

@@ -150,6 +150,35 @@ t('publishMeeting refuses session shape without id/stages', () => {
   assert.throws(() => publishMeeting({ id: 'x' }, {}), /invalid session/);
 });
 
+t('publishMeeting derives the same wiki path that bulk publish-all probes', async () => {
+  // Regression guard for the path-derivation duplication in
+  // daemon /wiki/publish-all (it computes the meeting page path
+  // locally to skip-or-publish without doing a publish first).
+  // If wiki-writer changes its slug rule, daemon diverges silently.
+  const reg = new SpecialistRegistry({ persistPath: null });
+  const sess = new MeetingSession(planMeeting({
+    task: 'bulk-publish path derivation guard',
+    registry: reg,
+    title: 'Regression Guard With Punctuation!?',
+  }));
+  sess.start();
+  sess.abort('test');
+  const wikiRoot = makeTmp();
+  const r = publishMeeting(sess, { wikiRoot });
+  assert.ok(r.meetingPath);
+  // Replicate the daemon's local derivation and verify it matches.
+  const path = require('path');
+  const date = (sess.toJSON().createdAt || '').slice(0, 10) || 'unknown-date';
+  const titleSrc = sess.plan.title || sess.plan.task || sess.id;
+  const slug = String(titleSrc).toLowerCase()
+    .replace(/[^a-z0-9-\s]+/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .slice(0, 40) || 'meeting';
+  const expected = path.join(wikiRoot, 'meetings', `${date}-${slug}.md`);
+  assert.strictEqual(r.meetingPath, expected, 'daemon-derived path must match writer-derived path');
+});
+
 t('publishMeeting renders Action Items section when transcript carries markers', async () => {
   const reg = new SpecialistRegistry({ persistPath: null });
   const sess = new MeetingSession(planMeeting({ task: 'fix flaky deploy gate', registry: reg }));
