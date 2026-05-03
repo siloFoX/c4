@@ -94,6 +94,13 @@ describe('Sidebar component wires the collapsed mode', () => {
   it('animates the width transition (200ms ease-out)', () => {
     assert.match(src, /transition-\[width\] duration-200 ease-out/);
   });
+
+  // (8.40 follow-up: prefers-reduced-motion respect) Vestibular-
+  // sensitive operators should not see the 200ms slide; the
+  // motion-reduce variant collapses transition to instant.
+  it('respects prefers-reduced-motion via motion-reduce:transition-none', () => {
+    assert.match(src, /motion-reduce:transition-none/);
+  });
 });
 
 // (review fix) Behavioural tests for readSidebarCollapsed —

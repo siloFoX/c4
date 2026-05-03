@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.213] - 2026-05-03
+
+**Two small UX follow-ups: 8.40 reduced-motion + 8.39 empty
+state CTA.**
+
+### Changed
+- **`web/src/components/layout/Sidebar.tsx`**: appended
+  `motion-reduce:transition-none` to the `transition-[width]
+  duration-200 ease-out` chain so vestibular-sensitive
+  operators do not see the 200 ms slide on Ctrl+B / desktop
+  collapse toggle. Snap-to instead — width still changes, the
+  animation just collapses to instant.
+- **`web/src/components/SessionsView.tsx`**: when both the
+  sessions list and the attached list are empty (and we are
+  not still loading), the right-hand pane now renders a
+  proper empty-state card titled *"Start your first
+  conversation"* with two primary CTAs: `Start a new chat`
+  (opens NewChatModal) and `Attach existing` (opens
+  AttachModal). The previous "Select a session to view the
+  conversation." copy still appears when the user has
+  sessions but none selected. ComparisonCard shows in both
+  branches so first-time users still see the attached-vs-live
+  context.
+
+### Added
+- **`tests/sidebar-collapsible.test.js`**: regression assert
+  for `motion-reduce:transition-none` so the reduced-motion
+  contract cannot silently regress.
+
+Suite 180/180 PASS. Web build clean.
+
 ## [1.10.212] - 2026-05-03
 
 **Live-process badge for attached sessions (8.32 slice 4).**

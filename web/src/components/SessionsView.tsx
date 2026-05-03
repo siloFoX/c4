@@ -1344,12 +1344,58 @@ export default function SessionsView() {
             <ComparisonCard className="self-end" />
           </>
         ) : (
-          <Card className="flex flex-1 items-center justify-center border-dashed">
-            <CardContent className="flex flex-col items-center gap-4 p-6 text-center text-sm text-muted-foreground">
-              <span>Select a session to view the conversation.</span>
-              <ComparisonCard />
-            </CardContent>
-          </Card>
+          // (TODO 8.39 step 3) When both sessions list and attached
+          // list are empty, the "select something" copy is wrong —
+          // there is nothing to select. Promote a primary CTA to
+          // start a new chat (the same path NewChatModal opens). When
+          // the user has sessions but none selected, fall through to
+          // the original guidance + comparison card.
+          filteredGroups.length === 0 && filteredAttached.length === 0 && !loading ? (
+            <Card className="flex flex-1 items-center justify-center border-dashed">
+              <CardContent className="flex max-w-md flex-col items-center gap-4 p-6 text-center">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-base font-semibold">
+                    Start your first conversation
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    No sessions yet. Spin up a new chat in this workspace, or
+                    attach an existing Claude Code transcript by JSONL path.
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <Button
+                    onClick={() => {
+                      setNewChatError(null);
+                      setNewChatOpen(true);
+                    }}
+                    aria-label="Start a new chat"
+                  >
+                    <Plus className="h-4 w-4" aria-hidden />
+                    Start a new chat
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setModalError(null);
+                      setModalOpen(true);
+                    }}
+                    aria-label="Attach an existing session"
+                  >
+                    <Plus className="h-4 w-4" aria-hidden />
+                    Attach existing
+                  </Button>
+                </div>
+                <ComparisonCard />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="flex flex-1 items-center justify-center border-dashed">
+              <CardContent className="flex flex-col items-center gap-4 p-6 text-center text-sm text-muted-foreground">
+                <span>Select a session to view the conversation.</span>
+                <ComparisonCard />
+              </CardContent>
+            </Card>
+          )
         )}
       </div>
 
