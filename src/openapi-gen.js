@@ -56,6 +56,7 @@ const ROUTE_SUMMARIES = {
   'POST /meetings': 'Create a MeetingSession from a task — returns the session in pending state.',
   'GET /meetings': 'List all known meetings (optional ?status filter).',
   'GET /meetings/:id': 'Fetch a single meeting (full state JSON).',
+  'DELETE /meetings/:id': 'Drop a meeting from the in-memory store (idempotent; wiki copy untouched).',
   'GET /meetings/:id/transcript': 'Fetch the per-stage transcript for a meeting.',
   'GET /meetings/:id/stream': 'SSE stream of meeting state transitions — snapshot on connect, then one event per state change.',
   'POST /meetings/:id/start': 'Transition a pending meeting to in-progress.',
@@ -2352,6 +2353,18 @@ const ROUTE_SCHEMAS = {
       { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
     ],
     response: { properties: { id: { type: 'string' }, status: { type: 'string' } } },
+  },
+  'DELETE /meetings/:id': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    response: {
+      properties: {
+        ok: { type: 'boolean' },
+        removed: { type: 'boolean' },
+        id: { type: 'string' },
+      },
+    },
   },
   'GET /meetings/:id/transcript': {
     parameters: [

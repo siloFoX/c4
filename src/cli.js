@@ -2593,7 +2593,7 @@ async function main() {
         //   c4 meeting escalate <id> ["reason"...]
         //   c4 meeting abort <id> ["reason"...]
         const sub = (args[0] || 'plan').toLowerCase();
-        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'templates', 'template-add', 'template-remove'];
+        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'templates', 'template-add', 'template-remove', 'prune'];
         if (!VALID.includes(sub)) {
           console.error(`Usage: c4 meeting <${VALID.join('|')}> [...]`);
           process.exit(1);
@@ -2661,6 +2661,35 @@ async function main() {
           if (args.includes('--json')) break;
           if (result.error) { console.error(result.error); process.exit(1); }
           printPlan(result);
+          return;
+        }
+        if (sub === 'prune') {
+          // c4 meeting prune <id>           drop a single meeting
+          // c4 meeting prune --terminal     drop every completed/escalated/aborted
+          let target = null;
+          let terminal = false;
+          for (let i = 1; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--terminal') { terminal = true; }
+            else if (!target && !a.startsWith('--')) { target = a; }
+          }
+          if (terminal) {
+            const list = await request('GET', '/meetings');
+            const drop = (list.meetings || []).filter((m) => ['completed', 'escalated', 'aborted'].includes(m.status));
+            for (const m of drop) {
+              await request('DELETE', `/meetings/${encodeURIComponent(m.id)}`);
+            }
+            console.log(`pruned ${drop.length} terminal meeting(s)`);
+            return;
+          }
+          if (!target) {
+            console.error('Usage: c4 meeting prune <id> | c4 meeting prune --terminal');
+            process.exit(1);
+          }
+          result = await request('DELETE', `/meetings/${encodeURIComponent(target)}`);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(result.removed ? `pruned ${result.id}` : `${result.id} not present`);
           return;
         }
         if (sub === 'templates') {

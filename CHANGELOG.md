@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.250] - 2026-05-03
+
+**Multi-Specialist System — Phase 8.3 (Meeting prune).**
+The MeetingStore is in-memory and grows without bound as
+meetings are created. Operators can now drop terminal entries
+to keep the list tidy. The wiki copy (when published) is
+NOT touched — that's the durable record.
+
+### Added
+- **HTTP**: `DELETE /meetings/:id` — idempotent removal from
+  the in-memory store. Returns `{ok, removed, id}`.
+- **CLI**:
+  - `c4 meeting prune <id>` — drop one.
+  - `c4 meeting prune --terminal` — drop every meeting whose
+    status is `completed` / `escalated` / `aborted`. Walks the
+    list and DELETEs sequentially so partial failures surface
+    cleanly.
+- **OpenAPI**: full schema.
+
+Suite stays 194 PASS. Spec lint + drift checker clean.
+
 ## [1.10.249] - 2026-05-03
 
 **Multi-Specialist System — Phase 8.2 (Templates UI in

@@ -4509,6 +4509,16 @@ async function handleRequest(req, res) {
       }
       result = sess.toJSON();
 
+    } else if (req.method === 'DELETE' && meetingParams && meetingParams.kind === 'one') {
+      // (multi-specialist phase 8.3) Drop a meeting from the
+      // in-memory MeetingStore. Idempotent. Useful for pruning
+      // terminal meetings — the store grows without bound otherwise.
+      // The wiki copy (if published) is NOT touched; operator
+      // intentionally publishes before pruning if they want to keep
+      // the transcript.
+      const removed = meetingSession.getShared().remove(meetingParams.id);
+      result = { ok: true, removed, id: meetingParams.id };
+
     } else if (req.method === 'GET' && meetingParams && meetingParams.kind === 'transcript') {
       // (multi-specialist phase 2.2) Just the per-stage turns.
       const sess = meetingSession.getShared().get(meetingParams.id);
