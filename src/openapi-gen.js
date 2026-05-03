@@ -2207,6 +2207,7 @@ const ROUTE_SCHEMAS = {
   'GET /specialists/:id': {
     parameters: [
       { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+      { name: 'include', in: 'query', schema: { type: 'string', description: 'Comma-list of enrichments: audit, scoreHistory, meetings' } },
     ],
     response: {
       properties: {
@@ -2222,6 +2223,9 @@ const ROUTE_SCHEMAS = {
         vetoPower: { type: 'boolean' },
         probation: { type: 'string' },
         score: { type: 'object' },
+        recentAudit: { type: 'array', items: { type: 'object' }, description: 'Present when ?include=audit. Last 10 audit entries for this id.' },
+        scoreHistory: { type: 'array', items: { type: 'object' }, description: 'Present when ?include=scoreHistory. Last 20 score-applied entries.' },
+        recentMeetings: { type: 'array', items: { type: 'object' }, description: 'Present when ?include=meetings. Up to 10 most recent meetings this specialist participated in.' },
       },
     },
   },

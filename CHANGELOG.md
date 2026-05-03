@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.10.267] - 2026-05-04
+
+**Multi-Specialist System — Phase 6.8 (Specialist describe enrichment).**
+`GET /specialists/:id` now accepts an optional `?include=` query
+that turns the bare-spec response into a one-shot operator
+context view: recent audit entries, score history trace, and
+recent meetings the specialist participated in. Default response
+shape is unchanged — existing callers see no diff.
+
+### Added
+- **HTTP**: `GET /specialists/:id?include=audit,scoreHistory,meetings`
+  toggles three optional fields on the response:
+  - `recentAudit` — last 10 audit entries for this id
+  - `scoreHistory` — last 20 `score-applied` audit entries
+  - `recentMeetings` — up to 10 most recent meetings (sorted by
+    `createdAt` desc) where this specialist appeared in any stage
+    roster
+  Comma-list semantics; unknown tokens silently ignored.
+- **CLI**: `c4 specialist describe <id> [--include
+  audit,scoreHistory,meetings]` — passes the include flag through
+  and prints the corresponding sections after the existing spec
+  body. Sections only render when the response carries them.
+- **OpenAPI**: query parameter + 3 nullable response fields
+  documented.
+
+### Notes
+- e2e verified end-to-end: `c4 specialist describe pm
+  --include audit,meetings` produced full spec + recent-audit
+  list (3 prior `tags-updated` entries from earlier session
+  experiments). Bare `c4 specialist describe pm` still produces
+  the original layout — no enrichment fields rendered.
+- Walking the meeting store is bounded by store size (in-memory,
+  in-process). For high-volume deployments a future phase will
+  switch to a search index, but the current direct walk costs
+  O(stores) which is fine at <1000 meetings.
+
 ## [1.10.266] - 2026-05-04
 
 **Multi-Specialist System — Phase 6.7 (Bulk wiki publish).**

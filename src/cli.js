@@ -2095,10 +2095,20 @@ async function main() {
         if (sub === 'describe') {
           const id = args[1];
           if (!id) {
-            console.error('Usage: c4 specialist describe <id>');
+            console.error('Usage: c4 specialist describe <id> [--include audit,scoreHistory,meetings]');
             process.exit(1);
           }
-          result = await request('GET', `/specialists/${encodeURIComponent(id)}`);
+          const includeParts = [];
+          for (let i = 2; i < args.length; i += 1) {
+            if (args[i] === '--include' && args[i + 1]) {
+              includeParts.push(args[i + 1]);
+              i += 1;
+            }
+          }
+          const qs = includeParts.length > 0
+            ? `?include=${encodeURIComponent(includeParts.join(','))}`
+            : '';
+          result = await request('GET', `/specialists/${encodeURIComponent(id)}${qs}`);
           if (args.includes('--json')) break;
           if (result.error) {
             console.error(result.error);
@@ -2141,6 +2151,33 @@ async function main() {
             }
           }
           console.log(`\n  systemPrompt:\n    ${result.systemPrompt}`);
+          // (phase 6.8) Enrichment sections — only printed when the
+          // operator passed --include for the corresponding key.
+          if (Array.isArray(result.recentAudit) && result.recentAudit.length > 0) {
+            console.log(`\n  recent audit (${result.recentAudit.length}):`);
+            for (const e of result.recentAudit.slice(0, 10)) {
+              const actor = e.actor ? ` by ${e.actor}` : '';
+              const reason = e.reason ? ` — ${e.reason}` : '';
+              console.log(`    ${e.ts}  ${e.action}${actor}${reason}`);
+            }
+          }
+          if (Array.isArray(result.scoreHistory) && result.scoreHistory.length > 0) {
+            console.log(`\n  score history (${result.scoreHistory.length}):`);
+            for (const e of result.scoreHistory.slice(0, 5)) {
+              console.log(`    ${e.ts}  meeting=${e.meetingId || '-'}`);
+              for (const [k, v] of Object.entries(e.domainDeltas || {})) {
+                const before = v.before == null ? '-' : v.before.toFixed(2);
+                const after = v.after == null ? '-' : v.after.toFixed(2);
+                console.log(`      domain:${k.padEnd(16)} ${before} → ${after}`);
+              }
+            }
+          }
+          if (Array.isArray(result.recentMeetings) && result.recentMeetings.length > 0) {
+            console.log(`\n  recent meetings (${result.recentMeetings.length}):`);
+            for (const m of result.recentMeetings) {
+              console.log(`    ${m.id}  status=${m.status}  track=${m.track}  ${m.title}`);
+            }
+          }
           return;
         }
         if (sub === 'suggest-prompt') {

@@ -4351,6 +4351,10 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'GET' && specialistParams && specialistParams.kind === 'one') {
       // (multi-specialist phase 1) Fetch a single specialist by id.
+      // (phase 6.8) ?include=audit,meetings,scoreHistory enriches the
+      // response so operators can see recent governance activity +
+      // participations without separate calls. Defaults stay
+      // bare-spec-only so the existing UI shape is untouched.
       const reg = specialistRegistry.getShared();
       const spec = reg.get(specialistParams.id);
       if (!spec) {
@@ -4358,7 +4362,54 @@ async function handleRequest(req, res) {
         res.end(JSON.stringify({ error: 'Specialist not found', id: specialistParams.id }));
         return;
       }
-      result = spec;
+      const includeRaw = url.searchParams.get('include');
+      if (!includeRaw) {
+        result = spec;
+      } else {
+        const parts = new Set(includeRaw.split(',').map((s) => s.trim()).filter(Boolean));
+        const enriched = { ...spec };
+        if (parts.has('audit')) {
+          try {
+            enriched.recentAudit = specialistAudit.queryAuditEntries({
+              id: specialistParams.id,
+              limit: 10,
+            });
+          } catch { enriched.recentAudit = []; }
+        }
+        if (parts.has('scoreHistory')) {
+          try {
+            enriched.scoreHistory = specialistAudit.queryAuditEntries({
+              id: specialistParams.id,
+              action: 'score-applied',
+              limit: 20,
+            });
+          } catch { enriched.scoreHistory = []; }
+        }
+        if (parts.has('meetings')) {
+          // Walk the in-memory store. Cap result at 10 most recent
+          // (sorted by createdAt desc) to keep response bounded.
+          const all = meetingSession.getShared().list();
+          const matches = [];
+          for (const sess of all) {
+            const stages = (sess.plan && sess.plan.stages) || [];
+            const participated = stages.some((stage) =>
+              (stage.specialists || []).some((sp) => sp.id === specialistParams.id),
+            );
+            if (!participated) continue;
+            matches.push({
+              id: sess.id,
+              status: sess.status,
+              title: sess.plan.title,
+              track: sess.plan.track,
+              createdAt: sess.createdAt,
+              completedAt: sess.completedAt,
+            });
+          }
+          matches.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+          enriched.recentMeetings = matches.slice(0, 10);
+        }
+        result = enriched;
+      }
 
     } else if (req.method === 'POST' && route === '/specialists') {
       // (multi-specialist phase 1.2) Add a specialist to the
