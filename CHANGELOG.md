@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.202] - 2026-05-03
+
+**`interpreter-shell-exec` extended to socket reverse
+shells.** The original rule caught
+`os.system` / `subprocess` / `child_process` / `exec(`
+patterns. The canonical Python/Perl/Ruby reverse-shell
+form uses `socket` + `connect` + `dup2` (or `pty.spawn`)
+instead — these were silent.
+
+### Changed
+- **`interpreter-shell-exec`** regex extended with these
+  socket-reverse-shell markers (when seen inside `-c` /
+  `-e` interpreter invocation):
+  - `socket.socket()`
+  - `Socket ... connect`
+  - `s.connect(`
+  - `dup2(`
+  - `pty.spawn(`
+  Same critical tier. `python script.py`, `python -c
+  "print(...)"` stay LOW.
+
 ## [1.10.201] - 2026-05-03
 
 **`rc-file-write` extended to csh + /etc/skel/.** Added two

