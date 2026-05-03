@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.237] - 2026-05-03
+
+**Multi-Specialist System — Phase 7.7 (Reopen button in
+WikiView).** Closes the loop on phase 3.3's reopen action.
+Operator clicks `Reopen` on any non-reopened wiki page —
+typically an ADR — and the daemon flips the page status to
+`reopened`, stamps `reopened_at`, and spawns a fresh meeting
+seeded with the page + its `related:` neighbours. The list
+pane refreshes so the flipped status badge appears
+immediately, and a toast points at the new meeting id so the
+operator can switch to the Meetings tab and drive the
+follow-up.
+
+### Added
+- **`web/src/components/WikiView.tsx`**: `handleReopen`
+  callback wraps `POST /api/wiki/reopen`, refreshes the page
+  body + the search results so the UI stays in sync. Button
+  renders only when the current page's status is not already
+  `reopened`. Inline message surfaces success ("reopened —
+  meeting m-... (N context seed(s))") in emerald or failure
+  in destructive, with auto-clear after 6 s.
+
+Suite stays 191 PASS. Web build clean.
+
 ## [1.10.236] - 2026-05-03
 
 **Multi-Specialist System — Phase 7.6 (Publish-to-wiki

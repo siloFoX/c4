@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BookOpen, Search } from 'lucide-react';
+import { BookOpen, RotateCcw, Search } from 'lucide-react';
 import { apiGet, apiPost } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
@@ -96,6 +96,41 @@ export default function WikiView() {
     fetchPage();
     return () => { cancelled = true; };
   }, [selectedPath]);
+
+  // Reopen action — POST /api/wiki/reopen flips the page status to
+  // 'reopened' and spawns a new MeetingSession seeded with the page
+  // + related neighbours. We surface a success toast pointing at
+  // the new meeting id, then re-run the search so the flipped
+  // status badge shows up in the list.
+  const [reopenBusy, setReopenBusy] = useState(false);
+  const [reopenMsg, setReopenMsg] = useState<string | null>(null);
+
+  const handleReopen = useCallback(async (relPath: string) => {
+    if (!relPath) return;
+    setReopenBusy(true);
+    setReopenMsg(null);
+    try {
+      const res = await apiPost<{
+        meeting: { id: string; status: string };
+        contextSeeds: Array<{ path: string }>;
+        originalUpdated: boolean;
+      }>('/api/wiki/reopen', { path: relPath });
+      const m = res.meeting;
+      const seeds = (res.contextSeeds || []).length;
+      setReopenMsg(`reopened — meeting ${m.id} (${seeds} context seed(s))`);
+      window.setTimeout(() => setReopenMsg(null), 6000);
+      // Pull the page again so the operator sees the flipped
+      // `status: reopened` frontmatter, then refresh the search
+      // results so the list pane stays in sync.
+      const fresh = await apiPost<ReadResponse>('/api/wiki/read', { path: relPath });
+      setPage(fresh);
+      runSearch();
+    } catch (e) {
+      setReopenMsg(`reopen failed: ${(e as Error).message || 'unknown'}`);
+    } finally {
+      setReopenBusy(false);
+    }
+  }, [runSearch]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 md:flex-row md:p-6">
@@ -197,10 +232,33 @@ export default function WikiView() {
       </Card>
 
       <Card className="flex min-h-0 flex-1 flex-col">
-        <CardHeader className="border-b border-border p-4">
-          <CardTitle className="text-base">
-            {page ? (page.frontmatter.title as string) || page.path : 'Select a page'}
-          </CardTitle>
+        <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
+          <div className="flex flex-row items-center justify-between gap-2">
+            <CardTitle className="text-base">
+              {page ? (page.frontmatter.title as string) || page.path : 'Select a page'}
+            </CardTitle>
+            {page && selectedPath && page.frontmatter.status !== 'reopened' ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleReopen(selectedPath)}
+                disabled={reopenBusy}
+                aria-label="Reopen this decision"
+                title="Spawn a new meeting seeded with this page + its related neighbours"
+              >
+                <RotateCcw className={cn('h-3.5 w-3.5', reopenBusy && 'animate-spin')} aria-hidden />
+                Reopen
+              </Button>
+            ) : null}
+          </div>
+          {reopenMsg ? (
+            <span className={cn(
+              'text-[11px]',
+              reopenMsg.startsWith('reopen failed') ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400',
+            )}>
+              {reopenMsg}
+            </span>
+          ) : null}
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
           {!selectedPath ? (
