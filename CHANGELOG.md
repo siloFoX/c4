@@ -4,6 +4,19 @@
 
 (no entries — next release window)
 
+## [1.10.192] - 2026-05-03
+
+**Backfill unit tests for cloud-tier rules.**
+
+### Added
+- **`tests/risk-classifier.test.js`**: 2 new `it()` cases:
+  - `cloud-iam-tamper` (v1.10.190) — 9 attack shells + 5
+    regression
+  - `cloud-secret-fetch` (v1.10.191) — 6 attack shells + 4
+    regression
+  Suite stays at 178 (full); risk-classifier file 309 → 311
+  cases.
+
 ## [1.10.191] - 2026-05-03
 
 **`cloud-secret-fetch` (high) catalog pattern.** Cloud secret

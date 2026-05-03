@@ -3648,4 +3648,61 @@ describe('classifyCommand v1.10.157+ recent additions', () => {
         `${cmd}: should not match`);
     }
   });
+
+  // (v1.10.192) Backfill tests for cloud rules.
+  it('cloud-iam-tamper: aws iam / gcloud iam / az ad sp create → critical (v1.10.190)', () => {
+    for (const cmd of [
+      'aws iam create-access-key --user-name evil',
+      'aws iam attach-user-policy --user-name evil --policy-arn arn:aws:iam::aws:policy/AdministratorAccess',
+      'aws iam create-user --user-name evil',
+      'aws iam create-login-profile --user-name evil --password X',
+      'aws iam put-user-policy --user-name evil --policy-name x',
+      'gcloud iam service-accounts create evil',
+      'gcloud projects add-iam-policy-binding myproject --member=user:evil --role=roles/owner',
+      'az ad sp create --id myapp',
+      'az role assignment create --assignee evil --role Owner',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'cloud-iam-tamper'),
+        `${cmd}: expected cloud-iam-tamper`);
+    }
+    // read-only forms stay low
+    for (const cmd of [
+      'aws iam list-access-keys',
+      'aws iam get-user',
+      'aws sts get-caller-identity',
+      'gcloud iam service-accounts list',
+      'az ad sp list',
+    ]) {
+      assert.ok(!classifyCommand(cmd).reasons.some((x) => x.code === 'cloud-iam-tamper'),
+        `${cmd}: should not match`);
+    }
+  });
+
+  it('cloud-secret-fetch: secretsmanager / secrets / keyvault retrieval → high (v1.10.191)', () => {
+    for (const cmd of [
+      'aws secretsmanager get-secret-value --secret-id mysecret',
+      'aws ssm get-parameter --name x --with-decryption',
+      'aws ssm get-parameters --names a b --with-decryption',
+      'gcloud secrets versions access latest --secret=mysecret',
+      'az keyvault secret show --name mysecret --vault-name myvault',
+      'az keyvault secret download --name mysecret --vault-name myvault',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'cloud-secret-fetch'),
+        `${cmd}: expected cloud-secret-fetch`);
+    }
+    // listing / read-only stays low
+    for (const cmd of [
+      'aws secretsmanager list-secrets',
+      'gcloud secrets list',
+      'az keyvault list',
+      'az keyvault secret list --vault-name myvault',
+    ]) {
+      assert.ok(!classifyCommand(cmd).reasons.some((x) => x.code === 'cloud-secret-fetch'),
+        `${cmd}: should not match`);
+    }
+  });
 });
