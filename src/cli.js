@@ -2062,8 +2062,8 @@ async function main() {
         //   c4 specialist dispatch "<task>" [--stage X] [--track X] [--cap N]
         //   c4 specialist score [--by-domain D | --by-stage S] [--limit N]
         const sub = (args[0] || 'list').toLowerCase();
-        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt', 'export', 'import'].includes(sub)) {
-          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt|export|import> [args]');
+        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt', 'export', 'import', 'audit'].includes(sub)) {
+          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt|export|import|audit> [args]');
           process.exit(1);
         }
         if (sub === 'list') {
@@ -2179,6 +2179,41 @@ async function main() {
             console.log(result.rationale);
           }
           console.log('\nReview-only — apply manually by editing src/specialists.seed.json.');
+          return;
+        }
+        if (sub === 'audit') {
+          // c4 specialist audit [--action add|remove|import] [--actor X] [--id X] [--limit N]
+          let action = null;
+          let actor = null;
+          let id = null;
+          let limit = 50;
+          for (let i = 1; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--action' && args[i + 1]) { action = args[i + 1]; i += 1; }
+            else if (a === '--actor' && args[i + 1]) { actor = args[i + 1]; i += 1; }
+            else if (a === '--id' && args[i + 1]) { id = args[i + 1]; i += 1; }
+            else if (a === '--limit' && args[i + 1]) { limit = parseInt(args[i + 1], 10); i += 1; }
+          }
+          const qs = new URLSearchParams();
+          if (action) qs.set('action', action);
+          if (actor) qs.set('actor', actor);
+          if (id) qs.set('id', id);
+          if (Number.isFinite(limit)) qs.set('limit', String(limit));
+          const path = qs.toString() ? `/specialists/audit?${qs.toString()}` : '/specialists/audit';
+          result = await request('GET', path);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`${result.count} audit entry(ies)`);
+          for (const e of result.entries) {
+            const tag = e.action.padEnd(8);
+            const id = (e.id || '-').padEnd(22);
+            const actor = e.actor || '-';
+            const extra = e.action === 'import'
+              ? ` mode=${e.mode}  +${(e.added || []).length} ~${(e.updated || []).length} -${(e.removed || []).length}`
+              : '';
+            console.log(`  ${e.ts}  ${tag}  ${id}  by ${actor}${extra}`);
+            if (e.reason) console.log(`    reason: ${e.reason}`);
+          }
           return;
         }
         if (sub === 'export') {

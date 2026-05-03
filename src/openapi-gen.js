@@ -45,6 +45,7 @@ const ROUTE_SUMMARIES = {
   'POST /specialists/dispatch': 'Preview the dispatcher pick for a task description — no specialists are spawned.',
   'GET /specialists/underperformers': 'List specialists with sustained negative retro scores in their domains/stages — read-only analysis.',
   'GET /specialists/export': 'Bulk export of the registry as a self-contained bundle suitable for /specialists/import.',
+  'GET /specialists/audit': 'Append-only governance audit log — every add/remove/import event with optional filters.',
   'POST /specialists/import': 'Apply a previously-exported bundle (merge | replace, optional dryRun preview).',
   'POST /specialists/:id/suggest-prompt': 'Ask a brain to draft a revised systemPrompt for an underperforming specialist — review-only (never auto-applied).',
   'POST /meetings/plan': 'Plan a full multi-stage meeting roster for a task — preview only, no specialists spawned.',
@@ -2644,6 +2645,38 @@ const ROUTE_SCHEMAS = {
         revision: { type: 'string', nullable: true, description: 'Suggested replacement systemPrompt — null if brain output did not parse' },
         rationale: { type: 'string', nullable: true },
         raw: { type: 'string' },
+      },
+    },
+  },
+  'GET /specialists/audit': {
+    parameters: [
+      { name: 'action', in: 'query', schema: { type: 'string', enum: ['add', 'remove', 'import', 'score-applied'] } },
+      { name: 'actor', in: 'query', schema: { type: 'string' } },
+      { name: 'id', in: 'query', schema: { type: 'string', description: 'Filter by specialist id' } },
+      { name: 'limit', in: 'query', schema: { type: 'integer', description: 'Max entries (default 100)' } },
+    ],
+    response: {
+      properties: {
+        count: { type: 'integer' },
+        entries: {
+          type: 'array',
+          items: {
+            properties: {
+              ts: { type: 'string' },
+              action: { type: 'string' },
+              id: { type: 'string', nullable: true },
+              actor: { type: 'string', nullable: true },
+              meetingId: { type: 'string', nullable: true },
+              reason: { type: 'string', nullable: true },
+              before: { type: 'object', nullable: true },
+              mode: { type: 'string', nullable: true, description: 'For import entries' },
+              added: { type: 'array', items: { type: 'string' }, nullable: true },
+              updated: { type: 'array', items: { type: 'string' }, nullable: true },
+              removed: { type: 'array', items: { type: 'string' }, nullable: true },
+              errorsCount: { type: 'integer', nullable: true },
+            },
+          },
+        },
       },
     },
   },

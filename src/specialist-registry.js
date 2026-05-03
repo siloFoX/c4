@@ -22,6 +22,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const audit = require('./specialist-audit');
 
 const VALID_TIERS = Object.freeze([
   'meeting', 'design', 'implement', 'review', 'audit', 'test', 'deploy', 'docs',
@@ -158,6 +159,27 @@ class SpecialistRegistry {
       ? (opts.persistPath || null)
       : (opts.persistPath === undefined ? DEFAULT_PERSIST_PATH : (opts.persistPath || null));
     this._autoSave = opts.autoSave !== false;
+    // Phase 1.4 audit log. Default-derive from persistPath so:
+    //   - Real daemon (persistPath = ~/.c4/specialists.json) →
+    //     auditPath = ~/.c4/specialist-audit.jsonl (sibling file).
+    //   - Tests passing custom persistPath like /tmp/.../specialists.json →
+    //     auditPath = /tmp/.../specialist-audit.jsonl (still siblings,
+    //     stays inside the test fixture dir, no real-log pollution).
+    //   - Inline construction (specialists array) or persistPath: null →
+    //     auditPath = null (audit disabled).
+    // Operators who want a separate audit location pass auditPath
+    // explicitly.
+    if (opts.auditPath !== undefined) {
+      this._auditPath = opts.auditPath || null;
+    } else if (this._persistPath === DEFAULT_PERSIST_PATH) {
+      this._auditPath = audit.DEFAULT_AUDIT_PATH;
+    } else if (this._persistPath) {
+      // Sibling-file convention: <dir>/specialist-audit.jsonl
+      this._auditPath = path.join(path.dirname(this._persistPath), 'specialist-audit.jsonl');
+    } else {
+      this._auditPath = null;
+    }
+    this._auditLogEnabled = !!this._auditPath;
 
     if (opts.specialists) {
       // Tests + governance call sites can build an in-memory registry
@@ -288,20 +310,48 @@ class SpecialistRegistry {
     return out;
   }
 
-  // §3.3 governance — auto-saves when configured with a persistPath.
-  add(spec) {
+  // §3.3 governance — auto-saves when configured with a persistPath
+  // and writes an audit entry per design doc §3.3.
+  add(spec, opts = {}) {
     validateSpecialist(spec, `add[${spec && spec.id}]`);
     if (this._byId.has(spec.id)) {
       throw new Error(`specialist "${spec.id}" already exists`);
     }
     this._byId.set(spec.id, normalizeSpecialist(spec));
     this._maybeAutoSave();
+    if (this._auditLogEnabled !== false) {
+      audit.appendAuditEntry({
+        action: audit.ACTIONS.ADD,
+        id: spec.id,
+        actor: opts.actor || null,
+        meetingId: opts.meetingId || null,
+        reason: opts.reason || null,
+      }, { auditPath: this._auditPath });
+    }
     return this.get(spec.id);
   }
 
-  remove(id) {
+  remove(id, opts = {}) {
+    const before = this._byId.get(id);
     const removed = this._byId.delete(id);
-    if (removed) this._maybeAutoSave();
+    if (removed) {
+      this._maybeAutoSave();
+      if (this._auditLogEnabled !== false) {
+        audit.appendAuditEntry({
+          action: audit.ACTIONS.REMOVE,
+          id,
+          actor: opts.actor || null,
+          meetingId: opts.meetingId || null,
+          reason: opts.reason || null,
+          before: before ? {
+            tier: before.tier,
+            domain: before.domain,
+            vetoPower: before.vetoPower,
+            score: before.score,
+          } : null,
+        }, { auditPath: this._auditPath });
+      }
+    }
     return removed;
   }
 
@@ -385,6 +435,18 @@ class SpecialistRegistry {
     }
 
     if (!dryRun) this._maybeAutoSave();
+    if (!dryRun && this._auditLogEnabled !== false) {
+      audit.appendAuditEntry({
+        action: audit.ACTIONS.IMPORT,
+        actor: opts.actor || null,
+        meetingId: opts.meetingId || null,
+        mode,
+        added: stats.added,
+        updated: stats.updated,
+        removed: stats.removed,
+        errorsCount: stats.errors.length,
+      }, { auditPath: this._auditPath });
+    }
     return {
       mode,
       dryRun,

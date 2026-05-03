@@ -4,6 +4,60 @@
 
 (no entries — next release window)
 
+## [1.10.247] - 2026-05-03
+
+**Multi-Specialist System — Phase 1.4 (Governance audit log).**
+Per design doc §3.3 ("누가/언제/왜/어느 미팅에서 의결"). Every
+add / remove / import action against the registry now appends a
+JSONL entry to `~/.c4/specialist-audit.jsonl` (configurable;
+defaults to a sibling of `persistPath`). Operators can grep,
+tail, or query the log to answer who introduced a specialist,
+when a score reset happened, or which import dropped a role.
+
+### Added
+- **`src/specialist-audit.js`**: append-only writer
+  (`appendAuditEntry`) — best-effort, I/O errors surface on
+  stderr but never throw. Reader helpers
+  `readRecentAuditEntries({limit})` (oldest-first) and
+  `queryAuditEntries({action, actor, id, limit})` (newest-first
+  with filters).
+- **`src/specialist-registry.js`**: `add(spec, opts)` and
+  `remove(id, opts)` accept optional
+  `{actor, meetingId, reason}` and write the corresponding
+  audit entry. `importBundle(bundle, opts)` writes a single
+  summary entry on apply (skipped on dryRun). Audit path
+  default-derives from `persistPath` (sibling
+  `specialist-audit.jsonl`) so test fixtures and custom
+  daemons stay isolated from the user's real log.
+- **HTTP**: `GET /specialists/audit
+  [?action=&actor=&id=&limit=]` returns
+  `{count, entries}`.
+- **CLI**: `c4 specialist audit [--action X] [--actor X]
+  [--id X] [--limit N]` prints
+  `<ts>  <action>  <id>  by <actor>  [details]`.
+- **OpenAPI**: full schema.
+- **Tests**: `tests/specialist-audit.test.js` (11 cases) —
+  exports surface, ts stamping, I/O failure no-throw,
+  `readRecentAuditEntries` ordering + limit + missing-file,
+  `queryAuditEntries` filters, and registry-side
+  `add/remove/importBundle/inline-no-pollution`.
+
+### Fixed
+- **`src/daemon.js`**: `/specialists/:id` parser now also
+  excludes the `audit` reserved suffix.
+
+End-to-end:
+```
+$ c4 specialist add /tmp/data-engineer.json
+added data-engineer (Data Engineer)
+$ c4 specialist audit --limit 3
+3 audit entry(ies)
+  2026-05-03T...  add       data-engineer  by -
+  ...
+```
+
+Suite 192 → 193 PASS. Spec lint + drift checker clean.
+
 ## [1.10.246] - 2026-05-03
 
 **Multi-Specialist System — Phase 1.3 (Bulk

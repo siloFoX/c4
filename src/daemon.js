@@ -38,6 +38,7 @@ const claudeProcessDiscovery = require('./claude-process-discovery');
 const specialistRegistry = require('./specialist-registry');
 const specialistDispatcher = require('./specialist-dispatcher');
 const specialistPromptIterate = require('./specialist-prompt-iterate');
+const specialistAudit = require('./specialist-audit');
 const meetingPlan = require('./meeting-plan');
 const meetingSession = require('./meeting-session');
 const meetingBrain = require('./meeting-brain');
@@ -775,6 +776,7 @@ async function handleRequest(req, res) {
       || specialistParams.id === 'underperformers'
       || specialistParams.id === 'export'
       || specialistParams.id === 'import'
+      || specialistParams.id === 'audit'
     )) {
       specialistParams = null;
     }
@@ -4878,6 +4880,29 @@ async function handleRequest(req, res) {
       } catch (err) {
         const code = /not found/.test(err.message) ? 404 : 400;
         res.writeHead(code); res.end(JSON.stringify({ error: err.message })); return;
+      }
+
+    } else if (req.method === 'GET' && route === '/specialists/audit') {
+      // (multi-specialist phase 1.4) Read the governance audit log.
+      // Optional filters:
+      //   ?action=add|remove|import
+      //   ?actor=<actor-id>
+      //   ?id=<specialist-id>
+      //   ?limit=N (default 100)
+      const opts = {};
+      const action = url.searchParams.get('action');
+      const actor = url.searchParams.get('actor');
+      const id = url.searchParams.get('id');
+      const limit = parseInt(url.searchParams.get('limit') || '100', 10);
+      if (action) opts.action = action;
+      if (actor) opts.actor = actor;
+      if (id) opts.id = id;
+      if (Number.isFinite(limit)) opts.limit = limit;
+      try {
+        const entries = specialistAudit.queryAuditEntries(opts);
+        result = { count: entries.length, entries };
+      } catch (err) {
+        res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
       }
 
     } else if (req.method === 'GET' && route === '/specialists/export') {
