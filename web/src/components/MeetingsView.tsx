@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Eye, RefreshCw, Radio } from 'lucide-react';
-import { apiGet, eventSourceUrl } from '../lib/api';
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from './ui';
+import { Eye, Plus, RefreshCw, Radio } from 'lucide-react';
+import { apiGet, apiPost, eventSourceUrl } from '../lib/api';
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
@@ -193,21 +193,118 @@ export default function MeetingsView() {
     [meetings, selectedId],
   );
 
+  // Create-meeting composer.
+  const [creating, setCreating] = useState(false);
+  const [newTask, setNewTask] = useState('');
+  const [newTrack, setNewTrack] = useState<'auto' | 'lightweight' | 'standard' | 'full'>('auto');
+  const [createBusy, setCreateBusy] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const handleCreate = useCallback(async () => {
+    const task = newTask.trim();
+    if (!task) return;
+    setCreateBusy(true);
+    setCreateError(null);
+    try {
+      const body: { task: string; track?: string } = { task };
+      if (newTrack !== 'auto') body.track = newTrack;
+      const created = await apiPost<{ id: string }>('/api/meetings', body);
+      setNewTask('');
+      setCreating(false);
+      await refresh();
+      if (created && created.id) setSelectedId(created.id);
+    } catch (e) {
+      setCreateError((e as Error).message || 'Failed to create meeting');
+    } finally {
+      setCreateBusy(false);
+    }
+  }, [newTask, newTrack, refresh]);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 md:flex-row md:p-6">
       <Card className="flex min-h-0 flex-1 flex-col md:max-w-md">
-        <CardHeader className="flex flex-row items-center justify-between gap-2 border-b border-border p-4">
-          <CardTitle className="text-base">Meetings</CardTitle>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={refresh}
-            disabled={loading}
-            aria-label="Refresh meetings list"
-          >
-            <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} aria-hidden />
-            Refresh
-          </Button>
+        <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
+          <div className="flex flex-row items-center justify-between gap-2">
+            <CardTitle className="text-base">Meetings</CardTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                onClick={() => { setCreating((v) => !v); setCreateError(null); }}
+                aria-label="New meeting"
+                aria-expanded={creating}
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden />
+                New
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={refresh}
+                disabled={loading}
+                aria-label="Refresh meetings list"
+              >
+                <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} aria-hidden />
+                Refresh
+              </Button>
+            </div>
+          </div>
+          {creating ? (
+            <div className="flex flex-col gap-2 rounded-md border border-dashed border-border bg-muted/20 p-3">
+              <Input
+                type="text"
+                value={newTask}
+                onChange={(e) => setNewTask(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleCreate();
+                  } else if (e.key === 'Escape') {
+                    setCreating(false);
+                    setCreateError(null);
+                  }
+                }}
+                placeholder='Task description (e.g. "rotate auth secret in production")'
+                disabled={createBusy}
+                aria-label="Meeting task"
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="text-[11px] text-muted-foreground">
+                  track:
+                  <select
+                    className="ml-1 rounded border border-border bg-background px-1 py-0.5 text-[11px]"
+                    value={newTrack}
+                    onChange={(e) => setNewTrack(e.target.value as typeof newTrack)}
+                    disabled={createBusy}
+                    aria-label="Meeting track"
+                  >
+                    <option value="auto">auto</option>
+                    <option value="lightweight">lightweight</option>
+                    <option value="standard">standard</option>
+                    <option value="full">full</option>
+                  </select>
+                </label>
+                <Button
+                  size="sm"
+                  onClick={handleCreate}
+                  disabled={createBusy || !newTask.trim()}
+                  aria-label="Create meeting"
+                >
+                  Create
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setCreating(false); setCreateError(null); }}
+                  disabled={createBusy}
+                >
+                  Cancel
+                </Button>
+                {createError ? (
+                  <span className="text-[11px] text-destructive">{createError}</span>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col overflow-y-auto p-0">
           {error ? (

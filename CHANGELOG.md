@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.232] - 2026-05-03
+
+**Multi-Specialist System — Phase 7.2 (Create-meeting
+composer in MeetingsView).** New `+ New` button in the
+Meetings list header opens an inline composer: task text +
+track picker (auto / lightweight / standard / full). Submit
+calls `POST /api/meetings`, refreshes the list, and selects
+the freshly-created meeting so its detail pane (with the
+SSE stream from 7.1) opens automatically. No more dropping
+to CLI for the common "I want to start a meeting" path.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**: composer state
+  (`creating`, `newTask`, `newTrack`), `handleCreate` that
+  POSTs the task + optional track, then auto-selects the
+  returned meeting id. Enter submits, Escape closes,
+  Disabled while in flight. Error surfaces inline next to
+  the buttons. Track picker exposes `auto` (lets the rule
+  classifier pick) plus the three explicit tracks.
+
+Suite stays 191 PASS. Web build clean.
+
 ## [1.10.231] - 2026-05-03
 
 **Multi-Specialist System — Phase 7.1 (SSE-driven Meetings
