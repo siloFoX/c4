@@ -4,6 +4,55 @@
 
 (no entries — next release window)
 
+## [1.10.218] - 2026-05-03
+
+**Multi-Specialist System — Phase 2.3 (Orchestrator + Mock
+Brain).** Drives a `MeetingSession` from `pending` through every
+stage to a terminal status — round loop, prompt assembly, vote
+parsing, advance-stage on consensus, escalate on round-cap. The
+orchestrator is brain-agnostic; phase 2.3 ships
+`MockBrainProvider` (canned/scripted responses) so meetings run
+end-to-end in tests + demos without any LLM cost. Phase 2.4 will
+plug a Claude-backed provider on top of the existing
+`src/agents/` adapter framework.
+
+### Added
+- **`src/meeting-brain.js`** — `BrainProvider` base class +
+  `MockBrainProvider` (default heuristic accepts most stages,
+  veto roles object on round 1 of audit/deploy). `buildPrompt`
+  composes specialist system-prompt + meeting context +
+  transcript-so-far + outstanding objections. `parseVote`
+  recognises `[VOTE: accept]` / `[VOTE: object — reason]`
+  markers, including aliases (approve, reject, no).
+- **`src/meeting-orchestrator.js`** — `MeetingOrchestrator
+  ({session, brain})` with `run()` that walks every stage,
+  calls `brain.ask()` per specialist per round, records
+  contributions on the session, advances on consensus,
+  escalates on round-cap. Loop guards: `maxAsks` (default 200),
+  `maxStages` (default 32). Event surface: `on('turn'|'advance'|
+  'next-round'|'escalate'|'complete', fn)`.
+- **HTTP**: `POST /meetings/:id/run` runs the orchestrator with
+  the supplied brain (only `mock` accepted in 2.3) and returns
+  `{ok, totalAsks, session}`. RBAC-shaped behind the same
+  open-route policy as the rest of `/meetings`.
+- **CLI**: `c4 meeting run <id> [--brain mock] [--max-asks N]
+  [--max-stages N]`.
+- **OpenAPI**: summary + full schema with example.
+- **Tests**: `tests/meeting-orchestrator.test.js` (12 cases) —
+  module surface, parseVote variants, buildPrompt content,
+  MockBrainProvider default + scripted + veto behavior,
+  constructor validation, lightweight-track completion,
+  full-track escalation under perpetual veto, event emission,
+  maxAsks loop guard.
+
+End-to-end verified: `c4 meeting create "fix typo in handler"`
+→ `c4 meeting run <id>` → completes in 4 asks across 2 stages.
+`c4 meeting create "rotate auth secret in production"` → run
+completes in 30 asks across 8 stages (audit/deploy roles flip
+object → accept on round 2 of the mock heuristic).
+
+Suite 184 → 185 PASS. Spec lint + drift checker clean.
+
 ## [1.10.217] - 2026-05-03
 
 **Multi-Specialist System — Phase 2.2 (MeetingSession state

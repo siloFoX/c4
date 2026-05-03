@@ -53,6 +53,7 @@ const ROUTE_SUMMARIES = {
   'POST /meetings/:id/next-round': 'Bump round counter on the current stage (refused past round cap).',
   'POST /meetings/:id/escalate': 'Mark the meeting as escalated (round cap or veto deadlock).',
   'POST /meetings/:id/abort': 'Operator abort — terminal state, mutations refused after.',
+  'POST /meetings/:id/run': 'Drive a meeting to completion with a brain provider (phase 2.3 ships mock).',
   'GET /workflows': 'List defined workflows.',
   'POST /workflows': 'Create a new workflow definition.',
   'GET /openapi.json': 'This document — auto-generated OpenAPI spec.',
@@ -2387,6 +2388,27 @@ const ROUTE_SCHEMAS = {
       example: { reason: 'operator changed direction' },
     },
     response: { properties: { id: { type: 'string' }, status: { type: 'string' } } },
+  },
+  'POST /meetings/:id/run': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    requestBody: {
+      properties: {
+        brain: { type: 'string', enum: ['mock'], description: 'Phase 2.3 only supports the mock provider; real Claude-backed brain lands in 2.4' },
+        maxAsks: { type: 'integer', description: 'Loop-guard cap on total brain.ask() calls' },
+        maxStages: { type: 'integer', description: 'Loop-guard cap on stage advances' },
+        auditObjectionRounds: { type: 'integer', description: 'How many rounds the mock veto roles object before accepting' },
+      },
+      example: { brain: 'mock', maxAsks: 100, auditObjectionRounds: 1 },
+    },
+    response: {
+      properties: {
+        ok: { type: 'boolean' },
+        totalAsks: { type: 'integer' },
+        session: { type: 'object' },
+      },
+    },
   },
   'POST /specialists/dispatch': {
     requestBody: {

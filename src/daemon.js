@@ -39,6 +39,8 @@ const specialistRegistry = require('./specialist-registry');
 const specialistDispatcher = require('./specialist-dispatcher');
 const meetingPlan = require('./meeting-plan');
 const meetingSession = require('./meeting-session');
+const meetingBrain = require('./meeting-brain');
+const meetingOrchestrator = require('./meeting-orchestrator');
 const autoDispatcherMod = require('./auto-dispatcher');
 const { PinnedMemoryScheduler, DEFAULT_INTERVAL_MS: PIN_DEFAULT_INTERVAL_MS } = require('./pinned-memory-scheduler');
 
@@ -761,7 +763,7 @@ async function handleRequest(req, res) {
   // Meeting session path-parameter parser (multi-specialist phase 2.2).
   let meetingParams = null;
   {
-    const mAct = route.match(/^\/meetings\/([^\/]+)\/(start|contribute|vote|advance|next-round|escalate|abort|transcript)$/);
+    const mAct = route.match(/^\/meetings\/([^\/]+)\/(start|contribute|vote|advance|next-round|escalate|abort|transcript|run)$/);
     const mOne = route.match(/^\/meetings\/([^\/]+)$/);
     if (mAct) meetingParams = { kind: mAct[2], id: decodeURIComponent(mAct[1]) };
     else if (mOne) meetingParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
@@ -4466,6 +4468,39 @@ async function handleRequest(req, res) {
         sess.escalate(typeof body.reason === 'string' ? body.reason : 'unspecified');
         result = sess.toJSON();
       } catch (err) { res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return; }
+
+    } else if (req.method === 'POST' && meetingParams && meetingParams.kind === 'run') {
+      // (multi-specialist phase 2.3) Drive the meeting end-to-end
+      // with a MockBrainProvider. Real Claude-backed brain lands in
+      // phase 2.4. Body: { brain?: 'mock' (only option for now),
+      // maxAsks?, maxStages?, auditObjectionRounds? }.
+      const sess = meetingSession.getShared().get(meetingParams.id);
+      if (!sess) { res.writeHead(404); res.end(JSON.stringify({ error: 'Meeting not found', id: meetingParams.id })); return; }
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/meetings/:id/run', body, res, cfg)) return;
+      const brainKind = typeof body.brain === 'string' ? body.brain : 'mock';
+      if (brainKind !== 'mock') {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: `unsupported brain "${brainKind}" — phase 2.3 only ships "mock"` }));
+        return;
+      }
+      const brain = new meetingBrain.MockBrainProvider({
+        auditObjectionRounds: Number.isFinite(body.auditObjectionRounds) ? body.auditObjectionRounds : undefined,
+      });
+      const orch = new meetingOrchestrator.MeetingOrchestrator({
+        session: sess,
+        brain,
+        maxAsks: Number.isFinite(body.maxAsks) ? body.maxAsks : 200,
+        maxStages: Number.isFinite(body.maxStages) ? body.maxStages : 32,
+      });
+      try {
+        const final = await orch.run();
+        result = { ok: true, totalAsks: orch.totalAsks, session: final };
+      } catch (err) {
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: err.message }));
+        return;
+      }
 
     } else if (req.method === 'POST' && meetingParams && meetingParams.kind === 'abort') {
       // (multi-specialist phase 2.2) Operator abort — terminal state.

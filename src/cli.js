@@ -2171,7 +2171,7 @@ async function main() {
         //   c4 meeting escalate <id> ["reason"...]
         //   c4 meeting abort <id> ["reason"...]
         const sub = (args[0] || 'plan').toLowerCase();
-        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort'];
+        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run'];
         if (!VALID.includes(sub)) {
           console.error(`Usage: c4 meeting <${VALID.join('|')}> [...]`);
           process.exit(1);
@@ -2363,6 +2363,27 @@ async function main() {
           if (args.includes('--json')) break;
           if (result.error) { console.error(result.error); process.exit(1); }
           console.log(`${sub} → status=${result.status}`);
+          return;
+        }
+        if (sub === 'run') {
+          // c4 meeting run <id> [--brain mock] [--max-asks N] [--max-stages N]
+          let brain = 'mock';
+          let maxAsks = null;
+          let maxStages = null;
+          for (let i = 2; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--brain' && args[i + 1]) { brain = args[i + 1]; i += 1; }
+            else if (a === '--max-asks' && args[i + 1]) { maxAsks = parseInt(args[i + 1], 10); i += 1; }
+            else if (a === '--max-stages' && args[i + 1]) { maxStages = parseInt(args[i + 1], 10); i += 1; }
+          }
+          const body = { brain };
+          if (Number.isFinite(maxAsks)) body.maxAsks = maxAsks;
+          if (Number.isFinite(maxStages)) body.maxStages = maxStages;
+          result = await request('POST', `/meetings/${idEnc}/run`, body);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`run complete — totalAsks=${result.totalAsks} status=${result.session.status}`);
+          printPlan(result.session);
           return;
         }
         break;
