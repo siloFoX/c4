@@ -4,6 +4,22 @@
 
 (no entries — next release window)
 
+## [1.10.195] - 2026-05-03
+
+**`nsenter-pid1` extended to `unshare --map-root-user`.**
+Same namespace-escape family as nsenter and pivot_root,
+just a different verb. `unshare --user --map-root-user`
+creates a new user namespace where the caller is mapped as
+uid 0 — privilege primitive when combined with
+mount/cap-aware escapes.
+
+### Changed
+- **`nsenter-pid1`** regex extended with `unshare
+  --map-root-user` (with or without explicit `--user` /
+  `-U` first). Same critical tier. `unshare --pid`,
+  `unshare --net`, `unshare --user` (without map-root)
+  stay LOW.
+
 ## [1.10.194] - 2026-05-03
 
 **Base64 decoder accepts unquoted payload.** The base64

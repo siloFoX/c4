@@ -166,10 +166,14 @@ const CRITICAL_PATTERNS = [
   // gaining full host filesystem access from inside a
   // container. The pivot_root form is similar — switches
   // root filesystem.
+  // (v1.10.195) Extended to include `unshare
+  // --map-root-user` — creates a new user namespace where
+  // the caller is mapped as uid 0. Privilege primitive when
+  // combined with mount/cap-aware escapes.
   {
     code: 'nsenter-pid1',
-    label: 'nsenter -t 1 / pivot_root (namespace escape)',
-    re: /\b(?:nsenter\s+(?:[^\n;|&]*\s)?(?:-t\s+1\b|--target\s+1\b)|pivot_root\b)/,
+    label: 'nsenter -t 1 / pivot_root / unshare --map-root-user (namespace escape)',
+    re: /\b(?:nsenter\s+(?:[^\n;|&]*\s)?(?:-t\s+1\b|--target\s+1\b)|pivot_root\b|unshare\s+(?:[^\n;|&]*\s)?(?:--user\s+(?:[^\n;|&]*\s)?--map-root-user|--map-root-user))/,
   },
   // (v1.10.190) Cloud IAM privilege escalation — creating
   // access keys, attaching admin policies, or modifying
