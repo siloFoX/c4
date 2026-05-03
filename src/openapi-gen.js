@@ -3060,6 +3060,7 @@ const ROUTE_SCHEMAS = {
   'GET /specialists/export': {
     parameters: [
       { name: 'tag', in: 'query', explode: true, schema: { type: 'array', items: { type: 'string' } }, description: 'Tag filter; repeat or comma-separate. AND across multiple tags. Specialists without all listed tags are excluded.' },
+      { name: 'domain', in: 'query', explode: true, schema: { type: 'array', items: { type: 'string' } }, description: 'Domain filter; repeat or comma-separate. AND-composes with tag and other domain entries.' },
     ],
     response: {
       properties: {

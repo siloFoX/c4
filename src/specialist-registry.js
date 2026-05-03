@@ -590,12 +590,20 @@ class SpecialistRegistry {
     // exported entries must carry every listed tag (AND-compose,
     // matches the GET /specialists ?tag= semantics). Empty / missing
     // → no filter applied.
+    // Phase 1.6 follow-up #2 — domain filter. opts.domains is a
+    // string array; exported entries must carry every listed
+    // domain (AND-compose, mirroring tag semantics).
     const tagFilter = Array.isArray(opts.tags) ? opts.tags.filter((t) => typeof t === 'string' && t.trim()) : [];
+    const domainFilter = Array.isArray(opts.domains) ? opts.domains.filter((d) => typeof d === 'string' && d.trim()) : [];
     const specialists = [];
     for (const spec of this._byId.values()) {
       if (tagFilter.length > 0) {
         const sTags = Array.isArray(spec.tags) ? spec.tags : [];
         if (!tagFilter.every((t) => sTags.includes(t))) continue;
+      }
+      if (domainFilter.length > 0) {
+        const sDomains = Array.isArray(spec.domain) ? spec.domain : [];
+        if (!domainFilter.every((d) => sDomains.includes(d))) continue;
       }
       specialists.push({
         id: spec.id,

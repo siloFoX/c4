@@ -2296,17 +2296,20 @@ async function main() {
           return;
         }
         if (sub === 'export') {
-          // c4 specialist export [--out <file>] [--tag X ...]
+          // c4 specialist export [--out <file>] [--tag X] [--domain X]
           // Defaults to stdout for piping to jq / git diff. Repeating
-          // --tag AND-composes the filter (subset export).
+          // --tag / --domain AND-composes the filter.
           let outFile = null;
           const tags = [];
+          const domains = [];
           for (let i = 1; i < args.length; i += 1) {
             if (args[i] === '--out' && args[i + 1]) { outFile = args[i + 1]; i += 1; }
             else if (args[i] === '--tag' && args[i + 1]) { tags.push(args[i + 1]); i += 1; }
+            else if (args[i] === '--domain' && args[i + 1]) { domains.push(args[i + 1]); i += 1; }
           }
           const qs = new URLSearchParams();
           for (const t of tags) qs.append('tag', t);
+          for (const d of domains) qs.append('domain', d);
           const path = qs.toString() ? `/specialists/export?${qs.toString()}` : '/specialists/export';
           result = await request('GET', path);
           if (args.includes('--json') && !outFile) break;

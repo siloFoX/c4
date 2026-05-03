@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.273] - 2026-05-04
+
+**Multi-Specialist System — Phase 1.6 follow-up #3 (Export domain filter).**
+Mirrors the tag filter shipped in v1.10.270 for the semantic
+domain field. `GET /specialists/export?domain=X` returns only
+specialists carrying that domain (AND-composes with multiple
+domains and with the existing tag filter).
+
+### Added
+- **`src/specialist-registry.js`**: `exportBundle({domains})`
+  honoured. AND-composes with `{tags}` so callers can
+  intersect filters (e.g., `?tag=rfc&domain=data` →
+  rfc-tagged data specialists).
+- **HTTP**: `GET /specialists/export?domain=X[&domain=Y]`.
+  Repeating the parameter or comma-separating values both work.
+- **CLI**: `c4 specialist export --domain X [--domain Y]`.
+- **OpenAPI**: query parameter documented alongside `tag`.
+- **Tests** (`tests/specialist-registry.test.js`): 2 new cases —
+  domain-only AND-compose; tag+domain intersection narrows
+  correctly. Suite stays green at 199.
+
+### Notes
+- e2e verified end-to-end: `?domain=scope` against the seed
+  registry returns exactly `pm` (the only seed specialist with
+  the `scope` domain).
+- Tag and domain filters are deliberately separate axes — tags
+  are operator-curated free-form labels (v1.10.260); domains are
+  schema-validated against the registry's domain field. Both
+  AND-compose so operators can write narrowing filters without
+  multiple round-trips.
+
 ## [1.10.272] - 2026-05-04
 
 **Multi-Specialist System — Phase 6.12 (Wiki related-pages auto-derive).**

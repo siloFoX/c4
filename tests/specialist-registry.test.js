@@ -549,6 +549,29 @@ t('updateTags replace [] clears tags', () => {
   assert.deepStrictEqual(r.tags, []);
 });
 
+t('exportBundle({domains}) AND-composes against spec.domain', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  reg.add(fixtureSpec({ id: 'd-a', domain: ['data', 'pipeline'] }));
+  reg.add(fixtureSpec({ id: 'd-b', domain: ['data'] }));
+  reg.add(fixtureSpec({ id: 'd-c', domain: ['ux'] }));
+  const r = reg.exportBundle({ domains: ['data'] });
+  const ids = r.specialists.map((s) => s.id).filter((id) => id.startsWith('d-')).sort();
+  assert.deepStrictEqual(ids, ['d-a', 'd-b']);
+  const both = reg.exportBundle({ domains: ['data', 'pipeline'] });
+  const bothIds = both.specialists.map((s) => s.id).filter((id) => id.startsWith('d-'));
+  assert.deepStrictEqual(bothIds, ['d-a'], 'AND drops d-b which lacks pipeline');
+});
+
+t('exportBundle({tags, domains}) intersects both filters', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  reg.add(fixtureSpec({ id: 'i-a', tags: ['rfc'], domain: ['data'] }));
+  reg.add(fixtureSpec({ id: 'i-b', tags: ['rfc'], domain: ['ux'] }));
+  reg.add(fixtureSpec({ id: 'i-c', tags: [], domain: ['data'] }));
+  const r = reg.exportBundle({ tags: ['rfc'], domains: ['data'] });
+  const ids = r.specialists.map((s) => s.id).filter((id) => id.startsWith('i-'));
+  assert.deepStrictEqual(ids, ['i-a'], 'only spec carrying both tag and domain survives');
+});
+
 t('exportBundle({tags}) AND-composes — only specialists carrying every listed tag are exported', () => {
   const reg = new SpecialistRegistry({ persistPath: null });
   reg.add(fixtureSpec({ id: 'spec-a', tags: ['rfc', 'experimental'] }));

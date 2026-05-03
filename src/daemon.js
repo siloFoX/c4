@@ -5464,15 +5464,27 @@ async function handleRequest(req, res) {
       // (phase 1.6 follow-up) ?tag=X (repeatable) filters the
       // exported bundle by tag — useful for selectively backing up
       // a sub-registry (e.g. only the "experimental" tag).
+      // (phase 1.6 follow-up #2) ?domain=X mirrors tag for the
+      // semantic domain field. Both filters AND-compose.
       const reg = specialistRegistry.getShared();
-      const tagsParam = url.searchParams.getAll('tag');
+      const _expTagsRaw = url.searchParams.getAll('tag');
+      const _expDomainsRaw = url.searchParams.getAll('domain');
       const tagList = [];
-      for (const t of tagsParam) {
+      for (const t of _expTagsRaw) {
         for (const x of String(t).split(',')) {
           if (x.trim()) tagList.push(x.trim());
         }
       }
-      result = reg.exportBundle(tagList.length > 0 ? { tags: tagList } : undefined);
+      const domainList = [];
+      for (const d of _expDomainsRaw) {
+        for (const x of String(d).split(',')) {
+          if (x.trim()) domainList.push(x.trim());
+        }
+      }
+      const exportOpts = {};
+      if (tagList.length > 0) exportOpts.tags = tagList;
+      if (domainList.length > 0) exportOpts.domains = domainList;
+      result = reg.exportBundle(Object.keys(exportOpts).length > 0 ? exportOpts : undefined);
 
     } else if (req.method === 'POST' && route === '/specialists/import') {
       // (multi-specialist phase 1.3) Apply a previously-exported
