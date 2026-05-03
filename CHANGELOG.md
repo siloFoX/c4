@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.198] - 2026-05-03
+
+**Quoted-token unwrap obfuscation defeat.** `"rm" -rf /`
+is shell-equivalent to `rm -rf /` after quote stripping.
+The previous quote-unwrap step only handled letters
+adjacent to other letters (`r"m"` → `rm`); fully-quoted
+standalone words like `"rm"` slipped because the unquoted
+form was a complete token between separators.
+
+### Changed
+- **`_denoiseCommand`** quote-unwrap step extended with a
+  third pass: standalone quoted alphabetic-only token
+  between shell separators (`(^|[\s;|&])["']([A-Za-z]+)["']
+  (?=\s|$|;|&|\|)`). Restricted to alphabetic content so
+  legitimate quoted args (`"fix bug"`, `"$VAR"`,
+  `"hello world"`) stay untouched.
+
+### Examples now classified critical
+- `"rm" -rf /` → rm-rf-root
+- `'rm' -rf /` → rm-rf-root
+
+### Examples still LOW (regression-safe)
+- `git commit -m "fix bug"` (multi-word quoted)
+- `echo "hello world"` (multi-word)
+- `docker run alpine echo "hi"` (mid-command quoted token —
+  not at command start position)
+
 ## [1.10.197] - 2026-05-03
 
 **`ssh-client-config-write` (high) catalog pattern.**

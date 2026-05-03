@@ -1664,6 +1664,14 @@ function _denoiseCommand(cmd) {
   // pins this behaviour.
   out = out.replace(/(?<=[A-Za-z])"([A-Za-z]+)"|"([A-Za-z]+)"(?=[A-Za-z])/g, (_m, a, b) => a || b);
   out = out.replace(/(?<=[A-Za-z])'([A-Za-z]+)'|'([A-Za-z]+)'(?=[A-Za-z])/g, (_m, a, b) => a || b);
+  // (v1.10.198) Standalone quoted alphabetic-only token at
+  // command position — `"rm" -rf /` is shell-equivalent to
+  // `rm -rf /` after quote stripping. We restrict to
+  // alphabetic-only contents (no spaces, no punctuation) so
+  // legitimate quoted args like "fix bug" or "$VAR" are
+  // left alone. Anchored to start-of-line OR shell separator
+  // ([\s;|&]) so quoted args mid-command don't match.
+  out = out.replace(/(^|[\s;|&])["']([A-Za-z]+)["'](?=\s|$|;|&|\|)/g, '$1$2');
 
   // (v1.10.58) ANSI-C quoting: $'...' interprets \xHH / \nnn / \\n
   // escapes. Most attack uses are simple hex sequences encoding
