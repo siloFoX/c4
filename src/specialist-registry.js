@@ -383,6 +383,74 @@ class SpecialistRegistry {
     return { spec, changed: true };
   }
 
+  // Phase 1.6 follow-up: edit tags post-add. Replace mode (default) sets
+  // tags to exactly the supplied array; add/remove modes treat the
+  // supplied array as a delta. Empty input in replace mode clears tags.
+  // Audit entry recorded with action 'tags-updated' and the previous
+  // tag list as `before`.
+  updateTags(id, tags, opts = {}) {
+    const spec = this._byId.get(id);
+    if (!spec) throw new Error(`updateTags: specialist "${id}" not found`);
+    if (!Array.isArray(tags)) {
+      throw new Error('updateTags: tags must be an array');
+    }
+    for (const t of tags) {
+      if (typeof t !== 'string') {
+        throw new Error('updateTags: every tag must be a string');
+      }
+    }
+    const mode = opts.mode || 'replace';
+    if (!['replace', 'add', 'remove'].includes(mode)) {
+      throw new Error(`updateTags: mode must be replace|add|remove (got "${mode}")`);
+    }
+    const before = Array.isArray(spec.tags) ? spec.tags.slice() : [];
+    let next;
+    if (mode === 'replace') {
+      // Dedupe + preserve insertion order from caller.
+      const seen = new Set();
+      next = [];
+      for (const t of tags) {
+        const trimmed = t.trim();
+        if (!trimmed || seen.has(trimmed)) continue;
+        seen.add(trimmed);
+        next.push(trimmed);
+      }
+    } else if (mode === 'add') {
+      next = before.slice();
+      const seen = new Set(next);
+      for (const t of tags) {
+        const trimmed = t.trim();
+        if (!trimmed || seen.has(trimmed)) continue;
+        seen.add(trimmed);
+        next.push(trimmed);
+      }
+    } else { // remove
+      const drop = new Set(tags.map((t) => t.trim()).filter(Boolean));
+      next = before.filter((t) => !drop.has(t));
+    }
+    // No-op short-circuit when the result is identical (insertion-order
+    // sensitive comparison so 'a','b' vs 'b','a' is treated as a real
+    // change — operator may be deliberately reordering).
+    if (next.length === before.length && next.every((t, i) => t === before[i])) {
+      return { spec, changed: false, tags: next };
+    }
+    spec.tags = next;
+    this._maybeAutoSave();
+    if (this._auditLogEnabled !== false) {
+      audit.appendAuditEntry({
+        action: audit.ACTIONS.TAGS_UPDATED,
+        id,
+        actor: opts.actor || null,
+        meetingId: opts.meetingId || null,
+        reason: opts.reason || null,
+        mode,
+        before,
+        after: next.slice(),
+      }, { auditPath: this._auditPath });
+    }
+    return { spec, changed: true, tags: next };
+  }
+
   remove(id, opts = {}) {
     const before = this._byId.get(id);
     const removed = this._byId.delete(id);

@@ -506,6 +506,49 @@ t('tags: round-trips through exportBundle/importBundle merge', () => {
   assert.deepStrictEqual(b.get('tagged').tags, ['needs-review', 'experimental']);
 });
 
+t('updateTags rejects unknown id + non-array + non-string-element', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  reg.add(fixtureSpec({ id: 'tag-target', tags: ['a'] }));
+  assert.throws(() => reg.updateTags('nope', ['x']), /not found/);
+  assert.throws(() => reg.updateTags('tag-target', 'not-array'), /must be an array/);
+  assert.throws(() => reg.updateTags('tag-target', [1, 2]), /every tag must be a string/);
+  assert.throws(() => reg.updateTags('tag-target', ['x'], { mode: 'bogus' }), /mode must be replace/);
+});
+
+t('updateTags replace mode dedupes + preserves order, idempotent on no-op', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  reg.add(fixtureSpec({ id: 'tag-replace', tags: ['old'] }));
+  const r = reg.updateTags('tag-replace', ['new', 'fresh', 'new'], { mode: 'replace' });
+  assert.strictEqual(r.changed, true);
+  assert.deepStrictEqual(r.tags, ['new', 'fresh']);
+  // Re-applying same tags is a no-op.
+  const r2 = reg.updateTags('tag-replace', ['new', 'fresh']);
+  assert.strictEqual(r2.changed, false);
+  assert.deepStrictEqual(r2.tags, ['new', 'fresh']);
+});
+
+t('updateTags add mode appends without dropping existing', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  reg.add(fixtureSpec({ id: 'tag-add', tags: ['keep1', 'keep2'] }));
+  const r = reg.updateTags('tag-add', ['keep1', 'extra'], { mode: 'add' });
+  assert.deepStrictEqual(r.tags, ['keep1', 'keep2', 'extra']);
+});
+
+t('updateTags remove mode drops listed without touching others', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  reg.add(fixtureSpec({ id: 'tag-remove', tags: ['a', 'b', 'c'] }));
+  const r = reg.updateTags('tag-remove', ['b', 'd-not-present'], { mode: 'remove' });
+  assert.deepStrictEqual(r.tags, ['a', 'c']);
+});
+
+t('updateTags replace [] clears tags', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  reg.add(fixtureSpec({ id: 'tag-clear', tags: ['x', 'y'] }));
+  const r = reg.updateTags('tag-clear', [], { mode: 'replace' });
+  assert.strictEqual(r.changed, true);
+  assert.deepStrictEqual(r.tags, []);
+});
+
 (async () => {
   for (const fn of pending) await fn();
   console.log(`\n  ${passed} passed, ${failed} failed (specialist-registry)`);

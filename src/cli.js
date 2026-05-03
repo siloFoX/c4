@@ -2062,8 +2062,8 @@ async function main() {
         //   c4 specialist dispatch "<task>" [--stage X] [--track X] [--cap N]
         //   c4 specialist score [--by-domain D | --by-stage S] [--limit N]
         const sub = (args[0] || 'list').toLowerCase();
-        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt', 'export', 'import', 'audit', 'score-history', 'propose', 'apply-prompt'].includes(sub)) {
-          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt|export|import|audit|score-history|propose|apply-prompt> [args]');
+        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt', 'export', 'import', 'audit', 'score-history', 'propose', 'apply-prompt', 'tag'].includes(sub)) {
+          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt|export|import|audit|score-history|propose|apply-prompt|tag> [args]');
           process.exit(1);
         }
         if (sub === 'list') {
@@ -2336,6 +2336,37 @@ async function main() {
             console.log(`  ${it.id.padEnd(22)} deepest=${(b ? b.score : 0).toFixed(2)} (${where}, n=${b ? b.samples : 0})`);
             console.log(`    ${it.recommendation}`);
           }
+          return;
+        }
+        if (sub === 'tag') {
+          // c4 specialist tag <id> [--add t1 t2] [--remove t1 t2] [--set t1 t2]
+          //   --set replaces; --add appends; --remove drops; default --set
+          //   when no flag is given, treat positional args as --set list.
+          const id = args[1];
+          if (!id) {
+            console.error('Usage: c4 specialist tag <id> [--set t1 t2 | --add t1 t2 | --remove t1 t2]');
+            process.exit(1);
+          }
+          let mode = 'replace';
+          const tags = [];
+          let i = 2;
+          while (i < args.length) {
+            const a = args[i];
+            if (a === '--set') { mode = 'replace'; i += 1; }
+            else if (a === '--add') { mode = 'add'; i += 1; }
+            else if (a === '--remove') { mode = 'remove'; i += 1; }
+            else if (a === '--json') { i += 1; }
+            else { tags.push(a); i += 1; }
+          }
+          if (tags.length === 0 && mode === 'replace') {
+            // Allow `c4 specialist tag <id> --set` to clear.
+            // Otherwise fall through.
+          }
+          result = await request('PATCH', `/specialists/${encodeURIComponent(id)}/tags`, { tags, mode });
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          const tagList = (result.tags || []).join(',') || '(none)';
+          console.log(`${result.id}: ${result.changed ? 'updated' : 'unchanged'}  tags=${tagList}`);
           return;
         }
         if (sub === 'apply-prompt') {

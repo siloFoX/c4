@@ -26,6 +26,7 @@ const ACTIONS = Object.freeze({
   IMPORT: 'import',
   SCORE_APPLIED: 'score-applied',
   PROMPT_REVISED: 'prompt-revised',
+  TAGS_UPDATED: 'tags-updated',
 });
 
 function _ensureDir(filePath) {

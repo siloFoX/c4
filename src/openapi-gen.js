@@ -50,6 +50,7 @@ const ROUTE_SUMMARIES = {
   'POST /specialists/import': 'Apply a previously-exported bundle (merge | replace, optional dryRun preview).',
   'POST /specialists/:id/suggest-prompt': 'Ask a brain to draft a revised systemPrompt for an underperforming specialist — review-only (never auto-applied).',
   'POST /specialists/:id/prompt-apply': 'Draft a systemPrompt revision and (on meeting consensus) apply it to the registry — audit log records the meeting id.',
+  'PATCH /specialists/:id/tags': 'Edit specialist tags (replace | add | remove modes). Audit log records the previous tag list.',
   'POST /meetings/plan': 'Plan a full multi-stage meeting roster for a task — preview only, no specialists spawned.',
   'GET /meetings/templates': 'List meeting templates persisted at ~/.c4/meeting-templates.json.',
   'POST /meetings/templates': 'Create or update a meeting template (upsert by name).',
@@ -2756,6 +2757,26 @@ const ROUTE_SCHEMAS = {
   'GET /meetings/stream': {
     response: { type: 'string', description: 'SSE stream — Content-Type: text/event-stream. Events: snapshot (on connect), state, meeting-added, meeting-removed, heartbeat (every 30s).' },
   },
+  'PATCH /specialists/:id/tags': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    requestBody: {
+      properties: {
+        tags: { type: 'array', items: { type: 'string' }, description: 'Tag list — semantics depend on mode' },
+        mode: { type: 'string', enum: ['replace', 'add', 'remove'], description: 'replace (default) sets tags; add appends new ones; remove drops listed ones' },
+        actor: { type: 'string', description: 'Audit log actor (default "tags-update")' },
+      },
+      example: { tags: ['rfc', 'experimental'], mode: 'add' },
+    },
+    response: {
+      properties: {
+        id: { type: 'string' },
+        changed: { type: 'boolean', description: 'False when the resulting tag set was identical to the previous one' },
+        tags: { type: 'array', items: { type: 'string' } },
+      },
+    },
+  },
   'POST /specialists/:id/prompt-apply': {
     parameters: [
       { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
@@ -2840,7 +2861,7 @@ const ROUTE_SCHEMAS = {
   },
   'GET /specialists/audit': {
     parameters: [
-      { name: 'action', in: 'query', schema: { type: 'string', enum: ['add', 'remove', 'import', 'score-applied'] } },
+      { name: 'action', in: 'query', schema: { type: 'string', enum: ['add', 'remove', 'import', 'score-applied', 'prompt-revised', 'tags-updated'] } },
       { name: 'actor', in: 'query', schema: { type: 'string' } },
       { name: 'id', in: 'query', schema: { type: 'string', description: 'Filter by specialist id' } },
       { name: 'limit', in: 'query', schema: { type: 'integer', description: 'Max entries (default 100)' } },

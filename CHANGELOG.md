@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.262] - 2026-05-04
+
+**Multi-Specialist System — Phase 1.6 follow-up (Tag editing).**
+Closes the gap from v1.10.260: tags can now be edited post-add via
+a dedicated endpoint. Three modes (replace / add / remove) cover
+the natural editing patterns; audit log records the previous tag
+list with the `tags-updated` action.
+
+### Added
+- **`src/specialist-registry.js`**: `updateTags(id, tags, opts)`
+  with `mode: 'replace' | 'add' | 'remove'`. Replace dedupes +
+  preserves caller order; add appends without dropping existing;
+  remove drops the listed tags. Idempotent no-op when the
+  resulting list is identical.
+- **`src/specialist-audit.js`**: `ACTIONS.TAGS_UPDATED =
+  'tags-updated'`. Audit entry includes `mode`, `before`, `after`.
+- **HTTP**: `PATCH /specialists/:id/tags` body `{tags, mode?,
+  actor?}`. Returns `{id, changed, tags}`.
+- **CLI**: `c4 specialist tag <id> [--set|--add|--remove] tag1
+  tag2 ...`. Default mode `--set`. `c4 specialist tag <id> --set`
+  clears the tag list.
+- **OpenAPI**: full request/response schema; audit-action enum
+  extended with `prompt-revised` + `tags-updated`.
+- **Tests** (`tests/specialist-registry.test.js`): 5 new cases —
+  validation rejection (unknown id / non-array / non-string /
+  bogus mode), replace dedupe + idempotency, add appending,
+  remove dropping, replace-empty clearing. Suite stays green at
+  198.
+
+### Notes
+- e2e verified end-to-end: PATCH set → CLI remove → list-by-tag
+  filter → PATCH clear (`--set` no args).
+
 ## [1.10.261] - 2026-05-04
 
 **Multi-Specialist System — Phase 6.4 (Workflow meeting node).**

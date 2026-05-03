@@ -767,7 +767,7 @@ async function handleRequest(req, res) {
   // Specialist Registry path-parameter parser (multi-specialist phase 1).
   let specialistParams = null;
   {
-    const mAct = route.match(/^\/specialists\/([^\/]+)\/(suggest-prompt|prompt-apply)$/);
+    const mAct = route.match(/^\/specialists\/([^\/]+)\/(suggest-prompt|prompt-apply|tags)$/);
     const mOne = route.match(/^\/specialists\/([^\/]+)$/);
     if (mAct) specialistParams = { kind: mAct[2], id: decodeURIComponent(mAct[1]) };
     else if (mOne) specialistParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
@@ -5088,6 +5088,35 @@ async function handleRequest(req, res) {
           negativeThreshold: Number.isFinite(body.threshold) ? body.threshold : undefined,
           minSamples: Number.isFinite(body.minSamples) ? body.minSamples : undefined,
         });
+      } catch (err) {
+        const code = /not found/.test(err.message) ? 404 : 400;
+        res.writeHead(code); res.end(JSON.stringify({ error: err.message })); return;
+      }
+
+    } else if (req.method === 'PATCH' && specialistParams && specialistParams.kind === 'tags') {
+      // (multi-specialist phase 1.6 follow-up) Update specialist
+      // tags. Body:
+      //   tags    string[] required
+      //   mode    'replace' (default) | 'add' | 'remove'
+      //   actor   audit-log actor (default 'tags-update')
+      const id = specialistParams.id;
+      const body = await parseBody(req);
+      if (_validateOrFail('PATCH', '/specialists/:id/tags', body, res, cfg)) return;
+      if (!Array.isArray(body.tags)) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'tags array required' }));
+        return;
+      }
+      try {
+        const out = specialistRegistry.getShared().updateTags(id, body.tags, {
+          mode: typeof body.mode === 'string' ? body.mode : undefined,
+          actor: typeof body.actor === 'string' ? body.actor : 'tags-update',
+        });
+        result = {
+          id,
+          changed: out.changed,
+          tags: out.tags,
+        };
       } catch (err) {
         const code = /not found/.test(err.message) ? 404 : 400;
         res.writeHead(code); res.end(JSON.stringify({ error: err.message })); return;
