@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.249] - 2026-05-03
+
+**Multi-Specialist System — Phase 8.2 (Templates UI in
+MeetingsView).** Operator can now click a saved template chip
+in the "+ New" composer to autofill the task + track instead
+of retyping. Closes the parity gap between CLI (`c4 meeting
+create --template <name>`) and the web UI.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**: composer fetches
+  `/api/meetings/templates` on open, renders template names
+  as a chip row above the task input. Click sets `newTask`
+  and (if defined) `newTrack`. Tooltip surfaces the
+  description or the task body. Best-effort fetch — empty
+  template list silently hides the chip row.
+
+Suite stays 194 PASS. Web build clean.
+
 ## [1.10.248] - 2026-05-03
 
 **Multi-Specialist System — Phase 8.1 (Meeting templates).**

@@ -199,6 +199,27 @@ export default function MeetingsView() {
   const [newTrack, setNewTrack] = useState<'auto' | 'lightweight' | 'standard' | 'full'>('auto');
   const [createBusy, setCreateBusy] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  // (8.1) Saved templates: list at composer-open so the operator
+  // can pick one without typing the full task.
+  const [templates, setTemplates] = useState<Array<{
+    name: string;
+    task: string;
+    track?: string | null;
+    description?: string | null;
+  }>>([]);
+  useEffect(() => {
+    if (!creating) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await apiGet<{ templates: typeof templates }>('/api/meetings/templates');
+        if (!cancelled) setTemplates(res.templates || []);
+      } catch { /* best-effort */ }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [creating]);
   const [previewPlan, setPreviewPlan] = useState<{
     track: string;
     rosterSize: number;
@@ -361,6 +382,29 @@ export default function MeetingsView() {
           </div>
           {creating ? (
             <div className="flex flex-col gap-2 rounded-md border border-dashed border-border bg-muted/20 p-3">
+              {templates.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-1 text-[11px]">
+                  <span className="text-muted-foreground">templates:</span>
+                  {templates.map((tpl) => (
+                    <Button
+                      key={tpl.name}
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setNewTask(tpl.task);
+                        if (tpl.track) {
+                          setNewTrack(tpl.track as typeof newTrack);
+                        }
+                      }}
+                      title={tpl.description || tpl.task}
+                      aria-label={`Apply template ${tpl.name}`}
+                      className="h-6 px-2 text-[11px]"
+                    >
+                      {tpl.name}
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
               <Input
                 type="text"
                 value={newTask}
