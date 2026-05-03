@@ -76,12 +76,12 @@ t('classifyTrack: regular feature → standard', () => {
 });
 
 t('SpecialistDispatcher rejects unknown track', () => {
-  const d = new SpecialistDispatcher();
+  const d = new SpecialistDispatcher({ registry: new (require('../src/specialist-registry').SpecialistRegistry)({ persistPath: null }) });
   assert.throws(() => d.pick({ track: 'wat' }), /unknown track/);
 });
 
 t('SpecialistDispatcher.pick on full track + design stage includes architect, dba, ux', () => {
-  const d = new SpecialistDispatcher();
+  const d = new SpecialistDispatcher({ registry: new (require('../src/specialist-registry').SpecialistRegistry)({ persistPath: null }) });
   const r = d.pick({
     task: 'design new schema for users table with new ui',
     stage: 'design',
@@ -95,13 +95,13 @@ t('SpecialistDispatcher.pick on full track + design stage includes architect, db
 });
 
 t('SpecialistDispatcher.pick lightweight track caps to 2', () => {
-  const d = new SpecialistDispatcher();
+  const d = new SpecialistDispatcher({ registry: new (require('../src/specialist-registry').SpecialistRegistry)({ persistPath: null }) });
   const r = d.pick({ task: 'fix typo in handler', stage: 'implement', track: 'lightweight' });
   assert.ok(r.selected.length <= 2, `expected ≤2, got ${r.selected.length}`);
 });
 
 t('SpecialistDispatcher.pick excludes specialists that do not list current stage', () => {
-  const d = new SpecialistDispatcher();
+  const d = new SpecialistDispatcher({ registry: new (require('../src/specialist-registry').SpecialistRegistry)({ persistPath: null }) });
   const r = d.pick({ task: 'discuss roadmap', stage: 'meeting', track: 'full' });
   // pm.triggers.stages includes 'meeting' so should be present.
   // backend-engineer.triggers.stages does NOT include 'meeting' so should be absent.
@@ -111,7 +111,7 @@ t('SpecialistDispatcher.pick excludes specialists that do not list current stage
 });
 
 t('SpecialistDispatcher.pick keyword bumps move strong matches to top', () => {
-  const d = new SpecialistDispatcher();
+  const d = new SpecialistDispatcher({ registry: new (require('../src/specialist-registry').SpecialistRegistry)({ persistPath: null }) });
   const r = d.pick({
     task: 'audit auth secret token rotation pipeline',
     stage: 'audit',
@@ -161,7 +161,11 @@ t('SpecialistDispatcher.pick exploration is a no-op when candidates ≤ cap', ()
 });
 
 t('SpecialistDispatcher.pick deterministic on tied scores (sorted by id)', () => {
-  const d = new SpecialistDispatcher();
+  // persistPath:null bypasses the daemon's persisted overlay so
+  // accumulated retro deltas from prior runs don't perturb the
+  // tie-break expectation.
+  const reg = new (require('../src/specialist-registry').SpecialistRegistry)({ persistPath: null });
+  const d = new SpecialistDispatcher({ registry: reg });
   // With no keywords, every eligible specialist scores 1 (baseline only).
   // Tie-break is by id ascending.
   const r = d.pick({ task: '', stage: 'implement', track: 'full' });
@@ -190,10 +194,127 @@ t('scoreSpecialist gives veto roles a bump on audit/deploy stages', () => {
 });
 
 t('SpecialistDispatcher.stagesForTrack + capForTrack exposed', () => {
-  const d = new SpecialistDispatcher();
+  const d = new SpecialistDispatcher({ registry: new (require('../src/specialist-registry').SpecialistRegistry)({ persistPath: null }) });
   assert.deepStrictEqual(d.stagesForTrack('lightweight'), ['implement', 'review']);
   assert.strictEqual(d.capForTrack('full'), 8);
   assert.throws(() => d.stagesForTrack('unknown'), /unknown track/);
+});
+
+t('scoreSpecialist multiplies by persisted score signal once trusted', () => {
+  // Specialist with strong positive history on its domain should
+  // outrank an equivalent fresh specialist on a task that hits that
+  // domain, even when the rule-side score ties.
+  const reg = new (require('../src/specialist-registry').SpecialistRegistry)({
+    persistPath: null,
+    specialists: [
+      {
+        id: 'veteran',
+        displayName: 'Veteran',
+        tier: 'implement',
+        domain: ['backend'],
+        brain: { adapter: 'mock' },
+        systemPrompt: '[Role: Veteran] sp',
+        triggers: { keywords: ['api'], stages: ['implement'] },
+        score: {
+          byDomain: { backend: 0.9 },
+          byStage: { implement: 0.9 },
+          // Above SCORE_TRUST_THRESHOLD = 3
+          samples: { 'domain:backend': 5, 'stage:implement': 5 },
+          lastUpdated: '2026-05-03T00:00:00.000Z',
+        },
+      },
+      {
+        id: 'rookie',
+        displayName: 'Rookie',
+        tier: 'implement',
+        domain: ['backend'],
+        brain: { adapter: 'mock' },
+        systemPrompt: '[Role: Rookie] sp',
+        triggers: { keywords: ['api'], stages: ['implement'] },
+      },
+    ],
+  });
+  const d = new SpecialistDispatcher({ registry: reg });
+  const r = d.pick({ task: 'add backend api', stage: 'implement', track: 'standard' });
+  // Veteran should land first thanks to the +0.9 signal multiplier.
+  assert.strictEqual(r.selected[0].id, 'veteran',
+    `expected veteran first, got ${r.selected.map((s) => s.id).join(',')}`);
+});
+
+t('scoreSpecialist ignores score below sample-count threshold', () => {
+  // A specialist with one stellar retro shouldn't immediately
+  // dominate — wait until SCORE_TRUST_THRESHOLD (3) samples.
+  const reg = new (require('../src/specialist-registry').SpecialistRegistry)({
+    persistPath: null,
+    specialists: [
+      {
+        id: 'flash',
+        displayName: 'Flash',
+        tier: 'implement',
+        domain: ['backend'],
+        brain: { adapter: 'mock' },
+        systemPrompt: '[Role: Flash] sp',
+        triggers: { keywords: ['api'], stages: ['implement'] },
+        score: {
+          byDomain: { backend: 1.0 },
+          byStage: { implement: 1.0 },
+          samples: { 'domain:backend': 1, 'stage:implement': 1 }, // < threshold
+          lastUpdated: '2026-05-03T00:00:00.000Z',
+        },
+      },
+      {
+        id: 'baseline',
+        displayName: 'Baseline',
+        tier: 'implement',
+        domain: ['backend'],
+        brain: { adapter: 'mock' },
+        systemPrompt: '[Role: Baseline] sp',
+        triggers: { keywords: ['api'], stages: ['implement'] },
+      },
+    ],
+  });
+  const d = new SpecialistDispatcher({ registry: reg });
+  const r = d.pick({ task: 'add backend api', stage: 'implement', track: 'standard' });
+  // Tied baseline — id-sorted ascending → baseline first.
+  assert.strictEqual(r.selected[0].id, 'baseline');
+});
+
+t('scoreSpecialist negative history pushes a specialist behind a rookie', () => {
+  const reg = new (require('../src/specialist-registry').SpecialistRegistry)({
+    persistPath: null,
+    specialists: [
+      {
+        id: 'underperformer',
+        displayName: 'Underperformer',
+        tier: 'implement',
+        domain: ['backend'],
+        brain: { adapter: 'mock' },
+        systemPrompt: '[Role: Underperformer] sp',
+        triggers: { keywords: ['api'], stages: ['implement'] },
+        score: {
+          byDomain: { backend: -0.8 },
+          byStage: { implement: -0.8 },
+          samples: { 'domain:backend': 6, 'stage:implement': 6 },
+          lastUpdated: '2026-05-03T00:00:00.000Z',
+        },
+      },
+      {
+        id: 'rookie',
+        displayName: 'Rookie',
+        tier: 'implement',
+        domain: ['backend'],
+        brain: { adapter: 'mock' },
+        systemPrompt: '[Role: Rookie] sp',
+        triggers: { keywords: ['api'], stages: ['implement'] },
+      },
+    ],
+  });
+  const d = new SpecialistDispatcher({ registry: reg });
+  const r = d.pick({ task: 'add backend api', stage: 'implement', track: 'standard' });
+  // Rookie should beat underperformer because -0.8 → 0.6 multiplier
+  // pushes a base-2 score (1+1 keyword) down to 1.2, lower than
+  // rookie's straight 2.0.
+  assert.strictEqual(r.selected[0].id, 'rookie');
 });
 
 t('SpecialistDispatcher accepts a custom registry', () => {

@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.241] - 2026-05-03
+
+**Multi-Specialist System — Phase 4.4 (Dispatcher reads
+persisted score).** Plugs the missing link in the adaptive
+loop: the retro deltas the registry has been carefully
+accumulating since v1.10.220 now actually influence
+`scoreSpecialist()`'s ranking. Without this, the persisted
+`byDomain` / `byStage` history was decorative — the
+dispatcher continued to pick on rule signals only.
+
+### Changed
+- **`src/specialist-dispatcher.js`**: `scoreSpecialist`
+  multiplies the rule-side score by a persisted-history
+  multiplier in `[0.5, 1.5]` derived from the relevant
+  `score.byStage[stage]` and `score.byDomain[<task-token>]`
+  buckets (60% domain / 40% stage when both are populated).
+  Cold-start specialists are NOT punished — the score is
+  only read once the per-bucket sample count crosses
+  `SCORE_TRUST_THRESHOLD = 3`. So a single accept/object
+  retro can't immediately tilt the next dispatch; multiple
+  consistent signals are needed before the registry's
+  preference moves.
+
+### Added
+- **`tests/specialist-dispatcher.test.js`** (3 new cases):
+  veteran-with-history outranks rookie on a matching task,
+  flash-with-1-sample is ignored (below threshold),
+  underperformer with strong negative history falls behind a
+  baseline rookie. Suite stays 191 PASS (file 21 → 24
+  cases, but the runner counts files).
+
+End-to-end demo: `c4 specialist dispatch "add backend api
+endpoint" --stage implement` previously ranked
+backend-engineer / dba at 3.50 / 1.50; now backend-engineer
+jumps to 5.83 (rule 3.5 × ≈1.7 multiplier from accumulated
+implement-stage + backend-domain history) while dba stays
+at 1.50 (no persisted history yet). The user's "다음번에
+재선임" instinct is now fully wired.
+
 ## [1.10.240] - 2026-05-03
 
 **Multi-Specialist System — Phase 7.10 (c4 organism status

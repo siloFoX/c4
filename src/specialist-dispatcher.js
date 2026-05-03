@@ -42,8 +42,75 @@ function tokenize(text) {
     .filter(Boolean);
 }
 
-// Score a single specialist against a task. Phase 1 uses pure rule
-// signals; phase 4 will multiply this by the per-domain score record.
+// Minimum sample count before a per-stage / per-domain score is
+// trusted enough to influence the dispatcher's pick. Below this the
+// score is ignored — cold-start specialists aren't punished for an
+// empty record. Setting too high makes adaptation slow; too low
+// chases noise. 3 strikes a reasonable balance for a hand-driven
+// daemon; production fleets may want to bump it.
+const SCORE_TRUST_THRESHOLD = 3;
+
+// Convert a [-1..+1] score signal into a [0.5..1.5] multiplier so a
+// well-rated specialist pulls ahead of the baseline keyword score.
+// At score=0 the multiplier is 1.0 — pure neutral. We deliberately
+// cap the boost / penalty so a specialist who happens to be on a
+// hot streak in one domain doesn't dominate every dispatch.
+function _scoreToMultiplier(signal) {
+  if (!Number.isFinite(signal)) return 1;
+  const clamped = Math.max(-1, Math.min(1, signal));
+  return 1 + 0.5 * clamped;
+}
+
+// Read the persisted score signal a specialist accumulated for a
+// given stage and any matching domain token. Skipped when the
+// sample count is below SCORE_TRUST_THRESHOLD so finalize calls
+// don't immediately tilt selection from a single retro.
+function _scoreSignalFor(spec, { stage, taskTokens }) {
+  const score = spec.score || {};
+  const samples = score.samples || {};
+
+  let stageSignal = null;
+  if (stage) {
+    const stageScore = (score.byStage || {})[stage];
+    const stageSamples = samples[`stage:${stage}`] || 0;
+    if (Number.isFinite(stageScore) && stageSamples >= SCORE_TRUST_THRESHOLD) {
+      stageSignal = stageScore;
+    }
+  }
+
+  // Per-domain signal — only consider the specialist's own domains
+  // that overlap with the task tokens. A specialist with high
+  // backend score should pull ahead on backend tasks, not on UX
+  // tasks where its domain doesn't match.
+  let domainSignals = [];
+  if (taskTokens && taskTokens.length > 0) {
+    const domSet = new Set(spec.domain.map((d) => d.toLowerCase()));
+    const taskSet = new Set(taskTokens);
+    for (const d of domSet) {
+      if (!taskSet.has(d)) continue;
+      const v = (score.byDomain || {})[d];
+      const n = samples[`domain:${d}`] || 0;
+      if (Number.isFinite(v) && n >= SCORE_TRUST_THRESHOLD) domainSignals.push(v);
+    }
+  }
+  let domainSignal = null;
+  if (domainSignals.length > 0) {
+    domainSignal = domainSignals.reduce((a, b) => a + b, 0) / domainSignals.length;
+  }
+
+  if (stageSignal == null && domainSignal == null) return null;
+  if (stageSignal != null && domainSignal != null) {
+    // Domain signal is stronger evidence the specialist suits this
+    // task than the broader stage signal — weight 60/40.
+    return domainSignal * 0.6 + stageSignal * 0.4;
+  }
+  return stageSignal != null ? stageSignal : domainSignal;
+}
+
+// Score a single specialist against a task. Phase 4.4 multiplies
+// the rule signal by a multiplier derived from the persisted retro
+// score record so adaptive selection actually kicks in once a
+// specialist has accumulated history.
 function scoreSpecialist(spec, { taskTokens, stage }) {
   let score = 0;
 
@@ -75,6 +142,14 @@ function scoreSpecialist(spec, { taskTokens, stage }) {
   // eligible — the §8.3 exploration budget below will lift them
   // back up when the dispatcher reserves slots.
   if (spec.probation === 'probation') score *= 0.8;
+
+  // (Phase 4.4) Persisted-score weighting. After a specialist has
+  // seen at least SCORE_TRUST_THRESHOLD samples, its retro signal
+  // pulls the rule score up or down by a bounded multiplier.
+  const signal = _scoreSignalFor(spec, { taskTokens, stage });
+  if (signal != null) {
+    score *= _scoreToMultiplier(signal);
+  }
 
   return score;
 }
@@ -203,4 +278,5 @@ module.exports = {
   TRACK_CAPS,
   TRACK_STAGES,
   DEFAULT_EXPLORATION_RATIO,
+  SCORE_TRUST_THRESHOLD,
 };
