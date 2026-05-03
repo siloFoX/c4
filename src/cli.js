@@ -2263,6 +2263,59 @@ async function main() {
         break;
       }
 
+      case 'organism': {
+        // (multi-specialist phase 7.10) One-shot status summary —
+        // useful smoke-check after deploying or before kicking off a
+        // long-running meeting. Pulls /specialists, /meetings,
+        // /wiki/search to count surface area.
+        const [specs, meets] = await Promise.all([
+          request('GET', '/specialists').catch((e) => ({ error: e.message })),
+          request('GET', '/meetings').catch((e) => ({ error: e.message })),
+        ]);
+        const wikiAttempt = await request('GET', '/wiki/search?q=&limit=1').catch((e) => ({ error: e.message }));
+
+        if (args.includes('--json')) {
+          result = {
+            specialists: specs,
+            meetings: meets,
+            wiki: wikiAttempt,
+          };
+          break;
+        }
+
+        const specsCount = (specs && Array.isArray(specs.specialists)) ? specs.specialists.length : 0;
+        const scoredCount = (specs && Array.isArray(specs.specialists))
+          ? specs.specialists.filter((s) => {
+              const score = s.score || {};
+              return Object.keys(score.byDomain || {}).length > 0
+                || Object.keys(score.byStage || {}).length > 0;
+            }).length
+          : 0;
+        const vetoCount = (specs && Array.isArray(specs.specialists))
+          ? specs.specialists.filter((s) => s.vetoPower).length
+          : 0;
+        console.log(`Specialists: ${specsCount} registered  (${vetoCount} veto, ${scoredCount} with score history)`);
+        if (specs && specs.error) console.log(`  ! specialists fetch failed: ${specs.error}`);
+
+        const byStatus = {};
+        if (meets && Array.isArray(meets.meetings)) {
+          for (const m of meets.meetings) {
+            byStatus[m.status] = (byStatus[m.status] || 0) + 1;
+          }
+        }
+        const total = Object.values(byStatus).reduce((a, b) => a + b, 0);
+        const segments = ['pending', 'in-progress', 'completed', 'escalated', 'aborted']
+          .map((s) => `${s}=${byStatus[s] || 0}`).join('  ');
+        console.log(`Meetings:    ${total} total  (${segments})`);
+        if (meets && meets.error) console.log(`  ! meetings fetch failed: ${meets.error}`);
+
+        const wikiTotal = wikiAttempt && Number.isFinite(wikiAttempt.total) ? wikiAttempt.total : 0;
+        const wikiRoot = (wikiAttempt && wikiAttempt.wikiRoot) || '-';
+        console.log(`Wiki:        ${wikiTotal} page(s) under ${wikiRoot}`);
+        if (wikiAttempt && wikiAttempt.error) console.log(`  ! wiki search failed: ${wikiAttempt.error}`);
+        return;
+      }
+
       case 'wiki': {
         // (multi-specialist phase 3.2 + 3.3) Search + read + reopen.
         //   c4 wiki search "<query>" [--type X] [--status S] [--limit N] [--stale]

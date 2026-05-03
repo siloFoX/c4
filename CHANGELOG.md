@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.240] - 2026-05-03
+
+**Multi-Specialist System — Phase 7.10 (c4 organism status
+command).** One-shot summary of multi-specialist state for
+smoke-checking after deployment or before kicking off a
+long-running meeting.
+
+### Added
+- **`src/cli.js`** `c4 organism`: pulls `/specialists` +
+  `/meetings` + `/wiki/search` in parallel, prints:
+  - `Specialists: N registered (X veto, Y with score history)`
+  - `Meetings: N total (pending=N in-progress=N completed=N escalated=N aborted=N)`
+  - `Wiki: N page(s) under <wikiRoot>`
+  Errors per surface are surfaced with `!` prefix instead of
+  failing the whole command. `--json` returns the raw bag.
+
+End-to-end on a fresh daemon restart:
+```
+$ c4 organism
+Specialists: 13 registered  (2 veto, 6 with score history)
+Meetings:    0 total  (pending=0  in-progress=0  …)
+Wiki:        0 page(s) under /home/shinc/.c4/wiki
+```
+
+Suite stays 191 PASS.
+
 ## [1.10.239] - 2026-05-03
 
 **Multi-Specialist System — Phase 7.9 (Specialist
