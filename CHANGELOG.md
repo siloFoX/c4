@@ -4,6 +4,48 @@
 
 (no entries — next release window)
 
+## [1.10.208] - 2026-05-03
+
+**Live tail SSE for attached sessions (8.32 slice 1).** Read-side
+of bidirectional sync. The web UI can now stream new turns from
+an attached JSONL as the underlying file grows, instead of
+re-fetching `/attach/:name/conversation` on every render. Pairs
+with a future `POST /attach/:name/input` write path (slice 2+).
+
+### Added
+- **`src/attach-tail.js`**: `AttachTail` EventEmitter + thin
+  `watchAttachedSession(path, opts)` factory. fs.watch + offset
+  bookkeeping + `sessionParser.parseLine`, debounced 50 ms.
+  Emits `turn` / `warning` / `error` / `closed`. Default mode is
+  live-only (starts at current EOF). `startOffset: 0` replays
+  the whole file so a fresh web view can seed without a separate
+  conversation fetch. Rotation: shrink-truncate or inode change
+  resets the read position. Truncate-and-rewrite-larger is not
+  auto-detected — Claude Code's transcripts are append-only so
+  this case is rare; callers can detach + re-attach.
+- **`src/daemon.js`**: `GET /attach/:name/tail` route. SSE
+  `text/event-stream` with `data: {"type":"connected","name"...}`
+  on connect, `{"type":"turn","turn":...}` per appended turn,
+  `{"type":"warning","warning":...}` for malformed lines,
+  `{"type":"heartbeat","ts":...}` every 15 s. RBAC gate matches
+  the rest of `/attach` (WORKER_CREATE). Query: `?from=beginning`
+  or `?from=<integer>` for replay; omit for live-only. Closes
+  the watcher on client disconnect.
+- **`src/openapi-gen.js`**: curated summary entry for the new
+  route in the route-summary table.
+- **`tests/attach-tail.test.js`**: 12 `t()` cases — exports
+  surface, missing-path constructor, empty-file no-emit,
+  appended-turn round-trip, multiple lines preserve order,
+  `startOffset:0` replay, default live-only skips backfill,
+  partial-line buffering across chunks, shrink-truncate reset,
+  idempotent `stop()`, missing-file error path, currentOffset
+  advancement.
+
+End-to-end verified against the live daemon (POST /attach →
+GET /attach/:name/tail → echo `{"type":"connected"}` → append
+JSONL line → `{"type":"turn"}` arrives within ms). Full suite
+178 → 179 PASS.
+
 ## [1.10.207] - 2026-05-03
 
 **Reviewer lightweight oversight (8.29).** Adds an escalation

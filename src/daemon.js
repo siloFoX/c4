@@ -33,6 +33,7 @@ const tierQuotaMod = require('./tier-quota');
 const scribeV2Mod = require('./scribe-v2');
 const sessionParser = require('./session-parser');
 const sessionAttach = require('./session-attach');
+const attachTail = require('./attach-tail');
 const autoDispatcherMod = require('./auto-dispatcher');
 const { PinnedMemoryScheduler, DEFAULT_INTERVAL_MS: PIN_DEFAULT_INTERVAL_MS } = require('./pinned-memory-scheduler');
 
@@ -733,8 +734,10 @@ async function handleRequest(req, res) {
   let attachParams = null;
   {
     const mConv = route.match(/^\/attach\/([^\/]+)\/conversation$/);
+    const mTail = route.match(/^\/attach\/([^\/]+)\/tail$/);
     const mOne = route.match(/^\/attach\/([^\/]+)$/);
     if (mConv) attachParams = { kind: 'conversation', name: decodeURIComponent(mConv[1]) };
+    else if (mTail) attachParams = { kind: 'tail', name: decodeURIComponent(mTail[1]) };
     else if (mOne) attachParams = { kind: 'one', name: decodeURIComponent(mOne[1]) };
     // /attach/list is covered by the string-compare branch below; the
     // regex would pick it up as a name, so reject that shape here.
@@ -4137,6 +4140,72 @@ async function handleRequest(req, res) {
         return;
       }
       result = sessionParser.parseJsonl(record.jsonlPath);
+
+    } else if (req.method === 'GET' && attachParams && attachParams.kind === 'tail') {
+      // (8.32 slice 1) SSE live tail for an attached JSONL. Emits one
+      // 'data: {"type":"turn","turn":...}\n\n' per new turn appended
+      // to the file. Read-only side of bidirectional sync — pairs
+      // with a future POST /attach/:name/input write path. Same RBAC
+      // gate as the rest of /attach since it exposes the same data
+      // surface, just streamed.
+      //
+      // Query params:
+      //   from=beginning  — replay the entire file from offset 0
+      //                     (the web UI uses this to seed an empty
+      //                     view without a separate /conversation
+      //                     fetch).
+      //   from=<integer>  — explicit byte offset to resume from.
+      //   (omitted)       — live-only; existing content is skipped.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE);
+      if (denyOr(res, gate)) return;
+      const store = sessionAttach.getShared();
+      const record = store.get(attachParams.name);
+      if (!record) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Attachment not found', name: attachParams.name }));
+        return;
+      }
+      if (!fs.existsSync(record.jsonlPath)) {
+        res.writeHead(410);
+        res.end(JSON.stringify({
+          error: 'Underlying JSONL no longer exists',
+          name: record.name,
+          jsonlPath: record.jsonlPath,
+        }));
+        return;
+      }
+
+      const fromQuery = url.searchParams.get('from');
+      let startOpts = {};
+      if (fromQuery === 'beginning') {
+        startOpts = { startOffset: 0 };
+      } else if (fromQuery && /^\d+$/.test(fromQuery)) {
+        startOpts = { startOffset: parseInt(fromQuery, 10) };
+      }
+
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      });
+      res.write(`data: ${JSON.stringify({ type: 'connected', name: record.name })}\n\n`);
+
+      const tail = attachTail.watchAttachedSession(record.jsonlPath, startOpts);
+      const safeWrite = (payload) => {
+        try { res.write(`data: ${JSON.stringify(payload)}\n\n`); }
+        catch { /* client gone */ }
+      };
+      tail.on('turn', (turn) => safeWrite({ type: 'turn', turn }));
+      tail.on('warning', (warning) => safeWrite({ type: 'warning', warning }));
+      tail.on('error', (err) => safeWrite({ type: 'error', message: err.message }));
+
+      const heartbeat = setInterval(() => safeWrite({ type: 'heartbeat', ts: Date.now() }), 15000);
+
+      req.on('close', () => {
+        clearInterval(heartbeat);
+        tail.stop();
+      });
+      return; // keep SSE connection open
 
     } else if (req.method === 'GET' && route === '/fleet/overview') {
       // Fleet management (9.6): aggregate this daemon's state plus
