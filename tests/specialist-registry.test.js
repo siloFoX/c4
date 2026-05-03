@@ -549,6 +549,27 @@ t('updateTags replace [] clears tags', () => {
   assert.deepStrictEqual(r.tags, []);
 });
 
+t('exportBundle({tags}) AND-composes — only specialists carrying every listed tag are exported', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  reg.add(fixtureSpec({ id: 'spec-a', tags: ['rfc', 'experimental'] }));
+  reg.add(fixtureSpec({ id: 'spec-b', tags: ['rfc'] }));
+  reg.add(fixtureSpec({ id: 'spec-c', tags: ['ux'] }));
+
+  const all = reg.exportBundle();
+  assert.ok(all.specialists.length >= 3, 'unfiltered export carries everything');
+
+  const rfc = reg.exportBundle({ tags: ['rfc'] });
+  const rfcIds = rfc.specialists.map((s) => s.id).sort();
+  assert.deepStrictEqual(rfcIds.filter((id) => id.startsWith('spec-')), ['spec-a', 'spec-b']);
+
+  const both = reg.exportBundle({ tags: ['rfc', 'experimental'] });
+  const bothIds = both.specialists.map((s) => s.id);
+  assert.deepStrictEqual(bothIds.filter((id) => id.startsWith('spec-')), ['spec-a'], 'AND drops spec-b which only has rfc');
+
+  const empty = reg.exportBundle({ tags: ['nonexistent-tag'] });
+  assert.deepStrictEqual(empty.specialists.map((s) => s.id).filter((id) => id.startsWith('spec-')), []);
+});
+
 (async () => {
   for (const fn of pending) await fn();
   console.log(`\n  ${passed} passed, ${failed} failed (specialist-registry)`);

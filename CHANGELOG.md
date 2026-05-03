@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.270] - 2026-05-04
+
+**Multi-Specialist System — Phase 1.6 follow-up #2 (Export tag filter).**
+The export endpoint and registry method now accept a tag list,
+producing a subset bundle. Useful for selectively backing up or
+transferring a sub-registry (e.g., only `experimental` specialists,
+only `rfc`-tagged ones).
+
+### Added
+- **`src/specialist-registry.js`**: `exportBundle(opts)` accepts
+  `opts.tags: string[]`. Specialists must carry every listed tag
+  (AND-compose, matching `GET /specialists ?tag=` semantics).
+  Empty / missing → no filter. Score / probation / vetoPower
+  drift fields still preserved on the kept entries.
+- **HTTP**: `GET /specialists/export?tag=X[&tag=Y]` (also
+  comma-split supported). Repeating the parameter AND-composes.
+- **CLI**: `c4 specialist export --tag X [--tag Y] [--out file]`
+  passes the filter through.
+- **OpenAPI**: query parameter documented.
+- **Tests** (`tests/specialist-registry.test.js`): new case
+  covering AND-compose semantics, single-tag filter, and the
+  empty-result path when the tag matches no one. Suite stays
+  green at 199.
+
+### Notes
+- e2e verified end-to-end against the running daemon: unfiltered
+  export = 13 seed entries; `?tag=nonexistent` = 0 entries.
+- Pairs with v1.10.262 (`PATCH /specialists/:id/tags`) to make
+  the tag system useful end-to-end: edit tags, filter list view,
+  selective export. The full lifecycle for tag-based grouping is
+  now closed.
+
 ## [1.10.269] - 2026-05-04
 
 **Multi-Specialist System — Phase 6.10 (Meeting recap combo).**

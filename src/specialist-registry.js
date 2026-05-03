@@ -585,9 +585,18 @@ class SpecialistRegistry {
   // fields are included so the bundle is self-contained on a
   // host that may not have the same seed (e.g., copying a
   // tuned registry from prod to staging).
-  exportBundle() {
+  exportBundle(opts = {}) {
+    // Phase 1.6 follow-up — tag filter. opts.tags is a string array;
+    // exported entries must carry every listed tag (AND-compose,
+    // matches the GET /specialists ?tag= semantics). Empty / missing
+    // → no filter applied.
+    const tagFilter = Array.isArray(opts.tags) ? opts.tags.filter((t) => typeof t === 'string' && t.trim()) : [];
     const specialists = [];
     for (const spec of this._byId.values()) {
+      if (tagFilter.length > 0) {
+        const sTags = Array.isArray(spec.tags) ? spec.tags : [];
+        if (!tagFilter.every((t) => sTags.includes(t))) continue;
+      }
       specialists.push({
         id: spec.id,
         displayName: spec.displayName,

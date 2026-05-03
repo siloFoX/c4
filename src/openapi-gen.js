@@ -3054,6 +3054,9 @@ const ROUTE_SCHEMAS = {
     },
   },
   'GET /specialists/export': {
+    parameters: [
+      { name: 'tag', in: 'query', explode: true, schema: { type: 'array', items: { type: 'string' } }, description: 'Tag filter; repeat or comma-separate. AND across multiple tags. Specialists without all listed tags are excluded.' },
+    ],
     response: {
       properties: {
         version: { type: 'integer' },

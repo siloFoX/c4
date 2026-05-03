@@ -5444,8 +5444,18 @@ async function handleRequest(req, res) {
       // drift from seed are preserved alongside the immutable
       // fields so the bundle round-trips through importBundle on a
       // host that may not have the same seed.
+      // (phase 1.6 follow-up) ?tag=X (repeatable) filters the
+      // exported bundle by tag — useful for selectively backing up
+      // a sub-registry (e.g. only the "experimental" tag).
       const reg = specialistRegistry.getShared();
-      result = reg.exportBundle();
+      const tagsParam = url.searchParams.getAll('tag');
+      const tagList = [];
+      for (const t of tagsParam) {
+        for (const x of String(t).split(',')) {
+          if (x.trim()) tagList.push(x.trim());
+        }
+      }
+      result = reg.exportBundle(tagList.length > 0 ? { tags: tagList } : undefined);
 
     } else if (req.method === 'POST' && route === '/specialists/import') {
       // (multi-specialist phase 1.3) Apply a previously-exported

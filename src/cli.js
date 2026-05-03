@@ -2296,13 +2296,19 @@ async function main() {
           return;
         }
         if (sub === 'export') {
-          // c4 specialist export [--out <file>]
-          // Defaults to stdout for piping to jq / git diff.
+          // c4 specialist export [--out <file>] [--tag X ...]
+          // Defaults to stdout for piping to jq / git diff. Repeating
+          // --tag AND-composes the filter (subset export).
           let outFile = null;
+          const tags = [];
           for (let i = 1; i < args.length; i += 1) {
             if (args[i] === '--out' && args[i + 1]) { outFile = args[i + 1]; i += 1; }
+            else if (args[i] === '--tag' && args[i + 1]) { tags.push(args[i + 1]); i += 1; }
           }
-          result = await request('GET', '/specialists/export');
+          const qs = new URLSearchParams();
+          for (const t of tags) qs.append('tag', t);
+          const path = qs.toString() ? `/specialists/export?${qs.toString()}` : '/specialists/export';
+          result = await request('GET', path);
           if (args.includes('--json') && !outFile) break;
           const blob = JSON.stringify(result, null, 2) + '\n';
           if (outFile) {
