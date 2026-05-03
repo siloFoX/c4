@@ -671,6 +671,12 @@ interface AttachedRowActionsProps {
   onDetach: () => void;
 }
 
+type AttachProcessState =
+  | { status: 'loading' }
+  | { status: 'alive'; pid: number; cwd: string | null; match: 'fd' | 'cwd'; multipleCandidates?: boolean }
+  | { status: 'idle' }
+  | { status: 'error'; message: string };
+
 function AttachedRowActions({
   session,
   isSelected,
@@ -680,6 +686,13 @@ function AttachedRowActions({
   const [showResume, setShowResume] = useState(false);
   const [showDetachConfirm, setShowDetachConfirm] = useState(false);
   const [copied, setCopied] = useState(false);
+  // (8.32 slice 4) Process discovery — paint the row with a live /
+  // idle pill so a reviewer knows whether the JSONL is currently
+  // owned by a running claude or just an exported transcript. The
+  // status refreshes every 30s; we poll instead of subscribing
+  // because the lookup is a one-shot procfs scan with no SSE
+  // counterpart yet.
+  const [procState, setProcState] = useState<AttachProcessState>({ status: 'loading' });
   const resumeCmd = session.sessionId
     ? `claude --resume ${session.sessionId}`
     : `claude --resume <unknown-session-id>`;
@@ -689,6 +702,39 @@ function AttachedRowActions({
     window.setTimeout(() => setCopied(false), 1500);
   }, [resumeCmd]);
   const role: AttachedRole = session.role || 'generic';
+
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const data = await apiGet<{
+          alive: boolean; pid?: number; cwd?: string | null;
+          match?: 'fd' | 'cwd'; multipleCandidates?: boolean;
+        }>(`/api/attach/${encodeURIComponent(session.name)}/process`);
+        if (cancelled) return;
+        if (data.alive && typeof data.pid === 'number') {
+          setProcState({
+            status: 'alive',
+            pid: data.pid,
+            cwd: data.cwd ?? null,
+            match: data.match || 'fd',
+            multipleCandidates: !!data.multipleCandidates,
+          });
+        } else {
+          setProcState({ status: 'idle' });
+        }
+      } catch (err) {
+        if (cancelled) return;
+        setProcState({ status: 'error', message: (err as Error).message });
+      }
+    };
+    poll();
+    const id = window.setInterval(poll, 30000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [session.name]);
   // (TODO 8.38 review fix 2026-05-01) Stable id for the
   // confirmation strip so the Detach trigger's `aria-controls`
   // points at a real element. Suffix with the session name so
@@ -713,6 +759,48 @@ function AttachedRowActions({
           {role}
         </span>
         <span className="text-muted-foreground">read-only mirror</span>
+        {procState.status === 'loading' ? (
+          <span
+            className="inline-flex items-center gap-1 rounded-full border border-border/60 px-1.5 py-0 text-muted-foreground/70"
+            aria-label="Process status: checking"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" aria-hidden />
+            checking
+          </span>
+        ) : procState.status === 'alive' ? (
+          <span
+            className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0 text-emerald-600 dark:text-emerald-400"
+            aria-label={`Live process: pid ${procState.pid}, ${procState.match === 'fd' ? 'fd-matched' : 'cwd-matched'}`}
+            title={
+              `Live claude pid ${procState.pid}` +
+              (procState.cwd ? ` in ${procState.cwd}` : '') +
+              (procState.match === 'cwd' ? ' (matched by cwd)' : '') +
+              (procState.multipleCandidates ? ' — multiple candidates' : '')
+            }
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
+            live · pid {procState.pid}
+            {procState.multipleCandidates ? '+' : ''}
+          </span>
+        ) : procState.status === 'idle' ? (
+          <span
+            className="inline-flex items-center gap-1 rounded-full border border-border/60 px-1.5 py-0 text-muted-foreground"
+            aria-label="No live process — exported transcript only"
+            title="No running claude process owns this JSONL"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" aria-hidden />
+            no live process
+          </span>
+        ) : (
+          <span
+            className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0 text-amber-700 dark:text-amber-400"
+            aria-label={`Process lookup failed: ${procState.message}`}
+            title={procState.message}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden />
+            lookup failed
+          </span>
+        )}
       </div>
       <div className="flex flex-wrap gap-2">
         <Button

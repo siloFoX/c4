@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.212] - 2026-05-03
+
+**Live-process badge for attached sessions (8.32 slice 4).**
+The slice 2 process discovery is now surfaced visually in the
+attached-row UI: a small pill next to the role badge says
+`live · pid 13270` (green) when a running claude process owns
+the JSONL, `no live process` (muted) when the JSONL is just
+an exported transcript, `checking` while the lookup is in
+flight, or `lookup failed` (amber) on error. Hover tooltip
+includes cwd, match strategy (fd vs cwd), and a flag when
+multiple claude processes share the same cwd.
+
+### Added
+- **`web/src/components/SessionsView.tsx`** — new
+  `AttachProcessState` discriminated union + polling effect
+  in `AttachedRowActions`. GETs `/api/attach/:name/process`
+  on mount and every 30 s. Uses `apiGet` so daemon auth and
+  base-URL routing match the rest of the page.
+
+Slice 3 (write path: POST /attach/:name/input to inject
+keystrokes into the running claude process) is intentionally
+deferred — the only direct injection paths on Linux are
+TIOCSTI (privileged) or wrapping `claude` launch behind a
+named-pipe shim. Both need design discussion + RBAC gating
+before shipping; the ground laid by slices 1+2+4 means the
+write path can land cleanly later without breaking the
+existing read flow.
+
 ## [1.10.211] - 2026-05-03
 
 **Claude Code process discovery for attached sessions
