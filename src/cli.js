@@ -2062,8 +2062,8 @@ async function main() {
         //   c4 specialist dispatch "<task>" [--stage X] [--track X] [--cap N]
         //   c4 specialist score [--by-domain D | --by-stage S] [--limit N]
         const sub = (args[0] || 'list').toLowerCase();
-        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt', 'export', 'import', 'audit', 'score-history'].includes(sub)) {
-          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt|export|import|audit|score-history> [args]');
+        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt', 'export', 'import', 'audit', 'score-history', 'propose'].includes(sub)) {
+          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt|export|import|audit|score-history|propose> [args]');
           process.exit(1);
         }
         if (sub === 'list') {
@@ -2332,6 +2332,49 @@ async function main() {
             console.log(`  ${it.id.padEnd(22)} deepest=${(b ? b.score : 0).toFixed(2)} (${where}, n=${b ? b.samples : 0})`);
             console.log(`    ${it.recommendation}`);
           }
+          return;
+        }
+        if (sub === 'propose') {
+          // c4 specialist propose <file.json | -> [--brain mock|claude]
+          //                       [--track X] [--no-apply]
+          const src = args[1];
+          if (!src) {
+            console.error('Usage: c4 specialist propose <file.json | -> [--brain mock|claude] [--track X] [--no-apply]');
+            process.exit(1);
+          }
+          let brain = 'mock';
+          let track = null;
+          let autoApply = true;
+          for (let i = 2; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--brain' && args[i + 1]) { brain = args[i + 1]; i += 1; }
+            else if (a === '--track' && args[i + 1]) { track = args[i + 1]; i += 1; }
+            else if (a === '--no-apply') { autoApply = false; }
+          }
+          let candidate;
+          try {
+            const raw = (src === '-')
+              ? require('fs').readFileSync(0, 'utf8')
+              : require('fs').readFileSync(src, 'utf8');
+            candidate = JSON.parse(raw);
+          } catch (err) {
+            console.error(`failed to read candidate JSON: ${err.message}`);
+            process.exit(1);
+          }
+          const body = { candidate, brain, autoApply };
+          if (track) body.track = track;
+          result = await request('POST', '/specialists/propose', body);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          const d = result.decision;
+          console.log(`proposal ${result.candidateId}: ${d.accepted ? 'ACCEPTED' : 'REJECTED'}  meeting=${result.meetingId}  status=${result.sessionStatus}`);
+          console.log(`  accepts: ${d.accepts.join(', ') || '-'}`);
+          if (d.objects.length > 0) {
+            console.log(`  objects: ${d.objects.map((o) => `${o.id}${o.reason ? ` (${o.reason})` : ''}`).join(', ')}`);
+          }
+          if (!d.accepted && d.reason) console.log(`  reason: ${d.reason}`);
+          if (d.accepted && result.added) console.log(`  added to registry`);
+          if (d.accepted && !result.added) console.log(`  NOT added (autoApply=false)`);
           return;
         }
         if (sub === 'add') {

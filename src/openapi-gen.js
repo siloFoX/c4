@@ -46,6 +46,7 @@ const ROUTE_SUMMARIES = {
   'GET /specialists/underperformers': 'List specialists with sustained negative retro scores in their domains/stages — read-only analysis.',
   'GET /specialists/export': 'Bulk export of the registry as a self-contained bundle suitable for /specialists/import.',
   'GET /specialists/audit': 'Append-only governance audit log — every add/remove/import event with optional filters.',
+  'POST /specialists/propose': 'Propose adding a candidate specialist via meeting consensus — accepted only when the meta-meeting hits no objections.',
   'POST /specialists/import': 'Apply a previously-exported bundle (merge | replace, optional dryRun preview).',
   'POST /specialists/:id/suggest-prompt': 'Ask a brain to draft a revised systemPrompt for an underperforming specialist — review-only (never auto-applied).',
   'POST /meetings/plan': 'Plan a full multi-stage meeting roster for a task — preview only, no specialists spawned.',
@@ -2720,6 +2721,47 @@ const ROUTE_SCHEMAS = {
         revision: { type: 'string', nullable: true, description: 'Suggested replacement systemPrompt — null if brain output did not parse' },
         rationale: { type: 'string', nullable: true },
         raw: { type: 'string' },
+      },
+    },
+  },
+  'POST /specialists/propose': {
+    requestBody: {
+      properties: {
+        candidate: { type: 'object', description: 'Full specialist record (same shape as POST /specialists)' },
+        brain: { type: 'string', enum: ['mock', 'claude'] },
+        track: { type: 'string', enum: ['lightweight', 'standard', 'full'] },
+        actor: { type: 'string' },
+        autoApply: { type: 'boolean', description: 'When true (default), accepted proposal calls registry.add() with audit ref to the meta-meeting' },
+        askTimeoutMs: { type: 'integer' },
+      },
+      example: {
+        brain: 'mock',
+        candidate: {
+          id: 'data-engineer',
+          displayName: 'Data Engineer',
+          tier: 'implement',
+          domain: ['data', 'pipeline'],
+          brain: { adapter: 'claude-code', model: 'sonnet' },
+          systemPrompt: '[Role: Data Engineer] You build pipelines.',
+          triggers: { keywords: ['etl'], stages: ['design', 'implement'] },
+        },
+      },
+    },
+    response: {
+      properties: {
+        candidateId: { type: 'string' },
+        meetingId: { type: 'string' },
+        decision: {
+          properties: {
+            accepted: { type: 'boolean' },
+            accepts: { type: 'array', items: { type: 'string' } },
+            objects: { type: 'array', items: { type: 'object' } },
+            missing: { type: 'array', items: { type: 'string' } },
+            reason: { type: 'string', nullable: true },
+          },
+        },
+        added: { type: 'boolean' },
+        sessionStatus: { type: 'string' },
       },
     },
   },

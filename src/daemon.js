@@ -39,6 +39,7 @@ const specialistRegistry = require('./specialist-registry');
 const specialistDispatcher = require('./specialist-dispatcher');
 const specialistPromptIterate = require('./specialist-prompt-iterate');
 const specialistAudit = require('./specialist-audit');
+const specialistProposal = require('./specialist-proposal');
 const meetingPlan = require('./meeting-plan');
 const meetingTemplates = require('./meeting-templates');
 const meetingSession = require('./meeting-session');
@@ -778,6 +779,7 @@ async function handleRequest(req, res) {
       || specialistParams.id === 'export'
       || specialistParams.id === 'import'
       || specialistParams.id === 'audit'
+      || specialistParams.id === 'propose'
     )) {
       specialistParams = null;
     }
@@ -4978,6 +4980,37 @@ async function handleRequest(req, res) {
         });
       } catch (err) {
         const code = /not found/.test(err.message) ? 404 : 400;
+        res.writeHead(code); res.end(JSON.stringify({ error: err.message })); return;
+      }
+
+    } else if (req.method === 'POST' && route === '/specialists/propose') {
+      // (multi-specialist phase 1.5) Propose adding a candidate
+      // specialist via meeting consensus. Body:
+      //   candidate    required, full specialist record
+      //   brain        'mock' | 'claude' (default 'mock')
+      //   track        'lightweight' | 'standard' | 'full'
+      //   actor        audit-log actor (default 'proposal')
+      //   autoApply    default true — adds on accept
+      //   askTimeoutMs claude per-ask timeout
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/specialists/propose', body, res, cfg)) return;
+      if (!body.candidate || typeof body.candidate !== 'object') {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'candidate body field required' }));
+        return;
+      }
+      try {
+        const out = await specialistProposal.proposeSpecialist(body.candidate, {
+          registry: specialistRegistry.getShared(),
+          brain: typeof body.brain === 'string' ? body.brain : 'mock',
+          track: typeof body.track === 'string' ? body.track : undefined,
+          actor: typeof body.actor === 'string' ? body.actor : undefined,
+          autoApply: body.autoApply !== false,
+          askTimeoutMs: Number.isFinite(body.askTimeoutMs) ? body.askTimeoutMs : undefined,
+        });
+        result = out;
+      } catch (err) {
+        const code = /already exists/.test(err.message) ? 409 : 400;
         res.writeHead(code); res.end(JSON.stringify({ error: err.message })); return;
       }
 

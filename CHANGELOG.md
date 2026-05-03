@@ -4,6 +4,56 @@
 
 (no entries — next release window)
 
+## [1.10.256] - 2026-05-04
+
+**Multi-Specialist System — Phase 1.5 (Proposal via meeting consensus).**
+Adding a new specialist now goes through a meta-meeting whose
+participants are the existing seed roles. Only when the meeting
+reaches consensus does the candidate get added to the registry,
+with `reason: meeting consensus` recorded in the audit log. This
+closes the design loop where the organism decides its own
+membership instead of operators editing JSON by hand.
+
+### Added
+- **`src/specialist-proposal.js`** (new module):
+  - `proposeSpecialist(candidate, opts)` — validates the
+    candidate, ensures id is unused, plans + runs a meeting on
+    the configurable `track` (default `lightweight`), then
+    decides accept/reject from consensus and (by default) adds
+    the candidate to the registry with audit.
+  - `_buildProposalTask(candidate)` — embeds id / role / system
+    prompt / tier and explicit voting hints (`Vote accept` /
+    `Vote object`) so participating specialists actually cast
+    consensus votes.
+  - `_decideFromMeeting(session)` — folds objection lists into
+    a rejection signal even when the orchestrator escalates.
+- **HTTP**: `POST /specialists/propose` accepts
+  `{candidate, brain?, track?, autoApply?}`. Returns the
+  candidate id, meeting id (so callers can subscribe to live
+  state via `/meetings/:id`), decision (`accepted` /
+  `accepts[]` / `objects[]` / `reason`), `added` flag, and
+  `sessionStatus`.
+- **CLI**: `c4 specialist propose <file.json | -> [--brain X]
+  [--track X] [--no-apply]` reads JSON candidate definition
+  (file or stdin), POSTs to the daemon, and prints the
+  resolved decision + meeting id.
+- **OpenAPI**: full request/response schema published with the
+  new route, including an example payload.
+- **Tests** (`tests/specialist-proposal.test.js`, 7 cases):
+  module-exports surface, `_buildProposalTask` content shape,
+  null-candidate rejection, duplicate-id rejection, mock-brain
+  consensus accept (registry mutated), `autoApply:false`
+  no-mutation path, and `_decideFromMeeting` objection
+  handling. Suite total: **195 → 202 passing**.
+
+### Notes
+- `propose` was added to the parametric-route reserved-suffix
+  list so `POST /specialists/propose` is not parsed as
+  `:id == 'propose'` by the existing `:id` route.
+- e2e verified end-to-end with mock brain: candidate added to
+  registry only after the meeting consensus path, audit log
+  recording `reason: meeting consensus`.
+
 ## [1.10.255] - 2026-05-04
 
 **Multi-Specialist System — Phase 3.4 (Wiki git automation).**
