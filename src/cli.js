@@ -2057,7 +2057,7 @@ async function main() {
 
       case 'specialist': {
         // (multi-specialist phase 1+4) Inspect the registry + dispatcher.
-        //   c4 specialist list [--tier X] [--stage X] [--domain X] [--veto-only]
+        //   c4 specialist list [--tier X] [--stage X] [--domain X] [--veto-only] [--tag X]
         //   c4 specialist describe <id>
         //   c4 specialist dispatch "<task>" [--stage X] [--track X] [--cap N]
         //   c4 specialist score [--by-domain D | --by-stage S] [--limit N]
@@ -2074,6 +2074,7 @@ async function main() {
             else if (a === '--stage' && args[i + 1]) { qs.set('stage', args[i + 1]); i += 1; }
             else if (a === '--domain' && args[i + 1]) { qs.set('domain', args[i + 1]); i += 1; }
             else if (a === '--veto-only') { qs.set('vetoOnly', '1'); }
+            else if (a === '--tag' && args[i + 1]) { qs.append('tag', args[i + 1]); i += 1; }
           }
           const path = qs.toString() ? `/specialists?${qs.toString()}` : '/specialists';
           result = await request('GET', path);
@@ -2085,6 +2086,9 @@ async function main() {
             const probation = s.probation === 'probation' ? ' [probation]' : '';
             console.log(`  ${s.id.padEnd(22)} tier=${s.tier.padEnd(10)} brain=${s.brain.adapter}/${s.brain.model || '-'}${veto}${probation}`);
             console.log(`  ${' '.repeat(22)} domain=${s.domain.join(',')}`);
+            if (Array.isArray(s.tags) && s.tags.length > 0) {
+              console.log(`  ${' '.repeat(22)} tags=${s.tags.join(',')}`);
+            }
           }
           return;
         }

@@ -38,7 +38,7 @@ const ROUTE_SUMMARIES = {
   'GET /attach/list': 'List all attached external sessions.',
   'GET /attach/:name/tail': 'SSE live tail of an attached session JSONL — emits new turns as they are appended.',
   'GET /attach/:name/process': 'Locate the running Claude Code process holding the attached JSONL — alive flag + pid/cmdline/cwd if found.',
-  'GET /specialists': 'List the multi-specialist registry — optional ?tier / ?stage / ?domain / ?vetoOnly filters.',
+  'GET /specialists': 'List the multi-specialist registry — optional ?tier / ?stage / ?domain / ?vetoOnly / ?tag filters (?tag is repeatable; AND across multiple tags).',
   'GET /specialists/:id': 'Fetch a single specialist record by id.',
   'POST /specialists': 'Add a new specialist to the persistent registry (governance path).',
   'DELETE /specialists/:id': 'Remove a specialist from the persistent registry — idempotent.',
@@ -2161,6 +2161,7 @@ const ROUTE_SCHEMAS = {
       { name: 'stage', in: 'query', schema: { type: 'string', enum: ['meeting', 'design', 'implement', 'review', 'audit', 'test', 'deploy', 'docs'] } },
       { name: 'domain', in: 'query', schema: { type: 'string' } },
       { name: 'vetoOnly', in: 'query', schema: { type: 'string', enum: ['1'] } },
+      { name: 'tag', in: 'query', explode: true, schema: { type: 'array', items: { type: 'string' } }, description: 'Tag filter; repeat the parameter or pass comma-separated values. AND across multiple tags.' },
     ],
     response: {
       properties: {
@@ -2189,6 +2190,7 @@ const ROUTE_SCHEMAS = {
                 },
               },
               deliverables: { type: 'array', items: { type: 'string' } },
+              tags: { type: 'array', items: { type: 'string' }, description: 'Free-form labels for grouping/filtering — empty array if unset' },
               vetoPower: { type: 'boolean' },
               probation: { type: 'string', enum: ['stable', 'probation'] },
               score: { type: 'object', description: 'Per-domain / per-stage score record (phase 4)' },
@@ -2212,6 +2214,7 @@ const ROUTE_SCHEMAS = {
         systemPrompt: { type: 'string' },
         triggers: { type: 'object' },
         deliverables: { type: 'array', items: { type: 'string' } },
+        tags: { type: 'array', items: { type: 'string' } },
         vetoPower: { type: 'boolean' },
         probation: { type: 'string' },
         score: { type: 'object' },

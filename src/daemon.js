@@ -4322,19 +4322,29 @@ async function handleRequest(req, res) {
       //   stage=<stage>    filter by triggers.stages match
       //   domain=<token>   filter by domain tag
       //   vetoOnly=1       only specialists with vetoPower
+      //   tag=<token>      filter by tags array (repeatable; AND across
+      //                    multiple `tag` params; tag=a,b also works
+      //                    by comma-splitting client-side conventions)
       // Open route — no RBAC gate. The registry is config-shaped data
       // (no secrets, no PII) and the dispatcher endpoints below already
       // protect mutations.
       const reg = specialistRegistry.getShared();
+      const tagsParam = url.searchParams.getAll('tag');
+      const tagList = [];
+      for (const t of tagsParam) {
+        for (const x of String(t).split(',')) {
+          if (x.trim()) tagList.push(x.trim());
+        }
+      }
       const filter = {
         tier: url.searchParams.get('tier') || undefined,
         stage: url.searchParams.get('stage') || undefined,
         domain: url.searchParams.get('domain') || undefined,
         vetoOnly: url.searchParams.get('vetoOnly') === '1' || undefined,
+        tags: tagList.length > 0 ? tagList : undefined,
       };
-      const list = (filter.tier || filter.stage || filter.domain || filter.vetoOnly)
-        ? reg.filter(filter)
-        : reg.list();
+      const hasFilter = filter.tier || filter.stage || filter.domain || filter.vetoOnly || filter.tags;
+      const list = hasFilter ? reg.filter(filter) : reg.list();
       result = { count: list.length, version: reg.version, specialists: list };
 
     } else if (req.method === 'GET' && specialistParams && specialistParams.kind === 'one') {

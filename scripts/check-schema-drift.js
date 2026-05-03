@@ -177,11 +177,14 @@ function _extractFieldsFromHandler(start, end) {
   return { fields, wholesalePassThrough };
 }
 
-// (Phase 2) Extract every searchParams.get('X') call inside a handler
-// range. Returns the set of query param names the handler reads.
+// (Phase 2) Extract every searchParams.get('X') / .getAll('X') /
+// .has('X') call inside a handler range. Returns the set of query
+// param names the handler reads. Repeated/array-typed params surface
+// via getAll, so we must include both forms or the drift checker
+// false-positives.
 function _extractQueryParamsFromHandler(start, end) {
   const params = new Set();
-  const re = /url\.searchParams\.get\(['"]([^'"]+)['"]\)/g;
+  const re = /url\.searchParams\.(?:get|getAll|has)\(['"]([^'"]+)['"]\)/g;
   for (let i = start; i <= end; i++) {
     let m;
     while ((m = re.exec(lines[i])) !== null) params.add(m[1]);

@@ -80,6 +80,9 @@ function validateSpecialist(spec, ctx = '<unknown>') {
   if (spec.deliverables !== undefined && !isStringArray(spec.deliverables)) {
     throw new Error(`${spec.id}: deliverables must be a string array when set`);
   }
+  if (spec.tags !== undefined && !isStringArray(spec.tags)) {
+    throw new Error(`${spec.id}: tags must be a string array when set`);
+  }
   if (spec.vetoPower !== undefined && typeof spec.vetoPower !== 'boolean') {
     throw new Error(`${spec.id}: vetoPower must be boolean when set`);
   }
@@ -107,6 +110,7 @@ function normalizeSpecialist(raw) {
       stages: raw.triggers.stages.slice(),
     },
     deliverables: Array.isArray(raw.deliverables) ? raw.deliverables.slice() : [],
+    tags: Array.isArray(raw.tags) ? raw.tags.slice() : [],
     vetoPower: !!raw.vetoPower,
     probation: raw.probation || 'stable',
     score: raw.score || { byDomain: {}, byStage: {}, samples: {}, lastUpdated: null },
@@ -298,13 +302,23 @@ class SpecialistRegistry {
 
   has(id) { return this._byId.has(id); }
 
-  filter({ tier, domain, stage, vetoOnly } = {}) {
+  filter({ tier, domain, stage, vetoOnly, tag, tags } = {}) {
+    // tag (single) and tags (array) compose: a record must carry every
+    // tag mentioned to match. Specialists without the tags field
+    // (always defaulted to []) match only the unspecified case.
+    const tagList = [];
+    if (tag) tagList.push(tag);
+    if (Array.isArray(tags)) tagList.push(...tags);
     const out = [];
     for (const s of this._byId.values()) {
       if (tier && s.tier !== tier) continue;
       if (domain && !s.domain.includes(domain)) continue;
       if (stage && !s.triggers.stages.includes(stage)) continue;
       if (vetoOnly && !s.vetoPower) continue;
+      if (tagList.length > 0) {
+        const sTags = Array.isArray(s.tags) ? s.tags : [];
+        if (!tagList.every((t) => sTags.includes(t))) continue;
+      }
       out.push({ ...s });
     }
     return out;
@@ -450,6 +464,7 @@ class SpecialistRegistry {
           ...(entry.domain ? { domain: entry.domain } : {}),
           ...(entry.triggers ? { triggers: entry.triggers } : {}),
           ...(entry.deliverables ? { deliverables: entry.deliverables } : {}),
+          ...(Array.isArray(entry.tags) ? { tags: entry.tags } : {}),
           ...(entry.score ? { score: entry.score } : {}),
           ...(entry.probation ? { probation: entry.probation } : {}),
           ...(typeof entry.vetoPower === 'boolean' ? { vetoPower: entry.vetoPower } : {}),
@@ -517,6 +532,7 @@ class SpecialistRegistry {
           stages: spec.triggers.stages.slice(),
         },
         deliverables: spec.deliverables.slice(),
+        ...(Array.isArray(spec.tags) && spec.tags.length > 0 ? { tags: spec.tags.slice() } : {}),
         ...(spec.vetoPower ? { vetoPower: true } : {}),
         ...(spec.probation && spec.probation !== 'stable' ? { probation: spec.probation } : {}),
         ...(spec.score && (

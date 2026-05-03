@@ -4,6 +4,51 @@
 
 (no entries — next release window)
 
+## [1.10.260] - 2026-05-04
+
+**Multi-Specialist System — Phase 1.6 (Specialist tags).**
+Adds a free-form `tags: string[]` field to the specialist
+schema for grouping and filtering. The dispatcher does not yet
+score-weight by tag (out of scope here) — this slice is the
+storage + filter primitive; future phases (UX bulk actions,
+tag-aware exploration) build on it.
+
+### Added
+- **`src/specialist-registry.js`**:
+  - Schema: `tags` is an optional string array; defaults to `[]`
+    via `normalizeSpecialist`. `validateSpecialist` rejects
+    non-string-array values.
+  - `filter({ tag, tags })` — `tag` is a single value, `tags`
+    is an array; both AND-compose. A specialist must carry every
+    listed tag to match.
+  - `exportBundle()` includes `tags` only when non-empty (keeps
+    bundle JSON terse for legacy specialists).
+  - `importBundle(merge)` honours the `tags` field on incoming
+    entries.
+- **HTTP**: `GET /specialists?tag=X&tag=Y` filters by tag list.
+  Repeating the parameter or comma-separating values both work
+  (`?tag=a,b` and `?tag=a&tag=b`). Other filters compose.
+- **CLI**: `c4 specialist list --tag X` — repeatable to
+  AND-compose. The list output now prints a `tags=...` line when
+  the specialist has any.
+- **OpenAPI**: query parameter + response item field documented;
+  list-level summary updated.
+- **Tests** (`tests/specialist-registry.test.js`): 5 new cases —
+  validation rejects non-string-array, normalize defaults to `[]`,
+  `filter({ tag })` matches, `filter({ tags: [a,b] })` AND-composes,
+  `exportBundle/importBundle` round-trips. Suite stays green at
+  197.
+- **`scripts/check-schema-drift.js`**: drift checker now also
+  recognises `searchParams.getAll('X')` and `searchParams.has('X')`
+  as parameter reads (not only `.get('X')`). Without this, the
+  `?tag=` repeatable param tripped a false-positive.
+
+### Notes
+- Tag editing post-add is not yet exposed as its own route. For
+  now operators add tags at creation time or via bundle import
+  with mode=merge. A dedicated `PATCH /specialists/:id/tags`
+  endpoint can land in a follow-up if usage warrants.
+
 ## [1.10.259] - 2026-05-04
 
 **Multi-Specialist System — Phase 6.3 (Meeting fork).**

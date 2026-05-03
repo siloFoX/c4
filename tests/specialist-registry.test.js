@@ -456,6 +456,56 @@ t('importBundle merge mode preserves governance-added entries', () => {
   assert.ok(reg.has('survivor'), 'merge mode must not drop governance entries absent from bundle');
 });
 
+t('tags: validateSpecialist rejects non-string-array tags', () => {
+  assert.throws(
+    () => validateSpecialist(fixtureSpec({ tags: 'not-an-array' })),
+    /tags must be a string array/
+  );
+  assert.throws(
+    () => validateSpecialist(fixtureSpec({ tags: [1, 'foo'] })),
+    /tags must be a string array/
+  );
+});
+
+t('tags: normalizeSpecialist defaults missing tags to []', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  reg.add(fixtureSpec({ id: 'no-tags-spec' }));
+  const sp = reg.get('no-tags-spec');
+  assert.deepStrictEqual(sp.tags, []);
+});
+
+t('tags: filter({ tag }) returns only specialists carrying the tag', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  reg.add(fixtureSpec({ id: 'a', tags: ['async', 'rfc'] }));
+  reg.add(fixtureSpec({ id: 'b', tags: ['rfc'] }));
+  reg.add(fixtureSpec({ id: 'c', tags: ['ux'] }));
+  const r1 = reg.filter({ tag: 'rfc' });
+  assert.deepStrictEqual(r1.map((s) => s.id).sort(), ['a', 'b']);
+  const r2 = reg.filter({ tag: 'async' });
+  assert.deepStrictEqual(r2.map((s) => s.id), ['a']);
+  const r3 = reg.filter({ tag: 'ux' });
+  assert.deepStrictEqual(r3.map((s) => s.id), ['c']);
+});
+
+t('tags: filter({ tags: [a,b] }) AND-composes', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  reg.add(fixtureSpec({ id: 'a', tags: ['async', 'rfc'] }));
+  reg.add(fixtureSpec({ id: 'b', tags: ['rfc'] }));
+  const r = reg.filter({ tags: ['async', 'rfc'] });
+  assert.deepStrictEqual(r.map((s) => s.id), ['a'], 'AND drops rows missing any tag');
+});
+
+t('tags: round-trips through exportBundle/importBundle merge', () => {
+  const a = new SpecialistRegistry({ persistPath: null });
+  a.add(fixtureSpec({ id: 'tagged', tags: ['needs-review', 'experimental'] }));
+  const bundle = a.exportBundle();
+  const taggedEntry = bundle.specialists.find((s) => s.id === 'tagged');
+  assert.deepStrictEqual(taggedEntry.tags, ['needs-review', 'experimental']);
+  const b = new SpecialistRegistry({ persistPath: null });
+  b.importBundle(bundle, { mode: 'merge' });
+  assert.deepStrictEqual(b.get('tagged').tags, ['needs-review', 'experimental']);
+});
+
 (async () => {
   for (const fn of pending) await fn();
   console.log(`\n  ${passed} passed, ${failed} failed (specialist-registry)`);
