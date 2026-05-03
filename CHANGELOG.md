@@ -4,6 +4,52 @@
 
 (no entries — next release window)
 
+## [1.10.224] - 2026-05-03
+
+**Multi-Specialist System — Phase 4.2 (Peer-vote retro).**
+After a meeting reaches terminal status, ask each specialist who
+spoke to rate their peers on a 0-5 scale with a brief reason.
+Aggregate per-(rater, ratee), then per ratee. The result mirrors
+the meeting-retro deltas shape so `applyRetroDeltas()` can fold
+the peer signal into the registry the same way as the
+outcome-grounded signal — a third score input alongside the
+existing accept/object outcome path.
+
+### Added
+- **`src/meeting-peer-retro.js`** — `runPeerRetro(session, opts)`
+  walks every speaker, builds a structured prompt that embeds the
+  meeting transcript + a "rate each peer" instruction, asks the
+  brain, parses `[RATING: <peer-id> <0-5> — reason]` markers, and
+  produces `{raters, ratees, raw, perRatee, deltas}`. The
+  `deltas` map mirrors `meeting-retro.js` so the same
+  `applyRetroDeltas()` machinery folds peer signal into the
+  registry. Mean rating is mapped linearly to `[-1, +1]` (with 2.5
+  as neutral) so a 5/5 reads as the strong-positive signal +1.0.
+  Throws by a single rater are swallowed so peer retro continues
+  with whoever responds.
+- **HTTP**: `POST /meetings/:id/peer-retro` body
+  `{brain?, apply?, alpha?, askTimeoutMs?, includeSilent?}`
+  returns `{ok, peer, applied}`.
+- **CLI**: `c4 meeting peer-retro <id> [--brain mock|claude]
+  [--apply] [--alpha N] [--ask-timeout-ms MS] [--include-silent]`
+  pretty-prints per-ratee mean + vote count and the optional
+  applied snapshot.
+- **OpenAPI**: full schema + example.
+- **Tests**: `tests/meeting-peer-retro.test.js` (9 cases) —
+  exports, `parseRatings` happy-path / dedupe / self-skip /
+  out-of-range / invalid / decimals, `buildPeerPrompt` content,
+  terminal-only enforcement, brain validation, end-to-end
+  scripted-brain run on a completed lightweight meeting,
+  mean → signal mapping (5/5 → +1.0), rater-throw resilience.
+
+End-to-end with claude brain: `c4 meeting peer-retro <id> --brain
+claude --apply` will collect real ratings and fold them into the
+registry score record. With the default mock brain ratings
+parse as 0 (mock emits `[VOTE:]`, not `[RATING:]`); that's
+expected — peer retro is a brain-driven path.
+
+Suite 190 → 191 PASS. Spec lint + drift checker clean.
+
 ## [1.10.223] - 2026-05-03
 
 **Multi-Specialist System — Phase 3.3 (Reopen action).** Lets

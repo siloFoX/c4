@@ -42,6 +42,7 @@ const meetingSession = require('./meeting-session');
 const meetingBrain = require('./meeting-brain');
 const meetingOrchestrator = require('./meeting-orchestrator');
 const meetingRetro = require('./meeting-retro');
+const meetingPeerRetro = require('./meeting-peer-retro');
 const wikiWriter = require('./wiki-writer');
 const wikiReader = require('./wiki-reader');
 const wikiReopen = require('./wiki-reopen');
@@ -767,7 +768,7 @@ async function handleRequest(req, res) {
   // Meeting session path-parameter parser (multi-specialist phase 2.2).
   let meetingParams = null;
   {
-    const mAct = route.match(/^\/meetings\/([^\/]+)\/(start|contribute|vote|advance|next-round|escalate|abort|transcript|run|retro|finalize|publish)$/);
+    const mAct = route.match(/^\/meetings\/([^\/]+)\/(start|contribute|vote|advance|next-round|escalate|abort|transcript|run|retro|finalize|publish|peer-retro)$/);
     const mOne = route.match(/^\/meetings\/([^\/]+)$/);
     if (mAct) meetingParams = { kind: mAct[2], id: decodeURIComponent(mAct[1]) };
     else if (mOne) meetingParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
@@ -4506,6 +4507,53 @@ async function handleRequest(req, res) {
           applied,
         });
         result = { ok: true, ...out, retro: retro ? { outcome: retro.outcome, count: Object.keys(retro.deltas).length } : null };
+      } catch (err) {
+        res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
+      }
+
+    } else if (req.method === 'POST' && meetingParams && meetingParams.kind === 'peer-retro') {
+      // (multi-specialist phase 4.2) Run a peer-vote retro against a
+      // brain provider. Each speaker rates their peers; aggregate
+      // produces a peer signal that mirrors meeting-retro deltas
+      // and can be folded into the registry the same way. Body:
+      //   brain          'mock' | 'claude' (default mock)
+      //   apply          when true, fold the peer deltas into the
+      //                  registry score record (alpha optional)
+      //   alpha          smoothing factor for apply
+      //   askTimeoutMs   per-rater timeout for the claude brain
+      //   includeSilent  ask raters who didn't speak (default false)
+      const sess = meetingSession.getShared().get(meetingParams.id);
+      if (!sess) { res.writeHead(404); res.end(JSON.stringify({ error: 'Meeting not found', id: meetingParams.id })); return; }
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/meetings/:id/peer-retro', body, res, cfg)) return;
+      const brainKind = typeof body.brain === 'string' ? body.brain : 'mock';
+      let brain;
+      if (brainKind === 'mock') {
+        brain = new meetingBrain.MockBrainProvider();
+      } else if (brainKind === 'claude') {
+        brain = new meetingBrain.ClaudeBrainProvider({
+          timeoutMs: Number.isFinite(body.askTimeoutMs) ? body.askTimeoutMs : undefined,
+        });
+      } else {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: `unsupported brain "${brainKind}"` }));
+        return;
+      }
+      try {
+        const peer = await meetingPeerRetro.runPeerRetro(sess, {
+          brain,
+          registry: specialistRegistry.getShared(),
+          includeSilent: !!body.includeSilent,
+        });
+        let applied = null;
+        if (body.apply) {
+          applied = meetingRetro.applyRetroDeltas(
+            specialistRegistry.getShared(),
+            { sessionId: peer.sessionId, outcome: 'peer-retro', deltas: peer.deltas },
+            { alpha: Number.isFinite(body.alpha) ? body.alpha : undefined },
+          );
+        }
+        result = { ok: true, peer, applied };
       } catch (err) {
         res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
       }

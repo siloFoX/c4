@@ -56,6 +56,7 @@ const ROUTE_SUMMARIES = {
   'POST /meetings/:id/run': 'Drive a meeting to completion with a brain provider (phase 2.3 ships mock).',
   'POST /meetings/:id/retro': 'Compute retro score deltas from a terminal meeting — preview only.',
   'POST /meetings/:id/finalize': 'Compute retro deltas AND apply them to the registry score record.',
+  'POST /meetings/:id/peer-retro': 'Run a peer-vote retro — each speaker rates peers (0–5); aggregate becomes a score signal.',
   'POST /meetings/:id/publish': 'Publish a terminal meeting as markdown-in-git wiki pages (meeting + ADR + retro).',
   'GET /wiki/search': 'Search the markdown-in-git wiki (keyword + type + status filters).',
   'POST /wiki/read': 'Fetch a single wiki page body by relative path.',
@@ -2506,6 +2507,28 @@ const ROUTE_SCHEMAS = {
         contextSeeds: { type: 'array', items: { type: 'object' }, description: 'Original + related page metadata' },
         originalPath: { type: 'string' },
         originalUpdated: { type: 'boolean', description: 'Whether the original page status was flipped' },
+      },
+    },
+  },
+  'POST /meetings/:id/peer-retro': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    requestBody: {
+      properties: {
+        brain: { type: 'string', enum: ['mock', 'claude'] },
+        apply: { type: 'boolean', description: 'When true, fold peer deltas into the registry score record' },
+        alpha: { type: 'number', description: 'Smoothing factor for apply' },
+        askTimeoutMs: { type: 'integer', description: 'Per-rater timeout for the claude brain' },
+        includeSilent: { type: 'boolean', description: 'Ask raters who did not speak in the meeting (default false)' },
+      },
+      example: { brain: 'mock', apply: false },
+    },
+    response: {
+      properties: {
+        ok: { type: 'boolean' },
+        peer: { type: 'object', description: '{sessionId, raters, ratees, raw, perRatee, deltas}' },
+        applied: { type: 'object', nullable: true, description: 'Per-specialist before/after score snapshots when apply=true' },
       },
     },
   },

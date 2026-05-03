@@ -2276,7 +2276,7 @@ async function main() {
         //   c4 meeting escalate <id> ["reason"...]
         //   c4 meeting abort <id> ["reason"...]
         const sub = (args[0] || 'plan').toLowerCase();
-        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish'];
+        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro'];
         if (!VALID.includes(sub)) {
           console.error(`Usage: c4 meeting <${VALID.join('|')}> [...]`);
           process.exit(1);
@@ -2494,6 +2494,38 @@ async function main() {
           console.log(`Published to ${result.wikiRoot}`);
           for (const f of result.written) console.log(`  ${f}`);
           if (result.retro) console.log(`Retro: outcome=${result.retro.outcome}, ${result.retro.count} specialist(s)`);
+          return;
+        }
+        if (sub === 'peer-retro') {
+          // c4 meeting peer-retro <id> [--brain mock|claude] [--apply] [--alpha N] [--include-silent]
+          let brain = 'mock';
+          let apply = false;
+          let alpha = null;
+          let askTimeoutMs = null;
+          let includeSilent = false;
+          for (let i = 2; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--brain' && args[i + 1]) { brain = args[i + 1]; i += 1; }
+            else if (a === '--apply') { apply = true; }
+            else if (a === '--alpha' && args[i + 1]) { alpha = parseFloat(args[i + 1]); i += 1; }
+            else if (a === '--ask-timeout-ms' && args[i + 1]) { askTimeoutMs = parseInt(args[i + 1], 10); i += 1; }
+            else if (a === '--include-silent') { includeSilent = true; }
+          }
+          const body = { brain, apply, includeSilent };
+          if (Number.isFinite(alpha)) body.alpha = alpha;
+          if (Number.isFinite(askTimeoutMs)) body.askTimeoutMs = askTimeoutMs;
+          result = await request('POST', `/meetings/${idEnc}/peer-retro`, body);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          const peer = result.peer;
+          console.log(`peer-retro: ${peer.raters.length} rater(s), ${peer.ratees.length} ratee(s), ${peer.raw.length} rating(s)`);
+          for (const [id, agg] of Object.entries(peer.perRatee)) {
+            if (agg.votes === 0) continue;
+            console.log(`  ${id.padEnd(22)} mean=${agg.mean.toFixed(2)}  votes=${agg.votes}`);
+          }
+          if (result.applied) {
+            console.log(`applied to registry — ${Object.keys(result.applied).length} specialist(s) updated`);
+          }
           return;
         }
         if (sub === 'retro' || sub === 'finalize') {
