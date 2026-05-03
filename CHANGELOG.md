@@ -4,6 +4,21 @@
 
 (no entries — next release window)
 
+## [1.10.199] - 2026-05-03
+
+**Two existing-rule extensions**: `cron-spool-write` to
+at-spool, `passwd-no-auth` to `newusers`.
+
+### Changed
+- **`cron-spool-write`** regex extended with
+  `/var/spool/atjobs/<file>` and `/var/spool/at/<file>` —
+  at-scheduler queue files (parallel to the existing
+  /var/spool/cron/ coverage).
+- **`passwd-no-auth`** regex extended with `newusers <file>`
+  — batch user creation from file format. The input file
+  can specify uid 0 / passwordless accounts; absence of
+  audit metadata vs useradd makes review-worthy.
+
 ## [1.10.198] - 2026-05-03
 
 **Quoted-token unwrap obfuscation defeat.** `"rm" -rf /`

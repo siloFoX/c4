@@ -1020,8 +1020,13 @@ const HIGH_PATTERNS = [
   // creates an auth-bypass primitive on the host.
   {
     code: 'passwd-no-auth',
-    label: 'usermod -p "" / passwd -d / useradd -u 0 (auth bypass)',
-    re: /\b(?:usermod\s+(?:[^\n;|&]*\s)?-p\s+(?:""|''|"\s*"|'\s*')|passwd\s+(?:[^\n;|&]*\s)?-d\b|useradd\s+(?:[^\n;|&]*\s)?-(?:o\s+(?:[^\n;|&]*\s)?)?-?u\s+0\b|groupadd\s+(?:[^\n;|&]*\s)?-(?:o\s+(?:[^\n;|&]*\s)?)?-?g\s+0\b)/,
+    label: 'usermod -p "" / passwd -d / useradd -u 0 / newusers (auth bypass)',
+    // (v1.10.199) Extended with `newusers <file>` — batch
+    // user creation from a file format. The input file can
+    // specify uid 0 / passwordless accounts; even when used
+    // legitimately, the absence of audit metadata vs
+    // useradd makes it review-worthy.
+    re: /\b(?:usermod\s+(?:[^\n;|&]*\s)?-p\s+(?:""|''|"\s*"|'\s*')|passwd\s+(?:[^\n;|&]*\s)?-d\b|useradd\s+(?:[^\n;|&]*\s)?-(?:o\s+(?:[^\n;|&]*\s)?)?-?u\s+0\b|groupadd\s+(?:[^\n;|&]*\s)?-(?:o\s+(?:[^\n;|&]*\s)?)?-?g\s+0\b|newusers\b)/,
   },
   {
     code: 'usermod-sudo',
@@ -1239,11 +1244,13 @@ const HIGH_PATTERNS = [
   // pop a malicious cron entry directly into the spool file.
   {
     code: 'cron-spool-write',
-    label: 'write to /var/spool/cron/, /etc/anacrontab, /var/spool/anacron/, /etc/incron.d/',
+    label: 'write to /var/spool/cron|atjobs|at|anacron, /etc/anacrontab, /etc/incron.d/',
     // (v1.10.175) Extended with /etc/anacrontab,
     // /var/spool/anacron/, and /etc/incron.d/. Same threat
     // family — scheduled / event-triggered execution.
-    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)(?:\/var\/spool\/cron\/(?:crontabs\/)?[\w.-]+|\/etc\/anacrontab\b|\/var\/spool\/anacron\/[\w.-]+|\/etc\/incron\.d\/[\w.-]+)/,
+    // (v1.10.199) Extended with /var/spool/atjobs/ and
+    // /var/spool/at/ — at-scheduler queue files.
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)(?:\/var\/spool\/cron\/(?:crontabs\/)?[\w.-]+|\/etc\/anacrontab\b|\/var\/spool\/anacron\/[\w.-]+|\/etc\/incron\.d\/[\w.-]+|\/var\/spool\/(?:atjobs|at)\/[\w.-]+)/,
   },
   // (v1.10.135) Kernel module persistence — entries in
   // /etc/modules or /etc/modules-load.d/*.conf get loaded at
