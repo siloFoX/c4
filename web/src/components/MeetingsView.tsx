@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { BookOpen, Eye, Play, Plus, RefreshCw, Radio } from 'lucide-react';
+import { BookOpen, Eye, MessageCircle, Play, Plus, RefreshCw, Radio } from 'lucide-react';
 import { apiGet, apiPost, eventSourceUrl } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
@@ -247,6 +247,40 @@ export default function MeetingsView() {
     }
   }, []);
 
+  // Peer-retro on terminal meetings (separate from outcome retro
+  // — see meeting-peer-retro.js). Mock brain for instant
+  // demo, claude for real ratings.
+  const [peerRetroBusy, setPeerRetroBusy] = useState(false);
+  const [peerRetroMsg, setPeerRetroMsg] = useState<string | null>(null);
+  const [peerBrain, setPeerBrain] = useState<'mock' | 'claude'>('mock');
+
+  const handlePeerRetro = useCallback(async (id: string) => {
+    setPeerRetroBusy(true);
+    setPeerRetroMsg(null);
+    try {
+      const res = await apiPost<{
+        peer: {
+          raters: string[];
+          ratees: string[];
+          raw: Array<{ rater: string; ratee: string; rating: number }>;
+        };
+        applied: Record<string, unknown> | null;
+      }>(`/api/meetings/${encodeURIComponent(id)}/peer-retro`, {
+        brain: peerBrain,
+        apply: true,
+      });
+      const ratings = (res && res.peer && res.peer.raw) ? res.peer.raw.length : 0;
+      const raters = (res && res.peer && res.peer.raters) ? res.peer.raters.length : 0;
+      const updated = res && res.applied ? Object.keys(res.applied).length : 0;
+      setPeerRetroMsg(`peer-retro ok — ${raters} raters, ${ratings} ratings, ${updated} specialist(s) updated`);
+      window.setTimeout(() => setPeerRetroMsg(null), 6000);
+    } catch (e) {
+      setPeerRetroMsg(`peer-retro failed: ${(e as Error).message || 'unknown'}`);
+    } finally {
+      setPeerRetroBusy(false);
+    }
+  }, [peerBrain]);
+
   const handleCreate = useCallback(async () => {
     const task = newTask.trim();
     if (!task) return;
@@ -465,6 +499,38 @@ export default function MeetingsView() {
                   publishMsg.startsWith('publish failed')
                     ? 'text-destructive' : 'text-muted-foreground',
                 )}>{publishMsg}</span>
+              ) : null}
+              <span aria-hidden className="text-muted-foreground">·</span>
+              <label className="text-[11px] text-muted-foreground">
+                peer brain:
+                <select
+                  className="ml-1 rounded border border-border bg-background px-1 py-0.5 text-[11px]"
+                  value={peerBrain}
+                  onChange={(e) => setPeerBrain(e.target.value as 'mock' | 'claude')}
+                  disabled={peerRetroBusy}
+                  aria-label="Peer-retro brain"
+                >
+                  <option value="mock">mock</option>
+                  <option value="claude">claude</option>
+                </select>
+              </label>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handlePeerRetro(selectedId)}
+                disabled={peerRetroBusy}
+                aria-label="Run peer retro"
+                title="Each speaker rates their peers; aggregate folds into the registry score"
+              >
+                <MessageCircle className="h-3.5 w-3.5" aria-hidden />
+                Peer retro
+              </Button>
+              {peerRetroMsg ? (
+                <span className={cn(
+                  'text-[11px]',
+                  peerRetroMsg.startsWith('peer-retro failed')
+                    ? 'text-destructive' : 'text-muted-foreground',
+                )}>{peerRetroMsg}</span>
               ) : null}
             </div>
           ) : null}

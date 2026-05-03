@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.238] - 2026-05-03
+
+**Multi-Specialist System — Phase 7.8 (Peer-retro button on
+terminal meetings).** Closes the loop on phase 4.2 from the
+UI side — operators no longer have to drop to CLI to ask
+the specialists to rate each other after a completed /
+escalated meeting.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**: peer brain
+  picker (mock / claude) + Peer retro button next to the
+  publish-to-wiki action. Click POSTs
+  `/api/meetings/:id/peer-retro` with `{brain, apply: true}`
+  so peer signal folds into the registry score record. Toast
+  reports `N raters, M ratings, K specialist(s) updated`
+  with auto-clear after 6 s.
+
+The default mock brain emits `[VOTE:]` not `[RATING:]` so
+mock peer-retro returns 0 ratings (parser is correct, mock
+is the wrong stub). Use `claude` brain to actually exercise
+the peer voting flow.
+
+Suite stays 191 PASS. Web build clean.
+
 ## [1.10.237] - 2026-05-03
 
 **Multi-Specialist System — Phase 7.7 (Reopen button in
