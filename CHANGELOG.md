@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.235] - 2026-05-03
+
+**Multi-Specialist System — Phase 7.5 (Specialists tab in
+web UI).** The persistent registry + score history is now
+operator-clickable. The dashboard tab triplet
+**Meetings / Specialists / Wiki** now exposes the entire
+multi-specialist organism without dropping to CLI.
+
+### Added
+- **`web/src/components/SpecialistsView.tsx`** — split-pane
+  matching MeetingsView / WikiView. Left: id/displayName
+  filter + tier dropdown + veto-only checkbox; row badges
+  show tier (color-coded), veto, probation, brain stack,
+  total samples count. Right: brain stack header, domains /
+  triggers / deliverables blocks, **score history** with
+  per-domain + per-stage `ScoreBar` (centered at 0,
+  emerald right of zero, rose left, sample count +
+  numerical score next to each bar), and the full system
+  prompt. Empty score record shows a hint to run + finalize
+  a meeting first.
+- **`web/src/components/layout/TopTabs.tsx`**: `specialists`
+  tab + lucide `GraduationCap` icon between Meetings and
+  Wiki. `TopView` extended.
+- **`web/src/App.tsx`**: routes `specialists` view to
+  `<SpecialistsView />`.
+
+The view is read-only in this slice; add / remove governance
+buttons land in 7.6 along with audit logging.
+
+Suite stays 191 PASS. Web build clean.
+
 ## [1.10.234] - 2026-05-03
 
 **Multi-Specialist System — Phase 7.4 (Wiki tab in web UI).**
