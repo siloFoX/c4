@@ -2157,12 +2157,14 @@ async function main() {
       }
 
       case 'wiki': {
-        // (multi-specialist phase 3.2) Search + read the wiki.
-        //   c4 wiki search "<query>" [--type meeting|adr|retro|...] [--status S] [--limit N] [--stale]
+        // (multi-specialist phase 3.2 + 3.3) Search + read + reopen.
+        //   c4 wiki search "<query>" [--type X] [--status S] [--limit N] [--stale]
         //   c4 wiki read <relative-path> [--wiki-root PATH]
+        //   c4 wiki reopen <relative-path> [--track X] [--no-follow-related]
+        //                                  [--max-related N] [--no-mark]
         const sub = (args[0] || 'search').toLowerCase();
-        if (!['search', 'read'].includes(sub)) {
-          console.error('Usage: c4 wiki <search|read> [...]');
+        if (!['search', 'read', 'reopen'].includes(sub)) {
+          console.error('Usage: c4 wiki <search|read|reopen> [...]');
           process.exit(1);
         }
         if (sub === 'search') {
@@ -2217,6 +2219,43 @@ async function main() {
           console.log(`(type=${result.frontmatter.type || '-'}, status=${result.frontmatter.status || '-'})`);
           console.log('');
           console.log(result.body);
+          return;
+        }
+        if (sub === 'reopen') {
+          const relP = args[1];
+          if (!relP) {
+            console.error('Usage: c4 wiki reopen <relative-path> [--track X] [--no-follow-related] [--max-related N] [--no-mark] [--wiki-root PATH]');
+            process.exit(1);
+          }
+          let wikiRoot = null;
+          let track = null;
+          let followRelated = true;
+          let maxRelated = null;
+          let markReopened = true;
+          let title = null;
+          for (let i = 2; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--wiki-root' && args[i + 1]) { wikiRoot = args[i + 1]; i += 1; }
+            else if (a === '--track' && args[i + 1]) { track = args[i + 1]; i += 1; }
+            else if (a === '--no-follow-related') { followRelated = false; }
+            else if (a === '--max-related' && args[i + 1]) { maxRelated = parseInt(args[i + 1], 10); i += 1; }
+            else if (a === '--no-mark') { markReopened = false; }
+            else if (a === '--title' && args[i + 1]) { title = args[i + 1]; i += 1; }
+          }
+          const body = { path: relP, followRelated, markReopened };
+          if (wikiRoot) body.wikiRoot = wikiRoot;
+          if (track) body.track = track;
+          if (Number.isFinite(maxRelated)) body.maxRelated = maxRelated;
+          if (title) body.meetingTitle = title;
+          result = await request('POST', '/wiki/reopen', body);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`Reopened ${result.originalPath}${result.originalUpdated ? ' (status flipped)' : ''}`);
+          console.log(`Meeting ${result.meeting.id} — ${result.meeting.title}  status=${result.meeting.status}  track=${result.meeting.track}`);
+          console.log(`Context seeds: ${result.contextSeeds.length}`);
+          for (const s of result.contextSeeds) {
+            console.log(`  - [${s.status || '-'}] ${s.path}${s.title ? ` — ${s.title}` : ''}`);
+          }
           return;
         }
         break;

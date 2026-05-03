@@ -4,6 +4,55 @@
 
 (no entries — next release window)
 
+## [1.10.223] - 2026-05-03
+
+**Multi-Specialist System — Phase 3.3 (Reopen action).** Lets
+the operator (or a future orchestrator) re-agenda an existing
+wiki page — typically an ADR — by spawning a fresh meeting that
+has the page + its related neighbours preloaded as Layer-A
+context. The original page's frontmatter status flips to
+`reopened` so subsequent searches don't treat it as
+authoritative. Mirrors how a real org rolls back a decision:
+the original ADR isn't deleted, it's just marked as superseded.
+
+### Added
+- **`src/wiki-reopen.js`** — `reopenPage(path, opts)` returns
+  `{meeting, plan, contextSeeds, originalPath, originalUpdated}`.
+  Pulls the source + up to N (default 5) `related:` neighbours
+  via the wiki reader, calls `planMeeting()` to construct the
+  fresh meeting (same dispatcher / track classification path as
+  any other meeting), and registers it in the global
+  `MeetingStore` so subsequent `/meetings/:id/...` routes can
+  drive it. `_markReopened(absPath)` is the line-edit helper
+  that flips `status:` and stamps `reopened_at:` without
+  re-rendering the body. `renderSeedContext(seeds)` produces a
+  structured prompt blob the future orchestrator can prepend
+  to each round.
+- **HTTP**: `POST /wiki/reopen` body `{path, wikiRoot?,
+  followRelated?, maxRelated?, track?, markReopened?,
+  meetingTitle?}` returning `{meeting, contextSeeds,
+  originalPath, originalUpdated}`. Errors surface as 404 for
+  not-found and 400 for everything else.
+- **CLI**: `c4 wiki reopen <path> [--track X]
+  [--no-follow-related] [--max-related N] [--no-mark]
+  [--title T] [--wiki-root PATH]` pretty-prints the new
+  meeting id, track, status, and the list of context seeds.
+- **OpenAPI**: full request/response schema with example.
+- **Tests**: `tests/wiki-reopen.test.js` (11 cases) — exports,
+  missing-path / missing-page errors, seed pull (original +
+  related), status flip + `reopened_at` stamp, missing-related
+  silent skip, maxRelated cap, `markReopened:false` preserves
+  status, `renderSeedContext` shape + truncation + empty input,
+  `_markReopened` on plain (no frontmatter) page.
+
+End-to-end verified: `c4 wiki reopen meetings/2026-05-03-fix-
+typo-in-handler.md --wiki-root /tmp/c4-wiki-demo` flips
+`status: completed → reopened` on disk, stamps `reopened_at:`,
+and emits a fresh `m-<hex>` meeting in pending state with the
+page snapshot as its first context seed.
+
+Suite 189 → 190 PASS. Spec lint + drift checker clean.
+
 ## [1.10.222] - 2026-05-03
 
 **Multi-Specialist System — Phase 3.2 (Wiki reader /

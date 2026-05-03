@@ -44,6 +44,7 @@ const meetingOrchestrator = require('./meeting-orchestrator');
 const meetingRetro = require('./meeting-retro');
 const wikiWriter = require('./wiki-writer');
 const wikiReader = require('./wiki-reader');
+const wikiReopen = require('./wiki-reopen');
 const autoDispatcherMod = require('./auto-dispatcher');
 const { PinnedMemoryScheduler, DEFAULT_INTERVAL_MS: PIN_DEFAULT_INTERVAL_MS } = require('./pinned-memory-scheduler');
 
@@ -4620,6 +4621,43 @@ async function handleRequest(req, res) {
         result = r;
       } catch (err) {
         res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
+      }
+
+    } else if (req.method === 'POST' && route === '/wiki/reopen') {
+      // (multi-specialist phase 3.3) Re-agenda an existing wiki
+      // page (typically an ADR). Constructs a fresh MeetingSession
+      // seeded with the page + related neighbours, marks the
+      // original page status: reopened, registers the meeting in
+      // the global store. Body:
+      //   path           required, relative-to-wikiRoot path
+      //   wikiRoot       optional override
+      //   followRelated  default true
+      //   maxRelated     default 5
+      //   track          force track
+      //   markReopened   default true
+      //   meetingTitle   override generated title
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/wiki/reopen', body, res, cfg)) return;
+      try {
+        const r = wikiReopen.reopenPage(typeof body.path === 'string' ? body.path : '', {
+          wikiRoot: typeof body.wikiRoot === 'string' && body.wikiRoot ? body.wikiRoot : undefined,
+          followRelated: body.followRelated !== false,
+          maxRelated: Number.isFinite(body.maxRelated) ? body.maxRelated : undefined,
+          track: typeof body.track === 'string' ? body.track : null,
+          markReopened: body.markReopened !== false,
+          meetingTitle: typeof body.meetingTitle === 'string' ? body.meetingTitle : undefined,
+          registry: specialistRegistry.getShared(),
+        });
+        result = {
+          ok: true,
+          meeting: r.meeting.toJSON(),
+          contextSeeds: r.contextSeeds.map((s) => ({ path: s.path, title: s.frontmatter.title || null, status: s.frontmatter.status || null })),
+          originalPath: r.originalPath,
+          originalUpdated: r.originalUpdated,
+        };
+      } catch (err) {
+        const code = /not found/.test(err.message) ? 404 : 400;
+        res.writeHead(code); res.end(JSON.stringify({ error: err.message })); return;
       }
 
     } else if (req.method === 'POST' && route === '/wiki/read') {

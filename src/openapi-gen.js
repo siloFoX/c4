@@ -59,6 +59,7 @@ const ROUTE_SUMMARIES = {
   'POST /meetings/:id/publish': 'Publish a terminal meeting as markdown-in-git wiki pages (meeting + ADR + retro).',
   'GET /wiki/search': 'Search the markdown-in-git wiki (keyword + type + status filters).',
   'POST /wiki/read': 'Fetch a single wiki page body by relative path.',
+  'POST /wiki/reopen': 'Re-agenda an existing wiki page — spawns a meeting seeded with the page + related context.',
   'GET /workflows': 'List defined workflows.',
   'POST /workflows': 'Create a new workflow definition.',
   'GET /openapi.json': 'This document — auto-generated OpenAPI spec.',
@@ -2482,6 +2483,29 @@ const ROUTE_SCHEMAS = {
         frontmatter: { type: 'object' },
         body: { type: 'string' },
         raw: { type: 'string' },
+      },
+    },
+  },
+  'POST /wiki/reopen': {
+    requestBody: {
+      properties: {
+        path: { type: 'string', description: 'Relative path of the wiki page to reopen' },
+        wikiRoot: { type: 'string', nullable: true },
+        followRelated: { type: 'boolean', description: 'Whether to pull pages listed in `related:` (default true)' },
+        maxRelated: { type: 'integer', description: 'Cap on related-page seeds (default 5)' },
+        track: { type: 'string', enum: ['lightweight', 'standard', 'full'], nullable: true, description: 'Force a track instead of inferring' },
+        markReopened: { type: 'boolean', description: 'Update original page status to reopened (default true)' },
+        meetingTitle: { type: 'string', nullable: true },
+      },
+      example: { path: 'adr/0042-event-stream.md' },
+    },
+    response: {
+      properties: {
+        ok: { type: 'boolean' },
+        meeting: { type: 'object', description: 'Newly-created MeetingSession in pending state' },
+        contextSeeds: { type: 'array', items: { type: 'object' }, description: 'Original + related page metadata' },
+        originalPath: { type: 'string' },
+        originalUpdated: { type: 'boolean', description: 'Whether the original page status was flipped' },
       },
     },
   },
