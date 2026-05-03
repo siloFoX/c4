@@ -70,6 +70,7 @@ const ROUTE_SUMMARIES = {
   'POST /meetings/:id/escalate': 'Mark the meeting as escalated (round cap or veto deadlock).',
   'POST /meetings/:id/abort': 'Operator abort — terminal state, mutations refused after.',
   'POST /meetings/:id/run': 'Drive a meeting to completion with a brain provider (phase 2.3 ships mock).',
+  'POST /meetings/:id/fork': 'Clone an existing meeting as a brand-new pending session (replan or reuse mode); useful for retros / "redo with sharper question".',
   'POST /meetings/:id/retro': 'Compute retro score deltas from a terminal meeting — preview only.',
   'POST /meetings/:id/finalize': 'Compute retro deltas AND apply them to the registry score record.',
   'POST /meetings/:id/peer-retro': 'Run a peer-vote retro — each speaker rates peers (0–5); aggregate becomes a score signal.',
@@ -2477,6 +2478,29 @@ const ROUTE_SCHEMAS = {
       example: { reason: 'operator changed direction' },
     },
     response: { properties: { id: { type: 'string' }, status: { type: 'string' } } },
+  },
+  'POST /meetings/:id/fork': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string', description: 'Source meeting id to fork from' } },
+    ],
+    requestBody: {
+      properties: {
+        mode: { type: 'string', enum: ['replan', 'reuse'], description: 'replan re-runs the dispatcher; reuse deep-clones the source plan' },
+        task: { type: 'string', description: 'Override task text (default: same as source)' },
+        track: { type: 'string', enum: ['lightweight', 'standard', 'full'], description: 'Override track — replan mode only' },
+        title: { type: 'string', description: 'Override title (default: same as source)' },
+      },
+      example: { mode: 'replan', task: 'redo with sharper scope' },
+    },
+    response: {
+      properties: {
+        id: { type: 'string', description: 'New meeting id' },
+        status: { type: 'string', enum: ['pending'] },
+        track: { type: 'string' },
+        title: { type: 'string' },
+        task: { type: 'string' },
+      },
+    },
   },
   'POST /meetings/:id/retro': {
     parameters: [

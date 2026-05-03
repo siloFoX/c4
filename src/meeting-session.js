@@ -333,6 +333,7 @@ class MeetingSession extends EventEmitter {
       track: this._plan.track,
       title: this._plan.title,
       task: this._plan.task,
+      forkOf: this._plan.forkOf || null,
       createdAt: this._createdAt,
       startedAt: this._startedAt,
       completedAt: this._completedAt,

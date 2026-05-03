@@ -2767,7 +2767,7 @@ async function main() {
         //   c4 meeting escalate <id> ["reason"...]
         //   c4 meeting abort <id> ["reason"...]
         const sub = (args[0] || 'plan').toLowerCase();
-        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'templates', 'template-add', 'template-remove', 'prune'];
+        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'templates', 'template-add', 'template-remove', 'prune', 'fork'];
         if (!VALID.includes(sub)) {
           console.error(`Usage: c4 meeting <${VALID.join('|')}> [...]`);
           process.exit(1);
@@ -3129,6 +3129,33 @@ async function main() {
           if (result.error) { console.error(result.error); process.exit(1); }
           const c = result.consensus;
           console.log(`vote recorded — accepts=${c.accepts.length} objects=${c.objects.length} missing=${c.missing.length} reached=${c.reached}`);
+          return;
+        }
+        if (sub === 'fork') {
+          // c4 meeting fork <id> [--mode replan|reuse] [--task "..."]
+          //                      [--track X] [--title "..."]
+          let mode = null;
+          let task = null;
+          let track = null;
+          let title = null;
+          for (let i = 2; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--mode' && args[i + 1]) { mode = args[i + 1]; i += 1; }
+            else if (a === '--task' && args[i + 1]) { task = args[i + 1]; i += 1; }
+            else if (a === '--track' && args[i + 1]) { track = args[i + 1]; i += 1; }
+            else if (a === '--title' && args[i + 1]) { title = args[i + 1]; i += 1; }
+          }
+          const body = {};
+          if (mode) body.mode = mode;
+          if (task) body.task = task;
+          if (track) body.track = track;
+          if (title) body.title = title;
+          result = await request('POST', `/meetings/${idEnc}/fork`, body);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`forked → ${result.id}  status=${result.status}  track=${result.track}`);
+          if (result.title) console.log(`  title: ${result.title}`);
+          if (result.task) console.log(`  task:  ${result.task}`);
           return;
         }
         if (sub === 'escalate' || sub === 'abort') {

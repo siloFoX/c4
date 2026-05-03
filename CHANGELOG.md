@@ -4,6 +4,53 @@
 
 (no entries — next release window)
 
+## [1.10.259] - 2026-05-04
+
+**Multi-Specialist System — Phase 6.3 (Meeting fork).**
+Clone an existing meeting as a brand-new pending session.
+Supports two modes: `replan` (re-runs the dispatcher with current
+registry state — useful when scores or membership have moved
+since the source meeting) and `reuse` (deep-clones the plan so
+the roster is preserved exactly — useful for "redo with a sharper
+question, same participants"). Every fork carries `forkOf:
+<sourceId>` so audit and wiki tooling can reconstruct the
+lineage chain.
+
+### Added
+- **`src/meeting-fork.js`** (new module):
+  - `forkMeeting(sourceId, opts)` — pulls source from
+    MeetingStore, builds a new plan (replan or reuse), wraps in
+    a fresh MeetingSession, registers in the store, returns
+    toJSON snapshot.
+  - `VALID_MODES = ['replan', 'reuse']`.
+  - In `replan` mode the dispatcher is re-invoked with current
+    registry/scores; in `reuse` mode the source plan is
+    deep-cloned via `JSON.parse(JSON.stringify(...))`.
+- **`src/meeting-session.js`**: `toJSON()` now exposes `forkOf`
+  (null on non-forked sessions). Lets the web UI display the
+  fork chain without reaching into `session.plan` (kept
+  encapsulated).
+- **HTTP**: `POST /meetings/:id/fork` accepts `{mode, task,
+  track, title}`. Returns the new session's snapshot
+  (id/status/track/title/task/forkOf).
+- **CLI**: `c4 meeting fork <id> [--mode replan|reuse]
+  [--task "..."] [--track X] [--title "..."]`.
+- **OpenAPI**: full request/response schema with example.
+- **Tests** (`tests/meeting-fork.test.js`, 9 cases): module
+  exports, missing-sourceId rejection, unknown-mode rejection,
+  store-miss rejection, replan default behavior +
+  toJSON.forkOf, replan task/track/title overrides, reuse
+  preserving roster, reuse task override not mutating source,
+  chained-fork lineage. Suite total: **197 passing**.
+
+### Notes
+- e2e verified end-to-end against the running daemon: created
+  source via `POST /meetings`, forked via CLI in both modes,
+  confirmed `forkOf` in the toJSON envelope.
+- `track` overrides are intentionally ignored in `reuse` mode
+  (the plan was already built for a specific track; reusing it
+  while changing track would invalidate the consensus policy).
+
 ## [1.10.258] - 2026-05-04
 
 **Multi-Specialist System — Phase 6.2 (Global meetings SSE).**

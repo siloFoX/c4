@@ -47,6 +47,7 @@ const meetingSession = require('./meeting-session');
 const meetingBrain = require('./meeting-brain');
 const meetingOrchestrator = require('./meeting-orchestrator');
 const meetingRetro = require('./meeting-retro');
+const meetingFork = require('./meeting-fork');
 const meetingPeerRetro = require('./meeting-peer-retro');
 const wikiWriter = require('./wiki-writer');
 const wikiReader = require('./wiki-reader');
@@ -789,7 +790,7 @@ async function handleRequest(req, res) {
   // Meeting session path-parameter parser (multi-specialist phase 2.2).
   let meetingParams = null;
   {
-    const mAct = route.match(/^\/meetings\/([^\/]+)\/(start|contribute|vote|advance|next-round|escalate|abort|transcript|run|retro|finalize|publish|peer-retro|stream)$/);
+    const mAct = route.match(/^\/meetings\/([^\/]+)\/(start|contribute|vote|advance|next-round|escalate|abort|transcript|run|retro|finalize|publish|peer-retro|stream|fork)$/);
     const mOne = route.match(/^\/meetings\/([^\/]+)$/);
     if (mAct) meetingParams = { kind: mAct[2], id: decodeURIComponent(mAct[1]) };
     else if (mOne) meetingParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
@@ -4810,6 +4811,29 @@ async function handleRequest(req, res) {
         result = { ok: true, peer, applied };
       } catch (err) {
         res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
+      }
+
+    } else if (req.method === 'POST' && meetingParams && meetingParams.kind === 'fork') {
+      // (multi-specialist phase 6.3) Clone an existing meeting as a
+      // brand-new pending session. Body:
+      //   mode    'replan' (default) | 'reuse'
+      //   task    override task text
+      //   track   override track (replan mode only)
+      //   title   override title
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/meetings/:id/fork', body, res, cfg)) return;
+      try {
+        const out = meetingFork.forkMeeting(meetingParams.id, {
+          mode: typeof body.mode === 'string' ? body.mode : undefined,
+          task: typeof body.task === 'string' ? body.task : undefined,
+          track: typeof body.track === 'string' ? body.track : undefined,
+          title: typeof body.title === 'string' ? body.title : undefined,
+          registry: specialistRegistry.getShared(),
+        });
+        result = out;
+      } catch (err) {
+        const code = /not found/.test(err.message) ? 404 : 400;
+        res.writeHead(code); res.end(JSON.stringify({ error: err.message })); return;
       }
 
     } else if (req.method === 'POST' && meetingParams && meetingParams.kind === 'retro') {
