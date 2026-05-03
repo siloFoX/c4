@@ -4,6 +4,7 @@ import ChatView from './components/ChatView';
 import ControlPanel from './components/ControlPanel';
 import HistoryView from './components/HistoryView';
 import SessionsView from './components/SessionsView';
+import MeetingsView from './components/MeetingsView';
 import Chat from './components/Chat';
 import Login from './components/Login';
 import WorkflowEditor from './components/WorkflowEditor';
@@ -177,6 +178,10 @@ export default function App() {
       ) : topView === 'sessions' ? (
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <SessionsView />
+        </div>
+      ) : topView === 'meetings' ? (
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          <MeetingsView />
         </div>
       ) : topView === 'chat' ? (
         <div className="flex min-h-0 flex-1 overflow-hidden p-3 md:p-6">

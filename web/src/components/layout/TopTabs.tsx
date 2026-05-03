@@ -5,6 +5,7 @@ import {
   LayoutGrid,
   MessageSquare,
   Settings,
+  UsersRound,
   Users,
   Workflow,
 } from 'lucide-react';
@@ -16,6 +17,7 @@ export type TopView =
   | 'chat'
   | 'workflows'
   | 'sessions'
+  | 'meetings'
   | 'features'
   | 'settings';
 
@@ -29,6 +31,7 @@ const TABS: TabDef[] = [
   { value: 'workers', label: 'Workers', Icon: Users },
   { value: 'history', label: 'History', Icon: History },
   { value: 'sessions', label: 'Sessions', Icon: FolderTree },
+  { value: 'meetings', label: 'Meetings', Icon: UsersRound },
   { value: 'chat', label: 'Chat', Icon: MessageSquare },
   { value: 'workflows', label: 'Workflows', Icon: Workflow },
   { value: 'features', label: 'Features', Icon: LayoutGrid },

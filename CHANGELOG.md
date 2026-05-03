@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.230] - 2026-05-03
+
+**Multi-Specialist System — Phase 7 (Meetings tab in web UI).**
+The Workers / Sessions / Meetings tab triplet is now visible
+in the c4 dashboard. Operator can browse the meetings list with
+status / track / current-stage badges and drill into any
+meeting to see per-stage rosters, consensus state, and the
+running transcript — without touching the CLI.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`** — split-pane card:
+  list (left) + detail (right). List polls `/api/meetings`
+  every 8 s; detail polls `/api/meetings/:id` every 4 s when
+  selected. Status pill colors mirror the typical
+  pending/running/completed/escalated/aborted vocabulary.
+  Per-stage block surfaces the consensus mode + accept/object/
+  missing counts + the live transcript (one row per turn,
+  prefixed with `[r{round}] specialist-id:`).
+- **`web/src/components/layout/TopTabs.tsx`**: new `meetings`
+  tab between Sessions and Chat, using the lucide
+  `UsersRound` icon. `TopView` union extended.
+- **`web/src/App.tsx`**: routes the new `meetings` view to
+  `<MeetingsView />`.
+
+The SSE consumer (real-time per-meeting) lands in a follow-up;
+phase 7.1 ships a polled view that's already useful for
+ongoing operator visibility while a `c4 meeting run --brain
+claude` walks through stages.
+
+Suite stays 191 PASS. Web build clean (`tsc --noEmit` + vite).
+
 ## [1.10.229] - 2026-05-03
 
 **Multi-Specialist System — Phase 6 (SSE for live meeting
