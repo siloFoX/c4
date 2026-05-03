@@ -2315,7 +2315,8 @@ async function main() {
           return;
         }
         if (sub === 'audit') {
-          // c4 specialist audit [--action add|remove|import] [--actor X] [--id X] [--limit N]
+          // c4 specialist audit [--action add|remove|import|score-applied|prompt-revised|tags-updated]
+          //                     [--actor X] [--id X] [--limit N]
           let action = null;
           let actor = null;
           let id = null;
@@ -2338,13 +2339,22 @@ async function main() {
           if (result.error) { console.error(result.error); process.exit(1); }
           console.log(`${result.count} audit entry(ies)`);
           for (const e of result.entries) {
-            const tag = e.action.padEnd(8);
-            const id = (e.id || '-').padEnd(22);
-            const actor = e.actor || '-';
-            const extra = e.action === 'import'
-              ? ` mode=${e.mode}  +${(e.added || []).length} ~${(e.updated || []).length} -${(e.removed || []).length}`
-              : '';
-            console.log(`  ${e.ts}  ${tag}  ${id}  by ${actor}${extra}`);
+            // Width 14 fits the longest action ('prompt-revised').
+            const tag = e.action.padEnd(14);
+            const idCol = (e.id || '-').padEnd(22);
+            const actorCol = e.actor || '-';
+            let extra = '';
+            if (e.action === 'import') {
+              extra = ` mode=${e.mode}  +${(e.added || []).length} ~${(e.updated || []).length} -${(e.removed || []).length}`;
+            } else if (e.action === 'tags-updated') {
+              const before = (e.before || []).length;
+              const after = (e.after || []).length;
+              extra = ` mode=${e.mode || '?'}  ${before}→${after} tags`;
+            } else if (e.action === 'prompt-revised') {
+              const beforeLen = (e.before && e.before.systemPrompt) ? e.before.systemPrompt.length : 0;
+              extra = ` (prev prompt ${beforeLen}c)`;
+            }
+            console.log(`  ${e.ts}  ${tag}  ${idCol}  by ${actorCol}${extra}`);
             if (e.reason) console.log(`    reason: ${e.reason}`);
           }
           return;

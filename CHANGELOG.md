@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.281] - 2026-05-04
+
+**Multi-Specialist System — Phase 6.18 (Audit CLI render polish).**
+The audit CLI's help text and rendering lagged behind the audit
+log's actual schema after Phase 6 added `prompt-revised` and
+`tags-updated` actions. This cleans up the operator view.
+
+### Added
+- **CLI**: `c4 specialist audit`
+  - help comment now lists all six valid `--action` values:
+    `add | remove | import | score-applied | prompt-revised |
+    tags-updated`
+  - action column widened from 8 to 14 chars so the longest action
+    name (`prompt-revised`) doesn't push subsequent columns
+  - per-action rendering:
+    - `tags-updated`: shows `mode=X  N→M tags` (the size delta + mode)
+    - `prompt-revised`: shows `(prev prompt Nc)` so operators can
+      gauge how much text was replaced
+    - existing `import` rendering unchanged
+
+### Notes
+- e2e verified: `c4 specialist audit --action tags-updated --limit 3`
+  rendered three real entries from the registry's audit log with
+  correct mode + tag-count deltas (0→2, 2→1, 1→0).
+- Pure CLI polish — no daemon code changes; no schema drift;
+  zero breaking changes for `--json` consumers.
+
 ## [1.10.280] - 2026-05-04
 
 **Multi-Specialist System — Phase 6.17 (Doctor organism check).**
