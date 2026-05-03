@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.222] - 2026-05-03
+
+**Multi-Specialist System — Phase 3.2 (Wiki reader /
+search-then-fetch).** Companion to phase 3.1's writer. A meeting
+orchestrator (or operator via CLI) can now list relevant prior
+pages by keyword, then pull full bodies for the top-K hits — the
+core mechanic that lets a future meeting start with "here are
+the related ADRs" without dumping the entire wiki into the prompt.
+
+### Added
+- **`src/wiki-reader.js`** — `searchWiki({wikiRoot, q, type, status,
+  limit, includeStale})` recursively scans the wiki tree, parses
+  the YAML-like frontmatter we wrote in phase 3.1, scores each
+  page (title hits ×3, body hits ×1), and sorts. Excludes
+  `status: superseded` and `status: reopened` by default
+  (`includeStale=1` overrides). `readPage(relPath, {wikiRoot})`
+  fetches a single page; rejects path traversal that would
+  escape `wikiRoot`. `parseFrontmatter`, `tokenize`, `scorePage`,
+  `snippetFor` exported for tests + future BM25 / embedding
+  upgrades.
+- **HTTP**: `GET /wiki/search?q=&type=&status=&limit=&includeStale=&wikiRoot=`
+  and `POST /wiki/read` (POST instead of GET because the path
+  may carry awkward characters).
+- **CLI**: `c4 wiki search "<query>" [--type ...] [--status S]
+  [--limit N] [--stale] [--wiki-root PATH]` and
+  `c4 wiki read <relative-path> [--wiki-root PATH]`.
+- **OpenAPI**: full schemas for both routes.
+- **Tests**: `tests/wiki-reader.test.js` (11 cases) — exports,
+  frontmatter parsing (with arrays + missing fm), search title
+  bias, type filter, unknown-type rejection, default
+  superseded skip + stale opt-in, readPage shape, traversal
+  rejection (../, /etc/passwd), missing-file 404, snippet
+  zoom-on-keyword.
+
+End-to-end: `c4 wiki search "" --wiki-root /tmp/c4-wiki-demo`
+lists every published meeting with score, snippet, and frontmatter
+metadata. The reader side is now ready to feed the dispatcher's
+"here are the related ADRs" lookup before each meeting.
+
+Suite 188 → 189 PASS. Spec lint + drift checker clean.
+
 ## [1.10.221] - 2026-05-03
 
 **Multi-Specialist System — Phase 3.1 (Wiki writer).** Publishes

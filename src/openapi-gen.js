@@ -57,6 +57,8 @@ const ROUTE_SUMMARIES = {
   'POST /meetings/:id/retro': 'Compute retro score deltas from a terminal meeting — preview only.',
   'POST /meetings/:id/finalize': 'Compute retro deltas AND apply them to the registry score record.',
   'POST /meetings/:id/publish': 'Publish a terminal meeting as markdown-in-git wiki pages (meeting + ADR + retro).',
+  'GET /wiki/search': 'Search the markdown-in-git wiki (keyword + type + status filters).',
+  'POST /wiki/read': 'Fetch a single wiki page body by relative path.',
   'GET /workflows': 'List defined workflows.',
   'POST /workflows': 'Create a new workflow definition.',
   'GET /openapi.json': 'This document — auto-generated OpenAPI spec.',
@@ -2443,6 +2445,43 @@ const ROUTE_SCHEMAS = {
         meetingPath: { type: 'string' },
         written: { type: 'array', items: { type: 'string' } },
         retro: { type: 'object', nullable: true },
+      },
+    },
+  },
+  'GET /wiki/search': {
+    parameters: [
+      { name: 'q', in: 'query', schema: { type: 'string' } },
+      { name: 'type', in: 'query', schema: { type: 'string', enum: ['meeting', 'adr', 'retro', 'specialist', 'docs', 'any'] } },
+      { name: 'status', in: 'query', schema: { type: 'string' } },
+      { name: 'limit', in: 'query', schema: { type: 'integer' } },
+      { name: 'includeStale', in: 'query', schema: { type: 'string', enum: ['1'] } },
+      { name: 'wikiRoot', in: 'query', schema: { type: 'string' } },
+    ],
+    response: {
+      properties: {
+        wikiRoot: { type: 'string' },
+        query: { type: 'string' },
+        type: { type: 'string' },
+        total: { type: 'integer' },
+        hits: { type: 'array', items: { type: 'object' } },
+      },
+    },
+  },
+  'POST /wiki/read': {
+    requestBody: {
+      properties: {
+        path: { type: 'string' },
+        wikiRoot: { type: 'string', nullable: true },
+      },
+      example: { path: 'meetings/2026-05-03-fix-typo-in-handler.md' },
+    },
+    response: {
+      properties: {
+        path: { type: 'string' },
+        absolutePath: { type: 'string' },
+        frontmatter: { type: 'object' },
+        body: { type: 'string' },
+        raw: { type: 'string' },
       },
     },
   },

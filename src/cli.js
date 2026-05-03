@@ -2156,6 +2156,72 @@ async function main() {
         break;
       }
 
+      case 'wiki': {
+        // (multi-specialist phase 3.2) Search + read the wiki.
+        //   c4 wiki search "<query>" [--type meeting|adr|retro|...] [--status S] [--limit N] [--stale]
+        //   c4 wiki read <relative-path> [--wiki-root PATH]
+        const sub = (args[0] || 'search').toLowerCase();
+        if (!['search', 'read'].includes(sub)) {
+          console.error('Usage: c4 wiki <search|read> [...]');
+          process.exit(1);
+        }
+        if (sub === 'search') {
+          let type = 'any';
+          let status = null;
+          let limit = 10;
+          let stale = false;
+          let wikiRoot = null;
+          const qParts = [];
+          for (let i = 1; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--type' && args[i + 1]) { type = args[i + 1]; i += 1; }
+            else if (a === '--status' && args[i + 1]) { status = args[i + 1]; i += 1; }
+            else if (a === '--limit' && args[i + 1]) { limit = parseInt(args[i + 1], 10); i += 1; }
+            else if (a === '--stale') { stale = true; }
+            else if (a === '--wiki-root' && args[i + 1]) { wikiRoot = args[i + 1]; i += 1; }
+            else qParts.push(a);
+          }
+          const qs = new URLSearchParams();
+          qs.set('q', qParts.join(' '));
+          if (type) qs.set('type', type);
+          if (status) qs.set('status', status);
+          if (Number.isFinite(limit)) qs.set('limit', String(limit));
+          if (stale) qs.set('includeStale', '1');
+          if (wikiRoot) qs.set('wikiRoot', wikiRoot);
+          result = await request('GET', `/wiki/search?${qs.toString()}`);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`${result.total} hit(s) (showing ${result.hits.length}) in ${result.wikiRoot}`);
+          for (const h of result.hits) {
+            console.log(`  [${h.type}] ${h.path}  score=${h.score}  ${h.title}`);
+            if (h.snippet) console.log(`    ${h.snippet}`);
+          }
+          return;
+        }
+        if (sub === 'read') {
+          const relP = args[1];
+          if (!relP) {
+            console.error('Usage: c4 wiki read <relative-path> [--wiki-root PATH]');
+            process.exit(1);
+          }
+          let wikiRoot = null;
+          for (let i = 2; i < args.length; i += 1) {
+            if (args[i] === '--wiki-root' && args[i + 1]) { wikiRoot = args[i + 1]; i += 1; }
+          }
+          const body = { path: relP };
+          if (wikiRoot) body.wikiRoot = wikiRoot;
+          result = await request('POST', '/wiki/read', body);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`# ${result.frontmatter.title || result.path}`);
+          console.log(`(type=${result.frontmatter.type || '-'}, status=${result.frontmatter.status || '-'})`);
+          console.log('');
+          console.log(result.body);
+          return;
+        }
+        break;
+      }
+
       case 'meeting': {
         // (multi-specialist phase 2.1+2.2) Drive multi-stage meetings.
         //   c4 meeting plan "<task>" [--track X] [--cap N]      preview only

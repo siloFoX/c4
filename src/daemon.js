@@ -43,6 +43,7 @@ const meetingBrain = require('./meeting-brain');
 const meetingOrchestrator = require('./meeting-orchestrator');
 const meetingRetro = require('./meeting-retro');
 const wikiWriter = require('./wiki-writer');
+const wikiReader = require('./wiki-reader');
 const autoDispatcherMod = require('./auto-dispatcher');
 const { PinnedMemoryScheduler, DEFAULT_INTERVAL_MS: PIN_DEFAULT_INTERVAL_MS } = require('./pinned-memory-scheduler');
 
@@ -4602,6 +4603,40 @@ async function handleRequest(req, res) {
         sess.abort(typeof body.reason === 'string' ? body.reason : 'unspecified');
         result = sess.toJSON();
       } catch (err) { res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return; }
+
+    } else if (req.method === 'GET' && route === '/wiki/search') {
+      // (multi-specialist phase 3.2) Search the markdown-in-git wiki.
+      // Open route — wiki contents are config-shaped knowledge,
+      // analogous to /specialists.
+      try {
+        const r = wikiReader.searchWiki({
+          wikiRoot: url.searchParams.get('wikiRoot') || undefined,
+          q: url.searchParams.get('q') || '',
+          type: url.searchParams.get('type') || 'any',
+          status: url.searchParams.get('status') || null,
+          limit: parseInt(url.searchParams.get('limit') || '10', 10),
+          includeStale: url.searchParams.get('includeStale') === '1',
+        });
+        result = r;
+      } catch (err) {
+        res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
+      }
+
+    } else if (req.method === 'POST' && route === '/wiki/read') {
+      // (multi-specialist phase 3.2) Fetch a single wiki page body.
+      // POST instead of GET because the path is in the body and may
+      // contain characters awkward in a query string.
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/wiki/read', body, res, cfg)) return;
+      try {
+        const page = wikiReader.readPage(typeof body.path === 'string' ? body.path : '', {
+          wikiRoot: typeof body.wikiRoot === 'string' && body.wikiRoot ? body.wikiRoot : undefined,
+        });
+        result = page;
+      } catch (err) {
+        const code = /not found/.test(err.message) ? 404 : 400;
+        res.writeHead(code); res.end(JSON.stringify({ error: err.message })); return;
+      }
 
     } else if (req.method === 'POST' && route === '/specialists/dispatch') {
       // (multi-specialist phase 1) Rule-based dispatcher preview.
