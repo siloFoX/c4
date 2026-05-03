@@ -749,6 +749,16 @@ const HIGH_PATTERNS = [
     // is fine because `echo` isn't in the prefix list).
     re: /\b(?:tar|zip|gzip|bzip2|xz|cat|base64|hexdump|xxd|env|printenv|mongoexport|mysqldump|pg_dump)\b[^\n;&|]*\|\s*(?:curl\b[^\n;&|]*(?:-X\s+(?:POST|PUT)|-T\b|--upload-file|-d\s*@|--data-binary\s*@|--data\s*@)|nc\s+[^\n;&|]+\s+\d+|wget\b[^\n;&|]*--post-file)/i,
   },
+  // (v1.10.193) Cloud storage going public — making an S3
+  // bucket / GCS bucket / Azure blob container readable or
+  // writable to allUsers / public. Common attacker pattern
+  // (exfil via public bucket) and operator misconfig (data
+  // leak). Same threat tier as cloud-secret-fetch.
+  {
+    code: 'cloud-storage-public',
+    label: 'aws s3api put-bucket-acl public-read|public-read-write / gsutil iam ch allUsers / az storage container public-access',
+    re: /\b(?:aws\s+s3api\s+(?:put-bucket-acl|put-object-acl)\s+(?:[^\n;|&]*\s)?--acl\s+public-(?:read|read-write)\b|gsutil\s+iam\s+ch\s+(?:[^\n;|&]*\s)?allUsers\b|az\s+storage\s+container\s+set-permission\s+(?:[^\n;|&]*\s)?--public-access\s+(?:blob|container)\b)/,
+  },
   // (v1.10.191) Cloud secret retrieval — `aws
   // secretsmanager get-secret-value`, `gcloud secrets
   // versions access`, `az keyvault secret show`. Each

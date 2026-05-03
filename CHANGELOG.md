@@ -4,6 +4,25 @@
 
 (no entries — next release window)
 
+## [1.10.193] - 2026-05-03
+
+**`cloud-storage-public` (high) catalog pattern.** Making
+cloud storage publicly accessible is both a common attacker
+pattern (exfil via public bucket they control) and a frequent
+operator misconfiguration (accidental data leak). Same threat
+tier as cloud-secret-fetch.
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `cloud-storage-public`. Catches:
+  - `aws s3api put-bucket-acl --acl public-read|public-read-write`
+  - `aws s3api put-object-acl --acl public-read|public-read-write`
+  - `gsutil iam ch allUsers:<role>`
+  - `az storage container set-permission --public-access
+    blob|container`
+  Private ACLs (`--acl private`), listing (`s3 ls`,
+  `gsutil ls`), authorized-user grants, and `--public-access
+  off` stay LOW.
+
 ## [1.10.192] - 2026-05-03
 
 **Backfill unit tests for cloud-tier rules.**
