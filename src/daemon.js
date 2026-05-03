@@ -4479,14 +4479,24 @@ async function handleRequest(req, res) {
       const body = await parseBody(req);
       if (_validateOrFail('POST', '/meetings/:id/run', body, res, cfg)) return;
       const brainKind = typeof body.brain === 'string' ? body.brain : 'mock';
-      if (brainKind !== 'mock') {
+      let brain;
+      if (brainKind === 'mock') {
+        brain = new meetingBrain.MockBrainProvider({
+          auditObjectionRounds: Number.isFinite(body.auditObjectionRounds) ? body.auditObjectionRounds : undefined,
+        });
+      } else if (brainKind === 'claude') {
+        // (phase 2.4) Real Claude-backed brain — spawns
+        // `claude -p --bare` per ask. Each ask is a fresh process,
+        // so a full-track meeting (~30 asks) takes 5-15 minutes.
+        // Phase 2.5 will pool sessions if this becomes hot.
+        brain = new meetingBrain.ClaudeBrainProvider({
+          timeoutMs: Number.isFinite(body.askTimeoutMs) ? body.askTimeoutMs : undefined,
+        });
+      } else {
         res.writeHead(400);
-        res.end(JSON.stringify({ error: `unsupported brain "${brainKind}" — phase 2.3 only ships "mock"` }));
+        res.end(JSON.stringify({ error: `unsupported brain "${brainKind}" — supported: mock | claude` }));
         return;
       }
-      const brain = new meetingBrain.MockBrainProvider({
-        auditObjectionRounds: Number.isFinite(body.auditObjectionRounds) ? body.auditObjectionRounds : undefined,
-      });
       const orch = new meetingOrchestrator.MeetingOrchestrator({
         session: sess,
         brain,

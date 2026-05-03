@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.219] - 2026-05-03
+
+**Multi-Specialist System — Phase 2.4 (ClaudeBrainProvider).**
+Real Claude-backed brain for the meeting orchestrator. Each
+`ask()` spawns a fresh `claude -p --bare` process, writes the
+prompt via stdin, captures stdout, parses the
+`[VOTE: accept|object]` marker. Specialist's `brain.model` /
+`brain.effort` are forwarded as `--model` / `--effort` flags so
+each role can run on the right tier of model.
+
+### Added
+- **`src/meeting-brain.js`**: `ClaudeBrainProvider` class. Args
+  default to `['-p', '--bare']` so the response is raw LLM
+  output without hooks / LSP / plugins. Per-ask timeout
+  (default 120 s) with SIGTERM → SIGKILL escalation. spawn
+  errors and non-zero exits surface as rejected promises.
+  `command` and `args` overridable for tests so the spawn IO
+  path can be exercised against a fixture instead of real
+  Claude.
+- **`tests/fixtures/mock-brain-cli.js`**: tiny node fixture
+  with modes `accept` / `object` / `crash` / `slow` / `echo`.
+  Tests run it via `process.execPath` so no chmod is required.
+- **`tests/claude-brain-provider.test.js`** (6 cases): vote
+  parse for accept + object, non-zero exit rejection, timeout
+  rejection, large-prompt round-trip via stdin, model-flag
+  injection.
+- **HTTP** (`POST /meetings/:id/run`): `brain` body field now
+  accepts `'claude'` in addition to `'mock'`. New
+  `askTimeoutMs` field overrides per-ask timeout.
+- **CLI**: `c4 meeting run <id> --brain claude
+  [--ask-timeout-ms MS]`.
+- **OpenAPI**: schema enum updated, `askTimeoutMs` documented.
+
+Cost / latency caveat: each ask is a fresh Claude Code process,
+so a full-track meeting (~30 asks) takes 5-15 minutes wall-time
+and costs roughly that many separate sessions worth of tokens.
+Phase 2.5 will pool long-lived sessions to amortize startup.
+
+Suite 185 → 186 PASS. Spec lint + drift checker clean.
+
 ## [1.10.218] - 2026-05-03
 
 **Multi-Specialist System — Phase 2.3 (Orchestrator + Mock

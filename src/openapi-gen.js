@@ -2395,10 +2395,11 @@ const ROUTE_SCHEMAS = {
     ],
     requestBody: {
       properties: {
-        brain: { type: 'string', enum: ['mock'], description: 'Phase 2.3 only supports the mock provider; real Claude-backed brain lands in 2.4' },
+        brain: { type: 'string', enum: ['mock', 'claude'], description: 'mock = canned/scripted; claude = real Claude Code backend (phase 2.4, slower)' },
         maxAsks: { type: 'integer', description: 'Loop-guard cap on total brain.ask() calls' },
         maxStages: { type: 'integer', description: 'Loop-guard cap on stage advances' },
         auditObjectionRounds: { type: 'integer', description: 'How many rounds the mock veto roles object before accepting' },
+        askTimeoutMs: { type: 'integer', description: 'Per-ask timeout for the claude brain (default 120s)' },
       },
       example: { brain: 'mock', maxAsks: 100, auditObjectionRounds: 1 },
     },

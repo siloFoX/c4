@@ -2366,19 +2366,22 @@ async function main() {
           return;
         }
         if (sub === 'run') {
-          // c4 meeting run <id> [--brain mock] [--max-asks N] [--max-stages N]
+          // c4 meeting run <id> [--brain mock|claude] [--max-asks N] [--max-stages N] [--ask-timeout-ms MS]
           let brain = 'mock';
           let maxAsks = null;
           let maxStages = null;
+          let askTimeoutMs = null;
           for (let i = 2; i < args.length; i += 1) {
             const a = args[i];
             if (a === '--brain' && args[i + 1]) { brain = args[i + 1]; i += 1; }
             else if (a === '--max-asks' && args[i + 1]) { maxAsks = parseInt(args[i + 1], 10); i += 1; }
             else if (a === '--max-stages' && args[i + 1]) { maxStages = parseInt(args[i + 1], 10); i += 1; }
+            else if (a === '--ask-timeout-ms' && args[i + 1]) { askTimeoutMs = parseInt(args[i + 1], 10); i += 1; }
           }
           const body = { brain };
           if (Number.isFinite(maxAsks)) body.maxAsks = maxAsks;
           if (Number.isFinite(maxStages)) body.maxStages = maxStages;
+          if (Number.isFinite(askTimeoutMs)) body.askTimeoutMs = askTimeoutMs;
           result = await request('POST', `/meetings/${idEnc}/run`, body);
           if (args.includes('--json')) break;
           if (result.error) { console.error(result.error); process.exit(1); }

@@ -119,10 +119,99 @@ class MockBrainProvider extends BrainProvider {
   }
 }
 
+// ClaudeBrainProvider — spawn `claude -p --bare` per ask.
+//
+// Each call is a fresh, short-lived Claude Code process. Prompt
+// goes via stdin so we don't hit argv length limits or shell
+// quoting bugs. `--bare` skips hooks/LSP/plugins/auto-memory so
+// the response is just the LLM's reply (no MCP tool noise).
+//
+// Cost / latency: 1 process per ask, ~10-30s each end-to-end. A
+// full-track meeting (30 asks) takes 5-15 minutes. Phase 2.5 will
+// pool long-lived sessions if this becomes a hot path.
+//
+// Configurable for testing — `command` and `args` can be overridden
+// to point at a fixture script. A test in this repo uses a tiny
+// node fixture that echoes a fixed reply to validate spawn IO
+// without invoking real Claude (which would burn tokens + wall-time).
+
+const { spawn } = require('child_process');
+
+const DEFAULT_COMMAND = 'claude';
+const DEFAULT_ARGS = Object.freeze(['-p', '--bare']);
+const DEFAULT_TIMEOUT_MS = 120 * 1000;
+
+class ClaudeBrainProvider extends BrainProvider {
+  constructor(opts = {}) {
+    super();
+    this._command = opts.command || DEFAULT_COMMAND;
+    this._extraArgs = Array.isArray(opts.args) ? opts.args.slice() : DEFAULT_ARGS.slice();
+    this._timeoutMs = Number.isFinite(opts.timeoutMs) ? opts.timeoutMs : DEFAULT_TIMEOUT_MS;
+    this._injectModel = opts.injectModel !== false; // pass --model from specialist.brain.model unless disabled
+    this._effortFlag = opts.effortFlag !== false;   // pass --effort from specialist.brain.effort unless disabled
+    this._env = opts.env || null;
+  }
+
+  async ask(specialist, prompt /*, context */) {
+    const args = this._extraArgs.slice();
+    const brain = (specialist && specialist.brain) || {};
+    if (this._injectModel && typeof brain.model === 'string' && brain.model) {
+      args.push('--model', brain.model);
+    }
+    if (this._effortFlag && typeof brain.effort === 'string' && brain.effort) {
+      args.push('--effort', brain.effort);
+    }
+    return new Promise((resolve, reject) => {
+      const child = spawn(this._command, args, {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: this._env || process.env,
+      });
+      let stdout = '';
+      let stderr = '';
+      const timer = setTimeout(() => {
+        try { child.kill('SIGTERM'); } catch { /* noop */ }
+        setTimeout(() => { try { child.kill('SIGKILL'); } catch { /* noop */ } }, 2000);
+        reject(new Error(`ClaudeBrainProvider: timeout after ${this._timeoutMs}ms (specialist ${specialist && specialist.id})`));
+      }, this._timeoutMs);
+      child.stdout.on('data', (d) => { stdout += d.toString('utf8'); });
+      child.stderr.on('data', (d) => { stderr += d.toString('utf8'); });
+      child.on('error', (err) => {
+        clearTimeout(timer);
+        reject(new Error(`ClaudeBrainProvider: spawn error: ${err.message}`));
+      });
+      child.on('exit', (code) => {
+        clearTimeout(timer);
+        if (code !== 0) {
+          reject(new Error(`ClaudeBrainProvider: exit ${code} (stderr: ${stderr.trim().slice(0, 400)})`));
+          return;
+        }
+        const { vote, reason, cleaned } = parseVote(stdout);
+        resolve({
+          text: cleaned || stdout.trim(),
+          vote,
+          reason,
+          rawStdout: stdout,
+        });
+      });
+      try {
+        child.stdin.write(prompt);
+        child.stdin.end();
+      } catch (err) {
+        clearTimeout(timer);
+        reject(new Error(`ClaudeBrainProvider: stdin write failed: ${err.message}`));
+      }
+    });
+  }
+}
+
 module.exports = {
   BrainProvider,
   MockBrainProvider,
+  ClaudeBrainProvider,
   buildPrompt,
   parseVote,
   VOTE_LINE,
+  DEFAULT_COMMAND,
+  DEFAULT_ARGS,
+  DEFAULT_TIMEOUT_MS,
 };
