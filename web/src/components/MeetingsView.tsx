@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Eye, Play, Plus, RefreshCw, Radio } from 'lucide-react';
+import { BookOpen, Eye, Play, Plus, RefreshCw, Radio } from 'lucide-react';
 import { apiGet, apiPost, eventSourceUrl } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
@@ -224,6 +224,29 @@ export default function MeetingsView() {
     }
   }, [runBrain]);
 
+  // Publish a terminal meeting to the wiki on demand (separate
+  // from auto-publish which only fires inside /run).
+  const [publishBusy, setPublishBusy] = useState(false);
+  const [publishMsg, setPublishMsg] = useState<string | null>(null);
+
+  const handlePublish = useCallback(async (id: string) => {
+    setPublishBusy(true);
+    setPublishMsg(null);
+    try {
+      const res = await apiPost<{ ok: boolean; written: string[]; wikiRoot: string }>(
+        `/api/meetings/${encodeURIComponent(id)}/publish`,
+        { includeRetro: true, apply: true },
+      );
+      const n = (res && Array.isArray(res.written)) ? res.written.length : 0;
+      setPublishMsg(`published ${n} file(s) to ${res && res.wikiRoot}`);
+      window.setTimeout(() => setPublishMsg(null), 4000);
+    } catch (e) {
+      setPublishMsg(`publish failed: ${(e as Error).message || 'unknown'}`);
+    } finally {
+      setPublishBusy(false);
+    }
+  }, []);
+
   const handleCreate = useCallback(async () => {
     const task = newTask.trim();
     if (!task) return;
@@ -421,6 +444,27 @@ export default function MeetingsView() {
               </Button>
               {runError ? (
                 <span className="text-[11px] text-destructive">{runError}</span>
+              ) : null}
+            </div>
+          ) : null}
+          {selectedId && detail && ['completed', 'escalated'].includes(detail.status) ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handlePublish(selectedId)}
+                disabled={publishBusy}
+                aria-label="Publish meeting to wiki"
+              >
+                <BookOpen className="h-3.5 w-3.5" aria-hidden />
+                Publish to wiki
+              </Button>
+              {publishMsg ? (
+                <span className={cn(
+                  'text-[11px]',
+                  publishMsg.startsWith('publish failed')
+                    ? 'text-destructive' : 'text-muted-foreground',
+                )}>{publishMsg}</span>
               ) : null}
             </div>
           ) : null}

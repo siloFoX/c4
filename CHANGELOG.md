@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.236] - 2026-05-03
+
+**Multi-Specialist System — Phase 7.6 (Publish-to-wiki
+button).** Terminal meetings (`completed` / `escalated`) now
+have a `Publish to wiki` button next to the live/offline pill
+in MeetingsView's detail header. Click runs
+`POST /api/meetings/:id/publish` with `includeRetro: true,
+apply: true` so the wiki gets meeting + ADR (when design
+spoke) + retro pages, and the registry score record is
+folded in too. Closes the loop for meetings that completed
+without `--auto-publish` at run-time.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**: `handlePublish`
+  callback + state, button only renders for terminal status,
+  inline message surfaces success ("published N file(s) to
+  PATH") or failure with auto-clear after 4 s.
+
+Suite stays 191 PASS. Web build clean.
+
 ## [1.10.235] - 2026-05-03
 
 **Multi-Specialist System — Phase 7.5 (Specialists tab in
