@@ -2802,7 +2802,7 @@ async function main() {
         //   c4 meeting escalate <id> ["reason"...]
         //   c4 meeting abort <id> ["reason"...]
         const sub = (args[0] || 'plan').toLowerCase();
-        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'templates', 'template-add', 'template-remove', 'prune', 'fork', 'actions'];
+        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'templates', 'template-add', 'template-remove', 'prune', 'fork', 'actions', 'classify-track'];
         if (!VALID.includes(sub)) {
           console.error(`Usage: c4 meeting <${VALID.join('|')}> [...]`);
           process.exit(1);
@@ -3164,6 +3164,23 @@ async function main() {
           if (result.error) { console.error(result.error); process.exit(1); }
           const c = result.consensus;
           console.log(`vote recorded — accepts=${c.accepts.length} objects=${c.objects.length} missing=${c.missing.length} reached=${c.reached}`);
+          return;
+        }
+        if (sub === 'classify-track') {
+          // c4 meeting classify-track "task description"
+          const task = args.slice(1).filter((a) => !a.startsWith('--')).join(' ');
+          if (!task) {
+            console.error('Usage: c4 meeting classify-track "task description"');
+            process.exit(1);
+          }
+          result = await request('GET', `/meetings/classify-track?task=${encodeURIComponent(task)}`);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`track: ${result.track}  (tokens=${result.tokenCount})`);
+          console.log(`reason: ${result.reason}`);
+          if (Array.isArray(result.matched) && result.matched.length > 0) {
+            console.log(`matched: ${result.matched.map((m) => `${m.list}:${m.term}`).join(', ')}`);
+          }
           return;
         }
         if (sub === 'actions') {

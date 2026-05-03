@@ -797,6 +797,7 @@ async function handleRequest(req, res) {
     else if (mOne) meetingParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
     if (meetingParams && (
       meetingParams.id === 'plan' || meetingParams.id === 'templates' || meetingParams.id === 'stream'
+        || meetingParams.id === 'classify-track'
     )) meetingParams = null;
   }
 
@@ -4560,6 +4561,22 @@ async function handleRequest(req, res) {
         return;
       }
       result = { id: sess.id, transcript: sess.transcript() };
+
+    } else if (req.method === 'GET' && route === '/meetings/classify-track') {
+      // (multi-specialist phase 6.6) Preview the track classifier
+      // for a task string. ?task=... required. Returns
+      // {track, matched, reason, tokenCount}.
+      const task = url.searchParams.get('task');
+      if (!task || typeof task !== 'string') {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: '?task=... required' }));
+        return;
+      }
+      try {
+        result = specialistDispatcher.explainTrack(task);
+      } catch (err) {
+        res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
+      }
 
     } else if (req.method === 'GET' && route === '/meetings/stream') {
       // (multi-specialist phase 6.2) Global meetings SSE.

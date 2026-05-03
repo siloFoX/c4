@@ -252,26 +252,66 @@ class SpecialistDispatcher {
 //   - keyword "auth" / "secret" / "migration" / "schema" / "deploy" /
 //     "prod" → full (irreversible / sensitive).
 //   - everything else → standard.
+// Phase 6.6 — keyword lists are exposed through explainTrack so the
+// preview endpoint can show operators *why* a task got a given
+// track. Kept module-local so future tweaks (e.g., domain-specific
+// signals) don't need to update consumers.
+const FULL_SIGNALS = Object.freeze(['auth', 'secret', 'credential', 'token', 'migration', 'schema', 'deploy', 'prod', 'production', 'rollback', 'rbac', 'permission']);
+const LITE_SIGNALS = Object.freeze(['typo', 'one-line', 'oneline', 'rename', 'comment', 'docstring']);
+
 function classifyTrack(task) {
   const tokens = tokenize(task);
   if (tokens.length === 0) return 'standard';
   const set = new Set(tokens);
 
-  const fullSignals = ['auth', 'secret', 'credential', 'token', 'migration', 'schema', 'deploy', 'prod', 'production', 'rollback', 'rbac', 'permission'];
-  const liteSignals = ['typo', 'one-line', 'oneline', 'rename', 'comment', 'docstring'];
-
-  const hasFull = fullSignals.some((k) => set.has(k));
+  const hasFull = FULL_SIGNALS.some((k) => set.has(k));
   if (hasFull) return 'full';
 
-  const hasLite = liteSignals.some((k) => set.has(k));
+  const hasLite = LITE_SIGNALS.some((k) => set.has(k));
   if (hasLite) return 'lightweight';
 
   return 'standard';
 }
 
+// Same logic, but returns a {track, matched: [...]} envelope so the
+// preview endpoint can render an explanation. Empty `matched` means
+// the task fell through to the default ('standard').
+function explainTrack(task) {
+  const tokens = tokenize(task);
+  if (tokens.length === 0) {
+    return { track: 'standard', tokenCount: 0, matched: [], reason: 'empty / non-tokenizable task → default standard' };
+  }
+  const set = new Set(tokens);
+  const fullMatches = FULL_SIGNALS.filter((k) => set.has(k));
+  if (fullMatches.length > 0) {
+    return {
+      track: 'full',
+      tokenCount: tokens.length,
+      matched: fullMatches.map((term) => ({ list: 'full', term })),
+      reason: `irreversible/sensitive signals matched: ${fullMatches.join(', ')}`,
+    };
+  }
+  const liteMatches = LITE_SIGNALS.filter((k) => set.has(k));
+  if (liteMatches.length > 0) {
+    return {
+      track: 'lightweight',
+      tokenCount: tokens.length,
+      matched: liteMatches.map((term) => ({ list: 'lightweight', term })),
+      reason: `narrow-scope signals matched: ${liteMatches.join(', ')}`,
+    };
+  }
+  return {
+    track: 'standard',
+    tokenCount: tokens.length,
+    matched: [],
+    reason: 'no signal keywords matched → default standard',
+  };
+}
+
 module.exports = {
   SpecialistDispatcher,
   classifyTrack,
+  explainTrack,
   scoreSpecialist,
   tokenize,
   VALID_TRACKS,
@@ -279,4 +319,6 @@ module.exports = {
   TRACK_STAGES,
   DEFAULT_EXPLORATION_RATIO,
   SCORE_TRUST_THRESHOLD,
+  FULL_SIGNALS,
+  LITE_SIGNALS,
 };

@@ -75,6 +75,40 @@ t('classifyTrack: regular feature → standard', () => {
   assert.strictEqual(classifyTrack(''), 'standard');
 });
 
+t('explainTrack returns matched terms + reason for full track', () => {
+  const { explainTrack } = require('../src/specialist-dispatcher');
+  const r = explainTrack('add migration for users schema');
+  assert.strictEqual(r.track, 'full');
+  assert.ok(r.matched.length >= 1);
+  assert.ok(r.matched.every((m) => m.list === 'full'));
+  assert.ok(r.matched.some((m) => m.term === 'migration'));
+  assert.match(r.reason, /irreversible\/sensitive/);
+});
+
+t('explainTrack lightweight signal beats default standard', () => {
+  const { explainTrack } = require('../src/specialist-dispatcher');
+  const r = explainTrack('one-line typo fix in README');
+  assert.strictEqual(r.track, 'lightweight');
+  assert.ok(r.matched.some((m) => m.list === 'lightweight'));
+  assert.match(r.reason, /narrow-scope/);
+});
+
+t('explainTrack default standard with empty matched list when no signals', () => {
+  const { explainTrack } = require('../src/specialist-dispatcher');
+  const r = explainTrack('add a new dashboard widget for analytics');
+  assert.strictEqual(r.track, 'standard');
+  assert.deepStrictEqual(r.matched, []);
+  assert.match(r.reason, /no signal keywords/);
+});
+
+t('explainTrack on empty input returns standard with empty-task reason', () => {
+  const { explainTrack } = require('../src/specialist-dispatcher');
+  const r = explainTrack('');
+  assert.strictEqual(r.track, 'standard');
+  assert.strictEqual(r.tokenCount, 0);
+  assert.match(r.reason, /empty/);
+});
+
 t('SpecialistDispatcher rejects unknown track', () => {
   const d = new SpecialistDispatcher({ registry: new (require('../src/specialist-registry').SpecialistRegistry)({ persistPath: null }) });
   assert.throws(() => d.pick({ track: 'wat' }), /unknown track/);

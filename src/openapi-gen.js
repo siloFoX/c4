@@ -52,6 +52,7 @@ const ROUTE_SUMMARIES = {
   'POST /specialists/:id/prompt-apply': 'Draft a systemPrompt revision and (on meeting consensus) apply it to the registry — audit log records the meeting id.',
   'PATCH /specialists/:id/tags': 'Edit specialist tags (replace | add | remove modes). Audit log records the previous tag list.',
   'POST /meetings/plan': 'Plan a full multi-stage meeting roster for a task — preview only, no specialists spawned.',
+  'GET /meetings/classify-track': 'Preview the track classifier for a task string — returns {track, matched, reason, tokenCount}. Useful for tuning task wording.',
   'GET /meetings/templates': 'List meeting templates persisted at ~/.c4/meeting-templates.json.',
   'POST /meetings/templates': 'Create or update a meeting template (upsert by name).',
   'GET /meetings/templates/:name': 'Fetch a single meeting template by name.',
@@ -2220,6 +2221,27 @@ const ROUTE_SCHEMAS = {
         vetoPower: { type: 'boolean' },
         probation: { type: 'string' },
         score: { type: 'object' },
+      },
+    },
+  },
+  'GET /meetings/classify-track': {
+    parameters: [
+      { name: 'task', in: 'query', required: true, schema: { type: 'string', description: 'Free-text task description to classify' } },
+    ],
+    response: {
+      properties: {
+        track: { type: 'string', enum: ['lightweight', 'standard', 'full'] },
+        tokenCount: { type: 'integer' },
+        matched: {
+          type: 'array',
+          items: {
+            properties: {
+              list: { type: 'string', enum: ['full', 'lightweight'] },
+              term: { type: 'string' },
+            },
+          },
+        },
+        reason: { type: 'string' },
       },
     },
   },

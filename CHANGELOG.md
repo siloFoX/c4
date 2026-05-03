@@ -4,6 +4,41 @@
 
 (no entries — next release window)
 
+## [1.10.265] - 2026-05-04
+
+**Multi-Specialist System — Phase 6.6 (Track classifier preview).**
+Operators can now ask the daemon "what track would you pick for
+this task, and why?" without spinning a meeting plan. Useful for
+tuning task wording when the inferred track doesn't match
+operator intent.
+
+### Added
+- **`src/specialist-dispatcher.js`**:
+  - `explainTrack(task)` — same heuristic as `classifyTrack` but
+    returns `{track, tokenCount, matched: [{list, term}], reason}`
+    so callers see *why* a track was chosen. Empty/non-tokenizable
+    task returns standard with an "empty" reason; full signals
+    win over lightweight; no signals → standard with empty
+    `matched`.
+  - `FULL_SIGNALS` and `LITE_SIGNALS` keyword arrays exported
+    (frozen) so future tweaks have a single source of truth.
+- **HTTP**: `GET /meetings/classify-track?task=...` returns the
+  envelope. Missing `?task=` → 400.
+- **CLI**: `c4 meeting classify-track "task description"` prints
+  the track, token count, reason, and matched terms.
+- **OpenAPI**: route summary + response shape published; new
+  parametric reserved suffix entry for `classify-track`.
+- **Tests** (`tests/specialist-dispatcher.test.js`): 4 new cases
+  covering full-signal explanation, lightweight-beating-default,
+  empty-matched standard, and empty-input fallback. Suite stays
+  green at 199.
+
+### Notes
+- e2e verified end-to-end against the running daemon: `fix typo`
+  → lightweight (matched typo), `rotate auth secret in
+  production` → full (matched auth/secret/production), `add user
+  analytics dashboard` → standard (no signals).
+
 ## [1.10.264] - 2026-05-04
 
 **Multi-Specialist System — Phase 6.5 follow-up (Wiki action-items section).**
