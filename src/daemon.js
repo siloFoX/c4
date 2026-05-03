@@ -4417,6 +4417,35 @@ async function handleRequest(req, res) {
           matches.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
           enriched.recentMeetings = matches.slice(0, 10);
         }
+        if (parts.has('scoreEffective')) {
+          // (Phase 6.13 follow-up) Surface the post-decay score the
+          // dispatcher would actually use, alongside the raw record.
+          // Lets operators see whether stale data is still pulling
+          // weight or has decayed away.
+          const raw = spec.score || { byDomain: {}, byStage: {}, samples: {}, lastUpdated: null };
+          const lastUpdated = raw.lastUpdated || null;
+          const decayedDomain = {};
+          for (const [d, v] of Object.entries(raw.byDomain || {})) {
+            decayedDomain[d] = specialistDispatcher._applyDecay(v, lastUpdated);
+          }
+          const decayedStage = {};
+          for (const [s, v] of Object.entries(raw.byStage || {})) {
+            decayedStage[s] = specialistDispatcher._applyDecay(v, lastUpdated);
+          }
+          let ageDays = null;
+          if (lastUpdated) {
+            const ms = Date.parse(lastUpdated);
+            if (Number.isFinite(ms)) {
+              ageDays = Math.max(0, (Date.now() - ms) / (24 * 60 * 60 * 1000));
+            }
+          }
+          enriched.scoreEffective = {
+            halfLifeDays: specialistDispatcher.DEFAULT_DECAY_HALF_LIFE_DAYS,
+            ageDays,
+            byDomain: decayedDomain,
+            byStage: decayedStage,
+          };
+        }
         result = enriched;
       }
 

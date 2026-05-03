@@ -4,6 +4,41 @@
 
 (no entries — next release window)
 
+## [1.10.276] - 2026-05-04
+
+**Multi-Specialist System — Phase 6.13 follow-up (Effective-score view).**
+After v1.10.275 introduced read-time decay, the persisted score
+record diverges from the dispatcher's actual selection signal. This
+phase exposes the post-decay view so operators can see whether stale
+data still pulls weight or has decayed away — without having to read
+dispatcher code.
+
+### Added
+- **HTTP**: `GET /specialists/:id?include=scoreEffective` — adds
+  `scoreEffective: {halfLifeDays, ageDays, byDomain, byStage}` to
+  the response. `byDomain` / `byStage` mirror the raw score keys
+  but each value is the decayed signal the dispatcher would use
+  for selection. `ageDays` is the time since `score.lastUpdated`,
+  rounded to one decimal in CLI output.
+- **CLI**: `c4 specialist describe <id> --include scoreEffective`
+  renders a "raw → effective" table showing each bucket's pre-
+  and post-decay value, alongside the half-life and age.
+  Composes with other `--include` tokens.
+- **OpenAPI**: `scoreEffective` documented as nullable response
+  field; `include` enum extended with the new token.
+
+### Notes
+- e2e verified: `pm` specialist with `score.lastUpdated`
+  ~0.3 days old → effective score 0.99 (decay factor ≈ exp(-ln2 ×
+  0.01) ≈ 0.993). For a 60-day-old score this would render as
+  `1.00 → 0.25`.
+- `scoreEffective` uses `Date.now()` server-side; decay factors
+  are deterministic per ageDays / halfLifeDays. Operators can
+  preview "if I leave this for a week, where will it land" by
+  reading `ageDays` and computing.
+- Persisted scores in `~/.c4/specialists.json` are still untouched
+  — the effective view is purely a lens.
+
 ## [1.10.275] - 2026-05-04
 
 **Multi-Specialist System — Phase 6.13 (Score-decay in dispatcher).**

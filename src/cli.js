@@ -2178,6 +2178,27 @@ async function main() {
               console.log(`    ${m.id}  status=${m.status}  track=${m.track}  ${m.title}`);
             }
           }
+          if (result.scoreEffective) {
+            const eff = result.scoreEffective;
+            const ageStr = eff.ageDays != null ? `${eff.ageDays.toFixed(1)}d` : '-';
+            console.log(`\n  effective score (half-life=${eff.halfLifeDays}d, age=${ageStr}):`);
+            const byD = Object.entries(eff.byDomain || {}).sort();
+            if (byD.length > 0) {
+              console.log(`    by domain (raw → effective):`);
+              for (const [d, effVal] of byD) {
+                const rawVal = (result.score && result.score.byDomain && result.score.byDomain[d]) || 0;
+                console.log(`      ${d.padEnd(20)} ${rawVal.toFixed(2)} → ${effVal.toFixed(2)}`);
+              }
+            }
+            const byS = Object.entries(eff.byStage || {}).sort();
+            if (byS.length > 0) {
+              console.log(`    by stage  (raw → effective):`);
+              for (const [s, effVal] of byS) {
+                const rawVal = (result.score && result.score.byStage && result.score.byStage[s]) || 0;
+                console.log(`      ${s.padEnd(20)} ${rawVal.toFixed(2)} → ${effVal.toFixed(2)}`);
+              }
+            }
+          }
           return;
         }
         if (sub === 'suggest-prompt') {
