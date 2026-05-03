@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.229] - 2026-05-03
+
+**Multi-Specialist System — Phase 6 (SSE for live meeting
+state).** `MeetingSession` now emits structured events on every
+state transition (started / turn / vote / advanced /
+next-round / completed / escalated / aborted). The new
+`GET /meetings/:id/stream` SSE endpoint sends a snapshot on
+connect, then one `event: state` per transition, then closes
+on the terminal event. `c4 meeting watch <id>` consumes the
+stream from a terminal — handy when running a slow Claude
+brain that takes minutes per ask.
+
+### Added
+- **`src/meeting-session.js`** — `MeetingSession extends
+  EventEmitter`. New `_emitState(event, payload)` helper
+  fires both a generic `state` frame (with `{event, payload,
+  status, ts}`) and the named event so listeners can pick
+  granularity. Mutation methods (`start`, `contribute`,
+  `recordVote`, `advanceStage`, `nextRound`, `escalate`,
+  `abort`) all emit. `setMaxListeners(100)` so multiple
+  subscribers (web UI + watch CLI + future orchestrator hook)
+  don't trip the EventEmitter leak warning.
+- **HTTP**: `GET /meetings/:id/stream` SSE endpoint —
+  snapshot on connect (`event: snapshot`), live transitions
+  (`event: state`), 30 s heartbeat, `event: terminal` when
+  the meeting hits `completed`/`escalated`/`aborted` so the
+  client can close cleanly.
+- **CLI**: `c4 meeting watch <id>` — opens the SSE stream,
+  prints a one-line summary per event, exits on terminal
+  marker or Ctrl+C. Reuses the existing `BASE` URL +
+  `readToken()` helpers so it works against fleet-pinned
+  hosts and authenticated daemons without extra plumbing.
+- **OpenAPI**: route summary entry.
+
+End-to-end: `c4 meeting create + run` (long-running brain)
+combined with `c4 meeting watch` in another terminal shows
+each turn / vote / advance live.
+
+Suite stays 191 PASS. Spec lint + drift checker clean.
+
 ## [1.10.228] - 2026-05-03
 
 **Multi-Specialist System — Phase 1.2 (Specialist add/remove

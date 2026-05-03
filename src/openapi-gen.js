@@ -48,6 +48,7 @@ const ROUTE_SUMMARIES = {
   'GET /meetings': 'List all known meetings (optional ?status filter).',
   'GET /meetings/:id': 'Fetch a single meeting (full state JSON).',
   'GET /meetings/:id/transcript': 'Fetch the per-stage transcript for a meeting.',
+  'GET /meetings/:id/stream': 'SSE stream of meeting state transitions — snapshot on connect, then one event per state change.',
   'POST /meetings/:id/start': 'Transition a pending meeting to in-progress.',
   'POST /meetings/:id/contribute': 'Append a contribution from one specialist to the current stage.',
   'POST /meetings/:id/vote': 'Record a standalone accept|object vote without a contribution.',

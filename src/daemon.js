@@ -768,7 +768,7 @@ async function handleRequest(req, res) {
   // Meeting session path-parameter parser (multi-specialist phase 2.2).
   let meetingParams = null;
   {
-    const mAct = route.match(/^\/meetings\/([^\/]+)\/(start|contribute|vote|advance|next-round|escalate|abort|transcript|run|retro|finalize|publish|peer-retro)$/);
+    const mAct = route.match(/^\/meetings\/([^\/]+)\/(start|contribute|vote|advance|next-round|escalate|abort|transcript|run|retro|finalize|publish|peer-retro|stream)$/);
     const mOne = route.match(/^\/meetings\/([^\/]+)$/);
     if (mAct) meetingParams = { kind: mAct[2], id: decodeURIComponent(mAct[1]) };
     else if (mOne) meetingParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
@@ -4433,6 +4433,42 @@ async function handleRequest(req, res) {
         return;
       }
       result = { id: sess.id, transcript: sess.transcript() };
+
+    } else if (req.method === 'GET' && meetingParams && meetingParams.kind === 'stream') {
+      // (multi-specialist phase 6) SSE stream of meeting state
+      // transitions. Emits the current snapshot once on connect
+      // (event: snapshot), then one event per state change
+      // (event: state with payload {event, payload, status, ts}).
+      // 30s heartbeat keeps proxies from killing the connection.
+      const sess = meetingSession.getShared().get(meetingParams.id);
+      if (!sess) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Meeting not found', id: meetingParams.id }));
+        return;
+      }
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      });
+      const safeWrite = (event, payload) => {
+        try { res.write(`event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`); }
+        catch { /* client gone */ }
+      };
+      safeWrite('snapshot', sess.toJSON());
+      const onState = (frame) => safeWrite('state', frame);
+      sess.on('state', onState);
+      const heartbeat = setInterval(() => safeWrite('heartbeat', { ts: Date.now() }), 30000);
+      // If the meeting is already terminal, send a closing event so
+      // clients know there will be no more transitions.
+      if (['completed', 'escalated', 'aborted'].includes(sess.status)) {
+        safeWrite('terminal', { status: sess.status });
+      }
+      req.on('close', () => {
+        clearInterval(heartbeat);
+        sess.removeListener('state', onState);
+      });
+      return; // SSE keeps connection open
 
     } else if (req.method === 'POST' && meetingParams && meetingParams.kind === 'start') {
       // (multi-specialist phase 2.2) Transition pending → in-progress.

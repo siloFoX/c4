@@ -1,5 +1,7 @@
 'use strict';
 
+const { EventEmitter } = require('events');
+
 // MeetingSession (Phase 2.2 of multi-specialist system).
 //
 // Stateful record for a planned meeting (`planMeeting()` output) as
@@ -26,8 +28,9 @@ const VALID_VOTES = Object.freeze(['accept', 'object']);
 
 function _now() { return new Date().toISOString(); }
 
-class MeetingSession {
+class MeetingSession extends EventEmitter {
   constructor(plan, opts = {}) {
+    super();
     if (!plan || typeof plan !== 'object') {
       throw new Error('MeetingSession: plan is required');
     }
@@ -39,6 +42,11 @@ class MeetingSession {
     this._createdAt = opts.createdAt || _now();
     this._startedAt = null;
     this._completedAt = null;
+    // EventEmitter has a 10-listener default that warns on the 11th
+    // — for a high-traffic SSE endpoint with many subscribers we
+    // raise it. Unbounded would risk leak detection silence;
+    // 100 is plenty for typical operator + web UI + c4 watch CLI.
+    this.setMaxListeners(100);
 
     // Walking the stage list. currentStageIndex always points at
     // the active stage; rounds[stageIndex] is the round count for
@@ -91,7 +99,18 @@ class MeetingSession {
     // Round 1 begins automatically on start so callers can immediately
     // record contributions without an explicit "advance to round 1".
     this._rounds[this._currentStageIndex] = 1;
+    this._emitState('started', { stage: this.currentStage, round: 1 });
     return this.toJSON();
+  }
+
+  // SSE-friendly snapshot helper — never throws. Callers that don't
+  // attach listeners (constructor-only path) still go through here
+  // so the contract is uniform.
+  _emitState(event, payload = {}) {
+    try {
+      this.emit('state', { event, payload, status: this._status, ts: _now() });
+      this.emit(event, payload);
+    } catch { /* swallow — events must not break state mutation */ }
   }
 
   // Append a contribution. options.vote ∈ {'accept'|'object'} records
@@ -123,6 +142,7 @@ class MeetingSession {
       }
       this._recordVote(stageIdx, specialistId, options.vote, options.reason || null);
     }
+    this._emitState('turn', { turn });
     return turn;
   }
 
@@ -134,7 +154,9 @@ class MeetingSession {
       throw new Error(`recordVote: vote must be one of ${VALID_VOTES.join('|')}`);
     }
     this._recordVote(this._currentStageIndex, specialistId, vote, reason);
-    return this.consensusView();
+    const view = this.consensusView();
+    this._emitState('vote', { specialistId, vote, reason, view });
+    return view;
   }
 
   _recordVote(stageIdx, specialistId, vote, reason) {
@@ -238,9 +260,11 @@ class MeetingSession {
     if (this._currentStageIndex >= this._plan.stages.length) {
       this._status = 'completed';
       this._completedAt = _now();
+      this._emitState('completed', {});
       return { advanced: true, status: 'completed', newStage: null };
     }
     this._rounds[this._currentStageIndex] = 1;
+    this._emitState('advanced', { newStage: this.currentStage });
     return {
       advanced: true,
       status: 'in-progress',
@@ -265,6 +289,7 @@ class MeetingSession {
       };
     }
     this._rounds[stageIdx] = cur + 1;
+    this._emitState('next-round', { stage: this.currentStage, round: this._rounds[stageIdx] });
     return { bumped: true, round: this._rounds[stageIdx] };
   }
 
@@ -275,6 +300,7 @@ class MeetingSession {
     this._status = 'escalated';
     this._completedAt = _now();
     this._escalations.push({ reason, ts: this._completedAt });
+    this._emitState('escalated', { reason });
     return this.toJSON();
   }
 
@@ -285,6 +311,7 @@ class MeetingSession {
     this._status = 'aborted';
     this._completedAt = _now();
     this._escalations.push({ reason, ts: this._completedAt, terminal: true });
+    this._emitState('aborted', { reason });
     return this.toJSON();
   }
 

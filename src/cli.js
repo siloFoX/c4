@@ -2383,7 +2383,7 @@ async function main() {
         //   c4 meeting escalate <id> ["reason"...]
         //   c4 meeting abort <id> ["reason"...]
         const sub = (args[0] || 'plan').toLowerCase();
-        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro'];
+        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch'];
         if (!VALID.includes(sub)) {
           console.error(`Usage: c4 meeting <${VALID.join('|')}> [...]`);
           process.exit(1);
@@ -2479,6 +2479,63 @@ async function main() {
           if (args.includes('--json')) break;
           if (result.error) { console.error(result.error); process.exit(1); }
           printPlan(result);
+          return;
+        }
+        if (sub === 'watch') {
+          // c4 meeting watch <id>      tail meeting state transitions over SSE
+          // Snapshot + each event line printed live. Exits on terminal event or Ctrl+C.
+          const url = new URL(`/meetings/${encodeURIComponent(id)}/stream`, BASE);
+          const token = readToken();
+          const httpOpts = token ? { headers: { 'Authorization': `Bearer ${token}` } } : {};
+          await new Promise((resolve) => {
+            const req2 = http.get(url, httpOpts, (res2) => {
+              if (res2.statusCode !== 200) {
+                console.error(`stream returned ${res2.statusCode}`);
+                process.exit(1);
+              }
+              process.stderr.write(`watching ${id}... Ctrl+C to stop\n`);
+              let buf = '';
+              res2.on('data', (chunk) => {
+                buf += chunk.toString('utf8');
+                let idx;
+                while ((idx = buf.indexOf('\n\n')) >= 0) {
+                  const block = buf.slice(0, idx);
+                  buf = buf.slice(idx + 2);
+                  let event = 'message';
+                  let data = '';
+                  for (const line of block.split('\n')) {
+                    if (line.startsWith('event: ')) event = line.slice(7).trim();
+                    else if (line.startsWith('data: ')) data += line.slice(6);
+                  }
+                  if (event === 'heartbeat') continue;
+                  if (event === 'snapshot') {
+                    try {
+                      const snap = JSON.parse(data);
+                      console.log(`[snapshot] ${snap.id}  status=${snap.status}  stage=${snap.currentStage || '-'}/r${snap.currentRound || 0}`);
+                    } catch { /* swallow */ }
+                  } else if (event === 'state') {
+                    try {
+                      const f = JSON.parse(data);
+                      const compact = JSON.stringify(f.payload || {});
+                      console.log(`[${f.event}] status=${f.status}  ${compact.length > 160 ? compact.slice(0, 160) + '…' : compact}`);
+                    } catch { /* swallow */ }
+                  } else if (event === 'terminal') {
+                    try {
+                      const t = JSON.parse(data);
+                      console.log(`[terminal] status=${t.status}`);
+                    } catch { /* swallow */ }
+                    res2.destroy();
+                    resolve();
+                    return;
+                  }
+                }
+              });
+              res2.on('end', resolve);
+              res2.on('error', () => resolve());
+            });
+            req2.on('error', (e) => { console.error(`Error: ${e.message}`); resolve(); });
+            process.on('SIGINT', () => { req2.destroy(); process.stderr.write('\n'); resolve(); });
+          });
           return;
         }
         if (sub === 'transcript') {
