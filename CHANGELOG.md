@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.244] - 2026-05-03
+
+**Multi-Specialist System — Phase 7.12 (Dispatcher preview
+in MeetingsView composer).** When the operator types in the
+"new meeting" composer, the dispatcher's per-stage roster is
+previewed live (debounced 400 ms) so they can see exactly
+which specialists the meeting will assemble before clicking
+Create. No more "huh, why was X picked?" surprises after
+creation.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**: new
+  `previewPlan` state + debounced effect that POSTs
+  `/api/meetings/plan` with the in-progress task + track.
+  Renders a compact preview card under the form: track,
+  roster size, estimated tokens, consensus policy summary,
+  per-stage `id, id, ...` specialist list. Failures are
+  silenced (best-effort preview).
+
+Suite stays 192 PASS. Web build clean.
+
 ## [1.10.243] - 2026-05-03
 
 **Multi-Specialist System — Phase 7.11 (Underperformer pill

@@ -199,6 +199,36 @@ export default function MeetingsView() {
   const [newTrack, setNewTrack] = useState<'auto' | 'lightweight' | 'standard' | 'full'>('auto');
   const [createBusy, setCreateBusy] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [previewPlan, setPreviewPlan] = useState<{
+    track: string;
+    rosterSize: number;
+    estimatedTokens: number;
+    consensusPolicy: { mode: string; roundCap: number; allowVeto: boolean };
+    stages: Array<{ stage: string; specialists: Array<{ id: string }> }>;
+  } | null>(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
+
+  // Debounced dispatcher preview — re-runs ~400ms after typing stops.
+  useEffect(() => {
+    if (!creating || !newTask.trim()) {
+      setPreviewPlan(null);
+      return undefined;
+    }
+    const handle = window.setTimeout(async () => {
+      setPreviewBusy(true);
+      try {
+        const body: { task: string; track?: string } = { task: newTask.trim() };
+        if (newTrack !== 'auto') body.track = newTrack;
+        const res = await apiPost<typeof previewPlan>('/api/meetings/plan', body);
+        setPreviewPlan(res);
+      } catch {
+        setPreviewPlan(null);
+      } finally {
+        setPreviewBusy(false);
+      }
+    }, 400);
+    return () => window.clearTimeout(handle);
+  }, [creating, newTask, newTrack]);
 
   // Run the selected meeting with the chosen brain.
   const [runBusy, setRunBusy] = useState(false);
@@ -384,6 +414,28 @@ export default function MeetingsView() {
                   <span className="text-[11px] text-destructive">{createError}</span>
                 ) : null}
               </div>
+              {previewPlan ? (
+                <div className="rounded-md border border-border/60 bg-background p-2 text-[11px]">
+                  <div className="font-medium">
+                    Preview · track={previewPlan.track} · {previewPlan.rosterSize} specialists · ~{previewPlan.estimatedTokens.toLocaleString()} tokens
+                  </div>
+                  <div className="text-muted-foreground">
+                    consensus={previewPlan.consensusPolicy.mode}
+                    {' · '}roundCap={previewPlan.consensusPolicy.roundCap}
+                    {previewPlan.consensusPolicy.allowVeto ? ' · veto' : ''}
+                  </div>
+                  <ul className="mt-1 space-y-0.5">
+                    {previewPlan.stages.map((s) => (
+                      <li key={s.stage} className="flex flex-wrap gap-1">
+                        <span className="font-medium">[{s.stage}]</span>
+                        <span className="text-muted-foreground">{s.specialists.map((sp) => sp.id).join(', ')}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : previewBusy ? (
+                <div className="text-[11px] text-muted-foreground">previewing roster…</div>
+              ) : null}
             </div>
           ) : null}
         </CardHeader>
