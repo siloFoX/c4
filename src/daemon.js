@@ -4635,7 +4635,48 @@ async function handleRequest(req, res) {
       });
       try {
         const final = await orch.run();
-        result = { ok: true, totalAsks: orch.totalAsks, session: final };
+        let retro = null;
+        let applied = null;
+        let publish = null;
+        // (phase 4.3) auto-finalize chain. The CLI / web UI now have
+        // a one-shot path that runs the meeting AND folds the score
+        // deltas into the registry AND optionally publishes to wiki
+        // — without needing three separate calls.
+        if (body.autoFinalize && ['completed', 'escalated'].includes(final.status)) {
+          try {
+            retro = meetingRetro.computeRetroDeltas(sess, {
+              registry: specialistRegistry.getShared(),
+            });
+            applied = meetingRetro.applyRetroDeltas(
+              specialistRegistry.getShared(),
+              retro,
+              { alpha: Number.isFinite(body.alpha) ? body.alpha : undefined },
+            );
+          } catch (err) {
+            // Auto-finalize is best-effort; log via the result and
+            // do not fail the run() that already succeeded.
+            applied = { error: err.message };
+          }
+        }
+        if (body.autoPublish && retro) {
+          try {
+            publish = wikiWriter.publishMeeting(sess, {
+              wikiRoot: typeof body.wikiRoot === 'string' && body.wikiRoot ? body.wikiRoot : undefined,
+              retro,
+              applied,
+            });
+          } catch (err) {
+            publish = { error: err.message };
+          }
+        }
+        result = {
+          ok: true,
+          totalAsks: orch.totalAsks,
+          session: final,
+          retro,
+          applied,
+          publish,
+        };
       } catch (err) {
         res.writeHead(500);
         res.end(JSON.stringify({ error: err.message }));

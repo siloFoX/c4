@@ -173,14 +173,14 @@ t('SpecialistDispatcher.pick deterministic on tied scores (sorted by id)', () =>
 });
 
 t('scoreSpecialist returns 0 when stage filter excludes', () => {
-  const r = new SpecialistRegistry();
+  const r = new SpecialistRegistry({ persistPath: null });
   const pm = r.get('pm');
   const score = scoreSpecialist(pm, { taskTokens: ['users'], stage: 'implement' });
   assert.strictEqual(score, 0);
 });
 
 t('scoreSpecialist gives veto roles a bump on audit/deploy stages', () => {
-  const r = new SpecialistRegistry();
+  const r = new SpecialistRegistry({ persistPath: null });
   const sec = r.get('security-auditor');
   const auditScore = scoreSpecialist(sec, { taskTokens: [], stage: 'audit' });
   const reviewScore = scoreSpecialist(sec, { taskTokens: [], stage: 'review' });

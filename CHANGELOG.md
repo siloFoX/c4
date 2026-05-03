@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.226] - 2026-05-03
+
+**Multi-Specialist System — Phase 4.3 (Auto-finalize +
+auto-publish on meeting run).** `POST /meetings/:id/run` now
+accepts `autoFinalize` and `autoPublish` flags so a single
+call runs the meeting, folds retro deltas into the registry,
+and writes the wiki pages — no more three separate API hits.
+Both default to false to preserve the prior behavior.
+
+### Added
+- **`src/daemon.js`** `/meetings/:id/run`: after `orch.run()`
+  reaches a non-aborted terminal status, optionally calls
+  `meetingRetro.computeRetroDeltas` + `applyRetroDeltas`
+  (autoFinalize), then `wikiWriter.publishMeeting` with the
+  retro attached (autoPublish). Both are best-effort —
+  failures land in the response but never overwrite the
+  primary `run()` outcome. Body fields:
+  `autoFinalize / autoPublish / wikiRoot / alpha`.
+- **CLI** `c4 meeting run`: new flags `--auto-finalize`,
+  `--auto-publish` (implies finalize), `--wiki-root PATH`,
+  `--alpha N`. The pretty-printer reports specialists updated +
+  files written.
+- **OpenAPI**: `/meetings/:id/run` schema gains the four new
+  fields with descriptions; response gains `retro / applied /
+  publish` (all nullable).
+
+### Changed
+- **`tests/*.test.js`**: every `new SpecialistRegistry()` in the
+  test suite now passes `persistPath: null` so unit tests do
+  not load the user's real `~/.c4/specialists.json` overlay.
+  Without this, score deltas from prior daemon runs leaked
+  into test fixtures and broke `applyRetroDeltas seeds score
+  when no prior exists`.
+
+End-to-end: `c4 meeting run <id> --auto-finalize --auto-publish
+--wiki-root /tmp/c4-wiki-demo` runs, applies retro deltas to
+the persistent registry, writes meeting + retro markdown — one
+command, no bookkeeping.
+
+Suite stays at 191 PASS. Spec lint + drift checker clean.
+
 ## [1.10.225] - 2026-05-03
 
 **Multi-Specialist System — Phase 1.1 (Registry persistence).**

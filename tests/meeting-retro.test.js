@@ -47,7 +47,10 @@ t('computeRetroDeltas refuses non-terminal sessions', () => {
 });
 
 t('completed lightweight meeting → +1 accept signal for each speaker', async () => {
-  const reg = new SpecialistRegistry();
+  // persistPath: null prevents the registry from loading the user's
+  // ~/.c4/specialists.json overlay during tests (which would carry
+  // stale score deltas from prior daemon runs into the assertion).
+  const reg = new SpecialistRegistry({ persistPath: null });
   const sess = new MeetingSession(planMeeting({ task: 'fix typo in handler', registry: reg }));
   const brain = new MockBrainProvider();
   const orch = new MeetingOrchestrator({ session: sess, brain });
@@ -66,7 +69,7 @@ t('completed lightweight meeting → +1 accept signal for each speaker', async (
 });
 
 t('escalated meeting → +0.5 for steadfast objector, -0.25 for accept rollovers', async () => {
-  const reg = new SpecialistRegistry();
+  const reg = new SpecialistRegistry({ persistPath: null });
   const sess = new MeetingSession(planMeeting({ task: 'rotate auth secret in production', registry: reg }));
   // Force security-auditor to forever object so meeting escalates.
   const brain = new MockBrainProvider({
@@ -116,7 +119,7 @@ t('aborted meeting → all signals zero', () => {
 });
 
 t('applyRetroDeltas blends new signal with prior via exponential smoothing', () => {
-  const reg = new SpecialistRegistry();
+  const reg = new SpecialistRegistry({ persistPath: null });
   // Pre-seed the score for backend-engineer so blending is testable.
   reg._byId.get('backend-engineer').score = {
     byDomain: { backend: 0.5 },
@@ -150,7 +153,7 @@ t('applyRetroDeltas blends new signal with prior via exponential smoothing', () 
 });
 
 t('applyRetroDeltas seeds score when no prior exists', () => {
-  const reg = new SpecialistRegistry();
+  const reg = new SpecialistRegistry({ persistPath: null });
   // Default seed score is empty — first apply should land verbatim.
   const fakeRetro = {
     sessionId: 'm-test',
@@ -173,7 +176,7 @@ t('applyRetroDeltas seeds score when no prior exists', () => {
 });
 
 t('applyRetroDeltas skips unknown specialists silently', () => {
-  const reg = new SpecialistRegistry();
+  const reg = new SpecialistRegistry({ persistPath: null });
   const fakeRetro = {
     sessionId: 'm-test',
     outcome: 'completed',

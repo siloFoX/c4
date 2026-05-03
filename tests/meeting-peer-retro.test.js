@@ -112,7 +112,7 @@ t('runPeerRetro requires terminal session + brain instance', async () => {
 });
 
 t('runPeerRetro on completed lightweight meeting collects ratings', async () => {
-  const reg = new SpecialistRegistry();
+  const reg = new SpecialistRegistry({ persistPath: null });
   const sess = new MeetingSession(planMeeting({ task: 'fix typo in handler', registry: reg }));
   await new MeetingOrchestrator({ session: sess, brain: new MockBrainProvider() }).run();
   assert.strictEqual(sess.status, 'completed');
@@ -147,7 +147,7 @@ t('runPeerRetro on completed lightweight meeting collects ratings', async () => 
 });
 
 t('runPeerRetro deltas mirror meeting-retro shape (byStage/byDomain/samples)', async () => {
-  const reg = new SpecialistRegistry();
+  const reg = new SpecialistRegistry({ persistPath: null });
   const sess = new MeetingSession(planMeeting({ task: 'fix typo in handler', registry: reg }));
   await new MeetingOrchestrator({ session: sess, brain: new MockBrainProvider() }).run();
   // Mock brain that gives every peer a 5/5 rating (very positive).
@@ -172,7 +172,7 @@ t('runPeerRetro deltas mirror meeting-retro shape (byStage/byDomain/samples)', a
 });
 
 t('runPeerRetro skips raters who throw (no crash)', async () => {
-  const reg = new SpecialistRegistry();
+  const reg = new SpecialistRegistry({ persistPath: null });
   const sess = new MeetingSession(planMeeting({ task: 'fix typo in handler', registry: reg }));
   await new MeetingOrchestrator({ session: sess, brain: new MockBrainProvider() }).run();
   const peerBrain = new MockBrainProvider({

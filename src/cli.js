@@ -2552,26 +2552,48 @@ async function main() {
           return;
         }
         if (sub === 'run') {
-          // c4 meeting run <id> [--brain mock|claude] [--max-asks N] [--max-stages N] [--ask-timeout-ms MS]
+          // c4 meeting run <id> [--brain mock|claude] [--max-asks N] [--max-stages N]
+          //                     [--ask-timeout-ms MS] [--auto-finalize] [--auto-publish]
+          //                     [--wiki-root PATH] [--alpha N]
           let brain = 'mock';
           let maxAsks = null;
           let maxStages = null;
           let askTimeoutMs = null;
+          let autoFinalize = false;
+          let autoPublish = false;
+          let wikiRoot = null;
+          let alpha = null;
           for (let i = 2; i < args.length; i += 1) {
             const a = args[i];
             if (a === '--brain' && args[i + 1]) { brain = args[i + 1]; i += 1; }
             else if (a === '--max-asks' && args[i + 1]) { maxAsks = parseInt(args[i + 1], 10); i += 1; }
             else if (a === '--max-stages' && args[i + 1]) { maxStages = parseInt(args[i + 1], 10); i += 1; }
             else if (a === '--ask-timeout-ms' && args[i + 1]) { askTimeoutMs = parseInt(args[i + 1], 10); i += 1; }
+            else if (a === '--auto-finalize') { autoFinalize = true; }
+            else if (a === '--auto-publish') { autoPublish = true; autoFinalize = true; }
+            else if (a === '--wiki-root' && args[i + 1]) { wikiRoot = args[i + 1]; i += 1; }
+            else if (a === '--alpha' && args[i + 1]) { alpha = parseFloat(args[i + 1]); i += 1; }
           }
           const body = { brain };
           if (Number.isFinite(maxAsks)) body.maxAsks = maxAsks;
           if (Number.isFinite(maxStages)) body.maxStages = maxStages;
           if (Number.isFinite(askTimeoutMs)) body.askTimeoutMs = askTimeoutMs;
+          if (autoFinalize) body.autoFinalize = true;
+          if (autoPublish) body.autoPublish = true;
+          if (wikiRoot) body.wikiRoot = wikiRoot;
+          if (Number.isFinite(alpha)) body.alpha = alpha;
           result = await request('POST', `/meetings/${idEnc}/run`, body);
           if (args.includes('--json')) break;
           if (result.error) { console.error(result.error); process.exit(1); }
           console.log(`run complete — totalAsks=${result.totalAsks} status=${result.session.status}`);
+          if (result.retro) {
+            const n = Object.keys(result.retro.deltas || {}).length;
+            console.log(`auto-finalize: ${n} specialist(s) updated  (outcome=${result.retro.outcome})`);
+          }
+          if (result.publish && result.publish.written) {
+            console.log(`auto-publish: ${result.publish.written.length} file(s) written under ${result.publish.wikiRoot}`);
+            for (const f of result.publish.written) console.log(`  ${f}`);
+          }
           printPlan(result.session);
           return;
         }

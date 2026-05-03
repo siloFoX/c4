@@ -89,7 +89,7 @@ t('nextAdrNumber increments past existing entries', () => {
 });
 
 t('publishMeeting on a completed lightweight meeting writes minutes', async () => {
-  const reg = new SpecialistRegistry();
+  const reg = new SpecialistRegistry({ persistPath: null });
   const sess = new MeetingSession(planMeeting({ task: 'fix typo in handler', registry: reg }));
   const brain = new MockBrainProvider();
   await new MeetingOrchestrator({ session: sess, brain }).run();
@@ -109,7 +109,7 @@ t('publishMeeting on a completed lightweight meeting writes minutes', async () =
 });
 
 t('publishMeeting on full-track meeting writes meeting + ADR', async () => {
-  const reg = new SpecialistRegistry();
+  const reg = new SpecialistRegistry({ persistPath: null });
   const sess = new MeetingSession(planMeeting({ task: 'redesign auth flow', registry: reg }));
   const brain = new MockBrainProvider();
   await new MeetingOrchestrator({ session: sess, brain, maxAsks: 500 }).run();
@@ -128,7 +128,7 @@ t('publishMeeting on full-track meeting writes meeting + ADR', async () => {
 });
 
 t('publishMeeting with retro writes retro page too', async () => {
-  const reg = new SpecialistRegistry();
+  const reg = new SpecialistRegistry({ persistPath: null });
   const sess = new MeetingSession(planMeeting({ task: 'fix typo in handler', registry: reg }));
   const brain = new MockBrainProvider();
   await new MeetingOrchestrator({ session: sess, brain }).run();

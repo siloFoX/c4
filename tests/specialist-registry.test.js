@@ -123,7 +123,7 @@ t('validateSpecialist rejects non-string deliverables when present', () => {
 });
 
 t('SpecialistRegistry constructor loads seed by default', () => {
-  const r = new SpecialistRegistry();
+  const r = new SpecialistRegistry({ persistPath: null });
   assert.strictEqual(r.size, 13);
   assert.ok(r.has('pm'));
   assert.ok(!r.has('does-not-exist'));
@@ -133,7 +133,7 @@ t('SpecialistRegistry constructor loads seed by default', () => {
 });
 
 t('SpecialistRegistry list() returns defensive copies', () => {
-  const r = new SpecialistRegistry();
+  const r = new SpecialistRegistry({ persistPath: null });
   const list = r.list();
   list[0].displayName = 'tampered';
   const fresh = r.list();
@@ -141,7 +141,7 @@ t('SpecialistRegistry list() returns defensive copies', () => {
 });
 
 t('SpecialistRegistry filter by tier / domain / stage / vetoOnly', () => {
-  const r = new SpecialistRegistry();
+  const r = new SpecialistRegistry({ persistPath: null });
   const designStage = r.filter({ stage: 'design' }).map((s) => s.id);
   assert.ok(designStage.includes('architect'));
   assert.ok(designStage.includes('ux-designer'));
