@@ -2871,7 +2871,7 @@ async function main() {
         //   c4 meeting escalate <id> ["reason"...]
         //   c4 meeting abort <id> ["reason"...]
         const sub = (args[0] || 'plan').toLowerCase();
-        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'templates', 'template-add', 'template-remove', 'prune', 'fork', 'actions', 'classify-track'];
+        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'templates', 'template-add', 'template-remove', 'prune', 'fork', 'actions', 'classify-track', 'lineage'];
         if (!VALID.includes(sub)) {
           console.error(`Usage: c4 meeting <${VALID.join('|')}> [...]`);
           process.exit(1);
@@ -3233,6 +3233,19 @@ async function main() {
           if (result.error) { console.error(result.error); process.exit(1); }
           const c = result.consensus;
           console.log(`vote recorded — accepts=${c.accepts.length} objects=${c.objects.length} missing=${c.missing.length} reached=${c.reached}`);
+          return;
+        }
+        if (sub === 'lineage') {
+          // c4 meeting lineage <id>
+          result = await request('GET', `/meetings/${idEnc}/lineage`);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`lineage depth=${result.depth}  rootId=${result.rootId || '?'}${result.chainTruncated ? '  (chain truncated — older ancestor purged)' : ''}`);
+          for (let i = 0; i < result.chain.length; i += 1) {
+            const m = result.chain[i];
+            const arrow = i === 0 ? '>' : ' ';
+            console.log(`  ${arrow} ${m.id}  status=${m.status}  track=${m.track}  ${m.title || '(untitled)'}`);
+          }
           return;
         }
         if (sub === 'classify-track') {

@@ -74,6 +74,7 @@ const ROUTE_SUMMARIES = {
   'POST /meetings/:id/run': 'Drive a meeting to completion with a brain provider (phase 2.3 ships mock).',
   'POST /meetings/:id/fork': 'Clone an existing meeting as a brand-new pending session (replan or reuse mode); useful for retros / "redo with sharper question".',
   'GET /meetings/:id/action-items': 'Extract [DECISION] / [ACTION] / [TODO] / [BLOCKER] markers from the transcript — structured handoff to operator-side task tracking.',
+  'GET /meetings/:id/lineage': 'Walk the forkOf chain back to the original ancestor — returns the full lineage with depth and a truncation flag if some ancestor was purged from the store.',
   'POST /meetings/:id/retro': 'Compute retro score deltas from a terminal meeting — preview only.',
   'POST /meetings/:id/finalize': 'Compute retro deltas AND apply them to the registry score record.',
   'POST /meetings/:id/peer-retro': 'Run a peer-vote retro — each speaker rates peers (0–5); aggregate becomes a score signal.',
@@ -2510,6 +2511,32 @@ const ROUTE_SCHEMAS = {
       example: { reason: 'operator changed direction' },
     },
     response: { properties: { id: { type: 'string' }, status: { type: 'string' } } },
+  },
+  'GET /meetings/:id/lineage': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    response: {
+      properties: {
+        rootId: { type: 'string', nullable: true, description: 'Topmost ancestor id. If the chain reaches a meeting with no forkOf, that meeting`s id. If the deepest entry`s forkOf points at a purged meeting, that purged id (still useful for archaeology even though it no longer resolves).' },
+        depth: { type: 'integer', description: 'Number of meetings in the returned chain (always >=1)' },
+        chainTruncated: { type: 'boolean', description: 'True when the deepest entry has a forkOf pointer that no longer resolves in the store' },
+        chain: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string' },
+              status: { type: 'string' },
+              title: { type: 'string' },
+              track: { type: 'string' },
+              createdAt: { type: 'string' },
+              completedAt: { type: 'string', nullable: true },
+              forkOf: { type: 'string', nullable: true },
+            },
+          },
+        },
+      },
+    },
   },
   'GET /meetings/:id/action-items': {
     parameters: [

@@ -791,7 +791,7 @@ async function handleRequest(req, res) {
   // Meeting session path-parameter parser (multi-specialist phase 2.2).
   let meetingParams = null;
   {
-    const mAct = route.match(/^\/meetings\/([^\/]+)\/(start|contribute|vote|advance|next-round|escalate|abort|transcript|run|retro|finalize|publish|peer-retro|stream|fork|action-items)$/);
+    const mAct = route.match(/^\/meetings\/([^\/]+)\/(start|contribute|vote|advance|next-round|escalate|abort|transcript|run|retro|finalize|publish|peer-retro|stream|fork|action-items|lineage)$/);
     const mOne = route.match(/^\/meetings\/([^\/]+)$/);
     if (mAct) meetingParams = { kind: mAct[2], id: decodeURIComponent(mAct[1]) };
     else if (mOne) meetingParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
@@ -4891,6 +4891,46 @@ async function handleRequest(req, res) {
       } catch (err) {
         res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
       }
+
+    } else if (req.method === 'GET' && meetingParams && meetingParams.kind === 'lineage') {
+      // (multi-specialist phase 6.9) Walk the forkOf chain so the
+      // operator sees "this meeting was forked from X, which was
+      // forked from Y..." in one call. Stops at the first ancestor
+      // that is missing from the store (best-effort — purged
+      // meetings break the chain). Includes the source meeting
+      // itself at index 0 so callers always see at least one entry.
+      const store = meetingSession.getShared();
+      const start = store.get(meetingParams.id);
+      if (!start) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Meeting not found', id: meetingParams.id }));
+        return;
+      }
+      const chain = [];
+      const seen = new Set();
+      let cursor = start;
+      while (cursor && !seen.has(cursor.id)) {
+        seen.add(cursor.id);
+        const j = cursor.toJSON();
+        chain.push({
+          id: j.id,
+          status: j.status,
+          title: j.title,
+          track: j.track,
+          createdAt: j.createdAt,
+          completedAt: j.completedAt,
+          forkOf: j.forkOf || null,
+        });
+        if (!j.forkOf) break;
+        cursor = store.get(j.forkOf);
+      }
+      const tail = chain[chain.length - 1];
+      result = {
+        rootId: tail && !tail.forkOf ? tail.id : (tail ? tail.forkOf : null),
+        depth: chain.length,
+        chainTruncated: !!(tail && tail.forkOf),
+        chain,
+      };
 
     } else if (req.method === 'GET' && meetingParams && meetingParams.kind === 'action-items') {
       // (multi-specialist phase 6.5) Extract structured action items

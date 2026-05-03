@@ -130,6 +130,46 @@ t('forking a forked meeting works (chained lineage)', () => {
   assert.strictEqual(store.get(fork2.id).plan.forkOf, fork1.id);
 });
 
+t('lineage walks forkOf chain to the root', () => {
+  // Replicates the daemon-side walk so we don't need an HTTP fixture
+  // to verify the chain logic. (Daemon delegates to the same
+  // store.get(forkOf) loop.)
+  const { store, sess, reg } = freshStoreWithSession({ task: 'gen 0' });
+  const f1 = forkMeeting(sess.id, { store, registry: reg });
+  const f2 = forkMeeting(f1.id, { store, registry: reg });
+  const f3 = forkMeeting(f2.id, { store, registry: reg });
+  // Walk forward from f3 → f2 → f1 → sess (no forkOf).
+  const chain = [];
+  let cursor = store.get(f3.id);
+  while (cursor) {
+    chain.push(cursor.id);
+    const fk = cursor.plan.forkOf;
+    if (!fk) break;
+    cursor = store.get(fk);
+  }
+  assert.deepStrictEqual(chain, [f3.id, f2.id, f1.id, sess.id]);
+  assert.strictEqual(store.get(sess.id).plan.forkOf, undefined, 'root has no forkOf');
+});
+
+t('lineage truncates gracefully when an ancestor is purged', () => {
+  const { store, sess, reg } = freshStoreWithSession({ task: 'gen 0 will be purged' });
+  const f1 = forkMeeting(sess.id, { store, registry: reg });
+  const f2 = forkMeeting(f1.id, { store, registry: reg });
+  // Operator removed the original; chain from f2 should now stop at f1.
+  store.remove(sess.id);
+  const chain = [];
+  let cursor = store.get(f2.id);
+  while (cursor) {
+    chain.push(cursor.id);
+    const fk = cursor.plan.forkOf;
+    if (!fk) break;
+    cursor = store.get(fk);
+  }
+  assert.deepStrictEqual(chain, [f2.id, f1.id], 'chain stops at the deepest still-resolvable ancestor');
+  // Last entry's forkOf is set even though we couldn't resolve it.
+  assert.strictEqual(store.get(f1.id).plan.forkOf, sess.id, 'forkOf pointer survives purge of the source');
+});
+
 (async () => {
   for (const fn of pending) await fn();
   console.log(`\n  ${passed} passed, ${failed} failed (meeting-fork)`);

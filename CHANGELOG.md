@@ -4,6 +4,44 @@
 
 (no entries — next release window)
 
+## [1.10.268] - 2026-05-04
+
+**Multi-Specialist System — Phase 6.9 (Meeting lineage view).**
+A meeting can be forked, and the fork itself can be forked again
+(v1.10.259 already supported chained forks). This phase exposes
+the chain so operators can trace ancestry in one call instead of
+walking forkOf manually.
+
+### Added
+- **HTTP**: `GET /meetings/:id/lineage` walks `forkOf` backwards
+  and returns `{rootId, depth, chainTruncated, chain}`. The
+  source meeting is index 0; deepest reachable ancestor is the
+  last entry. Stops at the first ancestor missing from the store
+  (purged) and sets `chainTruncated:true`. `rootId` is the actual
+  topmost ancestor when the chain reaches a meeting with no
+  `forkOf`; when truncated, it's the deepest entry's `forkOf`
+  pointer (still useful for archaeology even though it no longer
+  resolves). 404 on unknown source id.
+- **CLI**: `c4 meeting lineage <id>` — prints depth + root +
+  truncation indicator + each entry on a line, current meeting
+  marked with `>`.
+- **OpenAPI**: full response schema published.
+- **Tests** (`tests/meeting-fork.test.js`): 2 new cases — full
+  chain walks back through 3 forks to the original; chain
+  truncates gracefully when the original is purged. Suite stays
+  green at 199.
+
+### Notes
+- e2e verified end-to-end against the running daemon: 3-deep
+  fork chain → `depth=3 rootId=m-...`; after purging the
+  original → `depth=2 ... (chain truncated — older ancestor
+  purged)`.
+- Chain walk is O(depth) — bounded by store size in the worst
+  case. No cycle detection beyond the `seen` set since the only
+  way to introduce a cycle would require manually editing
+  `plan.forkOf` (the daemon never does), and even then the
+  `seen` set caps the walk.
+
 ## [1.10.267] - 2026-05-04
 
 **Multi-Specialist System — Phase 6.8 (Specialist describe enrichment).**
