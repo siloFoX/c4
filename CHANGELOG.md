@@ -4,6 +4,75 @@
 
 (no entries — next release window)
 
+## [1.10.217] - 2026-05-03
+
+**Multi-Specialist System — Phase 2.2 (MeetingSession state
+machine + store).** Stateful meeting record drives the
+multi-stage lifecycle: `pending → in-progress → completed |
+escalated | aborted`. Per-stage round counter, append-only
+transcript and votes, advance-stage logic checks the
+track-specific consensus policy (DRI / quorum / consensus
++ veto). Phase 2.3 will plug real specialist agents (claude-code
+adapter etc.) into `contribute()` so the meeting drives itself;
+phase 2.2 lets any caller (CLI, HTTP, future orchestrator) drive
+it by hand.
+
+### Added
+- **`src/meeting-session.js`** — `MeetingSession(plan)` class
+  with `start / contribute / recordVote / advanceStage /
+  nextRound / escalate / abort / consensusView / toJSON /
+  transcript`. `MeetingStore` keeps active sessions in process
+  memory keyed by id; phase 3 will persist to `c4-wiki/meetings/`.
+- **HTTP** (in `src/daemon.js`):
+  - `POST /meetings` — create from a task (runs the planner
+    inline, stores the session in `pending` state)
+  - `GET /meetings` — list with optional `?status=` filter
+  - `GET /meetings/:id` — full session JSON (per-stage
+    consensus snapshot included)
+  - `GET /meetings/:id/transcript` — flat per-turn list
+  - `POST /meetings/:id/start` — pending → in-progress
+  - `POST /meetings/:id/contribute` — append turn + optional
+    vote
+  - `POST /meetings/:id/vote` — standalone accept/object
+  - `POST /meetings/:id/advance` — try to advance stage
+  - `POST /meetings/:id/next-round` — bump round counter
+  - `POST /meetings/:id/escalate` — `in-progress → escalated`
+  - `POST /meetings/:id/abort` — operator abort, terminal
+- **CLI** (in `src/cli.js`): `c4 meeting <plan|create|start|status|
+  list|transcript|contribute|vote|advance|next-round|escalate|abort>`
+  with shared `printPlan()` formatter for both planner and
+  session output.
+- **OpenAPI** (in `src/openapi-gen.js`): summaries + full
+  request/response schemas with example payloads for the 9
+  new routes. Existing `/specialists/:id` and `/attach/:name`
+  entries normalized from `{id}` to `:id` so the spec key
+  format matches the drift checker convention.
+- **`scripts/check-schema-drift.js`**: extended with two new
+  patterns. `ROUTE_LINE_KIND_SWITCH` recognizes
+  `xxxParams && xxxParams.kind === 'verb'` handler branches
+  and maps them to spec keys `/<resource>/:id/<verb>` by
+  reading the resource name from the `route.match()` regex
+  in the parser block above. `ROUTE_LINE_KIND_INCLUDES`
+  handles the includes-form switch where one branch covers
+  multiple verbs. The route-end window logic now dedupes
+  duplicate starts so consolidated handlers don't collapse
+  to empty windows. With this in place the daemon can use
+  the kind-switch pattern for parametric verb routes (cleaner
+  parsing) without losing drift coverage.
+- **Tests**: `tests/meeting-session.test.js` (19 cases) —
+  exports surface, missing-plan rejection, status transitions,
+  start preconditions, contribute appends + validates, vote
+  recording, DRI / quorum / consensus modes, veto-blocking
+  behavior, round-cap refusal, escalate / abort terminal
+  semantics, recordVote standalone path, toJSON shape,
+  MeetingStore CRUD.
+
+End-to-end verified: `c4 meeting create "fix typo in handler"
+→ start → contribute backend-engineer "..." --vote accept →
+advance → contribute backend-engineer "lgtm" --vote accept →
+advance → completed`. Suite 183 → 184 PASS. Spec lint + drift
+checker clean.
+
 ## [1.10.216] - 2026-05-03
 
 **Multi-Specialist System — Phase 2.1 (Meeting Plan).**

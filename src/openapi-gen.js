@@ -36,12 +36,23 @@ const ROUTE_SUMMARIES = {
   'GET /sessions': 'Claude Code session JSONL listing.',
   'POST /attach': 'Attach an external claude session by JSONL path.',
   'GET /attach/list': 'List all attached external sessions.',
-  'GET /attach/{name}/tail': 'SSE live tail of an attached session JSONL — emits new turns as they are appended.',
-  'GET /attach/{name}/process': 'Locate the running Claude Code process holding the attached JSONL — alive flag + pid/cmdline/cwd if found.',
+  'GET /attach/:name/tail': 'SSE live tail of an attached session JSONL — emits new turns as they are appended.',
+  'GET /attach/:name/process': 'Locate the running Claude Code process holding the attached JSONL — alive flag + pid/cmdline/cwd if found.',
   'GET /specialists': 'List the multi-specialist registry — optional ?tier / ?stage / ?domain / ?vetoOnly filters.',
-  'GET /specialists/{id}': 'Fetch a single specialist record by id.',
+  'GET /specialists/:id': 'Fetch a single specialist record by id.',
   'POST /specialists/dispatch': 'Preview the dispatcher pick for a task description — no specialists are spawned.',
   'POST /meetings/plan': 'Plan a full multi-stage meeting roster for a task — preview only, no specialists spawned.',
+  'POST /meetings': 'Create a MeetingSession from a task — returns the session in pending state.',
+  'GET /meetings': 'List all known meetings (optional ?status filter).',
+  'GET /meetings/:id': 'Fetch a single meeting (full state JSON).',
+  'GET /meetings/:id/transcript': 'Fetch the per-stage transcript for a meeting.',
+  'POST /meetings/:id/start': 'Transition a pending meeting to in-progress.',
+  'POST /meetings/:id/contribute': 'Append a contribution from one specialist to the current stage.',
+  'POST /meetings/:id/vote': 'Record a standalone accept|object vote without a contribution.',
+  'POST /meetings/:id/advance': 'Advance to the next stage if consensus is reached.',
+  'POST /meetings/:id/next-round': 'Bump round counter on the current stage (refused past round cap).',
+  'POST /meetings/:id/escalate': 'Mark the meeting as escalated (round cap or veto deadlock).',
+  'POST /meetings/:id/abort': 'Operator abort — terminal state, mutations refused after.',
   'GET /workflows': 'List defined workflows.',
   'POST /workflows': 'Create a new workflow definition.',
   'GET /openapi.json': 'This document — auto-generated OpenAPI spec.',
@@ -2162,7 +2173,7 @@ const ROUTE_SCHEMAS = {
       },
     },
   },
-  'GET /specialists/{id}': {
+  'GET /specialists/:id': {
     parameters: [
       { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
     ],
@@ -2225,6 +2236,157 @@ const ROUTE_SCHEMAS = {
         generatedAt: { type: 'string' },
       },
     },
+  },
+  'POST /meetings': {
+    requestBody: {
+      properties: {
+        task: { type: 'string' },
+        track: { type: 'string', nullable: true, enum: ['lightweight', 'standard', 'full', null] },
+        overrideCap: { type: 'integer', nullable: true },
+        explorationRatio: { type: 'number', nullable: true },
+        title: { type: 'string', nullable: true },
+      },
+      example: { task: 'rotate auth secret in production' },
+    },
+    response: {
+      properties: {
+        id: { type: 'string', description: 'm-<12-hex>' },
+        status: { type: 'string', enum: ['pending', 'in-progress', 'completed', 'escalated', 'aborted'] },
+        track: { type: 'string' },
+        title: { type: 'string' },
+        task: { type: 'string' },
+        createdAt: { type: 'string' },
+        currentStage: { type: 'string', nullable: true },
+        currentRound: { type: 'integer' },
+        stages: { type: 'array', items: { type: 'object' } },
+        transcripts: { type: 'array', items: { type: 'array' } },
+        votes: { type: 'array', items: { type: 'array' } },
+      },
+    },
+  },
+  'GET /meetings': {
+    parameters: [
+      { name: 'status', in: 'query', schema: { type: 'string', enum: ['pending', 'in-progress', 'completed', 'escalated', 'aborted'] } },
+    ],
+    response: {
+      properties: {
+        count: { type: 'integer' },
+        meetings: { type: 'array', items: { type: 'object' } },
+      },
+    },
+  },
+  'GET /meetings/:id': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    response: { properties: { id: { type: 'string' }, status: { type: 'string' } } },
+  },
+  'GET /meetings/:id/transcript': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    response: {
+      properties: {
+        id: { type: 'string' },
+        transcript: { type: 'array', items: { type: 'object' } },
+      },
+    },
+  },
+  'POST /meetings/:id/start': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    requestBody: { properties: {}, example: {} },
+    response: { properties: { id: { type: 'string' }, status: { type: 'string' } } },
+  },
+  'POST /meetings/:id/contribute': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    requestBody: {
+      properties: {
+        specialistId: { type: 'string' },
+        text: { type: 'string' },
+        vote: { type: 'string', nullable: true, enum: ['accept', 'object', null] },
+        reason: { type: 'string', nullable: true },
+      },
+      example: { specialistId: 'security-auditor', text: 'rotation plan looks safe', vote: 'accept' },
+    },
+    response: {
+      properties: {
+        ok: { type: 'boolean' },
+        turn: { type: 'object' },
+        status: { type: 'string' },
+      },
+    },
+  },
+  'POST /meetings/:id/vote': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    requestBody: {
+      properties: {
+        specialistId: { type: 'string' },
+        vote: { type: 'string', enum: ['accept', 'object'] },
+        reason: { type: 'string', nullable: true },
+      },
+      example: { specialistId: 'security-auditor', vote: 'object', reason: 'kms key rotation missing' },
+    },
+    response: {
+      properties: {
+        ok: { type: 'boolean' },
+        consensus: { type: 'object' },
+        status: { type: 'string' },
+      },
+    },
+  },
+  'POST /meetings/:id/advance': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    requestBody: { properties: {}, example: {} },
+    response: {
+      properties: {
+        advanced: { type: 'boolean' },
+        reason: { type: 'string', nullable: true },
+        newStage: { type: 'string', nullable: true },
+        status: { type: 'string', nullable: true },
+        view: { type: 'object', nullable: true },
+      },
+    },
+  },
+  'POST /meetings/:id/next-round': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    requestBody: { properties: {}, example: {} },
+    response: {
+      properties: {
+        bumped: { type: 'boolean' },
+        round: { type: 'integer', nullable: true },
+        reason: { type: 'string', nullable: true },
+      },
+    },
+  },
+  'POST /meetings/:id/escalate': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    requestBody: {
+      properties: { reason: { type: 'string' } },
+      example: { reason: 'round cap exhausted on design stage' },
+    },
+    response: { properties: { id: { type: 'string' }, status: { type: 'string' } } },
+  },
+  'POST /meetings/:id/abort': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    requestBody: {
+      properties: { reason: { type: 'string' } },
+      example: { reason: 'operator changed direction' },
+    },
+    response: { properties: { id: { type: 'string' }, status: { type: 'string' } } },
   },
   'POST /specialists/dispatch': {
     requestBody: {

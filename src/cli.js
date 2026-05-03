@@ -2157,54 +2157,215 @@ async function main() {
       }
 
       case 'meeting': {
-        // (multi-specialist phase 2.1) Plan a multi-stage meeting.
-        //   c4 meeting plan "<task>" [--track X] [--cap N]
-        // Phase 2.2 will add c4 meeting start / status / transcript
-        // once MeetingSession lands the actual orchestrator.
+        // (multi-specialist phase 2.1+2.2) Drive multi-stage meetings.
+        //   c4 meeting plan "<task>" [--track X] [--cap N]      preview only
+        //   c4 meeting create "<task>" [--track X] [--cap N]    create + store
+        //   c4 meeting start <id>
+        //   c4 meeting status <id>
+        //   c4 meeting list [--status S]
+        //   c4 meeting transcript <id>
+        //   c4 meeting contribute <id> <specialistId> "<text>" [--vote accept|object] [--reason "..."]
+        //   c4 meeting vote <id> <specialistId> <accept|object> ["reason"...]
+        //   c4 meeting advance <id>
+        //   c4 meeting next-round <id>
+        //   c4 meeting escalate <id> ["reason"...]
+        //   c4 meeting abort <id> ["reason"...]
         const sub = (args[0] || 'plan').toLowerCase();
-        if (sub !== 'plan') {
-          console.error('Usage: c4 meeting plan "<task>" [--track X] [--cap N]');
+        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort'];
+        if (!VALID.includes(sub)) {
+          console.error(`Usage: c4 meeting <${VALID.join('|')}> [...]`);
           process.exit(1);
         }
-        const taskParts = [];
-        let track = null;
-        let cap = null;
-        for (let i = 1; i < args.length; i += 1) {
-          const a = args[i];
-          if (a === '--track' && args[i + 1]) { track = args[i + 1]; i += 1; }
-          else if (a === '--cap' && args[i + 1]) { cap = parseInt(args[i + 1], 10); i += 1; }
-          else { taskParts.push(a); }
-        }
-        const task = taskParts.join(' ').trim();
-        if (!task) {
-          console.error('Usage: c4 meeting plan "<task>" [--track X] [--cap N]');
-          process.exit(1);
-        }
-        const body = { task };
-        if (track) body.track = track;
-        if (Number.isFinite(cap)) body.overrideCap = cap;
-        result = await request('POST', '/meetings/plan', body);
-        if (args.includes('--json')) break;
-        if (result.error) {
-          console.error(result.error);
-          process.exit(1);
-        }
-        const inferred = result.inferredTrack ? ' (inferred)' : '';
-        console.log(`Meeting ${result.meetingId} — ${result.title}`);
-        console.log(`Track: ${result.track}${inferred}  Roster: ${result.rosterSize}  Est tokens: ${result.estimatedTokens}`);
-        console.log(`Consensus: ${result.consensusPolicy.mode}  RoundCap: ${result.consensusPolicy.roundCap}  Veto: ${result.consensusPolicy.allowVeto}`);
-        for (const s of result.stages) {
-          console.log(`\n  [${s.stage}]  cap=${s.cap}  candidates=${s.candidates}  explore=${s.exploreSlots}`);
-          for (const sp of s.specialists) {
-            const mark = sp.pickReason === 'exploration' ? '✦' : '·';
-            const veto = sp.vetoPower ? ' [veto]' : '';
-            console.log(`    ${mark} ${sp.id.padEnd(22)} score=${sp.score.toFixed(2)}${veto}`);
+
+        // Helpers shared across sub-commands.
+        const printPlan = (plan) => {
+          const inferred = plan.inferredTrack ? ' (inferred)' : '';
+          console.log(`Meeting ${plan.meetingId || plan.id} — ${plan.title || ''}`);
+          if (plan.consensusPolicy) {
+            console.log(`Track: ${plan.track}${inferred}  Roster: ${plan.rosterSize}  Est tokens: ${plan.estimatedTokens}`);
+            console.log(`Consensus: ${plan.consensusPolicy.mode}  RoundCap: ${plan.consensusPolicy.roundCap}  Veto: ${plan.consensusPolicy.allowVeto}`);
+          } else if (plan.track) {
+            console.log(`Track: ${plan.track}  Status: ${plan.status}  Stage: ${plan.currentStage || '-'}  Round: ${plan.currentRound || 0}`);
           }
-          if (s.deliverables.length) {
-            console.log(`    deliverables: ${s.deliverables.join(', ')}`);
+          if (Array.isArray(plan.stages)) {
+            for (const s of plan.stages) {
+              const cap = s.cap || (s.specialists ? s.specialists.length : '-');
+              const cand = s.candidates != null ? `  candidates=${s.candidates}` : '';
+              const expl = s.exploreSlots != null ? `  explore=${s.exploreSlots}` : '';
+              console.log(`\n  [${s.stage}]  cap=${cap}${cand}${expl}`);
+              if (Array.isArray(s.specialists)) {
+                for (const sp of s.specialists) {
+                  const mark = sp.pickReason === 'exploration' ? '✦' : '·';
+                  const veto = sp.vetoPower ? ' [veto]' : '';
+                  const score = (typeof sp.score === 'number') ? `score=${sp.score.toFixed(2)}` : '';
+                  console.log(`    ${mark} ${sp.id.padEnd(22)} ${score}${veto}`);
+                }
+              }
+              if (s.deliverables && s.deliverables.length) {
+                console.log(`    deliverables: ${s.deliverables.join(', ')}`);
+              }
+              if (s.consensus) {
+                const c = s.consensus;
+                console.log(`    consensus[${c.mode}] round=${c.round} accepts=${c.accepts.length} objects=${c.objects.length} missing=${c.missing.length} reached=${c.reached}`);
+              }
+            }
           }
+        };
+
+        if (sub === 'plan' || sub === 'create') {
+          const taskParts = [];
+          let track = null;
+          let cap = null;
+          for (let i = 1; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--track' && args[i + 1]) { track = args[i + 1]; i += 1; }
+            else if (a === '--cap' && args[i + 1]) { cap = parseInt(args[i + 1], 10); i += 1; }
+            else { taskParts.push(a); }
+          }
+          const task = taskParts.join(' ').trim();
+          if (!task) {
+            console.error(`Usage: c4 meeting ${sub} "<task>" [--track X] [--cap N]`);
+            process.exit(1);
+          }
+          const body = { task };
+          if (track) body.track = track;
+          if (Number.isFinite(cap)) body.overrideCap = cap;
+          const path = sub === 'plan' ? '/meetings/plan' : '/meetings';
+          result = await request('POST', path, body);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          printPlan(result);
+          return;
         }
-        return;
+
+        if (sub === 'list') {
+          let status = null;
+          for (let i = 1; i < args.length; i += 1) {
+            if (args[i] === '--status' && args[i + 1]) { status = args[i + 1]; i += 1; }
+          }
+          const path = status ? `/meetings?status=${encodeURIComponent(status)}` : '/meetings';
+          result = await request('GET', path);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`${result.count} meeting(s)`);
+          for (const m of result.meetings) {
+            console.log(`  ${m.id}  ${m.status.padEnd(11)}  track=${m.track}  stage=${m.currentStage || '-'}/r${m.currentRound || 0}  ${m.title}`);
+          }
+          return;
+        }
+
+        // All remaining sub-commands target a specific meeting id.
+        const id = args[1];
+        if (!id) {
+          console.error(`Usage: c4 meeting ${sub} <id> [...]`);
+          process.exit(1);
+        }
+        const idEnc = encodeURIComponent(id);
+
+        if (sub === 'status') {
+          result = await request('GET', `/meetings/${idEnc}`);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          printPlan(result);
+          return;
+        }
+        if (sub === 'transcript') {
+          result = await request('GET', `/meetings/${idEnc}/transcript`);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          if (!result.transcript || result.transcript.length === 0) {
+            console.log('(no turns yet)');
+            return;
+          }
+          for (const t of result.transcript) {
+            console.log(`[${t.stage} r${t.round}] ${t.specialistId}: ${t.text}`);
+          }
+          return;
+        }
+        if (sub === 'start') {
+          result = await request('POST', `/meetings/${idEnc}/start`, {});
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          printPlan(result);
+          return;
+        }
+        if (sub === 'advance') {
+          result = await request('POST', `/meetings/${idEnc}/advance`, {});
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          if (result.advanced) {
+            console.log(`advanced → ${result.status}${result.newStage ? '  newStage=' + result.newStage : ''}`);
+          } else {
+            console.log(`advance refused: ${result.reason}`);
+            if (result.view) console.log(`  consensus: accepts=${result.view.accepts.length} objects=${result.view.objects.length} missing=${result.view.missing.length}`);
+          }
+          return;
+        }
+        if (sub === 'next-round') {
+          result = await request('POST', `/meetings/${idEnc}/next-round`, {});
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          if (result.bumped) console.log(`round → ${result.round}`);
+          else console.log(`refused: ${result.reason}`);
+          return;
+        }
+        if (sub === 'contribute') {
+          // c4 meeting contribute <id> <specialistId> "<text>" [--vote accept|object] [--reason "..."]
+          const specialistId = args[2];
+          if (!specialistId) {
+            console.error('Usage: c4 meeting contribute <id> <specialistId> "<text>" [--vote accept|object] [--reason "..."]');
+            process.exit(1);
+          }
+          let vote = null;
+          let reason = null;
+          const textParts = [];
+          for (let i = 3; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--vote' && args[i + 1]) { vote = args[i + 1]; i += 1; }
+            else if (a === '--reason' && args[i + 1]) { reason = args[i + 1]; i += 1; }
+            else textParts.push(a);
+          }
+          const text = textParts.join(' ').trim();
+          if (!text) {
+            console.error('contribute: text required');
+            process.exit(1);
+          }
+          const body = { specialistId, text };
+          if (vote) body.vote = vote;
+          if (reason) body.reason = reason;
+          result = await request('POST', `/meetings/${idEnc}/contribute`, body);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`recorded turn at [${result.turn.stage} r${result.turn.round}] ${result.turn.specialistId}`);
+          return;
+        }
+        if (sub === 'vote') {
+          // c4 meeting vote <id> <specialistId> <accept|object> [reason...]
+          const specialistId = args[2];
+          const v = args[3];
+          if (!specialistId || !v) {
+            console.error('Usage: c4 meeting vote <id> <specialistId> <accept|object> [reason...]');
+            process.exit(1);
+          }
+          const reason = args.slice(4).join(' ') || null;
+          const body = { specialistId, vote: v };
+          if (reason) body.reason = reason;
+          result = await request('POST', `/meetings/${idEnc}/vote`, body);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          const c = result.consensus;
+          console.log(`vote recorded — accepts=${c.accepts.length} objects=${c.objects.length} missing=${c.missing.length} reached=${c.reached}`);
+          return;
+        }
+        if (sub === 'escalate' || sub === 'abort') {
+          const reason = args.slice(2).join(' ') || 'unspecified';
+          result = await request('POST', `/meetings/${idEnc}/${sub}`, { reason });
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`${sub} → status=${result.status}`);
+          return;
+        }
+        break;
       }
 
       case 'events': {

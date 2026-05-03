@@ -38,6 +38,7 @@ const claudeProcessDiscovery = require('./claude-process-discovery');
 const specialistRegistry = require('./specialist-registry');
 const specialistDispatcher = require('./specialist-dispatcher');
 const meetingPlan = require('./meeting-plan');
+const meetingSession = require('./meeting-session');
 const autoDispatcherMod = require('./auto-dispatcher');
 const { PinnedMemoryScheduler, DEFAULT_INTERVAL_MS: PIN_DEFAULT_INTERVAL_MS } = require('./pinned-memory-scheduler');
 
@@ -755,6 +756,16 @@ async function handleRequest(req, res) {
   {
     const mOne = route.match(/^\/specialists\/([^\/]+)$/);
     if (mOne) specialistParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
+  }
+
+  // Meeting session path-parameter parser (multi-specialist phase 2.2).
+  let meetingParams = null;
+  {
+    const mAct = route.match(/^\/meetings\/([^\/]+)\/(start|contribute|vote|advance|next-round|escalate|abort|transcript)$/);
+    const mOne = route.match(/^\/meetings\/([^\/]+)$/);
+    if (mAct) meetingParams = { kind: mAct[2], id: decodeURIComponent(mAct[1]) };
+    else if (mOne) meetingParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
+    if (meetingParams && meetingParams.id === 'plan') meetingParams = null;
   }
 
   // (10.5) Monthly cost report: GET /cost/monthly/<year>/<month>. Path
@@ -4323,6 +4334,149 @@ async function handleRequest(req, res) {
         res.end(JSON.stringify({ error: err.message }));
         return;
       }
+
+    } else if (req.method === 'POST' && route === '/meetings') {
+      // (multi-specialist phase 2.2) Create a MeetingSession from a
+      // task. Body matches POST /meetings/plan; we run the planner
+      // first then store the resulting session in pending state.
+      // Returns the session in `pending` — caller advances with
+      // POST /meetings/:id/start.
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/meetings', body, res, cfg)) return;
+      try {
+        const plan = meetingPlan.planMeeting({
+          task: typeof body.task === 'string' ? body.task : '',
+          track: typeof body.track === 'string' ? body.track : null,
+          overrideCap: Number.isFinite(body.overrideCap) ? body.overrideCap : null,
+          explorationRatio: Number.isFinite(body.explorationRatio) ? body.explorationRatio : undefined,
+          title: typeof body.title === 'string' ? body.title : undefined,
+          registry: specialistRegistry.getShared(),
+        });
+        const session = new meetingSession.MeetingSession(plan);
+        meetingSession.getShared().put(session);
+        result = session.toJSON();
+      } catch (err) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: err.message }));
+        return;
+      }
+
+    } else if (req.method === 'GET' && route === '/meetings') {
+      // (multi-specialist phase 2.2) List meetings. Optional ?status=
+      // filter mirrors MeetingStore.list({ status }).
+      const status = url.searchParams.get('status');
+      const list = meetingSession.getShared().list(status ? { status } : {});
+      result = {
+        count: list.length,
+        meetings: list.map((s) => ({
+          id: s.id,
+          status: s.status,
+          track: s.plan.track,
+          title: s.plan.title,
+          currentStage: s.currentStage,
+          currentRound: s.currentRound,
+          createdAt: s.createdAt,
+          startedAt: s.startedAt,
+          completedAt: s.completedAt,
+        })),
+      };
+
+    } else if (req.method === 'GET' && meetingParams && meetingParams.kind === 'one') {
+      // (multi-specialist phase 2.2) Full session JSON.
+      const sess = meetingSession.getShared().get(meetingParams.id);
+      if (!sess) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Meeting not found', id: meetingParams.id }));
+        return;
+      }
+      result = sess.toJSON();
+
+    } else if (req.method === 'GET' && meetingParams && meetingParams.kind === 'transcript') {
+      // (multi-specialist phase 2.2) Just the per-stage turns.
+      const sess = meetingSession.getShared().get(meetingParams.id);
+      if (!sess) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Meeting not found', id: meetingParams.id }));
+        return;
+      }
+      result = { id: sess.id, transcript: sess.transcript() };
+
+    } else if (req.method === 'POST' && meetingParams && meetingParams.kind === 'start') {
+      // (multi-specialist phase 2.2) Transition pending → in-progress.
+      const sess = meetingSession.getShared().get(meetingParams.id);
+      if (!sess) { res.writeHead(404); res.end(JSON.stringify({ error: 'Meeting not found', id: meetingParams.id })); return; }
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/meetings/:id/start', body, res, cfg)) return;
+      try { sess.start(); result = sess.toJSON(); }
+      catch (err) { res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return; }
+
+    } else if (req.method === 'POST' && meetingParams && meetingParams.kind === 'contribute') {
+      // (multi-specialist phase 2.2) Append a contribution + optional vote.
+      const sess = meetingSession.getShared().get(meetingParams.id);
+      if (!sess) { res.writeHead(404); res.end(JSON.stringify({ error: 'Meeting not found', id: meetingParams.id })); return; }
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/meetings/:id/contribute', body, res, cfg)) return;
+      try {
+        const turn = sess.contribute(
+          typeof body.specialistId === 'string' ? body.specialistId : '',
+          typeof body.text === 'string' ? body.text : '',
+          { vote: body.vote || null, reason: body.reason || null });
+        result = { ok: true, turn, status: sess.status };
+      } catch (err) { res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return; }
+
+    } else if (req.method === 'POST' && meetingParams && meetingParams.kind === 'vote') {
+      // (multi-specialist phase 2.2) Standalone vote (no contribution).
+      const sess = meetingSession.getShared().get(meetingParams.id);
+      if (!sess) { res.writeHead(404); res.end(JSON.stringify({ error: 'Meeting not found', id: meetingParams.id })); return; }
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/meetings/:id/vote', body, res, cfg)) return;
+      try {
+        sess.recordVote(
+          typeof body.specialistId === 'string' ? body.specialistId : '',
+          typeof body.vote === 'string' ? body.vote : '',
+          typeof body.reason === 'string' ? body.reason : null);
+        result = { ok: true, consensus: sess.consensusView(), status: sess.status };
+      } catch (err) { res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return; }
+
+    } else if (req.method === 'POST' && meetingParams && meetingParams.kind === 'advance') {
+      // (multi-specialist phase 2.2) Try to advance to next stage.
+      const sess = meetingSession.getShared().get(meetingParams.id);
+      if (!sess) { res.writeHead(404); res.end(JSON.stringify({ error: 'Meeting not found', id: meetingParams.id })); return; }
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/meetings/:id/advance', body, res, cfg)) return;
+      try { result = sess.advanceStage(); }
+      catch (err) { res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return; }
+
+    } else if (req.method === 'POST' && meetingParams && meetingParams.kind === 'next-round') {
+      // (multi-specialist phase 2.2) Bump the round counter.
+      const sess = meetingSession.getShared().get(meetingParams.id);
+      if (!sess) { res.writeHead(404); res.end(JSON.stringify({ error: 'Meeting not found', id: meetingParams.id })); return; }
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/meetings/:id/next-round', body, res, cfg)) return;
+      try { result = sess.nextRound(); }
+      catch (err) { res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return; }
+
+    } else if (req.method === 'POST' && meetingParams && meetingParams.kind === 'escalate') {
+      // (multi-specialist phase 2.2) Mark the meeting as escalated.
+      const sess = meetingSession.getShared().get(meetingParams.id);
+      if (!sess) { res.writeHead(404); res.end(JSON.stringify({ error: 'Meeting not found', id: meetingParams.id })); return; }
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/meetings/:id/escalate', body, res, cfg)) return;
+      try {
+        sess.escalate(typeof body.reason === 'string' ? body.reason : 'unspecified');
+        result = sess.toJSON();
+      } catch (err) { res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return; }
+
+    } else if (req.method === 'POST' && meetingParams && meetingParams.kind === 'abort') {
+      // (multi-specialist phase 2.2) Operator abort — terminal state.
+      const sess = meetingSession.getShared().get(meetingParams.id);
+      if (!sess) { res.writeHead(404); res.end(JSON.stringify({ error: 'Meeting not found', id: meetingParams.id })); return; }
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/meetings/:id/abort', body, res, cfg)) return;
+      try {
+        sess.abort(typeof body.reason === 'string' ? body.reason : 'unspecified');
+        result = sess.toJSON();
+      } catch (err) { res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return; }
 
     } else if (req.method === 'POST' && route === '/specialists/dispatch') {
       // (multi-specialist phase 1) Rule-based dispatcher preview.

@@ -36,6 +36,37 @@ const ROUTE_LINE = /req\.method\s*===\s*'(POST|PUT|PATCH|DELETE|GET)'\s*&&\s*\(?
 // suffix. The schema uses `/y/:id` while the daemon checks startsWith,
 // so this regex maps the prefix back to the spec key shape.
 const ROUTE_LINE_PARAMETRIC = /req\.method\s*===\s*'(POST|PUT|PATCH|DELETE|GET)'\s*&&\s*route\.startsWith\(\s*'([^']+)'\s*\)/;
+// Also match the "kind switch" pattern where a parametric route's
+// verb is encoded in `xxxParams.kind === 'verb'` instead of in the
+// raw URL string. The path-parameter parser is documented in the
+// daemon; the spec-side key shape is `/<resource>/:id/<verb>`.
+//
+// Capture: METHOD, paramsName, kind value, AND we read the resource
+// name from the parser block above the handler block.
+const ROUTE_LINE_KIND_SWITCH = /req\.method\s*===\s*'(POST|PUT|PATCH|DELETE|GET)'\s*&&\s*([a-zA-Z][a-zA-Z0-9]*Params)\s*&&\s*\2\.kind\s*===\s*'([^']+)'/;
+// Plus the inclusion form for handlers that share one branch across
+// many verbs: `xxxParams && [..].includes(xxxParams.kind)`. We treat
+// every kind in the array literal as a separate spec key.
+const ROUTE_LINE_KIND_INCLUDES = /req\.method\s*===\s*'(POST|PUT|PATCH|DELETE|GET)'\s*&&\s*([a-zA-Z][a-zA-Z0-9]*Params)\b[\s\S]*?\[([^\]]+)\]\.includes\(\s*\2\.kind\s*\)/;
+
+// Resolve the resource segment for a `<x>Params` parser by reading
+// the block above the handler. We grep upward for the route.match
+// regex literal that defined the parser's path shape.
+function resolveParamsResource(paramsName) {
+  // Look for `let <name> = null;` followed by `route.match(/^\/<resource>\/...$/)`.
+  const declRe = new RegExp(`let\\s+${paramsName}\\s*=\\s*null`);
+  let declLine = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (declRe.test(lines[i])) { declLine = i; break; }
+  }
+  if (declLine < 0) return null;
+  // Scan the next ~20 lines for any `route.match(/^\/<x>\/...`.
+  for (let j = declLine; j < Math.min(declLine + 30, lines.length); j++) {
+    const m = lines[j].match(/route\.match\(\/\^\\\/([a-zA-Z0-9_-]+)\\\//);
+    if (m) return m[1];
+  }
+  return null;
+}
 
 // Locate every route's handler line range so we can scope the
 // destructuring + body.<x> extraction to that block only.
@@ -53,6 +84,29 @@ for (let i = 0; i < lines.length; i++) {
     const prefix = pm[2].replace(/\/+$/, '');
     const key = `${pm[1]} ${prefix}/:id`;
     if (!routeRanges.has(key)) routeRanges.set(key, { start: i, end: i });
+    continue;
+  }
+  // kind-switch form (single verb).
+  const km = ROUTE_LINE_KIND_SWITCH.exec(lines[i]);
+  if (km) {
+    const resource = resolveParamsResource(km[2]);
+    if (resource) {
+      const key = `${km[1]} /${resource}/:id/${km[3]}`;
+      if (!routeRanges.has(key)) routeRanges.set(key, { start: i, end: i });
+    }
+    continue;
+  }
+  // kind-includes form (one branch handles multiple verbs).
+  const im = ROUTE_LINE_KIND_INCLUDES.exec(lines[i]);
+  if (im) {
+    const resource = resolveParamsResource(im[2]);
+    if (resource) {
+      const verbs = im[3].split(',').map((s) => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
+      for (const verb of verbs) {
+        const key = `${im[1]} /${resource}/:id/${verb}`;
+        if (!routeRanges.has(key)) routeRanges.set(key, { start: i, end: i });
+      }
+    }
   }
 }
 // End of each range = line just before the next route OR the next
@@ -60,7 +114,11 @@ for (let i = 0; i < lines.length; i++) {
 // like `orgParams && orgParams.kind === 'dept.member'` that don't
 // match the literal `route === 'X'` pattern).
 const sortedKeys = [...routeRanges.keys()];
-const routeStarts = sortedKeys.map((k) => routeRanges.get(k).start).sort((a, b) => a - b);
+// Dedupe + sort. Multiple spec keys can share one consolidated
+// handler line (kind-includes form) so the next-distinct start is
+// what bounds the handler block, not "next slot in array".
+const routeStarts = [...new Set(sortedKeys.map((k) => routeRanges.get(k).start))]
+  .sort((a, b) => a - b);
 const ELSE_IF_METHOD = /^\s*\}\s*else\s+if\s*\(\s*req\.method/;
 for (const [key, range] of routeRanges) {
   const idx = routeStarts.indexOf(range.start);
