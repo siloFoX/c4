@@ -4,6 +4,52 @@
 
 (no entries — next release window)
 
+## [1.10.245] - 2026-05-03
+
+**Multi-Specialist System — Phase 5.2 (LLM prompt
+suggestion).** Closes the prompt-iterate loop — operator
+clicks "suggest" on a flagged specialist; daemon asks a
+brain to draft a revised systemPrompt that addresses the
+weak buckets, returns the suggestion + rationale for
+**review only**. The daemon NEVER auto-applies the change;
+operator hand-edits `src/specialists.seed.json` if accepting.
+
+### Added
+- **`src/specialist-prompt-iterate.js`** —
+  `suggestPromptRevision(specialistId, opts)` returns
+  `{specialistId, currentPrompt, analysis, revision,
+    rationale, raw}`. Refuses if the specialist isn't
+  flagged ("nothing to revise"). `buildSuggestPrompt` +
+  `parseSuggestion` exported for tests + future bespoke
+  callers. Output format is strict (REVISION: + RATIONALE:
+  blocks, regex-parsed) so brain output drift surfaces as
+  null rather than a half-applied revision.
+- **HTTP**: `POST /specialists/:id/suggest-prompt` body
+  `{brain, threshold?, minSamples?, askTimeoutMs?}`.
+- **CLI**: `c4 specialist suggest-prompt <id> [--brain
+  mock|claude] [--threshold N] [--min-samples N]`. Prints
+  current prompt + revision side-by-side.
+- **OpenAPI**: full schema.
+- **Tests**: 8 new cases bringing `tests/specialist-prompt-
+  iterate.test.js` to 17 — `parseSuggestion` happy path /
+  no markers / null input, `buildSuggestPrompt` content,
+  `suggestPromptRevision` brain-required, missing
+  specialist 404, no-flagged-buckets reject, scripted-brain
+  end-to-end revision parse.
+
+### Fixed
+- **`src/daemon.js`**: `/specialists/:id` parametric parser
+  now also recognizes the `suggest-prompt` action verb so
+  the new route doesn't get hijacked by the singleton
+  handler.
+
+End-to-end with the mock brain returns null revision (mock
+emits `[VOTE: accept]` not `REVISION:` markers — by design,
+the mock is a meeting-flow stub, not a prompt-revision
+stub). Real `--brain claude` produces parsed revisions.
+
+Suite stays 192 PASS. Spec lint + drift checker clean.
+
 ## [1.10.244] - 2026-05-03
 
 **Multi-Specialist System — Phase 7.12 (Dispatcher preview

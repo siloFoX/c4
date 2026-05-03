@@ -168,6 +168,103 @@ t('detectUnderperformers sorts items by deepest score ascending', () => {
   assert.deepStrictEqual(r.items.map((i) => i.id), ['severe', 'mid', 'mild']);
 });
 
+// Phase 5.2 — prompt suggestion via brain.
+
+const {
+  buildSuggestPrompt,
+  parseSuggestion,
+  suggestPromptRevision,
+  SUGGEST_PROMPT_HEADER,
+} = require('../src/specialist-prompt-iterate');
+const { MockBrainProvider } = require('../src/meeting-brain');
+
+t('parseSuggestion extracts REVISION + RATIONALE blocks', () => {
+  const text = 'REVISION:\n[Role: Tester] new shape.\n\nRATIONALE:\nbecause weak.';
+  const r = parseSuggestion(text);
+  assert.match(r.revision, /\[Role: Tester\] new shape\./);
+  assert.strictEqual(r.rationale, 'because weak.');
+});
+
+t('parseSuggestion returns nulls when markers missing', () => {
+  const r = parseSuggestion('plain prose without markers');
+  assert.strictEqual(r.revision, null);
+  assert.strictEqual(r.rationale, null);
+  assert.strictEqual(r.raw, 'plain prose without markers');
+});
+
+t('parseSuggestion handles null/empty input', () => {
+  assert.deepStrictEqual(parseSuggestion(null), { revision: null, rationale: null, raw: '' });
+  assert.deepStrictEqual(parseSuggestion(''), { revision: null, rationale: null, raw: '' });
+});
+
+t('buildSuggestPrompt embeds current prompt + flagged buckets', () => {
+  const spec = fixtureSpec({ systemPrompt: '[Role: Fixture] do thing' });
+  const analysis = {
+    flaggedDomains: [{ domain: 'fixture', score: -0.5, samples: 6 }],
+    flaggedStages: [],
+    deepestBucket: { kind: 'domain', name: 'fixture', score: -0.5, samples: 6 },
+  };
+  const out = buildSuggestPrompt(spec, analysis);
+  assert.ok(out.includes(SUGGEST_PROMPT_HEADER.split('\n')[0]));
+  assert.ok(out.includes('[Role: Fixture] do thing'));
+  assert.ok(out.includes('fixture'));
+  assert.ok(out.includes('-0.50'));
+});
+
+t('suggestPromptRevision: missing brain rejects', async () => {
+  const { SpecialistRegistry } = require('../src/specialist-registry');
+  const reg = new SpecialistRegistry({
+    persistPath: null,
+    specialists: [fixtureSpec({
+      score: { byDomain: { fixture: -0.6 }, byStage: {}, samples: { 'domain:fixture': 8 }, lastUpdated: null },
+    })],
+  });
+  await assert.rejects(suggestPromptRevision('fixture', { registry: reg }), /brain.*required/);
+});
+
+t('suggestPromptRevision: missing specialist rejects', async () => {
+  const { SpecialistRegistry } = require('../src/specialist-registry');
+  const reg = new SpecialistRegistry({ persistPath: null, specialists: [fixtureSpec()] });
+  await assert.rejects(suggestPromptRevision('does-not-exist', { registry: reg, brain: new MockBrainProvider() }), /not found/);
+});
+
+t('suggestPromptRevision: no flagged buckets rejects (nothing to revise)', async () => {
+  const { SpecialistRegistry } = require('../src/specialist-registry');
+  const reg = new SpecialistRegistry({
+    persistPath: null,
+    specialists: [fixtureSpec()], // empty score → no flag
+  });
+  await assert.rejects(
+    suggestPromptRevision('fixture', { registry: reg, brain: new MockBrainProvider() }),
+    /no flagged buckets/,
+  );
+});
+
+t('suggestPromptRevision: scripted brain returns parsed revision + rationale', async () => {
+  const { SpecialistRegistry } = require('../src/specialist-registry');
+  const reg = new SpecialistRegistry({
+    persistPath: null,
+    specialists: [fixtureSpec({
+      score: { byDomain: { fixture: -0.6 }, byStage: {}, samples: { 'domain:fixture': 8 }, lastUpdated: null },
+    })],
+  });
+  const brain = new MockBrainProvider({
+    script: {
+      'fixture': async () => ({
+        text: 'REVISION:\n[Role: Fixture] tighter scope.\n\nRATIONALE:\naddresses fixture domain weakness.',
+        vote: null,
+        reason: null,
+      }),
+    },
+  });
+  const r = await suggestPromptRevision('fixture', { registry: reg, brain });
+  assert.strictEqual(r.specialistId, 'fixture');
+  assert.match(r.revision, /\[Role: Fixture\] tighter scope\./);
+  assert.match(r.rationale, /fixture domain weakness/);
+  assert.strictEqual(r.currentPrompt, '[Role: Fixture] sp');
+  assert.strictEqual(r.analysis.flaggedDomains.length, 1);
+});
+
 (async () => {
   for (const fn of pending) await fn();
   console.log(`\n  ${passed} passed, ${failed} failed (specialist-prompt-iterate)`);

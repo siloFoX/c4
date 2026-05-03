@@ -124,9 +124,147 @@ function detectUnderperformers(registry, opts = {}) {
   };
 }
 
+// (Phase 5.2) Prompt revision suggestion.
+//
+// Build a prompt that asks a brain to draft a revised systemPrompt
+// for an underperforming specialist. Review-only — the daemon
+// returns the brain's suggestion; the operator decides whether to
+// edit `src/specialists.seed.json` or hand-craft the revised prompt
+// before applying it. We never auto-mutate the registry.
+
+const SUGGEST_PROMPT_HEADER = [
+  '# Specialist prompt revision request',
+  '',
+  'You are reviewing the systemPrompt of an underperforming specialist',
+  'in our multi-specialist meeting system. The specialist has',
+  'accumulated negative retro signal in one or more domains/stages.',
+  'Your job is to draft a revised systemPrompt that addresses the',
+  'weakness without breaking the specialist\'s general purpose.',
+  '',
+  'Constraints:',
+  '- Keep the same `[Role: ...]` prefix (the meeting orchestrator',
+  '  greps for it).',
+  '- Keep the role identity coherent — do not rename the specialist',
+  '  or change its tier; the dispatcher already routed work to it for',
+  '  good reasons.',
+  '- Make the change *concrete*: name a specific behavior to add or',
+  '  drop, not just "be better".',
+  '- Keep length within 30% of the original.',
+  '',
+  'Output format (strict — the parser is regex-based):',
+  '  REVISION:',
+  '  <revised systemPrompt, one paragraph, [Role: ...] prefix preserved>',
+  '',
+  '  RATIONALE:',
+  '  <one paragraph explaining what changed and why, with reference',
+  '   to the weak buckets above>',
+].join('\n');
+
+function buildSuggestPrompt(spec, analysis) {
+  const lines = [];
+  lines.push(SUGGEST_PROMPT_HEADER);
+  lines.push('');
+  lines.push('## Current systemPrompt');
+  lines.push('');
+  lines.push(spec.systemPrompt);
+  lines.push('');
+  lines.push('## Weak buckets (from retro signal)');
+  lines.push('');
+  if (analysis.flaggedDomains && analysis.flaggedDomains.length > 0) {
+    lines.push('Domains:');
+    for (const d of analysis.flaggedDomains) {
+      lines.push(`  - ${d.domain}: signal ${d.score.toFixed(2)} over ${d.samples} samples`);
+    }
+  }
+  if (analysis.flaggedStages && analysis.flaggedStages.length > 0) {
+    lines.push('Stages:');
+    for (const s of analysis.flaggedStages) {
+      lines.push(`  - ${s.stage}: signal ${s.score.toFixed(2)} over ${s.samples} samples`);
+    }
+  }
+  lines.push('');
+  lines.push(`Deepest bucket: ${analysis.deepestBucket.kind}:${analysis.deepestBucket.name} = ${analysis.deepestBucket.score.toFixed(2)}`);
+  lines.push('');
+  lines.push('Now draft the revised systemPrompt below.');
+  return lines.join('\n');
+}
+
+const REVISION_RE = /REVISION:\s*([\s\S]*?)(?:RATIONALE:|$)/i;
+const RATIONALE_RE = /RATIONALE:\s*([\s\S]*?)$/i;
+
+function parseSuggestion(text) {
+  if (!text || typeof text !== 'string') {
+    return { revision: null, rationale: null, raw: text || '' };
+  }
+  const revM = text.match(REVISION_RE);
+  const ratM = text.match(RATIONALE_RE);
+  return {
+    revision: revM ? revM[1].trim() : null,
+    rationale: ratM ? ratM[1].trim() : null,
+    raw: text,
+  };
+}
+
+// Drive the brain to suggest a revision. Returns
+//   { specialistId, currentPrompt, analysis, revision, rationale, raw }
+// or throws if the specialist is missing OR the analyzer returns
+// no flagged buckets (no point asking for a revision when there's
+// nothing to revise).
+//
+// opts:
+//   brain     required, BrainProvider instance (mock or claude)
+//   registry  optional SpecialistRegistry override
+async function suggestPromptRevision(specialistId, opts = {}) {
+  if (!specialistId || typeof specialistId !== 'string') {
+    throw new Error('suggestPromptRevision: specialistId is required');
+  }
+  const reg = opts.registry || (() => {
+    try { return require('./specialist-registry').getShared(); }
+    catch { return null; }
+  })();
+  if (!reg) throw new Error('suggestPromptRevision: registry unavailable');
+  const spec = reg.get(specialistId);
+  if (!spec) throw new Error(`suggestPromptRevision: specialist "${specialistId}" not found`);
+
+  const analysis = analyzeSpecialist(spec, opts);
+  if (!analysis) {
+    throw new Error(`suggestPromptRevision: "${specialistId}" has no flagged buckets — nothing to revise`);
+  }
+
+  if (!opts.brain || typeof opts.brain.ask !== 'function') {
+    throw new Error('suggestPromptRevision: brain (BrainProvider instance) is required');
+  }
+
+  const prompt = buildSuggestPrompt(spec, analysis);
+  const reply = await opts.brain.ask(spec, prompt, {
+    plan: { task: 'prompt revision', track: 'meta' },
+    currentStage: 'docs',
+    currentRound: 1,
+    transcriptSoFar: [],
+    lastView: { objects: [] },
+  });
+  const parsed = parseSuggestion(reply.text || '');
+  return {
+    specialistId,
+    currentPrompt: spec.systemPrompt,
+    analysis: {
+      flaggedDomains: analysis.flaggedDomains,
+      flaggedStages: analysis.flaggedStages,
+      deepestBucket: analysis.deepestBucket,
+    },
+    revision: parsed.revision,
+    rationale: parsed.rationale,
+    raw: parsed.raw,
+  };
+}
+
 module.exports = {
   analyzeSpecialist,
   detectUnderperformers,
+  suggestPromptRevision,
+  buildSuggestPrompt,
+  parseSuggestion,
+  SUGGEST_PROMPT_HEADER,
   DEFAULT_NEGATIVE_THRESHOLD,
   DEFAULT_MIN_SAMPLES,
 };

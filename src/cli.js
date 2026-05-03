@@ -2062,8 +2062,8 @@ async function main() {
         //   c4 specialist dispatch "<task>" [--stage X] [--track X] [--cap N]
         //   c4 specialist score [--by-domain D | --by-stage S] [--limit N]
         const sub = (args[0] || 'list').toLowerCase();
-        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers'].includes(sub)) {
-          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers> [args]');
+        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt'].includes(sub)) {
+          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt> [args]');
           process.exit(1);
         }
         if (sub === 'list') {
@@ -2137,6 +2137,48 @@ async function main() {
             }
           }
           console.log(`\n  systemPrompt:\n    ${result.systemPrompt}`);
+          return;
+        }
+        if (sub === 'suggest-prompt') {
+          // c4 specialist suggest-prompt <id> [--brain mock|claude] [--threshold N] [--min-samples N]
+          const id = args[1];
+          if (!id) {
+            console.error('Usage: c4 specialist suggest-prompt <id> [--brain mock|claude] [--threshold N] [--min-samples N]');
+            process.exit(1);
+          }
+          let brain = 'mock';
+          let threshold = null;
+          let minSamples = null;
+          let askTimeoutMs = null;
+          for (let i = 2; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--brain' && args[i + 1]) { brain = args[i + 1]; i += 1; }
+            else if (a === '--threshold' && args[i + 1]) { threshold = parseFloat(args[i + 1]); i += 1; }
+            else if (a === '--min-samples' && args[i + 1]) { minSamples = parseInt(args[i + 1], 10); i += 1; }
+            else if (a === '--ask-timeout-ms' && args[i + 1]) { askTimeoutMs = parseInt(args[i + 1], 10); i += 1; }
+          }
+          const body = { brain };
+          if (Number.isFinite(threshold)) body.threshold = threshold;
+          if (Number.isFinite(minSamples)) body.minSamples = minSamples;
+          if (Number.isFinite(askTimeoutMs)) body.askTimeoutMs = askTimeoutMs;
+          result = await request('POST', `/specialists/${encodeURIComponent(id)}/suggest-prompt`, body);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`# Current systemPrompt for ${result.specialistId}\n`);
+          console.log(result.currentPrompt);
+          console.log('');
+          if (result.revision) {
+            console.log(`# Suggested revision\n`);
+            console.log(result.revision);
+            console.log('');
+          } else {
+            console.log('(brain output did not produce a parseable REVISION block)');
+          }
+          if (result.rationale) {
+            console.log(`# Rationale\n`);
+            console.log(result.rationale);
+          }
+          console.log('\nReview-only — apply manually by editing src/specialists.seed.json.');
           return;
         }
         if (sub === 'underperformers') {

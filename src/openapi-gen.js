@@ -44,6 +44,7 @@ const ROUTE_SUMMARIES = {
   'DELETE /specialists/:id': 'Remove a specialist from the persistent registry — idempotent.',
   'POST /specialists/dispatch': 'Preview the dispatcher pick for a task description — no specialists are spawned.',
   'GET /specialists/underperformers': 'List specialists with sustained negative retro scores in their domains/stages — read-only analysis.',
+  'POST /specialists/:id/suggest-prompt': 'Ask a brain to draft a revised systemPrompt for an underperforming specialist — review-only (never auto-applied).',
   'POST /meetings/plan': 'Plan a full multi-stage meeting roster for a task — preview only, no specialists spawned.',
   'POST /meetings': 'Create a MeetingSession from a task — returns the session in pending state.',
   'GET /meetings': 'List all known meetings (optional ?status filter).',
@@ -2617,6 +2618,30 @@ const ROUTE_SCHEMAS = {
         ok: { type: 'boolean' },
         removed: { type: 'boolean' },
         id: { type: 'string' },
+      },
+    },
+  },
+  'POST /specialists/:id/suggest-prompt': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    requestBody: {
+      properties: {
+        brain: { type: 'string', enum: ['mock', 'claude'] },
+        threshold: { type: 'number', description: 'Override the negative-threshold for analysis' },
+        minSamples: { type: 'integer', description: 'Override the sample-count gate' },
+        askTimeoutMs: { type: 'integer', description: 'Per-ask timeout when brain=claude' },
+      },
+      example: { brain: 'mock' },
+    },
+    response: {
+      properties: {
+        specialistId: { type: 'string' },
+        currentPrompt: { type: 'string' },
+        analysis: { type: 'object', description: 'flaggedDomains/flaggedStages/deepestBucket from analyzer' },
+        revision: { type: 'string', nullable: true, description: 'Suggested replacement systemPrompt — null if brain output did not parse' },
+        rationale: { type: 'string', nullable: true },
+        raw: { type: 'string' },
       },
     },
   },

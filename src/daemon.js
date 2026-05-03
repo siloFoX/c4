@@ -762,8 +762,10 @@ async function handleRequest(req, res) {
   // Specialist Registry path-parameter parser (multi-specialist phase 1).
   let specialistParams = null;
   {
+    const mAct = route.match(/^\/specialists\/([^\/]+)\/(suggest-prompt)$/);
     const mOne = route.match(/^\/specialists\/([^\/]+)$/);
-    if (mOne) specialistParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
+    if (mAct) specialistParams = { kind: mAct[2], id: decodeURIComponent(mAct[1]) };
+    else if (mOne) specialistParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
     // Reserved suffixes that look like /:id but are dedicated routes.
     // Without this, GET /specialists/dispatch (POST in practice) and
     // GET /specialists/underperformers (5.1) get caught by the
@@ -4832,6 +4834,44 @@ async function handleRequest(req, res) {
           wikiRoot: typeof body.wikiRoot === 'string' && body.wikiRoot ? body.wikiRoot : undefined,
         });
         result = page;
+      } catch (err) {
+        const code = /not found/.test(err.message) ? 404 : 400;
+        res.writeHead(code); res.end(JSON.stringify({ error: err.message })); return;
+      }
+
+    } else if (req.method === 'POST' && specialistParams && specialistParams.kind === 'suggest-prompt') {
+      // (multi-specialist phase 5.2) Ask a brain to draft a revised
+      // systemPrompt for an underperforming specialist. Review-only
+      // — the daemon NEVER writes the revision back to the registry.
+      // Body:
+      //   brain          'mock' | 'claude' (default mock)
+      //   threshold      override negativeThreshold for the
+      //                  underlying analysis
+      //   minSamples     override sample-count gate
+      //   askTimeoutMs   per-ask timeout for the claude brain
+      const id = specialistParams.id;
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/specialists/:id/suggest-prompt', body, res, cfg)) return;
+      const brainKind = typeof body.brain === 'string' ? body.brain : 'mock';
+      let brain;
+      if (brainKind === 'mock') {
+        brain = new meetingBrain.MockBrainProvider();
+      } else if (brainKind === 'claude') {
+        brain = new meetingBrain.ClaudeBrainProvider({
+          timeoutMs: Number.isFinite(body.askTimeoutMs) ? body.askTimeoutMs : undefined,
+        });
+      } else {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: `unsupported brain "${brainKind}"` }));
+        return;
+      }
+      try {
+        result = await specialistPromptIterate.suggestPromptRevision(id, {
+          registry: specialistRegistry.getShared(),
+          brain,
+          negativeThreshold: Number.isFinite(body.threshold) ? body.threshold : undefined,
+          minSamples: Number.isFinite(body.minSamples) ? body.minSamples : undefined,
+        });
       } catch (err) {
         const code = /not found/.test(err.message) ? 404 : 400;
         res.writeHead(code); res.end(JSON.stringify({ error: err.message })); return;
