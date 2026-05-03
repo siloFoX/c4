@@ -2165,7 +2165,7 @@ const ROUTE_SCHEMAS = {
     parameters: [
       { name: 'tier', in: 'query', schema: { type: 'string', enum: ['meeting', 'design', 'implement', 'review', 'audit', 'test', 'deploy', 'docs'] } },
       { name: 'stage', in: 'query', schema: { type: 'string', enum: ['meeting', 'design', 'implement', 'review', 'audit', 'test', 'deploy', 'docs'] } },
-      { name: 'domain', in: 'query', schema: { type: 'string' } },
+      { name: 'domain', in: 'query', explode: true, schema: { type: 'array', items: { type: 'string' } }, description: 'Domain filter; repeatable / comma-split. AND-composes — a specialist must carry every listed domain.' },
       { name: 'vetoOnly', in: 'query', schema: { type: 'string', enum: ['1'] } },
       { name: 'tag', in: 'query', explode: true, schema: { type: 'array', items: { type: 'string' } }, description: 'Tag filter; repeat the parameter or pass comma-separated values. AND across multiple tags.' },
     ],

@@ -549,6 +549,20 @@ t('updateTags replace [] clears tags', () => {
   assert.deepStrictEqual(r.tags, []);
 });
 
+t('filter({domains}) AND-composes the same as the export form', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  reg.add(fixtureSpec({ id: 'f-a', domain: ['data', 'pipeline'] }));
+  reg.add(fixtureSpec({ id: 'f-b', domain: ['data'] }));
+  const single = reg.filter({ domains: ['data'] });
+  assert.deepStrictEqual(single.map((s) => s.id).filter((id) => id.startsWith('f-')).sort(), ['f-a', 'f-b']);
+  const both = reg.filter({ domains: ['data', 'pipeline'] });
+  assert.deepStrictEqual(both.map((s) => s.id).filter((id) => id.startsWith('f-')), ['f-a']);
+  // Backwards-compat single 'domain' string still works (was the
+  // pre-1.10.273 form).
+  const legacy = reg.filter({ domain: 'pipeline' });
+  assert.deepStrictEqual(legacy.map((s) => s.id).filter((id) => id.startsWith('f-')), ['f-a']);
+});
+
 t('exportBundle({domains}) AND-composes against spec.domain', () => {
   const reg = new SpecialistRegistry({ persistPath: null });
   reg.add(fixtureSpec({ id: 'd-a', domain: ['data', 'pipeline'] }));

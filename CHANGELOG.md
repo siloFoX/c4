@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.274] - 2026-05-04
+
+**Multi-Specialist System — Phase 1.6 follow-up #4 (List domain filter parity).**
+`GET /specialists?domain=` accepted only a single value. Repeating
+the parameter now AND-composes against `spec.domain`, matching
+the `?tag=` and `/specialists/export?domain=` semantics already
+in place.
+
+### Added
+- **`src/specialist-registry.js`**: `filter({domain, domains})`
+  honours both forms — single string for backwards compat,
+  string array for AND-compose. A specialist matches when every
+  listed domain is in `spec.domain`.
+- **HTTP**: `GET /specialists?domain=X[&domain=Y]` supported
+  alongside `?tag=` (still AND-composes), `?tier=`, `?stage=`,
+  `?vetoOnly=1`. Comma-split form (`?domain=a,b`) also works.
+- **CLI**: `c4 specialist list --domain X [--domain Y]`. Repeats
+  AND-compose; mirrors the `--tag` shape from v1.10.260.
+- **OpenAPI**: `domain` query parameter promoted to repeatable
+  string-array.
+- **Tests** (`tests/specialist-registry.test.js`): new case
+  covering AND-compose semantics, single-domain filter, and
+  backwards-compat with the legacy single-string `domain` form.
+
+### Notes
+- e2e verified end-to-end: `c4 specialist list --domain scope` →
+  `pm`; `--domain scope --domain users` → `pm` (carries both);
+  pre-existing single-string code paths still work.
+- Closes the consistency gap so all three resources
+  (`GET /specialists`, `GET /specialists/export`,
+  `exportBundle()`) accept identical tag/domain filter syntax.
+
 ## [1.10.273] - 2026-05-04
 
 **Multi-Specialist System — Phase 1.6 follow-up #3 (Export domain filter).**

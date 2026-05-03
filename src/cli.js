@@ -2072,7 +2072,7 @@ async function main() {
             const a = args[i];
             if (a === '--tier' && args[i + 1]) { qs.set('tier', args[i + 1]); i += 1; }
             else if (a === '--stage' && args[i + 1]) { qs.set('stage', args[i + 1]); i += 1; }
-            else if (a === '--domain' && args[i + 1]) { qs.set('domain', args[i + 1]); i += 1; }
+            else if (a === '--domain' && args[i + 1]) { qs.append('domain', args[i + 1]); i += 1; }
             else if (a === '--veto-only') { qs.set('vetoOnly', '1'); }
             else if (a === '--tag' && args[i + 1]) { qs.append('tag', args[i + 1]); i += 1; }
           }

@@ -4338,14 +4338,23 @@ async function handleRequest(req, res) {
           if (x.trim()) tagList.push(x.trim());
         }
       }
+      const domainsParam = url.searchParams.getAll('domain');
+      const domainList = [];
+      for (const d of domainsParam) {
+        for (const x of String(d).split(',')) {
+          if (x.trim()) domainList.push(x.trim());
+        }
+      }
       const filter = {
         tier: url.searchParams.get('tier') || undefined,
         stage: url.searchParams.get('stage') || undefined,
-        domain: url.searchParams.get('domain') || undefined,
+        // Single ?domain stays for backwards compat; ?domain=a&domain=b
+        // routes through the domains[] AND-composer.
+        domains: domainList.length > 0 ? domainList : undefined,
         vetoOnly: url.searchParams.get('vetoOnly') === '1' || undefined,
         tags: tagList.length > 0 ? tagList : undefined,
       };
-      const hasFilter = filter.tier || filter.stage || filter.domain || filter.vetoOnly || filter.tags;
+      const hasFilter = filter.tier || filter.stage || filter.domains || filter.vetoOnly || filter.tags;
       const list = hasFilter ? reg.filter(filter) : reg.list();
       result = { count: list.length, version: reg.version, specialists: list };
 

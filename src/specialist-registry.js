@@ -302,17 +302,24 @@ class SpecialistRegistry {
 
   has(id) { return this._byId.has(id); }
 
-  filter({ tier, domain, stage, vetoOnly, tag, tags } = {}) {
-    // tag (single) and tags (array) compose: a record must carry every
-    // tag mentioned to match. Specialists without the tags field
-    // (always defaulted to []) match only the unspecified case.
+  filter({ tier, domain, domains, stage, vetoOnly, tag, tags } = {}) {
+    // tag (single) + tags (array) compose: AND across all listed.
+    // domain (single) + domains (array) compose the same way against
+    // spec.domain. Specialists without the tags field (always
+    // defaulted to []) only match the unspecified case.
     const tagList = [];
     if (tag) tagList.push(tag);
     if (Array.isArray(tags)) tagList.push(...tags);
+    const domainList = [];
+    if (domain) domainList.push(domain);
+    if (Array.isArray(domains)) domainList.push(...domains);
     const out = [];
     for (const s of this._byId.values()) {
       if (tier && s.tier !== tier) continue;
-      if (domain && !s.domain.includes(domain)) continue;
+      if (domainList.length > 0) {
+        const sDomains = Array.isArray(s.domain) ? s.domain : [];
+        if (!domainList.every((d) => sDomains.includes(d))) continue;
+      }
       if (stage && !s.triggers.stages.includes(stage)) continue;
       if (vetoOnly && !s.vetoPower) continue;
       if (tagList.length > 0) {
