@@ -189,6 +189,11 @@ function applyRetroDeltas(registry, retro, opts = {}) {
 
     applied[id] = { before, after: newScore };
   }
+  // Persist the updated score record (no-op if registry was
+  // constructed without a persistPath).
+  if (Object.keys(applied).length > 0 && typeof registry.notifyMutated === 'function') {
+    registry.notifyMutated();
+  }
   return applied;
 }
 

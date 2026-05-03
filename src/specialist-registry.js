@@ -29,6 +29,10 @@ const VALID_TIERS = Object.freeze([
 const VALID_PROBATION_STATES = Object.freeze(['stable', 'probation']);
 
 const SEED_PATH = path.join(__dirname, 'specialists.seed.json');
+// Default persistence location — overlays the seed at construction
+// time so retro score deltas survive daemon restart. Operators
+// running on a different home dir or in tests can override per call.
+const DEFAULT_PERSIST_PATH = path.join(process.env.HOME || '/tmp', '.c4', 'specialists.json');
 
 function isString(v) { return typeof v === 'string' && v.length > 0; }
 function isStringArray(v) { return Array.isArray(v) && v.every((s) => isString(s)); }
@@ -122,10 +126,39 @@ function loadSeed(seedPath = SEED_PATH) {
   return { version: parsed.version || 0, specialists: out };
 }
 
+// Load the persistence overlay (~/.c4/specialists.json by default).
+// Returns null if the file is missing — that's the normal case on
+// first boot, so callers should treat it as "no overlay".
+function loadOverlay(persistPath) {
+  if (!persistPath) return null;
+  let raw;
+  try { raw = fs.readFileSync(persistPath, 'utf8'); }
+  catch (err) {
+    if (err && err.code === 'ENOENT') return null;
+    throw err;
+  }
+  try { return JSON.parse(raw); }
+  catch (err) {
+    // Corrupt overlay should not nuke the daemon — fall back to seed
+    // and surface the error via stderr for the operator to clean up.
+    process.stderr.write(`[specialist-registry] overlay parse failed at ${persistPath}: ${err.message}\n`);
+    return null;
+  }
+}
+
 class SpecialistRegistry {
   constructor(opts = {}) {
     this._byId = new Map();
     this._version = 0;
+    // Inline construction (opts.specialists provided) defaults to
+    // NO persistence — tests should not write to disk by accident.
+    // Seed-based construction defaults to ~/.c4/specialists.json
+    // unless the caller passes persistPath: null explicitly.
+    this._persistPath = opts.specialists
+      ? (opts.persistPath || null)
+      : (opts.persistPath === undefined ? DEFAULT_PERSIST_PATH : (opts.persistPath || null));
+    this._autoSave = opts.autoSave !== false;
+
     if (opts.specialists) {
       // Tests + governance call sites can build an in-memory registry
       // without touching disk.
@@ -134,11 +167,99 @@ class SpecialistRegistry {
         validateSpecialist(s, `inline[${s && s.id ? s.id : '?'}]`);
         this._byId.set(s.id, normalizeSpecialist(s));
       }
-    } else {
-      const loaded = loadSeed(opts.seedPath || SEED_PATH);
-      this._version = loaded.version;
-      for (const s of loaded.specialists) this._byId.set(s.id, s);
+      // Inline construction skips disk overlay — tests can opt in
+      // by passing persistPath explicitly.
+      if (this._persistPath && opts.applyOverlayOnInline) {
+        this._applyOverlay(loadOverlay(this._persistPath));
+      }
+      return;
     }
+
+    const loaded = loadSeed(opts.seedPath || SEED_PATH);
+    this._version = loaded.version;
+    for (const s of loaded.specialists) this._byId.set(s.id, s);
+    // Apply persisted overlay on top of the seed so retro deltas
+    // (score updates, governance mutations) survive restart.
+    this._applyOverlay(loadOverlay(this._persistPath));
+  }
+
+  _applyOverlay(overlay) {
+    if (!overlay || typeof overlay !== 'object') return;
+    if (Array.isArray(overlay.specialists)) {
+      for (const ov of overlay.specialists) {
+        if (!ov || !ov.id) continue;
+        const seed = this._byId.get(ov.id);
+        if (seed) {
+          // Merge: overlay wins on score/probation/vetoPower; seed
+          // keeps prompt/triggers/domain/brain unless overlay also
+          // declares them (governance path). validateSpecialist on
+          // the merged record so we don't deserialize garbage.
+          const merged = { ...seed, ...ov };
+          // Score is an object — overlay's score replaces seed's
+          // empty default, but we make sure shape is intact.
+          if (ov.score) merged.score = ov.score;
+          try {
+            validateSpecialist(merged, `overlay[${ov.id}]`);
+            this._byId.set(ov.id, normalizeSpecialist(merged));
+          } catch (err) {
+            process.stderr.write(`[specialist-registry] overlay rejected for ${ov.id}: ${err.message}\n`);
+          }
+        } else if (ov.systemPrompt && ov.tier && ov.brain) {
+          // Overlay introduces a new specialist (governance add).
+          try {
+            validateSpecialist(ov, `overlay-add[${ov.id}]`);
+            this._byId.set(ov.id, normalizeSpecialist(ov));
+          } catch (err) {
+            process.stderr.write(`[specialist-registry] overlay add rejected for ${ov.id}: ${err.message}\n`);
+          }
+        }
+      }
+    }
+  }
+
+  // Save the current registry state to the persistence overlay. The
+  // seed is the source of truth for the immutable fields (prompt,
+  // brain, tier, domain, triggers); we only persist score +
+  // probation + vetoPower + any overlay-introduced specialist.
+  save() {
+    if (!this._persistPath) return false;
+    const seed = (() => {
+      try { return loadSeed(SEED_PATH); }
+      catch { return { specialists: [] }; }
+    })();
+    const seedById = new Map();
+    for (const s of seed.specialists) seedById.set(s.id, s);
+
+    const overlay = { version: 1, savedAt: new Date().toISOString(), specialists: [] };
+    for (const spec of this._byId.values()) {
+      const seedSpec = seedById.get(spec.id);
+      if (seedSpec) {
+        // Only persist if score was actually populated (any byDomain
+        // / byStage / samples key) OR if probation / vetoPower
+        // drifted from seed.
+        const score = spec.score || {};
+        const scorePopulated =
+          (score.byDomain && Object.keys(score.byDomain).length > 0) ||
+          (score.byStage  && Object.keys(score.byStage).length > 0) ||
+          (score.samples  && Object.keys(score.samples).length > 0);
+        const probationDrift = spec.probation && spec.probation !== 'stable';
+        const vetoDrift = spec.vetoPower !== !!seedSpec.vetoPower;
+        if (!scorePopulated && !probationDrift && !vetoDrift) continue;
+
+        const entry = { id: spec.id };
+        if (scorePopulated) entry.score = spec.score;
+        if (probationDrift) entry.probation = spec.probation;
+        if (vetoDrift) entry.vetoPower = spec.vetoPower;
+        overlay.specialists.push(entry);
+      } else {
+        // Specialist not in seed = governance-added; persist verbatim.
+        overlay.specialists.push(spec);
+      }
+    }
+
+    fs.mkdirSync(path.dirname(this._persistPath), { recursive: true });
+    fs.writeFileSync(this._persistPath, JSON.stringify(overlay, null, 2) + '\n');
+    return true;
   }
 
   get version() { return this._version; }
@@ -167,20 +288,36 @@ class SpecialistRegistry {
     return out;
   }
 
-  // §3.3 governance — phase 1 only allows in-memory mutation, the
-  // disk-write path lands in phase 4 with the audit log. Tests use
-  // this; runtime governance triggers will call through it later.
+  // §3.3 governance — auto-saves when configured with a persistPath.
   add(spec) {
     validateSpecialist(spec, `add[${spec && spec.id}]`);
     if (this._byId.has(spec.id)) {
       throw new Error(`specialist "${spec.id}" already exists`);
     }
     this._byId.set(spec.id, normalizeSpecialist(spec));
+    this._maybeAutoSave();
     return this.get(spec.id);
   }
 
   remove(id) {
-    return this._byId.delete(id);
+    const removed = this._byId.delete(id);
+    if (removed) this._maybeAutoSave();
+    return removed;
+  }
+
+  // Called by retro applyRetroDeltas (which mutates spec.score
+  // directly via the internal Map) so the registry state is flushed
+  // after every score update without changing that contract.
+  notifyMutated() {
+    this._maybeAutoSave();
+  }
+
+  _maybeAutoSave() {
+    if (!this._autoSave || !this._persistPath) return;
+    try { this.save(); }
+    catch (err) {
+      process.stderr.write(`[specialist-registry] auto-save failed: ${err.message}\n`);
+    }
   }
 }
 
@@ -194,6 +331,7 @@ function resetShared() { _shared = null; }
 module.exports = {
   SpecialistRegistry,
   loadSeed,
+  loadOverlay,
   validateSpecialist,
   normalizeSpecialist,
   getShared,
@@ -201,4 +339,5 @@ module.exports = {
   VALID_TIERS,
   VALID_PROBATION_STATES,
   SEED_PATH,
+  DEFAULT_PERSIST_PATH,
 };

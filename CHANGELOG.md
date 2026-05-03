@@ -4,6 +4,63 @@
 
 (no entries — next release window)
 
+## [1.10.225] - 2026-05-03
+
+**Multi-Specialist System — Phase 1.1 (Registry persistence).**
+The retro-driven score record now survives daemon restart via
+an overlay file at `~/.c4/specialists.json` (configurable). Seed
+loads first as the source of truth for immutable fields
+(prompt / brain / tier / domain / triggers); the overlay applies
+on top with score / probation / vetoPower / governance-added
+specialists. Auto-save fires on `add` / `remove` / `applyRetroDeltas`.
+
+Without this, every `c4 daemon restart` zeroed the per-domain
+score deltas that phase 4.1 + 4.2 spent rounds computing —
+making the adaptive scoring effectively decorative.
+
+### Changed
+- **`src/specialist-registry.js`**: constructor accepts
+  `persistPath` (defaults to `~/.c4/specialists.json` for
+  seed-based construction, `null` for inline so tests don't
+  pollute the user's real home dir). Auto-loads the overlay on
+  startup, merging it with the seed. Overlay is **tight** — only
+  specialists whose score has been populated, whose probation
+  drifted from `stable`, whose vetoPower drifted from seed, OR
+  fully governance-added entries land in the file. New helpers:
+  `loadOverlay(persistPath)`, `save()`, `notifyMutated()`,
+  `_applyOverlay`, `_maybeAutoSave`. New constructor option
+  `autoSave: false` for tests + read-only daemons.
+- **`src/meeting-retro.js`**: `applyRetroDeltas()` now calls
+  `registry.notifyMutated()` after writing — this is what
+  triggers the auto-save so finalize / peer-retro deltas
+  actually hit disk.
+
+### Added
+- **`tests/specialist-registry.test.js`** — 10 new cases
+  bringing the file from 14 → 24:
+  - exports surface includes `DEFAULT_PERSIST_PATH` +
+    `loadOverlay`
+  - `loadOverlay` returns null on missing file + corrupt JSON
+    (no throw)
+  - `save()` only writes mutated entries (overlay is small)
+  - round-trip: write score on registry A, construct registry B
+    from same path, score is reloaded
+  - overlay can introduce a governance-added specialist
+  - overlay rejects malformed entries silently (logs to stderr,
+    does not crash daemon)
+  - `add()` auto-saves when persistPath set
+  - `autoSave: false` opt-out works
+  - inline construction (`opts.specialists`) skips overlay by
+    default — tests do not write to user's real home dir
+
+End-to-end: a `c4 meeting create + run + finalize` now writes
+the per-domain score deltas to `~/.c4/specialists.json`. After
+`c4 daemon restart`, the new daemon picks them up and the
+dispatcher's score-weighted picks reflect the retro history.
+
+Suite stays at 191 PASS (specialist-registry file 14 → 24 cases).
+Spec lint + drift checker clean.
+
 ## [1.10.224] - 2026-05-03
 
 **Multi-Specialist System — Phase 4.2 (Peer-vote retro).**

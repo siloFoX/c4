@@ -3,18 +3,26 @@
 // Tests for src/specialist-registry.js (multi-specialist phase 1).
 
 const assert = require('assert');
+const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const mod = require('../src/specialist-registry');
 const {
   SpecialistRegistry,
   loadSeed,
+  loadOverlay,
   validateSpecialist,
   normalizeSpecialist,
   VALID_TIERS,
   VALID_PROBATION_STATES,
   SEED_PATH,
+  DEFAULT_PERSIST_PATH,
 } = mod;
+
+function makeTmp() {
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'c4-spec-reg-'));
+}
 
 let passed = 0;
 let failed = 0;
@@ -175,6 +183,150 @@ t('normalizeSpecialist initializes empty score record + defaults', () => {
   assert.strictEqual(norm.probation, 'stable');
   assert.strictEqual(norm.vetoPower, false);
   assert.deepStrictEqual(norm.deliverables, ['fixture.diff']);
+});
+
+t('module exposes DEFAULT_PERSIST_PATH + loadOverlay', () => {
+  assert.strictEqual(typeof DEFAULT_PERSIST_PATH, 'string');
+  assert.strictEqual(typeof loadOverlay, 'function');
+});
+
+t('loadOverlay returns null on missing file', () => {
+  const dir = makeTmp();
+  const p = path.join(dir, 'absent.json');
+  assert.strictEqual(loadOverlay(p), null);
+});
+
+t('loadOverlay returns null on corrupt JSON (no throw)', () => {
+  const dir = makeTmp();
+  const p = path.join(dir, 'bad.json');
+  fs.writeFileSync(p, '{ this is not json');
+  assert.strictEqual(loadOverlay(p), null);
+});
+
+t('save() writes only score-mutated entries (overlay is small)', () => {
+  const dir = makeTmp();
+  const persistPath = path.join(dir, 'specialists.json');
+  const reg = new SpecialistRegistry({ persistPath });
+  // Mutate one specialist's score.
+  const pm = reg._byId.get('pm');
+  pm.score = { byDomain: { scope: 0.8 }, byStage: { meeting: 0.8 }, samples: { 'stage:meeting': 1 }, lastUpdated: new Date().toISOString() };
+  reg._byId.set('pm', pm);
+  reg.save();
+  const raw = JSON.parse(fs.readFileSync(persistPath, 'utf8'));
+  assert.ok(Array.isArray(raw.specialists));
+  // Only pm should appear in the overlay.
+  const ids = raw.specialists.map((s) => s.id);
+  assert.deepStrictEqual(ids, ['pm']);
+  assert.strictEqual(raw.specialists[0].score.byStage.meeting, 0.8);
+});
+
+t('overlay survives across registry construction (round-trip)', () => {
+  const dir = makeTmp();
+  const persistPath = path.join(dir, 'specialists.json');
+  // First registry: write a score for security-auditor.
+  const r1 = new SpecialistRegistry({ persistPath });
+  const sec = r1._byId.get('security-auditor');
+  sec.score = { byDomain: { secret: 0.95 }, byStage: { audit: 0.95 }, samples: { 'stage:audit': 7 }, lastUpdated: '2026-05-03T00:00:00.000Z' };
+  r1._byId.set('security-auditor', sec);
+  r1.save();
+  // Second registry: should load the overlay and see the score.
+  const r2 = new SpecialistRegistry({ persistPath });
+  const reloaded = r2.get('security-auditor');
+  assert.strictEqual(reloaded.score.byDomain.secret, 0.95);
+  assert.strictEqual(reloaded.score.samples['stage:audit'], 7);
+});
+
+t('overlay can introduce a governance-added specialist', () => {
+  const dir = makeTmp();
+  const persistPath = path.join(dir, 'specialists.json');
+  const overlay = {
+    version: 1,
+    specialists: [{
+      id: 'governance-added-tester',
+      displayName: 'Test Specialist',
+      tier: 'implement',
+      domain: ['fixture'],
+      brain: { adapter: 'mock' },
+      systemPrompt: '[Role: Tester] new role',
+      triggers: { keywords: ['fixture'], stages: ['implement'] },
+    }],
+  };
+  fs.writeFileSync(persistPath, JSON.stringify(overlay));
+  const reg = new SpecialistRegistry({ persistPath });
+  assert.ok(reg.has('governance-added-tester'));
+  assert.strictEqual(reg.size, 14, 'should be seed 13 + 1 overlay');
+});
+
+t('overlay rejects malformed entries without crashing the daemon', () => {
+  const dir = makeTmp();
+  const persistPath = path.join(dir, 'specialists.json');
+  fs.writeFileSync(persistPath, JSON.stringify({
+    version: 1,
+    specialists: [
+      // Bad: missing required fields when adding new specialist
+      { id: 'partial-add', displayName: 'Bad', score: {} },
+    ],
+  }));
+  // Construction should not throw — bad entry is rejected silently.
+  assert.doesNotThrow(() => new SpecialistRegistry({ persistPath }));
+  const reg = new SpecialistRegistry({ persistPath });
+  assert.ok(!reg.has('partial-add'));
+});
+
+t('add() auto-saves when persistPath set', () => {
+  const dir = makeTmp();
+  const persistPath = path.join(dir, 'specialists.json');
+  const reg = new SpecialistRegistry({ persistPath });
+  reg.add({
+    id: 'auto-save-test',
+    displayName: 'Auto Save',
+    tier: 'implement',
+    domain: ['x'],
+    brain: { adapter: 'mock' },
+    systemPrompt: '[Role: AS] auto',
+    triggers: { keywords: ['auto'], stages: ['implement'] },
+  });
+  // File should exist and contain the new specialist.
+  assert.ok(fs.existsSync(persistPath));
+  const raw = JSON.parse(fs.readFileSync(persistPath, 'utf8'));
+  const ids = raw.specialists.map((s) => s.id);
+  assert.ok(ids.includes('auto-save-test'));
+});
+
+t('autoSave can be disabled via constructor opt', () => {
+  const dir = makeTmp();
+  const persistPath = path.join(dir, 'specialists.json');
+  const reg = new SpecialistRegistry({ persistPath, autoSave: false });
+  reg.add({
+    id: 'no-save',
+    displayName: 'NoSave',
+    tier: 'implement',
+    domain: ['x'],
+    brain: { adapter: 'mock' },
+    systemPrompt: '[Role: NS] no-save',
+    triggers: { keywords: ['x'], stages: ['implement'] },
+  });
+  // Persist file should NOT exist.
+  assert.ok(!fs.existsSync(persistPath));
+});
+
+t('inline construction (no seed) skips overlay by default', () => {
+  // Inline registries (test fixtures) should not pollute a global
+  // overlay accidentally. With opts.specialists provided, we load
+  // from the provided list and ignore disk.
+  const dir = makeTmp();
+  const persistPath = path.join(dir, 'specialists.json');
+  fs.writeFileSync(persistPath, JSON.stringify({
+    version: 1,
+    specialists: [{ id: 'should-not-load', displayName: 'X', tier: 'implement', domain: ['x'], brain: { adapter: 'mock' }, systemPrompt: 'sp', triggers: { keywords: ['x'], stages: ['implement'] } }],
+  }));
+  const reg = new SpecialistRegistry({
+    specialists: [{ id: 'inline', displayName: 'Inline', tier: 'implement', domain: ['x'], brain: { adapter: 'mock' }, systemPrompt: '[Role: X]', triggers: { keywords: ['x'], stages: ['implement'] } }],
+    persistPath,
+  });
+  assert.strictEqual(reg.size, 1);
+  assert.ok(reg.has('inline'));
+  assert.ok(!reg.has('should-not-load'));
 });
 
 (async () => {
