@@ -4,6 +4,58 @@
 
 (no entries — next release window)
 
+## [1.10.211] - 2026-05-03
+
+**Claude Code process discovery for attached sessions
+(8.32 slice 2).** Given an attached JSONL path, locate the
+running `claude` process that is currently the live owner of
+that session. Surfaced as `GET /attach/:name/process`
+returning `{alive, pid, cmdline, cwd, startedAt, match}`.
+Pure read — no fd opens, no signals sent. The future write
+path (slice 3) will use this lookup to know where to inject
+input.
+
+### Added
+- **`src/claude-process-discovery.js`** — Linux procfs scanner.
+  - `findProcessForJsonl(jsonlPath, opts)` — two-stage match:
+    (A) fd-based exact: iterate `/proc/<pid>/fd` symlinks,
+        match against the resolved JSONL path. Wins when the
+        process actually has the file open.
+    (B) cwd-based fallback: Claude Code itself does not keep
+        the session JSONL fd open (it watches the project dir
+        via inotify and rewrites the file per turn), so we
+        match the running claude process whose
+        `/proc/<pid>/cwd` decodes to the project segment of
+        the JSONL filename. Returns `multipleCandidates:true`
+        + `candidatePids` when more than one claude shares
+        the same cwd, so the UI can offer a picker.
+  - `listClaudeProcesses(opts)` — fleet view of all running
+    claude processes that have at least one
+    `~/.claude/projects/.../<sid>.jsonl` open.
+  - `decodeProjectFromJsonl(path)` — exposed for tests +
+    future RBAC sanity checks.
+  - `cmdlinePredicate` + `selfPid` injection points so tests
+    can stand up a child `node` holder process and verify
+    discovery without needing an actual Claude binary on PATH.
+- **`src/daemon.js`**: `GET /attach/:name/process` route.
+  RBAC.WORKER_CREATE gated like the rest of `/attach`.
+  Response includes `match: 'fd' | 'cwd'` so the operator
+  knows whether the lookup was exact or heuristic.
+- **`src/openapi-gen.js`**: route summary entry.
+- **`tests/claude-process-discovery.test.js`**: 11 `t()`
+  cases — exports surface, `looksLikeClaudeCode` positive +
+  negative, `listPids` shape, fd-based discovery via spawned
+  node holder, `selfPid` skip, predicate exclusion,
+  `decodeProjectFromJsonl` (encoded path round-trip + edge
+  cases including the lossy `-` <-> `/` ambiguity),
+  cwd-fallback via spawned holder with cwd=/tmp.
+
+End-to-end verified against the running daemon — attaching
+a real `~/.claude/projects/-home-shinc/<sid>.jsonl` returns
+`{alive:true, pid:..., cwd:'/home/shinc', match:'cwd'}` for
+the actual Claude Code process backing the session. Suite
+179 → 180 PASS.
+
 ## [1.10.210] - 2026-05-03
 
 **Icon double-gap fix in SessionsView (8.36 partial).**

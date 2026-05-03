@@ -37,6 +37,7 @@ const ROUTE_SUMMARIES = {
   'POST /attach': 'Attach an external claude session by JSONL path.',
   'GET /attach/list': 'List all attached external sessions.',
   'GET /attach/{name}/tail': 'SSE live tail of an attached session JSONL — emits new turns as they are appended.',
+  'GET /attach/{name}/process': 'Locate the running Claude Code process holding the attached JSONL — alive flag + pid/cmdline/cwd if found.',
   'GET /workflows': 'List defined workflows.',
   'POST /workflows': 'Create a new workflow definition.',
   'GET /openapi.json': 'This document — auto-generated OpenAPI spec.',

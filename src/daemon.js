@@ -34,6 +34,7 @@ const scribeV2Mod = require('./scribe-v2');
 const sessionParser = require('./session-parser');
 const sessionAttach = require('./session-attach');
 const attachTail = require('./attach-tail');
+const claudeProcessDiscovery = require('./claude-process-discovery');
 const autoDispatcherMod = require('./auto-dispatcher');
 const { PinnedMemoryScheduler, DEFAULT_INTERVAL_MS: PIN_DEFAULT_INTERVAL_MS } = require('./pinned-memory-scheduler');
 
@@ -735,9 +736,11 @@ async function handleRequest(req, res) {
   {
     const mConv = route.match(/^\/attach\/([^\/]+)\/conversation$/);
     const mTail = route.match(/^\/attach\/([^\/]+)\/tail$/);
+    const mProc = route.match(/^\/attach\/([^\/]+)\/process$/);
     const mOne = route.match(/^\/attach\/([^\/]+)$/);
     if (mConv) attachParams = { kind: 'conversation', name: decodeURIComponent(mConv[1]) };
     else if (mTail) attachParams = { kind: 'tail', name: decodeURIComponent(mTail[1]) };
+    else if (mProc) attachParams = { kind: 'process', name: decodeURIComponent(mProc[1]) };
     else if (mOne) attachParams = { kind: 'one', name: decodeURIComponent(mOne[1]) };
     // /attach/list is covered by the string-compare branch below; the
     // regex would pick it up as a name, so reject that shape here.
@@ -4216,6 +4219,43 @@ async function handleRequest(req, res) {
         tail.stop();
       });
       return; // keep SSE connection open
+
+    } else if (req.method === 'GET' && attachParams && attachParams.kind === 'process') {
+      // (8.32 slice 2) Locate the running Claude Code process that
+      // currently holds the attached JSONL open. Returns:
+      //   { alive: true, pid, cmdline, cwd, startedAt, jsonlPath }
+      //   { alive: false }
+      // The UI uses this to render an "active in PID N" badge so a
+      // reviewer knows whether the transcript is a live conversation
+      // or just an exported snapshot. Pure read (no fd opens, no
+      // signals sent), but we still gate on WORKER_CREATE since the
+      // jsonl path itself is sensitive enough to not surface to a
+      // viewer-only token.
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE);
+      if (denyOr(res, gate)) return;
+      const store = sessionAttach.getShared();
+      const record = store.get(attachParams.name);
+      if (!record) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Attachment not found', name: attachParams.name }));
+        return;
+      }
+      const found = claudeProcessDiscovery.findProcessForJsonl(record.jsonlPath);
+      if (!found) {
+        result = { alive: false, jsonlPath: record.jsonlPath };
+      } else {
+        result = {
+          alive: true,
+          pid: found.pid,
+          cmdline: found.cmdline,
+          cwd: found.cwd,
+          startedAt: found.startedAt,
+          jsonlPath: found.jsonlPath,
+          match: found.match,
+          multipleCandidates: !!found.multipleCandidates,
+          candidatePids: found.candidatePids || undefined,
+        };
+      }
 
     } else if (req.method === 'GET' && route === '/fleet/overview') {
       // Fleet management (9.6): aggregate this daemon's state plus
