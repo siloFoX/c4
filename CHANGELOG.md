@@ -4,6 +4,41 @@
 
 (no entries — next release window)
 
+## [1.10.254] - 2026-05-04
+
+**Multi-Specialist System — Phase 8.7 (Score history trace).**
+Every `applyRetroDeltas` call now appends a `score-applied`
+entry to the governance audit log with per-bucket
+before/after deltas. `c4 specialist score-history <id>` reads
+it back so an operator can answer "after the prompt revision,
+did this specialist actually improve?".
+
+### Changed
+- **`src/meeting-retro.js`**: `applyRetroDeltas` walks the
+  `applied` snapshots, computes per-domain / per-stage deltas
+  vs the prior values, and appends an audit entry with action
+  `score-applied`. Best-effort — missing audit module skips
+  silently. Empty-delta entries (where smoothing produced no
+  visible change) are dropped to keep the log compact.
+
+### Added
+- **CLI**: `c4 specialist score-history <id> [--limit N]`
+  hits `/specialists/audit?action=score-applied&id=<id>` and
+  pretty-prints `<ts>` + per-bucket `before → after` lines.
+
+End-to-end:
+```
+$ c4 meeting create "fix typo in api handler"
+$ c4 meeting run <id> --auto-finalize
+$ c4 specialist score-history backend-engineer --limit 3
+Score history for backend-engineer (1 entries)
+  2026-05-03T15:31:54.545Z
+    domain:backend          0.88 → 0.91
+    stage:implement         0.88 → 0.91
+```
+
+Suite stays 194 PASS.
+
 ## [1.10.253] - 2026-05-04
 
 **Multi-Specialist System — Phase 8.6 (Organism digest).**

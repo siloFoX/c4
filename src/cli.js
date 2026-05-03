@@ -2062,8 +2062,8 @@ async function main() {
         //   c4 specialist dispatch "<task>" [--stage X] [--track X] [--cap N]
         //   c4 specialist score [--by-domain D | --by-stage S] [--limit N]
         const sub = (args[0] || 'list').toLowerCase();
-        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt', 'export', 'import', 'audit'].includes(sub)) {
-          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt|export|import|audit> [args]');
+        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt', 'export', 'import', 'audit', 'score-history'].includes(sub)) {
+          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt|export|import|audit|score-history> [args]');
           process.exit(1);
         }
         if (sub === 'list') {
@@ -2179,6 +2179,44 @@ async function main() {
             console.log(result.rationale);
           }
           console.log('\nReview-only — apply manually by editing src/specialists.seed.json.');
+          return;
+        }
+        if (sub === 'score-history') {
+          // c4 specialist score-history <id> [--limit N]
+          const id = args[1];
+          if (!id) {
+            console.error('Usage: c4 specialist score-history <id> [--limit N]');
+            process.exit(1);
+          }
+          let limit = 20;
+          for (let i = 2; i < args.length; i += 1) {
+            if (args[i] === '--limit' && args[i + 1]) { limit = parseInt(args[i + 1], 10); i += 1; }
+          }
+          const qs = new URLSearchParams();
+          qs.set('action', 'score-applied');
+          qs.set('id', id);
+          if (Number.isFinite(limit)) qs.set('limit', String(limit));
+          result = await request('GET', `/specialists/audit?${qs.toString()}`);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          if (result.count === 0) {
+            console.log(`No score-applied entries for ${id} yet — run + finalize a meeting that selects this specialist.`);
+            return;
+          }
+          console.log(`Score history for ${id} (${result.count} entries)`);
+          for (const e of result.entries) {
+            console.log(`  ${e.ts}`);
+            for (const [k, v] of Object.entries(e.domainDeltas || {})) {
+              const before = v.before == null ? '-' : v.before.toFixed(2);
+              const after = v.after == null ? '-' : v.after.toFixed(2);
+              console.log(`    domain:${k.padEnd(16)} ${before} → ${after}`);
+            }
+            for (const [k, v] of Object.entries(e.stageDeltas || {})) {
+              const before = v.before == null ? '-' : v.before.toFixed(2);
+              const after = v.after == null ? '-' : v.after.toFixed(2);
+              console.log(`    stage:${k.padEnd(17)} ${before} → ${after}`);
+            }
+          }
           return;
         }
         if (sub === 'audit') {

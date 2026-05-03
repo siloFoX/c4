@@ -194,6 +194,44 @@ function applyRetroDeltas(registry, retro, opts = {}) {
   if (Object.keys(applied).length > 0 && typeof registry.notifyMutated === 'function') {
     registry.notifyMutated();
   }
+  // (Phase 8.7) Trace the score deltas so a future
+  // `c4 specialist score-history <id>` can answer "did the
+  // prompt revision actually move the needle?". Best-effort —
+  // a missing audit module simply skips logging.
+  try {
+    const audit = require('./specialist-audit');
+    const auditPath = registry && registry._auditPath;
+    if (auditPath && audit && typeof audit.appendAuditEntry === 'function') {
+      for (const [id, snap] of Object.entries(applied)) {
+        // Compact deltas: just the changed buckets, not the whole
+        // score record — the audit log gets noisy fast otherwise.
+        const beforeDom = (snap.before && snap.before.byDomain) || {};
+        const afterDom = (snap.after && snap.after.byDomain) || {};
+        const beforeStg = (snap.before && snap.before.byStage) || {};
+        const afterStg = (snap.after && snap.after.byStage) || {};
+        const domainDeltas = {};
+        const stageDeltas = {};
+        for (const k of Object.keys(afterDom)) {
+          if ((beforeDom[k] || 0) !== afterDom[k]) {
+            domainDeltas[k] = { before: beforeDom[k] || null, after: afterDom[k] };
+          }
+        }
+        for (const k of Object.keys(afterStg)) {
+          if ((beforeStg[k] || 0) !== afterStg[k]) {
+            stageDeltas[k] = { before: beforeStg[k] || null, after: afterStg[k] };
+          }
+        }
+        if (Object.keys(domainDeltas).length === 0
+          && Object.keys(stageDeltas).length === 0) continue;
+        audit.appendAuditEntry({
+          action: audit.ACTIONS.SCORE_APPLIED,
+          id,
+          domainDeltas,
+          stageDeltas,
+        }, { auditPath });
+      }
+    }
+  } catch { /* skip if audit unavailable */ }
   return applied;
 }
 
