@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.231] - 2026-05-03
+
+**Multi-Specialist System — Phase 7.1 (SSE-driven Meetings
+detail).** The Meetings tab detail pane now consumes the
+`/meetings/:id/stream` SSE endpoint introduced in v1.10.229
+instead of polling. Updates land within milliseconds of each
+turn / vote / advance instead of waiting for the next 4 s
+poll. Falls back to a fresh REST snapshot on each `state`
+event so we don't have to merge-by-event-shape in the
+browser.
+
+### Changed
+- **`web/src/components/MeetingsView.tsx`**: opens an
+  `EventSource` to `/api/meetings/:id/stream`, applies the
+  `event: snapshot` frame as initial render, refetches the
+  full record on every `event: state` (cheap GET, transitions
+  are bounded by actual orchestrator activity), captures
+  status fast for an instant pill update, closes on
+  `event: terminal`. Status pill in the detail header
+  switches between `live` (emerald) and `offline` (amber)
+  based on the EventSource's open / error transitions.
+
+The list pane keeps its 8 s poll — listing all meetings via
+SSE would take a separate global stream that the current
+phase doesn't ship.
+
+Suite stays 191 PASS. Web build clean.
+
 ## [1.10.230] - 2026-05-03
 
 **Multi-Specialist System — Phase 7 (Meetings tab in web UI).**

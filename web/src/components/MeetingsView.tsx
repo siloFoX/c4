@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Eye, RefreshCw } from 'lucide-react';
-import { apiGet } from '../lib/api';
+import { Eye, RefreshCw, Radio } from 'lucide-react';
+import { apiGet, eventSourceUrl } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from './ui';
 import { cn } from '../lib/cn';
 
@@ -119,21 +119,72 @@ export default function MeetingsView() {
     return () => window.clearInterval(id);
   }, [refresh]);
 
+  // Initial detail fetch + SSE live updates (phase 7.1).
+  // We intentionally fetch the full snapshot via the REST endpoint
+  // first because the SSE `event: snapshot` frame already contains
+  // the same data — so we'd render twice if we did both. Instead:
+  // open SSE only, treat the first `snapshot` event as the initial
+  // load, then apply incremental `state` events thereafter.
+  const [streaming, setStreaming] = useState(false);
   useEffect(() => {
-    let cancelled = false;
-    if (!selectedId) { setDetail(null); return; }
-    const fetchDetail = async () => {
-      setDetailError(null);
+    if (!selectedId) {
+      setDetail(null);
+      setStreaming(false);
+      return undefined;
+    }
+    setDetailError(null);
+    setDetail(null);
+    let es: EventSource | null = null;
+    try {
+      es = new EventSource(eventSourceUrl(`/api/meetings/${encodeURIComponent(selectedId)}/stream`));
+    } catch (e) {
+      setDetailError((e as Error).message || 'Failed to open meeting stream');
+      return undefined;
+    }
+    setStreaming(true);
+    es.addEventListener('snapshot', (ev) => {
       try {
-        const res = await apiGet<MeetingDetail>(`/api/meetings/${encodeURIComponent(selectedId)}`);
-        if (!cancelled) setDetail(res);
-      } catch (e) {
-        if (!cancelled) setDetailError((e as Error).message || 'Failed to load meeting');
-      }
+        const snap = JSON.parse((ev as MessageEvent).data) as MeetingDetail;
+        setDetail(snap);
+      } catch { /* ignore malformed frame */ }
+    });
+    es.addEventListener('state', (ev) => {
+      try {
+        const frame = JSON.parse((ev as MessageEvent).data) as {
+          event: string;
+          payload: Record<string, unknown>;
+          status: MeetingStatus;
+          ts: string;
+        };
+        // Re-fetch on every state change — payloads are too varied
+        // (turn / vote / advance) to merge surgically here. The
+        // /api/meetings/:id GET is cheap and the cadence is bounded
+        // by actual state transitions, so this is fine.
+        apiGet<MeetingDetail>(`/api/meetings/${encodeURIComponent(selectedId)}`)
+          .then((d) => setDetail(d))
+          .catch(() => { /* swallow — UI keeps last snapshot */ });
+        // Update status quickly without waiting for the GET.
+        setDetail((prev) => (prev ? { ...prev, status: frame.status } : prev));
+      } catch { /* ignore */ }
+    });
+    es.addEventListener('terminal', () => {
+      // Meeting reached terminal status; no more state events will
+      // come. We still fetch one final snapshot in case a turn
+      // landed in the same flush.
+      apiGet<MeetingDetail>(`/api/meetings/${encodeURIComponent(selectedId)}`)
+        .then((d) => setDetail(d))
+        .catch(() => { /* swallow */ });
+    });
+    es.onerror = () => {
+      // EventSource auto-reconnects on transient failure; we just
+      // mark the badge as "reconnecting" and let it retry.
+      setStreaming(false);
     };
-    fetchDetail();
-    const id = window.setInterval(fetchDetail, 4000);
-    return () => { cancelled = true; window.clearInterval(id); };
+    es.onopen = () => setStreaming(true);
+    return () => {
+      try { es && es.close(); } catch { /* noop */ }
+      setStreaming(false);
+    };
   }, [selectedId]);
 
   const meetings = data?.meetings || [];
@@ -202,10 +253,25 @@ export default function MeetingsView() {
       </Card>
 
       <Card className="flex min-h-0 flex-1 flex-col">
-        <CardHeader className="border-b border-border p-4">
+        <CardHeader className="flex flex-row items-center justify-between gap-2 border-b border-border p-4">
           <CardTitle className="text-base">
             {selectedSummary ? selectedSummary.title : 'Select a meeting'}
           </CardTitle>
+          {selectedId ? (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 rounded-full border px-1.5 py-0 text-[10px] uppercase tracking-wide',
+                streaming
+                  ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+              )}
+              aria-live="polite"
+              title={streaming ? 'Receiving live state updates' : 'Reconnecting to stream'}
+            >
+              <Radio className="h-3 w-3" aria-hidden />
+              {streaming ? 'live' : 'offline'}
+            </span>
+          ) : null}
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
           {!selectedId ? (
