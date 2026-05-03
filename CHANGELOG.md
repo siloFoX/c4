@@ -4,6 +4,25 @@
 
 (no entries — next release window)
 
+## [1.10.243] - 2026-05-03
+
+**Multi-Specialist System — Phase 7.11 (Underperformer pill
+in SpecialistsView).** Operator now sees `underperform`
+amber pill on the row of any specialist that the phase 5.1
+analyzer would flag, without having to drop to CLI to run
+`c4 specialist underperformers`.
+
+### Added
+- **`web/src/components/SpecialistsView.tsx`**:
+  `refreshFlags()` calls
+  `GET /api/specialists/underperformers` on mount, stores
+  the flagged-id set, renders an `AlertTriangle` pill in
+  the row meta when the id matches. Failure of the
+  underperformer endpoint is silenced so the main list
+  stays usable.
+
+Suite stays 192 PASS. Web build clean.
+
 ## [1.10.242] - 2026-05-03
 
 **Multi-Specialist System — Phase 5.1 (Underperformer

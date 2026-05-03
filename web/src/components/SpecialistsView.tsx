@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Eye, Plus, RefreshCw, Shield, Star, Trash2 } from 'lucide-react';
+import { AlertTriangle, Eye, Plus, RefreshCw, Shield, Star, Trash2 } from 'lucide-react';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
@@ -102,6 +102,24 @@ export default function SpecialistsView() {
       setLoading(false);
     }
   }, []);
+
+  // Underperformer scan (phase 5.1) — fetched separately so the
+  // alert pill on a row can light up before the operator clicks.
+  const [flaggedIds, setFlaggedIds] = useState<Set<string>>(new Set());
+  const refreshFlags = useCallback(async () => {
+    try {
+      const res = await apiGet<{ items: Array<{ id: string }> }>(
+        '/api/specialists/underperformers',
+      );
+      const next = new Set<string>();
+      for (const it of res.items || []) next.add(it.id);
+      setFlaggedIds(next);
+    } catch {
+      // best-effort — don't block the main view if underperformer
+      // detection is misconfigured.
+    }
+  }, []);
+  useEffect(() => { refreshFlags(); }, [refreshFlags]);
 
   // Add governance — accepts a JSON blob and POSTs to /specialists.
   const [addOpen, setAddOpen] = useState(false);
@@ -308,6 +326,15 @@ export default function SpecialistsView() {
                         <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
                           <Star className="h-2.5 w-2.5" aria-hidden />
                           {samplesTotal}
+                        </span>
+                      ) : null}
+                      {flaggedIds.has(s.id) ? (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0 text-[10px] text-amber-700 dark:text-amber-400"
+                          title="Sustained negative retro score in at least one bucket"
+                        >
+                          <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
+                          underperform
                         </span>
                       ) : null}
                     </div>
