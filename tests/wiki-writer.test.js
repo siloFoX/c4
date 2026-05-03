@@ -150,6 +150,28 @@ t('publishMeeting refuses session shape without id/stages', () => {
   assert.throws(() => publishMeeting({ id: 'x' }, {}), /invalid session/);
 });
 
+t('publishMeeting renders Action Items section when transcript carries markers', async () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  const sess = new MeetingSession(planMeeting({ task: 'fix flaky deploy gate', registry: reg }));
+  sess.start();
+  // Inject a contribution with all four marker types so the
+  // generated wiki page contains every section header.
+  const firstStageSpec = sess.plan.stages[0].specialists[0].id;
+  sess.contribute(firstStageSpec, '[DECISION] roll the gate back to v3 [ACTION owner=eng] file the rollback PR [TODO] document the regression [BLOCKER] need root creds for prod');
+  sess.abort('manual abort for test');
+
+  const wikiRoot = makeTmp();
+  const r = publishMeeting(sess, { wikiRoot });
+  const body = fs.readFileSync(r.meetingPath, 'utf8');
+  assert.ok(body.includes('## Action Items'), 'Action Items header present');
+  assert.ok(body.includes('### Decisions'), 'Decisions group rendered');
+  assert.ok(body.includes('### Actions'), 'Actions group rendered');
+  assert.ok(body.includes('### Todos'), 'Todos group rendered');
+  assert.ok(body.includes('### Blockers'), 'Blockers group rendered');
+  assert.ok(body.includes('roll the gate back to v3'));
+  assert.ok(body.includes('_(@eng)_'), 'owner attribution rendered');
+});
+
 (async () => {
   for (const fn of pending) await fn();
   console.log(`\n  ${passed} passed, ${failed} failed (wiki-writer)`);

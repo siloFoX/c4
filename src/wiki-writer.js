@@ -130,6 +130,34 @@ function renderMeeting(sess, opts = {}) {
       out.push(`- ${e.ts} — ${e.reason}${e.terminal ? ' (terminal)' : ''}`);
     }
   }
+  // Phase 6.5 — structured action-items section. Pulled from the
+  // transcript via meeting-actions extractor. Rendered as four
+  // grouped checklists so the operator can paste straight into
+  // their own task tracker. Empty groups are omitted.
+  try {
+    const actions = require('./meeting-actions').extractActionItems({
+      _transcripts: sess.transcripts,
+      plan: { stages: sess.stages || [] },
+      toJSON() { return sess; },
+    });
+    if (actions && actions.count > 0) {
+      out.push('');
+      out.push('## Action Items');
+      out.push('');
+      const sectionTitle = { decision: 'Decisions', action: 'Actions', todo: 'Todos', blocker: 'Blockers' };
+      for (const kind of ['decision', 'action', 'todo', 'blocker']) {
+        const group = actions.items.filter((it) => it.type === kind);
+        if (group.length === 0) continue;
+        out.push(`### ${sectionTitle[kind]}`);
+        for (const it of group) {
+          const owner = it.owner ? ` _(@${it.owner})_` : '';
+          const where = ` <!-- ${it.stage} r${it.round} ${it.specialistId || '?'} -->`;
+          out.push(`- [ ] ${it.text}${owner}${where}`);
+        }
+        out.push('');
+      }
+    }
+  } catch { /* extractor failure must not break wiki publish */ }
   return out.join('\n');
 }
 

@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.264] - 2026-05-04
+
+**Multi-Specialist System — Phase 6.5 follow-up (Wiki action-items section).**
+The wiki minutes for each meeting now include a structured
+"Action Items" section, populated by the new extractor. Operators
+who review the published markdown get a checklist of decisions,
+actions, todos, and blockers without needing to re-read the
+prose transcript.
+
+### Added
+- **`src/wiki-writer.js`**: `renderMeeting()` now appends an
+  `## Action Items` section (with `### Decisions` / `Actions` /
+  `Todos` / `Blockers` subgroups) when the transcript carries any
+  `[DECISION]` / `[ACTION]` / `[TODO]` / `[BLOCKER]` markers.
+  Each line renders as a markdown checklist item with optional
+  owner attribution (`_(@user)_`) and an HTML comment trace
+  (`<!-- stage rN specialistId -->`). Empty groups are omitted.
+- **Tests** (`tests/wiki-writer.test.js`): new case "publishMeeting
+  renders Action Items section when transcript carries markers" —
+  drives all four group types in a single contribution and asserts
+  every header + the rendered owner attribution. Suite stays green
+  at 199.
+
+### Notes
+- Extractor failures are caught and never break wiki publish —
+  the markdown still gets written, just without the action-items
+  section. Same fail-soft principle as the git automation in
+  v1.10.255.
+
 ## [1.10.263] - 2026-05-04
 
 **Multi-Specialist System — Phase 6.5 (Action-items extractor).**
