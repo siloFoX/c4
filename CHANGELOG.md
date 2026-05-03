@@ -4,6 +4,22 @@
 
 (no entries — next release window)
 
+## [1.10.204] - 2026-05-03
+
+**Two existing-rule extensions**: `shell-env-inject` to
+`SSH_AUTH_SOCK` / `GIT_SSH_COMMAND`, `credential-read` to
+GitHub / GitLab CLI tokens.
+
+### Changed
+- **`shell-env-inject`** regex extended with:
+  - `SSH_AUTH_SOCK=` (override SSH agent socket → hijack
+    signing requests)
+  - `GIT_SSH_COMMAND=` (git's ssh wrapper — runs arbitrary
+    code instead of ssh)
+- **`credential-read`** file list extended with:
+  - `~/.config/gh/hosts.yml` (GitHub CLI tokens)
+  - `~/.config/glab-cli/config.yml` (GitLab CLI tokens)
+
 ## [1.10.203] - 2026-05-03
 
 **`container-daemon-config` (critical) catalog pattern.**

