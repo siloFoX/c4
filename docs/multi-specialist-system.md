@@ -128,10 +128,14 @@ c4는 현재 manager(오케스트레이션) + worker(코드 작성) 이분법으
    - 단, 거부권 role 본인의 거부권 박탈은 사용자 명시 승인 필요 (self-modification 방지)
 
 4. **감사 추적**
-   - 모든 추가/수정/삭제는 `c4-wiki/governance/specialist-changes.md` 에 누적 로그
+   - 모든 추가/수정/삭제는 `~/.c4/specialist-audit.jsonl` 에 누적 로그
    - 누가/언제/왜/어느 미팅에서 의결 — 회사처럼 인사 기록 남김
+   - actions: `add`, `remove`, `import`, `score-applied`,
+     `prompt-revised`, `tags-updated` (§11 Phase 6 참조)
 
 > 이 governance 자체도 §10 결정 처럼 doc 변경으로 진화 — 운영 중 룰 부족 발견되면 ADR + §10 신규 row.
+
+**구현 상태 (2026-05-04)** — `proposeSpecialist()` 모듈 + `POST /specialists/propose` HTTP route + `c4 specialist propose` CLI 로 정식 시행. meta-meeting 의 consensus 가 거부 0 + accept ≥ 1 일 때 `registry.add()` 가 `actor: 'proposal'` + `meetingId` + `reason: 'meeting consensus'` 와 함께 호출되어 audit log 에 기록됨.
 
 ---
 
@@ -304,7 +308,20 @@ Modern 개발은 **tier 모델** 이 현실적:
 ### 8.4 System prompt 자동 iterate (advanced, follow-up)
 
 같은 specialist 가 같은 도메인에서 반복 저득점 → retro 가 system prompt 개선안 제출 → 사람 검토 후 반영.
-초기 버전에서는 점수만 갱신하고 prompt 변경은 manual.
+
+**구현 상태 (2026-05-04)** — Phase 5 follow-up 으로 두 단계 모두 시행됨:
+
+1. *Suggest* — `POST /specialists/:id/suggest-prompt` (review-only).
+   `analyzeSpecialist()` 가 weak buckets 식별 → brain 에게 revision
+   draft 요청 → REVISION/RATIONALE 블록 파싱 → return. Daemon 은 절대
+   자동 적용 X.
+2. *Apply via consensus* — `POST /specialists/:id/prompt-apply`.
+   suggest path 결과를 meta-meeting 에 올림 → consensus 시
+   `registry.updatePrompt()` 호출 + audit log
+   `action: 'prompt-revised'`. veto-holder 단독 거부도 차단됨.
+
+`updatePrompt()` 는 `[Role: ...]` prefix 보존 강제 + 동일 prompt
+시 idempotent no-op + 감사 entry 의 `before` 에 이전 prompt 보존.
 
 ---
 
@@ -421,6 +438,42 @@ Phase 5 (advanced, follow-up)
   - Reopen 액션
   - System prompt auto-iterate
   - 외부 위키 연동 (Notion/Confluence)
+
+Phase 6 (operator polish, shipped 2026-05-04 — v1.10.256~v1.10.274)
+  Phase 1.5 — proposeSpecialist via meta-meeting consensus
+              (POST /specialists/propose; 미팅 합의 통한 governance add)
+  Phase 1.6 — specialist tags 필드 + 전체 lifecycle
+              (PATCH /specialists/:id/tags edit, list/export ?tag&?domain
+               필터, AND-compose semantics 모든 surface 통일)
+  Phase 5.2 — applyPromptRevision: brain draft → meta-meeting →
+              consensus 시 registry.updatePrompt() 자동 적용
+              (POST /specialists/:id/prompt-apply, action 'prompt-revised')
+  Phase 6.2 — global meetings SSE (GET /meetings/stream): all-meetings
+              live state aggregator로 web UI 단일 connection 가능
+  Phase 6.3 — meeting fork: replan / reuse 모드 + forkOf 체인
+              (POST /meetings/:id/fork)
+  Phase 6.4 — workflow 'meeting' node type: workflow run에서 meta-meeting
+              spawn → consensus 결과를 다음 노드의 prev로 흘려보냄
+  Phase 6.5 — action-items extractor: transcript의
+              [DECISION]/[ACTION]/[TODO]/[BLOCKER] 마커 → 구조화 list
+              (GET /meetings/:id/action-items + wiki ## Action Items 섹션
+               자동 생성)
+  Phase 6.6 — track classifier preview (GET /meetings/classify-track):
+              task 문구가 어느 track으로 분류되는지 + 매칭 키워드 + reason
+  Phase 6.7 — bulk wiki publish-all: terminal meeting 일괄 발행
+              (POST /wiki/publish-all, idempotent + --force)
+  Phase 6.8 — specialist describe enrichment:
+              GET /specialists/:id?include=audit,scoreHistory,meetings
+  Phase 6.9 — meeting lineage: forkOf 체인 walk
+              (GET /meetings/:id/lineage)
+  Phase 6.10 — meeting recap combo: status + per-stage consensus +
+               first-turn + actions in 단일 envelope
+               (GET /meetings/:id/recap)
+  Phase 6.11 — meeting list 필터 강화: ?track ?since ?limit + createdAt
+               desc 정렬 + forkOf 응답 필드
+  Phase 6.12 — wiki related-pages auto-derive: transcript scan으로
+               frontmatter related[] 자동 생성 (markdown links + meeting
+               ids + ADR refs)
 ```
 
 각 phase 끝나면 동작하는 스라이스 — 점진 배포, 한 번에 전부 구현 X.
