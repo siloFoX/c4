@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Eye, RefreshCw, Shield, Star } from 'lucide-react';
-import { apiGet } from '../lib/api';
+import { Eye, Plus, RefreshCw, Shield, Star, Trash2 } from 'lucide-react';
+import { apiDelete, apiGet, apiPost } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
 
@@ -103,6 +103,51 @@ export default function SpecialistsView() {
     }
   }, []);
 
+  // Add governance — accepts a JSON blob and POSTs to /specialists.
+  const [addOpen, setAddOpen] = useState(false);
+  const [addJson, setAddJson] = useState('');
+  const [addBusy, setAddBusy] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+
+  const handleAdd = useCallback(async () => {
+    let parsed: unknown;
+    try { parsed = JSON.parse(addJson); }
+    catch (e) { setAddError(`invalid JSON: ${(e as Error).message}`); return; }
+    setAddBusy(true);
+    setAddError(null);
+    try {
+      const res = await apiPost<{ ok: boolean; specialist: Specialist }>('/api/specialists', parsed);
+      if (res && res.specialist) {
+        setSelectedId(res.specialist.id);
+        setAddOpen(false);
+        setAddJson('');
+      }
+      await refresh();
+    } catch (e) {
+      setAddError((e as Error).message || 'Failed to add specialist');
+    } finally {
+      setAddBusy(false);
+    }
+  }, [addJson, refresh]);
+
+  // Remove governance — guarded by a 2-step confirm prompt.
+  const [removeBusy, setRemoveBusy] = useState(false);
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+
+  const handleRemove = useCallback(async (id: string) => {
+    setRemoveBusy(true);
+    try {
+      await apiDelete(`/api/specialists/${encodeURIComponent(id)}`);
+      if (selectedId === id) setSelectedId(null);
+      await refresh();
+    } catch (e) {
+      setError((e as Error).message || 'Failed to remove specialist');
+    } finally {
+      setRemoveBusy(false);
+      setConfirmRemoveId(null);
+    }
+  }, [selectedId, refresh]);
+
   useEffect(() => { refresh(); }, [refresh]);
 
   const specialists = data?.specialists || [];
@@ -130,17 +175,61 @@ export default function SpecialistsView() {
         <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
           <div className="flex flex-row items-center justify-between gap-2">
             <CardTitle className="text-base">Specialists</CardTitle>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={refresh}
-              disabled={loading}
-              aria-label="Refresh specialists"
-            >
-              <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} aria-hidden />
-              Refresh
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                onClick={() => { setAddOpen((v) => !v); setAddError(null); }}
+                aria-label="Add specialist"
+                aria-expanded={addOpen}
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden />
+                Add
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={refresh}
+                disabled={loading}
+                aria-label="Refresh specialists"
+              >
+                <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} aria-hidden />
+                Refresh
+              </Button>
+            </div>
           </div>
+          {addOpen ? (
+            <div className="flex flex-col gap-2 rounded-md border border-dashed border-border bg-muted/20 p-3">
+              <textarea
+                value={addJson}
+                onChange={(e) => setAddJson(e.target.value)}
+                placeholder='{"id":"data-engineer","displayName":"Data Engineer","tier":"implement","domain":["data","etl"],"brain":{"adapter":"claude-code","model":"sonnet"},"systemPrompt":"[Role: Data Engineer] ...","triggers":{"keywords":["etl"],"stages":["design","implement"]}}'
+                className="min-h-32 rounded-md border border-border bg-background p-2 font-mono text-[11px]"
+                aria-label="Specialist JSON"
+                disabled={addBusy}
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleAdd}
+                  disabled={addBusy || !addJson.trim()}
+                  aria-label="Confirm add"
+                >
+                  Add specialist
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setAddOpen(false); setAddError(null); }}
+                  disabled={addBusy}
+                >
+                  Cancel
+                </Button>
+                {addError ? (
+                  <span className="text-[11px] text-destructive">{addError}</span>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
           <Input
             type="text"
             value={filter}
@@ -235,10 +324,50 @@ export default function SpecialistsView() {
       </Card>
 
       <Card className="flex min-h-0 flex-1 flex-col">
-        <CardHeader className="border-b border-border p-4">
-          <CardTitle className="text-base">
-            {selected ? `${selected.id} — ${selected.displayName}` : 'Select a specialist'}
-          </CardTitle>
+        <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
+          <div className="flex flex-row items-center justify-between gap-2">
+            <CardTitle className="text-base">
+              {selected ? `${selected.id} — ${selected.displayName}` : 'Select a specialist'}
+            </CardTitle>
+            {selected ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setConfirmRemoveId(selected.id)}
+                disabled={removeBusy}
+                className="text-destructive hover:bg-destructive/10"
+                aria-label={`Remove ${selected.id}`}
+              >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                Remove
+              </Button>
+            ) : null}
+          </div>
+          {confirmRemoveId && selected && confirmRemoveId === selected.id ? (
+            <div role="alert" className="flex flex-wrap items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-[11px]">
+              <span>
+                Remove <span className="font-mono">{selected.id}</span>? Score
+                history is dropped from the persisted overlay; the seed
+                entry stays.
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setConfirmRemoveId(null)}
+                disabled={removeBusy}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => handleRemove(selected.id)}
+                disabled={removeBusy}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Confirm remove
+              </Button>
+            </div>
+          ) : null}
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
           {!selected ? (

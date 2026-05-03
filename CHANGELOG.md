@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.239] - 2026-05-03
+
+**Multi-Specialist System — Phase 7.9 (Specialist
+governance UI).** SpecialistsView grows an `Add` button
+(JSON textarea) + `Remove` button (two-step confirm). Wraps
+the persistent registry's existing `POST /specialists` /
+`DELETE /specialists/:id` endpoints. The full lifecycle —
+add specialist → it shows up in scoreboard → drives meeting
+selections → eventually accumulates score → can be removed
+— is now clickable.
+
+### Added
+- **`web/src/components/SpecialistsView.tsx`**:
+  - `Add` button toggles a textarea that accepts the seed
+    schema (id / displayName / tier / domain / brain /
+    systemPrompt / triggers); a placeholder shows the
+    minimum-shape JSON. Submit POSTs and auto-selects the
+    new id.
+  - `Remove` button on the detail header opens an
+    `role="alert"` confirm strip with explanatory copy
+    ("Score history is dropped from the persisted overlay;
+    the seed entry stays."). Two-step click pattern matches
+    the Sessions detach flow from 8.38.
+
+Both round-trip through the persistent overlay so daemon
+restart preserves the change.
+
+Suite stays 191 PASS. Web build clean.
+
 ## [1.10.238] - 2026-05-03
 
 **Multi-Specialist System — Phase 7.8 (Peer-retro button on
