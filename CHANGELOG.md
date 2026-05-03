@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.205] - 2026-05-03
+
+**Backfill unit tests for v1.10.193-204 catalog rules.**
+
+### Added
+- **`tests/risk-classifier.test.js`**: 14 new `it()` cases:
+  - `cloud-storage-public` (v1.10.193)
+  - base64 unquoted decoder (v1.10.194)
+  - `nsenter-pid1` unshare extension (v1.10.195)
+  - `at-schedule` systemd-run extension (v1.10.196)
+  - `ssh-client-config-write` (v1.10.197)
+  - quoted-token unwrap (v1.10.198)
+  - `cron-spool-write` at-spool extension (v1.10.199)
+  - `passwd-no-auth` newusers extension (v1.10.199)
+  - `system-files` /etc/exports + samba.conf (v1.10.200)
+  - `rc-file-write` csh + /etc/skel (v1.10.201)
+  - `interpreter-shell-exec` socket reverse-shell (v1.10.202)
+  - `container-daemon-config` (v1.10.203)
+  - `shell-env-inject` SSH_AUTH_SOCK + GIT_SSH_COMMAND (v1.10.204)
+  - `credential-read` GitHub/GitLab CLI tokens (v1.10.204)
+  Suite stays at 178 (full); risk-classifier file 311 → 325
+  cases.
+
 ## [1.10.204] - 2026-05-03
 
 **Two existing-rule extensions**: `shell-env-inject` to

