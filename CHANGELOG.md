@@ -4,6 +4,54 @@
 
 (no entries — next release window)
 
+## [1.10.275] - 2026-05-04
+
+**Multi-Specialist System — Phase 6.13 (Score-decay in dispatcher).**
+§8.3 of the design doc calls for "old retros 가중치 감쇠" so a
+specialist's behavior can evolve. This phase implements decay
+at the dispatcher boundary (read-time): persisted scores remain
+the historical record, while the *effective signal* used for
+selection shrinks linearly with time (exponential decay,
+30-day half-life by default).
+
+### Added
+- **`src/specialist-dispatcher.js`**:
+  - `_applyDecay(rawSignal, lastUpdatedISO, opts)` —
+    `signal × exp(-ln2 × ageDays / halfLifeDays)`. After 30 days
+    the signal halves; after 60 days quarters; after 90 days is
+    1/8 of the original. After 6 months ~1.5%, effectively zero.
+    Decay applies to both positive and negative signals (so a
+    specialist that performed badly long ago can recover its
+    weight). No-op when `lastUpdated` is missing/unparseable, when
+    the timestamp is in the future (clock skew tolerance), or
+    when `halfLifeDays:0` (disabled).
+  - `_scoreSignalFor(spec, {scoreDecay})` — applies decay to the
+    composite signal before returning, using `scoreDecay` opts
+    threaded through.
+  - `scoreSpecialist(spec, {scoreDecay})` and
+    `SpecialistDispatcher.pick({scoreDecay})` — same plumbing,
+    so callers can override the half-life or disable decay
+    explicitly.
+  - `DEFAULT_DECAY_HALF_LIFE_DAYS = 30` (exported).
+- **Tests** (`tests/specialist-dispatcher.test.js`): 5 new cases
+  — null/empty/unparseable/future-timestamp guards, exact
+  half-life math (signal × 0.5 after 30 days), disable-via-zero,
+  negative-signal recovery, integration into `scoreSpecialist`
+  showing decayed score < fresh. Suite total stays at 199
+  (5 new dispatcher tests, dispatcher file count unchanged).
+
+### Notes
+- Behavior preservation: persisted scores in
+  `~/.c4/specialists.json` are NOT mutated. Audit log + score
+  history remain authoritative. Decay is purely a selection-time
+  lens. Operators inspecting scores via `c4 specialist describe`
+  still see raw values.
+- Default half-life of 30 days is conservative — well-performing
+  specialists still pull ahead until ~6 months idle.
+- Existing tests using fixed `lastUpdated: '2026-05-03'` still
+  pass: today is 2026-05-04 so age is ~1 day, decay factor is
+  ~0.977 — too small to flip any ordinal preferences.
+
 ## [1.10.274] - 2026-05-04
 
 **Multi-Specialist System — Phase 1.6 follow-up #4 (List domain filter parity).**

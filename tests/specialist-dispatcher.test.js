@@ -351,6 +351,73 @@ t('scoreSpecialist negative history pushes a specialist behind a rookie', () => 
   assert.strictEqual(r.selected[0].id, 'rookie');
 });
 
+t('_applyDecay returns raw signal when lastUpdated missing or in future', () => {
+  const { _applyDecay } = require('../src/specialist-dispatcher');
+  assert.strictEqual(_applyDecay(0.8, null), 0.8, 'no timestamp → no decay');
+  assert.strictEqual(_applyDecay(0.8, ''), 0.8, 'empty timestamp → no decay');
+  assert.strictEqual(_applyDecay(0.8, 'not-a-date'), 0.8, 'unparseable → no decay');
+  // future timestamp (clock skew tolerance) → no decay rather than negative-age
+  const future = new Date(Date.now() + 86_400_000).toISOString();
+  assert.strictEqual(_applyDecay(0.8, future), 0.8);
+});
+
+t('_applyDecay halves a 30-day-old signal at default half-life', () => {
+  const { _applyDecay, DEFAULT_DECAY_HALF_LIFE_DAYS } = require('../src/specialist-dispatcher');
+  assert.strictEqual(DEFAULT_DECAY_HALF_LIFE_DAYS, 30);
+  const updated = '2026-01-01T00:00:00.000Z';
+  const now = '2026-01-31T00:00:00.000Z';
+  const decayed = _applyDecay(0.8, updated, { now });
+  // Tolerance: should be ~0.4 (half of 0.8)
+  assert.ok(Math.abs(decayed - 0.4) < 1e-9, `expected ~0.4, got ${decayed}`);
+});
+
+t('_applyDecay can be disabled via halfLifeDays:0', () => {
+  const { _applyDecay } = require('../src/specialist-dispatcher');
+  const updated = '2026-01-01T00:00:00.000Z';
+  const now = '2026-12-31T00:00:00.000Z';
+  // 1 year out, normally would be ~0.0001× — but disabled returns raw.
+  assert.strictEqual(_applyDecay(0.8, updated, { now, halfLifeDays: 0 }), 0.8);
+});
+
+t('_applyDecay shrinks negative signals toward 0 too (recovery path)', () => {
+  const { _applyDecay } = require('../src/specialist-dispatcher');
+  const updated = '2026-01-01T00:00:00.000Z';
+  const now = '2026-04-01T00:00:00.000Z'; // 90 days = 3 half-lives
+  const decayed = _applyDecay(-0.8, updated, { now });
+  // Should be ~ -0.1 (× 0.125), not -0.8
+  assert.ok(Math.abs(decayed - (-0.1)) < 1e-3, `expected ~-0.1, got ${decayed}`);
+  assert.ok(decayed > -0.8, 'decay must reduce magnitude');
+  assert.ok(decayed < 0, 'sign preserved');
+});
+
+t('scoreSpecialist with stale lastUpdated decays the signal contribution', () => {
+  const veteranOld = {
+    id: 'old-vet', displayName: 'Old Vet', tier: 'implement',
+    domain: ['backend'], brain: { adapter: 'mock' },
+    systemPrompt: '[Role: x] sp',
+    triggers: { keywords: ['api'], stages: ['implement'] },
+    score: {
+      byDomain: { backend: 0.9 },
+      byStage: { implement: 0.9 },
+      samples: { 'domain:backend': 5, 'stage:implement': 5 },
+      lastUpdated: '2026-01-01T00:00:00.000Z',
+    },
+  };
+  const decayed = scoreSpecialist(veteranOld, {
+    taskTokens: ['add', 'backend', 'api'],
+    stage: 'implement',
+    scoreDecay: { now: '2026-04-01T00:00:00.000Z' }, // 90 days
+  });
+  const fresh = scoreSpecialist(veteranOld, {
+    taskTokens: ['add', 'backend', 'api'],
+    stage: 'implement',
+    scoreDecay: { now: '2026-04-01T00:00:00.000Z', halfLifeDays: 0 }, // disabled
+  });
+  // The decayed score should be lower (less aggressive multiplier
+  // because the signal magnitude shrank toward 0 → multiplier toward 1).
+  assert.ok(decayed < fresh, `decayed=${decayed} should be less than fresh=${fresh}`);
+});
+
 t('SpecialistDispatcher accepts a custom registry', () => {
   const reg = new SpecialistRegistry({ specialists: [{
     id: 'fixture',

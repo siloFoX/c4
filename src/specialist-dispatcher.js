@@ -50,6 +50,36 @@ function tokenize(text) {
 // daemon; production fleets may want to bump it.
 const SCORE_TRUST_THRESHOLD = 3;
 
+// Phase 6.13 — decay-on-read for retro signals. §8.3 of the design
+// doc calls for "old retros 가중치 감쇠" so a specialist's behavior
+// can evolve: stale wins fade, stale losses also fade, allowing
+// recovery and reflecting capability change. We decay at the
+// dispatcher boundary (read-time) instead of mutating persisted
+// scores, so the audit log + score history remain authoritative
+// while the *effective* signal that drives selection shrinks
+// linearly with time.
+//
+// Half-life of 30 days means: 30 days old → signal × 0.5; 60 → × 0.25;
+// 90 → × 0.125. After 6 months the contribution is ~ 1.5% of the
+// original — effectively reset. Tunable via opts.halfLifeDays;
+// pass 0 (or negative) to disable decay (used by tests that want
+// raw signals).
+const DEFAULT_DECAY_HALF_LIFE_DAYS = 30;
+
+function _applyDecay(rawSignal, lastUpdatedISO, opts = {}) {
+  if (!Number.isFinite(rawSignal) || rawSignal === 0) return rawSignal;
+  if (!lastUpdatedISO || typeof lastUpdatedISO !== 'string') return rawSignal;
+  const halfLife = Number.isFinite(opts.halfLifeDays) ? opts.halfLifeDays : DEFAULT_DECAY_HALF_LIFE_DAYS;
+  if (halfLife <= 0) return rawSignal;
+  const updatedMs = Date.parse(lastUpdatedISO);
+  if (!Number.isFinite(updatedMs)) return rawSignal;
+  const nowMs = opts.now ? Date.parse(opts.now) : Date.now();
+  if (!Number.isFinite(nowMs) || nowMs <= updatedMs) return rawSignal;
+  const ageDays = (nowMs - updatedMs) / (24 * 60 * 60 * 1000);
+  const factor = Math.exp(-Math.LN2 * ageDays / halfLife);
+  return rawSignal * factor;
+}
+
 // Convert a [-1..+1] score signal into a [0.5..1.5] multiplier so a
 // well-rated specialist pulls ahead of the baseline keyword score.
 // At score=0 the multiplier is 1.0 — pure neutral. We deliberately
@@ -65,7 +95,7 @@ function _scoreToMultiplier(signal) {
 // given stage and any matching domain token. Skipped when the
 // sample count is below SCORE_TRUST_THRESHOLD so finalize calls
 // don't immediately tilt selection from a single retro.
-function _scoreSignalFor(spec, { stage, taskTokens }) {
+function _scoreSignalFor(spec, { stage, taskTokens, scoreDecay } = {}) {
   const score = spec.score || {};
   const samples = score.samples || {};
 
@@ -99,19 +129,25 @@ function _scoreSignalFor(spec, { stage, taskTokens }) {
   }
 
   if (stageSignal == null && domainSignal == null) return null;
+  let combined;
   if (stageSignal != null && domainSignal != null) {
     // Domain signal is stronger evidence the specialist suits this
     // task than the broader stage signal — weight 60/40.
-    return domainSignal * 0.6 + stageSignal * 0.4;
+    combined = domainSignal * 0.6 + stageSignal * 0.4;
+  } else {
+    combined = stageSignal != null ? stageSignal : domainSignal;
   }
-  return stageSignal != null ? stageSignal : domainSignal;
+  // Apply age-based decay. scoreDecay can disable (halfLifeDays:0)
+  // or override the half-life; tests use this to keep raw values
+  // when needed.
+  return _applyDecay(combined, score.lastUpdated, scoreDecay || {});
 }
 
 // Score a single specialist against a task. Phase 4.4 multiplies
 // the rule signal by a multiplier derived from the persisted retro
 // score record so adaptive selection actually kicks in once a
 // specialist has accumulated history.
-function scoreSpecialist(spec, { taskTokens, stage }) {
+function scoreSpecialist(spec, { taskTokens, stage, scoreDecay } = {}) {
   let score = 0;
 
   // Stage match — primary filter. If the specialist does not list the
@@ -146,7 +182,7 @@ function scoreSpecialist(spec, { taskTokens, stage }) {
   // (Phase 4.4) Persisted-score weighting. After a specialist has
   // seen at least SCORE_TRUST_THRESHOLD samples, its retro signal
   // pulls the rule score up or down by a bounded multiplier.
-  const signal = _scoreSignalFor(spec, { taskTokens, stage });
+  const signal = _scoreSignalFor(spec, { taskTokens, stage, scoreDecay });
   if (signal != null) {
     score *= _scoreToMultiplier(signal);
   }
@@ -171,7 +207,7 @@ class SpecialistDispatcher {
   // Pick specialists for a task at a given stage + track. Returns
   // {selected, scored, track, stage, cap} so the caller can audit
   // why each specialist made the cut.
-  pick({ task = '', stage = null, track = 'standard', overrideCap = null } = {}) {
+  pick({ task = '', stage = null, track = 'standard', overrideCap = null, scoreDecay = null } = {}) {
     if (!VALID_TRACKS.includes(track)) {
       throw new Error(`unknown track "${track}", expected one of ${VALID_TRACKS.join('|')}`);
     }
@@ -184,7 +220,7 @@ class SpecialistDispatcher {
     // 1. Score every eligible specialist.
     const scored = [];
     for (const spec of this._registry.list()) {
-      const score = scoreSpecialist(spec, { taskTokens, stage });
+      const score = scoreSpecialist(spec, { taskTokens, stage, scoreDecay });
       if (score > 0) scored.push({ spec, score });
     }
     scored.sort((a, b) => {
@@ -319,6 +355,8 @@ module.exports = {
   TRACK_STAGES,
   DEFAULT_EXPLORATION_RATIO,
   SCORE_TRUST_THRESHOLD,
+  DEFAULT_DECAY_HALF_LIFE_DAYS,
   FULL_SIGNALS,
   LITE_SIGNALS,
+  _applyDecay,
 };
