@@ -126,8 +126,9 @@ describe('(11.3) helpers + constants', () => {
     expect(NODE_TYPES).toContain('wait');
     expect(NODE_TYPES).toContain('audit');
     expect(NODE_TYPES).toContain('notify');
+    expect(NODE_TYPES).toContain('meeting');
     expect(NODE_TYPES).toContain('end');
-    expect(NODE_TYPES.length).toBe(7);
+    expect(NODE_TYPES.length).toBe(8);
   });
 
   test('(b) RUN_STATUS / NODE_STATUS expose lifecycle constants', () => {

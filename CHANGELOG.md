@@ -4,6 +4,43 @@
 
 (no entries — next release window)
 
+## [1.10.261] - 2026-05-04
+
+**Multi-Specialist System — Phase 6.4 (Workflow meeting node).**
+The workflow runner now has a `meeting` node type. A workflow run
+can spawn a multi-specialist meta-meeting and emit its consensus
+decision as the node's output, which downstream condition nodes
+can then branch on (e.g., "approve before deploy" gates).
+
+### Added
+- **`src/workflow.js`**:
+  - `NODE_TYPES` extended: `['task', 'condition', 'parallel',
+    'wait', 'audit', 'notify', 'meeting', 'end']` (8 types).
+  - Validation: `meeting` node config accepts `task` (string),
+    `track` (lightweight|standard|full), `brain` (mock|claude),
+    `title` (string). All optional but typed.
+  - Executor: lazy-requires the meeting modules, plans + runs the
+    meeting, and returns `{ok, meetingId, accepted, accepts,
+    objects, sessionStatus, reason}`. Brain failure / unknown
+    brain → `{ok:false, error}`; missing both task and prev →
+    `{skipped:true, reason:'config.task or non-empty prev required'}`.
+  - Auto-fallback to JSON.stringify(prev) when `config.task` is
+    absent — `null`, `'null'`, `'{}'`, `'""'` are treated as
+    empty and trigger the skip path.
+- **Tests** (`tests/workflow-meeting-node.test.js`, 5 cases):
+  basic lightweight run, prev-fallback (with a producer task
+  node), skip on empty input, claude-brain defensive run,
+  validation rejecting bad track/brain at create time. Suite
+  total: **198 passing**.
+
+### Notes
+- The first multi-specialist subsystem to plug into the existing
+  workflow runner end-to-end. Future phases can add a `decision`
+  edge condition shorthand (e.g., `accepted == true`) so users
+  don't have to write expression strings to branch on consensus.
+- `workflow.test.js` updated to assert `NODE_TYPES.length === 8`
+  (was 7).
+
 ## [1.10.260] - 2026-05-04
 
 **Multi-Specialist System — Phase 1.6 (Specialist tags).**

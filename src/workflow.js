@@ -53,7 +53,7 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 
-const NODE_TYPES = Object.freeze(['task', 'condition', 'parallel', 'wait', 'audit', 'notify', 'end']);
+const NODE_TYPES = Object.freeze(['task', 'condition', 'parallel', 'wait', 'audit', 'notify', 'meeting', 'end']);
 const RUN_STATUS = Object.freeze({
   RUNNING: 'running',
   COMPLETED: 'completed',
@@ -180,6 +180,21 @@ function validateGraph(nodes, edges) {
       if (n.type === 'condition' && cfg.expression !== undefined &&
           typeof cfg.expression !== 'string') {
         errors.push(`node ${n.id}: config.expression must be a string`);
+      }
+      // meeting node — task / track / brain / autoApply type checks.
+      if (n.type === 'meeting') {
+        if (cfg.task !== undefined && typeof cfg.task !== 'string') {
+          errors.push(`node ${n.id}: config.task must be a string`);
+        }
+        if (cfg.track !== undefined && !['lightweight', 'standard', 'full'].includes(cfg.track)) {
+          errors.push(`node ${n.id}: config.track must be lightweight|standard|full`);
+        }
+        if (cfg.brain !== undefined && !['mock', 'claude'].includes(cfg.brain)) {
+          errors.push(`node ${n.id}: config.brain must be mock|claude`);
+        }
+        if (cfg.title !== undefined && typeof cfg.title !== 'string') {
+          errors.push(`node ${n.id}: config.title must be a string`);
+        }
       }
       // audit node — eventType / target / details type checks.
       if (n.type === 'audit') {
@@ -891,6 +906,79 @@ class WorkflowExecutor {
       } catch (e) {
         return { sent: false, error: e && e.message ? e.message : String(e) };
       }
+    }
+    if (node.type === 'meeting') {
+      // Plan + run a meta-meeting and emit the consensus decision as
+      // the node's output. Useful for workflow gates that need group
+      // sign-off (e.g., "approve before deploy").
+      // Config:
+      //   task        (string) — required, the meeting prompt; falls
+      //                back to JSON-stringified prev if absent
+      //   track       'lightweight' | 'standard' | 'full' (default
+      //                'lightweight')
+      //   brain       'mock' | 'claude' (default 'mock')
+      //   title       optional override
+      // Lazy-require the meeting modules so workflow.js stays usable
+      // in tests that never touch the meeting subsystem.
+      const cfg = node.config || {};
+      const meetingPlanMod = require('./meeting-plan');
+      const meetingSessionMod = require('./meeting-session');
+      const meetingOrchestratorMod = require('./meeting-orchestrator');
+      const meetingBrainMod = require('./meeting-brain');
+      const specialistRegistryMod = require('./specialist-registry');
+      const proposal = require('./specialist-proposal'); // _decideFromMeeting
+      let task = '';
+      if (typeof cfg.task === 'string' && cfg.task.trim()) {
+        task = cfg.task.trim();
+      } else if (prev !== undefined && prev !== null) {
+        // JSON.stringify of an empty-object {} gives '{}', which is
+        // technically truthy but useless as a meeting prompt — fall
+        // through to the skip branch instead of running on garbage.
+        const candidate = JSON.stringify(prev);
+        if (candidate && candidate !== '{}' && candidate !== '""' && candidate !== 'null') {
+          task = candidate;
+        }
+      }
+      if (!task) {
+        return { skipped: true, reason: 'config.task or non-empty prev required' };
+      }
+      let plan;
+      try {
+        plan = meetingPlanMod.planMeeting({
+          task,
+          track: cfg.track || 'lightweight',
+          title: cfg.title,
+          registry: specialistRegistryMod.getShared(),
+        });
+      } catch (err) {
+        return { ok: false, error: `plan failed: ${err.message}` };
+      }
+      const session = new meetingSessionMod.MeetingSession(plan);
+      try { meetingSessionMod.getShared().put(session); } catch { /* test envs */ }
+      const brainKind = cfg.brain || 'mock';
+      let brain;
+      if (brainKind === 'mock') brain = new meetingBrainMod.MockBrainProvider();
+      else if (brainKind === 'claude') brain = new meetingBrainMod.ClaudeBrainProvider();
+      else return { ok: false, error: `unsupported brain "${brainKind}"` };
+      const orch = new meetingOrchestratorMod.MeetingOrchestrator({
+        session, brain,
+        maxAsks: 100, maxStages: 8,
+      });
+      try {
+        await orch.run();
+      } catch (err) {
+        return { ok: false, error: `meeting run failed: ${err.message}`, meetingId: session.id };
+      }
+      const decision = proposal._decideFromMeeting(session);
+      return {
+        ok: true,
+        meetingId: session.id,
+        accepted: decision.accepted,
+        accepts: decision.accepts,
+        objects: decision.objects,
+        sessionStatus: session.status,
+        reason: decision.reason,
+      };
     }
     if (node.type === 'end') {
       return { terminal: true };
