@@ -200,6 +200,17 @@ const CRITICAL_PATTERNS = [
     label: 'curl/wget against cloud metadata service (169.254.169.254 / metadata.google.internal)',
     re: /\b(?:curl|wget)\s+(?:[^\n;|&]*\s)?(?:https?:\/\/)?(?:169\.254\.169\.254\b|metadata\.(?:google|aws|azure)\.\w+\b|metadata\.internal\b)/,
   },
+  // (v1.10.203) Container runtime daemon config write —
+  // /etc/docker/daemon.json, /etc/containerd/config.toml,
+  // /etc/crictl.yaml. Tampering can disable security
+  // defaults (live-restore, no-new-privileges, seccomp,
+  // userns-remap) on the runtime, exposing all subsequent
+  // containers. Same threat tier as docker-sock-* (critical).
+  {
+    code: 'container-daemon-config',
+    label: 'write to /etc/docker/daemon.json or /etc/containerd/config.toml (runtime config tampering)',
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)(?:\/etc\/docker\/daemon\.json\b|\/etc\/containerd\/config\.toml\b|\/etc\/crictl\.yaml\b)/,
+  },
   // (v1.10.151) Direct docker socket API access via curl /
   // socat — when the worker has access to /var/run/docker.sock
   // but not the docker CLI, this is the standard escape path:

@@ -4,6 +4,22 @@
 
 (no entries — next release window)
 
+## [1.10.203] - 2026-05-03
+
+**`container-daemon-config` (critical) catalog pattern.**
+Container runtime daemon config writes (`/etc/docker/daemon.json`,
+`/etc/containerd/config.toml`, `/etc/crictl.yaml`) can disable
+security defaults (live-restore, no-new-privileges, seccomp,
+userns-remap) on the runtime, exposing all subsequent
+containers spawned on the host. Same threat tier as
+`docker-sock-mount` / `docker-sock-api`.
+
+### Added
+- **`PATTERN_CATALOG.critical`** entry `container-daemon-config`.
+  Catches redirects/tees to the three daemon config files.
+  Reads (`cat /etc/docker/daemon.json`, `docker info`,
+  `systemctl status docker`) stay LOW.
+
 ## [1.10.202] - 2026-05-03
 
 **`interpreter-shell-exec` extended to socket reverse
