@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.214] - 2026-05-03
+
+**WorkerDetail composer: stop wiping the textbox on send failure
+(8.42 review).**
+
+### Fixed
+- **`web/src/components/WorkerDetail.tsx`**: `runAction` now
+  returns `Promise<boolean>` instead of `Promise<void>` so the
+  caller can decide whether to fire the success-only side
+  effect. Previously `handleSend` chained `.then(() =>
+  setInputText(''))` on every action, which fired even when
+  `runAction` swallowed an error — typing a message into a
+  dead worker would wipe the textbox while showing
+  "send failed". Now `handleSend` awaits the boolean and
+  only clears on `ok`. Same fix path is available to other
+  callers if they grow opinionated on success later.
+- `handleSend` also `.trim()`s before the empty-check so a
+  whitespace-only input no longer hits the `/api/send` route
+  (the disabled-Button guard already covered the click path
+  but the Enter-key path skipped it).
+
+Other action callers (`runAction('key …')`, `'merge'`,
+`'close'`) ignore the return value, which is backward-
+compatible — `Promise<void>` ⊆ `Promise<boolean>` for
+fire-and-forget call sites.
+
+Suite 180/180 PASS. Web build clean.
+
 ## [1.10.213] - 2026-05-03
 
 **Two small UX follow-ups: 8.40 reduced-motion + 8.39 empty

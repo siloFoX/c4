@@ -146,30 +146,36 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
     }
   }, [fontSize]);
 
-  const runAction = async (label: string, fn: () => Promise<ActionResponse>) => {
+  // (8.42 review) Returns true on success so the caller can decide
+  // whether to clear inputs only when the action actually went
+  // through. Previously every action that errored silently still
+  // ran its .then() side-effect — typing a message into a dead
+  // worker would wipe the textbox even though the send failed.
+  const runAction = async (label: string, fn: () => Promise<ActionResponse>): Promise<boolean> => {
     setBusy(true);
     setActionMsg(null);
     try {
       const res = await fn();
       if (res.error) {
         setActionMsg(`${label} failed: ${res.error}`);
-      } else {
-        setActionMsg(`${label} ok`);
-        fetchScrollback();
+        return false;
       }
+      setActionMsg(`${label} ok`);
+      fetchScrollback();
+      return true;
     } catch (e) {
       setActionMsg(`${label} failed: ${(e as Error).message}`);
+      return false;
     } finally {
       setBusy(false);
     }
   };
 
-  const handleSend = () => {
-    const text = inputText;
+  const handleSend = async () => {
+    const text = inputText.trim();
     if (!text) return;
-    runAction('send', () => postJson('/api/send', { name: workerName, input: text })).then(() => {
-      setInputText('');
-    });
+    const ok = await runAction('send', () => postJson('/api/send', { name: workerName, input: text }));
+    if (ok) setInputText('');
   };
 
   const handleEnter = () => {
