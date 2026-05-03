@@ -4,6 +4,19 @@
 
 (no entries — next release window)
 
+## [1.10.200] - 2026-05-03
+
+**`system-files` / `sed-system-file-edit` /
+`download-into-system-file` extended to NFS + Samba config.**
+
+### Changed
+- All three rules' file lists extended with:
+  - `/etc/exports` — NFS export config. Adding
+    `(rw,no_root_squash)` for a remote share lets remote
+    root write to local files as root.
+  - `/etc/samba/smb.conf` — Samba (CIFS/SMB) global config.
+    Tampering can expose shares with weak ACLs.
+
 ## [1.10.199] - 2026-05-03
 
 **Two existing-rule extensions**: `cron-spool-write` to
