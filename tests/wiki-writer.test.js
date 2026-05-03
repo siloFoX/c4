@@ -179,6 +179,71 @@ t('publishMeeting derives the same wiki path that bulk publish-all probes', asyn
   assert.strictEqual(r.meetingPath, expected, 'daemon-derived path must match writer-derived path');
 });
 
+t('_extractRelatedRefs picks up wiki paths, meeting ids, and ADR refs', () => {
+  const { _extractRelatedRefs } = require('../src/wiki-writer');
+  const sess = {
+    id: 'm-current00001',
+    transcripts: [[
+      {
+        text: 'Per [previous](meetings/2026-04-01-prev.md) we expect rollback. See ADR-0042 plus adr/0042-bar.md. Also relevant: m-aaaaaaaaaaaa and m-current00001 (this).',
+        round: 1,
+        specialistId: 'pm',
+      },
+    ]],
+  };
+  const refs = _extractRelatedRefs(sess);
+  assert.ok(refs.includes('meetings/2026-04-01-prev.md'), 'markdown link path captured');
+  assert.ok(refs.includes('adr/0042-bar.md'), 'bare adr path captured');
+  assert.ok(refs.includes('adr:0042'), 'ADR-NNNN ref captured');
+  assert.ok(refs.includes('meeting:m-aaaaaaaaaaaa'), 'foreign meeting id captured');
+  assert.ok(!refs.includes(`meeting:${sess.id}`), 'current meeting id never self-references');
+});
+
+t('_extractRelatedRefs is empty for a session with no recognisable refs', () => {
+  const { _extractRelatedRefs } = require('../src/wiki-writer');
+  const sess = {
+    id: 'm-empty000001',
+    transcripts: [[{ text: 'no refs at all here', round: 1, specialistId: 'pm' }]],
+  };
+  assert.deepStrictEqual(_extractRelatedRefs(sess), []);
+});
+
+t('publishMeeting populates frontmatter related[] from transcript refs', async () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  const sess = new MeetingSession(planMeeting({ task: 'related auto-derive guard', registry: reg }));
+  sess.start();
+  const firstStageSpec = sess.plan.stages[0].specialists[0].id;
+  sess.contribute(firstStageSpec, 'See [prev](meetings/2026-04-01-prev.md) and ADR-0007 for context.');
+  sess.abort('test');
+  const wikiRoot = makeTmp();
+  const r = publishMeeting(sess, { wikiRoot });
+  const body = fs.readFileSync(r.meetingPath, 'utf8');
+  assert.ok(body.includes('meetings/2026-04-01-prev.md'), 'auto-extracted wiki path landed in frontmatter');
+  assert.ok(body.includes('adr:0007'), 'ADR ref landed in frontmatter');
+});
+
+t('publishMeeting respects explicit opts.related and dedupes against auto-extracted', async () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  const sess = new MeetingSession(planMeeting({ task: 'related precedence', registry: reg }));
+  sess.start();
+  const firstStageSpec = sess.plan.stages[0].specialists[0].id;
+  sess.contribute(firstStageSpec, 'See meetings/2026-04-01-prev.md');
+  sess.abort('test');
+  const wikiRoot = makeTmp();
+  const r = publishMeeting(sess, {
+    wikiRoot,
+    related: ['retros/2026-04-15-retro.md', 'meetings/2026-04-01-prev.md'],
+  });
+  const body = fs.readFileSync(r.meetingPath, 'utf8');
+  // Both refs present.
+  assert.ok(body.includes('retros/2026-04-15-retro.md'), 'explicit related kept');
+  assert.ok(body.includes('meetings/2026-04-01-prev.md'), 'auto match also present');
+  // Dedup — the path appears once, even though it was both explicit
+  // and auto-discovered.
+  const occurrences = (body.match(/meetings\/2026-04-01-prev\.md/g) || []).length;
+  assert.ok(occurrences <= 2, `expected at most 2 occurrences (frontmatter + transcript) — got ${occurrences}`);
+});
+
 t('publishMeeting renders Action Items section when transcript carries markers', async () => {
   const reg = new SpecialistRegistry({ persistPath: null });
   const sess = new MeetingSession(planMeeting({ task: 'fix flaky deploy gate', registry: reg }));

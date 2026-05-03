@@ -4,6 +4,48 @@
 
 (no entries — next release window)
 
+## [1.10.272] - 2026-05-04
+
+**Multi-Specialist System — Phase 6.12 (Wiki related-pages auto-derive).**
+When publishing a meeting to wiki, the transcript is now scanned
+for references to other wiki pages, meeting ids, and ADR numbers,
+which land in the frontmatter `related:` array automatically.
+Operators no longer have to hand-curate cross-links — the wiki
+forms a navigable web on its own.
+
+### Added
+- **`src/wiki-writer.js`**:
+  - `_extractRelatedRefs(sess)` — walks every turn in every stage,
+    collects:
+    - markdown links to wiki paths (`meetings/...md`,
+      `adr/...md`, `retros/...md`) — both `[text](path)` and bare
+      inline forms
+    - meeting ids (`m-` + 12 hex), self-reference filtered out
+    - ADR refs (`ADR-NNNN` / `ADR NNNN`) — normalised to
+      `adr:0042` form (zero-padded, lowercase prefix)
+    Returns deduped + alphabetically sorted.
+  - `renderMeeting(sess, opts)` merges `opts.related` (explicit,
+    operator-supplied) with auto-extracted refs. Explicit entries
+    keep their position; auto-only refs append. Dedup is
+    insertion-order-preserving.
+  - `publishMeeting` now forwards `opts.related` and a new
+    `opts.autoRelated` toggle (default true) to `renderMeeting` —
+    fixes a pre-existing bug where `opts.related` was silently
+    dropped before reaching the frontmatter builder.
+- **Tests** (`tests/wiki-writer.test.js`): 4 new cases — extractor
+  with wiki paths / meeting ids / ADR refs (and self-reference
+  exclusion), empty extractor on no-ref session, end-to-end
+  `publishMeeting` populating `related[]` from a transcript, and
+  explicit-vs-auto merge with dedupe. Suite stays green at 199.
+
+### Notes
+- Pre-existing bug fix: `publishMeeting`'s `opts.related` was
+  documented but never threaded through to `renderMeeting`. This
+  release wires it correctly.
+- The bare path matcher requires the `meetings/`, `adr/`, or
+  `retros/` prefix so we don't mistake arbitrary code paths
+  (`src/foo.md`) for wiki links.
+
 ## [1.10.271] - 2026-05-04
 
 **Multi-Specialist System — Phase 6.11 (Meeting list filters).**

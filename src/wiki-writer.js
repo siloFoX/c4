@@ -80,8 +80,63 @@ function nextAdrNumber(adrDir) {
   return max + 1;
 }
 
+// Phase 6.12 — extract wiki-page references from a transcript so
+// the published page's frontmatter `related:` array is populated
+// without operator hand-tagging.
+//
+// Patterns recognised (in order, deduped + sorted alphabetically):
+//   - markdown links to known wiki paths:
+//       [foo](meetings/2026-01-01-foo.md), [foo](adr/0042-bar.md),
+//       [foo](retros/2026-01-01-foo.md)
+//   - bare wiki paths inline:
+//       see meetings/2026-01-01-foo.md for context
+//   - meeting ids like `m-deadbeef1234` (12-hex, the meetingId
+//     format from meeting-plan)
+//   - ADR refs like `ADR-0042` / `ADR 0042`
+//
+// Bare path matches are gated on the prefix being `meetings/`,
+// `adr/`, or `retros/` so we don't accidentally pull arbitrary
+// paths from code blocks. Non-greedy on the suffix so trailing
+// punctuation (period, comma, paren) isn't captured.
+const WIKI_PATH_RE = /\b((?:meetings|adr|retros)\/[A-Za-z0-9_.\-]+\.md)\b/g;
+const MEETING_ID_RE = /\b(m-[a-f0-9]{12})\b/g;
+const ADR_REF_RE = /\bADR[- ](\d{1,4})\b/gi;
+
+function _extractRelatedRefs(sess) {
+  const refs = new Set();
+  const transcripts = sess.transcripts || sess._transcripts || [];
+  for (const stageTurns of transcripts) {
+    for (const turn of stageTurns || []) {
+      const text = turn.text || '';
+      if (!text) continue;
+      let m;
+      WIKI_PATH_RE.lastIndex = 0;
+      while ((m = WIKI_PATH_RE.exec(text)) !== null) refs.add(m[1]);
+      MEETING_ID_RE.lastIndex = 0;
+      while ((m = MEETING_ID_RE.exec(text)) !== null) {
+        // Don't echo the current meeting back at itself.
+        if (m[1] !== sess.id) refs.add(`meeting:${m[1]}`);
+      }
+      ADR_REF_RE.lastIndex = 0;
+      while ((m = ADR_REF_RE.exec(text)) !== null) {
+        refs.add(`adr:${m[1].padStart(4, '0')}`);
+      }
+    }
+  }
+  return [...refs].sort();
+}
+
 // Build the meeting-minutes markdown from a session JSON.
 function renderMeeting(sess, opts = {}) {
+  const explicit = Array.isArray(opts.related) ? opts.related.slice() : [];
+  const auto = opts.autoRelated === false ? [] : _extractRelatedRefs(sess);
+  // Merge explicit + auto, dedupe, preserve operator-supplied order
+  // first then append newly-discovered refs.
+  const seen = new Set(explicit);
+  const merged = [...explicit];
+  for (const r of auto) {
+    if (!seen.has(r)) { seen.add(r); merged.push(r); }
+  }
   const fm = {
     title: sess.title,
     type: 'meeting',
@@ -90,7 +145,7 @@ function renderMeeting(sess, opts = {}) {
     meetingId: sess.id,
     createdAt: sess.createdAt,
     completedAt: sess.completedAt,
-    related: opts.related || [],
+    related: merged,
   };
   const out = [];
   out.push(frontmatter(fm));
@@ -358,9 +413,14 @@ function publishMeeting(sess, opts = {}) {
   const slug = slugify(sessJson.title || sessJson.task);
   const written = [];
 
-  // Meeting minutes.
+  // Meeting minutes. Forward opts so render-time options like
+  // `related` (explicit) and `autoRelated` (toggle) reach the
+  // frontmatter builder.
   const meetingPath = path.join(meetingsDir, `${date}-${slug}.md`);
-  fs.writeFileSync(meetingPath, renderMeeting(sessJson));
+  fs.writeFileSync(meetingPath, renderMeeting(sessJson, {
+    related: opts.related,
+    autoRelated: opts.autoRelated,
+  }));
   written.push(meetingPath);
 
   // ADR (if design stage spoke).
@@ -407,5 +467,6 @@ module.exports = {
   nextAdrNumber,
   _isGitRepo,
   _commitWiki,
+  _extractRelatedRefs,
   DEFAULT_WIKI_ROOT,
 };
