@@ -4,6 +4,25 @@
 
 (no entries — next release window)
 
+## [1.10.197] - 2026-05-03
+
+**`ssh-client-config-write` (high) catalog pattern.**
+SSH client config can carry `ProxyCommand`, `ForwardAgent`,
+`Match` directives that intercept / log / proxy SSH sessions.
+`authorized-keys-append` covers the server side
+(authorized_keys); this rule covers the client side
+(`~/.ssh/config` and `/etc/ssh/ssh_config[.d]`).
+
+### Added
+- **`PATTERN_CATALOG.high`** entry `ssh-client-config-write`.
+  Catches redirects/tees to:
+  - `~/.ssh/config` / `/home/<user>/.ssh/config` /
+    `/root/.ssh/config`
+  - `/etc/ssh/ssh_config`
+  - `/etc/ssh/ssh_config.d/<file>`
+  Reads (`cat ~/.ssh/config`) and routine `ssh` invocations
+  stay LOW.
+
 ## [1.10.196] - 2026-05-03
 
 **`at-schedule` extended to `systemd-run --on-*` timers.**

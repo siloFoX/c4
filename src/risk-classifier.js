@@ -697,6 +697,17 @@ const HIGH_PATTERNS = [
     label: 'overwrite ~/.ssh/known_hosts or authorized_keys',
     re: />\s*(?:~|\$HOME|\/home\/[^\s/]+)\/\.ssh\/(?:known_hosts|authorized_keys)\b/,
   },
+  // (v1.10.197) SSH CLIENT config tamper — `~/.ssh/config`
+  // and `/etc/ssh/ssh_config` accept `ProxyCommand`,
+  // `ForwardAgent`, `Match` directives that can intercept
+  // / log / proxy SSH sessions. authorized-keys-append
+  // covers authorized_keys (server-side), this rule covers
+  // client-side config tampering.
+  {
+    code: 'ssh-client-config-write',
+    label: 'write to ~/.ssh/config or /etc/ssh/ssh_config (client-side ProxyCommand etc.)',
+    re: /(?:>>?\s*|\btee\s+(?:-[aA]\s+|--append\s+)?)(?:(?:~|\$HOME|\/home\/[^\s/]+|\/root)\/\.ssh\/config|\/etc\/ssh\/ssh_config(?:\.d\/[\w.-]+)?)\b/,
+  },
   // (v1.10.160) SSH tunneling primitives — `ssh -R` (reverse
   // tunnel exposes a local port on the remote host),
   // `ssh -D` (dynamic SOCKS proxy via the SSH connection),
