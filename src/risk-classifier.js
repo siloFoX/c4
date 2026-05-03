@@ -1075,7 +1075,11 @@ const HIGH_PATTERNS = [
   {
     code: 'rc-file-write',
     label: 'append to shell rc-file (~/.bashrc / .zshrc / .profile / etc)',
-    re: />>?\s*(?:~|\$HOME|\/home\/[^\s/]+|\/root|\/etc)\/(?:\.bashrc|\.bash_profile|\.zshrc|\.zshenv|\.profile|\.config\/fish\/config\.fish|profile|bash\.bashrc|bash\.bash_profile)\b/,
+    // (v1.10.201) Extended with csh / tcsh global RCs
+    // (`csh.cshrc`, `csh.login`) and `/etc/skel/<rc>` (the
+    // template directory copied into every new user's home).
+    // Both are persistence vehicles equivalent to .bashrc.
+    re: />>?\s*(?:(?:~|\$HOME|\/home\/[^\s/]+|\/root|\/etc)\/(?:\.bashrc|\.bash_profile|\.zshrc|\.zshenv|\.profile|\.config\/fish\/config\.fish|profile|bash\.bashrc|bash\.bash_profile|csh\.cshrc|csh\.login)|\/etc\/skel\/\.\w+)\b/,
   },
   // (v1.10.67) Reading the password / shadow file or a private SSH
   // key. Classic credential dump primitive — no benign reason for

@@ -4,6 +4,19 @@
 
 (no entries — next release window)
 
+## [1.10.201] - 2026-05-03
+
+**`rc-file-write` extended to csh + /etc/skel/.** Added two
+more persistence vehicles equivalent to `.bashrc`:
+
+### Changed
+- **`rc-file-write`** regex extended with:
+  - `/etc/csh.cshrc` / `/etc/csh.login` (csh / tcsh global
+    RCs)
+  - `/etc/skel/.<dotfile>` (template directory copied into
+    every new user's home — write here to backdoor future
+    user accounts)
+
 ## [1.10.200] - 2026-05-03
 
 **`system-files` / `sed-system-file-edit` /
