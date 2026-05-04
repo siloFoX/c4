@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.344] - 2026-05-04
+
+**Web — specialist export / import / audit-rotate row.**
+Endpoints have shipped (Phase 6+); CLI had `c4 specialist
+export|import|audit-rotate`. Operators wanting to round-trip the
+registry from one daemon to another had to drop to shell. Add
+an inline action row between the summary bar and the audit log.
+
+### Added
+- **`web/src/components/SpecialistsView.tsx`**:
+  - `handleExport()` — GET `/api/specialists/export`, downloads as
+    `c4-specialists-export-<iso>.json`. Transient toast with the
+    specialist count.
+  - `handleImportFile(file)` — read JSON, POST `/api/specialists/
+    import` with `dryRun: true`. Renders a summary chip
+    `+added ~updated -removed [! errors]`.
+  - `handleImportApply()` — confirm dialog + POST same body with
+    `dryRun: false`. Refreshes the registry list on success.
+  - Mode selector (merge / replace) sits next to the file input.
+  - `handleAuditRotate()` — confirm + POST `/api/specialists/
+    audit-rotate` with `maxBytes: 0` (always rotate).
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Force-overwrite of the import isn't exposed; merge/replace
+  modes are sufficient for the common round-trip case.
+- Rotate is RBAC-gated server-side — UI silently surfaces the
+  401/403 via `apiPost`.
+
 ## [1.10.343] - 2026-05-04
 
 **Web — Maintenance panel in MeetingsView (collapsible footer).**
