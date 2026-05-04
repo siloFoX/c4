@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ChevronDown, ChevronRight, Eye, Plus, RefreshCw, Search, Shield, Star, Trash2, X } from 'lucide-react';
-import { apiDelete, apiGet, apiPost } from '../lib/api';
+import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
 
@@ -246,14 +246,7 @@ export default function SpecialistsView() {
     if (tags.length === 0 && mode === 'replace') return; // empty replace = clear; we want intentional clears
     setTagBusy(true);
     try {
-      // apiPost is for POST; we need PATCH. Use fetch directly.
-      const url = `/api/specialists/${encodeURIComponent(id)}/tags`;
-      const res = await fetch(url, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tags, mode }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await apiPatch(`/api/specialists/${encodeURIComponent(id)}/tags`, { tags, mode });
       setTagEditValue('');
       setTagEditOpen(false);
       await refresh();

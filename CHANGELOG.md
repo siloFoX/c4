@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.334] - 2026-05-04
+
+**Web — `apiPatch` helper + tag editor migration.**
+v1.10.333 used raw `fetch()` for the tag editor's PATCH because
+`lib/api.ts` only exposed GET/POST/DELETE. This adds `apiPatch`
+with the same auth + 401 + error-body semantics, and migrates the
+tag editor to use it.
+
+### Added
+- **`web/src/lib/api.ts`**: new `apiPatch<T>(url, body)` —
+  PATCH method, auth header attached via `apiFetch`, error body
+  read on non-2xx (matches `apiPost`).
+- **`web/src/components/SpecialistsView.tsx`**:
+  - imports `apiPatch` from `lib/api`
+  - tag editor's raw fetch replaced with `apiPatch(...)` —
+    same response shape, fewer lines
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Generic `apiPatch` ready for future partial-update endpoints
+  (e.g., specialist field-level edits, meeting metadata
+  patches) without per-component fetch boilerplate.
+
 ## [1.10.333] - 2026-05-04
 
 **Web — specialist tag editor.**

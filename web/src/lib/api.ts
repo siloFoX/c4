@@ -111,6 +111,25 @@ export async function apiDelete<T = unknown>(url: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+// (v1.10.334) PATCH helper. Same auth + 401 semantics as apiPost
+// since both go through apiFetch. Used by tag editor and any
+// future partial-update endpoints (PATCH /specialists/:id/tags
+// etc).
+export async function apiPatch<T = unknown>(url: string, body: unknown): Promise<T> {
+  const res = await apiFetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let errBody = '';
+    try { errBody = await res.text(); } catch { /* ignore */ }
+    const err = new Error(`HTTP ${res.status}${errBody ? `: ${errBody}` : ''}`);
+    throw err;
+  }
+  return (await res.json()) as T;
+}
+
 // Builds an EventSource URL with the token attached as ?token=... since
 // EventSource cannot set custom headers.
 export function eventSourceUrl(path: string): string {
