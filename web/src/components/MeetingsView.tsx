@@ -785,6 +785,113 @@ export default function MeetingsView() {
     [],
   );
 
+  // (v1.10.345) Manual contribute / vote on in-progress meetings.
+  // Endpoints exist since Phase 1; the web UI only surfaced "Run"
+  // which auto-drives via brain. For hybrid sessions where a
+  // human-in-the-loop wants to write a contribution from a given
+  // specialist, we now have an inline form on the detail panel.
+  // Vote-only is the same endpoint with no `text` (we use /vote
+  // for that — strictly a vote without a turn).
+  const [contribOpen, setContribOpen] = useState(false);
+  const [contribSpecialist, setContribSpecialist] = useState('');
+  const [contribText, setContribText] = useState('');
+  const [contribVote, setContribVote] = useState<'' | 'accept' | 'object'>('');
+  const [contribReason, setContribReason] = useState('');
+  const [contribBusy, setContribBusy] = useState(false);
+  const [contribMsg, setContribMsg] = useState<string | null>(null);
+  const handleContribute = useCallback(async (id: string) => {
+    const sid = contribSpecialist.trim();
+    const text = contribText.trim();
+    if (!sid || !text) {
+      setContribMsg('specialistId + text required');
+      return;
+    }
+    setContribBusy(true);
+    setContribMsg(null);
+    try {
+      const body: {
+        specialistId: string;
+        text: string;
+        vote?: 'accept' | 'object' | null;
+        reason?: string;
+      } = { specialistId: sid, text };
+      if (contribVote) body.vote = contribVote;
+      if (contribReason.trim()) body.reason = contribReason.trim();
+      await apiPost(`/api/meetings/${encodeURIComponent(id)}/contribute`, body);
+      setContribText('');
+      setContribReason('');
+      setContribVote('');
+      setContribMsg('contribution recorded');
+      window.setTimeout(() => setContribMsg(null), 3000);
+    } catch (e) {
+      setContribMsg(`contribute failed: ${(e as Error).message || 'unknown'}`);
+    } finally {
+      setContribBusy(false);
+    }
+  }, [contribSpecialist, contribText, contribVote, contribReason]);
+  const handleVoteOnly = useCallback(async (id: string, vote: 'accept' | 'object') => {
+    const sid = contribSpecialist.trim();
+    if (!sid) {
+      setContribMsg('specialistId required for vote-only');
+      return;
+    }
+    setContribBusy(true);
+    setContribMsg(null);
+    try {
+      const body: { specialistId: string; vote: 'accept' | 'object'; reason?: string } = { specialistId: sid, vote };
+      if (contribReason.trim()) body.reason = contribReason.trim();
+      await apiPost(`/api/meetings/${encodeURIComponent(id)}/vote`, body);
+      setContribReason('');
+      setContribMsg(`vote ${vote} recorded`);
+      window.setTimeout(() => setContribMsg(null), 3000);
+    } catch (e) {
+      setContribMsg(`vote failed: ${(e as Error).message || 'unknown'}`);
+    } finally {
+      setContribBusy(false);
+    }
+  }, [contribSpecialist, contribReason]);
+  // Reset on selection change
+  useEffect(() => {
+    setContribOpen(false);
+    setContribSpecialist('');
+    setContribText('');
+    setContribVote('');
+    setContribReason('');
+    setContribMsg(null);
+  }, [selectedId]);
+
+  // (v1.10.345) Retro preview / finalize for terminal meetings.
+  // Endpoints exist since phase 2.6; the web only had run with
+  // autoFinalize. For meetings the operator wants to preview before
+  // applying, surface explicit retro + finalize buttons next to
+  // publish.
+  const [retroBusy, setRetroBusy] = useState<'preview' | 'finalize' | null>(null);
+  const [retroResult, setRetroResult] = useState<{
+    deltas?: Record<string, unknown>;
+    applied?: boolean;
+    skipped?: boolean;
+    note?: string;
+  } | null>(null);
+  const [retroError, setRetroError] = useState<string | null>(null);
+  const handleRetro = useCallback(async (id: string, finalize: boolean) => {
+    setRetroBusy(finalize ? 'finalize' : 'preview');
+    setRetroError(null);
+    setRetroResult(null);
+    try {
+      const path = finalize ? 'finalize' : 'retro';
+      const res = await apiPost<typeof retroResult>(
+        `/api/meetings/${encodeURIComponent(id)}/${path}`,
+        {},
+      );
+      setRetroResult(res || { note: 'no payload' });
+    } catch (e) {
+      setRetroError(`${finalize ? 'finalize' : 'retro'} failed: ${(e as Error).message || 'unknown'}`);
+    } finally {
+      setRetroBusy(null);
+    }
+  }, []);
+  useEffect(() => { setRetroResult(null); setRetroError(null); }, [selectedId]);
+
   // (v1.10.342) Maintenance — surfacing four ops endpoints from
   // an inline collapsible panel:
   //   GET  /meetings/persist-integrity (read-only health check)
@@ -1763,6 +1870,17 @@ export default function MeetingsView() {
               <Button
                 size="sm"
                 variant="outline"
+                onClick={() => setContribOpen((v) => !v)}
+                disabled={contribBusy}
+                aria-label="Toggle contribute form"
+                title="Post a contribution from a specific specialist"
+                aria-expanded={contribOpen}
+              >
+                {contribOpen ? 'Hide contribute' : 'Contribute…'}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={() => handleStateAction(selectedId, 'advance')}
                 disabled={stateBusy !== null}
                 aria-label="Advance to next stage"
@@ -1809,6 +1927,98 @@ export default function MeetingsView() {
               {stateError ? (
                 <span className="text-[11px] text-destructive">{stateError}</span>
               ) : null}
+            </div>
+          ) : null}
+          {/* (v1.10.345) Contribute / vote form. Hidden until the
+              operator clicks "Contribute…". Vote-only buttons hit
+              /vote (no turn appended); contribute hits /contribute
+              with optional vote piggybacked on the turn. */}
+          {selectedId && detail && detail.status === 'in-progress' && contribOpen ? (
+            <div className="flex flex-col gap-1 rounded-md border border-border bg-muted/10 p-2 text-[11px]">
+              <Input
+                type="text"
+                value={contribSpecialist}
+                onChange={(e) => setContribSpecialist(e.target.value)}
+                placeholder="specialistId (e.g. security-auditor)"
+                aria-label="Specialist id"
+                disabled={contribBusy}
+                className="h-7 text-[11px] font-mono"
+              />
+              <textarea
+                value={contribText}
+                onChange={(e) => setContribText(e.target.value)}
+                placeholder="contribution body (markdown ok)"
+                aria-label="Contribution text"
+                disabled={contribBusy}
+                className="min-h-[64px] rounded border border-border bg-background p-2 text-[11px]"
+              />
+              <Input
+                type="text"
+                value={contribReason}
+                onChange={(e) => setContribReason(e.target.value)}
+                placeholder="reason (optional, recorded with vote)"
+                aria-label="Vote reason"
+                disabled={contribBusy}
+                className="h-7 text-[11px]"
+              />
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <label className="flex items-center gap-1 text-muted-foreground">
+                  vote (with contrib):
+                  <select
+                    value={contribVote}
+                    onChange={(e) => setContribVote(e.target.value as '' | 'accept' | 'object')}
+                    disabled={contribBusy}
+                    className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
+                  >
+                    <option value="">none</option>
+                    <option value="accept">accept</option>
+                    <option value="object">object</option>
+                  </select>
+                </label>
+                <Button
+                  size="sm"
+                  onClick={() => handleContribute(selectedId)}
+                  disabled={contribBusy || !contribSpecialist.trim() || !contribText.trim()}
+                  className="h-6 px-2 text-[10px]"
+                  aria-label="Post contribution"
+                >
+                  {contribBusy ? '…' : 'Post contribution'}
+                </Button>
+                <span className="text-border">|</span>
+                <span className="text-muted-foreground">vote-only:</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleVoteOnly(selectedId, 'accept')}
+                  disabled={contribBusy || !contribSpecialist.trim()}
+                  className="h-6 px-2 text-[10px]"
+                  aria-label="Vote accept"
+                >
+                  Accept
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleVoteOnly(selectedId, 'object')}
+                  disabled={contribBusy || !contribSpecialist.trim()}
+                  className="h-6 px-2 text-[10px]"
+                  aria-label="Vote object"
+                >
+                  Object
+                </Button>
+                {contribMsg ? (
+                  <span className={cn(
+                    'truncate',
+                    contribMsg.startsWith('contribute failed') ||
+                    contribMsg.startsWith('vote failed') ||
+                    contribMsg === 'specialistId + text required' ||
+                    contribMsg === 'specialistId required for vote-only'
+                      ? 'text-destructive' : 'text-muted-foreground',
+                  )}>
+                    {contribMsg}
+                  </span>
+                ) : null}
+              </div>
             </div>
           ) : null}
           {selectedId && detail && detail.status === 'pending' ? (
@@ -1906,6 +2116,44 @@ export default function MeetingsView() {
                   peerRetroMsg.startsWith('peer-retro failed')
                     ? 'text-destructive' : 'text-muted-foreground',
                 )}>{peerRetroMsg}</span>
+              ) : null}
+              {/* (v1.10.345) Retro preview / finalize. */}
+              <span aria-hidden className="text-muted-foreground">·</span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleRetro(selectedId, false)}
+                disabled={retroBusy !== null}
+                aria-label="Preview retro deltas"
+                title="Compute retro score deltas without applying"
+                className="h-6 px-2 text-[10px]"
+              >
+                {retroBusy === 'preview' ? '…' : 'Retro preview'}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleRetro(selectedId, true)}
+                disabled={retroBusy !== null}
+                aria-label="Finalize retro (apply deltas)"
+                title="Apply retro deltas to the registry score record"
+                className="h-6 px-2 text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-300"
+              >
+                {retroBusy === 'finalize' ? '…' : 'Finalize'}
+              </Button>
+              {retroError ? (
+                <span className="text-[11px] text-destructive">{retroError}</span>
+              ) : null}
+              {retroResult ? (
+                <span className="text-[11px] text-muted-foreground" title={JSON.stringify(retroResult)}>
+                  retro: {retroResult.applied
+                    ? 'applied'
+                    : retroResult.skipped
+                    ? `skipped${retroResult.note ? ` (${retroResult.note})` : ''}`
+                    : retroResult.deltas
+                    ? `${Object.keys(retroResult.deltas).length} delta(s)`
+                    : 'ok'}
+                </span>
               ) : null}
             </div>
           ) : null}

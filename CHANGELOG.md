@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.346] - 2026-05-04
+
+**Web — manual contribute / vote-only / retro preview / finalize.**
+The web previously surfaced only "Run + auto-finalize" for
+in-progress meetings and "Publish to wiki / Peer retro" for
+terminal ones. Operators wanting to drive a meeting by hand or
+preview retro deltas had to drop to CLI.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**:
+  - "Contribute…" toggle button on the in-progress action row
+    (sits next to Advance / Next round / Escalate / Abort).
+    Opens an inline form below.
+  - Form: specialistId (text), text (textarea), vote selector
+    (none / accept / object), reason (text).
+  - `handleContribute` POSTs to `/contribute`.
+  - `handleVoteOnly(vote)` POSTs to `/vote` (no turn appended).
+  - "Accept" / "Object" buttons fire vote-only with the same
+    specialistId + reason.
+  - Form clears on selection change so it doesn't leak across
+    meetings.
+  - Terminal action row gains "Retro preview" and "Finalize"
+    buttons next to Peer retro. Finalize is amber-toned to
+    signal it's the apply variant.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- The contribute form is simple text input — no dropdown of
+  current-stage roster yet (would need a /meetings/:id/roster
+  query).
+
 ## [1.10.345] - 2026-05-04
 
 **Web — meeting template CRUD inline editor.** Backend POST /
