@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.315] - 2026-05-04
+
+**Web — audit log viewer in SpecialistsView.**
+Phase 1.4 introduced the governance audit log, Phase 7.10 added
+time filters, Phase 7.12 rotation. CLI operators saw it via
+`c4 specialist audit`; web operators had no equivalent. This
+adds a collapsible viewer below the summary bar.
+
+### Added
+- **`web/src/components/SpecialistsView.tsx`**:
+  - `AuditEntry` typing (ts / action / id / actor / reason /
+    mode / meetingId)
+  - collapsible toggle row "Audit log · last 50 entries"
+  - 30s polling `useEffect` — only fires while the section is
+    open (closed state adds zero load)
+  - color-coded action pills (add/remove/import/score-applied/
+    prompt-revised/tags-updated/score-reset) — same palette as
+    `c4 specialist audit` CLI
+  - shows newest first (latest at top)
+  - empty + loading states inline
+
+### Notes
+- Pure web — backend tests still 200/200 green; lint + drift
+  clean.
+- Stops at 50 entries client-side; operators wanting deeper
+  history use `c4 specialist audit --limit N --since ISO`.
+- The `score-reset` pill picks up from Phase 8.5; once
+  prompt-apply happens in the wild the `prompt-revised` pill
+  surfaces it inline.
+
 ## [1.10.314] - 2026-05-04
 
 **Web — track classifier preview in MeetingsView create form.**

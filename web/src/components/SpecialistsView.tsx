@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Eye, Plus, RefreshCw, Shield, Star, Trash2 } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronRight, Eye, Plus, RefreshCw, Shield, Star, Trash2 } from 'lucide-react';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
@@ -131,6 +131,36 @@ export default function SpecialistsView() {
     const id = window.setInterval(fetchSummary, 30000);
     return () => { cancelled = true; window.clearInterval(id); };
   }, []);
+
+  // (Phase 1.4 + 7.10) Audit log viewer. Collapsed by default;
+  // operator opens it to inspect recent governance events. Polled
+  // only while open so the closed state doesn't add load.
+  interface AuditEntry {
+    ts: string;
+    action: string;
+    id?: string | null;
+    actor?: string | null;
+    reason?: string | null;
+    mode?: string | null;
+    meetingId?: string | null;
+  }
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [auditEntries, setAuditEntries] = useState<AuditEntry[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  useEffect(() => {
+    if (!auditOpen) return undefined;
+    let cancelled = false;
+    const fetchAudit = () => {
+      setAuditLoading(true);
+      apiGet<{ count: number; entries: AuditEntry[] }>('/api/specialists/audit?limit=50')
+        .then((res) => { if (!cancelled) setAuditEntries(res.entries || []); })
+        .catch(() => { /* tolerate */ })
+        .finally(() => { if (!cancelled) setAuditLoading(false); });
+    };
+    fetchAudit();
+    const id = window.setInterval(fetchAudit, 30000);
+    return () => { cancelled = true; window.clearInterval(id); };
+  }, [auditOpen]);
 
   // Underperformer scan (phase 5.1) — fetched separately so the
   // alert pill on a row can light up before the operator clicks.
@@ -277,6 +307,68 @@ export default function SpecialistsView() {
           ) : null}
         </div>
       ) : null}
+      {/* (Phase 1.4 + 7.10) Audit log viewer. Collapsed by default. */}
+      <div className="rounded-md border border-border/40 bg-muted/5">
+        <button
+          type="button"
+          onClick={() => setAuditOpen((v) => !v)}
+          className="flex w-full items-center gap-1 px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+          aria-expanded={auditOpen}
+        >
+          {auditOpen ? <ChevronDown className="h-3 w-3" aria-hidden /> : <ChevronRight className="h-3 w-3" aria-hidden />}
+          <span className="font-medium">Audit log</span>
+          <span>· last 50 entries</span>
+          {auditLoading ? <span className="ml-2">loading…</span> : null}
+          {auditOpen && auditEntries.length > 0 ? (
+            <span className="ml-auto opacity-70">{auditEntries.length} entries</span>
+          ) : null}
+        </button>
+        {auditOpen ? (
+          <div className="max-h-64 overflow-y-auto border-t border-border/40 bg-background">
+            {auditEntries.length === 0 ? (
+              <div className="p-3 text-[11px] text-muted-foreground">
+                {auditLoading ? 'Loading…' : 'No audit entries yet.'}
+              </div>
+            ) : (
+              <ul className="divide-y divide-border/40 text-[11px]">
+                {auditEntries.slice().reverse().map((e, i) => {
+                  const tone: Record<string, string> = {
+                    add: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+                    remove: 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400',
+                    import: 'border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-400',
+                    'score-applied': 'border-purple-500/40 bg-purple-500/10 text-purple-700 dark:text-purple-400',
+                    'prompt-revised': 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+                    'tags-updated': 'border-cyan-500/40 bg-cyan-500/10 text-cyan-700 dark:text-cyan-400',
+                    'score-reset': 'border-orange-500/40 bg-orange-500/10 text-orange-700 dark:text-orange-400',
+                  };
+                  return (
+                    <li key={i} className="flex flex-wrap items-baseline gap-2 px-3 py-1.5">
+                      <span className="font-mono text-[10px] text-muted-foreground">
+                        {new Date(e.ts).toLocaleString()}
+                      </span>
+                      <span className={cn(
+                        'inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] uppercase tracking-wide',
+                        tone[e.action] || 'border-border bg-muted/30 text-muted-foreground',
+                      )}>
+                        {e.action}
+                      </span>
+                      {e.id ? (
+                        <span className="font-mono text-[11px]">{e.id}</span>
+                      ) : null}
+                      {e.actor ? (
+                        <span className="text-muted-foreground">by {e.actor}</span>
+                      ) : null}
+                      {e.reason ? (
+                        <span className="text-muted-foreground italic">— {e.reason}</span>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        ) : null}
+      </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden md:flex-row">
       <Card className="flex min-h-0 flex-1 flex-col md:max-w-md">
         <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
