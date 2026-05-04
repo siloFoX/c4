@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.10.295] - 2026-05-04
+
+**Multi-Specialist System — Phase 7.13 (Auto-backup on graceful shutdown).**
+Every clean restart now leaves a "last known good" snapshot at
+`~/.c4/meetings.last.db`. Operators recovering from a crash-after-
+corruption scenario can copy `meetings.last.db → meetings.db`
+to restore the last operator-controlled state without finding
+explicit backup files.
+
+### Added
+- **`src/meeting-persist.js`**: `backupTo(targetPath, {force})`
+  gains an opt-in overwrite mode. Default still throws on
+  collision (safe for operator-triggered explicit backups);
+  `force:true` deletes the target before writing so a rolling
+  fixed-path backup can roll over.
+- **`src/daemon.js`**: `_gracefulShutdown` calls
+  `backupTo(~/.c4/meetings.last.db, {force:true})` before
+  closing the persist DB. Failures logged to stderr but don't
+  block the close — meetings.db is still the live source of
+  truth.
+- **HTTP**: `POST /meetings/persist-backup` body gains `force`.
+- **CLI**: `c4 meeting backup --out path --force`.
+- **OpenAPI**: `force` documented in request schema.
+- **Tests**: new `backupTo({force:true}) overwrites an existing
+  target` case verifies the placeholder file gets replaced
+  with a real SQLite file (reopened, row count + content
+  preserved). Suite total stays at 200.
+
+### Notes
+- e2e: stopped daemon → `/home/shinc/.c4/meetings.last.db`
+  created (24KB). The file rolls over on every clean shutdown.
+- This pairs with Phase 7.8 explicit backup: explicit goes to
+  whatever path the operator specifies (default refuse-overwrite
+  for safety), auto goes to a deterministic path with overwrite
+  semantics. Two complementary patterns; same primitive.
+
 ## [1.10.294] - 2026-05-04
 
 **Multi-Specialist System — Phase 7.12 (Audit log rotation).**

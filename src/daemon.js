@@ -4765,7 +4765,7 @@ async function handleRequest(req, res) {
         return;
       }
       try {
-        const r = _meetingPersist.backupTo(body.path);
+        const r = _meetingPersist.backupTo(body.path, { force: !!body.force });
         result = { ok: true, ...r };
       } catch (err) {
         const code = /already exists/.test(err.message) ? 409 : 400;
@@ -6552,6 +6552,28 @@ function _gracefulShutdown() {
   _stopScheduleTick();
   _stopAutoDispatcher();
   manager.closeAll();
+  // (Phase 7.13) Auto-backup on graceful shutdown so every clean
+  // restart leaves a "last known good" copy at a deterministic
+  // path. Operators can recover from a crash-after-corruption by
+  // copying meetings.last.db → meetings.db. The file rolls over
+  // on every shutdown — only the most recent clean shutdown is
+  // preserved; older "last knowns" come from explicit
+  // `c4 meeting backup` runs.
+  if (_meetingPersist) {
+    try {
+      const path2 = require('path');
+      const lastKnownPath = path2.join(
+        path2.dirname(meetingPersistMod.DEFAULT_DB_PATH),
+        'meetings.last.db',
+      );
+      const r = _meetingPersist.backupTo(lastKnownPath, { force: true });
+      process.stderr.write(`[daemon] auto-backup → ${r.path} (${r.bytes || 0} bytes)\n`);
+    } catch (err) {
+      // Non-fatal. The clean-close below still happens; persistence
+      // remains intact via meetings.db.
+      process.stderr.write(`[daemon] auto-backup failed: ${err.message}\n`);
+    }
+  }
   // Close the meeting persist DB explicitly so WAL flushes and the
   // file lock releases cleanly. better-sqlite3 closes on process
   // exit anyway; explicit close avoids sporadic "database is

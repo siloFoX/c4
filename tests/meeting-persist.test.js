@@ -346,6 +346,29 @@ t('backupTo refuses to overwrite an existing target', () => {
   }
 });
 
+t('backupTo({force:true}) overwrites an existing target', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'c4-mp-bk-force-'));
+  const srcPath = path.join(tmp, 'meetings.db');
+  const dstPath = path.join(tmp, 'rolling.db');
+  fs.writeFileSync(dstPath, 'previous backup placeholder');
+  try {
+    const src = new (require('../src/meeting-persist').MeetingPersist)({ dbPath: srcPath });
+    const sess = mkSession('force overwrite');
+    src.save(sess);
+    const r = src.backupTo(dstPath, { force: true });
+    assert.strictEqual(r.path, dstPath);
+    assert.ok(typeof r.bytes === 'number' && r.bytes > 0);
+    // Reopen target — should be a real SQLite file now, not the
+    // placeholder text.
+    const dst = new (require('../src/meeting-persist').MeetingPersist)({ dbPath: dstPath });
+    assert.strictEqual(dst.count(), 1);
+    assert.strictEqual(dst.load(sess.id).task, 'force overwrite');
+    src.close(); dst.close();
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 t('backupTo rejects empty/missing path', () => {
   const p = mkDb();
   assert.throws(() => p.backupTo(), /required/);

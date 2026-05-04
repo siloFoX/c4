@@ -3314,16 +3314,18 @@ async function main() {
           return;
         }
         if (sub === 'backup') {
-          // c4 meeting backup --out <path.db>
+          // c4 meeting backup --out <path.db> [--force]
           let outPath = null;
+          let force = false;
           for (let i = 1; i < args.length; i += 1) {
             if (args[i] === '--out' && args[i + 1]) { outPath = args[i + 1]; i += 1; }
+            else if (args[i] === '--force') { force = true; }
           }
           if (!outPath) {
-            console.error('Usage: c4 meeting backup --out <target-path.db>');
+            console.error('Usage: c4 meeting backup --out <target-path.db> [--force]');
             process.exit(1);
           }
-          result = await request('POST', '/meetings/persist-backup', { path: outPath });
+          result = await request('POST', '/meetings/persist-backup', { path: outPath, force });
           if (args.includes('--json')) break;
           if (result.error) { console.error(result.error); process.exit(1); }
           const sizeStr = (typeof result.bytes === 'number')

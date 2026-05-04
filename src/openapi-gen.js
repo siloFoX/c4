@@ -2241,7 +2241,8 @@ const ROUTE_SCHEMAS = {
   'POST /meetings/persist-backup': {
     requestBody: {
       properties: {
-        path: { type: 'string', description: 'Target file path; must not already exist' },
+        path: { type: 'string', description: 'Target file path' },
+        force: { type: 'boolean', description: 'Overwrite an existing target (default false)' },
       },
       example: { path: '/backups/meetings-2026-05-04.db' },
     },

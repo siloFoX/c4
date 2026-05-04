@@ -236,7 +236,7 @@ class MeetingPersist {
   //
   // VACUUM INTO refuses to overwrite an existing file. Caller
   // should pre-clean if they want overwrite semantics.
-  backupTo(targetPath) {
+  backupTo(targetPath, opts = {}) {
     if (!targetPath || typeof targetPath !== 'string') {
       throw new Error('backupTo: targetPath required');
     }
@@ -244,7 +244,15 @@ class MeetingPersist {
     const path2 = require('path');
     fs2.mkdirSync(path2.dirname(path2.resolve(targetPath)), { recursive: true });
     if (fs2.existsSync(targetPath)) {
-      throw new Error(`backupTo: target already exists (${targetPath})`);
+      // Phase 7.13 — opt-in overwrite. The default refusal is the
+      // safe path for operator-triggered backups (avoid clobbering
+      // the previous explicit one). Auto-backup-on-shutdown opts in
+      // because it's a "last known good" file with deterministic
+      // path that's MEANT to roll over on every clean restart.
+      if (!opts.force) {
+        throw new Error(`backupTo: target already exists (${targetPath})`);
+      }
+      fs2.unlinkSync(targetPath);
     }
     // Bind via prepared param-style to dodge any shell-like quoting
     // surprises (path with spaces / quotes).
