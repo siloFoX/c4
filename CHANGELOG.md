@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.373] - 2026-05-04
+
+**Web — DetailTabs i18n.** Worker detail's three-mode tab strip
+(Terminal / Chat / Control) was hardcoded English. Reused the
+existing `settings.detail.*` keys (added in v1.10.370) so we
+didn't need new strings — pure component-side migration.
+
+### Changed
+- **`web/src/components/layout/DetailTabs.tsx`**:
+  - `TabDef` switched from `label: string` to `labelKey` +
+    `fallback` (mirrors the TopTabs pattern from v1.10.361).
+  - `useLocale()` hook re-renders on locale flip.
+  - Render-time `t(labelKey) || fallback` lookup.
+- **`tests/chat-view.test.js` + `tests/web-control.test.js`**:
+  source-grep relaxed to `(label|fallback): '<X>'` so the
+  back-compat layer keeps the assertion meaningful.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Korean copy reuses 터미널 / 채팅 / 컨트롤 from v1.10.370.
+
 ## [1.10.372] - 2026-05-04
 
 **Web — EmptyState i18n.** When no worker is selected the right

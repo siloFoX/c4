@@ -155,8 +155,11 @@ describe('App.tsx integration', () => {
       path.join(WEB_SRC, 'components', 'layout', 'DetailTabs.tsx'),
       'utf8',
     );
-    assert.match(detailTabsSrc, /label: 'Terminal'/);
-    assert.match(detailTabsSrc, /label: 'Chat'/);
+    // (v1.10.372) Migrated to i18n keys + fallback string (mirrors
+    // TopTabs migration from v1.10.361). Match either the legacy
+    // `label: '<X>'` literal or the new `fallback: '<X>'` form.
+    assert.match(detailTabsSrc, /(label|fallback): 'Terminal'/);
+    assert.match(detailTabsSrc, /(label|fallback): 'Chat'/);
     assert.match(detailTabsSrc, /value: 'terminal'/);
     assert.match(detailTabsSrc, /value: 'chat'/);
     assert.match(src, /<DetailTabs[\s\S]*?onChange=\{setDetailMode\}/);

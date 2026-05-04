@@ -360,7 +360,8 @@ describe('App.tsx Control tab wiring (8.8)', () => {
     );
     assert.match(detailTabsSrc, /aria-selected=\{active\}/);
     assert.match(detailTabsSrc, /value: 'control'/);
-    assert.match(detailTabsSrc, /label: 'Control'/);
+    // (v1.10.372) Migrated to i18n keys + fallback string.
+    assert.match(detailTabsSrc, /(label|fallback): 'Control'/);
     assert.match(src, /<ControlPanel key=\{`control-\$\{selectedWorker\}`\}/);
   });
 
