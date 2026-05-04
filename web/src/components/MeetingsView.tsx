@@ -153,6 +153,10 @@ export default function MeetingsView() {
   const [data, setData] = useState<MeetingsListResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // (Phase 6.11) List-level filters (separate from search filters
+  // — search hits FTS, list hits the bare /meetings endpoint).
+  const [listStatus, setListStatus] = useState<MeetingStatus | ''>('');
+  const [listTrack, setListTrack] = useState<'lightweight' | 'standard' | 'full' | ''>('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<MeetingDetail | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
@@ -222,14 +226,18 @@ export default function MeetingsView() {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiGet<MeetingsListResponse>('/api/meetings');
+      const params = new URLSearchParams();
+      if (listStatus) params.set('status', listStatus);
+      if (listTrack) params.set('track', listTrack);
+      const url = params.toString() ? `/api/meetings?${params.toString()}` : '/api/meetings';
+      const res = await apiGet<MeetingsListResponse>(url);
       setData(res);
     } catch (e) {
       setError((e as Error).message || 'Failed to load meetings');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [listStatus, listTrack]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -740,6 +748,51 @@ export default function MeetingsView() {
               </Button>
             </div>
           </div>
+          {/* (Phase 6.11) list-level status/track narrow. Empty
+              search query → these dropdowns control the result set. */}
+          {!searchQuery.trim() ? (
+            <div className="flex flex-wrap items-center gap-2 text-[10px]">
+              <label className="flex items-center gap-1 text-muted-foreground">
+                status:
+                <select
+                  className="rounded border border-border bg-background px-1 py-0.5"
+                  value={listStatus}
+                  onChange={(e) => setListStatus(e.target.value as typeof listStatus)}
+                  aria-label="List filter by status"
+                >
+                  <option value="">any</option>
+                  <option value="pending">pending</option>
+                  <option value="in-progress">in-progress</option>
+                  <option value="completed">completed</option>
+                  <option value="escalated">escalated</option>
+                  <option value="aborted">aborted</option>
+                </select>
+              </label>
+              <label className="flex items-center gap-1 text-muted-foreground">
+                track:
+                <select
+                  className="rounded border border-border bg-background px-1 py-0.5"
+                  value={listTrack}
+                  onChange={(e) => setListTrack(e.target.value as typeof listTrack)}
+                  aria-label="List filter by track"
+                >
+                  <option value="">any</option>
+                  <option value="lightweight">lightweight</option>
+                  <option value="standard">standard</option>
+                  <option value="full">full</option>
+                </select>
+              </label>
+              {(listStatus || listTrack) ? (
+                <button
+                  type="button"
+                  onClick={() => { setListStatus(''); setListTrack(''); }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  clear
+                </button>
+              ) : null}
+            </div>
+          ) : null}
           {/* (Phase 8.1) Full-text search. Empty query → bare list.
               Non-empty → list shows matches with bm25 ranking. */}
           <div className="flex items-center gap-2">

@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.337] - 2026-05-04
+
+**Web — meeting list status/track filters.**
+Phase 6.11 backend exposed `?status` / `?track` on
+`GET /meetings`. Web only ever called the bare endpoint. Filters
+were search-only. Adds list-level dropdowns next to search
+input, hidden while search is active.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**:
+  - `listStatus` / `listTrack` state separate from search filters
+  - `refresh` callback now constructs the URL with optional
+    `status` / `track` params
+  - dropdowns appear above the list rows when no search query is
+    active (search has its own filter row)
+  - "clear" link visible when either is set
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Filter state changes trigger `refresh` via the callback's dep
+  array — no manual button click needed.
+- Distinct from the search filters because the backend list
+  endpoint and search endpoint have different field semantics
+  (e.g., search has `since/until/fork-of`; list has `track`
+  alone). Web mirrors that division to avoid confusing
+  behavior.
+
 ## [1.10.336] - 2026-05-04**Web — persist size unit auto-scale + audit/db amber threshold.**
 v1.10.312 always rendered persist DB size in KB. After tens of MB
 the number became visually noisy and operators had to do mental
