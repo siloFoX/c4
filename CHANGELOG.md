@@ -4,6 +4,25 @@
 
 (no entries — next release window)
 
+## [1.10.383] - 2026-05-04
+
+**Web — Help drawer feature-nav copy refreshed.** Mentions
+config/workspaces (added v1.10.359/v1.10.380) + risk
+(v1.10.357) which the original copy omitted; Korean text now
+uses the translated category labels (운영/자동화/비용/구성/진단).
+
+### Changed
+- **`web/src/i18n/en.json`**: `help.featureNav` lists the
+  newer pages (config/workspaces/risk) under their categories
+  and reorders to match the actual sidebar.
+- **`web/src/i18n/ko.json`**: same content, plus translation of
+  the category names.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- The HelpDrawer component itself is unchanged — pure i18n
+  bundle update.
+
 ## [1.10.382] - 2026-05-04
 
 **Web — onboarding tour step 2 mentions the new filter input,

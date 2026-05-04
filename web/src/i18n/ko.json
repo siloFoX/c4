@@ -122,7 +122,7 @@
 
   "help.title": "C4 도움말",
   "help.globalIntro": "C4는 로컬 데몬이 git worktree 안에 Claude Code 워커를 띄우는 구조입니다. 웹 UI는 c4 CLI의 얇은 래퍼이며, Features 탭의 각 페이지는 터미널에서 실행할 수 있는 c4 <cmd>와 1:1로 대응됩니다.",
-  "help.featureNav": "Features 탭에서 기능 사이드바를 엽니다. 카테고리: Operations(일상 운영), Cost(토큰/쿼터), Automation(plan/morning/auto), Config(templates/profiles), Diagnostics(health/validation).",
+  "help.featureNav": "기능 탭에서 기능 사이드바를 엽니다. 카테고리: 운영(일상 운영), 자동화(plan/morning/auto), 비용(토큰/쿼터), 구성(templates/profiles/config/workspaces), 진단(health/validation/risk).",
   "help.shortcutHint": "아무 때나 ? 키를 누르면 단축키 시트가 열립니다.",
   "help.cliMapping": "대부분의 페이지는 상단 배너에 동일한 CLI 명령을 함께 표시합니다. UI로 풀리지 않는 흐름은 터미널로 전환해서 진행하세요.",
 

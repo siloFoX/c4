@@ -122,7 +122,7 @@
 
   "help.title": "C4 help",
   "help.globalIntro": "C4 runs a local daemon that spawns Claude Code workers inside git worktrees. The web UI is a thin shell over the c4 CLI. Every page in Features mirrors a c4 <cmd> you could run in a terminal.",
-  "help.featureNav": "Use the Features tab to open the feature sidebar. Categories: Operations (day-to-day), Cost (token/quota), Automation (plan/morning/auto), Config (templates/profiles), Diagnostics (health/validation).",
+  "help.featureNav": "Use the Features tab to open the feature sidebar. Categories: Operations (day-to-day), Automation (plan/morning/auto), Cost (token/quota), Config (templates/profiles/config/workspaces), Diagnostics (health/validation/risk).",
   "help.shortcutHint": "Press ? any time to open the keyboard shortcut sheet.",
   "help.cliMapping": "Most pages show their CLI equivalent in the banner so you can switch to the terminal when a flow does not fit the UI.",
 
