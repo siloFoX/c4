@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.325] - 2026-05-04
+
+**Web — recap quick-summary panel.**
+Phase 6.10 recap envelope returned `firstTurn` per stage +
+escalations as a one-shot summary. The detail view shows the
+full transcript so the recap was redundant for deep dives, but
+operators wanting a quick-glance summary had nothing — needed
+to scroll. Adds a collapsible inline panel.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**:
+  - `RecapStage` / `RecapResponse` types
+  - `useEffect` fetches `/api/meetings/:id/recap` on selection
+    change AND on transcript turn-count change (live SSE
+    updates pick up newly-first turns)
+  - "Recap · first turn per stage" collapsible panel above
+    action-items
+  - per-stage row: `[stage] specialistId rN · N turn(s)` +
+    3-line clamp on the first turn text
+  - escalations sub-section in amber when present
+  - hidden when no stage has a `firstTurn` (pending meetings)
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Pairs naturally with the action-items panel (v1.10.311) — recap
+  for "what was discussed", action-items for "what was decided".
+
 ## [1.10.324] - 2026-05-04
 
 **Web — fork chip in MeetingsView list rows.**
