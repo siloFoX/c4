@@ -1077,6 +1077,50 @@ async function main() {
           }
         } catch { /* summary endpoint may be missing on old daemons */ }
 
+        // (v1.10.308) --runtime opts into the dynamic smoke-test
+        // after the static checks. Only the create+search+run
+        // sequence — fork+lineage are full-smoke-test-only since
+        // they're slower and the operator can run that separately.
+        // Useful in CI / health-monitor scripts that want one
+        // command for full deployment validation.
+        if (args.includes('--runtime')) {
+          const startMs = Date.now();
+          let testId = null;
+          let stepsOk = 0;
+          let stepsFail = 0;
+          const note = (ok, label, err) => {
+            if (ok) stepsOk += 1; else stepsFail += 1;
+            if (!ok) {
+              checks.push({ ok: false, label: `smoke-test: ${label} — ${err}` });
+            }
+          };
+          try {
+            const m = await request('POST', '/meetings', {
+              task: `c4 doctor --runtime ${new Date().toISOString()}`,
+              track: 'lightweight',
+            });
+            if (m.error) throw new Error(m.error);
+            testId = m.id;
+            note(true, 'create');
+          } catch (err) { note(false, 'create', err.message); }
+          if (testId) {
+            try {
+              const r = await request('POST', `/meetings/${encodeURIComponent(testId)}/run`, { brain: 'mock', maxAsks: 30 });
+              const status = r && r.session && r.session.status;
+              if (!['completed', 'escalated'].includes(status)) {
+                throw new Error(`unexpected status ${status}`);
+              }
+              note(true, 'run');
+            } catch (err) { note(false, 'run', err.message); }
+            try { await request('DELETE', `/meetings/${encodeURIComponent(testId)}`); }
+            catch { /* tolerate; meetings.db garbage on failure is fine */ }
+          }
+          const ms = Date.now() - startMs;
+          if (stepsFail === 0) {
+            checks.push({ ok: true, label: `smoke-test: runtime check passed (${stepsOk} steps in ${ms}ms)` });
+          }
+        }
+
         const failed = checks.filter((c) => !c.ok).length;
         const warned = checks.filter((c) => c.ok && c.level === 'warn').length;
         // (v1.10.291) --json mode for monitoring/scripting

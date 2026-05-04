@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.308] - 2026-05-04
+
+**c4 doctor — `--runtime` flag chains smoke-test.**
+Phase 9.1 ships `c4 specialist smoke-test` as a separate command.
+For CI / health-monitor pipelines that want a single command
+for full deployment validation, this adds an opt-in `--runtime`
+flag to `c4 doctor` that runs a minimal subset of the smoke-test
+(create + run + cleanup) after the static checks complete.
+
+### Added
+- **CLI**: `c4 doctor --runtime`
+  - after the static check pass, creates a lightweight test
+    meeting, drives it with the mock brain, deletes it
+  - on success: appends `smoke-test: runtime check passed (N
+    steps in Mms)` as a passing check
+  - on failure: appends `smoke-test: <step> — <error>` as a
+    failing check; the overall doctor exit code (1 on any
+    failure) propagates
+  - default behavior unchanged — without `--runtime`, doctor is
+    static-only (fast, repeatable, no side effects)
+
+### Notes
+- e2e: `c4 doctor --runtime` against the live daemon →
+  `smoke-test: runtime check passed (2 steps in 13ms)`
+  alongside the existing 11 static checks. All green except the
+  pre-existing risk-classifier disabled warning.
+- Compose with `--json`: `c4 doctor --runtime --json` returns
+  the smoke-test step result alongside the static checks in the
+  JSON envelope. Monitoring scripts get one structured payload.
+
 ## [1.10.307] - 2026-05-04
 
 **c4 specialist smoke-test — fork + lineage steps.**
