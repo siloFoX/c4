@@ -219,6 +219,43 @@ export default function SpecialistsView() {
     }
   }, [addJson, refresh]);
 
+  // (Phase 1.5) Propose specialist via meta-meeting consensus.
+  // Same JSON shape as Add, POSTed to /specialists/propose with
+  // brain=mock by default. Result includes meetingId so the
+  // operator can switch to Meetings tab and watch the consensus
+  // unfold.
+  const [proposeBusy, setProposeBusy] = useState(false);
+  const [proposeMsg, setProposeMsg] = useState<string | null>(null);
+  const handlePropose = useCallback(async () => {
+    let parsed: unknown;
+    try { parsed = JSON.parse(addJson); }
+    catch (e) { setAddError(`invalid JSON: ${(e as Error).message}`); return; }
+    setProposeBusy(true);
+    setAddError(null);
+    setProposeMsg(null);
+    try {
+      const res = await apiPost<{
+        candidateId: string;
+        meetingId: string;
+        decision: { accepted: boolean; accepts: string[]; objects: Array<{ id: string }>; reason: string | null };
+        added: boolean;
+      }>('/api/specialists/propose', { candidate: parsed, brain: 'mock' });
+      if (res.added) {
+        setProposeMsg(`accepted by ${res.decision.accepts.length} specialist(s) → added to registry (meeting ${res.meetingId})`);
+        setAddOpen(false);
+        setAddJson('');
+        setSelectedId(res.candidateId);
+      } else {
+        setProposeMsg(`rejected: ${res.decision.reason || 'unknown'} (meeting ${res.meetingId})`);
+      }
+      await refresh();
+    } catch (e) {
+      setAddError(`propose: ${(e as Error).message || 'failed'}`);
+    } finally {
+      setProposeBusy(false);
+    }
+  }, [addJson, refresh]);
+
   // Remove governance — guarded by a 2-step confirm prompt.
   const [removeBusy, setRemoveBusy] = useState(false);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
@@ -540,21 +577,41 @@ export default function SpecialistsView() {
                 <Button
                   size="sm"
                   onClick={handleAdd}
-                  disabled={addBusy || !addJson.trim()}
+                  disabled={addBusy || proposeBusy || !addJson.trim()}
                   aria-label="Confirm add"
                 >
                   Add specialist
+                </Button>
+                {/* (Phase 1.5) Propose via meta-meeting consensus —
+                    safer governance path than direct add. */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handlePropose}
+                  disabled={proposeBusy || addBusy || !addJson.trim()}
+                  aria-label="Propose via meeting"
+                  title="POST to /specialists/propose — drives a meta-meeting and adds only on consensus"
+                >
+                  Propose via meeting
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => { setAddOpen(false); setAddError(null); }}
-                  disabled={addBusy}
+                  disabled={addBusy || proposeBusy}
                 >
                   Cancel
                 </Button>
                 {addError ? (
                   <span className="text-[11px] text-destructive">{addError}</span>
+                ) : null}
+                {proposeMsg ? (
+                  <span className={cn(
+                    'text-[11px]',
+                    proposeMsg.startsWith('rejected') ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400',
+                  )}>
+                    {proposeMsg}
+                  </span>
                 ) : null}
               </div>
             </div>

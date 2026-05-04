@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.338] - 2026-05-04
+
+**Web — propose-via-meeting button in specialist add panel.**
+Phase 1.5 backend exposed `POST /specialists/propose` for the
+"governance via meta-meeting" flow. CLI had `c4 specialist
+propose <file>`; web's add panel only had direct add. Adds a
+second button next to "Add specialist".
+
+### Added
+- **`web/src/components/SpecialistsView.tsx`**:
+  - `handlePropose` POSTs the same JSON to
+    `/api/specialists/propose` with `brain: 'mock'` for instant
+    consensus
+  - "Propose via meeting" outline button next to the existing
+    "Add specialist" primary
+  - response result message shows accepted (emerald) or rejected
+    (amber) with the meeting id so operator can drill into the
+    Meetings tab to inspect the consensus
+  - tooltip explains the safer-governance value prop
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Direct add stays available because it's the "I know what I'm
+  doing" path; propose is the safer default for a new operator
+  seeding a candidate.
+- Future enhancement: brain selector (mock vs claude) for full
+  rigor; current implementation hardcodes mock so the flow runs
+  in seconds.
+
 ## [1.10.337] - 2026-05-04
 
 **Web — meeting list status/track filters.**
