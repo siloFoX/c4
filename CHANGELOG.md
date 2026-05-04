@@ -4,6 +4,19 @@
 
 (no entries — next release window)
 
+## [1.10.387] - 2026-05-04
+
+**Web — onboarding tour step 4 Korean copy fix.** Last user-facing
+"Settings" word in Korean ko.json copy. Step 4 told operators
+they could restart the tour from "Settings" in English.
+
+### Changed
+- **`web/src/i18n/ko.json`**: `tour.step4.body` → "설정 탭" (the
+  same label the actual tab uses since v1.10.361).
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.386] - 2026-05-04
 
 **Web — ChatView i18n.** Worker-chat panel had four hardcoded
