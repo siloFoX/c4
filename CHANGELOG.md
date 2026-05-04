@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.396] - 2026-05-04
+
+**Web — WorkflowEditor i18n.** Title / refresh / empty state /
+status badges (on/off) / nodes/edges count / Run + With inputs
+buttons / inputs textarea label / no description fallback /
+Recent runs panel + per-run state (running, node count) /
+empty selection.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 18 new keys under
+  `workflows.*`, including 3 templated strings
+  (`workflows.empty` with `{cli}`, `workflows.nodesEdges.format`
+  with `{nodes}` + `{edges}`, `workflows.runs.nodeCount` with
+  `{n}`).
+- **`web/src/components/WorkflowEditor.tsx`**:
+  - `useLocale()` hook re-renders on locale flip.
+  - `t()` for static strings; `tFormat()` for templated counts.
+  - Empty-state CLI snippet: split the i18n string on `{cli}`
+    and inject a `<code>` element so the monospace styling stays
+    intact across translations.
+
+### Korean copy
+- 워크플로우 / 실행 / 입력 사용… / 입력 숨기기 / 노드 N / 엣지
+  N / 설명이 없습니다 / 최근 실행 / 실행 기록이 없습니다 /
+  노드별 결과가 없습니다 / (실행 중) / 노드 N개 / 왼쪽에서
+  워크플로우를 선택하면 DAG 가 표시됩니다.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.395] - 2026-05-04
 
 **Web — WikiView header + state messages i18n.** Title /

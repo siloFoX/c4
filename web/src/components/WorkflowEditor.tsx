@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Play, RefreshCw, Workflow as WorkflowIcon } from 'lucide-react';
 import { apiGet, apiPost } from '../lib/api';
+import { t, tFormat, useLocale } from '../lib/i18n';
 import {
   Badge,
   Button,
@@ -295,6 +296,7 @@ function NodeProperties(props: { node: WorkflowNode | null }) {
 }
 
 export default function WorkflowEditor() {
+  useLocale();
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -389,7 +391,7 @@ export default function WorkflowEditor() {
           <CardHeader className="flex-row items-center justify-between p-4 md:p-5">
             <div className="flex items-center gap-2">
               <WorkflowIcon aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
-              <CardTitle>Workflows</CardTitle>
+              <CardTitle>{t('workflows.title')}</CardTitle>
             </div>
             <Button
               type="button"
@@ -399,7 +401,7 @@ export default function WorkflowEditor() {
               disabled={busy}
             >
               <RefreshCw className="h-3.5 w-3.5" />
-              <span>Refresh</span>
+              <span>{t('common.refresh')}</span>
             </Button>
           </CardHeader>
           <CardContent className="p-4 pt-0 md:p-5 md:pt-0">
@@ -413,8 +415,16 @@ export default function WorkflowEditor() {
             ) : null}
             {workflows.length === 0 ? (
               <div className="text-xs text-muted-foreground">
-                No workflows yet. Use <code className="font-mono text-foreground">c4 workflow create --file</code>
-                {' '}to add one.
+                {t('workflows.empty').split('{cli}').map((seg, i, arr) => (
+                  <span key={i}>
+                    {seg}
+                    {i < arr.length - 1 ? (
+                      <code className="font-mono text-foreground">
+                        {t('workflows.empty.cli')}
+                      </code>
+                    ) : null}
+                  </span>
+                ))}
               </div>
             ) : (
               <ul className="space-y-1">
@@ -441,11 +451,14 @@ export default function WorkflowEditor() {
                             variant={wf.enabled ? 'success' : 'secondary'}
                             className="shrink-0 uppercase"
                           >
-                            {wf.enabled ? 'on' : 'off'}
+                            {wf.enabled ? t('workflows.status.on') : t('workflows.status.off')}
                           </Badge>
                         </div>
                         <div className="text-xs opacity-80">
-                          {wf.nodes.length} nodes / {wf.edges.length} edges
+                          {tFormat('workflows.nodesEdges.format', {
+                            nodes: String(wf.nodes.length),
+                            edges: String(wf.edges.length),
+                          })}
                         </div>
                       </button>
                     </li>
@@ -465,7 +478,7 @@ export default function WorkflowEditor() {
                 <div className="min-w-0">
                   <CardTitle className="truncate">{selected.name}</CardTitle>
                   <CardDescription className="truncate">
-                    {selected.description || 'No description.'}
+                    {selected.description || t('workflows.noDescription')}
                   </CardDescription>
                 </div>
                 <div className="flex flex-col items-end gap-1">
@@ -477,10 +490,10 @@ export default function WorkflowEditor() {
                       onClick={() => setInputsOpen((v) => !v)}
                       disabled={busy}
                       className="h-7 px-2 text-[11px]"
-                      title="Provide JSON inputs for this run (default: empty object)"
+                      title={t('workflows.inputs.title')}
                       aria-expanded={inputsOpen}
                     >
-                      {inputsOpen ? 'Hide inputs' : 'With inputs…'}
+                      {inputsOpen ? t('workflows.inputs.toggle.hide') : t('workflows.inputs.toggle.show')}
                     </Button>
                     <Button
                       type="button"
@@ -490,7 +503,7 @@ export default function WorkflowEditor() {
                       disabled={busy || !selected.enabled}
                     >
                       <Play className="h-4 w-4" />
-                      <span>Run</span>
+                      <span>{t('workflows.run.button')}</span>
                     </Button>
                   </div>
                   {inputsOpen ? (
@@ -499,7 +512,7 @@ export default function WorkflowEditor() {
                         value={inputsJson}
                         onChange={(e) => setInputsJson(e.target.value)}
                         placeholder='{"foo": "bar"}'
-                        aria-label="Workflow run inputs (JSON)"
+                        aria-label={t('workflows.inputs.label')}
                         disabled={busy}
                         className="min-h-[64px] rounded border border-border bg-background p-2 font-mono text-[11px]"
                       />
@@ -527,12 +540,12 @@ export default function WorkflowEditor() {
               <Panel className="text-sm text-foreground">
                 <div className="mb-2 flex items-center justify-between">
                   <h4 className="text-base font-semibold text-foreground">
-                    Recent runs
+                    {t('workflows.recentRuns')}
                   </h4>
                   <span className="text-xs text-muted-foreground">{runs.length}</span>
                 </div>
                 {runs.length === 0 ? (
-                  <div className="text-xs text-muted-foreground">No runs yet.</div>
+                  <div className="text-xs text-muted-foreground">{t('workflows.runs.empty')}</div>
                 ) : (
                   <ul className="max-h-72 overflow-y-auto text-xs">
                     {runs.slice(-10).reverse().map((r) => {
@@ -555,8 +568,8 @@ export default function WorkflowEditor() {
                               </div>
                               <div className="text-[10px] text-muted-foreground">
                                 {r.startedAt}
-                                {r.completedAt ? ` → ${r.completedAt}` : ' (running)'}
-                                {nodeIds.length > 0 ? ` · ${nodeIds.length} node(s)` : ''}
+                                {r.completedAt ? ` → ${r.completedAt}` : ` ${t('workflows.runs.running')}`}
+                                {nodeIds.length > 0 ? ` · ${tFormat('workflows.runs.nodeCount', { n: String(nodeIds.length) })}` : ''}
                               </div>
                             </div>
                             <Badge
@@ -570,7 +583,7 @@ export default function WorkflowEditor() {
                             <div className="mt-2 ml-3 flex flex-col gap-1 border-l border-border/40 pl-2">
                               {nodeIds.length === 0 ? (
                                 <div className="text-[11px] text-muted-foreground">
-                                  No per-node results.
+                                  {t('workflows.runs.noNodeResults')}
                                 </div>
                               ) : (
                                 nodeIds.map((nid) => {
@@ -632,7 +645,7 @@ export default function WorkflowEditor() {
         ) : (
           <Card>
             <CardContent className="p-4 text-sm text-muted-foreground md:p-5">
-              Select a workflow on the left to view its DAG.
+              {t('workflows.empty.selection')}
             </CardContent>
           </Card>
         )}
