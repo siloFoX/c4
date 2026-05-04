@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.359] - 2026-05-04
+
+**Web — Config page (Config category).** Backend has had
+`GET /api/config` (sanitised, secrets stripped) + `POST /api/
+config/reload` for a long time; web operators verifying what
+config the daemon loaded had to drop to CLI.
+
+### Added
+- **`web/src/pages/Config.tsx`** (new):
+  - Top-level keys rendered as collapsible `<details>` blocks
+    with one-line summaries (`{N keys}` / `[N items]` / value
+    preview).
+  - Filter input — keeps top-level keys whose serialised value
+    or key name matches the substring (case-insensitive).
+  - Refresh button + "Reload from disk" destructive-tone
+    button that POSTs `/api/config/reload` with confirm dialog
+    (subsystems may restart). Inline reload status.
+- **`web/src/pages/registry.ts`**: registered as `config` page
+  in the Config category with the `Cog` icon, between Profiles
+  and the diagnostics group.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Config viewer doesn't pretty-print JSON inline beyond
+  `JSON.stringify(_, null, 2)` — sufficient for inspection,
+  no syntax highlighting.
+
 ## [1.10.358] - 2026-05-04
 
 **Web — Risk Inspector adds rule catalog viewer.** Backend

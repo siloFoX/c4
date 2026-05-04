@@ -10,6 +10,7 @@ import {
   BarChart3,
   Brain,
   Coins,
+  Cog,
   Feather,
   FileCheck2,
   GitBranch,
@@ -153,6 +154,14 @@ export const FEATURES: FeatureDef[] = [
     category: 'config',
     Icon: ListChecks,
     load: () => import('./Profiles'),
+  },
+  {
+    id: 'config',
+    label: 'Config',
+    description: 'Live daemon config (sans secrets); reload from disk.',
+    category: 'config',
+    Icon: Cog,
+    load: () => import('./Config'),
   },
   {
     id: 'health',
