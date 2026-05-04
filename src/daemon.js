@@ -834,6 +834,7 @@ async function handleRequest(req, res) {
       meetingParams.id === 'plan' || meetingParams.id === 'templates' || meetingParams.id === 'stream'
         || meetingParams.id === 'classify-track' || meetingParams.id === 'stuck'
         || meetingParams.id === 'prune-old' || meetingParams.id === 'persist-integrity'
+        || meetingParams.id === 'persist-backup'
     )) meetingParams = null;
   }
 
@@ -4703,6 +4704,31 @@ async function handleRequest(req, res) {
         return;
       }
       result = { id: sess.id, transcript: sess.transcript() };
+
+    } else if (req.method === 'POST' && route === '/meetings/persist-backup') {
+      // (Phase 7.8) Hot backup via SQLite VACUUM INTO. Body:
+      //   path  required, target file (must not exist)
+      // Returns {ok, path, bytes}. Operator-triggered; the daemon
+      // keeps serving during the copy.
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/meetings/persist-backup', body, res, cfg)) return;
+      if (!_meetingPersist) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'meeting persist disabled — nothing to back up' }));
+        return;
+      }
+      if (!body.path || typeof body.path !== 'string') {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'path string required' }));
+        return;
+      }
+      try {
+        const r = _meetingPersist.backupTo(body.path);
+        result = { ok: true, ...r };
+      } catch (err) {
+        const code = /already exists/.test(err.message) ? 409 : 400;
+        res.writeHead(code); res.end(JSON.stringify({ error: err.message })); return;
+      }
 
     } else if (req.method === 'GET' && route === '/meetings/persist-integrity') {
       // (Phase 7.7) Run SQLite PRAGMA integrity_check on the persist

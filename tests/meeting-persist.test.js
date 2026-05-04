@@ -309,6 +309,50 @@ t('integrityCheck on empty DB also returns ok', () => {
   p.close();
 });
 
+t('backupTo writes a hot backup that opens cleanly with the same rows', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'c4-mp-bk-'));
+  const srcPath = path.join(tmp, 'meetings.db');
+  const dstPath = path.join(tmp, 'backup.db');
+  try {
+    const src = new (require('../src/meeting-persist').MeetingPersist)({ dbPath: srcPath });
+    const sessA = mkSession('backup test A');
+    const sessB = mkSession('backup test B');
+    src.save(sessA); src.save(sessB);
+    const r = src.backupTo(dstPath);
+    assert.strictEqual(r.path, dstPath);
+    assert.ok(typeof r.bytes === 'number' && r.bytes > 0);
+    // Reopen target — should have the same rows.
+    const dst = new (require('../src/meeting-persist').MeetingPersist)({ dbPath: dstPath });
+    assert.strictEqual(dst.count(), 2);
+    const loadedA = dst.load(sessA.id);
+    assert.strictEqual(loadedA.task, 'backup test A');
+    src.close(); dst.close();
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+t('backupTo refuses to overwrite an existing target', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'c4-mp-bk-overwrite-'));
+  const srcPath = path.join(tmp, 'meetings.db');
+  const dstPath = path.join(tmp, 'preexisting.db');
+  fs.writeFileSync(dstPath, 'occupied');
+  try {
+    const src = new (require('../src/meeting-persist').MeetingPersist)({ dbPath: srcPath });
+    assert.throws(() => src.backupTo(dstPath), /already exists/);
+    src.close();
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+t('backupTo rejects empty/missing path', () => {
+  const p = mkDb();
+  assert.throws(() => p.backupTo(), /required/);
+  assert.throws(() => p.backupTo(''), /required/);
+  p.close();
+});
+
 t('pruneOlderThan vacuum is skipped on dryRun', () => {
   const p = mkDb();
   const sess = mkSession('vacuum dry');

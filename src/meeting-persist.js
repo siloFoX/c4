@@ -227,6 +227,33 @@ class MeetingPersist {
     };
   }
 
+  // Hot backup via SQLite's `VACUUM INTO`. Writes a consistent
+  // snapshot of the live DB to `targetPath` without blocking
+  // readers/writers — a normal restore is just a file copy
+  // back. Operator-triggered: stopping the daemon is not
+  // required. Returns `{path, bytes}` on success; throws on
+  // failure (target unwritable, target already exists, etc).
+  //
+  // VACUUM INTO refuses to overwrite an existing file. Caller
+  // should pre-clean if they want overwrite semantics.
+  backupTo(targetPath) {
+    if (!targetPath || typeof targetPath !== 'string') {
+      throw new Error('backupTo: targetPath required');
+    }
+    const fs2 = require('fs');
+    const path2 = require('path');
+    fs2.mkdirSync(path2.dirname(path2.resolve(targetPath)), { recursive: true });
+    if (fs2.existsSync(targetPath)) {
+      throw new Error(`backupTo: target already exists (${targetPath})`);
+    }
+    // Bind via prepared param-style to dodge any shell-like quoting
+    // surprises (path with spaces / quotes).
+    this._db.prepare('VACUUM INTO ?').run(targetPath);
+    let bytes = null;
+    try { bytes = fs2.statSync(targetPath).size; } catch { /* tolerate */ }
+    return { path: targetPath, bytes };
+  }
+
   // Run SQLite's `PRAGMA integrity_check`. Returns
   // `{ok: true}` when the DB is consistent, `{ok: false, errors:
   // [...]}` when corruption is detected. Cheap on small DBs;

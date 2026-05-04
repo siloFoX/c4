@@ -57,6 +57,7 @@ const ROUTE_SUMMARIES = {
   'GET /meetings/stuck': 'Detect meetings stuck in pending/in-progress for more than ?hours= (default 1). Catches hung sessions an operator hasn`t noticed.',
   'POST /meetings/prune-old': 'Auto-prune persisted meetings older than N days (default 90, terminal-only). Mirrors deletions into the in-memory store; supports dryRun preview.',
   'GET /meetings/persist-integrity': 'Run SQLite PRAGMA integrity_check on the persist DB. Returns {enabled, ok, errors}. Doctor uses this for health pass.',
+  'POST /meetings/persist-backup': 'Hot backup via SQLite VACUUM INTO. Returns {ok, path, bytes}. Daemon keeps serving during the copy. 409 when target already exists.',
   'GET /meetings/templates': 'List meeting templates persisted at ~/.c4/meeting-templates.json.',
   'POST /meetings/templates': 'Create or update a meeting template (upsert by name).',
   'GET /meetings/templates/:name': 'Fetch a single meeting template by name.',
@@ -2233,6 +2234,21 @@ const ROUTE_SCHEMAS = {
         scoreHistory: { type: 'array', items: { type: 'object' }, description: 'Present when ?include=scoreHistory. Last 20 score-applied entries.' },
         recentMeetings: { type: 'array', items: { type: 'object' }, description: 'Present when ?include=meetings. Up to 10 most recent meetings this specialist participated in.' },
         scoreEffective: { type: 'object', description: 'Present when ?include=scoreEffective. Post-decay scores the dispatcher would use, plus halfLifeDays and ageDays for context.' },
+      },
+    },
+  },
+  'POST /meetings/persist-backup': {
+    requestBody: {
+      properties: {
+        path: { type: 'string', description: 'Target file path; must not already exist' },
+      },
+      example: { path: '/backups/meetings-2026-05-04.db' },
+    },
+    response: {
+      properties: {
+        ok: { type: 'boolean' },
+        path: { type: 'string' },
+        bytes: { type: 'integer', nullable: true },
       },
     },
   },

@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.10.289] - 2026-05-04
+
+**Multi-Specialist System — Phase 7.8 (Persist hot backup).**
+SQLite's `VACUUM INTO` writes a consistent snapshot of the live
+DB without blocking readers/writers. This phase exposes it so
+operators can back up `meetings.db` without stopping the daemon
+— consistent point-in-time copy in a single CLI call.
+
+### Added
+- **`src/meeting-persist.js`**: `backupTo(targetPath)` runs
+  `VACUUM INTO ?` (parameterized to dodge path-quoting issues).
+  Refuses to overwrite an existing target — operators must
+  pre-clean. Returns `{path, bytes}`.
+- **HTTP**: `POST /meetings/persist-backup` body `{path}`. 409
+  when target exists, 400 on other errors. `400` when persist
+  is disabled (nothing to back up).
+- **CLI**: `c4 meeting backup --out <path.db>`. Prints the
+  written path + size.
+- **OpenAPI**: full schema; `persist-backup` added to the
+  meetings parser reserved-suffix list.
+- **Tests** (`tests/meeting-persist.test.js`): 3 new cases —
+  hot backup writes a consistent target that reopens with the
+  same rows; backup refuses to overwrite a pre-existing file;
+  empty/missing path rejected.
+
+### Notes
+- e2e verified end-to-end: `c4 meeting backup --out
+  /tmp/c4-bk-test.db` → `backed up to /tmp/c4-bk-test.db
+  (24.0KB)`. Re-running on the same target: `backupTo: target
+  already exists` — operator decides whether to delete the
+  stale backup before retrying.
+- Backups are point-in-time consistent: SQLite's VACUUM INTO
+  takes a transactional read snapshot, so a meeting in the
+  middle of a state mutation is captured either fully before
+  or fully after — never half.
+
 ## [1.10.288] - 2026-05-04
 
 **Multi-Specialist System — Phase 7.7 (Persist integrity check in doctor).**

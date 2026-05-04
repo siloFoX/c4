@@ -3009,7 +3009,7 @@ async function main() {
         //   c4 meeting escalate <id> ["reason"...]
         //   c4 meeting abort <id> ["reason"...]
         const sub = (args[0] || 'plan').toLowerCase();
-        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'watch-all', 'templates', 'template-add', 'template-remove', 'prune', 'prune-old', 'fork', 'actions', 'classify-track', 'lineage', 'recap', 'stuck'];
+        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'watch-all', 'templates', 'template-add', 'template-remove', 'prune', 'prune-old', 'backup', 'fork', 'actions', 'classify-track', 'lineage', 'recap', 'stuck'];
         if (!VALID.includes(sub)) {
           console.error(`Usage: c4 meeting <${VALID.join('|')}> [...]`);
           process.exit(1);
@@ -3252,6 +3252,25 @@ async function main() {
           });
           req.on('error', (e) => { console.error(`Error: ${e.message}`); process.exit(1); });
           process.on('SIGINT', () => { req.destroy(); process.stderr.write('\n'); process.exit(0); });
+          return;
+        }
+        if (sub === 'backup') {
+          // c4 meeting backup --out <path.db>
+          let outPath = null;
+          for (let i = 1; i < args.length; i += 1) {
+            if (args[i] === '--out' && args[i + 1]) { outPath = args[i + 1]; i += 1; }
+          }
+          if (!outPath) {
+            console.error('Usage: c4 meeting backup --out <target-path.db>');
+            process.exit(1);
+          }
+          result = await request('POST', '/meetings/persist-backup', { path: outPath });
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          const sizeStr = (typeof result.bytes === 'number')
+            ? ` (${(result.bytes / 1024).toFixed(1)}KB)`
+            : '';
+          console.log(`backed up to ${result.path}${sizeStr}`);
           return;
         }
         if (sub === 'prune-old') {
