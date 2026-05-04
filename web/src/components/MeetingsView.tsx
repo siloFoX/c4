@@ -892,6 +892,61 @@ export default function MeetingsView() {
   }, []);
   useEffect(() => { setRetroResult(null); setRetroError(null); }, [selectedId]);
 
+  // (v1.10.352) Fork meeting — POST /meetings/:id/fork. Used to
+  // redo a meeting with a sharper question or scope. Two modes:
+  //   - replan: re-runs dispatcher (rosters can change)
+  //   - reuse:  deep-clones the source plan (same rosters)
+  // Form shows up when the operator clicks "Fork…"; on submit
+  // we navigate to the new meeting id so the operator immediately
+  // lands on the freshly-spawned pending session.
+  const [forkOpen, setForkOpen] = useState(false);
+  const [forkMode, setForkMode] = useState<'replan' | 'reuse'>('replan');
+  const [forkTask, setForkTask] = useState('');
+  const [forkTitle, setForkTitle] = useState('');
+  const [forkTrack, setForkTrack] = useState<'auto' | 'lightweight' | 'standard' | 'full'>('auto');
+  const [forkBusy, setForkBusy] = useState(false);
+  const [forkError, setForkError] = useState<string | null>(null);
+  const handleFork = useCallback(async (id: string) => {
+    setForkBusy(true);
+    setForkError(null);
+    try {
+      const body: {
+        mode: 'replan' | 'reuse';
+        task?: string;
+        title?: string;
+        track?: 'lightweight' | 'standard' | 'full';
+      } = { mode: forkMode };
+      if (forkTask.trim()) body.task = forkTask.trim();
+      if (forkTitle.trim()) body.title = forkTitle.trim();
+      if (forkMode === 'replan' && forkTrack !== 'auto') body.track = forkTrack;
+      const res = await apiPost<{
+        id: string;
+        status: string;
+        track: string;
+        title: string;
+        task: string;
+      }>(`/api/meetings/${encodeURIComponent(id)}/fork`, body);
+      // Navigate operator to the new meeting; the SSE list stream
+      // will surface the new row as it lands.
+      setForkOpen(false);
+      setForkTask('');
+      setForkTitle('');
+      await refresh();
+      if (res && res.id) setSelectedId(res.id);
+    } catch (e) {
+      setForkError((e as Error).message || 'Fork failed');
+    } finally {
+      setForkBusy(false);
+    }
+  }, [forkMode, forkTask, forkTitle, forkTrack, refresh]);
+  // Reset form on selection change
+  useEffect(() => {
+    setForkOpen(false);
+    setForkTask('');
+    setForkTitle('');
+    setForkError(null);
+  }, [selectedId]);
+
   // (v1.10.342) Maintenance — surfacing four ops endpoints from
   // an inline collapsible panel:
   //   GET  /meetings/persist-integrity (read-only health check)
@@ -2155,6 +2210,86 @@ export default function MeetingsView() {
                     : 'ok'}
                 </span>
               ) : null}
+              {/* (v1.10.352) Fork button — opens an inline form. */}
+              <span aria-hidden className="text-muted-foreground">·</span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setForkOpen((v) => !v)}
+                disabled={forkBusy}
+                aria-label="Fork meeting"
+                title="Clone this meeting as a new pending session — replan or reuse"
+                className="h-6 px-2 text-[10px]"
+                aria-expanded={forkOpen}
+              >
+                {forkOpen ? 'Cancel fork' : 'Fork…'}
+              </Button>
+            </div>
+          ) : null}
+          {/* Fork form — shown only when terminal + opened. */}
+          {selectedId && detail && ['completed', 'escalated'].includes(detail.status) && forkOpen ? (
+            <div className="flex flex-col gap-1 rounded-md border border-border bg-muted/10 p-2 text-[11px]">
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="flex items-center gap-1 text-muted-foreground">
+                  mode:
+                  <select
+                    value={forkMode}
+                    onChange={(e) => setForkMode(e.target.value as 'replan' | 'reuse')}
+                    disabled={forkBusy}
+                    className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
+                  >
+                    <option value="replan">replan (re-run dispatcher)</option>
+                    <option value="reuse">reuse (deep-clone plan)</option>
+                  </select>
+                </label>
+                {forkMode === 'replan' ? (
+                  <label className="flex items-center gap-1 text-muted-foreground">
+                    track:
+                    <select
+                      value={forkTrack}
+                      onChange={(e) => setForkTrack(e.target.value as typeof forkTrack)}
+                      disabled={forkBusy}
+                      className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
+                    >
+                      <option value="auto">same as source</option>
+                      <option value="lightweight">lightweight</option>
+                      <option value="standard">standard</option>
+                      <option value="full">full</option>
+                    </select>
+                  </label>
+                ) : null}
+              </div>
+              <Input
+                type="text"
+                value={forkTitle}
+                onChange={(e) => setForkTitle(e.target.value)}
+                placeholder={`title override (default: ${detail.title || 'same as source'})`}
+                aria-label="Fork title override"
+                disabled={forkBusy}
+                className="h-7 text-[11px]"
+              />
+              <textarea
+                value={forkTask}
+                onChange={(e) => setForkTask(e.target.value)}
+                placeholder="task override (default: same as source — fill in when redoing with sharper scope)"
+                aria-label="Fork task override"
+                disabled={forkBusy}
+                className="min-h-[64px] rounded border border-border bg-background p-2 text-[11px]"
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => handleFork(selectedId)}
+                  disabled={forkBusy}
+                  className="h-6 px-2 text-[10px]"
+                  aria-label="Submit fork"
+                >
+                  {forkBusy ? '…' : `Fork (${forkMode})`}
+                </Button>
+                {forkError ? (
+                  <span className="text-destructive">{forkError}</span>
+                ) : null}
+              </div>
             </div>
           ) : null}
         </CardHeader>

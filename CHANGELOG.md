@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.353] - 2026-05-04
+
+**Web — fork meeting from terminal action row.** Phase 6.11
+backend supports `POST /meetings/:id/fork` with `replan` /
+`reuse` modes for "redo with sharper question". CLI had `c4
+meeting fork`; web operators saw fork lineage but had no way
+to spawn a fork from the UI.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**:
+  - "Fork…" button in the terminal action row (alongside
+    Publish / Peer retro / Retro preview / Finalize). Toggles
+    an inline form below.
+  - Form: mode selector (replan / reuse), track override (only
+    in replan mode), title + task overrides (textarea for task,
+    text for title).
+  - `handleFork(id)` POSTs the form, refreshes the list, and
+    selects the new meeting id so the operator lands on the
+    fresh pending session immediately.
+  - Form clears + closes on selection change so it doesn't
+    leak across meetings.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Track override is only sent for `replan` mode (the daemon
+  ignores it on `reuse` since the plan is deep-cloned).
+
 ## [1.10.352] - 2026-05-04
 
 **Web — action item export (JSON download / Markdown clipboard).**
