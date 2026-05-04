@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, BookOpen, Eye, MessageCircle, Play, Plus, RefreshCw, Radio, Search, X } from 'lucide-react';
 import { apiGet, apiPost, eventSourceUrl } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
+import { renderSnippet } from '../lib/snippet';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -137,29 +138,6 @@ const STATUS_BADGE: Record<MeetingStatus, string> = {
   escalated: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
   aborted: 'border-destructive/40 bg-destructive/10 text-destructive',
 };
-
-// (v1.10.331) Render a FTS5 snippet with `<<token>>` markers as
-// highlighted spans. Splits on the marker pattern and emits a
-// `<mark>`-styled span for each captured token. Pure function so
-// the same render works inline anywhere snippets land.
-function renderSnippet(snippet: string): React.ReactNode {
-  const parts: React.ReactNode[] = [];
-  const re = /<<([^>]+)>>/g;
-  let lastIdx = 0;
-  let m: RegExpExecArray | null;
-  let key = 0;
-  while ((m = re.exec(snippet)) !== null) {
-    if (m.index > lastIdx) parts.push(snippet.slice(lastIdx, m.index));
-    parts.push(
-      <span key={key++} className="rounded bg-amber-500/20 px-0.5 text-amber-700 dark:text-amber-300">
-        {m[1]}
-      </span>,
-    );
-    lastIdx = re.lastIndex;
-  }
-  if (lastIdx < snippet.length) parts.push(snippet.slice(lastIdx));
-  return parts.length > 0 ? parts : snippet;
-}
 
 function formatRelative(iso: string | null): string {
   if (!iso) return '-';

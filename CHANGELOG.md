@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.335] - 2026-05-04
+
+**Web — `lib/snippet.ts` extracted from MeetingsView.**
+v1.10.331 inlined `renderSnippet` in MeetingsView. Future surfaces
+that render FTS5-style snippets (specialist search results, audit
+reasons containing markers, wiki page bodies) will benefit from
+re-using the same helper.
+
+### Added
+- **`web/src/lib/snippet.ts`**: `renderSnippet(snippet)` returns
+  a React node — uses `createElement` (not JSX) so the file
+  compiles as plain `.ts` without the JSX runtime dep
+- **`web/src/components/MeetingsView.tsx`**: imports the helper
+  from `lib/snippet`, removes the local copy
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- React import simplified back to default named imports (no need
+  for the `React` namespace once `renderSnippet` moved out).
+- Same amber tone preserved across the move.
+
 ## [1.10.334] - 2026-05-04
 
 **Web — `apiPatch` helper + tag editor migration.**
