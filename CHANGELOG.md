@@ -4,6 +4,25 @@
 
 (no entries — next release window)
 
+## [1.10.381] - 2026-05-04
+
+**Web — onboarding tour step 1 updated for the new top tabs.**
+v1.10.350 added the Autonomous tab plus several other tabs
+(Meetings / Specialists / Wiki) that have shipped over the past
+year. Step 1 of the onboarding tour still listed only the
+original five tabs.
+
+### Changed
+- **`web/src/i18n/en.json`** + **`ko.json`**: `tour.step1.body`
+  expanded to mention all 10 visible tabs.
+- Korean copy uses the i18n labels that ship in v1.10.361
+  (워커 / 회의 / 전문가 / 위키 / 자율 / 세션 / 기록 / 워크플로우 /
+  기능 / 설정) so the tour reads like the actual chrome.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- The other three tour steps still apply unchanged.
+
 ## [1.10.380] - 2026-05-04
 
 **Web — Workspaces page (Config category).** Backend

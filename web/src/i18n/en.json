@@ -127,7 +127,7 @@
   "help.cliMapping": "Most pages show their CLI equivalent in the banner so you can switch to the terminal when a flow does not fit the UI.",
 
   "tour.step1.title": "Welcome to C4",
-  "tour.step1.body": "Every CLI feature has a matching page here. Use the top tabs to switch between Workers, Features, Sessions, History, Workflows and Settings.",
+  "tour.step1.body": "Every CLI feature has a matching page here. Use the top tabs to switch between Workers, Meetings, Specialists, Wiki, Autonomous, Sessions, History, Workflows, Features and Settings.",
   "tour.step2.title": "Feature categories",
   "tour.step2.body": "The sidebar groups features into Operations, Cost, Automation, Config and Diagnostics. Click a page to open it.",
   "tour.step3.title": "Banners describe each page",
