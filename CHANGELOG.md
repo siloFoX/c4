@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.390] - 2026-05-04
+
+**Web — HistoryView i18n.** Translated the complete History tab —
+search/status/date filters, empty state, Scribe viewer card,
+"Worker history" detail card.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 16 new keys under
+  `history.*` (search, filter.*, scribe.*, workerHistory.*,
+  empty.tasks).
+- **`web/src/components/HistoryView.tsx`**:
+  - `useLocale()` hook re-renders on locale flip.
+  - `t()` for all visible strings.
+  - `tFormat()` for the missing-scribe-file error which
+    interpolates `{path}`.
+  - Reuses `common.close` + `common.loading` for shared labels.
+- **`tests/history-view.test.js`**: source-grep updated to look
+  for `t('history.*')` references instead of literal placeholder
+  / aria-label strings.
+
+### Korean copy
+- 이름 / 작업 / 브랜치 검색 / 상태로 필터 / 모든 상태 / 종료됨 /
+  퇴출됨 / 시작 일자 / 종료 일자 / 기록이 없습니다. /
+  뷰어를 열어 Scribe 파일을 불러옵니다. / {path} 경로에 Scribe
+  컨텍스트 파일이 없습니다. / (끝부분 잘림) / 워커 기록 /
+  왼쪽에서 워커를 선택하면… / 기록된 작업이 없습니다.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.389] - 2026-05-04
 
 **Web — Chat (NL control channel) i18n.** Title, description,

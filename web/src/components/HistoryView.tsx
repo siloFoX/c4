@@ -9,6 +9,7 @@ import {
   X,
 } from 'lucide-react';
 import { apiGet } from '../lib/api';
+import { t, tFormat, useLocale } from '../lib/i18n';
 import {
   Badge,
   Button,
@@ -109,6 +110,7 @@ function recordStatusVariant(status: string | null | undefined): BadgeVariant {
 }
 
 export default function HistoryView() {
+  useLocale();
   const [summary, setSummary] = useState<HistoryWorkerSummary[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [detail, setDetail] = useState<HistoryWorkerDetail | null>(null);
@@ -224,9 +226,9 @@ export default function HistoryView() {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search name / task / branch"
+                placeholder={t('history.search.placeholder')}
                 className="h-9 pl-8 text-sm"
-                aria-label="Search history"
+                aria-label={t('history.search.label')}
               />
             </div>
             <select
@@ -235,11 +237,11 @@ export default function HistoryView() {
               className={cn(
                 'h-9 w-full rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
               )}
-              aria-label="Filter by status"
+              aria-label={t('history.filter.status.label')}
             >
-              <option value="">All statuses</option>
-              <option value="closed">closed</option>
-              <option value="exited">exited</option>
+              <option value="">{t('history.filter.status.all')}</option>
+              <option value="closed">{t('history.filter.status.closed')}</option>
+              <option value="exited">{t('history.filter.status.exited')}</option>
             </select>
             <div className="flex gap-2">
               <Input
@@ -247,14 +249,14 @@ export default function HistoryView() {
                 value={sinceDay}
                 onChange={(e) => setSinceDay(e.target.value)}
                 className="h-9 flex-1 text-xs"
-                aria-label="Since date"
+                aria-label={t('history.filter.since.label')}
               />
               <Input
                 type="date"
                 value={untilDay}
                 onChange={(e) => setUntilDay(e.target.value)}
                 className="h-9 flex-1 text-xs"
-                aria-label="Until date"
+                aria-label={t('history.filter.until.label')}
               />
             </div>
             {error && (
@@ -266,7 +268,7 @@ export default function HistoryView() {
               </div>
             )}
             {summary.length === 0 && !error && (
-              <div className="text-xs text-muted-foreground">No history yet.</div>
+              <div className="text-xs text-muted-foreground">{t('history.empty')}</div>
             )}
             <ul className="space-y-1">
               {(query
@@ -325,30 +327,30 @@ export default function HistoryView() {
             <CardHeader className="flex-row items-center justify-between gap-2 p-4 md:p-5">
               <div className="flex items-center gap-2">
                 <NotebookText aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
-                <CardTitle>Scribe session-context.md</CardTitle>
+                <CardTitle>{t('history.scribe.title')}</CardTitle>
               </div>
               <Button type="button" variant="secondary" size="sm" onClick={closeScribe}>
                 <X className="h-3.5 w-3.5" />
-                <span>Close</span>
+                <span>{t('common.close')}</span>
               </Button>
             </CardHeader>
             <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 p-4 pt-0 md:p-5 md:pt-0">
               {loadingScribe ? (
-                <div className="text-sm text-muted-foreground">Loading...</div>
+                <div className="text-sm text-muted-foreground">{t('common.loading')}</div>
               ) : !scribe ? (
                 <div className="text-sm text-muted-foreground">
-                  Open the viewer to load the scribe file.
+                  {t('history.scribe.openHint')}
                 </div>
               ) : !scribe.exists ? (
                 <div className="text-sm text-muted-foreground">
-                  No scribe context file at {scribe.path}.
+                  {tFormat('history.scribe.missing', { path: scribe.path })}
                 </div>
               ) : (
                 <>
                   <div className="text-xs text-muted-foreground">
                     {scribe.path} - {scribe.size} bytes
                     {scribe.updatedAt ? ` - updated ${scribe.updatedAt}` : ''}
-                    {scribe.truncated ? ' - (tail truncated)' : ''}
+                    {scribe.truncated ? ` - ${t('history.scribe.tailTruncated')}` : ''}
                   </div>
                   <pre className="min-h-0 min-w-0 flex-1 overflow-auto whitespace-pre-wrap rounded-md border border-border bg-background p-3 text-xs text-foreground">
                     {scribe.content}
@@ -362,9 +364,9 @@ export default function HistoryView() {
         ) : (
           <Card>
             <CardHeader className="p-4 md:p-5">
-              <CardTitle>Worker history</CardTitle>
+              <CardTitle>{t('history.workerHistory.title')}</CardTitle>
               <CardDescription>
-                Select a worker from the left to view its tasks and scrollback.
+                {t('history.workerHistory.description')}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -406,7 +408,7 @@ function HistoryDetailPane({ detail }: HistoryDetailPaneProps) {
             Past tasks ({detail.records.length})
           </h3>
           {detail.records.length === 0 ? (
-            <div className="text-sm text-muted-foreground">No recorded tasks.</div>
+            <div className="text-sm text-muted-foreground">{t('history.empty.tasks')}</div>
           ) : (
             <ul className="space-y-2">
               {detail.records.map((r, i) => (

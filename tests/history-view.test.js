@@ -285,10 +285,13 @@ describe('HistoryView.tsx wiring', () => {
   });
 
   it('renders search + status + date filters', () => {
-    assert.match(src, /placeholder="Search name \/ task \/ branch"/);
-    assert.match(src, /aria-label="Filter by status"/);
-    assert.match(src, /aria-label="Since date"/);
-    assert.match(src, /aria-label="Until date"/);
+    // (v1.10.389) Migrated to i18n; assert key references instead
+    // of literal English strings. The English copy still lives in
+    // en.json — checked separately by i18n bundle tests.
+    assert.match(src, /placeholder=\{t\('history\.search\.placeholder'\)\}/);
+    assert.match(src, /aria-label=\{t\('history\.filter\.status\.label'\)\}/);
+    assert.match(src, /aria-label=\{t\('history\.filter\.since\.label'\)\}/);
+    assert.match(src, /aria-label=\{t\('history\.filter\.until\.label'\)\}/);
   });
 
   it('renders a Scribe button that opens the session-context viewer', () => {
