@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.368] - 2026-05-04
+
+**Web — FeatureSidebar category labels i18n.** The five category
+headers (Operations / Automation / Cost / Config / Diagnostics)
+were hardcoded English. Korean operators saw English headers
+above the Korean tab labels — disjointed.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 5 new keys
+  (`feature.category.operations` → `feature.category.diagnostics`).
+- **`web/src/components/layout/FeatureSidebar.tsx`**:
+  - `useLocale()` hook re-renders on locale flip.
+  - Category headers read from `t('feature.category.<id>')`
+    with the existing `CATEGORY_LABEL` constant as fallback.
+
+### Korean copy
+- 운영 / 자동화 / 비용 / 구성 / 진단.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- The CATEGORY_LABEL constant stays exported (used by tests +
+  any code path that doesn't have a render context).
+
 ## [1.10.367] - 2026-05-04
 
 **Web — AppHeader title i18n.** Last hardcoded English string in

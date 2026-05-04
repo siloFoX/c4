@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { Input } from '../ui';
+import { t, useLocale } from '../../lib/i18n';
 import {
   CATEGORY_ICON,
   CATEGORY_LABEL,
@@ -24,6 +25,7 @@ export default function FeatureSidebar({
   // Hooks must run unconditionally — keep them above the early
   // return so the rules-of-hooks invariant holds when the parent
   // toggles `open`.
+  useLocale();
   const [filter, setFilter] = useState('');
   const grouped = useMemo(() => {
     const all = featuresByCategory();
@@ -79,7 +81,7 @@ export default function FeatureSidebar({
             <div key={cat}>
               <div className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
                 <CatIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                <span>{CATEGORY_LABEL[cat]}</span>
+                <span>{t(`feature.category.${cat}`) || CATEGORY_LABEL[cat]}</span>
               </div>
               <ul className="flex flex-col gap-1">
                 {items.map((f: FeatureDef) => {

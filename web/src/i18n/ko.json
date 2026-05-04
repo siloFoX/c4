@@ -26,6 +26,12 @@
 
   "header.title": "C4 대시보드",
 
+  "feature.category.operations": "운영",
+  "feature.category.automation": "자동화",
+  "feature.category.cost": "비용",
+  "feature.category.config": "구성",
+  "feature.category.diagnostics": "진단",
+
   "metrics.live": "활성",
   "metrics.total": "전체",
   "metrics.workers": "워커",

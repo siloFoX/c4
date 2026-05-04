@@ -26,6 +26,12 @@
 
   "header.title": "C4 Dashboard",
 
+  "feature.category.operations": "Operations",
+  "feature.category.automation": "Automation",
+  "feature.category.cost": "Cost",
+  "feature.category.config": "Config",
+  "feature.category.diagnostics": "Diagnostics",
+
   "metrics.live": "live",
   "metrics.total": "total",
   "metrics.workers": "workers",
