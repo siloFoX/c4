@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.343] - 2026-05-04
+
+**Web — Maintenance panel in MeetingsView (collapsible footer).**
+Four ops endpoints (`persist-integrity`, `persist-backup`,
+`fts-rebuild`, `prune-old`) had CLI parity but no web surface.
+A daemon admin who happened to be in the web wanted to do these
+tasks without dropping to the shell.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**:
+  - Collapsible Maintenance footer at the bottom of the list
+    panel (closed by default — keeps the normal flow uncluttered).
+  - `handleIntegrity()` — GET, prints ok/disabled/error count.
+  - `handleFtsRebuild()` — POST, prints `indexed (before → after)`.
+  - `handleBackup()` — POST with path + force toggle, prints
+    `backup ok — <path> (<bytes> bytes)` or error.
+  - `handlePrune(dryRun)` — POST with days + terminalOnly +
+    vacuum. Dry-run never confirms; real prune confirms with a
+    summary of what's about to happen, then refreshes the list
+    on success.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- All four actions are gated by RBAC on the daemon side; the
+  401/403 handling already lives in `apiFetch`.
+
 ## [1.10.342] - 2026-05-04
 
 **Web — bulk wiki publish (Phase 4 / wiki).** Backend

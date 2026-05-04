@@ -688,6 +688,127 @@ export default function MeetingsView() {
     [],
   );
 
+  // (v1.10.342) Maintenance — surfacing four ops endpoints from
+  // an inline collapsible panel:
+  //   GET  /meetings/persist-integrity (read-only health check)
+  //   POST /meetings/persist-backup    (hot copy)
+  //   POST /meetings/fts-rebuild       (force re-index)
+  //   POST /meetings/prune-old         (delete with dry-run)
+  // Each action keeps its own busy / message state so an operator
+  // can run them independently. State is local — no global toast
+  // pipeline yet.
+  const [maintOpen, setMaintOpen] = useState(false);
+  const [integrityBusy, setIntegrityBusy] = useState(false);
+  const [integrityMsg, setIntegrityMsg] = useState<string | null>(null);
+  const handleIntegrity = useCallback(async () => {
+    setIntegrityBusy(true);
+    setIntegrityMsg(null);
+    try {
+      const res = await apiGet<{ enabled: boolean; ok: boolean | null; errors: string[] }>(
+        '/api/meetings/persist-integrity',
+      );
+      if (!res.enabled) {
+        setIntegrityMsg('persist disabled — integrity check skipped');
+      } else if (res.ok) {
+        setIntegrityMsg('ok — no integrity errors');
+      } else {
+        setIntegrityMsg(`failed — ${res.errors.length} error(s): ${res.errors.slice(0, 3).join('; ')}`);
+      }
+    } catch (e) {
+      setIntegrityMsg(`integrity failed: ${(e as Error).message || 'unknown'}`);
+    } finally {
+      setIntegrityBusy(false);
+    }
+  }, []);
+
+  const [backupPath, setBackupPath] = useState('');
+  const [backupForce, setBackupForce] = useState(false);
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [backupMsg, setBackupMsg] = useState<string | null>(null);
+  const handleBackup = useCallback(async () => {
+    const path = backupPath.trim();
+    if (!path) {
+      setBackupMsg('path required');
+      return;
+    }
+    setBackupBusy(true);
+    setBackupMsg(null);
+    try {
+      const res = await apiPost<{ ok: boolean; path: string; bytes: number | null }>(
+        '/api/meetings/persist-backup',
+        { path, force: backupForce },
+      );
+      setBackupMsg(`backup ok — ${res.path} (${res.bytes != null ? `${res.bytes} bytes` : 'size unknown'})`);
+    } catch (e) {
+      setBackupMsg(`backup failed: ${(e as Error).message || 'unknown'}`);
+    } finally {
+      setBackupBusy(false);
+    }
+  }, [backupPath, backupForce]);
+
+  const [ftsBusy, setFtsBusy] = useState(false);
+  const [ftsMsg, setFtsMsg] = useState<string | null>(null);
+  const handleFtsRebuild = useCallback(async () => {
+    setFtsBusy(true);
+    setFtsMsg(null);
+    try {
+      const res = await apiPost<{ indexed: number; before: number; after: number }>(
+        '/api/meetings/fts-rebuild',
+        {},
+      );
+      setFtsMsg(`rebuilt — ${res.indexed} indexed (${res.before} → ${res.after})`);
+    } catch (e) {
+      setFtsMsg(`rebuild failed: ${(e as Error).message || 'unknown'}`);
+    } finally {
+      setFtsBusy(false);
+    }
+  }, []);
+
+  const [pruneDays, setPruneDays] = useState('90');
+  const [pruneTerminal, setPruneTerminal] = useState(true);
+  const [pruneVacuum, setPruneVacuum] = useState(false);
+  const [pruneBusy, setPruneBusy] = useState(false);
+  const [pruneMsg, setPruneMsg] = useState<string | null>(null);
+  const handlePrune = useCallback(async (dryRun: boolean) => {
+    const daysNum = Number(pruneDays);
+    if (!Number.isFinite(daysNum) || daysNum < 1) {
+      setPruneMsg('days must be a positive number');
+      return;
+    }
+    if (!dryRun) {
+      if (!window.confirm(
+        `Permanently prune meetings older than ${daysNum} day(s)?\n` +
+        `${pruneTerminal ? 'Terminal-only' : 'Includes pending/in-progress'}` +
+        `${pruneVacuum ? ' · VACUUM after' : ''}\n` +
+        'Run dry-run first to see candidates.',
+      )) return;
+    }
+    setPruneBusy(true);
+    setPruneMsg(null);
+    try {
+      const res = await apiPost<{
+        count: number;
+        ids: string[];
+        dryRun: boolean;
+        cutoffISO: string;
+      }>('/api/meetings/prune-old', {
+        days: daysNum,
+        terminalOnly: pruneTerminal,
+        dryRun,
+        vacuum: pruneVacuum,
+      });
+      const verb = res.dryRun ? 'would prune' : 'pruned';
+      setPruneMsg(
+        `${verb} ${res.count} meeting(s) older than ${res.cutoffISO}`,
+      );
+      if (!res.dryRun) refresh();
+    } catch (e) {
+      setPruneMsg(`prune failed: ${(e as Error).message || 'unknown'}`);
+    } finally {
+      setPruneBusy(false);
+    }
+  }, [pruneDays, pruneTerminal, pruneVacuum, refresh]);
+
   const handleCreate = useCallback(async () => {
     const task = newTask.trim();
     if (!task && !templateName) return;
@@ -1196,6 +1317,177 @@ export default function MeetingsView() {
             );
           })()}
         </CardContent>
+        {/* (v1.10.342) Maintenance — collapsible footer with the
+            four ops endpoints. Hidden by default so it doesn't
+            distract from the normal flow. */}
+        <div className="border-t border-border/60 bg-muted/10">
+          <button
+            type="button"
+            onClick={() => setMaintOpen((v) => !v)}
+            className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-[11px] text-muted-foreground hover:bg-muted/30"
+            aria-expanded={maintOpen}
+          >
+            <span className="font-medium">Maintenance</span>
+            <span className="font-mono text-[10px]">{maintOpen ? '▲' : '▼'}</span>
+          </button>
+          {maintOpen ? (
+            <div className="flex flex-col gap-3 px-3 py-2 text-[11px]">
+              {/* Integrity */}
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleIntegrity}
+                    disabled={integrityBusy}
+                    className="h-6 px-2 text-[10px]"
+                    title="Run SQLite PRAGMA integrity_check on the persist DB"
+                  >
+                    {integrityBusy ? '…' : 'Integrity check'}
+                  </Button>
+                  {integrityMsg ? (
+                    <span className={cn(
+                      'truncate',
+                      integrityMsg.startsWith('failed') || integrityMsg.startsWith('integrity failed')
+                        ? 'text-destructive' : 'text-muted-foreground',
+                    )}>
+                      {integrityMsg}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+              {/* FTS rebuild */}
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleFtsRebuild}
+                  disabled={ftsBusy}
+                  className="h-6 px-2 text-[10px]"
+                  title="Force-rebuild the FTS5 index"
+                >
+                  {ftsBusy ? '…' : 'Rebuild FTS'}
+                </Button>
+                {ftsMsg ? (
+                  <span className={cn(
+                    'truncate',
+                    ftsMsg.startsWith('rebuild failed') ? 'text-destructive' : 'text-muted-foreground',
+                  )}>
+                    {ftsMsg}
+                  </span>
+                ) : null}
+              </div>
+              {/* Backup */}
+              <div className="flex flex-col gap-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    type="text"
+                    value={backupPath}
+                    onChange={(e) => setBackupPath(e.target.value)}
+                    placeholder="/backups/meetings.db"
+                    aria-label="Backup target path"
+                    className="h-6 max-w-xs px-2 text-[11px]"
+                    disabled={backupBusy}
+                  />
+                  <label className="flex items-center gap-1 text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={backupForce}
+                      onChange={(e) => setBackupForce(e.target.checked)}
+                      disabled={backupBusy}
+                      className="h-3 w-3"
+                    />
+                    force overwrite
+                  </label>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleBackup}
+                    disabled={backupBusy || !backupPath.trim()}
+                    className="h-6 px-2 text-[10px]"
+                    title="Hot backup via SQLite VACUUM INTO"
+                  >
+                    {backupBusy ? '…' : 'Backup'}
+                  </Button>
+                </div>
+                {backupMsg ? (
+                  <span className={cn(
+                    'truncate',
+                    backupMsg.startsWith('backup failed') || backupMsg === 'path required'
+                      ? 'text-destructive' : 'text-muted-foreground',
+                  )}>
+                    {backupMsg}
+                  </span>
+                ) : null}
+              </div>
+              {/* Prune */}
+              <div className="flex flex-col gap-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="flex items-center gap-1 text-muted-foreground">
+                    days:
+                    <Input
+                      type="number"
+                      min={1}
+                      value={pruneDays}
+                      onChange={(e) => setPruneDays(e.target.value)}
+                      className="h-6 w-16 px-2 text-[11px]"
+                      disabled={pruneBusy}
+                    />
+                  </label>
+                  <label className="flex items-center gap-1 text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={pruneTerminal}
+                      onChange={(e) => setPruneTerminal(e.target.checked)}
+                      disabled={pruneBusy}
+                      className="h-3 w-3"
+                    />
+                    terminal-only
+                  </label>
+                  <label className="flex items-center gap-1 text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={pruneVacuum}
+                      onChange={(e) => setPruneVacuum(e.target.checked)}
+                      disabled={pruneBusy}
+                      className="h-3 w-3"
+                    />
+                    VACUUM
+                  </label>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handlePrune(true)}
+                    disabled={pruneBusy}
+                    className="h-6 px-2 text-[10px]"
+                    title="Preview which meetings would be pruned"
+                  >
+                    {pruneBusy ? '…' : 'Dry run'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handlePrune(false)}
+                    disabled={pruneBusy}
+                    className="h-6 px-2 text-[10px]"
+                    title="Permanently delete meetings older than N days"
+                  >
+                    {pruneBusy ? '…' : 'Prune'}
+                  </Button>
+                </div>
+                {pruneMsg ? (
+                  <span className={cn(
+                    'truncate',
+                    pruneMsg.startsWith('prune failed') || pruneMsg.startsWith('days must')
+                      ? 'text-destructive' : 'text-muted-foreground',
+                  )}>
+                    {pruneMsg}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </div>
       </Card>
 
       <Card className="flex min-h-0 flex-1 flex-col">
