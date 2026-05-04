@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.331] - 2026-05-04
+
+**Web — search snippet highlighting in meeting rows.**
+v1.10.309 stored the FTS `<<token>>` markers verbatim — operators
+saw `... we should investigate <<auth>> migration ...` as raw text.
+This converts the markers into actual highlight spans + threads
+the snippet onto search-result rows so the matched context is
+visible at a glance.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**:
+  - `renderSnippet(snippet)` helper splits on `<<...>>` markers
+    and emits highlighted spans with amber tone matching the
+    rest of the warn palette
+  - `MeetingSummary.snippet?: string` field
+  - search merge step now stores the snippet (previously
+    dropped when the row matched the polled list)
+  - row body renders 2-line clamped snippet beneath the title
+    when present (search-result rows only; bare list shows
+    nothing)
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- The `<mark>`-style spans are inline `<span>` with bg-amber
+  tone (no native `<mark>` because Tailwind utilities feel more
+  consistent with the rest of the palette).
+- Closes the visualization gap for Phase 8.1 — the FTS endpoint
+  was always returning highlighted snippets; the web just
+  wasn't using them.
+
 ## [1.10.330] - 2026-05-04
 
 **Web — workflow editor learns audit / notify / meeting node types.**

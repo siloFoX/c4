@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, BookOpen, Eye, MessageCircle, Play, Plus, RefreshCw, Radio, Search, X } from 'lucide-react';
 import { apiGet, apiPost, eventSourceUrl } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
@@ -29,6 +29,10 @@ interface MeetingSummary {
   completedAt: string | null;
   // (Phase 6.11) forkOf surfaced in list rows for fork-aware UIs.
   forkOf?: string | null;
+  // (v1.10.331) FTS snippet — only set on search-result rows.
+  // Carries `<<token>>` markers from the backend; renderer below
+  // converts them to highlight spans.
+  snippet?: string;
 }
 
 interface MeetingsListResponse {
@@ -133,6 +137,29 @@ const STATUS_BADGE: Record<MeetingStatus, string> = {
   escalated: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
   aborted: 'border-destructive/40 bg-destructive/10 text-destructive',
 };
+
+// (v1.10.331) Render a FTS5 snippet with `<<token>>` markers as
+// highlighted spans. Splits on the marker pattern and emits a
+// `<mark>`-styled span for each captured token. Pure function so
+// the same render works inline anywhere snippets land.
+function renderSnippet(snippet: string): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  const re = /<<([^>]+)>>/g;
+  let lastIdx = 0;
+  let m: RegExpExecArray | null;
+  let key = 0;
+  while ((m = re.exec(snippet)) !== null) {
+    if (m.index > lastIdx) parts.push(snippet.slice(lastIdx, m.index));
+    parts.push(
+      <span key={key++} className="rounded bg-amber-500/20 px-0.5 text-amber-700 dark:text-amber-300">
+        {m[1]}
+      </span>,
+    );
+    lastIdx = re.lastIndex;
+  }
+  if (lastIdx < snippet.length) parts.push(snippet.slice(lastIdx));
+  return parts.length > 0 ? parts : snippet;
+}
 
 function formatRelative(iso: string | null): string {
   if (!iso) return '-';
@@ -287,17 +314,18 @@ export default function MeetingsView() {
         for (const m of meetings) summaryById.set(m.id, m);
         const merged: MeetingSummary[] = res.results.map((r) => {
           const fromList = summaryById.get(r.id);
-          if (fromList) return fromList;
+          if (fromList) return { ...fromList, snippet: r.snippet };
           return {
             id: r.id,
             status: r.status,
             track: '?',
-            title: r.snippet || r.id,
+            title: r.id,
             currentStage: null,
             currentRound: 0,
             createdAt: r.createdAt,
             startedAt: null,
             completedAt: null,
+            snippet: r.snippet,
           };
         });
         setSearchResults(merged);
@@ -1092,6 +1120,11 @@ export default function MeetingsView() {
                         </span>
                       </div>
                       <span className="truncate text-sm font-medium">{m.title}</span>
+                      {m.snippet ? (
+                        <span className="line-clamp-2 text-[11px] text-muted-foreground">
+                          {renderSnippet(m.snippet)}
+                        </span>
+                      ) : null}
                       <span className="text-[11px] text-muted-foreground">
                         stage: {m.currentStage || '-'} · round {m.currentRound || 0} · id {m.id}
                       </span>
