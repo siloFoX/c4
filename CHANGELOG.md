@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.375] - 2026-05-04
+
+**Web — token interpolator hoisted to lib/i18n.ts as `tFormat`.**
+v1.10.374 added a local `interpolate` helper to WorkerActions
+for `{name}` / `{label}` / `{error}` substitutions. Hoisted it
+to the i18n module so future component i18n can reuse it without
+copy-pasting.
+
+### Added
+- **`web/src/lib/i18n.ts`**: new `tFormat(key, vars, locale?)`
+  export. Pulls the template via `t()`, runs the same
+  `{token}` regex replacement.
+
+### Changed
+- **`web/src/components/WorkerActions.tsx`**: drops the local
+  `interpolate` helper, imports + uses `tFormat`.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- `tFormat` follows the same fallback semantics as `t()` — when
+  the key is missing the raw key string flows through and
+  `{token}` markers stay literal (operator can spot the gap).
+
 ## [1.10.374] - 2026-05-04
 
 **Web — WorkerActions i18n with token interpolation.**

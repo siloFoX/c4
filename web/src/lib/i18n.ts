@@ -75,6 +75,27 @@ export function t(key: string, locale: Locale = current): string {
   return key;
 }
 
+// Tiny token interpolator for templated strings. Pattern is `{name}`.
+// Returns the input unchanged when no replacements match. No
+// pluralisation, no escaping, no nested keys — keep this trivial
+// and let translators work in the bundle directly.
+//
+// Example:
+//   tFormat('worker.action.merge.confirm', { name: 'demo-1' })
+//   → 'Merge worker "demo-1" into main?'
+export function tFormat(
+  key: string,
+  vars: Record<string, string | number>,
+  locale: Locale = current,
+): string {
+  const template = t(key, locale);
+  return template.replace(/\{(\w+)\}/g, (_match, k) => {
+    return Object.prototype.hasOwnProperty.call(vars, k)
+      ? String(vars[k])
+      : `{${k}}`;
+  });
+}
+
 // Split a pipe-delimited i18n value into an array. Use for short bullet
 // lists where a translator only needs to update one key.
 export function tList(key: string, locale: Locale = current): string[] {
