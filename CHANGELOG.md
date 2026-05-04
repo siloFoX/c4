@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.392] - 2026-05-04
+
+**Web — Workspaces page i18n.** Title, description, refresh
+button, intro note, panel heading, empty state, status badges
+(exists/missing/git repo/not a git repo).
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 9 new keys under
+  `workspaces.*`.
+- **`web/src/pages/Workspaces.tsx`**:
+  - `useLocale()` hook re-renders on locale flip.
+  - `t()` for all visible strings.
+
+### Korean copy
+- 워크스페이스 / config.workspaces 에 선언된 멀티 레포
+  워크스페이스 / 워크스페이스 새로고침 / 설정된 워크스페이스 /
+  설정된 워크스페이스가 없습니다 / 있음 / 없음 / git 레포 /
+  git 레포 아님.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.391] - 2026-05-04
 
 **Web — AutonomousView i18n.** Card title, status badge,

@@ -4,6 +4,7 @@ import PageFrame, { ErrorPanel } from './PageFrame';
 import { Button, Panel } from '../components/ui';
 import { apiGet } from '../lib/api';
 import { cn } from '../lib/cn';
+import { t, useLocale } from '../lib/i18n';
 
 // (v1.10.379) Workspaces — multi-repo workspace listing from
 // config.workspaces. Read-only for now; the daemon doesn't
@@ -33,6 +34,7 @@ interface WorkspacesResponse {
 }
 
 export default function Workspaces() {
+  useLocale();
   const [data, setData] = useState<Workspace[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -54,8 +56,8 @@ export default function Workspaces() {
 
   return (
     <PageFrame
-      title="Workspaces"
-      description="Multi-repo workspaces from config.workspaces."
+      title={t('workspaces.title')}
+      description={t('workspaces.description')}
       actions={
         <Button
           type="button"
@@ -63,31 +65,28 @@ export default function Workspaces() {
           size="sm"
           onClick={refresh}
           disabled={loading}
-          aria-label="Refresh workspaces"
+          aria-label={t('workspaces.refresh.label')}
         >
           <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
-          <span>Refresh</span>
+          <span>{t('common.refresh')}</span>
         </Button>
       }
     >
       <div className="rounded-md border border-border bg-muted/10 p-3 text-[12px] text-muted-foreground">
-        Mirrors <code className="font-mono">c4 workspaces</code>.
-        Workspaces are configured in <code className="font-mono">config.workspaces</code>;
-        edit the daemon's config.json + reload to add or remove
-        entries (Config page → Reload from disk).
+        {t('workspaces.intro')}
       </div>
 
       <Panel className="text-sm">
         <h3 className="mb-2 flex items-center gap-2 text-base font-semibold text-foreground">
           <FolderTree className="h-4 w-4 text-muted-foreground" aria-hidden />
-          Configured workspaces
+          {t('workspaces.heading')}
         </h3>
         {error ? <ErrorPanel message={error} /> : null}
         {!data ? (
-          <div className="text-[12px] text-muted-foreground">Loading…</div>
+          <div className="text-[12px] text-muted-foreground">{t('common.loading')}</div>
         ) : data.length === 0 ? (
           <div className="text-[12px] text-muted-foreground">
-            No workspaces configured. Set <code className="font-mono">config.workspaces</code> as an array of <code className="font-mono">{`{name, path}`}</code>.
+            {t('workspaces.empty')}
           </div>
         ) : (
           <ul className="divide-y divide-border/40 text-[12px]">
@@ -98,24 +97,24 @@ export default function Workspaces() {
                   {w.exists ? (
                     <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 dark:text-emerald-400">
                       <CheckCircle2 className="h-3 w-3" aria-hidden />
-                      exists
+                      {t('workspaces.exists')}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 text-[10px] text-destructive">
                       <XCircle className="h-3 w-3" aria-hidden />
-                      missing
+                      {t('workspaces.missing')}
                     </span>
                   )}
                   {w.exists && (
                     w.isGitRepo ? (
                       <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 dark:text-emerald-400">
                         <GitBranch className="h-3 w-3" aria-hidden />
-                        git repo
+                        {t('workspaces.gitRepo')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-400">
                         <GitBranch className="h-3 w-3" aria-hidden />
-                        not a git repo
+                        {t('workspaces.notGitRepo')}
                       </span>
                     )
                   )}

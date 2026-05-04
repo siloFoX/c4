@@ -90,6 +90,17 @@
   "common.loading": "Loading…",
   "common.refresh": "Refresh",
 
+  "workspaces.title": "Workspaces",
+  "workspaces.description": "Multi-repo workspaces from config.workspaces.",
+  "workspaces.refresh.label": "Refresh workspaces",
+  "workspaces.intro": "Mirrors c4 workspaces. Workspaces are configured in config.workspaces; edit the daemon's config.json + reload to add or remove entries (Config page → Reload from disk).",
+  "workspaces.heading": "Configured workspaces",
+  "workspaces.empty": "No workspaces configured. Set config.workspaces as an array of {name, path}.",
+  "workspaces.exists": "exists",
+  "workspaces.missing": "missing",
+  "workspaces.gitRepo": "git repo",
+  "workspaces.notGitRepo": "not a git repo",
+
   "autonomous.title": "Autonomous loop",
   "autonomous.status.paused": "paused",
   "autonomous.status.running": "running",

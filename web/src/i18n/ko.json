@@ -90,6 +90,17 @@
   "common.loading": "로딩 중…",
   "common.refresh": "새로고침",
 
+  "workspaces.title": "워크스페이스",
+  "workspaces.description": "config.workspaces 에 선언된 멀티 레포 워크스페이스.",
+  "workspaces.refresh.label": "워크스페이스 새로고침",
+  "workspaces.intro": "c4 workspaces 명령에 대응합니다. 워크스페이스는 config.workspaces 에 설정합니다. 항목을 추가/삭제하려면 데몬의 config.json 을 수정한 뒤 리로드하세요 (구성 페이지 → 디스크에서 리로드).",
+  "workspaces.heading": "설정된 워크스페이스",
+  "workspaces.empty": "설정된 워크스페이스가 없습니다. config.workspaces 를 {name, path} 배열로 설정하세요.",
+  "workspaces.exists": "있음",
+  "workspaces.missing": "없음",
+  "workspaces.gitRepo": "git 레포",
+  "workspaces.notGitRepo": "git 레포 아님",
+
   "autonomous.title": "자율 루프",
   "autonomous.status.paused": "일시정지",
   "autonomous.status.running": "실행 중",
