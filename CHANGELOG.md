@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.361] - 2026-05-04
+
+**Web — TopTabs labels migrated to i18n.** Korean operators
+(ARPS team) saw the top-level tab labels in English even after
+flipping the locale switcher in Settings. The Features sidebar
+already used i18n; the top tabs were hardcoded.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 11 new keys
+  (`tab.workers` … `tab.settings`).
+- **`web/src/components/layout/TopTabs.tsx`**:
+  - `TabDef` switched from `label: string` to `labelKey: string`
+    + `fallback: string` so a daemon/web mismatch (older bundle
+    missing a `tab.*` key) still renders something sane.
+  - `useLocale()` hook so the labels re-render when the operator
+    flips locale.
+  - `t(labelKey)` lookup at render time.
+
+### Korean labels
+- 워커 / 기록 / 세션 / 회의 / 전문가 / 위키 / 자율 / 채팅 /
+  워크플로우 / 기능 / 설정.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Two tests asserted the old `label: '<X>'` literal — relaxed
+  to `(label|fallback): '<X>'` so the backwards-compat layer
+  still passes if someone reverts.
+
 ## [1.10.360] - 2026-05-04
 
 **Web — FeatureSidebar gains a filter input.** With 13 features

@@ -303,7 +303,8 @@ describe('SessionsView.tsx + App.tsx wiring', () => {
   });
 
   it('adds a sessions tab to the TopTabs list + persists the choice', () => {
-    assert.match(topTabs, /label: 'Sessions'/);
+    // (v1.10.360) Tab labels migrated to i18n keys + fallback strings.
+    assert.match(topTabs, /(label|fallback): 'Sessions'/);
     assert.match(topTabs, /value: 'sessions'/);
     assert.match(app, /import SessionsView from '\.\/components\/SessionsView'/);
     assert.match(app, /topView === 'sessions'/);

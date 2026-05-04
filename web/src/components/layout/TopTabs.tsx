@@ -13,6 +13,7 @@ import {
   Workflow,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
+import { t, useLocale } from '../../lib/i18n';
 
 export type TopView =
   | 'workers'
@@ -29,22 +30,27 @@ export type TopView =
 
 interface TabDef {
   value: TopView;
-  label: string;
+  // (v1.10.360) i18n key — resolved at render time so locale flips
+  // re-translate the label without remounting. We also still ship
+  // an explicit fallback string for the rare case the bundle
+  // doesn't have a tab.* key (older daemon/web mismatch).
+  labelKey: string;
+  fallback: string;
   Icon: ComponentType<SVGProps<SVGSVGElement>>;
 }
 
 const TABS: TabDef[] = [
-  { value: 'workers', label: 'Workers', Icon: Users },
-  { value: 'history', label: 'History', Icon: History },
-  { value: 'sessions', label: 'Sessions', Icon: FolderTree },
-  { value: 'meetings', label: 'Meetings', Icon: UsersRound },
-  { value: 'specialists', label: 'Specialists', Icon: GraduationCap },
-  { value: 'wiki', label: 'Wiki', Icon: BookOpen },
-  { value: 'autonomous', label: 'Autonomous', Icon: Bot },
-  { value: 'chat', label: 'Chat', Icon: MessageSquare },
-  { value: 'workflows', label: 'Workflows', Icon: Workflow },
-  { value: 'features', label: 'Features', Icon: LayoutGrid },
-  { value: 'settings', label: 'Settings', Icon: Settings },
+  { value: 'workers', labelKey: 'tab.workers', fallback: 'Workers', Icon: Users },
+  { value: 'history', labelKey: 'tab.history', fallback: 'History', Icon: History },
+  { value: 'sessions', labelKey: 'tab.sessions', fallback: 'Sessions', Icon: FolderTree },
+  { value: 'meetings', labelKey: 'tab.meetings', fallback: 'Meetings', Icon: UsersRound },
+  { value: 'specialists', labelKey: 'tab.specialists', fallback: 'Specialists', Icon: GraduationCap },
+  { value: 'wiki', labelKey: 'tab.wiki', fallback: 'Wiki', Icon: BookOpen },
+  { value: 'autonomous', labelKey: 'tab.autonomous', fallback: 'Autonomous', Icon: Bot },
+  { value: 'chat', labelKey: 'tab.chat', fallback: 'Chat', Icon: MessageSquare },
+  { value: 'workflows', labelKey: 'tab.workflows', fallback: 'Workflows', Icon: Workflow },
+  { value: 'features', labelKey: 'tab.features', fallback: 'Features', Icon: LayoutGrid },
+  { value: 'settings', labelKey: 'tab.settings', fallback: 'Settings', Icon: Settings },
 ];
 
 interface TopTabsProps {
@@ -58,15 +64,19 @@ interface TopTabsProps {
 }
 
 export default function TopTabs({ value, onChange, badges }: TopTabsProps) {
+  // useLocale registers a re-render when the operator flips
+  // between en/ko in Settings. The actual lookup uses t().
+  useLocale();
   return (
     <div
       role="tablist"
       aria-label="Top view"
       className="flex overflow-hidden rounded-md border border-border text-xs"
     >
-      {TABS.map(({ value: v, label, Icon }) => {
+      {TABS.map(({ value: v, labelKey, fallback, Icon }) => {
         const active = v === value;
         const badge = badges && badges[v];
+        const label = t(labelKey) || fallback;
         return (
           <button
             key={v}

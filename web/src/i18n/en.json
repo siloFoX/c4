@@ -24,6 +24,18 @@
   "common.korean": "Korean",
   "common.language": "Language",
 
+  "tab.workers": "Workers",
+  "tab.history": "History",
+  "tab.sessions": "Sessions",
+  "tab.meetings": "Meetings",
+  "tab.specialists": "Specialists",
+  "tab.wiki": "Wiki",
+  "tab.autonomous": "Autonomous",
+  "tab.chat": "Chat",
+  "tab.workflows": "Workflows",
+  "tab.features": "Features",
+  "tab.settings": "Settings",
+
   "help.title": "C4 help",
   "help.globalIntro": "C4 runs a local daemon that spawns Claude Code workers inside git worktrees. The web UI is a thin shell over the c4 CLI. Every page in Features mirrors a c4 <cmd> you could run in a terminal.",
   "help.featureNav": "Use the Features tab to open the feature sidebar. Categories: Operations (day-to-day), Cost (token/quota), Automation (plan/morning/auto), Config (templates/profiles), Diagnostics (health/validation).",

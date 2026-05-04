@@ -24,6 +24,18 @@
   "common.korean": "한국어",
   "common.language": "언어",
 
+  "tab.workers": "워커",
+  "tab.history": "기록",
+  "tab.sessions": "세션",
+  "tab.meetings": "회의",
+  "tab.specialists": "전문가",
+  "tab.wiki": "위키",
+  "tab.autonomous": "자율",
+  "tab.chat": "채팅",
+  "tab.workflows": "워크플로우",
+  "tab.features": "기능",
+  "tab.settings": "설정",
+
   "help.title": "C4 도움말",
   "help.globalIntro": "C4는 로컬 데몬이 git worktree 안에 Claude Code 워커를 띄우는 구조입니다. 웹 UI는 c4 CLI의 얇은 래퍼이며, Features 탭의 각 페이지는 터미널에서 실행할 수 있는 c4 <cmd>와 1:1로 대응됩니다.",
   "help.featureNav": "Features 탭에서 기능 사이드바를 엽니다. 카테고리: Operations(일상 운영), Cost(토큰/쿼터), Automation(plan/morning/auto), Config(templates/profiles), Diagnostics(health/validation).",

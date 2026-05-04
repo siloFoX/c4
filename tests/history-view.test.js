@@ -369,8 +369,12 @@ describe('App.tsx integration for history tab', () => {
       path.join(__dirname, '..', 'web', 'src', 'components', 'layout', 'TopTabs.tsx'),
       'utf8',
     );
-    assert.match(topTabsSrc, /label: 'Workers'/);
-    assert.match(topTabsSrc, /label: 'History'/);
+    // (v1.10.360) Tab labels migrated to i18n keys + fallback strings.
+    // Match either the legacy `label: '<X>'` literal (for back-compat
+    // when this test is run against an older TopTabs.tsx) OR the new
+    // `fallback: '<X>'` field.
+    assert.match(topTabsSrc, /(label|fallback): 'Workers'/);
+    assert.match(topTabsSrc, /(label|fallback): 'History'/);
     assert.match(topTabsSrc, /value: 'workers'/);
     assert.match(topTabsSrc, /value: 'history'/);
     assert.match(src, /onTopViewChange=\{setTopView\}/);
