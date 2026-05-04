@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.333] - 2026-05-04
+
+**Web — specialist tag editor.**
+Phase 1.6 follow-up backend exposed `PATCH /specialists/:id/tags`
+with replace/add/remove modes. CLI had `c4 specialist tag <id>
+--set/--add/--remove`; web operators had no editor at all.
+
+### Added
+- **`web/src/components/SpecialistsView.tsx`**:
+  - new "tags" section in the detail panel (between deliverables
+    and score history)
+  - default view shows existing tag chips (cyan, matching list
+    rows + audit color)
+  - "Edit" button toggles an input row with a comma-separated
+    value
+  - prefix `+` → add mode (`+rfc, experimental`)
+  - prefix `-` → remove mode (`-old-tag`)
+  - no prefix → replace mode
+  - `tagBusy` gates while the PATCH is in flight
+  - failure surfaces in the existing add-error banner
+- Fetch uses raw `fetch()` PATCH because `apiPost` is POST-only;
+  follow-up could add `apiPatch` to lib/api but not blocking.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Refresh-after-success keeps the chip list + summary bar
+  consistent without a manual reload.
+
 ## [1.10.332] - 2026-05-04
 
 **Web — specialist tag chips in list rows.**

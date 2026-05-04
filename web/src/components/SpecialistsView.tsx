@@ -227,6 +227,42 @@ export default function SpecialistsView() {
   // a specialist. Guarded by a 2-step confirm same as remove.
   const [resetBusy, setResetBusy] = useState(false);
   const [confirmResetId, setConfirmResetId] = useState<string | null>(null);
+
+  // (Phase 1.6) Tag edit — mode: replace | add | remove via
+  // PATCH /specialists/:id/tags. UI takes a comma-separated value
+  // and infers add/remove from operator's intent (`+ a, b` / `- a`)
+  // or replaces wholesale by default.
+  const [tagEditOpen, setTagEditOpen] = useState(false);
+  const [tagEditValue, setTagEditValue] = useState('');
+  const [tagBusy, setTagBusy] = useState(false);
+  const handleTagEdit = useCallback(async (id: string) => {
+    const raw = tagEditValue.trim();
+    if (!raw) return;
+    let mode: 'replace' | 'add' | 'remove' = 'replace';
+    let tagsRaw = raw;
+    if (raw.startsWith('+')) { mode = 'add'; tagsRaw = raw.slice(1); }
+    else if (raw.startsWith('-')) { mode = 'remove'; tagsRaw = raw.slice(1); }
+    const tags = tagsRaw.split(',').map((t) => t.trim()).filter(Boolean);
+    if (tags.length === 0 && mode === 'replace') return; // empty replace = clear; we want intentional clears
+    setTagBusy(true);
+    try {
+      // apiPost is for POST; we need PATCH. Use fetch directly.
+      const url = `/api/specialists/${encodeURIComponent(id)}/tags`;
+      const res = await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags, mode }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setTagEditValue('');
+      setTagEditOpen(false);
+      await refresh();
+    } catch (e) {
+      setAddError(`tag edit: ${(e as Error).message || 'failed'}`);
+    } finally {
+      setTagBusy(false);
+    }
+  }, [tagEditValue, refresh]);
   const handleScoreReset = useCallback(async (id: string) => {
     setResetBusy(true);
     try {
@@ -740,6 +776,56 @@ export default function SpecialistsView() {
                   </ul>
                 </div>
               ) : null}
+
+              {/* (Phase 1.6) Tag editor — replace / add (`+a,b`) /
+                  remove (`-a`) via PATCH /specialists/:id/tags. */}
+              <div className="text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-muted-foreground">tags</div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setTagEditOpen((v) => !v);
+                      setTagEditValue(Array.isArray(selected.tags) ? selected.tags.join(', ') : '');
+                    }}
+                    className="h-6 px-2 text-[10px]"
+                  >
+                    {tagEditOpen ? 'Cancel' : 'Edit'}
+                  </Button>
+                </div>
+                {!tagEditOpen ? (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {Array.isArray(selected.tags) && selected.tags.length > 0
+                      ? selected.tags.map((t) => (
+                          <span key={t} className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-1.5 py-0 text-[10px] text-cyan-700 dark:text-cyan-400">
+                            #{t}
+                          </span>
+                        ))
+                      : <span className="text-[11px] text-muted-foreground italic">no tags</span>}
+                  </div>
+                ) : (
+                  <div className="mt-1 flex flex-wrap items-center gap-1">
+                    <Input
+                      type="text"
+                      value={tagEditValue}
+                      onChange={(e) => setTagEditValue(e.target.value)}
+                      placeholder='comma-separated; prefix with + to add, - to remove'
+                      aria-label="Edit tags"
+                      className="h-7 flex-1 text-[11px]"
+                      disabled={tagBusy}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => handleTagEdit(selected.id)}
+                      disabled={tagBusy}
+                      className="h-7 px-2 text-[11px]"
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                )}
+              </div>
 
               {(Object.keys(selected.score.byDomain).length > 0
                 || Object.keys(selected.score.byStage).length > 0) ? (
