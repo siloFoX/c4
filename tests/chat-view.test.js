@@ -116,7 +116,8 @@ describe('ChatView source wiring', () => {
 
   it('tracks autoScroll and exposes a Jump-to-latest escape hatch', () => {
     assert.match(src, /setAutoScroll/);
-    assert.match(src, /Jump to latest/);
+    // (v1.10.385) i18n migration — assert key instead of literal.
+    assert.match(src, /chat\.jumpToLatest/);
     assert.match(src, /distanceFromBottom/);
   });
 

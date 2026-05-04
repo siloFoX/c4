@@ -94,6 +94,12 @@
   "sessions.empty": "세션이 없습니다.",
   "sessions.loadingSession": "세션 로딩 중…",
 
+  "chat.jumpToLatest": "최근으로 이동",
+  "chat.loadingPast": "이전 메시지 불러오는 중…",
+  "chat.empty": "메시지가 없습니다. 아래에 입력해서 워커에게 보내세요.",
+  "chat.loadedPast.one": "이전 메시지 {n}개 불러옴",
+  "chat.loadedPast.other": "이전 메시지 {n}개 불러옴",
+
   "workerList.disconnected": "실시간 업데이트 끊김 — 폴링 중",
   "workerList.failedToLoad": "워커 로드 실패: {error}",
   "workerList.empty": "워커가 없습니다.",

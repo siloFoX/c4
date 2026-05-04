@@ -262,15 +262,20 @@ describe('ChatView source wiring (8.25)', () => {
     assert.match(src, /backfillLoading \?/);
     assert.match(src, /animate-spin/);
     assert.match(src, /animate-pulse/);
-    assert.match(src, /Loading past messages/);
+    // (v1.10.385) i18n migration — assert the i18n key reference
+    // instead of the literal English string.
+    assert.match(src, /chat\.loadingPast/);
   });
 
   it('renders a "Loaded N past messages" badge when backfill succeeds', () => {
     assert.match(src, /backfillCount > 0/);
+    // (v1.10.385) i18n migration: tFormat('chat.loadedPast.<one|other>',
+    // {n}) replaces the inline pluralisation expression.
     assert.match(
       src,
-      /Loaded \{backfillCount\} past \{backfillCount === 1 \? 'message' : 'messages'\}/,
+      /chat\.loadedPast\.(one|other)/,
     );
+    assert.match(src, /backfillCount === 1/);
   });
 
   it('wires an infinite-scroll load-older handler for scrollback mode', () => {

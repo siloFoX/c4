@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.386] - 2026-05-04
+
+**Web — ChatView i18n.** Worker-chat panel had four hardcoded
+strings — Jump to latest, Loading past messages, "Loaded N past
+message(s)" with inline pluralisation, and the empty state.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 5 new keys under
+  `chat.*` (jumpToLatest / loadingPast / empty / loadedPast.one
+  / loadedPast.other).
+- **`web/src/components/ChatView.tsx`**:
+  - `useLocale()` hook re-renders on locale flip.
+  - `t()` for static strings; `tFormat()` with `{n}` token for
+    the loaded-N-past badge. Pluralisation switches between
+    `loadedPast.one` and `loadedPast.other` keys (mirrors the
+    existing inline `=== 1` ternary, just under i18n control).
+- **`tests/chat-view.test.js` + `tests/chat-backfill.test.js`**:
+  source-grep relaxed to look for the i18n keys (`chat.*`)
+  instead of the literal English strings.
+
+### Korean copy
+- 최근으로 이동 / 이전 메시지 불러오는 중… / 메시지가 없습니다.
+  아래에 입력해서 워커에게 보내세요. / 이전 메시지 N개 불러옴.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Korean copy uses the same string for both singular and plural
+  since Korean has no count-driven plural form for noun phrases.
+
 ## [1.10.385] - 2026-05-04
 
 **Web — ConversationView "Loading session…" i18n.**

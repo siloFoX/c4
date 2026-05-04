@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { ArrowDown, Loader2, Send, Sparkles } from 'lucide-react';
 import { apiFetch, apiGet, eventSourceUrl } from '../lib/api';
+import { t, tFormat, useLocale } from '../lib/i18n';
 import {
   Badge,
   Button,
@@ -187,6 +188,7 @@ export function scrollbackToMessages(raw: string): ChatMessage[] {
 }
 
 export default function ChatView({ workerName }: ChatViewProps) {
+  useLocale();
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [liveMessages, setLiveMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -502,7 +504,10 @@ export default function ChatView({ workerName }: ChatViewProps) {
         <div className="flex items-center gap-2 text-xs">
           {backfillCount > 0 && (
             <Badge variant="secondary" className="flex items-center gap-1" title={backfillSource === 'session' ? 'Loaded from session JSONL' : 'Loaded from scrollback'}>
-              <span>Loaded {backfillCount} past {backfillCount === 1 ? 'message' : 'messages'}</span>
+              <span>{tFormat(
+                backfillCount === 1 ? 'chat.loadedPast.one' : 'chat.loadedPast.other',
+                { n: String(backfillCount) },
+              )}</span>
             </Badge>
           )}
           <Badge
@@ -522,7 +527,7 @@ export default function ChatView({ workerName }: ChatViewProps) {
           {!autoScroll && (
             <Button type="button" variant="secondary" size="sm" onClick={jumpToBottom}>
               <ArrowDown className="h-3.5 w-3.5" />
-              <span>Jump to latest</span>
+              <span>{t('chat.jumpToLatest')}</span>
             </Button>
           )}
         </div>
@@ -559,7 +564,7 @@ export default function ChatView({ workerName }: ChatViewProps) {
           {backfillLoading ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
-              <span>Loading past messages...</span>
+              <span>{t('chat.loadingPast')}</span>
               <ul className="mt-4 w-full max-w-sm space-y-2" aria-hidden="true">
                 <li className="h-8 animate-pulse rounded-md bg-muted/60" />
                 <li className="h-12 animate-pulse rounded-md bg-muted/50" />
@@ -569,7 +574,7 @@ export default function ChatView({ workerName }: ChatViewProps) {
           ) : messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
               <Sparkles aria-hidden="true" className="h-4 w-4" />
-              <span>No messages yet. Type below to talk to the worker.</span>
+              <span>{t('chat.empty')}</span>
             </div>
           ) : (
             <ul className="flex flex-col gap-2">

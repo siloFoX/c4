@@ -94,6 +94,12 @@
   "sessions.empty": "No sessions found.",
   "sessions.loadingSession": "Loading session…",
 
+  "chat.jumpToLatest": "Jump to latest",
+  "chat.loadingPast": "Loading past messages…",
+  "chat.empty": "No messages yet. Type below to talk to the worker.",
+  "chat.loadedPast.one": "Loaded {n} past message",
+  "chat.loadedPast.other": "Loaded {n} past messages",
+
   "workerList.disconnected": "Live updates disconnected — polling",
   "workerList.failedToLoad": "Failed to load workers: {error}",
   "workerList.empty": "No workers yet.",
