@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ChevronDown, ChevronRight, Eye, Plus, RefreshCw, Shield, Star, Trash2 } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronRight, Eye, Plus, RefreshCw, Search, Shield, Star, Trash2, X } from 'lucide-react';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
@@ -511,13 +511,30 @@ export default function SpecialistsView() {
               </div>
             </div>
           ) : null}
-          <Input
-            type="text"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            placeholder="Filter by id / domain / keyword"
-            aria-label="Filter specialists"
-          />
+          {/* (Phase 8.4) text search across id / displayName /
+              systemPrompt / domain / triggers.keywords. Whitespace
+              tokens AND-compose. */}
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Input
+              type="text"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder='Search id / displayName / systemPrompt / domain / keywords (whitespace = AND)'
+              aria-label="Filter specialists"
+              className="pl-7 pr-7"
+            />
+            {filter ? (
+              <button
+                type="button"
+                onClick={() => setFilter('')}
+                aria-label="Clear filter"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" aria-hidden />
+              </button>
+            ) : null}
+          </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px]">
             <label className="text-muted-foreground">
               tier:

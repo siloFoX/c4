@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.326] - 2026-05-04
+
+**Web — specialist filter input polish.**
+The SpecialistsView filter input was a tiny placeholder ("Filter
+by id / domain / keyword") that didn't reflect the v1.10.310
+extension to systemPrompt body. Same Search icon affordance as
+MeetingsView search box (v1.10.309) for consistency.
+
+### Added
+- **`web/src/components/SpecialistsView.tsx`**:
+  - `<Search />` icon-prefixed input with the same shape as
+    MeetingsView search box
+  - new placeholder: "Search id / displayName / systemPrompt /
+    domain / keywords (whitespace = AND)"
+  - X button to clear
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Pure visual upgrade — same client-side `searchByText` mirror
+  was wired in v1.10.310; this just makes the affordance
+  obvious.
+
 ## [1.10.325] - 2026-05-04
 
 **Web — recap quick-summary panel.**
