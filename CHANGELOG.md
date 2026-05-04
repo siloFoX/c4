@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.332] - 2026-05-04
+
+**Web — specialist tag chips in list rows.**
+Phase 1.6 backend introduced `tags: string[]` for grouping +
+filtering specialists. Web list rows showed only domain. Tags
+were invisible on the surface most operators look at first.
+
+### Added
+- **`web/src/components/SpecialistsView.tsx`**:
+  - `Specialist.tags?: string[]` typing
+  - row body renders cyan-toned `#tag` chips below the domain
+    line (up to 4; overflow shown as `+N`)
+  - chips match the `tags-updated` audit color (cyan), keeping
+    the visual association between actions and the field they
+    affect
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Composes with the existing search filter (v1.10.310 extends
+  the filter input to systemPrompt) so tagging a specialist
+  with `#rfc` and then filtering for "rfc" finds it.
+
 ## [1.10.331] - 2026-05-04
 
 **Web — search snippet highlighting in meeting rows.**

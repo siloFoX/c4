@@ -19,6 +19,8 @@ interface Specialist {
   systemPrompt: string;
   triggers: { keywords: string[]; stages: string[] };
   deliverables: string[];
+  // (Phase 1.6) free-form tags for grouping/filter
+  tags?: string[];
   vetoPower: boolean;
   probation: 'stable' | 'probation';
   score: {
@@ -622,6 +624,21 @@ export default function SpecialistsView() {
                     <span className="truncate text-[11px] text-muted-foreground">
                       {s.domain.join(', ')}
                     </span>
+                    {Array.isArray(s.tags) && s.tags.length > 0 ? (
+                      <div className="flex flex-wrap gap-0.5">
+                        {s.tags.slice(0, 4).map((t) => (
+                          <span
+                            key={t}
+                            className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-1 py-0 text-[9px] text-cyan-700 dark:text-cyan-400"
+                          >
+                            #{t}
+                          </span>
+                        ))}
+                        {s.tags.length > 4 ? (
+                          <span className="text-[9px] text-muted-foreground">+{s.tags.length - 4}</span>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </li>
                 );
               })}
