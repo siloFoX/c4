@@ -299,6 +299,9 @@ export default function WorkflowEditor() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
+  // (v1.10.350) Expand a single run to inspect per-node results.
+  // Resets on workflow switch so the panel doesn't show a stale id.
+  const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<boolean>(false);
 
@@ -323,6 +326,7 @@ export default function WorkflowEditor() {
   }, [refresh]);
 
   useEffect(() => {
+    setExpandedRunId(null);
     if (!selectedId) {
       setRuns([]);
       return;
@@ -476,24 +480,96 @@ export default function WorkflowEditor() {
                 {runs.length === 0 ? (
                   <div className="text-xs text-muted-foreground">No runs yet.</div>
                 ) : (
-                  <ul className="max-h-48 overflow-y-auto text-xs">
-                    {runs.slice(-10).reverse().map((r) => (
-                      <li
-                        key={r.id}
-                        className="flex items-center justify-between border-b border-border py-1 last:border-b-0"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-foreground">{r.id}</div>
-                          <div className="text-muted-foreground">{r.startedAt}</div>
-                        </div>
-                        <Badge
-                          variant={runStatusVariant(r.status)}
-                          className="shrink-0 uppercase"
+                  <ul className="max-h-72 overflow-y-auto text-xs">
+                    {runs.slice(-10).reverse().map((r) => {
+                      const isExpanded = expandedRunId === r.id;
+                      const nodeIds = Object.keys(r.nodeResults || {});
+                      return (
+                        <li
+                          key={r.id}
+                          className="border-b border-border py-1 last:border-b-0"
                         >
-                          {r.status}
-                        </Badge>
-                      </li>
-                    ))}
+                          <button
+                            type="button"
+                            onClick={() => setExpandedRunId(isExpanded ? null : r.id)}
+                            className="flex w-full items-center justify-between gap-2 text-left hover:bg-muted/30"
+                            aria-expanded={isExpanded}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate font-mono text-[11px] text-foreground">
+                                {isExpanded ? '▼' : '▶'} {r.id}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground">
+                                {r.startedAt}
+                                {r.completedAt ? ` → ${r.completedAt}` : ' (running)'}
+                                {nodeIds.length > 0 ? ` · ${nodeIds.length} node(s)` : ''}
+                              </div>
+                            </div>
+                            <Badge
+                              variant={runStatusVariant(r.status)}
+                              className="shrink-0 uppercase"
+                            >
+                              {r.status}
+                            </Badge>
+                          </button>
+                          {isExpanded ? (
+                            <div className="mt-2 ml-3 flex flex-col gap-1 border-l border-border/40 pl-2">
+                              {nodeIds.length === 0 ? (
+                                <div className="text-[11px] text-muted-foreground">
+                                  No per-node results.
+                                </div>
+                              ) : (
+                                nodeIds.map((nid) => {
+                                  const nr = r.nodeResults[nid];
+                                  return (
+                                    <div key={nid} className="flex flex-col gap-0.5">
+                                      <div className="flex items-center gap-1">
+                                        <span className="rounded border border-border bg-muted/30 px-1 font-mono text-[10px]">
+                                          {nid}
+                                        </span>
+                                        <Badge
+                                          variant={
+                                            nr.status === 'completed' ? 'default'
+                                            : nr.status === 'failed' ? 'destructive'
+                                            : nr.status === 'running' ? 'secondary'
+                                            : 'outline'
+                                          }
+                                          className="text-[9px] uppercase"
+                                        >
+                                          {nr.status}
+                                        </Badge>
+                                      </div>
+                                      {nr.error ? (
+                                        <div className="font-mono text-[10px] text-destructive">
+                                          {nr.error}
+                                        </div>
+                                      ) : null}
+                                      {nr.output !== null && nr.output !== undefined ? (
+                                        <pre className="max-h-32 overflow-auto rounded bg-muted/30 p-1 font-mono text-[10px]">
+                                          {typeof nr.output === 'string'
+                                            ? nr.output
+                                            : JSON.stringify(nr.output, null, 2)}
+                                        </pre>
+                                      ) : null}
+                                    </div>
+                                  );
+                                })
+                              )}
+                              {(r.inputs && typeof r.inputs === 'object' && Object.keys(r.inputs).length > 0) ? (
+                                <details className="mt-1">
+                                  <summary className="cursor-pointer text-[10px] text-muted-foreground">
+                                    inputs
+                                  </summary>
+                                  <pre className="mt-1 max-h-32 overflow-auto rounded bg-muted/30 p-1 font-mono text-[10px]">
+                                    {JSON.stringify(r.inputs, null, 2)}
+                                  </pre>
+                                </details>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </Panel>

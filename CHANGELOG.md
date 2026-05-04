@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.351] - 2026-05-04
+
+**Web — workflow run inspector (per-node results).** The
+WorkflowEditor's "Recent runs" panel previously only showed
+the run id + start time + status. Operators wanting to see
+node-level success / failure / output had to drop to CLI or
+hit the API directly.
+
+### Added
+- **`web/src/components/WorkflowEditor.tsx`**:
+  - Each run row in the "Recent runs" panel is now a clickable
+    accordion. Click expands inline to show:
+    - Per-node status badges (completed / failed / running /
+      skipped) with colored variants.
+    - Error message when present (destructive-tone monospace).
+    - Output dump as a pre-block (max-h-32, monospace, auto-
+      scroll). Strings render as-is; everything else as JSON.
+    - `<details>` foldout for run inputs (only when non-empty).
+  - Caret prefix (`▶` / `▼`) signals expandability.
+  - Workflow switch resets `expandedRunId` so the panel doesn't
+    show a stale id from the previous workflow.
+  - Run row also shows started→completed range and node count.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- No new endpoint — the runs payload already carried
+  `nodeResults` in `WorkflowRun`.
+
 ## [1.10.350] - 2026-05-04
 
 **Web — Autonomous tab (Phase 8.29 escalation review surface).**
