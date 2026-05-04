@@ -17,6 +17,7 @@ import {
 import { apiDelete, apiGet, apiPost } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
+import { t, useLocale } from '../lib/i18n';
 import ConversationView from './ConversationView';
 
 export interface SessionSummary {
@@ -901,6 +902,7 @@ function AttachedRowActions({
 }
 
 export default function SessionsView() {
+  useLocale();
   const [data, setData] = useState<SessionsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -1147,7 +1149,7 @@ export default function SessionsView() {
                 }}
                 disabled={loading}
               >
-                {loading ? 'Loading...' : 'Refresh'}
+                {loading ? t('common.loading') : t('common.refresh')}
               </Button>
             </div>
           </div>
@@ -1244,7 +1246,7 @@ export default function SessionsView() {
             <div className="p-4 text-sm text-destructive">{error}</div>
           ) : filteredGroups.length === 0 ? (
             <div className="p-4 text-sm text-muted-foreground">
-              {loading ? 'Loading sessions...' : 'No sessions found.'}
+              {loading ? t('sessions.loadingSessions') : t('sessions.empty')}
             </div>
           ) : (
             <ul className="divide-y divide-border">

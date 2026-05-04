@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.379] - 2026-05-04
+
+**Web — SessionsView refresh button + empty/loading states i18n.**
+Three more visible strings translated.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 2 new keys
+  (`sessions.loadingSessions`, `sessions.empty`); refresh
+  button reuses `common.refresh` / `common.loading`.
+- **`web/src/components/SessionsView.tsx`**:
+  - `useLocale()` hook re-renders on locale flip.
+  - Refresh / Loading button label uses common keys.
+  - Empty / loading list-state text uses session-scoped keys.
+
+### Korean copy
+- 세션 로딩 중… / 세션이 없습니다.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- SessionsView is large (1300 LOC) — this slice covers the
+  three most-visible strings; deeper i18n is a future pass.
+
 ## [1.10.378] - 2026-05-04
 
 **Web — `common.loading` / `common.refresh` shared i18n keys.**

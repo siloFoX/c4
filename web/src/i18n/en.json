@@ -90,6 +90,9 @@
   "common.loading": "Loading…",
   "common.refresh": "Refresh",
 
+  "sessions.loadingSessions": "Loading sessions…",
+  "sessions.empty": "No sessions found.",
+
   "workerList.disconnected": "Live updates disconnected — polling",
   "workerList.failedToLoad": "Failed to load workers: {error}",
   "workerList.empty": "No workers yet.",
