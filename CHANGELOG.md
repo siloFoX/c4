@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.314] - 2026-05-04
+
+**Web — track classifier preview in MeetingsView create form.**
+Phase 6.6 added `/api/meetings/classify-track` (preview which
+track auto-mode would pick + matching keywords). CLI operators
+saw it via `c4 meeting classify-track`; web operators creating
+a meeting had no visibility into auto-mode's reasoning.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**:
+  - 250ms debounced `useEffect` calling
+    `/api/meetings/classify-track?task=<typed text>`
+  - inline chip beside the track select:
+    `auto would pick: full (auth, secret, production)`
+  - mismatch-aware coloring: when operator picked a different
+    explicit track, the chip turns amber (warns about override)
+  - chip carries the classifier `reason` as a tooltip
+    (`hover` shows the full keyword-match explanation)
+
+### Notes
+- Pure web — backend tests still 200/200; lint + drift clean.
+- Classify-track is much lighter than `/meetings/plan` (no
+  dispatcher / no roster) so it can run on every keystroke
+  burst without straining the daemon.
+- Composes with the existing plan preview (full roster) — both
+  fire from the same form, classify-track first (inline chip)
+  and plan after (full preview block below).
+
 ## [1.10.313] - 2026-05-04
 
 **Web — stuck meetings banner in MeetingsView.**

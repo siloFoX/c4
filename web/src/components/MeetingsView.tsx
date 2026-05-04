@@ -443,6 +443,32 @@ export default function MeetingsView() {
   } | null>(null);
   const [previewBusy, setPreviewBusy] = useState(false);
 
+  // (Phase 6.6) Track classifier preview — separate, lighter call
+  // than /meetings/plan. Tells the operator which track auto-mode
+  // would pick and which keywords matched. Shown inline next to
+  // the track select even when track is set explicitly (so the
+  // operator can sanity-check their override).
+  const [classifyPreview, setClassifyPreview] = useState<
+    | { track: 'lightweight' | 'standard' | 'full'; matched: Array<{ list: string; term: string }>; reason: string }
+    | null
+  >(null);
+  useEffect(() => {
+    if (!creating || !newTask.trim()) {
+      setClassifyPreview(null);
+      return undefined;
+    }
+    const handle = window.setTimeout(async () => {
+      try {
+        const qs = new URLSearchParams({ task: newTask.trim() });
+        const res = await apiGet<typeof classifyPreview>(`/api/meetings/classify-track?${qs.toString()}`);
+        setClassifyPreview(res);
+      } catch {
+        setClassifyPreview(null);
+      }
+    }, 250);
+    return () => window.clearTimeout(handle);
+  }, [creating, newTask]);
+
   // Debounced dispatcher preview — re-runs ~400ms after typing stops.
   useEffect(() => {
     if (!creating || !newTask.trim()) {
@@ -774,6 +800,27 @@ export default function MeetingsView() {
                     <option value="full">full</option>
                   </select>
                 </label>
+                {/* (Phase 6.6) classifier hint — shown when there's
+                    typed text. Highlights mismatch when operator
+                    explicitly chose a different track. */}
+                {classifyPreview ? (
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-full border px-1.5 py-0 text-[10px]',
+                      newTrack !== 'auto' && newTrack !== classifyPreview.track
+                        ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400'
+                        : 'border-border bg-muted/30 text-muted-foreground',
+                    )}
+                    title={classifyPreview.reason}
+                  >
+                    auto would pick: <span className="font-medium">{classifyPreview.track}</span>
+                    {classifyPreview.matched.length > 0 ? (
+                      <span className="opacity-80">
+                        ({classifyPreview.matched.map((m) => m.term).join(', ')})
+                      </span>
+                    ) : null}
+                  </span>
+                ) : null}
                 <Button
                   size="sm"
                   onClick={handleCreate}
