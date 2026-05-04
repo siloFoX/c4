@@ -7,6 +7,7 @@ import SessionsView from './components/SessionsView';
 import MeetingsView from './components/MeetingsView';
 import SpecialistsView from './components/SpecialistsView';
 import WikiView from './components/WikiView';
+import AutonomousView from './components/AutonomousView';
 import Chat from './components/Chat';
 import Login from './components/Login';
 import WorkflowEditor from './components/WorkflowEditor';
@@ -200,6 +201,10 @@ export default function App() {
       ) : topView === 'workflows' ? (
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <WorkflowEditor />
+        </div>
+      ) : topView === 'autonomous' ? (
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          <AutonomousView />
         </div>
       ) : topView === 'features' ? (
         <FeatureView sidebarOpen={sidebarOpen} />

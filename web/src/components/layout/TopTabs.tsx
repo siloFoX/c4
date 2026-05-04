@@ -1,6 +1,7 @@
 import type { ComponentType, SVGProps } from 'react';
 import {
   BookOpen,
+  Bot,
   FolderTree,
   GraduationCap,
   History,
@@ -22,6 +23,7 @@ export type TopView =
   | 'meetings'
   | 'specialists'
   | 'wiki'
+  | 'autonomous'
   | 'features'
   | 'settings';
 
@@ -38,6 +40,7 @@ const TABS: TabDef[] = [
   { value: 'meetings', label: 'Meetings', Icon: UsersRound },
   { value: 'specialists', label: 'Specialists', Icon: GraduationCap },
   { value: 'wiki', label: 'Wiki', Icon: BookOpen },
+  { value: 'autonomous', label: 'Autonomous', Icon: Bot },
   { value: 'chat', label: 'Chat', Icon: MessageSquare },
   { value: 'workflows', label: 'Workflows', Icon: Workflow },
   { value: 'features', label: 'Features', Icon: LayoutGrid },

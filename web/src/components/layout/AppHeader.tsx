@@ -51,6 +51,9 @@ export default function AppHeader({
   // (v1.10.328) Underperformer count for the Specialists tab.
   // Same cadence + tolerance pattern.
   const [underperformerCount, setUnderperformerCount] = useState(0);
+  // (v1.10.349) Pending autonomous escalation count for the
+  // Autonomous tab badge. Same poll group as stuck/underperform.
+  const [escalationCount, setEscalationCount] = useState(0);
   useEffect(() => {
     if (!authed) return undefined;
     let cancelled = false;
@@ -60,6 +63,9 @@ export default function AppHeader({
         .catch(() => { /* tolerate */ });
       apiGet<{ flagged: number }>('/api/specialists/underperformers')
         .then((res) => { if (!cancelled) setUnderperformerCount(res.flagged || 0); })
+        .catch(() => { /* tolerate */ });
+      apiGet<{ count: number; escalations: unknown[] }>('/api/autonomous/escalations')
+        .then((res) => { if (!cancelled) setEscalationCount(res.count || 0); })
         .catch(() => { /* tolerate */ });
     };
     fetchSignals();
@@ -109,6 +115,7 @@ export default function AppHeader({
             const out: Partial<Parameters<typeof TopTabs>[0]['badges']> = {};
             if (stuckCount > 0) out.meetings = { count: stuckCount, tone: 'amber' };
             if (underperformerCount > 0) out.specialists = { count: underperformerCount, tone: 'amber' };
+            if (escalationCount > 0) out.autonomous = { count: escalationCount, tone: 'destructive' };
             return Object.keys(out).length > 0 ? out as never : undefined;
           })()}
         />

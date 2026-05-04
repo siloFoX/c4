@@ -4,6 +4,43 @@
 
 (no entries — next release window)
 
+## [1.10.350] - 2026-05-04
+
+**Web — Autonomous tab (Phase 8.29 escalation review surface).**
+The autonomous loop (8.28) and reviewer escalations (8.29) had
+backend support but no operator-facing UI. CLI worked but felt
+clunky for "I'm watching the loop run, what does it want from
+me?" decisions.
+
+### Added
+- **`web/src/components/AutonomousView.tsx`** (new):
+  - Top card: digest summary (`/api/autonomous/digest`) — window
+    duration, dispatched / succeeded / halted / dispatch errors,
+    success rate, pending / resolved escalation counts, paused
+    badge, window range. Refresh button + auto-poll every 30s.
+  - Pause / Resume button — flips with `digest.paused`. Confirms
+    nothing inline since pause/resume is reversible.
+  - Bottom card: pending escalations list (
+    `/api/autonomous/escalations`). Each escalation shows id,
+    kind, todoId, reason, suggested action, age. Inline note
+    field + Approve / Reject / Modify buttons. Note required
+    for Modify (governance: forces operator to articulate the
+    change). Optimistic remove on resolve so the list stays
+    responsive.
+- **`web/src/components/layout/TopTabs.tsx`**: new `'autonomous'`
+  view with `Bot` icon between Wiki and Chat.
+- **`web/src/components/layout/AppHeader.tsx`**: poll
+  `/api/autonomous/escalations` alongside stuck/underperform.
+  Pending count → destructive-tone badge on the Autonomous tab.
+- **`web/src/App.tsx`**: route the autonomous view.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- The Approve/Reject/Modify resolution map directly to the
+  `action` field on `POST /autonomous/escalations/:id`.
+- Auto-refresh is 30s — operator dwell time. AppHeader's badge
+  poll is 60s as before; the two cadences are independent.
+
 ## [1.10.349] - 2026-05-04
 
 **Web — audit CSV export from audit log header.** Backend
