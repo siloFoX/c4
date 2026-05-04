@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.342] - 2026-05-04
+
+**Web — bulk wiki publish (Phase 4 / wiki).** Backend
+`POST /wiki/publish-all` writes a wiki page for every terminal
+meeting without one (idempotent). CLI had `c4 wiki publish-all`;
+web operators had to click Publish on each meeting individually.
+
+### Added
+- **`web/src/components/WikiView.tsx`**:
+  - `handleBulkPublish()` — confirm dialog, then POSTs with
+    optional gitCommit / gitPush flags, refreshes the search
+    afterwards so new pages appear.
+  - "Publish all" outline button below the search controls with
+    git commit / + push toggles (push implies commit).
+  - Transient toast: `published N new page(s) · skipped M
+    [· git <sha> [+ pushed]]`.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Force-overwrite isn't exposed in the UI — operators who really
+  need to clobber existing pages should use the CLI's `?force=1`
+  variant.
+
 ## [1.10.341] - 2026-05-04
 
 **Web — apply revision via meeting consensus (Phase 5.2).**

@@ -132,6 +132,50 @@ export default function WikiView() {
     }
   }, [runSearch]);
 
+  // (v1.10.341) Bulk publish — POST /api/wiki/publish-all writes
+  // a wiki page for every terminal meeting that doesn't yet have
+  // one. Idempotent unless ?force=1 (we don't expose force in the
+  // UI; if an operator wants to overwrite they can fall back to
+  // the CLI). Result envelope is `{written, skipped, ...}`; we
+  // surface the counts in a transient toast and re-run the search
+  // so the new pages show up.
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkMsg, setBulkMsg] = useState<string | null>(null);
+  const [bulkGitCommit, setBulkGitCommit] = useState(false);
+  const [bulkGitPush, setBulkGitPush] = useState(false);
+  const handleBulkPublish = useCallback(async () => {
+    if (!window.confirm(
+      'Publish a wiki page for every terminal meeting without one?\n' +
+      'Idempotent (existing pages are skipped). Use the CLI for force-overwrite.',
+    )) return;
+    setBulkBusy(true);
+    setBulkMsg(null);
+    try {
+      const res = await apiPost<{
+        written: string[];
+        skipped?: string[];
+        wikiRoot?: string;
+        git?: { committed: boolean; sha?: string; pushed?: boolean };
+      }>('/api/wiki/publish-all', {
+        gitCommit: bulkGitCommit,
+        gitPush: bulkGitPush,
+      });
+      const w = (res.written || []).length;
+      const s = (res.skipped || []).length;
+      let msg = `published ${w} new page(s) · skipped ${s}`;
+      if (res.git && res.git.committed) {
+        msg += ` · git ${res.git.sha ? res.git.sha.slice(0, 7) : 'committed'}${res.git.pushed ? ' + pushed' : ''}`;
+      }
+      setBulkMsg(msg);
+      window.setTimeout(() => setBulkMsg(null), 6000);
+      runSearch();
+    } catch (e) {
+      setBulkMsg(`publish-all failed: ${(e as Error).message || 'unknown'}`);
+    } finally {
+      setBulkBusy(false);
+    }
+  }, [bulkGitCommit, bulkGitPush, runSearch]);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 md:flex-row md:p-6">
       <Card className="flex min-h-0 flex-1 flex-col md:max-w-md">
@@ -186,6 +230,55 @@ export default function WikiView() {
                 <Search className={cn('h-3.5 w-3.5', searching && 'animate-spin')} aria-hidden />
                 Search
               </Button>
+            </div>
+            {/* (v1.10.341) Bulk publish row — sits below the
+                search controls, separated visually. Idempotent so
+                operators can click without worrying about
+                clobbering existing pages. */}
+            <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-2 text-[11px]">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleBulkPublish}
+                disabled={bulkBusy}
+                aria-label="Publish all terminal meetings without a wiki page"
+                title="Publish a wiki page for every terminal meeting that doesn't have one"
+              >
+                {bulkBusy ? 'Publishing…' : 'Publish all'}
+              </Button>
+              <label className="flex items-center gap-1 text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={bulkGitCommit}
+                  onChange={(e) => {
+                    setBulkGitCommit(e.target.checked);
+                    if (!e.target.checked) setBulkGitPush(false);
+                  }}
+                  disabled={bulkBusy}
+                  className="h-3 w-3"
+                />
+                git commit
+              </label>
+              <label className="flex items-center gap-1 text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={bulkGitPush}
+                  onChange={(e) => {
+                    setBulkGitPush(e.target.checked);
+                    if (e.target.checked) setBulkGitCommit(true);
+                  }}
+                  disabled={bulkBusy}
+                  className="h-3 w-3"
+                />
+                + push
+              </label>
+              {bulkMsg ? (
+                <span className={cn(
+                  'text-[11px]',
+                  bulkMsg.startsWith('publish-all failed')
+                    ? 'text-destructive' : 'text-muted-foreground',
+                )}>{bulkMsg}</span>
+              ) : null}
             </div>
           </div>
         </CardHeader>
