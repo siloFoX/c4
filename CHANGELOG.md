@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.307] - 2026-05-04
+
+**c4 specialist smoke-test — fork + lineage steps.**
+The Phase 9.1 smoke-test exercised create / search / run / recap.
+Operators using fork (Phase 6.3) and lineage (Phase 6.9) had no
+parallel runtime check. This adds two steps + cleanup of the
+forked meeting.
+
+### Added
+- **CLI**: `c4 specialist smoke-test` extended with:
+  - `fork meeting (replan mode)` — POST /meetings/:id/fork,
+    asserts `forkOf` points back at the source
+  - `verify fork lineage` — GET /meetings/:id/lineage,
+    asserts depth >= 2 and the chain includes the source id
+  - `cleanup (delete forked meeting)` runs first if a fork
+    was created; the original test-meeting cleanup follows
+- 8 steps total now (5 → 7 + 1 extra cleanup conditional on
+  fork). All run under 15ms locally.
+
+### Notes
+- e2e: `c4 specialist smoke-test` → `passed in 13ms` (8 steps
+  green).
+- Catches regressions in Phase 6.3 fork wiring + Phase 6.9
+  lineage walk + their interaction with persist (the forked
+  meeting's row is also durable, also visible in lineage after
+  hypothetical restart — not exercised by smoke-test directly
+  but the wiring is the same code path).
+
 ## [1.10.306] - 2026-05-04
 
 **Multi-Specialist System — Phase 9.1 (Smoke-test CLI).**

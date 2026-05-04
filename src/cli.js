@@ -2465,10 +2465,39 @@ async function main() {
             if (r.error) throw new Error(r.error);
             if (!r.stages || r.stages.length === 0) throw new Error('recap missing stages');
           });
-          if (!keep && testId) {
-            await step('cleanup (delete test meeting)', async () => {
-              await request('DELETE', `/meetings/${encodeURIComponent(testId)}`);
+          // Track the forked meeting so cleanup gets it too.
+          let forkId = null;
+          await step('fork meeting (replan mode)', async () => {
+            if (!testId) throw new Error('no testId');
+            const r = await request('POST', `/meetings/${encodeURIComponent(testId)}/fork`, {
+              mode: 'replan',
             });
+            if (r.error) throw new Error(r.error);
+            if (!r.id) throw new Error('fork response missing id');
+            if (r.forkOf !== testId) {
+              throw new Error(`fork.forkOf=${r.forkOf} should equal testId=${testId}`);
+            }
+            forkId = r.id;
+          });
+          await step('verify fork lineage', async () => {
+            if (!forkId) throw new Error('no forkId');
+            const r = await request('GET', `/meetings/${encodeURIComponent(forkId)}/lineage`);
+            if (r.error) throw new Error(r.error);
+            if (r.depth < 2) throw new Error(`expected depth>=2, got ${r.depth}`);
+            const ids = (r.chain || []).map((c) => c.id);
+            if (!ids.includes(testId)) throw new Error(`lineage chain missing source ${testId}`);
+          });
+          if (!keep) {
+            if (forkId) {
+              await step('cleanup (delete forked meeting)', async () => {
+                await request('DELETE', `/meetings/${encodeURIComponent(forkId)}`);
+              });
+            }
+            if (testId) {
+              await step('cleanup (delete test meeting)', async () => {
+                await request('DELETE', `/meetings/${encodeURIComponent(testId)}`);
+              });
+            }
           }
           for (const s of steps) {
             const mark = s.ok ? tick : cross;
