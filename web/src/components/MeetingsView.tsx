@@ -27,6 +27,8 @@ interface MeetingSummary {
   createdAt: string;
   startedAt: string | null;
   completedAt: string | null;
+  // (Phase 6.11) forkOf surfaced in list rows for fork-aware UIs.
+  forkOf?: string | null;
 }
 
 interface MeetingsListResponse {
@@ -1005,6 +1007,14 @@ export default function MeetingsView() {
                         <Badge variant="outline" className="text-[10px] uppercase">
                           {m.track}
                         </Badge>
+                        {m.forkOf ? (
+                          <span
+                            className="inline-flex items-center rounded-full border border-purple-500/40 bg-purple-500/10 px-1.5 py-0 text-[10px] text-purple-700 dark:text-purple-400"
+                            title={`forked from ${m.forkOf}`}
+                          >
+                            ← {m.forkOf.slice(0, 8)}
+                          </span>
+                        ) : null}
                         <span className="text-[10px] text-muted-foreground">
                           {formatRelative(m.startedAt || m.createdAt)}
                         </span>

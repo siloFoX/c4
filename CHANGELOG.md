@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.324] - 2026-05-04
+
+**Web — fork chip in MeetingsView list rows.**
+Phase 6.11 backend list response gained `forkOf` per meeting.
+The fork lineage panel (v1.10.310) showed it on the detail
+side; rows in the list itself didn't reveal which meetings were
+forks. Adds a small purple `← <8-char id>` chip.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**:
+  - `MeetingSummary.forkOf?: string | null` typing
+  - purple chip beside the status/track badges when `forkOf`
+    is set; tooltip carries the full source id
+  - chip uses `← <8-char>` to keep the row tight
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Forks were previously indistinguishable from fresh meetings
+  in the list — now operators can spot them at a glance.
+
 ## [1.10.323] - 2026-05-04
 
 **Web — wiki related-pages chips in WikiView.**
