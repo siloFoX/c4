@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.365] - 2026-05-04
+
+**Web — MetricsBar color classes fixed.** The metrics strip
+above the main content was referencing Tailwind tokens that
+don't exist in the project's config: `text-muted`, `bg-surface1`,
+`text-success`, `text-warning`, `text-muted/60`. The bar still
+rendered, but with default browser colors instead of the design
+system's tones — easy to miss against the new slate background.
+
+### Changed
+- **`web/src/components/MetricsBar.tsx`**:
+  - `text-muted` → `text-muted-foreground`
+  - `bg-surface1` → `bg-muted/30`
+  - `text-success` → `text-emerald-600 dark:text-emerald-400`
+  - `text-warning` → `text-amber-600 dark:text-amber-400`
+  - `text-muted/60` → `text-muted-foreground/60`
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- The metrics strip now matches the rest of the UI (especially
+  the new violet primary + slate background introduced in
+  v1.10.347 / v1.10.362).
+
 ## [1.10.364] - 2026-05-04
 
 **Web — Login page i18n.** First impression for any visitor;

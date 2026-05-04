@@ -66,25 +66,30 @@ export default function MetricsBar() {
 
   if (!m) return null;
 
+  // (v1.10.364) Color classes were referencing non-existent
+  // tokens: text-muted / bg-surface1 / text-success / text-warning
+  // none of which exist in the Tailwind config (only text-muted-
+  // foreground / bg-muted / etc. do). The bar still rendered but
+  // with default browser colors. Switching to the proper tokens.
   return (
-    <div className="flex flex-wrap items-center gap-3 px-4 py-2 text-xs text-muted bg-surface1 border-b border-border">
+    <div className="flex flex-wrap items-center gap-3 border-b border-border bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
       <span className="flex items-center gap-1.5">
-        <Activity className="w-3.5 h-3.5 text-success" />
-        <span className="text-foreground font-medium">{m.totals.liveWorkers}</span>
+        <Activity className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+        <span className="font-medium text-foreground">{m.totals.liveWorkers}</span>
         <span>live</span>
-        <span className="text-muted/60">/ {m.totals.totalWorkers} total</span>
+        <span className="text-muted-foreground/60">/ {m.totals.totalWorkers} total</span>
       </span>
       <span className="flex items-center gap-1.5">
-        <Cpu className="w-3.5 h-3.5 text-warning" />
-        <span className="text-foreground font-medium">{fmtPct(m.totals.totalCpuPct)}</span>
+        <Cpu className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+        <span className="font-medium text-foreground">{fmtPct(m.totals.totalCpuPct)}</span>
         <span>workers · load {m.daemon.loadavg[0].toFixed(2)}</span>
       </span>
       <span className="flex items-center gap-1.5">
-        <MemoryStick className="w-3.5 h-3.5 text-primary" />
-        <span className="text-foreground font-medium">{fmtMb(m.totals.totalRssKb)}</span>
+        <MemoryStick className="h-3.5 w-3.5 text-primary" />
+        <span className="font-medium text-foreground">{fmtMb(m.totals.totalRssKb)}</span>
         <span>workers · daemon {fmtMb(m.daemon.rssKb)}</span>
       </span>
-      <span className="ml-auto text-muted/60">
+      <span className="ml-auto text-muted-foreground/60">
         {m.daemon.cpus}c · {m.daemon.platform} · pid {m.daemon.pid}
       </span>
     </div>
