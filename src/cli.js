@@ -1042,6 +1042,21 @@ async function main() {
                 });
               }
             }
+            // (v1.10.304) Audit log size check. The JSONL grows
+            // unbounded by design (compliance record), but at scale
+            // the operator should rotate periodically. Warn when
+            // it crosses 1MB so they remember.
+            const auditLog = summary.persist && summary.persist.auditLog;
+            if (auditLog && typeof auditLog.bytes === 'number') {
+              const AUDIT_WARN_BYTES = 1024 * 1024; // 1MB
+              if (auditLog.bytes > AUDIT_WARN_BYTES) {
+                const sizeMB = (auditLog.bytes / (1024 * 1024)).toFixed(1);
+                checks.push({
+                  ok: true, level: 'warn',
+                  label: `audit: log is ${sizeMB}MB — consider \`c4 specialist audit-rotate\` to archive`,
+                });
+              }
+            }
             // Flag if there are stuck meetings (warn, not fail).
             try {
               const stuck = await request('GET', '/meetings/stuck?hours=1');

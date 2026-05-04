@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.304] - 2026-05-04
+
+**c4 doctor — bulky audit log warning.**
+After Phase 7.11 (visibility) + 7.12 (rotation), the doctor still
+didn't actively flag a growing audit log. Operators had to
+remember to look at the size or notice the file. This adds a
+soft warn at 1MB.
+
+### Added
+- **CLI**: `c4 doctor` now reads `persist.auditLog.bytes` from the
+  summary endpoint:
+  - `> 1 MB`: warn line `audit: log is N.NMB — consider \`c4
+    specialist audit-rotate\` to archive`
+  - `<= 1 MB`: silent
+  - field absent (older daemon): silent
+- The threshold is intentionally generous (compliance logs are
+  usually small relative to other on-disk state); operators who
+  want stricter rotation can set their own cron.
+
+### Notes
+- e2e: live daemon with 4KB audit log → no warn, doctor still
+  reports `All checks passed; 1 warning(s)` (the pre-existing
+  risk-classifier warning).
+- Pairs with v1.10.297 (stale-backup warning), Phase 7.7
+  (integrity check), and the existing risk-classifier warn —
+  doctor's organism section now flags four operationally-real
+  signals: corruption, stale backup, bulky audit, underperformer.
+
 ## [1.10.303] - 2026-05-04
 
 **Multi-Specialist System — Phase 8.4 (Specialist keyword search).**
