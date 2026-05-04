@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, BookOpen, Eye, MessageCircle, Play, Plus, RefreshCw, Radio, Search, X } from 'lucide-react';
-import { apiGet, apiPost, eventSourceUrl } from '../lib/api';
+import { apiDelete, apiGet, apiPost, eventSourceUrl } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
 import { renderSnippet } from '../lib/snippet';
@@ -472,6 +472,12 @@ export default function MeetingsView() {
     track?: string | null;
     description?: string | null;
   }>>([]);
+  const loadTemplates = useCallback(async () => {
+    try {
+      const res = await apiGet<{ templates: typeof templates }>('/api/meetings/templates');
+      setTemplates(res.templates || []);
+    } catch { /* best-effort */ }
+  }, []);
   useEffect(() => {
     if (!creating) return;
     let cancelled = false;
@@ -485,15 +491,106 @@ export default function MeetingsView() {
     return () => { cancelled = true; };
   }, [creating]);
 
+  // (8.4) Template-with-vars flow — declared early so the
+  // template CRUD block below can reference templateName.
+  const [templateName, setTemplateName] = useState<string | null>(null);
+  const [templateVars, setTemplateVars] = useState<Record<string, string>>({});
+
+  // (v1.10.344) Template CRUD — until now the UI only listed
+  // saved templates. Operators wanting to create / update / delete
+  // had to drop to the CLI (`c4 meeting template ...`). Adding
+  // an inline editor on the composer's templates row.
+  //
+  // Editor opens on "+" / chip-edit. Save = POST upsert. Delete =
+  // DELETE :name. Both refresh the list afterwards via
+  // loadTemplates() — same call the composer-open effect uses.
+  const [tplEditOpen, setTplEditOpen] = useState(false);
+  const [tplEditMode, setTplEditMode] = useState<'create' | 'edit'>('create');
+  const [tplOriginalName, setTplOriginalName] = useState('');
+  const [tplName, setTplName] = useState('');
+  const [tplTask, setTplTask] = useState('');
+  const [tplTrack, setTplTrack] = useState('');
+  const [tplDescription, setTplDescription] = useState('');
+  const [tplBusy, setTplBusy] = useState(false);
+  const [tplMsg, setTplMsg] = useState<string | null>(null);
+  const openTplEditor = useCallback((tpl?: { name: string; task: string; track?: string | null; description?: string | null }) => {
+    if (tpl) {
+      setTplEditMode('edit');
+      setTplOriginalName(tpl.name);
+      setTplName(tpl.name);
+      setTplTask(tpl.task);
+      setTplTrack(tpl.track || '');
+      setTplDescription(tpl.description || '');
+    } else {
+      setTplEditMode('create');
+      setTplOriginalName('');
+      setTplName('');
+      setTplTask('');
+      setTplTrack('');
+      setTplDescription('');
+    }
+    setTplMsg(null);
+    setTplEditOpen(true);
+  }, []);
+  const handleTplSave = useCallback(async () => {
+    const name = tplName.trim();
+    const task = tplTask.trim();
+    if (!name || !task) {
+      setTplMsg('name + task required');
+      return;
+    }
+    setTplBusy(true);
+    setTplMsg(null);
+    try {
+      const body: {
+        name: string;
+        task: string;
+        track?: string;
+        description?: string;
+      } = { name, task };
+      if (tplTrack.trim()) body.track = tplTrack.trim();
+      if (tplDescription.trim()) body.description = tplDescription.trim();
+      await apiPost('/api/meetings/templates', body);
+      // Editing under a different name is a rename — drop the
+      // old record. The daemon doesn't have a rename op so we
+      // upsert + delete-old.
+      if (tplEditMode === 'edit' && tplOriginalName && tplOriginalName !== name) {
+        await apiDelete(`/api/meetings/templates/${encodeURIComponent(tplOriginalName)}`);
+      }
+      setTplEditOpen(false);
+      setTplMsg(null);
+      void loadTemplates();
+    } catch (e) {
+      setTplMsg(`save failed: ${(e as Error).message || 'unknown'}`);
+    } finally {
+      setTplBusy(false);
+    }
+  }, [tplName, tplTask, tplTrack, tplDescription, tplEditMode, tplOriginalName, loadTemplates]);
+  const handleTplDelete = useCallback(async () => {
+    if (!tplOriginalName) return;
+    if (!window.confirm(`Delete template "${tplOriginalName}"?`)) return;
+    setTplBusy(true);
+    setTplMsg(null);
+    try {
+      await apiDelete(`/api/meetings/templates/${encodeURIComponent(tplOriginalName)}`);
+      setTplEditOpen(false);
+      // If the operator had this template selected for the new
+      // meeting, clear it so the composer doesn't try to use a
+      // deleted name.
+      if (templateName === tplOriginalName) setTemplateName(null);
+      void loadTemplates();
+    } catch (e) {
+      setTplMsg(`delete failed: ${(e as Error).message || 'unknown'}`);
+    } finally {
+      setTplBusy(false);
+    }
+  }, [tplOriginalName, templateName, loadTemplates]);
+
   // (8.4) Template-with-vars flow: when the operator picks a
   // template chip whose body contains `{{var}}` placeholders, we
   // surface a small per-var input row so they can supply values
-  // before submit. The chip click stamps `templateName` so the
-  // create POST passes `template:` + `vars:` instead of a literal
-  // `task:` (lets the daemon do the substitution server-side and
-  // keeps the UI cheap).
-  const [templateName, setTemplateName] = useState<string | null>(null);
-  const [templateVars, setTemplateVars] = useState<Record<string, string>>({});
+  // before submit. State declared above (template CRUD block
+  // references templateName).
   const placeholderRe = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g;
   const placeholderNames = useMemo(() => {
     const out = new Set<string>();
@@ -1091,12 +1188,11 @@ export default function MeetingsView() {
           ) : null}
           {creating ? (
             <div className="flex flex-col gap-2 rounded-md border border-dashed border-border bg-muted/20 p-3">
-              {templates.length > 0 ? (
-                <div className="flex flex-wrap items-center gap-1 text-[11px]">
-                  <span className="text-muted-foreground">templates:</span>
-                  {templates.map((tpl) => (
+              <div className="flex flex-wrap items-center gap-1 text-[11px]">
+                <span className="text-muted-foreground">templates:</span>
+                {templates.map((tpl) => (
+                  <span key={tpl.name} className="inline-flex items-center">
                     <Button
-                      key={tpl.name}
                       size="sm"
                       variant={templateName === tpl.name ? 'default' : 'outline'}
                       onClick={() => {
@@ -1109,25 +1205,141 @@ export default function MeetingsView() {
                       }}
                       title={tpl.description || tpl.task}
                       aria-label={`Apply template ${tpl.name}`}
-                      className="h-6 px-2 text-[11px]"
+                      className="h-6 px-2 text-[11px] rounded-r-none"
                     >
                       {tpl.name}
                     </Button>
-                  ))}
-                  {templateName ? (
+                    {/* (v1.10.344) Edit pencil — opens the inline
+                        editor pre-filled. Right-click intercepted
+                        for accessibility / mobile. */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openTplEditor(tpl);
+                      }}
+                      title={`Edit template ${tpl.name}`}
+                      aria-label={`Edit template ${tpl.name}`}
+                      className="rounded-r border border-l-0 border-border bg-background px-1 py-1 text-[10px] text-muted-foreground hover:bg-muted/30"
+                    >
+                      ✎
+                    </button>
+                  </span>
+                ))}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => openTplEditor()}
+                  aria-label="Create new template"
+                  title="Save the current task as a new template"
+                  className="h-6 px-2 text-[11px]"
+                >
+                  + New
+                </Button>
+                {templateName ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setTemplateName(null);
+                      setTemplateVars({});
+                    }}
+                    aria-label="Clear template selection"
+                    className="h-6 px-2 text-[11px] text-muted-foreground"
+                  >
+                    clear
+                  </Button>
+                ) : null}
+              </div>
+              {/* (v1.10.344) Inline template editor. */}
+              {tplEditOpen ? (
+                <div className="flex flex-col gap-1 rounded-md border border-border bg-background/80 p-2 text-[11px]">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">
+                      {tplEditMode === 'edit' ? `Edit template "${tplOriginalName}"` : 'New template'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setTplEditOpen(false)}
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="Close template editor"
+                    >
+                      <X className="h-3 w-3" aria-hidden />
+                    </button>
+                  </div>
+                  <Input
+                    type="text"
+                    value={tplName}
+                    onChange={(e) => setTplName(e.target.value)}
+                    placeholder="template name (e.g. retro-weekly)"
+                    aria-label="Template name"
+                    disabled={tplBusy}
+                    className="h-7 text-[11px]"
+                  />
+                  <textarea
+                    value={tplTask}
+                    onChange={(e) => setTplTask(e.target.value)}
+                    placeholder="task body (use {{varName}} for placeholders)"
+                    aria-label="Template task"
+                    disabled={tplBusy}
+                    className="min-h-[80px] rounded border border-border bg-background p-2 text-[11px] font-mono"
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="flex items-center gap-1 text-muted-foreground">
+                      track:
+                      <select
+                        value={tplTrack}
+                        onChange={(e) => setTplTrack(e.target.value)}
+                        disabled={tplBusy}
+                        aria-label="Template default track"
+                        className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
+                      >
+                        <option value="">auto</option>
+                        <option value="lightweight">lightweight</option>
+                        <option value="standard">standard</option>
+                        <option value="full">full</option>
+                      </select>
+                    </label>
+                  </div>
+                  <Input
+                    type="text"
+                    value={tplDescription}
+                    onChange={(e) => setTplDescription(e.target.value)}
+                    placeholder="description (optional)"
+                    aria-label="Template description"
+                    disabled={tplBusy}
+                    className="h-7 text-[11px]"
+                  />
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
                     <Button
                       size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setTemplateName(null);
-                        setTemplateVars({});
-                      }}
-                      aria-label="Clear template selection"
-                      className="h-6 px-2 text-[11px] text-muted-foreground"
+                      onClick={handleTplSave}
+                      disabled={tplBusy || !tplName.trim() || !tplTask.trim()}
+                      className="h-6 px-2 text-[10px]"
                     >
-                      clear
+                      {tplBusy ? '…' : tplEditMode === 'edit' ? 'Save changes' : 'Create'}
                     </Button>
-                  ) : null}
+                    {tplEditMode === 'edit' ? (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={handleTplDelete}
+                        disabled={tplBusy}
+                        className="h-6 px-2 text-[10px]"
+                      >
+                        Delete
+                      </Button>
+                    ) : null}
+                    {tplMsg ? (
+                      <span className={cn(
+                        'truncate',
+                        tplMsg.startsWith('save failed') || tplMsg.startsWith('delete failed') || tplMsg === 'name + task required'
+                          ? 'text-destructive' : 'text-muted-foreground',
+                      )}>
+                        {tplMsg}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
               ) : null}
               {templateName && placeholderNames.length > 0 ? (

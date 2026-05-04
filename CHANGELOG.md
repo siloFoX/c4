@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.345] - 2026-05-04
+
+**Web — meeting template CRUD inline editor.** Backend POST /
+GET / DELETE on `/api/meetings/templates` has shipped (8.1+);
+the web UI previously only listed templates and applied them on
+chip click. Operators wanting to create / edit / delete had to
+drop to the CLI.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**:
+  - Template chips now have a small edit pencil (`✎`) on the
+    right edge that opens an inline editor pre-filled.
+  - "+ New" button at the end of the chip row opens the editor
+    blank.
+  - Editor: name, task (textarea, monospace, `{{var}}` aware),
+    track selector (auto / lightweight / standard / full),
+    description.
+  - `handleTplSave` — POST upsert. When editing under a different
+    name (rename), DELETE the old name afterwards (daemon has no
+    rename op).
+  - `handleTplDelete` — confirm + DELETE. Clears `templateName`
+    if the operator was about to use the deleted template.
+  - `loadTemplates()` shared helper that the composer-open
+    effect and the CRUD handlers both use to refresh the list.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Templates row now always shows the "+ New" button even when
+  the registry is empty (previously the row was hidden).
+
 ## [1.10.344] - 2026-05-04
 
 **Web — specialist export / import / audit-rotate row.**
