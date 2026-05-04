@@ -68,6 +68,11 @@ export default function AutonomousView() {
   const [escalations, setEscalations] = useState<Escalation[]>([]);
   const [escalError, setEscalError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // (v1.10.355) When true the list shows resolved escalations
+  // alongside pending ones. The daemon returns both; we filter
+  // on the client. False by default so operators see actionable
+  // items first.
+  const [showResolved, setShowResolved] = useState(false);
   const [pauseBusy, setPauseBusy] = useState(false);
   const [pauseMsg, setPauseMsg] = useState<string | null>(null);
 
@@ -78,7 +83,11 @@ export default function AutonomousView() {
     try {
       const [d, e] = await Promise.all([
         apiGet<DigestResponse>('/api/autonomous/digest'),
-        apiGet<{ count: number; escalations: Escalation[] }>('/api/autonomous/escalations'),
+        apiGet<{ count: number; escalations: Escalation[] }>(
+          showResolved
+            ? '/api/autonomous/escalations?status=all'
+            : '/api/autonomous/escalations',
+        ),
       ]);
       setDigest(d);
       setEscalations(e.escalations || []);
@@ -87,7 +96,7 @@ export default function AutonomousView() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showResolved]);
 
   useEffect(() => {
     refresh();
@@ -95,7 +104,7 @@ export default function AutonomousView() {
     // is enough to keep the picture warm without spamming.
     const id = window.setInterval(refresh, 30000);
     return () => window.clearInterval(id);
-  }, [refresh]);
+  }, [refresh, showResolved]);
 
   const handlePauseToggle = useCallback(async () => {
     if (!digest) return;
@@ -269,10 +278,23 @@ export default function AutonomousView() {
       <Card className="flex min-h-0 flex-1 flex-col">
         <CardHeader className="border-b border-border p-4">
           <div className="flex flex-row items-center justify-between gap-2">
-            <CardTitle className="text-base">Escalations awaiting decision</CardTitle>
-            {resolveError ? (
-              <span className="text-[11px] text-destructive">{resolveError}</span>
-            ) : null}
+            <CardTitle className="text-base">
+              Escalations {showResolved ? 'history' : 'awaiting decision'}
+            </CardTitle>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={showResolved}
+                  onChange={(e) => setShowResolved(e.target.checked)}
+                  className="h-3 w-3"
+                />
+                show resolved
+              </label>
+              {resolveError ? (
+                <span className="text-[11px] text-destructive">{resolveError}</span>
+              ) : null}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto p-0">
@@ -284,72 +306,92 @@ export default function AutonomousView() {
             </div>
           ) : (
             <ul className="divide-y divide-border/40">
-              {escalations.map((e) => (
-                <li key={e.id} className="flex flex-col gap-1 p-3 text-[12px]">
-                  <div className="flex items-center gap-2">
-                    <span className="rounded border border-border bg-background px-1.5 py-0 font-mono text-[10px]">
-                      #{e.id}
-                    </span>
-                    <Badge variant="secondary" className="text-[10px]">{e.kind}</Badge>
-                    {e.todoId ? (
-                      <span className="font-mono text-[10px] text-muted-foreground">
-                        todo: {e.todoId}
+              {escalations.map((e) => {
+                const isResolved = e.status === 'resolved';
+                return (
+                  <li key={e.id} className={cn(
+                    'flex flex-col gap-1 p-3 text-[12px]',
+                    isResolved && 'bg-muted/10',
+                  )}>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded border border-border bg-background px-1.5 py-0 font-mono text-[10px]">
+                        #{e.id}
                       </span>
-                    ) : null}
-                    <span className="ml-auto text-[10px] text-muted-foreground">
-                      {fmtRelative(e.createdAt)}
-                    </span>
-                  </div>
-                  <div className="text-foreground">{e.reason}</div>
-                  {e.suggestedAction ? (
-                    <div className="text-muted-foreground">
-                      <span className="font-medium">Suggested:</span> {e.suggestedAction}
+                      <Badge variant="secondary" className="text-[10px]">{e.kind}</Badge>
+                      {isResolved ? (
+                        <Badge variant="outline" className="text-[10px]">
+                          resolved · {e.resolvedAction || '?'}
+                        </Badge>
+                      ) : null}
+                      {e.todoId ? (
+                        <span className="font-mono text-[10px] text-muted-foreground">
+                          todo: {e.todoId}
+                        </span>
+                      ) : null}
+                      <span className="ml-auto text-[10px] text-muted-foreground">
+                        {isResolved && e.resolvedAt
+                          ? `resolved ${fmtRelative(e.resolvedAt)}`
+                          : fmtRelative(e.createdAt)}
+                      </span>
                     </div>
-                  ) : null}
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <Input
-                      type="text"
-                      value={resolveNotes[e.id] || ''}
-                      onChange={(ev) => setResolveNotes((prev) => ({
-                        ...prev,
-                        [e.id]: ev.target.value,
-                      }))}
-                      placeholder="note (required for modify, optional for approve/reject)"
-                      aria-label={`Resolve note for escalation ${e.id}`}
-                      disabled={resolveBusy === e.id}
-                      className="h-7 max-w-md text-[11px]"
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleResolve(e.id, 'approve')}
-                      disabled={resolveBusy === e.id}
-                      className="h-6 px-2 text-[10px]"
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleResolve(e.id, 'reject')}
-                      disabled={resolveBusy === e.id}
-                      className="h-6 px-2 text-[10px]"
-                    >
-                      Reject
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleResolve(e.id, 'modify')}
-                      disabled={resolveBusy === e.id || !resolveNotes[e.id]?.trim()}
-                      className="h-6 px-2 text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-300"
-                      title="Approve with modification — note required"
-                    >
-                      Modify
-                    </Button>
-                  </div>
-                </li>
-              ))}
+                    <div className="text-foreground">{e.reason}</div>
+                    {e.suggestedAction ? (
+                      <div className="text-muted-foreground">
+                        <span className="font-medium">Suggested:</span> {e.suggestedAction}
+                      </div>
+                    ) : null}
+                    {isResolved && e.resolvedNote ? (
+                      <div className="text-muted-foreground italic">
+                        <span className="font-medium not-italic">Note:</span> {e.resolvedNote}
+                      </div>
+                    ) : null}
+                    {!isResolved ? (
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <Input
+                          type="text"
+                          value={resolveNotes[e.id] || ''}
+                          onChange={(ev) => setResolveNotes((prev) => ({
+                            ...prev,
+                            [e.id]: ev.target.value,
+                          }))}
+                          placeholder="note (required for modify, optional for approve/reject)"
+                          aria-label={`Resolve note for escalation ${e.id}`}
+                          disabled={resolveBusy === e.id}
+                          className="h-7 max-w-md text-[11px]"
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleResolve(e.id, 'approve')}
+                          disabled={resolveBusy === e.id}
+                          className="h-6 px-2 text-[10px]"
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleResolve(e.id, 'reject')}
+                          disabled={resolveBusy === e.id}
+                          className="h-6 px-2 text-[10px]"
+                        >
+                          Reject
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleResolve(e.id, 'modify')}
+                          disabled={resolveBusy === e.id || !resolveNotes[e.id]?.trim()}
+                          className="h-6 px-2 text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-300"
+                          title="Approve with modification — note required"
+                        >
+                          Modify
+                        </Button>
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CardContent>

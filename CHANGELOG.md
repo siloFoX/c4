@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.356] - 2026-05-04
+
+**Web — AutonomousView shows resolved escalations on demand.**
+The escalations list defaulted to pending only. Operators
+auditing what they decided last night had no way to see the
+history. Add a "show resolved" toggle.
+
+### Added
+- **`web/src/components/AutonomousView.tsx`**:
+  - `showResolved` boolean in component state.
+  - Header checkbox "show resolved" — when on, the list query
+    becomes `?status=all` (daemon-side filter).
+  - Resolved rows render with muted background, an extra badge
+    `resolved · <action>`, and the resolution note when present.
+  - Resolved rows omit the Approve / Reject / Modify buttons
+    (idempotent server-side, but no point showing them).
+  - Title flips between "awaiting decision" and "history".
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Backend already supports `?status=pending|resolved|all`; we
+  use `pending` (default) and `all`.
+- Refresh effect re-runs when `showResolved` toggles so the
+  list updates immediately.
+
 ## [1.10.355] - 2026-05-04
 
 **Web — workflow run accepts JSON inputs.** WorkflowEditor's
