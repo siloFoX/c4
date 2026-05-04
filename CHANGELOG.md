@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.355] - 2026-05-04
+
+**Web — workflow run accepts JSON inputs.** WorkflowEditor's
+Run button always sent `{inputs: {}}`. The backend's
+`POST /api/workflows/:id/run` accepts arbitrary inputs that
+flow through node trigger conditions; web operators couldn't
+test parameterized workflows.
+
+### Added
+- **`web/src/components/WorkflowEditor.tsx`**:
+  - "With inputs…" toggle next to the Run button. Opens a
+    72-char-wide JSON textarea.
+  - `handleRun` JSON-parses the textarea on submit; rejects
+    non-objects with an inline error and skips the POST.
+  - Empty toggle state still sends `{}` so the no-args case
+    is unchanged.
+  - Inputs reset (closed + `{}`) on workflow switch so they
+    don't leak across selections.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Validation is strict: `null` / arrays / primitives all reject.
+  The daemon does its own validation but the UI fail-fast keeps
+  the round trip cheap.
+
 ## [1.10.354] - 2026-05-04
 
 **Web — Meetings list now subscribes to the global SSE stream

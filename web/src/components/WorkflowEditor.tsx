@@ -345,11 +345,34 @@ export default function WorkflowEditor() {
     return selected.nodes.find((n) => n.id === selectedNodeId) || null;
   }, [selected, selectedNodeId]);
 
+  // (v1.10.354) Inputs JSON for the run. Hidden behind a toggle
+  // because most workflows are zero-arg; surfacing the input
+  // box only when the operator wants it keeps the action row
+  // tight. Resets on workflow switch.
+  const [inputsOpen, setInputsOpen] = useState(false);
+  const [inputsJson, setInputsJson] = useState('{}');
+  const [inputsError, setInputsError] = useState<string | null>(null);
+  useEffect(() => { setInputsOpen(false); setInputsJson('{}'); setInputsError(null); }, [selectedId]);
+
   const handleRun = async () => {
     if (!selectedId) return;
+    let inputs: unknown = {};
+    if (inputsOpen) {
+      try {
+        const parsed = JSON.parse(inputsJson);
+        if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          throw new Error('inputs must be a JSON object');
+        }
+        inputs = parsed;
+      } catch (e) {
+        setInputsError((e as Error).message || 'Invalid JSON');
+        return;
+      }
+    }
+    setInputsError(null);
     setBusy(true);
     try {
-      await apiPost('/api/workflows/' + encodeURIComponent(selectedId) + '/run', { inputs: {} });
+      await apiPost('/api/workflows/' + encodeURIComponent(selectedId) + '/run', { inputs });
       const r = await apiGet<WorkflowRunsResponse>('/api/workflows/' + encodeURIComponent(selectedId) + '/runs');
       setRuns(r.runs || []);
     } catch (e) {
@@ -445,16 +468,47 @@ export default function WorkflowEditor() {
                     {selected.description || 'No description.'}
                   </CardDescription>
                 </div>
-                <Button
-                  type="button"
-                  variant="default"
-                  size="sm"
-                  onClick={handleRun}
-                  disabled={busy || !selected.enabled}
-                >
-                  <Play className="h-4 w-4" />
-                  <span>Run</span>
-                </Button>
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setInputsOpen((v) => !v)}
+                      disabled={busy}
+                      className="h-7 px-2 text-[11px]"
+                      title="Provide JSON inputs for this run (default: empty object)"
+                      aria-expanded={inputsOpen}
+                    >
+                      {inputsOpen ? 'Hide inputs' : 'With inputs…'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      onClick={handleRun}
+                      disabled={busy || !selected.enabled}
+                    >
+                      <Play className="h-4 w-4" />
+                      <span>Run</span>
+                    </Button>
+                  </div>
+                  {inputsOpen ? (
+                    <div className="flex w-72 flex-col gap-1 text-[11px]">
+                      <textarea
+                        value={inputsJson}
+                        onChange={(e) => setInputsJson(e.target.value)}
+                        placeholder='{"foo": "bar"}'
+                        aria-label="Workflow run inputs (JSON)"
+                        disabled={busy}
+                        className="min-h-[64px] rounded border border-border bg-background p-2 font-mono text-[11px]"
+                      />
+                      {inputsError ? (
+                        <span className="text-destructive">{inputsError}</span>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
               </CardHeader>
             </Card>
 
