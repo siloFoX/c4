@@ -106,10 +106,14 @@ describe('SettingsView component', () => {
       /export default function SettingsView/.test(src),
       'SettingsView should default-export a component'
     );
-    for (const label of ['Appearance', 'Theme', 'Sidebar mode', 'Detail view']) {
+    // (v1.10.369) Labels migrated to i18n; assert the corresponding
+    // settings.* keys instead of the literal English strings. The
+    // English copy still lives in en.json — checked separately by
+    // i18n-bundle tests.
+    for (const key of ['settings.appearance', 'settings.theme', 'settings.sidebarMode', 'settings.detailView']) {
       assert.ok(
-        src.includes(label),
-        `SettingsView should render a "${label}" control`
+        src.includes(key),
+        `SettingsView should reference i18n key "${key}"`
       );
     }
     assert.ok(

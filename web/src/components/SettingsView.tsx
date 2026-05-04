@@ -15,6 +15,7 @@ import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Labe
 import type { DetailMode } from './layout/DetailTabs';
 import type { SidebarMode } from './layout/Sidebar';
 import { cn } from '../lib/cn';
+import { t, useLocale } from '../lib/i18n';
 import {
   DEFAULT_DETAIL_MODE,
   DEFAULT_SIDEBAR_MODE,
@@ -27,26 +28,30 @@ type IconComp = ComponentType<SVGProps<SVGSVGElement>>;
 
 interface Option<T extends string> {
   value: T;
-  label: string;
+  // (v1.10.369) Switched from `label: string` to `labelKey:
+  // string` + `descriptionKey?: string` so locale flips
+  // re-translate without remounting. Lookup happens via t() at
+  // render time inside ChoiceGroup.
+  labelKey: string;
   Icon: IconComp;
-  description?: string;
+  descriptionKey?: string;
 }
 
 const THEME_OPTIONS: Option<ThemeMode>[] = [
-  { value: 'light', label: 'Light', Icon: Sun },
-  { value: 'dark', label: 'Dark', Icon: Moon },
-  { value: 'system', label: 'System', Icon: Monitor, description: 'Follow OS setting' },
+  { value: 'light', labelKey: 'settings.theme.light', Icon: Sun },
+  { value: 'dark', labelKey: 'settings.theme.dark', Icon: Moon },
+  { value: 'system', labelKey: 'settings.theme.system', Icon: Monitor, descriptionKey: 'settings.theme.systemHint' },
 ];
 
 const SIDEBAR_OPTIONS: Option<SidebarMode>[] = [
-  { value: 'list', label: 'List', Icon: List },
-  { value: 'tree', label: 'Tree', Icon: Network },
+  { value: 'list', labelKey: 'settings.sidebar.list', Icon: List },
+  { value: 'tree', labelKey: 'settings.sidebar.tree', Icon: Network },
 ];
 
 const DETAIL_OPTIONS: Option<DetailMode>[] = [
-  { value: 'terminal', label: 'Terminal', Icon: TerminalSquare },
-  { value: 'chat', label: 'Chat', Icon: MessageSquare },
-  { value: 'control', label: 'Control', Icon: SlidersHorizontal },
+  { value: 'terminal', labelKey: 'settings.detail.terminal', Icon: TerminalSquare },
+  { value: 'chat', labelKey: 'settings.detail.chat', Icon: MessageSquare },
+  { value: 'control', labelKey: 'settings.detail.control', Icon: SlidersHorizontal },
 ];
 
 interface ChoiceGroupProps<T extends string> {
@@ -73,8 +78,10 @@ function ChoiceGroup<T extends string>({
         aria-label={label}
         className="flex flex-wrap gap-2"
       >
-        {options.map(({ value: v, label: optLabel, Icon, description }) => {
+        {options.map(({ value: v, labelKey, Icon, descriptionKey }) => {
           const active = v === value;
+          const optLabel = t(labelKey);
+          const description = descriptionKey ? t(descriptionKey) : undefined;
           return (
             <button
               key={v}
@@ -119,6 +126,7 @@ export default function SettingsView({
   onDetailModeChange,
   onReset,
 }: SettingsViewProps) {
+  useLocale();
   const isDefault =
     theme === DEFAULT_THEME &&
     sidebarMode === DEFAULT_SIDEBAR_MODE &&
@@ -133,20 +141,19 @@ export default function SettingsView({
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-3 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>Settings</CardTitle>
+          <CardTitle>{t('settings.title')}</CardTitle>
           <CardDescription>
-            Customize the dashboard layout and appearance. Preferences are
-            stored in this browser.
+            {t('settings.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
           <Panel
             icon={<Sun className="h-4 w-4" aria-hidden="true" />}
-            title="Appearance"
+            title={t('settings.appearance')}
           >
             <ChoiceGroup
               id="pref-theme"
-              label="Theme"
+              label={t('settings.theme')}
               value={theme}
               options={THEME_OPTIONS}
               onChange={onThemeChange}
@@ -155,19 +162,19 @@ export default function SettingsView({
 
           <Panel
             icon={<Layout className="h-4 w-4" aria-hidden="true" />}
-            title="Layout"
+            title={t('settings.layout')}
           >
             <div className="flex flex-col gap-5">
               <ChoiceGroup
                 id="pref-sidebar-mode"
-                label="Sidebar mode"
+                label={t('settings.sidebarMode')}
                 value={sidebarMode}
                 options={SIDEBAR_OPTIONS}
                 onChange={onSidebarModeChange}
               />
               <ChoiceGroup
                 id="pref-detail-mode"
-                label="Detail view"
+                label={t('settings.detailView')}
                 value={detailMode}
                 options={DETAIL_OPTIONS}
                 onChange={onDetailModeChange}
@@ -177,7 +184,7 @@ export default function SettingsView({
 
           <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
             <span className="text-xs text-muted-foreground">
-              {isDefault ? 'Using defaults' : 'Custom preferences active'}
+              {isDefault ? t('settings.usingDefaults') : t('settings.customActive')}
             </span>
             <Button
               type="button"
@@ -188,7 +195,7 @@ export default function SettingsView({
               className="gap-2"
             >
               <RotateCcw className="h-4 w-4" aria-hidden="true" />
-              Reset to defaults
+              {t('settings.reset')}
             </Button>
           </div>
         </CardContent>

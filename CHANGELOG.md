@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.370] - 2026-05-04
+
+**Web — SettingsView i18n.** Last visible English-only surface
+in the chrome-adjacent areas. Settings page now fully Korean-
+aware: title, description, panels, choice groups, all option
+labels (light/dark/system, list/tree, terminal/chat/control),
+defaults indicator, reset button.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 19 new keys covering
+  the Settings surface (`settings.title` … `settings.reset` +
+  per-option keys).
+- **`web/src/components/SettingsView.tsx`**:
+  - `Option` interface switched from `label: string` to
+    `labelKey: string` + `descriptionKey?: string` so locale
+    flips re-translate without remounting.
+  - `useLocale()` + `t()` for every visible string; choice
+    groups look up labels at render time.
+- **`tests/web-ui-settings.test.js`**: updated source-grep to
+  check for `settings.*` i18n keys instead of literal strings
+  ('Appearance' / 'Theme' / 'Sidebar mode' / 'Detail view').
+
+### Korean copy
+- 설정 / 외관 / 레이아웃 / 테마 / 사이드바 모드 / 상세 보기 /
+  라이트 / 다크 / 시스템 / 리스트 / 트리 / 터미널 / 채팅 /
+  컨트롤 / 기본값 사용 중 / 사용자 환경설정 적용 중 /
+  기본값으로 재설정.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.369] - 2026-05-04
 
 **Web — AccountMenu i18n.** Last hardcoded English in the
