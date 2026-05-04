@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { List, Network, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn } from '../../lib/cn';
+import { t, useLocale } from '../../lib/i18n';
 import { IconButton, Tooltip } from '../ui';
 import AccountMenu from '../AccountMenu';
 import HierarchyTree from '../HierarchyTree';
@@ -62,6 +63,7 @@ export default function Sidebar({
 }: SidebarProps) {
   // Hooks must run unconditionally (React rules of hooks). The
   // open-gated early return moved below.
+  useLocale();
   const effectiveCollapsed = useEffectiveCollapsed(collapsed);
   if (!open) return null;
 
@@ -103,17 +105,17 @@ export default function Sidebar({
         >
           {!effectiveCollapsed ? (
             <span className="text-xs uppercase tracking-wide text-muted-foreground">
-              Workers
+              {t('sidebar.workers')}
             </span>
           ) : null}
           {onToggleCollapsed ? (
             <Tooltip
-              label={collapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
+              label={`${collapsed ? t('sidebar.expand') : t('sidebar.collapse')} (Ctrl+B)`}
               placement="bottom"
             >
               <IconButton
                 className={cn('hidden md:inline-flex', collapsed ? 'md:mt-1' : 'ml-auto')}
-                aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                aria-label={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
                 aria-pressed={collapsed}
                 aria-keyshortcuts="Control+B"
                 onClick={onToggleCollapsed}
@@ -146,7 +148,7 @@ export default function Sidebar({
                 )}
               >
                 <List className="h-3.5 w-3.5" aria-hidden="true" />
-                List
+                {t('sidebar.list')}
               </button>
               <button
                 type="button"
@@ -161,7 +163,7 @@ export default function Sidebar({
                 )}
               >
                 <Network className="h-3.5 w-3.5" aria-hidden="true" />
-                Tree
+                {t('sidebar.tree')}
               </button>
             </div>
           ) : (
@@ -170,12 +172,12 @@ export default function Sidebar({
               aria-label="Worker view mode"
               className="hidden flex-col gap-1 md:flex"
             >
-              <Tooltip label="List view" placement="right">
+              <Tooltip label={t('sidebar.listView')} placement="right">
                 <button
                   type="button"
                   role="tab"
                   aria-selected={mode === 'list'}
-                  aria-label="List view"
+                  aria-label={t('sidebar.listView')}
                   onClick={() => onModeChange('list')}
                   className={cn(
                     'inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent transition-colors',
@@ -187,12 +189,12 @@ export default function Sidebar({
                   <List className="h-4 w-4" aria-hidden="true" />
                 </button>
               </Tooltip>
-              <Tooltip label="Tree view" placement="right">
+              <Tooltip label={t('sidebar.treeView')} placement="right">
                 <button
                   type="button"
                   role="tab"
                   aria-selected={mode === 'tree'}
-                  aria-label="Tree view"
+                  aria-label={t('sidebar.treeView')}
                   onClick={() => onModeChange('tree')}
                   className={cn(
                     'inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent transition-colors',

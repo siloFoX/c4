@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.371] - 2026-05-04
+
+**Web — workers Sidebar i18n.** Last large surface in the
+chrome — the workers sidebar (Workers heading, List/Tree mode
+toggle, Expand/Collapse aria labels, List view/Tree view
+collapsed-mode tooltips).
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 7 new keys
+  (`sidebar.workers`, `sidebar.list`, `sidebar.tree`,
+  `sidebar.expand`, `sidebar.collapse`, `sidebar.listView`,
+  `sidebar.treeView`).
+- **`web/src/components/layout/Sidebar.tsx`**:
+  - `useLocale()` hook re-renders on locale flip.
+  - All visible strings replaced with `t(...)`.
+- **`tests/header-ia.test.js` + `tests/sidebar-collapsible.test.js`**:
+  source-grep checks updated to look for i18n keys / `t(...)`
+  expressions instead of literal strings.
+
+### Korean copy
+- 워커 / 리스트 / 트리 / 사이드바 펼치기 / 사이드바 접기 /
+  리스트 보기 / 트리 보기.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.370] - 2026-05-04
 
 **Web — SettingsView i18n.** Last visible English-only surface

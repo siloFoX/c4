@@ -73,6 +73,14 @@
   "login.submitting": "Signing in…",
   "login.footer": "© C4 operator console",
 
+  "sidebar.workers": "Workers",
+  "sidebar.list": "List",
+  "sidebar.tree": "Tree",
+  "sidebar.expand": "Expand sidebar",
+  "sidebar.collapse": "Collapse sidebar",
+  "sidebar.listView": "List view",
+  "sidebar.treeView": "Tree view",
+
   "tab.workers": "Workers",
   "tab.history": "History",
   "tab.sessions": "Sessions",

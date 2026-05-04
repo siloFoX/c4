@@ -61,7 +61,8 @@ describe('Sidebar component wires the collapsed mode', () => {
 
   it('renders the collapse toggle behind the onToggleCollapsed prop', () => {
     assert.match(src, /onToggleCollapsed\s*\?\s*\(/);
-    assert.match(src, /aria-label=\{collapsed \? 'Expand sidebar' : 'Collapse sidebar'\}/);
+    // (v1.10.370) aria-label migrated to i18n: t('sidebar.expand') / t('sidebar.collapse').
+    assert.match(src, /aria-label=\{collapsed \? t\('sidebar\.expand'\) : t\('sidebar\.collapse'\)\}/);
     assert.match(src, /aria-pressed=\{collapsed\}/);
     assert.match(src, /aria-keyshortcuts="Control\+B"/);
   });

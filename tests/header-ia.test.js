@@ -36,7 +36,10 @@ describe('Sidebar drops the logo and just labels Workers', () => {
     assert.doesNotMatch(src, /<img\s+src="\/logo\.svg"/);
   });
   it('keeps the Workers section label', () => {
-    assert.match(src, />\s*Workers\s*</);
+    // (v1.10.370) Migrated to i18n; assert the i18n key reference
+    // instead of the literal text. The English copy still lives
+    // in en.json — checked separately by i18n-bundle tests.
+    assert.match(src, /sidebar\.workers/);
   });
 });
 
