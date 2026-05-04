@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.377] - 2026-05-04
+
+**Web — HierarchyTree status copy i18n.** Same three banner
+strings WorkerList had (SSE-disconnected, error, empty). Reuses
+the `workerList.*` keys added in v1.10.376 — no new strings.
+
+### Changed
+- **`web/src/components/HierarchyTree.tsx`**:
+  - `useLocale()` hook re-renders on locale flip.
+  - `t()` for the disconnected banner + empty state, `tFormat()`
+    for the error banner.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- WorkerList and HierarchyTree now share the same translated
+  copy in both locales — single source of truth for these
+  three banners.
+
 ## [1.10.376] - 2026-05-04
 
 **Web — WorkerList status copy i18n.** Three top-level strings in

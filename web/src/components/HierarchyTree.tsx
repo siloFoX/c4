@@ -4,6 +4,7 @@ import type { ListResponse, SSEEvent, Worker } from '../types';
 import { apiFetch, eventSourceUrl } from '../lib/api';
 import { Badge, Button, type BadgeProps } from './ui';
 import { cn } from '../lib/cn';
+import { t, tFormat, useLocale } from '../lib/i18n';
 
 // 8.2 Hierarchy tree sidebar view. Builds a parent/child forest from the
 // flat /api/list worker array (same endpoint as WorkerList) and renders it
@@ -215,6 +216,7 @@ function TreeRow({ node, depth, expanded, toggle, selectedWorker, onSelect }: Ro
 }
 
 export default function HierarchyTree({ selectedWorker, onSelect }: HierarchyTreeProps) {
+  useLocale();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
@@ -287,7 +289,7 @@ export default function HierarchyTree({ selectedWorker, onSelect }: HierarchyTre
       {!sseConnected && (
         <div className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs text-muted-foreground">
           <WifiOff aria-hidden="true" className="h-3.5 w-3.5" />
-          <span>Live updates disconnected - polling</span>
+          <span>{t('workerList.disconnected')}</span>
         </div>
       )}
       {error && (
@@ -295,11 +297,11 @@ export default function HierarchyTree({ selectedWorker, onSelect }: HierarchyTre
           role="alert"
           className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
         >
-          <span className="min-w-0 break-words">Failed to load workers: {error}</span>
+          <span className="min-w-0 break-words">{tFormat('workerList.failedToLoad', { error: error || '' })}</span>
         </div>
       )}
       {!error && workers.length === 0 && (
-        <div className="text-sm text-muted-foreground">No workers yet.</div>
+        <div className="text-sm text-muted-foreground">{t('workerList.empty')}</div>
       )}
       {workers.length > 0 && (
         <div className="flex gap-2 text-xs">
