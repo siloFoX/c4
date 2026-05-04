@@ -247,13 +247,17 @@ describe('(9.11) daemon lifecycle wiring - source lock', () => {
   test('daemon startup calls startWorktreeGc', () => {
     expect(daemonSrc).toContain('manager.startWorktreeGc()');
   });
-  test('daemon SIGINT calls stopWorktreeGc', () => {
-    const sigIntBlock = daemonSrc.split("process.on('SIGINT'")[1].split('});')[0];
-    expect(sigIntBlock).toContain('manager.stopWorktreeGc()');
-  });
-  test('daemon SIGTERM calls stopWorktreeGc', () => {
-    const sigTermBlock = daemonSrc.split("process.on('SIGTERM'")[1].split('});')[0];
-    expect(sigTermBlock).toContain('manager.stopWorktreeGc()');
+  test('daemon SIGINT/SIGTERM run a graceful-shutdown that stops worktreeGc', () => {
+    // After v1.10.290 the SIGINT and SIGTERM handlers share a
+    // single `_gracefulShutdown` function rather than each
+    // duplicating the body. The contract is "shutdown stops the
+    // worktreeGc tick" — that lives in the shared function now.
+    const shutdownBlock = daemonSrc.split('function _gracefulShutdown')[1];
+    expect(shutdownBlock).toBeDefined();
+    expect(shutdownBlock).toContain('manager.stopWorktreeGc()');
+    // Both signals must be wired to the shared function.
+    expect(daemonSrc).toContain("process.on('SIGINT', _gracefulShutdown)");
+    expect(daemonSrc).toContain("process.on('SIGTERM', _gracefulShutdown)");
   });
 });
 

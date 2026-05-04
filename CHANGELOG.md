@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.290] - 2026-05-04
+
+**Multi-Specialist System — Phase 7.9 (Persist close on shutdown).**
+The `MeetingPersist` instance was never explicitly closed when the
+daemon shut down. better-sqlite3 closes on process exit anyway,
+but the implicit path skips a clean WAL flush and can leave a
+dangling file lock if a backup tool races with the exit.
+
+### Added
+- **`src/daemon.js`**:
+  - extracted shared `_gracefulShutdown()` function — both SIGINT
+    and SIGTERM now run the identical sequence (no behavioral
+    split between operator Ctrl-C and systemd `kill -TERM`).
+  - `_gracefulShutdown` calls `_meetingPersist.close()` if persist
+    is enabled. Failures logged to stderr; daemon still exits
+    cleanly (close-failure shouldn't strand the process).
+- **Tests** (`tests/worktree-gc.test.js`): existing
+  SIGINT/SIGTERM-grep test rewritten for the shared
+  `_gracefulShutdown` shape — asserts that the shared function
+  contains `stopWorktreeGc()` AND that both signals point at it.
+  Old test grepped each signal's inline body separately, which
+  the refactor broke.
+
+### Notes
+- The Phase 7 batch is now operationally complete. Phase 7.9 is
+  a lifecycle-correctness slice — no new operator-facing surface,
+  just cleaner shutdown.
+
 ## [1.10.289] - 2026-05-04
 
 **Multi-Specialist System — Phase 7.8 (Persist hot backup).**

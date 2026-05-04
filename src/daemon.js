@@ -6488,27 +6488,31 @@ server.listen(PORT, HOST, () => {
   _startAutoDispatcher();
 });
 
-process.on('SIGINT', () => {
+// (Phase 7.9) Shared graceful-shutdown path. Both SIGINT and
+// SIGTERM run the same sequence so an `kill -TERM` from systemd
+// and a Ctrl-C from a foreground operator do the same cleanup —
+// no behavioral split.
+function _gracefulShutdown() {
   notifications.stopPeriodicSlack();
   manager.stopHealthCheck();
   manager.stopWorktreeGc();
   _stopScheduleTick();
   _stopAutoDispatcher();
   manager.closeAll();
+  // Close the meeting persist DB explicitly so WAL flushes and the
+  // file lock releases cleanly. better-sqlite3 closes on process
+  // exit anyway; explicit close avoids sporadic "database is
+  // locked" surprises if a backup tool races with our exit.
+  if (_meetingPersist) {
+    try { _meetingPersist.close(); }
+    catch (err) { process.stderr.write(`[daemon] persist close failed: ${err.message}\n`); }
+  }
   server.close();
   process.exit(0);
-});
+}
 
-process.on('SIGTERM', () => {
-  notifications.stopPeriodicSlack();
-  manager.stopHealthCheck();
-  manager.stopWorktreeGc();
-  _stopScheduleTick();
-  _stopAutoDispatcher();
-  manager.closeAll();
-  server.close();
-  process.exit(0);
-});
+process.on('SIGINT', _gracefulShutdown);
+process.on('SIGTERM', _gracefulShutdown);
 
 process.on('uncaughtException', (err) => {
   console.error('[DAEMON] uncaughtException:', err.message);
