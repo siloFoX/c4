@@ -2366,22 +2366,28 @@ async function main() {
         }
         if (sub === 'audit') {
           // c4 specialist audit [--action add|remove|import|score-applied|prompt-revised|tags-updated]
-          //                     [--actor X] [--id X] [--limit N]
+          //                     [--actor X] [--id X] [--since ISO] [--until ISO] [--limit N]
           let action = null;
           let actor = null;
           let id = null;
+          let since = null;
+          let until = null;
           let limit = 50;
           for (let i = 1; i < args.length; i += 1) {
             const a = args[i];
             if (a === '--action' && args[i + 1]) { action = args[i + 1]; i += 1; }
             else if (a === '--actor' && args[i + 1]) { actor = args[i + 1]; i += 1; }
             else if (a === '--id' && args[i + 1]) { id = args[i + 1]; i += 1; }
+            else if (a === '--since' && args[i + 1]) { since = args[i + 1]; i += 1; }
+            else if (a === '--until' && args[i + 1]) { until = args[i + 1]; i += 1; }
             else if (a === '--limit' && args[i + 1]) { limit = parseInt(args[i + 1], 10); i += 1; }
           }
           const qs = new URLSearchParams();
           if (action) qs.set('action', action);
           if (actor) qs.set('actor', actor);
           if (id) qs.set('id', id);
+          if (since) qs.set('since', since);
+          if (until) qs.set('until', until);
           if (Number.isFinite(limit)) qs.set('limit', String(limit));
           const path = qs.toString() ? `/specialists/audit?${qs.toString()}` : '/specialists/audit';
           result = await request('GET', path);

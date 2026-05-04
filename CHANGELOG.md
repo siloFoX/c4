@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.292] - 2026-05-04
+
+**Multi-Specialist System — Phase 7.10 (Audit time-window filters).**
+The audit log query supported `action / actor / id / limit` but
+no time bounds. Operators investigating an incident had to hand-
+grep the JSONL for specific timestamps. This adds proper window
+filters.
+
+### Added
+- **`src/specialist-audit.js`**: `queryAuditEntries({since, until})`
+  - `since`: inclusive lower bound on `entry.ts`
+  - `until`: exclusive upper bound (so adjacent windows don't
+    overlap — `today` = `since=startOfDay until=startOfTomorrow`)
+  - Both accept ISO strings; unparseable values silently degrade
+    to "no filter" so a typo'd query returns the unfiltered
+    result instead of throwing.
+  - Entries with bad `ts` are skipped when ANY time filter is
+    set (defensive against partial JSONL writes).
+- **HTTP**: `GET /specialists/audit?since=ISO&until=ISO`. Other
+  filters compose normally.
+- **CLI**: `c4 specialist audit --since ISO --until ISO` — both
+  optional, both repeatable with the existing `--action/--actor/
+  --id/--limit` flags.
+- **OpenAPI**: 2 new query params documented.
+- **Tests** (`tests/specialist-audit.test.js`): 2 new cases —
+  since/until window slices the right entries from a hand-built
+  3-row fixture; bad ISO strings silently degrade to no filter.
+
+### Notes
+- e2e verified: `c4 specialist audit --since 2026-05-01T00:00:00Z
+  --limit 3` returns 3 recent `tags-updated` entries from the
+  daemon's audit log, none from earlier dates.
+
 ## [1.10.291] - 2026-05-04
 
 **c4 doctor — `--json` mode for monitoring integration.**

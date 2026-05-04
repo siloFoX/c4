@@ -81,6 +81,13 @@ function queryAuditEntries(opts = {}) {
   const action = opts.action || null;
   const actor = opts.actor || null;
   const id = opts.id || null;
+  // (Phase 7.10) ISO timestamp filters. `since` is inclusive
+  // (entry.ts >= since); `until` is exclusive (entry.ts < until)
+  // so a "today" range can be expressed as
+  // since=startOfDay until=startOfTomorrow without overlap. Bad
+  // ISO strings are silently treated as "no filter".
+  const since = (opts.since && Date.parse(opts.since)) || null;
+  const until = (opts.until && Date.parse(opts.until)) || null;
   const limit = Number.isFinite(opts.limit) ? Math.max(1, opts.limit) : 100;
   let raw;
   try { raw = fs.readFileSync(auditPath, 'utf8'); }
@@ -98,6 +105,12 @@ function queryAuditEntries(opts = {}) {
     if (action && entry.action !== action) continue;
     if (actor && entry.actor !== actor) continue;
     if (id && entry.id !== id && entry.targetId !== id) continue;
+    if (since || until) {
+      const tsMs = entry.ts ? Date.parse(entry.ts) : NaN;
+      if (!Number.isFinite(tsMs)) continue;
+      if (since && tsMs < since) continue;
+      if (until && tsMs >= until) continue;
+    }
     out.push(entry);
   }
   return out.reverse();

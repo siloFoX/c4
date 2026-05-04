@@ -139,6 +139,41 @@ t('queryAuditEntries filters by action / actor / id', () => {
   assert.strictEqual(idA.length, 2);
 });
 
+t('queryAuditEntries filters by since/until (ISO timestamp window)', () => {
+  const auditPath = makeTmp();
+  // Hand-write entries with controlled timestamps so the test
+  // doesn't race the wall clock.
+  fs.writeFileSync(auditPath, [
+    JSON.stringify({ ts: '2026-01-01T00:00:00.000Z', action: 'add', id: 'old', actor: 'a' }),
+    JSON.stringify({ ts: '2026-03-15T12:00:00.000Z', action: 'add', id: 'mid', actor: 'a' }),
+    JSON.stringify({ ts: '2026-05-01T00:00:00.000Z', action: 'add', id: 'recent', actor: 'a' }),
+    '',
+  ].join('\n'));
+
+  // since-only: drops 'old', keeps mid + recent
+  const sinceOnly = queryAuditEntries({ auditPath, since: '2026-02-01T00:00:00.000Z' });
+  assert.deepStrictEqual(sinceOnly.map((e) => e.id).sort(), ['mid', 'recent']);
+
+  // until-only: keeps old + mid (until is exclusive)
+  const untilOnly = queryAuditEntries({ auditPath, until: '2026-04-01T00:00:00.000Z' });
+  assert.deepStrictEqual(untilOnly.map((e) => e.id).sort(), ['mid', 'old']);
+
+  // both: just 'mid'
+  const window = queryAuditEntries({
+    auditPath,
+    since: '2026-02-01T00:00:00.000Z',
+    until: '2026-04-01T00:00:00.000Z',
+  });
+  assert.deepStrictEqual(window.map((e) => e.id), ['mid']);
+});
+
+t('queryAuditEntries treats unparseable since/until as no filter', () => {
+  const auditPath = makeTmp();
+  appendAuditEntry({ action: 'add', id: 'x', actor: 'a' }, { auditPath });
+  const r = queryAuditEntries({ auditPath, since: 'not-a-date', until: '' });
+  assert.strictEqual(r.length, 1, 'bad since/until silently degrades to no filter');
+});
+
 t('SpecialistRegistry.add writes audit entry', () => {
   const auditPath = makeTmp();
   const reg = new SpecialistRegistry({

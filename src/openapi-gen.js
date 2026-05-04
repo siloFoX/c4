@@ -3150,6 +3150,8 @@ const ROUTE_SCHEMAS = {
       { name: 'action', in: 'query', schema: { type: 'string', enum: ['add', 'remove', 'import', 'score-applied', 'prompt-revised', 'tags-updated'] } },
       { name: 'actor', in: 'query', schema: { type: 'string' } },
       { name: 'id', in: 'query', schema: { type: 'string', description: 'Filter by specialist id' } },
+      { name: 'since', in: 'query', schema: { type: 'string', description: 'ISO timestamp; inclusive lower bound on entry.ts' } },
+      { name: 'until', in: 'query', schema: { type: 'string', description: 'ISO timestamp; exclusive upper bound on entry.ts' } },
       { name: 'limit', in: 'query', schema: { type: 'integer', description: 'Max entries (default 100)' } },
     ],
     response: {

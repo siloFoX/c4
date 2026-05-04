@@ -5709,18 +5709,24 @@ async function handleRequest(req, res) {
     } else if (req.method === 'GET' && route === '/specialists/audit') {
       // (multi-specialist phase 1.4) Read the governance audit log.
       // Optional filters:
-      //   ?action=add|remove|import
+      //   ?action=add|remove|import|score-applied|prompt-revised|tags-updated
       //   ?actor=<actor-id>
       //   ?id=<specialist-id>
+      //   ?since=<ISO>   inclusive lower bound on entry.ts
+      //   ?until=<ISO>   exclusive upper bound on entry.ts
       //   ?limit=N (default 100)
       const opts = {};
       const action = url.searchParams.get('action');
       const actor = url.searchParams.get('actor');
       const id = url.searchParams.get('id');
+      const since = url.searchParams.get('since');
+      const until = url.searchParams.get('until');
       const limit = parseInt(url.searchParams.get('limit') || '100', 10);
       if (action) opts.action = action;
       if (actor) opts.actor = actor;
       if (id) opts.id = id;
+      if (since) opts.since = since;
+      if (until) opts.until = until;
       if (Number.isFinite(limit)) opts.limit = limit;
       try {
         const entries = specialistAudit.queryAuditEntries(opts);
