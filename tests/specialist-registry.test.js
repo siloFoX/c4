@@ -602,6 +602,32 @@ t('searchByText: case-insensitive substring across all text fields', () => {
   assert.deepStrictEqual(r5, []);
 });
 
+t('resetScore: wipes byDomain/byStage/samples + sets lastUpdated null', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  const sp = reg._byId.get('pm');
+  // Inject a non-trivial score record.
+  sp.score = {
+    byDomain: { scope: 0.6 },
+    byStage: { meeting: 0.7 },
+    samples: { 'domain:scope': 5, 'stage:meeting': 5 },
+    lastUpdated: '2026-04-15T00:00:00.000Z',
+  };
+  const r = reg.resetScore('pm', { reason: 'test' });
+  assert.ok(r.before, 'before snapshot returned');
+  assert.strictEqual(r.before.byDomain.scope, 0.6);
+  // Spec score record is now zeroed out.
+  const after = reg._byId.get('pm');
+  assert.deepStrictEqual(after.score.byDomain, {});
+  assert.deepStrictEqual(after.score.byStage, {});
+  assert.deepStrictEqual(after.score.samples, {});
+  assert.strictEqual(after.score.lastUpdated, null);
+});
+
+t('resetScore: throws on unknown id', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  assert.throws(() => reg.resetScore('does-not-exist'), /not found/);
+});
+
 t('searchByText: empty query returns []', () => {
   const reg = new SpecialistRegistry({ persistPath: null });
   assert.deepStrictEqual(reg.searchByText(''), []);

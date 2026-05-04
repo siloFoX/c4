@@ -27,6 +27,7 @@ const ACTIONS = Object.freeze({
   SCORE_APPLIED: 'score-applied',
   PROMPT_REVISED: 'prompt-revised',
   TAGS_UPDATED: 'tags-updated',
+  SCORE_RESET: 'score-reset',
 });
 
 function _ensureDir(filePath) {

@@ -53,6 +53,7 @@ const ROUTE_SUMMARIES = {
   'POST /specialists/:id/suggest-prompt': 'Ask a brain to draft a revised systemPrompt for an underperforming specialist — review-only (never auto-applied).',
   'POST /specialists/:id/prompt-apply': 'Draft a systemPrompt revision and (on meeting consensus) apply it to the registry — audit log records the meeting id.',
   'PATCH /specialists/:id/tags': 'Edit specialist tags (replace | add | remove modes). Audit log records the previous tag list.',
+  'POST /specialists/:id/score-reset': 'Wipe a specialist`s score record. Useful after a prompt revision that invalidates pre-revision scores; faster than waiting for decay.',
   'POST /meetings/plan': 'Plan a full multi-stage meeting roster for a task — preview only, no specialists spawned.',
   'GET /meetings/classify-track': 'Preview the track classifier for a task string — returns {track, matched, reason, tokenCount}. Useful for tuning task wording.',
   'GET /meetings/stuck': 'Detect meetings stuck in pending/in-progress for more than ?hours= (default 1). Catches hung sessions an operator hasn`t noticed.',
@@ -3057,6 +3058,25 @@ const ROUTE_SCHEMAS = {
   'GET /meetings/stream': {
     response: { type: 'string', description: 'SSE stream — Content-Type: text/event-stream. Events: snapshot (on connect), state, meeting-added, meeting-removed, heartbeat (every 30s).' },
   },
+  'POST /specialists/:id/score-reset': {
+    parameters: [
+      { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+    ],
+    requestBody: {
+      properties: {
+        actor: { type: 'string', description: 'Audit log actor (default "score-reset")' },
+        reason: { type: 'string', description: 'Free-form reason recorded in audit log' },
+      },
+      example: { reason: 'after prompt revision' },
+    },
+    response: {
+      properties: {
+        ok: { type: 'boolean' },
+        id: { type: 'string' },
+        before: { type: 'object', nullable: true, description: 'Previous score record snapshot' },
+      },
+    },
+  },
   'PATCH /specialists/:id/tags': {
     parameters: [
       { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
@@ -3233,7 +3253,7 @@ const ROUTE_SCHEMAS = {
   },
   'GET /specialists/audit': {
     parameters: [
-      { name: 'action', in: 'query', schema: { type: 'string', enum: ['add', 'remove', 'import', 'score-applied', 'prompt-revised', 'tags-updated'] } },
+      { name: 'action', in: 'query', schema: { type: 'string', enum: ['add', 'remove', 'import', 'score-applied', 'prompt-revised', 'tags-updated', 'score-reset'] } },
       { name: 'actor', in: 'query', schema: { type: 'string' } },
       { name: 'id', in: 'query', schema: { type: 'string', description: 'Filter by specialist id' } },
       { name: 'since', in: 'query', schema: { type: 'string', description: 'ISO timestamp; inclusive lower bound on entry.ts' } },

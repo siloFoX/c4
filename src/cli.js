@@ -2176,8 +2176,8 @@ async function main() {
         //   c4 specialist dispatch "<task>" [--stage X] [--track X] [--cap N]
         //   c4 specialist score [--by-domain D | --by-stage S] [--limit N]
         const sub = (args[0] || 'list').toLowerCase();
-        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt', 'export', 'import', 'audit', 'audit-rotate', 'score-history', 'propose', 'apply-prompt', 'tag', 'summary'].includes(sub)) {
-          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt|export|import|audit|audit-rotate|score-history|propose|apply-prompt|tag|summary> [args]');
+        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt', 'export', 'import', 'audit', 'audit-rotate', 'score-history', 'score-reset', 'propose', 'apply-prompt', 'tag', 'summary'].includes(sub)) {
+          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt|export|import|audit|audit-rotate|score-history|score-reset|propose|apply-prompt|tag|summary> [args]');
           process.exit(1);
         }
         if (sub === 'list') {
@@ -2394,6 +2394,28 @@ async function main() {
               console.log(`    stage:${k.padEnd(17)} ${before} → ${after}`);
             }
           }
+          return;
+        }
+        if (sub === 'score-reset') {
+          // c4 specialist score-reset <id> [--reason "..."]
+          const id = args[1];
+          if (!id) {
+            console.error('Usage: c4 specialist score-reset <id> [--reason "..."]');
+            process.exit(1);
+          }
+          let reason = null;
+          for (let i = 2; i < args.length; i += 1) {
+            if (args[i] === '--reason' && args[i + 1]) { reason = args[i + 1]; i += 1; }
+          }
+          const body = {};
+          if (reason) body.reason = reason;
+          result = await request('POST', `/specialists/${encodeURIComponent(id)}/score-reset`, body);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          const beforeBuckets = result.before
+            ? Object.keys(result.before.byDomain || {}).length + Object.keys(result.before.byStage || {}).length
+            : 0;
+          console.log(`score-reset: ${id}  cleared ${beforeBuckets} bucket(s)`);
           return;
         }
         if (sub === 'audit-rotate') {

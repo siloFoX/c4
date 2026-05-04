@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.305] - 2026-05-04
+
+**Multi-Specialist System — Phase 8.5 (Specialist score-reset).**
+Decay (Phase 6.13) attenuates stale scores over 30-90 days. After
+a Phase 5.2 prompt revision, operators may not want to wait —
+the new prompt's behavior may diverge enough from the old that
+pre-revision scores actively mislead the dispatcher. This adds
+an immediate-reset path.
+
+### Added
+- **`src/specialist-audit.js`**: `ACTIONS.SCORE_RESET =
+  'score-reset'`.
+- **`src/specialist-registry.js`**: `resetScore(id, opts)` —
+  zeros out `byDomain / byStage / samples`, sets
+  `lastUpdated = null`. Audit entry preserves the
+  before-snapshot so the score history isn't lost.
+- **HTTP**: `POST /specialists/:id/score-reset` body `{reason,
+  actor}`. 404 on unknown id.
+- **CLI**: `c4 specialist score-reset <id> [--reason "..."]`
+  prints `score-reset: pm cleared N bucket(s)`.
+- **OpenAPI**: full schema; `score-reset` added to specialist
+  parametric reserved-suffix list AND to the audit action enum.
+
+### Notes
+- e2e: `c4 specialist score-reset pm --reason "test reset"` →
+  `score-reset: pm cleared 2 bucket(s)`. `c4 specialist audit
+  --action score-reset` shows the audit row with the reason.
+- The before-snapshot in the audit entry captures the full
+  zeroed-out record (byDomain, byStage, samples, lastUpdated)
+  so an operator who realizes mid-flight that the reset was
+  premature can manually restore from the audit.
+
 ## [1.10.304] - 2026-05-04
 
 **c4 doctor — bulky audit log warning.**

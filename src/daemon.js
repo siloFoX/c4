@@ -879,7 +879,7 @@ async function handleRequest(req, res) {
   // Specialist Registry path-parameter parser (multi-specialist phase 1).
   let specialistParams = null;
   {
-    const mAct = route.match(/^\/specialists\/([^\/]+)\/(suggest-prompt|prompt-apply|tags)$/);
+    const mAct = route.match(/^\/specialists\/([^\/]+)\/(suggest-prompt|prompt-apply|tags|score-reset)$/);
     const mOne = route.match(/^\/specialists\/([^\/]+)$/);
     if (mAct) specialistParams = { kind: mAct[2], id: decodeURIComponent(mAct[1]) };
     else if (mOne) specialistParams = { kind: 'one', id: decodeURIComponent(mOne[1]) };
@@ -5696,6 +5696,27 @@ async function handleRequest(req, res) {
           negativeThreshold: Number.isFinite(body.threshold) ? body.threshold : undefined,
           minSamples: Number.isFinite(body.minSamples) ? body.minSamples : undefined,
         });
+      } catch (err) {
+        const code = /not found/.test(err.message) ? 404 : 400;
+        res.writeHead(code); res.end(JSON.stringify({ error: err.message })); return;
+      }
+
+    } else if (req.method === 'POST' && specialistParams && specialistParams.kind === 'score-reset') {
+      // (Phase 8.5) Wipe a specialist's score record. Audit
+      // preserves the before-snapshot — score history isn't lost.
+      const id = specialistParams.id;
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/specialists/:id/score-reset', body, res, cfg)) return;
+      try {
+        const out = specialistRegistry.getShared().resetScore(id, {
+          actor: typeof body.actor === 'string' ? body.actor : 'score-reset',
+          reason: typeof body.reason === 'string' ? body.reason : null,
+        });
+        result = {
+          id,
+          before: out.before,
+          ok: true,
+        };
       } catch (err) {
         const code = /not found/.test(err.message) ? 404 : 400;
         res.writeHead(code); res.end(JSON.stringify({ error: err.message })); return;

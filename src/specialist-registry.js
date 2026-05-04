@@ -485,6 +485,39 @@ class SpecialistRegistry {
     return { spec, changed: true, tags: next };
   }
 
+  // Phase 8.5 — wipe a specialist's score record. Useful after a
+  // Phase 5.2 prompt revision has changed behavior enough that
+  // pre-revision scores no longer reflect the specialist's
+  // expected performance — operators don't have to wait 90 days
+  // for decay (Phase 6.13) to attenuate the old signal.
+  // Audit entry preserves the before-snapshot so the score history
+  // isn't lost — just reset.
+  resetScore(id, opts = {}) {
+    const spec = this._byId.get(id);
+    if (!spec) throw new Error(`resetScore: specialist "${id}" not found`);
+    const before = spec.score
+      ? {
+          byDomain: { ...(spec.score.byDomain || {}) },
+          byStage: { ...(spec.score.byStage || {}) },
+          samples: { ...(spec.score.samples || {}) },
+          lastUpdated: spec.score.lastUpdated || null,
+        }
+      : null;
+    spec.score = { byDomain: {}, byStage: {}, samples: {}, lastUpdated: null };
+    this._maybeAutoSave();
+    if (this._auditLogEnabled !== false) {
+      audit.appendAuditEntry({
+        action: audit.ACTIONS.SCORE_RESET,
+        id,
+        actor: opts.actor || null,
+        meetingId: opts.meetingId || null,
+        reason: opts.reason || null,
+        before,
+      }, { auditPath: this._auditPath });
+    }
+    return { spec, before };
+  }
+
   remove(id, opts = {}) {
     const before = this._byId.get(id);
     const removed = this._byId.delete(id);
