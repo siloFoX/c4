@@ -24,6 +24,8 @@
   "common.korean": "Korean",
   "common.language": "Language",
 
+  "header.title": "C4 Dashboard",
+
   "metrics.live": "live",
   "metrics.total": "total",
   "metrics.workers": "workers",

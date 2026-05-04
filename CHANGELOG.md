@@ -4,6 +4,23 @@
 
 (no entries — next release window)
 
+## [1.10.367] - 2026-05-04
+
+**Web — AppHeader title i18n.** Last hardcoded English string in
+the chrome above the main content. ko: "C4 대시보드".
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: `header.title` key.
+- **`web/src/components/layout/AppHeader.tsx`**: `<h1>` reads
+  from `t('header.title')`. The header was already importing
+  `t` / `useLocale` for the help / shortcuts / language buttons,
+  so no new imports.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Korean operators now see "C4 대시보드 · 워커 / 회의 / 자율 …"
+  end-to-end in the chrome.
+
 ## [1.10.366] - 2026-05-04
 
 **Web — MetricsBar i18n.** Now that the strip renders with the

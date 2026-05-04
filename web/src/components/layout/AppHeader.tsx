@@ -104,7 +104,7 @@ export default function AppHeader({
           aria-hidden="true"
         />
         <h1 className="truncate text-lg font-semibold text-foreground md:text-xl">
-          C4 Dashboard
+          {t('header.title')}
         </h1>
       </div>
       <div className="flex items-center gap-2">
