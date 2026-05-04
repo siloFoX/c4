@@ -73,6 +73,9 @@
   "login.submitting": "로그인 중…",
   "login.footer": "© C4 운영 콘솔",
 
+  "empty.workerDetail.title": "워커 상세",
+  "empty.workerDetail.description": "사이드바에서 워커를 선택하세요.",
+
   "sidebar.workers": "워커",
   "sidebar.list": "리스트",
   "sidebar.tree": "트리",

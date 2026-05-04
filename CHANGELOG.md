@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.372] - 2026-05-04
+
+**Web — EmptyState i18n.** When no worker is selected the right
+pane shows "Worker detail / Select a worker from the sidebar to
+view details." Translated.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 2 new keys
+  (`empty.workerDetail.title`, `empty.workerDetail.description`).
+- **`web/src/components/layout/EmptyState.tsx`**: `useLocale()` +
+  `t()` for both visible strings.
+
+### Korean copy
+- 워커 상세 / 사이드바에서 워커를 선택하세요.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.371] - 2026-05-04
 
 **Web — workers Sidebar i18n.** Last large surface in the

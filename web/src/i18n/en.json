@@ -73,6 +73,9 @@
   "login.submitting": "Signing in…",
   "login.footer": "© C4 operator console",
 
+  "empty.workerDetail.title": "Worker detail",
+  "empty.workerDetail.description": "Select a worker from the sidebar to view details.",
+
   "sidebar.workers": "Workers",
   "sidebar.list": "List",
   "sidebar.tree": "Tree",

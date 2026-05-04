@@ -4,14 +4,16 @@ import {
   CardHeader,
   CardTitle,
 } from '../ui';
+import { t, useLocale } from '../../lib/i18n';
 
 export default function EmptyState() {
+  useLocale();
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Worker detail</CardTitle>
+        <CardTitle>{t('empty.workerDetail.title')}</CardTitle>
         <CardDescription>
-          Select a worker from the sidebar to view details.
+          {t('empty.workerDetail.description')}
         </CardDescription>
       </CardHeader>
     </Card>
