@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.358] - 2026-05-04
+
+**Web — Risk Inspector adds rule catalog viewer.** Backend
+`GET /api/risk/patterns` returns the built-in rule catalog +
+counts of operator customRules / allowList / denyList. CLI had
+`c4 risk --patterns`; web operators auditing the effective rule
+set had no view.
+
+### Added
+- **`web/src/pages/Risk.tsx`**:
+  - Collapsed-by-default "Rule catalog" panel below the stats
+    panel. Lazy-loads `/api/risk/patterns` on first open.
+  - Header counts: builtin / custom / allow / deny.
+  - Filter input — narrows the visible rules by code or label
+    substring (case-insensitive).
+  - Per-level groups (critical / high / medium) with the same
+    color tones the verdict badge uses.
+  - Custom rules summary (counts only — content not shown,
+    since the dispatcher payload is uncompiled / debug-shaped).
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Custom rules content stays opaque — operators inspecting
+  malformed regex still need to read config.json. UI surfaces
+  the counts for parity.
+
 ## [1.10.357] - 2026-05-04
 
 **Web — Risk Inspector page (Diagnostics).** Backend has had

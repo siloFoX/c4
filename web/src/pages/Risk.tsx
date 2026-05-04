@@ -43,6 +43,29 @@ interface CheckResponse {
   };
 }
 
+interface PatternEntry {
+  code: string;
+  label: string;
+}
+interface PatternsResponse {
+  builtin: {
+    critical: PatternEntry[];
+    high: PatternEntry[];
+    medium: PatternEntry[];
+  };
+  custom: {
+    critical: unknown[];
+    high: unknown[];
+    medium: unknown[];
+  };
+  counts: {
+    builtin: { critical: number; high: number; medium: number; total: number };
+    custom: { critical: number; high: number; medium: number; total: number };
+  };
+  allowList: number;
+  denyList: number;
+}
+
 interface StatsResponse {
   windowHours: number;
   from: string;
@@ -85,6 +108,10 @@ export default function Risk() {
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
 
+  const [patterns, setPatterns] = useState<PatternsResponse | null>(null);
+  const [patternFilter, setPatternFilter] = useState('');
+  const [patternsOpen, setPatternsOpen] = useState(false);
+
   const handleCheck = useCallback(async () => {
     if (!command.trim()) return;
     setCheckBusy(true);
@@ -119,6 +146,16 @@ export default function Risk() {
   }, [windowHours]);
 
   useEffect(() => { refreshStats(); }, [refreshStats]);
+
+  // (v1.10.357) Lazy-load the rule catalog on first open. The
+  // payload can be sizeable; avoid fetching when the operator
+  // never expands the panel.
+  useEffect(() => {
+    if (!patternsOpen || patterns) return;
+    apiGet<PatternsResponse>('/api/risk/patterns')
+      .then((res) => setPatterns(res))
+      .catch(() => { /* silent — panel just stays empty */ });
+  }, [patternsOpen, patterns]);
 
   return (
     <PageFrame
@@ -404,6 +441,78 @@ export default function Risk() {
           </div>
         ) : !statsError ? (
           <div className="text-[12px] text-muted-foreground">Loading…</div>
+        ) : null}
+      </Panel>
+
+      {/* (v1.10.357) Rule catalog viewer — collapsed by default
+          since the payload can be sizeable. */}
+      <Panel className="mt-4 text-sm">
+        <button
+          type="button"
+          onClick={() => setPatternsOpen((v) => !v)}
+          className="flex w-full items-center justify-between gap-2 text-left"
+          aria-expanded={patternsOpen}
+        >
+          <h3 className="text-base font-semibold text-foreground">
+            Rule catalog
+          </h3>
+          <span className="text-[11px] text-muted-foreground">
+            {patternsOpen ? '▾' : '▸'}
+            {patterns ? ` · ${patterns.counts.builtin.total} builtin · ${patterns.counts.custom.total} custom · ${patterns.allowList} allow · ${patterns.denyList} deny` : ''}
+          </span>
+        </button>
+        {patternsOpen ? (
+          patterns ? (
+            <div className="mt-2 flex flex-col gap-2">
+              <Input
+                type="text"
+                value={patternFilter}
+                onChange={(e) => setPatternFilter(e.target.value)}
+                placeholder="filter by code or label"
+                aria-label="Filter rule catalog"
+                className="h-7 text-[11px]"
+              />
+              {(['critical', 'high', 'medium'] as const).map((lv) => {
+                const items = (patterns.builtin[lv] || []).filter((p) => {
+                  if (!patternFilter) return true;
+                  const f = patternFilter.toLowerCase();
+                  return p.code.toLowerCase().includes(f) ||
+                         p.label.toLowerCase().includes(f);
+                });
+                if (items.length === 0) return null;
+                return (
+                  <div key={lv}>
+                    <div className={cn('mb-1 inline-block rounded border px-1.5 py-0 text-[10px] uppercase tracking-wide', LEVEL_TONE[lv])}>
+                      {lv} · {items.length}
+                    </div>
+                    <ul className="space-y-0.5 pl-3 text-[11px]">
+                      {items.map((p) => (
+                        <li key={p.code}>
+                          <code className="rounded border border-border bg-background px-1 font-mono text-[10px]">
+                            {p.code}
+                          </code>
+                          <span className="ml-1 text-muted-foreground">— {p.label}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+              {patterns.counts.custom.total > 0 ? (
+                <div className="rounded border border-border bg-muted/10 p-2 text-[11px]">
+                  <div className="font-medium">Custom rules</div>
+                  <div className="text-muted-foreground">
+                    {patterns.counts.custom.critical} critical ·
+                    {' '}{patterns.counts.custom.high} high ·
+                    {' '}{patterns.counts.custom.medium} medium
+                    {' '}(content not shown — inspect the daemon's config.json)
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div className="mt-2 text-[12px] text-muted-foreground">Loading catalog…</div>
+          )
         ) : null}
       </Panel>
     </PageFrame>
