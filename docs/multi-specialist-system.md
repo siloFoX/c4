@@ -474,6 +474,40 @@ Phase 6 (operator polish, shipped 2026-05-04 — v1.10.256~v1.10.274)
   Phase 6.12 — wiki related-pages auto-derive: transcript scan으로
                frontmatter related[] 자동 생성 (markdown links + meeting
                ids + ADR refs)
+
+Phase 7 (persistent backend, shipped 2026-05-04 — v1.10.282~v1.10.289)
+  Phase 7.1 — MeetingPersist SQLite 모듈 (better-sqlite3, WAL,
+              schema decoupled via JSON `data` column, save/load/
+              loadAll/listByStatus/count/remove API)
+  Phase 7.2 — MeetingStore save 훅: put / state 이벤트 / remove 시
+              persist 자동 기록. 재-put idempotent. Memory store 와
+              persist 분리 (clear()는 디스크 안 건드림)
+  Phase 7.3 — boot rehydrate: MeetingSession.fromJSON() 팩토리 +
+              MeetingStore.rehydrate() — 데몬 hard restart 후에도
+              미팅 상태(status / transcripts / votes / escalations
+              / stage cursor) 그대로 복구. Phase 7 의 핵심 페이오프.
+  Phase 7.5 — pruneOlderThan({days, terminalOnly, dryRun}): 기본
+              90일 + terminal-only. 트랜잭션으로 묶음. POST
+              /meetings/prune-old + c4 meeting prune-old.
+  Phase 7.6 — visibility: GET /specialists/summary 응답에
+              persist:{enabled, dbPath, dbSizeBytes, rowCount}
+              추가. c4 specialist summary 출력에 persist 라인.
+              follow-up: prune --vacuum 옵션 (DELETE 후 SQLite
+              VACUUM + WAL checkpoint TRUNCATE 로 실제 파일 축소).
+  Phase 7.7 — integrity check: PRAGMA integrity_check 통한 DB 손상
+              감지. c4 doctor 가 매 헬스 패스마다 호출 → "persist:
+              integrity OK (N row(s), XX.YKB)" 또는 INTEGRITY
+              FAILED 보고.
+  Phase 7.8 — hot backup: VACUUM INTO 기반 데몬-라이브 백업.
+              POST /meetings/persist-backup + c4 meeting backup
+              --out path.db. Point-in-time consistent (트랜잭션
+              read snapshot), 기존 target 덮어쓰기 거부 (operator
+              가 의도적으로 cleanup).
+
+  → Phase 7 종료 시점에서 c4 의 persistent backend 가 운영 완비:
+    save / load / visibility / cleanup / health / backup 6 axis 다
+    operator-facing CLI + HTTP 로 노출됨. SQLite 파일 한 개에
+    의존 (외부 DB 서비스 0). 일반 사용자 install 시나리오 유지.
 ```
 
 각 phase 끝나면 동작하는 스라이스 — 점진 배포, 한 번에 전부 구현 X.
