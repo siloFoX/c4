@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.378] - 2026-05-04
+
+**Web — `common.loading` / `common.refresh` shared i18n keys.**
+"Loading…" and "Refresh" appear across many components. Adding
+two shared keys instead of inline-translating each instance lets
+future cleanups happen in one shot.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: `common.loading` /
+  `common.refresh` (로딩 중… / 새로고침).
+- **`web/src/components/AutonomousView.tsx`**:
+  - First consumer — refresh button + digest loading state both
+    use the new keys.
+  - `useLocale()` hook re-renders on locale flip.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Two more components still inline these labels (WorkflowEditor's
+  Refresh button, SessionsView's loading text). Migration is a
+  drop-in change when the next i18n pass touches those files.
+
 ## [1.10.377] - 2026-05-04
 
 **Web — HierarchyTree status copy i18n.** Same three banner

@@ -87,6 +87,9 @@
   "worker.action.close.success": "{name} 종료됨",
   "worker.action.failed": "{label} 실패: {error}",
 
+  "common.loading": "로딩 중…",
+  "common.refresh": "새로고침",
+
   "workerList.disconnected": "실시간 업데이트 끊김 — 폴링 중",
   "workerList.failedToLoad": "워커 로드 실패: {error}",
   "workerList.empty": "워커가 없습니다.",

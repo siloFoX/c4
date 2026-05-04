@@ -87,6 +87,9 @@
   "worker.action.close.success": "Closed {name}",
   "worker.action.failed": "{label} failed: {error}",
 
+  "common.loading": "Loading…",
+  "common.refresh": "Refresh",
+
   "workerList.disconnected": "Live updates disconnected — polling",
   "workerList.failedToLoad": "Failed to load workers: {error}",
   "workerList.empty": "No workers yet.",

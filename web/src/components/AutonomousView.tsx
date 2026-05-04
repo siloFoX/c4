@@ -3,6 +3,7 @@ import { Bot, Pause, Play, RefreshCw } from 'lucide-react';
 import { apiGet, apiPost } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
+import { t, useLocale } from '../lib/i18n';
 
 // (v1.10.349) Autonomous tab — operator-side surface for the
 // Phase 8.29 reviewer escalation flow.
@@ -63,6 +64,7 @@ function fmtRelative(ms: number): string {
 }
 
 export default function AutonomousView() {
+  useLocale();
   const [digest, setDigest] = useState<DigestResponse | null>(null);
   const [digestError, setDigestError] = useState<string | null>(null);
   const [escalations, setEscalations] = useState<Escalation[]>([]);
@@ -175,7 +177,7 @@ export default function AutonomousView() {
               aria-label="Refresh autonomous data"
             >
               <RefreshCw className={cn('h-3 w-3', loading && 'animate-spin')} aria-hidden />
-              Refresh
+              {t('common.refresh')}
             </Button>
             <Button
               size="sm"
@@ -206,7 +208,7 @@ export default function AutonomousView() {
           {digestError ? (
             <div className="text-destructive">{digestError}</div>
           ) : !digest ? (
-            <div className="text-muted-foreground">Loading…</div>
+            <div className="text-muted-foreground">{t('common.loading')}</div>
           ) : (
             <div className="grid grid-cols-2 gap-x-6 gap-y-1 md:grid-cols-4">
               <div>
