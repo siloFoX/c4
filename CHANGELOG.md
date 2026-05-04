@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.391] - 2026-05-04
+
+**Web — AutonomousView i18n.** Card title, status badge,
+buttons (Pause/Resume + Refresh), digest metric labels, every
+escalation row label / button / placeholder, and the
+"just now / in the future" relative-time strings.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 30 new keys under
+  `autonomous.*` covering title, status, refresh, pause/resume,
+  metric.* labels, escalations.* labels, relative.justNow/future.
+- **`web/src/components/AutonomousView.tsx`**:
+  - `useLocale()` hook re-renders on locale flip.
+  - `t()` for all visible strings.
+
+### Korean copy
+- 자율 루프 / 일시정지 / 실행 중 / 재개 / 기간 / 배포됨 /
+  성공 / 중지됨 / 배포 오류 / 성공률 / 대기 중 에스컬레이션 /
+  해결된 에스컬레이션 / 기간 범위 / 결정 대기 중인
+  에스컬레이션 / 에스컬레이션 기록 / 해결된 항목 표시 /
+  대기 중인 에스컬레이션이 없습니다. / 제안 / 메모 / 해결됨 /
+  승인 / 거부 / 수정 / 방금 / 미래.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- The xMago / hMago / dMago relative-time tail strings are
+  English suffixes (`m ago` / `h ago` / `d ago`). Translating
+  these properly requires a `tFormat` call; deferred to the
+  next pass since they're typographically inconsistent with
+  Korean's "X분 전" pattern.
+
 ## [1.10.390] - 2026-05-04
 
 **Web — HistoryView i18n.** Translated the complete History tab —

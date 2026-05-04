@@ -56,8 +56,8 @@ function fmtDuration(ms: number): string {
 
 function fmtRelative(ms: number): string {
   const delta = Date.now() - ms;
-  if (delta < 0) return 'in the future';
-  if (delta < 60000) return 'just now';
+  if (delta < 0) return t('autonomous.relative.future');
+  if (delta < 60000) return t('autonomous.relative.justNow');
   if (delta < 3600000) return `${Math.floor(delta / 60000)}m ago`;
   if (delta < 86400000) return `${Math.floor(delta / 3600000)}h ago`;
   return `${Math.floor(delta / 86400000)}d ago`;
@@ -160,10 +160,10 @@ export default function AutonomousView() {
         <CardHeader className="flex-row items-center justify-between border-b border-border p-4">
           <div className="flex items-center gap-2">
             <Bot className="h-4 w-4 text-muted-foreground" aria-hidden />
-            <CardTitle className="text-base">Autonomous loop</CardTitle>
+            <CardTitle className="text-base">{t('autonomous.title')}</CardTitle>
             {digest ? (
               <Badge variant={digest.paused ? 'destructive' : 'secondary'}>
-                {digest.paused ? 'paused' : 'running'}
+                {digest.paused ? t('autonomous.status.paused') : t('autonomous.status.running')}
               </Badge>
             ) : null}
           </div>
@@ -174,7 +174,7 @@ export default function AutonomousView() {
               onClick={refresh}
               disabled={loading}
               className="h-7 px-2 text-[11px]"
-              aria-label="Refresh autonomous data"
+              aria-label={t('autonomous.refresh.label')}
             >
               <RefreshCw className={cn('h-3 w-3', loading && 'animate-spin')} aria-hidden />
               {t('common.refresh')}
@@ -185,14 +185,14 @@ export default function AutonomousView() {
               disabled={pauseBusy || !digest}
               variant={digest?.paused ? 'default' : 'destructive'}
               className="h-7 px-2 text-[11px]"
-              aria-label={digest?.paused ? 'Resume autonomous loop' : 'Pause autonomous loop'}
+              aria-label={digest?.paused ? t('autonomous.resume.label') : t('autonomous.pause.label')}
             >
               {digest?.paused ? (
                 <Play className="h-3 w-3" aria-hidden />
               ) : (
                 <Pause className="h-3 w-3" aria-hidden />
               )}
-              {pauseBusy ? '…' : digest?.paused ? 'Resume' : 'Pause'}
+              {pauseBusy ? '…' : digest?.paused ? t('autonomous.resume') : t('autonomous.pause')}
             </Button>
             {pauseMsg ? (
               <span className={cn(
@@ -212,21 +212,21 @@ export default function AutonomousView() {
           ) : (
             <div className="grid grid-cols-2 gap-x-6 gap-y-1 md:grid-cols-4">
               <div>
-                <div className="text-[10px] uppercase text-muted-foreground">window</div>
+                <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.window')}</div>
                 <div className="font-mono">{fmtDuration(digest.windowMs)}</div>
               </div>
               <div>
-                <div className="text-[10px] uppercase text-muted-foreground">dispatched</div>
+                <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.dispatched')}</div>
                 <div className="font-mono">{digest.dispatched}</div>
               </div>
               <div>
-                <div className="text-[10px] uppercase text-muted-foreground">succeeded</div>
+                <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.succeeded')}</div>
                 <div className="font-mono text-emerald-700 dark:text-emerald-400">
                   {digest.succeeded}
                 </div>
               </div>
               <div>
-                <div className="text-[10px] uppercase text-muted-foreground">halted</div>
+                <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.halted')}</div>
                 <div className={cn(
                   'font-mono',
                   digest.halted > 0 ? 'text-amber-700 dark:text-amber-400' : '',
@@ -235,7 +235,7 @@ export default function AutonomousView() {
                 </div>
               </div>
               <div>
-                <div className="text-[10px] uppercase text-muted-foreground">dispatch errors</div>
+                <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.dispatchErrors')}</div>
                 <div className={cn(
                   'font-mono',
                   digest.dispatchErrors > 0 ? 'text-destructive' : '',
@@ -244,7 +244,7 @@ export default function AutonomousView() {
                 </div>
               </div>
               <div>
-                <div className="text-[10px] uppercase text-muted-foreground">success rate</div>
+                <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.successRate')}</div>
                 <div className="font-mono">
                   {digest.successRate != null
                     ? `${(digest.successRate * 100).toFixed(1)}%`
@@ -252,7 +252,7 @@ export default function AutonomousView() {
                 </div>
               </div>
               <div>
-                <div className="text-[10px] uppercase text-muted-foreground">pending escalations</div>
+                <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.pendingEscalations')}</div>
                 <div className={cn(
                   'font-mono',
                   digest.pendingEscalations > 0 ? 'text-amber-700 dark:text-amber-400' : '',
@@ -261,13 +261,13 @@ export default function AutonomousView() {
                 </div>
               </div>
               <div>
-                <div className="text-[10px] uppercase text-muted-foreground">resolved escalations</div>
+                <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.resolvedEscalations')}</div>
                 <div className="font-mono text-muted-foreground">
                   {digest.resolvedEscalations}
                 </div>
               </div>
               <div className="col-span-2 md:col-span-4">
-                <div className="text-[10px] uppercase text-muted-foreground">window range</div>
+                <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.windowRange')}</div>
                 <div className="font-mono text-[11px] text-muted-foreground">
                   {digest.from} → {digest.to}
                 </div>
@@ -281,7 +281,7 @@ export default function AutonomousView() {
         <CardHeader className="border-b border-border p-4">
           <div className="flex flex-row items-center justify-between gap-2">
             <CardTitle className="text-base">
-              Escalations {showResolved ? 'history' : 'awaiting decision'}
+              {showResolved ? t('autonomous.escalations.history') : t('autonomous.escalations.pending')}
             </CardTitle>
             <div className="flex items-center gap-3">
               <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
@@ -291,7 +291,7 @@ export default function AutonomousView() {
                   onChange={(e) => setShowResolved(e.target.checked)}
                   className="h-3 w-3"
                 />
-                show resolved
+                {t('autonomous.escalations.showResolved')}
               </label>
               {resolveError ? (
                 <span className="text-[11px] text-destructive">{resolveError}</span>
@@ -304,7 +304,7 @@ export default function AutonomousView() {
             <div className="p-4 text-[12px] text-destructive">{escalError}</div>
           ) : escalations.length === 0 ? (
             <div className="p-4 text-[12px] text-muted-foreground">
-              No pending escalations.
+              {t('autonomous.escalations.empty')}
             </div>
           ) : (
             <ul className="divide-y divide-border/40">
@@ -322,7 +322,7 @@ export default function AutonomousView() {
                       <Badge variant="secondary" className="text-[10px]">{e.kind}</Badge>
                       {isResolved ? (
                         <Badge variant="outline" className="text-[10px]">
-                          resolved · {e.resolvedAction || '?'}
+                          {t('autonomous.escalations.resolvedPrefix')} · {e.resolvedAction || '?'}
                         </Badge>
                       ) : null}
                       {e.todoId ? (
@@ -339,12 +339,12 @@ export default function AutonomousView() {
                     <div className="text-foreground">{e.reason}</div>
                     {e.suggestedAction ? (
                       <div className="text-muted-foreground">
-                        <span className="font-medium">Suggested:</span> {e.suggestedAction}
+                        <span className="font-medium">{t('autonomous.escalations.suggested')}:</span> {e.suggestedAction}
                       </div>
                     ) : null}
                     {isResolved && e.resolvedNote ? (
                       <div className="text-muted-foreground italic">
-                        <span className="font-medium not-italic">Note:</span> {e.resolvedNote}
+                        <span className="font-medium not-italic">{t('autonomous.escalations.note')}:</span> {e.resolvedNote}
                       </div>
                     ) : null}
                     {!isResolved ? (
@@ -356,7 +356,7 @@ export default function AutonomousView() {
                             ...prev,
                             [e.id]: ev.target.value,
                           }))}
-                          placeholder="note (required for modify, optional for approve/reject)"
+                          placeholder={t('autonomous.escalations.notePlaceholder')}
                           aria-label={`Resolve note for escalation ${e.id}`}
                           disabled={resolveBusy === e.id}
                           className="h-7 max-w-md text-[11px]"
@@ -368,7 +368,7 @@ export default function AutonomousView() {
                           disabled={resolveBusy === e.id}
                           className="h-6 px-2 text-[10px]"
                         >
-                          Approve
+                          {t('autonomous.escalations.approve')}
                         </Button>
                         <Button
                           size="sm"
@@ -377,7 +377,7 @@ export default function AutonomousView() {
                           disabled={resolveBusy === e.id}
                           className="h-6 px-2 text-[10px]"
                         >
-                          Reject
+                          {t('autonomous.escalations.reject')}
                         </Button>
                         <Button
                           size="sm"
@@ -385,9 +385,9 @@ export default function AutonomousView() {
                           onClick={() => handleResolve(e.id, 'modify')}
                           disabled={resolveBusy === e.id || !resolveNotes[e.id]?.trim()}
                           className="h-6 px-2 text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-300"
-                          title="Approve with modification — note required"
+                          title={t('autonomous.escalations.modifyTitle')}
                         >
-                          Modify
+                          {t('autonomous.escalations.modify')}
                         </Button>
                       </div>
                     ) : null}
