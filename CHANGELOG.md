@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.348] - 2026-05-04
+
+**Web — audit chain verify in audit log header.** Daemon-wide
+audit log is hash-chained; corruption surfaces a `corruptedAt`
+index. CLI had `c4 audit verify`; web operators couldn't run
+the integrity check post-host-migration / unexpected restart.
+
+### Added
+- **`web/src/components/SpecialistsView.tsx`**:
+  - `handleVerify(includeRotated)` — GET `/api/audit/verify`
+    optionally with `?includeRotated=1`.
+  - "Verify chain" + "+ rotated" buttons next to the audit
+    window selector. Both run the same endpoint with different
+    scope.
+  - Result chip — emerald `ok (N)` when valid, destructive
+    `CORRUPT` otherwise; tooltip shows live/rotated counts and
+    `corruptedAt` index when present.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- No global escalation count yet — the autonomous escalations
+  endpoint exists but has no tab to badge.
+
 ## [1.10.347] - 2026-05-04
 
 **Web — dark theme tuned to ARPS slate-900/800/700 palette.**

@@ -174,6 +174,37 @@ export default function SpecialistsView() {
     return () => { cancelled = true; window.clearInterval(id); };
   }, [auditOpen, auditWindow]);
 
+  // (v1.10.347) Audit chain verify — the daemon's whole audit
+  // log is hash-chained; corruption surfaces a corruptedAt index.
+  // Useful for security-sensitive operators after a host migration
+  // / unexpected restart. Single button next to the audit window
+  // selector; result shown inline.
+  const [verifyBusy, setVerifyBusy] = useState(false);
+  const [verifyResult, setVerifyResult] = useState<{
+    valid: boolean;
+    corruptedAt: number | null;
+    total: number;
+    rotatedTotal: number;
+  } | null>(null);
+  const handleVerify = useCallback(async (includeRotated: boolean) => {
+    setVerifyBusy(true);
+    setVerifyResult(null);
+    try {
+      const qs = includeRotated ? '?includeRotated=1' : '';
+      const res = await apiGet<{
+        valid: boolean;
+        corruptedAt: number | null;
+        total: number;
+        rotatedTotal: number;
+      }>(`/api/audit/verify${qs}`);
+      setVerifyResult(res);
+    } catch {
+      setVerifyResult({ valid: false, corruptedAt: null, total: 0, rotatedTotal: 0 });
+    } finally {
+      setVerifyBusy(false);
+    }
+  }, []);
+
   // Underperformer scan (phase 5.1) — fetched separately so the
   // alert pill on a row can light up before the operator clicks.
   const [flaggedIds, setFlaggedIds] = useState<Set<string>>(new Set());
@@ -797,6 +828,44 @@ export default function SpecialistsView() {
                   {w === 'all' ? 'all' : `last ${w}`}
                 </button>
               ))}
+              {/* (v1.10.347) Audit chain verify — daemon-wide hash
+                  chain integrity check. Lives here because the
+                  audit log is the only natural neighbour. */}
+              <span className="ml-auto inline-flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => handleVerify(false)}
+                  disabled={verifyBusy}
+                  className="rounded border border-border bg-muted/30 px-1.5 py-0 text-[10px] text-muted-foreground hover:bg-accent/40"
+                  title="Verify the live audit-log hash chain"
+                >
+                  {verifyBusy ? '…' : 'Verify chain'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleVerify(true)}
+                  disabled={verifyBusy}
+                  className="rounded border border-border bg-muted/30 px-1.5 py-0 text-[10px] text-muted-foreground hover:bg-accent/40"
+                  title="Verify the live audit-log + rotated archives"
+                >
+                  + rotated
+                </button>
+                {verifyResult ? (
+                  <span
+                    className={cn(
+                      'rounded border px-1.5 py-0 font-mono text-[10px]',
+                      verifyResult.valid
+                        ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                        : 'border-destructive/40 bg-destructive/10 text-destructive',
+                    )}
+                    title={`live: ${verifyResult.total} · rotated: ${verifyResult.rotatedTotal}${
+                      verifyResult.corruptedAt != null ? ` · corruptedAt ${verifyResult.corruptedAt}` : ''
+                    }`}
+                  >
+                    {verifyResult.valid ? `ok (${verifyResult.total + verifyResult.rotatedTotal})` : 'CORRUPT'}
+                  </span>
+                ) : null}
+              </span>
             </div>
             <div className="max-h-64 overflow-y-auto">
             {auditEntries.length === 0 ? (
