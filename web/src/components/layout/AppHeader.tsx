@@ -48,16 +48,22 @@ export default function AppHeader({
   // badge. Polled every 60s; gracefully nulls on older daemons or
   // when persist is disabled.
   const [stuckCount, setStuckCount] = useState(0);
+  // (v1.10.328) Underperformer count for the Specialists tab.
+  // Same cadence + tolerance pattern.
+  const [underperformerCount, setUnderperformerCount] = useState(0);
   useEffect(() => {
     if (!authed) return undefined;
     let cancelled = false;
-    const fetchStuck = () => {
+    const fetchSignals = () => {
       apiGet<{ count: number }>('/api/meetings/stuck?hours=1')
         .then((res) => { if (!cancelled) setStuckCount(res.count || 0); })
         .catch(() => { /* tolerate */ });
+      apiGet<{ flagged: number }>('/api/specialists/underperformers')
+        .then((res) => { if (!cancelled) setUnderperformerCount(res.flagged || 0); })
+        .catch(() => { /* tolerate */ });
     };
-    fetchStuck();
-    const id = window.setInterval(fetchStuck, 60000);
+    fetchSignals();
+    const id = window.setInterval(fetchSignals, 60000);
     return () => { cancelled = true; window.clearInterval(id); };
   }, [authed]);
 
@@ -99,7 +105,12 @@ export default function AppHeader({
         <TopTabs
           value={topView}
           onChange={onTopViewChange}
-          badges={stuckCount > 0 ? { meetings: { count: stuckCount, tone: 'amber' } } : undefined}
+          badges={(() => {
+            const out: Partial<Parameters<typeof TopTabs>[0]['badges']> = {};
+            if (stuckCount > 0) out.meetings = { count: stuckCount, tone: 'amber' };
+            if (underperformerCount > 0) out.specialists = { count: underperformerCount, tone: 'amber' };
+            return Object.keys(out).length > 0 ? out as never : undefined;
+          })()}
         />
         <Tooltip label={t('common.helpCenter')} placement="bottom">
           <IconButton

@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.328] - 2026-05-04
+
+**Web — underperformer count badge on Specialists tab.**
+v1.10.327 wired stuck-meeting badge on Meetings; this round
+extends the same pattern to underperformers from
+`/api/specialists/underperformers`. Operators see "2 specialists
+need a prompt revision" without entering the tab.
+
+### Added
+- **`web/src/components/layout/AppHeader.tsx`**:
+  - new `underperformerCount` state polled alongside stuck-count
+  - 60s cadence shared with the meetings poll (single setInterval)
+  - amber badge on Specialists tab when `> 0`
+  - both signals fetched in parallel; either failing degrades
+    silently
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Two amber badges on a fresh daemon mean the operator should
+  open Specialists for the prompt-revision flow + Meetings for
+  the stuck triage. Both now visible from any tab.
+
 ## [1.10.327] - 2026-05-04
 
 **Web — top tabs gain badge support; stuck-meetings live indicator.**
