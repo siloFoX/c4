@@ -294,6 +294,58 @@ export default function SpecialistsView() {
   // Reset suggestion when selection changes
   useEffect(() => { setSuggestion(null); setSuggestError(null); }, [selectedId]);
 
+  // (v1.10.340) Apply revision via meeting consensus (Phase 5.2).
+  // POST /specialists/:id/prompt-apply spawns a meta-meeting; if
+  // consensus is reached and autoApply=true, the registry's
+  // systemPrompt is replaced and an audit entry is logged.
+  // The result envelope includes meetingId so the operator can
+  // jump to the Meetings tab to inspect what happened.
+  interface ApplyResult {
+    specialistId: string;
+    meetingId: string | null;
+    decision: {
+      accepted: boolean;
+      accepts: string[];
+      objects: Array<Record<string, unknown>>;
+      missing: string[];
+      reason: string | null;
+    };
+    applied: boolean;
+    suggestion: {
+      revision: string | null;
+      rationale: string | null;
+    };
+    sessionStatus: string | null;
+  }
+  const [applyBusy, setApplyBusy] = useState(false);
+  const [applyResult, setApplyResult] = useState<ApplyResult | null>(null);
+  const [applyError, setApplyError] = useState<string | null>(null);
+  const handleApply = useCallback(async (id: string) => {
+    if (!window.confirm(
+      'Apply revision via meta-meeting?\n\n' +
+      'A new meeting fires immediately. If consensus is reached the\n' +
+      'systemPrompt is replaced in the registry and an audit entry\n' +
+      'is recorded. The meeting id will appear in the result.',
+    )) {
+      return;
+    }
+    setApplyBusy(true);
+    setApplyError(null);
+    setApplyResult(null);
+    try {
+      const res = await apiPost<ApplyResult>(
+        `/api/specialists/${encodeURIComponent(id)}/prompt-apply`,
+        { brain: 'mock', autoApply: true },
+      );
+      setApplyResult(res);
+    } catch (e) {
+      setApplyError((e as Error).message || 'Apply failed');
+    } finally {
+      setApplyBusy(false);
+    }
+  }, []);
+  useEffect(() => { setApplyResult(null); setApplyError(null); }, [selectedId]);
+
   // (Phase 1.6) Tag edit — mode: replace | add | remove via
   // PATCH /specialists/:id/tags. UI takes a comma-separated value
   // and infers add/remove from operator's intent (`+ a, b` / `- a`)
@@ -1002,18 +1054,33 @@ export default function SpecialistsView() {
               <div>
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-xs text-muted-foreground">system prompt</div>
-                  {/* (Phase 5.1) Suggest revision — read-only;
-                      operator copies result manually if useful. */}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleSuggest(selected.id)}
-                    disabled={suggestBusy}
-                    className="h-6 px-2 text-[10px]"
-                    title="Ask brain to draft a revised systemPrompt — review-only"
-                  >
-                    {suggestBusy ? 'Asking…' : 'Suggest revision'}
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    {/* (Phase 5.1) Suggest revision — read-only;
+                        operator copies result manually if useful. */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleSuggest(selected.id)}
+                      disabled={suggestBusy}
+                      className="h-6 px-2 text-[10px]"
+                      title="Ask brain to draft a revised systemPrompt — review-only"
+                    >
+                      {suggestBusy ? 'Asking…' : 'Suggest revision'}
+                    </Button>
+                    {/* (Phase 5.2) Apply via meeting consensus.
+                        Spawns a meta-meeting. On accepted consensus
+                        the systemPrompt is replaced + audit logged. */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleApply(selected.id)}
+                      disabled={applyBusy}
+                      className="h-6 px-2 text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-300"
+                      title="Spawn meta-meeting and apply revision on consensus"
+                    >
+                      {applyBusy ? 'Applying…' : 'Apply via meeting'}
+                    </Button>
+                  </div>
                 </div>
                 <pre className="mt-1 whitespace-pre-wrap rounded-md border border-border bg-muted/20 p-3 text-[12px] font-mono">
                   {selected.systemPrompt}
@@ -1039,9 +1106,64 @@ export default function SpecialistsView() {
                       </div>
                     ) : null}
                     <div className="mt-1 text-muted-foreground italic text-[10px]">
-                      To apply, copy the revision and use the c4 CLI:
-                      <code className="ml-1">c4 specialist apply-prompt {selected.id}</code>
+                      To apply via meeting consensus, click "Apply via meeting"
+                      above (or use <code className="ml-1">c4 specialist apply-prompt {selected.id}</code>).
                     </div>
+                  </div>
+                ) : null}
+                {applyError ? (
+                  <div className="mt-1 text-[11px] text-destructive">{applyError}</div>
+                ) : null}
+                {applyResult ? (
+                  <div className={cn(
+                    'mt-2 rounded-md border p-2 text-[11px]',
+                    applyResult.applied
+                      ? 'border-emerald-500/40 bg-emerald-500/10'
+                      : 'border-amber-500/40 bg-amber-500/10',
+                  )}>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <div className={cn(
+                        'font-medium',
+                        applyResult.applied
+                          ? 'text-emerald-700 dark:text-emerald-400'
+                          : 'text-amber-700 dark:text-amber-400',
+                      )}>
+                        {applyResult.applied
+                          ? 'Applied via meeting consensus'
+                          : applyResult.meetingId
+                          ? 'Meeting fired — not applied'
+                          : 'No revision drafted (no meeting fired)'}
+                      </div>
+                      {applyResult.meetingId ? (
+                        <a
+                          href={`#/meetings/${encodeURIComponent(applyResult.meetingId)}`}
+                          className="rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-mono hover:bg-muted/30"
+                          title="Open meeting in Meetings tab"
+                        >
+                          meeting → {applyResult.meetingId.slice(0, 8)}
+                        </a>
+                      ) : null}
+                    </div>
+                    <div className="text-muted-foreground">
+                      decision: {applyResult.decision.accepted ? 'accepted' : 'rejected'}
+                      {' · '}accepts {applyResult.decision.accepts.length}
+                      {applyResult.decision.objects.length > 0 ? (
+                        <> · objects {applyResult.decision.objects.length}</>
+                      ) : null}
+                      {applyResult.decision.reason ? (
+                        <> — <span className="italic">{applyResult.decision.reason}</span></>
+                      ) : null}
+                    </div>
+                    {applyResult.suggestion.revision ? (
+                      <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-muted/30 p-1 font-mono">
+                        {applyResult.suggestion.revision}
+                      </pre>
+                    ) : null}
+                    {applyResult.suggestion.rationale ? (
+                      <div className="mt-1 text-muted-foreground">
+                        <span className="font-medium">Rationale:</span> {applyResult.suggestion.rationale}
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
               </div>

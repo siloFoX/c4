@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.341] - 2026-05-04
+
+**Web — apply revision via meeting consensus (Phase 5.2).**
+Phase 5.2 backend `POST /specialists/:id/prompt-apply` runs a
+brain-suggested revision through a meta-meeting and applies it
+to the registry on consensus. CLI had `c4 specialist apply-
+prompt`; web users could only see suggestions and copy them out.
+
+### Added
+- **`web/src/components/SpecialistsView.tsx`**:
+  - `handleApply(id)` — confirm dialog, then POST with mock brain
+    + autoApply=true. Returns `{specialistId, meetingId, decision,
+    applied, suggestion, sessionStatus}`.
+  - "Apply via meeting" outline button next to "Suggest revision"
+    (amber-toned to signal it's the governance-gated path).
+  - Result panel: emerald when applied, amber otherwise. Decision
+    summary (accepted/rejected · accepts/objects · reason). Link
+    to spawned meeting (`#/meetings/<id>` hash route). Revision +
+    rationale shown for review even when not applied.
+  - Selection change clears apply result so it doesn't bleed
+    across specialists.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Mock brain often produces no parseable REVISION → meetingId
+  null + "No revision drafted" state. UI shows that path
+  explicitly.
+
 ## [1.10.340] - 2026-05-04
 
 **Web — manual state-machine controls for in-progress and pending
