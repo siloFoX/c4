@@ -142,6 +142,9 @@ export default function MeetingsView() {
   const [lineage, setLineage] = useState<LineageResponse | null>(null);
   // (Phase 6.5) Action-items extracted from the transcript.
   const [actions, setActions] = useState<ActionItemsResponse | null>(null);
+  // Category filter for the action-items panel (client-side).
+  // null = show all 4 categories. Otherwise just that one.
+  const [actionsFilter, setActionsFilter] = useState<ActionItemType | null>(null);
 
   // (Phase 6.15) Stuck meetings alert. Polled every 60s; only
   // visible when count > 0.
@@ -1175,13 +1178,45 @@ export default function MeetingsView() {
                   badges. Empty groups are omitted. */}
               {actions && actions.count > 0 ? (
                 <div className="rounded-md border border-border/60 bg-muted/10 p-3 text-[12px]">
-                  <div className="mb-2 flex items-center gap-2">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
                     <span className="font-medium">Action Items</span>
-                    <span className="text-[10px] text-muted-foreground">
-                      decision={actions.byType.decision} · action={actions.byType.action} · todo={actions.byType.todo} · blocker={actions.byType.blocker}
-                    </span>
+                    {/* Category filter chips — null = all */}
+                    <button
+                      type="button"
+                      onClick={() => setActionsFilter(null)}
+                      className={cn(
+                        'rounded border px-1.5 py-0 text-[10px] uppercase tracking-wide',
+                        actionsFilter === null
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-background text-muted-foreground hover:bg-accent/40',
+                      )}
+                    >
+                      all · {actions.count}
+                    </button>
+                    {(['decision', 'action', 'todo', 'blocker'] as ActionItemType[]).map((kind) => {
+                      if ((actions.byType[kind] || 0) === 0) return null;
+                      const tone: Record<ActionItemType, string> = {
+                        decision: 'border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-400',
+                        action: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+                        todo: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+                        blocker: 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400',
+                      };
+                      return (
+                        <button
+                          key={kind}
+                          type="button"
+                          onClick={() => setActionsFilter(actionsFilter === kind ? null : kind)}
+                          className={cn(
+                            'rounded border px-1.5 py-0 text-[10px] uppercase tracking-wide',
+                            actionsFilter === kind ? tone[kind] : 'border-border bg-background text-muted-foreground hover:bg-accent/40',
+                          )}
+                        >
+                          {kind} · {actions.byType[kind] || 0}
+                        </button>
+                      );
+                    })}
                   </div>
-                  {(['decision', 'action', 'todo', 'blocker'] as ActionItemType[]).map((kind) => {
+                  {(['decision', 'action', 'todo', 'blocker'] as ActionItemType[]).filter((k) => actionsFilter === null || actionsFilter === k).map((kind) => {
                     const group = actions.items.filter((it) => it.type === kind);
                     if (group.length === 0) return null;
                     const tone: Record<ActionItemType, string> = {

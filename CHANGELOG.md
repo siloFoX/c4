@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.321] - 2026-05-04
+
+**Web — action-items category filter chips.**
+The action-items panel (v1.10.311) showed all 4 marker types
+stacked. Operators looking for "just blockers right now" had
+to scroll. Adds chip-based category filter.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**:
+  - `actionsFilter` state (`ActionItemType | null`, default null
+    = show all)
+  - chip row in panel header: `all · N · decision · K · action ·
+    K · todo · K · blocker · K` (only categories with count > 0
+    render their chip)
+  - active chip uses category's color tone (blue/emerald/amber/
+    rose); inactive is neutral
+  - clicking the same chip toggles back to "all"
+  - filter applied by `.filter()` over the existing render loop
+    — backend still returns all items in one call
+
+### Notes
+- Pure web; backend tests still 200/200 green; lint + drift
+  clean.
+- Decoupled from the FTS search / status filters elsewhere —
+  this is just a render-time category narrow.
+
 ## [1.10.320] - 2026-05-04
 
 **Web — meeting search since/until date inputs.**
