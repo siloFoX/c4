@@ -1046,12 +1046,32 @@ async function main() {
           }
         } catch { /* summary endpoint may be missing on old daemons */ }
 
+        const failed = checks.filter((c) => !c.ok).length;
+        const warned = checks.filter((c) => c.ok && c.level === 'warn').length;
+        // (v1.10.291) --json mode for monitoring/scripting
+        // integration. Outputs the full checks array + counts so a
+        // shell wrapper can `jq '.failed' / '.warned' / '.checks[]
+        // | select(.ok==false)'`. Exit code matches the human
+        // path (1 when any check failed).
+        if (args.includes('--json')) {
+          const out = {
+            failed,
+            warned,
+            ok: failed === 0,
+            checks: checks.map((c) => ({
+              ok: !!c.ok,
+              level: c.level || (c.ok ? 'pass' : 'fail'),
+              label: c.label,
+            })),
+          };
+          process.stdout.write(JSON.stringify(out, null, 2) + '\n');
+          if (failed) process.exit(1);
+          return;
+        }
         for (const c of checks) {
           const mark = c.ok ? (c.level === 'warn' ? warn : tick) : cross;
           console.log(`  ${mark} ${c.label}`);
         }
-        const failed = checks.filter((c) => !c.ok).length;
-        const warned = checks.filter((c) => c.ok && c.level === 'warn').length;
         if (failed) {
           console.log(`\n${failed} failed, ${warned} warning(s).`);
           process.exit(1);

@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.10.291] - 2026-05-04
+
+**c4 doctor — `--json` mode for monitoring integration.**
+The doctor's human-readable output is operator-friendly but
+monitoring scripts couldn't grep it reliably (color codes,
+multi-line summaries). This adds a structured JSON shape so
+shell wrappers can `jq '.failed'` or pipe into Prometheus
+exporters.
+
+### Added
+- **CLI**: `c4 doctor --json` outputs:
+  ```json
+  {
+    "failed": 0,
+    "warned": 1,
+    "ok": true,
+    "checks": [
+      { "ok": true, "level": "pass", "label": "..." },
+      { "ok": true, "level": "warn", "label": "..." },
+      { "ok": false, "level": "fail", "label": "..." }
+    ]
+  }
+  ```
+- Exit code matches the human-path: `1` when any check failed,
+  `0` otherwise. Wrappers can rely on the same gate.
+- The human-readable rendering is still default; `--json`
+  short-circuits before the colored output to keep stdout clean
+  for piping.
+
+### Notes
+- e2e verified: `c4 doctor --json | python3 -c '...'` parses
+  cleanly to `failed=0 warned=1 check count=11`.
+- The `level` field is `'pass'` / `'warn'` / `'fail'`. Internal
+  checks already used `level: 'warn'` for soft warnings; we
+  preserve that and synthesize `'pass'` / `'fail'` for the rest.
+
 ## [1.10.290] - 2026-05-04
 
 **Multi-Specialist System — Phase 7.9 (Persist close on shutdown).**
