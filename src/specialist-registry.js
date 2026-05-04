@@ -302,6 +302,33 @@ class SpecialistRegistry {
 
   has(id) { return this._byId.has(id); }
 
+  // Phase 8.4 — case-insensitive substring search across the
+  // specialist record. Walks the registry once; matches when the
+  // query token appears in displayName / systemPrompt / domain
+  // entries / tags. Whitespace-separated tokens AND-compose so
+  // `auth security` requires both substrings somewhere in the
+  // record.
+  searchByText(query) {
+    if (!query || typeof query !== 'string') return [];
+    const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return [];
+    const out = [];
+    for (const s of this._byId.values()) {
+      const haystack = [
+        s.id || '',
+        s.displayName || '',
+        s.systemPrompt || '',
+        ...(Array.isArray(s.domain) ? s.domain : []),
+        ...(Array.isArray(s.tags) ? s.tags : []),
+        ...((s.triggers && s.triggers.keywords) || []),
+      ].join(' ').toLowerCase();
+      if (tokens.every((t) => haystack.includes(t))) {
+        out.push({ ...s });
+      }
+    }
+    return out;
+  }
+
   filter({ tier, domain, domains, stage, vetoOnly, tag, tags } = {}) {
     // tag (single) + tags (array) compose: AND across all listed.
     // domain (single) + domains (array) compose the same way against

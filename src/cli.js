@@ -2174,6 +2174,7 @@ async function main() {
             else if (a === '--domain' && args[i + 1]) { qs.append('domain', args[i + 1]); i += 1; }
             else if (a === '--veto-only') { qs.set('vetoOnly', '1'); }
             else if (a === '--tag' && args[i + 1]) { qs.append('tag', args[i + 1]); i += 1; }
+            else if (a === '--search' && args[i + 1]) { qs.set('search', args[i + 1]); i += 1; }
           }
           const path = qs.toString() ? `/specialists?${qs.toString()}` : '/specialists';
           result = await request('GET', path);

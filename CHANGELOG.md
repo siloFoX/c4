@@ -4,6 +4,40 @@
 
 (no entries — next release window)
 
+## [1.10.303] - 2026-05-04
+
+**Multi-Specialist System — Phase 8.4 (Specialist keyword search).**
+The 13 seed specialists carry rich `systemPrompt` text but
+operators had no way to find "the specialist that handles
+authn / supply chain risk" without reading every prompt.
+This adds a substring search across all text fields.
+
+### Added
+- **`src/specialist-registry.js`**: `searchByText(query)` —
+  case-insensitive substring search across `displayName /
+  systemPrompt / domain[] / tags[] / triggers.keywords[]`.
+  Whitespace-separated tokens AND-compose so `auth security`
+  requires both substrings somewhere in the record.
+- **HTTP**: `GET /specialists?search=text` filters the list
+  result. Composes with the existing tier / stage / domain /
+  vetoOnly / tag filters — `?stage=audit&search=secret` finds
+  audit-tier specialists that mention secrets in their prompt.
+- **CLI**: `c4 specialist list --search "<query>"`.
+- **OpenAPI**: `search` query param documented.
+- **Tests** (`tests/specialist-registry.test.js`): 2 new cases —
+  case-insensitive match across displayName / systemPrompt /
+  domain with whitespace AND-compose; empty / whitespace-only
+  queries return `[]` (don't accidentally return everything).
+
+### Notes
+- e2e: `c4 specialist list --search "audit"` against the seed
+  registry returns the `security-auditor` (and only it — its
+  systemPrompt mentions "audit access controls" while other
+  specialists don't carry that token).
+- In-memory substring scan rather than FTS5 — the registry is
+  bounded at ~13 specialists for now; even at 100x scale this
+  is microseconds. FTS5 was overkill here.
+
 ## [1.10.302] - 2026-05-04
 
 **Multi-Specialist System — Phase 8.3 (Search pagination).**

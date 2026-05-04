@@ -4471,7 +4471,15 @@ async function handleRequest(req, res) {
         tags: tagList.length > 0 ? tagList : undefined,
       };
       const hasFilter = filter.tier || filter.stage || filter.domains || filter.vetoOnly || filter.tags;
-      const list = hasFilter ? reg.filter(filter) : reg.list();
+      let list = hasFilter ? reg.filter(filter) : reg.list();
+      // (Phase 8.4) Optional text search — applies after the filter
+      // narrowing so callers can `?stage=audit&search=secret` to find
+      // a security-aware audit-tier specialist.
+      const searchQ = url.searchParams.get('search');
+      if (searchQ) {
+        const matchedIds = new Set(reg.searchByText(searchQ).map((s) => s.id));
+        list = list.filter((s) => matchedIds.has(s.id));
+      }
       result = { count: list.length, version: reg.version, specialists: list };
 
     } else if (req.method === 'GET' && specialistParams && specialistParams.kind === 'one') {

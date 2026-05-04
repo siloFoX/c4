@@ -576,6 +576,39 @@ t('exportBundle({domains}) AND-composes against spec.domain', () => {
   assert.deepStrictEqual(bothIds, ['d-a'], 'AND drops d-b which lacks pipeline');
 });
 
+t('searchByText: case-insensitive substring across all text fields', () => {
+  // Use inline construction (no seed) so the test only sees the
+  // fixture entries it added.
+  const reg = new SpecialistRegistry({
+    persistPath: null,
+    specialists: [
+      fixtureSpec({ id: 'sec-zlqpw', displayName: 'Custom Zlqpw Auditor', systemPrompt: '[Role: SecAud] You audit access controls.', domain: ['custom-zlqpw'] }),
+      fixtureSpec({ id: 'unrelated', displayName: 'Unrelated', systemPrompt: '[Role: Other] something else', domain: ['other'] }),
+    ],
+  });
+  // Match by displayName
+  const r1 = reg.searchByText('Zlqpw');
+  assert.deepStrictEqual(r1.map((s) => s.id), ['sec-zlqpw']);
+  // Match by systemPrompt token
+  const r2 = reg.searchByText('access');
+  assert.deepStrictEqual(r2.map((s) => s.id), ['sec-zlqpw']);
+  // Match by domain
+  const r3 = reg.searchByText('custom-zlqpw');
+  assert.deepStrictEqual(r3.map((s) => s.id), ['sec-zlqpw']);
+  // Whitespace AND: both tokens must hit
+  const r4 = reg.searchByText('access zlqpw');
+  assert.deepStrictEqual(r4.map((s) => s.id), ['sec-zlqpw']);
+  const r5 = reg.searchByText('access elsewhere');
+  assert.deepStrictEqual(r5, []);
+});
+
+t('searchByText: empty query returns []', () => {
+  const reg = new SpecialistRegistry({ persistPath: null });
+  assert.deepStrictEqual(reg.searchByText(''), []);
+  assert.deepStrictEqual(reg.searchByText('   '), []);
+  assert.deepStrictEqual(reg.searchByText(null), []);
+});
+
 t('exportBundle({tags, domains}) intersects both filters', () => {
   const reg = new SpecialistRegistry({ persistPath: null });
   reg.add(fixtureSpec({ id: 'i-a', tags: ['rfc'], domain: ['data'] }));

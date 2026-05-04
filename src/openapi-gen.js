@@ -2176,6 +2176,7 @@ const ROUTE_SCHEMAS = {
       { name: 'domain', in: 'query', explode: true, schema: { type: 'array', items: { type: 'string' } }, description: 'Domain filter; repeatable / comma-split. AND-composes — a specialist must carry every listed domain.' },
       { name: 'vetoOnly', in: 'query', schema: { type: 'string', enum: ['1'] } },
       { name: 'tag', in: 'query', explode: true, schema: { type: 'array', items: { type: 'string' } }, description: 'Tag filter; repeat the parameter or pass comma-separated values. AND across multiple tags.' },
+      { name: 'search', in: 'query', schema: { type: 'string', description: 'Case-insensitive substring search across displayName / systemPrompt / domain / tags / triggers. Whitespace-separated tokens AND-compose.' } },
     ],
     response: {
       properties: {
