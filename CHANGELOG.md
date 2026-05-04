@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.357] - 2026-05-04
+
+**Web — Risk Inspector page (Diagnostics).** Backend has had
+`/api/risk/check` + `/api/risk/stats` since v1.10.x; CLI had
+`c4 risk`. Web operators wanting to dry-run a command through
+the classifier had to drop to shell. New page surfaces both.
+
+### Added
+- **`web/src/pages/Risk.tsx`** (new):
+  - Top half: command textarea + Check button. Renders the
+    classifier verdict — level (low/medium/high/critical with
+    color-coded badges), suggested action (allow/review/deny),
+    `wouldDeny` flag, denyList override flag, autoDenyLevel +
+    enforcementEnabled.
+  - Reasons list with rule code + label + matched snippet.
+  - Decoded source (post-denoise) and inspected source (regex
+    input) when set.
+  - Static intent extraction (privileged / files / network /
+    destructive verbs) — only when non-empty.
+  - Bottom half: stats panel — windowHours selector, total /
+    enforced / dryRun / shadowExec (with killed + non-zero
+    sub-counts), per-level breakdown, top reasons + workers,
+    rule-set rotation warning when fingerprintsObserved > 1.
+  - ⌘+Enter shortcut on the textarea submits.
+- **`web/src/pages/registry.ts`**: registered as `risk` page in
+  the Diagnostics category with the `Shield` icon.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Page lives under Features → Diagnostics → Risk; the existing
+  page-frame structure handles auth + lazy loading.
+
 ## [1.10.356] - 2026-05-04
 
 **Web — AutonomousView shows resolved escalations on demand.**

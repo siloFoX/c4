@@ -19,6 +19,7 @@ import {
   ListChecks,
   Rocket,
   ScrollText,
+  Shield,
   Sparkles,
   Sunrise,
   Trash2,
@@ -168,6 +169,14 @@ export const FEATURES: FeatureDef[] = [
     category: 'diagnostics',
     Icon: FileCheck2,
     load: () => import('./Validation'),
+  },
+  {
+    id: 'risk',
+    label: 'Risk',
+    description: 'Preview a command\'s risk classification + recent denials in the last N hours.',
+    category: 'diagnostics',
+    Icon: Shield,
+    load: () => import('./Risk'),
   },
 ];
 
