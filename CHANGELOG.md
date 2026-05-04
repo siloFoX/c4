@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.393] - 2026-05-04
+
+**Web — RBAC page i18n.** Title, description, refresh, intro
+note, two panels (Roles / Users), counts via `tFormat()`, view-
+grants summary.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 10 new keys under
+  `rbac.*`, including `{n}`-templated counts
+  (`rbac.roles.actionCount`, `rbac.users.heading`,
+  `rbac.users.grantCount`).
+- **`web/src/pages/Rbac.tsx`**:
+  - `useLocale()` hook re-renders on locale flip.
+  - `t()` for static strings; `tFormat()` for `{n}`-counted
+    labels (action count, user count, grant count).
+
+### Korean copy
+- RBAC / 역할 기반 접근 제어 / 역할 / 사용자 / 설정된 역할이
+  없습니다 / N개 액션 / 사용자 (N) / N개 권한 범위 / 권한
+  보기.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.392] - 2026-05-04
 
 **Web — Workspaces page i18n.** Title, description, refresh

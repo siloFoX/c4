@@ -4,6 +4,7 @@ import PageFrame, { ErrorPanel } from './PageFrame';
 import { Badge, Button, Panel } from '../components/ui';
 import { apiGet } from '../lib/api';
 import { cn } from '../lib/cn';
+import { t, tFormat, useLocale } from '../lib/i18n';
 
 // (v1.10.383) RBAC viewer — read-only listing of roles + per-user
 // grants from the daemon's auth subsystem. Mutation endpoints
@@ -33,6 +34,7 @@ const ROLE_TONE: Record<string, string> = {
 };
 
 export default function Rbac() {
+  useLocale();
   const [roles, setRoles] = useState<Role[] | null>(null);
   const [users, setUsers] = useState<User[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,8 +61,8 @@ export default function Rbac() {
 
   return (
     <PageFrame
-      title="RBAC"
-      description="Role-based access control — read-only roster of roles and per-user grants."
+      title={t('rbac.title')}
+      description={t('rbac.description')}
       actions={
         <Button
           type="button"
@@ -68,19 +70,15 @@ export default function Rbac() {
           size="sm"
           onClick={refresh}
           disabled={loading}
-          aria-label="Refresh RBAC"
+          aria-label={t('rbac.refresh.label')}
         >
           <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
-          <span>Refresh</span>
+          <span>{t('common.refresh')}</span>
         </Button>
       }
     >
       <div className="rounded-md border border-border bg-muted/10 p-3 text-[12px] text-muted-foreground">
-        Mirrors <code className="font-mono">c4 rbac roles</code> +
-        <code className="font-mono"> c4 rbac users</code>. Mutations
-        (assign / grant / revoke) currently live only on the CLI.
-        This view is for operators who need to confirm <em>who has
-        what</em> without dropping to shell.
+        {t('rbac.intro')}
       </div>
 
       {error ? <ErrorPanel message={error} /> : null}
@@ -88,12 +86,12 @@ export default function Rbac() {
       <Panel className="text-sm">
         <h3 className="mb-2 flex items-center gap-2 text-base font-semibold text-foreground">
           <ShieldCheck className="h-4 w-4 text-muted-foreground" aria-hidden />
-          Roles
+          {t('rbac.roles.heading')}
         </h3>
         {!roles ? (
-          <div className="text-[12px] text-muted-foreground">Loading…</div>
+          <div className="text-[12px] text-muted-foreground">{t('common.loading')}</div>
         ) : roles.length === 0 ? (
-          <div className="text-[12px] text-muted-foreground">No roles configured.</div>
+          <div className="text-[12px] text-muted-foreground">{t('rbac.roles.empty')}</div>
         ) : (
           <ul className="space-y-2 text-[12px]">
             {roles.map((r) => (
@@ -103,7 +101,7 @@ export default function Rbac() {
                     {r.name}
                   </Badge>
                   <span className="text-muted-foreground">
-                    {r.actions.length} action(s)
+                    {tFormat('rbac.roles.actionCount', { n: String(r.actions.length) })}
                   </span>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1 pl-3 text-[11px]">
@@ -125,12 +123,12 @@ export default function Rbac() {
       <Panel className="mt-4 text-sm">
         <h3 className="mb-2 flex items-center gap-2 text-base font-semibold text-foreground">
           <Users className="h-4 w-4 text-muted-foreground" aria-hidden />
-          Users ({users?.length ?? 0})
+          {tFormat('rbac.users.heading', { n: String(users?.length ?? 0) })}
         </h3>
         {!users ? (
-          <div className="text-[12px] text-muted-foreground">Loading…</div>
+          <div className="text-[12px] text-muted-foreground">{t('common.loading')}</div>
         ) : users.length === 0 ? (
-          <div className="text-[12px] text-muted-foreground">No users assigned.</div>
+          <div className="text-[12px] text-muted-foreground">{t('rbac.users.empty')}</div>
         ) : (
           <ul className="divide-y divide-border/40 text-[12px]">
             {users.map((u) => {
@@ -144,14 +142,14 @@ export default function Rbac() {
                     </Badge>
                     {grantKeys.length > 0 ? (
                       <span className="text-[10px] text-muted-foreground">
-                        {grantKeys.length} grant scope(s)
+                        {tFormat('rbac.users.grantCount', { n: String(grantKeys.length) })}
                       </span>
                     ) : null}
                   </div>
                   {grantKeys.length > 0 ? (
                     <details>
                       <summary className="cursor-pointer text-[10px] text-muted-foreground">
-                        view grants
+                        {t('rbac.users.viewGrants')}
                       </summary>
                       <pre className="mt-1 overflow-auto rounded bg-muted/30 p-2 font-mono text-[10px]">
                         {JSON.stringify(u.grants, null, 2)}

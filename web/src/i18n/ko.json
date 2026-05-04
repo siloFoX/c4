@@ -90,6 +90,18 @@
   "common.loading": "로딩 중…",
   "common.refresh": "새로고침",
 
+  "rbac.title": "RBAC",
+  "rbac.description": "역할 기반 접근 제어 — 역할 / 사용자별 권한 읽기 전용 뷰.",
+  "rbac.refresh.label": "RBAC 새로고침",
+  "rbac.intro": "c4 rbac roles + c4 rbac users 명령에 대응합니다. 변경(assign / grant / revoke)은 현재 CLI 에서만 가능하며, 이 뷰는 \"누가 어떤 권한을 가졌는지\" 셸 접속 없이 확인하기 위한 것입니다.",
+  "rbac.roles.heading": "역할",
+  "rbac.roles.empty": "설정된 역할이 없습니다.",
+  "rbac.roles.actionCount": "{n}개 액션",
+  "rbac.users.heading": "사용자 ({n})",
+  "rbac.users.empty": "할당된 사용자가 없습니다.",
+  "rbac.users.grantCount": "{n}개 권한 범위",
+  "rbac.users.viewGrants": "권한 보기",
+
   "workspaces.title": "워크스페이스",
   "workspaces.description": "config.workspaces 에 선언된 멀티 레포 워크스페이스.",
   "workspaces.refresh.label": "워크스페이스 새로고침",

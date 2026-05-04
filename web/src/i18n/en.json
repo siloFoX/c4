@@ -90,6 +90,18 @@
   "common.loading": "Loading…",
   "common.refresh": "Refresh",
 
+  "rbac.title": "RBAC",
+  "rbac.description": "Role-based access control — read-only roster of roles and per-user grants.",
+  "rbac.refresh.label": "Refresh RBAC",
+  "rbac.intro": "Mirrors c4 rbac roles + c4 rbac users. Mutations (assign / grant / revoke) currently live only on the CLI. This view is for operators who need to confirm who has what without dropping to shell.",
+  "rbac.roles.heading": "Roles",
+  "rbac.roles.empty": "No roles configured.",
+  "rbac.roles.actionCount": "{n} action(s)",
+  "rbac.users.heading": "Users ({n})",
+  "rbac.users.empty": "No users assigned.",
+  "rbac.users.grantCount": "{n} grant scope(s)",
+  "rbac.users.viewGrants": "view grants",
+
   "workspaces.title": "Workspaces",
   "workspaces.description": "Multi-repo workspaces from config.workspaces.",
   "workspaces.refresh.label": "Refresh workspaces",
