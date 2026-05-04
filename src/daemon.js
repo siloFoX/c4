@@ -136,6 +136,19 @@ function _buildSummaryPersistInfo() {
 }
 
 if (_meetingPersist) {
+  // (Phase 8.1 follow-up) Auto-rebuild the FTS index when it's
+  // stale. Most common cause: a daemon upgrade introduced the
+  // FTS schema for a DB that previously only had the meetings
+  // table — existing rows aren't indexed yet. Cheap (just count
+  // mismatch); rebuild only fires when there's actual drift.
+  try {
+    if (_meetingPersist.isFtsStale()) {
+      const r = _meetingPersist.rebuildFtsIndex();
+      process.stderr.write(`[daemon] FTS index rebuilt: ${r.before} → ${r.after} (${r.indexed} indexed)\n`);
+    }
+  } catch (err) {
+    process.stderr.write(`[daemon] FTS rebuild failed — ${err.message}\n`);
+  }
   try {
     const r = meetingSession.getShared().rehydrate();
     if (r.count > 0 || r.errors.length > 0) {
@@ -900,6 +913,7 @@ async function handleRequest(req, res) {
         || meetingParams.id === 'classify-track' || meetingParams.id === 'stuck'
         || meetingParams.id === 'prune-old' || meetingParams.id === 'persist-integrity'
         || meetingParams.id === 'persist-backup' || meetingParams.id === 'search'
+        || meetingParams.id === 'fts-rebuild'
     )) meetingParams = null;
   }
 
@@ -4843,6 +4857,24 @@ async function handleRequest(req, res) {
           for (const id of r.ids) { try { store.remove(id); } catch { /* tolerate */ } }
         }
         result = r;
+      } catch (err) {
+        res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
+      }
+
+    } else if (req.method === 'POST' && route === '/meetings/fts-rebuild') {
+      // (Phase 8.1 follow-up) Manually rebuild the FTS5 index. The
+      // daemon also auto-rebuilds at boot if it detects drift, so
+      // this is for operators who want to force the rebuild
+      // without a restart (e.g., after manual SQLite tinkering).
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/meetings/fts-rebuild', body, res, cfg)) return;
+      if (!_meetingPersist) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'meeting persist disabled — no FTS to rebuild' }));
+        return;
+      }
+      try {
+        result = _meetingPersist.rebuildFtsIndex();
       } catch (err) {
         res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
       }

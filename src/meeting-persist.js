@@ -219,6 +219,57 @@ class MeetingPersist {
     return tx();
   }
 
+  // Phase 8.1 follow-up — rebuild the FTS index from the meetings
+  // table. Used at boot time when the schema was just added to a
+  // pre-existing DB (existing rows aren't yet indexed) or when an
+  // operator suspects the index has gone stale (e.g., after an
+  // external file restore).
+  //
+  // Returns `{indexed, before, after}` where `before/after` are
+  // FTS row counts so callers can confirm the rebuild actually ran.
+  // Wraps the wipe + reindex in a transaction so partial failure
+  // doesn't leave the index half-empty.
+  rebuildFtsIndex() {
+    const beforeRow = this._db.prepare('SELECT COUNT(*) as n FROM meetings_fts').get();
+    const before = beforeRow ? beforeRow.n : 0;
+    const tx = this._db.transaction(() => {
+      // Plain DELETE works on a non-contentless FTS5 table; the
+      // 'delete-all' command form only works on contentless ones.
+      this._db.exec('DELETE FROM meetings_fts');
+      const rows = this._stmtSelectAll.all();
+      let indexed = 0;
+      for (const r of rows) {
+        let json;
+        try { json = JSON.parse(r.data); }
+        catch { continue; }
+        if (!json || !json.id) continue;
+        this._stmtFtsInsert.run(
+          json.id,
+          json.title || '',
+          json.task || '',
+          this._ftsText(json),
+        );
+        indexed += 1;
+      }
+      return indexed;
+    });
+    const indexed = tx();
+    const afterRow = this._db.prepare('SELECT COUNT(*) as n FROM meetings_fts').get();
+    const after = afterRow ? afterRow.n : 0;
+    return { indexed, before, after };
+  }
+
+  // Lightweight check used by the daemon boot path: compare row
+  // counts so we can auto-rebuild when the FTS index drifts (e.g.,
+  // after a fresh `meetings_fts` table was created via schema
+  // upgrade and existing meetings need backfill). Returns true when
+  // the index appears to need a rebuild.
+  isFtsStale() {
+    const m = this._db.prepare('SELECT COUNT(*) as n FROM meetings').get();
+    const f = this._db.prepare('SELECT COUNT(*) as n FROM meetings_fts').get();
+    return (m && f) ? m.n !== f.n : false;
+  }
+
   // Phase 8.1 — full-text search across title / task / transcript.
   // Returns `[{id, status, createdAt, updatedAt, snippet, rank}, ...]`
   // sorted by FTS5's bm25 rank (best matches first). The `snippet`

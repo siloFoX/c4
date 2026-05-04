@@ -4,6 +4,50 @@
 
 (no entries — next release window)
 
+## [1.10.299] - 2026-05-04
+
+**Multi-Specialist System — Phase 8.1 follow-up (FTS rebuild + boot sync).**
+After Phase 8.1 added FTS5, daemons that already had a populated
+meetings.db needed their existing rows backfilled into the new
+index. Otherwise `c4 meeting search` would silently return no
+matches for pre-Phase-8.1 meetings. This phase adds auto-detect +
+rebuild.
+
+### Added
+- **`src/meeting-persist.js`**:
+  - `isFtsStale()` — cheap check: `COUNT(meetings) !=
+    COUNT(meetings_fts)`. True when an upgrade or external
+    tinkering left the index out of sync.
+  - `rebuildFtsIndex()` — DELETE all FTS rows + re-INSERT from
+    every row in the meetings table, wrapped in a transaction
+    so a partial failure doesn't leave the index half-empty.
+    Returns `{indexed, before, after}` row counts so callers
+    can confirm the rebuild ran.
+- **`src/daemon.js`**: at boot, after persist init but before
+  rehydrate, if `isFtsStale()` returns true, the daemon
+  auto-rebuilds. Logs `[daemon] FTS index rebuilt: N → M (K
+  indexed)` to stderr. Failure is logged but doesn't block
+  startup — the rest of the daemon still comes up.
+- **HTTP**: `POST /meetings/fts-rebuild` triggers the rebuild on
+  demand (for operators who want to force a refresh without a
+  restart, e.g., after manual SQLite tinkering).
+- **CLI**: `c4 meeting fts-rebuild` — prints `indexed N
+  meeting(s) (FTS rows X → Y)`.
+- **OpenAPI**: full schema; `fts-rebuild` added to meetings
+  parser reserved-suffix list.
+- **Tests** (`tests/meeting-persist.test.js`): 3 new cases —
+  fresh DB is not stale; rebuild on empty DB is clean no-op;
+  rebuild after FTS wipe restores match.
+
+### Notes
+- The rebuild bug fix: my first pass tried
+  `INSERT INTO meetings_fts(meetings_fts) VALUES('delete-all')`,
+  which only works on contentless FTS5 tables. Switched to
+  plain `DELETE FROM meetings_fts` which works on either form.
+- e2e: `c4 meeting fts-rebuild` against a clean daemon →
+  `indexed 0 meeting(s) (FTS rows 0 → 0)`. On any daemon with
+  existing meetings, this would re-populate the index.
+
 ## [1.10.298] - 2026-05-04
 
 **Multi-Specialist System — Phase 8.1 (Meeting full-text search).**

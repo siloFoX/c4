@@ -430,6 +430,43 @@ t('save → remove → search returns empty (FTS index stays consistent)', () =>
   p.close();
 });
 
+t('isFtsStale: false on a freshly initialized DB', () => {
+  const p = mkDb();
+  assert.strictEqual(p.isFtsStale(), false);
+  p.close();
+});
+
+t('rebuildFtsIndex: handles empty DB cleanly', () => {
+  const p = mkDb();
+  const r = p.rebuildFtsIndex();
+  assert.strictEqual(r.indexed, 0);
+  assert.strictEqual(r.before, 0);
+  assert.strictEqual(r.after, 0);
+  p.close();
+});
+
+t('rebuildFtsIndex: re-populates from main table after FTS wipe', () => {
+  const p = mkDb();
+  // Build sessions with meaningful tokens.
+  const a = mkSession('alpha task');
+  a.start();
+  a.contribute('pm', 'discussion of widget redesign');
+  p.save(a);
+  // Confirm baseline match.
+  assert.strictEqual(p.search('widget').length, 1);
+  // Simulate FTS wipe (e.g., dropped + recreated table).
+  p._db.exec('DELETE FROM meetings_fts');
+  assert.strictEqual(p.search('widget').length, 0, 'after wipe, FTS empty');
+  assert.strictEqual(p.isFtsStale(), true, 'isFtsStale flags drift');
+  // Rebuild should restore the match.
+  const r = p.rebuildFtsIndex();
+  assert.strictEqual(r.indexed, 1);
+  assert.strictEqual(r.after, 1);
+  assert.strictEqual(p.search('widget').length, 1);
+  assert.strictEqual(p.isFtsStale(), false, 'after rebuild, in sync');
+  p.close();
+});
+
 t('search re-save updates FTS without leaving stale tokens', () => {
   const p = mkDb();
   const sess = mkSession('firstiterationtoken');

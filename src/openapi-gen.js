@@ -57,6 +57,7 @@ const ROUTE_SUMMARIES = {
   'GET /meetings/classify-track': 'Preview the track classifier for a task string — returns {track, matched, reason, tokenCount}. Useful for tuning task wording.',
   'GET /meetings/stuck': 'Detect meetings stuck in pending/in-progress for more than ?hours= (default 1). Catches hung sessions an operator hasn`t noticed.',
   'GET /meetings/search': 'Full-text search across meeting title / task / transcript via SQLite FTS5. Returns ranked snippets.',
+  'POST /meetings/fts-rebuild': 'Force-rebuild the FTS5 index. Daemon auto-rebuilds at boot when drift is detected; this is for operators who need to refresh without restart.',
   'POST /meetings/prune-old': 'Auto-prune persisted meetings older than N days (default 90, terminal-only). Mirrors deletions into the in-memory store; supports dryRun preview.',
   'GET /meetings/persist-integrity': 'Run SQLite PRAGMA integrity_check on the persist DB. Returns {enabled, ok, errors}. Doctor uses this for health pass.',
   'POST /meetings/persist-backup': 'Hot backup via SQLite VACUUM INTO. Returns {ok, path, bytes}. Daemon keeps serving during the copy. 409 when target already exists.',
@@ -2286,6 +2287,16 @@ const ROUTE_SCHEMAS = {
         beforeBytes: { type: 'integer', nullable: true },
         afterBytes: { type: 'integer', nullable: true },
         reclaimedBytes: { type: 'integer', nullable: true },
+      },
+    },
+  },
+  'POST /meetings/fts-rebuild': {
+    requestBody: { properties: {}, example: {} },
+    response: {
+      properties: {
+        indexed: { type: 'integer', description: 'Number of meeting rows re-indexed' },
+        before: { type: 'integer', description: 'FTS row count before rebuild' },
+        after: { type: 'integer', description: 'FTS row count after rebuild' },
       },
     },
   },

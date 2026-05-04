@@ -3098,7 +3098,7 @@ async function main() {
         //   c4 meeting escalate <id> ["reason"...]
         //   c4 meeting abort <id> ["reason"...]
         const sub = (args[0] || 'plan').toLowerCase();
-        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'watch-all', 'templates', 'template-add', 'template-remove', 'prune', 'prune-old', 'backup', 'fork', 'actions', 'classify-track', 'lineage', 'recap', 'stuck', 'search'];
+        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'watch-all', 'templates', 'template-add', 'template-remove', 'prune', 'prune-old', 'backup', 'fork', 'actions', 'classify-track', 'lineage', 'recap', 'stuck', 'search', 'fts-rebuild'];
         if (!VALID.includes(sub)) {
           console.error(`Usage: c4 meeting <${VALID.join('|')}> [...]`);
           process.exit(1);
@@ -3397,6 +3397,14 @@ async function main() {
               : 'VACUUM ran';
             console.log(`  ${reclaimed}`);
           }
+          return;
+        }
+        if (sub === 'fts-rebuild') {
+          // c4 meeting fts-rebuild — force-rebuild the FTS5 index
+          result = await request('POST', '/meetings/fts-rebuild', {});
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`fts-rebuild: indexed ${result.indexed} meeting(s)  (FTS rows ${result.before} → ${result.after})`);
           return;
         }
         if (sub === 'search') {
