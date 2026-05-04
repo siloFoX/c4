@@ -92,6 +92,7 @@
 
   "sessions.loadingSessions": "세션 로딩 중…",
   "sessions.empty": "세션이 없습니다.",
+  "sessions.loadingSession": "세션 로딩 중…",
 
   "workerList.disconnected": "실시간 업데이트 끊김 — 폴링 중",
   "workerList.failedToLoad": "워커 로드 실패: {error}",

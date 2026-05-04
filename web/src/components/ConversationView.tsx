@@ -21,6 +21,7 @@ import {
 import { apiGet, eventSourceUrl } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from './ui';
 import { cn } from '../lib/cn';
+import { t, useLocale } from '../lib/i18n';
 
 // Conversation contract mirrors src/session-parser.js. Keep the shapes
 // loose (nullable fields) so a mid-session file still renders - the
@@ -592,6 +593,7 @@ export default function ConversationView({
   snapshotUrl,
   streamUrl,
 }: ConversationViewProps) {
+  useLocale();
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -742,7 +744,7 @@ export default function ConversationView({
           {loading && !conversation ? (
             <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              Loading session...
+              {t('sessions.loadingSession')}
             </div>
           ) : error ? (
             <div className="flex h-full items-center justify-center text-sm text-destructive">

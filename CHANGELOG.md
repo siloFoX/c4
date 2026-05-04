@@ -4,6 +4,19 @@
 
 (no entries — next release window)
 
+## [1.10.385] - 2026-05-04
+
+**Web — ConversationView "Loading session…" i18n.**
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: `sessions.loadingSession`
+  ("Loading session…" / "세션 로딩 중…").
+- **`web/src/components/ConversationView.tsx`**: `useLocale()` +
+  `t()` for the inline loading state.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.384] - 2026-05-04
 
 **Web — RBAC viewer page (read-only).** Backend has had
