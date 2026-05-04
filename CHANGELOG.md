@@ -4,6 +4,23 @@
 
 (no entries — next release window)
 
+## [1.10.382] - 2026-05-04
+
+**Web — onboarding tour step 2 mentions the new filter input,
+Korean copy uses translated category labels.** v1.10.360 added
+the filter input to FeatureSidebar; v1.10.368 translated the
+category labels. Step 2 was outdated.
+
+### Changed
+- **`web/src/i18n/en.json`**: `tour.step2.body` mentions the
+  filter input alongside the existing five-category overview.
+- **`web/src/i18n/ko.json`**: `tour.step2.body` switched from
+  English category names to the translated labels (운영 /
+  자동화 / 비용 / 구성 / 진단) + filter input note.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.381] - 2026-05-04
 
 **Web — onboarding tour step 1 updated for the new top tabs.**

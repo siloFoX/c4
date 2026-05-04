@@ -129,7 +129,7 @@
   "tour.step1.title": "Welcome to C4",
   "tour.step1.body": "Every CLI feature has a matching page here. Use the top tabs to switch between Workers, Meetings, Specialists, Wiki, Autonomous, Sessions, History, Workflows, Features and Settings.",
   "tour.step2.title": "Feature categories",
-  "tour.step2.body": "The sidebar groups features into Operations, Cost, Automation, Config and Diagnostics. Click a page to open it.",
+  "tour.step2.body": "The sidebar groups features into Operations, Automation, Cost, Config and Diagnostics. Use the filter input at the top to narrow the list, then click a page to open it.",
   "tour.step3.title": "Banners describe each page",
   "tour.step3.body": "Every page opens with a short summary, the matching c4 CLI command and Learn more, so you always know what the page does.",
   "tour.step4.title": "Help and shortcuts",
