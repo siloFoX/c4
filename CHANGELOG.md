@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.354] - 2026-05-04
+
+**Web — Meetings list now subscribes to the global SSE stream
+(`/api/meetings/stream`).** Previously the list polled every 8s;
+fine for solo use but slow to reflect a meeting created via CLI
+or a state transition driven by another operator. The detail
+panel already used per-meeting SSE; the list lagged.
+
+### Changed
+- **`web/src/components/MeetingsView.tsx`**:
+  - Added an EventSource subscriber to `/api/meetings/stream` that
+    re-fetches the list on every state transition / meeting-added
+    / meeting-removed event.
+  - Polled refresh dropped from 8s → 90s as a fallback (in case
+    SSE is closed by a proxy or older daemon doesn't expose the
+    stream).
+  - Try/catch around `new EventSource(...)` — older browsers /
+    sandboxed contexts that block SSE fall back cleanly to the
+    90s poll.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Reduced poll cadence cuts daemon load when many operators sit
+  on the meetings tab.
+
 ## [1.10.353] - 2026-05-04
 
 **Web — fork meeting from terminal action row.** Phase 6.11

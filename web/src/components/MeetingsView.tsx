@@ -241,11 +241,34 @@ export default function MeetingsView() {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  // Poll every 8s — meetings change often during a run, but a
-  // dedicated SSE consumer (per-meeting) is the next slice.
+  // (v1.10.353) Global SSE list stream — every meeting state
+  // transition + meeting-added / meeting-removed events. Drops
+  // the periodic refresh poll to a fallback (90s) since the
+  // stream covers the live case. Falls back gracefully when the
+  // daemon doesn't expose the stream (older versions): the stream
+  // never opens and the poll keeps running.
   useEffect(() => {
-    const id = window.setInterval(refresh, 8000);
-    return () => window.clearInterval(id);
+    let es: EventSource | null = null;
+    try {
+      es = new EventSource(eventSourceUrl('/api/meetings/stream'));
+      // Refresh the list on each event — cheap given the typical
+      // meeting count, and avoids local cache invalidation logic
+      // (the GET endpoint is the source of truth for filters).
+      es.onmessage = () => refresh();
+      es.onerror = () => {
+        // EventSource auto-reconnects on transient failure; if it
+        // never opens we fall through to the poll below.
+      };
+    } catch {
+      // ignore — EventSource may be blocked in some browsers
+    }
+    // Fallback poll — 90s instead of 8s, since SSE handles the
+    // live case. Still useful in case SSE is closed by a proxy.
+    const id = window.setInterval(refresh, 90_000);
+    return () => {
+      if (es) es.close();
+      window.clearInterval(id);
+    };
   }, [refresh]);
 
   // (Phase 8.1) Debounced FTS search.
