@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Cpu, MemoryStick, Activity } from 'lucide-react';
+import { t, useLocale } from '../lib/i18n';
 
 // Inline-typed response so MetricsBar drops in without touching the
 // shared types.ts (which is on a different design-system axis upstream).
@@ -42,6 +43,7 @@ function fmtPct(pct: number | null | undefined): string {
 }
 
 export default function MetricsBar() {
+  useLocale();
   const [m, setM] = useState<MetricsResponse | null>(null);
 
   useEffect(() => {
@@ -76,18 +78,18 @@ export default function MetricsBar() {
       <span className="flex items-center gap-1.5">
         <Activity className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
         <span className="font-medium text-foreground">{m.totals.liveWorkers}</span>
-        <span>live</span>
-        <span className="text-muted-foreground/60">/ {m.totals.totalWorkers} total</span>
+        <span>{t('metrics.live')}</span>
+        <span className="text-muted-foreground/60">/ {m.totals.totalWorkers} {t('metrics.total')}</span>
       </span>
       <span className="flex items-center gap-1.5">
         <Cpu className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
         <span className="font-medium text-foreground">{fmtPct(m.totals.totalCpuPct)}</span>
-        <span>workers · load {m.daemon.loadavg[0].toFixed(2)}</span>
+        <span>{t('metrics.workers')} · {t('metrics.load')} {m.daemon.loadavg[0].toFixed(2)}</span>
       </span>
       <span className="flex items-center gap-1.5">
         <MemoryStick className="h-3.5 w-3.5 text-primary" />
         <span className="font-medium text-foreground">{fmtMb(m.totals.totalRssKb)}</span>
-        <span>workers · daemon {fmtMb(m.daemon.rssKb)}</span>
+        <span>{t('metrics.workers')} · {t('metrics.daemon')} {fmtMb(m.daemon.rssKb)}</span>
       </span>
       <span className="ml-auto text-muted-foreground/60">
         {m.daemon.cpus}c · {m.daemon.platform} · pid {m.daemon.pid}

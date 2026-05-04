@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.366] - 2026-05-04
+
+**Web — MetricsBar i18n.** Now that the strip renders with the
+right colors (v1.10.365), the operator sees "live / total /
+workers / daemon / load" labels alongside the numbers. Korean
+localisation matches the rest of the UI.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 5 new keys
+  (`metrics.live`, `metrics.total`, `metrics.workers`,
+  `metrics.daemon`, `metrics.load`).
+- **`web/src/components/MetricsBar.tsx`**:
+  - `useLocale()` + `t()` for all 5 visible labels.
+
+### Korean copy
+- 활성 / 전체 / 워커 / 데몬 / 부하.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.365] - 2026-05-04
 
 **Web — MetricsBar color classes fixed.** The metrics strip

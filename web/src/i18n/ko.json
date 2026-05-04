@@ -24,6 +24,12 @@
   "common.korean": "한국어",
   "common.language": "언어",
 
+  "metrics.live": "활성",
+  "metrics.total": "전체",
+  "metrics.workers": "워커",
+  "metrics.daemon": "데몬",
+  "metrics.load": "부하",
+
   "login.title": "C4 로그인",
   "login.description": "대시보드 사용을 위해 로그인이 필요합니다.",
   "login.user": "사용자",
