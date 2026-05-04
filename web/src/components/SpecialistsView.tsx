@@ -147,12 +147,22 @@ export default function SpecialistsView() {
   const [auditOpen, setAuditOpen] = useState(false);
   const [auditEntries, setAuditEntries] = useState<AuditEntry[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
+  // (Phase 7.10) time-window filter for the audit viewer.
+  // 'all' = no since param; otherwise N hours back from now.
+  type AuditWindow = 'all' | '1h' | '24h' | '7d';
+  const [auditWindow, setAuditWindow] = useState<AuditWindow>('all');
   useEffect(() => {
     if (!auditOpen) return undefined;
     let cancelled = false;
     const fetchAudit = () => {
       setAuditLoading(true);
-      apiGet<{ count: number; entries: AuditEntry[] }>('/api/specialists/audit?limit=50')
+      const qs = new URLSearchParams({ limit: '50' });
+      if (auditWindow !== 'all') {
+        const hours = auditWindow === '1h' ? 1 : auditWindow === '24h' ? 24 : 24 * 7;
+        const sinceMs = Date.now() - hours * 60 * 60 * 1000;
+        qs.set('since', new Date(sinceMs).toISOString());
+      }
+      apiGet<{ count: number; entries: AuditEntry[] }>(`/api/specialists/audit?${qs.toString()}`)
         .then((res) => { if (!cancelled) setAuditEntries(res.entries || []); })
         .catch(() => { /* tolerate */ })
         .finally(() => { if (!cancelled) setAuditLoading(false); });
@@ -160,7 +170,7 @@ export default function SpecialistsView() {
     fetchAudit();
     const id = window.setInterval(fetchAudit, 30000);
     return () => { cancelled = true; window.clearInterval(id); };
-  }, [auditOpen]);
+  }, [auditOpen, auditWindow]);
 
   // Underperformer scan (phase 5.1) — fetched separately so the
   // alert pill on a row can light up before the operator clicks.
@@ -375,10 +385,30 @@ export default function SpecialistsView() {
           ) : null}
         </button>
         {auditOpen ? (
-          <div className="max-h-64 overflow-y-auto border-t border-border/40 bg-background">
+          <div className="border-t border-border/40 bg-background">
+            <div className="flex flex-wrap items-center gap-1 border-b border-border/40 px-3 py-1.5 text-[10px]">
+              <span className="text-muted-foreground">window:</span>
+              {(['all', '1h', '24h', '7d'] as AuditWindow[]).map((w) => (
+                <button
+                  key={w}
+                  type="button"
+                  onClick={() => setAuditWindow(w)}
+                  className={cn(
+                    'rounded border px-1.5 py-0 transition-colors',
+                    auditWindow === w
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border bg-muted/30 text-muted-foreground hover:bg-accent/40',
+                  )}
+                  aria-pressed={auditWindow === w}
+                >
+                  {w === 'all' ? 'all' : `last ${w}`}
+                </button>
+              ))}
+            </div>
+            <div className="max-h-64 overflow-y-auto">
             {auditEntries.length === 0 ? (
               <div className="p-3 text-[11px] text-muted-foreground">
-                {auditLoading ? 'Loading…' : 'No audit entries yet.'}
+                {auditLoading ? 'Loading…' : auditWindow === 'all' ? 'No audit entries yet.' : `No audit entries in the last ${auditWindow}.`}
               </div>
             ) : (
               <ul className="divide-y divide-border/40 text-[11px]">
@@ -417,6 +447,7 @@ export default function SpecialistsView() {
                 })}
               </ul>
             )}
+            </div>
           </div>
         ) : null}
       </div>

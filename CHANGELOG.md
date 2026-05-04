@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.319] - 2026-05-04
+
+**Web — audit log viewer time-window chips.**
+Phase 7.10 added `?since` / `?until` to /specialists/audit. The
+audit viewer in SpecialistsView (v1.10.315) only fetched the
+unfiltered last 50. This adds quick chips: `all / last 1h /
+last 24h / last 7d`.
+
+### Added
+- **`web/src/components/SpecialistsView.tsx`**:
+  - `auditWindow` state (`'all' | '1h' | '24h' | '7d'`,
+    default `'all'`)
+  - chips row above the entry list: 4 buttons, primary-tinted
+    when active
+  - non-`'all'` windows compute `since = now - window` and pass
+    as ISO to the endpoint
+  - tailored empty-state message: "No audit entries in the
+    last 24h" instead of generic "No audit entries yet"
+  - `auditWindow` added to fetch deps so changing chip
+    re-fires the query immediately
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- since/until ISO format matches the audit endpoint's parser
+  exactly. arbitrary date ranges are CLI-only for now (`c4
+  specialist audit --since ISO --until ISO`).
+
 ## [1.10.318] - 2026-05-04
 
 **Web — score-reset button in specialist detail.**
