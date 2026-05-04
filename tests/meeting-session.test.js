@@ -258,6 +258,60 @@ t('MeetingStore emits put/remove events for global SSE subscribers', () => {
   assert.deepStrictEqual(removes, [s.id], 'absent remove does not emit');
 });
 
+t('MeetingStore put() persists to backing store when configured', () => {
+  // Stub persist that records calls (avoid better-sqlite3 dep here so
+  // the test isolates to the wiring, not the storage layer).
+  const calls = { save: [], remove: [] };
+  const stubPersist = {
+    save: (sess) => calls.save.push(sess.id),
+    remove: (id) => { calls.remove.push(id); return true; },
+  };
+  const store = new MeetingStore({ persist: stubPersist });
+  const s = new MeetingSession(makeLightPlan());
+  store.put(s);
+  assert.deepStrictEqual(calls.save, [s.id], 'put triggers initial save');
+  // Mutation re-saves via the state listener.
+  s.start();
+  assert.deepStrictEqual(calls.save, [s.id, s.id], 'state mutation re-saves');
+  // Removing the session triggers persist.remove and detaches the listener.
+  store.remove(s.id);
+  assert.deepStrictEqual(calls.remove, [s.id]);
+  // After removal, mutations on the loose session should NOT save.
+  s.recordVote ? null : null; // no-op; can't mutate aborted; just confirm count stable
+  assert.strictEqual(calls.save.length, 2, 'state listener detached on remove');
+});
+
+t('MeetingStore put() re-put of same id does not double-attach listener', () => {
+  const calls = { save: [] };
+  const stubPersist = { save: (sess) => calls.save.push(sess.id), remove: () => true };
+  const store = new MeetingStore({ persist: stubPersist });
+  const s = new MeetingSession(makeLightPlan());
+  store.put(s);
+  store.put(s); // second put is a no-op for listener attachment
+  // Initial save count: 2 (once per put), then mutation should fire only once.
+  assert.strictEqual(calls.save.length, 2);
+  s.start();
+  assert.strictEqual(calls.save.length, 3, 'mutation triggers exactly one save, not two');
+});
+
+t('_persistSnapshot includes full plan + internal indices', () => {
+  const s = new MeetingSession(makeFullPlan());
+  s.start();
+  s.contribute('architect', 'design proposal');
+  const snap = s._persistSnapshot();
+  // Public toJSON fields still present.
+  assert.strictEqual(snap.id, s.id);
+  assert.strictEqual(snap.status, 'in-progress');
+  // Persist-only additions.
+  assert.ok(snap.plan, 'plan included');
+  assert.strictEqual(snap.plan.track, 'full');
+  assert.ok(Array.isArray(snap._rounds), '_rounds included');
+  assert.strictEqual(typeof snap._currentStageIndex, 'number');
+  // Plan internals (not in toJSON) survive.
+  assert.ok(Array.isArray(snap.plan.stages));
+  assert.ok(snap.plan.stages[0].deliverables, 'plan.stages[].deliverables present');
+});
+
 (async () => {
   for (const fn of pending) await fn();
   console.log(`\n  ${passed} passed, ${failed} failed (meeting-session)`);

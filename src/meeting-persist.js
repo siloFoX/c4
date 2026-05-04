@@ -86,7 +86,13 @@ class MeetingPersist {
   // entire toJSON() output into data.
   save(session) {
     if (!session) throw new Error('save: session required');
-    const json = (typeof session.toJSON === 'function') ? session.toJSON() : session;
+    // Prefer _persistSnapshot() (richer; includes full plan + internal
+    // indices needed for Phase 7.3 rehydrate) when the session
+    // exposes it; fall back to toJSON() otherwise so callers can
+    // pass in already-serialized envelopes too.
+    const json = (typeof session._persistSnapshot === 'function')
+      ? session._persistSnapshot()
+      : ((typeof session.toJSON === 'function') ? session.toJSON() : session);
     if (!json || typeof json !== 'object' || !json.id) {
       throw new Error('save: session must have an id');
     }

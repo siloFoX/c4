@@ -355,6 +355,21 @@ class MeetingSession extends EventEmitter {
     };
   }
 
+  // Phase 7.2 — richer envelope for the persistence layer.
+  // toJSON() is the public API contract (UI / SSE); it elides the
+  // full plan to keep payloads compact. Persistence needs the FULL
+  // plan (deliverables, cap, candidates, exploreSlots, consensusPolicy)
+  // plus the internal stage index + round counters so rehydrate
+  // can rebuild the session exactly. Kept private (underscore prefix)
+  // so external callers don't accidentally rely on it.
+  _persistSnapshot() {
+    const j = this.toJSON();
+    j.plan = this._plan;
+    j._currentStageIndex = this._currentStageIndex;
+    j._rounds = this._rounds.slice();
+    return j;
+  }
+
   _requireInProgress(op) {
     if (this._status !== 'in-progress') {
       throw new Error(`${op}: meeting must be in-progress (got "${this._status}")`);
@@ -370,13 +385,24 @@ class MeetingSession extends EventEmitter {
 // restart and feed the institutional memory described in §9.
 
 class MeetingStore extends EventEmitter {
-  constructor() {
+  constructor(opts = {}) {
     super();
     this._byId = new Map();
     // Phase 6.2: lots of clients can subscribe to put/remove events
     // (web UI, /meetings/stream). Bump the cap so the default
     // 10-listener warning does not fire under normal usage.
     this.setMaxListeners(64);
+
+    // Phase 7.2 — optional durable backing. When `persist` is set,
+    // every put/remove and every per-session state mutation is
+    // mirrored to disk. The store still owns the in-memory map for
+    // fast read; persistence is purely about surviving daemon
+    // restarts.
+    this._persist = opts.persist || null;
+    // Map of session.id → state listener fn so we can remove the
+    // listener cleanly on remove() (avoids leaks on long-running
+    // daemons that churn many meetings).
+    this._stateListeners = new Map();
   }
 
   put(session) {
@@ -385,6 +411,24 @@ class MeetingStore extends EventEmitter {
     }
     const isNew = !this._byId.has(session.id);
     this._byId.set(session.id, session);
+    if (this._persist) {
+      // Initial save covers the pending row even before the first
+      // state mutation; required so a daemon restart immediately
+      // after createMeeting recovers it.
+      try { this._persist.save(session); }
+      catch (err) { process.stderr.write(`[meeting-store] initial persist failed for ${session.id}: ${err.message}\n`); }
+      // Subscribe to state events for this session so subsequent
+      // mutations re-save. Idempotent — re-put of the same session
+      // doesn't double-attach because we check the listener map.
+      if (!this._stateListeners.has(session.id)) {
+        const fn = () => {
+          try { this._persist.save(session); }
+          catch (err) { process.stderr.write(`[meeting-store] state persist failed for ${session.id}: ${err.message}\n`); }
+        };
+        session.on('state', fn);
+        this._stateListeners.set(session.id, fn);
+      }
+    }
     if (isNew) {
       try { this.emit('put', session); } catch { /* never crash put on listener err */ }
     }
@@ -403,21 +447,48 @@ class MeetingStore extends EventEmitter {
   }
 
   remove(id) {
+    const sess = this._byId.get(id);
     const had = this._byId.delete(id);
     if (had) {
+      // Detach the state listener so the session can be GC'd; if
+      // it lives on after store eviction, our listener won't drag it
+      // back into a save cycle.
+      const fn = this._stateListeners.get(id);
+      if (fn && sess) {
+        try { sess.removeListener('state', fn); } catch { /* tolerate */ }
+        this._stateListeners.delete(id);
+      }
+      if (this._persist) {
+        try { this._persist.remove(id); }
+        catch (err) { process.stderr.write(`[meeting-store] persist remove failed for ${id}: ${err.message}\n`); }
+      }
       try { this.emit('remove', id); } catch { /* never crash remove on listener err */ }
     }
     return had;
   }
 
-  clear() { this._byId.clear(); }
+  clear() {
+    // Detach every state listener before wiping the map so dropped
+    // sessions (still held elsewhere via reference) don't keep
+    // re-saving through us.
+    for (const [id, fn] of this._stateListeners) {
+      const sess = this._byId.get(id);
+      if (sess) { try { sess.removeListener('state', fn); } catch { /* tolerate */ } }
+    }
+    this._stateListeners.clear();
+    this._byId.clear();
+    // Note: clear() does NOT touch the persist layer — operators who
+    // want to wipe disk too should call persist directly. Keeping
+    // clear() in-memory-only matches the prior behavior (some tests
+    // rely on it not deleting persisted state).
+  }
 
   get size() { return this._byId.size; }
 }
 
 let _shared = null;
-function getShared() {
-  if (!_shared) _shared = new MeetingStore();
+function getShared(opts) {
+  if (!_shared) _shared = new MeetingStore(opts);
   return _shared;
 }
 function resetShared() { _shared = null; }

@@ -49,7 +49,24 @@ const meetingOrchestrator = require('./meeting-orchestrator');
 const meetingRetro = require('./meeting-retro');
 const meetingFork = require('./meeting-fork');
 const meetingActions = require('./meeting-actions');
+const meetingPersistMod = require('./meeting-persist');
 const meetingPeerRetro = require('./meeting-peer-retro');
+
+// Phase 7.2 — durable MeetingStore. Construct the persist layer
+// early and seed the shared store with it so every subsequent
+// getShared() call sees the wired-up instance. Fail-soft: if
+// better-sqlite3 can't load (missing native binary, etc) the
+// daemon still comes up; meetings just stay in-memory like
+// before. The error surfaces on stderr so an operator running
+// `c4 daemon start --foreground` notices.
+let _meetingPersist = null;
+try {
+  _meetingPersist = new meetingPersistMod.MeetingPersist();
+  process.stderr.write(`[daemon] meeting persist enabled (${meetingPersistMod.DEFAULT_DB_PATH})\n`);
+} catch (err) {
+  process.stderr.write(`[daemon] meeting persist disabled — ${err.message}\n`);
+}
+meetingSession.getShared({ persist: _meetingPersist });
 const wikiWriter = require('./wiki-writer');
 const wikiReader = require('./wiki-reader');
 const wikiReopen = require('./wiki-reopen');
