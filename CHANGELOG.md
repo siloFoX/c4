@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.360] - 2026-05-04
+
+**Web — FeatureSidebar gains a filter input.** With 13 features
+across five categories (and growing), the sidebar nav was getting
+long. Added a search box at the top that narrows the visible
+features by id / label / description.
+
+### Added
+- **`web/src/components/layout/FeatureSidebar.tsx`**:
+  - Filter input with search icon prefix at the top of the
+    sidebar, just below the brand row.
+  - `useMemo` over `featuresByCategory()` returns a filtered
+    grouping when the operator types. Empty categories are
+    omitted (preserves the existing render contract).
+  - "No features match" empty state when the filter excludes
+    everything.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Filter state is component-local — clears on tab switch.
+
 ## [1.10.359] - 2026-05-04
 
 **Web — Config page (Config category).** Backend has had

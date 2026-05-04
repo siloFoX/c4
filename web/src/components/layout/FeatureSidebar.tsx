@@ -1,4 +1,7 @@
+import { useMemo, useState } from 'react';
+import { Search } from 'lucide-react';
 import { cn } from '../../lib/cn';
+import { Input } from '../ui';
 import {
   CATEGORY_ICON,
   CATEGORY_LABEL,
@@ -18,9 +21,30 @@ export default function FeatureSidebar({
   selectedId,
   onSelect,
 }: FeatureSidebarProps) {
+  // Hooks must run unconditionally — keep them above the early
+  // return so the rules-of-hooks invariant holds when the parent
+  // toggles `open`.
+  const [filter, setFilter] = useState('');
+  const grouped = useMemo(() => {
+    const all = featuresByCategory();
+    if (!filter.trim()) return all;
+    const q = filter.toLowerCase();
+    const out: typeof all = {
+      operations: [], automation: [], cost: [], config: [], diagnostics: [],
+    };
+    for (const cat of CATEGORY_ORDER) {
+      out[cat] = all[cat].filter((f) =>
+        f.label.toLowerCase().includes(q) ||
+        f.description.toLowerCase().includes(q) ||
+        f.id.toLowerCase().includes(q),
+      );
+    }
+    return out;
+  }, [filter]);
+
   if (!open) return null;
 
-  const grouped = featuresByCategory();
+  const matchCount = CATEGORY_ORDER.reduce((s, c) => s + (grouped[c]?.length || 0), 0);
 
   return (
     <aside className="w-full shrink-0 overflow-y-auto border-b border-border bg-background p-4 md:w-72 md:border-b-0 md:border-r">
@@ -30,6 +54,22 @@ export default function FeatureSidebar({
           Features
         </span>
       </div>
+      <div className="relative mb-3">
+        <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" aria-hidden />
+        <Input
+          type="text"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder="Filter features"
+          aria-label="Filter features"
+          className="h-7 pl-7 text-[11px]"
+        />
+      </div>
+      {filter.trim() && matchCount === 0 ? (
+        <div className="rounded-md border border-dashed border-border bg-muted/10 p-3 text-[11px] text-muted-foreground">
+          No features match &quot;{filter}&quot;.
+        </div>
+      ) : null}
       <nav aria-label="Feature pages" className="flex flex-col gap-4">
         {CATEGORY_ORDER.map((cat) => {
           const items = grouped[cat];
