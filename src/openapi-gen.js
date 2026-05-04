@@ -3167,6 +3167,15 @@ const ROUTE_SCHEMAS = {
                 entries: { type: 'integer', nullable: true },
               },
             },
+            lastKnownGood: {
+              properties: {
+                path: { type: 'string' },
+                exists: { type: 'boolean' },
+                bytes: { type: 'integer', nullable: true },
+                mtimeISO: { type: 'string', nullable: true },
+                ageDays: { type: 'number', nullable: true, description: 'Days since last clean shutdown wrote this file' },
+              },
+            },
           },
         },
       },

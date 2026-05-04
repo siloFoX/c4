@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.296] - 2026-05-04
+
+**Multi-Specialist System — Phase 7.14 (Auto-backup visibility).**
+Phase 7.13 created `~/.c4/meetings.last.db` on every clean
+shutdown but operators had no way to tell whether it existed,
+when it was last written, or how big it was. This phase surfaces
+it in the summary endpoint alongside the existing persist /
+audit lines.
+
+### Added
+- **HTTP**: `GET /specialists/summary` response gains
+  `persist.lastKnownGood: {path, exists, bytes, mtimeISO,
+  ageDays}`. `exists:false` when no clean shutdown has happened
+  yet (fresh install or post-crash).
+- **CLI**: `c4 specialist summary` prints a 3rd persistence line:
+  - `backup: 2.3h ago, 24.0KB (/path/meetings.last.db)` (exists)
+  - `backup: none yet — no clean shutdown since install` (absent)
+  - Age renders as hours when < 1 day, days otherwise.
+- **OpenAPI**: `lastKnownGood` documented in the persist schema.
+
+### Notes
+- e2e: live daemon → `backup: 0.0h ago, 24.0KB
+  (/home/shinc/.c4/meetings.last.db)` after a stop+start cycle.
+- Closes the persistent-state visibility loop:
+  - meetings.db (live, hot writes) — Phase 7.6
+  - specialist-audit.jsonl (compliance log) — Phase 7.11
+  - meetings.last.db (last clean shutdown) — Phase 7.14
+  All three now appear in `c4 specialist summary` in one call.
+
 ## [1.10.295] - 2026-05-04
 
 **Multi-Specialist System — Phase 7.13 (Auto-backup on graceful shutdown).**

@@ -2569,6 +2569,20 @@ async function main() {
                 : '-';
               console.log(`audit:   ${aEntries}, ${aSize} (${p.auditLog.path || '-'})`);
             }
+            if (p.lastKnownGood) {
+              const lkg = p.lastKnownGood;
+              if (lkg.exists) {
+                const ageStr = (typeof lkg.ageDays === 'number')
+                  ? `${lkg.ageDays < 1 ? `${(lkg.ageDays * 24).toFixed(1)}h` : `${lkg.ageDays.toFixed(1)}d`} ago`
+                  : '-';
+                const sizeStr = (typeof lkg.bytes === 'number')
+                  ? `${(lkg.bytes / 1024).toFixed(1)}KB`
+                  : '-';
+                console.log(`backup:  ${ageStr}, ${sizeStr} (${lkg.path})`);
+              } else {
+                console.log(`backup:  none yet — no clean shutdown since install`);
+              }
+            }
           }
           return;
         }

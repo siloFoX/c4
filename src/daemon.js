@@ -94,7 +94,29 @@ function _buildSummaryPersistInfo() {
     bytes: auditBytes,
     entries: auditEntries,
   };
-  if (!_meetingPersist) return { enabled: false, auditLog: auditInfo };
+  // (Phase 7.14) Last-known-good snapshot info. Phase 7.13 writes
+  // this file on every clean shutdown; operators want to see when
+  // the last shutdown was so they can tell whether a "safe restore"
+  // is still recent. ageDays is null when the file doesn't exist
+  // yet (no clean shutdown since install).
+  const path2 = require('path');
+  const lastKnownPath = path2.join(
+    path2.dirname(meetingPersistMod.DEFAULT_DB_PATH),
+    'meetings.last.db',
+  );
+  let lastKnownGood = { path: lastKnownPath, exists: false, bytes: null, mtimeISO: null, ageDays: null };
+  try {
+    const stat = fs2.statSync(lastKnownPath);
+    const ageMs = Date.now() - stat.mtimeMs;
+    lastKnownGood = {
+      path: lastKnownPath,
+      exists: true,
+      bytes: stat.size,
+      mtimeISO: new Date(stat.mtimeMs).toISOString(),
+      ageDays: ageMs / (24 * 60 * 60 * 1000),
+    };
+  } catch { /* file doesn't exist yet — leave defaults */ }
+  if (!_meetingPersist) return { enabled: false, auditLog: auditInfo, lastKnownGood };
   let dbSizeBytes = null;
   try {
     const stat = fs2.statSync(meetingPersistMod.DEFAULT_DB_PATH);
@@ -109,6 +131,7 @@ function _buildSummaryPersistInfo() {
     dbSizeBytes,
     rowCount,
     auditLog: auditInfo,
+    lastKnownGood,
   };
 }
 
