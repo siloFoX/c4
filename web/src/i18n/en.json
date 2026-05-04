@@ -73,6 +73,20 @@
   "login.submitting": "Signing in…",
   "login.footer": "© C4 operator console",
 
+  "worker.action.merge": "Merge",
+  "worker.action.approve": "Approve",
+  "worker.action.interrupt": "Ctrl+C",
+  "worker.action.close": "Close",
+  "worker.action.merge.confirm": "Merge worker \"{name}\" into main?",
+  "worker.action.approve.confirm": "Send Enter (approve) to \"{name}\"?",
+  "worker.action.interrupt.confirm": "Send Ctrl+C to \"{name}\"?",
+  "worker.action.close.confirm": "Close worker \"{name}\"? This will terminate the session.",
+  "worker.action.merge.success": "Merged {name}",
+  "worker.action.approve.success": "Sent Enter to {name}",
+  "worker.action.interrupt.success": "Sent Ctrl+C to {name}",
+  "worker.action.close.success": "Closed {name}",
+  "worker.action.failed": "{label} failed: {error}",
+
   "empty.workerDetail.title": "Worker detail",
   "empty.workerDetail.description": "Select a worker from the sidebar to view details.",
 

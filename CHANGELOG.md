@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.374] - 2026-05-04
+
+**Web — WorkerActions i18n with token interpolation.**
+WorkerActions had hardcoded English for the four buttons
+(Merge / Approve / Ctrl+C / Close) and their confirm + success
++ failure strings. Each string interpolated worker name
+(`Merge worker "X" into main?` / `Merged X` / `Merge failed:
+<error>`) so a tiny token interpolator was needed.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 13 new keys covering
+  4 actions × (label, confirm, success) + 1 shared failure
+  template.
+- **`web/src/components/WorkerActions.tsx`**:
+  - `interpolate(template, vars)` — `{name}` / `{label}` /
+    `{error}` style replacements. No pluralisation / escaping.
+  - `useLocale()` hook re-renders on locale flip.
+  - All four ActionConfig entries pull from `t(...)` +
+    interpolate.
+  - Three failure paths (HTTP non-ok, JSON-error in payload,
+    fetch throw) all use `t('worker.action.failed')` template.
+
+### Korean copy
+- 머지 / 승인 / Ctrl+C / 종료 + confirm strings + success
+  toasts ("X 머지 완료" / "X에 Enter 전송" / "X 종료됨" / etc.).
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- `interpolate` is local to WorkerActions for now — when the
+  next component needs templated i18n we can hoist it into
+  `lib/i18n.ts`.
+
 ## [1.10.373] - 2026-05-04
 
 **Web — DetailTabs i18n.** Worker detail's three-mode tab strip

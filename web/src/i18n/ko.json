@@ -73,6 +73,20 @@
   "login.submitting": "로그인 중…",
   "login.footer": "© C4 운영 콘솔",
 
+  "worker.action.merge": "머지",
+  "worker.action.approve": "승인",
+  "worker.action.interrupt": "Ctrl+C",
+  "worker.action.close": "종료",
+  "worker.action.merge.confirm": "워커 \"{name}\"를 main 브랜치에 머지하시겠습니까?",
+  "worker.action.approve.confirm": "워커 \"{name}\"에 Enter(승인)를 보내시겠습니까?",
+  "worker.action.interrupt.confirm": "워커 \"{name}\"에 Ctrl+C를 보내시겠습니까?",
+  "worker.action.close.confirm": "워커 \"{name}\"를 종료하시겠습니까? 세션이 끝납니다.",
+  "worker.action.merge.success": "{name} 머지 완료",
+  "worker.action.approve.success": "{name}에 Enter 전송",
+  "worker.action.interrupt.success": "{name}에 Ctrl+C 전송",
+  "worker.action.close.success": "{name} 종료됨",
+  "worker.action.failed": "{label} 실패: {error}",
+
   "empty.workerDetail.title": "워커 상세",
   "empty.workerDetail.description": "사이드바에서 워커를 선택하세요.",
 

@@ -3,6 +3,20 @@ import { Check, GitMerge, Loader2, OctagonAlert, X } from 'lucide-react';
 import Toast, { type ToastType } from './Toast';
 import { apiFetch } from '../lib/api';
 import { Button, type ButtonProps } from './ui';
+import { t, useLocale } from '../lib/i18n';
+
+// (v1.10.373) Tiny token interpolator for the worker.action.*
+// keys. Pattern is `{name}` / `{label}` / `{error}` — no
+// pluralisation, no escaping, no nested keys. Returns the input
+// unchanged when no replacements match. Hoisted so the same
+// helper covers confirm / success / failure string formatting.
+function interpolate(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{(\w+)\}/g, (_match, key) => {
+    return Object.prototype.hasOwnProperty.call(vars, key)
+      ? String(vars[key])
+      : `{${key}}`;
+  });
+}
 
 export interface WorkerActionsProps {
   workerName: string;
@@ -30,6 +44,7 @@ interface ActionConfig {
 }
 
 export default function WorkerActions({ workerName }: WorkerActionsProps) {
+  useLocale();
   const [toast, setToast] = useState<ToastState | null>(null);
   const [busyKind, setBusyKind] = useState<ActionKind | null>(null);
 
@@ -40,41 +55,41 @@ export default function WorkerActions({ workerName }: WorkerActionsProps) {
   const actions: ActionConfig[] = [
     {
       kind: 'merge',
-      label: 'Merge',
-      confirm: `Merge worker "${workerName}" into main?`,
+      label: t('worker.action.merge'),
+      confirm: interpolate(t('worker.action.merge.confirm'), { name: workerName }),
       endpoint: '/api/merge',
       body: { name: workerName },
-      successMessage: `Merged ${workerName}`,
+      successMessage: interpolate(t('worker.action.merge.success'), { name: workerName }),
       icon: <GitMerge className="h-4 w-4" />,
       variant: 'outline',
     },
     {
       kind: 'approve',
-      label: 'Approve',
-      confirm: `Send Enter (approve) to "${workerName}"?`,
+      label: t('worker.action.approve'),
+      confirm: interpolate(t('worker.action.approve.confirm'), { name: workerName }),
       endpoint: '/api/key',
       body: { name: workerName, key: 'Enter' },
-      successMessage: `Sent Enter to ${workerName}`,
+      successMessage: interpolate(t('worker.action.approve.success'), { name: workerName }),
       icon: <Check className="h-4 w-4" />,
       variant: 'outline',
     },
     {
       kind: 'interrupt',
-      label: 'Ctrl+C',
-      confirm: `Send Ctrl+C to "${workerName}"?`,
+      label: t('worker.action.interrupt'),
+      confirm: interpolate(t('worker.action.interrupt.confirm'), { name: workerName }),
       endpoint: '/api/key',
       body: { name: workerName, key: 'C-c' },
-      successMessage: `Sent Ctrl+C to ${workerName}`,
+      successMessage: interpolate(t('worker.action.interrupt.success'), { name: workerName }),
       icon: <OctagonAlert className="h-4 w-4" />,
       variant: 'outline',
     },
     {
       kind: 'close',
-      label: 'Close',
-      confirm: `Close worker "${workerName}"? This will terminate the session.`,
+      label: t('worker.action.close'),
+      confirm: interpolate(t('worker.action.close.confirm'), { name: workerName }),
       endpoint: '/api/close',
       body: { name: workerName },
-      successMessage: `Closed ${workerName}`,
+      successMessage: interpolate(t('worker.action.close.success'), { name: workerName }),
       icon: <X className="h-4 w-4" />,
       variant: 'destructive',
     },
@@ -105,18 +120,24 @@ export default function WorkerActions({ workerName }: WorkerActionsProps) {
             (payload && typeof payload === 'object' && 'error' in payload
               ? String((payload as { error: unknown }).error)
               : null) || `HTTP ${res.status}`;
-          showToast(`${action.label} failed: ${errMsg}`, 'error');
+          showToast(interpolate(t('worker.action.failed'), { label: action.label, error: errMsg }), 'error');
           return;
         }
 
         if (payload && typeof payload === 'object' && 'error' in payload && (payload as { error: unknown }).error) {
-          showToast(`${action.label} failed: ${String((payload as { error: unknown }).error)}`, 'error');
+          showToast(interpolate(t('worker.action.failed'), {
+            label: action.label,
+            error: String((payload as { error: unknown }).error),
+          }), 'error');
           return;
         }
 
         showToast(action.successMessage, 'success');
       } catch (e) {
-        showToast(`${action.label} failed: ${(e as Error).message}`, 'error');
+        showToast(interpolate(t('worker.action.failed'), {
+          label: action.label,
+          error: (e as Error).message,
+        }), 'error');
       } finally {
         setBusyKind(null);
       }
