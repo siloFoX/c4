@@ -508,6 +508,43 @@ Phase 7 (persistent backend, shipped 2026-05-04 — v1.10.282~v1.10.289)
     save / load / visibility / cleanup / health / backup 6 axis 다
     operator-facing CLI + HTTP 로 노출됨. SQLite 파일 한 개에
     의존 (외부 DB 서비스 0). 일반 사용자 install 시나리오 유지.
+
+Phase 8 (search, shipped 2026-05-04 — v1.10.298~v1.10.305)
+  Phase 8.1 — meeting FTS5 인덱스 + GET /meetings/search
+              (transcript / title / task 필드, snippet hilite,
+               unicode61 토크나이저). 인덱스는 save/remove 와 함께
+               유지. boot 시 isFtsStale 로 drift 감지하면 자동
+               rebuild; POST /meetings/fts-rebuild 로 수동도 가능.
+  Phase 8.1.5 — search 필터 narrowing: ?status / ?track /
+                ?since / ?until / ?fork-of 가 FTS MATCH 와
+                AND-compose. bm25 rank 그대로 정렬에 쓰임.
+  Phase 8.2 — search facets: ?facet=status,track 으로 매치
+              결과의 status/track 분포를 별도 쿼리로 집계.
+              필터 narrowing 도 동일하게 적용.
+  Phase 8.3 — search pagination: ?offset=N + 옵션 ?total=1.
+              CLI 는 "showing N-M of K" 출력.
+  Phase 8.4 — specialist keyword search: GET /specialists?search
+              로 displayName / systemPrompt / domain / tags /
+              triggers.keywords 전반에 대소문자 무시 substring
+              매칭. AND-compose. (FTS5 안 씀 — registry 크기
+              작음.)
+  Phase 8.5 — POST /specialists/:id/score-reset: 점수 기록
+              즉시 wipe (decay 기다리지 않고). before snapshot
+              은 audit 에 보존.
+
+  → Phase 8 종료 시점에서 검색 관련 capability 가 모두 운영
+    가능: 미팅은 FTS + 필터 + facet + pagination, 스페셜리스트는
+    keyword 검색. 모든 결과는 audit log 와 함께 추적 가능.
+
+Phase 9 (smoke-test + observability, shipped 2026-05-04 —
+        v1.10.306~v1.10.307)
+  Phase 9.1 — c4 specialist smoke-test: 라이브 데몬에서 mock
+              브레인으로 미팅을 end-to-end 로 돌려서 deployment
+              health 검증. create / persist search / run /
+              recap / fork / lineage / cleanup 8 단계, 각
+              단계별 ✓/✗ + ms timing. CI exit code 호환.
+              c4 doctor 가 정적 체크라면 smoke-test 는 동적
+              체크 — 둘 다 모니터링 파이프라인에 체이닝 가능.
 ```
 
 각 phase 끝나면 동작하는 스라이스 — 점진 배포, 한 번에 전부 구현 X.
