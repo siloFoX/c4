@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.286] - 2026-05-04
+
+**Multi-Specialist System — Phase 7.6 (Persist visibility in summary).**
+After Phase 7.1-7.5 introduced durable meeting storage + auto-prune,
+operators had no way to see how big the SQLite DB had grown without
+inspecting the file directly. This phase surfaces it in the
+existing summary endpoint.
+
+### Added
+- **HTTP**: `GET /specialists/summary` response gains
+  `persist: {enabled, dbPath, dbSizeBytes, rowCount}`. When the
+  daemon was started without persistence (better-sqlite3 missing
+  / load failure), `enabled:false` and the rest is omitted.
+- **CLI**: `c4 specialist summary` prints a `persist:` line:
+  - enabled: `persist: N row(s), XX.YKB (/path/to/meetings.db)`
+  - disabled: `persist: DISABLED (in-memory only — meetings
+    will vanish on daemon restart)`
+- **OpenAPI**: response schema extended with the `persist`
+  object.
+
+### Notes
+- e2e verified: clean daemon → `persist: 0 row(s), 4.0KB
+  (/home/shinc/.c4/meetings.db)`. After a `prune-old` operators
+  see the size shrink.
+- Read-only — no DB lock contention; `count()` uses the index.
+
 ## [1.10.285] - 2026-05-04
 
 **Multi-Specialist System — Phase 7.5 (Meeting auto-prune).**

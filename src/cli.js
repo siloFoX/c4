@@ -2469,6 +2469,18 @@ async function main() {
             console.log(`  byTrack:  ${trackEntries.map(([k, n]) => `${k}=${n}`).join(', ')}`);
           }
           console.log(`scores: ${s.specialistsWithSamples} specialist(s) with samples; avg=${s.averageSampleCount.toFixed(1)}; underperformers=${s.underperformerCount}`);
+          if (result.persist) {
+            const p = result.persist;
+            if (p.enabled) {
+              const sizeStr = (typeof p.dbSizeBytes === 'number')
+                ? `${(p.dbSizeBytes / 1024).toFixed(1)}KB`
+                : '-';
+              const rowStr = (typeof p.rowCount === 'number') ? `${p.rowCount} row(s)` : '-';
+              console.log(`persist: ${rowStr}, ${sizeStr} (${p.dbPath || '-'})`);
+            } else {
+              console.log(`persist: DISABLED (in-memory only — meetings will vanish on daemon restart)`);
+            }
+          }
           return;
         }
         if (sub === 'tag') {

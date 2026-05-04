@@ -3103,6 +3103,14 @@ const ROUTE_SCHEMAS = {
             underperformerCount: { type: 'integer' },
           },
         },
+        persist: {
+          properties: {
+            enabled: { type: 'boolean' },
+            dbPath: { type: 'string', nullable: true },
+            dbSizeBytes: { type: 'integer', nullable: true },
+            rowCount: { type: 'integer', nullable: true },
+          },
+        },
       },
     },
   },

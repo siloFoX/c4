@@ -5639,6 +5639,29 @@ async function handleRequest(req, res) {
           averageSampleCount: withSamples > 0 ? totalSamples / withSamples : 0,
           underperformerCount,
         },
+        persist: (() => {
+          // (Phase 7.6) Surface the persistent backing store so the
+          // operator dashboard shows whether persistence is on, where
+          // the DB lives, how big it has gotten, and how many rows
+          // are in it. Helps justify a `c4 meeting prune-old` run
+          // when the file balloons.
+          if (!_meetingPersist) return { enabled: false };
+          let dbSizeBytes = null;
+          try {
+            const fs2 = require('fs');
+            const stat = fs2.statSync(meetingPersistMod.DEFAULT_DB_PATH);
+            dbSizeBytes = stat.size;
+          } catch { /* DB file may not exist yet (in-memory mode etc) */ }
+          let rowCount = null;
+          try { rowCount = _meetingPersist.count(); }
+          catch { /* tolerate */ }
+          return {
+            enabled: true,
+            dbPath: meetingPersistMod.DEFAULT_DB_PATH,
+            dbSizeBytes,
+            rowCount,
+          };
+        })(),
       };
 
     } else if (req.method === 'GET' && route === '/specialists/audit') {
