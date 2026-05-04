@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.384] - 2026-05-04
+
+**Web — RBAC viewer page (read-only).** Backend has had
+`/api/rbac/roles` + `/api/rbac/users` for a long time; CLI had
+`c4 rbac roles` + `c4 rbac users`. Web operators wanting to
+confirm "who has what" had to drop to shell.
+
+### Added
+- **`web/src/pages/Rbac.tsx`** (new):
+  - Top panel: roles roster — admin / manager / viewer with
+    color-coded badges (destructive / amber / emerald) and the
+    full action list per role.
+  - Bottom panel: users roster — name + role badge + grant
+    scope count + a `<details>` foldout for the per-user
+    grants object (renders as JSON since shape varies).
+  - Refresh button.
+- **`web/src/pages/registry.ts`**: registered as `rbac` in the
+  Config category with the `ShieldCheck` icon.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Mutations (assign / grant / revoke / check) intentionally
+  not surfaced — each is admin-only and carries its own
+  validation surface; CLI remains the operator path.
+
 ## [1.10.383] - 2026-05-04
 
 **Web — Help drawer feature-nav copy refreshed.** Mentions

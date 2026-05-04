@@ -1,0 +1,169 @@
+import { useCallback, useEffect, useState } from 'react';
+import { RefreshCw, ShieldCheck, Users } from 'lucide-react';
+import PageFrame, { ErrorPanel } from './PageFrame';
+import { Badge, Button, Panel } from '../components/ui';
+import { apiGet } from '../lib/api';
+import { cn } from '../lib/cn';
+
+// (v1.10.383) RBAC viewer — read-only listing of roles + per-user
+// grants from the daemon's auth subsystem. Mutation endpoints
+// (assign / grant / revoke / check) exist but are admin-only and
+// each carries enough validation that a single page can't safely
+// expose them yet. This slice gives operators a way to *see* the
+// current state without dropping to CLI.
+
+interface Role {
+  name: 'admin' | 'manager' | 'viewer';
+  actions: string[];
+}
+interface RolesResponse { roles: Role[] }
+
+interface User {
+  user: string;
+  role: string;
+  // Grants object structure varies by daemon — render best-effort.
+  grants: Record<string, unknown>;
+}
+interface UsersResponse { users: User[] }
+
+const ROLE_TONE: Record<string, string> = {
+  admin: 'bg-destructive/10 text-destructive border-destructive/40',
+  manager: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/40',
+  viewer: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/40',
+};
+
+export default function Rbac() {
+  const [roles, setRoles] = useState<Role[] | null>(null);
+  const [users, setUsers] = useState<User[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [r, u] = await Promise.all([
+        apiGet<RolesResponse>('/api/rbac/roles'),
+        apiGet<UsersResponse>('/api/rbac/users'),
+      ]);
+      setRoles(r.roles || []);
+      setUsers(u.users || []);
+    } catch (e) {
+      setError((e as Error).message || 'Failed to load RBAC');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  return (
+    <PageFrame
+      title="RBAC"
+      description="Role-based access control — read-only roster of roles and per-user grants."
+      actions={
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={refresh}
+          disabled={loading}
+          aria-label="Refresh RBAC"
+        >
+          <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
+          <span>Refresh</span>
+        </Button>
+      }
+    >
+      <div className="rounded-md border border-border bg-muted/10 p-3 text-[12px] text-muted-foreground">
+        Mirrors <code className="font-mono">c4 rbac roles</code> +
+        <code className="font-mono"> c4 rbac users</code>. Mutations
+        (assign / grant / revoke) currently live only on the CLI.
+        This view is for operators who need to confirm <em>who has
+        what</em> without dropping to shell.
+      </div>
+
+      {error ? <ErrorPanel message={error} /> : null}
+
+      <Panel className="text-sm">
+        <h3 className="mb-2 flex items-center gap-2 text-base font-semibold text-foreground">
+          <ShieldCheck className="h-4 w-4 text-muted-foreground" aria-hidden />
+          Roles
+        </h3>
+        {!roles ? (
+          <div className="text-[12px] text-muted-foreground">Loading…</div>
+        ) : roles.length === 0 ? (
+          <div className="text-[12px] text-muted-foreground">No roles configured.</div>
+        ) : (
+          <ul className="space-y-2 text-[12px]">
+            {roles.map((r) => (
+              <li key={r.name}>
+                <div className="flex items-center gap-2">
+                  <Badge className={cn('uppercase', ROLE_TONE[r.name] || '')}>
+                    {r.name}
+                  </Badge>
+                  <span className="text-muted-foreground">
+                    {r.actions.length} action(s)
+                  </span>
+                </div>
+                <div className="mt-1 flex flex-wrap gap-1 pl-3 text-[11px]">
+                  {r.actions.map((a) => (
+                    <code
+                      key={a}
+                      className="rounded border border-border bg-muted/30 px-1 font-mono text-[10px]"
+                    >
+                      {a}
+                    </code>
+                  ))}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+
+      <Panel className="mt-4 text-sm">
+        <h3 className="mb-2 flex items-center gap-2 text-base font-semibold text-foreground">
+          <Users className="h-4 w-4 text-muted-foreground" aria-hidden />
+          Users ({users?.length ?? 0})
+        </h3>
+        {!users ? (
+          <div className="text-[12px] text-muted-foreground">Loading…</div>
+        ) : users.length === 0 ? (
+          <div className="text-[12px] text-muted-foreground">No users assigned.</div>
+        ) : (
+          <ul className="divide-y divide-border/40 text-[12px]">
+            {users.map((u) => {
+              const grantKeys = Object.keys(u.grants || {});
+              return (
+                <li key={u.user} className="flex flex-col gap-1 py-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-[12px] font-medium">{u.user}</span>
+                    <Badge className={cn('uppercase', ROLE_TONE[u.role] || '')}>
+                      {u.role}
+                    </Badge>
+                    {grantKeys.length > 0 ? (
+                      <span className="text-[10px] text-muted-foreground">
+                        {grantKeys.length} grant scope(s)
+                      </span>
+                    ) : null}
+                  </div>
+                  {grantKeys.length > 0 ? (
+                    <details>
+                      <summary className="cursor-pointer text-[10px] text-muted-foreground">
+                        view grants
+                      </summary>
+                      <pre className="mt-1 overflow-auto rounded bg-muted/30 p-2 font-mono text-[10px]">
+                        {JSON.stringify(u.grants, null, 2)}
+                      </pre>
+                    </details>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Panel>
+    </PageFrame>
+  );
+}

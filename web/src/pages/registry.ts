@@ -22,6 +22,7 @@ import {
   Rocket,
   ScrollText,
   Shield,
+  ShieldCheck,
   Sparkles,
   Sunrise,
   Trash2,
@@ -171,6 +172,14 @@ export const FEATURES: FeatureDef[] = [
     category: 'config',
     Icon: FolderTree,
     load: () => import('./Workspaces'),
+  },
+  {
+    id: 'rbac',
+    label: 'RBAC',
+    description: 'Read-only roster of roles + per-user grants.',
+    category: 'config',
+    Icon: ShieldCheck,
+    load: () => import('./Rbac'),
   },
   {
     id: 'health',
