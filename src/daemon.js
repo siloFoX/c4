@@ -859,6 +859,7 @@ async function handleRequest(req, res) {
       || specialistParams.id === 'audit'
       || specialistParams.id === 'propose'
       || specialistParams.id === 'summary'
+      || specialistParams.id === 'audit-rotate'
     )) {
       specialistParams = null;
     }
@@ -5728,6 +5729,29 @@ async function handleRequest(req, res) {
         },
         persist: persistInfo,
       };
+
+    } else if (req.method === 'POST' && route === '/specialists/audit-rotate') {
+      // (Phase 7.12) Operator-triggered audit log rotation.
+      // Body:
+      //   maxBytes  threshold; rotation is a no-op when size <= this
+      //             (default 0 = always rotate). Use this to make the
+      //             call idempotent under repeated operator runs:
+      //             c4 specialist audit-rotate --max-bytes 5242880
+      //             only fires if the file passed 5MB.
+      //   archive   override the default archive path
+      //   force     overwrite an existing archive path (default false)
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/specialists/audit-rotate', body, res, cfg)) return;
+      try {
+        result = specialistAudit.rotateAuditLog({
+          maxBytes: Number.isFinite(body.maxBytes) ? body.maxBytes : undefined,
+          archivePath: typeof body.archive === 'string' && body.archive ? body.archive : undefined,
+          force: !!body.force,
+        });
+      } catch (err) {
+        const code = /already exists/.test(err.message) ? 409 : 400;
+        res.writeHead(code); res.end(JSON.stringify({ error: err.message })); return;
+      }
 
     } else if (req.method === 'GET' && route === '/specialists/audit') {
       // (multi-specialist phase 1.4) Read the governance audit log.

@@ -46,6 +46,7 @@ const ROUTE_SUMMARIES = {
   'GET /specialists/underperformers': 'List specialists with sustained negative retro scores in their domains/stages — read-only analysis.',
   'GET /specialists/export': 'Bulk export of the registry as a self-contained bundle suitable for /specialists/import.',
   'GET /specialists/audit': 'Append-only governance audit log — every add/remove/import event with optional filters.',
+  'POST /specialists/audit-rotate': 'Operator-triggered audit log rotation — moves the JSONL to a timestamped archive when size exceeds maxBytes (default 0 = always rotate).',
   'GET /specialists/summary': 'Operator dashboard — aggregate registry/meeting/score-health stats in a single envelope.',
   'POST /specialists/propose': 'Propose adding a candidate specialist via meeting consensus — accepted only when the meta-meeting hits no objections.',
   'POST /specialists/import': 'Apply a previously-exported bundle (merge | replace, optional dryRun preview).',
@@ -3104,6 +3105,24 @@ const ROUTE_SCHEMAS = {
         },
         added: { type: 'boolean' },
         sessionStatus: { type: 'string' },
+      },
+    },
+  },
+  'POST /specialists/audit-rotate': {
+    requestBody: {
+      properties: {
+        maxBytes: { type: 'integer', description: 'Threshold in bytes; rotation is a no-op when size <= this (default 0 = always rotate)' },
+        archive: { type: 'string', description: 'Override the default archive path (default: <auditPath>.<ISO>.archived)' },
+        force: { type: 'boolean', description: 'Overwrite an existing archive path' },
+      },
+      example: { maxBytes: 5242880 },
+    },
+    response: {
+      properties: {
+        rotated: { type: 'boolean' },
+        fromBytes: { type: 'integer' },
+        archivePath: { type: 'string', nullable: true },
+        reason: { type: 'string', nullable: true, description: 'Present when rotated:false (size <= threshold or file missing)' },
       },
     },
   },

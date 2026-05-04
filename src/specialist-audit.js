@@ -116,10 +116,66 @@ function queryAuditEntries(opts = {}) {
   return out.reverse();
 }
 
+// (Phase 7.12) Operator-triggered audit log rotation.
+// The audit JSONL grows unbounded by design — every governance
+// change is preserved as a compliance-y record. Operators who
+// notice the file ballooning (via Phase 7.11 visibility) can
+// rotate it: the current file moves to a timestamped archive
+// path, and a fresh empty file takes its place. Reads still see
+// only the live file by default; archived files stay on disk
+// alongside it for audit history.
+//
+// opts:
+//   auditPath    main file to rotate (default DEFAULT_AUDIT_PATH)
+//   archivePath  target for the moved file. If omitted, derived
+//                as `<auditPath>.<ISO-second>.archived`
+//   maxBytes     when set, rotation is a no-op if file size is
+//                <= maxBytes. Defaults to 0 = always rotate.
+//   force        when true, overwrites archivePath if it exists.
+//                Default false → throws on collision.
+//
+// Returns `{rotated, fromBytes, archivePath}`. `rotated:false`
+// means the file was below the threshold; `archivePath` will
+// be null in that case.
+function rotateAuditLog(opts = {}) {
+  const auditPath = opts.auditPath || DEFAULT_AUDIT_PATH;
+  const maxBytes = Number.isFinite(opts.maxBytes) ? opts.maxBytes : 0;
+  const force = !!opts.force;
+  let stat;
+  try { stat = fs.statSync(auditPath); }
+  catch (err) {
+    if (err && err.code === 'ENOENT') {
+      return { rotated: false, fromBytes: 0, archivePath: null, reason: 'audit file does not exist yet' };
+    }
+    throw err;
+  }
+  if (stat.size <= maxBytes) {
+    return { rotated: false, fromBytes: stat.size, archivePath: null, reason: `size ${stat.size} <= maxBytes ${maxBytes}` };
+  }
+  // Default archive path: append a sortable timestamp + suffix
+  // so multiple rotations on the same day each get a unique name.
+  const archivePath = opts.archivePath || (() => {
+    const tsSafe = new Date().toISOString().replace(/[:.]/g, '-');
+    return `${auditPath}.${tsSafe}.archived`;
+  })();
+  if (fs.existsSync(archivePath) && !force) {
+    throw new Error(`rotateAuditLog: archive path already exists (${archivePath})`);
+  }
+  // Atomic-ish: rename the current file to archive, then create a
+  // fresh empty file in its place. fs.renameSync is atomic on the
+  // same filesystem; the small window between rename and createFile
+  // doesn't matter because the appendAuditEntry path uses
+  // appendFileSync which creates the file if missing.
+  fs.renameSync(auditPath, archivePath);
+  fs.writeFileSync(auditPath, '');
+  return { rotated: true, fromBytes: stat.size, archivePath };
+}
+
 module.exports = {
   appendAuditEntry,
   readRecentAuditEntries,
   queryAuditEntries,
+  rotateAuditLog,
   ACTIONS,
   DEFAULT_AUDIT_PATH,
 };

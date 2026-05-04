@@ -174,6 +174,53 @@ t('queryAuditEntries treats unparseable since/until as no filter', () => {
   assert.strictEqual(r.length, 1, 'bad since/until silently degrades to no filter');
 });
 
+t('rotateAuditLog moves the file when size > maxBytes and starts fresh', () => {
+  const { rotateAuditLog } = require('../src/specialist-audit');
+  const auditPath = makeTmp();
+  for (let i = 0; i < 10; i += 1) {
+    appendAuditEntry({ action: 'add', id: `x${i}`, actor: 'a' }, { auditPath });
+  }
+  const sizeBefore = fs.statSync(auditPath).size;
+  assert.ok(sizeBefore > 0);
+  const r = rotateAuditLog({ auditPath, maxBytes: 0 });
+  assert.strictEqual(r.rotated, true);
+  assert.strictEqual(r.fromBytes, sizeBefore);
+  assert.ok(fs.existsSync(r.archivePath), 'archive file exists');
+  assert.strictEqual(fs.statSync(auditPath).size, 0, 'main file is fresh empty');
+  // Existing entries are still queryable from the archive path.
+  const archived = queryAuditEntries({ auditPath: r.archivePath });
+  assert.strictEqual(archived.length, 10);
+});
+
+t('rotateAuditLog skips rotation when size <= maxBytes', () => {
+  const { rotateAuditLog } = require('../src/specialist-audit');
+  const auditPath = makeTmp();
+  appendAuditEntry({ action: 'add', id: 'small', actor: 'a' }, { auditPath });
+  const r = rotateAuditLog({ auditPath, maxBytes: 1024 * 1024 }); // 1MB threshold
+  assert.strictEqual(r.rotated, false);
+  assert.match(r.reason, /maxBytes/);
+});
+
+t('rotateAuditLog handles missing audit file gracefully', () => {
+  const { rotateAuditLog } = require('../src/specialist-audit');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'c4-audit-rot-'));
+  const r = rotateAuditLog({ auditPath: path.join(dir, 'missing.jsonl'), maxBytes: 0 });
+  assert.strictEqual(r.rotated, false);
+  assert.match(r.reason, /does not exist/);
+});
+
+t('rotateAuditLog refuses to overwrite existing archive without force', () => {
+  const { rotateAuditLog } = require('../src/specialist-audit');
+  const auditPath = makeTmp();
+  appendAuditEntry({ action: 'add', id: 'x', actor: 'a' }, { auditPath });
+  const archive = `${auditPath}.fixed-archive`;
+  fs.writeFileSync(archive, 'occupied');
+  assert.throws(
+    () => rotateAuditLog({ auditPath, archivePath: archive, maxBytes: 0 }),
+    /already exists/
+  );
+});
+
 t('SpecialistRegistry.add writes audit entry', () => {
   const auditPath = makeTmp();
   const reg = new SpecialistRegistry({

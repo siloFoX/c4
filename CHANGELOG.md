@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.294] - 2026-05-04
+
+**Multi-Specialist System — Phase 7.12 (Audit log rotation).**
+Phase 7.11 surfaced the audit JSONL size; this phase lets
+operators do something about it. Rotation moves the current
+file to a timestamped archive and starts fresh — full audit
+history preserved across files, but the live file stays small.
+
+### Added
+- **`src/specialist-audit.js`**: `rotateAuditLog({maxBytes,
+  archivePath, force})`
+  - default archive path: `<auditPath>.<ISO-second>.archived`
+    (sortable, unique per second so multiple rotations don't
+    collide)
+  - `maxBytes` threshold makes the call idempotent under repeated
+    runs — `--max-bytes 5242880` only rotates if past 5MB
+  - `force` overwrites an existing archive (default false →
+    throws on collision so accidental double-rotation is loud)
+  - missing audit file is a no-op (`reason: 'does not exist'`)
+  - rename is atomic on the same filesystem; fresh empty file
+    written immediately after
+- **HTTP**: `POST /specialists/audit-rotate` body `{maxBytes,
+  archive, force}`. 409 on collision.
+- **CLI**: `c4 specialist audit-rotate [--max-bytes N]
+  [--archive PATH] [--force]`
+- **OpenAPI**: full schema; `audit-rotate` added to specialist
+  parametric reserved-suffix list.
+- **Tests** (`tests/specialist-audit.test.js`): 4 new cases —
+  rotation moves file with archive readable; size <= maxBytes
+  skips; missing-file no-op; refuse-overwrite without force.
+
+### Notes
+- e2e: live daemon → `c4 specialist audit-rotate --max-bytes
+  999999999` returns `no rotation: size 3935 <= maxBytes
+  999999999` (file is 4KB, threshold is ~1GB).
+- Operator-triggered by design — auto-rotation has the same
+  failure-mode concerns as auto-prune (timezone /
+  vacation / loss-of-evidence). Cron-style scheduling is a
+  follow-up if usage demands it.
+
 ## [1.10.293] - 2026-05-04
 
 **Multi-Specialist System — Phase 7.11 (Audit log visibility).**

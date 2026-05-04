@@ -2145,8 +2145,8 @@ async function main() {
         //   c4 specialist dispatch "<task>" [--stage X] [--track X] [--cap N]
         //   c4 specialist score [--by-domain D | --by-stage S] [--limit N]
         const sub = (args[0] || 'list').toLowerCase();
-        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt', 'export', 'import', 'audit', 'score-history', 'propose', 'apply-prompt', 'tag', 'summary'].includes(sub)) {
-          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt|export|import|audit|score-history|propose|apply-prompt|tag|summary> [args]');
+        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt', 'export', 'import', 'audit', 'audit-rotate', 'score-history', 'propose', 'apply-prompt', 'tag', 'summary'].includes(sub)) {
+          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt|export|import|audit|audit-rotate|score-history|propose|apply-prompt|tag|summary> [args]');
           process.exit(1);
         }
         if (sub === 'list') {
@@ -2361,6 +2361,30 @@ async function main() {
               const after = v.after == null ? '-' : v.after.toFixed(2);
               console.log(`    stage:${k.padEnd(17)} ${before} → ${after}`);
             }
+          }
+          return;
+        }
+        if (sub === 'audit-rotate') {
+          // c4 specialist audit-rotate [--max-bytes N] [--archive PATH] [--force]
+          let maxBytes = null;
+          let archive = null;
+          let force = false;
+          for (let i = 1; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--max-bytes' && args[i + 1]) { maxBytes = parseInt(args[i + 1], 10); i += 1; }
+            else if (a === '--archive' && args[i + 1]) { archive = args[i + 1]; i += 1; }
+            else if (a === '--force') { force = true; }
+          }
+          const body = { force };
+          if (Number.isFinite(maxBytes)) body.maxBytes = maxBytes;
+          if (archive) body.archive = archive;
+          result = await request('POST', '/specialists/audit-rotate', body);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          if (result.rotated) {
+            console.log(`rotated: ${(result.fromBytes / 1024).toFixed(1)}KB → ${result.archivePath}`);
+          } else {
+            console.log(`no rotation: ${result.reason}`);
           }
           return;
         }
