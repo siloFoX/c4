@@ -47,9 +47,14 @@ const TABS: TabDef[] = [
 interface TopTabsProps {
   value: TopView;
   onChange: (v: TopView) => void;
+  // (v1.10.327) Per-tab badge counts. Keys match TopView ids;
+  // values render as a small badge on the tab. Used for the
+  // stuck-meetings signal so operators see urgency without
+  // navigating into Meetings.
+  badges?: Partial<Record<TopView, { count: number; tone: 'amber' | 'destructive' | 'muted' }>>;
 }
 
-export default function TopTabs({ value, onChange }: TopTabsProps) {
+export default function TopTabs({ value, onChange, badges }: TopTabsProps) {
   return (
     <div
       role="tablist"
@@ -58,6 +63,7 @@ export default function TopTabs({ value, onChange }: TopTabsProps) {
     >
       {TABS.map(({ value: v, label, Icon }) => {
         const active = v === value;
+        const badge = badges && badges[v];
         return (
           <button
             key={v}
@@ -68,7 +74,7 @@ export default function TopTabs({ value, onChange }: TopTabsProps) {
             title={label}
             onClick={() => onChange(v)}
             className={cn(
-              'inline-flex items-center gap-1.5 px-2 py-1.5 transition-colors sm:px-3',
+              'relative inline-flex items-center gap-1.5 px-2 py-1.5 transition-colors sm:px-3',
               active
                 ? 'bg-primary/10 text-primary'
                 : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
@@ -76,6 +82,16 @@ export default function TopTabs({ value, onChange }: TopTabsProps) {
           >
             <Icon className="h-3.5 w-3.5" aria-hidden="true" />
             <span className="hidden sm:inline">{label}</span>
+            {badge && badge.count > 0 ? (
+              <span className={cn(
+                'inline-flex min-w-[1rem] items-center justify-center rounded-full border px-1 text-[9px] leading-tight',
+                badge.tone === 'amber' && 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+                badge.tone === 'destructive' && 'border-destructive/40 bg-destructive/10 text-destructive',
+                badge.tone === 'muted' && 'border-border bg-muted/40 text-muted-foreground',
+              )}>
+                {badge.count > 99 ? '99+' : badge.count}
+              </span>
+            ) : null}
           </button>
         );
       })}

@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.327] - 2026-05-04
+
+**Web — top tabs gain badge support; stuck-meetings live indicator.**
+The stuck banner inside MeetingsView (v1.10.313) only appears
+once the operator is already on that tab. A daemon-level alert
+needed top-level visibility. Adds a global badge slot in the
+top tab bar and wires the stuck count.
+
+### Added
+- **`web/src/components/layout/TopTabs.tsx`**:
+  - `TopTabsProps.badges?: Partial<Record<TopView, { count;
+    tone: 'amber'|'destructive'|'muted' }>>`
+  - per-tab small pill rendered when `count > 0`
+  - tone maps to color: amber for stuck (warn), destructive
+    (reserved), muted (reserved)
+  - `99+` overflow when count exceeds 99
+- **`web/src/components/layout/AppHeader.tsx`**:
+  - polls `/api/meetings/stuck?hours=1` every 60s when authed
+  - passes `{meetings: {count, tone:'amber'}}` to TopTabs when
+    > 0
+  - graceful nulls on older daemons or persist-disabled mode
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- The badge slot is generic — future signals (failed merges,
+  underperformer threshold breach, etc) can hook in without
+  TopTabs surgery.
+
 ## [1.10.326] - 2026-05-04
 
 **Web — specialist filter input polish.**
