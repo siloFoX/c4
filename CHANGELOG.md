@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.317] - 2026-05-04
+
+**Web — meeting search status/track filter chips.**
+Phase 8.1.5 added narrowing query params (status, track, since,
+until, fork-of) to /meetings/search. The MeetingsView search
+box (v1.10.309) only forwarded the MATCH; this exposes status
+and track as inline dropdowns. since/until and fork-of remain
+CLI-only for now (rarely used from the browser).
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**:
+  - `searchStatus` / `searchTrack` state (empty string = any)
+  - dropdowns rendered next to the search box, only while a
+    query is active (no chip noise on bare list)
+  - search effect deps include both filters → keystrokes and
+    filter changes both fire the (debounced) request
+  - filter values pass through to the URL params
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Composes with the existing facet summary line (v1.10.309)
+  → operator can see what's available before narrowing.
+- since/until and fork-of intentionally absent — too niche
+  for the browser; CLI users have them via
+  `c4 meeting search --since ISO --until ISO --fork-of ID`.
+
 ## [1.10.316] - 2026-05-04
 
 **Web — specialist detail enrichment.**

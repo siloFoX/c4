@@ -169,7 +169,12 @@ export default function MeetingsView() {
   // Non-empty → /api/meetings/search?q=&facet=status,track replaces
   // the list. Debounced 250ms so each keystroke doesn't fire a
   // request.
+  // (Phase 8.1.5) status + track filters compose with the MATCH so
+  // operators can narrow "auth migration" to "completed full-track"
+  // without scanning the whole result list.
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchStatus, setSearchStatus] = useState<MeetingStatus | ''>('');
+  const [searchTrack, setSearchTrack] = useState<'lightweight' | 'standard' | 'full' | ''>('');
   const [searchResults, setSearchResults] = useState<MeetingSummary[] | null>(null);
   const [searchFacets, setSearchFacets] = useState<{ status?: Record<string, number>; track?: Record<string, number> } | null>(null);
   const [searchTotal, setSearchTotal] = useState<number | null>(null);
@@ -221,6 +226,8 @@ export default function MeetingsView() {
           facet: 'status,track',
           total: '1',
         });
+        if (searchStatus) params.set('status', searchStatus);
+        if (searchTrack) params.set('track', searchTrack);
         const res = await apiGet<{
           count: number;
           query: string;
@@ -278,7 +285,7 @@ export default function MeetingsView() {
     // search every time the list polls is wasteful; the merge with
     // summaryById is best-effort decoration.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  }, [searchQuery, searchStatus, searchTrack]);
 
   // Initial detail fetch + SSE live updates (phase 7.1).
   // We intentionally fetch the full snapshot via the REST endpoint
@@ -690,6 +697,42 @@ export default function MeetingsView() {
               <span className="text-[10px] text-muted-foreground">searching…</span>
             ) : null}
           </div>
+          {/* (Phase 8.1.5) Filter chips — shown only while
+              search is active. Empty value = no narrowing. */}
+          {searchQuery.trim() ? (
+            <div className="flex flex-wrap items-center gap-2 text-[10px]">
+              <label className="flex items-center gap-1 text-muted-foreground">
+                status:
+                <select
+                  className="rounded border border-border bg-background px-1 py-0.5"
+                  value={searchStatus}
+                  onChange={(e) => setSearchStatus(e.target.value as typeof searchStatus)}
+                  aria-label="Filter by status"
+                >
+                  <option value="">any</option>
+                  <option value="pending">pending</option>
+                  <option value="in-progress">in-progress</option>
+                  <option value="completed">completed</option>
+                  <option value="escalated">escalated</option>
+                  <option value="aborted">aborted</option>
+                </select>
+              </label>
+              <label className="flex items-center gap-1 text-muted-foreground">
+                track:
+                <select
+                  className="rounded border border-border bg-background px-1 py-0.5"
+                  value={searchTrack}
+                  onChange={(e) => setSearchTrack(e.target.value as typeof searchTrack)}
+                  aria-label="Filter by track"
+                >
+                  <option value="">any</option>
+                  <option value="lightweight">lightweight</option>
+                  <option value="standard">standard</option>
+                  <option value="full">full</option>
+                </select>
+              </label>
+            </div>
+          ) : null}
           {searchResults && searchFacets ? (
             <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
               <span>
