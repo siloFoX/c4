@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.322] - 2026-05-04
+
+**Web — wiki publish git commit / push toggles.**
+Phase 3.4 backend supported `gitCommit` / `gitPush` on
+`POST /meetings/:id/publish`. Web's Publish button only sent
+the base call; operators wanting commits-on-publish had to
+drop into CLI. Adds two checkboxes next to the button.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**:
+  - `publishGitCommit` / `publishGitPush` state
+  - `git commit` + `+ push` checkboxes next to the Publish
+    button (push enables commit automatically; unchecking
+    commit also unchecks push — matches backend semantics)
+  - success msg now shows `git <7-char sha>` and `+ pushed`
+    when applicable
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- The Phase 3.4 fail-soft semantics still hold — git failure
+  surfaces in the response body but never blocks the file
+  write. Web success msg reflects whatever the backend
+  reports.
+
 ## [1.10.321] - 2026-05-04
 
 **Web — action-items category filter chips.**

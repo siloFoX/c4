@@ -535,24 +535,42 @@ export default function MeetingsView() {
   // from auto-publish which only fires inside /run).
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishMsg, setPublishMsg] = useState<string | null>(null);
+  // (Phase 3.4) git automation toggles. publish writes md-in-git;
+  // gitCommit auto-commits via the daemon, gitPush also pushes.
+  const [publishGitCommit, setPublishGitCommit] = useState(false);
+  const [publishGitPush, setPublishGitPush] = useState(false);
 
   const handlePublish = useCallback(async (id: string) => {
     setPublishBusy(true);
     setPublishMsg(null);
     try {
-      const res = await apiPost<{ ok: boolean; written: string[]; wikiRoot: string }>(
+      const res = await apiPost<{
+        ok: boolean;
+        written: string[];
+        wikiRoot: string;
+        git?: { committed: boolean; sha?: string; pushed?: boolean };
+      }>(
         `/api/meetings/${encodeURIComponent(id)}/publish`,
-        { includeRetro: true, apply: true },
+        {
+          includeRetro: true,
+          apply: true,
+          gitCommit: publishGitCommit,
+          gitPush: publishGitPush,
+        },
       );
       const n = (res && Array.isArray(res.written)) ? res.written.length : 0;
-      setPublishMsg(`published ${n} file(s) to ${res && res.wikiRoot}`);
+      let msg = `published ${n} file(s) to ${res && res.wikiRoot}`;
+      if (res && res.git && res.git.committed) {
+        msg += ` · git ${res.git.sha ? res.git.sha.slice(0, 7) : 'committed'}${res.git.pushed ? ' + pushed' : ''}`;
+      }
+      setPublishMsg(msg);
       window.setTimeout(() => setPublishMsg(null), 4000);
     } catch (e) {
       setPublishMsg(`publish failed: ${(e as Error).message || 'unknown'}`);
     } finally {
       setPublishBusy(false);
     }
-  }, []);
+  }, [publishGitCommit, publishGitPush]);
 
   // Peer-retro on terminal meetings (separate from outcome retro
   // — see meeting-peer-retro.js). Mock brain for instant
@@ -1067,6 +1085,33 @@ export default function MeetingsView() {
                 <BookOpen className="h-3.5 w-3.5" aria-hidden />
                 Publish to wiki
               </Button>
+              {/* (Phase 3.4) git automation toggles. */}
+              <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={publishGitCommit}
+                  onChange={(e) => {
+                    setPublishGitCommit(e.target.checked);
+                    if (!e.target.checked) setPublishGitPush(false);
+                  }}
+                  disabled={publishBusy}
+                  className="h-3 w-3"
+                />
+                git commit
+              </label>
+              <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={publishGitPush}
+                  onChange={(e) => {
+                    setPublishGitPush(e.target.checked);
+                    if (e.target.checked) setPublishGitCommit(true);
+                  }}
+                  disabled={publishBusy}
+                  className="h-3 w-3"
+                />
+                + push
+              </label>
               {publishMsg ? (
                 <span className={cn(
                   'text-[11px]',
