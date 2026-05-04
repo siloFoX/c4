@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.380] - 2026-05-04
+
+**Web — Workspaces page (Config category).** Backend
+`GET /api/workspaces` lists multi-repo workspaces declared in
+`config.workspaces`. CLI had `c4 workspaces`; web operators
+auditing what repos the daemon has visibility into had to drop
+to shell.
+
+### Added
+- **`web/src/pages/Workspaces.tsx`** (new):
+  - Read-only listing — name, path, exists status, isGitRepo
+    status. Color-coded status icons (emerald for healthy,
+    destructive for missing, amber for "exists but not a git
+    repo").
+  - Refresh button.
+  - Header note pointing the operator at the Config page if
+    they need to add or remove entries.
+- **`web/src/pages/registry.ts`**: registered as `workspaces`
+  in the Config category with the `FolderTree` icon.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Workspaces are config-driven; the daemon doesn't expose a
+  mutation API. Config page (v1.10.359) provides the reload
+  path after editing config.json.
+
 ## [1.10.379] - 2026-05-04
 
 **Web — SessionsView refresh button + empty/loading states i18n.**

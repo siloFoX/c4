@@ -13,6 +13,7 @@ import {
   Cog,
   Feather,
   FileCheck2,
+  FolderTree,
   GitBranch,
   Layers,
   LayoutGrid,
@@ -162,6 +163,14 @@ export const FEATURES: FeatureDef[] = [
     category: 'config',
     Icon: Cog,
     load: () => import('./Config'),
+  },
+  {
+    id: 'workspaces',
+    label: 'Workspaces',
+    description: 'Multi-repo workspaces declared in config.workspaces.',
+    category: 'config',
+    Icon: FolderTree,
+    load: () => import('./Workspaces'),
   },
   {
     id: 'health',
