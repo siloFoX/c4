@@ -255,6 +255,35 @@ export default function SpecialistsView() {
     [specialists, selectedId],
   );
 
+  // (Phase 6.8) Detail enrichment — fetch ?include=audit,meetings
+  // for the currently selected specialist. Cheap, runs on selection
+  // change. Failure silently nulls.
+  interface MeetingMeta {
+    id: string;
+    status: string;
+    title: string;
+    track: string;
+    createdAt: string;
+    completedAt: string | null;
+  }
+  const [enrichment, setEnrichment] = useState<{
+    recentAudit?: AuditEntry[];
+    recentMeetings?: MeetingMeta[];
+  } | null>(null);
+  useEffect(() => {
+    if (!selectedId) {
+      setEnrichment(null);
+      return;
+    }
+    let cancelled = false;
+    apiGet<{ recentAudit?: AuditEntry[]; recentMeetings?: MeetingMeta[] }>(
+      `/api/specialists/${encodeURIComponent(selectedId)}?include=audit,meetings`,
+    )
+      .then((res) => { if (!cancelled) setEnrichment({ recentAudit: res.recentAudit, recentMeetings: res.recentMeetings }); })
+      .catch(() => { if (!cancelled) setEnrichment(null); });
+    return () => { cancelled = true; };
+  }, [selectedId]);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 md:p-6">
       {/* (Phase 6.14) Organism summary info bar. Quiet when the
@@ -673,6 +702,46 @@ export default function SpecialistsView() {
                   {selected.systemPrompt}
                 </pre>
               </div>
+
+              {/* (Phase 6.8) Recent audit + recent meetings.
+                  Both shown only when there's something to render. */}
+              {enrichment && Array.isArray(enrichment.recentAudit) && enrichment.recentAudit.length > 0 ? (
+                <div>
+                  <div className="text-xs text-muted-foreground">recent audit ({enrichment.recentAudit.length})</div>
+                  <ul className="mt-1 divide-y divide-border/40 rounded-md border border-border/40 bg-muted/10 text-[11px]">
+                    {enrichment.recentAudit.slice().reverse().map((e, i) => (
+                      <li key={i} className="flex flex-wrap items-baseline gap-2 px-2 py-1">
+                        <span className="font-mono text-[10px] text-muted-foreground">
+                          {new Date(e.ts).toLocaleString()}
+                        </span>
+                        <span className="rounded border border-border bg-background px-1 py-0 text-[10px] uppercase tracking-wide">
+                          {e.action}
+                        </span>
+                        {e.actor ? <span className="text-muted-foreground">by {e.actor}</span> : null}
+                        {e.reason ? <span className="text-muted-foreground italic">— {e.reason}</span> : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {enrichment && Array.isArray(enrichment.recentMeetings) && enrichment.recentMeetings.length > 0 ? (
+                <div>
+                  <div className="text-xs text-muted-foreground">recent meetings ({enrichment.recentMeetings.length})</div>
+                  <ul className="mt-1 divide-y divide-border/40 rounded-md border border-border/40 bg-muted/10 text-[11px]">
+                    {enrichment.recentMeetings.map((m) => (
+                      <li key={m.id} className="flex flex-wrap items-baseline gap-2 px-2 py-1">
+                        <span className="font-mono text-[10px]">{m.id}</span>
+                        <span className="rounded border border-border bg-background px-1 py-0 text-[10px] uppercase tracking-wide">
+                          {m.status}
+                        </span>
+                        <span className="text-muted-foreground">{m.track}</span>
+                        <span className="truncate text-muted-foreground">— {m.title}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </>
           )}
         </CardContent>

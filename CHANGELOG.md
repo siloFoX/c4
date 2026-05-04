@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.316] - 2026-05-04
+
+**Web — specialist detail enrichment.**
+Phase 6.8 added `?include=audit,meetings,scoreHistory` to
+`GET /specialists/:id`. CLI's `c4 specialist describe --include`
+showed it; web's detail panel only had the spec body. This adds
+recent-audit + recent-meetings sections.
+
+### Added
+- **`web/src/components/SpecialistsView.tsx`**:
+  - new `useEffect` fetches `/api/specialists/:id?include=audit,meetings`
+    on selection change
+  - "recent audit" section above system prompt with up to 10
+    entries (timestamp + action pill + actor + reason)
+  - "recent meetings" section: id + status pill + track + title
+    for participations the specialist appeared in
+  - both sections hidden when their array is empty / missing
+  - silent failure on fetch errors (older daemons, network)
+
+### Notes
+- Pure web — backend tests still 200/200 green; lint + drift
+  clean.
+- The audit-log viewer (v1.10.315) shows the global feed; this
+  enrichment shows the per-specialist slice. Two complementary
+  views from the same audit log.
+
 ## [1.10.315] - 2026-05-04
 
 **Web — audit log viewer in SpecialistsView.**
