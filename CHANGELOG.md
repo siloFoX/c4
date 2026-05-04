@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.329] - 2026-05-04
+
+**Web — facet click-to-filter on meeting search.**
+v1.10.309 search box rendered facets as a static text summary
+(`status: completed=3, aborted=1`). Operators wanting to narrow
+to one bucket had to manually pick the value in the dropdown.
+This makes each facet entry a clickable chip that toggles the
+corresponding filter.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**:
+  - facet entries now render as buttons (one per bucket)
+  - clicking sets the matching `searchStatus` / `searchTrack`
+    (or unsets if the same bucket was already active)
+  - active facet button uses `border-primary bg-primary/10`
+    matching other web filter chips
+  - tooltip: `Filter by status=<bucket>`
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Net effect: type query → see facet distribution → click a
+  facet → search narrows in one move. No more dropdown
+  fishing.
+
 ## [1.10.328] - 2026-05-04
 
 **Web — underperformer count badge on Specialists tab.**

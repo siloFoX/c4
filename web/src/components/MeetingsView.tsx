@@ -828,15 +828,51 @@ export default function MeetingsView() {
             </div>
           ) : null}
           {searchResults && searchFacets ? (
-            <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
-              <span>
+            <div className="flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
+              <span className="mr-1">
                 {typeof searchTotal === 'number' ? `${searchResults.length}/${searchTotal} matches` : `${searchResults.length} matches`}
               </span>
               {searchFacets.status && Object.keys(searchFacets.status).length > 0 ? (
-                <span>· status: {Object.entries(searchFacets.status).map(([k, n]) => `${k}=${n}`).join(', ')}</span>
+                <>
+                  <span>· status:</span>
+                  {Object.entries(searchFacets.status).map(([k, n]) => (
+                    <button
+                      key={`s-${k}`}
+                      type="button"
+                      onClick={() => setSearchStatus(searchStatus === k ? '' : (k as MeetingStatus))}
+                      className={cn(
+                        'rounded border px-1 transition-colors',
+                        searchStatus === k
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-background hover:bg-accent/40',
+                      )}
+                      title={`Filter by status=${k}`}
+                    >
+                      {k}={n}
+                    </button>
+                  ))}
+                </>
               ) : null}
               {searchFacets.track && Object.keys(searchFacets.track).length > 0 ? (
-                <span>· track: {Object.entries(searchFacets.track).map(([k, n]) => `${k}=${n}`).join(', ')}</span>
+                <>
+                  <span>· track:</span>
+                  {Object.entries(searchFacets.track).map(([k, n]) => (
+                    <button
+                      key={`t-${k}`}
+                      type="button"
+                      onClick={() => setSearchTrack(searchTrack === k ? '' : (k as 'lightweight' | 'standard' | 'full'))}
+                      className={cn(
+                        'rounded border px-1 transition-colors',
+                        searchTrack === k
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-background hover:bg-accent/40',
+                      )}
+                      title={`Filter by track=${k}`}
+                    >
+                      {k}={n}
+                    </button>
+                  ))}
+                </>
               ) : null}
             </div>
           ) : null}
