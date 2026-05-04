@@ -67,6 +67,23 @@ try {
   process.stderr.write(`[daemon] meeting persist disabled — ${err.message}\n`);
 }
 meetingSession.getShared({ persist: _meetingPersist });
+// Phase 7.3 — rehydrate persisted meetings into the live store.
+// Cheap (parses N JSON blobs, ~few KB each), so we do it inline
+// at boot rather than lazily. Errors are logged + counted; a
+// corrupt row never blocks daemon startup.
+if (_meetingPersist) {
+  try {
+    const r = meetingSession.getShared().rehydrate();
+    if (r.count > 0 || r.errors.length > 0) {
+      process.stderr.write(`[daemon] rehydrated ${r.count} meeting(s)${r.errors.length ? ` (${r.errors.length} error(s))` : ''}\n`);
+      for (const e of r.errors) {
+        process.stderr.write(`[daemon]   rehydrate error id=${e.id}: ${e.reason}\n`);
+      }
+    }
+  } catch (err) {
+    process.stderr.write(`[daemon] rehydrate failed — ${err.message}\n`);
+  }
+}
 const wikiWriter = require('./wiki-writer');
 const wikiReader = require('./wiki-reader');
 const wikiReopen = require('./wiki-reopen');

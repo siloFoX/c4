@@ -312,6 +312,101 @@ t('_persistSnapshot includes full plan + internal indices', () => {
   assert.ok(snap.plan.stages[0].deliverables, 'plan.stages[].deliverables present');
 });
 
+t('MeetingSession.fromJSON rejects malformed input', () => {
+  assert.throws(() => MeetingSession.fromJSON(null), /required/);
+  assert.throws(() => MeetingSession.fromJSON({}), /plan \+ id/);
+  assert.throws(() => MeetingSession.fromJSON({ id: 'm-x' }), /plan \+ id/);
+});
+
+t('MeetingSession.fromJSON round-trips a started + contributed session', () => {
+  const orig = new MeetingSession(makeFullPlan());
+  orig.start();
+  const firstSpec = orig.plan.stages[0].specialists[0].id;
+  orig.contribute(firstSpec, 'first turn text');
+  const snap = orig._persistSnapshot();
+  const restored = MeetingSession.fromJSON(snap);
+  assert.strictEqual(restored.id, orig.id);
+  assert.strictEqual(restored.status, 'in-progress');
+  assert.strictEqual(restored.currentStage, orig.currentStage);
+  assert.strictEqual(restored.currentRound, orig.currentRound);
+  // Transcripts survive intact.
+  const restoredTurns = restored.toJSON().transcripts[0];
+  assert.strictEqual(restoredTurns.length, 1);
+  assert.strictEqual(restoredTurns[0].text, 'first turn text');
+});
+
+t('MeetingSession.fromJSON preserves terminal state', () => {
+  const orig = new MeetingSession(makeLightPlan());
+  orig.start();
+  orig.abort('test terminal');
+  const snap = orig._persistSnapshot();
+  const restored = MeetingSession.fromJSON(snap);
+  assert.strictEqual(restored.status, 'aborted');
+  assert.ok(restored.completedAt, 'completedAt copied');
+  assert.strictEqual(restored.toJSON().escalations.length, 1);
+});
+
+t('MeetingStore.rehydrate returns {count: 0} when no persist configured', () => {
+  const store = new MeetingStore();
+  const r = store.rehydrate();
+  assert.strictEqual(r.count, 0);
+  assert.deepStrictEqual(r.errors, []);
+});
+
+t('MeetingStore.rehydrate restores sessions from a stub persist', () => {
+  const orig = new MeetingSession(makeLightPlan());
+  orig.start();
+  const snap = orig._persistSnapshot();
+  // Stub persist that returns one row from loadAll.
+  const stubPersist = {
+    loadAll: () => [snap],
+    save: () => {},
+    remove: () => true,
+  };
+  const store = new MeetingStore({ persist: stubPersist });
+  const r = store.rehydrate();
+  assert.strictEqual(r.count, 1);
+  assert.strictEqual(store.size, 1);
+  const restored = store.get(orig.id);
+  assert.ok(restored, 'session restored');
+  assert.strictEqual(restored.status, 'in-progress');
+});
+
+t('MeetingStore.rehydrate skips malformed rows + tallies errors', () => {
+  const stubPersist = {
+    loadAll: () => [
+      { id: 'm-good', plan: { meetingId: 'm-good', track: 'lightweight', stages: [{ stage: 'implement', specialists: [{ id: 'pm', displayName: 'PM' }] }] }, status: 'pending', createdAt: '2026-01-01T00:00:00.000Z' },
+      { id: 'm-no-plan', status: 'pending', createdAt: '2026-01-01T00:00:00.000Z' }, // missing plan → skip
+      null, // also bad
+    ],
+    save: () => {},
+    remove: () => true,
+  };
+  const store = new MeetingStore({ persist: stubPersist });
+  const r = store.rehydrate();
+  assert.strictEqual(r.count, 1);
+  assert.strictEqual(r.errors.length, 2);
+  assert.ok(r.errors.find((e) => e.id === 'm-no-plan'));
+});
+
+t('MeetingStore.rehydrate is idempotent on second call (no double-attach)', () => {
+  const orig = new MeetingSession(makeLightPlan());
+  const snap = orig._persistSnapshot();
+  const calls = [];
+  const stubPersist = {
+    loadAll: () => [snap],
+    save: (s) => calls.push(s.id),
+    remove: () => true,
+  };
+  const store = new MeetingStore({ persist: stubPersist });
+  store.rehydrate();
+  const sizeAfterFirst = store.size;
+  store.rehydrate();
+  assert.strictEqual(store.size, sizeAfterFirst, 'second rehydrate does not duplicate rows');
+  // No save fired during rehydrate (we loaded from disk, why save back?).
+  assert.strictEqual(calls.length, 0);
+});
+
 (async () => {
   for (const fn of pending) await fn();
   console.log(`\n  ${passed} passed, ${failed} failed (meeting-session)`);

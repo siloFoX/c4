@@ -370,6 +370,44 @@ class MeetingSession extends EventEmitter {
     return j;
   }
 
+  // Phase 7.3 — rehydrate a MeetingSession from a snapshot
+  // produced by `_persistSnapshot()`. The constructor's normal path
+  // initializes a fresh session in the 'pending' state; this factory
+  // restores the prior state (status, completion timestamps,
+  // transcripts, votes, escalations, and the stage cursor) so a
+  // daemon restart resumes mid-flight meetings exactly where they
+  // were. We deliberately mutate state fields directly without
+  // emitting `state` events — there are no observers yet at
+  // rehydrate time, and we don't want to log spurious transitions.
+  static fromJSON(snap) {
+    if (!snap || typeof snap !== 'object') {
+      throw new Error('MeetingSession.fromJSON: snapshot required');
+    }
+    if (!snap.plan || !snap.id) {
+      throw new Error('MeetingSession.fromJSON: snapshot must include plan + id');
+    }
+    const sess = new MeetingSession(snap.plan, { createdAt: snap.createdAt });
+    sess._status = snap.status || 'pending';
+    sess._startedAt = snap.startedAt || null;
+    sess._completedAt = snap.completedAt || null;
+    if (Number.isFinite(snap._currentStageIndex)) {
+      sess._currentStageIndex = snap._currentStageIndex;
+    }
+    if (Array.isArray(snap._rounds)) {
+      sess._rounds = snap._rounds.slice();
+    }
+    if (Array.isArray(snap.transcripts)) {
+      sess._transcripts = snap.transcripts.map((arr) => Array.isArray(arr) ? arr.slice() : []);
+    }
+    if (Array.isArray(snap.votes)) {
+      sess._votes = snap.votes.map((arr) => Array.isArray(arr) ? arr.slice() : []);
+    }
+    if (Array.isArray(snap.escalations)) {
+      sess._escalations = snap.escalations.slice();
+    }
+    return sess;
+  }
+
   _requireInProgress(op) {
     if (this._status !== 'in-progress') {
       throw new Error(`${op}: meeting must be in-progress (got "${this._status}")`);
@@ -481,6 +519,50 @@ class MeetingStore extends EventEmitter {
     // want to wipe disk too should call persist directly. Keeping
     // clear() in-memory-only matches the prior behavior (some tests
     // rely on it not deleting persisted state).
+  }
+
+  // Phase 7.3 — rehydrate every session from the persistence layer
+  // into the in-memory map. Called once at daemon boot, after
+  // `getShared({ persist })` wiring. Returns `{count, errors[]}`
+  // so the caller can log a summary. Bad rows (corrupt JSON,
+  // missing plan) are skipped + tallied but never throw — the
+  // daemon must always come up.
+  rehydrate() {
+    if (!this._persist) return { count: 0, errors: [] };
+    const errors = [];
+    let restored = 0;
+    let rows;
+    try { rows = this._persist.loadAll(); }
+    catch (err) {
+      errors.push({ id: null, reason: `loadAll: ${err.message}` });
+      return { count: 0, errors };
+    }
+    for (const data of rows) {
+      let sess;
+      try { sess = MeetingSession.fromJSON(data); }
+      catch (err) {
+        errors.push({ id: data && data.id, reason: err.message });
+        continue;
+      }
+      // Bypass put()'s initial-save (we just loaded from disk; no
+      // need to write back). Subscribe the state listener for
+      // future mutations the same way put() does.
+      const isNew = !this._byId.has(sess.id);
+      this._byId.set(sess.id, sess);
+      if (isNew && !this._stateListeners.has(sess.id)) {
+        const fn = () => {
+          try { this._persist.save(sess); }
+          catch (err) {
+            process.stderr.write(`[meeting-store] state persist failed for ${sess.id}: ${err.message}\n`);
+          }
+        };
+        sess.on('state', fn);
+        this._stateListeners.set(sess.id, fn);
+        try { this.emit('put', sess); } catch { /* tolerate */ }
+        restored += 1;
+      }
+    }
+    return { count: restored, errors };
   }
 
   get size() { return this._byId.size; }
