@@ -62,6 +62,7 @@ interface MeetingDetail {
   track: string;
   title: string;
   task: string;
+  forkOf: string | null;
   createdAt: string;
   startedAt: string | null;
   completedAt: string | null;
@@ -69,6 +70,25 @@ interface MeetingDetail {
   currentRound: number;
   stages: StageView[];
   transcripts: Turn[][];
+}
+
+// (Phase 6.9) Lineage chain entry — same shape the
+// /meetings/:id/lineage endpoint returns per-step.
+interface LineageEntry {
+  id: string;
+  status: MeetingStatus;
+  title: string;
+  track: string;
+  createdAt: string;
+  completedAt: string | null;
+  forkOf: string | null;
+}
+
+interface LineageResponse {
+  rootId: string | null;
+  depth: number;
+  chainTruncated: boolean;
+  chain: LineageEntry[];
 }
 
 const STATUS_BADGE: Record<MeetingStatus, string> = {
@@ -96,6 +116,13 @@ export default function MeetingsView() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<MeetingDetail | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
+
+  // (Phase 6.9) Lineage chain for the selected meeting. Only
+  // fetched when the detail says forkOf is set OR the meeting
+  // looks like it might be a parent (cheap to call regardless).
+  // We refetch whenever selectedId changes; the chain is small
+  // enough that we don't need debouncing.
+  const [lineage, setLineage] = useState<LineageResponse | null>(null);
 
   // (Phase 8.1) FTS search state. Empty query → bare list.
   // Non-empty → /api/meetings/search?q=&facet=status,track replaces
@@ -278,6 +305,21 @@ export default function MeetingsView() {
       try { es && es.close(); } catch { /* noop */ }
       setStreaming(false);
     };
+  }, [selectedId]);
+
+  // (Phase 6.9) Fetch lineage when selection changes. Cheap (1 row
+  // for non-fork meetings, depth-many rows otherwise). Failures
+  // silently set null — no need to surface as a hard error.
+  useEffect(() => {
+    if (!selectedId) {
+      setLineage(null);
+      return;
+    }
+    let cancelled = false;
+    apiGet<LineageResponse>(`/api/meetings/${encodeURIComponent(selectedId)}/lineage`)
+      .then((res) => { if (!cancelled) setLineage(res); })
+      .catch(() => { if (!cancelled) setLineage(null); });
+    return () => { cancelled = true; };
   }, [selectedId]);
 
   const meetings = data?.meetings || [];
@@ -889,6 +931,37 @@ export default function MeetingsView() {
               <div className="text-xs text-muted-foreground">
                 <span className="font-medium text-foreground">Task:</span> {detail.task}
               </div>
+              {/* (Phase 6.9) Fork lineage. Show only when there's
+                  more than the source meeting itself in the chain. */}
+              {lineage && lineage.depth > 1 ? (
+                <div className="rounded-md border border-border/60 bg-muted/10 p-2 text-[11px]">
+                  <div className="mb-1 flex items-center gap-1 text-muted-foreground">
+                    <span className="font-medium text-foreground">Fork lineage</span>
+                    <span>· depth={lineage.depth}</span>
+                    {lineage.chainTruncated ? <span className="text-amber-600 dark:text-amber-400">· chain truncated (older ancestor purged)</span> : null}
+                  </div>
+                  <ol className="flex flex-wrap items-center gap-1">
+                    {lineage.chain.map((entry, idx) => (
+                      <li key={entry.id} className="flex items-center gap-1">
+                        {idx > 0 ? <span className="text-muted-foreground">←</span> : null}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedId(entry.id)}
+                          className={cn(
+                            'rounded border px-1.5 py-0.5 font-mono text-[10px] transition-colors',
+                            entry.id === detail.id
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-border bg-background hover:bg-accent/40',
+                          )}
+                          title={`${entry.title} · ${entry.status}`}
+                        >
+                          {entry.id}
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ) : null}
               <div className="space-y-3">
                 {detail.stages.map((stage, idx) => {
                   const turns = detail.transcripts[idx] || [];

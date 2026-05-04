@@ -170,15 +170,24 @@ export default function SpecialistsView() {
 
   const specialists = data?.specialists || [];
   const filtered = useMemo(() => {
-    const q = filter.trim().toLowerCase();
+    // (Phase 8.4) Whitespace-separated tokens AND-compose. Search
+    // hits id / displayName / domain / triggers.keywords AND the
+    // systemPrompt body — the same axes the backend's
+    // searchByText() covers, but client-side because the registry
+    // is bounded.
+    const tokens = filter.trim().toLowerCase().split(/\s+/).filter(Boolean);
     return specialists.filter((s) => {
       if (vetoOnly && !s.vetoPower) return false;
       if (tierFilter !== 'any' && s.tier !== tierFilter) return false;
-      if (!q) return true;
-      return s.id.includes(q)
-        || s.displayName.toLowerCase().includes(q)
-        || s.domain.some((d) => d.toLowerCase().includes(q))
-        || s.triggers.keywords.some((k) => k.toLowerCase().includes(q));
+      if (tokens.length === 0) return true;
+      const haystack = [
+        s.id,
+        s.displayName,
+        s.systemPrompt || '',
+        ...(Array.isArray(s.domain) ? s.domain : []),
+        ...(s.triggers && s.triggers.keywords ? s.triggers.keywords : []),
+      ].join(' ').toLowerCase();
+      return tokens.every((t) => haystack.includes(t));
     });
   }, [specialists, filter, tierFilter, vetoOnly]);
 

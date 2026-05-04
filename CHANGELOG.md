@@ -4,6 +4,40 @@
 
 (no entries — next release window)
 
+## [1.10.310] - 2026-05-04
+
+**Web — specialist filter extended + meeting lineage panel.**
+Two web slices in one release. SpecialistsView's existing filter
+input now matches systemPrompt body too (mirrors backend Phase
+8.4); MeetingsView's detail panel now shows the fork lineage
+chain (Phase 6.9) inline.
+
+### Added
+- **`web/src/components/SpecialistsView.tsx`**:
+  - filter logic now AND-composes whitespace tokens against
+    `id / displayName / systemPrompt / domain / triggers.keywords`
+  - matches backend `searchByText()` behavior for predictability
+  - existing tier / vetoOnly filter chips compose normally
+- **`web/src/components/MeetingsView.tsx`**:
+  - new `<MeetingDetail>.forkOf` typing
+  - new `LineageEntry / LineageResponse` types
+  - `useEffect` fetches `/api/meetings/:id/lineage` on selection
+    change; failures silently null out (best-effort UI signal)
+  - new "Fork lineage" rounded box above the stages list:
+    - shows only when `depth > 1`
+    - renders `← parent ← grandparent` trail with each id as a
+      clickable button to jump selection
+    - current meeting highlighted with `border-primary` ring
+    - "chain truncated" amber note when an ancestor was purged
+      from the store
+
+### Notes
+- Pure web — backend tests still 200/200 green; lint + drift
+  clean.
+- Lineage call is cheap (1 row for non-fork meetings; depth-many
+  otherwise) and runs on selection change only — the polling
+  loop doesn't re-fetch it.
+
 ## [1.10.309] - 2026-05-04
 
 **Web — Phase 8.1 search in MeetingsView.**
