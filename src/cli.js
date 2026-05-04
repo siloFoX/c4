@@ -2967,7 +2967,7 @@ async function main() {
         //   c4 meeting escalate <id> ["reason"...]
         //   c4 meeting abort <id> ["reason"...]
         const sub = (args[0] || 'plan').toLowerCase();
-        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'watch-all', 'templates', 'template-add', 'template-remove', 'prune', 'fork', 'actions', 'classify-track', 'lineage', 'recap', 'stuck'];
+        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'watch-all', 'templates', 'template-add', 'template-remove', 'prune', 'prune-old', 'fork', 'actions', 'classify-track', 'lineage', 'recap', 'stuck'];
         if (!VALID.includes(sub)) {
           console.error(`Usage: c4 meeting <${VALID.join('|')}> [...]`);
           process.exit(1);
@@ -3210,6 +3210,32 @@ async function main() {
           });
           req.on('error', (e) => { console.error(`Error: ${e.message}`); process.exit(1); });
           process.on('SIGINT', () => { req.destroy(); process.stderr.write('\n'); process.exit(0); });
+          return;
+        }
+        if (sub === 'prune-old') {
+          // c4 meeting prune-old [--days N] [--include-active] [--dry-run]
+          let days = null;
+          let terminalOnly = true;
+          let dryRun = false;
+          for (let i = 1; i < args.length; i += 1) {
+            const a = args[i];
+            if (a === '--days' && args[i + 1]) { days = parseInt(args[i + 1], 10); i += 1; }
+            else if (a === '--include-active') { terminalOnly = false; }
+            else if (a === '--dry-run') { dryRun = true; }
+          }
+          const body = { terminalOnly, dryRun };
+          if (Number.isFinite(days)) body.days = days;
+          result = await request('POST', '/meetings/prune-old', body);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          const verb = result.dryRun ? 'would prune' : 'pruned';
+          console.log(`${verb} ${result.count} meeting(s)  (cutoff=${result.cutoffISO}, days=${result.days}, terminalOnly=${result.terminalOnly})`);
+          for (const id of (result.ids || []).slice(0, 20)) {
+            console.log(`  ${id}`);
+          }
+          if ((result.ids || []).length > 20) {
+            console.log(`  ... ${result.ids.length - 20} more`);
+          }
           return;
         }
         if (sub === 'stuck') {

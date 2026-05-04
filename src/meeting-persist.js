@@ -153,6 +153,42 @@ class MeetingPersist {
     return r.changes > 0;
   }
 
+  // Phase 7.5 — auto-prune. Find meetings older than N days,
+  // optionally restricted to terminal statuses, and delete them.
+  // The created_at index makes the find cheap. Returns
+  // `{count, ids, dryRun}`. When dryRun=true, no rows are
+  // deleted; the caller gets the would-be set for preview.
+  //
+  // Terminal-only is the default — keep pending / in-progress
+  // even if they're old (operator may still want to advance them).
+  // Set terminalOnly:false to nuke everything older than the
+  // cutoff including stale pending entries.
+  pruneOlderThan(opts = {}) {
+    const days = Number.isFinite(opts.days) ? opts.days : 90;
+    const terminalOnly = opts.terminalOnly !== false;
+    const dryRun = !!opts.dryRun;
+    if (days < 0) throw new Error('pruneOlderThan: days must be >= 0');
+    const cutoffMs = Date.now() - days * 24 * 60 * 60 * 1000;
+    const cutoffISO = new Date(cutoffMs).toISOString();
+    let sql = 'SELECT id FROM meetings WHERE created_at < ?';
+    const params = [cutoffISO];
+    if (terminalOnly) {
+      sql += ' AND status IN (?, ?, ?)';
+      params.push('completed', 'escalated', 'aborted');
+    }
+    const ids = this._db.prepare(sql).all(...params).map((r) => r.id);
+    if (!dryRun && ids.length > 0) {
+      // Wrap deletes in a single transaction so a partial failure
+      // (disk full, etc) doesn't leave half the rows gone with no
+      // signal back to the caller.
+      const tx = this._db.transaction((idsArg) => {
+        for (const id of idsArg) this._stmtDelete.run(id);
+      });
+      tx(ids);
+    }
+    return { count: ids.length, ids, dryRun, cutoffISO, terminalOnly, days };
+  }
+
   close() {
     if (this._db) {
       this._db.close();

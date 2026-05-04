@@ -833,6 +833,7 @@ async function handleRequest(req, res) {
     if (meetingParams && (
       meetingParams.id === 'plan' || meetingParams.id === 'templates' || meetingParams.id === 'stream'
         || meetingParams.id === 'classify-track' || meetingParams.id === 'stuck'
+        || meetingParams.id === 'prune-old'
     )) meetingParams = null;
   }
 
@@ -4702,6 +4703,42 @@ async function handleRequest(req, res) {
         return;
       }
       result = { id: sess.id, transcript: sess.transcript() };
+
+    } else if (req.method === 'POST' && route === '/meetings/prune-old') {
+      // (multi-specialist phase 7.5) Auto-prune persisted meetings
+      // older than N days. Default 90 days, terminal-only.
+      // Body:
+      //   days          number of days; rows older than now-days are
+      //                 candidates (default 90)
+      //   terminalOnly  when true (default), only completed /
+      //                 escalated / aborted are pruned
+      //   dryRun        when true, returns the candidate id list
+      //                 without deleting
+      // Mirrors deletions into the in-memory store so the live API
+      // sees the same view as disk after a real prune.
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/meetings/prune-old', body, res, cfg)) return;
+      if (!_meetingPersist) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'meeting persist disabled — nothing to prune' }));
+        return;
+      }
+      try {
+        const r = _meetingPersist.pruneOlderThan({
+          days: Number.isFinite(body.days) ? body.days : undefined,
+          terminalOnly: body.terminalOnly !== false,
+          dryRun: !!body.dryRun,
+        });
+        // Reflect the disk deletions in the in-memory store. dryRun
+        // path is read-only so we skip this branch.
+        if (!r.dryRun && r.ids.length > 0) {
+          const store = meetingSession.getShared();
+          for (const id of r.ids) { try { store.remove(id); } catch { /* tolerate */ } }
+        }
+        result = r;
+      } catch (err) {
+        res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
+      }
 
     } else if (req.method === 'GET' && route === '/meetings/stuck') {
       // (multi-specialist phase 6.15) Find meetings that have been

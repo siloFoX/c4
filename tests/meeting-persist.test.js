@@ -184,6 +184,77 @@ t('full lifecycle: pending → in-progress → completed survives save points', 
   p.close();
 });
 
+t('pruneOlderThan dryRun returns ids without deleting', () => {
+  const p = mkDb();
+  const old = mkSession('old terminal');
+  old._createdAt = '2025-01-01T00:00:00.000Z';
+  old.start(); old.abort('test');
+  const recent = mkSession('recent terminal');
+  recent.start(); recent.abort('test');
+  p.save(old);
+  p.save(recent);
+  assert.strictEqual(p.count(), 2);
+  const r = p.pruneOlderThan({ days: 30, dryRun: true });
+  assert.strictEqual(r.dryRun, true);
+  assert.strictEqual(r.count, 1);
+  assert.deepStrictEqual(r.ids, [old.id]);
+  // Nothing deleted in dry-run mode.
+  assert.strictEqual(p.count(), 2);
+  p.close();
+});
+
+t('pruneOlderThan: days=0 cutoff → everything older than now', () => {
+  const p = mkDb();
+  const sess = mkSession('immediate');
+  sess._createdAt = '2025-01-01T00:00:00.000Z';
+  sess.start(); sess.abort('t');
+  p.save(sess);
+  const r = p.pruneOlderThan({ days: 0 });
+  assert.strictEqual(r.count, 1);
+  assert.strictEqual(p.count(), 0);
+  p.close();
+});
+
+t('pruneOlderThan terminalOnly default skips pending sessions', () => {
+  const p = mkDb();
+  const oldPending = mkSession('old pending');
+  oldPending._createdAt = '2025-01-01T00:00:00.000Z';
+  const oldAborted = mkSession('old aborted');
+  oldAborted._createdAt = '2025-01-01T00:00:00.000Z';
+  oldAborted.start(); oldAborted.abort('t');
+  p.save(oldPending);
+  p.save(oldAborted);
+  const r = p.pruneOlderThan({ days: 30 });
+  assert.strictEqual(r.count, 1, 'only the aborted one is pruned');
+  assert.strictEqual(p.load(oldPending.id).status, 'pending', 'pending row preserved');
+  p.close();
+});
+
+t('pruneOlderThan terminalOnly:false also drops old pending rows', () => {
+  const p = mkDb();
+  const oldPending = mkSession('old pending');
+  oldPending._createdAt = '2025-01-01T00:00:00.000Z';
+  p.save(oldPending);
+  const r = p.pruneOlderThan({ days: 30, terminalOnly: false });
+  assert.strictEqual(r.count, 1);
+  assert.strictEqual(p.count(), 0);
+  p.close();
+});
+
+t('pruneOlderThan rejects negative days', () => {
+  const p = mkDb();
+  assert.throws(() => p.pruneOlderThan({ days: -1 }), />= 0/);
+  p.close();
+});
+
+t('pruneOlderThan empty result is a clean no-op', () => {
+  const p = mkDb();
+  const r = p.pruneOlderThan({ days: 30 });
+  assert.strictEqual(r.count, 0);
+  assert.deepStrictEqual(r.ids, []);
+  p.close();
+});
+
 (async () => {
   for (const fn of pending) await fn();
   console.log(`\n  ${passed} passed, ${failed} failed (meeting-persist)`);
