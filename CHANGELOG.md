@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.293] - 2026-05-04
+
+**Multi-Specialist System — Phase 7.11 (Audit log visibility).**
+After Phase 7.6 surfaced the meetings.db size in summary, the
+audit JSONL was the remaining blind spot. Audit grows unbounded
+(no auto-prune by design — compliance-y record), so visibility
+matters more, not less. This adds it.
+
+### Added
+- **`src/daemon.js`**: `_buildSummaryPersistInfo()` helper —
+  computes both meetings.db stats AND audit-log stats in one
+  place. Result envelope `persist.auditLog: {path, bytes,
+  entries}` always present (even when meetings persist is
+  disabled).
+  Refactored from an inline IIFE to a top-level helper so the
+  schema-drift checker's `result = { ... };` regex doesn't
+  misread nested `};` as the literal's terminator.
+- **CLI**: `c4 specialist summary` now prints a 2nd line:
+  `audit:   N entry(ies), XX.YKB (/path/specialist-audit.jsonl)`
+  alongside the existing `persist:` line.
+- **OpenAPI**: `persist.auditLog` documented with
+  `path / bytes / entries` (all nullable for partial reads).
+
+### Notes
+- e2e: live daemon → `audit: 18 entry(ies), 3.8KB` rendered next
+  to `persist: 0 row(s), 24.0KB`. Operators now have a single
+  command for full persistent-state visibility.
+- Audit entries counted via `readFileSync + split('\n')` —
+  bounded by file size which c4's deployment maturity keeps low.
+  If/when the file balloons, this can move to a streaming
+  count, but it's a non-issue at current scale.
+
 ## [1.10.292] - 2026-05-04
 
 **Multi-Specialist System — Phase 7.10 (Audit time-window filters).**

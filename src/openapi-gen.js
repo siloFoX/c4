@@ -3140,6 +3140,13 @@ const ROUTE_SCHEMAS = {
             dbPath: { type: 'string', nullable: true },
             dbSizeBytes: { type: 'integer', nullable: true },
             rowCount: { type: 'integer', nullable: true },
+            auditLog: {
+              properties: {
+                path: { type: 'string' },
+                bytes: { type: 'integer', nullable: true },
+                entries: { type: 'integer', nullable: true },
+              },
+            },
           },
         },
       },

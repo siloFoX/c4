@@ -71,6 +71,47 @@ meetingSession.getShared({ persist: _meetingPersist });
 // Cheap (parses N JSON blobs, ~few KB each), so we do it inline
 // at boot rather than lazily. Errors are logged + counted; a
 // corrupt row never blocks daemon startup.
+// Persist + audit-log info for /specialists/summary. Defined as a
+// top-level helper (not inline IIFE) so the schema-drift checker's
+// regex doesn't trip on the nested `};` and confuse it for the
+// result literal's terminator.
+function _buildSummaryPersistInfo() {
+  const fs2 = require('fs');
+  let auditBytes = null;
+  let auditEntries = null;
+  try {
+    const stat = fs2.statSync(specialistAudit.DEFAULT_AUDIT_PATH);
+    auditBytes = stat.size;
+  } catch { /* file may not exist yet on a fresh install */ }
+  if (auditBytes != null) {
+    try {
+      const raw = fs2.readFileSync(specialistAudit.DEFAULT_AUDIT_PATH, 'utf8');
+      auditEntries = raw.split('\n').filter(Boolean).length;
+    } catch { /* tolerate */ }
+  }
+  const auditInfo = {
+    path: specialistAudit.DEFAULT_AUDIT_PATH,
+    bytes: auditBytes,
+    entries: auditEntries,
+  };
+  if (!_meetingPersist) return { enabled: false, auditLog: auditInfo };
+  let dbSizeBytes = null;
+  try {
+    const stat = fs2.statSync(meetingPersistMod.DEFAULT_DB_PATH);
+    dbSizeBytes = stat.size;
+  } catch { /* DB file may not exist yet (in-memory mode etc) */ }
+  let rowCount = null;
+  try { rowCount = _meetingPersist.count(); }
+  catch { /* tolerate */ }
+  return {
+    enabled: true,
+    dbPath: meetingPersistMod.DEFAULT_DB_PATH,
+    dbSizeBytes,
+    rowCount,
+    auditLog: auditInfo,
+  };
+}
+
 if (_meetingPersist) {
   try {
     const r = meetingSession.getShared().rehydrate();
@@ -5662,6 +5703,10 @@ async function handleRequest(req, res) {
         const under = specialistPromptIterate.detectUnderperformers(reg);
         underperformerCount = under.flagged || 0;
       } catch { /* analyzer fail-soft */ }
+      // (Phase 7.6 + 7.11) Build the persist + auditLog info
+      // BEFORE the result assignment so the drift checker's regex
+      // doesn't confuse nested `};` for the result literal's end.
+      const persistInfo = _buildSummaryPersistInfo();
       result = {
         ts: new Date().toISOString(),
         registry: {
@@ -5681,29 +5726,7 @@ async function handleRequest(req, res) {
           averageSampleCount: withSamples > 0 ? totalSamples / withSamples : 0,
           underperformerCount,
         },
-        persist: (() => {
-          // (Phase 7.6) Surface the persistent backing store so the
-          // operator dashboard shows whether persistence is on, where
-          // the DB lives, how big it has gotten, and how many rows
-          // are in it. Helps justify a `c4 meeting prune-old` run
-          // when the file balloons.
-          if (!_meetingPersist) return { enabled: false };
-          let dbSizeBytes = null;
-          try {
-            const fs2 = require('fs');
-            const stat = fs2.statSync(meetingPersistMod.DEFAULT_DB_PATH);
-            dbSizeBytes = stat.size;
-          } catch { /* DB file may not exist yet (in-memory mode etc) */ }
-          let rowCount = null;
-          try { rowCount = _meetingPersist.count(); }
-          catch { /* tolerate */ }
-          return {
-            enabled: true,
-            dbPath: meetingPersistMod.DEFAULT_DB_PATH,
-            dbSizeBytes,
-            rowCount,
-          };
-        })(),
+        persist: persistInfo,
       };
 
     } else if (req.method === 'GET' && route === '/specialists/audit') {

@@ -2536,6 +2536,15 @@ async function main() {
             } else {
               console.log(`persist: DISABLED (in-memory only — meetings will vanish on daemon restart)`);
             }
+            if (p.auditLog && (p.auditLog.bytes != null || p.auditLog.entries != null)) {
+              const aSize = (typeof p.auditLog.bytes === 'number')
+                ? `${(p.auditLog.bytes / 1024).toFixed(1)}KB`
+                : '-';
+              const aEntries = (typeof p.auditLog.entries === 'number')
+                ? `${p.auditLog.entries} entry(ies)`
+                : '-';
+              console.log(`audit:   ${aEntries}, ${aSize} (${p.auditLog.path || '-'})`);
+            }
           }
           return;
         }
