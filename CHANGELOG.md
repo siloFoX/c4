@@ -4,6 +4,52 @@
 
 (no entries — next release window)
 
+## [1.10.285] - 2026-05-04
+
+**Multi-Specialist System — Phase 7.5 (Meeting auto-prune).**
+The Phase 7.1-7.3 persistence backend would otherwise grow
+unbounded — every completed/escalated/aborted meeting persists
+forever. This phase adds a sweep mechanism so operators can
+prune old terminal meetings on demand.
+
+### Added
+- **`src/meeting-persist.js`**:
+  `pruneOlderThan({days, terminalOnly, dryRun})`
+  - default: 90 days, terminal-only (preserves pending /
+    in-progress regardless of age — operators may still want
+    to advance them)
+  - `days >= 0` enforced
+  - SELECT uses the `created_at` index → cheap even at thousands
+    of rows
+  - DELETE wrapped in a transaction → no half-deleted state on
+    disk-full / interrupted
+  - dryRun returns the candidate ids without mutating
+- **HTTP**: `POST /meetings/prune-old`
+  body `{days, terminalOnly, dryRun}`. Mirrors disk deletions
+  into the in-memory MeetingStore so live API and disk stay
+  consistent. Returns 400 when persist is disabled.
+- **CLI**: `c4 meeting prune-old [--days N] [--include-active]
+  [--dry-run]`
+  - `--include-active` flips terminalOnly to false
+  - prints first 20 ids + tail-count if more
+- **OpenAPI**: full schema; `prune-old` added to the meetings
+  parametric reserved-suffix list.
+- **Tests** (`tests/meeting-persist.test.js`): 6 new cases —
+  dryRun returns ids without deleting, days=0 cutoff prunes
+  everything older than now, terminalOnly default skips pending,
+  terminalOnly:false also drops pending, negative days rejected,
+  empty result no-op.
+
+### Notes
+- Auto-prune is a manual sweep (operator-triggered) by design.
+  An automatic background timer is intentionally deferred — too
+  many failure modes (operator vacations / timezone errors /
+  data still wanted for retro analysis) for autonomous deletion.
+- Pairs with the existing `c4 meeting prune` (single-id /
+  --terminal in-memory drop) — that sweeps the in-memory store
+  only; `prune-old` sweeps the disk-backed history with the
+  in-memory side as a follow-on.
+
 ## [1.10.284] - 2026-05-04
 
 **Multi-Specialist System — Phase 7.3 (MeetingStore rehydrate at boot).**
