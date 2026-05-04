@@ -4,6 +4,55 @@
 
 (no entries — next release window)
 
+## [1.10.284] - 2026-05-04
+
+**Multi-Specialist System — Phase 7.3 (MeetingStore rehydrate at boot).**
+The big payoff. Daemon restart used to wipe every active meeting
+(in-memory MeetingStore). After this phase, meetings survive a
+hard `c4 daemon stop && c4 daemon start` cycle exactly as they
+were — status, transcripts, votes, escalations, stage cursor
+all restored from `~/.c4/meetings.db`.
+
+### Added
+- **`src/meeting-session.js`**:
+  - `static MeetingSession.fromJSON(snap)` — rebuilds a session
+    from a `_persistSnapshot()` envelope. Restores `_status`,
+    `_startedAt`, `_completedAt`, `_currentStageIndex`, `_rounds`,
+    `_transcripts`, `_votes`, `_escalations`. Mutates fields
+    directly without emitting `state` events (no observers yet
+    at rehydrate time → no spurious save loop).
+  - `MeetingStore.rehydrate()` — `loadAll()` → `fromJSON()` →
+    in-memory map + state-listener attach. Bypasses `put()`'s
+    initial-save (the row just came off disk; no need to write
+    back). Bad rows skipped + tallied; never throws — the daemon
+    must always come up.
+- **`src/daemon.js`**: calls `getShared().rehydrate()` once at
+  boot, after `MeetingPersist` init. Logs count + per-error
+  breakdown to stderr.
+- **Tests** (`tests/meeting-session.test.js`): 7 new cases —
+  `fromJSON` malformed-input rejection, full-fidelity round-trip
+  on a started + contributed session, terminal-state preservation
+  (aborted + completedAt + escalations), `rehydrate` no-persist
+  short-circuit, `rehydrate` from a stub persist restores the
+  session, malformed-row skip + error tally, idempotent on second
+  call (no double-attach listener).
+
+### Notes
+- e2e on the live 10.40 daemon:
+  1. `c4 daemon restart` (clean state)
+  2. POST /meetings with task `persist rehydrate test`
+  3. POST /:id/start → status `in-progress`
+  4. POST /:id/contribute with text `persistence test contribution`
+  5. `c4 daemon stop && c4 daemon start` (hard cycle, NOT just reload)
+  6. GET /meetings/:id → status `in-progress`, transcripts[0]
+     contains the one turn with text `persistence test
+     contribution` ✓
+- This closes the in-memory volatility gap that was the largest
+  remaining structural issue in the multi-specialist organism.
+- Three phases (7.1 storage layer, 7.2 save hooks, 7.3
+  rehydrate) were all required because each could fail
+  independently — splitting kept review surfaces tight.
+
 ## [1.10.283] - 2026-05-04
 
 **Multi-Specialist System — Phase 7.2 (MeetingStore save hooks).**
