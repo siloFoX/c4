@@ -103,6 +103,35 @@ export default function SpecialistsView() {
     }
   }, []);
 
+  // (Phase 6.14) Organism summary — compact info bar above the
+  // two-column layout. Refreshed on a 30s timer; stale during the
+  // gap is fine because the rest of the view polls the registry +
+  // underperformers directly.
+  interface OrganismSummary {
+    registry: { count: number; vetoCount: number };
+    meetings: { total: number; recent24h: number };
+    scores: { specialistsWithSamples: number; underperformerCount: number };
+    persist?: {
+      enabled: boolean;
+      dbSizeBytes?: number | null;
+      rowCount?: number | null;
+      auditLog?: { bytes?: number | null; entries?: number | null };
+      lastKnownGood?: { exists: boolean; ageDays?: number | null };
+    };
+  }
+  const [summary, setSummary] = useState<OrganismSummary | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const fetchSummary = () => {
+      apiGet<OrganismSummary>('/api/specialists/summary')
+        .then((res) => { if (!cancelled) setSummary(res); })
+        .catch(() => { /* silently degrade — info bar just hides */ });
+    };
+    fetchSummary();
+    const id = window.setInterval(fetchSummary, 30000);
+    return () => { cancelled = true; window.clearInterval(id); };
+  }, []);
+
   // Underperformer scan (phase 5.1) — fetched separately so the
   // alert pill on a row can light up before the operator clicks.
   const [flaggedIds, setFlaggedIds] = useState<Set<string>>(new Set());
@@ -197,7 +226,58 @@ export default function SpecialistsView() {
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 md:flex-row md:p-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 md:p-6">
+      {/* (Phase 6.14) Organism summary info bar. Quiet when the
+          endpoint is unreachable (older daemon / network). */}
+      {summary ? (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-border/40 bg-muted/10 px-3 py-1.5 text-[11px] text-muted-foreground">
+          <span>
+            <span className="font-medium text-foreground">{summary.registry.count}</span> specialists
+            {summary.registry.vetoCount > 0 ? (
+              <span className="ml-1">({summary.registry.vetoCount} veto)</span>
+            ) : null}
+          </span>
+          <span>·</span>
+          <span>
+            <span className="font-medium text-foreground">{summary.meetings.total}</span> meetings
+            {summary.meetings.recent24h > 0 ? (
+              <span className="ml-1">({summary.meetings.recent24h} last 24h)</span>
+            ) : null}
+          </span>
+          {summary.scores.underperformerCount > 0 ? (
+            <>
+              <span>·</span>
+              <span className="text-amber-700 dark:text-amber-400">
+                {summary.scores.underperformerCount} underperformer(s)
+              </span>
+            </>
+          ) : null}
+          {summary.persist && summary.persist.enabled ? (
+            <>
+              <span>·</span>
+              <span>
+                persist {summary.persist.rowCount ?? '?'} rows
+                {typeof summary.persist.dbSizeBytes === 'number' ? ` (${(summary.persist.dbSizeBytes / 1024).toFixed(1)}KB)` : ''}
+              </span>
+              {summary.persist.auditLog && typeof summary.persist.auditLog.entries === 'number' ? (
+                <span>· audit {summary.persist.auditLog.entries} entries</span>
+              ) : null}
+              {summary.persist.lastKnownGood && summary.persist.lastKnownGood.exists && typeof summary.persist.lastKnownGood.ageDays === 'number' ? (
+                <span className={cn(
+                  summary.persist.lastKnownGood.ageDays > 7 ? 'text-amber-700 dark:text-amber-400' : '',
+                )}>
+                  · backup {summary.persist.lastKnownGood.ageDays < 1
+                    ? `${(summary.persist.lastKnownGood.ageDays * 24).toFixed(1)}h`
+                    : `${summary.persist.lastKnownGood.ageDays.toFixed(1)}d`} ago
+                </span>
+              ) : null}
+            </>
+          ) : summary.persist ? (
+            <span className="text-amber-700 dark:text-amber-400">· persist DISABLED</span>
+          ) : null}
+        </div>
+      ) : null}
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden md:flex-row">
       <Card className="flex min-h-0 flex-1 flex-col md:max-w-md">
         <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
           <div className="flex flex-row items-center justify-between gap-2">
@@ -505,6 +585,7 @@ export default function SpecialistsView() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

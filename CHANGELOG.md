@@ -4,6 +4,41 @@
 
 (no entries — next release window)
 
+## [1.10.312] - 2026-05-04
+
+**Web — organism summary info bar in SpecialistsView.**
+Phase 6.14 introduced `/api/specialists/summary` (registry +
+meetings + scores + persist + audit + lastKnownGood). CLI
+operators saw it via `c4 specialist summary`; web operators
+had nothing equivalent. This adds a compact info bar above the
+two-column layout.
+
+### Added
+- **`web/src/components/SpecialistsView.tsx`**:
+  - `OrganismSummary` interface
+  - polling `useEffect` (30s interval) calling
+    `/api/specialists/summary`; failures degrade to hidden bar
+  - new info bar at the top of the page:
+    - `13 specialists (2 veto)`
+    - `5 meetings (3 last 24h)` (only shows recent24h when > 0)
+    - `2 underperformer(s)` in amber when > 0
+    - `persist 0 rows (4.0KB) · audit 18 entries · backup 2.3h ago`
+    - `backup` segment goes amber when ageDays > 7 (matches the
+      doctor warning threshold from v1.10.297)
+    - `persist DISABLED` warning when the daemon was started
+      without persistence (better-sqlite3 missing)
+
+### Notes
+- Pure web — backend tests still 200/200 green; lint + drift
+  clean.
+- Layout refactor: wrapped the existing two-column grid in an
+  outer flex column so the info bar stacks above. Mobile
+  (`md:flex-row`) breakpoint preserved.
+- Closes the gap between CLI and web for operator-visible
+  organism state. Combined with the lineage panel (v1.10.310)
+  and action-items panel (v1.10.311), web operators no longer
+  need to drop into a terminal for routine context.
+
 ## [1.10.311] - 2026-05-04
 
 **Web — action-items panel in MeetingsView.**
