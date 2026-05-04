@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.10.306] - 2026-05-04
+
+**Multi-Specialist System — Phase 9.1 (Smoke-test CLI).**
+`c4 doctor` runs static health checks. This adds a dynamic
+end-to-end exerciser — `c4 specialist smoke-test` creates a
+meeting, drives it through the orchestrator with the mock brain,
+verifies persist + search + recap behave correctly, then cleans
+up. Pass-fail timing per step; non-zero exit on any failure.
+
+### Added
+- **CLI**: `c4 specialist smoke-test [--keep] [--track X]`
+  - 5-step sequence:
+    1. create meeting via POST /meetings
+    2. verify persist (search by token finds it)
+    3. run meeting (mock brain, maxAsks=30)
+    4. verify recap envelope
+    5. cleanup (delete the test meeting)
+  - per-step `✓ / ✗` rendering with millisecond timing
+  - `--keep` skips cleanup so an operator can inspect the test
+    meeting after a failure
+  - `--track` overrides the default `lightweight` for full-track
+    smoke testing
+  - exit 1 on any step failure → CI-friendly
+
+### Notes
+- e2e: `c4 specialist smoke-test` against the live daemon
+  → `smoke-test passed in 12ms` (5 steps green).
+- Two FTS gotchas fixed during the build:
+  - hyphenated query (`smoke-test`) was parsed as the NOT
+    operator → search step uses bare `smoke` token
+  - `/run` envelope is `{ok, totalAsks, session: {...}}` —
+    status check looks at `session.status`, not the top-level
+- Pairs with `c4 doctor`: doctor for "is the static config
+  right", smoke-test for "does the runtime actually work".
+  CI / prod monitoring can chain both.
+
 ## [1.10.305] - 2026-05-04
 
 **Multi-Specialist System — Phase 8.5 (Specialist score-reset).**

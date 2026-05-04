@@ -2176,8 +2176,8 @@ async function main() {
         //   c4 specialist dispatch "<task>" [--stage X] [--track X] [--cap N]
         //   c4 specialist score [--by-domain D | --by-stage S] [--limit N]
         const sub = (args[0] || 'list').toLowerCase();
-        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt', 'export', 'import', 'audit', 'audit-rotate', 'score-history', 'score-reset', 'propose', 'apply-prompt', 'tag', 'summary'].includes(sub)) {
-          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt|export|import|audit|audit-rotate|score-history|score-reset|propose|apply-prompt|tag|summary> [args]');
+        if (!['list', 'describe', 'dispatch', 'score', 'add', 'remove', 'underperformers', 'suggest-prompt', 'export', 'import', 'audit', 'audit-rotate', 'score-history', 'score-reset', 'propose', 'apply-prompt', 'tag', 'summary', 'smoke-test'].includes(sub)) {
+          console.error('Usage: c4 specialist <list|describe|dispatch|score|add|remove|underperformers|suggest-prompt|export|import|audit|audit-rotate|score-history|score-reset|propose|apply-prompt|tag|summary|smoke-test> [args]');
           process.exit(1);
         }
         if (sub === 'list') {
@@ -2394,6 +2394,92 @@ async function main() {
               console.log(`    stage:${k.padEnd(17)} ${before} → ${after}`);
             }
           }
+          return;
+        }
+        if (sub === 'smoke-test') {
+          // c4 specialist smoke-test [--keep] [--track lightweight|standard]
+          // Drives a mock-brain meeting end-to-end against the
+          // running daemon and reports pass/fail per step.
+          // Default: cleans up the test meeting after the run.
+          // --keep leaves it so an operator can inspect.
+          let keep = false;
+          let track = 'lightweight';
+          for (let i = 1; i < args.length; i += 1) {
+            if (args[i] === '--keep') keep = true;
+            else if (args[i] === '--track' && args[i + 1]) { track = args[i + 1]; i += 1; }
+          }
+          const tick = '\x1b[32m✓\x1b[0m';
+          const cross = '\x1b[31m✗\x1b[0m';
+          const t0 = Date.now();
+          const steps = [];
+          let testId = null;
+          let failed = false;
+          // Each step wraps a try/catch so a single failure doesn't
+          // skip the cleanup.
+          async function step(label, fn) {
+            const start = Date.now();
+            try {
+              await fn();
+              steps.push({ ok: true, label, ms: Date.now() - start });
+            } catch (err) {
+              steps.push({ ok: false, label, ms: Date.now() - start, error: err.message });
+              failed = true;
+            }
+          }
+          await step('create meeting', async () => {
+            const r = await request('POST', '/meetings', {
+              task: `c4 smoke-test ${new Date().toISOString()}`,
+              track,
+            });
+            if (r.error) throw new Error(r.error);
+            testId = r.id;
+          });
+          await step('verify persist (search by token)', async () => {
+            if (!testId) throw new Error('no testId from previous step');
+            // FTS5 treats unquoted `-` as the NOT operator, so search
+            // for the simple "smoke" token rather than "smoke-test".
+            const qs = new URLSearchParams({ q: 'smoke', limit: '5' });
+            const r = await request('GET', `/meetings/search?${qs.toString()}`);
+            if (r.error) throw new Error(r.error);
+            if (!r.results) throw new Error('no results array');
+            if (!r.results.some((m) => m.id === testId)) {
+              throw new Error(`new meeting ${testId} not in FTS search results`);
+            }
+          });
+          await step('run meeting (mock brain)', async () => {
+            if (!testId) throw new Error('no testId');
+            const r = await request('POST', `/meetings/${encodeURIComponent(testId)}/run`, {
+              brain: 'mock', maxAsks: 30,
+            });
+            if (r.error) throw new Error(r.error);
+            // /run returns {ok, totalAsks, session: {...}} — the
+            // terminal status lives on session.
+            const status = r.session && r.session.status;
+            if (!['completed', 'escalated'].includes(status)) {
+              throw new Error(`unexpected terminal status: ${status}`);
+            }
+          });
+          await step('verify recap envelope', async () => {
+            if (!testId) throw new Error('no testId');
+            const r = await request('GET', `/meetings/${encodeURIComponent(testId)}/recap`);
+            if (r.error) throw new Error(r.error);
+            if (!r.stages || r.stages.length === 0) throw new Error('recap missing stages');
+          });
+          if (!keep && testId) {
+            await step('cleanup (delete test meeting)', async () => {
+              await request('DELETE', `/meetings/${encodeURIComponent(testId)}`);
+            });
+          }
+          for (const s of steps) {
+            const mark = s.ok ? tick : cross;
+            console.log(`  ${mark} ${s.label} (${s.ms}ms)${s.error ? ` — ${s.error}` : ''}`);
+          }
+          const totalMs = Date.now() - t0;
+          if (failed) {
+            console.log(`\nsmoke-test FAILED in ${totalMs}ms${testId ? ` (test meeting ${testId} kept for inspection)` : ''}`);
+            process.exit(1);
+          }
+          console.log(`\nsmoke-test passed in ${totalMs}ms${keep && testId ? ` (kept ${testId})` : ''}`);
           return;
         }
         if (sub === 'score-reset') {
