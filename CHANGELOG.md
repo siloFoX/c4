@@ -4,6 +4,43 @@
 
 (no entries — next release window)
 
+## [1.10.309] - 2026-05-04
+
+**Web — Phase 8.1 search in MeetingsView.**
+The autonomous run from v1.10.298+ shipped FTS5 meeting search,
+filters, facets, and pagination as HTTP/CLI surface. The web UI
+hadn't caught up — operators using the browser had no way to find
+"the meeting that discussed auth migration" without dropping into
+a terminal. This first slice surfaces the FTS endpoint in the
+existing MeetingsView left panel.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**:
+  - `<Search />` icon-prefixed input box in the list `CardHeader`,
+    250ms debounced
+  - empty query: panel shows the polled `meetings` list as before
+  - non-empty: panel shows ranked search results from
+    `/api/meetings/search?q=&limit=50&facet=status,track&total=1`
+  - facet summary row renders `42/120 matches · status:
+    completed=31, aborted=11 · track: lightweight=24, ...`
+  - search rows merge with the polled list summary so titles +
+    track render properly even though the search response itself
+    only carries `id / status / createdAt / snippet / rank`
+  - `X` button to clear the query
+  - error / loading state shown inline below the input
+
+### Notes
+- Pure web change — no backend/test changes; backend tests still
+  200/200, lint + drift clean.
+- Search is debounced + cancelable. Each keystroke does NOT fire a
+  request; the previous query's result is discarded if a fresh
+  keystroke arrives during fetch.
+- Next slices: facet click-to-filter (compose with Phase 8.1.5
+  status/track filters), pagination (Phase 8.3 offset+total
+  already wired in the response → just needs UI), specialist
+  search (Phase 8.4) in SpecialistsView. None of those are
+  blocking — operators have a working search now.
+
 ## [1.10.308] - 2026-05-04
 
 **c4 doctor — `--runtime` flag chains smoke-test.**

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { BookOpen, Eye, MessageCircle, Play, Plus, RefreshCw, Radio } from 'lucide-react';
+import { BookOpen, Eye, MessageCircle, Play, Plus, RefreshCw, Radio, Search, X } from 'lucide-react';
 import { apiGet, apiPost, eventSourceUrl } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
@@ -97,6 +97,17 @@ export default function MeetingsView() {
   const [detail, setDetail] = useState<MeetingDetail | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
 
+  // (Phase 8.1) FTS search state. Empty query → bare list.
+  // Non-empty → /api/meetings/search?q=&facet=status,track replaces
+  // the list. Debounced 250ms so each keystroke doesn't fire a
+  // request.
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<MeetingSummary[] | null>(null);
+  const [searchFacets, setSearchFacets] = useState<{ status?: Record<string, number>; track?: Record<string, number> } | null>(null);
+  const [searchTotal, setSearchTotal] = useState<number | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searching, setSearching] = useState(false);
+
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -118,6 +129,88 @@ export default function MeetingsView() {
     const id = window.setInterval(refresh, 8000);
     return () => window.clearInterval(id);
   }, [refresh]);
+
+  // (Phase 8.1) Debounced FTS search.
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!q) {
+      // Empty query → clear results so the bare list shows.
+      setSearchResults(null);
+      setSearchFacets(null);
+      setSearchTotal(null);
+      setSearchError(null);
+      setSearching(false);
+      return undefined;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      setSearching(true);
+      setSearchError(null);
+      try {
+        const params = new URLSearchParams({
+          q,
+          limit: '50',
+          facet: 'status,track',
+          total: '1',
+        });
+        const res = await apiGet<{
+          count: number;
+          query: string;
+          offset: number;
+          total?: number;
+          facets?: { status?: Record<string, number>; track?: Record<string, number> };
+          results: Array<{
+            id: string;
+            status: MeetingStatus;
+            createdAt: string;
+            updatedAt: string;
+            snippet: string;
+            rank: number;
+          }>;
+        }>(`/api/meetings/search?${params.toString()}`);
+        if (cancelled) return;
+        // Merge each result with the matching summary from the
+        // current list so the row renders track / title properly
+        // (the search response doesn't include those fields). For
+        // results not in the current page of the list we fall back
+        // to the limited fields the search returns.
+        const summaryById = new Map<string, MeetingSummary>();
+        for (const m of meetings) summaryById.set(m.id, m);
+        const merged: MeetingSummary[] = res.results.map((r) => {
+          const fromList = summaryById.get(r.id);
+          if (fromList) return fromList;
+          return {
+            id: r.id,
+            status: r.status,
+            track: '?',
+            title: r.snippet || r.id,
+            currentStage: null,
+            currentRound: 0,
+            createdAt: r.createdAt,
+            startedAt: null,
+            completedAt: null,
+          };
+        });
+        setSearchResults(merged);
+        setSearchFacets(res.facets || null);
+        setSearchTotal(typeof res.total === 'number' ? res.total : null);
+      } catch (e) {
+        if (cancelled) return;
+        setSearchError((e as Error).message || 'Search failed');
+        setSearchResults([]);
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    }, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+    // We intentionally omit `meetings` from deps — re-running the
+    // search every time the list polls is wasteful; the merge with
+    // summaryById is best-effort decoration.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
 
   // Initial detail fetch + SSE live updates (phase 7.1).
   // We intentionally fetch the full snapshot via the REST endpoint
@@ -418,6 +511,50 @@ export default function MeetingsView() {
               </Button>
             </div>
           </div>
+          {/* (Phase 8.1) Full-text search. Empty query → bare list.
+              Non-empty → list shows matches with bm25 ranking. */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+              <Input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search transcripts… (FTS5: phrases in quotes, * for prefix)"
+                aria-label="Search meetings"
+                className="h-8 pl-7 pr-7 text-[12px]"
+              />
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Clear search"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden />
+                </button>
+              ) : null}
+            </div>
+            {searching ? (
+              <span className="text-[10px] text-muted-foreground">searching…</span>
+            ) : null}
+          </div>
+          {searchResults && searchFacets ? (
+            <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+              <span>
+                {typeof searchTotal === 'number' ? `${searchResults.length}/${searchTotal} matches` : `${searchResults.length} matches`}
+              </span>
+              {searchFacets.status && Object.keys(searchFacets.status).length > 0 ? (
+                <span>· status: {Object.entries(searchFacets.status).map(([k, n]) => `${k}=${n}`).join(', ')}</span>
+              ) : null}
+              {searchFacets.track && Object.keys(searchFacets.track).length > 0 ? (
+                <span>· track: {Object.entries(searchFacets.track).map(([k, n]) => `${k}=${n}`).join(', ')}</span>
+              ) : null}
+            </div>
+          ) : null}
+          {searchError ? (
+            <div className="text-[11px] text-destructive">{searchError}</div>
+          ) : null}
           {creating ? (
             <div className="flex flex-col gap-2 rounded-md border border-dashed border-border bg-muted/20 p-3">
               {templates.length > 0 ? (
@@ -558,45 +695,59 @@ export default function MeetingsView() {
           ) : null}
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col overflow-y-auto p-0">
-          {error ? (
-            <div className="p-4 text-sm text-destructive">{error}</div>
-          ) : meetings.length === 0 ? (
-            <div className="p-4 text-sm text-muted-foreground">
-              {loading ? 'Loading meetings...' : 'No meetings yet — `c4 meeting create "<task>"` to start one.'}
-            </div>
-          ) : (
-            <ul className="divide-y divide-border">
-              {meetings.map((m) => {
-                const active = m.id === selectedId;
-                return (
-                  <li
-                    key={m.id}
-                    className={cn(
-                      'flex cursor-pointer flex-col gap-1 px-4 py-3 transition-colors',
-                      active ? 'bg-primary/10' : 'hover:bg-accent/40',
-                    )}
-                    onClick={() => setSelectedId(m.id)}
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={cn('inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] uppercase tracking-wide', STATUS_BADGE[m.status])}>
-                        {m.status}
+          {(() => {
+            // When search is active, display search results instead
+            // of the polled list. Empty array (no matches) is
+            // distinct from `null` (no search active) so we can show
+            // a tailored "no matches" message.
+            const displayList = searchResults !== null ? searchResults : meetings;
+            const isSearchMode = searchResults !== null;
+            if (error && !isSearchMode) {
+              return <div className="p-4 text-sm text-destructive">{error}</div>;
+            }
+            if (displayList.length === 0) {
+              return (
+                <div className="p-4 text-sm text-muted-foreground">
+                  {isSearchMode
+                    ? `No meetings match "${searchQuery}".`
+                    : (loading ? 'Loading meetings...' : 'No meetings yet — `c4 meeting create "<task>"` to start one.')}
+                </div>
+              );
+            }
+            return (
+              <ul className="divide-y divide-border">
+                {displayList.map((m) => {
+                  const active = m.id === selectedId;
+                  return (
+                    <li
+                      key={m.id}
+                      className={cn(
+                        'flex cursor-pointer flex-col gap-1 px-4 py-3 transition-colors',
+                        active ? 'bg-primary/10' : 'hover:bg-accent/40',
+                      )}
+                      onClick={() => setSelectedId(m.id)}
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={cn('inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] uppercase tracking-wide', STATUS_BADGE[m.status])}>
+                          {m.status}
+                        </span>
+                        <Badge variant="outline" className="text-[10px] uppercase">
+                          {m.track}
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground">
+                          {formatRelative(m.startedAt || m.createdAt)}
+                        </span>
+                      </div>
+                      <span className="truncate text-sm font-medium">{m.title}</span>
+                      <span className="text-[11px] text-muted-foreground">
+                        stage: {m.currentStage || '-'} · round {m.currentRound || 0} · id {m.id}
                       </span>
-                      <Badge variant="outline" className="text-[10px] uppercase">
-                        {m.track}
-                      </Badge>
-                      <span className="text-[10px] text-muted-foreground">
-                        {formatRelative(m.startedAt || m.createdAt)}
-                      </span>
-                    </div>
-                    <span className="truncate text-sm font-medium">{m.title}</span>
-                    <span className="text-[11px] text-muted-foreground">
-                      stage: {m.currentStage || '-'} · round {m.currentRound || 0} · id {m.id}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+                    </li>
+                  );
+                })}
+              </ul>
+            );
+          })()}
         </CardContent>
       </Card>
 
