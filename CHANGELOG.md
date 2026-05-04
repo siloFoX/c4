@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.330] - 2026-05-04
+
+**Web — workflow editor learns audit / notify / meeting node types.**
+Backend `NODE_TYPES` was extended to 8 (Phase 6.4 added meeting,
+older slices added audit + notify). Web's
+`WorkflowEditor.WorkflowNodeType` only knew the original 5 — DAG
+visualizations of workflows using the newer node types fell back
+to the default gray fill. Adds the 3 missing types.
+
+### Added
+- **`web/src/components/WorkflowEditor.tsx`**:
+  - `WorkflowNodeType` extended: `audit | notify | meeting`
+  - `TYPE_FILL` colors:
+    - audit purple `#bb86fc`
+    - notify cyan `#22c1c3`
+    - meeting orange `#f78166`
+  - matches the backend's NODE_TYPES order (excluding `end` which
+    stays gray)
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- The editor's palette/property panel doesn't have a type
+  dropdown today — types come from JSON definitions. The
+  DAG visualization is the only surface that reads
+  `WorkflowNodeType` directly, so the color update is
+  sufficient for visual coverage.
+
 ## [1.10.329] - 2026-05-04
 
 **Web — facet click-to-filter on meeting search.**

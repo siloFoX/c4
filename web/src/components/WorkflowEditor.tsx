@@ -22,7 +22,7 @@ import {
 } from './ui';
 import { cn } from '../lib/cn';
 
-export type WorkflowNodeType = 'task' | 'condition' | 'parallel' | 'wait' | 'end';
+export type WorkflowNodeType = 'task' | 'condition' | 'parallel' | 'wait' | 'audit' | 'notify' | 'meeting' | 'end';
 
 export interface WorkflowNode {
   id: string;
@@ -89,6 +89,10 @@ const TYPE_FILL: Record<WorkflowNodeType, string> = {
   condition: '#a371f7',
   parallel: '#3fb950',
   wait: '#d29922',
+  // (Phase 6.4) audit / notify / meeting node types
+  audit: '#bb86fc',
+  notify: '#22c1c3',
+  meeting: '#f78166',
   end: '#6e7681',
 };
 
