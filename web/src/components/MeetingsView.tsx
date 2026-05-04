@@ -658,6 +658,36 @@ export default function MeetingsView() {
     }
   }, [peerBrain]);
 
+  // (v1.10.339) Manual state-machine controls for in-progress
+  // meetings. Most operators use Run + auto-finalize, but for
+  // long-running manual sessions (e.g., human-driven contributions
+  // via CLI) the per-state buttons matter. All four actions
+  // (start / advance / next-round / escalate / abort) hit the
+  // existing endpoints and rely on the SSE stream to refresh the
+  // detail panel — no manual refetch needed.
+  const [stateBusy, setStateBusy] = useState<string | null>(null);
+  const [stateError, setStateError] = useState<string | null>(null);
+
+  const handleStateAction = useCallback(
+    async (
+      id: string,
+      action: 'start' | 'advance' | 'next-round' | 'escalate' | 'abort',
+      confirm?: string,
+    ) => {
+      if (confirm && !window.confirm(confirm)) return;
+      setStateBusy(action);
+      setStateError(null);
+      try {
+        await apiPost(`/api/meetings/${encodeURIComponent(id)}/${action}`, {});
+      } catch (e) {
+        setStateError(`${action} failed: ${(e as Error).message || 'unknown'}`);
+      } finally {
+        setStateBusy(null);
+      }
+    },
+    [],
+  );
+
   const handleCreate = useCallback(async () => {
     const task = newTask.trim();
     if (!task && !templateName) return;
@@ -1216,6 +1246,82 @@ export default function MeetingsView() {
               </Button>
               {runError ? (
                 <span className="text-[11px] text-destructive">{runError}</span>
+              ) : null}
+            </div>
+          ) : null}
+          {/* (v1.10.339) Manual control row for in-progress meetings.
+              The Run button auto-drives, but manual sessions need
+              per-action buttons (e.g., human-contributed turns via
+              CLI / terminal). */}
+          {selectedId && detail && detail.status === 'in-progress' ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] text-muted-foreground">manual:</span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleStateAction(selectedId, 'advance')}
+                disabled={stateBusy !== null}
+                aria-label="Advance to next stage"
+                title="Advance to the next stage if consensus is reached"
+              >
+                {stateBusy === 'advance' ? '…' : 'Advance'}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleStateAction(selectedId, 'next-round')}
+                disabled={stateBusy !== null}
+                aria-label="Bump round counter"
+                title="Bump round counter on the current stage (refused past round cap)"
+              >
+                {stateBusy === 'next-round' ? '…' : 'Next round'}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleStateAction(
+                  selectedId,
+                  'escalate',
+                  'Mark this meeting as escalated? (round cap or veto deadlock)',
+                )}
+                disabled={stateBusy !== null}
+                aria-label="Escalate meeting"
+              >
+                {stateBusy === 'escalate' ? '…' : 'Escalate'}
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => handleStateAction(
+                  selectedId,
+                  'abort',
+                  'Abort this meeting? Mutations refused after.',
+                )}
+                disabled={stateBusy !== null}
+                aria-label="Abort meeting"
+              >
+                {stateBusy === 'abort' ? '…' : 'Abort'}
+              </Button>
+              {stateError ? (
+                <span className="text-[11px] text-destructive">{stateError}</span>
+              ) : null}
+            </div>
+          ) : null}
+          {selectedId && detail && detail.status === 'pending' ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] text-muted-foreground">or manually:</span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleStateAction(selectedId, 'start')}
+                disabled={stateBusy !== null}
+                aria-label="Start meeting (transition to in-progress)"
+                title="Mark the meeting as in-progress without running. For manual / CLI-driven sessions."
+              >
+                {stateBusy === 'start' ? '…' : 'Start (manual)'}
+              </Button>
+              {stateError ? (
+                <span className="text-[11px] text-destructive">{stateError}</span>
               ) : null}
             </div>
           ) : null}

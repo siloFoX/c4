@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.340] - 2026-05-04
+
+**Web — manual state-machine controls for in-progress and pending
+meetings.** Operators relying on Run + auto-finalize had no way
+to drive a manual / CLI-fed meeting through stages from the web.
+Endpoints have shipped since Phase 1 (`/start`, `/advance`,
+`/next-round`, `/escalate`, `/abort`); now they're surfaced in
+the detail panel.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**:
+  - `handleStateAction(id, action, confirm?)` — generic helper
+    posting `{}` to `/api/meetings/:id/{action}` with shared
+    busy/error state. Confirm dialog for escalate/abort (both
+    are state-locking).
+  - In-progress action row: Advance / Next round / Escalate /
+    Abort. SSE detail subscription auto-refreshes the panel —
+    no manual refetch.
+  - Pending row: "Start (manual)" alongside Run, for sessions
+    where the operator wants the meeting in-progress without
+    auto-driving it (e.g., the operator will contribute via CLI).
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- No new endpoints. No SSE channel change.
+
 ## [1.10.339] - 2026-05-04
 
 **Web — suggest-prompt (read-only revision draft) in detail panel.**
