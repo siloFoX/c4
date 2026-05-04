@@ -175,6 +175,10 @@ export default function MeetingsView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchStatus, setSearchStatus] = useState<MeetingStatus | ''>('');
   const [searchTrack, setSearchTrack] = useState<'lightweight' | 'standard' | 'full' | ''>('');
+  // (Phase 8.1.5) since/until — date inputs (YYYY-MM-DD) translated
+  // to ISO timestamps in the URL params.
+  const [searchSince, setSearchSince] = useState('');
+  const [searchUntil, setSearchUntil] = useState('');
   const [searchResults, setSearchResults] = useState<MeetingSummary[] | null>(null);
   const [searchFacets, setSearchFacets] = useState<{ status?: Record<string, number>; track?: Record<string, number> } | null>(null);
   const [searchTotal, setSearchTotal] = useState<number | null>(null);
@@ -228,6 +232,8 @@ export default function MeetingsView() {
         });
         if (searchStatus) params.set('status', searchStatus);
         if (searchTrack) params.set('track', searchTrack);
+        if (searchSince) params.set('since', `${searchSince}T00:00:00.000Z`);
+        if (searchUntil) params.set('until', `${searchUntil}T00:00:00.000Z`);
         const res = await apiGet<{
           count: number;
           query: string;
@@ -285,7 +291,7 @@ export default function MeetingsView() {
     // search every time the list polls is wasteful; the merge with
     // summaryById is best-effort decoration.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, searchStatus, searchTrack]);
+  }, [searchQuery, searchStatus, searchTrack, searchSince, searchUntil]);
 
   // Initial detail fetch + SSE live updates (phase 7.1).
   // We intentionally fetch the full snapshot via the REST endpoint
@@ -731,6 +737,35 @@ export default function MeetingsView() {
                   <option value="full">full</option>
                 </select>
               </label>
+              <label className="flex items-center gap-1 text-muted-foreground">
+                since:
+                <input
+                  type="date"
+                  value={searchSince}
+                  onChange={(e) => setSearchSince(e.target.value)}
+                  className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
+                  aria-label="Search since date"
+                />
+              </label>
+              <label className="flex items-center gap-1 text-muted-foreground">
+                until:
+                <input
+                  type="date"
+                  value={searchUntil}
+                  onChange={(e) => setSearchUntil(e.target.value)}
+                  className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
+                  aria-label="Search until date"
+                />
+              </label>
+              {(searchSince || searchUntil) ? (
+                <button
+                  type="button"
+                  onClick={() => { setSearchSince(''); setSearchUntil(''); }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  clear dates
+                </button>
+              ) : null}
             </div>
           ) : null}
           {searchResults && searchFacets ? (

@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.320] - 2026-05-04
+
+**Web — meeting search since/until date inputs.**
+Phase 8.1.5 backend supported since/until on meeting search but
+the web filter row only carried status + track. Adds `<input
+type="date">` for both bounds.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**:
+  - `searchSince` / `searchUntil` state (YYYY-MM-DD strings)
+  - native date inputs in the filter chip row
+  - URL params translate `YYYY-MM-DD` → `YYYY-MM-DDT00:00:00.000Z`
+    so the backend's ISO parser doesn't need to guess
+  - "clear dates" link when either is set
+  - both feed the existing debounced search effect; same dep
+    pattern as status/track
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Native `<input type="date">` honors browser locale + supports
+  the picker UI in Chrome / Safari without extra deps.
+
 ## [1.10.319] - 2026-05-04
 
 **Web — audit log viewer time-window chips.**
