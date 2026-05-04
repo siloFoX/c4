@@ -26,6 +26,13 @@
 
   "header.title": "C4 대시보드",
 
+  "account.profile": "프로필",
+  "account.preferences": "환경설정",
+  "account.keyboard": "키보드 단축키",
+  "account.help": "도움말 센터",
+  "account.signout": "로그아웃",
+  "account.signedIn": "로그인됨",
+
   "feature.category.operations": "운영",
   "feature.category.automation": "자동화",
   "feature.category.cost": "비용",

@@ -26,6 +26,13 @@
 
   "header.title": "C4 Dashboard",
 
+  "account.profile": "Profile",
+  "account.preferences": "Preferences",
+  "account.keyboard": "Keyboard shortcuts",
+  "account.help": "Help center",
+  "account.signout": "Sign out",
+  "account.signedIn": "Signed in",
+
   "feature.category.operations": "Operations",
   "feature.category.automation": "Automation",
   "feature.category.cost": "Cost",

@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { DropdownMenu, type DropdownMenuItem } from './ui/dropdown-menu';
 import { Button } from './ui/button';
 import { cn } from '../lib/cn';
+import { t, useLocale } from '../lib/i18n';
 import {
   AUTH_EVENT,
   getAuthRole,
@@ -95,6 +96,7 @@ export default function AccountMenu({
   onOpenPreferences,
   collapsed = false,
 }: AccountMenuProps) {
+  useLocale();
   // (review fix 2026-05-01) Lazy initializers — we don't want to
   // touch localStorage on every render, only the first.
   const [user, setUser] = useState<string | null>(() => getAuthUser());
@@ -126,7 +128,7 @@ export default function AccountMenu({
   const items: DropdownMenuItem[] = [
     {
       key: 'profile',
-      label: ACCOUNT_LABEL_PROFILE,
+      label: t('account.profile') || ACCOUNT_LABEL_PROFILE,
       icon: <User className="h-4 w-4" />,
       // Profile page is a follow-up (multi-account / avatar upload).
       // For now the row is visible-but-disabled so the entry point
@@ -139,7 +141,7 @@ export default function AccountMenu({
       ? [
           {
             key: 'preferences',
-            label: ACCOUNT_LABEL_PREFERENCES,
+            label: t('account.preferences') || ACCOUNT_LABEL_PREFERENCES,
             icon: <Settings className="h-4 w-4" />,
             onSelect: onOpenPreferences,
           } as DropdownMenuItem,
@@ -147,27 +149,27 @@ export default function AccountMenu({
       : []),
     {
       key: 'shortcuts',
-      label: ACCOUNT_LABEL_KEYBOARD,
+      label: t('account.keyboard') || ACCOUNT_LABEL_KEYBOARD,
       icon: <Keyboard className="h-4 w-4" />,
       hint: '?',
       onSelect: () => dispatchEvent(HELP_EVENT_OPEN_SHORTCUTS),
     },
     {
       key: 'help',
-      label: ACCOUNT_LABEL_HELP,
+      label: t('account.help') || ACCOUNT_LABEL_HELP,
       icon: <HelpCircle className="h-4 w-4" />,
       onSelect: () => dispatchEvent(HELP_EVENT_OPEN_DRAWER),
     },
     {
       key: 'signout',
-      label: ACCOUNT_LABEL_SIGNOUT,
+      label: t('account.signout') || ACCOUNT_LABEL_SIGNOUT,
       icon: <LogOut className="h-4 w-4" />,
       variant: 'danger',
       onSelect: onLogout,
     },
   ];
 
-  const headerLabel = user || 'Signed in';
+  const headerLabel = user || t('account.signedIn') || 'Signed in';
   const initials = initialsFor(user);
   const roleLabel = role || null;
 

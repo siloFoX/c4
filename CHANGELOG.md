@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.369] - 2026-05-04
+
+**Web — AccountMenu i18n.** Last hardcoded English in the
+high-visibility chrome — Profile / Preferences / Keyboard
+shortcuts / Help center / Sign out.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 6 new keys
+  (`account.profile`, `account.preferences`, `account.keyboard`,
+  `account.help`, `account.signout`, `account.signedIn`).
+- **`web/src/components/AccountMenu.tsx`**:
+  - `useLocale()` hook re-renders on locale flip.
+  - `t('account.<id>') || ACCOUNT_LABEL_<X>` pattern keeps the
+    existing exported constants in place (tests pin them) but
+    renders translated copy when an i18n key resolves.
+
+### Korean copy
+- 프로필 / 환경설정 / 키보드 단축키 / 도움말 센터 / 로그아웃 / 로그인됨.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- The exported `ACCOUNT_LABEL_*` constants stay frozen at the
+  English values so `tests/account-menu.test.js` continues to
+  pass without churn.
+
 ## [1.10.368] - 2026-05-04
 
 **Web — FeatureSidebar category labels i18n.** The five category
