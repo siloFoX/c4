@@ -377,12 +377,29 @@ export default function SpecialistsView() {
           {summary.persist && summary.persist.enabled ? (
             <>
               <span>·</span>
-              <span>
+              <span className={cn(
+                typeof summary.persist.dbSizeBytes === 'number' && summary.persist.dbSizeBytes > 100 * 1024 * 1024
+                  ? 'text-amber-700 dark:text-amber-400'
+                  : '',
+              )}>
                 persist {summary.persist.rowCount ?? '?'} rows
-                {typeof summary.persist.dbSizeBytes === 'number' ? ` (${(summary.persist.dbSizeBytes / 1024).toFixed(1)}KB)` : ''}
+                {typeof summary.persist.dbSizeBytes === 'number'
+                  ? summary.persist.dbSizeBytes > 1024 * 1024
+                    ? ` (${(summary.persist.dbSizeBytes / (1024 * 1024)).toFixed(1)}MB)`
+                    : ` (${(summary.persist.dbSizeBytes / 1024).toFixed(1)}KB)`
+                  : ''}
               </span>
               {summary.persist.auditLog && typeof summary.persist.auditLog.entries === 'number' ? (
-                <span>· audit {summary.persist.auditLog.entries} entries</span>
+                <span className={cn(
+                  typeof summary.persist.auditLog.bytes === 'number' && summary.persist.auditLog.bytes > 1024 * 1024
+                    ? 'text-amber-700 dark:text-amber-400'
+                    : '',
+                )}>
+                  · audit {summary.persist.auditLog.entries} entries
+                  {typeof summary.persist.auditLog.bytes === 'number' && summary.persist.auditLog.bytes > 1024 * 1024
+                    ? ` (${(summary.persist.auditLog.bytes / (1024 * 1024)).toFixed(1)}MB)`
+                    : ''}
+                </span>
               ) : null}
               {summary.persist.lastKnownGood && summary.persist.lastKnownGood.exists && typeof summary.persist.lastKnownGood.ageDays === 'number' ? (
                 <span className={cn(

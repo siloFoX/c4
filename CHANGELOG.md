@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.336] - 2026-05-04**Web — persist size unit auto-scale + audit/db amber threshold.**
+v1.10.312 always rendered persist DB size in KB. After tens of MB
+the number became visually noisy and operators had to do mental
+math to compare against the doctor's 100MB / 1MB warn thresholds.
+
+### Added
+- **`web/src/components/SpecialistsView.tsx`**:
+  - persist row size now auto-scales — KB under 1MB, MB above
+  - persist segment goes amber when DB > 100MB (matches the
+    doctor's underperformer-style warn cadence)
+  - audit log size shown alongside the entry count when > 1MB
+    (compact KB hidden under threshold to keep the bar tidy)
+  - audit segment goes amber when log > 1MB (matches the
+    doctor warn from v1.10.304)
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- The thresholds match the doctor warnings so operators get the
+  same color cue from both surfaces.
+
 ## [1.10.335] - 2026-05-04
 
 **Web — `lib/snippet.ts` extracted from MeetingsView.**
