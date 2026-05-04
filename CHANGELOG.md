@@ -4,6 +4,53 @@
 
 (no entries — next release window)
 
+## [1.10.283] - 2026-05-04
+
+**Multi-Specialist System — Phase 7.2 (MeetingStore save hooks).**
+Phase 1 shipped the standalone storage module; this phase wires it
+into the live `MeetingStore` so every put / mutation / remove
+mirrors to disk. Rehydrate (read side) is Phase 7.3.
+
+### Added
+- **`src/meeting-session.js`**:
+  - `MeetingStore({ persist })` — opt-in durable backing. Default
+    `null` preserves the prior in-memory-only behavior; existing
+    tests untouched.
+  - `put(session)` — initial save + subscribes to the session's
+    `state` event so subsequent mutations re-save. Idempotent
+    re-put never double-attaches the listener.
+  - `remove(id)` — calls `persist.remove()` and detaches the
+    state listener so dropped sessions don't keep saving through
+    a held reference (long-running daemon hygiene).
+  - `clear()` — detaches every listener but deliberately does
+    NOT touch disk; some tests rely on memory-only wipe.
+  - `MeetingSession._persistSnapshot()` — returns `toJSON()` plus
+    full plan (deliverables / cap / candidates / exploreSlots
+    / consensusPolicy) and internal `_currentStageIndex` /
+    `_rounds`. Phase 7.3 rehydrate consumes this.
+- **`src/meeting-persist.js`**: `save()` prefers
+  `_persistSnapshot()` when present; falls back to `toJSON()` for
+  callers passing already-serialized envelopes.
+- **`src/daemon.js`**: early `MeetingPersist` instantiation +
+  `getShared({ persist })`. Fail-soft — a `better-sqlite3` load
+  failure (missing native binary) logs to stderr and the daemon
+  still boots in memory-only mode.
+- **Tests** (`tests/meeting-session.test.js`): 3 new cases —
+  `put` triggers initial save and state mutations re-save through
+  the listener; `remove` triggers `persist.remove` and detaches
+  the listener; `_persistSnapshot` includes plan internals not in
+  `toJSON`. Suite total stays at 200.
+
+### Notes
+- e2e verified end-to-end against the running 10.40 daemon
+  (`/root/.c4/meetings.db` — better-sqlite3 directly):
+  - `POST /meetings` → row in DB with `status='pending'`
+  - `POST /meetings/:id/start` → `status='in-progress'` in DB
+    after the state event fires
+  - `DELETE /meetings/:id` → row removed from DB
+- Default DB path: `~/.c4/meetings.db` (WAL files
+  `meetings.db-wal` + `meetings.db-shm` alongside).
+
 ## [1.10.282] - 2026-05-04
 
 **Multi-Specialist System — Phase 7.1 (MeetingPersist SQLite module).**
