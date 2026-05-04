@@ -4,6 +4,40 @@
 
 (no entries — next release window)
 
+## [1.10.339] - 2026-05-04
+
+**Web — suggest-prompt (read-only revision draft) in detail panel.**
+Phase 5.1 backend `POST /specialists/:id/suggest-prompt` returns a
+brain-drafted revised systemPrompt (review-only — never auto-
+applied). CLI had `c4 specialist suggest-prompt`; web operators
+who saw a specialist underperforming had no way to look at what
+a fresh brain would suggest.
+
+### Added
+- **`web/src/components/SpecialistsView.tsx`**:
+  - `handleSuggest(id)` POSTs to `/api/specialists/:id/suggest-prompt`
+    with `brain: 'mock'`
+  - "Suggest revision" outline button next to the systemPrompt
+    label
+  - response renders below the existing prompt as an amber-toned
+    panel with the revision + rationale
+  - mock brain often returns no parseable REVISION (it doesn't
+    follow the prompt-iterate format) — UI shows a friendly
+    fallback "try with claude brain" message instead of a stack
+    trace
+  - footer reminds operators to use `c4 specialist apply-prompt
+    <id>` to apply via meta-meeting consensus (Phase 5.2)
+  - selection change clears the suggestion so it doesn't bleed
+    across specialists
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Apply-prompt isn't surfaced in the web yet — it requires a
+  meeting-driven consensus and the operator needs to watch it
+  in the Meetings tab. Adding the apply button without that
+  context risks "it said it succeeded but I have no idea what
+  happened" UX. CLI is the right surface for now.
+
 ## [1.10.338] - 2026-05-04
 
 **Web — propose-via-meeting button in specialist add panel.**

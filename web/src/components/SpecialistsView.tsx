@@ -265,6 +265,35 @@ export default function SpecialistsView() {
   const [resetBusy, setResetBusy] = useState(false);
   const [confirmResetId, setConfirmResetId] = useState<string | null>(null);
 
+  // (Phase 5.1) Suggest prompt revision (review-only). Brain
+  // returns a draft replacement. Operator decides whether to copy
+  // it into a manual /specialists/:id PATCH or trigger
+  // apply-prompt (Phase 5.2) for governance-gated apply.
+  const [suggestBusy, setSuggestBusy] = useState(false);
+  const [suggestion, setSuggestion] = useState<{
+    revision: string | null;
+    rationale: string | null;
+  } | null>(null);
+  const [suggestError, setSuggestError] = useState<string | null>(null);
+  const handleSuggest = useCallback(async (id: string) => {
+    setSuggestBusy(true);
+    setSuggestError(null);
+    setSuggestion(null);
+    try {
+      const res = await apiPost<{ revision: string | null; rationale: string | null }>(
+        `/api/specialists/${encodeURIComponent(id)}/suggest-prompt`,
+        { brain: 'mock' },
+      );
+      setSuggestion({ revision: res.revision, rationale: res.rationale });
+    } catch (e) {
+      setSuggestError((e as Error).message || 'Suggest failed');
+    } finally {
+      setSuggestBusy(false);
+    }
+  }, []);
+  // Reset suggestion when selection changes
+  useEffect(() => { setSuggestion(null); setSuggestError(null); }, [selectedId]);
+
   // (Phase 1.6) Tag edit — mode: replace | add | remove via
   // PATCH /specialists/:id/tags. UI takes a comma-separated value
   // and infers add/remove from operator's intent (`+ a, b` / `- a`)
@@ -971,10 +1000,50 @@ export default function SpecialistsView() {
               )}
 
               <div>
-                <div className="text-xs text-muted-foreground">system prompt</div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-xs text-muted-foreground">system prompt</div>
+                  {/* (Phase 5.1) Suggest revision — read-only;
+                      operator copies result manually if useful. */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleSuggest(selected.id)}
+                    disabled={suggestBusy}
+                    className="h-6 px-2 text-[10px]"
+                    title="Ask brain to draft a revised systemPrompt — review-only"
+                  >
+                    {suggestBusy ? 'Asking…' : 'Suggest revision'}
+                  </Button>
+                </div>
                 <pre className="mt-1 whitespace-pre-wrap rounded-md border border-border bg-muted/20 p-3 text-[12px] font-mono">
                   {selected.systemPrompt}
                 </pre>
+                {suggestError ? (
+                  <div className="mt-1 text-[11px] text-destructive">{suggestError}</div>
+                ) : null}
+                {suggestion ? (
+                  <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px]">
+                    <div className="mb-1 font-medium text-amber-700 dark:text-amber-400">
+                      Suggested revision (review only)
+                    </div>
+                    {suggestion.revision ? (
+                      <pre className="whitespace-pre-wrap font-mono">{suggestion.revision}</pre>
+                    ) : (
+                      <div className="italic text-muted-foreground">
+                        Brain returned no parseable revision. Try with a real claude brain.
+                      </div>
+                    )}
+                    {suggestion.rationale ? (
+                      <div className="mt-1 text-muted-foreground">
+                        <span className="font-medium">Rationale:</span> {suggestion.rationale}
+                      </div>
+                    ) : null}
+                    <div className="mt-1 text-muted-foreground italic text-[10px]">
+                      To apply, copy the revision and use the c4 CLI:
+                      <code className="ml-1">c4 specialist apply-prompt {selected.id}</code>
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               {/* (Phase 6.8) Recent audit + recent meetings.
