@@ -2309,6 +2309,49 @@ export default function MeetingsView() {
                         </button>
                       );
                     })}
+                    {/* (v1.10.351) Export buttons — operators hand
+                        items off to a tracker. JSON for tools,
+                        Markdown for chat / docs. ml-auto pushes them
+                        to the right edge of the chip row. */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const blob = new Blob([JSON.stringify(actions, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `action-items-${selectedId}.json`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="ml-auto rounded border border-border bg-background px-1.5 py-0 text-[10px] text-muted-foreground hover:bg-accent/40"
+                      title="Download action items as JSON"
+                    >
+                      ⬇ JSON
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const lines: string[] = [];
+                        (['decision', 'action', 'todo', 'blocker'] as ActionItemType[]).forEach((k) => {
+                          const group = actions.items.filter((it) => it.type === k);
+                          if (group.length === 0) return;
+                          lines.push(`## ${k.toUpperCase()} (${group.length})`);
+                          group.forEach((it) => {
+                            lines.push(`- ${it.text}`);
+                          });
+                          lines.push('');
+                        });
+                        const md = lines.join('\n').trim();
+                        navigator.clipboard.writeText(md).catch(() => { /* ignore */ });
+                      }}
+                      className="rounded border border-border bg-background px-1.5 py-0 text-[10px] text-muted-foreground hover:bg-accent/40"
+                      title="Copy action items as Markdown"
+                    >
+                      ⧉ MD
+                    </button>
                   </div>
                   {(['decision', 'action', 'todo', 'blocker'] as ActionItemType[]).filter((k) => actionsFilter === null || actionsFilter === k).map((kind) => {
                     const group = actions.items.filter((it) => it.type === kind);

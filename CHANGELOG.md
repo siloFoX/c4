@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.352] - 2026-05-04
+
+**Web — action item export (JSON download / Markdown clipboard).**
+The action items panel was display-only. Operators wanting to
+hand items off to a tracker or paste into a doc had to scrape
+the DOM. Add two small export buttons.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**:
+  - `⬇ JSON` button — downloads the full action items envelope
+    as `action-items-<meetingId>.json`.
+  - `⧉ MD` button — copies a markdown rendering to the clipboard
+    (`## DECISION (N)` headings + `- item` lists, only non-empty
+    groups).
+  - Both sit at the right edge of the chip row via `ml-auto` on
+    the JSON button; the MD button follows.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- No new endpoint — both buttons operate on the already-fetched
+  action-items payload.
+- Clipboard write uses navigator.clipboard with a silent failure
+  fallback (older browsers / non-secure contexts).
+
 ## [1.10.351] - 2026-05-04
 
 **Web — workflow run inspector (per-node results).** The
