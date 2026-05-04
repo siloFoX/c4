@@ -4,6 +4,44 @@
 
 (no entries — next release window)
 
+## [1.10.301] - 2026-05-04
+
+**Multi-Specialist System — Phase 8.2 (Search facets).**
+Search returns ranked matches; facets answer "how are matches
+distributed by status / track?" without enumerating all results.
+Single endpoint call gives operators the count summary alongside
+the top-N detail.
+
+### Added
+- **`src/meeting-persist.js`**: `searchFacets(q, {facets,
+  status, track, since, until, forkOf})` runs the same MATCH +
+  filter logic as `search()` but returns aggregate counts grouped
+  by the requested fields. Supported facets: `status` (column),
+  `track` (json_extract on `data`). Unknown facet keys silently
+  skipped — caller-tolerant.
+- **HTTP**: `GET /meetings/search?facet=status,track` adds
+  `facets: {status: {bucket: count}, track: {...}}` to the
+  response when supplied. Filters compose normally.
+- **CLI**: `c4 meeting search "<q>" --facet status,track`
+  prints `facets[status]: completed=3, aborted=2` lines after
+  the result list. Sorted by count desc per facet so dominant
+  buckets land first.
+- **OpenAPI**: `facet` query param + `facets` response field
+  documented.
+- **Tests** (`tests/meeting-persist.test.js`): 3 new cases —
+  multi-facet aggregate counts on a 3-meeting fixture; facets
+  honour filter narrowing (status filter → only one bucket);
+  unknown facet keys ignored.
+
+### Notes
+- e2e: created a pending lightweight meeting →
+  `c4 meeting search "alpha" --facet status,track` returned
+  `facets[status]: pending=1` + `facets[track]: lightweight=1`
+  alongside the snippet.
+- One additional SQL query per facet, all on the same MATCH
+  result set. For typical FTS results (< 200 rows after the
+  cap) the overhead is negligible.
+
 ## [1.10.300] - 2026-05-04
 
 **🎉 Milestone — v1.10.300.**

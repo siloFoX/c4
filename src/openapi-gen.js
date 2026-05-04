@@ -2309,11 +2309,13 @@ const ROUTE_SCHEMAS = {
       { name: 'since', in: 'query', schema: { type: 'string', description: 'ISO timestamp; inclusive lower bound on createdAt' } },
       { name: 'until', in: 'query', schema: { type: 'string', description: 'ISO timestamp; exclusive upper bound on createdAt' } },
       { name: 'fork-of', in: 'query', schema: { type: 'string', description: 'Only meetings forked from this id' } },
+      { name: 'facet', in: 'query', schema: { type: 'string', description: 'Comma-list of facet fields (status, track) to return aggregate counts for' } },
     ],
     response: {
       properties: {
         count: { type: 'integer' },
         query: { type: 'string', nullable: true },
+        facets: { type: 'object', description: 'Present when ?facet= was supplied. Map of facet → {bucket: count, ...}' },
         results: {
           type: 'array',
           items: {

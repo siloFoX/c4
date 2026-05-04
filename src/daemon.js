@@ -4902,15 +4902,28 @@ async function handleRequest(req, res) {
         const limitRaw = url.searchParams.get('limit');
         const limit = limitRaw && /^\d+$/.test(limitRaw) ? parseInt(limitRaw, 10) : 20;
         try {
-          const results = _meetingPersist.search(q, {
+          const filterOpts = {
             limit,
             status: url.searchParams.get('status') || undefined,
             track: url.searchParams.get('track') || undefined,
             since: url.searchParams.get('since') || undefined,
             until: url.searchParams.get('until') || undefined,
             forkOf: url.searchParams.get('fork-of') || undefined,
-          });
+          };
+          const results = _meetingPersist.search(q, filterOpts);
+          // (Phase 8.2) Optional facets — caller passes
+          // ?facet=status,track to get aggregate counts in the
+          // same response.
+          let facets = null;
+          const facetRaw = url.searchParams.get('facet');
+          if (facetRaw) {
+            const facetList = facetRaw.split(',').map((s) => s.trim()).filter(Boolean);
+            if (facetList.length > 0) {
+              facets = _meetingPersist.searchFacets(q, { ...filterOpts, facets: facetList });
+            }
+          }
           result = { count: results.length, query: q, results };
+          if (facets) result.facets = facets;
         } catch (err) {
           res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
         }

@@ -282,6 +282,50 @@ class MeetingPersist {
   // The query syntax is FTS5's default — phrases in double-quotes,
   // `OR` for alternation, `*` for prefix match. Bad syntax errors
   // throw; callers should treat that as a 400.
+  // Phase 8.2 — facet counts. Same MATCH + filter logic as
+  // search() but returns grouped counts instead of row snippets.
+  // Supported facet fields: 'status' (column), 'track'
+  // (json_extract). Returns
+  //   { status: { completed: 3, aborted: 2 }, ... }
+  // for each requested facet.
+  searchFacets(q, opts = {}) {
+    if (!q || typeof q !== 'string') {
+      throw new Error('searchFacets: query string required');
+    }
+    const facets = Array.isArray(opts.facets) ? opts.facets : [];
+    if (facets.length === 0) return {};
+    const where = ['meetings_fts MATCH ?'];
+    const params = [q];
+    if (opts.status) { where.push('m.status = ?'); params.push(opts.status); }
+    if (opts.track) { where.push("json_extract(m.data, '$.track') = ?"); params.push(opts.track); }
+    if (opts.since) { where.push('m.created_at >= ?'); params.push(opts.since); }
+    if (opts.until) { where.push('m.created_at < ?'); params.push(opts.until); }
+    if (opts.forkOf) { where.push("json_extract(m.data, '$.forkOf') = ?"); params.push(opts.forkOf); }
+    const out = {};
+    const FIELD_EXPR = {
+      status: 'm.status',
+      track: "json_extract(m.data, '$.track')",
+    };
+    for (const f of facets) {
+      const expr = FIELD_EXPR[f];
+      if (!expr) continue; // unknown facet — skip
+      const sql = `
+        SELECT ${expr} AS bucket, COUNT(*) AS n
+        FROM meetings_fts
+        JOIN meetings m ON m.id = meetings_fts.id
+        WHERE ${where.join(' AND ')}
+        GROUP BY bucket
+      `;
+      const rows = this._db.prepare(sql).all(...params);
+      const facetMap = {};
+      for (const r of rows) {
+        if (r.bucket != null) facetMap[r.bucket] = r.n;
+      }
+      out[f] = facetMap;
+    }
+    return out;
+  }
+
   search(q, opts = {}) {
     if (!q || typeof q !== 'string') {
       throw new Error('search: query string required');

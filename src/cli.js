@@ -3417,6 +3417,7 @@ async function main() {
           let since = null;
           let until = null;
           let forkOf = null;
+          let facet = null;
           const qParts = [];
           for (let i = 1; i < args.length; i += 1) {
             if (args[i] === '--limit' && args[i + 1]) { limit = parseInt(args[i + 1], 10); i += 1; }
@@ -3425,6 +3426,7 @@ async function main() {
             else if (args[i] === '--since' && args[i + 1]) { since = args[i + 1]; i += 1; }
             else if (args[i] === '--until' && args[i + 1]) { until = args[i + 1]; i += 1; }
             else if (args[i] === '--fork-of' && args[i + 1]) { forkOf = args[i + 1]; i += 1; }
+            else if (args[i] === '--facet' && args[i + 1]) { facet = args[i + 1]; i += 1; }
             else if (args[i] === '--json') { /* handled below */ }
             else qParts.push(args[i]);
           }
@@ -3441,6 +3443,7 @@ async function main() {
           if (since) qs.set('since', since);
           if (until) qs.set('until', until);
           if (forkOf) qs.set('fork-of', forkOf);
+          if (facet) qs.set('facet', facet);
           result = await request('GET', `/meetings/search?${qs.toString()}`);
           if (args.includes('--json')) break;
           if (result.error) { console.error(result.error); process.exit(1); }
@@ -3448,6 +3451,15 @@ async function main() {
           for (const r of result.results || []) {
             console.log(`  ${r.id}  ${r.status.padEnd(11)}  ${r.createdAt}  rank=${r.rank.toFixed(2)}`);
             if (r.snippet) console.log(`    ${r.snippet}`);
+          }
+          if (result.facets) {
+            for (const [field, buckets] of Object.entries(result.facets)) {
+              const summary = Object.entries(buckets)
+                .sort((a, b) => b[1] - a[1])
+                .map(([k, n]) => `${k}=${n}`)
+                .join(', ');
+              if (summary) console.log(`facets[${field}]: ${summary}`);
+            }
           }
           return;
         }

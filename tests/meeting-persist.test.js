@@ -415,6 +415,49 @@ t('search filters: status / track / since-until narrow MATCH results', () => {
   p.close();
 });
 
+t('searchFacets returns aggregate counts grouped by field', () => {
+  const p = mkDb();
+  // Three sessions matching "alpha", split across status + track.
+  const a = mkSession('alpha aborted lightweight');
+  a.start(); a.abort('t');
+  const b = mkSession('alpha pending lightweight');
+  // pending stays pending
+  const c = mkSession('alpha aborted standard');
+  c._plan.track = 'standard';
+  c.start(); c.abort('t');
+  p.save(a); p.save(b); p.save(c);
+
+  const facets = p.searchFacets('alpha', { facets: ['status', 'track'] });
+  // 2 aborted + 1 pending
+  assert.strictEqual(facets.status.aborted, 2);
+  assert.strictEqual(facets.status.pending, 1);
+  // 2 lightweight + 1 standard
+  assert.strictEqual(facets.track.lightweight, 2);
+  assert.strictEqual(facets.track.standard, 1);
+  p.close();
+});
+
+t('searchFacets honours filter narrowing', () => {
+  const p = mkDb();
+  const a = mkSession('alpha aborted');
+  a.start(); a.abort('t');
+  const b = mkSession('alpha pending');
+  p.save(a); p.save(b);
+  // Only aborted → status facet should have only one bucket.
+  const facets = p.searchFacets('alpha', { facets: ['status'], status: 'aborted' });
+  assert.deepStrictEqual(facets.status, { aborted: 1 });
+  p.close();
+});
+
+t('searchFacets ignores unknown facet fields', () => {
+  const p = mkDb();
+  p.save(mkSession('alpha bare'));
+  const facets = p.searchFacets('alpha', { facets: ['status', 'bogus'] });
+  assert.ok(facets.status, 'known facet present');
+  assert.strictEqual(facets.bogus, undefined, 'unknown facet absent');
+  p.close();
+});
+
 t('search returns matches for transcript text', () => {
   const p = mkDb();
   // Build sessions with controlled transcript content.
