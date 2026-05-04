@@ -376,6 +376,78 @@ t('backupTo rejects empty/missing path', () => {
   p.close();
 });
 
+t('search returns matches for transcript text', () => {
+  const p = mkDb();
+  // Build sessions with controlled transcript content.
+  const a = mkSession('topic alpha');
+  a.start();
+  a.contribute('pm', 'we should investigate auth migration tomorrow');
+  const b = mkSession('topic beta');
+  b.start();
+  b.contribute('pm', 'unrelated capacity planning meeting');
+  p.save(a); p.save(b);
+
+  const r = p.search('auth');
+  assert.strictEqual(r.length, 1);
+  assert.strictEqual(r[0].id, a.id);
+  assert.match(r[0].snippet, /<<auth>>/, 'snippet highlights match token');
+
+  const r2 = p.search('capacity');
+  assert.strictEqual(r2.length, 1);
+  assert.strictEqual(r2[0].id, b.id);
+
+  // No match → empty array, not null/throw.
+  // Use a single bare token (FTS5 treats `-` as NOT in unquoted
+  // queries; for safety in tests use plain alphanumeric).
+  assert.deepStrictEqual(p.search('xyzzysuchtoken'), []);
+  p.close();
+});
+
+t('search matches title + task + transcript columns', () => {
+  const p = mkDb();
+  // Use plain alphanumeric tokens — FTS5 treats `-` as the NOT
+  // operator in unquoted queries, so hyphenated test tokens would
+  // break unless wrapped in double-quotes.
+  const sess = mkSession('a unique zlqpw bug fix');
+  p.save(sess);
+  const byTitle = p.search('zlqpw');
+  assert.strictEqual(byTitle.length, 1);
+});
+
+t('search rejects empty query', () => {
+  const p = mkDb();
+  assert.throws(() => p.search(''), /required/);
+  assert.throws(() => p.search(null), /required/);
+});
+
+t('save → remove → search returns empty (FTS index stays consistent)', () => {
+  const p = mkDb();
+  const sess = mkSession('removabletoken xyzzy');
+  p.save(sess);
+  assert.strictEqual(p.search('removabletoken').length, 1);
+  p.remove(sess.id);
+  assert.deepStrictEqual(p.search('removabletoken'), []);
+  p.close();
+});
+
+t('search re-save updates FTS without leaving stale tokens', () => {
+  const p = mkDb();
+  const sess = mkSession('firstiterationtoken');
+  p.save(sess);
+  assert.strictEqual(p.search('firstiterationtoken').length, 1);
+  // Mutate BOTH title and task by updating the plan + re-saving.
+  // (planMeeting's defaultMeetingTitle defaults title to task on
+  // initial construction, so we must update both to flip the FTS
+  // row contents.)
+  sess._plan.task = 'seconditerationtoken';
+  sess._plan.title = 'seconditerationtoken';
+  p.save(sess);
+  // Old token gone, new token findable.
+  assert.deepStrictEqual(p.search('firstiterationtoken'), []);
+  assert.strictEqual(p.search('seconditerationtoken').length, 1);
+  p.close();
+});
+
 t('pruneOlderThan vacuum is skipped on dryRun', () => {
   const p = mkDb();
   const sess = mkSession('vacuum dry');

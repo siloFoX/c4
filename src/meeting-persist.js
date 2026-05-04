@@ -42,6 +42,19 @@ CREATE TABLE IF NOT EXISTS meetings (
 CREATE INDEX IF NOT EXISTS idx_meetings_status     ON meetings(status);
 CREATE INDEX IF NOT EXISTS idx_meetings_created_at ON meetings(created_at);
 CREATE INDEX IF NOT EXISTS idx_meetings_updated_at ON meetings(updated_at);
+
+-- (Phase 8.1) Full-text search index over meeting title / task /
+-- transcript text. Unicode61 tokenizer is the SQLite default and
+-- handles ASCII / Latin / CJK adequately for our keyword search
+-- needs. id is UNINDEXED so we can DELETE WHERE id = ? without
+-- the column being part of the searchable text.
+CREATE VIRTUAL TABLE IF NOT EXISTS meetings_fts USING fts5(
+  id UNINDEXED,
+  title,
+  task,
+  transcript,
+  tokenize='unicode61'
+);
 `;
 
 class MeetingPersist {
@@ -78,6 +91,41 @@ class MeetingPersist {
     );
     this._stmtCount = this._db.prepare('SELECT COUNT(*) as n FROM meetings');
     this._stmtDelete = this._db.prepare('DELETE FROM meetings WHERE id = ?');
+
+    // (Phase 8.1) FTS5 maintenance statements. Update is delete +
+    // insert because FTS5 doesn't have a real UPSERT — but each
+    // statement is fast and we wrap them in a transaction at the
+    // call site for atomicity.
+    this._stmtFtsDelete = this._db.prepare('DELETE FROM meetings_fts WHERE id = ?');
+    this._stmtFtsInsert = this._db.prepare(
+      'INSERT INTO meetings_fts (id, title, task, transcript) VALUES (?, ?, ?, ?)'
+    );
+    this._stmtFtsSearch = this._db.prepare(`
+      SELECT m.id, m.status, m.created_at, m.updated_at,
+             snippet(meetings_fts, -1, '<<', '>>', '…', 16) AS snippet,
+             rank
+      FROM meetings_fts
+      JOIN meetings m ON m.id = meetings_fts.id
+      WHERE meetings_fts MATCH ?
+      ORDER BY rank
+      LIMIT ?
+    `);
+  }
+
+  // Build the searchable text representation from a session JSON.
+  // Concatenates every turn's text across every stage. Bounded by
+  // session size; for typical meetings (< 100KB JSON) this is
+  // negligible.
+  _ftsText(json) {
+    if (!json) return '';
+    const stages = json.transcripts || [];
+    const parts = [];
+    for (const stageTurns of stages) {
+      for (const turn of stageTurns || []) {
+        if (turn && typeof turn.text === 'string') parts.push(turn.text);
+      }
+    }
+    return parts.join('\n');
   }
 
   // Serialize a MeetingSession (or any object with toJSON()) into
@@ -102,13 +150,26 @@ class MeetingPersist {
     if (!json.createdAt) {
       throw new Error('save: session must have a createdAt string');
     }
-    this._stmtUpsert.run({
-      id: json.id,
-      status: json.status,
-      created_at: json.createdAt,
-      updated_at: new Date().toISOString(),
-      data: JSON.stringify(json),
+    // (Phase 8.1) Maintain the FTS index alongside the row store.
+    // Wrap the meetings + FTS writes in a transaction so an
+    // interrupted write can't leave them out of sync.
+    const tx = this._db.transaction(() => {
+      this._stmtUpsert.run({
+        id: json.id,
+        status: json.status,
+        created_at: json.createdAt,
+        updated_at: new Date().toISOString(),
+        data: JSON.stringify(json),
+      });
+      this._stmtFtsDelete.run(json.id);
+      this._stmtFtsInsert.run(
+        json.id,
+        json.title || '',
+        json.task || '',
+        this._ftsText(json),
+      );
     });
+    tx();
     return { id: json.id, status: json.status };
   }
 
@@ -146,11 +207,44 @@ class MeetingPersist {
   }
 
   // Drop a meeting from disk. Returns true when a row was actually
-  // deleted, false when the id was not present.
+  // deleted, false when the id was not present. FTS index row also
+  // removed so search results stay consistent with disk.
   remove(id) {
     if (!id || typeof id !== 'string') return false;
-    const r = this._stmtDelete.run(id);
-    return r.changes > 0;
+    const tx = this._db.transaction(() => {
+      const r = this._stmtDelete.run(id);
+      this._stmtFtsDelete.run(id);
+      return r.changes > 0;
+    });
+    return tx();
+  }
+
+  // Phase 8.1 — full-text search across title / task / transcript.
+  // Returns `[{id, status, createdAt, updatedAt, snippet, rank}, ...]`
+  // sorted by FTS5's bm25 rank (best matches first). The `snippet`
+  // string highlights matching tokens with `<<...>>` markers.
+  //
+  // opts:
+  //   limit   default 20, cap 200 (FTS5 search can be expensive
+  //           on huge corpora; prefer pagination over unbounded)
+  //
+  // The query syntax is FTS5's default — phrases in double-quotes,
+  // `OR` for alternation, `*` for prefix match. Bad syntax errors
+  // throw; callers should treat that as a 400.
+  search(q, opts = {}) {
+    if (!q || typeof q !== 'string') {
+      throw new Error('search: query string required');
+    }
+    const limit = Math.min(200, Number.isFinite(opts.limit) ? Math.max(1, opts.limit) : 20);
+    const rows = this._stmtFtsSearch.all(q, limit);
+    return rows.map((r) => ({
+      id: r.id,
+      status: r.status,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+      snippet: r.snippet,
+      rank: r.rank,
+    }));
   }
 
   // Phase 7.5 — auto-prune. Find meetings older than N days,

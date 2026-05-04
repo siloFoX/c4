@@ -899,7 +899,7 @@ async function handleRequest(req, res) {
       meetingParams.id === 'plan' || meetingParams.id === 'templates' || meetingParams.id === 'stream'
         || meetingParams.id === 'classify-track' || meetingParams.id === 'stuck'
         || meetingParams.id === 'prune-old' || meetingParams.id === 'persist-integrity'
-        || meetingParams.id === 'persist-backup'
+        || meetingParams.id === 'persist-backup' || meetingParams.id === 'search'
     )) meetingParams = null;
   }
 
@@ -4845,6 +4845,30 @@ async function handleRequest(req, res) {
         result = r;
       } catch (err) {
         res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
+      }
+
+    } else if (req.method === 'GET' && route === '/meetings/search') {
+      // (Phase 8.1) FTS5-backed meeting search. Query:
+      //   ?q=<text>      required, FTS5 syntax (phrases in quotes,
+      //                  OR for alternation, * for prefix match)
+      //   ?limit=N       default 20, cap 200
+      const q = url.searchParams.get('q');
+      if (!q) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: '?q=... required' }));
+        return;
+      }
+      if (!_meetingPersist) {
+        result = { count: 0, results: [], reason: 'persist disabled' };
+      } else {
+        const limitRaw = url.searchParams.get('limit');
+        const limit = limitRaw && /^\d+$/.test(limitRaw) ? parseInt(limitRaw, 10) : 20;
+        try {
+          const results = _meetingPersist.search(q, { limit });
+          result = { count: results.length, query: q, results };
+        } catch (err) {
+          res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;
+        }
       }
 
     } else if (req.method === 'GET' && route === '/meetings/stuck') {

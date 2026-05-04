@@ -3098,7 +3098,7 @@ async function main() {
         //   c4 meeting escalate <id> ["reason"...]
         //   c4 meeting abort <id> ["reason"...]
         const sub = (args[0] || 'plan').toLowerCase();
-        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'watch-all', 'templates', 'template-add', 'template-remove', 'prune', 'prune-old', 'backup', 'fork', 'actions', 'classify-track', 'lineage', 'recap', 'stuck'];
+        const VALID = ['plan', 'create', 'start', 'status', 'list', 'transcript', 'contribute', 'vote', 'advance', 'next-round', 'escalate', 'abort', 'run', 'retro', 'finalize', 'publish', 'peer-retro', 'watch', 'watch-all', 'templates', 'template-add', 'template-remove', 'prune', 'prune-old', 'backup', 'fork', 'actions', 'classify-track', 'lineage', 'recap', 'stuck', 'search'];
         if (!VALID.includes(sub)) {
           console.error(`Usage: c4 meeting <${VALID.join('|')}> [...]`);
           process.exit(1);
@@ -3396,6 +3396,33 @@ async function main() {
               ? `reclaimed ${(result.reclaimedBytes / 1024).toFixed(1)}KB (${result.beforeBytes}→${result.afterBytes} bytes)`
               : 'VACUUM ran';
             console.log(`  ${reclaimed}`);
+          }
+          return;
+        }
+        if (sub === 'search') {
+          // c4 meeting search "query" [--limit N]
+          let limit = null;
+          const qParts = [];
+          for (let i = 1; i < args.length; i += 1) {
+            if (args[i] === '--limit' && args[i + 1]) { limit = parseInt(args[i + 1], 10); i += 1; }
+            else if (args[i] === '--json') { /* handled below */ }
+            else qParts.push(args[i]);
+          }
+          const q = qParts.join(' ');
+          if (!q) {
+            console.error('Usage: c4 meeting search "<query>" [--limit N]');
+            process.exit(1);
+          }
+          const qs = new URLSearchParams();
+          qs.set('q', q);
+          if (Number.isFinite(limit)) qs.set('limit', String(limit));
+          result = await request('GET', `/meetings/search?${qs.toString()}`);
+          if (args.includes('--json')) break;
+          if (result.error) { console.error(result.error); process.exit(1); }
+          console.log(`${result.count} match(es) for "${q}"`);
+          for (const r of result.results || []) {
+            console.log(`  ${r.id}  ${r.status.padEnd(11)}  ${r.createdAt}  rank=${r.rank.toFixed(2)}`);
+            if (r.snippet) console.log(`    ${r.snippet}`);
           }
           return;
         }

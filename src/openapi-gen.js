@@ -56,6 +56,7 @@ const ROUTE_SUMMARIES = {
   'POST /meetings/plan': 'Plan a full multi-stage meeting roster for a task — preview only, no specialists spawned.',
   'GET /meetings/classify-track': 'Preview the track classifier for a task string — returns {track, matched, reason, tokenCount}. Useful for tuning task wording.',
   'GET /meetings/stuck': 'Detect meetings stuck in pending/in-progress for more than ?hours= (default 1). Catches hung sessions an operator hasn`t noticed.',
+  'GET /meetings/search': 'Full-text search across meeting title / task / transcript via SQLite FTS5. Returns ranked snippets.',
   'POST /meetings/prune-old': 'Auto-prune persisted meetings older than N days (default 90, terminal-only). Mirrors deletions into the in-memory store; supports dryRun preview.',
   'GET /meetings/persist-integrity': 'Run SQLite PRAGMA integrity_check on the persist DB. Returns {enabled, ok, errors}. Doctor uses this for health pass.',
   'POST /meetings/persist-backup': 'Hot backup via SQLite VACUUM INTO. Returns {ok, path, bytes}. Daemon keeps serving during the copy. 409 when target already exists.',
@@ -2285,6 +2286,32 @@ const ROUTE_SCHEMAS = {
         beforeBytes: { type: 'integer', nullable: true },
         afterBytes: { type: 'integer', nullable: true },
         reclaimedBytes: { type: 'integer', nullable: true },
+      },
+    },
+  },
+  'GET /meetings/search': {
+    parameters: [
+      { name: 'q', in: 'query', required: true, schema: { type: 'string', description: 'FTS5 query (phrases in double-quotes, OR for alternation, * for prefix match)' } },
+      { name: 'limit', in: 'query', schema: { type: 'string', description: 'Default 20, cap 200' } },
+    ],
+    response: {
+      properties: {
+        count: { type: 'integer' },
+        query: { type: 'string', nullable: true },
+        results: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string' },
+              status: { type: 'string' },
+              createdAt: { type: 'string' },
+              updatedAt: { type: 'string' },
+              snippet: { type: 'string' },
+              rank: { type: 'number' },
+            },
+          },
+        },
+        reason: { type: 'string', nullable: true, description: 'Present when persist is disabled' },
       },
     },
   },

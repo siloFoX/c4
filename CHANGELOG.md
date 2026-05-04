@@ -4,6 +4,52 @@
 
 (no entries — next release window)
 
+## [1.10.298] - 2026-05-04
+
+**Multi-Specialist System — Phase 8.1 (Meeting full-text search).**
+Phase 7 made meetings durable. This phase adds the natural
+follow-up: searching across them by content. SQLite's FTS5 indexes
+title / task / transcript text and returns ranked snippets so
+operators can find "the meeting that discussed auth migration"
+without grepping the wiki.
+
+### Added
+- **`src/meeting-persist.js`**:
+  - schema gains `meetings_fts` virtual table (FTS5, unicode61
+    tokenizer, columns `id UNINDEXED, title, task, transcript`)
+  - `save()` now maintains the FTS index — DELETE+INSERT inside
+    the same transaction as the row upsert, so both stay
+    consistent even on interrupted writes
+  - `remove()` drops the FTS row alongside the main row
+  - new `search(q, {limit})`: returns
+    `[{id, status, createdAt, updatedAt, snippet, rank}]` sorted
+    by FTS5 bm25 rank. Snippets highlight matches with
+    `<<...>>` markers. Cap 200, default 20.
+  - `_ftsText(json)` helper concatenates all turn texts across
+    all stages into the indexed transcript column
+- **HTTP**: `GET /meetings/search?q=<text>[&limit=N]`. 400 on
+  missing query; falls back gracefully when persist is disabled
+  (returns `count:0` + reason).
+- **CLI**: `c4 meeting search "<query>" [--limit N]` —
+  prints id / status / createdAt / rank + the highlighted
+  snippet.
+- **OpenAPI**: full schema; `search` added to the meetings
+  parser reserved-suffix list.
+- **Tests** (`tests/meeting-persist.test.js`): 5 new cases —
+  transcript text matched + snippet highlights, title/task
+  column indexing, empty-query rejection, save→remove→search
+  consistency, re-save cleans stale tokens.
+
+### Notes
+- e2e: created meeting with task "FTS5 search e2e for auth
+  migration", `c4 meeting search "auth"` returned the expected
+  match with snippet `FTS5 search e2e for <<auth>> migration`.
+- Query syntax is FTS5's default (phrases in double-quotes,
+  `OR` for alternation, `*` for prefix). Hyphens in unquoted
+  queries are interpreted as the FTS5 NOT operator — operators
+  searching for hyphenated tokens should quote them
+  (`c4 meeting search '"auth-migration"'`).
+
 ## [1.10.297] - 2026-05-04
 
 **Multi-Specialist System — Phase 7.14 follow-up (Backup freshness in doctor).**
