@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.363] - 2026-05-04
+
+**Web — Risk Inspector adds sandbox preview button.** Backend
+`POST /api/risk/preview` is the pure-builder twin of /risk/check
+— same isolation setup, but no classification, just the argv
+that would invoke the sandbox runtime. CLI had `c4 risk <cmd>
+--sandbox-preview`; web operators couldn't see the docker
+command-line their daemon would build.
+
+### Added
+- **`web/src/pages/Risk.tsx`**:
+  - "Sandbox preview" outline button next to Check.
+  - `handleSandboxPreview()` POSTs to `/api/risk/preview` with
+    just the command (runtime / opts overrides not surfaced —
+    config defaults are usually what the operator wants).
+  - Result panel below the verdict: runtime + isolation badges,
+    availability check (emerald ✓ or destructive reason), grid
+    of network / filesystem / resources, argv pre-block (binary
+    + properly-shell-quoted args), env `<details>` foldout.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- NullRuntime case (no sandbox configured) renders binary as
+  `<NullRuntime>` with empty args. Daemon defaults this when
+  config.riskClassifier.sandbox is unset.
+
 ## [1.10.362] - 2026-05-04
 
 **Web — `--primary` swapped from slate-200 to violet-500 to
