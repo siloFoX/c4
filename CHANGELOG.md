@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.395] - 2026-05-04
+
+**Web — WikiView header + state messages i18n.** Title /
+search input + button / type filter / include-stale toggle /
+publish-all bulk button (with git commit + push toggles) /
+loading + empty state strings.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 18 new keys under
+  `wiki.*`, including `{root}`-templated `wiki.empty.format`.
+- **`web/src/components/WikiView.tsx`**:
+  - `useLocale()` hook re-renders on locale flip.
+  - `t()` for static strings; `tFormat()` for the empty-state
+    message which interpolates `{root}`.
+
+### Korean copy
+- 위키 / 키워드 검색 (예: auth, schema) / 위키 검색어 / 유형 /
+  오래된 항목 포함 / 검색 / 전체 게시 / 게시 중… / 위키 로딩
+  중… / 페이지 로딩 중… / "{root} 아래 일치 항목이 없습니다."
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- The page body and result rows still have many remaining
+  English strings — separate, larger pass.
+
 ## [1.10.394] - 2026-05-04
 
 **Web — Config page i18n.** Title / description / refresh /

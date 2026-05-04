@@ -3,6 +3,7 @@ import { BookOpen, RotateCcw, Search } from 'lucide-react';
 import { apiGet, apiPost } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
+import { t, tFormat, useLocale } from '../lib/i18n';
 
 // (multi-specialist phase 7.4) Wiki tab — split-pane like
 // MeetingsView. Left: query input + results list. Right: full page
@@ -48,6 +49,7 @@ const TYPE_OPTIONS: Array<{ value: string; label: string }> = [
 ];
 
 export default function WikiView() {
+  useLocale();
   const [query, setQuery] = useState('');
   const [type, setType] = useState<string>('any');
   const [includeStale, setIncludeStale] = useState(false);
@@ -180,7 +182,7 @@ export default function WikiView() {
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 md:flex-row md:p-6">
       <Card className="flex min-h-0 flex-1 flex-col md:max-w-md">
         <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
-          <CardTitle className="text-base">Wiki</CardTitle>
+          <CardTitle className="text-base">{t('wiki.title')}</CardTitle>
           <div className="flex flex-col gap-2">
             <Input
               type="text"
@@ -192,19 +194,19 @@ export default function WikiView() {
                   runSearch();
                 }
               }}
-              placeholder="Search keywords (e.g. auth, schema)"
-              aria-label="Wiki search query"
+              placeholder={t('wiki.search.placeholder')}
+              aria-label={t('wiki.search.label')}
               disabled={searching}
             />
             <div className="flex flex-wrap items-center gap-2 text-[11px]">
               <label className="text-muted-foreground">
-                type:
+                {t('wiki.type.prefix')}
                 <select
                   className="ml-1 rounded border border-border bg-background px-1 py-0.5 text-[11px]"
                   value={type}
                   onChange={(e) => setType(e.target.value)}
                   disabled={searching}
-                  aria-label="Wiki type filter"
+                  aria-label={t('wiki.type.label')}
                 >
                   {TYPE_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -217,18 +219,18 @@ export default function WikiView() {
                   checked={includeStale}
                   onChange={(e) => setIncludeStale(e.target.checked)}
                   disabled={searching}
-                  aria-label="Include superseded / reopened"
+                  aria-label={t('wiki.includeStale.label')}
                 />
-                <span>include stale</span>
+                <span>{t('wiki.includeStale')}</span>
               </label>
               <Button
                 size="sm"
                 onClick={runSearch}
                 disabled={searching}
-                aria-label="Run wiki search"
+                aria-label={t('wiki.search.run')}
               >
                 <Search className={cn('h-3.5 w-3.5', searching && 'animate-spin')} aria-hidden />
-                Search
+                {t('wiki.search.button')}
               </Button>
             </div>
             {/* (v1.10.341) Bulk publish row — sits below the
@@ -241,10 +243,10 @@ export default function WikiView() {
                 variant="outline"
                 onClick={handleBulkPublish}
                 disabled={bulkBusy}
-                aria-label="Publish all terminal meetings without a wiki page"
-                title="Publish a wiki page for every terminal meeting that doesn't have one"
+                aria-label={t('wiki.publishAll.label')}
+                title={t('wiki.publishAll.title')}
               >
-                {bulkBusy ? 'Publishing…' : 'Publish all'}
+                {bulkBusy ? t('wiki.publishAll.publishing') : t('wiki.publishAll')}
               </Button>
               <label className="flex items-center gap-1 text-muted-foreground">
                 <input
@@ -257,7 +259,7 @@ export default function WikiView() {
                   disabled={bulkBusy}
                   className="h-3 w-3"
                 />
-                git commit
+                {t('wiki.gitCommit')}
               </label>
               <label className="flex items-center gap-1 text-muted-foreground">
                 <input
@@ -270,7 +272,7 @@ export default function WikiView() {
                   disabled={bulkBusy}
                   className="h-3 w-3"
                 />
-                + push
+                {t('wiki.gitPush')}
               </label>
               {bulkMsg ? (
                 <span className={cn(
@@ -286,10 +288,10 @@ export default function WikiView() {
           {searchError ? (
             <div className="p-4 text-sm text-destructive">{searchError}</div>
           ) : !search ? (
-            <div className="p-4 text-sm text-muted-foreground">Loading wiki…</div>
+            <div className="p-4 text-sm text-muted-foreground">{t('wiki.loading')}</div>
           ) : search.hits.length === 0 ? (
             <div className="p-4 text-sm text-muted-foreground">
-              No matches under {search.wikiRoot}.
+              {tFormat('wiki.empty.format', { root: search.wikiRoot })}
             </div>
           ) : (
             <ul className="divide-y divide-border">
@@ -362,7 +364,7 @@ export default function WikiView() {
           ) : pageError ? (
             <div className="text-sm text-destructive">{pageError}</div>
           ) : !page ? (
-            <div className="text-sm text-muted-foreground">Loading page…</div>
+            <div className="text-sm text-muted-foreground">{t('wiki.loadingPage')}</div>
           ) : (
             <>
               <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
