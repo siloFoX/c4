@@ -24,6 +24,14 @@
   "common.korean": "Korean",
   "common.language": "Language",
 
+  "login.title": "C4 Sign in",
+  "login.description": "Session required to access the dashboard.",
+  "login.user": "User",
+  "login.password": "Password",
+  "login.submit": "Sign in",
+  "login.submitting": "Signing in…",
+  "login.footer": "© C4 operator console",
+
   "tab.workers": "Workers",
   "tab.history": "History",
   "tab.sessions": "Sessions",

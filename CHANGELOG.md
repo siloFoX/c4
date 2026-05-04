@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.364] - 2026-05-04
+
+**Web — Login page i18n.** First impression for any visitor;
+hardcoded English felt out-of-place against the Korean tab
+labels shipped in v1.10.361.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 7 new keys
+  (`login.title`, `login.description`, `login.user`,
+  `login.password`, `login.submit`, `login.submitting`,
+  `login.footer`).
+- **`web/src/components/Login.tsx`**:
+  - `useLocale()` hook re-renders on locale flip.
+  - All visible strings replaced with `t(...)` calls.
+
+### Korean copy
+- 제목: "C4 로그인" / 설명: "대시보드 사용을 위해 로그인이 필요합니다." /
+  필드: 사용자 / 비밀번호 / 버튼: 로그인 (로그인 중…) /
+  푸터: "© C4 운영 콘솔".
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- The page's locale automatically follows whatever the operator
+  picked previously (LocalStorage).
+
 ## [1.10.363] - 2026-05-04
 
 **Web — Risk Inspector adds sandbox preview button.** Backend

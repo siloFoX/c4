@@ -13,6 +13,7 @@ import {
   Label,
 } from './ui';
 import { cn } from '../lib/cn';
+import { t, useLocale } from '../lib/i18n';
 
 interface LoginProps {
   onSuccess: () => void;
@@ -22,6 +23,7 @@ const DOTTED_PATTERN =
   'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)';
 
 export default function Login({ onSuccess }: LoginProps) {
+  useLocale();
   const [user, setUser] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -55,15 +57,15 @@ export default function Login({ onSuccess }: LoginProps) {
       />
       <Card className="relative w-full max-w-sm">
         <CardHeader>
-          <CardTitle>C4 Sign in</CardTitle>
+          <CardTitle>{t('login.title')}</CardTitle>
           <CardDescription>
-            Session required to access the dashboard.
+            {t('login.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="c4-user">User</Label>
+              <Label htmlFor="c4-user">{t('login.user')}</Label>
               <div className="relative">
                 <User
                   aria-hidden="true"
@@ -82,7 +84,7 @@ export default function Login({ onSuccess }: LoginProps) {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="c4-password">Password</Label>
+              <Label htmlFor="c4-password">{t('login.password')}</Label>
               <div className="relative">
                 <KeyRound
                   aria-hidden="true"
@@ -124,13 +126,13 @@ export default function Login({ onSuccess }: LoginProps) {
               ) : (
                 <LogIn aria-hidden="true" className="h-4 w-4" />
               )}
-              <span>{busy ? 'Signing in...' : 'Sign in'}</span>
+              <span>{busy ? t('login.submitting') : t('login.submit')}</span>
             </Button>
           </form>
         </CardContent>
         <CardFooter className="justify-center pt-2">
           <p className="text-xs text-muted-foreground">
-            &copy; C4 operator console
+            {t('login.footer')}
           </p>
         </CardFooter>
       </Card>

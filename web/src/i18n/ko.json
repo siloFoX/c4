@@ -24,6 +24,14 @@
   "common.korean": "한국어",
   "common.language": "언어",
 
+  "login.title": "C4 로그인",
+  "login.description": "대시보드 사용을 위해 로그인이 필요합니다.",
+  "login.user": "사용자",
+  "login.password": "비밀번호",
+  "login.submit": "로그인",
+  "login.submitting": "로그인 중…",
+  "login.footer": "© C4 운영 콘솔",
+
   "tab.workers": "워커",
   "tab.history": "기록",
   "tab.sessions": "세션",
