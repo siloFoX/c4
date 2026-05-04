@@ -4,6 +4,49 @@
 
 (no entries — next release window)
 
+## [1.10.282] - 2026-05-04
+
+**Multi-Specialist System — Phase 7.1 (MeetingPersist SQLite module).**
+First slice of meeting persistence. The in-memory `MeetingStore`
+loses every active session on daemon restart — meetings in
+flight just disappear. This phase ships the durable storage
+layer as a standalone module so Phase 7.2 can wire it into the
+store hooks.
+
+### Added
+- **`src/meeting-persist.js`** — `MeetingPersist` class:
+  - SQLite via `better-sqlite3` (sync API, single-writer fits c4
+    perfectly, no external service, single-file backup story)
+  - WAL journal mode + `synchronous=NORMAL` for read concurrency
+    under writes
+  - schema: `meetings (id PK, status, created_at, updated_at,
+    data)` with indexes on status / created_at / updated_at;
+    `data` holds the full `session.toJSON()` envelope as JSON so
+    persistence is decoupled from MeetingSession's internal field
+    layout
+  - API: `save / load / loadAll / listByStatus / count / remove
+    / close`
+  - upsert by id (idempotent re-save)
+  - `:memory:` option for tests
+- **Tests** (`tests/meeting-persist.test.js`, 10 cases):
+  module surface, empty open, malformed input rejection, round-
+  trip pending session, upsert no-duplicate (3 saves → 1 row),
+  loadAll createdAt-desc ordering, listByStatus row shape (no
+  data column), remove idempotency on missing id, disk-backed
+  cross-reopen persistence, full lifecycle save points
+  (pending → in-progress → aborted).
+- **`package.json`**: `better-sqlite3 ^11.10.0` dep.
+
+### Notes
+- No daemon integration in this slice — pure storage layer +
+  tests. Phase 7.2 will hook `MeetingStore.put()` and the
+  per-session state events; Phase 7.3 wires the daemon boot
+  rehydrate path.
+- Storage choice: SQLite (over PostgreSQL) so a normal user can
+  install c4 without an external DB. The 10.40 dev host has PG14
+  + TimescaleDB available but reserving that for ARPS datalake
+  workloads — c4 stays self-contained.
+
 ## [1.10.281] - 2026-05-04
 
 **Multi-Specialist System — Phase 6.18 (Audit CLI render polish).**

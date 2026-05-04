@@ -1,6 +1,6 @@
 {
   "name": "c4-cli",
-  "version": "1.10.281",
+  "version": "1.10.282",
   "description": "Claude {Claude Code} Code — An agent-on-agent orchestrator that lets Claude manage multiple Claude Code instances via virtual terminals",
   "main": "src/daemon.js",
   "bin": {
@@ -71,7 +71,7 @@
   ],
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "better-sqlite3": "^11.3.0",
+    "better-sqlite3": "^11.10.0",
     "jsonwebtoken": "^9.0.3",
     "node-pty": "^1.1.0",
     "nodemailer": "^8.0.4",
