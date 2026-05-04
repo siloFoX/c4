@@ -31,26 +31,39 @@
     --radius: 0.5rem;
   }
 
+  /* (v1.10.346) Dark theme tuned to ARPS' slate-900/800/700
+   * palette so c4 + ARPS look at home in the same browser.
+   * Tailwind slate values (in HSL):
+   *   slate-900: 222 47% 11%  → --background
+   *   slate-800: 215 28% 17%  → --card / --popover
+   *   slate-700: 215 25% 27%  → --secondary / --muted / --accent
+   *                              / --border / --input
+   *   slate-400: 215 20% 65%  → --muted-foreground
+   *   slate-200: 213 27% 84%  → --foreground (slightly softer
+   *                              than pure white for ARPS feel)
+   * Foreground stays high-contrast; accent ring picks up the
+   * ARPS violet hover color (violet-400 = 250 95% 76%).
+   */
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --background: 222 47% 11%;
+    --foreground: 213 27% 94%;
+    --card: 215 28% 17%;
+    --card-foreground: 213 27% 94%;
+    --popover: 215 28% 17%;
+    --popover-foreground: 213 27% 94%;
+    --primary: 213 27% 94%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 215 25% 27%;
+    --secondary-foreground: 213 27% 94%;
+    --muted: 215 25% 27%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 215 25% 27%;
+    --accent-foreground: 213 27% 94%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    --border: 215 25% 27%;
+    --input: 215 25% 27%;
+    --ring: 250 95% 76%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;

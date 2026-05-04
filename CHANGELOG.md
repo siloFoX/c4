@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.347] - 2026-05-04
+
+**Web — dark theme tuned to ARPS slate-900/800/700 palette.**
+The user's other project (ARPS) uses Tailwind's slate scale
+directly with violet-400 ring accents. The c4 dark theme used
+shadcn's default neutral slate-950-ish blue-gray. Brought the
+two into rough visual alignment so they feel like the same
+toolkit.
+
+### Changed
+- **`web/src/index.css`** (`.dark`):
+  - `--background`: `240 10% 3.9%` → `222 47% 11%` (slate-900)
+  - `--card` / `--popover`: matched to slate-800 (215 28% 17%)
+  - `--muted` / `--secondary` / `--accent` / `--border` /
+    `--input`: matched to slate-700 (215 25% 27%)
+  - `--foreground`: bumped to slate-200 tone (213 27% 94%) —
+    softer than pure white, less harsh against the new bg
+  - `--muted-foreground`: slate-400 (215 20% 65%)
+  - `--ring`: ARPS violet-400 (250 95% 76%) — focus rings now
+    glow violet, matching ARPS hover accents
+  - `--destructive`: bumped to red-500 lightness (0 72% 51%)
+    for legibility against the lighter card background
+
+### Notes
+- Light theme untouched — only the `.dark` block changed.
+- All component code still references `bg-card` / `bg-muted` /
+  `text-muted-foreground` etc., so the change is purely in CSS
+  variables; no JSX edits.
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.346] - 2026-05-04
 
 **Web — manual contribute / vote-only / retro preview / finalize.**
