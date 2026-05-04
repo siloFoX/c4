@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.318] - 2026-05-04
+
+**Web — score-reset button in specialist detail.**
+Phase 8.5 added `POST /specialists/:id/score-reset` for the
+"after a prompt revision, decay isn't fast enough" case. CLI had
+`c4 specialist score-reset <id>`; web operators had to drop into
+a terminal. This adds a small button in the score-history
+section.
+
+### Added
+- **`web/src/components/SpecialistsView.tsx`**:
+  - `resetBusy` / `confirmResetId` state
+  - `handleScoreReset` calls `POST /api/specialists/:id/score-reset`
+    with `reason: 'web reset'`, refreshes the list on success,
+    surfaces failure in the existing add-error banner
+  - "Reset score" outline button in the score-history card
+    header — small (h-6) so it doesn't dominate the section
+  - 2-step confirm pattern matches the existing remove-specialist
+    flow: click → tiny "Wipe? Cancel / Confirm" inline row
+  - tooltip: "Wipe score record. Audit log preserves the
+    before-snapshot."
+
+### Notes
+- Pure web — backend tests still 200/200 green; lint + drift
+  clean.
+- Audit log viewer (v1.10.315) shows the resulting `score-reset`
+  row inline, so an operator can confirm the wipe took effect
+  without opening the audit endpoint separately.
+
 ## [1.10.317] - 2026-05-04
 
 **Web — meeting search status/track filter chips.**

@@ -211,6 +211,28 @@ export default function SpecialistsView() {
   const [removeBusy, setRemoveBusy] = useState(false);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
 
+  // (Phase 8.5) Score-reset — wipes byDomain/byStage/samples for
+  // a specialist. Guarded by a 2-step confirm same as remove.
+  const [resetBusy, setResetBusy] = useState(false);
+  const [confirmResetId, setConfirmResetId] = useState<string | null>(null);
+  const handleScoreReset = useCallback(async (id: string) => {
+    setResetBusy(true);
+    try {
+      await apiPost(
+        `/api/specialists/${encodeURIComponent(id)}/score-reset`,
+        { reason: 'web reset' },
+      );
+      setConfirmResetId(null);
+      await refresh();
+    } catch (e) {
+      // Surface as a transient error in the existing add-error
+      // banner — minimal disruption for an operator-triggered op.
+      setAddError(`score-reset: ${(e as Error).message || 'failed'}`);
+    } finally {
+      setResetBusy(false);
+    }
+  }, [refresh]);
+
   const handleRemove = useCallback(async (id: string) => {
     setRemoveBusy(true);
     try {
@@ -657,7 +679,41 @@ export default function SpecialistsView() {
               {(Object.keys(selected.score.byDomain).length > 0
                 || Object.keys(selected.score.byStage).length > 0) ? (
                 <div className="rounded-md border border-border bg-muted/20 p-3">
-                  <div className="text-xs font-semibold">Score history</div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-xs font-semibold">Score history</div>
+                    {confirmResetId === selected.id ? (
+                      <div className="flex items-center gap-1 text-[10px]">
+                        <span className="text-muted-foreground">Wipe?</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setConfirmResetId(null)}
+                          disabled={resetBusy}
+                          className="h-6 px-2 text-[10px]"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleScoreReset(selected.id)}
+                          disabled={resetBusy}
+                          className="h-6 bg-destructive px-2 text-[10px] text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Confirm
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setConfirmResetId(selected.id)}
+                        title="Wipe score record (Phase 8.5). Audit log preserves the before-snapshot."
+                        className="h-6 px-2 text-[10px]"
+                      >
+                        Reset score
+                      </Button>
+                    )}
+                  </div>
                   <div className="text-[11px] text-muted-foreground">
                     {selected.score.lastUpdated
                       ? `last updated ${selected.score.lastUpdated}`
