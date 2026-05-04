@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.311] - 2026-05-04
+
+**Web — action-items panel in MeetingsView.**
+Phase 6.5 surfaced [DECISION] / [ACTION] / [TODO] / [BLOCKER]
+markers as a structured extract via
+`/api/meetings/:id/action-items` and the wiki publish path. Web
+operators had no way to see this without going to the published
+wiki. This adds an inline panel.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**:
+  - `ActionItem` / `ActionItemsResponse` types
+  - `useEffect` fetches `/api/meetings/:id/action-items` on
+    selection change AND when the transcript turn count
+    changes (so live SSE updates pick up new markers)
+  - new "Action Items" panel below the Fork lineage box,
+    above stages. Shown only when `count > 0`:
+    - 4 colored category pills (decision blue / action
+      emerald / todo amber / blocker rose) with per-group
+      counts
+    - each item: text + optional `@owner` tag + small
+      `stage/rN/specialistId` provenance trail
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- The fetch dependency on the turn-count sum (not the full
+  detail object) means polling refreshes don't re-trigger the
+  call unless transcripts actually grew.
+- Pairs with the existing wiki Action Items section (Phase
+  6.5 follow-up) — wiki for the published audit trail, panel
+  for live operators.
+
 ## [1.10.310] - 2026-05-04
 
 **Web — specialist filter extended + meeting lineage panel.**

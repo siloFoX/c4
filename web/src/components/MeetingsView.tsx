@@ -91,6 +91,23 @@ interface LineageResponse {
   chain: LineageEntry[];
 }
 
+// (Phase 6.5) Action-items extracted from transcript markers.
+type ActionItemType = 'decision' | 'action' | 'todo' | 'blocker';
+interface ActionItem {
+  type: ActionItemType;
+  text: string;
+  owner: string | null;
+  stage: string;
+  round: number;
+  specialistId: string | null;
+  ts: string | null;
+}
+interface ActionItemsResponse {
+  count: number;
+  byType: Record<ActionItemType, number>;
+  items: ActionItem[];
+}
+
 const STATUS_BADGE: Record<MeetingStatus, string> = {
   pending: 'border-border bg-muted/40 text-muted-foreground',
   'in-progress': 'border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400',
@@ -123,6 +140,8 @@ export default function MeetingsView() {
   // We refetch whenever selectedId changes; the chain is small
   // enough that we don't need debouncing.
   const [lineage, setLineage] = useState<LineageResponse | null>(null);
+  // (Phase 6.5) Action-items extracted from the transcript.
+  const [actions, setActions] = useState<ActionItemsResponse | null>(null);
 
   // (Phase 8.1) FTS search state. Empty query → bare list.
   // Non-empty → /api/meetings/search?q=&facet=status,track replaces
@@ -321,6 +340,26 @@ export default function MeetingsView() {
       .catch(() => { if (!cancelled) setLineage(null); });
     return () => { cancelled = true; };
   }, [selectedId]);
+
+  // (Phase 6.5) Fetch action-items. Re-runs when the transcript
+  // changes — i.e. when the SSE feed updates `detail`. The
+  // dependency on the transcript-length sum is cheap and
+  // change-stable for static meetings (no re-fetch every poll).
+  const turnsTotal = useMemo(() => {
+    if (!detail) return 0;
+    return (detail.transcripts || []).reduce((sum, arr) => sum + (arr ? arr.length : 0), 0);
+  }, [detail]);
+  useEffect(() => {
+    if (!selectedId) {
+      setActions(null);
+      return;
+    }
+    let cancelled = false;
+    apiGet<ActionItemsResponse>(`/api/meetings/${encodeURIComponent(selectedId)}/action-items`)
+      .then((res) => { if (!cancelled) setActions(res); })
+      .catch(() => { if (!cancelled) setActions(null); });
+    return () => { cancelled = true; };
+  }, [selectedId, turnsTotal]);
 
   const meetings = data?.meetings || [];
   const selectedSummary = useMemo(
@@ -960,6 +999,51 @@ export default function MeetingsView() {
                       </li>
                     ))}
                   </ol>
+                </div>
+              ) : null}
+              {/* (Phase 6.5) Action-items extracted from transcript
+                  markers. Rendered as 4 grouped lists with count
+                  badges. Empty groups are omitted. */}
+              {actions && actions.count > 0 ? (
+                <div className="rounded-md border border-border/60 bg-muted/10 p-3 text-[12px]">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="font-medium">Action Items</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      decision={actions.byType.decision} · action={actions.byType.action} · todo={actions.byType.todo} · blocker={actions.byType.blocker}
+                    </span>
+                  </div>
+                  {(['decision', 'action', 'todo', 'blocker'] as ActionItemType[]).map((kind) => {
+                    const group = actions.items.filter((it) => it.type === kind);
+                    if (group.length === 0) return null;
+                    const tone: Record<ActionItemType, string> = {
+                      decision: 'border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-400',
+                      action: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+                      todo: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+                      blocker: 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400',
+                    };
+                    return (
+                      <div key={kind} className="mb-2 last:mb-0">
+                        <div className={cn('mb-1 inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] uppercase tracking-wide', tone[kind])}>
+                          {kind} · {group.length}
+                        </div>
+                        <ul className="space-y-1 pl-3">
+                          {group.map((it, i) => (
+                            <li key={i} className="leading-snug">
+                              <span>{it.text}</span>
+                              {it.owner ? (
+                                <span className="ml-2 inline-flex items-center rounded border border-border bg-background px-1 py-0 font-mono text-[10px] text-muted-foreground">
+                                  @{it.owner}
+                                </span>
+                              ) : null}
+                              <span className="ml-2 text-[10px] text-muted-foreground">
+                                {it.stage}/r{it.round}/{it.specialistId || '?'}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })}
                 </div>
               ) : null}
               <div className="space-y-3">
