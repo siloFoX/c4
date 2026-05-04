@@ -2241,8 +2241,9 @@ const ROUTE_SCHEMAS = {
         days: { type: 'integer', description: 'Cutoff age in days (default 90)' },
         terminalOnly: { type: 'boolean', description: 'When true (default) only prune completed / escalated / aborted meetings' },
         dryRun: { type: 'boolean', description: 'Return candidate ids without deleting' },
+        vacuum: { type: 'boolean', description: 'Run SQLite VACUUM after deletes so the DB file actually shrinks' },
       },
-      example: { days: 90, terminalOnly: true, dryRun: true },
+      example: { days: 90, terminalOnly: true, vacuum: true },
     },
     response: {
       properties: {
@@ -2252,6 +2253,10 @@ const ROUTE_SCHEMAS = {
         cutoffISO: { type: 'string' },
         terminalOnly: { type: 'boolean' },
         days: { type: 'integer' },
+        vacuumed: { type: 'boolean' },
+        beforeBytes: { type: 'integer', nullable: true },
+        afterBytes: { type: 'integer', nullable: true },
+        reclaimedBytes: { type: 'integer', nullable: true },
       },
     },
   },

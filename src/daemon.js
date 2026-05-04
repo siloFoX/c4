@@ -4728,6 +4728,7 @@ async function handleRequest(req, res) {
           days: Number.isFinite(body.days) ? body.days : undefined,
           terminalOnly: body.terminalOnly !== false,
           dryRun: !!body.dryRun,
+          vacuum: !!body.vacuum,
         });
         // Reflect the disk deletions in the in-memory store. dryRun
         // path is read-only so we skip this branch.

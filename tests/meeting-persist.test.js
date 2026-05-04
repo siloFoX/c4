@@ -252,6 +252,58 @@ t('pruneOlderThan empty result is a clean no-op', () => {
   const r = p.pruneOlderThan({ days: 30 });
   assert.strictEqual(r.count, 0);
   assert.deepStrictEqual(r.ids, []);
+  // No VACUUM should run on an empty result.
+  assert.strictEqual(r.vacuumed, false);
+  p.close();
+});
+
+t('pruneOlderThan vacuum:true on disk shrinks the file', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'c4-mp-vac-'));
+  const dbPath = path.join(tmp, 'meetings.db');
+  try {
+    const p = new MeetingPersist({ dbPath });
+    // Inflate each task to a few KB so the row payload is large enough
+    // to push the DB beyond a single 4KB page; otherwise VACUUM has
+    // nothing to reclaim because all rows fit in the initial page.
+    const padding = 'x'.repeat(2048);
+    for (let i = 0; i < 80; i += 1) {
+      const sess = mkSession(`vacuum bulk ${i} ${padding}`);
+      sess._createdAt = '2025-01-01T00:00:00.000Z';
+      sess.start(); sess.abort('t');
+      p.save(sess);
+    }
+    // Force a WAL checkpoint so the main DB file reflects the writes
+    // before we sample its size; otherwise the writes are still in
+    // the -wal sidecar and VACUUM can't see them yet.
+    p._db.pragma('wal_checkpoint(FULL)');
+    const beforeOnDisk = fs.statSync(dbPath).size;
+    const r = p.pruneOlderThan({ days: 30, vacuum: true });
+    assert.strictEqual(r.count, 80);
+    assert.strictEqual(r.vacuumed, true);
+    assert.strictEqual(typeof r.beforeBytes, 'number');
+    assert.strictEqual(typeof r.afterBytes, 'number');
+    assert.ok(r.beforeBytes > r.afterBytes,
+      `vacuum should shrink (${r.beforeBytes}→${r.afterBytes})`);
+    assert.ok(r.reclaimedBytes > 0);
+    const afterOnDisk = fs.statSync(dbPath).size;
+    assert.ok(afterOnDisk < beforeOnDisk, 'on-disk size shrank');
+    p.close();
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+t('pruneOlderThan vacuum is skipped on dryRun', () => {
+  const p = mkDb();
+  const sess = mkSession('vacuum dry');
+  sess._createdAt = '2025-01-01T00:00:00.000Z';
+  sess.start(); sess.abort('t');
+  p.save(sess);
+  const r = p.pruneOlderThan({ days: 30, vacuum: true, dryRun: true });
+  assert.strictEqual(r.dryRun, true);
+  assert.strictEqual(r.vacuumed, false, 'vacuum skipped on dryRun');
+  // Sessions still present.
+  assert.strictEqual(p.count(), 1);
   p.close();
 });
 

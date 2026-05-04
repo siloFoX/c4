@@ -3225,17 +3225,20 @@ async function main() {
           return;
         }
         if (sub === 'prune-old') {
-          // c4 meeting prune-old [--days N] [--include-active] [--dry-run]
+          // c4 meeting prune-old [--days N] [--include-active]
+          //                      [--dry-run] [--vacuum]
           let days = null;
           let terminalOnly = true;
           let dryRun = false;
+          let vacuum = false;
           for (let i = 1; i < args.length; i += 1) {
             const a = args[i];
             if (a === '--days' && args[i + 1]) { days = parseInt(args[i + 1], 10); i += 1; }
             else if (a === '--include-active') { terminalOnly = false; }
             else if (a === '--dry-run') { dryRun = true; }
+            else if (a === '--vacuum') { vacuum = true; }
           }
-          const body = { terminalOnly, dryRun };
+          const body = { terminalOnly, dryRun, vacuum };
           if (Number.isFinite(days)) body.days = days;
           result = await request('POST', '/meetings/prune-old', body);
           if (args.includes('--json')) break;
@@ -3247,6 +3250,12 @@ async function main() {
           }
           if ((result.ids || []).length > 20) {
             console.log(`  ... ${result.ids.length - 20} more`);
+          }
+          if (result.vacuumed) {
+            const reclaimed = (typeof result.reclaimedBytes === 'number')
+              ? `reclaimed ${(result.reclaimedBytes / 1024).toFixed(1)}KB (${result.beforeBytes}→${result.afterBytes} bytes)`
+              : 'VACUUM ran';
+            console.log(`  ${reclaimed}`);
           }
           return;
         }

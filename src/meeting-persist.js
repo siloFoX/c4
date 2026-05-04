@@ -167,6 +167,7 @@ class MeetingPersist {
     const days = Number.isFinite(opts.days) ? opts.days : 90;
     const terminalOnly = opts.terminalOnly !== false;
     const dryRun = !!opts.dryRun;
+    const wantVacuum = !!opts.vacuum;
     if (days < 0) throw new Error('pruneOlderThan: days must be >= 0');
     const cutoffMs = Date.now() - days * 24 * 60 * 60 * 1000;
     const cutoffISO = new Date(cutoffMs).toISOString();
@@ -177,6 +178,8 @@ class MeetingPersist {
       params.push('completed', 'escalated', 'aborted');
     }
     const ids = this._db.prepare(sql).all(...params).map((r) => r.id);
+    let beforeBytes = null;
+    let afterBytes = null;
     if (!dryRun && ids.length > 0) {
       // Wrap deletes in a single transaction so a partial failure
       // (disk full, etc) doesn't leave half the rows gone with no
@@ -186,7 +189,42 @@ class MeetingPersist {
       });
       tx(ids);
     }
-    return { count: ids.length, ids, dryRun, cutoffISO, terminalOnly, days };
+    // Optional VACUUM. SQLite's DELETE only marks pages as free;
+    // file size stays the same until VACUUM rewrites the DB.
+    // Skipped on dryRun (no deletes happened). Skipped on
+    // empty-prune (nothing to reclaim). Cheap-but-not-free —
+    // copies the entire DB. Operators opt in when they actually
+    // care about disk pressure.
+    if (wantVacuum && !dryRun && ids.length > 0) {
+      try {
+        const fs2 = require('fs');
+        const dbFile = this._db.name;
+        if (dbFile && dbFile !== ':memory:') {
+          try { beforeBytes = fs2.statSync(dbFile).size; } catch { /* tolerate */ }
+        }
+        this._db.exec('VACUUM');
+        // In WAL mode, VACUUM's space reclamation isn't visible in
+        // the main DB file until the next checkpoint runs the WAL
+        // forward. Force it so beforeBytes/afterBytes reflect the
+        // post-VACUUM size, not the pre-VACUUM one.
+        try { this._db.pragma('wal_checkpoint(TRUNCATE)'); }
+        catch { /* tolerate — non-WAL mode has no checkpoint */ }
+        if (dbFile && dbFile !== ':memory:') {
+          try { afterBytes = fs2.statSync(dbFile).size; } catch { /* tolerate */ }
+        }
+      } catch (err) {
+        // VACUUM failure shouldn't reverse the prune — log + continue.
+        process.stderr.write(`[meeting-persist] VACUUM failed: ${err.message}\n`);
+      }
+    }
+    const reclaimedBytes = (beforeBytes != null && afterBytes != null)
+      ? Math.max(0, beforeBytes - afterBytes)
+      : null;
+    return {
+      count: ids.length, ids, dryRun, cutoffISO, terminalOnly, days,
+      vacuumed: wantVacuum && !dryRun && ids.length > 0,
+      beforeBytes, afterBytes, reclaimedBytes,
+    };
   }
 
   close() {

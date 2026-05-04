@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.287] - 2026-05-04
+
+**Multi-Specialist System — Phase 7.6 follow-up (Prune VACUUM).**
+SQLite's `DELETE` only marks pages as free; the file size stays
+the same until `VACUUM` rewrites the DB. After Phase 7.5 added
+prune-old, operators saw rows disappear from `count()` but the
+DB file stayed huge. This phase adds an opt-in VACUUM step.
+
+### Added
+- **`src/meeting-persist.js`**: `pruneOlderThan({vacuum:true})`
+  - runs SQLite `VACUUM` after deletes
+  - in WAL mode, forces a `wal_checkpoint(TRUNCATE)` after
+    VACUUM so the main DB file actually shrinks (without it,
+    the reclaimed pages stay invisible until the next
+    checkpoint)
+  - skipped on `dryRun` (no deletes happened) and on
+    empty-prune (nothing to reclaim)
+  - VACUUM failure logged to stderr but doesn't reverse the
+    prune — operator gets the row deletions even if disk space
+    can't be reclaimed
+  - result envelope gains `vacuumed`, `beforeBytes`,
+    `afterBytes`, `reclaimedBytes` so callers can show
+    "reclaimed XX KB"
+- **HTTP**: `POST /meetings/prune-old` body gains
+  `vacuum: boolean`. Response carries the size deltas.
+- **CLI**: `c4 meeting prune-old --vacuum` flag. Output adds
+  a `reclaimed N.NKB (BEFORE→AFTER bytes)` line when VACUUM
+  ran.
+- **OpenAPI**: request + response schema extended.
+- **Tests** (`tests/meeting-persist.test.js`): 2 new cases —
+  vacuum:true with bulk data shrinks the file (80×~2KB rows
+  → ~8KB after VACUUM); vacuum is skipped on dryRun.
+
+### Notes
+- The WAL-mode quirk is intentional: WAL keeps reads cheap
+  during writes (the win we wanted in Phase 7.1), but it means
+  the file you see on disk lags reality until a checkpoint runs.
+  Forcing the checkpoint after VACUUM trades a small write for
+  the operator-visible "DB file shrank" signal — exactly the
+  user-facing point of `--vacuum`.
+
 ## [1.10.286] - 2026-05-04
 
 **Multi-Specialist System — Phase 7.6 (Persist visibility in summary).**
