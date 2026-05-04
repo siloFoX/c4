@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.313] - 2026-05-04
+
+**Web — stuck meetings banner in MeetingsView.**
+Phase 6.15 surfaced hung sessions via `/api/meetings/stuck`. CLI
+(`c4 meeting stuck`) had this; web operators didn't. This adds
+an amber alert banner above the list so a hung meeting can't
+slide by.
+
+### Added
+- **`web/src/components/MeetingsView.tsx`**:
+  - polling `useEffect` (60s) calling
+    `/api/meetings/stuck?hours=1`
+  - amber banner above the layout when `count > 0`:
+    - `<AlertTriangle />` icon + `N meeting(s) stuck >1h:` label
+    - up to 5 clickable id chips with their age (`m-... (3.2h)`)
+    - "… and M more" summary when truncated
+    - clicking a chip selects the meeting in the detail panel
+  - same wrap-the-grid pattern as the SpecialistsView summary
+    bar (v1.10.312) so the layout stacks cleanly
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Refresh cadence is 60s — a stuck meeting isn't worth tighter
+  polling and the endpoint walks the in-memory store anyway.
+- Closes another routine-context gap. Combined with the
+  organism summary header (v1.10.312), web operators see all
+  the live signals doctor flags.
+
 ## [1.10.312] - 2026-05-04
 
 **Web — organism summary info bar in SpecialistsView.**

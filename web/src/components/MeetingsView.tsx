@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { BookOpen, Eye, MessageCircle, Play, Plus, RefreshCw, Radio, Search, X } from 'lucide-react';
+import { AlertTriangle, BookOpen, Eye, MessageCircle, Play, Plus, RefreshCw, Radio, Search, X } from 'lucide-react';
 import { apiGet, apiPost, eventSourceUrl } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
@@ -142,6 +142,28 @@ export default function MeetingsView() {
   const [lineage, setLineage] = useState<LineageResponse | null>(null);
   // (Phase 6.5) Action-items extracted from the transcript.
   const [actions, setActions] = useState<ActionItemsResponse | null>(null);
+
+  // (Phase 6.15) Stuck meetings alert. Polled every 60s; only
+  // visible when count > 0.
+  interface StuckEntry {
+    id: string;
+    status: MeetingStatus;
+    track: string;
+    title: string;
+    ageHours: number;
+  }
+  const [stuck, setStuck] = useState<{ count: number; stuck: StuckEntry[] } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const fetchStuck = () => {
+      apiGet<{ count: number; stuck: StuckEntry[] }>('/api/meetings/stuck?hours=1')
+        .then((res) => { if (!cancelled) setStuck(res); })
+        .catch(() => { /* tolerate older daemons */ });
+    };
+    fetchStuck();
+    const id = window.setInterval(fetchStuck, 60000);
+    return () => { cancelled = true; window.clearInterval(id); };
+  }, []);
 
   // (Phase 8.1) FTS search state. Empty query → bare list.
   // Non-empty → /api/meetings/search?q=&facet=status,track replaces
@@ -565,7 +587,29 @@ export default function MeetingsView() {
   }, [newTask, newTrack, refresh, templateName, templateVars]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 md:flex-row md:p-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 md:p-6">
+      {/* (Phase 6.15) Stuck meetings banner. Only shown when count > 0. */}
+      {stuck && stuck.count > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-700 dark:text-amber-400">
+          <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
+          <span className="font-medium">{stuck.count} meeting(s) stuck &gt;1h:</span>
+          {stuck.stuck.slice(0, 5).map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => setSelectedId(s.id)}
+              className="rounded border border-amber-500/40 bg-background/40 px-1.5 py-0 font-mono text-[10px] hover:bg-amber-500/20"
+              title={`${s.title} · ${s.status} · ${s.ageHours.toFixed(1)}h old`}
+            >
+              {s.id} ({s.ageHours.toFixed(1)}h)
+            </button>
+          ))}
+          {stuck.count > 5 ? (
+            <span className="text-[10px] opacity-70">… and {stuck.count - 5} more</span>
+          ) : null}
+        </div>
+      ) : null}
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden md:flex-row">
       <Card className="flex min-h-0 flex-1 flex-col md:max-w-md">
         <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
           <div className="flex flex-row items-center justify-between gap-2">
@@ -1084,6 +1128,7 @@ export default function MeetingsView() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
