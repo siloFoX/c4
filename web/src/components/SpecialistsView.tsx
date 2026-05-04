@@ -186,6 +186,42 @@ export default function SpecialistsView() {
     total: number;
     rotatedTotal: number;
   } | null>(null);
+  // (v1.10.348) Audit CSV export — uses the same window selector
+  // as the inline log so operators can hand the file to a SOC
+  // tool without re-typing the time range. Default UTF-8 BOM +
+  // CRLF for Excel-friendliness; we pin lineEnd=crlf explicitly.
+  const [exportAuditBusy, setExportAuditBusy] = useState(false);
+  const handleAuditExport = useCallback(async () => {
+    setExportAuditBusy(true);
+    try {
+      const params = new URLSearchParams();
+      if (auditWindow !== 'all') {
+        const hours = auditWindow === '1h' ? 1 : auditWindow === '24h' ? 24 : 24 * 7;
+        params.set('from', new Date(Date.now() - hours * 3600 * 1000).toISOString());
+      }
+      params.set('lineEnd', 'crlf');
+      const url = `/api/audit/export?${params.toString()}`;
+      // We can't use apiGet directly — the response is text/csv.
+      // apiFetch handles auth headers / 401 redirects.
+      const { apiFetch } = await import('../lib/api');
+      const res = await apiFetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      const objUrl = URL.createObjectURL(blob);
+      a.href = objUrl;
+      a.download = `c4-audit-${auditWindow}-${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objUrl);
+    } catch {
+      // best-effort — silent failure (no toast pipeline yet)
+    } finally {
+      setExportAuditBusy(false);
+    }
+  }, [auditWindow]);
+
   const handleVerify = useCallback(async (includeRotated: boolean) => {
     setVerifyBusy(true);
     setVerifyResult(null);
@@ -832,6 +868,15 @@ export default function SpecialistsView() {
                   chain integrity check. Lives here because the
                   audit log is the only natural neighbour. */}
               <span className="ml-auto inline-flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handleAuditExport}
+                  disabled={exportAuditBusy}
+                  className="rounded border border-border bg-muted/30 px-1.5 py-0 text-[10px] text-muted-foreground hover:bg-accent/40"
+                  title="Download CSV of audit entries in the current window"
+                >
+                  {exportAuditBusy ? '…' : 'Export CSV'}
+                </button>
                 <button
                   type="button"
                   onClick={() => handleVerify(false)}

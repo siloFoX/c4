@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.349] - 2026-05-04
+
+**Web — audit CSV export from audit log header.** Backend
+`GET /audit/export` produces a UTF-8 BOM + CRLF CSV (Excel-
+friendly). CLI had `c4 audit export`; web operators couldn't
+hand a file to a SOC tool without dropping to shell.
+
+### Added
+- **`web/src/components/SpecialistsView.tsx`**:
+  - `handleAuditExport()` — translates the current audit window
+    selector (1h / 24h / 7d / all) to a `from=<ISO>` parameter,
+    pins `lineEnd=crlf`, downloads the CSV via a blob link.
+  - "Export CSV" button at the start of the verify chain row.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- `apiFetch` is dynamically imported inside the handler so the
+  CSV path doesn't need a new module-level import (keeps the
+  existing import block tidy and proves we can reach the helper
+  without a JSON `apiGet`).
+
 ## [1.10.348] - 2026-05-04
 
 **Web — audit chain verify in audit log header.** Daemon-wide
