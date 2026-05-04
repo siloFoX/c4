@@ -28,6 +28,7 @@ import {
   Label,
 } from './ui';
 import { cn } from '../lib/cn';
+import { t, useLocale } from '../lib/i18n';
 import XtermView from './XtermView';
 import PinnedRulesEditor from './PinnedRulesEditor';
 
@@ -97,6 +98,7 @@ function readNumberStorage(key: string, fallback: number): number {
 }
 
 export default function WorkerDetail({ workerName }: WorkerDetailProps) {
+  useLocale();
   const [tab, setTab] = useState<Tab>('screen');
   const [scrollbackContent, setScrollbackContent] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -214,12 +216,12 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
           <div className="min-w-0">
             <CardTitle className="truncate">{workerName}</CardTitle>
             <CardDescription>
-              Terminal session
+              {t('workerDetail.terminalSession')}
             </CardDescription>
           </div>
           <div
             role="tablist"
-            aria-label="Terminal view"
+            aria-label={t('workerDetail.terminalView')}
             className="flex gap-1 rounded-lg border border-border bg-muted/40 p-1 text-sm"
           >
             <Button
@@ -230,7 +232,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
               size="sm"
               onClick={() => setTab('screen')}
             >
-              Screen
+              {t('workerDetail.tab.screen')}
             </Button>
             <Button
               type="button"
@@ -240,7 +242,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
               size="sm"
               onClick={() => setTab('scrollback')}
             >
-              Scrollback
+              {t('workerDetail.tab.scrollback')}
             </Button>
           </div>
         </div>
@@ -248,10 +250,10 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <div
             className="flex items-center gap-1 rounded-md border border-border bg-muted/40 p-1"
-            aria-label="Font size"
+            aria-label={t('workerDetail.font.label')}
           >
             <IconButton
-              aria-label="Decrease font size"
+              aria-label={t('workerDetail.font.decrease')}
               className="h-7 w-7"
               onClick={() => bumpFont(-1)}
               icon={<Minus className="h-3.5 w-3.5" />}
@@ -260,14 +262,14 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
               {fontSize}px
             </span>
             <IconButton
-              aria-label="Increase font size"
+              aria-label={t('workerDetail.font.increase')}
               className="h-7 w-7"
               onClick={() => bumpFont(1)}
               icon={<Plus className="h-3.5 w-3.5" />}
             />
           </div>
           <Label className="flex items-center gap-1 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-normal text-muted-foreground">
-            <span>auto-fit via xterm.js</span>
+            <span>{t('workerDetail.font.autoFit')}</span>
           </Label>
         </div>
       </CardHeader>
@@ -315,7 +317,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
                 handleSend();
               }
             }}
-            placeholder="Send text to worker..."
+            placeholder={t('workerDetail.composer.placeholder')}
             className="h-9 min-w-0 flex-1"
             disabled={busy}
           />
@@ -323,7 +325,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
             type="button"
             variant="default"
             size="icon"
-            aria-label="Send text"
+            aria-label={t('workerDetail.composer.sendText')}
             onClick={handleSend}
             disabled={busy || !inputText.trim()}
           >
@@ -336,7 +338,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
             onClick={handleEnter}
             disabled={busy}
           >
-            Enter
+            {t('workerDetail.composer.enter')}
           </Button>
           <Button
             type="button"
@@ -344,10 +346,10 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
             size="sm"
             onClick={handleMerge}
             disabled={busy}
-            title="Run pre-merge checks and merge this worker's branch into main"
+            title={t('workerDetail.composer.mergeTitle')}
           >
             <GitMerge className="h-4 w-4" />
-            <span>Merge</span>
+            <span>{t('workerDetail.composer.merge')}</span>
           </Button>
           <Button
             type="button"
@@ -357,7 +359,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
             disabled={busy}
           >
             <X className="h-4 w-4" />
-            <span>Close</span>
+            <span>{t('workerDetail.composer.close')}</span>
           </Button>
         </div>
 
@@ -367,7 +369,9 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
             already sends those, so the row is hidden at md+ breakpoints
             to keep the composer area uncluttered. */}
         <div className="flex flex-wrap items-center gap-2 md:hidden">
-          <span className="text-xs uppercase tracking-wide text-muted-foreground">Keys</span>
+          <span className="text-xs uppercase tracking-wide text-muted-foreground">
+            {t('workerDetail.keys.heading')}
+          </span>
           <Button
             type="button"
             variant="secondary"
@@ -375,7 +379,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
             onClick={() => sendKey('Escape')}
             disabled={busy}
           >
-            Esc
+            {t('workerDetail.keys.esc')}
           </Button>
           <Button
             type="button"
@@ -384,7 +388,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
             onClick={() => sendKey('C-c')}
             disabled={busy}
           >
-            Ctrl-C
+            {t('workerDetail.keys.ctrlC')}
           </Button>
           <Button
             type="button"
@@ -393,7 +397,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
             onClick={() => sendKey('C-d')}
             disabled={busy}
           >
-            Ctrl-D
+            {t('workerDetail.keys.ctrlD')}
           </Button>
           <Button
             type="button"
@@ -402,13 +406,13 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
             onClick={() => sendKey('Tab')}
             disabled={busy}
           >
-            Tab
+            {t('workerDetail.keys.tab')}
           </Button>
           <Button
             type="button"
             variant="secondary"
             size="sm"
-            aria-label="Arrow Up"
+            aria-label={t('workerDetail.keys.arrowUp')}
             onClick={() => sendKey('Up')}
             disabled={busy}
             className="h-8 w-8 p-0"
@@ -419,7 +423,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
             type="button"
             variant="secondary"
             size="sm"
-            aria-label="Arrow Down"
+            aria-label={t('workerDetail.keys.arrowDown')}
             onClick={() => sendKey('Down')}
             disabled={busy}
             className="h-8 w-8 p-0"
@@ -430,7 +434,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
             type="button"
             variant="secondary"
             size="sm"
-            aria-label="Arrow Left"
+            aria-label={t('workerDetail.keys.arrowLeft')}
             onClick={() => sendKey('Left')}
             disabled={busy}
             className="h-8 w-8 p-0"
@@ -441,7 +445,7 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
             type="button"
             variant="secondary"
             size="sm"
-            aria-label="Arrow Right"
+            aria-label={t('workerDetail.keys.arrowRight')}
             onClick={() => sendKey('Right')}
             disabled={busy}
             className="h-8 w-8 p-0"

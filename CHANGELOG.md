@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.388] - 2026-05-04
+
+**Web — WorkerDetail i18n.** High-traffic surface — every worker
+selection routes here. Translated terminal session card title,
+Screen/Scrollback tab toggle, font controls, composer (text
+input + Enter/Merge/Close buttons), mobile Keys row (Esc /
+Ctrl-C / Ctrl-D / Tab / arrow buttons).
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 23 new keys under
+  `workerDetail.*`.
+- **`web/src/components/WorkerDetail.tsx`**:
+  - `useLocale()` hook re-renders on locale flip.
+  - `t()` for every visible string + aria-label + tooltip.
+- **`tests/composer-mobile-keys.test.js`**: source-grep updated
+  to look for the i18n key reference instead of the literal
+  `Keys</span>`.
+
+### Korean copy
+- 터미널 세션 / 터미널 보기 / 화면 / 스크롤백 / 글자 크기 /
+  글자 크기 줄이기 / 글자 크기 늘리기 / xterm.js 자동 맞춤 /
+  워커에 보낼 텍스트… / 텍스트 전송 / Enter / 머지 / 종료 /
+  키 / Esc / Ctrl-C / Ctrl-D / Tab / 위쪽 화살표 / 아래쪽
+  화살표 / 왼쪽 화살표 / 오른쪽 화살표.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.387] - 2026-05-04
 
 **Web — onboarding tour step 4 Korean copy fix.** Last user-facing
