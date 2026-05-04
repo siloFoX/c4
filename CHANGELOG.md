@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.323] - 2026-05-04
+
+**Web — wiki related-pages chips in WikiView.**
+Phase 6.12 wiki publish auto-derives `related[]` from transcript
+markdown links + meeting/ADR refs. The frontmatter carried it
+but the page detail panel showed only type/status/path/body —
+nothing about the navigable web. Adds clickable chips.
+
+### Added
+- **`web/src/components/WikiView.tsx`**:
+  - "related (N)" section between metadata grid and body when
+    `frontmatter.related` is non-empty
+  - clickable chips for `*.md` paths — click jumps the
+    selection to that page (uses existing `setSelectedPath`)
+  - non-path entries (`adr:0042` / `meeting:m-...`) render as
+    disabled chips with tooltip-only fallback (no jump
+    behavior since they aren't wiki paths)
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Closes the visualization gap for the Phase 6.12 auto-derive
+  feature — operators reading a wiki page see what the system
+  thinks is related without re-reading the body.
+
 ## [1.10.322] - 2026-05-04
 
 **Web — wiki publish git commit / push toggles.**

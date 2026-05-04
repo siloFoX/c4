@@ -290,6 +290,35 @@ export default function WikiView() {
                   <div className="truncate font-medium">{page.path}</div>
                 </div>
               </div>
+              {/* (Phase 6.12) Related pages — auto-derived from
+                  transcript markers + meeting/ADR refs. Render as
+                  clickable chips when there's any. */}
+              {Array.isArray(page.frontmatter.related) && (page.frontmatter.related as unknown[]).length > 0 ? (
+                <div className="mt-2">
+                  <div className="text-xs text-muted-foreground">related ({(page.frontmatter.related as unknown[]).length})</div>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {(page.frontmatter.related as unknown[]).map((r, i) => {
+                      const ref = String(r);
+                      const isWikiPath = /\.md$/.test(ref);
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => isWikiPath ? setSelectedPath(ref) : null}
+                          className={cn(
+                            'rounded border border-border bg-background px-1.5 py-0 font-mono text-[10px]',
+                            isWikiPath ? 'hover:bg-accent/40' : 'cursor-default opacity-70',
+                          )}
+                          title={isWikiPath ? `Open ${ref}` : ref}
+                          disabled={!isWikiPath}
+                        >
+                          {ref}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
               <pre className="mt-3 whitespace-pre-wrap rounded-md border border-border bg-muted/20 p-3 text-[12px] font-mono">
                 {page.body}
               </pre>
