@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.362] - 2026-05-04
+
+**Web — `--primary` swapped from slate-200 to violet-500 to
+match ARPS accents.** v1.10.347 brought the dark theme close to
+ARPS but kept primary at near-white. ARPS uses violet-500
+(`hsl(262 84% 60%)`) for Run / Submit / active-tab states.
+Bumping `--primary` makes the same color flow through every
+shadcn-flavored component (Button variant=default, Tabs active,
+Badge variant=default, etc.) without per-component edits.
+
+### Changed
+- **`web/src/index.css`** (`.dark`):
+  - `--primary`: `213 27% 94%` (slate-200) → `262 84% 60%`
+    (violet-500).
+  - `--primary-foreground`: `222 47% 11%` (slate-900) →
+    `0 0% 98%` (white) so violet-bg keeps WCAG contrast.
+
+### Notes
+- Light theme untouched.
+- Backend tests still 200/200 green; lint + drift clean.
+- 31 `text-primary` + 30 `bg-primary*` references all pick up
+  the new color automatically — no JSX edits needed.
+
 ## [1.10.361] - 2026-05-04
 
 **Web — TopTabs labels migrated to i18n.** Korean operators
