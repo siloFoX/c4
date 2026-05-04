@@ -3,6 +3,7 @@ import { RefreshCw, Cog } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
 import { Button, Input, Panel } from '../components/ui';
 import { apiGet, apiPost } from '../lib/api';
+import { t, tFormat, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
 
 // (v1.10.358) Config viewer + reload trigger.
@@ -36,6 +37,7 @@ function summariseValue(v: unknown): string {
 }
 
 export default function Config() {
+  useLocale();
   const [config, setConfig] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -96,8 +98,8 @@ export default function Config() {
 
   return (
     <PageFrame
-      title="Config"
-      description="Live daemon config (sans secrets) + reload."
+      title={t('config.title')}
+      description={t('config.description')}
       actions={
         <Button
           type="button"
@@ -105,32 +107,29 @@ export default function Config() {
           size="sm"
           onClick={refresh}
           disabled={loading}
-          aria-label="Refresh config"
+          aria-label={t('config.refresh.label')}
         >
           <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
-          <span>Refresh</span>
+          <span>{t('common.refresh')}</span>
         </Button>
       }
     >
       <div className="rounded-md border border-border bg-muted/10 p-3 text-[12px] text-muted-foreground">
-        Mirrors <code className="font-mono">c4 config</code>. The daemon
-        sanitises secrets (slack tokens, JWT secret, etc.) before serving;
-        what you see here is safe to copy / share. Use Reload after editing
-        config.json on disk to apply without a daemon restart.
+        {t('config.intro')}
       </div>
 
       <Panel className="text-sm">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
             <Cog className="h-4 w-4 text-muted-foreground" aria-hidden />
-            Live config
+            {t('config.heading')}
           </h3>
           <Input
             type="text"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            placeholder="filter top-level keys / values"
-            aria-label="Filter config keys"
+            placeholder={t('config.filter.placeholder')}
+            aria-label={t('config.filter.label')}
             className="ml-auto h-7 max-w-xs text-[11px]"
             disabled={loading}
           />
@@ -141,9 +140,9 @@ export default function Config() {
             onClick={handleReload}
             disabled={reloadBusy}
             className="h-7 px-2 text-[11px]"
-            title="POST /api/config/reload — re-reads config.json, restarts subsystems as needed"
+            title={t('config.reload.title')}
           >
-            {reloadBusy ? 'Reloading…' : 'Reload from disk'}
+            {reloadBusy ? t('config.reloading') : t('config.reload')}
           </Button>
           {reloadMsg ? (
             <span className={cn(
@@ -156,10 +155,10 @@ export default function Config() {
         </div>
         {error ? <ErrorPanel message={error} /> : null}
         {!filtered ? (
-          <div className="text-[12px] text-muted-foreground">Loading…</div>
+          <div className="text-[12px] text-muted-foreground">{t('common.loading')}</div>
         ) : Object.keys(filtered).length === 0 ? (
           <div className="text-[12px] text-muted-foreground">
-            {filter ? `No keys match "${filter}".` : 'Empty config.'}
+            {filter ? tFormat('config.noMatch', { filter }) : t('config.empty')}
           </div>
         ) : (
           <div className="flex flex-col gap-2">

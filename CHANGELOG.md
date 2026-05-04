@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.394] - 2026-05-04
+
+**Web — Config page i18n.** Title / description / refresh /
+intro / heading / filter input / reload button / empty + no-match
+states.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 12 new keys under
+  `config.*`, including `{filter}`-templated `config.noMatch`.
+- **`web/src/pages/Config.tsx`**:
+  - `useLocale()` hook re-renders on locale flip.
+  - `t()` for static strings; `tFormat()` for the no-match
+    state which interpolates `{filter}`.
+
+### Korean copy
+- 구성 / 라이브 데몬 구성 / 라이브 구성 / 최상위 키 / 값 필터
+  / 디스크에서 리로드 / 리로드 중… / 구성이 비어 있습니다 /
+  "{filter}" 와 일치하는 키가 없습니다.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.393] - 2026-05-04
 
 **Web — RBAC page i18n.** Title, description, refresh, intro
