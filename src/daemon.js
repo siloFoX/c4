@@ -4902,8 +4902,11 @@ async function handleRequest(req, res) {
         const limitRaw = url.searchParams.get('limit');
         const limit = limitRaw && /^\d+$/.test(limitRaw) ? parseInt(limitRaw, 10) : 20;
         try {
+          const offsetRaw = url.searchParams.get('offset');
+          const offset = offsetRaw && /^\d+$/.test(offsetRaw) ? parseInt(offsetRaw, 10) : 0;
           const filterOpts = {
             limit,
+            offset,
             status: url.searchParams.get('status') || undefined,
             track: url.searchParams.get('track') || undefined,
             since: url.searchParams.get('since') || undefined,
@@ -4922,7 +4925,14 @@ async function handleRequest(req, res) {
               facets = _meetingPersist.searchFacets(q, { ...filterOpts, facets: facetList });
             }
           }
-          result = { count: results.length, query: q, results };
+          // (Phase 8.3) Optional total count — caller passes
+          // ?total=1 to opt into the second query.
+          let total = null;
+          if (url.searchParams.get('total') === '1') {
+            total = _meetingPersist.searchCount(q, filterOpts);
+          }
+          result = { count: results.length, query: q, offset, results };
+          if (total != null) result.total = total;
           if (facets) result.facets = facets;
         } catch (err) {
           res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;

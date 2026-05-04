@@ -360,6 +360,9 @@ class MeetingPersist {
       where.push("json_extract(m.data, '$.forkOf') = ?");
       params.push(opts.forkOf);
     }
+    const offset = Number.isFinite(opts.offset) && opts.offset > 0
+      ? Math.floor(opts.offset)
+      : 0;
     const sql = `
       SELECT m.id, m.status, m.created_at, m.updated_at,
              snippet(meetings_fts, -1, '<<', '>>', '…', 16) AS snippet,
@@ -368,9 +371,9 @@ class MeetingPersist {
       JOIN meetings m ON m.id = meetings_fts.id
       WHERE ${where.join(' AND ')}
       ORDER BY rank
-      LIMIT ?
+      LIMIT ? OFFSET ?
     `;
-    params.push(limit);
+    params.push(limit, offset);
     const rows = this._db.prepare(sql).all(...params);
     return rows.map((r) => ({
       id: r.id,
@@ -380,6 +383,31 @@ class MeetingPersist {
       snippet: r.snippet,
       rank: r.rank,
     }));
+  }
+
+  // Phase 8.3 — total count for pagination. Same MATCH + filters
+  // as search(), without snippets, so callers can render
+  // "showing N-M of K" displays. One extra query — cheap because
+  // SQLite doesn't have to materialize snippets for the count.
+  searchCount(q, opts = {}) {
+    if (!q || typeof q !== 'string') {
+      throw new Error('searchCount: query string required');
+    }
+    const where = ['meetings_fts MATCH ?'];
+    const params = [q];
+    if (opts.status) { where.push('m.status = ?'); params.push(opts.status); }
+    if (opts.track) { where.push("json_extract(m.data, '$.track') = ?"); params.push(opts.track); }
+    if (opts.since) { where.push('m.created_at >= ?'); params.push(opts.since); }
+    if (opts.until) { where.push('m.created_at < ?'); params.push(opts.until); }
+    if (opts.forkOf) { where.push("json_extract(m.data, '$.forkOf') = ?"); params.push(opts.forkOf); }
+    const sql = `
+      SELECT COUNT(*) AS n
+      FROM meetings_fts
+      JOIN meetings m ON m.id = meetings_fts.id
+      WHERE ${where.join(' AND ')}
+    `;
+    const row = this._db.prepare(sql).get(...params);
+    return row ? row.n : 0;
   }
 
   // Phase 7.5 — auto-prune. Find meetings older than N days,

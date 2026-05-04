@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.302] - 2026-05-04
+
+**Multi-Specialist System — Phase 8.3 (Search pagination).**
+With the Phase 8.1 limit cap of 200 rows, big haystacks needed
+paging. This adds offset + total so operators can render
+"showing N-M of K" displays.
+
+### Added
+- **`src/meeting-persist.js`**:
+  - `search(q, {limit, offset})` — `LIMIT N OFFSET M` on the
+    same MATCH + filter SQL. Past-end offsets return empty;
+    no error.
+  - `searchCount(q, {filters})` — same MATCH + filter as
+    search() but COUNT(*) only. One extra query, no snippet
+    materialization, so the cost is proportional to row hits
+    not result depth.
+- **HTTP**: `GET /meetings/search?offset=N&total=1`
+  - `?offset=N` paginates the results (default 0)
+  - `?total=1` opts into the second query so the response
+    carries `{count, offset, total, results, ...}`
+  - omitting `total` saves the extra query (default behavior)
+- **CLI**: `c4 meeting search "<q>" --offset N --total`
+  - with `--total`: `showing N-M of K match(es) for "<q>"`
+  - without: `count match(es) for "<q>" (offset=N)`
+- **OpenAPI**: `offset` + `total` query params + response fields
+  documented.
+- **Tests** (`tests/meeting-persist.test.js`): 3 new cases —
+  pagination slicing (limit + offset, no overlap, past-end
+  empty); searchCount returns total ignoring limit/offset
+  with filter narrowing; searchCount rejects empty query.
+
+### Notes
+- e2e: `c4 meeting search "alpha" --total --limit 5` →
+  `showing 1-1 of 1 match(es) for "alpha"` against a single
+  pending meeting.
+- Phase 8 search batch now covers: FTS index (8.1), boot sync +
+  manual rebuild (8.1 follow-up), filters (8.1.5), facets
+  (8.2), pagination (8.3). The pieces compose: a single GET
+  call with all of them gives operators the full search
+  experience without iterating.
+
 ## [1.10.301] - 2026-05-04
 
 **Multi-Specialist System — Phase 8.2 (Search facets).**

@@ -2310,11 +2310,15 @@ const ROUTE_SCHEMAS = {
       { name: 'until', in: 'query', schema: { type: 'string', description: 'ISO timestamp; exclusive upper bound on createdAt' } },
       { name: 'fork-of', in: 'query', schema: { type: 'string', description: 'Only meetings forked from this id' } },
       { name: 'facet', in: 'query', schema: { type: 'string', description: 'Comma-list of facet fields (status, track) to return aggregate counts for' } },
+      { name: 'offset', in: 'query', schema: { type: 'string', description: 'Pagination offset; default 0' } },
+      { name: 'total', in: 'query', schema: { type: 'string', enum: ['1'], description: 'Set to 1 to include the total match count alongside results (extra query)' } },
     ],
     response: {
       properties: {
         count: { type: 'integer' },
         query: { type: 'string', nullable: true },
+        offset: { type: 'integer' },
+        total: { type: 'integer', nullable: true, description: 'Present when ?total=1 was supplied' },
         facets: { type: 'object', description: 'Present when ?facet= was supplied. Map of facet → {bucket: count, ...}' },
         results: {
           type: 'array',

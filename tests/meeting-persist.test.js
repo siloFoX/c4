@@ -449,6 +449,49 @@ t('searchFacets honours filter narrowing', () => {
   p.close();
 });
 
+t('search pagination: limit + offset slice the result set', () => {
+  const p = mkDb();
+  // 5 sessions all matching "alpha".
+  for (let i = 0; i < 5; i += 1) {
+    const s = mkSession(`alpha bulk ${i}`);
+    p.save(s);
+  }
+  // limit=2, offset=0 → first 2
+  const page1 = p.search('alpha', { limit: 2, offset: 0 });
+  assert.strictEqual(page1.length, 2);
+  // limit=2, offset=2 → next 2
+  const page2 = p.search('alpha', { limit: 2, offset: 2 });
+  assert.strictEqual(page2.length, 2);
+  // No overlap between pages.
+  const page1Ids = new Set(page1.map((r) => r.id));
+  for (const r of page2) assert.ok(!page1Ids.has(r.id), 'page1/page2 disjoint');
+  // limit=2, offset=4 → last 1
+  const page3 = p.search('alpha', { limit: 2, offset: 4 });
+  assert.strictEqual(page3.length, 1);
+  // limit=2, offset=10 → empty (past end)
+  const past = p.search('alpha', { limit: 2, offset: 10 });
+  assert.strictEqual(past.length, 0);
+  p.close();
+});
+
+t('searchCount returns total ignoring limit/offset', () => {
+  const p = mkDb();
+  for (let i = 0; i < 5; i += 1) {
+    p.save(mkSession(`alpha total ${i}`));
+  }
+  assert.strictEqual(p.searchCount('alpha'), 5);
+  // Filters narrow the count too.
+  // (status default 'pending' → all 5)
+  assert.strictEqual(p.searchCount('alpha', { status: 'pending' }), 5);
+  assert.strictEqual(p.searchCount('alpha', { status: 'completed' }), 0);
+});
+
+t('searchCount rejects empty query', () => {
+  const p = mkDb();
+  assert.throws(() => p.searchCount(''), /required/);
+  assert.throws(() => p.searchCount(null), /required/);
+});
+
 t('searchFacets ignores unknown facet fields', () => {
   const p = mkDb();
   p.save(mkSession('alpha bare'));

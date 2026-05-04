@@ -3412,6 +3412,8 @@ async function main() {
           //                   [--track X] [--since ISO] [--until ISO]
           //                   [--fork-of ID]
           let limit = null;
+          let offset = null;
+          let total = false;
           let status = null;
           let track = null;
           let since = null;
@@ -3421,6 +3423,8 @@ async function main() {
           const qParts = [];
           for (let i = 1; i < args.length; i += 1) {
             if (args[i] === '--limit' && args[i + 1]) { limit = parseInt(args[i + 1], 10); i += 1; }
+            else if (args[i] === '--offset' && args[i + 1]) { offset = parseInt(args[i + 1], 10); i += 1; }
+            else if (args[i] === '--total') { total = true; }
             else if (args[i] === '--status' && args[i + 1]) { status = args[i + 1]; i += 1; }
             else if (args[i] === '--track' && args[i + 1]) { track = args[i + 1]; i += 1; }
             else if (args[i] === '--since' && args[i + 1]) { since = args[i + 1]; i += 1; }
@@ -3444,10 +3448,19 @@ async function main() {
           if (until) qs.set('until', until);
           if (forkOf) qs.set('fork-of', forkOf);
           if (facet) qs.set('facet', facet);
+          if (Number.isFinite(offset) && offset > 0) qs.set('offset', String(offset));
+          if (total) qs.set('total', '1');
           result = await request('GET', `/meetings/search?${qs.toString()}`);
           if (args.includes('--json')) break;
           if (result.error) { console.error(result.error); process.exit(1); }
-          console.log(`${result.count} match(es) for "${q}"`);
+          if (typeof result.total === 'number') {
+            const start = (result.offset || 0) + 1;
+            const end = (result.offset || 0) + result.count;
+            console.log(`showing ${result.count > 0 ? `${start}-${end}` : '0'} of ${result.total} match(es) for "${q}"`);
+          } else {
+            const offStr = result.offset ? ` (offset=${result.offset})` : '';
+            console.log(`${result.count} match(es) for "${q}"${offStr}`);
+          }
           for (const r of result.results || []) {
             console.log(`  ${r.id}  ${r.status.padEnd(11)}  ${r.createdAt}  rank=${r.rank.toFixed(2)}`);
             if (r.snippet) console.log(`    ${r.snippet}`);
