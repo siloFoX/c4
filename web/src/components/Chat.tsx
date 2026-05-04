@@ -5,6 +5,7 @@
 import { FormEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Plus, RotateCcw, Send } from 'lucide-react';
 import { apiPost } from '../lib/api';
+import { t, useLocale } from '../lib/i18n';
 import {
   Badge,
   Button,
@@ -74,6 +75,7 @@ function formatTime(ts: number): string {
 }
 
 export default function Chat() {
+  useLocale();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -167,18 +169,18 @@ export default function Chat() {
     <Card className="flex h-full min-h-0 w-full min-w-0 flex-col">
       <CardHeader className="flex-row items-start justify-between gap-2 p-4 md:p-5">
         <div>
-          <CardTitle>Chat</CardTitle>
+          <CardTitle>{t('chat.title')}</CardTitle>
           <CardDescription>
-            Natural-language control channel.
+            {t('chat.description')}
           </CardDescription>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Badge variant="outline" className="font-mono normal-case">
-            session: {sessionId ? sessionId.slice(0, 8) : 'new'}
+            {t('chat.session.label')}: {sessionId ? sessionId.slice(0, 8) : t('chat.session.new')}
           </Badge>
           <Button type="button" variant="secondary" size="sm" onClick={newSession}>
             <RotateCcw className="h-3.5 w-3.5" />
-            <span>Reset</span>
+            <span>{t('chat.reset')}</span>
           </Button>
         </div>
       </CardHeader>
@@ -190,8 +192,7 @@ export default function Chat() {
         >
           {messages.length === 0 ? (
             <div className="text-xs text-muted-foreground">
-              Try: "list workers", "create worker w1", "tell w1 to run tests",
-              "status", "close w1".
+              {t('chat.welcome')}
             </div>
           ) : (
             messages.map((m) => (
@@ -266,7 +267,7 @@ export default function Chat() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask something..."
+            placeholder={t('chat.input.placeholder')}
             className="h-10 flex-1"
             disabled={sending}
             autoFocus
@@ -278,7 +279,7 @@ export default function Chat() {
             disabled={sending || input.trim() === ''}
           >
             <Send className="h-4 w-4" />
-            <span>{sending ? '...' : 'Send'}</span>
+            <span>{sending ? t('chat.sending') : t('chat.send')}</span>
           </Button>
         </form>
       </CardContent>

@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.389] - 2026-05-04
+
+**Web — Chat (NL control channel) i18n.** Title, description,
+session badge, reset button, welcome hint, input placeholder,
+send button — every visible string translated.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 9 new keys under
+  `chat.*` (title / description / session.* / reset / welcome /
+  input.placeholder / send / sending).
+- **`web/src/components/Chat.tsx`**:
+  - `useLocale()` hook re-renders on locale flip.
+  - `t()` for every visible string.
+
+### Korean copy
+- 채팅 / 자연어로 제어하는 채널 / 세션 / 새 세션 / 초기화 /
+  무엇을 도와드릴까요… / 전송.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- The example commands in the welcome hint stay English (the
+  daemon parses these literal strings — translating would
+  break the demo).
+
 ## [1.10.388] - 2026-05-04
 
 **Web — WorkerDetail i18n.** High-traffic surface — every worker

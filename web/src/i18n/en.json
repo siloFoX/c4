@@ -94,6 +94,16 @@
   "sessions.empty": "No sessions found.",
   "sessions.loadingSession": "Loading session…",
 
+  "chat.title": "Chat",
+  "chat.description": "Natural-language control channel.",
+  "chat.session.label": "session",
+  "chat.session.new": "new",
+  "chat.reset": "Reset",
+  "chat.welcome": "Try: \"list workers\", \"create worker w1\", \"tell w1 to run tests\", \"status\", \"close w1\".",
+  "chat.input.placeholder": "Ask something…",
+  "chat.send": "Send",
+  "chat.sending": "…",
+
   "chat.jumpToLatest": "Jump to latest",
   "chat.loadingPast": "Loading past messages…",
   "chat.empty": "No messages yet. Type below to talk to the worker.",

@@ -94,6 +94,16 @@
   "sessions.empty": "세션이 없습니다.",
   "sessions.loadingSession": "세션 로딩 중…",
 
+  "chat.title": "채팅",
+  "chat.description": "자연어로 제어하는 채널.",
+  "chat.session.label": "세션",
+  "chat.session.new": "새 세션",
+  "chat.reset": "초기화",
+  "chat.welcome": "예시: \"list workers\", \"create worker w1\", \"tell w1 to run tests\", \"status\", \"close w1\".",
+  "chat.input.placeholder": "무엇을 도와드릴까요…",
+  "chat.send": "전송",
+  "chat.sending": "…",
+
   "chat.jumpToLatest": "최근으로 이동",
   "chat.loadingPast": "이전 메시지 불러오는 중…",
   "chat.empty": "메시지가 없습니다. 아래에 입력해서 워커에게 보내세요.",
