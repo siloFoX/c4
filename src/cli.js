@@ -3408,22 +3408,39 @@ async function main() {
           return;
         }
         if (sub === 'search') {
-          // c4 meeting search "query" [--limit N]
+          // c4 meeting search "query" [--limit N] [--status X]
+          //                   [--track X] [--since ISO] [--until ISO]
+          //                   [--fork-of ID]
           let limit = null;
+          let status = null;
+          let track = null;
+          let since = null;
+          let until = null;
+          let forkOf = null;
           const qParts = [];
           for (let i = 1; i < args.length; i += 1) {
             if (args[i] === '--limit' && args[i + 1]) { limit = parseInt(args[i + 1], 10); i += 1; }
+            else if (args[i] === '--status' && args[i + 1]) { status = args[i + 1]; i += 1; }
+            else if (args[i] === '--track' && args[i + 1]) { track = args[i + 1]; i += 1; }
+            else if (args[i] === '--since' && args[i + 1]) { since = args[i + 1]; i += 1; }
+            else if (args[i] === '--until' && args[i + 1]) { until = args[i + 1]; i += 1; }
+            else if (args[i] === '--fork-of' && args[i + 1]) { forkOf = args[i + 1]; i += 1; }
             else if (args[i] === '--json') { /* handled below */ }
             else qParts.push(args[i]);
           }
           const q = qParts.join(' ');
           if (!q) {
-            console.error('Usage: c4 meeting search "<query>" [--limit N]');
+            console.error('Usage: c4 meeting search "<query>" [--limit N] [--status X] [--track X] [--since ISO] [--until ISO] [--fork-of ID]');
             process.exit(1);
           }
           const qs = new URLSearchParams();
           qs.set('q', q);
           if (Number.isFinite(limit)) qs.set('limit', String(limit));
+          if (status) qs.set('status', status);
+          if (track) qs.set('track', track);
+          if (since) qs.set('since', since);
+          if (until) qs.set('until', until);
+          if (forkOf) qs.set('fork-of', forkOf);
           result = await request('GET', `/meetings/search?${qs.toString()}`);
           if (args.includes('--json')) break;
           if (result.error) { console.error(result.error); process.exit(1); }

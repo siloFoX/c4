@@ -287,7 +287,47 @@ class MeetingPersist {
       throw new Error('search: query string required');
     }
     const limit = Math.min(200, Number.isFinite(opts.limit) ? Math.max(1, opts.limit) : 20);
-    const rows = this._stmtFtsSearch.all(q, limit);
+    // (Phase 8.1.5) Filter narrowing — composes with the FTS MATCH
+    // via WHERE clauses on the joined meetings row. All filters are
+    // optional; missing → no narrowing.
+    const where = ['meetings_fts MATCH ?'];
+    const params = [q];
+    if (opts.status) {
+      where.push('m.status = ?');
+      params.push(opts.status);
+    }
+    if (opts.track) {
+      // track lives in the JSON `data` blob — dig it out via
+      // json_extract. SQLite has json_extract built in; the cost
+      // is per-row for matched results which is fine for the FTS
+      // limit (max 200).
+      where.push("json_extract(m.data, '$.track') = ?");
+      params.push(opts.track);
+    }
+    if (opts.since) {
+      where.push('m.created_at >= ?');
+      params.push(opts.since);
+    }
+    if (opts.until) {
+      where.push('m.created_at < ?');
+      params.push(opts.until);
+    }
+    if (opts.forkOf) {
+      where.push("json_extract(m.data, '$.forkOf') = ?");
+      params.push(opts.forkOf);
+    }
+    const sql = `
+      SELECT m.id, m.status, m.created_at, m.updated_at,
+             snippet(meetings_fts, -1, '<<', '>>', '…', 16) AS snippet,
+             rank
+      FROM meetings_fts
+      JOIN meetings m ON m.id = meetings_fts.id
+      WHERE ${where.join(' AND ')}
+      ORDER BY rank
+      LIMIT ?
+    `;
+    params.push(limit);
+    const rows = this._db.prepare(sql).all(...params);
     return rows.map((r) => ({
       id: r.id,
       status: r.status,

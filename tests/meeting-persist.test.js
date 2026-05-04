@@ -376,6 +376,45 @@ t('backupTo rejects empty/missing path', () => {
   p.close();
 });
 
+t('search filters: status / track / since-until narrow MATCH results', () => {
+  const p = mkDb();
+  // Build 4 sessions all matching "alpha" but differing in metadata.
+  const old = mkSession('alpha topic from January');
+  old._createdAt = '2026-01-01T00:00:00.000Z';
+  old.start(); old.abort('t');
+  const recent = mkSession('alpha topic recent');
+  recent._createdAt = '2026-05-01T00:00:00.000Z';
+  recent.start(); recent.abort('t');
+  const pending = mkSession('alpha topic pending');
+  pending._createdAt = '2026-05-01T00:00:00.000Z';
+  // pending stays pending (don't start)
+  p.save(old); p.save(recent); p.save(pending);
+
+  // No filter → all 3 match.
+  assert.strictEqual(p.search('alpha').length, 3);
+
+  // status filter narrows.
+  const onlyAborted = p.search('alpha', { status: 'aborted' });
+  assert.strictEqual(onlyAborted.length, 2);
+  assert.ok(onlyAborted.every((r) => r.status === 'aborted'));
+
+  // since narrows out the January row.
+  const recentOnly = p.search('alpha', { since: '2026-04-01T00:00:00.000Z' });
+  assert.strictEqual(recentOnly.length, 2);
+
+  // since + status compose.
+  const recentAborted = p.search('alpha', { since: '2026-04-01T00:00:00.000Z', status: 'aborted' });
+  assert.strictEqual(recentAborted.length, 1);
+  assert.strictEqual(recentAborted[0].id, recent.id);
+
+  // until is exclusive — boundary check.
+  const beforeMay = p.search('alpha', { until: '2026-05-01T00:00:00.000Z' });
+  assert.strictEqual(beforeMay.length, 1, 'May 1 itself is excluded');
+  assert.strictEqual(beforeMay[0].id, old.id);
+
+  p.close();
+});
+
 t('search returns matches for transcript text', () => {
   const p = mkDb();
   // Build sessions with controlled transcript content.

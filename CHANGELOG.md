@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.300] - 2026-05-04
+
+**🎉 Milestone — v1.10.300.**
+This release marks 300 patches on the 1.10.x line. Phase 6
+(operator polish, 18 sub-phases) → Phase 7 (persistent backend,
+14 sub-phases) → Phase 8 (search) shipped over the autonomous
+multi-day session that started at v1.10.255.
+
+### Added — Phase 8.1.5 (Meeting search filters)
+- **`src/meeting-persist.js`**: `search(q, {status, track, since,
+  until, forkOf, limit})` composes FTS5 MATCH with WHERE clauses
+  on the joined meetings row:
+  - `status` exact-match against the indexed column
+  - `track` extracted from JSON `data` blob via
+    `json_extract(...,'$.track')`
+  - `since` inclusive lower bound on `created_at`
+  - `until` exclusive upper bound on `created_at`
+  - `forkOf` extracted via `json_extract(...,'$.forkOf')`
+  - All filters AND-compose; missing filters degrade to no
+    narrowing.
+  - bm25 rank still drives ordering.
+- **HTTP**: `GET /meetings/search?q=&status=&track=&since=&until=&fork-of=&limit=`
+- **CLI**: `c4 meeting search "<q>" [--status X] [--track X]
+  [--since ISO] [--until ISO] [--fork-of ID] [--limit N]`
+- **OpenAPI**: 5 new query params added.
+- **Tests**: new "search filters narrow MATCH results" case
+  exercises 3-meeting fixture across status / since / both
+  filters compose / until exclusive boundary.
+
+### Notes
+- `json_extract` cost is per-matched-row, capped by FTS5 `LIMIT`
+  (max 200) — cheap.
+- The until-exclusive semantics matches `c4 meeting list
+  --since/--until` (Phase 6.11) and `c4 specialist audit
+  --since/--until` (Phase 7.10) so adjacent windows compose
+  without overlap consistently across the suite.
+- This closes Phase 8.1's first batch — search exists with
+  rebuild + filters + visibility. Next-phase work would be
+  facets / paging / saved queries.
+
 ## [1.10.299] - 2026-05-04
 
 **Multi-Specialist System — Phase 8.1 follow-up (FTS rebuild + boot sync).**

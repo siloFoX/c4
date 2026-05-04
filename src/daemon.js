@@ -4880,10 +4880,16 @@ async function handleRequest(req, res) {
       }
 
     } else if (req.method === 'GET' && route === '/meetings/search') {
-      // (Phase 8.1) FTS5-backed meeting search. Query:
-      //   ?q=<text>      required, FTS5 syntax (phrases in quotes,
-      //                  OR for alternation, * for prefix match)
-      //   ?limit=N       default 20, cap 200
+      // (Phase 8.1) FTS5-backed meeting search. (Phase 8.1.5) +
+      // narrowing filters that compose with the MATCH.
+      // Query:
+      //   ?q=<text>     required, FTS5 syntax
+      //   ?limit=N      default 20, cap 200
+      //   ?status=...   only meetings in this status
+      //   ?track=...    only meetings on this track
+      //   ?since=ISO    inclusive lower bound on createdAt
+      //   ?until=ISO    exclusive upper bound on createdAt
+      //   ?fork-of=ID   only meetings forked from this id
       const q = url.searchParams.get('q');
       if (!q) {
         res.writeHead(400);
@@ -4896,7 +4902,14 @@ async function handleRequest(req, res) {
         const limitRaw = url.searchParams.get('limit');
         const limit = limitRaw && /^\d+$/.test(limitRaw) ? parseInt(limitRaw, 10) : 20;
         try {
-          const results = _meetingPersist.search(q, { limit });
+          const results = _meetingPersist.search(q, {
+            limit,
+            status: url.searchParams.get('status') || undefined,
+            track: url.searchParams.get('track') || undefined,
+            since: url.searchParams.get('since') || undefined,
+            until: url.searchParams.get('until') || undefined,
+            forkOf: url.searchParams.get('fork-of') || undefined,
+          });
           result = { count: results.length, query: q, results };
         } catch (err) {
           res.writeHead(400); res.end(JSON.stringify({ error: err.message })); return;

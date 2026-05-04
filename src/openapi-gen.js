@@ -2304,6 +2304,11 @@ const ROUTE_SCHEMAS = {
     parameters: [
       { name: 'q', in: 'query', required: true, schema: { type: 'string', description: 'FTS5 query (phrases in double-quotes, OR for alternation, * for prefix match)' } },
       { name: 'limit', in: 'query', schema: { type: 'string', description: 'Default 20, cap 200' } },
+      { name: 'status', in: 'query', schema: { type: 'string', description: 'Filter by meeting status (pending|in-progress|completed|escalated|aborted)' } },
+      { name: 'track', in: 'query', schema: { type: 'string', description: 'Filter by track (lightweight|standard|full)' } },
+      { name: 'since', in: 'query', schema: { type: 'string', description: 'ISO timestamp; inclusive lower bound on createdAt' } },
+      { name: 'until', in: 'query', schema: { type: 'string', description: 'ISO timestamp; exclusive upper bound on createdAt' } },
+      { name: 'fork-of', in: 'query', schema: { type: 'string', description: 'Only meetings forked from this id' } },
     ],
     response: {
       properties: {
