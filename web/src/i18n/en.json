@@ -87,6 +87,10 @@
   "worker.action.close.success": "Closed {name}",
   "worker.action.failed": "{label} failed: {error}",
 
+  "workerList.disconnected": "Live updates disconnected — polling",
+  "workerList.failedToLoad": "Failed to load workers: {error}",
+  "workerList.empty": "No workers yet.",
+
   "empty.workerDetail.title": "Worker detail",
   "empty.workerDetail.description": "Select a worker from the sidebar to view details.",
 

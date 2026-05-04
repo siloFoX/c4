@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.376] - 2026-05-04
+
+**Web — WorkerList status copy i18n.** Three top-level strings in
+the worker list panel (SSE-disconnected banner, error banner,
+empty state) were hardcoded English.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 3 new keys
+  (`workerList.disconnected`, `workerList.failedToLoad`,
+  `workerList.empty`).
+- **`web/src/components/WorkerList.tsx`**:
+  - `useLocale()` hook re-renders on locale flip.
+  - `t()` for static strings; `tFormat()` for the failure
+    message which interpolates `{error}`.
+
+### Korean copy
+- "실시간 업데이트 끊김 — 폴링 중" / "워커 로드 실패: {error}" /
+  "워커가 없습니다."
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- The detailed worker rows still have English status badges
+  (live, busy, idle, etc.) — separate task; will plug into
+  the existing types.
+
 ## [1.10.375] - 2026-05-04
 
 **Web — token interpolator hoisted to lib/i18n.ts as `tFormat`.**

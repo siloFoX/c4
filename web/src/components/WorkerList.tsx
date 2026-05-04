@@ -10,6 +10,7 @@ import {
   type BadgeProps,
 } from './ui';
 import { cn } from '../lib/cn';
+import { t, tFormat, useLocale } from '../lib/i18n';
 
 type BadgeVariant = NonNullable<BadgeProps['variant']>;
 
@@ -131,6 +132,7 @@ function writeBoolPref(key: string, value: boolean): void {
 }
 
 export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps) {
+  useLocale();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [sseConnected, setSseConnected] = useState(false);
@@ -278,7 +280,7 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
       {!sseConnected && (
         <div className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs text-muted-foreground">
           <WifiOff aria-hidden="true" className="h-3.5 w-3.5" />
-          <span>Live updates disconnected - polling</span>
+          <span>{t('workerList.disconnected')}</span>
         </div>
       )}
 
@@ -288,7 +290,7 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
           className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
         >
           <span className="min-w-0 break-words">
-            Failed to load workers: {error}
+            {tFormat('workerList.failedToLoad', { error: error || '' })}
           </span>
         </div>
       )}
@@ -296,7 +298,7 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
       {!error && workers.length === 0 && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Inbox aria-hidden="true" className="h-4 w-4" />
-          <span>No workers yet.</span>
+          <span>{t('workerList.empty')}</span>
         </div>
       )}
 

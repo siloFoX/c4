@@ -87,6 +87,10 @@
   "worker.action.close.success": "{name} 종료됨",
   "worker.action.failed": "{label} 실패: {error}",
 
+  "workerList.disconnected": "실시간 업데이트 끊김 — 폴링 중",
+  "workerList.failedToLoad": "워커 로드 실패: {error}",
+  "workerList.empty": "워커가 없습니다.",
+
   "empty.workerDetail.title": "워커 상세",
   "empty.workerDetail.description": "사이드바에서 워커를 선택하세요.",
 
