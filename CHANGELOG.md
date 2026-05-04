@@ -4,6 +4,43 @@
 
 (no entries — next release window)
 
+## [1.10.288] - 2026-05-04
+
+**Multi-Specialist System — Phase 7.7 (Persist integrity check in doctor).**
+The Phase 7.1-7.6 persistence backend assumed clean SQLite I/O.
+Bit-rot, interrupted writes, or external file copies could
+corrupt the DB silently — operators wouldn't notice until a
+specific row failed to load. This phase adds a health probe.
+
+### Added
+- **`src/meeting-persist.js`**: `integrityCheck()` runs SQLite
+  `PRAGMA integrity_check` and returns `{ok}` or
+  `{ok:false, errors:[...]}`. Cheap on small DBs; O(rows) on
+  large ones — caller-triggered, not run on every read.
+- **HTTP**: `GET /meetings/persist-integrity` returns
+  `{enabled, ok, errors[]}`. `enabled:false` with `ok:null`
+  when persistence is disabled (in-memory mode).
+- **CLI**: `c4 doctor` calls the endpoint as part of its
+  organism health pass:
+  - `persist: integrity OK (N row(s), XX.YKB)` — green
+  - `persist: INTEGRITY FAILED — <errors>` — red, exit 1
+  - `persist: disabled (in-memory only…)` — yellow warn
+  Older daemons without the endpoint just skip — `c4 doctor`
+  doesn't trip on the missing route.
+- **OpenAPI**: full response schema; `persist-integrity` added
+  to the meetings parametric reserved-suffix list.
+- **Tests** (`tests/meeting-persist.test.js`): 2 new cases —
+  clean DB returns ok, empty DB also returns ok.
+
+### Notes
+- e2e verified: live daemon doctor pass renders
+  `persist: integrity OK (0 row(s), 4.0KB)` alongside the
+  existing organism check. Suite total stays at 200.
+- Pairs with the dashboard trio (summary / stuck / watch-all).
+  Operators can chain: doctor → see integrity OK → summary
+  for size → prune-old --vacuum if growing → re-doctor for
+  confirmation.
+
 ## [1.10.287] - 2026-05-04
 
 **Multi-Specialist System — Phase 7.6 follow-up (Prune VACUUM).**

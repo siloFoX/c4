@@ -293,6 +293,22 @@ t('pruneOlderThan vacuum:true on disk shrinks the file', () => {
   }
 });
 
+t('integrityCheck returns {ok:true} on a clean DB', () => {
+  const p = mkDb();
+  const sess = mkSession('integrity clean');
+  p.save(sess);
+  const r = p.integrityCheck();
+  assert.strictEqual(r.ok, true);
+  p.close();
+});
+
+t('integrityCheck on empty DB also returns ok', () => {
+  const p = mkDb();
+  const r = p.integrityCheck();
+  assert.strictEqual(r.ok, true);
+  p.close();
+});
+
 t('pruneOlderThan vacuum is skipped on dryRun', () => {
   const p = mkDb();
   const sess = mkSession('vacuum dry');

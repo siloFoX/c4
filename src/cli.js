@@ -996,6 +996,36 @@ async function main() {
                 ? `multi-specialist: ${summary.registry.count} specialist(s) (${summary.registry.vetoCount} veto, ${summary.meetings.total} meetings, ${summary.scores.specialistsWithSamples} scored)`
                 : `multi-specialist: registry empty — seed JSON failed to load`,
             });
+            // (v1.10.288) Persist integrity — surfaces a corrupt
+            // SQLite DB before it eats meetings silently. Skipped
+            // when persist is disabled; warns when enabled but the
+            // integrity_check returns anything other than 'ok'.
+            try {
+              const integ = await request('GET', '/meetings/persist-integrity');
+              if (integ && integ.enabled === true) {
+                if (integ.ok === true) {
+                  const persistInfo = summary.persist || {};
+                  const sizeStr = (typeof persistInfo.dbSizeBytes === 'number')
+                    ? `${(persistInfo.dbSizeBytes / 1024).toFixed(1)}KB`
+                    : '-';
+                  const rowStr = (typeof persistInfo.rowCount === 'number') ? `${persistInfo.rowCount} row(s)` : '-';
+                  checks.push({
+                    ok: true,
+                    label: `persist: integrity OK (${rowStr}, ${sizeStr})`,
+                  });
+                } else {
+                  checks.push({
+                    ok: false,
+                    label: `persist: INTEGRITY FAILED — ${(integ.errors || []).slice(0, 3).join('; ')}`,
+                  });
+                }
+              } else if (integ && integ.enabled === false) {
+                checks.push({
+                  ok: true, level: 'warn',
+                  label: 'persist: disabled (in-memory only — meetings vanish on daemon restart)',
+                });
+              }
+            } catch { /* old daemons may lack the endpoint; tolerate */ }
             // Flag if there are stuck meetings (warn, not fail).
             try {
               const stuck = await request('GET', '/meetings/stuck?hours=1');

@@ -833,7 +833,7 @@ async function handleRequest(req, res) {
     if (meetingParams && (
       meetingParams.id === 'plan' || meetingParams.id === 'templates' || meetingParams.id === 'stream'
         || meetingParams.id === 'classify-track' || meetingParams.id === 'stuck'
-        || meetingParams.id === 'prune-old'
+        || meetingParams.id === 'prune-old' || meetingParams.id === 'persist-integrity'
     )) meetingParams = null;
   }
 
@@ -4703,6 +4703,21 @@ async function handleRequest(req, res) {
         return;
       }
       result = { id: sess.id, transcript: sess.transcript() };
+
+    } else if (req.method === 'GET' && route === '/meetings/persist-integrity') {
+      // (Phase 7.7) Run SQLite PRAGMA integrity_check on the persist
+      // DB. Read-only; cost is O(rows). Doctor calls this during
+      // health passes; operators can also hit it directly.
+      if (!_meetingPersist) {
+        result = { enabled: false, ok: null };
+      } else {
+        try {
+          const r = _meetingPersist.integrityCheck();
+          result = { enabled: true, ok: r.ok, errors: r.errors || [] };
+        } catch (err) {
+          result = { enabled: true, ok: false, errors: [err.message] };
+        }
+      }
 
     } else if (req.method === 'POST' && route === '/meetings/prune-old') {
       // (multi-specialist phase 7.5) Auto-prune persisted meetings

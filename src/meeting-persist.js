@@ -227,6 +227,22 @@ class MeetingPersist {
     };
   }
 
+  // Run SQLite's `PRAGMA integrity_check`. Returns
+  // `{ok: true}` when the DB is consistent, `{ok: false, errors:
+  // [...]}` when corruption is detected. Cheap on small DBs;
+  // O(rows) on large ones. Operator-triggered (via doctor) — not
+  // run on every read.
+  integrityCheck() {
+    try {
+      const rows = this._db.prepare('PRAGMA integrity_check').all();
+      const messages = rows.map((r) => r.integrity_check);
+      const ok = messages.length === 1 && messages[0] === 'ok';
+      return ok ? { ok: true } : { ok: false, errors: messages };
+    } catch (err) {
+      return { ok: false, errors: [`integrity_check threw: ${err.message}`] };
+    }
+  }
+
   close() {
     if (this._db) {
       this._db.close();

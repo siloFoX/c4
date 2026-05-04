@@ -56,6 +56,7 @@ const ROUTE_SUMMARIES = {
   'GET /meetings/classify-track': 'Preview the track classifier for a task string — returns {track, matched, reason, tokenCount}. Useful for tuning task wording.',
   'GET /meetings/stuck': 'Detect meetings stuck in pending/in-progress for more than ?hours= (default 1). Catches hung sessions an operator hasn`t noticed.',
   'POST /meetings/prune-old': 'Auto-prune persisted meetings older than N days (default 90, terminal-only). Mirrors deletions into the in-memory store; supports dryRun preview.',
+  'GET /meetings/persist-integrity': 'Run SQLite PRAGMA integrity_check on the persist DB. Returns {enabled, ok, errors}. Doctor uses this for health pass.',
   'GET /meetings/templates': 'List meeting templates persisted at ~/.c4/meeting-templates.json.',
   'POST /meetings/templates': 'Create or update a meeting template (upsert by name).',
   'GET /meetings/templates/:name': 'Fetch a single meeting template by name.',
@@ -2232,6 +2233,15 @@ const ROUTE_SCHEMAS = {
         scoreHistory: { type: 'array', items: { type: 'object' }, description: 'Present when ?include=scoreHistory. Last 20 score-applied entries.' },
         recentMeetings: { type: 'array', items: { type: 'object' }, description: 'Present when ?include=meetings. Up to 10 most recent meetings this specialist participated in.' },
         scoreEffective: { type: 'object', description: 'Present when ?include=scoreEffective. Post-decay scores the dispatcher would use, plus halfLifeDays and ageDays for context.' },
+      },
+    },
+  },
+  'GET /meetings/persist-integrity': {
+    response: {
+      properties: {
+        enabled: { type: 'boolean' },
+        ok: { type: 'boolean', nullable: true, description: 'Null when persist is disabled' },
+        errors: { type: 'array', items: { type: 'string' } },
       },
     },
   },
