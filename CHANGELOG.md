@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.297] - 2026-05-04
+
+**Multi-Specialist System — Phase 7.14 follow-up (Backup freshness in doctor).**
+Phase 7.14 added auto-backup visibility in the summary. This
+phase adds active flagging — `c4 doctor` warns when the
+last-known-good file is more than 7 days old, telling operators
+their recovery point is stale and they should do a clean
+restart.
+
+### Added
+- **CLI**: `c4 doctor` now reads `persist.lastKnownGood.ageDays`
+  from the summary endpoint:
+  - `> 7 days`: warn line `backup: last clean shutdown was N
+    days ago — restart the daemon to refresh meetings.last.db`
+  - `<= 7 days`: silent (everything's fine)
+  - `exists:false`: silent (fresh install — not a problem)
+- Older daemons that don't return `lastKnownGood` are tolerated
+  (the field is absent, the check just doesn't fire).
+
+### Notes
+- e2e: live daemon with recent shutdown (0.0h ago) → no warn,
+  doctor still reports `All checks passed; 1 warning(s)` (the
+  pre-existing risk-classifier warning).
+- Pairs with Phase 7.7 integrity check: integrity catches DB
+  corruption (bit-rot, interrupted writes); freshness catches
+  the operational signal that "the daemon hasn't restarted
+  cleanly recently". Both are warnings, both surface in
+  `c4 doctor`'s health pass.
+
 ## [1.10.296] - 2026-05-04
 
 **Multi-Specialist System — Phase 7.14 (Auto-backup visibility).**

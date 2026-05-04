@@ -1026,6 +1026,22 @@ async function main() {
                 });
               }
             } catch { /* old daemons may lack the endpoint; tolerate */ }
+            // (Phase 7.14 follow-up) Auto-backup freshness. If the
+            // last clean shutdown was a long time ago, the operator
+            // doesn't have a recent recovery point — warn so they
+            // know to do a clean restart cycle. Skipped when the
+            // file simply doesn't exist (fresh install / first run
+            // — that's normal, not a problem).
+            const lkg = summary.persist && summary.persist.lastKnownGood;
+            if (lkg && lkg.exists && typeof lkg.ageDays === 'number') {
+              const STALE_DAYS = 7;
+              if (lkg.ageDays > STALE_DAYS) {
+                checks.push({
+                  ok: true, level: 'warn',
+                  label: `backup: last clean shutdown was ${lkg.ageDays.toFixed(1)} days ago — restart the daemon to refresh meetings.last.db`,
+                });
+              }
+            }
             // Flag if there are stuck meetings (warn, not fail).
             try {
               const stuck = await request('GET', '/meetings/stuck?hours=1');
