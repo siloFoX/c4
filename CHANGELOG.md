@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.399] - 2026-05-04
+
+**Web — Templates + Profiles pages title/header literals
+i18n.** Both pages already had `t('templates.tooltip.*')` /
+`t('profiles.tooltip.*')` for tooltip labels but kept hardcoded
+English for title, description, filter placeholder + label, Add
+button, and the sr-only Refresh label.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**:
+  - 6 new keys under `templatesPage.*` (title, description,
+    filter placeholder + label, add button) + shared
+    `common.srOnlyRefresh`.
+  - 5 new keys under `profilesPage.*` (title, description,
+    filter placeholder + label, add button).
+- **`web/src/pages/Templates.tsx`** + **`Profiles.tsx`**:
+  - PageFrame title / description switch to `t(...)`.
+  - Filter input placeholder + aria-label switch to `t(...)`.
+  - Add button label and sr-only Refresh switch to `t(...)`.
+
+### Korean copy
+- 템플릿 / 재사용 가능한 워커 템플릿 / 필터 / 템플릿 필터 /
+  추가 / 새로고침.
+- 프로파일 / 권한 프로파일 / 필터 / 프로파일 필터 / 추가.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Existing `templates.tooltip.*` / `profiles.tooltip.*` keys
+  kept untouched — they stay attached to the `<Tooltip>`
+  wrappers per the original migration.
+
 ## [1.10.398] - 2026-05-04
 
 **Web — SpecialistsView top-level chrome i18n.** Title /

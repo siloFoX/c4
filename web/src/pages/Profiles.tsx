@@ -79,29 +79,29 @@ export default function Profiles() {
 
   return (
     <PageFrame
-      title="Profiles"
-      description="Permission profiles — allow / deny patterns a worker inherits when spawned with --profile."
+      title={t('profilesPage.title')}
+      description={t('profilesPage.description')}
       actions={
         <>
           <Tooltip label={t('profiles.tooltip.filter')}>
             <Input
               className="h-8 w-48"
-              placeholder="Filter"
+              placeholder={t('profilesPage.filter.placeholder')}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              aria-label="Filter profiles"
+              aria-label={t('profilesPage.filter.label')}
             />
           </Tooltip>
           <Tooltip label={t('profiles.tooltip.add')}>
             <Button type="button" variant="outline" size="sm" onClick={notImplemented}>
               <ListChecks className="h-3.5 w-3.5" />
-              <span>Add</span>
+              <span>{t('profilesPage.add')}</span>
             </Button>
           </Tooltip>
           <Tooltip label={t('profiles.tooltip.refresh')}>
             <Button type="button" variant="ghost" size="sm" onClick={refresh} disabled={loading}>
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span className="sr-only">Refresh</span>
+              <span className="sr-only">{t('common.srOnlyRefresh')}</span>
             </Button>
           </Tooltip>
         </>

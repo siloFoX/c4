@@ -90,6 +90,19 @@
   "common.loading": "로딩 중…",
   "common.refresh": "새로고침",
 
+  "templatesPage.title": "템플릿",
+  "templatesPage.description": "재사용 가능한 워커 템플릿 — 이름 / 모델 / effort / 프로파일 / 출처.",
+  "templatesPage.filter.placeholder": "필터",
+  "templatesPage.filter.label": "템플릿 필터",
+  "templatesPage.add": "추가",
+  "common.srOnlyRefresh": "새로고침",
+
+  "profilesPage.title": "프로파일",
+  "profilesPage.description": "권한 프로파일 — --profile 로 워커를 띄울 때 상속되는 허용 / 차단 패턴.",
+  "profilesPage.add": "추가",
+  "profilesPage.filter.placeholder": "필터",
+  "profilesPage.filter.label": "프로파일 필터",
+
   "specialists.title": "전문가",
   "specialists.search.placeholder": "id / displayName / systemPrompt / domain / keywords 검색 (공백 = AND)",
   "specialists.search.label": "전문가 필터",

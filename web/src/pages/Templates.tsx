@@ -70,29 +70,29 @@ export default function Templates() {
 
   return (
     <PageFrame
-      title="Templates"
-      description="Reusable worker templates — name, model, effort, profile, source."
+      title={t('templatesPage.title')}
+      description={t('templatesPage.description')}
       actions={
         <>
           <Tooltip label={t('templates.tooltip.filter')}>
             <Input
               className="h-8 w-48"
-              placeholder="Filter"
+              placeholder={t('templatesPage.filter.placeholder')}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              aria-label="Filter templates"
+              aria-label={t('templatesPage.filter.label')}
             />
           </Tooltip>
           <Tooltip label={t('templates.tooltip.add')}>
             <Button type="button" variant="outline" size="sm" onClick={notImplemented}>
               <ScrollText className="h-3.5 w-3.5" />
-              <span>Add</span>
+              <span>{t('templatesPage.add')}</span>
             </Button>
           </Tooltip>
           <Tooltip label={t('templates.tooltip.refresh')}>
             <Button type="button" variant="ghost" size="sm" onClick={refresh} disabled={loading}>
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span className="sr-only">Refresh</span>
+              <span className="sr-only">{t('common.srOnlyRefresh')}</span>
             </Button>
           </Tooltip>
         </>

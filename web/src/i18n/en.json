@@ -90,6 +90,19 @@
   "common.loading": "Loading…",
   "common.refresh": "Refresh",
 
+  "templatesPage.title": "Templates",
+  "templatesPage.description": "Reusable worker templates — name, model, effort, profile, source.",
+  "templatesPage.filter.placeholder": "Filter",
+  "templatesPage.filter.label": "Filter templates",
+  "templatesPage.add": "Add",
+  "common.srOnlyRefresh": "Refresh",
+
+  "profilesPage.title": "Profiles",
+  "profilesPage.description": "Permission profiles — allow / deny patterns a worker inherits when spawned with --profile.",
+  "profilesPage.add": "Add",
+  "profilesPage.filter.placeholder": "Filter",
+  "profilesPage.filter.label": "Filter profiles",
+
   "specialists.title": "Specialists",
   "specialists.search.placeholder": "Search id / displayName / systemPrompt / domain / keywords (whitespace = AND)",
   "specialists.search.label": "Filter specialists",
