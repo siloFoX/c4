@@ -90,6 +90,16 @@
   "common.loading": "로딩 중…",
   "common.refresh": "새로고침",
 
+  "specialists.title": "전문가",
+  "specialists.search.placeholder": "id / displayName / systemPrompt / domain / keywords 검색 (공백 = AND)",
+  "specialists.search.label": "전문가 필터",
+  "specialists.add.label": "전문가 추가",
+  "specialists.audit.heading": "감사 로그",
+  "specialists.audit.last50": "· 최근 50개 항목",
+  "specialists.audit.loading": "로딩 중…",
+  "specialists.audit.entryCount": "{n}개 항목",
+  "specialists.scoreHistory": "점수 기록",
+
   "meetings.title": "회의",
   "meetings.search.placeholder": "회의록 검색… (FTS5: 따옴표로 구절, * 로 prefix)",
   "meetings.loading": "회의 로딩 중…",

@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.398] - 2026-05-04
+
+**Web — SpecialistsView top-level chrome i18n.** Title /
+search input + label / add button / audit log heading + count
+template / score history label.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 9 new keys under
+  `specialists.*`, including `{n}`-templated
+  `specialists.audit.entryCount`.
+- **`web/src/components/SpecialistsView.tsx`**:
+  - `useLocale()` hook re-renders on locale flip.
+  - `t()` for the chrome layer; `tFormat()` for the entries
+    count.
+
+### Korean copy
+- 전문가 / id / displayName / systemPrompt / domain / keywords
+  검색 / 전문가 필터 / 전문가 추가 / 감사 로그 / 최근 50개
+  항목 / 로딩 중… / N개 항목 / 점수 기록.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- SpecialistsView body (suggest-prompt, apply-prompt, add panel,
+  detail enrichments) carries many more strings — multi-pass
+  migration deferred.
+
 ## [1.10.397] - 2026-05-04
 
 **Web — MeetingsView top-level chrome i18n.** First slice of

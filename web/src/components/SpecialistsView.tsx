@@ -3,6 +3,7 @@ import { AlertTriangle, ChevronDown, ChevronRight, Eye, Plus, RefreshCw, Search,
 import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
+import { t, tFormat, useLocale } from '../lib/i18n';
 
 // (multi-specialist phase 7.5) Specialists tab — registry view +
 // score visualization. Mirrors MeetingsView / WikiView's split
@@ -84,6 +85,7 @@ function ScoreBar({ value, samples }: { value: number; samples: number }) {
 }
 
 export default function SpecialistsView() {
+  useLocale();
   const [data, setData] = useState<ListResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -837,11 +839,13 @@ export default function SpecialistsView() {
           aria-expanded={auditOpen}
         >
           {auditOpen ? <ChevronDown className="h-3 w-3" aria-hidden /> : <ChevronRight className="h-3 w-3" aria-hidden />}
-          <span className="font-medium">Audit log</span>
-          <span>· last 50 entries</span>
-          {auditLoading ? <span className="ml-2">loading…</span> : null}
+          <span className="font-medium">{t('specialists.audit.heading')}</span>
+          <span>{t('specialists.audit.last50')}</span>
+          {auditLoading ? <span className="ml-2">{t('specialists.audit.loading')}</span> : null}
           {auditOpen && auditEntries.length > 0 ? (
-            <span className="ml-auto opacity-70">{auditEntries.length} entries</span>
+            <span className="ml-auto opacity-70">
+              {tFormat('specialists.audit.entryCount', { n: String(auditEntries.length) })}
+            </span>
           ) : null}
         </button>
         {auditOpen ? (
@@ -962,12 +966,12 @@ export default function SpecialistsView() {
       <Card className="flex min-h-0 flex-1 flex-col md:max-w-md">
         <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
           <div className="flex flex-row items-center justify-between gap-2">
-            <CardTitle className="text-base">Specialists</CardTitle>
+            <CardTitle className="text-base">{t('specialists.title')}</CardTitle>
             <div className="flex items-center gap-2">
               <Button
                 size="sm"
                 onClick={() => { setAddOpen((v) => !v); setAddError(null); }}
-                aria-label="Add specialist"
+                aria-label={t('specialists.add.label')}
                 aria-expanded={addOpen}
               >
                 <Plus className="h-3.5 w-3.5" aria-hidden />
@@ -1047,8 +1051,8 @@ export default function SpecialistsView() {
               type="text"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              placeholder='Search id / displayName / systemPrompt / domain / keywords (whitespace = AND)'
-              aria-label="Filter specialists"
+              placeholder={t('specialists.search.placeholder')}
+              aria-label={t('specialists.search.label')}
               className="pl-7 pr-7"
             />
             {filter ? (
@@ -1320,7 +1324,7 @@ export default function SpecialistsView() {
                 || Object.keys(selected.score.byStage).length > 0) ? (
                 <div className="rounded-md border border-border bg-muted/20 p-3">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="text-xs font-semibold">Score history</div>
+                    <div className="text-xs font-semibold">{t('specialists.scoreHistory')}</div>
                     {confirmResetId === selected.id ? (
                       <div className="flex items-center gap-1 text-[10px]">
                         <span className="text-muted-foreground">Wipe?</span>

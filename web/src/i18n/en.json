@@ -90,6 +90,16 @@
   "common.loading": "Loading…",
   "common.refresh": "Refresh",
 
+  "specialists.title": "Specialists",
+  "specialists.search.placeholder": "Search id / displayName / systemPrompt / domain / keywords (whitespace = AND)",
+  "specialists.search.label": "Filter specialists",
+  "specialists.add.label": "Add specialist",
+  "specialists.audit.heading": "Audit log",
+  "specialists.audit.last50": "· last 50 entries",
+  "specialists.audit.loading": "loading…",
+  "specialists.audit.entryCount": "{n} entries",
+  "specialists.scoreHistory": "Score history",
+
   "meetings.title": "Meetings",
   "meetings.search.placeholder": "Search transcripts… (FTS5: phrases in quotes, * for prefix)",
   "meetings.loading": "Loading meeting…",
