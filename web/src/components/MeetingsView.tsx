@@ -3,6 +3,7 @@ import { AlertTriangle, BookOpen, Eye, MessageCircle, Play, Plus, RefreshCw, Rad
 import { apiDelete, apiGet, apiPost, eventSourceUrl } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
+import { t, useLocale } from '../lib/i18n';
 import { renderSnippet } from '../lib/snippet';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
@@ -150,6 +151,7 @@ function formatRelative(iso: string | null): string {
 }
 
 export default function MeetingsView() {
+  useLocale();
   const [data, setData] = useState<MeetingsListResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -1158,7 +1160,7 @@ export default function MeetingsView() {
       <Card className="flex min-h-0 flex-1 flex-col md:max-w-md">
         <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
           <div className="flex flex-row items-center justify-between gap-2">
-            <CardTitle className="text-base">Meetings</CardTitle>
+            <CardTitle className="text-base">{t('meetings.title')}</CardTitle>
             <div className="flex items-center gap-2">
               <Button
                 size="sm"
@@ -1235,7 +1237,7 @@ export default function MeetingsView() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search transcripts… (FTS5: phrases in quotes, * for prefix)"
+                placeholder={t('meetings.search.placeholder')}
                 aria-label="Search meetings"
                 className="h-8 pl-7 pr-7 text-[12px]"
               />
@@ -1724,7 +1726,7 @@ export default function MeetingsView() {
             className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-[11px] text-muted-foreground hover:bg-muted/30"
             aria-expanded={maintOpen}
           >
-            <span className="font-medium">Maintenance</span>
+            <span className="font-medium">{t('meetings.maintenance.heading')}</span>
             <span className="font-mono text-[10px]">{maintOpen ? '▲' : '▼'}</span>
           </button>
           {maintOpen ? (
@@ -2325,24 +2327,24 @@ export default function MeetingsView() {
           ) : detailError ? (
             <div className="text-sm text-destructive">{detailError}</div>
           ) : !detail ? (
-            <div className="text-sm text-muted-foreground">Loading meeting...</div>
+            <div className="text-sm text-muted-foreground">{t('meetings.loading')}</div>
           ) : (
             <>
               <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
                 <div>
-                  <div className="text-muted-foreground">Status</div>
+                  <div className="text-muted-foreground">{t('meetings.field.status')}</div>
                   <div className="font-medium">{detail.status}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Track</div>
+                  <div className="text-muted-foreground">{t('meetings.field.track')}</div>
                   <div className="font-medium">{detail.track}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Stage</div>
+                  <div className="text-muted-foreground">{t('meetings.field.stage')}</div>
                   <div className="font-medium">{detail.currentStage || '-'}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Round</div>
+                  <div className="text-muted-foreground">{t('meetings.field.round')}</div>
                   <div className="font-medium">{detail.currentRound}</div>
                 </div>
               </div>
@@ -2354,7 +2356,7 @@ export default function MeetingsView() {
               {lineage && lineage.depth > 1 ? (
                 <div className="rounded-md border border-border/60 bg-muted/10 p-2 text-[11px]">
                   <div className="mb-1 flex items-center gap-1 text-muted-foreground">
-                    <span className="font-medium text-foreground">Fork lineage</span>
+                    <span className="font-medium text-foreground">{t('meetings.forkLineage')}</span>
                     <span>· depth={lineage.depth}</span>
                     {lineage.chainTruncated ? <span className="text-amber-600 dark:text-amber-400">· chain truncated (older ancestor purged)</span> : null}
                   </div>
@@ -2391,7 +2393,7 @@ export default function MeetingsView() {
                     aria-expanded={recapOpen}
                   >
                     <span>{recapOpen ? '▾' : '▸'}</span>
-                    <span className="font-medium">Recap</span>
+                    <span className="font-medium">{t('meetings.recap')}</span>
                     <span>· first turn per stage</span>
                   </button>
                   {recapOpen ? (
@@ -2431,7 +2433,7 @@ export default function MeetingsView() {
               {actions && actions.count > 0 ? (
                 <div className="rounded-md border border-border/60 bg-muted/10 p-3 text-[12px]">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <span className="font-medium">Action Items</span>
+                    <span className="font-medium">{t('meetings.actionItems')}</span>
                     {/* Category filter chips — null = all */}
                     <button
                       type="button"

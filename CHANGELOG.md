@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.397] - 2026-05-04
+
+**Web — MeetingsView top-level chrome i18n.** First slice of
+the largest remaining surface — title, FTS search placeholder,
+loading state, status/track/stage/round field labels, panel
+headings (Maintenance / Fork lineage / Recap / Action Items).
+The rest of MeetingsView (transcripts, action chips, recap
+body, contribute form, fork form, etc.) is the next pass.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 12 new keys under
+  `meetings.*`.
+- **`web/src/components/MeetingsView.tsx`**:
+  - `useLocale()` hook re-renders on locale flip.
+  - `t()` for the slice listed above.
+
+### Korean copy
+- 회의 / 회의록 검색… / 회의 로딩 중… / 상태 / 트랙 / 단계 /
+  라운드 / 작업: / 유지보수 / 포크 계보 / 요약 / 액션 아이템.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- MeetingsView is 2300+ lines — this is the chrome layer.
+  Body / row / form i18n is a multi-pass migration deferred
+  to follow-up commits.
+
 ## [1.10.396] - 2026-05-04
 
 **Web — WorkflowEditor i18n.** Title / refresh / empty state /
