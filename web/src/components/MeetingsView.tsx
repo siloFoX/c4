@@ -1930,10 +1930,10 @@ export default function MeetingsView() {
                 size="sm"
                 onClick={() => handleRun(selectedId)}
                 disabled={runBusy}
-                aria-label="Run meeting"
+                aria-label={t('meetings.action.runMeeting')}
               >
                 <Play className="h-3.5 w-3.5" aria-hidden />
-                Run + auto-finalize
+                {t('meetings.run.button')}
               </Button>
               {runError ? (
                 <span className="text-[11px] text-destructive">{runError}</span>
@@ -1956,7 +1956,7 @@ export default function MeetingsView() {
                 title="Post a contribution from a specific specialist"
                 aria-expanded={contribOpen}
               >
-                {contribOpen ? 'Hide contribute' : 'Contribute…'}
+                {contribOpen ? t('meetings.hideContribute') : t('meetings.contributeButton')}
               </Button>
               <Button
                 size="sm"
@@ -1966,7 +1966,7 @@ export default function MeetingsView() {
                 aria-label="Advance to next stage"
                 title="Advance to the next stage if consensus is reached"
               >
-                {stateBusy === 'advance' ? '…' : 'Advance'}
+                {stateBusy === 'advance' ? '…' : t('meetings.advance')}
               </Button>
               <Button
                 size="sm"
@@ -1976,7 +1976,7 @@ export default function MeetingsView() {
                 aria-label="Bump round counter"
                 title="Bump round counter on the current stage (refused past round cap)"
               >
-                {stateBusy === 'next-round' ? '…' : 'Next round'}
+                {stateBusy === 'next-round' ? '…' : t('meetings.nextRound')}
               </Button>
               <Button
                 size="sm"
@@ -1989,7 +1989,7 @@ export default function MeetingsView() {
                 disabled={stateBusy !== null}
                 aria-label="Escalate meeting"
               >
-                {stateBusy === 'escalate' ? '…' : 'Escalate'}
+                {stateBusy === 'escalate' ? '…' : t('meetings.escalate')}
               </Button>
               <Button
                 size="sm"
@@ -2002,7 +2002,7 @@ export default function MeetingsView() {
                 disabled={stateBusy !== null}
                 aria-label="Abort meeting"
               >
-                {stateBusy === 'abort' ? '…' : 'Abort'}
+                {stateBusy === 'abort' ? '…' : t('meetings.abort')}
               </Button>
               {stateError ? (
                 <span className="text-[11px] text-destructive">{stateError}</span>
@@ -2112,7 +2112,7 @@ export default function MeetingsView() {
                 aria-label="Start meeting (transition to in-progress)"
                 title="Mark the meeting as in-progress without running. For manual / CLI-driven sessions."
               >
-                {stateBusy === 'start' ? '…' : 'Start (manual)'}
+                {stateBusy === 'start' ? '…' : t('meetings.startManual')}
               </Button>
               {stateError ? (
                 <span className="text-[11px] text-destructive">{stateError}</span>
@@ -2126,10 +2126,10 @@ export default function MeetingsView() {
                 variant="outline"
                 onClick={() => handlePublish(selectedId)}
                 disabled={publishBusy}
-                aria-label="Publish meeting to wiki"
+                aria-label={t('meetings.publish.label')}
               >
                 <BookOpen className="h-3.5 w-3.5" aria-hidden />
-                Publish to wiki
+                {t('meetings.publish.button')}
               </Button>
               {/* (Phase 3.4) git automation toggles. */}
               <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
@@ -2184,11 +2184,11 @@ export default function MeetingsView() {
                 variant="outline"
                 onClick={() => handlePeerRetro(selectedId)}
                 disabled={peerRetroBusy}
-                aria-label="Run peer retro"
+                aria-label={t('meetings.peerRetro.label')}
                 title="Each speaker rates their peers; aggregate folds into the registry score"
               >
                 <MessageCircle className="h-3.5 w-3.5" aria-hidden />
-                Peer retro
+                {t('meetings.peerRetro')}
               </Button>
               {peerRetroMsg ? (
                 <span className={cn(
@@ -2204,22 +2204,22 @@ export default function MeetingsView() {
                 variant="outline"
                 onClick={() => handleRetro(selectedId, false)}
                 disabled={retroBusy !== null}
-                aria-label="Preview retro deltas"
+                aria-label={t('meetings.retroPreviewLabel')}
                 title="Compute retro score deltas without applying"
                 className="h-6 px-2 text-[10px]"
               >
-                {retroBusy === 'preview' ? '…' : 'Retro preview'}
+                {retroBusy === 'preview' ? '…' : t('meetings.retroPreview')}
               </Button>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => handleRetro(selectedId, true)}
                 disabled={retroBusy !== null}
-                aria-label="Finalize retro (apply deltas)"
+                aria-label={t('meetings.finalizeLabel')}
                 title="Apply retro deltas to the registry score record"
                 className="h-6 px-2 text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-300"
               >
-                {retroBusy === 'finalize' ? '…' : 'Finalize'}
+                {retroBusy === 'finalize' ? '…' : t('meetings.finalize')}
               </Button>
               {retroError ? (
                 <span className="text-[11px] text-destructive">{retroError}</span>
@@ -2247,7 +2247,7 @@ export default function MeetingsView() {
                 className="h-6 px-2 text-[10px]"
                 aria-expanded={forkOpen}
               >
-                {forkOpen ? 'Cancel fork' : 'Fork…'}
+                {forkOpen ? t('meetings.cancelFork') : t('meetings.fork.button')}
               </Button>
             </div>
           ) : null}

@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.408] - 2026-05-04
+
+**Web — MeetingsView action button text i18n.** Third pass on
+the meetings detail panel — Run + auto-finalize, Publish to
+wiki, Peer retro, Retro preview / Finalize, Contribute… / Hide
+contribute, Advance / Next round / Escalate / Abort / Start
+(manual), Fork… / Cancel fork.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 19 new keys covering
+  the action surface (button labels + their corresponding
+  aria-labels).
+- **`web/src/components/MeetingsView.tsx`**: every action
+  button label + aria-label flows through `t()`.
+
+### Korean copy
+- 회의 실행 / 실행 + 자동 finalize / 위키에 게시 / 회의를
+  위키에 게시 / Peer retro / Retro 미리보기 / Finalize /
+  기여… / 기여 숨기기 / Advance / 다음 라운드 / Escalate /
+  Abort / 수동 시작 / Fork… / Fork 취소.
+
+### Notes
+- Status names (Advance / Escalate / Abort / Finalize / Peer
+  retro) kept as-is in Korean — they map to backend states /
+  CLI commands operators have memorised.
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.407] - 2026-05-04
 
 **Web — SpecialistsView aria-labels + body placeholders i18n.**
