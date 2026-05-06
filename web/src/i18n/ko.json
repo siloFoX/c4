@@ -438,6 +438,9 @@
   "sessions.loadingSession": "세션 로딩 중…",
   "sessions.task.placeholder": "이 세션에서 어떤 작업을 할까요?",
   "sessions.search.placeholder": "프로젝트 / 스니펫 검색",
+  "sessions.attachPath.placeholder": "/abs/path/session.jsonl 또는 1234-... uuid",
+  "sessions.attachName.placeholder": "비워두면 자동 생성",
+  "autoPage.name.placeholder": "auto-mgr",
   "sessions.aria.close": "닫기",
   "sessions.aria.preview": "사용 가능한 세션 미리보기",
   "sessions.aria.postAttachHelp": "부착 후 도움말",
@@ -496,6 +499,7 @@
   "topTabs.label": "상단 보기",
   "detailTabs.label": "상세 보기 모드",
   "featureSidebar.filter.label": "기능 필터",
+  "featureSidebar.filter.placeholder": "기능 필터",
   "featureSidebar.nav.label": "기능 페이지",
 
   "history.search.placeholder": "이름 / 작업 / 브랜치 검색",

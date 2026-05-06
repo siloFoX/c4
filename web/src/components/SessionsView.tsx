@@ -279,7 +279,7 @@ function AttachModal({
             <Input
               value={pathValue}
               onChange={(e) => setPathValue(e.target.value)}
-              placeholder="/abs/path/session.jsonl or 1234-... uuid"
+              placeholder={t('sessions.attachPath.placeholder')}
               autoFocus
             />
           </label>
@@ -290,7 +290,7 @@ function AttachModal({
             <Input
               value={nameValue}
               onChange={(e) => setNameValue(e.target.value)}
-              placeholder="leave blank to auto-generate"
+              placeholder={t('sessions.attachName.placeholder')}
             />
           </label>
           {error ? (

@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.425] - 2026-05-04 — Final placeholder sweep
+
+**Web — last 4 placeholder literals translated.** Final
+placeholder literals across the web — FeatureSidebar Filter
+features, SessionsView attach path / name, Auto page manager
+name. After this commit, every aria-label and every
+user-visible placeholder in `web/src/` flows through the i18n
+system.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 4 new keys
+  (`featureSidebar.filter.placeholder`,
+  `sessions.attachPath.placeholder`,
+  `sessions.attachName.placeholder`,
+  `autoPage.name.placeholder`).
+- **`web/src/components/layout/FeatureSidebar.tsx`** +
+  **`SessionsView.tsx`** + **`pages/Auto.tsx`**: placeholders
+  flow through `t()`.
+
+### Korean copy
+- 기능 필터 / "/abs/path/session.jsonl 또는 1234-... uuid" /
+  "비워두면 자동 생성" / auto-mgr.
+
+### Notes
+- After this commit, `find web/src -name '*.tsx' -o -name
+  '*.ts' | xargs grep 'aria-label="' / 'placeholder="[A-Z]'`
+  return zero hits. All chrome + body strings now flow
+  through i18n.
+- Korean i18n bundle now at ~673 keys (started this session
+  around 30 keys).
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.424] - 2026-05-04
 
 **Web — MeetingsView contribute + fork form aria-labels i18n.**

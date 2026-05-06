@@ -62,7 +62,7 @@ export default function FeatureSidebar({
           type="text"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          placeholder="Filter features"
+          placeholder={t('featureSidebar.filter.placeholder')}
           aria-label={t('featureSidebar.filter.label')}
           className="h-7 pl-7 text-[11px]"
         />

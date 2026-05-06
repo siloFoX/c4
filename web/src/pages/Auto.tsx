@@ -93,7 +93,7 @@ export default function Auto() {
         <div>
           <Label htmlFor="auto-name">{t('autoPage.field.name')}</Label>
           <Tooltip label={t('auto.tooltip.name')} placement="top">
-            <Input id="auto-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="auto-mgr" />
+            <Input id="auto-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('autoPage.name.placeholder')} />
           </Tooltip>
         </div>
         <div className="md:col-span-2">

@@ -438,6 +438,9 @@
   "sessions.loadingSession": "Loading session…",
   "sessions.task.placeholder": "What should this session work on?",
   "sessions.search.placeholder": "Search project / snippet",
+  "sessions.attachPath.placeholder": "/abs/path/session.jsonl or 1234-... uuid",
+  "sessions.attachName.placeholder": "leave blank to auto-generate",
+  "autoPage.name.placeholder": "auto-mgr",
   "sessions.aria.close": "Close",
   "sessions.aria.preview": "Available sessions preview",
   "sessions.aria.postAttachHelp": "Post-attach help",
@@ -496,6 +499,7 @@
   "topTabs.label": "Top view",
   "detailTabs.label": "Detail view mode",
   "featureSidebar.filter.label": "Filter features",
+  "featureSidebar.filter.placeholder": "Filter features",
   "featureSidebar.nav.label": "Feature pages",
 
   "history.search.placeholder": "Search name / task / branch",
