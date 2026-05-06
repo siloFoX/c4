@@ -1007,6 +1007,8 @@
   "meetings.template.deleteFailed": "delete failed: {error}",
   "meetings.integrity.failed": "failed — {count} error(s): {errors}",
   "meetings.integrity.exception": "integrity failed: {error}",
+  "meetings.fts.success": "rebuilt — {indexed} indexed ({before} → {after})",
+  "meetings.fts.failed": "rebuild failed: {error}",
   "meetings.previewingRoster": "previewing roster…",
   "chat.reset": "Reset",
   "chat.welcome": "Try: \"list workers\", \"create worker w1\", \"tell w1 to run tests\", \"status\", \"close w1\".",

@@ -4,6 +4,21 @@
 
 (no entries — next release window)
 
+## [1.10.482] - 2026-05-06 — Meetings FTS tone + i18n
+
+**Web — MeetingsView FTS-rebuild tone refactor.** Same
+.startsWith() locale-flip refactor pattern. Added
+`ftsFailed` boolean state. Both messages migrated to
+parameterised i18n keys.
+
+### Added (2 keys)
+- `meetings.fts.success` — `{indexed}`/`{before}`/`{after}`.
+- `meetings.fts.failed` — `{error}`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1211 keys.
+
 ## [1.10.481] - 2026-05-06 — Meetings integrity tone + i18n
 
 **Web — MeetingsView integrity-check tone refactor.** The

@@ -1062,17 +1062,27 @@ export default function MeetingsView() {
 
   const [ftsBusy, setFtsBusy] = useState(false);
   const [ftsMsg, setFtsMsg] = useState<string | null>(null);
+  // (v1.10.482) Tone separated from message text — see prior tone refactors.
+  const [ftsFailed, setFtsFailed] = useState(false);
   const handleFtsRebuild = useCallback(async () => {
     setFtsBusy(true);
     setFtsMsg(null);
+    setFtsFailed(false);
     try {
       const res = await apiPost<{ indexed: number; before: number; after: number }>(
         '/api/meetings/fts-rebuild',
         {},
       );
-      setFtsMsg(`rebuilt — ${res.indexed} indexed (${res.before} → ${res.after})`);
+      setFtsMsg(tFormat('meetings.fts.success', {
+        indexed: res.indexed,
+        before: res.before,
+        after: res.after,
+      }));
     } catch (e) {
-      setFtsMsg(`rebuild failed: ${(e as Error).message || 'unknown'}`);
+      setFtsMsg(tFormat('meetings.fts.failed', {
+        error: (e as Error).message || t('common.unknown'),
+      }));
+      setFtsFailed(true);
     } finally {
       setFtsBusy(false);
     }
@@ -1810,7 +1820,7 @@ export default function MeetingsView() {
                 {ftsMsg ? (
                   <span className={cn(
                     'truncate',
-                    ftsMsg.startsWith('rebuild failed') ? 'text-destructive' : 'text-muted-foreground',
+                    ftsFailed ? 'text-destructive' : 'text-muted-foreground',
                   )}>
                     {ftsMsg}
                   </span>
