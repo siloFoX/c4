@@ -299,8 +299,13 @@ describe('ControlPanel.tsx source wiring (8.8)', () => {
   });
 
   it('prompts a confirm dialog for every destructive / warn action', () => {
-    // Three labels that must be gated behind window.confirm.
-    for (const fragment of [/Close "\$\{workerName\}"/, /Rollback "\$\{workerName\}"/, /Restart "\$\{workerName\}"/]) {
+    // Three labels gated behind window.confirm — confirm copy lives in i18n
+    // bundles now, surfaced via tFormat() with a {worker} placeholder.
+    for (const fragment of [
+      /tFormat\('controlPanel\.action\.close\.confirm',\s*\{\s*worker:\s*workerName\s*\}\)/,
+      /tFormat\('controlPanel\.action\.rollback\.confirm',\s*\{\s*worker:\s*workerName\s*\}\)/,
+      /tFormat\('controlPanel\.action\.restart\.confirm',\s*\{\s*worker:\s*workerName\s*\}\)/,
+    ]) {
       assert.match(src, fragment);
     }
     assert.match(src, /window\.confirm\(/);
@@ -321,9 +326,10 @@ describe('ControlPanel.tsx source wiring (8.8)', () => {
     assert.match(src, /runBatch/);
     assert.match(src, /'\/api\/close'/);
     assert.match(src, /'\/api\/cancel'/);
-    // The batch confirm prompt must count selected workers.
-    assert.match(src, /Close \$\{names\.length\} worker/);
-    assert.match(src, /Cancel the current task for \$\{names\.length\} worker/);
+    // The batch confirm prompt counts selected workers — copy is sourced from
+    // i18n via tFormat with a {count} placeholder.
+    assert.match(src, /tFormat\('controlPanel\.batch\.confirmClose',\s*\{\s*count:\s*names\.length\s*\}\)/);
+    assert.match(src, /tFormat\('controlPanel\.batch\.confirmCancel',\s*\{\s*count:\s*names\.length\s*\}\)/);
   });
 
   it('fetches /api/list for the batch worker picker', () => {

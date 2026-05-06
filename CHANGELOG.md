@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.430] - 2026-05-04 — ControlPanel full Korean
+
+**Web — ControlPanel.tsx surface i18n.** Per-worker control card
+(Pause/Resume/Cancel/Restart/Rollback/Stop) plus the Batch card
+(select-all/clear, batch cancel/close, result list) plus the
+Slack StatusMessageCard. Every action label, description,
+confirm dialog, success toast, busy state, batch confirmation,
+and result row now flows through 51 new i18n keys.
+
+### Added
+- 51 new `controlPanel.*` keys spanning status form, worker
+  card, batch card, and 6 single actions (each with label /
+  description / confirm? / success).
+- `tFormat()` wired in for `{worker}`, `{count}`, `{label}`,
+  `{error}`, `{kind}`, `{ok}`, `{fail}` placeholders.
+- `useLocale()` hook on the inner `StatusMessageCard` so it
+  re-renders when the locale flips.
+
+### Changed
+- `tests/web-control.test.js`: 2 source-grep regexes now look
+  for `tFormat('controlPanel.action.{kind}.confirm', ...)` and
+  `tFormat('controlPanel.batch.confirm{Kind}', { count })`
+  instead of literal English template fragments.
+
+### Korean copy highlights
+- Pause (Ctrl+C) → 일시중지 (Ctrl+C)
+- Resume (Enter) → 재개 (Enter)
+- Cancel task → 작업 취소
+- Restart → 재시작
+- Rollback → 롤백
+- Stop / Close → 중지 / 종료
+- Status message → 상태 메시지
+- Send to Slack → Slack에 전송
+- "Close X worker(s)?" → "X개 워커를 종료하시겠습니까?"
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~760 keys.
+
 ## [1.10.429] - 2026-05-04 — Last English literal eliminated
 
 **Web — FeatureView empty state i18n.** The "Feature / Select

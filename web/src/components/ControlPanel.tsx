@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import Toast, { type ToastType } from './Toast';
 import { apiFetch } from '../lib/api';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 import type { ListResponse, Worker } from '../types';
 import {
   Badge,
@@ -80,74 +80,69 @@ function buildActions(workerName: string): SingleAction[] {
   return [
     {
       kind: 'pause',
-      label: 'Pause (Ctrl+C)',
-      description:
-        'Send Ctrl+C to interrupt the current work without terminating the session.',
+      label: t('controlPanel.action.pause.label'),
+      description: t('controlPanel.action.pause.description'),
       endpoint: '/api/key',
       body: { name: workerName, key: 'C-c' },
       confirm: null,
       tone: 'neutral',
       icon: <Pause className="h-4 w-4" />,
-      successMessage: (n) => `Pause (Ctrl+C) sent to ${n}`,
+      successMessage: (n) => tFormat('controlPanel.action.pause.success', { worker: n }),
     },
     {
       kind: 'resume',
-      label: 'Resume (Enter)',
-      description:
-        'Send Enter to resume an idle prompt or approve a pending confirmation.',
+      label: t('controlPanel.action.resume.label'),
+      description: t('controlPanel.action.resume.description'),
       endpoint: '/api/key',
       body: { name: workerName, key: 'Enter' },
       confirm: null,
       tone: 'neutral',
       icon: <Play className="h-4 w-4" />,
-      successMessage: (n) => `Resume (Enter) sent to ${n}`,
+      successMessage: (n) => tFormat('controlPanel.action.resume.success', { worker: n }),
     },
     {
       kind: 'cancel',
-      label: 'Cancel task',
-      description: 'Cancel the queued / pending / in-flight task for this worker.',
+      label: t('controlPanel.action.cancel.label'),
+      description: t('controlPanel.action.cancel.description'),
       endpoint: '/api/cancel',
       body: { name: workerName },
-      confirm: `Cancel the current or pending task for "${workerName}"?`,
+      confirm: tFormat('controlPanel.action.cancel.confirm', { worker: workerName }),
       tone: 'warn',
       icon: <CircleSlash className="h-4 w-4" />,
-      successMessage: (n) => `Task cancel requested for ${n}`,
+      successMessage: (n) => tFormat('controlPanel.action.cancel.success', { worker: n }),
     },
     {
       kind: 'restart',
-      label: 'Restart',
-      description:
-        'Kill the PTY process and spawn a fresh one on the same branch/worktree.',
+      label: t('controlPanel.action.restart.label'),
+      description: t('controlPanel.action.restart.description'),
       endpoint: '/api/restart',
       body: { name: workerName },
-      confirm: `Restart "${workerName}"? The current process will be killed and a fresh session will start on the same branch.`,
+      confirm: tFormat('controlPanel.action.restart.confirm', { worker: workerName }),
       tone: 'warn',
       icon: <RefreshCw className="h-4 w-4" />,
-      successMessage: (n) => `Restart requested for ${n}`,
+      successMessage: (n) => tFormat('controlPanel.action.restart.success', { worker: n }),
     },
     {
       kind: 'rollback',
-      label: 'Rollback',
-      description:
-        'git reset --soft back to the worker start commit. Staged changes are preserved.',
+      label: t('controlPanel.action.rollback.label'),
+      description: t('controlPanel.action.rollback.description'),
       endpoint: '/api/rollback',
       body: { name: workerName },
-      confirm: `Rollback "${workerName}" to its start commit? Commits made during the session will be unstaged.`,
+      confirm: tFormat('controlPanel.action.rollback.confirm', { worker: workerName }),
       tone: 'danger',
       icon: <RotateCcw className="h-4 w-4" />,
-      successMessage: (n) => `Rollback executed for ${n}`,
+      successMessage: (n) => tFormat('controlPanel.action.rollback.success', { worker: n }),
     },
     {
       kind: 'close',
-      label: 'Stop / Close',
-      description:
-        'Terminate the worker, remove its worktree, and delete the c4/ branch.',
+      label: t('controlPanel.action.close.label'),
+      description: t('controlPanel.action.close.description'),
       endpoint: '/api/close',
       body: { name: workerName },
-      confirm: `Close "${workerName}"? This terminates the session and removes its worktree and branch.`,
+      confirm: tFormat('controlPanel.action.close.confirm', { worker: workerName }),
       tone: 'danger',
       icon: <X className="h-4 w-4" />,
-      successMessage: (n) => `Closed ${n}`,
+      successMessage: (n) => tFormat('controlPanel.action.close.success', { worker: n }),
     },
   ];
 }
@@ -164,6 +159,7 @@ function StatusMessageCard({
   workerName: string;
   onToast: (message: string, type: ToastType) => void;
 }) {
+  useLocale();
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -178,10 +174,10 @@ function StatusMessageCard({
         body: JSON.stringify({ worker: workerName, message: text }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      onToast(`Status message sent for ${workerName}`, 'success');
+      onToast(tFormat('controlPanel.status.sent', { worker: workerName }), 'success');
       setMessage('');
     } catch (e) {
-      onToast(`Status send failed: ${(e as Error).message}`, 'error');
+      onToast(tFormat('controlPanel.status.failed', { error: (e as Error).message }), 'error');
     }
     setSending(false);
   }, [message, workerName, onToast]);
@@ -189,10 +185,9 @@ function StatusMessageCard({
   return (
     <Card aria-label={t('controlPanel.status.label')}>
       <CardHeader className="p-4 md:p-5">
-        <CardTitle>Status message</CardTitle>
+        <CardTitle>{t('controlPanel.status.title')}</CardTitle>
         <CardDescription>
-          Post a short status update to Slack tagged with this worker. Used for
-          oncall handoffs and incident notes.
+          {t('controlPanel.status.description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-2 p-4 pt-0 md:p-5 md:pt-0">
@@ -201,8 +196,8 @@ function StatusMessageCard({
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          placeholder={`status for ${workerName}...`}
-          aria-label={`Status message for ${workerName}`}
+          placeholder={tFormat('controlPanel.status.placeholder', { worker: workerName })}
+          aria-label={tFormat('controlPanel.status.aria', { worker: workerName })}
         />
         <div className="flex justify-end">
           <Button
@@ -213,7 +208,7 @@ function StatusMessageCard({
             disabled={sending || !message.trim()}
           >
             <Send className="h-3.5 w-3.5" />
-            <span>{sending ? 'Sending...' : 'Send to Slack'}</span>
+            <span>{sending ? t('controlPanel.status.sending') : t('controlPanel.status.send')}</span>
           </Button>
         </div>
       </CardContent>
@@ -298,7 +293,13 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
       if (res.ok) {
         showToast(action.successMessage(workerName), 'success');
       } else {
-        showToast(`${action.label} failed: ${res.error || 'unknown'}`, 'error');
+        showToast(
+          tFormat('controlPanel.action.failed', {
+            label: action.label,
+            error: res.error || t('controlPanel.action.failedUnknown'),
+          }),
+          'error',
+        );
       }
       setBusyKind(null);
       fetchList();
@@ -329,8 +330,8 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
       if (names.length === 0) return;
       const confirmMsg =
         kind === 'close'
-          ? `Close ${names.length} worker(s)? Each session and worktree will be terminated.`
-          : `Cancel the current task for ${names.length} worker(s)?`;
+          ? tFormat('controlPanel.batch.confirmClose', { count: names.length })
+          : tFormat('controlPanel.batch.confirmCancel', { count: names.length });
       if (!window.confirm(confirmMsg)) return;
       setBatchBusy(kind);
       setBatchResults(null);
@@ -345,10 +346,17 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
       const okCount = outcomes.filter((o) => o.ok).length;
       const failCount = outcomes.length - okCount;
       if (failCount === 0) {
-        showToast(`Batch ${kind}: ${okCount} ok`, 'success');
+        showToast(
+          tFormat('controlPanel.batch.resultOk', { kind, ok: okCount }),
+          'success',
+        );
       } else {
         showToast(
-          `Batch ${kind}: ${okCount} ok / ${failCount} failed`,
+          tFormat('controlPanel.batch.resultMixed', {
+            kind,
+            ok: okCount,
+            fail: failCount,
+          }),
           'error',
         );
       }
@@ -369,9 +377,9 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto pr-1">
       <Card aria-label={t('controlPanel.worker.label')}>
         <CardHeader className="p-4 md:p-5">
-          <CardTitle>Control</CardTitle>
+          <CardTitle>{t('controlPanel.worker.title')}</CardTitle>
           <CardDescription>
-            {`Actions for ${workerName}. Destructive actions prompt for confirmation; Pause / Resume fire immediately.`}
+            {tFormat('controlPanel.worker.description', { worker: workerName })}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4 pt-0 md:p-5 md:pt-0">
@@ -394,7 +402,11 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
                 >
                   <span className="flex items-center gap-2 text-sm font-semibold">
                     {action.icon}
-                    <span>{isBusy ? `${action.label} ...` : action.label}</span>
+                    <span>
+                      {isBusy
+                        ? tFormat('controlPanel.action.busy', { label: action.label })
+                        : action.label}
+                    </span>
                   </span>
                   <span className="w-full whitespace-normal text-xs font-normal opacity-80">
                     {action.description}
@@ -409,9 +421,9 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
       <Card aria-label={t('controlPanel.batch.label')}>
         <CardHeader className="flex-row items-start justify-between gap-2 p-4 md:p-5">
           <div>
-            <CardTitle>Batch</CardTitle>
+            <CardTitle>{t('controlPanel.batch.title')}</CardTitle>
             <CardDescription>
-              {`${selectedCount} selected - target multiple workers at once.`}
+              {tFormat('controlPanel.batch.description', { count: selectedCount })}
             </CardDescription>
           </div>
           <div className="flex gap-2 text-xs">
@@ -422,7 +434,7 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
               onClick={selectAll}
               disabled={selectableWorkers.length === 0}
             >
-              Select all
+              {t('controlPanel.batch.selectAll')}
             </Button>
             <Button
               type="button"
@@ -431,13 +443,13 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
               onClick={clearSelection}
               disabled={selectedCount === 0}
             >
-              Clear
+              {t('controlPanel.batch.clear')}
             </Button>
           </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 p-4 pt-0 md:p-5 md:pt-0">
           {selectableWorkers.length === 0 ? (
-            <div className="text-xs text-muted-foreground">No workers available.</div>
+            <div className="text-xs text-muted-foreground">{t('controlPanel.batch.empty')}</div>
           ) : (
             <Panel className="max-h-48 overflow-y-auto p-2">
               <ul className="text-xs text-foreground">
@@ -450,7 +462,7 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
                           type="checkbox"
                           checked={checked}
                           onChange={() => toggleSelected(w.name)}
-                          aria-label={`Select ${w.name}`}
+                          aria-label={tFormat('controlPanel.batch.selectAria', { worker: w.name })}
                         />
                         <span className="truncate font-mono">{w.name}</span>
                       </label>
@@ -474,7 +486,9 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
             >
               <CircleSlash className="h-3.5 w-3.5" />
               <span>
-                {batchBusy === 'cancel' ? 'Cancel selected ...' : 'Cancel selected'}
+                {batchBusy === 'cancel'
+                  ? t('controlPanel.batch.cancelSelectedBusy')
+                  : t('controlPanel.batch.cancelSelected')}
               </span>
             </Button>
             <Button
@@ -486,7 +500,9 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
             >
               <X className="h-3.5 w-3.5" />
               <span>
-                {batchBusy === 'close' ? 'Close selected ...' : 'Close selected'}
+                {batchBusy === 'close'
+                  ? t('controlPanel.batch.closeSelectedBusy')
+                  : t('controlPanel.batch.closeSelected')}
               </span>
             </Button>
           </div>
@@ -504,7 +520,9 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
                   >
                     <span className="font-mono">{r.name}</span>
                     {': '}
-                    {r.ok ? 'ok' : r.error || 'failed'}
+                    {r.ok
+                      ? t('controlPanel.batch.statusOk')
+                      : r.error || t('controlPanel.batch.statusFailed')}
                   </li>
                 ))}
               </ul>
