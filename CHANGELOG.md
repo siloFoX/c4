@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.412] - 2026-05-04
+
+**Web — WikiView Reopen button + page detail field labels i18n.**
+The Reopen button and the four frontmatter field labels (type /
+status / last_reviewed / path) shown on a selected wiki page.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 6 new keys
+  (`wiki.reopen`, `wiki.reopen.label`, `wiki.field.type`,
+  `wiki.field.status`, `wiki.field.lastReviewed`,
+  `wiki.field.path`).
+- **`web/src/components/WikiView.tsx`**: button label + aria
+  + the 4 field labels flow through `t()`.
+
+### Korean copy
+- 재개 / 이 결정을 재개 / 유형 / 상태 / 최근 검토 / 경로.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.411] - 2026-05-04
 
 **Web — SpecialistsView action button labels i18n.** Export /

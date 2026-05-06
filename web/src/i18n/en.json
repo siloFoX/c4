@@ -338,6 +338,12 @@
   "wiki.loading": "Loading wiki…",
   "wiki.loadingPage": "Loading page…",
   "wiki.empty.format": "No matches under {root}.",
+  "wiki.reopen": "Reopen",
+  "wiki.reopen.label": "Reopen this decision",
+  "wiki.field.type": "type",
+  "wiki.field.status": "status",
+  "wiki.field.lastReviewed": "last_reviewed",
+  "wiki.field.path": "path",
 
   "config.title": "Config",
   "config.description": "Live daemon config (sans secrets) + reload.",

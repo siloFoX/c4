@@ -338,11 +338,11 @@ export default function WikiView() {
                 variant="outline"
                 onClick={() => handleReopen(selectedPath)}
                 disabled={reopenBusy}
-                aria-label="Reopen this decision"
+                aria-label={t('wiki.reopen.label')}
                 title="Spawn a new meeting seeded with this page + its related neighbours"
               >
                 <RotateCcw className={cn('h-3.5 w-3.5', reopenBusy && 'animate-spin')} aria-hidden />
-                Reopen
+                {t('wiki.reopen')}
               </Button>
             ) : null}
           </div>
@@ -369,19 +369,19 @@ export default function WikiView() {
             <>
               <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
                 <div>
-                  <div className="text-muted-foreground">type</div>
+                  <div className="text-muted-foreground">{t('wiki.field.type')}</div>
                   <div className="font-medium">{(page.frontmatter.type as string) || '-'}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">status</div>
+                  <div className="text-muted-foreground">{t('wiki.field.status')}</div>
                   <div className="font-medium">{(page.frontmatter.status as string) || '-'}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">last_reviewed</div>
+                  <div className="text-muted-foreground">{t('wiki.field.lastReviewed')}</div>
                   <div className="font-medium">{(page.frontmatter.last_reviewed as string) || '-'}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">path</div>
+                  <div className="text-muted-foreground">{t('wiki.field.path')}</div>
                   <div className="truncate font-medium">{page.path}</div>
                 </div>
               </div>
