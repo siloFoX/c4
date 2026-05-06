@@ -759,7 +759,7 @@ export default function SpecialistsView() {
             value={importMode}
             onChange={(e) => setImportMode(e.target.value as 'merge' | 'replace')}
             disabled={importBusy}
-            aria-label="Import mode"
+            aria-label={t('specialists.action.importMode')}
           >
             <option value="merge">merge</option>
             <option value="replace">replace</option>
@@ -780,7 +780,7 @@ export default function SpecialistsView() {
               }
             }}
             className="text-[10px] file:mr-2 file:rounded file:border file:border-border file:bg-background file:px-2 file:py-0.5 file:text-[10px]"
-            aria-label="Import specialist bundle"
+            aria-label={t('specialists.action.importBundle')}
           />
         </label>
         {importBusy ? <span className="text-muted-foreground">previewing…</span> : null}
@@ -982,7 +982,7 @@ export default function SpecialistsView() {
                 variant="outline"
                 onClick={refresh}
                 disabled={loading}
-                aria-label="Refresh specialists"
+                aria-label={t('specialists.action.refresh')}
               >
                 <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} aria-hidden />
                 Refresh
@@ -996,7 +996,7 @@ export default function SpecialistsView() {
                 onChange={(e) => setAddJson(e.target.value)}
                 placeholder='{"id":"data-engineer","displayName":"Data Engineer","tier":"implement","domain":["data","etl"],"brain":{"adapter":"claude-code","model":"sonnet"},"systemPrompt":"[Role: Data Engineer] ...","triggers":{"keywords":["etl"],"stages":["design","implement"]}}'
                 className="min-h-32 rounded-md border border-border bg-background p-2 font-mono text-[11px]"
-                aria-label="Specialist JSON"
+                aria-label={t('specialists.json.label')}
                 disabled={addBusy}
               />
               <div className="flex flex-wrap items-center gap-2">
@@ -1004,7 +1004,7 @@ export default function SpecialistsView() {
                   size="sm"
                   onClick={handleAdd}
                   disabled={addBusy || proposeBusy || !addJson.trim()}
-                  aria-label="Confirm add"
+                  aria-label={t('specialists.action.confirmAdd')}
                 >
                   Add specialist
                 </Button>
@@ -1015,7 +1015,7 @@ export default function SpecialistsView() {
                   variant="outline"
                   onClick={handlePropose}
                   disabled={proposeBusy || addBusy || !addJson.trim()}
-                  aria-label="Propose via meeting"
+                  aria-label={t('specialists.action.propose')}
                   title="POST to /specialists/propose — drives a meta-meeting and adds only on consensus"
                 >
                   Propose via meeting
@@ -1059,7 +1059,7 @@ export default function SpecialistsView() {
               <button
                 type="button"
                 onClick={() => setFilter('')}
-                aria-label="Clear filter"
+                aria-label={t('specialists.action.clearFilter')}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 <X className="h-3.5 w-3.5" aria-hidden />
@@ -1073,7 +1073,7 @@ export default function SpecialistsView() {
                 className="ml-1 rounded border border-border bg-background px-1 py-0.5 text-[11px]"
                 value={tierFilter}
                 onChange={(e) => setTierFilter(e.target.value)}
-                aria-label="Tier filter"
+                aria-label={t('specialists.action.tierFilter')}
               >
                 <option value="any">any</option>
                 {Object.keys(TIER_BADGE).map((t) => (
@@ -1086,7 +1086,7 @@ export default function SpecialistsView() {
                 type="checkbox"
                 checked={vetoOnly}
                 onChange={(e) => setVetoOnly(e.target.checked)}
-                aria-label="Veto-only"
+                aria-label={t('specialists.action.vetoOnly')}
               />
               <span>veto only</span>
             </label>
@@ -1303,8 +1303,8 @@ export default function SpecialistsView() {
                       type="text"
                       value={tagEditValue}
                       onChange={(e) => setTagEditValue(e.target.value)}
-                      placeholder='comma-separated; prefix with + to add, - to remove'
-                      aria-label="Edit tags"
+                      placeholder={t('specialists.tags.placeholder')}
+                      aria-label={t('specialists.action.editTags')}
                       className="h-7 flex-1 text-[11px]"
                       disabled={tagBusy}
                     />

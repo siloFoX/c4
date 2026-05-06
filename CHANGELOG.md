@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.407] - 2026-05-04
+
+**Web — SpecialistsView aria-labels + body placeholders i18n.**
+Second slice of SpecialistsView — 10 aria-labels (Refresh
+specialists / Confirm add / Propose via meeting / Clear filter /
+Tier filter / Veto-only / Edit tags / Import mode / Import
+specialist bundle / Specialist JSON) plus the tags placeholder.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 11 new keys under
+  `specialists.action.*`, `specialists.json.label`,
+  `specialists.tags.placeholder`.
+- **`web/src/components/SpecialistsView.tsx`**: aria-labels +
+  the comma-separated tags placeholder all flow through `t()`.
+
+### Korean copy
+- 전문가 새로고침 / 추가 확인 / 회의로 제안 / 필터 지우기 /
+  Tier 필터 / Veto 전용 / 태그 편집 / Import 모드 / 전문가
+  번들 import / 전문가 JSON / 쉼표로 구분, + 로 추가 / - 로
+  제거.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.406] - 2026-05-04
 
 **Web — MeetingsView aria-labels + placeholders i18n.** Second
