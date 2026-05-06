@@ -1284,7 +1284,7 @@ export default function SpecialistsView() {
                     }}
                     className="h-6 px-2 text-[10px]"
                   >
-                    {tagEditOpen ? 'Cancel' : 'Edit'}
+                    {tagEditOpen ? t('specialists.tags.cancel') : t('specialists.tags.edit')}
                   </Button>
                 </div>
                 {!tagEditOpen ? (

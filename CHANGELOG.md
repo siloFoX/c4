@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.415] - 2026-05-04
+
+**Web — SpecialistsView tag-edit toggle button i18n.** The
+"Cancel / Edit" toggle in the tags row.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 2 new keys
+  (`specialists.tags.edit`, `specialists.tags.cancel`).
+- **`web/src/components/SpecialistsView.tsx`**: button label
+  flows through `t()`.
+
+### Korean copy
+- 편집 / 취소.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Korean i18n bundle now at 602 keys.
+
 ## [1.10.414] - 2026-05-04
 
 **Web — Risk Inspector input placeholders i18n.** Command

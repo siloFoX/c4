@@ -238,6 +238,8 @@
   "specialists.suggestRevisionAsking": "Asking…",
   "specialists.applyViaMeeting": "Apply via meeting",
   "specialists.applyViaMeetingApplying": "Applying…",
+  "specialists.tags.edit": "Edit",
+  "specialists.tags.cancel": "Cancel",
 
   "meetings.title": "Meetings",
   "meetings.search.placeholder": "Search transcripts… (FTS5: phrases in quotes, * for prefix)",

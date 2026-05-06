@@ -238,6 +238,8 @@
   "specialists.suggestRevisionAsking": "요청 중…",
   "specialists.applyViaMeeting": "회의로 적용",
   "specialists.applyViaMeetingApplying": "적용 중…",
+  "specialists.tags.edit": "편집",
+  "specialists.tags.cancel": "취소",
 
   "meetings.title": "회의",
   "meetings.search.placeholder": "회의록 검색… (FTS5: 따옴표로 구절, * 로 prefix)",
