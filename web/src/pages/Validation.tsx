@@ -188,10 +188,10 @@ function ValidationCard({ worker, report }: { worker: Worker; report?: Validatio
 function CheckRow({ label, ok, detail }: { label: string; ok: boolean | null; detail?: string }) {
   const badge =
     ok == null
-      ? <Badge variant="outline">n/a</Badge>
+      ? <Badge variant="outline">{t('validation.badge.na')}</Badge>
       : ok
-        ? <Badge>pass</Badge>
-        : <Badge variant="outline" className="border-destructive text-destructive">fail</Badge>;
+        ? <Badge>{t('validation.badge.pass')}</Badge>
+        : <Badge variant="outline" className="border-destructive text-destructive">{t('validation.badge.fail')}</Badge>;
   return (
     <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs">
       <span className="uppercase tracking-wide text-muted-foreground">{label}</span>

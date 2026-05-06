@@ -323,10 +323,10 @@ export default function Risk() {
                 {checkResult.suggestedAction}
               </Badge>
               {checkResult.wouldDeny ? (
-                <Badge variant="destructive" className="uppercase">would deny</Badge>
+                <Badge variant="destructive" className="uppercase">{t('risk.badge.wouldDeny')}</Badge>
               ) : null}
               {checkResult.denyForced ? (
-                <Badge variant="outline" className="uppercase">denyList</Badge>
+                <Badge variant="outline" className="uppercase">{t('risk.badge.denyList')}</Badge>
               ) : null}
               <span className="text-[11px] text-muted-foreground">
                 threshold: {checkResult.autoDenyLevel}
@@ -382,7 +382,7 @@ export default function Risk() {
                 </div>
                 <ul className="mt-1 space-y-0.5 text-[11px]">
                   {checkResult.intent.privileged ? (
-                    <li><Badge variant="destructive" className="text-[10px]">privileged</Badge></li>
+                    <li><Badge variant="destructive" className="text-[10px]">{t('risk.badge.privileged')}</Badge></li>
                   ) : null}
                   {(checkResult.intent.filesWritten || []).length > 0 ? (
                     <li>

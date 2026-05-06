@@ -4,6 +4,21 @@
 
 (no entries — next release window)
 
+## [1.10.459] - 2026-05-06 — Validation/Risk/Specialists badges
+
+**Web — small status Badge literals.** Validation page
+n/a/pass/fail check badges, Risk page would-deny / denyList
+/ privileged badges, Specialists registry probation chip.
+
+### Added (7 keys)
+- `validation.badge.{na,pass,fail}`.
+- `risk.badge.{wouldDeny,denyList,privileged}`.
+- `specialists.badge.probation`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1060 keys.
+
 ## [1.10.458] - 2026-05-06 — ConversationView header strip
 
 **Web — ConversationView header chips.** The `model:` /

@@ -1144,7 +1144,7 @@ export default function SpecialistsView() {
                         </span>
                       ) : null}
                       {s.probation === 'probation' ? (
-                        <Badge variant="outline" className="text-[10px]">probation</Badge>
+                        <Badge variant="outline" className="text-[10px]">{t('specialists.badge.probation')}</Badge>
                       ) : null}
                       <span className="text-[10px] text-muted-foreground">
                         {s.brain.adapter}/{s.brain.model || '-'}
