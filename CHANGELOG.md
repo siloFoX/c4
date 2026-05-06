@@ -4,6 +4,23 @@
 
 (no entries — next release window)
 
+## [1.10.481] - 2026-05-06 — Meetings integrity tone + i18n
+
+**Web — MeetingsView integrity-check tone refactor.** The
+"failed — N error(s)" + "integrity failed:" prefix sniff
+broke under Korean. Added `integrityFailed` boolean state,
+set in the failure paths. The two failure messages also
+migrated to i18n with `{count}/{errors}` and `{error}`
+placeholders.
+
+### Added (2 keys)
+- `meetings.integrity.failed` — `{count}` + `{errors}`.
+- `meetings.integrity.exception` — `{error}`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1209 keys.
+
 ## [1.10.480] - 2026-05-06 — Meetings template save/delete tone
 
 **Web — MeetingsView template save/delete tone refactor.**

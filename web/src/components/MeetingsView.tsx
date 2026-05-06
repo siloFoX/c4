@@ -1003,9 +1003,13 @@ export default function MeetingsView() {
   const [maintOpen, setMaintOpen] = useState(false);
   const [integrityBusy, setIntegrityBusy] = useState(false);
   const [integrityMsg, setIntegrityMsg] = useState<string | null>(null);
+  // (v1.10.481) Tone separated from message text — see prior
+  // refactors (Config/Wiki/Specialists/Meetings template).
+  const [integrityFailed, setIntegrityFailed] = useState(false);
   const handleIntegrity = useCallback(async () => {
     setIntegrityBusy(true);
     setIntegrityMsg(null);
+    setIntegrityFailed(false);
     try {
       const res = await apiGet<{ enabled: boolean; ok: boolean | null; errors: string[] }>(
         '/api/meetings/persist-integrity',
@@ -1015,10 +1019,17 @@ export default function MeetingsView() {
       } else if (res.ok) {
         setIntegrityMsg(t('meetings.integrity.ok'));
       } else {
-        setIntegrityMsg(`failed — ${res.errors.length} error(s): ${res.errors.slice(0, 3).join('; ')}`);
+        setIntegrityMsg(tFormat('meetings.integrity.failed', {
+          count: res.errors.length,
+          errors: res.errors.slice(0, 3).join('; '),
+        }));
+        setIntegrityFailed(true);
       }
     } catch (e) {
-      setIntegrityMsg(`integrity failed: ${(e as Error).message || 'unknown'}`);
+      setIntegrityMsg(tFormat('meetings.integrity.exception', {
+        error: (e as Error).message || t('common.unknown'),
+      }));
+      setIntegrityFailed(true);
     } finally {
       setIntegrityBusy(false);
     }
@@ -1776,7 +1787,7 @@ export default function MeetingsView() {
                   {integrityMsg ? (
                     <span className={cn(
                       'truncate',
-                      integrityMsg.startsWith('failed') || integrityMsg.startsWith('integrity failed')
+                      integrityFailed
                         ? 'text-destructive' : 'text-muted-foreground',
                     )}>
                       {integrityMsg}

@@ -1005,6 +1005,8 @@
   "wiki.reopen.failed": "재오픈 실패: {error}",
   "meetings.template.saveFailed": "저장 실패: {error}",
   "meetings.template.deleteFailed": "삭제 실패: {error}",
+  "meetings.integrity.failed": "실패 — 오류 {count}건: {errors}",
+  "meetings.integrity.exception": "무결성 검사 실패: {error}",
   "meetings.previewingRoster": "로스터 미리보기 중…",
   "chat.reset": "초기화",
   "chat.welcome": "예시: \"list workers\", \"create worker w1\", \"tell w1 to run tests\", \"status\", \"close w1\".",
