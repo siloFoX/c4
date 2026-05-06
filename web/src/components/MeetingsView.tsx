@@ -1532,7 +1532,9 @@ export default function MeetingsView() {
               {templateName && placeholderNames.length > 0 ? (
                 <div className="grid grid-cols-2 gap-1 rounded-md border border-border/40 bg-background/50 p-2 text-[11px]">
                   <span className="col-span-2 text-muted-foreground">
-                    Template <span className="font-mono">{templateName}</span> needs values for:
+                    {t('meetings.template.needsValuesPrefix')}
+                    <span className="font-mono">{templateName}</span>
+                    {t('meetings.template.needsValuesSuffix')}
                   </span>
                   {placeholderNames.map((name) => (
                     <label key={name} className="flex flex-col gap-0.5">
@@ -2084,7 +2086,7 @@ export default function MeetingsView() {
                   className="h-6 px-2 text-[10px]"
                   aria-label={t('meetings.contribute.voteObject.label')}
                 >
-                  Object
+                  {t('meetings.action.objectLabel')}
                 </Button>
                 {contribMsg ? (
                   <span className={cn(

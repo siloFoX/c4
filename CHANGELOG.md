@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.442] - 2026-05-04 — Risk inspector body + dynamic Korean copy
+
+**Web — multi-paragraph copy with embedded `<code>` and
+`<span className="font-mono">` interpolations split into
+prefix/suffix i18n keys to preserve the inline markup.**
+
+### Added (~9 keys)
+- `riskPage.intro.{prefix,suffix,cli}` — the multi-line
+  intro paragraph with embedded `<code>c4 risk</code>` CLI
+  reference.
+- `riskPage.reasons` — `Reasons ({count})` formatter.
+- `riskPage.decoded` — "Decoded (post-denoise)" label.
+- `sessions.attach.aliasLabel` — "Alias (optional)".
+- `specialists.confirmRemove.{prefix,suffix}` — confirm-remove
+  body that wraps a `<span className="font-mono">{id}</span>`.
+- `meetings.template.needsValuesPrefix` /
+  `needsValuesSuffix` — same wrap-around pattern around the
+  template name.
+- `meetings.action.objectLabel` — Object button companion to
+  Accept.
+
+### Korean copy notes
+- The Korean strings deliberately have an empty
+  `riskPage.intro.prefix` / `specialists.confirmRemove.prefix`
+  because Korean noun ordering puts the qualifier *after* the
+  named entity, so the prefix is empty and the entire sentence
+  ends after the suffix.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~916 keys.
+
 ## [1.10.441] - 2026-05-04 — One-word headers + meeting/conv tool labels
 
 **Web — single-word card headers, conversation tool turn

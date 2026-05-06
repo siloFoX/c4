@@ -3,7 +3,7 @@ import { RefreshCw, Shield } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
 import { Badge, Button, Input, Panel } from '../components/ui';
 import { apiGet, apiPost } from '../lib/api';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
 
 // (v1.10.356) Risk classifier inspector — preview a command's
@@ -214,10 +214,9 @@ export default function Risk() {
       }
     >
       <div className="rounded-md border border-border bg-muted/10 p-3 text-[12px] text-muted-foreground">
-        Mirrors the <code className="font-mono">c4 risk</code> CLI. Type a Bash
-        command to see the classifier's verdict (level, action, matched rules,
-        intent extraction). Stats panel below summarises denials + shadow-exec
-        counts in the chosen window.
+        {t('riskPage.intro.prefix')}
+        <code className="font-mono">{t('riskPage.intro.cli')}</code>
+        {t('riskPage.intro.suffix')}
       </div>
 
       {/* Command input */}
@@ -337,7 +336,7 @@ export default function Risk() {
             {checkResult.reasons.length > 0 ? (
               <div>
                 <div className="text-[11px] font-medium text-foreground">
-                  Reasons ({checkResult.reasons.length})
+                  {tFormat('riskPage.reasons', { count: checkResult.reasons.length })}
                 </div>
                 <ul className="mt-1 space-y-0.5">
                   {checkResult.reasons.map((r, i) => (
@@ -359,7 +358,7 @@ export default function Risk() {
             {checkResult.decoded ? (
               <div>
                 <div className="text-[11px] font-medium text-foreground">
-                  Decoded (post-denoise)
+                  {t('riskPage.decoded')}
                 </div>
                 <pre className="mt-1 overflow-auto rounded bg-muted/30 p-2 font-mono text-[11px]">
                   {checkResult.decoded}

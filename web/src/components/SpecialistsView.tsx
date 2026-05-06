@@ -1199,9 +1199,9 @@ export default function SpecialistsView() {
           {confirmRemoveId && selected && confirmRemoveId === selected.id ? (
             <div role="alert" className="flex flex-wrap items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-[11px]">
               <span>
-                Remove <span className="font-mono">{selected.id}</span>? Score
-                history is dropped from the persisted overlay; the seed
-                entry stays.
+                {t('specialists.confirmRemove.prefix')}
+                <span className="font-mono">{selected.id}</span>
+                {t('specialists.confirmRemove.suffix')}
               </span>
               <Button
                 size="sm"

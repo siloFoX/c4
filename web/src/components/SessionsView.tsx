@@ -286,7 +286,7 @@ function AttachModal({
           </label>
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-xs font-medium text-muted-foreground">
-              Alias (optional)
+              {t('sessions.attach.aliasLabel')}
             </span>
             <Input
               value={nameValue}
