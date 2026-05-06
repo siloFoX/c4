@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.478] - 2026-05-06 — Wiki reopen tone state + i18n
+
+**Web — WikiView reopen tone-detection refactor.** Same
+.startsWith() locale-flip bug as Config reload — the
+"reopen failed" prefix sniff for destructive styling
+broke under Korean. Added `reopenFailed` boolean state.
+Reopen success/failure messages also migrated to i18n
+(`wiki.reopen.success` with `{id}`/`{seeds}`,
+`wiki.reopen.failed` with `{error}`).
+
+### Added (2 keys)
+- `wiki.reopen.success` — `{id}` + `{seeds}`.
+- `wiki.reopen.failed` — `{error}`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1205 keys.
+
 ## [1.10.477] - 2026-05-06 — Config reload tone state
 
 **Web — Config reload tone-detection refactor.** The destructive

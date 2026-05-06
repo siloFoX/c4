@@ -1001,6 +1001,8 @@
   "specialists.audit.noUpdates": "no updates yet",
   "specialists.audit.lastUpdated": "last updated {at}",
   "config.reloadFailed": "reload failed: {error}",
+  "wiki.reopen.success": "reopened — meeting {id} ({seeds} context seed(s))",
+  "wiki.reopen.failed": "reopen failed: {error}",
   "meetings.previewingRoster": "previewing roster…",
   "chat.reset": "Reset",
   "chat.welcome": "Try: \"list workers\", \"create worker w1\", \"tell w1 to run tests\", \"status\", \"close w1\".",

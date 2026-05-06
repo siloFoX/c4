@@ -106,11 +106,16 @@ export default function WikiView() {
   // status badge shows up in the list.
   const [reopenBusy, setReopenBusy] = useState(false);
   const [reopenMsg, setReopenMsg] = useState<string | null>(null);
+  // (v1.10.478) Tone separated from message text so localized
+  // copy doesn't drop the destructive style when the prefix
+  // shifts (e.g. Korean '재오픈 실패').
+  const [reopenFailed, setReopenFailed] = useState(false);
 
   const handleReopen = useCallback(async (relPath: string) => {
     if (!relPath) return;
     setReopenBusy(true);
     setReopenMsg(null);
+    setReopenFailed(false);
     try {
       const res = await apiPost<{
         meeting: { id: string; status: string };
@@ -119,7 +124,7 @@ export default function WikiView() {
       }>('/api/wiki/reopen', { path: relPath });
       const m = res.meeting;
       const seeds = (res.contextSeeds || []).length;
-      setReopenMsg(`reopened — meeting ${m.id} (${seeds} context seed(s))`);
+      setReopenMsg(tFormat('wiki.reopen.success', { id: m.id, seeds }));
       window.setTimeout(() => setReopenMsg(null), 6000);
       // Pull the page again so the operator sees the flipped
       // `status: reopened` frontmatter, then refresh the search
@@ -128,7 +133,10 @@ export default function WikiView() {
       setPage(fresh);
       runSearch();
     } catch (e) {
-      setReopenMsg(`reopen failed: ${(e as Error).message || 'unknown'}`);
+      setReopenMsg(tFormat('wiki.reopen.failed', {
+        error: (e as Error).message || t('common.unknown'),
+      }));
+      setReopenFailed(true);
     } finally {
       setReopenBusy(false);
     }
@@ -346,7 +354,7 @@ export default function WikiView() {
           {reopenMsg ? (
             <span className={cn(
               'text-[11px]',
-              reopenMsg.startsWith('reopen failed') ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400',
+              reopenFailed ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400',
             )}>
               {reopenMsg}
             </span>
