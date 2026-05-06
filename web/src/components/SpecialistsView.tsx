@@ -761,8 +761,8 @@ export default function SpecialistsView() {
             disabled={importBusy}
             aria-label={t('specialists.action.importMode')}
           >
-            <option value="merge">merge</option>
-            <option value="replace">replace</option>
+            <option value="merge">{t('specialists.option.merge')}</option>
+            <option value="replace">{t('specialists.option.replace')}</option>
           </select>
         </label>
         <label className="flex items-center gap-1 text-muted-foreground">
@@ -1075,7 +1075,7 @@ export default function SpecialistsView() {
                 onChange={(e) => setTierFilter(e.target.value)}
                 aria-label={t('specialists.action.tierFilter')}
               >
-                <option value="any">any</option>
+                <option value="any">{t('specialists.option.any')}</option>
                 {Object.keys(TIER_BADGE).map((t) => (
                   <option key={t} value={t}>{t}</option>
                 ))}
@@ -1088,7 +1088,7 @@ export default function SpecialistsView() {
                 onChange={(e) => setVetoOnly(e.target.checked)}
                 aria-label={t('specialists.action.vetoOnly')}
               />
-              <span>veto only</span>
+              <span>{t('specialists.label.vetoOnly')}</span>
             </label>
             <span className="text-muted-foreground">{filtered.length}/{specialists.length}</span>
           </div>

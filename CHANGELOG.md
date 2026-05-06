@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.434] - 2026-05-04 — Filter / status `<option>` labels i18n
+
+**Web — translatable filter dropdowns.** Status filters (any /
+pending / completed / escalated / aborted) and a handful of
+domain-specific dropdown options on MeetingsView and
+SpecialistsView now display localized labels. Underlying
+enum values (sent to the API) are unchanged.
+
+### Added (~20 keys)
+- `meetings.option.*` — any, pending, completed, escalated,
+  aborted, lightweight, standard, full, auto, sameAsSource,
+  none, accept, object, mock, claude.
+- `specialists.option.*` — merge, replace, any.
+- `specialists.label.vetoOnly` (the visible inline label next
+  to the existing `aria-label`).
+
+### Korean copy highlights
+- pending → 대기 중
+- completed → 완료
+- escalated → 에스컬레이션
+- aborted → 중단됨
+- accept / object → 수락 / 거부
+- none → 없음
+- "same as source" → 원본과 동일
+- "veto only" → Veto 전용
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~824 keys.
+- `lightweight` / `standard` / `full` are kept as English mode
+  names for now since they double as enum identifiers in the
+  API contract; the Korean column simply mirrors the English.
+
 ## [1.10.433] - 2026-05-04 — PinnedRulesEditor full Korean
 
 **Web — PinnedRulesEditor surface i18n.** Card title, last-refresh

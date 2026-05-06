@@ -1195,12 +1195,12 @@ export default function MeetingsView() {
                   onChange={(e) => setListStatus(e.target.value as typeof listStatus)}
                   aria-label={t('meetings.action.listFilterStatus')}
                 >
-                  <option value="">any</option>
-                  <option value="pending">pending</option>
+                  <option value="">{t('meetings.option.any')}</option>
+                  <option value="pending">{t('meetings.option.pending')}</option>
                   <option value="in-progress">in-progress</option>
-                  <option value="completed">completed</option>
-                  <option value="escalated">escalated</option>
-                  <option value="aborted">aborted</option>
+                  <option value="completed">{t('meetings.option.completed')}</option>
+                  <option value="escalated">{t('meetings.option.escalated')}</option>
+                  <option value="aborted">{t('meetings.option.aborted')}</option>
                 </select>
               </label>
               <label className="flex items-center gap-1 text-muted-foreground">
@@ -1211,7 +1211,7 @@ export default function MeetingsView() {
                   onChange={(e) => setListTrack(e.target.value as typeof listTrack)}
                   aria-label={t('meetings.action.listFilterTrack')}
                 >
-                  <option value="">any</option>
+                  <option value="">{t('meetings.option.any')}</option>
                   <option value="lightweight">lightweight</option>
                   <option value="standard">standard</option>
                   <option value="full">full</option>
@@ -1268,12 +1268,12 @@ export default function MeetingsView() {
                   onChange={(e) => setSearchStatus(e.target.value as typeof searchStatus)}
                   aria-label={t('meetings.action.filterStatus')}
                 >
-                  <option value="">any</option>
-                  <option value="pending">pending</option>
+                  <option value="">{t('meetings.option.any')}</option>
+                  <option value="pending">{t('meetings.option.pending')}</option>
                   <option value="in-progress">in-progress</option>
-                  <option value="completed">completed</option>
-                  <option value="escalated">escalated</option>
-                  <option value="aborted">aborted</option>
+                  <option value="completed">{t('meetings.option.completed')}</option>
+                  <option value="escalated">{t('meetings.option.escalated')}</option>
+                  <option value="aborted">{t('meetings.option.aborted')}</option>
                 </select>
               </label>
               <label className="flex items-center gap-1 text-muted-foreground">
@@ -1284,7 +1284,7 @@ export default function MeetingsView() {
                   onChange={(e) => setSearchTrack(e.target.value as typeof searchTrack)}
                   aria-label={t('meetings.action.filterTrack')}
                 >
-                  <option value="">any</option>
+                  <option value="">{t('meetings.option.any')}</option>
                   <option value="lightweight">lightweight</option>
                   <option value="standard">standard</option>
                   <option value="full">full</option>
@@ -2050,9 +2050,9 @@ export default function MeetingsView() {
                     disabled={contribBusy}
                     className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
                   >
-                    <option value="">none</option>
-                    <option value="accept">accept</option>
-                    <option value="object">object</option>
+                    <option value="">{t('meetings.option.none')}</option>
+                    <option value="accept">{t('meetings.option.accept')}</option>
+                    <option value="object">{t('meetings.option.object')}</option>
                   </select>
                 </label>
                 <Button
@@ -2276,7 +2276,7 @@ export default function MeetingsView() {
                       disabled={forkBusy}
                       className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
                     >
-                      <option value="auto">same as source</option>
+                      <option value="auto">{t('meetings.option.sameAsSource')}</option>
                       <option value="lightweight">lightweight</option>
                       <option value="standard">standard</option>
                       <option value="full">full</option>
