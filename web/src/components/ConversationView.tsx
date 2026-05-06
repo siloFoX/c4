@@ -454,6 +454,7 @@ function ThinkingTurn({ turn }: { turn: Turn }) {
 }
 
 function ToolUseTurn({ turn }: { turn: Turn }) {
+  useLocale();
   const [open, setOpen] = useState(false);
   const ts = formatTime(turn.createdAt);
   const argsText = formatToolArgs(turn.toolArgs);
@@ -489,7 +490,7 @@ function ToolUseTurn({ turn }: { turn: Turn }) {
             <div className="space-y-2 border-t border-border px-3 py-2">
               <div>
                 <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Input
+                  {t('conversation.tool.input')}
                 </div>
                 <pre className="overflow-x-auto rounded bg-muted/60 p-2 text-xs font-mono text-foreground">
                   {argsText}
@@ -498,7 +499,7 @@ function ToolUseTurn({ turn }: { turn: Turn }) {
               {resultText ? (
                 <div>
                   <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Result
+                    {t('conversation.tool.result')}
                   </div>
                   <pre className="overflow-x-auto rounded bg-muted/60 p-2 text-xs font-mono text-foreground">
                     {truncate(resultText, 4000)}

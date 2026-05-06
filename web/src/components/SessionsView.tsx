@@ -455,7 +455,7 @@ function NewChatModal({ open, busy, error, onClose, onSubmit }: NewChatModalProp
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="space-y-1">
               <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="new-chat-model">
-                Model
+                {t('sessions.newChat.modelLabel')}
               </label>
               <select
                 id="new-chat-model"
@@ -474,7 +474,7 @@ function NewChatModal({ open, busy, error, onClose, onSubmit }: NewChatModalProp
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="new-chat-agent">
-                Agent
+                {t('sessions.newChat.agentLabel')}
               </label>
               <select
                 id="new-chat-agent"

@@ -1169,7 +1169,7 @@ export default function MeetingsView() {
                 aria-expanded={creating}
               >
                 <Plus className="h-3.5 w-3.5" aria-hidden />
-                New
+                {t('meetings.action.newLabel')}
               </Button>
               <Button
                 size="sm"
@@ -1609,7 +1609,7 @@ export default function MeetingsView() {
                   disabled={createBusy || !newTask.trim()}
                   aria-label={t('meetings.compose.create')}
                 >
-                  Create
+                  {t('meetings.action.createLabel')}
                 </Button>
                 <Button
                   size="sm"
@@ -1851,7 +1851,7 @@ export default function MeetingsView() {
                       disabled={pruneBusy}
                       className="h-3 w-3"
                     />
-                    VACUUM
+                    {t('meetings.label.vacuum')}
                   </label>
                   <Button
                     size="sm"
@@ -2074,7 +2074,7 @@ export default function MeetingsView() {
                   className="h-6 px-2 text-[10px]"
                   aria-label={t('meetings.contribute.voteAccept.label')}
                 >
-                  Accept
+                  {t('meetings.action.acceptLabel')}
                 </Button>
                 <Button
                   size="sm"

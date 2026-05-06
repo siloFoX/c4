@@ -53,7 +53,7 @@ export default function FeatureSidebar({
       <div className="mb-3 flex items-center gap-2">
         <img src="/logo.svg" alt="C4" className="h-8 shrink-0" />
         <span className="text-xs uppercase tracking-wide text-muted-foreground">
-          Features
+          {t('featureSidebar.heading')}
         </span>
       </div>
       <div className="relative mb-3">

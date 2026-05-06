@@ -295,7 +295,8 @@ describe('HistoryView.tsx wiring', () => {
   });
 
   it('renders a Scribe button that opens the session-context viewer', () => {
-    assert.match(src, /\n\s*Scribe\s*\n/);
+    // Scribe button label migrated to i18n (history.sidebar.scribeButton).
+    assert.match(src, /history\.sidebar\.scribeButton/);
     assert.match(src, /openScribe/);
   });
 

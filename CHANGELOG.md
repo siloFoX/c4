@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.441] - 2026-05-04 — One-word headers + meeting/conv tool labels
+
+**Web — single-word card headers, conversation tool turn
+labels, meeting form labels.** Final pass through the
+remaining one-word English labels still in the JSX.
+
+### Added (~10 keys)
+- `history.sidebar.title`, `history.sidebar.scribeButton`.
+- `featureSidebar.heading`.
+- `sessions.newChat.modelLabel`, `sessions.newChat.agentLabel`.
+- `conversation.tool.input`, `conversation.tool.result`
+  (with `useLocale()` opt-in on `ToolUseTurn`).
+- `meetings.label.vacuum`, `meetings.action.newLabel`,
+  `meetings.action.createLabel`, `meetings.action.acceptLabel`.
+
+### Tests
+- `history-view.test.js`: 1 regex updated to match the
+  `history.sidebar.scribeButton` key wiring.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~907 keys.
+
 ## [1.10.440] - 2026-05-04 — Meetings empty + per-row badges + filter chips
 
 **Web — last big sweep across MeetingsView + SessionsView
