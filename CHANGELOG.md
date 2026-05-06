@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.429] - 2026-05-04 — Last English literal eliminated
+
+**Web — FeatureView empty state i18n.** The "Feature / Select
+a feature from the sidebar / Nothing selected" empty state when
+`FEATURES.find` misses (defensive — shouldn't normally render).
+
+After this commit, **`find web/src -name '*.tsx' -o -name '*.ts'
+| xargs grep -E 'title="[A-Z]|placeholder="[A-Z]|aria-label="[A-Z]'`
+returns zero hits**.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 3 new keys
+  (`featureView.empty.title`, `featureView.empty.description`,
+  `featureView.empty.body`).
+- **`web/src/components/layout/FeatureView.tsx`**: `useLocale()`
+  hook + 3 `t()` lookups for the fallback PageFrame.
+
+### Korean copy
+- 기능 / 사이드바에서 기능을 선택하세요. / 선택된 항목이
+  없습니다.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Every aria-label, every capital-letter placeholder, every
+  capital-letter title across `web/src/` now flows through
+  i18n. Korean i18n bundle at ~709 keys.
+- Lower-case placeholders (`brain:`, `mode:`, `track:` etc.)
+  in MeetingsView remain — those are inline labels alongside
+  `<select>` widgets where the colon glyph is part of the
+  layout, not a translation candidate.
+
 ## [1.10.428] - 2026-05-04 — Final tooltip sweep
 
 **Web — last 5 title= tooltip literals translated.** WikiView

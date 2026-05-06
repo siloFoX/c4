@@ -534,6 +534,9 @@
   "detailTabs.label": "Detail view mode",
   "featureSidebar.filter.label": "Filter features",
   "featureSidebar.filter.placeholder": "Filter features",
+  "featureView.empty.title": "Feature",
+  "featureView.empty.description": "Select a feature from the sidebar.",
+  "featureView.empty.body": "Nothing selected.",
   "featureSidebar.nav.label": "Feature pages",
 
   "history.search.placeholder": "Search name / task / branch",

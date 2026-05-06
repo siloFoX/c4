@@ -534,6 +534,9 @@
   "detailTabs.label": "상세 보기 모드",
   "featureSidebar.filter.label": "기능 필터",
   "featureSidebar.filter.placeholder": "기능 필터",
+  "featureView.empty.title": "기능",
+  "featureView.empty.description": "사이드바에서 기능을 선택하세요.",
+  "featureView.empty.body": "선택된 항목이 없습니다.",
   "featureSidebar.nav.label": "기능 페이지",
 
   "history.search.placeholder": "이름 / 작업 / 브랜치 검색",

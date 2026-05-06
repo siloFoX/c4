@@ -6,6 +6,7 @@ import {
   type FeatureDef,
 } from '../../pages/registry';
 import PageFrame, { LoadingSkeleton } from '../../pages/PageFrame';
+import { t, useLocale } from '../../lib/i18n';
 
 const FEATURE_KEY = 'c4.features.selected';
 const HASH_PREFIX = '#/feature/';
@@ -55,6 +56,7 @@ interface FeatureViewProps {
 }
 
 export default function FeatureView({ sidebarOpen }: FeatureViewProps) {
+  useLocale();
   const [selectedId, setSelectedId] = useState<string>(readInitialFeature);
 
   useEffect(() => {
@@ -101,9 +103,9 @@ export default function FeatureView({ sidebarOpen }: FeatureViewProps) {
             <FeaturePageWrapper feature={feature} />
           </Suspense>
         ) : (
-          <PageFrame title="Feature" description="Select a feature from the sidebar.">
+          <PageFrame title={t('featureView.empty.title')} description={t('featureView.empty.description')}>
             <div className="text-sm text-muted-foreground">
-              Nothing selected.
+              {t('featureView.empty.body')}
             </div>
           </PageFrame>
         )}
