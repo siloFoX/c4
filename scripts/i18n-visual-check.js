@@ -290,6 +290,30 @@ async function main() {
     await page.waitForTimeout(300);
   } catch (e) { console.warn('  attach SKIP', e.message); }
 
+  // FeatureSidebar — features tab opens a sidebar with all
+  // categories. Walk each feature page.
+  try {
+    const featuresTab = await page.locator('[role="tab"][aria-label="기능"]').first();
+    await featuresTab.click({ force: true });
+    await page.waitForTimeout(700);
+    const featureLinks = await page.locator('[data-feature-id], aside button').all();
+    let featureLeaks = 0;
+    for (let i = 0; i < Math.min(featureLinks.length, 16); i++) {
+      try {
+        await featureLinks[i].click({ force: true, timeout: 2000 });
+        await page.waitForTimeout(500);
+        const leaks = (await pickEnglishLeaks(page)).filter((l) => !isAllowed(l.text));
+        const seen = new Set();
+        const dedup = leaks.filter((l) => { if (seen.has(l.text)) return false; seen.add(l.text); return true; });
+        if (dedup.length > 0) {
+          featureLeaks += dedup.length;
+          allLeaks[`_feature_${i}`] = dedup;
+        }
+      } catch {}
+    }
+    console.log(`  feature pages walked: ${featureLeaks} total leak(s)`);
+  } catch (e) { console.warn('  feature pages SKIP', e.message); }
+
   // Account menu (sidebar bottom)
   try {
     const account = await page.locator('button[aria-label^="계정 메뉴"]').first();

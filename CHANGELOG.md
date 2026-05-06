@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.497] - 2026-05-07 — Visual scan: feature pages walk
+
+**Web — extended `scripts/i18n-visual-check.js` with a
+feature-pages walk.** After clicking the Features tab the
+sidebar exposes 16 lazy-loaded feature pages (Auto / Batch /
+Cleanup / Config / Health / Morning / Plan / Profiles /
+Rbac / Risk / Scribe / Swarm / Templates / TokenUsage /
+Validation / Workspaces). Each is now visited and its DOM
+scanned for English UI label leaks.
+
+### Visual scan totals
+- 11 top tabs + 5 overlays + **16 feature pages** =
+  **32 surfaces**, all UI labels 0 leak.
+- 2 remaining candidate leaks are confirmed user data
+  (specialist `domain` tags, workflow names) — not UI.
+
+### Notes
+- 200/200 tests green.
+- Korean i18n bundle still ~1311 keys.
+- The visual check script is now the canonical regression
+  guard against locale-flip drift.
+
 ## [1.10.496] - 2026-05-07 — Visual round 2: SpecialistsView summary strip
 
 **Web — extended visual scan + SpecialistsSummaryStrip
