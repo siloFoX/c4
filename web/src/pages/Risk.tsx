@@ -369,7 +369,7 @@ export default function Risk() {
             {checkResult.inspectedSource ? (
               <div>
                 <div className="text-[11px] font-medium text-foreground">
-                  Inspected source (regex input)
+                  {t('riskPage.inspectedSource')}
                 </div>
                 <pre className="mt-1 overflow-auto rounded bg-muted/30 p-2 font-mono text-[11px]">
                   {checkResult.inspectedSource}
@@ -379,7 +379,7 @@ export default function Risk() {
             {checkResult.intent && !checkResult.intent.empty ? (
               <div>
                 <div className="text-[11px] font-medium text-foreground">
-                  Static intent
+                  {t('riskPage.staticIntent')}
                 </div>
                 <ul className="mt-1 space-y-0.5 text-[11px]">
                   {checkResult.intent.privileged ? (

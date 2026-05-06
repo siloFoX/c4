@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.438] - 2026-05-04 — Risk / Wiki / Sessions i18n
+
+**Web — Risk inspector detail labels, Wiki empty state,
+Sessions attach modal copy.**
+
+### Added (~7 keys)
+- `riskPage.inspectedSource`, `riskPage.staticIntent` — labels
+  above the regex/intent panels in the risk-check result.
+- `wiki.empty.pickPage` — placeholder pane shown before any
+  result is selected.
+- `sessions.attach.intro`, `sessions.attach.useThisId`,
+  `sessions.attach.fieldLabel`, `sessions.newChat.title`.
+
+### Tests
+- `sessions-view.test.js`: regex now matches
+  `t('sessions.attach.useThisId')` instead of literal string.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~861 keys.
+
 ## [1.10.437] - 2026-05-04 — Hierarchy / History / Chat / Conversation i18n
 
 **Web — section headings, empty states, and chat scrollback

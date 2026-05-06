@@ -75,7 +75,8 @@ describe('SessionsView.tsx - attach modal preview + help', () => {
   });
 
   it('includes a "Use this id" button that autofills the sessionId input', () => {
-    assert.match(src, /Use this id/);
+    // Copy lives in i18n now; check the key wiring.
+    assert.match(src, /t\('sessions\.attach\.useThisId'\)/);
     assert.match(src, /setPathValue\(s\.sessionId\)/);
   });
 

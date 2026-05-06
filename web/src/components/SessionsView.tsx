@@ -226,8 +226,7 @@ function AttachModal({
         </CardHeader>
         <CardContent className="flex flex-col gap-4 p-4">
           <p className="text-xs text-muted-foreground">
-            Paste an absolute JSONL path or a session UUID. Attach is pointer-only —
-            the original transcript is never copied or modified.
+            {t('sessions.attach.intro')}
           </p>
 
           {preview.length > 0 ? (
@@ -265,7 +264,7 @@ function AttachModal({
                         variant="outline"
                         onClick={() => setPathValue(s.sessionId)}
                       >
-                        Use this id
+                        {t('sessions.attach.useThisId')}
                       </Button>
                     </div>
                   </li>
@@ -276,7 +275,7 @@ function AttachModal({
 
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-xs font-medium text-muted-foreground">
-              JSONL path or session UUID
+              {t('sessions.attach.fieldLabel')}
             </span>
             <Input
               value={pathValue}
@@ -425,7 +424,7 @@ function NewChatModal({ open, busy, error, onClose, onSubmit }: NewChatModalProp
         <CardHeader className="flex flex-row items-center justify-between gap-2 p-4">
           <CardTitle id="new-chat-title" className="flex items-center gap-2 text-base">
             <Plus aria-hidden="true" className="h-4 w-4" />
-            New Chat
+            {t('sessions.newChat.title')}
           </CardTitle>
           <Button size="sm" variant="ghost" onClick={onClose} disabled={busy} aria-label={t('sessions.aria.close')}>
             <X className="h-4 w-4" />

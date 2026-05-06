@@ -359,7 +359,7 @@ export default function WikiView() {
           {!selectedPath ? (
             <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
               <BookOpen className="mr-2 h-3.5 w-3.5" aria-hidden />
-              Pick a wiki page from the search results.
+              {t('wiki.empty.pickPage')}
             </div>
           ) : pageError ? (
             <div className="text-sm text-destructive">{pageError}</div>
