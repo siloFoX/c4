@@ -170,6 +170,16 @@ describe('AppHeader + main IA (8.37)', () => {
     page = await ctx.newPage();
     await page.goto('http://127.0.0.1:3456/', { timeout: 10000 });
     await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
+    // (v1.10.495) Force English locale before the assertions —
+    // the dashboard auto-detects browser language, and the host
+    // shell can be ko_KR which would flip the UI to Korean and
+    // break the wordmark/tab assertions.
+    await page.evaluate(() => {
+      try { window.localStorage.setItem('c4.locale', 'en'); } catch {}
+    });
+    await page.reload({ timeout: 10000 }).catch(() => {});
+    await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(800);
     // Dismiss onboarding tour if present so the real DOM is
     // assertable. The c4 dev shell ships a "C4 도움말" tour that
     // pops on first paint.
@@ -229,6 +239,12 @@ describe('Sidebar collapse keyboard shortcut (8.40)', () => {
     page = await ctx.newPage();
     await page.goto('http://127.0.0.1:3456/', { timeout: 10000 });
     await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
+    await page.evaluate(() => {
+      try { window.localStorage.setItem('c4.locale', 'en'); } catch {}
+    });
+    await page.reload({ timeout: 10000 }).catch(() => {});
+    await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(800);
     for (const text of ['투어 건너뛰기', 'Skip tour', '닫기', 'Close']) {
       const btn = await page.$(`button:has-text("${text}")`).catch(() => null);
       if (btn) {
@@ -347,11 +363,17 @@ describe('Keyboard + tab nav (8.x baseline)', () => {
     page = await ctx.newPage();
     await page.goto('http://127.0.0.1:3456/', { timeout: 10000 });
     await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
+    await page.evaluate(() => {
+      try { window.localStorage.setItem('c4.locale', 'en'); } catch {}
+    });
+    await page.reload({ timeout: 10000 }).catch(() => {});
+    await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(800);
     // Dismiss onboarding tour. The "투어 건너뛰기" button shows
     // up on first paint and stays until either Skipped or the
     // tour reaches its end.
     for (let i = 0; i < 3; i++) {
-      const skip = await page.$(`button:has-text("투어 건너뛰기")`).catch(() => null);
+      const skip = await page.$(`button:has-text("Skip tour")`).catch(() => null);
       if (!skip) break;
       await skip.click().catch(() => {});
       await page.waitForTimeout(200);
@@ -411,10 +433,10 @@ describe('Keyboard + tab nav (8.x baseline)', () => {
     });
     await page.keyboard.press('?');
     await page.waitForTimeout(300);
-    // The help panel is identified by "C4 도움말" heading.
+    // The help panel heading uses the en or ko bundle string.
     const hasHelp = await page.evaluate(() => {
       return Array.from(document.querySelectorAll('h1,h2,h3,header')).some(
-        (h) => /C4 도움말/.test(h.innerText)
+        (h) => /C4 (help|Help|도움말)/i.test(h.innerText)
       );
     });
     assert.ok(hasHelp, 'help panel did not open after pressing ?');

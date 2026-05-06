@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.495] - 2026-05-07 — Visual i18n verification + missed labels
+
+**Web — Playwright visual verification.** Added
+`scripts/i18n-visual-check.js`: spawns a temp daemon (port
+3458), drives Chromium through every top tab in the ko
+locale, and scans rendered DOM for visible English text
+that escapes the i18n system.
+
+### Found and fixed
+- `MetricsBar` — host strip showed `pid {N}` literally.
+  Migrated to `metrics.host.pid` with `{pid}` placeholder.
+- `SessionsView` — "New Chat" + "Attach new..." buttons
+  literal English. Migrated to `sessions.button.newChat`
+  / `sessions.button.attachNew`.
+
+### Tests
+- `tests/web-smoke.test.js` — three suites pinned English
+  body text. Updated to force `localStorage['c4.locale'] =
+  'en'` before each suite's assertions, and made the
+  help-panel heading regex bilingual (`C4 (help|Help|
+  도움말)/i`).
+
+### Notes
+- 200/200 tests green (incl. 20/20 web-smoke now that
+  Playwright is installed and the locale forcing
+  prevents the host's ko_KR from cascading in).
+- Korean i18n bundle now at ~1291 keys.
+- Visual scan passes 0 leaks across 11 top tabs.
+- `scripts/i18n-visual-check.js` reusable for future
+  drift checks.
+
 ## [1.10.494] - 2026-05-06 — Meetings relative time formatter
 
 **Web — MeetingsView formatRelative output.** The "Xs ago"

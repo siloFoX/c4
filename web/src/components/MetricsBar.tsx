@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Cpu, MemoryStick, Activity } from 'lucide-react';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 
 // Inline-typed response so MetricsBar drops in without touching the
 // shared types.ts (which is on a different design-system axis upstream).
@@ -92,7 +92,7 @@ export default function MetricsBar() {
         <span>{t('metrics.workers')} · {t('metrics.daemon')} {fmtMb(m.daemon.rssKb)}</span>
       </span>
       <span className="ml-auto text-muted-foreground/60">
-        {m.daemon.cpus}c · {m.daemon.platform} · pid {m.daemon.pid}
+        {m.daemon.cpus}c · {m.daemon.platform} · {tFormat('metrics.host.pid', { pid: m.daemon.pid })}
       </span>
     </div>
   );

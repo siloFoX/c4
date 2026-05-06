@@ -1128,7 +1128,7 @@ export default function SessionsView() {
                   setNewChatOpen(true);
                 }}
               >
-                <Plus className="h-3.5 w-3.5" aria-hidden /> New Chat
+                <Plus className="h-3.5 w-3.5" aria-hidden /> {t('sessions.button.newChat')}
               </Button>
               <Button
                 size="sm"
@@ -1138,7 +1138,7 @@ export default function SessionsView() {
                   setModalOpen(true);
                 }}
               >
-                <Plus className="h-3.5 w-3.5" aria-hidden /> Attach new...
+                <Plus className="h-3.5 w-3.5" aria-hidden /> {t('sessions.button.attachNew')}
               </Button>
               <Button
                 size="sm"
