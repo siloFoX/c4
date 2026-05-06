@@ -30,7 +30,7 @@ export default function DetailTabs({ value, onChange }: DetailTabsProps) {
   return (
     <div
       role="tablist"
-      aria-label="Detail view mode"
+      aria-label={t('detailTabs.label')}
       className="flex overflow-hidden rounded-md border border-border text-xs"
     >
       {TABS.map(({ value: v, labelKey, fallback, Icon }) => {

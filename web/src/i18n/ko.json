@@ -447,6 +447,9 @@
   "sidebar.workerViewMode": "워커 보기 모드",
 
   "topTabs.label": "상단 보기",
+  "detailTabs.label": "상세 보기 모드",
+  "featureSidebar.filter.label": "기능 필터",
+  "featureSidebar.nav.label": "기능 페이지",
 
   "history.search.placeholder": "이름 / 작업 / 브랜치 검색",
   "history.search.label": "기록 검색",

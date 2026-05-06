@@ -63,7 +63,7 @@ export default function FeatureSidebar({
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           placeholder="Filter features"
-          aria-label="Filter features"
+          aria-label={t('featureSidebar.filter.label')}
           className="h-7 pl-7 text-[11px]"
         />
       </div>
@@ -72,7 +72,7 @@ export default function FeatureSidebar({
           No features match &quot;{filter}&quot;.
         </div>
       ) : null}
-      <nav aria-label="Feature pages" className="flex flex-col gap-4">
+      <nav aria-label={t('featureSidebar.nav.label')} className="flex flex-col gap-4">
         {CATEGORY_ORDER.map((cat) => {
           const items = grouped[cat];
           if (!items || items.length === 0) return null;

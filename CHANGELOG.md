@@ -4,6 +4,23 @@
 
 (no entries — next release window)
 
+## [1.10.419] - 2026-05-04
+
+**Web — DetailTabs + FeatureSidebar nav aria-labels i18n.**
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 3 new keys
+  (`detailTabs.label`, `featureSidebar.filter.label`,
+  `featureSidebar.nav.label`).
+- **`web/src/components/layout/DetailTabs.tsx`** +
+  **`FeatureSidebar.tsx`**: aria-labels flow through `t()`.
+
+### Korean copy
+- 상세 보기 모드 / 기능 필터 / 기능 페이지.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.418] - 2026-05-04
 
 **Web — XtermView / ControlPanel / Sidebar / TopTabs aria-labels

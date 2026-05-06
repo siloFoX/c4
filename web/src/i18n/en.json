@@ -447,6 +447,9 @@
   "sidebar.workerViewMode": "Worker view mode",
 
   "topTabs.label": "Top view",
+  "detailTabs.label": "Detail view mode",
+  "featureSidebar.filter.label": "Filter features",
+  "featureSidebar.nav.label": "Feature pages",
 
   "history.search.placeholder": "Search name / task / branch",
   "history.search.label": "Search history",
