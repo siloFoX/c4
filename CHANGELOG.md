@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.426] - 2026-05-04
+
+**Web — MeetingsView 17 tooltip + composer placeholder i18n.**
+The collapsible Maintenance row's 6 tooltips, the In-progress
+action row's 4, peer-retro / retro-preview / finalize tooltips,
+fork tooltip, action-items download / copy tooltips, plus the
+"Save current task as template" tooltip and the new-meeting
+composer task placeholder.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 17 new keys
+  (`meetings.compose.task.placeholder` and 16
+  `meetings.tooltip.*`).
+- **`web/src/components/MeetingsView.tsx`**: 16 `title=` +
+  1 `placeholder=` flow through `t()`.
+
+### Korean copy
+- 작업 설명 (예: "프로덕션의 auth secret 로테이트") /
+  현재 작업을 새 템플릿으로 저장 / persist DB에 SQLite
+  PRAGMA integrity_check 실행 / FTS5 인덱스 강제 재빌드 /
+  SQLite VACUUM INTO 로 hot 백업 / 어떤 회의가 정리될지
+  미리보기 / N일보다 오래된 회의 영구 삭제 / 특정 전문가의
+  기여를 게시 / 합의 시 다음 단계로 진행 / 현 단계의 라운드
+  카운터 증가 / 실행 없이 진행 중으로 표시 / 발표자들이
+  동료를 평가 / Retro 점수 델타 계산 / Retro 델타를
+  registry 점수에 적용 / 새 pending 세션으로 클론 /
+  액션 아이템 JSON 다운로드 / Markdown 으로 복사.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.425] - 2026-05-04 — Final placeholder sweep
 
 **Web — last 4 placeholder literals translated.** Final

@@ -1418,7 +1418,7 @@ export default function MeetingsView() {
                   variant="outline"
                   onClick={() => openTplEditor()}
                   aria-label={t('meetings.action.newTemplate')}
-                  title="Save the current task as a new template"
+                  title={t('meetings.tooltip.saveTemplate')}
                   className="h-6 px-2 text-[11px]"
                 >
                   + New
@@ -1562,7 +1562,7 @@ export default function MeetingsView() {
                     setCreateError(null);
                   }
                 }}
-                placeholder='Task description (e.g. "rotate auth secret in production")'
+                placeholder={t('meetings.compose.task.placeholder')}
                 disabled={createBusy}
                 aria-label={t('meetings.compose.task')}
               />
@@ -1740,7 +1740,7 @@ export default function MeetingsView() {
                     onClick={handleIntegrity}
                     disabled={integrityBusy}
                     className="h-6 px-2 text-[10px]"
-                    title="Run SQLite PRAGMA integrity_check on the persist DB"
+                    title={t('meetings.tooltip.integrity')}
                   >
                     {integrityBusy ? '…' : t('meetings.maintenance.integrity')}
                   </Button>
@@ -1763,7 +1763,7 @@ export default function MeetingsView() {
                   onClick={handleFtsRebuild}
                   disabled={ftsBusy}
                   className="h-6 px-2 text-[10px]"
-                  title="Force-rebuild the FTS5 index"
+                  title={t('meetings.tooltip.fts')}
                 >
                   {ftsBusy ? '…' : t('meetings.maintenance.fts')}
                 </Button>
@@ -1804,7 +1804,7 @@ export default function MeetingsView() {
                     onClick={handleBackup}
                     disabled={backupBusy || !backupPath.trim()}
                     className="h-6 px-2 text-[10px]"
-                    title="Hot backup via SQLite VACUUM INTO"
+                    title={t('meetings.tooltip.backup')}
                   >
                     {backupBusy ? '…' : t('meetings.maintenance.backup')}
                   </Button>
@@ -1859,7 +1859,7 @@ export default function MeetingsView() {
                     onClick={() => handlePrune(true)}
                     disabled={pruneBusy}
                     className="h-6 px-2 text-[10px]"
-                    title="Preview which meetings would be pruned"
+                    title={t('meetings.tooltip.dryRun')}
                   >
                     {pruneBusy ? '…' : t('meetings.maintenance.dryRun')}
                   </Button>
@@ -1869,7 +1869,7 @@ export default function MeetingsView() {
                     onClick={() => handlePrune(false)}
                     disabled={pruneBusy}
                     className="h-6 px-2 text-[10px]"
-                    title="Permanently delete meetings older than N days"
+                    title={t('meetings.tooltip.prune')}
                   >
                     {pruneBusy ? '…' : t('meetings.maintenance.prune')}
                   </Button>
@@ -1953,7 +1953,7 @@ export default function MeetingsView() {
                 onClick={() => setContribOpen((v) => !v)}
                 disabled={contribBusy}
                 aria-label={t('meetings.contribute.toggle.label')}
-                title="Post a contribution from a specific specialist"
+                title={t('meetings.tooltip.contribute')}
                 aria-expanded={contribOpen}
               >
                 {contribOpen ? t('meetings.hideContribute') : t('meetings.contributeButton')}
@@ -1964,7 +1964,7 @@ export default function MeetingsView() {
                 onClick={() => handleStateAction(selectedId, 'advance')}
                 disabled={stateBusy !== null}
                 aria-label={t('meetings.contribute.advance.label')}
-                title="Advance to the next stage if consensus is reached"
+                title={t('meetings.tooltip.advance')}
               >
                 {stateBusy === 'advance' ? '…' : t('meetings.advance')}
               </Button>
@@ -1974,7 +1974,7 @@ export default function MeetingsView() {
                 onClick={() => handleStateAction(selectedId, 'next-round')}
                 disabled={stateBusy !== null}
                 aria-label={t('meetings.contribute.bumpRound.label')}
-                title="Bump round counter on the current stage (refused past round cap)"
+                title={t('meetings.tooltip.nextRound')}
               >
                 {stateBusy === 'next-round' ? '…' : t('meetings.nextRound')}
               </Button>
@@ -2110,7 +2110,7 @@ export default function MeetingsView() {
                 onClick={() => handleStateAction(selectedId, 'start')}
                 disabled={stateBusy !== null}
                 aria-label={t('meetings.contribute.start.label')}
-                title="Mark the meeting as in-progress without running. For manual / CLI-driven sessions."
+                title={t('meetings.tooltip.startManual')}
               >
                 {stateBusy === 'start' ? '…' : t('meetings.startManual')}
               </Button>
@@ -2185,7 +2185,7 @@ export default function MeetingsView() {
                 onClick={() => handlePeerRetro(selectedId)}
                 disabled={peerRetroBusy}
                 aria-label={t('meetings.peerRetro.label')}
-                title="Each speaker rates their peers; aggregate folds into the registry score"
+                title={t('meetings.tooltip.peerRetro')}
               >
                 <MessageCircle className="h-3.5 w-3.5" aria-hidden />
                 {t('meetings.peerRetro')}
@@ -2205,7 +2205,7 @@ export default function MeetingsView() {
                 onClick={() => handleRetro(selectedId, false)}
                 disabled={retroBusy !== null}
                 aria-label={t('meetings.retroPreviewLabel')}
-                title="Compute retro score deltas without applying"
+                title={t('meetings.tooltip.retroPreview')}
                 className="h-6 px-2 text-[10px]"
               >
                 {retroBusy === 'preview' ? '…' : t('meetings.retroPreview')}
@@ -2216,7 +2216,7 @@ export default function MeetingsView() {
                 onClick={() => handleRetro(selectedId, true)}
                 disabled={retroBusy !== null}
                 aria-label={t('meetings.finalizeLabel')}
-                title="Apply retro deltas to the registry score record"
+                title={t('meetings.tooltip.finalize')}
                 className="h-6 px-2 text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-300"
               >
                 {retroBusy === 'finalize' ? '…' : t('meetings.finalize')}
@@ -2243,7 +2243,7 @@ export default function MeetingsView() {
                 onClick={() => setForkOpen((v) => !v)}
                 disabled={forkBusy}
                 aria-label={t('meetings.fork.button.label')}
-                title="Clone this meeting as a new pending session — replan or reuse"
+                title={t('meetings.tooltip.fork')}
                 className="h-6 px-2 text-[10px]"
                 aria-expanded={forkOpen}
               >
@@ -2487,7 +2487,7 @@ export default function MeetingsView() {
                         URL.revokeObjectURL(url);
                       }}
                       className="ml-auto rounded border border-border bg-background px-1.5 py-0 text-[10px] text-muted-foreground hover:bg-accent/40"
-                      title="Download action items as JSON"
+                      title={t('meetings.tooltip.downloadActions')}
                     >
                       ⬇ JSON
                     </button>
@@ -2508,7 +2508,7 @@ export default function MeetingsView() {
                         navigator.clipboard.writeText(md).catch(() => { /* ignore */ });
                       }}
                       className="rounded border border-border bg-background px-1.5 py-0 text-[10px] text-muted-foreground hover:bg-accent/40"
-                      title="Copy action items as Markdown"
+                      title={t('meetings.tooltip.copyActionsMd')}
                     >
                       ⧉ MD
                     </button>
