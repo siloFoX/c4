@@ -290,6 +290,38 @@ async function main() {
     await page.waitForTimeout(300);
   } catch (e) { console.warn('  attach SKIP', e.message); }
 
+  // Sidebar tree mode toggle (workers tab) — flip from list to
+  // tree view and scan the new sidebar contents.
+  try {
+    // Click workers tab via evaluate to ensure it actually selects
+    await page.evaluate(() => {
+      const tab = Array.from(document.querySelectorAll('[role="tab"][aria-label="워커"]'))[0];
+      if (tab) tab.click();
+    });
+    await page.waitForTimeout(800);
+    // Tree-mode button is one of the two role=tab inside the
+    // workersSidebar's view-mode tablist. JS-eval click is more
+    // reliable than locator.click for this nested overlapped
+    // tablist (sidebar is z-stacked under header on first paint).
+    const clicked = await page.evaluate(() => {
+      const tablists = Array.from(document.querySelectorAll('[role="tablist"]'));
+      const viewMode = tablists.find((tl) => /모드|mode/i.test(tl.getAttribute('aria-label') || ''));
+      if (!viewMode) return false;
+      const tabs = viewMode.querySelectorAll('[role="tab"]');
+      if (tabs.length < 2) return false;
+      tabs[1].click();
+      return true;
+    });
+    if (!clicked) throw new Error('view-mode tablist not found');
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '_sidebar_tree.png'), fullPage: true });
+    const leaks = (await pickEnglishLeaks(page)).filter((l) => !isAllowed(l.text));
+    const seen = new Set();
+    const dedup = leaks.filter((l) => { if (seen.has(l.text)) return false; seen.add(l.text); return true; });
+    allLeaks._sidebarTree = dedup;
+    console.log(`  sidebar tree mode: ${dedup.length} leak(s)`);
+  } catch (e) { console.warn('  sidebar tree SKIP', e.message.split('\n')[0]); }
+
   // List → detail walk: click into the first list row of each
   // tab that has list/detail layout, scan the resulting detail
   // pane for English UI leaks.

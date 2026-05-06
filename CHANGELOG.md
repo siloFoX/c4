@@ -4,6 +4,22 @@
 
 (no entries — next release window)
 
+## [1.10.503] - 2026-05-07 — Visual scan: sidebar tree mode
+
+**Web — `scripts/i18n-visual-check.js` flips the workers
+sidebar from list mode to tree mode and scans the
+HierarchyTree contents.** Switched to JS-eval clicks for
+the nested view-mode tablist (which sits behind the
+header z-index on first paint and times out
+locator.click).
+
+### Visual scan totals
+- **~39 surfaces** with sidebar tree mode added.
+- 0 UI leak in the tree-mode sidebar.
+
+### Notes
+- 200/200 tests green.
+
 ## [1.10.502] - 2026-05-07 — Visual scan: list → detail walk
 
 **Web — `scripts/i18n-visual-check.js` extended with a
