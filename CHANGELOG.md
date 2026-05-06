@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.424] - 2026-05-04
+
+**Web — MeetingsView contribute + fork form aria-labels i18n.**
+14 more aria-labels covering: Bump round / Escalate / Abort
+buttons; the entire contribute form (specialist id / body /
+reason / Post / Vote accept / Vote object); manual Start;
+Fork toggle / title / task / Submit.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 14 new keys covering
+  `meetings.contribute.*.label` and `meetings.fork.*.label`.
+- **`web/src/components/MeetingsView.tsx`**: aria-labels →
+  `t()`.
+
+### Korean copy
+- 라운드 카운터 증가 / 회의 에스컬레이션 / 회의 중단 /
+  Specialist id / 기여 본문 / 투표 사유 / 기여 게시 / 찬성
+  투표 / 반대 투표 / 회의 시작 (진행 중으로 전환) / 회의
+  fork / Fork 제목 오버라이드 / Fork 작업 오버라이드 / Fork
+  제출.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.423] - 2026-05-04
 
 **Web — MeetingsView form aria-labels i18n.** Template editor

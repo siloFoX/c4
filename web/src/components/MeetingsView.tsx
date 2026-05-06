@@ -1973,7 +1973,7 @@ export default function MeetingsView() {
                 variant="outline"
                 onClick={() => handleStateAction(selectedId, 'next-round')}
                 disabled={stateBusy !== null}
-                aria-label="Bump round counter"
+                aria-label={t('meetings.contribute.bumpRound.label')}
                 title="Bump round counter on the current stage (refused past round cap)"
               >
                 {stateBusy === 'next-round' ? '…' : t('meetings.nextRound')}
@@ -1987,7 +1987,7 @@ export default function MeetingsView() {
                   'Mark this meeting as escalated? (round cap or veto deadlock)',
                 )}
                 disabled={stateBusy !== null}
-                aria-label="Escalate meeting"
+                aria-label={t('meetings.contribute.escalate.label')}
               >
                 {stateBusy === 'escalate' ? '…' : t('meetings.escalate')}
               </Button>
@@ -2000,7 +2000,7 @@ export default function MeetingsView() {
                   'Abort this meeting? Mutations refused after.',
                 )}
                 disabled={stateBusy !== null}
-                aria-label="Abort meeting"
+                aria-label={t('meetings.contribute.abort.label')}
               >
                 {stateBusy === 'abort' ? '…' : t('meetings.abort')}
               </Button>
@@ -2020,7 +2020,7 @@ export default function MeetingsView() {
                 value={contribSpecialist}
                 onChange={(e) => setContribSpecialist(e.target.value)}
                 placeholder={t('meetings.contribute.specialistId.placeholder')}
-                aria-label="Specialist id"
+                aria-label={t('meetings.contribute.specialistId.label')}
                 disabled={contribBusy}
                 className="h-7 text-[11px] font-mono"
               />
@@ -2028,7 +2028,7 @@ export default function MeetingsView() {
                 value={contribText}
                 onChange={(e) => setContribText(e.target.value)}
                 placeholder={t('meetings.contribute.body.placeholder')}
-                aria-label="Contribution text"
+                aria-label={t('meetings.contribute.body.label')}
                 disabled={contribBusy}
                 className="min-h-[64px] rounded border border-border bg-background p-2 text-[11px]"
               />
@@ -2037,7 +2037,7 @@ export default function MeetingsView() {
                 value={contribReason}
                 onChange={(e) => setContribReason(e.target.value)}
                 placeholder={t('meetings.contribute.reason.placeholder')}
-                aria-label="Vote reason"
+                aria-label={t('meetings.contribute.reason.label')}
                 disabled={contribBusy}
                 className="h-7 text-[11px]"
               />
@@ -2060,7 +2060,7 @@ export default function MeetingsView() {
                   onClick={() => handleContribute(selectedId)}
                   disabled={contribBusy || !contribSpecialist.trim() || !contribText.trim()}
                   className="h-6 px-2 text-[10px]"
-                  aria-label="Post contribution"
+                  aria-label={t('meetings.contribute.post.label')}
                 >
                   {contribBusy ? '…' : 'Post contribution'}
                 </Button>
@@ -2072,7 +2072,7 @@ export default function MeetingsView() {
                   onClick={() => handleVoteOnly(selectedId, 'accept')}
                   disabled={contribBusy || !contribSpecialist.trim()}
                   className="h-6 px-2 text-[10px]"
-                  aria-label="Vote accept"
+                  aria-label={t('meetings.contribute.voteAccept.label')}
                 >
                   Accept
                 </Button>
@@ -2082,7 +2082,7 @@ export default function MeetingsView() {
                   onClick={() => handleVoteOnly(selectedId, 'object')}
                   disabled={contribBusy || !contribSpecialist.trim()}
                   className="h-6 px-2 text-[10px]"
-                  aria-label="Vote object"
+                  aria-label={t('meetings.contribute.voteObject.label')}
                 >
                   Object
                 </Button>
@@ -2109,7 +2109,7 @@ export default function MeetingsView() {
                 variant="outline"
                 onClick={() => handleStateAction(selectedId, 'start')}
                 disabled={stateBusy !== null}
-                aria-label="Start meeting (transition to in-progress)"
+                aria-label={t('meetings.contribute.start.label')}
                 title="Mark the meeting as in-progress without running. For manual / CLI-driven sessions."
               >
                 {stateBusy === 'start' ? '…' : t('meetings.startManual')}
@@ -2242,7 +2242,7 @@ export default function MeetingsView() {
                 variant="outline"
                 onClick={() => setForkOpen((v) => !v)}
                 disabled={forkBusy}
-                aria-label="Fork meeting"
+                aria-label={t('meetings.fork.button.label')}
                 title="Clone this meeting as a new pending session — replan or reuse"
                 className="h-6 px-2 text-[10px]"
                 aria-expanded={forkOpen}
@@ -2289,7 +2289,7 @@ export default function MeetingsView() {
                 value={forkTitle}
                 onChange={(e) => setForkTitle(e.target.value)}
                 placeholder={`title override (default: ${detail.title || 'same as source'})`}
-                aria-label="Fork title override"
+                aria-label={t('meetings.fork.title.label')}
                 disabled={forkBusy}
                 className="h-7 text-[11px]"
               />
@@ -2297,7 +2297,7 @@ export default function MeetingsView() {
                 value={forkTask}
                 onChange={(e) => setForkTask(e.target.value)}
                 placeholder={t('meetings.fork.task.placeholder')}
-                aria-label="Fork task override"
+                aria-label={t('meetings.fork.task.label')}
                 disabled={forkBusy}
                 className="min-h-[64px] rounded border border-border bg-background p-2 text-[11px]"
               />
@@ -2307,7 +2307,7 @@ export default function MeetingsView() {
                   onClick={() => handleFork(selectedId)}
                   disabled={forkBusy}
                   className="h-6 px-2 text-[10px]"
-                  aria-label="Submit fork"
+                  aria-label={t('meetings.fork.submit.label')}
                 >
                   {forkBusy ? '…' : `Fork (${forkMode})`}
                 </Button>
