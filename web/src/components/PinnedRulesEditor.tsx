@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pin, RefreshCcw, Save } from 'lucide-react';
 import { apiFetch } from '../lib/api';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 import type { PinnedMemory } from '../types';
 import { Button, Card, CardContent, CardHeader } from './ui';
 
@@ -94,21 +94,27 @@ export default function PinnedRulesEditor({ workerName }: PinnedRulesEditorProps
     <Card>
       <CardHeader className="flex-row items-center gap-2 p-4">
         <Pin aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-medium">Persistent Rules</span>
+        <span className="text-sm font-medium">{t('pinnedRules.title')}</span>
         {lastRefreshAt && (
           <span className="ml-auto text-xs text-muted-foreground">
-            last refresh: {new Date(lastRefreshAt).toLocaleTimeString()}
+            {tFormat('pinnedRules.lastRefresh', {
+              time: new Date(lastRefreshAt).toLocaleTimeString(),
+            })}
           </span>
         )}
       </CardHeader>
       <CardContent className="space-y-3 p-4 pt-0">
         <p className="text-xs text-muted-foreground">
-          These rules are re-injected into the worker on a timer and after every
-          auto-compact. Use <code>---</code> on its own line to separate rules.
+          {t('pinnedRules.description').split('{separator}').map((seg, i, arr) => (
+            <span key={i}>
+              {seg}
+              {i < arr.length - 1 ? <code>---</code> : null}
+            </span>
+          ))}
         </p>
 
         <label className="block text-xs font-medium text-muted-foreground">
-          Role template
+          {t('pinnedRules.roleField.label')}
           <select
             aria-label={t('pinnedRules.role.label')}
             value={defaultTemplate}
@@ -125,14 +131,12 @@ export default function PinnedRulesEditor({ workerName }: PinnedRulesEditorProps
         </label>
 
         <label className="block text-xs font-medium text-muted-foreground">
-          Persistent Rules textarea
+          {t('pinnedRules.listField.label')}
           <textarea
             aria-label={t('pinnedRules.list.label')}
             value={rulesText}
             onChange={(e) => setRulesText(e.target.value)}
-            placeholder={
-              'Never run compound commands.\n\n---\n\nCommit to feature branch only.'
-            }
+            placeholder={t('pinnedRules.placeholder')}
             rows={8}
             className="mt-1 w-full rounded-md border border-input bg-background px-2 py-1 font-mono text-sm"
             disabled={loading || saving}
@@ -153,7 +157,7 @@ export default function PinnedRulesEditor({ workerName }: PinnedRulesEditorProps
             disabled={loading || saving}
           >
             <Save aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" />
-            Save
+            {t('pinnedRules.save')}
           </Button>
           <Button
             type="button"
@@ -163,7 +167,7 @@ export default function PinnedRulesEditor({ workerName }: PinnedRulesEditorProps
             disabled={loading || saving}
           >
             <RefreshCcw aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" />
-            Save and refresh now
+            {t('pinnedRules.saveAndRefresh')}
           </Button>
         </div>
       </CardContent>

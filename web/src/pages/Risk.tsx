@@ -529,7 +529,7 @@ export default function Risk() {
             </div>
           </div>
         ) : !statsError ? (
-          <div className="text-[12px] text-muted-foreground">Loading…</div>
+          <div className="text-[12px] text-muted-foreground">{t('common.loading')}</div>
         ) : null}
       </Panel>
 

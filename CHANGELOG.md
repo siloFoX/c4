@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.433] - 2026-05-04 — PinnedRulesEditor full Korean
+
+**Web — PinnedRulesEditor surface i18n.** Card title, last-refresh
+hint, multi-paragraph description (with embedded `<code>---</code>`
+preserved via split-and-inject), Role template inline label,
+Persistent Rules textarea label, default placeholder, Save and
+"Save and refresh now" buttons.
+
+### Added (~9 keys)
+- `pinnedRules.title`, `pinnedRules.lastRefresh` (`{time}`),
+  `pinnedRules.description` (`{separator}`),
+  `pinnedRules.{roleField,listField}.label`,
+  `pinnedRules.placeholder`, `pinnedRules.save`,
+  `pinnedRules.saveAndRefresh`.
+
+### Changed
+- `Risk.tsx`: stats panel "Loading…" wired to existing
+  `common.loading` key for symmetry.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~804 keys.
+
 ## [1.10.432] - 2026-05-04 — Validation/Profiles/Scribe/Risk/Morning i18n
 
 **Web — feature page label sweep.** Six pages had English string
