@@ -90,6 +90,11 @@
   "common.loading": "로딩 중…",
   "common.refresh": "새로고침",
 
+  "cleanupPage.title": "정리",
+  "cleanupPage.description": "충돌한 워커나 이전 실행 후 남아있는 고아 c4/ 브랜치 / worktree / 디렉토리를 정리합니다. 항상 dry-run 을 먼저 실행합니다.",
+  "cleanupPage.dryRun": "Dry-run",
+  "cleanupPage.commit": "정리 실행",
+
   "validationPage.title": "검증",
   "validationPage.description": "워커별 검증 객체 — 각 worktree 의 .c4-validation.json 에서 가져온 tests / typecheck / lint 상태.",
   "validationPage.filter.placeholder": "워커 필터",

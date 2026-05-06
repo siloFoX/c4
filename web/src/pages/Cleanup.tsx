@@ -90,14 +90,14 @@ export default function Cleanup() {
 
   return (
     <PageFrame
-      title="Cleanup"
-      description="Remove orphan c4/ branches, worktrees, and directories left behind by crashed workers or prior runs. Always runs a dry-run first."
+      title={t('cleanupPage.title')}
+      description={t('cleanupPage.description')}
       actions={
         <>
           <Tooltip label={t('cleanup.tooltip.dryRun')}>
             <Button type="button" variant="outline" size="sm" onClick={preview} disabled={loading || busy}>
               {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
-              <span>Dry-run</span>
+              <span>{t('cleanupPage.dryRun')}</span>
             </Button>
           </Tooltip>
           <Tooltip label={t('cleanup.tooltip.commit')}>
@@ -109,7 +109,7 @@ export default function Cleanup() {
               disabled={busy || loading || total === 0}
             >
               {busy ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-              <span>Clean up</span>
+              <span>{t('cleanupPage.commit')}</span>
             </Button>
           </Tooltip>
         </>
@@ -129,9 +129,9 @@ export default function Cleanup() {
       ) : null}
       {data && total > 0 && (
         <div className="flex flex-col gap-3">
-          <ListPanel title="Branches" items={branches} />
-          <ListPanel title="Worktrees" items={worktrees} />
-          <ListPanel title="Orphan directories" items={directories} />
+          <ListPanel title={t('cleanup.preview.branches')} items={branches} />
+          <ListPanel title={t('cleanup.preview.worktrees')} items={worktrees} />
+          <ListPanel title={t('cleanup.preview.directories')} items={directories} />
         </div>
       )}
 

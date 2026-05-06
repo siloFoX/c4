@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.402] - 2026-05-04
+
+**Web — Cleanup page header literals i18n.** Page already used
+`t('cleanup.preview.*')` for confirm dialog + already had
+`cleanup.preview.branches/worktrees/directories` keys; the title
+/ description / Dry-run + Clean up buttons + ListPanel headings
+were still English.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 4 new keys under
+  `cleanupPage.*` (title, description, dryRun, commit).
+- **`web/src/pages/Cleanup.tsx`**:
+  - PageFrame title / description switch to `t(...)`.
+  - Dry-run + Clean up button labels switch to `t(...)`.
+  - ListPanel titles for Branches / Worktrees / Directories
+    now use the existing `cleanup.preview.*` keys.
+
+### Korean copy
+- 정리 / 충돌한 워커나 이전 실행 후 남아있는 고아 c4/ 브랜치
+  / worktree / 디렉토리를 정리합니다 / Dry-run / 정리 실행.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.401] - 2026-05-04
 
 **Web — Validation page header literals i18n.** Page already

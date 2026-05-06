@@ -90,6 +90,11 @@
   "common.loading": "Loading…",
   "common.refresh": "Refresh",
 
+  "cleanupPage.title": "Cleanup",
+  "cleanupPage.description": "Remove orphan c4/ branches, worktrees, and directories left behind by crashed workers or prior runs. Always runs a dry-run first.",
+  "cleanupPage.dryRun": "Dry-run",
+  "cleanupPage.commit": "Clean up",
+
   "validationPage.title": "Validation",
   "validationPage.description": "Per-worker validation object — tests / typecheck / lint status from .c4-validation.json in each worktree.",
   "validationPage.filter.placeholder": "Filter workers",
