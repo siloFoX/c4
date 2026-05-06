@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.423] - 2026-05-04
+
+**Web — MeetingsView form aria-labels i18n.** Template editor
+fields (name / task / track / description), composer fields
+(meeting task / track), Create button, backup target path,
+contribute toggle + advance buttons.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 10 new keys covering
+  `meetings.template.*.label`, `meetings.compose.*`,
+  `meetings.maintenance.backupPath.label`,
+  `meetings.contribute.*.label`.
+- **`web/src/components/MeetingsView.tsx`**: aria-labels →
+  `t()`.
+
+### Korean copy
+- 템플릿 이름 / 템플릿 작업 / 템플릿 기본 트랙 / 템플릿 설명
+  / 회의 작업 / 회의 트랙 / 회의 생성 / 백업 대상 경로 /
+  기여 폼 토글 / 다음 단계로 진행.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.422] - 2026-05-04
 
 **Web — extra aria-labels i18n batch.** Sweep across remaining

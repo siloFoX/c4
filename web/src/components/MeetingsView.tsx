@@ -1459,7 +1459,7 @@ export default function MeetingsView() {
                     value={tplName}
                     onChange={(e) => setTplName(e.target.value)}
                     placeholder={t('meetings.template.name.placeholder')}
-                    aria-label="Template name"
+                    aria-label={t('meetings.template.name.label')}
                     disabled={tplBusy}
                     className="h-7 text-[11px]"
                   />
@@ -1467,7 +1467,7 @@ export default function MeetingsView() {
                     value={tplTask}
                     onChange={(e) => setTplTask(e.target.value)}
                     placeholder={t('meetings.template.task.placeholder')}
-                    aria-label="Template task"
+                    aria-label={t('meetings.template.task.label')}
                     disabled={tplBusy}
                     className="min-h-[80px] rounded border border-border bg-background p-2 text-[11px] font-mono"
                   />
@@ -1478,7 +1478,7 @@ export default function MeetingsView() {
                         value={tplTrack}
                         onChange={(e) => setTplTrack(e.target.value)}
                         disabled={tplBusy}
-                        aria-label="Template default track"
+                        aria-label={t('meetings.template.track.label')}
                         className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
                       >
                         <option value="">auto</option>
@@ -1493,7 +1493,7 @@ export default function MeetingsView() {
                     value={tplDescription}
                     onChange={(e) => setTplDescription(e.target.value)}
                     placeholder={t('meetings.template.description.placeholder')}
-                    aria-label="Template description"
+                    aria-label={t('meetings.template.description.label')}
                     disabled={tplBusy}
                     className="h-7 text-[11px]"
                   />
@@ -1564,7 +1564,7 @@ export default function MeetingsView() {
                 }}
                 placeholder='Task description (e.g. "rotate auth secret in production")'
                 disabled={createBusy}
-                aria-label="Meeting task"
+                aria-label={t('meetings.compose.task')}
               />
               <div className="flex flex-wrap items-center gap-2">
                 <label className="text-[11px] text-muted-foreground">
@@ -1574,7 +1574,7 @@ export default function MeetingsView() {
                     value={newTrack}
                     onChange={(e) => setNewTrack(e.target.value as typeof newTrack)}
                     disabled={createBusy}
-                    aria-label="Meeting track"
+                    aria-label={t('meetings.compose.track')}
                   >
                     <option value="auto">auto</option>
                     <option value="lightweight">lightweight</option>
@@ -1607,7 +1607,7 @@ export default function MeetingsView() {
                   size="sm"
                   onClick={handleCreate}
                   disabled={createBusy || !newTask.trim()}
-                  aria-label="Create meeting"
+                  aria-label={t('meetings.compose.create')}
                 >
                   Create
                 </Button>
@@ -1784,7 +1784,7 @@ export default function MeetingsView() {
                     value={backupPath}
                     onChange={(e) => setBackupPath(e.target.value)}
                     placeholder={t('meetings.maintenance.backupPath.placeholder')}
-                    aria-label="Backup target path"
+                    aria-label={t('meetings.maintenance.backupPath.label')}
                     className="h-6 max-w-xs px-2 text-[11px]"
                     disabled={backupBusy}
                   />
@@ -1952,7 +1952,7 @@ export default function MeetingsView() {
                 variant="outline"
                 onClick={() => setContribOpen((v) => !v)}
                 disabled={contribBusy}
-                aria-label="Toggle contribute form"
+                aria-label={t('meetings.contribute.toggle.label')}
                 title="Post a contribution from a specific specialist"
                 aria-expanded={contribOpen}
               >
@@ -1963,7 +1963,7 @@ export default function MeetingsView() {
                 variant="outline"
                 onClick={() => handleStateAction(selectedId, 'advance')}
                 disabled={stateBusy !== null}
-                aria-label="Advance to next stage"
+                aria-label={t('meetings.contribute.advance.label')}
                 title="Advance to the next stage if consensus is reached"
               >
                 {stateBusy === 'advance' ? '…' : t('meetings.advance')}
