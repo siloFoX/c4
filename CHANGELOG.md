@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.404] - 2026-05-04
+
+**Web — Morning + Plan pages i18n.** Two more feature pages —
+title / description / form labels / placeholders / button
+labels / output panel.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**:
+  - 5 new keys under `morningPage.*` (title, description,
+    Generate, Copy, generatedAt with `{ts}` template).
+  - 13 new keys under `planPage.*` (title, description,
+    refresh-plan label, Worker / Branch / Plan task / Output
+    field labels + placeholders, Send plan + Re-dispatch as
+    task buttons, Plan output panel heading).
+- **`web/src/pages/Morning.tsx`**:
+  - PageFrame title / description, Generate / Copy buttons,
+    `Generated at <ts>` template — all `t(...)` / `tFormat()`.
+- **`web/src/pages/Plan.tsx`**:
+  - PageFrame title / description, sr-only refresh, all four
+    field labels + placeholders, two action buttons, output
+    panel heading — all `t(...)`.
+
+### Korean copy
+- 모닝 리포트 / 일일 요약 / 생성 / 복사 / `<ts> 생성`.
+- 플랜 / 플래닝 작업 / 플랜 새로고침 / 워커 / 브랜치 (선택) /
+  플랜 작업 / 플래너가 설계할 내용을 입력하세요 / 출력 경로
+  (선택) / 플랜 전송 / 작업으로 재배포 / 플랜 출력.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.403] - 2026-05-04
 
 **Web — Auto page header + form i18n.** Title / description /

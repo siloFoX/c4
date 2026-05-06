@@ -127,14 +127,14 @@ export default function Plan() {
 
   return (
     <PageFrame
-      title="Plan"
-      description="Dispatch a planning task and render the worker's plan.md. Re-dispatch the plan as real work with one click."
+      title={t('planPage.title')}
+      description={t('planPage.description')}
       actions={
         <>
           <Tooltip label={t('plan.tooltip.refresh')}>
             <Button type="button" variant="ghost" size="sm" onClick={loadPlan} disabled={loading || !selected}>
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span className="sr-only">Refresh plan</span>
+              <span className="sr-only">{t('planPage.refreshPlan')}</span>
             </Button>
           </Tooltip>
         </>
@@ -149,7 +149,7 @@ export default function Plan() {
       />
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div>
-          <Label htmlFor="plan-worker">Worker</Label>
+          <Label htmlFor="plan-worker">{t('planPage.worker')}</Label>
           <select
             id="plan-worker"
             value={selected}
@@ -163,35 +163,35 @@ export default function Plan() {
           </select>
         </div>
         <div>
-          <Label htmlFor="plan-branch">Branch (optional)</Label>
+          <Label htmlFor="plan-branch">{t('planPage.branch')}</Label>
           <Tooltip label={t('plan.tooltip.branch')} placement="top">
             <Input
               id="plan-branch"
               value={branch}
               onChange={(e) => setBranch(e.target.value)}
-              placeholder="c4/my-plan"
+              placeholder={t('planPage.branch.placeholder')}
             />
           </Tooltip>
         </div>
         <div className="md:col-span-2">
-          <Label htmlFor="plan-task">Plan task</Label>
+          <Label htmlFor="plan-task">{t('planPage.task')}</Label>
           <textarea
             id="plan-task"
             rows={4}
             value={task}
             onChange={(e) => setTask(e.target.value)}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            placeholder="What should the planner design?"
+            placeholder={t('planPage.task.placeholder')}
           />
         </div>
         <div>
-          <Label htmlFor="plan-output">Output path (optional)</Label>
+          <Label htmlFor="plan-output">{t('planPage.output')}</Label>
           <Tooltip label={t('plan.tooltip.output')} placement="top">
             <Input
               id="plan-output"
               value={output}
               onChange={(e) => setOutput(e.target.value)}
-              placeholder="docs/plans/my-plan.md"
+              placeholder={t('planPage.output.placeholder')}
             />
           </Tooltip>
         </div>
@@ -201,7 +201,7 @@ export default function Plan() {
         <Tooltip label={t('plan.tooltip.dispatch')}>
           <Button type="button" variant="default" size="sm" onClick={dispatchPlan} disabled={dispatching}>
             {dispatching ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-            <span>Send plan</span>
+            <span>{t('planPage.send')}</span>
           </Button>
         </Tooltip>
         <Tooltip label={t('plan.tooltip.redispatch')}>
@@ -213,7 +213,7 @@ export default function Plan() {
             disabled={dispatching || !plan?.content}
           >
             <Upload className="h-3.5 w-3.5" />
-            <span>Re-dispatch as task</span>
+            <span>{t('planPage.redispatch')}</span>
           </Button>
         </Tooltip>
       </div>
@@ -221,7 +221,7 @@ export default function Plan() {
       {error && <ErrorPanel message={error} />}
 
       <Panel
-        title="Plan output"
+        title={t('planPage.outputHeading')}
         icon={<Brain className="h-3.5 w-3.5" />}
         className="p-3"
       >

@@ -7,7 +7,7 @@ import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Panel, Tooltip } from '../components/ui';
 import { apiPost } from '../lib/api';
 import { renderMarkdown } from '../lib/markdown';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 
 // 8.20B Morning report. POST /api/morning triggers generation; the
 // response includes the rendered markdown. A "Copy" button grabs the
@@ -64,14 +64,14 @@ export default function Morning() {
 
   return (
     <PageFrame
-      title="Morning report"
-      description="Daily overview — yesterday's activity, open TODOs, token spend. Mirrors `c4 morning`."
+      title={t('morningPage.title')}
+      description={t('morningPage.description')}
       actions={
         <>
           <Tooltip label={t('morning.tooltip.generate')}>
             <Button type="button" variant="default" size="sm" onClick={generate} disabled={loading}>
               {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sunrise className="h-3.5 w-3.5" />}
-              <span>Generate</span>
+              <span>{t('morningPage.generate')}</span>
             </Button>
           </Tooltip>
           <Tooltip label={t('morning.tooltip.copy')}>
@@ -83,7 +83,7 @@ export default function Morning() {
               disabled={!report?.content}
             >
               <Clipboard className="h-3.5 w-3.5" />
-              <span>Copy</span>
+              <span>{t('morningPage.copy')}</span>
             </Button>
           </Tooltip>
         </>
@@ -103,7 +103,7 @@ export default function Morning() {
         <>
           {report.generatedAt && (
             <div className="text-xs text-muted-foreground">
-              Generated at {new Date(report.generatedAt).toLocaleString()}
+              {tFormat('morningPage.generatedAt', { ts: new Date(report.generatedAt).toLocaleString() })}
             </div>
           )}
           {Array.isArray(report.sections) && report.sections.length > 0 ? (
