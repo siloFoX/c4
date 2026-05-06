@@ -538,6 +538,10 @@ export default function MeetingsView() {
   const [tplDescription, setTplDescription] = useState('');
   const [tplBusy, setTplBusy] = useState(false);
   const [tplMsg, setTplMsg] = useState<string | null>(null);
+  // (v1.10.480) Tone separated from message text — see Config/Wiki/
+  // SpecialistsView refactors. The startsWith() prefix sniff breaks
+  // on locale flip.
+  const [tplFailed, setTplFailed] = useState(false);
   const openTplEditor = useCallback((tpl?: { name: string; task: string; track?: string | null; description?: string | null }) => {
     if (tpl) {
       setTplEditMode('edit');
@@ -562,10 +566,12 @@ export default function MeetingsView() {
     const task = tplTask.trim();
     if (!name || !task) {
       setTplMsg(t('meetings.template.nameTaskRequired'));
+      setTplFailed(true);
       return;
     }
     setTplBusy(true);
     setTplMsg(null);
+    setTplFailed(false);
     try {
       const body: {
         name: string;
@@ -586,7 +592,10 @@ export default function MeetingsView() {
       setTplMsg(null);
       void loadTemplates();
     } catch (e) {
-      setTplMsg(`save failed: ${(e as Error).message || 'unknown'}`);
+      setTplMsg(tFormat('meetings.template.saveFailed', {
+        error: (e as Error).message || t('common.unknown'),
+      }));
+      setTplFailed(true);
     } finally {
       setTplBusy(false);
     }
@@ -596,6 +605,7 @@ export default function MeetingsView() {
     if (!window.confirm(tFormat('meetings.confirmTplDelete', { name: tplOriginalName }))) return;
     setTplBusy(true);
     setTplMsg(null);
+    setTplFailed(false);
     try {
       await apiDelete(`/api/meetings/templates/${encodeURIComponent(tplOriginalName)}`);
       setTplEditOpen(false);
@@ -605,7 +615,10 @@ export default function MeetingsView() {
       if (templateName === tplOriginalName) setTemplateName(null);
       void loadTemplates();
     } catch (e) {
-      setTplMsg(`delete failed: ${(e as Error).message || 'unknown'}`);
+      setTplMsg(tFormat('meetings.template.deleteFailed', {
+        error: (e as Error).message || t('common.unknown'),
+      }));
+      setTplFailed(true);
     } finally {
       setTplBusy(false);
     }
@@ -1531,8 +1544,7 @@ export default function MeetingsView() {
                     {tplMsg ? (
                       <span className={cn(
                         'truncate',
-                        tplMsg.startsWith('save failed') || tplMsg.startsWith('delete failed') || tplMsg === 'name + task required'
-                          ? 'text-destructive' : 'text-muted-foreground',
+                        tplFailed ? 'text-destructive' : 'text-muted-foreground',
                       )}>
                         {tplMsg}
                       </span>

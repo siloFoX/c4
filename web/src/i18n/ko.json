@@ -1003,6 +1003,8 @@
   "config.reloadFailed": "리로드 실패: {error}",
   "wiki.reopen.success": "재오픈됨 — 회의 {id} (컨텍스트 시드 {seeds}개)",
   "wiki.reopen.failed": "재오픈 실패: {error}",
+  "meetings.template.saveFailed": "저장 실패: {error}",
+  "meetings.template.deleteFailed": "삭제 실패: {error}",
   "meetings.previewingRoster": "로스터 미리보기 중…",
   "chat.reset": "초기화",
   "chat.welcome": "예시: \"list workers\", \"create worker w1\", \"tell w1 to run tests\", \"status\", \"close w1\".",

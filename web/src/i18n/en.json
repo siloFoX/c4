@@ -1003,6 +1003,8 @@
   "config.reloadFailed": "reload failed: {error}",
   "wiki.reopen.success": "reopened — meeting {id} ({seeds} context seed(s))",
   "wiki.reopen.failed": "reopen failed: {error}",
+  "meetings.template.saveFailed": "save failed: {error}",
+  "meetings.template.deleteFailed": "delete failed: {error}",
   "meetings.previewingRoster": "previewing roster…",
   "chat.reset": "Reset",
   "chat.welcome": "Try: \"list workers\", \"create worker w1\", \"tell w1 to run tests\", \"status\", \"close w1\".",

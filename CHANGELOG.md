@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.480] - 2026-05-06 — Meetings template save/delete tone
+
+**Web — MeetingsView template save/delete tone refactor.**
+The compound .startsWith()/=== sniff for the template strip
+(`tplMsg.startsWith('save failed') || .startsWith('delete
+failed') || === 'name + task required'`) broke under Korean.
+Added `tplFailed` boolean state, set in the validation +
+catch paths. Save/delete failure messages also migrated to
+i18n (`meetings.template.{saveFailed,deleteFailed}`).
+
+### Added (2 keys)
+- `meetings.template.saveFailed` — `{error}`.
+- `meetings.template.deleteFailed` — `{error}`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1207 keys.
+
 ## [1.10.479] - 2026-05-06 — Specialists rotate tone state
 
 **Web — SpecialistsView audit-rotate tone-detection
