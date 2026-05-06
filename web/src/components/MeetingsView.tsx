@@ -1628,7 +1628,11 @@ export default function MeetingsView() {
               {previewPlan ? (
                 <div className="rounded-md border border-border/60 bg-background p-2 text-[11px]">
                   <div className="font-medium">
-                    Preview · track={previewPlan.track} · {previewPlan.rosterSize} specialists · ~{previewPlan.estimatedTokens.toLocaleString()} tokens
+                    {tFormat('meetings.preview.summary', {
+                      track: previewPlan.track,
+                      size: previewPlan.rosterSize,
+                      tokens: previewPlan.estimatedTokens.toLocaleString(),
+                    })}
                   </div>
                   <div className="text-muted-foreground">
                     consensus={previewPlan.consensusPolicy.mode}

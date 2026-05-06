@@ -4,6 +4,18 @@
 
 (no entries — next release window)
 
+## [1.10.443] - 2026-05-04 — Meeting preview formatter + Risk window label
+
+### Added
+- `meetings.preview.summary` — `Preview · track={track} ·
+  {size} specialists · ~{tokens} tokens` formatter (3 vars).
+- `riskPage.window.label` — "window:" inline label next to
+  the hours input.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~918 keys.
+
 ## [1.10.442] - 2026-05-04 — Risk inspector body + dynamic Korean copy
 
 **Web — multi-paragraph copy with embedded `<code>` and

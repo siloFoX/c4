@@ -438,7 +438,7 @@ export default function Risk() {
             {t('riskPage.recentDenials')}
           </h3>
           <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
-            window:
+            {t('riskPage.window.label')}
             <Input
               type="number"
               min={1}
