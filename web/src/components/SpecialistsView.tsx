@@ -1327,7 +1327,7 @@ export default function SpecialistsView() {
                     <div className="text-xs font-semibold">{t('specialists.scoreHistory')}</div>
                     {confirmResetId === selected.id ? (
                       <div className="flex items-center gap-1 text-[10px]">
-                        <span className="text-muted-foreground">Wipe?</span>
+                        <span className="text-muted-foreground">{t('specialists.scoreReset.confirmLabel')}</span>
                         <Button
                           size="sm"
                           variant="outline"
@@ -1447,7 +1447,7 @@ export default function SpecialistsView() {
                     )}
                     {suggestion.rationale ? (
                       <div className="mt-1 text-muted-foreground">
-                        <span className="font-medium">Rationale:</span> {suggestion.rationale}
+                        <span className="font-medium">{t('specialists.suggest.rationale')}</span> {suggestion.rationale}
                       </div>
                     ) : null}
                     <div className="mt-1 text-muted-foreground italic text-[10px]">
@@ -1506,7 +1506,7 @@ export default function SpecialistsView() {
                     ) : null}
                     {applyResult.suggestion.rationale ? (
                       <div className="mt-1 text-muted-foreground">
-                        <span className="font-medium">Rationale:</span> {applyResult.suggestion.rationale}
+                        <span className="font-medium">{t('specialists.suggest.rationale')}</span> {applyResult.suggestion.rationale}
                       </div>
                     ) : null}
                   </div>

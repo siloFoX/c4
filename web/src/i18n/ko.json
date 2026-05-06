@@ -240,6 +240,8 @@
   "specialists.applyViaMeetingApplying": "적용 중…",
   "specialists.tags.edit": "편집",
   "specialists.tags.cancel": "취소",
+  "specialists.scoreReset.confirmLabel": "초기화?",
+  "specialists.suggest.rationale": "근거:",
 
   "meetings.title": "회의",
   "meetings.search.placeholder": "회의록 검색… (FTS5: 따옴표로 구절, * 로 prefix)",

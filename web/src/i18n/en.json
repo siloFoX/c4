@@ -240,6 +240,8 @@
   "specialists.applyViaMeetingApplying": "Applying…",
   "specialists.tags.edit": "Edit",
   "specialists.tags.cancel": "Cancel",
+  "specialists.scoreReset.confirmLabel": "Wipe?",
+  "specialists.suggest.rationale": "Rationale:",
 
   "meetings.title": "Meetings",
   "meetings.search.placeholder": "Search transcripts… (FTS5: phrases in quotes, * for prefix)",

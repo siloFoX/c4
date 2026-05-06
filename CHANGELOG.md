@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.416] - 2026-05-04
+
+**Web — SpecialistsView score-reset confirm + Rationale label
+i18n.** Two more inline labels in the detail panel: the "Wipe?"
+inline confirm next to score-reset and the "Rationale:" prefix
+on suggest-prompt + apply-prompt revision results.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 2 new keys
+  (`specialists.scoreReset.confirmLabel`,
+  `specialists.suggest.rationale`).
+- **`web/src/components/SpecialistsView.tsx`**: both inline
+  labels flow through `t()` (Rationale appears twice — both
+  occurrences updated via `replace_all`).
+
+### Korean copy
+- 초기화? / 근거:.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.415] - 2026-05-04
 
 **Web — SpecialistsView tag-edit toggle button i18n.** The
