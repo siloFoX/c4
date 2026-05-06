@@ -753,8 +753,8 @@ function AttachedRowActions({
             'inline-flex items-center rounded-full border px-1.5 py-0 uppercase tracking-wide',
             attachedRoleStyle(role),
           )}
-          aria-label={`Agent role: ${role}`}
-          title={`Detected agent role: ${role}`}
+          aria-label={tFormat('sessions.role.agentAria', { role })}
+          title={tFormat('sessions.role.detectedTitle', { role })}
         >
           {role}
         </span>
@@ -770,7 +770,10 @@ function AttachedRowActions({
         ) : procState.status === 'alive' ? (
           <span
             className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0 text-emerald-600 dark:text-emerald-400"
-            aria-label={`Live process: pid ${procState.pid}, ${procState.match === 'fd' ? 'fd-matched' : 'cwd-matched'}`}
+            aria-label={tFormat('sessions.process.liveAria', {
+              pid: procState.pid,
+              match: t(procState.match === 'fd' ? 'sessions.process.fdMatched' : 'sessions.process.cwdMatched'),
+            })}
             title={
               `Live claude pid ${procState.pid}` +
               (procState.cwd ? ` in ${procState.cwd}` : '') +

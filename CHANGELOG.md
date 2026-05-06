@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.469] - 2026-05-06 — Sessions/Specialists dynamic strings
+
+**Web — more parameterised template-literal labels.**
+SessionsView attached row agent role badge + detected-role
+title + live process aria (pid/match), SpecialistsView
+audit verify chip tooltip + ok/CORRUPT label.
+
+### Added (9 keys)
+- `sessions.role.{agentAria,detectedTitle}` — `{role}`.
+- `sessions.process.{fdMatched,cwdMatched,liveAria}` —
+  liveAria takes `{pid}`/`{match}`.
+- `specialists.verify.{tooltip,corruptedAt,ok,corrupt}` —
+  tooltip + corruptedAt parameterised (`{total}`/
+  `{rotated}`/`{at}`).
+
+### Tests
+- `tests/attach-detach-symmetry.test.js`: regex updated
+  from literal `aria-label={\`Agent role: \${role}\`}` →
+  `sessions.role.agentAria` to match the i18n migration.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1140 keys.
+
 ## [1.10.468] - 2026-05-06 — Account + Meetings dynamic labels
 
 **Web — more parameterised template-literal labels.**

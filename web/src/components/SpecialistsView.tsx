@@ -923,11 +923,19 @@ export default function SpecialistsView() {
                         ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
                         : 'border-destructive/40 bg-destructive/10 text-destructive',
                     )}
-                    title={`live: ${verifyResult.total} · rotated: ${verifyResult.rotatedTotal}${
-                      verifyResult.corruptedAt != null ? ` · corruptedAt ${verifyResult.corruptedAt}` : ''
-                    }`}
+                    title={
+                      tFormat('specialists.verify.tooltip', {
+                        total: verifyResult.total,
+                        rotated: verifyResult.rotatedTotal,
+                      })
+                      + (verifyResult.corruptedAt != null
+                        ? tFormat('specialists.verify.corruptedAt', { at: verifyResult.corruptedAt })
+                        : '')
+                    }
                   >
-                    {verifyResult.valid ? `ok (${verifyResult.total + verifyResult.rotatedTotal})` : 'CORRUPT'}
+                    {verifyResult.valid
+                      ? tFormat('specialists.verify.ok', { count: verifyResult.total + verifyResult.rotatedTotal })
+                      : t('specialists.verify.corrupt')}
                   </span>
                 ) : null}
               </span>

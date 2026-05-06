@@ -180,7 +180,7 @@ describe('SessionsView surfaces role + two-step detach', () => {
   });
 
   it('renders a role badge + read-only mirror hint on each attached row', () => {
-    assert.match(src, /aria-label=\{`Agent role: \$\{role\}`\}/);
+    assert.match(src, /sessions\.role\.agentAria/);
     assert.match(src, /sessions\.row\.detachConfirmBody/);
   });
 
