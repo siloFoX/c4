@@ -4,6 +4,22 @@
 
 (no entries — next release window)
 
+## [1.10.474] - 2026-05-06 — Meetings escalate/abort confirms
+
+**Web — Meetings stateAction confirm strings.** Create
+meeting fallback, "escalate to dead-letter" confirm copy,
+"abort & refuse mutations" confirm copy.
+
+### Added (3 keys)
+- `common.failedToCreateMeeting`.
+- `meetings.escalateConfirm` — round cap / veto deadlock
+  warning.
+- `meetings.abortConfirm` — mutations-refused warning.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1179 keys.
+
 ## [1.10.473] - 2026-05-06 — Sessions/Meetings/Rbac/Workspaces errors
 
 **Web — more `(e as Error).message` fallback strings.**

@@ -1136,7 +1136,7 @@ export default function MeetingsView() {
       await refresh();
       if (created && created.id) setSelectedId(created.id);
     } catch (e) {
-      setCreateError((e as Error).message || 'Failed to create meeting');
+      setCreateError((e as Error).message || t('common.failedToCreateMeeting'));
     } finally {
       setCreateBusy(false);
     }
@@ -2001,7 +2001,7 @@ export default function MeetingsView() {
                 onClick={() => handleStateAction(
                   selectedId,
                   'escalate',
-                  'Mark this meeting as escalated? (round cap or veto deadlock)',
+                  t('meetings.escalateConfirm'),
                 )}
                 disabled={stateBusy !== null}
                 aria-label={t('meetings.contribute.escalate.label')}
@@ -2014,7 +2014,7 @@ export default function MeetingsView() {
                 onClick={() => handleStateAction(
                   selectedId,
                   'abort',
-                  'Abort this meeting? Mutations refused after.',
+                  t('meetings.abortConfirm'),
                 )}
                 disabled={stateBusy !== null}
                 aria-label={t('meetings.contribute.abort.label')}
