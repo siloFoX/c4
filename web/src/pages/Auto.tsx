@@ -36,7 +36,7 @@ export default function Auto() {
 
   const dispatch = useCallback(async () => {
     if (!task.trim()) {
-      setError('Task is required.');
+      setError(t('auto.error.taskRequired'));
       return;
     }
     if (!window.confirm(t('auto.confirmDispatch'))) {

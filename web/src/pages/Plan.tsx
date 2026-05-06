@@ -81,7 +81,7 @@ export default function Plan() {
 
   const dispatchPlan = useCallback(async () => {
     if (!selected || !task.trim()) {
-      setError('Select a worker and enter a task.');
+      setError(t('plan.error.selectWorker'));
       return;
     }
     setDispatching(true);

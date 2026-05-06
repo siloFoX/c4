@@ -4,6 +4,18 @@
 
 (no entries — next release window)
 
+## [1.10.448] - 2026-05-04 — Form validation `setError()` literals
+
+### Added (~5 keys)
+- `batch.error.{noTaskLine,taskRequired,countOne}` — Batch
+  page form validation.
+- `auto.error.taskRequired` — Auto page Task validation.
+- `plan.error.selectWorker` — Plan page selection validation.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~955 keys.
+
 ## [1.10.447] - 2026-05-04 — `window.confirm()` literals across 4 surfaces
 
 ### Added (~4 keys)

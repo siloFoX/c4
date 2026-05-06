@@ -50,16 +50,16 @@ export default function Batch() {
     if (mode === 'file') {
       tasks = tasksText.split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
       if (tasks.length === 0) {
-        setError('Paste at least one non-comment line in Tasks.');
+        setError(t('batch.error.noTaskLine'));
         return;
       }
     } else {
       if (!task.trim()) {
-        setError('Task is required.');
+        setError(t('batch.error.taskRequired'));
         return;
       }
       if (count < 1) {
-        setError('Count must be at least 1.');
+        setError(t('batch.error.countOne'));
         return;
       }
     }

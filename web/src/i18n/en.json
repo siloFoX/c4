@@ -894,6 +894,11 @@
   "batch.tryExample": "Prefill an example task",
   "batch.toast.dispatched": "Batch dispatched: {ok}/{total} ok",
   "batch.toast.failures": "Batch finished with failures: {ok} ok, {fail} failed",
+  "batch.error.noTaskLine": "Paste at least one non-comment line in Tasks.",
+  "batch.error.taskRequired": "Task is required.",
+  "batch.error.countOne": "Count must be at least 1.",
+  "auto.error.taskRequired": "Task is required.",
+  "plan.error.selectWorker": "Select a worker and enter a task.",
 
   "cleanup.summary": "Remove orphan c4/ branches, worktrees and directories left behind by crashed workers or prior runs. Dry-run runs first so you can preview before committing.",
   "cleanup.cli": "c4 cleanup [--dry-run]",
