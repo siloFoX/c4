@@ -1396,7 +1396,7 @@ export default function SpecialistsView() {
                   ) : null}
                   {Object.keys(selected.score.byStage).length > 0 ? (
                     <div className="mt-3">
-                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">by stage</div>
+                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{t('specialists.label.byStage')}</div>
                       <ul className="mt-1 space-y-1">
                         {Object.entries(selected.score.byStage).sort().map(([s, v]) => (
                           <li key={s} className="flex items-center justify-between text-[12px]">
@@ -1416,7 +1416,7 @@ export default function SpecialistsView() {
 
               <div>
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-xs text-muted-foreground">system prompt</div>
+                  <div className="text-xs text-muted-foreground">{t('specialists.label.systemPrompt')}</div>
                   <div className="flex items-center gap-1">
                     {/* (Phase 5.1) Suggest revision — read-only;
                         operator copies result manually if useful. */}
@@ -1536,7 +1536,7 @@ export default function SpecialistsView() {
                   Both shown only when there's something to render. */}
               {enrichment && Array.isArray(enrichment.recentAudit) && enrichment.recentAudit.length > 0 ? (
                 <div>
-                  <div className="text-xs text-muted-foreground">recent audit ({enrichment.recentAudit.length})</div>
+                  <div className="text-xs text-muted-foreground">{tFormat('specialists.label.recentAudit', { count: enrichment.recentAudit.length })}</div>
                   <ul className="mt-1 divide-y divide-border/40 rounded-md border border-border/40 bg-muted/10 text-[11px]">
                     {enrichment.recentAudit.slice().reverse().map((e, i) => (
                       <li key={i} className="flex flex-wrap items-baseline gap-2 px-2 py-1">
@@ -1556,7 +1556,7 @@ export default function SpecialistsView() {
 
               {enrichment && Array.isArray(enrichment.recentMeetings) && enrichment.recentMeetings.length > 0 ? (
                 <div>
-                  <div className="text-xs text-muted-foreground">recent meetings ({enrichment.recentMeetings.length})</div>
+                  <div className="text-xs text-muted-foreground">{tFormat('specialists.label.recentMeetings', { count: enrichment.recentMeetings.length })}</div>
                   <ul className="mt-1 divide-y divide-border/40 rounded-md border border-border/40 bg-muted/10 text-[11px]">
                     {enrichment.recentMeetings.map((m) => (
                       <li key={m.id} className="flex flex-wrap items-baseline gap-2 px-2 py-1">

@@ -4,6 +4,22 @@
 
 (no entries — next release window)
 
+## [1.10.466] - 2026-05-06 — Specialists detail card extras
+
+**Web — Specialists enriched-detail card.** "by stage"
+domain bucket header, system prompt section header,
+recent audit/meetings counters in the enrichment fold-out.
+
+### Added (4 keys)
+- `specialists.label.byStage`.
+- `specialists.label.systemPrompt`.
+- `specialists.label.recentAudit` / `recentMeetings` —
+  `{count}` parameterised.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1116 keys.
+
 ## [1.10.465] - 2026-05-06 — Section labels (specialists/risk/wiki)
 
 **Web — small `<div>` field labels.** Specialists detail card
