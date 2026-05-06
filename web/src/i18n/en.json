@@ -432,6 +432,9 @@
   "sessions.loadingSessions": "Loading sessions…",
   "sessions.empty": "No sessions found.",
   "sessions.loadingSession": "Loading session…",
+  "sessions.task.placeholder": "What should this session work on?",
+  "sessions.search.placeholder": "Search project / snippet",
+  "xterm.find.placeholder": "Find in terminal (Enter = next, Shift+Enter = prev)",
 
   "history.search.placeholder": "Search name / task / branch",
   "history.search.label": "Search history",

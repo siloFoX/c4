@@ -443,7 +443,7 @@ function NewChatModal({ open, busy, error, onClose, onSubmit }: NewChatModalProp
             <textarea
               id="new-chat-prompt"
               className="min-h-[120px] w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="What should this session work on?"
+              placeholder={t('sessions.task.placeholder')}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               disabled={busy}
@@ -1111,7 +1111,7 @@ export default function SessionsView() {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search project / snippet"
+              placeholder={t('sessions.search.placeholder')}
               aria-label="Search sessions"
               className="h-8 pl-7 text-sm"
             />

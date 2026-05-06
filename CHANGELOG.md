@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.417] - 2026-05-04
+
+**Web — XtermView find input + SessionsView task / search
+placeholders i18n.** Three remaining English placeholders the
+search confirmed: terminal find input, sessions composer task,
+sessions library search.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 3 new keys
+  (`xterm.find.placeholder`, `sessions.task.placeholder`,
+  `sessions.search.placeholder`).
+- **`web/src/components/XtermView.tsx`**: i18n import added,
+  `useLocale()` hook, find-input placeholder → `t()`.
+- **`web/src/components/SessionsView.tsx`**: two placeholders
+  → `t()`.
+
+### Korean copy
+- "터미널에서 검색 (Enter = 다음, Shift+Enter = 이전)" /
+  "이 세션에서 어떤 작업을 할까요?" / "프로젝트 / 스니펫
+  검색".
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.416] - 2026-05-04
 
 **Web — SpecialistsView score-reset confirm + Rationale label

@@ -21,6 +21,7 @@ import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
 import { apiFetch, eventSourceUrl } from '../lib/api';
 import { cn } from '../lib/cn';
+import { t, useLocale } from '../lib/i18n';
 
 interface XtermViewProps {
   workerName: string;
@@ -137,6 +138,7 @@ function clampInt(n: number, lo: number, hi: number): number {
 }
 
 export default function XtermView({ workerName, fontSize, visible = true }: XtermViewProps) {
+  useLocale();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
@@ -418,7 +420,7 @@ export default function XtermView({ workerName, fontSize, visible = true }: Xter
             type="text"
             value={searchQuery}
             autoFocus
-            placeholder="Find in terminal (Enter = next, Shift+Enter = prev)"
+            placeholder={t('xterm.find.placeholder')}
             className="min-w-0 flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground"
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => {
