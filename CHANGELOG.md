@@ -4,6 +4,21 @@
 
 (no entries — next release window)
 
+## [1.10.494] - 2026-05-06 — Meetings relative time formatter
+
+**Web — MeetingsView formatRelative output.** The "Xs ago"
+/ "Xm ago" / "Xh ago" relative-time labels in meeting list
+rows were hard-coded English. Migrated to i18n with `{n}`
+parameterised. Korean uses "X초 전" / "X분 전" / "X시간
+전".
+
+### Added (3 keys)
+- `meetings.relative.{seconds,minutes,hours}`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1288 keys.
+
 ## [1.10.493] - 2026-05-06 — Feature registry labels + descriptions
 
 **Web — pages/registry.ts FEATURES catalogue migrated to

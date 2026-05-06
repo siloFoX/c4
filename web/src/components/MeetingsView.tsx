@@ -144,9 +144,9 @@ function formatRelative(iso: string | null): string {
   if (!iso) return '-';
   const dt = new Date(iso);
   const diff = Math.floor((Date.now() - dt.getTime()) / 1000);
-  if (diff < 60) return `${diff}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 60) return tFormat('meetings.relative.seconds', { n: diff });
+  if (diff < 3600) return tFormat('meetings.relative.minutes', { n: Math.floor(diff / 60) });
+  if (diff < 86400) return tFormat('meetings.relative.hours', { n: Math.floor(diff / 3600) });
   return dt.toISOString().slice(0, 10);
 }
 
