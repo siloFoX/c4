@@ -10,6 +10,7 @@
 // the surface we need (one trigger, a flat item list) is small enough
 // that 120 lines of pure React keep the bundle lean.
 
+import { t, useLocale } from '../../lib/i18n';
 import {
   cloneElement,
   isValidElement,
@@ -56,10 +57,12 @@ export function DropdownMenu({
   trigger,
   items,
   placement = 'top',
-  ariaLabel = 'Menu',
+  ariaLabel,
   header,
   className,
 }: DropdownMenuProps) {
+  useLocale();
+  const resolvedAriaLabel = ariaLabel ?? t('common.menu');
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState<number>(-1);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -149,7 +152,7 @@ export function DropdownMenu({
         <div
           id={menuId}
           role="menu"
-          aria-label={ariaLabel}
+          aria-label={resolvedAriaLabel}
           className={cn(
             'absolute left-0 z-50 min-w-[12rem] rounded-md border border-border bg-popover text-popover-foreground shadow-md focus:outline-none',
             placementClass,

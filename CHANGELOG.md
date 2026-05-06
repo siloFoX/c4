@@ -4,6 +4,22 @@
 
 (no entries — next release window)
 
+## [1.10.450] - 2026-05-04 — DropdownMenu default aria-label
+
+### Added
+- `common.menu` — fallback aria-label used by `DropdownMenu`
+  when callers don't pass an explicit `ariaLabel` prop.
+
+### Changed
+- `dropdown-menu.tsx` now imports `t` / `useLocale` so the
+  default falls back to the translated string at render
+  time instead of the hardcoded English literal at function
+  signature time.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~961 keys.
+
 ## [1.10.449] - 2026-05-04 — HierarchyTree + AppHeader aria-labels
 
 ### Added (5 keys)

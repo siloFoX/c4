@@ -108,6 +108,7 @@
   "common.start": "Start",
   "common.import": "Import",
   "common.export": "Export",
+  "common.menu": "Menu",
 
   "planPage.title": "Plan",
   "planPage.description": "Dispatch a planning task and render the worker's plan.md. Re-dispatch the plan as real work with one click.",
