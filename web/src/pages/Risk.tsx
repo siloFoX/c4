@@ -145,7 +145,7 @@ export default function Risk() {
       });
       setSandbox(res);
     } catch (e) {
-      setSandboxError((e as Error).message || 'Preview failed');
+      setSandboxError((e as Error).message || t('common.previewFailed'));
     } finally {
       setSandboxBusy(false);
     }
@@ -163,7 +163,7 @@ export default function Risk() {
       });
       setCheckResult(res);
     } catch (e) {
-      setCheckError((e as Error).message || 'Check failed');
+      setCheckError((e as Error).message || t('common.checkFailed'));
     } finally {
       setCheckBusy(false);
     }
@@ -178,7 +178,7 @@ export default function Risk() {
       );
       setStats(res);
     } catch (e) {
-      setStatsError((e as Error).message || 'Stats failed');
+      setStatsError((e as Error).message || t('common.statsFailed'));
     } finally {
       setStatsLoading(false);
     }

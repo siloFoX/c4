@@ -39,7 +39,7 @@ export default function Login({ onSuccess }: LoginProps) {
       if (res.token) {
         onSuccess();
       } else {
-        setError(res.error || 'Login failed');
+        setError(res.error || t('common.loginFailed'));
       }
     } catch (err) {
       setError((err as Error).message);

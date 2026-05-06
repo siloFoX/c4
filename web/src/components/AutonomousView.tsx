@@ -94,7 +94,7 @@ export default function AutonomousView() {
       setDigest(d);
       setEscalations(e.escalations || []);
     } catch (err) {
-      setDigestError((err as Error).message || 'Failed to load digest');
+      setDigestError((err as Error).message || t('common.failedToLoadDigest'));
     } finally {
       setLoading(false);
     }

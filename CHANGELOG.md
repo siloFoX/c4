@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.470] - 2026-05-06 — Common error fallbacks
+
+**Web — `(e as Error).message || 'X failed'` fallbacks.**
+WorkflowEditor JSON parse, Login auth failure, ConversationView
+session load, Risk page sandbox preview/check/stats, Autonomous
+digest load, MeetingsView meetings load + search + meeting
+stream.
+
+### Added (10 keys)
+- `common.invalidJson` (WorkflowEditor JSON parse).
+- `common.loginFailed` (Login form).
+- `common.failedToLoadSession` (ConversationView).
+- `common.{previewFailed,checkFailed,statsFailed}` (Risk).
+- `common.failedToLoadDigest` (AutonomousView).
+- `common.{failedToLoadMeetings,searchFailed,
+  failedToOpenMeetingStream}` (MeetingsView).
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1150 keys.
+
 ## [1.10.469] - 2026-05-06 — Sessions/Specialists dynamic strings
 
 **Web — more parameterised template-literal labels.**

@@ -235,7 +235,7 @@ export default function MeetingsView() {
       const res = await apiGet<MeetingsListResponse>(url);
       setData(res);
     } catch (e) {
-      setError((e as Error).message || 'Failed to load meetings');
+      setError((e as Error).message || t('common.failedToLoadMeetings'));
     } finally {
       setLoading(false);
     }
@@ -344,7 +344,7 @@ export default function MeetingsView() {
         setSearchTotal(typeof res.total === 'number' ? res.total : null);
       } catch (e) {
         if (cancelled) return;
-        setSearchError((e as Error).message || 'Search failed');
+        setSearchError((e as Error).message || t('common.searchFailed'));
         setSearchResults([]);
       } finally {
         if (!cancelled) setSearching(false);
@@ -379,7 +379,7 @@ export default function MeetingsView() {
     try {
       es = new EventSource(eventSourceUrl(`/api/meetings/${encodeURIComponent(selectedId)}/stream`));
     } catch (e) {
-      setDetailError((e as Error).message || 'Failed to open meeting stream');
+      setDetailError((e as Error).message || t('common.failedToOpenMeetingStream'));
       return undefined;
     }
     setStreaming(true);

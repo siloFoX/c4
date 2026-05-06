@@ -613,7 +613,7 @@ export default function ConversationView({
       const data = await apiGet<Conversation>(url);
       setConversation(data);
     } catch (err) {
-      setError((err as Error).message || 'Failed to load session');
+      setError((err as Error).message || t('common.failedToLoadSession'));
     } finally {
       setLoading(false);
     }

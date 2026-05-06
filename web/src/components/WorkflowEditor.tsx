@@ -368,7 +368,7 @@ export default function WorkflowEditor() {
         }
         inputs = parsed;
       } catch (e) {
-        setInputsError((e as Error).message || 'Invalid JSON');
+        setInputsError((e as Error).message || t('common.invalidJson'));
         return;
       }
     }
