@@ -52,7 +52,7 @@ export default function Config() {
       const res = await apiGet<ConfigResponse>('/api/config');
       setConfig(res.config || {});
     } catch (e) {
-      setError((e as Error).message || 'Failed to load config');
+      setError((e as Error).message || t('common.failedToLoadConfig'));
     } finally {
       setLoading(false);
     }
@@ -61,12 +61,7 @@ export default function Config() {
   useEffect(() => { refresh(); }, [refresh]);
 
   const handleReload = useCallback(async () => {
-    if (!window.confirm(
-      'Reload config.json from disk?\n\n' +
-      'Sub-systems may restart. Use this when you\'ve edited the\n' +
-      'daemon config file and want it to take effect without a\n' +
-      'full daemon restart.',
-    )) return;
+    if (!window.confirm(t('config.reloadConfirm'))) return;
     setReloadBusy(true);
     setReloadMsg(null);
     try {

@@ -961,7 +961,7 @@ export default function SessionsView() {
         return null;
       });
     } catch (err) {
-      setError((err as Error).message || 'Failed to load sessions');
+      setError((err as Error).message || t('common.failedToLoadSessions'));
     } finally {
       setLoading(false);
     }
@@ -973,7 +973,7 @@ export default function SessionsView() {
       const resp = await apiGet<AttachedListResponse>('/api/attach/list');
       setAttached(Array.isArray(resp.sessions) ? resp.sessions : []);
     } catch (err) {
-      setAttachError((err as Error).message || 'Failed to load attachments');
+      setAttachError((err as Error).message || t('common.failedToLoadAttachments'));
     }
   }, []);
 

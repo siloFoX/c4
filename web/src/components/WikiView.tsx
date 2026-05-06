@@ -72,7 +72,7 @@ export default function WikiView() {
       const res = await apiGet<SearchResponse>(`/api/wiki/search?${qs.toString()}`);
       setSearch(res);
     } catch (e) {
-      setSearchError((e as Error).message || 'Wiki search failed');
+      setSearchError((e as Error).message || t('common.wikiSearchFailed'));
     } finally {
       setSearching(false);
     }
@@ -92,7 +92,7 @@ export default function WikiView() {
         const res = await apiPost<ReadResponse>('/api/wiki/read', { path: selectedPath });
         if (!cancelled) setPage(res);
       } catch (e) {
-        if (!cancelled) setPageError((e as Error).message || 'Failed to load page');
+        if (!cancelled) setPageError((e as Error).message || t('common.failedToLoadPage'));
       }
     };
     fetchPage();
@@ -146,10 +146,7 @@ export default function WikiView() {
   const [bulkGitCommit, setBulkGitCommit] = useState(false);
   const [bulkGitPush, setBulkGitPush] = useState(false);
   const handleBulkPublish = useCallback(async () => {
-    if (!window.confirm(
-      'Publish a wiki page for every terminal meeting without one?\n' +
-      'Idempotent (existing pages are skipped). Use the CLI for force-overwrite.',
-    )) return;
+    if (!window.confirm(t('wiki.bulkPublishConfirm'))) return;
     setBulkBusy(true);
     setBulkMsg(null);
     try {

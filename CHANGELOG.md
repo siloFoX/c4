@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.471] - 2026-05-06 — Config + Wiki + Sessions errors
+
+**Web — error fallback strings + multi-line confirms.**
+Config page load fallback + reload confirm dialog
+(multi-line), WikiView search/page load fallbacks +
+bulk-publish multi-line confirm, SessionsView load
+fallbacks (sessions list + attachments).
+
+### Added (7 keys)
+- `common.{failedToLoadConfig,wikiSearchFailed,
+  failedToLoadPage,failedToLoadSessions,
+  failedToLoadAttachments}`.
+- `config.reloadConfirm` — multi-line confirm dialog
+  (newlines preserved via `\n`).
+- `wiki.bulkPublishConfirm` — multi-line confirm dialog.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1157 keys.
+
 ## [1.10.470] - 2026-05-06 — Common error fallbacks
 
 **Web — `(e as Error).message || 'X failed'` fallbacks.**
