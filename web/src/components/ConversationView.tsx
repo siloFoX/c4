@@ -704,7 +704,7 @@ export default function ConversationView({
         </CardTitle>
         {live ? (
           <Badge variant={streaming ? 'success' : 'secondary'}>
-            {streaming ? 'Live' : 'Idle'}
+            {streaming ? t('conversation.streaming.live') : t('conversation.streaming.idle')}
           </Badge>
         ) : null}
       </div>

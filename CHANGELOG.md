@@ -4,6 +4,25 @@
 
 (no entries — next release window)
 
+## [1.10.488] - 2026-05-06 — Live/Idle + task pluralisation
+
+**Web — ConversationView Live/Idle streaming chip + History
+worker-list `N task(s)` count.** ConversationView header
+toggle (streaming on/off → 'Live'/'Idle'), HistoryView
+worker-card `N task` / `N tasks` singular-plural toggle
+(Korean uses suffix-based "{count}건" for both since
+Korean nouns don't pluralise).
+
+### Added (4 keys)
+- `conversation.streaming.{live,idle}`.
+- `history.taskCount.{singular,plural}` — `{count}`
+  parameterised; English distinguishes singular/plural,
+  Korean has identical content for both.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1246 keys.
+
 ## [1.10.487] - 2026-05-06 — Attach + Send button labels
 
 **Web — Attach/Send button progress states.** SessionsView

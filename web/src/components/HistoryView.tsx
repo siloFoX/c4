@@ -305,7 +305,7 @@ export default function HistoryView() {
                         </Badge>
                       </div>
                       <div className="mt-0.5 text-[11px] text-muted-foreground">
-                        {w.taskCount} task{w.taskCount !== 1 ? 's' : ''}
+                        {tFormat(w.taskCount === 1 ? 'history.taskCount.singular' : 'history.taskCount.plural', { count: w.taskCount })}
                         {w.lastTaskAt ? ` - ${w.lastTaskAt.slice(0, 10)}` : ''}
                       </div>
                     </button>
