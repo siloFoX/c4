@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.453] - 2026-05-04 — Model + agent choice catalogs
+
+**Web — `MODEL_CHOICES` + `AGENT_CHOICES` constants migrated to
+i18n key references.** The choice arrays in SessionsView still
+declare `value:` enum identifiers (the API contract is
+unchanged and tests still pass), but `label:` / `hint:` are
+now `labelKey:` / `hintKey:` strings that get resolved through
+`t()` at render time.
+
+### Added (16 keys)
+- `sessions.model.{default,opus,sonnet,haiku}.{label,hint}` —
+  4 model choices × 2 fields.
+- `sessions.agent.{generic,planner,executor,reviewer}.{label,hint}` —
+  4 agent choices × 2 fields.
+- `meetings.template.{saveChanges,create}` — template editor
+  Save/Create button.
+
+### Changed
+- New-chat modal model/agent dropdowns + the inline hint
+  paragraph below each select.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1003 keys (4-digit milestone).
+
 ## [1.10.452] - 2026-05-04 — Relative timestamps + apply result + tpl editor
 
 ### Added (~9 keys)

@@ -1506,7 +1506,7 @@ export default function MeetingsView() {
                       disabled={tplBusy || !tplName.trim() || !tplTask.trim()}
                       className="h-6 px-2 text-[10px]"
                     >
-                      {tplBusy ? '…' : tplEditMode === 'edit' ? 'Save changes' : 'Create'}
+                      {tplBusy ? '…' : tplEditMode === 'edit' ? t('meetings.template.saveChanges') : t('meetings.template.create')}
                     </Button>
                     {tplEditMode === 'edit' ? (
                       <Button

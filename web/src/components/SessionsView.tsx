@@ -340,22 +340,22 @@ function AttachModal({
 // resulting JSONL will then show up in the existing Sessions list and
 // the worker is ready to receive follow-up turns through the regular
 // chat surface.
-const MODEL_CHOICES: Array<{ value: string; label: string; hint: string }> = [
-  { value: 'default',          label: 'Default',           hint: 'Use config.workerDefaults.model' },
-  { value: 'claude-opus-4-7',  label: 'Opus 4.7 (1M)',     hint: 'Best for hard tasks; slower & expensive' },
-  { value: 'claude-sonnet-4-6', label: 'Sonnet 4.6',        hint: 'Balanced; default for most work' },
-  { value: 'claude-haiku-4-5', label: 'Haiku 4.5',         hint: 'Fast & cheap; small / scripted tasks' },
+const MODEL_CHOICES: Array<{ value: string; labelKey: string; hintKey: string }> = [
+  { value: 'default',           labelKey: 'sessions.model.default.label', hintKey: 'sessions.model.default.hint' },
+  { value: 'claude-opus-4-7',   labelKey: 'sessions.model.opus.label',    hintKey: 'sessions.model.opus.hint' },
+  { value: 'claude-sonnet-4-6', labelKey: 'sessions.model.sonnet.label',  hintKey: 'sessions.model.sonnet.hint' },
+  { value: 'claude-haiku-4-5',  labelKey: 'sessions.model.haiku.label',   hintKey: 'sessions.model.haiku.hint' },
 ];
 // Mirrors the builtin templates in src/pty-manager.js _getBuiltinTemplates().
 // 'profile' and 'template' are aliased on the /api/task path so passing
 // profile: 'planner' applies the planner template (model + prompt prefix).
 // Manager-style auto orchestration goes through POST /api/auto in a
 // follow-up — for now the modal stays focused on plain chat spawns.
-const AGENT_CHOICES: Array<{ value: string; label: string; hint: string }> = [
-  { value: 'generic',  label: 'Generic',  hint: 'Plain Claude Code session — no template applied' },
-  { value: 'planner',  label: 'Planner',  hint: 'Design/plan focus — Opus, drafts plan.md' },
-  { value: 'executor', label: 'Executor', hint: 'Implementation focus — Sonnet, writes code' },
-  { value: 'reviewer', label: 'Reviewer', hint: 'Review-only — Haiku, leaves comments' },
+const AGENT_CHOICES: Array<{ value: string; labelKey: string; hintKey: string }> = [
+  { value: 'generic',  labelKey: 'sessions.agent.generic.label',  hintKey: 'sessions.agent.generic.hint' },
+  { value: 'planner',  labelKey: 'sessions.agent.planner.label',  hintKey: 'sessions.agent.planner.hint' },
+  { value: 'executor', labelKey: 'sessions.agent.executor.label', hintKey: 'sessions.agent.executor.hint' },
+  { value: 'reviewer', labelKey: 'sessions.agent.reviewer.label', hintKey: 'sessions.agent.reviewer.hint' },
 ];
 
 interface NewChatModalProps {
@@ -465,11 +465,14 @@ function NewChatModal({ open, busy, error, onClose, onSubmit }: NewChatModalProp
                 disabled={busy}
               >
                 {MODEL_CHOICES.map((m) => (
-                  <option key={m.value} value={m.value} title={m.hint}>{m.label}</option>
+                  <option key={m.value} value={m.value} title={t(m.hintKey)}>{t(m.labelKey)}</option>
                 ))}
               </select>
               <p className="text-[11px] text-muted-foreground">
-                {MODEL_CHOICES.find((m) => m.value === model)?.hint}
+                {(() => {
+                  const choice = MODEL_CHOICES.find((m) => m.value === model);
+                  return choice ? t(choice.hintKey) : '';
+                })()}
               </p>
             </div>
             <div className="space-y-1">
@@ -484,11 +487,14 @@ function NewChatModal({ open, busy, error, onClose, onSubmit }: NewChatModalProp
                 disabled={busy}
               >
                 {AGENT_CHOICES.map((a) => (
-                  <option key={a.value} value={a.value} title={a.hint}>{a.label}</option>
+                  <option key={a.value} value={a.value} title={t(a.hintKey)}>{t(a.labelKey)}</option>
                 ))}
               </select>
               <p className="text-[11px] text-muted-foreground">
-                {AGENT_CHOICES.find((a) => a.value === agent)?.hint}
+                {(() => {
+                  const choice = AGENT_CHOICES.find((a) => a.value === agent);
+                  return choice ? t(choice.hintKey) : '';
+                })()}
               </p>
             </div>
           </div>
