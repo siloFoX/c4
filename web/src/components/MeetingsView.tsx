@@ -1660,7 +1660,7 @@ export default function MeetingsView() {
                   </ul>
                 </div>
               ) : previewBusy ? (
-                <div className="text-[11px] text-muted-foreground">previewing roster…</div>
+                <div className="text-[11px] text-muted-foreground">{t('meetings.previewingRoster')}</div>
               ) : null}
             </div>
           ) : null}

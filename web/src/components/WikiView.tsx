@@ -390,7 +390,7 @@ export default function WikiView() {
                   clickable chips when there's any. */}
               {Array.isArray(page.frontmatter.related) && (page.frontmatter.related as unknown[]).length > 0 ? (
                 <div className="mt-2">
-                  <div className="text-xs text-muted-foreground">related ({(page.frontmatter.related as unknown[]).length})</div>
+                  <div className="text-xs text-muted-foreground">{tFormat('wiki.relatedCount', { count: (page.frontmatter.related as unknown[]).length })}</div>
                   <div className="mt-1 flex flex-wrap gap-1">
                     {(page.frontmatter.related as unknown[]).map((r, i) => {
                       const ref = String(r);

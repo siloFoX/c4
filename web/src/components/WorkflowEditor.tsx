@@ -283,7 +283,7 @@ function NodeProperties(props: { node: WorkflowNode | null }) {
           {node.type}
         </span>
       </div>
-      <div className="text-xs text-muted-foreground">id: {node.id}</div>
+      <div className="text-xs text-muted-foreground">{tFormat('workflowEditor.idPrefix', { id: node.id })}</div>
       <div className="mt-2">
         <div className="text-xs uppercase tracking-wide text-muted-foreground">
           config

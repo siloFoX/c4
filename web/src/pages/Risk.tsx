@@ -295,7 +295,7 @@ export default function Risk() {
                 <div><span className="font-medium">resources:</span> {sandbox.isolation.resources}</div>
               </div>
               <div>
-                <div className="font-medium text-foreground">argv</div>
+                <div className="font-medium text-foreground">{t('risk.label.argv')}</div>
                 <pre className="mt-1 overflow-auto rounded bg-muted/30 p-2 font-mono text-[11px]">
                   {sandbox.binary || '<NullRuntime>'} {sandbox.args.map((a) => /\s/.test(a) ? JSON.stringify(a) : a).join(' ')}
                 </pre>
@@ -455,21 +455,21 @@ export default function Risk() {
         {stats ? (
           <div className="grid grid-cols-2 gap-x-6 gap-y-2 md:grid-cols-4">
             <div>
-              <div className="text-[10px] uppercase text-muted-foreground">total events</div>
+              <div className="text-[10px] uppercase text-muted-foreground">{t('risk.stats.totalEvents')}</div>
               <div className="font-mono text-[14px]">{stats.total}</div>
             </div>
             <div>
-              <div className="text-[10px] uppercase text-muted-foreground">enforced</div>
+              <div className="text-[10px] uppercase text-muted-foreground">{t('risk.stats.enforced')}</div>
               <div className={cn('font-mono text-[14px]', stats.enforced > 0 && 'text-destructive')}>
                 {stats.enforced}
               </div>
             </div>
             <div>
-              <div className="text-[10px] uppercase text-muted-foreground">dry run</div>
+              <div className="text-[10px] uppercase text-muted-foreground">{t('risk.stats.dryRun')}</div>
               <div className="font-mono text-[14px]">{stats.dryRun}</div>
             </div>
             <div>
-              <div className="text-[10px] uppercase text-muted-foreground">shadow exec</div>
+              <div className="text-[10px] uppercase text-muted-foreground">{t('risk.stats.shadowExec')}</div>
               <div className="font-mono text-[14px]">{stats.shadowExec}</div>
               {stats.shadowExecKilled > 0 || stats.shadowExecNonZero > 0 ? (
                 <div className="text-[10px] text-amber-700 dark:text-amber-400">
@@ -489,7 +489,7 @@ export default function Risk() {
             ))}
             {stats.topReasons.length > 0 ? (
               <div className="col-span-2 md:col-span-4">
-                <div className="text-[10px] uppercase text-muted-foreground">top reasons</div>
+                <div className="text-[10px] uppercase text-muted-foreground">{t('risk.stats.topReasons')}</div>
                 <ul className="text-[11px]">
                   {stats.topReasons.map((r) => (
                     <li key={r.key}>
@@ -504,7 +504,7 @@ export default function Risk() {
             ) : null}
             {stats.topWorkers.length > 0 ? (
               <div className="col-span-2 md:col-span-4">
-                <div className="text-[10px] uppercase text-muted-foreground">top workers</div>
+                <div className="text-[10px] uppercase text-muted-foreground">{t('risk.stats.topWorkers')}</div>
                 <ul className="text-[11px]">
                   {stats.topWorkers.map((w) => (
                     <li key={w.key}>

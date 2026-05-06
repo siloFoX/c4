@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.465] - 2026-05-06 — Section labels (specialists/risk/wiki)
+
+**Web — small `<div>` field labels.** Specialists detail card
+brain/model/effort/domains/triggers/deliverables/tags chips
++ "by domain" header, Risk page argv label + 6 stat tiles
+(total events / enforced / dry run / shadow exec / top
+reasons / top workers), WorkflowEditor "id: X" prefix, Wiki
+"related (N)" header, Meetings "previewing roster…" status.
+
+### Added (~21 keys)
+- `specialists.label.{tier,brain,model,effort,domains,
+  triggersStages,triggersKeywords,deliverables,tags,
+  byDomain}`.
+- `risk.label.argv`, `risk.stats.{totalEvents,enforced,
+  dryRun,shadowExec,topReasons,topWorkers}`.
+- `workflowEditor.idPrefix` — `{id}`.
+- `wiki.relatedCount` — `{count}`.
+- `meetings.previewingRoster`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1112 keys.
+
 ## [1.10.464] - 2026-05-06 — Helper-text spans
 
 **Web — small inline helper-text `<span>` literals.** Sessions

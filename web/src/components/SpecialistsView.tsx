@@ -1250,38 +1250,38 @@ export default function SpecialistsView() {
             <>
               <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
                 <div>
-                  <div className="text-muted-foreground">tier</div>
+                  <div className="text-muted-foreground">{t('specialists.label.tier')}</div>
                   <div className="font-medium">{selected.tier}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">brain</div>
+                  <div className="text-muted-foreground">{t('specialists.label.brain')}</div>
                   <div className="font-medium">{selected.brain.adapter}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">model</div>
+                  <div className="text-muted-foreground">{t('specialists.label.model')}</div>
                   <div className="font-medium">{selected.brain.model || '-'}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">effort</div>
+                  <div className="text-muted-foreground">{t('specialists.label.effort')}</div>
                   <div className="font-medium">{selected.brain.effort || '-'}</div>
                 </div>
               </div>
 
               <div className="text-xs">
-                <div className="text-muted-foreground">domains</div>
+                <div className="text-muted-foreground">{t('specialists.label.domains')}</div>
                 <div className="font-medium">{selected.domain.join(', ')}</div>
               </div>
               <div className="text-xs">
-                <div className="text-muted-foreground">triggers — stages</div>
+                <div className="text-muted-foreground">{t('specialists.label.triggersStages')}</div>
                 <div className="font-medium">{selected.triggers.stages.join(', ')}</div>
               </div>
               <div className="text-xs">
-                <div className="text-muted-foreground">triggers — keywords</div>
+                <div className="text-muted-foreground">{t('specialists.label.triggersKeywords')}</div>
                 <div className="font-medium">{selected.triggers.keywords.join(', ')}</div>
               </div>
               {selected.deliverables.length > 0 ? (
                 <div className="text-xs">
-                  <div className="text-muted-foreground">deliverables</div>
+                  <div className="text-muted-foreground">{t('specialists.label.deliverables')}</div>
                   <ul className="mt-1 list-disc pl-5 font-medium">
                     {selected.deliverables.map((d) => (<li key={d}>{d}</li>))}
                   </ul>
@@ -1292,7 +1292,7 @@ export default function SpecialistsView() {
                   remove (`-a`) via PATCH /specialists/:id/tags. */}
               <div className="text-xs">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-muted-foreground">tags</div>
+                  <div className="text-muted-foreground">{t('specialists.label.tags')}</div>
                   <Button
                     size="sm"
                     variant="outline"
@@ -1383,7 +1383,7 @@ export default function SpecialistsView() {
                   </div>
                   {Object.keys(selected.score.byDomain).length > 0 ? (
                     <div className="mt-2">
-                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">by domain</div>
+                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{t('specialists.label.byDomain')}</div>
                       <ul className="mt-1 space-y-1">
                         {Object.entries(selected.score.byDomain).sort().map(([d, v]) => (
                           <li key={d} className="flex items-center justify-between text-[12px]">
