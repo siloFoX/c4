@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.501] - 2026-05-07 — Visual scan: data-flow verification
+
+**Web — visual i18n verification with actual data flow.**
+Created a `standard` track meeting via the API on the
+temp daemon (port 3458) and ran a `mock` brain meeting
+to populate real data. Re-ran the visual check.
+
+### Result
+- Meetings tab with real meeting data: **0 leak**.
+- All 34 surfaces still 0 UI leak.
+- Only remaining candidate is the workflow name `retry
+  test` — user-saved workflow definition, content not UI.
+
+### Conclusion
+The i18n migration handles real data flow correctly.
+Created fixture confirms no English text leaks when
+actual meeting records render in the list and detail
+panes. The migration coverage extends through the API-
+driven data path, not just the empty-state shells.
+
 ## [1.10.500] - 2026-05-07 — i18n migration milestone
 
 **Web — i18n migration declared structurally complete.**
