@@ -688,23 +688,23 @@ export default function SpecialistsView() {
       {summary ? (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-border/40 bg-muted/10 px-3 py-1.5 text-[11px] text-muted-foreground">
           <span>
-            <span className="font-medium text-foreground">{summary.registry.count}</span> specialists
+            <span className="font-medium text-foreground">{summary.registry.count}</span> {t('specialists.summary.specialistsLabel')}
             {summary.registry.vetoCount > 0 ? (
-              <span className="ml-1">({summary.registry.vetoCount} veto)</span>
+              <span className="ml-1">{tFormat('specialists.summary.vetoCount', { count: summary.registry.vetoCount })}</span>
             ) : null}
           </span>
           <span>·</span>
           <span>
-            <span className="font-medium text-foreground">{summary.meetings.total}</span> meetings
+            <span className="font-medium text-foreground">{summary.meetings.total}</span> {t('specialists.summary.meetingsLabel')}
             {summary.meetings.recent24h > 0 ? (
-              <span className="ml-1">({summary.meetings.recent24h} last 24h)</span>
+              <span className="ml-1">{tFormat('specialists.summary.recent24h', { count: summary.meetings.recent24h })}</span>
             ) : null}
           </span>
           {summary.scores.underperformerCount > 0 ? (
             <>
               <span>·</span>
               <span className="text-amber-700 dark:text-amber-400">
-                {summary.scores.underperformerCount} underperformer(s)
+                {tFormat('specialists.summary.underperformers', { count: summary.scores.underperformerCount })}
               </span>
             </>
           ) : null}
@@ -716,11 +716,13 @@ export default function SpecialistsView() {
                   ? 'text-amber-700 dark:text-amber-400'
                   : '',
               )}>
-                persist {summary.persist.rowCount ?? '?'} rows
+                {summary.persist.rowCount != null
+                  ? tFormat('specialists.summary.persistRows', { rows: summary.persist.rowCount })
+                  : t('specialists.summary.persistRowsUnknown')}
                 {typeof summary.persist.dbSizeBytes === 'number'
                   ? summary.persist.dbSizeBytes > 1024 * 1024
-                    ? ` (${(summary.persist.dbSizeBytes / (1024 * 1024)).toFixed(1)}MB)`
-                    : ` (${(summary.persist.dbSizeBytes / 1024).toFixed(1)}KB)`
+                    ? tFormat('specialists.summary.dbSizeMb', { size: (summary.persist.dbSizeBytes / (1024 * 1024)).toFixed(1) })
+                    : tFormat('specialists.summary.dbSizeKb', { size: (summary.persist.dbSizeBytes / 1024).toFixed(1) })
                   : ''}
               </span>
               {summary.persist.auditLog && typeof summary.persist.auditLog.entries === 'number' ? (
@@ -729,9 +731,9 @@ export default function SpecialistsView() {
                     ? 'text-amber-700 dark:text-amber-400'
                     : '',
                 )}>
-                  · audit {summary.persist.auditLog.entries} entries
+                  {tFormat('specialists.summary.auditEntries', { entries: summary.persist.auditLog.entries })}
                   {typeof summary.persist.auditLog.bytes === 'number' && summary.persist.auditLog.bytes > 1024 * 1024
-                    ? ` (${(summary.persist.auditLog.bytes / (1024 * 1024)).toFixed(1)}MB)`
+                    ? tFormat('specialists.summary.auditBytesMb', { size: (summary.persist.auditLog.bytes / (1024 * 1024)).toFixed(1) })
                     : ''}
                 </span>
               ) : null}
@@ -739,14 +741,14 @@ export default function SpecialistsView() {
                 <span className={cn(
                   summary.persist.lastKnownGood.ageDays > 7 ? 'text-amber-700 dark:text-amber-400' : '',
                 )}>
-                  · backup {summary.persist.lastKnownGood.ageDays < 1
-                    ? `${(summary.persist.lastKnownGood.ageDays * 24).toFixed(1)}h`
-                    : `${summary.persist.lastKnownGood.ageDays.toFixed(1)}d`} ago
+                  {summary.persist.lastKnownGood.ageDays < 1
+                    ? tFormat('specialists.summary.backupAgeHours', { hours: (summary.persist.lastKnownGood.ageDays * 24).toFixed(1) })
+                    : tFormat('specialists.summary.backupAgeDays', { days: summary.persist.lastKnownGood.ageDays.toFixed(1) })}
                 </span>
               ) : null}
             </>
           ) : summary.persist ? (
-            <span className="text-amber-700 dark:text-amber-400">· persist DISABLED</span>
+            <span className="text-amber-700 dark:text-amber-400">{t('specialists.summary.persistDisabled')}</span>
           ) : null}
         </div>
       ) : null}
@@ -788,7 +790,7 @@ export default function SpecialistsView() {
           </select>
         </label>
         <label className="flex items-center gap-1 text-muted-foreground">
-          import:
+          {t('specialists.import.label')}
           <input
             type="file"
             accept="application/json,.json"

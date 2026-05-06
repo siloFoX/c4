@@ -203,7 +203,7 @@ function AttachModal({
       <Card className="w-full max-w-2xl">
         <CardHeader className="flex flex-row items-center justify-between gap-2 border-b border-border p-4">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Link2 className="h-4 w-4" aria-hidden /> Attach session
+            <Link2 className="h-4 w-4" aria-hidden /> {t('sessions.attachModal.title')}
           </CardTitle>
           <button
             type="button"
@@ -1101,7 +1101,7 @@ export default function SessionsView() {
       <Card className="flex w-full min-h-0 flex-col md:w-80 lg:w-96">
         <CardHeader className="gap-2 border-b border-border p-4">
           <CardTitle className="flex items-center gap-2 text-base">
-            <FolderTree className="h-4 w-4" aria-hidden /> Sessions
+            <FolderTree className="h-4 w-4" aria-hidden /> {t('sessions.panel.title')}
           </CardTitle>
           <div className="relative">
             <Search

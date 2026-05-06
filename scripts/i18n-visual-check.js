@@ -67,6 +67,10 @@ const ALLOW = [
   // machine-generated content surfaced by the daemon, not UI labels.
   /^\[[a-z][a-z-]*\]$/,
   /^(Bash|Edit|Read|Write|Glob|Grep|Task|TodoWrite|WebSearch|WebFetch|MultiEdit|NotebookEdit)$/,
+  // Size / time units — ISO-ish, stay literal in any locale.
+  /^[\(\s]*\d[\d.,]*\s*(KB|MB|GB|TB|kb|mb|ms|s|h|d|m|B|byte|bytes)\)?$/,
+  // HTTP status codes (server-emitted, server enum)
+  /^HTTP\s+\d{3}$/,
   // Skip raw scribe / session snippet content from JSONL — these
   // are conversation transcript previews from the user's actual
   // Claude Code logs and not UI labels we control.
@@ -134,6 +138,9 @@ async function pickEnglishLeaks(page) {
       if (/line-clamp-\d/.test(cls)) continue;
       // Skip truncated path/identifier-style cells
       if (/truncate/.test(cls) && /^[/\w._-]+$/.test(text)) continue;
+      // Skip session-list preview content: truncated text >= 24 chars
+      // is almost always conversation snippet preview, not a UI label.
+      if (/truncate/.test(cls) && text.length >= 24) continue;
       const rect = el.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) continue;
       // In-viewport check (helps skip translate-x-full overlays).
@@ -176,7 +183,10 @@ async function main() {
   await page.evaluate(() => {
     window.localStorage.setItem('c4.help.firstSeen', '1');
     window.localStorage.setItem('c4.onboardingTour.v1', 'seen');
+    window.localStorage.setItem('sessions-tour-v1', 'seen');
   });
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
+  await page.waitForTimeout(1000);
   await setLocaleKo(page);
 
   // Verify locale flip worked: look for any Korean tab label
@@ -217,6 +227,83 @@ async function main() {
       allLeaks[tab.id] = { error: e.message };
     }
   }
+
+  console.log('[2.5/3] overlays');
+  // Help drawer: press 'h' to open.
+  try {
+    await page.keyboard.press('h');
+    await page.waitForTimeout(700);
+    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '_help_drawer.png'), fullPage: true });
+    const leaks = (await pickEnglishLeaks(page)).filter((l) => !isAllowed(l.text));
+    const seen = new Set();
+    const dedup = leaks.filter((l) => { if (seen.has(l.text)) return false; seen.add(l.text); return true; });
+    allLeaks._helpDrawer = dedup;
+    console.log(`  help drawer: ${dedup.length} leak(s)`);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+  } catch (e) { console.warn('  help drawer SKIP', e.message); }
+
+  // Keyboard shortcuts sheet: press '?'
+  try {
+    await page.keyboard.press('?');
+    await page.waitForTimeout(700);
+    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '_shortcuts.png'), fullPage: true });
+    const leaks = (await pickEnglishLeaks(page)).filter((l) => !isAllowed(l.text));
+    const seen = new Set();
+    const dedup = leaks.filter((l) => { if (seen.has(l.text)) return false; seen.add(l.text); return true; });
+    allLeaks._shortcuts = dedup;
+    console.log(`  shortcuts sheet: ${dedup.length} leak(s)`);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+  } catch (e) { console.warn('  shortcuts SKIP', e.message); }
+
+  // Sessions tab → New Chat modal
+  try {
+    const sessionsTab = await page.locator('[role="tab"][aria-label="세션"]').first();
+    await sessionsTab.click({ force: true });
+    await page.waitForTimeout(500);
+    const newChat = await page.locator('button:has-text("새 채팅")').first();
+    await newChat.click({ force: true });
+    await page.waitForTimeout(700);
+    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '_new_chat_modal.png'), fullPage: true });
+    const leaks = (await pickEnglishLeaks(page)).filter((l) => !isAllowed(l.text));
+    const seen = new Set();
+    const dedup = leaks.filter((l) => { if (seen.has(l.text)) return false; seen.add(l.text); return true; });
+    allLeaks._newChatModal = dedup;
+    console.log(`  new chat modal: ${dedup.length} leak(s)`);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+  } catch (e) { console.warn('  new chat SKIP', e.message); }
+
+  // Sessions tab → Attach new modal
+  try {
+    const attach = await page.locator('button:has-text("새로 연결")').first();
+    await attach.click({ force: true });
+    await page.waitForTimeout(700);
+    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '_attach_modal.png'), fullPage: true });
+    const leaks = (await pickEnglishLeaks(page)).filter((l) => !isAllowed(l.text));
+    const seen = new Set();
+    const dedup = leaks.filter((l) => { if (seen.has(l.text)) return false; seen.add(l.text); return true; });
+    allLeaks._attachModal = dedup;
+    console.log(`  attach modal: ${dedup.length} leak(s)`);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+  } catch (e) { console.warn('  attach SKIP', e.message); }
+
+  // Account menu (sidebar bottom)
+  try {
+    const account = await page.locator('button[aria-label^="계정 메뉴"]').first();
+    await account.click({ force: true });
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '_account_menu.png'), fullPage: true });
+    const leaks = (await pickEnglishLeaks(page)).filter((l) => !isAllowed(l.text));
+    const seen = new Set();
+    const dedup = leaks.filter((l) => { if (seen.has(l.text)) return false; seen.add(l.text); return true; });
+    allLeaks._accountMenu = dedup;
+    console.log(`  account menu: ${dedup.length} leak(s)`);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+  } catch (e) { console.warn('  account menu SKIP', e.message); }
 
   await browser.close();
 

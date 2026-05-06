@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.496] - 2026-05-07 — Visual round 2: SpecialistsView summary strip
+
+**Web — extended visual scan + SpecialistsSummaryStrip
+i18n.** Walked help drawer, shortcuts sheet, new-chat
+modal, attach modal, account menu in addition to the 11
+top tabs.
+
+### Found and fixed
+- `SessionsView` panel header `Sessions` →
+  `sessions.panel.title`.
+- `SessionsView` attach modal title `Attach session` →
+  `sessions.attachModal.title`.
+- `SpecialistsView` summary strip — dense status line
+  with `(N veto)` / `(N last 24h)` / `N underperformer(s)`
+  / `persist N rows` / `(N.NMB)` / `(N.NKB)` / `· audit
+  N entries` / `· backup Nh ago` / `· persist DISABLED`.
+  All 12 fragments migrated to parameterised i18n keys.
+- `SpecialistsView` `Export` button hard-coded → existing
+  `specialists.exportButton` ko translation updated to
+  `내보내기`.
+- `SpecialistsView` `import:` label → `specialists.import.label`.
+- `WikiView` `git commit` / `+ push` toggle labels → ko
+  bundle keys (`wiki.gitCommit` / `wiki.gitPush`)
+  updated to `git 커밋` / `+ 푸시`.
+
+### Visual scan
+- Final pass: **2 candidate leaks remaining, both
+  user-data content** (specialist `domain` tags
+  `"ui, web, react, state"`, workflow name
+  `"retry test"`). Not UI labels. All 16 surfaces (11
+  top tabs + 5 overlays) pass for UI labels.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1311 keys.
+- `scripts/i18n-visual-check.js` extended with overlay
+  walks (help drawer / shortcuts / modals / account menu)
+  and tighter false-positive filters (size units,
+  truncate session preview, scribe markers, Claude tool
+  names).
+
 ## [1.10.495] - 2026-05-07 — Visual i18n verification + missed labels
 
 **Web — Playwright visual verification.** Added
