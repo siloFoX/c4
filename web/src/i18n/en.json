@@ -1049,6 +1049,7 @@
   "chatView.backfillSource.session": "Loaded from session JSONL",
   "chatView.backfillSource.scrollback": "Loaded from scrollback",
   "workflowEditor.inputsMustBeObject": "inputs must be a JSON object",
+  "account.hint.soon": "soon",
   "meetings.previewingRoster": "previewing roster…",
   "chat.reset": "Reset",
   "chat.welcome": "Try: \"list workers\", \"create worker w1\", \"tell w1 to run tests\", \"status\", \"close w1\".",

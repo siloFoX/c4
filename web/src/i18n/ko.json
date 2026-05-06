@@ -1049,6 +1049,7 @@
   "chatView.backfillSource.session": "세션 JSONL에서 로드됨",
   "chatView.backfillSource.scrollback": "스크롤백에서 로드됨",
   "workflowEditor.inputsMustBeObject": "inputs는 JSON 객체여야 합니다",
+  "account.hint.soon": "곧 출시",
   "meetings.previewingRoster": "로스터 미리보기 중…",
   "chat.reset": "초기화",
   "chat.welcome": "예시: \"list workers\", \"create worker w1\", \"tell w1 to run tests\", \"status\", \"close w1\".",

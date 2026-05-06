@@ -4,6 +4,19 @@
 
 (no entries — next release window)
 
+## [1.10.492] - 2026-05-06 — Account profile "soon" hint
+
+**Web — AccountMenu profile row "soon" hint.** The
+disabled-but-visible "Profile" row in the account dropdown
+showed a literal English "soon" hint. Migrated to i18n.
+
+### Added (1 key)
+- `account.hint.soon`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1255 keys.
+
 ## [1.10.491] - 2026-05-06 — WorkflowEditor inputs validation
 
 **Web — WorkflowEditor JSON input validation error.**

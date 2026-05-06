@@ -134,7 +134,7 @@ export default function AccountMenu({
       // For now the row is visible-but-disabled so the entry point
       // exists and doesn't silently disappear when the feature lands.
       disabled: true,
-      hint: 'soon',
+      hint: t('account.hint.soon'),
       onSelect: () => {},
     },
     ...(onOpenPreferences
