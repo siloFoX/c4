@@ -133,13 +133,13 @@ export const TOUR_STEPS: Array<{ title: string; body: string }> = [
 
 function formatRelative(iso: string | null): string {
   if (!iso) return '';
-  const t = new Date(iso).getTime();
-  if (!Number.isFinite(t)) return '';
-  const diff = Date.now() - t;
-  if (diff < 60_000) return 'just now';
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
-  if (diff < 604_800_000) return `${Math.floor(diff / 86_400_000)}d ago`;
+  const ts = new Date(iso).getTime();
+  if (!Number.isFinite(ts)) return '';
+  const diff = Date.now() - ts;
+  if (diff < 60_000) return t('sessions.relative.justNow');
+  if (diff < 3_600_000) return tFormat('sessions.relative.minutes', { n: Math.floor(diff / 60_000) });
+  if (diff < 86_400_000) return tFormat('sessions.relative.hours', { n: Math.floor(diff / 3_600_000) });
+  if (diff < 604_800_000) return tFormat('sessions.relative.days', { n: Math.floor(diff / 86_400_000) });
   return new Date(iso).toLocaleDateString();
 }
 

@@ -1443,7 +1443,9 @@ export default function MeetingsView() {
                 <div className="flex flex-col gap-1 rounded-md border border-border bg-background/80 p-2 text-[11px]">
                   <div className="flex items-center justify-between">
                     <span className="font-medium">
-                      {tplEditMode === 'edit' ? `Edit template "${tplOriginalName}"` : 'New template'}
+                      {tplEditMode === 'edit'
+                        ? tFormat('meetings.template.editorEdit', { name: tplOriginalName })
+                        : t('meetings.template.editorNew')}
                     </span>
                     <button
                       type="button"

@@ -1477,10 +1477,10 @@ export default function SpecialistsView() {
                           : 'text-amber-700 dark:text-amber-400',
                       )}>
                         {applyResult.applied
-                          ? 'Applied via meeting consensus'
+                          ? t('specialists.applyResult.applied')
                           : applyResult.meetingId
-                          ? 'Meeting fired — not applied'
-                          : 'No revision drafted (no meeting fired)'}
+                          ? t('specialists.applyResult.fired')
+                          : t('specialists.applyResult.noRevision')}
                       </div>
                       {applyResult.meetingId ? (
                         <a

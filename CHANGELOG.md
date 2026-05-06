@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.452] - 2026-05-04 — Relative timestamps + apply result + tpl editor
+
+### Added (~9 keys)
+- `sessions.relative.{justNow,minutes,hours,days}` — replaces
+  the hardcoded `just now`/`Xm ago`/`Xh ago`/`Xd ago`
+  calculations in `formatRelative()`. Day-and-older still
+  falls through to `toLocaleDateString()` so the locale
+  formatting is the browser's job.
+- `specialists.applyResult.{applied,fired,noRevision}`.
+- `meetings.template.{editorEdit,editorNew}` (with `{name}`).
+
+### Changed
+- `formatRelative()` rebuilt around `t()` / `tFormat()`. Fixed
+  unrelated shadowing of the imported `t` by the loop variable
+  (renamed to `ts`).
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~987 keys.
+
 ## [1.10.451] - 2026-05-04 — Account / Sessions / Specialists / Meetings cards
 
 ### Added (~17 keys)
