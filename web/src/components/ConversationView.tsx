@@ -464,7 +464,7 @@ function ToolUseTurn({ turn }: { turn: Turn }) {
       <div className="w-full max-w-[95%]">
         <RoleHeader
           icon={<Wrench className="h-3.5 w-3.5" aria-hidden />}
-          label={turn.toolName || 'tool'}
+          label={turn.toolName || t('conversation.role.tool')}
           ts={ts}
         />
         <div className="rounded-md border border-border bg-muted/30">
@@ -526,7 +526,7 @@ function ToolResultTurn({ turn }: { turn: Turn }) {
       <div className="w-full max-w-[95%]">
         <RoleHeader
           icon={<Terminal className="h-3.5 w-3.5" aria-hidden />}
-          label="tool result"
+          label={t('conversation.role.toolResult')}
           ts={ts}
         />
         <div className="rounded-md border border-border bg-muted/30">

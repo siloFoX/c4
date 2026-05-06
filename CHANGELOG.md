@@ -4,6 +4,19 @@
 
 (no entries — next release window)
 
+## [1.10.460] - 2026-05-06 — ConversationView role labels
+
+**Web — RoleHeader labels.** The "tool result" header for
+ToolResultTurn and the generic "tool" fallback when
+turn.toolName is missing in ToolUseTurn.
+
+### Added (2 keys)
+- `conversation.role.{toolResult,tool}`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1062 keys.
+
 ## [1.10.459] - 2026-05-06 — Validation/Risk/Specialists badges
 
 **Web — small status Badge literals.** Validation page

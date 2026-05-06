@@ -859,6 +859,8 @@
   "risk.badge.denyList": "denyList",
   "risk.badge.privileged": "privileged",
   "specialists.badge.probation": "probation",
+  "conversation.role.toolResult": "tool result",
+  "conversation.role.tool": "tool",
   "chat.reset": "Reset",
   "chat.welcome": "Try: \"list workers\", \"create worker w1\", \"tell w1 to run tests\", \"status\", \"close w1\".",
   "chat.input.placeholder": "Ask something…",

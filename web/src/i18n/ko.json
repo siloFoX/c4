@@ -859,6 +859,8 @@
   "risk.badge.denyList": "거부 목록",
   "risk.badge.privileged": "특권",
   "specialists.badge.probation": "보호관찰",
+  "conversation.role.toolResult": "도구 결과",
+  "conversation.role.tool": "도구",
   "chat.reset": "초기화",
   "chat.welcome": "예시: \"list workers\", \"create worker w1\", \"tell w1 to run tests\", \"status\", \"close w1\".",
   "chat.input.placeholder": "무엇을 도와드릴까요…",
