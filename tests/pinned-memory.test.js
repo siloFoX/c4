@@ -369,14 +369,17 @@ describe('Pinned memory (8.46)', () => {
       );
       assert.ok(fs.existsSync(file), 'PinnedRulesEditor.tsx must exist');
       const src = fs.readFileSync(file, 'utf8');
+      // (v1.10.420) Migrated to i18n; assert key references instead
+      // of literal English strings. The English copy still lives in
+      // en.json — checked separately.
       assert.ok(
-        /Persistent Rules/.test(src),
-        'expected "Persistent Rules" label in PinnedRulesEditor'
+        /pinnedRules\.list\.label/.test(src),
+        'expected pinnedRules.list.label key reference in PinnedRulesEditor'
       );
       assert.ok(/<textarea/.test(src), 'expected a <textarea> element');
       assert.ok(
-        /aria-label="Persistent Rules"/.test(src),
-        'expected aria-label="Persistent Rules"'
+        /aria-label=\{t\('pinnedRules\.list\.label'\)\}/.test(src),
+        'expected aria-label={t(\'pinnedRules.list.label\')}'
       );
       assert.ok(
         /\/api\/workers\/.+\/pinned-memory/.test(src),

@@ -373,6 +373,10 @@
   "riskPage.loadingCatalog": "카탈로그 로딩 중…",
   "riskPage.command.placeholder": "예: rm -rf /tmp/test",
   "riskPage.filter.placeholder": "코드 / 라벨 필터",
+  "riskPage.command.label": "분류할 명령어",
+  "riskPage.filter.label": "규칙 카탈로그 필터",
+  "pinnedRules.role.label": "역할 템플릿",
+  "pinnedRules.list.label": "고정 규칙",
 
   "rbac.title": "RBAC",
   "rbac.description": "역할 기반 접근 제어 — 역할 / 사용자별 권한 읽기 전용 뷰.",

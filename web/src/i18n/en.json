@@ -373,6 +373,10 @@
   "riskPage.loadingCatalog": "Loading catalog…",
   "riskPage.command.placeholder": "e.g., rm -rf /tmp/test",
   "riskPage.filter.placeholder": "filter by code or label",
+  "riskPage.command.label": "Command to classify",
+  "riskPage.filter.label": "Filter rule catalog",
+  "pinnedRules.role.label": "Role template",
+  "pinnedRules.list.label": "Persistent Rules",
 
   "rbac.title": "RBAC",
   "rbac.description": "Role-based access control — read-only roster of roles and per-user grants.",

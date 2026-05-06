@@ -233,7 +233,7 @@ export default function Risk() {
             placeholder={t('riskPage.command.placeholder')}
             disabled={checkBusy}
             className="min-h-[80px] rounded border border-border bg-background p-2 font-mono text-[12px]"
-            aria-label="Command to classify"
+            aria-label={t('riskPage.command.label')}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
@@ -558,7 +558,7 @@ export default function Risk() {
                 value={patternFilter}
                 onChange={(e) => setPatternFilter(e.target.value)}
                 placeholder={t('riskPage.filter.placeholder')}
-                aria-label="Filter rule catalog"
+                aria-label={t('riskPage.filter.label')}
                 className="h-7 text-[11px]"
               />
               {(['critical', 'high', 'medium'] as const).map((lv) => {

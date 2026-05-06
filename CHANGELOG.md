@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.420] - 2026-05-04
+
+**Web — Risk + PinnedRules aria-labels i18n.** Risk Inspector
+command textarea + filter input. PinnedRulesEditor role-template
+selector + textarea aria-label.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 4 new keys
+  (`riskPage.command.label`, `riskPage.filter.label`,
+  `pinnedRules.role.label`, `pinnedRules.list.label`).
+- **`web/src/pages/Risk.tsx`** + **`PinnedRulesEditor.tsx`**:
+  aria-labels flow through `t()`. PinnedRulesEditor adds
+  `useLocale()` import.
+- **`tests/pinned-memory.test.js`**: source-grep updated to
+  look for `pinnedRules.list.label` key reference instead of
+  the literal `Persistent Rules` string.
+
+### Korean copy
+- 분류할 명령어 / 규칙 카탈로그 필터 / 역할 템플릿 / 고정
+  규칙.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.419] - 2026-05-04
 
 **Web — DetailTabs + FeatureSidebar nav aria-labels i18n.**

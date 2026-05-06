@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pin, RefreshCcw, Save } from 'lucide-react';
 import { apiFetch } from '../lib/api';
+import { t, useLocale } from '../lib/i18n';
 import type { PinnedMemory } from '../types';
 import { Button, Card, CardContent, CardHeader } from './ui';
 
@@ -23,6 +24,7 @@ const ROLE_OPTIONS: Array<{ value: string; label: string }> = [
 ];
 
 export default function PinnedRulesEditor({ workerName }: PinnedRulesEditorProps) {
+  useLocale();
   const [rulesText, setRulesText] = useState('');
   const [defaultTemplate, setDefaultTemplate] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -108,7 +110,7 @@ export default function PinnedRulesEditor({ workerName }: PinnedRulesEditorProps
         <label className="block text-xs font-medium text-muted-foreground">
           Role template
           <select
-            aria-label="Role template"
+            aria-label={t('pinnedRules.role.label')}
             value={defaultTemplate}
             onChange={(e) => setDefaultTemplate(e.target.value)}
             className="mt-1 w-full rounded-md border border-input bg-background px-2 py-1 text-sm"
@@ -125,7 +127,7 @@ export default function PinnedRulesEditor({ workerName }: PinnedRulesEditorProps
         <label className="block text-xs font-medium text-muted-foreground">
           Persistent Rules textarea
           <textarea
-            aria-label="Persistent Rules"
+            aria-label={t('pinnedRules.list.label')}
             value={rulesText}
             onChange={(e) => setRulesText(e.target.value)}
             placeholder={
