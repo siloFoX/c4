@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.493] - 2026-05-06 — Feature registry labels + descriptions
+
+**Web — pages/registry.ts FEATURES catalogue migrated to
+i18n.** 15 feature definitions had English `label` +
+`description` fields rendered through PageFrame title +
+HelpDrawer entry + FeatureSidebar nav. Refactored to
+`labelKey`/`descriptionKey` resolved through `t()` at
+render time.
+
+### Added (30 keys)
+- `feature.{id}.label` + `feature.{id}.description` — 15
+  feature ids (scribe / batch / cleanup / swarm / tokenUsage
+  / plan / morning / auto / templates / profiles / config /
+  workspaces / rbac / health / validation / risk).
+
+### Consumers updated
+- `web/src/components/layout/FeatureView.tsx` — PageFrame
+  title/description.
+- `web/src/components/layout/FeatureSidebar.tsx` — search
+  filter (now matches translated label/description) +
+  display label.
+- `web/src/components/HelpDrawer.tsx` — entry title.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1285 keys.
+
 ## [1.10.492] - 2026-05-06 — Account profile "soon" hint
 
 **Web — AccountMenu profile row "soon" hint.** The

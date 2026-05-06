@@ -28,7 +28,7 @@ function featureToEntry(f: FeatureDef): HelpEntry {
   const keyBase = toKeyBase(id);
   return {
     id,
-    title: f.label,
+    title: t(f.labelKey),
     summary: t(`${keyBase}.summary`),
     cli: safe(t(`${keyBase}.cli`)),
     example: safe(t(`${keyBase}.example`)),

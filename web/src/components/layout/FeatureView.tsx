@@ -95,7 +95,7 @@ export default function FeatureView({ sidebarOpen }: FeatureViewProps) {
         {feature ? (
           <Suspense
             fallback={
-              <PageFrame title={feature.label} description={feature.description}>
+              <PageFrame title={t(feature.labelKey)} description={t(feature.descriptionKey)}>
                 <LoadingSkeleton rows={5} />
               </PageFrame>
             }

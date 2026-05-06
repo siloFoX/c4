@@ -36,8 +36,8 @@ export default function FeatureSidebar({
     };
     for (const cat of CATEGORY_ORDER) {
       out[cat] = all[cat].filter((f) =>
-        f.label.toLowerCase().includes(q) ||
-        f.description.toLowerCase().includes(q) ||
+        t(f.labelKey).toLowerCase().includes(q) ||
+        t(f.descriptionKey).toLowerCase().includes(q) ||
         f.id.toLowerCase().includes(q),
       );
     }
@@ -101,7 +101,7 @@ export default function FeatureSidebar({
                         )}
                       >
                         <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                        <span className="truncate">{f.label}</span>
+                        <span className="truncate">{t(f.labelKey)}</span>
                       </button>
                     </li>
                   );
