@@ -4,6 +4,22 @@
 
 (no entries — next release window)
 
+## [1.10.458] - 2026-05-06 — ConversationView header strip
+
+**Web — ConversationView header chips.** The `model:` /
+`turns:` / `tokens: X in / Y out` / `N warnings` strip at
+the top of every conversation detail view was emitting
+English literals.
+
+### Added (4 keys)
+- `conversation.header.{model,turns,tokens,warnings}` —
+  all parameterised through `{model}`/`{count}`/`{input}`/
+  `{output}`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1053 keys.
+
 ## [1.10.457] - 2026-05-04 — Template-literal error messages
 
 **Web — set*Error() template literals.** AutonomousView resolve

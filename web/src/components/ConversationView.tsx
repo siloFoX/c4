@@ -21,7 +21,7 @@ import {
 import { apiGet, eventSourceUrl } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from './ui';
 import { cn } from '../lib/cn';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 
 // Conversation contract mirrors src/session-parser.js. Keep the shapes
 // loose (nullable fields) so a mid-session file still renders - the
@@ -712,22 +712,25 @@ export default function ConversationView({
         {conversation?.projectPath ? (
           <span className="truncate">{conversation.projectPath}</span>
         ) : null}
-        {conversation?.model ? <span>model: {conversation.model}</span> : null}
+        {conversation?.model ? (
+          <span>{tFormat('conversation.header.model', { model: conversation.model })}</span>
+        ) : null}
         {conversation ? (
           <span>
-            turns: {conversation.turns.length.toLocaleString()}
+            {tFormat('conversation.header.turns', { count: conversation.turns.length.toLocaleString() })}
           </span>
         ) : null}
         {conversation ? (
           <span>
-            tokens: {conversation.totalInputTokens.toLocaleString()} in /
-            {' '}
-            {conversation.totalOutputTokens.toLocaleString()} out
+            {tFormat('conversation.header.tokens', {
+              input: conversation.totalInputTokens.toLocaleString(),
+              output: conversation.totalOutputTokens.toLocaleString(),
+            })}
           </span>
         ) : null}
         {conversation?.warnings && conversation.warnings.length > 0 ? (
           <Badge variant="warning">
-            {conversation.warnings.length} warnings
+            {tFormat('conversation.header.warnings', { count: conversation.warnings.length })}
           </Badge>
         ) : null}
       </div>
