@@ -290,6 +290,42 @@ async function main() {
     await page.waitForTimeout(300);
   } catch (e) { console.warn('  attach SKIP', e.message); }
 
+  // List → detail walk: click into the first list row of each
+  // tab that has list/detail layout, scan the resulting detail
+  // pane for English UI leaks.
+  const listDetailTabs = [
+    { id: 'meetings', label: '회의', listItem: '[role="button"], li button, [data-meeting-id]' },
+    { id: 'specialists', label: '전문가', listItem: 'li button, [data-specialist-id]' },
+    { id: 'wiki', label: '위키', listItem: '[data-wiki-page], li button, ul li' },
+    { id: 'history', label: '기록', listItem: 'li button, [data-worker-name]' },
+  ];
+  for (const ld of listDetailTabs) {
+    try {
+      const tab = await page.locator(`[role="tab"][aria-label="${ld.label}"]`).first();
+      await tab.click({ force: true });
+      await page.waitForTimeout(600);
+      // Click the first available list item
+      const items = await page.locator(ld.listItem).all();
+      let opened = false;
+      for (const it of items) {
+        try {
+          if (!(await it.isVisible())) continue;
+          await it.click({ force: true, timeout: 1500 });
+          opened = true;
+          break;
+        } catch {}
+      }
+      if (!opened) { console.log(`  ${ld.id}-detail: no list item to click`); continue; }
+      await page.waitForTimeout(600);
+      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, `_${ld.id}_detail.png`), fullPage: true });
+      const leaks = (await pickEnglishLeaks(page)).filter((l) => !isAllowed(l.text));
+      const seen = new Set();
+      const dedup = leaks.filter((l) => { if (seen.has(l.text)) return false; seen.add(l.text); return true; });
+      allLeaks[`_${ld.id}_detail`] = dedup;
+      console.log(`  ${ld.id}-detail: ${dedup.length} leak(s)`);
+    } catch (e) { console.warn(`  ${ld.id}-detail SKIP`, e.message.split('\n')[0]); }
+  }
+
   // AppHeader dropdowns / icon buttons (locale toggle, theme,
   // help button) — click each header button and capture state.
   try {

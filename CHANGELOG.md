@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.502] - 2026-05-07 — Visual scan: list → detail walk
+
+**Web — `scripts/i18n-visual-check.js` extended with a
+list → detail walk.** For meetings / specialists / wiki /
+history tabs, click the first available list row and scan
+the resulting detail pane.
+
+### Visual scan totals (cumulative)
+- 11 top tabs + 5 overlays + 16 feature pages +
+  AppHeader walk + tooltip walk + **4 list-detail panes**
+  = ~38 surfaces.
+- All 4 detail panes (meetings/specialists/wiki/history)
+  pass 0 UI leak with real meeting fixture data.
+- Total candidate leaks remaining: 2 (workflow name +
+  session preview fragment, both confirmed user content).
+
+### Notes
+- 200/200 tests green.
+- Detail panes for: meetings (selected meeting view),
+  specialists (specialist card detail), wiki (wiki page
+  rendering), history (worker timeline detail).
+
 ## [1.10.501] - 2026-05-07 — Visual scan: data-flow verification
 
 **Web — visual i18n verification with actual data flow.**
