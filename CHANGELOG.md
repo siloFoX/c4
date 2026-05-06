@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.428] - 2026-05-04 — Final tooltip sweep
+
+**Web — last 5 title= tooltip literals translated.** WikiView
+reopen, Risk Inspector page title + sandbox-preview button
+title, ControlPanel last-batch panel title, SessionsView no-
+live-process indicator title.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 5 new keys
+  (`wiki.tooltip.reopen`, `riskPage.title.tooltip`,
+  `riskPage.sandboxPreview.tooltip`,
+  `controlPanel.lastBatch.title`,
+  `sessions.tooltip.noLiveProcess`).
+- 5 component / page files: `title=` flow through `t()`.
+
+### Korean copy
+- 새 회의 스폰 / 리스크 검사기 / 샌드박스 런타임 argv pure
+  builder / 마지막 배치 결과 / claude 프로세스 미실행.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Korean i18n bundle now at ~706 keys.
+
 ## [1.10.427] - 2026-05-04
 
 **Web — SpecialistsView 12 tooltip i18n.** Export / Apply

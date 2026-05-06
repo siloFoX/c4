@@ -493,7 +493,7 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
 
           {batchResults && batchResults.length > 0 && (
             <Panel
-              title="Last batch results"
+              title={t('controlPanel.lastBatch.title')}
               className="p-3 text-xs"
             >
               <ul className="space-y-0.5">

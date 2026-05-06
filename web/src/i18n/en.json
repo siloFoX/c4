@@ -377,6 +377,11 @@
   "wiki.field.status": "status",
   "wiki.field.lastReviewed": "last_reviewed",
   "wiki.field.path": "path",
+  "wiki.tooltip.reopen": "Spawn a new meeting seeded with this page + its related neighbours",
+  "riskPage.title.tooltip": "Risk Inspector",
+  "riskPage.sandboxPreview.tooltip": "Show what argv the configured sandbox runtime would use — pure builder, no exec",
+  "controlPanel.lastBatch.title": "Last batch results",
+  "sessions.tooltip.noLiveProcess": "No running claude process owns this JSONL",
 
   "config.title": "Config",
   "config.description": "Live daemon config (sans secrets) + reload.",

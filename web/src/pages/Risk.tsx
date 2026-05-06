@@ -198,7 +198,7 @@ export default function Risk() {
 
   return (
     <PageFrame
-      title="Risk Inspector"
+      title={t('riskPage.title.tooltip')}
       description="Preview a command's risk classification + recent stats."
       actions={
         <Button
@@ -256,7 +256,7 @@ export default function Risk() {
               variant="outline"
               onClick={handleSandboxPreview}
               disabled={sandboxBusy || !command.trim()}
-              title="Show what argv the configured sandbox runtime would use — pure builder, no exec"
+              title={t('riskPage.sandboxPreview.tooltip')}
             >
               {sandboxBusy ? t('riskPage.building') : t('riskPage.sandboxPreview')}
             </Button>

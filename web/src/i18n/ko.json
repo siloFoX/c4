@@ -377,6 +377,11 @@
   "wiki.field.status": "상태",
   "wiki.field.lastReviewed": "최근 검토",
   "wiki.field.path": "경로",
+  "wiki.tooltip.reopen": "이 페이지와 관련 이웃 페이지를 컨텍스트로 새 회의 스폰",
+  "riskPage.title.tooltip": "리스크 검사기",
+  "riskPage.sandboxPreview.tooltip": "설정된 샌드박스 런타임이 사용할 argv 표시 — pure builder, 실행 없음",
+  "controlPanel.lastBatch.title": "마지막 배치 결과",
+  "sessions.tooltip.noLiveProcess": "이 JSONL 을 소유한 claude 프로세스가 실행 중이지 않음",
 
   "config.title": "구성",
   "config.description": "라이브 데몬 구성 (비밀 정보 제외) + 리로드.",

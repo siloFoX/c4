@@ -787,7 +787,7 @@ function AttachedRowActions({
           <span
             className="inline-flex items-center gap-1 rounded-full border border-border/60 px-1.5 py-0 text-muted-foreground"
             aria-label={t('sessions.aria.noLiveProcess')}
-            title="No running claude process owns this JSONL"
+            title={t('sessions.tooltip.noLiveProcess')}
           >
             <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" aria-hidden />
             no live process

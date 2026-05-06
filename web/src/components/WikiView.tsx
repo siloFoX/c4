@@ -339,7 +339,7 @@ export default function WikiView() {
                 onClick={() => handleReopen(selectedPath)}
                 disabled={reopenBusy}
                 aria-label={t('wiki.reopen.label')}
-                title="Spawn a new meeting seeded with this page + its related neighbours"
+                title={t('wiki.tooltip.reopen')}
               >
                 <RotateCcw className={cn('h-3.5 w-3.5', reopenBusy && 'animate-spin')} aria-hidden />
                 {t('wiki.reopen')}
