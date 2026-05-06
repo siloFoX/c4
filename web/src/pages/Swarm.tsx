@@ -6,7 +6,7 @@ import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Badge, Button, Label, Panel, Tooltip } from '../components/ui';
 import { apiFetch, apiGet } from '../lib/api';
 import type { ListResponse, Worker } from '../types';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 
 // 8.20B Swarm view. GET /api/swarm?name=<worker> returns the swarm
 // tree and per-node status. Renders a simple recursive tree with
@@ -125,7 +125,7 @@ export default function Swarm() {
       {rootNode && (
         <Panel
           icon={<GitBranch className="h-3.5 w-3.5" />}
-          title={`Swarm for ${selected}`}
+          title={tFormat('swarm.titleFor', { worker: selected })}
           className="p-3"
         >
           <TreeNode node={rootNode} depth={0} />

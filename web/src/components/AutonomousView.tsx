@@ -362,7 +362,7 @@ export default function AutonomousView() {
                             [e.id]: ev.target.value,
                           }))}
                           placeholder={t('autonomous.escalations.notePlaceholder')}
-                          aria-label={`Resolve note for escalation ${e.id}`}
+                          aria-label={tFormat('autonomous.resolveNoteAria', { id: e.id })}
                           disabled={resolveBusy === e.id}
                           className="h-7 max-w-md text-[11px]"
                         />

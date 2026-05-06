@@ -559,7 +559,7 @@ export default function ChatView({ workerName }: ChatViewProps) {
           className="min-h-0 min-w-0 flex-1 overflow-y-auto rounded-md border border-border bg-background p-3 md:p-4"
           role="log"
           aria-live="polite"
-          aria-label={`Chat with ${workerName}`}
+          aria-label={tFormat('chatView.aria.chatWith', { worker: workerName })}
         >
           {backfillLoading ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -640,7 +640,7 @@ export default function ChatView({ workerName }: ChatViewProps) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKeyDown}
             rows={2}
-            placeholder={`Message ${workerName}... (Enter to send, Shift+Enter for newline)`}
+            placeholder={tFormat('chatView.placeholder.message', { worker: workerName })}
             className={cn(
               'min-w-0 flex-1 resize-y rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50'
             )}

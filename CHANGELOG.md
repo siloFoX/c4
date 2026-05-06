@@ -4,6 +4,25 @@
 
 (no entries — next release window)
 
+## [1.10.467] - 2026-05-06 — Aria-labels + dynamic titles
+
+**Web — template-literal aria-labels and panel titles.**
+ChatView log + textarea ('Chat with X', 'Message X…'),
+WorkflowEditor SVG graph aria-label, AutonomousView resolve
+note input aria-label, Swarm panel title for selected
+worker.
+
+### Added (5 keys)
+- `swarm.titleFor` — `{worker}`.
+- `autonomous.resolveNoteAria` — `{id}`.
+- `chatView.aria.chatWith` — `{worker}`.
+- `chatView.placeholder.message` — `{worker}`.
+- `workflowEditor.aria.graphOf` — `{name}`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1121 keys.
+
 ## [1.10.466] - 2026-05-06 — Specialists detail card extras
 
 **Web — Specialists enriched-detail card.** "by stage"

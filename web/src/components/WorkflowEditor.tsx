@@ -229,7 +229,7 @@ export function WorkflowGraph(props: {
   return (
     <svg
       role="img"
-      aria-label={`Graph of ${workflow.name}`}
+      aria-label={tFormat('workflowEditor.aria.graphOf', { name: workflow.name })}
       width={width}
       height={height}
       viewBox={`0 0 ${width} ${height}`}
