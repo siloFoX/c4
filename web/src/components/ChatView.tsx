@@ -653,7 +653,7 @@ export default function ChatView({ workerName }: ChatViewProps) {
             disabled={sending || !input.trim()}
           >
             <Send className="h-4 w-4" />
-            <span>{sending ? 'Sending...' : 'Send'}</span>
+            <span>{sending ? t('chatView.sending') : t('chatView.send')}</span>
           </Button>
         </form>
       </CardContent>

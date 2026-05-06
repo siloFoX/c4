@@ -4,6 +4,20 @@
 
 (no entries — next release window)
 
+## [1.10.487] - 2026-05-06 — Attach + Send button labels
+
+**Web — Attach/Send button progress states.** SessionsView
+attach modal "Attaching..." / "Attach" toggle, ChatView
+send button "Sending..." / "Send" toggle.
+
+### Added (4 keys)
+- `sessions.attach.{attaching,button}`.
+- `chatView.{sending,send}`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1242 keys.
+
 ## [1.10.486] - 2026-05-06 — WikiView type filter labels
 
 **Web — WikiView TYPE_OPTIONS catalogue migrated to i18n.**

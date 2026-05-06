@@ -313,7 +313,7 @@ function AttachModal({
               onClick={() => onSubmit(pathValue.trim(), nameValue.trim())}
               disabled={busy || !pathValue.trim()}
             >
-              {busy ? 'Attaching...' : 'Attach'}
+              {busy ? t('sessions.attach.attaching') : t('sessions.attach.button')}
             </Button>
           </div>
         </CardContent>
