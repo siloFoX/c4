@@ -290,6 +290,30 @@ async function main() {
     await page.waitForTimeout(300);
   } catch (e) { console.warn('  attach SKIP', e.message); }
 
+  // AppHeader dropdowns / icon buttons (locale toggle, theme,
+  // help button) — click each header button and capture state.
+  try {
+    const headerButtons = await page.locator('header button, header [role="button"]').all();
+    let headerLeaks = 0;
+    for (let i = 0; i < Math.min(headerButtons.length, 8); i++) {
+      try {
+        await headerButtons[i].click({ force: true, timeout: 2000 });
+        await page.waitForTimeout(400);
+        const leaks = (await pickEnglishLeaks(page)).filter((l) => !isAllowed(l.text));
+        const seen = new Set();
+        const dedup = leaks.filter((l) => { if (seen.has(l.text)) return false; seen.add(l.text); return true; });
+        if (dedup.length > 0) {
+          headerLeaks += dedup.length;
+          allLeaks[`_header_${i}`] = dedup;
+        }
+        // Close any opened menu/popover so the next button is reachable
+        await page.keyboard.press('Escape').catch(() => {});
+        await page.waitForTimeout(150);
+      } catch {}
+    }
+    console.log(`  header buttons walked: ${headerLeaks} total leak(s)`);
+  } catch (e) { console.warn('  header SKIP', e.message); }
+
   // Hover triggers — Tooltip component shows on hover. Walk all
   // [data-tooltip] / title-attr / aria-describedby triggers and
   // capture the tooltip text for inspection.

@@ -4,6 +4,25 @@
 
 (no entries — next release window)
 
+## [1.10.499] - 2026-05-07 — Visual scan: AppHeader buttons walk
+
+**Web — `scripts/i18n-visual-check.js` extended with an
+AppHeader button walk.** Click each header button (locale
+toggle, theme toggle, help button, etc.) and scan the
+opened menu/popover for English UI label leaks.
+
+### Visual scan totals (cumulative)
+- 11 top tabs + 5 overlays + 16 feature pages + tooltip
+  attr walk + **AppHeader walk** = ~34 surfaces.
+- 8 unique header buttons walked, **0 UI label leak**.
+
+### Notes
+- 200/200 tests green.
+- The 4 remaining candidate leaks remain confirmed
+  user-data content (specialist domain tags, workflow
+  names, session preview snippets bleeding through the
+  account menu z-index). All non-UI.
+
 ## [1.10.498] - 2026-05-07 — Visual scan: tooltip title attrs
 
 **Web — `scripts/i18n-visual-check.js` now walks the
