@@ -115,11 +115,14 @@ export default function AutonomousView() {
     setPauseMsg(null);
     try {
       await apiPost(`/api/autonomous/${path}`, {});
-      setPauseMsg(`autonomous loop ${path}d`);
+      setPauseMsg(t(path === 'resume' ? 'autonomous.pauseToggle.resumed' : 'autonomous.pauseToggle.paused'));
       window.setTimeout(() => setPauseMsg(null), 4000);
       void refresh();
     } catch (err) {
-      setPauseMsg(`${path} failed: ${(err as Error).message || 'unknown'}`);
+      setPauseMsg(tFormat(
+        path === 'resume' ? 'autonomous.pauseToggle.resumeFailed' : 'autonomous.pauseToggle.pauseFailed',
+        { error: (err as Error).message || t('common.unknown') },
+      ));
     } finally {
       setPauseBusy(false);
     }

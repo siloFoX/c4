@@ -28,7 +28,7 @@ import {
   Label,
 } from './ui';
 import { cn } from '../lib/cn';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 import XtermView from './XtermView';
 import PinnedRulesEditor from './PinnedRulesEditor';
 
@@ -159,14 +159,14 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
     try {
       const res = await fn();
       if (res.error) {
-        setActionMsg(`${label} failed: ${res.error}`);
+        setActionMsg(tFormat('workerDetail.actionFailed', { label, error: res.error }));
         return false;
       }
-      setActionMsg(`${label} ok`);
+      setActionMsg(tFormat('workerDetail.actionOk', { label }));
       fetchScrollback();
       return true;
     } catch (e) {
-      setActionMsg(`${label} failed: ${(e as Error).message}`);
+      setActionMsg(tFormat('workerDetail.actionFailed', { label, error: (e as Error).message }));
       return false;
     } finally {
       setBusy(false);

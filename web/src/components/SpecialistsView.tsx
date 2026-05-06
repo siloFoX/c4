@@ -310,12 +310,18 @@ export default function SpecialistsView() {
         added: boolean;
       }>('/api/specialists/propose', { candidate: parsed, brain: 'mock' });
       if (res.added) {
-        setProposeMsg(`accepted by ${res.decision.accepts.length} specialist(s) → added to registry (meeting ${res.meetingId})`);
+        setProposeMsg(tFormat('specialists.propose.accepted', {
+          count: res.decision.accepts.length,
+          meetingId: res.meetingId,
+        }));
         setAddOpen(false);
         setAddJson('');
         setSelectedId(res.candidateId);
       } else {
-        setProposeMsg(`rejected: ${res.decision.reason || 'unknown'} (meeting ${res.meetingId})`);
+        setProposeMsg(tFormat('specialists.propose.rejected', {
+          reason: res.decision.reason || t('common.unknown'),
+          meetingId: res.meetingId,
+        }));
       }
       await refresh();
     } catch (e) {
@@ -442,10 +448,10 @@ export default function SpecialistsView() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      setExportMsg(`exported ${bundle.specialists.length} specialist(s)`);
+      setExportMsg(tFormat('specialists.export.success', { count: bundle.specialists.length }));
       window.setTimeout(() => setExportMsg(null), 4000);
     } catch (e) {
-      setExportMsg(`export failed: ${(e as Error).message || 'unknown'}`);
+      setExportMsg(tFormat('specialists.export.failed', { error: (e as Error).message || t('common.unknown') }));
     } finally {
       setExportBusy(false);
     }
@@ -528,13 +534,17 @@ export default function SpecialistsView() {
         bytes?: number;
       }>('/api/specialists/audit-rotate', { maxBytes: 0 });
       if (res.rotated) {
-        setRotateMsg(`rotated → ${res.archive || 'archive'}`);
+        setRotateMsg(tFormat('specialists.rotate.success', {
+          archive: res.archive || t('specialists.rotate.fallback'),
+        }));
       } else {
         setRotateMsg(t('specialists.rotate.skipped'));
       }
       window.setTimeout(() => setRotateMsg(null), 4000);
     } catch (e) {
-      setRotateMsg(`rotate failed: ${(e as Error).message || 'unknown'}`);
+      setRotateMsg(tFormat('specialists.rotate.failed', {
+        error: (e as Error).message || t('common.unknown'),
+      }));
     } finally {
       setRotateBusy(false);
     }

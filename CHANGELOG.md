@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.456] - 2026-05-04 — Template-literal status messages
+
+**Web — set*Msg() template literals.** The remaining
+backtick-template inline messages with embedded `${...}` data:
+specialist propose / export / rotate result strips,
+AutonomousView pause-toggle outcome line, WorkerDetail
+runAction success/failure surfacing.
+
+### Added (~14 keys)
+- `specialists.rotate.{success,fallback,failed}`,
+  `specialists.export.{success,failed}`,
+  `specialists.propose.{accepted,rejected}`.
+- `autonomous.pauseToggle.{resumed,paused,resumeFailed,pauseFailed}`.
+- `workerDetail.{actionFailed,actionOk}` — `{label}`/`{error}`.
+- `common.unknown` — shared fallback for `(e as Error).message
+  || ...`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1039 keys.
+
 ## [1.10.455] - 2026-05-04 — Inline status messages (set*Msg)
 
 **Web — inline result-strip text emitted by `set*Msg()` calls.**
