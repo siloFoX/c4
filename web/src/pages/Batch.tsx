@@ -6,7 +6,7 @@ import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Input, Label, Panel, Tooltip } from '../components/ui';
 import { apiPost } from '../lib/api';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 
 // 8.20B Batch dispatcher. POSTs to the new /api/batch endpoint that
 // this patch adds to daemon.js. Lets the operator fan out the same
@@ -81,9 +81,9 @@ export default function Batch() {
       } else {
         setResult(r);
         if (r.fail === 0) {
-          showToast(`Batch dispatched: ${r.ok}/${r.total} ok`, 'success');
+          showToast(tFormat('batch.toast.dispatched', { ok: r.ok, total: r.total }), 'success');
         } else {
-          showToast(`Batch finished with failures: ${r.ok} ok, ${r.fail} failed`, 'error');
+          showToast(tFormat('batch.toast.failures', { ok: r.ok, fail: r.fail }), 'error');
         }
       }
     } catch (e) {

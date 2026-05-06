@@ -863,6 +863,8 @@
   "scribe.row.contextPath": "Context 경로",
   "scribe.value.yes": "예",
   "scribe.value.no": "아니오",
+  "scribe.toast.ok": "{label} 성공",
+  "scribe.toast.failed": "{label} 실패: {error}",
 
   "batch.summary": "동일한 작업을 N개 워커로 분산하거나, 한 줄에 하나씩 나열한 작업 리스트를 각각 워커로 생성해 보냅니다. 워커별 결과 테이블이 즉시 표시됩니다.",
   "batch.cli": "c4 batch \"작업\" --count N | --file tasks.txt",
@@ -877,6 +879,8 @@
   "batch.tooltip.branch": "선택 사항. 브랜치 이름 접두사. 기본값은 c4/<name>.",
   "batch.tooltip.profile": "모든 워커에 적용할 권한 프로파일.",
   "batch.tryExample": "예시 작업 채우기",
+  "batch.toast.dispatched": "배치 전송됨: {ok}/{total}개 성공",
+  "batch.toast.failures": "배치 일부 실패: {ok}개 성공, {fail}개 실패",
 
   "cleanup.summary": "고아 c4/ 브랜치, worktree, 디렉토리를 한 번에 정리합니다. 실행 전 항상 Dry-run으로 제거 대상을 먼저 보여줍니다.",
   "cleanup.cli": "c4 cleanup [--dry-run]",
@@ -890,6 +894,8 @@
   "cleanup.preview.worktrees": "Worktree",
   "cleanup.preview.directories": "디렉토리",
   "cleanup.preview.irreversible": "이 작업은 되돌릴 수 없습니다.",
+  "cleanup.toast.failed": "정리 실패: {error}",
+  "cleanup.toast.complete": "정리 완료: {count}개 항목 제거됨",
 
   "swarm.summary": "루트 워커를 선택하면 해당 워커가 만든 하위 워커의 계층 구조와 각 노드 상태/브랜치를 보여줍니다.",
   "swarm.cli": "c4 swarm <name>",
@@ -927,6 +933,8 @@
   "morning.tooltip.copy": "원본 마크다운을 클립보드에 복사합니다.",
   "morning.empty": "아직 리포트가 없습니다. Generate를 눌러 오늘치 리포트를 만드세요.",
   "morning.empty.noContent": "리포트에 내용이 없습니다.",
+  "morning.toast.copied": "클립보드에 복사됨",
+  "morning.toast.copyFailed": "복사 실패: {error}",
 
   "auto.summary": "하나의 고수준 작업에 대해 자율 매니저 + 스크라이브 쌍을 생성합니다. 매니저가 스스로 워커를 만들고 작업을 지시하며 완료/정지 시 보고합니다.",
   "auto.cli": "c4 auto \"작업\"",
@@ -963,6 +971,7 @@
   "profiles.action.remove": "삭제",
   "profiles.list.allow": "허용",
   "profiles.list.deny": "거부",
+  "profiles.toast.notImplemented": "프로파일 추가/편집 — 아직 미구현입니다 (서버 엔드포인트 대기 중).",
 
   "health.summary": "데몬 하트비트. 업타임, 워커 카운트, 큐 깊이, 로드된 모듈 요약. 무언가 이상할 때 가장 먼저 확인할 곳입니다.",
   "health.cli": "c4 health",

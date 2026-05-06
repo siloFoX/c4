@@ -863,6 +863,8 @@
   "scribe.row.contextPath": "Context path",
   "scribe.value.yes": "yes",
   "scribe.value.no": "no",
+  "scribe.toast.ok": "{label} ok",
+  "scribe.toast.failed": "{label} failed: {error}",
 
   "batch.summary": "Fan out the same task to N workers or dispatch one task per line from a pasted list. Returns a per-worker results table.",
   "batch.cli": "c4 batch \"task\" --count N | --file tasks.txt",
@@ -877,6 +879,8 @@
   "batch.tooltip.branch": "Optional branch-name prefix. Defaults to c4/<name>.",
   "batch.tooltip.profile": "Permission profile to apply to every spawned worker.",
   "batch.tryExample": "Prefill an example task",
+  "batch.toast.dispatched": "Batch dispatched: {ok}/{total} ok",
+  "batch.toast.failures": "Batch finished with failures: {ok} ok, {fail} failed",
 
   "cleanup.summary": "Remove orphan c4/ branches, worktrees and directories left behind by crashed workers or prior runs. Dry-run runs first so you can preview before committing.",
   "cleanup.cli": "c4 cleanup [--dry-run]",
@@ -890,6 +894,8 @@
   "cleanup.preview.worktrees": "Worktrees",
   "cleanup.preview.directories": "Directories",
   "cleanup.preview.irreversible": "This cannot be undone.",
+  "cleanup.toast.failed": "Cleanup failed: {error}",
+  "cleanup.toast.complete": "Cleanup complete: {count} items removed",
 
   "swarm.summary": "Given a root worker, show the hierarchy of sub-workers it spawned and each node's status and branch.",
   "swarm.cli": "c4 swarm <name>",
@@ -927,6 +933,8 @@
   "morning.tooltip.copy": "Copy the raw markdown to the clipboard for pasting.",
   "morning.empty": "No report generated yet. Click Generate to produce today's report.",
   "morning.empty.noContent": "Report returned no content.",
+  "morning.toast.copied": "Copied to clipboard",
+  "morning.toast.copyFailed": "Copy failed: {error}",
 
   "auto.summary": "Spawn an autonomous manager plus scribe pair for a single high-level task. The manager creates its own workers, dispatches work and reports back.",
   "auto.cli": "c4 auto \"task\"",
@@ -963,6 +971,7 @@
   "profiles.action.remove": "Remove",
   "profiles.list.allow": "Allow",
   "profiles.list.deny": "Deny",
+  "profiles.toast.notImplemented": "Profile add/edit — not implemented yet (server-side endpoint pending).",
 
   "health.summary": "Daemon heartbeat. Uptime, worker counts, queue depth and loaded modules. First stop when something feels off.",
   "health.cli": "c4 health",

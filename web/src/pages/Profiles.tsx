@@ -75,7 +75,7 @@ export default function Profiles() {
   );
 
   const notImplemented = () =>
-    showToast('Profile add/edit — not implemented yet (server-side endpoint pending).', 'info');
+    showToast(t('profiles.toast.notImplemented'), 'info');
 
   return (
     <PageFrame

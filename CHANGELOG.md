@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.445] - 2026-05-04 — `showToast()` literals across 5 pages
+
+**Web — runtime toast strings.** Five pages (Morning, Profiles,
+Cleanup, Batch, Scribe) had hardcoded English `showToast()`
+calls — both success messages and template-literal error
+strings. All flow through i18n now.
+
+### Added (~9 keys)
+- `morning.toast.{copied,copyFailed}` (`{error}`).
+- `profiles.toast.notImplemented`.
+- `cleanup.toast.{failed,complete}` (`{error}` / `{count}`).
+- `batch.toast.{dispatched,failures}` (3 vars total).
+- `scribe.toast.{ok,failed}` (`{label}`, `{error}`).
+
+### Changed
+- `tFormat()` import added to `Cleanup.tsx`, `Batch.tsx`, and
+  `Scribe.tsx` for placeholder substitution.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~937 keys.
+
 ## [1.10.444] - 2026-05-04 — Inline `field:` labels next to dropdowns
 
 **Web — overruling earlier "leave inline lower-case labels

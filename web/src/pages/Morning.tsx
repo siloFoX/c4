@@ -56,9 +56,9 @@ export default function Morning() {
     if (!report?.content) return;
     try {
       await navigator.clipboard.writeText(report.content);
-      showToast('Copied to clipboard', 'success');
+      showToast(t('morning.toast.copied'), 'success');
     } catch (e) {
-      showToast(`Copy failed: ${(e as Error).message}`, 'error');
+      showToast(tFormat('morning.toast.copyFailed', { error: (e as Error).message }), 'error');
     }
   }, [report, showToast]);
 

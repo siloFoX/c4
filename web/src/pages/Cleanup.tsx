@@ -7,7 +7,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Panel, Tooltip } from '../components/ui';
 import { apiPost } from '../lib/api';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 
 // 8.20B Cleanup. Calls POST /cleanup with dryRun=true to list orphan
 // worktrees / branches / directories, and POST /cleanup with
@@ -62,15 +62,15 @@ export default function Cleanup() {
       const r = (await apiPost<CleanupResponse>('/api/cleanup', { dryRun: false })) as CleanupResponse;
       if (r.error) {
         setError(r.error);
-        showToast(`Cleanup failed: ${r.error}`, 'error');
+        showToast(tFormat('cleanup.toast.failed', { error: r.error }), 'error');
       } else {
         setData(r);
         const removed = (r.branches?.length || 0) + (r.worktrees?.length || 0) + (r.directories?.length || 0);
-        showToast(`Cleanup complete: ${removed} items removed`, 'success');
+        showToast(tFormat('cleanup.toast.complete', { count: removed }), 'success');
       }
     } catch (e) {
       setError((e as Error).message);
-      showToast(`Cleanup failed: ${(e as Error).message}`, 'error');
+      showToast(tFormat('cleanup.toast.failed', { error: (e as Error).message }), 'error');
     }
     setBusy(false);
   }, [showToast]);

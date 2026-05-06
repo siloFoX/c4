@@ -7,7 +7,7 @@ import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Panel, Tooltip } from '../components/ui';
 import { apiFetch, apiPost } from '../lib/api';
 import { formatRelativeTime } from '../lib/format';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 
 // 8.20B Scribe feature page. Wraps POST /scribe/start|stop|scan, GET
 // /scribe/status, and GET /scribe-context. No business logic -- just a
@@ -81,9 +81,9 @@ export default function Scribe() {
       setBusy(endpoint);
       try {
         await apiPost(endpoint, {});
-        showToast(`${label} ok`, 'success');
+        showToast(tFormat('scribe.toast.ok', { label }), 'success');
       } catch (e) {
-        showToast(`${label} failed: ${(e as Error).message}`, 'error');
+        showToast(tFormat('scribe.toast.failed', { label, error: (e as Error).message }), 'error');
       }
       setBusy(null);
       refresh();
