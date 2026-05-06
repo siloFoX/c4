@@ -704,6 +704,8 @@
   "controlPanel.action.failedUnknown": "unknown",
 
   "sidebar.workersSidebar": "Workers sidebar",
+  "sidebar.openWorkerList": "Open worker list",
+  "sidebar.closeWorkerList": "Close worker list",
   "sidebar.workerViewMode": "Worker view mode",
 
   "topTabs.label": "Top view",
@@ -774,6 +776,9 @@
   "workerList.group.workers": "Workers",
   "hierarchy.expandAll": "Expand all",
   "hierarchy.collapseAll": "Collapse all",
+  "hierarchy.expand": "Expand",
+  "hierarchy.collapse": "Collapse",
+  "hierarchy.leaf": "Leaf",
 
   "workerDetail.terminalSession": "Terminal session",
   "workerDetail.terminalView": "Terminal view",

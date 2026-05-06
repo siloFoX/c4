@@ -704,6 +704,8 @@
   "controlPanel.action.failedUnknown": "알 수 없음",
 
   "sidebar.workersSidebar": "워커 사이드바",
+  "sidebar.openWorkerList": "워커 목록 열기",
+  "sidebar.closeWorkerList": "워커 목록 닫기",
   "sidebar.workerViewMode": "워커 보기 모드",
 
   "topTabs.label": "상단 보기",
@@ -774,6 +776,9 @@
   "workerList.group.workers": "워커",
   "hierarchy.expandAll": "모두 펼치기",
   "hierarchy.collapseAll": "모두 접기",
+  "hierarchy.expand": "펼치기",
+  "hierarchy.collapse": "접기",
+  "hierarchy.leaf": "리프",
 
   "workerDetail.terminalSession": "터미널 세션",
   "workerDetail.terminalView": "터미널 보기",

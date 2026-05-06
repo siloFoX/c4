@@ -78,7 +78,7 @@ export default function AppHeader({
       <div className="flex min-w-0 items-center gap-2">
         <IconButton
           className="md:hidden"
-          aria-label={sidebarOpen ? 'Close worker list' : 'Open worker list'}
+          aria-label={sidebarOpen ? t('sidebar.closeWorkerList') : t('sidebar.openWorkerList')}
           onClick={onToggleSidebar}
           icon={
             sidebarOpen ? (

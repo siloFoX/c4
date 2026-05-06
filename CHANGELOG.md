@@ -4,6 +4,18 @@
 
 (no entries — next release window)
 
+## [1.10.449] - 2026-05-04 — HierarchyTree + AppHeader aria-labels
+
+### Added (5 keys)
+- `hierarchy.{expand,collapse,leaf}` — per-node tree button
+  aria-label.
+- `sidebar.{openWorkerList,closeWorkerList}` — header
+  hamburger toggle aria-label.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~960 keys.
+
 ## [1.10.448] - 2026-05-04 — Form validation `setError()` literals
 
 ### Added (~5 keys)
