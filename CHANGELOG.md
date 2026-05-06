@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.477] - 2026-05-06 — Config reload tone state
+
+**Web — Config reload tone-detection refactor.** The destructive
+red-text styling for the reload status strip used to sniff the
+reloadMsg prefix `.startsWith('reload failed')`. With locale
+flips that prefix moves (e.g. Korean '리로드 실패'), so the red
+styling silently flipped to muted gray. Replaced the string
+sniff with a dedicated `reloadFailed` boolean state.
+
+Same pattern remains in WikiView (reopenMsg), SpecialistsView
+(rotateMsg), MeetingsView (tplMsg/integrityMsg/ftsMsg/backupMsg/
+pruneMsg/contribMsg) — those are separate refactors for future
+ships.
+
+### Added (1 key)
+- `config.reloadFailed` — `{error}` parameterised.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1203 keys.
+
 ## [1.10.476] - 2026-05-06 — Config reload + score timestamp
 
 **Web — small inline state strings.** Config page reload

@@ -44,6 +44,11 @@ export default function Config() {
   const [filter, setFilter] = useState('');
   const [reloadBusy, setReloadBusy] = useState(false);
   const [reloadMsg, setReloadMsg] = useState<string | null>(null);
+  // (v1.10.477) Tone separated from message text so localized
+  // copy doesn't accidentally drop into the success branch when
+  // .startsWith('reload failed') stops matching the translated
+  // error string.
+  const [reloadFailed, setReloadFailed] = useState<boolean>(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -64,13 +69,18 @@ export default function Config() {
     if (!window.confirm(t('config.reloadConfirm'))) return;
     setReloadBusy(true);
     setReloadMsg(null);
+    setReloadFailed(false);
     try {
       const res = await apiPost<ReloadResponse>('/api/config/reload', {});
       setReloadMsg(res.ok ? t('config.reloadOk') : t('config.reloadNotOk'));
+      setReloadFailed(!res.ok);
       window.setTimeout(() => setReloadMsg(null), 5000);
       refresh();
     } catch (e) {
-      setReloadMsg(`reload failed: ${(e as Error).message || 'unknown'}`);
+      setReloadMsg(tFormat('config.reloadFailed', {
+        error: (e as Error).message || t('common.unknown'),
+      }));
+      setReloadFailed(true);
     } finally {
       setReloadBusy(false);
     }
@@ -142,7 +152,7 @@ export default function Config() {
           {reloadMsg ? (
             <span className={cn(
               'text-[11px]',
-              reloadMsg.startsWith('reload failed') ? 'text-destructive' : 'text-muted-foreground',
+              reloadFailed ? 'text-destructive' : 'text-muted-foreground',
             )}>
               {reloadMsg}
             </span>

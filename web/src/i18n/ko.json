@@ -1000,6 +1000,7 @@
   "config.reloadNotOk": "리로드 not-ok 반환",
   "specialists.audit.noUpdates": "업데이트 없음",
   "specialists.audit.lastUpdated": "마지막 업데이트: {at}",
+  "config.reloadFailed": "리로드 실패: {error}",
   "meetings.previewingRoster": "로스터 미리보기 중…",
   "chat.reset": "초기화",
   "chat.welcome": "예시: \"list workers\", \"create worker w1\", \"tell w1 to run tests\", \"status\", \"close w1\".",

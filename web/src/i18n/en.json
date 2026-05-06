@@ -1000,6 +1000,7 @@
   "config.reloadNotOk": "reload returned not-ok",
   "specialists.audit.noUpdates": "no updates yet",
   "specialists.audit.lastUpdated": "last updated {at}",
+  "config.reloadFailed": "reload failed: {error}",
   "meetings.previewingRoster": "previewing roster…",
   "chat.reset": "Reset",
   "chat.welcome": "Try: \"list workers\", \"create worker w1\", \"tell w1 to run tests\", \"status\", \"close w1\".",
