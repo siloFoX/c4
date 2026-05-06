@@ -6,7 +6,7 @@ import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Badge, Button, Panel, Tooltip } from '../components/ui';
 import { apiGet } from '../lib/api';
 import { cn } from '../lib/cn';
-import { dateRange, dateRangeLabel, formatNumber } from '../lib/format';
+import { dateRange, formatNumber } from '../lib/format';
 import { t, tFormat, useLocale } from '../lib/i18n';
 
 // 8.20B Token usage. Calls GET /api/token-usage (with optional
@@ -140,7 +140,11 @@ export default function TokenUsage() {
                 size="sm"
                 onClick={() => setDays(d)}
               >
-                {dateRangeLabel(d)}
+                {d === 1 ? t('tokenUsage.range.today')
+                  : d === 7 ? t('tokenUsage.range.last7')
+                  : d === 30 ? t('tokenUsage.range.last30')
+                  : d === 90 ? t('tokenUsage.range.last90')
+                  : tFormat('tokenUsage.range.lastN', { days: d })}
               </Button>
             </Tooltip>
           ))}

@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.504] - 2026-05-07 — Visual scan: deep page interactions
+
+**Web — `scripts/i18n-visual-check.js` extended with deep
+in-page interactions.** Risk page now types a sample
+command, clicks Preview + Check, and scans the result
+panels. The improved walk caught 3 new English leaks
+that the surface-level scan missed:
+
+### Found and fixed
+- `HistoryView` worker detail status badge —
+  `'live' | 'closed / exited'` literal → `history.status.{live,closed}`.
+- `lib/format.dateRangeLabel()` returned hardcoded
+  `'Today'/'Last 7 days'/...` for the TokenUsage page
+  buttons. Inlined as i18n keys at the consumer
+  (`tokenUsage.range.{today,last7,last30,last90,lastN}`)
+  with parameterised `lastN` for arbitrary day counts.
+- `cleanupPage.dryRun` ko key still said `"Dry-run"`;
+  updated to `"드라이 런"`.
+
+### Tests
+- `tests/ui-cli-coverage.test.js`: regex anchor moved
+  from `dateRangeLabel` import to `tokenUsage.range.*`
+  i18n keys.
+
+### Visual scan totals (cumulative)
+- ~40 surfaces walked, all UI labels 0 leak.
+- Risk page check flow now succeeds (TypeError fixed by
+  picking the prototype that matches the element type).
+
+### Notes
+- 200/200 tests green.
+
 ## [1.10.503] - 2026-05-07 — Visual scan: sidebar tree mode
 
 **Web — `scripts/i18n-visual-check.js` flips the workers

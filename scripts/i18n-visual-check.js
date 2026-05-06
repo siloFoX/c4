@@ -290,6 +290,59 @@ async function main() {
     await page.waitForTimeout(300);
   } catch (e) { console.warn('  attach SKIP', e.message); }
 
+  // Risk page interactive flow: type a command, click "Preview"
+  // and "Check" buttons, scan the result panels.
+  try {
+    await page.evaluate(() => {
+      const tab = Array.from(document.querySelectorAll('[role="tab"][aria-label="기능"]'))[0];
+      if (tab) tab.click();
+    });
+    await page.waitForTimeout(500);
+    // Click Risk feature
+    const riskClicked = await page.evaluate(() => {
+      const btn = Array.from(document.querySelectorAll('aside button')).find((b) => /risk/i.test(b.innerText));
+      if (btn) { btn.click(); return true; }
+      return false;
+    });
+    if (riskClicked) {
+      await page.waitForTimeout(700);
+      // Type something into the command input + click both action
+      // buttons. The page typically shows two: 미리보기/검사.
+      await page.evaluate(() => {
+        // Use the prototype that matches the element type to avoid
+        // 'Illegal invocation' when the descriptor is from the wrong
+        // class.
+        const ta = document.querySelector('textarea');
+        if (ta) {
+          const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+          if (setter) setter.call(ta, 'rm -rf /');
+          ta.dispatchEvent(new Event('input', { bubbles: true }));
+        } else {
+          const inp = document.querySelector('input[type="text"]');
+          if (inp) {
+            const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+            if (setter) setter.call(inp, 'rm -rf /');
+            inp.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }
+        const buttons = Array.from(document.querySelectorAll('button'));
+        const preview = buttons.find((b) => /미리보기|preview/i.test(b.innerText));
+        if (preview) preview.click();
+        const check = buttons.find((b) => /^검사$|^Check$/i.test(b.innerText.trim()));
+        if (check) check.click();
+      });
+      await page.waitForTimeout(800);
+      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '_risk_check.png'), fullPage: true });
+      const leaks = (await pickEnglishLeaks(page)).filter((l) => !isAllowed(l.text));
+      const seen = new Set();
+      const dedup = leaks.filter((l) => { if (seen.has(l.text)) return false; seen.add(l.text); return true; });
+      allLeaks._riskCheck = dedup;
+      console.log(`  risk page check flow: ${dedup.length} leak(s)`);
+    } else {
+      console.log('  risk page check flow: SKIP (no Risk button)');
+    }
+  } catch (e) { console.warn('  risk page SKIP', e.message.split('\n')[0]); }
+
   // Sidebar tree mode toggle (workers tab) — flip from list to
   // tree view and scan the new sidebar contents.
   try {

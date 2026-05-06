@@ -387,7 +387,7 @@ function HistoryDetailPane({ detail }: HistoryDetailPaneProps) {
         <CardTitle>{detail.name}</CardTitle>
         <CardDescription className="flex flex-wrap items-center gap-2">
           <Badge variant={detail.alive ? 'success' : 'secondary'} className="uppercase">
-            {detail.alive ? detail.status || 'live' : 'closed / exited'}
+            {detail.alive ? detail.status || t('history.status.live') : t('history.status.closed')}
           </Badge>
           {detail.branch && (
             <span className="inline-flex items-center gap-1 font-mono text-xs">

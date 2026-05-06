@@ -373,7 +373,12 @@ describe('TokenUsage.tsx component wiring', () => {
   });
 
   it('exposes the date-range preset buttons via lib/format helpers', () => {
-    assert.match(src, /dateRangeLabel/);
+    // (v1.10.504) dateRangeLabel was inlined as i18n keys
+    // (tokenUsage.range.{today,last7,last30,last90,lastN}) so the
+    // const helper is no longer imported. The dateRange utility
+    // (start/end ISO computation) is still used.
+    assert.match(src, /tokenUsage\.range\.today/);
+    assert.match(src, /tokenUsage\.range\.last7/);
     assert.match(src, /dateRange\(days\)/);
   });
 });

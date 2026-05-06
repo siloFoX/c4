@@ -193,7 +193,7 @@
 
   "cleanupPage.title": "정리",
   "cleanupPage.description": "충돌한 워커나 이전 실행 후 남아있는 고아 c4/ 브랜치 / worktree / 디렉토리를 정리합니다. 항상 dry-run 을 먼저 실행합니다.",
-  "cleanupPage.dryRun": "Dry-run",
+  "cleanupPage.dryRun": "드라이 런",
   "cleanupPage.commit": "정리 실행",
 
   "validationPage.title": "검증",
@@ -1056,6 +1056,13 @@
   "sessions.panel.title": "세션",
   "sessions.attachModal.title": "세션 연결",
   "specialists.import.label": "가져오기:",
+  "history.status.live": "활성",
+  "history.status.closed": "종료/탈출",
+  "tokenUsage.range.today": "오늘",
+  "tokenUsage.range.last7": "최근 7일",
+  "tokenUsage.range.last30": "최근 30일",
+  "tokenUsage.range.last90": "최근 90일",
+  "tokenUsage.range.lastN": "최근 {days}일",
   "specialists.summary.specialistsLabel": "전문가",
   "specialists.summary.vetoCount": "(거부권 {count})",
   "specialists.summary.meetingsLabel": "회의",
