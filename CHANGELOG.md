@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.421] - 2026-05-04
+
+**Web — SessionsView aria-labels i18n.** Nine more aria-labels
+on the sessions tab — Close button (used twice via `replace_all`),
+the available sessions preview, post-attach help, attach
+introduction modal, attached vs live comparison, sessions
+onboarding, dismiss tour, process status checking + no live
+process states.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 9 new keys under
+  `sessions.aria.*`.
+- **`web/src/components/SessionsView.tsx`**: aria-labels →
+  `t()`; Close uses `replace_all` since it appears at multiple
+  places.
+- **`tests/sessions-view.test.js`**: source-grep for
+  Post-attach help aria-label updated to look for the i18n
+  key reference.
+
+### Korean copy
+- 닫기 / 사용 가능한 세션 미리보기 / 부착 후 도움말 / 부착
+  안내 / 부착 vs 라이브 비교 / 세션 온보딩 / 투어 닫기 /
+  프로세스 상태: 확인 중 / 라이브 프로세스 없음 — 내보낸
+  transcript 만.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.420] - 2026-05-04
 
 **Web — Risk + PinnedRules aria-labels i18n.** Risk Inspector

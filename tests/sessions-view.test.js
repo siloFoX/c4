@@ -86,7 +86,8 @@ describe('SessionsView.tsx - attach modal preview + help', () => {
   });
 
   it('renders the help block inside the modal with aria labelling', () => {
-    assert.match(src, /aria-label="Post-attach help"/);
+    // (v1.10.421) aria-label migrated to i18n: t('sessions.aria.postAttachHelp').
+    assert.match(src, /aria-label=\{t\('sessions\.aria\.postAttachHelp'\)\}/);
     assert.match(src, /\{POST_ATTACH_HELP_TITLE\}/);
     assert.match(src, /POST_ATTACH_HELP_ITEMS\.map/);
   });

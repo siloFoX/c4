@@ -218,7 +218,7 @@ function AttachModal({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('sessions.aria.close')}
             className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           >
             <X className="h-4 w-4" aria-hidden />
@@ -233,7 +233,7 @@ function AttachModal({
           {preview.length > 0 ? (
             <section
               className="rounded-md border border-border bg-muted/40"
-              aria-label="Available sessions preview"
+              aria-label={t('sessions.aria.preview')}
             >
               <header className="flex items-center justify-between border-b border-border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 <span>Available sessions</span>
@@ -301,7 +301,7 @@ function AttachModal({
 
           <aside
             className="rounded-md border border-dashed border-border bg-background/60 p-3 text-xs text-muted-foreground"
-            aria-label="Post-attach help"
+            aria-label={t('sessions.aria.postAttachHelp')}
           >
             <div className="mb-1 font-semibold text-foreground">
               {POST_ATTACH_HELP_TITLE}
@@ -425,7 +425,7 @@ function NewChatModal({ open, busy, error, onClose, onSubmit }: NewChatModalProp
             <Plus aria-hidden="true" className="h-4 w-4" />
             New Chat
           </CardTitle>
-          <Button size="sm" variant="ghost" onClick={onClose} disabled={busy} aria-label="Close">
+          <Button size="sm" variant="ghost" onClick={onClose} disabled={busy} aria-label={t('sessions.aria.close')}>
             <X className="h-4 w-4" />
           </Button>
         </CardHeader>
@@ -519,7 +519,7 @@ function EmptyAttachBanner({ onAttachClick }: EmptyAttachBannerProps) {
     <div
       className="flex items-start gap-2 rounded-md border border-dashed border-border bg-muted/30 p-3 text-xs"
       role="note"
-      aria-label="Attach introduction"
+      aria-label={t('sessions.aria.attachIntro')}
     >
       <Info
         className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"
@@ -559,7 +559,7 @@ function ComparisonCard({ className }: ComparisonCardProps) {
       <CardContent className="p-0">
         <table
           className="w-full text-left text-xs"
-          aria-label="Attached vs Live comparison"
+          aria-label={t('sessions.aria.compare')}
         >
           <thead>
             <tr className="border-b border-border text-[11px] uppercase tracking-wide text-muted-foreground">
@@ -598,7 +598,7 @@ function Tour({ onDismiss }: TourProps) {
       className="fixed inset-0 z-40 flex items-end justify-end bg-black/30 p-4 md:items-start md:p-6"
       role="dialog"
       aria-modal="true"
-      aria-label="Sessions onboarding"
+      aria-label={t('sessions.aria.onboarding')}
     >
       <Card className="w-full max-w-sm">
         <CardHeader className="gap-1 border-b border-border p-4">
@@ -612,7 +612,7 @@ function Tour({ onDismiss }: TourProps) {
             <button
               type="button"
               onClick={onDismiss}
-              aria-label="Dismiss tour"
+              aria-label={t('sessions.aria.dismissTour')}
               className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             >
               <X className="h-4 w-4" aria-hidden />
@@ -763,7 +763,7 @@ function AttachedRowActions({
         {procState.status === 'loading' ? (
           <span
             className="inline-flex items-center gap-1 rounded-full border border-border/60 px-1.5 py-0 text-muted-foreground/70"
-            aria-label="Process status: checking"
+            aria-label={t('sessions.aria.processChecking')}
           >
             <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" aria-hidden />
             checking
@@ -786,7 +786,7 @@ function AttachedRowActions({
         ) : procState.status === 'idle' ? (
           <span
             className="inline-flex items-center gap-1 rounded-full border border-border/60 px-1.5 py-0 text-muted-foreground"
-            aria-label="No live process — exported transcript only"
+            aria-label={t('sessions.aria.noLiveProcess')}
             title="No running claude process owns this JSONL"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" aria-hidden />
