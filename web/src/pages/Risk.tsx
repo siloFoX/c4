@@ -329,8 +329,8 @@ export default function Risk() {
                 <Badge variant="outline" className="uppercase">{t('risk.badge.denyList')}</Badge>
               ) : null}
               <span className="text-[11px] text-muted-foreground">
-                threshold: {checkResult.autoDenyLevel}
-                {!checkResult.enforcementEnabled ? ' · enforcement OFF' : ''}
+                {tFormat('risk.threshold', { level: checkResult.autoDenyLevel })}
+                {!checkResult.enforcementEnabled ? t('risk.enforcementOff') : ''}
               </span>
             </div>
             {checkResult.reasons.length > 0 ? (
@@ -386,7 +386,7 @@ export default function Risk() {
                   ) : null}
                   {(checkResult.intent.filesWritten || []).length > 0 ? (
                     <li>
-                      <span className="text-muted-foreground">writes:</span>
+                      <span className="text-muted-foreground">{t('risk.intent.writes')}</span>
                       {checkResult.intent.filesWritten!.map((f) => (
                         <code key={f} className="ml-1 rounded border border-border bg-background px-1 font-mono text-[10px]">
                           {f}
@@ -396,7 +396,7 @@ export default function Risk() {
                   ) : null}
                   {(checkResult.intent.filesRead || []).length > 0 ? (
                     <li>
-                      <span className="text-muted-foreground">reads:</span>
+                      <span className="text-muted-foreground">{t('risk.intent.reads')}</span>
                       {checkResult.intent.filesRead!.map((f) => (
                         <code key={f} className="ml-1 rounded border border-border bg-background px-1 font-mono text-[10px]">
                           {f}
@@ -406,7 +406,7 @@ export default function Risk() {
                   ) : null}
                   {(checkResult.intent.networkPeers || []).length > 0 ? (
                     <li>
-                      <span className="text-muted-foreground">network:</span>
+                      <span className="text-muted-foreground">{t('risk.intent.network')}</span>
                       {checkResult.intent.networkPeers!.map((p) => (
                         <code key={p} className="ml-1 rounded border border-border bg-background px-1 font-mono text-[10px]">
                           {p}
@@ -416,7 +416,7 @@ export default function Risk() {
                   ) : null}
                   {(checkResult.intent.destructiveVerbs || []).length > 0 ? (
                     <li>
-                      <span className="text-muted-foreground">destructive:</span>
+                      <span className="text-muted-foreground">{t('risk.intent.destructive')}</span>
                       {checkResult.intent.destructiveVerbs!.map((v) => (
                         <code key={v} className="ml-1 rounded border border-amber-500/40 bg-amber-500/10 px-1 font-mono text-[10px] text-amber-700 dark:text-amber-400">
                           {v}

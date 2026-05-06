@@ -4,6 +4,22 @@
 
 (no entries — next release window)
 
+## [1.10.461] - 2026-05-06 — Risk page intent labels
+
+**Web — Risk page intent + threshold strip.** Operators see
+threshold:N and ' · enforcement OFF' next to badges, plus
+the static intent breakdown labels (writes:/reads:/network:/
+destructive:).
+
+### Added (6 keys)
+- `risk.threshold` — `{level}` parameterised.
+- `risk.enforcementOff` — leading ' · ' separator preserved.
+- `risk.intent.{writes,reads,network,destructive}`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1068 keys.
+
 ## [1.10.460] - 2026-05-06 — ConversationView role labels
 
 **Web — RoleHeader labels.** The "tool result" header for
