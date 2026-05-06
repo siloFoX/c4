@@ -1048,6 +1048,7 @@
   "batch.tasksPlaceholder": "# 한 줄에 하나의 작업\nsrc/의 lint 에러 수정\nauth.js 테스트 추가",
   "chatView.backfillSource.session": "세션 JSONL에서 로드됨",
   "chatView.backfillSource.scrollback": "스크롤백에서 로드됨",
+  "workflowEditor.inputsMustBeObject": "inputs는 JSON 객체여야 합니다",
   "meetings.previewingRoster": "로스터 미리보기 중…",
   "chat.reset": "초기화",
   "chat.welcome": "예시: \"list workers\", \"create worker w1\", \"tell w1 to run tests\", \"status\", \"close w1\".",

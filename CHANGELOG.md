@@ -4,6 +4,21 @@
 
 (no entries — next release window)
 
+## [1.10.491] - 2026-05-06 — WorkflowEditor inputs validation
+
+**Web — WorkflowEditor JSON input validation error.**
+The "inputs must be a JSON object" validation throw was
+hard-coded English. The catch handler bubbles the message
+to the operator-facing inputsError strip, so it should be
+localized.
+
+### Added (1 key)
+- `workflowEditor.inputsMustBeObject`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1250 keys.
+
 ## [1.10.490] - 2026-05-06 — ChatView backfill source tooltip
 
 **Web — ChatView backfill source tooltip.** The Badge title

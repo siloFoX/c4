@@ -364,7 +364,7 @@ export default function WorkflowEditor() {
       try {
         const parsed = JSON.parse(inputsJson);
         if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-          throw new Error('inputs must be a JSON object');
+          throw new Error(t('workflowEditor.inputsMustBeObject'));
         }
         inputs = parsed;
       } catch (e) {
