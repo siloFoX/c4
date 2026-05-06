@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from '../components/ui';
+import { t, useLocale } from '../lib/i18n';
 
 interface PageFrameProps {
   title: string;
@@ -37,6 +38,7 @@ export default function PageFrame({ title, description, actions, children }: Pag
 }
 
 export function LoadingSkeleton({ rows = 4 }: { rows?: number }) {
+  useLocale();
   const items = Array.from({ length: rows });
   return (
     <div role="status" aria-live="polite" className="flex flex-col gap-2">
@@ -47,7 +49,7 @@ export function LoadingSkeleton({ rows = 4 }: { rows?: number }) {
           aria-hidden="true"
         />
       ))}
-      <span className="sr-only">Loading</span>
+      <span className="sr-only">{t('pageFrame.loading')}</span>
     </div>
   );
 }

@@ -65,10 +65,12 @@ describe('SessionsView.tsx - attach modal preview + help', () => {
   });
 
   it('renders an available-sessions preview with project / timestamp / msg count', () => {
-    assert.match(src, /Available sessions/);
-    assert.match(src, /\{s\.projectPath \|\| s\.projectDir \|\| 'unknown project'\}/);
+    // Heading + "unknown project" fallback + msg count are now i18n'd
+    // through sessions.preview.* keys, surfaced via t() / tFormat().
+    assert.match(src, /t\('sessions\.preview\.heading'\)/);
+    assert.match(src, /\{s\.projectPath \|\| s\.projectDir \|\| t\('sessions\.preview\.unknownProject'\)\}/);
     assert.match(src, /formatRelative\(s\.updatedAt\)/);
-    assert.match(src, /\{s\.turnCount\} msgs/);
+    assert.match(src, /tFormat\('sessions\.preview\.msgs',\s*\{\s*count:\s*s\.turnCount\s*\}\)/);
     assert.match(src, /\{s\.lastAssistantSnippet\}/);
   });
 

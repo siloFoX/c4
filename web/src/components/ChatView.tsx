@@ -496,9 +496,9 @@ export default function ChatView({ workerName }: ChatViewProps) {
     <Card className="flex h-full min-h-0 min-w-0 flex-col">
       <CardHeader className="flex-row items-start justify-between gap-3 p-4 md:p-5">
         <div className="min-w-0">
-          <CardTitle className="truncate">Chat</CardTitle>
+          <CardTitle className="truncate">{t('chat.workerHeader.title')}</CardTitle>
           <CardDescription className="truncate">
-            Live worker stream for {workerName}
+            {tFormat('chat.workerHeader.description', { worker: workerName })}
           </CardDescription>
         </div>
         <div className="flex items-center gap-2 text-xs">

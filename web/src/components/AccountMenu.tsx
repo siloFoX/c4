@@ -206,7 +206,7 @@ export default function AccountMenu({
               {roleLabel}
             </span>
           ) : (
-            <span className="text-[11px] text-muted-foreground">No role</span>
+            <span className="text-[11px] text-muted-foreground">{t('account.noRole')}</span>
           )}
         </span>
       ) : null}

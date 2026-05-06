@@ -416,6 +416,7 @@ function AssistantTurn({ turn }: { turn: Turn }) {
 }
 
 function ThinkingTurn({ turn }: { turn: Turn }) {
+  useLocale();
   const [open, setOpen] = useState(false);
   const ts = formatTime(turn.createdAt);
   const body = turn.thinkingText || turn.content || '';
@@ -436,7 +437,7 @@ function ThinkingTurn({ turn }: { turn: Turn }) {
               <ChevronRight className="h-3.5 w-3.5" aria-hidden />
             )}
             <Brain className="h-3.5 w-3.5" aria-hidden />
-            <span className="font-semibold">Thinking</span>
+            <span className="font-semibold">{t('conversation.thinking')}</span>
             {!open ? <span className="truncate">{truncate(body, 120)}</span> : null}
             {ts ? <span className="ml-auto text-muted-foreground">{ts}</span> : null}
           </button>

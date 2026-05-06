@@ -4,6 +4,48 @@
 
 (no entries — next release window)
 
+## [1.10.431] - 2026-05-04 — Cross-component i18n cleanup
+
+**Web — final cleanup of remaining English JSX literals.** All
+seven remaining `>Text<` literals across SessionsView, ChatView,
+ConversationView, XtermView, AccountMenu, and PageFrame now flow
+through i18n.
+
+### Added (10 keys)
+- `sessions.preview.heading` — Available sessions / 사용 가능한 세션
+- `sessions.preview.found` — `{count} found` / `{count}개 발견`
+- `sessions.preview.unknownProject` — unknown project / 알 수 없는 프로젝트
+- `sessions.preview.msgs` — `{count} msgs` / `{count}개 메시지`
+- `sessions.compare.attached` / `sessions.section.attached` — Attached / 연결됨
+- `sessions.compare.liveWorker` — Live worker / 실행 중 워커
+- `chat.workerHeader.title` / `description` — Chat / 채팅 + per-worker subtitle
+- `conversation.thinking` — Thinking / 사고 중
+- `xterm.search.button` — Search / 검색
+- `account.noRole` — No role / 역할 없음
+- `pageFrame.loading` — Loading / 로딩 중 (sr-only)
+
+### Changed
+- `SessionsView.tsx`: 4 spots wired to t()/tFormat().
+- `ChatView.tsx`: per-worker chat header card.
+- `ConversationView.tsx`: `ThinkingTurn` now opts into useLocale.
+- `XtermView.tsx`: search button text.
+- `AccountMenu.tsx`: "No role" badge.
+- `PageFrame.tsx`: sr-only loading text + useLocale on
+  `LoadingSkeleton`.
+
+### Tests
+- `sessions-view.test.js`: 1 source-grep updated to look for
+  `t('sessions.preview.heading')`, `t('sessions.preview.unknownProject')`,
+  and `tFormat('sessions.preview.msgs', { count: s.turnCount })`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~770 keys.
+- Remaining English text is confined to constant labels in the
+  `Specialists` registry (status names, brain mnemonics) and a
+  handful of `font-mono` debug strings — those are intentional
+  per the existing convention.
+
 ## [1.10.430] - 2026-05-04 — ControlPanel full Korean
 
 **Web — ControlPanel.tsx surface i18n.** Per-worker control card

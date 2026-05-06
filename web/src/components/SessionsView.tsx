@@ -17,7 +17,7 @@ import {
 import { apiDelete, apiGet, apiPost } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 import ConversationView from './ConversationView';
 
 export interface SessionSummary {
@@ -236,20 +236,22 @@ function AttachModal({
               aria-label={t('sessions.aria.preview')}
             >
               <header className="flex items-center justify-between border-b border-border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <span>Available sessions</span>
-                <span>{available.length} found</span>
+                <span>{t('sessions.preview.heading')}</span>
+                <span>{tFormat('sessions.preview.found', { count: available.length })}</span>
               </header>
               <ul className="max-h-48 divide-y divide-border overflow-y-auto">
                 {preview.map((s) => (
                   <li key={s.sessionId} className="px-3 py-2 text-xs">
                     <div className="flex items-center gap-2">
                       <span className="truncate font-medium text-foreground">
-                        {s.projectPath || s.projectDir || 'unknown project'}
+                        {s.projectPath || s.projectDir || t('sessions.preview.unknownProject')}
                       </span>
                       <span className="ml-auto text-muted-foreground">
                         {formatRelative(s.updatedAt)}
                       </span>
-                      <Badge variant="secondary">{s.turnCount} msgs</Badge>
+                      <Badge variant="secondary">
+                        {tFormat('sessions.preview.msgs', { count: s.turnCount })}
+                      </Badge>
                     </div>
                     <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
                       <span className="font-mono">{shortId(s.sessionId)}</span>
@@ -564,8 +566,8 @@ function ComparisonCard({ className }: ComparisonCardProps) {
           <thead>
             <tr className="border-b border-border text-[11px] uppercase tracking-wide text-muted-foreground">
               <th className="px-4 py-2 font-medium"></th>
-              <th className="px-4 py-2 font-medium">Attached</th>
-              <th className="px-4 py-2 font-medium">Live worker</th>
+              <th className="px-4 py-2 font-medium">{t('sessions.compare.attached')}</th>
+              <th className="px-4 py-2 font-medium">{t('sessions.compare.liveWorker')}</th>
             </tr>
           </thead>
           <tbody>
@@ -1168,7 +1170,7 @@ export default function SessionsView() {
                 <ChevronDown className="h-3.5 w-3.5" aria-hidden />
               )}
               <Link2 className="h-3.5 w-3.5" aria-hidden />
-              <span className="normal-case text-foreground">Attached</span>
+              <span className="normal-case text-foreground">{t('sessions.section.attached')}</span>
               <span className="ml-auto rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
                 {filteredAttached.length}
               </span>

@@ -410,7 +410,7 @@ export default function XtermView({ workerName, fontSize, visible = true }: Xter
           onClick={() => setSearchOpen((o) => !o)}
         >
           <SearchIcon className="h-3 w-3" aria-hidden="true" />
-          <span>Search</span>
+          <span>{t('xterm.search.button')}</span>
         </button>
       </div>
 
