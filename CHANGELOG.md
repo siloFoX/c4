@@ -4,6 +4,21 @@
 
 (no entries — next release window)
 
+## [1.10.479] - 2026-05-06 — Specialists rotate tone state
+
+**Web — SpecialistsView audit-rotate tone-detection
+refactor.** Same .startsWith() locale-flip fix as v1.10.477 /
+.478. The "rotate failed" prefix sniff for the destructive
+strip styling broke on Korean ("회전 실패"). Added
+`rotateFailed` boolean state.
+
+### Notes
+- Audit-rotate i18n keys (rotate.success/failed/skipped)
+  were already migrated in v1.10.456; this ship is the
+  tone-state refactor only.
+- 200/200 tests green (1 flake passed on retest), lint+drift
+  clean, build clean.
+
 ## [1.10.478] - 2026-05-06 — Wiki reopen tone state + i18n
 
 **Web — WikiView reopen tone-detection refactor.** Same

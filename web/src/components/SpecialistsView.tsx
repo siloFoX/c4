@@ -515,10 +515,15 @@ export default function SpecialistsView() {
 
   const [rotateBusy, setRotateBusy] = useState(false);
   const [rotateMsg, setRotateMsg] = useState<string | null>(null);
+  // (v1.10.479) Tone separated from message text — see Config /
+  // WikiView refactors. The startsWith() prefix check breaks on
+  // locale flip.
+  const [rotateFailed, setRotateFailed] = useState(false);
   const handleAuditRotate = useCallback(async () => {
     if (!window.confirm(t('specialists.confirmAuditRotate'))) return;
     setRotateBusy(true);
     setRotateMsg(null);
+    setRotateFailed(false);
     try {
       const res = await apiPost<{
         ok: boolean;
@@ -538,6 +543,7 @@ export default function SpecialistsView() {
       setRotateMsg(tFormat('specialists.rotate.failed', {
         error: (e as Error).message || t('common.unknown'),
       }));
+      setRotateFailed(true);
     } finally {
       setRotateBusy(false);
     }
@@ -831,7 +837,7 @@ export default function SpecialistsView() {
         {rotateMsg ? (
           <span className={cn(
             'truncate',
-            rotateMsg.startsWith('rotate failed') ? 'text-destructive' : 'text-muted-foreground',
+            rotateFailed ? 'text-destructive' : 'text-muted-foreground',
           )}>
             {rotateMsg}
           </span>
