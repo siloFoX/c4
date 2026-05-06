@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.498] - 2026-05-07 — Visual scan: tooltip title attrs
+
+**Web — `scripts/i18n-visual-check.js` now walks the
+Tooltip component triggers** (any element with a non-empty
+`title` attribute). Captures the title text and runs it
+through the same allow-list / English-leak heuristic as
+visible body text.
+
+### Visual scan totals (cumulative)
+- 11 top tabs + 5 overlays + 16 feature pages +
+  **Tooltip title walk** = ~33 surfaces.
+- 11 unique tooltip title attrs scanned, **0 leak**.
+- Total candidate leaks remaining: 2 (both confirmed
+  user-data, not UI).
+
+### Notes
+- 200/200 tests green.
+- The visual check now catches: (a) visible body text,
+  (b) modal/drawer overlay text, (c) feature-page deep
+  navigation, (d) tooltip title attributes. The remaining
+  blind spots are hover-rendered Tooltip component pop-ups
+  that don't use the `title` attribute (these would need
+  programmatic hover triggering — future work).
+
 ## [1.10.497] - 2026-05-07 — Visual scan: feature pages walk
 
 **Web — extended `scripts/i18n-visual-check.js` with a

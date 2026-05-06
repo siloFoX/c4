@@ -290,6 +290,33 @@ async function main() {
     await page.waitForTimeout(300);
   } catch (e) { console.warn('  attach SKIP', e.message); }
 
+  // Hover triggers — Tooltip component shows on hover. Walk all
+  // [data-tooltip] / title-attr / aria-describedby triggers and
+  // capture the tooltip text for inspection.
+  try {
+    let tooltipLeaks = 0;
+    // Pick first 25 elements with title attribute (common Tooltip
+    // wiring) on the workers tab.
+    const workersTab = await page.locator('[role="tab"][aria-label="워커"]').first();
+    await workersTab.click({ force: true });
+    await page.waitForTimeout(400);
+    const triggers = await page.locator('[title]:not([title=""])').all();
+    const seen = new Set();
+    for (let i = 0; i < Math.min(triggers.length, 25); i++) {
+      try {
+        const titleAttr = await triggers[i].getAttribute('title');
+        if (!titleAttr || seen.has(titleAttr)) continue;
+        seen.add(titleAttr);
+        if (!isAllowed(titleAttr)) {
+          tooltipLeaks += 1;
+          allLeaks._tooltips = allLeaks._tooltips || [];
+          allLeaks._tooltips.push({ text: titleAttr, tag: 'title-attr', cls: '' });
+        }
+      } catch {}
+    }
+    console.log(`  tooltip title attrs: ${tooltipLeaks} leak(s) of ${seen.size} unique`);
+  } catch (e) { console.warn('  tooltips SKIP', e.message); }
+
   // FeatureSidebar — features tab opens a sidebar with all
   // categories. Walk each feature page.
   try {
