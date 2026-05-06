@@ -1349,7 +1349,7 @@ export default function MeetingsView() {
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-border bg-background hover:bg-accent/40',
                       )}
-                      title={`Filter by status=${k}`}
+                      title={tFormat('meetings.aria.filterStatus', { value: k })}
                     >
                       {k}={n}
                     </button>
@@ -1370,7 +1370,7 @@ export default function MeetingsView() {
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-border bg-background hover:bg-accent/40',
                       )}
-                      title={`Filter by track=${k}`}
+                      title={tFormat('meetings.aria.filterTrack', { value: k })}
                     >
                       {k}={n}
                     </button>
@@ -1400,7 +1400,7 @@ export default function MeetingsView() {
                         setTemplateVars({});
                       }}
                       title={tpl.description || tpl.task}
-                      aria-label={`Apply template ${tpl.name}`}
+                      aria-label={tFormat('meetings.aria.applyTemplate', { name: tpl.name })}
                       className="h-6 px-2 text-[11px] rounded-r-none"
                     >
                       {tpl.name}
@@ -1414,8 +1414,8 @@ export default function MeetingsView() {
                         e.stopPropagation();
                         openTplEditor(tpl);
                       }}
-                      title={`Edit template ${tpl.name}`}
-                      aria-label={`Edit template ${tpl.name}`}
+                      title={tFormat('meetings.aria.editTemplate', { name: tpl.name })}
+                      aria-label={tFormat('meetings.aria.editTemplate', { name: tpl.name })}
                       className="rounded-r border border-l-0 border-border bg-background px-1 py-1 text-[10px] text-muted-foreground hover:bg-muted/30"
                     >
                       ✎
@@ -1555,7 +1555,7 @@ export default function MeetingsView() {
                         value={templateVars[name] || ''}
                         onChange={(e) => setTemplateVars((v) => ({ ...v, [name]: e.target.value }))}
                         placeholder={name}
-                        aria-label={`Value for ${name}`}
+                        aria-label={tFormat('meetings.aria.valueFor', { name })}
                         className="h-7 text-[11px]"
                       />
                     </label>
@@ -1708,7 +1708,7 @@ export default function MeetingsView() {
                         {m.forkOf ? (
                           <span
                             className="inline-flex items-center rounded-full border border-purple-500/40 bg-purple-500/10 px-1.5 py-0 text-[10px] text-purple-700 dark:text-purple-400"
-                            title={`forked from ${m.forkOf}`}
+                            title={tFormat('meetings.tooltip.forkedFrom', { parent: m.forkOf })}
                           >
                             ← {m.forkOf.slice(0, 8)}
                           </span>
@@ -2305,7 +2305,9 @@ export default function MeetingsView() {
                 type="text"
                 value={forkTitle}
                 onChange={(e) => setForkTitle(e.target.value)}
-                placeholder={`title override (default: ${detail.title || 'same as source'})`}
+                placeholder={tFormat('meetings.placeholder.titleOverride', {
+                  default: detail.title || t('meetings.titleDefault.sameAsSource'),
+                })}
                 aria-label={t('meetings.fork.title.label')}
                 disabled={forkBusy}
                 className="h-7 text-[11px]"

@@ -183,7 +183,7 @@ export default function AccountMenu({
         'h-auto w-full justify-start gap-2 rounded-md p-2 text-left',
         collapsed ? 'justify-center px-1' : '',
       )}
-      aria-label={`Account menu — ${headerLabel}`}
+      aria-label={tFormat('account.menuLabel', { label: headerLabel })}
     >
       <span
         aria-hidden="true"
@@ -221,7 +221,7 @@ export default function AccountMenu({
       trigger={trigger}
       items={items}
       placement="top"
-      ariaLabel={`Account menu for ${headerLabel}`}
+      ariaLabel={tFormat('account.menuLabelFor', { label: headerLabel })}
       header={
         <div className="flex items-center gap-2">
           <span

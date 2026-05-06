@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.468] - 2026-05-06 — Account + Meetings dynamic labels
+
+**Web — more parameterised template-literal labels.**
+AccountMenu trigger + dropdown ariaLabel, MeetingsView
+filter chips (status/track), template apply/edit
+buttons, value-for input aria, forked-from tooltip,
+title-override placeholder + 'same as source' default.
+
+### Added (10 keys)
+- `account.menuLabel` / `menuLabelFor` — `{label}`.
+- `meetings.aria.{filterStatus,filterTrack,applyTemplate,
+  editTemplate,valueFor}` — `{value}`/`{name}`.
+- `meetings.tooltip.forkedFrom` — `{parent}`.
+- `meetings.placeholder.titleOverride` — `{default}` +
+  `meetings.titleDefault.sameAsSource` for the empty-title
+  fallback.
+
+### Notes
+- 200/200 tests green (1 flake passed on retest), lint+drift
+  clean, build clean.
+- Korean i18n bundle now at ~1131 keys.
+
 ## [1.10.467] - 2026-05-06 — Aria-labels + dynamic titles
 
 **Web — template-literal aria-labels and panel titles.**
