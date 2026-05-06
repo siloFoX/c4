@@ -1914,13 +1914,13 @@ export default function MeetingsView() {
           {selectedId && detail && detail.status === 'pending' ? (
             <div className="flex flex-wrap items-center gap-2">
               <label className="text-[11px] text-muted-foreground">
-                brain:
+                {t('meetings.brain.label')}
                 <select
                   className="ml-1 rounded border border-border bg-background px-1 py-0.5 text-[11px]"
                   value={runBrain}
                   onChange={(e) => setRunBrain(e.target.value as 'mock' | 'claude')}
                   disabled={runBusy}
-                  aria-label="Run brain"
+                  aria-label={t('meetings.brain.aria')}
                 >
                   <option value="mock">mock (instant)</option>
                   <option value="claude">claude (slow, real)</option>
@@ -2143,7 +2143,7 @@ export default function MeetingsView() {
                   disabled={publishBusy}
                   className="h-3 w-3"
                 />
-                git commit
+                {t('meetings.gitCommit')}
               </label>
               <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
                 <input
@@ -2156,7 +2156,7 @@ export default function MeetingsView() {
                   disabled={publishBusy}
                   className="h-3 w-3"
                 />
-                + push
+                {t('meetings.gitPush')}
               </label>
               {publishMsg ? (
                 <span className={cn(
@@ -2167,13 +2167,13 @@ export default function MeetingsView() {
               ) : null}
               <span aria-hidden className="text-muted-foreground">·</span>
               <label className="text-[11px] text-muted-foreground">
-                peer brain:
+                {t('meetings.peerBrain.label')}
                 <select
                   className="ml-1 rounded border border-border bg-background px-1 py-0.5 text-[11px]"
                   value={peerBrain}
                   onChange={(e) => setPeerBrain(e.target.value as 'mock' | 'claude')}
                   disabled={peerRetroBusy}
-                  aria-label="Peer-retro brain"
+                  aria-label={t('meetings.peerBrain.aria')}
                 >
                   <option value="mock">mock</option>
                   <option value="claude">claude</option>

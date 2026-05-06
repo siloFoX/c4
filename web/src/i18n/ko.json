@@ -280,6 +280,12 @@
   "meetings.startManual": "수동 시작",
   "meetings.fork.button": "Fork…",
   "meetings.cancelFork": "Fork 취소",
+  "meetings.brain.label": "brain:",
+  "meetings.brain.aria": "실행 brain",
+  "meetings.peerBrain.label": "peer brain:",
+  "meetings.peerBrain.aria": "Peer-retro brain",
+  "meetings.gitCommit": "git commit",
+  "meetings.gitPush": "+ push",
 
   "workflows.title": "워크플로우",
   "workflows.empty": "워크플로우가 없습니다. {cli} 명령으로 추가하세요.",

@@ -280,6 +280,12 @@
   "meetings.startManual": "Start (manual)",
   "meetings.fork.button": "Fork…",
   "meetings.cancelFork": "Cancel fork",
+  "meetings.brain.label": "brain:",
+  "meetings.brain.aria": "Run brain",
+  "meetings.peerBrain.label": "peer brain:",
+  "meetings.peerBrain.aria": "Peer-retro brain",
+  "meetings.gitCommit": "git commit",
+  "meetings.gitPush": "+ push",
 
   "workflows.title": "Workflows",
   "workflows.empty": "No workflows yet. Use {cli} to add one.",

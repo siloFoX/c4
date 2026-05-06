@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.409] - 2026-05-04
+
+**Web — MeetingsView brain selectors + git toggles i18n.** brain
+/ peer brain dropdown labels, their aria-labels, and the git
+commit / + push checkboxes inside the publish row.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 6 new keys
+  (`meetings.brain.label/aria`, `meetings.peerBrain.label/aria`,
+  `meetings.gitCommit`, `meetings.gitPush`).
+- **`web/src/components/MeetingsView.tsx`**: brain / peer-brain
+  dropdowns + git commit / + push checkboxes — labels +
+  aria-labels flow through `t()`.
+
+### Korean copy
+- brain: / 실행 brain / peer brain: / Peer-retro brain.
+- git commit / + push (kept verbatim — these are git terminology
+  the operator types in the CLI).
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.408] - 2026-05-04
 
 **Web — MeetingsView action button text i18n.** Third pass on
