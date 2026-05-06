@@ -1188,7 +1188,7 @@ export default function MeetingsView() {
           {!searchQuery.trim() ? (
             <div className="flex flex-wrap items-center gap-2 text-[10px]">
               <label className="flex items-center gap-1 text-muted-foreground">
-                status:
+                {t('meetings.label.status')}
                 <select
                   className="rounded border border-border bg-background px-1 py-0.5"
                   value={listStatus}
@@ -1204,7 +1204,7 @@ export default function MeetingsView() {
                 </select>
               </label>
               <label className="flex items-center gap-1 text-muted-foreground">
-                track:
+                {t('meetings.label.track')}
                 <select
                   className="rounded border border-border bg-background px-1 py-0.5"
                   value={listTrack}
@@ -1261,7 +1261,7 @@ export default function MeetingsView() {
           {searchQuery.trim() ? (
             <div className="flex flex-wrap items-center gap-2 text-[10px]">
               <label className="flex items-center gap-1 text-muted-foreground">
-                status:
+                {t('meetings.label.status')}
                 <select
                   className="rounded border border-border bg-background px-1 py-0.5"
                   value={searchStatus}
@@ -1277,7 +1277,7 @@ export default function MeetingsView() {
                 </select>
               </label>
               <label className="flex items-center gap-1 text-muted-foreground">
-                track:
+                {t('meetings.label.track')}
                 <select
                   className="rounded border border-border bg-background px-1 py-0.5"
                   value={searchTrack}
@@ -1291,7 +1291,7 @@ export default function MeetingsView() {
                 </select>
               </label>
               <label className="flex items-center gap-1 text-muted-foreground">
-                since:
+                {t('meetings.label.since')}
                 <input
                   type="date"
                   value={searchSince}
@@ -1301,7 +1301,7 @@ export default function MeetingsView() {
                 />
               </label>
               <label className="flex items-center gap-1 text-muted-foreground">
-                until:
+                {t('meetings.label.until')}
                 <input
                   type="date"
                   value={searchUntil}
@@ -1473,7 +1473,7 @@ export default function MeetingsView() {
                   />
                   <div className="flex flex-wrap items-center gap-2">
                     <label className="flex items-center gap-1 text-muted-foreground">
-                      track:
+                      {t('meetings.label.track')}
                       <select
                         value={tplTrack}
                         onChange={(e) => setTplTrack(e.target.value)}
@@ -1570,7 +1570,7 @@ export default function MeetingsView() {
               />
               <div className="flex flex-wrap items-center gap-2">
                 <label className="text-[11px] text-muted-foreground">
-                  track:
+                  {t('meetings.label.track')}
                   <select
                     className="ml-1 rounded border border-border bg-background px-1 py-0.5 text-[11px]"
                     value={newTrack}
@@ -1829,7 +1829,7 @@ export default function MeetingsView() {
               <div className="flex flex-col gap-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <label className="flex items-center gap-1 text-muted-foreground">
-                    days:
+                    {t('meetings.label.days')}
                     <Input
                       type="number"
                       min={1}
@@ -2262,7 +2262,7 @@ export default function MeetingsView() {
             <div className="flex flex-col gap-1 rounded-md border border-border bg-muted/10 p-2 text-[11px]">
               <div className="flex flex-wrap items-center gap-2">
                 <label className="flex items-center gap-1 text-muted-foreground">
-                  mode:
+                  {t('meetings.label.mode')}
                   <select
                     value={forkMode}
                     onChange={(e) => setForkMode(e.target.value as 'replan' | 'reuse')}
@@ -2275,7 +2275,7 @@ export default function MeetingsView() {
                 </label>
                 {forkMode === 'replan' ? (
                   <label className="flex items-center gap-1 text-muted-foreground">
-                    track:
+                    {t('meetings.label.track')}
                     <select
                       value={forkTrack}
                       onChange={(e) => setForkTrack(e.target.value as typeof forkTrack)}

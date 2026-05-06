@@ -753,7 +753,7 @@ export default function SpecialistsView() {
         ) : null}
         <span className="text-border">|</span>
         <label className="flex items-center gap-1 text-muted-foreground">
-          mode:
+          {t('specialists.label.mode')}
           <select
             className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
             value={importMode}
@@ -1068,7 +1068,7 @@ export default function SpecialistsView() {
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px]">
             <label className="text-muted-foreground">
-              tier:
+              {t('specialists.label.tier')}
               <select
                 className="ml-1 rounded border border-border bg-background px-1 py-0.5 text-[11px]"
                 value={tierFilter}

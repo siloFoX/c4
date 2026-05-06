@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.444] - 2026-05-04 — Inline `field:` labels next to dropdowns
+
+**Web — overruling earlier "leave inline lower-case labels
+alone" call.** The lower-case `status:` / `track:` / `mode:` /
+`since:` / `until:` / `days:` / `tier:` labels that sit
+immediately to the left of `<select>` / `<input>` widgets are
+visible Korean-mode dimmers, so they get translated too.
+
+### Added (~8 keys)
+- `meetings.label.{status,track,mode,since,until,days}`.
+- `specialists.label.{mode,tier}`.
+
+### Changed
+- 11 instances of these literals across `MeetingsView.tsx`
+  (status, track x4, since, until, days, mode x2) and
+  `SpecialistsView.tsx` (mode, tier).
+
+### Korean copy
+- status → 상태:, track → 트랙:, mode → 모드:, since → 시작:,
+  until → 종료:, days → 일수:, tier → 티어:.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~926 keys.
+
 ## [1.10.443] - 2026-05-04 — Meeting preview formatter + Risk window label
 
 ### Added
