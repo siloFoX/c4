@@ -330,7 +330,7 @@ export default function WikiView() {
         <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
           <div className="flex flex-row items-center justify-between gap-2">
             <CardTitle className="text-base">
-              {page ? (page.frontmatter.title as string) || page.path : 'Select a page'}
+              {page ? (page.frontmatter.title as string) || page.path : t('wiki.title.select')}
             </CardTitle>
             {page && selectedPath && page.frontmatter.status !== 'reopened' ? (
               <Button

@@ -1669,8 +1669,8 @@ export default function MeetingsView() {
               return (
                 <div className="p-4 text-sm text-muted-foreground">
                   {isSearchMode
-                    ? `No meetings match "${searchQuery}".`
-                    : (loading ? 'Loading meetings...' : 'No meetings yet — `c4 meeting create "<task>"` to start one.')}
+                    ? tFormat('meetings.empty.search', { query: searchQuery })
+                    : (loading ? t('meetings.empty.loading') : t('meetings.empty.list'))}
                 </div>
               );
             }
@@ -1899,7 +1899,7 @@ export default function MeetingsView() {
         <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
           <div className="flex flex-row items-center justify-between gap-2">
             <CardTitle className="text-base">
-              {selectedSummary ? selectedSummary.title : 'Select a meeting'}
+              {selectedSummary ? selectedSummary.title : t('meetings.title.select')}
             </CardTitle>
             {selectedId ? (
               <span
@@ -1910,10 +1910,10 @@ export default function MeetingsView() {
                     : 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
                 )}
                 aria-live="polite"
-                title={streaming ? 'Receiving live state updates' : 'Reconnecting to stream'}
+                title={streaming ? t('meetings.stream.tooltipLive') : t('meetings.stream.tooltipOffline')}
               >
                 <Radio className="h-3 w-3" aria-hidden />
-                {streaming ? 'live' : 'offline'}
+                {streaming ? t('meetings.stream.live') : t('meetings.stream.offline')}
               </span>
             ) : null}
           </div>
@@ -2068,10 +2068,10 @@ export default function MeetingsView() {
                   className="h-6 px-2 text-[10px]"
                   aria-label={t('meetings.contribute.post.label')}
                 >
-                  {contribBusy ? '…' : 'Post contribution'}
+                  {contribBusy ? '…' : t('meetings.contribute.post')}
                 </Button>
                 <span className="text-border">|</span>
-                <span className="text-muted-foreground">vote-only:</span>
+                <span className="text-muted-foreground">{t('meetings.contribute.voteOnly')}</span>
                 <Button
                   size="sm"
                   variant="outline"

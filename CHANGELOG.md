@@ -4,6 +4,21 @@
 
 (no entries — next release window)
 
+## [1.10.451] - 2026-05-04 — Account / Sessions / Specialists / Meetings cards
+
+### Added (~17 keys)
+- `account.role` (`{role}`) / `account.noRoleAssigned`.
+- `sessions.newChat.{startChat,starting}`.
+- `specialists.empty.noMatch`, `specialists.title.{select,selected}`.
+- `wiki.title.select`.
+- `meetings.title.select`, `meetings.empty.{search,loading,list}`,
+  `meetings.stream.{live,offline,tooltipLive,tooltipOffline}`,
+  `meetings.contribute.{post,voteOnly}`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~978 keys.
+
 ## [1.10.450] - 2026-05-04 — DropdownMenu default aria-label
 
 ### Added

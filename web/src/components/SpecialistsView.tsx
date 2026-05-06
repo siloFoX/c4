@@ -1098,7 +1098,7 @@ export default function SpecialistsView() {
             <div className="p-4 text-sm text-destructive">{error}</div>
           ) : filtered.length === 0 ? (
             <div className="p-4 text-sm text-muted-foreground">
-              {loading ? 'Loading...' : 'No specialists match the filter.'}
+              {loading ? t('common.loadingDots') : t('specialists.empty.noMatch')}
             </div>
           ) : (
             <ul className="divide-y divide-border">
@@ -1180,7 +1180,9 @@ export default function SpecialistsView() {
         <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
           <div className="flex flex-row items-center justify-between gap-2">
             <CardTitle className="text-base">
-              {selected ? `${selected.id} — ${selected.displayName}` : 'Select a specialist'}
+              {selected
+                ? tFormat('specialists.title.selected', { id: selected.id, name: selected.displayName })
+                : t('specialists.title.select')}
             </CardTitle>
             {selected ? (
               <Button

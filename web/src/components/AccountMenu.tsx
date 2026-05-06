@@ -13,7 +13,7 @@ import { useEffect, useState } from 'react';
 import { DropdownMenu, type DropdownMenuItem } from './ui/dropdown-menu';
 import { Button } from './ui/button';
 import { cn } from '../lib/cn';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 import {
   AUTH_EVENT,
   getAuthRole,
@@ -235,7 +235,7 @@ export default function AccountMenu({
               {headerLabel}
             </span>
             <span className="truncate text-[11px] text-muted-foreground">
-              {roleLabel ? `Role: ${roleLabel}` : 'No role assigned'}
+              {roleLabel ? tFormat('account.role', { role: roleLabel }) : t('account.noRoleAssigned')}
             </span>
           </div>
         </div>

@@ -502,7 +502,7 @@ function NewChatModal({ open, busy, error, onClose, onSubmit }: NewChatModalProp
               onClick={() => onSubmit({ prompt: trimmed, model, agent })}
               disabled={!canSubmit}
             >
-              {busy ? 'Starting...' : 'Start chat'}
+              {busy ? t('sessions.newChat.starting') : t('sessions.newChat.startChat')}
             </Button>
           </div>
         </CardContent>
