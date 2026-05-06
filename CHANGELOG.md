@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.406] - 2026-05-04
+
+**Web — MeetingsView aria-labels + placeholders i18n.** Second
+slice of the largest remaining surface — 10 aria-labels (New
+meeting / Refresh meetings list / Search / Clear search / list +
+search filter labels / since-date / until-date) plus 8
+placeholders (template name + body + description / backup path /
+contribute specialistId + body + reason / fork task override) +
+the recap Escalations count. Recap is the small viewer
+operators use most — labels now flow.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 19 new keys under
+  `meetings.action.*`, `meetings.template.*`,
+  `meetings.maintenance.*`, `meetings.contribute.*`,
+  `meetings.fork.*`, `meetings.escalations.format` (templated).
+- **`web/src/components/MeetingsView.tsx`**:
+  - `tFormat()` import added.
+  - All 10 aria-labels + 8 placeholders + escalations count +
+    Task: prefix flow through `t()` / `tFormat()`.
+
+### Korean copy
+- 새 회의 / 회의 목록 새로고침 / 회의 검색 / 검색 지우기 /
+  상태로 목록 필터 / 트랙으로 목록 필터 / 상태로 필터 / 트랙
+  으로 필터 / 검색 시작 일자 / 검색 종료 일자.
+- 템플릿 이름 / 작업 본문 / 설명 (선택).
+- specialistId / 기여 본문 / 사유.
+- 작업 오버라이드.
+- 에스컬레이션 (N).
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.405] - 2026-05-04
 
 **Web — Scribe + Swarm + Batch + TokenUsage pages i18n bundle.**

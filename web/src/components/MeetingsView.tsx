@@ -3,7 +3,7 @@ import { AlertTriangle, BookOpen, Eye, MessageCircle, Play, Plus, RefreshCw, Rad
 import { apiDelete, apiGet, apiPost, eventSourceUrl } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 import { renderSnippet } from '../lib/snippet';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
@@ -1165,7 +1165,7 @@ export default function MeetingsView() {
               <Button
                 size="sm"
                 onClick={() => { setCreating((v) => !v); setCreateError(null); }}
-                aria-label="New meeting"
+                aria-label={t('meetings.action.new')}
                 aria-expanded={creating}
               >
                 <Plus className="h-3.5 w-3.5" aria-hidden />
@@ -1176,7 +1176,7 @@ export default function MeetingsView() {
                 variant="outline"
                 onClick={refresh}
                 disabled={loading}
-                aria-label="Refresh meetings list"
+                aria-label={t('meetings.action.refresh')}
               >
                 <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} aria-hidden />
                 Refresh
@@ -1193,7 +1193,7 @@ export default function MeetingsView() {
                   className="rounded border border-border bg-background px-1 py-0.5"
                   value={listStatus}
                   onChange={(e) => setListStatus(e.target.value as typeof listStatus)}
-                  aria-label="List filter by status"
+                  aria-label={t('meetings.action.listFilterStatus')}
                 >
                   <option value="">any</option>
                   <option value="pending">pending</option>
@@ -1209,7 +1209,7 @@ export default function MeetingsView() {
                   className="rounded border border-border bg-background px-1 py-0.5"
                   value={listTrack}
                   onChange={(e) => setListTrack(e.target.value as typeof listTrack)}
-                  aria-label="List filter by track"
+                  aria-label={t('meetings.action.listFilterTrack')}
                 >
                   <option value="">any</option>
                   <option value="lightweight">lightweight</option>
@@ -1238,14 +1238,14 @@ export default function MeetingsView() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('meetings.search.placeholder')}
-                aria-label="Search meetings"
+                aria-label={t('meetings.action.search')}
                 className="h-8 pl-7 pr-7 text-[12px]"
               />
               {searchQuery ? (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  aria-label="Clear search"
+                  aria-label={t('meetings.action.clearSearch')}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-3.5 w-3.5" aria-hidden />
@@ -1266,7 +1266,7 @@ export default function MeetingsView() {
                   className="rounded border border-border bg-background px-1 py-0.5"
                   value={searchStatus}
                   onChange={(e) => setSearchStatus(e.target.value as typeof searchStatus)}
-                  aria-label="Filter by status"
+                  aria-label={t('meetings.action.filterStatus')}
                 >
                   <option value="">any</option>
                   <option value="pending">pending</option>
@@ -1282,7 +1282,7 @@ export default function MeetingsView() {
                   className="rounded border border-border bg-background px-1 py-0.5"
                   value={searchTrack}
                   onChange={(e) => setSearchTrack(e.target.value as typeof searchTrack)}
-                  aria-label="Filter by track"
+                  aria-label={t('meetings.action.filterTrack')}
                 >
                   <option value="">any</option>
                   <option value="lightweight">lightweight</option>
@@ -1297,7 +1297,7 @@ export default function MeetingsView() {
                   value={searchSince}
                   onChange={(e) => setSearchSince(e.target.value)}
                   className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
-                  aria-label="Search since date"
+                  aria-label={t('meetings.action.sinceDate')}
                 />
               </label>
               <label className="flex items-center gap-1 text-muted-foreground">
@@ -1307,7 +1307,7 @@ export default function MeetingsView() {
                   value={searchUntil}
                   onChange={(e) => setSearchUntil(e.target.value)}
                   className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
-                  aria-label="Search until date"
+                  aria-label={t('meetings.action.untilDate')}
                 />
               </label>
               {(searchSince || searchUntil) ? (
@@ -1458,7 +1458,7 @@ export default function MeetingsView() {
                     type="text"
                     value={tplName}
                     onChange={(e) => setTplName(e.target.value)}
-                    placeholder="template name (e.g. retro-weekly)"
+                    placeholder={t('meetings.template.name.placeholder')}
                     aria-label="Template name"
                     disabled={tplBusy}
                     className="h-7 text-[11px]"
@@ -1466,7 +1466,7 @@ export default function MeetingsView() {
                   <textarea
                     value={tplTask}
                     onChange={(e) => setTplTask(e.target.value)}
-                    placeholder="task body (use {{varName}} for placeholders)"
+                    placeholder={t('meetings.template.task.placeholder')}
                     aria-label="Template task"
                     disabled={tplBusy}
                     className="min-h-[80px] rounded border border-border bg-background p-2 text-[11px] font-mono"
@@ -1492,7 +1492,7 @@ export default function MeetingsView() {
                     type="text"
                     value={tplDescription}
                     onChange={(e) => setTplDescription(e.target.value)}
-                    placeholder="description (optional)"
+                    placeholder={t('meetings.template.description.placeholder')}
                     aria-label="Template description"
                     disabled={tplBusy}
                     className="h-7 text-[11px]"
@@ -1783,7 +1783,7 @@ export default function MeetingsView() {
                     type="text"
                     value={backupPath}
                     onChange={(e) => setBackupPath(e.target.value)}
-                    placeholder="/backups/meetings.db"
+                    placeholder={t('meetings.maintenance.backupPath.placeholder')}
                     aria-label="Backup target path"
                     className="h-6 max-w-xs px-2 text-[11px]"
                     disabled={backupBusy}
@@ -2019,7 +2019,7 @@ export default function MeetingsView() {
                 type="text"
                 value={contribSpecialist}
                 onChange={(e) => setContribSpecialist(e.target.value)}
-                placeholder="specialistId (e.g. security-auditor)"
+                placeholder={t('meetings.contribute.specialistId.placeholder')}
                 aria-label="Specialist id"
                 disabled={contribBusy}
                 className="h-7 text-[11px] font-mono"
@@ -2027,7 +2027,7 @@ export default function MeetingsView() {
               <textarea
                 value={contribText}
                 onChange={(e) => setContribText(e.target.value)}
-                placeholder="contribution body (markdown ok)"
+                placeholder={t('meetings.contribute.body.placeholder')}
                 aria-label="Contribution text"
                 disabled={contribBusy}
                 className="min-h-[64px] rounded border border-border bg-background p-2 text-[11px]"
@@ -2036,7 +2036,7 @@ export default function MeetingsView() {
                 type="text"
                 value={contribReason}
                 onChange={(e) => setContribReason(e.target.value)}
-                placeholder="reason (optional, recorded with vote)"
+                placeholder={t('meetings.contribute.reason.placeholder')}
                 aria-label="Vote reason"
                 disabled={contribBusy}
                 className="h-7 text-[11px]"
@@ -2296,7 +2296,7 @@ export default function MeetingsView() {
               <textarea
                 value={forkTask}
                 onChange={(e) => setForkTask(e.target.value)}
-                placeholder="task override (default: same as source — fill in when redoing with sharper scope)"
+                placeholder={t('meetings.fork.task.placeholder')}
                 aria-label="Fork task override"
                 disabled={forkBusy}
                 className="min-h-[64px] rounded border border-border bg-background p-2 text-[11px]"
@@ -2349,7 +2349,7 @@ export default function MeetingsView() {
                 </div>
               </div>
               <div className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">Task:</span> {detail.task}
+                <span className="font-medium text-foreground">{t('meetings.field.task')}</span> {detail.task}
               </div>
               {/* (Phase 6.9) Fork lineage. Show only when there's
                   more than the source meeting itself in the chain. */}
@@ -2412,7 +2412,7 @@ export default function MeetingsView() {
                       </ul>
                       {recap.escalations.length > 0 ? (
                         <div className="mt-3">
-                          <div className="font-medium text-amber-700 dark:text-amber-400">Escalations ({recap.escalations.length})</div>
+                          <div className="font-medium text-amber-700 dark:text-amber-400">{tFormat('meetings.escalations.format', { n: String(recap.escalations.length) })}</div>
                           <ul className="mt-1 space-y-0.5">
                             {recap.escalations.map((e, i) => (
                               <li key={i} className="text-muted-foreground">
