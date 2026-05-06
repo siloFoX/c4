@@ -230,7 +230,7 @@ export default function Risk() {
           <textarea
             value={command}
             onChange={(e) => setCommand(e.target.value)}
-            placeholder="e.g., rm -rf /tmp/test"
+            placeholder={t('riskPage.command.placeholder')}
             disabled={checkBusy}
             className="min-h-[80px] rounded border border-border bg-background p-2 font-mono text-[12px]"
             aria-label="Command to classify"
@@ -557,7 +557,7 @@ export default function Risk() {
                 type="text"
                 value={patternFilter}
                 onChange={(e) => setPatternFilter(e.target.value)}
-                placeholder="filter by code or label"
+                placeholder={t('riskPage.filter.placeholder')}
                 aria-label="Filter rule catalog"
                 className="h-7 text-[11px]"
               />

@@ -367,6 +367,8 @@
   "riskPage.ruleCatalog": "규칙 카탈로그",
   "riskPage.customRules": "사용자 정의 규칙",
   "riskPage.loadingCatalog": "카탈로그 로딩 중…",
+  "riskPage.command.placeholder": "예: rm -rf /tmp/test",
+  "riskPage.filter.placeholder": "코드 / 라벨 필터",
 
   "rbac.title": "RBAC",
   "rbac.description": "역할 기반 접근 제어 — 역할 / 사용자별 권한 읽기 전용 뷰.",

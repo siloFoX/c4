@@ -4,6 +4,23 @@
 
 (no entries — next release window)
 
+## [1.10.414] - 2026-05-04
+
+**Web — Risk Inspector input placeholders i18n.** Command
+textarea + rule catalog filter input.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 2 new keys
+  (`riskPage.command.placeholder`, `riskPage.filter.placeholder`).
+- **`web/src/pages/Risk.tsx`**: both placeholders flow through
+  `t()`.
+
+### Korean copy
+- "예: rm -rf /tmp/test" / "코드 / 라벨 필터".
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.413] - 2026-05-04
 
 **Web — Risk Inspector page-body i18n.** Section headings +
