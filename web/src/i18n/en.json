@@ -874,6 +874,10 @@
   "auto.toast.dispatchFailed": "Auto dispatch failed: {error}",
   "auto.toast.spawned": "Auto manager spawned",
   "auto.toast.spawnedAs": "Auto manager spawned as {name}",
+  "auto.confirmDispatch": "Spawn an autonomous manager + scribe for this task? It will run with no further human approval until it finishes or halts.",
+  "specialists.confirmAuditRotate": "Rotate the specialist audit log?\nMoves the JSONL to a timestamped archive.",
+  "autonomous.confirmResolve": "Resolve escalation {id} as \"{action}\"?",
+  "meetings.confirmTplDelete": "Delete template \"{name}\"?",
 
   "batch.summary": "Fan out the same task to N workers or dispatch one task per line from a pasted list. Returns a per-worker results table.",
   "batch.cli": "c4 batch \"task\" --count N | --file tasks.txt",

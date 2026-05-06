@@ -3,7 +3,7 @@ import { Bot, Pause, Play, RefreshCw } from 'lucide-react';
 import { apiGet, apiPost } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 
 // (v1.10.349) Autonomous tab — operator-side surface for the
 // Phase 8.29 reviewer escalation flow.
@@ -136,7 +136,7 @@ export default function AutonomousView() {
         return;
       }
     }
-    if (!window.confirm(`Resolve escalation ${id} as "${action}"?`)) return;
+    if (!window.confirm(tFormat('autonomous.confirmResolve', { id, action }))) return;
     setResolveBusy(id);
     setResolveError(null);
     try {

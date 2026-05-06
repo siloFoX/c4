@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.447] - 2026-05-04 — `window.confirm()` literals across 4 surfaces
+
+### Added (~4 keys)
+- `auto.confirmDispatch` — autonomous-manager spawn warning.
+- `specialists.confirmAuditRotate` — audit log rotation.
+- `autonomous.confirmResolve` — escalation resolution
+  (with `{id}` / `{action}` placeholders).
+- `meetings.confirmTplDelete` — template delete (with
+  `{name}` placeholder).
+
+### Changed
+- `AutonomousView.tsx` + `MeetingsView.tsx`: tFormat() used
+  for placeholder substitution.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~950 keys.
+
 ## [1.10.446] - 2026-05-04 — Plan / Auto / Templates toast + confirm
 
 ### Added (~9 keys)

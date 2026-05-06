@@ -593,7 +593,7 @@ export default function MeetingsView() {
   }, [tplName, tplTask, tplTrack, tplDescription, tplEditMode, tplOriginalName, loadTemplates]);
   const handleTplDelete = useCallback(async () => {
     if (!tplOriginalName) return;
-    if (!window.confirm(`Delete template "${tplOriginalName}"?`)) return;
+    if (!window.confirm(tFormat('meetings.confirmTplDelete', { name: tplOriginalName }))) return;
     setTplBusy(true);
     setTplMsg(null);
     try {

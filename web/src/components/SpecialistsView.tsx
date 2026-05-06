@@ -517,7 +517,7 @@ export default function SpecialistsView() {
   const [rotateBusy, setRotateBusy] = useState(false);
   const [rotateMsg, setRotateMsg] = useState<string | null>(null);
   const handleAuditRotate = useCallback(async () => {
-    if (!window.confirm('Rotate the specialist audit log?\nMoves the JSONL to a timestamped archive.')) return;
+    if (!window.confirm(t('specialists.confirmAuditRotate'))) return;
     setRotateBusy(true);
     setRotateMsg(null);
     try {

@@ -39,7 +39,7 @@ export default function Auto() {
       setError('Task is required.');
       return;
     }
-    if (!window.confirm('Spawn an autonomous manager + scribe for this task? It will run with no further human approval until it finishes or halts.')) {
+    if (!window.confirm(t('auto.confirmDispatch'))) {
       return;
     }
     setBusy(true);

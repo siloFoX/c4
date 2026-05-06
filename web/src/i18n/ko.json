@@ -874,6 +874,10 @@
   "auto.toast.dispatchFailed": "Auto 전송 실패: {error}",
   "auto.toast.spawned": "Auto 관리자 생성됨",
   "auto.toast.spawnedAs": "Auto 관리자 생성됨 ({name})",
+  "auto.confirmDispatch": "이 작업을 위해 자율 관리자 + scribe를 생성하시겠습니까? 완료되거나 중단될 때까지 추가 승인 없이 실행됩니다.",
+  "specialists.confirmAuditRotate": "전문가 감사 로그를 회전하시겠습니까?\nJSONL을 타임스탬프 아카이브로 이동시킵니다.",
+  "autonomous.confirmResolve": "에스컬레이션 {id}을(를) \"{action}\"으로 해결하시겠습니까?",
+  "meetings.confirmTplDelete": "템플릿 \"{name}\"을(를) 삭제하시겠습니까?",
 
   "batch.summary": "동일한 작업을 N개 워커로 분산하거나, 한 줄에 하나씩 나열한 작업 리스트를 각각 워커로 생성해 보냅니다. 워커별 결과 테이블이 즉시 표시됩니다.",
   "batch.cli": "c4 batch \"작업\" --count N | --file tasks.txt",
