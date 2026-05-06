@@ -503,7 +503,7 @@ export default function ChatView({ workerName }: ChatViewProps) {
         </div>
         <div className="flex items-center gap-2 text-xs">
           {backfillCount > 0 && (
-            <Badge variant="secondary" className="flex items-center gap-1" title={backfillSource === 'session' ? 'Loaded from session JSONL' : 'Loaded from scrollback'}>
+            <Badge variant="secondary" className="flex items-center gap-1" title={t(backfillSource === 'session' ? 'chatView.backfillSource.session' : 'chatView.backfillSource.scrollback')}>
               <span>{tFormat(
                 backfillCount === 1 ? 'chat.loadedPast.one' : 'chat.loadedPast.other',
                 { n: String(backfillCount) },

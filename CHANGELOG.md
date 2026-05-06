@@ -4,6 +4,20 @@
 
 (no entries — next release window)
 
+## [1.10.490] - 2026-05-06 — ChatView backfill source tooltip
+
+**Web — ChatView backfill source tooltip.** The Badge title
+attribute showed "Loaded from session JSONL" / "Loaded from
+scrollback" depending on which source replayed the chat
+history. Migrated to i18n.
+
+### Added (2 keys)
+- `chatView.backfillSource.{session,scrollback}`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1249 keys.
+
 ## [1.10.489] - 2026-05-06 — Batch tasks placeholder
 
 **Web — Batch page tasks textarea placeholder.** Multi-line
