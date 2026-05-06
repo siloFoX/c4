@@ -975,7 +975,7 @@ export default function SpecialistsView() {
                 aria-expanded={addOpen}
               >
                 <Plus className="h-3.5 w-3.5" aria-hidden />
-                Add
+                {t('common.add')}
               </Button>
               <Button
                 size="sm"
@@ -1189,10 +1189,10 @@ export default function SpecialistsView() {
                 onClick={() => setConfirmRemoveId(selected.id)}
                 disabled={removeBusy}
                 className="text-destructive hover:bg-destructive/10"
-                aria-label={`Remove ${selected.id}`}
+                aria-label={tFormat('specialists.action.removeAria', { id: selected.id })}
               >
                 <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                Remove
+                {t('common.remove')}
               </Button>
             ) : null}
           </div>
@@ -1343,7 +1343,7 @@ export default function SpecialistsView() {
                           disabled={resetBusy}
                           className="h-6 bg-destructive px-2 text-[10px] text-destructive-foreground hover:bg-destructive/90"
                         >
-                          Confirm
+                          {t('common.confirm')}
                         </Button>
                       </div>
                     ) : (

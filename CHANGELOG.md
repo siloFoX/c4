@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.436] - 2026-05-04 — More bare-text action buttons i18n
+
+**Web — Templates / Specialists / Meetings remaining buttons.**
+Adds Edit, Remove, Add, Delete, Confirm bare-text buttons that
+were missed in the previous sweep.
+
+### Added
+- `specialists.action.removeAria` (`Remove {id}` / `{id} 제거`)
+  for the dynamic per-specialist Remove button aria-label.
+
+### Changed
+- `Templates.tsx`: rename `map((t) =>` iterator to `map((tpl) =>`
+  to un-shadow the imported i18n `t()` function, then wire Edit
+  + Remove buttons to `t('common.edit')` / `t('common.remove')`.
+- `SpecialistsView.tsx`: Add (icon button), Remove (with new
+  i18n'd aria-label), Confirm (score reset) buttons.
+- `MeetingsView.tsx`: Delete (template management) button.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~841 keys.
+
 ## [1.10.435] - 2026-05-04 — Common action button labels i18n
 
 **Web — bare-text Cancel/Apply/Refresh buttons.** A handful of

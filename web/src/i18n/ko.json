@@ -244,6 +244,7 @@
   "specialists.action.tierFilter": "Tier 필터",
   "specialists.action.vetoOnly": "Veto 전용",
   "specialists.label.vetoOnly": "Veto 전용",
+  "specialists.action.removeAria": "{id} 제거",
   "specialists.option.merge": "병합",
   "specialists.option.replace": "치환",
   "specialists.option.any": "전체",

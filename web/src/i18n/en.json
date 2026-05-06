@@ -244,6 +244,7 @@
   "specialists.action.tierFilter": "Tier filter",
   "specialists.action.vetoOnly": "Veto-only",
   "specialists.label.vetoOnly": "veto only",
+  "specialists.action.removeAria": "Remove {id}",
   "specialists.option.merge": "merge",
   "specialists.option.replace": "replace",
   "specialists.option.any": "any",

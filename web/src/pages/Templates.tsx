@@ -111,25 +111,25 @@ export default function Templates() {
         <EmptyPanel message={t('templates.empty')} />
       ) : (
         <ul className="flex flex-col gap-2">
-          {filtered.map((t) => (
-            <li key={t.name}>
+          {filtered.map((tpl) => (
+            <li key={tpl.name}>
               <Panel className="p-3">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-sm text-foreground">{t.name}</span>
-                  {t.source && <Badge variant="outline">{t.source}</Badge>}
-                  {t.model && <Badge variant="outline">{t.model}</Badge>}
-                  {t.effort && <Badge variant="outline">{t.effort}</Badge>}
-                  {t.profile && <Badge variant="outline">{t.profile}</Badge>}
+                  <span className="font-mono text-sm text-foreground">{tpl.name}</span>
+                  {tpl.source && <Badge variant="outline">{tpl.source}</Badge>}
+                  {tpl.model && <Badge variant="outline">{tpl.model}</Badge>}
+                  {tpl.effort && <Badge variant="outline">{tpl.effort}</Badge>}
+                  {tpl.profile && <Badge variant="outline">{tpl.profile}</Badge>}
                 </div>
-                {t.description && (
-                  <div className="text-xs text-muted-foreground">{t.description}</div>
+                {tpl.description && (
+                  <div className="text-xs text-muted-foreground">{tpl.description}</div>
                 )}
                 <div className="mt-2 flex gap-2">
                   <Button type="button" variant="ghost" size="sm" onClick={notImplemented}>
-                    Edit
+                    {t('common.edit')}
                   </Button>
                   <Button type="button" variant="ghost" size="sm" onClick={notImplemented}>
-                    Remove
+                    {t('common.remove')}
                   </Button>
                 </div>
               </Panel>

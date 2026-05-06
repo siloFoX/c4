@@ -1514,7 +1514,7 @@ export default function MeetingsView() {
                         disabled={tplBusy}
                         className="h-6 px-2 text-[10px]"
                       >
-                        Delete
+                        {t('common.delete')}
                       </Button>
                     ) : null}
                     {tplMsg ? (
