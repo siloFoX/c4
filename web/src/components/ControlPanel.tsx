@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import Toast, { type ToastType } from './Toast';
 import { apiFetch } from '../lib/api';
+import { t, useLocale } from '../lib/i18n';
 import type { ListResponse, Worker } from '../types';
 import {
   Badge,
@@ -186,7 +187,7 @@ function StatusMessageCard({
   }, [message, workerName, onToast]);
 
   return (
-    <Card aria-label="Status message to Slack">
+    <Card aria-label={t('controlPanel.status.label')}>
       <CardHeader className="p-4 md:p-5">
         <CardTitle>Status message</CardTitle>
         <CardDescription>
@@ -258,6 +259,7 @@ async function postAction(
 }
 
 export default function ControlPanel({ workerName }: ControlPanelProps) {
+  useLocale();
   const [toast, setToast] = useState<ToastState | null>(null);
   const [busyKind, setBusyKind] = useState<ActionKind | null>(null);
   const [workers, setWorkers] = useState<Worker[]>([]);
@@ -365,7 +367,7 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto pr-1">
-      <Card aria-label="Worker control panel">
+      <Card aria-label={t('controlPanel.worker.label')}>
         <CardHeader className="p-4 md:p-5">
           <CardTitle>Control</CardTitle>
           <CardDescription>
@@ -404,7 +406,7 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
         </CardContent>
       </Card>
 
-      <Card aria-label="Batch controls">
+      <Card aria-label={t('controlPanel.batch.label')}>
         <CardHeader className="flex-row items-start justify-between gap-2 p-4 md:p-5">
           <div>
             <CardTitle>Batch</CardTitle>

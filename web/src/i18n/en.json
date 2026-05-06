@@ -435,6 +435,18 @@
   "sessions.task.placeholder": "What should this session work on?",
   "sessions.search.placeholder": "Search project / snippet",
   "xterm.find.placeholder": "Find in terminal (Enter = next, Shift+Enter = prev)",
+  "xterm.terminal.label": "Terminal",
+  "xterm.search.label": "Search in terminal",
+  "xterm.close.label": "Close search",
+
+  "controlPanel.status.label": "Status message to Slack",
+  "controlPanel.worker.label": "Worker control panel",
+  "controlPanel.batch.label": "Batch controls",
+
+  "sidebar.workersSidebar": "Workers sidebar",
+  "sidebar.workerViewMode": "Worker view mode",
+
+  "topTabs.label": "Top view",
 
   "history.search.placeholder": "Search name / task / branch",
   "history.search.label": "Search history",

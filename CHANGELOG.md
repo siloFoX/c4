@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.418] - 2026-05-04
+
+**Web — XtermView / ControlPanel / Sidebar / TopTabs aria-labels
+i18n.** Screen-reader-only labels on the highest-traffic
+components — terminal pane, worker control panel cards, sidebar
+navigation, top tab strip.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 9 new keys covering
+  `xterm.terminal.label` / `xterm.search.label` /
+  `xterm.close.label` / `controlPanel.status.label` /
+  `controlPanel.worker.label` / `controlPanel.batch.label` /
+  `sidebar.workersSidebar` / `sidebar.workerViewMode` /
+  `topTabs.label`.
+- **`web/src/components/XtermView.tsx`** + **`ControlPanel.tsx`**:
+  `useLocale()` import added; aria-labels flow through `t()`.
+- **`web/src/components/layout/Sidebar.tsx`** +
+  **`TopTabs.tsx`**: aria-labels flow through `t()`.
+
+### Korean copy
+- 터미널 / 터미널에서 검색 / 검색 닫기 / Slack 상태 메시지 /
+  워커 제어 패널 / 배치 제어 / 워커 사이드바 / 워커 보기 모드
+  / 상단 보기.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Korean i18n bundle now at ~617 keys.
+
 ## [1.10.417] - 2026-05-04
 
 **Web — XtermView find input + SessionsView task / search

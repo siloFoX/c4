@@ -85,7 +85,7 @@ export default function Sidebar({
         widthClass,
       )}
       data-collapsed={collapsed ? 'true' : 'false'}
-      aria-label="Workers sidebar"
+      aria-label={t('sidebar.workersSidebar')}
     >
       <div
         className={cn(
@@ -132,7 +132,7 @@ export default function Sidebar({
           {!effectiveCollapsed ? (
             <div
               role="tablist"
-              aria-label="Worker view mode"
+              aria-label={t('sidebar.workerViewMode')}
               className="ml-auto flex overflow-hidden rounded-md border border-border text-xs"
             >
               <button
@@ -169,7 +169,7 @@ export default function Sidebar({
           ) : (
             <div
               role="tablist"
-              aria-label="Worker view mode"
+              aria-label={t('sidebar.workerViewMode')}
               className="hidden flex-col gap-1 md:flex"
             >
               <Tooltip label={t('sidebar.listView')} placement="right">

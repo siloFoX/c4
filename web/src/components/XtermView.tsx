@@ -390,7 +390,7 @@ export default function XtermView({ workerName, fontSize, visible = true }: Xter
         'relative flex h-full min-h-0 min-w-0 flex-col rounded-md border border-border bg-background',
         !visible && 'invisible'
       )}
-      aria-label="Terminal"
+      aria-label={t('xterm.terminal.label')}
     >
       {error && (
         <div
@@ -406,7 +406,7 @@ export default function XtermView({ workerName, fontSize, visible = true }: Xter
         <button
           type="button"
           className="inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          aria-label="Search in terminal"
+          aria-label={t('xterm.search.label')}
           onClick={() => setSearchOpen((o) => !o)}
         >
           <SearchIcon className="h-3 w-3" aria-hidden="true" />
@@ -435,7 +435,7 @@ export default function XtermView({ workerName, fontSize, visible = true }: Xter
           />
           <button
             type="button"
-            aria-label="Close search"
+            aria-label={t('xterm.close.label')}
             className="rounded-sm p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             onClick={() => setSearchOpen(false)}
           >

@@ -70,7 +70,7 @@ export default function TopTabs({ value, onChange, badges }: TopTabsProps) {
   return (
     <div
       role="tablist"
-      aria-label="Top view"
+      aria-label={t('topTabs.label')}
       className="flex overflow-hidden rounded-md border border-border text-xs"
     >
       {TABS.map(({ value: v, labelKey, fallback, Icon }) => {
