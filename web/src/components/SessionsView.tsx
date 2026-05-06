@@ -1025,7 +1025,7 @@ export default function SessionsView() {
           setSelection({ kind: 'attached', name: resp.name });
         }
       } catch (err) {
-        setModalError((err as Error).message || 'Attach failed');
+        setModalError((err as Error).message || t('common.attachFailed'));
       } finally {
         setModalBusy(false);
       }
@@ -1067,7 +1067,7 @@ export default function SessionsView() {
         // show up on the first poll.
         await Promise.all([refreshSessions(), refreshAttached()]);
       } catch (err) {
-        setNewChatError((err as Error).message || 'Failed to start new chat');
+        setNewChatError((err as Error).message || t('common.failedToStartNewChat'));
       } finally {
         setNewChatBusy(false);
       }
@@ -1084,7 +1084,7 @@ export default function SessionsView() {
         );
         await refreshAttached();
       } catch (err) {
-        setAttachError((err as Error).message || 'Detach failed');
+        setAttachError((err as Error).message || t('common.detachFailed'));
       }
     },
     [refreshAttached],

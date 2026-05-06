@@ -46,7 +46,7 @@ export default function Workspaces() {
       const res = await apiGet<WorkspacesResponse>('/api/workspaces');
       setData(res.workspaces || []);
     } catch (e) {
-      setError((e as Error).message || 'Failed to load workspaces');
+      setError((e as Error).message || t('common.failedToLoadWorkspaces'));
     } finally {
       setLoading(false);
     }

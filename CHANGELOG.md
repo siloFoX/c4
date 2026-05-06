@@ -4,6 +4,22 @@
 
 (no entries — next release window)
 
+## [1.10.473] - 2026-05-06 — Sessions/Meetings/Rbac/Workspaces errors
+
+**Web — more `(e as Error).message` fallback strings.**
+SessionsView attach/new-chat/detach error fallbacks,
+Workspaces page load fallback, RBAC page load fallback,
+MeetingsView meeting-start + fork fallbacks.
+
+### Added (7 keys)
+- `common.{attachFailed,failedToStartNewChat,detachFailed,
+  failedToLoadWorkspaces,failedToLoadRbac,
+  failedToStartMeeting,forkFailed}`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1176 keys.
+
 ## [1.10.472] - 2026-05-06 — SpecialistsView errors + multi-line confirms
 
 **Web — SpecialistsView error fallbacks + governance

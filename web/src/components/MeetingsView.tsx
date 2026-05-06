@@ -699,7 +699,7 @@ export default function MeetingsView() {
       // so we don't manually refetch here — the EventSource hook
       // does that via apiGet on each `state` frame.
     } catch (e) {
-      setRunError((e as Error).message || 'Failed to start meeting');
+      setRunError((e as Error).message || t('common.failedToStartMeeting'));
     } finally {
       setRunBusy(false);
     }
@@ -965,7 +965,7 @@ export default function MeetingsView() {
       await refresh();
       if (res && res.id) setSelectedId(res.id);
     } catch (e) {
-      setForkError((e as Error).message || 'Fork failed');
+      setForkError((e as Error).message || t('common.forkFailed'));
     } finally {
       setForkBusy(false);
     }

@@ -51,7 +51,7 @@ export default function Rbac() {
       setRoles(r.roles || []);
       setUsers(u.users || []);
     } catch (e) {
-      setError((e as Error).message || 'Failed to load RBAC');
+      setError((e as Error).message || t('common.failedToLoadRbac'));
     } finally {
       setLoading(false);
     }
