@@ -376,13 +376,14 @@ function RoleHeader({ icon, label, ts, extra, tone = 'muted' }: RoleHeaderProps)
 }
 
 function UserTurn({ turn }: { turn: Turn }) {
+  useLocale();
   const ts = formatTime(turn.createdAt);
   return (
     <div className="flex justify-end">
       <div className="max-w-[85%] md:max-w-[70%]">
         <RoleHeader
           icon={<User className="h-3.5 w-3.5" aria-hidden />}
-          label="You"
+          label={t('conversation.you')}
           ts={ts}
           tone="user"
         />

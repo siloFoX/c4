@@ -144,21 +144,21 @@ export default function Profiles() {
                         <div className="mt-1 text-xs text-muted-foreground">{p.description}</div>
                       )}
                     </div>
-                    <span className="text-xs text-muted-foreground">{isOpen ? 'hide' : 'show'}</span>
+                    <span className="text-xs text-muted-foreground">{isOpen ? t('profiles.toggle.hide') : t('profiles.toggle.show')}</span>
                   </button>
                   {isOpen && (
                     <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      <PatternList label="Allow" items={allow} tone="ok" />
-                      <PatternList label="Deny" items={deny} tone="danger" />
+                      <PatternList label={t('profiles.list.allow')} items={allow} tone="ok" />
+                      <PatternList label={t('profiles.list.deny')} items={deny} tone="danger" />
                     </div>
                   )}
                   {isOpen && (
                     <div className="mt-3 flex gap-2">
                       <Button type="button" variant="ghost" size="sm" onClick={notImplemented}>
-                        Edit
+                        {t('profiles.action.edit')}
                       </Button>
                       <Button type="button" variant="ghost" size="sm" onClick={notImplemented}>
-                        Remove
+                        {t('profiles.action.remove')}
                       </Button>
                     </div>
                   )}

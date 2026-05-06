@@ -162,11 +162,11 @@ export default function Scribe() {
       {error && <ErrorPanel message={error} />}
       {status && (
         <Panel className="flex flex-col gap-1 p-3 text-sm">
-          <StatusRow label="Running" value={running ? 'yes' : 'no'} tone={running ? 'ok' : 'muted'} />
-          <StatusRow label="Last scan" value={formatRelativeTime(status.lastScan)} />
-          <StatusRow label="Scans" value={String(status.scans ?? '-')} />
-          <StatusRow label="Sessions" value={String(status.sessions ?? '-')} />
-          <StatusRow label="Context path" value={status.contextPath || '-'} mono />
+          <StatusRow label={t('scribe.row.running')} value={running ? t('scribe.value.yes') : t('scribe.value.no')} tone={running ? 'ok' : 'muted'} />
+          <StatusRow label={t('scribe.row.lastScan')} value={formatRelativeTime(status.lastScan)} />
+          <StatusRow label={t('scribe.row.scans')} value={String(status.scans ?? '-')} />
+          <StatusRow label={t('scribe.row.sessions')} value={String(status.sessions ?? '-')} />
+          <StatusRow label={t('scribe.row.contextPath')} value={status.contextPath || '-'} mono />
         </Panel>
       )}
       <div>

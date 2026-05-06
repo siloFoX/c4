@@ -90,6 +90,7 @@
   "worker.action.failed": "{label} 실패: {error}",
 
   "common.loading": "로딩 중…",
+  "common.loadingDots": "로딩 중...",
   "common.refresh": "새로고침",
 
   "planPage.title": "플랜",
@@ -381,6 +382,7 @@
   "wiki.field.path": "경로",
   "wiki.tooltip.reopen": "이 페이지와 관련 이웃 페이지를 컨텍스트로 새 회의 스폰",
   "riskPage.title.tooltip": "리스크 검사기",
+  "riskPage.title.description": "명령어의 리스크 분류 + 최근 통계를 미리 봅니다.",
   "riskPage.sandboxPreview.tooltip": "설정된 샌드박스 런타임이 사용할 argv 표시 — pure builder, 실행 없음",
   "controlPanel.lastBatch.title": "마지막 배치 결과",
   "sessions.tooltip.noLiveProcess": "이 JSONL 을 소유한 claude 프로세스가 실행 중이지 않음",
@@ -478,6 +480,7 @@
   "sessions.compare.attached": "연결됨",
   "sessions.compare.liveWorker": "실행 중 워커",
   "sessions.section.attached": "연결됨",
+  "sessions.empty.selectPrompt": "세션을 선택하여 대화를 확인하세요.",
   "sessions.loadingSession": "세션 로딩 중…",
   "sessions.task.placeholder": "이 세션에서 어떤 작업을 할까요?",
   "sessions.search.placeholder": "프로젝트 / 스니펫 검색",
@@ -624,6 +627,7 @@
   "chat.workerHeader.title": "채팅",
   "chat.workerHeader.description": "{worker} 실시간 워커 스트림",
   "conversation.thinking": "사고 중",
+  "conversation.you": "나",
   "chat.reset": "초기화",
   "chat.welcome": "예시: \"list workers\", \"create worker w1\", \"tell w1 to run tests\", \"status\", \"close w1\".",
   "chat.input.placeholder": "무엇을 도와드릴까요…",
@@ -639,6 +643,8 @@
   "workerList.disconnected": "실시간 업데이트 끊김 — 폴링 중",
   "workerList.failedToLoad": "워커 로드 실패: {error}",
   "workerList.empty": "워커가 없습니다.",
+  "workerList.group.managers": "관리자",
+  "workerList.group.workers": "워커",
 
   "workerDetail.terminalSession": "터미널 세션",
   "workerDetail.terminalView": "터미널 보기",
@@ -721,6 +727,13 @@
   "scribe.tooltip.scan": "간격을 기다리지 않고 지금 바로 스냅샷을 생성합니다.",
   "scribe.tooltip.refresh": "스크라이브 상태와 최근 스냅샷을 다시 불러옵니다.",
   "scribe.empty": "아직 스냅샷이 없습니다. Start 후 Scan을 누르거나 터미널에서 c4 scribe start를 실행하세요.",
+  "scribe.row.running": "실행 중",
+  "scribe.row.lastScan": "마지막 스캔",
+  "scribe.row.scans": "스캔 횟수",
+  "scribe.row.sessions": "세션 수",
+  "scribe.row.contextPath": "Context 경로",
+  "scribe.value.yes": "예",
+  "scribe.value.no": "아니오",
 
   "batch.summary": "동일한 작업을 N개 워커로 분산하거나, 한 줄에 하나씩 나열한 작업 리스트를 각각 워커로 생성해 보냅니다. 워커별 결과 테이블이 즉시 표시됩니다.",
   "batch.cli": "c4 batch \"작업\" --count N | --file tasks.txt",
@@ -784,6 +797,7 @@
   "morning.tooltip.generate": "데몬이 지금 리포트를 다시 생성하도록 요청합니다.",
   "morning.tooltip.copy": "원본 마크다운을 클립보드에 복사합니다.",
   "morning.empty": "아직 리포트가 없습니다. Generate를 눌러 오늘치 리포트를 만드세요.",
+  "morning.empty.noContent": "리포트에 내용이 없습니다.",
 
   "auto.summary": "하나의 고수준 작업에 대해 자율 매니저 + 스크라이브 쌍을 생성합니다. 매니저가 스스로 워커를 만들고 작업을 지시하며 완료/정지 시 보고합니다.",
   "auto.cli": "c4 auto \"작업\"",
@@ -814,6 +828,12 @@
   "profiles.tooltip.refresh": "데몬에서 프로파일을 다시 불러옵니다.",
   "profiles.tooltip.add": "프로파일 추가 (미구현).",
   "profiles.empty": "정의된 프로파일이 없습니다. .c4/profiles.json을 편집하거나 c4 profiles --init을 실행하세요.",
+  "profiles.toggle.show": "펼치기",
+  "profiles.toggle.hide": "접기",
+  "profiles.action.edit": "편집",
+  "profiles.action.remove": "삭제",
+  "profiles.list.allow": "허용",
+  "profiles.list.deny": "거부",
 
   "health.summary": "데몬 하트비트. 업타임, 워커 카운트, 큐 깊이, 로드된 모듈 요약. 무언가 이상할 때 가장 먼저 확인할 곳입니다.",
   "health.cli": "c4 health",
@@ -827,5 +847,12 @@
   "validation.useCases": "다수 워커의 병합 전 게이트.|close 전 워커가 정상 종료됐는지 확인.|릴리스를 막고 있는 단 하나의 워커 식별.",
   "validation.tooltip.refresh": "모든 워커의 검증 객체를 다시 읽습니다.",
   "validation.tooltip.filter": "워커 이름으로 필터링.",
-  "validation.empty": "검증할 워커가 없습니다. c4 new <name>으로 먼저 워커를 생성하세요."
+  "validation.empty": "검증할 워커가 없습니다. c4 new <name>으로 먼저 워커를 생성하세요.",
+  "validation.row.tests": "테스트",
+  "validation.row.typecheck": "타입 검사",
+  "validation.row.lint": "Lint",
+  "validation.detail.testsPass": "{passed}/{total} 통과",
+  "validation.detail.typeErrors": "{errors}개 오류",
+  "validation.detail.lintCounts": "오류 {errors}개 / 경고 {warnings}개",
+  "validation.dirty": "변경됨"
 }

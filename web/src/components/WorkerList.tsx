@@ -313,7 +313,7 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
           <GroupHeader
             open={managersOpen}
             onToggle={() => setManagersOpen((v) => !v)}
-            label="Managers"
+            label={t('workerList.group.managers')}
             count={managers.length}
             icon="crown"
             accent="primary"
@@ -337,7 +337,7 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
           <GroupHeader
             open={workersOpen}
             onToggle={() => setWorkersOpen((v) => !v)}
-            label="Workers"
+            label={t('workerList.group.workers')}
             count={regular.length}
             icon="wrench"
             accent="muted"

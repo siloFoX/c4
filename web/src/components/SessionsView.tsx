@@ -1395,7 +1395,7 @@ export default function SessionsView() {
           ) : (
             <Card className="flex flex-1 items-center justify-center border-dashed">
               <CardContent className="flex flex-col items-center gap-4 p-6 text-center text-sm text-muted-foreground">
-                <span>Select a session to view the conversation.</span>
+                <span>{t('sessions.empty.selectPrompt')}</span>
                 <ComparisonCard />
               </CardContent>
             </Card>

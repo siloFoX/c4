@@ -119,7 +119,7 @@ export default function Morning() {
               {renderMarkdown(report.content)}
             </Panel>
           ) : (
-            <EmptyPanel message="Report returned no content." />
+            <EmptyPanel message={t('morning.empty.noContent')} />
           )}
         </>
       )}

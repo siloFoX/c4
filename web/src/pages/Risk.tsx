@@ -199,7 +199,7 @@ export default function Risk() {
   return (
     <PageFrame
       title={t('riskPage.title.tooltip')}
-      description="Preview a command's risk classification + recent stats."
+      description={t('riskPage.title.description')}
       actions={
         <Button
           type="button"

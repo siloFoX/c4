@@ -7,7 +7,7 @@ import { Badge, Button, Input, Panel, Tooltip } from '../components/ui';
 import { apiFetch, apiGet } from '../lib/api';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
 import type { ListResponse, Worker } from '../types';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 
 // 8.20B Validation. Fetches /api/list for workers and calls
 // /api/validation?name=<worker> per worker. Renders pass/fail badges
@@ -120,10 +120,11 @@ export default function Validation() {
 }
 
 function ValidationCard({ worker, report }: { worker: Worker; report?: ValidationResponse }) {
+  useLocale();
   if (!report) {
     return (
       <Panel title={worker.name} className="p-3 text-sm">
-        <span className="text-muted-foreground">Loading...</span>
+        <span className="text-muted-foreground">{t('common.loadingDots')}</span>
       </Panel>
     );
   }
@@ -141,33 +142,41 @@ function ValidationCard({ worker, report }: { worker: Worker; report?: Validatio
     <Panel title={worker.name} className="p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         {worker.branch && <span className="font-mono">{worker.branch}</span>}
-        {report.dirty && <Badge variant="outline">dirty</Badge>}
+        {report.dirty && <Badge variant="outline">{t('validation.dirty')}</Badge>}
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <CheckRow
-          label="Tests"
+          label={t('validation.row.tests')}
           ok={testsOk}
           detail={
             report.tests
-              ? `${report.tests.passed || 0}/${(report.tests.passed || 0) + (report.tests.failed || 0)} pass`
+              ? tFormat('validation.detail.testsPass', {
+                  passed: report.tests.passed || 0,
+                  total: (report.tests.passed || 0) + (report.tests.failed || 0),
+                })
               : undefined
           }
         />
         <CheckRow
-          label="Typecheck"
+          label={t('validation.row.typecheck')}
           ok={typeOk}
           detail={
             report.typecheck
-              ? `${report.typecheck.errors || 0} errors`
+              ? tFormat('validation.detail.typeErrors', {
+                  errors: report.typecheck.errors || 0,
+                })
               : undefined
           }
         />
         <CheckRow
-          label="Lint"
+          label={t('validation.row.lint')}
           ok={lintOk}
           detail={
             report.lint
-              ? `${report.lint.errors || 0}e / ${report.lint.warnings || 0}w`
+              ? tFormat('validation.detail.lintCounts', {
+                  errors: report.lint.errors || 0,
+                  warnings: report.lint.warnings || 0,
+                })
               : undefined
           }
         />

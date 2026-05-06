@@ -90,6 +90,7 @@
   "worker.action.failed": "{label} failed: {error}",
 
   "common.loading": "Loading…",
+  "common.loadingDots": "Loading...",
   "common.refresh": "Refresh",
 
   "planPage.title": "Plan",
@@ -381,6 +382,7 @@
   "wiki.field.path": "path",
   "wiki.tooltip.reopen": "Spawn a new meeting seeded with this page + its related neighbours",
   "riskPage.title.tooltip": "Risk Inspector",
+  "riskPage.title.description": "Preview a command's risk classification + recent stats.",
   "riskPage.sandboxPreview.tooltip": "Show what argv the configured sandbox runtime would use — pure builder, no exec",
   "controlPanel.lastBatch.title": "Last batch results",
   "sessions.tooltip.noLiveProcess": "No running claude process owns this JSONL",
@@ -478,6 +480,7 @@
   "sessions.compare.attached": "Attached",
   "sessions.compare.liveWorker": "Live worker",
   "sessions.section.attached": "Attached",
+  "sessions.empty.selectPrompt": "Select a session to view the conversation.",
   "sessions.loadingSession": "Loading session…",
   "sessions.task.placeholder": "What should this session work on?",
   "sessions.search.placeholder": "Search project / snippet",
@@ -624,6 +627,7 @@
   "chat.workerHeader.title": "Chat",
   "chat.workerHeader.description": "Live worker stream for {worker}",
   "conversation.thinking": "Thinking",
+  "conversation.you": "You",
   "chat.reset": "Reset",
   "chat.welcome": "Try: \"list workers\", \"create worker w1\", \"tell w1 to run tests\", \"status\", \"close w1\".",
   "chat.input.placeholder": "Ask something…",
@@ -639,6 +643,8 @@
   "workerList.disconnected": "Live updates disconnected — polling",
   "workerList.failedToLoad": "Failed to load workers: {error}",
   "workerList.empty": "No workers yet.",
+  "workerList.group.managers": "Managers",
+  "workerList.group.workers": "Workers",
 
   "workerDetail.terminalSession": "Terminal session",
   "workerDetail.terminalView": "Terminal view",
@@ -721,6 +727,13 @@
   "scribe.tooltip.scan": "Force an immediate scan without waiting for the interval.",
   "scribe.tooltip.refresh": "Re-fetch the scribe status and the latest context snapshot.",
   "scribe.empty": "No context snapshot yet. Click Start and then Scan to produce the first snapshot, or run c4 scribe start in a terminal.",
+  "scribe.row.running": "Running",
+  "scribe.row.lastScan": "Last scan",
+  "scribe.row.scans": "Scans",
+  "scribe.row.sessions": "Sessions",
+  "scribe.row.contextPath": "Context path",
+  "scribe.value.yes": "yes",
+  "scribe.value.no": "no",
 
   "batch.summary": "Fan out the same task to N workers or dispatch one task per line from a pasted list. Returns a per-worker results table.",
   "batch.cli": "c4 batch \"task\" --count N | --file tasks.txt",
@@ -784,6 +797,7 @@
   "morning.tooltip.generate": "Ask the daemon to regenerate the report now.",
   "morning.tooltip.copy": "Copy the raw markdown to the clipboard for pasting.",
   "morning.empty": "No report generated yet. Click Generate to produce today's report.",
+  "morning.empty.noContent": "Report returned no content.",
 
   "auto.summary": "Spawn an autonomous manager plus scribe pair for a single high-level task. The manager creates its own workers, dispatches work and reports back.",
   "auto.cli": "c4 auto \"task\"",
@@ -814,6 +828,12 @@
   "profiles.tooltip.refresh": "Re-read profiles from the daemon.",
   "profiles.tooltip.add": "Add profile (not yet implemented).",
   "profiles.empty": "No profiles defined yet. Edit .c4/profiles.json or run c4 profiles --init.",
+  "profiles.toggle.show": "show",
+  "profiles.toggle.hide": "hide",
+  "profiles.action.edit": "Edit",
+  "profiles.action.remove": "Remove",
+  "profiles.list.allow": "Allow",
+  "profiles.list.deny": "Deny",
 
   "health.summary": "Daemon heartbeat. Uptime, worker counts, queue depth and loaded modules. First stop when something feels off.",
   "health.cli": "c4 health",
@@ -827,5 +847,12 @@
   "validation.useCases": "Pre-merge gate across many workers.|Confirm a worker finished cleanly before close.|Spot the one worker blocking a release.",
   "validation.tooltip.refresh": "Re-read every worker's validation object.",
   "validation.tooltip.filter": "Filter by worker name.",
-  "validation.empty": "No workers to validate. Create one with c4 new <name> first."
+  "validation.empty": "No workers to validate. Create one with c4 new <name> first.",
+  "validation.row.tests": "Tests",
+  "validation.row.typecheck": "Typecheck",
+  "validation.row.lint": "Lint",
+  "validation.detail.testsPass": "{passed}/{total} pass",
+  "validation.detail.typeErrors": "{errors} errors",
+  "validation.detail.lintCounts": "{errors}e / {warnings}w",
+  "validation.dirty": "dirty"
 }

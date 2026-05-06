@@ -4,6 +4,40 @@
 
 (no entries — next release window)
 
+## [1.10.432] - 2026-05-04 — Validation/Profiles/Scribe/Risk/Morning i18n
+
+**Web — feature page label sweep.** Six pages had English string
+literals passed as `label=` / `description=` / `message=` props
+to shared building blocks (`StatusRow`, `PatternList`, `CheckRow`,
+`PageFrame`, `EmptyPanel`). All converted to i18n keys.
+
+### Added (~25 keys)
+- `validation.row.{tests,typecheck,lint}` + 3 detail formatters
+  (`{passed}/{total} pass`, `{errors} errors`, `{errors}e/{warnings}w`)
+  + `validation.dirty`.
+- `profiles.toggle.{show,hide}`, `profiles.action.{edit,remove}`,
+  `profiles.list.{allow,deny}`.
+- `scribe.row.{running,lastScan,scans,sessions,contextPath}` and
+  `scribe.value.{yes,no}`.
+- `riskPage.title.description` (Risk Inspector subtitle).
+- `morning.empty.noContent` (empty report state).
+- `workerList.group.{managers,workers}` (sidebar group headers).
+- `sessions.empty.selectPrompt` (no-session-selected pane).
+- `conversation.you` (UserTurn label).
+- `common.loadingDots` (with three trailing dots, distinct from
+  the `Loading…` ellipsis variant).
+
+### Changed
+- `Validation.tsx`, `Profiles.tsx`, `Scribe.tsx`, `Risk.tsx`,
+  `Morning.tsx`, `WorkerList.tsx`, `SessionsView.tsx`,
+  `ConversationView.tsx` — wired the new keys in.
+- `useLocale()` added to `ValidationCard` + `UserTurn` so they
+  re-render on locale flip.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~795 keys.
+
 ## [1.10.431] - 2026-05-04 — Cross-component i18n cleanup
 
 **Web — final cleanup of remaining English JSX literals.** All
