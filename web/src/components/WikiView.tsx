@@ -311,7 +311,7 @@ export default function WikiView() {
                       {h.status ? (
                         <span className="text-[10px] text-muted-foreground">[{h.status}]</span>
                       ) : null}
-                      <span className="text-[10px] text-muted-foreground">score {h.score}</span>
+                      <span className="text-[10px] text-muted-foreground">{tFormat('wiki.scorePrefix', { score: h.score })}</span>
                     </div>
                     <span className="truncate text-sm font-medium">{h.title}</span>
                     {h.snippet ? (

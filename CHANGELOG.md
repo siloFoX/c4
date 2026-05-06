@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.464] - 2026-05-06 — Helper-text spans
+
+**Web — small inline helper-text `<span>` literals.** Sessions
+read-only mirror chip + copied flash + checking dot label,
+Wiki score prefix, Specialists previewing/window/by-actor/
+no-tags, Meetings searching/templates/manual labels.
+
+### Added (12 keys)
+- `sessions.{readOnlyMirror,copied,checking}`.
+- `wiki.scorePrefix` — `{score}` parameterised.
+- `specialists.{import.previewing,window.label,event.byActor,
+  tags.empty}` — by-actor used twice (history + audit).
+- `meetings.{searching,templates.label,manual.label,
+  orManually.label}`.
+
+### Notes
+- 200/200 tests green (1 flake passed on retest), lint+drift
+  clean, build clean.
+- Korean i18n bundle now at ~1091 keys.
+
 ## [1.10.463] - 2026-05-06 — Meetings remaining options
 
 **Web — last batch of literal `<option>` values.** in-progress

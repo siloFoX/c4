@@ -1262,7 +1262,7 @@ export default function MeetingsView() {
               ) : null}
             </div>
             {searching ? (
-              <span className="text-[10px] text-muted-foreground">searching…</span>
+              <span className="text-[10px] text-muted-foreground">{t('meetings.searching')}</span>
             ) : null}
           </div>
           {/* (Phase 8.1.5) Filter chips — shown only while
@@ -1385,7 +1385,7 @@ export default function MeetingsView() {
           {creating ? (
             <div className="flex flex-col gap-2 rounded-md border border-dashed border-border bg-muted/20 p-3">
               <div className="flex flex-wrap items-center gap-1 text-[11px]">
-                <span className="text-muted-foreground">templates:</span>
+                <span className="text-muted-foreground">{t('meetings.templates.label')}</span>
                 {templates.map((tpl) => (
                   <span key={tpl.name} className="inline-flex items-center">
                     <Button
@@ -1963,7 +1963,7 @@ export default function MeetingsView() {
               CLI / terminal). */}
           {selectedId && detail && detail.status === 'in-progress' ? (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] text-muted-foreground">manual:</span>
+              <span className="text-[11px] text-muted-foreground">{t('meetings.manual.label')}</span>
               <Button
                 size="sm"
                 variant="outline"
@@ -2120,7 +2120,7 @@ export default function MeetingsView() {
           ) : null}
           {selectedId && detail && detail.status === 'pending' ? (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] text-muted-foreground">or manually:</span>
+              <span className="text-[11px] text-muted-foreground">{t('meetings.orManually.label')}</span>
               <Button
                 size="sm"
                 variant="outline"

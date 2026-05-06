@@ -799,7 +799,7 @@ export default function SpecialistsView() {
             aria-label={t('specialists.action.importBundle')}
           />
         </label>
-        {importBusy ? <span className="text-muted-foreground">previewing…</span> : null}
+        {importBusy ? <span className="text-muted-foreground">{t('specialists.import.previewing')}</span> : null}
         {importError ? (
           <span className="truncate text-destructive">{importError}</span>
         ) : null}
@@ -867,7 +867,7 @@ export default function SpecialistsView() {
         {auditOpen ? (
           <div className="border-t border-border/40 bg-background">
             <div className="flex flex-wrap items-center gap-1 border-b border-border/40 px-3 py-1.5 text-[10px]">
-              <span className="text-muted-foreground">window:</span>
+              <span className="text-muted-foreground">{t('specialists.window.label')}</span>
               {(['all', '1h', '24h', '7d'] as AuditWindow[]).map((w) => (
                 <button
                   key={w}
@@ -964,7 +964,7 @@ export default function SpecialistsView() {
                         <span className="font-mono text-[11px]">{e.id}</span>
                       ) : null}
                       {e.actor ? (
-                        <span className="text-muted-foreground">by {e.actor}</span>
+                        <span className="text-muted-foreground">{tFormat('specialists.event.byActor', { actor: e.actor })}</span>
                       ) : null}
                       {e.reason ? (
                         <span className="text-muted-foreground italic">— {e.reason}</span>
@@ -1313,7 +1313,7 @@ export default function SpecialistsView() {
                             #{t}
                           </span>
                         ))
-                      : <span className="text-[11px] text-muted-foreground italic">no tags</span>}
+                      : <span className="text-[11px] text-muted-foreground italic">{t('specialists.tags.empty')}</span>}
                   </div>
                 ) : (
                   <div className="mt-1 flex flex-wrap items-center gap-1">
@@ -1546,7 +1546,7 @@ export default function SpecialistsView() {
                         <span className="rounded border border-border bg-background px-1 py-0 text-[10px] uppercase tracking-wide">
                           {e.action}
                         </span>
-                        {e.actor ? <span className="text-muted-foreground">by {e.actor}</span> : null}
+                        {e.actor ? <span className="text-muted-foreground">{tFormat('specialists.event.byActor', { actor: e.actor })}</span> : null}
                         {e.reason ? <span className="text-muted-foreground italic">— {e.reason}</span> : null}
                       </li>
                     ))}

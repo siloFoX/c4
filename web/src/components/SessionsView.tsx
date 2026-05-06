@@ -758,14 +758,14 @@ function AttachedRowActions({
         >
           {role}
         </span>
-        <span className="text-muted-foreground">read-only mirror</span>
+        <span className="text-muted-foreground">{t('sessions.readOnlyMirror')}</span>
         {procState.status === 'loading' ? (
           <span
             className="inline-flex items-center gap-1 rounded-full border border-border/60 px-1.5 py-0 text-muted-foreground/70"
             aria-label={t('sessions.aria.processChecking')}
           >
             <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" aria-hidden />
-            checking
+            {t('sessions.checking')}
           </span>
         ) : procState.status === 'alive' ? (
           <span
@@ -892,7 +892,7 @@ function AttachedRowActions({
           >
             <Copy className="h-3.5 w-3.5" aria-hidden />
           </button>
-          {copied ? <span className="text-muted-foreground">copied</span> : null}
+          {copied ? <span className="text-muted-foreground">{t('sessions.copied')}</span> : null}
         </div>
       ) : null}
     </div>
