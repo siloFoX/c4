@@ -1221,8 +1221,8 @@ export default function MeetingsView() {
                   aria-label={t('meetings.action.listFilterTrack')}
                 >
                   <option value="">{t('meetings.option.any')}</option>
-                  <option value="lightweight">lightweight</option>
-                  <option value="standard">standard</option>
+                  <option value="lightweight">{t('meetings.mode.lightweight')}</option>
+                  <option value="standard">{t('meetings.mode.standard')}</option>
                   <option value="full">full</option>
                 </select>
               </label>
@@ -1294,8 +1294,8 @@ export default function MeetingsView() {
                   aria-label={t('meetings.action.filterTrack')}
                 >
                   <option value="">{t('meetings.option.any')}</option>
-                  <option value="lightweight">lightweight</option>
-                  <option value="standard">standard</option>
+                  <option value="lightweight">{t('meetings.mode.lightweight')}</option>
+                  <option value="standard">{t('meetings.mode.standard')}</option>
                   <option value="full">full</option>
                 </select>
               </label>
@@ -1493,8 +1493,8 @@ export default function MeetingsView() {
                         className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
                       >
                         <option value="">auto</option>
-                        <option value="lightweight">lightweight</option>
-                        <option value="standard">standard</option>
+                        <option value="lightweight">{t('meetings.mode.lightweight')}</option>
+                        <option value="standard">{t('meetings.mode.standard')}</option>
                         <option value="full">full</option>
                       </select>
                     </label>
@@ -1590,8 +1590,8 @@ export default function MeetingsView() {
                     aria-label={t('meetings.compose.track')}
                   >
                     <option value="auto">auto</option>
-                    <option value="lightweight">lightweight</option>
-                    <option value="standard">standard</option>
+                    <option value="lightweight">{t('meetings.mode.lightweight')}</option>
+                    <option value="standard">{t('meetings.mode.standard')}</option>
                     <option value="full">full</option>
                   </select>
                 </label>
@@ -1939,8 +1939,8 @@ export default function MeetingsView() {
                   disabled={runBusy}
                   aria-label={t('meetings.brain.aria')}
                 >
-                  <option value="mock">mock (instant)</option>
-                  <option value="claude">claude (slow, real)</option>
+                  <option value="mock">{t('meetings.brain.mockOption')}</option>
+                  <option value="claude">{t('meetings.brain.claudeOption')}</option>
                 </select>
               </label>
               <Button
@@ -2193,7 +2193,7 @@ export default function MeetingsView() {
                   aria-label={t('meetings.peerBrain.aria')}
                 >
                   <option value="mock">mock</option>
-                  <option value="claude">claude</option>
+                  <option value="claude">{t('meetings.adapter.claude')}</option>
                 </select>
               </label>
               <Button
@@ -2294,8 +2294,8 @@ export default function MeetingsView() {
                       className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
                     >
                       <option value="auto">{t('meetings.option.sameAsSource')}</option>
-                      <option value="lightweight">lightweight</option>
-                      <option value="standard">standard</option>
+                      <option value="lightweight">{t('meetings.mode.lightweight')}</option>
+                      <option value="standard">{t('meetings.mode.standard')}</option>
                       <option value="full">full</option>
                     </select>
                   </label>

@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.462] - 2026-05-06 — Meetings track / brain options
+
+**Web — Meetings track + brain dropdown options.** Eight
+`<option>` elements were emitting raw English values
+(lightweight/standard/claude/mock (instant)/claude (slow,
+real)) across 4 different track selectors and the run brain
+selector.
+
+### Added (5 keys)
+- `meetings.mode.{lightweight,standard}` — track choices.
+- `meetings.adapter.claude` — vote-only adapter chooser.
+- `meetings.brain.{mockOption,claudeOption}` — run brain
+  dropdown.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1073 keys.
+
 ## [1.10.461] - 2026-05-06 — Risk page intent labels
 
 **Web — Risk page intent + threshold strip.** Operators see
