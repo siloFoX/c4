@@ -90,6 +90,11 @@
   "common.loading": "Loading…",
   "common.refresh": "Refresh",
 
+  "validationPage.title": "Validation",
+  "validationPage.description": "Per-worker validation object — tests / typecheck / lint status from .c4-validation.json in each worktree.",
+  "validationPage.filter.placeholder": "Filter workers",
+  "validationPage.filter.label": "Filter workers",
+
   "healthPage.title": "Health",
   "healthPage.description": "Daemon heartbeat. Uptime, worker counts, queue depth, and a snapshot of loaded modules.",
   "healthPage.refresh.label": "Refresh health",

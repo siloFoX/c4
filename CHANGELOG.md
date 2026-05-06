@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.401] - 2026-05-04
+
+**Web — Validation page header literals i18n.** Page already
+used `t('validation.tooltip.*')` for tooltip labels and
+`t('validation.empty')` for the empty state; the title /
+description / filter input were still English.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 4 new keys under
+  `validationPage.*`.
+- **`web/src/pages/Validation.tsx`**: PageFrame title /
+  description, filter input placeholder + aria-label, sr-only
+  Refresh — all flow through `t(...)`.
+
+### Korean copy
+- 검증 / 워커별 검증 객체 / 워커 필터.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.400] - 2026-05-04 — Milestone
 
 **Web — Health page i18n** (and v1.10.400 milestone marker

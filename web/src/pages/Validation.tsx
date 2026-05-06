@@ -75,23 +75,23 @@ export default function Validation() {
 
   return (
     <PageFrame
-      title="Validation"
-      description="Per-worker validation object — tests / typecheck / lint status from .c4-validation.json in each worktree."
+      title={t('validationPage.title')}
+      description={t('validationPage.description')}
       actions={
         <>
           <Tooltip label={t('validation.tooltip.filter')}>
             <Input
               className="h-8 w-48"
-              placeholder="Filter workers"
+              placeholder={t('validationPage.filter.placeholder')}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              aria-label="Filter workers"
+              aria-label={t('validationPage.filter.label')}
             />
           </Tooltip>
           <Tooltip label={t('validation.tooltip.refresh')}>
             <Button type="button" variant="ghost" size="sm" onClick={refresh} disabled={loading}>
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span className="sr-only">Refresh</span>
+              <span className="sr-only">{t('common.srOnlyRefresh')}</span>
             </Button>
           </Tooltip>
         </>
