@@ -64,13 +64,13 @@ export default function Auto() {
 
   return (
     <PageFrame
-      title="Auto mode"
-      description="Spawn an autonomous manager + scribe pair. The manager creates its own workers, dispatches work, and reports back on completion."
+      title={t('autoPage.title')}
+      description={t('autoPage.description')}
       actions={
         <Tooltip label={t('auto.tooltip.dispatch')}>
           <Button type="button" variant="default" size="sm" onClick={dispatch} disabled={busy}>
             {busy ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Rocket className="h-3.5 w-3.5" />}
-            <span>Dispatch</span>
+            <span>{t('autoPage.dispatch')}</span>
           </Button>
         </Tooltip>
       }
@@ -91,13 +91,13 @@ export default function Auto() {
       </Panel>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div>
-          <Label htmlFor="auto-name">Manager name (optional)</Label>
+          <Label htmlFor="auto-name">{t('autoPage.field.name')}</Label>
           <Tooltip label={t('auto.tooltip.name')} placement="top">
             <Input id="auto-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="auto-mgr" />
           </Tooltip>
         </div>
         <div className="md:col-span-2">
-          <Label htmlFor="auto-task">Task</Label>
+          <Label htmlFor="auto-task">{t('autoPage.field.task')}</Label>
           <Tooltip label={t('auto.tooltip.task')} placement="top">
             <textarea
               id="auto-task"
@@ -105,7 +105,7 @@ export default function Auto() {
               value={task}
               onChange={(e) => setTask(e.target.value)}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              placeholder="Describe the outcome for the autonomous manager to deliver."
+              placeholder={t('autoPage.task.placeholder')}
             />
           </Tooltip>
         </div>
@@ -114,23 +114,23 @@ export default function Auto() {
       {error && <ErrorPanel message={error} />}
 
       {result && (
-        <Panel title="Dispatched" className="p-3 text-sm">
+        <Panel title={t('autoPage.result.heading')} className="p-3 text-sm">
           <div className="flex flex-col gap-1 text-xs">
             {result.name && (
               <span>
-                <span className="text-muted-foreground">Manager:</span>
+                <span className="text-muted-foreground">{t('autoPage.result.manager')}</span>
                 <span className="ml-2 font-mono text-foreground">{result.name}</span>
               </span>
             )}
             {result.branch && (
               <span>
-                <span className="text-muted-foreground">Branch:</span>
+                <span className="text-muted-foreground">{t('autoPage.result.branch')}</span>
                 <span className="ml-2 font-mono text-foreground">{result.branch}</span>
               </span>
             )}
             {result.status && (
               <span>
-                <span className="text-muted-foreground">Status:</span>
+                <span className="text-muted-foreground">{t('autoPage.result.status')}</span>
                 <span className="ml-2 text-foreground">{result.status}</span>
               </span>
             )}

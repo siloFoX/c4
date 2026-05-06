@@ -90,6 +90,17 @@
   "common.loading": "로딩 중…",
   "common.refresh": "새로고침",
 
+  "autoPage.title": "자율 모드",
+  "autoPage.description": "자율 매니저 + scribe 쌍을 띄웁니다. 매니저는 자체 워커를 생성하고 작업을 분배한 뒤 완료 시 보고합니다.",
+  "autoPage.dispatch": "배포",
+  "autoPage.field.name": "매니저 이름 (선택)",
+  "autoPage.field.task": "작업",
+  "autoPage.task.placeholder": "자율 매니저가 달성할 목표를 입력하세요.",
+  "autoPage.result.heading": "배포됨",
+  "autoPage.result.manager": "매니저:",
+  "autoPage.result.branch": "브랜치:",
+  "autoPage.result.status": "상태:",
+
   "cleanupPage.title": "정리",
   "cleanupPage.description": "충돌한 워커나 이전 실행 후 남아있는 고아 c4/ 브랜치 / worktree / 디렉토리를 정리합니다. 항상 dry-run 을 먼저 실행합니다.",
   "cleanupPage.dryRun": "Dry-run",

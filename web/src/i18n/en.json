@@ -90,6 +90,17 @@
   "common.loading": "Loading…",
   "common.refresh": "Refresh",
 
+  "autoPage.title": "Auto mode",
+  "autoPage.description": "Spawn an autonomous manager + scribe pair. The manager creates its own workers, dispatches work, and reports back on completion.",
+  "autoPage.dispatch": "Dispatch",
+  "autoPage.field.name": "Manager name (optional)",
+  "autoPage.field.task": "Task",
+  "autoPage.task.placeholder": "Describe the outcome for the autonomous manager to deliver.",
+  "autoPage.result.heading": "Dispatched",
+  "autoPage.result.manager": "Manager:",
+  "autoPage.result.branch": "Branch:",
+  "autoPage.result.status": "Status:",
+
   "cleanupPage.title": "Cleanup",
   "cleanupPage.description": "Remove orphan c4/ branches, worktrees, and directories left behind by crashed workers or prior runs. Always runs a dry-run first.",
   "cleanupPage.dryRun": "Dry-run",

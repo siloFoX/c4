@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.403] - 2026-05-04
+
+**Web — Auto page header + form i18n.** Title / description /
+Dispatch button / Manager name + Task field labels + textarea
+placeholder / result panel headings ("Manager:" / "Branch:" /
+"Status:").
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 10 new keys under
+  `autoPage.*`.
+- **`web/src/pages/Auto.tsx`**: PageFrame, button, labels,
+  placeholder, result panel — all flow through `t(...)`.
+
+### Korean copy
+- 자율 모드 / 자율 매니저 + scribe 쌍을 띄웁니다 / 배포 /
+  매니저 이름 (선택) / 작업 / 자율 매니저가 달성할 목표를
+  입력하세요 / 배포됨 / 매니저: / 브랜치: / 상태:.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.402] - 2026-05-04
 
 **Web — Cleanup page header literals i18n.** Page already used
