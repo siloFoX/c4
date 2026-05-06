@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.435] - 2026-05-04 — Common action button labels i18n
+
+**Web — bare-text Cancel/Apply/Refresh buttons.** A handful of
+modals across SpecialistsView/SessionsView/MeetingsView still
+had bare English `Apply` / `Cancel` / `Refresh` text inside
+`<Button>` children even though the surrounding aria-labels
+were already translated. Wired all of them through the
+existing-or-new `common.*` keys.
+
+### Added (~16 keys)
+- `common.apply`, `common.save`, `common.edit`, `common.delete`,
+  `common.add`, `common.remove`, `common.open`, `common.reset`,
+  `common.submit`, `common.generate`, `common.copy`,
+  `common.run`, `common.stop`, `common.start`, `common.import`,
+  `common.export`. Reusable across the rest of the codebase.
+
+### Changed
+- `SpecialistsView.tsx`: 6 bare-text buttons (Apply x2, Refresh,
+  Cancel x3) now render `t('common.*')`.
+- `SessionsView.tsx`: 3 Cancel buttons.
+- `MeetingsView.tsx`: 1 Refresh + 1 Cancel.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~840 keys.
+
 ## [1.10.434] - 2026-05-04 — Filter / status `<option>` labels i18n
 
 **Web — translatable filter dropdowns.** Status filters (any /

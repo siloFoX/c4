@@ -805,7 +805,7 @@ export default function SpecialistsView() {
                 className="h-6 px-2 text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-300"
                 title={t('specialists.tooltip.applyImport')}
               >
-                Apply
+                {t('common.apply')}
               </Button>
             ) : null}
           </>
@@ -985,7 +985,7 @@ export default function SpecialistsView() {
                 aria-label={t('specialists.action.refresh')}
               >
                 <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} aria-hidden />
-                Refresh
+                {t('common.refresh')}
               </Button>
             </div>
           </div>
@@ -1026,7 +1026,7 @@ export default function SpecialistsView() {
                   onClick={() => { setAddOpen(false); setAddError(null); }}
                   disabled={addBusy || proposeBusy}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 {addError ? (
                   <span className="text-[11px] text-destructive">{addError}</span>
@@ -1209,7 +1209,7 @@ export default function SpecialistsView() {
                 onClick={() => setConfirmRemoveId(null)}
                 disabled={removeBusy}
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 size="sm"
@@ -1314,7 +1314,7 @@ export default function SpecialistsView() {
                       disabled={tagBusy}
                       className="h-7 px-2 text-[11px]"
                     >
-                      Apply
+                      {t('common.apply')}
                     </Button>
                   </div>
                 )}
@@ -1335,7 +1335,7 @@ export default function SpecialistsView() {
                           disabled={resetBusy}
                           className="h-6 px-2 text-[10px]"
                         >
-                          Cancel
+                          {t('common.cancel')}
                         </Button>
                         <Button
                           size="sm"

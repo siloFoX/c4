@@ -1179,7 +1179,7 @@ export default function MeetingsView() {
                 aria-label={t('meetings.action.refresh')}
               >
                 <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} aria-hidden />
-                Refresh
+                {t('common.refresh')}
               </Button>
             </div>
           </div>
@@ -1617,7 +1617,7 @@ export default function MeetingsView() {
                   onClick={() => { setCreating(false); setCreateError(null); }}
                   disabled={createBusy}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 {createError ? (
                   <span className="text-[11px] text-destructive">{createError}</span>

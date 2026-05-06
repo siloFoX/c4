@@ -317,7 +317,7 @@ function AttachModal({
 
           <div className="flex justify-end gap-2 pt-2">
             <Button size="sm" variant="outline" onClick={onClose} disabled={busy}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               size="sm"
@@ -496,7 +496,7 @@ function NewChatModal({ open, busy, error, onClose, onSubmit }: NewChatModalProp
 
           <div className="flex justify-end gap-2 pt-2">
             <Button size="sm" variant="outline" onClick={onClose} disabled={busy}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               size="sm"
@@ -865,7 +865,7 @@ function AttachedRowActions({
             onClick={() => setShowDetachConfirm(false)}
             aria-label={t('sessions.aria.cancelDetach')}
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             size="sm"
