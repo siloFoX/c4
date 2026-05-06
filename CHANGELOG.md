@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.475] - 2026-05-06 — Sessions onboarding strings
+
+**Web — Sessions onboarding constants migrated to i18n.**
+The 8.31 attach-banner / post-attach-help / comparison-card
+copy lived as exported English `*_TITLE/_BODY/_ITEMS` /
+`COMPARISON_ROWS` constants. Migrated to `*_KEY` /
+`COMPARISON_ROW_KEYS` references resolved through `t()` at
+render time.
+
+### Added (~19 keys)
+- `sessions.banner.{emptyTitle,emptyBody}`.
+- `sessions.help.{afterAttachTitle,timeline,search,resume}`.
+- `sessions.compare.title` + 4×3 row keys
+  (`{mode,source,updates,resume}.{Label,Attached,Live}`).
+
+### Tests
+- `tests/sessions-view.test.js`: regex anchors moved off
+  literal English copy to the new `*_KEY` constants. Bundle
+  content (the actual English copy) is verified by reading
+  `web/src/i18n/en.json` directly.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1198 keys.
+
 ## [1.10.474] - 2026-05-06 — Meetings escalate/abort confirms
 
 **Web — Meetings stateAction confirm strings.** Create

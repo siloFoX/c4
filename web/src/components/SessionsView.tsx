@@ -96,24 +96,23 @@ type Selection =
   | { kind: 'session'; id: string }
   | { kind: 'attached'; name: string };
 
-// (8.31) UX strings — kept as module constants so tests source-grep
-// against stable literals. Changing copy here must flow through
-// tests/sessions-view.test.js.
-export const EMPTY_ATTACH_BANNER_TITLE = 'What is attach?';
-export const EMPTY_ATTACH_BANNER_BODY =
-  'Import external Claude Code sessions (~/.claude/projects/*.jsonl) to view conversation history in c4 Web UI.';
-export const POST_ATTACH_HELP_TITLE = 'After attach you can:';
-export const POST_ATTACH_HELP_ITEMS = [
-  'view full conversation timeline',
-  'search messages across sessions',
-  'resume the session via claude --resume',
+// (8.31, v1.10.475) UX strings migrated to i18n keys. Tests now
+// source-grep against the *Key constants instead of literal copy
+// (see tests/sessions-view.test.js).
+export const EMPTY_ATTACH_BANNER_TITLE_KEY = 'sessions.banner.emptyTitle';
+export const EMPTY_ATTACH_BANNER_BODY_KEY = 'sessions.banner.emptyBody';
+export const POST_ATTACH_HELP_TITLE_KEY = 'sessions.help.afterAttachTitle';
+export const POST_ATTACH_HELP_ITEM_KEYS = [
+  'sessions.help.timeline',
+  'sessions.help.search',
+  'sessions.help.resume',
 ];
-export const COMPARISON_TITLE = 'Attached session vs Live worker';
-export const COMPARISON_ROWS: Array<[string, string, string]> = [
-  ['Mode', 'Read-only view', 'Interactive PTY'],
-  ['Source', 'JSONL transcript', 'Live pty stream'],
-  ['Updates', 'Re-parse on refresh', 'Real-time SSE'],
-  ['Resume', 'claude --resume <id>', 'Already running'],
+export const COMPARISON_TITLE_KEY = 'sessions.compare.title';
+export const COMPARISON_ROW_KEYS: Array<[string, string, string]> = [
+  ['sessions.compare.modeLabel', 'sessions.compare.modeAttached', 'sessions.compare.modeLive'],
+  ['sessions.compare.sourceLabel', 'sessions.compare.sourceAttached', 'sessions.compare.sourceLive'],
+  ['sessions.compare.updatesLabel', 'sessions.compare.updatesAttached', 'sessions.compare.updatesLive'],
+  ['sessions.compare.resumeLabel', 'sessions.compare.resumeAttached', 'sessions.compare.resumeLive'],
 ];
 export const TOUR_STORAGE_KEY = 'sessions-tour-v1';
 export const TOUR_STEPS: Array<{ titleKey: string; bodyKey: string }> = [
@@ -296,11 +295,11 @@ function AttachModal({
             aria-label={t('sessions.aria.postAttachHelp')}
           >
             <div className="mb-1 font-semibold text-foreground">
-              {POST_ATTACH_HELP_TITLE}
+              {t(POST_ATTACH_HELP_TITLE_KEY)}
             </div>
             <ul className="list-disc pl-5">
-              {POST_ATTACH_HELP_ITEMS.map((item) => (
-                <li key={item}>{item}</li>
+              {POST_ATTACH_HELP_ITEM_KEYS.map((key) => (
+                <li key={key}>{t(key)}</li>
               ))}
             </ul>
           </aside>
@@ -526,9 +525,9 @@ function EmptyAttachBanner({ onAttachClick }: EmptyAttachBannerProps) {
       />
       <div className="flex-1">
         <div className="font-semibold text-foreground">
-          {EMPTY_ATTACH_BANNER_TITLE}
+          {t(EMPTY_ATTACH_BANNER_TITLE_KEY)}
         </div>
-        <p className="mt-1 text-muted-foreground">{EMPTY_ATTACH_BANNER_BODY}</p>
+        <p className="mt-1 text-muted-foreground">{t(EMPTY_ATTACH_BANNER_BODY_KEY)}</p>
         <Button
           size="sm"
           variant="outline"
@@ -552,7 +551,7 @@ function ComparisonCard({ className }: ComparisonCardProps) {
     <Card className={cn('max-w-md', className)}>
       <CardHeader className="gap-1 border-b border-border p-4">
         <CardTitle className="flex items-center gap-2 text-sm">
-          <BookOpen className="h-4 w-4" aria-hidden /> {COMPARISON_TITLE}
+          <BookOpen className="h-4 w-4" aria-hidden /> {t(COMPARISON_TITLE_KEY)}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -568,13 +567,13 @@ function ComparisonCard({ className }: ComparisonCardProps) {
             </tr>
           </thead>
           <tbody>
-            {COMPARISON_ROWS.map(([label, attached, live]) => (
-              <tr key={label} className="border-b border-border last:border-b-0">
+            {COMPARISON_ROW_KEYS.map(([labelKey, attachedKey, liveKey]) => (
+              <tr key={labelKey} className="border-b border-border last:border-b-0">
                 <td className="px-4 py-2 font-medium text-muted-foreground">
-                  {label}
+                  {t(labelKey)}
                 </td>
-                <td className="px-4 py-2 text-foreground">{attached}</td>
-                <td className="px-4 py-2 text-foreground">{live}</td>
+                <td className="px-4 py-2 text-foreground">{t(attachedKey)}</td>
+                <td className="px-4 py-2 text-foreground">{t(liveKey)}</td>
               </tr>
             ))}
           </tbody>

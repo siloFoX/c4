@@ -16,6 +16,7 @@ const path = require('path');
 const { describe, it } = require('node:test');
 
 const ROOT = path.join(__dirname, '..');
+const repoRoot = ROOT;
 const SESSIONS_VIEW = path.join(
   ROOT,
   'web',
@@ -27,17 +28,21 @@ const SESSIONS_VIEW = path.join(
 const src = fs.readFileSync(SESSIONS_VIEW, 'utf8');
 
 describe('SessionsView.tsx - empty-state banner', () => {
-  it('exports the attach banner title constant', () => {
-    assert.match(src, /EMPTY_ATTACH_BANNER_TITLE\s*=\s*'What is attach\?'/);
+  it('exports the attach banner title key constant', () => {
+    // (v1.10.475) migrated to i18n: const points at sessions.banner.emptyTitle key.
+    assert.match(src, /EMPTY_ATTACH_BANNER_TITLE_KEY\s*=\s*'sessions\.banner\.emptyTitle'/);
   });
 
-  it('exports the attach banner body that names ~/.claude/projects JSONLs', () => {
-    assert.match(src, /EMPTY_ATTACH_BANNER_BODY\s*=/);
-    assert.match(
-      src,
-      /Import external Claude Code sessions \(~\/\.claude\/projects\/\*\.jsonl\)/,
+  it('exports the attach banner body key constant', () => {
+    // (v1.10.475) migrated to i18n: const points at sessions.banner.emptyBody key.
+    // The English copy lives in the bundle, not the source — checked here:
+    assert.match(src, /EMPTY_ATTACH_BANNER_BODY_KEY\s*=\s*'sessions\.banner\.emptyBody'/);
+    const bundle = fs.readFileSync(
+      path.join(repoRoot, 'web', 'src', 'i18n', 'en.json'),
+      'utf8',
     );
-    assert.match(src, /view conversation history in c4 Web UI/);
+    assert.match(bundle, /Import external Claude Code sessions \(~\/\.claude\/projects\/\*\.jsonl\)/);
+    assert.match(bundle, /view conversation history in c4 Web UI/);
   });
 
   it('renders the banner component with an Info icon and a call-to-action', () => {
@@ -80,19 +85,24 @@ describe('SessionsView.tsx - attach modal preview + help', () => {
     assert.match(src, /setPathValue\(s\.sessionId\)/);
   });
 
-  it('exports the post-attach help literals shown below the modal form', () => {
-    assert.match(src, /POST_ATTACH_HELP_TITLE\s*=\s*'After attach you can:'/);
-    assert.match(
-      src,
-      /POST_ATTACH_HELP_ITEMS\s*=\s*\[[\s\S]*?'view full conversation timeline'[\s\S]*?'search messages across sessions'[\s\S]*?'resume the session via claude --resume'/,
+  it('exports the post-attach help title + item keys shown below the modal form', () => {
+    // (v1.10.475) migrated to i18n: const points at sessions.help.* keys.
+    assert.match(src, /POST_ATTACH_HELP_TITLE_KEY\s*=\s*'sessions\.help\.afterAttachTitle'/);
+    assert.match(src, /POST_ATTACH_HELP_ITEM_KEYS/);
+    const bundle = fs.readFileSync(
+      path.join(repoRoot, 'web', 'src', 'i18n', 'en.json'),
+      'utf8',
     );
+    assert.match(bundle, /view full conversation timeline/);
+    assert.match(bundle, /search messages across sessions/);
+    assert.match(bundle, /resume the session via claude --resume/);
   });
 
   it('renders the help block inside the modal with aria labelling', () => {
     // (v1.10.421) aria-label migrated to i18n: t('sessions.aria.postAttachHelp').
     assert.match(src, /aria-label=\{t\('sessions\.aria\.postAttachHelp'\)\}/);
-    assert.match(src, /\{POST_ATTACH_HELP_TITLE\}/);
-    assert.match(src, /POST_ATTACH_HELP_ITEMS\.map/);
+    assert.match(src, /t\(POST_ATTACH_HELP_TITLE_KEY\)/);
+    assert.match(src, /POST_ATTACH_HELP_ITEM_KEYS\.map/);
   });
 
   it('threads availableSessions from /api/sessions into the modal', () => {
@@ -146,24 +156,30 @@ describe('SessionsView.tsx - post-attach row actions', () => {
 });
 
 describe('SessionsView.tsx - comparison card', () => {
-  it('defines a comparison title constant', () => {
+  it('defines a comparison title key constant', () => {
+    // (v1.10.475) migrated to i18n: const points at sessions.compare.title key.
     assert.match(
       src,
-      /COMPARISON_TITLE\s*=\s*'Attached session vs Live worker'/,
+      /COMPARISON_TITLE_KEY\s*=\s*'sessions\.compare\.title'/,
     );
   });
 
   it('defines a table of comparison rows covering mode / source / updates / resume', () => {
-    assert.match(src, /COMPARISON_ROWS/);
-    assert.match(src, /'Mode'/);
-    assert.match(src, /'Source'/);
-    assert.match(src, /'Updates'/);
-    assert.match(src, /'Resume'/);
-    assert.match(src, /'Read-only view'/);
-    assert.match(src, /'Interactive PTY'/);
-    assert.match(src, /'JSONL transcript'/);
-    assert.match(src, /'Live pty stream'/);
-    assert.match(src, /'claude --resume <id>'/);
+    assert.match(src, /COMPARISON_ROW_KEYS/);
+    // (v1.10.475) row labels live in the i18n bundle now.
+    const bundle = fs.readFileSync(
+      path.join(repoRoot, 'web', 'src', 'i18n', 'en.json'),
+      'utf8',
+    );
+    assert.match(bundle, /"sessions\.compare\.modeLabel":\s*"Mode"/);
+    assert.match(bundle, /"sessions\.compare\.sourceLabel":\s*"Source"/);
+    assert.match(bundle, /"sessions\.compare\.updatesLabel":\s*"Updates"/);
+    assert.match(bundle, /"sessions\.compare\.resumeLabel":\s*"Resume"/);
+    assert.match(bundle, /Read-only view/);
+    assert.match(bundle, /Interactive PTY/);
+    assert.match(bundle, /JSONL transcript/);
+    assert.match(bundle, /Live pty stream/);
+    assert.match(bundle, /claude --resume <id>/);
   });
 
   it('renders the ComparisonCard component in both selected + empty panes', () => {
