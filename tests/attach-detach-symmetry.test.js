@@ -188,7 +188,8 @@ describe('SessionsView surfaces role + two-step detach', () => {
     assert.match(src, /showDetachConfirm/);
     assert.match(src, /Your terminal session\s+keeps running/);
     assert.match(src, /Detach session/);
-    assert.match(src, /Cancel detach/);
+    // (v1.10.422) "Cancel detach" aria-label migrated to i18n.
+    assert.match(src, /sessions\.aria\.cancelDetach/);
   });
 
   it('detach button toggles the confirmation strip rather than firing onDetach directly', () => {

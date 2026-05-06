@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.422] - 2026-05-04
+
+**Web — extra aria-labels i18n batch.** Sweep across remaining
+aria-labels in SessionsView (cancel-detach, resume-cmd, copy-
+resume, search, new-chat, attach-existing), Scribe page
+(refresh-status), MeetingsView (new-template, clear-template,
+close-template-editor).
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 10 new keys covering
+  6 `sessions.aria.*`, 1 `scribePage.*`, 3 `meetings.action.*`.
+- **`web/src/components/SessionsView.tsx`** + **`pages/Scribe.tsx`**
+  + **`MeetingsView.tsx`**: aria-labels flow through `t()`.
+- **`tests/attach-detach-symmetry.test.js`**: source-grep for
+  Cancel detach updated to look for the i18n key.
+
+### Korean copy
+- 분리 취소 / 재개 명령어 / 재개 명령어 복사 / 세션 검색 / 새
+  채팅 시작 / 기존 세션 부착 / Scribe 상태 새로고침 / 새
+  템플릿 생성 / 템플릿 선택 지우기 / 템플릿 편집기 닫기.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Korean i18n bundle now at 644 keys.
+
 ## [1.10.421] - 2026-05-04
 
 **Web — SessionsView aria-labels i18n.** Nine more aria-labels

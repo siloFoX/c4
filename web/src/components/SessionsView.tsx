@@ -861,7 +861,7 @@ function AttachedRowActions({
             size="sm"
             variant="outline"
             onClick={() => setShowDetachConfirm(false)}
-            aria-label="Cancel detach"
+            aria-label={t('sessions.aria.cancelDetach')}
           >
             Cancel
           </Button>
@@ -883,13 +883,13 @@ function AttachedRowActions({
         <div
           className="flex items-center gap-2 rounded border border-border bg-background px-2 py-1 text-[11px]"
           role="region"
-          aria-label="Resume command"
+          aria-label={t('sessions.aria.resumeCmd')}
         >
           <code className="flex-1 truncate font-mono">{resumeCmd}</code>
           <button
             type="button"
             onClick={handleCopy}
-            aria-label="Copy resume command"
+            aria-label={t('sessions.aria.copyResume')}
             className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           >
             <Copy className="h-3.5 w-3.5" aria-hidden />
@@ -1112,7 +1112,7 @@ export default function SessionsView() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('sessions.search.placeholder')}
-              aria-label="Search sessions"
+              aria-label={t('sessions.aria.search')}
               className="h-8 pl-7 text-sm"
             />
           </div>
@@ -1370,7 +1370,7 @@ export default function SessionsView() {
                       setNewChatError(null);
                       setNewChatOpen(true);
                     }}
-                    aria-label="Start a new chat"
+                    aria-label={t('sessions.aria.newChat')}
                   >
                     <Plus className="h-4 w-4" aria-hidden />
                     Start a new chat
@@ -1381,7 +1381,7 @@ export default function SessionsView() {
                       setModalError(null);
                       setModalOpen(true);
                     }}
-                    aria-label="Attach an existing session"
+                    aria-label={t('sessions.aria.attachExisting')}
                   >
                     <Plus className="h-4 w-4" aria-hidden />
                     Attach existing

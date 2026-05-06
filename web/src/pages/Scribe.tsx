@@ -142,7 +142,7 @@ export default function Scribe() {
               size="sm"
               onClick={refresh}
               disabled={loading}
-              aria-label="Refresh scribe status"
+              aria-label={t('scribePage.refreshStatus.label')}
             >
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
               <span className="sr-only">{t('common.srOnlyRefresh')}</span>

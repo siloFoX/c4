@@ -1417,7 +1417,7 @@ export default function MeetingsView() {
                   size="sm"
                   variant="outline"
                   onClick={() => openTplEditor()}
-                  aria-label="Create new template"
+                  aria-label={t('meetings.action.newTemplate')}
                   title="Save the current task as a new template"
                   className="h-6 px-2 text-[11px]"
                 >
@@ -1431,7 +1431,7 @@ export default function MeetingsView() {
                       setTemplateName(null);
                       setTemplateVars({});
                     }}
-                    aria-label="Clear template selection"
+                    aria-label={t('meetings.action.clearTemplate')}
                     className="h-6 px-2 text-[11px] text-muted-foreground"
                   >
                     clear
@@ -1449,7 +1449,7 @@ export default function MeetingsView() {
                       type="button"
                       onClick={() => setTplEditOpen(false)}
                       className="text-muted-foreground hover:text-foreground"
-                      aria-label="Close template editor"
+                      aria-label={t('meetings.action.closeTemplateEditor')}
                     >
                       <X className="h-3 w-3" aria-hidden />
                     </button>
