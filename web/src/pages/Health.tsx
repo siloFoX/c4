@@ -6,7 +6,7 @@ import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Badge, Button, Panel, Tooltip } from '../components/ui';
 import { apiGet } from '../lib/api';
 import { formatDuration, formatNumber, formatRelativeTime } from '../lib/format';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 
 // 8.20B Health dashboard. Reads GET /api/health and renders the fields
 // the daemon surfaces today (pid, uptime, worker counts). Fields the
@@ -61,8 +61,8 @@ export default function Health() {
 
   return (
     <PageFrame
-      title="Health"
-      description="Daemon heartbeat. Uptime, worker counts, queue depth, and a snapshot of loaded modules."
+      title={t('healthPage.title')}
+      description={t('healthPage.description')}
       actions={
         <Tooltip label={t('health.tooltip.refresh')}>
           <Button
@@ -71,10 +71,10 @@ export default function Health() {
             size="sm"
             onClick={refresh}
             disabled={loading}
-            aria-label="Refresh health"
+            aria-label={t('healthPage.refresh.label')}
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span className="sr-only">Refresh</span>
+            <span className="sr-only">{t('common.srOnlyRefresh')}</span>
           </Button>
         </Tooltip>
       }
@@ -92,7 +92,7 @@ export default function Health() {
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <Badge variant={ok ? 'default' : 'outline'} className="uppercase">
-              {ok ? 'healthy' : 'degraded'}
+              {ok ? t('healthPage.status.healthy') : t('healthPage.status.degraded')}
             </Badge>
             {data.version && (
               <span className="text-xs text-muted-foreground">v{String(data.version)}</span>
@@ -105,19 +105,19 @@ export default function Health() {
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <Stat label="PID" value={data.pid != null ? String(data.pid) : '-'} />
-            <Stat label="Uptime" value={formatDuration((data.uptime ?? 0) * 1000)} />
-            <Stat label="Started" value={formatRelativeTime(data.startedAt)} />
-            <Stat label="Workers total" value={formatNumber(data.workers)} />
-            <Stat label="Active" value={formatNumber(data.activeWorkers ?? data.busyWorkers)} />
-            <Stat label="Idle" value={formatNumber(data.idleWorkers)} />
-            <Stat label="Queue depth" value={formatNumber(data.queueDepth)} />
-            <Stat label="Lost workers" value={formatNumber(data.lostWorkers)} />
-            <Stat label="Event-loop lag" value={data.eventLoopLagMs != null ? `${data.eventLoopLagMs} ms` : '-'} />
+            <Stat label={t('healthPage.stat.pid')} value={data.pid != null ? String(data.pid) : '-'} />
+            <Stat label={t('healthPage.stat.uptime')} value={formatDuration((data.uptime ?? 0) * 1000)} />
+            <Stat label={t('healthPage.stat.started')} value={formatRelativeTime(data.startedAt)} />
+            <Stat label={t('healthPage.stat.workersTotal')} value={formatNumber(data.workers)} />
+            <Stat label={t('healthPage.stat.active')} value={formatNumber(data.activeWorkers ?? data.busyWorkers)} />
+            <Stat label={t('healthPage.stat.idle')} value={formatNumber(data.idleWorkers)} />
+            <Stat label={t('healthPage.stat.queueDepth')} value={formatNumber(data.queueDepth)} />
+            <Stat label={t('healthPage.stat.lostWorkers')} value={formatNumber(data.lostWorkers)} />
+            <Stat label={t('healthPage.stat.eventLoopLag')} value={data.eventLoopLagMs != null ? `${data.eventLoopLagMs} ms` : '-'} />
           </div>
 
           {Array.isArray(data.modules) && data.modules.length > 0 ? (
-            <Panel title={`Loaded modules (${data.modules.length})`} className="p-3 text-xs">
+            <Panel title={tFormat('healthPage.modules.loaded', { n: String(data.modules.length) })} className="p-3 text-xs">
               <ul className="grid grid-cols-1 gap-0.5 font-mono sm:grid-cols-2 lg:grid-cols-3">
                 {data.modules.map((m) => (
                   <li key={m} className="truncate text-muted-foreground">{m}</li>
@@ -126,7 +126,7 @@ export default function Health() {
             </Panel>
           ) : (
             <div className="text-xs text-muted-foreground">
-              Loaded-modules / event-loop-lag fields are not yet exposed by the daemon. See TODO 8.20b-health-extensions.
+              {t('healthPage.modules.empty')}
             </div>
           )}
         </div>

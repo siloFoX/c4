@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.400] - 2026-05-04 — Milestone
+
+**Web — Health page i18n** (and v1.10.400 milestone marker
+itself).
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 16 new keys under
+  `healthPage.*` (title, description, refresh label, status
+  badges, 9 stat labels, modules.loaded with `{n}` template,
+  modules.empty fallback).
+- **`web/src/pages/Health.tsx`**:
+  - PageFrame title + description switch to `t(...)`.
+  - Refresh aria-label + sr-only text use shared keys.
+  - "healthy / degraded" badge, all 9 Stat labels, the loaded-
+    modules panel title (with count interpolation), and the
+    "fields not exposed" fallback all flow through `t()` /
+    `tFormat()`.
+
+### Korean copy
+- 헬스 / 데몬 헬스체크 / 헬스 새로고침 / 정상 / 저하 / PID /
+  업타임 / 시작 시각 / 전체 워커 / 활성 / 대기 / 큐 깊이 /
+  유실된 워커 / 이벤트 루프 lag / 로드된 모듈 (N).
+
+### Notes
+- This is the 62nd ship of this autonomous session
+  (v1.10.339 → v1.10.400).
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.399] - 2026-05-04
 
 **Web — Templates + Profiles pages title/header literals
