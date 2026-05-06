@@ -306,10 +306,10 @@ export default function HierarchyTree({ selectedWorker, onSelect }: HierarchyTre
       {workers.length > 0 && (
         <div className="flex gap-2 text-xs">
           <Button type="button" variant="secondary" size="sm" onClick={expandAll}>
-            Expand all
+            {t('hierarchy.expandAll')}
           </Button>
           <Button type="button" variant="secondary" size="sm" onClick={collapseAll}>
-            Collapse all
+            {t('hierarchy.collapseAll')}
           </Button>
         </div>
       )}

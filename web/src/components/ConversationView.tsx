@@ -754,7 +754,7 @@ export default function ConversationView({
             </div>
           ) : !conversation || conversation.turns.length === 0 ? (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-              No turns recorded yet.
+              {t('conversation.empty')}
             </div>
           ) : (
             <div className="mx-auto flex max-w-4xl flex-col gap-4">
@@ -775,7 +775,7 @@ export default function ConversationView({
                 setAutoScroll(true);
               }}
             >
-              Jump to latest
+              {t('conversation.jumpToLatest')}
             </Button>
           </div>
         ) : null}

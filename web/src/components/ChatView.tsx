@@ -583,11 +583,11 @@ export default function ChatView({ workerName }: ChatViewProps) {
                   {loadingOlder ? (
                     <span className="inline-flex items-center gap-1">
                       <Loader2 aria-hidden="true" className="h-3 w-3 animate-spin" />
-                      Loading older messages...
+                      {t('chat.olderLoading')}
                     </span>
                   ) : (
                     <Button type="button" variant="ghost" size="sm" onClick={() => void loadOlder()}>
-                      Load older
+                      {t('chat.loadOlder')}
                     </Button>
                   )}
                 </li>

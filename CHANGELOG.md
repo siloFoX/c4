@@ -4,6 +4,41 @@
 
 (no entries — next release window)
 
+## [1.10.437] - 2026-05-04 — Hierarchy / History / Chat / Conversation i18n
+
+**Web — section headings, empty states, and chat scrollback
+controls.**
+
+### Added (~13 keys)
+- `hierarchy.expandAll`, `hierarchy.collapseAll` — workers tree
+  expand/collapse buttons.
+- `history.section.pastTasks` (`{count}`),
+  `history.section.scrollback`,
+  `history.empty.scrollback`,
+  `history.record.noTaskText`,
+  `history.record.unknownStatus`.
+- `featureSidebar.noMatch` (`{query}`).
+- `chat.olderLoading`, `chat.loadOlder` — infinite-scroll
+  affordances in scrollback mode.
+- `conversation.empty`, `conversation.jumpToLatest`.
+- `workflows.editor.selectNode` — node properties placeholder.
+- `specialists.action.resetScore` — destructive action label.
+
+### Changed
+- 7 components / pages wired to the new keys.
+- `WorkflowEditor.tsx`'s inner `NodeProperties` now opts into
+  `useLocale()`.
+
+### Tests
+- `chat-backfill.test.js`: regex now matches
+  `t('chat.loadOlder')`.
+- `session-parser.test.js`: regex now matches
+  `t('conversation.jumpToLatest')`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~854 keys.
+
 ## [1.10.436] - 2026-05-04 — More bare-text action buttons i18n
 
 **Web — Templates / Specialists / Meetings remaining buttons.**

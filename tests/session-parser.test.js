@@ -267,7 +267,8 @@ describe('ConversationView.tsx wiring', () => {
 
   it('ships auto-scroll with a Jump-to-latest affordance', () => {
     assert.match(src, /autoScroll/);
-    assert.match(src, /Jump to latest/);
+    // Copy lives in i18n now; check the key wiring.
+    assert.match(src, /t\('conversation\.jumpToLatest'\)/);
   });
 
   it('supports the live streaming mode via EventSource', () => {

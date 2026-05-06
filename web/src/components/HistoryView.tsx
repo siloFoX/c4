@@ -405,7 +405,7 @@ function HistoryDetailPane({ detail }: HistoryDetailPaneProps) {
         <section>
           <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             <Clock aria-hidden="true" className="h-3.5 w-3.5" />
-            Past tasks ({detail.records.length})
+            {tFormat('history.section.pastTasks', { count: detail.records.length })}
           </h3>
           {detail.records.length === 0 ? (
             <div className="text-sm text-muted-foreground">{t('history.empty.tasks')}</div>
@@ -418,10 +418,10 @@ function HistoryDetailPane({ detail }: HistoryDetailPaneProps) {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <span className="flex-1 whitespace-pre-wrap break-words font-medium">
-                      {r.task || '(no task text)'}
+                      {r.task || t('history.record.noTaskText')}
                     </span>
                     <Badge variant={recordStatusVariant(r.status)} className="shrink-0 uppercase">
-                      {r.status || 'unknown'}
+                      {r.status || t('history.record.unknownStatus')}
                     </Badge>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
@@ -455,7 +455,7 @@ function HistoryDetailPane({ detail }: HistoryDetailPaneProps) {
 
         <section className="flex min-h-0 flex-1 flex-col">
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Scrollback
+            {t('history.section.scrollback')}
           </h3>
           {detail.scrollback ? (
             <pre className="min-h-0 min-w-0 flex-1 overflow-auto whitespace-pre-wrap rounded-md border border-border bg-background p-2 text-xs text-foreground">
@@ -463,7 +463,7 @@ function HistoryDetailPane({ detail }: HistoryDetailPaneProps) {
             </pre>
           ) : (
             <div className="text-sm text-muted-foreground">
-              No live scrollback (worker not running).
+              {t('history.empty.scrollback')}
             </div>
           )}
         </section>

@@ -285,8 +285,9 @@ describe('ChatView source wiring (8.25)', () => {
     // scroll-to-top threshold triggers the older fetch
     assert.match(src, /el\.scrollTop <= 8/);
     assert.match(src, /void loadOlder\(\)/);
-    // button fallback lets the user pull older manually
-    assert.match(src, /Load older/);
+    // Button fallback lets the user pull older manually.
+    // Copy lives in i18n now; check for the key wiring.
+    assert.match(src, /t\('chat\.loadOlder'\)/);
   });
 
   it('keeps SSE /api/watch wiring intact alongside backfill', () => {

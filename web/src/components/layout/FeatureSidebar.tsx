@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { Input } from '../ui';
-import { t, useLocale } from '../../lib/i18n';
+import { t, tFormat, useLocale } from '../../lib/i18n';
 import {
   CATEGORY_ICON,
   CATEGORY_LABEL,
@@ -69,7 +69,7 @@ export default function FeatureSidebar({
       </div>
       {filter.trim() && matchCount === 0 ? (
         <div className="rounded-md border border-dashed border-border bg-muted/10 p-3 text-[11px] text-muted-foreground">
-          No features match &quot;{filter}&quot;.
+          {tFormat('featureSidebar.noMatch', { query: filter })}
         </div>
       ) : null}
       <nav aria-label={t('featureSidebar.nav.label')} className="flex flex-col gap-4">

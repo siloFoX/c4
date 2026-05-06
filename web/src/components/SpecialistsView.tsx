@@ -1354,7 +1354,7 @@ export default function SpecialistsView() {
                         title={t('specialists.tooltip.scoreReset')}
                         className="h-6 px-2 text-[10px]"
                       >
-                        Reset score
+                        {t('specialists.action.resetScore')}
                       </Button>
                     )}
                   </div>

@@ -261,11 +261,12 @@ export function WorkflowGraph(props: {
 }
 
 function NodeProperties(props: { node: WorkflowNode | null }) {
+  useLocale();
   const { node } = props;
   if (!node) {
     return (
       <Panel className="text-sm text-muted-foreground">
-        Select a node to inspect its config.
+        {t('workflows.editor.selectNode')}
       </Panel>
     );
   }
