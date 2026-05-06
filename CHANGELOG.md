@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.413] - 2026-05-04
+
+**Web — Risk Inspector page-body i18n.** Section headings +
+Check / Sandbox preview / Refresh button labels (with their
+busy states) + Custom rules header + Loading catalog state.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 9 new keys under
+  `riskPage.*` (classify.heading / check / checking /
+  sandboxPreview / building / recentDenials / ruleCatalog /
+  customRules / loadingCatalog).
+- **`web/src/pages/Risk.tsx`**: `useLocale()` import added;
+  all listed strings now flow through `t()`. Refresh button
+  uses the shared `common.refresh` key.
+
+### Korean copy
+- 명령어 분류 / 분류 / 분류 중… / 샌드박스 미리보기 / 구성
+  중… / 최근 차단 / 규칙 카탈로그 / 사용자 정의 규칙 /
+  카탈로그 로딩 중….
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+- Rule names + level codes (low / medium / high / critical /
+  rm-rf-root etc.) intentionally untranslated — these are
+  protocol-level identifiers operators read from the audit
+  log + classifier output.
+
 ## [1.10.412] - 2026-05-04
 
 **Web — WikiView Reopen button + page detail field labels i18n.**

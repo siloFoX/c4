@@ -3,6 +3,7 @@ import { RefreshCw, Shield } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
 import { Badge, Button, Input, Panel } from '../components/ui';
 import { apiGet, apiPost } from '../lib/api';
+import { t, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
 
 // (v1.10.356) Risk classifier inspector — preview a command's
@@ -97,6 +98,7 @@ const ACTION_TONE: Record<CheckResponse['suggestedAction'], string> = {
 };
 
 export default function Risk() {
+  useLocale();
   const [command, setCommand] = useState('');
   const [includeInspected, setIncludeInspected] = useState(false);
   const [checkBusy, setCheckBusy] = useState(false);
@@ -207,7 +209,7 @@ export default function Risk() {
           disabled={statsLoading}
         >
           <RefreshCw className={cn('h-3.5 w-3.5', statsLoading && 'animate-spin')} />
-          <span>Refresh</span>
+          <span>{t('common.refresh')}</span>
         </Button>
       }
     >
@@ -222,7 +224,7 @@ export default function Risk() {
       <Panel className="text-sm">
         <h3 className="mb-2 flex items-center gap-2 text-base font-semibold text-foreground">
           <Shield className="h-4 w-4 text-muted-foreground" aria-hidden />
-          Classify a command
+          {t('riskPage.classify.heading')}
         </h3>
         <div className="flex flex-col gap-2">
           <textarea
@@ -246,7 +248,7 @@ export default function Risk() {
               onClick={handleCheck}
               disabled={checkBusy || !command.trim()}
             >
-              {checkBusy ? 'Checking…' : 'Check'}
+              {checkBusy ? t('riskPage.checking') : t('riskPage.check')}
             </Button>
             <Button
               type="button"
@@ -256,7 +258,7 @@ export default function Risk() {
               disabled={sandboxBusy || !command.trim()}
               title="Show what argv the configured sandbox runtime would use — pure builder, no exec"
             >
-              {sandboxBusy ? 'Building…' : 'Sandbox preview'}
+              {sandboxBusy ? t('riskPage.building') : t('riskPage.sandboxPreview')}
             </Button>
             <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
               <input
@@ -434,7 +436,7 @@ export default function Risk() {
       <Panel className="mt-4 text-sm">
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-base font-semibold text-foreground">
-            Recent denials
+            {t('riskPage.recentDenials')}
           </h3>
           <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
             window:
@@ -541,7 +543,7 @@ export default function Risk() {
           aria-expanded={patternsOpen}
         >
           <h3 className="text-base font-semibold text-foreground">
-            Rule catalog
+            {t('riskPage.ruleCatalog')}
           </h3>
           <span className="text-[11px] text-muted-foreground">
             {patternsOpen ? '▾' : '▸'}
@@ -587,7 +589,7 @@ export default function Risk() {
               })}
               {patterns.counts.custom.total > 0 ? (
                 <div className="rounded border border-border bg-muted/10 p-2 text-[11px]">
-                  <div className="font-medium">Custom rules</div>
+                  <div className="font-medium">{t('riskPage.customRules')}</div>
                   <div className="text-muted-foreground">
                     {patterns.counts.custom.critical} critical ·
                     {' '}{patterns.counts.custom.high} high ·
@@ -598,7 +600,7 @@ export default function Risk() {
               ) : null}
             </div>
           ) : (
-            <div className="mt-2 text-[12px] text-muted-foreground">Loading catalog…</div>
+            <div className="mt-2 text-[12px] text-muted-foreground">{t('riskPage.loadingCatalog')}</div>
           )
         ) : null}
       </Panel>

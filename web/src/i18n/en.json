@@ -358,6 +358,16 @@
   "config.empty": "Empty config.",
   "config.noMatch": "No keys match \"{filter}\".",
 
+  "riskPage.classify.heading": "Classify a command",
+  "riskPage.check": "Check",
+  "riskPage.checking": "Checking…",
+  "riskPage.sandboxPreview": "Sandbox preview",
+  "riskPage.building": "Building…",
+  "riskPage.recentDenials": "Recent denials",
+  "riskPage.ruleCatalog": "Rule catalog",
+  "riskPage.customRules": "Custom rules",
+  "riskPage.loadingCatalog": "Loading catalog…",
+
   "rbac.title": "RBAC",
   "rbac.description": "Role-based access control — read-only roster of roles and per-user grants.",
   "rbac.refresh.label": "Refresh RBAC",
