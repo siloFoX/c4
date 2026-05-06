@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.439] - 2026-05-04 — SessionsView + SpecialistsView body sweep
+
+**Web — large body-text and dynamic aria-label cleanup.**
+SessionsView attach modal "Initial prompt" + tour Skip/Done/Next
++ row View/Resume/Detach buttons with their template-literal
+aria-labels + two-step detach confirm copy + zero-state cards.
+SpecialistsView Add specialist / Propose via meeting / Confirm
+remove / Pick a specialist… / score-history empty / suggested
+revision panel with embedded `<code>` CLI hint.
+
+### Added (~30 keys)
+- `sessions.newChat.initialPrompt`,
+  `sessions.attach.firstSession`, `sessions.tour.skip`.
+- `sessions.row.{viewConversation,viewConversationAria,
+  resumeInTerminal,resumeInTerminalAria,detach,detachAria,
+  confirmDetachAria,detachConfirmBody,detachSession}` —
+  every per-row label and aria-label now uses the
+  `tFormat({ worker })` placeholder for the worker name.
+- `sessions.empty.{startFirstTitle,startFirstBody,
+  startFirstChat,attachExisting}`.
+- `specialists.action.{addLabel,proposeLabel,confirmRemove}`.
+- `specialists.empty.{pick,scoreHistory}`,
+  `specialists.suggest.{title,empty,applyHint,applyHintCli,
+  applyHintTrailing}` (split-and-inject for `<code>`).
+
+### Changed
+- `EmptyAttachBanner` opts into `useLocale()`.
+- Tour Done/Next buttons now reuse `common.done` / `common.next`.
+
+### Tests
+- `attach-detach-symmetry.test.js`: 1 regex updated to match
+  `sessions.row.detachConfirmBody` + `sessions.row.detachSession`.
+- `sessions-view.test.js`: 3 regexes updated for the new
+  `t()` / `tFormat()` wirings (banner CTA, row labels, tour
+  buttons).
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~891 keys.
+
 ## [1.10.438] - 2026-05-04 — Risk / Wiki / Sessions i18n
 
 **Web — Risk inspector detail labels, Wiki empty state,

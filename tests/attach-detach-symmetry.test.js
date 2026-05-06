@@ -181,13 +181,14 @@ describe('SessionsView surfaces role + two-step detach', () => {
 
   it('renders a role badge + read-only mirror hint on each attached row', () => {
     assert.match(src, /aria-label=\{`Agent role: \$\{role\}`\}/);
-    assert.match(src, /read-only mirror/);
+    assert.match(src, /sessions\.row\.detachConfirmBody/);
   });
 
   it('uses a two-step detach with terminal-keeps-running copy', () => {
     assert.match(src, /showDetachConfirm/);
-    assert.match(src, /Your terminal session\s+keeps running/);
-    assert.match(src, /Detach session/);
+    // Copy lives in i18n now; check the key wirings.
+    assert.match(src, /sessions\.row\.detachConfirmBody/);
+    assert.match(src, /sessions\.row\.detachSession/);
     // (v1.10.422) "Cancel detach" aria-label migrated to i18n.
     assert.match(src, /sessions\.aria\.cancelDetach/);
   });

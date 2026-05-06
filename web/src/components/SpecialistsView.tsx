@@ -1006,7 +1006,7 @@ export default function SpecialistsView() {
                   disabled={addBusy || proposeBusy || !addJson.trim()}
                   aria-label={t('specialists.action.confirmAdd')}
                 >
-                  Add specialist
+                  {t('specialists.action.addLabel')}
                 </Button>
                 {/* (Phase 1.5) Propose via meta-meeting consensus —
                     safer governance path than direct add. */}
@@ -1018,7 +1018,7 @@ export default function SpecialistsView() {
                   aria-label={t('specialists.action.propose')}
                   title={t('specialists.tooltip.propose')}
                 >
-                  Propose via meeting
+                  {t('specialists.action.proposeLabel')}
                 </Button>
                 <Button
                   size="sm"
@@ -1217,7 +1217,7 @@ export default function SpecialistsView() {
                 disabled={removeBusy}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                Confirm remove
+                {t('specialists.action.confirmRemove')}
               </Button>
             </div>
           ) : null}
@@ -1226,7 +1226,7 @@ export default function SpecialistsView() {
           {!selected ? (
             <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
               <Eye className="mr-2 h-3.5 w-3.5" aria-hidden />
-              Pick a specialist to see brain config + score history.
+              {t('specialists.empty.pick')}
             </div>
           ) : (
             <>
@@ -1392,7 +1392,7 @@ export default function SpecialistsView() {
                 </div>
               ) : (
                 <div className="text-xs text-muted-foreground">
-                  No score history yet — run + finalize a meeting that selects this specialist.
+                  {t('specialists.empty.scoreHistory')}
                 </div>
               )}
 
@@ -1436,13 +1436,13 @@ export default function SpecialistsView() {
                 {suggestion ? (
                   <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px]">
                     <div className="mb-1 font-medium text-amber-700 dark:text-amber-400">
-                      Suggested revision (review only)
+                      {t('specialists.suggest.title')}
                     </div>
                     {suggestion.revision ? (
                       <pre className="whitespace-pre-wrap font-mono">{suggestion.revision}</pre>
                     ) : (
                       <div className="italic text-muted-foreground">
-                        Brain returned no parseable revision. Try with a real claude brain.
+                        {t('specialists.suggest.empty')}
                       </div>
                     )}
                     {suggestion.rationale ? (
@@ -1451,8 +1451,9 @@ export default function SpecialistsView() {
                       </div>
                     ) : null}
                     <div className="mt-1 text-muted-foreground italic text-[10px]">
-                      To apply via meeting consensus, click "Apply via meeting"
-                      above (or use <code className="ml-1">c4 specialist apply-prompt {selected.id}</code>).
+                      {t('specialists.suggest.applyHint')}
+                      <code className="ml-1">{tFormat('specialists.suggest.applyHintCli', { id: selected.id })}</code>
+                      {t('specialists.suggest.applyHintTrailing')}
                     </div>
                   </div>
                 ) : null}

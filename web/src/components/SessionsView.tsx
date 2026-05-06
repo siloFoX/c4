@@ -439,7 +439,7 @@ function NewChatModal({ open, busy, error, onClose, onSubmit }: NewChatModalProp
 
           <div className="space-y-1">
             <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="new-chat-prompt">
-              Initial prompt
+              {t('sessions.newChat.initialPrompt')}
             </label>
             <textarea
               id="new-chat-prompt"
@@ -516,6 +516,7 @@ interface EmptyAttachBannerProps {
 }
 
 function EmptyAttachBanner({ onAttachClick }: EmptyAttachBannerProps) {
+  useLocale();
   return (
     <div
       className="flex items-start gap-2 rounded-md border border-dashed border-border bg-muted/30 p-3 text-xs"
@@ -538,7 +539,7 @@ function EmptyAttachBanner({ onAttachClick }: EmptyAttachBannerProps) {
           onClick={onAttachClick}
         >
           <Plus className="h-3.5 w-3.5" aria-hidden />
-          Attach your first session
+          {t('sessions.attach.firstSession')}
         </Button>
       </div>
     </div>
@@ -628,15 +629,15 @@ function Tour({ onDismiss }: TourProps) {
               variant="outline"
               onClick={onDismiss}
             >
-              Skip tour
+              {t('sessions.tour.skip')}
             </Button>
             {last ? (
               <Button size="sm" onClick={onDismiss}>
-                Done
+                {t('common.done')}
               </Button>
             ) : (
               <Button size="sm" onClick={() => setStep((s) => s + 1)}>
-                Next
+                {t('common.next')}
               </Button>
             )}
           </div>
@@ -809,20 +810,20 @@ function AttachedRowActions({
           size="sm"
           variant={isSelected ? 'default' : 'outline'}
           onClick={onView}
-          aria-label={`View conversation for ${session.name}`}
+          aria-label={tFormat('sessions.row.viewConversationAria', { worker: session.name })}
         >
           <Eye className="h-3.5 w-3.5" aria-hidden />
-          View conversation
+          {t('sessions.row.viewConversation')}
         </Button>
         <Button
           size="sm"
           variant="outline"
           onClick={() => setShowResume((v) => !v)}
-          aria-label={`Resume ${session.name} in terminal`}
+          aria-label={tFormat('sessions.row.resumeInTerminalAria', { worker: session.name })}
           aria-expanded={showResume}
         >
           <Terminal className="h-3.5 w-3.5" aria-hidden />
-          Resume in terminal
+          {t('sessions.row.resumeInTerminal')}
         </Button>
         {/* (TODO 8.38) Two-step detach. The first click expands an
             inline confirmation strip with the explicit "your terminal
@@ -839,13 +840,13 @@ function AttachedRowActions({
           size="sm"
           variant="outline"
           onClick={() => setShowDetachConfirm((v) => !v)}
-          aria-label={`Detach ${session.name}`}
+          aria-label={tFormat('sessions.row.detachAria', { worker: session.name })}
           aria-expanded={showDetachConfirm}
           aria-controls={showDetachConfirm ? detachConfirmId : undefined}
           className="text-destructive hover:bg-destructive/10"
         >
           <Trash2 className="h-3.5 w-3.5" aria-hidden />
-          Detach
+          {t('sessions.row.detach')}
         </Button>
       </div>
       {showDetachConfirm ? (
@@ -855,8 +856,7 @@ function AttachedRowActions({
           className="flex flex-wrap items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs"
         >
           <span className="text-destructive">
-            Remove this session from the c4 list. Your terminal session
-            keeps running — only the read-only mirror is dropped.
+            {t('sessions.row.detachConfirmBody')}
           </span>
           <Button
             size="sm"
@@ -874,9 +874,9 @@ function AttachedRowActions({
               setShowDetachConfirm(false);
               onDetach();
             }}
-            aria-label={`Confirm detach for ${session.name}`}
+            aria-label={tFormat('sessions.row.confirmDetachAria', { worker: session.name })}
           >
-            Detach session
+            {t('sessions.row.detachSession')}
           </Button>
         </div>
       ) : null}
@@ -1358,11 +1358,10 @@ export default function SessionsView() {
               <CardContent className="flex max-w-md flex-col items-center gap-4 p-6 text-center">
                 <div className="flex flex-col gap-1.5">
                   <span className="text-base font-semibold">
-                    Start your first conversation
+                    {t('sessions.empty.startFirstTitle')}
                   </span>
                   <span className="text-sm text-muted-foreground">
-                    No sessions yet. Spin up a new chat in this workspace, or
-                    attach an existing Claude Code transcript by JSONL path.
+                    {t('sessions.empty.startFirstBody')}
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-2">
@@ -1374,7 +1373,7 @@ export default function SessionsView() {
                     aria-label={t('sessions.aria.newChat')}
                   >
                     <Plus className="h-4 w-4" aria-hidden />
-                    Start a new chat
+                    {t('sessions.empty.startFirstChat')}
                   </Button>
                   <Button
                     variant="outline"
@@ -1385,7 +1384,7 @@ export default function SessionsView() {
                     aria-label={t('sessions.aria.attachExisting')}
                   >
                     <Plus className="h-4 w-4" aria-hidden />
-                    Attach existing
+                    {t('sessions.empty.attachExisting')}
                   </Button>
                 </div>
                 <ComparisonCard />

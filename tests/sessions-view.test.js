@@ -43,7 +43,7 @@ describe('SessionsView.tsx - empty-state banner', () => {
   it('renders the banner component with an Info icon and a call-to-action', () => {
     assert.match(src, /function EmptyAttachBanner/);
     assert.match(src, /<Info/);
-    assert.match(src, /Attach your first session/);
+    assert.match(src, /t\('sessions\.attach\.firstSession'\)/);
     assert.match(src, /role="note"/);
   });
 
@@ -108,15 +108,17 @@ describe('SessionsView.tsx - post-attach row actions', () => {
   });
 
   it('renders View / Resume / Detach buttons for each attached row', () => {
-    assert.match(src, /View conversation/);
-    assert.match(src, /Resume in terminal/);
-    assert.match(src, />\s*Detach\s*</);
+    // Copy lives in i18n; verify the key wirings.
+    assert.match(src, /t\('sessions\.row\.viewConversation'\)/);
+    assert.match(src, /t\('sessions\.row\.resumeInTerminal'\)/);
+    assert.match(src, /t\('sessions\.row\.detach'\)/);
   });
 
   it('wires the buttons through aria-label for screen readers', () => {
-    assert.match(src, /aria-label=\{`View conversation for \$\{session\.name\}`\}/);
-    assert.match(src, /aria-label=\{`Resume \$\{session\.name\} in terminal`\}/);
-    assert.match(src, /aria-label=\{`Detach \$\{session\.name\}`\}/);
+    // aria-labels are now i18n + tFormat with a {worker} placeholder.
+    assert.match(src, /sessions\.row\.viewConversationAria/);
+    assert.match(src, /sessions\.row\.resumeInTerminalAria/);
+    assert.match(src, /sessions\.row\.detachAria/);
   });
 
   it('uses Eye / Terminal / Trash2 icons from lucide-react', () => {
@@ -202,9 +204,11 @@ describe('SessionsView.tsx - onboarding tour', () => {
   });
 
   it('tour dismisses via either Skip or Done and advances via Next', () => {
-    assert.match(src, /Skip tour/);
-    assert.match(src, /\bDone\b/);
-    assert.match(src, /\bNext\b/);
+    // "Skip tour" copy migrated to i18n; the literal "Done" and "Next"
+    // strings live in lib/i18n via t('common.done') / t('common.next').
+    assert.match(src, /sessions\.tour\.skip/);
+    assert.match(src, /common\.done/);
+    assert.match(src, /common\.next/);
     assert.match(src, /setStep\(\(s\) => s \+ 1\)/);
   });
 
