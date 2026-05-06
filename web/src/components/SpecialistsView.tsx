@@ -101,7 +101,7 @@ export default function SpecialistsView() {
       const res = await apiGet<ListResponse>('/api/specialists');
       setData(res);
     } catch (e) {
-      setError((e as Error).message || 'Failed to load specialists');
+      setError((e as Error).message || t('common.failedToLoadSpecialists'));
     } finally {
       setLoading(false);
     }
@@ -282,7 +282,7 @@ export default function SpecialistsView() {
       }
       await refresh();
     } catch (e) {
-      setAddError((e as Error).message || 'Failed to add specialist');
+      setAddError((e as Error).message || t('common.failedToAddSpecialist'));
     } finally {
       setAddBusy(false);
     }
@@ -363,7 +363,7 @@ export default function SpecialistsView() {
       );
       setSuggestion({ revision: res.revision, rationale: res.rationale });
     } catch (e) {
-      setSuggestError((e as Error).message || 'Suggest failed');
+      setSuggestError((e as Error).message || t('common.suggestFailed'));
     } finally {
       setSuggestBusy(false);
     }
@@ -398,12 +398,7 @@ export default function SpecialistsView() {
   const [applyResult, setApplyResult] = useState<ApplyResult | null>(null);
   const [applyError, setApplyError] = useState<string | null>(null);
   const handleApply = useCallback(async (id: string) => {
-    if (!window.confirm(
-      'Apply revision via meta-meeting?\n\n' +
-      'A new meeting fires immediately. If consensus is reached the\n' +
-      'systemPrompt is replaced in the registry and an audit entry\n' +
-      'is recorded. The meeting id will appear in the result.',
-    )) {
+    if (!window.confirm(t('specialists.applyConfirm'))) {
       return;
     }
     setApplyBusy(true);
@@ -416,7 +411,7 @@ export default function SpecialistsView() {
       );
       setApplyResult(res);
     } catch (e) {
-      setApplyError((e as Error).message || 'Apply failed');
+      setApplyError((e as Error).message || t('common.applyFailed'));
     } finally {
       setApplyBusy(false);
     }
@@ -489,7 +484,7 @@ export default function SpecialistsView() {
       });
       setImportPreview(res);
     } catch (e) {
-      setImportError((e as Error).message || 'Import preview failed');
+      setImportError((e as Error).message || t('common.importPreviewFailed'));
     } finally {
       setImportBusy(false);
     }
@@ -499,11 +494,7 @@ export default function SpecialistsView() {
     const summary = importPreview
       ? `+${importPreview.added.length} ~${importPreview.updated.length} -${importPreview.removed.length}`
       : '?';
-    if (!window.confirm(
-      `Apply specialist bundle (${importMode})?\n` +
-      `Preview: ${summary}\n` +
-      'This is a governance event — recorded in the audit log.',
-    )) return;
+    if (!window.confirm(tFormat('specialists.import.applyConfirm', { mode: importMode, summary }))) return;
     setImportBusy(true);
     setImportError(null);
     try {
@@ -516,7 +507,7 @@ export default function SpecialistsView() {
       // Refresh registry
       void refresh();
     } catch (e) {
-      setImportError((e as Error).message || 'Import failed');
+      setImportError((e as Error).message || t('common.importFailed'));
     } finally {
       setImportBusy(false);
     }
@@ -609,7 +600,7 @@ export default function SpecialistsView() {
       if (selectedId === id) setSelectedId(null);
       await refresh();
     } catch (e) {
-      setError((e as Error).message || 'Failed to remove specialist');
+      setError((e as Error).message || t('common.failedToRemoveSpecialist'));
     } finally {
       setRemoveBusy(false);
       setConfirmRemoveId(null);
@@ -943,7 +934,11 @@ export default function SpecialistsView() {
             <div className="max-h-64 overflow-y-auto">
             {auditEntries.length === 0 ? (
               <div className="p-3 text-[11px] text-muted-foreground">
-                {auditLoading ? 'Loading…' : auditWindow === 'all' ? 'No audit entries yet.' : `No audit entries in the last ${auditWindow}.`}
+                {auditLoading
+                  ? t('common.loading')
+                  : auditWindow === 'all'
+                    ? t('specialists.audit.empty.all')
+                    : tFormat('specialists.audit.empty.window', { window: auditWindow })}
               </div>
             ) : (
               <ul className="divide-y divide-border/40 text-[11px]">

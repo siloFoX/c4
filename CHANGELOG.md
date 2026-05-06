@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.472] - 2026-05-06 — SpecialistsView errors + multi-line confirms
+
+**Web — SpecialistsView error fallbacks + governance
+confirm dialogs.** Load/add/suggest/apply/import-preview/
+import/remove fallbacks, audit-empty messages
+(loading / no-entries / no-entries-in-window), apply-revision
+multi-line confirm, import-bundle multi-line confirm.
+
+### Added (12 keys)
+- `common.{failedToLoadSpecialists,failedToAddSpecialist,
+  suggestFailed,applyFailed,importPreviewFailed,
+  importFailed,failedToRemoveSpecialist,loading}`.
+- `specialists.audit.empty.{all,window}` — `{window}`
+  parameterised.
+- `specialists.applyConfirm` — multi-line meta-meeting
+  confirm.
+- `specialists.import.{governanceWarning,applyConfirm}` —
+  applyConfirm takes `{mode}` and `{summary}`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1169 keys.
+
 ## [1.10.471] - 2026-05-06 — Config + Wiki + Sessions errors
 
 **Web — error fallback strings + multi-line confirms.**
