@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.457] - 2026-05-04 — Template-literal error messages
+
+**Web — set*Error() template literals.** AutonomousView resolve
+note-required + resolve-failed, MeetingsView state-action /
+retro / finalize failure surfacing, SpecialistsView add invalid
+JSON / propose / tag-edit / score-reset error strips.
+
+### Added (~10 keys)
+- `autonomous.resolve.{noteRequired,failed}` (`{id}`/`{error}`).
+- `meetings.{state,retro,finalize}.failed` (`{action}`/`{error}`).
+- `specialists.add.{invalidJson,proposeFailed}`,
+  `specialists.{tagEdit,scoreReset}.failed` (`{error}`).
+- `common.failed` — fallback for unknown error fall-through.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1049 keys.
+
 ## [1.10.456] - 2026-05-04 — Template-literal status messages
 
 **Web — set*Msg() template literals.** The remaining

@@ -802,7 +802,10 @@ export default function MeetingsView() {
       try {
         await apiPost(`/api/meetings/${encodeURIComponent(id)}/${action}`, {});
       } catch (e) {
-        setStateError(`${action} failed: ${(e as Error).message || 'unknown'}`);
+        setStateError(tFormat('meetings.state.failed', {
+          action,
+          error: (e as Error).message || t('common.unknown'),
+        }));
       } finally {
         setStateBusy(null);
       }
@@ -910,7 +913,10 @@ export default function MeetingsView() {
       );
       setRetroResult(res || { note: 'no payload' });
     } catch (e) {
-      setRetroError(`${finalize ? 'finalize' : 'retro'} failed: ${(e as Error).message || 'unknown'}`);
+      setRetroError(tFormat(
+        finalize ? 'meetings.finalize.failed' : 'meetings.retro.failed',
+        { error: (e as Error).message || t('common.unknown') },
+      ));
     } finally {
       setRetroBusy(null);
     }

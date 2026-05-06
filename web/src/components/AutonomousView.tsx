@@ -135,7 +135,7 @@ export default function AutonomousView() {
     if (action === 'modify') {
       const note = resolveNotes[id];
       if (!note || !note.trim()) {
-        setResolveError(`note required for "modify" on escalation ${id}`);
+        setResolveError(tFormat('autonomous.resolve.noteRequired', { id }));
         return;
       }
     }
@@ -151,7 +151,9 @@ export default function AutonomousView() {
       setEscalations((prev) => prev.filter((e) => e.id !== id));
       setResolveNotes((prev) => { const next = { ...prev }; delete next[id]; return next; });
     } catch (err) {
-      setResolveError(`resolve failed: ${(err as Error).message || 'unknown'}`);
+      setResolveError(tFormat('autonomous.resolve.failed', {
+        error: (err as Error).message || t('common.unknown'),
+      }));
     } finally {
       setResolveBusy(null);
     }

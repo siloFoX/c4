@@ -270,7 +270,7 @@ export default function SpecialistsView() {
   const handleAdd = useCallback(async () => {
     let parsed: unknown;
     try { parsed = JSON.parse(addJson); }
-    catch (e) { setAddError(`invalid JSON: ${(e as Error).message}`); return; }
+    catch (e) { setAddError(tFormat('specialists.add.invalidJson', { error: (e as Error).message })); return; }
     setAddBusy(true);
     setAddError(null);
     try {
@@ -298,7 +298,7 @@ export default function SpecialistsView() {
   const handlePropose = useCallback(async () => {
     let parsed: unknown;
     try { parsed = JSON.parse(addJson); }
-    catch (e) { setAddError(`invalid JSON: ${(e as Error).message}`); return; }
+    catch (e) { setAddError(tFormat('specialists.add.invalidJson', { error: (e as Error).message })); return; }
     setProposeBusy(true);
     setAddError(null);
     setProposeMsg(null);
@@ -325,7 +325,9 @@ export default function SpecialistsView() {
       }
       await refresh();
     } catch (e) {
-      setAddError(`propose: ${(e as Error).message || 'failed'}`);
+      setAddError(tFormat('specialists.add.proposeFailed', {
+        error: (e as Error).message || t('common.failed'),
+      }));
     } finally {
       setProposeBusy(false);
     }
@@ -573,7 +575,9 @@ export default function SpecialistsView() {
       setTagEditOpen(false);
       await refresh();
     } catch (e) {
-      setAddError(`tag edit: ${(e as Error).message || 'failed'}`);
+      setAddError(tFormat('specialists.tagEdit.failed', {
+        error: (e as Error).message || t('common.failed'),
+      }));
     } finally {
       setTagBusy(false);
     }
@@ -590,7 +594,9 @@ export default function SpecialistsView() {
     } catch (e) {
       // Surface as a transient error in the existing add-error
       // banner — minimal disruption for an operator-triggered op.
-      setAddError(`score-reset: ${(e as Error).message || 'failed'}`);
+      setAddError(tFormat('specialists.scoreReset.failed', {
+        error: (e as Error).message || t('common.failed'),
+      }));
     } finally {
       setResetBusy(false);
     }
