@@ -1316,7 +1316,7 @@ export default function MeetingsView() {
                   onClick={() => { setSearchSince(''); setSearchUntil(''); }}
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  clear dates
+                  {t('meetings.action.clearDates')}
                 </button>
               ) : null}
             </div>
@@ -1796,7 +1796,7 @@ export default function MeetingsView() {
                       disabled={backupBusy}
                       className="h-3 w-3"
                     />
-                    force overwrite
+                    {t('meetings.label.forceOverwrite')}
                   </label>
                   <Button
                     size="sm"
@@ -2322,7 +2322,7 @@ export default function MeetingsView() {
           {!selectedId ? (
             <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
               <Eye className="mr-2 h-3.5 w-3.5" aria-hidden />
-              Pick a meeting from the list to see its transcript.
+              {t('meetings.empty.pick')}
             </div>
           ) : detailError ? (
             <div className="text-sm text-destructive">{detailError}</div>

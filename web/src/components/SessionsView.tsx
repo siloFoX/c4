@@ -792,16 +792,16 @@ function AttachedRowActions({
             title={t('sessions.tooltip.noLiveProcess')}
           >
             <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" aria-hidden />
-            no live process
+            {t('sessions.row.noLiveProcess')}
           </span>
         ) : (
           <span
             className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0 text-amber-700 dark:text-amber-400"
-            aria-label={`Process lookup failed: ${procState.message}`}
+            aria-label={tFormat('sessions.row.lookupFailedAria', { message: procState.message })}
             title={procState.message}
           >
             <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden />
-            lookup failed
+            {t('sessions.row.lookupFailed')}
           </span>
         )}
       </div>

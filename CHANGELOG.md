@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.440] - 2026-05-04 — Meetings empty + per-row badges + filter chips
+
+**Web — last big sweep across MeetingsView + SessionsView
+inline elements.**
+
+### Added (~6 keys)
+- `meetings.empty.pick` — "Pick a meeting from the list to
+  see its transcript." empty state.
+- `meetings.action.clearDates` — date-range filter clear
+  affordance.
+- `meetings.label.forceOverwrite` — backup form checkbox
+  label.
+- `sessions.row.noLiveProcess`, `sessions.row.lookupFailed`,
+  `sessions.row.lookupFailedAria` — per-attached-row process
+  status badges.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~897 keys.
+
 ## [1.10.439] - 2026-05-04 — SessionsView + SpecialistsView body sweep
 
 **Web — large body-text and dynamic aria-label cleanup.**
