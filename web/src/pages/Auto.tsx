@@ -6,7 +6,7 @@ import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Input, Label, Panel, Tooltip } from '../components/ui';
 import { apiPost } from '../lib/api';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 
 // 8.20B Auto mode. POSTs to /api/auto which spawns an autonomous
 // manager + scribe for the given task. Mirrors `c4 auto`.
@@ -50,14 +50,19 @@ export default function Auto() {
       const r = (await apiPost<AutoResponse>('/api/auto', body)) as AutoResponse;
       if (r.error) {
         setError(r.error);
-        showToast(`Auto dispatch failed: ${r.error}`, 'error');
+        showToast(tFormat('auto.toast.dispatchFailed', { error: r.error }), 'error');
       } else {
         setResult(r);
-        showToast(`Auto manager spawned${r.name ? ` as ${r.name}` : ''}`, 'success');
+        showToast(
+          r.name
+            ? tFormat('auto.toast.spawnedAs', { name: r.name })
+            : t('auto.toast.spawned'),
+          'success',
+        );
       }
     } catch (e) {
       setError((e as Error).message);
-      showToast(`Auto dispatch failed: ${(e as Error).message}`, 'error');
+      showToast(tFormat('auto.toast.dispatchFailed', { error: (e as Error).message }), 'error');
     }
     setBusy(false);
   }, [task, name, showToast]);

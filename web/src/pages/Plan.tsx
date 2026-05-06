@@ -8,7 +8,7 @@ import { Button, Input, Label, Panel, Tooltip } from '../components/ui';
 import { apiFetch, apiGet, apiPost } from '../lib/api';
 import { renderMarkdown } from '../lib/markdown';
 import type { ListResponse, Worker } from '../types';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 
 // 8.20B Plan. Dispatches a planning task via POST /api/plan and polls
 // GET /api/plan?name=<worker> to display the resulting plan.md with
@@ -92,10 +92,10 @@ export default function Plan() {
       if (output) body.output = output;
       const r = (await apiPost<PlanResponse>('/api/plan', body)) as PlanResponse;
       if (r.error) {
-        showToast(`Plan dispatch failed: ${r.error}`, 'error');
+        showToast(tFormat('plan.toast.dispatchFailed', { error: r.error }), 'error');
         setError(r.error);
       } else {
-        showToast('Planner dispatched — result will appear once the worker finishes.', 'success');
+        showToast(t('plan.toast.dispatched'), 'success');
         loadPlan();
       }
     } catch (e) {
@@ -106,7 +106,7 @@ export default function Plan() {
 
   const redispatch = useCallback(async () => {
     if (!selected || !plan?.content) return;
-    if (!window.confirm(`Re-dispatch the generated plan to ${selected} as a real task?`)) return;
+    if (!window.confirm(tFormat('plan.confirmRedispatch', { worker: selected }))) return;
     setDispatching(true);
     try {
       const r = (await apiPost<{ error?: string }>('/api/task', {
@@ -115,12 +115,12 @@ export default function Plan() {
         useBranch: true,
       })) as { error?: string };
       if (r.error) {
-        showToast(`Task dispatch failed: ${r.error}`, 'error');
+        showToast(tFormat('plan.toast.taskDispatchFailed', { error: r.error }), 'error');
       } else {
-        showToast(`Plan dispatched as task to ${selected}`, 'success');
+        showToast(tFormat('plan.toast.taskDispatched', { worker: selected }), 'success');
       }
     } catch (e) {
-      showToast(`Task dispatch failed: ${(e as Error).message}`, 'error');
+      showToast(tFormat('plan.toast.taskDispatchFailed', { error: (e as Error).message }), 'error');
     }
     setDispatching(false);
   }, [plan, selected, showToast]);

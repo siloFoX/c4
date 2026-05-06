@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.446] - 2026-05-04 — Plan / Auto / Templates toast + confirm
+
+### Added (~9 keys)
+- `plan.toast.{dispatchFailed,dispatched,taskDispatchFailed,taskDispatched}` — `{error}` / `{worker}` placeholders.
+- `plan.confirmRedispatch` — window.confirm wrapping `{worker}`.
+- `templates.toast.notImplemented`.
+- `auto.toast.{dispatchFailed,spawned,spawnedAs}` — `{error}` / `{name}` placeholders.
+
+### Changed
+- `tFormat()` import added to `Plan.tsx` and `Auto.tsx`.
+- `Plan.tsx`: 4 `showToast()` calls + 1 `window.confirm()`.
+- `Templates.tsx`: notImplemented toast.
+- `Auto.tsx`: 3 `showToast()` calls.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~946 keys.
+
 ## [1.10.445] - 2026-05-04 — `showToast()` literals across 5 pages
 
 **Web — runtime toast strings.** Five pages (Morning, Profiles,

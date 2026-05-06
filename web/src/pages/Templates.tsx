@@ -66,7 +66,7 @@ export default function Templates() {
   );
 
   const notImplemented = () =>
-    showToast('Add/remove templates — not implemented yet (server-side endpoint pending).', 'info');
+    showToast(t('templates.toast.notImplemented'), 'info');
 
   return (
     <PageFrame
