@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.405] - 2026-05-04
+
+**Web — Scribe + Swarm + Batch + TokenUsage pages i18n bundle.**
+Final feature-page sweep — title / description / form labels /
+mode pickers / button labels / table headers.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**:
+  - 6 keys under `scribePage.*` (title, description, Start /
+    Stop / Scan, Recent context).
+  - 4 keys under `swarmPage.*` (title, description, Refresh
+    swarm, Root worker).
+  - 17 keys under `batchPage.*` (title, description, Dispatch /
+    Dispatching, two mode picker labels, Task / Count / Name
+    prefix / Tasks textarea / Branch prefix / Profile / Auto
+    mode + placeholders, Results panel).
+  - 14 keys under `tokenUsagePage.*` (title, description,
+    Per-task toggle, Total / input / output, By worker /
+    By day / Per-task panel headings with `{n}` templates,
+    table headers, Tier quota panel).
+- **`web/src/pages/Scribe.tsx`** + **`Swarm.tsx`** + **`Batch.tsx`**
+  + **`TokenUsage.tsx`**: `useLocale()` + `t()` / `tFormat()`
+  for all visible strings.
+- **`tests/ui-cli-coverage.test.js`**: source-grep for Batch
+  mode pickers updated to look for the i18n keys
+  (`batchPage.modeCount` / `batchPage.modeFile`) instead of
+  the literal English strings.
+
+### Korean copy
+- Scribe / 시작 / 정지 / 스캔 / 최근 컨텍스트.
+- Swarm / 루트 워커.
+- 배치 배포 / 배포 / 배포 중… / 동일 작업 N회 / 한 줄 = 한
+  작업 / 작업 / 개수 / 이름 prefix / 작업 (한 줄에 하나, `#`
+  로 시작하면 무시) / 브랜치 prefix / 프로파일 / 자율 모드 /
+  결과.
+- 토큰 사용량 / 작업별 / 합계 / 입력 / 출력 / 워커별 / 날짜별
+  / Tier 쿼터 (오늘).
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.404] - 2026-05-04
 
 **Web — Morning + Plan pages i18n.** Two more feature pages —

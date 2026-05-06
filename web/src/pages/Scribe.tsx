@@ -95,8 +95,8 @@ export default function Scribe() {
 
   return (
     <PageFrame
-      title="Scribe"
-      description="Session context recorder. Tail activity into docs/session-context.md so the next manager session picks up where the last one left off."
+      title={t('scribePage.title')}
+      description={t('scribePage.description')}
       actions={
         <>
           <Tooltip label={t('scribe.tooltip.start')}>
@@ -108,7 +108,7 @@ export default function Scribe() {
               disabled={busy !== null || running}
             >
               <Play className="h-3.5 w-3.5" />
-              <span>Start</span>
+              <span>{t('scribePage.start')}</span>
             </Button>
           </Tooltip>
           <Tooltip label={t('scribe.tooltip.stop')}>
@@ -120,7 +120,7 @@ export default function Scribe() {
               disabled={busy !== null || !running}
             >
               <Square className="h-3.5 w-3.5" />
-              <span>Stop</span>
+              <span>{t('scribePage.stop')}</span>
             </Button>
           </Tooltip>
           <Tooltip label={t('scribe.tooltip.scan')}>
@@ -132,7 +132,7 @@ export default function Scribe() {
               disabled={busy !== null}
             >
               <RefreshCw className="h-3.5 w-3.5" />
-              <span>Scan</span>
+              <span>{t('scribePage.scan')}</span>
             </Button>
           </Tooltip>
           <Tooltip label={t('scribe.tooltip.refresh')}>
@@ -145,7 +145,7 @@ export default function Scribe() {
               aria-label="Refresh scribe status"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span className="sr-only">Refresh</span>
+              <span className="sr-only">{t('common.srOnlyRefresh')}</span>
             </Button>
           </Tooltip>
         </>
@@ -172,7 +172,7 @@ export default function Scribe() {
       <div>
         <div className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
           <FileText className="h-3.5 w-3.5" aria-hidden="true" />
-          <span>Recent context</span>
+          <span>{t('scribePage.recentContext')}</span>
         </div>
         {context && context.content ? (
           <pre className="max-h-96 overflow-auto rounded-md border border-border bg-muted/30 p-3 font-mono text-xs text-foreground">

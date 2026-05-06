@@ -79,14 +79,14 @@ export default function Swarm() {
 
   return (
     <PageFrame
-      title="Swarm"
-      description="Given a root worker, show the hierarchy of sub-workers it spawned and each node's status."
+      title={t('swarmPage.title')}
+      description={t('swarmPage.description')}
       actions={
         <>
           <Tooltip label={t('swarm.tooltip.refresh')}>
             <Button type="button" variant="ghost" size="sm" onClick={loadSwarm} disabled={loading || !selected}>
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span className="sr-only">Refresh swarm</span>
+              <span className="sr-only">{t('swarmPage.refreshSwarm')}</span>
             </Button>
           </Tooltip>
         </>
@@ -100,7 +100,7 @@ export default function Swarm() {
         onOpenHelp={openHelpDrawer}
       />
       <div className="flex flex-col gap-1 md:max-w-xs">
-        <Label htmlFor="swarm-worker">Root worker</Label>
+        <Label htmlFor="swarm-worker">{t('swarmPage.rootWorker')}</Label>
         <Tooltip label={t('swarm.tooltip.root')} placement="top">
           <select
             id="swarm-worker"

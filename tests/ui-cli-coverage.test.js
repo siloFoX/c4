@@ -325,8 +325,9 @@ describe('Batch.tsx component wiring', () => {
   });
 
   it('renders both the count-mode and file-mode pickers', () => {
-    assert.match(src, /Same task N times/);
-    assert.match(src, /One task per line/);
+    // (v1.10.404) Migrated to i18n; assert keys instead of literals.
+    assert.match(src, /batchPage\.modeCount/);
+    assert.match(src, /batchPage\.modeFile/);
   });
 
   it('surfaces fail outcomes inside the results panel', () => {

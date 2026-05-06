@@ -7,7 +7,7 @@ import { Badge, Button, Panel, Tooltip } from '../components/ui';
 import { apiGet } from '../lib/api';
 import { cn } from '../lib/cn';
 import { dateRange, dateRangeLabel, formatNumber } from '../lib/format';
-import { t, useLocale } from '../lib/i18n';
+import { t, tFormat, useLocale } from '../lib/i18n';
 
 // 8.20B Token usage. Calls GET /api/token-usage (with optional
 // ?perTask=1) and renders:
@@ -128,8 +128,8 @@ export default function TokenUsage() {
 
   return (
     <PageFrame
-      title="Token usage"
-      description="Per-worker and per-day token consumption, plus the current tier quota snapshot."
+      title={t('tokenUsagePage.title')}
+      description={t('tokenUsagePage.description')}
       actions={
         <>
           {DAY_OPTIONS.map((d) => (
@@ -151,13 +151,13 @@ export default function TokenUsage() {
                 checked={perTask}
                 onChange={(e) => setPerTask(e.target.checked)}
               />
-              Per-task
+              {t('tokenUsagePage.perTask')}
             </label>
           </Tooltip>
           <Tooltip label={t('tokenUsage.tooltip.refresh')}>
             <Button type="button" variant="ghost" size="sm" onClick={refresh} disabled={loading}>
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span className="sr-only">Refresh</span>
+              <span className="sr-only">{t('common.srOnlyRefresh')}</span>
             </Button>
           </Tooltip>
         </>
@@ -176,24 +176,24 @@ export default function TokenUsage() {
         <div className="grid grid-cols-1 gap-3">
           <Panel className="p-3">
             <div className="flex flex-wrap items-baseline gap-3">
-              <span className="text-xs uppercase tracking-wide text-muted-foreground">Total</span>
+              <span className="text-xs uppercase tracking-wide text-muted-foreground">{t('tokenUsagePage.total')}</span>
               <span className="font-mono text-xl text-foreground">
                 {formatNumber(data.total)}
               </span>
               {data.totalInput != null && (
                 <span className="text-xs text-muted-foreground">
-                  input {formatNumber(data.totalInput)}
+                  {t('tokenUsagePage.input')} {formatNumber(data.totalInput)}
                 </span>
               )}
               {data.totalOutput != null && (
                 <span className="text-xs text-muted-foreground">
-                  output {formatNumber(data.totalOutput)}
+                  {t('tokenUsagePage.output')} {formatNumber(data.totalOutput)}
                 </span>
               )}
             </div>
           </Panel>
 
-          <Panel title={`By worker (${perWorker.length})`} className="p-3">
+          <Panel title={tFormat('tokenUsagePage.byWorker', { n: String(perWorker.length) })} className="p-3">
             {perWorker.length === 0 ? (
               <EmptyPanel message={t('tokenUsage.empty')} />
             ) : (
@@ -213,9 +213,9 @@ export default function TokenUsage() {
             )}
           </Panel>
 
-          <Panel title={`By day (${perDay.length})`} className="p-3">
+          <Panel title={tFormat('tokenUsagePage.byDay', { n: String(perDay.length) })} className="p-3">
             {perDay.length === 0 ? (
-              <EmptyPanel message="No per-day usage recorded in this window." />
+              <EmptyPanel message={t('tokenUsagePage.byDay.empty')} />
             ) : (
               <ul className="flex flex-col gap-1.5">
                 {perDay.map((e) => (
@@ -234,16 +234,16 @@ export default function TokenUsage() {
           </Panel>
 
           {perTask && Array.isArray(data.perTask) && (
-            <Panel title={`Per-task (${data.perTask.length})`} className="p-3 text-xs">
+            <Panel title={tFormat('tokenUsagePage.perTaskHeading', { n: String(data.perTask.length) })} className="p-3 text-xs">
               <div className="max-h-64 overflow-y-auto">
                 <table className="w-full text-left font-mono">
                   <thead className="text-muted-foreground">
                     <tr>
-                      <th className="py-1 pr-2">Worker</th>
-                      <th className="py-1 pr-2">Task</th>
-                      <th className="py-1 pr-2 text-right">Total</th>
-                      <th className="py-1 pr-2 text-right">Input</th>
-                      <th className="py-1 pr-2 text-right">Output</th>
+                      <th className="py-1 pr-2">{t('tokenUsagePage.tableHeader.worker')}</th>
+                      <th className="py-1 pr-2">{t('tokenUsagePage.tableHeader.task')}</th>
+                      <th className="py-1 pr-2 text-right">{t('tokenUsagePage.tableHeader.total')}</th>
+                      <th className="py-1 pr-2 text-right">{t('tokenUsagePage.tableHeader.input')}</th>
+                      <th className="py-1 pr-2 text-right">{t('tokenUsagePage.tableHeader.output')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -265,7 +265,7 @@ export default function TokenUsage() {
       )}
 
       {quota && quota.tiers && (
-        <Panel title="Tier quota (today)" className="p-3 text-xs">
+        <Panel title={t('tokenUsagePage.tierQuota')} className="p-3 text-xs">
           <ul className="flex flex-col gap-1.5">
             {Object.entries(quota.tiers).map(([tier, snap]) => (
               <li key={tier} className="flex items-center gap-2">

@@ -103,14 +103,14 @@ export default function Batch() {
 
   return (
     <PageFrame
-      title="Batch dispatch"
-      description="Send the same task to N workers or one task per line from a pasted list. Mirrors `c4 batch`."
+      title={t('batchPage.title')}
+      description={t('batchPage.description')}
       actions={
         <>
           <Tooltip label={t('batch.tooltip.dispatch')}>
             <Button type="button" variant="default" size="sm" onClick={submit} disabled={busy}>
               {busy ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-              <span>{busy ? 'Dispatching...' : 'Dispatch'}</span>
+              <span>{busy ? t('batchPage.dispatching') : t('batchPage.dispatch')}</span>
             </Button>
           </Tooltip>
         </>
@@ -143,7 +143,7 @@ export default function Batch() {
             size="sm"
             onClick={() => setMode('count')}
           >
-            Same task N times
+            {t('batchPage.modeCount')}
           </Button>
         </Tooltip>
         <Tooltip label={t('batch.tooltip.modeFile')}>
@@ -153,7 +153,7 @@ export default function Batch() {
             size="sm"
             onClick={() => setMode('file')}
           >
-            One task per line
+            {t('batchPage.modeFile')}
           </Button>
         </Tooltip>
       </div>
@@ -161,18 +161,18 @@ export default function Batch() {
       {mode === 'count' ? (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div className="md:col-span-2">
-            <Label htmlFor="batch-task">Task</Label>
+            <Label htmlFor="batch-task">{t('batchPage.task')}</Label>
             <textarea
               id="batch-task"
               rows={4}
               value={task}
               onChange={(e) => setTask(e.target.value)}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              placeholder="Task to send to every worker"
+              placeholder={t('batchPage.task.placeholder')}
             />
           </div>
           <div>
-            <Label htmlFor="batch-count">Count</Label>
+            <Label htmlFor="batch-count">{t('batchPage.count')}</Label>
             <Input
               id="batch-count"
               type="number"
@@ -183,20 +183,20 @@ export default function Batch() {
             />
           </div>
           <div>
-            <Label htmlFor="batch-prefix">Name prefix</Label>
+            <Label htmlFor="batch-prefix">{t('batchPage.namePrefix')}</Label>
             <Tooltip label={t('batch.tooltip.prefix')} placement="top">
               <Input
                 id="batch-prefix"
                 value={namePrefix}
                 onChange={(e) => setNamePrefix(e.target.value)}
-                placeholder="batch"
+                placeholder={t('batchPage.namePrefix.placeholder')}
               />
             </Tooltip>
           </div>
         </div>
       ) : (
         <div>
-          <Label htmlFor="batch-tasks">Tasks (one per line, `#` lines ignored)</Label>
+          <Label htmlFor="batch-tasks">{t('batchPage.tasks')}</Label>
           <textarea
             id="batch-tasks"
             rows={8}
@@ -210,24 +210,24 @@ export default function Batch() {
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <div>
-          <Label htmlFor="batch-branch">Branch prefix</Label>
+          <Label htmlFor="batch-branch">{t('batchPage.branchPrefix')}</Label>
           <Tooltip label={t('batch.tooltip.branch')} placement="top">
             <Input
               id="batch-branch"
               value={branch}
               onChange={(e) => setBranch(e.target.value)}
-              placeholder="feature"
+              placeholder={t('batchPage.branchPrefix.placeholder')}
             />
           </Tooltip>
         </div>
         <div>
-          <Label htmlFor="batch-profile">Profile</Label>
+          <Label htmlFor="batch-profile">{t('batchPage.profile')}</Label>
           <Tooltip label={t('batch.tooltip.profile')} placement="top">
             <Input
               id="batch-profile"
               value={profile}
               onChange={(e) => setProfile(e.target.value)}
-              placeholder="web, planner, ..."
+              placeholder={t('batchPage.profile.placeholder')}
             />
           </Tooltip>
         </div>
@@ -239,7 +239,7 @@ export default function Batch() {
                 checked={autoMode}
                 onChange={(e) => setAutoMode(e.target.checked)}
               />
-              <span>Auto mode</span>
+              <span>{t('batchPage.autoMode')}</span>
             </label>
           </Tooltip>
         </div>
@@ -248,7 +248,7 @@ export default function Batch() {
       {error && <ErrorPanel message={error} />}
 
       {result && (
-        <Panel title="Results" className="p-3 text-xs">
+        <Panel title={t('batchPage.results')} className="p-3 text-xs">
           <div className="mb-2 text-sm text-muted-foreground">
             {`${result.ok} ok / ${result.fail} failed / ${result.total} total`}
           </div>
