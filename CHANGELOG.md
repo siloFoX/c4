@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.455] - 2026-05-04 — Inline status messages (set*Msg)
+
+**Web — inline result-strip text emitted by `set*Msg()` calls.**
+Most of these are short technical responses (`name + task
+required`, `contribution recorded`, `path required`) that
+operators see briefly inside admin panels.
+
+### Added (8 keys)
+- `specialists.rotate.skipped`.
+- `meetings.template.nameTaskRequired`.
+- `meetings.contribute.{specialistTextRequired,recorded,specialistRequired}`.
+- `meetings.integrity.{persistDisabled,ok}`.
+- `meetings.backup.pathRequired`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1025 keys.
+
 ## [1.10.454] - 2026-05-04 — TOUR_STEPS keys + prune confirm + role catalog
 
 ### Added (~14 keys)

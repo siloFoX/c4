@@ -561,7 +561,7 @@ export default function MeetingsView() {
     const name = tplName.trim();
     const task = tplTask.trim();
     if (!name || !task) {
-      setTplMsg('name + task required');
+      setTplMsg(t('meetings.template.nameTaskRequired'));
       return;
     }
     setTplBusy(true);
@@ -828,7 +828,7 @@ export default function MeetingsView() {
     const sid = contribSpecialist.trim();
     const text = contribText.trim();
     if (!sid || !text) {
-      setContribMsg('specialistId + text required');
+      setContribMsg(t('meetings.contribute.specialistTextRequired'));
       return;
     }
     setContribBusy(true);
@@ -846,7 +846,7 @@ export default function MeetingsView() {
       setContribText('');
       setContribReason('');
       setContribVote('');
-      setContribMsg('contribution recorded');
+      setContribMsg(t('meetings.contribute.recorded'));
       window.setTimeout(() => setContribMsg(null), 3000);
     } catch (e) {
       setContribMsg(`contribute failed: ${(e as Error).message || 'unknown'}`);
@@ -857,7 +857,7 @@ export default function MeetingsView() {
   const handleVoteOnly = useCallback(async (id: string, vote: 'accept' | 'object') => {
     const sid = contribSpecialist.trim();
     if (!sid) {
-      setContribMsg('specialistId required for vote-only');
+      setContribMsg(t('meetings.contribute.specialistRequired'));
       return;
     }
     setContribBusy(true);
@@ -992,9 +992,9 @@ export default function MeetingsView() {
         '/api/meetings/persist-integrity',
       );
       if (!res.enabled) {
-        setIntegrityMsg('persist disabled — integrity check skipped');
+        setIntegrityMsg(t('meetings.integrity.persistDisabled'));
       } else if (res.ok) {
-        setIntegrityMsg('ok — no integrity errors');
+        setIntegrityMsg(t('meetings.integrity.ok'));
       } else {
         setIntegrityMsg(`failed — ${res.errors.length} error(s): ${res.errors.slice(0, 3).join('; ')}`);
       }
@@ -1012,7 +1012,7 @@ export default function MeetingsView() {
   const handleBackup = useCallback(async () => {
     const path = backupPath.trim();
     if (!path) {
-      setBackupMsg('path required');
+      setBackupMsg(t('meetings.backup.pathRequired'));
       return;
     }
     setBackupBusy(true);

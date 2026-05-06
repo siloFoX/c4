@@ -530,7 +530,7 @@ export default function SpecialistsView() {
       if (res.rotated) {
         setRotateMsg(`rotated → ${res.archive || 'archive'}`);
       } else {
-        setRotateMsg('rotate skipped (size below threshold)');
+        setRotateMsg(t('specialists.rotate.skipped'));
       }
       window.setTimeout(() => setRotateMsg(null), 4000);
     } catch (e) {
