@@ -1742,7 +1742,7 @@ export default function MeetingsView() {
                     className="h-6 px-2 text-[10px]"
                     title="Run SQLite PRAGMA integrity_check on the persist DB"
                   >
-                    {integrityBusy ? '…' : 'Integrity check'}
+                    {integrityBusy ? '…' : t('meetings.maintenance.integrity')}
                   </Button>
                   {integrityMsg ? (
                     <span className={cn(
@@ -1765,7 +1765,7 @@ export default function MeetingsView() {
                   className="h-6 px-2 text-[10px]"
                   title="Force-rebuild the FTS5 index"
                 >
-                  {ftsBusy ? '…' : 'Rebuild FTS'}
+                  {ftsBusy ? '…' : t('meetings.maintenance.fts')}
                 </Button>
                 {ftsMsg ? (
                   <span className={cn(
@@ -1806,7 +1806,7 @@ export default function MeetingsView() {
                     className="h-6 px-2 text-[10px]"
                     title="Hot backup via SQLite VACUUM INTO"
                   >
-                    {backupBusy ? '…' : 'Backup'}
+                    {backupBusy ? '…' : t('meetings.maintenance.backup')}
                   </Button>
                 </div>
                 {backupMsg ? (
@@ -1861,7 +1861,7 @@ export default function MeetingsView() {
                     className="h-6 px-2 text-[10px]"
                     title="Preview which meetings would be pruned"
                   >
-                    {pruneBusy ? '…' : 'Dry run'}
+                    {pruneBusy ? '…' : t('meetings.maintenance.dryRun')}
                   </Button>
                   <Button
                     size="sm"
@@ -1871,7 +1871,7 @@ export default function MeetingsView() {
                     className="h-6 px-2 text-[10px]"
                     title="Permanently delete meetings older than N days"
                   >
-                    {pruneBusy ? '…' : 'Prune'}
+                    {pruneBusy ? '…' : t('meetings.maintenance.prune')}
                   </Button>
                 </div>
                 {pruneMsg ? (

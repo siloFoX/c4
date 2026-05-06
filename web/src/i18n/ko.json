@@ -286,6 +286,11 @@
   "meetings.peerBrain.aria": "Peer-retro brain",
   "meetings.gitCommit": "git commit",
   "meetings.gitPush": "+ push",
+  "meetings.maintenance.integrity": "무결성 체크",
+  "meetings.maintenance.fts": "FTS 재빌드",
+  "meetings.maintenance.backup": "백업",
+  "meetings.maintenance.dryRun": "Dry run",
+  "meetings.maintenance.prune": "Prune",
 
   "workflows.title": "워크플로우",
   "workflows.empty": "워크플로우가 없습니다. {cli} 명령으로 추가하세요.",

@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.410] - 2026-05-04
+
+**Web — MeetingsView Maintenance footer button labels i18n.**
+Five buttons inside the collapsible Maintenance panel —
+Integrity check / Rebuild FTS / Backup / Dry run / Prune.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 5 new keys under
+  `meetings.maintenance.*`.
+- **`web/src/components/MeetingsView.tsx`**: button labels →
+  `t(...)`.
+
+### Korean copy
+- 무결성 체크 / FTS 재빌드 / 백업 / Dry run / Prune.
+- (Dry run / Prune kept as English — operator CLI-side
+  vocabulary the daemon writes to the audit log verbatim.)
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.409] - 2026-05-04
 
 **Web — MeetingsView brain selectors + git toggles i18n.** brain

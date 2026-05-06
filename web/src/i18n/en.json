@@ -286,6 +286,11 @@
   "meetings.peerBrain.aria": "Peer-retro brain",
   "meetings.gitCommit": "git commit",
   "meetings.gitPush": "+ push",
+  "meetings.maintenance.integrity": "Integrity check",
+  "meetings.maintenance.fts": "Rebuild FTS",
+  "meetings.maintenance.backup": "Backup",
+  "meetings.maintenance.dryRun": "Dry run",
+  "meetings.maintenance.prune": "Prune",
 
   "workflows.title": "Workflows",
   "workflows.empty": "No workflows yet. Use {cli} to add one.",
