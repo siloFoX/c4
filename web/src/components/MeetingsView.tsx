@@ -840,15 +840,19 @@ export default function MeetingsView() {
   const [contribReason, setContribReason] = useState('');
   const [contribBusy, setContribBusy] = useState(false);
   const [contribMsg, setContribMsg] = useState<string | null>(null);
+  // (v1.10.483) Tone separated from message text — see prior tone refactors.
+  const [contribFailed, setContribFailed] = useState(false);
   const handleContribute = useCallback(async (id: string) => {
     const sid = contribSpecialist.trim();
     const text = contribText.trim();
     if (!sid || !text) {
       setContribMsg(t('meetings.contribute.specialistTextRequired'));
+      setContribFailed(true);
       return;
     }
     setContribBusy(true);
     setContribMsg(null);
+    setContribFailed(false);
     try {
       const body: {
         specialistId: string;
@@ -865,7 +869,10 @@ export default function MeetingsView() {
       setContribMsg(t('meetings.contribute.recorded'));
       window.setTimeout(() => setContribMsg(null), 3000);
     } catch (e) {
-      setContribMsg(`contribute failed: ${(e as Error).message || 'unknown'}`);
+      setContribMsg(tFormat('meetings.contribute.failed', {
+        error: (e as Error).message || t('common.unknown'),
+      }));
+      setContribFailed(true);
     } finally {
       setContribBusy(false);
     }
@@ -874,19 +881,24 @@ export default function MeetingsView() {
     const sid = contribSpecialist.trim();
     if (!sid) {
       setContribMsg(t('meetings.contribute.specialistRequired'));
+      setContribFailed(true);
       return;
     }
     setContribBusy(true);
     setContribMsg(null);
+    setContribFailed(false);
     try {
       const body: { specialistId: string; vote: 'accept' | 'object'; reason?: string } = { specialistId: sid, vote };
       if (contribReason.trim()) body.reason = contribReason.trim();
       await apiPost(`/api/meetings/${encodeURIComponent(id)}/vote`, body);
       setContribReason('');
-      setContribMsg(`vote ${vote} recorded`);
+      setContribMsg(tFormat('meetings.contribute.voteRecorded', { vote }));
       window.setTimeout(() => setContribMsg(null), 3000);
     } catch (e) {
-      setContribMsg(`vote failed: ${(e as Error).message || 'unknown'}`);
+      setContribMsg(tFormat('meetings.contribute.voteFailed', {
+        error: (e as Error).message || t('common.unknown'),
+      }));
+      setContribFailed(true);
     } finally {
       setContribBusy(false);
     }
@@ -1039,22 +1051,32 @@ export default function MeetingsView() {
   const [backupForce, setBackupForce] = useState(false);
   const [backupBusy, setBackupBusy] = useState(false);
   const [backupMsg, setBackupMsg] = useState<string | null>(null);
+  // (v1.10.483) Tone separated from message text — see prior tone refactors.
+  const [backupFailed, setBackupFailed] = useState(false);
   const handleBackup = useCallback(async () => {
     const path = backupPath.trim();
     if (!path) {
       setBackupMsg(t('meetings.backup.pathRequired'));
+      setBackupFailed(true);
       return;
     }
     setBackupBusy(true);
     setBackupMsg(null);
+    setBackupFailed(false);
     try {
       const res = await apiPost<{ ok: boolean; path: string; bytes: number | null }>(
         '/api/meetings/persist-backup',
         { path, force: backupForce },
       );
-      setBackupMsg(`backup ok — ${res.path} (${res.bytes != null ? `${res.bytes} bytes` : 'size unknown'})`);
+      const size = res.bytes != null
+        ? tFormat('meetings.backup.bytes', { bytes: res.bytes })
+        : t('meetings.backup.sizeUnknown');
+      setBackupMsg(tFormat('meetings.backup.success', { path: res.path, size }));
     } catch (e) {
-      setBackupMsg(`backup failed: ${(e as Error).message || 'unknown'}`);
+      setBackupMsg(tFormat('meetings.backup.failed', {
+        error: (e as Error).message || t('common.unknown'),
+      }));
+      setBackupFailed(true);
     } finally {
       setBackupBusy(false);
     }
@@ -1093,10 +1115,13 @@ export default function MeetingsView() {
   const [pruneVacuum, setPruneVacuum] = useState(false);
   const [pruneBusy, setPruneBusy] = useState(false);
   const [pruneMsg, setPruneMsg] = useState<string | null>(null);
+  // (v1.10.483) Tone separated from message text — see prior tone refactors.
+  const [pruneFailed, setPruneFailed] = useState(false);
   const handlePrune = useCallback(async (dryRun: boolean) => {
     const daysNum = Number(pruneDays);
     if (!Number.isFinite(daysNum) || daysNum < 1) {
       setPruneMsg(t('meetings.prune.daysInvalid'));
+      setPruneFailed(true);
       return;
     }
     if (!dryRun) {
@@ -1112,6 +1137,7 @@ export default function MeetingsView() {
     }
     setPruneBusy(true);
     setPruneMsg(null);
+    setPruneFailed(false);
     try {
       const res = await apiPost<{
         count: number;
@@ -1124,13 +1150,16 @@ export default function MeetingsView() {
         dryRun,
         vacuum: pruneVacuum,
       });
-      const verb = res.dryRun ? 'would prune' : 'pruned';
-      setPruneMsg(
-        `${verb} ${res.count} meeting(s) older than ${res.cutoffISO}`,
-      );
+      setPruneMsg(tFormat(
+        res.dryRun ? 'meetings.prune.wouldPrune' : 'meetings.prune.pruned',
+        { count: res.count, cutoff: res.cutoffISO },
+      ));
       if (!res.dryRun) refresh();
     } catch (e) {
-      setPruneMsg(`prune failed: ${(e as Error).message || 'unknown'}`);
+      setPruneMsg(tFormat('meetings.prune.failed', {
+        error: (e as Error).message || t('common.unknown'),
+      }));
+      setPruneFailed(true);
     } finally {
       setPruneBusy(false);
     }
@@ -1862,7 +1891,7 @@ export default function MeetingsView() {
                 {backupMsg ? (
                   <span className={cn(
                     'truncate',
-                    backupMsg.startsWith('backup failed') || backupMsg === 'path required'
+                    backupFailed
                       ? 'text-destructive' : 'text-muted-foreground',
                   )}>
                     {backupMsg}
@@ -1927,7 +1956,7 @@ export default function MeetingsView() {
                 {pruneMsg ? (
                   <span className={cn(
                     'truncate',
-                    pruneMsg.startsWith('prune failed') || pruneMsg.startsWith('days must')
+                    pruneFailed
                       ? 'text-destructive' : 'text-muted-foreground',
                   )}>
                     {pruneMsg}
@@ -2139,10 +2168,7 @@ export default function MeetingsView() {
                 {contribMsg ? (
                   <span className={cn(
                     'truncate',
-                    contribMsg.startsWith('contribute failed') ||
-                    contribMsg.startsWith('vote failed') ||
-                    contribMsg === 'specialistId + text required' ||
-                    contribMsg === 'specialistId required for vote-only'
+                    contribFailed
                       ? 'text-destructive' : 'text-muted-foreground',
                   )}>
                     {contribMsg}

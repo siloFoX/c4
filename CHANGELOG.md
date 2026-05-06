@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.483] - 2026-05-06 — Meetings backup/prune/contribute tone
+
+**Web — last 3 MeetingsView tone-detection refactors.**
+backup-strip (.startsWith('backup failed') || === 'path
+required'), prune-strip (.startsWith('prune failed') || .
+startsWith('days must')), contribute-strip (4-way compound
+sniff). All replaced with dedicated `*Failed` boolean
+states. Failure + "would prune"/"pruned" messages also
+migrated to parameterised i18n keys.
+
+### Added (~9 keys)
+- `meetings.backup.{success,bytes,sizeUnknown,failed}` —
+  success takes `{path}`/`{size}`, bytes `{bytes}`.
+- `meetings.prune.{wouldPrune,pruned,failed}` —
+  wouldPrune/pruned `{count}`/`{cutoff}`.
+- `meetings.contribute.{failed,voteRecorded,voteFailed}` —
+  voteRecorded `{vote}`, failed/voteFailed `{error}`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- All 7 .startsWith() locale-flip sniffs now refactored
+  (Config + WikiView + Specialists + 4× Meetings). Korean
+  i18n bundle now at ~1220 keys.
+
 ## [1.10.482] - 2026-05-06 — Meetings FTS tone + i18n
 
 **Web — MeetingsView FTS-rebuild tone refactor.** Same
