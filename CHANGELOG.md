@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.411] - 2026-05-04
+
+**Web — SpecialistsView action button labels i18n.** Export /
+Rotate audit / Export CSV / Verify chain / + rotated buttons in
+the toolbar, plus the per-specialist Suggest revision and Apply
+via meeting buttons (with their busy-state copies).
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 9 new keys
+  (`specialists.exportButton`, `specialists.rotateAudit`,
+  `specialists.exportCsv`, `specialists.verifyChain`,
+  `specialists.verifyPlusRotated`, `specialists.suggestRevision`
+  + `Asking`, `specialists.applyViaMeeting` + `Applying`).
+- **`web/src/components/SpecialistsView.tsx`**: button labels
+  flow through `t()`.
+
+### Korean copy
+- Export / 감사 로테이트 / CSV 내보내기 / 체인 검증 / +
+  로테이트본 / 수정안 제안 / 요청 중… / 회의로 적용 / 적용
+  중….
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.410] - 2026-05-04
 
 **Web — MeetingsView Maintenance footer button labels i18n.**

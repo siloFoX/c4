@@ -741,7 +741,7 @@ export default function SpecialistsView() {
           className="h-6 px-2 text-[10px]"
           title="Download a self-contained JSON bundle of the registry"
         >
-          {exportBusy ? '…' : 'Export'}
+          {exportBusy ? '…' : t('specialists.exportButton')}
         </Button>
         {exportMsg ? (
           <span className={cn(
@@ -819,7 +819,7 @@ export default function SpecialistsView() {
           className="h-6 px-2 text-[10px]"
           title="Rotate the audit JSONL into a timestamped archive"
         >
-          {rotateBusy ? '…' : 'Rotate audit'}
+          {rotateBusy ? '…' : t('specialists.rotateAudit')}
         </Button>
         {rotateMsg ? (
           <span className={cn(
@@ -879,7 +879,7 @@ export default function SpecialistsView() {
                   className="rounded border border-border bg-muted/30 px-1.5 py-0 text-[10px] text-muted-foreground hover:bg-accent/40"
                   title="Download CSV of audit entries in the current window"
                 >
-                  {exportAuditBusy ? '…' : 'Export CSV'}
+                  {exportAuditBusy ? '…' : t('specialists.exportCsv')}
                 </button>
                 <button
                   type="button"
@@ -888,7 +888,7 @@ export default function SpecialistsView() {
                   className="rounded border border-border bg-muted/30 px-1.5 py-0 text-[10px] text-muted-foreground hover:bg-accent/40"
                   title="Verify the live audit-log hash chain"
                 >
-                  {verifyBusy ? '…' : 'Verify chain'}
+                  {verifyBusy ? '…' : t('specialists.verifyChain')}
                 </button>
                 <button
                   type="button"
@@ -897,7 +897,7 @@ export default function SpecialistsView() {
                   className="rounded border border-border bg-muted/30 px-1.5 py-0 text-[10px] text-muted-foreground hover:bg-accent/40"
                   title="Verify the live audit-log + rotated archives"
                 >
-                  + rotated
+                  {t('specialists.verifyPlusRotated')}
                 </button>
                 {verifyResult ? (
                   <span
@@ -1410,7 +1410,7 @@ export default function SpecialistsView() {
                       className="h-6 px-2 text-[10px]"
                       title="Ask brain to draft a revised systemPrompt — review-only"
                     >
-                      {suggestBusy ? 'Asking…' : 'Suggest revision'}
+                      {suggestBusy ? t('specialists.suggestRevisionAsking') : t('specialists.suggestRevision')}
                     </Button>
                     {/* (Phase 5.2) Apply via meeting consensus.
                         Spawns a meta-meeting. On accepted consensus
@@ -1423,7 +1423,7 @@ export default function SpecialistsView() {
                       className="h-6 px-2 text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-300"
                       title="Spawn meta-meeting and apply revision on consensus"
                     >
-                      {applyBusy ? 'Applying…' : 'Apply via meeting'}
+                      {applyBusy ? t('specialists.applyViaMeetingApplying') : t('specialists.applyViaMeeting')}
                     </Button>
                   </div>
                 </div>
