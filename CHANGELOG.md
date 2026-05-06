@@ -4,6 +4,61 @@
 
 (no entries — next release window)
 
+## [1.10.500] - 2026-05-07 — i18n migration milestone
+
+**Web — i18n migration declared structurally complete.**
+v1.10.339 → v1.10.500 = 162 ships across the i18n
+window. Korean i18n bundle: 151 keys → ~1311 keys
+(+1160 keys).
+
+### Coverage
+- All 51 React components
+- All 17 page files
+- 8 tone-state `*Failed`/`*Rejected` boolean refactors
+  (Config / Wiki / Specialists / 4× Meetings / Autonomous)
+- 5 round-2 tone-state refactors (Specialists propose +
+  export / Wiki bulkPublish / Meetings publish + peerRetro)
+- Constant catalogues migrated to `*Key` patterns: 6
+  catalogues including FEATURES (15 entries × label +
+  description = 30 keys), SessionsView TOUR_STEPS /
+  COMPARISON_ROW_KEYS / EMPTY_ATTACH_BANNER_*_KEY /
+  POST_ATTACH_HELP_*_KEY, WikiView TYPE_OPTIONS,
+  MeetingsView mode/track/brain options.
+
+### Visual verification
+- `scripts/i18n-visual-check.js` — Playwright walk over
+  ~34 surfaces (11 top tabs + 5 overlays + 16 feature
+  pages + 8 header buttons + 11 tooltip title attrs).
+- All UI labels passing 0-leak in ko locale.
+- Inspected blind spots (Settings sub-sections,
+  ConfirmDialog, OnboardingTour, WorkflowEditor inner
+  panels) confirmed already-migrated via source review.
+
+### Tests
+- `tests/web-smoke.test.js` updated for the locale
+  cascade (force `localStorage['c4.locale']='en'` in
+  test before()) + bilingual help heading regex.
+- `tests/sessions-view.test.js` and
+  `tests/attach-detach-symmetry.test.js` regex anchors
+  moved from literal English to `*_KEY` constants.
+- 200/200 tests green; 20/20 Playwright web-smoke green.
+
+### Notes
+- Korean operators can now flip locale once and run
+  through every tab/modal/feature page without
+  encountering hard-coded English.
+- Remaining English in the rendered DOM is limited to:
+  brand names ("Claude", "C4", etc.), DOM key codes
+  ("Enter", "Esc"), HTTP headers, universal units (KB/
+  MB), CLI command examples (`claude --resume <id>`),
+  server-emitted enum statuses, scribe markers, Claude
+  Code tool names (Bash/Edit/Read/Write/...), and user-
+  registered content (specialist domain tags, workflow
+  names, session preview snippets).
+- The visual check is the canonical regression guard;
+  rerun it before any future ship that touches user-
+  facing strings.
+
 ## [1.10.499] - 2026-05-07 — Visual scan: AppHeader buttons walk
 
 **Web — `scripts/i18n-visual-check.js` extended with an
