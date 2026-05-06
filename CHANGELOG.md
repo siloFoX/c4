@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.485] - 2026-05-06 — Specialists/Wiki/Meetings tone (round 2)
+
+**Web — five more tone-detection refactors found via grep
+sweep.** SpecialistsView (proposeMsg amber-vs-emerald +
+exportMsg destructive), WikiView (bulkMsg destructive),
+MeetingsView (publishMsg + peerRetroMsg destructive). All
+replaced with `*Failed`/`*Rejected` boolean states.
+
+### Added (~12 keys)
+- `wiki.bulkPublish.{success,gitCommitted,gitPushed,
+  committedFallback,failed}` — success takes
+  `{written}`/`{skipped}`, gitCommitted `{sha}`.
+- `meetings.publish.{success,gitCommitted,gitPushed,
+  committedFallback,failed}` — success `{count}`/`{root}`.
+- `meetings.peerRetro.{success,failed}` — success
+  `{raters}`/`{ratings}`/`{updated}`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- All `Msg.startsWith()` and `Msg.includes('failed')` tone
+  sniffs in user-facing components are now refactored.
+  Korean i18n bundle now at ~1232 keys.
+
 ## [1.10.484] - 2026-05-06 — Autonomous pause-toggle tone state
 
 **Web — AutonomousView pause-toggle tone refactor.** The

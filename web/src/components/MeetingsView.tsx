@@ -722,6 +722,8 @@ export default function MeetingsView() {
   // from auto-publish which only fires inside /run).
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishMsg, setPublishMsg] = useState<string | null>(null);
+  // (v1.10.485) Tone separated from message text — see prior tone refactors.
+  const [publishFailed, setPublishFailed] = useState(false);
   // (Phase 3.4) git automation toggles. publish writes md-in-git;
   // gitCommit auto-commits via the daemon, gitPush also pushes.
   const [publishGitCommit, setPublishGitCommit] = useState(false);
@@ -730,6 +732,7 @@ export default function MeetingsView() {
   const handlePublish = useCallback(async (id: string) => {
     setPublishBusy(true);
     setPublishMsg(null);
+    setPublishFailed(false);
     try {
       const res = await apiPost<{
         ok: boolean;
@@ -746,14 +749,19 @@ export default function MeetingsView() {
         },
       );
       const n = (res && Array.isArray(res.written)) ? res.written.length : 0;
-      let msg = `published ${n} file(s) to ${res && res.wikiRoot}`;
+      let msg = tFormat('meetings.publish.success', { count: n, root: res && res.wikiRoot });
       if (res && res.git && res.git.committed) {
-        msg += ` · git ${res.git.sha ? res.git.sha.slice(0, 7) : 'committed'}${res.git.pushed ? ' + pushed' : ''}`;
+        const sha = res.git.sha ? res.git.sha.slice(0, 7) : t('meetings.publish.committedFallback');
+        msg += tFormat('meetings.publish.gitCommitted', { sha });
+        if (res.git.pushed) msg += t('meetings.publish.gitPushed');
       }
       setPublishMsg(msg);
       window.setTimeout(() => setPublishMsg(null), 4000);
     } catch (e) {
-      setPublishMsg(`publish failed: ${(e as Error).message || 'unknown'}`);
+      setPublishMsg(tFormat('meetings.publish.failed', {
+        error: (e as Error).message || t('common.unknown'),
+      }));
+      setPublishFailed(true);
     } finally {
       setPublishBusy(false);
     }
@@ -764,11 +772,14 @@ export default function MeetingsView() {
   // demo, claude for real ratings.
   const [peerRetroBusy, setPeerRetroBusy] = useState(false);
   const [peerRetroMsg, setPeerRetroMsg] = useState<string | null>(null);
+  // (v1.10.485) Tone separated from message text.
+  const [peerRetroFailed, setPeerRetroFailed] = useState(false);
   const [peerBrain, setPeerBrain] = useState<'mock' | 'claude'>('mock');
 
   const handlePeerRetro = useCallback(async (id: string) => {
     setPeerRetroBusy(true);
     setPeerRetroMsg(null);
+    setPeerRetroFailed(false);
     try {
       const res = await apiPost<{
         peer: {
@@ -784,10 +795,13 @@ export default function MeetingsView() {
       const ratings = (res && res.peer && res.peer.raw) ? res.peer.raw.length : 0;
       const raters = (res && res.peer && res.peer.raters) ? res.peer.raters.length : 0;
       const updated = res && res.applied ? Object.keys(res.applied).length : 0;
-      setPeerRetroMsg(`peer-retro ok — ${raters} raters, ${ratings} ratings, ${updated} specialist(s) updated`);
+      setPeerRetroMsg(tFormat('meetings.peerRetro.success', { raters, ratings, updated }));
       window.setTimeout(() => setPeerRetroMsg(null), 6000);
     } catch (e) {
-      setPeerRetroMsg(`peer-retro failed: ${(e as Error).message || 'unknown'}`);
+      setPeerRetroMsg(tFormat('meetings.peerRetro.failed', {
+        error: (e as Error).message || t('common.unknown'),
+      }));
+      setPeerRetroFailed(true);
     } finally {
       setPeerRetroBusy(false);
     }
@@ -2237,7 +2251,7 @@ export default function MeetingsView() {
               {publishMsg ? (
                 <span className={cn(
                   'text-[11px]',
-                  publishMsg.startsWith('publish failed')
+                  publishFailed
                     ? 'text-destructive' : 'text-muted-foreground',
                 )}>{publishMsg}</span>
               ) : null}
@@ -2269,7 +2283,7 @@ export default function MeetingsView() {
               {peerRetroMsg ? (
                 <span className={cn(
                   'text-[11px]',
-                  peerRetroMsg.startsWith('peer-retro failed')
+                  peerRetroFailed
                     ? 'text-destructive' : 'text-muted-foreground',
                 )}>{peerRetroMsg}</span>
               ) : null}

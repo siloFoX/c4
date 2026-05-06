@@ -151,12 +151,15 @@ export default function WikiView() {
   // so the new pages show up.
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
+  // (v1.10.485) Tone separated from message text — see prior tone refactors.
+  const [bulkFailed, setBulkFailed] = useState(false);
   const [bulkGitCommit, setBulkGitCommit] = useState(false);
   const [bulkGitPush, setBulkGitPush] = useState(false);
   const handleBulkPublish = useCallback(async () => {
     if (!window.confirm(t('wiki.bulkPublishConfirm'))) return;
     setBulkBusy(true);
     setBulkMsg(null);
+    setBulkFailed(false);
     try {
       const res = await apiPost<{
         written: string[];
@@ -169,15 +172,20 @@ export default function WikiView() {
       });
       const w = (res.written || []).length;
       const s = (res.skipped || []).length;
-      let msg = `published ${w} new page(s) · skipped ${s}`;
+      let msg = tFormat('wiki.bulkPublish.success', { written: w, skipped: s });
       if (res.git && res.git.committed) {
-        msg += ` · git ${res.git.sha ? res.git.sha.slice(0, 7) : 'committed'}${res.git.pushed ? ' + pushed' : ''}`;
+        const sha = res.git.sha ? res.git.sha.slice(0, 7) : t('wiki.bulkPublish.committedFallback');
+        msg += tFormat('wiki.bulkPublish.gitCommitted', { sha });
+        if (res.git.pushed) msg += t('wiki.bulkPublish.gitPushed');
       }
       setBulkMsg(msg);
       window.setTimeout(() => setBulkMsg(null), 6000);
       runSearch();
     } catch (e) {
-      setBulkMsg(`publish-all failed: ${(e as Error).message || 'unknown'}`);
+      setBulkMsg(tFormat('wiki.bulkPublish.failed', {
+        error: (e as Error).message || t('common.unknown'),
+      }));
+      setBulkFailed(true);
     } finally {
       setBulkBusy(false);
     }
@@ -282,8 +290,7 @@ export default function WikiView() {
               {bulkMsg ? (
                 <span className={cn(
                   'text-[11px]',
-                  bulkMsg.startsWith('publish-all failed')
-                    ? 'text-destructive' : 'text-muted-foreground',
+                  bulkFailed ? 'text-destructive' : 'text-muted-foreground',
                 )}>{bulkMsg}</span>
               ) : null}
             </div>

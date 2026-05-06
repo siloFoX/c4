@@ -295,6 +295,9 @@ export default function SpecialistsView() {
   // unfold.
   const [proposeBusy, setProposeBusy] = useState(false);
   const [proposeMsg, setProposeMsg] = useState<string | null>(null);
+  // (v1.10.485) Tone separated from message text — see prior tone refactors.
+  // Propose uses 'rejected' (amber/warning) vs 'accepted' (emerald/success).
+  const [proposeRejected, setProposeRejected] = useState(false);
   const handlePropose = useCallback(async () => {
     let parsed: unknown;
     try { parsed = JSON.parse(addJson); }
@@ -302,6 +305,7 @@ export default function SpecialistsView() {
     setProposeBusy(true);
     setAddError(null);
     setProposeMsg(null);
+    setProposeRejected(false);
     try {
       const res = await apiPost<{
         candidateId: string;
@@ -322,6 +326,7 @@ export default function SpecialistsView() {
           reason: res.decision.reason || t('common.unknown'),
           meetingId: res.meetingId,
         }));
+        setProposeRejected(true);
       }
       await refresh();
     } catch (e) {
@@ -426,9 +431,12 @@ export default function SpecialistsView() {
   // click with confirm.
   const [exportBusy, setExportBusy] = useState(false);
   const [exportMsg, setExportMsg] = useState<string | null>(null);
+  // (v1.10.485) Tone separated from message text — see prior tone refactors.
+  const [exportFailed, setExportFailed] = useState(false);
   const handleExport = useCallback(async () => {
     setExportBusy(true);
     setExportMsg(null);
+    setExportFailed(false);
     try {
       const bundle = await apiGet<{
         version: number;
@@ -449,6 +457,7 @@ export default function SpecialistsView() {
       window.setTimeout(() => setExportMsg(null), 4000);
     } catch (e) {
       setExportMsg(tFormat('specialists.export.failed', { error: (e as Error).message || t('common.unknown') }));
+      setExportFailed(true);
     } finally {
       setExportBusy(false);
     }
@@ -759,7 +768,7 @@ export default function SpecialistsView() {
         {exportMsg ? (
           <span className={cn(
             'truncate',
-            exportMsg.startsWith('export failed') ? 'text-destructive' : 'text-muted-foreground',
+            exportFailed ? 'text-destructive' : 'text-muted-foreground',
           )}>
             {exportMsg}
           </span>
@@ -1059,7 +1068,7 @@ export default function SpecialistsView() {
                 {proposeMsg ? (
                   <span className={cn(
                     'text-[11px]',
-                    proposeMsg.startsWith('rejected') ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400',
+                    proposeRejected ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400',
                   )}>
                     {proposeMsg}
                   </span>
