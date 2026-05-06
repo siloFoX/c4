@@ -116,19 +116,10 @@ export const COMPARISON_ROWS: Array<[string, string, string]> = [
   ['Resume', 'claude --resume <id>', 'Already running'],
 ];
 export const TOUR_STORAGE_KEY = 'sessions-tour-v1';
-export const TOUR_STEPS: Array<{ title: string; body: string }> = [
-  {
-    title: 'Welcome to Sessions',
-    body: 'Browse past Claude Code conversations recorded under ~/.claude/projects.',
-  },
-  {
-    title: 'Attach external sessions',
-    body: 'Click "Attach new..." to pin a JSONL transcript so it shows up in this tab.',
-  },
-  {
-    title: 'View or resume',
-    body: 'Open an attached row to read the timeline, or copy the claude --resume command to pick it back up.',
-  },
+export const TOUR_STEPS: Array<{ titleKey: string; bodyKey: string }> = [
+  { titleKey: 'sessions.tour.welcome.title', bodyKey: 'sessions.tour.welcome.body' },
+  { titleKey: 'sessions.tour.attach.title',  bodyKey: 'sessions.tour.attach.body' },
+  { titleKey: 'sessions.tour.view.title',    bodyKey: 'sessions.tour.view.body' },
 ];
 
 function formatRelative(iso: string | null): string {
@@ -612,7 +603,7 @@ function Tour({ onDismiss }: TourProps) {
         <CardHeader className="gap-1 border-b border-border p-4">
           <CardTitle className="flex items-center justify-between text-sm">
             <span>
-              {current.title}
+              {t(current.titleKey)}
               <span className="ml-2 text-xs font-normal text-muted-foreground">
                 {step + 1}/{TOUR_STEPS.length}
               </span>
@@ -628,7 +619,7 @@ function Tour({ onDismiss }: TourProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 p-4 text-sm">
-          <p className="text-muted-foreground">{current.body}</p>
+          <p className="text-muted-foreground">{t(current.bodyKey)}</p>
           <div className="flex items-center justify-between">
             <Button
               size="sm"

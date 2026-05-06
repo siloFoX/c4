@@ -184,12 +184,14 @@ describe('SessionsView.tsx - onboarding tour', () => {
   });
 
   it('defines 3 tour steps (welcome / attach / view-resume)', () => {
+    // TOUR_STEPS now stores i18n key references; copy lives in
+    // web/src/i18n/{en,ko}.json under sessions.tour.*.
     assert.match(src, /TOUR_STEPS\s*:\s*Array/);
-    assert.match(src, /'Welcome to Sessions'/);
-    assert.match(src, /'Attach external sessions'/);
-    assert.match(src, /'View or resume'/);
+    assert.match(src, /'sessions\.tour\.welcome\.title'/);
+    assert.match(src, /'sessions\.tour\.attach\.title'/);
+    assert.match(src, /'sessions\.tour\.view\.title'/);
     // Sanity: exactly three entries in the const array.
-    const stepMatches = src.match(/title:\s*'[^']+',[\s\S]{0,120}body:/g) || [];
+    const stepMatches = src.match(/titleKey:\s*'[^']+',[\s\S]{0,120}?bodyKey:/g) || [];
     assert.ok(
       stepMatches.length >= 3,
       `expected 3+ tour steps, saw ${stepMatches.length}`,

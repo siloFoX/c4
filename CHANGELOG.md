@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.454] - 2026-05-04 — TOUR_STEPS keys + prune confirm + role catalog
+
+### Added (~14 keys)
+- `sessions.tour.{welcome,attach,view}.{title,body}` — onboarding
+  tour content moved out of the const literals into the i18n
+  bundles.
+- `meetings.prune.{daysInvalid,confirm.header,confirm.terminal,
+  confirm.includes,confirm.vacuum,confirm.footer}` — multi-line
+  prune confirm dialog.
+- `pinnedRules.role.none` — "No template" entry in the role
+  template dropdown.
+
+### Changed
+- `TOUR_STEPS` const now stores `{ titleKey, bodyKey }` pairs
+  resolved through `t()` at render time.
+- `ROLE_OPTIONS` const stores `labelKey` (or `literal` for the
+  intentionally English `role-manager` / `role-worker` /
+  `role-attached` enum identifiers).
+- `MeetingsView` prune dry-run-confirm now composes the
+  multi-line prompt from i18n keys.
+
+### Tests
+- `sessions-view.test.js`: 4 regexes updated to match
+  `t('sessions.tour.*.title')` references and the
+  `titleKey/bodyKey` shape (with non-greedy `{0,120}?` quantifier
+  to avoid swallowing multiple entries in one match).
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1017 keys.
+
 ## [1.10.453] - 2026-05-04 — Model + agent choice catalogs
 
 **Web — `MODEL_CHOICES` + `AGENT_CHOICES` constants migrated to

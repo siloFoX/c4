@@ -1056,15 +1056,18 @@ export default function MeetingsView() {
   const handlePrune = useCallback(async (dryRun: boolean) => {
     const daysNum = Number(pruneDays);
     if (!Number.isFinite(daysNum) || daysNum < 1) {
-      setPruneMsg('days must be a positive number');
+      setPruneMsg(t('meetings.prune.daysInvalid'));
       return;
     }
     if (!dryRun) {
+      const scope = pruneTerminal
+        ? t('meetings.prune.confirm.terminal')
+        : t('meetings.prune.confirm.includes');
+      const vacuumSuffix = pruneVacuum ? t('meetings.prune.confirm.vacuum') : '';
       if (!window.confirm(
-        `Permanently prune meetings older than ${daysNum} day(s)?\n` +
-        `${pruneTerminal ? 'Terminal-only' : 'Includes pending/in-progress'}` +
-        `${pruneVacuum ? ' · VACUUM after' : ''}\n` +
-        'Run dry-run first to see candidates.',
+        `${tFormat('meetings.prune.confirm.header', { days: daysNum })}\n` +
+        `${scope}${vacuumSuffix}\n` +
+        t('meetings.prune.confirm.footer'),
       )) return;
     }
     setPruneBusy(true);

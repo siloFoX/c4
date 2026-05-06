@@ -16,11 +16,11 @@ interface PinnedRulesEditorProps {
   workerName: string;
 }
 
-const ROLE_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: '', label: 'No template' },
-  { value: 'manager', label: 'role-manager' },
-  { value: 'worker', label: 'role-worker' },
-  { value: 'attached', label: 'role-attached' },
+const ROLE_OPTIONS: Array<{ value: string; labelKey: string | null; literal?: string }> = [
+  { value: '', labelKey: 'pinnedRules.role.none' },
+  { value: 'manager', labelKey: null, literal: 'role-manager' },
+  { value: 'worker', labelKey: null, literal: 'role-worker' },
+  { value: 'attached', labelKey: null, literal: 'role-attached' },
 ];
 
 export default function PinnedRulesEditor({ workerName }: PinnedRulesEditorProps) {
@@ -124,7 +124,7 @@ export default function PinnedRulesEditor({ workerName }: PinnedRulesEditorProps
           >
             {ROLE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
-                {opt.label}
+                {opt.labelKey ? t(opt.labelKey) : opt.literal}
               </option>
             ))}
           </select>
