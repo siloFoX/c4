@@ -66,7 +66,7 @@ export default function Config() {
     setReloadMsg(null);
     try {
       const res = await apiPost<ReloadResponse>('/api/config/reload', {});
-      setReloadMsg(res.ok ? 'reload ok — sub-systems re-applied' : 'reload returned not-ok');
+      setReloadMsg(res.ok ? t('config.reloadOk') : t('config.reloadNotOk'));
       window.setTimeout(() => setReloadMsg(null), 5000);
       refresh();
     } catch (e) {

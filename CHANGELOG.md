@@ -4,6 +4,21 @@
 
 (no entries — next release window)
 
+## [1.10.476] - 2026-05-06 — Config reload + score timestamp
+
+**Web — small inline state strings.** Config page reload
+result message ('reload ok' / 'reload returned not-ok'),
+SpecialistsView score-card last-updated / no-updates label.
+
+### Added (4 keys)
+- `config.{reloadOk,reloadNotOk}`.
+- `specialists.audit.{noUpdates,lastUpdated}` — lastUpdated
+  takes `{at}`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1202 keys.
+
 ## [1.10.475] - 2026-05-06 — Sessions onboarding strings
 
 **Web — Sessions onboarding constants migrated to i18n.**

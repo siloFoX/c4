@@ -1381,8 +1381,8 @@ export default function SpecialistsView() {
                   </div>
                   <div className="text-[11px] text-muted-foreground">
                     {selected.score.lastUpdated
-                      ? `last updated ${selected.score.lastUpdated}`
-                      : 'no updates yet'}
+                      ? tFormat('specialists.audit.lastUpdated', { at: selected.score.lastUpdated })
+                      : t('specialists.audit.noUpdates')}
                   </div>
                   {Object.keys(selected.score.byDomain).length > 0 ? (
                     <div className="mt-2">
