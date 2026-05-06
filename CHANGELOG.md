@@ -4,6 +4,21 @@
 
 (no entries — next release window)
 
+## [1.10.484] - 2026-05-06 — Autonomous pause-toggle tone state
+
+**Web — AutonomousView pause-toggle tone refactor.** The
+strip used `pauseMsg.includes('failed')` to drive
+destructive styling, which fails after locale flip ('실패'
+doesn't contain 'failed'). Added `pauseFailed` boolean
+state.
+
+### Notes
+- HistoryView status badge variants (recordStatusVariant)
+  also use `s.includes('error'|'fail'|'ok'|...)` but the
+  status values are server-emitted English enums that
+  don't translate, so no fix needed.
+- 200/200 tests green, lint+drift clean, build clean.
+
 ## [1.10.483] - 2026-05-06 — Meetings backup/prune/contribute tone
 
 **Web — last 3 MeetingsView tone-detection refactors.**

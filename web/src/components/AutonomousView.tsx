@@ -77,6 +77,8 @@ export default function AutonomousView() {
   const [showResolved, setShowResolved] = useState(false);
   const [pauseBusy, setPauseBusy] = useState(false);
   const [pauseMsg, setPauseMsg] = useState<string | null>(null);
+  // (v1.10.484) Tone separated from message text — see prior tone refactors.
+  const [pauseFailed, setPauseFailed] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -113,6 +115,7 @@ export default function AutonomousView() {
     const path = digest.paused ? 'resume' : 'pause';
     setPauseBusy(true);
     setPauseMsg(null);
+    setPauseFailed(false);
     try {
       await apiPost(`/api/autonomous/${path}`, {});
       setPauseMsg(t(path === 'resume' ? 'autonomous.pauseToggle.resumed' : 'autonomous.pauseToggle.paused'));
@@ -123,6 +126,7 @@ export default function AutonomousView() {
         path === 'resume' ? 'autonomous.pauseToggle.resumeFailed' : 'autonomous.pauseToggle.pauseFailed',
         { error: (err as Error).message || t('common.unknown') },
       ));
+      setPauseFailed(true);
     } finally {
       setPauseBusy(false);
     }
@@ -202,7 +206,7 @@ export default function AutonomousView() {
             {pauseMsg ? (
               <span className={cn(
                 'text-[11px]',
-                pauseMsg.includes('failed') ? 'text-destructive' : 'text-muted-foreground',
+                pauseFailed ? 'text-destructive' : 'text-muted-foreground',
               )}>
                 {pauseMsg}
               </span>
