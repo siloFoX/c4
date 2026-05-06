@@ -4,6 +4,23 @@
 
 (no entries — next release window)
 
+## [1.10.489] - 2026-05-06 — Batch tasks placeholder
+
+**Web — Batch page tasks textarea placeholder.** Multi-line
+example text ("# one task per line / fix lint errors in src/ /
+add tests for auth.js") was hard-coded; migrated to i18n.
+
+### Added (1 key)
+- `batch.tasksPlaceholder` — preserves `\n` newlines.
+
+### Notes
+- Other unmigrated placeholders are JSON technical examples
+  (WorkflowEditor `{"foo": "bar"}`, SpecialistsView spec
+  bundle JSON example) — these are code-like and don't
+  benefit from translation.
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1247 keys.
+
 ## [1.10.488] - 2026-05-06 — Live/Idle + task pluralisation
 
 **Web — ConversationView Live/Idle streaming chip + History

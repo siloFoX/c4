@@ -1045,6 +1045,7 @@
   "conversation.streaming.idle": "대기",
   "history.taskCount.singular": "{count}건",
   "history.taskCount.plural": "{count}건",
+  "batch.tasksPlaceholder": "# 한 줄에 하나의 작업\nsrc/의 lint 에러 수정\nauth.js 테스트 추가",
   "meetings.previewingRoster": "로스터 미리보기 중…",
   "chat.reset": "초기화",
   "chat.welcome": "예시: \"list workers\", \"create worker w1\", \"tell w1 to run tests\", \"status\", \"close w1\".",

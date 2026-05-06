@@ -203,7 +203,7 @@ export default function Batch() {
             value={tasksText}
             onChange={(e) => setTasksText(e.target.value)}
             className="w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            placeholder={"# one task per line\nfix lint errors in src/\nadd tests for auth.js"}
+            placeholder={t('batch.tasksPlaceholder')}
           />
         </div>
       )}

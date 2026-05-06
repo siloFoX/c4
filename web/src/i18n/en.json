@@ -1045,6 +1045,7 @@
   "conversation.streaming.idle": "Idle",
   "history.taskCount.singular": "{count} task",
   "history.taskCount.plural": "{count} tasks",
+  "batch.tasksPlaceholder": "# one task per line\nfix lint errors in src/\nadd tests for auth.js",
   "meetings.previewingRoster": "previewing roster…",
   "chat.reset": "Reset",
   "chat.welcome": "Try: \"list workers\", \"create worker w1\", \"tell w1 to run tests\", \"status\", \"close w1\".",
