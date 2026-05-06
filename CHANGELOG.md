@@ -4,6 +4,25 @@
 
 (no entries — next release window)
 
+## [1.10.463] - 2026-05-06 — Meetings remaining options
+
+**Web — last batch of literal `<option>` values.** in-progress
+status filter, full/auto track choices, mock vote-only adapter,
+replan/reuse re-dispatch chooser. Cleans up the remaining
+literal English option labels in MeetingsView.
+
+### Added (6 keys)
+- `meetings.status.inProgress`.
+- `meetings.mode.{full,auto}`.
+- `meetings.adapter.mock`.
+- `meetings.replan.{replan,reuse}` — describing re-run /
+  deep-clone behaviours.
+
+### Notes
+- 200/200 tests green (1 flake — passed on retest), lint+drift
+  clean, build clean.
+- Korean i18n bundle now at ~1079 keys.
+
 ## [1.10.462] - 2026-05-06 — Meetings track / brain options
 
 **Web — Meetings track + brain dropdown options.** Eight

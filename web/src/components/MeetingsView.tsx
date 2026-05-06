@@ -1206,7 +1206,7 @@ export default function MeetingsView() {
                 >
                   <option value="">{t('meetings.option.any')}</option>
                   <option value="pending">{t('meetings.option.pending')}</option>
-                  <option value="in-progress">in-progress</option>
+                  <option value="in-progress">{t('meetings.status.inProgress')}</option>
                   <option value="completed">{t('meetings.option.completed')}</option>
                   <option value="escalated">{t('meetings.option.escalated')}</option>
                   <option value="aborted">{t('meetings.option.aborted')}</option>
@@ -1223,7 +1223,7 @@ export default function MeetingsView() {
                   <option value="">{t('meetings.option.any')}</option>
                   <option value="lightweight">{t('meetings.mode.lightweight')}</option>
                   <option value="standard">{t('meetings.mode.standard')}</option>
-                  <option value="full">full</option>
+                  <option value="full">{t('meetings.mode.full')}</option>
                 </select>
               </label>
               {(listStatus || listTrack) ? (
@@ -1279,7 +1279,7 @@ export default function MeetingsView() {
                 >
                   <option value="">{t('meetings.option.any')}</option>
                   <option value="pending">{t('meetings.option.pending')}</option>
-                  <option value="in-progress">in-progress</option>
+                  <option value="in-progress">{t('meetings.status.inProgress')}</option>
                   <option value="completed">{t('meetings.option.completed')}</option>
                   <option value="escalated">{t('meetings.option.escalated')}</option>
                   <option value="aborted">{t('meetings.option.aborted')}</option>
@@ -1296,7 +1296,7 @@ export default function MeetingsView() {
                   <option value="">{t('meetings.option.any')}</option>
                   <option value="lightweight">{t('meetings.mode.lightweight')}</option>
                   <option value="standard">{t('meetings.mode.standard')}</option>
-                  <option value="full">full</option>
+                  <option value="full">{t('meetings.mode.full')}</option>
                 </select>
               </label>
               <label className="flex items-center gap-1 text-muted-foreground">
@@ -1495,7 +1495,7 @@ export default function MeetingsView() {
                         <option value="">auto</option>
                         <option value="lightweight">{t('meetings.mode.lightweight')}</option>
                         <option value="standard">{t('meetings.mode.standard')}</option>
-                        <option value="full">full</option>
+                        <option value="full">{t('meetings.mode.full')}</option>
                       </select>
                     </label>
                   </div>
@@ -1589,10 +1589,10 @@ export default function MeetingsView() {
                     disabled={createBusy}
                     aria-label={t('meetings.compose.track')}
                   >
-                    <option value="auto">auto</option>
+                    <option value="auto">{t('meetings.mode.auto')}</option>
                     <option value="lightweight">{t('meetings.mode.lightweight')}</option>
                     <option value="standard">{t('meetings.mode.standard')}</option>
-                    <option value="full">full</option>
+                    <option value="full">{t('meetings.mode.full')}</option>
                   </select>
                 </label>
                 {/* (Phase 6.6) classifier hint — shown when there's
@@ -2192,7 +2192,7 @@ export default function MeetingsView() {
                   disabled={peerRetroBusy}
                   aria-label={t('meetings.peerBrain.aria')}
                 >
-                  <option value="mock">mock</option>
+                  <option value="mock">{t('meetings.adapter.mock')}</option>
                   <option value="claude">{t('meetings.adapter.claude')}</option>
                 </select>
               </label>
@@ -2280,8 +2280,8 @@ export default function MeetingsView() {
                     disabled={forkBusy}
                     className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
                   >
-                    <option value="replan">replan (re-run dispatcher)</option>
-                    <option value="reuse">reuse (deep-clone plan)</option>
+                    <option value="replan">{t('meetings.replan.replan')}</option>
+                    <option value="reuse">{t('meetings.replan.reuse')}</option>
                   </select>
                 </label>
                 {forkMode === 'replan' ? (
@@ -2296,7 +2296,7 @@ export default function MeetingsView() {
                       <option value="auto">{t('meetings.option.sameAsSource')}</option>
                       <option value="lightweight">{t('meetings.mode.lightweight')}</option>
                       <option value="standard">{t('meetings.mode.standard')}</option>
-                      <option value="full">full</option>
+                      <option value="full">{t('meetings.mode.full')}</option>
                     </select>
                   </label>
                 ) : null}
