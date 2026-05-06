@@ -4,6 +4,22 @@
 
 (no entries — next release window)
 
+## [1.10.486] - 2026-05-06 — WikiView type filter labels
+
+**Web — WikiView TYPE_OPTIONS catalogue migrated to i18n.**
+The 6 type-filter labels (Any/Meetings/ADRs/Retros/
+Specialists/Docs) lived as `{value, label}` literal pairs.
+Refactored to `{value, labelKey}` resolved at render time
+via `t()`, matching the MODEL_CHOICES / AGENT_CHOICES /
+ROLE_OPTIONS / TOUR_STEPS pattern from earlier ships.
+
+### Added (6 keys)
+- `wiki.type.{any,meeting,adr,retro,specialist,docs}`.
+
+### Notes
+- 200/200 tests green, lint+drift clean, build clean.
+- Korean i18n bundle now at ~1238 keys.
+
 ## [1.10.485] - 2026-05-06 — Specialists/Wiki/Meetings tone (round 2)
 
 **Web — five more tone-detection refactors found via grep

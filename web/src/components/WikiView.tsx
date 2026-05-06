@@ -39,13 +39,15 @@ interface ReadResponse {
   raw: string;
 }
 
-const TYPE_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: 'any', label: 'Any' },
-  { value: 'meeting', label: 'Meetings' },
-  { value: 'adr', label: 'ADRs' },
-  { value: 'retro', label: 'Retros' },
-  { value: 'specialist', label: 'Specialists' },
-  { value: 'docs', label: 'Docs' },
+// (v1.10.486) Migrated to labelKey pattern resolved through t() at
+// render time, like other constant catalogues.
+const TYPE_OPTIONS: Array<{ value: string; labelKey: string }> = [
+  { value: 'any', labelKey: 'wiki.type.any' },
+  { value: 'meeting', labelKey: 'wiki.type.meeting' },
+  { value: 'adr', labelKey: 'wiki.type.adr' },
+  { value: 'retro', labelKey: 'wiki.type.retro' },
+  { value: 'specialist', labelKey: 'wiki.type.specialist' },
+  { value: 'docs', labelKey: 'wiki.type.docs' },
 ];
 
 export default function WikiView() {
@@ -222,7 +224,7 @@ export default function WikiView() {
                   aria-label={t('wiki.type.label')}
                 >
                   {TYPE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
                   ))}
                 </select>
               </label>
