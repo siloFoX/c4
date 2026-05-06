@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.427] - 2026-05-04
+
+**Web — SpecialistsView 12 tooltip i18n.** Export / Apply
+import / Rotate audit / Export CSV / Verify chain / + rotated
+/ Propose / Underperform badge / Score reset / Suggest revision
+/ Apply via meeting / Open meeting tooltips.
+
+### Added
+- **`web/src/i18n/en.json` + `ko.json`**: 12 new keys under
+  `specialists.tooltip.*`.
+- **`web/src/components/SpecialistsView.tsx`**: 12 `title=`
+  attributes flow through `t()`.
+
+### Korean copy
+- registry self-contained JSON 번들 다운로드 / 번들을
+  실제 적용 / 감사 JSONL 로테이트 / 현재 기간의 감사 항목
+  CSV 다운로드 / 라이브 감사 로그 해시 체인 검증 / +
+  로테이트 archive / /specialists/propose 호출 / 지속적인
+  음수 retro 점수 / 점수 기록 초기화 / brain 에 systemPrompt
+  수정안 요청 / 메타 회의 + 합의 시 적용 / 회의 탭에서
+  회의 열기.
+
+### Notes
+- Backend tests still 200/200 green; lint + drift clean.
+
 ## [1.10.426] - 2026-05-04
 
 **Web — MeetingsView 17 tooltip + composer placeholder i18n.**

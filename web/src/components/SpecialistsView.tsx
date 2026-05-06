@@ -739,7 +739,7 @@ export default function SpecialistsView() {
           onClick={handleExport}
           disabled={exportBusy}
           className="h-6 px-2 text-[10px]"
-          title="Download a self-contained JSON bundle of the registry"
+          title={t('specialists.tooltip.export')}
         >
           {exportBusy ? '…' : t('specialists.exportButton')}
         </Button>
@@ -803,7 +803,7 @@ export default function SpecialistsView() {
                 onClick={handleImportApply}
                 disabled={importBusy}
                 className="h-6 px-2 text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-300"
-                title="Apply the bundle for real (governance event — audited)"
+                title={t('specialists.tooltip.applyImport')}
               >
                 Apply
               </Button>
@@ -817,7 +817,7 @@ export default function SpecialistsView() {
           onClick={handleAuditRotate}
           disabled={rotateBusy}
           className="h-6 px-2 text-[10px]"
-          title="Rotate the audit JSONL into a timestamped archive"
+          title={t('specialists.tooltip.rotateAudit')}
         >
           {rotateBusy ? '…' : t('specialists.rotateAudit')}
         </Button>
@@ -877,7 +877,7 @@ export default function SpecialistsView() {
                   onClick={handleAuditExport}
                   disabled={exportAuditBusy}
                   className="rounded border border-border bg-muted/30 px-1.5 py-0 text-[10px] text-muted-foreground hover:bg-accent/40"
-                  title="Download CSV of audit entries in the current window"
+                  title={t('specialists.tooltip.exportCsv')}
                 >
                   {exportAuditBusy ? '…' : t('specialists.exportCsv')}
                 </button>
@@ -886,7 +886,7 @@ export default function SpecialistsView() {
                   onClick={() => handleVerify(false)}
                   disabled={verifyBusy}
                   className="rounded border border-border bg-muted/30 px-1.5 py-0 text-[10px] text-muted-foreground hover:bg-accent/40"
-                  title="Verify the live audit-log hash chain"
+                  title={t('specialists.tooltip.verifyChain')}
                 >
                   {verifyBusy ? '…' : t('specialists.verifyChain')}
                 </button>
@@ -895,7 +895,7 @@ export default function SpecialistsView() {
                   onClick={() => handleVerify(true)}
                   disabled={verifyBusy}
                   className="rounded border border-border bg-muted/30 px-1.5 py-0 text-[10px] text-muted-foreground hover:bg-accent/40"
-                  title="Verify the live audit-log + rotated archives"
+                  title={t('specialists.tooltip.verifyPlusRotated')}
                 >
                   {t('specialists.verifyPlusRotated')}
                 </button>
@@ -1016,7 +1016,7 @@ export default function SpecialistsView() {
                   onClick={handlePropose}
                   disabled={proposeBusy || addBusy || !addJson.trim()}
                   aria-label={t('specialists.action.propose')}
-                  title="POST to /specialists/propose — drives a meta-meeting and adds only on consensus"
+                  title={t('specialists.tooltip.propose')}
                 >
                   Propose via meeting
                 </Button>
@@ -1142,7 +1142,7 @@ export default function SpecialistsView() {
                       {flaggedIds.has(s.id) ? (
                         <span
                           className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0 text-[10px] text-amber-700 dark:text-amber-400"
-                          title="Sustained negative retro score in at least one bucket"
+                          title={t('specialists.tooltip.underperform')}
                         >
                           <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
                           underperform
@@ -1351,7 +1351,7 @@ export default function SpecialistsView() {
                         size="sm"
                         variant="outline"
                         onClick={() => setConfirmResetId(selected.id)}
-                        title="Wipe score record (Phase 8.5). Audit log preserves the before-snapshot."
+                        title={t('specialists.tooltip.scoreReset')}
                         className="h-6 px-2 text-[10px]"
                       >
                         Reset score
@@ -1408,7 +1408,7 @@ export default function SpecialistsView() {
                       onClick={() => handleSuggest(selected.id)}
                       disabled={suggestBusy}
                       className="h-6 px-2 text-[10px]"
-                      title="Ask brain to draft a revised systemPrompt — review-only"
+                      title={t('specialists.tooltip.suggest')}
                     >
                       {suggestBusy ? t('specialists.suggestRevisionAsking') : t('specialists.suggestRevision')}
                     </Button>
@@ -1421,7 +1421,7 @@ export default function SpecialistsView() {
                       onClick={() => handleApply(selected.id)}
                       disabled={applyBusy}
                       className="h-6 px-2 text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-300"
-                      title="Spawn meta-meeting and apply revision on consensus"
+                      title={t('specialists.tooltip.applyMeeting')}
                     >
                       {applyBusy ? t('specialists.applyViaMeetingApplying') : t('specialists.applyViaMeeting')}
                     </Button>
@@ -1483,7 +1483,7 @@ export default function SpecialistsView() {
                         <a
                           href={`#/meetings/${encodeURIComponent(applyResult.meetingId)}`}
                           className="rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-mono hover:bg-muted/30"
-                          title="Open meeting in Meetings tab"
+                          title={t('specialists.tooltip.openMeeting')}
                         >
                           meeting → {applyResult.meetingId.slice(0, 8)}
                         </a>
