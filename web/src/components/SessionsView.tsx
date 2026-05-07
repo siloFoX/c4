@@ -591,6 +591,7 @@ function Tour({ onDismiss }: TourProps) {
   const [step, setStep] = useState(0);
   const current = TOUR_STEPS[step];
   const last = step === TOUR_STEPS.length - 1;
+  if (!current) return null;
   return (
     <div
       className="fixed inset-0 z-40 flex items-end justify-end bg-black/30 p-4 md:items-start md:p-6"
@@ -954,8 +955,9 @@ export default function SessionsView() {
       setData(resp);
       setSelection((prev) => {
         if (prev) return prev;
-        if (resp.sessions.length > 0) {
-          return { kind: 'session', id: resp.sessions[0].sessionId };
+        const first = resp.sessions[0];
+        if (first) {
+          return { kind: 'session', id: first.sessionId };
         }
         return null;
       });

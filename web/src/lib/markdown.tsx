@@ -21,7 +21,9 @@ function renderInline(text: string): ReactNode[] {
   };
 
   while (i < text.length) {
-    const ch = text[i];
+    // (v1.10.522) charAt() returns '' for out-of-bounds vs []
+    // returning undefined under noUncheckedIndexedAccess strict.
+    const ch = text.charAt(i);
     // `code`
     if (ch === '`') {
       const end = text.indexOf('`', i + 1);
@@ -40,7 +42,7 @@ function renderInline(text: string): ReactNode[] {
       }
     }
     // **bold**
-    if (ch === '*' && text[i + 1] === '*') {
+    if (ch === '*' && text.charAt(i + 1) === '*') {
       const end = text.indexOf('**', i + 2);
       if (end > -1) {
         flush();
@@ -54,7 +56,7 @@ function renderInline(text: string): ReactNode[] {
       }
     }
     // *italic* or _italic_
-    if ((ch === '*' || ch === '_') && text[i + 1] !== ch) {
+    if ((ch === '*' || ch === '_') && text.charAt(i + 1) !== ch) {
       const end = text.indexOf(ch, i + 1);
       if (end > -1 && end > i + 1) {
         flush();
@@ -70,7 +72,7 @@ function renderInline(text: string): ReactNode[] {
     // [text](url)
     if (ch === '[') {
       const closeTxt = text.indexOf(']', i + 1);
-      if (closeTxt > -1 && text[closeTxt + 1] === '(') {
+      if (closeTxt > -1 && text.charAt(closeTxt + 1) === '(') {
         const closeUrl = text.indexOf(')', closeTxt + 2);
         if (closeUrl > -1) {
           flush();
@@ -106,15 +108,21 @@ export function renderMarkdown(src: string): ReactNode {
   let i = 0;
   let blockIdx = 0;
 
+  // (v1.10.522) noUncheckedIndexedAccess strict — array index access
+  // returns `string | undefined`. We always bounds-check via
+  // `i < lines.length`, but TS can't infer that. The `?? ''` fallback
+  // is unreachable at runtime but keeps the type narrow.
+  const at = (idx: number): string => lines[idx] ?? '';
+
   while (i < lines.length) {
-    const line = lines[i];
+    const line = at(i);
     // Fenced code block
     if (/^```/.test(line)) {
       const lang = line.slice(3).trim();
       const body: string[] = [];
       i++;
-      while (i < lines.length && !/^```/.test(lines[i])) {
-        body.push(lines[i]);
+      while (i < lines.length && !/^```/.test(at(i))) {
+        body.push(at(i));
         i++;
       }
       i++; // skip closing fence
@@ -131,8 +139,8 @@ export function renderMarkdown(src: string): ReactNode {
     // ATX headings
     const headingMatch = /^(#{1,6})\s+(.*)$/.exec(line);
     if (headingMatch) {
-      const level = headingMatch[1].length;
-      const text = headingMatch[2].trim();
+      const level = (headingMatch[1] ?? '').length;
+      const text = (headingMatch[2] ?? '').trim();
       const sizes = [
         'text-2xl',
         'text-xl',
@@ -163,8 +171,8 @@ export function renderMarkdown(src: string): ReactNode {
     // Blockquote
     if (line.startsWith('>')) {
       const body: string[] = [];
-      while (i < lines.length && lines[i].startsWith('>')) {
-        body.push(lines[i].replace(/^>\s?/, ''));
+      while (i < lines.length && at(i).startsWith('>')) {
+        body.push(at(i).replace(/^>\s?/, ''));
         i++;
       }
       blocks.push(
@@ -180,8 +188,8 @@ export function renderMarkdown(src: string): ReactNode {
     // Unordered list
     if (/^\s*[-*+]\s+/.test(line)) {
       const items: string[] = [];
-      while (i < lines.length && /^\s*[-*+]\s+/.test(lines[i])) {
-        items.push(lines[i].replace(/^\s*[-*+]\s+/, ''));
+      while (i < lines.length && /^\s*[-*+]\s+/.test(at(i))) {
+        items.push(at(i).replace(/^\s*[-*+]\s+/, ''));
         i++;
       }
       blocks.push(
@@ -196,8 +204,8 @@ export function renderMarkdown(src: string): ReactNode {
     // Ordered list
     if (/^\s*\d+\.\s+/.test(line)) {
       const items: string[] = [];
-      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
-        items.push(lines[i].replace(/^\s*\d+\.\s+/, ''));
+      while (i < lines.length && /^\s*\d+\.\s+/.test(at(i))) {
+        items.push(at(i).replace(/^\s*\d+\.\s+/, ''));
         i++;
       }
       blocks.push(
@@ -218,7 +226,7 @@ export function renderMarkdown(src: string): ReactNode {
     const para: string[] = [line];
     i++;
     while (i < lines.length) {
-      const next = lines[i];
+      const next = at(i);
       if (
         next.trim() === '' ||
         /^```/.test(next) ||

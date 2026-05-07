@@ -634,7 +634,10 @@ export default function MeetingsView() {
     const out = new Set<string>();
     let m;
     placeholderRe.lastIndex = 0;
-    while ((m = placeholderRe.exec(newTask)) !== null) out.add(m[1]);
+    while ((m = placeholderRe.exec(newTask)) !== null) {
+      const captured = m[1];
+      if (captured) out.add(captured);
+    }
     return [...out];
   }, [newTask]);
   const [previewPlan, setPreviewPlan] = useState<{

@@ -114,16 +114,21 @@ function renderMarkdown(source: string): JSX.Element[] {
   const lines = source.replace(/\r\n?/g, '\n').split('\n');
   let i = 0;
   let key = 0;
+  // (v1.10.522) Bounds-checked accessor — under
+  // noUncheckedIndexedAccess, lines[i] returns string | undefined.
+  // We always guard with i < lines.length, so '' fallback is
+  // unreachable at runtime.
+  const at = (idx: number): string => lines[idx] ?? '';
 
   while (i < lines.length) {
-    const line = lines[i];
+    const line = at(i);
     const fenceMatch = line.match(/^```(\w+)?\s*$/);
     if (fenceMatch) {
       const lang = fenceMatch[1] || '';
       const buf: string[] = [];
       i += 1;
-      while (i < lines.length && !/^```\s*$/.test(lines[i])) {
-        buf.push(lines[i]);
+      while (i < lines.length && !/^```\s*$/.test(at(i))) {
+        buf.push(at(i));
         i += 1;
       }
       if (i < lines.length) i += 1; // consume closing fence
@@ -142,8 +147,8 @@ function renderMarkdown(source: string): JSX.Element[] {
 
     const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
     if (headingMatch) {
-      const level = headingMatch[1].length;
-      const text = headingMatch[2];
+      const level = (headingMatch[1] ?? '').length;
+      const text = headingMatch[2] ?? '';
       const sizeClass =
         level <= 2 ? 'text-lg' : level === 3 ? 'text-base' : 'text-sm';
       out.push(
@@ -160,8 +165,8 @@ function renderMarkdown(source: string): JSX.Element[] {
 
     if (/^>\s?/.test(line)) {
       const buf: string[] = [];
-      while (i < lines.length && /^>\s?/.test(lines[i])) {
-        buf.push(lines[i].replace(/^>\s?/, ''));
+      while (i < lines.length && /^>\s?/.test(at(i))) {
+        buf.push(at(i).replace(/^>\s?/, ''));
         i += 1;
       }
       out.push(
@@ -177,8 +182,8 @@ function renderMarkdown(source: string): JSX.Element[] {
 
     if (/^[-*]\s+/.test(line)) {
       const items: string[] = [];
-      while (i < lines.length && /^[-*]\s+/.test(lines[i])) {
-        items.push(lines[i].replace(/^[-*]\s+/, ''));
+      while (i < lines.length && /^[-*]\s+/.test(at(i))) {
+        items.push(at(i).replace(/^[-*]\s+/, ''));
         i += 1;
       }
       out.push(
@@ -193,8 +198,8 @@ function renderMarkdown(source: string): JSX.Element[] {
 
     if (/^\d+\.\s+/.test(line)) {
       const items: string[] = [];
-      while (i < lines.length && /^\d+\.\s+/.test(lines[i])) {
-        items.push(lines[i].replace(/^\d+\.\s+/, ''));
+      while (i < lines.length && /^\d+\.\s+/.test(at(i))) {
+        items.push(at(i).replace(/^\d+\.\s+/, ''));
         i += 1;
       }
       out.push(
@@ -217,14 +222,14 @@ function renderMarkdown(source: string): JSX.Element[] {
     i += 1;
     while (
       i < lines.length &&
-      lines[i].trim() &&
-      !/^```/.test(lines[i]) &&
-      !/^#{1,6}\s/.test(lines[i]) &&
-      !/^>\s?/.test(lines[i]) &&
-      !/^[-*]\s+/.test(lines[i]) &&
-      !/^\d+\.\s+/.test(lines[i])
+      at(i).trim() &&
+      !/^```/.test(at(i)) &&
+      !/^#{1,6}\s/.test(at(i)) &&
+      !/^>\s?/.test(at(i)) &&
+      !/^[-*]\s+/.test(at(i)) &&
+      !/^\d+\.\s+/.test(at(i))
     ) {
-      paraBuf.push(lines[i]);
+      paraBuf.push(at(i));
       i += 1;
     }
     out.push(

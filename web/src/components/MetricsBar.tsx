@@ -84,7 +84,7 @@ export default function MetricsBar() {
       <span className="flex items-center gap-1.5">
         <Cpu className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
         <span className="font-medium text-foreground">{fmtPct(m.totals.totalCpuPct)}</span>
-        <span>{t('metrics.workers')} · {t('metrics.load')} {m.daemon.loadavg[0].toFixed(2)}</span>
+        <span>{t('metrics.workers')} · {t('metrics.load')} {(m.daemon.loadavg[0] ?? 0).toFixed(2)}</span>
       </span>
       <span className="flex items-center gap-1.5">
         <MemoryStick className="h-3.5 w-3.5 text-primary" />

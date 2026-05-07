@@ -69,9 +69,13 @@ export function onLocaleChange(cb: (locale: Locale) => void): () => void {
 // Lookup with English fallback so a missing ko key never shows a raw id.
 export function t(key: string, locale: Locale = current): string {
   const bundle = BUNDLES[locale] || BUNDLES[DEFAULT_LOCALE];
-  if (key in bundle) return bundle[key];
-  const fb = BUNDLES[DEFAULT_LOCALE];
-  if (key in fb) return fb[key];
+  // (v1.10.522) Index access returns string | undefined under strict.
+  // The `key in bundle` guard means a hit is always defined, but TS
+  // can't infer that — use explicit typed lookup with ?? fallback.
+  const direct = bundle[key];
+  if (direct !== undefined) return direct;
+  const fb = BUNDLES[DEFAULT_LOCALE][key];
+  if (fb !== undefined) return fb;
   return key;
 }
 

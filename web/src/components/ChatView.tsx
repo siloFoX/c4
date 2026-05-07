@@ -175,7 +175,7 @@ export function scrollbackToMessages(raw: string): ChatMessage[] {
       out.push({
         id: makeId('bk-u'),
         role: 'user',
-        text: m[1],
+        text: m[1] ?? '',
         ts: Date.now(),
         source: 'backfill',
       });

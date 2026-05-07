@@ -4,6 +4,52 @@
 
 (no entries — next release window)
 
+## [1.10.522] - 2026-05-07 — TypeScript noUncheckedIndexedAccess
+
+**Web — `tsconfig.json` enables `noUncheckedIndexedAccess`.**
+Array / object index access now returns `T | undefined`,
+forcing every call site to handle the bounds-out-of-range
+case. Caught and fixed 113 latent bugs.
+
+### Patterns applied
+- `lines[i]` after `i < lines.length` guard → `at(i)`
+  helper that returns `?? ''` (markdown.tsx,
+  ConversationView.tsx).
+- `text[i]` for char access → `text.charAt(i)` (always
+  returns string, never undefined).
+- `regex.exec()` capture groups → `match[1] ?? ''` since
+  optional captures return `undefined`.
+- Object lookups via `obj[key]` → typed local
+  intermediate (`const v = obj[key]; if (v) ...`) before
+  use (i18n.ts, dropdown-menu.tsx).
+- First-element shortcuts `arr[0]` → `arr[0]?.field`
+  with explicit non-null guard (Plan/Swarm worker
+  selection, FeatureView.tsx, AccountMenu.tsx).
+
+### Files touched (10)
+- `src/lib/markdown.tsx` (26 → 0)
+- `src/components/ConversationView.tsx` (24 → 0)
+- `src/components/WorkflowEditor.tsx` (12 → 0)
+- `src/components/AccountMenu.tsx` (4 → 0)
+- `src/components/SessionsView.tsx` (3 → 0)
+- `src/lib/i18n.ts` (2 → 0)
+- `src/components/layout/FeatureView.tsx` (2 → 0)
+- `src/components/{ChatView,MeetingsView,MetricsBar}.tsx`
+  (1 each)
+- `src/components/ui/dropdown-menu.tsx` (1)
+- `src/pages/{Plan,Swarm}.tsx` (1 each)
+
+### Tests
+- `account-menu.test.js`: regex updated to match new
+  `items[next]?.disabled` and `parts[0]?.[0] ?? ''`
+  patterns.
+
+### Notes
+- 201/201 tests green.
+- Bundle stable (index 218KB / 280KB).
+- a11y audit still 0 violations.
+- Visual i18n still 0 UI leak.
+
 ## [1.10.521] - 2026-05-07 — a11y audit (WCAG 2.1 AA pass)
 
 **Web — `scripts/a11y-audit.js` + axe-core driven a11y

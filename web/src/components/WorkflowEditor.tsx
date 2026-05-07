@@ -314,8 +314,9 @@ export default function WorkflowEditor() {
     try {
       const data = await apiGet<WorkflowsResponse>('/api/workflows');
       setWorkflows(data.workflows || []);
-      if ((data.workflows || []).length > 0 && !selectedId) {
-        setSelectedId(data.workflows[0].id);
+      const first = (data.workflows || [])[0];
+      if (first && !selectedId) {
+        setSelectedId(first.id);
       }
     } catch (e) {
       setError((e as Error).message);
@@ -589,6 +590,7 @@ export default function WorkflowEditor() {
                               ) : (
                                 nodeIds.map((nid) => {
                                   const nr = r.nodeResults[nid];
+                                  if (!nr) return null;
                                   return (
                                     <div key={nid} className="flex flex-col gap-0.5">
                                       <div className="flex items-center gap-1">

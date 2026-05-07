@@ -12,7 +12,10 @@ const FEATURE_KEY = 'c4.features.selected';
 const HASH_PREFIX = '#/feature/';
 
 function readInitialFeature(): string {
-  if (typeof window === 'undefined') return FEATURES[0].id;
+  // (v1.10.522) FEATURES is a non-empty const array — first id always
+  // defined. The `?? ''` fallback keeps TS strict happy.
+  const fallback = FEATURES[0]?.id ?? '';
+  if (typeof window === 'undefined') return fallback;
   const hash = window.location.hash || '';
   if (hash.startsWith(HASH_PREFIX)) {
     const id = hash.slice(HASH_PREFIX.length);
@@ -24,7 +27,7 @@ function readInitialFeature(): string {
   } catch {
     // private mode
   }
-  return FEATURES[0].id;
+  return fallback;
 }
 
 function writeHash(id: string): void {

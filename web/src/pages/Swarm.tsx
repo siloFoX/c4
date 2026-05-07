@@ -40,7 +40,8 @@ export default function Swarm() {
       const r = await apiGet<ListResponse>('/api/list');
       const ws = Array.isArray(r.workers) ? r.workers : [];
       setWorkers(ws);
-      if (!selected && ws.length > 0) setSelected(ws[0].name);
+      const first = ws[0];
+      if (!selected && first) setSelected(first.name);
     } catch (e) {
       setError((e as Error).message);
     }

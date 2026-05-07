@@ -52,7 +52,8 @@ describe('DropdownMenu primitive (web/src/components/ui/dropdown-menu.tsx)', () 
 
   it('supports ArrowUp / ArrowDown navigation skipping disabled items', () => {
     assert.match(src, /e\.key === 'ArrowDown' \|\| e\.key === 'ArrowUp'/);
-    assert.match(src, /if \(!items\[next\]\.disabled\) break/);
+    // (v1.10.522) noUncheckedIndexedAccess: items[next] is now T | undefined.
+    assert.match(src, /if \(!items\[next\]\?\.disabled\) break/);
   });
 
   it('exposes danger variant styling for destructive items', () => {
@@ -258,7 +259,9 @@ describe('initialsFor (avatar fallback)', () => {
     const src = readText(ACCOUNT_MENU);
     assert.match(src, /function initialsFor\(user: string \| null\)/);
     assert.match(src, /trimmed\.split\(\/\[\\s_\.-\]\+\/\)/);
-    assert.match(src, /\(parts\[0\]\[0\] \+ parts\[1\]\[0\]\)\.toUpperCase\(\)/);
+    // (v1.10.522) noUncheckedIndexedAccess: parts[0]?.[0] ?? '' fallback.
+    assert.match(src, /parts\[0\]\?\.\[0\] \?\? ''/);
+    assert.match(src, /parts\[1\]\?\.\[0\] \?\? ''/);
     assert.match(src, /trimmed\.slice\(0, 2\)\.toUpperCase\(\)/);
   });
 });

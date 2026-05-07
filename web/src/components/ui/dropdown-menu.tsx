@@ -108,7 +108,7 @@ export function DropdownMenu({
           let next = prev;
           for (let step = 0; step < len; step++) {
             next = (next + (e.key === 'ArrowDown' ? 1 : -1) + len) % len;
-            if (!items[next].disabled) break;
+            if (!items[next]?.disabled) break;
           }
           requestAnimationFrame(() => itemsRef.current[next]?.focus());
           return next;
