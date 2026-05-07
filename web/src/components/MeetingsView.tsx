@@ -15,6 +15,7 @@ import MeetingsForkForm from './MeetingsForkForm';
 import MeetingsStagesView, { type StageView } from './MeetingsStagesView';
 import MeetingsDetailHeader from './MeetingsDetailHeader';
 import MeetingsContributePanel from './MeetingsContributePanel';
+import MeetingsRetroActions from './MeetingsRetroActions';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -735,35 +736,9 @@ export default function MeetingsView() {
   // autoFinalize. For meetings the operator wants to preview before
   // applying, surface explicit retro + finalize buttons next to
   // publish.
-  const [retroBusy, setRetroBusy] = useState<'preview' | 'finalize' | null>(null);
-  const [retroResult, setRetroResult] = useState<{
-    deltas?: Record<string, unknown>;
-    applied?: boolean;
-    skipped?: boolean;
-    note?: string;
-  } | null>(null);
-  const [retroError, setRetroError] = useState<string | null>(null);
-  const handleRetro = useCallback(async (id: string, finalize: boolean) => {
-    setRetroBusy(finalize ? 'finalize' : 'preview');
-    setRetroError(null);
-    setRetroResult(null);
-    try {
-      const path = finalize ? 'finalize' : 'retro';
-      const res = await apiPost<typeof retroResult>(
-        `/api/meetings/${encodeURIComponent(id)}/${path}`,
-        {},
-      );
-      setRetroResult(res || { note: 'no payload' });
-    } catch (e) {
-      setRetroError(tFormat(
-        finalize ? 'meetings.finalize.failed' : 'meetings.retro.failed',
-        { error: (e as Error).message || t('common.unknown') },
-      ));
-    } finally {
-      setRetroBusy(null);
-    }
-  }, []);
-  useEffect(() => { setRetroResult(null); setRetroError(null); }, [selectedId]);
+  // (v1.10.552) Retro preview / finalize panel extracted to
+  // ./MeetingsRetroActions.tsx — owns its own busy / result /
+  // error state and the POST handler.
 
   // (v1.10.352) Fork meeting — POST /meetings/:id/fork. Used to
   // redo a meeting with a sharper question or scope. Two modes:
@@ -1566,44 +1541,10 @@ export default function MeetingsView() {
                     ? 'text-destructive' : 'text-muted-foreground',
                 )}>{peerRetroMsg}</span>
               ) : null}
-              {/* (v1.10.345) Retro preview / finalize. */}
+              {/* (v1.10.552) Retro preview / finalize buttons + state
+                  extracted to ./MeetingsRetroActions.tsx. */}
               <span aria-hidden className="text-muted-foreground">·</span>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleRetro(selectedId, false)}
-                disabled={retroBusy !== null}
-                aria-label={t('meetings.retroPreviewLabel')}
-                title={t('meetings.tooltip.retroPreview')}
-                className="h-6 px-2 text-[10px]"
-              >
-                {retroBusy === 'preview' ? '…' : t('meetings.retroPreview')}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleRetro(selectedId, true)}
-                disabled={retroBusy !== null}
-                aria-label={t('meetings.finalizeLabel')}
-                title={t('meetings.tooltip.finalize')}
-                className="h-6 px-2 text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-300"
-              >
-                {retroBusy === 'finalize' ? '…' : t('meetings.finalize')}
-              </Button>
-              {retroError ? (
-                <span className="text-[11px] text-destructive">{retroError}</span>
-              ) : null}
-              {retroResult ? (
-                <span className="text-[11px] text-muted-foreground" title={JSON.stringify(retroResult)}>
-                  retro: {retroResult.applied
-                    ? 'applied'
-                    : retroResult.skipped
-                    ? `skipped${retroResult.note ? ` (${retroResult.note})` : ''}`
-                    : retroResult.deltas
-                    ? `${Object.keys(retroResult.deltas).length} delta(s)`
-                    : 'ok'}
-                </span>
-              ) : null}
+              <MeetingsRetroActions meetingId={selectedId} />
               {/* (v1.10.544) Fork form extracted to
                   ./MeetingsForkForm.tsx — toggle button still
                   lives here. */}

@@ -84,6 +84,48 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: MeetingsRetroActions (v1.10.552)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsRetroActions.tsx');
+    assert.match(src, /export default function MeetingsRetroActions/);
+  });
+
+  it('takes meetingId prop', () => {
+    const src = read('MeetingsRetroActions.tsx');
+    assert.match(src, /meetingId:\s*string/);
+  });
+
+  it('owns its own busy / result / error state', () => {
+    const src = read('MeetingsRetroActions.tsx');
+    assert.match(src, /useState<'preview' \| 'finalize' \| null>/);
+    assert.match(src, /useState<RetroResult \| null>/);
+  });
+
+  it('owns the retro / finalize POST handler (toggles by finalize: boolean)', () => {
+    const src = read('MeetingsRetroActions.tsx');
+    assert.match(src, /handleRetro = useCallback/);
+    assert.match(src, /finalize \? 'finalize' : 'retro'/);
+  });
+
+  it('resets on meetingId change', () => {
+    const src = read('MeetingsRetroActions.tsx');
+    assert.match(src, /\[meetingId\]/);
+  });
+
+  it('is imported and rendered by MeetingsView', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsRetroActions\s+from\s+'\.\/MeetingsRetroActions'/);
+    assert.match(parent, /<MeetingsRetroActions\s+meetingId=\{selectedId\}/);
+  });
+
+  it('parent MeetingsView no longer holds retro state nor handler', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /const \[retroBusy, setRetroBusy\]/);
+    assert.doesNotMatch(parent, /const \[retroResult, setRetroResult\]/);
+    assert.doesNotMatch(parent, /const handleRetro/);
+  });
+});
+
 describe('extracted: MeetingsContributePanel (v1.10.551)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsContributePanel.tsx');

@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.552] - 2026-05-07 — Extract MeetingsRetroActions
+
+**Web — `MeetingsView.tsx` shrunk by 59 lines (1681 → 1622).**
+The Phase-2.6 retro preview / finalize actions (with their
+result / error display) lifted out as a small self-contained
+component. Owns its own busy / result / error state and the
+single-handler POST.
+
+### Refactor
+- New `web/src/components/MeetingsRetroActions.tsx` (~98 lines):
+  the two buttons + the retro/finalize result line. Single
+  `meetingId` prop; resets on meeting change.
+- `MeetingsView.tsx`: removed the inline state (3 useState),
+  the handler (~20 lines), the reset effect, and the JSX.
+  Replaced with `<MeetingsRetroActions meetingId={selectedId} />`.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (7 assertions). Total: 21 suites, 109 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 20 of the perfection-track component split. Big-3
+  parents combined: 3320 lines (was 5104, -1784 / -34.9%).
+  MeetingsView 1622 (was 2372 at session start, -750 / -31.6%).
+
 ## [1.10.551] - 2026-05-07 — Extract MeetingsContributePanel
 
 **Web — `MeetingsView.tsx` shrunk by 151 lines (1832 → 1681).**
