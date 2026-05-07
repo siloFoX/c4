@@ -20,6 +20,7 @@ import MeetingsPeerRetroControls from './MeetingsPeerRetroControls';
 import MeetingsStateActions from './MeetingsStateActions';
 import MeetingsRunControls from './MeetingsRunControls';
 import MeetingsComposer from './MeetingsComposer';
+import MeetingsSearchFacets from './MeetingsSearchFacets';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -703,53 +704,15 @@ export default function MeetingsView() {
             </div>
           ) : null}
           {searchResults && searchFacets ? (
-            <div className="flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
-              <span className="mr-1">
-                {typeof searchTotal === 'number' ? `${searchResults.length}/${searchTotal} matches` : `${searchResults.length} matches`}
-              </span>
-              {searchFacets.status && Object.keys(searchFacets.status).length > 0 ? (
-                <>
-                  <span>· status:</span>
-                  {Object.entries(searchFacets.status).map(([k, n]) => (
-                    <button
-                      key={`s-${k}`}
-                      type="button"
-                      onClick={() => setSearchStatus(searchStatus === k ? '' : (k as MeetingStatus))}
-                      className={cn(
-                        'rounded border px-1 transition-colors',
-                        searchStatus === k
-                          ? 'border-primary bg-primary/30 text-foreground'
-                          : 'border-border bg-background hover:bg-accent/40',
-                      )}
-                      title={tFormat('meetings.aria.filterStatus', { value: k })}
-                    >
-                      {k}={n}
-                    </button>
-                  ))}
-                </>
-              ) : null}
-              {searchFacets.track && Object.keys(searchFacets.track).length > 0 ? (
-                <>
-                  <span>· track:</span>
-                  {Object.entries(searchFacets.track).map(([k, n]) => (
-                    <button
-                      key={`t-${k}`}
-                      type="button"
-                      onClick={() => setSearchTrack(searchTrack === k ? '' : (k as 'lightweight' | 'standard' | 'full'))}
-                      className={cn(
-                        'rounded border px-1 transition-colors',
-                        searchTrack === k
-                          ? 'border-primary bg-primary/30 text-foreground'
-                          : 'border-border bg-background hover:bg-accent/40',
-                      )}
-                      title={tFormat('meetings.aria.filterTrack', { value: k })}
-                    >
-                      {k}={n}
-                    </button>
-                  ))}
-                </>
-              ) : null}
-            </div>
+            <MeetingsSearchFacets
+              resultCount={searchResults.length}
+              total={searchTotal}
+              facets={searchFacets}
+              selectedStatus={searchStatus}
+              selectedTrack={searchTrack}
+              onStatusToggle={setSearchStatus}
+              onTrackToggle={setSearchTrack}
+            />
           ) : null}
           {searchError ? (
             <div className="text-[11px] text-destructive">{searchError}</div>

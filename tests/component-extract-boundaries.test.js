@@ -84,6 +84,40 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: MeetingsSearchFacets (v1.10.573)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsSearchFacets.tsx');
+    assert.match(src, /export default function MeetingsSearchFacets/);
+  });
+
+  it('takes 7 props (counts + facets + selected status/track + toggle callbacks)', () => {
+    const src = read('MeetingsSearchFacets.tsx');
+    assert.match(src, /resultCount:\s*number/);
+    assert.match(src, /total:\s*number\s*\|\s*null/);
+    assert.match(src, /facets:\s*SearchFacets/);
+    assert.match(src, /selectedStatus:\s*MeetingStatus\s*\|\s*''/);
+    assert.match(src, /onStatusToggle/);
+    assert.match(src, /onTrackToggle/);
+  });
+
+  it('is a pure-display component (no state, no effects)', () => {
+    const src = read('MeetingsSearchFacets.tsx');
+    assert.doesNotMatch(src, /useState/);
+    assert.doesNotMatch(src, /useEffect/);
+  });
+
+  it('is imported and rendered by MeetingsView', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsSearchFacets\s+from\s+'\.\/MeetingsSearchFacets'/);
+    assert.match(parent, /<MeetingsSearchFacets/);
+  });
+
+  it('parent MeetingsView no longer holds the inline facets JSX', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /facets\.status\}\s*&&\s*Object\.keys/);
+  });
+});
+
 describe('extracted: worker-classify lib (v1.10.572)', () => {
   it('lives in lib/worker-classify.ts with all 4 helpers exported', () => {
     const fs = require('fs');

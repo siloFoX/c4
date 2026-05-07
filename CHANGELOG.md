@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.573] - 2026-05-08 — Extract MeetingsSearchFacets
+
+**Web — `MeetingsView.tsx` shrunk by 37 lines (994 → 957).**
+The FTS search facet chip row (total-matches header + status /
+track filter chips derived from the response facets) extracted
+as a pure-display sibling. 7 props: resultCount / total /
+facets + selectedStatus + selectedTrack + 2 toggle callbacks.
+
+### Refactor
+- New `web/src/components/MeetingsSearchFacets.tsx` (~86
+  lines): the chip row JSX + the SearchFacets prop type.
+- `MeetingsView.tsx`: removed the inline 50-line JSX block.
+  Replaced with `<MeetingsSearchFacets … />`.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 40 suites, 220 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 39 of the perfection-track component split. MeetingsView
+  is back under 1000 lines (957) and still has the search input,
+  list filter chips, and the master/detail layout to potentially
+  split further in future iterations.
+
 ## [1.10.572] - 2026-05-08 — Extract worker-classify lib (with bug fix)
 
 **Web — `WorkerList.tsx` -32 lines (311 → 279), `HierarchyTree.tsx`
