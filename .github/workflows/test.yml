@@ -60,6 +60,9 @@ jobs:
       - name: web build
         run: npm --prefix web run build
 
+      - name: bundle size budget
+        run: npm run lint:bundle-size
+
       - name: sdk build (tsc → dist + cjs shim)
         run: npm --prefix sdk run build
 

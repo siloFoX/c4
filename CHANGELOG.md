@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.511] - 2026-05-07 — Bundle size budget + CI gate
+
+**Repo — `scripts/check-bundle-size.js` + CI step.** New
+`npm run lint:bundle-size` enforces a hard cap on the
+critical-path chunks so accidental imports that re-eager
+a heavy dep break the build instead of silently regressing
+first-paint time.
+
+### Budget
+- `index`: 280KB hard cap (currently 216KB / 77%)
+- `vendor-react-dom`: 200KB (currently 127KB / 63%)
+- `vendor-lucide`: 60KB (currently 40KB / 67%)
+- `vendor`: 60KB (currently 31KB / 51%)
+- `vendor-react`: 16KB (currently 7.5KB / 47%)
+- `vendor-xterm` not budgeted (lazy on WorkerDetail)
+
+### CI
+- `.github/workflows/test.yml` runs the budget check
+  right after `npm --prefix web run build`. Fail-fast.
+
+### Notes
+- Warning threshold at 85% of budget (heads-up before
+  hard fail).
+- 200/200 tests green, lint clean.
+
 ## [1.10.510] - 2026-05-07 — Bundle split: vendor manualChunks
 
 **Web — vite manualChunks splits node_modules into vendor
