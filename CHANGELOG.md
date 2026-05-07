@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.512] - 2026-05-07 — Top-level ErrorBoundary
+
+**Web — `components/ErrorBoundary.tsx` wraps `<App/>`.**
+Previously a render error in any leaf would unmount the
+entire React tree and leave a blank screen. Now the
+boundary catches the throw and renders a small fallback
+panel with: error title, the message, the stack trace
+(scrollable), and Try Again / Reload buttons.
+
+### Coverage
+- Wraps the entire App at `main.tsx`. Single fallback for
+  any view.
+- The error is also logged to `console.error` so operators
+  can grab the full stack from devtools.
+- "Try Again" resets the boundary state (re-renders the
+  children); "Reload" does a full `window.location.reload()`.
+
+### Added (4 keys)
+- `errorBoundary.{title,message,tryAgain,reload}` — message
+  takes `{error}` placeholder.
+
+### Notes
+- 200/200 tests green.
+- Bundle still under budget (index 202KB / 280KB).
+- Visual i18n scan still 0 UI leak.
+
 ## [1.10.511] - 2026-05-07 — Bundle size budget + CI gate
 
 **Repo — `scripts/check-bundle-size.js` + CI step.** New
