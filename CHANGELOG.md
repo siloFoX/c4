@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.579] - 2026-05-08 — Extract SessionsListSection
+
+**Web — `SessionsView.tsx` shrunk by 72 lines (625 → 553).**
+The /api/sessions project-grouped list (left pane second
+section, with collapsible groups and per-session click rows)
+extracted as a pure-display sibling. 7 props.
+
+### Refactor
+- New `web/src/components/SessionsListSection.tsx` (~113
+  lines): error / empty / grouped-list states, the project
+  group header, the per-session row.
+- `SessionsView.tsx`: removed the inline 80-line block.
+  Replaced with `<SessionsListSection … />`. Dropped 4 unused
+  imports (ChevronDown, ChevronRight, Badge, cn).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (6 assertions). Total: 46 suites, 253 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 45 of the perfection-track component split. SessionsView
+  553 (was 1367 at session start, -814 / -59.5%). Both
+  master-pane sections now extracted.
+
 ## [1.10.578] - 2026-05-08 — Extract SessionsAttachedSection (50th ship)
 
 **Web — `SessionsView.tsx` shrunk by 74 lines (699 → 625).**

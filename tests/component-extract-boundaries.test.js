@@ -84,6 +84,48 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: SessionsListSection (v1.10.579)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SessionsListSection.tsx');
+    assert.match(src, /export default function SessionsListSection/);
+  });
+
+  it('takes 7 props', () => {
+    const src = read('SessionsListSection.tsx');
+    assert.match(src, /filteredGroups:\s*SessionGroup\[\]/);
+    assert.match(src, /error:\s*string\s*\|\s*null/);
+    assert.match(src, /loading:\s*boolean/);
+    assert.match(src, /collapsed:\s*Record<string, boolean>/);
+    assert.match(src, /onToggleGroup:\s*\(key:\s*string\)\s*=>\s*void/);
+    assert.match(src, /selectedSessionId:\s*string\s*\|\s*null/);
+    assert.match(src, /onSelect:\s*\(sessionId:\s*string\)\s*=>\s*void/);
+  });
+
+  it('reuses formatRelative + shortId + SessionGroup from SessionsView', () => {
+    const src = read('SessionsListSection.tsx');
+    assert.match(src, /from\s+'\.\/SessionsView'/);
+    assert.match(src, /formatRelative/);
+    assert.match(src, /shortId/);
+  });
+
+  it('is a pure-display component (no state, no effects)', () => {
+    const src = read('SessionsListSection.tsx');
+    assert.doesNotMatch(src, /useState/);
+    assert.doesNotMatch(src, /useEffect/);
+  });
+
+  it('is imported and rendered by SessionsView', () => {
+    const parent = read('SessionsView.tsx');
+    assert.match(parent, /import\s+SessionsListSection\s+from\s+'\.\/SessionsListSection'/);
+    assert.match(parent, /<SessionsListSection/);
+  });
+
+  it('parent SessionsView no longer holds the inline grouped list rendering', () => {
+    const parent = read('SessionsView.tsx');
+    assert.doesNotMatch(parent, /filteredGroups\.map\(\(group\) => \{/);
+  });
+});
+
 describe('extracted: SessionsAttachedSection (v1.10.578)', () => {
   it('lives in its own file with default export', () => {
     const src = read('SessionsAttachedSection.tsx');
