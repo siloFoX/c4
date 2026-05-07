@@ -84,6 +84,54 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: MeetingsContributePanel (v1.10.551)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsContributePanel.tsx');
+    assert.match(src, /export default function MeetingsContributePanel/);
+  });
+
+  it('takes open + meetingId props', () => {
+    const src = read('MeetingsContributePanel.tsx');
+    assert.match(src, /open:\s*boolean/);
+    assert.match(src, /meetingId:\s*string/);
+  });
+
+  it('owns its full form state internally', () => {
+    const src = read('MeetingsContributePanel.tsx');
+    assert.match(src, /const \[specialist, setSpecialist\]/);
+    assert.match(src, /const \[text, setText\]/);
+    assert.match(src, /const \[vote, setVote\]/);
+    assert.match(src, /const \[reason, setReason\]/);
+  });
+
+  it('owns both /contribute (with body) and /vote (vote-only) handlers', () => {
+    const src = read('MeetingsContributePanel.tsx');
+    assert.match(src, /handleContribute/);
+    assert.match(src, /handleVoteOnly/);
+    assert.match(src, /\/contribute/);
+    assert.match(src, /\/vote/);
+  });
+
+  it('resets form on meetingId change so state does not leak across meetings', () => {
+    const src = read('MeetingsContributePanel.tsx');
+    assert.match(src, /\[meetingId\]/);
+  });
+
+  it('is imported and rendered by MeetingsView (toggle open flag in parent)', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsContributePanel\s+from\s+'\.\/MeetingsContributePanel'/);
+    assert.match(parent, /<MeetingsContributePanel\s+open=\{contribOpen\}\s+meetingId=\{selectedId\}/);
+  });
+
+  it('parent MeetingsView no longer holds contribute form state nor handlers', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /const \[contribSpecialist, setContribSpecialist\]/);
+    assert.doesNotMatch(parent, /const \[contribText, setContribText\]/);
+    assert.doesNotMatch(parent, /const handleContribute/);
+    assert.doesNotMatch(parent, /const handleVoteOnly/);
+  });
+});
+
 describe('extracted: SessionsAttachedRowActions (v1.10.550)', () => {
   it('lives in its own file with default export', () => {
     const src = read('SessionsAttachedRowActions.tsx');

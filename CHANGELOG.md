@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.551] - 2026-05-07 — Extract MeetingsContributePanel
+
+**Web — `MeetingsView.tsx` shrunk by 151 lines (1832 → 1681).**
+The Phase-1 manual contribute panel — operator picks a
+specialist id, writes a turn body, optionally votes — extracted
+as a controlled component along with the `handleContribute` and
+`handleVoteOnly` POST handlers.
+
+### Refactor
+- New `web/src/components/MeetingsContributePanel.tsx` (~195
+  lines): the full form (specialist input, body textarea,
+  reason input, vote selector, post + vote-only buttons), the
+  two POST handlers, the per-selection reset effect.
+- Parent keeps just the `contribOpen` flag (so the manual
+  control row toggle button still works) and renders
+  `<MeetingsContributePanel open={contribOpen} meetingId={selectedId} />`.
+- Form resets on `meetingId` change inside the panel — half-typed
+  contributions from meeting A no longer leak into meeting B.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (7 assertions). Total: 20 suites, 102 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 19 of the perfection-track component split. Big-3
+  parents combined: 3379 lines (was 5104, -1725 / -33.8%).
+  MeetingsView 1681 (was 2372 at session start, -691 / -29.1%).
+
 ## [1.10.550] - 2026-05-07 — Extract SessionsAttachedRowActions
 
 **Web — `SessionsView.tsx` shrunk by 264 lines (963 → 699).**

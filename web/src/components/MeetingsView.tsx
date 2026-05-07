@@ -14,6 +14,7 @@ import MeetingsStuckBanner, { type StuckResponse } from './MeetingsStuckBanner';
 import MeetingsForkForm from './MeetingsForkForm';
 import MeetingsStagesView, { type StageView } from './MeetingsStagesView';
 import MeetingsDetailHeader from './MeetingsDetailHeader';
+import MeetingsContributePanel from './MeetingsContributePanel';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -718,84 +719,15 @@ export default function MeetingsView() {
   // specialist, we now have an inline form on the detail panel.
   // Vote-only is the same endpoint with no `text` (we use /vote
   // for that — strictly a vote without a turn).
+  // (v1.10.551) Contribute panel extracted to
+  // ./MeetingsContributePanel.tsx — owns its own form state.
+  // Parent keeps just the open/closed flag (toggle button lives
+  // in the manual-control row above the panel).
   const [contribOpen, setContribOpen] = useState(false);
-  const [contribSpecialist, setContribSpecialist] = useState('');
-  const [contribText, setContribText] = useState('');
-  const [contribVote, setContribVote] = useState<'' | 'accept' | 'object'>('');
-  const [contribReason, setContribReason] = useState('');
-  const [contribBusy, setContribBusy] = useState(false);
-  const [contribMsg, setContribMsg] = useState<string | null>(null);
-  // (v1.10.483) Tone separated from message text — see prior tone refactors.
-  const [contribFailed, setContribFailed] = useState(false);
-  const handleContribute = useCallback(async (id: string) => {
-    const sid = contribSpecialist.trim();
-    const text = contribText.trim();
-    if (!sid || !text) {
-      setContribMsg(t('meetings.contribute.specialistTextRequired'));
-      setContribFailed(true);
-      return;
-    }
-    setContribBusy(true);
-    setContribMsg(null);
-    setContribFailed(false);
-    try {
-      const body: {
-        specialistId: string;
-        text: string;
-        vote?: 'accept' | 'object' | null;
-        reason?: string;
-      } = { specialistId: sid, text };
-      if (contribVote) body.vote = contribVote;
-      if (contribReason.trim()) body.reason = contribReason.trim();
-      await apiPost(`/api/meetings/${encodeURIComponent(id)}/contribute`, body);
-      setContribText('');
-      setContribReason('');
-      setContribVote('');
-      setContribMsg(t('meetings.contribute.recorded'));
-      window.setTimeout(() => setContribMsg(null), 3000);
-    } catch (e) {
-      setContribMsg(tFormat('meetings.contribute.failed', {
-        error: (e as Error).message || t('common.unknown'),
-      }));
-      setContribFailed(true);
-    } finally {
-      setContribBusy(false);
-    }
-  }, [contribSpecialist, contribText, contribVote, contribReason]);
-  const handleVoteOnly = useCallback(async (id: string, vote: 'accept' | 'object') => {
-    const sid = contribSpecialist.trim();
-    if (!sid) {
-      setContribMsg(t('meetings.contribute.specialistRequired'));
-      setContribFailed(true);
-      return;
-    }
-    setContribBusy(true);
-    setContribMsg(null);
-    setContribFailed(false);
-    try {
-      const body: { specialistId: string; vote: 'accept' | 'object'; reason?: string } = { specialistId: sid, vote };
-      if (contribReason.trim()) body.reason = contribReason.trim();
-      await apiPost(`/api/meetings/${encodeURIComponent(id)}/vote`, body);
-      setContribReason('');
-      setContribMsg(tFormat('meetings.contribute.voteRecorded', { vote }));
-      window.setTimeout(() => setContribMsg(null), 3000);
-    } catch (e) {
-      setContribMsg(tFormat('meetings.contribute.voteFailed', {
-        error: (e as Error).message || t('common.unknown'),
-      }));
-      setContribFailed(true);
-    } finally {
-      setContribBusy(false);
-    }
-  }, [contribSpecialist, contribReason]);
-  // Reset on selection change
+  // Close the form whenever selection changes — the extracted
+  // panel resets its own field state on meetingId change too.
   useEffect(() => {
     setContribOpen(false);
-    setContribSpecialist('');
-    setContribText('');
-    setContribVote('');
-    setContribReason('');
-    setContribMsg(null);
   }, [selectedId]);
 
   // (v1.10.345) Retro preview / finalize for terminal meetings.
@@ -1474,7 +1406,6 @@ export default function MeetingsView() {
                 size="sm"
                 variant="outline"
                 onClick={() => setContribOpen((v) => !v)}
-                disabled={contribBusy}
                 aria-label={t('meetings.contribute.toggle.label')}
                 title={t('meetings.tooltip.contribute')}
                 aria-expanded={contribOpen}
@@ -1536,90 +1467,8 @@ export default function MeetingsView() {
               operator clicks "Contribute…". Vote-only buttons hit
               /vote (no turn appended); contribute hits /contribute
               with optional vote piggybacked on the turn. */}
-          {selectedId && detail && detail.status === 'in-progress' && contribOpen ? (
-            <div className="flex flex-col gap-1 rounded-md border border-border bg-muted/10 p-2 text-[11px]">
-              <Input
-                type="text"
-                value={contribSpecialist}
-                onChange={(e) => setContribSpecialist(e.target.value)}
-                placeholder={t('meetings.contribute.specialistId.placeholder')}
-                aria-label={t('meetings.contribute.specialistId.label')}
-                disabled={contribBusy}
-                className="h-7 text-[11px] font-mono"
-              />
-              <textarea
-                value={contribText}
-                onChange={(e) => setContribText(e.target.value)}
-                placeholder={t('meetings.contribute.body.placeholder')}
-                aria-label={t('meetings.contribute.body.label')}
-                disabled={contribBusy}
-                className="min-h-[64px] rounded border border-border bg-background p-2 text-[11px]"
-              />
-              <Input
-                type="text"
-                value={contribReason}
-                onChange={(e) => setContribReason(e.target.value)}
-                placeholder={t('meetings.contribute.reason.placeholder')}
-                aria-label={t('meetings.contribute.reason.label')}
-                disabled={contribBusy}
-                className="h-7 text-[11px]"
-              />
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <label className="flex items-center gap-1 text-muted-foreground">
-                  vote (with contrib):
-                  <select
-                    value={contribVote}
-                    onChange={(e) => setContribVote(e.target.value as '' | 'accept' | 'object')}
-                    disabled={contribBusy}
-                    className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
-                  >
-                    <option value="">{t('meetings.option.none')}</option>
-                    <option value="accept">{t('meetings.option.accept')}</option>
-                    <option value="object">{t('meetings.option.object')}</option>
-                  </select>
-                </label>
-                <Button
-                  size="sm"
-                  onClick={() => handleContribute(selectedId)}
-                  disabled={contribBusy || !contribSpecialist.trim() || !contribText.trim()}
-                  className="h-6 px-2 text-[10px]"
-                  aria-label={t('meetings.contribute.post.label')}
-                >
-                  {contribBusy ? '…' : t('meetings.contribute.post')}
-                </Button>
-                <span className="text-border">|</span>
-                <span className="text-muted-foreground">{t('meetings.contribute.voteOnly')}</span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleVoteOnly(selectedId, 'accept')}
-                  disabled={contribBusy || !contribSpecialist.trim()}
-                  className="h-6 px-2 text-[10px]"
-                  aria-label={t('meetings.contribute.voteAccept.label')}
-                >
-                  {t('meetings.action.acceptLabel')}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleVoteOnly(selectedId, 'object')}
-                  disabled={contribBusy || !contribSpecialist.trim()}
-                  className="h-6 px-2 text-[10px]"
-                  aria-label={t('meetings.contribute.voteObject.label')}
-                >
-                  {t('meetings.action.objectLabel')}
-                </Button>
-                {contribMsg ? (
-                  <span className={cn(
-                    'truncate',
-                    contribFailed
-                      ? 'text-destructive' : 'text-muted-foreground',
-                  )}>
-                    {contribMsg}
-                  </span>
-                ) : null}
-              </div>
-            </div>
+          {selectedId && detail && detail.status === 'in-progress' ? (
+            <MeetingsContributePanel open={contribOpen} meetingId={selectedId} />
           ) : null}
           {selectedId && detail && detail.status === 'pending' ? (
             <div className="flex flex-wrap items-center gap-2">
