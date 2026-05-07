@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Eye, Plus, RefreshCw, Search, Shield, Star, Trash2, X } from 'lucide-react';
-import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api';
+import { apiDelete, apiGet, apiPost } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -9,6 +9,7 @@ import SpecialistsBulkOpsToolbar from './SpecialistsBulkOpsToolbar';
 import SpecialistsSummaryBar from './SpecialistsSummaryBar';
 import SpecialistsAddPanel from './SpecialistsAddPanel';
 import SpecialistsPromptPanel from './SpecialistsPromptPanel';
+import SpecialistsTagEditor from './SpecialistsTagEditor';
 
 // (multi-specialist phase 7.5) Specialists tab — registry view +
 // score visualization. Mirrors MeetingsView / WikiView's split
@@ -163,36 +164,7 @@ export default function SpecialistsView() {
   // extracted to ./SpecialistsBulkOpsToolbar.tsx — see header
   // there. Wired below as <SpecialistsBulkOpsToolbar onChange={refresh} />.
 
-  // (Phase 1.6) Tag edit — mode: replace | add | remove via
-  // PATCH /specialists/:id/tags. UI takes a comma-separated value
-  // and infers add/remove from operator's intent (`+ a, b` / `- a`)
-  // or replaces wholesale by default.
-  const [tagEditOpen, setTagEditOpen] = useState(false);
-  const [tagEditValue, setTagEditValue] = useState('');
-  const [tagBusy, setTagBusy] = useState(false);
-  const handleTagEdit = useCallback(async (id: string) => {
-    const raw = tagEditValue.trim();
-    if (!raw) return;
-    let mode: 'replace' | 'add' | 'remove' = 'replace';
-    let tagsRaw = raw;
-    if (raw.startsWith('+')) { mode = 'add'; tagsRaw = raw.slice(1); }
-    else if (raw.startsWith('-')) { mode = 'remove'; tagsRaw = raw.slice(1); }
-    const tags = tagsRaw.split(',').map((t) => t.trim()).filter(Boolean);
-    if (tags.length === 0 && mode === 'replace') return; // empty replace = clear; we want intentional clears
-    setTagBusy(true);
-    try {
-      await apiPatch(`/api/specialists/${encodeURIComponent(id)}/tags`, { tags, mode });
-      setTagEditValue('');
-      setTagEditOpen(false);
-      await refresh();
-    } catch (e) {
-      setActionError(tFormat('specialists.tagEdit.failed', {
-        error: (e as Error).message || t('common.failed'),
-      }));
-    } finally {
-      setTagBusy(false);
-    }
-  }, [tagEditValue, refresh]);
+  // (v1.10.559) Tag editor extracted to ./SpecialistsTagEditor.tsx.
   const handleScoreReset = useCallback(async (id: string) => {
     setResetBusy(true);
     try {
@@ -585,55 +557,14 @@ export default function SpecialistsView() {
                 </div>
               ) : null}
 
-              {/* (Phase 1.6) Tag editor — replace / add (`+a,b`) /
-                  remove (`-a`) via PATCH /specialists/:id/tags. */}
-              <div className="text-xs">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-muted-foreground">{t('specialists.label.tags')}</div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setTagEditOpen((v) => !v);
-                      setTagEditValue(Array.isArray(selected.tags) ? selected.tags.join(', ') : '');
-                    }}
-                    className="h-6 px-2 text-[10px]"
-                  >
-                    {tagEditOpen ? t('specialists.tags.cancel') : t('specialists.tags.edit')}
-                  </Button>
-                </div>
-                {!tagEditOpen ? (
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {Array.isArray(selected.tags) && selected.tags.length > 0
-                      ? selected.tags.map((t) => (
-                          <span key={t} className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-1.5 py-0 text-[10px] text-cyan-700 dark:text-cyan-400">
-                            #{t}
-                          </span>
-                        ))
-                      : <span className="text-[11px] text-muted-foreground italic">{t('specialists.tags.empty')}</span>}
-                  </div>
-                ) : (
-                  <div className="mt-1 flex flex-wrap items-center gap-1">
-                    <Input
-                      type="text"
-                      value={tagEditValue}
-                      onChange={(e) => setTagEditValue(e.target.value)}
-                      placeholder={t('specialists.tags.placeholder')}
-                      aria-label={t('specialists.action.editTags')}
-                      className="h-7 flex-1 text-[11px]"
-                      disabled={tagBusy}
-                    />
-                    <Button
-                      size="sm"
-                      onClick={() => handleTagEdit(selected.id)}
-                      disabled={tagBusy}
-                      className="h-7 px-2 text-[11px]"
-                    >
-                      {t('common.apply')}
-                    </Button>
-                  </div>
-                )}
-              </div>
+              {/* (v1.10.559) Tag editor extracted to
+                  ./SpecialistsTagEditor.tsx. */}
+              <SpecialistsTagEditor
+                specialistId={selected.id}
+                tags={selected.tags}
+                onSaved={() => { void refresh(); }}
+                onError={setActionError}
+              />
 
               {(Object.keys(selected.score.byDomain).length > 0
                 || Object.keys(selected.score.byStage).length > 0) ? (

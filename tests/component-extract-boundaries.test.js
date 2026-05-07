@@ -84,6 +84,51 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: SpecialistsTagEditor (v1.10.559)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SpecialistsTagEditor.tsx');
+    assert.match(src, /export default function SpecialistsTagEditor/);
+  });
+
+  it('takes specialistId / tags / onSaved / onError props', () => {
+    const src = read('SpecialistsTagEditor.tsx');
+    assert.match(src, /specialistId:\s*string/);
+    assert.match(src, /tags:\s*string\[\]\s*\|\s*undefined/);
+    assert.match(src, /onSaved:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onError:\s*\(msg:\s*string\)\s*=>\s*void/);
+  });
+
+  it('owns open / value / busy state internally', () => {
+    const src = read('SpecialistsTagEditor.tsx');
+    assert.match(src, /useState\(false\)/);
+    assert.match(src, /useState\(''\)/);
+  });
+
+  it('infers add (+...) / remove (-...) / replace from leading char', () => {
+    const src = read('SpecialistsTagEditor.tsx');
+    assert.match(src, /raw\.startsWith\('\+'\)/);
+    assert.match(src, /raw\.startsWith\('-'\)/);
+    assert.match(src, /'replace' \| 'add' \| 'remove'/);
+  });
+
+  it('guards against accidental clear (empty replace)', () => {
+    const src = read('SpecialistsTagEditor.tsx');
+    assert.match(src, /next\.length === 0 && mode === 'replace'/);
+  });
+
+  it('is imported and rendered by SpecialistsView', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.match(parent, /import\s+SpecialistsTagEditor\s+from\s+'\.\/SpecialistsTagEditor'/);
+    assert.match(parent, /<SpecialistsTagEditor/);
+  });
+
+  it('parent SpecialistsView no longer holds tag-edit state nor handler', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.doesNotMatch(parent, /const \[tagEditOpen, setTagEditOpen\]/);
+    assert.doesNotMatch(parent, /const handleTagEdit/);
+  });
+});
+
 describe('extracted: SpecialistsPromptPanel (v1.10.558)', () => {
   it('lives in its own file with default export', () => {
     const src = read('SpecialistsPromptPanel.tsx');

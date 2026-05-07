@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.559] - 2026-05-08 — Extract SpecialistsTagEditor
+
+**Web — `SpecialistsView.tsx` shrunk by 69 lines (767 → 698).**
+The Phase-1.6 tag editor (`replace` / `add` `+a,b` / `remove`
+`-a` modes via PATCH `/specialists/:id/tags`) extracted as a
+controlled component. Owns its open / value / busy state
+internally; bubbles save success and errors via callbacks.
+
+### Refactor
+- New `web/src/components/SpecialistsTagEditor.tsx` (~102
+  lines): the toggle button, the comma-separated input, the
+  Apply button, the read-only chip preview, and the PATCH
+  handler.
+- `SpecialistsView.tsx`: removed 3 useState hooks, the
+  `handleTagEdit` callback (~25 lines), and the inline JSX
+  (~50 lines). Replaced with `<SpecialistsTagEditor … />`.
+- Removed unused `apiPatch` import (now only used in the
+  extracted file).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (7 assertions). Total: 28 suites, 156 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 27 of the perfection-track component split.
+  SpecialistsView 698 (was 1365 at session start, -667 / -48.9%).
+  Big-3 combined: 2391 lines (was 5104, -2713 / -53.2%).
+
 ## [1.10.558] - 2026-05-08 — Extract SpecialistsPromptPanel
 
 **Web — `SpecialistsView.tsx` shrunk by 183 lines (950 → 767).**
