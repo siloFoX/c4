@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.567] - 2026-05-08 — Extract WorkerListGroupHeader
+
+**Web — `WorkerList.tsx` shrunk by 45 lines (356 → 311).**
+The Phase-8.37 collapsible section header (icon + label + count
+badge + chevron) for managers / workers groups extracted as a
+standalone component. Pure display — six props, zero state.
+
+### Refactor
+- New `web/src/components/WorkerListGroupHeader.tsx` (~53
+  lines): the chevron-toggle button with the count badge.
+  Imports its own lucide icons (Crown, Wrench, ChevronDown,
+  ChevronRight).
+- `WorkerList.tsx`: removed the inline component (~35 lines)
+  and the GroupHeaderProps interface. Updated 2 call sites
+  to use the new component name. Dropped 4 unused icon
+  imports.
+- `tests/header-ia.test.js`: 2 contract assertions redirected
+  to source-grep the new file.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 35 suites, 192 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 34 of the perfection-track component split. Seventh
+  non-big-3 extraction. WorkerList 311 (was 356).
+
 ## [1.10.566] - 2026-05-08 — Extract ConversationTurns
 
 **Web — `ConversationView.tsx` shrunk by 256 lines (538 → 282).**

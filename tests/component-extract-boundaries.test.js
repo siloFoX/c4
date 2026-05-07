@@ -84,6 +84,40 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: WorkerListGroupHeader (v1.10.567)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('WorkerListGroupHeader.tsx');
+    assert.match(src, /export default function WorkerListGroupHeader/);
+  });
+
+  it('takes open / onToggle / label / count / icon / accent props', () => {
+    const src = read('WorkerListGroupHeader.tsx');
+    assert.match(src, /open:\s*boolean/);
+    assert.match(src, /onToggle:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /icon:\s*'crown'\s*\|\s*'wrench'/);
+    assert.match(src, /accent:\s*'primary'\s*\|\s*'muted'/);
+  });
+
+  it('is a pure-display component (no state, no effects)', () => {
+    const src = read('WorkerListGroupHeader.tsx');
+    assert.doesNotMatch(src, /useState/);
+    assert.doesNotMatch(src, /useEffect/);
+  });
+
+  it('is rendered at >= 2 call sites by WorkerList (managers + workers)', () => {
+    const parent = read('WorkerList.tsx');
+    assert.match(parent, /import\s+WorkerListGroupHeader\s+from\s+'\.\/WorkerListGroupHeader'/);
+    const calls = parent.match(/<WorkerListGroupHeader/g) || [];
+    assert.ok(calls.length >= 2, `expected >= 2 call sites, saw ${calls.length}`);
+  });
+
+  it('parent WorkerList no longer holds the header definition', () => {
+    const parent = read('WorkerList.tsx');
+    assert.doesNotMatch(parent, /function GroupHeader\(/);
+    assert.doesNotMatch(parent, /interface GroupHeaderProps/);
+  });
+});
+
 describe('extracted: ConversationTurns (v1.10.566)', () => {
   it('lives in its own file with default-exported TurnRow', () => {
     const src = read('ConversationTurns.tsx');

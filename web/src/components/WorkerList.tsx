@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, Crown, Inbox, Lightbulb, WifiOff, Wrench } from 'lucide-react';
+import { Inbox, Lightbulb, WifiOff } from 'lucide-react';
 import type { ListResponse, SSEEvent, Worker } from '../types';
 import { apiFetch, eventSourceUrl } from '../lib/api';
 import {
@@ -11,6 +11,7 @@ import {
 } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import WorkerListGroupHeader from './WorkerListGroupHeader';
 
 type BadgeVariant = NonNullable<BadgeProps['variant']>;
 
@@ -57,53 +58,7 @@ interface WorkerListProps {
   onSelect: (name: string) => void;
 }
 
-// (TODO 8.37) Section header for a group. Renders the lucide icon,
-// the group label, and a count badge. Expandable so operators can
-// fold one bucket out of the way when they're focused on the other.
-interface GroupHeaderProps {
-  open: boolean;
-  onToggle: () => void;
-  label: string;
-  count: number;
-  icon: 'crown' | 'wrench';
-  accent: 'primary' | 'muted';
-}
-
-function GroupHeader({ open, onToggle, label, count, icon, accent }: GroupHeaderProps) {
-  const Icon = icon === 'crown' ? Crown : Wrench;
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-expanded={open}
-      aria-controls={`worker-group-${label.toLowerCase()}`}
-      className={cn(
-        'flex w-full items-center gap-1.5 rounded-md px-1 py-1 text-left text-xs uppercase tracking-wide transition-colors',
-        accent === 'primary'
-          ? 'text-primary hover:bg-primary/5'
-          : 'text-muted-foreground hover:bg-accent/40',
-      )}
-    >
-      {open ? (
-        <ChevronDown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      ) : (
-        <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      )}
-      <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      <span className="font-semibold">{label}</span>
-      <span
-        className={cn(
-          'ml-auto rounded-full border px-1.5 py-0 text-[10px] font-semibold',
-          accent === 'primary'
-            ? 'border-primary/30 bg-primary/30 text-foreground'
-            : 'border-border bg-muted text-muted-foreground',
-        )}
-      >
-        {count}
-      </span>
-    </button>
-  );
-}
+// (v1.10.567) GroupHeader extracted to ./WorkerListGroupHeader.tsx
 
 // (TODO 8.37) localStorage keys for the per-group expand/collapse
 // state. Persist so the operator's preference survives reloads.
@@ -310,7 +265,7 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
           `aria-controls={id}` never points at a missing element. */}
       {managers.length > 0 && (
         <div className="space-y-1">
-          <GroupHeader
+          <WorkerListGroupHeader
             open={managersOpen}
             onToggle={() => setManagersOpen((v) => !v)}
             label={t('workerList.group.managers')}
@@ -334,7 +289,7 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
           ARIA fix as Managers group above. */}
       {regular.length > 0 && (
         <div className="space-y-1">
-          <GroupHeader
+          <WorkerListGroupHeader
             open={workersOpen}
             onToggle={() => setWorkersOpen((v) => !v)}
             label={t('workerList.group.workers')}

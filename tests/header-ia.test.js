@@ -73,9 +73,13 @@ describe('WorkerList groups by tier with collapsible sections', () => {
   });
 
   it('renders a GroupHeader with crown + wrench lucide icons', () => {
-    assert.match(src, /function GroupHeader\(/);
-    assert.match(src, /Crown/);
-    assert.match(src, /Wrench/);
+    // (v1.10.567) GroupHeader extracted to ./WorkerListGroupHeader.tsx
+    const groupFile = path.join(__dirname, '..', 'web', 'src', 'components', 'WorkerListGroupHeader.tsx');
+    const groupSrc = fs.readFileSync(groupFile, 'utf8');
+    assert.match(groupSrc, /export default function WorkerListGroupHeader/);
+    assert.match(groupSrc, /Crown/);
+    assert.match(groupSrc, /Wrench/);
+    assert.match(src, /<WorkerListGroupHeader/);
   });
 
   it('exposes per-group open state (managers + workers) and persists each', () => {
@@ -101,8 +105,11 @@ describe('WorkerList groups by tier with collapsible sections', () => {
   });
 
   it('exposes aria-expanded + aria-controls on each group header', () => {
-    assert.match(src, /aria-expanded=\{open\}/);
-    assert.match(src, /aria-controls=\{`worker-group-\$\{label\.toLowerCase\(\)\}`\}/);
+    // (v1.10.567) Lives in WorkerListGroupHeader.tsx now.
+    const groupFile = path.join(__dirname, '..', 'web', 'src', 'components', 'WorkerListGroupHeader.tsx');
+    const groupSrc = fs.readFileSync(groupFile, 'utf8');
+    assert.match(groupSrc, /aria-expanded=\{open\}/);
+    assert.match(groupSrc, /aria-controls=\{`worker-group-\$\{label\.toLowerCase\(\)\}`\}/);
   });
 
   // (review fix 2026-05-01) Originally the `worker-group-*` panels
