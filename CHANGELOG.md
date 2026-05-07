@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.10.525] - 2026-05-07 — `npm run check:full`
+
+**Repo — composite for daemon-dependent checks.** New
+`scripts/check-full.sh` chains the standard `npm run
+check` plus the three checks that need a running daemon:
+visual i18n leak scan, axe-core a11y audit, and visual
+snapshot diff. Spawns a temp daemon on :3458, runs the
+audits, and cleans up via `trap`.
+
+### Sequence
+1. `npm run check` (lint + test + build + bundle-size)
+2. Spawn temp daemon on :3458
+3. `node scripts/i18n-visual-check.js` (~42 surfaces)
+4. `node scripts/a11y-audit.js` (9 surfaces × axe-core)
+5. `node scripts/visual-snapshot-diff.js` (24 PNGs)
+6. Trap-kill daemon
+
+### Notes
+- Used before merging large UI changes when the standard
+  `npm run check` (no daemon) isn't enough.
+- 201/201 tests green.
+
 ## [1.10.524] - 2026-05-07 — `c4 doctor` perfection checks
 
 **Daemon — `c4 doctor` extended with perfection-track
