@@ -345,7 +345,8 @@ describe('App.tsx Control tab wiring (8.8)', () => {
   const src = fs.readFileSync(APP_TSX, 'utf8');
 
   it('imports the new ControlPanel component', () => {
-    assert.match(src, /import ControlPanel from '\.\/components\/ControlPanel'/);
+    // (v1.10.509) ControlPanel is now lazy() to keep main bundle small.
+    assert.match(src, /lazy\(\(\)\s*=>\s*import\(['"]\.\/components\/ControlPanel['"]\)\)/);
   });
 
   it('extends DetailMode with "control"', () => {

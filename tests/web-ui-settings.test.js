@@ -130,9 +130,10 @@ describe('SettingsView component', () => {
 describe('App wires Settings view', () => {
   it('renders SettingsView when topView is settings', () => {
     const src = read(appPath);
+    // (v1.10.509) SettingsView is lazy()-loaded.
     assert.ok(
-      /import SettingsView from ['"]\.\/components\/SettingsView['"]/.test(src),
-      'App.tsx should import SettingsView'
+      /lazy\(\(\)\s*=>\s*import\(['"]\.\/components\/SettingsView['"]\)\)/.test(src),
+      'App.tsx should lazy-import SettingsView'
     );
     assert.ok(
       /topView === 'settings'[\s\S]*?<SettingsView/.test(src),

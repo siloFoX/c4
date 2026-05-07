@@ -4,6 +4,41 @@
 
 (no entries — next release window)
 
+## [1.10.509] - 2026-05-07 — Bundle split: lazy top-level views
+
+**Web — main bundle code-split via React.lazy().** All
+12 top-level Views (Workers/History/Sessions/Meetings/
+Specialists/Wiki/Autonomous/Chat/Workflows/Settings +
+ChatView/ControlPanel for the worker detail panel) are
+now lazy-loaded on first navigation.
+
+### Bundle impact
+- Before: `index-*.js` 992KB
+- After: `index-*.js` **396KB** (60% smaller initial paint)
+- Lazy chunks:
+  - WorkerDetail: 389KB (pulls in xterm.js)
+  - MeetingsView: 54KB
+  - SessionsView: 42KB
+  - SpecialistsView: 38KB
+  - others: 6-15KB each
+
+### Implementation
+- `App.tsx` switched eager `import` → `const X = lazy(() => import('./X'))`.
+- Wrapped the top-view router in `<Suspense fallback={<LoadingSkeleton/>}>`
+  so cross-tab navigation shows the existing skeleton during chunk
+  fetch.
+
+### Tests
+- 5 source-grep tests anchored on the eager import statements
+  (`chat-view`, `history-view`, `session-parser`, `web-control`,
+  `web-ui-settings`). Updated each regex to match the
+  `lazy(() => import('...'))` pattern.
+
+### Notes
+- 200/200 tests green.
+- Visual i18n scan still passes 0 UI leak post-lazy.
+- Existing `pages/registry.ts` lazy loaders remain unchanged.
+
 ## [1.10.508] - 2026-05-07 — README: i18n feature documentation
 
 **Repo — README + README.ko.md** now document the

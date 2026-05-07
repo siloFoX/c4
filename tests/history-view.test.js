@@ -353,7 +353,8 @@ describe('App.tsx integration for history tab', () => {
   const src = fs.readFileSync(path.join(__dirname, '..', 'web', 'src', 'App.tsx'), 'utf8');
 
   it('imports HistoryView', () => {
-    assert.match(src, /import HistoryView from '\.\/components\/HistoryView'/);
+    // (v1.10.509) HistoryView is now lazy() to keep main bundle small.
+    assert.match(src, /lazy\(\(\)\s*=>\s*import\(['"]\.\/components\/HistoryView['"]\)\)/);
   });
 
   it('persists topView selection to localStorage', () => {

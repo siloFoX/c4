@@ -307,7 +307,8 @@ describe('SessionsView.tsx + App.tsx wiring', () => {
     // (v1.10.360) Tab labels migrated to i18n keys + fallback strings.
     assert.match(topTabs, /(label|fallback): 'Sessions'/);
     assert.match(topTabs, /value: 'sessions'/);
-    assert.match(app, /import SessionsView from '\.\/components\/SessionsView'/);
+    // (v1.10.509) SessionsView is now lazy() to keep main bundle small.
+    assert.match(app, /lazy\(\(\)\s*=>\s*import\(['"]\.\/components\/SessionsView['"]\)\)/);
     assert.match(app, /topView === 'sessions'/);
     assert.match(app, /<SessionsView \/>/);
   });

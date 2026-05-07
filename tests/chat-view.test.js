@@ -139,7 +139,8 @@ describe('App.tsx integration', () => {
   const src = fs.readFileSync(APP_TSX, 'utf8');
 
   it('imports ChatView', () => {
-    assert.match(src, /import ChatView from '\.\/components\/ChatView'/);
+    // (v1.10.509) ChatView is now lazy() to keep main bundle small.
+    assert.match(src, /lazy\(\(\)\s*=>\s*import\(['"]\.\/components\/ChatView['"]\)\)/);
   });
 
   it('persists the detail-mode selection to localStorage', () => {

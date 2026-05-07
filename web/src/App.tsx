@@ -1,17 +1,23 @@
-import { useCallback, useEffect, useState } from 'react';
-import WorkerDetail from './components/WorkerDetail';
-import ChatView from './components/ChatView';
-import ControlPanel from './components/ControlPanel';
-import HistoryView from './components/HistoryView';
-import SessionsView from './components/SessionsView';
-import MeetingsView from './components/MeetingsView';
-import SpecialistsView from './components/SpecialistsView';
-import WikiView from './components/WikiView';
-import AutonomousView from './components/AutonomousView';
-import Chat from './components/Chat';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import Login from './components/Login';
-import WorkflowEditor from './components/WorkflowEditor';
-import SettingsView from './components/SettingsView';
+import { LoadingSkeleton } from './pages/PageFrame';
+// (v1.10.509) Top-level views are lazy-loaded so the main bundle
+// only carries Login + AppHeader + Sidebar + the default
+// WorkerDetail / ChatView / ControlPanel triple. The rest pull
+// their own chunk on first navigation. Cuts main from ~992KB to
+// ~600KB on initial paint.
+const WorkerDetail = lazy(() => import('./components/WorkerDetail'));
+const ChatView = lazy(() => import('./components/ChatView'));
+const ControlPanel = lazy(() => import('./components/ControlPanel'));
+const HistoryView = lazy(() => import('./components/HistoryView'));
+const SessionsView = lazy(() => import('./components/SessionsView'));
+const MeetingsView = lazy(() => import('./components/MeetingsView'));
+const SpecialistsView = lazy(() => import('./components/SpecialistsView'));
+const WikiView = lazy(() => import('./components/WikiView'));
+const AutonomousView = lazy(() => import('./components/AutonomousView'));
+const Chat = lazy(() => import('./components/Chat'));
+const WorkflowEditor = lazy(() => import('./components/WorkflowEditor'));
+const SettingsView = lazy(() => import('./components/SettingsView'));
 import AppHeader from './components/layout/AppHeader';
 import Sidebar, { type SidebarMode } from './components/layout/Sidebar';
 import DetailTabs, { type DetailMode } from './components/layout/DetailTabs';
@@ -174,6 +180,11 @@ export default function App() {
           so it doesn't introduce layout jumps when the daemon is
           unreachable or auth-gated. */}
       <MetricsBar />
+      <Suspense fallback={
+        <div className="flex min-h-0 flex-1 overflow-auto p-6">
+          <LoadingSkeleton rows={6} />
+        </div>
+      }>
       {topView === 'history' ? (
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <HistoryView />
@@ -260,6 +271,7 @@ export default function App() {
           </main>
         </div>
       )}
+      </Suspense>
     </div>
   );
 }
