@@ -13,6 +13,7 @@ import MeetingsLineageStrip, { type LineageResponse } from './MeetingsLineageStr
 import MeetingsStuckBanner, { type StuckResponse } from './MeetingsStuckBanner';
 import MeetingsForkForm from './MeetingsForkForm';
 import MeetingsStagesView, { type StageView } from './MeetingsStagesView';
+import MeetingsDetailHeader from './MeetingsDetailHeader';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -1796,27 +1797,15 @@ export default function MeetingsView() {
             <div className="text-sm text-muted-foreground">{t('meetings.loading')}</div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
-                <div>
-                  <div className="text-muted-foreground">{t('meetings.field.status')}</div>
-                  <div className="font-medium">{detail.status}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">{t('meetings.field.track')}</div>
-                  <div className="font-medium">{detail.track}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">{t('meetings.field.stage')}</div>
-                  <div className="font-medium">{detail.currentStage || '-'}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">{t('meetings.field.round')}</div>
-                  <div className="font-medium">{detail.currentRound}</div>
-                </div>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">{t('meetings.field.task')}</span> {detail.task}
-              </div>
+              {/* (v1.10.548) Detail header (4-column metadata grid +
+                  task line) extracted to ./MeetingsDetailHeader.tsx. */}
+              <MeetingsDetailHeader
+                status={detail.status}
+                track={detail.track}
+                currentStage={detail.currentStage}
+                currentRound={detail.currentRound}
+                task={detail.task}
+              />
               {/* (v1.10.543) Lineage strip extracted to
                   ./MeetingsLineageStrip.tsx. */}
               <MeetingsLineageStrip

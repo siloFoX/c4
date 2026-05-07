@@ -84,6 +84,34 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: MeetingsDetailHeader (v1.10.548)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsDetailHeader.tsx');
+    assert.match(src, /export default function MeetingsDetailHeader/);
+  });
+
+  it('is a pure-display component (no state, no effects)', () => {
+    const src = read('MeetingsDetailHeader.tsx');
+    assert.doesNotMatch(src, /useState/);
+    assert.doesNotMatch(src, /useEffect/);
+  });
+
+  it('takes status / track / currentStage / currentRound / task props', () => {
+    const src = read('MeetingsDetailHeader.tsx');
+    assert.match(src, /status:\s*MeetingStatus/);
+    assert.match(src, /currentStage:\s*string\s*\|\s*null/);
+    assert.match(src, /currentRound:\s*number/);
+  });
+
+  it('is imported and rendered by MeetingsView with 5 detail props', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsDetailHeader\s+from\s+'\.\/MeetingsDetailHeader'/);
+    assert.match(parent, /<MeetingsDetailHeader/);
+    assert.match(parent, /status=\{detail\.status\}/);
+    assert.match(parent, /task=\{detail\.task\}/);
+  });
+});
+
 describe('extracted: MeetingsStagesView (v1.10.547)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsStagesView.tsx');

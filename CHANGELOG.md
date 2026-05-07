@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.548] - 2026-05-07 — Extract MeetingsDetailHeader
+
+**Web — `MeetingsView.tsx` shrunk by 11 lines (1843 → 1832).**
+The detail-panel header strip (4-column metadata grid for
+status / track / stage / round, plus the task description line)
+extracted as a pure-display component. Small extraction but
+cleanly self-contained — zero state, zero effects.
+
+### Refactor
+- New `web/src/components/MeetingsDetailHeader.tsx` (~45 lines):
+  the metadata grid + task line. Five props (status, track,
+  currentStage, currentRound, task).
+- `MeetingsView.tsx`: removed the inline 22-line JSX block,
+  imports the new file, renders `<MeetingsDetailHeader … />`.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (4 assertions). Total: 16 suites, 79 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 16 of the perfection-track component split. Big-3
+  parents combined: 3865 lines (was 5104, -1239 / -24.3%).
+  MeetingsView 1832 (was 2372 at session start, -540 / -22.8%).
+
 ## [1.10.547] - 2026-05-07 — Extract MeetingsStagesView
 
 **Web — `MeetingsView.tsx` shrunk by 40 lines (1883 → 1843).**
