@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.547] - 2026-05-07 — Extract MeetingsStagesView
+
+**Web — `MeetingsView.tsx` shrunk by 40 lines (1883 → 1843).**
+The transcript stages display (per-stage card with consensus
+state, roster, and turn list) extracted as a pure display
+component. The smallest of the recent extractions but cleans
+up the deepest nesting in the meeting detail panel.
+
+### Refactor
+- New `web/src/components/MeetingsStagesView.tsx` (~75 lines):
+  the stages list rendering + `StageView` interface (canonical
+  home now that the rendering lives there).
+- `MeetingsView.tsx`: removed the inline `StageView` interface
+  + the 33-line stages JSX block. Imports `MeetingsStagesView`
+  + `type StageView` (the latter for the parent's
+  `MeetingDetail.stages` typing).
+- Pure rendering — no internal state, no parent-side state
+  dependencies.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite
+  added (5 assertions). Total: 15 suites, 75 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 15 of the perfection-track component split. Big-3
+  parents combined: 3876 lines (was 5104, -1228 / -24.1%).
+  MeetingsView 1843 (was 2372 at session start, -529 / -22.3%).
+
 ## [1.10.546] - 2026-05-07 — Extract SpecialistsAddPanel
 
 **Web — `SpecialistsView.tsx` shrunk by 104 lines (1054 → 950).**

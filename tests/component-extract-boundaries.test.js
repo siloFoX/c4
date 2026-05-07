@@ -84,6 +84,36 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: MeetingsStagesView (v1.10.547)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsStagesView.tsx');
+    assert.match(src, /export default function MeetingsStagesView/);
+  });
+
+  it('exports the StageView type', () => {
+    const src = read('MeetingsStagesView.tsx');
+    assert.match(src, /export interface StageView/);
+  });
+
+  it('takes stages + transcripts arrays', () => {
+    const src = read('MeetingsStagesView.tsx');
+    assert.match(src, /stages:\s*StageView\[\]/);
+    assert.match(src, /transcripts:\s*Turn\[\]\[\]/);
+  });
+
+  it('is imported and rendered by MeetingsView with detail.stages + detail.transcripts', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import MeetingsStagesView,\s*\{\s*type StageView\s*\}\s*from\s*'\.\/MeetingsStagesView'/);
+    assert.match(parent, /<MeetingsStagesView\s+stages=\{detail\.stages\}\s+transcripts=\{detail\.transcripts\}/);
+  });
+
+  it('parent MeetingsView no longer holds inline StageView interface nor the stages JSX', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /^interface StageView/m);
+    assert.doesNotMatch(parent, /detail\.stages\.map\(\(stage, idx\) =>/);
+  });
+});
+
 describe('extracted: SpecialistsAddPanel (v1.10.546)', () => {
   it('lives in its own file with default export', () => {
     const src = read('SpecialistsAddPanel.tsx');
