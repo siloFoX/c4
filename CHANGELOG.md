@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.523] - 2026-05-07 — Visual snapshot diff
+
+**Repo — `scripts/visual-snapshot-diff.js` + baseline.**
+Pixel-by-pixel diff of every screenshot from
+`scripts/i18n-visual-check.js` against a baseline
+committed to `tests/baseline-screenshots/` (24 PNGs,
+2.1MB total). Catches design regressions / color drift /
+layout breakage that the i18n leak scan + a11y audit
+miss.
+
+### Tools
+- `pixelmatch` for per-pixel diff (threshold 0.2)
+- `pngjs` for PNG read/write
+- 2% total-pixel-mismatch threshold (data-dependent
+  surfaces churn ~1% even at zero visual change)
+
+### Workflow
+- `npm run lint:i18n-visual` — produces
+  `/tmp/c4-i18n-screens/`
+- `npm run snapshot:diff` — compares to baseline
+- `npm run snapshot:update` — overwrite baseline after
+  intentional UI change, then `git add tests/baseline-
+  screenshots/`
+
+### Notes
+- 201/201 tests green.
+- Initial baseline seeded from current state.
+- Diffs land at `/tmp/c4-snapshot-diff/*.png` for human
+  review.
+
 ## [1.10.522] - 2026-05-07 — TypeScript noUncheckedIndexedAccess
 
 **Web — `tsconfig.json` enables `noUncheckedIndexedAccess`.**
