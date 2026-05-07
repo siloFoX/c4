@@ -4,6 +4,40 @@
 
 (no entries — next release window)
 
+## [1.10.555] - 2026-05-07 — Extract MeetingsStateActions
+
+**Web — `MeetingsView.tsx` shrunk by 76 lines (1473 → 1397).**
+The state-machine action buttons (start / advance / next-round
+/ escalate / abort) extracted as a single component with two
+render modes. `mode='pending'` shows just the Start button;
+`mode='in-progress'` shows the four progress buttons. Each
+mode is mutually exclusive in the UI (gated on `detail.status`),
+so internal busy state never collides.
+
+### Refactor
+- New `web/src/components/MeetingsStateActions.tsx` (~112
+  lines): the Action union type, the typed busy state, the
+  `fire(action, confirm?)` helper, and both button blocks.
+- Confirm prompts preserved on escalate + abort (the
+  destructive transitions).
+- `MeetingsView.tsx`: removed the inline handleStateAction
+  callback (~25 lines), the busy/error state, and both inline
+  button blocks. Replaced with two `<MeetingsStateActions>`
+  call sites — one per mode.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (6 assertions). Total: 24 suites, 128 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 23 of the perfection-track component split. Big-3
+  parents combined: 3046 lines (was 5104, -2058 / -40.3%).
+  MeetingsView 1397 (was 2372 at session start, -975 / -41.1%).
+  Crossed the 40% threshold for the big-3 reduction.
+
 ## [1.10.554] - 2026-05-07 — Extract MeetingsPeerRetroControls
 
 **Web — `MeetingsView.tsx` shrunk by 64 lines (1537 → 1473).**

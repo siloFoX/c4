@@ -18,6 +18,7 @@ import MeetingsContributePanel from './MeetingsContributePanel';
 import MeetingsRetroActions from './MeetingsRetroActions';
 import MeetingsPublishControls from './MeetingsPublishControls';
 import MeetingsPeerRetroControls from './MeetingsPeerRetroControls';
+import MeetingsStateActions from './MeetingsStateActions';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -607,31 +608,11 @@ export default function MeetingsView() {
   // (start / advance / next-round / escalate / abort) hit the
   // existing endpoints and rely on the SSE stream to refresh the
   // detail panel — no manual refetch needed.
-  const [stateBusy, setStateBusy] = useState<string | null>(null);
-  const [stateError, setStateError] = useState<string | null>(null);
-
-  const handleStateAction = useCallback(
-    async (
-      id: string,
-      action: 'start' | 'advance' | 'next-round' | 'escalate' | 'abort',
-      confirm?: string,
-    ) => {
-      if (confirm && !window.confirm(confirm)) return;
-      setStateBusy(action);
-      setStateError(null);
-      try {
-        await apiPost(`/api/meetings/${encodeURIComponent(id)}/${action}`, {});
-      } catch (e) {
-        setStateError(tFormat('meetings.state.failed', {
-          action,
-          error: (e as Error).message || t('common.unknown'),
-        }));
-      } finally {
-        setStateBusy(null);
-      }
-    },
-    [],
-  );
+  // (v1.10.555) State-machine controls (start / advance /
+  // next-round / escalate / abort) extracted to
+  // ./MeetingsStateActions.tsx. Two render modes: 'pending'
+  // shows just Start; 'in-progress' shows the four progress
+  // buttons.
 
   // (v1.10.345) Manual contribute / vote on in-progress meetings.
   // Endpoints exist since Phase 1; the web UI only surfaced "Run"
@@ -1307,55 +1288,9 @@ export default function MeetingsView() {
               >
                 {contribOpen ? t('meetings.hideContribute') : t('meetings.contributeButton')}
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleStateAction(selectedId, 'advance')}
-                disabled={stateBusy !== null}
-                aria-label={t('meetings.contribute.advance.label')}
-                title={t('meetings.tooltip.advance')}
-              >
-                {stateBusy === 'advance' ? '…' : t('meetings.advance')}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleStateAction(selectedId, 'next-round')}
-                disabled={stateBusy !== null}
-                aria-label={t('meetings.contribute.bumpRound.label')}
-                title={t('meetings.tooltip.nextRound')}
-              >
-                {stateBusy === 'next-round' ? '…' : t('meetings.nextRound')}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleStateAction(
-                  selectedId,
-                  'escalate',
-                  t('meetings.escalateConfirm'),
-                )}
-                disabled={stateBusy !== null}
-                aria-label={t('meetings.contribute.escalate.label')}
-              >
-                {stateBusy === 'escalate' ? '…' : t('meetings.escalate')}
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => handleStateAction(
-                  selectedId,
-                  'abort',
-                  t('meetings.abortConfirm'),
-                )}
-                disabled={stateBusy !== null}
-                aria-label={t('meetings.contribute.abort.label')}
-              >
-                {stateBusy === 'abort' ? '…' : t('meetings.abort')}
-              </Button>
-              {stateError ? (
-                <span className="text-[11px] text-destructive">{stateError}</span>
-              ) : null}
+              {/* (v1.10.555) State-machine action buttons extracted to
+                  ./MeetingsStateActions.tsx. */}
+              <MeetingsStateActions meetingId={selectedId} mode="in-progress" />
             </div>
           ) : null}
           {/* (v1.10.345) Contribute / vote form. Hidden until the
@@ -1368,19 +1303,8 @@ export default function MeetingsView() {
           {selectedId && detail && detail.status === 'pending' ? (
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[11px] text-muted-foreground">{t('meetings.orManually.label')}</span>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleStateAction(selectedId, 'start')}
-                disabled={stateBusy !== null}
-                aria-label={t('meetings.contribute.start.label')}
-                title={t('meetings.tooltip.startManual')}
-              >
-                {stateBusy === 'start' ? '…' : t('meetings.startManual')}
-              </Button>
-              {stateError ? (
-                <span className="text-[11px] text-destructive">{stateError}</span>
-              ) : null}
+              {/* (v1.10.555) Manual Start button extracted. */}
+              <MeetingsStateActions meetingId={selectedId} mode="pending" />
             </div>
           ) : null}
           {selectedId && detail && ['completed', 'escalated'].includes(detail.status) ? (

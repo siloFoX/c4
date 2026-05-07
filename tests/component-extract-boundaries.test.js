@@ -84,6 +84,43 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: MeetingsStateActions (v1.10.555)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsStateActions.tsx');
+    assert.match(src, /export default function MeetingsStateActions/);
+  });
+
+  it('takes meetingId + mode props (pending | in-progress)', () => {
+    const src = read('MeetingsStateActions.tsx');
+    assert.match(src, /meetingId:\s*string/);
+    assert.match(src, /mode:\s*'pending'\s*\|\s*'in-progress'/);
+  });
+
+  it('owns busy state typed by Action union', () => {
+    const src = read('MeetingsStateActions.tsx');
+    assert.match(src, /useState<Action \| null>/);
+  });
+
+  it('confirm-prompts escalate + abort before firing', () => {
+    const src = read('MeetingsStateActions.tsx');
+    assert.match(src, /'escalate', t\('meetings\.escalateConfirm'\)/);
+    assert.match(src, /'abort', t\('meetings\.abortConfirm'\)/);
+  });
+
+  it('is rendered at 2 sites by MeetingsView (one per mode)', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsStateActions\s+from\s+'\.\/MeetingsStateActions'/);
+    assert.match(parent, /<MeetingsStateActions\s+meetingId=\{selectedId\}\s+mode="in-progress"/);
+    assert.match(parent, /<MeetingsStateActions\s+meetingId=\{selectedId\}\s+mode="pending"/);
+  });
+
+  it('parent MeetingsView no longer holds state-action handler nor state', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /const \[stateBusy, setStateBusy\]/);
+    assert.doesNotMatch(parent, /const handleStateAction/);
+  });
+});
+
 describe('extracted: MeetingsPeerRetroControls (v1.10.554)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsPeerRetroControls.tsx');
