@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.532] - 2026-05-07 — Extract SpecialistsBulkOpsToolbar
+
+**Web — `SpecialistsView.tsx` shrunk by 229 lines (1365 → 1136).**
+The bulk export / import / audit-rotate toolbar split into its
+own component. Operators round-trip the registry without dropping
+to CLI; the panel owns its own state and signals the parent via
+a single `onChange` callback when the registry mutates.
+
+### Refactor
+- New `web/src/components/SpecialistsBulkOpsToolbar.tsx`
+  (~265 lines): owns `exportBusy/Msg/Failed`,
+  `importMode/Busy/Preview/Bundle/Error`, `rotateBusy/Msg/Failed`,
+  the `ImportResult` interface, and the three handlers
+  (`handleExport`, `handleImportFile`, `handleImportApply`,
+  `handleAuditRotate`).
+- `SpecialistsView.tsx`: imports `SpecialistsBulkOpsToolbar`
+  and renders `<SpecialistsBulkOpsToolbar onChange={refresh} />`
+  in the toolbar slot. ~270 lines of state + handlers + UI
+  removed.
+- Single `onChange()` prop replaces the closure capture of
+  `refresh` from the parent — clean callback contract that
+  doesn't leak the parent's specialist list state.
+
+### Tests
+- 201/201 tests green.
+- Lint clean (OpenAPI + schema-drift + i18n-lockstep).
+- Build clean (38.11 KB SpecialistsView chunk unchanged —
+  bulk ops toolbar is co-bundled because it's eagerly used).
+- Visual snapshot diff: 0 failures, specialists.png 1.05%
+  drift (under 2% threshold, expected because the toolbar
+  rendering moved into a separate component wrapper).
+- A11y: 0 violations.
+
+### Notes
+- Stage 4 of the perfection-track component split. Earlier
+  stages: `MeetingsMaintenancePanel` (v1.10.529),
+  `SessionsTour` (v1.10.530), `SpecialistsAuditPanel`
+  (v1.10.531).
+
 ## [1.10.531] - 2026-05-07 — Extract SpecialistsAuditPanel
 
 **Web — `SpecialistsView.tsx` shrunk by ~240 lines.**
