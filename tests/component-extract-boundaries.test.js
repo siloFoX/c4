@@ -84,6 +84,40 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: SpecialistsSummaryBar (v1.10.545)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SpecialistsSummaryBar.tsx');
+    assert.match(src, /export default function SpecialistsSummaryBar/);
+  });
+
+  it('owns its own polling effect (30s tick)', () => {
+    const src = read('SpecialistsSummaryBar.tsx');
+    assert.match(src, /window\.setInterval\(fetchSummary, 30000\)/);
+  });
+
+  it('hits /api/specialists/summary directly (zero-prop self-fetch)', () => {
+    const src = read('SpecialistsSummaryBar.tsx');
+    assert.match(src, /apiGet<OrganismSummary>\('\/api\/specialists\/summary'\)/);
+  });
+
+  it('renders nothing when summary fetch has not yet succeeded', () => {
+    const src = read('SpecialistsSummaryBar.tsx');
+    assert.match(src, /if \(!summary\) return null/);
+  });
+
+  it('is imported and rendered by SpecialistsView with no props', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.match(parent, /import\s+SpecialistsSummaryBar\s+from\s+'\.\/SpecialistsSummaryBar'/);
+    assert.match(parent, /<SpecialistsSummaryBar\s*\/>/);
+  });
+
+  it('parent SpecialistsView no longer holds OrganismSummary state', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.doesNotMatch(parent, /interface OrganismSummary/);
+    assert.doesNotMatch(parent, /const \[summary, setSummary\]/);
+  });
+});
+
 describe('extracted: MeetingsForkForm (v1.10.544)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsForkForm.tsx');

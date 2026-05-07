@@ -4,6 +4,40 @@
 
 (no entries — next release window)
 
+## [1.10.545] - 2026-05-07 — Extract SpecialistsSummaryBar
+
+**Web — `SpecialistsView.tsx` shrunk by 88 lines (1142 → 1054).**
+The Phase-6.14 organism summary info bar (registry count,
+meetings activity, underperformer alert, persist health/disk
+size, audit log size, last-known-good age) lifted out as a
+self-polling component. Zero-prop interface — the bar fetches
+its own data on a 30s timer and renders nothing when the
+endpoint is unreachable.
+
+### Refactor
+- New `web/src/components/SpecialistsSummaryBar.tsx` (~110
+  lines): the OrganismSummary interface, the polling effect,
+  and the entire info-bar JSX with all its conditional badges.
+- `SpecialistsView.tsx`: removed the inline interface, the
+  state, the polling effect, and the ~70-line conditional JSX
+  block. Imports the default export and renders
+  `<SpecialistsSummaryBar />` with no props.
+- Parent doesn't need this data anywhere else, so the fetch
+  was internalized rather than passed via prop drilling.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite
+  added (6 assertions). Total: 13 suites, 64 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 13 of the perfection-track component split. Big-3
+  parents combined: 4020 lines (was 5104, -1084 lines /
+  -21.2%). SpecialistsView now stands at 1054 (was 1365 at
+  session start, -311 cumulative).
+
 ## [1.10.544] - 2026-05-07 — Extract MeetingsForkForm
 
 **Web — `MeetingsView.tsx` shrunk by 91 lines (1974 → 1883).**

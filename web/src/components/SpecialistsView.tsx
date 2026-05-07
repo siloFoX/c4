@@ -6,6 +6,7 @@ import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import SpecialistsAuditPanel from './SpecialistsAuditPanel';
 import SpecialistsBulkOpsToolbar from './SpecialistsBulkOpsToolbar';
+import SpecialistsSummaryBar from './SpecialistsSummaryBar';
 
 // (multi-specialist phase 7.5) Specialists tab — registry view +
 // score visualization. Mirrors MeetingsView / WikiView's split
@@ -109,34 +110,10 @@ export default function SpecialistsView() {
     }
   }, []);
 
-  // (Phase 6.14) Organism summary — compact info bar above the
-  // two-column layout. Refreshed on a 30s timer; stale during the
-  // gap is fine because the rest of the view polls the registry +
-  // underperformers directly.
-  interface OrganismSummary {
-    registry: { count: number; vetoCount: number };
-    meetings: { total: number; recent24h: number };
-    scores: { specialistsWithSamples: number; underperformerCount: number };
-    persist?: {
-      enabled: boolean;
-      dbSizeBytes?: number | null;
-      rowCount?: number | null;
-      auditLog?: { bytes?: number | null; entries?: number | null };
-      lastKnownGood?: { exists: boolean; ageDays?: number | null };
-    };
-  }
-  const [summary, setSummary] = useState<OrganismSummary | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    const fetchSummary = () => {
-      apiGet<OrganismSummary>('/api/specialists/summary')
-        .then((res) => { if (!cancelled) setSummary(res); })
-        .catch(() => { /* silently degrade — info bar just hides */ });
-    };
-    fetchSummary();
-    const id = window.setInterval(fetchSummary, 30000);
-    return () => { cancelled = true; window.clearInterval(id); };
-  }, []);
+  // (v1.10.545) Organism summary info bar extracted to
+  // ./SpecialistsSummaryBar.tsx — self-polling, owns its own
+  // state. Parent doesn't need this data so the fetch lives
+  // entirely in the panel.
 
   // (v1.10.531) Audit log viewer + chain-verify + CSV export
   // extracted to ./SpecialistsAuditPanel.tsx (~240 lines moved).
@@ -465,75 +442,10 @@ export default function SpecialistsView() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 md:p-6">
-      {/* (Phase 6.14) Organism summary info bar. Quiet when the
-          endpoint is unreachable (older daemon / network). */}
-      {summary ? (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-border/40 bg-muted/10 px-3 py-1.5 text-[11px] text-muted-foreground">
-          <span>
-            <span className="font-medium text-foreground">{summary.registry.count}</span> {t('specialists.summary.specialistsLabel')}
-            {summary.registry.vetoCount > 0 ? (
-              <span className="ml-1">{tFormat('specialists.summary.vetoCount', { count: summary.registry.vetoCount })}</span>
-            ) : null}
-          </span>
-          <span>·</span>
-          <span>
-            <span className="font-medium text-foreground">{summary.meetings.total}</span> {t('specialists.summary.meetingsLabel')}
-            {summary.meetings.recent24h > 0 ? (
-              <span className="ml-1">{tFormat('specialists.summary.recent24h', { count: summary.meetings.recent24h })}</span>
-            ) : null}
-          </span>
-          {summary.scores.underperformerCount > 0 ? (
-            <>
-              <span>·</span>
-              <span className="text-amber-700 dark:text-amber-400">
-                {tFormat('specialists.summary.underperformers', { count: summary.scores.underperformerCount })}
-              </span>
-            </>
-          ) : null}
-          {summary.persist && summary.persist.enabled ? (
-            <>
-              <span>·</span>
-              <span className={cn(
-                typeof summary.persist.dbSizeBytes === 'number' && summary.persist.dbSizeBytes > 100 * 1024 * 1024
-                  ? 'text-amber-700 dark:text-amber-400'
-                  : '',
-              )}>
-                {summary.persist.rowCount != null
-                  ? tFormat('specialists.summary.persistRows', { rows: summary.persist.rowCount })
-                  : t('specialists.summary.persistRowsUnknown')}
-                {typeof summary.persist.dbSizeBytes === 'number'
-                  ? summary.persist.dbSizeBytes > 1024 * 1024
-                    ? tFormat('specialists.summary.dbSizeMb', { size: (summary.persist.dbSizeBytes / (1024 * 1024)).toFixed(1) })
-                    : tFormat('specialists.summary.dbSizeKb', { size: (summary.persist.dbSizeBytes / 1024).toFixed(1) })
-                  : ''}
-              </span>
-              {summary.persist.auditLog && typeof summary.persist.auditLog.entries === 'number' ? (
-                <span className={cn(
-                  typeof summary.persist.auditLog.bytes === 'number' && summary.persist.auditLog.bytes > 1024 * 1024
-                    ? 'text-amber-700 dark:text-amber-400'
-                    : '',
-                )}>
-                  {tFormat('specialists.summary.auditEntries', { entries: summary.persist.auditLog.entries })}
-                  {typeof summary.persist.auditLog.bytes === 'number' && summary.persist.auditLog.bytes > 1024 * 1024
-                    ? tFormat('specialists.summary.auditBytesMb', { size: (summary.persist.auditLog.bytes / (1024 * 1024)).toFixed(1) })
-                    : ''}
-                </span>
-              ) : null}
-              {summary.persist.lastKnownGood && summary.persist.lastKnownGood.exists && typeof summary.persist.lastKnownGood.ageDays === 'number' ? (
-                <span className={cn(
-                  summary.persist.lastKnownGood.ageDays > 7 ? 'text-amber-700 dark:text-amber-400' : '',
-                )}>
-                  {summary.persist.lastKnownGood.ageDays < 1
-                    ? tFormat('specialists.summary.backupAgeHours', { hours: (summary.persist.lastKnownGood.ageDays * 24).toFixed(1) })
-                    : tFormat('specialists.summary.backupAgeDays', { days: summary.persist.lastKnownGood.ageDays.toFixed(1) })}
-                </span>
-              ) : null}
-            </>
-          ) : summary.persist ? (
-            <span className="text-amber-700 dark:text-amber-400">{t('specialists.summary.persistDisabled')}</span>
-          ) : null}
-        </div>
-      ) : null}
+      {/* (v1.10.545) Organism summary info bar extracted to
+          ./SpecialistsSummaryBar.tsx — self-polling, renders
+          nothing when the endpoint is unreachable. */}
+      <SpecialistsSummaryBar />
       {/* (v1.10.532) Operator action row — export / import /
           audit-rotate. Sits between the summary and audit log. */}
       <SpecialistsBulkOpsToolbar onChange={refresh} />
