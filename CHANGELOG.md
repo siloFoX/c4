@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.544] - 2026-05-07 — Extract MeetingsForkForm
+
+**Web — `MeetingsView.tsx` shrunk by 91 lines (1974 → 1883).**
+The Phase-6.11 fork form (clones a terminal meeting in either
+replan or reuse mode) lifted out as a controlled component.
+Parent keeps the open/closed flag (so the "Fork…" toggle button
+in the action bar can flip it) and provides a `meeting` snapshot
++ `onForked` callback. The form owns its own mode / task / title
+/ track / busy / error state internally.
+
+### Refactor
+- New `web/src/components/MeetingsForkForm.tsx` (~155 lines):
+  the entire fork UI + the `handleFork` POST + the per-meeting
+  reset effect.
+- `MeetingsView.tsx`: removed 6 useState hooks (forkMode,
+  forkTask, forkTitle, forkTrack, forkBusy, forkError), the
+  35-line handleFork callback, and the per-selection reset
+  effect. Kept the parent-side `forkOpen` flag so the existing
+  toggle button still works, plus a single useEffect that
+  closes the form on meeting change.
+- The form's `onForked` callback wires to `void refresh()` +
+  `setSelectedId(newId)` — same navigate-to-new-fork behaviour
+  as before.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (6 assertions). Total: 12 suites, 58 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 12 of the perfection-track component split. MeetingsView
+  is now 1883 (was 2372 at session start, -489 cumulative,
+  -20.6%). The fork form was the largest chunk left in the
+  detail-card header; the next clean targets are the publish/
+  peer-retro/retro action bar (still tightly coupled with 12+
+  state pieces) and the meeting state-machine controls.
+
 ## [1.10.543] - 2026-05-07 — Extract MeetingsLineageStrip + MeetingsStuckBanner
 
 **Web — `MeetingsView.tsx` shrunk by 61 lines (2035 → 1974).**

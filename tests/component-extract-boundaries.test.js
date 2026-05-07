@@ -84,6 +84,49 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: MeetingsForkForm (v1.10.544)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsForkForm.tsx');
+    assert.match(src, /export default function MeetingsForkForm/);
+  });
+
+  it('takes open / meeting / busy / onClose / onForked props', () => {
+    const src = read('MeetingsForkForm.tsx');
+    assert.match(src, /open:\s*boolean/);
+    assert.match(src, /meeting:\s*MeetingDetail/);
+    assert.match(src, /onClose:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onForked:\s*\(newId:\s*string\)\s*=>\s*void/);
+  });
+
+  it('owns its own form state (mode / task / title / track / busy / error)', () => {
+    const src = read('MeetingsForkForm.tsx');
+    assert.match(src, /useState<'replan' \| 'reuse'>/);
+    assert.match(src, /useState<'auto' \| 'lightweight' \| 'standard' \| 'full'>/);
+  });
+
+  it('resets on meeting change so form state does not leak across meetings', () => {
+    const src = read('MeetingsForkForm.tsx');
+    assert.match(src, /useEffect/);
+    assert.match(src, /\[meeting\.id\]/);
+  });
+
+  it('is imported and rendered by MeetingsView with refresh + selectedId callbacks', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsForkForm\s+from\s+'\.\/MeetingsForkForm'/);
+    assert.match(parent, /<MeetingsForkForm/);
+    assert.match(parent, /onForked=/);
+  });
+
+  it('parent MeetingsView no longer holds fork form state nor handler', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /const \[forkMode, setForkMode\]/);
+    assert.doesNotMatch(parent, /const \[forkTask, setForkTask\]/);
+    assert.doesNotMatch(parent, /const \[forkTitle, setForkTitle\]/);
+    assert.doesNotMatch(parent, /const \[forkBusy, setForkBusy\]/);
+    assert.doesNotMatch(parent, /const handleFork/);
+  });
+});
+
 describe('extracted: MeetingsLineageStrip (v1.10.543)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsLineageStrip.tsx');

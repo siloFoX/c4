@@ -11,6 +11,7 @@ import MeetingsRecapPanel, { type RecapResponse } from './MeetingsRecapPanel';
 import MeetingsActionItemsPanel, { type ActionItemsResponse } from './MeetingsActionItemsPanel';
 import MeetingsLineageStrip, { type LineageResponse } from './MeetingsLineageStrip';
 import MeetingsStuckBanner, { type StuckResponse } from './MeetingsStuckBanner';
+import MeetingsForkForm from './MeetingsForkForm';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -847,52 +848,15 @@ export default function MeetingsView() {
   // Form shows up when the operator clicks "Fork…"; on submit
   // we navigate to the new meeting id so the operator immediately
   // lands on the freshly-spawned pending session.
+  // (v1.10.544) Fork form extracted to ./MeetingsForkForm.tsx.
+  // Parent keeps the open/closed flag (so the "Fork…" button next
+  // to publish/peer-retro can toggle it); the form owns its own
+  // mode / task / title / track / busy / error state internally.
   const [forkOpen, setForkOpen] = useState(false);
-  const [forkMode, setForkMode] = useState<'replan' | 'reuse'>('replan');
-  const [forkTask, setForkTask] = useState('');
-  const [forkTitle, setForkTitle] = useState('');
-  const [forkTrack, setForkTrack] = useState<'auto' | 'lightweight' | 'standard' | 'full'>('auto');
-  const [forkBusy, setForkBusy] = useState(false);
-  const [forkError, setForkError] = useState<string | null>(null);
-  const handleFork = useCallback(async (id: string) => {
-    setForkBusy(true);
-    setForkError(null);
-    try {
-      const body: {
-        mode: 'replan' | 'reuse';
-        task?: string;
-        title?: string;
-        track?: 'lightweight' | 'standard' | 'full';
-      } = { mode: forkMode };
-      if (forkTask.trim()) body.task = forkTask.trim();
-      if (forkTitle.trim()) body.title = forkTitle.trim();
-      if (forkMode === 'replan' && forkTrack !== 'auto') body.track = forkTrack;
-      const res = await apiPost<{
-        id: string;
-        status: string;
-        track: string;
-        title: string;
-        task: string;
-      }>(`/api/meetings/${encodeURIComponent(id)}/fork`, body);
-      // Navigate operator to the new meeting; the SSE list stream
-      // will surface the new row as it lands.
-      setForkOpen(false);
-      setForkTask('');
-      setForkTitle('');
-      await refresh();
-      if (res && res.id) setSelectedId(res.id);
-    } catch (e) {
-      setForkError((e as Error).message || t('common.forkFailed'));
-    } finally {
-      setForkBusy(false);
-    }
-  }, [forkMode, forkTask, forkTitle, forkTrack, refresh]);
-  // Reset form on selection change
+  // Close the form whenever selection changes — half-typed fork
+  // from meeting A shouldn't leak to a fork attempt on meeting B.
   useEffect(() => {
     setForkOpen(false);
-    setForkTask('');
-    setForkTitle('');
-    setForkError(null);
   }, [selectedId]);
 
   // (v1.10.342) Maintenance — surfacing four ops endpoints from
@@ -1799,13 +1763,14 @@ export default function MeetingsView() {
                     : 'ok'}
                 </span>
               ) : null}
-              {/* (v1.10.352) Fork button — opens an inline form. */}
+              {/* (v1.10.544) Fork form extracted to
+                  ./MeetingsForkForm.tsx — toggle button still
+                  lives here. */}
               <span aria-hidden className="text-muted-foreground">·</span>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => setForkOpen((v) => !v)}
-                disabled={forkBusy}
                 aria-label={t('meetings.fork.button.label')}
                 title={t('meetings.tooltip.fork')}
                 className="h-6 px-2 text-[10px]"
@@ -1815,73 +1780,17 @@ export default function MeetingsView() {
               </Button>
             </div>
           ) : null}
-          {/* Fork form — shown only when terminal + opened. */}
-          {selectedId && detail && ['completed', 'escalated'].includes(detail.status) && forkOpen ? (
-            <div className="flex flex-col gap-1 rounded-md border border-border bg-muted/10 p-2 text-[11px]">
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="flex items-center gap-1 text-muted-foreground">
-                  {t('meetings.label.mode')}
-                  <select
-                    value={forkMode}
-                    onChange={(e) => setForkMode(e.target.value as 'replan' | 'reuse')}
-                    disabled={forkBusy}
-                    className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
-                  >
-                    <option value="replan">{t('meetings.replan.replan')}</option>
-                    <option value="reuse">{t('meetings.replan.reuse')}</option>
-                  </select>
-                </label>
-                {forkMode === 'replan' ? (
-                  <label className="flex items-center gap-1 text-muted-foreground">
-                    {t('meetings.label.track')}
-                    <select
-                      value={forkTrack}
-                      onChange={(e) => setForkTrack(e.target.value as typeof forkTrack)}
-                      disabled={forkBusy}
-                      className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
-                    >
-                      <option value="auto">{t('meetings.option.sameAsSource')}</option>
-                      <option value="lightweight">{t('meetings.mode.lightweight')}</option>
-                      <option value="standard">{t('meetings.mode.standard')}</option>
-                      <option value="full">{t('meetings.mode.full')}</option>
-                    </select>
-                  </label>
-                ) : null}
-              </div>
-              <Input
-                type="text"
-                value={forkTitle}
-                onChange={(e) => setForkTitle(e.target.value)}
-                placeholder={tFormat('meetings.placeholder.titleOverride', {
-                  default: detail.title || t('meetings.titleDefault.sameAsSource'),
-                })}
-                aria-label={t('meetings.fork.title.label')}
-                disabled={forkBusy}
-                className="h-7 text-[11px]"
-              />
-              <textarea
-                value={forkTask}
-                onChange={(e) => setForkTask(e.target.value)}
-                placeholder={t('meetings.fork.task.placeholder')}
-                aria-label={t('meetings.fork.task.label')}
-                disabled={forkBusy}
-                className="min-h-[64px] rounded border border-border bg-background p-2 text-[11px]"
-              />
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => handleFork(selectedId)}
-                  disabled={forkBusy}
-                  className="h-6 px-2 text-[10px]"
-                  aria-label={t('meetings.fork.submit.label')}
-                >
-                  {forkBusy ? '…' : `Fork (${forkMode})`}
-                </Button>
-                {forkError ? (
-                  <span className="text-destructive">{forkError}</span>
-                ) : null}
-              </div>
-            </div>
+          {selectedId && detail && ['completed', 'escalated'].includes(detail.status) ? (
+            <MeetingsForkForm
+              open={forkOpen}
+              meeting={{ id: detail.id, title: detail.title }}
+              busy={false}
+              onClose={() => setForkOpen(false)}
+              onForked={(newId) => {
+                void refresh();
+                setSelectedId(newId);
+              }}
+            />
           ) : null}
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
