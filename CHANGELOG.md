@@ -4,6 +4,51 @@
 
 (no entries — next release window)
 
+## [1.10.557] - 2026-05-07 — Extract MeetingsComposer (largest extraction)
+
+**Web — `MeetingsView.tsx` shrunk by 361 lines (1355 → 994).**
+Largest single extraction this session. The full create-meeting
+composer — template chips with edit pencils, the embedded
+template editor, the placeholder-vars input grid, the new-task
+input + track selector, the dispatcher-plan preview, the
+classifier preview chip, and the Create / Cancel buttons —
+extracted as a controlled component. **All three big-3
+megacomponents now under 1000 lines.**
+
+### Refactor
+- New `web/src/components/MeetingsComposer.tsx` (~376 lines):
+  the entire composer including 9 internal useState hooks,
+  the `placeholderNames` memo, the two debounced preview
+  effects (classifier @250ms, dispatcher plan @400ms),
+  `loadTemplates`, `handleCreate`, the embedded
+  `MeetingsTemplateEditor`, and the full JSX tree.
+- `MeetingsView.tsx`: removed all composer state (~120 lines),
+  `handleCreate` (~38 lines), and the inline composer JSX
+  (~210 lines). Replaced with
+  `<MeetingsComposer open={creating} onClose={…} onCreated={…} />`.
+- Removed unused `apiPost` import and `MeetingsTemplateEditor`
+  import (the editor now lives inside the composer).
+- Toggle button simplified — no more `setCreateError(null)` on
+  toggle since `createError` lives in the composer now.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (7 assertions). Pre-existing MeetingsTemplateEditor suite
+  redirected from MeetingsView to MeetingsComposer (the editor's
+  new parent). Total: 26 suites, 141 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 25 of the perfection-track component split.
+  **Milestone**: all three big-3 megacomponents now under 1000
+  lines (MeetingsView 994, SessionsView 699, SpecialistsView
+  950). Combined: 2643 lines (was 5104 at session start,
+  -2461 / -48.2%).
+- MeetingsView shrank from 2372 → 994 this session (-1378 /
+  -58.1%) — the deepest single-file reduction.
+
 ## [1.10.556] - 2026-05-07 — Extract MeetingsRunControls
 
 **Web — `MeetingsView.tsx` shrunk by 42 lines (1397 → 1355).**

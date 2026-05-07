@@ -84,6 +84,59 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: MeetingsComposer (v1.10.557)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsComposer.tsx');
+    assert.match(src, /export default function MeetingsComposer/);
+  });
+
+  it('takes open / onClose / onCreated props', () => {
+    const src = read('MeetingsComposer.tsx');
+    assert.match(src, /open:\s*boolean/);
+    assert.match(src, /onClose:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onCreated:\s*\(newMeetingId:\s*string\)\s*=>\s*void/);
+  });
+
+  it('owns the full composer state internally', () => {
+    const src = read('MeetingsComposer.tsx');
+    assert.match(src, /const \[newTask, setNewTask\]/);
+    assert.match(src, /const \[newTrack, setNewTrack\]/);
+    assert.match(src, /const \[templates, setTemplates\]/);
+    assert.match(src, /const \[templateName, setTemplateName\]/);
+    assert.match(src, /const \[templateVars, setTemplateVars\]/);
+    assert.match(src, /const \[previewPlan, setPreviewPlan\]/);
+    assert.match(src, /const \[classifyPreview, setClassifyPreview\]/);
+  });
+
+  it('owns the handleCreate POST + the two debounced preview effects', () => {
+    const src = read('MeetingsComposer.tsx');
+    assert.match(src, /handleCreate/);
+    assert.match(src, /\/api\/meetings\/classify-track/);
+    assert.match(src, /\/api\/meetings\/plan/);
+  });
+
+  it('embeds MeetingsTemplateEditor (not in parent any more)', () => {
+    const src = read('MeetingsComposer.tsx');
+    assert.match(src, /import\s+MeetingsTemplateEditor\s+from\s+'\.\/MeetingsTemplateEditor'/);
+    assert.match(src, /<MeetingsTemplateEditor/);
+  });
+
+  it('is imported and rendered by MeetingsView', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsComposer\s+from\s+'\.\/MeetingsComposer'/);
+    assert.match(parent, /<MeetingsComposer/);
+  });
+
+  it('parent MeetingsView no longer holds composer state, handleCreate, preview effects', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /const \[newTask, setNewTask\]/);
+    assert.doesNotMatch(parent, /const \[templateName, setTemplateName\]/);
+    assert.doesNotMatch(parent, /const \[previewPlan, setPreviewPlan\]/);
+    assert.doesNotMatch(parent, /const handleCreate/);
+    assert.doesNotMatch(parent, /\/api\/meetings\/classify-track/);
+  });
+});
+
 describe('extracted: MeetingsRunControls (v1.10.556)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsRunControls.tsx');
@@ -830,8 +883,10 @@ describe('extracted: MeetingsTemplateEditor (v1.10.538)', () => {
     assert.match(src, /onDeleted:\s*\(deletedName:\s*string\)\s*=>\s*void/);
   });
 
-  it('is imported and rendered by MeetingsView with all props wired', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsComposer with all props wired', () => {
+    // (v1.10.557) Composer extracted; the template editor now lives
+    // inside it (not directly in MeetingsView).
+    const parent = read('MeetingsComposer.tsx');
     assert.match(parent, /import\s+MeetingsTemplateEditor\s+from\s+'\.\/MeetingsTemplateEditor'/);
     assert.match(parent, /<MeetingsTemplateEditor/);
     assert.match(parent, /open=\{tplEditorOpen\}/);

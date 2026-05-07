@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Eye, Plus, RefreshCw, Radio, Search, X } from 'lucide-react';
-import { apiGet, apiPost, eventSourceUrl } from '../lib/api';
+import { apiGet, eventSourceUrl } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { renderSnippet } from '../lib/snippet';
 import MeetingsMaintenancePanel from './MeetingsMaintenancePanel';
-import MeetingsTemplateEditor from './MeetingsTemplateEditor';
 import MeetingsRecapPanel, { type RecapResponse } from './MeetingsRecapPanel';
 import MeetingsActionItemsPanel, { type ActionItemsResponse } from './MeetingsActionItemsPanel';
 import MeetingsLineageStrip, { type LineageResponse } from './MeetingsLineageStrip';
@@ -20,6 +19,7 @@ import MeetingsPublishControls from './MeetingsPublishControls';
 import MeetingsPeerRetroControls from './MeetingsPeerRetroControls';
 import MeetingsStateActions from './MeetingsStateActions';
 import MeetingsRunControls from './MeetingsRunControls';
+import MeetingsComposer from './MeetingsComposer';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -441,135 +441,12 @@ export default function MeetingsView() {
     [meetings, selectedId],
   );
 
-  // Create-meeting composer.
+  // (v1.10.557) Create-meeting composer extracted to
+  // ./MeetingsComposer.tsx. Owns the new-task / track / templates
+  // / template-vars / classify-preview / dispatcher-plan-preview
+  // state internally. Parent keeps just the `creating` flag so
+  // the toggle button can flip it.
   const [creating, setCreating] = useState(false);
-  const [newTask, setNewTask] = useState('');
-  const [newTrack, setNewTrack] = useState<'auto' | 'lightweight' | 'standard' | 'full'>('auto');
-  const [createBusy, setCreateBusy] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-
-  // (8.1) Saved templates: list at composer-open so the operator
-  // can pick one without typing the full task.
-  const [templates, setTemplates] = useState<Array<{
-    name: string;
-    task: string;
-    track?: string | null;
-    description?: string | null;
-  }>>([]);
-  const loadTemplates = useCallback(async () => {
-    try {
-      const res = await apiGet<{ templates: typeof templates }>('/api/meetings/templates');
-      setTemplates(res.templates || []);
-    } catch { /* best-effort */ }
-  }, []);
-  useEffect(() => {
-    if (!creating) return;
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const res = await apiGet<{ templates: typeof templates }>('/api/meetings/templates');
-        if (!cancelled) setTemplates(res.templates || []);
-      } catch { /* best-effort */ }
-    };
-    load();
-    return () => { cancelled = true; };
-  }, [creating]);
-
-  // (8.4) Template-with-vars flow — declared early so the
-  // template CRUD block below can reference templateName.
-  const [templateName, setTemplateName] = useState<string | null>(null);
-  const [templateVars, setTemplateVars] = useState<Record<string, string>>({});
-
-  // (v1.10.344) Template CRUD — operators create / update / delete
-  // saved templates from the composer's templates row.
-  //
-  // (v1.10.538) Editor extracted to ./MeetingsTemplateEditor.tsx.
-  // Parent owns just the open/target pair; the editor manages its
-  // own form + busy + message state internally.
-  const [tplEditorOpen, setTplEditorOpen] = useState(false);
-  const [tplEditTarget, setTplEditTarget] = useState<{
-    name: string;
-    task: string;
-    track?: string | null;
-    description?: string | null;
-  } | null>(null);
-  const openTplEditor = useCallback((tpl?: { name: string; task: string; track?: string | null; description?: string | null }) => {
-    setTplEditTarget(tpl || null);
-    setTplEditorOpen(true);
-  }, []);
-
-  // (8.4) Template-with-vars flow: when the operator picks a
-  // template chip whose body contains `{{var}}` placeholders, we
-  // surface a small per-var input row so they can supply values
-  // before submit. State declared above (template CRUD block
-  // references templateName).
-  const placeholderRe = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g;
-  const placeholderNames = useMemo(() => {
-    const out = new Set<string>();
-    let m;
-    placeholderRe.lastIndex = 0;
-    while ((m = placeholderRe.exec(newTask)) !== null) {
-      const captured = m[1];
-      if (captured) out.add(captured);
-    }
-    return [...out];
-  }, [newTask]);
-  const [previewPlan, setPreviewPlan] = useState<{
-    track: string;
-    rosterSize: number;
-    estimatedTokens: number;
-    consensusPolicy: { mode: string; roundCap: number; allowVeto: boolean };
-    stages: Array<{ stage: string; specialists: Array<{ id: string }> }>;
-  } | null>(null);
-  const [previewBusy, setPreviewBusy] = useState(false);
-
-  // (Phase 6.6) Track classifier preview — separate, lighter call
-  // than /meetings/plan. Tells the operator which track auto-mode
-  // would pick and which keywords matched. Shown inline next to
-  // the track select even when track is set explicitly (so the
-  // operator can sanity-check their override).
-  const [classifyPreview, setClassifyPreview] = useState<
-    | { track: 'lightweight' | 'standard' | 'full'; matched: Array<{ list: string; term: string }>; reason: string }
-    | null
-  >(null);
-  useEffect(() => {
-    if (!creating || !newTask.trim()) {
-      setClassifyPreview(null);
-      return undefined;
-    }
-    const handle = window.setTimeout(async () => {
-      try {
-        const qs = new URLSearchParams({ task: newTask.trim() });
-        const res = await apiGet<typeof classifyPreview>(`/api/meetings/classify-track?${qs.toString()}`);
-        setClassifyPreview(res);
-      } catch {
-        setClassifyPreview(null);
-      }
-    }, 250);
-    return () => window.clearTimeout(handle);
-  }, [creating, newTask]);
-
-  // Debounced dispatcher preview — re-runs ~400ms after typing stops.
-  useEffect(() => {
-    if (!creating || !newTask.trim()) {
-      setPreviewPlan(null);
-      return undefined;
-    }
-    const handle = window.setTimeout(async () => {
-      setPreviewBusy(true);
-      try {
-        const body: { task: string; track?: string } = { task: newTask.trim() };
-        if (newTrack !== 'auto') body.track = newTrack;
-        const res = await apiPost<typeof previewPlan>('/api/meetings/plan', body);
-        setPreviewPlan(res);
-      } catch {
-        setPreviewPlan(null);
-      } finally {
-        setPreviewBusy(false);
-      }
-    }, 400);
-    return () => window.clearTimeout(handle);
-  }, [creating, newTask, newTrack]);
 
   // (v1.10.556) Run controls (brain selector + Run button +
   // error display) extracted to ./MeetingsRunControls.tsx.
@@ -653,45 +530,7 @@ export default function MeetingsView() {
   // POST /meetings/fts-rebuild       (force re-index)
   // POST /meetings/prune-old         (delete with dry-run)
 
-  const handleCreate = useCallback(async () => {
-    const task = newTask.trim();
-    if (!task && !templateName) return;
-    setCreateBusy(true);
-    setCreateError(null);
-    try {
-      const body: {
-        task?: string;
-        track?: string;
-        template?: string;
-        vars?: Record<string, string>;
-        requireAllVars?: boolean;
-      } = {};
-      if (templateName) {
-        body.template = templateName;
-        // When operator supplied any vars, send them — daemon
-        // expands the placeholders. Otherwise let the placeholders
-        // pass through (operator may want a partial expansion).
-        const filled = Object.fromEntries(
-          Object.entries(templateVars).filter(([, v]) => v && v.length > 0),
-        );
-        if (Object.keys(filled).length) body.vars = filled;
-      } else {
-        body.task = task;
-      }
-      if (newTrack !== 'auto') body.track = newTrack;
-      const created = await apiPost<{ id: string }>('/api/meetings', body);
-      setNewTask('');
-      setTemplateName(null);
-      setTemplateVars({});
-      setCreating(false);
-      await refresh();
-      if (created && created.id) setSelectedId(created.id);
-    } catch (e) {
-      setCreateError((e as Error).message || t('common.failedToCreateMeeting'));
-    } finally {
-      setCreateBusy(false);
-    }
-  }, [newTask, newTrack, refresh, templateName, templateVars]);
+  // (v1.10.557) handleCreate moved into the extracted MeetingsComposer.
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 md:p-6">
@@ -706,7 +545,7 @@ export default function MeetingsView() {
             <div className="flex items-center gap-2">
               <Button
                 size="sm"
-                onClick={() => { setCreating((v) => !v); setCreateError(null); }}
+                onClick={() => setCreating((v) => !v)}
                 aria-label={t('meetings.action.new')}
                 aria-expanded={creating}
               >
@@ -915,216 +754,16 @@ export default function MeetingsView() {
           {searchError ? (
             <div className="text-[11px] text-destructive">{searchError}</div>
           ) : null}
-          {creating ? (
-            <div className="flex flex-col gap-2 rounded-md border border-dashed border-border bg-muted/20 p-3">
-              <div className="flex flex-wrap items-center gap-1 text-[11px]">
-                <span className="text-muted-foreground">{t('meetings.templates.label')}</span>
-                {templates.map((tpl) => (
-                  <span key={tpl.name} className="inline-flex items-center">
-                    <Button
-                      size="sm"
-                      variant={templateName === tpl.name ? 'default' : 'outline'}
-                      onClick={() => {
-                        setNewTask(tpl.task);
-                        if (tpl.track) {
-                          setNewTrack(tpl.track as typeof newTrack);
-                        }
-                        setTemplateName(tpl.name);
-                        setTemplateVars({});
-                      }}
-                      title={tpl.description || tpl.task}
-                      aria-label={tFormat('meetings.aria.applyTemplate', { name: tpl.name })}
-                      className="h-6 px-2 text-[11px] rounded-r-none"
-                    >
-                      {tpl.name}
-                    </Button>
-                    {/* (v1.10.344) Edit pencil — opens the inline
-                        editor pre-filled. Right-click intercepted
-                        for accessibility / mobile. */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openTplEditor(tpl);
-                      }}
-                      title={tFormat('meetings.aria.editTemplate', { name: tpl.name })}
-                      aria-label={tFormat('meetings.aria.editTemplate', { name: tpl.name })}
-                      className="rounded-r border border-l-0 border-border bg-background px-1 py-1 text-[10px] text-muted-foreground hover:bg-muted/30"
-                    >
-                      ✎
-                    </button>
-                  </span>
-                ))}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => openTplEditor()}
-                  aria-label={t('meetings.action.newTemplate')}
-                  title={t('meetings.tooltip.saveTemplate')}
-                  className="h-6 px-2 text-[11px]"
-                >
-                  + New
-                </Button>
-                {templateName ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setTemplateName(null);
-                      setTemplateVars({});
-                    }}
-                    aria-label={t('meetings.action.clearTemplate')}
-                    className="h-6 px-2 text-[11px] text-muted-foreground"
-                  >
-                    clear
-                  </Button>
-                ) : null}
-              </div>
-              {/* (v1.10.538) Template editor extracted to
-                  ./MeetingsTemplateEditor.tsx. Parent owns just the
-                  open/target pair; the editor handles the form state,
-                  save/delete API calls, and bubbles up via callbacks. */}
-              <MeetingsTemplateEditor
-                open={tplEditorOpen}
-                tpl={tplEditTarget}
-                onClose={() => setTplEditorOpen(false)}
-                onSaved={() => {
-                  setTplEditorOpen(false);
-                  void loadTemplates();
-                }}
-                onDeleted={(deletedName) => {
-                  setTplEditorOpen(false);
-                  // If the operator had this template selected for the
-                  // new meeting, clear it so the composer doesn't try
-                  // to use a deleted name.
-                  if (templateName === deletedName) setTemplateName(null);
-                  void loadTemplates();
-                }}
-              />
-              {templateName && placeholderNames.length > 0 ? (
-                <div className="grid grid-cols-2 gap-1 rounded-md border border-border/40 bg-background/50 p-2 text-[11px]">
-                  <span className="col-span-2 text-muted-foreground">
-                    {t('meetings.template.needsValuesPrefix')}
-                    <span className="font-mono">{templateName}</span>
-                    {t('meetings.template.needsValuesSuffix')}
-                  </span>
-                  {placeholderNames.map((name) => (
-                    <label key={name} className="flex flex-col gap-0.5">
-                      <span className="font-mono text-[10px] text-muted-foreground">{`{{${name}}}`}</span>
-                      <Input
-                        type="text"
-                        value={templateVars[name] || ''}
-                        onChange={(e) => setTemplateVars((v) => ({ ...v, [name]: e.target.value }))}
-                        placeholder={name}
-                        aria-label={tFormat('meetings.aria.valueFor', { name })}
-                        className="h-7 text-[11px]"
-                      />
-                    </label>
-                  ))}
-                </div>
-              ) : null}
-              <Input
-                type="text"
-                value={newTask}
-                onChange={(e) => setNewTask(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleCreate();
-                  } else if (e.key === 'Escape') {
-                    setCreating(false);
-                    setCreateError(null);
-                  }
-                }}
-                placeholder={t('meetings.compose.task.placeholder')}
-                disabled={createBusy}
-                aria-label={t('meetings.compose.task')}
-              />
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="text-[11px] text-muted-foreground">
-                  {t('meetings.label.track')}
-                  <select
-                    className="ml-1 rounded border border-border bg-background px-1 py-0.5 text-[11px]"
-                    value={newTrack}
-                    onChange={(e) => setNewTrack(e.target.value as typeof newTrack)}
-                    disabled={createBusy}
-                    aria-label={t('meetings.compose.track')}
-                  >
-                    <option value="auto">{t('meetings.mode.auto')}</option>
-                    <option value="lightweight">{t('meetings.mode.lightweight')}</option>
-                    <option value="standard">{t('meetings.mode.standard')}</option>
-                    <option value="full">{t('meetings.mode.full')}</option>
-                  </select>
-                </label>
-                {/* (Phase 6.6) classifier hint — shown when there's
-                    typed text. Highlights mismatch when operator
-                    explicitly chose a different track. */}
-                {classifyPreview ? (
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1 rounded-full border px-1.5 py-0 text-[10px]',
-                      newTrack !== 'auto' && newTrack !== classifyPreview.track
-                        ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400'
-                        : 'border-border bg-muted/30 text-muted-foreground',
-                    )}
-                    title={classifyPreview.reason}
-                  >
-                    auto would pick: <span className="font-medium">{classifyPreview.track}</span>
-                    {classifyPreview.matched.length > 0 ? (
-                      <span className="opacity-80">
-                        ({classifyPreview.matched.map((m) => m.term).join(', ')})
-                      </span>
-                    ) : null}
-                  </span>
-                ) : null}
-                <Button
-                  size="sm"
-                  onClick={handleCreate}
-                  disabled={createBusy || !newTask.trim()}
-                  aria-label={t('meetings.compose.create')}
-                >
-                  {t('meetings.action.createLabel')}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => { setCreating(false); setCreateError(null); }}
-                  disabled={createBusy}
-                >
-                  {t('common.cancel')}
-                </Button>
-                {createError ? (
-                  <span className="text-[11px] text-destructive">{createError}</span>
-                ) : null}
-              </div>
-              {previewPlan ? (
-                <div className="rounded-md border border-border/60 bg-background p-2 text-[11px]">
-                  <div className="font-medium">
-                    {tFormat('meetings.preview.summary', {
-                      track: previewPlan.track,
-                      size: previewPlan.rosterSize,
-                      tokens: previewPlan.estimatedTokens.toLocaleString(),
-                    })}
-                  </div>
-                  <div className="text-muted-foreground">
-                    consensus={previewPlan.consensusPolicy.mode}
-                    {' · '}roundCap={previewPlan.consensusPolicy.roundCap}
-                    {previewPlan.consensusPolicy.allowVeto ? ' · veto' : ''}
-                  </div>
-                  <ul className="mt-1 space-y-0.5">
-                    {previewPlan.stages.map((s) => (
-                      <li key={s.stage} className="flex flex-wrap gap-1">
-                        <span className="font-medium">[{s.stage}]</span>
-                        <span className="text-muted-foreground">{s.specialists.map((sp) => sp.id).join(', ')}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : previewBusy ? (
-                <div className="text-[11px] text-muted-foreground">{t('meetings.previewingRoster')}</div>
-              ) : null}
-            </div>
-          ) : null}
+          {/* (v1.10.557) Composer extracted to ./MeetingsComposer.tsx. */}
+          <MeetingsComposer
+            open={creating}
+            onClose={() => setCreating(false)}
+            onCreated={(newId) => {
+              setCreating(false);
+              void refresh();
+              setSelectedId(newId);
+            }}
+          />
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col overflow-y-auto p-0">
           {(() => {
