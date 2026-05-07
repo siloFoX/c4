@@ -22,6 +22,7 @@ import '@xterm/xterm/css/xterm.css';
 import { apiFetch, eventSourceUrl } from '../lib/api';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
+import { b64decode } from '../lib/chat-helpers';
 
 interface XtermViewProps {
   workerName: string;
@@ -38,18 +39,8 @@ interface WatchEvent {
   data?: string;
 }
 
-// Mirror of the base64 decoder used by ChatView -- xterm expects a string,
-// not a Uint8Array.
-function b64decode(b64: string): string {
-  try {
-    const bin = atob(b64);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
-  } catch {
-    return '';
-  }
-}
+// (v1.10.571) b64decode moved to lib/chat-helpers.ts — was a
+// duplicate of ChatView's. Imported below.
 
 // Pull a shadcn CSS custom property off the document root and wrap it in
 // hsl(...). The tokens are stored as bare "H S% L%" triples (see

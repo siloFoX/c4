@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.571] - 2026-05-08 — Dedupe b64decode (XtermView → chat-helpers)
+
+**Web — `XtermView.tsx` shrunk by 9 lines (454 → 445).**
+XtermView had its own byte-identical copy of `b64decode` (the
+comment even said "Mirror of the base64 decoder used by
+ChatView"). v1.10.563 lifted ChatView's copy into the shared
+chat-helpers lib; this PR replaces XtermView's duplicate with
+an import — single source of truth restored.
+
+### Refactor
+- `XtermView.tsx`: removed the inline `b64decode` function
+  (~10 lines). Imports `b64decode` from `../lib/chat-helpers`.
+- No behavior change — the implementations were byte-for-byte
+  identical.
+
+### Tests
+- 203/203 tests green.
+- Lint clean, build clean.
+
+### Notes
+- Maintenance ship — fourth dedupe of the chat-helpers lib's
+  exports. WorkerDetail's stripAnsi (v1.10.565) and now
+  XtermView's b64decode have both been folded back into the
+  shared lib.
+
 ## [1.10.570] - 2026-05-08 — Extract AutonomousDigestMetrics
 
 **Web — `AutonomousView.tsx` shrunk by 47 lines (412 → 365).**
