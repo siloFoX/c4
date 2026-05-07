@@ -155,6 +155,10 @@ describe('AttachStore writes role on add and heals on load', () => {
 
 describe('SessionsView surfaces role + two-step detach', () => {
   const src = readText(SESSIONS_VIEW);
+  // (v1.10.550) AttachedRowActions extracted out of SessionsView.
+  // Some assertions below source-grep its new home.
+  const ROW_ACTIONS = path.join(ROOT, 'web/src/components/SessionsAttachedRowActions.tsx');
+  const rowSrc = fs.readFileSync(ROW_ACTIONS, 'utf8');
 
   it('declares the AttachedRole union type', () => {
     assert.match(src, /export type AttachedRole =/);
@@ -171,43 +175,42 @@ describe('SessionsView surfaces role + two-step detach', () => {
   });
 
   it('attachedRoleStyle maps each role to a token-backed class', () => {
-    assert.match(src, /function attachedRoleStyle\(role: AttachedRole \| undefined\): string/);
-    assert.match(src, /case 'manager':/);
-    assert.match(src, /case 'planner':/);
-    assert.match(src, /case 'executor':/);
-    assert.match(src, /case 'reviewer':/);
-    assert.match(src, /case 'worker':/);
+    assert.match(rowSrc, /function attachedRoleStyle\(role: AttachedRole \| undefined\): string/);
+    assert.match(rowSrc, /case 'manager':/);
+    assert.match(rowSrc, /case 'planner':/);
+    assert.match(rowSrc, /case 'executor':/);
+    assert.match(rowSrc, /case 'reviewer':/);
+    assert.match(rowSrc, /case 'worker':/);
   });
 
   it('renders a role badge + read-only mirror hint on each attached row', () => {
-    assert.match(src, /sessions\.role\.agentAria/);
-    assert.match(src, /sessions\.row\.detachConfirmBody/);
+    assert.match(rowSrc, /sessions\.role\.agentAria/);
+    assert.match(rowSrc, /sessions\.row\.detachConfirmBody/);
   });
 
   it('uses a two-step detach with terminal-keeps-running copy', () => {
-    assert.match(src, /showDetachConfirm/);
+    assert.match(rowSrc, /showDetachConfirm/);
     // Copy lives in i18n now; check the key wirings.
-    assert.match(src, /sessions\.row\.detachConfirmBody/);
-    assert.match(src, /sessions\.row\.detachSession/);
+    assert.match(rowSrc, /sessions\.row\.detachConfirmBody/);
+    assert.match(rowSrc, /sessions\.row\.detachSession/);
     // (v1.10.422) "Cancel detach" aria-label migrated to i18n.
-    assert.match(src, /sessions\.aria\.cancelDetach/);
+    assert.match(rowSrc, /sessions\.aria\.cancelDetach/);
   });
 
   it('detach button toggles the confirmation strip rather than firing onDetach directly', () => {
-    assert.match(src, /onClick=\{\(\) => setShowDetachConfirm\(\(v\) => !v\)\}/);
-    assert.match(src, /aria-expanded=\{showDetachConfirm\}/);
+    assert.match(rowSrc, /onClick=\{\(\) => setShowDetachConfirm\(\(v\) => !v\)\}/);
+    assert.match(rowSrc, /aria-expanded=\{showDetachConfirm\}/);
   });
 
   // (review fix 2026-05-01) The Detach button declared aria-expanded
-  // but didn't have an aria-controls reference, so the
-  // expand/collapse relationship had no target for screen readers.
-  // The fix adds a stable id on the confirmation strip and points
-  // aria-controls at it (only when expanded — collapsed state drops
-  // aria-controls so it never references a non-existent element).
+  // but didn't have an aria-controls reference. (v1.10.550) After the
+  // extract the spread form `{...(showDetachConfirm ? { 'aria-controls': … } : {})}`
+  // is used so an unset aria-controls doesn't violate the
+  // exactOptionalPropertyTypes flag.
   it('Detach trigger references the confirmation strip via aria-controls', () => {
-    assert.match(src, /const detachConfirmId = `detach-confirm-\$\{session\.name\}`/);
-    assert.match(src, /id=\{detachConfirmId\}/);
-    assert.match(src, /aria-controls=\{showDetachConfirm \? detachConfirmId : undefined\}/);
+    assert.match(rowSrc, /const detachConfirmId = `detach-confirm-\$\{session\.name\}`/);
+    assert.match(rowSrc, /id=\{detachConfirmId\}/);
+    assert.match(rowSrc, /showDetachConfirm \? \{ 'aria-controls': detachConfirmId \} : \{\}/);
   });
 });
 
@@ -251,12 +254,14 @@ describe('attachedRoleStyle (badge palette)', () => {
   });
 
   it('source mirrors the shim', () => {
-    const src = readText(SESSIONS_VIEW);
+    // (v1.10.550) attachedRoleStyle moved to SessionsAttachedRowActions.tsx.
+    const ROW_ACTIONS = path.join(ROOT, 'web/src/components/SessionsAttachedRowActions.tsx');
+    const rowSrc = fs.readFileSync(ROW_ACTIONS, 'utf8');
     // (v1.10.521) Active state contrast bumped /10 → /30 and
     // text-primary → text-foreground for WCAG AA.
-    assert.match(src, /case 'manager':\s*\n\s*return 'border-primary\/30 bg-primary\/30 text-foreground'/);
-    assert.match(src, /case 'planner':\s*\n\s*case 'executor':\s*\n\s*case 'reviewer':/);
-    assert.match(src, /case 'worker':\s*\n\s*return 'border-border bg-muted\/60 text-foreground'/);
+    assert.match(rowSrc, /case 'manager':\s*\n\s*return 'border-primary\/30 bg-primary\/30 text-foreground'/);
+    assert.match(rowSrc, /case 'planner':\s*\n\s*case 'executor':\s*\n\s*case 'reviewer':/);
+    assert.match(rowSrc, /case 'worker':\s*\n\s*return 'border-border bg-muted\/60 text-foreground'/);
   });
 });
 

@@ -84,6 +84,58 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: SessionsAttachedRowActions (v1.10.550)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SessionsAttachedRowActions.tsx');
+    assert.match(src, /export default function SessionsAttachedRowActions/);
+  });
+
+  it('owns the copyToClipboard + attachedRoleStyle helpers', () => {
+    const src = read('SessionsAttachedRowActions.tsx');
+    assert.match(src, /function copyToClipboard\(text: string\)/);
+    assert.match(src, /function attachedRoleStyle\(role: AttachedRole/);
+  });
+
+  it('owns the AttachProcessState type internally', () => {
+    const src = read('SessionsAttachedRowActions.tsx');
+    assert.match(src, /type AttachProcessState/);
+  });
+
+  it('owns its 4 internal state pieces (showResume / showDetachConfirm / copied / procState)', () => {
+    const src = read('SessionsAttachedRowActions.tsx');
+    assert.match(src, /useState\(false\)/);
+    assert.match(src, /useState<AttachProcessState>/);
+  });
+
+  it('polls /api/attach/<name>/process every 30s while mounted', () => {
+    const src = read('SessionsAttachedRowActions.tsx');
+    assert.match(src, /window\.setInterval\(poll, 30000\)/);
+    assert.match(src, /\/api\/attach\/\$\{encodeURIComponent\(session\.name\)\}\/process/);
+  });
+
+  it('takes session / isSelected / onView / onDetach props', () => {
+    const src = read('SessionsAttachedRowActions.tsx');
+    assert.match(src, /session:\s*AttachedSession/);
+    assert.match(src, /isSelected:\s*boolean/);
+    assert.match(src, /onView:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onDetach:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('is imported by SessionsView', () => {
+    const parent = read('SessionsView.tsx');
+    assert.match(parent, /import\s+SessionsAttachedRowActions\s+from\s+'\.\/SessionsAttachedRowActions'/);
+    assert.match(parent, /<SessionsAttachedRowActions/);
+  });
+
+  it('parent SessionsView no longer holds the component definition or its helpers', () => {
+    const parent = read('SessionsView.tsx');
+    assert.doesNotMatch(parent, /function AttachedRowActions\(/);
+    assert.doesNotMatch(parent, /function copyToClipboard\b/);
+    assert.doesNotMatch(parent, /function attachedRoleStyle\b/);
+    assert.doesNotMatch(parent, /interface AttachedRowActionsProps/);
+  });
+});
+
 describe('extracted: SessionsEmptyAttachBanner (v1.10.549)', () => {
   it('lives in its own file with default export', () => {
     const src = read('SessionsEmptyAttachBanner.tsx');

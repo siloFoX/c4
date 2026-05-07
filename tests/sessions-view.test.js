@@ -122,46 +122,50 @@ describe('AttachModal.tsx (extracted v1.10.540) - attach modal preview + help', 
   });
 });
 
-describe('SessionsView.tsx - post-attach row actions', () => {
-  it('exposes an AttachedRowActions component', () => {
-    assert.match(src, /function AttachedRowActions/);
-    assert.match(src, /interface AttachedRowActionsProps/);
+describe('SessionsAttachedRowActions.tsx (extracted v1.10.550) - post-attach row actions', () => {
+  // (v1.10.550) AttachedRowActions extracted out of SessionsView.
+  // Contract assertions now source-grep its new home.
+  const ROW_ACTIONS = path.join(repoRoot, 'web/src/components/SessionsAttachedRowActions.tsx');
+  const rowSrc = fs.readFileSync(ROW_ACTIONS, 'utf8');
+
+  it('exposes a SessionsAttachedRowActions default-exported component', () => {
+    assert.match(rowSrc, /export default function SessionsAttachedRowActions/);
   });
 
   it('renders View / Resume / Detach buttons for each attached row', () => {
     // Copy lives in i18n; verify the key wirings.
-    assert.match(src, /t\('sessions\.row\.viewConversation'\)/);
-    assert.match(src, /t\('sessions\.row\.resumeInTerminal'\)/);
-    assert.match(src, /t\('sessions\.row\.detach'\)/);
+    assert.match(rowSrc, /t\('sessions\.row\.viewConversation'\)/);
+    assert.match(rowSrc, /t\('sessions\.row\.resumeInTerminal'\)/);
+    assert.match(rowSrc, /t\('sessions\.row\.detach'\)/);
   });
 
   it('wires the buttons through aria-label for screen readers', () => {
     // aria-labels are now i18n + tFormat with a {worker} placeholder.
-    assert.match(src, /sessions\.row\.viewConversationAria/);
-    assert.match(src, /sessions\.row\.resumeInTerminalAria/);
-    assert.match(src, /sessions\.row\.detachAria/);
+    assert.match(rowSrc, /sessions\.row\.viewConversationAria/);
+    assert.match(rowSrc, /sessions\.row\.resumeInTerminalAria/);
+    assert.match(rowSrc, /sessions\.row\.detachAria/);
   });
 
   it('uses Eye / Terminal / Trash2 icons from lucide-react', () => {
-    assert.match(src, /from 'lucide-react'/);
-    assert.match(src, /\bEye\b/);
-    assert.match(src, /\bTerminal\b/);
-    assert.match(src, /\bTrash2\b/);
+    assert.match(rowSrc, /from 'lucide-react'/);
+    assert.match(rowSrc, /\bEye\b/);
+    assert.match(rowSrc, /\bTerminal\b/);
+    assert.match(rowSrc, /\bTrash2\b/);
   });
 
   it('reveals the claude --resume command and copies it to clipboard', () => {
-    assert.match(src, /claude --resume \$\{session\.sessionId\}/);
-    assert.match(src, /function copyToClipboard/);
-    assert.match(src, /navigator\.clipboard\.writeText/);
+    assert.match(rowSrc, /claude --resume \$\{session\.sessionId\}/);
+    assert.match(rowSrc, /function copyToClipboard/);
+    assert.match(rowSrc, /navigator\.clipboard\.writeText/);
   });
 
-  it('routes onView back into the Selection state machine', () => {
+  it('parent SessionsView routes onView back into the Selection state machine', () => {
     // Row actions must reuse setSelection so the conversation pane
     // stays in sync with the button click.
     assert.match(src, /onView=\{\(\) =>\s*setSelection\(\{ kind: 'attached', name: a\.name \}\)/);
   });
 
-  it('routes onDetach back into the existing handleDetach callback', () => {
+  it('parent SessionsView routes onDetach back into the existing handleDetach callback', () => {
     assert.match(src, /onDetach=\{\(\) => handleDetach\(a\.name\)\}/);
   });
 });

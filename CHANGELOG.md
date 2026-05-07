@@ -4,6 +4,49 @@
 
 (no entries — next release window)
 
+## [1.10.550] - 2026-05-07 — Extract SessionsAttachedRowActions
+
+**Web — `SessionsView.tsx` shrunk by 264 lines (963 → 699).**
+Largest single extraction this session. The per-row attached-
+session action strip (role badge, live/idle process pill,
+View / Resume / Detach buttons, two-step detach confirmation,
+resume-cmd preview) lifted out as a controlled component along
+with the `copyToClipboard` + `attachedRoleStyle` helpers and
+the `AttachProcessState` type that only this component used.
+
+### Refactor
+- New `web/src/components/SessionsAttachedRowActions.tsx`
+  (~268 lines): the entire row-actions component + its private
+  helpers + state types. Owns its 4 internal state pieces
+  (showResume, showDetachConfirm, copied, procState) and its
+  30s process-discovery polling effect.
+- Single `aria-controls` change: from
+  `aria-controls={showDetachConfirm ? detachConfirmId : undefined}`
+  to a spread `{...(showDetachConfirm ? { 'aria-controls': … } : {})}`
+  so an unset prop doesn't violate the
+  exactOptionalPropertyTypes flag.
+- `SessionsView.tsx`: removed the inline component (~225
+  lines) plus the two helper functions (~40 lines). Removed
+  unused `Copy`, `Eye`, `Terminal`, `Trash2` icon imports.
+
+### Tests
+- 203/203 tests green.
+- `tests/sessions-view.test.js`: post-attach row-action
+  contract tests redirected to source-grep the new file.
+- `tests/attach-detach-symmetry.test.js`: 6 assertions
+  redirected to the new file (attachedRoleStyle, role badge,
+  two-step detach, aria-controls spread).
+- `tests/component-extract-boundaries.test.js`: new suite
+  added (8 assertions). Total: 19 suites, 95 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 18 of the perfection-track component split. SessionsView
+  shrunk dramatically: 1367 → 699 (-668 / -48.9%) over the
+  course of this session, the steepest cut among the big-3.
+  Combined: 3530 lines (was 5104, -1574 / -30.8%).
+
 ## [1.10.549] - 2026-05-07 — Extract SessionsEmptyAttachBanner + SessionsComparisonCard
 
 **Web — `SessionsView.tsx` shrunk by 71 lines (1034 → 963).**
