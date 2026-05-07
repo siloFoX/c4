@@ -651,7 +651,7 @@ function Tour({ onDismiss }: TourProps) {
 function attachedRoleStyle(role: AttachedRole | undefined): string {
   switch (role) {
     case 'manager':
-      return 'border-primary/30 bg-primary/10 text-primary';
+      return 'border-primary/30 bg-primary/30 text-foreground';
     case 'planner':
     case 'executor':
     case 'reviewer':

@@ -108,7 +108,12 @@ export function HelpDrawer({ open, onClose, activeFeatureId }: HelpDrawerProps) 
 
   return (
     <div
-      aria-hidden={!open}
+      // (v1.10.521) inert removes the entire subtree from tab order
+      // AND aria announcements when closed. Replaces aria-hidden
+      // which axe flags because focusable descendants leak through.
+      // React 18 types don't expose 'inert' on HTMLAttributes yet
+      // (added in React 19), so we spread it as a string attribute.
+      {...(!open ? { inert: '' } : {})}
       className={cn(
         'fixed inset-0 z-[90] transition-colors',
         open ? 'bg-background/60' : 'pointer-events-none bg-transparent',

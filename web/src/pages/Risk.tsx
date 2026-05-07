@@ -298,7 +298,7 @@ export default function Risk() {
               </div>
               <div>
                 <div className="font-medium text-foreground">{t('risk.label.argv')}</div>
-                <pre className="mt-1 overflow-auto rounded bg-muted/30 p-2 font-mono text-[11px]">
+                <pre tabIndex={0} className="mt-1 overflow-auto rounded bg-muted/30 p-2 font-mono text-[11px]">
                   {sandbox.binary || '<NullRuntime>'} {sandbox.args.map((a) => /\s/.test(a) ? JSON.stringify(a) : a).join(' ')}
                 </pre>
               </div>
@@ -307,7 +307,7 @@ export default function Risk() {
                   <summary className="cursor-pointer text-[10px] text-muted-foreground">
                     env ({Object.keys(sandbox.env).length})
                   </summary>
-                  <pre className="mt-1 overflow-auto rounded bg-muted/30 p-2 font-mono text-[11px]">
+                  <pre tabIndex={0} className="mt-1 overflow-auto rounded bg-muted/30 p-2 font-mono text-[11px]">
                     {Object.entries(sandbox.env).map(([k, v]) => `${k}=${v}`).join('\n')}
                   </pre>
                 </details>
@@ -362,7 +362,7 @@ export default function Risk() {
                 <div className="text-[11px] font-medium text-foreground">
                   {t('riskPage.decoded')}
                 </div>
-                <pre className="mt-1 overflow-auto rounded bg-muted/30 p-2 font-mono text-[11px]">
+                <pre tabIndex={0} className="mt-1 overflow-auto rounded bg-muted/30 p-2 font-mono text-[11px]">
                   {checkResult.decoded}
                 </pre>
               </div>
@@ -372,7 +372,7 @@ export default function Risk() {
                 <div className="text-[11px] font-medium text-foreground">
                   {t('riskPage.inspectedSource')}
                 </div>
-                <pre className="mt-1 overflow-auto rounded bg-muted/30 p-2 font-mono text-[11px]">
+                <pre tabIndex={0} className="mt-1 overflow-auto rounded bg-muted/30 p-2 font-mono text-[11px]">
                   {checkResult.inspectedSource}
                 </pre>
               </div>

@@ -95,7 +95,7 @@ function GroupHeader({ open, onToggle, label, count, icon, accent }: GroupHeader
         className={cn(
           'ml-auto rounded-full border px-1.5 py-0 text-[10px] font-semibold',
           accent === 'primary'
-            ? 'border-primary/30 bg-primary/10 text-primary'
+            ? 'border-primary/30 bg-primary/30 text-foreground'
             : 'border-border bg-muted text-muted-foreground',
         )}
       >

@@ -252,7 +252,9 @@ describe('attachedRoleStyle (badge palette)', () => {
 
   it('source mirrors the shim', () => {
     const src = readText(SESSIONS_VIEW);
-    assert.match(src, /case 'manager':\s*\n\s*return 'border-primary\/30 bg-primary\/10 text-primary'/);
+    // (v1.10.521) Active state contrast bumped /10 → /30 and
+    // text-primary → text-foreground for WCAG AA.
+    assert.match(src, /case 'manager':\s*\n\s*return 'border-primary\/30 bg-primary\/30 text-foreground'/);
     assert.match(src, /case 'planner':\s*\n\s*case 'executor':\s*\n\s*case 'reviewer':/);
     assert.match(src, /case 'worker':\s*\n\s*return 'border-border bg-muted\/60 text-foreground'/);
   });

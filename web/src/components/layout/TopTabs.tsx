@@ -89,7 +89,7 @@ export default function TopTabs({ value, onChange, badges }: TopTabsProps) {
             className={cn(
               'relative inline-flex items-center gap-1.5 px-2 py-1.5 transition-colors sm:px-3',
               active
-                ? 'bg-primary/10 text-primary'
+                ? 'bg-primary/30 text-foreground'
                 : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
             )}
           >

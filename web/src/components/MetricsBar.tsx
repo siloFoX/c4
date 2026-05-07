@@ -79,7 +79,7 @@ export default function MetricsBar() {
         <Activity className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
         <span className="font-medium text-foreground">{m.totals.liveWorkers}</span>
         <span>{t('metrics.live')}</span>
-        <span className="text-muted-foreground/60">/ {m.totals.totalWorkers} {t('metrics.total')}</span>
+        <span className="text-muted-foreground">/ {m.totals.totalWorkers} {t('metrics.total')}</span>
       </span>
       <span className="flex items-center gap-1.5">
         <Cpu className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
@@ -91,7 +91,7 @@ export default function MetricsBar() {
         <span className="font-medium text-foreground">{fmtMb(m.totals.totalRssKb)}</span>
         <span>{t('metrics.workers')} · {t('metrics.daemon')} {fmtMb(m.daemon.rssKb)}</span>
       </span>
-      <span className="ml-auto text-muted-foreground/60">
+      <span className="ml-auto text-muted-foreground">
         {m.daemon.cpus}c · {m.daemon.platform} · {tFormat('metrics.host.pid', { pid: m.daemon.pid })}
       </span>
     </div>

@@ -143,7 +143,7 @@ export default function Sidebar({
                 className={cn(
                   'inline-flex items-center gap-1.5 px-2 py-1 transition-colors',
                   mode === 'list'
-                    ? 'bg-primary/10 text-primary'
+                    ? 'bg-primary/30 text-foreground'
                     : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                 )}
               >
@@ -158,7 +158,7 @@ export default function Sidebar({
                 className={cn(
                   'inline-flex items-center gap-1.5 px-2 py-1 transition-colors',
                   mode === 'tree'
-                    ? 'bg-primary/10 text-primary'
+                    ? 'bg-primary/30 text-foreground'
                     : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                 )}
               >
@@ -182,7 +182,7 @@ export default function Sidebar({
                   className={cn(
                     'inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent transition-colors',
                     mode === 'list'
-                      ? 'border-border bg-primary/10 text-primary'
+                      ? 'border-border bg-primary/30 text-foreground'
                       : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                   )}
                 >
@@ -199,7 +199,7 @@ export default function Sidebar({
                   className={cn(
                     'inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent transition-colors',
                     mode === 'tree'
-                      ? 'border-border bg-primary/10 text-primary'
+                      ? 'border-border bg-primary/30 text-foreground'
                       : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                   )}
                 >

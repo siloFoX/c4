@@ -1066,6 +1066,7 @@
   "errorBoundary.message": "이 화면을 렌더링하는 중 오류가 발생했습니다: {error}. 다시 시도하거나 새로고침하여 복구할 수 있습니다.",
   "errorBoundary.tryAgain": "다시 시도",
   "errorBoundary.reload": "새로고침",
+  "specialists.list.aria": "전문가 목록",
   "sessions.panel.title": "세션",
   "sessions.attachModal.title": "세션 연결",
   "specialists.import.label": "가져오기:",

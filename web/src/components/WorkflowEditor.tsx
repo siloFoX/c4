@@ -288,7 +288,7 @@ function NodeProperties(props: { node: WorkflowNode | null }) {
         <div className="text-xs uppercase tracking-wide text-muted-foreground">
           config
         </div>
-        <pre className="mt-1 max-h-48 overflow-auto rounded-md border border-border bg-background p-2 text-xs text-foreground">
+        <pre tabIndex={0} className="mt-1 max-h-48 overflow-auto rounded-md border border-border bg-background p-2 text-xs text-foreground">
           {JSON.stringify(node.config || {}, null, 2)}
         </pre>
       </div>
@@ -613,7 +613,7 @@ export default function WorkflowEditor() {
                                         </div>
                                       ) : null}
                                       {nr.output !== null && nr.output !== undefined ? (
-                                        <pre className="max-h-32 overflow-auto rounded bg-muted/30 p-1 font-mono text-[10px]">
+                                        <pre tabIndex={0} className="max-h-32 overflow-auto rounded bg-muted/30 p-1 font-mono text-[10px]">
                                           {typeof nr.output === 'string'
                                             ? nr.output
                                             : JSON.stringify(nr.output, null, 2)}
@@ -628,7 +628,7 @@ export default function WorkflowEditor() {
                                   <summary className="cursor-pointer text-[10px] text-muted-foreground">
                                     inputs
                                   </summary>
-                                  <pre className="mt-1 max-h-32 overflow-auto rounded bg-muted/30 p-1 font-mono text-[10px]">
+                                  <pre tabIndex={0} className="mt-1 max-h-32 overflow-auto rounded bg-muted/30 p-1 font-mono text-[10px]">
                                     {JSON.stringify(r.inputs, null, 2)}
                                   </pre>
                                 </details>

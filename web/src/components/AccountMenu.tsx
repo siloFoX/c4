@@ -74,7 +74,7 @@ function roleBadgeClass(role: string | null): string {
     case 'admin':
       return 'bg-destructive/15 text-destructive border-destructive/30';
     case 'manager':
-      return 'bg-primary/10 text-primary border-primary/30';
+      return 'bg-primary/30 text-foreground border-primary/30';
     case 'viewer':
       return 'bg-muted text-muted-foreground border-border';
     default:

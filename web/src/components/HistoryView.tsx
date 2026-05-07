@@ -352,7 +352,7 @@ export default function HistoryView() {
                     {scribe.updatedAt ? ` - updated ${scribe.updatedAt}` : ''}
                     {scribe.truncated ? ` - ${t('history.scribe.tailTruncated')}` : ''}
                   </div>
-                  <pre className="min-h-0 min-w-0 flex-1 overflow-auto whitespace-pre-wrap rounded-md border border-border bg-background p-3 text-xs text-foreground">
+                  <pre tabIndex={0} className="min-h-0 min-w-0 flex-1 overflow-auto whitespace-pre-wrap rounded-md border border-border bg-background p-3 text-xs text-foreground">
                     {scribe.content}
                   </pre>
                 </>

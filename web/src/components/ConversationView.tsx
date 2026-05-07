@@ -387,7 +387,7 @@ function UserTurn({ turn }: { turn: Turn }) {
           ts={ts}
           tone="user"
         />
-        <div className="rounded-lg border border-border bg-primary/10 px-4 py-2 text-sm text-foreground">
+        <div className="rounded-lg border border-border bg-primary/30 px-4 py-2 text-sm text-foreground">
           <div className="whitespace-pre-wrap break-words leading-relaxed">{turn.content}</div>
         </div>
       </div>
@@ -492,7 +492,7 @@ function ToolUseTurn({ turn }: { turn: Turn }) {
                 <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   {t('conversation.tool.input')}
                 </div>
-                <pre className="overflow-x-auto rounded bg-muted/60 p-2 text-xs font-mono text-foreground">
+                <pre tabIndex={0} className="overflow-x-auto rounded bg-muted/60 p-2 text-xs font-mono text-foreground">
                   {argsText}
                 </pre>
               </div>
@@ -501,7 +501,7 @@ function ToolUseTurn({ turn }: { turn: Turn }) {
                   <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {t('conversation.tool.result')}
                   </div>
-                  <pre className="overflow-x-auto rounded bg-muted/60 p-2 text-xs font-mono text-foreground">
+                  <pre tabIndex={0} className="overflow-x-auto rounded bg-muted/60 p-2 text-xs font-mono text-foreground">
                     {truncate(resultText, 4000)}
                   </pre>
                 </div>
@@ -547,7 +547,7 @@ function ToolResultTurn({ turn }: { turn: Turn }) {
             </span>
           </button>
           {open ? (
-            <pre className="overflow-x-auto border-t border-border bg-muted/60 p-3 text-xs font-mono text-foreground">
+            <pre tabIndex={0} className="overflow-x-auto border-t border-border bg-muted/60 p-3 text-xs font-mono text-foreground">
               {truncate(text, 8000)}
             </pre>
           ) : null}

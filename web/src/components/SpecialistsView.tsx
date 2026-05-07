@@ -884,7 +884,7 @@ export default function SpecialistsView() {
                   className={cn(
                     'rounded border px-1.5 py-0 transition-colors',
                     auditWindow === w
-                      ? 'border-primary bg-primary/10 text-primary'
+                      ? 'border-primary bg-primary/30 text-foreground'
                       : 'border-border bg-muted/30 text-muted-foreground hover:bg-accent/40',
                   )}
                   aria-pressed={auditWindow === w}
@@ -1129,7 +1129,7 @@ export default function SpecialistsView() {
             <span className="text-muted-foreground">{filtered.length}/{specialists.length}</span>
           </div>
         </CardHeader>
-        <CardContent className="flex min-h-0 flex-1 flex-col overflow-y-auto p-0">
+        <CardContent tabIndex={0} role="region" aria-label={t('specialists.list.aria') || 'Specialist list'} className="flex min-h-0 flex-1 flex-col overflow-y-auto p-0">
           {error ? (
             <div className="p-4 text-sm text-destructive">{error}</div>
           ) : filtered.length === 0 ? (
@@ -1146,7 +1146,7 @@ export default function SpecialistsView() {
                     key={s.id}
                     className={cn(
                       'flex cursor-pointer flex-col gap-1 px-4 py-3 transition-colors',
-                      active ? 'bg-primary/10' : 'hover:bg-accent/40',
+                      active ? 'bg-primary/30' : 'hover:bg-accent/40',
                     )}
                     onClick={() => setSelectedId(s.id)}
                   >

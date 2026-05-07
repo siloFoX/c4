@@ -50,7 +50,7 @@ export default class ErrorBoundary extends Component<Props, State> {
           <p className="mb-4 text-sm text-muted-foreground">
             {tFormat('errorBoundary.message', { error: message })}
           </p>
-          <pre className="mb-4 max-h-48 overflow-auto rounded bg-background/50 p-2 font-mono text-[11px] text-muted-foreground">
+          <pre tabIndex={0} className="mb-4 max-h-48 overflow-auto rounded bg-background/50 p-2 font-mono text-[11px] text-muted-foreground">
             {this.state.error.stack || message}
           </pre>
           <div className="flex gap-2">

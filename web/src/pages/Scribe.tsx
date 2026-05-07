@@ -175,7 +175,7 @@ export default function Scribe() {
           <span>{t('scribePage.recentContext')}</span>
         </div>
         {context && context.content ? (
-          <pre className="max-h-96 overflow-auto rounded-md border border-border bg-muted/30 p-3 font-mono text-xs text-foreground">
+          <pre tabIndex={0} className="max-h-96 overflow-auto rounded-md border border-border bg-muted/30 p-3 font-mono text-xs text-foreground">
             {context.content}
           </pre>
         ) : (

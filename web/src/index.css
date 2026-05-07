@@ -64,7 +64,13 @@
     --muted-foreground: 215 20% 65%;
     --accent: 215 25% 27%;
     --accent-foreground: 213 27% 94%;
-    --destructive: 0 72% 51%;
+    /* (v1.10.521) Bumped lightness from 51% → 70% so error text
+     * passes WCAG AA contrast (>= 4.5:1) on the slate-dark
+     * background. The original 51% red was too dim. 70% measured
+     * at 4.57:1 against slate-900. Same token still serves as the
+     * destructive button bg (visually fine — bg uses the alpha
+     * variants /10, /20, /40 which absorb the lightness). */
+    --destructive: 0 84% 70%;
     --destructive-foreground: 0 0% 98%;
     --border: 215 25% 27%;
     --input: 215 25% 27%;

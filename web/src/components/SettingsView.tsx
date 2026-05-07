@@ -93,7 +93,7 @@ function ChoiceGroup<T extends string>({
               className={cn(
                 'inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors',
                 active
-                  ? 'border-primary bg-primary/10 text-primary'
+                  ? 'border-primary bg-primary/30 text-foreground'
                   : 'border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground',
               )}
             >

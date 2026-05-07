@@ -316,7 +316,7 @@ export default function WikiView() {
                     key={h.path}
                     className={cn(
                       'flex cursor-pointer flex-col gap-1 px-4 py-3 transition-colors',
-                      active ? 'bg-primary/10' : 'hover:bg-accent/40',
+                      active ? 'bg-primary/30' : 'hover:bg-accent/40',
                     )}
                     onClick={() => setSelectedPath(h.path)}
                   >

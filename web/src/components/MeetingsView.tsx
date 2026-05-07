@@ -1423,7 +1423,7 @@ export default function MeetingsView() {
                       className={cn(
                         'rounded border px-1 transition-colors',
                         searchStatus === k
-                          ? 'border-primary bg-primary/10 text-primary'
+                          ? 'border-primary bg-primary/30 text-foreground'
                           : 'border-border bg-background hover:bg-accent/40',
                       )}
                       title={tFormat('meetings.aria.filterStatus', { value: k })}
@@ -1444,7 +1444,7 @@ export default function MeetingsView() {
                       className={cn(
                         'rounded border px-1 transition-colors',
                         searchTrack === k
-                          ? 'border-primary bg-primary/10 text-primary'
+                          ? 'border-primary bg-primary/30 text-foreground'
                           : 'border-border bg-background hover:bg-accent/40',
                       )}
                       title={tFormat('meetings.aria.filterTrack', { value: k })}
@@ -1770,7 +1770,7 @@ export default function MeetingsView() {
                       key={m.id}
                       className={cn(
                         'flex cursor-pointer flex-col gap-1 px-4 py-3 transition-colors',
-                        active ? 'bg-primary/10' : 'hover:bg-accent/40',
+                        active ? 'bg-primary/30' : 'hover:bg-accent/40',
                       )}
                       onClick={() => setSelectedId(m.id)}
                     >
@@ -2462,7 +2462,7 @@ export default function MeetingsView() {
                           className={cn(
                             'rounded border px-1.5 py-0.5 font-mono text-[10px] transition-colors',
                             entry.id === detail.id
-                              ? 'border-primary bg-primary/10 text-primary'
+                              ? 'border-primary bg-primary/30 text-foreground'
                               : 'border-border bg-background hover:bg-accent/40',
                           )}
                           title={`${entry.title} · ${entry.status}`}
@@ -2533,7 +2533,7 @@ export default function MeetingsView() {
                       className={cn(
                         'rounded border px-1.5 py-0 text-[10px] uppercase tracking-wide',
                         actionsFilter === null
-                          ? 'border-primary bg-primary/10 text-primary'
+                          ? 'border-primary bg-primary/30 text-foreground'
                           : 'border-border bg-background text-muted-foreground hover:bg-accent/40',
                       )}
                     >

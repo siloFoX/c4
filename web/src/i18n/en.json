@@ -1066,6 +1066,7 @@
   "errorBoundary.message": "The dashboard hit an error rendering this view: {error}. Try Again to recover, or Reload for a clean state.",
   "errorBoundary.tryAgain": "Try Again",
   "errorBoundary.reload": "Reload",
+  "specialists.list.aria": "Specialist list",
   "sessions.panel.title": "Sessions",
   "sessions.attachModal.title": "Attach session",
   "specialists.import.label": "import:",

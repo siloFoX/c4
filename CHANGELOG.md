@@ -4,6 +4,51 @@
 
 (no entries — next release window)
 
+## [1.10.521] - 2026-05-07 — a11y audit (WCAG 2.1 AA pass)
+
+**Web — `scripts/a11y-audit.js` + axe-core driven a11y
+audit.** Walks 9 surfaces in ko locale and checks against
+WCAG 2.1 A + AA tag set. Started at **20 violations**,
+landed at **0 violations** after 4 fixes.
+
+### Fixes
+1. **HelpDrawer overlay** `aria-hidden={!open}` →
+   `inert={!open}` so the drawer's focusable descendants
+   don't leak into tab order when closed.
+2. **Active state contrast** — `bg-primary/10
+   text-primary` (purple-on-faint-purple, ratio ~2.93)
+   bumped to `bg-primary/30 text-foreground` (~9.97
+   ratio) across all active-tab indicators (TopTabs,
+   DetailTabs, FeatureSidebar, Sidebar workerViewMode +
+   list/tree, SettingsView ChoiceGroup, WorkerList,
+   AccountMenu, SessionsView attached row).
+3. **MetricsBar** `text-muted-foreground/60` (60%
+   opacity, fails contrast) → `text-muted-foreground`.
+4. **Destructive token** in dark mode: `--destructive`
+   lightness 51% → 70% so error text passes AA on
+   slate-dark (ratio 4.57:1, was ~2.38:1).
+5. **Scrollable regions** — added `tabIndex={0}` to all
+   `<pre overflow-auto>` blocks (ErrorBoundary,
+   HistoryView, WorkflowEditor×3, ConversationView×3,
+   Risk×4, Scribe) + the SpecialistsView main list
+   `<CardContent overflow-y-auto>` (with
+   `role="region"` + i18n aria-label).
+
+### CI
+- New `npm run lint:a11y` shortcut runs the audit.
+- `@axe-core/playwright` added as devDep.
+
+### Test fixup
+- `attach-detach-symmetry.test.js` regex anchor updated
+  for the new active-state classes (`bg-primary/30
+  text-foreground`).
+
+### Notes
+- 201/201 tests green.
+- Visual i18n scan still 0 UI leak.
+- Bundle stable (index 218KB / 280KB budget).
+- 1 new i18n key (`specialists.list.aria`).
+
 ## [1.10.520] - 2026-05-07 — Contributing checks documented
 
 **Repo — README + README.ko.md Contributing sections.**
