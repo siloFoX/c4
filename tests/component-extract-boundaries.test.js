@@ -84,6 +84,42 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: MeetingsSearchFilterRow (v1.10.574)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsSearchFilterRow.tsx');
+    assert.match(src, /export default function MeetingsSearchFilterRow/);
+  });
+
+  it('takes 8 props (status / track / since / until + 4 setters)', () => {
+    const src = read('MeetingsSearchFilterRow.tsx');
+    assert.match(src, /status:\s*MeetingStatus\s*\|\s*''/);
+    assert.match(src, /onStatusChange/);
+    assert.match(src, /track:\s*Track\s*\|\s*''/);
+    assert.match(src, /since:\s*string/);
+    assert.match(src, /until:\s*string/);
+    assert.match(src, /onSinceChange/);
+    assert.match(src, /onUntilChange/);
+  });
+
+  it('is a pure controlled-input component (no internal state)', () => {
+    const src = read('MeetingsSearchFilterRow.tsx');
+    assert.doesNotMatch(src, /useState/);
+    assert.doesNotMatch(src, /useEffect/);
+  });
+
+  it('is imported and rendered by MeetingsView', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsSearchFilterRow\s+from\s+'\.\/MeetingsSearchFilterRow'/);
+    assert.match(parent, /<MeetingsSearchFilterRow/);
+  });
+
+  it('parent MeetingsView no longer holds the inline filter row JSX', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /searchSince\}\s*\n\s*onChange=/);
+    assert.doesNotMatch(parent, /searchUntil\}\s*\n\s*onChange=/);
+  });
+});
+
 describe('extracted: MeetingsSearchFacets (v1.10.573)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsSearchFacets.tsx');

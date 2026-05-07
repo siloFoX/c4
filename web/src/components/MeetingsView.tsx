@@ -21,6 +21,7 @@ import MeetingsStateActions from './MeetingsStateActions';
 import MeetingsRunControls from './MeetingsRunControls';
 import MeetingsComposer from './MeetingsComposer';
 import MeetingsSearchFacets from './MeetingsSearchFacets';
+import MeetingsSearchFilterRow from './MeetingsSearchFilterRow';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -638,70 +639,19 @@ export default function MeetingsView() {
               <span className="text-[10px] text-muted-foreground">{t('meetings.searching')}</span>
             ) : null}
           </div>
-          {/* (Phase 8.1.5) Filter chips — shown only while
-              search is active. Empty value = no narrowing. */}
+          {/* (v1.10.574) Search filter row extracted to
+              ./MeetingsSearchFilterRow.tsx. */}
           {searchQuery.trim() ? (
-            <div className="flex flex-wrap items-center gap-2 text-[10px]">
-              <label className="flex items-center gap-1 text-muted-foreground">
-                {t('meetings.label.status')}
-                <select
-                  className="rounded border border-border bg-background px-1 py-0.5"
-                  value={searchStatus}
-                  onChange={(e) => setSearchStatus(e.target.value as typeof searchStatus)}
-                  aria-label={t('meetings.action.filterStatus')}
-                >
-                  <option value="">{t('meetings.option.any')}</option>
-                  <option value="pending">{t('meetings.option.pending')}</option>
-                  <option value="in-progress">{t('meetings.status.inProgress')}</option>
-                  <option value="completed">{t('meetings.option.completed')}</option>
-                  <option value="escalated">{t('meetings.option.escalated')}</option>
-                  <option value="aborted">{t('meetings.option.aborted')}</option>
-                </select>
-              </label>
-              <label className="flex items-center gap-1 text-muted-foreground">
-                {t('meetings.label.track')}
-                <select
-                  className="rounded border border-border bg-background px-1 py-0.5"
-                  value={searchTrack}
-                  onChange={(e) => setSearchTrack(e.target.value as typeof searchTrack)}
-                  aria-label={t('meetings.action.filterTrack')}
-                >
-                  <option value="">{t('meetings.option.any')}</option>
-                  <option value="lightweight">{t('meetings.mode.lightweight')}</option>
-                  <option value="standard">{t('meetings.mode.standard')}</option>
-                  <option value="full">{t('meetings.mode.full')}</option>
-                </select>
-              </label>
-              <label className="flex items-center gap-1 text-muted-foreground">
-                {t('meetings.label.since')}
-                <input
-                  type="date"
-                  value={searchSince}
-                  onChange={(e) => setSearchSince(e.target.value)}
-                  className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
-                  aria-label={t('meetings.action.sinceDate')}
-                />
-              </label>
-              <label className="flex items-center gap-1 text-muted-foreground">
-                {t('meetings.label.until')}
-                <input
-                  type="date"
-                  value={searchUntil}
-                  onChange={(e) => setSearchUntil(e.target.value)}
-                  className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
-                  aria-label={t('meetings.action.untilDate')}
-                />
-              </label>
-              {(searchSince || searchUntil) ? (
-                <button
-                  type="button"
-                  onClick={() => { setSearchSince(''); setSearchUntil(''); }}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  {t('meetings.action.clearDates')}
-                </button>
-              ) : null}
-            </div>
+            <MeetingsSearchFilterRow
+              status={searchStatus}
+              onStatusChange={setSearchStatus}
+              track={searchTrack}
+              onTrackChange={setSearchTrack}
+              since={searchSince}
+              onSinceChange={setSearchSince}
+              until={searchUntil}
+              onUntilChange={setSearchUntil}
+            />
           ) : null}
           {searchResults && searchFacets ? (
             <MeetingsSearchFacets
