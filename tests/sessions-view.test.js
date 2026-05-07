@@ -215,19 +215,23 @@ describe('SessionsView.tsx - onboarding tour', () => {
   });
 
   it('renders a Tour component behind the TOUR_STORAGE_KEY gate', () => {
-    assert.match(src, /function Tour/);
+    // (v1.10.530) Tour extracted to ./SessionsTour.tsx
+    assert.match(src, /import SessionsTour from '\.\/SessionsTour'/);
     assert.match(src, /localStorage\.getItem\(TOUR_STORAGE_KEY\)/);
     assert.match(src, /localStorage\.setItem\(TOUR_STORAGE_KEY, 'done'\)/);
-    assert.match(src, /\{showTour \? <Tour onDismiss=\{dismissTour\} \/> : null\}/);
+    assert.match(src, /\{showTour \? <SessionsTour onDismiss=\{dismissTour\} \/> : null\}/);
   });
 
   it('tour dismisses via either Skip or Done and advances via Next', () => {
-    // "Skip tour" copy migrated to i18n; the literal "Done" and "Next"
-    // strings live in lib/i18n via t('common.done') / t('common.next').
-    assert.match(src, /sessions\.tour\.skip/);
-    assert.match(src, /common\.done/);
-    assert.match(src, /common\.next/);
-    assert.match(src, /setStep\(\(s\) => s \+ 1\)/);
+    // (v1.10.530) Tour body is in SessionsTour.tsx now.
+    const tourSrc = fs.readFileSync(
+      path.join(repoRoot, 'web', 'src', 'components', 'SessionsTour.tsx'),
+      'utf8',
+    );
+    assert.match(tourSrc, /sessions\.tour\.skip/);
+    assert.match(tourSrc, /common\.done/);
+    assert.match(tourSrc, /common\.next/);
+    assert.match(tourSrc, /setStep\(\(s\) => s \+ 1\)/);
   });
 
   it('guards localStorage access so private-mode throws do not crash the page', () => {

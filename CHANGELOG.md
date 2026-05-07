@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.530] - 2026-05-07 — Extract SessionsTour
+
+**Web — `SessionsView.tsx` shrunk 1423 → 1367 lines.**
+The first-visit onboarding tour modal extracted to its own
+component `SessionsTour.tsx` (74 lines). Test anchors
+updated.
+
+### Refactor
+- 56-line inner `function Tour({ onDismiss })` body
+  became standalone `SessionsTour.tsx`.
+- `useLocale()` registration kept (was inherited from
+  parent component).
+- `import { TOUR_STEPS } from './SessionsView'` reuses the
+  existing exported step catalogue.
+
+### Tests
+- `tests/sessions-view.test.js`: 'function Tour' grep
+  → `import SessionsTour`. Tour body assertions moved to
+  read `SessionsTour.tsx` directly (3 i18n key checks +
+  setStep arrow).
+
+### Notes
+- 201/201 tests green.
+- Visual i18n + snapshot + a11y all clean.
+
 ## [1.10.529] - 2026-05-07 — Extract MeetingsMaintenancePanel
 
 **Web — `MeetingsView.tsx` shrunk 2683 → 2372 lines.**
