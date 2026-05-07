@@ -1737,6 +1737,48 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: SpecialistsSearchFilters (v1.10.581)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SpecialistsSearchFilters.tsx');
+    assert.match(src, /export default function SpecialistsSearchFilters/);
+  });
+
+  it('takes the 4 controlled prop pairs + count fields', () => {
+    const src = read('SpecialistsSearchFilters.tsx');
+    assert.match(src, /filter:\s*string/);
+    assert.match(src, /onFilter:\s*\(next:\s*string\)\s*=>\s*void/);
+    assert.match(src, /tierFilter:\s*string/);
+    assert.match(src, /onTierFilter:\s*\(next:\s*string\)\s*=>\s*void/);
+    assert.match(src, /vetoOnly:\s*boolean/);
+    assert.match(src, /onVetoOnly:\s*\(next:\s*boolean\)\s*=>\s*void/);
+    assert.match(src, /filteredCount:\s*number/);
+    assert.match(src, /totalCount:\s*number/);
+  });
+
+  it('renders the search input + tier select + vetoOnly checkbox + count', () => {
+    const src = read('SpecialistsSearchFilters.tsx');
+    assert.match(src, /specialists\.search\.placeholder/);
+    assert.match(src, /Object\.keys\(TIER_BADGE\)/);
+    assert.match(src, /specialists\.label\.vetoOnly/);
+    assert.match(src, /\{filteredCount\}\/\{totalCount\}/);
+  });
+
+  it('is imported and rendered by SpecialistsView with all 8 props wired', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.match(parent, /import\s+SpecialistsSearchFilters\s+from\s+'\.\/SpecialistsSearchFilters'/);
+    assert.match(parent, /<SpecialistsSearchFilters/);
+    assert.match(parent, /onFilter=\{setFilter\}/);
+    assert.match(parent, /onTierFilter=\{setTierFilter\}/);
+    assert.match(parent, /onVetoOnly=\{setVetoOnly\}/);
+  });
+
+  it('parent SpecialistsView no longer holds the inline filter row', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.doesNotMatch(parent, /placeholder=\{t\('specialists\.search\.placeholder'\)\}/);
+    assert.doesNotMatch(parent, /Object\.keys\(TIER_BADGE\)\.map/);
+  });
+});
+
 describe('extracted: WikiSearchResults (v1.10.580)', () => {
   it('lives in its own file with default export', () => {
     const src = read('WikiSearchResults.tsx');

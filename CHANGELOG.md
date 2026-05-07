@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.581] - 2026-05-08 — Extract SpecialistsSearchFilters
+
+**Web — `SpecialistsView.tsx` shrunk by 37 lines (629 → 592).**
+The master-pane search input + tier/vetoOnly filter row + count
+display extracted as a pure controlled-input sibling. 8 props
+(4 controlled pairs + filtered/total counts).
+
+### Refactor
+- New `web/src/components/SpecialistsSearchFilters.tsx` (~83
+  lines): the search input with X-clear button, the tier select
+  driven by `Object.keys(TIER_BADGE)`, the vetoOnly checkbox,
+  and the trailing `filteredCount/totalCount` indicator.
+- `SpecialistsView.tsx`: removed the inline 50-line block.
+  Replaced with `<SpecialistsSearchFilters … />`. Dropped 4
+  unused imports (Search, X icons + `Input` UI primitive).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 48 suites, 263 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 47 of the perfection-track component split.
+  SpecialistsView 592 (was 1100+ at session start). 53 ships
+  / 48 components+libs / 263 boundary assertions.
+
 ## [1.10.580] - 2026-05-08 — Extract WikiSearchResults
 
 **Web — `WikiView.tsx` shrunk by 35 lines (444 → 409).**

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Eye, Plus, RefreshCw, Search, Trash2, X } from 'lucide-react';
+import { Eye, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
-import { Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
+import { Button, Card, CardContent, CardHeader, CardTitle } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import SpecialistsAuditPanel from './SpecialistsAuditPanel';
@@ -11,6 +11,7 @@ import SpecialistsAddPanel from './SpecialistsAddPanel';
 import SpecialistsPromptPanel from './SpecialistsPromptPanel';
 import SpecialistsTagEditor from './SpecialistsTagEditor';
 import SpecialistsList from './SpecialistsList';
+import SpecialistsSearchFilters from './SpecialistsSearchFilters';
 
 // (multi-specialist phase 7.5) Specialists tab — registry view +
 // score visualization. Mirrors MeetingsView / WikiView's split
@@ -328,56 +329,18 @@ export default function SpecialistsView() {
               void refresh();
             }}
           />
-          {/* (Phase 8.4) text search across id / displayName /
-              systemPrompt / domain / triggers.keywords. Whitespace
-              tokens AND-compose. */}
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-            <Input
-              type="text"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              placeholder={t('specialists.search.placeholder')}
-              aria-label={t('specialists.search.label')}
-              className="pl-7 pr-7"
-            />
-            {filter ? (
-              <button
-                type="button"
-                onClick={() => setFilter('')}
-                aria-label={t('specialists.action.clearFilter')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-3.5 w-3.5" aria-hidden />
-              </button>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-[11px]">
-            <label className="text-muted-foreground">
-              {t('specialists.label.tier')}
-              <select
-                className="ml-1 rounded border border-border bg-background px-1 py-0.5 text-[11px]"
-                value={tierFilter}
-                onChange={(e) => setTierFilter(e.target.value)}
-                aria-label={t('specialists.action.tierFilter')}
-              >
-                <option value="any">{t('specialists.option.any')}</option>
-                {Object.keys(TIER_BADGE).map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </label>
-            <label className="inline-flex items-center gap-1">
-              <input
-                type="checkbox"
-                checked={vetoOnly}
-                onChange={(e) => setVetoOnly(e.target.checked)}
-                aria-label={t('specialists.action.vetoOnly')}
-              />
-              <span>{t('specialists.label.vetoOnly')}</span>
-            </label>
-            <span className="text-muted-foreground">{filtered.length}/{specialists.length}</span>
-          </div>
+          {/* (v1.10.581) search input + tier/vetoOnly filter row
+              extracted to ./SpecialistsSearchFilters.tsx. */}
+          <SpecialistsSearchFilters
+            filter={filter}
+            onFilter={setFilter}
+            tierFilter={tierFilter}
+            onTierFilter={setTierFilter}
+            vetoOnly={vetoOnly}
+            onVetoOnly={setVetoOnly}
+            filteredCount={filtered.length}
+            totalCount={specialists.length}
+          />
         </CardHeader>
         <CardContent tabIndex={0} role="region" aria-label={t('specialists.list.aria') || 'Specialist list'} className="flex min-h-0 flex-1 flex-col overflow-y-auto p-0">
           {/* (v1.10.577) Master-pane list extracted to ./SpecialistsList.tsx */}
