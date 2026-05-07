@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.569] - 2026-05-08 — Extract WorkflowNodeProperties
+
+**Web — `WorkflowEditor.tsx` shrunk by 33 lines (493 → 460).**
+The right-pane node properties inspector (renders an empty
+hint when no node is selected, otherwise shows name / type
+badge / id / config JSON) extracted as a pure-display sibling.
+The TYPE_FILL named import moved with it — WorkflowEditor no
+longer needs the named export, so the parent's import dropped
+to default-only.
+
+### Refactor
+- New `web/src/components/WorkflowNodeProperties.tsx` (~47
+  lines): the inspector card, single `node` prop typed as
+  `WorkflowNode | null`. Imports `TYPE_FILL` from
+  `./WorkflowGraph`.
+- `WorkflowEditor.tsx`: removed the inline component (~35
+  lines) and the TYPE_FILL named import.
+- `tests/component-extract-boundaries.test.js`: WorkflowGraph
+  contract assertion adjusted (TYPE_FILL is now consumed by
+  WorkflowNodeProperties, not the parent).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (6 assertions). Total: 37 suites, 204 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 36 of the perfection-track component split. Eighth
+  non-big-3 extraction. WorkflowEditor 460 (was 658 at the
+  start of the split — total -198 / -30.1%).
+
 ## [1.10.568] - 2026-05-08 — Extract RiskRuleCatalogPanel
 
 **Web — `pages/Risk.tsx` shrunk by 95 lines (610 → 515).**

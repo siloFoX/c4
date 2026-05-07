@@ -84,6 +84,40 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: WorkflowNodeProperties (v1.10.569)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('WorkflowNodeProperties.tsx');
+    assert.match(src, /export default function WorkflowNodeProperties/);
+  });
+
+  it('takes a single node prop typed as WorkflowNode | null', () => {
+    const src = read('WorkflowNodeProperties.tsx');
+    assert.match(src, /node:\s*WorkflowNode\s*\|\s*null/);
+  });
+
+  it('imports TYPE_FILL from WorkflowGraph', () => {
+    const src = read('WorkflowNodeProperties.tsx');
+    assert.match(src, /import\s+\{\s*TYPE_FILL\s*\}\s+from\s+'\.\/WorkflowGraph'/);
+  });
+
+  it('is a pure-display component (no state, no effects)', () => {
+    const src = read('WorkflowNodeProperties.tsx');
+    assert.doesNotMatch(src, /useState/);
+    assert.doesNotMatch(src, /useEffect/);
+  });
+
+  it('is imported and rendered by WorkflowEditor', () => {
+    const parent = read('WorkflowEditor.tsx');
+    assert.match(parent, /import\s+WorkflowNodeProperties\s+from\s+'\.\/WorkflowNodeProperties'/);
+    assert.match(parent, /<WorkflowNodeProperties\s+node=\{selectedNode\}/);
+  });
+
+  it('parent WorkflowEditor no longer holds the inline component', () => {
+    const parent = read('WorkflowEditor.tsx');
+    assert.doesNotMatch(parent, /function NodeProperties\(/);
+  });
+});
+
 describe('extracted: RiskRuleCatalogPanel (v1.10.568)', () => {
   it('lives in its own file with default export', () => {
     const src = read('RiskRuleCatalogPanel.tsx');
@@ -310,10 +344,16 @@ describe('extracted: WorkflowGraph (v1.10.562)', () => {
     assert.match(src, /onSelectNode:\s*\(id:\s*string\)\s*=>\s*void/);
   });
 
-  it('is imported and rendered by WorkflowEditor (default + TYPE_FILL)', () => {
+  it('is imported and rendered by WorkflowEditor', () => {
+    // (v1.10.569) NodeProperties extracted; the TYPE_FILL named
+    // import moved with it to WorkflowNodeProperties.
     const parent = read('WorkflowEditor.tsx');
-    assert.match(parent, /import\s+WorkflowGraph,\s*\{\s*TYPE_FILL\s*\}\s+from\s+'\.\/WorkflowGraph'/);
+    assert.match(parent, /import\s+WorkflowGraph\s+from\s+'\.\/WorkflowGraph'/);
     assert.match(parent, /<WorkflowGraph/);
+    // TYPE_FILL is still exported and still consumed — but now by
+    // the extracted WorkflowNodeProperties (not the parent).
+    const props = read('WorkflowNodeProperties.tsx');
+    assert.match(props, /import\s+\{\s*TYPE_FILL\s*\}\s+from\s+'\.\/WorkflowGraph'/);
   });
 
   it('parent WorkflowEditor no longer holds the graph helpers', () => {
