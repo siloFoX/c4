@@ -4,6 +4,52 @@
 
 (no entries — next release window)
 
+## [1.10.538] - 2026-05-07 — Extract MeetingsTemplateEditor
+
+**Web — `MeetingsView.tsx` shrunk by 155 lines (2372 → 2217).**
+The inline saved-template editor (create / edit / delete)
+extracted to its own controlled component. Parent owns the
+`open` / `tpl` (target) pair; the editor owns its form state,
+busy / message / failed flags, and the save / delete API
+calls. Mutating ops bubble up via `onSaved` / `onDeleted` so
+the parent can refresh the template list and clear the
+composer's selected template if it points at a deleted name.
+
+### Refactor
+- New `web/src/components/MeetingsTemplateEditor.tsx`
+  (~218 lines): owns `name`, `task`, `track`, `description`,
+  `busy`, `msg`, `failed` state; the `handleSave` and
+  `handleDelete` handlers; the `useEffect` that re-seeds
+  the form when `open` flips; the entire JSX.
+- Form re-seeded from `tpl` prop on each open — parent can
+  switch between create / edit by changing the prop.
+- `MeetingsView.tsx`: removed the 10 individual `useState`
+  calls (tplEditOpen, tplEditMode, tplOriginalName, tplName,
+  tplTask, tplTrack, tplDescription, tplBusy, tplMsg,
+  tplFailed); replaced with a 2-state pair (tplEditorOpen,
+  tplEditTarget). The `openTplEditor` local helper kept (it's
+  used by the chip-edit / + New buttons) but reduced from 18
+  lines to 4.
+- Removed unused `apiDelete` import (now lives in the
+  extracted editor).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite
+  added (4 assertions). Total: 5 suites, 19 tests in this
+  file.
+- Lint clean, build clean.
+- Visual snapshot diff: 0 failures, 0 warnings (no surface
+  drift; the editor is an inline panel that wasn't open in
+  the captured baseline).
+- A11y: 0 violations.
+- Console errors: 0.
+
+### Notes
+- Stage 5 of the perfection-track component split. Parent
+  megacomponents are now: MeetingsView 2217, SessionsView
+  1367, SpecialistsView 1142.
+
 ## [1.10.537] - 2026-05-07 — Pin strict tsconfig flags via test
 
 **New test — `tests/web-tsconfig-strict.test.js`.**

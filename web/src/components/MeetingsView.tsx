@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, BookOpen, Eye, MessageCircle, Play, Plus, RefreshCw, Radio, Search, X } from 'lucide-react';
-import { apiDelete, apiGet, apiPost, eventSourceUrl } from '../lib/api';
+import { apiGet, apiPost, eventSourceUrl } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { renderSnippet } from '../lib/snippet';
 import MeetingsMaintenancePanel from './MeetingsMaintenancePanel';
+import MeetingsTemplateEditor from './MeetingsTemplateEditor';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -522,108 +523,23 @@ export default function MeetingsView() {
   const [templateName, setTemplateName] = useState<string | null>(null);
   const [templateVars, setTemplateVars] = useState<Record<string, string>>({});
 
-  // (v1.10.344) Template CRUD — until now the UI only listed
-  // saved templates. Operators wanting to create / update / delete
-  // had to drop to the CLI (`c4 meeting template ...`). Adding
-  // an inline editor on the composer's templates row.
+  // (v1.10.344) Template CRUD — operators create / update / delete
+  // saved templates from the composer's templates row.
   //
-  // Editor opens on "+" / chip-edit. Save = POST upsert. Delete =
-  // DELETE :name. Both refresh the list afterwards via
-  // loadTemplates() — same call the composer-open effect uses.
-  const [tplEditOpen, setTplEditOpen] = useState(false);
-  const [tplEditMode, setTplEditMode] = useState<'create' | 'edit'>('create');
-  const [tplOriginalName, setTplOriginalName] = useState('');
-  const [tplName, setTplName] = useState('');
-  const [tplTask, setTplTask] = useState('');
-  const [tplTrack, setTplTrack] = useState('');
-  const [tplDescription, setTplDescription] = useState('');
-  const [tplBusy, setTplBusy] = useState(false);
-  const [tplMsg, setTplMsg] = useState<string | null>(null);
-  // (v1.10.480) Tone separated from message text — see Config/Wiki/
-  // SpecialistsView refactors. The startsWith() prefix sniff breaks
-  // on locale flip.
-  const [tplFailed, setTplFailed] = useState(false);
+  // (v1.10.538) Editor extracted to ./MeetingsTemplateEditor.tsx.
+  // Parent owns just the open/target pair; the editor manages its
+  // own form + busy + message state internally.
+  const [tplEditorOpen, setTplEditorOpen] = useState(false);
+  const [tplEditTarget, setTplEditTarget] = useState<{
+    name: string;
+    task: string;
+    track?: string | null;
+    description?: string | null;
+  } | null>(null);
   const openTplEditor = useCallback((tpl?: { name: string; task: string; track?: string | null; description?: string | null }) => {
-    if (tpl) {
-      setTplEditMode('edit');
-      setTplOriginalName(tpl.name);
-      setTplName(tpl.name);
-      setTplTask(tpl.task);
-      setTplTrack(tpl.track || '');
-      setTplDescription(tpl.description || '');
-    } else {
-      setTplEditMode('create');
-      setTplOriginalName('');
-      setTplName('');
-      setTplTask('');
-      setTplTrack('');
-      setTplDescription('');
-    }
-    setTplMsg(null);
-    setTplEditOpen(true);
+    setTplEditTarget(tpl || null);
+    setTplEditorOpen(true);
   }, []);
-  const handleTplSave = useCallback(async () => {
-    const name = tplName.trim();
-    const task = tplTask.trim();
-    if (!name || !task) {
-      setTplMsg(t('meetings.template.nameTaskRequired'));
-      setTplFailed(true);
-      return;
-    }
-    setTplBusy(true);
-    setTplMsg(null);
-    setTplFailed(false);
-    try {
-      const body: {
-        name: string;
-        task: string;
-        track?: string;
-        description?: string;
-      } = { name, task };
-      if (tplTrack.trim()) body.track = tplTrack.trim();
-      if (tplDescription.trim()) body.description = tplDescription.trim();
-      await apiPost('/api/meetings/templates', body);
-      // Editing under a different name is a rename — drop the
-      // old record. The daemon doesn't have a rename op so we
-      // upsert + delete-old.
-      if (tplEditMode === 'edit' && tplOriginalName && tplOriginalName !== name) {
-        await apiDelete(`/api/meetings/templates/${encodeURIComponent(tplOriginalName)}`);
-      }
-      setTplEditOpen(false);
-      setTplMsg(null);
-      void loadTemplates();
-    } catch (e) {
-      setTplMsg(tFormat('meetings.template.saveFailed', {
-        error: (e as Error).message || t('common.unknown'),
-      }));
-      setTplFailed(true);
-    } finally {
-      setTplBusy(false);
-    }
-  }, [tplName, tplTask, tplTrack, tplDescription, tplEditMode, tplOriginalName, loadTemplates]);
-  const handleTplDelete = useCallback(async () => {
-    if (!tplOriginalName) return;
-    if (!window.confirm(tFormat('meetings.confirmTplDelete', { name: tplOriginalName }))) return;
-    setTplBusy(true);
-    setTplMsg(null);
-    setTplFailed(false);
-    try {
-      await apiDelete(`/api/meetings/templates/${encodeURIComponent(tplOriginalName)}`);
-      setTplEditOpen(false);
-      // If the operator had this template selected for the new
-      // meeting, clear it so the composer doesn't try to use a
-      // deleted name.
-      if (templateName === tplOriginalName) setTemplateName(null);
-      void loadTemplates();
-    } catch (e) {
-      setTplMsg(tFormat('meetings.template.deleteFailed', {
-        error: (e as Error).message || t('common.unknown'),
-      }));
-      setTplFailed(true);
-    } finally {
-      setTplBusy(false);
-    }
-  }, [tplOriginalName, templateName, loadTemplates]);
 
   // (8.4) Template-with-vars flow: when the operator picks a
   // template chip whose body contains `{{var}}` placeholders, we
@@ -1380,98 +1296,27 @@ export default function MeetingsView() {
                   </Button>
                 ) : null}
               </div>
-              {/* (v1.10.344) Inline template editor. */}
-              {tplEditOpen ? (
-                <div className="flex flex-col gap-1 rounded-md border border-border bg-background/80 p-2 text-[11px]">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">
-                      {tplEditMode === 'edit'
-                        ? tFormat('meetings.template.editorEdit', { name: tplOriginalName })
-                        : t('meetings.template.editorNew')}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setTplEditOpen(false)}
-                      className="text-muted-foreground hover:text-foreground"
-                      aria-label={t('meetings.action.closeTemplateEditor')}
-                    >
-                      <X className="h-3 w-3" aria-hidden />
-                    </button>
-                  </div>
-                  <Input
-                    type="text"
-                    value={tplName}
-                    onChange={(e) => setTplName(e.target.value)}
-                    placeholder={t('meetings.template.name.placeholder')}
-                    aria-label={t('meetings.template.name.label')}
-                    disabled={tplBusy}
-                    className="h-7 text-[11px]"
-                  />
-                  <textarea
-                    value={tplTask}
-                    onChange={(e) => setTplTask(e.target.value)}
-                    placeholder={t('meetings.template.task.placeholder')}
-                    aria-label={t('meetings.template.task.label')}
-                    disabled={tplBusy}
-                    className="min-h-[80px] rounded border border-border bg-background p-2 text-[11px] font-mono"
-                  />
-                  <div className="flex flex-wrap items-center gap-2">
-                    <label className="flex items-center gap-1 text-muted-foreground">
-                      {t('meetings.label.track')}
-                      <select
-                        value={tplTrack}
-                        onChange={(e) => setTplTrack(e.target.value)}
-                        disabled={tplBusy}
-                        aria-label={t('meetings.template.track.label')}
-                        className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
-                      >
-                        <option value="">auto</option>
-                        <option value="lightweight">{t('meetings.mode.lightweight')}</option>
-                        <option value="standard">{t('meetings.mode.standard')}</option>
-                        <option value="full">{t('meetings.mode.full')}</option>
-                      </select>
-                    </label>
-                  </div>
-                  <Input
-                    type="text"
-                    value={tplDescription}
-                    onChange={(e) => setTplDescription(e.target.value)}
-                    placeholder={t('meetings.template.description.placeholder')}
-                    aria-label={t('meetings.template.description.label')}
-                    disabled={tplBusy}
-                    className="h-7 text-[11px]"
-                  />
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <Button
-                      size="sm"
-                      onClick={handleTplSave}
-                      disabled={tplBusy || !tplName.trim() || !tplTask.trim()}
-                      className="h-6 px-2 text-[10px]"
-                    >
-                      {tplBusy ? '…' : tplEditMode === 'edit' ? t('meetings.template.saveChanges') : t('meetings.template.create')}
-                    </Button>
-                    {tplEditMode === 'edit' ? (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={handleTplDelete}
-                        disabled={tplBusy}
-                        className="h-6 px-2 text-[10px]"
-                      >
-                        {t('common.delete')}
-                      </Button>
-                    ) : null}
-                    {tplMsg ? (
-                      <span className={cn(
-                        'truncate',
-                        tplFailed ? 'text-destructive' : 'text-muted-foreground',
-                      )}>
-                        {tplMsg}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
+              {/* (v1.10.538) Template editor extracted to
+                  ./MeetingsTemplateEditor.tsx. Parent owns just the
+                  open/target pair; the editor handles the form state,
+                  save/delete API calls, and bubbles up via callbacks. */}
+              <MeetingsTemplateEditor
+                open={tplEditorOpen}
+                tpl={tplEditTarget}
+                onClose={() => setTplEditorOpen(false)}
+                onSaved={() => {
+                  setTplEditorOpen(false);
+                  void loadTemplates();
+                }}
+                onDeleted={(deletedName) => {
+                  setTplEditorOpen(false);
+                  // If the operator had this template selected for the
+                  // new meeting, clear it so the composer doesn't try
+                  // to use a deleted name.
+                  if (templateName === deletedName) setTemplateName(null);
+                  void loadTemplates();
+                }}
+              />
               {templateName && placeholderNames.length > 0 ? (
                 <div className="grid grid-cols-2 gap-1 rounded-md border border-border/40 bg-background/50 p-2 text-[11px]">
                   <span className="col-span-2 text-muted-foreground">

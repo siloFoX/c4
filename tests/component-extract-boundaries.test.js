@@ -84,6 +84,40 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: MeetingsTemplateEditor (v1.10.538)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsTemplateEditor.tsx');
+    assert.match(src, /export default function MeetingsTemplateEditor/);
+  });
+
+  it('is a controlled component (open / tpl / onClose / onSaved / onDeleted props)', () => {
+    const src = read('MeetingsTemplateEditor.tsx');
+    assert.match(src, /open:\s*boolean/);
+    assert.match(src, /tpl:\s*TemplateLike\s*\|\s*null/);
+    assert.match(src, /onClose:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onSaved:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onDeleted:\s*\(deletedName:\s*string\)\s*=>\s*void/);
+  });
+
+  it('is imported and rendered by MeetingsView with all props wired', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsTemplateEditor\s+from\s+'\.\/MeetingsTemplateEditor'/);
+    assert.match(parent, /<MeetingsTemplateEditor/);
+    assert.match(parent, /open=\{tplEditorOpen\}/);
+    assert.match(parent, /tpl=\{tplEditTarget\}/);
+    assert.match(parent, /onClose=\{\(\)\s*=>\s*setTplEditorOpen\(false\)\}/);
+  });
+
+  it('parent MeetingsView no longer holds template form state', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /const \[tplName, setTplName\]/);
+    assert.doesNotMatch(parent, /const \[tplTask, setTplTask\]/);
+    assert.doesNotMatch(parent, /const \[tplBusy, setTplBusy\]/);
+    assert.doesNotMatch(parent, /const handleTplSave/);
+    assert.doesNotMatch(parent, /const handleTplDelete/);
+  });
+});
+
 describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   it('lives in its own file with default export', () => {
     const src = read('SpecialistsBulkOpsToolbar.tsx');
