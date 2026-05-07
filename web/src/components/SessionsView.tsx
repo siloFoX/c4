@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  BookOpen,
   ChevronDown,
   ChevronRight,
   Copy,
   Eye,
   FolderTree,
-  Info,
   Link2,
   Plus,
   Search,
@@ -21,6 +19,8 @@ import ConversationView from './ConversationView';
 import SessionsTour from './SessionsTour';
 import NewChatModal from './NewChatModal';
 import AttachModal from './AttachModal';
+import SessionsEmptyAttachBanner from './SessionsEmptyAttachBanner';
+import SessionsComparisonCard from './SessionsComparisonCard';
 
 export interface SessionSummary {
   projectDir: string | null;
@@ -175,81 +175,10 @@ function copyToClipboard(text: string): Promise<void> {
 // (v1.10.539) NewChatModal extracted to ./NewChatModal.tsx
 // (along with MODEL_CHOICES + AGENT_CHOICES constants).
 
-interface EmptyAttachBannerProps {
-  onAttachClick: () => void;
-}
-
-function EmptyAttachBanner({ onAttachClick }: EmptyAttachBannerProps) {
-  useLocale();
-  return (
-    <div
-      className="flex items-start gap-2 rounded-md border border-dashed border-border bg-muted/30 p-3 text-xs"
-      role="note"
-      aria-label={t('sessions.aria.attachIntro')}
-    >
-      <Info
-        className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"
-        aria-hidden
-      />
-      <div className="flex-1">
-        <div className="font-semibold text-foreground">
-          {t(EMPTY_ATTACH_BANNER_TITLE_KEY)}
-        </div>
-        <p className="mt-1 text-muted-foreground">{t(EMPTY_ATTACH_BANNER_BODY_KEY)}</p>
-        <Button
-          size="sm"
-          variant="outline"
-          className="mt-2"
-          onClick={onAttachClick}
-        >
-          <Plus className="h-3.5 w-3.5" aria-hidden />
-          {t('sessions.attach.firstSession')}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-interface ComparisonCardProps {
-  className?: string;
-}
-
-function ComparisonCard({ className }: ComparisonCardProps) {
-  return (
-    <Card className={cn('max-w-md', className)}>
-      <CardHeader className="gap-1 border-b border-border p-4">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <BookOpen className="h-4 w-4" aria-hidden /> {t(COMPARISON_TITLE_KEY)}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
-        <table
-          className="w-full text-left text-xs"
-          aria-label={t('sessions.aria.compare')}
-        >
-          <thead>
-            <tr className="border-b border-border text-[11px] uppercase tracking-wide text-muted-foreground">
-              <th className="px-4 py-2 font-medium"></th>
-              <th className="px-4 py-2 font-medium">{t('sessions.compare.attached')}</th>
-              <th className="px-4 py-2 font-medium">{t('sessions.compare.liveWorker')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {COMPARISON_ROW_KEYS.map(([labelKey, attachedKey, liveKey]) => (
-              <tr key={labelKey} className="border-b border-border last:border-b-0">
-                <td className="px-4 py-2 font-medium text-muted-foreground">
-                  {t(labelKey)}
-                </td>
-                <td className="px-4 py-2 text-foreground">{t(attachedKey)}</td>
-                <td className="px-4 py-2 text-foreground">{t(liveKey)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </CardContent>
-    </Card>
-  );
-}
+// (v1.10.549) EmptyAttachBanner extracted to
+// ./SessionsEmptyAttachBanner.tsx and ComparisonCard extracted
+// to ./SessionsComparisonCard.tsx. Both reuse the EMPTY_ATTACH_*
+// + COMPARISON_* key constants exported above.
 
 // (v1.10.530) Tour extracted to ./SessionsTour.tsx
 
@@ -789,7 +718,7 @@ export default function SessionsView() {
                 <div className="p-4 text-sm text-destructive">{attachError}</div>
               ) : filteredAttached.length === 0 ? (
                 <div className="p-3">
-                  <EmptyAttachBanner
+                  <SessionsEmptyAttachBanner
                     onAttachClick={() => {
                       setModalError(null);
                       setModalOpen(true);
@@ -954,7 +883,7 @@ export default function SessionsView() {
               streamUrl={`/api/attach/${encodeURIComponent(selection.name)}/tail?live=1`}
               className="flex-1"
             />
-            <ComparisonCard className="self-end" />
+            <SessionsComparisonCard className="self-end" />
           </>
         ) : (
           // (TODO 8.39 step 3) When both sessions list and attached
@@ -997,14 +926,14 @@ export default function SessionsView() {
                     {t('sessions.empty.attachExisting')}
                   </Button>
                 </div>
-                <ComparisonCard />
+                <SessionsComparisonCard />
               </CardContent>
             </Card>
           ) : (
             <Card className="flex flex-1 items-center justify-center border-dashed">
               <CardContent className="flex flex-col items-center gap-4 p-6 text-center text-sm text-muted-foreground">
                 <span>{t('sessions.empty.selectPrompt')}</span>
-                <ComparisonCard />
+                <SessionsComparisonCard />
               </CardContent>
             </Card>
           )

@@ -46,20 +46,24 @@ describe('SessionsView.tsx - empty-state banner', () => {
   });
 
   it('renders the banner component with an Info icon and a call-to-action', () => {
-    assert.match(src, /function EmptyAttachBanner/);
-    assert.match(src, /<Info/);
-    assert.match(src, /t\('sessions\.attach\.firstSession'\)/);
-    assert.match(src, /role="note"/);
+    // (v1.10.549) EmptyAttachBanner extracted to its own file —
+    // contract assertions now source-grep there.
+    const BANNER = path.join(repoRoot, 'web/src/components/SessionsEmptyAttachBanner.tsx');
+    const bannerSrc = fs.readFileSync(BANNER, 'utf8');
+    assert.match(bannerSrc, /export default function SessionsEmptyAttachBanner/);
+    assert.match(bannerSrc, /<Info/);
+    assert.match(bannerSrc, /t\('sessions\.attach\.firstSession'\)/);
+    assert.match(bannerSrc, /role="note"/);
   });
 
   it('shows the banner when no attached sessions exist instead of the old plain text', () => {
     // The pre-8.31 empty-state line must be gone - we replaced it with
-    // the richer EmptyAttachBanner component.
+    // the richer banner component.
     assert.doesNotMatch(
       src,
       /No attached sessions\. Use "Attach new\.\.\." to import an external/,
     );
-    assert.match(src, /<EmptyAttachBanner[\s\S]*?onAttachClick=/);
+    assert.match(src, /<SessionsEmptyAttachBanner[\s\S]*?onAttachClick=/);
   });
 });
 
@@ -190,13 +194,17 @@ describe('SessionsView.tsx - comparison card', () => {
   });
 
   it('renders the ComparisonCard component in both selected + empty panes', () => {
-    assert.match(src, /function ComparisonCard/);
+    // (v1.10.549) ComparisonCard extracted to its own file under
+    // the SessionsComparisonCard name.
+    const CARD = path.join(repoRoot, 'web/src/components/SessionsComparisonCard.tsx');
+    const cardSrc = fs.readFileSync(CARD, 'utf8');
+    assert.match(cardSrc, /export default function SessionsComparisonCard/);
     // At least two call sites so the operator sees it regardless of
     // whether they landed on an attached row or an empty pane.
-    const calls = src.match(/<ComparisonCard/g) || [];
+    const calls = src.match(/<SessionsComparisonCard/g) || [];
     assert.ok(
       calls.length >= 2,
-      `expected ComparisonCard rendered >=2 times, saw ${calls.length}`,
+      `expected SessionsComparisonCard rendered >=2 times, saw ${calls.length}`,
     );
   });
 });

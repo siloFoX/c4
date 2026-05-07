@@ -84,6 +84,61 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: SessionsEmptyAttachBanner (v1.10.549)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SessionsEmptyAttachBanner.tsx');
+    assert.match(src, /export default function SessionsEmptyAttachBanner/);
+  });
+
+  it('takes onAttachClick prop', () => {
+    const src = read('SessionsEmptyAttachBanner.tsx');
+    assert.match(src, /onAttachClick:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('reuses EMPTY_ATTACH_* key constants from SessionsView', () => {
+    const src = read('SessionsEmptyAttachBanner.tsx');
+    assert.match(src, /from\s+'\.\/SessionsView'/);
+    assert.match(src, /EMPTY_ATTACH_BANNER_TITLE_KEY/);
+    assert.match(src, /EMPTY_ATTACH_BANNER_BODY_KEY/);
+  });
+
+  it('is imported by SessionsView', () => {
+    const parent = read('SessionsView.tsx');
+    assert.match(parent, /import\s+SessionsEmptyAttachBanner\s+from\s+'\.\/SessionsEmptyAttachBanner'/);
+    assert.match(parent, /<SessionsEmptyAttachBanner/);
+  });
+});
+
+describe('extracted: SessionsComparisonCard (v1.10.549)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SessionsComparisonCard.tsx');
+    assert.match(src, /export default function SessionsComparisonCard/);
+  });
+
+  it('reuses COMPARISON_* key constants from SessionsView', () => {
+    const src = read('SessionsComparisonCard.tsx');
+    assert.match(src, /from\s+'\.\/SessionsView'/);
+    assert.match(src, /COMPARISON_TITLE_KEY/);
+    assert.match(src, /COMPARISON_ROW_KEYS/);
+  });
+
+  it('is rendered at >= 2 call sites by SessionsView (selected + empty panes)', () => {
+    const parent = read('SessionsView.tsx');
+    assert.match(parent, /import\s+SessionsComparisonCard\s+from\s+'\.\/SessionsComparisonCard'/);
+    const calls = parent.match(/<SessionsComparisonCard/g) || [];
+    assert.ok(
+      calls.length >= 2,
+      `expected >= 2 call sites, saw ${calls.length}`,
+    );
+  });
+
+  it('parent SessionsView no longer holds the inline component definition', () => {
+    const parent = read('SessionsView.tsx');
+    assert.doesNotMatch(parent, /function ComparisonCard\(/);
+    assert.doesNotMatch(parent, /function EmptyAttachBanner\(/);
+  });
+});
+
 describe('extracted: MeetingsDetailHeader (v1.10.548)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsDetailHeader.tsx');

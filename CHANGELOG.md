@@ -4,6 +4,52 @@
 
 (no entries — next release window)
 
+## [1.10.549] - 2026-05-07 — Extract SessionsEmptyAttachBanner + SessionsComparisonCard
+
+**Web — `SessionsView.tsx` shrunk by 71 lines (1034 → 963).**
+Two more inline standalone components lifted out: the
+empty-state banner that prompts the operator to attach their
+first session, and the side-by-side comparison card that
+explains attached-vs-live sessions. SessionsView crosses below
+1000 lines (now matching SpecialistsView under 1k).
+
+### Refactor — SessionsEmptyAttachBanner
+- New `web/src/components/SessionsEmptyAttachBanner.tsx`
+  (~47 lines): the role="note" banner with Info icon and
+  CTA button. Reuses `EMPTY_ATTACH_BANNER_TITLE_KEY` +
+  `EMPTY_ATTACH_BANNER_BODY_KEY` from SessionsView.
+- One prop: `onAttachClick`.
+
+### Refactor — SessionsComparisonCard
+- New `web/src/components/SessionsComparisonCard.tsx`
+  (~55 lines): the comparison table reading from
+  `COMPARISON_TITLE_KEY` + `COMPARISON_ROW_KEYS`.
+- Optional `className` prop. Rendered at 3 call sites in
+  SessionsView.
+
+### SessionsView changes
+- Removed both inline definitions (~75 lines).
+- Removed unused `BookOpen` and `Info` icon imports (now
+  live in the extracted files).
+- Updated all call sites: `<EmptyAttachBanner` →
+  `<SessionsEmptyAttachBanner`, `<ComparisonCard` →
+  `<SessionsComparisonCard`.
+
+### Tests
+- 203/203 tests green.
+- `tests/sessions-view.test.js`: 2 contract assertions
+  redirected to source-grep the new files.
+- `tests/component-extract-boundaries.test.js`: two new
+  suites (8 assertions). Total: 18 suites, 87 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 17 of the perfection-track component split. SessionsView
+  drops below 1000 lines (was 1367 at session start, now 963 —
+  -29.6%). All three megacomponents are now under 2000 (Big-3:
+  3794 lines combined, was 5104, -25.7%).
+
 ## [1.10.548] - 2026-05-07 — Extract MeetingsDetailHeader
 
 **Web — `MeetingsView.tsx` shrunk by 11 lines (1843 → 1832).**
