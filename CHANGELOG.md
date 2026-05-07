@@ -4,6 +4,19 @@
 
 (no entries — next release window)
 
+## [1.10.519] - 2026-05-07 — SDK tsconfig alignment
+
+**SDK — `sdk/tsconfig.json` aligned with web/tsconfig.**
+The SDK was on bare `"strict": true` while the web side
+runs `noUnusedLocals` + `noUnusedParameters` +
+`noFallthroughCasesInSwitch` + `noImplicitOverride`. Now
+both halves catch the same kinds of issues.
+
+### Result
+- `npx tsc --noEmit` clean.
+- `npm --prefix sdk run build` clean.
+- 201/201 tests green.
+
 ## [1.10.518] - 2026-05-07 — Security: rel="noopener" on external links
 
 **Web — `target="_blank"` links now carry both `noopener`
