@@ -84,6 +84,50 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: ConversationTurns (v1.10.566)', () => {
+  it('lives in its own file with default-exported TurnRow', () => {
+    const src = read('ConversationTurns.tsx');
+    assert.match(src, /export default function TurnRow/);
+  });
+
+  it('contains all six turn renderers (User / Assistant / Thinking / ToolUse / ToolResult / System)', () => {
+    const src = read('ConversationTurns.tsx');
+    assert.match(src, /function UserTurn/);
+    assert.match(src, /function AssistantTurn/);
+    assert.match(src, /function ThinkingTurn/);
+    assert.match(src, /function ToolUseTurn/);
+    assert.match(src, /function ToolResultTurn/);
+    assert.match(src, /function SystemTurn/);
+  });
+
+  it('contains the RoleHeader sub-component', () => {
+    const src = read('ConversationTurns.tsx');
+    assert.match(src, /function RoleHeader/);
+  });
+
+  it('reuses the conversation-render lib helpers', () => {
+    const src = read('ConversationTurns.tsx');
+    assert.match(src, /from\s+'\.\.\/lib\/conversation-render'/);
+  });
+
+  it('is imported by ConversationView (just the default)', () => {
+    const parent = read('ConversationView.tsx');
+    assert.match(parent, /import\s+TurnRow\s+from\s+'\.\/ConversationTurns'/);
+  });
+
+  it('parent ConversationView no longer holds the turn renderers', () => {
+    const parent = read('ConversationView.tsx');
+    assert.doesNotMatch(parent, /^function UserTurn/m);
+    assert.doesNotMatch(parent, /^function AssistantTurn/m);
+    assert.doesNotMatch(parent, /^function ThinkingTurn/m);
+    assert.doesNotMatch(parent, /^function ToolUseTurn/m);
+    assert.doesNotMatch(parent, /^function ToolResultTurn/m);
+    assert.doesNotMatch(parent, /^function SystemTurn/m);
+    assert.doesNotMatch(parent, /^function TurnRow/m);
+    assert.doesNotMatch(parent, /^function RoleHeader/m);
+  });
+});
+
 describe('extracted: HistoryDetailPane (v1.10.564)', () => {
   it('lives in its own file with default export', () => {
     const src = read('HistoryDetailPane.tsx');
@@ -257,11 +301,14 @@ describe('extracted: conversation-render lib (v1.10.560)', () => {
     assert.match(src, /export function formatToolResult/);
   });
 
-  it('is imported by ConversationView (no inline duplicates)', () => {
-    const parent = read('ConversationView.tsx');
-    assert.match(parent, /from\s+'\.\.\/lib\/conversation-render'/);
-    assert.match(parent, /renderMarkdown/);
-    assert.match(parent, /formatTokens/);
+  it('is imported by ConversationTurns (no inline duplicates)', () => {
+    // (v1.10.566) The render helpers moved with the turn renderers
+    // when ConversationTurns.tsx was extracted. ConversationView
+    // no longer references them directly.
+    const turns = read('ConversationTurns.tsx');
+    assert.match(turns, /from\s+'\.\.\/lib\/conversation-render'/);
+    assert.match(turns, /renderMarkdown/);
+    assert.match(turns, /formatTokens/);
   });
 
   it('parent ConversationView no longer holds the helper definitions', () => {

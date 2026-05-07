@@ -4,6 +4,44 @@
 
 (no entries — next release window)
 
+## [1.10.566] - 2026-05-08 — Extract ConversationTurns
+
+**Web — `ConversationView.tsx` shrunk by 256 lines (538 → 282).**
+The six per-role turn renderers (User / Assistant / Thinking /
+ToolUse / ToolResult / System) plus the RoleHeader strip and
+the TurnRow dispatcher extracted into a single
+`ConversationTurns.tsx` file. Pure rendering — every renderer
+takes a Turn and produces JSX, no parent state.
+
+### Refactor
+- New `web/src/components/ConversationTurns.tsx` (~261 lines):
+  six turn renderers, the RoleHeader sub-component, and the
+  default-exported `TurnRow` switch dispatcher.
+- `ConversationView.tsx`: removed all renderer definitions
+  (~210 lines) plus the conversation-render imports (now used
+  inside ConversationTurns instead). Removed 9 unused lucide
+  icon imports (Bot, Brain, ChevronDown, ChevronRight, Cog,
+  FileText, Terminal, User, Wrench).
+- ConversationView dropped from 538 to 282 lines — the
+  smallest non-page component file now.
+
+### Tests
+- 203/203 tests green (one flaky web-smoke retry passed).
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (6 assertions). Total: 34 suites, 187 tests.
+- `tests/session-parser.test.js`: TurnRow switch assertion
+  redirected to source-grep `ConversationTurns.tsx`.
+- `tests/component-extract-boundaries.test.js`:
+  conversation-render contract tweaked to point at
+  ConversationTurns (which is what now imports the lib).
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 33 of the perfection-track component split. Sixth
+  non-big-3 extraction. ConversationView is now under 300
+  lines (282).
+
 ## [1.10.565] - 2026-05-08 — Dedupe stripAnsi (WorkerDetail → chat-helpers)
 
 **Web — `WorkerDetail.tsx` shrunk by 10 lines (461 → 451).**

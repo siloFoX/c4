@@ -254,9 +254,12 @@ describe('ConversationView.tsx wiring', () => {
   });
 
   it('renders every role type (user, assistant, thinking, tool_use, tool_result, system)', () => {
+    // (v1.10.566) TurnRow switch moved into ConversationTurns.tsx.
+    const turnsFile = path.join(__dirname, '..', 'web', 'src', 'components', 'ConversationTurns.tsx');
+    const turnsSrc = fs.readFileSync(turnsFile, 'utf8');
     for (const role of ['user', 'assistant', 'thinking', 'tool_use', 'tool_result', 'system']) {
       const re = new RegExp(`case '${role}'`);
-      assert.match(src, re, `TurnRow switch should handle ${role}`);
+      assert.match(turnsSrc, re, `TurnRow switch should handle ${role}`);
     }
   });
 
