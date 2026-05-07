@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.507] - 2026-05-07 — Visual scan: lint script integration
+
+**Repo — `npm run lint:i18n-visual` shortcut.** Wired the
+visual i18n check into the package.json scripts so it can
+run alongside the OpenAPI / schema-drift linters. The
+script header now documents the full usage, the ~42
+surfaces walked, and the exit-code contract.
+
+### Notes
+- 200/200 tests green.
+- The check is opt-in (not added to `npm run lint`)
+  because it requires a running daemon. Run it manually
+  before any ship that touches user-visible strings:
+  ```
+  PORT=3458 node src/daemon.js &
+  npm run lint:i18n-visual
+  ```
+
 ## [1.10.506] - 2026-05-07 — Visual scan: Settings choice flips
 
 **Web — `scripts/i18n-visual-check.js` flips every

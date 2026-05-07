@@ -1,15 +1,40 @@
 #!/usr/bin/env node
 'use strict';
 
-// (v1.10.494+) i18n visual verification: drives a temp daemon
-// (3458) through Playwright, flips locale to ko, walks every top
-// tab, screenshots each, then scans the rendered DOM for English
-// text leaks.
+// (v1.10.494+) i18n visual verification: drives a c4 daemon
+// through Playwright, flips locale to ko, walks every UI surface,
+// screenshots each, then scans the rendered DOM for English text
+// leaks.
+//
+// Usage:
+//   PORT=3458 node src/daemon.js &      # spawn a test daemon
+//   npm run lint:i18n-visual            # or: node scripts/i18n-visual-check.js
+//
+// Override the base URL with C4_TEST_URL=http://10.40:3456.
 //
 // "English leak" heuristic: any text node containing 4+ consecutive
 // ASCII letters that is NOT in the allow-list of expected English
 // (brand names / IDs / file paths / model names / version strings /
-// Tailwind class fragments / iso dates / hex sha / git hash).
+// Tailwind class fragments / iso dates / hex sha / git hash, etc).
+//
+// Surfaces walked (~42 total):
+//   - 11 top tabs (workers/history/sessions/meetings/specialists/
+//     wiki/autonomous/chat/workflows/features/settings)
+//   - 5 overlays (help drawer 'h', shortcuts sheet '?', sessions
+//     new-chat modal, sessions attach modal, account dropdown)
+//   - 16 feature pages (lazy-loaded via Features tab sidebar)
+//   - 8 AppHeader buttons (locale toggle, theme, help, etc.)
+//   - 11 unique tooltip title attributes
+//   - sidebar tree mode (worker hierarchy view)
+//   - 4 list-detail panes (meetings/specialists/wiki/history)
+//   - Settings choice flips (theme/sidebar/detail)
+//   - Risk page check flow (type cmd + Preview/Check)
+//   - Wiki search flow (type query + Search)
+//
+// Exit codes:
+//   0 = no leaks; 1 = N candidate leaks reported in
+//   /tmp/c4-i18n-screens/leaks.json; 2 = locale flip failed;
+//   3 = fatal error before scan
 
 const fs = require('fs');
 const path = require('path');
