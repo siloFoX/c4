@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.568] - 2026-05-08 — Extract RiskRuleCatalogPanel
+
+**Web — `pages/Risk.tsx` shrunk by 95 lines (610 → 515).**
+The Phase-v1.10.357 rule-catalog viewer (collapsible, lazy-loads
+`/api/risk/patterns` on first open since the payload can be
+sizeable, then filters builtin patterns by code/label) extracted
+as a self-fetching component. Zero props — owns its own
+open / filter / patterns state.
+
+### Refactor
+- New `web/src/components/RiskRuleCatalogPanel.tsx` (~130
+  lines): the collapsible Panel, the lazy-fetch effect, the
+  filter input, the per-severity rendering, the custom-rules
+  count badge, plus the `PatternEntry` / `PatternsResponse`
+  interfaces. Owns its own `LEVEL_TONE` palette (since the
+  parent's now only used elsewhere).
+- `pages/Risk.tsx`: removed the inline interfaces, 3 useState
+  hooks, the lazy-fetch effect, and the ~70-line JSX block.
+  Replaces with `<RiskRuleCatalogPanel />`.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (6 assertions). Total: 36 suites, 198 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 35 of the perfection-track component split. First
+  page-side extraction (the source file lives under
+  `web/src/pages/`). Risk.tsx 515 (was 610).
+
 ## [1.10.567] - 2026-05-08 — Extract WorkerListGroupHeader
 
 **Web — `WorkerList.tsx` shrunk by 45 lines (356 → 311).**

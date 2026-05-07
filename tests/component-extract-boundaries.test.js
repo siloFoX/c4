@@ -84,6 +84,49 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: RiskRuleCatalogPanel (v1.10.568)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('RiskRuleCatalogPanel.tsx');
+    assert.match(src, /export default function RiskRuleCatalogPanel/);
+  });
+
+  it('owns its own open / filter / patterns state', () => {
+    const src = read('RiskRuleCatalogPanel.tsx');
+    assert.match(src, /useState<PatternsResponse \| null>/);
+    assert.match(src, /useState\(''\)/);
+    assert.match(src, /useState\(false\)/);
+  });
+
+  it('lazy-fetches /api/risk/patterns only when opened', () => {
+    const src = read('RiskRuleCatalogPanel.tsx');
+    assert.match(src, /if \(!open \|\| patterns\) return/);
+    assert.match(src, /\/api\/risk\/patterns/);
+  });
+
+  it('renders nothing when collapsed (button only)', () => {
+    const src = read('RiskRuleCatalogPanel.tsx');
+    assert.match(src, /aria-expanded=\{open\}/);
+  });
+
+  it('is imported and rendered by Risk page (zero-prop)', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const file = path.join(__dirname, '..', 'web', 'src', 'pages', 'Risk.tsx');
+    const parent = fs.readFileSync(file, 'utf8');
+    assert.match(parent, /import\s+RiskRuleCatalogPanel\s+from\s+'\.\.\/components\/RiskRuleCatalogPanel'/);
+    assert.match(parent, /<RiskRuleCatalogPanel\s*\/>/);
+  });
+
+  it('parent Risk page no longer holds patterns state nor PatternsResponse type', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const file = path.join(__dirname, '..', 'web', 'src', 'pages', 'Risk.tsx');
+    const parent = fs.readFileSync(file, 'utf8');
+    assert.doesNotMatch(parent, /const \[patterns, setPatterns\]/);
+    assert.doesNotMatch(parent, /interface PatternsResponse/);
+  });
+});
+
 describe('extracted: WorkerListGroupHeader (v1.10.567)', () => {
   it('lives in its own file with default export', () => {
     const src = read('WorkerListGroupHeader.tsx');
