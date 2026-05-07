@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.10.542] - 2026-05-07 — Extract MeetingsActionItemsPanel
+
+**Web — `MeetingsView.tsx` shrunk by 129 lines (2164 → 2035).**
+The Phase-6.5 action-items panel (4 grouped lists for decision /
+action / todo / blocker, filter chips, JSON download + Markdown
+copy export) extracted into its own file. Owns its filter state
+internally; parent passes `actions` data + `meetingId`.
+
+### Refactor
+- New `web/src/components/MeetingsActionItemsPanel.tsx` (~153
+  lines): the full panel UI, the `ActionItem` + `ActionItemsResponse`
+  interfaces, the per-category `TONE` color map (was duplicated
+  between filter chips and group headers), the JSON / Markdown
+  export handlers.
+- `MeetingsView.tsx`: removed the inline ActionItem +
+  ActionItemsResponse interfaces, the `actionsFilter` state,
+  and the 120-line JSX block; now imports
+  `MeetingsActionItemsPanel` + `type ActionItemsResponse`. The
+  fetch effect stays — parent still owns the data, panel
+  renders.
+- Tone color map deduplicated (was repeated twice in the inline
+  block — once for filter chips, once for group headers).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite
+  added (6 assertions). Total: 9 suites, 40 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 9 of the perfection-track component split. The big-3
+  parents are now: MeetingsView 2035 (was 2372 at start of
+  this session, -337 cumulative, -14%), SpecialistsView 1142,
+  SessionsView 1034.
+
 ## [1.10.541] - 2026-05-07 — Extract MeetingsRecapPanel
 
 **Web — `MeetingsView.tsx` shrunk by 53 lines (2217 → 2164).**

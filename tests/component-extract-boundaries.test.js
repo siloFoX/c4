@@ -84,6 +84,42 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: MeetingsActionItemsPanel (v1.10.542)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsActionItemsPanel.tsx');
+    assert.match(src, /export default function MeetingsActionItemsPanel/);
+  });
+
+  it('exports the ActionItemsResponse type', () => {
+    const src = read('MeetingsActionItemsPanel.tsx');
+    assert.match(src, /export interface ActionItemsResponse/);
+  });
+
+  it('owns its own filter state (4 categories + null)', () => {
+    const src = read('MeetingsActionItemsPanel.tsx');
+    assert.match(src, /useState<ActionItemType \| null>/);
+  });
+
+  it('owns the JSON download + Markdown copy export handlers', () => {
+    const src = read('MeetingsActionItemsPanel.tsx');
+    assert.match(src, /handleDownloadJson/);
+    assert.match(src, /handleCopyMd/);
+    assert.match(src, /navigator\.clipboard\.writeText/);
+  });
+
+  it('is imported and rendered by MeetingsView with actions + meetingId props', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import MeetingsActionItemsPanel,\s*\{\s*type ActionItemsResponse\s*\}\s*from\s*'\.\/MeetingsActionItemsPanel'/);
+    assert.match(parent, /<MeetingsActionItemsPanel\s+actions=\{actions\}\s+meetingId=\{selectedId\}/);
+  });
+
+  it('parent MeetingsView no longer holds actionsFilter state nor inline UI', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /const \[actionsFilter, setActionsFilter\]/);
+    assert.doesNotMatch(parent, /interface ActionItemsResponse/);
+  });
+});
+
 describe('extracted: MeetingsRecapPanel (v1.10.541)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsRecapPanel.tsx');

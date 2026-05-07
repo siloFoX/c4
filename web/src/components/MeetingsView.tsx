@@ -8,6 +8,7 @@ import { renderSnippet } from '../lib/snippet';
 import MeetingsMaintenancePanel from './MeetingsMaintenancePanel';
 import MeetingsTemplateEditor from './MeetingsTemplateEditor';
 import MeetingsRecapPanel, { type RecapResponse } from './MeetingsRecapPanel';
+import MeetingsActionItemsPanel, { type ActionItemsResponse } from './MeetingsActionItemsPanel';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -103,21 +104,11 @@ interface LineageResponse {
 }
 
 // (Phase 6.5) Action-items extracted from transcript markers.
+// (v1.10.542) ActionItem + ActionItemsResponse moved to
+// ./MeetingsActionItemsPanel.tsx (canonical home now that the
+// UI lives there). ActionItemType stays here so other panels
+// (MeetingsRecapPanel) can import it from a stable location.
 export type ActionItemType = 'decision' | 'action' | 'todo' | 'blocker';
-interface ActionItem {
-  type: ActionItemType;
-  text: string;
-  owner: string | null;
-  stage: string;
-  round: number;
-  specialistId: string | null;
-  ts: string | null;
-}
-interface ActionItemsResponse {
-  count: number;
-  byType: Record<ActionItemType, number>;
-  items: ActionItem[];
-}
 
 // (v1.10.541) Recap types moved to ./MeetingsRecapPanel.tsx
 // (the canonical location now that the UI lives there too).
@@ -161,10 +152,7 @@ export default function MeetingsView() {
   const [lineage, setLineage] = useState<LineageResponse | null>(null);
   // (Phase 6.5) Action-items extracted from the transcript.
   const [actions, setActions] = useState<ActionItemsResponse | null>(null);
-  // Category filter for the action-items panel (client-side).
-  // null = show all 4 categories. Otherwise just that one.
-  const [actionsFilter, setActionsFilter] = useState<ActionItemType | null>(null);
-
+  // (v1.10.542) actionsFilter state moved into the extracted panel.
   // (v1.10.541) Recap state owned here so the existing recap-fetch
   // useEffect below stays put; recap panel UI extracted to
   // ./MeetingsRecapPanel.tsx. Collapsed-by-default behaviour
@@ -2000,126 +1988,9 @@ export default function MeetingsView() {
               {/* (v1.10.541) Recap panel extracted to
                   ./MeetingsRecapPanel.tsx. */}
               <MeetingsRecapPanel recap={recap} />
-              {/* (Phase 6.5) Action-items extracted from transcript
-                  markers. Rendered as 4 grouped lists with count
-                  badges. Empty groups are omitted. */}
-              {actions && actions.count > 0 ? (
-                <div className="rounded-md border border-border/60 bg-muted/10 p-3 text-[12px]">
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <span className="font-medium">{t('meetings.actionItems')}</span>
-                    {/* Category filter chips — null = all */}
-                    <button
-                      type="button"
-                      onClick={() => setActionsFilter(null)}
-                      className={cn(
-                        'rounded border px-1.5 py-0 text-[10px] uppercase tracking-wide',
-                        actionsFilter === null
-                          ? 'border-primary bg-primary/30 text-foreground'
-                          : 'border-border bg-background text-muted-foreground hover:bg-accent/40',
-                      )}
-                    >
-                      all · {actions.count}
-                    </button>
-                    {(['decision', 'action', 'todo', 'blocker'] as ActionItemType[]).map((kind) => {
-                      if ((actions.byType[kind] || 0) === 0) return null;
-                      const tone: Record<ActionItemType, string> = {
-                        decision: 'border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-400',
-                        action: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
-                        todo: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
-                        blocker: 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400',
-                      };
-                      return (
-                        <button
-                          key={kind}
-                          type="button"
-                          onClick={() => setActionsFilter(actionsFilter === kind ? null : kind)}
-                          className={cn(
-                            'rounded border px-1.5 py-0 text-[10px] uppercase tracking-wide',
-                            actionsFilter === kind ? tone[kind] : 'border-border bg-background text-muted-foreground hover:bg-accent/40',
-                          )}
-                        >
-                          {kind} · {actions.byType[kind] || 0}
-                        </button>
-                      );
-                    })}
-                    {/* (v1.10.351) Export buttons — operators hand
-                        items off to a tracker. JSON for tools,
-                        Markdown for chat / docs. ml-auto pushes them
-                        to the right edge of the chip row. */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const blob = new Blob([JSON.stringify(actions, null, 2)], { type: 'application/json' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `action-items-${selectedId}.json`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                      }}
-                      className="ml-auto rounded border border-border bg-background px-1.5 py-0 text-[10px] text-muted-foreground hover:bg-accent/40"
-                      title={t('meetings.tooltip.downloadActions')}
-                    >
-                      ⬇ JSON
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const lines: string[] = [];
-                        (['decision', 'action', 'todo', 'blocker'] as ActionItemType[]).forEach((k) => {
-                          const group = actions.items.filter((it) => it.type === k);
-                          if (group.length === 0) return;
-                          lines.push(`## ${k.toUpperCase()} (${group.length})`);
-                          group.forEach((it) => {
-                            lines.push(`- ${it.text}`);
-                          });
-                          lines.push('');
-                        });
-                        const md = lines.join('\n').trim();
-                        navigator.clipboard.writeText(md).catch(() => { /* ignore */ });
-                      }}
-                      className="rounded border border-border bg-background px-1.5 py-0 text-[10px] text-muted-foreground hover:bg-accent/40"
-                      title={t('meetings.tooltip.copyActionsMd')}
-                    >
-                      ⧉ MD
-                    </button>
-                  </div>
-                  {(['decision', 'action', 'todo', 'blocker'] as ActionItemType[]).filter((k) => actionsFilter === null || actionsFilter === k).map((kind) => {
-                    const group = actions.items.filter((it) => it.type === kind);
-                    if (group.length === 0) return null;
-                    const tone: Record<ActionItemType, string> = {
-                      decision: 'border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-400',
-                      action: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
-                      todo: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
-                      blocker: 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400',
-                    };
-                    return (
-                      <div key={kind} className="mb-2 last:mb-0">
-                        <div className={cn('mb-1 inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] uppercase tracking-wide', tone[kind])}>
-                          {kind} · {group.length}
-                        </div>
-                        <ul className="space-y-1 pl-3">
-                          {group.map((it, i) => (
-                            <li key={i} className="leading-snug">
-                              <span>{it.text}</span>
-                              {it.owner ? (
-                                <span className="ml-2 inline-flex items-center rounded border border-border bg-background px-1 py-0 font-mono text-[10px] text-muted-foreground">
-                                  @{it.owner}
-                                </span>
-                              ) : null}
-                              <span className="ml-2 text-[10px] text-muted-foreground">
-                                {it.stage}/r{it.round}/{it.specialistId || '?'}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : null}
+              {/* (v1.10.542) Action-items panel extracted to
+                  ./MeetingsActionItemsPanel.tsx. */}
+              <MeetingsActionItemsPanel actions={actions} meetingId={selectedId} />
               <div className="space-y-3">
                 {detail.stages.map((stage, idx) => {
                   const turns = detail.transcripts[idx] || [];
