@@ -443,8 +443,17 @@ Contributions are welcome! Please:
 1. Fork the repo
 2. Create a feature branch (`git checkout -b feature/amazing`)
 3. Commit your changes
-4. Push to the branch
-5. Open a Pull Request
+4. Run `npm run check` locally — it chains lint, tests, web build, and bundle-size budget so CI doesn't catch what you can catch first
+5. Push to the branch
+6. Open a Pull Request
+
+**Available checks:**
+- `npm run lint` — OpenAPI spec, schema-drift, i18n bundle lockstep
+- `npm test` — unit + integration suite (201 cases)
+- `npm run lint:bundle-size` — first-paint chunk budget
+- `npm run lint:i18n-visual` — Playwright walk over ~42 surfaces in ko locale (requires running daemon on :3458)
+- `npm run lint:runtime-drift` — validate live daemon GET routes against OpenAPI spec (requires running daemon on :3456)
+- `npm run check` — composite (lint + test + build + bundle-size)
 
 See [TODO.md](TODO.md) for the roadmap and open tasks.
 

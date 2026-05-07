@@ -4,6 +4,25 @@
 
 (no entries — next release window)
 
+## [1.10.520] - 2026-05-07 — Contributing checks documented
+
+**Repo — README + README.ko.md Contributing sections.**
+Added a step "Run `npm run check` locally" and documented
+all six lint/test/check shortcuts available so
+contributors know what CI runs and how to reproduce it
+locally.
+
+### Documented checks
+- `npm run lint` (openapi + schema-drift + i18n-lockstep)
+- `npm test` (201 cases)
+- `npm run lint:bundle-size`
+- `npm run lint:i18n-visual` (requires daemon on :3458)
+- `npm run lint:runtime-drift` (requires daemon on :3456)
+- `npm run check` (composite)
+
+### Notes
+- 201/201 tests green.
+
 ## [1.10.519] - 2026-05-07 — SDK tsconfig alignment
 
 **SDK — `sdk/tsconfig.json` aligned with web/tsconfig.**
