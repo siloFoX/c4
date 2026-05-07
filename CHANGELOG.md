@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.541] - 2026-05-07 — Extract MeetingsRecapPanel
+
+**Web — `MeetingsView.tsx` shrunk by 53 lines (2217 → 2164).**
+The Phase-6.10 recap envelope (compact "first turn per stage"
+view, collapsed-by-default) extracted into its own file. Pure
+display component — parent fetches the recap, the panel just
+renders.
+
+### Refactor
+- New `web/src/components/MeetingsRecapPanel.tsx` (~89 lines):
+  the collapsible recap UI, the open/closed state (default
+  closed), the `RecapStage` + `RecapResponse` interfaces.
+- `MeetingsView.tsx`: removed the inline recap interfaces
+  (RecapStage, RecapResponse) and the `recapOpen` state; now
+  imports `MeetingsRecapPanel` + `type RecapResponse` from the
+  new file. The recap fetch effect stays put — parent owns
+  the fetched data, panel just renders.
+- `ActionItemType` promoted to `export type` since the panel
+  references it via `Record<ActionItemType, number>`.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite
+  added (5 assertions). Total: 8 suites, 34 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 8 of the perfection-track component split. The big-3
+  parents are now: MeetingsView 2164 (was 2372 at start of
+  this session, -208 cumulative), SpecialistsView 1142,
+  SessionsView 1034.
+
 ## [1.10.540] - 2026-05-07 — Extract AttachModal
 
 **Web — `SessionsView.tsx` shrunk by 152 lines (1186 → 1034).**

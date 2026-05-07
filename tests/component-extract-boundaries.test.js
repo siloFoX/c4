@@ -84,6 +84,37 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: MeetingsRecapPanel (v1.10.541)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsRecapPanel.tsx');
+    assert.match(src, /export default function MeetingsRecapPanel/);
+  });
+
+  it('exports the RecapResponse type', () => {
+    const src = read('MeetingsRecapPanel.tsx');
+    assert.match(src, /export interface RecapResponse/);
+  });
+
+  it('owns its open/closed state (collapsed by default)', () => {
+    const src = read('MeetingsRecapPanel.tsx');
+    assert.match(src, /useState\(false\)/);
+    assert.match(src, /aria-expanded=\{open\}/);
+  });
+
+  it('is imported and rendered by MeetingsView with recap prop', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import MeetingsRecapPanel,\s*\{\s*type RecapResponse\s*\}\s*from\s*'\.\/MeetingsRecapPanel'/);
+    assert.match(parent, /<MeetingsRecapPanel\s+recap=\{recap\}\s*\/>/);
+  });
+
+  it('parent MeetingsView no longer holds recapOpen state nor RecapResponse type', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /const \[recapOpen, setRecapOpen\]/);
+    assert.doesNotMatch(parent, /^interface RecapResponse/m);
+    assert.doesNotMatch(parent, /^interface RecapStage/m);
+  });
+});
+
 describe('extracted: AttachModal (v1.10.540)', () => {
   it('lives in its own file with default export', () => {
     const src = read('AttachModal.tsx');
