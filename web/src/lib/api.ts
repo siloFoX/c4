@@ -84,9 +84,33 @@ export async function apiFetch(input: string, init: RequestInit = {}): Promise<R
   return res;
 }
 
+// (v1.10.514) Unified error path for all REST helpers. Previously
+// apiGet / apiDelete threw a bare `HTTP N` string while apiPost /
+// apiPatch included the response body. The mismatch meant errors
+// surfaced via `(e as Error).message` were inconsistent — operators
+// got a status code with no detail on GET failures.
+//
+// Now every helper attaches the response body (truncated to keep
+// the message tractable) and tries to parse a JSON `{ error }` out
+// of it for the typical c4 envelope.
+async function _throwHttpError(res: Response): Promise<never> {
+  let body = '';
+  try { body = await res.text(); } catch { /* ignore */ }
+  let detail = body;
+  if (body.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(body) as { error?: string; message?: string };
+      detail = parsed.error || parsed.message || body;
+    } catch { /* keep raw body */ }
+  }
+  if (detail.length > 200) detail = `${detail.slice(0, 197)}…`;
+  const suffix = detail ? `: ${detail}` : '';
+  throw new Error(`HTTP ${res.status}${suffix}`);
+}
+
 export async function apiGet<T = unknown>(url: string): Promise<T> {
   const res = await apiFetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) await _throwHttpError(res);
   return (await res.json()) as T;
 }
 
@@ -96,18 +120,13 @@ export async function apiPost<T = unknown>(url: string, body: unknown): Promise<
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    let errBody = '';
-    try { errBody = await res.text(); } catch { /* ignore */ }
-    const err = new Error(`HTTP ${res.status}${errBody ? `: ${errBody}` : ''}`);
-    throw err;
-  }
+  if (!res.ok) await _throwHttpError(res);
   return (await res.json()) as T;
 }
 
 export async function apiDelete<T = unknown>(url: string): Promise<T> {
   const res = await apiFetch(url, { method: 'DELETE' });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) await _throwHttpError(res);
   return (await res.json()) as T;
 }
 
@@ -121,12 +140,7 @@ export async function apiPatch<T = unknown>(url: string, body: unknown): Promise
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    let errBody = '';
-    try { errBody = await res.text(); } catch { /* ignore */ }
-    const err = new Error(`HTTP ${res.status}${errBody ? `: ${errBody}` : ''}`);
-    throw err;
-  }
+  if (!res.ok) await _throwHttpError(res);
   return (await res.json()) as T;
 }
 

@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.514] - 2026-05-07 — Unified API error envelopes
+
+**Web — `lib/api.ts` unified error message format.**
+Previously `apiGet` / `apiDelete` threw a bare `HTTP N`
+while `apiPost` / `apiPatch` included the response body.
+Operators saw inconsistent error detail depending on which
+verb failed.
+
+### Changes
+- New private `_throwHttpError(res)` helper used by all 4
+  verbs.
+- Reads the response body, parses the typical c4 `{
+  error }` JSON envelope (with fallback to raw text), and
+  truncates to 200 chars to keep messages tractable.
+- All four helpers now share the same shape:
+  `HTTP <status>: <detail>`.
+
+### Notes
+- 201/201 tests green.
+- Bundle still under budget (index 202KB / 280KB).
+- Existing component-level catch-and-display patterns
+  (`(e as Error).message`) get richer error context for
+  free.
+
 ## [1.10.513] - 2026-05-07 — ErrorBoundary regression test
 
 **Tests — `tests/error-boundary.test.js` (10 cases).**
