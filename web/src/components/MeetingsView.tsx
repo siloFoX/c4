@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Eye, Play, Plus, RefreshCw, Radio, Search, X } from 'lucide-react';
+import { Eye, Plus, RefreshCw, Radio, Search, X } from 'lucide-react';
 import { apiGet, apiPost, eventSourceUrl } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
@@ -19,6 +19,7 @@ import MeetingsRetroActions from './MeetingsRetroActions';
 import MeetingsPublishControls from './MeetingsPublishControls';
 import MeetingsPeerRetroControls from './MeetingsPeerRetroControls';
 import MeetingsStateActions from './MeetingsStateActions';
+import MeetingsRunControls from './MeetingsRunControls';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -570,29 +571,8 @@ export default function MeetingsView() {
     return () => window.clearTimeout(handle);
   }, [creating, newTask, newTrack]);
 
-  // Run the selected meeting with the chosen brain.
-  const [runBusy, setRunBusy] = useState(false);
-  const [runError, setRunError] = useState<string | null>(null);
-  const [runBrain, setRunBrain] = useState<'mock' | 'claude'>('mock');
-
-  const handleRun = useCallback(async (id: string) => {
-    setRunBusy(true);
-    setRunError(null);
-    try {
-      await apiPost(`/api/meetings/${encodeURIComponent(id)}/run`, {
-        brain: runBrain,
-        autoFinalize: true,
-      });
-      // The SSE detail subscription will pick up turn / advance /
-      // terminal events as the orchestrator drives the meeting,
-      // so we don't manually refetch here — the EventSource hook
-      // does that via apiGet on each `state` frame.
-    } catch (e) {
-      setRunError((e as Error).message || t('common.failedToStartMeeting'));
-    } finally {
-      setRunBusy(false);
-    }
-  }, [runBrain]);
+  // (v1.10.556) Run controls (brain selector + Run button +
+  // error display) extracted to ./MeetingsRunControls.tsx.
 
   // (v1.10.553) Publish controls extracted to
   // ./MeetingsPublishControls.tsx — owns its own busy / msg /
@@ -1244,31 +1224,9 @@ export default function MeetingsView() {
           </div>
           {selectedId && detail && detail.status === 'pending' ? (
             <div className="flex flex-wrap items-center gap-2">
-              <label className="text-[11px] text-muted-foreground">
-                {t('meetings.brain.label')}
-                <select
-                  className="ml-1 rounded border border-border bg-background px-1 py-0.5 text-[11px]"
-                  value={runBrain}
-                  onChange={(e) => setRunBrain(e.target.value as 'mock' | 'claude')}
-                  disabled={runBusy}
-                  aria-label={t('meetings.brain.aria')}
-                >
-                  <option value="mock">{t('meetings.brain.mockOption')}</option>
-                  <option value="claude">{t('meetings.brain.claudeOption')}</option>
-                </select>
-              </label>
-              <Button
-                size="sm"
-                onClick={() => handleRun(selectedId)}
-                disabled={runBusy}
-                aria-label={t('meetings.action.runMeeting')}
-              >
-                <Play className="h-3.5 w-3.5" aria-hidden />
-                {t('meetings.run.button')}
-              </Button>
-              {runError ? (
-                <span className="text-[11px] text-destructive">{runError}</span>
-              ) : null}
+              {/* (v1.10.556) Run brain selector + Run button + error
+                  message extracted to ./MeetingsRunControls.tsx. */}
+              <MeetingsRunControls meetingId={selectedId} />
             </div>
           ) : null}
           {/* (v1.10.339) Manual control row for in-progress meetings.

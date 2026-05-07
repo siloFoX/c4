@@ -84,6 +84,42 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: MeetingsRunControls (v1.10.556)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsRunControls.tsx');
+    assert.match(src, /export default function MeetingsRunControls/);
+  });
+
+  it('takes meetingId prop', () => {
+    const src = read('MeetingsRunControls.tsx');
+    assert.match(src, /meetingId:\s*string/);
+  });
+
+  it('owns brain / busy / error state internally', () => {
+    const src = read('MeetingsRunControls.tsx');
+    assert.match(src, /useState<'mock' \| 'claude'>/);
+  });
+
+  it('owns the /run POST with autoFinalize: true', () => {
+    const src = read('MeetingsRunControls.tsx');
+    assert.match(src, /\/run/);
+    assert.match(src, /autoFinalize:\s*true/);
+  });
+
+  it('is imported and rendered by MeetingsView', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsRunControls\s+from\s+'\.\/MeetingsRunControls'/);
+    assert.match(parent, /<MeetingsRunControls\s+meetingId=\{selectedId\}/);
+  });
+
+  it('parent MeetingsView no longer holds run state nor handler', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /const \[runBusy, setRunBusy\]/);
+    assert.doesNotMatch(parent, /const \[runBrain, setRunBrain\]/);
+    assert.doesNotMatch(parent, /const handleRun/);
+  });
+});
+
 describe('extracted: MeetingsStateActions (v1.10.555)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsStateActions.tsx');

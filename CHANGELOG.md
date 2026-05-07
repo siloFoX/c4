@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.556] - 2026-05-07 — Extract MeetingsRunControls
+
+**Web — `MeetingsView.tsx` shrunk by 42 lines (1397 → 1355).**
+The Run controls (brain selector + Run button + error message)
+for pending meetings extracted as a self-contained component.
+Owns busy / error / brain state and the /run POST.
+
+### Refactor
+- New `web/src/components/MeetingsRunControls.tsx` (~72 lines):
+  the brain dropdown, the Run button, the error message, and
+  the POST handler. Trusts the parent's SSE detail subscription
+  to reflect orchestrator events.
+- `MeetingsView.tsx`: removed 3 useState hooks, the handler
+  (~22 lines), and the inline JSX. Removed unused `Play`
+  icon import (now lives in the panel).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (6 assertions). Total: 25 suites, 134 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 24 of the perfection-track component split. Big-3
+  parents combined: 3004 lines (was 5104, -2100 / -41.2%).
+  MeetingsView 1355 (was 2372 at session start, -1017 / -42.9%).
+
 ## [1.10.555] - 2026-05-07 — Extract MeetingsStateActions
 
 **Web — `MeetingsView.tsx` shrunk by 76 lines (1473 → 1397).**
