@@ -17,4 +17,24 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    // (v1.10.510) Vendor manual chunks. The default Vite chunker
+    // emits one giant index.js bundling app + vendor, which trips
+    // the "chunks larger than 500 kB" warning. Splitting vendor
+    // (react / xterm / lucide) keeps the cache hit rate high
+    // across releases — vendor chunk only changes when
+    // node_modules update.
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('xterm')) return 'vendor-xterm';
+          if (id.includes('lucide-react')) return 'vendor-lucide';
+          if (id.includes('react-dom')) return 'vendor-react-dom';
+          if (id.match(/[\\/]react[\\/]/)) return 'vendor-react';
+          return 'vendor';
+        },
+      },
+    },
+  },
 });

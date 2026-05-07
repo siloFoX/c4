@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.510] - 2026-05-07 — Bundle split: vendor manualChunks
+
+**Web — vite manualChunks splits node_modules into vendor
+chunks.** xterm (terminal renderer, only loaded when
+WorkerDetail mounts), react / react-dom, lucide-react
+icons, and remaining vendor each get their own chunk —
+keeps cache hit rate high across releases since vendor
+chunks only change when node_modules update.
+
+### Bundle impact (cumulative with v1.10.509)
+- `index-*.js` 992KB → 396KB → **199KB**
+- `vendor-react-dom`: 130KB
+- `vendor-lucide`: 41KB
+- `vendor`: 31KB
+- `vendor-react`: 7.7KB
+- **First-paint critical path: ~370KB total** (vs 992KB
+  before the split).
+- `vendor-xterm` 369KB lazy-loaded only on first worker
+  selection (WorkerDetail mount).
+- Vite's "chunks larger than 500 kB" warning gone.
+
+### Notes
+- 200/200 tests green, lint+drift clean, visual i18n
+  scan still 0 UI leak.
+
 ## [1.10.509] - 2026-05-07 — Bundle split: lazy top-level views
 
 **Web — main bundle code-split via React.lazy().** All
