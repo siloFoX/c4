@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, BookOpen, Eye, MessageCircle, Play, Plus, RefreshCw, Radio, Search, X } from 'lucide-react';
+import { BookOpen, Eye, MessageCircle, Play, Plus, RefreshCw, Radio, Search, X } from 'lucide-react';
 import { apiGet, apiPost, eventSourceUrl } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
@@ -9,6 +9,8 @@ import MeetingsMaintenancePanel from './MeetingsMaintenancePanel';
 import MeetingsTemplateEditor from './MeetingsTemplateEditor';
 import MeetingsRecapPanel, { type RecapResponse } from './MeetingsRecapPanel';
 import MeetingsActionItemsPanel, { type ActionItemsResponse } from './MeetingsActionItemsPanel';
+import MeetingsLineageStrip, { type LineageResponse } from './MeetingsLineageStrip';
+import MeetingsStuckBanner, { type StuckResponse } from './MeetingsStuckBanner';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -16,7 +18,7 @@ import MeetingsActionItemsPanel, { type ActionItemsResponse } from './MeetingsAc
 // the page is usable today and we can iterate on detail UI without
 // blocking the basic operator workflow.
 
-type MeetingStatus =
+export type MeetingStatus =
   | 'pending'
   | 'in-progress'
   | 'completed'
@@ -84,24 +86,8 @@ interface MeetingDetail {
   transcripts: Turn[][];
 }
 
-// (Phase 6.9) Lineage chain entry — same shape the
-// /meetings/:id/lineage endpoint returns per-step.
-interface LineageEntry {
-  id: string;
-  status: MeetingStatus;
-  title: string;
-  track: string;
-  createdAt: string;
-  completedAt: string | null;
-  forkOf: string | null;
-}
-
-interface LineageResponse {
-  rootId: string | null;
-  depth: number;
-  chainTruncated: boolean;
-  chain: LineageEntry[];
-}
+// (v1.10.543) Lineage types moved to ./MeetingsLineageStrip.tsx
+// (canonical home now that the UI lives there).
 
 // (Phase 6.5) Action-items extracted from transcript markers.
 // (v1.10.542) ActionItem + ActionItemsResponse moved to
@@ -162,19 +148,14 @@ export default function MeetingsView() {
   const [recap, setRecap] = useState<RecapResponse | null>(null);
 
   // (Phase 6.15) Stuck meetings alert. Polled every 60s; only
-  // visible when count > 0.
-  interface StuckEntry {
-    id: string;
-    status: MeetingStatus;
-    track: string;
-    title: string;
-    ageHours: number;
-  }
-  const [stuck, setStuck] = useState<{ count: number; stuck: StuckEntry[] } | null>(null);
+  // visible when count > 0. Banner UI extracted to
+  // ./MeetingsStuckBanner.tsx — parent still polls and owns
+  // the data.
+  const [stuck, setStuck] = useState<StuckResponse | null>(null);
   useEffect(() => {
     let cancelled = false;
     const fetchStuck = () => {
-      apiGet<{ count: number; stuck: StuckEntry[] }>('/api/meetings/stuck?hours=1')
+      apiGet<StuckResponse>('/api/meetings/stuck?hours=1')
         .then((res) => { if (!cancelled) setStuck(res); })
         .catch(() => { /* tolerate older daemons */ });
     };
@@ -970,27 +951,9 @@ export default function MeetingsView() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 md:p-6">
-      {/* (Phase 6.15) Stuck meetings banner. Only shown when count > 0. */}
-      {stuck && stuck.count > 0 ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-700 dark:text-amber-400">
-          <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
-          <span className="font-medium">{stuck.count} meeting(s) stuck &gt;1h:</span>
-          {stuck.stuck.slice(0, 5).map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => setSelectedId(s.id)}
-              className="rounded border border-amber-500/40 bg-background/40 px-1.5 py-0 font-mono text-[10px] hover:bg-amber-500/20"
-              title={`${s.title} · ${s.status} · ${s.ageHours.toFixed(1)}h old`}
-            >
-              {s.id} ({s.ageHours.toFixed(1)}h)
-            </button>
-          ))}
-          {stuck.count > 5 ? (
-            <span className="text-[10px] opacity-70">… and {stuck.count - 5} more</span>
-          ) : null}
-        </div>
-      ) : null}
+      {/* (v1.10.543) Stuck banner extracted to
+          ./MeetingsStuckBanner.tsx. */}
+      <MeetingsStuckBanner stuck={stuck} onNavigate={setSelectedId} />
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden md:flex-row">
       <Card className="flex min-h-0 flex-1 flex-col md:max-w-md">
         <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
@@ -1954,37 +1917,13 @@ export default function MeetingsView() {
               <div className="text-xs text-muted-foreground">
                 <span className="font-medium text-foreground">{t('meetings.field.task')}</span> {detail.task}
               </div>
-              {/* (Phase 6.9) Fork lineage. Show only when there's
-                  more than the source meeting itself in the chain. */}
-              {lineage && lineage.depth > 1 ? (
-                <div className="rounded-md border border-border/60 bg-muted/10 p-2 text-[11px]">
-                  <div className="mb-1 flex items-center gap-1 text-muted-foreground">
-                    <span className="font-medium text-foreground">{t('meetings.forkLineage')}</span>
-                    <span>· depth={lineage.depth}</span>
-                    {lineage.chainTruncated ? <span className="text-amber-600 dark:text-amber-400">· chain truncated (older ancestor purged)</span> : null}
-                  </div>
-                  <ol className="flex flex-wrap items-center gap-1">
-                    {lineage.chain.map((entry, idx) => (
-                      <li key={entry.id} className="flex items-center gap-1">
-                        {idx > 0 ? <span className="text-muted-foreground">←</span> : null}
-                        <button
-                          type="button"
-                          onClick={() => setSelectedId(entry.id)}
-                          className={cn(
-                            'rounded border px-1.5 py-0.5 font-mono text-[10px] transition-colors',
-                            entry.id === detail.id
-                              ? 'border-primary bg-primary/30 text-foreground'
-                              : 'border-border bg-background hover:bg-accent/40',
-                          )}
-                          title={`${entry.title} · ${entry.status}`}
-                        >
-                          {entry.id}
-                        </button>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              ) : null}
+              {/* (v1.10.543) Lineage strip extracted to
+                  ./MeetingsLineageStrip.tsx. */}
+              <MeetingsLineageStrip
+                lineage={lineage}
+                currentId={detail.id}
+                onNavigate={setSelectedId}
+              />
               {/* (v1.10.541) Recap panel extracted to
                   ./MeetingsRecapPanel.tsx. */}
               <MeetingsRecapPanel recap={recap} />

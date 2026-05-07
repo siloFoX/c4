@@ -4,6 +4,55 @@
 
 (no entries — next release window)
 
+## [1.10.543] - 2026-05-07 — Extract MeetingsLineageStrip + MeetingsStuckBanner
+
+**Web — `MeetingsView.tsx` shrunk by 61 lines (2035 → 1974).**
+Two more pure-display panels lifted out of the megacomponent:
+the Phase-6.9 fork-lineage chain-strip and the Phase-6.15
+stuck-meetings banner. MeetingsView crosses below 2000 lines
+for the first time this session.
+
+### Refactor — MeetingsLineageStrip
+- New `web/src/components/MeetingsLineageStrip.tsx` (~71 lines):
+  the lineage button-chain UI, owns its `LineageEntry` and
+  `LineageResponse` interfaces.
+- Renders nothing when `depth <= 1` (no ancestry to show).
+- Props: `lineage` (data), `currentId` (the meeting being
+  viewed — for the active-button highlight), `onNavigate`
+  (parent's `setSelectedId`).
+
+### Refactor — MeetingsStuckBanner
+- New `web/src/components/MeetingsStuckBanner.tsx` (~50 lines):
+  the yellow stuck-meetings strip, owns its `StuckEntry` and
+  `StuckResponse` interfaces.
+- Renders nothing when `count === 0`.
+- Props: `stuck` (polled data), `onNavigate` (jump-to-meeting).
+- `MeetingStatus` type promoted to `export type` since the
+  panel imports it for the StuckEntry shape.
+
+### MeetingsView changes
+- Removed the lineage interfaces, the inline lineage JSX
+  block (~30 lines), the inline stuck banner JSX (~20 lines),
+  and the local `StuckEntry` interface declared mid-component.
+- Removed unused `AlertTriangle` icon import (now lives in
+  the stuck banner).
+- Stuck data state now typed via `StuckResponse` (one type,
+  not two duplicate inline shapes for the state and the
+  fetch).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: two new
+  suites (12 assertions). Total: 11 suites, 52 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 10 and 11 of the perfection-track component split.
+  MeetingsView crosses below 2000: 1974 (was 2372 at session
+  start, -398 cumulative, -16.8%). Big-3 parents combined:
+  4150 lines (was 5104, -954 lines / -18.7%).
+
 ## [1.10.542] - 2026-05-07 — Extract MeetingsActionItemsPanel
 
 **Web — `MeetingsView.tsx` shrunk by 129 lines (2164 → 2035).**

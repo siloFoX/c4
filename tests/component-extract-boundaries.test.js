@@ -84,6 +84,76 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: MeetingsLineageStrip (v1.10.543)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsLineageStrip.tsx');
+    assert.match(src, /export default function MeetingsLineageStrip/);
+  });
+
+  it('exports the LineageResponse type', () => {
+    const src = read('MeetingsLineageStrip.tsx');
+    assert.match(src, /export interface LineageResponse/);
+  });
+
+  it('takes lineage / currentId / onNavigate props', () => {
+    const src = read('MeetingsLineageStrip.tsx');
+    assert.match(src, /lineage:\s*LineageResponse\s*\|\s*null/);
+    assert.match(src, /currentId:\s*string/);
+    assert.match(src, /onNavigate:\s*\(id:\s*string\)\s*=>\s*void/);
+  });
+
+  it('renders nothing when depth <= 1 (no ancestry to show)', () => {
+    const src = read('MeetingsLineageStrip.tsx');
+    assert.match(src, /lineage\.depth <= 1.*return null/s);
+  });
+
+  it('is imported and rendered by MeetingsView', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import MeetingsLineageStrip,\s*\{\s*type LineageResponse\s*\}\s*from\s*'\.\/MeetingsLineageStrip'/);
+    assert.match(parent, /<MeetingsLineageStrip/);
+  });
+
+  it('parent MeetingsView no longer holds LineageEntry / LineageResponse', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /^interface LineageEntry/m);
+    assert.doesNotMatch(parent, /^interface LineageResponse/m);
+  });
+});
+
+describe('extracted: MeetingsStuckBanner (v1.10.543)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsStuckBanner.tsx');
+    assert.match(src, /export default function MeetingsStuckBanner/);
+  });
+
+  it('exports the StuckResponse type', () => {
+    const src = read('MeetingsStuckBanner.tsx');
+    assert.match(src, /export interface StuckResponse/);
+  });
+
+  it('takes stuck / onNavigate props', () => {
+    const src = read('MeetingsStuckBanner.tsx');
+    assert.match(src, /stuck:\s*StuckResponse\s*\|\s*null/);
+    assert.match(src, /onNavigate:\s*\(id:\s*string\)\s*=>\s*void/);
+  });
+
+  it('renders nothing when count is 0', () => {
+    const src = read('MeetingsStuckBanner.tsx');
+    assert.match(src, /stuck\.count === 0.*return null/s);
+  });
+
+  it('is imported and rendered by MeetingsView', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import MeetingsStuckBanner,\s*\{\s*type StuckResponse\s*\}\s*from\s*'\.\/MeetingsStuckBanner'/);
+    assert.match(parent, /<MeetingsStuckBanner/);
+  });
+
+  it('parent MeetingsView no longer holds inline StuckEntry interface', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /interface StuckEntry/);
+  });
+});
+
 describe('extracted: MeetingsActionItemsPanel (v1.10.542)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsActionItemsPanel.tsx');
