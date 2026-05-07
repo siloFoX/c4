@@ -4,6 +4,44 @@
 
 (no entries — next release window)
 
+## [1.10.560] - 2026-05-08 — Extract conversation-render helpers
+
+**Web — `ConversationView.tsx` shrunk by 256 lines (794 → 538).**
+The pure render + format helpers (markdown rendering, inline
+formatter, tool-arg / tool-result stringifiers, token / time
+formatters) lifted into a shared `lib/conversation-render.tsx`
+module. ConversationView remained the second-largest component
+after the big-3 split; this trims a third of it.
+
+### Refactor
+- New `web/src/lib/conversation-render.tsx` (~276 lines):
+  - `renderMarkdown(source)` — block-level markdown renderer
+  - `renderInline(text)` — inline `**bold**`, `*italic*`,
+    backtick code, `[link](url)` formatter
+  - `truncate(text, max)` — text truncation with ellipsis
+  - `formatTime(iso)` — HH:MM
+  - `formatTokens(t)` — token-usage line
+  - `formatToolArgs(args)` / `formatToolResult(result)` —
+    tool input/output stringification
+- `ConversationView.tsx`: removed all 7 helper definitions,
+  imports them from the new lib. The TurnTokens type is
+  re-imported from ConversationView (it's the canonical home).
+
+### Tests
+- 203/203 tests green (one flaky web-smoke retry, all green
+  on second run).
+- `tests/component-extract-boundaries.test.js`: new suite
+  added (3 assertions). Total: 29 suites, 159 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 28 of the perfection-track component split. Beyond
+  big-3: ConversationView 538 (was 794, -32.2%). The bundle
+  itself doesn't shrink (the helpers were always imported via
+  the same chunk), but ConversationView is now leaner and the
+  helpers can be reused by other turn-rendering surfaces.
+
 ## [1.10.559] - 2026-05-08 — Extract SpecialistsTagEditor
 
 **Web — `SpecialistsView.tsx` shrunk by 69 lines (767 → 698).**

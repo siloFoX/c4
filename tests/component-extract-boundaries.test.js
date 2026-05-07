@@ -84,6 +84,40 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: conversation-render lib (v1.10.560)', () => {
+  it('lives in lib/conversation-render.tsx', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const file = path.join(__dirname, '..', 'web', 'src', 'lib', 'conversation-render.tsx');
+    const src = fs.readFileSync(file, 'utf8');
+    assert.match(src, /export function renderMarkdown/);
+    assert.match(src, /export function renderInline/);
+    assert.match(src, /export function truncate/);
+    assert.match(src, /export function formatTime/);
+    assert.match(src, /export function formatTokens/);
+    assert.match(src, /export function formatToolArgs/);
+    assert.match(src, /export function formatToolResult/);
+  });
+
+  it('is imported by ConversationView (no inline duplicates)', () => {
+    const parent = read('ConversationView.tsx');
+    assert.match(parent, /from\s+'\.\.\/lib\/conversation-render'/);
+    assert.match(parent, /renderMarkdown/);
+    assert.match(parent, /formatTokens/);
+  });
+
+  it('parent ConversationView no longer holds the helper definitions', () => {
+    const parent = read('ConversationView.tsx');
+    assert.doesNotMatch(parent, /^function renderMarkdown/m);
+    assert.doesNotMatch(parent, /^function renderInline/m);
+    assert.doesNotMatch(parent, /^function truncate/m);
+    assert.doesNotMatch(parent, /^function formatTime/m);
+    assert.doesNotMatch(parent, /^function formatTokens/m);
+    assert.doesNotMatch(parent, /^function formatToolArgs/m);
+    assert.doesNotMatch(parent, /^function formatToolResult/m);
+  });
+});
+
 describe('extracted: SpecialistsTagEditor (v1.10.559)', () => {
   it('lives in its own file with default export', () => {
     const src = read('SpecialistsTagEditor.tsx');
