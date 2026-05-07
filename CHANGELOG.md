@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.577] - 2026-05-08 — Extract SpecialistsList
+
+**Web — `SpecialistsView.tsx` shrunk by 69 lines (698 → 629).**
+The master-pane specialist list rendering (handles error /
+empty / row map with tier badge, veto/probation chips, brain
+adapter line, sample count, underperform warning, tag chips)
+extracted as a pure-display sibling. TIER_BADGE constant
+promoted to `export const`.
+
+### Refactor
+- New `web/src/components/SpecialistsList.tsx` (~113 lines):
+  the three-state list + the row template. 6 props.
+- `SpecialistsView.tsx`: removed the inline 80-line block.
+  Replaced with `<SpecialistsList … />`. Dropped 4 unused
+  lucide icon imports (AlertTriangle, Shield, Star) + the
+  unused `Badge` import.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (6 assertions). Total: 44 suites, 242 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 43 of the perfection-track component split. SpecialistsView
+  629 (was 1365 at session start, -736 / -53.9%).
+
 ## [1.10.576] - 2026-05-08 — Extract MeetingsList
 
 **Web — `MeetingsView.tsx` shrunk by 56 lines (873 → 817).**

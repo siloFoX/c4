@@ -84,6 +84,46 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: SpecialistsList (v1.10.577)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SpecialistsList.tsx');
+    assert.match(src, /export default function SpecialistsList/);
+  });
+
+  it('takes 6 props (filtered / error / loading / selectedId / onSelect / flaggedIds)', () => {
+    const src = read('SpecialistsList.tsx');
+    assert.match(src, /filtered:\s*Specialist\[\]/);
+    assert.match(src, /error:\s*string\s*\|\s*null/);
+    assert.match(src, /loading:\s*boolean/);
+    assert.match(src, /selectedId:\s*string\s*\|\s*null/);
+    assert.match(src, /onSelect:\s*\(id:\s*string\)\s*=>\s*void/);
+    assert.match(src, /flaggedIds:\s*Set<string>/);
+  });
+
+  it('reuses TIER_BADGE + Specialist type from SpecialistsView', () => {
+    const src = read('SpecialistsList.tsx');
+    assert.match(src, /from\s+'\.\/SpecialistsView'/);
+    assert.match(src, /TIER_BADGE/);
+  });
+
+  it('is a pure-display component (no state, no effects)', () => {
+    const src = read('SpecialistsList.tsx');
+    assert.doesNotMatch(src, /useState/);
+    assert.doesNotMatch(src, /useEffect/);
+  });
+
+  it('is imported and rendered by SpecialistsView', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.match(parent, /import\s+SpecialistsList\s+from\s+'\.\/SpecialistsList'/);
+    assert.match(parent, /<SpecialistsList/);
+  });
+
+  it('parent SpecialistsView no longer holds the inline list rendering', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.doesNotMatch(parent, /filtered\.map\(\(s\) => \{/);
+  });
+});
+
 describe('extracted: MeetingsList (v1.10.576)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsList.tsx');

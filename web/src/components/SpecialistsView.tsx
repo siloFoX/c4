@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Eye, Plus, RefreshCw, Search, Shield, Star, Trash2, X } from 'lucide-react';
+import { Eye, Plus, RefreshCw, Search, Trash2, X } from 'lucide-react';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
+import { Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import SpecialistsAuditPanel from './SpecialistsAuditPanel';
@@ -10,6 +10,7 @@ import SpecialistsSummaryBar from './SpecialistsSummaryBar';
 import SpecialistsAddPanel from './SpecialistsAddPanel';
 import SpecialistsPromptPanel from './SpecialistsPromptPanel';
 import SpecialistsTagEditor from './SpecialistsTagEditor';
+import SpecialistsList from './SpecialistsList';
 
 // (multi-specialist phase 7.5) Specialists tab — registry view +
 // score visualization. Mirrors MeetingsView / WikiView's split
@@ -44,7 +45,7 @@ interface ListResponse {
   specialists: Specialist[];
 }
 
-const TIER_BADGE: Record<string, string> = {
+export const TIER_BADGE: Record<string, string> = {
   meeting: 'border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400',
   design: 'border-purple-500/40 bg-purple-500/10 text-purple-600 dark:text-purple-400',
   implement: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
@@ -379,85 +380,15 @@ export default function SpecialistsView() {
           </div>
         </CardHeader>
         <CardContent tabIndex={0} role="region" aria-label={t('specialists.list.aria') || 'Specialist list'} className="flex min-h-0 flex-1 flex-col overflow-y-auto p-0">
-          {error ? (
-            <div className="p-4 text-sm text-destructive">{error}</div>
-          ) : filtered.length === 0 ? (
-            <div className="p-4 text-sm text-muted-foreground">
-              {loading ? t('common.loadingDots') : t('specialists.empty.noMatch')}
-            </div>
-          ) : (
-            <ul className="divide-y divide-border">
-              {filtered.map((s) => {
-                const active = s.id === selectedId;
-                const samplesTotal = Object.values(s.score.samples || {}).reduce((a, b) => a + b, 0);
-                return (
-                  <li
-                    key={s.id}
-                    className={cn(
-                      'flex cursor-pointer flex-col gap-1 px-4 py-3 transition-colors',
-                      active ? 'bg-primary/30' : 'hover:bg-accent/40',
-                    )}
-                    onClick={() => setSelectedId(s.id)}
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={cn(
-                        'inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] uppercase tracking-wide',
-                        TIER_BADGE[s.tier] || 'border-border text-muted-foreground',
-                      )}>
-                        {s.tier}
-                      </span>
-                      {s.vetoPower ? (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/40 bg-rose-500/10 px-1.5 py-0 text-[10px] text-rose-600 dark:text-rose-400">
-                          <Shield className="h-2.5 w-2.5" aria-hidden />
-                          veto
-                        </span>
-                      ) : null}
-                      {s.probation === 'probation' ? (
-                        <Badge variant="outline" className="text-[10px]">{t('specialists.badge.probation')}</Badge>
-                      ) : null}
-                      <span className="text-[10px] text-muted-foreground">
-                        {s.brain.adapter}/{s.brain.model || '-'}
-                      </span>
-                      {samplesTotal > 0 ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                          <Star className="h-2.5 w-2.5" aria-hidden />
-                          {samplesTotal}
-                        </span>
-                      ) : null}
-                      {flaggedIds.has(s.id) ? (
-                        <span
-                          className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0 text-[10px] text-amber-700 dark:text-amber-400"
-                          title={t('specialists.tooltip.underperform')}
-                        >
-                          <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
-                          underperform
-                        </span>
-                      ) : null}
-                    </div>
-                    <span className="truncate text-sm font-medium">{s.id}</span>
-                    <span className="truncate text-[11px] text-muted-foreground">
-                      {s.domain.join(', ')}
-                    </span>
-                    {Array.isArray(s.tags) && s.tags.length > 0 ? (
-                      <div className="flex flex-wrap gap-0.5">
-                        {s.tags.slice(0, 4).map((t) => (
-                          <span
-                            key={t}
-                            className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-1 py-0 text-[9px] text-cyan-700 dark:text-cyan-400"
-                          >
-                            #{t}
-                          </span>
-                        ))}
-                        {s.tags.length > 4 ? (
-                          <span className="text-[9px] text-muted-foreground">+{s.tags.length - 4}</span>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+          {/* (v1.10.577) Master-pane list extracted to ./SpecialistsList.tsx */}
+          <SpecialistsList
+            filtered={filtered}
+            error={error}
+            loading={loading}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            flaggedIds={flaggedIds}
+          />
         </CardContent>
       </Card>
 
