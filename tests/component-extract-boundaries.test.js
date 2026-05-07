@@ -84,6 +84,60 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: SpecialistsPromptPanel (v1.10.558)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SpecialistsPromptPanel.tsx');
+    assert.match(src, /export default function SpecialistsPromptPanel/);
+  });
+
+  it('takes specialistId + systemPrompt props', () => {
+    const src = read('SpecialistsPromptPanel.tsx');
+    assert.match(src, /specialistId:\s*string/);
+    assert.match(src, /systemPrompt:\s*string/);
+  });
+
+  it('owns suggest + apply state internally', () => {
+    const src = read('SpecialistsPromptPanel.tsx');
+    assert.match(src, /const \[suggestBusy, setSuggestBusy\]/);
+    assert.match(src, /const \[suggestion, setSuggestion\]/);
+    assert.match(src, /const \[applyBusy, setApplyBusy\]/);
+    assert.match(src, /const \[applyResult, setApplyResult\]/);
+  });
+
+  it('owns the suggest-prompt and prompt-apply POST handlers', () => {
+    const src = read('SpecialistsPromptPanel.tsx');
+    assert.match(src, /handleSuggest/);
+    assert.match(src, /handleApply/);
+    assert.match(src, /\/suggest-prompt/);
+    assert.match(src, /\/prompt-apply/);
+  });
+
+  it('confirms apply (destructive — replaces systemPrompt)', () => {
+    const src = read('SpecialistsPromptPanel.tsx');
+    assert.match(src, /window\.confirm\(t\('specialists\.applyConfirm'\)\)/);
+  });
+
+  it('resets state on specialistId change', () => {
+    const src = read('SpecialistsPromptPanel.tsx');
+    assert.match(src, /\[specialistId\]/);
+  });
+
+  it('is imported and rendered by SpecialistsView', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.match(parent, /import\s+SpecialistsPromptPanel\s+from\s+'\.\/SpecialistsPromptPanel'/);
+    assert.match(parent, /<SpecialistsPromptPanel/);
+  });
+
+  it('parent SpecialistsView no longer holds suggest/apply state nor handlers', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.doesNotMatch(parent, /const \[suggestBusy, setSuggestBusy\]/);
+    assert.doesNotMatch(parent, /const \[applyBusy, setApplyBusy\]/);
+    assert.doesNotMatch(parent, /const handleSuggest/);
+    assert.doesNotMatch(parent, /const handleApply/);
+    assert.doesNotMatch(parent, /interface ApplyResult/);
+  });
+});
+
 describe('extracted: MeetingsComposer (v1.10.557)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsComposer.tsx');

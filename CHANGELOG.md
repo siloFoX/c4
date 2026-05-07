@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.10.558] - 2026-05-08 — Extract SpecialistsPromptPanel
+
+**Web — `SpecialistsView.tsx` shrunk by 183 lines (950 → 767).**
+The system-prompt section of the specialist detail card —
+prompt block + Suggest revision (Phase 5.1) + Apply via meeting
+consensus (Phase 5.2) buttons + result/error displays —
+extracted as a controlled component. Owns 6 useState hooks +
+2 POST handlers internally; resets all state on `specialistId`
+change.
+
+### Refactor
+- New `web/src/components/SpecialistsPromptPanel.tsx` (~213
+  lines): the system-prompt pre block, both action buttons,
+  the suggest-result panel, the apply-result panel (with
+  meeting link, decision summary, suggestion preview), the
+  ApplyResult / SuggestResponse interfaces, and the two POST
+  handlers.
+- `SpecialistsView.tsx`: removed 6 useState hooks, the inline
+  `ApplyResult` interface, both handlers (~45 lines combined),
+  the per-specialist reset effects, and ~115 lines of inline
+  JSX. Replaced with `<SpecialistsPromptPanel … />`.
+- Apply confirm preserved.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (8 assertions). Total: 27 suites, 149 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 26 of the perfection-track component split. SpecialistsView
+  767 (was 1365 at session start, -598 / -43.8%). Big-3
+  combined: 2460 lines (was 5104, -2644 / -51.8%) — crossed
+  the 50% reduction line.
+
 ## [1.10.557] - 2026-05-07 — Extract MeetingsComposer (largest extraction)
 
 **Web — `MeetingsView.tsx` shrunk by 361 lines (1355 → 994).**
