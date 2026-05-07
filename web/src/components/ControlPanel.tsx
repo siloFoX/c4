@@ -67,7 +67,7 @@ type BatchKind = 'close' | 'cancel';
 interface BatchOutcome {
   name: string;
   ok: boolean;
-  error?: string;
+  error?: string | undefined;
 }
 
 const TONE_VARIANT: Record<ActionTone, NonNullable<ButtonProps['variant']>> = {

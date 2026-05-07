@@ -119,7 +119,7 @@ export default function Validation() {
   );
 }
 
-function ValidationCard({ worker, report }: { worker: Worker; report?: ValidationResponse }) {
+function ValidationCard({ worker, report }: { worker: Worker; report?: ValidationResponse | undefined }) {
   useLocale();
   if (!report) {
     return (
@@ -185,7 +185,7 @@ function ValidationCard({ worker, report }: { worker: Worker; report?: Validatio
   );
 }
 
-function CheckRow({ label, ok, detail }: { label: string; ok: boolean | null; detail?: string }) {
+function CheckRow({ label, ok, detail }: { label: string; ok: boolean | null; detail?: string | undefined }) {
   const badge =
     ok == null
       ? <Badge variant="outline">{t('validation.badge.na')}</Badge>

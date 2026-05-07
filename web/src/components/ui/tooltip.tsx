@@ -86,7 +86,7 @@ export function Tooltip({
     onBlur?: (e: FocusEvent<HTMLElement>) => void;
   }>(children)
     ? cloneElement(children, {
-        'aria-describedby': visible ? id : undefined,
+        ...(visible ? { 'aria-describedby': id } : {}),
         onMouseEnter: (e: MouseEvent<HTMLElement>) => {
           children.props.onMouseEnter?.(e);
           show();

@@ -452,7 +452,13 @@ export default function SpecialistsView() {
     apiGet<{ recentAudit?: AuditEntry[]; recentMeetings?: MeetingMeta[] }>(
       `/api/specialists/${encodeURIComponent(selectedId)}?include=audit,meetings`,
     )
-      .then((res) => { if (!cancelled) setEnrichment({ recentAudit: res.recentAudit, recentMeetings: res.recentMeetings }); })
+      .then((res) => {
+        if (cancelled) return;
+        const next: { recentAudit?: AuditEntry[]; recentMeetings?: MeetingMeta[] } = {};
+        if (res.recentAudit !== undefined) next.recentAudit = res.recentAudit;
+        if (res.recentMeetings !== undefined) next.recentMeetings = res.recentMeetings;
+        setEnrichment(next);
+      })
       .catch(() => { if (!cancelled) setEnrichment(null); });
     return () => { cancelled = true; };
   }, [selectedId]);

@@ -60,7 +60,7 @@ interface TopTabsProps {
   // values render as a small badge on the tab. Used for the
   // stuck-meetings signal so operators see urgency without
   // navigating into Meetings.
-  badges?: Partial<Record<TopView, { count: number; tone: 'amber' | 'destructive' | 'muted' }>>;
+  badges?: Partial<Record<TopView, { count: number; tone: 'amber' | 'destructive' | 'muted' }>> | undefined;
 }
 
 export default function TopTabs({ value, onChange, badges }: TopTabsProps) {

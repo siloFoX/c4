@@ -31,7 +31,7 @@ interface AccountMenuProps {
   onLogout: () => void;
   // Switches the top-tab to Settings. Optional — when omitted, the
   // Preferences row is hidden.
-  onOpenPreferences?: () => void;
+  onOpenPreferences?: (() => void) | undefined;
   // Called when the sidebar collapses to icon-only mode (8.40). For
   // now we always render the full row; the prop is wired through so
   // 8.40 can flip a flag without re-touching this file.

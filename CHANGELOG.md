@@ -4,6 +4,52 @@
 
 (no entries — next release window)
 
+## [1.10.534] - 2026-05-07 — Tighten tsconfig (exactOptionalPropertyTypes)
+
+**Web — Final strict-mode flag enabled.**
+`exactOptionalPropertyTypes: true` now enforces that an
+optional property declared as `T?` cannot accept an explicit
+`undefined` value. The full strict-mode ratchet is now in
+place — all 8 of TypeScript's strictness flags are on.
+
+### Refactor — 10 sites across 7 files
+- `web/src/components/ControlPanel.tsx` — `BatchOutcome.error`
+  declared as `string | undefined` (was `string?`).
+- `web/src/components/SpecialistsView.tsx` — enrichment
+  setter conditionally builds the object, so undefined keys
+  are absent rather than present-but-undefined.
+- `web/src/components/layout/TopTabs.tsx` — `badges` prop
+  type widened to `... | undefined`.
+- `web/src/components/AccountMenu.tsx` — `onOpenPreferences`
+  prop type widened to `(() => void) | undefined`.
+- `web/src/components/ui/tooltip.tsx` — `aria-describedby`
+  spread conditionally so the prop key isn't present when
+  visible is false (was passing `undefined`).
+- `web/src/pages/Validation.tsx` — `ValidationCard.report`
+  and `CheckRow.detail` widened to `T | undefined`.
+
+### Tests
+- 201/201 tests green.
+- Lint clean.
+- Build clean.
+
+### tsconfig flags now enforced (full strict-mode ratchet)
+- `strict: true` (covers strictNullChecks, noImplicitAny,
+  strictFunctionTypes, strictBindCallApply,
+  strictPropertyInitialization, alwaysStrict,
+  useUnknownInCatchVariables)
+- `noUnusedLocals` / `noUnusedParameters`
+- `noFallthroughCasesInSwitch`
+- `noImplicitOverride` *(v1.10.515)*
+- `noUncheckedIndexedAccess` *(v1.10.522)*
+- `noPropertyAccessFromIndexSignature` *(v1.10.533)*
+- `exactOptionalPropertyTypes` *(v1.10.534)*
+
+### Notes
+- Closes the strict-mode track from the perfection sprint.
+  The web tsconfig is now as strict as TypeScript currently
+  supports.
+
 ## [1.10.533] - 2026-05-07 — Tighten tsconfig (noPropertyAccessFromIndexSignature)
 
 **Web — TypeScript strictness bumped one notch.**
