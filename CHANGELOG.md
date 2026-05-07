@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.517] - 2026-05-07 — i18n lockstep linter
+
+**Repo — `scripts/check-i18n-lockstep.js` enforces that
+en.json and ko.json hold the exact same keyset.** A key
+in en but not ko produces blank cells under Korean
+locale; a key in ko but not en is dead translation
+weight.
+
+### Wiring
+- `npm run lint:i18n-lockstep` standalone shortcut.
+- Added to the `npm run lint` chain so CI catches drift
+  on every PR.
+
+### Result
+- en.json: 1328 keys
+- ko.json: 1328 keys
+- ✓ Lockstep.
+
+### Notes
+- 201/201 tests green.
+- The visual i18n check catches *runtime* English leaks
+  (hardcoded literals); the lockstep linter catches
+  *bundle* drift (one-sided keys). Both layers run in CI.
+
 ## [1.10.516] - 2026-05-07 — `npm run check` composite
 
 **Repo — composite pre-push verifier.** New

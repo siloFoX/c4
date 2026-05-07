@@ -1,6 +1,6 @@
 {
   "name": "c4-cli",
-  "version": "1.10.516",
+  "version": "1.10.517",
   "description": "Claude {Claude Code} Code — An agent-on-agent orchestrator that lets Claude manage multiple Claude Code instances via virtual terminals",
   "main": "src/daemon.js",
   "bin": {
@@ -17,8 +17,9 @@
     "lint:schema-drift": "node scripts/check-schema-drift.js --strict",
     "lint:runtime-drift": "node scripts/check-runtime-drift.js",
     "lint:bundle-size": "node scripts/check-bundle-size.js",
+    "lint:i18n-lockstep": "node scripts/check-i18n-lockstep.js",
     "lint:i18n-visual": "node scripts/i18n-visual-check.js",
-    "lint": "npm run lint:openapi && npm run lint:schema-drift",
+    "lint": "npm run lint:openapi && npm run lint:schema-drift && npm run lint:i18n-lockstep",
     "check": "npm run lint && npm test && npm --prefix web run build && npm run lint:bundle-size",
     "prepublishOnly": "npm run build:web && node tests/run-all.js"
   },
