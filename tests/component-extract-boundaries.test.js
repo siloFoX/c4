@@ -84,6 +84,43 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: HistoryDetailPane (v1.10.564)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('HistoryDetailPane.tsx');
+    assert.match(src, /export default function HistoryDetailPane/);
+  });
+
+  it('owns formatDate + recordStatusVariant helpers', () => {
+    const src = read('HistoryDetailPane.tsx');
+    assert.match(src, /function formatDate/);
+    assert.match(src, /function recordStatusVariant/);
+  });
+
+  it('takes a detail prop typed as HistoryWorkerDetail', () => {
+    const src = read('HistoryDetailPane.tsx');
+    assert.match(src, /detail:\s*HistoryWorkerDetail/);
+  });
+
+  it('is a pure-display component (no state, no effects)', () => {
+    const src = read('HistoryDetailPane.tsx');
+    assert.doesNotMatch(src, /useState/);
+    assert.doesNotMatch(src, /useEffect/);
+  });
+
+  it('is imported and rendered by HistoryView', () => {
+    const parent = read('HistoryView.tsx');
+    assert.match(parent, /import\s+HistoryDetailPane\s+from\s+'\.\/HistoryDetailPane'/);
+    assert.match(parent, /<HistoryDetailPane\s+detail=\{detail\}/);
+  });
+
+  it('parent HistoryView no longer holds the detail-pane definition or its helpers', () => {
+    const parent = read('HistoryView.tsx');
+    assert.doesNotMatch(parent, /function HistoryDetailPane\(/);
+    assert.doesNotMatch(parent, /^function formatDate/m);
+    assert.doesNotMatch(parent, /^function recordStatusVariant/m);
+  });
+});
+
 describe('extracted: chat-helpers lib (v1.10.563)', () => {
   it('lives in lib/chat-helpers.ts', () => {
     const fs = require('fs');

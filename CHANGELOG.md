@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.564] - 2026-05-08 — Extract HistoryDetailPane
+
+**Web — `HistoryView.tsx` shrunk by 111 lines (473 → 362).**
+The right-pane detail rendering for a selected history worker
+(header with status / branch / worktree, past-tasks list with
+commit hashes, raw scrollback) extracted as a pure-display
+sibling component along with its `formatDate` and
+`recordStatusVariant` helpers.
+
+### Refactor
+- New `web/src/components/HistoryDetailPane.tsx` (~131 lines):
+  the detail Card with all three sections, plus the two
+  helpers. Single `detail` prop typed as
+  `HistoryWorkerDetail` (re-imported from HistoryView).
+- `HistoryView.tsx`: removed the inline component (~91 lines),
+  the two helpers, the local `BadgeVariant` alias, and 4
+  unused icon imports (Clock, GitBranch, Hash). Removed
+  `Panel` and `BadgeProps` imports.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite
+  added (6 assertions). Total: 33 suites, 181 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 32 of the perfection-track component split. Fifth
+  non-big-3 extraction. HistoryView 362 (was 473).
+
 ## [1.10.563] - 2026-05-08 — Extract chat-helpers lib
 
 **Web — `ChatView.tsx` shrunk by 111 lines (662 → 551).**
