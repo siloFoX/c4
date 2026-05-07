@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.554] - 2026-05-07 — Extract MeetingsPeerRetroControls
+
+**Web — `MeetingsView.tsx` shrunk by 64 lines (1537 → 1473).**
+The peer-retro brain selector + run button + result message
+extracted as a self-contained component. Owns its own brain /
+busy / msg / failed state + the POST handler.
+
+### Refactor
+- New `web/src/components/MeetingsPeerRetroControls.tsx`
+  (~92 lines): label/select for brain choice, the run button,
+  the result message, the POST handler.
+- `MeetingsView.tsx`: removed 4 useState hooks, the handler
+  (~30 lines), and the inline JSX. Replaced with
+  `<MeetingsPeerRetroControls meetingId={selectedId} />`.
+  Removed unused `MessageCircle` icon import.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (6 assertions). Total: 23 suites, 122 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 22 of the perfection-track component split. Big-3
+  parents combined: 3122 lines (was 5104, -1982 / -38.8%).
+  MeetingsView 1473 (was 2372 at session start, -899 / -37.9%).
+
 ## [1.10.553] - 2026-05-07 — Extract MeetingsPublishControls
 
 **Web — `MeetingsView.tsx` shrunk by 85 lines (1622 → 1537).**

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Eye, MessageCircle, Play, Plus, RefreshCw, Radio, Search, X } from 'lucide-react';
+import { Eye, Play, Plus, RefreshCw, Radio, Search, X } from 'lucide-react';
 import { apiGet, apiPost, eventSourceUrl } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
@@ -17,6 +17,7 @@ import MeetingsDetailHeader from './MeetingsDetailHeader';
 import MeetingsContributePanel from './MeetingsContributePanel';
 import MeetingsRetroActions from './MeetingsRetroActions';
 import MeetingsPublishControls from './MeetingsPublishControls';
+import MeetingsPeerRetroControls from './MeetingsPeerRetroControls';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -596,45 +597,8 @@ export default function MeetingsView() {
   // ./MeetingsPublishControls.tsx — owns its own busy / msg /
   // git-toggle state and the POST handler.
 
-  // Peer-retro on terminal meetings (separate from outcome retro
-  // — see meeting-peer-retro.js). Mock brain for instant
-  // demo, claude for real ratings.
-  const [peerRetroBusy, setPeerRetroBusy] = useState(false);
-  const [peerRetroMsg, setPeerRetroMsg] = useState<string | null>(null);
-  // (v1.10.485) Tone separated from message text.
-  const [peerRetroFailed, setPeerRetroFailed] = useState(false);
-  const [peerBrain, setPeerBrain] = useState<'mock' | 'claude'>('mock');
-
-  const handlePeerRetro = useCallback(async (id: string) => {
-    setPeerRetroBusy(true);
-    setPeerRetroMsg(null);
-    setPeerRetroFailed(false);
-    try {
-      const res = await apiPost<{
-        peer: {
-          raters: string[];
-          ratees: string[];
-          raw: Array<{ rater: string; ratee: string; rating: number }>;
-        };
-        applied: Record<string, unknown> | null;
-      }>(`/api/meetings/${encodeURIComponent(id)}/peer-retro`, {
-        brain: peerBrain,
-        apply: true,
-      });
-      const ratings = (res && res.peer && res.peer.raw) ? res.peer.raw.length : 0;
-      const raters = (res && res.peer && res.peer.raters) ? res.peer.raters.length : 0;
-      const updated = res && res.applied ? Object.keys(res.applied).length : 0;
-      setPeerRetroMsg(tFormat('meetings.peerRetro.success', { raters, ratings, updated }));
-      window.setTimeout(() => setPeerRetroMsg(null), 6000);
-    } catch (e) {
-      setPeerRetroMsg(tFormat('meetings.peerRetro.failed', {
-        error: (e as Error).message || t('common.unknown'),
-      }));
-      setPeerRetroFailed(true);
-    } finally {
-      setPeerRetroBusy(false);
-    }
-  }, [peerBrain]);
+  // (v1.10.554) Peer-retro brain selector + button + result
+  // extracted to ./MeetingsPeerRetroControls.tsx.
 
   // (v1.10.339) Manual state-machine controls for in-progress
   // meetings. Most operators use Run + auto-finalize, but for
@@ -1425,37 +1389,9 @@ export default function MeetingsView() {
                   message extracted to ./MeetingsPublishControls.tsx. */}
               <MeetingsPublishControls meetingId={selectedId} />
               <span aria-hidden className="text-muted-foreground">·</span>
-              <label className="text-[11px] text-muted-foreground">
-                {t('meetings.peerBrain.label')}
-                <select
-                  className="ml-1 rounded border border-border bg-background px-1 py-0.5 text-[11px]"
-                  value={peerBrain}
-                  onChange={(e) => setPeerBrain(e.target.value as 'mock' | 'claude')}
-                  disabled={peerRetroBusy}
-                  aria-label={t('meetings.peerBrain.aria')}
-                >
-                  <option value="mock">{t('meetings.adapter.mock')}</option>
-                  <option value="claude">{t('meetings.adapter.claude')}</option>
-                </select>
-              </label>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handlePeerRetro(selectedId)}
-                disabled={peerRetroBusy}
-                aria-label={t('meetings.peerRetro.label')}
-                title={t('meetings.tooltip.peerRetro')}
-              >
-                <MessageCircle className="h-3.5 w-3.5" aria-hidden />
-                {t('meetings.peerRetro')}
-              </Button>
-              {peerRetroMsg ? (
-                <span className={cn(
-                  'text-[11px]',
-                  peerRetroFailed
-                    ? 'text-destructive' : 'text-muted-foreground',
-                )}>{peerRetroMsg}</span>
-              ) : null}
+              {/* (v1.10.554) Peer-retro controls extracted to
+                  ./MeetingsPeerRetroControls.tsx. */}
+              <MeetingsPeerRetroControls meetingId={selectedId} />
               {/* (v1.10.552) Retro preview / finalize buttons + state
                   extracted to ./MeetingsRetroActions.tsx. */}
               <span aria-hidden className="text-muted-foreground">·</span>

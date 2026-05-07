@@ -84,6 +84,42 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: MeetingsPeerRetroControls (v1.10.554)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsPeerRetroControls.tsx');
+    assert.match(src, /export default function MeetingsPeerRetroControls/);
+  });
+
+  it('takes meetingId prop', () => {
+    const src = read('MeetingsPeerRetroControls.tsx');
+    assert.match(src, /meetingId:\s*string/);
+  });
+
+  it('owns brain selector state (mock | claude)', () => {
+    const src = read('MeetingsPeerRetroControls.tsx');
+    assert.match(src, /useState<'mock' \| 'claude'>/);
+  });
+
+  it('owns the peer-retro POST handler', () => {
+    const src = read('MeetingsPeerRetroControls.tsx');
+    assert.match(src, /handlePeerRetro/);
+    assert.match(src, /\/peer-retro/);
+  });
+
+  it('is imported and rendered by MeetingsView', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsPeerRetroControls\s+from\s+'\.\/MeetingsPeerRetroControls'/);
+    assert.match(parent, /<MeetingsPeerRetroControls\s+meetingId=\{selectedId\}/);
+  });
+
+  it('parent MeetingsView no longer holds peer-retro state nor handler', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /const \[peerRetroBusy, setPeerRetroBusy\]/);
+    assert.doesNotMatch(parent, /const \[peerBrain, setPeerBrain\]/);
+    assert.doesNotMatch(parent, /const handlePeerRetro/);
+  });
+});
+
 describe('extracted: MeetingsPublishControls (v1.10.553)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsPublishControls.tsx');
