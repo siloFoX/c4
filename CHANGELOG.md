@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.505] - 2026-05-07 — Risk sandbox status strip
+
+**Web — Risk page sandbox status strip migration.** The
+deep-interaction visual walk (type a command + click
+Preview/Check) revealed 8 more English literals in the
+sandbox status panel that only appear after a successful
+sandbox preview.
+
+### Found and fixed
+- `Risk` page checkbox label "show post-denoise text" →
+  `risk.label.showPostDenoise`.
+- "⌘+Enter to submit" hint → `risk.label.cmdEnterSubmit`.
+- Sandbox runtime/isolation badges:
+  `runtime: docker` / `isolation: bubblewrap` literal
+  prefixes → `risk.sandbox.{runtime,isolation}` with
+  `{value}`.
+- "available ✓" / "unavailable: {reason}" status →
+  `risk.sandbox.{available,unavailable}`.
+- Isolation breakdown `network:` / `filesystem:` /
+  `resources:` labels → `risk.sandbox.{network,filesystem,
+  resources}`.
+
+### Visual scan
+- Risk page deep-interaction now passes 0 leak.
+- Wiki search flow added (type a query + click search)
+  passes 0 leak.
+
+### Notes
+- 200/200 tests green.
+- Korean i18n bundle now at ~1326 keys.
+
 ## [1.10.504] - 2026-05-07 — Visual scan: deep page interactions
 
 **Web — `scripts/i18n-visual-check.js` extended with deep

@@ -290,6 +290,60 @@ async function main() {
     await page.waitForTimeout(300);
   } catch (e) { console.warn('  attach SKIP', e.message); }
 
+  // Wiki search → type a query, scan results pane.
+  try {
+    await page.evaluate(() => {
+      const tab = Array.from(document.querySelectorAll('[role="tab"][aria-label="위키"]'))[0];
+      if (tab) tab.click();
+    });
+    await page.waitForTimeout(500);
+    await page.evaluate(() => {
+      const input = document.querySelector('input[type="text"]');
+      if (input) {
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+        if (setter) setter.call(input, 'meeting');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      const search = Array.from(document.querySelectorAll('button')).find((b) => /검색|search/i.test(b.innerText));
+      if (search) search.click();
+    });
+    await page.waitForTimeout(900);
+    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '_wiki_search.png'), fullPage: true });
+    const leaks = (await pickEnglishLeaks(page)).filter((l) => !isAllowed(l.text));
+    const seen = new Set();
+    const dedup = leaks.filter((l) => { if (seen.has(l.text)) return false; seen.add(l.text); return true; });
+    allLeaks._wikiSearch = dedup;
+    console.log(`  wiki search flow: ${dedup.length} leak(s)`);
+  } catch (e) { console.warn('  wiki search SKIP', e.message.split('\n')[0]); }
+
+  // MeetingsView template editor — open the templates panel and
+  // start a new template, scan the dialog.
+  try {
+    await page.evaluate(() => {
+      const tab = Array.from(document.querySelectorAll('[role="tab"][aria-label="회의"]'))[0];
+      if (tab) tab.click();
+    });
+    await page.waitForTimeout(500);
+    const opened = await page.evaluate(() => {
+      const btn = Array.from(document.querySelectorAll('button')).find((b) =>
+        /템플릿|template/i.test(b.innerText.trim()) && b.offsetWidth > 0
+      );
+      if (btn) { btn.click(); return true; }
+      return false;
+    });
+    if (opened) {
+      await page.waitForTimeout(700);
+      await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '_meetings_template_editor.png'), fullPage: true });
+      const leaks = (await pickEnglishLeaks(page)).filter((l) => !isAllowed(l.text));
+      const seen = new Set();
+      const dedup = leaks.filter((l) => { if (seen.has(l.text)) return false; seen.add(l.text); return true; });
+      allLeaks._meetingsTemplate = dedup;
+      console.log(`  meetings template editor: ${dedup.length} leak(s)`);
+    } else {
+      console.log('  meetings template editor: SKIP (no template button)');
+    }
+  } catch (e) { console.warn('  meetings template SKIP', e.message.split('\n')[0]); }
+
   // Risk page interactive flow: type a command, click "Preview"
   // and "Check" buttons, scan the result panels.
   try {

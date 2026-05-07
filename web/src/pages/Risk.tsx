@@ -267,9 +267,9 @@ export default function Risk() {
                 disabled={checkBusy}
                 className="h-3 w-3"
               />
-              show post-denoise text
+              {t('risk.label.showPostDenoise')}
             </label>
-            <span className="text-[11px] text-muted-foreground">⌘+Enter to submit</span>
+            <span className="text-[11px] text-muted-foreground">{t('risk.label.cmdEnterSubmit')}</span>
           </div>
           {checkError ? <ErrorPanel message={checkError} /> : null}
           {sandboxError ? <ErrorPanel message={sandboxError} /> : null}
@@ -277,22 +277,24 @@ export default function Risk() {
             <div className="mt-3 flex flex-col gap-2 rounded-md border border-border bg-muted/10 p-3 text-[11px]">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="secondary" className="uppercase">
-                  runtime: {sandbox.runtime}
+                  {tFormat('risk.sandbox.runtime', { value: sandbox.runtime })}
                 </Badge>
                 <Badge variant="outline">
-                  isolation: {sandbox.isolation.name}
+                  {tFormat('risk.sandbox.isolation', { value: sandbox.isolation.name })}
                 </Badge>
                 <span className={cn(
                   'text-[11px]',
                   sandbox.available.ok ? 'text-emerald-700 dark:text-emerald-400' : 'text-destructive',
                 )}>
-                  {sandbox.available.ok ? 'available ✓' : `unavailable: ${sandbox.available.reason || '?'}`}
+                  {sandbox.available.ok
+                    ? t('risk.sandbox.available')
+                    : tFormat('risk.sandbox.unavailable', { reason: sandbox.available.reason || '?' })}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px] text-muted-foreground md:grid-cols-3">
-                <div><span className="font-medium">network:</span> {sandbox.isolation.network}</div>
-                <div><span className="font-medium">filesystem:</span> {sandbox.isolation.filesystem}</div>
-                <div><span className="font-medium">resources:</span> {sandbox.isolation.resources}</div>
+                <div><span className="font-medium">{t('risk.sandbox.network')}</span> {sandbox.isolation.network}</div>
+                <div><span className="font-medium">{t('risk.sandbox.filesystem')}</span> {sandbox.isolation.filesystem}</div>
+                <div><span className="font-medium">{t('risk.sandbox.resources')}</span> {sandbox.isolation.resources}</div>
               </div>
               <div>
                 <div className="font-medium text-foreground">{t('risk.label.argv')}</div>
