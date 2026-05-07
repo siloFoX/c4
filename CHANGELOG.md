@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.582] - 2026-05-08 — Extract MeetingsSearchInput
+
+**Web — `MeetingsView.tsx` shrunk by 20 lines (817 → 797).**
+The full-text search input — controlled `Input` + X-clear
+button + "searching..." indicator — extracted as its own
+sibling. 3 props (value / onChange / searching).
+
+### Refactor
+- New `web/src/components/MeetingsSearchInput.tsx` (~50 lines).
+- `MeetingsView.tsx`: removed the inline 28-line block. Replaced
+  with `<MeetingsSearchInput … />`. Dropped 3 unused imports
+  (Search, X icons + `Input` UI primitive).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 49 suites, 268 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 48 of the perfection-track component split. MeetingsView
+  797 (was 1450+ at session start). 54 ships / 49 components+libs
+  / 268 boundary assertions.
+
 ## [1.10.581] - 2026-05-08 — Extract SpecialistsSearchFilters
 
 **Web — `SpecialistsView.tsx` shrunk by 37 lines (629 → 592).**

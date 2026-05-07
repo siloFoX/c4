@@ -1737,6 +1737,40 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: MeetingsSearchInput (v1.10.582)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsSearchInput.tsx');
+    assert.match(src, /export default function MeetingsSearchInput/);
+  });
+
+  it('takes value/onChange/searching props', () => {
+    const src = read('MeetingsSearchInput.tsx');
+    assert.match(src, /value:\s*string/);
+    assert.match(src, /onChange:\s*\(next:\s*string\)\s*=>\s*void/);
+    assert.match(src, /searching:\s*boolean/);
+  });
+
+  it('renders the search input + clear button + searching indicator', () => {
+    const src = read('MeetingsSearchInput.tsx');
+    assert.match(src, /meetings\.search\.placeholder/);
+    assert.match(src, /meetings\.action\.clearSearch/);
+    assert.match(src, /meetings\.searching/);
+  });
+
+  it('is imported and rendered by MeetingsView', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsSearchInput\s+from\s+'\.\/MeetingsSearchInput'/);
+    assert.match(parent, /<MeetingsSearchInput/);
+    assert.match(parent, /value=\{searchQuery\}/);
+    assert.match(parent, /onChange=\{setSearchQuery\}/);
+  });
+
+  it('parent MeetingsView no longer holds the inline search input', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /placeholder=\{t\('meetings\.search\.placeholder'\)\}/);
+  });
+});
+
 describe('extracted: SpecialistsSearchFilters (v1.10.581)', () => {
   it('lives in its own file with default export', () => {
     const src = read('SpecialistsSearchFilters.tsx');
