@@ -84,6 +84,37 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: NewChatModal (v1.10.539)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('NewChatModal.tsx');
+    assert.match(src, /export default function NewChatModal/);
+  });
+
+  it('exports its props interface (consumed by SessionsView via type)', () => {
+    const src = read('NewChatModal.tsx');
+    assert.match(src, /export interface NewChatModalProps/);
+  });
+
+  it('hosts MODEL_CHOICES + AGENT_CHOICES constants (used only here)', () => {
+    const src = read('NewChatModal.tsx');
+    assert.match(src, /const MODEL_CHOICES:/);
+    assert.match(src, /const AGENT_CHOICES:/);
+  });
+
+  it('is imported by SessionsView', () => {
+    const parent = read('SessionsView.tsx');
+    assert.match(parent, /import\s+NewChatModal\s+from\s+'\.\/NewChatModal'/);
+    assert.match(parent, /<NewChatModal/);
+  });
+
+  it('parent SessionsView no longer holds the modal definition', () => {
+    const parent = read('SessionsView.tsx');
+    assert.doesNotMatch(parent, /function NewChatModal\(/);
+    assert.doesNotMatch(parent, /interface NewChatModalProps/);
+    assert.doesNotMatch(parent, /const MODEL_CHOICES:/);
+  });
+});
+
 describe('extracted: MeetingsTemplateEditor (v1.10.538)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsTemplateEditor.tsx');

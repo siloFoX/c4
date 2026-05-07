@@ -10,6 +10,9 @@ const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..');
 const SESSIONS_VIEW = path.join(ROOT, 'web/src/components/SessionsView.tsx');
+// (v1.10.539) NewChatModal extracted out of SessionsView. The
+// contract assertions below source-grep its new home.
+const NEW_CHAT_MODAL = path.join(ROOT, 'web/src/components/NewChatModal.tsx');
 const DAEMON = path.join(ROOT, 'src/daemon.js');
 
 function readText(p) {
@@ -17,11 +20,11 @@ function readText(p) {
 }
 
 describe('NewChatModal contract', () => {
-  const src = readText(SESSIONS_VIEW);
+  const src = readText(NEW_CHAT_MODAL);
 
-  it('exists as an internal component with the expected props', () => {
-    assert.match(src, /interface NewChatModalProps/);
-    assert.match(src, /function NewChatModal\(\{ open, busy, error, onClose, onSubmit \}: NewChatModalProps\)/);
+  it('exists as a default-exported component with the expected props', () => {
+    assert.match(src, /export interface NewChatModalProps/);
+    assert.match(src, /export default function NewChatModal\(\{ open, busy, error, onClose, onSubmit \}: NewChatModalProps\)/);
   });
 
   it('declares MODEL_CHOICES + AGENT_CHOICES with default + four-or-five options each', () => {

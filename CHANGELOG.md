@@ -4,6 +4,40 @@
 
 (no entries — next release window)
 
+## [1.10.539] - 2026-05-07 — Extract NewChatModal
+
+**Web — `SessionsView.tsx` shrunk by 181 lines (1367 → 1186).**
+The claude.ai-style "start a new conversation" modal lifted
+out as its own file (along with the `MODEL_CHOICES` and
+`AGENT_CHOICES` constants that only it used). Pure controlled
+component — props unchanged from the inline form.
+
+### Refactor
+- New `web/src/components/NewChatModal.tsx`: ~190 lines
+  containing the modal, its props interface, and the choice
+  catalogues for model + agent.
+- `SessionsView.tsx`: removed the inline `function NewChatModal`
+  block + the two const arrays. Imports the default export.
+- `tests/new-chat-modal.test.js`: contract tests now source-grep
+  `NewChatModal.tsx` instead of `SessionsView.tsx`. Updated
+  the "exists as internal component" assertion to check for
+  `export default function NewChatModal` + `export interface`.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite
+  added (5 assertions). Total: 6 suites, 24 tests in this
+  file.
+- Lint clean, build clean.
+- Visual snapshot diff: 0 failures, 0 warnings.
+- A11y: 0 violations.
+- Console errors: 0.
+
+### Notes
+- Stage 6 of the perfection-track component split. Parent
+  megacomponents are now: MeetingsView 2217, SessionsView
+  1186 (was 1367), SpecialistsView 1142.
+
 ## [1.10.538] - 2026-05-07 — Extract MeetingsTemplateEditor
 
 **Web — `MeetingsView.tsx` shrunk by 155 lines (2372 → 2217).**
