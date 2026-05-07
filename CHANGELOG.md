@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.516] - 2026-05-07 — `npm run check` composite
+
+**Repo — composite pre-push verifier.** New
+`npm run check` chains lint + test + web build + bundle-
+size budget so a single command exercises everything CI
+runs (minus the runtime-drift step which needs a live
+daemon).
+
+### Sequence
+1. `npm run lint` (openapi + schema-drift)
+2. `npm test` (201 unit/integration tests)
+3. `npm --prefix web run build` (Vite production build)
+4. `npm run lint:bundle-size` (size budget)
+
+### Notes
+- 201/201 tests green.
+- Bundle index 218KB / 280KB budget (78%).
+- Use `npm run check` before `git push` to catch
+  regressions locally instead of on CI.
+
 ## [1.10.515] - 2026-05-07 — TypeScript noImplicitOverride
 
 **Web — `tsconfig.json` enables `noImplicitOverride`.**
