@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.526] - 2026-05-07 — Visual check + snapshot chain
+
+**Repo — `scripts/i18n-visual-check.js` automatically
+runs `visual-snapshot-diff.js` after the leak scan.**
+Single `npm run lint:i18n-visual` invocation now catches
+both English-leak regressions AND visual / layout
+drift. Exit 1 if EITHER fails.
+
+### Allow-list update
+- HTTP error envelopes (e.g. `HTTP 400: autonomous mode
+  not enabled`) — server-emitted error text from the
+  v1.10.514 unified API error envelope. Acceptable
+  English (machine-readable status + detail).
+
+### Notes
+- 201/201 tests green.
+- Final visual scan: 2 candidate leaks (specialist
+  `domain` tags, workflow names — confirmed user data,
+  not UI). Snapshot diff: 0 failures, 1 warning
+  (`_risk_check.png` at ~1.14% — under 2% threshold).
+
 ## [1.10.525] - 2026-05-07 — `npm run check:full`
 
 **Repo — composite for daemon-dependent checks.** New

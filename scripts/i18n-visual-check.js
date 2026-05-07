@@ -94,8 +94,11 @@ const ALLOW = [
   /^(Bash|Edit|Read|Write|Glob|Grep|Task|TodoWrite|WebSearch|WebFetch|MultiEdit|NotebookEdit)$/,
   // Size / time units — ISO-ish, stay literal in any locale.
   /^[\(\s]*\d[\d.,]*\s*(KB|MB|GB|TB|kb|mb|ms|s|h|d|m|B|byte|bytes)\)?$/,
-  // HTTP status codes (server-emitted, server enum)
-  /^HTTP\s+\d{3}$/,
+  // HTTP status codes + server-emitted error text (envelope from
+  // unified API errors v1.10.514: "HTTP <status>: <detail>"). The
+  // detail comes from the daemon's ROUTE_SCHEMAS / handler errors
+  // which are intentionally English machine-readable strings.
+  /^HTTP\s+\d{3}/,
   // Skip raw scribe / session snippet content from JSONL — these
   // are conversation transcript previews from the user's actual
   // Claude Code logs and not UI labels we control.
@@ -625,7 +628,30 @@ async function main() {
       }
     }
   }
-  process.exit(totalLeaks === 0 ? 0 : 1);
+
+  // (v1.10.526) Always chain into snapshot diff against the
+  // committed baseline so a single `lint:i18n-visual` run catches
+  // both English-leak regressions AND visual / layout drift.
+  // Run independent of leak count — the screenshots got taken
+  // either way and may have shifted in pixels regardless of the
+  // English-text outcome.
+  let snapshotFailed = false;
+  if (fs.existsSync(path.join(__dirname, '..', 'tests', 'baseline-screenshots'))) {
+    console.log('\n[bonus] running snapshot diff against baseline...');
+    try {
+      const { spawnSync } = require('child_process');
+      const r = spawnSync('node', [path.join(__dirname, 'visual-snapshot-diff.js')], {
+        stdio: 'inherit',
+        encoding: 'utf8',
+      });
+      if (r.status !== 0) snapshotFailed = true;
+    } catch (e) {
+      console.warn(`  snapshot diff skip: ${e.message}`);
+    }
+  }
+
+  // Exit 1 if EITHER leaks or snapshot diff failed.
+  process.exit(totalLeaks === 0 && !snapshotFailed ? 0 : 1);
 }
 
 main().catch((err) => {
