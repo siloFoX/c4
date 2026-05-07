@@ -290,6 +290,30 @@ async function main() {
     await page.waitForTimeout(300);
   } catch (e) { console.warn('  attach SKIP', e.message); }
 
+  // Settings: flip every ChoiceGroup option to surface the
+  // descriptionKey hint texts that only render conditionally.
+  try {
+    await page.evaluate(() => {
+      const tab = Array.from(document.querySelectorAll('[role="tab"][aria-label="설정"]'))[0];
+      if (tab) tab.click();
+    });
+    await page.waitForTimeout(500);
+    // Click each radio-tab in the settings page once.
+    const choiceTabs = await page.locator('main [role="tab"]').all();
+    for (let i = 0; i < choiceTabs.length; i++) {
+      try {
+        await choiceTabs[i].click({ force: true, timeout: 1500 });
+        await page.waitForTimeout(200);
+      } catch {}
+    }
+    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '_settings_flipped.png'), fullPage: true });
+    const leaks = (await pickEnglishLeaks(page)).filter((l) => !isAllowed(l.text));
+    const seen = new Set();
+    const dedup = leaks.filter((l) => { if (seen.has(l.text)) return false; seen.add(l.text); return true; });
+    allLeaks._settingsFlipped = dedup;
+    console.log(`  settings choices flipped: ${dedup.length} leak(s)`);
+  } catch (e) { console.warn('  settings flipped SKIP', e.message.split('\n')[0]); }
+
   // Wiki search → type a query, scan results pane.
   try {
     await page.evaluate(() => {

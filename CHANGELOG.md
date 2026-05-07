@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.506] - 2026-05-07 — Visual scan: Settings choice flips
+
+**Web — `scripts/i18n-visual-check.js` flips every
+ChoiceGroup option in the Settings page** (theme:
+light/dark/system, sidebar mode: list/tree, detail mode:
+terminal/chat/control). The conditional `descriptionKey`
+hint texts (e.g. `settings.theme.systemHint`) only render
+when their option is active, so flipping is necessary to
+expose them.
+
+### Visual scan totals (cumulative)
+- ~42 surfaces walked (added: Settings choice flip,
+  Wiki search flow). All 0 UI leak.
+
+### Notes
+- 200/200 tests green.
+- Korean i18n bundle still ~1326 keys.
+
 ## [1.10.505] - 2026-05-07 — Risk sandbox status strip
 
 **Web — Risk page sandbox status strip migration.** The
