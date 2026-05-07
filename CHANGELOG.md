@@ -4,6 +4,43 @@
 
 (no entries — next release window)
 
+## [1.10.540] - 2026-05-07 — Extract AttachModal
+
+**Web — `SessionsView.tsx` shrunk by 152 lines (1186 → 1034).**
+The attach-an-existing-session modal lifted out as a controlled
+component. Operator pastes a sessionId / path, picks a
+human-readable alias, and POSTs to /api/attach. Pure controlled
+component — props unchanged from the inline form.
+
+### Refactor
+- New `web/src/components/AttachModal.tsx` (~173 lines): the
+  modal + its props interface.
+- `formatRelative` and `shortId` helper functions promoted to
+  exports in SessionsView so AttachModal can reuse them
+  (rather than duplicating).
+- `SessionsView.tsx`: removed the inline `function AttachModal`
+  block and its props interface; imports the default export
+  from the new file. Dropped the unused `X` icon import too
+  (now lives in AttachModal).
+- `tests/sessions-view.test.js`: the 5 attach-modal contract
+  assertions split into a dedicated `describe` block that
+  source-greps `AttachModal.tsx`. Help-key constants stay in
+  SessionsView (re-asserted there).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite
+  added (5 assertions). Total: 7 suites, 29 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 7 of the perfection-track component split. Parent
+  megacomponents are now: MeetingsView 2217, SpecialistsView
+  1142, SessionsView 1034 (was 1367 before this run, 1186
+  after NewChatModal). The big-3 parents have shrunk by
+  ~720 lines combined this session.
+
 ## [1.10.539] - 2026-05-07 — Extract NewChatModal
 
 **Web — `SessionsView.tsx` shrunk by 181 lines (1367 → 1186).**

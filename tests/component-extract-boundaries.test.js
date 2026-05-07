@@ -84,6 +84,39 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: AttachModal (v1.10.540)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('AttachModal.tsx');
+    assert.match(src, /export default function AttachModal/);
+  });
+
+  it('exports its props interface', () => {
+    const src = read('AttachModal.tsx');
+    assert.match(src, /export interface AttachModalProps/);
+  });
+
+  it('imports formatRelative + shortId + help-key constants from SessionsView', () => {
+    const src = read('AttachModal.tsx');
+    assert.match(src, /from\s+'\.\/SessionsView'/);
+    assert.match(src, /formatRelative/);
+    assert.match(src, /shortId/);
+    assert.match(src, /POST_ATTACH_HELP_TITLE_KEY/);
+    assert.match(src, /POST_ATTACH_HELP_ITEM_KEYS/);
+  });
+
+  it('is imported by SessionsView', () => {
+    const parent = read('SessionsView.tsx');
+    assert.match(parent, /import\s+AttachModal\s+from\s+'\.\/AttachModal'/);
+    assert.match(parent, /<AttachModal/);
+  });
+
+  it('parent SessionsView no longer holds the modal definition', () => {
+    const parent = read('SessionsView.tsx');
+    assert.doesNotMatch(parent, /function AttachModal\(\{/);
+    assert.doesNotMatch(parent, /interface AttachModalProps/);
+  });
+});
+
 describe('extracted: NewChatModal (v1.10.539)', () => {
   it('lives in its own file with default export', () => {
     const src = read('NewChatModal.tsx');

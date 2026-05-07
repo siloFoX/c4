@@ -63,30 +63,37 @@ describe('SessionsView.tsx - empty-state banner', () => {
   });
 });
 
-describe('SessionsView.tsx - attach modal preview + help', () => {
+describe('AttachModal.tsx (extracted v1.10.540) - attach modal preview + help', () => {
+  // (v1.10.540) AttachModal extracted out of SessionsView. The
+  // contract assertions below source-grep its new home.
+  const ATTACH_MODAL = path.join(repoRoot, 'web/src/components/AttachModal.tsx');
+  const modalSrc = fs.readFileSync(ATTACH_MODAL, 'utf8');
+
   it('AttachModal accepts an available session list prop', () => {
-    assert.match(src, /interface AttachModalProps/);
-    assert.match(src, /available:\s*SessionSummary\[\]/);
+    assert.match(modalSrc, /interface AttachModalProps/);
+    assert.match(modalSrc, /available:\s*SessionSummary\[\]/);
   });
 
   it('renders an available-sessions preview with project / timestamp / msg count', () => {
     // Heading + "unknown project" fallback + msg count are now i18n'd
     // through sessions.preview.* keys, surfaced via t() / tFormat().
-    assert.match(src, /t\('sessions\.preview\.heading'\)/);
-    assert.match(src, /\{s\.projectPath \|\| s\.projectDir \|\| t\('sessions\.preview\.unknownProject'\)\}/);
-    assert.match(src, /formatRelative\(s\.updatedAt\)/);
-    assert.match(src, /tFormat\('sessions\.preview\.msgs',\s*\{\s*count:\s*s\.turnCount\s*\}\)/);
-    assert.match(src, /\{s\.lastAssistantSnippet\}/);
+    assert.match(modalSrc, /t\('sessions\.preview\.heading'\)/);
+    assert.match(modalSrc, /\{s\.projectPath \|\| s\.projectDir \|\| t\('sessions\.preview\.unknownProject'\)\}/);
+    assert.match(modalSrc, /formatRelative\(s\.updatedAt\)/);
+    assert.match(modalSrc, /tFormat\('sessions\.preview\.msgs',\s*\{\s*count:\s*s\.turnCount\s*\}\)/);
+    assert.match(modalSrc, /\{s\.lastAssistantSnippet\}/);
   });
 
   it('includes a "Use this id" button that autofills the sessionId input', () => {
     // Copy lives in i18n now; check the key wiring.
-    assert.match(src, /t\('sessions\.attach\.useThisId'\)/);
-    assert.match(src, /setPathValue\(s\.sessionId\)/);
+    assert.match(modalSrc, /t\('sessions\.attach\.useThisId'\)/);
+    assert.match(modalSrc, /setPathValue\(s\.sessionId\)/);
   });
 
   it('exports the post-attach help title + item keys shown below the modal form', () => {
     // (v1.10.475) migrated to i18n: const points at sessions.help.* keys.
+    // The key-name constants live in SessionsView (source of truth);
+    // AttachModal imports + uses them.
     assert.match(src, /POST_ATTACH_HELP_TITLE_KEY\s*=\s*'sessions\.help\.afterAttachTitle'/);
     assert.match(src, /POST_ATTACH_HELP_ITEM_KEYS/);
     const bundle = fs.readFileSync(
@@ -100,9 +107,9 @@ describe('SessionsView.tsx - attach modal preview + help', () => {
 
   it('renders the help block inside the modal with aria labelling', () => {
     // (v1.10.421) aria-label migrated to i18n: t('sessions.aria.postAttachHelp').
-    assert.match(src, /aria-label=\{t\('sessions\.aria\.postAttachHelp'\)\}/);
-    assert.match(src, /t\(POST_ATTACH_HELP_TITLE_KEY\)/);
-    assert.match(src, /POST_ATTACH_HELP_ITEM_KEYS\.map/);
+    assert.match(modalSrc, /aria-label=\{t\('sessions\.aria\.postAttachHelp'\)\}/);
+    assert.match(modalSrc, /t\(POST_ATTACH_HELP_TITLE_KEY\)/);
+    assert.match(modalSrc, /POST_ATTACH_HELP_ITEM_KEYS\.map/);
   });
 
   it('threads availableSessions from /api/sessions into the modal', () => {
