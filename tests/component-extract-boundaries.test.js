@@ -84,6 +84,52 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: MeetingsPublishControls (v1.10.553)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsPublishControls.tsx');
+    assert.match(src, /export default function MeetingsPublishControls/);
+  });
+
+  it('takes meetingId prop', () => {
+    const src = read('MeetingsPublishControls.tsx');
+    assert.match(src, /meetingId:\s*string/);
+  });
+
+  it('owns its own busy / msg / failed / git-toggle state', () => {
+    const src = read('MeetingsPublishControls.tsx');
+    assert.match(src, /const \[busy, setBusy\]/);
+    assert.match(src, /const \[gitCommit, setGitCommit\]/);
+    assert.match(src, /const \[gitPush, setGitPush\]/);
+  });
+
+  it('owns the publish POST handler with includeRetro + apply + git toggles', () => {
+    const src = read('MeetingsPublishControls.tsx');
+    assert.match(src, /handlePublish/);
+    assert.match(src, /includeRetro:\s*true/);
+    assert.match(src, /apply:\s*true/);
+    assert.match(src, /\/api\/meetings\//);
+  });
+
+  it('gitPush check forces gitCommit on (and gitCommit off forces gitPush off)', () => {
+    const src = read('MeetingsPublishControls.tsx');
+    assert.match(src, /if \(!e\.target\.checked\) setGitPush\(false\)/);
+    assert.match(src, /if \(e\.target\.checked\) setGitCommit\(true\)/);
+  });
+
+  it('is imported and rendered by MeetingsView', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsPublishControls\s+from\s+'\.\/MeetingsPublishControls'/);
+    assert.match(parent, /<MeetingsPublishControls\s+meetingId=\{selectedId\}/);
+  });
+
+  it('parent MeetingsView no longer holds publish state nor handler', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /const \[publishBusy, setPublishBusy\]/);
+    assert.doesNotMatch(parent, /const \[publishGitCommit, setPublishGitCommit\]/);
+    assert.doesNotMatch(parent, /const handlePublish/);
+  });
+});
+
 describe('extracted: MeetingsRetroActions (v1.10.552)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsRetroActions.tsx');

@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.553] - 2026-05-07 — Extract MeetingsPublishControls
+
+**Web — `MeetingsView.tsx` shrunk by 85 lines (1622 → 1537).**
+The Phase-3.4 publish controls (Publish button + git automation
+checkboxes + result message) extracted as a self-contained
+component. Owns its busy / msg / failed / gitCommit / gitPush
+state and the publish POST.
+
+### Refactor
+- New `web/src/components/MeetingsPublishControls.tsx` (~113
+  lines): the Publish button, the gitCommit / gitPush
+  checkboxes, the result/error message line, the publish POST
+  handler.
+- `MeetingsView.tsx`: removed 5 useState hooks, the handler,
+  and the JSX. Replaced with
+  `<MeetingsPublishControls meetingId={selectedId} />`. Removed
+  unused `BookOpen` icon import (now lives in the panel).
+- Reciprocal git-toggle behavior preserved: checking gitPush
+  auto-checks gitCommit; unchecking gitCommit auto-unchecks
+  gitPush.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (7 assertions). Total: 22 suites, 116 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 21 of the perfection-track component split. Big-3
+  parents combined: 3186 lines (was 5104, -1918 / -37.6%).
+  MeetingsView 1537 (was 2372 at session start, -835 / -35.2%).
+
 ## [1.10.552] - 2026-05-07 — Extract MeetingsRetroActions
 
 **Web — `MeetingsView.tsx` shrunk by 59 lines (1681 → 1622).**
