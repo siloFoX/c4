@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.527] - 2026-05-07 — CI: visual + a11y checks
+
+**CI — `.github/workflows/test.yml` extended.** After
+the existing test/lint/bundle-size run:
+1. `npx playwright install chromium`
+2. Spawn a temp daemon on :3458
+3. `npm run lint:i18n-visual` (catches English leaks +
+   snapshot drift in one)
+4. `npm run lint:a11y` (axe-core WCAG 2.1 AA)
+5. Trap-kill the daemon
+
+Each step short-circuits with `::error::` if it fails so
+CI logs the specific gate that broke.
+
+### Notes
+- 201/201 tests green (local).
+- The full CI sequence is now: lint × 4 (openapi /
+  schema-drift / i18n-lockstep / bundle-size) +
+  test (201) + visual i18n + snapshot diff + a11y +
+  runtime-drift + sdk build/test.
+
 ## [1.10.526] - 2026-05-07 — Visual check + snapshot chain
 
 **Repo — `scripts/i18n-visual-check.js` automatically

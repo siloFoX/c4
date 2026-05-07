@@ -63,6 +63,32 @@ jobs:
       - name: bundle size budget
         run: npm run lint:bundle-size
 
+      - name: install playwright chromium
+        run: npx playwright install chromium
+
+      - name: visual i18n + snapshot diff (spawn daemon on :3458)
+        run: |
+          PORT=3458 node src/daemon.js > /tmp/c4-ci-daemon.log 2>&1 &
+          DAEMON_PID=$!
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:3458/api/health > /dev/null; then break; fi
+            sleep 1
+          done
+          set +e
+          npm run lint:i18n-visual
+          STATUS_VISUAL=$?
+          npm run lint:a11y
+          STATUS_A11Y=$?
+          kill $DAEMON_PID 2>/dev/null
+          if [ "$STATUS_VISUAL" -ne 0 ]; then
+            echo "::error::i18n-visual + snapshot diff failed"
+            exit 1
+          fi
+          if [ "$STATUS_A11Y" -ne 0 ]; then
+            echo "::error::a11y audit failed"
+            exit 1
+          fi
+
       - name: sdk build (tsc → dist + cjs shim)
         run: npm --prefix sdk run build
 
