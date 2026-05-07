@@ -3,7 +3,6 @@ import {
   ChevronDown,
   ChevronRight,
   FolderTree,
-  Link2,
   Plus,
   Search,
 } from 'lucide-react';
@@ -15,9 +14,8 @@ import ConversationView from './ConversationView';
 import SessionsTour from './SessionsTour';
 import NewChatModal from './NewChatModal';
 import AttachModal from './AttachModal';
-import SessionsEmptyAttachBanner from './SessionsEmptyAttachBanner';
 import SessionsComparisonCard from './SessionsComparisonCard';
-import SessionsAttachedRowActions from './SessionsAttachedRowActions';
+import SessionsAttachedSection from './SessionsAttachedSection';
 
 export interface SessionSummary {
   projectDir: string | null;
@@ -431,92 +429,20 @@ export default function SessionsView() {
           </div>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto p-0">
-          <div className="border-b border-border">
-            <button
-              type="button"
-              className="flex w-full items-center gap-2 bg-muted/40 px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              onClick={() => setAttachedCollapsed((v) => !v)}
-              aria-expanded={!attachedCollapsed}
-            >
-              {attachedCollapsed ? (
-                <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-              ) : (
-                <ChevronDown className="h-3.5 w-3.5" aria-hidden />
-              )}
-              <Link2 className="h-3.5 w-3.5" aria-hidden />
-              <span className="normal-case text-foreground">{t('sessions.section.attached')}</span>
-              <span className="ml-auto rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
-                {filteredAttached.length}
-              </span>
-            </button>
-            {!attachedCollapsed ? (
-              attachError ? (
-                <div className="p-4 text-sm text-destructive">{attachError}</div>
-              ) : filteredAttached.length === 0 ? (
-                <div className="p-3">
-                  <SessionsEmptyAttachBanner
-                    onAttachClick={() => {
-                      setModalError(null);
-                      setModalOpen(true);
-                    }}
-                  />
-                </div>
-              ) : (
-                <ul className="divide-y divide-border">
-                  {filteredAttached.map((a) => {
-                    const active = selectedAttachmentName === a.name;
-                    return (
-                      <li key={a.name} className="bg-card">
-                        <div
-                          className={cn(
-                            'flex items-start gap-2 px-4 py-3 text-left text-sm',
-                            active
-                              ? 'bg-accent text-accent-foreground'
-                              : 'hover:bg-accent/60',
-                          )}
-                        >
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSelection({ kind: 'attached', name: a.name })
-                            }
-                            aria-current={active ? 'true' : undefined}
-                            className="flex-1 text-left"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono text-xs">
-                                {a.name}
-                              </span>
-                              <Badge variant="secondary" className="ml-auto">
-                                attached
-                              </Badge>
-                            </div>
-                            <div className="mt-1 truncate text-xs text-muted-foreground">
-                              {a.projectPath || a.jsonlPath}
-                            </div>
-                            <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
-                              <span>{shortId(a.sessionId)}</span>
-                              {a.createdAt ? (
-                                <span>- {formatRelative(a.createdAt)}</span>
-                              ) : null}
-                            </div>
-                          </button>
-                        </div>
-                        <SessionsAttachedRowActions
-                          session={a}
-                          isSelected={active}
-                          onView={() =>
-                            setSelection({ kind: 'attached', name: a.name })
-                          }
-                          onDetach={() => handleDetach(a.name)}
-                        />
-                      </li>
-                    );
-                  })}
-                </ul>
-              )
-            ) : null}
-          </div>
+          {/* (v1.10.578) Attached section extracted to ./SessionsAttachedSection.tsx */}
+          <SessionsAttachedSection
+            collapsed={attachedCollapsed}
+            onToggle={() => setAttachedCollapsed((v) => !v)}
+            filtered={filteredAttached}
+            error={attachError}
+            selectedName={selectedAttachmentName}
+            onSelect={(name) => setSelection({ kind: 'attached', name })}
+            onAttachClick={() => {
+              setModalError(null);
+              setModalOpen(true);
+            }}
+            onDetach={handleDetach}
+          />
 
           {error ? (
             <div className="p-4 text-sm text-destructive">{error}</div>

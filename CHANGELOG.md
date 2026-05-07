@@ -4,6 +4,43 @@
 
 (no entries — next release window)
 
+## [1.10.578] - 2026-05-08 — Extract SessionsAttachedSection (50th ship)
+
+**Web — `SessionsView.tsx` shrunk by 74 lines (699 → 625).**
+The whole attached-sessions section of the master pane —
+collapsible header, error / empty (with the EmptyAttachBanner
+CTA) / list-of-rows wrapping each `SessionsAttachedRowActions`
+panel — extracted as a single composite sibling. Earlier
+extractions (banner, row-actions) now live as children of this
+section rather than direct siblings of SessionsView.
+
+### Refactor
+- New `web/src/components/SessionsAttachedSection.tsx` (~119
+  lines): the collapsible Card section with all three states.
+  8 props.
+- `SessionsView.tsx`: removed the inline 80-line block. Now
+  delegates the entire attached-section concern to the new
+  component. Dropped 3 imports (Link2, SessionsEmptyAttachBanner,
+  SessionsAttachedRowActions — the section owns those).
+- Composite container pattern: 2 previously-extracted siblings
+  are now children of the new section. Cleaner ownership graph.
+
+### Tests
+- 203/203 tests green.
+- `tests/sessions-view.test.js`: 3 attached-row contract
+  assertions redirected to source-grep the section.
+- `tests/component-extract-boundaries.test.js`: 2 prior
+  contracts (SessionsAttachedRowActions, SessionsEmptyAttachBanner)
+  redirected to look at the section as the import host.
+- New suite for SessionsAttachedSection (5 assertions).
+- Total: 45 suites, 247 tests.
+- Lint clean, build clean. All 5 check:full gates pass.
+
+### Notes
+- 50th ship of the session 🎉. Stage 44 of the perfection-track
+  component split. SessionsView 625 (was 1367 at session start,
+  -742 / -54.3%).
+
 ## [1.10.577] - 2026-05-08 — Extract SpecialistsList
 
 **Web — `SpecialistsView.tsx` shrunk by 69 lines (698 → 629).**

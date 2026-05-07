@@ -63,7 +63,10 @@ describe('SessionsView.tsx - empty-state banner', () => {
       src,
       /No attached sessions\. Use "Attach new\.\.\." to import an external/,
     );
-    assert.match(src, /<SessionsEmptyAttachBanner[\s\S]*?onAttachClick=/);
+    // (v1.10.578) The banner now lives inside SessionsAttachedSection.
+    const SECTION = path.join(repoRoot, 'web/src/components/SessionsAttachedSection.tsx');
+    const sectionSrc = fs.readFileSync(SECTION, 'utf8');
+    assert.match(sectionSrc, /<SessionsEmptyAttachBanner[\s\S]*?onAttachClick=/);
   });
 });
 
@@ -159,14 +162,21 @@ describe('SessionsAttachedRowActions.tsx (extracted v1.10.550) - post-attach row
     assert.match(rowSrc, /navigator\.clipboard\.writeText/);
   });
 
-  it('parent SessionsView routes onView back into the Selection state machine', () => {
-    // Row actions must reuse setSelection so the conversation pane
-    // stays in sync with the button click.
-    assert.match(src, /onView=\{\(\) =>\s*setSelection\(\{ kind: 'attached', name: a\.name \}\)/);
+  it('parent SessionsAttachedSection routes onView back into the Selection state machine', () => {
+    // (v1.10.578) Row mapping moved into SessionsAttachedSection.
+    // The wrapping section uses an `onSelect(name)` prop the parent
+    // wires to setSelection.
+    const SECTION = path.join(repoRoot, 'web/src/components/SessionsAttachedSection.tsx');
+    const sectionSrc = fs.readFileSync(SECTION, 'utf8');
+    assert.match(sectionSrc, /onView=\{\(\) => onSelect\(a\.name\)\}/);
+    assert.match(src, /onSelect=\{\(name\) => setSelection\(\{ kind: 'attached', name \}\)\}/);
   });
 
-  it('parent SessionsView routes onDetach back into the existing handleDetach callback', () => {
-    assert.match(src, /onDetach=\{\(\) => handleDetach\(a\.name\)\}/);
+  it('parent SessionsAttachedSection routes onDetach back into the handleDetach callback', () => {
+    const SECTION = path.join(repoRoot, 'web/src/components/SessionsAttachedSection.tsx');
+    const sectionSrc = fs.readFileSync(SECTION, 'utf8');
+    assert.match(sectionSrc, /onDetach=\{\(\) => onDetach\(a\.name\)\}/);
+    assert.match(src, /onDetach=\{handleDetach\}/);
   });
 });
 

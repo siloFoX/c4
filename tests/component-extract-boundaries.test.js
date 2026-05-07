@@ -84,6 +84,42 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: SessionsAttachedSection (v1.10.578)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SessionsAttachedSection.tsx');
+    assert.match(src, /export default function SessionsAttachedSection/);
+  });
+
+  it('takes 8 props', () => {
+    const src = read('SessionsAttachedSection.tsx');
+    assert.match(src, /collapsed:\s*boolean/);
+    assert.match(src, /onToggle:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /filtered:\s*AttachedSession\[\]/);
+    assert.match(src, /selectedName:\s*string\s*\|\s*null/);
+    assert.match(src, /onSelect:\s*\(name:\s*string\)\s*=>\s*void/);
+    assert.match(src, /onAttachClick:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onDetach:\s*\(name:\s*string\)\s*=>\s*void/);
+  });
+
+  it('hosts both SessionsEmptyAttachBanner and SessionsAttachedRowActions', () => {
+    const src = read('SessionsAttachedSection.tsx');
+    assert.match(src, /import\s+SessionsEmptyAttachBanner/);
+    assert.match(src, /import\s+SessionsAttachedRowActions/);
+  });
+
+  it('is imported and rendered by SessionsView', () => {
+    const parent = read('SessionsView.tsx');
+    assert.match(parent, /import\s+SessionsAttachedSection\s+from\s+'\.\/SessionsAttachedSection'/);
+    assert.match(parent, /<SessionsAttachedSection/);
+  });
+
+  it('parent SessionsView no longer imports the children directly', () => {
+    const parent = read('SessionsView.tsx');
+    assert.doesNotMatch(parent, /import\s+SessionsEmptyAttachBanner/);
+    assert.doesNotMatch(parent, /import\s+SessionsAttachedRowActions/);
+  });
+});
+
 describe('extracted: SpecialistsList (v1.10.577)', () => {
   it('lives in its own file with default export', () => {
     const src = read('SpecialistsList.tsx');
@@ -1138,8 +1174,10 @@ describe('extracted: SessionsAttachedRowActions (v1.10.550)', () => {
     assert.match(src, /onDetach:\s*\(\)\s*=>\s*void/);
   });
 
-  it('is imported by SessionsView', () => {
-    const parent = read('SessionsView.tsx');
+  it('is imported by SessionsAttachedSection (since v1.10.578)', () => {
+    // v1.10.578 wrapped the row in SessionsAttachedSection — that's
+    // where the rendering now happens.
+    const parent = read('SessionsAttachedSection.tsx');
     assert.match(parent, /import\s+SessionsAttachedRowActions\s+from\s+'\.\/SessionsAttachedRowActions'/);
     assert.match(parent, /<SessionsAttachedRowActions/);
   });
@@ -1171,8 +1209,8 @@ describe('extracted: SessionsEmptyAttachBanner (v1.10.549)', () => {
     assert.match(src, /EMPTY_ATTACH_BANNER_BODY_KEY/);
   });
 
-  it('is imported by SessionsView', () => {
-    const parent = read('SessionsView.tsx');
+  it('is imported by SessionsAttachedSection (since v1.10.578)', () => {
+    const parent = read('SessionsAttachedSection.tsx');
     assert.match(parent, /import\s+SessionsEmptyAttachBanner\s+from\s+'\.\/SessionsEmptyAttachBanner'/);
     assert.match(parent, /<SessionsEmptyAttachBanner/);
   });
