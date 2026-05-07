@@ -84,6 +84,48 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: MeetingsList (v1.10.576)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsList.tsx');
+    assert.match(src, /export default function MeetingsList/);
+  });
+
+  it('takes 7 props (displayList / isSearchMode / searchQuery / error / loading / selectedId / onSelect)', () => {
+    const src = read('MeetingsList.tsx');
+    assert.match(src, /displayList:\s*MeetingSummary\[\]/);
+    assert.match(src, /isSearchMode:\s*boolean/);
+    assert.match(src, /searchQuery:\s*string/);
+    assert.match(src, /error:\s*string\s*\|\s*null/);
+    assert.match(src, /loading:\s*boolean/);
+    assert.match(src, /selectedId:\s*string\s*\|\s*null/);
+    assert.match(src, /onSelect:\s*\(id:\s*string\)\s*=>\s*void/);
+  });
+
+  it('reuses STATUS_BADGE + formatRelative + MeetingSummary from MeetingsView', () => {
+    const src = read('MeetingsList.tsx');
+    assert.match(src, /from\s+'\.\/MeetingsView'/);
+    assert.match(src, /STATUS_BADGE/);
+    assert.match(src, /formatRelative/);
+  });
+
+  it('is a pure-display component (no state, no effects)', () => {
+    const src = read('MeetingsList.tsx');
+    assert.doesNotMatch(src, /useState/);
+    assert.doesNotMatch(src, /useEffect/);
+  });
+
+  it('is imported and rendered by MeetingsView', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsList\s+from\s+'\.\/MeetingsList'/);
+    assert.match(parent, /<MeetingsList/);
+  });
+
+  it('parent MeetingsView no longer holds the inline list rendering', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /displayList\.map\(\(m\) => \{/);
+  });
+});
+
 describe('extracted: MeetingsListFilterRow (v1.10.575)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsListFilterRow.tsx');

@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Eye, Plus, RefreshCw, Radio, Search, X } from 'lucide-react';
 import { apiGet, eventSourceUrl } from '../lib/api';
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
+import { Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
-import { renderSnippet } from '../lib/snippet';
 import MeetingsMaintenancePanel from './MeetingsMaintenancePanel';
 import MeetingsRecapPanel, { type RecapResponse } from './MeetingsRecapPanel';
 import MeetingsActionItemsPanel, { type ActionItemsResponse } from './MeetingsActionItemsPanel';
@@ -23,6 +22,7 @@ import MeetingsComposer from './MeetingsComposer';
 import MeetingsSearchFacets from './MeetingsSearchFacets';
 import MeetingsSearchFilterRow from './MeetingsSearchFilterRow';
 import MeetingsListFilterRow from './MeetingsListFilterRow';
+import MeetingsList from './MeetingsList';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -37,7 +37,7 @@ export type MeetingStatus =
   | 'escalated'
   | 'aborted';
 
-interface MeetingSummary {
+export interface MeetingSummary {
   id: string;
   status: MeetingStatus;
   track: string;
@@ -101,7 +101,7 @@ export type ActionItemType = 'decision' | 'action' | 'todo' | 'blocker';
 // (v1.10.541) Recap types moved to ./MeetingsRecapPanel.tsx
 // (the canonical location now that the UI lives there too).
 
-const STATUS_BADGE: Record<MeetingStatus, string> = {
+export const STATUS_BADGE: Record<MeetingStatus, string> = {
   pending: 'border-border bg-muted/40 text-muted-foreground',
   'in-progress': 'border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400',
   completed: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
@@ -109,7 +109,7 @@ const STATUS_BADGE: Record<MeetingStatus, string> = {
   aborted: 'border-destructive/40 bg-destructive/10 text-destructive',
 };
 
-function formatRelative(iso: string | null): string {
+export function formatRelative(iso: string | null): string {
   if (!iso) return '-';
   const dt = new Date(iso);
   const diff = Math.floor((Date.now() - dt.getTime()) / 1000);
@@ -645,72 +645,16 @@ export default function MeetingsView() {
           />
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col overflow-y-auto p-0">
-          {(() => {
-            // When search is active, display search results instead
-            // of the polled list. Empty array (no matches) is
-            // distinct from `null` (no search active) so we can show
-            // a tailored "no matches" message.
-            const displayList = searchResults !== null ? searchResults : meetings;
-            const isSearchMode = searchResults !== null;
-            if (error && !isSearchMode) {
-              return <div className="p-4 text-sm text-destructive">{error}</div>;
-            }
-            if (displayList.length === 0) {
-              return (
-                <div className="p-4 text-sm text-muted-foreground">
-                  {isSearchMode
-                    ? tFormat('meetings.empty.search', { query: searchQuery })
-                    : (loading ? t('meetings.empty.loading') : t('meetings.empty.list'))}
-                </div>
-              );
-            }
-            return (
-              <ul className="divide-y divide-border">
-                {displayList.map((m) => {
-                  const active = m.id === selectedId;
-                  return (
-                    <li
-                      key={m.id}
-                      className={cn(
-                        'flex cursor-pointer flex-col gap-1 px-4 py-3 transition-colors',
-                        active ? 'bg-primary/30' : 'hover:bg-accent/40',
-                      )}
-                      onClick={() => setSelectedId(m.id)}
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={cn('inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] uppercase tracking-wide', STATUS_BADGE[m.status])}>
-                          {m.status}
-                        </span>
-                        <Badge variant="outline" className="text-[10px] uppercase">
-                          {m.track}
-                        </Badge>
-                        {m.forkOf ? (
-                          <span
-                            className="inline-flex items-center rounded-full border border-purple-500/40 bg-purple-500/10 px-1.5 py-0 text-[10px] text-purple-700 dark:text-purple-400"
-                            title={tFormat('meetings.tooltip.forkedFrom', { parent: m.forkOf })}
-                          >
-                            ← {m.forkOf.slice(0, 8)}
-                          </span>
-                        ) : null}
-                        <span className="text-[10px] text-muted-foreground">
-                          {formatRelative(m.startedAt || m.createdAt)}
-                        </span>
-                      </div>
-                      <span className="truncate text-sm font-medium">{m.title}</span>
-                      {m.snippet ? (
-                        <span className="line-clamp-2 text-[11px] text-muted-foreground">
-                          {renderSnippet(m.snippet)}
-                        </span>
-                      ) : null}
-                      <span className="text-[11px] text-muted-foreground">
-                        stage: {m.currentStage || '-'} · round {m.currentRound || 0} · id {m.id}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            );
-          })()}
+          {/* (v1.10.576) Master-pane list extracted to ./MeetingsList.tsx. */}
+          <MeetingsList
+            displayList={searchResults !== null ? searchResults : meetings}
+            isSearchMode={searchResults !== null}
+            searchQuery={searchQuery}
+            error={error}
+            loading={loading}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+          />
         </CardContent>
         {/* (v1.10.529) Maintenance — collapsible footer with the
             four ops endpoints. Extracted to

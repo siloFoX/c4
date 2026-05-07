@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.576] - 2026-05-08 — Extract MeetingsList
+
+**Web — `MeetingsView.tsx` shrunk by 56 lines (873 → 817).**
+The master-pane list rendering (handles error/empty/list states
+with search-aware messaging) extracted as a pure-display
+sibling. STATUS_BADGE constant + formatRelative helper +
+MeetingSummary type promoted to exports.
+
+### Refactor
+- New `web/src/components/MeetingsList.tsx` (~95 lines): the
+  three-state rendering (error / empty / list rows). 7 props.
+- `MeetingsView.tsx`: removed the inline IIFE-wrapped 70-line
+  block. Replaced with `<MeetingsList … />`. Dropped unused
+  `Badge` and `renderSnippet` imports.
+- Three exports added to `MeetingsView.tsx`: `STATUS_BADGE`,
+  `formatRelative`, `MeetingSummary` (so the extracted list
+  + future siblings can reuse them).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (6 assertions). Total: 43 suites, 236 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 42 of the perfection-track component split. MeetingsView
+  817 (was 2372 at session start, -1555 / -65.6%).
+
 ## [1.10.575] - 2026-05-08 — Extract MeetingsListFilterRow
 
 **Web — `MeetingsView.tsx` shrunk by 34 lines (907 → 873).**
