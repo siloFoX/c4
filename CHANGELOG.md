@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.583] - 2026-05-08 — Extract ChatHeader
+
+**Web — `ChatView.tsx` shrunk by 32 lines (551 → 519).**
+The card header — worker title + 3 status indicators (backfill
+count badge / SSE live badge / jump-to-latest button) —
+extracted as its own pure-display sibling. 6 props.
+
+### Refactor
+- New `web/src/components/ChatHeader.tsx` (~71 lines), exporting
+  the `BackfillSource` type alias.
+- `ChatView.tsx`: removed the inline 38-line CardHeader block.
+  Replaced with `<ChatHeader … />`. Dropped 5 unused imports
+  (ArrowDown icon + Badge / CardDescription / CardHeader /
+  CardTitle UI primitives).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 50 suites, 273 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 49 of the perfection-track component split. ChatView 519
+  (was 700+ at session start). 55 ships / 50 components+libs /
+  273 boundary assertions.
+
 ## [1.10.582] - 2026-05-08 — Extract MeetingsSearchInput
 
 **Web — `MeetingsView.tsx` shrunk by 20 lines (817 → 797).**

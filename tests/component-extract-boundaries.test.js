@@ -1737,6 +1737,44 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: ChatHeader (v1.10.583)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('ChatHeader.tsx');
+    assert.match(src, /export default function ChatHeader/);
+  });
+
+  it('takes worker name + backfill + sse + autoScroll + onJumpToBottom props', () => {
+    const src = read('ChatHeader.tsx');
+    assert.match(src, /workerName:\s*string/);
+    assert.match(src, /backfillCount:\s*number/);
+    assert.match(src, /backfillSource:\s*BackfillSource/);
+    assert.match(src, /sseConnected:\s*boolean/);
+    assert.match(src, /autoScroll:\s*boolean/);
+    assert.match(src, /onJumpToBottom:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('renders the title + backfill badge + live badge + jump button', () => {
+    const src = read('ChatHeader.tsx');
+    assert.match(src, /chat\.workerHeader\.title/);
+    assert.match(src, /chat\.loadedPast\.one/);
+    assert.match(src, /sseConnected \? 'live' : 'disconnected'/);
+    assert.match(src, /chat\.jumpToLatest/);
+  });
+
+  it('is imported and rendered by ChatView', () => {
+    const parent = read('ChatView.tsx');
+    assert.match(parent, /import\s+ChatHeader\s+from\s+'\.\/ChatHeader'/);
+    assert.match(parent, /<ChatHeader/);
+    assert.match(parent, /onJumpToBottom=\{jumpToBottom\}/);
+  });
+
+  it('parent ChatView no longer holds the inline CardHeader block', () => {
+    const parent = read('ChatView.tsx');
+    assert.doesNotMatch(parent, /<CardHeader/);
+    assert.doesNotMatch(parent, /chat\.workerHeader\.title/);
+  });
+});
+
 describe('extracted: MeetingsSearchInput (v1.10.582)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsSearchInput.tsx');

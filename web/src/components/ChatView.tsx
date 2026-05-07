@@ -7,19 +7,16 @@ import {
   useRef,
   useState,
 } from 'react';
-import { ArrowDown, Loader2, Send, Sparkles } from 'lucide-react';
+import { Loader2, Send, Sparkles } from 'lucide-react';
 import { apiFetch, apiGet, eventSourceUrl } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import {
-  Badge,
   Button,
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from './ui';
 import { cn } from '../lib/cn';
+import ChatHeader from './ChatHeader';
 import {
   b64decode,
   conversationToMessages,
@@ -383,44 +380,15 @@ export default function ChatView({ workerName }: ChatViewProps) {
 
   return (
     <Card className="flex h-full min-h-0 min-w-0 flex-col">
-      <CardHeader className="flex-row items-start justify-between gap-3 p-4 md:p-5">
-        <div className="min-w-0">
-          <CardTitle className="truncate">{t('chat.workerHeader.title')}</CardTitle>
-          <CardDescription className="truncate">
-            {tFormat('chat.workerHeader.description', { worker: workerName })}
-          </CardDescription>
-        </div>
-        <div className="flex items-center gap-2 text-xs">
-          {backfillCount > 0 && (
-            <Badge variant="secondary" className="flex items-center gap-1" title={t(backfillSource === 'session' ? 'chatView.backfillSource.session' : 'chatView.backfillSource.scrollback')}>
-              <span>{tFormat(
-                backfillCount === 1 ? 'chat.loadedPast.one' : 'chat.loadedPast.other',
-                { n: String(backfillCount) },
-              )}</span>
-            </Badge>
-          )}
-          <Badge
-            variant={sseConnected ? 'success' : 'secondary'}
-            className="flex items-center gap-1"
-            aria-live="polite"
-          >
-            <span
-              className={cn(
-                'inline-block h-1.5 w-1.5 rounded-full',
-                sseConnected ? 'bg-emerald-400' : 'bg-muted-foreground'
-              )}
-              aria-hidden="true"
-            />
-            {sseConnected ? 'live' : 'disconnected'}
-          </Badge>
-          {!autoScroll && (
-            <Button type="button" variant="secondary" size="sm" onClick={jumpToBottom}>
-              <ArrowDown className="h-3.5 w-3.5" />
-              <span>{t('chat.jumpToLatest')}</span>
-            </Button>
-          )}
-        </div>
-      </CardHeader>
+      {/* (v1.10.583) Card header extracted to ./ChatHeader.tsx. */}
+      <ChatHeader
+        workerName={workerName}
+        backfillCount={backfillCount}
+        backfillSource={backfillSource}
+        sseConnected={sseConnected}
+        autoScroll={autoScroll}
+        onJumpToBottom={jumpToBottom}
+      />
 
       <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 p-4 pt-0 md:p-5 md:pt-0">
         {error && (

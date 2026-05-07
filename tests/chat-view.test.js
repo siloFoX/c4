@@ -14,6 +14,7 @@ const { describe, it } = require('node:test');
 
 const WEB_SRC = path.join(__dirname, '..', 'web', 'src');
 const CHAT_VIEW = path.join(WEB_SRC, 'components', 'ChatView.tsx');
+const CHAT_HEADER = path.join(WEB_SRC, 'components', 'ChatHeader.tsx');
 const APP_TSX = path.join(WEB_SRC, 'App.tsx');
 
 // Re-implementation of stripAnsi mirroring ChatView.tsx. If you change the
@@ -116,9 +117,11 @@ describe('ChatView source wiring', () => {
 
   it('tracks autoScroll and exposes a Jump-to-latest escape hatch', () => {
     assert.match(src, /setAutoScroll/);
-    // (v1.10.385) i18n migration — assert key instead of literal.
-    assert.match(src, /chat\.jumpToLatest/);
     assert.match(src, /distanceFromBottom/);
+    // (v1.10.583) Jump-to-latest button moved to ChatHeader sibling.
+    const headerSrc = fs.readFileSync(CHAT_HEADER, 'utf8');
+    // (v1.10.385) i18n migration — assert key instead of literal.
+    assert.match(headerSrc, /chat\.jumpToLatest/);
   });
 
   it('declares a debounce window for worker output chunking', () => {

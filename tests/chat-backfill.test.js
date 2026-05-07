@@ -14,6 +14,7 @@ const { describe, it } = require('node:test');
 
 const WEB_SRC = path.join(__dirname, '..', 'web', 'src');
 const CHAT_VIEW = path.join(WEB_SRC, 'components', 'ChatView.tsx');
+const CHAT_HEADER = path.join(WEB_SRC, 'components', 'ChatHeader.tsx');
 const DAEMON = path.join(__dirname, '..', 'src', 'daemon.js');
 
 // Re-implement the two pure helpers ChatView.tsx exports so we can
@@ -268,14 +269,17 @@ describe('ChatView source wiring (8.25)', () => {
   });
 
   it('renders a "Loaded N past messages" badge when backfill succeeds', () => {
-    assert.match(src, /backfillCount > 0/);
+    // (v1.10.583) Badge moved to ChatHeader sibling. Source-grep
+    // assertions now follow it there.
+    const headerSrc = fs.readFileSync(CHAT_HEADER, 'utf8');
+    assert.match(headerSrc, /backfillCount > 0/);
     // (v1.10.385) i18n migration: tFormat('chat.loadedPast.<one|other>',
     // {n}) replaces the inline pluralisation expression.
     assert.match(
-      src,
+      headerSrc,
       /chat\.loadedPast\.(one|other)/,
     );
-    assert.match(src, /backfillCount === 1/);
+    assert.match(headerSrc, /backfillCount === 1/);
   });
 
   it('wires an infinite-scroll load-older handler for scrollback mode', () => {
