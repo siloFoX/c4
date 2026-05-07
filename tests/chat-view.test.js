@@ -130,8 +130,14 @@ describe('ChatView source wiring', () => {
   });
 
   it('exports stripAnsi + b64decode for test visibility', () => {
-    assert.match(src, /export function stripAnsi/);
-    assert.match(src, /export function b64decode/);
+    // (v1.10.563) Helpers moved to lib/chat-helpers.ts. ChatView
+    // re-exports them so existing test imports still resolve.
+    assert.match(src, /stripAnsi/);
+    assert.match(src, /b64decode/);
+    const HELPERS = path.join(WEB_SRC, 'lib', 'chat-helpers.ts');
+    const helpersSrc = fs.readFileSync(HELPERS, 'utf8');
+    assert.match(helpersSrc, /export function stripAnsi/);
+    assert.match(helpersSrc, /export function b64decode/);
   });
 });
 

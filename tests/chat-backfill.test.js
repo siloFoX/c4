@@ -296,9 +296,16 @@ describe('ChatView source wiring (8.25)', () => {
   });
 
   it('exports conversationToMessages + scrollbackToMessages for test visibility', () => {
-    assert.match(src, /export function conversationToMessages/);
-    assert.match(src, /export function scrollbackToMessages/);
-    assert.match(src, /export function stripAnsi/);
+    // (v1.10.563) Helpers moved to lib/chat-helpers.ts. ChatView
+    // re-exports them so existing test imports still resolve.
+    assert.match(src, /conversationToMessages/);
+    assert.match(src, /scrollbackToMessages/);
+    assert.match(src, /stripAnsi/);
+    const HELPERS = path.join(WEB_SRC, 'lib', 'chat-helpers.ts');
+    const helpersSrc = fs.readFileSync(HELPERS, 'utf8');
+    assert.match(helpersSrc, /export function conversationToMessages/);
+    assert.match(helpersSrc, /export function scrollbackToMessages/);
+    assert.match(helpersSrc, /export function stripAnsi/);
   });
 });
 

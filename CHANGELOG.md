@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.563] - 2026-05-08 — Extract chat-helpers lib
+
+**Web — `ChatView.tsx` shrunk by 111 lines (662 → 551).**
+The pure data transforms (stripAnsi, b64decode, makeId,
+formatTime, conversationToMessages, scrollbackToMessages) plus
+the ChatMessage / ConversationShape / Role / Source types
+extracted into a shared `lib/chat-helpers.ts`. Pure TS — no
+React, no JSX — so the parsers can be unit-tested in isolation.
+
+### Refactor
+- New `web/src/lib/chat-helpers.ts` (~140 lines): all pure
+  helpers + the type exports.
+- `ChatView.tsx`: removed 4 ANSI regexes, 6 inline functions,
+  and 4 type definitions. Imports from the new lib + re-exports
+  the public API surface (stripAnsi / b64decode /
+  conversationToMessages / scrollbackToMessages) so existing
+  test imports of `ChatView` still resolve.
+- `tests/chat-view.test.js` + `tests/chat-backfill.test.js`:
+  contract assertions now also check the lib home for the
+  `export function` declarations (was source-grepping
+  ChatView for them).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite
+  added (4 assertions). Total: 32 suites, 175 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 31 of the perfection-track component split. Fourth
+  non-big-3 extraction. ChatView 551 (was 662).
+
 ## [1.10.562] - 2026-05-08 — Extract WorkflowGraph
 
 **Web — `WorkflowEditor.tsx` shrunk by 165 lines (658 → 493).**

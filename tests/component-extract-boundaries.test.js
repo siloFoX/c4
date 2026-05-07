@@ -84,6 +84,49 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: chat-helpers lib (v1.10.563)', () => {
+  it('lives in lib/chat-helpers.ts', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const file = path.join(__dirname, '..', 'web', 'src', 'lib', 'chat-helpers.ts');
+    const src = fs.readFileSync(file, 'utf8');
+    assert.match(src, /export function stripAnsi/);
+    assert.match(src, /export function b64decode/);
+    assert.match(src, /export function makeId/);
+    assert.match(src, /export function formatTime/);
+    assert.match(src, /export function conversationToMessages/);
+    assert.match(src, /export function scrollbackToMessages/);
+    assert.match(src, /export type Role/);
+    assert.match(src, /export type Source/);
+    assert.match(src, /export interface ChatMessage/);
+    assert.match(src, /export interface ConversationShape/);
+  });
+
+  it('is imported by ChatView (typed names + functions)', () => {
+    const parent = read('ChatView.tsx');
+    assert.match(parent, /from\s+'\.\.\/lib\/chat-helpers'/);
+    assert.match(parent, /stripAnsi/);
+    assert.match(parent, /b64decode/);
+    assert.match(parent, /conversationToMessages/);
+    assert.match(parent, /scrollbackToMessages/);
+  });
+
+  it('parent ChatView re-exports the public API for legacy tests', () => {
+    const parent = read('ChatView.tsx');
+    assert.match(parent, /export\s+\{[\s\S]*stripAnsi[\s\S]*b64decode[\s\S]*conversationToMessages[\s\S]*scrollbackToMessages[\s\S]*\}\s+from\s+'\.\.\/lib\/chat-helpers'/);
+  });
+
+  it('parent ChatView no longer holds inline definitions', () => {
+    const parent = read('ChatView.tsx');
+    assert.doesNotMatch(parent, /^export function stripAnsi/m);
+    assert.doesNotMatch(parent, /^export function b64decode/m);
+    assert.doesNotMatch(parent, /^function makeId/m);
+    assert.doesNotMatch(parent, /^function formatTime/m);
+    assert.doesNotMatch(parent, /^export function conversationToMessages/m);
+    assert.doesNotMatch(parent, /^export function scrollbackToMessages/m);
+  });
+});
+
 describe('extracted: WorkflowGraph (v1.10.562)', () => {
   it('lives in its own file with default export', () => {
     const src = read('WorkflowGraph.tsx');
