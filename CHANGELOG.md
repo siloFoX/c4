@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.565] - 2026-05-08 — Dedupe stripAnsi (WorkerDetail → chat-helpers)
+
+**Web — `WorkerDetail.tsx` shrunk by 10 lines (461 → 451).**
+WorkerDetail had its own copy of `stripAnsi` + the four ANSI
+regexes (with a comment "Mirrors the strings ChatView uses for
+consistency"). v1.10.563 lifted ChatView's copy into a shared
+lib; this PR replaces WorkerDetail's duplicate with an import,
+single source of truth.
+
+### Refactor
+- `WorkerDetail.tsx`: removed 4 ANSI regex constants + the
+  `stripAnsi` function definition (~12 lines). Imports
+  `stripAnsi` from `../lib/chat-helpers`.
+- No behavior change — the implementations were byte-for-byte
+  identical.
+
+### Tests
+- 203/203 tests green.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Maintenance ship — no new feature, just removing
+  duplication. Future stripAnsi tweaks now propagate to both
+  ChatView and WorkerDetail.
+
 ## [1.10.564] - 2026-05-08 — Extract HistoryDetailPane
 
 **Web — `HistoryView.tsx` shrunk by 111 lines (473 → 362).**

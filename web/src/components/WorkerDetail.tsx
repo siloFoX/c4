@@ -31,6 +31,7 @@ import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import XtermView from './XtermView';
 import PinnedRulesEditor from './PinnedRulesEditor';
+import { stripAnsi } from '../lib/chat-helpers';
 
 interface WorkerDetailProps {
   workerName: string;
@@ -60,19 +61,8 @@ const FONT_STORAGE_KEY = 'c4.term.fontSize';
 // 8.24 scrollback-tab ANSI filter. The xterm.js view on the Screen tab
 // processes raw PTY bytes; the Scrollback tab is a read-now text dump, so
 // we still strip ANSI for that view to keep historical grep-style reading
-// usable. Mirrors the strings ChatView uses for consistency.
-const ANSI_OSC = /\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g;
-const ANSI_CSI = /\x1b\[[\d;?=]*[ -/]*[@-~]/g;
-const ANSI_OTHER = /\x1b[=>()][0-9A-Za-z]?/g;
-const CONTROL_CHARS = /[\x00-\x08\x0b-\x1f\x7f]/g;
-function stripAnsi(input: string): string {
-  return input
-    .replace(ANSI_OSC, '')
-    .replace(ANSI_CSI, '')
-    .replace(ANSI_OTHER, '')
-    .replace(/\r(?!\n)/g, '\n')
-    .replace(CONTROL_CHARS, '');
-}
+// (v1.10.565) ANSI strip moved to lib/chat-helpers.ts (was a
+// duplicate of ChatView's). Imported below.
 
 async function postJson(url: string, body: unknown): Promise<ActionResponse> {
   const res = await apiFetch(url, {
