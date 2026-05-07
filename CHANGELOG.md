@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.570] - 2026-05-08 — Extract AutonomousDigestMetrics
+
+**Web — `AutonomousView.tsx` shrunk by 47 lines (412 → 365).**
+The 9-cell digest metrics grid (window, dispatched, succeeded,
+halted, errors, success-rate, pending/resolved escalations,
+window-range) extracted as a pure-display sibling. The
+`fmtDuration` helper (only used here) moved with it.
+DigestResponse type promoted to `export interface`.
+
+### Refactor
+- New `web/src/components/AutonomousDigestMetrics.tsx` (~88
+  lines): the metrics grid + the `fmtDuration` helper.
+- `AutonomousView.tsx`: removed the inline 60-line JSX grid
+  and the unused `fmtDuration`. Imports the default export.
+
+### Tests
+- 203/203 tests green (one flaky web-smoke retry passed).
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (6 assertions). Total: 38 suites, 210 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 37 of the perfection-track component split. Ninth
+  non-big-3 extraction. AutonomousView 365 (was 412).
+
 ## [1.10.569] - 2026-05-08 — Extract WorkflowNodeProperties
 
 **Web — `WorkflowEditor.tsx` shrunk by 33 lines (493 → 460).**

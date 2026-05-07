@@ -4,6 +4,7 @@ import { apiGet, apiPost } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import AutonomousDigestMetrics from './AutonomousDigestMetrics';
 
 // (v1.10.349) Autonomous tab — operator-side surface for the
 // Phase 8.29 reviewer escalation flow.
@@ -20,7 +21,7 @@ import { t, tFormat, useLocale } from '../lib/i18n';
 // since they're the strongest operator action — useful when an
 // autonomous run is misbehaving.
 
-interface DigestResponse {
+export interface DigestResponse {
   windowMs: number;
   from: string;
   to: string;
@@ -47,12 +48,8 @@ interface Escalation {
   resolvedNote: string | null;
 }
 
-function fmtDuration(ms: number): string {
-  if (ms < 60000) return `${(ms / 1000).toFixed(0)}s`;
-  if (ms < 3600000) return `${(ms / 60000).toFixed(0)}m`;
-  if (ms < 86400000) return `${(ms / 3600000).toFixed(1)}h`;
-  return `${(ms / 86400000).toFixed(1)}d`;
-}
+// (v1.10.570) fmtDuration moved to ./AutonomousDigestMetrics.tsx
+// (the only place it's used).
 
 function fmtRelative(ms: number): string {
   const delta = Date.now() - ms;
@@ -236,69 +233,8 @@ export default function AutonomousView() {
           ) : !digest ? (
             <div className="text-muted-foreground">{t('common.loading')}</div>
           ) : (
-            <div className="grid grid-cols-2 gap-x-6 gap-y-1 md:grid-cols-4">
-              <div>
-                <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.window')}</div>
-                <div className="font-mono">{fmtDuration(digest.windowMs)}</div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.dispatched')}</div>
-                <div className="font-mono">{digest.dispatched}</div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.succeeded')}</div>
-                <div className="font-mono text-emerald-700 dark:text-emerald-400">
-                  {digest.succeeded}
-                </div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.halted')}</div>
-                <div className={cn(
-                  'font-mono',
-                  digest.halted > 0 ? 'text-amber-700 dark:text-amber-400' : '',
-                )}>
-                  {digest.halted}
-                </div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.dispatchErrors')}</div>
-                <div className={cn(
-                  'font-mono',
-                  digest.dispatchErrors > 0 ? 'text-destructive' : '',
-                )}>
-                  {digest.dispatchErrors}
-                </div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.successRate')}</div>
-                <div className="font-mono">
-                  {digest.successRate != null
-                    ? `${(digest.successRate * 100).toFixed(1)}%`
-                    : '—'}
-                </div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.pendingEscalations')}</div>
-                <div className={cn(
-                  'font-mono',
-                  digest.pendingEscalations > 0 ? 'text-amber-700 dark:text-amber-400' : '',
-                )}>
-                  {digest.pendingEscalations}
-                </div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.resolvedEscalations')}</div>
-                <div className="font-mono text-muted-foreground">
-                  {digest.resolvedEscalations}
-                </div>
-              </div>
-              <div className="col-span-2 md:col-span-4">
-                <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.windowRange')}</div>
-                <div className="font-mono text-[11px] text-muted-foreground">
-                  {digest.from} → {digest.to}
-                </div>
-              </div>
-            </div>
+            // (v1.10.570) Digest metrics extracted to ./AutonomousDigestMetrics.tsx
+            <AutonomousDigestMetrics digest={digest} />
           )}
         </CardContent>
       </Card>

@@ -84,6 +84,41 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: AutonomousDigestMetrics (v1.10.570)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('AutonomousDigestMetrics.tsx');
+    assert.match(src, /export default function AutonomousDigestMetrics/);
+  });
+
+  it('takes a digest prop typed as DigestResponse', () => {
+    const src = read('AutonomousDigestMetrics.tsx');
+    assert.match(src, /digest:\s*DigestResponse/);
+  });
+
+  it('owns its fmtDuration helper internally', () => {
+    const src = read('AutonomousDigestMetrics.tsx');
+    assert.match(src, /function fmtDuration/);
+  });
+
+  it('is a pure-display component (no state, no effects)', () => {
+    const src = read('AutonomousDigestMetrics.tsx');
+    assert.doesNotMatch(src, /useState/);
+    assert.doesNotMatch(src, /useEffect/);
+  });
+
+  it('is imported and rendered by AutonomousView', () => {
+    const parent = read('AutonomousView.tsx');
+    assert.match(parent, /import\s+AutonomousDigestMetrics\s+from\s+'\.\/AutonomousDigestMetrics'/);
+    assert.match(parent, /<AutonomousDigestMetrics\s+digest=\{digest\}/);
+  });
+
+  it('parent AutonomousView no longer holds the inline metrics grid nor fmtDuration', () => {
+    const parent = read('AutonomousView.tsx');
+    assert.doesNotMatch(parent, /^function fmtDuration/m);
+    assert.doesNotMatch(parent, /grid-cols-2 gap-x-6 gap-y-1 md:grid-cols-4/);
+  });
+});
+
 describe('extracted: WorkflowNodeProperties (v1.10.569)', () => {
   it('lives in its own file with default export', () => {
     const src = read('WorkflowNodeProperties.tsx');
