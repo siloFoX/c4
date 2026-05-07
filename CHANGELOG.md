@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.546] - 2026-05-07 — Extract SpecialistsAddPanel
+
+**Web — `SpecialistsView.tsx` shrunk by 104 lines (1054 → 950).**
+The JSON-driven add / propose panel (operator pastes a candidate
+JSON and either directly POSTs `/specialists` or proposes via
+meta-meeting consensus at `/specialists/propose`) extracted as a
+controlled component. SpecialistsView crosses below 1000 lines.
+
+### Refactor
+- New `web/src/components/SpecialistsAddPanel.tsx` (~166 lines):
+  the JSON textarea, both handlers (`handleAdd` and
+  `handlePropose`), the busy / message / failed state, the
+  `ProposeResponse` interface.
+- Parent keeps just the `addOpen` flag (so the existing toggle
+  button in the card header still works) and renders
+  `<SpecialistsAddPanel open={addOpen} onClose={…} onAdded={…} />`.
+  The `onAdded` callback wires to `setSelectedId(newId)` +
+  `setAddOpen(false)` + `void refresh()` — same flow as before.
+- New parent-side `actionError` banner: previously, `setAddError`
+  was reused by `handleTagEdit` and `handleScoreReset` to surface
+  transient errors, but those errors only displayed inside the
+  add panel (only when it was open) — effectively dead. The
+  extraction promotes them to a visible role="alert" banner
+  next to the Add toggle.
+- `Specialist` interface promoted to `export interface` so the
+  panel can type the POST response shape.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (6 assertions). Total: 14 suites, 70 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 14 of the perfection-track component split. Big-3
+  parents combined: 3916 lines (was 5104, -1188 / -23.3%).
+  SpecialistsView 950 (was 1365 at session start, -415 / -30.4%).
+  All three megacomponents now under 2000 lines (MeetingsView
+  1883, SessionsView 1034, SpecialistsView 950).
+
 ## [1.10.545] - 2026-05-07 — Extract SpecialistsSummaryBar
 
 **Web — `SpecialistsView.tsx` shrunk by 88 lines (1142 → 1054).**

@@ -7,6 +7,7 @@ import { t, tFormat, useLocale } from '../lib/i18n';
 import SpecialistsAuditPanel from './SpecialistsAuditPanel';
 import SpecialistsBulkOpsToolbar from './SpecialistsBulkOpsToolbar';
 import SpecialistsSummaryBar from './SpecialistsSummaryBar';
+import SpecialistsAddPanel from './SpecialistsAddPanel';
 
 // (multi-specialist phase 7.5) Specialists tab — registry view +
 // score visualization. Mirrors MeetingsView / WikiView's split
@@ -14,7 +15,7 @@ import SpecialistsSummaryBar from './SpecialistsSummaryBar';
 // this slice is read-only so an operator can see who's on the
 // roster and how they've scored across past retros.
 
-interface Specialist {
+export interface Specialist {
   id: string;
   displayName: string;
   tier: string;
@@ -136,82 +137,14 @@ export default function SpecialistsView() {
   }, []);
   useEffect(() => { refreshFlags(); }, [refreshFlags]);
 
-  // Add governance — accepts a JSON blob and POSTs to /specialists.
+  // (v1.10.546) Add / Propose panel extracted to
+  // ./SpecialistsAddPanel.tsx. Parent keeps the open flag so the
+  // header toggle button (aria-expanded={addOpen}) still works.
   const [addOpen, setAddOpen] = useState(false);
-  const [addJson, setAddJson] = useState('');
-  const [addBusy, setAddBusy] = useState(false);
-  const [addError, setAddError] = useState<string | null>(null);
-
-  const handleAdd = useCallback(async () => {
-    let parsed: unknown;
-    try { parsed = JSON.parse(addJson); }
-    catch (e) { setAddError(tFormat('specialists.add.invalidJson', { error: (e as Error).message })); return; }
-    setAddBusy(true);
-    setAddError(null);
-    try {
-      const res = await apiPost<{ ok: boolean; specialist: Specialist }>('/api/specialists', parsed);
-      if (res && res.specialist) {
-        setSelectedId(res.specialist.id);
-        setAddOpen(false);
-        setAddJson('');
-      }
-      await refresh();
-    } catch (e) {
-      setAddError((e as Error).message || t('common.failedToAddSpecialist'));
-    } finally {
-      setAddBusy(false);
-    }
-  }, [addJson, refresh]);
-
-  // (Phase 1.5) Propose specialist via meta-meeting consensus.
-  // Same JSON shape as Add, POSTed to /specialists/propose with
-  // brain=mock by default. Result includes meetingId so the
-  // operator can switch to Meetings tab and watch the consensus
-  // unfold.
-  const [proposeBusy, setProposeBusy] = useState(false);
-  const [proposeMsg, setProposeMsg] = useState<string | null>(null);
-  // (v1.10.485) Tone separated from message text — see prior tone refactors.
-  // Propose uses 'rejected' (amber/warning) vs 'accepted' (emerald/success).
-  const [proposeRejected, setProposeRejected] = useState(false);
-  const handlePropose = useCallback(async () => {
-    let parsed: unknown;
-    try { parsed = JSON.parse(addJson); }
-    catch (e) { setAddError(tFormat('specialists.add.invalidJson', { error: (e as Error).message })); return; }
-    setProposeBusy(true);
-    setAddError(null);
-    setProposeMsg(null);
-    setProposeRejected(false);
-    try {
-      const res = await apiPost<{
-        candidateId: string;
-        meetingId: string;
-        decision: { accepted: boolean; accepts: string[]; objects: Array<{ id: string }>; reason: string | null };
-        added: boolean;
-      }>('/api/specialists/propose', { candidate: parsed, brain: 'mock' });
-      if (res.added) {
-        setProposeMsg(tFormat('specialists.propose.accepted', {
-          count: res.decision.accepts.length,
-          meetingId: res.meetingId,
-        }));
-        setAddOpen(false);
-        setAddJson('');
-        setSelectedId(res.candidateId);
-      } else {
-        setProposeMsg(tFormat('specialists.propose.rejected', {
-          reason: res.decision.reason || t('common.unknown'),
-          meetingId: res.meetingId,
-        }));
-        setProposeRejected(true);
-      }
-      await refresh();
-    } catch (e) {
-      setAddError(tFormat('specialists.add.proposeFailed', {
-        error: (e as Error).message || t('common.failed'),
-      }));
-    } finally {
-      setProposeBusy(false);
-    }
-  }, [addJson, refresh]);
+  // Transient error surface for parent-side ops (tag-edit / score-reset)
+  // that don't have their own panel — kept here so the existing
+  // surfaces below the action buttons survive the AddPanel extraction.
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Remove governance — guarded by a 2-step confirm prompt.
   const [removeBusy, setRemoveBusy] = useState(false);
@@ -325,7 +258,7 @@ export default function SpecialistsView() {
       setTagEditOpen(false);
       await refresh();
     } catch (e) {
-      setAddError(tFormat('specialists.tagEdit.failed', {
+      setActionError(tFormat('specialists.tagEdit.failed', {
         error: (e as Error).message || t('common.failed'),
       }));
     } finally {
@@ -342,9 +275,9 @@ export default function SpecialistsView() {
       setConfirmResetId(null);
       await refresh();
     } catch (e) {
-      // Surface as a transient error in the existing add-error
+      // Surface as a transient error in the action-error
       // banner — minimal disruption for an operator-triggered op.
-      setAddError(tFormat('specialists.scoreReset.failed', {
+      setActionError(tFormat('specialists.scoreReset.failed', {
         error: (e as Error).message || t('common.failed'),
       }));
     } finally {
@@ -459,7 +392,7 @@ export default function SpecialistsView() {
             <div className="flex items-center gap-2">
               <Button
                 size="sm"
-                onClick={() => { setAddOpen((v) => !v); setAddError(null); }}
+                onClick={() => { setAddOpen((v) => !v); setActionError(null); }}
                 aria-label={t('specialists.add.label')}
                 aria-expanded={addOpen}
               >
@@ -478,59 +411,22 @@ export default function SpecialistsView() {
               </Button>
             </div>
           </div>
-          {addOpen ? (
-            <div className="flex flex-col gap-2 rounded-md border border-dashed border-border bg-muted/20 p-3">
-              <textarea
-                value={addJson}
-                onChange={(e) => setAddJson(e.target.value)}
-                placeholder='{"id":"data-engineer","displayName":"Data Engineer","tier":"implement","domain":["data","etl"],"brain":{"adapter":"claude-code","model":"sonnet"},"systemPrompt":"[Role: Data Engineer] ...","triggers":{"keywords":["etl"],"stages":["design","implement"]}}'
-                className="min-h-32 rounded-md border border-border bg-background p-2 font-mono text-[11px]"
-                aria-label={t('specialists.json.label')}
-                disabled={addBusy}
-              />
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  size="sm"
-                  onClick={handleAdd}
-                  disabled={addBusy || proposeBusy || !addJson.trim()}
-                  aria-label={t('specialists.action.confirmAdd')}
-                >
-                  {t('specialists.action.addLabel')}
-                </Button>
-                {/* (Phase 1.5) Propose via meta-meeting consensus —
-                    safer governance path than direct add. */}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handlePropose}
-                  disabled={proposeBusy || addBusy || !addJson.trim()}
-                  aria-label={t('specialists.action.propose')}
-                  title={t('specialists.tooltip.propose')}
-                >
-                  {t('specialists.action.proposeLabel')}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => { setAddOpen(false); setAddError(null); }}
-                  disabled={addBusy || proposeBusy}
-                >
-                  {t('common.cancel')}
-                </Button>
-                {addError ? (
-                  <span className="text-[11px] text-destructive">{addError}</span>
-                ) : null}
-                {proposeMsg ? (
-                  <span className={cn(
-                    'text-[11px]',
-                    proposeRejected ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400',
-                  )}>
-                    {proposeMsg}
-                  </span>
-                ) : null}
-              </div>
+          {actionError ? (
+            <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-[11px] text-destructive">
+              {actionError}
             </div>
           ) : null}
+          {/* (v1.10.546) Add/Propose panel extracted to
+              ./SpecialistsAddPanel.tsx. */}
+          <SpecialistsAddPanel
+            open={addOpen}
+            onClose={() => setAddOpen(false)}
+            onAdded={(newId) => {
+              setSelectedId(newId);
+              setAddOpen(false);
+              void refresh();
+            }}
+          />
           {/* (Phase 8.4) text search across id / displayName /
               systemPrompt / domain / triggers.keywords. Whitespace
               tokens AND-compose. */}

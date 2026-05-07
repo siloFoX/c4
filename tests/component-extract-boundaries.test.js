@@ -84,6 +84,49 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: SpecialistsAddPanel (v1.10.546)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SpecialistsAddPanel.tsx');
+    assert.match(src, /export default function SpecialistsAddPanel/);
+  });
+
+  it('takes open / onClose / onAdded props', () => {
+    const src = read('SpecialistsAddPanel.tsx');
+    assert.match(src, /open:\s*boolean/);
+    assert.match(src, /onClose:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onAdded:\s*\(newId:\s*string\)\s*=>\s*void/);
+  });
+
+  it('owns both Add (POST /specialists) and Propose (POST /specialists/propose) handlers', () => {
+    const src = read('SpecialistsAddPanel.tsx');
+    assert.match(src, /handleAdd/);
+    assert.match(src, /handlePropose/);
+    assert.match(src, /\/api\/specialists\/propose/);
+  });
+
+  it('owns its form / busy / message state internally', () => {
+    const src = read('SpecialistsAddPanel.tsx');
+    assert.match(src, /useState\(''\)/);
+    assert.match(src, /useState\(false\)/);
+    assert.match(src, /proposeRejected/);
+  });
+
+  it('is imported and rendered by SpecialistsView with onAdded wired to setSelectedId + refresh', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.match(parent, /import\s+SpecialistsAddPanel\s+from\s+'\.\/SpecialistsAddPanel'/);
+    assert.match(parent, /<SpecialistsAddPanel/);
+    assert.match(parent, /setSelectedId\(newId\)/);
+  });
+
+  it('parent SpecialistsView no longer holds add/propose state nor handlers', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.doesNotMatch(parent, /const \[addJson, setAddJson\]/);
+    assert.doesNotMatch(parent, /const \[proposeBusy, setProposeBusy\]/);
+    assert.doesNotMatch(parent, /const handleAdd /);
+    assert.doesNotMatch(parent, /const handlePropose /);
+  });
+});
+
 describe('extracted: SpecialistsSummaryBar (v1.10.545)', () => {
   it('lives in its own file with default export', () => {
     const src = read('SpecialistsSummaryBar.tsx');
