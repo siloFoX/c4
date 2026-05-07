@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.537] - 2026-05-07 — Pin strict tsconfig flags via test
+
+**New test — `tests/web-tsconfig-strict.test.js`.**
+Locks in all 8 TypeScript strict-mode flags from the
+v1.10.515-534 ratchet. Turning any of them off now fails
+a test rather than quietly dropping safety.
+
+### Flags pinned
+1. `strict: true` — covers strictNullChecks, noImplicitAny,
+   strictFunctionTypes, strictBindCallApply,
+   strictPropertyInitialization, alwaysStrict,
+   useUnknownInCatchVariables.
+2. `noUnusedLocals: true`
+3. `noUnusedParameters: true`
+4. `noFallthroughCasesInSwitch: true`
+5. `noImplicitOverride: true` *(v1.10.515)*
+6. `noUncheckedIndexedAccess: true` *(v1.10.522)*
+7. `noPropertyAccessFromIndexSignature: true` *(v1.10.533)*
+8. `exactOptionalPropertyTypes: true` *(v1.10.534)*
+
+### Tests
+- 9 individual flag assertions + 1 sweep that re-checks the
+  full set.
+- Total test count: 202 → 203.
+
+### Notes
+- Pure JSON-with-comments parser (strips `//` line comments,
+  `/* */` blocks, trailing commas) since tsconfig.json
+  permits these but `JSON.parse` does not.
+
 ## [1.10.536] - 2026-05-07 — Component extract boundary tests
 
 **New test suite — `tests/component-extract-boundaries.test.js`.**
