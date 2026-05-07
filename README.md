@@ -459,7 +459,7 @@ See [TODO.md](TODO.md) for the roadmap and open tasks.
 
 ## Roadmap
 
-Phase 1-7 complete (139+ items). Phase 8 (Web UI, observability, token optimization) planned. See [TODO.md](TODO.md) for details and [CHANGELOG.md](CHANGELOG.md) for version history.
+Phase 1-8 complete (220+ items, v1.10.527). Web UI ships with bilingual i18n (1329 keys en/ko), WCAG 2.1 AA accessibility, ~370KB first-paint critical path, 9 automated quality gates (lint/test/bundle/i18n×2/visual/a11y/runtime/snapshot), and ErrorBoundary protection. See [TODO.md](TODO.md) for the granular phase log and [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ## Author
 

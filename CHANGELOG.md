@@ -4,6 +4,25 @@
 
 (no entries — next release window)
 
+## [1.10.528] - 2026-05-07 — README roadmap update
+
+**Repo — README + README.ko.md roadmap section.**
+"Phase 1-7 complete (139+ items). Phase 8 planned" was
+stale — Phase 8 (Web UI, observability) shipped, total
+items >= 220, and the perfection track added 19 more
+ships of quality gates / a11y / type strictness.
+Updated to reflect the current state.
+
+### New roadmap line
+> Phase 1-8 complete (220+ items, v1.10.527). Web UI
+> ships with bilingual i18n (1329 keys en/ko), WCAG
+> 2.1 AA accessibility, ~370KB first-paint critical
+> path, 9 automated quality gates, and ErrorBoundary
+> protection.
+
+### Notes
+- 201/201 tests green.
+
 ## [1.10.527] - 2026-05-07 — CI: visual + a11y checks
 
 **CI — `.github/workflows/test.yml` extended.** After
