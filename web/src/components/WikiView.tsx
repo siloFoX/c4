@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { BookOpen, RotateCcw, Search } from 'lucide-react';
 import { apiGet, apiPost } from '../lib/api';
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
+import { Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import WikiSearchResults from './WikiSearchResults';
 
 // (multi-specialist phase 7.4) Wiki tab — split-pane like
 // MeetingsView. Left: query input + results list. Right: full page
 // body (frontmatter + raw markdown). Mirrors `c4 wiki search` /
 // `c4 wiki read` exactly so operators have parity between CLI and UI.
 
-interface SearchHit {
+export interface SearchHit {
   path: string;
   title: string;
   type: string;
@@ -23,7 +24,7 @@ interface SearchHit {
   snippet: string;
 }
 
-interface SearchResponse {
+export interface SearchResponse {
   wikiRoot: string;
   query: string;
   type: string;
@@ -299,44 +300,12 @@ export default function WikiView() {
           </div>
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col overflow-y-auto p-0">
-          {searchError ? (
-            <div className="p-4 text-sm text-destructive">{searchError}</div>
-          ) : !search ? (
-            <div className="p-4 text-sm text-muted-foreground">{t('wiki.loading')}</div>
-          ) : search.hits.length === 0 ? (
-            <div className="p-4 text-sm text-muted-foreground">
-              {tFormat('wiki.empty.format', { root: search.wikiRoot })}
-            </div>
-          ) : (
-            <ul className="divide-y divide-border">
-              {search.hits.map((h) => {
-                const active = h.path === selectedPath;
-                return (
-                  <li
-                    key={h.path}
-                    className={cn(
-                      'flex cursor-pointer flex-col gap-1 px-4 py-3 transition-colors',
-                      active ? 'bg-primary/30' : 'hover:bg-accent/40',
-                    )}
-                    onClick={() => setSelectedPath(h.path)}
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className="text-[10px] uppercase">{h.type}</Badge>
-                      {h.status ? (
-                        <span className="text-[10px] text-muted-foreground">[{h.status}]</span>
-                      ) : null}
-                      <span className="text-[10px] text-muted-foreground">{tFormat('wiki.scorePrefix', { score: h.score })}</span>
-                    </div>
-                    <span className="truncate text-sm font-medium">{h.title}</span>
-                    {h.snippet ? (
-                      <span className="line-clamp-2 text-[11px] text-muted-foreground">{h.snippet}</span>
-                    ) : null}
-                    <span className="truncate text-[10px] text-muted-foreground">{h.path}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+          <WikiSearchResults
+            search={search}
+            searchError={searchError}
+            selectedPath={selectedPath}
+            onSelect={setSelectedPath}
+          />
         </CardContent>
       </Card>
 

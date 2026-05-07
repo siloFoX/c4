@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.580] - 2026-05-08 — Extract WikiSearchResults
+
+**Web — `WikiView.tsx` shrunk by 35 lines (444 → 409).**
+The /wiki/search hits list (left pane card body) — error /
+loading / empty / hit-list states with badge + score + snippet
+rows — extracted as a pure-display sibling. 4 props. First
+extraction off WikiView.
+
+### Refactor
+- New `web/src/components/WikiSearchResults.tsx` (~69 lines):
+  the four render states + the per-hit row.
+- `WikiView.tsx`: removed the inline 38-line block. Replaced
+  with `<WikiSearchResults … onSelect={setSelectedPath} />`.
+  Dropped unused `Badge` import.
+- `SearchHit` and `SearchResponse` interfaces now exported so
+  the new sibling can type its props.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 47 suites, 258 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 46 of the perfection-track component split. WikiView
+  409 (was 440 at session start). 52 ships / 47 components+libs
+  / 258 boundary assertions.
+
 ## [1.10.579] - 2026-05-08 — Extract SessionsListSection
 
 **Web — `SessionsView.tsx` shrunk by 72 lines (625 → 553).**

@@ -1736,3 +1736,38 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
   });
 });
+
+describe('extracted: WikiSearchResults (v1.10.580)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('WikiSearchResults.tsx');
+    assert.match(src, /export default function WikiSearchResults/);
+  });
+
+  it('takes search/searchError/selectedPath/onSelect props', () => {
+    const src = read('WikiSearchResults.tsx');
+    assert.match(src, /search:\s*SearchResponse\s*\|\s*null/);
+    assert.match(src, /searchError:\s*string\s*\|\s*null/);
+    assert.match(src, /selectedPath:\s*string\s*\|\s*null/);
+    assert.match(src, /onSelect:\s*\(path:\s*string\)\s*=>\s*void/);
+  });
+
+  it('renders the four states (error / loading / empty / hit list)', () => {
+    const src = read('WikiSearchResults.tsx');
+    assert.match(src, /searchError/);
+    assert.match(src, /wiki\.loading/);
+    assert.match(src, /wiki\.empty\.format/);
+    assert.match(src, /search\.hits\.map/);
+  });
+
+  it('is imported and rendered by WikiView', () => {
+    const parent = read('WikiView.tsx');
+    assert.match(parent, /import\s+WikiSearchResults\s+from\s+'\.\/WikiSearchResults'/);
+    assert.match(parent, /<WikiSearchResults/);
+    assert.match(parent, /onSelect=\{setSelectedPath\}/);
+  });
+
+  it('parent WikiView no longer holds the inline results map', () => {
+    const parent = read('WikiView.tsx');
+    assert.doesNotMatch(parent, /search\.hits\.map\(/);
+  });
+});
