@@ -4,6 +4,69 @@
 
 (no entries — next release window)
 
+## [1.10.535] - 2026-05-07 — Console error audit + autonomous-mode 400 fix
+
+**New quality gate — console-error-audit.js.**
+Walks the dashboard surfaces with Playwright and asserts no
+`console.error` / `console.warn` / `pageerror` fires from app
+code during navigation. Wired into `npm run check:full` as
+step 4/5.
+
+The gate immediately surfaced 3 real bugs on the first run.
+
+### New file: `scripts/console-error-audit.js`
+- 9 surfaces walked (same set as `a11y-audit.js`).
+- Listens to `console` (error+warning) and `pageerror`.
+- Per-surface event counts; aggregated report at the end.
+- `IGNORE_PATTERNS` allowlist (Vite HMR, React strict-mode
+  dev double-fire, expected 401 on initial unauthenticated
+  load).
+- `npm run lint:console` for standalone use.
+
+### Bug fix — Autonomous mode 400 spam (3 console errors → 0)
+- `web/src/components/AutonomousView.tsx`: gate the
+  `/digest` + `/escalations` fetches on `/autonomous/status`.
+  When status returns `{enabled: false}`, skip the data
+  fetches and show a friendly disabled-state message
+  ("Autonomous mode is not enabled. Set config.autonomous.mode
+  = true and restart the daemon to use this tab.")
+- `web/src/components/layout/AppHeader.tsx`: same gating for
+  the autonomous-tab badge poll. Without this, every header
+  poll cycle (60s) fired a 400 even when autonomous mode was
+  disabled.
+- New i18n key `autonomous.notEnabled` (en + ko, lockstep
+  preserved at 1330).
+
+### Bug fix — i18n-visual user-data false positive
+- `web/src/components/WorkflowEditor.tsx`: tag user-supplied
+  workflow names with `data-i18n-skip="user-data"` so the
+  visual leak detector skips operator-entered text (a
+  workflow named "retry test" was flagged as untranslated
+  English).
+- `scripts/i18n-visual-check.js`: respect `data-i18n-skip`
+  ancestors when scanning for untranslated text.
+
+### Refactor — `scripts/check-full.sh`
+- Switched from `set -e` to per-step soft-fail aggregation.
+  All 5 gates now run on every invocation regardless of
+  earlier failures, and a single summary line lists which
+  ones broke. Without this, an i18n-visual leak would
+  short-circuit the new console + snapshot gates.
+- Step count: 4 → 5 (console-error-audit added between a11y
+  and snapshot).
+
+### Tests
+- 201/201 tests green.
+- Lint clean.
+- Build clean.
+- Full `npm run check:full`: ✓ All checks passed.
+
+### Notes
+- Adds the 9th automated quality gate. Total count now:
+  openapi, schema-drift, i18n-lockstep, bundle-size,
+  i18n-visual, a11y, console-errors, snapshot-diff,
+  unit-tests + 1 composite (`check:full`).
+
 ## [1.10.534] - 2026-05-07 — Tighten tsconfig (exactOptionalPropertyTypes)
 
 **Web — Final strict-mode flag enabled.**

@@ -448,7 +448,7 @@ export default function WorkflowEditor() {
                         )}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="truncate font-medium">{wf.name}</span>
+                          <span className="truncate font-medium" data-i18n-skip="user-data">{wf.name}</span>
                           <Badge
                             variant={wf.enabled ? 'success' : 'secondary'}
                             className="shrink-0 uppercase"

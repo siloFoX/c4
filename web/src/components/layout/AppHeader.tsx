@@ -53,10 +53,14 @@ export default function AppHeader({
   const [underperformerCount, setUnderperformerCount] = useState(0);
   // (v1.10.349) Pending autonomous escalation count for the
   // Autonomous tab badge. Same poll group as stuck/underperform.
+  // (v1.10.535) Gated on /autonomous/status so we don't spam 400s
+  // when autonomous mode is disabled (escalations endpoint 400s
+  // in that state; status always 200s).
   const [escalationCount, setEscalationCount] = useState(0);
   useEffect(() => {
     if (!authed) return undefined;
     let cancelled = false;
+    let autonomousEnabled: boolean | null = null;
     const fetchSignals = () => {
       apiGet<{ count: number }>('/api/meetings/stuck?hours=1')
         .then((res) => { if (!cancelled) setStuckCount(res.count || 0); })
@@ -64,9 +68,23 @@ export default function AppHeader({
       apiGet<{ flagged: number }>('/api/specialists/underperformers')
         .then((res) => { if (!cancelled) setUnderperformerCount(res.flagged || 0); })
         .catch(() => { /* tolerate */ });
-      apiGet<{ count: number; escalations: unknown[] }>('/api/autonomous/escalations')
-        .then((res) => { if (!cancelled) setEscalationCount(res.count || 0); })
-        .catch(() => { /* tolerate */ });
+      const fetchEscalations = () => {
+        apiGet<{ count: number; escalations: unknown[] }>('/api/autonomous/escalations')
+          .then((res) => { if (!cancelled) setEscalationCount(res.count || 0); })
+          .catch(() => { /* tolerate */ });
+      };
+      if (autonomousEnabled === true) {
+        fetchEscalations();
+      } else if (autonomousEnabled === null) {
+        apiGet<{ enabled: boolean }>('/api/autonomous/status')
+          .then((s) => {
+            if (cancelled) return;
+            autonomousEnabled = !!s.enabled;
+            if (s.enabled) fetchEscalations();
+          })
+          .catch(() => { /* tolerate */ });
+      }
+      // autonomousEnabled === false → skip escalations entirely
     };
     fetchSignals();
     const id = window.setInterval(fetchSignals, 60000);

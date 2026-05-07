@@ -162,6 +162,17 @@ async function pickEnglishLeaks(page) {
       const cls = (el.className && typeof el.className === 'string') ? el.className : '';
       if (/font-mono/.test(cls) || el.tagName === 'CODE' || el.tagName === 'PRE') continue;
       if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') continue;
+      // (v1.10.535) Explicit user-data marker — operator-supplied
+      // names (workflow titles, worker names, etc.) aren't translatable.
+      if (el.getAttribute('data-i18n-skip') === 'user-data') continue;
+      // Skip ancestors marked as user-data too
+      let parentSkip = false;
+      let p = el.parentElement;
+      while (p && p !== document.body) {
+        if (p.getAttribute && p.getAttribute('data-i18n-skip') === 'user-data') { parentSkip = true; break; }
+        p = p.parentElement;
+      }
+      if (parentSkip) continue;
       // Skip session snippet preview (conversation transcript content)
       if (/line-clamp-\d/.test(cls)) continue;
       // Skip truncated path/identifier-style cells

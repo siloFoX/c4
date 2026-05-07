@@ -80,11 +80,26 @@ export default function AutonomousView() {
   // (v1.10.484) Tone separated from message text — see prior tone refactors.
   const [pauseFailed, setPauseFailed] = useState(false);
 
+  // (v1.10.535) Track whether autonomous mode is enabled. When
+  // false, /digest and /escalations both 400; we gate on
+  // /status (which always returns 200) so the UI shows a friendly
+  // disabled state instead of spamming console errors.
+  const [autonomousEnabled, setAutonomousEnabled] = useState<boolean | null>(null);
+
   const refresh = useCallback(async () => {
     setLoading(true);
     setDigestError(null);
     setEscalError(null);
     try {
+      const status = await apiGet<{ enabled: boolean; reason?: string }>(
+        '/api/autonomous/status',
+      );
+      setAutonomousEnabled(status.enabled);
+      if (!status.enabled) {
+        setDigest(null);
+        setEscalations([]);
+        return;
+      }
       const [d, e] = await Promise.all([
         apiGet<DigestResponse>('/api/autonomous/digest'),
         apiGet<{ count: number; escalations: Escalation[] }>(
@@ -214,7 +229,9 @@ export default function AutonomousView() {
           </div>
         </CardHeader>
         <CardContent className="p-4 text-[12px]">
-          {digestError ? (
+          {autonomousEnabled === false ? (
+            <div className="text-muted-foreground">{t('autonomous.notEnabled')}</div>
+          ) : digestError ? (
             <div className="text-destructive">{digestError}</div>
           ) : !digest ? (
             <div className="text-muted-foreground">{t('common.loading')}</div>

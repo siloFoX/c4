@@ -591,6 +591,7 @@
   "autonomous.title": "Autonomous loop",
   "autonomous.status.paused": "paused",
   "autonomous.status.running": "running",
+  "autonomous.notEnabled": "Autonomous mode is not enabled. Set config.autonomous.mode = true and restart the daemon to use this tab.",
   "autonomous.refresh.label": "Refresh autonomous data",
   "autonomous.pause": "Pause",
   "autonomous.resume": "Resume",

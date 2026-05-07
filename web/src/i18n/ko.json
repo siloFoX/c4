@@ -591,6 +591,7 @@
   "autonomous.title": "자율 루프",
   "autonomous.status.paused": "일시정지",
   "autonomous.status.running": "실행 중",
+  "autonomous.notEnabled": "자율 모드가 비활성화 상태입니다. 이 탭을 사용하려면 config.autonomous.mode = true로 설정하고 데몬을 재시작하세요.",
   "autonomous.refresh.label": "자율 데이터 새로고침",
   "autonomous.pause": "일시정지",
   "autonomous.resume": "재개",
