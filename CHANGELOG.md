@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.529] - 2026-05-07 — Extract MeetingsMaintenancePanel
+
+**Web — `MeetingsView.tsx` shrunk 2683 → 2372 lines.**
+The maintenance footer (collapsible panel with integrity
+/ FTS rebuild / hot backup / prune-old) extracted to its
+own component `MeetingsMaintenancePanel.tsx` (348 lines).
+
+### Refactor
+- 6 chunks of state moved to the new component
+  (maintOpen/integrity×3/backup×5/fts×3/prune×6).
+- 4 callbacks moved (handleIntegrity/handleFtsRebuild/
+  handleBackup/handlePrune).
+- Single `onPruned` prop wires the new component back to
+  `MeetingsView`'s `refresh()` so the list re-fetches
+  after a destructive prune.
+- All 14 i18n keys preserved (no string changes).
+
+### Verification
+- 201/201 tests green.
+- TypeScript clean (strict + noUnchecked + noImplicit).
+- Visual i18n scan + snapshot diff: 0 failures.
+- a11y audit: 0 violations.
+
+### Notes
+- First step in chipping away at the 2683-line monolith.
+  Future ships can extract template editor / contribute
+  panel / state-action bar similarly.
+
 ## [1.10.528] - 2026-05-07 — README roadmap update
 
 **Repo — README + README.ko.md roadmap section.**
