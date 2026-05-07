@@ -295,7 +295,7 @@ function renderInline(text: string): JSX.Element[] {
           key={`l-${keyIdx++}`}
           href={linkMatch[2]}
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
           className="text-primary underline-offset-4 hover:underline"
         >
           {linkMatch[1]}

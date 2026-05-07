@@ -4,6 +4,25 @@
 
 (no entries — next release window)
 
+## [1.10.518] - 2026-05-07 — Security: rel="noopener" on external links
+
+**Web — `target="_blank"` links now carry both `noopener`
+and `noreferrer`.** Previously only `noreferrer` was set.
+Without `noopener`, a malicious or compromised destination
+page can use `window.opener` to redirect or modify the
+original tab — a tabnabbing attack vector.
+
+### Coverage
+- `ConversationView.tsx`: links rendered inside markdown
+  spans of conversation transcripts.
+- `lib/markdown.tsx`: shared markdown link renderer used
+  across feature pages.
+
+### Notes
+- 201/201 tests green.
+- This is a hardening fix, not a known incident — but
+  it's the kind of issue a security review would flag.
+
 ## [1.10.517] - 2026-05-07 — i18n lockstep linter
 
 **Repo — `scripts/check-i18n-lockstep.js` enforces that

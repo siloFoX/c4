@@ -81,7 +81,7 @@ function renderInline(text: string): ReactNode[] {
               key={`a-${counter++}`}
               href={url}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="text-primary underline-offset-4 hover:underline"
             >
               {label}
