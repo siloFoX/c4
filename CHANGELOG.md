@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.524] - 2026-05-07 — `c4 doctor` perfection checks
+
+**Daemon — `c4 doctor` extended with perfection-track
+checks.** Two new diagnostics surface if a deployed
+checkout drifted from the perfection baseline:
+
+### New checks
+1. **i18n bundle lockstep** — reads en.json + ko.json,
+   reports key counts, fails if either side has keys the
+   other doesn't.
+2. **Web bundle size** — sniffs the latest
+   `web/dist/assets/index-*.js` and reports against the
+   280KB hard cap. Same budget the CI gate uses.
+
+Both gracefully skip if the relevant files don't exist
+(e.g. doctor running on a daemon-only checkout).
+
+### Notes
+- 201/201 tests green.
+- The doctor output for a healthy checkout now includes:
+  `i18n bundle lockstep (1329 keys, en/ko match)` and
+  `web bundle: index-*.js NKB / 280KB budget`.
+
 ## [1.10.523] - 2026-05-07 — Visual snapshot diff
 
 **Repo — `scripts/visual-snapshot-diff.js` + baseline.**

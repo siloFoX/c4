@@ -1121,6 +1121,58 @@ async function main() {
           }
         }
 
+        // (v1.10.524) i18n bundle lockstep — en.json and ko.json
+        // must hold the same keyset. A mismatch ships blank cells
+        // under one locale or dead translations.
+        try {
+          const i18nDir = localPath.resolve(__dirname, '..', 'web', 'src', 'i18n');
+          const enPath = localPath.join(i18nDir, 'en.json');
+          const koPath = localPath.join(i18nDir, 'ko.json');
+          if (fs2.existsSync(enPath) && fs2.existsSync(koPath)) {
+            const en = JSON.parse(fs2.readFileSync(enPath, 'utf8'));
+            const ko = JSON.parse(fs2.readFileSync(koPath, 'utf8'));
+            const enKeys = new Set(Object.keys(en));
+            const koKeys = new Set(Object.keys(ko));
+            const missingKo = [...enKeys].filter((k) => !koKeys.has(k));
+            const missingEn = [...koKeys].filter((k) => !enKeys.has(k));
+            const total = enKeys.size;
+            if (missingKo.length === 0 && missingEn.length === 0) {
+              checks.push({ ok: true, label: `i18n bundle lockstep (${total} keys, en/ko match)` });
+            } else {
+              checks.push({
+                ok: false,
+                label: `i18n bundle drift: ${missingKo.length} key(s) missing from ko, ${missingEn.length} from en — run \`npm run lint:i18n-lockstep\``,
+              });
+            }
+          }
+        } catch (e) {
+          checks.push({ ok: true, level: 'warn', label: `i18n bundle check skipped: ${e.message}` });
+        }
+
+        // (v1.10.524) Bundle size budget. Quick heuristic — index
+        // bundle should stay under 280KB. If web/dist exists, sample.
+        try {
+          const distAssets = localPath.resolve(__dirname, '..', 'web', 'dist', 'assets');
+          if (fs2.existsSync(distAssets)) {
+            const indexFile = fs2.readdirSync(distAssets).find((f) => /^index-.*\.js$/.test(f));
+            if (indexFile) {
+              const size = fs2.statSync(localPath.join(distAssets, indexFile)).size;
+              const kb = Math.round(size / 1024);
+              const budgetKb = 280;
+              if (size <= budgetKb * 1024) {
+                checks.push({ ok: true, label: `web bundle: ${indexFile} ${kb}KB / ${budgetKb}KB budget` });
+              } else {
+                checks.push({
+                  ok: false,
+                  label: `web bundle over budget: ${indexFile} ${kb}KB > ${budgetKb}KB — run \`npm run lint:bundle-size\``,
+                });
+              }
+            }
+          }
+        } catch (e) {
+          checks.push({ ok: true, level: 'warn', label: `web bundle check skipped: ${e.message}` });
+        }
+
         const failed = checks.filter((c) => !c.ok).length;
         const warned = checks.filter((c) => c.ok && c.level === 'warn').length;
         // (v1.10.291) --json mode for monitoring/scripting
