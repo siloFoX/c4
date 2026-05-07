@@ -4,6 +4,48 @@
 
 (no entries — next release window)
 
+## [1.10.531] - 2026-05-07 — Extract SpecialistsAuditPanel
+
+**Web — `SpecialistsView.tsx` shrunk by ~240 lines.**
+The collapsible audit log viewer + chain-verify + CSV export
+panel split out of SpecialistsView's mega-component into its own
+file. SpecialistsView now imports `<SpecialistsAuditPanel />`
+and the audit panel owns its own state and polling.
+
+### Refactor
+- New `web/src/components/SpecialistsAuditPanel.tsx` (~256
+  lines): owns `auditOpen`, `auditEntries`, `auditLoading`,
+  `auditWindow`, `verifyBusy`, `verifyResult`, `exportAuditBusy`,
+  the `AuditEntry` interface, and the `AuditWindow` window
+  selector.
+- `useEffect` polling (30s tick) lives inside the new component
+  and is gated on `auditOpen` so the closed state adds no load.
+- `apiFetch` lazy-imported only inside `handleAuditExport` to
+  keep the synchronous import surface tight.
+- `SpecialistsView.tsx`: removed unused `ChevronDown` /
+  `ChevronRight` imports (now lived in the audit panel) and
+  added `import SpecialistsAuditPanel from './SpecialistsAuditPanel'`.
+- Local `AuditEntry` interface kept at the call site only for
+  the enrichment fetch (`?include=audit,meetings`); structurally
+  identical to the panel's, but kept local to avoid a circular
+  import.
+
+### Bundle
+- `SpecialistsView` chunk: 38.11 KB (was higher before split).
+- `SpecialistsAuditPanel` co-bundled with its parent (no
+  additional chunk because audit is rendered eagerly when
+  Specialists tab is open).
+
+### Tests
+- 201/201 tests green.
+- Lint clean (OpenAPI + schema-drift + i18n-lockstep).
+- Build clean.
+
+### Notes
+- Stage 3 of the perfection-track component split. Earlier
+  stages: `MeetingsMaintenancePanel` (v1.10.529),
+  `SessionsTour` (v1.10.530).
+
 ## [1.10.530] - 2026-05-07 — Extract SessionsTour
 
 **Web — `SessionsView.tsx` shrunk 1423 → 1367 lines.**
