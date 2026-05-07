@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.513] - 2026-05-07 — ErrorBoundary regression test
+
+**Tests — `tests/error-boundary.test.js` (10 cases).**
+Pins the ErrorBoundary contract via source-grep so future
+refactors can't silently break the catch path.
+
+### Coverage
+- Class component shape (boundaries can't be hooks).
+- `getDerivedStateFromError` + `componentDidCatch`
+  presence.
+- `console.error('[ErrorBoundary]', ...)` for operator
+  devtools capture.
+- All 4 i18n keys used (no hardcoded English).
+- Both recovery paths: `setState({ error: null })` and
+  `window.location.reload()`.
+- Stack trace rendered in `<pre>` for copy/paste.
+- Pass-through of children when no error.
+- `main.tsx` wires it inside StrictMode around `<App/>`.
+
+### Notes
+- 201/201 tests green.
+- Boundary itself unchanged from v1.10.512.
+
 ## [1.10.512] - 2026-05-07 — Top-level ErrorBoundary
 
 **Web — `components/ErrorBoundary.tsx` wraps `<App/>`.**
