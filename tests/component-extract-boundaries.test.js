@@ -1,0 +1,119 @@
+'use strict';
+
+// (v1.10.536) Component extraction boundary tests. Locks in the
+// extracted component files so future refactors don't accidentally
+// re-inline them into their parent megacomponents. Each split was
+// done because the parent had grown unwieldy (1300+ lines); folding
+// them back would silently negate that work.
+//
+// Pure source-grep — no browser, no jsdom. Just asserts that the
+// extracted file exists, exports the expected default, and that
+// the parent imports + renders it.
+
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const { describe, it } = require('node:test');
+
+const ROOT = path.join(__dirname, '..');
+const COMPONENTS = path.join(ROOT, 'web', 'src', 'components');
+
+function read(file) {
+  return fs.readFileSync(path.join(COMPONENTS, file), 'utf8');
+}
+
+describe('extracted: MeetingsMaintenancePanel (v1.10.529)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsMaintenancePanel.tsx');
+    assert.match(src, /export default function MeetingsMaintenancePanel/);
+  });
+
+  it('is imported and rendered by MeetingsView', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsMaintenancePanel\s+from\s+'\.\/MeetingsMaintenancePanel'/);
+    assert.match(parent, /<MeetingsMaintenancePanel\s/);
+  });
+
+  it('owns its own state (integrity, backup, fts, prune)', () => {
+    const src = read('MeetingsMaintenancePanel.tsx');
+    // Sanity-check that state lives in the panel, not inherited from parent.
+    assert.match(src, /useState/);
+  });
+});
+
+describe('extracted: SessionsTour (v1.10.530)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SessionsTour.tsx');
+    assert.match(src, /export default function SessionsTour/);
+  });
+
+  it('is imported and rendered by SessionsView', () => {
+    const parent = read('SessionsView.tsx');
+    assert.match(parent, /import\s+SessionsTour\s+from\s+'\.\/SessionsTour'/);
+    assert.match(parent, /<SessionsTour\s/);
+  });
+
+  it('reuses TOUR_STEPS exported from SessionsView', () => {
+    const src = read('SessionsTour.tsx');
+    assert.match(src, /import\s+\{[^}]*TOUR_STEPS[^}]*\}\s+from\s+'\.\/SessionsView'/);
+  });
+});
+
+describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SpecialistsAuditPanel.tsx');
+    assert.match(src, /export default function SpecialistsAuditPanel/);
+  });
+
+  it('is imported and rendered by SpecialistsView', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.match(parent, /import\s+SpecialistsAuditPanel\s+from\s+'\.\/SpecialistsAuditPanel'/);
+    assert.match(parent, /<SpecialistsAuditPanel\s*\/>/);
+  });
+
+  it('owns the audit polling effect (gated on auditOpen)', () => {
+    const src = read('SpecialistsAuditPanel.tsx');
+    assert.match(src, /if \(!auditOpen\) return/);
+    assert.match(src, /window\.setInterval\(fetchAudit, 30000\)/);
+  });
+
+  it('owns the chain-verify handler', () => {
+    const src = read('SpecialistsAuditPanel.tsx');
+    assert.match(src, /handleVerify/);
+    assert.match(src, /\/api\/audit\/verify/);
+  });
+});
+
+describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SpecialistsBulkOpsToolbar.tsx');
+    assert.match(src, /export default function SpecialistsBulkOpsToolbar/);
+  });
+
+  it('takes an onChange prop (parent refresh callback)', () => {
+    const src = read('SpecialistsBulkOpsToolbar.tsx');
+    assert.match(src, /onChange:\s*\(\)\s*=>\s*void\s*\|\s*Promise<void>/);
+  });
+
+  it('is imported and rendered by SpecialistsView with onChange wired to refresh', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.match(parent, /import\s+SpecialistsBulkOpsToolbar\s+from\s+'\.\/SpecialistsBulkOpsToolbar'/);
+    assert.match(parent, /<SpecialistsBulkOpsToolbar\s+onChange=\{refresh\}\s*\/>/);
+  });
+
+  it('owns the export / import / audit-rotate handlers', () => {
+    const src = read('SpecialistsBulkOpsToolbar.tsx');
+    assert.match(src, /handleExport/);
+    assert.match(src, /handleImportFile/);
+    assert.match(src, /handleImportApply/);
+    assert.match(src, /handleAuditRotate/);
+  });
+
+  it('parent SpecialistsView no longer holds bulk-ops state', () => {
+    // After v1.10.532, the parent must not declare these.
+    const parent = read('SpecialistsView.tsx');
+    assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
+    assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
+    assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});

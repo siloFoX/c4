@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.536] - 2026-05-07 — Component extract boundary tests
+
+**New test suite — `tests/component-extract-boundaries.test.js`.**
+Locks in the four extracted components from v1.10.529 through
+v1.10.532 so future refactors can't silently re-inline them
+into their parent megacomponents (which were extracted because
+the parents hit 1300-2400 lines).
+
+### Coverage
+- `MeetingsMaintenancePanel` (v1.10.529): file exists, default
+  export, parent imports + renders.
+- `SessionsTour` (v1.10.530): file exists, default export,
+  parent imports, reuses `TOUR_STEPS` re-export.
+- `SpecialistsAuditPanel` (v1.10.531): file exists, default
+  export, parent imports + renders self-closing tag, owns
+  audit polling effect gated on `auditOpen`, owns chain-verify
+  handler.
+- `SpecialistsBulkOpsToolbar` (v1.10.532): file exists,
+  default export, takes `onChange` prop, parent passes
+  `refresh` to it, owns the four handlers, parent no longer
+  declares the bulk-ops state.
+
+### Tests
+- 4 suites, 15 tests, all pass.
+- Total test count: 201 → 202.
+
+### Notes
+- Pure source-grep style (no jsdom, no browser). Same pattern
+  as `tests/sessions-view.test.js` and the other `*-view.test.js`
+  anchors. Cheap to run, catches structural drift early.
+
 ## [1.10.535] - 2026-05-07 — Console error audit + autonomous-mode 400 fix
 
 **New quality gate — console-error-audit.js.**
