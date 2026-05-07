@@ -84,6 +84,51 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: worker-classify lib (v1.10.572)', () => {
+  it('lives in lib/worker-classify.ts with all 4 helpers exported', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const file = path.join(__dirname, '..', 'web', 'src', 'lib', 'worker-classify.ts');
+    const src = fs.readFileSync(file, 'utf8');
+    assert.match(src, /export function isInterventionActive/);
+    assert.match(src, /export function mapWorkerStatusToBadgeVariant/);
+    assert.match(src, /export function statusLabel/);
+    assert.match(src, /export function groupOf/);
+  });
+
+  it('isInterventionActive handles the v8.21 string-enum form', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const file = path.join(__dirname, '..', 'web', 'src', 'lib', 'worker-classify.ts');
+    const src = fs.readFileSync(file, 'utf8');
+    assert.match(src, /typeof w\.intervention === 'string'/);
+    assert.match(src, /'approval_pending'/);
+  });
+
+  it('is imported by WorkerList', () => {
+    const parent = read('WorkerList.tsx');
+    assert.match(parent, /from\s+'\.\.\/lib\/worker-classify'/);
+    assert.match(parent, /isInterventionActive/);
+    assert.match(parent, /groupOf/);
+  });
+
+  it('is imported by HierarchyTree (bug fix: no longer drifts on string enum)', () => {
+    const parent = read('HierarchyTree.tsx');
+    assert.match(parent, /from\s+'\.\.\/lib\/worker-classify'/);
+    assert.match(parent, /isInterventionActive/);
+  });
+
+  it('parents no longer hold inline duplicates', () => {
+    const wl = read('WorkerList.tsx');
+    const ht = read('HierarchyTree.tsx');
+    assert.doesNotMatch(wl, /^function isInterventionActive/m);
+    assert.doesNotMatch(wl, /^function groupOf/m);
+    assert.doesNotMatch(ht, /^function isInterventionActive/m);
+    assert.doesNotMatch(ht, /^function statusLabel/m);
+    assert.doesNotMatch(ht, /^function statusVariant/m);
+  });
+});
+
 describe('extracted: AutonomousDigestMetrics (v1.10.570)', () => {
   it('lives in its own file with default export', () => {
     const src = read('AutonomousDigestMetrics.tsx');

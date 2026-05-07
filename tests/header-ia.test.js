@@ -62,14 +62,20 @@ describe('WorkerList groups by tier with collapsible sections', () => {
   const src = readText(WORKER_LIST);
 
   it('exports a groupOf helper that defaults to worker', () => {
-    assert.match(src, /function groupOf\(w: Worker\)/);
-    assert.match(src, /if \(w\.tier === 'manager'\) return 'manager'/);
+    // (v1.10.572) groupOf moved to ../lib/worker-classify.ts
+    const lib = path.join(__dirname, '..', 'web', 'src', 'lib', 'worker-classify.ts');
+    const libSrc = fs.readFileSync(lib, 'utf8');
+    assert.match(libSrc, /export function groupOf\(w: Worker\)/);
+    assert.match(libSrc, /if \(w\.tier === 'manager'\) return 'manager'/);
   });
 
   it('falls back to a name-pattern heuristic for pre-8.37 daemons', () => {
-    assert.match(src, /\/\^c4-mgr\/i\.test\(w\.name\)/);
-    assert.match(src, /\/\^auto-mgr\/i\.test\(w\.name\)/);
-    assert.match(src, /\/-mgr-\/i\.test\(w\.name\)/);
+    // (v1.10.572) groupOf body lives in worker-classify.ts now.
+    const lib = path.join(__dirname, '..', 'web', 'src', 'lib', 'worker-classify.ts');
+    const libSrc = fs.readFileSync(lib, 'utf8');
+    assert.match(libSrc, /\/\^c4-mgr\/i\.test\(w\.name\)/);
+    assert.match(libSrc, /\/\^auto-mgr\/i\.test\(w\.name\)/);
+    assert.match(libSrc, /\/-mgr-\/i\.test\(w\.name\)/);
   });
 
   it('renders a GroupHeader with crown + wrench lucide icons', () => {
@@ -170,11 +176,13 @@ describe('groupOf (manager / worker bucket assignment)', () => {
   });
 
   it('source mirrors the shim', () => {
-    const wl = readText(WORKER_LIST);
-    assert.match(wl, /function groupOf\(w: Worker\): 'manager' \| 'worker'/);
-    assert.match(wl, /\/\^c4-mgr\/i\.test\(w\.name\)/);
-    assert.match(wl, /\/\^auto-mgr\/i\.test\(w\.name\)/);
-    assert.match(wl, /\/-mgr-\/i\.test\(w\.name\)/);
+    // (v1.10.572) groupOf moved to ../lib/worker-classify.ts
+    const lib = path.join(__dirname, '..', 'web', 'src', 'lib', 'worker-classify.ts');
+    const libSrc = fs.readFileSync(lib, 'utf8');
+    assert.match(libSrc, /export function groupOf\(w: Worker\): 'manager' \| 'worker'/);
+    assert.match(libSrc, /\/\^c4-mgr\/i\.test\(w\.name\)/);
+    assert.match(libSrc, /\/\^auto-mgr\/i\.test\(w\.name\)/);
+    assert.match(libSrc, /\/-mgr-\/i\.test\(w\.name\)/);
   });
 });
 

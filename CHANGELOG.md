@@ -4,6 +4,49 @@
 
 (no entries — next release window)
 
+## [1.10.572] - 2026-05-08 — Extract worker-classify lib (with bug fix)
+
+**Web — `WorkerList.tsx` -32 lines (311 → 279), `HierarchyTree.tsx`
+-16 lines (339 → 323).** The four worker-classification helpers
+(isInterventionActive, mapWorkerStatusToBadgeVariant,
+statusLabel, groupOf) lifted into a shared
+`lib/worker-classify.ts`. WorkerList and HierarchyTree had drifted
+copies of `isInterventionActive` — HierarchyTree's was missing
+the v8.21 string-enum handling, so background_exit and
+past_resolved interventions were incorrectly counted as
+"needs human" in tree rollups. Single source of truth restores
+correctness.
+
+### Refactor
+- New `web/src/lib/worker-classify.ts` (~52 lines): the four
+  pure helpers. `isInterventionActive` uses WorkerList's
+  string-enum-aware version.
+- `WorkerList.tsx`: removed all 4 inline helpers + the local
+  `BadgeVariant` type alias + the unused `BadgeProps` import.
+- `HierarchyTree.tsx`: removed the legacy `isInterventionActive`
+  (correctness drift), `statusLabel`, `statusVariant` (renamed
+  to mapWorkerStatusToBadgeVariant for consistency). Removed
+  the unused `BadgeProps` import + `BadgeVariant` alias.
+- `tests/header-ia.test.js`: 3 contract assertions redirected
+  to source-grep the new lib.
+
+### Bug fix
+- HierarchyTree's tree rollups now correctly classify
+  `background_exit` / `past_resolved` interventions as
+  informational (not "needs human"). Pre-fix, they were
+  incremented into the `intervention` rollup.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite
+  added (5 assertions). Total: 39 suites, 215 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 38 of the perfection-track component split. First
+  drift bug surfaced + fixed by an extraction.
+
 ## [1.10.571] - 2026-05-08 — Dedupe b64decode (XtermView → chat-helpers)
 
 **Web — `XtermView.tsx` shrunk by 9 lines (454 → 445).**

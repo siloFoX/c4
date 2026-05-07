@@ -2,9 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Dot, WifiOff } from 'lucide-react';
 import type { ListResponse, SSEEvent, Worker } from '../types';
 import { apiFetch, eventSourceUrl } from '../lib/api';
-import { Badge, Button, type BadgeProps } from './ui';
+import { Badge, Button } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import {
+  isInterventionActive,
+  mapWorkerStatusToBadgeVariant,
+  statusLabel,
+} from '../lib/worker-classify';
 
 // 8.2 Hierarchy tree sidebar view. Builds a parent/child forest from the
 // flat /api/list worker array (same endpoint as WorkerList) and renders it
@@ -12,7 +17,6 @@ import { t, tFormat, useLocale } from '../lib/i18n';
 // frontend (vs. consuming /api/tree) so SSE-triggered re-renders reuse the
 // list cache and do not double-fetch.
 
-type BadgeVariant = NonNullable<BadgeProps['variant']>;
 
 interface Rollup {
   total: number;
@@ -29,14 +33,10 @@ interface TreeNode {
   rollup: Rollup;
 }
 
-function isInterventionActive(w: Worker | null | undefined): boolean {
-  if (!w || !w.intervention) return false;
-  const iv = w.intervention as { active?: unknown };
-  if (Object.prototype.hasOwnProperty.call(iv, 'active')) {
-    return Boolean(iv.active);
-  }
-  return true;
-}
+// (v1.10.572) isInterventionActive moved to ../lib/worker-classify.ts.
+// (Bug fix: HierarchyTree's previous local copy missed the v8.21
+// string-enum form, so background_exit + past_resolved interventions
+// were incorrectly counted as "needs human" in tree rollups.)
 
 function zeroRollup(): Rollup {
   return { total: 0, idle: 0, busy: 0, exited: 0, intervention: 0, error: 0 };
@@ -101,17 +101,9 @@ function buildTree(workers: Worker[]): TreeNode[] {
   return roots;
 }
 
-function statusLabel(w: Worker): string {
-  if (isInterventionActive(w)) return 'intervention';
-  return w.status;
-}
-
-function statusVariant(w: Worker): BadgeVariant {
-  if (isInterventionActive(w)) return 'destructive';
-  if (w.status === 'busy') return 'warning';
-  if (w.status === 'idle') return 'success';
-  return 'secondary';
-}
+// (v1.10.572) statusLabel + statusVariant moved to
+// ../lib/worker-classify.ts (statusVariant renamed to
+// mapWorkerStatusToBadgeVariant for consistency with WorkerList).
 
 interface HierarchyTreeProps {
   selectedWorker: string | null;
@@ -180,7 +172,7 @@ function TreeRow({ node, depth, expanded, toggle, selectedWorker, onSelect }: Ro
         >
           {node.worker.name}
         </button>
-        <Badge variant={statusVariant(node.worker)} className="shrink-0 uppercase">
+        <Badge variant={mapWorkerStatusToBadgeVariant(node.worker)} className="shrink-0 uppercase">
           {statusLabel(node.worker)}
         </Badge>
       </div>

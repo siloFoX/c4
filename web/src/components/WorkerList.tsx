@@ -7,51 +7,19 @@ import {
   Card,
   CardContent,
   CardHeader,
-  type BadgeProps,
 } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import WorkerListGroupHeader from './WorkerListGroupHeader';
+import {
+  groupOf,
+  isInterventionActive,
+  mapWorkerStatusToBadgeVariant,
+  statusLabel,
+} from '../lib/worker-classify';
 
-type BadgeVariant = NonNullable<BadgeProps['variant']>;
-
-function isInterventionActive(w: Worker): boolean {
-  if (!w.intervention) return false;
-  // (8.21) Server now emits the narrowed string enum:
-  // 'approval_pending' | 'background_exit' | 'past_resolved' | null.
-  // Only approval_pending counts as "needs human"; bg-exit and
-  // past_resolved are informational breadcrumbs.
-  if (typeof w.intervention === 'string') {
-    return w.intervention === 'approval_pending';
-  }
-  const active = (w.intervention as { active?: unknown }).active;
-  return active === undefined ? true : Boolean(active);
-}
-
-function mapWorkerStatusToBadgeVariant(w: Worker): BadgeVariant {
-  if (isInterventionActive(w)) return 'destructive';
-  if (w.status === 'busy') return 'warning';
-  if (w.status === 'idle') return 'success';
-  return 'secondary';
-}
-
-function statusLabel(w: Worker): string {
-  return isInterventionActive(w) ? 'intervention' : w.status;
-}
-
-// (TODO 8.37) Resolve a worker's group bucket from its `tier` field
-// (added by daemon's /api/list in 8.37). Falls back to a name-pattern
-// heuristic for compatibility with pre-8.37 daemons that don't fold
-// tier into the response.
-function groupOf(w: Worker): 'manager' | 'worker' {
-  if (w.tier === 'manager') return 'manager';
-  if (w.tier && w.tier !== 'worker') return 'worker';
-  // Fallback: c4-mgr-*, auto-mgr, *-mgr-* are conventional manager names.
-  if (/^c4-mgr/i.test(w.name)) return 'manager';
-  if (/^auto-mgr/i.test(w.name)) return 'manager';
-  if (/-mgr-/i.test(w.name)) return 'manager';
-  return 'worker';
-}
+// (v1.10.572) isInterventionActive / mapWorkerStatusToBadgeVariant /
+// statusLabel / groupOf moved to ../lib/worker-classify.ts.
 
 interface WorkerListProps {
   selectedWorker: string | null;
