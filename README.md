@@ -381,6 +381,12 @@ These are used by Claude Code (manager), not by you directly:
 - **Autonomy Level 4**: Full autonomy mode — deny rules overridden to approve
 - **Notifications**: Multi-channel alerts (Slack, Discord, Telegram, KakaoWork) + Email. alertOnly mode for critical-only alerts
 
+**Internationalization**
+- **Bilingual UI (en/ko)**: Web dashboard fully localized; locale auto-detected from browser, persisted via localStorage, toggleable from header
+- **i18n bundles**: 1326+ keys covering tabs, modals, drawers, feature pages, tooltips, error fallbacks, confirm dialogs, status badges
+- **Locale-flip safe**: Tone-detection (destructive vs success styling) uses dedicated boolean state instead of message text sniffing — no silent regressions when text translates
+- **Visual regression guard**: `npm run lint:i18n-visual` walks ~42 surfaces via Playwright, scans rendered DOM for English UI leaks before each release
+
 **Monitoring**
 - **SSE events**: Real-time streaming of permission/complete/error/question events
 - **Token monitoring**: Daily token consumption tracking with configurable limits

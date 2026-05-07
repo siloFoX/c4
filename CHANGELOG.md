@@ -4,6 +4,19 @@
 
 (no entries — next release window)
 
+## [1.10.508] - 2026-05-07 — README: i18n feature documentation
+
+**Repo — README + README.ko.md** now document the
+internationalization layer as a first-class feature.
+Added an "Internationalization" / "다국어 지원" section
+to the Key Features list covering: bilingual UI,
+1326+ keys in the bundle, locale-flip safe tone
+booleans, and the `npm run lint:i18n-visual` regression
+guard.
+
+### Notes
+- 200/200 tests green.
+
 ## [1.10.507] - 2026-05-07 — Visual scan: lint script integration
 
 **Repo — `npm run lint:i18n-visual` shortcut.** Wired the
