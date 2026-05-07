@@ -16,13 +16,13 @@ interface State {
 }
 
 export default class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null };
+  override state: State = { error: null };
 
   static getDerivedStateFromError(error: Error): State {
     return { error };
   }
 
-  componentDidCatch(error: Error, info: ErrorInfo): void {
+  override componentDidCatch(error: Error, info: ErrorInfo): void {
     // Surface to console so operators can copy the stack from
     // devtools. We don't ship a remote error sink (yet) — c4 is
     // operator-facing and the daemon log captures backend issues
@@ -38,7 +38,7 @@ export default class ErrorBoundary extends Component<Props, State> {
     window.location.reload();
   };
 
-  render(): ReactNode {
+  override render(): ReactNode {
     if (!this.state.error) return this.props.children;
     const message = this.state.error.message || String(this.state.error);
     return (

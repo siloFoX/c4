@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.515] - 2026-05-07 — TypeScript noImplicitOverride
+
+**Web — `tsconfig.json` enables `noImplicitOverride`.**
+Class methods that override a base-class method must
+declare `override`. This catches subtle base-class API
+drift — if a future React/Component method renames or
+removes one of our overridden hooks, the missing
+`override` becomes an immediate compile error instead of
+a silent dead-method.
+
+### Coverage
+- Only one class component in the tree (ErrorBoundary)
+  — added `override` to `state`, `componentDidCatch`,
+  and `render`.
+
+### Strictness audit (for future ships)
+The other compiler flags I audited:
+- `noUncheckedIndexedAccess`: 113 errors (broad refactor)
+- `exactOptionalPropertyTypes`: ~30 errors (broad)
+- `noPropertyAccessFromIndexSignature`: 22 errors (medium)
+- `noImplicitOverride`: 3 errors → fixed in this ship
+
+### Notes
+- 201/201 tests green.
+
 ## [1.10.514] - 2026-05-07 — Unified API error envelopes
 
 **Web — `lib/api.ts` unified error message format.**
