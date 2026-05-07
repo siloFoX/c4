@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.561] - 2026-05-08 — Extract StatusMessageCard
+
+**Web — `ControlPanel.tsx` shrunk by 67 lines (548 → 481).**
+The 8.20b Slack status-message form (fire-and-forget POST
+`/api/status-update`) extracted as a standalone component.
+Owns its message + sending state; parent provides workerName +
+onToast callback.
+
+### Refactor
+- New `web/src/components/StatusMessageCard.tsx` (~76 lines):
+  the textarea, send button, send handler, and the busy +
+  message state. ToastType imported from sibling Toast file.
+- `ControlPanel.tsx`: removed the inline component (~63 lines)
+  and the unused `Send` icon import. Imports the default
+  export.
+- `tests/ui-cli-coverage.test.js`: 2 contract assertions
+  redirected to source-grep the new file.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite
+  added (6 assertions). Total: 30 suites, 165 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 29 of the perfection-track component split. ControlPanel
+  481 (was 548). Beyond big-3, this is the second non-big-3
+  extraction. The bundle itself doesn't shrink (sibling chunks),
+  but ControlPanel is now leaner.
+
 ## [1.10.560] - 2026-05-08 — Extract conversation-render helpers
 
 **Web — `ConversationView.tsx` shrunk by 256 lines (794 → 538).**

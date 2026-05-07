@@ -84,6 +84,43 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: StatusMessageCard (v1.10.561)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('StatusMessageCard.tsx');
+    assert.match(src, /export default function StatusMessageCard/);
+  });
+
+  it('takes workerName + onToast props', () => {
+    const src = read('StatusMessageCard.tsx');
+    assert.match(src, /workerName:\s*string/);
+    assert.match(src, /onToast:\s*\(message:\s*string,\s*type:\s*ToastType\)\s*=>\s*void/);
+  });
+
+  it('owns message + sending state internally', () => {
+    const src = read('StatusMessageCard.tsx');
+    assert.match(src, /useState\(''\)/);
+    assert.match(src, /useState\(false\)/);
+  });
+
+  it('POSTs to /api/status-update with {worker, message}', () => {
+    const src = read('StatusMessageCard.tsx');
+    assert.match(src, /\/api\/status-update/);
+    assert.match(src, /worker:\s*workerName/);
+    assert.match(src, /message:\s*text/);
+  });
+
+  it('is imported and rendered by ControlPanel', () => {
+    const parent = read('ControlPanel.tsx');
+    assert.match(parent, /import\s+StatusMessageCard\s+from\s+'\.\/StatusMessageCard'/);
+    assert.match(parent, /<StatusMessageCard/);
+  });
+
+  it('parent ControlPanel no longer holds the card definition', () => {
+    const parent = read('ControlPanel.tsx');
+    assert.doesNotMatch(parent, /function StatusMessageCard\(/);
+  });
+});
+
 describe('extracted: conversation-render lib (v1.10.560)', () => {
   it('lives in lib/conversation-render.tsx', () => {
     const fs = require('fs');

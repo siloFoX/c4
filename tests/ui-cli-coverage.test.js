@@ -389,17 +389,19 @@ describe('TokenUsage.tsx component wiring', () => {
 
 describe('ControlPanel StatusMessageCard (8.20b)', () => {
   const src = fs.readFileSync(CONTROL_PANEL, 'utf8');
+  // (v1.10.561) StatusMessageCard extracted to its own file —
+  // the contract assertions below source-grep its new home.
+  const STATUS_CARD = path.join(REPO_ROOT, 'web/src/components/StatusMessageCard.tsx');
+  const cardSrc = fs.readFileSync(STATUS_CARD, 'utf8');
 
   it('renders a StatusMessageCard child', () => {
     assert.match(src, /StatusMessageCard\s+workerName/);
-    assert.match(src, /function StatusMessageCard/);
+    assert.match(cardSrc, /export default function StatusMessageCard/);
   });
 
   it('posts to /api/status-update with {worker, message}', () => {
-    const idx = src.indexOf('function StatusMessageCard');
-    const block = src.slice(idx);
-    assert.match(block, /'\/api\/status-update'/);
-    assert.match(block, /worker:\s*workerName/);
-    assert.match(block, /message:\s*text/);
+    assert.match(cardSrc, /'\/api\/status-update'/);
+    assert.match(cardSrc, /worker:\s*workerName/);
+    assert.match(cardSrc, /message:\s*text/);
   });
 });
