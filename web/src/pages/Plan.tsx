@@ -89,8 +89,8 @@ export default function Plan() {
     setError(null);
     try {
       const body: Record<string, unknown> = { name: selected, task };
-      if (branch) body.branch = branch;
-      if (output) body.output = output;
+      if (branch) body['branch'] = branch;
+      if (output) body['output'] = output;
       const r = (await apiPost<PlanResponse>('/api/plan', body)) as PlanResponse;
       if (r.error) {
         showToast(tFormat('plan.toast.dispatchFailed', { error: r.error }), 'error');

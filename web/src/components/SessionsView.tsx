@@ -959,7 +959,7 @@ export default function SessionsView() {
       const body: Record<string, string> = looksLikePath
         ? { path: pathValue }
         : { sessionId: pathValue };
-      if (nameValue) body.name = nameValue;
+      if (nameValue) body['name'] = nameValue;
       try {
         const resp = await apiPost<AttachResponse>('/api/attach', body);
         setModalOpen(false);
@@ -990,11 +990,11 @@ export default function SessionsView() {
         task: req.prompt,
         autoMode: false,
       };
-      if (req.model && req.model !== 'default') body.model = req.model;
+      if (req.model && req.model !== 'default') body['model'] = req.model;
       // 'agent' currently maps to a profile name; 'generic' = no profile.
       // Manager-style auto orchestration goes through POST /api/auto in a
       // follow-up — for now the modal stays focused on plain chat spawns.
-      if (req.agent && req.agent !== 'generic') body.profile = req.agent;
+      if (req.agent && req.agent !== 'generic') body['profile'] = req.agent;
       try {
         const resp = await apiPost<{ name?: string; error?: string }>(
           '/api/task',

@@ -125,7 +125,7 @@ const MAX_ROWS = 200;
 const AUTOFIT_DEBUG: boolean = (() => {
   try {
     const env = (import.meta as unknown as { env?: Record<string, unknown> }).env;
-    const v = env?.VITE_AUTOFIT_DEBUG;
+    const v = env?.['VITE_AUTOFIT_DEBUG'];
     return v === '1' || v === 'true' || v === true;
   } catch {
     return false;

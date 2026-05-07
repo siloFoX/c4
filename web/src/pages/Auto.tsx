@@ -46,7 +46,7 @@ export default function Auto() {
     setError(null);
     try {
       const body: Record<string, unknown> = { task };
-      if (name.trim()) body.name = name.trim();
+      if (name.trim()) body['name'] = name.trim();
       const r = (await apiPost<AutoResponse>('/api/auto', body)) as AutoResponse;
       if (r.error) {
         setError(r.error);

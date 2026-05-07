@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.533] - 2026-05-07 — Tighten tsconfig (noPropertyAccessFromIndexSignature)
+
+**Web — TypeScript strictness bumped one notch.**
+`noPropertyAccessFromIndexSignature: true` now enforces that
+properties known only via index signature (`Record<string, T>`,
+spread-typed bodies, `import.meta.env`, frontmatter) must be
+accessed with bracket notation, not dot notation. Catches
+typos in dynamic-key access at the type level.
+
+### Refactor — 22 access sites across 6 files
+- `web/src/components/SessionsView.tsx` — 3 (body['name'],
+  body['model'], body['profile'])
+- `web/src/components/WikiView.tsx` — 9 (page.frontmatter
+  ['title'], ['status'], ['type'], ['last_reviewed'],
+  ['related'] x4)
+- `web/src/components/XtermView.tsx` — 1 (env['VITE_AUTOFIT_DEBUG'])
+- `web/src/pages/Auto.tsx` — 1 (body['name'])
+- `web/src/pages/Batch.tsx` — 6 (body['tasks'], ['task'],
+  ['count'], ['branch'], ['profile'], ['autoMode'])
+- `web/src/pages/Plan.tsx` — 2 (body['branch'], ['output'])
+
+### Tests
+- `tests/new-chat-modal.test.js`: 2 regex anchors updated
+  from `body\.model` / `body\.profile` → bracket form.
+- 201/201 tests green after fix-up.
+
+### tsconfig flags now enforced
+- `strict: true` (covers strictNullChecks, noImplicitAny, etc.)
+- `noUnusedLocals` / `noUnusedParameters`
+- `noFallthroughCasesInSwitch`
+- `noImplicitOverride`
+- `noUncheckedIndexedAccess`
+- `noPropertyAccessFromIndexSignature` *(new in 1.10.533)*
+
+### Notes
+- 1.10.515 added `noImplicitOverride`; 1.10.522 added
+  `noUncheckedIndexedAccess`. This continues the strictness
+  ratchet from the perfection-track.
+
 ## [1.10.532] - 2026-05-07 — Extract SpecialistsBulkOpsToolbar
 
 **Web — `SpecialistsView.tsx` shrunk by 229 lines (1365 → 1136).**

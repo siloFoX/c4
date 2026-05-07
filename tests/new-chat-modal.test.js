@@ -94,11 +94,11 @@ describe('handleNewChatSubmit shape', () => {
   });
 
   it("only attaches model when not 'default'", () => {
-    assert.match(src, /if \(req\.model && req\.model !== 'default'\) body\.model = req\.model/);
+    assert.match(src, /if \(req\.model && req\.model !== 'default'\) body\['model'\] = req\.model/);
   });
 
   it("only attaches profile when agent isn't 'generic'", () => {
-    assert.match(src, /if \(req\.agent && req\.agent !== 'generic'\) body\.profile = req\.agent/);
+    assert.match(src, /if \(req\.agent && req\.agent !== 'generic'\) body\['profile'\] = req\.agent/);
   });
 
   it('sends autoMode: false (plain chat spawn, not a manager auto)', () => {

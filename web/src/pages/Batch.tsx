@@ -67,14 +67,14 @@ export default function Batch() {
     try {
       const body: Record<string, unknown> = { namePrefix: namePrefix || 'batch' };
       if (mode === 'file') {
-        body.tasks = tasks;
+        body['tasks'] = tasks;
       } else {
-        body.task = task;
-        body.count = count;
+        body['task'] = task;
+        body['count'] = count;
       }
-      if (branch) body.branch = branch;
-      if (profile) body.profile = profile;
-      if (autoMode) body.autoMode = true;
+      if (branch) body['branch'] = branch;
+      if (profile) body['profile'] = profile;
+      if (autoMode) body['autoMode'] = true;
       const r = (await apiPost<BatchResponse>('/api/batch', body)) as BatchResponse;
       if (r.error) {
         setError(r.error);
