@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.575] - 2026-05-08 — Extract MeetingsListFilterRow
+
+**Web — `MeetingsView.tsx` shrunk by 34 lines (907 → 873).**
+The Phase-6.11 list-level filter row (status + track dropdowns
+shown when no search query is active) extracted as a pure
+controlled-input sibling. 4 props (2 values + 2 setters).
+
+### Refactor
+- New `web/src/components/MeetingsListFilterRow.tsx` (~67
+  lines): the filter row JSX with the status + track
+  dropdowns and the conditional clear button.
+- `MeetingsView.tsx`: removed the inline 45-line JSX block.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 42 suites, 230 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 41 of the perfection-track component split. MeetingsView
+  873 (was 2372 at session start, -1499 / -63.2%).
+
 ## [1.10.574] - 2026-05-08 — Extract MeetingsSearchFilterRow
 
 **Web — `MeetingsView.tsx` shrunk by 50 lines (957 → 907).**

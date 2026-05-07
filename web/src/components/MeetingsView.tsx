@@ -22,6 +22,7 @@ import MeetingsRunControls from './MeetingsRunControls';
 import MeetingsComposer from './MeetingsComposer';
 import MeetingsSearchFacets from './MeetingsSearchFacets';
 import MeetingsSearchFilterRow from './MeetingsSearchFilterRow';
+import MeetingsListFilterRow from './MeetingsListFilterRow';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -566,50 +567,15 @@ export default function MeetingsView() {
               </Button>
             </div>
           </div>
-          {/* (Phase 6.11) list-level status/track narrow. Empty
-              search query → these dropdowns control the result set. */}
+          {/* (v1.10.575) List filter row extracted to
+              ./MeetingsListFilterRow.tsx. */}
           {!searchQuery.trim() ? (
-            <div className="flex flex-wrap items-center gap-2 text-[10px]">
-              <label className="flex items-center gap-1 text-muted-foreground">
-                {t('meetings.label.status')}
-                <select
-                  className="rounded border border-border bg-background px-1 py-0.5"
-                  value={listStatus}
-                  onChange={(e) => setListStatus(e.target.value as typeof listStatus)}
-                  aria-label={t('meetings.action.listFilterStatus')}
-                >
-                  <option value="">{t('meetings.option.any')}</option>
-                  <option value="pending">{t('meetings.option.pending')}</option>
-                  <option value="in-progress">{t('meetings.status.inProgress')}</option>
-                  <option value="completed">{t('meetings.option.completed')}</option>
-                  <option value="escalated">{t('meetings.option.escalated')}</option>
-                  <option value="aborted">{t('meetings.option.aborted')}</option>
-                </select>
-              </label>
-              <label className="flex items-center gap-1 text-muted-foreground">
-                {t('meetings.label.track')}
-                <select
-                  className="rounded border border-border bg-background px-1 py-0.5"
-                  value={listTrack}
-                  onChange={(e) => setListTrack(e.target.value as typeof listTrack)}
-                  aria-label={t('meetings.action.listFilterTrack')}
-                >
-                  <option value="">{t('meetings.option.any')}</option>
-                  <option value="lightweight">{t('meetings.mode.lightweight')}</option>
-                  <option value="standard">{t('meetings.mode.standard')}</option>
-                  <option value="full">{t('meetings.mode.full')}</option>
-                </select>
-              </label>
-              {(listStatus || listTrack) ? (
-                <button
-                  type="button"
-                  onClick={() => { setListStatus(''); setListTrack(''); }}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  clear
-                </button>
-              ) : null}
-            </div>
+            <MeetingsListFilterRow
+              status={listStatus}
+              onStatusChange={setListStatus}
+              track={listTrack}
+              onTrackChange={setListTrack}
+            />
           ) : null}
           {/* (Phase 8.1) Full-text search. Empty query → bare list.
               Non-empty → list shows matches with bm25 ranking. */}

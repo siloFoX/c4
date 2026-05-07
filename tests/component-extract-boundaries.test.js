@@ -84,6 +84,38 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: MeetingsListFilterRow (v1.10.575)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsListFilterRow.tsx');
+    assert.match(src, /export default function MeetingsListFilterRow/);
+  });
+
+  it('takes 4 props (status / track + 2 setters)', () => {
+    const src = read('MeetingsListFilterRow.tsx');
+    assert.match(src, /status:\s*MeetingStatus\s*\|\s*''/);
+    assert.match(src, /track:\s*Track\s*\|\s*''/);
+    assert.match(src, /onStatusChange/);
+    assert.match(src, /onTrackChange/);
+  });
+
+  it('is a pure controlled-input component (no internal state)', () => {
+    const src = read('MeetingsListFilterRow.tsx');
+    assert.doesNotMatch(src, /useState/);
+    assert.doesNotMatch(src, /useEffect/);
+  });
+
+  it('is imported and rendered by MeetingsView', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsListFilterRow\s+from\s+'\.\/MeetingsListFilterRow'/);
+    assert.match(parent, /<MeetingsListFilterRow/);
+  });
+
+  it('parent MeetingsView no longer holds the inline list filter JSX', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /aria-label=\{t\('meetings\.action\.listFilterStatus'\)\}/);
+  });
+});
+
 describe('extracted: MeetingsSearchFilterRow (v1.10.574)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsSearchFilterRow.tsx');
