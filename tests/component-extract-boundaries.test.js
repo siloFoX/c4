@@ -84,6 +84,47 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 });
 
+describe('extracted: WorkflowGraph (v1.10.562)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('WorkflowGraph.tsx');
+    assert.match(src, /export default function WorkflowGraph/);
+  });
+
+  it('exports the TYPE_FILL palette (reused by NodeProperties)', () => {
+    const src = read('WorkflowGraph.tsx');
+    assert.match(src, /export const TYPE_FILL/);
+  });
+
+  it('contains layoutWorkflow, NodeBox, EdgeLine helpers', () => {
+    const src = read('WorkflowGraph.tsx');
+    assert.match(src, /function layoutWorkflow/);
+    assert.match(src, /function NodeBox/);
+    assert.match(src, /function EdgeLine/);
+  });
+
+  it('takes workflow / selectedNode / onSelectNode props', () => {
+    const src = read('WorkflowGraph.tsx');
+    assert.match(src, /workflow:\s*Workflow/);
+    assert.match(src, /selectedNode:\s*string\s*\|\s*null/);
+    assert.match(src, /onSelectNode:\s*\(id:\s*string\)\s*=>\s*void/);
+  });
+
+  it('is imported and rendered by WorkflowEditor (default + TYPE_FILL)', () => {
+    const parent = read('WorkflowEditor.tsx');
+    assert.match(parent, /import\s+WorkflowGraph,\s*\{\s*TYPE_FILL\s*\}\s+from\s+'\.\/WorkflowGraph'/);
+    assert.match(parent, /<WorkflowGraph/);
+  });
+
+  it('parent WorkflowEditor no longer holds the graph helpers', () => {
+    const parent = read('WorkflowEditor.tsx');
+    assert.doesNotMatch(parent, /^function layoutWorkflow/m);
+    assert.doesNotMatch(parent, /^function NodeBox/m);
+    assert.doesNotMatch(parent, /^function EdgeLine/m);
+    assert.doesNotMatch(parent, /^const NODE_W/m);
+    assert.doesNotMatch(parent, /^const TYPE_FILL/m);
+  });
+});
+
 describe('extracted: StatusMessageCard (v1.10.561)', () => {
   it('lives in its own file with default export', () => {
     const src = read('StatusMessageCard.tsx');

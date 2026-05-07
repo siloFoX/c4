@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.562] - 2026-05-08 — Extract WorkflowGraph
+
+**Web — `WorkflowEditor.tsx` shrunk by 165 lines (658 → 493).**
+The SVG graph renderer for a workflow — layered DAG layout
+algorithm, NodeBox + EdgeLine sub-components, the WorkflowGraph
+wrapper — extracted to its own file along with the TYPE_FILL
+node-type color palette.
+
+### Refactor
+- New `web/src/components/WorkflowGraph.tsx` (~184 lines):
+  the layout constants (NODE_W / NODE_H / COL_GAP / ROW_GAP),
+  the TYPE_FILL palette (exported for reuse by NodeProperties
+  in the parent), the `layoutWorkflow` algorithm, NodeBox +
+  EdgeLine, and the WorkflowGraph default export.
+- `WorkflowEditor.tsx`: removed all the graph-rendering code
+  (~150 lines including layout). Imports the default export
+  + named TYPE_FILL.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite
+  added (6 assertions). Total: 31 suites, 171 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 30 of the perfection-track component split. Third
+  non-big-3 extraction. WorkflowEditor down 25.1%.
+
 ## [1.10.561] - 2026-05-08 — Extract StatusMessageCard
 
 **Web — `ControlPanel.tsx` shrunk by 67 lines (548 → 481).**
