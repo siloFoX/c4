@@ -298,8 +298,13 @@ describe('ChatView source wiring (8.25)', () => {
   });
 
   it('keeps SSE /api/watch wiring intact alongside backfill', () => {
-    assert.match(src, /eventSourceUrl\(`\/api\/watch\?name=\$\{encodeURIComponent\(workerName\)\}`\)/);
-    assert.match(src, /new EventSource\(url\)/);
+    // (v1.10.643) SSE wiring moved into useChatSseStream hook.
+    const hookSrc = fs.readFileSync(
+      path.join(WEB_SRC, 'lib', 'use-chat-sse-stream.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /eventSourceUrl\(`\/api\/watch\?name=\$\{encodeURIComponent\(workerName\)\}`\)/);
+    assert.match(hookSrc, /new EventSource\(url\)/);
   });
 
   it('exports conversationToMessages + scrollbackToMessages for test visibility', () => {

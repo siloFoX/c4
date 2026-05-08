@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { apiFetch, apiGet, eventSourceUrl } from '../lib/api';
+import { apiFetch, apiGet } from '../lib/api';
 import { useLocale } from '../lib/i18n';
 import {
   Card,
@@ -16,8 +16,8 @@ import {
 import ChatHeader from './ChatHeader';
 import ChatComposer from './ChatComposer';
 import ChatErrorBanners from './ChatErrorBanners';
+import { useChatSseStream } from '../lib/use-chat-sse-stream';
 import {
-  b64decode,
   conversationToMessages,
   makeId,
   scrollbackToMessages,
@@ -79,7 +79,6 @@ export default function ChatView({ workerName }: ChatViewProps) {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sseConnected, setSseConnected] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const [backfillLoading, setBackfillLoading] = useState(true);
   const [backfillCount, setBackfillCount] = useState(0);
@@ -238,31 +237,22 @@ export default function ChatView({ workerName }: ChatViewProps) {
     };
   }, [workerName]);
 
-  useEffect(() => {
-    const url = eventSourceUrl(`/api/watch?name=${encodeURIComponent(workerName)}`);
-    const es = new EventSource(url);
-    es.onopen = () => setSseConnected(true);
-    es.onerror = () => setSseConnected(false);
-    es.onmessage = (ev) => {
-      try {
-        const data = JSON.parse(ev.data) as { type?: string; data?: string };
-        if (data.type === 'output' && typeof data.data === 'string') {
-          pendingBufRef.current += b64decode(data.data);
-          scheduleFlush();
-        }
-      } catch {
-        // ignore non-JSON payloads
-      }
-    };
-    return () => {
-      es.close();
+  // (v1.10.643) /api/watch SSE stream hook extracted to
+  // ../lib/use-chat-sse-stream.
+  const { sseConnected } = useChatSseStream({
+    workerName,
+    onOutput: (raw) => {
+      pendingBufRef.current += raw;
+      scheduleFlush();
+    },
+    onCleanup: () => {
       if (flushTimerRef.current != null) {
         window.clearTimeout(flushTimerRef.current);
         flushTimerRef.current = null;
       }
       pendingBufRef.current = '';
-    };
-  }, [workerName, scheduleFlush]);
+    },
+  });
 
   useLayoutEffect(() => {
     if (!autoScroll) return;

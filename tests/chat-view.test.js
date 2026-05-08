@@ -93,14 +93,25 @@ describe('ChatView source wiring', () => {
   const src = fs.readFileSync(CHAT_VIEW, 'utf8');
 
   it('imports apiFetch + eventSourceUrl from the shared api module', () => {
+    // (v1.10.643) eventSourceUrl moved into useChatSseStream hook;
+    // ChatView still uses apiFetch for /api/send + /api/key.
+    const hookSrc = fs.readFileSync(
+      path.join(WEB_SRC, 'lib', 'use-chat-sse-stream.ts'),
+      'utf8',
+    );
     assert.match(src, /from '\.\.\/lib\/api'/);
     assert.match(src, /apiFetch/);
-    assert.match(src, /eventSourceUrl/);
+    assert.match(hookSrc, /eventSourceUrl/);
   });
 
   it('subscribes to /api/watch with the worker name', () => {
-    assert.match(src, /eventSourceUrl\(`\/api\/watch\?name=\$\{encodeURIComponent\(workerName\)\}`\)/);
-    assert.match(src, /new EventSource\(url\)/);
+    // (v1.10.643) SSE wiring moved into useChatSseStream hook.
+    const hookSrc = fs.readFileSync(
+      path.join(WEB_SRC, 'lib', 'use-chat-sse-stream.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /eventSourceUrl\(`\/api\/watch\?name=\$\{encodeURIComponent\(workerName\)\}`\)/);
+    assert.match(hookSrc, /new EventSource\(url\)/);
   });
 
   it('posts user text through /api/send and Enter through /api/key', () => {
@@ -131,7 +142,12 @@ describe('ChatView source wiring', () => {
   });
 
   it('decodes base64 payloads before buffering', () => {
-    assert.match(src, /b64decode\(data\.data\)/);
+    // (v1.10.643) Decode call moved into useChatSseStream hook.
+    const hookSrc = fs.readFileSync(
+      path.join(WEB_SRC, 'lib', 'use-chat-sse-stream.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /b64decode\(data\.data\)/);
   });
 
   it('exports stripAnsi + b64decode for test visibility', () => {

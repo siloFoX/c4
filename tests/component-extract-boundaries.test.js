@@ -1755,6 +1755,40 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useChatSseStream hook (v1.10.643)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-chat-sse-stream.ts');
+
+  it('lives in lib/use-chat-sse-stream.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useChatSseStream/);
+  });
+
+  it('takes workerName + onOutput + onCleanup callbacks; returns sseConnected', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /workerName:\s*string/);
+    assert.match(src, /onOutput:\s*\(raw:\s*string\)\s*=>\s*void/);
+    assert.match(src, /onCleanup:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /sseConnected:\s*boolean/);
+  });
+
+  it('opens EventSource for /api/watch + decodes b64 output frames', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /new EventSource/);
+    assert.match(src, /\/api\/watch\?name=/);
+    assert.match(src, /b64decode\(data\.data\)/);
+  });
+
+  it('parent ChatView calls the hook; inline state + SSE effect removed', () => {
+    const parent = read('ChatView.tsx');
+    assert.match(parent, /import\s+\{\s*useChatSseStream\s*\}\s+from\s+'\.\.\/lib\/use-chat-sse-stream'/);
+    assert.match(parent, /useChatSseStream\(\{/);
+    assert.doesNotMatch(parent, /const \[sseConnected, setSseConnected\]/);
+    assert.doesNotMatch(parent, /new EventSource\(/);
+  });
+});
+
 describe('extracted: useWikiSearch hook (v1.10.642)', () => {
   const fs = require('fs');
   const path = require('path');

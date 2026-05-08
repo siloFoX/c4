@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.643] - 2026-05-09 — Extract useChatSseStream hook
+
+**Web — `ChatView.tsx` shrunk by 10 lines (423 → 413).**
+The /api/watch SSE stream — opens an EventSource for the
+worker, decodes b64 `output` frames, hands raw bytes back to
+the caller, tracks the connected/disconnected badge state.
+Cleanup callback fires on unmount or worker change so the
+caller can flush its pending-buffer ref.
+
+### Refactor
+- New `web/src/lib/use-chat-sse-stream.ts` (~47 lines).
+- `ChatView.tsx`: removed `sseConnected` useState slot + SSE
+  useEffect. Replaced with single `useChatSseStream(…)` call —
+  the parent supplies `onOutput` / `onCleanup` callbacks that
+  read its mutable refs (`pendingBufRef` + `flushTimerRef`).
+  Dropped `eventSourceUrl` + `b64decode` imports — both moved
+  into the hook.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (4 assertions). Total: 110 suites, 560 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 109 of the perfection-track component split. **Twenty-
+  first custom hook extraction**. ChatView 413. 115 ships /
+  110 components+libs / 560 boundary assertions.
+
 ## [1.10.642] - 2026-05-09 — Extract useWikiSearch hook
 
 **Web — `WikiView.tsx` shrunk by 16 lines (173 → 157).**
