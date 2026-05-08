@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.584] - 2026-05-08 — Extract SessionsHeader
+
+**Web — `SessionsView.tsx` shrunk by 38 lines (553 → 515).**
+The card header — title with FolderTree icon, search input, and
+the footer row (filtered/total count + New Chat / Attach New /
+Refresh buttons) — extracted as its own pure controlled-input
+sibling. 8 props (query / 4 numbers/booleans + 3 callbacks).
+
+### Refactor
+- New `web/src/components/SessionsHeader.tsx` (~69 lines).
+- `SessionsView.tsx`: removed the inline 55-line CardHeader
+  block. Replaced with `<SessionsHeader … />`. Dropped 5 unused
+  imports (FolderTree, Search icons + CardHeader / CardTitle /
+  Input UI primitives).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 51 suites, 278 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 50 of the perfection-track component split. SessionsView
+  515 (was 1367 at session start, -852 / -62.3%). 56 ships /
+  51 components+libs / 278 boundary assertions.
+
 ## [1.10.583] - 2026-05-08 — Extract ChatHeader
 
 **Web — `ChatView.tsx` shrunk by 32 lines (551 → 519).**

@@ -1737,6 +1737,46 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: SessionsHeader (v1.10.584)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SessionsHeader.tsx');
+    assert.match(src, /export default function SessionsHeader/);
+  });
+
+  it('takes query/totals/loading + 3 callback props', () => {
+    const src = read('SessionsHeader.tsx');
+    assert.match(src, /query:\s*string/);
+    assert.match(src, /onQuery:\s*\(next:\s*string\)\s*=>\s*void/);
+    assert.match(src, /totalFiltered:\s*number/);
+    assert.match(src, /total:\s*number/);
+    assert.match(src, /loading:\s*boolean/);
+    assert.match(src, /onNewChat:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onAttachNew:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onRefresh:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('renders title + search input + 3 action buttons', () => {
+    const src = read('SessionsHeader.tsx');
+    assert.match(src, /sessions\.panel\.title/);
+    assert.match(src, /sessions\.search\.placeholder/);
+    assert.match(src, /sessions\.button\.newChat/);
+    assert.match(src, /sessions\.button\.attachNew/);
+  });
+
+  it('is imported and rendered by SessionsView', () => {
+    const parent = read('SessionsView.tsx');
+    assert.match(parent, /import\s+SessionsHeader\s+from\s+'\.\/SessionsHeader'/);
+    assert.match(parent, /<SessionsHeader/);
+    assert.match(parent, /onQuery=\{setQuery\}/);
+  });
+
+  it('parent SessionsView no longer holds the inline CardHeader block', () => {
+    const parent = read('SessionsView.tsx');
+    assert.doesNotMatch(parent, /sessions\.panel\.title/);
+    assert.doesNotMatch(parent, /sessions\.search\.placeholder/);
+  });
+});
+
 describe('extracted: ChatHeader (v1.10.583)', () => {
   it('lives in its own file with default export', () => {
     const src = read('ChatHeader.tsx');

@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  FolderTree,
-  Plus,
-  Search,
-} from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
-import { Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
+import { Button, Card, CardContent } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import ConversationView from './ConversationView';
 import SessionsTour from './SessionsTour';
@@ -14,6 +10,7 @@ import AttachModal from './AttachModal';
 import SessionsComparisonCard from './SessionsComparisonCard';
 import SessionsAttachedSection from './SessionsAttachedSection';
 import SessionsListSection from './SessionsListSection';
+import SessionsHeader from './SessionsHeader';
 
 export interface SessionSummary {
   projectDir: string | null;
@@ -371,61 +368,26 @@ export default function SessionsView() {
   return (
     <div className="flex w-full min-h-0 flex-1 flex-col gap-3 p-3 md:flex-row md:p-6">
       <Card className="flex w-full min-h-0 flex-col md:w-80 lg:w-96">
-        <CardHeader className="gap-2 border-b border-border p-4">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <FolderTree className="h-4 w-4" aria-hidden /> {t('sessions.panel.title')}
-          </CardTitle>
-          <div className="relative">
-            <Search
-              className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
-              aria-hidden
-            />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t('sessions.search.placeholder')}
-              aria-label={t('sessions.aria.search')}
-              className="h-8 pl-7 text-sm"
-            />
-          </div>
-          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-            <span>
-              {totalFiltered}/{data?.total ?? 0}
-            </span>
-            <div className="flex items-center gap-1">
-              <Button
-                size="sm"
-                onClick={() => {
-                  setNewChatError(null);
-                  setNewChatOpen(true);
-                }}
-              >
-                <Plus className="h-3.5 w-3.5" aria-hidden /> {t('sessions.button.newChat')}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setModalError(null);
-                  setModalOpen(true);
-                }}
-              >
-                <Plus className="h-3.5 w-3.5" aria-hidden /> {t('sessions.button.attachNew')}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  refreshSessions();
-                  refreshAttached();
-                }}
-                disabled={loading}
-              >
-                {loading ? t('common.loading') : t('common.refresh')}
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
+        {/* (v1.10.584) Card header extracted to ./SessionsHeader.tsx. */}
+        <SessionsHeader
+          query={query}
+          onQuery={setQuery}
+          totalFiltered={totalFiltered}
+          total={data?.total ?? 0}
+          loading={loading}
+          onNewChat={() => {
+            setNewChatError(null);
+            setNewChatOpen(true);
+          }}
+          onAttachNew={() => {
+            setModalError(null);
+            setModalOpen(true);
+          }}
+          onRefresh={() => {
+            refreshSessions();
+            refreshAttached();
+          }}
+        />
         <CardContent className="flex-1 overflow-y-auto p-0">
           {/* (v1.10.578) Attached section extracted to ./SessionsAttachedSection.tsx */}
           <SessionsAttachedSection
