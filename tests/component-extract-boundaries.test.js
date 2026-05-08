@@ -1755,6 +1755,48 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useSpecialistsList hook (v1.10.628) — 100 ships milestone', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-specialists-list.ts');
+
+  it('lives in lib/use-specialists-list.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useSpecialistsList/);
+  });
+
+  it('returns data/error/loading/flaggedIds/refresh', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /data:\s*ListResponse\s*\|\s*null/);
+    assert.match(src, /error:\s*string\s*\|\s*null/);
+    assert.match(src, /loading:\s*boolean/);
+    assert.match(src, /flaggedIds:\s*Set<string>/);
+    assert.match(src, /refresh:\s*\(\)\s*=>\s*Promise<void>/);
+  });
+
+  it('owns 2 GETs (specialists + underperformers) + 2 mount effects', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\/api\/specialists/);
+    assert.match(src, /\/api\/specialists\/underperformers/);
+    assert.match(src, /useEffect\(\(\) => \{ refresh\(\); \}/);
+    assert.match(src, /useEffect\(\(\) => \{ refreshFlags\(\); \}/);
+  });
+
+  it('parent SpecialistsView calls the hook; inline state + 2 effects removed', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.match(parent, /import\s+\{\s*useSpecialistsList\s*\}\s+from\s+'\.\.\/lib\/use-specialists-list'/);
+    assert.match(parent, /useSpecialistsList\(\)/);
+    assert.doesNotMatch(parent, /const \[data, setData\]/);
+    assert.doesNotMatch(parent, /const \[flaggedIds, setFlaggedIds\]/);
+    assert.doesNotMatch(parent, /\/api\/specialists\/underperformers/);
+  });
+
+  it('parent SpecialistsView exports ListResponse for hook typing', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.match(parent, /export\s+interface\s+ListResponse/);
+  });
+});
+
 describe('extracted: useStuckMeetings hook (v1.10.627)', () => {
   const fs = require('fs');
   const path = require('path');

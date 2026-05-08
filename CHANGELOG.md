@@ -4,6 +4,40 @@
 
 (no entries — next release window)
 
+## [1.10.628] - 2026-05-09 — Extract useSpecialistsList hook (100 ships)
+
+**Web — `SpecialistsView.tsx` shrunk by 38 lines (363 → 325).**
+The /api/specialists list — initial GET + the underperformer
+flag set polled separately so per-row alert pills can light up
+before the operator clicks — extracted as a custom hook. No
+inputs. Returns: data / error / loading / flaggedIds / refresh.
+
+### Refactor
+- New `web/src/lib/use-specialists-list.ts` (~59 lines).
+- `SpecialistsView.tsx`: removed 4 useState slots
+  (`data`/`error`/`loading`/`flaggedIds`) + `refresh` +
+  `refreshFlags` useCallbacks + 2 mount effects. Replaced with
+  a single `const { data, error, loading, flaggedIds, refresh }
+   = useSpecialistsList()`. Promoted `ListResponse` to export.
+  `handleRemove`'s error sink redirected from `setError`
+  (which is now inside the hook) to the existing
+  `setActionError` — same UX, cleaner separation between data
+  fetch errors and action errors.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 95 suites, 498 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 94 of the perfection-track component split. **Sixth
+  custom hook extraction**. SpecialistsView 325. **100 ships
+  milestone reached** — started this session at v1.10.529, now
+  at v1.10.628 (100 incremental shipped versions). 100 ships /
+  95 components+libs / 498 boundary assertions.
+
 ## [1.10.627] - 2026-05-09 — Extract useStuckMeetings hook
 
 **Web — `MeetingsView.tsx` shrunk by 13 lines (378 → 365).**

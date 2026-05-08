@@ -10,6 +10,7 @@ import SpecialistsPromptPanel from './SpecialistsPromptPanel';
 import SpecialistsTagEditor from './SpecialistsTagEditor';
 import SpecialistsList from './SpecialistsList';
 import SpecialistsListCardHeader from './SpecialistsListCardHeader';
+import { useSpecialistsList } from '../lib/use-specialists-list';
 import SpecialistsDetailHeader from './SpecialistsDetailHeader';
 import SpecialistsMetadataPanel from './SpecialistsMetadataPanel';
 import SpecialistsScoreHistory from './SpecialistsScoreHistory';
@@ -42,7 +43,9 @@ export interface Specialist {
   };
 }
 
-interface ListResponse {
+// (v1.10.628) Promoted to export so useSpecialistsList can type
+// its returned data slot.
+export interface ListResponse {
   count: number;
   version: number;
   specialists: Specialist[];
@@ -86,52 +89,13 @@ export interface AuditEntry {
 
 export default function SpecialistsView() {
   useLocale();
-  const [data, setData] = useState<ListResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  // (v1.10.628) /api/specialists list + flagged-id set hook
+  // extracted to ../lib/use-specialists-list.
+  const { data, error, loading, flaggedIds, refresh } = useSpecialistsList();
   const [filter, setFilter] = useState('');
   const [tierFilter, setTierFilter] = useState<string>('any');
   const [vetoOnly, setVetoOnly] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await apiGet<ListResponse>('/api/specialists');
-      setData(res);
-    } catch (e) {
-      setError((e as Error).message || t('common.failedToLoadSpecialists'));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // (v1.10.545) Organism summary info bar extracted to
-  // ./SpecialistsSummaryBar.tsx — self-polling, owns its own
-  // state. Parent doesn't need this data so the fetch lives
-  // entirely in the panel.
-
-  // (v1.10.531) Audit log viewer + chain-verify + CSV export
-  // extracted to ./SpecialistsAuditPanel.tsx (~240 lines moved).
-
-  // Underperformer scan (phase 5.1) — fetched separately so the
-  // alert pill on a row can light up before the operator clicks.
-  const [flaggedIds, setFlaggedIds] = useState<Set<string>>(new Set());
-  const refreshFlags = useCallback(async () => {
-    try {
-      const res = await apiGet<{ items: Array<{ id: string }> }>(
-        '/api/specialists/underperformers',
-      );
-      const next = new Set<string>();
-      for (const it of res.items || []) next.add(it.id);
-      setFlaggedIds(next);
-    } catch {
-      // best-effort — don't block the main view if underperformer
-      // detection is misconfigured.
-    }
-  }, []);
-  useEffect(() => { refreshFlags(); }, [refreshFlags]);
 
   // (v1.10.546) Add / Propose panel extracted to
   // ./SpecialistsAddPanel.tsx. Parent keeps the open flag so the
@@ -186,14 +150,12 @@ export default function SpecialistsView() {
       if (selectedId === id) setSelectedId(null);
       await refresh();
     } catch (e) {
-      setError((e as Error).message || t('common.failedToRemoveSpecialist'));
+      setActionError((e as Error).message || t('common.failedToRemoveSpecialist'));
     } finally {
       setRemoveBusy(false);
       setConfirmRemoveId(null);
     }
   }, [selectedId, refresh]);
-
-  useEffect(() => { refresh(); }, [refresh]);
 
   const specialists = data?.specialists || [];
   const filtered = useMemo(() => {
