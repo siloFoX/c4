@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Plus } from 'lucide-react';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
-import { Button, Card, CardContent } from './ui';
+import { Card, CardContent } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import ConversationView from './ConversationView';
 import SessionsTour from './SessionsTour';
@@ -11,6 +10,7 @@ import SessionsComparisonCard from './SessionsComparisonCard';
 import SessionsAttachedSection from './SessionsAttachedSection';
 import SessionsListSection from './SessionsListSection';
 import SessionsHeader from './SessionsHeader';
+import SessionsEmptyPanel from './SessionsEmptyPanel';
 
 export interface SessionSummary {
   projectDir: string | null;
@@ -438,57 +438,19 @@ export default function SessionsView() {
             <SessionsComparisonCard className="self-end" />
           </>
         ) : (
-          // (TODO 8.39 step 3) When both sessions list and attached
-          // list are empty, the "select something" copy is wrong —
-          // there is nothing to select. Promote a primary CTA to
-          // start a new chat (the same path NewChatModal opens). When
-          // the user has sessions but none selected, fall through to
-          // the original guidance + comparison card.
-          filteredGroups.length === 0 && filteredAttached.length === 0 && !loading ? (
-            <Card className="flex flex-1 items-center justify-center border-dashed">
-              <CardContent className="flex max-w-md flex-col items-center gap-4 p-6 text-center">
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-base font-semibold">
-                    {t('sessions.empty.startFirstTitle')}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {t('sessions.empty.startFirstBody')}
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  <Button
-                    onClick={() => {
-                      setNewChatError(null);
-                      setNewChatOpen(true);
-                    }}
-                    aria-label={t('sessions.aria.newChat')}
-                  >
-                    <Plus className="h-4 w-4" aria-hidden />
-                    {t('sessions.empty.startFirstChat')}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setModalError(null);
-                      setModalOpen(true);
-                    }}
-                    aria-label={t('sessions.aria.attachExisting')}
-                  >
-                    <Plus className="h-4 w-4" aria-hidden />
-                    {t('sessions.empty.attachExisting')}
-                  </Button>
-                </div>
-                <SessionsComparisonCard />
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="flex flex-1 items-center justify-center border-dashed">
-              <CardContent className="flex flex-col items-center gap-4 p-6 text-center text-sm text-muted-foreground">
-                <span>{t('sessions.empty.selectPrompt')}</span>
-                <SessionsComparisonCard />
-              </CardContent>
-            </Card>
-          )
+          // (v1.10.601) Right-pane empty state extracted to
+          // ./SessionsEmptyPanel.tsx.
+          <SessionsEmptyPanel
+            showStartFirst={filteredGroups.length === 0 && filteredAttached.length === 0 && !loading}
+            onNewChat={() => {
+              setNewChatError(null);
+              setNewChatOpen(true);
+            }}
+            onAttachNew={() => {
+              setModalError(null);
+              setModalOpen(true);
+            }}
+          />
         )}
       </div>
 

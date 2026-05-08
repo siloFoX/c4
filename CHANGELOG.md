@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.601] - 2026-05-08 — Extract SessionsEmptyPanel
+
+**Web — `SessionsView.tsx` shrunk by 38 lines (515 → 477).**
+The right-pane empty state — start-first CTA pair (when both
+session and attached lists are empty) and the generic
+select-prompt with comparison card — extracted as its own pure
+display sibling. 3 props.
+
+### Refactor
+- New `web/src/components/SessionsEmptyPanel.tsx` (~66 lines).
+  Owns the conditional rendering between the two empty-state
+  layouts.
+- `SessionsView.tsx`: removed the inline ~52-line empty-state
+  branch. Replaced with `<SessionsEmptyPanel … />`. Dropped 2
+  unused imports (`Plus` icon + `Button` UI primitive).
+- Boundary test for `SessionsComparisonCard`'s 2-call-sites
+  invariant updated to count both files since one of the call
+  sites moved into the new sibling.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions) + 1 existing suite updated. Total: 68 suites,
+  365 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 67 of the perfection-track component split. SessionsView
+  477. 73 ships / 68 components+libs / 365 boundary assertions.
+
 ## [1.10.600] - 2026-05-08 — Extract WikiPageDetail (v1.10.600 milestone)
 
 **Web — `WikiView.tsx` shrunk by 53 lines (409 → 356).**

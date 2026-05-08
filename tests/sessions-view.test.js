@@ -210,15 +210,21 @@ describe('SessionsView.tsx - comparison card', () => {
   it('renders the ComparisonCard component in both selected + empty panes', () => {
     // (v1.10.549) ComparisonCard extracted to its own file under
     // the SessionsComparisonCard name.
+    // (v1.10.601) The empty-state Cards moved into
+    // ./SessionsEmptyPanel.tsx, so the parent only renders the
+    // attached-detail call site directly. Count both files to
+    // lock the original "2+ usages" intent.
     const CARD = path.join(repoRoot, 'web/src/components/SessionsComparisonCard.tsx');
+    const EMPTY = path.join(repoRoot, 'web/src/components/SessionsEmptyPanel.tsx');
     const cardSrc = fs.readFileSync(CARD, 'utf8');
+    const emptySrc = fs.readFileSync(EMPTY, 'utf8');
     assert.match(cardSrc, /export default function SessionsComparisonCard/);
-    // At least two call sites so the operator sees it regardless of
-    // whether they landed on an attached row or an empty pane.
-    const calls = src.match(/<SessionsComparisonCard/g) || [];
+    const parentCalls = src.match(/<SessionsComparisonCard/g) || [];
+    const emptyCalls = emptySrc.match(/<SessionsComparisonCard/g) || [];
+    const total = parentCalls.length + emptyCalls.length;
     assert.ok(
-      calls.length >= 2,
-      `expected SessionsComparisonCard rendered >=2 times, saw ${calls.length}`,
+      total >= 2,
+      `expected SessionsComparisonCard rendered >=2 times across SessionsView+SessionsEmptyPanel, saw ${total} (parent=${parentCalls.length}, empty=${emptyCalls.length})`,
     );
   });
 });

@@ -1276,13 +1276,21 @@ describe('extracted: SessionsComparisonCard (v1.10.549)', () => {
     assert.match(src, /COMPARISON_ROW_KEYS/);
   });
 
-  it('is rendered at >= 2 call sites by SessionsView (selected + empty panes)', () => {
+  it('is rendered at >= 2 call sites combined (SessionsView attached pane + SessionsEmptyPanel)', () => {
+    // (v1.10.601) The empty-state Card pair moved to
+    // SessionsEmptyPanel, so the parent only renders the
+    // attached-detail call site directly. Count both files
+    // to lock the original "2+ usages" intent.
     const parent = read('SessionsView.tsx');
+    const empty = read('SessionsEmptyPanel.tsx');
     assert.match(parent, /import\s+SessionsComparisonCard\s+from\s+'\.\/SessionsComparisonCard'/);
-    const calls = parent.match(/<SessionsComparisonCard/g) || [];
+    assert.match(empty, /import\s+SessionsComparisonCard\s+from\s+'\.\/SessionsComparisonCard'/);
+    const parentCalls = parent.match(/<SessionsComparisonCard/g) || [];
+    const emptyCalls = empty.match(/<SessionsComparisonCard/g) || [];
+    const total = parentCalls.length + emptyCalls.length;
     assert.ok(
-      calls.length >= 2,
-      `expected >= 2 call sites, saw ${calls.length}`,
+      total >= 2,
+      `expected >= 2 call sites combined, saw ${total} (parent=${parentCalls.length}, empty=${emptyCalls.length})`,
     );
   });
 
@@ -1739,6 +1747,42 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: SessionsEmptyPanel (v1.10.601)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SessionsEmptyPanel.tsx');
+    assert.match(src, /export default function SessionsEmptyPanel/);
+  });
+
+  it('takes showStartFirst + 2 callback props', () => {
+    const src = read('SessionsEmptyPanel.tsx');
+    assert.match(src, /showStartFirst:\s*boolean/);
+    assert.match(src, /onNewChat:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onAttachNew:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('renders the two distinct empty states (start-first CTAs vs select prompt)', () => {
+    const src = read('SessionsEmptyPanel.tsx');
+    assert.match(src, /sessions\.empty\.startFirstTitle/);
+    assert.match(src, /sessions\.empty\.startFirstChat/);
+    assert.match(src, /sessions\.empty\.attachExisting/);
+    assert.match(src, /sessions\.empty\.selectPrompt/);
+    assert.match(src, /<SessionsComparisonCard/);
+  });
+
+  it('is imported and rendered by SessionsView', () => {
+    const parent = read('SessionsView.tsx');
+    assert.match(parent, /import\s+SessionsEmptyPanel\s+from\s+'\.\/SessionsEmptyPanel'/);
+    assert.match(parent, /<SessionsEmptyPanel/);
+    assert.match(parent, /showStartFirst=\{filteredGroups\.length === 0/);
+  });
+
+  it('parent SessionsView no longer holds the inline empty-state Cards', () => {
+    const parent = read('SessionsView.tsx');
+    assert.doesNotMatch(parent, /sessions\.empty\.startFirstTitle/);
+    assert.doesNotMatch(parent, /sessions\.empty\.selectPrompt/);
   });
 });
 
