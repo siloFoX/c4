@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiGet, apiPost } from '../lib/api';
-import { Card, CardContent, CardHeader, CardTitle } from './ui';
+import { Card, CardContent } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import WikiSearchResults from './WikiSearchResults';
 import WikiPageDetail from './WikiPageDetail';
-import WikiBulkPublishRow from './WikiBulkPublishRow';
-import WikiSearchControls from './WikiSearchControls';
 import WikiPageDetailHeader from './WikiPageDetailHeader';
+import WikiSearchCardHeader from './WikiSearchCardHeader';
 
 // (multi-specialist phase 7.4) Wiki tab — split-pane like
 // MeetingsView. Left: query input + results list. Right: full page
@@ -203,35 +202,26 @@ export default function WikiView() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 md:flex-row md:p-6">
       <Card className="flex min-h-0 flex-1 flex-col md:max-w-md">
-        <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
-          <CardTitle className="text-base">{t('wiki.title')}</CardTitle>
-          <div className="flex flex-col gap-2">
-            {/* (v1.10.609) Search controls extracted to
-                ./WikiSearchControls.tsx. */}
-            <WikiSearchControls
-              query={query}
-              onQuery={setQuery}
-              type={type}
-              onType={setType}
-              includeStale={includeStale}
-              onIncludeStale={setIncludeStale}
-              searching={searching}
-              onSearch={runSearch}
-            />
-            {/* (v1.10.608) Bulk publish row extracted to
-                ./WikiBulkPublishRow.tsx. */}
-            <WikiBulkPublishRow
-              busy={bulkBusy}
-              gitCommit={bulkGitCommit}
-              gitPush={bulkGitPush}
-              msg={bulkMsg}
-              failed={bulkFailed}
-              onGitCommit={setBulkGitCommit}
-              onGitPush={setBulkGitPush}
-              onPublish={handleBulkPublish}
-            />
-          </div>
-        </CardHeader>
+        {/* (v1.10.620) Master-pane card header (title + search +
+            bulk publish) extracted to ./WikiSearchCardHeader.tsx. */}
+        <WikiSearchCardHeader
+          query={query}
+          onQuery={setQuery}
+          type={type}
+          onType={setType}
+          includeStale={includeStale}
+          onIncludeStale={setIncludeStale}
+          searching={searching}
+          onSearch={runSearch}
+          bulkBusy={bulkBusy}
+          bulkGitCommit={bulkGitCommit}
+          bulkGitPush={bulkGitPush}
+          bulkMsg={bulkMsg}
+          bulkFailed={bulkFailed}
+          onBulkGitCommit={setBulkGitCommit}
+          onBulkGitPush={setBulkGitPush}
+          onBulkPublish={handleBulkPublish}
+        />
         <CardContent className="flex min-h-0 flex-1 flex-col overflow-y-auto p-0">
           <WikiSearchResults
             search={search}

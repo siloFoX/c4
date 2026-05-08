@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.620] - 2026-05-08 — Extract WikiSearchCardHeader
+
+**Web — `WikiView.tsx` shrunk by 10 lines (268 → 258).**
+The master-pane card header — title + `WikiSearchControls` +
+`WikiBulkPublishRow` under a `<CardHeader>` wrapper — extracted
+as a composite container. 16 props.
+
+### Refactor
+- New `web/src/components/WikiSearchCardHeader.tsx` (~75 lines).
+- `WikiView.tsx`: removed the inline ~30-line header block plus
+  2 default-import slots and the now-unused `CardHeader` /
+  `CardTitle` UI primitives.
+- Boundary tests for `WikiSearchControls` + `WikiBulkPublishRow`
+  updated to assert the new parent.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions) + 2 existing suites updated. Total: 87 suites,
+  461 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 86 of the perfection-track component split. WikiView 258.
+  Both card halves now wrap everything in single composites.
+  92 ships / 87 components+libs / 461 boundary assertions.
+
 ## [1.10.619] - 2026-05-08 — Extract WikiPageDetailHeader
 
 **Web — `WikiView.tsx` shrunk by 19 lines (287 → 268).**

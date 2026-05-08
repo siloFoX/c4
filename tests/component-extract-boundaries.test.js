@@ -1753,6 +1753,47 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: WikiSearchCardHeader (v1.10.620)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('WikiSearchCardHeader.tsx');
+    assert.match(src, /export default function WikiSearchCardHeader/);
+  });
+
+  it('takes the consolidated 16 props (search inputs + bulk publish state)', () => {
+    const src = read('WikiSearchCardHeader.tsx');
+    assert.match(src, /query:\s*string/);
+    assert.match(src, /type:\s*string/);
+    assert.match(src, /includeStale:\s*boolean/);
+    assert.match(src, /searching:\s*boolean/);
+    assert.match(src, /bulkBusy:\s*boolean/);
+    assert.match(src, /bulkGitCommit:\s*boolean/);
+    assert.match(src, /bulkGitPush:\s*boolean/);
+    assert.match(src, /bulkMsg:\s*string\s*\|\s*null/);
+    assert.match(src, /bulkFailed:\s*boolean/);
+  });
+
+  it('composes title + WikiSearchControls + WikiBulkPublishRow under a CardHeader', () => {
+    const src = read('WikiSearchCardHeader.tsx');
+    assert.match(src, /<CardHeader/);
+    assert.match(src, /<CardTitle/);
+    assert.match(src, /wiki\.title/);
+    assert.match(src, /<WikiSearchControls/);
+    assert.match(src, /<WikiBulkPublishRow/);
+  });
+
+  it('is imported and rendered by WikiView', () => {
+    const parent = read('WikiView.tsx');
+    assert.match(parent, /import\s+WikiSearchCardHeader\s+from\s+'\.\/WikiSearchCardHeader'/);
+    assert.match(parent, /<WikiSearchCardHeader/);
+  });
+
+  it('parent WikiView no longer imports WikiSearchControls/WikiBulkPublishRow directly', () => {
+    const parent = read('WikiView.tsx');
+    assert.doesNotMatch(parent, /import\s+WikiSearchControls\s+from/);
+    assert.doesNotMatch(parent, /import\s+WikiBulkPublishRow\s+from/);
+  });
+});
+
 describe('extracted: WikiPageDetailHeader (v1.10.619)', () => {
   it('lives in its own file with default export', () => {
     const src = read('WikiPageDetailHeader.tsx');
@@ -2191,11 +2232,13 @@ describe('extracted: WikiSearchControls (v1.10.609)', () => {
     assert.match(src, /e\.key === 'Enter'/);
   });
 
-  it('parent WikiView exports TYPE_OPTIONS and imports WikiSearchControls', () => {
+  it('parent WikiView exports TYPE_OPTIONS; consumed by WikiSearchCardHeader (v1.10.620)', () => {
     const parent = read('WikiView.tsx');
+    const card = read('WikiSearchCardHeader.tsx');
     assert.match(parent, /export\s+const\s+TYPE_OPTIONS/);
-    assert.match(parent, /import\s+WikiSearchControls\s+from\s+'\.\/WikiSearchControls'/);
-    assert.match(parent, /<WikiSearchControls/);
+    assert.match(card, /import\s+WikiSearchControls\s+from\s+'\.\/WikiSearchControls'/);
+    assert.match(card, /<WikiSearchControls/);
+    // Parent still wires onSearch through the composite.
     assert.match(parent, /onSearch=\{runSearch\}/);
   });
 
@@ -2234,11 +2277,12 @@ describe('extracted: WikiBulkPublishRow (v1.10.608)', () => {
     assert.match(src, /if \(e\.target\.checked\) onGitCommit\(true\)/);
   });
 
-  it('is imported and rendered by WikiView', () => {
+  it('is imported and rendered by WikiSearchCardHeader (v1.10.620); parent wires onPublish', () => {
     const parent = read('WikiView.tsx');
-    assert.match(parent, /import\s+WikiBulkPublishRow\s+from\s+'\.\/WikiBulkPublishRow'/);
-    assert.match(parent, /<WikiBulkPublishRow/);
-    assert.match(parent, /onPublish=\{handleBulkPublish\}/);
+    const card = read('WikiSearchCardHeader.tsx');
+    assert.match(card, /import\s+WikiBulkPublishRow\s+from\s+'\.\/WikiBulkPublishRow'/);
+    assert.match(card, /<WikiBulkPublishRow/);
+    assert.match(parent, /onBulkPublish=\{handleBulkPublish\}/);
   });
 
   it('parent WikiView no longer holds the inline publish row', () => {
