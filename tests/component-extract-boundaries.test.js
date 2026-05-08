@@ -1751,6 +1751,44 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: WorkerDetailKeysRow (v1.10.610)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('WorkerDetailKeysRow.tsx');
+    assert.match(src, /export default function WorkerDetailKeysRow/);
+  });
+
+  it('takes busy + onSendKey props with SendableKey union', () => {
+    const src = read('WorkerDetailKeysRow.tsx');
+    assert.match(src, /export\s+type\s+SendableKey/);
+    assert.match(src, /busy:\s*boolean/);
+    assert.match(src, /onSendKey:\s*\(key:\s*SendableKey\)\s*=>\s*void/);
+  });
+
+  it('renders the 4 control keys (Esc/C-c/C-d/Tab) + 4 arrows + heading; mobile only', () => {
+    const src = read('WorkerDetailKeysRow.tsx');
+    assert.match(src, /workerDetail\.keys\.heading/);
+    assert.match(src, /workerDetail\.keys\.esc/);
+    assert.match(src, /workerDetail\.keys\.ctrlC/);
+    assert.match(src, /workerDetail\.keys\.ctrlD/);
+    assert.match(src, /workerDetail\.keys\.tab/);
+    assert.match(src, /workerDetail\.keys\.arrowUp/);
+    assert.match(src, /md:hidden/);
+  });
+
+  it('is imported and rendered by WorkerDetail', () => {
+    const parent = read('WorkerDetail.tsx');
+    assert.match(parent, /import\s+WorkerDetailKeysRow\s+from\s+'\.\/WorkerDetailKeysRow'/);
+    assert.match(parent, /<WorkerDetailKeysRow/);
+    assert.match(parent, /onSendKey=\{sendKey\}/);
+  });
+
+  it('parent WorkerDetail no longer holds the inline keys row', () => {
+    const parent = read('WorkerDetail.tsx');
+    assert.doesNotMatch(parent, /workerDetail\.keys\.heading/);
+    assert.doesNotMatch(parent, /workerDetail\.keys\.arrowUp/);
+  });
+});
+
 describe('extracted: WikiSearchControls (v1.10.609)', () => {
   it('lives in its own file with default export', () => {
     const src = read('WikiSearchControls.tsx');

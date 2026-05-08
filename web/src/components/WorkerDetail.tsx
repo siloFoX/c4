@@ -5,10 +5,6 @@ import {
   useState,
 } from 'react';
 import {
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
   GitMerge,
   Send,
   X,
@@ -25,6 +21,7 @@ import { t, tFormat, useLocale } from '../lib/i18n';
 import XtermView from './XtermView';
 import PinnedRulesEditor from './PinnedRulesEditor';
 import WorkerDetailHeader from './WorkerDetailHeader';
+import WorkerDetailKeysRow from './WorkerDetailKeysRow';
 import { stripAnsi } from '../lib/chat-helpers';
 
 interface WorkerDetailProps {
@@ -297,92 +294,9 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
             users on mobile, where Esc / Ctrl-C / Ctrl-D / Tab / arrows
             aren't reachable. Desktops have a physical keyboard that
             already sends those, so the row is hidden at md+ breakpoints
-            to keep the composer area uncluttered. */}
-        <div className="flex flex-wrap items-center gap-2 md:hidden">
-          <span className="text-xs uppercase tracking-wide text-muted-foreground">
-            {t('workerDetail.keys.heading')}
-          </span>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => sendKey('Escape')}
-            disabled={busy}
-          >
-            {t('workerDetail.keys.esc')}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => sendKey('C-c')}
-            disabled={busy}
-          >
-            {t('workerDetail.keys.ctrlC')}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => sendKey('C-d')}
-            disabled={busy}
-          >
-            {t('workerDetail.keys.ctrlD')}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => sendKey('Tab')}
-            disabled={busy}
-          >
-            {t('workerDetail.keys.tab')}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            aria-label={t('workerDetail.keys.arrowUp')}
-            onClick={() => sendKey('Up')}
-            disabled={busy}
-            className="h-8 w-8 p-0"
-          >
-            <ArrowUp className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            aria-label={t('workerDetail.keys.arrowDown')}
-            onClick={() => sendKey('Down')}
-            disabled={busy}
-            className="h-8 w-8 p-0"
-          >
-            <ArrowDown className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            aria-label={t('workerDetail.keys.arrowLeft')}
-            onClick={() => sendKey('Left')}
-            disabled={busy}
-            className="h-8 w-8 p-0"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            aria-label={t('workerDetail.keys.arrowRight')}
-            onClick={() => sendKey('Right')}
-            disabled={busy}
-            className="h-8 w-8 p-0"
-          >
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </div>
+            to keep the composer area uncluttered.
+            (v1.10.610) Extracted to ./WorkerDetailKeysRow.tsx. */}
+        <WorkerDetailKeysRow busy={busy} onSendKey={sendKey} />
       </CardContent>
     </Card>
     <PinnedRulesEditor workerName={workerName} />

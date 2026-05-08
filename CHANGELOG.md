@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.610] - 2026-05-08 — Extract WorkerDetailKeysRow
+
+**Web — `WorkerDetail.tsx` shrunk by 86 lines (391 → 305).**
+The mobile-only special-keys row — Esc, Ctrl-C, Ctrl-D, Tab,
+plus 4 arrow keys, hidden at md+ breakpoints — extracted as
+its own pure controlled-input sibling. 2 props.
+
+### Refactor
+- New `web/src/components/WorkerDetailKeysRow.tsx` (~107 lines),
+  exports the `SendableKey` union type.
+- `WorkerDetail.tsx`: removed the inline ~85-line keys row.
+  Replaced with `<WorkerDetailKeysRow … />`. Dropped 4 unused
+  arrow-icon imports (ArrowDown, ArrowLeft, ArrowRight, ArrowUp).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 77 suites, 410 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 76 of the perfection-track component split. WorkerDetail
+  305 — first time below ~310 since session start. 82 ships /
+  77 components+libs / 410 boundary assertions.
+
 ## [1.10.609] - 2026-05-08 — Extract WikiSearchControls
 
 **Web — `WikiView.tsx` shrunk by 34 lines (321 → 287).**
