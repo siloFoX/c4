@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import MeetingsMaintenancePanel from './MeetingsMaintenancePanel';
@@ -13,6 +13,7 @@ import { useMeetingEnrichment } from '../lib/use-meeting-enrichment';
 import { useMeetingDetailStream } from '../lib/use-meeting-detail-stream';
 import { useMeetingsList } from '../lib/use-meetings-list';
 import { useStuckMeetings } from '../lib/use-stuck-meetings';
+import { useToggleResetOnChange } from '../lib/use-toggle-reset-on-change';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -220,12 +221,10 @@ export default function MeetingsView() {
   // ./MeetingsContributePanel.tsx — owns its own form state.
   // Parent keeps just the open/closed flag (toggle button lives
   // in the manual-control row above the panel).
-  const [contribOpen, setContribOpen] = useState(false);
-  // Close the form whenever selection changes — the extracted
-  // panel resets its own field state on meetingId change too.
-  useEffect(() => {
-    setContribOpen(false);
-  }, [selectedId]);
+  // (v1.10.638) Auto-close-on-selection-change extracted to
+  // useToggleResetOnChange — the extracted panel resets its
+  // own field state on meetingId change too.
+  const { open: contribOpen, setOpen: setContribOpen } = useToggleResetOnChange(selectedId);
 
   // (v1.10.345) Retro preview / finalize for terminal meetings.
   // Endpoints exist since phase 2.6; the web only had run with
@@ -247,12 +246,9 @@ export default function MeetingsView() {
   // Parent keeps the open/closed flag (so the "Fork…" button next
   // to publish/peer-retro can toggle it); the form owns its own
   // mode / task / title / track / busy / error state internally.
-  const [forkOpen, setForkOpen] = useState(false);
-  // Close the form whenever selection changes — half-typed fork
-  // from meeting A shouldn't leak to a fork attempt on meeting B.
-  useEffect(() => {
-    setForkOpen(false);
-  }, [selectedId]);
+  // (v1.10.638) Same auto-close pattern as contribOpen — half-
+  // typed fork from meeting A shouldn't leak to meeting B.
+  const { open: forkOpen, setOpen: setForkOpen } = useToggleResetOnChange(selectedId);
 
   // (v1.10.342) Maintenance — surfacing four ops endpoints from
   // an inline collapsible panel:

@@ -1755,6 +1755,38 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useToggleResetOnChange hook (v1.10.638)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-toggle-reset-on-change.ts');
+
+  it('lives in lib/use-toggle-reset-on-change.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useToggleResetOnChange/);
+  });
+
+  it('takes a key arg; returns open/setOpen tuple; resets on change', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /key:\s*unknown/);
+    assert.match(src, /open:\s*boolean/);
+    assert.match(src, /setOpen\(false\)/);
+    assert.match(src, /useEffect\(\(\) => \{[\s\S]*setOpen\(false\)/);
+  });
+
+  it('parent MeetingsView uses the hook for both contribOpen + forkOpen', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+\{\s*useToggleResetOnChange\s*\}\s+from\s+'\.\.\/lib\/use-toggle-reset-on-change'/);
+    const calls = parent.match(/useToggleResetOnChange\(selectedId\)/g) || [];
+    assert.ok(calls.length >= 2, `expected >= 2 hook call sites, saw ${calls.length}`);
+  });
+
+  it('parent MeetingsView no longer holds the inline open state + reset effects', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /const \[contribOpen, setContribOpen\]/);
+    assert.doesNotMatch(parent, /const \[forkOpen, setForkOpen\]/);
+  });
+});
+
 describe('extracted: usePersistedFontSize hook (v1.10.637)', () => {
   const fs = require('fs');
   const path = require('path');

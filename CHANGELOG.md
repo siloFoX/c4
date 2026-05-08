@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.638] - 2026-05-09 — Extract useToggleResetOnChange hook
+
+**Web — `MeetingsView.tsx` shrunk by 4 lines (365 → 361).**
+A reusable boolean toggle that auto-resets to false whenever
+the supplied `key` changes — used in MeetingsView at 2 sites
+(`contribOpen` + `forkOpen`) to close half-typed forms when the
+operator switches meetings. Tiny but consolidates a duplicated
+pattern.
+
+### Refactor
+- New `web/src/lib/use-toggle-reset-on-change.ts` (~20 lines).
+- `MeetingsView.tsx`: removed 2 useState slots + 2 reset
+  useEffects. Replaced both with
+  `const { open, setOpen } = useToggleResetOnChange(selectedId)`
+  destructured under the existing names. Dropped `useEffect`
+  from the React imports (no consumer left in the parent).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (4 assertions, also verifies the 2-call-site invariant).
+  Total: 105 suites, 540 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 104 of the perfection-track component split. **Sixteenth
+  custom hook extraction**, and the first generic-shaped one
+  (no API call, no domain coupling). 110 ships /
+  105 components+libs / 540 boundary assertions.
+
 ## [1.10.637] - 2026-05-09 — Extract usePersistedFontSize hook
 
 **Web — `WorkerDetail.tsx` shrunk by 22 lines (224 → 202).**
