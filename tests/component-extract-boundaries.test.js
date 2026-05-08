@@ -1737,6 +1737,45 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: WorkflowList (v1.10.587)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('WorkflowList.tsx');
+    assert.match(src, /export default function WorkflowList/);
+  });
+
+  it('takes workflows + error/busy + selection + 2 callback props', () => {
+    const src = read('WorkflowList.tsx');
+    assert.match(src, /workflows:\s*Workflow\[\]/);
+    assert.match(src, /error:\s*string\s*\|\s*null/);
+    assert.match(src, /busy:\s*boolean/);
+    assert.match(src, /selectedId:\s*string\s*\|\s*null/);
+    assert.match(src, /onSelect:\s*\(id:\s*string\)\s*=>\s*void/);
+    assert.match(src, /onRefresh:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('renders header / error / empty / list states with selected highlight', () => {
+    const src = read('WorkflowList.tsx');
+    assert.match(src, /workflows\.title/);
+    assert.match(src, /workflows\.empty\.cli/);
+    assert.match(src, /workflows\.status\.on/);
+    assert.match(src, /workflows\.status\.off/);
+    assert.match(src, /workflows\.nodesEdges\.format/);
+  });
+
+  it('is imported and rendered by WorkflowEditor', () => {
+    const parent = read('WorkflowEditor.tsx');
+    assert.match(parent, /import\s+WorkflowList\s+from\s+'\.\/WorkflowList'/);
+    assert.match(parent, /<WorkflowList/);
+    assert.match(parent, /onRefresh=\{refresh\}/);
+  });
+
+  it('parent WorkflowEditor no longer holds the inline aside markup', () => {
+    const parent = read('WorkflowEditor.tsx');
+    assert.doesNotMatch(parent, /workflows\.empty\.cli/);
+    assert.doesNotMatch(parent, /workflows\.nodesEdges\.format/);
+  });
+});
+
 describe('extracted: MeetingsDetailTitleBar (v1.10.586)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsDetailTitleBar.tsx');

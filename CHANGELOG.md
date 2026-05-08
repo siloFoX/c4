@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.587] - 2026-05-08 — Extract WorkflowList
+
+**Web — `WorkflowEditor.tsx` shrunk by 68 lines (460 → 392).**
+The whole left-pane sidebar — header (icon + title + refresh
+button), error banner, empty state with `{cli}` interpolation,
+and the per-workflow button list with status badge — extracted
+as its own pure-display sibling. 6 props.
+
+### Refactor
+- New `web/src/components/WorkflowList.tsx` (~110 lines).
+- `WorkflowEditor.tsx`: removed the inline ~80-line `<aside>`
+  block. Replaced with `<WorkflowList … />`. Dropped 3 unused
+  imports (`RefreshCw`, `Workflow as WorkflowIcon` icons + `cn`
+  utility — sole consumer was the extracted list).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 54 suites, 293 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 53 of the perfection-track component split.
+  WorkflowEditor 392 (was 580+ at session start). 59 ships /
+  54 components+libs / 293 boundary assertions.
+
 ## [1.10.586] - 2026-05-08 — Extract MeetingsDetailTitleBar
 
 **Web — `MeetingsView.tsx` shrunk by 12 lines (797 → 785).**

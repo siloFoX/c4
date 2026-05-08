@@ -7,11 +7,12 @@
 // engine + viewer; full edit UI is tracked under future work).
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Play, RefreshCw, Workflow as WorkflowIcon } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { apiGet, apiPost } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import WorkflowGraph from './WorkflowGraph';
 import WorkflowNodeProperties from './WorkflowNodeProperties';
+import WorkflowList from './WorkflowList';
 import {
   Badge,
   Button,
@@ -23,7 +24,6 @@ import {
   Panel,
   type BadgeProps,
 } from './ui';
-import { cn } from '../lib/cn';
 
 export type WorkflowNodeType = 'task' | 'condition' | 'parallel' | 'wait' | 'audit' | 'notify' | 'meeting' | 'end';
 
@@ -191,87 +191,19 @@ export default function WorkflowEditor() {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 text-foreground md:flex-row md:p-6">
       <aside className="w-full shrink-0 overflow-y-auto md:w-72">
-        <Card>
-          <CardHeader className="flex-row items-center justify-between p-4 md:p-5">
-            <div className="flex items-center gap-2">
-              <WorkflowIcon aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
-              <CardTitle>{t('workflows.title')}</CardTitle>
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={refresh}
-              disabled={busy}
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              <span>{t('common.refresh')}</span>
-            </Button>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 md:p-5 md:pt-0">
-            {error ? (
-              <div
-                role="alert"
-                className="mb-2 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive"
-              >
-                {error}
-              </div>
-            ) : null}
-            {workflows.length === 0 ? (
-              <div className="text-xs text-muted-foreground">
-                {t('workflows.empty').split('{cli}').map((seg, i, arr) => (
-                  <span key={i}>
-                    {seg}
-                    {i < arr.length - 1 ? (
-                      <code className="font-mono text-foreground">
-                        {t('workflows.empty.cli')}
-                      </code>
-                    ) : null}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <ul className="space-y-1">
-                {workflows.map((wf) => {
-                  const isSelected = wf.id === selectedId;
-                  return (
-                    <li key={wf.id}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedId(wf.id);
-                          setSelectedNodeId(null);
-                        }}
-                        className={cn(
-                          'w-full rounded-md border border-transparent px-2 py-1.5 text-left text-sm transition-colors',
-                          isSelected
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted/30 text-foreground hover:bg-muted'
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="truncate font-medium" data-i18n-skip="user-data">{wf.name}</span>
-                          <Badge
-                            variant={wf.enabled ? 'success' : 'secondary'}
-                            className="shrink-0 uppercase"
-                          >
-                            {wf.enabled ? t('workflows.status.on') : t('workflows.status.off')}
-                          </Badge>
-                        </div>
-                        <div className="text-xs opacity-80">
-                          {tFormat('workflows.nodesEdges.format', {
-                            nodes: String(wf.nodes.length),
-                            edges: String(wf.edges.length),
-                          })}
-                        </div>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+        {/* (v1.10.587) Left-pane workflow list extracted to
+            ./WorkflowList.tsx. */}
+        <WorkflowList
+          workflows={workflows}
+          error={error}
+          busy={busy}
+          selectedId={selectedId}
+          onSelect={(id) => {
+            setSelectedId(id);
+            setSelectedNodeId(null);
+          }}
+          onRefresh={refresh}
+        />
       </aside>
 
       <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden">
