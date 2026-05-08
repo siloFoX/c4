@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGet, eventSourceUrl } from '../lib/api';
-import { Card, CardContent, CardHeader } from './ui';
+import { Card, CardContent } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import MeetingsMaintenancePanel from './MeetingsMaintenancePanel';
 import { type RecapResponse } from './MeetingsRecapPanel';
@@ -9,12 +9,9 @@ import { type LineageResponse } from './MeetingsLineageStrip';
 import MeetingsStuckBanner, { type StuckResponse } from './MeetingsStuckBanner';
 import { type StageView } from './MeetingsStagesView';
 import MeetingsDetailBody from './MeetingsDetailBody';
-import MeetingsListTitleBar from './MeetingsListTitleBar';
-import MeetingsComposer from './MeetingsComposer';
-import MeetingsSearchSection from './MeetingsSearchSection';
-import MeetingsListFilterRow from './MeetingsListFilterRow';
 import MeetingsList from './MeetingsList';
 import MeetingsDetailCardHeader from './MeetingsDetailCardHeader';
+import MeetingsListCardHeader from './MeetingsListCardHeader';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -536,54 +533,39 @@ export default function MeetingsView() {
       <MeetingsStuckBanner stuck={stuck} onNavigate={setSelectedId} />
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden md:flex-row">
       <Card className="flex min-h-0 flex-1 flex-col md:max-w-md">
-        <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
-          {/* (v1.10.602) Title row extracted to ./MeetingsListTitleBar.tsx. */}
-          <MeetingsListTitleBar
-            creating={creating}
-            loading={loading}
-            onToggleCreating={() => setCreating((v) => !v)}
-            onRefresh={refresh}
-          />
-          {/* (v1.10.575) List filter row extracted to
-              ./MeetingsListFilterRow.tsx. */}
-          {!searchQuery.trim() ? (
-            <MeetingsListFilterRow
-              status={listStatus}
-              onStatusChange={setListStatus}
-              track={listTrack}
-              onTrackChange={setListTrack}
-            />
-          ) : null}
-          {/* (v1.10.613) Search section (input + filter row +
-              facets + error) extracted to ./MeetingsSearchSection.tsx. */}
-          <MeetingsSearchSection
-            query={searchQuery}
-            onChangeQuery={setSearchQuery}
-            searching={searching}
-            searchStatus={searchStatus}
-            onSearchStatusChange={setSearchStatus}
-            searchTrack={searchTrack}
-            onSearchTrackChange={setSearchTrack}
-            searchSince={searchSince}
-            onSearchSinceChange={setSearchSince}
-            searchUntil={searchUntil}
-            onSearchUntilChange={setSearchUntil}
-            searchResults={searchResults}
-            searchFacets={searchFacets}
-            searchTotal={searchTotal}
-            searchError={searchError}
-          />
-          {/* (v1.10.557) Composer extracted to ./MeetingsComposer.tsx. */}
-          <MeetingsComposer
-            open={creating}
-            onClose={() => setCreating(false)}
-            onCreated={(newId) => {
-              setCreating(false);
-              void refresh();
-              setSelectedId(newId);
-            }}
-          />
-        </CardHeader>
+        {/* (v1.10.615) Master-pane card header (title + filter +
+            search + composer) extracted to ./MeetingsListCardHeader.tsx. */}
+        <MeetingsListCardHeader
+          creating={creating}
+          loading={loading}
+          onToggleCreating={() => setCreating((v) => !v)}
+          onRefresh={refresh}
+          listStatus={listStatus}
+          onListStatusChange={setListStatus}
+          listTrack={listTrack}
+          onListTrackChange={setListTrack}
+          searchQuery={searchQuery}
+          onChangeSearchQuery={setSearchQuery}
+          searching={searching}
+          searchStatus={searchStatus}
+          onSearchStatusChange={setSearchStatus}
+          searchTrack={searchTrack}
+          onSearchTrackChange={setSearchTrack}
+          searchSince={searchSince}
+          onSearchSinceChange={setSearchSince}
+          searchUntil={searchUntil}
+          onSearchUntilChange={setSearchUntil}
+          searchResults={searchResults}
+          searchFacets={searchFacets}
+          searchTotal={searchTotal}
+          searchError={searchError}
+          onCloseComposer={() => setCreating(false)}
+          onCreatedComposer={(newId) => {
+            setCreating(false);
+            void refresh();
+            setSelectedId(newId);
+          }}
+        />
         <CardContent className="flex min-h-0 flex-1 flex-col overflow-y-auto p-0">
           {/* (v1.10.576) Master-pane list extracted to ./MeetingsList.tsx. */}
           <MeetingsList

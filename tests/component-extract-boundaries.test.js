@@ -264,8 +264,8 @@ describe('extracted: MeetingsListFilterRow (v1.10.575)', () => {
     assert.doesNotMatch(src, /useEffect/);
   });
 
-  it('is imported and rendered by MeetingsView', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsListCardHeader (v1.10.615)', () => {
+    const parent = read('MeetingsListCardHeader.tsx');
     assert.match(parent, /import\s+MeetingsListFilterRow\s+from\s+'\.\/MeetingsListFilterRow'/);
     assert.match(parent, /<MeetingsListFilterRow/);
   });
@@ -918,8 +918,8 @@ describe('extracted: MeetingsComposer (v1.10.557)', () => {
     assert.match(src, /<MeetingsTemplateEditor/);
   });
 
-  it('is imported and rendered by MeetingsView', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsListCardHeader (v1.10.615)', () => {
+    const parent = read('MeetingsListCardHeader.tsx');
     assert.match(parent, /import\s+MeetingsComposer\s+from\s+'\.\/MeetingsComposer'/);
     assert.match(parent, /<MeetingsComposer/);
   });
@@ -1751,6 +1751,49 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: MeetingsListCardHeader (v1.10.615)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsListCardHeader.tsx');
+    assert.match(src, /export default function MeetingsListCardHeader/);
+  });
+
+  it('takes the consolidated props (creating + filters + search state + composer)', () => {
+    const src = read('MeetingsListCardHeader.tsx');
+    assert.match(src, /creating:\s*boolean/);
+    assert.match(src, /onToggleCreating:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /listStatus:\s*MeetingStatus\s*\|\s*''/);
+    assert.match(src, /listTrack:\s*Track\s*\|\s*''/);
+    assert.match(src, /searchQuery:\s*string/);
+    assert.match(src, /searchResults:\s*MeetingSummary\[\]\s*\|\s*null/);
+    assert.match(src, /onCloseComposer:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onCreatedComposer:\s*\(newId:\s*string\)\s*=>\s*void/);
+  });
+
+  it('composes the 4 sub-components (TitleBar + ListFilterRow + SearchSection + Composer)', () => {
+    const src = read('MeetingsListCardHeader.tsx');
+    assert.match(src, /<CardHeader/);
+    assert.match(src, /<MeetingsListTitleBar/);
+    assert.match(src, /<MeetingsListFilterRow/);
+    assert.match(src, /<MeetingsSearchSection/);
+    assert.match(src, /<MeetingsComposer/);
+    assert.match(src, /!searchQuery\.trim\(\)/);
+  });
+
+  it('is imported and rendered by MeetingsView', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsListCardHeader\s+from\s+'\.\/MeetingsListCardHeader'/);
+    assert.match(parent, /<MeetingsListCardHeader/);
+  });
+
+  it('parent MeetingsView no longer imports the 4 sub-components directly', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /import\s+MeetingsListTitleBar\s+from/);
+    assert.doesNotMatch(parent, /import\s+MeetingsListFilterRow\s+from/);
+    assert.doesNotMatch(parent, /import\s+MeetingsSearchSection\s+from/);
+    assert.doesNotMatch(parent, /import\s+MeetingsComposer\s+from/);
+  });
+});
+
 describe('extracted: MeetingsDetailCardHeader (v1.10.614)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsDetailCardHeader.tsx');
@@ -1830,10 +1873,15 @@ describe('extracted: MeetingsSearchSection (v1.10.613)', () => {
     assert.match(facets, /export\s+interface\s+SearchFacets/);
   });
 
-  it('is imported and rendered by MeetingsView; inline section removed', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsListCardHeader (v1.10.615)', () => {
+    const parent = read('MeetingsListCardHeader.tsx');
     assert.match(parent, /import\s+MeetingsSearchSection\s+from\s+'\.\/MeetingsSearchSection'/);
     assert.match(parent, /<MeetingsSearchSection/);
+  });
+
+  it('parent MeetingsView no longer imports the search siblings directly', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /import\s+MeetingsSearchSection\s+from/);
     assert.doesNotMatch(parent, /import\s+MeetingsSearchInput\s+from/);
     assert.doesNotMatch(parent, /import\s+MeetingsSearchFacets\s+from/);
     assert.doesNotMatch(parent, /import\s+MeetingsSearchFilterRow\s+from/);
@@ -2274,11 +2322,11 @@ describe('extracted: MeetingsListTitleBar (v1.10.602)', () => {
     assert.match(src, /meetings\.action\.refresh/);
   });
 
-  it('is imported and rendered by MeetingsView', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsListCardHeader (v1.10.615)', () => {
+    const parent = read('MeetingsListCardHeader.tsx');
     assert.match(parent, /import\s+MeetingsListTitleBar\s+from\s+'\.\/MeetingsListTitleBar'/);
     assert.match(parent, /<MeetingsListTitleBar/);
-    assert.match(parent, /onRefresh=\{refresh\}/);
+    assert.match(parent, /onRefresh=\{onRefresh\}/);
   });
 
   it('parent MeetingsView no longer holds the inline title row', () => {
