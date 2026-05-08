@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.646] - 2026-05-09 — Extract useTerminalSseStream hook
+
+**Web — `XtermView.tsx` shrunk by 30 lines (350 → 320).**
+The /api/watch SSE wiring — EventSource open, b64-decode
+of `output` frames, raw `term.write` (no stripAnsi),
+disconnect-on-error badge — moves to a dedicated hook.
+Mirror of v1.10.643's `useChatSseStream`, but the consumer
+is xterm so the bytes go straight to `term.write` instead
+of into a chunk buffer. EventSource construction
+exceptions now propagate through an `onError` callback
+that the parent wires to its existing `setError` slot.
+
+### Refactor
+- New `web/src/lib/use-terminal-sse-stream.ts` (~55 lines).
+- `XtermView.tsx`: removed the inline `WatchEvent`
+  interface, the `sseConnected` useState slot, and the
+  ~25-line SSE useEffect. Replaced with a single
+  `useTerminalSseStream(…)` call. Trimmed the now-unused
+  `eventSourceUrl` + `b64decode` imports.
+- Boundary suite #114 — 4 assertions covering the hook's
+  export shape, /api/watch wiring + b64 decode + term
+  write, the onError propagation, and parent wiring.
+- `tests/xterm-view.test.js` redirects: SSE-subscribe,
+  raw-bytes-write, and base64-decode assertions all read
+  from `lib/use-terminal-sse-stream.ts` instead of the
+  parent.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  573 / 573 across 113 → 114 suites.
+- `node --test tests/xterm-view.test.js`: 21 / 21.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 118 ships total since v1.10.529.
+- 114 components/libs extracted.
+- 24 custom hooks in `web/src/lib/`.
+- 573 boundary assertions across 114 suites.
+
 ## [1.10.645] - 2026-05-09 — Extract useXtermThemeTracking + xterm-theme
 
 **Web — `XtermView.tsx` shrunk by 64 lines (414 → 350).**

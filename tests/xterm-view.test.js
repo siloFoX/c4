@@ -67,27 +67,44 @@ describe('XtermView wiring (8.24 + 8.27)', () => {
   });
 
   it('subscribes to /api/watch via eventSourceUrl (auth-aware)', () => {
-    assert.match(src, /from '\.\.\/lib\/api'/);
-    assert.match(src, /eventSourceUrl\(`\/api\/watch\?name=\$\{encodeURIComponent\(workerName\)\}`\)/);
-    assert.match(src, /new EventSource\(url\)/);
+    // (v1.10.646) SSE wiring moved to lib/use-terminal-sse-stream.
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-terminal-sse-stream.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /from '\.\/api'/);
+    assert.match(hookSrc, /eventSourceUrl\(`\/api\/watch\?name=\$\{encodeURIComponent\(workerName\)\}`\)/);
+    assert.match(hookSrc, /new EventSource\(url\)/);
   });
 
   it('writes raw PTY chunks to xterm without stripping ANSI', () => {
     // 8.24 repro: stripAnsi dropped cursor-up / alt-screen / CSI erase and
     // caused spinner/thinking boxes to pile up. The new view must hand
-    // bytes straight to xterm.
-    assert.match(src, /term\.write\(/);
+    // bytes straight to xterm. (v1.10.646) term.write moved to hook.
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-terminal-sse-stream.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /term\.write\(/);
     assert.ok(
       !/stripAnsi\s*\(/.test(src),
       'XtermView must not call stripAnsi -- xterm parses ANSI itself'
     );
+    assert.ok(
+      !/stripAnsi\s*\(/.test(hookSrc),
+      'use-terminal-sse-stream must not call stripAnsi either'
+    );
   });
 
   it('decodes base64 frames off the SSE output envelope', () => {
-    assert.match(src, /type\s*===\s*['"]output['"]/);
-    assert.match(src, /b64decode\(/);
-    // JSON.parse of the SSE data, matching the ChatView contract.
-    assert.match(src, /JSON\.parse\(ev\.data\)/);
+    // (v1.10.646) SSE decode lives in the hook now.
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-terminal-sse-stream.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /type\s*===\s*['"]output['"]/);
+    assert.match(hookSrc, /b64decode\(/);
+    assert.match(hookSrc, /JSON\.parse\(ev\.data\)/);
   });
 
   it('maps the xterm theme onto the shadcn CSS tokens (light + dark parity)', () => {

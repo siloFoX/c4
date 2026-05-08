@@ -18,13 +18,13 @@ import { FitAddon } from '@xterm/addon-fit';
 import { SearchAddon } from '@xterm/addon-search';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
-import { apiFetch, eventSourceUrl } from '../lib/api';
+import { apiFetch } from '../lib/api';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 import XtermStatusBar from './XtermStatusBar';
-import { b64decode } from '../lib/chat-helpers';
 import { buildXtermTheme } from '../lib/xterm-theme';
 import { useXtermThemeTracking } from '../lib/use-xterm-theme-tracking';
+import { useTerminalSseStream } from '../lib/use-terminal-sse-stream';
 
 interface XtermViewProps {
   workerName: string;
@@ -34,11 +34,6 @@ interface XtermViewProps {
   // tab switches -- the original 8.27 bug was a remount that dropped the
   // ResizeObserver wiring.
   visible?: boolean;
-}
-
-interface WatchEvent {
-  type?: string;
-  data?: string;
 }
 
 // (v1.10.571) b64decode moved to lib/chat-helpers.ts — was a
@@ -87,7 +82,6 @@ export default function XtermView({ workerName, fontSize, visible = true }: Xter
   const lastResizeRef = useRef<{ cols: number; rows: number } | null>(null);
 
   const [error, setError] = useState<string | null>(null);
-  const [sseConnected, setSseConnected] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [altScreen, setAltScreen] = useState(false);
@@ -246,36 +240,12 @@ export default function XtermView({ workerName, fontSize, visible = true }: Xter
     if (visible) scheduleFit();
   }, [visible, scheduleFit]);
 
-  // SSE watch -- identical wire shape to ChatView. We write raw bytes
-  // (no stripAnsi) straight into xterm so cursor controls, alt-screen
-  // toggles, and OSC sequences all land.
-  useEffect(() => {
-    const term = termRef.current;
-    if (!term) return;
-    const url = eventSourceUrl(`/api/watch?name=${encodeURIComponent(workerName)}`);
-    let es: EventSource | null;
-    try {
-      es = new EventSource(url);
-    } catch (e) {
-      setError((e as Error).message);
-      return;
-    }
-    es.onopen = () => setSseConnected(true);
-    es.onerror = () => setSseConnected(false);
-    es.onmessage = (ev: MessageEvent) => {
-      try {
-        const data = JSON.parse(ev.data) as WatchEvent;
-        if (data.type === 'output' && typeof data.data === 'string') {
-          term.write(b64decode(data.data));
-        }
-      } catch {
-        // ignore non-JSON payloads
-      }
-    };
-    return () => {
-      es?.close();
-    };
-  }, [workerName]);
+  // (v1.10.646) SSE watch moved to lib/use-terminal-sse-stream.
+  const { sseConnected } = useTerminalSseStream({
+    termRef,
+    workerName,
+    onError: setError,
+  });
 
   // Ctrl+F opens the search overlay while focus is inside the terminal.
   useEffect(() => {

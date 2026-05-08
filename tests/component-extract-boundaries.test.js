@@ -1755,6 +1755,43 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useTerminalSseStream hook (v1.10.646)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-terminal-sse-stream.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'XtermView.tsx');
+
+  it('exports the hook + accepts termRef + workerName + onError', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useTerminalSseStream/);
+    assert.match(src, /termRef:\s*RefObject<Terminal\s*\|\s*null>/);
+    assert.match(src, /workerName:\s*string/);
+    assert.match(src, /onError:\s*\(message:\s*string\)\s*=>\s*void/);
+    assert.match(src, /sseConnected:\s*boolean/);
+  });
+
+  it('opens EventSource via eventSourceUrl + writes b64-decoded output to term', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /eventSourceUrl\(`\/api\/watch\?name=\$\{encodeURIComponent\(workerName\)\}`\)/);
+    assert.match(src, /new EventSource\(url\)/);
+    assert.match(src, /term\.write\(b64decode\(data\.data\)\)/);
+    assert.match(src, /type\s*===\s*['"]output['"]/);
+  });
+
+  it('propagates EventSource construction failures via onError', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /catch \(e\)\s*\{[\s\S]*?onError\(\(e as Error\)\.message\)/);
+  });
+
+  it('parent XtermView wires the hook + drops the inline state slot', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useTerminalSseStream\s*\}\s+from\s+'\.\.\/lib\/use-terminal-sse-stream'/);
+    assert.match(src, /useTerminalSseStream\(\{[\s\S]*?termRef[\s\S]*?workerName[\s\S]*?onError:\s*setError[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /const \[sseConnected, setSseConnected\]/);
+    assert.doesNotMatch(src, /^interface WatchEvent/m);
+  });
+});
+
 describe('extracted: useXtermThemeTracking + xterm-theme (v1.10.645)', () => {
   const fs = require('fs');
   const path = require('path');
