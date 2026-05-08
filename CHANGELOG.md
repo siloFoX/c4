@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.623] - 2026-05-09 — Extract useMeetingsSearch hook
+
+**Web — `MeetingsView.tsx` shrunk by 74 lines (621 → 547).**
+The /api/meetings/search effect — 250ms debounce, status/track/
+since/until filter composition, facet/total parsing, and the
+summary-list decoration — extracted as a custom hook. Inputs:
+query/status/track/since/until + the meetings list (for merge).
+Outputs: searchResults / searchFacets / searchTotal / searchError
+/ searching.
+
+### Refactor
+- New `web/src/lib/use-meetings-search.ts` (~124 lines) — owns
+  5 state slots, 1 effect, debounce timer, the 250ms timeout,
+  cancellation flag, summary merge logic.
+- `MeetingsView.tsx`: removed the inline ~85-line search useEffect
+  + 5 useState slots. Replaced with a single
+  `const { … } = useMeetingsSearch({ … })` call.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 90 suites, 476 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 89 of the perfection-track component split. **First
+  custom hook extraction** of this session — sets a new
+  hook-extraction precedent for the remaining big files.
+  MeetingsView 547 — first time below 600 since session start.
+  95 ships / 90 components+libs / 476 boundary assertions.
+
 ## [1.10.622] - 2026-05-09 — Extract SessionsListCard
 
 **Web — `SessionsView.tsx` shrunk by 14 lines (456 → 442).**

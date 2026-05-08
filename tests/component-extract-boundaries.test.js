@@ -1753,6 +1753,53 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useMeetingsSearch hook (v1.10.623)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meetings-search.ts');
+
+  it('lives in lib/use-meetings-search.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useMeetingsSearch/);
+  });
+
+  it('takes the args object (query/status/track/since/until/meetings)', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /query:\s*string/);
+    assert.match(src, /status:\s*MeetingStatus\s*\|\s*''/);
+    assert.match(src, /track:\s*Track\s*\|\s*''/);
+    assert.match(src, /since:\s*string/);
+    assert.match(src, /until:\s*string/);
+    assert.match(src, /meetings:\s*MeetingSummary\[\]/);
+  });
+
+  it('owns the 250ms debounce + facet/total parsing + summary merge', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.setTimeout/);
+    assert.match(src, /250\)/);
+    assert.match(src, /\/api\/meetings\/search\?/);
+    assert.match(src, /summaryById/);
+  });
+
+  it('returns the 5-field result block (results / facets / total / error / searching)', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /searchResults:\s*MeetingSummary\[\]\s*\|\s*null/);
+    assert.match(src, /searchFacets:\s*SearchFacets\s*\|\s*null/);
+    assert.match(src, /searchTotal:\s*number\s*\|\s*null/);
+    assert.match(src, /searchError:\s*string\s*\|\s*null/);
+    assert.match(src, /searching:\s*boolean/);
+  });
+
+  it('parent MeetingsView calls the hook; inline effect removed', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+\{\s*useMeetingsSearch\s*\}\s+from\s+'\.\.\/lib\/use-meetings-search'/);
+    assert.match(parent, /useMeetingsSearch\(\{/);
+    // Inline effect markers (apiGet call, summary merge) removed.
+    assert.doesNotMatch(parent, /apiGet<\{[\s\S]*?\/api\/meetings\/search\?/);
+    assert.doesNotMatch(parent, /summaryById\.get/);
+  });
+});
+
 describe('extracted: SessionsListCard (v1.10.622)', () => {
   it('lives in its own file with default export', () => {
     const src = read('SessionsListCard.tsx');

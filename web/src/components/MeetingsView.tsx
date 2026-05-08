@@ -12,6 +12,7 @@ import MeetingsDetailBody from './MeetingsDetailBody';
 import MeetingsList from './MeetingsList';
 import MeetingsDetailCardHeader from './MeetingsDetailCardHeader';
 import MeetingsListCardHeader from './MeetingsListCardHeader';
+import { useMeetingsSearch } from '../lib/use-meetings-search';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -171,11 +172,6 @@ export default function MeetingsView() {
   // to ISO timestamps in the URL params.
   const [searchSince, setSearchSince] = useState('');
   const [searchUntil, setSearchUntil] = useState('');
-  const [searchResults, setSearchResults] = useState<MeetingSummary[] | null>(null);
-  const [searchFacets, setSearchFacets] = useState<{ status?: Record<string, number>; track?: Record<string, number> } | null>(null);
-  const [searchTotal, setSearchTotal] = useState<number | null>(null);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [searching, setSearching] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -227,91 +223,21 @@ export default function MeetingsView() {
   }, [refresh]);
 
   // (Phase 8.1) Debounced FTS search.
-  useEffect(() => {
-    const q = searchQuery.trim();
-    if (!q) {
-      // Empty query → clear results so the bare list shows.
-      setSearchResults(null);
-      setSearchFacets(null);
-      setSearchTotal(null);
-      setSearchError(null);
-      setSearching(false);
-      return undefined;
-    }
-    let cancelled = false;
-    const timer = window.setTimeout(async () => {
-      setSearching(true);
-      setSearchError(null);
-      try {
-        const params = new URLSearchParams({
-          q,
-          limit: '50',
-          facet: 'status,track',
-          total: '1',
-        });
-        if (searchStatus) params.set('status', searchStatus);
-        if (searchTrack) params.set('track', searchTrack);
-        if (searchSince) params.set('since', `${searchSince}T00:00:00.000Z`);
-        if (searchUntil) params.set('until', `${searchUntil}T00:00:00.000Z`);
-        const res = await apiGet<{
-          count: number;
-          query: string;
-          offset: number;
-          total?: number;
-          facets?: { status?: Record<string, number>; track?: Record<string, number> };
-          results: Array<{
-            id: string;
-            status: MeetingStatus;
-            createdAt: string;
-            updatedAt: string;
-            snippet: string;
-            rank: number;
-          }>;
-        }>(`/api/meetings/search?${params.toString()}`);
-        if (cancelled) return;
-        // Merge each result with the matching summary from the
-        // current list so the row renders track / title properly
-        // (the search response doesn't include those fields). For
-        // results not in the current page of the list we fall back
-        // to the limited fields the search returns.
-        const summaryById = new Map<string, MeetingSummary>();
-        for (const m of meetings) summaryById.set(m.id, m);
-        const merged: MeetingSummary[] = res.results.map((r) => {
-          const fromList = summaryById.get(r.id);
-          if (fromList) return { ...fromList, snippet: r.snippet };
-          return {
-            id: r.id,
-            status: r.status,
-            track: '?',
-            title: r.id,
-            currentStage: null,
-            currentRound: 0,
-            createdAt: r.createdAt,
-            startedAt: null,
-            completedAt: null,
-            snippet: r.snippet,
-          };
-        });
-        setSearchResults(merged);
-        setSearchFacets(res.facets || null);
-        setSearchTotal(typeof res.total === 'number' ? res.total : null);
-      } catch (e) {
-        if (cancelled) return;
-        setSearchError((e as Error).message || t('common.searchFailed'));
-        setSearchResults([]);
-      } finally {
-        if (!cancelled) setSearching(false);
-      }
-    }, 250);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-    // We intentionally omit `meetings` from deps — re-running the
-    // search every time the list polls is wasteful; the merge with
-    // summaryById is best-effort decoration.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, searchStatus, searchTrack, searchSince, searchUntil]);
+  // (v1.10.623) Hook extracted to ../lib/use-meetings-search.
+  const {
+    searchResults,
+    searchFacets,
+    searchTotal,
+    searchError,
+    searching,
+  } = useMeetingsSearch({
+    query: searchQuery,
+    status: searchStatus,
+    track: searchTrack,
+    since: searchSince,
+    until: searchUntil,
+    meetings: data?.meetings || [],
+  });
 
   // Initial detail fetch + SSE live updates (phase 7.1).
   // We intentionally fetch the full snapshot via the REST endpoint
