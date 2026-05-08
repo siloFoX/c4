@@ -1770,6 +1770,47 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useScribeContext hook (v1.10.650)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-scribe-context.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'HistoryView.tsx');
+
+  it('exports the hook + ScribeContextResponse type', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useScribeContext/);
+    assert.match(src, /export interface ScribeContextResponse/);
+    assert.match(src, /content:\s*string/);
+    assert.match(src, /updatedAt:\s*string\s*\|\s*null/);
+  });
+
+  it('GET /api/scribe-context on openScribe + clears + reports errors via setError', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiGet<ScribeContextResponse>\('\/api\/scribe-context'\)/);
+    assert.match(src, /setError\(null\)/);
+    assert.match(src, /setError\(\(e as Error\)\.message\)/);
+  });
+
+  it('returns showScribe + scribe + loadingScribe + open/close', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /showScribe:\s*boolean/);
+    assert.match(src, /scribe:\s*ScribeContextResponse\s*\|\s*null/);
+    assert.match(src, /loadingScribe:\s*boolean/);
+    assert.match(src, /openScribe:\s*\(\)\s*=>\s*Promise<void>/);
+    assert.match(src, /closeScribe:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('parent HistoryView wires the hook + drops the inline state + interface', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useScribeContext\s*\}\s+from\s+'\.\.\/lib\/use-scribe-context'/);
+    assert.match(src, /useScribeContext\(\{\s*setError\s*\}\)/);
+    assert.doesNotMatch(src, /^export interface ScribeContextResponse/m);
+    assert.doesNotMatch(src, /const \[showScribe, setShowScribe\]/);
+    assert.doesNotMatch(src, /const \[loadingScribe, setLoadingScribe\]/);
+    assert.doesNotMatch(src, /const openScribe = useCallback/);
+  });
+});
+
 describe('extracted: useMeetingTemplates hook (v1.10.649)', () => {
   const fs = require('fs');
   const path = require('path');

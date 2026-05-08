@@ -4,6 +4,51 @@
 
 (no entries — next release window)
 
+## [1.10.650] - 2026-05-09 — Extract useScribeContext hook
+
+**Web — `HistoryView.tsx` shrunk by 22 lines (362 → 340).**
+The scribe-drawer state machine — the open flag, the
+loaded payload, the loading flag, and the GET
+/api/scribe-context fetch — moves to a self-contained
+hook. The parent's `setError` is threaded into the hook so
+the error banner stays the single sink for the page (set
+to null on success, message on failure — matches
+pre-extraction behaviour).
+
+### Refactor
+- New `web/src/lib/use-scribe-context.ts` (~57 lines).
+  Exports `useScribeContext` + `ScribeContextResponse`
+  type.
+- `HistoryView.tsx`: removed inline `ScribeContextResponse`
+  interface (was already exported, but no other module
+  consumed it), the three useState slots, the `openScribe`
+  useCallback, and the `closeScribe` arrow. Replaced
+  with a destructured `useScribeContext({ setError })`
+  call. `selectWorker` now calls `closeScribe()` instead
+  of `setShowScribe(false)` — same effect, different
+  identifier.
+- Boundary suite #118 — 4 assertions covering hook export
+  shape, scribe-context fetch + setError(null/error)
+  semantics, return tuple, parent wiring.
+- `tests/history-view.test.js` redirects: scribe-context
+  URL now greps the hook file; selectWorker assertion
+  now matches `closeScribe()` + `[closeScribe]` deps.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  590 / 590 across 117 → 118 suites.
+- `node --test tests/history-view.test.js`: 39 / 39 (after
+  redirect).
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 122 ships total since v1.10.529.
+- 118 components/libs extracted.
+- 28 custom hooks in `web/src/lib/`.
+- 590 boundary assertions across 118 suites.
+
 ## [1.10.649] - 2026-05-09 — Extract useMeetingTemplates hook
 
 **Web — `MeetingsComposer.tsx` shrunk by 15 lines (332 → 317).**

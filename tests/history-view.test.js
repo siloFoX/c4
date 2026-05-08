@@ -281,7 +281,12 @@ describe('HistoryView.tsx wiring', () => {
   });
 
   it('fetches scribe context from /api/scribe-context', () => {
-    assert.match(src, /\/api\/scribe-context/);
+    // (v1.10.650) Scribe drawer fetch moved to lib/use-scribe-context.
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-scribe-context.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /\/api\/scribe-context/);
   });
 
   it('renders search + status + date filters', () => {
@@ -323,7 +328,8 @@ describe('HistoryView.tsx section transition (8.30)', () => {
   });
 
   it('exposes selectWorker that clears showScribe before setting selected', () => {
-    assert.match(src, /const selectWorker = useCallback\(\(name: string\) => \{[\s\S]*?setShowScribe\(false\)[\s\S]*?setSelected\(name\)[\s\S]*?\}, \[\]\);/);
+    // (v1.10.650) setShowScribe replaced by closeScribe (from useScribeContext).
+    assert.match(src, /const selectWorker = useCallback\(\(name: string\) => \{[\s\S]*?closeScribe\(\)[\s\S]*?setSelected\(name\)[\s\S]*?\}, \[closeScribe\]\);/);
   });
 
   it('routes worker list clicks through selectWorker (no raw setSelected)', () => {

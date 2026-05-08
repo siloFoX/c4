@@ -19,6 +19,7 @@ import {
 } from './ui';
 import { cn } from '../lib/cn';
 import HistoryDetailPane from './HistoryDetailPane';
+import { useScribeContext } from '../lib/use-scribe-context';
 
 export interface HistoryCommit {
   hash: string;
@@ -69,15 +70,8 @@ export interface HistoryWorkerDetail {
   scrollback: HistoryScrollback | null;
 }
 
-export interface ScribeContextResponse {
-  exists: boolean;
-  path: string;
-  size: number;
-  updatedAt: string | null;
-  truncated?: boolean;
-  content: string;
-  error?: string;
-}
+// (v1.10.650) ScribeContextResponse + scribe drawer hook
+// moved to lib/use-scribe-context.
 
 function toIsoDayStart(dayStr: string): string {
   if (!dayStr) return '';
@@ -101,10 +95,10 @@ export default function HistoryView() {
   const [statusFilter, setStatusFilter] = useState('');
   const [sinceDay, setSinceDay] = useState('');
   const [untilDay, setUntilDay] = useState('');
-  const [showScribe, setShowScribe] = useState(false);
-  const [scribe, setScribe] = useState<ScribeContextResponse | null>(null);
-  const [loadingScribe, setLoadingScribe] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // (v1.10.650) Scribe drawer state + fetch moved to hook.
+  const { showScribe, scribe, loadingScribe, openScribe, closeScribe } =
+    useScribeContext({ setError });
 
   const fetchSummary = useCallback(async () => {
     try {
@@ -147,26 +141,10 @@ export default function HistoryView() {
     fetchDetail(selected);
   }, [selected, fetchDetail]);
 
-  const openScribe = useCallback(async () => {
-    setShowScribe(true);
-    setLoadingScribe(true);
-    try {
-      const data = await apiGet<ScribeContextResponse>('/api/scribe-context');
-      setScribe(data);
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoadingScribe(false);
-    }
-  }, []);
-
-  const closeScribe = () => setShowScribe(false);
-
   const selectWorker = useCallback((name: string) => {
-    setShowScribe(false);
+    closeScribe();
     setSelected(name);
-  }, []);
+  }, [closeScribe]);
 
   const activeSection: 'scribe' | 'detail' | 'placeholder' = showScribe
     ? 'scribe'
