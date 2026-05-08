@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Eye } from 'lucide-react';
-import { apiDelete, apiGet, apiPost } from '../lib/api';
+import { apiGet } from '../lib/api';
 import { Card, CardContent } from './ui';
-import { t, tFormat, useLocale } from '../lib/i18n';
+import { t, useLocale } from '../lib/i18n';
 import SpecialistsAuditPanel from './SpecialistsAuditPanel';
 import SpecialistsBulkOpsToolbar from './SpecialistsBulkOpsToolbar';
 import SpecialistsSummaryBar from './SpecialistsSummaryBar';
@@ -11,6 +11,7 @@ import SpecialistsTagEditor from './SpecialistsTagEditor';
 import SpecialistsList from './SpecialistsList';
 import SpecialistsListCardHeader from './SpecialistsListCardHeader';
 import { useSpecialistsList } from '../lib/use-specialists-list';
+import { useSpecialistActions } from '../lib/use-specialist-actions';
 import SpecialistsDetailHeader from './SpecialistsDetailHeader';
 import SpecialistsMetadataPanel from './SpecialistsMetadataPanel';
 import SpecialistsScoreHistory from './SpecialistsScoreHistory';
@@ -106,56 +107,24 @@ export default function SpecialistsView() {
   // surfaces below the action buttons survive the AddPanel extraction.
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Remove governance — guarded by a 2-step confirm prompt.
-  const [removeBusy, setRemoveBusy] = useState(false);
-  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
-
-  // (Phase 8.5) Score-reset — wipes byDomain/byStage/samples for
-  // a specialist. Guarded by a 2-step confirm same as remove.
-  const [resetBusy, setResetBusy] = useState(false);
-  const [confirmResetId, setConfirmResetId] = useState<string | null>(null);
+  // (v1.10.633) Remove + score-reset handlers and their busy /
+  // confirmId state extracted to ../lib/use-specialist-actions.
+  const {
+    removeBusy,
+    confirmRemoveId,
+    setConfirmRemoveId,
+    resetBusy,
+    confirmResetId,
+    setConfirmResetId,
+    handleRemove,
+    handleScoreReset,
+  } = useSpecialistActions({ selectedId, setSelectedId, setActionError, refresh });
 
   // (v1.10.558) Suggest revision + Apply via meeting consensus
   // (Phase 5.1 / 5.2) extracted to ./SpecialistsPromptPanel.tsx.
-
   // (v1.10.532) Bulk export / import / audit-rotate panel
-  // extracted to ./SpecialistsBulkOpsToolbar.tsx — see header
-  // there. Wired below as <SpecialistsBulkOpsToolbar onChange={refresh} />.
-
+  // extracted to ./SpecialistsBulkOpsToolbar.tsx.
   // (v1.10.559) Tag editor extracted to ./SpecialistsTagEditor.tsx.
-  const handleScoreReset = useCallback(async (id: string) => {
-    setResetBusy(true);
-    try {
-      await apiPost(
-        `/api/specialists/${encodeURIComponent(id)}/score-reset`,
-        { reason: 'web reset' },
-      );
-      setConfirmResetId(null);
-      await refresh();
-    } catch (e) {
-      // Surface as a transient error in the action-error
-      // banner — minimal disruption for an operator-triggered op.
-      setActionError(tFormat('specialists.scoreReset.failed', {
-        error: (e as Error).message || t('common.failed'),
-      }));
-    } finally {
-      setResetBusy(false);
-    }
-  }, [refresh]);
-
-  const handleRemove = useCallback(async (id: string) => {
-    setRemoveBusy(true);
-    try {
-      await apiDelete(`/api/specialists/${encodeURIComponent(id)}`);
-      if (selectedId === id) setSelectedId(null);
-      await refresh();
-    } catch (e) {
-      setActionError((e as Error).message || t('common.failedToRemoveSpecialist'));
-    } finally {
-      setRemoveBusy(false);
-      setConfirmRemoveId(null);
-    }
-  }, [selectedId, refresh]);
 
   const specialists = data?.specialists || [];
   const filtered = useMemo(() => {

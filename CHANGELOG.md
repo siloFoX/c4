@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.633] - 2026-05-09 — Extract useSpecialistActions hook
+
+**Web — `SpecialistsView.tsx` shrunk by 31 lines (325 → 294).**
+The 2 governance-action handlers — `handleRemove` (DELETE
+`/api/specialists/:id`) + `handleScoreReset` (POST
+`/api/specialists/:id/score-reset`) — plus their busy /
+confirmId state extracted as a custom hook. Inputs:
+selectedId / setSelectedId / setActionError / refresh.
+Outputs: 4 state slots + 2 confirm setters + 2 handlers.
+
+### Refactor
+- New `web/src/lib/use-specialist-actions.ts` (~79 lines).
+- `SpecialistsView.tsx`: removed 4 useState slots
+  (`removeBusy`/`confirmRemoveId`/`resetBusy`/`confirmResetId`)
+  + 2 useCallback handlers (~50 lines). Replaced with
+  single `useSpecialistActions(…)` call. Dropped 4 unused
+  imports (`useCallback`, `apiDelete`, `apiPost`, `tFormat` —
+  no consumer left in the parent).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 100 suites, 520 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 99 of the perfection-track component split. **Eleventh
+  custom hook extraction**. SpecialistsView 294. **100 suites
+  milestone** in the boundary tests. 105 ships /
+  100 components+libs / 520 boundary assertions.
+
 ## [1.10.632] - 2026-05-09 — Extract useWorkflowsList hook
 
 **Web — `WorkflowEditor.tsx` shrunk by 12 lines (248 → 236).**

@@ -1755,6 +1755,51 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useSpecialistActions hook (v1.10.633)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-specialist-actions.ts');
+
+  it('lives in lib/use-specialist-actions.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useSpecialistActions/);
+  });
+
+  it('takes selectedId/setSelectedId/setActionError/refresh args', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /selectedId:\s*string\s*\|\s*null/);
+    assert.match(src, /setSelectedId:\s*\(next:\s*string\s*\|\s*null\)\s*=>\s*void/);
+    assert.match(src, /setActionError:\s*\(next:\s*string\s*\|\s*null\)\s*=>\s*void/);
+    assert.match(src, /refresh:\s*\(\)\s*=>\s*Promise<void>/);
+  });
+
+  it('returns 4 state slots + 2 confirm setters + 2 handlers', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /removeBusy:\s*boolean/);
+    assert.match(src, /confirmRemoveId:\s*string\s*\|\s*null/);
+    assert.match(src, /resetBusy:\s*boolean/);
+    assert.match(src, /confirmResetId:\s*string\s*\|\s*null/);
+    assert.match(src, /handleRemove:\s*\(id:\s*string\)\s*=>\s*Promise<void>/);
+    assert.match(src, /handleScoreReset:\s*\(id:\s*string\)\s*=>\s*Promise<void>/);
+  });
+
+  it('owns the DELETE /api/specialists/:id and POST /api/specialists/:id/score-reset', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiDelete\(`\/api\/specialists\//);
+    assert.match(src, /\/api\/specialists\/[^`]*\/score-reset/);
+  });
+
+  it('parent SpecialistsView calls the hook; inline state + handlers removed', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.match(parent, /import\s+\{\s*useSpecialistActions\s*\}\s+from\s+'\.\.\/lib\/use-specialist-actions'/);
+    assert.match(parent, /useSpecialistActions\(\{/);
+    assert.doesNotMatch(parent, /const \[removeBusy, setRemoveBusy\]/);
+    assert.doesNotMatch(parent, /const \[resetBusy, setResetBusy\]/);
+    assert.doesNotMatch(parent, /const handleRemove/);
+    assert.doesNotMatch(parent, /const handleScoreReset/);
+  });
+});
+
 describe('extracted: useWorkflowsList hook (v1.10.632)', () => {
   const fs = require('fs');
   const path = require('path');
