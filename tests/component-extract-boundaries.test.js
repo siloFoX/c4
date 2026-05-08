@@ -1753,6 +1753,44 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: SpecialistsListCardHeader (v1.10.618)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SpecialistsListCardHeader.tsx');
+    assert.match(src, /export default function SpecialistsListCardHeader/);
+  });
+
+  it('takes the consolidated 15 props (title-bar + filter)', () => {
+    const src = read('SpecialistsListCardHeader.tsx');
+    assert.match(src, /loading:\s*boolean/);
+    assert.match(src, /addOpen:\s*boolean/);
+    assert.match(src, /actionError:\s*string\s*\|\s*null/);
+    assert.match(src, /filter:\s*string/);
+    assert.match(src, /tierFilter:\s*string/);
+    assert.match(src, /vetoOnly:\s*boolean/);
+    assert.match(src, /filteredCount:\s*number/);
+    assert.match(src, /totalCount:\s*number/);
+  });
+
+  it('composes TitleBar + SearchFilters under a CardHeader', () => {
+    const src = read('SpecialistsListCardHeader.tsx');
+    assert.match(src, /<CardHeader/);
+    assert.match(src, /<SpecialistsListTitleBar/);
+    assert.match(src, /<SpecialistsSearchFilters/);
+  });
+
+  it('is imported and rendered by SpecialistsView', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.match(parent, /import\s+SpecialistsListCardHeader\s+from\s+'\.\/SpecialistsListCardHeader'/);
+    assert.match(parent, /<SpecialistsListCardHeader/);
+  });
+
+  it('parent SpecialistsView no longer imports TitleBar/SearchFilters directly', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.doesNotMatch(parent, /import\s+SpecialistsListTitleBar\s+from/);
+    assert.doesNotMatch(parent, /import\s+SpecialistsSearchFilters\s+from/);
+  });
+});
+
 describe('extracted: SpecialistsListTitleBar (v1.10.617)', () => {
   it('lives in its own file with default export', () => {
     const src = read('SpecialistsListTitleBar.tsx');
@@ -1778,11 +1816,11 @@ describe('extracted: SpecialistsListTitleBar (v1.10.617)', () => {
     assert.match(src, /<SpecialistsAddPanel/);
   });
 
-  it('is imported and rendered by SpecialistsView', () => {
-    const parent = read('SpecialistsView.tsx');
+  it('is imported and rendered by SpecialistsListCardHeader (v1.10.618)', () => {
+    const parent = read('SpecialistsListCardHeader.tsx');
     assert.match(parent, /import\s+SpecialistsListTitleBar\s+from\s+'\.\/SpecialistsListTitleBar'/);
     assert.match(parent, /<SpecialistsListTitleBar/);
-    assert.match(parent, /onRefresh=\{refresh\}/);
+    assert.match(parent, /onRefresh=\{onRefresh\}/);
   });
 
   it('parent SpecialistsView no longer holds the inline title row + add panel', () => {
@@ -3227,10 +3265,12 @@ describe('extracted: SpecialistsSearchFilters (v1.10.581)', () => {
     assert.match(src, /\{filteredCount\}\/\{totalCount\}/);
   });
 
-  it('is imported and rendered by SpecialistsView with all 8 props wired', () => {
+  it('is imported and rendered by SpecialistsListCardHeader (v1.10.618); parent owns state setters', () => {
     const parent = read('SpecialistsView.tsx');
-    assert.match(parent, /import\s+SpecialistsSearchFilters\s+from\s+'\.\/SpecialistsSearchFilters'/);
-    assert.match(parent, /<SpecialistsSearchFilters/);
+    const card = read('SpecialistsListCardHeader.tsx');
+    assert.match(card, /import\s+SpecialistsSearchFilters\s+from\s+'\.\/SpecialistsSearchFilters'/);
+    assert.match(card, /<SpecialistsSearchFilters/);
+    // Parent still wires the setter callbacks through to the composite.
     assert.match(parent, /onFilter=\{setFilter\}/);
     assert.match(parent, /onTierFilter=\{setTierFilter\}/);
     assert.match(parent, /onVetoOnly=\{setVetoOnly\}/);

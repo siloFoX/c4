@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.618] - 2026-05-08 — Extract SpecialistsListCardHeader
+
+**Web — `SpecialistsView.tsx` shrunk by 7 lines (370 → 363).**
+The master-pane card header (`<CardHeader>` wrapper +
+`SpecialistsListTitleBar` + `SpecialistsSearchFilters`)
+extracted as a composite container. 15 props.
+
+### Refactor
+- New `web/src/components/SpecialistsListCardHeader.tsx` (~70
+  lines).
+- `SpecialistsView.tsx`: removed the inline ~30-line block plus
+  2 default-import slots. Dropped `CardHeader` UI primitive
+  (no longer used directly).
+- Boundary tests for `SpecialistsListTitleBar` +
+  `SpecialistsSearchFilters` updated to assert the new parent.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions) + 2 existing suites updated. Total: 85 suites,
+  451 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 84 of the perfection-track component split.
+  SpecialistsView 363. **90 ships milestone** / 85
+  components+libs / 451 boundary assertions.
+
 ## [1.10.617] - 2026-05-08 — Extract SpecialistsListTitleBar
 
 **Web — `SpecialistsView.tsx` shrunk by 26 lines (396 → 370).**

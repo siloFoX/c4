@@ -1,16 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Eye } from 'lucide-react';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
-import { Card, CardContent, CardHeader } from './ui';
+import { Card, CardContent } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import SpecialistsAuditPanel from './SpecialistsAuditPanel';
 import SpecialistsBulkOpsToolbar from './SpecialistsBulkOpsToolbar';
 import SpecialistsSummaryBar from './SpecialistsSummaryBar';
-import SpecialistsListTitleBar from './SpecialistsListTitleBar';
 import SpecialistsPromptPanel from './SpecialistsPromptPanel';
 import SpecialistsTagEditor from './SpecialistsTagEditor';
 import SpecialistsList from './SpecialistsList';
-import SpecialistsSearchFilters from './SpecialistsSearchFilters';
+import SpecialistsListCardHeader from './SpecialistsListCardHeader';
 import SpecialistsDetailHeader from './SpecialistsDetailHeader';
 import SpecialistsMetadataPanel from './SpecialistsMetadataPanel';
 import SpecialistsScoreHistory from './SpecialistsScoreHistory';
@@ -265,35 +264,29 @@ export default function SpecialistsView() {
       <SpecialistsAuditPanel />
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden md:flex-row">
       <Card className="flex min-h-0 flex-1 flex-col md:max-w-md">
-        <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
-          {/* (v1.10.617) Title row + add panel extracted to
-              ./SpecialistsListTitleBar.tsx. */}
-          <SpecialistsListTitleBar
-            loading={loading}
-            addOpen={addOpen}
-            actionError={actionError}
-            onToggleAdd={() => { setAddOpen((v) => !v); setActionError(null); }}
-            onCloseAdd={() => setAddOpen(false)}
-            onAdded={(newId) => {
-              setSelectedId(newId);
-              setAddOpen(false);
-              void refresh();
-            }}
-            onRefresh={refresh}
-          />
-          {/* (v1.10.581) search input + tier/vetoOnly filter row
-              extracted to ./SpecialistsSearchFilters.tsx. */}
-          <SpecialistsSearchFilters
-            filter={filter}
-            onFilter={setFilter}
-            tierFilter={tierFilter}
-            onTierFilter={setTierFilter}
-            vetoOnly={vetoOnly}
-            onVetoOnly={setVetoOnly}
-            filteredCount={filtered.length}
-            totalCount={specialists.length}
-          />
-        </CardHeader>
+        {/* (v1.10.618) Master-pane card header (title bar + search
+            filters) extracted to ./SpecialistsListCardHeader.tsx. */}
+        <SpecialistsListCardHeader
+          loading={loading}
+          addOpen={addOpen}
+          actionError={actionError}
+          onToggleAdd={() => { setAddOpen((v) => !v); setActionError(null); }}
+          onCloseAdd={() => setAddOpen(false)}
+          onAdded={(newId) => {
+            setSelectedId(newId);
+            setAddOpen(false);
+            void refresh();
+          }}
+          onRefresh={refresh}
+          filter={filter}
+          onFilter={setFilter}
+          tierFilter={tierFilter}
+          onTierFilter={setTierFilter}
+          vetoOnly={vetoOnly}
+          onVetoOnly={setVetoOnly}
+          filteredCount={filtered.length}
+          totalCount={specialists.length}
+        />
         <CardContent tabIndex={0} role="region" aria-label={t('specialists.list.aria') || 'Specialist list'} className="flex min-h-0 flex-1 flex-col overflow-y-auto p-0">
           {/* (v1.10.577) Master-pane list extracted to ./SpecialistsList.tsx */}
           <SpecialistsList
