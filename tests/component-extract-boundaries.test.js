@@ -1742,6 +1742,42 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: SpecialistsMetadataPanel (v1.10.597)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SpecialistsMetadataPanel.tsx');
+    assert.match(src, /export default function SpecialistsMetadataPanel/);
+  });
+
+  it('takes a single specialist Specialist prop', () => {
+    const src = read('SpecialistsMetadataPanel.tsx');
+    assert.match(src, /specialist:\s*Specialist/);
+  });
+
+  it('renders the 4-column grid + domains/triggers/deliverables', () => {
+    const src = read('SpecialistsMetadataPanel.tsx');
+    assert.match(src, /specialists\.label\.tier/);
+    assert.match(src, /specialists\.label\.brain/);
+    assert.match(src, /specialists\.label\.model/);
+    assert.match(src, /specialists\.label\.effort/);
+    assert.match(src, /specialists\.label\.domains/);
+    assert.match(src, /specialists\.label\.triggersStages/);
+    assert.match(src, /specialists\.label\.triggersKeywords/);
+    assert.match(src, /specialists\.label\.deliverables/);
+  });
+
+  it('is imported and rendered by SpecialistsView', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.match(parent, /import\s+SpecialistsMetadataPanel\s+from\s+'\.\/SpecialistsMetadataPanel'/);
+    assert.match(parent, /<SpecialistsMetadataPanel\s+specialist=\{selected\}/);
+  });
+
+  it('parent SpecialistsView no longer holds the inline metadata grid', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.doesNotMatch(parent, /specialists\.label\.triggersStages/);
+    assert.doesNotMatch(parent, /selected\.brain\.adapter/);
+  });
+});
+
 describe('extracted: MeetingsDetailBody (v1.10.596)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsDetailBody.tsx');

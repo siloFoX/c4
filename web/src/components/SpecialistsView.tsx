@@ -13,6 +13,7 @@ import SpecialistsTagEditor from './SpecialistsTagEditor';
 import SpecialistsList from './SpecialistsList';
 import SpecialistsSearchFilters from './SpecialistsSearchFilters';
 import SpecialistsDetailHeader from './SpecialistsDetailHeader';
+import SpecialistsMetadataPanel from './SpecialistsMetadataPanel';
 
 // (multi-specialist phase 7.5) Specialists tab — registry view +
 // score visualization. Mirrors MeetingsView / WikiView's split
@@ -373,45 +374,9 @@ export default function SpecialistsView() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
-                <div>
-                  <div className="text-muted-foreground">{t('specialists.label.tier')}</div>
-                  <div className="font-medium">{selected.tier}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">{t('specialists.label.brain')}</div>
-                  <div className="font-medium">{selected.brain.adapter}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">{t('specialists.label.model')}</div>
-                  <div className="font-medium">{selected.brain.model || '-'}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">{t('specialists.label.effort')}</div>
-                  <div className="font-medium">{selected.brain.effort || '-'}</div>
-                </div>
-              </div>
-
-              <div className="text-xs">
-                <div className="text-muted-foreground">{t('specialists.label.domains')}</div>
-                <div className="font-medium">{selected.domain.join(', ')}</div>
-              </div>
-              <div className="text-xs">
-                <div className="text-muted-foreground">{t('specialists.label.triggersStages')}</div>
-                <div className="font-medium">{selected.triggers.stages.join(', ')}</div>
-              </div>
-              <div className="text-xs">
-                <div className="text-muted-foreground">{t('specialists.label.triggersKeywords')}</div>
-                <div className="font-medium">{selected.triggers.keywords.join(', ')}</div>
-              </div>
-              {selected.deliverables.length > 0 ? (
-                <div className="text-xs">
-                  <div className="text-muted-foreground">{t('specialists.label.deliverables')}</div>
-                  <ul className="mt-1 list-disc pl-5 font-medium">
-                    {selected.deliverables.map((d) => (<li key={d}>{d}</li>))}
-                  </ul>
-                </div>
-              ) : null}
+              {/* (v1.10.597) Metadata block extracted to
+                  ./SpecialistsMetadataPanel.tsx. */}
+              <SpecialistsMetadataPanel specialist={selected} />
 
               {/* (v1.10.559) Tag editor extracted to
                   ./SpecialistsTagEditor.tsx. */}

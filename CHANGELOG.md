@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.597] - 2026-05-08 — Extract SpecialistsMetadataPanel
+
+**Web — `SpecialistsView.tsx` shrunk by 35 lines (554 → 519).**
+The detail-pane metadata block — 4-column tier/brain/model/effort
+grid + domains/triggersStages/triggersKeywords + optional
+deliverables list — extracted as its own pure-display sibling.
+1 prop.
+
+### Refactor
+- New `web/src/components/SpecialistsMetadataPanel.tsx`
+  (~58 lines).
+- `SpecialistsView.tsx`: removed the inline ~40-line metadata
+  grid + 3 field rows. Replaced with
+  `<SpecialistsMetadataPanel specialist={selected} />`.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 64 suites, 345 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 63 of the perfection-track component split.
+  SpecialistsView 519. 69 ships / 64 components+libs / 345
+  boundary assertions.
+
 ## [1.10.596] - 2026-05-08 — Extract MeetingsDetailBody
 
 **Web — `MeetingsView.tsx` shrunk by 26 lines (725 → 699).**
