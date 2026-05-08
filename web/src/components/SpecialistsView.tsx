@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Eye } from 'lucide-react';
-import { apiGet } from '../lib/api';
 import { Card, CardContent } from './ui';
 import { t, useLocale } from '../lib/i18n';
 import SpecialistsAuditPanel from './SpecialistsAuditPanel';
@@ -12,6 +11,7 @@ import SpecialistsList from './SpecialistsList';
 import SpecialistsListCardHeader from './SpecialistsListCardHeader';
 import { useSpecialistsList } from '../lib/use-specialists-list';
 import { useSpecialistActions } from '../lib/use-specialist-actions';
+import { useSpecialistEnrichment } from '../lib/use-specialist-enrichment';
 import SpecialistsDetailHeader from './SpecialistsDetailHeader';
 import SpecialistsMetadataPanel from './SpecialistsMetadataPanel';
 import SpecialistsScoreHistory from './SpecialistsScoreHistory';
@@ -154,33 +154,9 @@ export default function SpecialistsView() {
     [specialists, selectedId],
   );
 
-  // (Phase 6.8) Detail enrichment — fetch ?include=audit,meetings
-  // for the currently selected specialist. Cheap, runs on selection
-  // change. Failure silently nulls. (v1.10.599 lifted types out
-  // for SpecialistsEnrichmentPanels.)
-  const [enrichment, setEnrichment] = useState<{
-    recentAudit?: AuditEntry[];
-    recentMeetings?: MeetingMeta[];
-  } | null>(null);
-  useEffect(() => {
-    if (!selectedId) {
-      setEnrichment(null);
-      return;
-    }
-    let cancelled = false;
-    apiGet<{ recentAudit?: AuditEntry[]; recentMeetings?: MeetingMeta[] }>(
-      `/api/specialists/${encodeURIComponent(selectedId)}?include=audit,meetings`,
-    )
-      .then((res) => {
-        if (cancelled) return;
-        const next: { recentAudit?: AuditEntry[]; recentMeetings?: MeetingMeta[] } = {};
-        if (res.recentAudit !== undefined) next.recentAudit = res.recentAudit;
-        if (res.recentMeetings !== undefined) next.recentMeetings = res.recentMeetings;
-        setEnrichment(next);
-      })
-      .catch(() => { if (!cancelled) setEnrichment(null); });
-    return () => { cancelled = true; };
-  }, [selectedId]);
+  // (v1.10.634) Phase 6.8 enrichment fetch hook extracted to
+  // ../lib/use-specialist-enrichment.
+  const enrichment = useSpecialistEnrichment(selectedId);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 md:p-6">

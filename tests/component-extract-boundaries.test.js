@@ -1755,6 +1755,38 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useSpecialistEnrichment hook (v1.10.634)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-specialist-enrichment.ts');
+
+  it('lives in lib/use-specialist-enrichment.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useSpecialistEnrichment/);
+  });
+
+  it('takes selectedId arg and returns Enrichment | null', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /selectedId:\s*string\s*\|\s*null/);
+    assert.match(src, /Enrichment\s*\|\s*null/);
+  });
+
+  it('owns the GET ?include=audit,meetings + cancellation flag', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\?include=audit,meetings/);
+    assert.match(src, /let cancelled = false/);
+    assert.match(src, /cancelled = true/);
+  });
+
+  it('parent SpecialistsView calls the hook; inline state + effect removed', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.match(parent, /import\s+\{\s*useSpecialistEnrichment\s*\}\s+from\s+'\.\.\/lib\/use-specialist-enrichment'/);
+    assert.match(parent, /useSpecialistEnrichment\(selectedId\)/);
+    assert.doesNotMatch(parent, /const \[enrichment, setEnrichment\]/);
+    assert.doesNotMatch(parent, /\?include=audit,meetings/);
+  });
+});
+
 describe('extracted: useSpecialistActions hook (v1.10.633)', () => {
   const fs = require('fs');
   const path = require('path');

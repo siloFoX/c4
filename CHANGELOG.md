@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.634] - 2026-05-09 — Extract useSpecialistEnrichment hook
+
+**Web — `SpecialistsView.tsx` shrunk by 24 lines (294 → 270).**
+The Phase 6.8 detail-enrichment fetch — GET
+`/api/specialists/:id?include=audit,meetings` on selection
+change, silent fallback to null on failure — extracted as a
+custom hook. Input: `selectedId`. Output: `Enrichment | null`.
+
+### Refactor
+- New `web/src/lib/use-specialist-enrichment.ts` (~40 lines).
+- `SpecialistsView.tsx`: removed the `enrichment` useState slot
+  + 1 fetch effect with cancellation guard. Replaced with
+  single `const enrichment = useSpecialistEnrichment(selectedId)`.
+  Dropped 2 unused imports (`useEffect`, `apiGet`).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (4 assertions). Total: 101 suites, 524 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 100 of the perfection-track component split. **Twelfth
+  custom hook extraction**. SpecialistsView 270. 106 ships /
+  101 components+libs / 524 boundary assertions.
+
 ## [1.10.633] - 2026-05-09 — Extract useSpecialistActions hook
 
 **Web — `SpecialistsView.tsx` shrunk by 31 lines (325 → 294).**
