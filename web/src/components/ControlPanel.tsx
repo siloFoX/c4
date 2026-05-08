@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import Toast, { type ToastType } from './Toast';
 import StatusMessageCard from './StatusMessageCard';
+import ControlPanelActions from './ControlPanelActions';
 import { apiFetch } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import type { ListResponse, Worker } from '../types';
@@ -23,8 +24,6 @@ import {
   Panel,
   type ButtonProps,
 } from './ui';
-import { cn } from '../lib/cn';
-
 // 8.8: Per-worker control panel + batch control for bulk close/cancel.
 // Keeps the existing WorkerActions toolbar and /api/* endpoints intact --
 // this component layers on top of /api/close, /api/send, /api/key,
@@ -34,7 +33,10 @@ interface ControlPanelProps {
   workerName: string;
 }
 
-type ActionKind =
+// (v1.10.590) ActionKind / ActionTone / SingleAction / TONE_VARIANT
+// promoted to exports so the extracted ControlPanelActions sibling
+// can type its props.
+export type ActionKind =
   | 'pause'
   | 'resume'
   | 'cancel'
@@ -42,9 +44,9 @@ type ActionKind =
   | 'rollback'
   | 'close';
 
-type ActionTone = 'neutral' | 'warn' | 'danger';
+export type ActionTone = 'neutral' | 'warn' | 'danger';
 
-interface SingleAction {
+export interface SingleAction {
   kind: ActionKind;
   label: string;
   description: string;
@@ -70,7 +72,7 @@ interface BatchOutcome {
   error?: string | undefined;
 }
 
-const TONE_VARIANT: Record<ActionTone, NonNullable<ButtonProps['variant']>> = {
+export const TONE_VARIANT: Record<ActionTone, NonNullable<ButtonProps['variant']>> = {
   neutral: 'secondary',
   warn: 'outline',
   danger: 'destructive',
@@ -308,48 +310,14 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto pr-1">
-      <Card aria-label={t('controlPanel.worker.label')}>
-        <CardHeader className="p-4 md:p-5">
-          <CardTitle>{t('controlPanel.worker.title')}</CardTitle>
-          <CardDescription>
-            {tFormat('controlPanel.worker.description', { worker: workerName })}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-4 pt-0 md:p-5 md:pt-0">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {actions.map((action) => {
-              const isBusy = busyKind === action.kind;
-              const disabled = busyKind !== null;
-              return (
-                <Button
-                  key={action.kind}
-                  type="button"
-                  variant={TONE_VARIANT[action.tone]}
-                  size="md"
-                  onClick={() => runSingle(action)}
-                  disabled={disabled}
-                  title={action.description}
-                  className={cn(
-                    'h-auto min-h-[4rem] flex-col items-start gap-1 py-2 text-left'
-                  )}
-                >
-                  <span className="flex items-center gap-2 text-sm font-semibold">
-                    {action.icon}
-                    <span>
-                      {isBusy
-                        ? tFormat('controlPanel.action.busy', { label: action.label })
-                        : action.label}
-                    </span>
-                  </span>
-                  <span className="w-full whitespace-normal text-xs font-normal opacity-80">
-                    {action.description}
-                  </span>
-                </Button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      {/* (v1.10.590) Single-action grid extracted to
+          ./ControlPanelActions.tsx. */}
+      <ControlPanelActions
+        workerName={workerName}
+        actions={actions}
+        busyKind={busyKind}
+        onRunSingle={runSingle}
+      />
 
       <Card aria-label={t('controlPanel.batch.label')}>
         <CardHeader className="flex-row items-start justify-between gap-2 p-4 md:p-5">

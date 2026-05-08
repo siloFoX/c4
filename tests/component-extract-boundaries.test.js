@@ -1737,6 +1737,44 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: ControlPanelActions (v1.10.590)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('ControlPanelActions.tsx');
+    assert.match(src, /export default function ControlPanelActions/);
+  });
+
+  it('takes worker name + actions list + busy state + click props', () => {
+    const src = read('ControlPanelActions.tsx');
+    assert.match(src, /workerName:\s*string/);
+    assert.match(src, /actions:\s*SingleAction\[\]/);
+    assert.match(src, /busyKind:\s*ActionKind\s*\|\s*null/);
+    assert.match(src, /onRunSingle:\s*\(action:\s*SingleAction\)\s*=>\s*void/);
+  });
+
+  it('renders the action grid using TONE_VARIANT + busy label format', () => {
+    const src = read('ControlPanelActions.tsx');
+    assert.match(src, /TONE_VARIANT\[action\.tone\]/);
+    assert.match(src, /controlPanel\.action\.busy/);
+    assert.match(src, /controlPanel\.worker\.title/);
+  });
+
+  it('parent ControlPanel exports SingleAction/ActionKind/ActionTone/TONE_VARIANT', () => {
+    const parent = read('ControlPanel.tsx');
+    assert.match(parent, /export\s+type\s+ActionKind/);
+    assert.match(parent, /export\s+type\s+ActionTone/);
+    assert.match(parent, /export\s+interface\s+SingleAction/);
+    assert.match(parent, /export\s+const\s+TONE_VARIANT/);
+  });
+
+  it('is imported and rendered by ControlPanel; inline grid removed', () => {
+    const parent = read('ControlPanel.tsx');
+    assert.match(parent, /import\s+ControlPanelActions\s+from\s+'\.\/ControlPanelActions'/);
+    assert.match(parent, /<ControlPanelActions/);
+    assert.match(parent, /onRunSingle=\{runSingle\}/);
+    assert.doesNotMatch(parent, /controlPanel\.worker\.title/);
+  });
+});
+
 describe('extracted: XtermStatusBar (v1.10.589)', () => {
   it('lives in its own file with default export', () => {
     const src = read('XtermStatusBar.tsx');

@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.590] - 2026-05-08 — Extract ControlPanelActions
+
+**Web — `ControlPanel.tsx` shrunk by 32 lines (481 → 449).**
+The single-action grid Card — title + worker description + the
+2-column button grid driven by `TONE_VARIANT[action.tone]` —
+extracted as its own pure-display sibling. 4 props.
+
+### Refactor
+- New `web/src/components/ControlPanelActions.tsx` (~69 lines).
+- `ControlPanel.tsx`: removed the inline 42-line first Card.
+  Replaced with `<ControlPanelActions … />`. Promoted
+  `ActionKind`, `ActionTone`, `SingleAction`, `TONE_VARIANT` to
+  exports so the new sibling can type its props. Dropped 1
+  unused import (`cn` utility).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 57 suites, 308 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 56 of the perfection-track component split. ControlPanel
+  449 (was 580+ at session start). 62 ships / 57 components+libs
+  / 308 boundary assertions.
+
 ## [1.10.589] - 2026-05-08 — Extract XtermStatusBar
 
 **Web — `XtermView.tsx` shrunk by 31 lines (445 → 414).**
