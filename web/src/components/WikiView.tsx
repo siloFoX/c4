@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { RotateCcw, Search } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import { apiGet, apiPost } from '../lib/api';
-import { Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
+import { Button, Card, CardContent, CardHeader, CardTitle } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import WikiSearchResults from './WikiSearchResults';
 import WikiPageDetail from './WikiPageDetail';
 import WikiBulkPublishRow from './WikiBulkPublishRow';
+import WikiSearchControls from './WikiSearchControls';
 
 // (multi-specialist phase 7.4) Wiki tab — split-pane like
 // MeetingsView. Left: query input + results list. Right: full page
@@ -46,7 +47,9 @@ export interface ReadResponse {
 
 // (v1.10.486) Migrated to labelKey pattern resolved through t() at
 // render time, like other constant catalogues.
-const TYPE_OPTIONS: Array<{ value: string; labelKey: string }> = [
+// (v1.10.609) Promoted to export so the WikiSearchControls
+// sibling can reuse the same options list.
+export const TYPE_OPTIONS: Array<{ value: string; labelKey: string }> = [
   { value: 'any', labelKey: 'wiki.type.any' },
   { value: 'meeting', labelKey: 'wiki.type.meeting' },
   { value: 'adr', labelKey: 'wiki.type.adr' },
@@ -204,55 +207,18 @@ export default function WikiView() {
         <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
           <CardTitle className="text-base">{t('wiki.title')}</CardTitle>
           <div className="flex flex-col gap-2">
-            <Input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  runSearch();
-                }
-              }}
-              placeholder={t('wiki.search.placeholder')}
-              aria-label={t('wiki.search.label')}
-              disabled={searching}
+            {/* (v1.10.609) Search controls extracted to
+                ./WikiSearchControls.tsx. */}
+            <WikiSearchControls
+              query={query}
+              onQuery={setQuery}
+              type={type}
+              onType={setType}
+              includeStale={includeStale}
+              onIncludeStale={setIncludeStale}
+              searching={searching}
+              onSearch={runSearch}
             />
-            <div className="flex flex-wrap items-center gap-2 text-[11px]">
-              <label className="text-muted-foreground">
-                {t('wiki.type.prefix')}
-                <select
-                  className="ml-1 rounded border border-border bg-background px-1 py-0.5 text-[11px]"
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
-                  disabled={searching}
-                  aria-label={t('wiki.type.label')}
-                >
-                  {TYPE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="inline-flex items-center gap-1">
-                <input
-                  type="checkbox"
-                  checked={includeStale}
-                  onChange={(e) => setIncludeStale(e.target.checked)}
-                  disabled={searching}
-                  aria-label={t('wiki.includeStale.label')}
-                />
-                <span>{t('wiki.includeStale')}</span>
-              </label>
-              <Button
-                size="sm"
-                onClick={runSearch}
-                disabled={searching}
-                aria-label={t('wiki.search.run')}
-              >
-                <Search className={cn('h-3.5 w-3.5', searching && 'animate-spin')} aria-hidden />
-                {t('wiki.search.button')}
-              </Button>
-            </div>
             {/* (v1.10.608) Bulk publish row extracted to
                 ./WikiBulkPublishRow.tsx. */}
             <WikiBulkPublishRow

@@ -1751,6 +1751,48 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: WikiSearchControls (v1.10.609)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('WikiSearchControls.tsx');
+    assert.match(src, /export default function WikiSearchControls/);
+  });
+
+  it('takes 4 controlled-input pairs + searching + onSearch props', () => {
+    const src = read('WikiSearchControls.tsx');
+    assert.match(src, /query:\s*string/);
+    assert.match(src, /onQuery:\s*\(next:\s*string\)\s*=>\s*void/);
+    assert.match(src, /type:\s*string/);
+    assert.match(src, /onType:\s*\(next:\s*string\)\s*=>\s*void/);
+    assert.match(src, /includeStale:\s*boolean/);
+    assert.match(src, /onIncludeStale:\s*\(next:\s*boolean\)\s*=>\s*void/);
+    assert.match(src, /searching:\s*boolean/);
+    assert.match(src, /onSearch:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('renders the input + type select + includeStale + Search button', () => {
+    const src = read('WikiSearchControls.tsx');
+    assert.match(src, /wiki\.search\.placeholder/);
+    assert.match(src, /TYPE_OPTIONS\.map/);
+    assert.match(src, /wiki\.includeStale/);
+    assert.match(src, /wiki\.search\.button/);
+    assert.match(src, /e\.key === 'Enter'/);
+  });
+
+  it('parent WikiView exports TYPE_OPTIONS and imports WikiSearchControls', () => {
+    const parent = read('WikiView.tsx');
+    assert.match(parent, /export\s+const\s+TYPE_OPTIONS/);
+    assert.match(parent, /import\s+WikiSearchControls\s+from\s+'\.\/WikiSearchControls'/);
+    assert.match(parent, /<WikiSearchControls/);
+    assert.match(parent, /onSearch=\{runSearch\}/);
+  });
+
+  it('parent WikiView no longer holds the inline search controls', () => {
+    const parent = read('WikiView.tsx');
+    assert.doesNotMatch(parent, /wiki\.search\.placeholder/);
+    assert.doesNotMatch(parent, /TYPE_OPTIONS\.map/);
+  });
+});
+
 describe('extracted: WikiBulkPublishRow (v1.10.608)', () => {
   it('lives in its own file with default export', () => {
     const src = read('WikiBulkPublishRow.tsx');

@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.609] - 2026-05-08 — Extract WikiSearchControls
+
+**Web — `WikiView.tsx` shrunk by 34 lines (321 → 287).**
+The wiki-search controls — query input (Enter triggers search)
++ type select (driven by `TYPE_OPTIONS`) + includeStale checkbox
++ Search button — extracted as its own pure controlled-input
+sibling. 8 props.
+
+### Refactor
+- New `web/src/components/WikiSearchControls.tsx` (~88 lines).
+- `WikiView.tsx`: removed the inline ~50-line search controls.
+  Replaced with `<WikiSearchControls … />`. Promoted
+  `TYPE_OPTIONS` to export so the new sibling can reuse the
+  same options list. Dropped 2 unused imports (`Search` icon
+  + `Input` UI primitive).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 76 suites, 405 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 75 of the perfection-track component split. WikiView
+  287 — first time below 300 since session start (440).
+  81 ships / 76 components+libs / 405 boundary assertions.
+
 ## [1.10.608] - 2026-05-08 — Extract WikiBulkPublishRow (400 boundary assertions)
 
 **Web — `WikiView.tsx` shrunk by 35 lines (356 → 321).**
