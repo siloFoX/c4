@@ -1276,21 +1276,22 @@ describe('extracted: SessionsComparisonCard (v1.10.549)', () => {
     assert.match(src, /COMPARISON_ROW_KEYS/);
   });
 
-  it('is rendered at >= 2 call sites combined (SessionsView attached pane + SessionsEmptyPanel)', () => {
-    // (v1.10.601) The empty-state Card pair moved to
-    // SessionsEmptyPanel, so the parent only renders the
-    // attached-detail call site directly. Count both files
-    // to lock the original "2+ usages" intent.
-    const parent = read('SessionsView.tsx');
+  it('is rendered at >= 2 call sites combined (SessionsRightPane + SessionsEmptyPanel)', () => {
+    // (v1.10.601) ComparisonCard's empty-pane site moved to
+    // SessionsEmptyPanel.
+    // (v1.10.607) ComparisonCard's attached-pane site moved to
+    // SessionsRightPane. Count all containers to lock the
+    // original "2+ usages" invariant.
+    const right = read('SessionsRightPane.tsx');
     const empty = read('SessionsEmptyPanel.tsx');
-    assert.match(parent, /import\s+SessionsComparisonCard\s+from\s+'\.\/SessionsComparisonCard'/);
+    assert.match(right, /import\s+SessionsComparisonCard\s+from\s+'\.\/SessionsComparisonCard'/);
     assert.match(empty, /import\s+SessionsComparisonCard\s+from\s+'\.\/SessionsComparisonCard'/);
-    const parentCalls = parent.match(/<SessionsComparisonCard/g) || [];
+    const rightCalls = right.match(/<SessionsComparisonCard/g) || [];
     const emptyCalls = empty.match(/<SessionsComparisonCard/g) || [];
-    const total = parentCalls.length + emptyCalls.length;
+    const total = rightCalls.length + emptyCalls.length;
     assert.ok(
       total >= 2,
-      `expected >= 2 call sites combined, saw ${total} (parent=${parentCalls.length}, empty=${emptyCalls.length})`,
+      `expected >= 2 call sites combined, saw ${total} (right=${rightCalls.length}, empty=${emptyCalls.length})`,
     );
   });
 
@@ -1750,6 +1751,44 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: SessionsRightPane (v1.10.607)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SessionsRightPane.tsx');
+    assert.match(src, /export default function SessionsRightPane/);
+  });
+
+  it('takes selection + empty-state flag + 2 callback props', () => {
+    const src = read('SessionsRightPane.tsx');
+    assert.match(src, /selection:\s*Selection\s*\|\s*null/);
+    assert.match(src, /showStartFirstEmptyState:\s*boolean/);
+    assert.match(src, /onNewChat:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onAttachNew:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('composes ConversationView (session+attached cases) + SessionsComparisonCard + SessionsEmptyPanel', () => {
+    const src = read('SessionsRightPane.tsx');
+    assert.match(src, /<ConversationView/);
+    assert.match(src, /<SessionsComparisonCard/);
+    assert.match(src, /<SessionsEmptyPanel/);
+    assert.match(src, /selection\.kind === 'session'/);
+    assert.match(src, /selection\.kind === 'attached'/);
+  });
+
+  it('parent SessionsView exports Selection and imports SessionsRightPane', () => {
+    const parent = read('SessionsView.tsx');
+    assert.match(parent, /export\s+type\s+Selection/);
+    assert.match(parent, /import\s+SessionsRightPane\s+from\s+'\.\/SessionsRightPane'/);
+    assert.match(parent, /<SessionsRightPane/);
+  });
+
+  it('parent SessionsView no longer imports the 3 right-pane sub-components directly', () => {
+    const parent = read('SessionsView.tsx');
+    assert.doesNotMatch(parent, /import\s+ConversationView\s+from/);
+    assert.doesNotMatch(parent, /import\s+SessionsComparisonCard\s+from/);
+    assert.doesNotMatch(parent, /import\s+SessionsEmptyPanel\s+from/);
+  });
+});
+
 describe('extracted: RiskStatsGrid (v1.10.606)', () => {
   it('lives in its own file with default export', () => {
     const src = read('RiskStatsGrid.tsx');
@@ -1980,11 +2019,11 @@ describe('extracted: SessionsEmptyPanel (v1.10.601)', () => {
     assert.match(src, /<SessionsComparisonCard/);
   });
 
-  it('is imported and rendered by SessionsView', () => {
-    const parent = read('SessionsView.tsx');
+  it('is imported and rendered by SessionsRightPane (v1.10.607)', () => {
+    const parent = read('SessionsRightPane.tsx');
     assert.match(parent, /import\s+SessionsEmptyPanel\s+from\s+'\.\/SessionsEmptyPanel'/);
     assert.match(parent, /<SessionsEmptyPanel/);
-    assert.match(parent, /showStartFirst=\{filteredGroups\.length === 0/);
+    assert.match(parent, /showStartFirst=\{showStartFirstEmptyState\}/);
   });
 
   it('parent SessionsView no longer holds the inline empty-state Cards', () => {

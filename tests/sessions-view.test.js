@@ -208,23 +208,24 @@ describe('SessionsView.tsx - comparison card', () => {
   });
 
   it('renders the ComparisonCard component in both selected + empty panes', () => {
-    // (v1.10.549) ComparisonCard extracted to its own file under
-    // the SessionsComparisonCard name.
-    // (v1.10.601) The empty-state Cards moved into
-    // ./SessionsEmptyPanel.tsx, so the parent only renders the
-    // attached-detail call site directly. Count both files to
-    // lock the original "2+ usages" intent.
+    // (v1.10.549) ComparisonCard extracted to its own file.
+    // (v1.10.601) Empty-pane site moved into SessionsEmptyPanel.
+    // (v1.10.607) Attached-pane site moved into SessionsRightPane.
+    // Count all the containers to keep the original "2+ usages"
+    // intent intact.
     const CARD = path.join(repoRoot, 'web/src/components/SessionsComparisonCard.tsx');
     const EMPTY = path.join(repoRoot, 'web/src/components/SessionsEmptyPanel.tsx');
+    const RIGHT = path.join(repoRoot, 'web/src/components/SessionsRightPane.tsx');
     const cardSrc = fs.readFileSync(CARD, 'utf8');
     const emptySrc = fs.readFileSync(EMPTY, 'utf8');
+    const rightSrc = fs.readFileSync(RIGHT, 'utf8');
     assert.match(cardSrc, /export default function SessionsComparisonCard/);
-    const parentCalls = src.match(/<SessionsComparisonCard/g) || [];
     const emptyCalls = emptySrc.match(/<SessionsComparisonCard/g) || [];
-    const total = parentCalls.length + emptyCalls.length;
+    const rightCalls = rightSrc.match(/<SessionsComparisonCard/g) || [];
+    const total = emptyCalls.length + rightCalls.length;
     assert.ok(
       total >= 2,
-      `expected SessionsComparisonCard rendered >=2 times across SessionsView+SessionsEmptyPanel, saw ${total} (parent=${parentCalls.length}, empty=${emptyCalls.length})`,
+      `expected SessionsComparisonCard rendered >=2 times across SessionsRightPane+SessionsEmptyPanel, saw ${total} (right=${rightCalls.length}, empty=${emptyCalls.length})`,
     );
   });
 });
@@ -300,9 +301,13 @@ describe('SessionsView.tsx - 8.17 wiring regression guards', () => {
   });
 
   it('still embeds ConversationView with the snapshotUrl override', () => {
-    assert.match(src, /import ConversationView from '\.\/ConversationView'/);
+    // (v1.10.607) ConversationView's attached call moved into
+    // SessionsRightPane.
+    const RIGHT = path.join(repoRoot, 'web/src/components/SessionsRightPane.tsx');
+    const rightSrc = fs.readFileSync(RIGHT, 'utf8');
+    assert.match(rightSrc, /import ConversationView from '\.\/ConversationView'/);
     assert.match(
-      src,
+      rightSrc,
       /snapshotUrl=\{`\/api\/attach\/\$\{encodeURIComponent\(selection\.name\)\}\/conversation`\}/,
     );
   });

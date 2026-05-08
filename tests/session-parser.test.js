@@ -302,8 +302,12 @@ describe('SessionsView.tsx + App.tsx wiring', () => {
   });
 
   it('embeds ConversationView for the selected session', () => {
-    assert.match(sessions, /import ConversationView from '\.\/ConversationView'/);
-    assert.match(sessions, /<ConversationView/);
+    // (v1.10.607) ConversationView's render call moved into
+    // SessionsRightPane sibling.
+    const rightFile = path.join(__dirname, '..', 'web', 'src', 'components', 'SessionsRightPane.tsx');
+    const rightSrc = fs.readFileSync(rightFile, 'utf8');
+    assert.match(rightSrc, /import ConversationView from '\.\/ConversationView'/);
+    assert.match(rightSrc, /<ConversationView/);
   });
 
   it('adds a sessions tab to the TopTabs list + persists the choice', () => {

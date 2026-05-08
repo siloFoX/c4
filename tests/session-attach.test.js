@@ -393,8 +393,14 @@ describe('SessionsView.tsx wiring for attached sessions', () => {
   });
 
   it('reuses ConversationView for attached sessions via snapshotUrl', () => {
-    assert.match(src, /import ConversationView from '\.\/ConversationView'/);
-    assert.match(src, /snapshotUrl=\{`\/api\/attach\/\$\{encodeURIComponent\(selection\.name\)\}\/conversation`\}/);
+    // (v1.10.607) ConversationView's attached call moved into
+    // SessionsRightPane sibling.
+    const rightSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'components', 'SessionsRightPane.tsx'),
+      'utf8',
+    );
+    assert.match(rightSrc, /import ConversationView from '\.\/ConversationView'/);
+    assert.match(rightSrc, /snapshotUrl=\{`\/api\/attach\/\$\{encodeURIComponent\(selection\.name\)\}\/conversation`\}/);
   });
 });
 

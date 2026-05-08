@@ -4,6 +4,41 @@
 
 (no entries — next release window)
 
+## [1.10.607] - 2026-05-08 — Extract SessionsRightPane
+
+**Web — `SessionsView.tsx` shrunk by 21 lines (477 → 456).**
+The right pane — selection-driven render of one of three:
+ConversationView (session id), ConversationView+ComparisonCard
+(attached worker), or SessionsEmptyPanel — extracted as a
+composite container. 4 props.
+
+### Refactor
+- New `web/src/components/SessionsRightPane.tsx` (~59 lines) —
+  composes `ConversationView`, `SessionsComparisonCard`, and
+  `SessionsEmptyPanel`.
+- `SessionsView.tsx`: removed the inline ~36-line ternary +
+  3 default-import slots. Promoted `Selection` to export so
+  the new sibling can type its prop. Replaced with
+  `<SessionsRightPane … />`.
+- Boundary tests for `SessionsComparisonCard` (2-call-sites)
+  and `SessionsEmptyPanel` (parent-render assertion) updated
+  to reflect the new container hierarchy.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions) + 2 existing suites updated. Total: 74 suites,
+  395 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 73 of the perfection-track component split. SessionsView
+  456. The right pane is now: master Card (header + content +
+  attached/list sections) + a single SessionsRightPane
+  composite. 79 ships / 74 components+libs / 395 boundary
+  assertions.
+
 ## [1.10.606] - 2026-05-08 — Extract RiskStatsGrid
 
 **Web — `pages/Risk.tsx` shrunk by 72 lines (369 → 297).**

@@ -2,15 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
 import { Card, CardContent } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
-import ConversationView from './ConversationView';
 import SessionsTour from './SessionsTour';
 import NewChatModal from './NewChatModal';
 import AttachModal from './AttachModal';
-import SessionsComparisonCard from './SessionsComparisonCard';
 import SessionsAttachedSection from './SessionsAttachedSection';
 import SessionsListSection from './SessionsListSection';
 import SessionsHeader from './SessionsHeader';
-import SessionsEmptyPanel from './SessionsEmptyPanel';
+import SessionsRightPane from './SessionsRightPane';
 
 export interface SessionSummary {
   projectDir: string | null;
@@ -84,7 +82,9 @@ interface AttachResponse {
 // hit. `kind: 'session'` means the sessionId comes from the 8.18
 // sessions list; `kind: 'attached'` means the name is a registered
 // attachment and ConversationView should load it from /api/attach.
-type Selection =
+// (v1.10.607) Promoted to export so SessionsRightPane can type
+// its `selection` prop.
+export type Selection =
   | { kind: 'session'; id: string }
   | { kind: 'attached'; name: string };
 
@@ -418,40 +418,19 @@ export default function SessionsView() {
       </Card>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-        {selection && selection.kind === 'session' ? (
-          <ConversationView
-            key={`session-${selection.id}`}
-            sessionId={selection.id}
-            live={false}
-            className="flex-1"
-          />
-        ) : selection && selection.kind === 'attached' ? (
-          <>
-            <ConversationView
-              key={`attached-${selection.name}`}
-              sessionId={selection.name}
-              live
-              snapshotUrl={`/api/attach/${encodeURIComponent(selection.name)}/conversation`}
-              streamUrl={`/api/attach/${encodeURIComponent(selection.name)}/tail?live=1`}
-              className="flex-1"
-            />
-            <SessionsComparisonCard className="self-end" />
-          </>
-        ) : (
-          // (v1.10.601) Right-pane empty state extracted to
-          // ./SessionsEmptyPanel.tsx.
-          <SessionsEmptyPanel
-            showStartFirst={filteredGroups.length === 0 && filteredAttached.length === 0 && !loading}
-            onNewChat={() => {
-              setNewChatError(null);
-              setNewChatOpen(true);
-            }}
-            onAttachNew={() => {
-              setModalError(null);
-              setModalOpen(true);
-            }}
-          />
-        )}
+        {/* (v1.10.607) Right pane extracted to ./SessionsRightPane.tsx. */}
+        <SessionsRightPane
+          selection={selection}
+          showStartFirstEmptyState={filteredGroups.length === 0 && filteredAttached.length === 0 && !loading}
+          onNewChat={() => {
+            setNewChatError(null);
+            setNewChatOpen(true);
+          }}
+          onAttachNew={() => {
+            setModalError(null);
+            setModalOpen(true);
+          }}
+        />
       </div>
 
       <AttachModal
