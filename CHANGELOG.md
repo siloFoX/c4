@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.591] - 2026-05-08 — Extract ControlPanelBatch
+
+**Web — `ControlPanel.tsx` shrunk by 103 lines (449 → 346).**
+The whole batch-control Card — header (title + selected count
++ Select all / Clear buttons), worker checkbox list (or empty
+state), Cancel/Close action row, and the optional last-batch
+outcome panel — extracted as its own pure-display sibling.
+10 props.
+
+### Refactor
+- New `web/src/components/ControlPanelBatch.tsx` (~153 lines).
+- `ControlPanel.tsx`: removed the inline ~112-line second Card.
+  Replaced with `<ControlPanelBatch … />`. Promoted `BatchKind`
+  and `BatchOutcome` to exports so the new sibling can type
+  its props. Trimmed the `./ui` import down to just
+  `type ButtonProps` (8 named UI primitives no longer used by
+  the parent).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 58 suites, 313 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 57 of the perfection-track component split. ControlPanel
+  346 (was 580+ at session start, -40%+ cumulative). 63 ships /
+  58 components+libs / 313 boundary assertions.
+
 ## [1.10.590] - 2026-05-08 — Extract ControlPanelActions
 
 **Web — `ControlPanel.tsx` shrunk by 32 lines (481 → 449).**

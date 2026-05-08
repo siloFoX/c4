@@ -1737,6 +1737,51 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: ControlPanelBatch (v1.10.591)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('ControlPanelBatch.tsx');
+    assert.match(src, /export default function ControlPanelBatch/);
+  });
+
+  it('takes worker list / selection / batch state / 4 callback props', () => {
+    const src = read('ControlPanelBatch.tsx');
+    assert.match(src, /selectableWorkers:\s*Worker\[\]/);
+    assert.match(src, /selected:\s*Set<string>/);
+    assert.match(src, /selectedCount:\s*number/);
+    assert.match(src, /batchBusy:\s*BatchKind\s*\|\s*null/);
+    assert.match(src, /disableBatch:\s*boolean/);
+    assert.match(src, /batchResults:\s*BatchOutcome\[\]\s*\|\s*null/);
+    assert.match(src, /onSelectAll:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onClearSelection:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onToggleSelected:\s*\(name:\s*string\)\s*=>\s*void/);
+    assert.match(src, /onRunBatch:\s*\(kind:\s*BatchKind\)\s*=>\s*void/);
+  });
+
+  it('renders header / worker list / cancel+close buttons / outcome panel', () => {
+    const src = read('ControlPanelBatch.tsx');
+    assert.match(src, /controlPanel\.batch\.title/);
+    assert.match(src, /controlPanel\.batch\.selectAll/);
+    assert.match(src, /controlPanel\.batch\.cancelSelected/);
+    assert.match(src, /controlPanel\.batch\.closeSelected/);
+    assert.match(src, /controlPanel\.lastBatch\.title/);
+  });
+
+  it('parent ControlPanel exports BatchKind/BatchOutcome', () => {
+    const parent = read('ControlPanel.tsx');
+    assert.match(parent, /export\s+type\s+BatchKind/);
+    assert.match(parent, /export\s+interface\s+BatchOutcome/);
+  });
+
+  it('is imported and rendered by ControlPanel; inline batch card removed', () => {
+    const parent = read('ControlPanel.tsx');
+    assert.match(parent, /import\s+ControlPanelBatch\s+from\s+'\.\/ControlPanelBatch'/);
+    assert.match(parent, /<ControlPanelBatch/);
+    assert.match(parent, /onRunBatch=\{runBatch\}/);
+    assert.doesNotMatch(parent, /controlPanel\.batch\.selectAll/);
+    assert.doesNotMatch(parent, /controlPanel\.lastBatch\.title/);
+  });
+});
+
 describe('extracted: ControlPanelActions (v1.10.590)', () => {
   it('lives in its own file with default export', () => {
     const src = read('ControlPanelActions.tsx');
