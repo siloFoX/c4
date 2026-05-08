@@ -11,7 +11,6 @@ import MeetingsLineageStrip, { type LineageResponse } from './MeetingsLineageStr
 import MeetingsStuckBanner, { type StuckResponse } from './MeetingsStuckBanner';
 import MeetingsStagesView, { type StageView } from './MeetingsStagesView';
 import MeetingsDetailHeader from './MeetingsDetailHeader';
-import MeetingsContributePanel from './MeetingsContributePanel';
 import MeetingsStateActions from './MeetingsStateActions';
 import MeetingsRunControls from './MeetingsRunControls';
 import MeetingsComposer from './MeetingsComposer';
@@ -22,6 +21,7 @@ import MeetingsList from './MeetingsList';
 import MeetingsSearchInput from './MeetingsSearchInput';
 import MeetingsDetailTitleBar from './MeetingsDetailTitleBar';
 import MeetingsDetailCompletedActions from './MeetingsDetailCompletedActions';
+import MeetingsDetailInProgressActions from './MeetingsDetailInProgressActions';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -656,34 +656,14 @@ export default function MeetingsView() {
               <MeetingsRunControls meetingId={selectedId} />
             </div>
           ) : null}
-          {/* (v1.10.339) Manual control row for in-progress meetings.
-              The Run button auto-drives, but manual sessions need
-              per-action buttons (e.g., human-contributed turns via
-              CLI / terminal). */}
           {selectedId && detail && detail.status === 'in-progress' ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] text-muted-foreground">{t('meetings.manual.label')}</span>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setContribOpen((v) => !v)}
-                aria-label={t('meetings.contribute.toggle.label')}
-                title={t('meetings.tooltip.contribute')}
-                aria-expanded={contribOpen}
-              >
-                {contribOpen ? t('meetings.hideContribute') : t('meetings.contributeButton')}
-              </Button>
-              {/* (v1.10.555) State-machine action buttons extracted to
-                  ./MeetingsStateActions.tsx. */}
-              <MeetingsStateActions meetingId={selectedId} mode="in-progress" />
-            </div>
-          ) : null}
-          {/* (v1.10.345) Contribute / vote form. Hidden until the
-              operator clicks "Contribute…". Vote-only buttons hit
-              /vote (no turn appended); contribute hits /contribute
-              with optional vote piggybacked on the turn. */}
-          {selectedId && detail && detail.status === 'in-progress' ? (
-            <MeetingsContributePanel open={contribOpen} meetingId={selectedId} />
+            /* (v1.10.594) In-progress action row + ContributePanel
+               extracted to ./MeetingsDetailInProgressActions.tsx. */
+            <MeetingsDetailInProgressActions
+              meetingId={selectedId}
+              contribOpen={contribOpen}
+              onContribToggle={() => setContribOpen((v) => !v)}
+            />
           ) : null}
           {selectedId && detail && detail.status === 'pending' ? (
             <div className="flex flex-wrap items-center gap-2">

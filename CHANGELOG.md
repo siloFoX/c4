@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.594] - 2026-05-08 — Extract MeetingsDetailInProgressActions
+
+**Web — `MeetingsView.tsx` shrunk by 20 lines (755 → 735).**
+The in-progress action surface — manual label + Contribute
+toggle button + state-machine actions row, plus the
+conditionally-rendered ContributePanel beneath it — extracted
+as a composite container. 3 props.
+
+### Refactor
+- New `web/src/components/MeetingsDetailInProgressActions.tsx`
+  (~44 lines) — composes `MeetingsStateActions` (in-progress
+  mode) and `MeetingsContributePanel`.
+- `MeetingsView.tsx`: removed the inline ~30-line block. Replaced
+  with `<MeetingsDetailInProgressActions … />`. Dropped the
+  `MeetingsContributePanel` direct import (now consumed by the
+  new composite).
+- Boundary tests for `MeetingsContributePanel` +
+  `MeetingsStateActions` (in-progress site) updated to assert
+  the new parent.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions) + 2 existing suites updated to point at the
+  new parent. Total: 61 suites, 329 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 60 of the perfection-track component split. MeetingsView
+  735. 66 ships / 61 components+libs / 329 boundary assertions.
+
 ## [1.10.593] - 2026-05-08 — Extract MeetingsDetailCompletedActions
 
 **Web — `MeetingsView.tsx` shrunk by 30 lines (785 → 755).**

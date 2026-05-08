@@ -993,11 +993,13 @@ describe('extracted: MeetingsStateActions (v1.10.555)', () => {
     assert.match(src, /'abort', t\('meetings\.abortConfirm'\)/);
   });
 
-  it('is rendered at 2 sites by MeetingsView (one per mode)', () => {
+  it('is rendered at 2 sites — pending row in MeetingsView, in-progress in MeetingsDetailInProgressActions (v1.10.594)', () => {
     const parent = read('MeetingsView.tsx');
     assert.match(parent, /import\s+MeetingsStateActions\s+from\s+'\.\/MeetingsStateActions'/);
-    assert.match(parent, /<MeetingsStateActions\s+meetingId=\{selectedId\}\s+mode="in-progress"/);
     assert.match(parent, /<MeetingsStateActions\s+meetingId=\{selectedId\}\s+mode="pending"/);
+    const inProgress = read('MeetingsDetailInProgressActions.tsx');
+    assert.match(inProgress, /import\s+MeetingsStateActions\s+from\s+'\.\/MeetingsStateActions'/);
+    assert.match(inProgress, /<MeetingsStateActions\s+meetingId=\{meetingId\}\s+mode="in-progress"/);
   });
 
   it('parent MeetingsView no longer holds state-action handler nor state', () => {
@@ -1167,10 +1169,10 @@ describe('extracted: MeetingsContributePanel (v1.10.551)', () => {
     assert.match(src, /\[meetingId\]/);
   });
 
-  it('is imported and rendered by MeetingsView (toggle open flag in parent)', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsDetailInProgressActions (v1.10.594)', () => {
+    const parent = read('MeetingsDetailInProgressActions.tsx');
     assert.match(parent, /import\s+MeetingsContributePanel\s+from\s+'\.\/MeetingsContributePanel'/);
-    assert.match(parent, /<MeetingsContributePanel\s+open=\{contribOpen\}\s+meetingId=\{selectedId\}/);
+    assert.match(parent, /<MeetingsContributePanel\s+open=\{contribOpen\}\s+meetingId=\{meetingId\}/);
   });
 
   it('parent MeetingsView no longer holds contribute form state nor handlers', () => {
@@ -1737,6 +1739,41 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: MeetingsDetailInProgressActions (v1.10.594)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsDetailInProgressActions.tsx');
+    assert.match(src, /export default function MeetingsDetailInProgressActions/);
+  });
+
+  it('takes meetingId/contribOpen + onContribToggle props', () => {
+    const src = read('MeetingsDetailInProgressActions.tsx');
+    assert.match(src, /meetingId:\s*string/);
+    assert.match(src, /contribOpen:\s*boolean/);
+    assert.match(src, /onContribToggle:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('composes StateActions (mode=in-progress) + ContributePanel + manual label', () => {
+    const src = read('MeetingsDetailInProgressActions.tsx');
+    assert.match(src, /<MeetingsStateActions\s+meetingId=\{meetingId\}\s+mode="in-progress"/);
+    assert.match(src, /<MeetingsContributePanel/);
+    assert.match(src, /meetings\.manual\.label/);
+    assert.match(src, /meetings\.contributeButton/);
+  });
+
+  it('is imported and rendered by MeetingsView only on in-progress', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsDetailInProgressActions\s+from\s+'\.\/MeetingsDetailInProgressActions'/);
+    assert.match(parent, /<MeetingsDetailInProgressActions/);
+    assert.match(parent, /detail\.status === 'in-progress'/);
+  });
+
+  it('parent MeetingsView no longer imports ContributePanel directly', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /import\s+MeetingsContributePanel\s+from/);
+    assert.doesNotMatch(parent, /meetings\.contributeButton/);
   });
 });
 
