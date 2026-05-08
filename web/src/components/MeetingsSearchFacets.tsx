@@ -7,9 +7,11 @@ import type { MeetingStatus } from './MeetingsView';
 // derived from the response facets. Clicking a chip toggles the
 // corresponding parent filter selector.
 
-type Track = 'lightweight' | 'standard' | 'full';
+// (v1.10.613) Promoted to exports so MeetingsSearchSection can
+// type its props without redefining.
+export type Track = 'lightweight' | 'standard' | 'full';
 
-interface SearchFacets {
+export interface SearchFacets {
   status?: Record<string, number>;
   track?: Record<string, number>;
 }

@@ -12,11 +12,9 @@ import MeetingsDetailPendingActions from './MeetingsDetailPendingActions';
 import MeetingsDetailBody from './MeetingsDetailBody';
 import MeetingsListTitleBar from './MeetingsListTitleBar';
 import MeetingsComposer from './MeetingsComposer';
-import MeetingsSearchFacets from './MeetingsSearchFacets';
-import MeetingsSearchFilterRow from './MeetingsSearchFilterRow';
+import MeetingsSearchSection from './MeetingsSearchSection';
 import MeetingsListFilterRow from './MeetingsListFilterRow';
 import MeetingsList from './MeetingsList';
-import MeetingsSearchInput from './MeetingsSearchInput';
 import MeetingsDetailTitleBar from './MeetingsDetailTitleBar';
 import MeetingsDetailCompletedActions from './MeetingsDetailCompletedActions';
 import MeetingsDetailInProgressActions from './MeetingsDetailInProgressActions';
@@ -559,41 +557,25 @@ export default function MeetingsView() {
               onTrackChange={setListTrack}
             />
           ) : null}
-          {/* (v1.10.582) Search input extracted to
-              ./MeetingsSearchInput.tsx. */}
-          <MeetingsSearchInput
-            value={searchQuery}
-            onChange={setSearchQuery}
+          {/* (v1.10.613) Search section (input + filter row +
+              facets + error) extracted to ./MeetingsSearchSection.tsx. */}
+          <MeetingsSearchSection
+            query={searchQuery}
+            onChangeQuery={setSearchQuery}
             searching={searching}
+            searchStatus={searchStatus}
+            onSearchStatusChange={setSearchStatus}
+            searchTrack={searchTrack}
+            onSearchTrackChange={setSearchTrack}
+            searchSince={searchSince}
+            onSearchSinceChange={setSearchSince}
+            searchUntil={searchUntil}
+            onSearchUntilChange={setSearchUntil}
+            searchResults={searchResults}
+            searchFacets={searchFacets}
+            searchTotal={searchTotal}
+            searchError={searchError}
           />
-          {/* (v1.10.574) Search filter row extracted to
-              ./MeetingsSearchFilterRow.tsx. */}
-          {searchQuery.trim() ? (
-            <MeetingsSearchFilterRow
-              status={searchStatus}
-              onStatusChange={setSearchStatus}
-              track={searchTrack}
-              onTrackChange={setSearchTrack}
-              since={searchSince}
-              onSinceChange={setSearchSince}
-              until={searchUntil}
-              onUntilChange={setSearchUntil}
-            />
-          ) : null}
-          {searchResults && searchFacets ? (
-            <MeetingsSearchFacets
-              resultCount={searchResults.length}
-              total={searchTotal}
-              facets={searchFacets}
-              selectedStatus={searchStatus}
-              selectedTrack={searchTrack}
-              onStatusToggle={setSearchStatus}
-              onTrackToggle={setSearchTrack}
-            />
-          ) : null}
-          {searchError ? (
-            <div className="text-[11px] text-destructive">{searchError}</div>
-          ) : null}
           {/* (v1.10.557) Composer extracted to ./MeetingsComposer.tsx. */}
           <MeetingsComposer
             open={creating}

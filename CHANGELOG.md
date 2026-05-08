@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.613] - 2026-05-08 — Extract MeetingsSearchSection (80 suites)
+
+**Web — `MeetingsView.tsx` shrunk by 18 lines (681 → 663).**
+The full-text search section — input + (when query non-empty)
+filter row + (when results loaded) facet chips + error span —
+extracted as a composite container that wraps 3 existing
+siblings. 16 props.
+
+### Refactor
+- New `web/src/components/MeetingsSearchSection.tsx` (~84 lines)
+  — composes `MeetingsSearchInput`, `MeetingsSearchFilterRow`,
+  `MeetingsSearchFacets`.
+- `MeetingsView.tsx`: removed the inline ~35-line section plus
+  3 default-import slots (the sub-components are now consumed
+  by the new composite). Promoted `Track` + `SearchFacets`
+  types to exports from `MeetingsSearchFacets`.
+- Boundary tests for the 3 nested siblings updated to assert
+  the new parent.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions) + 3 existing suites updated. **Total: 80 suites
+  milestone**, 425 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 79 of the perfection-track component split. MeetingsView
+  663. 85 ships / **80 components+libs milestone** / 425
+  boundary assertions.
+
 ## [1.10.612] - 2026-05-08 — Extract ChatComposer
 
 **Web — `ChatView.tsx` shrunk by 15 lines (453 → 438).**

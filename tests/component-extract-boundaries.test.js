@@ -299,8 +299,8 @@ describe('extracted: MeetingsSearchFilterRow (v1.10.574)', () => {
     assert.doesNotMatch(src, /useEffect/);
   });
 
-  it('is imported and rendered by MeetingsView', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsSearchSection (v1.10.613)', () => {
+    const parent = read('MeetingsSearchSection.tsx');
     assert.match(parent, /import\s+MeetingsSearchFilterRow\s+from\s+'\.\/MeetingsSearchFilterRow'/);
     assert.match(parent, /<MeetingsSearchFilterRow/);
   });
@@ -334,9 +334,9 @@ describe('extracted: MeetingsSearchFacets (v1.10.573)', () => {
     assert.doesNotMatch(src, /useEffect/);
   });
 
-  it('is imported and rendered by MeetingsView', () => {
-    const parent = read('MeetingsView.tsx');
-    assert.match(parent, /import\s+MeetingsSearchFacets\s+from\s+'\.\/MeetingsSearchFacets'/);
+  it('is imported and rendered by MeetingsSearchSection (v1.10.613)', () => {
+    const parent = read('MeetingsSearchSection.tsx');
+    assert.match(parent, /import\s+MeetingsSearchFacets/);
     assert.match(parent, /<MeetingsSearchFacets/);
   });
 
@@ -1751,6 +1751,51 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: MeetingsSearchSection (v1.10.613)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsSearchSection.tsx');
+    assert.match(src, /export default function MeetingsSearchSection/);
+  });
+
+  it('takes 16 props (query + 4 filter pairs + results/facets/total + error)', () => {
+    const src = read('MeetingsSearchSection.tsx');
+    assert.match(src, /query:\s*string/);
+    assert.match(src, /onChangeQuery/);
+    assert.match(src, /searchStatus:\s*MeetingStatus\s*\|\s*''/);
+    assert.match(src, /searchTrack:\s*Track\s*\|\s*''/);
+    assert.match(src, /searchSince:\s*string/);
+    assert.match(src, /searchUntil:\s*string/);
+    assert.match(src, /searchResults:\s*MeetingSummary\[\]\s*\|\s*null/);
+    assert.match(src, /searchFacets:\s*SearchFacets\s*\|\s*null/);
+    assert.match(src, /searchTotal:\s*number\s*\|\s*null/);
+    assert.match(src, /searchError:\s*string\s*\|\s*null/);
+  });
+
+  it('composes Input + FilterRow (when query non-empty) + Facets (when results) + error', () => {
+    const src = read('MeetingsSearchSection.tsx');
+    assert.match(src, /<MeetingsSearchInput/);
+    assert.match(src, /<MeetingsSearchFilterRow/);
+    assert.match(src, /<MeetingsSearchFacets/);
+    assert.match(src, /query\.trim\(\)/);
+    assert.match(src, /searchResults && searchFacets/);
+  });
+
+  it('parent MeetingsSearchFacets exports Track + SearchFacets', () => {
+    const facets = read('MeetingsSearchFacets.tsx');
+    assert.match(facets, /export\s+type\s+Track/);
+    assert.match(facets, /export\s+interface\s+SearchFacets/);
+  });
+
+  it('is imported and rendered by MeetingsView; inline section removed', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsSearchSection\s+from\s+'\.\/MeetingsSearchSection'/);
+    assert.match(parent, /<MeetingsSearchSection/);
+    assert.doesNotMatch(parent, /import\s+MeetingsSearchInput\s+from/);
+    assert.doesNotMatch(parent, /import\s+MeetingsSearchFacets\s+from/);
+    assert.doesNotMatch(parent, /import\s+MeetingsSearchFilterRow\s+from/);
+  });
+});
+
 describe('extracted: ChatComposer (v1.10.612)', () => {
   it('lives in its own file with default export', () => {
     const src = read('ChatComposer.tsx');
@@ -2969,12 +3014,12 @@ describe('extracted: MeetingsSearchInput (v1.10.582)', () => {
     assert.match(src, /meetings\.searching/);
   });
 
-  it('is imported and rendered by MeetingsView', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsSearchSection (v1.10.613)', () => {
+    const parent = read('MeetingsSearchSection.tsx');
     assert.match(parent, /import\s+MeetingsSearchInput\s+from\s+'\.\/MeetingsSearchInput'/);
     assert.match(parent, /<MeetingsSearchInput/);
-    assert.match(parent, /value=\{searchQuery\}/);
-    assert.match(parent, /onChange=\{setSearchQuery\}/);
+    assert.match(parent, /value=\{query\}/);
+    assert.match(parent, /onChange=\{onChangeQuery\}/);
   });
 
   it('parent MeetingsView no longer holds the inline search input', () => {
