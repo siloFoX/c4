@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.647] - 2026-05-09 — Extract useMeetingClassifyPreview hook
+
+**Web — `MeetingsComposer.tsx` shrunk by 18 lines (376 → 358).**
+The 250ms-debounced GET /api/meetings/classify-track preview
+that powers the auto-track radio's hint text moves to a
+self-contained hook. The `ClassifyPreview` interface goes
+with it and is now exported from the hook module so the
+parent's downstream JSX still gets type-checked.
+
+### Refactor
+- New `web/src/lib/use-meeting-classify-preview.ts`
+  (~38 lines). Exports `useMeetingClassifyPreview` +
+  `ClassifyPreview` type.
+- `MeetingsComposer.tsx`: removed the inline
+  `ClassifyPreview` interface, the `classifyPreview`
+  useState slot, and the ~16-line debounced fetch
+  useEffect. Replaced with a single `useMeetingClassifyPreview`
+  call.
+- Boundary suite #115 — 4 assertions covering hook
+  export shape, 250ms debounce + classify-track URL,
+  open/empty-task auto-clear, parent wiring.
+- Existing MeetingsComposer suite (v1.10.557) updated:
+  the `classifyPreview` state assertion is replaced by an
+  import-of-the-hook check; the `/api/meetings/classify-track`
+  match redirects to the hook file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  577 / 577 across 114 → 115 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual). One transient
+  risk-sandbox-exec flake on first attempt; cleared on
+  retry — recurring environmental flake, not gate-related.
+
+### Stats
+- 119 ships total since v1.10.529.
+- 115 components/libs extracted.
+- 25 custom hooks in `web/src/lib/`.
+- 577 boundary assertions across 115 suites.
+
 ## [1.10.646] - 2026-05-09 — Extract useTerminalSseStream hook
 
 **Web — `XtermView.tsx` shrunk by 30 lines (350 → 320).**

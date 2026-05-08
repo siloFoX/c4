@@ -902,13 +902,21 @@ describe('extracted: MeetingsComposer (v1.10.557)', () => {
     assert.match(src, /const \[templateName, setTemplateName\]/);
     assert.match(src, /const \[templateVars, setTemplateVars\]/);
     assert.match(src, /const \[previewPlan, setPreviewPlan\]/);
-    assert.match(src, /const \[classifyPreview, setClassifyPreview\]/);
+    // (v1.10.647) classifyPreview moved to useMeetingClassifyPreview hook.
+    assert.match(src, /useMeetingClassifyPreview/);
   });
 
   it('owns the handleCreate POST + the two debounced preview effects', () => {
     const src = read('MeetingsComposer.tsx');
     assert.match(src, /handleCreate/);
-    assert.match(src, /\/api\/meetings\/classify-track/);
+    // (v1.10.647) classify-track call lives in the hook now.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-classify-preview.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /\/api\/meetings\/classify-track/);
     assert.match(src, /\/api\/meetings\/plan/);
   });
 
@@ -1752,6 +1760,41 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useMeetingClassifyPreview hook (v1.10.647)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-classify-preview.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'MeetingsComposer.tsx');
+
+  it('exports the hook + ClassifyPreview type', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useMeetingClassifyPreview/);
+    assert.match(src, /export interface ClassifyPreview/);
+    assert.match(src, /track:\s*'lightweight'\s*\|\s*'standard'\s*\|\s*'full'/);
+  });
+
+  it('debounces the GET /api/meetings/classify-track call at 250ms', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.setTimeout\(async \(\) => \{[\s\S]*?\}, 250\)/);
+    assert.match(src, /\/api\/meetings\/classify-track\?\$\{qs\.toString\(\)\}/);
+    assert.match(src, /window\.clearTimeout\(handle\)/);
+  });
+
+  it('clears the preview when composer closes or task is empty', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if\s*\(!open\s*\|\|\s*!newTask\.trim\(\)\)/);
+    assert.match(src, /setClassifyPreview\(null\)/);
+  });
+
+  it('parent MeetingsComposer wires the hook + drops the inline state + interface', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useMeetingClassifyPreview\s*\}\s+from\s+'\.\.\/lib\/use-meeting-classify-preview'/);
+    assert.match(src, /useMeetingClassifyPreview\(\{\s*open,\s*newTask\s*\}\)/);
+    assert.doesNotMatch(src, /^interface ClassifyPreview/m);
+    assert.doesNotMatch(src, /const \[classifyPreview, setClassifyPreview\]/);
   });
 });
 

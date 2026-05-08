@@ -4,6 +4,7 @@ import { Button, Input } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import MeetingsTemplateEditor from './MeetingsTemplateEditor';
+import { useMeetingClassifyPreview } from '../lib/use-meeting-classify-preview';
 
 // (v1.10.557) Extracted from MeetingsView. Create-meeting
 // composer — template chips with edit pencils, the embedded
@@ -30,11 +31,8 @@ interface PreviewPlan {
   stages: Array<{ stage: string; specialists: Array<{ id: string }> }>;
 }
 
-interface ClassifyPreview {
-  track: 'lightweight' | 'standard' | 'full';
-  matched: Array<{ list: string; term: string }>;
-  reason: string;
-}
+// (v1.10.647) ClassifyPreview type + debounced fetch hook
+// moved to lib/use-meeting-classify-preview.
 
 interface Props {
   open: boolean;
@@ -94,24 +92,8 @@ export default function MeetingsComposer({ open, onClose, onCreated }: Props) {
     return [...out];
   }, [newTask]);
 
-  // (Phase 6.6) Track classifier preview — debounced.
-  const [classifyPreview, setClassifyPreview] = useState<ClassifyPreview | null>(null);
-  useEffect(() => {
-    if (!open || !newTask.trim()) {
-      setClassifyPreview(null);
-      return undefined;
-    }
-    const handle = window.setTimeout(async () => {
-      try {
-        const qs = new URLSearchParams({ task: newTask.trim() });
-        const res = await apiGet<ClassifyPreview>(`/api/meetings/classify-track?${qs.toString()}`);
-        setClassifyPreview(res);
-      } catch {
-        setClassifyPreview(null);
-      }
-    }, 250);
-    return () => window.clearTimeout(handle);
-  }, [open, newTask]);
+  // (v1.10.647) Track classifier preview moved to hook.
+  const classifyPreview = useMeetingClassifyPreview({ open, newTask });
 
   // Dispatcher preview — debounced ~400ms after typing stops.
   const [previewPlan, setPreviewPlan] = useState<PreviewPlan | null>(null);
