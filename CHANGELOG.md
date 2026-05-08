@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.592] - 2026-05-08 — Extract SpecialistsDetailHeader
+
+**Web — `SpecialistsView.tsx` shrunk by 38 lines (592 → 554).**
+The detail-pane card header — title (placeholder vs
+selected.id/displayName), Remove button, and the confirm-remove
+block — extracted as its own pure-display sibling. 5 props.
+
+### Refactor
+- New `web/src/components/SpecialistsDetailHeader.tsx` (~76 lines).
+- `SpecialistsView.tsx`: removed the inline 47-line CardHeader
+  block. Replaced with `<SpecialistsDetailHeader … />`. Dropped
+  `Trash2` icon import (no longer used by the parent).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 59 suites, 318 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 58 of the perfection-track component split.
+  SpecialistsView 554. 64 ships / 59 components+libs / 318
+  boundary assertions.
+
 ## [1.10.591] - 2026-05-08 — Extract ControlPanelBatch
 
 **Web — `ControlPanel.tsx` shrunk by 103 lines (449 → 346).**

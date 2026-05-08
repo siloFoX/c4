@@ -1737,6 +1737,45 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: SpecialistsDetailHeader (v1.10.592)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SpecialistsDetailHeader.tsx');
+    assert.match(src, /export default function SpecialistsDetailHeader/);
+  });
+
+  it('takes selected/confirmRemoveId/removeBusy + 2 callback props', () => {
+    const src = read('SpecialistsDetailHeader.tsx');
+    assert.match(src, /selected:\s*Specialist\s*\|\s*null/);
+    assert.match(src, /confirmRemoveId:\s*string\s*\|\s*null/);
+    assert.match(src, /removeBusy:\s*boolean/);
+    assert.match(src, /onConfirmRemove:\s*\(id:\s*string\s*\|\s*null\)\s*=>\s*void/);
+    assert.match(src, /onRemove:\s*\(id:\s*string\)\s*=>\s*void/);
+  });
+
+  it('renders title placeholder/selected + Remove button + confirm block', () => {
+    const src = read('SpecialistsDetailHeader.tsx');
+    assert.match(src, /specialists\.title\.selected/);
+    assert.match(src, /specialists\.title\.select/);
+    assert.match(src, /specialists\.action\.removeAria/);
+    assert.match(src, /specialists\.confirmRemove\.prefix/);
+    assert.match(src, /specialists\.action\.confirmRemove/);
+  });
+
+  it('is imported and rendered by SpecialistsView', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.match(parent, /import\s+SpecialistsDetailHeader\s+from\s+'\.\/SpecialistsDetailHeader'/);
+    assert.match(parent, /<SpecialistsDetailHeader/);
+    assert.match(parent, /onConfirmRemove=\{setConfirmRemoveId\}/);
+    assert.match(parent, /onRemove=\{handleRemove\}/);
+  });
+
+  it('parent SpecialistsView no longer holds the inline detail header', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.doesNotMatch(parent, /specialists\.confirmRemove\.prefix/);
+    assert.doesNotMatch(parent, /specialists\.title\.selected/);
+  });
+});
+
 describe('extracted: ControlPanelBatch (v1.10.591)', () => {
   it('lives in its own file with default export', () => {
     const src = read('ControlPanelBatch.tsx');

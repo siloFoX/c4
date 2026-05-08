@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Eye, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { Eye, Plus, RefreshCw } from 'lucide-react';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
 import { Button, Card, CardContent, CardHeader, CardTitle } from './ui';
 import { cn } from '../lib/cn';
@@ -12,6 +12,7 @@ import SpecialistsPromptPanel from './SpecialistsPromptPanel';
 import SpecialistsTagEditor from './SpecialistsTagEditor';
 import SpecialistsList from './SpecialistsList';
 import SpecialistsSearchFilters from './SpecialistsSearchFilters';
+import SpecialistsDetailHeader from './SpecialistsDetailHeader';
 
 // (multi-specialist phase 7.5) Specialists tab — registry view +
 // score visualization. Mirrors MeetingsView / WikiView's split
@@ -356,53 +357,14 @@ export default function SpecialistsView() {
       </Card>
 
       <Card className="flex min-h-0 flex-1 flex-col">
-        <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
-          <div className="flex flex-row items-center justify-between gap-2">
-            <CardTitle className="text-base">
-              {selected
-                ? tFormat('specialists.title.selected', { id: selected.id, name: selected.displayName })
-                : t('specialists.title.select')}
-            </CardTitle>
-            {selected ? (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setConfirmRemoveId(selected.id)}
-                disabled={removeBusy}
-                className="text-destructive hover:bg-destructive/10"
-                aria-label={tFormat('specialists.action.removeAria', { id: selected.id })}
-              >
-                <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                {t('common.remove')}
-              </Button>
-            ) : null}
-          </div>
-          {confirmRemoveId && selected && confirmRemoveId === selected.id ? (
-            <div role="alert" className="flex flex-wrap items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-[11px]">
-              <span>
-                {t('specialists.confirmRemove.prefix')}
-                <span className="font-mono">{selected.id}</span>
-                {t('specialists.confirmRemove.suffix')}
-              </span>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setConfirmRemoveId(null)}
-                disabled={removeBusy}
-              >
-                {t('common.cancel')}
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => handleRemove(selected.id)}
-                disabled={removeBusy}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {t('specialists.action.confirmRemove')}
-              </Button>
-            </div>
-          ) : null}
-        </CardHeader>
+        {/* (v1.10.592) Detail header extracted to ./SpecialistsDetailHeader.tsx. */}
+        <SpecialistsDetailHeader
+          selected={selected}
+          confirmRemoveId={confirmRemoveId}
+          removeBusy={removeBusy}
+          onConfirmRemove={setConfirmRemoveId}
+          onRemove={handleRemove}
+        />
         <CardContent className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
           {!selected ? (
             <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
