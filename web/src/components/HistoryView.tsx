@@ -20,6 +20,7 @@ import {
 import { cn } from '../lib/cn';
 import HistoryDetailPane from './HistoryDetailPane';
 import { useScribeContext } from '../lib/use-scribe-context';
+import { useHistoryWorkerDetail } from '../lib/use-history-worker-detail';
 
 export interface HistoryCommit {
   hash: string;
@@ -90,7 +91,6 @@ export default function HistoryView() {
   useLocale();
   const [summary, setSummary] = useState<HistoryWorkerSummary[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
-  const [detail, setDetail] = useState<HistoryWorkerDetail | null>(null);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [sinceDay, setSinceDay] = useState('');
@@ -121,25 +121,8 @@ export default function HistoryView() {
     fetchSummary();
   }, [fetchSummary]);
 
-  const fetchDetail = useCallback(async (name: string) => {
-    try {
-      const data = await apiGet<HistoryWorkerDetail>(
-        `/api/history/${encodeURIComponent(name)}`,
-      );
-      setDetail(data);
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!selected) {
-      setDetail(null);
-      return;
-    }
-    fetchDetail(selected);
-  }, [selected, fetchDetail]);
+  // (v1.10.651) Per-worker detail fetch moved to hook.
+  const detail = useHistoryWorkerDetail({ selected, setError });
 
   const selectWorker = useCallback((name: string) => {
     closeScribe();

@@ -277,7 +277,12 @@ describe('HistoryView.tsx wiring', () => {
   });
 
   it('fetches per-worker detail from /api/history/:name', () => {
-    assert.match(src, /\/api\/history\/\$\{encodeURIComponent\(name\)\}/);
+    // (v1.10.651) Detail fetch moved to lib/use-history-worker-detail.
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-history-worker-detail.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /\/api\/history\/\$\{encodeURIComponent\(name\)\}/);
   });
 
   it('fetches scribe context from /api/scribe-context', () => {

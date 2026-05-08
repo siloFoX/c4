@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.651] - 2026-05-09 — Extract useHistoryWorkerDetail hook
+
+**Web — `HistoryView.tsx` shrunk by 17 lines (340 → 323).**
+The per-worker detail fetch — GET /api/history/:name on
+`selected` change, null-clearing when `selected` is null,
+error reporting through the parent's `setError` — moves
+to a self-contained hook. The `HistoryWorkerDetail` type
+is imported back from the parent component so the existing
+shape declaration stays the source of truth.
+
+### Refactor
+- New `web/src/lib/use-history-worker-detail.ts` (~42 lines).
+  Imports `HistoryWorkerDetail` from
+  `../components/HistoryView` rather than redeclaring it
+  — the type + scrollback shape are still page-scoped.
+- `HistoryView.tsx`: removed the `detail` useState slot,
+  the `fetchDetail` useCallback, and the `selected →
+  fetch/null-clear` useEffect. Replaced with a single
+  `useHistoryWorkerDetail({ selected, setError })` call
+  that returns the `detail` value directly.
+- Boundary suite #119 — 4 assertions covering hook export
+  shape, /api/history/:name URL + null-clear branch,
+  setError(null/error) reporting, parent wiring.
+- `tests/history-view.test.js` redirect: the
+  /api/history/:name URL match now reads the hook file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  594 / 594 across 118 → 119 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 123 ships total since v1.10.529.
+- 119 components/libs extracted.
+- 29 custom hooks in `web/src/lib/`.
+- 594 boundary assertions across 119 suites.
+
 ## [1.10.650] - 2026-05-09 — Extract useScribeContext hook
 
 **Web — `HistoryView.tsx` shrunk by 22 lines (362 → 340).**

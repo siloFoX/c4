@@ -1770,6 +1770,40 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useHistoryWorkerDetail hook (v1.10.651)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-history-worker-detail.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'HistoryView.tsx');
+
+  it('exports the hook + accepts selected + setError', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useHistoryWorkerDetail/);
+    assert.match(src, /selected:\s*string\s*\|\s*null/);
+    assert.match(src, /setError:\s*\(message:\s*string\s*\|\s*null\)\s*=>\s*void/);
+  });
+
+  it('GETs /api/history/:name on selected change + clears on null', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\/api\/history\/\$\{encodeURIComponent\(name\)\}/);
+    assert.match(src, /if \(!selected\) \{[\s\S]*?setDetail\(null\)/);
+  });
+
+  it('reports success/failure to setError', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /setError\(null\)/);
+    assert.match(src, /setError\(\(e as Error\)\.message\)/);
+  });
+
+  it('parent HistoryView wires the hook + drops the inline detail state + fetcher', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useHistoryWorkerDetail\s*\}\s+from\s+'\.\.\/lib\/use-history-worker-detail'/);
+    assert.match(src, /useHistoryWorkerDetail\(\{\s*selected,\s*setError\s*\}\)/);
+    assert.doesNotMatch(src, /const \[detail, setDetail\]/);
+    assert.doesNotMatch(src, /const fetchDetail = useCallback/);
+  });
+});
+
 describe('extracted: useScribeContext hook (v1.10.650)', () => {
   const fs = require('fs');
   const path = require('path');
