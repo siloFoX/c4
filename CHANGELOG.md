@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.636] - 2026-05-09 — Extract useScrollback hook
+
+**Web — `WorkerDetail.tsx` shrunk by 29 lines (253 → 224).**
+The polled /api/scrollback fetch — runs only when the
+caller's `tab === 'scrollback'`, 3s poll interval, error +
+content state — extracted as a custom hook. Inputs:
+workerName / tab / setActionMsg. Outputs: scrollbackContent /
+error / setError / fetchScrollback (re-fetch entry-point for
+the action handler).
+
+### Refactor
+- New `web/src/lib/use-scrollback.ts` (~64 lines).
+- `WorkerDetail.tsx`: removed 2 useState slots
+  (`scrollbackContent`/`error`) + `fetchScrollback` useCallback
+  + 1 mount/poll effect + the `ReadResponse` interface (now
+  inside the hook). Replaced with single
+  `const { … } = useScrollback({ … })`. Dropped `useCallback`
+  from the React imports.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (4 assertions). Total: 103 suites, 532 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 102 of the perfection-track component split. **Fourteenth
+  custom hook extraction**. WorkerDetail 224. 108 ships /
+  103 components+libs / 532 boundary assertions.
+
 ## [1.10.635] - 2026-05-09 — Extract useWorkflowRuns hook
 
 **Web — `WorkflowEditor.tsx` shrunk by 10 lines (236 → 226).**

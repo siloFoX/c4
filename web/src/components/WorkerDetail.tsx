@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useRef,
   useState,
@@ -16,6 +15,7 @@ import PinnedRulesEditor from './PinnedRulesEditor';
 import WorkerDetailHeader from './WorkerDetailHeader';
 import WorkerDetailKeysRow from './WorkerDetailKeysRow';
 import WorkerDetailComposer from './WorkerDetailComposer';
+import { useScrollback } from '../lib/use-scrollback';
 import { stripAnsi } from '../lib/chat-helpers';
 
 interface WorkerDetailProps {
@@ -24,13 +24,7 @@ interface WorkerDetailProps {
 
 type Tab = 'screen' | 'scrollback';
 
-interface ReadResponse {
-  content?: string;
-  error?: string;
-  status?: string;
-  lines?: number;
-  totalScrollback?: number;
-}
+// (v1.10.636) ReadResponse moved into useScrollback hook.
 
 interface ActionResponse {
   error?: string;
@@ -75,8 +69,6 @@ function readNumberStorage(key: string, fallback: number): number {
 export default function WorkerDetail({ workerName }: WorkerDetailProps) {
   useLocale();
   const [tab, setTab] = useState<Tab>('screen');
-  const [scrollbackContent, setScrollbackContent] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [inputText, setInputText] = useState<string>('');
   const [busy, setBusy] = useState(false);
@@ -87,33 +79,12 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
 
   const scrollbackRef = useRef<HTMLPreElement | null>(null);
 
-  const fetchScrollback = useCallback(async () => {
-    if (tab !== 'scrollback') return;
-    try {
-      const url = `/api/scrollback?name=${encodeURIComponent(workerName)}&lines=200`;
-      const res = await apiFetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as ReadResponse;
-      if (data.error) {
-        setError(data.error);
-        setScrollbackContent('');
-      } else {
-        setScrollbackContent(typeof data.content === 'string' ? data.content : '');
-        setError(null);
-      }
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, [tab, workerName]);
-
-  useEffect(() => {
-    setError(null);
-    setActionMsg(null);
-    if (tab !== 'scrollback') return;
-    fetchScrollback();
-    const interval = setInterval(fetchScrollback, 3000);
-    return () => clearInterval(interval);
-  }, [fetchScrollback, tab]);
+  // (v1.10.636) Scrollback poll hook extracted to ../lib/use-scrollback.
+  const { scrollbackContent, error, fetchScrollback } = useScrollback({
+    workerName,
+    tab,
+    setActionMsg,
+  });
 
   useEffect(() => {
     try {

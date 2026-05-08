@@ -1755,6 +1755,43 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useScrollback hook (v1.10.636)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-scrollback.ts');
+
+  it('lives in lib/use-scrollback.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useScrollback/);
+  });
+
+  it('takes workerName/tab/setActionMsg args; returns scrollbackContent/error/setError/fetchScrollback', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /workerName:\s*string/);
+    assert.match(src, /tab:\s*'screen'\s*\|\s*'scrollback'/);
+    assert.match(src, /setActionMsg:\s*\(next:\s*string\s*\|\s*null\)\s*=>\s*void/);
+    assert.match(src, /scrollbackContent:\s*string/);
+    assert.match(src, /error:\s*string\s*\|\s*null/);
+    assert.match(src, /fetchScrollback:\s*\(\)\s*=>\s*Promise<void>/);
+  });
+
+  it('owns the GET + 3s poll interval + tab-gated guard', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\/api\/scrollback\?name=/);
+    assert.match(src, /setInterval\(fetchScrollback,\s*3000\)/);
+    assert.match(src, /tab !== 'scrollback'/);
+  });
+
+  it('parent WorkerDetail calls the hook; inline state + 1 effect removed', () => {
+    const parent = read('WorkerDetail.tsx');
+    assert.match(parent, /import\s+\{\s*useScrollback\s*\}\s+from\s+'\.\.\/lib\/use-scrollback'/);
+    assert.match(parent, /useScrollback\(\{/);
+    assert.doesNotMatch(parent, /const \[scrollbackContent, setScrollbackContent\]/);
+    assert.doesNotMatch(parent, /const \[error, setError\]/);
+    assert.doesNotMatch(parent, /\/api\/scrollback\?name=/);
+  });
+});
+
 describe('extracted: useWorkflowRuns hook (v1.10.635)', () => {
   const fs = require('fs');
   const path = require('path');

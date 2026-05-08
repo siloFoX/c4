@@ -179,8 +179,15 @@ describe('WorkerDetail integrates XtermView (8.24)', () => {
   it('still renders a stripAnsi-backed pre on the Scrollback tab', () => {
     // Scrollback keeps the simple text dump for grep-style browsing; it
     // does not run xterm because we do not re-emit historical output.
+    // (v1.10.636) Fetch moved into useScrollback hook.
+    const path = require('node:path');
+    const fs = require('node:fs');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-scrollback.ts'),
+      'utf8',
+    );
     assert.match(src, /stripAnsi\(scrollbackContent\)/);
-    assert.match(src, /\/api\/scrollback\?name=/);
+    assert.match(hookSrc, /\/api\/scrollback\?name=/);
   });
 
   it('drops the old ruler-based char-width measurement', () => {
