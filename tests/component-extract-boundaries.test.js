@@ -901,23 +901,29 @@ describe('extracted: MeetingsComposer (v1.10.557)', () => {
     assert.match(src, /const \[templates, setTemplates\]/);
     assert.match(src, /const \[templateName, setTemplateName\]/);
     assert.match(src, /const \[templateVars, setTemplateVars\]/);
-    assert.match(src, /const \[previewPlan, setPreviewPlan\]/);
     // (v1.10.647) classifyPreview moved to useMeetingClassifyPreview hook.
+    // (v1.10.648) previewPlan/previewBusy moved to useMeetingPreviewPlan hook.
     assert.match(src, /useMeetingClassifyPreview/);
+    assert.match(src, /useMeetingPreviewPlan/);
   });
 
   it('owns the handleCreate POST + the two debounced preview effects', () => {
     const src = read('MeetingsComposer.tsx');
     assert.match(src, /handleCreate/);
-    // (v1.10.647) classify-track call lives in the hook now.
+    // (v1.10.647) classify-track call lives in its hook.
+    // (v1.10.648) plan call lives in its hook.
     const fs = require('fs');
     const path = require('path');
-    const hookSrc = fs.readFileSync(
+    const classifySrc = fs.readFileSync(
       path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-classify-preview.ts'),
       'utf8',
     );
-    assert.match(hookSrc, /\/api\/meetings\/classify-track/);
-    assert.match(src, /\/api\/meetings\/plan/);
+    const planSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-preview-plan.ts'),
+      'utf8',
+    );
+    assert.match(classifySrc, /\/api\/meetings\/classify-track/);
+    assert.match(planSrc, /\/api\/meetings\/plan/);
   });
 
   it('embeds MeetingsTemplateEditor (not in parent any more)', () => {
@@ -1760,6 +1766,50 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useMeetingPreviewPlan hook (v1.10.648)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-preview-plan.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'MeetingsComposer.tsx');
+
+  it('exports the hook + PreviewPlan type', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useMeetingPreviewPlan/);
+    assert.match(src, /export interface PreviewPlan/);
+    assert.match(src, /rosterSize:\s*number/);
+    assert.match(src, /estimatedTokens:\s*number/);
+  });
+
+  it('debounces POST /api/meetings/plan at 400ms', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.setTimeout\(async \(\) => \{[\s\S]*?\}, 400\)/);
+    assert.match(src, /apiPost<PreviewPlan>\('\/api\/meetings\/plan', body\)/);
+    assert.match(src, /window\.clearTimeout\(handle\)/);
+  });
+
+  it('forwards newTrack only when not auto', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if\s*\(newTrack\s*!==\s*'auto'\)\s*body\.track\s*=\s*newTrack/);
+  });
+
+  it('returns previewPlan + previewBusy + clears on close/empty', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /previewPlan:\s*PreviewPlan\s*\|\s*null/);
+    assert.match(src, /previewBusy:\s*boolean/);
+    assert.match(src, /if\s*\(!open\s*\|\|\s*!newTask\.trim\(\)\)/);
+    assert.match(src, /setPreviewPlan\(null\)/);
+  });
+
+  it('parent MeetingsComposer wires the hook + drops the inline state + interface', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useMeetingPreviewPlan\s*\}\s+from\s+'\.\.\/lib\/use-meeting-preview-plan'/);
+    assert.match(src, /useMeetingPreviewPlan\(\{\s*open,\s*newTask,\s*newTrack\s*\}\)/);
+    assert.doesNotMatch(src, /^interface PreviewPlan/m);
+    assert.doesNotMatch(src, /const \[previewPlan, setPreviewPlan\]/);
+    assert.doesNotMatch(src, /const \[previewBusy, setPreviewBusy\]/);
   });
 });
 

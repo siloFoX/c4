@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.648] - 2026-05-09 — Extract useMeetingPreviewPlan hook
+
+**Web — `MeetingsComposer.tsx` shrunk by 26 lines (358 → 332).**
+The 400ms-debounced POST /api/meetings/plan dispatcher
+preview that drives the roster-size / token-estimate /
+consensus chip block moves to a self-contained hook. The
+parent's `previewPlan` + `previewBusy` slots both come back
+from the hook return.
+
+### Refactor
+- New `web/src/lib/use-meeting-preview-plan.ts` (~53 lines)
+  — exports `useMeetingPreviewPlan` + the `PreviewPlan`
+  type that the parent's downstream JSX consumes.
+- `MeetingsComposer.tsx`: removed inline `PreviewPlan`
+  interface, the `previewPlan` + `previewBusy` useState
+  slots, and the ~22-line debounced fetch useEffect.
+  Replaced with a single destructured `useMeetingPreviewPlan`
+  call.
+- Boundary suite #116 — 5 assertions covering hook export
+  shape, 400ms debounce + `/api/meetings/plan` URL, the
+  `track !== 'auto'` body forwarding rule, the return
+  tuple, and parent wiring.
+- MeetingsComposer suite (v1.10.557) updated: the
+  `previewPlan` / `previewBusy` state assertions are
+  replaced by hook-import checks; the `/api/meetings/plan`
+  match redirects to the new hook file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  582 / 582 across 115 → 116 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 120 ships total since v1.10.529.
+- 116 components/libs extracted.
+- 26 custom hooks in `web/src/lib/`.
+- 582 boundary assertions across 116 suites.
+
 ## [1.10.647] - 2026-05-09 — Extract useMeetingClassifyPreview hook
 
 **Web — `MeetingsComposer.tsx` shrunk by 18 lines (376 → 358).**

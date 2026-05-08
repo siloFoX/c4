@@ -5,6 +5,7 @@ import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import MeetingsTemplateEditor from './MeetingsTemplateEditor';
 import { useMeetingClassifyPreview } from '../lib/use-meeting-classify-preview';
+import { useMeetingPreviewPlan } from '../lib/use-meeting-preview-plan';
 
 // (v1.10.557) Extracted from MeetingsView. Create-meeting
 // composer — template chips with edit pencils, the embedded
@@ -23,16 +24,10 @@ interface Template {
   description?: string | null;
 }
 
-interface PreviewPlan {
-  track: string;
-  rosterSize: number;
-  estimatedTokens: number;
-  consensusPolicy: { mode: string; roundCap: number; allowVeto: boolean };
-  stages: Array<{ stage: string; specialists: Array<{ id: string }> }>;
-}
-
 // (v1.10.647) ClassifyPreview type + debounced fetch hook
 // moved to lib/use-meeting-classify-preview.
+// (v1.10.648) PreviewPlan type + debounced plan fetch moved
+// to lib/use-meeting-preview-plan.
 
 interface Props {
   open: boolean;
@@ -95,29 +90,8 @@ export default function MeetingsComposer({ open, onClose, onCreated }: Props) {
   // (v1.10.647) Track classifier preview moved to hook.
   const classifyPreview = useMeetingClassifyPreview({ open, newTask });
 
-  // Dispatcher preview — debounced ~400ms after typing stops.
-  const [previewPlan, setPreviewPlan] = useState<PreviewPlan | null>(null);
-  const [previewBusy, setPreviewBusy] = useState(false);
-  useEffect(() => {
-    if (!open || !newTask.trim()) {
-      setPreviewPlan(null);
-      return undefined;
-    }
-    const handle = window.setTimeout(async () => {
-      setPreviewBusy(true);
-      try {
-        const body: { task: string; track?: string } = { task: newTask.trim() };
-        if (newTrack !== 'auto') body.track = newTrack;
-        const res = await apiPost<PreviewPlan>('/api/meetings/plan', body);
-        setPreviewPlan(res);
-      } catch {
-        setPreviewPlan(null);
-      } finally {
-        setPreviewBusy(false);
-      }
-    }, 400);
-    return () => window.clearTimeout(handle);
-  }, [open, newTask, newTrack]);
+  // (v1.10.648) Dispatcher preview moved to hook.
+  const { previewPlan, previewBusy } = useMeetingPreviewPlan({ open, newTask, newTrack });
 
   const handleCreate = useCallback(async () => {
     const task = newTask.trim();
