@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { apiGet, apiPost } from '../lib/api';
+import { useCallback, useMemo, useState } from 'react';
+import { apiPost } from '../lib/api';
 import { Button, Input } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import MeetingsTemplateEditor from './MeetingsTemplateEditor';
 import { useMeetingClassifyPreview } from '../lib/use-meeting-classify-preview';
 import { useMeetingPreviewPlan } from '../lib/use-meeting-preview-plan';
+import { useMeetingTemplates, type MeetingTemplate } from '../lib/use-meeting-templates';
 
 // (v1.10.557) Extracted from MeetingsView. Create-meeting
 // composer — template chips with edit pencils, the embedded
@@ -17,12 +18,10 @@ import { useMeetingPreviewPlan } from '../lib/use-meeting-preview-plan';
 // open/close/onCreated callbacks. This was the largest remaining
 // inline block in MeetingsView.
 
-interface Template {
-  name: string;
-  task: string;
-  track?: string | null;
-  description?: string | null;
-}
+// (v1.10.649) Template type + saved-templates load moved
+// to lib/use-meeting-templates. Re-exported here as
+// `Template` so existing JSX consumers keep working.
+type Template = MeetingTemplate;
 
 // (v1.10.647) ClassifyPreview type + debounced fetch hook
 // moved to lib/use-meeting-classify-preview.
@@ -45,22 +44,8 @@ export default function MeetingsComposer({ open, onClose, onCreated }: Props) {
   const [createBusy, setCreateBusy] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  // (8.1) Saved templates loaded at composer-open.
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const loadTemplates = useCallback(async () => {
-    try {
-      const res = await apiGet<{ templates: Template[] }>('/api/meetings/templates');
-      setTemplates(res.templates || []);
-    } catch { /* best-effort */ }
-  }, []);
-  useEffect(() => {
-    if (!open) return undefined;
-    let cancelled = false;
-    apiGet<{ templates: Template[] }>('/api/meetings/templates')
-      .then((res) => { if (!cancelled) setTemplates(res.templates || []); })
-      .catch(() => { /* best-effort */ });
-    return () => { cancelled = true; };
-  }, [open]);
+  // (v1.10.649) Saved templates load + refresh moved to hook.
+  const { templates, refresh: loadTemplates } = useMeetingTemplates({ open });
 
   // (8.4) Template-with-vars flow.
   const [templateName, setTemplateName] = useState<string | null>(null);

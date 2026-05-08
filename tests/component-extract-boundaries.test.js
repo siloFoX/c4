@@ -898,13 +898,14 @@ describe('extracted: MeetingsComposer (v1.10.557)', () => {
     const src = read('MeetingsComposer.tsx');
     assert.match(src, /const \[newTask, setNewTask\]/);
     assert.match(src, /const \[newTrack, setNewTrack\]/);
-    assert.match(src, /const \[templates, setTemplates\]/);
     assert.match(src, /const \[templateName, setTemplateName\]/);
     assert.match(src, /const \[templateVars, setTemplateVars\]/);
     // (v1.10.647) classifyPreview moved to useMeetingClassifyPreview hook.
     // (v1.10.648) previewPlan/previewBusy moved to useMeetingPreviewPlan hook.
+    // (v1.10.649) templates/loadTemplates moved to useMeetingTemplates hook.
     assert.match(src, /useMeetingClassifyPreview/);
     assert.match(src, /useMeetingPreviewPlan/);
+    assert.match(src, /useMeetingTemplates/);
   });
 
   it('owns the handleCreate POST + the two debounced preview effects', () => {
@@ -1766,6 +1767,44 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useMeetingTemplates hook (v1.10.649)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-templates.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'MeetingsComposer.tsx');
+
+  it('exports the hook + MeetingTemplate type', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useMeetingTemplates/);
+    assert.match(src, /export interface MeetingTemplate/);
+    assert.match(src, /name:\s*string/);
+    assert.match(src, /task:\s*string/);
+  });
+
+  it('GETs /api/meetings/templates with a cancellation race guard', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiGet<\{ templates: MeetingTemplate\[\] \}>\('\/api\/meetings\/templates'\)/);
+    assert.match(src, /let cancelled = false/);
+    assert.match(src, /if \(!cancelled\) setTemplates\(/);
+    assert.match(src, /cancelled = true/);
+  });
+
+  it('exposes a refresh callback for the template editor', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /refresh:\s*\(\)\s*=>\s*Promise<void>/);
+    assert.match(src, /const refresh = useCallback/);
+  });
+
+  it('parent MeetingsComposer wires the hook + drops the inline state + interface', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useMeetingTemplates,\s*type\s+MeetingTemplate\s*\}\s+from\s+'\.\.\/lib\/use-meeting-templates'/);
+    assert.match(src, /useMeetingTemplates\(\{\s*open\s*\}\)/);
+    assert.doesNotMatch(src, /^interface Template \{/m);
+    assert.doesNotMatch(src, /const \[templates, setTemplates\]/);
+    assert.doesNotMatch(src, /const loadTemplates = useCallback/);
   });
 });
 

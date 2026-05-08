@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.649] - 2026-05-09 — Extract useMeetingTemplates hook
+
+**Web — `MeetingsComposer.tsx` shrunk by 15 lines (332 → 317).**
+The saved-template list — GET /api/meetings/templates on
+composer-open with a cancellation race guard, plus a
+`refresh()` callback the template editor calls after
+save/delete — moves to a self-contained hook. The local
+`Template` type alias is preserved at the parent so the
+existing JSX keeps working without changes.
+
+### Refactor
+- New `web/src/lib/use-meeting-templates.ts` (~43 lines).
+  Exports `useMeetingTemplates` + the `MeetingTemplate`
+  type. The hook owns the on-open useEffect with its
+  `cancelled` flag and the manual `refresh()` callback.
+- `MeetingsComposer.tsx`: removed the inline `Template`
+  interface, the `templates` useState slot, the
+  `loadTemplates` useCallback, and the on-open useEffect.
+  Added a one-line `type Template = MeetingTemplate` so
+  the JSX still references `Template`. Trimmed unused
+  `useEffect` + `apiGet` imports.
+- Boundary suite #117 — 4 assertions covering hook export
+  shape, /api/meetings/templates URL + cancellation
+  guard, refresh callback shape, and parent wiring.
+- MeetingsComposer suite (v1.10.557) updated: the
+  `templates`/`loadTemplates` state assertions are
+  replaced by a `useMeetingTemplates` import check.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  586 / 586 across 116 → 117 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 121 ships total since v1.10.529.
+- 117 components/libs extracted.
+- 27 custom hooks in `web/src/lib/`.
+- 586 boundary assertions across 117 suites.
+
 ## [1.10.648] - 2026-05-09 — Extract useMeetingPreviewPlan hook
 
 **Web — `MeetingsComposer.tsx` shrunk by 26 lines (358 → 332).**
