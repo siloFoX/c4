@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.619] - 2026-05-08 — Extract WikiPageDetailHeader
+
+**Web — `WikiView.tsx` shrunk by 19 lines (287 → 268).**
+The right-pane card header — title (page title or fallback) +
+Reopen button (gated on `status !== 'reopened'`) + reopen
+result message — extracted as its own pure controlled-input
+sibling. 6 props.
+
+### Refactor
+- New `web/src/components/WikiPageDetailHeader.tsx` (~60 lines).
+- `WikiView.tsx`: removed the inline ~28-line CardHeader block.
+  Replaced with `<WikiPageDetailHeader … />`. Dropped 4 unused
+  imports (`RotateCcw` icon + `Button` UI primitive +
+  `CardTitle` UI primitive — wait, `CardTitle` is still used
+  by the master-pane title — only `RotateCcw`, `Button`, `cn`
+  removed).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 86 suites, 456 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 85 of the perfection-track component split. WikiView
+  268. 91 ships / 86 components+libs / 456 boundary assertions.
+
 ## [1.10.618] - 2026-05-08 — Extract SpecialistsListCardHeader
 
 **Web — `SpecialistsView.tsx` shrunk by 7 lines (370 → 363).**

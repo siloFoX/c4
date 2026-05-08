@@ -1753,6 +1753,45 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: WikiPageDetailHeader (v1.10.619)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('WikiPageDetailHeader.tsx');
+    assert.match(src, /export default function WikiPageDetailHeader/);
+  });
+
+  it('takes page/selectedPath + reopen state + onReopen props', () => {
+    const src = read('WikiPageDetailHeader.tsx');
+    assert.match(src, /page:\s*ReadResponse\s*\|\s*null/);
+    assert.match(src, /selectedPath:\s*string\s*\|\s*null/);
+    assert.match(src, /reopenBusy:\s*boolean/);
+    assert.match(src, /reopenMsg:\s*string\s*\|\s*null/);
+    assert.match(src, /reopenFailed:\s*boolean/);
+    assert.match(src, /onReopen:\s*\(path:\s*string\)\s*=>\s*void/);
+  });
+
+  it('renders title + Reopen button (when not already reopened) + reopen message', () => {
+    const src = read('WikiPageDetailHeader.tsx');
+    assert.match(src, /wiki\.title\.select/);
+    assert.match(src, /wiki\.reopen\.label/);
+    assert.match(src, /wiki\.tooltip\.reopen/);
+    assert.match(src, /wiki\.reopen/);
+    assert.match(src, /frontmatter\['status'\] !== 'reopened'/);
+  });
+
+  it('is imported and rendered by WikiView', () => {
+    const parent = read('WikiView.tsx');
+    assert.match(parent, /import\s+WikiPageDetailHeader\s+from\s+'\.\/WikiPageDetailHeader'/);
+    assert.match(parent, /<WikiPageDetailHeader/);
+    assert.match(parent, /onReopen=\{handleReopen\}/);
+  });
+
+  it('parent WikiView no longer holds the inline detail header', () => {
+    const parent = read('WikiView.tsx');
+    assert.doesNotMatch(parent, /wiki\.reopen\.label/);
+    assert.doesNotMatch(parent, /<RotateCcw\b/);
+  });
+});
+
 describe('extracted: SpecialistsListCardHeader (v1.10.618)', () => {
   it('lives in its own file with default export', () => {
     const src = read('SpecialistsListCardHeader.tsx');

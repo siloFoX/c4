@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { RotateCcw } from 'lucide-react';
 import { apiGet, apiPost } from '../lib/api';
-import { Button, Card, CardContent, CardHeader, CardTitle } from './ui';
-import { cn } from '../lib/cn';
+import { Card, CardContent, CardHeader, CardTitle } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import WikiSearchResults from './WikiSearchResults';
 import WikiPageDetail from './WikiPageDetail';
 import WikiBulkPublishRow from './WikiBulkPublishRow';
 import WikiSearchControls from './WikiSearchControls';
+import WikiPageDetailHeader from './WikiPageDetailHeader';
 
 // (multi-specialist phase 7.4) Wiki tab — split-pane like
 // MeetingsView. Left: query input + results list. Right: full page
@@ -244,34 +243,16 @@ export default function WikiView() {
       </Card>
 
       <Card className="flex min-h-0 flex-1 flex-col">
-        <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
-          <div className="flex flex-row items-center justify-between gap-2">
-            <CardTitle className="text-base">
-              {page ? (page.frontmatter['title'] as string) || page.path : t('wiki.title.select')}
-            </CardTitle>
-            {page && selectedPath && page.frontmatter['status'] !== 'reopened' ? (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleReopen(selectedPath)}
-                disabled={reopenBusy}
-                aria-label={t('wiki.reopen.label')}
-                title={t('wiki.tooltip.reopen')}
-              >
-                <RotateCcw className={cn('h-3.5 w-3.5', reopenBusy && 'animate-spin')} aria-hidden />
-                {t('wiki.reopen')}
-              </Button>
-            ) : null}
-          </div>
-          {reopenMsg ? (
-            <span className={cn(
-              'text-[11px]',
-              reopenFailed ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400',
-            )}>
-              {reopenMsg}
-            </span>
-          ) : null}
-        </CardHeader>
+        {/* (v1.10.619) Detail card header (title + reopen) extracted
+            to ./WikiPageDetailHeader.tsx. */}
+        <WikiPageDetailHeader
+          page={page}
+          selectedPath={selectedPath}
+          reopenBusy={reopenBusy}
+          reopenMsg={reopenMsg}
+          reopenFailed={reopenFailed}
+          onReopen={handleReopen}
+        />
         <CardContent className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
           {/* (v1.10.600) Page detail body extracted to ./WikiPageDetail.tsx. */}
           <WikiPageDetail
