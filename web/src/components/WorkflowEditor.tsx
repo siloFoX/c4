@@ -15,6 +15,7 @@ import WorkflowList from './WorkflowList';
 import WorkflowSelectedHeader from './WorkflowSelectedHeader';
 import WorkflowRunsPanel from './WorkflowRunsPanel';
 import { useWorkflowsList } from '../lib/use-workflows-list';
+import { useWorkflowRuns } from '../lib/use-workflow-runs';
 import {
   Card,
   CardContent,
@@ -95,10 +96,6 @@ export default function WorkflowEditor() {
   useLocale();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [runs, setRuns] = useState<WorkflowRun[]>([]);
-  // (v1.10.350) Expand a single run to inspect per-node results.
-  // Resets on workflow switch so the panel doesn't show a stale id.
-  const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
 
   // (v1.10.632) /api/workflows list + refresh hook extracted to
   // ../lib/use-workflows-list. Selection ref keeps the
@@ -111,16 +108,9 @@ export default function WorkflowEditor() {
     onAutoSelect: useCallback((id: string) => setSelectedId(id), []),
   });
 
-  useEffect(() => {
-    setExpandedRunId(null);
-    if (!selectedId) {
-      setRuns([]);
-      return;
-    }
-    apiGet<WorkflowRunsResponse>('/api/workflows/' + encodeURIComponent(selectedId) + '/runs')
-      .then((r) => setRuns(r.runs || []))
-      .catch(() => setRuns([]));
-  }, [selectedId]);
+  // (v1.10.635) Per-selection runs fetch hook extracted to
+  // ../lib/use-workflow-runs.
+  const { runs, setRuns, expandedRunId, setExpandedRunId } = useWorkflowRuns(selectedId);
 
   const selected = useMemo(
     () => workflows.find((w) => w.id === selectedId) || null,

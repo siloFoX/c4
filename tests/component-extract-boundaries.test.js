@@ -1755,6 +1755,39 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useWorkflowRuns hook (v1.10.635)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-workflow-runs.ts');
+
+  it('lives in lib/use-workflow-runs.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useWorkflowRuns/);
+  });
+
+  it('takes selectedId arg; returns runs/setRuns/expandedRunId/setExpandedRunId', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /selectedId:\s*string\s*\|\s*null/);
+    assert.match(src, /runs:\s*WorkflowRun\[\]/);
+    assert.match(src, /expandedRunId:\s*string\s*\|\s*null/);
+  });
+
+  it('owns the per-selection GET /api/workflows/:id/runs + expanded-id reset', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\/api\/workflows\//);
+    assert.match(src, /\/runs/);
+    assert.match(src, /setExpandedRunId\(null\)/);
+  });
+
+  it('parent WorkflowEditor calls the hook; inline state + effect removed', () => {
+    const parent = read('WorkflowEditor.tsx');
+    assert.match(parent, /import\s+\{\s*useWorkflowRuns\s*\}\s+from\s+'\.\.\/lib\/use-workflow-runs'/);
+    assert.match(parent, /useWorkflowRuns\(selectedId\)/);
+    assert.doesNotMatch(parent, /const \[runs, setRuns\]/);
+    assert.doesNotMatch(parent, /const \[expandedRunId, setExpandedRunId\]/);
+  });
+});
+
 describe('extracted: useSpecialistEnrichment hook (v1.10.634)', () => {
   const fs = require('fs');
   const path = require('path');

@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.635] - 2026-05-09 — Extract useWorkflowRuns hook
+
+**Web — `WorkflowEditor.tsx` shrunk by 10 lines (236 → 226).**
+The per-selection /api/workflows/:id/runs fetch — clears +
+refetches on `selectedId` change, also resets the expanded-run
+state slot so the panel doesn't show a stale row id from the
+previous workflow — extracted as a custom hook. Input:
+`selectedId`. Outputs: runs / setRuns / expandedRunId /
+setExpandedRunId.
+
+### Refactor
+- New `web/src/lib/use-workflow-runs.ts` (~37 lines).
+- `WorkflowEditor.tsx`: removed 2 useState slots
+  (`runs`/`expandedRunId`) + 1 fetch effect. Replaced with
+  single `useWorkflowRuns(selectedId)` call.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (4 assertions). Total: 102 suites, 528 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 101 of the perfection-track component split. **Thirteenth
+  custom hook extraction**. WorkflowEditor 226. 107 ships /
+  102 components+libs / 528 boundary assertions.
+
 ## [1.10.634] - 2026-05-09 — Extract useSpecialistEnrichment hook
 
 **Web — `SpecialistsView.tsx` shrunk by 24 lines (294 → 270).**
