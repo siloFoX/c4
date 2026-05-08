@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { apiGet, eventSourceUrl } from '../lib/api';
+import { useEffect, useMemo, useState } from 'react';
+import { apiGet } from '../lib/api';
 import { Card, CardContent } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import MeetingsMaintenancePanel from './MeetingsMaintenancePanel';
@@ -12,6 +12,7 @@ import MeetingsListCardHeader from './MeetingsListCardHeader';
 import { useMeetingsSearch } from '../lib/use-meetings-search';
 import { useMeetingEnrichment } from '../lib/use-meeting-enrichment';
 import { useMeetingDetailStream } from '../lib/use-meeting-detail-stream';
+import { useMeetingsList } from '../lib/use-meetings-list';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -44,7 +45,9 @@ export interface MeetingSummary {
   snippet?: string;
 }
 
-interface MeetingsListResponse {
+// (v1.10.626) Promoted to export so useMeetingsList can type
+// its returned data slot.
+export interface MeetingsListResponse {
   count: number;
   meetings: MeetingSummary[];
 }
@@ -112,9 +115,6 @@ export function formatRelative(iso: string | null): string {
 
 export default function MeetingsView() {
   useLocale();
-  const [data, setData] = useState<MeetingsListResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   // (Phase 6.11) List-level filters (separate from search filters
   // — search hits FTS, list hits the bare /meetings endpoint).
   const [listStatus, setListStatus] = useState<MeetingStatus | ''>('');
@@ -157,54 +157,9 @@ export default function MeetingsView() {
   const [searchSince, setSearchSince] = useState('');
   const [searchUntil, setSearchUntil] = useState('');
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams();
-      if (listStatus) params.set('status', listStatus);
-      if (listTrack) params.set('track', listTrack);
-      const url = params.toString() ? `/api/meetings?${params.toString()}` : '/api/meetings';
-      const res = await apiGet<MeetingsListResponse>(url);
-      setData(res);
-    } catch (e) {
-      setError((e as Error).message || t('common.failedToLoadMeetings'));
-    } finally {
-      setLoading(false);
-    }
-  }, [listStatus, listTrack]);
-
-  useEffect(() => { refresh(); }, [refresh]);
-
-  // (v1.10.353) Global SSE list stream — every meeting state
-  // transition + meeting-added / meeting-removed events. Drops
-  // the periodic refresh poll to a fallback (90s) since the
-  // stream covers the live case. Falls back gracefully when the
-  // daemon doesn't expose the stream (older versions): the stream
-  // never opens and the poll keeps running.
-  useEffect(() => {
-    let es: EventSource | null = null;
-    try {
-      es = new EventSource(eventSourceUrl('/api/meetings/stream'));
-      // Refresh the list on each event — cheap given the typical
-      // meeting count, and avoids local cache invalidation logic
-      // (the GET endpoint is the source of truth for filters).
-      es.onmessage = () => refresh();
-      es.onerror = () => {
-        // EventSource auto-reconnects on transient failure; if it
-        // never opens we fall through to the poll below.
-      };
-    } catch {
-      // ignore — EventSource may be blocked in some browsers
-    }
-    // Fallback poll — 90s instead of 8s, since SSE handles the
-    // live case. Still useful in case SSE is closed by a proxy.
-    const id = window.setInterval(refresh, 90_000);
-    return () => {
-      if (es) es.close();
-      window.clearInterval(id);
-    };
-  }, [refresh]);
+  // (v1.10.626) /api/meetings list + SSE stream + fallback poll
+  // hook extracted to ../lib/use-meetings-list.
+  const { data, error, loading, refresh } = useMeetingsList({ listStatus, listTrack });
 
   // (Phase 8.1) Debounced FTS search.
   // (v1.10.623) Hook extracted to ../lib/use-meetings-search.

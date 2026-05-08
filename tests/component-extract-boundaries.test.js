@@ -1753,6 +1753,48 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useMeetingsList hook (v1.10.626)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meetings-list.ts');
+
+  it('lives in lib/use-meetings-list.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useMeetingsList/);
+  });
+
+  it('takes listStatus/listTrack args; returns data/error/loading/refresh', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /listStatus:\s*MeetingStatus\s*\|\s*''/);
+    assert.match(src, /listTrack:\s*Track\s*\|\s*''/);
+    assert.match(src, /data:\s*MeetingsListResponse\s*\|\s*null/);
+    assert.match(src, /error:\s*string\s*\|\s*null/);
+    assert.match(src, /loading:\s*boolean/);
+    assert.match(src, /refresh:\s*\(\)\s*=>\s*Promise<void>/);
+  });
+
+  it('owns the GET, the SSE list stream, and the 90s fallback poll', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\/api\/meetings\?/);
+    assert.match(src, /eventSourceUrl\('\/api\/meetings\/stream'\)/);
+    assert.match(src, /window\.setInterval\(refresh,\s*90_000\)/);
+  });
+
+  it('parent MeetingsView calls the hook; inline state + 2 effects removed', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+\{\s*useMeetingsList\s*\}\s+from\s+'\.\.\/lib\/use-meetings-list'/);
+    assert.match(parent, /useMeetingsList\(\{\s*listStatus,\s*listTrack\s*\}\)/);
+    assert.doesNotMatch(parent, /const \[data, setData\]/);
+    assert.doesNotMatch(parent, /const \[loading, setLoading\]/);
+    assert.doesNotMatch(parent, /eventSourceUrl\('\/api\/meetings\/stream'\)/);
+  });
+
+  it('parent MeetingsView exports MeetingsListResponse for hook typing', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /export\s+interface\s+MeetingsListResponse/);
+  });
+});
+
 describe('extracted: useMeetingDetailStream hook (v1.10.625)', () => {
   const fs = require('fs');
   const path = require('path');

@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.626] - 2026-05-09 — Extract useMeetingsList hook
+
+**Web — `MeetingsView.tsx` shrunk by 45 lines (423 → 378).**
+The /api/meetings list — GET with listStatus/listTrack filter
+composition, the global SSE list stream
+(`/api/meetings/stream`) that triggers a refetch on every
+state-transition / add / remove event, and the 90s fallback
+poll for the proxy-blocks-SSE case — extracted as a custom
+hook. Inputs: listStatus + listTrack. Outputs: data / error /
+loading / refresh.
+
+### Refactor
+- New `web/src/lib/use-meetings-list.ts` (~72 lines).
+- `MeetingsView.tsx`: removed 3 useState slots
+  (`data`/`error`/`loading`) + the inline `refresh` useCallback
+  + 2 effects (initial-fetch trigger + SSE/poll). Replaced with
+  a single `const { data, error, loading, refresh } =
+   useMeetingsList(…)`. Promoted `MeetingsListResponse` to
+  export. Dropped `useCallback` + `eventSourceUrl` imports —
+  no longer used in the parent.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 93 suites, 490 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 92 of the perfection-track component split. **Fourth
+  custom hook extraction**. MeetingsView 378 — first time below
+  400. 98 ships / 93 components+libs / 490 boundary assertions.
+
 ## [1.10.625] - 2026-05-09 — Extract useMeetingDetailStream hook
 
 **Web — `MeetingsView.tsx` shrunk by 65 lines (488 → 423).**
