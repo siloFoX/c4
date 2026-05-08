@@ -1753,6 +1753,52 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useMeetingEnrichment hook (v1.10.624)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-enrichment.ts');
+
+  it('lives in lib/use-meeting-enrichment.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useMeetingEnrichment/);
+  });
+
+  it('takes selectedId + detail args and returns lineage/actions/recap', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /selectedId:\s*string\s*\|\s*null/);
+    assert.match(src, /detail:\s*MeetingDetail\s*\|\s*null/);
+    assert.match(src, /lineage:\s*LineageResponse\s*\|\s*null/);
+    assert.match(src, /actions:\s*ActionItemsResponse\s*\|\s*null/);
+    assert.match(src, /recap:\s*RecapResponse\s*\|\s*null/);
+  });
+
+  it('owns 3 fetch effects + turnsTotal memo for actions/recap re-runs', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\/api\/meetings\/[^`]*\/lineage/);
+    assert.match(src, /\/api\/meetings\/[^`]*\/action-items/);
+    assert.match(src, /\/api\/meetings\/[^`]*\/recap/);
+    assert.match(src, /turnsTotal/);
+    assert.match(src, /useMemo/);
+  });
+
+  it('parent MeetingsView calls the hook; inline state + effects removed', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+\{\s*useMeetingEnrichment\s*\}\s+from\s+'\.\.\/lib\/use-meeting-enrichment'/);
+    assert.match(parent, /useMeetingEnrichment\(\{/);
+    assert.doesNotMatch(parent, /const \[lineage, setLineage\]/);
+    assert.doesNotMatch(parent, /const \[actions, setActions\]/);
+    assert.doesNotMatch(parent, /const \[recap, setRecap\]/);
+    assert.doesNotMatch(parent, /turnsTotal/);
+  });
+
+  it('parent no longer imports the 3 unused response types', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /import\s+\{\s*type RecapResponse\s*\}\s+from/);
+    assert.doesNotMatch(parent, /import\s+\{\s*type ActionItemsResponse\s*\}\s+from/);
+    assert.doesNotMatch(parent, /import\s+\{\s*type LineageResponse\s*\}\s+from/);
+  });
+});
+
 describe('extracted: useMeetingsSearch hook (v1.10.623)', () => {
   const fs = require('fs');
   const path = require('path');

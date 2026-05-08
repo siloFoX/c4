@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.624] - 2026-05-09 — Extract useMeetingEnrichment hook
+
+**Web — `MeetingsView.tsx` shrunk by 59 lines (547 → 488).**
+The Phase 6.5/6.9/6.10 detail-enrichment fetches — lineage
+(per-selection), action-items (per-selection + transcript
+length), recap (per-selection + transcript length) — extracted
+as a single custom hook. Inputs: selectedId + detail. Outputs:
+lineage / actions / recap.
+
+### Refactor
+- New `web/src/lib/use-meeting-enrichment.ts` (~77 lines) owns
+  3 state slots, 3 fetch effects, the `turnsTotal` memo for
+  re-running on transcript change.
+- `MeetingsView.tsx`: removed 3 inline useState slots + 3 fetch
+  useEffects + turnsTotal memo. Replaced with a single
+  `const { lineage, actions, recap } = useMeetingEnrichment(…)`.
+  Dropped 3 type re-imports (`RecapResponse`, `ActionItemsResponse`,
+  `LineageResponse`).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 91 suites, 481 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 90 of the perfection-track component split. Second
+  custom hook extraction. MeetingsView 488 — first time below
+  500. 96 ships / 91 components+libs / 481 boundary assertions.
+
 ## [1.10.623] - 2026-05-09 — Extract useMeetingsSearch hook
 
 **Web — `MeetingsView.tsx` shrunk by 74 lines (621 → 547).**

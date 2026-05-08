@@ -3,9 +3,6 @@ import { apiGet, eventSourceUrl } from '../lib/api';
 import { Card, CardContent } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import MeetingsMaintenancePanel from './MeetingsMaintenancePanel';
-import { type RecapResponse } from './MeetingsRecapPanel';
-import { type ActionItemsResponse } from './MeetingsActionItemsPanel';
-import { type LineageResponse } from './MeetingsLineageStrip';
 import MeetingsStuckBanner, { type StuckResponse } from './MeetingsStuckBanner';
 import { type StageView } from './MeetingsStagesView';
 import MeetingsDetailBody from './MeetingsDetailBody';
@@ -13,6 +10,7 @@ import MeetingsList from './MeetingsList';
 import MeetingsDetailCardHeader from './MeetingsDetailCardHeader';
 import MeetingsListCardHeader from './MeetingsListCardHeader';
 import { useMeetingsSearch } from '../lib/use-meetings-search';
+import { useMeetingEnrichment } from '../lib/use-meeting-enrichment';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -125,21 +123,8 @@ export default function MeetingsView() {
   const [detailError, setDetailError] = useState<string | null>(null);
 
   // (Phase 6.9) Lineage chain for the selected meeting. Only
-  // fetched when the detail says forkOf is set OR the meeting
-  // looks like it might be a parent (cheap to call regardless).
-  // We refetch whenever selectedId changes; the chain is small
-  // enough that we don't need debouncing.
-  const [lineage, setLineage] = useState<LineageResponse | null>(null);
-  // (Phase 6.5) Action-items extracted from the transcript.
-  const [actions, setActions] = useState<ActionItemsResponse | null>(null);
-  // (v1.10.542) actionsFilter state moved into the extracted panel.
-  // (v1.10.541) Recap state owned here so the existing recap-fetch
-  // useEffect below stays put; recap panel UI extracted to
-  // ./MeetingsRecapPanel.tsx. Collapsed-by-default behaviour
-  // showing first-turn per stage. Fetched on selection change AND
-  // on transcript turn-count change so live SSE updates pick up
-  // newly-first turns.
-  const [recap, setRecap] = useState<RecapResponse | null>(null);
+  // (v1.10.624) lineage / actions / recap state + 3 fetch effects
+  // moved into useMeetingEnrichment.
 
   // (Phase 6.15) Stuck meetings alert. Polled every 60s; only
   // visible when count > 0. Banner UI extracted to
@@ -307,53 +292,9 @@ export default function MeetingsView() {
     };
   }, [selectedId]);
 
-  // (Phase 6.9) Fetch lineage when selection changes. Cheap (1 row
-  // for non-fork meetings, depth-many rows otherwise). Failures
-  // silently set null — no need to surface as a hard error.
-  useEffect(() => {
-    if (!selectedId) {
-      setLineage(null);
-      return;
-    }
-    let cancelled = false;
-    apiGet<LineageResponse>(`/api/meetings/${encodeURIComponent(selectedId)}/lineage`)
-      .then((res) => { if (!cancelled) setLineage(res); })
-      .catch(() => { if (!cancelled) setLineage(null); });
-    return () => { cancelled = true; };
-  }, [selectedId]);
-
-  // (Phase 6.5) Fetch action-items. Re-runs when the transcript
-  // changes — i.e. when the SSE feed updates `detail`. The
-  // dependency on the transcript-length sum is cheap and
-  // change-stable for static meetings (no re-fetch every poll).
-  const turnsTotal = useMemo(() => {
-    if (!detail) return 0;
-    return (detail.transcripts || []).reduce((sum, arr) => sum + (arr ? arr.length : 0), 0);
-  }, [detail]);
-  useEffect(() => {
-    if (!selectedId) {
-      setActions(null);
-      return;
-    }
-    let cancelled = false;
-    apiGet<ActionItemsResponse>(`/api/meetings/${encodeURIComponent(selectedId)}/action-items`)
-      .then((res) => { if (!cancelled) setActions(res); })
-      .catch(() => { if (!cancelled) setActions(null); });
-    return () => { cancelled = true; };
-  }, [selectedId, turnsTotal]);
-
-  // (Phase 6.10) Recap fetch — same dep pattern as action-items.
-  useEffect(() => {
-    if (!selectedId) {
-      setRecap(null);
-      return;
-    }
-    let cancelled = false;
-    apiGet<RecapResponse>(`/api/meetings/${encodeURIComponent(selectedId)}/recap`)
-      .then((res) => { if (!cancelled) setRecap(res); })
-      .catch(() => { if (!cancelled) setRecap(null); });
-    return () => { cancelled = true; };
-  }, [selectedId, turnsTotal]);
+  // (v1.10.624) Detail enrichment (lineage / action-items / recap)
+  // hook extracted to ../lib/use-meeting-enrichment.
+  const { lineage, actions, recap } = useMeetingEnrichment({ selectedId, detail });
 
   const meetings = data?.meetings || [];
   const selectedSummary = useMemo(
