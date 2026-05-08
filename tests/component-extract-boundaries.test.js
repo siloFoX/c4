@@ -1750,6 +1750,47 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: RiskStatsGrid (v1.10.606)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('RiskStatsGrid.tsx');
+    assert.match(src, /export default function RiskStatsGrid/);
+  });
+
+  it('takes a single stats StatsResponse prop', () => {
+    const src = read('RiskStatsGrid.tsx');
+    assert.match(src, /stats:\s*StatsResponse/);
+    assert.match(src, /from\s+'\.\.\/pages\/Risk'/);
+  });
+
+  it('renders the totals tiles + by-level breakdown + top reasons/workers + rotations banner', () => {
+    const src = read('RiskStatsGrid.tsx');
+    assert.match(src, /risk\.stats\.totalEvents/);
+    assert.match(src, /risk\.stats\.enforced/);
+    assert.match(src, /risk\.stats\.dryRun/);
+    assert.match(src, /risk\.stats\.shadowExec/);
+    assert.match(src, /risk\.stats\.topReasons/);
+    assert.match(src, /risk\.stats\.topWorkers/);
+    assert.match(src, /ruleSetRotations > 1/);
+  });
+
+  it('parent pages/Risk exports StatsResponse', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(path.join(__dirname, '..', 'web', 'src', 'pages', 'Risk.tsx'), 'utf8');
+    assert.match(src, /export\s+interface\s+StatsResponse/);
+  });
+
+  it('parent Risk page imports + renders RiskStatsGrid; inline grid removed', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(path.join(__dirname, '..', 'web', 'src', 'pages', 'Risk.tsx'), 'utf8');
+    assert.match(src, /import\s+RiskStatsGrid\s+from\s+'\.\.\/components\/RiskStatsGrid'/);
+    assert.match(src, /<RiskStatsGrid\s+stats=\{stats\}/);
+    assert.doesNotMatch(src, /risk\.stats\.totalEvents/);
+    assert.doesNotMatch(src, /ruleSetRotations > 1/);
+  });
+});
+
 describe('extracted: RiskCheckResult (v1.10.605)', () => {
   it('lives in its own file with default export', () => {
     const src = read('RiskCheckResult.tsx');

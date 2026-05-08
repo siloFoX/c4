@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.606] - 2026-05-08 — Extract RiskStatsGrid
+
+**Web — `pages/Risk.tsx` shrunk by 72 lines (369 → 297).**
+The recent-denials stats grid — totals tiles
+(total/enforced/dryRun/shadowExec) + by-level breakdown + top
+reasons + top workers + rule-set rotation banner + window
+caption — extracted as its own pure-display sibling. 1 prop.
+
+### Refactor
+- New `web/src/components/RiskStatsGrid.tsx` (~92 lines).
+- `pages/Risk.tsx`: removed the inline ~75-line grid. Replaced
+  with `{stats ? <RiskStatsGrid stats={stats} /> : … }`.
+  Promoted `StatsResponse` to export so the new sibling can
+  type its prop.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 73 suites, 390 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 72 of the perfection-track component split. Risk page
+  297 — first time below 300 since session start (515).
+  78 ships / 73 components+libs / 390 boundary assertions.
+
 ## [1.10.605] - 2026-05-08 — Extract RiskCheckResult
 
 **Web — `pages/Risk.tsx` shrunk by 110 lines (479 → 369).**
