@@ -10,8 +10,6 @@ import {
   ArrowRight,
   ArrowUp,
   GitMerge,
-  Minus,
-  Plus,
   Send,
   X,
 } from 'lucide-react';
@@ -20,17 +18,13 @@ import {
   Button,
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  IconButton,
   Input,
-  Label,
 } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import XtermView from './XtermView';
 import PinnedRulesEditor from './PinnedRulesEditor';
+import WorkerDetailHeader from './WorkerDetailHeader';
 import { stripAnsi } from '../lib/chat-helpers';
 
 interface WorkerDetailProps {
@@ -201,68 +195,14 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col gap-3">
     <Card className="flex h-full min-h-0 min-w-0 flex-col">
-      <CardHeader className="gap-3 p-4 md:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <CardTitle className="truncate">{workerName}</CardTitle>
-            <CardDescription>
-              {t('workerDetail.terminalSession')}
-            </CardDescription>
-          </div>
-          <div
-            role="tablist"
-            aria-label={t('workerDetail.terminalView')}
-            className="flex gap-1 rounded-lg border border-border bg-muted/40 p-1 text-sm"
-          >
-            <Button
-              type="button"
-              role="tab"
-              aria-selected={tab === 'screen'}
-              variant={tab === 'screen' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => setTab('screen')}
-            >
-              {t('workerDetail.tab.screen')}
-            </Button>
-            <Button
-              type="button"
-              role="tab"
-              aria-selected={tab === 'scrollback'}
-              variant={tab === 'scrollback' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => setTab('scrollback')}
-            >
-              {t('workerDetail.tab.scrollback')}
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <div
-            className="flex items-center gap-1 rounded-md border border-border bg-muted/40 p-1"
-            aria-label={t('workerDetail.font.label')}
-          >
-            <IconButton
-              aria-label={t('workerDetail.font.decrease')}
-              className="h-7 w-7"
-              onClick={() => bumpFont(-1)}
-              icon={<Minus className="h-3.5 w-3.5" />}
-            />
-            <span className="min-w-[2.5rem] text-center font-mono text-foreground">
-              {fontSize}px
-            </span>
-            <IconButton
-              aria-label={t('workerDetail.font.increase')}
-              className="h-7 w-7"
-              onClick={() => bumpFont(1)}
-              icon={<Plus className="h-3.5 w-3.5" />}
-            />
-          </div>
-          <Label className="flex items-center gap-1 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-normal text-muted-foreground">
-            <span>{t('workerDetail.font.autoFit')}</span>
-          </Label>
-        </div>
-      </CardHeader>
+      {/* (v1.10.588) Card header extracted to ./WorkerDetailHeader.tsx. */}
+      <WorkerDetailHeader
+        workerName={workerName}
+        tab={tab}
+        onTabChange={setTab}
+        fontSize={fontSize}
+        onBumpFont={bumpFont}
+      />
 
       <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 p-4 pt-0 md:p-5 md:pt-0">
         {error && (

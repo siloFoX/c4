@@ -1737,6 +1737,45 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: WorkerDetailHeader (v1.10.588)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('WorkerDetailHeader.tsx');
+    assert.match(src, /export default function WorkerDetailHeader/);
+  });
+
+  it('takes worker name + tab + font controls props', () => {
+    const src = read('WorkerDetailHeader.tsx');
+    assert.match(src, /workerName:\s*string/);
+    assert.match(src, /tab:\s*TerminalTab/);
+    assert.match(src, /onTabChange:\s*\(next:\s*TerminalTab\)\s*=>\s*void/);
+    assert.match(src, /fontSize:\s*number/);
+    assert.match(src, /onBumpFont:\s*\(delta:\s*number\)\s*=>\s*void/);
+  });
+
+  it('renders the title + tab switcher + font adjustor', () => {
+    const src = read('WorkerDetailHeader.tsx');
+    assert.match(src, /workerDetail\.terminalSession/);
+    assert.match(src, /workerDetail\.tab\.screen/);
+    assert.match(src, /workerDetail\.tab\.scrollback/);
+    assert.match(src, /workerDetail\.font\.decrease/);
+    assert.match(src, /workerDetail\.font\.increase/);
+  });
+
+  it('is imported and rendered by WorkerDetail', () => {
+    const parent = read('WorkerDetail.tsx');
+    assert.match(parent, /import\s+WorkerDetailHeader\s+from\s+'\.\/WorkerDetailHeader'/);
+    assert.match(parent, /<WorkerDetailHeader/);
+    assert.match(parent, /onTabChange=\{setTab\}/);
+    assert.match(parent, /onBumpFont=\{bumpFont\}/);
+  });
+
+  it('parent WorkerDetail no longer holds the inline CardHeader block', () => {
+    const parent = read('WorkerDetail.tsx');
+    assert.doesNotMatch(parent, /<CardHeader/);
+    assert.doesNotMatch(parent, /workerDetail\.font\.decrease/);
+  });
+});
+
 describe('extracted: WorkflowList (v1.10.587)', () => {
   it('lives in its own file with default export', () => {
     const src = read('WorkflowList.tsx');

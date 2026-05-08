@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.588] - 2026-05-08 — Extract WorkerDetailHeader
+
+**Web — `WorkerDetail.tsx` shrunk by 60 lines (451 → 391).**
+The card header — title (worker name + sub-text), the
+screen/scrollback tab switcher, and the font-size adjustor with
+auto-fit label — extracted as its own pure controlled-input
+sibling. 5 props.
+
+### Refactor
+- New `web/src/components/WorkerDetailHeader.tsx` (~92 lines),
+  exports `TerminalTab` type alias.
+- `WorkerDetail.tsx`: removed the inline 62-line CardHeader
+  block. Replaced with `<WorkerDetailHeader … />`. Dropped 7
+  unused imports (Minus, Plus icons + CardDescription /
+  CardHeader / CardTitle / IconButton / Label UI primitives).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 55 suites, 298 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 54 of the perfection-track component split. WorkerDetail
+  391 (was 600+ at session start). 60 ships / 55 components+libs
+  / 298 boundary assertions.
+
 ## [1.10.587] - 2026-05-08 — Extract WorkflowList
 
 **Web — `WorkflowEditor.tsx` shrunk by 68 lines (460 → 392).**
