@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.639] - 2026-05-09 — Extract useWikiPage hook
+
+**Web — `WikiView.tsx` shrunk by 13 lines (258 → 245).**
+The per-selection /api/wiki/read fetch — runs whenever
+`selectedPath` changes, with a cancellation flag so a fast
+click-through doesn't race a stale read into the panel —
+extracted as a custom hook. Input: `selectedPath`. Outputs:
+page / setPage / pageError. (setPage is exposed because the
+Reopen handler synchronously refetches after a successful
+status flip.)
+
+### Refactor
+- New `web/src/lib/use-wiki-page.ts` (~40 lines).
+- `WikiView.tsx`: removed 2 useState slots (`page`/`pageError`)
+  + 1 fetch effect with cancellation guard. Replaced with single
+  `useWikiPage(selectedPath)` call.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (4 assertions). Total: 106 suites, 544 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 105 of the perfection-track component split. **Seventeenth
+  custom hook extraction**. WikiView 245. 111 ships /
+  106 components+libs / 544 boundary assertions.
+
 ## [1.10.638] - 2026-05-09 — Extract useToggleResetOnChange hook
 
 **Web — `MeetingsView.tsx` shrunk by 4 lines (365 → 361).**

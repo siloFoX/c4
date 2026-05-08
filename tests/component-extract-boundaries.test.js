@@ -1755,6 +1755,39 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useWikiPage hook (v1.10.639)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-wiki-page.ts');
+
+  it('lives in lib/use-wiki-page.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useWikiPage/);
+  });
+
+  it('takes selectedPath arg; returns page/setPage/pageError', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /selectedPath:\s*string\s*\|\s*null/);
+    assert.match(src, /page:\s*ReadResponse\s*\|\s*null/);
+    assert.match(src, /setPage:\s*\(next:\s*ReadResponse\s*\|\s*null\)\s*=>\s*void/);
+    assert.match(src, /pageError:\s*string\s*\|\s*null/);
+  });
+
+  it('owns the POST /api/wiki/read + cancellation flag', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiPost<ReadResponse>\('\/api\/wiki\/read'/);
+    assert.match(src, /let cancelled = false/);
+  });
+
+  it('parent WikiView calls the hook; inline state + effect removed', () => {
+    const parent = read('WikiView.tsx');
+    assert.match(parent, /import\s+\{\s*useWikiPage\s*\}\s+from\s+'\.\.\/lib\/use-wiki-page'/);
+    assert.match(parent, /useWikiPage\(selectedPath\)/);
+    assert.doesNotMatch(parent, /const \[page, setPage\]/);
+    assert.doesNotMatch(parent, /const \[pageError, setPageError\]/);
+  });
+});
+
 describe('extracted: useToggleResetOnChange hook (v1.10.638)', () => {
   const fs = require('fs');
   const path = require('path');

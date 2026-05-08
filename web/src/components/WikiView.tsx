@@ -6,6 +6,7 @@ import WikiSearchResults from './WikiSearchResults';
 import WikiPageDetail from './WikiPageDetail';
 import WikiPageDetailHeader from './WikiPageDetailHeader';
 import WikiSearchCardHeader from './WikiSearchCardHeader';
+import { useWikiPage } from '../lib/use-wiki-page';
 
 // (multi-specialist phase 7.4) Wiki tab — split-pane like
 // MeetingsView. Left: query input + results list. Right: full page
@@ -65,8 +66,9 @@ export default function WikiView() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  const [page, setPage] = useState<ReadResponse | null>(null);
-  const [pageError, setPageError] = useState<string | null>(null);
+  // (v1.10.639) Per-selection /api/wiki/read hook extracted to
+  // ../lib/use-wiki-page.
+  const { page, setPage, pageError } = useWikiPage(selectedPath);
 
   const runSearch = useCallback(async () => {
     setSearching(true);
@@ -91,21 +93,6 @@ export default function WikiView() {
   // empty queries with score=1 for each hit, sorted by path).
   useEffect(() => { runSearch(); }, [runSearch]);
 
-  useEffect(() => {
-    let cancelled = false;
-    if (!selectedPath) { setPage(null); return; }
-    const fetchPage = async () => {
-      setPageError(null);
-      try {
-        const res = await apiPost<ReadResponse>('/api/wiki/read', { path: selectedPath });
-        if (!cancelled) setPage(res);
-      } catch (e) {
-        if (!cancelled) setPageError((e as Error).message || t('common.failedToLoadPage'));
-      }
-    };
-    fetchPage();
-    return () => { cancelled = true; };
-  }, [selectedPath]);
 
   // Reopen action — POST /api/wiki/reopen flips the page status to
   // 'reopened' and spawns a new MeetingSession seeded with the page
