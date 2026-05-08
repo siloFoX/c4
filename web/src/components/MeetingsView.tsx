@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Eye, Plus, RefreshCw, Radio } from 'lucide-react';
+import { Eye, Plus, RefreshCw } from 'lucide-react';
 import { apiGet, eventSourceUrl } from '../lib/api';
 import { Button, Card, CardContent, CardHeader, CardTitle } from './ui';
 import { cn } from '../lib/cn';
@@ -24,6 +24,7 @@ import MeetingsSearchFilterRow from './MeetingsSearchFilterRow';
 import MeetingsListFilterRow from './MeetingsListFilterRow';
 import MeetingsList from './MeetingsList';
 import MeetingsSearchInput from './MeetingsSearchInput';
+import MeetingsDetailTitleBar from './MeetingsDetailTitleBar';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -644,26 +645,13 @@ export default function MeetingsView() {
 
       <Card className="flex min-h-0 flex-1 flex-col">
         <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
-          <div className="flex flex-row items-center justify-between gap-2">
-            <CardTitle className="text-base">
-              {selectedSummary ? selectedSummary.title : t('meetings.title.select')}
-            </CardTitle>
-            {selectedId ? (
-              <span
-                className={cn(
-                  'inline-flex items-center gap-1 rounded-full border px-1.5 py-0 text-[10px] uppercase tracking-wide',
-                  streaming
-                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                    : 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
-                )}
-                aria-live="polite"
-                title={streaming ? t('meetings.stream.tooltipLive') : t('meetings.stream.tooltipOffline')}
-              >
-                <Radio className="h-3 w-3" aria-hidden />
-                {streaming ? t('meetings.stream.live') : t('meetings.stream.offline')}
-              </span>
-            ) : null}
-          </div>
+          {/* (v1.10.586) Title row + streaming badge extracted to
+              ./MeetingsDetailTitleBar.tsx. */}
+          <MeetingsDetailTitleBar
+            title={selectedSummary ? selectedSummary.title : t('meetings.title.select')}
+            showStreamingBadge={Boolean(selectedId)}
+            streaming={streaming}
+          />
           {selectedId && detail && detail.status === 'pending' ? (
             <div className="flex flex-wrap items-center gap-2">
               {/* (v1.10.556) Run brain selector + Run button + error

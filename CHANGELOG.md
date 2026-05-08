@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.586] - 2026-05-08 — Extract MeetingsDetailTitleBar
+
+**Web — `MeetingsView.tsx` shrunk by 12 lines (797 → 785).**
+The detail-pane card header title row — meeting title +
+streaming live/offline badge — extracted as its own pure
+display sibling. 3 props.
+
+### Refactor
+- New `web/src/components/MeetingsDetailTitleBar.tsx` (~42 lines).
+- `MeetingsView.tsx`: removed the inline 20-line title row.
+  Replaced with `<MeetingsDetailTitleBar … />`. Dropped `Radio`
+  icon import (no longer used by the parent).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 53 suites, 288 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 52 of the perfection-track component split. MeetingsView
+  785 (was 1450+ at session start). 58 ships / 53 components+libs
+  / 288 boundary assertions.
+
 ## [1.10.585] - 2026-05-08 — Extract RiskSandboxPreview
 
 **Web — `pages/Risk.tsx` shrunk by 36 lines (515 → 479).**

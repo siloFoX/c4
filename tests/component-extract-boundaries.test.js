@@ -1737,6 +1737,41 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: MeetingsDetailTitleBar (v1.10.586)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsDetailTitleBar.tsx');
+    assert.match(src, /export default function MeetingsDetailTitleBar/);
+  });
+
+  it('takes title/showStreamingBadge/streaming props', () => {
+    const src = read('MeetingsDetailTitleBar.tsx');
+    assert.match(src, /title:\s*string/);
+    assert.match(src, /showStreamingBadge:\s*boolean/);
+    assert.match(src, /streaming:\s*boolean/);
+  });
+
+  it('renders the title + the live/offline badge tone+text', () => {
+    const src = read('MeetingsDetailTitleBar.tsx');
+    assert.match(src, /<CardTitle/);
+    assert.match(src, /meetings\.stream\.live/);
+    assert.match(src, /meetings\.stream\.offline/);
+    assert.match(src, /meetings\.stream\.tooltipLive/);
+  });
+
+  it('is imported and rendered by MeetingsView', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsDetailTitleBar\s+from\s+'\.\/MeetingsDetailTitleBar'/);
+    assert.match(parent, /<MeetingsDetailTitleBar/);
+    assert.match(parent, /showStreamingBadge=\{Boolean\(selectedId\)\}/);
+  });
+
+  it('parent MeetingsView no longer holds the inline title row', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /meetings\.stream\.tooltipLive/);
+    assert.doesNotMatch(parent, /<Radio /);
+  });
+});
+
 describe('extracted: RiskSandboxPreview (v1.10.585)', () => {
   it('lives in its own file with default export', () => {
     const src = read('RiskSandboxPreview.tsx');
