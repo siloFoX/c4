@@ -1,14 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
-import { Card, CardContent } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import SessionsTour from './SessionsTour';
 import NewChatModal from './NewChatModal';
 import AttachModal from './AttachModal';
-import SessionsAttachedSection from './SessionsAttachedSection';
-import SessionsListSection from './SessionsListSection';
-import SessionsHeader from './SessionsHeader';
 import SessionsRightPane from './SessionsRightPane';
+import SessionsListCard from './SessionsListCard';
 
 export interface SessionSummary {
   projectDir: string | null;
@@ -367,55 +364,44 @@ export default function SessionsView() {
 
   return (
     <div className="flex w-full min-h-0 flex-1 flex-col gap-3 p-3 md:flex-row md:p-6">
-      <Card className="flex w-full min-h-0 flex-col md:w-80 lg:w-96">
-        {/* (v1.10.584) Card header extracted to ./SessionsHeader.tsx. */}
-        <SessionsHeader
-          query={query}
-          onQuery={setQuery}
-          totalFiltered={totalFiltered}
-          total={data?.total ?? 0}
-          loading={loading}
-          onNewChat={() => {
-            setNewChatError(null);
-            setNewChatOpen(true);
-          }}
-          onAttachNew={() => {
-            setModalError(null);
-            setModalOpen(true);
-          }}
-          onRefresh={() => {
-            refreshSessions();
-            refreshAttached();
-          }}
-        />
-        <CardContent className="flex-1 overflow-y-auto p-0">
-          {/* (v1.10.578) Attached section extracted to ./SessionsAttachedSection.tsx */}
-          <SessionsAttachedSection
-            collapsed={attachedCollapsed}
-            onToggle={() => setAttachedCollapsed((v) => !v)}
-            filtered={filteredAttached}
-            error={attachError}
-            selectedName={selectedAttachmentName}
-            onSelect={(name) => setSelection({ kind: 'attached', name })}
-            onAttachClick={() => {
-              setModalError(null);
-              setModalOpen(true);
-            }}
-            onDetach={handleDetach}
-          />
-
-          {/* (v1.10.579) Sessions list section extracted to ./SessionsListSection.tsx */}
-          <SessionsListSection
-            filteredGroups={filteredGroups}
-            error={error}
-            loading={loading}
-            collapsed={collapsed}
-            onToggleGroup={(key) => setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }))}
-            selectedSessionId={selectedSessionId}
-            onSelect={(id) => setSelection({ kind: 'session', id })}
-          />
-        </CardContent>
-      </Card>
+      {/* (v1.10.622) Master-pane Card (header + attached section
+          + sessions list) extracted to ./SessionsListCard.tsx. */}
+      <SessionsListCard
+        query={query}
+        onQuery={setQuery}
+        totalFiltered={totalFiltered}
+        total={data?.total ?? 0}
+        loading={loading}
+        onNewChat={() => {
+          setNewChatError(null);
+          setNewChatOpen(true);
+        }}
+        onAttachNew={() => {
+          setModalError(null);
+          setModalOpen(true);
+        }}
+        onRefresh={() => {
+          refreshSessions();
+          refreshAttached();
+        }}
+        attachedCollapsed={attachedCollapsed}
+        onToggleAttachedCollapsed={() => setAttachedCollapsed((v) => !v)}
+        filteredAttached={filteredAttached}
+        attachError={attachError}
+        selectedAttachmentName={selectedAttachmentName}
+        onSelectAttached={(name) => setSelection({ kind: 'attached', name })}
+        onAttachClick={() => {
+          setModalError(null);
+          setModalOpen(true);
+        }}
+        onDetach={handleDetach}
+        filteredGroups={filteredGroups}
+        error={error}
+        collapsed={collapsed}
+        onToggleGroup={(key) => setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }))}
+        selectedSessionId={selectedSessionId}
+        onSelectSession={(id) => setSelection({ kind: 'session', id })}
+      />
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
         {/* (v1.10.607) Right pane extracted to ./SessionsRightPane.tsx. */}

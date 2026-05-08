@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.622] - 2026-05-09 — Extract SessionsListCard
+
+**Web — `SessionsView.tsx` shrunk by 14 lines (456 → 442).**
+The master-pane Card — header (search + actions) + attached
+section + sessions list section, wrapped in a Card+CardContent
+layout — extracted as a composite container that wraps 3
+existing siblings. 22 props.
+
+### Refactor
+- New `web/src/components/SessionsListCard.tsx` (~99 lines).
+- `SessionsView.tsx`: removed the inline ~50-line Card block
+  plus 3 default-import slots and the now-unused Card/CardContent
+  UI primitives.
+- Boundary tests for `SessionsHeader`, `SessionsAttachedSection`,
+  `SessionsListSection` updated to assert the new parent.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions) + 3 existing suites updated. Total: 89 suites,
+  471 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 88 of the perfection-track component split. SessionsView
+  442. 94 ships / 89 components+libs / 471 boundary assertions.
+
 ## [1.10.621] - 2026-05-09 — Extract ChatErrorBanners
 
 **Web — `ChatView.tsx` shrunk by 15 lines (438 → 423).**

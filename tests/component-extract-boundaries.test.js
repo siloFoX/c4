@@ -114,8 +114,8 @@ describe('extracted: SessionsListSection (v1.10.579)', () => {
     assert.doesNotMatch(src, /useEffect/);
   });
 
-  it('is imported and rendered by SessionsView', () => {
-    const parent = read('SessionsView.tsx');
+  it('is imported and rendered by SessionsListCard (v1.10.622)', () => {
+    const parent = read('SessionsListCard.tsx');
     assert.match(parent, /import\s+SessionsListSection\s+from\s+'\.\/SessionsListSection'/);
     assert.match(parent, /<SessionsListSection/);
   });
@@ -149,8 +149,8 @@ describe('extracted: SessionsAttachedSection (v1.10.578)', () => {
     assert.match(src, /import\s+SessionsAttachedRowActions/);
   });
 
-  it('is imported and rendered by SessionsView', () => {
-    const parent = read('SessionsView.tsx');
+  it('is imported and rendered by SessionsListCard (v1.10.622)', () => {
+    const parent = read('SessionsListCard.tsx');
     assert.match(parent, /import\s+SessionsAttachedSection\s+from\s+'\.\/SessionsAttachedSection'/);
     assert.match(parent, /<SessionsAttachedSection/);
   });
@@ -1753,6 +1753,47 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: SessionsListCard (v1.10.622)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SessionsListCard.tsx');
+    assert.match(src, /export default function SessionsListCard/);
+  });
+
+  it('takes the consolidated 22 props (header + attached + sessions list)', () => {
+    const src = read('SessionsListCard.tsx');
+    assert.match(src, /query:\s*string/);
+    assert.match(src, /attachedCollapsed:\s*boolean/);
+    assert.match(src, /filteredAttached:\s*AttachedSession\[\]/);
+    assert.match(src, /filteredGroups:\s*SessionGroup\[\]/);
+    assert.match(src, /selectedSessionId:\s*string\s*\|\s*null/);
+    assert.match(src, /selectedAttachmentName:\s*string\s*\|\s*null/);
+    assert.match(src, /onSelectAttached:\s*\(name:\s*string\)\s*=>\s*void/);
+    assert.match(src, /onSelectSession:\s*\(id:\s*string\)\s*=>\s*void/);
+  });
+
+  it('composes Header + AttachedSection + ListSection under a Card+CardContent', () => {
+    const src = read('SessionsListCard.tsx');
+    assert.match(src, /<Card\b/);
+    assert.match(src, /<CardContent/);
+    assert.match(src, /<SessionsHeader/);
+    assert.match(src, /<SessionsAttachedSection/);
+    assert.match(src, /<SessionsListSection/);
+  });
+
+  it('is imported and rendered by SessionsView', () => {
+    const parent = read('SessionsView.tsx');
+    assert.match(parent, /import\s+SessionsListCard\s+from\s+'\.\/SessionsListCard'/);
+    assert.match(parent, /<SessionsListCard/);
+  });
+
+  it('parent SessionsView no longer imports the 3 sub-components directly', () => {
+    const parent = read('SessionsView.tsx');
+    assert.doesNotMatch(parent, /import\s+SessionsHeader\s+from/);
+    assert.doesNotMatch(parent, /import\s+SessionsAttachedSection\s+from/);
+    assert.doesNotMatch(parent, /import\s+SessionsListSection\s+from/);
+  });
+});
+
 describe('extracted: ChatErrorBanners (v1.10.621)', () => {
   it('lives in its own file with default export', () => {
     const src = read('ChatErrorBanners.tsx');
@@ -3269,10 +3310,12 @@ describe('extracted: SessionsHeader (v1.10.584)', () => {
     assert.match(src, /sessions\.button\.attachNew/);
   });
 
-  it('is imported and rendered by SessionsView', () => {
+  it('is imported and rendered by SessionsListCard (v1.10.622); parent owns setQuery wiring', () => {
     const parent = read('SessionsView.tsx');
-    assert.match(parent, /import\s+SessionsHeader\s+from\s+'\.\/SessionsHeader'/);
-    assert.match(parent, /<SessionsHeader/);
+    const card = read('SessionsListCard.tsx');
+    assert.match(card, /import\s+SessionsHeader\s+from\s+'\.\/SessionsHeader'/);
+    assert.match(card, /<SessionsHeader/);
+    // Parent still wires onQuery through to the composite.
     assert.match(parent, /onQuery=\{setQuery\}/);
   });
 

@@ -166,10 +166,14 @@ describe('SessionsAttachedRowActions.tsx (extracted v1.10.550) - post-attach row
     // (v1.10.578) Row mapping moved into SessionsAttachedSection.
     // The wrapping section uses an `onSelect(name)` prop the parent
     // wires to setSelection.
+    // (v1.10.622) The parent's onSelectAttached callback moved from
+    // SessionsView straight into SessionsListCard's prop wiring; the
+    // inline lambda still lives in SessionsView (it then flows
+    // through the SessionsListCard composite).
     const SECTION = path.join(repoRoot, 'web/src/components/SessionsAttachedSection.tsx');
     const sectionSrc = fs.readFileSync(SECTION, 'utf8');
     assert.match(sectionSrc, /onView=\{\(\) => onSelect\(a\.name\)\}/);
-    assert.match(src, /onSelect=\{\(name\) => setSelection\(\{ kind: 'attached', name \}\)\}/);
+    assert.match(src, /onSelectAttached=\{\(name\) => setSelection\(\{ kind: 'attached', name \}\)\}/);
   });
 
   it('parent SessionsAttachedSection routes onDetach back into the handleDetach callback', () => {
