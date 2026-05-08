@@ -1755,6 +1755,52 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useSessionsList hook (v1.10.630)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-sessions-list.ts');
+
+  it('lives in lib/use-sessions-list.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useSessionsList/);
+  });
+
+  it('takes getSelection + onAutoSelect callbacks; returns 8 fields', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /getSelection:\s*\(\)\s*=>\s*Selection\s*\|\s*null/);
+    assert.match(src, /onAutoSelect:\s*\(next:\s*Selection\s*\|\s*null\)\s*=>\s*void/);
+    assert.match(src, /data:\s*SessionsResponse\s*\|\s*null/);
+    assert.match(src, /attached:\s*AttachedSession\[\]/);
+    assert.match(src, /loading:\s*boolean/);
+    assert.match(src, /error:\s*string\s*\|\s*null/);
+    assert.match(src, /attachError:\s*string\s*\|\s*null/);
+    assert.match(src, /refreshSessions:\s*\(\)\s*=>\s*Promise<void>/);
+    assert.match(src, /refreshAttached:\s*\(\)\s*=>\s*Promise<void>/);
+  });
+
+  it('owns 2 GETs (sessions + attach/list) + auto-select-first-session-on-mount', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\/api\/sessions/);
+    assert.match(src, /\/api\/attach\/list/);
+    assert.match(src, /onAutoSelect\(\{ kind: 'session', id: first\.sessionId \}\)/);
+  });
+
+  it('parent SessionsView calls the hook; inline state + refresh callbacks removed', () => {
+    const parent = read('SessionsView.tsx');
+    assert.match(parent, /import\s+\{\s*useSessionsList\s*\}\s+from\s+'\.\.\/lib\/use-sessions-list'/);
+    assert.match(parent, /useSessionsList\(\{/);
+    assert.doesNotMatch(parent, /const \[data, setData\]/);
+    assert.doesNotMatch(parent, /const \[attached, setAttached\]/);
+    assert.doesNotMatch(parent, /apiGet<SessionsResponse>/);
+  });
+
+  it('parent SessionsView exports SessionsResponse + AttachedListResponse for hook typing', () => {
+    const parent = read('SessionsView.tsx');
+    assert.match(parent, /export\s+interface\s+SessionsResponse/);
+    assert.match(parent, /export\s+interface\s+AttachedListResponse/);
+  });
+});
+
 describe('extracted: useSessionsTour hook (v1.10.629)', () => {
   const fs = require('fs');
   const path = require('path');

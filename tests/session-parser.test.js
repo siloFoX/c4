@@ -298,7 +298,10 @@ describe('SessionsView.tsx + App.tsx wiring', () => {
   const topTabs = fs.readFileSync(topTabsFile, 'utf8');
 
   it('fetches /api/sessions from the sessions list', () => {
-    assert.match(sessions, /apiGet<SessionsResponse>\('\/api\/sessions'\)/);
+    // (v1.10.630) Fetch moved into useSessionsList hook.
+    const hookFile = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-sessions-list.ts');
+    const hookSrc = fs.readFileSync(hookFile, 'utf8');
+    assert.match(hookSrc, /apiGet<SessionsResponse>\('\/api\/sessions'\)/);
   });
 
   it('embeds ConversationView for the selected session', () => {

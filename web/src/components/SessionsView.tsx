@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { apiDelete, apiGet, apiPost } from '../lib/api';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { apiDelete, apiPost } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import SessionsTour from './SessionsTour';
 import NewChatModal from './NewChatModal';
@@ -7,6 +7,7 @@ import AttachModal from './AttachModal';
 import SessionsRightPane from './SessionsRightPane';
 import SessionsListCard from './SessionsListCard';
 import { useSessionsTour } from '../lib/use-sessions-tour';
+import { useSessionsList } from '../lib/use-sessions-list';
 
 export interface SessionSummary {
   projectDir: string | null;
@@ -26,7 +27,9 @@ export interface SessionGroup {
   updatedAt: string | null;
 }
 
-interface SessionsResponse {
+// (v1.10.630) Promoted to export so useSessionsList can type
+// its returned data slot.
+export interface SessionsResponse {
   rootDir: string;
   sessions: SessionSummary[];
   groups: SessionGroup[];
@@ -60,7 +63,7 @@ export interface AttachedSession {
   role?: AttachedRole;
 }
 
-interface AttachedListResponse {
+export interface AttachedListResponse {
   sessions: AttachedSession[];
   total: number;
 }
@@ -169,17 +172,9 @@ function attachedMatchesQuery(a: AttachedSession, q: string): boolean {
 
 export default function SessionsView() {
   useLocale();
-  const [data, setData] = useState<SessionsResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-
-  // Attached-session state lives here so the refresh affordances can
-  // invalidate both lists at the same time after a successful attach.
-  const [attached, setAttached] = useState<AttachedSession[]>([]);
-  const [attachError, setAttachError] = useState<string | null>(null);
   const [attachedCollapsed, setAttachedCollapsed] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalBusy, setModalBusy] = useState(false);
@@ -193,41 +188,24 @@ export default function SessionsView() {
   // ../lib/use-sessions-tour.
   const { showTour, dismissTour } = useSessionsTour();
 
-  const refreshSessions = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const resp = await apiGet<SessionsResponse>('/api/sessions');
-      setData(resp);
-      setSelection((prev) => {
-        if (prev) return prev;
-        const first = resp.sessions[0];
-        if (first) {
-          return { kind: 'session', id: first.sessionId };
-        }
-        return null;
-      });
-    } catch (err) {
-      setError((err as Error).message || t('common.failedToLoadSessions'));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const refreshAttached = useCallback(async () => {
-    setAttachError(null);
-    try {
-      const resp = await apiGet<AttachedListResponse>('/api/attach/list');
-      setAttached(Array.isArray(resp.sessions) ? resp.sessions : []);
-    } catch (err) {
-      setAttachError((err as Error).message || t('common.failedToLoadAttachments'));
-    }
-  }, []);
-
-  useEffect(() => {
-    refreshSessions();
-    refreshAttached();
-  }, [refreshSessions, refreshAttached]);
+  // (v1.10.630) /api/sessions + /api/attach/list pair extracted to
+  // ../lib/use-sessions-list. selection ref stays in this file so
+  // the auto-select-first-session-on-load logic can stay deduped.
+  const selectionRef = useRef(selection);
+  selectionRef.current = selection;
+  const {
+    data,
+    attached,
+    loading,
+    error,
+    attachError,
+    setAttachError,
+    refreshSessions,
+    refreshAttached,
+  } = useSessionsList({
+    getSelection: useCallback(() => selectionRef.current, []),
+    onAutoSelect: useCallback((next: Selection | null) => setSelection(next), []),
+  });
 
   const filteredGroups = useMemo<SessionGroup[]>(() => {
     if (!data) return [];

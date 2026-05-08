@@ -296,8 +296,11 @@ describe('SessionsView.tsx - 8.17 wiring regression guards', () => {
   // does not regress when this UX work lands.
 
   it('still fetches /api/sessions and /api/attach/list', () => {
-    assert.match(src, /apiGet<SessionsResponse>\('\/api\/sessions'\)/);
-    assert.match(src, /apiGet<AttachedListResponse>\('\/api\/attach\/list'\)/);
+    // (v1.10.630) Both fetches moved into useSessionsList hook.
+    const HOOK = path.join(repoRoot, 'web/src/lib/use-sessions-list.ts');
+    const hookSrc = fs.readFileSync(HOOK, 'utf8');
+    assert.match(hookSrc, /apiGet<SessionsResponse>\('\/api\/sessions'\)/);
+    assert.match(hookSrc, /apiGet<AttachedListResponse>\('\/api\/attach\/list'\)/);
   });
 
   it('still POSTs /api/attach with {path|sessionId, name?}', () => {

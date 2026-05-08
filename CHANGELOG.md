@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.10.630] - 2026-05-09 — Extract useSessionsList hook
+
+**Web — `SessionsView.tsx` shrunk by 22 lines (424 → 402).**
+The /api/sessions + /api/attach/list pair — both fetched on
+mount, both invalidated together by the refresh affordances,
+plus auto-select-first-session when the page mounts with no
+selection — extracted as a custom hook. Inputs: `getSelection`
++ `onAutoSelect` callbacks (so the hook can read the current
+selection without owning the state). Outputs: data / attached /
+loading / error / attachError / setAttachError /
+refreshSessions / refreshAttached.
+
+### Refactor
+- New `web/src/lib/use-sessions-list.ts` (~87 lines).
+- `SessionsView.tsx`: removed 5 useState slots
+  (`data`/`error`/`loading`/`attached`/`attachError`) +
+  `refreshSessions` + `refreshAttached` useCallbacks + 1 mount
+  effect. Replaced with single `useSessionsList(…)` call.
+  Promoted `SessionsResponse` + `AttachedListResponse` to
+  exports. Selection ref pattern keeps the auto-select logic
+  inside the hook without giving it write access to the
+  selection state. Dropped `useEffect` + `apiGet` imports —
+  no longer used in the parent.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 97 suites, 506 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 96 of the perfection-track component split. **Eighth
+  custom hook extraction**. SessionsView 402. 102 ships /
+  97 components+libs / 506 boundary assertions.
+
 ## [1.10.629] - 2026-05-09 — Extract useSessionsTour hook (501 assertions)
 
 **Web — `SessionsView.tsx` shrunk by 18 lines (442 → 424).**

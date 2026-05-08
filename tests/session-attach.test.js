@@ -380,8 +380,13 @@ describe('SessionsView.tsx wiring for attached sessions', () => {
   );
 
   it('fetches /api/attach/list alongside /api/sessions', () => {
-    assert.match(src, /apiGet<AttachedListResponse>\('\/api\/attach\/list'\)/);
-    assert.match(src, /apiGet<SessionsResponse>\('\/api\/sessions'\)/);
+    // (v1.10.630) Both fetches moved into useSessionsList hook.
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-sessions-list.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /apiGet<AttachedListResponse>\('\/api\/attach\/list'\)/);
+    assert.match(hookSrc, /apiGet<SessionsResponse>\('\/api\/sessions'\)/);
   });
 
   it('POSTs /api/attach for the "Attach new..." modal', () => {
