@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.637] - 2026-05-09 — Extract usePersistedFontSize hook
+
+**Web — `WorkerDetail.tsx` shrunk by 22 lines (224 → 202).**
+Font-size persistence — clamped state slot, read from
+`localStorage` on mount, write back on change (swallowing
+quota / disabled-storage errors), plus a `bumpFont(delta)`
+helper for the +/− buttons — extracted as a custom hook.
+Inputs: defaultFont/minFont/maxFont. Outputs: fontSize +
+setFontSize + bumpFont.
+
+### Refactor
+- New `web/src/lib/use-persisted-font-size.ts` (~53 lines).
+- `WorkerDetail.tsx`: removed `fontSize` useState slot + persist
+  useEffect + `bumpFont` callback + `FONT_STORAGE_KEY` constant
+  + `clamp` / `readNumberStorage` helpers (all moved into the
+  hook). Replaced with single
+  `const { fontSize, bumpFont } = usePersistedFontSize({…})`.
+  Dropped `useEffect` from the React imports.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (4 assertions). Total: 104 suites, 536 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 103 of the perfection-track component split. **Fifteenth
+  custom hook extraction**. WorkerDetail 202 — first time below
+  220 since session start (600+). 109 ships /
+  104 components+libs / 536 boundary assertions.
+
 ## [1.10.636] - 2026-05-09 — Extract useScrollback hook
 
 **Web — `WorkerDetail.tsx` shrunk by 29 lines (253 → 224).**

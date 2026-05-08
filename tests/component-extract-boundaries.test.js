@@ -1755,6 +1755,43 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: usePersistedFontSize hook (v1.10.637)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-persisted-font-size.ts');
+
+  it('lives in lib/use-persisted-font-size.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function usePersistedFontSize/);
+  });
+
+  it('takes defaultFont/minFont/maxFont args; returns fontSize/setFontSize/bumpFont', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /defaultFont:\s*number/);
+    assert.match(src, /minFont:\s*number/);
+    assert.match(src, /maxFont:\s*number/);
+    assert.match(src, /fontSize:\s*number/);
+    assert.match(src, /bumpFont:\s*\(delta:\s*number\)\s*=>\s*void/);
+  });
+
+  it('owns the FONT_STORAGE_KEY constant + clamp + readNumberStorage helpers', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /FONT_STORAGE_KEY/);
+    assert.match(src, /function clamp/);
+    assert.match(src, /function readNumberStorage/);
+  });
+
+  it('parent WorkerDetail calls the hook; inline state + helpers + persist effect removed', () => {
+    const parent = read('WorkerDetail.tsx');
+    assert.match(parent, /import\s+\{\s*usePersistedFontSize\s*\}\s+from\s+'\.\.\/lib\/use-persisted-font-size'/);
+    assert.match(parent, /usePersistedFontSize\(\{/);
+    // The const declarations are gone — only comment markers remain.
+    assert.doesNotMatch(parent, /^const FONT_STORAGE_KEY/m);
+    assert.doesNotMatch(parent, /^function readNumberStorage/m);
+    assert.doesNotMatch(parent, /const \[fontSize, setFontSize\]/);
+  });
+});
+
 describe('extracted: useScrollback hook (v1.10.636)', () => {
   const fs = require('fs');
   const path = require('path');

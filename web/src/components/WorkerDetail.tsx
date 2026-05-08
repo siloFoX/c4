@@ -1,8 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { useRef, useState } from 'react';
 import { apiFetch } from '../lib/api';
 import {
   Card,
@@ -16,6 +12,7 @@ import WorkerDetailHeader from './WorkerDetailHeader';
 import WorkerDetailKeysRow from './WorkerDetailKeysRow';
 import WorkerDetailComposer from './WorkerDetailComposer';
 import { useScrollback } from '../lib/use-scrollback';
+import { usePersistedFontSize } from '../lib/use-persisted-font-size';
 import { stripAnsi } from '../lib/chat-helpers';
 
 interface WorkerDetailProps {
@@ -35,7 +32,8 @@ const MIN_FONT = 9;
 const MAX_FONT = 24;
 const DEFAULT_FONT = 12;
 
-const FONT_STORAGE_KEY = 'c4.term.fontSize';
+// (v1.10.637) FONT_STORAGE_KEY + clamp + readNumberStorage moved
+// into usePersistedFontSize hook (sole consumer).
 
 // 8.24 scrollback-tab ANSI filter. The xterm.js view on the Screen tab
 // processes raw PTY bytes; the Scrollback tab is a read-now text dump, so
@@ -53,19 +51,6 @@ async function postJson(url: string, body: unknown): Promise<ActionResponse> {
   return (await res.json()) as ActionResponse;
 }
 
-function clamp(n: number, lo: number, hi: number) {
-  if (!Number.isFinite(n)) return lo;
-  return Math.max(lo, Math.min(hi, Math.floor(n)));
-}
-
-function readNumberStorage(key: string, fallback: number): number {
-  if (typeof window === 'undefined') return fallback;
-  const raw = window.localStorage.getItem(key);
-  if (raw == null) return fallback;
-  const n = Number(raw);
-  return Number.isFinite(n) ? n : fallback;
-}
-
 export default function WorkerDetail({ workerName }: WorkerDetailProps) {
   useLocale();
   const [tab, setTab] = useState<Tab>('screen');
@@ -73,9 +58,13 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
   const [inputText, setInputText] = useState<string>('');
   const [busy, setBusy] = useState(false);
 
-  const [fontSize, setFontSize] = useState<number>(() =>
-    clamp(readNumberStorage(FONT_STORAGE_KEY, DEFAULT_FONT), MIN_FONT, MAX_FONT)
-  );
+  // (v1.10.637) Font-size persistence hook extracted to
+  // ../lib/use-persisted-font-size.
+  const { fontSize, bumpFont } = usePersistedFontSize({
+    defaultFont: DEFAULT_FONT,
+    minFont: MIN_FONT,
+    maxFont: MAX_FONT,
+  });
 
   const scrollbackRef = useRef<HTMLPreElement | null>(null);
 
@@ -86,13 +75,6 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
     setActionMsg,
   });
 
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(FONT_STORAGE_KEY, String(fontSize));
-    } catch {
-      /* ignore quota / disabled storage */
-    }
-  }, [fontSize]);
 
   // (8.42 review) Returns true on success so the caller can decide
   // whether to clear inputs only when the action actually went
@@ -146,10 +128,6 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
 
   const handleClose = () => {
     runAction('close', () => postJson('/api/close', { name: workerName }));
-  };
-
-  const bumpFont = (delta: number) => {
-    setFontSize((prev) => clamp(prev + delta, MIN_FONT, MAX_FONT));
   };
 
   const lineHeight = Math.round(fontSize * 1.25 * 100) / 100;
