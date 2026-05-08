@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.617] - 2026-05-08 — Extract SpecialistsListTitleBar
+
+**Web — `SpecialistsView.tsx` shrunk by 26 lines (396 → 370).**
+The master-pane title row — title + Add toggle + Refresh
+button — plus the action-error alert and the add panel
+beneath it, extracted as a composite container that wraps
+`SpecialistsAddPanel`. 7 props.
+
+### Refactor
+- New `web/src/components/SpecialistsListTitleBar.tsx` (~70 lines)
+  composes `SpecialistsAddPanel`.
+- `SpecialistsView.tsx`: removed the inline ~40-line title row
+  + add panel block. Replaced with `<SpecialistsListTitleBar … />`.
+  Dropped 4 unused imports (Plus, RefreshCw icons + Button +
+  CardTitle UI primitive + cn utility).
+- Boundary test for `SpecialistsAddPanel` updated to assert
+  the new parent.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions) + 1 existing suite updated. Total: 84 suites,
+  446 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 83 of the perfection-track component split.
+  SpecialistsView 370. 89 ships / 84 components+libs / 446
+  boundary assertions.
+
 ## [1.10.616] - 2026-05-08 — Extract WorkflowRunsPanel
 
 **Web — `WorkflowEditor.tsx` shrunk by 101 lines (349 → 248).**

@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Eye, Plus, RefreshCw } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
-import { Button, Card, CardContent, CardHeader, CardTitle } from './ui';
-import { cn } from '../lib/cn';
+import { Card, CardContent, CardHeader } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import SpecialistsAuditPanel from './SpecialistsAuditPanel';
 import SpecialistsBulkOpsToolbar from './SpecialistsBulkOpsToolbar';
 import SpecialistsSummaryBar from './SpecialistsSummaryBar';
-import SpecialistsAddPanel from './SpecialistsAddPanel';
+import SpecialistsListTitleBar from './SpecialistsListTitleBar';
 import SpecialistsPromptPanel from './SpecialistsPromptPanel';
 import SpecialistsTagEditor from './SpecialistsTagEditor';
 import SpecialistsList from './SpecialistsList';
@@ -267,45 +266,20 @@ export default function SpecialistsView() {
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden md:flex-row">
       <Card className="flex min-h-0 flex-1 flex-col md:max-w-md">
         <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
-          <div className="flex flex-row items-center justify-between gap-2">
-            <CardTitle className="text-base">{t('specialists.title')}</CardTitle>
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                onClick={() => { setAddOpen((v) => !v); setActionError(null); }}
-                aria-label={t('specialists.add.label')}
-                aria-expanded={addOpen}
-              >
-                <Plus className="h-3.5 w-3.5" aria-hidden />
-                {t('common.add')}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={refresh}
-                disabled={loading}
-                aria-label={t('specialists.action.refresh')}
-              >
-                <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} aria-hidden />
-                {t('common.refresh')}
-              </Button>
-            </div>
-          </div>
-          {actionError ? (
-            <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-[11px] text-destructive">
-              {actionError}
-            </div>
-          ) : null}
-          {/* (v1.10.546) Add/Propose panel extracted to
-              ./SpecialistsAddPanel.tsx. */}
-          <SpecialistsAddPanel
-            open={addOpen}
-            onClose={() => setAddOpen(false)}
+          {/* (v1.10.617) Title row + add panel extracted to
+              ./SpecialistsListTitleBar.tsx. */}
+          <SpecialistsListTitleBar
+            loading={loading}
+            addOpen={addOpen}
+            actionError={actionError}
+            onToggleAdd={() => { setAddOpen((v) => !v); setActionError(null); }}
+            onCloseAdd={() => setAddOpen(false)}
             onAdded={(newId) => {
               setSelectedId(newId);
               setAddOpen(false);
               void refresh();
             }}
+            onRefresh={refresh}
           />
           {/* (v1.10.581) search input + tier/vetoOnly filter row
               extracted to ./SpecialistsSearchFilters.tsx. */}

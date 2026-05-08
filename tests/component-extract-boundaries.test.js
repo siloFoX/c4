@@ -1387,10 +1387,12 @@ describe('extracted: SpecialistsAddPanel (v1.10.546)', () => {
     assert.match(src, /proposeRejected/);
   });
 
-  it('is imported and rendered by SpecialistsView with onAdded wired to setSelectedId + refresh', () => {
+  it('is imported and rendered by SpecialistsListTitleBar (v1.10.617); parent owns onAdded wiring', () => {
     const parent = read('SpecialistsView.tsx');
-    assert.match(parent, /import\s+SpecialistsAddPanel\s+from\s+'\.\/SpecialistsAddPanel'/);
-    assert.match(parent, /<SpecialistsAddPanel/);
+    const titleBar = read('SpecialistsListTitleBar.tsx');
+    assert.match(titleBar, /import\s+SpecialistsAddPanel\s+from\s+'\.\/SpecialistsAddPanel'/);
+    assert.match(titleBar, /<SpecialistsAddPanel/);
+    // Parent still wires the onAdded callback through to setSelectedId+refresh.
     assert.match(parent, /setSelectedId\(newId\)/);
   });
 
@@ -1748,6 +1750,46 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: SpecialistsListTitleBar (v1.10.617)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SpecialistsListTitleBar.tsx');
+    assert.match(src, /export default function SpecialistsListTitleBar/);
+  });
+
+  it('takes loading + addOpen + actionError + 4 callback props', () => {
+    const src = read('SpecialistsListTitleBar.tsx');
+    assert.match(src, /loading:\s*boolean/);
+    assert.match(src, /addOpen:\s*boolean/);
+    assert.match(src, /actionError:\s*string\s*\|\s*null/);
+    assert.match(src, /onToggleAdd:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onCloseAdd:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onAdded:\s*\(newId:\s*string\)\s*=>\s*void/);
+    assert.match(src, /onRefresh:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('renders title + Add toggle + Refresh + error alert + AddPanel', () => {
+    const src = read('SpecialistsListTitleBar.tsx');
+    assert.match(src, /specialists\.title/);
+    assert.match(src, /specialists\.add\.label/);
+    assert.match(src, /specialists\.action\.refresh/);
+    assert.match(src, /<SpecialistsAddPanel/);
+  });
+
+  it('is imported and rendered by SpecialistsView', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.match(parent, /import\s+SpecialistsListTitleBar\s+from\s+'\.\/SpecialistsListTitleBar'/);
+    assert.match(parent, /<SpecialistsListTitleBar/);
+    assert.match(parent, /onRefresh=\{refresh\}/);
+  });
+
+  it('parent SpecialistsView no longer holds the inline title row + add panel', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.doesNotMatch(parent, /import\s+SpecialistsAddPanel\s+from/);
+    assert.doesNotMatch(parent, /specialists\.add\.label/);
+    assert.doesNotMatch(parent, /<Plus\b/);
   });
 });
 
