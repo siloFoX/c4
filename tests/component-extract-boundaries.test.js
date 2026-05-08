@@ -1751,6 +1751,45 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: WorkflowRunsPanel (v1.10.616)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('WorkflowRunsPanel.tsx');
+    assert.match(src, /export default function WorkflowRunsPanel/);
+  });
+
+  it('takes runs + expandedRunId + onToggleExpanded props', () => {
+    const src = read('WorkflowRunsPanel.tsx');
+    assert.match(src, /runs:\s*WorkflowRun\[\]/);
+    assert.match(src, /expandedRunId:\s*string\s*\|\s*null/);
+    assert.match(src, /onToggleExpanded:\s*\(next:\s*string\s*\|\s*null\)\s*=>\s*void/);
+  });
+
+  it('owns runStatusVariant + BadgeVariant alias and renders the expandable run list', () => {
+    const src = read('WorkflowRunsPanel.tsx');
+    assert.match(src, /function runStatusVariant/);
+    assert.match(src, /type BadgeVariant/);
+    assert.match(src, /workflows\.recentRuns/);
+    assert.match(src, /workflows\.runs\.empty/);
+    assert.match(src, /workflows\.runs\.running/);
+    assert.match(src, /workflows\.runs\.noNodeResults/);
+    assert.match(src, /workflows\.runs\.nodeCount/);
+  });
+
+  it('is imported and rendered by WorkflowEditor', () => {
+    const parent = read('WorkflowEditor.tsx');
+    assert.match(parent, /import\s+WorkflowRunsPanel\s+from\s+'\.\/WorkflowRunsPanel'/);
+    assert.match(parent, /<WorkflowRunsPanel/);
+    assert.match(parent, /onToggleExpanded=\{setExpandedRunId\}/);
+  });
+
+  it('parent WorkflowEditor no longer holds the inline runs Panel', () => {
+    const parent = read('WorkflowEditor.tsx');
+    assert.doesNotMatch(parent, /workflows\.recentRuns/);
+    assert.doesNotMatch(parent, /function runStatusVariant/);
+    assert.doesNotMatch(parent, /<Panel\b/);
+  });
+});
+
 describe('extracted: MeetingsListCardHeader (v1.10.615)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsListCardHeader.tsx');

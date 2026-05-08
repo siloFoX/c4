@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.616] - 2026-05-08 — Extract WorkflowRunsPanel
+
+**Web — `WorkflowEditor.tsx` shrunk by 101 lines (349 → 248).**
+The "Recent runs" Panel — header (title + count), empty state,
+and the expandable list of last-10 runs (each with per-node
+results + optional inputs JSON) — extracted as its own pure
+controlled-input sibling. 3 props.
+
+### Refactor
+- New `web/src/components/WorkflowRunsPanel.tsx` (~137 lines)
+  bundles `runStatusVariant` helper + `BadgeVariant` alias
+  (sole consumers).
+- `WorkflowEditor.tsx`: removed the inline ~104-line Panel
+  block. Replaced with `<WorkflowRunsPanel … />`. Dropped 4
+  unused imports (`Badge`, `Panel`, `BadgeProps` UI primitives
+  + `tFormat` helper).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 83 suites, 441 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 82 of the perfection-track component split.
+  WorkflowEditor 248 (was 460+ at session start, ~46%
+  cumulative). 88 ships / 83 components+libs / 441 boundary
+  assertions.
+
 ## [1.10.615] - 2026-05-08 — Extract MeetingsListCardHeader
 
 **Web — `MeetingsView.tsx` shrunk by 18 lines (639 → 621).**
