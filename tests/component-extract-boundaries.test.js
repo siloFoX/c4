@@ -1737,6 +1737,48 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: RiskSandboxPreview (v1.10.585)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('RiskSandboxPreview.tsx');
+    assert.match(src, /export default function RiskSandboxPreview/);
+  });
+
+  it('takes a sandbox SandboxPreview prop', () => {
+    const src = read('RiskSandboxPreview.tsx');
+    assert.match(src, /sandbox:\s*SandboxPreview/);
+    assert.match(src, /import\s+type\s+\{\s*SandboxPreview\s*\}\s+from\s+'\.\.\/pages\/Risk'/);
+  });
+
+  it('renders the runtime+isolation badges, capability grid, argv pre, env details', () => {
+    const src = read('RiskSandboxPreview.tsx');
+    assert.match(src, /risk\.sandbox\.runtime/);
+    assert.match(src, /risk\.sandbox\.isolation/);
+    assert.match(src, /risk\.sandbox\.network/);
+    assert.match(src, /risk\.sandbox\.filesystem/);
+    assert.match(src, /risk\.sandbox\.resources/);
+    assert.match(src, /risk\.label\.argv/);
+    assert.match(src, /Object\.keys\(sandbox\.env/);
+  });
+
+  it('SandboxPreview interface lifted to module scope and exported from pages/Risk.tsx', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(path.join(__dirname, '..', 'web', 'src', 'pages', 'Risk.tsx'), 'utf8');
+    assert.match(src, /export\s+interface\s+SandboxPreview/);
+    // No inline definition inside the function body any more.
+    assert.doesNotMatch(src, /\s\s+interface SandboxPreview/);
+  });
+
+  it('parent Risk page imports + renders + drops the inline sandbox markup', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(path.join(__dirname, '..', 'web', 'src', 'pages', 'Risk.tsx'), 'utf8');
+    assert.match(src, /import\s+RiskSandboxPreview\s+from\s+'\.\.\/components\/RiskSandboxPreview'/);
+    assert.match(src, /<RiskSandboxPreview\s+sandbox=\{sandbox\}/);
+    assert.doesNotMatch(src, /risk\.sandbox\.network/);
+  });
+});
+
 describe('extracted: SessionsHeader (v1.10.584)', () => {
   it('lives in its own file with default export', () => {
     const src = read('SessionsHeader.tsx');

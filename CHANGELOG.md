@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.585] - 2026-05-08 — Extract RiskSandboxPreview
+
+**Web — `pages/Risk.tsx` shrunk by 36 lines (515 → 479).**
+The sandbox preview block — runtime / isolation badges,
+capability grid, argv pre, optional env details panel —
+extracted as its own pure-display sibling. 1 prop.
+
+### Refactor
+- New `web/src/components/RiskSandboxPreview.tsx` (~58 lines).
+- `pages/Risk.tsx`: removed the inline 40-line sandbox JSX.
+  Replaced with `{sandbox ? <RiskSandboxPreview sandbox={sandbox} /> : null}`.
+  The `SandboxPreview` interface lifted from inside the
+  component function out to module scope and `export`-ed so
+  the new sibling can type its prop.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 52 suites, 283 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 51 of the perfection-track component split. Risk page
+  479 (was 515 at session start). 57 ships / 52 components+libs
+  / 283 boundary assertions.
+
 ## [1.10.584] - 2026-05-08 — Extract SessionsHeader
 
 **Web — `SessionsView.tsx` shrunk by 38 lines (553 → 515).**

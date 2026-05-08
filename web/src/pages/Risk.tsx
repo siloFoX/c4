@@ -6,6 +6,7 @@ import { apiGet, apiPost } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
 import RiskRuleCatalogPanel from '../components/RiskRuleCatalogPanel';
+import RiskSandboxPreview from '../components/RiskSandboxPreview';
 
 // (v1.10.356) Risk classifier inspector — preview a command's
 // classification before sending it to a worker, plus a stats
@@ -47,6 +48,26 @@ interface CheckResponse {
 
 // (v1.10.568) PatternEntry / PatternsResponse types moved to
 // ./components/RiskRuleCatalogPanel.tsx along with the panel.
+
+// (v1.10.362) Sandbox preview — pure builder. Show what argv
+// the configured sandbox runtime (docker / null) would use to
+// isolate this command. No exec, no classification.
+// (v1.10.585) Lifted to module scope + exported so the
+// RiskSandboxPreview sibling can type its props.
+export interface SandboxPreview {
+  binary: string | null;
+  args: string[];
+  env: Record<string, string>;
+  command: string;
+  isolation: {
+    name: string;
+    network: string;
+    filesystem: string;
+    resources: string;
+  };
+  available: { ok: boolean; reason: string | null };
+  runtime: 'docker' | 'null';
+}
 
 interface StatsResponse {
   windowHours: number;
@@ -95,23 +116,6 @@ export default function Risk() {
   // RiskRuleCatalogPanel — self-fetching, owns its own filter +
   // open state.
 
-  // (v1.10.362) Sandbox preview — pure builder. Show what argv
-  // the configured sandbox runtime (docker / null) would use to
-  // isolate this command. No exec, no classification.
-  interface SandboxPreview {
-    binary: string | null;
-    args: string[];
-    env: Record<string, string>;
-    command: string;
-    isolation: {
-      name: string;
-      network: string;
-      filesystem: string;
-      resources: string;
-    };
-    available: { ok: boolean; reason: string | null };
-    runtime: 'docker' | 'null';
-  }
   const [sandboxBusy, setSandboxBusy] = useState(false);
   const [sandbox, setSandbox] = useState<SandboxPreview | null>(null);
   const [sandboxError, setSandboxError] = useState<string | null>(null);
@@ -246,47 +250,7 @@ export default function Risk() {
           </div>
           {checkError ? <ErrorPanel message={checkError} /> : null}
           {sandboxError ? <ErrorPanel message={sandboxError} /> : null}
-          {sandbox ? (
-            <div className="mt-3 flex flex-col gap-2 rounded-md border border-border bg-muted/10 p-3 text-[11px]">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="secondary" className="uppercase">
-                  {tFormat('risk.sandbox.runtime', { value: sandbox.runtime })}
-                </Badge>
-                <Badge variant="outline">
-                  {tFormat('risk.sandbox.isolation', { value: sandbox.isolation.name })}
-                </Badge>
-                <span className={cn(
-                  'text-[11px]',
-                  sandbox.available.ok ? 'text-emerald-700 dark:text-emerald-400' : 'text-destructive',
-                )}>
-                  {sandbox.available.ok
-                    ? t('risk.sandbox.available')
-                    : tFormat('risk.sandbox.unavailable', { reason: sandbox.available.reason || '?' })}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px] text-muted-foreground md:grid-cols-3">
-                <div><span className="font-medium">{t('risk.sandbox.network')}</span> {sandbox.isolation.network}</div>
-                <div><span className="font-medium">{t('risk.sandbox.filesystem')}</span> {sandbox.isolation.filesystem}</div>
-                <div><span className="font-medium">{t('risk.sandbox.resources')}</span> {sandbox.isolation.resources}</div>
-              </div>
-              <div>
-                <div className="font-medium text-foreground">{t('risk.label.argv')}</div>
-                <pre tabIndex={0} className="mt-1 overflow-auto rounded bg-muted/30 p-2 font-mono text-[11px]">
-                  {sandbox.binary || '<NullRuntime>'} {sandbox.args.map((a) => /\s/.test(a) ? JSON.stringify(a) : a).join(' ')}
-                </pre>
-              </div>
-              {Object.keys(sandbox.env || {}).length > 0 ? (
-                <details>
-                  <summary className="cursor-pointer text-[10px] text-muted-foreground">
-                    env ({Object.keys(sandbox.env).length})
-                  </summary>
-                  <pre tabIndex={0} className="mt-1 overflow-auto rounded bg-muted/30 p-2 font-mono text-[11px]">
-                    {Object.entries(sandbox.env).map(([k, v]) => `${k}=${v}`).join('\n')}
-                  </pre>
-                </details>
-              ) : null}
-            </div>
-          ) : null}
+          {sandbox ? <RiskSandboxPreview sandbox={sandbox} /> : null}
         </div>
         {checkResult ? (
           <div className="mt-3 flex flex-col gap-2 rounded-md border border-border bg-muted/10 p-3 text-[12px]">
