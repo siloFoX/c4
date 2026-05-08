@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.611] - 2026-05-08 — Extract WorkerDetailComposer
+
+**Web — `WorkerDetail.tsx` shrunk by 52 lines (305 → 253).**
+The composer row — text input (Enter triggers Send) + Send icon
++ Enter + Merge + Close buttons — extracted as its own pure
+controlled-input sibling. 7 props.
+
+### Refactor
+- New `web/src/components/WorkerDetailComposer.tsx` (~89 lines).
+- `WorkerDetail.tsx`: removed the inline ~56-line composer row.
+  Replaced with `<WorkerDetailComposer … />`. Dropped 5 unused
+  imports (`GitMerge`, `Send`, `X` icons + `Button` / `Input`
+  UI primitives) and pruned the `t` import (only `tFormat`
+  used in the parent now).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 78 suites, 415 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 77 of the perfection-track component split. WorkerDetail
+  253 (was 600+ at session start, ~58% cumulative). 83 ships /
+  78 components+libs / 415 boundary assertions.
+
 ## [1.10.610] - 2026-05-08 — Extract WorkerDetailKeysRow
 
 **Web — `WorkerDetail.tsx` shrunk by 86 lines (391 → 305).**

@@ -4,24 +4,18 @@ import {
   useRef,
   useState,
 } from 'react';
-import {
-  GitMerge,
-  Send,
-  X,
-} from 'lucide-react';
 import { apiFetch } from '../lib/api';
 import {
-  Button,
   Card,
   CardContent,
-  Input,
 } from './ui';
 import { cn } from '../lib/cn';
-import { t, tFormat, useLocale } from '../lib/i18n';
+import { tFormat, useLocale } from '../lib/i18n';
 import XtermView from './XtermView';
 import PinnedRulesEditor from './PinnedRulesEditor';
 import WorkerDetailHeader from './WorkerDetailHeader';
 import WorkerDetailKeysRow from './WorkerDetailKeysRow';
+import WorkerDetailComposer from './WorkerDetailComposer';
 import { stripAnsi } from '../lib/chat-helpers';
 
 interface WorkerDetailProps {
@@ -233,62 +227,16 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
           <div className="text-xs text-muted-foreground">{actionMsg}</div>
         )}
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            placeholder={t('workerDetail.composer.placeholder')}
-            className="h-9 min-w-0 flex-1"
-            disabled={busy}
-          />
-          <Button
-            type="button"
-            variant="default"
-            size="icon"
-            aria-label={t('workerDetail.composer.sendText')}
-            onClick={handleSend}
-            disabled={busy || !inputText.trim()}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={handleEnter}
-            disabled={busy}
-          >
-            {t('workerDetail.composer.enter')}
-          </Button>
-          <Button
-            type="button"
-            variant="default"
-            size="sm"
-            onClick={handleMerge}
-            disabled={busy}
-            title={t('workerDetail.composer.mergeTitle')}
-          >
-            <GitMerge className="h-4 w-4" />
-            <span>{t('workerDetail.composer.merge')}</span>
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            size="sm"
-            onClick={handleClose}
-            disabled={busy}
-          >
-            <X className="h-4 w-4" />
-            <span>{t('workerDetail.composer.close')}</span>
-          </Button>
-        </div>
+        {/* (v1.10.611) Composer row extracted to ./WorkerDetailComposer.tsx. */}
+        <WorkerDetailComposer
+          inputText={inputText}
+          busy={busy}
+          onChangeInputText={setInputText}
+          onSend={handleSend}
+          onEnter={handleEnter}
+          onMerge={handleMerge}
+          onClose={handleClose}
+        />
 
         {/* (TODO 8.42) Special-key buttons exist for soft-keyboard
             users on mobile, where Esc / Ctrl-C / Ctrl-D / Tab / arrows

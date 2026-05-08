@@ -1751,6 +1751,47 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: WorkerDetailComposer (v1.10.611)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('WorkerDetailComposer.tsx');
+    assert.match(src, /export default function WorkerDetailComposer/);
+  });
+
+  it('takes inputText/busy + 5 callback props', () => {
+    const src = read('WorkerDetailComposer.tsx');
+    assert.match(src, /inputText:\s*string/);
+    assert.match(src, /busy:\s*boolean/);
+    assert.match(src, /onChangeInputText:\s*\(next:\s*string\)\s*=>\s*void/);
+    assert.match(src, /onSend:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onEnter:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onMerge:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onClose:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('renders text input + Send (icon) + Enter + Merge + Close buttons', () => {
+    const src = read('WorkerDetailComposer.tsx');
+    assert.match(src, /workerDetail\.composer\.placeholder/);
+    assert.match(src, /workerDetail\.composer\.sendText/);
+    assert.match(src, /workerDetail\.composer\.enter/);
+    assert.match(src, /workerDetail\.composer\.merge/);
+    assert.match(src, /workerDetail\.composer\.close/);
+    assert.match(src, /e\.key === 'Enter' && !e\.shiftKey/);
+  });
+
+  it('is imported and rendered by WorkerDetail', () => {
+    const parent = read('WorkerDetail.tsx');
+    assert.match(parent, /import\s+WorkerDetailComposer\s+from\s+'\.\/WorkerDetailComposer'/);
+    assert.match(parent, /<WorkerDetailComposer/);
+    assert.match(parent, /onSend=\{handleSend\}/);
+  });
+
+  it('parent WorkerDetail no longer holds the inline composer row', () => {
+    const parent = read('WorkerDetail.tsx');
+    assert.doesNotMatch(parent, /workerDetail\.composer\.placeholder/);
+    assert.doesNotMatch(parent, /<GitMerge/);
+  });
+});
+
 describe('extracted: WorkerDetailKeysRow (v1.10.610)', () => {
   it('lives in its own file with default export', () => {
     const src = read('WorkerDetailKeysRow.tsx');
