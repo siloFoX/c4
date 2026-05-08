@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.625] - 2026-05-09 — Extract useMeetingDetailStream hook
+
+**Web — `MeetingsView.tsx` shrunk by 65 lines (488 → 423).**
+The Phase 7.1 detail SSE stream — opens
+`/api/meetings/:id/stream`, applies snapshot/state/terminal
+events, GETs the canonical record on each state transition,
+flips `streaming` on connect/disconnect — extracted as a custom
+hook. Input: `selectedId`. Outputs: `detail` / `detailError` /
+`streaming`.
+
+### Refactor
+- New `web/src/lib/use-meeting-detail-stream.ts` (~80 lines).
+- `MeetingsView.tsx`: removed 3 useState slots
+  (`detail`/`detailError`/`streaming`) + the inline ~67-line
+  SSE effect. Replaced with single
+  `const { detail, detailError, streaming } =
+   useMeetingDetailStream(selectedId)`.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 92 suites, 485 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 91 of the perfection-track component split. Third
+  custom hook extraction. MeetingsView 423. 97 ships /
+  92 components+libs / 485 boundary assertions.
+
 ## [1.10.624] - 2026-05-09 — Extract useMeetingEnrichment hook
 
 **Web — `MeetingsView.tsx` shrunk by 59 lines (547 → 488).**

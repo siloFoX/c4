@@ -1753,6 +1753,46 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useMeetingDetailStream hook (v1.10.625)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-detail-stream.ts');
+
+  it('lives in lib/use-meeting-detail-stream.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useMeetingDetailStream/);
+  });
+
+  it('takes selectedId arg, returns detail/detailError/streaming', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /selectedId:\s*string\s*\|\s*null/);
+    assert.match(src, /detail:\s*MeetingDetail\s*\|\s*null/);
+    assert.match(src, /detailError:\s*string\s*\|\s*null/);
+    assert.match(src, /streaming:\s*boolean/);
+  });
+
+  it('opens EventSource and listens for snapshot/state/terminal frames', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /new EventSource/);
+    assert.match(src, /eventSourceUrl/);
+    assert.match(src, /addEventListener\('snapshot'/);
+    assert.match(src, /addEventListener\('state'/);
+    assert.match(src, /addEventListener\('terminal'/);
+  });
+
+  it('parent MeetingsView calls the hook; inline detail state + SSE effect removed', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+\{\s*useMeetingDetailStream\s*\}\s+from\s+'\.\.\/lib\/use-meeting-detail-stream'/);
+    assert.match(parent, /useMeetingDetailStream\(selectedId\)/);
+    assert.doesNotMatch(parent, /const \[detail, setDetail\]/);
+    assert.doesNotMatch(parent, /const \[detailError, setDetailError\]/);
+    // The detail-specific SSE endpoint signature is gone, but the
+    // parent still owns the global meetings list stream.
+    assert.doesNotMatch(parent, /\/api\/meetings\/\$\{encodeURIComponent\(selectedId\)\}\/stream/);
+    assert.doesNotMatch(parent, /addEventListener\('snapshot'/);
+  });
+});
+
 describe('extracted: useMeetingEnrichment hook (v1.10.624)', () => {
   const fs = require('fs');
   const path = require('path');

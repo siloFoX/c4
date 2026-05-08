@@ -11,6 +11,7 @@ import MeetingsDetailCardHeader from './MeetingsDetailCardHeader';
 import MeetingsListCardHeader from './MeetingsListCardHeader';
 import { useMeetingsSearch } from '../lib/use-meetings-search';
 import { useMeetingEnrichment } from '../lib/use-meeting-enrichment';
+import { useMeetingDetailStream } from '../lib/use-meeting-detail-stream';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -119,8 +120,6 @@ export default function MeetingsView() {
   const [listStatus, setListStatus] = useState<MeetingStatus | ''>('');
   const [listTrack, setListTrack] = useState<'lightweight' | 'standard' | 'full' | ''>('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [detail, setDetail] = useState<MeetingDetail | null>(null);
-  const [detailError, setDetailError] = useState<string | null>(null);
 
   // (Phase 6.9) Lineage chain for the selected meeting. Only
   // (v1.10.624) lineage / actions / recap state + 3 fetch effects
@@ -224,73 +223,9 @@ export default function MeetingsView() {
     meetings: data?.meetings || [],
   });
 
-  // Initial detail fetch + SSE live updates (phase 7.1).
-  // We intentionally fetch the full snapshot via the REST endpoint
-  // first because the SSE `event: snapshot` frame already contains
-  // the same data — so we'd render twice if we did both. Instead:
-  // open SSE only, treat the first `snapshot` event as the initial
-  // load, then apply incremental `state` events thereafter.
-  const [streaming, setStreaming] = useState(false);
-  useEffect(() => {
-    if (!selectedId) {
-      setDetail(null);
-      setStreaming(false);
-      return undefined;
-    }
-    setDetailError(null);
-    setDetail(null);
-    let es: EventSource | null = null;
-    try {
-      es = new EventSource(eventSourceUrl(`/api/meetings/${encodeURIComponent(selectedId)}/stream`));
-    } catch (e) {
-      setDetailError((e as Error).message || t('common.failedToOpenMeetingStream'));
-      return undefined;
-    }
-    setStreaming(true);
-    es.addEventListener('snapshot', (ev) => {
-      try {
-        const snap = JSON.parse((ev as MessageEvent).data) as MeetingDetail;
-        setDetail(snap);
-      } catch { /* ignore malformed frame */ }
-    });
-    es.addEventListener('state', (ev) => {
-      try {
-        const frame = JSON.parse((ev as MessageEvent).data) as {
-          event: string;
-          payload: Record<string, unknown>;
-          status: MeetingStatus;
-          ts: string;
-        };
-        // Re-fetch on every state change — payloads are too varied
-        // (turn / vote / advance) to merge surgically here. The
-        // /api/meetings/:id GET is cheap and the cadence is bounded
-        // by actual state transitions, so this is fine.
-        apiGet<MeetingDetail>(`/api/meetings/${encodeURIComponent(selectedId)}`)
-          .then((d) => setDetail(d))
-          .catch(() => { /* swallow — UI keeps last snapshot */ });
-        // Update status quickly without waiting for the GET.
-        setDetail((prev) => (prev ? { ...prev, status: frame.status } : prev));
-      } catch { /* ignore */ }
-    });
-    es.addEventListener('terminal', () => {
-      // Meeting reached terminal status; no more state events will
-      // come. We still fetch one final snapshot in case a turn
-      // landed in the same flush.
-      apiGet<MeetingDetail>(`/api/meetings/${encodeURIComponent(selectedId)}`)
-        .then((d) => setDetail(d))
-        .catch(() => { /* swallow */ });
-    });
-    es.onerror = () => {
-      // EventSource auto-reconnects on transient failure; we just
-      // mark the badge as "reconnecting" and let it retry.
-      setStreaming(false);
-    };
-    es.onopen = () => setStreaming(true);
-    return () => {
-      try { es && es.close(); } catch { /* noop */ }
-      setStreaming(false);
-    };
-  }, [selectedId]);
+  // (v1.10.625) Detail SSE stream + state hook extracted to
+  // ../lib/use-meeting-detail-stream.
+  const { detail, detailError, streaming } = useMeetingDetailStream(selectedId);
 
   // (v1.10.624) Detail enrichment (lineage / action-items / recap)
   // hook extracted to ../lib/use-meeting-enrichment.
