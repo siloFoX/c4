@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.10.621] - 2026-05-09 — Extract ChatErrorBanners
+
+**Web — `ChatView.tsx` shrunk by 15 lines (438 → 423).**
+The 2-tier error banners — primary destructive alert when the
+chat hard-fails + secondary amber banner when only the
+past-message backfill failed (live stream still connected) —
+extracted as their own pure-display sibling. 2 props.
+
+### Refactor
+- New `web/src/components/ChatErrorBanners.tsx` (~37 lines).
+- `ChatView.tsx`: removed the inline ~19-line banner pair.
+  Replaced with `<ChatErrorBanners … />`.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 88 suites, 466 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 87 of the perfection-track component split. ChatView 423.
+  93 ships / 88 components+libs / 466 boundary assertions.
+
 ## [1.10.620] - 2026-05-08 — Extract WikiSearchCardHeader
 
 **Web — `WikiView.tsx` shrunk by 10 lines (268 → 258).**

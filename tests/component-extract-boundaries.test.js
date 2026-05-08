@@ -1753,6 +1753,39 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: ChatErrorBanners (v1.10.621)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('ChatErrorBanners.tsx');
+    assert.match(src, /export default function ChatErrorBanners/);
+  });
+
+  it('takes error/backfillError props', () => {
+    const src = read('ChatErrorBanners.tsx');
+    assert.match(src, /error:\s*string\s*\|\s*null/);
+    assert.match(src, /backfillError:\s*string\s*\|\s*null/);
+  });
+
+  it('renders the destructive primary banner + amber secondary backfill banner', () => {
+    const src = read('ChatErrorBanners.tsx');
+    assert.match(src, /destructive/);
+    assert.match(src, /amber-500/);
+    assert.match(src, /Past-message backfill failed/);
+    assert.match(src, /backfillError && !error/);
+  });
+
+  it('is imported and rendered by ChatView', () => {
+    const parent = read('ChatView.tsx');
+    assert.match(parent, /import\s+ChatErrorBanners\s+from\s+'\.\/ChatErrorBanners'/);
+    assert.match(parent, /<ChatErrorBanners/);
+  });
+
+  it('parent ChatView no longer holds the inline banner JSX', () => {
+    const parent = read('ChatView.tsx');
+    assert.doesNotMatch(parent, /Past-message backfill failed/);
+    assert.doesNotMatch(parent, /role="alert"/);
+  });
+});
+
 describe('extracted: WikiSearchCardHeader (v1.10.620)', () => {
   it('lives in its own file with default export', () => {
     const src = read('WikiSearchCardHeader.tsx');

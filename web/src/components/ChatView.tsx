@@ -15,6 +15,7 @@ import {
 } from './ui';
 import ChatHeader from './ChatHeader';
 import ChatComposer from './ChatComposer';
+import ChatErrorBanners from './ChatErrorBanners';
 import {
   b64decode,
   conversationToMessages,
@@ -389,24 +390,8 @@ export default function ChatView({ workerName }: ChatViewProps) {
       />
 
       <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 p-4 pt-0 md:p-5 md:pt-0">
-        {error && (
-          <div
-            role="alert"
-            className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
-          >
-            <span className="min-w-0 break-words">{error}</span>
-          </div>
-        )}
-        {backfillError && !error && (
-          <div
-            role="alert"
-            className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300"
-          >
-            <span className="min-w-0 break-words">
-              Past-message backfill failed: {backfillError}. Live stream is still connected.
-            </span>
-          </div>
-        )}
+        {/* (v1.10.621) Error banners extracted to ./ChatErrorBanners.tsx. */}
+        <ChatErrorBanners error={error} backfillError={backfillError} />
 
         {/* (v1.10.604) Message log scroll container extracted to
             ./ChatMessageLog.tsx. */}
