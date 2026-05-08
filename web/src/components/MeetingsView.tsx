@@ -9,13 +9,9 @@ import MeetingsRecapPanel, { type RecapResponse } from './MeetingsRecapPanel';
 import MeetingsActionItemsPanel, { type ActionItemsResponse } from './MeetingsActionItemsPanel';
 import MeetingsLineageStrip, { type LineageResponse } from './MeetingsLineageStrip';
 import MeetingsStuckBanner, { type StuckResponse } from './MeetingsStuckBanner';
-import MeetingsForkForm from './MeetingsForkForm';
 import MeetingsStagesView, { type StageView } from './MeetingsStagesView';
 import MeetingsDetailHeader from './MeetingsDetailHeader';
 import MeetingsContributePanel from './MeetingsContributePanel';
-import MeetingsRetroActions from './MeetingsRetroActions';
-import MeetingsPublishControls from './MeetingsPublishControls';
-import MeetingsPeerRetroControls from './MeetingsPeerRetroControls';
 import MeetingsStateActions from './MeetingsStateActions';
 import MeetingsRunControls from './MeetingsRunControls';
 import MeetingsComposer from './MeetingsComposer';
@@ -25,6 +21,7 @@ import MeetingsListFilterRow from './MeetingsListFilterRow';
 import MeetingsList from './MeetingsList';
 import MeetingsSearchInput from './MeetingsSearchInput';
 import MeetingsDetailTitleBar from './MeetingsDetailTitleBar';
+import MeetingsDetailCompletedActions from './MeetingsDetailCompletedActions';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -696,41 +693,14 @@ export default function MeetingsView() {
             </div>
           ) : null}
           {selectedId && detail && ['completed', 'escalated'].includes(detail.status) ? (
-            <div className="flex flex-wrap items-center gap-2">
-              {/* (v1.10.553) Publish button + git toggles + result
-                  message extracted to ./MeetingsPublishControls.tsx. */}
-              <MeetingsPublishControls meetingId={selectedId} />
-              <span aria-hidden className="text-muted-foreground">·</span>
-              {/* (v1.10.554) Peer-retro controls extracted to
-                  ./MeetingsPeerRetroControls.tsx. */}
-              <MeetingsPeerRetroControls meetingId={selectedId} />
-              {/* (v1.10.552) Retro preview / finalize buttons + state
-                  extracted to ./MeetingsRetroActions.tsx. */}
-              <span aria-hidden className="text-muted-foreground">·</span>
-              <MeetingsRetroActions meetingId={selectedId} />
-              {/* (v1.10.544) Fork form extracted to
-                  ./MeetingsForkForm.tsx — toggle button still
-                  lives here. */}
-              <span aria-hidden className="text-muted-foreground">·</span>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setForkOpen((v) => !v)}
-                aria-label={t('meetings.fork.button.label')}
-                title={t('meetings.tooltip.fork')}
-                className="h-6 px-2 text-[10px]"
-                aria-expanded={forkOpen}
-              >
-                {forkOpen ? t('meetings.cancelFork') : t('meetings.fork.button')}
-              </Button>
-            </div>
-          ) : null}
-          {selectedId && detail && ['completed', 'escalated'].includes(detail.status) ? (
-            <MeetingsForkForm
-              open={forkOpen}
-              meeting={{ id: detail.id, title: detail.title }}
-              busy={false}
-              onClose={() => setForkOpen(false)}
+            /* (v1.10.593) Post-completion action row + ForkForm
+               extracted to ./MeetingsDetailCompletedActions.tsx. */
+            <MeetingsDetailCompletedActions
+              meetingId={selectedId}
+              meetingTitle={detail.title}
+              forkOpen={forkOpen}
+              onForkToggle={() => setForkOpen((v) => !v)}
+              onForkClose={() => setForkOpen(false)}
               onForked={(newId) => {
                 void refresh();
                 setSelectedId(newId);

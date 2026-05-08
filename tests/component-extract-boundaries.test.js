@@ -1029,10 +1029,13 @@ describe('extracted: MeetingsPeerRetroControls (v1.10.554)', () => {
     assert.match(src, /\/peer-retro/);
   });
 
-  it('is imported and rendered by MeetingsView', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsDetailCompletedActions (v1.10.593)', () => {
+    // (v1.10.593) Moved into MeetingsDetailCompletedActions sibling
+    // along with MeetingsPublishControls / MeetingsRetroActions /
+    // MeetingsForkForm.
+    const parent = read('MeetingsDetailCompletedActions.tsx');
     assert.match(parent, /import\s+MeetingsPeerRetroControls\s+from\s+'\.\/MeetingsPeerRetroControls'/);
-    assert.match(parent, /<MeetingsPeerRetroControls\s+meetingId=\{selectedId\}/);
+    assert.match(parent, /<MeetingsPeerRetroControls\s+meetingId=\{meetingId\}/);
   });
 
   it('parent MeetingsView no longer holds peer-retro state nor handler', () => {
@@ -1075,10 +1078,10 @@ describe('extracted: MeetingsPublishControls (v1.10.553)', () => {
     assert.match(src, /if \(e\.target\.checked\) setGitCommit\(true\)/);
   });
 
-  it('is imported and rendered by MeetingsView', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsDetailCompletedActions (v1.10.593)', () => {
+    const parent = read('MeetingsDetailCompletedActions.tsx');
     assert.match(parent, /import\s+MeetingsPublishControls\s+from\s+'\.\/MeetingsPublishControls'/);
-    assert.match(parent, /<MeetingsPublishControls\s+meetingId=\{selectedId\}/);
+    assert.match(parent, /<MeetingsPublishControls\s+meetingId=\{meetingId\}/);
   });
 
   it('parent MeetingsView no longer holds publish state nor handler', () => {
@@ -1117,10 +1120,10 @@ describe('extracted: MeetingsRetroActions (v1.10.552)', () => {
     assert.match(src, /\[meetingId\]/);
   });
 
-  it('is imported and rendered by MeetingsView', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsDetailCompletedActions (v1.10.593)', () => {
+    const parent = read('MeetingsDetailCompletedActions.tsx');
     assert.match(parent, /import\s+MeetingsRetroActions\s+from\s+'\.\/MeetingsRetroActions'/);
-    assert.match(parent, /<MeetingsRetroActions\s+meetingId=\{selectedId\}/);
+    assert.match(parent, /<MeetingsRetroActions\s+meetingId=\{meetingId\}/);
   });
 
   it('parent MeetingsView no longer holds retro state nor handler', () => {
@@ -1449,8 +1452,8 @@ describe('extracted: MeetingsForkForm (v1.10.544)', () => {
     assert.match(src, /\[meeting\.id\]/);
   });
 
-  it('is imported and rendered by MeetingsView with refresh + selectedId callbacks', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsDetailCompletedActions (v1.10.593)', () => {
+    const parent = read('MeetingsDetailCompletedActions.tsx');
     assert.match(parent, /import\s+MeetingsForkForm\s+from\s+'\.\/MeetingsForkForm'/);
     assert.match(parent, /<MeetingsForkForm/);
     assert.match(parent, /onForked=/);
@@ -1734,6 +1737,52 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: MeetingsDetailCompletedActions (v1.10.593)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsDetailCompletedActions.tsx');
+    assert.match(src, /export default function MeetingsDetailCompletedActions/);
+  });
+
+  it('takes meetingId/meetingTitle + fork open + 3 callback props', () => {
+    const src = read('MeetingsDetailCompletedActions.tsx');
+    assert.match(src, /meetingId:\s*string/);
+    assert.match(src, /meetingTitle:\s*string/);
+    assert.match(src, /forkOpen:\s*boolean/);
+    assert.match(src, /onForkToggle:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onForkClose:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onForked:\s*\(newId:\s*string\)\s*=>\s*void/);
+  });
+
+  it('composes the 4 sub-components (Publish/PeerRetro/Retro + ForkForm)', () => {
+    const src = read('MeetingsDetailCompletedActions.tsx');
+    assert.match(src, /<MeetingsPublishControls/);
+    assert.match(src, /<MeetingsPeerRetroControls/);
+    assert.match(src, /<MeetingsRetroActions/);
+    assert.match(src, /<MeetingsForkForm/);
+  });
+
+  it('owns the fork-toggle button + uses meetings.fork i18n keys', () => {
+    const src = read('MeetingsDetailCompletedActions.tsx');
+    assert.match(src, /meetings\.fork\.button/);
+    assert.match(src, /meetings\.cancelFork/);
+  });
+
+  it('is imported and rendered by MeetingsView only on completed/escalated', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsDetailCompletedActions\s+from\s+'\.\/MeetingsDetailCompletedActions'/);
+    assert.match(parent, /<MeetingsDetailCompletedActions/);
+    assert.match(parent, /\['completed', 'escalated'\]\.includes\(detail\.status\)/);
+  });
+
+  it('parent MeetingsView no longer imports the 4 sub-components directly', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /import\s+MeetingsPublishControls\s+from/);
+    assert.doesNotMatch(parent, /import\s+MeetingsPeerRetroControls\s+from/);
+    assert.doesNotMatch(parent, /import\s+MeetingsRetroActions\s+from/);
+    assert.doesNotMatch(parent, /import\s+MeetingsForkForm\s+from/);
   });
 });
 

@@ -4,6 +4,40 @@
 
 (no entries — next release window)
 
+## [1.10.593] - 2026-05-08 — Extract MeetingsDetailCompletedActions
+
+**Web — `MeetingsView.tsx` shrunk by 30 lines (785 → 755).**
+The post-completion action row (Publish + PeerRetro + Retro +
+Fork toggle button) plus the conditionally-mounted ForkForm
+beneath it — extracted as a composite container that wraps 4
+existing siblings. 6 props.
+
+### Refactor
+- New `web/src/components/MeetingsDetailCompletedActions.tsx`
+  (~62 lines) — composes `MeetingsPublishControls`,
+  `MeetingsPeerRetroControls`, `MeetingsRetroActions`, and
+  `MeetingsForkForm`.
+- `MeetingsView.tsx`: removed the inline ~42-line block plus 4
+  direct imports (the sub-components are now consumed by the
+  new composite). Replaced with single
+  `<MeetingsDetailCompletedActions … />`.
+- Boundary tests for the 4 nested siblings updated to assert
+  the new parent (MeetingsDetailCompletedActions) — preserves
+  the lock-in.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (6 assertions) + 4 existing suites updated to point at the
+  new parent. Total: 60 suites, 324 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 59 of the perfection-track component split. MeetingsView
+  755 (was 1450+ at session start, ~48% cumulative). 65 ships /
+  60 components+libs / 324 boundary assertions.
+
 ## [1.10.592] - 2026-05-08 — Extract SpecialistsDetailHeader
 
 **Web — `SpecialistsView.tsx` shrunk by 38 lines (592 → 554).**
