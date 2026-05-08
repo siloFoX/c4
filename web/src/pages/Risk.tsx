@@ -1,14 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { RefreshCw, Shield } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
 import { Button, Input, Panel } from '../components/ui';
-import { apiGet, apiPost } from '../lib/api';
+import { apiPost } from '../lib/api';
 import { t, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
 import RiskRuleCatalogPanel from '../components/RiskRuleCatalogPanel';
 import RiskSandboxPreview from '../components/RiskSandboxPreview';
 import RiskCheckResult from '../components/RiskCheckResult';
 import RiskStatsGrid from '../components/RiskStatsGrid';
+import { useRiskStats } from '../lib/use-risk-stats';
 
 // (v1.10.356) Risk classifier inspector — preview a command's
 // classification before sending it to a worker, plus a stats
@@ -115,10 +116,6 @@ export default function Risk() {
   const [checkResult, setCheckResult] = useState<CheckResponse | null>(null);
   const [checkError, setCheckError] = useState<string | null>(null);
 
-  const [windowHours, setWindowHours] = useState(24);
-  const [stats, setStats] = useState<StatsResponse | null>(null);
-  const [statsLoading, setStatsLoading] = useState(false);
-  const [statsError, setStatsError] = useState<string | null>(null);
 
   // (v1.10.568) Pattern catalog state moved into the extracted
   // RiskRuleCatalogPanel — self-fetching, owns its own filter +
@@ -162,22 +159,15 @@ export default function Risk() {
     }
   }, [command, includeInspected]);
 
-  const refreshStats = useCallback(async () => {
-    setStatsLoading(true);
-    setStatsError(null);
-    try {
-      const res = await apiGet<StatsResponse>(
-        `/api/risk/stats?windowHours=${windowHours}`,
-      );
-      setStats(res);
-    } catch (e) {
-      setStatsError((e as Error).message || t('common.statsFailed'));
-    } finally {
-      setStatsLoading(false);
-    }
-  }, [windowHours]);
-
-  useEffect(() => { refreshStats(); }, [refreshStats]);
+  // (v1.10.644) Risk stats poll hook extracted to ../lib/use-risk-stats.
+  const {
+    windowHours,
+    setWindowHours,
+    stats,
+    statsLoading,
+    statsError,
+    refreshStats,
+  } = useRiskStats();
 
   // (v1.10.568) Lazy-fetch effect moved into the extracted panel.
 

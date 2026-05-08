@@ -1755,6 +1755,43 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useRiskStats hook (v1.10.644)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-risk-stats.ts');
+
+  it('lives in lib/use-risk-stats.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useRiskStats/);
+  });
+
+  it('returns windowHours/setWindowHours + stats/statsLoading/statsError + refreshStats', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /windowHours:\s*number/);
+    assert.match(src, /setWindowHours:\s*\(next:\s*number\)\s*=>\s*void/);
+    assert.match(src, /stats:\s*StatsResponse\s*\|\s*null/);
+    assert.match(src, /statsLoading:\s*boolean/);
+    assert.match(src, /statsError:\s*string\s*\|\s*null/);
+    assert.match(src, /refreshStats:\s*\(\)\s*=>\s*Promise<void>/);
+  });
+
+  it('owns GET /api/risk/stats?windowHours=N + auto-refresh effect', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\/api\/risk\/stats\?windowHours=/);
+    assert.match(src, /useEffect\(\(\) => \{ refreshStats\(\); \}/);
+  });
+
+  it('parent Risk page calls the hook; inline state + effect removed', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(path.join(__dirname, '..', 'web', 'src', 'pages', 'Risk.tsx'), 'utf8');
+    assert.match(src, /import\s+\{\s*useRiskStats\s*\}\s+from\s+'\.\.\/lib\/use-risk-stats'/);
+    assert.match(src, /useRiskStats\(\)/);
+    assert.doesNotMatch(src, /const \[stats, setStats\]/);
+    assert.doesNotMatch(src, /const \[windowHours, setWindowHours\]/);
+  });
+});
+
 describe('extracted: useChatSseStream hook (v1.10.643)', () => {
   const fs = require('fs');
   const path = require('path');

@@ -4,6 +4,41 @@
 
 (no entries — next release window)
 
+## [1.10.644] - 2026-05-09 — Extract useRiskStats hook
+
+**Web — `pages/Risk.tsx` shrunk by 10 lines (297 → 287).**
+The risk-classifier stats poll — `windowHours` selector,
+`/api/risk/stats?windowHours=N` GET, loading/error state,
+and the auto-refetch effect — is now a self-contained hook.
+The window-hours setter lives with the fetch so the
+`useEffect` dependency on `refreshStats` continues to work
+without the parent owning the slot.
+
+### Refactor
+- New `web/src/lib/use-risk-stats.ts` (~52 lines).
+- `pages/Risk.tsx`: removed four useState slots
+  (`windowHours`, `stats`, `statsLoading`, `statsError`),
+  the inline `refreshStats` useCallback, and the
+  auto-refresh useEffect. Replaced with a single
+  `useRiskStats()` destructure. Trimmed unused
+  `useEffect` import + `apiGet` import.
+- Boundary suite #112 — 4 assertions covering the new hook
+  (export shape / return tuple / `/api/risk/stats` URL +
+  `useEffect` auto-refresh / parent wiring).
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  564 / 564 across 111 → 112 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 116 ships total since v1.10.529.
+- 111 components/libs extracted.
+- 22 custom hooks in `web/src/lib/`.
+- 564 boundary assertions across 112 suites.
+
 ## [1.10.643] - 2026-05-09 — Extract useChatSseStream hook
 
 **Web — `ChatView.tsx` shrunk by 10 lines (423 → 413).**
