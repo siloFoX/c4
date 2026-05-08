@@ -1540,9 +1540,11 @@ describe('extracted: MeetingsStuckBanner (v1.10.543)', () => {
     assert.match(src, /stuck\.count === 0.*return null/s);
   });
 
-  it('is imported and rendered by MeetingsView', () => {
+  it('is imported and rendered by MeetingsView; type re-import dropped (v1.10.627)', () => {
+    // (v1.10.627) StuckResponse type now consumed by useStuckMeetings;
+    // the parent only needs the default import.
     const parent = read('MeetingsView.tsx');
-    assert.match(parent, /import MeetingsStuckBanner,\s*\{\s*type StuckResponse\s*\}\s*from\s*'\.\/MeetingsStuckBanner'/);
+    assert.match(parent, /import\s+MeetingsStuckBanner\s+from\s+'\.\/MeetingsStuckBanner'/);
     assert.match(parent, /<MeetingsStuckBanner/);
   });
 
@@ -1750,6 +1752,32 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useStuckMeetings hook (v1.10.627)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-stuck-meetings.ts');
+
+  it('lives in lib/use-stuck-meetings.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useStuckMeetings/);
+  });
+
+  it('returns StuckResponse | null and polls every 60s', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /useStuckMeetings\(\):\s*StuckResponse\s*\|\s*null/);
+    assert.match(src, /\/api\/meetings\/stuck\?hours=1/);
+    assert.match(src, /window\.setInterval\(fetchStuck,\s*60000\)/);
+  });
+
+  it('parent MeetingsView calls the hook; inline state + effect removed', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+\{\s*useStuckMeetings\s*\}\s+from\s+'\.\.\/lib\/use-stuck-meetings'/);
+    assert.match(parent, /const stuck = useStuckMeetings\(\)/);
+    assert.doesNotMatch(parent, /const \[stuck, setStuck\]/);
+    assert.doesNotMatch(parent, /\/api\/meetings\/stuck/);
   });
 });
 

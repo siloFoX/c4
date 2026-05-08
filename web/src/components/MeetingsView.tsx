@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { apiGet } from '../lib/api';
 import { Card, CardContent } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import MeetingsMaintenancePanel from './MeetingsMaintenancePanel';
-import MeetingsStuckBanner, { type StuckResponse } from './MeetingsStuckBanner';
+import MeetingsStuckBanner from './MeetingsStuckBanner';
 import { type StageView } from './MeetingsStagesView';
 import MeetingsDetailBody from './MeetingsDetailBody';
 import MeetingsList from './MeetingsList';
@@ -13,6 +12,7 @@ import { useMeetingsSearch } from '../lib/use-meetings-search';
 import { useMeetingEnrichment } from '../lib/use-meeting-enrichment';
 import { useMeetingDetailStream } from '../lib/use-meeting-detail-stream';
 import { useMeetingsList } from '../lib/use-meetings-list';
+import { useStuckMeetings } from '../lib/use-stuck-meetings';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -125,22 +125,9 @@ export default function MeetingsView() {
   // (v1.10.624) lineage / actions / recap state + 3 fetch effects
   // moved into useMeetingEnrichment.
 
-  // (Phase 6.15) Stuck meetings alert. Polled every 60s; only
-  // visible when count > 0. Banner UI extracted to
-  // ./MeetingsStuckBanner.tsx — parent still polls and owns
-  // the data.
-  const [stuck, setStuck] = useState<StuckResponse | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    const fetchStuck = () => {
-      apiGet<StuckResponse>('/api/meetings/stuck?hours=1')
-        .then((res) => { if (!cancelled) setStuck(res); })
-        .catch(() => { /* tolerate older daemons */ });
-    };
-    fetchStuck();
-    const id = window.setInterval(fetchStuck, 60000);
-    return () => { cancelled = true; window.clearInterval(id); };
-  }, []);
+  // (v1.10.627) Stuck-meetings poll hook extracted to
+  // ../lib/use-stuck-meetings.
+  const stuck = useStuckMeetings();
 
   // (Phase 8.1) FTS search state. Empty query → bare list.
   // Non-empty → /api/meetings/search?q=&facet=status,track replaces

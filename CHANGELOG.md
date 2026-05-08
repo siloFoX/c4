@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.627] - 2026-05-09 — Extract useStuckMeetings hook
+
+**Web — `MeetingsView.tsx` shrunk by 13 lines (378 → 365).**
+The Phase 6.15 stuck-meetings poll — fetch
+`/api/meetings/stuck?hours=1` every 60s, silently fall back to
+null on older daemons — extracted as a tiny custom hook.
+No inputs. Returns `StuckResponse | null`.
+
+### Refactor
+- New `web/src/lib/use-stuck-meetings.ts` (~24 lines).
+- `MeetingsView.tsx`: removed the inline `stuck` useState slot
+  + 16-line poll effect. Replaced with single
+  `const stuck = useStuckMeetings()`. Dropped `apiGet` import
+  + `StuckResponse` type re-import (no longer used in parent).
+- Boundary test for `MeetingsStuckBanner` updated to drop the
+  type re-import assertion.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (3 assertions) + 1 existing suite updated. Total: 94 suites,
+  493 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 93 of the perfection-track component split. **Fifth
+  custom hook extraction**. MeetingsView 365. 99 ships /
+  94 components+libs / 493 boundary assertions. Approaching
+  100-ship milestone next loop.
+
 ## [1.10.626] - 2026-05-09 — Extract useMeetingsList hook
 
 **Web — `MeetingsView.tsx` shrunk by 45 lines (423 → 378).**
