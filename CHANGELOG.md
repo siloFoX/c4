@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.595] - 2026-05-08 — Extract MeetingsDetailPendingActions
+
+**Web — `MeetingsView.tsx` shrunk by 10 lines (735 → 725).**
+The two pending-state action rows (RunControls auto path + the
+"or manually" label + StateActions manual path) merged into a
+single composite container. 1 prop.
+
+### Refactor
+- New `web/src/components/MeetingsDetailPendingActions.tsx`
+  (~27 lines) — composes `MeetingsRunControls` and
+  `MeetingsStateActions` (pending mode).
+- `MeetingsView.tsx`: removed both inline pending-row blocks
+  (~13 lines combined) plus 2 direct sub-component imports
+  (RunControls + StateActions). Replaced with a single
+  `<MeetingsDetailPendingActions … />`.
+- Boundary tests for `MeetingsRunControls` + `MeetingsStateActions`
+  (pending site) updated to assert the new parent.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions) + 2 existing suites updated. Total: 62 suites,
+  334 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 61 of the perfection-track component split. MeetingsView
+  725. The detail-pane CardHeader is now fully decomposed: title
+  bar + 3 status-conditional composites (pending / in-progress /
+  completed). 67 ships / 62 components+libs / 334 boundary
+  assertions.
+
 ## [1.10.594] - 2026-05-08 — Extract MeetingsDetailInProgressActions
 
 **Web — `MeetingsView.tsx` shrunk by 20 lines (755 → 735).**

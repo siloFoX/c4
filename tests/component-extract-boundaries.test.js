@@ -956,10 +956,10 @@ describe('extracted: MeetingsRunControls (v1.10.556)', () => {
     assert.match(src, /autoFinalize:\s*true/);
   });
 
-  it('is imported and rendered by MeetingsView', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsDetailPendingActions (v1.10.595)', () => {
+    const parent = read('MeetingsDetailPendingActions.tsx');
     assert.match(parent, /import\s+MeetingsRunControls\s+from\s+'\.\/MeetingsRunControls'/);
-    assert.match(parent, /<MeetingsRunControls\s+meetingId=\{selectedId\}/);
+    assert.match(parent, /<MeetingsRunControls\s+meetingId=\{meetingId\}/);
   });
 
   it('parent MeetingsView no longer holds run state nor handler', () => {
@@ -993,10 +993,10 @@ describe('extracted: MeetingsStateActions (v1.10.555)', () => {
     assert.match(src, /'abort', t\('meetings\.abortConfirm'\)/);
   });
 
-  it('is rendered at 2 sites — pending row in MeetingsView, in-progress in MeetingsDetailInProgressActions (v1.10.594)', () => {
-    const parent = read('MeetingsView.tsx');
-    assert.match(parent, /import\s+MeetingsStateActions\s+from\s+'\.\/MeetingsStateActions'/);
-    assert.match(parent, /<MeetingsStateActions\s+meetingId=\{selectedId\}\s+mode="pending"/);
+  it('is rendered at 2 sites — pending in MeetingsDetailPendingActions, in-progress in MeetingsDetailInProgressActions (v1.10.595)', () => {
+    const pending = read('MeetingsDetailPendingActions.tsx');
+    assert.match(pending, /import\s+MeetingsStateActions\s+from\s+'\.\/MeetingsStateActions'/);
+    assert.match(pending, /<MeetingsStateActions\s+meetingId=\{meetingId\}\s+mode="pending"/);
     const inProgress = read('MeetingsDetailInProgressActions.tsx');
     assert.match(inProgress, /import\s+MeetingsStateActions\s+from\s+'\.\/MeetingsStateActions'/);
     assert.match(inProgress, /<MeetingsStateActions\s+meetingId=\{meetingId\}\s+mode="in-progress"/);
@@ -1739,6 +1739,39 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: MeetingsDetailPendingActions (v1.10.595)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsDetailPendingActions.tsx');
+    assert.match(src, /export default function MeetingsDetailPendingActions/);
+  });
+
+  it('takes a single meetingId prop', () => {
+    const src = read('MeetingsDetailPendingActions.tsx');
+    assert.match(src, /meetingId:\s*string/);
+  });
+
+  it('composes RunControls (auto path) + StateActions (manual path) with orManually label', () => {
+    const src = read('MeetingsDetailPendingActions.tsx');
+    assert.match(src, /<MeetingsRunControls\s+meetingId=\{meetingId\}/);
+    assert.match(src, /<MeetingsStateActions\s+meetingId=\{meetingId\}\s+mode="pending"/);
+    assert.match(src, /meetings\.orManually\.label/);
+  });
+
+  it('is imported and rendered by MeetingsView only on pending', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsDetailPendingActions\s+from\s+'\.\/MeetingsDetailPendingActions'/);
+    assert.match(parent, /<MeetingsDetailPendingActions/);
+    assert.match(parent, /detail\.status === 'pending'/);
+  });
+
+  it('parent MeetingsView no longer imports RunControls/StateActions directly', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /import\s+MeetingsRunControls\s+from/);
+    assert.doesNotMatch(parent, /import\s+MeetingsStateActions\s+from/);
+    assert.doesNotMatch(parent, /meetings\.orManually\.label/);
   });
 });
 

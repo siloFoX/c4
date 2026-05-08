@@ -11,8 +11,7 @@ import MeetingsLineageStrip, { type LineageResponse } from './MeetingsLineageStr
 import MeetingsStuckBanner, { type StuckResponse } from './MeetingsStuckBanner';
 import MeetingsStagesView, { type StageView } from './MeetingsStagesView';
 import MeetingsDetailHeader from './MeetingsDetailHeader';
-import MeetingsStateActions from './MeetingsStateActions';
-import MeetingsRunControls from './MeetingsRunControls';
+import MeetingsDetailPendingActions from './MeetingsDetailPendingActions';
 import MeetingsComposer from './MeetingsComposer';
 import MeetingsSearchFacets from './MeetingsSearchFacets';
 import MeetingsSearchFilterRow from './MeetingsSearchFilterRow';
@@ -650,11 +649,9 @@ export default function MeetingsView() {
             streaming={streaming}
           />
           {selectedId && detail && detail.status === 'pending' ? (
-            <div className="flex flex-wrap items-center gap-2">
-              {/* (v1.10.556) Run brain selector + Run button + error
-                  message extracted to ./MeetingsRunControls.tsx. */}
-              <MeetingsRunControls meetingId={selectedId} />
-            </div>
+            /* (v1.10.595) Pending action rows extracted to
+               ./MeetingsDetailPendingActions.tsx. */
+            <MeetingsDetailPendingActions meetingId={selectedId} />
           ) : null}
           {selectedId && detail && detail.status === 'in-progress' ? (
             /* (v1.10.594) In-progress action row + ContributePanel
@@ -664,13 +661,6 @@ export default function MeetingsView() {
               contribOpen={contribOpen}
               onContribToggle={() => setContribOpen((v) => !v)}
             />
-          ) : null}
-          {selectedId && detail && detail.status === 'pending' ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] text-muted-foreground">{t('meetings.orManually.label')}</span>
-              {/* (v1.10.555) Manual Start button extracted. */}
-              <MeetingsStateActions meetingId={selectedId} mode="pending" />
-            </div>
           ) : null}
           {selectedId && detail && ['completed', 'escalated'].includes(detail.status) ? (
             /* (v1.10.593) Post-completion action row + ForkForm
