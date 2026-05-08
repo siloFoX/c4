@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import SessionsTour from './SessionsTour';
@@ -6,6 +6,7 @@ import NewChatModal from './NewChatModal';
 import AttachModal from './AttachModal';
 import SessionsRightPane from './SessionsRightPane';
 import SessionsListCard from './SessionsListCard';
+import { useSessionsTour } from '../lib/use-sessions-tour';
 
 export interface SessionSummary {
   projectDir: string | null;
@@ -188,28 +189,9 @@ export default function SessionsView() {
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [newChatBusy, setNewChatBusy] = useState(false);
   const [newChatError, setNewChatError] = useState<string | null>(null);
-  const [showTour, setShowTour] = useState(false);
-  const tourChecked = useRef(false);
-
-  useEffect(() => {
-    if (tourChecked.current) return;
-    tourChecked.current = true;
-    try {
-      const done = window.localStorage.getItem(TOUR_STORAGE_KEY);
-      if (!done) setShowTour(true);
-    } catch {
-      // localStorage can throw in private modes; skip tour silently.
-    }
-  }, []);
-
-  const dismissTour = useCallback(() => {
-    setShowTour(false);
-    try {
-      window.localStorage.setItem(TOUR_STORAGE_KEY, 'done');
-    } catch {
-      // non-fatal
-    }
-  }, []);
+  // (v1.10.629) First-time tour gate hook extracted to
+  // ../lib/use-sessions-tour.
+  const { showTour, dismissTour } = useSessionsTour();
 
   const refreshSessions = useCallback(async () => {
     setLoading(true);

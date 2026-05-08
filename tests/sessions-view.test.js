@@ -256,9 +256,13 @@ describe('SessionsView.tsx - onboarding tour', () => {
 
   it('renders a Tour component behind the TOUR_STORAGE_KEY gate', () => {
     // (v1.10.530) Tour extracted to ./SessionsTour.tsx
+    // (v1.10.629) Tour gate state moved into useSessionsTour hook;
+    // the localStorage read/write sites moved with it.
+    const HOOK = path.join(repoRoot, 'web/src/lib/use-sessions-tour.ts');
+    const hookSrc = fs.readFileSync(HOOK, 'utf8');
     assert.match(src, /import SessionsTour from '\.\/SessionsTour'/);
-    assert.match(src, /localStorage\.getItem\(TOUR_STORAGE_KEY\)/);
-    assert.match(src, /localStorage\.setItem\(TOUR_STORAGE_KEY, 'done'\)/);
+    assert.match(hookSrc, /localStorage\.getItem\(TOUR_STORAGE_KEY\)/);
+    assert.match(hookSrc, /localStorage\.setItem\(TOUR_STORAGE_KEY, 'done'\)/);
     assert.match(src, /\{showTour \? <SessionsTour onDismiss=\{dismissTour\} \/> : null\}/);
   });
 
@@ -276,7 +280,10 @@ describe('SessionsView.tsx - onboarding tour', () => {
 
   it('guards localStorage access so private-mode throws do not crash the page', () => {
     // Both read + write sites must be wrapped.
-    const tries = src.match(/try \{\s*[\s\S]*?localStorage\.(getItem|setItem)/g) || [];
+    // (v1.10.629) Sites moved into useSessionsTour hook.
+    const HOOK = path.join(repoRoot, 'web/src/lib/use-sessions-tour.ts');
+    const hookSrc = fs.readFileSync(HOOK, 'utf8');
+    const tries = hookSrc.match(/try \{\s*[\s\S]*?localStorage\.(getItem|setItem)/g) || [];
     assert.ok(
       tries.length >= 2,
       `expected 2 guarded localStorage sites, saw ${tries.length}`,

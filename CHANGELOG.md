@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.629] - 2026-05-09 — Extract useSessionsTour hook (501 assertions)
+
+**Web — `SessionsView.tsx` shrunk by 18 lines (442 → 424).**
+The first-time tour gate — read `TOUR_STORAGE_KEY` from
+localStorage on mount, show the banner if no "done" entry yet,
+write the marker on dismiss — extracted as a tiny custom hook.
+No inputs. Returns `showTour` / `dismissTour`.
+
+### Refactor
+- New `web/src/lib/use-sessions-tour.ts` (~40 lines).
+- `SessionsView.tsx`: removed `showTour` useState slot +
+  `tourChecked` useRef + 1 mount effect + `dismissTour`
+  useCallback. Replaced with single
+  `const { showTour, dismissTour } = useSessionsTour()`.
+  Dropped `useRef` import (no longer used).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (3 assertions). Total: 96 suites, **501 tests** milestone.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 95 of the perfection-track component split. **Seventh
+  custom hook extraction**. SessionsView 424. 101 ships /
+  96 components+libs / 501 boundary assertions.
+
 ## [1.10.628] - 2026-05-09 — Extract useSpecialistsList hook (100 ships)
 
 **Web — `SpecialistsView.tsx` shrunk by 38 lines (363 → 325).**

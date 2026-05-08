@@ -1755,6 +1755,34 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useSessionsTour hook (v1.10.629)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-sessions-tour.ts');
+
+  it('lives in lib/use-sessions-tour.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useSessionsTour/);
+  });
+
+  it('returns showTour + dismissTour, reads/writes TOUR_STORAGE_KEY', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /showTour:\s*boolean/);
+    assert.match(src, /dismissTour:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /TOUR_STORAGE_KEY/);
+    assert.match(src, /window\.localStorage\.getItem/);
+    assert.match(src, /window\.localStorage\.setItem/);
+  });
+
+  it('parent SessionsView calls the hook; inline state + effect removed', () => {
+    const parent = read('SessionsView.tsx');
+    assert.match(parent, /import\s+\{\s*useSessionsTour\s*\}\s+from\s+'\.\.\/lib\/use-sessions-tour'/);
+    assert.match(parent, /useSessionsTour\(\)/);
+    assert.doesNotMatch(parent, /const \[showTour, setShowTour\]/);
+    assert.doesNotMatch(parent, /tourChecked\.current/);
+  });
+});
+
 describe('extracted: useSpecialistsList hook (v1.10.628) — 100 ships milestone', () => {
   const fs = require('fs');
   const path = require('path');
