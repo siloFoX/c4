@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.600] - 2026-05-08 — Extract WikiPageDetail (v1.10.600 milestone)
+
+**Web — `WikiView.tsx` shrunk by 53 lines (409 → 356).**
+The right-pane page body — empty/error/loading states or the
+4-column metadata grid + optional related-pages chips + raw
+markdown pre — extracted as its own pure-display sibling. 4
+props.
+
+### Refactor
+- New `web/src/components/WikiPageDetail.tsx` (~93 lines).
+- `WikiView.tsx`: removed the inline ~65-line CardContent body.
+  Replaced with `<WikiPageDetail … />`. Promoted `ReadResponse`
+  to export so the new sibling can type its `page` prop.
+  Dropped `BookOpen` icon import (consumed by sibling now).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 67 suites, 360 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 66 of the perfection-track component split. v1.10.600
+  milestone ship — 72nd ship in this session, started at
+  v1.10.529. WikiView 356. 67 components+libs / 360 boundary
+  assertions.
+
 ## [1.10.599] - 2026-05-08 — Extract SpecialistsEnrichmentPanels
 
 **Web — `SpecialistsView.tsx` shrunk by 26 lines (422 → 396).**

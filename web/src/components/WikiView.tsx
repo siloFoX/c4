@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BookOpen, RotateCcw, Search } from 'lucide-react';
+import { RotateCcw, Search } from 'lucide-react';
 import { apiGet, apiPost } from '../lib/api';
 import { Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import WikiSearchResults from './WikiSearchResults';
+import WikiPageDetail from './WikiPageDetail';
 
 // (multi-specialist phase 7.4) Wiki tab — split-pane like
 // MeetingsView. Left: query input + results list. Right: full page
@@ -32,7 +33,9 @@ export interface SearchResponse {
   hits: SearchHit[];
 }
 
-interface ReadResponse {
+// (v1.10.600) ReadResponse promoted to export so the
+// WikiPageDetail sibling can type its `page` prop.
+export interface ReadResponse {
   path: string;
   absolutePath: string;
   frontmatter: Record<string, unknown>;
@@ -339,69 +342,13 @@ export default function WikiView() {
           ) : null}
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
-          {!selectedPath ? (
-            <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-              <BookOpen className="mr-2 h-3.5 w-3.5" aria-hidden />
-              {t('wiki.empty.pickPage')}
-            </div>
-          ) : pageError ? (
-            <div className="text-sm text-destructive">{pageError}</div>
-          ) : !page ? (
-            <div className="text-sm text-muted-foreground">{t('wiki.loadingPage')}</div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-                <div>
-                  <div className="text-muted-foreground">{t('wiki.field.type')}</div>
-                  <div className="font-medium">{(page.frontmatter['type'] as string) || '-'}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">{t('wiki.field.status')}</div>
-                  <div className="font-medium">{(page.frontmatter['status'] as string) || '-'}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">{t('wiki.field.lastReviewed')}</div>
-                  <div className="font-medium">{(page.frontmatter['last_reviewed'] as string) || '-'}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">{t('wiki.field.path')}</div>
-                  <div className="truncate font-medium">{page.path}</div>
-                </div>
-              </div>
-              {/* (Phase 6.12) Related pages — auto-derived from
-                  transcript markers + meeting/ADR refs. Render as
-                  clickable chips when there's any. */}
-              {Array.isArray(page.frontmatter['related']) && (page.frontmatter['related'] as unknown[]).length > 0 ? (
-                <div className="mt-2">
-                  <div className="text-xs text-muted-foreground">{tFormat('wiki.relatedCount', { count: (page.frontmatter['related'] as unknown[]).length })}</div>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {(page.frontmatter['related'] as unknown[]).map((r, i) => {
-                      const ref = String(r);
-                      const isWikiPath = /\.md$/.test(ref);
-                      return (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => isWikiPath ? setSelectedPath(ref) : null}
-                          className={cn(
-                            'rounded border border-border bg-background px-1.5 py-0 font-mono text-[10px]',
-                            isWikiPath ? 'hover:bg-accent/40' : 'cursor-default opacity-70',
-                          )}
-                          title={isWikiPath ? `Open ${ref}` : ref}
-                          disabled={!isWikiPath}
-                        >
-                          {ref}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : null}
-              <pre className="mt-3 whitespace-pre-wrap rounded-md border border-border bg-muted/20 p-3 text-[12px] font-mono">
-                {page.body}
-              </pre>
-            </>
-          )}
+          {/* (v1.10.600) Page detail body extracted to ./WikiPageDetail.tsx. */}
+          <WikiPageDetail
+            selectedPath={selectedPath}
+            page={page}
+            pageError={pageError}
+            onSelectPath={setSelectedPath}
+          />
         </CardContent>
       </Card>
     </div>

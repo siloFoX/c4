@@ -1742,6 +1742,47 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: WikiPageDetail (v1.10.600)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('WikiPageDetail.tsx');
+    assert.match(src, /export default function WikiPageDetail/);
+  });
+
+  it('takes selectedPath/page/pageError + onSelectPath props', () => {
+    const src = read('WikiPageDetail.tsx');
+    assert.match(src, /selectedPath:\s*string\s*\|\s*null/);
+    assert.match(src, /page:\s*ReadResponse\s*\|\s*null/);
+    assert.match(src, /pageError:\s*string\s*\|\s*null/);
+    assert.match(src, /onSelectPath:\s*\(path:\s*string\)\s*=>\s*void/);
+  });
+
+  it('renders empty/error/loading states + metadata grid + related chips + body pre', () => {
+    const src = read('WikiPageDetail.tsx');
+    assert.match(src, /wiki\.empty\.pickPage/);
+    assert.match(src, /wiki\.loadingPage/);
+    assert.match(src, /wiki\.field\.type/);
+    assert.match(src, /wiki\.field\.status/);
+    assert.match(src, /wiki\.field\.lastReviewed/);
+    assert.match(src, /wiki\.relatedCount/);
+    assert.match(src, /\{page\.body\}/);
+  });
+
+  it('parent WikiView exports ReadResponse and imports WikiPageDetail', () => {
+    const parent = read('WikiView.tsx');
+    assert.match(parent, /export\s+interface\s+ReadResponse/);
+    assert.match(parent, /import\s+WikiPageDetail\s+from\s+'\.\/WikiPageDetail'/);
+    assert.match(parent, /<WikiPageDetail/);
+    assert.match(parent, /onSelectPath=\{setSelectedPath\}/);
+  });
+
+  it('parent WikiView no longer holds the inline detail body', () => {
+    const parent = read('WikiView.tsx');
+    assert.doesNotMatch(parent, /wiki\.empty\.pickPage/);
+    assert.doesNotMatch(parent, /wiki\.field\.lastReviewed/);
+    assert.doesNotMatch(parent, /wiki\.relatedCount/);
+  });
+});
+
 describe('extracted: SpecialistsEnrichmentPanels (v1.10.599)', () => {
   it('lives in its own file with default export', () => {
     const src = read('SpecialistsEnrichmentPanels.tsx');
