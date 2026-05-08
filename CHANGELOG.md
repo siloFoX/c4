@@ -4,6 +4,36 @@
 
 (no entries — next release window)
 
+## [1.10.631] - 2026-05-09 — Extract useSessionsActions hook
+
+**Web — `SessionsView.tsx` shrunk by 68 lines (402 → 334).**
+The 3 session-management async handlers — attach (POST
+`/api/attach`), new chat (POST `/api/task`), detach (DELETE
+`/api/attach/:name`) — plus their modal/busy/error state
+extracted as a custom hook. Inputs: setSelection, setAttachError,
+refreshSessions, refreshAttached. Outputs: 6 state slots +
+4 setters + 3 handler callbacks.
+
+### Refactor
+- New `web/src/lib/use-sessions-actions.ts` (~132 lines).
+- `SessionsView.tsx`: removed 6 useState slots + 3 useCallback
+  handlers (~80 lines). Replaced with single
+  `useSessionsActions(…)` call. Promoted `AttachResponse` to
+  export. Dropped `apiDelete` + `apiPost` imports — no longer
+  used in the parent.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 98 suites, 511 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 97 of the perfection-track component split. **Ninth
+  custom hook extraction**. SessionsView 334. 103 ships /
+  98 components+libs / 511 boundary assertions.
+
 ## [1.10.630] - 2026-05-09 — Extract useSessionsList hook
 
 **Web — `SessionsView.tsx` shrunk by 22 lines (424 → 402).**

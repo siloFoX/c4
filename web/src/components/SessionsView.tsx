@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { apiDelete, apiPost } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import SessionsTour from './SessionsTour';
 import NewChatModal from './NewChatModal';
@@ -8,6 +7,7 @@ import SessionsRightPane from './SessionsRightPane';
 import SessionsListCard from './SessionsListCard';
 import { useSessionsTour } from '../lib/use-sessions-tour';
 import { useSessionsList } from '../lib/use-sessions-list';
+import { useSessionsActions } from '../lib/use-sessions-actions';
 
 export interface SessionSummary {
   projectDir: string | null;
@@ -68,7 +68,9 @@ export interface AttachedListResponse {
   total: number;
 }
 
-interface AttachResponse {
+// (v1.10.631) Promoted to export so useSessionsActions can type
+// the /api/attach response.
+export interface AttachResponse {
   name: string;
   sessionId: string | null;
   projectPath: string | null;
@@ -176,14 +178,6 @@ export default function SessionsView() {
   const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [attachedCollapsed, setAttachedCollapsed] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalBusy, setModalBusy] = useState(false);
-  const [modalError, setModalError] = useState<string | null>(null);
-  // (TODO 8.39) New Chat modal state — separate from Attach so the
-  // two flows don't fight each other when both are wired.
-  const [newChatOpen, setNewChatOpen] = useState(false);
-  const [newChatBusy, setNewChatBusy] = useState(false);
-  const [newChatError, setNewChatError] = useState<string | null>(null);
   // (v1.10.629) First-time tour gate hook extracted to
   // ../lib/use-sessions-tour.
   const { showTour, dismissTour } = useSessionsTour();
@@ -230,90 +224,28 @@ export default function SessionsView() {
     return attached.filter((a) => attachedMatchesQuery(a, q));
   }, [attached, query]);
 
-  const handleAttachSubmit = useCallback(
-    async (pathValue: string, nameValue: string) => {
-      setModalBusy(true);
-      setModalError(null);
-      const looksLikePath =
-        pathValue.endsWith('.jsonl') ||
-        pathValue.includes('/') ||
-        pathValue.includes('\\');
-      const body: Record<string, string> = looksLikePath
-        ? { path: pathValue }
-        : { sessionId: pathValue };
-      if (nameValue) body['name'] = nameValue;
-      try {
-        const resp = await apiPost<AttachResponse>('/api/attach', body);
-        setModalOpen(false);
-        await refreshAttached();
-        if (resp && resp.name) {
-          setSelection({ kind: 'attached', name: resp.name });
-        }
-      } catch (err) {
-        setModalError((err as Error).message || t('common.attachFailed'));
-      } finally {
-        setModalBusy(false);
-      }
-    },
-    [refreshAttached],
-  );
-
-  // (TODO 8.39) New Chat — POST /api/task with no name. The daemon
-  // auto-generates a worker name from the prompt's first words, spawns
-  // a worker (default command 'claude'), and queues the task. The
-  // worker's JSONL session takes a moment to appear in /api/sessions
-  // (Claude Code writes it on first response), so we refresh after a
-  // short delay and rely on the user re-pulling if needed.
-  const handleNewChatSubmit = useCallback(
-    async (req: { prompt: string; model: string; agent: string }) => {
-      setNewChatBusy(true);
-      setNewChatError(null);
-      const body: Record<string, unknown> = {
-        task: req.prompt,
-        autoMode: false,
-      };
-      if (req.model && req.model !== 'default') body['model'] = req.model;
-      // 'agent' currently maps to a profile name; 'generic' = no profile.
-      // Manager-style auto orchestration goes through POST /api/auto in a
-      // follow-up — for now the modal stays focused on plain chat spawns.
-      if (req.agent && req.agent !== 'generic') body['profile'] = req.agent;
-      try {
-        const resp = await apiPost<{ name?: string; error?: string }>(
-          '/api/task',
-          body,
-        );
-        if (resp && resp.error) {
-          setNewChatError(resp.error);
-          return;
-        }
-        setNewChatOpen(false);
-        // Refresh both lists; the new session JSONL may take a beat to
-        // appear, so a follow-up manual refresh is fine if it doesn't
-        // show up on the first poll.
-        await Promise.all([refreshSessions(), refreshAttached()]);
-      } catch (err) {
-        setNewChatError((err as Error).message || t('common.failedToStartNewChat'));
-      } finally {
-        setNewChatBusy(false);
-      }
-    },
-    [refreshSessions, refreshAttached],
-  );
-
-  const handleDetach = useCallback(
-    async (name: string) => {
-      try {
-        await apiDelete(`/api/attach/${encodeURIComponent(name)}`);
-        setSelection((prev) =>
-          prev && prev.kind === 'attached' && prev.name === name ? null : prev,
-        );
-        await refreshAttached();
-      } catch (err) {
-        setAttachError((err as Error).message || t('common.detachFailed'));
-      }
-    },
-    [refreshAttached],
-  );
+  // (v1.10.631) Attach / new chat / detach handlers + their
+  // modal/busy/error state extracted to ../lib/use-sessions-actions.
+  const {
+    modalOpen,
+    modalBusy,
+    modalError,
+    setModalOpen,
+    setModalError,
+    newChatOpen,
+    newChatBusy,
+    newChatError,
+    setNewChatOpen,
+    setNewChatError,
+    handleAttachSubmit,
+    handleNewChatSubmit,
+    handleDetach,
+  } = useSessionsActions({
+    setSelection,
+    setAttachError,
+    refreshSessions,
+    refreshAttached,
+  });
 
   const selectedSessionId =
     selection && selection.kind === 'session' ? selection.id : null;

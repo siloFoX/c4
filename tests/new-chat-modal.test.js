@@ -89,7 +89,9 @@ describe('NewChatModal contract', () => {
 });
 
 describe('handleNewChatSubmit shape', () => {
-  const src = readText(SESSIONS_VIEW);
+  // (v1.10.631) handleNewChatSubmit moved into useSessionsActions hook.
+  const HOOK = path.join(ROOT, 'web/src/lib/use-sessions-actions.ts');
+  const src = readText(HOOK);
 
   it('POSTs to /api/task with the trimmed prompt as task', () => {
     assert.match(src, /apiPost<\{ name\?: string; error\?: string \}>\(\s*\n\s*'\/api\/task',\s*\n\s*body,\s*\n\s*\)/);

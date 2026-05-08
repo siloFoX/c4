@@ -1755,6 +1755,55 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useSessionsActions hook (v1.10.631)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-sessions-actions.ts');
+
+  it('lives in lib/use-sessions-actions.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useSessionsActions/);
+  });
+
+  it('takes setSelection + setAttachError + refresh callbacks', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /setSelection:/);
+    assert.match(src, /setAttachError:\s*\(next:\s*string\s*\|\s*null\)\s*=>\s*void/);
+    assert.match(src, /refreshSessions:\s*\(\)\s*=>\s*Promise<void>/);
+    assert.match(src, /refreshAttached:\s*\(\)\s*=>\s*Promise<void>/);
+  });
+
+  it('owns 3 handlers: handleAttachSubmit / handleNewChatSubmit / handleDetach', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /handleAttachSubmit:\s*\(pathValue:\s*string,\s*nameValue:\s*string\)/);
+    assert.match(src, /handleNewChatSubmit:\s*\(req:/);
+    assert.match(src, /handleDetach:\s*\(name:\s*string\)\s*=>\s*Promise<void>/);
+    assert.match(src, /apiPost<AttachResponse>\('\/api\/attach',/);
+    assert.match(src, /\/api\/task/);
+    assert.match(src, /apiDelete\(`\/api\/attach\//);
+  });
+
+  it('owns the 6 modal/newChat state slots + 4 setters', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /modalOpen:\s*boolean/);
+    assert.match(src, /modalBusy:\s*boolean/);
+    assert.match(src, /modalError:\s*string\s*\|\s*null/);
+    assert.match(src, /newChatOpen:\s*boolean/);
+    assert.match(src, /newChatBusy:\s*boolean/);
+    assert.match(src, /newChatError:\s*string\s*\|\s*null/);
+  });
+
+  it('parent SessionsView calls the hook; inline state + 3 handlers removed', () => {
+    const parent = read('SessionsView.tsx');
+    assert.match(parent, /import\s+\{\s*useSessionsActions\s*\}\s+from\s+'\.\.\/lib\/use-sessions-actions'/);
+    assert.match(parent, /useSessionsActions\(\{/);
+    assert.doesNotMatch(parent, /const \[modalOpen, setModalOpen\]/);
+    assert.doesNotMatch(parent, /const handleAttachSubmit/);
+    assert.doesNotMatch(parent, /const handleNewChatSubmit/);
+    assert.doesNotMatch(parent, /const handleDetach/);
+  });
+});
+
 describe('extracted: useSessionsList hook (v1.10.630)', () => {
   const fs = require('fs');
   const path = require('path');

@@ -304,12 +304,22 @@ describe('SessionsView.tsx - 8.17 wiring regression guards', () => {
   });
 
   it('still POSTs /api/attach with {path|sessionId, name?}', () => {
-    assert.match(src, /apiPost<AttachResponse>\('\/api\/attach'/);
+    // (v1.10.631) handleAttachSubmit moved into useSessionsActions hook.
+    const hookSrc = fs.readFileSync(
+      path.join(repoRoot, 'web/src/lib/use-sessions-actions.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /apiPost<AttachResponse>\('\/api\/attach'/);
   });
 
   it('still DELETEs /api/attach/:name for the detach action', () => {
+    // (v1.10.631) handleDetach moved into useSessionsActions hook.
+    const hookSrc = fs.readFileSync(
+      path.join(repoRoot, 'web/src/lib/use-sessions-actions.ts'),
+      'utf8',
+    );
     assert.match(
-      src,
+      hookSrc,
       /apiDelete\(`\/api\/attach\/\$\{encodeURIComponent\(name\)\}`\)/,
     );
   });

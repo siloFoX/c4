@@ -390,11 +390,21 @@ describe('SessionsView.tsx wiring for attached sessions', () => {
   });
 
   it('POSTs /api/attach for the "Attach new..." modal', () => {
-    assert.match(src, /apiPost<AttachResponse>\('\/api\/attach'/);
+    // (v1.10.631) Moved into useSessionsActions hook.
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-sessions-actions.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /apiPost<AttachResponse>\('\/api\/attach'/);
   });
 
   it('DELETEs /api/attach/:name for the detach button', () => {
-    assert.match(src, /apiDelete\(`\/api\/attach\/\$\{encodeURIComponent\(name\)\}`\)/);
+    // (v1.10.631) Moved into useSessionsActions hook.
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-sessions-actions.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /apiDelete\(`\/api\/attach\/\$\{encodeURIComponent\(name\)\}`\)/);
   });
 
   it('reuses ConversationView for attached sessions via snapshotUrl', () => {
