@@ -1750,6 +1750,41 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: MeetingsListTitleBar (v1.10.602)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsListTitleBar.tsx');
+    assert.match(src, /export default function MeetingsListTitleBar/);
+  });
+
+  it('takes creating/loading + 2 callback props', () => {
+    const src = read('MeetingsListTitleBar.tsx');
+    assert.match(src, /creating:\s*boolean/);
+    assert.match(src, /loading:\s*boolean/);
+    assert.match(src, /onToggleCreating:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onRefresh:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('renders title + new + refresh buttons with i18n keys', () => {
+    const src = read('MeetingsListTitleBar.tsx');
+    assert.match(src, /meetings\.title/);
+    assert.match(src, /meetings\.action\.newLabel/);
+    assert.match(src, /meetings\.action\.refresh/);
+  });
+
+  it('is imported and rendered by MeetingsView', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsListTitleBar\s+from\s+'\.\/MeetingsListTitleBar'/);
+    assert.match(parent, /<MeetingsListTitleBar/);
+    assert.match(parent, /onRefresh=\{refresh\}/);
+  });
+
+  it('parent MeetingsView no longer holds the inline title row', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /meetings\.action\.newLabel/);
+    assert.doesNotMatch(parent, /<CardTitle/);
+  });
+});
+
 describe('extracted: SessionsEmptyPanel (v1.10.601)', () => {
   it('lives in its own file with default export', () => {
     const src = read('SessionsEmptyPanel.tsx');

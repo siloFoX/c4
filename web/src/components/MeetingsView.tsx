@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, RefreshCw } from 'lucide-react';
 import { apiGet, eventSourceUrl } from '../lib/api';
-import { Button, Card, CardContent, CardHeader, CardTitle } from './ui';
-import { cn } from '../lib/cn';
+import { Card, CardContent, CardHeader } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import MeetingsMaintenancePanel from './MeetingsMaintenancePanel';
 import { type RecapResponse } from './MeetingsRecapPanel';
@@ -12,6 +10,7 @@ import MeetingsStuckBanner, { type StuckResponse } from './MeetingsStuckBanner';
 import { type StageView } from './MeetingsStagesView';
 import MeetingsDetailPendingActions from './MeetingsDetailPendingActions';
 import MeetingsDetailBody from './MeetingsDetailBody';
+import MeetingsListTitleBar from './MeetingsListTitleBar';
 import MeetingsComposer from './MeetingsComposer';
 import MeetingsSearchFacets from './MeetingsSearchFacets';
 import MeetingsSearchFilterRow from './MeetingsSearchFilterRow';
@@ -543,30 +542,13 @@ export default function MeetingsView() {
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden md:flex-row">
       <Card className="flex min-h-0 flex-1 flex-col md:max-w-md">
         <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
-          <div className="flex flex-row items-center justify-between gap-2">
-            <CardTitle className="text-base">{t('meetings.title')}</CardTitle>
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                onClick={() => setCreating((v) => !v)}
-                aria-label={t('meetings.action.new')}
-                aria-expanded={creating}
-              >
-                <Plus className="h-3.5 w-3.5" aria-hidden />
-                {t('meetings.action.newLabel')}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={refresh}
-                disabled={loading}
-                aria-label={t('meetings.action.refresh')}
-              >
-                <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} aria-hidden />
-                {t('common.refresh')}
-              </Button>
-            </div>
-          </div>
+          {/* (v1.10.602) Title row extracted to ./MeetingsListTitleBar.tsx. */}
+          <MeetingsListTitleBar
+            creating={creating}
+            loading={loading}
+            onToggleCreating={() => setCreating((v) => !v)}
+            onRefresh={refresh}
+          />
           {/* (v1.10.575) List filter row extracted to
               ./MeetingsListFilterRow.tsx. */}
           {!searchQuery.trim() ? (

@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.602] - 2026-05-08 — Extract MeetingsListTitleBar
+
+**Web — `MeetingsView.tsx` shrunk by 18 lines (699 → 681).**
+The master-pane card header title row — title + New / Refresh
+action buttons — extracted as its own pure controlled-input
+sibling. 4 props.
+
+### Refactor
+- New `web/src/components/MeetingsListTitleBar.tsx` (~50 lines).
+- `MeetingsView.tsx`: removed the inline 24-line title row.
+  Replaced with `<MeetingsListTitleBar … />`. Dropped 5 unused
+  imports (`Plus`, `RefreshCw` icons + `Button` / `CardTitle`
+  UI primitives + `cn` utility).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 69 suites, 370 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 68 of the perfection-track component split. MeetingsView
+  681. 74 ships / 69 components+libs / 370 boundary assertions.
+
 ## [1.10.601] - 2026-05-08 — Extract SessionsEmptyPanel
 
 **Web — `SessionsView.tsx` shrunk by 38 lines (515 → 477).**
