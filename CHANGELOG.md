@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.599] - 2026-05-08 — Extract SpecialistsEnrichmentPanels
+
+**Web — `SpecialistsView.tsx` shrunk by 26 lines (422 → 396).**
+The Phase 6.8 detail-enrichment panels — recent audit log +
+recent meetings list, both with array+length guards —
+extracted as a single pure-display sibling. 2 props.
+
+### Refactor
+- New `web/src/components/SpecialistsEnrichmentPanels.tsx`
+  (~59 lines).
+- `SpecialistsView.tsx`: removed the inline ~38-line panel block.
+  Replaced with `<SpecialistsEnrichmentPanels … />`. Promoted
+  `MeetingMeta` and `AuditEntry` interfaces from inside the
+  function out to module scope and `export`-ed so the new
+  sibling can type its props.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 66 suites, 355 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 65 of the perfection-track component split.
+  SpecialistsView 396 — first time below 400 since session
+  start (1100+). 71 ships / 66 components+libs / 355 boundary
+  assertions.
+
 ## [1.10.598] - 2026-05-08 — Extract SpecialistsScoreHistory
 
 **Web — `SpecialistsView.tsx` shrunk by 97 lines (519 → 422).**

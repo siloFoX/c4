@@ -1742,6 +1742,42 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: SpecialistsEnrichmentPanels (v1.10.599)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SpecialistsEnrichmentPanels.tsx');
+    assert.match(src, /export default function SpecialistsEnrichmentPanels/);
+  });
+
+  it('takes recentAudit/recentMeetings props', () => {
+    const src = read('SpecialistsEnrichmentPanels.tsx');
+    assert.match(src, /recentAudit\?:\s*AuditEntry\[\]\s*\|\s*undefined/);
+    assert.match(src, /recentMeetings\?:\s*MeetingMeta\[\]\s*\|\s*undefined/);
+  });
+
+  it('renders both audit + meetings lists with array+length guards', () => {
+    const src = read('SpecialistsEnrichmentPanels.tsx');
+    assert.match(src, /specialists\.label\.recentAudit/);
+    assert.match(src, /specialists\.label\.recentMeetings/);
+    assert.match(src, /specialists\.event\.byActor/);
+    assert.match(src, /Array\.isArray\(recentAudit\)/);
+    assert.match(src, /Array\.isArray\(recentMeetings\)/);
+  });
+
+  it('parent SpecialistsView exports MeetingMeta + AuditEntry', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.match(parent, /export\s+interface\s+MeetingMeta/);
+    assert.match(parent, /export\s+interface\s+AuditEntry/);
+  });
+
+  it('is imported and rendered by SpecialistsView; inline panels removed', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.match(parent, /import\s+SpecialistsEnrichmentPanels\s+from\s+'\.\/SpecialistsEnrichmentPanels'/);
+    assert.match(parent, /<SpecialistsEnrichmentPanels/);
+    assert.doesNotMatch(parent, /specialists\.label\.recentAudit/);
+    assert.doesNotMatch(parent, /specialists\.label\.recentMeetings/);
+  });
+});
+
 describe('extracted: SpecialistsScoreHistory (v1.10.598)', () => {
   it('lives in its own file with default export', () => {
     const src = read('SpecialistsScoreHistory.tsx');
