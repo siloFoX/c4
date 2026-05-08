@@ -1751,6 +1751,50 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: MeetingsDetailCardHeader (v1.10.614)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsDetailCardHeader.tsx');
+    assert.match(src, /export default function MeetingsDetailCardHeader/);
+  });
+
+  it('takes title/selection/streaming + 4 contrib/fork callbacks', () => {
+    const src = read('MeetingsDetailCardHeader.tsx');
+    assert.match(src, /title:\s*string/);
+    assert.match(src, /selectedId:\s*string\s*\|\s*null/);
+    assert.match(src, /detail:\s*MeetingDetail\s*\|\s*null/);
+    assert.match(src, /streaming:\s*boolean/);
+    assert.match(src, /contribOpen:\s*boolean/);
+    assert.match(src, /onContribToggle:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /forkOpen:\s*boolean/);
+    assert.match(src, /onForkToggle:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onForkClose:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onForked:\s*\(newId:\s*string\)\s*=>\s*void/);
+  });
+
+  it('composes TitleBar + 3 status-conditional action composites under a CardHeader', () => {
+    const src = read('MeetingsDetailCardHeader.tsx');
+    assert.match(src, /<CardHeader/);
+    assert.match(src, /<MeetingsDetailTitleBar/);
+    assert.match(src, /<MeetingsDetailPendingActions/);
+    assert.match(src, /<MeetingsDetailInProgressActions/);
+    assert.match(src, /<MeetingsDetailCompletedActions/);
+  });
+
+  it('is imported and rendered by MeetingsView', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /import\s+MeetingsDetailCardHeader\s+from\s+'\.\/MeetingsDetailCardHeader'/);
+    assert.match(parent, /<MeetingsDetailCardHeader/);
+  });
+
+  it('parent MeetingsView no longer holds inline detail header sub-imports', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /import\s+MeetingsDetailTitleBar\s+from/);
+    assert.doesNotMatch(parent, /import\s+MeetingsDetailPendingActions\s+from/);
+    assert.doesNotMatch(parent, /import\s+MeetingsDetailInProgressActions\s+from/);
+    assert.doesNotMatch(parent, /import\s+MeetingsDetailCompletedActions\s+from/);
+  });
+});
+
 describe('extracted: MeetingsSearchSection (v1.10.613)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsSearchSection.tsx');
@@ -2502,8 +2546,8 @@ describe('extracted: MeetingsDetailPendingActions (v1.10.595)', () => {
     assert.match(src, /meetings\.orManually\.label/);
   });
 
-  it('is imported and rendered by MeetingsView only on pending', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsDetailCardHeader only on pending (v1.10.614)', () => {
+    const parent = read('MeetingsDetailCardHeader.tsx');
     assert.match(parent, /import\s+MeetingsDetailPendingActions\s+from\s+'\.\/MeetingsDetailPendingActions'/);
     assert.match(parent, /<MeetingsDetailPendingActions/);
     assert.match(parent, /detail\.status === 'pending'/);
@@ -2538,8 +2582,8 @@ describe('extracted: MeetingsDetailInProgressActions (v1.10.594)', () => {
     assert.match(src, /meetings\.contributeButton/);
   });
 
-  it('is imported and rendered by MeetingsView only on in-progress', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsDetailCardHeader only on in-progress (v1.10.614)', () => {
+    const parent = read('MeetingsDetailCardHeader.tsx');
     assert.match(parent, /import\s+MeetingsDetailInProgressActions\s+from\s+'\.\/MeetingsDetailInProgressActions'/);
     assert.match(parent, /<MeetingsDetailInProgressActions/);
     assert.match(parent, /detail\.status === 'in-progress'/);
@@ -2582,8 +2626,8 @@ describe('extracted: MeetingsDetailCompletedActions (v1.10.593)', () => {
     assert.match(src, /meetings\.cancelFork/);
   });
 
-  it('is imported and rendered by MeetingsView only on completed/escalated', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsDetailCardHeader only on completed/escalated (v1.10.614)', () => {
+    const parent = read('MeetingsDetailCardHeader.tsx');
     assert.match(parent, /import\s+MeetingsDetailCompletedActions\s+from\s+'\.\/MeetingsDetailCompletedActions'/);
     assert.match(parent, /<MeetingsDetailCompletedActions/);
     assert.match(parent, /\['completed', 'escalated'\]\.includes\(detail\.status\)/);
@@ -2860,8 +2904,8 @@ describe('extracted: MeetingsDetailTitleBar (v1.10.586)', () => {
     assert.match(src, /meetings\.stream\.tooltipLive/);
   });
 
-  it('is imported and rendered by MeetingsView', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsDetailCardHeader (v1.10.614)', () => {
+    const parent = read('MeetingsDetailCardHeader.tsx');
     assert.match(parent, /import\s+MeetingsDetailTitleBar\s+from\s+'\.\/MeetingsDetailTitleBar'/);
     assert.match(parent, /<MeetingsDetailTitleBar/);
     assert.match(parent, /showStreamingBadge=\{Boolean\(selectedId\)\}/);

@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.614] - 2026-05-08 — Extract MeetingsDetailCardHeader
+
+**Web — `MeetingsView.tsx` shrunk by 24 lines (663 → 639).**
+The detail-pane card header — title bar + 3 status-conditional
+action composites (pending / in-progress / completed) — extracted
+as a composite container that wraps 4 existing siblings. 10 props.
+
+### Refactor
+- New `web/src/components/MeetingsDetailCardHeader.tsx` (~69 lines)
+  — composes `MeetingsDetailTitleBar`, `MeetingsDetailPendingActions`,
+  `MeetingsDetailInProgressActions`, `MeetingsDetailCompletedActions`.
+- `MeetingsView.tsx`: removed the inline ~38-line CardHeader plus
+  4 default-import slots. Replaced with single
+  `<MeetingsDetailCardHeader … />`.
+- Boundary tests for the 4 nested siblings updated to assert
+  the new parent.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions) + 4 existing suites updated. Total: 81 suites,
+  430 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 80 of the perfection-track component split. MeetingsView
+  639. Right pane is now: a single CardHeader composite + a
+  single CardContent composite. 86 ships / 81 components+libs /
+  430 boundary assertions.
+
 ## [1.10.613] - 2026-05-08 — Extract MeetingsSearchSection (80 suites)
 
 **Web — `MeetingsView.tsx` shrunk by 18 lines (681 → 663).**

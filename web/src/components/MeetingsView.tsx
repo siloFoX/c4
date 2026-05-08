@@ -8,16 +8,13 @@ import { type ActionItemsResponse } from './MeetingsActionItemsPanel';
 import { type LineageResponse } from './MeetingsLineageStrip';
 import MeetingsStuckBanner, { type StuckResponse } from './MeetingsStuckBanner';
 import { type StageView } from './MeetingsStagesView';
-import MeetingsDetailPendingActions from './MeetingsDetailPendingActions';
 import MeetingsDetailBody from './MeetingsDetailBody';
 import MeetingsListTitleBar from './MeetingsListTitleBar';
 import MeetingsComposer from './MeetingsComposer';
 import MeetingsSearchSection from './MeetingsSearchSection';
 import MeetingsListFilterRow from './MeetingsListFilterRow';
 import MeetingsList from './MeetingsList';
-import MeetingsDetailTitleBar from './MeetingsDetailTitleBar';
-import MeetingsDetailCompletedActions from './MeetingsDetailCompletedActions';
-import MeetingsDetailInProgressActions from './MeetingsDetailInProgressActions';
+import MeetingsDetailCardHeader from './MeetingsDetailCardHeader';
 
 // (multi-specialist phase 6) Meetings tab — list view + drill-in
 // detail. Reads /api/meetings and /api/meetings/:id; the SSE
@@ -606,44 +603,23 @@ export default function MeetingsView() {
       </Card>
 
       <Card className="flex min-h-0 flex-1 flex-col">
-        <CardHeader className="flex flex-col gap-2 border-b border-border p-4">
-          {/* (v1.10.586) Title row + streaming badge extracted to
-              ./MeetingsDetailTitleBar.tsx. */}
-          <MeetingsDetailTitleBar
-            title={selectedSummary ? selectedSummary.title : t('meetings.title.select')}
-            showStreamingBadge={Boolean(selectedId)}
-            streaming={streaming}
-          />
-          {selectedId && detail && detail.status === 'pending' ? (
-            /* (v1.10.595) Pending action rows extracted to
-               ./MeetingsDetailPendingActions.tsx. */
-            <MeetingsDetailPendingActions meetingId={selectedId} />
-          ) : null}
-          {selectedId && detail && detail.status === 'in-progress' ? (
-            /* (v1.10.594) In-progress action row + ContributePanel
-               extracted to ./MeetingsDetailInProgressActions.tsx. */
-            <MeetingsDetailInProgressActions
-              meetingId={selectedId}
-              contribOpen={contribOpen}
-              onContribToggle={() => setContribOpen((v) => !v)}
-            />
-          ) : null}
-          {selectedId && detail && ['completed', 'escalated'].includes(detail.status) ? (
-            /* (v1.10.593) Post-completion action row + ForkForm
-               extracted to ./MeetingsDetailCompletedActions.tsx. */
-            <MeetingsDetailCompletedActions
-              meetingId={selectedId}
-              meetingTitle={detail.title}
-              forkOpen={forkOpen}
-              onForkToggle={() => setForkOpen((v) => !v)}
-              onForkClose={() => setForkOpen(false)}
-              onForked={(newId) => {
-                void refresh();
-                setSelectedId(newId);
-              }}
-            />
-          ) : null}
-        </CardHeader>
+        {/* (v1.10.614) Detail card header (title + 3 status
+            composites) extracted to ./MeetingsDetailCardHeader.tsx. */}
+        <MeetingsDetailCardHeader
+          title={selectedSummary ? selectedSummary.title : t('meetings.title.select')}
+          selectedId={selectedId}
+          detail={detail}
+          streaming={streaming}
+          contribOpen={contribOpen}
+          onContribToggle={() => setContribOpen((v) => !v)}
+          forkOpen={forkOpen}
+          onForkToggle={() => setForkOpen((v) => !v)}
+          onForkClose={() => setForkOpen(false)}
+          onForked={(newId) => {
+            void refresh();
+            setSelectedId(newId);
+          }}
+        />
         <CardContent className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
           {/* (v1.10.596) Detail body extracted to ./MeetingsDetailBody.tsx. */}
           <MeetingsDetailBody
