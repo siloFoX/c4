@@ -6,6 +6,7 @@ import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import WikiSearchResults from './WikiSearchResults';
 import WikiPageDetail from './WikiPageDetail';
+import WikiBulkPublishRow from './WikiBulkPublishRow';
 
 // (multi-specialist phase 7.4) Wiki tab — split-pane like
 // MeetingsView. Left: query input + results list. Right: full page
@@ -252,54 +253,18 @@ export default function WikiView() {
                 {t('wiki.search.button')}
               </Button>
             </div>
-            {/* (v1.10.341) Bulk publish row — sits below the
-                search controls, separated visually. Idempotent so
-                operators can click without worrying about
-                clobbering existing pages. */}
-            <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-2 text-[11px]">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleBulkPublish}
-                disabled={bulkBusy}
-                aria-label={t('wiki.publishAll.label')}
-                title={t('wiki.publishAll.title')}
-              >
-                {bulkBusy ? t('wiki.publishAll.publishing') : t('wiki.publishAll')}
-              </Button>
-              <label className="flex items-center gap-1 text-muted-foreground">
-                <input
-                  type="checkbox"
-                  checked={bulkGitCommit}
-                  onChange={(e) => {
-                    setBulkGitCommit(e.target.checked);
-                    if (!e.target.checked) setBulkGitPush(false);
-                  }}
-                  disabled={bulkBusy}
-                  className="h-3 w-3"
-                />
-                {t('wiki.gitCommit')}
-              </label>
-              <label className="flex items-center gap-1 text-muted-foreground">
-                <input
-                  type="checkbox"
-                  checked={bulkGitPush}
-                  onChange={(e) => {
-                    setBulkGitPush(e.target.checked);
-                    if (e.target.checked) setBulkGitCommit(true);
-                  }}
-                  disabled={bulkBusy}
-                  className="h-3 w-3"
-                />
-                {t('wiki.gitPush')}
-              </label>
-              {bulkMsg ? (
-                <span className={cn(
-                  'text-[11px]',
-                  bulkFailed ? 'text-destructive' : 'text-muted-foreground',
-                )}>{bulkMsg}</span>
-              ) : null}
-            </div>
+            {/* (v1.10.608) Bulk publish row extracted to
+                ./WikiBulkPublishRow.tsx. */}
+            <WikiBulkPublishRow
+              busy={bulkBusy}
+              gitCommit={bulkGitCommit}
+              gitPush={bulkGitPush}
+              msg={bulkMsg}
+              failed={bulkFailed}
+              onGitCommit={setBulkGitCommit}
+              onGitPush={setBulkGitPush}
+              onPublish={handleBulkPublish}
+            />
           </div>
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col overflow-y-auto p-0">

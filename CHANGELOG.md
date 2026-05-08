@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.608] - 2026-05-08 — Extract WikiBulkPublishRow (400 boundary assertions)
+
+**Web — `WikiView.tsx` shrunk by 35 lines (356 → 321).**
+The "Publish All" row — idempotent publish button + 2 git
+toggles (with interlock: enabling push forces commit on; turning
+commit off forces push off) + result message — extracted as
+its own pure controlled-input sibling. 8 props.
+
+### Refactor
+- New `web/src/components/WikiBulkPublishRow.tsx` (~79 lines).
+- `WikiView.tsx`: removed the inline ~48-line publish row.
+  Replaced with `<WikiBulkPublishRow … />`.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 75 suites, **400 tests** milestone.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 74 of the perfection-track component split. WikiView
+  321. **80 ships** / 75 components+libs / **400 boundary
+  assertions** milestone.
+
 ## [1.10.607] - 2026-05-08 — Extract SessionsRightPane
 
 **Web — `SessionsView.tsx` shrunk by 21 lines (477 → 456).**

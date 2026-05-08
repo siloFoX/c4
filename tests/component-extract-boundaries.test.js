@@ -1751,6 +1751,48 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: WikiBulkPublishRow (v1.10.608)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('WikiBulkPublishRow.tsx');
+    assert.match(src, /export default function WikiBulkPublishRow/);
+  });
+
+  it('takes busy + git toggles + msg/failed + 3 callback props', () => {
+    const src = read('WikiBulkPublishRow.tsx');
+    assert.match(src, /busy:\s*boolean/);
+    assert.match(src, /gitCommit:\s*boolean/);
+    assert.match(src, /gitPush:\s*boolean/);
+    assert.match(src, /msg:\s*string\s*\|\s*null/);
+    assert.match(src, /failed:\s*boolean/);
+    assert.match(src, /onGitCommit:\s*\(next:\s*boolean\)\s*=>\s*void/);
+    assert.match(src, /onGitPush:\s*\(next:\s*boolean\)\s*=>\s*void/);
+    assert.match(src, /onPublish:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('renders publish button + 2 git toggles + result message; preserves toggle interlock', () => {
+    const src = read('WikiBulkPublishRow.tsx');
+    assert.match(src, /wiki\.publishAll\.label/);
+    assert.match(src, /wiki\.publishAll\.publishing/);
+    assert.match(src, /wiki\.gitCommit/);
+    assert.match(src, /wiki\.gitPush/);
+    assert.match(src, /if \(!e\.target\.checked\) onGitPush\(false\)/);
+    assert.match(src, /if \(e\.target\.checked\) onGitCommit\(true\)/);
+  });
+
+  it('is imported and rendered by WikiView', () => {
+    const parent = read('WikiView.tsx');
+    assert.match(parent, /import\s+WikiBulkPublishRow\s+from\s+'\.\/WikiBulkPublishRow'/);
+    assert.match(parent, /<WikiBulkPublishRow/);
+    assert.match(parent, /onPublish=\{handleBulkPublish\}/);
+  });
+
+  it('parent WikiView no longer holds the inline publish row', () => {
+    const parent = read('WikiView.tsx');
+    assert.doesNotMatch(parent, /wiki\.publishAll\.label/);
+    assert.doesNotMatch(parent, /wiki\.gitCommit/);
+  });
+});
+
 describe('extracted: SessionsRightPane (v1.10.607)', () => {
   it('lives in its own file with default export', () => {
     const src = read('SessionsRightPane.tsx');
