@@ -4,6 +4,44 @@
 
 (no entries — next release window)
 
+## [1.10.596] - 2026-05-08 — Extract MeetingsDetailBody
+
+**Web — `MeetingsView.tsx` shrunk by 26 lines (725 → 699).**
+The detail-pane card body — empty/error/loading states or the
+5 sub-components stacked (`MeetingsDetailHeader`,
+`MeetingsLineageStrip`, `MeetingsRecapPanel`,
+`MeetingsActionItemsPanel`, `MeetingsStagesView`) — extracted
+as a composite container. 7 props.
+
+### Refactor
+- New `web/src/components/MeetingsDetailBody.tsx` (~69 lines) —
+  composes all 5 detail-body siblings.
+- `MeetingsView.tsx`: removed the inline ~40-line body block
+  plus 5 default-import slots (the value imports — only the
+  `type` re-exports for `RecapResponse` / `ActionItemsResponse`
+  / `LineageResponse` / `StageView` remain because the parent
+  still owns the data state). Promoted `MeetingDetail` to
+  export so the new sibling can type its `detail` prop.
+- `Eye` icon import dropped (no JSX consumer left in parent).
+- Boundary tests for `MeetingsDetailHeader` / `MeetingsLineageStrip`
+  / `MeetingsRecapPanel` / `MeetingsActionItemsPanel` /
+  `MeetingsStagesView` updated to assert the new parent.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (6 assertions) + 5 existing suites updated. Total: 63 suites,
+  340 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 62 of the perfection-track component split. MeetingsView
+  699 — first time below 700 since session start. The right
+  pane is now: TitleBar + 3 status-conditional action composites
+  + Body composite. 68 ships / 63 components+libs / 340 boundary
+  assertions.
+
 ## [1.10.595] - 2026-05-08 — Extract MeetingsDetailPendingActions
 
 **Web — `MeetingsView.tsx` shrunk by 10 lines (735 → 725).**

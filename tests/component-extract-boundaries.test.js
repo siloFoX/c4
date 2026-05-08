@@ -1312,8 +1312,8 @@ describe('extracted: MeetingsDetailHeader (v1.10.548)', () => {
     assert.match(src, /currentRound:\s*number/);
   });
 
-  it('is imported and rendered by MeetingsView with 5 detail props', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsDetailBody (v1.10.596)', () => {
+    const parent = read('MeetingsDetailBody.tsx');
     assert.match(parent, /import\s+MeetingsDetailHeader\s+from\s+'\.\/MeetingsDetailHeader'/);
     assert.match(parent, /<MeetingsDetailHeader/);
     assert.match(parent, /status=\{detail\.status\}/);
@@ -1338,9 +1338,9 @@ describe('extracted: MeetingsStagesView (v1.10.547)', () => {
     assert.match(src, /transcripts:\s*Turn\[\]\[\]/);
   });
 
-  it('is imported and rendered by MeetingsView with detail.stages + detail.transcripts', () => {
-    const parent = read('MeetingsView.tsx');
-    assert.match(parent, /import MeetingsStagesView,\s*\{\s*type StageView\s*\}\s*from\s*'\.\/MeetingsStagesView'/);
+  it('is imported and rendered by MeetingsDetailBody (v1.10.596)', () => {
+    const parent = read('MeetingsDetailBody.tsx');
+    assert.match(parent, /import\s+MeetingsStagesView\s+from\s+'\.\/MeetingsStagesView'/);
     assert.match(parent, /<MeetingsStagesView\s+stages=\{detail\.stages\}\s+transcripts=\{detail\.transcripts\}/);
   });
 
@@ -1494,8 +1494,8 @@ describe('extracted: MeetingsLineageStrip (v1.10.543)', () => {
     assert.match(src, /lineage\.depth <= 1.*return null/s);
   });
 
-  it('is imported and rendered by MeetingsView', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsDetailBody (v1.10.596)', () => {
+    const parent = read('MeetingsDetailBody.tsx');
     assert.match(parent, /import MeetingsLineageStrip,\s*\{\s*type LineageResponse\s*\}\s*from\s*'\.\/MeetingsLineageStrip'/);
     assert.match(parent, /<MeetingsLineageStrip/);
   });
@@ -1564,8 +1564,8 @@ describe('extracted: MeetingsActionItemsPanel (v1.10.542)', () => {
     assert.match(src, /navigator\.clipboard\.writeText/);
   });
 
-  it('is imported and rendered by MeetingsView with actions + meetingId props', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsDetailBody (v1.10.596)', () => {
+    const parent = read('MeetingsDetailBody.tsx');
     assert.match(parent, /import MeetingsActionItemsPanel,\s*\{\s*type ActionItemsResponse\s*\}\s*from\s*'\.\/MeetingsActionItemsPanel'/);
     assert.match(parent, /<MeetingsActionItemsPanel\s+actions=\{actions\}\s+meetingId=\{selectedId\}/);
   });
@@ -1594,8 +1594,8 @@ describe('extracted: MeetingsRecapPanel (v1.10.541)', () => {
     assert.match(src, /aria-expanded=\{open\}/);
   });
 
-  it('is imported and rendered by MeetingsView with recap prop', () => {
-    const parent = read('MeetingsView.tsx');
+  it('is imported and rendered by MeetingsDetailBody (v1.10.596)', () => {
+    const parent = read('MeetingsDetailBody.tsx');
     assert.match(parent, /import MeetingsRecapPanel,\s*\{\s*type RecapResponse\s*\}\s*from\s*'\.\/MeetingsRecapPanel'/);
     assert.match(parent, /<MeetingsRecapPanel\s+recap=\{recap\}\s*\/>/);
   });
@@ -1739,6 +1739,56 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: MeetingsDetailBody (v1.10.596)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('MeetingsDetailBody.tsx');
+    assert.match(src, /export default function MeetingsDetailBody/);
+  });
+
+  it('takes selectedId/detail/lineage/recap/actions/onNavigate props', () => {
+    const src = read('MeetingsDetailBody.tsx');
+    assert.match(src, /selectedId:\s*string\s*\|\s*null/);
+    assert.match(src, /detailError:\s*string\s*\|\s*null/);
+    assert.match(src, /detail:\s*MeetingDetail\s*\|\s*null/);
+    assert.match(src, /lineage:\s*LineageResponse\s*\|\s*null/);
+    assert.match(src, /recap:\s*RecapResponse\s*\|\s*null/);
+    assert.match(src, /actions:\s*ActionItemsResponse\s*\|\s*null/);
+    assert.match(src, /onNavigate:\s*\(id:\s*string\)\s*=>\s*void/);
+  });
+
+  it('composes the 5 detail-body sub-components', () => {
+    const src = read('MeetingsDetailBody.tsx');
+    assert.match(src, /<MeetingsDetailHeader/);
+    assert.match(src, /<MeetingsLineageStrip/);
+    assert.match(src, /<MeetingsRecapPanel/);
+    assert.match(src, /<MeetingsActionItemsPanel/);
+    assert.match(src, /<MeetingsStagesView/);
+  });
+
+  it('handles the empty / error / loading states', () => {
+    const src = read('MeetingsDetailBody.tsx');
+    assert.match(src, /meetings\.empty\.pick/);
+    assert.match(src, /detailError/);
+    assert.match(src, /meetings\.loading/);
+  });
+
+  it('parent MeetingsView exports MeetingDetail and imports MeetingsDetailBody', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.match(parent, /export\s+interface\s+MeetingDetail/);
+    assert.match(parent, /import\s+MeetingsDetailBody\s+from\s+'\.\/MeetingsDetailBody'/);
+    assert.match(parent, /<MeetingsDetailBody/);
+  });
+
+  it('parent MeetingsView no longer imports the 5 sub-components directly', () => {
+    const parent = read('MeetingsView.tsx');
+    assert.doesNotMatch(parent, /import\s+MeetingsDetailHeader\s+from/);
+    assert.doesNotMatch(parent, /import MeetingsLineageStrip,\s*\{\s*type/);
+    assert.doesNotMatch(parent, /import MeetingsRecapPanel,\s*\{\s*type/);
+    assert.doesNotMatch(parent, /import MeetingsActionItemsPanel,\s*\{\s*type/);
+    assert.doesNotMatch(parent, /import MeetingsStagesView,\s*\{\s*type/);
   });
 });
 

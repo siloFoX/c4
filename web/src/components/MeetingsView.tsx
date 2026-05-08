@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Eye, Plus, RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { apiGet, eventSourceUrl } from '../lib/api';
 import { Button, Card, CardContent, CardHeader, CardTitle } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import MeetingsMaintenancePanel from './MeetingsMaintenancePanel';
-import MeetingsRecapPanel, { type RecapResponse } from './MeetingsRecapPanel';
-import MeetingsActionItemsPanel, { type ActionItemsResponse } from './MeetingsActionItemsPanel';
-import MeetingsLineageStrip, { type LineageResponse } from './MeetingsLineageStrip';
+import { type RecapResponse } from './MeetingsRecapPanel';
+import { type ActionItemsResponse } from './MeetingsActionItemsPanel';
+import { type LineageResponse } from './MeetingsLineageStrip';
 import MeetingsStuckBanner, { type StuckResponse } from './MeetingsStuckBanner';
-import MeetingsStagesView, { type StageView } from './MeetingsStagesView';
-import MeetingsDetailHeader from './MeetingsDetailHeader';
+import { type StageView } from './MeetingsStagesView';
 import MeetingsDetailPendingActions from './MeetingsDetailPendingActions';
+import MeetingsDetailBody from './MeetingsDetailBody';
 import MeetingsComposer from './MeetingsComposer';
 import MeetingsSearchFacets from './MeetingsSearchFacets';
 import MeetingsSearchFilterRow from './MeetingsSearchFilterRow';
@@ -70,7 +70,9 @@ interface Turn {
 // (canonical home now that the rendering lives there). Re-imported
 // here for the MeetingDetail shape.
 
-interface MeetingDetail {
+// (v1.10.596) Promoted to export so the extracted
+// MeetingsDetailBody sibling can type its `detail` prop.
+export interface MeetingDetail {
   id: string;
   status: MeetingStatus;
   track: string;
@@ -679,44 +681,16 @@ export default function MeetingsView() {
           ) : null}
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-          {!selectedId ? (
-            <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-              <Eye className="mr-2 h-3.5 w-3.5" aria-hidden />
-              {t('meetings.empty.pick')}
-            </div>
-          ) : detailError ? (
-            <div className="text-sm text-destructive">{detailError}</div>
-          ) : !detail ? (
-            <div className="text-sm text-muted-foreground">{t('meetings.loading')}</div>
-          ) : (
-            <>
-              {/* (v1.10.548) Detail header (4-column metadata grid +
-                  task line) extracted to ./MeetingsDetailHeader.tsx. */}
-              <MeetingsDetailHeader
-                status={detail.status}
-                track={detail.track}
-                currentStage={detail.currentStage}
-                currentRound={detail.currentRound}
-                task={detail.task}
-              />
-              {/* (v1.10.543) Lineage strip extracted to
-                  ./MeetingsLineageStrip.tsx. */}
-              <MeetingsLineageStrip
-                lineage={lineage}
-                currentId={detail.id}
-                onNavigate={setSelectedId}
-              />
-              {/* (v1.10.541) Recap panel extracted to
-                  ./MeetingsRecapPanel.tsx. */}
-              <MeetingsRecapPanel recap={recap} />
-              {/* (v1.10.542) Action-items panel extracted to
-                  ./MeetingsActionItemsPanel.tsx. */}
-              <MeetingsActionItemsPanel actions={actions} meetingId={selectedId} />
-              {/* (v1.10.547) Transcript stages display extracted to
-                  ./MeetingsStagesView.tsx. */}
-              <MeetingsStagesView stages={detail.stages} transcripts={detail.transcripts} />
-            </>
-          )}
+          {/* (v1.10.596) Detail body extracted to ./MeetingsDetailBody.tsx. */}
+          <MeetingsDetailBody
+            selectedId={selectedId}
+            detailError={detailError}
+            detail={detail}
+            lineage={lineage}
+            recap={recap}
+            actions={actions}
+            onNavigate={setSelectedId}
+          />
         </CardContent>
       </Card>
       </div>
