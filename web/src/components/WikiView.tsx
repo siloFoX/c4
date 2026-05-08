@@ -7,6 +7,7 @@ import WikiPageDetail from './WikiPageDetail';
 import WikiPageDetailHeader from './WikiPageDetailHeader';
 import WikiSearchCardHeader from './WikiSearchCardHeader';
 import { useWikiPage } from '../lib/use-wiki-page';
+import { useWikiReopen } from '../lib/use-wiki-reopen';
 
 // (multi-specialist phase 7.4) Wiki tab — split-pane like
 // MeetingsView. Left: query input + results list. Right: full page
@@ -94,48 +95,11 @@ export default function WikiView() {
   useEffect(() => { runSearch(); }, [runSearch]);
 
 
-  // Reopen action — POST /api/wiki/reopen flips the page status to
-  // 'reopened' and spawns a new MeetingSession seeded with the page
-  // + related neighbours. We surface a success toast pointing at
-  // the new meeting id, then re-run the search so the flipped
-  // status badge shows up in the list.
-  const [reopenBusy, setReopenBusy] = useState(false);
-  const [reopenMsg, setReopenMsg] = useState<string | null>(null);
-  // (v1.10.478) Tone separated from message text so localized
-  // copy doesn't drop the destructive style when the prefix
-  // shifts (e.g. Korean '재오픈 실패').
-  const [reopenFailed, setReopenFailed] = useState(false);
-
-  const handleReopen = useCallback(async (relPath: string) => {
-    if (!relPath) return;
-    setReopenBusy(true);
-    setReopenMsg(null);
-    setReopenFailed(false);
-    try {
-      const res = await apiPost<{
-        meeting: { id: string; status: string };
-        contextSeeds: Array<{ path: string }>;
-        originalUpdated: boolean;
-      }>('/api/wiki/reopen', { path: relPath });
-      const m = res.meeting;
-      const seeds = (res.contextSeeds || []).length;
-      setReopenMsg(tFormat('wiki.reopen.success', { id: m.id, seeds }));
-      window.setTimeout(() => setReopenMsg(null), 6000);
-      // Pull the page again so the operator sees the flipped
-      // `status: reopened` frontmatter, then refresh the search
-      // results so the list pane stays in sync.
-      const fresh = await apiPost<ReadResponse>('/api/wiki/read', { path: relPath });
-      setPage(fresh);
-      runSearch();
-    } catch (e) {
-      setReopenMsg(tFormat('wiki.reopen.failed', {
-        error: (e as Error).message || t('common.unknown'),
-      }));
-      setReopenFailed(true);
-    } finally {
-      setReopenBusy(false);
-    }
-  }, [runSearch]);
+  // (v1.10.640) Reopen action hook extracted to ../lib/use-wiki-reopen.
+  const { reopenBusy, reopenMsg, reopenFailed, handleReopen } = useWikiReopen({
+    setPage,
+    runSearch,
+  });
 
   // (v1.10.341) Bulk publish — POST /api/wiki/publish-all writes
   // a wiki page for every terminal meeting that doesn't yet have

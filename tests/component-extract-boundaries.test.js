@@ -1755,6 +1755,42 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useWikiReopen hook (v1.10.640)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-wiki-reopen.ts');
+
+  it('lives in lib/use-wiki-reopen.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useWikiReopen/);
+  });
+
+  it('takes setPage + runSearch args; returns busy/msg/failed/handleReopen', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /setPage:\s*\(next:\s*ReadResponse\s*\|\s*null\)\s*=>\s*void/);
+    assert.match(src, /runSearch:\s*\(\)\s*=>\s*Promise<void>/);
+    assert.match(src, /reopenBusy:\s*boolean/);
+    assert.match(src, /reopenMsg:\s*string\s*\|\s*null/);
+    assert.match(src, /reopenFailed:\s*boolean/);
+    assert.match(src, /handleReopen:\s*\(relPath:\s*string\)\s*=>\s*Promise<void>/);
+  });
+
+  it('owns POST /api/wiki/reopen + the 6s timeout + post-success refetch', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\/api\/wiki\/reopen/);
+    assert.match(src, /setTimeout\(\(\) => setReopenMsg\(null\),\s*6000\)/);
+    assert.match(src, /apiPost<ReadResponse>\('\/api\/wiki\/read'/);
+  });
+
+  it('parent WikiView calls the hook; inline state + handler removed', () => {
+    const parent = read('WikiView.tsx');
+    assert.match(parent, /import\s+\{\s*useWikiReopen\s*\}\s+from\s+'\.\.\/lib\/use-wiki-reopen'/);
+    assert.match(parent, /useWikiReopen\(\{/);
+    assert.doesNotMatch(parent, /const \[reopenBusy, setReopenBusy\]/);
+    assert.doesNotMatch(parent, /const handleReopen/);
+  });
+});
+
 describe('extracted: useWikiPage hook (v1.10.639)', () => {
   const fs = require('fs');
   const path = require('path');

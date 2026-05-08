@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.640] - 2026-05-09 — Extract useWikiReopen hook
+
+**Web — `WikiView.tsx` shrunk by 36 lines (245 → 209).**
+The Reopen action — POST `/api/wiki/reopen` flips the page
+status and spawns a new meeting; on success surface a 6s
+toast + refetch the page so the flipped frontmatter shows up,
+then re-run the search so the list pane status badge stays in
+sync — extracted as a custom hook. Inputs: setPage + runSearch.
+Outputs: reopenBusy / reopenMsg / reopenFailed / handleReopen.
+
+### Refactor
+- New `web/src/lib/use-wiki-reopen.ts` (~59 lines).
+- `WikiView.tsx`: removed 3 useState slots
+  (`reopenBusy`/`reopenMsg`/`reopenFailed`) + `handleReopen`
+  useCallback. Replaced with single `useWikiReopen({ … })`
+  call.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (4 assertions). Total: 107 suites, 548 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 106 of the perfection-track component split. **Eighteenth
+  custom hook extraction**. WikiView 209. 112 ships /
+  107 components+libs / 548 boundary assertions.
+
 ## [1.10.639] - 2026-05-09 — Extract useWikiPage hook
 
 **Web — `WikiView.tsx` shrunk by 13 lines (258 → 245).**
