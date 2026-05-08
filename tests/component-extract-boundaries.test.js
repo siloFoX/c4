@@ -1755,6 +1755,44 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useWikiBulkPublish hook (v1.10.641)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-wiki-bulk-publish.ts');
+
+  it('lives in lib/use-wiki-bulk-publish.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useWikiBulkPublish/);
+  });
+
+  it('takes runSearch arg; returns 5 state slots + 2 setters + 1 handler', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /runSearch:\s*\(\)\s*=>\s*Promise<void>/);
+    assert.match(src, /bulkBusy:\s*boolean/);
+    assert.match(src, /bulkMsg:\s*string\s*\|\s*null/);
+    assert.match(src, /bulkFailed:\s*boolean/);
+    assert.match(src, /bulkGitCommit:\s*boolean/);
+    assert.match(src, /bulkGitPush:\s*boolean/);
+    assert.match(src, /handleBulkPublish:\s*\(\)\s*=>\s*Promise<void>/);
+  });
+
+  it('owns POST /api/wiki/publish-all + 6s toast + git commit/push toggles', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\/api\/wiki\/publish-all/);
+    assert.match(src, /setTimeout\(\(\) => setBulkMsg\(null\),\s*6000\)/);
+    assert.match(src, /gitCommit:\s*bulkGitCommit/);
+    assert.match(src, /gitPush:\s*bulkGitPush/);
+  });
+
+  it('parent WikiView calls the hook; inline state + handler removed', () => {
+    const parent = read('WikiView.tsx');
+    assert.match(parent, /import\s+\{\s*useWikiBulkPublish\s*\}\s+from\s+'\.\.\/lib\/use-wiki-bulk-publish'/);
+    assert.match(parent, /useWikiBulkPublish\(\{/);
+    assert.doesNotMatch(parent, /const \[bulkBusy, setBulkBusy\]/);
+    assert.doesNotMatch(parent, /const handleBulkPublish/);
+  });
+});
+
 describe('extracted: useWikiReopen hook (v1.10.640)', () => {
   const fs = require('fs');
   const path = require('path');

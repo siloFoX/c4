@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.641] - 2026-05-09 — Extract useWikiBulkPublish hook
+
+**Web — `WikiView.tsx` shrunk by 36 lines (209 → 173).**
+The Bulk publish action — POST `/api/wiki/publish-all` writes
+a wiki page for every terminal meeting that doesn't yet have
+one (idempotent unless ?force=1). Surfaces counts in a 6s
+toast + re-runs search + composes the git commit/push toggles.
+Tone separated from message text so localized copy keeps the
+destructive style.
+
+### Refactor
+- New `web/src/lib/use-wiki-bulk-publish.ts` (~79 lines).
+- `WikiView.tsx`: removed 5 useState slots
+  (`bulkBusy`/`bulkMsg`/`bulkFailed`/`bulkGitCommit`/`bulkGitPush`)
+  + `handleBulkPublish` useCallback (~40 lines). Replaced with
+  single `useWikiBulkPublish({ runSearch })` call. Dropped 2
+  unused imports (`apiPost`, `tFormat`).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (4 assertions). Total: 108 suites, 552 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 107 of the perfection-track component split. **Nineteenth
+  custom hook extraction**. WikiView 173 — first time below 200
+  since session start (440). 113 ships / 108 components+libs /
+  552 boundary assertions.
+
 ## [1.10.640] - 2026-05-09 — Extract useWikiReopen hook
 
 **Web — `WikiView.tsx` shrunk by 36 lines (245 → 209).**
