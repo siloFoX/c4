@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.632] - 2026-05-09 — Extract useWorkflowsList hook
+
+**Web — `WorkflowEditor.tsx` shrunk by 12 lines (248 → 236).**
+The /api/workflows list — initial GET, busy/error state, the
+auto-select-first-workflow on mount — extracted as a custom
+hook. Inputs: `getSelectedId` + `onAutoSelect` callbacks (the
+selection-ref pattern keeps the auto-select inside the hook
+without coupling it to selectedId state ownership).
+
+### Refactor
+- New `web/src/lib/use-workflows-list.ts` (~52 lines).
+- `WorkflowEditor.tsx`: removed `workflows`/`busy`/`error`
+  useState slots + `refresh` useCallback + 1 mount effect.
+  Replaced with single `useWorkflowsList(…)` call. Added
+  `useRef` to the imports for the selection-ref pattern.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (4 assertions). Total: 99 suites, 515 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 98 of the perfection-track component split. **Tenth
+  custom hook extraction**. WorkflowEditor 236. 104 ships /
+  99 components+libs / 515 boundary assertions.
+
 ## [1.10.631] - 2026-05-09 — Extract useSessionsActions hook
 
 **Web — `SessionsView.tsx` shrunk by 68 lines (402 → 334).**

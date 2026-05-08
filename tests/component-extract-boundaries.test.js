@@ -1755,6 +1755,41 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useWorkflowsList hook (v1.10.632)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-workflows-list.ts');
+
+  it('lives in lib/use-workflows-list.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useWorkflowsList/);
+  });
+
+  it('takes getSelectedId + onAutoSelect callbacks; returns workflows + busy/error + setters + refresh', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /getSelectedId:\s*\(\)\s*=>\s*string\s*\|\s*null/);
+    assert.match(src, /onAutoSelect:\s*\(id:\s*string\)\s*=>\s*void/);
+    assert.match(src, /workflows:\s*Workflow\[\]/);
+    assert.match(src, /busy:\s*boolean/);
+    assert.match(src, /error:\s*string\s*\|\s*null/);
+    assert.match(src, /refresh:\s*\(\)\s*=>\s*Promise<void>/);
+  });
+
+  it('owns the GET + auto-select-first-on-mount logic', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiGet<WorkflowsResponse>\('\/api\/workflows'\)/);
+    assert.match(src, /onAutoSelect\(first\.id\)/);
+  });
+
+  it('parent WorkflowEditor calls the hook; inline state + effect removed', () => {
+    const parent = read('WorkflowEditor.tsx');
+    assert.match(parent, /import\s+\{\s*useWorkflowsList\s*\}\s+from\s+'\.\.\/lib\/use-workflows-list'/);
+    assert.match(parent, /useWorkflowsList\(\{/);
+    assert.doesNotMatch(parent, /const \[workflows, setWorkflows\]/);
+    assert.doesNotMatch(parent, /apiGet<WorkflowsResponse>/);
+  });
+});
+
 describe('extracted: useSessionsActions hook (v1.10.631)', () => {
   const fs = require('fs');
   const path = require('path');
