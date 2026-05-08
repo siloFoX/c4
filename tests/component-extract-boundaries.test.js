@@ -1750,6 +1750,51 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: RiskCheckResult (v1.10.605)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('RiskCheckResult.tsx');
+    assert.match(src, /export default function RiskCheckResult/);
+  });
+
+  it('takes a single result CheckResponse prop', () => {
+    const src = read('RiskCheckResult.tsx');
+    assert.match(src, /result:\s*CheckResponse/);
+    assert.match(src, /from\s+'\.\.\/pages\/Risk'/);
+  });
+
+  it('renders the level/action/wouldDeny/denyList badges + threshold caption + reasons + intent rollups', () => {
+    const src = read('RiskCheckResult.tsx');
+    assert.match(src, /risk\.badge\.wouldDeny/);
+    assert.match(src, /risk\.badge\.denyList/);
+    assert.match(src, /risk\.threshold/);
+    assert.match(src, /riskPage\.reasons/);
+    assert.match(src, /riskPage\.decoded/);
+    assert.match(src, /riskPage\.staticIntent/);
+    assert.match(src, /risk\.intent\.writes/);
+    assert.match(src, /risk\.intent\.destructive/);
+  });
+
+  it('parent pages/Risk exports CheckReason/CheckResponse + LEVEL_TONE/ACTION_TONE', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(path.join(__dirname, '..', 'web', 'src', 'pages', 'Risk.tsx'), 'utf8');
+    assert.match(src, /export\s+interface\s+CheckReason/);
+    assert.match(src, /export\s+interface\s+CheckResponse/);
+    assert.match(src, /export\s+const\s+LEVEL_TONE/);
+    assert.match(src, /export\s+const\s+ACTION_TONE/);
+  });
+
+  it('parent Risk page imports + renders RiskCheckResult; inline panel removed', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(path.join(__dirname, '..', 'web', 'src', 'pages', 'Risk.tsx'), 'utf8');
+    assert.match(src, /import\s+RiskCheckResult\s+from\s+'\.\.\/components\/RiskCheckResult'/);
+    assert.match(src, /<RiskCheckResult\s+result=\{checkResult\}/);
+    assert.doesNotMatch(src, /risk\.badge\.wouldDeny/);
+    assert.doesNotMatch(src, /riskPage\.staticIntent/);
+  });
+});
+
 describe('extracted: ChatMessageLog (v1.10.604)', () => {
   it('lives in its own file with default export', () => {
     const src = read('ChatMessageLog.tsx');

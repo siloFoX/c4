@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshCw, Shield } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
-import { Badge, Button, Input, Panel } from '../components/ui';
+import { Button, Input, Panel } from '../components/ui';
 import { apiGet, apiPost } from '../lib/api';
-import { t, tFormat, useLocale } from '../lib/i18n';
+import { t, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
 import RiskRuleCatalogPanel from '../components/RiskRuleCatalogPanel';
 import RiskSandboxPreview from '../components/RiskSandboxPreview';
+import RiskCheckResult from '../components/RiskCheckResult';
 
 // (v1.10.356) Risk classifier inspector — preview a command's
 // classification before sending it to a worker, plus a stats
@@ -20,12 +21,14 @@ import RiskSandboxPreview from '../components/RiskSandboxPreview';
 //          dryRun, breakdown by level, top reasons, top workers,
 //          shadow exec counts.
 
-interface CheckReason {
+// (v1.10.605) Promoted to exports so the RiskCheckResult sibling
+// can type its props.
+export interface CheckReason {
   code: string;
   label: string;
   snippet?: string;
 }
-interface CheckResponse {
+export interface CheckResponse {
   level: 'low' | 'medium' | 'high' | 'critical';
   suggestedAction: 'allow' | 'review' | 'deny';
   reasons: CheckReason[];
@@ -86,14 +89,16 @@ interface StatsResponse {
   topWorkers: Array<{ key: string; count: number }>;
 }
 
-const LEVEL_TONE: Record<CheckResponse['level'], string> = {
+// (v1.10.605) LEVEL_TONE / ACTION_TONE promoted to exports —
+// consumed by the RiskCheckResult sibling.
+export const LEVEL_TONE: Record<CheckResponse['level'], string> = {
   low: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/40',
   medium: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/40',
   high: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/40',
   critical: 'bg-destructive/10 text-destructive border-destructive/40',
 };
 
-const ACTION_TONE: Record<CheckResponse['suggestedAction'], string> = {
+export const ACTION_TONE: Record<CheckResponse['suggestedAction'], string> = {
   allow: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/40',
   review: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/40',
   deny: 'bg-destructive/10 text-destructive border-destructive/40',
@@ -252,122 +257,7 @@ export default function Risk() {
           {sandboxError ? <ErrorPanel message={sandboxError} /> : null}
           {sandbox ? <RiskSandboxPreview sandbox={sandbox} /> : null}
         </div>
-        {checkResult ? (
-          <div className="mt-3 flex flex-col gap-2 rounded-md border border-border bg-muted/10 p-3 text-[12px]">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge className={cn('uppercase', LEVEL_TONE[checkResult.level])}>
-                {checkResult.level}
-              </Badge>
-              <Badge className={cn('uppercase', ACTION_TONE[checkResult.suggestedAction])}>
-                {checkResult.suggestedAction}
-              </Badge>
-              {checkResult.wouldDeny ? (
-                <Badge variant="destructive" className="uppercase">{t('risk.badge.wouldDeny')}</Badge>
-              ) : null}
-              {checkResult.denyForced ? (
-                <Badge variant="outline" className="uppercase">{t('risk.badge.denyList')}</Badge>
-              ) : null}
-              <span className="text-[11px] text-muted-foreground">
-                {tFormat('risk.threshold', { level: checkResult.autoDenyLevel })}
-                {!checkResult.enforcementEnabled ? t('risk.enforcementOff') : ''}
-              </span>
-            </div>
-            {checkResult.reasons.length > 0 ? (
-              <div>
-                <div className="text-[11px] font-medium text-foreground">
-                  {tFormat('riskPage.reasons', { count: checkResult.reasons.length })}
-                </div>
-                <ul className="mt-1 space-y-0.5">
-                  {checkResult.reasons.map((r, i) => (
-                    <li key={i} className="text-[11px]">
-                      <code className="rounded border border-border bg-background px-1 py-0.5 font-mono text-[10px]">
-                        {r.code}
-                      </code>
-                      <span className="ml-1 text-muted-foreground">— {r.label}</span>
-                      {r.snippet ? (
-                        <span className="ml-1 italic text-muted-foreground">
-                          “{r.snippet}”
-                        </span>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-            {checkResult.decoded ? (
-              <div>
-                <div className="text-[11px] font-medium text-foreground">
-                  {t('riskPage.decoded')}
-                </div>
-                <pre tabIndex={0} className="mt-1 overflow-auto rounded bg-muted/30 p-2 font-mono text-[11px]">
-                  {checkResult.decoded}
-                </pre>
-              </div>
-            ) : null}
-            {checkResult.inspectedSource ? (
-              <div>
-                <div className="text-[11px] font-medium text-foreground">
-                  {t('riskPage.inspectedSource')}
-                </div>
-                <pre tabIndex={0} className="mt-1 overflow-auto rounded bg-muted/30 p-2 font-mono text-[11px]">
-                  {checkResult.inspectedSource}
-                </pre>
-              </div>
-            ) : null}
-            {checkResult.intent && !checkResult.intent.empty ? (
-              <div>
-                <div className="text-[11px] font-medium text-foreground">
-                  {t('riskPage.staticIntent')}
-                </div>
-                <ul className="mt-1 space-y-0.5 text-[11px]">
-                  {checkResult.intent.privileged ? (
-                    <li><Badge variant="destructive" className="text-[10px]">{t('risk.badge.privileged')}</Badge></li>
-                  ) : null}
-                  {(checkResult.intent.filesWritten || []).length > 0 ? (
-                    <li>
-                      <span className="text-muted-foreground">{t('risk.intent.writes')}</span>
-                      {checkResult.intent.filesWritten!.map((f) => (
-                        <code key={f} className="ml-1 rounded border border-border bg-background px-1 font-mono text-[10px]">
-                          {f}
-                        </code>
-                      ))}
-                    </li>
-                  ) : null}
-                  {(checkResult.intent.filesRead || []).length > 0 ? (
-                    <li>
-                      <span className="text-muted-foreground">{t('risk.intent.reads')}</span>
-                      {checkResult.intent.filesRead!.map((f) => (
-                        <code key={f} className="ml-1 rounded border border-border bg-background px-1 font-mono text-[10px]">
-                          {f}
-                        </code>
-                      ))}
-                    </li>
-                  ) : null}
-                  {(checkResult.intent.networkPeers || []).length > 0 ? (
-                    <li>
-                      <span className="text-muted-foreground">{t('risk.intent.network')}</span>
-                      {checkResult.intent.networkPeers!.map((p) => (
-                        <code key={p} className="ml-1 rounded border border-border bg-background px-1 font-mono text-[10px]">
-                          {p}
-                        </code>
-                      ))}
-                    </li>
-                  ) : null}
-                  {(checkResult.intent.destructiveVerbs || []).length > 0 ? (
-                    <li>
-                      <span className="text-muted-foreground">{t('risk.intent.destructive')}</span>
-                      {checkResult.intent.destructiveVerbs!.map((v) => (
-                        <code key={v} className="ml-1 rounded border border-amber-500/40 bg-amber-500/10 px-1 font-mono text-[10px] text-amber-700 dark:text-amber-400">
-                          {v}
-                        </code>
-                      ))}
-                    </li>
-                  ) : null}
-                </ul>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+        {checkResult ? <RiskCheckResult result={checkResult} /> : null}
       </Panel>
 
       {/* Stats */}

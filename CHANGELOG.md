@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.605] - 2026-05-08 — Extract RiskCheckResult
+
+**Web — `pages/Risk.tsx` shrunk by 110 lines (479 → 369).**
+The classifier check-result panel — level/action/wouldDeny/
+denyList badges + threshold caption + reasons list +
+decoded/inspectedSource pre + static-intent rollups
+(privileged/writes/reads/network/destructive) — extracted as
+its own pure-display sibling. 1 prop.
+
+### Refactor
+- New `web/src/components/RiskCheckResult.tsx` (~138 lines).
+- `pages/Risk.tsx`: removed the inline ~115-line check-result
+  panel. Replaced with single
+  `{checkResult ? <RiskCheckResult result={checkResult} /> : null}`.
+  Promoted `CheckReason`, `CheckResponse`, `LEVEL_TONE`,
+  `ACTION_TONE` to exports so the new sibling can type its
+  prop and reuse the tone palettes. Dropped 2 unused imports
+  (`Badge` UI primitive + `tFormat` helper).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 72 suites, 385 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 71 of the perfection-track component split. Risk page
+  369 (was 515 at session start, -28% cumulative). 77 ships /
+  72 components+libs / 385 boundary assertions.
+
 ## [1.10.604] - 2026-05-08 — Extract ChatMessageLog
 
 **Web — `ChatView.tsx` shrunk by 66 lines (519 → 453).**
