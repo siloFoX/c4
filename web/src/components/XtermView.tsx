@@ -13,7 +13,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Terminal, type ITheme } from '@xterm/xterm';
+import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { SearchAddon } from '@xterm/addon-search';
 import { WebLinksAddon } from '@xterm/addon-web-links';
@@ -23,6 +23,8 @@ import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 import XtermStatusBar from './XtermStatusBar';
 import { b64decode } from '../lib/chat-helpers';
+import { buildXtermTheme } from '../lib/xterm-theme';
+import { useXtermThemeTracking } from '../lib/use-xterm-theme-tracking';
 
 interface XtermViewProps {
   workerName: string;
@@ -41,61 +43,8 @@ interface WatchEvent {
 
 // (v1.10.571) b64decode moved to lib/chat-helpers.ts — was a
 // duplicate of ChatView's. Imported below.
-
-// Pull a shadcn CSS custom property off the document root and wrap it in
-// hsl(...). The tokens are stored as bare "H S% L%" triples (see
-// web/src/index.css) so xterm -- which wants a concrete CSS color -- needs
-// the wrapper. Fallbacks cover SSR + very old browsers.
-function readShadcnColor(varName: string, fallback: string): string {
-  if (typeof window === 'undefined' || typeof document === 'undefined') {
-    return fallback;
-  }
-  const raw = getComputedStyle(document.documentElement)
-    .getPropertyValue(varName)
-    .trim();
-  if (!raw) return fallback;
-  return `hsl(${raw})`;
-}
-
-// Map shadcn's palette to the xterm ITheme shape. The ANSI 16 entries come
-// from a neutral light/dark pair; shadcn's semantic tokens (primary, muted,
-// destructive) drive the chrome (cursor / selection) so the terminal tracks
-// the rest of the UI.
-function buildXtermTheme(): ITheme {
-  const background = readShadcnColor('--background', '#ffffff');
-  const foreground = readShadcnColor('--foreground', '#0a0a0a');
-  const mutedForeground = readShadcnColor('--muted-foreground', '#737373');
-  const primary = readShadcnColor('--primary', '#0a0a0a');
-  const accent = readShadcnColor('--accent', '#f4f4f5');
-  const destructive = readShadcnColor('--destructive', '#ef4444');
-  return {
-    background,
-    foreground,
-    cursor: primary,
-    cursorAccent: background,
-    selectionBackground: accent,
-    selectionForeground: foreground,
-    // ANSI 16 palette -- balanced against shadcn neutrals so Claude Code's
-    // coloured output (green "done", red error, etc) stays legible on both
-    // light and dark.
-    black: '#1f2937',
-    red: destructive,
-    green: '#16a34a',
-    yellow: '#ca8a04',
-    blue: '#2563eb',
-    magenta: '#c026d3',
-    cyan: '#0891b2',
-    white: mutedForeground,
-    brightBlack: '#4b5563',
-    brightRed: '#f87171',
-    brightGreen: '#4ade80',
-    brightYellow: '#facc15',
-    brightBlue: '#60a5fa',
-    brightMagenta: '#e879f9',
-    brightCyan: '#22d3ee',
-    brightWhite: foreground,
-  };
-}
+// (v1.10.645) buildXtermTheme moved to lib/xterm-theme.ts so
+// the theme-tracking hook can share it.
 
 // 8.27 debounce shared across window.resize + ResizeObserver to avoid firing
 // two fit()/POST-resize pairs for one gesture.
@@ -256,21 +205,8 @@ export default function XtermView({ workerName, fontSize, visible = true }: Xter
     scheduleFit();
   }, [fontSize, scheduleFit]);
 
-  // Theme tracking -- re-applied whenever the `<html>` dark class flips or
-  // the user reloads. shadcn swaps --background / --foreground via a class,
-  // so watching classList is enough.
-  useEffect(() => {
-    const term = termRef.current;
-    if (!term) return;
-    const apply = () => {
-      term.options.theme = buildXtermTheme();
-    };
-    apply();
-    if (typeof MutationObserver === 'undefined') return;
-    const obs = new MutationObserver(apply);
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => obs.disconnect();
-  }, [workerName]);
+  // (v1.10.645) Theme tracking moved to lib/use-xterm-theme-tracking.
+  useXtermThemeTracking({ termRef, workerName });
 
   // 8.27 ResizeObserver. Attached for the lifetime of the mount regardless
   // of `visible`, so a sidebar-toggle or window-resize that happens while

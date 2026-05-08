@@ -4,6 +4,52 @@
 
 (no entries — next release window)
 
+## [1.10.645] - 2026-05-09 — Extract useXtermThemeTracking + xterm-theme
+
+**Web — `XtermView.tsx` shrunk by 64 lines (414 → 350).**
+Two extractions in one ship: the shadcn-CSS-token →
+xterm-`ITheme` mapper plus its private `readShadcnColor`
+helper move to `lib/xterm-theme.ts`, and the
+MutationObserver-on-`<html>`-classList hook moves to
+`lib/use-xterm-theme-tracking.ts`. The terminal-init effect
+keeps using `buildXtermTheme()` directly; the dark-toggle
+re-apply now lives entirely in the hook.
+
+### Refactor
+- New `web/src/lib/xterm-theme.ts` (~52 lines) — exports
+  `buildXtermTheme(): ITheme`. `readShadcnColor` stays
+  module-private; the only consumer of the wrapped
+  `hsl(…)` strings is `buildXtermTheme` itself.
+- New `web/src/lib/use-xterm-theme-tracking.ts` (~31 lines)
+  — `useXtermThemeTracking({ termRef, workerName })`.
+- `XtermView.tsx`: deleted ~70 lines of theme code (both
+  helpers + the tracking useEffect). Replaced with the
+  hook call + a `buildXtermTheme` import for the term-init
+  call site. Trimmed the unused `ITheme` import.
+- Boundary suite #113 — 5 assertions covering the lib +
+  hook + parent wiring (export shapes, hsl wrap,
+  MutationObserver+classList, parent imports & call,
+  parent no longer redeclares the helpers).
+- `tests/xterm-view.test.js` redirects: theme-tokens +
+  dark-toggle assertions now grep the new lib/hook files
+  instead of the parent.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  569 / 569 across 112 → 113 suites.
+- `node --test tests/xterm-view.test.js`: 21 / 21 (after
+  redirect).
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 117 ships total since v1.10.529.
+- 113 components/libs extracted (counting `xterm-theme` as
+  a lib + `useXtermThemeTracking` as a hook).
+- 23 custom hooks in `web/src/lib/`.
+- 569 boundary assertions across 113 suites.
+
 ## [1.10.644] - 2026-05-09 — Extract useRiskStats hook
 
 **Web — `pages/Risk.tsx` shrunk by 10 lines (297 → 287).**

@@ -91,19 +91,31 @@ describe('XtermView wiring (8.24 + 8.27)', () => {
   });
 
   it('maps the xterm theme onto the shadcn CSS tokens (light + dark parity)', () => {
-    assert.match(src, /--background/);
-    assert.match(src, /--foreground/);
-    assert.match(src, /--muted-foreground/);
-    assert.match(src, /--primary/);
-    assert.match(src, /--destructive/);
-    // Function name contract so the test survives minor refactors.
-    assert.match(src, /readShadcnColor\(/);
+    // (v1.10.645) Theme builder moved to lib/xterm-theme.ts so the
+    // theme-tracking hook + the terminal-init effect can share it.
+    const themeSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'xterm-theme.ts'),
+      'utf8',
+    );
+    assert.match(themeSrc, /--background/);
+    assert.match(themeSrc, /--foreground/);
+    assert.match(themeSrc, /--muted-foreground/);
+    assert.match(themeSrc, /--primary/);
+    assert.match(themeSrc, /--destructive/);
+    assert.match(themeSrc, /readShadcnColor\(/);
+    assert.match(themeSrc, /export function buildXtermTheme/);
     assert.match(src, /buildXtermTheme\(/);
   });
 
   it('re-applies the theme when the <html> class flips (dark mode toggle)', () => {
-    assert.match(src, /MutationObserver/);
-    assert.match(src, /attributeFilter:\s*\[\s*['"]class['"]\s*\]/);
+    // (v1.10.645) MutationObserver wiring moved to
+    // lib/use-xterm-theme-tracking.ts.
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-xterm-theme-tracking.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /MutationObserver/);
+    assert.match(hookSrc, /attributeFilter:\s*\[\s*['"]class['"]\s*\]/);
   });
 
   it('exposes the alt-screen state via term.buffer.active.type', () => {

@@ -1755,6 +1755,51 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useXtermThemeTracking + xterm-theme (v1.10.645)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-xterm-theme-tracking.ts');
+  const THEME = path.join(__dirname, '..', 'web', 'src', 'lib', 'xterm-theme.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'XtermView.tsx');
+
+  it('xterm-theme.ts exports buildXtermTheme + readShadcnColor stays internal', () => {
+    const src = fs.readFileSync(THEME, 'utf8');
+    assert.match(src, /export function buildXtermTheme/);
+    assert.match(src, /function readShadcnColor/);
+    assert.doesNotMatch(src, /export function readShadcnColor/);
+  });
+
+  it('xterm-theme wraps shadcn HSL triples in hsl(...)', () => {
+    const src = fs.readFileSync(THEME, 'utf8');
+    assert.match(src, /hsl\(\$\{raw\}\)/);
+    assert.match(src, /'--background'/);
+    assert.match(src, /'--foreground'/);
+  });
+
+  it('use-xterm-theme-tracking.ts exports the hook + accepts termRef + workerName', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useXtermThemeTracking/);
+    assert.match(src, /termRef:\s*RefObject<Terminal\s*\|\s*null>/);
+    assert.match(src, /workerName:\s*string/);
+  });
+
+  it('use-xterm-theme-tracking observes <html> classList via MutationObserver', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /new MutationObserver\(apply\)/);
+    assert.match(src, /attributeFilter: \['class'\]/);
+    assert.match(src, /buildXtermTheme/);
+  });
+
+  it('parent XtermView calls the hook + imports buildXtermTheme from lib', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useXtermThemeTracking\s*\}\s+from\s+'\.\.\/lib\/use-xterm-theme-tracking'/);
+    assert.match(src, /import\s+\{\s*buildXtermTheme\s*\}\s+from\s+'\.\.\/lib\/xterm-theme'/);
+    assert.match(src, /useXtermThemeTracking\(\{\s*termRef,\s*workerName\s*\}\)/);
+    assert.doesNotMatch(src, /^function buildXtermTheme/m);
+    assert.doesNotMatch(src, /^function readShadcnColor/m);
+  });
+});
+
 describe('extracted: useRiskStats hook (v1.10.644)', () => {
   const fs = require('fs');
   const path = require('path');
