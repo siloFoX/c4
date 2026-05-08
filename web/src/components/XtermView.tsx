@@ -13,7 +13,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Search as SearchIcon, X as XIcon } from 'lucide-react';
 import { Terminal, type ITheme } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { SearchAddon } from '@xterm/addon-search';
@@ -22,6 +21,7 @@ import '@xterm/xterm/css/xterm.css';
 import { apiFetch, eventSourceUrl } from '../lib/api';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
+import XtermStatusBar from './XtermStatusBar';
 import { b64decode } from '../lib/chat-helpers';
 
 interface XtermViewProps {
@@ -392,48 +392,17 @@ export default function XtermView({ workerName, fontSize, visible = true }: Xter
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-        <span>{statusLabel}</span>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          aria-label={t('xterm.search.label')}
-          onClick={() => setSearchOpen((o) => !o)}
-        >
-          <SearchIcon className="h-3 w-3" aria-hidden="true" />
-          <span>{t('xterm.search.button')}</span>
-        </button>
-      </div>
-
-      {searchOpen && (
-        <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-3 py-2">
-          <input
-            type="text"
-            value={searchQuery}
-            autoFocus
-            placeholder={t('xterm.find.placeholder')}
-            className="min-w-0 flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground"
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                runSearch(e.shiftKey ? 'prev' : 'next');
-              } else if (e.key === 'Escape') {
-                e.preventDefault();
-                setSearchOpen(false);
-              }
-            }}
-          />
-          <button
-            type="button"
-            aria-label={t('xterm.close.label')}
-            className="rounded-sm p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            onClick={() => setSearchOpen(false)}
-          >
-            <XIcon className="h-3 w-3" aria-hidden="true" />
-          </button>
-        </div>
-      )}
+      {/* (v1.10.589) Status bar + search panel extracted to
+          ./XtermStatusBar.tsx. */}
+      <XtermStatusBar
+        statusLabel={statusLabel}
+        searchOpen={searchOpen}
+        onToggleSearch={() => setSearchOpen((o) => !o)}
+        searchQuery={searchQuery}
+        onSearchQuery={setSearchQuery}
+        onRunSearch={runSearch}
+        onCloseSearch={() => setSearchOpen(false)}
+      />
 
       <div
         ref={containerRef}

@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.589] - 2026-05-08 — Extract XtermStatusBar
+
+**Web — `XtermView.tsx` shrunk by 31 lines (445 → 414).**
+The status bar (status label + Search toggle button) and the
+conditionally-rendered search input panel beneath it —
+extracted as its own pure controlled-input sibling. 7 props.
+
+### Refactor
+- New `web/src/components/XtermStatusBar.tsx` (~77 lines),
+  exports `SearchDirection` type alias.
+- `XtermView.tsx`: removed the inline 42-line status/search
+  block. Replaced with `<XtermStatusBar … />`. Dropped 2 unused
+  imports (`Search as SearchIcon`, `X as XIcon`).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 56 suites, 303 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 55 of the perfection-track component split. XtermView
+  414 (was 480 at session start). 61 ships / 56 components+libs
+  / 303 boundary assertions.
+
 ## [1.10.588] - 2026-05-08 — Extract WorkerDetailHeader
 
 **Web — `WorkerDetail.tsx` shrunk by 60 lines (451 → 391).**

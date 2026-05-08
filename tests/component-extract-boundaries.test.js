@@ -1737,6 +1737,47 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: XtermStatusBar (v1.10.589)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('XtermStatusBar.tsx');
+    assert.match(src, /export default function XtermStatusBar/);
+  });
+
+  it('takes the 7 controlled-input props', () => {
+    const src = read('XtermStatusBar.tsx');
+    assert.match(src, /statusLabel:\s*string/);
+    assert.match(src, /searchOpen:\s*boolean/);
+    assert.match(src, /onToggleSearch:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /searchQuery:\s*string/);
+    assert.match(src, /onSearchQuery:\s*\(next:\s*string\)\s*=>\s*void/);
+    assert.match(src, /onRunSearch:\s*\(direction:\s*SearchDirection\)\s*=>\s*void/);
+    assert.match(src, /onCloseSearch:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('renders status bar + search button + Enter→runSearch + Escape→close', () => {
+    const src = read('XtermStatusBar.tsx');
+    assert.match(src, /xterm\.search\.label/);
+    assert.match(src, /xterm\.search\.button/);
+    assert.match(src, /xterm\.find\.placeholder/);
+    assert.match(src, /e\.shiftKey \? 'prev' : 'next'/);
+    assert.match(src, /e\.key === 'Escape'/);
+  });
+
+  it('is imported and rendered by XtermView', () => {
+    const parent = read('XtermView.tsx');
+    assert.match(parent, /import\s+XtermStatusBar\s+from\s+'\.\/XtermStatusBar'/);
+    assert.match(parent, /<XtermStatusBar/);
+    assert.match(parent, /onSearchQuery=\{setSearchQuery\}/);
+    assert.match(parent, /onRunSearch=\{runSearch\}/);
+  });
+
+  it('parent XtermView no longer holds the inline status bar markup', () => {
+    const parent = read('XtermView.tsx');
+    assert.doesNotMatch(parent, /xterm\.search\.label/);
+    assert.doesNotMatch(parent, /xterm\.find\.placeholder/);
+  });
+});
+
 describe('extracted: WorkerDetailHeader (v1.10.588)', () => {
   it('lives in its own file with default export', () => {
     const src = read('WorkerDetailHeader.tsx');
