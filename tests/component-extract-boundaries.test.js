@@ -1750,6 +1750,48 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: WorkflowSelectedHeader (v1.10.603)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('WorkflowSelectedHeader.tsx');
+    assert.match(src, /export default function WorkflowSelectedHeader/);
+  });
+
+  it('takes workflow + busy + inputs state + 3 callback props', () => {
+    const src = read('WorkflowSelectedHeader.tsx');
+    assert.match(src, /workflow:\s*Workflow/);
+    assert.match(src, /busy:\s*boolean/);
+    assert.match(src, /inputsOpen:\s*boolean/);
+    assert.match(src, /inputsJson:\s*string/);
+    assert.match(src, /inputsError:\s*string\s*\|\s*null/);
+    assert.match(src, /onToggleInputs:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onChangeInputsJson:\s*\(next:\s*string\)\s*=>\s*void/);
+    assert.match(src, /onRun:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('renders title + description + Inputs toggle + Run button + JSON textarea', () => {
+    const src = read('WorkflowSelectedHeader.tsx');
+    assert.match(src, /workflows\.noDescription/);
+    assert.match(src, /workflows\.inputs\.toggle\.show/);
+    assert.match(src, /workflows\.inputs\.toggle\.hide/);
+    assert.match(src, /workflows\.run\.button/);
+    assert.match(src, /workflows\.inputs\.label/);
+  });
+
+  it('is imported and rendered by WorkflowEditor', () => {
+    const parent = read('WorkflowEditor.tsx');
+    assert.match(parent, /import\s+WorkflowSelectedHeader\s+from\s+'\.\/WorkflowSelectedHeader'/);
+    assert.match(parent, /<WorkflowSelectedHeader/);
+    assert.match(parent, /onRun=\{handleRun\}/);
+    assert.match(parent, /onChangeInputsJson=\{setInputsJson\}/);
+  });
+
+  it('parent WorkflowEditor no longer holds the inline selected-header card', () => {
+    const parent = read('WorkflowEditor.tsx');
+    assert.doesNotMatch(parent, /workflows\.run\.button/);
+    assert.doesNotMatch(parent, /workflows\.inputs\.toggle\.show/);
+  });
+});
+
 describe('extracted: MeetingsListTitleBar (v1.10.602)', () => {
   it('lives in its own file with default export', () => {
     const src = read('MeetingsListTitleBar.tsx');

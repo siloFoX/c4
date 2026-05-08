@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.603] - 2026-05-08 — Extract WorkflowSelectedHeader
+
+**Web — `WorkflowEditor.tsx` shrunk by 43 lines (392 → 349).**
+The selected-workflow header card — title + description, Inputs
+toggle button, Run button, and the conditionally-rendered JSON
+textarea + error span — extracted as its own pure
+controlled-input sibling. 8 props.
+
+### Refactor
+- New `web/src/components/WorkflowSelectedHeader.tsx`
+  (~87 lines).
+- `WorkflowEditor.tsx`: removed the inline ~50-line selected-
+  header Card. Replaced with `<WorkflowSelectedHeader … />`.
+  Dropped 5 unused imports (`Play` icon + `Button` /
+  `CardDescription` / `CardHeader` / `CardTitle` UI primitives).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 70 suites milestone, 375 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 69 of the perfection-track component split.
+  WorkflowEditor 349. 75 ships / 70 components+libs / 375
+  boundary assertions.
+
 ## [1.10.602] - 2026-05-08 — Extract MeetingsListTitleBar
 
 **Web — `MeetingsView.tsx` shrunk by 18 lines (699 → 681).**

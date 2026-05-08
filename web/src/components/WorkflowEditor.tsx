@@ -7,20 +7,16 @@
 // engine + viewer; full edit UI is tracked under future work).
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Play } from 'lucide-react';
 import { apiGet, apiPost } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import WorkflowGraph from './WorkflowGraph';
 import WorkflowNodeProperties from './WorkflowNodeProperties';
 import WorkflowList from './WorkflowList';
+import WorkflowSelectedHeader from './WorkflowSelectedHeader';
 import {
   Badge,
-  Button,
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   Panel,
   type BadgeProps,
 } from './ui';
@@ -209,57 +205,18 @@ export default function WorkflowEditor() {
       <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden">
         {selected ? (
           <>
-            <Card>
-              <CardHeader className="flex-row items-start justify-between gap-2 p-4 md:p-5">
-                <div className="min-w-0">
-                  <CardTitle className="truncate">{selected.name}</CardTitle>
-                  <CardDescription className="truncate">
-                    {selected.description || t('workflows.noDescription')}
-                  </CardDescription>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setInputsOpen((v) => !v)}
-                      disabled={busy}
-                      className="h-7 px-2 text-[11px]"
-                      title={t('workflows.inputs.title')}
-                      aria-expanded={inputsOpen}
-                    >
-                      {inputsOpen ? t('workflows.inputs.toggle.hide') : t('workflows.inputs.toggle.show')}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="default"
-                      size="sm"
-                      onClick={handleRun}
-                      disabled={busy || !selected.enabled}
-                    >
-                      <Play className="h-4 w-4" />
-                      <span>{t('workflows.run.button')}</span>
-                    </Button>
-                  </div>
-                  {inputsOpen ? (
-                    <div className="flex w-72 flex-col gap-1 text-[11px]">
-                      <textarea
-                        value={inputsJson}
-                        onChange={(e) => setInputsJson(e.target.value)}
-                        placeholder='{"foo": "bar"}'
-                        aria-label={t('workflows.inputs.label')}
-                        disabled={busy}
-                        className="min-h-[64px] rounded border border-border bg-background p-2 font-mono text-[11px]"
-                      />
-                      {inputsError ? (
-                        <span className="text-destructive">{inputsError}</span>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              </CardHeader>
-            </Card>
+            {/* (v1.10.603) Selected workflow header extracted to
+                ./WorkflowSelectedHeader.tsx. */}
+            <WorkflowSelectedHeader
+              workflow={selected}
+              busy={busy}
+              inputsOpen={inputsOpen}
+              inputsJson={inputsJson}
+              inputsError={inputsError}
+              onToggleInputs={() => setInputsOpen((v) => !v)}
+              onChangeInputsJson={setInputsJson}
+              onRun={handleRun}
+            />
 
             <Card className="min-h-0 flex-1 overflow-auto">
               <CardContent className="min-h-0 p-3 md:p-4">
