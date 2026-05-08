@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.642] - 2026-05-09 — Extract useWikiSearch hook
+
+**Web — `WikiView.tsx` shrunk by 16 lines (173 → 157).**
+The /api/wiki/search query — composes q/type/includeStale/limit
+URL params, runs an initial empty-query search on mount, re-runs
+whenever any input changes — extracted as a custom hook. Owns
+the 3 controlled-input pairs + 3 result/state slots + the
+`runSearch` re-entry callback.
+
+### Refactor
+- New `web/src/lib/use-wiki-search.ts` (~67 lines).
+- `WikiView.tsx`: removed 6 useState slots
+  (`query`/`type`/`includeStale`/`search`/`searchError`/`searching`)
+  + `runSearch` useCallback + auto-search useEffect. Replaced
+  with single `useWikiSearch()` call. Dropped 4 unused imports
+  (`useCallback`, `useEffect`, `apiGet`, `t`).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (4 assertions). Total: 109 suites, 556 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 108 of the perfection-track component split. **Twentieth
+  custom hook extraction**. WikiView 157 — first time below 160.
+  114 ships / 109 components+libs / 556 boundary assertions.
+
 ## [1.10.641] - 2026-05-09 — Extract useWikiBulkPublish hook
 
 **Web — `WikiView.tsx` shrunk by 36 lines (209 → 173).**

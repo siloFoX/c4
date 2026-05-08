@@ -1755,6 +1755,42 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useWikiSearch hook (v1.10.642)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-wiki-search.ts');
+
+  it('lives in lib/use-wiki-search.ts and exports the hook', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useWikiSearch/);
+  });
+
+  it('returns 4 controlled-input pairs + search/searchError/searching/runSearch', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /query:\s*string/);
+    assert.match(src, /type:\s*string/);
+    assert.match(src, /includeStale:\s*boolean/);
+    assert.match(src, /search:\s*SearchResponse\s*\|\s*null/);
+    assert.match(src, /searching:\s*boolean/);
+    assert.match(src, /runSearch:\s*\(\)\s*=>\s*Promise<void>/);
+  });
+
+  it('owns GET /api/wiki/search + auto-search-on-mount + 25 limit', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\/api\/wiki\/search/);
+    assert.match(src, /qs\.set\('limit', '25'\)/);
+    assert.match(src, /useEffect\(\(\) => \{ runSearch\(\); \}/);
+  });
+
+  it('parent WikiView calls the hook; inline state + runSearch removed', () => {
+    const parent = read('WikiView.tsx');
+    assert.match(parent, /import\s+\{\s*useWikiSearch\s*\}\s+from\s+'\.\.\/lib\/use-wiki-search'/);
+    assert.match(parent, /useWikiSearch\(\)/);
+    assert.doesNotMatch(parent, /const \[query, setQuery\]/);
+    assert.doesNotMatch(parent, /const runSearch = useCallback/);
+  });
+});
+
 describe('extracted: useWikiBulkPublish hook (v1.10.641)', () => {
   const fs = require('fs');
   const path = require('path');

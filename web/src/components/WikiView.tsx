@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
-import { apiGet } from '../lib/api';
+import { useState } from 'react';
 import { Card, CardContent } from './ui';
-import { t, useLocale } from '../lib/i18n';
+import { useLocale } from '../lib/i18n';
 import WikiSearchResults from './WikiSearchResults';
 import WikiPageDetail from './WikiPageDetail';
 import WikiPageDetailHeader from './WikiPageDetailHeader';
@@ -9,6 +8,7 @@ import WikiSearchCardHeader from './WikiSearchCardHeader';
 import { useWikiPage } from '../lib/use-wiki-page';
 import { useWikiReopen } from '../lib/use-wiki-reopen';
 import { useWikiBulkPublish } from '../lib/use-wiki-bulk-publish';
+import { useWikiSearch } from '../lib/use-wiki-search';
 
 // (multi-specialist phase 7.4) Wiki tab — split-pane like
 // MeetingsView. Left: query input + results list. Right: full page
@@ -61,39 +61,23 @@ export const TYPE_OPTIONS: Array<{ value: string; labelKey: string }> = [
 
 export default function WikiView() {
   useLocale();
-  const [query, setQuery] = useState('');
-  const [type, setType] = useState<string>('any');
-  const [includeStale, setIncludeStale] = useState(false);
-  const [search, setSearch] = useState<SearchResponse | null>(null);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [searching, setSearching] = useState(false);
+  // (v1.10.642) Wiki search hook extracted to ../lib/use-wiki-search.
+  const {
+    query,
+    setQuery,
+    type,
+    setType,
+    includeStale,
+    setIncludeStale,
+    search,
+    searchError,
+    searching,
+    runSearch,
+  } = useWikiSearch();
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   // (v1.10.639) Per-selection /api/wiki/read hook extracted to
   // ../lib/use-wiki-page.
   const { page, setPage, pageError } = useWikiPage(selectedPath);
-
-  const runSearch = useCallback(async () => {
-    setSearching(true);
-    setSearchError(null);
-    try {
-      const qs = new URLSearchParams();
-      qs.set('q', query);
-      if (type) qs.set('type', type);
-      if (includeStale) qs.set('includeStale', '1');
-      qs.set('limit', '25');
-      const res = await apiGet<SearchResponse>(`/api/wiki/search?${qs.toString()}`);
-      setSearch(res);
-    } catch (e) {
-      setSearchError((e as Error).message || t('common.wikiSearchFailed'));
-    } finally {
-      setSearching(false);
-    }
-  }, [query, type, includeStale]);
-
-  // Run an initial empty-query search on mount so the operator sees
-  // every available page right away (the daemon's reader scores
-  // empty queries with score=1 for each hit, sorted by path).
-  useEffect(() => { runSearch(); }, [runSearch]);
 
 
   // (v1.10.640) Reopen action hook extracted to ../lib/use-wiki-reopen.
