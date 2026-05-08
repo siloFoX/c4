@@ -1750,6 +1750,51 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: ChatMessageLog (v1.10.604)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('ChatMessageLog.tsx');
+    assert.match(src, /export default function ChatMessageLog/);
+  });
+
+  it('takes scrollRef + 8 controlled props', () => {
+    const src = read('ChatMessageLog.tsx');
+    assert.match(src, /scrollRef:\s*RefObject<HTMLDivElement>/);
+    assert.match(src, /onScroll:\s*\(e:\s*UIEvent<HTMLDivElement>\)\s*=>\s*void/);
+    assert.match(src, /workerName:\s*string/);
+    assert.match(src, /backfillLoading:\s*boolean/);
+    assert.match(src, /backfillSource:\s*BackfillSource/);
+    assert.match(src, /hasOlder:\s*boolean/);
+    assert.match(src, /loadingOlder:\s*boolean/);
+    assert.match(src, /messages:\s*ChatMessage\[\]/);
+    assert.match(src, /onLoadOlder:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('renders backfill skeleton + empty state + per-message bubbles', () => {
+    const src = read('ChatMessageLog.tsx');
+    assert.match(src, /chat\.loadingPast/);
+    assert.match(src, /chat\.empty/);
+    assert.match(src, /chat\.olderLoading/);
+    assert.match(src, /chat\.loadOlder/);
+    assert.match(src, /messages\.map/);
+    assert.match(src, /isUser \? 'justify-end' : 'justify-start'/);
+  });
+
+  it('is imported and rendered by ChatView', () => {
+    const parent = read('ChatView.tsx');
+    assert.match(parent, /import\s+ChatMessageLog\s+from\s+'\.\/ChatMessageLog'/);
+    assert.match(parent, /<ChatMessageLog/);
+    assert.match(parent, /scrollRef=\{scrollRef\}/);
+    assert.match(parent, /onScroll=\{onScroll\}/);
+  });
+
+  it('parent ChatView no longer holds the inline scroll container or per-message JSX', () => {
+    const parent = read('ChatView.tsx');
+    assert.doesNotMatch(parent, /chat\.empty/);
+    assert.doesNotMatch(parent, /messages\.map/);
+    assert.doesNotMatch(parent, /<Loader2/);
+  });
+});
+
 describe('extracted: WorkflowSelectedHeader (v1.10.603)', () => {
   it('lives in its own file with default export', () => {
     const src = read('WorkflowSelectedHeader.tsx');

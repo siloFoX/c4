@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.604] - 2026-05-08 — Extract ChatMessageLog
+
+**Web — `ChatView.tsx` shrunk by 66 lines (519 → 453).**
+The chat-message scroll container — backfill loading skeleton,
+empty placeholder, optional older-loader entry, and per-message
+bubble rendering — extracted as its own pure-display sibling.
+9 props (including the forwarded `scrollRef`).
+
+### Refactor
+- New `web/src/components/ChatMessageLog.tsx` (~123 lines).
+- `ChatView.tsx`: removed the inline ~80-line scroll container.
+  Replaced with `<ChatMessageLog … />`. Dropped 3 unused
+  imports (`Loader2`, `Sparkles` icons + `formatTime` helper —
+  the new sibling owns time formatting now).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 71 suites, 380 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 70 of the perfection-track component split. ChatView
+  453 (was 700+ at session start). 76 ships / 71 components+libs
+  / 380 boundary assertions.
+
 ## [1.10.603] - 2026-05-08 — Extract WorkflowSelectedHeader
 
 **Web — `WorkflowEditor.tsx` shrunk by 43 lines (392 → 349).**

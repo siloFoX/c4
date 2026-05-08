@@ -260,12 +260,14 @@ describe('ChatView source wiring (8.25)', () => {
   });
 
   it('renders a loading skeleton while backfill is in flight', () => {
-    assert.match(src, /backfillLoading \?/);
-    assert.match(src, /animate-spin/);
-    assert.match(src, /animate-pulse/);
+    // (v1.10.604) Loading skeleton moved to ChatMessageLog sibling.
+    const logSrc = fs.readFileSync(path.join(WEB_SRC, 'components', 'ChatMessageLog.tsx'), 'utf8');
+    assert.match(logSrc, /backfillLoading \?/);
+    assert.match(logSrc, /animate-spin/);
+    assert.match(logSrc, /animate-pulse/);
     // (v1.10.385) i18n migration — assert the i18n key reference
     // instead of the literal English string.
-    assert.match(src, /chat\.loadingPast/);
+    assert.match(logSrc, /chat\.loadingPast/);
   });
 
   it('renders a "Loaded N past messages" badge when backfill succeeds', () => {
@@ -289,9 +291,10 @@ describe('ChatView source wiring (8.25)', () => {
     // scroll-to-top threshold triggers the older fetch
     assert.match(src, /el\.scrollTop <= 8/);
     assert.match(src, /void loadOlder\(\)/);
-    // Button fallback lets the user pull older manually.
+    // (v1.10.604) Button fallback moved to ChatMessageLog sibling.
     // Copy lives in i18n now; check for the key wiring.
-    assert.match(src, /t\('chat\.loadOlder'\)/);
+    const logSrc = fs.readFileSync(path.join(WEB_SRC, 'components', 'ChatMessageLog.tsx'), 'utf8');
+    assert.match(logSrc, /t\('chat\.loadOlder'\)/);
   });
 
   it('keeps SSE /api/watch wiring intact alongside backfill', () => {

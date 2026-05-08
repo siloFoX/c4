@@ -110,9 +110,11 @@ describe('ChatView source wiring', () => {
   });
 
   it('renders user bubbles right-aligned and worker bubbles left-aligned', () => {
-    assert.match(src, /justify-end/);
-    assert.match(src, /justify-start/);
-    assert.match(src, /isUser \? 'justify-end' : 'justify-start'/);
+    // (v1.10.604) Per-message bubble JSX moved to ChatMessageLog.
+    const log = fs.readFileSync(path.join(WEB_SRC, 'components', 'ChatMessageLog.tsx'), 'utf8');
+    assert.match(log, /justify-end/);
+    assert.match(log, /justify-start/);
+    assert.match(log, /isUser \? 'justify-end' : 'justify-start'/);
   });
 
   it('tracks autoScroll and exposes a Jump-to-latest escape hatch', () => {

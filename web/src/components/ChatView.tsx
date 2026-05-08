@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Loader2, Send, Sparkles } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { apiFetch, apiGet, eventSourceUrl } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import {
@@ -20,7 +20,6 @@ import ChatHeader from './ChatHeader';
 import {
   b64decode,
   conversationToMessages,
-  formatTime,
   makeId,
   scrollbackToMessages,
   stripAnsi,
@@ -28,6 +27,7 @@ import {
   type ConversationShape,
   type Role,
 } from '../lib/chat-helpers';
+import ChatMessageLog from './ChatMessageLog';
 
 interface ChatViewProps {
   workerName: string;
@@ -410,85 +410,19 @@ export default function ChatView({ workerName }: ChatViewProps) {
           </div>
         )}
 
-        <div
-          ref={scrollRef}
+        {/* (v1.10.604) Message log scroll container extracted to
+            ./ChatMessageLog.tsx. */}
+        <ChatMessageLog
+          scrollRef={scrollRef}
           onScroll={onScroll}
-          className="min-h-0 min-w-0 flex-1 overflow-y-auto rounded-md border border-border bg-background p-3 md:p-4"
-          role="log"
-          aria-live="polite"
-          aria-label={tFormat('chatView.aria.chatWith', { worker: workerName })}
-        >
-          {backfillLoading ? (
-            <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
-              <span>{t('chat.loadingPast')}</span>
-              <ul className="mt-4 w-full max-w-sm space-y-2" aria-hidden="true">
-                <li className="h-8 animate-pulse rounded-md bg-muted/60" />
-                <li className="h-12 animate-pulse rounded-md bg-muted/50" />
-                <li className="h-8 animate-pulse rounded-md bg-muted/60" />
-              </ul>
-            </div>
-          ) : messages.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Sparkles aria-hidden="true" className="h-4 w-4" />
-              <span>{t('chat.empty')}</span>
-            </div>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {hasOlder && backfillSource === 'scrollback' && (
-                <li className="flex items-center justify-center py-1 text-xs text-muted-foreground">
-                  {loadingOlder ? (
-                    <span className="inline-flex items-center gap-1">
-                      <Loader2 aria-hidden="true" className="h-3 w-3 animate-spin" />
-                      {t('chat.olderLoading')}
-                    </span>
-                  ) : (
-                    <Button type="button" variant="ghost" size="sm" onClick={() => void loadOlder()}>
-                      {t('chat.loadOlder')}
-                    </Button>
-                  )}
-                </li>
-              )}
-              {messages.map((msg) => {
-                const isUser = msg.role === 'user';
-                return (
-                  <li
-                    key={msg.id}
-                    className={cn('flex', isUser ? 'justify-end' : 'justify-start')}
-                  >
-                    <div
-                      className={cn(
-                        'max-w-[85%] rounded-lg px-3 py-2 text-sm shadow-sm md:max-w-[75%]',
-                        isUser
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-foreground',
-                        msg.source === 'backfill' && 'opacity-90'
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          'mb-1 flex items-center gap-2 text-[10px] uppercase tracking-wide',
-                          isUser
-                            ? 'text-primary-foreground/80'
-                            : 'text-muted-foreground'
-                        )}
-                      >
-                        <span>{isUser ? 'You' : workerName}</span>
-                        <span className="font-mono">{formatTime(msg.ts)}</span>
-                        {msg.source === 'backfill' && (
-                          <span className="font-mono text-[9px] opacity-70">past</span>
-                        )}
-                      </div>
-                      <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-relaxed md:text-sm">
-                        {msg.text}
-                      </pre>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
+          workerName={workerName}
+          backfillLoading={backfillLoading}
+          backfillSource={backfillSource}
+          hasOlder={hasOlder}
+          loadingOlder={loadingOlder}
+          messages={messages}
+          onLoadOlder={() => void loadOlder()}
+        />
 
         <form onSubmit={handleSubmit} className="flex items-end gap-2">
           <textarea
