@@ -7,16 +7,14 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Send } from 'lucide-react';
 import { apiFetch, apiGet, eventSourceUrl } from '../lib/api';
-import { t, tFormat, useLocale } from '../lib/i18n';
+import { useLocale } from '../lib/i18n';
 import {
-  Button,
   Card,
   CardContent,
 } from './ui';
-import { cn } from '../lib/cn';
 import ChatHeader from './ChatHeader';
+import ChatComposer from './ChatComposer';
 import {
   b64decode,
   conversationToMessages,
@@ -424,29 +422,16 @@ export default function ChatView({ workerName }: ChatViewProps) {
           onLoadOlder={() => void loadOlder()}
         />
 
-        <form onSubmit={handleSubmit} className="flex items-end gap-2">
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={onKeyDown}
-            rows={2}
-            placeholder={tFormat('chatView.placeholder.message', { worker: workerName })}
-            className={cn(
-              'min-w-0 flex-1 resize-y rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50'
-            )}
-            disabled={sending}
-          />
-          <Button
-            type="submit"
-            variant="default"
-            size="md"
-            disabled={sending || !input.trim()}
-          >
-            <Send className="h-4 w-4" />
-            <span>{sending ? t('chatView.sending') : t('chatView.send')}</span>
-          </Button>
-        </form>
+        {/* (v1.10.612) Composer form extracted to ./ChatComposer.tsx. */}
+        <ChatComposer
+          textareaRef={textareaRef}
+          input={input}
+          workerName={workerName}
+          sending={sending}
+          onChangeInput={setInput}
+          onKeyDown={onKeyDown}
+          onSubmit={handleSubmit}
+        />
       </CardContent>
     </Card>
   );

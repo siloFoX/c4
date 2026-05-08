@@ -1751,6 +1751,45 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: ChatComposer (v1.10.612)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('ChatComposer.tsx');
+    assert.match(src, /export default function ChatComposer/);
+  });
+
+  it('takes textareaRef + 4 controlled inputs + 3 callback props', () => {
+    const src = read('ChatComposer.tsx');
+    assert.match(src, /textareaRef:\s*RefObject<HTMLTextAreaElement>/);
+    assert.match(src, /input:\s*string/);
+    assert.match(src, /workerName:\s*string/);
+    assert.match(src, /sending:\s*boolean/);
+    assert.match(src, /onChangeInput:\s*\(next:\s*string\)\s*=>\s*void/);
+    assert.match(src, /onKeyDown:\s*\(e:\s*KeyboardEvent<HTMLTextAreaElement>\)\s*=>\s*void/);
+    assert.match(src, /onSubmit:\s*\(e\?:\s*FormEvent<HTMLFormElement>\)\s*=>\s*void/);
+  });
+
+  it('renders textarea (Enter submits, Shift+Enter newlines via parent) + Send button', () => {
+    const src = read('ChatComposer.tsx');
+    assert.match(src, /chatView\.placeholder\.message/);
+    assert.match(src, /chatView\.send/);
+    assert.match(src, /chatView\.sending/);
+  });
+
+  it('is imported and rendered by ChatView', () => {
+    const parent = read('ChatView.tsx');
+    assert.match(parent, /import\s+ChatComposer\s+from\s+'\.\/ChatComposer'/);
+    assert.match(parent, /<ChatComposer/);
+    assert.match(parent, /onSubmit=\{handleSubmit\}/);
+  });
+
+  it('parent ChatView no longer holds the inline form', () => {
+    const parent = read('ChatView.tsx');
+    assert.doesNotMatch(parent, /<form onSubmit=/);
+    assert.doesNotMatch(parent, /chatView\.placeholder\.message/);
+    assert.doesNotMatch(parent, /<Button\b/);
+  });
+});
+
 describe('extracted: WorkerDetailComposer (v1.10.611)', () => {
   it('lives in its own file with default export', () => {
     const src = read('WorkerDetailComposer.tsx');

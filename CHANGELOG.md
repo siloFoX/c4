@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.612] - 2026-05-08 — Extract ChatComposer
+
+**Web — `ChatView.tsx` shrunk by 15 lines (453 → 438).**
+The chat composer form — auto-grow textarea (Enter submits,
+Shift+Enter inserts newline via parent's onKeyDown) + Send
+button — extracted as its own pure controlled-input sibling.
+7 props (including the forwarded `textareaRef`).
+
+### Refactor
+- New `web/src/components/ChatComposer.tsx` (~57 lines).
+- `ChatView.tsx`: removed the inline ~23-line form. Replaced
+  with `<ChatComposer … />`. Dropped 4 unused imports
+  (`Send` icon + `Button` UI + `cn` utility + `t` helper —
+  the parent now only uses `useLocale`).
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 79 suites, 420 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 78 of the perfection-track component split. ChatView
+  438. 84 ships / 79 components+libs / 420 boundary assertions.
+
 ## [1.10.611] - 2026-05-08 — Extract WorkerDetailComposer
 
 **Web — `WorkerDetail.tsx` shrunk by 52 lines (305 → 253).**
