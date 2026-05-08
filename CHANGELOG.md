@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.598] - 2026-05-08 — Extract SpecialistsScoreHistory
+
+**Web — `SpecialistsView.tsx` shrunk by 97 lines (519 → 422).**
+The score-history block — rolled-up byDomain/byStage scoring,
+inline ScoreBar visualisations, the Reset score button + 2-step
+confirm UI, and the empty-state fallback — extracted as its own
+pure-display sibling. 5 props.
+
+### Refactor
+- New `web/src/components/SpecialistsScoreHistory.tsx` (~140
+  lines), bundles `ScoreBar` + `scoreWidth` (sole consumer).
+- `SpecialistsView.tsx`: removed the inline ~75-line score
+  block + the 30-line `ScoreBar`/`scoreWidth` helpers.
+  Replaced with `<SpecialistsScoreHistory … />`.
+
+### Tests
+- 203/203 tests green.
+- `tests/component-extract-boundaries.test.js`: new suite added
+  (5 assertions). Total: 65 suites, 350 tests.
+- Lint clean, build clean.
+- All 5 check:full gates pass.
+
+### Notes
+- Stage 64 of the perfection-track component split.
+  SpecialistsView 422 (was 1100+ at session start). 70 ships
+  milestone / 65 components+libs / 350 boundary assertions.
+
 ## [1.10.597] - 2026-05-08 — Extract SpecialistsMetadataPanel
 
 **Web — `SpecialistsView.tsx` shrunk by 35 lines (554 → 519).**

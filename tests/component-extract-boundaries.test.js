@@ -1742,6 +1742,47 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: SpecialistsScoreHistory (v1.10.598)', () => {
+  it('lives in its own file with default export', () => {
+    const src = read('SpecialistsScoreHistory.tsx');
+    assert.match(src, /export default function SpecialistsScoreHistory/);
+  });
+
+  it('takes specialist + reset state + 2 callback props', () => {
+    const src = read('SpecialistsScoreHistory.tsx');
+    assert.match(src, /specialist:\s*Specialist/);
+    assert.match(src, /confirmResetId:\s*string\s*\|\s*null/);
+    assert.match(src, /resetBusy:\s*boolean/);
+    assert.match(src, /onConfirmReset:\s*\(id:\s*string\s*\|\s*null\)\s*=>\s*void/);
+    assert.match(src, /onScoreReset:\s*\(id:\s*string\)\s*=>\s*void/);
+  });
+
+  it('owns ScoreBar + scoreWidth + renders byDomain/byStage rolled-up', () => {
+    const src = read('SpecialistsScoreHistory.tsx');
+    assert.match(src, /function ScoreBar/);
+    assert.match(src, /function scoreWidth/);
+    assert.match(src, /specialists\.label\.byDomain/);
+    assert.match(src, /specialists\.label\.byStage/);
+    assert.match(src, /specialists\.action\.resetScore/);
+    assert.match(src, /specialists\.empty\.scoreHistory/);
+  });
+
+  it('is imported and rendered by SpecialistsView', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.match(parent, /import\s+SpecialistsScoreHistory\s+from\s+'\.\/SpecialistsScoreHistory'/);
+    assert.match(parent, /<SpecialistsScoreHistory/);
+    assert.match(parent, /onConfirmReset=\{setConfirmResetId\}/);
+    assert.match(parent, /onScoreReset=\{handleScoreReset\}/);
+  });
+
+  it('parent SpecialistsView no longer holds ScoreBar/scoreWidth nor inline score block', () => {
+    const parent = read('SpecialistsView.tsx');
+    assert.doesNotMatch(parent, /function ScoreBar/);
+    assert.doesNotMatch(parent, /function scoreWidth/);
+    assert.doesNotMatch(parent, /specialists\.label\.byDomain/);
+  });
+});
+
 describe('extracted: SpecialistsMetadataPanel (v1.10.597)', () => {
   it('lives in its own file with default export', () => {
     const src = read('SpecialistsMetadataPanel.tsx');
