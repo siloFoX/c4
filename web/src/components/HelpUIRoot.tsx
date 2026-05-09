@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { HelpDrawer } from './HelpDrawer';
 import { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
 import { OnboardingTour } from './OnboardingTour';
 import { useFeatureIdFromHash } from '../lib/use-feature-id-from-hash';
+import { useHelpOverlayTriggers } from '../lib/use-help-overlay-triggers';
 
 export const HELP_EVENT_OPEN_DRAWER = 'c4:help-drawer-open';
 export const HELP_EVENT_OPEN_SHORTCUTS = 'c4:shortcuts-open';
@@ -40,48 +41,13 @@ export default function HelpUIRoot() {
   // (v1.10.711) Hash-routed feature id moved to hook.
   const activeFeatureId = useFeatureIdFromHash();
 
-  useEffect(() => {
-    const onDrawer = () => setDrawerOpen(true);
-    const onShortcuts = () => setShortcutsOpen(true);
-    window.addEventListener(HELP_EVENT_OPEN_DRAWER, onDrawer);
-    window.addEventListener(HELP_EVENT_OPEN_SHORTCUTS, onShortcuts);
-    return () => {
-      window.removeEventListener(HELP_EVENT_OPEN_DRAWER, onDrawer);
-      window.removeEventListener(HELP_EVENT_OPEN_SHORTCUTS, onShortcuts);
-    };
-  }, []);
-
-  // Global keyboard shortcuts. Skip when the user is typing in an
-  // input / textarea / contenteditable so "?" / "h" / "t" in prose do
-  // not trigger overlays.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target) {
-        const tag = target.tagName;
-        if (
-          tag === 'INPUT' ||
-          tag === 'TEXTAREA' ||
-          target.isContentEditable ||
-          target.getAttribute('role') === 'textbox'
-        ) {
-          return;
-        }
-      }
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
-        e.preventDefault();
-        setShortcutsOpen(true);
-      } else if (e.key === 'h' || e.key === 'H') {
-        setDrawerOpen(true);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
-
+  const openDrawer = useCallback(() => setDrawerOpen(true), []);
+  const openShortcuts = useCallback(() => setShortcutsOpen(true), []);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
   const closeShortcuts = useCallback(() => setShortcutsOpen(false), []);
+
+  // (v1.10.712) Custom-event triggers + global hotkeys moved to hook.
+  useHelpOverlayTriggers({ onOpenDrawer: openDrawer, onOpenShortcuts: openShortcuts });
 
   return (
     <>

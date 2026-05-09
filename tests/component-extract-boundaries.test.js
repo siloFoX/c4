@@ -1865,6 +1865,49 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useHelpOverlayTriggers hook (v1.10.712)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-help-overlay-triggers.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'HelpUIRoot.tsx');
+
+  it('exports the hook + accepts onOpenDrawer/onOpenShortcuts', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useHelpOverlayTriggers/);
+    assert.match(src, /onOpenDrawer:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onOpenShortcuts:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('subscribes to both custom events from HelpUIRoot', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /HELP_EVENT_OPEN_DRAWER/);
+    assert.match(src, /HELP_EVENT_OPEN_SHORTCUTS/);
+    assert.match(src, /addEventListener\(HELP_EVENT_OPEN_DRAWER/);
+    assert.match(src, /addEventListener\(HELP_EVENT_OPEN_SHORTCUTS/);
+    assert.match(src, /removeEventListener\(HELP_EVENT_OPEN_DRAWER/);
+    assert.match(src, /removeEventListener\(HELP_EVENT_OPEN_SHORTCUTS/);
+  });
+
+  it('hotkey path skips inputs/textarea/contenteditable + handles ?, /, h', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /tag === 'INPUT'/);
+    assert.match(src, /tag === 'TEXTAREA'/);
+    assert.match(src, /isContentEditable/);
+    assert.match(src, /role.*===.*'textbox'|role="textbox"|getAttribute\('role'\)/);
+    assert.match(src, /e\.key === '\?'/);
+    assert.match(src, /e\.key === 'h'/);
+    assert.match(src, /e\.key === 'H'/);
+  });
+
+  it('parent HelpUIRoot wires the hook + drops the inline effects', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useHelpOverlayTriggers\s*\}\s+from\s+'\.\.\/lib\/use-help-overlay-triggers'/);
+    assert.match(src, /useHelpOverlayTriggers\(\{[\s\S]*?onOpenDrawer:\s*openDrawer,\s*onOpenShortcuts:\s*openShortcuts[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /addEventListener\(HELP_EVENT_OPEN_DRAWER/);
+    assert.doesNotMatch(src, /addEventListener\('keydown'/);
+  });
+});
+
 describe('extracted: useFeatureIdFromHash hook (v1.10.711)', () => {
   const fs = require('fs');
   const path = require('path');

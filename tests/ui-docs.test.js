@@ -330,9 +330,14 @@ describe('HelpUIRoot shell', () => {
   });
 
   it('registers global keyboard shortcuts but ignores input fields', () => {
-    assert.match(src, /e\.key === '\?'/);
-    assert.match(src, /tag === 'INPUT'/);
-    assert.match(src, /tag === 'TEXTAREA'/);
+    // (v1.10.712) Hotkey + custom-event triggers moved to use-help-overlay-triggers hook.
+    const fs = require('fs');
+    const path = require('path');
+    const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-help-overlay-triggers.ts');
+    const hookSrc = fs.readFileSync(HOOK, 'utf8');
+    assert.match(hookSrc, /e\.key === '\?'/);
+    assert.match(hookSrc, /tag === 'INPUT'/);
+    assert.match(hookSrc, /tag === 'TEXTAREA'/);
   });
 });
 

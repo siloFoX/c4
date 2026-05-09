@@ -4,6 +4,40 @@
 
 (no entries — next release window)
 
+## [1.10.712] - 2026-05-09 — Extract useHelpOverlayTriggers hook
+
+**Web — `components/HelpUIRoot.tsx` shrunk by 34 lines (97 → 63).**
+The two "open me" trigger surfaces — custom window
+events (`HELP_EVENT_OPEN_DRAWER` / `HELP_EVENT_OPEN_SHORTCUTS`)
+and global hotkeys (`?` / `/` shift / `h` / `H`) —
+move into `useHelpOverlayTriggers({ onOpenDrawer,
+onOpenShortcuts })`. Hook owns both useEffect blocks,
+the typing-guard logic (skips when target is an
+INPUT / TEXTAREA / contenteditable / role="textbox"
+element), and the modifier-key bypass.
+
+The parent now wires two memoized open-callbacks and
+hands them to the hook in a single line, replacing
+two ~22-line useEffect blocks. The
+`HELP_EVENT_OPEN_DRAWER` and `HELP_EVENT_OPEN_SHORTCUTS`
+constants stay exported from HelpUIRoot so existing
+consumers (AppHeader, etc.) keep importing from there.
+
+Boundary suite #179 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the two custom-event subscriptions
+with matched cleanup, the typing-guard contract, the
+hotkey set, and checks that `HelpUIRoot.tsx` no
+longer carries the two inline `addEventListener`
+blocks. The pre-existing `ui-docs` test for the
+global-keyboard-shortcut contract was redirected from
+`HelpUIRoot.tsx` source to the new hook file.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (858 / 178 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.711] - 2026-05-09 — Extract useFeatureIdFromHash hook
 
 **Web — `components/HelpUIRoot.tsx` shrunk by 16 lines (113 → 97).**
