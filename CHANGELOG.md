@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.741] - 2026-05-10 — Extract useLiveRef hook (shared infra)
+
+**Web — generic "live ref" pattern factored into a hook.**
+The `useRef(value); ref.current = value;` pair that
+mirrors a state value into a ref each render so a
+captured-closure callback can read the latest value
+without rebuilding — used in multiple parent
+components to feed a `getSelected` callback into an
+extracted hook — moves to a generic
+`useLiveRef<T>(value: T): MutableRefObject<T>`.
+
+Two callers adopt:
+
+- `components/SessionsView.tsx` —
+  `const selectionRef = useLiveRef(selection)`.
+- `components/WorkflowEditor.tsx` —
+  `const selectedIdRef = useLiveRef(selectedId)`.
+
+The line-count diff per caller is small (-1 line:
+the inline `ref.current = ...` mirror line goes
+away). The actual win is naming the pattern: future
+contributors who need "closure reads latest value"
+have a discoverable hook + a header comment that
+spells out the use case. Both existing
+`useSessionsList` and `useWorkflowsList` callbacks
+that rely on this pattern keep working unchanged —
+the live-ref read site doesn't move.
+
+Boundary suite #207 in
+`tests/component-extract-boundaries.test.js` pins
+the generic hook signature
+(`useLiveRef<T>(value: T): MutableRefObject<T>`),
+the `useRef(value); ref.current = value` body, and
+verifies both callers adopt the hook + drop the
+inline `useRef(selection|selectedId)` pair.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (985 / 207 suites — +3 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.740] - 2026-05-10 — Lift postAction helper to lib/
 
 **Web — `components/ControlPanel.tsx` shrunk by 38 lines (248 → 210).**

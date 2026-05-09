@@ -2049,6 +2049,37 @@ describe('extracted: useChatBackfill hook (v1.10.738)', () => {
   });
 });
 
+describe('extracted: useLiveRef hook (v1.10.741)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-live-ref.ts');
+  const SESSIONS = path.join(__dirname, '..', 'web', 'src', 'components', 'SessionsView.tsx');
+  const WORKFLOWS = path.join(__dirname, '..', 'web', 'src', 'components', 'WorkflowEditor.tsx');
+
+  it('exports the generic hook + returns MutableRefObject<T>', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useLiveRef<T>\(value: T\): MutableRefObject<T>/);
+    assert.match(src, /const ref = useRef\(value\)/);
+    assert.match(src, /ref\.current = value/);
+  });
+
+  it('SessionsView adopts the hook for the selectionRef', () => {
+    const src = fs.readFileSync(SESSIONS, 'utf8');
+    assert.match(src, /import\s+\{\s*useLiveRef\s*\}\s+from\s+'\.\.\/lib\/use-live-ref'/);
+    assert.match(src, /const selectionRef = useLiveRef\(selection\)/);
+    // The inline `useRef(selection); selectionRef.current = selection;` pair
+    // should no longer appear.
+    assert.doesNotMatch(src, /useRef\(selection\)/);
+  });
+
+  it('WorkflowEditor adopts the hook for the selectedIdRef', () => {
+    const src = fs.readFileSync(WORKFLOWS, 'utf8');
+    assert.match(src, /import\s+\{\s*useLiveRef\s*\}\s+from\s+'\.\.\/lib\/use-live-ref'/);
+    assert.match(src, /const selectedIdRef = useLiveRef\(selectedId\)/);
+    assert.doesNotMatch(src, /useRef\(selectedId\)/);
+  });
+});
+
 describe('extracted: postAction helper (v1.10.740)', () => {
   const fs = require('fs');
   const path = require('path');

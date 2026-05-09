@@ -6,7 +6,7 @@
 // mutation are deferred to a follow-up patch (TODO 11.3 ships the
 // engine + viewer; full edit UI is tracked under future work).
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { t, useLocale } from '../lib/i18n';
 import WorkflowGraph from './WorkflowGraph';
 import WorkflowNodeProperties from './WorkflowNodeProperties';
@@ -16,6 +16,7 @@ import WorkflowRunsPanel from './WorkflowRunsPanel';
 import { useWorkflowsList } from '../lib/use-workflows-list';
 import { useWorkflowRuns } from '../lib/use-workflow-runs';
 import { useWorkflowRun } from '../lib/use-workflow-run';
+import { useLiveRef } from '../lib/use-live-ref';
 import {
   Card,
   CardContent,
@@ -101,8 +102,8 @@ export default function WorkflowEditor() {
   // ../lib/use-workflows-list. Selection ref keeps the
   // auto-select-first logic in the hook without giving it
   // write access to selectedId.
-  const selectedIdRef = useRef(selectedId);
-  selectedIdRef.current = selectedId;
+  // (v1.10.741) Live-ref pattern factored into lib/use-live-ref.
+  const selectedIdRef = useLiveRef(selectedId);
   const { workflows, busy, error, setError, setBusy, refresh } = useWorkflowsList({
     getSelectedId: useCallback(() => selectedIdRef.current, []),
     onAutoSelect: useCallback((id: string) => setSelectedId(id), []),

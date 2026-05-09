@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import SessionsTour from './SessionsTour';
 import NewChatModal from './NewChatModal';
@@ -10,6 +10,7 @@ import { useSessionsList } from '../lib/use-sessions-list';
 import { useSessionsActions } from '../lib/use-sessions-actions';
 import { useFilteredSessions } from '../lib/use-filtered-sessions';
 import { useSessionsCollapse } from '../lib/use-sessions-collapse';
+import { useLiveRef } from '../lib/use-live-ref';
 
 export interface SessionSummary {
   projectDir: string | null;
@@ -170,8 +171,8 @@ export default function SessionsView() {
   // (v1.10.630) /api/sessions + /api/attach/list pair extracted to
   // ../lib/use-sessions-list. selection ref stays in this file so
   // the auto-select-first-session-on-load logic can stay deduped.
-  const selectionRef = useRef(selection);
-  selectionRef.current = selection;
+  // (v1.10.741) Live-ref pattern factored into lib/use-live-ref.
+  const selectionRef = useLiveRef(selection);
   const {
     data,
     attached,
