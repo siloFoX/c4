@@ -1791,6 +1791,25 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('shared: useAutoScroll consumed by ConversationView (v1.10.696)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'ConversationView.tsx');
+
+  it('imports useAutoScroll from the shared lib', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useAutoScroll\s*\}\s+from\s+'\.\.\/lib\/use-auto-scroll'/);
+    assert.match(src, /useAutoScroll\(\{[\s\S]*?scrollRef,\s*bumpKey:\s*conversation\?\.turns\.length\s*\?\?\s*0/);
+  });
+
+  it('parent no longer redeclares the inline auto-scroll machinery', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.doesNotMatch(src, /^const AUTOSCROLL_THRESHOLD_PX/m);
+    assert.doesNotMatch(src, /useLayoutEffect\(\(\) => \{[\s\S]*?if \(!autoScroll\)/);
+    assert.doesNotMatch(src, /const \[autoScroll, setAutoScroll\]/);
+  });
+});
+
 describe('extracted: useTokenUsageBreakdowns hook (v1.10.695)', () => {
   const fs = require('fs');
   const path = require('path');

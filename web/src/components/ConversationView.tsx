@@ -1,12 +1,7 @@
-import {
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useConversation } from '../lib/use-conversation';
+import { useAutoScroll } from '../lib/use-auto-scroll';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -73,7 +68,7 @@ interface ConversationViewProps {
   streamUrl?: string;
 }
 
-const AUTOSCROLL_THRESHOLD_PX = 24;
+// (v1.10.696) AUTOSCROLL_THRESHOLD_PX moved to lib/use-auto-scroll.
 
 // (v1.10.560) Markdown render + format helpers extracted to
 // ../lib/conversation-render.tsx — see import above.
@@ -93,23 +88,17 @@ export default function ConversationView({
   // moved to lib/use-conversation.
   const { conversation, error, loading, streaming } =
     useConversation({ sessionId, live, snapshotUrl, streamUrl });
-  const [autoScroll, setAutoScroll] = useState(true);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  // Auto-scroll on new turns, but only if the user has not scrolled up.
-  useLayoutEffect(() => {
-    if (!autoScroll) return;
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollTop = el.scrollHeight;
-  }, [conversation?.turns.length, autoScroll]);
+  // (v1.10.696) Auto-scroll-on-new-turn moved to lib/use-auto-scroll.
+  const { autoScroll, setAutoScroll, isAtBottom } = useAutoScroll({
+    scrollRef,
+    bumpKey: conversation?.turns.length ?? 0,
+  });
 
   const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const bottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    setAutoScroll(bottom <= AUTOSCROLL_THRESHOLD_PX);
-  }, []);
+    setAutoScroll(isAtBottom());
+  }, [setAutoScroll, isAtBottom]);
 
   const turnBlocks = useMemo(() => {
     if (!conversation) return [];

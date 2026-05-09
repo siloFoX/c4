@@ -4,6 +4,49 @@
 
 (no entries — next release window)
 
+## [1.10.696] - 2026-05-09 — Reuse useAutoScroll in ConversationView
+
+**Web — `ConversationView.tsx` shrunk by 11 lines (219 → 208).**
+The auto-scroll-on-new-content state machine
+extracted as `useAutoScroll` (v1.10.676) for ChatView
+gets reused here. ConversationView had a duplicate
+inline copy with the same `AUTOSCROLL_THRESHOLD_PX = 24`
+constant and the same scrollHeight math. Sharing
+win, not new extraction.
+
+### Refactor
+- `ConversationView.tsx`: removed inline
+  AUTOSCROLL_THRESHOLD_PX, the autoScroll useState
+  slot, the layout effect that scrolled to bottom,
+  the manual distanceFromBottom math. Replaced with
+  one destructured `useAutoScroll` call + an
+  `isAtBottom()` in handleScroll. Trimmed
+  `useLayoutEffect` + `useState` imports.
+- Boundary suite #163 — 2 assertions: hook import
+  + call site, regression guard that the inline
+  machinery is gone.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  791 / 791 across 162 → 163 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 167 ships total since v1.10.529.
+- 164 components/libs extracted (no new lib —
+  sharing win).
+- 74 custom hooks in `web/src/lib/`.
+- 791 boundary assertions across 163 suites.
+
+### Push backlog
+- GitHub auth still failing on the daemon's saved
+  credentials. v1.10.646 / 647 / 648 went through
+  earlier when the credential briefly held; the
+  remaining 92 local commits await the next
+  successful authentication.
+
 ## [1.10.695] - 2026-05-09 — Extract useTokenUsageBreakdowns hook
 
 **Web — `pages/TokenUsage.tsx` shrunk by 21 lines (250 → 229).**
