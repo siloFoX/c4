@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.709] - 2026-05-09 — Extract useNavBadgeCounts hook
+
+**Web — `layout/AppHeader.tsx` shrunk by 42 lines (190 → 148).**
+The three top-tab badge polls (stuck-meetings,
+specialist-underperformers, autonomous-escalations)
+that fire every 60s move to a self-contained hook.
+The `/autonomous/status` gate that prevents 400
+spam when autonomous mode is disabled stays in
+the dispatcher.
+
+### Refactor
+- New `web/src/lib/use-nav-badge-counts.ts` (~64 lines).
+  Returns `{ stuckCount, underperformerCount,
+  escalationCount }`.
+- `AppHeader.tsx`: removed three useState slots and
+  the ~33-line poll useEffect. Trimmed `useEffect` +
+  `useState` + `apiGet` imports.
+- Boundary suite #176 — 4 assertions covering hook
+  signature, three URLs + 60s interval + cancel
+  guard, status-gate logic, parent wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  847 / 847 across 175 → 176 suites.
+- `npm run check:full`: green.
+
+### Stats
+- 180 ships total since v1.10.529.
+- 176 components/libs extracted.
+- 85 custom hooks in `web/src/lib/`.
+- 847 boundary assertions across 176 suites.
+
 ## [1.10.708] - 2026-05-09 — Reuse useToast in WorkerActions + ControlPanel
 
 **Web — two pages dedupe their inline toast slots.**

@@ -1865,6 +1865,42 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useNavBadgeCounts hook (v1.10.709)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-nav-badge-counts.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'layout', 'AppHeader.tsx');
+
+  it('exports the hook + accepts authed flag', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useNavBadgeCounts/);
+    assert.match(src, /authed:\s*boolean/);
+  });
+
+  it('polls three signals every 60s with cancellation guard', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\/api\/meetings\/stuck\?hours=1/);
+    assert.match(src, /\/api\/specialists\/underperformers/);
+    assert.match(src, /\/api\/autonomous\/escalations/);
+    assert.match(src, /window\.setInterval\(fetchSignals,\s*60000\)/);
+    assert.match(src, /let cancelled = false/);
+  });
+
+  it('gates escalations fetch on /autonomous/status enabled flag', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\/api\/autonomous\/status/);
+    assert.match(src, /if \(autonomousEnabled === true\)/);
+    assert.match(src, /skip escalations entirely/);
+  });
+
+  it('parent AppHeader wires the hook + drops the inline state + effect', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useNavBadgeCounts\s*\}\s+from\s+'\.\.\/\.\.\/lib\/use-nav-badge-counts'/);
+    assert.match(src, /useNavBadgeCounts\(\{\s*authed\s*\}\)/);
+    assert.doesNotMatch(src, /const \[stuckCount, setStuckCount\]/);
+  });
+});
+
 describe('shared: useToast adopted by WorkerActions + ControlPanel (v1.10.708)', () => {
   const fs = require('fs');
   const path = require('path');

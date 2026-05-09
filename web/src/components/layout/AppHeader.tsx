@@ -1,14 +1,13 @@
-import { useEffect, useState } from 'react';
 import { HelpCircle, Keyboard, Languages, Menu, X } from 'lucide-react';
 import AccountMenu from '../AccountMenu';
 import { IconButton, Tooltip } from '../ui';
 import TopTabs, { type TopView } from './TopTabs';
+import { useNavBadgeCounts } from '../../lib/use-nav-badge-counts';
 import {
   HELP_EVENT_OPEN_DRAWER,
   HELP_EVENT_OPEN_SHORTCUTS,
 } from '../HelpUIRoot';
 import { getLocale, setLocale, t, useLocale } from '../../lib/i18n';
-import { apiGet } from '../../lib/api';
 
 interface AppHeaderProps {
   sidebarOpen: boolean;
@@ -44,52 +43,11 @@ export default function AppHeader({
 }: AppHeaderProps) {
   useLocale();
   const locale = getLocale();
-  // (v1.10.327) Live stuck-meeting count for the Meetings tab
-  // badge. Polled every 60s; gracefully nulls on older daemons or
-  // when persist is disabled.
-  const [stuckCount, setStuckCount] = useState(0);
-  // (v1.10.328) Underperformer count for the Specialists tab.
-  // Same cadence + tolerance pattern.
-  const [underperformerCount, setUnderperformerCount] = useState(0);
-  // (v1.10.349) Pending autonomous escalation count for the
-  // Autonomous tab badge. Same poll group as stuck/underperform.
-  // (v1.10.535) Gated on /autonomous/status so we don't spam 400s
-  // when autonomous mode is disabled (escalations endpoint 400s
-  // in that state; status always 200s).
-  const [escalationCount, setEscalationCount] = useState(0);
-  useEffect(() => {
-    if (!authed) return undefined;
-    let cancelled = false;
-    let autonomousEnabled: boolean | null = null;
-    const fetchSignals = () => {
-      apiGet<{ count: number }>('/api/meetings/stuck?hours=1')
-        .then((res) => { if (!cancelled) setStuckCount(res.count || 0); })
-        .catch(() => { /* tolerate */ });
-      apiGet<{ flagged: number }>('/api/specialists/underperformers')
-        .then((res) => { if (!cancelled) setUnderperformerCount(res.flagged || 0); })
-        .catch(() => { /* tolerate */ });
-      const fetchEscalations = () => {
-        apiGet<{ count: number; escalations: unknown[] }>('/api/autonomous/escalations')
-          .then((res) => { if (!cancelled) setEscalationCount(res.count || 0); })
-          .catch(() => { /* tolerate */ });
-      };
-      if (autonomousEnabled === true) {
-        fetchEscalations();
-      } else if (autonomousEnabled === null) {
-        apiGet<{ enabled: boolean }>('/api/autonomous/status')
-          .then((s) => {
-            if (cancelled) return;
-            autonomousEnabled = !!s.enabled;
-            if (s.enabled) fetchEscalations();
-          })
-          .catch(() => { /* tolerate */ });
-      }
-      // autonomousEnabled === false → skip escalations entirely
-    };
-    fetchSignals();
-    const id = window.setInterval(fetchSignals, 60000);
-    return () => { cancelled = true; window.clearInterval(id); };
-  }, [authed]);
+  // (v1.10.709) Three nav-badge polls (stuck-meetings /
+  // specialist-underperformers / autonomous-escalations) moved
+  // to lib/use-nav-badge-counts.
+  const { stuckCount, underperformerCount, escalationCount } =
+    useNavBadgeCounts({ authed });
 
   return (
     <header className="flex items-center justify-between gap-2 rounded-none border-b border-border bg-card px-4 py-3 md:px-6 md:py-4">
