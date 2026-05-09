@@ -1,38 +1,14 @@
-import { useEffect, useState } from 'react';
-import { apiGet } from '../lib/api';
+import { useState } from 'react';
 import { Input, Panel } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
+import { useLazyRiskPatterns } from '../lib/use-lazy-risk-patterns';
 
 // (v1.10.568) Extracted from Risk page. The rule-catalog viewer
 // — collapsible panel that lazy-fetches /api/risk/patterns on
 // first open (payload can be sizeable) and shows builtin
-// pattern counts + a filtered list per severity. Self-contained:
-// owns open / filter / patterns state internally.
-
-interface PatternEntry {
-  code: string;
-  label: string;
-}
-
-interface PatternsResponse {
-  builtin: {
-    critical: PatternEntry[];
-    high: PatternEntry[];
-    medium: PatternEntry[];
-  };
-  custom: {
-    critical: unknown[];
-    high: unknown[];
-    medium: unknown[];
-  };
-  counts: {
-    builtin: { critical: number; high: number; medium: number; total: number };
-    custom: { critical: number; high: number; medium: number; total: number };
-  };
-  allowList: number;
-  denyList: number;
-}
+// pattern counts + a filtered list per severity.
+// (v1.10.727) Lazy patterns fetch + state moved to lib/use-lazy-risk-patterns.
 
 const LEVEL_TONE: Record<'critical' | 'high' | 'medium' | 'low', string> = {
   low: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/40',
@@ -43,18 +19,12 @@ const LEVEL_TONE: Record<'critical' | 'high' | 'medium' | 'low', string> = {
 
 export default function RiskRuleCatalogPanel() {
   useLocale();
-  const [patterns, setPatterns] = useState<PatternsResponse | null>(null);
   const [filter, setFilter] = useState('');
   const [open, setOpen] = useState(false);
-
   // (v1.10.357) Lazy-load on first open. The payload can be
   // sizeable; avoid fetching when the operator never expands.
-  useEffect(() => {
-    if (!open || patterns) return;
-    apiGet<PatternsResponse>('/api/risk/patterns')
-      .then((res) => setPatterns(res))
-      .catch(() => { /* silent — panel just stays empty */ });
-  }, [open, patterns]);
+  // (v1.10.727) Fetch + state moved to use-lazy-risk-patterns hook.
+  const patterns = useLazyRiskPatterns({ open });
 
   return (
     <Panel className="mt-4 text-sm">

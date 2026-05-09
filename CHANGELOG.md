@@ -4,6 +4,43 @@
 
 (no entries — next release window)
 
+## [1.10.727] - 2026-05-10 — Extract useLazyRiskPatterns hook
+
+**Web — `components/RiskRuleCatalogPanel.tsx` shrunk by 30 lines (130 → 100).**
+The lazy `/api/risk/patterns` fetch + the
+`patterns` slot + the `PatternsResponse` /
+`PatternEntry` interfaces move to a
+`useLazyRiskPatterns({ open })` hook returning
+`PatternsResponse | null`.
+
+The lazy-load contract is preserved verbatim:
+operators who never expand the panel pay zero
+fetch cost, and re-opens after the first
+expansion are no-ops (cache survives until the
+panel unmounts). Errors are silently swallowed —
+the panel just stays empty rather than surfacing
+a noisy error.
+
+The `open` and `filter` slots stay in the parent
+because they are JSX-bound (the toggle button +
+the search Input). Only the cached payload moves
+into the hook.
+
+Boundary suite #193 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the `PatternsResponse` export, the
+`if (!open || patterns) return` lazy-load gate,
+the silent `.catch` swallow, and verifies the parent
+wires the hook + drops the inline fetch.
+Pre-existing `RiskRuleCatalogPanel (v1.10.568)`
+suite's "patterns state" + "lazy-fetches" assertions
+redirected to read the hook file.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (924 / 193 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.726] - 2026-05-10 — Extract useMetrics hook
 
 **Web — `components/MetricsBar.tsx` shrunk by 46 lines (99 → 53).**

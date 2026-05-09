@@ -480,16 +480,30 @@ describe('extracted: RiskRuleCatalogPanel (v1.10.568)', () => {
   });
 
   it('owns its own open / filter / patterns state', () => {
+    // (v1.10.727) patterns slot moved to use-lazy-risk-patterns hook;
+    // open + filter slots stay in the parent (JSX-bound).
     const src = read('RiskRuleCatalogPanel.tsx');
-    assert.match(src, /useState<PatternsResponse \| null>/);
-    assert.match(src, /useState\(''\)/);
-    assert.match(src, /useState\(false\)/);
+    assert.match(src, /useState\(''\)/);   // filter
+    assert.match(src, /useState\(false\)/); // open
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-lazy-risk-patterns.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /useState<PatternsResponse \| null>/);
   });
 
   it('lazy-fetches /api/risk/patterns only when opened', () => {
-    const src = read('RiskRuleCatalogPanel.tsx');
-    assert.match(src, /if \(!open \|\| patterns\) return/);
-    assert.match(src, /\/api\/risk\/patterns/);
+    // (v1.10.727) Lazy fetch moved to use-lazy-risk-patterns hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-lazy-risk-patterns.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /if \(!open \|\| patterns\) return/);
+    assert.match(hookSrc, /\/api\/risk\/patterns/);
   });
 
   it('renders nothing when collapsed (button only)', () => {
@@ -1925,6 +1939,39 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useLazyRiskPatterns hook (v1.10.727)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-lazy-risk-patterns.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'RiskRuleCatalogPanel.tsx');
+
+  it('exports the hook + PatternsResponse type', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useLazyRiskPatterns/);
+    assert.match(src, /export interface PatternsResponse/);
+  });
+
+  it('lazy-loads on first open + caches subsequent opens', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(!open \|\| patterns\) return/);
+    assert.match(src, /apiGet<PatternsResponse>\('\/api\/risk\/patterns'\)/);
+    assert.match(src, /\}, \[open, patterns\]\)/);
+  });
+
+  it('errors silently degrade (catch swallows)', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\.catch\(\(\)\s*=>\s*\{[\s\S]*?silent/);
+  });
+
+  it('parent RiskRuleCatalogPanel wires the hook + drops the inline fetch', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useLazyRiskPatterns\s*\}\s+from\s+'\.\.\/lib\/use-lazy-risk-patterns'/);
+    assert.match(src, /const patterns = useLazyRiskPatterns\(\{[\s\S]*?open[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /apiGet<PatternsResponse>/);
+    assert.doesNotMatch(src, /const \[patterns, setPatterns\]/);
   });
 });
 
