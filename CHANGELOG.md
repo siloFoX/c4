@@ -4,6 +4,49 @@
 
 (no entries — next release window)
 
+## [1.10.658] - 2026-05-09 — Extract useBatchSubmit hook
+
+**Web — `pages/Batch.tsx` shrunk by 53 lines (282 → 229).**
+The dispatcher for `c4 batch` runs (POST /api/batch) plus
+all the input validation (count-mode needs task + count;
+file-mode needs at least one non-comment line) moves to
+a self-contained hook. Toast emission for the success +
+partial-fail paths flows through the parent-supplied
+`showToast` so the toast slot stays page-scoped.
+
+### Refactor
+- New `web/src/lib/use-batch-submit.ts` (~96 lines).
+  Exports `useBatchSubmit` + `BatchResponse` type.
+  `BatchOutcome` stays module-private. Imports
+  `ToastType` from `../components/Toast` so the
+  signature matches the parent's `showToast`.
+- `pages/Batch.tsx`: removed `BatchOutcome` +
+  `BatchResponse` interfaces, the three useState slots
+  (busy / result / error), and the ~50-line `submit`
+  useCallback. Replaced with one `useBatchSubmit`
+  destructure. Trimmed `apiPost` + `tFormat` imports.
+- Boundary suite #126 — 5 assertions covering hook +
+  type export shape, count/file-mode validation
+  branches, /api/batch URL + per-mode body shape,
+  toast emission for success vs partial-fail, parent
+  wiring.
+- `tests/ui-cli-coverage.test.js` redirect: the
+  `apiPost<BatchResponse>` match now reads the hook
+  file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  630 / 630 across 125 → 126 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 130 ships total since v1.10.529.
+- 127 components/libs extracted.
+- 37 custom hooks in `web/src/lib/`.
+- 630 boundary assertions across 126 suites.
+
 ## [1.10.657] - 2026-05-09 — Extract useRiskCheck + useRiskSandboxPreview
 
 **Web — `pages/Risk.tsx` shrunk by 37 lines (287 → 250).**

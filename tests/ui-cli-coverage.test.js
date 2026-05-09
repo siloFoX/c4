@@ -321,7 +321,12 @@ describe('Batch.tsx component wiring', () => {
   const src = fs.readFileSync(path.join(PAGES_DIR, 'Batch.tsx'), 'utf8');
 
   it('POSTs to /api/batch with apiPost', () => {
-    assert.match(src, /apiPost<BatchResponse>\('\/api\/batch'/);
+    // (v1.10.658) Submit flow moved to lib/use-batch-submit.
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-batch-submit.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /apiPost<BatchResponse>\('\/api\/batch'/);
   });
 
   it('renders both the count-mode and file-mode pickers', () => {

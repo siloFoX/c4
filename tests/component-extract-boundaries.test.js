@@ -1770,6 +1770,56 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useBatchSubmit hook (v1.10.658)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-batch-submit.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'pages', 'Batch.tsx');
+
+  it('exports the hook + BatchResponse type', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useBatchSubmit/);
+    assert.match(src, /export interface BatchResponse/);
+    assert.match(src, /results:\s*BatchOutcome\[\]/);
+  });
+
+  it('validates count-mode (task + count) and file-mode (tasksText) before POSTing', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /batch\.error\.taskRequired/);
+    assert.match(src, /batch\.error\.countOne/);
+    assert.match(src, /batch\.error\.noTaskLine/);
+    assert.match(src, /tasksText\.split\('\\n'\)\.map\(\(l\) => l\.trim\(\)\)\.filter\(\(l\) => l && !l\.startsWith\('#'\)\)/);
+  });
+
+  it('POSTs /api/batch with the right body shape per mode', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiPost<BatchResponse>\('\/api\/batch',\s*body\)/);
+    assert.match(src, /body\['tasks'\]\s*=\s*tasks/);
+    assert.match(src, /body\['task'\]\s*=\s*task/);
+    assert.match(src, /body\['count'\]\s*=\s*count/);
+    assert.match(src, /if \(branch\) body\['branch'\] = branch/);
+    assert.match(src, /if \(autoMode\) body\['autoMode'\] = true/);
+  });
+
+  it('emits success/partial-fail toasts via the showToast callback', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /showToast\(tFormat\('batch\.toast\.dispatched'/);
+    assert.match(src, /showToast\(tFormat\('batch\.toast\.failures'/);
+    assert.match(src, /'success'/);
+    assert.match(src, /'error'/);
+  });
+
+  it('parent Batch wires the hook + drops the inline state + handler', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useBatchSubmit\s*\}\s+from\s+'\.\.\/lib\/use-batch-submit'/);
+    assert.match(src, /useBatchSubmit\(\{[\s\S]*?mode,\s*task,\s*count,\s*tasksText[\s\S]*?showToast,?[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /^interface BatchResponse/m);
+    assert.doesNotMatch(src, /const \[busy, setBusy\]/);
+    assert.doesNotMatch(src, /const \[result, setResult\]/);
+    assert.doesNotMatch(src, /const submit = useCallback/);
+  });
+});
+
 describe('extracted: useRiskCheck + useRiskSandboxPreview (v1.10.657)', () => {
   const fs = require('fs');
   const path = require('path');
