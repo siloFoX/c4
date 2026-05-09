@@ -4,6 +4,49 @@
 
 (no entries — next release window)
 
+## [1.10.652] - 2026-05-09 — Extract useHistorySummary hook
+
+**Web — `HistoryView.tsx` shrunk by 25 lines (323 → 298).**
+The /api/history filter-list fetch moves to its own hook:
+the four filter inputs (q / status / since / until) feed
+URL params, with day strings widened to full-UTC-day ISO
+ranges via the formerly-page-private `toIsoDayStart` /
+`toIsoDayEnd` helpers (now hook-private). The auto-refetch
+useEffect is bundled in. Returns `{ summary, refresh }`.
+
+### Refactor
+- New `web/src/lib/use-history-summary.ts` (~59 lines).
+  Imports `HistoryWorkerSummary` + `HistoryListResponse`
+  from the parent component. The two `toIsoDay*` helpers
+  stay module-private — no other consumer existed.
+- `HistoryView.tsx`: removed the `summary` useState slot,
+  the page-scope `toIsoDayStart` / `toIsoDayEnd`
+  functions, the `fetchSummary` useCallback, and the
+  auto-refetch useEffect. Trimmed unused `useEffect` +
+  `apiGet` imports.
+- Boundary suite #120 — 5 assertions covering hook export
+  shape (5 args), URL building with day-widening, helper
+  module-privacy, return tuple + auto-refetch effect, and
+  parent wiring.
+- `tests/history-view.test.js` redirects: `apiGet`
+  import-check + URLSearchParams + /api/history URL all
+  redirect to the new hook file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  599 / 599 across 119 → 120 suites.
+- `node --test tests/history-view.test.js`: 39 / 39 (after
+  redirect).
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 124 ships total since v1.10.529.
+- 120 components/libs extracted.
+- 30 custom hooks in `web/src/lib/`.
+- 599 boundary assertions across 120 suites.
+
 ## [1.10.651] - 2026-05-09 — Extract useHistoryWorkerDetail hook
 
 **Web — `HistoryView.tsx` shrunk by 17 lines (340 → 323).**

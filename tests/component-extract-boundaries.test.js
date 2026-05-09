@@ -1770,6 +1770,60 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useHistorySummary hook (v1.10.652)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-history-summary.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'HistoryView.tsx');
+
+  it('exports the hook + accepts the four filter strings + setError', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useHistorySummary/);
+    assert.match(src, /query:\s*string/);
+    assert.match(src, /statusFilter:\s*string/);
+    assert.match(src, /sinceDay:\s*string/);
+    assert.match(src, /untilDay:\s*string/);
+    assert.match(src, /setError:\s*\(message:\s*string\s*\|\s*null\)\s*=>\s*void/);
+  });
+
+  it('builds /api/history?qs URL from filters with day-widening', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /new URLSearchParams\(\)/);
+    assert.match(src, /params\.set\('q', query\)/);
+    assert.match(src, /params\.set\('status', statusFilter\)/);
+    assert.match(src, /params\.set\('since', toIsoDayStart\(sinceDay\)\)/);
+    assert.match(src, /params\.set\('until', toIsoDayEnd\(untilDay\)\)/);
+    assert.match(src, /qs \? `\/api\/history\?\$\{qs\}` : '\/api\/history'/);
+  });
+
+  it('day-widening helpers stay private to the hook module', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /function toIsoDayStart/);
+    assert.match(src, /function toIsoDayEnd/);
+    assert.doesNotMatch(src, /export function toIsoDayStart/);
+    assert.doesNotMatch(src, /export function toIsoDayEnd/);
+    assert.match(src, /T00:00:00\.000Z/);
+    assert.match(src, /T23:59:59\.999Z/);
+  });
+
+  it('returns summary array + refresh callback + auto-refetches on filter change', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /summary:\s*HistoryWorkerSummary\[\]/);
+    assert.match(src, /refresh:\s*\(\)\s*=>\s*Promise<void>/);
+    assert.match(src, /useEffect\(\(\) => \{ refresh\(\); \}/);
+  });
+
+  it('parent HistoryView wires the hook + drops summary state + helpers + fetcher', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useHistorySummary\s*\}\s+from\s+'\.\.\/lib\/use-history-summary'/);
+    assert.match(src, /useHistorySummary\(\{[\s\S]*?query,\s*statusFilter,\s*sinceDay,\s*untilDay,\s*setError[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /const \[summary, setSummary\]/);
+    assert.doesNotMatch(src, /const fetchSummary = useCallback/);
+    assert.doesNotMatch(src, /^function toIsoDayStart/m);
+    assert.doesNotMatch(src, /^function toIsoDayEnd/m);
+  });
+});
+
 describe('extracted: useHistoryWorkerDetail hook (v1.10.651)', () => {
   const fs = require('fs');
   const path = require('path');

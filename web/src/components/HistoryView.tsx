@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   History as HistoryIcon,
   NotebookText,
   Search,
   X,
 } from 'lucide-react';
-import { apiGet } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import {
   Badge,
@@ -21,6 +20,7 @@ import { cn } from '../lib/cn';
 import HistoryDetailPane from './HistoryDetailPane';
 import { useScribeContext } from '../lib/use-scribe-context';
 import { useHistoryWorkerDetail } from '../lib/use-history-worker-detail';
+import { useHistorySummary } from '../lib/use-history-summary';
 
 export interface HistoryCommit {
   hash: string;
@@ -74,52 +74,27 @@ export interface HistoryWorkerDetail {
 // (v1.10.650) ScribeContextResponse + scribe drawer hook
 // moved to lib/use-scribe-context.
 
-function toIsoDayStart(dayStr: string): string {
-  if (!dayStr) return '';
-  return `${dayStr}T00:00:00.000Z`;
-}
-
-function toIsoDayEnd(dayStr: string): string {
-  if (!dayStr) return '';
-  return `${dayStr}T23:59:59.999Z`;
-}
+// (v1.10.652) toIsoDayStart/End + summary fetch moved to
+// lib/use-history-summary.
 
 // (v1.10.564) formatDate + recordStatusVariant moved to
 // ./HistoryDetailPane.tsx (the only place that uses them).
 
 export default function HistoryView() {
   useLocale();
-  const [summary, setSummary] = useState<HistoryWorkerSummary[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [sinceDay, setSinceDay] = useState('');
   const [untilDay, setUntilDay] = useState('');
   const [error, setError] = useState<string | null>(null);
+  // (v1.10.652) Summary fetch + ISO day widening moved to hook.
+  const { summary } = useHistorySummary({
+    query, statusFilter, sinceDay, untilDay, setError,
+  });
   // (v1.10.650) Scribe drawer state + fetch moved to hook.
   const { showScribe, scribe, loadingScribe, openScribe, closeScribe } =
     useScribeContext({ setError });
-
-  const fetchSummary = useCallback(async () => {
-    try {
-      const params = new URLSearchParams();
-      if (query) params.set('q', query);
-      if (statusFilter) params.set('status', statusFilter);
-      if (sinceDay) params.set('since', toIsoDayStart(sinceDay));
-      if (untilDay) params.set('until', toIsoDayEnd(untilDay));
-      const qs = params.toString();
-      const url = qs ? `/api/history?${qs}` : '/api/history';
-      const data = await apiGet<HistoryListResponse>(url);
-      setSummary(Array.isArray(data.workers) ? data.workers : []);
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, [query, statusFilter, sinceDay, untilDay]);
-
-  useEffect(() => {
-    fetchSummary();
-  }, [fetchSummary]);
 
   // (v1.10.651) Per-worker detail fetch moved to hook.
   const detail = useHistoryWorkerDetail({ selected, setError });

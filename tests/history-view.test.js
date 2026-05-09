@@ -267,13 +267,25 @@ describe('HistoryView.tsx wiring', () => {
   const src = fs.readFileSync(file, 'utf8');
 
   it('imports apiGet from the shared api module', () => {
-    assert.match(src, /from '\.\.\/lib\/api'/);
-    assert.match(src, /apiGet/);
+    // (v1.10.652) HistoryView no longer imports apiGet directly —
+    // the summary + detail + scribe hooks all bundle their own
+    // api calls. Verify the hooks use the shared module instead.
+    const summarySrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-history-summary.ts'),
+      'utf8',
+    );
+    assert.match(summarySrc, /from '\.\/api'/);
+    assert.match(summarySrc, /apiGet/);
   });
 
   it('fetches the summary from /api/history with URLSearchParams', () => {
-    assert.match(src, /URLSearchParams/);
-    assert.match(src, /\/api\/history/);
+    // (v1.10.652) Summary fetch moved to lib/use-history-summary.
+    const summarySrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-history-summary.ts'),
+      'utf8',
+    );
+    assert.match(summarySrc, /URLSearchParams/);
+    assert.match(summarySrc, /\/api\/history/);
   });
 
   it('fetches per-worker detail from /api/history/:name', () => {
