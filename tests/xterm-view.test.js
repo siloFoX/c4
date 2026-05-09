@@ -142,9 +142,15 @@ describe('XtermView wiring (8.24 + 8.27)', () => {
   });
 
   it('wires ResizeObserver + window resize and calls fitAddon.fit()', () => {
-    assert.match(src, /new ResizeObserver\(/);
-    assert.match(src, /obs\.observe\(container\)/);
-    assert.match(src, /window\.addEventListener\(['"]resize['"]/);
+    // (v1.10.715) ResizeObserver + window.resize moved to use-xterm-resize-fit hook.
+    const resizeFitSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-xterm-resize-fit.ts'),
+      'utf8',
+    );
+    assert.match(resizeFitSrc, /new ResizeObserver\(/);
+    assert.match(resizeFitSrc, /obs\.observe\(container\)/);
+    assert.match(resizeFitSrc, /window\.addEventListener\(['"]resize['"]/);
+    // fit.fit() stays in XtermView's mount effect for the initial fit attempt.
     assert.match(src, /fit\.fit\(\)/);
   });
 
@@ -176,8 +182,13 @@ describe('XtermView wiring (8.24 + 8.27)', () => {
     // 8.27 bug: toggling away + back left the terminal with the old dims.
     // The fix is a layout-effect that schedules a fit whenever visibility
     // goes true.
-    assert.match(src, /useLayoutEffect/);
-    assert.match(src, /if\s*\(\s*visible\s*\)\s*scheduleFit\(\)/);
+    // (v1.10.715) The visible-flip useLayoutEffect moved to use-xterm-resize-fit.
+    const resizeFitSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-xterm-resize-fit.ts'),
+      'utf8',
+    );
+    assert.match(resizeFitSrc, /useLayoutEffect/);
+    assert.match(resizeFitSrc, /if\s*\(\s*visible\s*\)\s*scheduleFit\(\)/);
   });
 
   it('opens a search overlay on Ctrl+F and runs findNext via the SearchAddon', () => {

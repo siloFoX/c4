@@ -8,7 +8,6 @@
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -25,6 +24,7 @@ import { buildXtermTheme } from '../lib/xterm-theme';
 import { useXtermThemeTracking } from '../lib/use-xterm-theme-tracking';
 import { useTerminalSseStream } from '../lib/use-terminal-sse-stream';
 import { useXtermAutofit } from '../lib/use-xterm-autofit';
+import { useXtermResizeFit } from '../lib/use-xterm-resize-fit';
 
 interface XtermViewProps {
   workerName: string;
@@ -129,43 +129,9 @@ export default function XtermView({ workerName, fontSize, visible = true }: Xter
   // (v1.10.645) Theme tracking moved to lib/use-xterm-theme-tracking.
   useXtermThemeTracking({ termRef, workerName });
 
-  // 8.27 ResizeObserver. Attached for the lifetime of the mount regardless
-  // of `visible`, so a sidebar-toggle or window-resize that happens while
-  // the terminal tab is hidden still fits the moment the tab comes back.
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    if (typeof ResizeObserver === 'undefined') return;
-    const obs = new ResizeObserver(() => {
-      scheduleFit();
-    });
-    obs.observe(container);
-    return () => {
-      try {
-        obs.disconnect();
-      } catch {
-        // ignore teardown race
-      }
-      if (fitTimerRef.current != null) {
-        window.clearTimeout(fitTimerRef.current);
-        fitTimerRef.current = null;
-      }
-    };
-  }, [scheduleFit]);
-
-  // Extra window-level resize hook. Some browser builds debounce
-  // ResizeObserver for off-screen elements, which defeats 8.27; window
-  // resize still fires while hidden.
-  useEffect(() => {
-    const onResize = () => scheduleFit();
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [scheduleFit]);
-
-  // Re-fit whenever visibility flips on (tab activation).
-  useLayoutEffect(() => {
-    if (visible) scheduleFit();
-  }, [visible, scheduleFit]);
+  // (v1.10.715) ResizeObserver + window.resize + visible-flip useLayoutEffect
+  // moved to lib/use-xterm-resize-fit.
+  useXtermResizeFit({ containerRef, scheduleFit, visible, fitTimerRef });
 
   // (v1.10.646) SSE watch moved to lib/use-terminal-sse-stream.
   const { sseConnected } = useTerminalSseStream({

@@ -159,9 +159,14 @@ describe('XtermView auto-fit wiring (8.22 P1 carried into 8.24)', () => {
   });
 
   it('wires a ResizeObserver on the xterm container alongside window.addEventListener(resize)', () => {
-    assert.match(src, /new ResizeObserver\(/);
-    assert.match(src, /obs\.observe\(container\)/);
-    assert.match(src, /window\.addEventListener\(['"]resize['"]/);
+    // (v1.10.715) ResizeObserver + window.resize moved to use-xterm-resize-fit hook.
+    const resizeFitSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-xterm-resize-fit.ts'),
+      'utf8',
+    );
+    assert.match(resizeFitSrc, /new ResizeObserver\(/);
+    assert.match(resizeFitSrc, /obs\.observe\(container\)/);
+    assert.match(resizeFitSrc, /window\.addEventListener\(['"]resize['"]/);
   });
 
   it('debounces recompute at 120ms and dedupes the POST against the last dims', () => {

@@ -1865,6 +1865,45 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useXtermResizeFit hook (v1.10.715)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-xterm-resize-fit.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'XtermView.tsx');
+
+  it('exports the hook + accepts containerRef/scheduleFit/visible/fitTimerRef', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useXtermResizeFit/);
+    assert.match(src, /containerRef:\s*MutableRefObject<HTMLElement \| null>/);
+    assert.match(src, /scheduleFit:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /visible:\s*boolean/);
+    assert.match(src, /fitTimerRef:\s*MutableRefObject<number \| null>/);
+  });
+
+  it('hook owns ResizeObserver + window.resize + useLayoutEffect-on-visible', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /new ResizeObserver/);
+    assert.match(src, /addEventListener\('resize'/);
+    assert.match(src, /useLayoutEffect/);
+    assert.match(src, /if \(visible\) scheduleFit\(\)/);
+  });
+
+  it('ResizeObserver cleanup also clears the fit-timer ref', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /obs\.disconnect/);
+    assert.match(src, /window\.clearTimeout\(fitTimerRef\.current\)/);
+    assert.match(src, /fitTimerRef\.current = null/);
+  });
+
+  it('parent XtermView wires the hook + drops the inline resize effects', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useXtermResizeFit\s*\}\s+from\s+'\.\.\/lib\/use-xterm-resize-fit'/);
+    assert.match(src, /useXtermResizeFit\(\{[\s\S]*?containerRef,\s*scheduleFit,\s*visible,\s*fitTimerRef[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /new ResizeObserver/);
+    assert.doesNotMatch(src, /addEventListener\('resize'/);
+  });
+});
+
 describe('extracted: useEscapeToClose hook (v1.10.714)', () => {
   const fs = require('fs');
   const path = require('path');

@@ -4,6 +4,50 @@
 
 (no entries — next release window)
 
+## [1.10.715] - 2026-05-09 — Extract useXtermResizeFit hook
+
+**Web — `components/XtermView.tsx` shrunk by 34 lines (247 → 213).**
+Three coordinated resize-tracking effects (ResizeObserver
+on the container, window-level `resize` listener, and
+the `useLayoutEffect` that re-fits when `visible` flips
+back to true) all collapse into one
+`useXtermResizeFit({ containerRef, scheduleFit, visible,
+fitTimerRef })` hook.
+
+The hook also takes the `fitTimerRef` so its
+ResizeObserver cleanup can drop the pending debounce
+handle on unmount — preventing a stray `setTimeout`
+from firing after the terminal has been torn down.
+The fontSize-tracking effect stayed inline in
+XtermView because it also writes
+`term.options.fontSize`; only the size-feedback
+effects moved.
+
+The `useLayoutEffect` import drops out of XtermView
+along with the three effect blocks. The other 8.27
+auto-fit comments stay attached to the
+`useXtermAutofit` and `useXtermResizeFit` hooks so the
+provenance is still visible from grep.
+
+Boundary suite #182 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the three trigger surfaces, the
+fitTimerRef cleanup contract, and that the parent
+no longer carries the inline `new ResizeObserver`
+or `addEventListener('resize')` blocks. Three
+pre-existing tests redirected:
+- `xterm-view.test.js` "wires ResizeObserver +
+  window resize"
+- `xterm-view.test.js` "re-fits when visible prop
+  flips back to true"
+- `ux-visual.test.js` "wires a ResizeObserver on the
+  xterm container"
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (870 / 181 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.714] - 2026-05-09 — Extract useEscapeToClose hook (shared)
 
 **Web — generic Escape-key dismissal hook adopted by 2 modals.**
