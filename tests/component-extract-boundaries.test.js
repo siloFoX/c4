@@ -1778,6 +1778,46 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useAutoScroll hook (v1.10.676)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-auto-scroll.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'ChatView.tsx');
+
+  it('exports the hook + AUTOSCROLL_THRESHOLD_PX constant', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useAutoScroll/);
+    assert.match(src, /export const AUTOSCROLL_THRESHOLD_PX\s*=\s*24/);
+  });
+
+  it('runs a layout effect that scrolls to bottom when autoScroll + bumpKey changes', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /useLayoutEffect/);
+    assert.match(src, /el\.scrollTop = el\.scrollHeight/);
+    assert.match(src, /\[bumpKey, autoScroll, scrollRef\]/);
+  });
+
+  it('isAtBottom uses the threshold to classify scroll position', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /el\.scrollHeight - el\.scrollTop - el\.clientHeight/);
+    assert.match(src, /distance <= AUTOSCROLL_THRESHOLD_PX/);
+  });
+
+  it('jumpToBottom sets scrollTop + flips autoScroll back on', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /const jumpToBottom = useCallback/);
+    assert.match(src, /setAutoScroll\(true\)/);
+  });
+
+  it('parent ChatView wires the hook + drops the inline state + layout effect', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useAutoScroll\s*\}\s+from\s+'\.\.\/lib\/use-auto-scroll'/);
+    assert.match(src, /useAutoScroll\(\{\s*scrollRef,\s*bumpKey:\s*messages\.length\s*\}\)/);
+    assert.doesNotMatch(src, /const \[autoScroll, setAutoScroll\]/);
+    assert.doesNotMatch(src, /^const AUTOSCROLL_THRESHOLD_PX/m);
+  });
+});
+
 describe('extracted: useExpandedSet hook (v1.10.675)', () => {
   const fs = require('fs');
   const path = require('path');

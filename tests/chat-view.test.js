@@ -138,7 +138,12 @@ describe('ChatView source wiring', () => {
 
   it('tracks autoScroll and exposes a Jump-to-latest escape hatch', () => {
     assert.match(src, /setAutoScroll/);
-    assert.match(src, /distanceFromBottom/);
+    // (v1.10.676) distanceFromBottom math moved to lib/use-auto-scroll.
+    const autoSrc = fs.readFileSync(
+      path.join(WEB_SRC, 'lib', 'use-auto-scroll.ts'),
+      'utf8',
+    );
+    assert.match(autoSrc, /el\.scrollHeight - el\.scrollTop - el\.clientHeight/);
     // (v1.10.583) Jump-to-latest button moved to ChatHeader sibling.
     const headerSrc = fs.readFileSync(CHAT_HEADER, 'utf8');
     // (v1.10.385) i18n migration — assert key instead of literal.

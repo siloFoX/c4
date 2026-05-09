@@ -1,7 +1,6 @@
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -18,6 +17,7 @@ import ChatErrorBanners from './ChatErrorBanners';
 import { useChatSseStream } from '../lib/use-chat-sse-stream';
 import { useWorkerBufferFlusher } from '../lib/use-worker-buffer-flusher';
 import { useChatSubmit } from '../lib/use-chat-submit';
+import { useAutoScroll } from '../lib/use-auto-scroll';
 import {
   conversationToMessages,
   makeId,
@@ -57,7 +57,7 @@ interface ScrollbackResponse {
 // (v1.10.665) WORKER_FLUSH_MS + buffer flusher moved to
 // lib/use-worker-buffer-flusher.
 const MAX_MESSAGES = 300;
-const AUTOSCROLL_THRESHOLD_PX = 24;
+// (v1.10.676) AUTOSCROLL_THRESHOLD_PX moved to lib/use-auto-scroll.
 const SCROLLBACK_PAGE = 2000;
 const SCROLLBACK_MAX = 10000;
 
@@ -79,7 +79,6 @@ export default function ChatView({ workerName }: ChatViewProps) {
   const [liveMessages, setLiveMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [autoScroll, setAutoScroll] = useState(true);
   const [backfillLoading, setBackfillLoading] = useState(true);
   const [backfillCount, setBackfillCount] = useState(0);
   const [backfillSource, setBackfillSource] = useState<'session' | 'scrollback' | null>(null);
@@ -227,12 +226,9 @@ export default function ChatView({ workerName }: ChatViewProps) {
     onCleanup: resetFlusher,
   });
 
-  useLayoutEffect(() => {
-    if (!autoScroll) return;
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollTop = el.scrollHeight;
-  }, [messages, autoScroll]);
+  // (v1.10.676) Auto-scroll-on-new-message moved to hook.
+  const { autoScroll, setAutoScroll, jumpToBottom, isAtBottom } =
+    useAutoScroll({ scrollRef, bumpKey: messages.length });
 
   // 8.25: load-older handler. Only scrollback-mode has a "more history"
   // story - session JSONL already contains the full conversation.
@@ -277,23 +273,13 @@ export default function ChatView({ workerName }: ChatViewProps) {
   const onScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    const atBottom = distanceFromBottom <= AUTOSCROLL_THRESHOLD_PX;
-    setAutoScroll(atBottom);
+    setAutoScroll(isAtBottom());
     // 8.25 infinite scroll: when the user hits the top of the log in
     // scrollback fallback mode, pull the next page of past lines.
     if (el.scrollTop <= 8 && hasOlder && !loadingOlder && backfillSource === 'scrollback') {
       void loadOlder();
     }
   };
-
-  const jumpToBottom = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollTop = el.scrollHeight;
-    setAutoScroll(true);
-  };
-
   // (v1.10.673) Submit flow moved to lib/use-chat-submit.
   const { sending, handleSubmit } = useChatSubmit({
     workerName, input, setInput, setError, setAutoScroll,

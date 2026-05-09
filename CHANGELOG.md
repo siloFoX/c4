@@ -4,6 +4,54 @@
 
 (no entries — next release window)
 
+## [1.10.676] - 2026-05-09 — Extract useAutoScroll hook
+
+**Web — `ChatView.tsx` shrunk by 14 lines (353 → 339).**
+The auto-scroll-on-new-content state machine — the
+`autoScroll` flag, the layout effect that snaps to the
+bottom whenever a `bumpKey` (e.g. messages.length)
+changes, the `jumpToBottom` callback, and the
+`isAtBottom` classifier with its `AUTOSCROLL_THRESHOLD_PX
+= 24` constant — moves to a self-contained hook.
+
+### Refactor
+- New `web/src/lib/use-auto-scroll.ts` (~53 lines).
+  Exports `useAutoScroll` + `AUTOSCROLL_THRESHOLD_PX`.
+  Returns `{ autoScroll, setAutoScroll, jumpToBottom,
+  isAtBottom }`.
+- `ChatView.tsx`: removed the inline
+  `AUTOSCROLL_THRESHOLD_PX` constant, the `autoScroll`
+  useState slot, the layout effect that scrolled to
+  bottom, the inline `jumpToBottom` arrow, and the
+  manual `distanceFromBottom` math inside `onScroll`.
+  Replaced with one destructured `useAutoScroll`
+  call and a single `isAtBottom()` invocation in
+  the surviving onScroll. Trimmed `useLayoutEffect`
+  import.
+- Boundary suite #143 — 5 assertions covering hook +
+  threshold export shape, layout-effect contract,
+  isAtBottom math, jumpToBottom semantics, parent
+  wiring.
+- `tests/chat-view.test.js` redirect: the
+  `distanceFromBottom` assertion now reads the hook
+  file's `el.scrollHeight - el.scrollTop -
+  el.clientHeight` math.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  710 / 710 across 142 → 143 suites.
+- `node --test tests/chat-view.test.js`: 21 / 21
+  (after redirect).
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 147 ships total since v1.10.529.
+- 145 components/libs extracted.
+- 55 custom hooks in `web/src/lib/`.
+- 710 boundary assertions across 143 suites.
+
 ## [1.10.675] - 2026-05-09 — Extract useExpandedSet hook
 
 **Web — `HierarchyTree.tsx` shrunk by 25 lines (291 → 266).**
