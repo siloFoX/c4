@@ -4,6 +4,48 @@
 
 (no entries — next release window)
 
+## [1.10.655] - 2026-05-09 — Extract useEscalationResolve hook
+
+**Web — `AutonomousView.tsx` shrunk by 27 lines (296 → 269).**
+The per-escalation resolve flow — busy-id slot, last
+error, pending notes map, and the POST handler that
+window.confirm-gates and optimistically removes the row —
+moves to a dedicated hook. The hook takes
+`setEscalations` from `useAutonomousDigest` so the
+optimistic `prev.filter` still updates the same
+state slot.
+
+### Refactor
+- New `web/src/lib/use-escalation-resolve.ts` (~62 lines).
+  Imports `Escalation` from `./use-autonomous-digest`
+  (re-exported there since v1.10.653). Preserves the
+  modify-needs-note guard, the
+  `window.confirm(autonomous.confirmResolve)` gate, and
+  the success-path note-clear verbatim.
+- `AutonomousView.tsx`: removed three useState slots
+  (resolveBusy / resolveError / resolveNotes) + the
+  ~30-line `handleResolve` useCallback. Replaced with
+  a single `useEscalationResolve({ setEscalations })`
+  destructure. Trimmed unused `useCallback` + `apiPost`
+  imports.
+- Boundary suite #123 — 6 assertions covering hook
+  export shape, modify-needs-note guard, confirm-gate +
+  POST URL, optimistic remove + note-clear, return
+  tuple shape, parent wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  616 / 616 across 122 → 123 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 127 ships total since v1.10.529.
+- 123 components/libs extracted.
+- 33 custom hooks in `web/src/lib/`.
+- 616 boundary assertions across 123 suites.
+
 ## [1.10.654] - 2026-05-09 — Extract useAutonomousPauseToggle hook
 
 **Web — `AutonomousView.tsx` shrunk by 22 lines (318 → 296).**

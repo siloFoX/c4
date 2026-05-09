@@ -1770,6 +1770,57 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useEscalationResolve hook (v1.10.655)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-escalation-resolve.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'AutonomousView.tsx');
+
+  it('exports the hook + accepts setEscalations from useAutonomousDigest', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useEscalationResolve/);
+    assert.match(src, /setEscalations:\s*React\.Dispatch<React\.SetStateAction<Escalation\[\]>>/);
+    assert.match(src, /import type \{ Escalation \} from '\.\/use-autonomous-digest'/);
+  });
+
+  it('requires a non-empty note for the modify action', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(action === 'modify'\)/);
+    assert.match(src, /autonomous\.resolve\.noteRequired/);
+  });
+
+  it('confirms via window.confirm + POSTs /api/autonomous/escalations/:id', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.confirm\(tFormat\('autonomous\.confirmResolve'/);
+    assert.match(src, /apiPost\(`\/api\/autonomous\/escalations\/\$\{id\}`,\s*body\)/);
+  });
+
+  it('optimistically removes the row + clears its note on success', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /setEscalations\(\(prev\) => prev\.filter\(\(e\) => e\.id !== id\)\)/);
+    assert.match(src, /delete next\[id\];\s*return next/);
+  });
+
+  it('returns busy/error/notes triplet + setResolveNotes + handleResolve', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /resolveBusy:\s*number\s*\|\s*null/);
+    assert.match(src, /resolveError:\s*string\s*\|\s*null/);
+    assert.match(src, /resolveNotes:\s*Record<number,\s*string>/);
+    assert.match(src, /setResolveNotes:\s*React\.Dispatch/);
+    assert.match(src, /handleResolve:\s*\(id:\s*number,\s*action:\s*ResolveAction\)\s*=>\s*Promise<void>/);
+  });
+
+  it('parent AutonomousView wires the hook + drops the inline state + handler', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useEscalationResolve\s*\}\s+from\s+'\.\.\/lib\/use-escalation-resolve'/);
+    assert.match(src, /useEscalationResolve\(\{\s*setEscalations\s*\}\)/);
+    assert.doesNotMatch(src, /const \[resolveBusy, setResolveBusy\]/);
+    assert.doesNotMatch(src, /const \[resolveError, setResolveError\]/);
+    assert.doesNotMatch(src, /const \[resolveNotes, setResolveNotes\]/);
+    assert.doesNotMatch(src, /const handleResolve = useCallback/);
+  });
+});
+
 describe('extracted: useAutonomousPauseToggle hook (v1.10.654)', () => {
   const fs = require('fs');
   const path = require('path');

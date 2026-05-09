@@ -1,12 +1,12 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { Bot, Pause, Play, RefreshCw } from 'lucide-react';
-import { apiPost } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import AutonomousDigestMetrics from './AutonomousDigestMetrics';
 import { useAutonomousDigest } from '../lib/use-autonomous-digest';
 import { useAutonomousPauseToggle } from '../lib/use-autonomous-pause-toggle';
+import { useEscalationResolve } from '../lib/use-escalation-resolve';
 
 // (v1.10.349) Autonomous tab — operator-side surface for the
 // Phase 8.29 reviewer escalation flow.
@@ -75,36 +75,9 @@ export default function AutonomousView() {
   const { pauseBusy, pauseMsg, pauseFailed, handlePauseToggle } =
     useAutonomousPauseToggle({ digest, refresh });
 
-  const [resolveBusy, setResolveBusy] = useState<number | null>(null);
-  const [resolveError, setResolveError] = useState<string | null>(null);
-  const [resolveNotes, setResolveNotes] = useState<Record<number, string>>({});
-  const handleResolve = useCallback(async (id: number, action: 'approve' | 'reject' | 'modify') => {
-    if (action === 'modify') {
-      const note = resolveNotes[id];
-      if (!note || !note.trim()) {
-        setResolveError(tFormat('autonomous.resolve.noteRequired', { id }));
-        return;
-      }
-    }
-    if (!window.confirm(tFormat('autonomous.confirmResolve', { id, action }))) return;
-    setResolveBusy(id);
-    setResolveError(null);
-    try {
-      const body: { action: string; note?: string } = { action };
-      if (resolveNotes[id]?.trim()) body.note = resolveNotes[id].trim();
-      await apiPost(`/api/autonomous/escalations/${id}`, body);
-      // Optimistically remove from the visible list — the next
-      // refresh tick will drop it server-side too.
-      setEscalations((prev) => prev.filter((e) => e.id !== id));
-      setResolveNotes((prev) => { const next = { ...prev }; delete next[id]; return next; });
-    } catch (err) {
-      setResolveError(tFormat('autonomous.resolve.failed', {
-        error: (err as Error).message || t('common.unknown'),
-      }));
-    } finally {
-      setResolveBusy(null);
-    }
-  }, [resolveNotes]);
+  // (v1.10.655) Per-escalation resolve flow moved to hook.
+  const { resolveBusy, resolveError, resolveNotes, setResolveNotes, handleResolve } =
+    useEscalationResolve({ setEscalations });
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3 md:p-6">
