@@ -1791,6 +1791,36 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useEffectiveCollapsed hook (v1.10.689)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-effective-collapsed.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'layout', 'Sidebar.tsx');
+
+  it('exports the hook + accepts collapsed flag', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useEffectiveCollapsed\(collapsed:\s*boolean\):\s*boolean/);
+  });
+
+  it('subscribes to (min-width: 768px) media query', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.matchMedia\('\(min-width: 768px\)'\)/);
+    assert.match(src, /mq\.addEventListener\('change',\s*onChange\)/);
+    assert.match(src, /mq\.removeEventListener\('change',\s*onChange\)/);
+  });
+
+  it('returns collapsed && isDesktop so mobile widths force expanded', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /return collapsed && isDesktop/);
+  });
+
+  it('parent Sidebar imports the hook + drops the inline declaration', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useEffectiveCollapsed\s*\}\s+from\s+'\.\.\/\.\.\/lib\/use-effective-collapsed'/);
+    assert.doesNotMatch(src, /^function useEffectiveCollapsed/m);
+  });
+});
+
 describe('extracted: useAuthIdentity hook (v1.10.688)', () => {
   const fs = require('fs');
   const path = require('path');

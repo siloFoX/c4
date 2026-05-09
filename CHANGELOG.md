@@ -4,6 +4,48 @@
 
 (no entries — next release window)
 
+## [1.10.689] - 2026-05-09 — Extract useEffectiveCollapsed hook
+
+**Web — `layout/Sidebar.tsx` shrunk by 13 lines (242 → 229).**
+The mobile-breakpoint guard for the sidebar's
+`collapsed` flag — already a custom hook inline in the
+file — moves to its own lib file. Same logic: subscribes
+to the 768px media query, returns `collapsed &&
+isDesktop` so a previously-collapsed-on-desktop session
+hydrating on mobile doesn't leave the user with an empty
+aside.
+
+### Refactor
+- New `web/src/lib/use-effective-collapsed.ts`
+  (~23 lines). Exports `useEffectiveCollapsed`. The
+  hook was already authored as a custom hook in
+  Sidebar.tsx; the move just relocates it into the
+  shared lib pile so future mobile-aware components
+  could reuse it.
+- `Sidebar.tsx`: removed inline `useEffectiveCollapsed`
+  declaration. Trimmed `useEffect` + `useState`
+  imports.
+- Boundary suite #156 — 4 assertions covering hook
+  signature, 768px subscribe + cleanup, return logic,
+  parent wiring.
+- `tests/sidebar-collapsible.test.js` redirect: the
+  matchMedia assertion now reads the hook file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  766 / 766 across 155 → 156 suites.
+- `node --test tests/sidebar-collapsible.test.js`:
+  32 / 32 (after redirect).
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 160 ships total since v1.10.529.
+- 158 components/libs extracted.
+- 68 custom hooks in `web/src/lib/`.
+- 766 boundary assertions across 156 suites.
+
 ## [1.10.688] - 2026-05-09 — Extract useAuthIdentity hook
 
 **Web — `AccountMenu.tsx` shrunk by 34 lines (248 → 214).**

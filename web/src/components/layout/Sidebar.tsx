@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import { List, Network, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { useEffectiveCollapsed } from '../../lib/use-effective-collapsed';
 import { cn } from '../../lib/cn';
 import { t, useLocale } from '../../lib/i18n';
 import { IconButton, Tooltip } from '../ui';
@@ -35,20 +35,7 @@ interface SidebarProps {
 // guard, a previously-collapsed-on-desktop session that's reopened
 // on mobile would render an empty aside (logo only). Treat
 // collapsed as effectively false on widths below the md breakpoint.
-function useEffectiveCollapsed(collapsed: boolean): boolean {
-  const [isDesktop, setIsDesktop] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    return window.matchMedia('(min-width: 768px)').matches;
-  });
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mq = window.matchMedia('(min-width: 768px)');
-    const onChange = () => setIsDesktop(mq.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
-  return collapsed && isDesktop;
-}
+// (v1.10.689) Hook moved to lib/use-effective-collapsed.
 
 export default function Sidebar({
   open,

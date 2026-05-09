@@ -73,7 +73,14 @@ describe('Sidebar component wires the collapsed mode', () => {
   // from a previous desktop session. The component must derive an
   // "effective" collapsed signal that respects the breakpoint.
   it('derives an effectiveCollapsed signal from matchMedia + prop', () => {
-    assert.match(src, /matchMedia\('\(min-width: 768px\)'\)/);
+    // (v1.10.689) matchMedia subscription moved to lib/use-effective-collapsed.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(ROOT, 'web/src/lib/use-effective-collapsed.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /matchMedia\('\(min-width: 768px\)'\)/);
     assert.match(src, /effectiveCollapsed/);
   });
 
