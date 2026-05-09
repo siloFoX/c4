@@ -1770,6 +1770,43 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useTheme hook (v1.10.671)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-theme.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'App.tsx');
+
+  it('exports the hook with no-arg signature returning theme + setTheme', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useTheme\(\)/);
+    assert.match(src, /theme:\s*ThemeMode/);
+    assert.match(src, /setTheme:\s*\(next:\s*ThemeMode\)\s*=>\s*void/);
+  });
+
+  it('writes + applies on every theme change', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /writeTheme\(theme\)/);
+    assert.match(src, /applyTheme\(theme\)/);
+  });
+
+  it('subscribes to OS theme media query when theme === system', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(theme !== 'system'/);
+    assert.match(src, /window\.matchMedia\('\(prefers-color-scheme: dark\)'\)/);
+    assert.match(src, /applyTheme\('system'\)/);
+    assert.match(src, /mq\.removeEventListener\('change',\s*onChange\)/);
+  });
+
+  it('parent App wires the hook + drops the inline state + apply effect + OS listener', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useTheme\s*\}\s+from\s+'\.\/lib\/use-theme'/);
+    assert.match(src, /useTheme\(\)/);
+    assert.doesNotMatch(src, /const \[theme, setTheme\]/);
+    assert.doesNotMatch(src, /writeTheme\(theme\)/);
+    assert.doesNotMatch(src, /matchMedia\('\(prefers-color-scheme: dark\)'\)/);
+  });
+});
+
 describe('extracted: useSidebarShortcut hook (v1.10.670)', () => {
   const fs = require('fs');
   const path = require('path');

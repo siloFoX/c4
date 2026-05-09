@@ -29,8 +29,8 @@ import { type TopView } from './components/layout/TopTabs';
 import { logout } from './lib/api';
 import { useAuthState } from './lib/use-auth-state';
 import { useSidebarShortcut } from './lib/use-sidebar-shortcut';
+import { useTheme } from './lib/use-theme';
 import {
-  applyTheme,
   DEFAULT_DETAIL_MODE,
   DEFAULT_SIDEBAR_COLLAPSED,
   DEFAULT_SIDEBAR_MODE,
@@ -43,9 +43,7 @@ import {
   writeDetailMode,
   writeSidebarCollapsed,
   writeSidebarMode,
-  writeTheme,
   writeTopView,
-  type ThemeMode,
 } from './lib/preferences';
 
 export default function App() {
@@ -64,28 +62,20 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(readSidebarCollapsed);
   const [detailMode, setDetailMode] = useState<DetailMode>(readDetailMode);
   const [topView, setTopView] = useState<TopView>(readTopView);
-  const [theme, setTheme] = useState<ThemeMode>(readTheme);
+  // (v1.10.671) Theme state + write+apply + OS-theme listener moved to
+  // lib/use-theme.
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => { writeSidebarMode(sidebarMode); }, [sidebarMode]);
   useEffect(() => { writeSidebarCollapsed(sidebarCollapsed); }, [sidebarCollapsed]);
   useEffect(() => { writeDetailMode(detailMode); }, [detailMode]);
   useEffect(() => { writeTopView(topView); }, [topView]);
-  useEffect(() => { writeTheme(theme); applyTheme(theme); }, [theme]);
 
   // (v1.10.670) Ctrl+B / Cmd+B sidebar shortcut moved to hook.
   useSidebarShortcut({
     onToggleCollapsed: () => setSidebarCollapsed((v) => !v),
     onToggleOpen: () => setSidebarOpen((v) => !v),
   });
-
-  // Track OS theme changes when user picked 'system'.
-  useEffect(() => {
-    if (theme !== 'system' || typeof window === 'undefined') return;
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = () => applyTheme('system');
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, [theme]);
 
   // Re-sync state if another tab updates the same preferences.
   useEffect(() => {

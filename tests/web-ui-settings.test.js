@@ -139,9 +139,14 @@ describe('App wires Settings view', () => {
       /topView === 'settings'[\s\S]*?<SettingsView/.test(src),
       "App.tsx should mount SettingsView when topView === 'settings'"
     );
+    // (v1.10.671) applyTheme call moved to lib/use-theme.
+    const themeSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-theme.ts'),
+      'utf8',
+    );
     assert.ok(
-      /applyTheme\(theme\)/.test(src),
-      'App.tsx should call applyTheme(theme) on change'
+      /applyTheme\(theme\)/.test(themeSrc),
+      'lib/use-theme should call applyTheme(theme) on change'
     );
   });
 });

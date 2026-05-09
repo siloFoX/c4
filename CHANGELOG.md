@@ -4,6 +4,52 @@
 
 (no entries — next release window)
 
+## [1.10.671] - 2026-05-09 — Extract useTheme hook (50-hook milestone)
+
+**Web — `App.tsx` shrunk by 10 lines (240 → 230).**
+The persisted theme (`light` / `dark` / `system`) plus
+its write+apply effect plus the OS-prefers-color-scheme
+listener (re-applies on macOS/Windows theme flip when
+`'system'`) move to a self-contained hook. The cross-tab
+`storage` listener stays in App alongside the four other
+preferences — it's a shared bus, not theme-specific.
+
+This is the **50th custom hook** in `web/src/lib/`,
+crossing a meaningful milestone since the v1.10.529
+"perfection track" began (started at zero).
+
+### Refactor
+- New `web/src/lib/use-theme.ts` (~36 lines). Imports
+  `applyTheme` / `readTheme` / `writeTheme` /
+  `ThemeMode` from `./preferences`. No-arg signature
+  returning `{ theme, setTheme }`.
+- `App.tsx`: removed the `theme` useState slot, the
+  write+apply useEffect, and the OS theme listener
+  useEffect. Replaced with one destructured
+  `useTheme()` call. Trimmed `applyTheme` + `writeTheme`
+  + `ThemeMode` imports from preferences (now consumed
+  by the hook).
+- Boundary suite #138 — 4 assertions covering hook
+  no-arg shape, write+apply effect, OS-theme media
+  query subscription, parent wiring.
+- `tests/web-ui-settings.test.js` redirect: the
+  `applyTheme(theme)` match now reads the hook file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  687 / 687 across 137 → 138 suites.
+- `node --test tests/web-ui-settings.test.js`: 7 / 7
+  (after redirect).
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 142 ships total since v1.10.529.
+- 140 components/libs extracted.
+- **50 custom hooks** in `web/src/lib/`. 🎯
+- 687 boundary assertions across 138 suites.
+
 ## [1.10.670] - 2026-05-09 — Extract useSidebarShortcut hook
 
 **Web — `App.tsx` shrunk by 22 lines (262 → 240).**
