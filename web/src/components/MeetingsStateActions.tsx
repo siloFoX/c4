@@ -1,7 +1,6 @@
-import { useCallback, useState } from 'react';
-import { apiPost } from '../lib/api';
 import { Button } from './ui';
-import { t, tFormat, useLocale } from '../lib/i18n';
+import { t, useLocale } from '../lib/i18n';
+import { useMeetingStateAction } from '../lib/use-meeting-state-action';
 
 // (v1.10.555) Extracted from MeetingsView. State-machine
 // controls that drive a meeting's lifecycle:
@@ -14,7 +13,8 @@ import { t, tFormat, useLocale } from '../lib/i18n';
 // POSTs to /api/meetings/:id/{action} and surfaces transient
 // errors inline.
 
-type Action = 'start' | 'advance' | 'next-round' | 'escalate' | 'abort';
+// (v1.10.704) Action union + state + fire dispatcher
+// moved to lib/use-meeting-state-action.
 
 interface Props {
   meetingId: string;
@@ -24,24 +24,7 @@ interface Props {
 export default function MeetingsStateActions({ meetingId, mode }: Props) {
   useLocale();
 
-  const [busy, setBusy] = useState<Action | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const fire = useCallback(async (action: Action, confirm?: string) => {
-    if (confirm && !window.confirm(confirm)) return;
-    setBusy(action);
-    setError(null);
-    try {
-      await apiPost(`/api/meetings/${encodeURIComponent(meetingId)}/${action}`, {});
-    } catch (e) {
-      setError(tFormat('meetings.state.failed', {
-        action,
-        error: (e as Error).message || t('common.unknown'),
-      }));
-    } finally {
-      setBusy(null);
-    }
-  }, [meetingId]);
+  const { busy, error, fire } = useMeetingStateAction({ meetingId });
 
   if (mode === 'pending') {
     return (

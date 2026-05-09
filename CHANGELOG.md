@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.704] - 2026-05-09 — Extract useMeetingStateAction hook
+
+**Web — `MeetingsStateActions.tsx` shrunk by 17 lines (112 → 95).**
+The state-machine action dispatcher — POSTs
+/api/meetings/:id/<action> for the five lifecycle
+transitions (start / advance / next-round / escalate /
+abort) — moves to a self-contained hook. The optional
+window.confirm gate stays in the dispatcher; busy
+slot tracks the in-flight action so the row disables
+itself while one is running.
+
+### Refactor
+- New `web/src/lib/use-meeting-state-action.ts` (~51 lines).
+  Exports `useMeetingStateAction` + `MeetingAction`
+  union (renamed from `Action` to avoid collision).
+  Returns `{ busy, error, fire }`.
+- `MeetingsStateActions.tsx`: removed `Action` type
+  alias, two useState slots, the ~14-line `fire`
+  useCallback. Replaced with one destructured hook
+  call. Trimmed `useCallback` + `useState` +
+  `apiPost` + `tFormat` imports.
+- Boundary suite #171 — 4 assertions covering hook +
+  union shape, confirm gate + POST URL, busy
+  tracking, parent wiring.
+- MeetingsStateActions suite (v1.10.555) updated:
+  busy-state-typed-by-Action assertion now reads the
+  hook file (with the renamed union).
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  826 / 826 across 170 → 171 suites.
+- `npm run check:full`: green.
+
+### Stats
+- 175 ships total since v1.10.529.
+- 172 components/libs extracted.
+- 81 custom hooks in `web/src/lib/`.
+- 826 boundary assertions across 171 suites.
+
 ## [1.10.703] - 2026-05-09 — Extract useMeetingPublish hook
 
 **Web — `MeetingsPublishControls.tsx` shrunk by 37 lines (113 → 76).**

@@ -1032,8 +1032,14 @@ describe('extracted: MeetingsStateActions (v1.10.555)', () => {
   });
 
   it('owns busy state typed by Action union', () => {
-    const src = read('MeetingsStateActions.tsx');
-    assert.match(src, /useState<Action \| null>/);
+    // (v1.10.704) Busy state moved to lib/use-meeting-state-action.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-state-action.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /useState<MeetingAction\s*\|\s*null>/);
   });
 
   it('confirm-prompts escalate + abort before firing', () => {
@@ -1844,6 +1850,45 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useMeetingStateAction hook (v1.10.704)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-state-action.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'MeetingsStateActions.tsx');
+
+  it('exports the hook + MeetingAction union', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useMeetingStateAction/);
+    assert.match(src, /export type MeetingAction/);
+    assert.match(src, /'start'/);
+    assert.match(src, /'advance'/);
+    assert.match(src, /'next-round'/);
+    assert.match(src, /'escalate'/);
+    assert.match(src, /'abort'/);
+  });
+
+  it('fire confirms via window.confirm + POSTs /api/meetings/:id/<action>', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(confirm && !window\.confirm\(confirm\)\) return/);
+    assert.match(src, /apiPost\(`\/api\/meetings\/\$\{encodeURIComponent\(meetingId\)\}\/\$\{action\}`,\s*\{\}\)/);
+  });
+
+  it('busy slot tracks the in-flight action', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /useState<MeetingAction\s*\|\s*null>\(null\)/);
+    assert.match(src, /setBusy\(action\)/);
+  });
+
+  it('parent MeetingsStateActions wires the hook + drops the inline state + fire', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useMeetingStateAction\s*\}\s+from\s+'\.\.\/lib\/use-meeting-state-action'/);
+    assert.match(src, /useMeetingStateAction\(\{\s*meetingId\s*\}\)/);
+    assert.doesNotMatch(src, /^type Action = /m);
+    assert.doesNotMatch(src, /const \[busy, setBusy\]/);
+    assert.doesNotMatch(src, /const fire = useCallback/);
   });
 });
 
