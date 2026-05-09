@@ -4,6 +4,50 @@
 
 (no entries — next release window)
 
+## [1.10.674] - 2026-05-09 — Extract useAttachProcessState hook
+
+**Web — `SessionsAttachedRowActions.tsx` shrunk by 41 lines (268 → 227).**
+The 30s GET /api/attach/:name/process poll that drives
+the alive/idle/error pill (8.32 slice 4) moves to a
+self-contained hook. `AttachProcessState` discriminated
+union ships with it. The cancellation race guard is
+preserved verbatim — needed because a fast row swap
+must not stamp a stale state back onto a different
+session.
+
+### Refactor
+- New `web/src/lib/use-attach-process-state.ts`
+  (~59 lines). Exports `useAttachProcessState` +
+  `AttachProcessState` type (discriminated union of
+  `loading` / `alive` / `idle` / `error` variants).
+- `SessionsAttachedRowActions.tsx`: removed the inline
+  `AttachProcessState` type, the `procState` useState
+  slot, and the ~32-line poll useEffect. Replaced with
+  one `useAttachProcessState({ name: session.name })`
+  call. Trimmed `useEffect` + `apiGet` imports.
+- Boundary suite #141 — 4 assertions covering hook +
+  union shape, /api/attach/:name/process URL + 30s
+  interval + cancellation guard, alive/idle/error
+  variant routing, parent wiring.
+- Existing SessionsAttachedRowActions suite
+  (v1.10.550): three assertions updated to read the
+  hook for poll/URL details and to grep
+  `useAttachProcessState` instead of inline
+  `procState` slot.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  701 / 701 across 140 → 141 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 145 ships total since v1.10.529.
+- 143 components/libs extracted.
+- 53 custom hooks in `web/src/lib/`.
+- 701 boundary assertions across 141 suites.
+
 ## [1.10.673] - 2026-05-09 — Extract useChatSubmit hook
 
 **Web — `ChatView.tsx` shrunk by 34 lines (387 → 353).**

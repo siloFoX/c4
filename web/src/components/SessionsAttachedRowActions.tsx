@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Copy, Eye, Terminal, Trash2 } from 'lucide-react';
-import { apiGet } from '../lib/api';
+import { useAttachProcessState } from '../lib/use-attach-process-state';
 import { Button } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -40,11 +40,8 @@ function attachedRoleStyle(role: AttachedRole | undefined): string {
   }
 }
 
-type AttachProcessState =
-  | { status: 'loading' }
-  | { status: 'alive'; pid: number; cwd: string | null; match: 'fd' | 'cwd'; multipleCandidates?: boolean }
-  | { status: 'idle' }
-  | { status: 'error'; message: string };
+// (v1.10.674) AttachProcessState type + 30s process poll
+// moved to lib/use-attach-process-state.
 
 interface Props {
   session: AttachedSession;
@@ -64,13 +61,8 @@ export default function SessionsAttachedRowActions({
   const [showResume, setShowResume] = useState(false);
   const [showDetachConfirm, setShowDetachConfirm] = useState(false);
   const [copied, setCopied] = useState(false);
-  // (8.32 slice 4) Process discovery — paint the row with a live /
-  // idle pill so a reviewer knows whether the JSONL is currently
-  // owned by a running claude or just an exported transcript. The
-  // status refreshes every 30s; we poll instead of subscribing
-  // because the lookup is a one-shot procfs scan with no SSE
-  // counterpart yet.
-  const [procState, setProcState] = useState<AttachProcessState>({ status: 'loading' });
+  // (v1.10.674) /api/attach/:name/process 30s poll moved to hook.
+  const procState = useAttachProcessState({ name: session.name });
   const resumeCmd = session.sessionId
     ? `claude --resume ${session.sessionId}`
     : `claude --resume <unknown-session-id>`;
@@ -80,39 +72,6 @@ export default function SessionsAttachedRowActions({
     window.setTimeout(() => setCopied(false), 1500);
   }, [resumeCmd]);
   const role: AttachedRole = session.role || 'generic';
-
-  useEffect(() => {
-    let cancelled = false;
-    const poll = async () => {
-      try {
-        const data = await apiGet<{
-          alive: boolean; pid?: number; cwd?: string | null;
-          match?: 'fd' | 'cwd'; multipleCandidates?: boolean;
-        }>(`/api/attach/${encodeURIComponent(session.name)}/process`);
-        if (cancelled) return;
-        if (data.alive && typeof data.pid === 'number') {
-          setProcState({
-            status: 'alive',
-            pid: data.pid,
-            cwd: data.cwd ?? null,
-            match: data.match || 'fd',
-            multipleCandidates: !!data.multipleCandidates,
-          });
-        } else {
-          setProcState({ status: 'idle' });
-        }
-      } catch (err) {
-        if (cancelled) return;
-        setProcState({ status: 'error', message: (err as Error).message });
-      }
-    };
-    poll();
-    const id = window.setInterval(poll, 30000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
-  }, [session.name]);
   // (TODO 8.38 review fix 2026-05-01) Stable id for the
   // confirmation strip so the Detach trigger's `aria-controls`
   // points at a real element. Suffix with the session name so

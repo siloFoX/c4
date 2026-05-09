@@ -1212,20 +1212,28 @@ describe('extracted: SessionsAttachedRowActions (v1.10.550)', () => {
   });
 
   it('owns the AttachProcessState type internally', () => {
+    // (v1.10.674) Type moved to lib/use-attach-process-state.
     const src = read('SessionsAttachedRowActions.tsx');
-    assert.match(src, /type AttachProcessState/);
+    assert.match(src, /useAttachProcessState/);
   });
 
   it('owns its 4 internal state pieces (showResume / showDetachConfirm / copied / procState)', () => {
+    // (v1.10.674) procState slot moved to hook.
     const src = read('SessionsAttachedRowActions.tsx');
     assert.match(src, /useState\(false\)/);
-    assert.match(src, /useState<AttachProcessState>/);
+    assert.match(src, /useAttachProcessState/);
   });
 
   it('polls /api/attach/<name>/process every 30s while mounted', () => {
-    const src = read('SessionsAttachedRowActions.tsx');
-    assert.match(src, /window\.setInterval\(poll, 30000\)/);
-    assert.match(src, /\/api\/attach\/\$\{encodeURIComponent\(session\.name\)\}\/process/);
+    // (v1.10.674) Poll moved to lib/use-attach-process-state.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-attach-process-state.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /window\.setInterval\(poll, 30000\)/);
+    assert.match(hookSrc, /\/api\/attach\/\$\{encodeURIComponent\(name\)\}\/process/);
   });
 
   it('takes session / isSelected / onView / onDetach props', () => {
@@ -1767,6 +1775,46 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useAttachProcessState hook (v1.10.674)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-attach-process-state.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'SessionsAttachedRowActions.tsx');
+
+  it('exports the hook + AttachProcessState union', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useAttachProcessState/);
+    assert.match(src, /export type AttachProcessState/);
+    assert.match(src, /\{ status: 'loading' \}/);
+    assert.match(src, /\{ status: 'alive'/);
+    assert.match(src, /\{ status: 'idle' \}/);
+    assert.match(src, /\{ status: 'error'/);
+  });
+
+  it('GETs /api/attach/:name/process every 30s with cancellation guard', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\/api\/attach\/\$\{encodeURIComponent\(name\)\}\/process/);
+    assert.match(src, /window\.setInterval\(poll,\s*30000\)/);
+    assert.match(src, /let cancelled = false/);
+    assert.match(src, /window\.clearInterval\(id\)/);
+  });
+
+  it('maps response to alive/idle/error variants', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(data\.alive && typeof data\.pid === 'number'\)/);
+    assert.match(src, /setProcState\(\{\s*status: 'idle' \}\)/);
+    assert.match(src, /setProcState\(\{ status: 'error', message: \(err as Error\)\.message \}\)/);
+  });
+
+  it('parent SessionsAttachedRowActions wires the hook + drops the inline state + effect', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useAttachProcessState\s*\}\s+from\s+'\.\.\/lib\/use-attach-process-state'/);
+    assert.match(src, /useAttachProcessState\(\{\s*name:\s*session\.name\s*\}\)/);
+    assert.doesNotMatch(src, /^type AttachProcessState/m);
+    assert.doesNotMatch(src, /const \[procState, setProcState\]/);
   });
 });
 
