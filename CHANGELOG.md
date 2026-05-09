@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.730] - 2026-05-10 — Extract useSwarm hook
+
+**Web — `pages/Swarm.tsx` shrunk by 61 lines (157 → 96).**
+Two coupled fetches move into a single `useSwarm()`
+hook that returns `{ workers, selected, setSelected,
+data, loading, error, refresh }`:
+
+1. `/api/list` populates the worker dropdown +
+   auto-selects the first worker when selection is
+   empty.
+2. `/api/swarm?name=<selected>` fetches the swarm
+   tree, re-runs whenever `selected` changes (via a
+   `useEffect → loadSwarm` chain anchored to the
+   selection).
+
+A single shared `loading` + `error` flag covers both
+fetches. The `refresh` handle exposes `loadSwarm`
+only — the worker list is stable enough that
+operators don't need to manually trigger that path,
+and the auto-effect chain rebuilds it when needed.
+
+`SwarmNode` and `SwarmResponse` types are exported
+from the hook so the parent JSX renderer keeps
+typing the recursive tree narrowing without
+duplicate definitions.
+
+Boundary suite #196 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the dual-fetch pattern, the
+`!selected` early-return guard, the auto-select-first
+behavior, the HTTP-status throw + r.error inline
+branch, the `refresh: loadSwarm` (not workers) shape,
+and verifies the parent wires the hook + drops the
+inline state.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (941 / 196 suites — +5 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.729] - 2026-05-10 — Extract useHealth + useRbac hooks
 
 **Web — two pages shrunk by 76 lines combined.**

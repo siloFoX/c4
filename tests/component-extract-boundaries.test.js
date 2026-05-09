@@ -1942,6 +1942,46 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useSwarm hook (v1.10.730)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-swarm.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'pages', 'Swarm.tsx');
+
+  it('exports the hook + SwarmNode/SwarmResponse types', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useSwarm\(\)/);
+    assert.match(src, /export interface SwarmNode/);
+    assert.match(src, /export interface SwarmResponse/);
+  });
+
+  it('loadWorkers fetches /api/list + auto-selects first when empty', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiGet<ListResponse>\('\/api\/list'\)/);
+    assert.match(src, /if \(!selected && first\) setSelected\(first\.name\)/);
+  });
+
+  it('loadSwarm fetches /api/swarm?name=<selected> + bails when no selection', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(!selected\) return/);
+    assert.match(src, /\/api\/swarm\?name=\$\{encodeURIComponent\(selected\)\}/);
+    assert.match(src, /if \(!res\.ok\) throw new Error\(`HTTP \$\{res\.status\}`\)/);
+  });
+
+  it('refresh handle exposes loadSwarm (not loadWorkers)', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /refresh:\s*loadSwarm/);
+  });
+
+  it('parent Swarm.tsx wires the hook + drops the inline state', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useSwarm[\s\S]*?\}\s+from\s+'\.\.\/lib\/use-swarm'/);
+    assert.match(src, /useSwarm\(\)/);
+    assert.doesNotMatch(src, /apiGet<ListResponse>/);
+    assert.doesNotMatch(src, /apiFetch\(`\/api\/swarm/);
+  });
+});
+
 describe('extracted: useHealth + useRbac hooks (v1.10.729)', () => {
   const fs = require('fs');
   const path = require('path');

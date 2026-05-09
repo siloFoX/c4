@@ -1,80 +1,19 @@
-import { useCallback, useEffect, useState } from 'react';
 import { GitBranch, RefreshCw } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Badge, Button, Label, Panel, Tooltip } from '../components/ui';
-import { apiFetch, apiGet } from '../lib/api';
-import type { ListResponse, Worker } from '../types';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useSwarm, type SwarmNode } from '../lib/use-swarm';
 
 // 8.20B Swarm view. GET /api/swarm?name=<worker> returns the swarm
 // tree and per-node status. Renders a simple recursive tree with
 // status badges.
-
-interface SwarmNode {
-  name: string;
-  status?: string;
-  branch?: string;
-  children?: SwarmNode[];
-  [key: string]: unknown;
-}
-
-interface SwarmResponse {
-  root?: SwarmNode;
-  nodes?: SwarmNode[];
-  error?: string;
-  [key: string]: unknown;
-}
+// (v1.10.730) Coupled fetches + state machine moved to lib/use-swarm.
 
 export default function Swarm() {
   useLocale();
-  const [workers, setWorkers] = useState<Worker[]>([]);
-  const [selected, setSelected] = useState<string>('');
-  const [data, setData] = useState<SwarmResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadWorkers = useCallback(async () => {
-    try {
-      const r = await apiGet<ListResponse>('/api/list');
-      const ws = Array.isArray(r.workers) ? r.workers : [];
-      setWorkers(ws);
-      const first = ws[0];
-      if (!selected && first) setSelected(first.name);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, [selected]);
-
-  useEffect(() => {
-    loadWorkers();
-  }, [loadWorkers]);
-
-  const loadSwarm = useCallback(async () => {
-    if (!selected) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await apiFetch(`/api/swarm?name=${encodeURIComponent(selected)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const r = (await res.json()) as SwarmResponse;
-      if (r.error) {
-        setError(r.error);
-        setData(null);
-      } else {
-        setData(r);
-      }
-    } catch (e) {
-      setError((e as Error).message);
-      setData(null);
-    }
-    setLoading(false);
-  }, [selected]);
-
-  useEffect(() => {
-    loadSwarm();
-  }, [loadSwarm]);
+  const { workers, selected, setSelected, data, loading, error, refresh: loadSwarm } = useSwarm();
 
   const rootNode = data?.root || (Array.isArray(data?.nodes) && data?.nodes?.length ? data?.nodes?.[0] : null);
 
