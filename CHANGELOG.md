@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.697] - 2026-05-09 — Extract hierarchy-tree lib
+
+**Web — `HierarchyTree.tsx` shrunk by 80 lines (266 → 186).**
+Pure-data helpers (no React, no JSX) move to a dedicated
+lib file: the `Rollup` + `TreeNode` types, `buildTree`
+(parent/child forest with cycle guard), `computeRollup`
+(per-subtree status counts), `zeroRollup` (empty
+initial). Component now imports the helpers and just
+renders.
+
+### Refactor
+- New `web/src/lib/hierarchy-tree.ts` (~89 lines).
+  Imports `isInterventionActive` from
+  `./worker-classify`. Exports five symbols.
+- `HierarchyTree.tsx`: removed two type interfaces +
+  three helper functions. Replaced with one import
+  of `buildTree` + `TreeNode` type. Trimmed
+  `Worker` type import (now consumed via the lib's
+  TreeNode).
+- Boundary suite #164 — 4 assertions covering lib
+  exports, cycle-guard logic, rollup-sum descendants
+  contract, parent imports + helpers gone.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  795 / 795 across 163 → 164 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 168 ships total since v1.10.529.
+- 165 components/libs extracted.
+- 74 custom hooks in `web/src/lib/` (this ship is a
+  pure data lib, not a hook).
+- 795 boundary assertions across 164 suites.
+- HierarchyTree went 323 → 186 across v1.10.666 +
+  v1.10.675 + v1.10.697 (-137, ~42%).
+
 ## [1.10.696] - 2026-05-09 — Reuse useAutoScroll in ConversationView
 
 **Web — `ConversationView.tsx` shrunk by 11 lines (219 → 208).**

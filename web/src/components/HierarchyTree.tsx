@@ -1,16 +1,15 @@
 import { useMemo } from 'react';
 import { ChevronDown, ChevronRight, Dot, WifiOff } from 'lucide-react';
-import type { Worker } from '../types';
 import { useWorkerList } from '../lib/use-worker-list';
 import { useExpandedSet } from '../lib/use-expanded-set';
 import { Badge, Button } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import {
-  isInterventionActive,
   mapWorkerStatusToBadgeVariant,
   statusLabel,
 } from '../lib/worker-classify';
+import { buildTree, type TreeNode } from '../lib/hierarchy-tree';
 
 // 8.2 Hierarchy tree sidebar view. Builds a parent/child forest from the
 // flat /api/list worker array (same endpoint as WorkerList) and renders it
@@ -19,88 +18,9 @@ import {
 // list cache and do not double-fetch.
 
 
-interface Rollup {
-  total: number;
-  idle: number;
-  busy: number;
-  exited: number;
-  intervention: number;
-  error: number;
-}
-
-interface TreeNode {
-  worker: Worker;
-  children: TreeNode[];
-  rollup: Rollup;
-}
-
 // (v1.10.572) isInterventionActive moved to ../lib/worker-classify.ts.
-// (Bug fix: HierarchyTree's previous local copy missed the v8.21
-// string-enum form, so background_exit + past_resolved interventions
-// were incorrectly counted as "needs human" in tree rollups.)
-
-function zeroRollup(): Rollup {
-  return { total: 0, idle: 0, busy: 0, exited: 0, intervention: 0, error: 0 };
-}
-
-function computeRollup(node: TreeNode): Rollup {
-  const r = zeroRollup();
-  r.total += 1;
-  const w = node.worker;
-  if (w.status === 'idle') r.idle += 1;
-  else if (w.status === 'busy') r.busy += 1;
-  else if (w.status === 'exited') r.exited += 1;
-  if (isInterventionActive(w)) r.intervention += 1;
-  if ((w.errorCount || 0) > 0) r.error += 1;
-  for (const child of node.children) {
-    const sub = computeRollup(child);
-    r.total += sub.total;
-    r.idle += sub.idle;
-    r.busy += sub.busy;
-    r.exited += sub.exited;
-    r.intervention += sub.intervention;
-    r.error += sub.error;
-  }
-  node.rollup = r;
-  return r;
-}
-
-function buildTree(workers: Worker[]): TreeNode[] {
-  const byName = new Map<string, TreeNode>();
-  for (const w of workers) {
-    byName.set(w.name, { worker: w, children: [], rollup: zeroRollup() });
-  }
-  const roots: TreeNode[] = [];
-  for (const node of byName.values()) {
-    const parentName = node.worker.parent;
-    if (parentName && byName.has(parentName) && parentName !== node.worker.name) {
-      // Cycle guard: walk upward from the proposed parent; if we find the
-      // current node on the way up, demote this edge to a root link so the
-      // render loop terminates.
-      let cursor = byName.get(parentName);
-      const seen = new Set<string>([node.worker.name]);
-      let cycles = false;
-      while (cursor) {
-        if (seen.has(cursor.worker.name)) { cycles = true; break; }
-        seen.add(cursor.worker.name);
-        const up = cursor.worker.parent;
-        if (!up || !byName.has(up)) break;
-        cursor = byName.get(up);
-      }
-      if (cycles) roots.push(node);
-      else byName.get(parentName)!.children.push(node);
-    } else {
-      roots.push(node);
-    }
-  }
-  const sortNodes = (nodes: TreeNode[]) => {
-    nodes.sort((a, b) => a.worker.name.localeCompare(b.worker.name));
-    for (const n of nodes) sortNodes(n.children);
-  };
-  sortNodes(roots);
-  for (const r of roots) computeRollup(r);
-  return roots;
-}
+// (v1.10.697) Rollup + TreeNode types + buildTree +
+// computeRollup + zeroRollup moved to ../lib/hierarchy-tree.
 
 // (v1.10.572) statusLabel + statusVariant moved to
 // ../lib/worker-classify.ts (statusVariant renamed to

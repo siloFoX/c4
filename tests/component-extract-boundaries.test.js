@@ -1791,6 +1791,47 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: hierarchy-tree lib (v1.10.697)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const LIB = path.join(__dirname, '..', 'web', 'src', 'lib', 'hierarchy-tree.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'HierarchyTree.tsx');
+
+  it('exports buildTree + computeRollup + zeroRollup + Rollup + TreeNode', () => {
+    const src = fs.readFileSync(LIB, 'utf8');
+    assert.match(src, /export function buildTree/);
+    assert.match(src, /export function computeRollup/);
+    assert.match(src, /export function zeroRollup/);
+    assert.match(src, /export interface Rollup/);
+    assert.match(src, /export interface TreeNode/);
+  });
+
+  it('cycle-guards parent edges by walking the chain upward', () => {
+    const src = fs.readFileSync(LIB, 'utf8');
+    assert.match(src, /Cycle guard/);
+    assert.match(src, /seen\.has\(cursor\.worker\.name\)/);
+    assert.match(src, /if \(cycles\) roots\.push\(node\)/);
+  });
+
+  it('rollup sums total/idle/busy/exited/intervention/error from descendants', () => {
+    const src = fs.readFileSync(LIB, 'utf8');
+    assert.match(src, /r\.idle\s*\+=\s*sub\.idle/);
+    assert.match(src, /r\.busy\s*\+=\s*sub\.busy/);
+    assert.match(src, /r\.exited\s*\+=\s*sub\.exited/);
+    assert.match(src, /r\.intervention\s*\+=\s*sub\.intervention/);
+    assert.match(src, /r\.error\s*\+=\s*sub\.error/);
+  });
+
+  it('parent HierarchyTree imports the lib + drops the inline helpers', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*buildTree,\s*type\s+TreeNode\s*\}\s+from\s+'\.\.\/lib\/hierarchy-tree'/);
+    assert.doesNotMatch(src, /^function buildTree/m);
+    assert.doesNotMatch(src, /^function computeRollup/m);
+    assert.doesNotMatch(src, /^interface Rollup/m);
+    assert.doesNotMatch(src, /^interface TreeNode/m);
+  });
+});
+
 describe('shared: useAutoScroll consumed by ConversationView (v1.10.696)', () => {
   const fs = require('fs');
   const path = require('path');
