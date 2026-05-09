@@ -1770,6 +1770,56 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useMeetingIntegrity + useMeetingFtsRebuild (v1.10.662/663)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const INTEGRITY = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-integrity.ts');
+  const FTS = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-fts-rebuild.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'MeetingsMaintenancePanel.tsx');
+
+  it('useMeetingIntegrity GETs /api/meetings/persist-integrity with three branches', () => {
+    const src = fs.readFileSync(INTEGRITY, 'utf8');
+    assert.match(src, /export function useMeetingIntegrity/);
+    assert.match(src, /\/api\/meetings\/persist-integrity/);
+    assert.match(src, /persistDisabled/);
+    assert.match(src, /integrity\.ok/);
+    assert.match(src, /integrity\.failed/);
+  });
+
+  it('useMeetingFtsRebuild POSTs /api/meetings/fts-rebuild + reports indexed/before/after', () => {
+    const src = fs.readFileSync(FTS, 'utf8');
+    assert.match(src, /export function useMeetingFtsRebuild/);
+    assert.match(src, /apiPost<\{ indexed: number; before: number; after: number \}>\(\s*'\/api\/meetings\/fts-rebuild'/);
+    assert.match(src, /fts\.success/);
+    assert.match(src, /fts\.failed/);
+  });
+
+  it('both hooks return busy/msg/failed/handler tuple', () => {
+    const integritySrc = fs.readFileSync(INTEGRITY, 'utf8');
+    const ftsSrc = fs.readFileSync(FTS, 'utf8');
+    assert.match(integritySrc, /integrityBusy:\s*boolean/);
+    assert.match(integritySrc, /integrityMsg:\s*string\s*\|\s*null/);
+    assert.match(integritySrc, /integrityFailed:\s*boolean/);
+    assert.match(integritySrc, /handleIntegrity:\s*\(\)\s*=>\s*Promise<void>/);
+    assert.match(ftsSrc, /ftsBusy:\s*boolean/);
+    assert.match(ftsSrc, /ftsMsg:\s*string\s*\|\s*null/);
+    assert.match(ftsSrc, /ftsFailed:\s*boolean/);
+    assert.match(ftsSrc, /handleFtsRebuild:\s*\(\)\s*=>\s*Promise<void>/);
+  });
+
+  it('parent MeetingsMaintenancePanel wires both hooks + drops the inline state + handlers', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useMeetingIntegrity\s*\}\s+from\s+'\.\.\/lib\/use-meeting-integrity'/);
+    assert.match(src, /import\s+\{\s*useMeetingFtsRebuild\s*\}\s+from\s+'\.\.\/lib\/use-meeting-fts-rebuild'/);
+    assert.match(src, /useMeetingIntegrity\(\)/);
+    assert.match(src, /useMeetingFtsRebuild\(\)/);
+    assert.doesNotMatch(src, /const \[integrityBusy, setIntegrityBusy\]/);
+    assert.doesNotMatch(src, /const \[ftsBusy, setFtsBusy\]/);
+    assert.doesNotMatch(src, /const handleIntegrity = useCallback/);
+    assert.doesNotMatch(src, /const handleFtsRebuild = useCallback/);
+  });
+});
+
 describe('extracted: usePlanContent hook (v1.10.661)', () => {
   const fs = require('fs');
   const path = require('path');

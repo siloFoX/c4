@@ -1,8 +1,10 @@
 import { useCallback, useState } from 'react';
 import { Button, Input } from './ui';
 import { cn } from '../lib/cn';
-import { apiGet, apiPost } from '../lib/api';
+import { apiPost } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useMeetingIntegrity } from '../lib/use-meeting-integrity';
+import { useMeetingFtsRebuild } from '../lib/use-meeting-fts-rebuild';
 
 // (v1.10.529) Extracted from MeetingsView. The maintenance footer
 // holds 4 ops endpoints (integrity / FTS rebuild / hot backup /
@@ -24,38 +26,9 @@ export default function MeetingsMaintenancePanel({ onPruned }: MeetingsMaintenan
 
   const [open, setOpen] = useState(false);
 
-  // Integrity ───────────────────────────────────────────────────
-  const [integrityBusy, setIntegrityBusy] = useState(false);
-  const [integrityMsg, setIntegrityMsg] = useState<string | null>(null);
-  const [integrityFailed, setIntegrityFailed] = useState(false);
-  const handleIntegrity = useCallback(async () => {
-    setIntegrityBusy(true);
-    setIntegrityMsg(null);
-    setIntegrityFailed(false);
-    try {
-      const res = await apiGet<{ enabled: boolean; ok: boolean | null; errors: string[] }>(
-        '/api/meetings/persist-integrity',
-      );
-      if (!res.enabled) {
-        setIntegrityMsg(t('meetings.integrity.persistDisabled'));
-      } else if (res.ok) {
-        setIntegrityMsg(t('meetings.integrity.ok'));
-      } else {
-        setIntegrityMsg(tFormat('meetings.integrity.failed', {
-          count: res.errors.length,
-          errors: res.errors.slice(0, 3).join('; '),
-        }));
-        setIntegrityFailed(true);
-      }
-    } catch (e) {
-      setIntegrityMsg(tFormat('meetings.integrity.exception', {
-        error: (e as Error).message || t('common.unknown'),
-      }));
-      setIntegrityFailed(true);
-    } finally {
-      setIntegrityBusy(false);
-    }
-  }, []);
+  // (v1.10.662) Integrity check moved to lib/use-meeting-integrity.
+  const { integrityBusy, integrityMsg, integrityFailed, handleIntegrity } =
+    useMeetingIntegrity();
 
   // Backup ──────────────────────────────────────────────────────
   const [backupPath, setBackupPath] = useState('');
@@ -92,33 +65,8 @@ export default function MeetingsMaintenancePanel({ onPruned }: MeetingsMaintenan
     }
   }, [backupPath, backupForce]);
 
-  // FTS rebuild ─────────────────────────────────────────────────
-  const [ftsBusy, setFtsBusy] = useState(false);
-  const [ftsMsg, setFtsMsg] = useState<string | null>(null);
-  const [ftsFailed, setFtsFailed] = useState(false);
-  const handleFtsRebuild = useCallback(async () => {
-    setFtsBusy(true);
-    setFtsMsg(null);
-    setFtsFailed(false);
-    try {
-      const res = await apiPost<{ indexed: number; before: number; after: number }>(
-        '/api/meetings/fts-rebuild',
-        {},
-      );
-      setFtsMsg(tFormat('meetings.fts.success', {
-        indexed: res.indexed,
-        before: res.before,
-        after: res.after,
-      }));
-    } catch (e) {
-      setFtsMsg(tFormat('meetings.fts.failed', {
-        error: (e as Error).message || t('common.unknown'),
-      }));
-      setFtsFailed(true);
-    } finally {
-      setFtsBusy(false);
-    }
-  }, []);
+  // (v1.10.663) FTS rebuild moved to lib/use-meeting-fts-rebuild.
+  const { ftsBusy, ftsMsg, ftsFailed, handleFtsRebuild } = useMeetingFtsRebuild();
 
   // Prune ───────────────────────────────────────────────────────
   const [pruneDays, setPruneDays] = useState('90');

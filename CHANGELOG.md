@@ -4,6 +4,50 @@
 
 (no entries — next release window)
 
+## [1.10.663] - 2026-05-09 — Extract useMeetingIntegrity + useMeetingFtsRebuild
+
+**Web — `MeetingsMaintenancePanel.tsx` shrunk by 52 lines (348 → 296).**
+The first two of the four maintenance operations move
+to dedicated hooks. Both follow the same shape — busy /
+msg / failed slots + a no-arg handler that POSTs/GETs
+once, banners the result, and clears on next click. The
+remaining two operations (backup + prune) keep their
+inline implementations for now; they pull more inputs
+(path, daysNum, terminalOnly, vacuum) and are worth a
+follow-up extraction.
+
+### Refactor
+- New `web/src/lib/use-meeting-integrity.ts` (~55 lines)
+  — exports `useMeetingIntegrity()`. Owns the
+  three-branch result mapping (persist-disabled / ok /
+  errors[]).
+- New `web/src/lib/use-meeting-fts-rebuild.ts`
+  (~46 lines) — exports `useMeetingFtsRebuild()`.
+  Banner shows indexed / before / after triple from
+  the response.
+- `MeetingsMaintenancePanel.tsx`: removed six useState
+  slots (integrity / fts × busy/msg/failed) and the
+  two ~30-line useCallback handlers. Replaced with
+  two no-arg destructured hook calls. `apiGet` import
+  dropped.
+- Boundary suite #130 — 4 assertions covering both
+  hooks' URLs + branches, return-tuple shape, parent
+  wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  651 / 651 across 129 → 130 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 134 ships total since v1.10.529 (skips 1.10.662 —
+  bundled with .663 since both hooks shipped together).
+- 132 components/libs extracted (two libs this ship).
+- 42 custom hooks in `web/src/lib/`.
+- 651 boundary assertions across 130 suites.
+
 ## [1.10.661] - 2026-05-09 — Extract usePlanContent hook
 
 **Web — `pages/Plan.tsx` shrunk by 17 lines (244 → 227).**
