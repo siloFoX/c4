@@ -1,14 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Search } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { Input } from '../ui';
 import { t, tFormat, useLocale } from '../../lib/i18n';
+import { useFilteredFeatures } from '../../lib/use-filtered-features';
 import {
   CATEGORY_ICON,
   CATEGORY_LABEL,
   CATEGORY_ORDER,
   type FeatureDef,
-  featuresByCategory,
 } from '../../pages/registry';
 
 interface FeatureSidebarProps {
@@ -27,26 +27,10 @@ export default function FeatureSidebar({
   // toggles `open`.
   useLocale();
   const [filter, setFilter] = useState('');
-  const grouped = useMemo(() => {
-    const all = featuresByCategory();
-    if (!filter.trim()) return all;
-    const q = filter.toLowerCase();
-    const out: typeof all = {
-      operations: [], automation: [], cost: [], config: [], diagnostics: [],
-    };
-    for (const cat of CATEGORY_ORDER) {
-      out[cat] = all[cat].filter((f) =>
-        t(f.labelKey).toLowerCase().includes(q) ||
-        t(f.descriptionKey).toLowerCase().includes(q) ||
-        f.id.toLowerCase().includes(q),
-      );
-    }
-    return out;
-  }, [filter]);
+  // (v1.10.735) Grouping memo + match-count reducer moved to hook.
+  const { grouped, matchCount } = useFilteredFeatures(filter);
 
   if (!open) return null;
-
-  const matchCount = CATEGORY_ORDER.reduce((s, c) => s + (grouped[c]?.length || 0), 0);
 
   return (
     <aside className="w-full shrink-0 overflow-y-auto border-b border-border bg-background p-4 md:w-72 md:border-b-0 md:border-r">

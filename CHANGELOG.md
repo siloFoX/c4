@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.735] - 2026-05-10 — Extract useFilteredFeatures hook
+
+**Web — `components/layout/FeatureSidebar.tsx` shrunk by 17 lines (117 → 100).**
+The per-category grouping memo + the matched-count
+reducer move to a `useFilteredFeatures(filter)` hook
+returning `{ grouped, matchCount }`.
+
+The hook keeps the locale-aware haystack (`t()` calls
+inside the memo across `labelKey` / `descriptionKey` /
+`id` for every feature) so a locale flip
+re-translates the haystack and re-applies the filter
+automatically — `useLocale()` in the parent triggers
+the re-render that runs this hook.
+
+The component is now: filter input slot → hook
+destructure → JSX. The empty-state copy
+(`tFormat('featureSidebar.noMatch', { query: filter })`)
+keeps using `matchCount === 0` as the gate.
+
+Boundary suite #201 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the `CATEGORY_ORDER` iteration, the
+i18n haystack contract (`labelKey` /
+`descriptionKey` / `id` lowercase substring match),
+the matchCount reducer, and verifies the parent
+wires the hook + drops the inline memo.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (961 / 201 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.734] - 2026-05-10 — Extract useAttachForm + useNewChatForm hooks
 
 **Web — two modal forms split out into matched hooks.**

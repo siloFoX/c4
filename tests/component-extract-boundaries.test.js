@@ -1954,6 +1954,40 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useFilteredFeatures hook (v1.10.735)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-filtered-features.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'layout', 'FeatureSidebar.tsx');
+
+  it('exports the hook + accepts filter string', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useFilteredFeatures\(filter: string\)/);
+  });
+
+  it('groups by CATEGORY_ORDER + uses i18n labelKey/descriptionKey for haystack', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /CATEGORY_ORDER/);
+    assert.match(src, /t\(f\.labelKey\)\.toLowerCase\(\)\.includes\(q\)/);
+    assert.match(src, /t\(f\.descriptionKey\)\.toLowerCase\(\)\.includes\(q\)/);
+    assert.match(src, /f\.id\.toLowerCase\(\)\.includes\(q\)/);
+  });
+
+  it('matchCount reduces across all categories', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /CATEGORY_ORDER\.reduce/);
+    assert.match(src, /grouped\[c\]\?\.length \|\| 0/);
+  });
+
+  it('parent FeatureSidebar wires the hook + drops the inline memo', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useFilteredFeatures\s*\}\s+from\s+'\.\.\/\.\.\/lib\/use-filtered-features'/);
+    assert.match(src, /useFilteredFeatures\(filter\)/);
+    assert.doesNotMatch(src, /useMemo\(/);
+    assert.doesNotMatch(src, /featuresByCategory\(\)/);
+  });
+});
+
 describe('extracted: useAttachForm + useNewChatForm hooks (v1.10.734)', () => {
   const fs = require('fs');
   const path = require('path');
