@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.691] - 2026-05-09 — Extract useDrawerKeyboard hook
+
+**Web — `HelpDrawer.tsx` shrunk by 10 lines (236 → 226).**
+The Esc-to-close + raf-delayed-focus-on-open contract
+that any sliding drawer needs moves to a generic hook.
+Future drawers (NewChatModal, AttachModal, etc.) can
+adopt it without re-rolling the listener wiring.
+
+### Refactor
+- New `web/src/lib/use-drawer-keyboard.ts` (~28 lines).
+  Takes `{ open, onClose, focusRef }` and binds the
+  keydown listener + the requestAnimationFrame focus
+  + the matching cleanup in one effect.
+- `HelpDrawer.tsx`: removed the ~12-line keydown
+  useEffect. Replaced with one
+  `useDrawerKeyboard({ open, onClose, focusRef:
+  inputRef })` call.
+- Boundary suite #158 — 4 assertions covering hook +
+  three-prop signature, Escape + raf-focus contract,
+  cleanup, parent wiring.
+- `tests/ui-docs.test.js` redirect: the
+  `e.key === 'Escape'` assertion now reads the hook
+  file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  774 / 774 across 157 → 158 suites.
+- `node --test tests/ui-docs.test.js`: 100 / 100 (after
+  redirect).
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 162 ships total since v1.10.529.
+- 160 components/libs extracted.
+- 70 custom hooks in `web/src/lib/`.
+- 774 boundary assertions across 158 suites.
+
 ## [1.10.690] - 2026-05-09 — Extract usePersistedBool hook
 
 **Web — `WorkerList.tsx` shrunk by 21 lines (242 → 221).**

@@ -4,6 +4,7 @@ import { Button, IconButton, Input } from './ui';
 import { cn } from '../lib/cn';
 import { FEATURES, findFeature, type FeatureDef } from '../pages/registry';
 import { t, tList, useLocale } from '../lib/i18n';
+import { useDrawerKeyboard } from '../lib/use-drawer-keyboard';
 
 interface HelpDrawerProps {
   open: boolean;
@@ -59,19 +60,8 @@ export function HelpDrawer({ open, onClose, activeFeatureId }: HelpDrawerProps) 
   const inputRef = useRef<HTMLInputElement>(null);
   const activeCardRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    // Delay focus so the slide-in animation finishes first.
-    const raf = window.requestAnimationFrame(() => inputRef.current?.focus());
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      window.cancelAnimationFrame(raf);
-    };
-  }, [open, onClose]);
+  // (v1.10.691) Esc-to-close + focus-on-open moved to hook.
+  useDrawerKeyboard({ open, onClose, focusRef: inputRef });
 
   useEffect(() => {
     if (!open) return;

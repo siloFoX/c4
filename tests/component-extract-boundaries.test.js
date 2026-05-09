@@ -1791,6 +1791,41 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useDrawerKeyboard hook (v1.10.691)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-drawer-keyboard.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'HelpDrawer.tsx');
+
+  it('exports the hook + accepts open/onClose/focusRef', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useDrawerKeyboard/);
+    assert.match(src, /open:\s*boolean/);
+    assert.match(src, /onClose:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /focusRef:\s*RefObject<HTMLElement\s*\|\s*HTMLInputElement\s*\|\s*null>/);
+  });
+
+  it('attaches Escape-to-close and raf-delayed focus on open', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /e\.key === 'Escape'/);
+    assert.match(src, /window\.addEventListener\('keydown',\s*onKey\)/);
+    assert.match(src, /window\.requestAnimationFrame\(\(\) => focusRef\.current\?\.focus\(\)\)/);
+  });
+
+  it('cleans up the listener + cancels the raf on unmount', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.removeEventListener\('keydown',\s*onKey\)/);
+    assert.match(src, /window\.cancelAnimationFrame\(raf\)/);
+  });
+
+  it('parent HelpDrawer wires the hook + drops the inline keydown effect', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useDrawerKeyboard\s*\}\s+from\s+'\.\.\/lib\/use-drawer-keyboard'/);
+    assert.match(src, /useDrawerKeyboard\(\{\s*open,\s*onClose,\s*focusRef:\s*inputRef\s*\}\)/);
+    assert.doesNotMatch(src, /window\.requestAnimationFrame\(\(\) => inputRef\.current\?\.focus\(\)\)/);
+  });
+});
+
 describe('extracted: usePersistedBool hook (v1.10.690)', () => {
   const fs = require('fs');
   const path = require('path');

@@ -239,7 +239,14 @@ describe('HelpDrawer component', () => {
   });
 
   it('closes on Escape and click outside', () => {
-    assert.match(src, /e\.key === 'Escape'/);
+    // (v1.10.691) Escape handler moved to lib/use-drawer-keyboard.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-drawer-keyboard.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /e\.key === 'Escape'/);
   });
 
   it('scrolls the active feature into view when opened', () => {
