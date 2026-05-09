@@ -4,6 +4,43 @@
 
 (no entries — next release window)
 
+## [1.10.675] - 2026-05-09 — Extract useExpandedSet hook
+
+**Web — `HierarchyTree.tsx` shrunk by 25 lines (291 → 266).**
+The expanded `Set<string>` state machine that drives the
+hierarchy tree's per-node open/closed flag — toggle,
+expandAll, collapseAll, and the auto-expand-on-first-load
+useEffect — moves to a dedicated hook. Auto-expand
+preserves its "only fires once" semantic via the
+`prev.size === 0` guard.
+
+### Refactor
+- New `web/src/lib/use-expanded-set.ts` (~57 lines).
+  Imports `Worker` from `../types`. No-arg signature
+  apart from `workers: Worker[]`. Returns
+  `{ expanded, toggle, expandAll, collapseAll }`.
+- `HierarchyTree.tsx`: removed the `expanded` useState
+  slot, the auto-expand useEffect, and three helper
+  callbacks. Replaced with one destructured
+  `useExpandedSet({ workers })` call. Trimmed
+  `useCallback` + `useEffect` + `useState` imports.
+- Boundary suite #142 — 4 assertions covering hook +
+  workers prop shape, Set<string> + auto-expand-once
+  semantics, return helpers, parent wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  705 / 705 across 141 → 142 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 146 ships total since v1.10.529.
+- 144 components/libs extracted.
+- 54 custom hooks in `web/src/lib/`.
+- 705 boundary assertions across 142 suites.
+
 ## [1.10.674] - 2026-05-09 — Extract useAttachProcessState hook
 
 **Web — `SessionsAttachedRowActions.tsx` shrunk by 41 lines (268 → 227).**

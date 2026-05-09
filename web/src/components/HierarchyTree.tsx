@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { ChevronDown, ChevronRight, Dot, WifiOff } from 'lucide-react';
 import type { Worker } from '../types';
 import { useWorkerList } from '../lib/use-worker-list';
+import { useExpandedSet } from '../lib/use-expanded-set';
 import { Badge, Button } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -212,37 +213,11 @@ export default function HierarchyTree({ selectedWorker, onSelect }: HierarchyTre
   // (v1.10.666) Worker poll + SSE shared with WorkerList via
   // lib/use-worker-list (extracted v1.10.660).
   const { workers, error, sseConnected } = useWorkerList();
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  // (v1.10.675) Expanded-set state machine moved to lib/use-expanded-set.
+  const { expanded, toggle, expandAll, collapseAll } = useExpandedSet({ workers });
 
   const roots = useMemo(() => buildTree(workers), [workers]);
-
-  // First time workers arrive, open every node so the whole tree is
-  // visible. User toggles are sticky after that.
-  useEffect(() => {
-    if (workers.length === 0) return;
-    setExpanded((prev) => {
-      if (prev.size > 0) return prev;
-      const next = new Set<string>();
-      for (const w of workers) next.add(w.name);
-      return next;
-    });
-  }, [workers]);
-
-  const toggle = useCallback((name: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
-  }, []);
-
-  const expandAll = () => {
-    const next = new Set<string>();
-    for (const w of workers) next.add(w.name);
-    setExpanded(next);
-  };
-  const collapseAll = () => setExpanded(new Set());
 
   return (
     <div className="space-y-2">

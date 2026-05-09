@@ -1778,6 +1778,41 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useExpandedSet hook (v1.10.675)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-expanded-set.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'HierarchyTree.tsx');
+
+  it('exports the hook + accepts workers list', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useExpandedSet/);
+    assert.match(src, /workers:\s*Worker\[\]/);
+  });
+
+  it('owns Set<string> state with auto-expand-on-first-arrival', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /useState<Set<string>>\(new Set\(\)\)/);
+    assert.match(src, /if \(prev\.size > 0\) return prev/);
+    assert.match(src, /for \(const w of workers\) next\.add\(w\.name\)/);
+  });
+
+  it('returns toggle/expandAll/collapseAll helpers', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /toggle:\s*\(name:\s*string\)\s*=>\s*void/);
+    assert.match(src, /expandAll:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /collapseAll:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('parent HierarchyTree wires the hook + drops the inline state + helpers', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useExpandedSet\s*\}\s+from\s+'\.\.\/lib\/use-expanded-set'/);
+    assert.match(src, /useExpandedSet\(\{\s*workers\s*\}\)/);
+    assert.doesNotMatch(src, /const \[expanded, setExpanded\]/);
+    assert.doesNotMatch(src, /const toggle = useCallback/);
+  });
+});
+
 describe('extracted: useAttachProcessState hook (v1.10.674)', () => {
   const fs = require('fs');
   const path = require('path');
