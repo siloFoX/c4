@@ -4,6 +4,40 @@
 
 (no entries — next release window)
 
+## [1.10.725] - 2026-05-10 — Extract useSpecialistsSummary hook
+
+**Web — `components/SpecialistsSummaryBar.tsx` shrunk by 25 lines (111 → 86).**
+The Phase-6.14 organism summary fetch — 30s self-poll
+(`window.setInterval`) plus the `silently degrade`
+catch path that hides the bar when the daemon doesn't
+expose `/api/specialists/summary` (older builds /
+network blip) — moves to a `useSpecialistsSummary()`
+hook returning `OrganismSummary | null`.
+
+The `OrganismSummary` interface (registry / meetings /
+scores / persist nested shape) is now exported from
+the hook so the JSX renderer keeps typing the
+narrowing without a duplicate definition.
+
+The component is now a near-pure render function:
+single hook call + the conditional rendering tree.
+
+Boundary suite #191 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the `OrganismSummary` export, the
+30s `POLL_INTERVAL_MS`, the cancel-flag + clearInterval
+cleanup contract, the silent `.catch` swallow, and
+verifies the parent wires the hook + drops the inline
+fetch / setInterval. Pre-existing
+`SpecialistsSummaryBar (v1.10.545)` boundary suite's
+"polling effect" + "self-fetch" assertions redirected
+from parent → hook file.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (916 / 191 suites — +5 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.724] - 2026-05-10 — Extract useValidations hook
 
 **Web — `pages/Validation.tsx` shrunk by 47 lines (204 → 157).**

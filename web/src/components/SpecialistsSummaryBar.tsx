@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
-import { apiGet } from '../lib/api';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useSpecialistsSummary } from '../lib/use-specialists-summary';
 
 // (v1.10.545) Extracted from SpecialistsView. Phase-6.14
 // organism summary — compact info bar above the two-column
@@ -9,34 +8,11 @@ import { t, tFormat, useLocale } from '../lib/i18n';
 // endpoint is unreachable (older daemons / network blips). The
 // view itself doesn't need this data, so the panel owns the
 // fetch internally.
-
-interface OrganismSummary {
-  registry: { count: number; vetoCount: number };
-  meetings: { total: number; recent24h: number };
-  scores: { specialistsWithSamples: number; underperformerCount: number };
-  persist?: {
-    enabled: boolean;
-    dbSizeBytes?: number | null;
-    rowCount?: number | null;
-    auditLog?: { bytes?: number | null; entries?: number | null };
-    lastKnownGood?: { exists: boolean; ageDays?: number | null };
-  };
-}
+// (v1.10.725) Polling fetch + state moved to lib/use-specialists-summary.
 
 export default function SpecialistsSummaryBar() {
   useLocale();
-  const [summary, setSummary] = useState<OrganismSummary | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    const fetchSummary = () => {
-      apiGet<OrganismSummary>('/api/specialists/summary')
-        .then((res) => { if (!cancelled) setSummary(res); })
-        .catch(() => { /* silently degrade — info bar just hides */ });
-    };
-    fetchSummary();
-    const id = window.setInterval(fetchSummary, 30000);
-    return () => { cancelled = true; window.clearInterval(id); };
-  }, []);
+  const summary = useSpecialistsSummary();
 
   if (!summary) return null;
 

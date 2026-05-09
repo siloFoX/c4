@@ -1566,13 +1566,26 @@ describe('extracted: SpecialistsSummaryBar (v1.10.545)', () => {
   });
 
   it('owns its own polling effect (30s tick)', () => {
-    const src = read('SpecialistsSummaryBar.tsx');
-    assert.match(src, /window\.setInterval\(fetchSummary, 30000\)/);
+    // (v1.10.725) Polling moved to use-specialists-summary hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-specialists-summary.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /window\.setInterval\(fetchSummary, POLL_INTERVAL_MS\)/);
+    assert.match(hookSrc, /POLL_INTERVAL_MS\s*=\s*30000/);
   });
 
   it('hits /api/specialists/summary directly (zero-prop self-fetch)', () => {
-    const src = read('SpecialistsSummaryBar.tsx');
-    assert.match(src, /apiGet<OrganismSummary>\('\/api\/specialists\/summary'\)/);
+    // (v1.10.725) Fetch moved to use-specialists-summary hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-specialists-summary.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /apiGet<OrganismSummary>\('\/api\/specialists\/summary'\)/);
   });
 
   it('renders nothing when summary fetch has not yet succeeded', () => {
@@ -1912,6 +1925,46 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useSpecialistsSummary hook (v1.10.725)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-specialists-summary.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'SpecialistsSummaryBar.tsx');
+
+  it('exports the hook + OrganismSummary type', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useSpecialistsSummary/);
+    assert.match(src, /export interface OrganismSummary/);
+  });
+
+  it('GET /api/specialists/summary on mount + polls every 30s', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiGet<OrganismSummary>\('\/api\/specialists\/summary'\)/);
+    assert.match(src, /POLL_INTERVAL_MS\s*=\s*30000/);
+    assert.match(src, /window\.setInterval\(fetchSummary, POLL_INTERVAL_MS\)/);
+  });
+
+  it('cleanup cancels in-flight + clears interval', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /let cancelled = false/);
+    assert.match(src, /if \(!cancelled\) setSummary\(res\)/);
+    assert.match(src, /cancelled = true;\s*window\.clearInterval\(id\)/);
+  });
+
+  it('errors silently degrade (catch swallows)', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\.catch\(\(\)\s*=>\s*\{[\s\S]*?\/\* silently degrade/);
+  });
+
+  it('parent SpecialistsSummaryBar wires the hook + drops the inline poll', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useSpecialistsSummary\s*\}\s+from\s+'\.\.\/lib\/use-specialists-summary'/);
+    assert.match(src, /const summary = useSpecialistsSummary\(\)/);
+    assert.doesNotMatch(src, /window\.setInterval/);
+    assert.doesNotMatch(src, /apiGet<OrganismSummary>/);
   });
 });
 
