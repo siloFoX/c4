@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.687] - 2026-05-09 — Extract useAuditRotate hook
+
+**Web — `SpecialistsBulkOpsToolbar.tsx` shrunk by 30 lines (172 → 142).**
+The audit-log force-rotate button — confirm-gated POST
+/api/specialists/audit-rotate with `maxBytes: 0`,
+banner routing for rotated/skipped/failure paths, 4s
+auto-clear — moves to a self-contained hook.
+SpecialistsBulkOpsToolbar is now pure JSX glue around
+three hooks.
+
+### Refactor
+- New `web/src/lib/use-audit-rotate.ts` (~56 lines).
+  No-arg signature returning `{ rotateBusy, rotateMsg,
+  rotateFailed, handleAuditRotate }`.
+- `SpecialistsBulkOpsToolbar.tsx`: removed three
+  useState slots and the ~28-line `handleAuditRotate`
+  useCallback. Replaced with one destructured no-arg
+  hook call. Trimmed `useCallback` + `apiPost` +
+  `tFormat` imports.
+- Boundary suite #154 — 4 assertions covering hook +
+  no-arg signature, confirm + URL + maxBytes:0 body,
+  rotated/skipped/failure banner routing + 4s
+  auto-clear, parent wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  758 / 758 across 153 → 154 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual). One transient web-smoke
+  flake on first attempt; cleared on retry.
+
+### Stats
+- 158 ships total since v1.10.529.
+- 156 components/libs extracted.
+- 66 custom hooks in `web/src/lib/`.
+- 758 boundary assertions across 154 suites.
+- SpecialistsBulkOpsToolbar went 249 → 142 across
+  v1.10.685 + v1.10.686 + v1.10.687 (-107, ~43%).
+
 ## [1.10.686] - 2026-05-09 — Extract useSpecialistsImport hook
 
 **Web — `SpecialistsBulkOpsToolbar.tsx` shrunk by 48 lines (220 → 172).**

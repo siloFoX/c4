@@ -1,10 +1,10 @@
-import { useCallback, useState } from 'react';
-import { apiPost } from '../lib/api';
+import { useState } from 'react';
 import { useSpecialistsExport } from '../lib/use-specialists-export';
 import { useSpecialistsImport } from '../lib/use-specialists-import';
+import { useAuditRotate } from '../lib/use-audit-rotate';
 import { Button } from './ui';
 import { cn } from '../lib/cn';
-import { t, tFormat, useLocale } from '../lib/i18n';
+import { t, useLocale } from '../lib/i18n';
 
 // (v1.10.532) Extracted from SpecialistsView. The bulk
 // export / import / audit-rotate toolbar — operators round-trip
@@ -36,38 +36,8 @@ export default function SpecialistsBulkOpsToolbar({ onChange }: Props) {
     handleImportFile, handleImportApply,
   } = useSpecialistsImport({ importMode, onChange });
 
-  const [rotateBusy, setRotateBusy] = useState(false);
-  const [rotateMsg, setRotateMsg] = useState<string | null>(null);
-  const [rotateFailed, setRotateFailed] = useState(false);
-  const handleAuditRotate = useCallback(async () => {
-    if (!window.confirm(t('specialists.confirmAuditRotate'))) return;
-    setRotateBusy(true);
-    setRotateMsg(null);
-    setRotateFailed(false);
-    try {
-      const res = await apiPost<{
-        ok: boolean;
-        rotated: boolean;
-        archive?: string | null;
-        bytes?: number;
-      }>('/api/specialists/audit-rotate', { maxBytes: 0 });
-      if (res.rotated) {
-        setRotateMsg(tFormat('specialists.rotate.success', {
-          archive: res.archive || t('specialists.rotate.fallback'),
-        }));
-      } else {
-        setRotateMsg(t('specialists.rotate.skipped'));
-      }
-      window.setTimeout(() => setRotateMsg(null), 4000);
-    } catch (e) {
-      setRotateMsg(tFormat('specialists.rotate.failed', {
-        error: (e as Error).message || t('common.unknown'),
-      }));
-      setRotateFailed(true);
-    } finally {
-      setRotateBusy(false);
-    }
-  }, []);
+  // (v1.10.687) Audit rotate moved to lib/use-audit-rotate.
+  const { rotateBusy, rotateMsg, rotateFailed, handleAuditRotate } = useAuditRotate();
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md border border-border/40 bg-muted/5 px-3 py-1.5 text-[11px]">

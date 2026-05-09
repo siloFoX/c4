@@ -1791,6 +1791,41 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useAuditRotate hook (v1.10.687)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-audit-rotate.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'SpecialistsBulkOpsToolbar.tsx');
+
+  it('exports the hook with no-arg signature', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useAuditRotate\(\)/);
+  });
+
+  it('confirm-gates POST /api/specialists/audit-rotate with maxBytes:0', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.confirm\(t\('specialists\.confirmAuditRotate'\)\)/);
+    assert.match(src, /apiPost<[\s\S]*?>\('\/api\/specialists\/audit-rotate',\s*\{ maxBytes: 0 \}\)/);
+  });
+
+  it('routes rotated/skipped/failure into the banner with 4s auto-clear', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(res\.rotated\)/);
+    assert.match(src, /specialists\.rotate\.success/);
+    assert.match(src, /specialists\.rotate\.skipped/);
+    assert.match(src, /specialists\.rotate\.failed/);
+    assert.match(src, /window\.setTimeout\(\(\) => setRotateMsg\(null\),\s*4000\)/);
+  });
+
+  it('parent SpecialistsBulkOpsToolbar wires the hook + drops the inline state + handler', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useAuditRotate\s*\}\s+from\s+'\.\.\/lib\/use-audit-rotate'/);
+    assert.match(src, /useAuditRotate\(\)/);
+    assert.doesNotMatch(src, /const \[rotateBusy, setRotateBusy\]/);
+    assert.doesNotMatch(src, /const handleAuditRotate = useCallback/);
+  });
+});
+
 describe('extracted: useSpecialistsImport hook (v1.10.686)', () => {
   const fs = require('fs');
   const path = require('path');
