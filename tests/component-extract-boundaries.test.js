@@ -1865,6 +1865,46 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: usePinnedRules hook (v1.10.707)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-pinned-rules.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'PinnedRulesEditor.tsx');
+
+  it('exports the hook + accepts workerName', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function usePinnedRules/);
+    assert.match(src, /workerName:\s*string/);
+  });
+
+  it('GETs /api/workers/:name/pinned-memory + auto-loads on mount', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\/api\/workers\/\$\{encodeURIComponent\(workerName\)\}\/pinned-memory/);
+    assert.match(src, /useEffect\(\(\) => \{[\s\S]*?load\(\);[\s\S]*?\}, \[load\]\)/);
+  });
+
+  it('joins rules with --- separator + splits on save with the same regex', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /rules\.join\('\\n\\n---\\n\\n'\)/);
+    assert.match(src, /rulesText[\s\S]*?\.split\(\/\\n\\s\*---\\s\*\\n\/\)/);
+  });
+
+  it('save POSTs userRules + defaultTemplate + refresh flag', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /method:\s*'POST'/);
+    assert.match(src, /userRules,\s*\n\s*defaultTemplate:\s*defaultTemplate\s*\|\|\s*null,\s*\n\s*refresh:\s*options\.refresh/);
+  });
+
+  it('parent PinnedRulesEditor wires the hook + drops the inline state + handlers', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*usePinnedRules\s*\}\s+from\s+'\.\.\/lib\/use-pinned-rules'/);
+    assert.match(src, /usePinnedRules\(\{\s*workerName\s*\}\)/);
+    assert.doesNotMatch(src, /const \[rulesText, setRulesText\]/);
+    assert.doesNotMatch(src, /const load = useCallback/);
+    assert.doesNotMatch(src, /const save = useCallback/);
+  });
+});
+
 describe('extracted: useSpecialistTagEditor hook (v1.10.706)', () => {
   const fs = require('fs');
   const path = require('path');

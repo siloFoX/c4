@@ -4,6 +4,41 @@
 
 (no entries — next release window)
 
+## [1.10.707] - 2026-05-09 — Extract usePinnedRules hook
+
+**Web — `PinnedRulesEditor.tsx` shrunk by 59 lines (176 → 117).**
+The per-worker pinned-memory editor — GETs userRules
++ defaultTemplate, joins rules with the `---`
+separator into a single textarea blob, and POSTs back
+the split-by-`---` form — moves to a self-contained
+hook. The `refresh` flag in save() asks the daemon to
+re-pull the worker's CLAUDE.md cache.
+
+### Refactor
+- New `web/src/lib/use-pinned-rules.ts` (~101 lines).
+  PinnedMemory imported from `../types`. Returns 10
+  fields (4 form, 4 banner/state, 2 callbacks).
+- `PinnedRulesEditor.tsx`: removed 6 useState slots,
+  the load useCallback, the auto-fetch useEffect,
+  and the save useCallback. Trimmed `useCallback` +
+  `useEffect` + `useState` + `apiFetch` +
+  `PinnedMemory` imports.
+- Boundary suite #174 — 5 assertions covering hook
+  signature, fetch URL + auto-load, separator regex
+  symmetry, save body shape, parent wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  841 / 841 across 173 → 174 suites.
+- `npm run check:full`: green.
+
+### Stats
+- 178 ships total since v1.10.529.
+- 175 components/libs extracted.
+- 84 custom hooks in `web/src/lib/`.
+- 841 boundary assertions across 174 suites.
+
 ## [1.10.706] - 2026-05-09 — Extract useSpecialistTagEditor hook
 
 **Web — `SpecialistsTagEditor.tsx` shrunk by 26 lines (102 → 76).**

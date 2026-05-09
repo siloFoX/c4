@@ -1,9 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
 import { Pin, RefreshCcw, Save } from 'lucide-react';
-import { apiFetch } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
-import type { PinnedMemory } from '../types';
 import { Button, Card, CardContent, CardHeader } from './ui';
+import { usePinnedRules } from '../lib/use-pinned-rules';
 
 // 8.46 — Persistent Rules editor for a single worker.
 //
@@ -25,70 +23,13 @@ const ROLE_OPTIONS: Array<{ value: string; labelKey: string | null; literal?: st
 
 export default function PinnedRulesEditor({ workerName }: PinnedRulesEditorProps) {
   useLocale();
-  const [rulesText, setRulesText] = useState('');
-  const [defaultTemplate, setDefaultTemplate] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastRefreshAt, setLastRefreshAt] = useState<number | null>(null);
-
-  const load = useCallback(async () => {
-    if (!workerName) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await apiFetch(`/api/workers/${encodeURIComponent(workerName)}/pinned-memory`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as {
-        pinnedMemory: PinnedMemory;
-        lastRefreshAt: number | null;
-      };
-      const rules = Array.isArray(data.pinnedMemory?.userRules)
-        ? data.pinnedMemory.userRules
-        : [];
-      setRulesText(rules.join('\n\n---\n\n'));
-      setDefaultTemplate(data.pinnedMemory?.defaultTemplate || '');
-      setLastRefreshAt(data.lastRefreshAt ?? null);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, [workerName]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const save = useCallback(async (options: { refresh: boolean }) => {
-    setSaving(true);
-    setError(null);
-    try {
-      const userRules = rulesText
-        .split(/\n\s*---\s*\n/)
-        .map((chunk) => chunk.trim())
-        .filter(Boolean);
-      const res = await apiFetch(
-        `/api/workers/${encodeURIComponent(workerName)}/pinned-memory`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userRules,
-            defaultTemplate: defaultTemplate || null,
-            refresh: options.refresh,
-          }),
-        },
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as { lastRefreshAt: number | null };
-      setLastRefreshAt(data.lastRefreshAt ?? null);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  }, [rulesText, defaultTemplate, workerName]);
+  // (v1.10.707) Pinned-rules state + load + save moved to hook.
+  const {
+    rulesText, setRulesText,
+    defaultTemplate, setDefaultTemplate,
+    loading, saving, error, lastRefreshAt,
+    save,
+  } = usePinnedRules({ workerName });
 
   return (
     <Card>
