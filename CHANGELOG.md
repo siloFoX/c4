@@ -4,6 +4,51 @@
 
 (no entries — next release window)
 
+## [1.10.667] - 2026-05-09 — Extract useNlChat hook
+
+**Web — `Chat.tsx` shrunk by 93 lines (288 → 195).**
+The natural-language chat session — POST /api/nl/chat
+with optional sessionId, append user + assistant bubbles
+to the messages list, surface the action button list,
+and persist the sessionId to localStorage under
+`c4.nl.sessionId` so a refresh keeps the same
+conversation — moves to a self-contained hook. The
+`newSession` reset is also bundled in.
+
+### Refactor
+- New `web/src/lib/use-nl-chat.ts` (~119 lines).
+  Exports `useNlChat` + `ChatMessage` + `ChatAction`
+  types. The localStorage helpers (loadSessionId /
+  saveSessionId) and the random-id `makeId` stay
+  module-private.
+- `Chat.tsx`: removed the `SESSION_KEY` constant, the
+  three internal type interfaces (ChatMessage,
+  ChatAction, ChatResponse), three module-private
+  helpers (loadSessionId, saveSessionId, makeId),
+  five useState slots (messages / sending / error /
+  sessionId / actions), the sessionId-persist
+  useEffect, the ~30-line `sendText` useCallback, and
+  the `newSession` arrow. Replaced with one
+  destructured `useNlChat()` call. Trimmed
+  `useCallback` + `useEffect` + `apiPost` imports.
+- Boundary suite #134 — 5 assertions covering hook +
+  type export shape, localStorage persistence
+  (key + 3 calls), POST /api/nl/chat URL + bubble
+  appends, newSession four-clear, parent wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  669 / 669 across 133 → 134 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 138 ships total since v1.10.529.
+- 136 components/libs extracted.
+- 46 custom hooks in `web/src/lib/`.
+- 669 boundary assertions across 134 suites.
+
 ## [1.10.666] - 2026-05-09 — Reuse useWorkerList in HierarchyTree
 
 **Web — `HierarchyTree.tsx` shrunk by 32 lines (323 → 291).**

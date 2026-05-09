@@ -1770,6 +1770,53 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useNlChat hook (v1.10.667)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-nl-chat.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'Chat.tsx');
+
+  it('exports the hook + ChatMessage + ChatAction types', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useNlChat/);
+    assert.match(src, /export interface ChatMessage/);
+    assert.match(src, /export interface ChatAction/);
+  });
+
+  it('persists sessionId to localStorage under c4.nl.sessionId', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /SESSION_KEY\s*=\s*'c4\.nl\.sessionId'/);
+    assert.match(src, /localStorage\.getItem\(SESSION_KEY\)/);
+    assert.match(src, /localStorage\.setItem\(SESSION_KEY,\s*id\)/);
+    assert.match(src, /localStorage\.removeItem\(SESSION_KEY\)/);
+  });
+
+  it('POSTs /api/nl/chat with optional sessionId and appends both bubbles', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiPost<ChatResponse>\('\/api\/nl\/chat'/);
+    assert.match(src, /sessionId:\s*sessionId\s*\|\|\s*undefined/);
+    assert.match(src, /role:\s*'user'/);
+    assert.match(src, /role:\s*'assistant'/);
+  });
+
+  it('newSession clears messages + actions + error + sessionId', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /const newSession = useCallback\(\(\) => \{[\s\S]*?setSessionId\(null\)[\s\S]*?setMessages\(\[\]\)[\s\S]*?setActions\(\[\]\)[\s\S]*?setError\(null\)/);
+  });
+
+  it('parent Chat wires the hook + drops the inline state + helpers', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useNlChat,\s*type\s+ChatAction\s*\}\s+from\s+'\.\.\/lib\/use-nl-chat'/);
+    assert.match(src, /useNlChat\(\)/);
+    assert.doesNotMatch(src, /^interface ChatMessage/m);
+    assert.doesNotMatch(src, /^interface ChatResponse/m);
+    assert.doesNotMatch(src, /const \[messages, setMessages\]/);
+    assert.doesNotMatch(src, /const \[sessionId, setSessionId\]/);
+    assert.doesNotMatch(src, /^function loadSessionId/m);
+    assert.doesNotMatch(src, /^function saveSessionId/m);
+  });
+});
+
 describe('shared: useWorkerList consumed by HierarchyTree (v1.10.666)', () => {
   const fs = require('fs');
   const path = require('path');

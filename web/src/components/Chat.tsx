@@ -2,9 +2,9 @@
 // POST /nl/chat; the daemon does the parsing and dispatch. Session ids
 // live in localStorage so the conversation survives page reloads.
 
-import { FormEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { FormEvent, useLayoutEffect, useRef, useState } from 'react';
 import { Plus, RotateCcw, Send } from 'lucide-react';
-import { apiPost } from '../lib/api';
+import { useNlChat, type ChatAction } from '../lib/use-nl-chat';
 import { t, useLocale } from '../lib/i18n';
 import {
   Badge,
@@ -19,53 +19,8 @@ import {
 } from './ui';
 import { cn } from '../lib/cn';
 
-const SESSION_KEY = 'c4.nl.sessionId';
-
-type Role = 'user' | 'assistant';
-
-interface ChatMessage {
-  id: string;
-  role: Role;
-  text: string;
-  intent?: string;
-  ts: number;
-}
-
-interface ChatAction {
-  type: string;
-  worker?: string;
-  label: string;
-}
-
-interface ChatResponse {
-  sessionId: string;
-  response: string;
-  intent: string;
-  confidence?: number;
-  actions?: ChatAction[];
-  error?: string;
-}
-
-function loadSessionId(): string | null {
-  try {
-    return localStorage.getItem(SESSION_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function saveSessionId(id: string | null): void {
-  try {
-    if (id) localStorage.setItem(SESSION_KEY, id);
-    else localStorage.removeItem(SESSION_KEY);
-  } catch {
-    // ignore
-  }
-}
-
-function makeId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
+// (v1.10.667) Types + sessionId persistence + sendText
+// flow moved to lib/use-nl-chat.
 
 function formatTime(ts: number): string {
   const d = new Date(ts);
@@ -76,12 +31,9 @@ function formatTime(ts: number): string {
 
 export default function Chat() {
   useLocale();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // (v1.10.667) NL chat session state + sendText moved to hook.
+  const { messages, sending, error, actions, sessionId, sendText, newSession } = useNlChat();
   const [input, setInput] = useState('');
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [sessionId, setSessionId] = useState<string | null>(() => loadSessionId());
-  const [actions, setActions] = useState<ChatAction[]>([]);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -90,44 +42,6 @@ export default function Chat() {
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [messages.length]);
-
-  useEffect(() => {
-    saveSessionId(sessionId);
-  }, [sessionId]);
-
-  const sendText = useCallback(
-    async (text: string) => {
-      const trimmed = text.trim();
-      if (!trimmed || sending) return;
-      setSending(true);
-      setError(null);
-      const userMsg: ChatMessage = { id: makeId(), role: 'user', text: trimmed, ts: Date.now() };
-      setMessages((prev) => [...prev, userMsg]);
-      try {
-        const body = { sessionId: sessionId || undefined, text: trimmed };
-        const res = await apiPost<ChatResponse>('/api/nl/chat', body);
-        if (res.error) {
-          setError(res.error);
-        } else {
-          if (res.sessionId) setSessionId(res.sessionId);
-          const replyMsg: ChatMessage = {
-            id: makeId(),
-            role: 'assistant',
-            text: res.response || '(no response)',
-            intent: res.intent,
-            ts: Date.now(),
-          };
-          setMessages((prev) => [...prev, replyMsg]);
-          setActions(Array.isArray(res.actions) ? res.actions : []);
-        }
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-      } finally {
-        setSending(false);
-      }
-    },
-    [sending, sessionId],
-  );
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -156,13 +70,6 @@ export default function Chat() {
         prompt = action.label;
     }
     if (prompt) void sendText(prompt);
-  };
-
-  const newSession = () => {
-    setSessionId(null);
-    setMessages([]);
-    setActions([]);
-    setError(null);
   };
 
   return (
