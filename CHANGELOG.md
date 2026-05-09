@@ -4,6 +4,43 @@
 
 (no entries — next release window)
 
+## [1.10.693] - 2026-05-09 — Extract usePlanWorkers hook
+
+**Web — `pages/Plan.tsx` shrunk by 13 lines (186 → 173).**
+The worker-list load + auto-select-first-worker
+useEffect — GET /api/list, parses `r.workers`, picks
+the first if `selected` is empty — moves to a
+self-contained hook. The hook delegates select +
+error reporting back to the parent so the existing
+`usePlanContent` hook keeps watching the same
+`selected` state slot.
+
+### Refactor
+- New `web/src/lib/use-plan-workers.ts` (~40 lines).
+  Returns `{ workers, loadWorkers }`.
+- `pages/Plan.tsx`: removed `workers` useState slot
+  + the ~12-line `loadWorkers` useCallback + the
+  auto-fetch useEffect. Replaced with one
+  `usePlanWorkers({ selected, setSelected, setError })`
+  destructure. Trimmed `useEffect` + `apiGet` +
+  `ListResponse`/`Worker` type imports.
+- Boundary suite #160 — 3 assertions covering hook +
+  signature, /api/list URL + auto-select-first
+  branch, parent wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  781 / 781 across 159 → 160 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 164 ships total since v1.10.529.
+- 162 components/libs extracted.
+- 72 custom hooks in `web/src/lib/`.
+- 781 boundary assertions across 160 suites.
+
 ## [1.10.692] - 2026-05-09 — Extract useScrollIntoViewOnOpen hook
 
 **Web — `HelpDrawer.tsx` shrunk by 8 lines (226 → 218).**

@@ -1791,6 +1791,34 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: usePlanWorkers hook (v1.10.693)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-plan-workers.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'pages', 'Plan.tsx');
+
+  it('exports the hook + accepts selected/setSelected/setError', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function usePlanWorkers/);
+    assert.match(src, /selected:\s*string/);
+    assert.match(src, /setSelected:\s*\(name:\s*string\)\s*=>\s*void/);
+  });
+
+  it('GETs /api/list and auto-selects first worker when none selected', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiGet<ListResponse>\('\/api\/list'\)/);
+    assert.match(src, /if \(!selected && first\) setSelected\(first\.name\)/);
+  });
+
+  it('parent Plan wires the hook + drops the inline state + fetcher', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*usePlanWorkers\s*\}\s+from\s+'\.\.\/lib\/use-plan-workers'/);
+    assert.match(src, /usePlanWorkers\(\{\s*selected,\s*setSelected,\s*setError\s*\}\)/);
+    assert.doesNotMatch(src, /const \[workers, setWorkers\]/);
+    assert.doesNotMatch(src, /const loadWorkers = useCallback/);
+  });
+});
+
 describe('extracted: useScrollIntoViewOnOpen hook (v1.10.692)', () => {
   const fs = require('fs');
   const path = require('path');

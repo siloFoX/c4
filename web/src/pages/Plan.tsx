@@ -1,15 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Brain, RefreshCw, Send, Upload } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast, { type ToastType } from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Input, Label, Panel, Tooltip } from '../components/ui';
-import { apiGet } from '../lib/api';
 import { usePlanContent } from '../lib/use-plan-content';
 import { usePlanDispatch } from '../lib/use-plan-dispatch';
+import { usePlanWorkers } from '../lib/use-plan-workers';
 import { renderMarkdown } from '../lib/markdown';
-import type { ListResponse, Worker } from '../types';
 import { t, useLocale } from '../lib/i18n';
 
 // 8.20B Plan. Dispatches a planning task via POST /api/plan and polls
@@ -25,7 +24,8 @@ interface ToastState { id: number; message: string; type: ToastType }
 
 export default function Plan() {
   useLocale();
-  const [workers, setWorkers] = useState<Worker[]>([]);
+
+
   const [selected, setSelected] = useState<string>('');
   const [task, setTask] = useState('');
   const [branch, setBranch] = useState('');
@@ -36,24 +36,11 @@ export default function Plan() {
     setToast({ id: Date.now(), message, type });
   }, []);
 
-  const loadWorkers = useCallback(async () => {
-    try {
-      const r = await apiGet<ListResponse>('/api/list');
-      const ws = Array.isArray(r.workers) ? r.workers : [];
-      setWorkers(ws);
-      const first = ws[0];
-      if (!selected && first) setSelected(first.name);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, [selected]);
-
-  useEffect(() => {
-    loadWorkers();
-  }, [loadWorkers]);
-
   // (v1.10.661) Plan-content fetch moved to hook.
   const { plan, loading, error, setError, loadPlan } = usePlanContent({ selected });
+
+  // (v1.10.693) Worker-list load + auto-select-first moved to hook.
+  const { workers } = usePlanWorkers({ selected, setSelected, setError });
 
   // (v1.10.680) Dispatch + redispatch flows moved to hook.
   const { dispatching, dispatchPlan, redispatch } = usePlanDispatch({
