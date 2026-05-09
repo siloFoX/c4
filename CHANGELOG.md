@@ -4,6 +4,50 @@
 
 (no entries — next release window)
 
+## [1.10.720] - 2026-05-10 — Extract useWorkerActionStrip hook
+
+**Web — `components/WorkerActions.tsx` shrunk by 51 lines (169 → 118).**
+The per-worker row-action runner — confirms via
+`window.confirm`, busy-marks the action kind in
+flight, POSTs to `action.endpoint`, inspects both
+the HTTP status and a JSON `{ error }` body (the
+daemon returns 200 with an error key for some
+no-op cases), and surfaces success / failure
+through the parent's toast slot — moves to a
+`useWorkerActionStrip({ showToast })` hook
+returning `{ busyKind, runAction }`.
+
+`ActionKind` and `ActionConfig` are now exported
+from `WorkerActions.tsx` so the hook can pin them
+without circular ownership; the JSX renders the
+buttons array as before.
+
+Naming-collision avoidance: the older
+`useWorkerActions` (v1.10.705,
+`lib/use-worker-actions.ts`) drives WorkerDetail's
+send / key / merge / close handlers and is a
+different shape. The new hook lives in
+`lib/use-worker-action-strip.ts` so the two
+coexist. Boundary suite #187 includes a
+co-existence assertion to guard against accidental
+merge later.
+
+The component drops `useCallback` / `useState` /
+`apiFetch` imports — their last consumers moved
+into the hook.
+
+Boundary suite #187 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the confirm-gate / busy-mark
+contract, both error paths (HTTP non-ok + 200 +
+payload.error), the parent wiring, and the
+co-existence with the older useWorkerActions hook.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (891 / 186 suites — +5 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.719] - 2026-05-10 — Extract useLogin hook
 
 **Web — `components/Login.tsx` shrunk by 21 lines (141 → 120).**

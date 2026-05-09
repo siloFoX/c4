@@ -1907,6 +1907,56 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useWorkerActionStrip hook (v1.10.720)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-worker-action-strip.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'WorkerActions.tsx');
+
+  it('exports the hook + accepts showToast', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useWorkerActionStrip/);
+    assert.match(src, /showToast:\s*\(message:\s*string,\s*type:\s*ToastType\)\s*=>\s*void/);
+  });
+
+  it('runAction confirms via window.confirm + busy-marks the kind', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(action\.disabled\) return/);
+    assert.match(src, /if \(!window\.confirm\(action\.confirm\)\) return/);
+    assert.match(src, /setBusyKind\(action\.kind\)/);
+  });
+
+  it('handles both HTTP error and JSON {error} payload paths', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(!res\.ok\)/);
+    assert.match(src, /HTTP \$\{res\.status\}/);
+    // Second branch: HTTP 200 but payload.error set.
+    assert.match(src, /'error' in payload[\s\S]*?\(payload as \{ error: unknown \}\)\.error/);
+    assert.match(src, /worker\.action\.failed/);
+  });
+
+  it('parent WorkerActions wires the hook + drops the inline runAction', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useWorkerActionStrip\s*\}\s+from\s+'\.\.\/lib\/use-worker-action-strip'/);
+    assert.match(src, /useWorkerActionStrip\(\{[\s\S]*?showToast[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /const \[busyKind, setBusyKind\]/);
+    assert.doesNotMatch(src, /apiFetch\(action\.endpoint/);
+  });
+
+  it('does not collide with the older useWorkerActions (workerDetail) hook', () => {
+    // (v1.10.705) useWorkerActions in lib/use-worker-actions.ts drives
+    // WorkerDetail's send/key/merge handlers. The new strip hook lives
+    // in lib/use-worker-action-strip.ts so the two coexist.
+    const oldHook = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-worker-actions.ts'),
+      'utf8',
+    );
+    assert.match(oldHook, /export function useWorkerActions/);
+    const stripHook = fs.readFileSync(HOOK, 'utf8');
+    assert.match(stripHook, /export function useWorkerActionStrip/);
+  });
+});
+
 describe('extracted: useLogin hook (v1.10.719)', () => {
   const fs = require('fs');
   const path = require('path');

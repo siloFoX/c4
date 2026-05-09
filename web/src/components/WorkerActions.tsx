@@ -1,10 +1,9 @@
-import { useCallback, useState } from 'react';
 import { Check, GitMerge, Loader2, OctagonAlert, X } from 'lucide-react';
 import Toast from './Toast';
-import { apiFetch } from '../lib/api';
 import { Button, type ButtonProps } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { useToast } from '../lib/use-toast';
+import { useWorkerActionStrip } from '../lib/use-worker-action-strip';
 
 export interface WorkerActionsProps {
   workerName: string;
@@ -12,9 +11,9 @@ export interface WorkerActionsProps {
 
 // (v1.10.708) ToastState + showToast moved to lib/use-toast.
 
-type ActionKind = 'merge' | 'approve' | 'interrupt' | 'close';
+export type ActionKind = 'merge' | 'approve' | 'interrupt' | 'close';
 
-interface ActionConfig {
+export interface ActionConfig {
   kind: ActionKind;
   label: string;
   confirm: string;
@@ -31,7 +30,8 @@ export default function WorkerActions({ workerName }: WorkerActionsProps) {
   useLocale();
   // (v1.10.708) Toast slot moved to lib/use-toast.
   const { toast, showToast, dismissToast } = useToast();
-  const [busyKind, setBusyKind] = useState<ActionKind | null>(null);
+  // (v1.10.720) busyKind + runAction moved to use-worker-action-strip.
+  const { busyKind, runAction } = useWorkerActionStrip({ showToast });
 
   const actions: ActionConfig[] = [
     {
@@ -75,56 +75,6 @@ export default function WorkerActions({ workerName }: WorkerActionsProps) {
       variant: 'destructive',
     },
   ];
-
-  const runAction = useCallback(
-    async (action: ActionConfig) => {
-      if (action.disabled) return;
-      if (!window.confirm(action.confirm)) return;
-
-      setBusyKind(action.kind);
-      try {
-        const res = await apiFetch(action.endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(action.body),
-        });
-
-        let payload: unknown = null;
-        try {
-          payload = await res.json();
-        } catch {
-          // non-JSON response
-        }
-
-        if (!res.ok) {
-          const errMsg =
-            (payload && typeof payload === 'object' && 'error' in payload
-              ? String((payload as { error: unknown }).error)
-              : null) || `HTTP ${res.status}`;
-          showToast(tFormat('worker.action.failed', { label: action.label, error: errMsg }), 'error');
-          return;
-        }
-
-        if (payload && typeof payload === 'object' && 'error' in payload && (payload as { error: unknown }).error) {
-          showToast(tFormat('worker.action.failed', {
-            label: action.label,
-            error: String((payload as { error: unknown }).error),
-          }), 'error');
-          return;
-        }
-
-        showToast(action.successMessage, 'success');
-      } catch (e) {
-        showToast(tFormat('worker.action.failed', {
-          label: action.label,
-          error: (e as Error).message,
-        }), 'error');
-      } finally {
-        setBusyKind(null);
-      }
-    },
-    [showToast],
-  );
 
   return (
     <>
