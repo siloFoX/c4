@@ -1778,6 +1778,51 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useFilteredSessions hook (v1.10.681)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-filtered-sessions.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'SessionsView.tsx');
+
+  it('exports the hook + accepts groups/attached/query', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useFilteredSessions/);
+    assert.match(src, /groups:\s*SessionGroup\[\]\s*\|\s*null/);
+    assert.match(src, /attached:\s*AttachedSession\[\]/);
+    assert.match(src, /query:\s*string/);
+  });
+
+  it('groupMatchesQuery + attachedMatchesQuery stay private', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /function groupMatchesQuery/);
+    assert.match(src, /function attachedMatchesQuery/);
+    assert.doesNotMatch(src, /export function groupMatchesQuery/);
+    assert.doesNotMatch(src, /export function attachedMatchesQuery/);
+  });
+
+  it('group match falls back to projectPath/projectDir + sessionId/snippet/path', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /group\.projectPath\s*\|\|\s*''/);
+    assert.match(src, /group\.projectDir\s*\|\|\s*''/);
+    assert.match(src, /s\.sessionId.*lastAssistantSnippet/);
+  });
+
+  it('returns the three filter results', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /filteredGroups:\s*SessionGroup\[\]/);
+    assert.match(src, /totalFiltered:\s*number/);
+    assert.match(src, /filteredAttached:\s*AttachedSession\[\]/);
+  });
+
+  it('parent SessionsView wires the hook + drops the inline helpers + memos', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useFilteredSessions\s*\}\s+from\s+'\.\.\/lib\/use-filtered-sessions'/);
+    assert.match(src, /useFilteredSessions\(\{[\s\S]*?groups:\s*data\?\.groups\s*\?\?\s*null,\s*attached,\s*query[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /^function groupMatchesQuery/m);
+    assert.doesNotMatch(src, /^function attachedMatchesQuery/m);
+  });
+});
+
 describe('extracted: usePlanDispatch hook (v1.10.680)', () => {
   const fs = require('fs');
   const path = require('path');

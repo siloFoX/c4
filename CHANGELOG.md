@@ -4,6 +4,44 @@
 
 (no entries — next release window)
 
+## [1.10.681] - 2026-05-09 — Extract useFilteredSessions hook
+
+**Web — `SessionsView.tsx` shrunk by 33 lines (334 → 301).**
+The session-list filter pipeline — three useMemos that
+compose the search query against group rows + attached
+sessions — moves to a self-contained hook. The two
+private helpers (`groupMatchesQuery` /
+`attachedMatchesQuery`) move with it since they have
+no external consumer.
+
+### Refactor
+- New `web/src/lib/use-filtered-sessions.ts` (~70 lines).
+  Imports `SessionGroup` + `AttachedSession` from
+  `../components/SessionsView`. Returns
+  `{ filteredGroups, totalFiltered, filteredAttached }`.
+- `SessionsView.tsx`: removed both private helper
+  functions and the three useMemo blocks. Replaced
+  with one destructured `useFilteredSessions` call
+  taking `groups: data?.groups ?? null, attached,
+  query`. Trimmed `useMemo` import.
+- Boundary suite #148 — 5 assertions covering hook +
+  three-arg signature, helper module-privacy, group
+  match haystack composition, return tuple, parent
+  wiring (with the helper-removed regression guard).
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  734 / 734 across 147 → 148 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 152 ships total since v1.10.529.
+- 150 components/libs extracted.
+- 60 custom hooks in `web/src/lib/`.
+- 734 boundary assertions across 148 suites.
+
 ## [1.10.680] - 2026-05-09 — Extract usePlanDispatch hook
 
 **Web — `pages/Plan.tsx` shrunk by 41 lines (227 → 186).**

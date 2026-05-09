@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import SessionsTour from './SessionsTour';
 import NewChatModal from './NewChatModal';
@@ -8,6 +8,7 @@ import SessionsListCard from './SessionsListCard';
 import { useSessionsTour } from '../lib/use-sessions-tour';
 import { useSessionsList } from '../lib/use-sessions-list';
 import { useSessionsActions } from '../lib/use-sessions-actions';
+import { useFilteredSessions } from '../lib/use-filtered-sessions';
 
 export interface SessionSummary {
   projectDir: string | null;
@@ -134,26 +135,8 @@ export function shortId(sessionId: string | null): string {
   return `${sessionId.slice(0, 8)}...${sessionId.slice(-4)}`;
 }
 
-function groupMatchesQuery(group: SessionGroup, q: string): SessionGroup | null {
-  if (!q) return group;
-  const needle = q.toLowerCase();
-  const projectHit =
-    (group.projectPath || '').toLowerCase().includes(needle) ||
-    (group.projectDir || '').toLowerCase().includes(needle);
-  const filteredSessions = group.sessions.filter((s) => {
-    const hay = `${s.sessionId} ${s.lastAssistantSnippet || ''} ${s.projectPath || ''}`.toLowerCase();
-    return projectHit || hay.includes(needle);
-  });
-  if (filteredSessions.length === 0) return null;
-  return { ...group, sessions: filteredSessions };
-}
-
-function attachedMatchesQuery(a: AttachedSession, q: string): boolean {
-  if (!q) return true;
-  const needle = q.toLowerCase();
-  const hay = `${a.name} ${a.sessionId || ''} ${a.projectPath || ''} ${a.jsonlPath}`.toLowerCase();
-  return hay.includes(needle);
-}
+// (v1.10.681) groupMatchesQuery + attachedMatchesQuery + the
+// three filter memos moved to lib/use-filtered-sessions.
 
 // (v1.10.540) AttachModal extracted to ./AttachModal.tsx — uses
 // formatRelative + shortId + POST_ATTACH_HELP_* exports below.
@@ -201,28 +184,12 @@ export default function SessionsView() {
     onAutoSelect: useCallback((next: Selection | null) => setSelection(next), []),
   });
 
-  const filteredGroups = useMemo<SessionGroup[]>(() => {
-    if (!data) return [];
-    const q = query.trim();
-    if (!q) return data.groups;
-    const out: SessionGroup[] = [];
-    for (const g of data.groups) {
-      const keep = groupMatchesQuery(g, q);
-      if (keep) out.push(keep);
-    }
-    return out;
-  }, [data, query]);
-
-  const totalFiltered = useMemo(
-    () => filteredGroups.reduce((acc, g) => acc + g.sessions.length, 0),
-    [filteredGroups],
-  );
-
-  const filteredAttached = useMemo<AttachedSession[]>(() => {
-    const q = query.trim();
-    if (!q) return attached;
-    return attached.filter((a) => attachedMatchesQuery(a, q));
-  }, [attached, query]);
+  // (v1.10.681) Filter memos moved to lib/use-filtered-sessions.
+  const { filteredGroups, totalFiltered, filteredAttached } = useFilteredSessions({
+    groups: data?.groups ?? null,
+    attached,
+    query,
+  });
 
   // (v1.10.631) Attach / new chat / detach handlers + their
   // modal/busy/error state extracted to ../lib/use-sessions-actions.
