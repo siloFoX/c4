@@ -359,9 +359,14 @@ describe('TokenUsage.tsx component wiring', () => {
   const src = fs.readFileSync(path.join(PAGES_DIR, 'TokenUsage.tsx'), 'utf8');
 
   it('reads /api/token-usage and /api/quota', () => {
-    assert.match(src, /'\/api\/token-usage'/);
-    assert.match(src, /'\/api\/token-usage\?perTask=1'/);
-    assert.match(src, /'\/api\/quota'/);
+    // (v1.10.656) Both fetches moved to lib/use-token-usage.
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-token-usage.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /'\/api\/token-usage'/);
+    assert.match(hookSrc, /'\/api\/token-usage\?perTask=1'/);
+    assert.match(hookSrc, /'\/api\/quota'/);
   });
 
   it('renders per-worker and per-day breakdowns without a charting library', () => {

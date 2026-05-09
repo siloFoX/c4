@@ -4,6 +4,52 @@
 
 (no entries — next release window)
 
+## [1.10.656] - 2026-05-09 — Extract useTokenUsage hook
+
+**Web — `pages/TokenUsage.tsx` shrunk by 62 lines (312 → 250).**
+The token-usage + quota fetch moves to a self-contained
+hook along with all four payload type definitions.
+Quota failures stay silent (set `quota = null`) so they
+can't drown the token-usage error banner — preserved
+verbatim from the inline version.
+
+### Refactor
+- New `web/src/lib/use-token-usage.ts` (~90 lines).
+  Exports `useTokenUsage` + four payload types
+  (`PerTaskEntry`, `TokenUsagePayload`,
+  `QuotaTierSnapshot`, `QuotaPayload`). Page-internal
+  before; now lib-internal so future quota panels can
+  share the contract.
+- `pages/TokenUsage.tsx`: removed all four interfaces,
+  the four useState slots
+  (`data`/`quota`/`loading`/`error`), the
+  `refresh` useCallback, and the auto-refetch
+  useEffect. Replaced with one `useTokenUsage`
+  destructure. Trimmed `useCallback` + `useEffect`
+  + `apiGet` imports.
+- Boundary suite #124 — 5 assertions covering hook +
+  four-type export shape, dual-URL fetch with the
+  conditional perTask query, silent quota-failure
+  branch, return tuple, parent wiring.
+- `tests/ui-cli-coverage.test.js` redirect: the
+  /api/token-usage + /api/quota URL match now reads
+  the new hook file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  621 / 621 across 123 → 124 suites.
+- `node --test tests/ui-cli-coverage.test.js`: 56 / 56
+  (after redirect).
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 128 ships total since v1.10.529.
+- 124 components/libs extracted.
+- 34 custom hooks in `web/src/lib/`.
+- 621 boundary assertions across 124 suites.
+
 ## [1.10.655] - 2026-05-09 — Extract useEscalationResolve hook
 
 **Web — `AutonomousView.tsx` shrunk by 27 lines (296 → 269).**

@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Badge, Button, Panel, Tooltip } from '../components/ui';
-import { apiGet } from '../lib/api';
+import { useTokenUsage } from '../lib/use-token-usage';
 import { cn } from '../lib/cn';
 import { dateRange, formatNumber } from '../lib/format';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -17,45 +17,9 @@ import { t, tFormat, useLocale } from '../lib/i18n';
 // Implemented without a charting library -- bars are simple divs with
 // widths proportional to the maximum value so the bundle stays small.
 
-interface PerTaskEntry {
-  worker?: string;
-  name?: string;
-  task?: string;
-  input?: number;
-  output?: number;
-  total?: number;
-  cost?: number;
-  date?: string;
-  timestamp?: string | number;
-  [key: string]: unknown;
-}
-
-interface TokenUsagePayload {
-  total?: number;
-  totalInput?: number;
-  totalOutput?: number;
-  perWorker?: Record<string, number | { input?: number; output?: number; total?: number }>;
-  perDay?: Record<string, number>;
-  perTask?: PerTaskEntry[];
-  startedAt?: string;
-  error?: string;
-  [key: string]: unknown;
-}
-
-interface QuotaTierSnapshot {
-  used?: number;
-  remaining?: number;
-  limit?: number;
-  pct?: number;
-  [key: string]: unknown;
-}
-
-interface QuotaPayload {
-  date?: string;
-  tiers?: Record<string, QuotaTierSnapshot>;
-  error?: string;
-  [key: string]: unknown;
-}
+// (v1.10.656) PerTaskEntry / TokenUsagePayload /
+// QuotaTierSnapshot / QuotaPayload + the data + quota
+// fetch moved to lib/use-token-usage.
 
 const DAY_OPTIONS = [1, 7, 30, 90];
 
@@ -71,36 +35,10 @@ function coerceTotal(v: unknown): number {
 
 export default function TokenUsage() {
   useLocale();
-  const [data, setData] = useState<TokenUsagePayload | null>(null);
-  const [quota, setQuota] = useState<QuotaPayload | null>(null);
   const [days, setDays] = useState<number>(7);
   const [perTask, setPerTask] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const path = perTask ? '/api/token-usage?perTask=1' : '/api/token-usage';
-      const r = await apiGet<TokenUsagePayload>(path);
-      setData(r);
-    } catch (e) {
-      setError((e as Error).message);
-      setData(null);
-    }
-    try {
-      const q = await apiGet<QuotaPayload>('/api/quota');
-      setQuota(q);
-    } catch {
-      setQuota(null);
-    }
-    setLoading(false);
-  }, [perTask]);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  // (v1.10.656) Token-usage + quota fetch moved to hook.
+  const { data, quota, loading, error, refresh } = useTokenUsage({ perTask });
 
   const range = useMemo(() => dateRange(days), [days]);
 

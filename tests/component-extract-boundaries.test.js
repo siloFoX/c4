@@ -1770,6 +1770,55 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useTokenUsage hook (v1.10.656)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-token-usage.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'pages', 'TokenUsage.tsx');
+
+  it('exports the hook + four payload types', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useTokenUsage/);
+    assert.match(src, /export interface PerTaskEntry/);
+    assert.match(src, /export interface TokenUsagePayload/);
+    assert.match(src, /export interface QuotaTierSnapshot/);
+    assert.match(src, /export interface QuotaPayload/);
+  });
+
+  it('GETs /api/token-usage with optional perTask=1 + /api/quota in lockstep', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /perTask\s*\?\s*'\/api\/token-usage\?perTask=1'\s*:\s*'\/api\/token-usage'/);
+    assert.match(src, /apiGet<TokenUsagePayload>\(path\)/);
+    assert.match(src, /apiGet<QuotaPayload>\('\/api\/quota'\)/);
+  });
+
+  it('quota failures stay silent (no error banner pollution)', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /try \{[\s\S]*?const q = await apiGet<QuotaPayload>[\s\S]*?\} catch \{[\s\S]*?setQuota\(null\);[\s\S]*?\}/);
+  });
+
+  it('returns data + quota + loading + error + refresh', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /data:\s*TokenUsagePayload\s*\|\s*null/);
+    assert.match(src, /quota:\s*QuotaPayload\s*\|\s*null/);
+    assert.match(src, /loading:\s*boolean/);
+    assert.match(src, /error:\s*string\s*\|\s*null/);
+    assert.match(src, /refresh:\s*\(\)\s*=>\s*Promise<void>/);
+    assert.match(src, /useEffect\(\(\) => \{ refresh\(\); \}/);
+  });
+
+  it('parent TokenUsage wires the hook + drops the inline state + types', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useTokenUsage\s*\}\s+from\s+'\.\.\/lib\/use-token-usage'/);
+    assert.match(src, /useTokenUsage\(\{\s*perTask\s*\}\)/);
+    assert.doesNotMatch(src, /^interface TokenUsagePayload/m);
+    assert.doesNotMatch(src, /^interface QuotaPayload/m);
+    assert.doesNotMatch(src, /const \[data, setData\]/);
+    assert.doesNotMatch(src, /const \[quota, setQuota\]/);
+    assert.doesNotMatch(src, /const refresh = useCallback/);
+  });
+});
+
 describe('extracted: useEscalationResolve hook (v1.10.655)', () => {
   const fs = require('fs');
   const path = require('path');
