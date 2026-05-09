@@ -243,14 +243,24 @@ describe('ConversationView.tsx wiring', () => {
   const src = fs.readFileSync(file, 'utf8');
 
   it('imports the shared api helpers', () => {
-    assert.match(src, /from '\.\.\/lib\/api'/);
-    assert.match(src, /apiGet/);
-    assert.match(src, /eventSourceUrl/);
+    // (v1.10.659) api helpers consumed by lib/use-conversation now.
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-conversation.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /from '\.\/api'/);
+    assert.match(hookSrc, /apiGet/);
+    assert.match(hookSrc, /eventSourceUrl/);
   });
 
   it('fetches /api/sessions/<id> and subscribes to the stream endpoint', () => {
-    assert.match(src, /\/api\/sessions\/\$\{encodeURIComponent\(sessionId\)\}/);
-    assert.match(src, /\/api\/sessions\/\$\{encodeURIComponent\(sessionId\)\}\/stream/);
+    // (v1.10.659) Both URLs moved to the hook.
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-conversation.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /\/api\/sessions\/\$\{encodeURIComponent\(sessionId\)\}/);
+    assert.match(hookSrc, /\/api\/sessions\/\$\{encodeURIComponent\(sessionId\)\}\/stream/);
   });
 
   it('renders every role type (user, assistant, thinking, tool_use, tool_result, system)', () => {
@@ -275,9 +285,14 @@ describe('ConversationView.tsx wiring', () => {
   });
 
   it('supports the live streaming mode via EventSource', () => {
-    assert.match(src, /new EventSource/);
-    assert.match(src, /addEventListener\('conversation'/);
-    assert.match(src, /addEventListener\('turn'/);
+    // (v1.10.659) EventSource subscribe + event listeners moved to hook.
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-conversation.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /new EventSource/);
+    assert.match(hookSrc, /addEventListener\('conversation'/);
+    assert.match(hookSrc, /addEventListener\('turn'/);
   });
 });
 

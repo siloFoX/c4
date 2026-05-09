@@ -431,7 +431,12 @@ describe('ConversationView.tsx accepts the 8.17 snapshotUrl override', () => {
   });
 
   it('prefers snapshotUrl when provided', () => {
-    assert.match(src, /snapshotUrl \|\| `\/api\/sessions\/\$\{encodeURIComponent\(sessionId\)\}`/);
+    // (v1.10.659) snapshot URL fallback moved to lib/use-conversation.
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-conversation.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /snapshotUrl \|\| `\/api\/sessions\/\$\{encodeURIComponent\(sessionId\)\}`/);
   });
 });
 

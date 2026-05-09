@@ -1,13 +1,12 @@
 import {
   useCallback,
-  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
 import { Loader2 } from 'lucide-react';
-import { apiGet, eventSourceUrl } from '../lib/api';
+import { useConversation } from '../lib/use-conversation';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -90,74 +89,12 @@ export default function ConversationView({
   streamUrl,
 }: ConversationViewProps) {
   useLocale();
-  const [conversation, setConversation] = useState<Conversation | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [streaming, setStreaming] = useState(false);
+  // (v1.10.659) Snapshot fetch + SSE stream + state slots
+  // moved to lib/use-conversation.
+  const { conversation, error, loading, streaming } =
+    useConversation({ sessionId, live, snapshotUrl, streamUrl });
   const [autoScroll, setAutoScroll] = useState(true);
   const scrollRef = useRef<HTMLDivElement | null>(null);
-
-  const fetchSnapshot = useCallback(async () => {
-    if (!sessionId && !snapshotUrl) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const url = snapshotUrl || `/api/sessions/${encodeURIComponent(sessionId)}`;
-      const data = await apiGet<Conversation>(url);
-      setConversation(data);
-    } catch (err) {
-      setError((err as Error).message || t('common.failedToLoadSession'));
-    } finally {
-      setLoading(false);
-    }
-  }, [sessionId, snapshotUrl]);
-
-  useEffect(() => {
-    fetchSnapshot();
-  }, [fetchSnapshot]);
-
-  useEffect(() => {
-    if (!live) return;
-    if (!sessionId && !streamUrl) return;
-    const url = eventSourceUrl(
-      streamUrl || `/api/sessions/${encodeURIComponent(sessionId)}/stream`,
-    );
-    let es: EventSource | null = null;
-    try {
-      es = new EventSource(url);
-    } catch {
-      return;
-    }
-    setStreaming(true);
-    es.addEventListener('conversation', (ev) => {
-      try {
-        const data = JSON.parse((ev as MessageEvent).data) as Conversation;
-        setConversation(data);
-      } catch { /* ignore malformed frame */ }
-    });
-    es.addEventListener('turn', (ev) => {
-      try {
-        const turn = JSON.parse((ev as MessageEvent).data) as Turn;
-        setConversation((prev) => {
-          if (!prev) return { sessionId, projectPath: null, createdAt: null, updatedAt: turn.createdAt, model: null, totalInputTokens: 0, totalOutputTokens: 0, turns: [turn], warnings: [] };
-          return {
-            ...prev,
-            turns: [...prev.turns, turn],
-            updatedAt: turn.createdAt || prev.updatedAt,
-            totalInputTokens: prev.totalInputTokens + (turn.tokens?.input || 0),
-            totalOutputTokens: prev.totalOutputTokens + (turn.tokens?.output || 0),
-          };
-        });
-      } catch { /* ignore malformed frame */ }
-    });
-    es.onerror = () => {
-      setStreaming(false);
-    };
-    return () => {
-      if (es) es.close();
-      setStreaming(false);
-    };
-  }, [live, sessionId, streamUrl]);
 
   // Auto-scroll on new turns, but only if the user has not scrolled up.
   useLayoutEffect(() => {

@@ -1770,6 +1770,62 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useConversation hook (v1.10.659)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-conversation.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'ConversationView.tsx');
+
+  it('exports the hook + accepts sessionId/live/snapshotUrl/streamUrl', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useConversation/);
+    assert.match(src, /sessionId:\s*string/);
+    assert.match(src, /live:\s*boolean/);
+    assert.match(src, /snapshotUrl\?:\s*string/);
+    assert.match(src, /streamUrl\?:\s*string/);
+  });
+
+  it('GETs /api/sessions/:id (or override) and falls back via t() on failure', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiGet<Conversation>\(url\)/);
+    assert.match(src, /snapshotUrl\s*\|\|\s*`\/api\/sessions\/\$\{encodeURIComponent\(sessionId\)\}`/);
+    assert.match(src, /common\.failedToLoadSession/);
+  });
+
+  it('subscribes to /stream when live + handles conversation + turn events', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /eventSourceUrl\(/);
+    assert.match(src, /\/stream/);
+    assert.match(src, /es\.addEventListener\('conversation'/);
+    assert.match(src, /es\.addEventListener\('turn'/);
+  });
+
+  it('appends turn frames to the conversation atomically', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /turns:\s*\[\.\.\.prev\.turns,\s*turn\]/);
+    assert.match(src, /totalInputTokens:\s*prev\.totalInputTokens\s*\+\s*\(turn\.tokens\?\.input\s*\|\|\s*0\)/);
+    assert.match(src, /totalOutputTokens:\s*prev\.totalOutputTokens\s*\+\s*\(turn\.tokens\?\.output\s*\|\|\s*0\)/);
+  });
+
+  it('returns conversation/error/loading/streaming/refresh', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /conversation:\s*Conversation\s*\|\s*null/);
+    assert.match(src, /loading:\s*boolean/);
+    assert.match(src, /streaming:\s*boolean/);
+    assert.match(src, /refresh:\s*\(\)\s*=>\s*Promise<void>/);
+  });
+
+  it('parent ConversationView wires the hook + drops the inline state + effects', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useConversation\s*\}\s+from\s+'\.\.\/lib\/use-conversation'/);
+    assert.match(src, /useConversation\(\{\s*sessionId,\s*live,\s*snapshotUrl,\s*streamUrl\s*\}\)/);
+    assert.doesNotMatch(src, /const \[conversation, setConversation\]/);
+    assert.doesNotMatch(src, /const \[streaming, setStreaming\]/);
+    assert.doesNotMatch(src, /const fetchSnapshot = useCallback/);
+    assert.doesNotMatch(src, /es\.addEventListener\('conversation'/);
+  });
+});
+
 describe('extracted: useBatchSubmit hook (v1.10.658)', () => {
   const fs = require('fs');
   const path = require('path');

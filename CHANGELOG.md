@@ -4,6 +4,59 @@
 
 (no entries — next release window)
 
+## [1.10.659] - 2026-05-09 — Extract useConversation hook
+
+**Web — `ConversationView.tsx` shrunk by 63 lines (282 → 219).**
+The session-conversation snapshot fetch (GET
+/api/sessions/:id, override-friendly via `snapshotUrl`)
+and the live SSE stream (subscribes to /stream, listens
+for `conversation` + `turn` events, atomically appends
+turns + token tallies) move to one bundled hook. Both
+need the same `conversation` state slot, so bundling
+keeps the `setConversation` call-site count intentionally
+small (snapshot + 2 stream listeners).
+
+### Refactor
+- New `web/src/lib/use-conversation.ts` (~98 lines).
+  Imports `Conversation` + `Turn` from
+  `../components/ConversationView` (still page-scoped +
+  already exported for ConversationTurns + the wider
+  app). Optional `snapshotUrl` / `streamUrl` typed as
+  `string | undefined` to satisfy
+  `exactOptionalPropertyTypes`.
+- `ConversationView.tsx`: removed four useState slots
+  (conversation / error / loading / streaming), the
+  `fetchSnapshot` useCallback, and both useEffect blocks
+  (snapshot auto-fetch + SSE subscription). Replaced
+  with one destructured `useConversation` call. Trimmed
+  `useEffect` import + the api helpers re-export.
+- Boundary suite #127 — 6 assertions covering hook
+  export shape, snapshot URL fallback +
+  failedToLoadSession i18n key, /stream subscribe with
+  both event listeners, atomic turn-append shape,
+  return tuple, parent wiring.
+- `tests/session-attach.test.js` redirect: snapshotUrl
+  fallback assertion now reads the hook file.
+- `tests/session-parser.test.js` redirects: api-import
+  + URL pair + EventSource subscribe-listeners
+  assertions all read the hook file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  636 / 636 across 126 → 127 suites.
+- `node --test tests/session-attach.test.js
+  tests/session-parser.test.js`: 71 / 71 (after
+  redirect).
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 131 ships total since v1.10.529.
+- 128 components/libs extracted.
+- 38 custom hooks in `web/src/lib/`.
+- 636 boundary assertions across 127 suites.
+
 ## [1.10.658] - 2026-05-09 — Extract useBatchSubmit hook
 
 **Web — `pages/Batch.tsx` shrunk by 53 lines (282 → 229).**
