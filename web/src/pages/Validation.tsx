@@ -1,72 +1,25 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Badge, Button, Input, Panel, Tooltip } from '../components/ui';
-import { apiFetch, apiGet } from '../lib/api';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
-import type { ListResponse, Worker } from '../types';
+import type { Worker } from '../types';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useValidations, type ValidationResponse } from '../lib/use-validations';
 
 // 8.20B Validation. Fetches /api/list for workers and calls
 // /api/validation?name=<worker> per worker. Renders pass/fail badges
 // for tests / typecheck / lint, and shows raw validation JSON for
 // inspection.
-
-interface ValidationResponse {
-  name?: string;
-  tests?: { passed?: number; failed?: number; skipped?: number; ok?: boolean };
-  typecheck?: { ok?: boolean; errors?: number };
-  lint?: { ok?: boolean; errors?: number; warnings?: number };
-  coverage?: { lines?: number; branches?: number };
-  generatedAt?: string;
-  dirty?: boolean;
-  branch?: string;
-  error?: string;
-  [key: string]: unknown;
-}
+// (v1.10.724) Fetch + per-worker fan-out moved to lib/use-validations.
 
 export default function Validation() {
   useLocale();
-  const [workers, setWorkers] = useState<Worker[]>([]);
+  // (v1.10.724) State machine moved to use-validations hook.
+  const { workers, validations, loading, error, refresh } = useValidations();
   const [filter, setFilter] = useState('');
-  const [validations, setValidations] = useState<Record<string, ValidationResponse>>({});
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const list = await apiGet<ListResponse>('/api/list');
-      const ws = Array.isArray(list.workers) ? list.workers : [];
-      setWorkers(ws);
-      const next: Record<string, ValidationResponse> = {};
-      await Promise.all(
-        ws.map(async (w) => {
-          try {
-            const res = await apiFetch(`/api/validation?name=${encodeURIComponent(w.name)}`);
-            if (res.ok) {
-              next[w.name] = (await res.json()) as ValidationResponse;
-            } else {
-              next[w.name] = { error: `HTTP ${res.status}` };
-            }
-          } catch (e) {
-            next[w.name] = { error: (e as Error).message };
-          }
-        }),
-      );
-      setValidations(next);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
 
   const filtered = useMemo(
     () => fuzzyFilter(workers, filter, (w) => w.name),

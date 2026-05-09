@@ -1915,6 +1915,45 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useValidations hook (v1.10.724)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-validations.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'pages', 'Validation.tsx');
+
+  it('exports the hook with no required args + ValidationResponse type', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useValidations\(\)/);
+    assert.match(src, /export interface ValidationResponse/);
+  });
+
+  it('GET /api/list then per-worker fan-out via Promise.all', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiGet<ListResponse>\('\/api\/list'\)/);
+    assert.match(src, /Promise\.all\(/);
+    assert.match(src, /\/api\/validation\?name=\$\{encodeURIComponent\(w\.name\)\}/);
+  });
+
+  it('per-worker failure surfaces as { error: HTTP <status> } not abort', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /next\[w\.name\] = \{ error: `HTTP \$\{res\.status\}` \}/);
+    assert.match(src, /next\[w\.name\] = \{ error: \(e as Error\)\.message \}/);
+  });
+
+  it('useEffect refresh on mount + exposes manual refresh', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /useEffect\(\(\)\s*=>\s*\{\s*refresh\(\);\s*\}/);
+  });
+
+  it('parent Validation.tsx wires the hook + drops the inline fan-out', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useValidations[\s\S]*?\}\s+from\s+'\.\.\/lib\/use-validations'/);
+    assert.match(src, /useValidations\(\)/);
+    assert.doesNotMatch(src, /Promise\.all\(/);
+    assert.doesNotMatch(src, /apiGet<ListResponse>/);
+  });
+});
+
 describe('extracted: useConfig hook (v1.10.723)', () => {
   const fs = require('fs');
   const path = require('path');

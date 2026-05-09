@@ -4,6 +4,41 @@
 
 (no entries — next release window)
 
+## [1.10.724] - 2026-05-10 — Extract useValidations hook
+
+**Web — `pages/Validation.tsx` shrunk by 47 lines (204 → 157).**
+The page's GET `/api/list` → fan-out
+`/api/validation?name=<worker>` per-worker fetch
+moves to a `useValidations()` hook returning
+`{ workers, validations, loading, error, refresh }`.
+
+The per-worker requests run in parallel via
+`Promise.all`; individual failures surface as
+`{ error: 'HTTP <status>' }` entries in the
+`validations` map rather than aborting the whole
+sweep. The `ValidationResponse` interface is now
+exported from the hook so the page's JSX renderer
+keeps typing the per-worker payload narrowing
+without a duplicate definition.
+
+The page keeps the `filter` slot inline (it's bound
+to the search Input and feeds the
+`fuzzyFilter(workers, …)` memo) plus the JSX
+render pipeline.
+
+Boundary suite #190 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the per-worker Promise.all fan-out,
+the `HTTP <status>` failure-as-data contract, the
+useEffect refresh-on-mount trigger, and verifies
+the parent wires the hook + drops the inline
+fan-out logic.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (911 / 190 suites — +5 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.723] - 2026-05-10 — Extract useConfig hook
 
 **Web — `pages/Config.tsx` shrunk by 47 lines (191 → 144).**
