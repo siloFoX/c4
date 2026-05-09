@@ -217,46 +217,52 @@ describe('SSE dedup contract (8.25)', () => {
 
 describe('ChatView source wiring (8.25)', () => {
   const src = fs.readFileSync(CHAT_VIEW, 'utf8');
+  // (v1.10.738) Backfill state machine moved to use-chat-backfill hook.
+  const HOOK_PATH = path.join(WEB_SRC, 'lib', 'use-chat-backfill.ts');
+  const hookSrc = fs.readFileSync(HOOK_PATH, 'utf8');
 
   it('fetches backfill on mount via useEffect + apiGet', () => {
-    assert.match(src, /useEffect\(\(\)\s*=>\s*\{/);
-    assert.match(src, /apiGet</);
-    assert.match(src, /loadBackfill/);
-    assert.match(src, /setBackfillLoading\(true\)/);
-    assert.match(src, /setBackfillLoading\(false\)/);
+    assert.match(hookSrc, /useEffect\(\(\)\s*=>\s*\{/);
+    assert.match(hookSrc, /apiGet</);
+    assert.match(hookSrc, /loadBackfill/);
+    assert.match(hookSrc, /setBackfillLoading\(true\)/);
+    assert.match(hookSrc, /setBackfillLoading\(false\)/);
   });
 
   it('hits /api/sessions with workerName first', () => {
-    assert.match(src, /\/api\/sessions\?workerName=\$\{encodeURIComponent\(workerName\)\}/);
+    assert.match(hookSrc, /\/api\/sessions\?workerName=\$\{encodeURIComponent\(workerName\)\}/);
   });
 
   it('falls back to /api/scrollback?name=...&lines=... when no session JSONL exists', () => {
-    assert.match(src, /\/api\/scrollback\?name=\$\{encodeURIComponent\(workerName\)\}&lines=\$\{scrollbackLinesRef\.current\}/);
-    assert.match(src, /SCROLLBACK_PAGE\s*=\s*2000/);
+    assert.match(hookSrc, /\/api\/scrollback\?name=\$\{encodeURIComponent\(workerName\)\}&lines=\$\{scrollbackLinesRef\.current\}/);
+    assert.match(hookSrc, /SCROLLBACK_PAGE\s*=\s*2000/);
   });
 
   it('dedupes SSE chunks whose text already landed in the backfill', () => {
-    assert.match(src, /seenTextsRef/);
+    // SSE dedup logic stays inline in ChatView's appendLive (reads the hook's
+    // seenTextsRef ref). The hook side surfaces the ref + .add() on backfill.
     assert.match(src, /seenTextsRef\.current\.has\(trimmed\)/);
-    assert.match(src, /seenTextsRef\.current\.add/);
+    assert.match(hookSrc, /seenTextsRef\.current\.add/);
   });
 
   it('tracks backfill turn ids for a secondary dedup surface', () => {
-    assert.match(src, /seenIdsRef/);
-    assert.match(src, /seenIdsRef\.current\.add/);
+    assert.match(hookSrc, /seenIdsRef/);
+    assert.match(hookSrc, /seenIdsRef\.current\.add/);
   });
 
   it('resets state on workerName change (worker-change effect cleanup)', () => {
     // The backfill effect depends on workerName and clears every
     // state slot at the top so a fast swap does not leak messages
     // from the previous worker.
-    assert.match(src, /setHistory\(\[\]\)/);
+    // (v1.10.738) Reset block moved into use-chat-backfill hook;
+    // setLiveMessages([]) lives in the parent's onResetExtras callback.
+    assert.match(hookSrc, /setHistory\(\[\]\)/);
     assert.match(src, /setLiveMessages\(\[\]\)/);
-    assert.match(src, /seenIdsRef\.current = new Set\(\)/);
-    assert.match(src, /seenTextsRef\.current = new Set\(\)/);
-    assert.match(src, /\}, \[workerName\]\);/);
-    assert.match(src, /let cancelled = false/);
-    assert.match(src, /cancelled = true/);
+    assert.match(hookSrc, /seenIdsRef\.current = new Set\(\)/);
+    assert.match(hookSrc, /seenTextsRef\.current = new Set\(\)/);
+    assert.match(hookSrc, /\}, \[workerName, onResetExtras\]\);/);
+    assert.match(hookSrc, /let cancelled = false/);
+    assert.match(hookSrc, /cancelled = true/);
   });
 
   it('renders a loading skeleton while backfill is in flight', () => {
@@ -285,10 +291,11 @@ describe('ChatView source wiring (8.25)', () => {
   });
 
   it('wires an infinite-scroll load-older handler for scrollback mode', () => {
-    assert.match(src, /loadOlder/);
-    assert.match(src, /hasOlder/);
-    assert.match(src, /SCROLLBACK_MAX\s*=\s*10000/);
-    // scroll-to-top threshold triggers the older fetch
+    // (v1.10.738) loadOlder + hasOlder + SCROLLBACK_MAX moved into hook.
+    assert.match(hookSrc, /loadOlder/);
+    assert.match(hookSrc, /hasOlder/);
+    assert.match(hookSrc, /SCROLLBACK_MAX\s*=\s*10000/);
+    // scroll-to-top threshold triggers the older fetch (still in parent)
     assert.match(src, /el\.scrollTop <= 8/);
     assert.match(src, /void loadOlder\(\)/);
     // (v1.10.604) Button fallback moved to ChatMessageLog sibling.

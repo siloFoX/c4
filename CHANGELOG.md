@@ -4,6 +4,78 @@
 
 (no entries — next release window)
 
+## [1.10.738] - 2026-05-10 — Extract useChatBackfill hook
+
+**Web — `components/ChatView.tsx` shrunk by 133 lines (339 → 206).**
+This is the largest single-file extraction in the
+perfection track to date. Three intertwined concerns
+move into one hook:
+
+1. **History + 6 backfill state slots** —
+   `history`, `backfillLoading`, `backfillCount`,
+   `backfillSource`, `backfillError`, `hasOlder`,
+   `loadingOlder`.
+2. **4 mutable refs** — `scrollbackLinesRef`,
+   `seenIdsRef`, `seenTextsRef`,
+   `backfillReadyRef`. The seen-text/seen-id
+   sets back the SSE-streamed-message dedup so
+   the live bubble pipeline doesn't double-render
+   text the backfill already showed.
+3. **The worker-change reset effect + the
+   loadBackfill loader + loadOlder handler** —
+   the 50-line inline async function (session
+   JSONL → scrollback fallback) and the 35-line
+   load-older handler (infinite scroll in
+   scrollback mode, capped at SCROLLBACK_MAX) both
+   move with the state.
+
+The cross-cutting concern — when `workerName`
+changes, the parent's `liveMessages` / `input` /
+`error` slots and the `autoScroll` / `flusher`
+hooks also need to reset — is handled by an
+`onResetExtras` callback the hook fires inside its
+useEffect. The parent supplies a callback that
+calls `setLiveMessages([])`, `setInput('')`,
+`setError(null)`, `setAutoScroll(true)`, and
+`resetFlusher()` in lockstep with the hook's
+internal reset.
+
+The parent's `appendLive` dedup path still reads
+`seenTextsRef.current.has(trimmed)` but now
+through the hook's exposed ref. The matching
+`rememberMessage(m)` writer is also exposed so the
+JSX dedup wiring stays in the parent (it has access
+to `setLiveMessages` which is parent-owned).
+
+`SessionByWorkerResponse` and `ScrollbackResponse`
+types + `SCROLLBACK_PAGE` / `SCROLLBACK_MAX`
+constants move with the fetch into
+`use-chat-backfill.ts`. ChatView drops the
+`apiGet` import and the `conversationToMessages` /
+`scrollbackToMessages` imports (both moved into the
+hook).
+
+Boundary suite #204 in
+`tests/component-extract-boundaries.test.js` pins
+the hook signature, the 6 backfill state slots +
+4 refs ownership, the worker-change reset effect's
+onResetExtras invocation, the session→scrollback
+fallback flow, the loadOlder bail-when-not-
+scrollback guard + SCROLLBACK_MAX cap, and the
+parent wiring drops the inline backfill block.
+
+Pre-existing tests in `chat-backfill.test.js`
+(7 assertions across "fetches backfill on mount" /
+"hits /api/sessions" / "falls back to /api/scrollback"
+/ "dedupes SSE chunks" / "tracks turn ids" / "resets
+state on workerName change" / "wires infinite-scroll
+load-older") all redirected from parent → hook file.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (974 / 204 suites — +6 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.737] - 2026-05-10 — Extract useControlPanelWorkerList hook
 
 **Web — `components/ControlPanel.tsx` shrunk by 17 lines (265 → 248).**

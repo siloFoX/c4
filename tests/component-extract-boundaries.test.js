@@ -1954,6 +1954,65 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useChatBackfill hook (v1.10.738)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-chat-backfill.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'ChatView.tsx');
+
+  it('exports the hook + accepts workerName/liveMessages/onResetExtras', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useChatBackfill/);
+    assert.match(src, /workerName:\s*string/);
+    assert.match(src, /liveMessages:\s*ChatMessage\[\]/);
+    assert.match(src, /onResetExtras\?:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('owns history + 6 backfill state slots + 4 mutable refs', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /useState<ChatMessage\[\]>/);
+    assert.match(src, /useState<'session' \| 'scrollback' \| null>/);
+    assert.match(src, /scrollbackLinesRef/);
+    assert.match(src, /seenIdsRef/);
+    assert.match(src, /seenTextsRef/);
+    assert.match(src, /backfillReadyRef/);
+  });
+
+  it('worker-change reset effect fires onResetExtras + resets all slots', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /setHistory\(\[\]\)/);
+    assert.match(src, /setBackfillLoading\(true\)/);
+    assert.match(src, /setBackfillSource\(null\)/);
+    assert.match(src, /setHasOlder\(false\)/);
+    assert.match(src, /onResetExtras\?\.\(\)/);
+  });
+
+  it('backfill loader: session JSONL then scrollback fallback', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\/api\/sessions\?workerName=/);
+    assert.match(src, /\/api\/scrollback\?name=[\s\S]*?lines=/);
+    assert.match(src, /setBackfillSource\('session'\)/);
+    assert.match(src, /setBackfillSource\('scrollback'\)/);
+  });
+
+  it('loadOlder bails when not in scrollback mode + caps at SCROLLBACK_MAX', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /backfillSource !== 'scrollback'/);
+    assert.match(src, /SCROLLBACK_MAX\s*=\s*10000/);
+    assert.match(src, /SCROLLBACK_PAGE\s*=\s*2000/);
+    assert.match(src, /Math\.min\(scrollbackLinesRef\.current \+ SCROLLBACK_PAGE,\s*SCROLLBACK_MAX\)/);
+  });
+
+  it('parent ChatView wires the hook + drops the inline backfill block', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useChatBackfill\s*\}\s+from\s+'\.\.\/lib\/use-chat-backfill'/);
+    assert.match(src, /useChatBackfill\(\{[\s\S]*?workerName,\s*liveMessages,\s*onResetExtras[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /async function loadBackfill/);
+    assert.doesNotMatch(src, /const loadOlder = useCallback/);
+    assert.doesNotMatch(src, /apiGet<SessionByWorkerResponse>/);
+  });
+});
+
 describe('extracted: useControlPanelWorkerList hook (v1.10.737)', () => {
   const fs = require('fs');
   const path = require('path');
