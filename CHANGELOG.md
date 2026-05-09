@@ -4,6 +4,49 @@
 
 (no entries — next release window)
 
+## [1.10.705] - 2026-05-09 — Extract useWorkerActions hook
+
+**Web — `WorkerDetail.tsx` shrunk by 62 lines (202 → 140).**
+The five action handlers (handleSend / handleEnter /
+sendKey / handleMerge / handleClose), the runAction
+wrapper that returns true-on-success (8.42 review fix),
+and the postJson helper move to a self-contained hook.
+The `actionMsg` + `busy` state cluster ships with them.
+The parent's `inputText` clear-on-success stays in
+WorkerDetail since handleSend's success branch decides
+whether to call `setInputText('')`.
+
+### Refactor
+- New `web/src/lib/use-worker-actions.ts` (~99 lines).
+  ActionResponse + postJson stay module-private.
+  Returns 9 fields. handleSend now takes the text
+  arg explicitly so the parent can route through its
+  own `inputText` slot.
+- `WorkerDetail.tsx`: removed inline ActionResponse
+  type, the postJson helper, two useState slots
+  (actionMsg / busy), the ~17-line runAction
+  wrapper, and the five handler arrows. Replaced
+  with one destructured hook call + a thin
+  handleSend wrapper that dispatches inputText and
+  clears it on success. Trimmed `apiFetch` +
+  `tFormat` imports.
+- Boundary suite #172 — 5 assertions covering hook
+  signature, runAction success/error contract, all
+  four POST URLs, merge confirm gate, parent
+  wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  831 / 831 across 171 → 172 suites.
+- `npm run check:full`: green.
+
+### Stats
+- 176 ships total since v1.10.529.
+- 173 components/libs extracted.
+- 82 custom hooks in `web/src/lib/`.
+- 831 boundary assertions across 172 suites.
+
 ## [1.10.704] - 2026-05-09 — Extract useMeetingStateAction hook
 
 **Web — `MeetingsStateActions.tsx` shrunk by 17 lines (112 → 95).**

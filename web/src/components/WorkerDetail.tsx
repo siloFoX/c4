@@ -1,11 +1,10 @@
 import { useRef, useState } from 'react';
-import { apiFetch } from '../lib/api';
 import {
   Card,
   CardContent,
 } from './ui';
 import { cn } from '../lib/cn';
-import { tFormat, useLocale } from '../lib/i18n';
+import { useLocale } from '../lib/i18n';
 import XtermView from './XtermView';
 import PinnedRulesEditor from './PinnedRulesEditor';
 import WorkerDetailHeader from './WorkerDetailHeader';
@@ -13,6 +12,7 @@ import WorkerDetailKeysRow from './WorkerDetailKeysRow';
 import WorkerDetailComposer from './WorkerDetailComposer';
 import { useScrollback } from '../lib/use-scrollback';
 import { usePersistedFontSize } from '../lib/use-persisted-font-size';
+import { useWorkerActions } from '../lib/use-worker-actions';
 import { stripAnsi } from '../lib/chat-helpers';
 
 interface WorkerDetailProps {
@@ -23,40 +23,19 @@ type Tab = 'screen' | 'scrollback';
 
 // (v1.10.636) ReadResponse moved into useScrollback hook.
 
-interface ActionResponse {
-  error?: string;
-  [key: string]: unknown;
-}
+// (v1.10.637) FONT_STORAGE_KEY + clamp + readNumberStorage moved
+// into usePersistedFontSize hook (sole consumer).
+// (v1.10.705) ActionResponse + postJson + runAction + 5 action
+// handlers moved to lib/use-worker-actions.
 
 const MIN_FONT = 9;
 const MAX_FONT = 24;
 const DEFAULT_FONT = 12;
 
-// (v1.10.637) FONT_STORAGE_KEY + clamp + readNumberStorage moved
-// into usePersistedFontSize hook (sole consumer).
-
-// 8.24 scrollback-tab ANSI filter. The xterm.js view on the Screen tab
-// processes raw PTY bytes; the Scrollback tab is a read-now text dump, so
-// we still strip ANSI for that view to keep historical grep-style reading
-// (v1.10.565) ANSI strip moved to lib/chat-helpers.ts (was a
-// duplicate of ChatView's). Imported below.
-
-async function postJson(url: string, body: unknown): Promise<ActionResponse> {
-  const res = await apiFetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return (await res.json()) as ActionResponse;
-}
-
 export default function WorkerDetail({ workerName }: WorkerDetailProps) {
   useLocale();
   const [tab, setTab] = useState<Tab>('screen');
-  const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [inputText, setInputText] = useState<string>('');
-  const [busy, setBusy] = useState(false);
 
   // (v1.10.637) Font-size persistence hook extracted to
   // ../lib/use-persisted-font-size.
@@ -69,65 +48,24 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
   const scrollbackRef = useRef<HTMLPreElement | null>(null);
 
   // (v1.10.636) Scrollback poll hook extracted to ../lib/use-scrollback.
+  // (v1.10.705) Worker actions hook handles fetchScrollback as a callback.
   const { scrollbackContent, error, fetchScrollback } = useScrollback({
     workerName,
     tab,
-    setActionMsg,
+    setActionMsg: (next) => setActionMsg(next),
   });
 
-
-  // (8.42 review) Returns true on success so the caller can decide
-  // whether to clear inputs only when the action actually went
-  // through. Previously every action that errored silently still
-  // ran its .then() side-effect — typing a message into a dead
-  // worker would wipe the textbox even though the send failed.
-  const runAction = async (label: string, fn: () => Promise<ActionResponse>): Promise<boolean> => {
-    setBusy(true);
-    setActionMsg(null);
-    try {
-      const res = await fn();
-      if (res.error) {
-        setActionMsg(tFormat('workerDetail.actionFailed', { label, error: res.error }));
-        return false;
-      }
-      setActionMsg(tFormat('workerDetail.actionOk', { label }));
-      fetchScrollback();
-      return true;
-    } catch (e) {
-      setActionMsg(tFormat('workerDetail.actionFailed', { label, error: (e as Error).message }));
-      return false;
-    } finally {
-      setBusy(false);
-    }
-  };
+  // (v1.10.705) Worker actions (send/key/merge/close) + runAction
+  // + busy/actionMsg slots moved to lib/use-worker-actions.
+  const {
+    actionMsg, setActionMsg, busy,
+    handleSend: handleSendInternal, handleEnter, sendKey,
+    handleMerge, handleClose,
+  } = useWorkerActions({ workerName, fetchScrollback });
 
   const handleSend = async () => {
-    const text = inputText.trim();
-    if (!text) return;
-    const ok = await runAction('send', () => postJson('/api/send', { name: workerName, input: text }));
+    const ok = await handleSendInternal(inputText);
     if (ok) setInputText('');
-  };
-
-  const handleEnter = () => {
-    runAction('key Enter', () => postJson('/api/key', { name: workerName, key: 'Enter' }));
-  };
-
-  const sendKey = (key: string) => {
-    runAction(`key ${key}`, () => postJson('/api/key', { name: workerName, key }));
-  };
-
-  const handleMerge = () => {
-    if (typeof window !== 'undefined') {
-      const ok = window.confirm(
-        `Merge worker "${workerName}" into main?\n\nThis runs the pre-merge checks and performs git merge --no-ff.`
-      );
-      if (!ok) return;
-    }
-    runAction('merge', () => postJson('/api/merge', { name: workerName }));
-  };
-
-  const handleClose = () => {
-    runAction('close', () => postJson('/api/close', { name: workerName }));
   };
 
   const lineHeight = Math.round(fontSize * 1.25 * 100) / 100;

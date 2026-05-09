@@ -1853,6 +1853,50 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useWorkerActions hook (v1.10.705)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-worker-actions.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'WorkerDetail.tsx');
+
+  it('exports the hook + accepts workerName + fetchScrollback', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useWorkerActions/);
+    assert.match(src, /workerName:\s*string/);
+    assert.match(src, /fetchScrollback:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('runAction returns true on success + false on error', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /Promise<boolean>/);
+    assert.match(src, /return false/);
+    assert.match(src, /return true/);
+    assert.match(src, /fetchScrollback\(\)/);
+  });
+
+  it('handlers POST to /api/{send,key,merge,close}', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /'\/api\/send'/);
+    assert.match(src, /'\/api\/key'/);
+    assert.match(src, /'\/api\/merge'/);
+    assert.match(src, /'\/api\/close'/);
+  });
+
+  it('handleMerge confirms via window.confirm', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.confirm/);
+  });
+
+  it('parent WorkerDetail wires the hook + drops the inline state + handlers', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useWorkerActions\s*\}\s+from\s+'\.\.\/lib\/use-worker-actions'/);
+    assert.match(src, /useWorkerActions\(\{[\s\S]*?workerName,\s*fetchScrollback[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /^interface ActionResponse/m);
+    assert.doesNotMatch(src, /^async function postJson/m);
+    assert.doesNotMatch(src, /const runAction = async/);
+  });
+});
+
 describe('extracted: useMeetingStateAction hook (v1.10.704)', () => {
   const fs = require('fs');
   const path = require('path');
