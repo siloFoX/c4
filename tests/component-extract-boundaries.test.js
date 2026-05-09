@@ -1109,18 +1109,24 @@ describe('extracted: MeetingsPublishControls (v1.10.553)', () => {
   });
 
   it('owns its own busy / msg / failed / git-toggle state', () => {
+    // (v1.10.703) State moved to lib/use-meeting-publish.
     const src = read('MeetingsPublishControls.tsx');
-    assert.match(src, /const \[busy, setBusy\]/);
-    assert.match(src, /const \[gitCommit, setGitCommit\]/);
-    assert.match(src, /const \[gitPush, setGitPush\]/);
+    assert.match(src, /useMeetingPublish/);
   });
 
   it('owns the publish POST handler with includeRetro + apply + git toggles', () => {
+    // (v1.10.703) Handler moved to hook.
     const src = read('MeetingsPublishControls.tsx');
     assert.match(src, /handlePublish/);
-    assert.match(src, /includeRetro:\s*true/);
-    assert.match(src, /apply:\s*true/);
-    assert.match(src, /\/api\/meetings\//);
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-publish.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /includeRetro:\s*true/);
+    assert.match(hookSrc, /apply:\s*true/);
+    assert.match(hookSrc, /\/api\/meetings\//);
   });
 
   it('gitPush check forces gitCommit on (and gitCommit off forces gitPush off)', () => {
@@ -1838,6 +1844,42 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useMeetingPublish hook (v1.10.703)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-publish.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'MeetingsPublishControls.tsx');
+
+  it('exports the hook + accepts meetingId', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useMeetingPublish/);
+    assert.match(src, /meetingId:\s*string/);
+  });
+
+  it('POSTs /api/meetings/:id/publish with includeRetro+apply+git toggles', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiPost<PublishResponse>\([\s\S]*?\/publish`/);
+    assert.match(src, /includeRetro:\s*true/);
+    assert.match(src, /apply:\s*true/);
+    assert.match(src, /gitCommit,\s*\n\s*gitPush/);
+  });
+
+  it('formats banner with file count + git SHA + push suffix; auto-clears after 4s', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /res\.git\.sha\s*\?\s*res\.git\.sha\.slice\(0,\s*7\)/);
+    assert.match(src, /window\.setTimeout\(\(\) => setMsg\(null\),\s*4000\)/);
+  });
+
+  it('parent MeetingsPublishControls wires the hook + drops the inline state + handler', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useMeetingPublish\s*\}\s+from\s+'\.\.\/lib\/use-meeting-publish'/);
+    assert.match(src, /useMeetingPublish\(\{\s*meetingId\s*\}\)/);
+    assert.doesNotMatch(src, /^interface PublishResponse/m);
+    assert.doesNotMatch(src, /const \[busy, setBusy\]/);
+    assert.doesNotMatch(src, /const handlePublish = useCallback/);
   });
 });
 

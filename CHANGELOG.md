@@ -4,6 +4,43 @@
 
 (no entries — next release window)
 
+## [1.10.703] - 2026-05-09 — Extract useMeetingPublish hook
+
+**Web — `MeetingsPublishControls.tsx` shrunk by 37 lines (113 → 76).**
+The wiki publish + optional git-commit/push flow moves
+to a self-contained hook. Banner formats `written.length`
++ trimmed git SHA + push-suffix on success and
+auto-clears after 4s. The two opt-in toggles
+(gitCommit / gitPush) ship with the busy/msg/failed
+state so the panel JSX stays bound to a single cluster.
+
+### Refactor
+- New `web/src/lib/use-meeting-publish.ts` (~80 lines).
+  PublishResponse type stays module-private. Returns
+  8 fields (busy/msg/failed + 2 toggles + 2 setters +
+  handler).
+- `MeetingsPublishControls.tsx`: removed 5 useState
+  slots + the ~32-line publish handler. Trimmed
+  `useCallback` + `useState` + `apiPost` + `tFormat`
+  imports.
+- Boundary suite #170 — 4 assertions covering hook +
+  POST URL + body shape, banner format + 4s
+  auto-clear, parent wiring.
+- MeetingsPublishControls suite (v1.10.553) updated:
+  2 assertions redirected to read the hook file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  822 / 822 across 169 → 170 suites.
+- `npm run check:full`: green.
+
+### Stats
+- 174 ships total since v1.10.529.
+- 171 components/libs extracted.
+- 80 custom hooks in `web/src/lib/`.
+- 822 boundary assertions across 170 suites.
+
 ## [1.10.702] - 2026-05-09 — Extract useMeetingFork hook
 
 **Web — `MeetingsForkForm.tsx` shrunk by 43 lines (155 → 112).**

@@ -1,21 +1,16 @@
-import { useCallback, useState } from 'react';
 import { BookOpen } from 'lucide-react';
-import { apiPost } from '../lib/api';
 import { Button } from './ui';
 import { cn } from '../lib/cn';
-import { t, tFormat, useLocale } from '../lib/i18n';
+import { t, useLocale } from '../lib/i18n';
+import { useMeetingPublish } from '../lib/use-meeting-publish';
 
 // (v1.10.553) Extracted from MeetingsView. Phase-3.4 publish
 // controls — Publish button + git automation checkboxes
 // (gitCommit / gitPush) + result message. Owns its own busy /
 // msg / failed / git-toggle state.
 
-interface PublishResponse {
-  ok: boolean;
-  written: string[];
-  wikiRoot: string;
-  git?: { committed: boolean; sha?: string; pushed?: boolean };
-}
+// (v1.10.703) PublishResponse type + state + handler
+// moved to lib/use-meeting-publish.
 
 interface Props {
   meetingId: string;
@@ -24,44 +19,12 @@ interface Props {
 export default function MeetingsPublishControls({ meetingId }: Props) {
   useLocale();
 
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
-  const [gitCommit, setGitCommit] = useState(false);
-  const [gitPush, setGitPush] = useState(false);
-
-  const handlePublish = useCallback(async () => {
-    setBusy(true);
-    setMsg(null);
-    setFailed(false);
-    try {
-      const res = await apiPost<PublishResponse>(
-        `/api/meetings/${encodeURIComponent(meetingId)}/publish`,
-        {
-          includeRetro: true,
-          apply: true,
-          gitCommit,
-          gitPush,
-        },
-      );
-      const n = (res && Array.isArray(res.written)) ? res.written.length : 0;
-      let m = tFormat('meetings.publish.success', { count: n, root: res && res.wikiRoot });
-      if (res && res.git && res.git.committed) {
-        const sha = res.git.sha ? res.git.sha.slice(0, 7) : t('meetings.publish.committedFallback');
-        m += tFormat('meetings.publish.gitCommitted', { sha });
-        if (res.git.pushed) m += t('meetings.publish.gitPushed');
-      }
-      setMsg(m);
-      window.setTimeout(() => setMsg(null), 4000);
-    } catch (e) {
-      setMsg(tFormat('meetings.publish.failed', {
-        error: (e as Error).message || t('common.unknown'),
-      }));
-      setFailed(true);
-    } finally {
-      setBusy(false);
-    }
-  }, [gitCommit, gitPush, meetingId]);
+  const {
+    busy, msg, failed,
+    gitCommit, setGitCommit,
+    gitPush, setGitPush,
+    handlePublish,
+  } = useMeetingPublish({ meetingId });
 
   return (
     <>
