@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.695] - 2026-05-09 — Extract useTokenUsageBreakdowns hook
+
+**Web — `pages/TokenUsage.tsx` shrunk by 21 lines (250 → 229).**
+The two memoized breakdowns (per-worker /
+per-day) plus the max-value reducers used to scale the
+bar charts move to a self-contained hook. The
+`coerceTotal` number-shape coercion gets hoisted with
+them so the perTask row's fallback (where `e.total`
+may be undefined) can re-import it from the same
+source.
+
+### Refactor
+- New `web/src/lib/use-token-usage-breakdowns.ts`
+  (~62 lines). Exports `useTokenUsageBreakdowns` +
+  `coerceTotal` + `PerWorkerEntry` + `PerDayEntry`
+  types. Imports `TokenUsagePayload` from
+  `./use-token-usage` (single source of truth).
+- `pages/TokenUsage.tsx`: removed the page-private
+  `coerceTotal` helper, both breakdown useMemos, and
+  the two `Math.max` reducers. Replaced with one
+  destructured hook call. The JSX still imports
+  `coerceTotal` for the perTask row's fallback.
+- Boundary suite #162 — 4 assertions covering hook +
+  type export shape, coerceTotal three-branch logic,
+  perWorker sort + perDay filter, parent wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  789 / 789 across 161 → 162 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 166 ships total since v1.10.529.
+- 164 components/libs extracted.
+- 74 custom hooks in `web/src/lib/`.
+- 789 boundary assertions across 162 suites.
+
 ## [1.10.694] - 2026-05-09 — Extract useToast hook (Batch + Plan adopt)
 
 **Web — `pages/Batch.tsx` + `pages/Plan.tsx` consolidated.**

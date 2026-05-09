@@ -5,6 +5,7 @@ import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Badge, Button, Panel, Tooltip } from '../components/ui';
 import { useTokenUsage } from '../lib/use-token-usage';
+import { useTokenUsageBreakdowns, coerceTotal } from '../lib/use-token-usage-breakdowns';
 import { cn } from '../lib/cn';
 import { dateRange, formatNumber } from '../lib/format';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -23,15 +24,8 @@ import { t, tFormat, useLocale } from '../lib/i18n';
 
 const DAY_OPTIONS = [1, 7, 30, 90];
 
-function coerceTotal(v: unknown): number {
-  if (typeof v === 'number') return v;
-  if (v && typeof v === 'object') {
-    const obj = v as { input?: number; output?: number; total?: number };
-    if (typeof obj.total === 'number') return obj.total;
-    return (obj.input || 0) + (obj.output || 0);
-  }
-  return 0;
-}
+// (v1.10.695) coerceTotal + perWorker / perDay memos
+// moved to lib/use-token-usage-breakdowns.
 
 export default function TokenUsage() {
   useLocale();
@@ -42,27 +36,12 @@ export default function TokenUsage() {
 
   const range = useMemo(() => dateRange(days), [days]);
 
-  const perWorker = useMemo(() => {
-    if (!data?.perWorker) return [];
-    const entries = Object.entries(data.perWorker).map(([name, v]) => ({
-      name,
-      total: coerceTotal(v),
-    }));
-    entries.sort((a, b) => b.total - a.total);
-    return entries;
-  }, [data]);
-
-  const perDay = useMemo(() => {
-    if (!data?.perDay) return [];
-    const entries = Object.entries(data.perDay)
-      .filter(([date]) => date >= range.start && date <= range.end)
-      .map(([date, total]) => ({ date, total: Number(total) || 0 }));
-    entries.sort((a, b) => (a.date > b.date ? 1 : -1));
-    return entries;
-  }, [data, range.start, range.end]);
-
-  const workerMax = perWorker.reduce((acc, e) => Math.max(acc, e.total), 0);
-  const dayMax = perDay.reduce((acc, e) => Math.max(acc, e.total), 0);
+  // (v1.10.695) Per-worker / per-day breakdowns moved to hook.
+  const { perWorker, perDay, workerMax, dayMax } = useTokenUsageBreakdowns({
+    data,
+    rangeStart: range.start,
+    rangeEnd: range.end,
+  });
 
   return (
     <PageFrame

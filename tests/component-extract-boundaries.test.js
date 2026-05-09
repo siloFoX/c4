@@ -1791,6 +1791,43 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useTokenUsageBreakdowns hook (v1.10.695)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-token-usage-breakdowns.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'pages', 'TokenUsage.tsx');
+
+  it('exports the hook + coerceTotal + entry types', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useTokenUsageBreakdowns/);
+    assert.match(src, /export function coerceTotal/);
+    assert.match(src, /export interface PerWorkerEntry/);
+    assert.match(src, /export interface PerDayEntry/);
+  });
+
+  it('coerceTotal handles number/object/null variants', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /typeof v === 'number'\)\s*return v/);
+    assert.match(src, /typeof obj\.total === 'number'\)\s*return obj\.total/);
+    assert.match(src, /\(obj\.input\s*\|\|\s*0\)\s*\+\s*\(obj\.output\s*\|\|\s*0\)/);
+  });
+
+  it('perWorker sorts descending, perDay filters by date range', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /entries\.sort\(\(a, b\) => b\.total - a\.total\)/);
+    assert.match(src, /date >= rangeStart && date <= rangeEnd/);
+  });
+
+  it('parent TokenUsage adopts the hook + drops the inline coerceTotal + memos', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useTokenUsageBreakdowns,\s*coerceTotal\s*\}\s+from\s+'\.\.\/lib\/use-token-usage-breakdowns'/);
+    assert.match(src, /useTokenUsageBreakdowns\(\{[\s\S]*?data[\s\S]*?rangeStart:\s*range\.start[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /^function coerceTotal/m);
+    assert.doesNotMatch(src, /const perWorker = useMemo/);
+    assert.doesNotMatch(src, /const perDay = useMemo/);
+  });
+});
+
 describe('extracted: useToast hook (v1.10.694)', () => {
   const fs = require('fs');
   const path = require('path');
