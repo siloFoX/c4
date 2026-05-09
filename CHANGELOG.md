@@ -4,6 +4,44 @@
 
 (no entries — next release window)
 
+## [1.10.678] - 2026-05-09 — Extract useSpecialistFilter hook
+
+**Web — `SpecialistsView.tsx` shrunk by 15 lines (270 → 255).**
+The three filter slots (text query / tier / veto-only)
+plus the (Phase 8.4) AND-token search across id /
+displayName / domain / triggers.keywords / systemPrompt
+move to a self-contained hook. Same client-side
+composition the backend's `searchByText()` covers, but
+kept here because the registry is bounded.
+
+### Refactor
+- New `web/src/lib/use-specialist-filter.ts` (~54 lines).
+  Imports `Specialist` type from
+  `../components/SpecialistsView` (still page-scoped).
+  Returns `{ filter, setFilter, tierFilter,
+  setTierFilter, vetoOnly, setVetoOnly, filtered }`.
+- `SpecialistsView.tsx`: removed three useState slots
+  and the ~21-line `filtered` useMemo. Replaced with
+  one destructured `useSpecialistFilter({ specialists })`
+  call.
+- Boundary suite #145 — 5 assertions covering hook +
+  specialists prop, AND-token haystack composition,
+  vetoOnly + tier short-circuits, return tuple shape,
+  parent wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  720 / 720 across 144 → 145 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 149 ships total since v1.10.529.
+- 147 components/libs extracted.
+- 57 custom hooks in `web/src/lib/`.
+- 720 boundary assertions across 145 suites.
+
 ## [1.10.677] - 2026-05-09 — Extract useWorkflowRun hook
 
 **Web — `WorkflowEditor.tsx` shrunk by 33 lines (226 → 193).**

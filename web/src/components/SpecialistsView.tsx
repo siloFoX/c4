@@ -12,6 +12,7 @@ import SpecialistsListCardHeader from './SpecialistsListCardHeader';
 import { useSpecialistsList } from '../lib/use-specialists-list';
 import { useSpecialistActions } from '../lib/use-specialist-actions';
 import { useSpecialistEnrichment } from '../lib/use-specialist-enrichment';
+import { useSpecialistFilter } from '../lib/use-specialist-filter';
 import SpecialistsDetailHeader from './SpecialistsDetailHeader';
 import SpecialistsMetadataPanel from './SpecialistsMetadataPanel';
 import SpecialistsScoreHistory from './SpecialistsScoreHistory';
@@ -93,9 +94,6 @@ export default function SpecialistsView() {
   // (v1.10.628) /api/specialists list + flagged-id set hook
   // extracted to ../lib/use-specialists-list.
   const { data, error, loading, flaggedIds, refresh } = useSpecialistsList();
-  const [filter, setFilter] = useState('');
-  const [tierFilter, setTierFilter] = useState<string>('any');
-  const [vetoOnly, setVetoOnly] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // (v1.10.546) Add / Propose panel extracted to
@@ -127,27 +125,14 @@ export default function SpecialistsView() {
   // (v1.10.559) Tag editor extracted to ./SpecialistsTagEditor.tsx.
 
   const specialists = data?.specialists || [];
-  const filtered = useMemo(() => {
-    // (Phase 8.4) Whitespace-separated tokens AND-compose. Search
-    // hits id / displayName / domain / triggers.keywords AND the
-    // systemPrompt body — the same axes the backend's
-    // searchByText() covers, but client-side because the registry
-    // is bounded.
-    const tokens = filter.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    return specialists.filter((s) => {
-      if (vetoOnly && !s.vetoPower) return false;
-      if (tierFilter !== 'any' && s.tier !== tierFilter) return false;
-      if (tokens.length === 0) return true;
-      const haystack = [
-        s.id,
-        s.displayName,
-        s.systemPrompt || '',
-        ...(Array.isArray(s.domain) ? s.domain : []),
-        ...(s.triggers && s.triggers.keywords ? s.triggers.keywords : []),
-      ].join(' ').toLowerCase();
-      return tokens.every((t) => haystack.includes(t));
-    });
-  }, [specialists, filter, tierFilter, vetoOnly]);
+
+  // (v1.10.678) Filter slots + memo pipeline moved to hook.
+  const {
+    filter, setFilter,
+    tierFilter, setTierFilter,
+    vetoOnly, setVetoOnly,
+    filtered,
+  } = useSpecialistFilter({ specialists });
 
   const selected = useMemo(
     () => specialists.find((s) => s.id === selectedId) || null,

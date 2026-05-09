@@ -1778,6 +1778,50 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useSpecialistFilter hook (v1.10.678)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-specialist-filter.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'SpecialistsView.tsx');
+
+  it('exports the hook + accepts specialists list', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useSpecialistFilter/);
+    assert.match(src, /specialists:\s*Specialist\[\]/);
+  });
+
+  it('AND-composes whitespace-separated tokens against the searchable haystack', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /tokens\.every\(\(t\) => haystack\.includes\(t\)\)/);
+    assert.match(src, /s\.id,\s*s\.displayName,\s*s\.systemPrompt/);
+    assert.match(src, /\.\.\.\(Array\.isArray\(s\.domain\)/);
+    assert.match(src, /triggers\.keywords/);
+  });
+
+  it('honors vetoOnly + tierFilter short-circuits', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(vetoOnly && !s\.vetoPower\) return false/);
+    assert.match(src, /if \(tierFilter !== 'any' && s\.tier !== tierFilter\) return false/);
+  });
+
+  it('returns the three setters + filtered list', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /filter:\s*string/);
+    assert.match(src, /tierFilter:\s*string/);
+    assert.match(src, /vetoOnly:\s*boolean/);
+    assert.match(src, /filtered:\s*Specialist\[\]/);
+  });
+
+  it('parent SpecialistsView wires the hook + drops the inline state + memo', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useSpecialistFilter\s*\}\s+from\s+'\.\.\/lib\/use-specialist-filter'/);
+    assert.match(src, /useSpecialistFilter\(\{\s*specialists\s*\}\)/);
+    assert.doesNotMatch(src, /const \[filter, setFilter\]/);
+    assert.doesNotMatch(src, /const \[tierFilter, setTierFilter\]/);
+    assert.doesNotMatch(src, /const \[vetoOnly, setVetoOnly\]/);
+  });
+});
+
 describe('extracted: useWorkflowRun hook (v1.10.677)', () => {
   const fs = require('fs');
   const path = require('path');
