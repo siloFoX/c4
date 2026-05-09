@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.716] - 2026-05-10 — Extract useMeetingRun hook
+
+**Web — `components/MeetingsRunControls.tsx` shrunk by 22 lines (72 → 50).**
+The brain selector + busy / error state slots and the
+`/api/meetings/:id/run` POST handler move to a
+`useMeetingRun({ meetingId })` hook that returns
+`{ busy, error, brain, setBrain, handleRun }`.
+
+This mirrors the pattern of the sibling
+`useMeetingPublish` (Phase 3.4 publish controls) so
+the Meetings detail action bar's Phase 3.x state
+machines all live in matched hooks now.
+
+The component drops `useCallback` / `useState` / `apiPost`
+imports (their last consumer moved into the hook) and
+leaves only the JSX + the hook destructure.
+
+Boundary suite #183 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the `/run` POST shape with
+`autoFinalize: true`, the busy / error try/finally
+contract, and verifies the parent wires the hook +
+no longer carries the inline state. Pre-existing
+boundary suite for `MeetingsRunControls (v1.10.556)`
+redirected to read the hook file for both the
+state-machine + POST assertions.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (874 / 182 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.715] - 2026-05-09 — Extract useXtermResizeFit hook
 
 **Web — `components/XtermView.tsx` shrunk by 34 lines (247 → 213).**

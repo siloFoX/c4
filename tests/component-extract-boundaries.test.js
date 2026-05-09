@@ -1007,14 +1007,26 @@ describe('extracted: MeetingsRunControls (v1.10.556)', () => {
   });
 
   it('owns brain / busy / error state internally', () => {
-    const src = read('MeetingsRunControls.tsx');
-    assert.match(src, /useState<'mock' \| 'claude'>/);
+    // (v1.10.716) State machine moved to use-meeting-run hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-run.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /useState<'mock' \| 'claude'>/);
   });
 
   it('owns the /run POST with autoFinalize: true', () => {
-    const src = read('MeetingsRunControls.tsx');
-    assert.match(src, /\/run/);
-    assert.match(src, /autoFinalize:\s*true/);
+    // (v1.10.716) /run POST moved to use-meeting-run hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-run.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /\/run/);
+    assert.match(hookSrc, /autoFinalize:\s*true/);
   });
 
   it('is imported and rendered by MeetingsDetailPendingActions (v1.10.595)', () => {
@@ -1862,6 +1874,44 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useMeetingRun hook (v1.10.716)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-run.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'MeetingsRunControls.tsx');
+
+  it('exports the hook + accepts meetingId', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useMeetingRun/);
+    assert.match(src, /meetingId:\s*string/);
+  });
+
+  it('POSTs /api/meetings/:id/run with brain + autoFinalize:true', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiPost\(/);
+    assert.match(src, /\/api\/meetings\/\$\{encodeURIComponent\(meetingId\)\}\/run/);
+    assert.match(src, /brain/);
+    assert.match(src, /autoFinalize:\s*true/);
+  });
+
+  it('busy + error slots flow through try/finally', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /setBusy\(true\)/);
+    assert.match(src, /setError\(null\)/);
+    assert.match(src, /finally\s*\{[\s\S]*?setBusy\(false\)/);
+    assert.match(src, /common\.failedToStartMeeting/);
+  });
+
+  it('parent MeetingsRunControls wires the hook + drops the inline state', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useMeetingRun\s*\}\s+from\s+'\.\.\/lib\/use-meeting-run'/);
+    assert.match(src, /useMeetingRun\(\{[\s\S]*?meetingId[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /const \[busy, setBusy\]/);
+    assert.doesNotMatch(src, /const \[brain, setBrain\]/);
+    assert.doesNotMatch(src, /apiPost\(/);
   });
 });
 
