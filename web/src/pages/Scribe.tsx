@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FileText, Play, RefreshCw, Square } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
-import Toast, { type ToastType } from '../components/Toast';
+import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Panel, Tooltip } from '../components/ui';
 import { apiFetch, apiPost } from '../lib/api';
 import { formatRelativeTime } from '../lib/format';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useToast } from '../lib/use-toast';
 
 // 8.20B Scribe feature page. Wraps POST /scribe/start|stop|scan, GET
 // /scribe/status, and GET /scribe-context. No business logic -- just a
@@ -31,7 +32,7 @@ interface ContextResponse {
   error?: string;
 }
 
-interface ToastState { id: number; message: string; type: ToastType }
+// (v1.10.722) Toast slot adopted from lib/use-toast (shared infra).
 
 export default function Scribe() {
   useLocale();
@@ -40,11 +41,7 @@ export default function Scribe() {
   const [loading, setLoading] = useState<boolean>(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<ToastState | null>(null);
-
-  const showToast = useCallback((message: string, type: ToastType) => {
-    setToast({ id: Date.now(), message, type });
-  }, []);
+  const { toast, showToast, dismissToast } = useToast();
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -188,7 +185,7 @@ export default function Scribe() {
             key={toast.id}
             message={toast.message}
             type={toast.type}
-            onDismiss={() => setToast(null)}
+            onDismiss={dismissToast}
           />
         )}
       </div>

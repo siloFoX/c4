@@ -4,6 +4,51 @@
 
 (no entries — next release window)
 
+## [1.10.722] - 2026-05-10 — Adopt useToast across 6 remaining pages
+
+**Web — sharing-win sweep, ~38 lines saved across 6 callers.**
+The `useToast()` hook (extracted at v1.10.694, then
+already adopted by Plan / Batch / ControlPanel /
+WorkerActions) lands in the last six page-level
+holdouts that still maintained their own inline
+`interface ToastState`, `[toast, setToast]` slot,
+and inline `showToast` callback:
+
+- `pages/Morning.tsx` (139 → 136, -3)
+- `pages/Scribe.tsx` (213 → 206, -7)
+- `pages/Auto.tsx` (162 → 155, -7)
+- `pages/Profiles.tsx` (206 → 199, -7)
+- `pages/Cleanup.tsx` (201 → 194, -7)
+- `pages/Templates.tsx` (157 → 150, -7)
+
+Each page swaps the inline ToastState declaration +
+`useState<ToastState | null>(null)` slot + the
+manual `setToast({ id: Date.now(), … })` showToast
+callback for `const { toast, showToast,
+dismissToast } = useToast();`. The Toast import
+drops the `{ type ToastType }` named import (no
+local consumer left after the inline ToastState
+type goes away). The JSX `onDismiss={() =>
+setToast(null)}` becomes `onDismiss={dismissToast}`.
+
+Behavioural diff: zero. The hook implements the
+exact same `id: Date.now()` keying, `setToast(null)`
+dismiss, and React-mount semantics that each page
+had inlined.
+
+Boundary suite (parametric, 6 assertions) in
+`tests/component-extract-boundaries.test.js` — for
+every page in the sweep, asserts the useToast import
+is present, that there is no inline ToastState
+interface, no `[toast, setToast]` slot, and no
+remaining `setToast(null)` call. Future pages added
+that copy-paste the old pattern fail this gate.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (901 / 188 suites — +6 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.721] - 2026-05-10 — Extract useCopyPulse hook (shared infra)
 
 **Web — `components/SessionsAttachedRowActions.tsx` shrunk by 10 lines (227 → 217).**

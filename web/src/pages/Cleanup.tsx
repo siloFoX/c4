@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Eye, RefreshCw, Trash2 } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
-import Toast, { type ToastType } from '../components/Toast';
+import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Panel, Tooltip } from '../components/ui';
 import { apiPost } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useToast } from '../lib/use-toast';
 
 // 8.20B Cleanup. Calls POST /cleanup with dryRun=true to list orphan
 // worktrees / branches / directories, and POST /cleanup with
@@ -21,7 +22,7 @@ interface CleanupResponse {
   error?: string;
 }
 
-interface ToastState { id: number; message: string; type: ToastType }
+// (v1.10.722) Toast slot adopted from lib/use-toast (shared infra).
 
 export default function Cleanup() {
   useLocale();
@@ -29,12 +30,8 @@ export default function Cleanup() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<boolean>(false);
-  const [toast, setToast] = useState<ToastState | null>(null);
+  const { toast, showToast, dismissToast } = useToast();
   const [confirmOpen, setConfirmOpen] = useState<boolean>(false);
-
-  const showToast = useCallback((message: string, type: ToastType) => {
-    setToast({ id: Date.now(), message, type });
-  }, []);
 
   const preview = useCallback(async () => {
     setLoading(true);
@@ -159,7 +156,7 @@ export default function Cleanup() {
             key={toast.id}
             message={toast.message}
             type={toast.type}
-            onDismiss={() => setToast(null)}
+            onDismiss={dismissToast}
           />
         )}
       </div>

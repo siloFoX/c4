@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ListChecks, RefreshCw } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
-import Toast, { type ToastType } from '../components/Toast';
+import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Badge, Button, Input, Panel, Tooltip } from '../components/ui';
 import { apiGet } from '../lib/api';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
 import { t, useLocale } from '../lib/i18n';
+import { useToast } from '../lib/use-toast';
 
 // 8.20B Profiles. Read-only list from GET /api/profiles. Add/edit/remove
 // endpoints are tracked as a follow-up TODO; the UI toasts "Not
@@ -28,7 +29,7 @@ interface ProfilesResponse {
   error?: string;
 }
 
-interface ToastState { id: number; message: string; type: ToastType }
+// (v1.10.722) Toast slot adopted from lib/use-toast (shared infra).
 
 export default function Profiles() {
   useLocale();
@@ -37,11 +38,7 @@ export default function Profiles() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [toast, setToast] = useState<ToastState | null>(null);
-
-  const showToast = useCallback((message: string, type: ToastType) => {
-    setToast({ id: Date.now(), message, type });
-  }, []);
+  const { toast, showToast, dismissToast } = useToast();
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -175,7 +172,7 @@ export default function Profiles() {
             key={toast.id}
             message={toast.message}
             type={toast.type}
-            onDismiss={() => setToast(null)}
+            onDismiss={dismissToast}
           />
         )}
       </div>

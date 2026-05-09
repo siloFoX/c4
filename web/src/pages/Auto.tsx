@@ -1,12 +1,13 @@
 import { useCallback, useState } from 'react';
 import { RefreshCw, Rocket } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
-import Toast, { type ToastType } from '../components/Toast';
+import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Input, Label, Panel, Tooltip } from '../components/ui';
 import { apiPost } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useToast } from '../lib/use-toast';
 
 // 8.20B Auto mode. POSTs to /api/auto which spawns an autonomous
 // manager + scribe for the given task. Mirrors `c4 auto`.
@@ -19,7 +20,7 @@ interface AutoResponse {
   [key: string]: unknown;
 }
 
-interface ToastState { id: number; message: string; type: ToastType }
+// (v1.10.722) Toast slot adopted from lib/use-toast (shared infra).
 
 export default function Auto() {
   useLocale();
@@ -28,11 +29,7 @@ export default function Auto() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AutoResponse | null>(null);
-  const [toast, setToast] = useState<ToastState | null>(null);
-
-  const showToast = useCallback((message: string, type: ToastType) => {
-    setToast({ id: Date.now(), message, type });
-  }, []);
+  const { toast, showToast, dismissToast } = useToast();
 
   const dispatch = useCallback(async () => {
     if (!task.trim()) {
@@ -149,7 +146,7 @@ export default function Auto() {
             key={toast.id}
             message={toast.message}
             type={toast.type}
-            onDismiss={() => setToast(null)}
+            onDismiss={dismissToast}
           />
         )}
       </div>

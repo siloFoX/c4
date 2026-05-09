@@ -1915,6 +1915,26 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('useToast adoption sweep (v1.10.722)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const PAGES = ['Morning', 'Scribe', 'Auto', 'Profiles', 'Cleanup', 'Templates'];
+
+  for (const name of PAGES) {
+    it(`${name}.tsx uses lib/use-toast (no inline ToastState/setToast)`, () => {
+      const src = fs.readFileSync(
+        path.join(__dirname, '..', 'web', 'src', 'pages', `${name}.tsx`),
+        'utf8',
+      );
+      assert.match(src, /import\s+\{\s*useToast\s*\}\s+from\s+'\.\.\/lib\/use-toast'/);
+      assert.match(src, /useToast\(\)/);
+      assert.doesNotMatch(src, /interface ToastState/);
+      assert.doesNotMatch(src, /const \[toast,\s*setToast\]/);
+      assert.doesNotMatch(src, /setToast\(null\)/);
+    });
+  }
+});
+
 describe('extracted: useCopyPulse hook (v1.10.721)', () => {
   const fs = require('fs');
   const path = require('path');

@@ -1,13 +1,14 @@
 import { useCallback, useState } from 'react';
 import { Clipboard, RefreshCw, Sunrise } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel } from './PageFrame';
-import Toast, { type ToastType } from '../components/Toast';
+import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Panel, Tooltip } from '../components/ui';
 import { apiPost } from '../lib/api';
 import { renderMarkdown } from '../lib/markdown';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useToast } from '../lib/use-toast';
 
 // 8.20B Morning report. POST /api/morning triggers generation; the
 // response includes the rendered markdown. A "Copy" button grabs the
@@ -21,18 +22,14 @@ interface MorningResponse {
   [key: string]: unknown;
 }
 
-interface ToastState { id: number; message: string; type: ToastType }
+// (v1.10.722) Toast slot adopted from lib/use-toast (shared infra).
 
 export default function Morning() {
   useLocale();
   const [report, setReport] = useState<MorningResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<ToastState | null>(null);
-
-  const showToast = useCallback((message: string, type: ToastType) => {
-    setToast({ id: Date.now(), message, type });
-  }, []);
+  const { toast, showToast, dismissToast } = useToast();
 
   const generate = useCallback(async () => {
     setLoading(true);
@@ -130,7 +127,7 @@ export default function Morning() {
             key={toast.id}
             message={toast.message}
             type={toast.type}
-            onDismiss={() => setToast(null)}
+            onDismiss={dismissToast}
           />
         )}
       </div>
