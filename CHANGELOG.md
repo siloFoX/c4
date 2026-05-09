@@ -4,6 +4,49 @@
 
 (no entries — next release window)
 
+## [1.10.677] - 2026-05-09 — Extract useWorkflowRun hook
+
+**Web — `WorkflowEditor.tsx` shrunk by 33 lines (226 → 193).**
+The inputs JSON drawer (open/json/error) plus the
+run-now POST handler — JSON parse + validate, POST
+/api/workflows/:id/run, refetch /runs to update the
+panel — moves to a self-contained hook. The auto-reset-
+on-selectedId-change effect (kept verbatim) keeps a
+half-typed JSON from workflow A from leaking to
+workflow B.
+
+### Refactor
+- New `web/src/lib/use-workflow-run.ts` (~71 lines).
+  Imports `WorkflowRun` + `WorkflowRunsResponse` from
+  `../components/WorkflowEditor` (still page-scoped).
+  Returns `{ inputsOpen, setInputsOpen, inputsJson,
+  setInputsJson, inputsError, handleRun }`. Setters
+  typed `React.Dispatch<SetStateAction<...>>` so the
+  parent's `(v) => !v` updater pattern still works.
+- `WorkflowEditor.tsx`: removed three useState slots
+  (inputsOpen / inputsJson / inputsError), the
+  reset-on-selectedId useEffect, and the ~27-line
+  `handleRun` async function. Replaced with one
+  destructured hook call. Trimmed `useEffect` +
+  `apiGet` + `apiPost` imports.
+- Boundary suite #144 — 5 assertions covering hook +
+  4-prop signature, auto-reset effect, JSON
+  validation + POST URL, refetch-after-success
+  contract, parent wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  715 / 715 across 143 → 144 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 148 ships total since v1.10.529.
+- 146 components/libs extracted.
+- 56 custom hooks in `web/src/lib/`.
+- 715 boundary assertions across 144 suites.
+
 ## [1.10.676] - 2026-05-09 — Extract useAutoScroll hook
 
 **Web — `ChatView.tsx` shrunk by 14 lines (353 → 339).**

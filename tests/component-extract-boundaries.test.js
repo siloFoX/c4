@@ -1778,6 +1778,46 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useWorkflowRun hook (v1.10.677)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-workflow-run.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'WorkflowEditor.tsx');
+
+  it('exports the hook + accepts selectedId/setRuns/setBusy/setError', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useWorkflowRun/);
+    assert.match(src, /selectedId:\s*string\s*\|\s*null/);
+    assert.match(src, /setRuns:\s*\(runs:\s*WorkflowRun\[\]\)\s*=>\s*void/);
+  });
+
+  it('auto-resets the inputs drawer on selectedId flip', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /useEffect\(\(\) => \{[\s\S]*?setInputsOpen\(false\)[\s\S]*?setInputsJson\('\{\}'\)[\s\S]*?\}, \[selectedId\]\)/);
+  });
+
+  it('handleRun parses + validates JSON before POSTing', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /JSON\.parse\(inputsJson\)/);
+    assert.match(src, /workflowEditor\.inputsMustBeObject/);
+    assert.match(src, /apiPost\('\/api\/workflows\/'\s*\+\s*encodeURIComponent\(selectedId\)\s*\+\s*'\/run'/);
+  });
+
+  it('handleRun refetches /runs after a successful POST', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiGet<WorkflowRunsResponse>\('\/api\/workflows\/'\s*\+\s*encodeURIComponent\(selectedId\)\s*\+\s*'\/runs'\)/);
+    assert.match(src, /setRuns\(r\.runs\s*\|\|\s*\[\]\)/);
+  });
+
+  it('parent WorkflowEditor wires the hook + drops the inline state + handler', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useWorkflowRun\s*\}\s+from\s+'\.\.\/lib\/use-workflow-run'/);
+    assert.match(src, /useWorkflowRun\(\{\s*selectedId,\s*setRuns,\s*setBusy,\s*setError\s*\}\)/);
+    assert.doesNotMatch(src, /const \[inputsOpen, setInputsOpen\]/);
+    assert.doesNotMatch(src, /const handleRun = async/);
+  });
+});
+
 describe('extracted: useAutoScroll hook (v1.10.676)', () => {
   const fs = require('fs');
   const path = require('path');

@@ -6,8 +6,7 @@
 // mutation are deferred to a follow-up patch (TODO 11.3 ships the
 // engine + viewer; full edit UI is tracked under future work).
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { apiGet, apiPost } from '../lib/api';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { t, useLocale } from '../lib/i18n';
 import WorkflowGraph from './WorkflowGraph';
 import WorkflowNodeProperties from './WorkflowNodeProperties';
@@ -16,6 +15,7 @@ import WorkflowSelectedHeader from './WorkflowSelectedHeader';
 import WorkflowRunsPanel from './WorkflowRunsPanel';
 import { useWorkflowsList } from '../lib/use-workflows-list';
 import { useWorkflowRuns } from '../lib/use-workflow-runs';
+import { useWorkflowRun } from '../lib/use-workflow-run';
 import {
   Card,
   CardContent,
@@ -121,42 +121,9 @@ export default function WorkflowEditor() {
     return selected.nodes.find((n) => n.id === selectedNodeId) || null;
   }, [selected, selectedNodeId]);
 
-  // (v1.10.354) Inputs JSON for the run. Hidden behind a toggle
-  // because most workflows are zero-arg; surfacing the input
-  // box only when the operator wants it keeps the action row
-  // tight. Resets on workflow switch.
-  const [inputsOpen, setInputsOpen] = useState(false);
-  const [inputsJson, setInputsJson] = useState('{}');
-  const [inputsError, setInputsError] = useState<string | null>(null);
-  useEffect(() => { setInputsOpen(false); setInputsJson('{}'); setInputsError(null); }, [selectedId]);
-
-  const handleRun = async () => {
-    if (!selectedId) return;
-    let inputs: unknown = {};
-    if (inputsOpen) {
-      try {
-        const parsed = JSON.parse(inputsJson);
-        if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-          throw new Error(t('workflowEditor.inputsMustBeObject'));
-        }
-        inputs = parsed;
-      } catch (e) {
-        setInputsError((e as Error).message || t('common.invalidJson'));
-        return;
-      }
-    }
-    setInputsError(null);
-    setBusy(true);
-    try {
-      await apiPost('/api/workflows/' + encodeURIComponent(selectedId) + '/run', { inputs });
-      const r = await apiGet<WorkflowRunsResponse>('/api/workflows/' + encodeURIComponent(selectedId) + '/runs');
-      setRuns(r.runs || []);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
+  // (v1.10.677) Inputs drawer + run-now POST moved to hook.
+  const { inputsOpen, setInputsOpen, inputsJson, setInputsJson, inputsError, handleRun } =
+    useWorkflowRun({ selectedId, setRuns, setBusy, setError });
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 text-foreground md:flex-row md:p-6">
