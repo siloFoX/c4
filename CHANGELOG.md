@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.10.706] - 2026-05-09 — Extract useSpecialistTagEditor hook
+
+**Web — `SpecialistsTagEditor.tsx` shrunk by 26 lines (102 → 76).**
+The inline-toggle tag editor with mode prefix support
+(`+foo,bar` adds, `-foo,bar` removes, otherwise
+replaces) moves to a self-contained hook. The
+empty-replace guard (intentional clears need an
+explicit path) is preserved verbatim.
+
+### Refactor
+- New `web/src/lib/use-specialist-tag-editor.ts`
+  (~58 lines). Returns `{ open, setOpen, value,
+  setValue, busy, handleSave }` — setters typed as
+  `React.Dispatch<SetStateAction<...>>` so the
+  parent's `setOpen((v) => !v)` toggle still
+  type-checks.
+- `SpecialistsTagEditor.tsx`: removed three useState
+  slots and the ~24-line `handleSave` useCallback.
+  Trimmed `useCallback` + `useState` + `apiPatch` +
+  `tFormat` imports.
+- Boundary suite #173 — 5 assertions; existing
+  SpecialistsTagEditor suite (v1.10.559) updated:
+  3 assertions redirected to read the hook file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  836 / 836 across 172 → 173 suites.
+- `npm run check:full`: green.
+
+### Stats
+- 177 ships total since v1.10.529.
+- 174 components/libs extracted.
+- 83 custom hooks in `web/src/lib/`.
+- 836 boundary assertions across 173 suites.
+
 ## [1.10.705] - 2026-05-09 — Extract useWorkerActions hook
 
 **Web — `WorkerDetail.tsx` shrunk by 62 lines (202 → 140).**

@@ -1,7 +1,6 @@
-import { useCallback, useState } from 'react';
-import { apiPatch } from '../lib/api';
 import { Button, Input } from './ui';
-import { t, tFormat, useLocale } from '../lib/i18n';
+import { t, useLocale } from '../lib/i18n';
+import { useSpecialistTagEditor } from '../lib/use-specialist-tag-editor';
 
 // (v1.10.559) Extracted from SpecialistsView. Tag editor —
 // PATCH /specialists/:id/tags with replace / add / remove modes.
@@ -21,34 +20,9 @@ interface Props {
 export default function SpecialistsTagEditor({ specialistId, tags, onSaved, onError }: Props) {
   useLocale();
 
-  const [open, setOpen] = useState(false);
-  const [value, setValue] = useState('');
-  const [busy, setBusy] = useState(false);
-
-  const handleSave = useCallback(async () => {
-    const raw = value.trim();
-    if (!raw) return;
-    let mode: 'replace' | 'add' | 'remove' = 'replace';
-    let tagsRaw = raw;
-    if (raw.startsWith('+')) { mode = 'add'; tagsRaw = raw.slice(1); }
-    else if (raw.startsWith('-')) { mode = 'remove'; tagsRaw = raw.slice(1); }
-    const next = tagsRaw.split(',').map((t) => t.trim()).filter(Boolean);
-    // Empty replace = clear; we want intentional clears, so guard.
-    if (next.length === 0 && mode === 'replace') return;
-    setBusy(true);
-    try {
-      await apiPatch(`/api/specialists/${encodeURIComponent(specialistId)}/tags`, { tags: next, mode });
-      setValue('');
-      setOpen(false);
-      onSaved();
-    } catch (e) {
-      onError(tFormat('specialists.tagEdit.failed', {
-        error: (e as Error).message || t('common.failed'),
-      }));
-    } finally {
-      setBusy(false);
-    }
-  }, [value, specialistId, onSaved, onError]);
+  // (v1.10.706) Tag-editor flow moved to lib/use-specialist-tag-editor.
+  const { open, setOpen, value, setValue, busy, handleSave } =
+    useSpecialistTagEditor({ specialistId, onSaved, onError });
 
   return (
     <div className="text-xs">

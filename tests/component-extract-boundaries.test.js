@@ -810,21 +810,33 @@ describe('extracted: SpecialistsTagEditor (v1.10.559)', () => {
   });
 
   it('owns open / value / busy state internally', () => {
+    // (v1.10.706) State moved to lib/use-specialist-tag-editor.
     const src = read('SpecialistsTagEditor.tsx');
-    assert.match(src, /useState\(false\)/);
-    assert.match(src, /useState\(''\)/);
+    assert.match(src, /useSpecialistTagEditor/);
   });
 
   it('infers add (+...) / remove (-...) / replace from leading char', () => {
-    const src = read('SpecialistsTagEditor.tsx');
-    assert.match(src, /raw\.startsWith\('\+'\)/);
-    assert.match(src, /raw\.startsWith\('-'\)/);
-    assert.match(src, /'replace' \| 'add' \| 'remove'/);
+    // (v1.10.706) Mode-prefix decode moved to hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-specialist-tag-editor.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /raw\.startsWith\('\+'\)/);
+    assert.match(hookSrc, /raw\.startsWith\('-'\)/);
+    assert.match(hookSrc, /'replace' \| 'add' \| 'remove'/);
   });
 
   it('guards against accidental clear (empty replace)', () => {
-    const src = read('SpecialistsTagEditor.tsx');
-    assert.match(src, /next\.length === 0 && mode === 'replace'/);
+    // (v1.10.706) Empty-replace guard moved to hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-specialist-tag-editor.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /next\.length === 0 && mode === 'replace'/);
   });
 
   it('is imported and rendered by SpecialistsView', () => {
@@ -1850,6 +1862,45 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useSpecialistTagEditor hook (v1.10.706)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-specialist-tag-editor.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'SpecialistsTagEditor.tsx');
+
+  it('exports the hook + accepts specialistId/onSaved/onError', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useSpecialistTagEditor/);
+    assert.match(src, /specialistId:\s*string/);
+    assert.match(src, /onSaved:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onError:\s*\(msg:\s*string\)\s*=>\s*void/);
+  });
+
+  it('decodes mode prefix (+ adds / - removes / otherwise replaces)', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /raw\.startsWith\('\+'\)\) \{ mode = 'add'/);
+    assert.match(src, /raw\.startsWith\('-'\)\) \{ mode = 'remove'/);
+  });
+
+  it('guards empty-replace so accidental clears need an explicit path', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(next\.length === 0 && mode === 'replace'\) return/);
+  });
+
+  it('PATCHes /api/specialists/:id/tags with mode/tags body', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiPatch\(`\/api\/specialists\/\$\{encodeURIComponent\(specialistId\)\}\/tags`,\s*\{ tags: next, mode \}\)/);
+  });
+
+  it('parent SpecialistsTagEditor wires the hook + drops the inline state + handler', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useSpecialistTagEditor\s*\}\s+from\s+'\.\.\/lib\/use-specialist-tag-editor'/);
+    assert.match(src, /useSpecialistTagEditor\(\{\s*specialistId,\s*onSaved,\s*onError\s*\}\)/);
+    assert.doesNotMatch(src, /const \[open, setOpen\]/);
+    assert.doesNotMatch(src, /const handleSave = useCallback/);
   });
 });
 
