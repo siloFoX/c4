@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
-import { apiPost } from '../lib/api';
 import { Button, Input } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useMeetingFork } from '../lib/use-meeting-fork';
 
 // (v1.10.544) Extracted from MeetingsView. The Phase-6.11 fork
 // form — clones a terminal meeting either by re-running the
@@ -15,13 +14,8 @@ interface MeetingDetail {
   title: string;
 }
 
-interface ForkResponse {
-  id: string;
-  status: string;
-  track: string;
-  title: string;
-  task: string;
-}
+// (v1.10.702) ForkResponse type + form/state/handler
+// moved to lib/use-meeting-fork.
 
 interface Props {
   open: boolean;
@@ -34,52 +28,15 @@ interface Props {
 export default function MeetingsForkForm({ open, meeting, busy: parentBusy, onClose, onForked }: Props) {
   useLocale();
 
-  const [mode, setMode] = useState<'replan' | 'reuse'>('replan');
-  const [task, setTask] = useState('');
-  const [title, setTitle] = useState('');
-  const [track, setTrack] = useState<'auto' | 'lightweight' | 'standard' | 'full'>('auto');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Reset form on selection change so a half-typed fork from
-  // meeting A doesn't leak into a fork attempt on meeting B.
-  useEffect(() => {
-    setMode('replan');
-    setTask('');
-    setTitle('');
-    setTrack('auto');
-    setError(null);
-  }, [meeting.id]);
-
-  const handleSubmit = useCallback(async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const body: {
-        mode: 'replan' | 'reuse';
-        task?: string;
-        title?: string;
-        track?: 'lightweight' | 'standard' | 'full';
-      } = { mode };
-      if (task.trim()) body.task = task.trim();
-      if (title.trim()) body.title = title.trim();
-      if (mode === 'replan' && track !== 'auto') body.track = track;
-      const res = await apiPost<ForkResponse>(
-        `/api/meetings/${encodeURIComponent(meeting.id)}/fork`,
-        body,
-      );
-      // Navigate operator to the new meeting — the SSE list stream
-      // will surface the new row as it lands.
-      setTask('');
-      setTitle('');
-      onForked(res.id);
-      onClose();
-    } catch (e) {
-      setError((e as Error).message || t('common.forkFailed'));
-    } finally {
-      setBusy(false);
-    }
-  }, [mode, task, title, track, meeting.id, onForked, onClose]);
+  // (v1.10.702) Form state + reset + submit handler moved to hook.
+  const {
+    mode, setMode,
+    task, setTask,
+    title, setTitle,
+    track, setTrack,
+    busy, error,
+    handleSubmit,
+  } = useMeetingFork({ meetingId: meeting.id, onForked, onClose });
 
   if (!open) return null;
 

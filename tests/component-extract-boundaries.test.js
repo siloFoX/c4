@@ -1534,15 +1534,21 @@ describe('extracted: MeetingsForkForm (v1.10.544)', () => {
   });
 
   it('owns its own form state (mode / task / title / track / busy / error)', () => {
+    // (v1.10.702) Form state moved to lib/use-meeting-fork.
     const src = read('MeetingsForkForm.tsx');
-    assert.match(src, /useState<'replan' \| 'reuse'>/);
-    assert.match(src, /useState<'auto' \| 'lightweight' \| 'standard' \| 'full'>/);
+    assert.match(src, /useMeetingFork/);
   });
 
   it('resets on meeting change so form state does not leak across meetings', () => {
-    const src = read('MeetingsForkForm.tsx');
-    assert.match(src, /useEffect/);
-    assert.match(src, /\[meeting\.id\]/);
+    // (v1.10.702) Reset effect moved to hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-fork.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /useEffect/);
+    assert.match(hookSrc, /\[meetingId\]/);
   });
 
   it('is imported and rendered by MeetingsDetailCompletedActions (v1.10.593)', () => {
@@ -1832,6 +1838,46 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useMeetingFork hook (v1.10.702)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-fork.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'MeetingsForkForm.tsx');
+
+  it('exports the hook + accepts meetingId/onForked/onClose', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useMeetingFork/);
+    assert.match(src, /meetingId:\s*string/);
+    assert.match(src, /onForked:\s*\(newId:\s*string\)\s*=>\s*void/);
+  });
+
+  it('owns the four form fields + busy/error', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /useState<'replan'\s*\|\s*'reuse'>/);
+    assert.match(src, /useState<'auto'\s*\|\s*'lightweight'\s*\|\s*'standard'\s*\|\s*'full'>/);
+  });
+
+  it('handleSubmit POSTs /api/meetings/:id/fork + forwards track only when replan + non-auto', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiPost<ForkResponse>\([\s\S]*?\/fork`/);
+    assert.match(src, /if \(mode === 'replan' && track !== 'auto'\) body\.track = track/);
+  });
+
+  it('resets the form on meetingId change', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /useEffect\(\(\) => \{[\s\S]*?setMode\('replan'\)[\s\S]*?\}, \[meetingId\]\)/);
+  });
+
+  it('parent MeetingsForkForm wires the hook + drops the inline state + handler', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useMeetingFork\s*\}\s+from\s+'\.\.\/lib\/use-meeting-fork'/);
+    assert.match(src, /useMeetingFork\(\{\s*meetingId:\s*meeting\.id,\s*onForked,\s*onClose\s*\}\)/);
+    assert.doesNotMatch(src, /^interface ForkResponse/m);
+    assert.doesNotMatch(src, /const \[mode, setMode\]/);
+    assert.doesNotMatch(src, /const handleSubmit = useCallback/);
   });
 });
 

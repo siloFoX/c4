@@ -4,6 +4,43 @@
 
 (no entries — next release window)
 
+## [1.10.702] - 2026-05-09 — Extract useMeetingFork hook
+
+**Web — `MeetingsForkForm.tsx` shrunk by 43 lines (155 → 112).**
+The fork-meeting flow — four form fields (mode / task /
+title / track), busy + error state, the meetingId-change
+reset effect, and the POST /api/meetings/:id/fork
+handler — moves to a self-contained hook. The mode
+toggle gates whether `track` is forwarded ('replan'
+re-runs the dispatcher; 'reuse' deep-clones).
+
+### Refactor
+- New `web/src/lib/use-meeting-fork.ts` (~96 lines).
+  ForkResponse type stays module-private. Returns 11
+  fields covering form + busy/error + handler.
+- `MeetingsForkForm.tsx`: removed 6 useState slots,
+  the reset useEffect, the ~30-line submit handler.
+  Replaced with one destructured hook call. Trimmed
+  `useCallback` + `useEffect` + `useState` +
+  `apiPost` imports.
+- Boundary suite #169 — 5 assertions covering hook
+  signature, form types, POST URL + track gate, reset
+  effect, parent wiring.
+- MeetingsForkForm suite (v1.10.544) updated:
+  2 assertions redirected to read the hook file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  818 / 818 across 168 → 169 suites.
+- `npm run check:full`: green.
+
+### Stats
+- 173 ships total since v1.10.529.
+- 170 components/libs extracted.
+- 79 custom hooks in `web/src/lib/`.
+- 818 boundary assertions across 169 suites.
+
 ## [1.10.701] - 2026-05-09 — Extract useMeetingContribute hook
 
 **Web — `MeetingsContributePanel.tsx` shrunk by 76 lines (195 → 119).**
