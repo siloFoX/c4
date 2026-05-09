@@ -1907,6 +1907,41 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useLogin hook (v1.10.719)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-login.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'Login.tsx');
+
+  it('exports the hook + accepts onSuccess', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useLogin/);
+    assert.match(src, /onSuccess:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('handleSubmit calls login() + invokes onSuccess on res.token', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /import\s+\{\s*login\s*\}\s+from\s+'\.\/api'/);
+    assert.match(src, /await login\(user, password\)/);
+    assert.match(src, /if \(res\.token\)\s*\{\s*onSuccess\(\)/);
+  });
+
+  it('busy gate prevents double-submits + flows through try/finally', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(busy\) return/);
+    assert.match(src, /setBusy\(true\)/);
+    assert.match(src, /finally\s*\{[\s\S]*?setBusy\(false\)/);
+  });
+
+  it('parent Login wires the hook + drops the inline state machine', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useLogin\s*\}\s+from\s+'\.\.\/lib\/use-login'/);
+    assert.match(src, /useLogin\(\{[\s\S]*?onSuccess[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /const \[user, setUser\]/);
+    assert.doesNotMatch(src, /import\s+\{\s*login\s*\}\s+from\s+'\.\.\/lib\/api'/);
+  });
+});
+
 describe('extracted: useMeetingPeerRetro hook (v1.10.718)', () => {
   const fs = require('fs');
   const path = require('path');

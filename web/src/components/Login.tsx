@@ -1,6 +1,4 @@
-import { useState, type FormEvent } from 'react';
 import { AlertTriangle, KeyRound, Loader2, LogIn, User } from 'lucide-react';
-import { login } from '../lib/api';
 import {
   Button,
   Card,
@@ -14,6 +12,7 @@ import {
 } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
+import { useLogin } from '../lib/use-login';
 
 interface LoginProps {
   onSuccess: () => void;
@@ -24,29 +23,9 @@ const DOTTED_PATTERN =
 
 export default function Login({ onSuccess }: LoginProps) {
   useLocale();
-  const [user, setUser] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (busy) return;
-    setError(null);
-    setBusy(true);
-    try {
-      const res = await login(user, password);
-      if (res.token) {
-        onSuccess();
-      } else {
-        setError(res.error || t('common.loginFailed'));
-      }
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
+  // (v1.10.719) Form state + submit handler moved to use-login hook.
+  const { user, setUser, password, setPassword, error, busy, handleSubmit } =
+    useLogin({ onSuccess });
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background p-4">

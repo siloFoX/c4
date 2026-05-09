@@ -4,6 +4,40 @@
 
 (no entries — next release window)
 
+## [1.10.719] - 2026-05-10 — Extract useLogin hook
+
+**Web — `components/Login.tsx` shrunk by 21 lines (141 → 120).**
+The login form's state machine — username +
+password slots, busy / error feedback, and the
+submit handler that POSTs `/api/login`, calls the
+parent's `onSuccess` on a good token, surfaces the
+server-side error otherwise, and re-enables the
+submit button via try/finally — moves to a
+`useLogin({ onSuccess })` hook returning
+`{ user, setUser, password, setPassword, error,
+busy, handleSubmit }`.
+
+The component drops `useState` / `FormEvent` /
+`login` imports — their last consumer moved into
+the hook. Login is now a near-pure render
+function: hook destructure + JSX. The
+busy-double-submit guard, try/finally setBusy
+contract, and the `res.token` vs `res.error` branch
+all survived the move verbatim.
+
+Boundary suite #186 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the `login()` call, the
+`if (res.token) { onSuccess() }` branch, the
+busy-gate double-submit guard, the try/finally
+setBusy contract, and verifies the parent wires the
+hook + drops the inline state.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (886 / 185 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.718] - 2026-05-10 — Extract useMeetingPeerRetro hook
 
 **Web — `components/MeetingsPeerRetroControls.tsx` shrunk by 34 lines (92 → 58).**
