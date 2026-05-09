@@ -130,29 +130,32 @@ describe('tools/ux/package.json dependencies', () => {
 describe('XtermView auto-fit wiring (8.22 P1 carried into 8.24)', () => {
   const xtermView = path.join(REPO_ROOT, 'web', 'src', 'components', 'XtermView.tsx');
   const src = fs.readFileSync(xtermView, 'utf8');
+  // (v1.10.672) Auto-fit moved to lib/use-xterm-autofit.
+  const autofit = path.join(REPO_ROOT, 'web', 'src', 'lib', 'use-xterm-autofit.ts');
+  const autofitSrc = fs.readFileSync(autofit, 'utf8');
 
   it('reads the VITE_AUTOFIT_DEBUG env and leaves the toggle in place', () => {
-    assert.match(src, /VITE_AUTOFIT_DEBUG/);
-    assert.match(src, /AUTOFIT_DEBUG/);
+    assert.match(autofitSrc, /VITE_AUTOFIT_DEBUG/);
+    assert.match(autofitSrc, /AUTOFIT_DEBUG/);
   });
 
   it('logs cols/rows and the POST target when the debug toggle is on', () => {
-    assert.match(src, /\[autofit\][^'"]*POST \/api\/resize/);
-    assert.match(src, /console\.debug\(/);
+    assert.match(autofitSrc, /\[autofit\][^'"]*POST \/api\/resize/);
+    assert.match(autofitSrc, /console\.debug\(/);
   });
 
   it('POSTs to /api/resize (the 8.19 withApiPrefix path, not bare /resize)', () => {
-    assert.match(src, /apiFetch\(['"]\/api\/resize['"]/);
+    assert.match(autofitSrc, /apiFetch\(['"]\/api\/resize['"]/);
     // Should never carry the pre-8.19 bare path.
-    assert.ok(!/apiFetch\(['"]\/resize['"]/.test(src), 'bare /resize POST must be gone');
+    assert.ok(!/apiFetch\(['"]\/resize['"]/.test(autofitSrc), 'bare /resize POST must be gone');
   });
 
   it('clamps cols + rows to the daemon 20..400 / 5..200 range', () => {
-    assert.match(src, /MIN_COLS\s*=\s*20/);
-    assert.match(src, /MAX_COLS\s*=\s*400/);
-    assert.match(src, /MIN_ROWS\s*=\s*5/);
-    assert.match(src, /MAX_ROWS\s*=\s*200/);
-    assert.match(src, /clampInt\(/);
+    assert.match(autofitSrc, /MIN_COLS\s*=\s*20/);
+    assert.match(autofitSrc, /MAX_COLS\s*=\s*400/);
+    assert.match(autofitSrc, /MIN_ROWS\s*=\s*5/);
+    assert.match(autofitSrc, /MAX_ROWS\s*=\s*200/);
+    assert.match(autofitSrc, /clampInt\(/);
   });
 
   it('wires a ResizeObserver on the xterm container alongside window.addEventListener(resize)', () => {
@@ -162,15 +165,15 @@ describe('XtermView auto-fit wiring (8.22 P1 carried into 8.24)', () => {
   });
 
   it('debounces recompute at 120ms and dedupes the POST against the last dims', () => {
-    assert.match(src, /FIT_DEBOUNCE_MS\s*=\s*120/);
-    assert.match(src, /lastResizeRef/);
+    assert.match(autofitSrc, /FIT_DEBOUNCE_MS\s*=\s*120/);
+    assert.match(autofitSrc, /lastResizeRef/);
   });
 
   it('guards against zero-sized container + non-finite measurements (never POST 0)', () => {
     // xterm's fit-addon throws on a 0x0 container; Number.isFinite guards
     // the raw cols/rows before we clamp + POST.
-    assert.match(src, /rawCols\s*<=\s*0/);
-    assert.match(src, /Number\.isFinite\(rawCols\)/);
+    assert.match(autofitSrc, /rawCols\s*<=\s*0/);
+    assert.match(autofitSrc, /Number\.isFinite\(rawCols\)/);
   });
 });
 

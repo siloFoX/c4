@@ -1770,6 +1770,56 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useXtermAutofit hook (v1.10.672)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-xterm-autofit.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'XtermView.tsx');
+
+  it('exports the hook + clamp constants + FIT_DEBOUNCE_MS', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useXtermAutofit/);
+    assert.match(src, /export \{ FIT_DEBOUNCE_MS, MIN_COLS, MAX_COLS, MIN_ROWS, MAX_ROWS \}/);
+    assert.match(src, /FIT_DEBOUNCE_MS\s*=\s*120/);
+    assert.match(src, /MIN_COLS\s*=\s*20/);
+    assert.match(src, /MAX_COLS\s*=\s*400/);
+    assert.match(src, /MIN_ROWS\s*=\s*5/);
+    assert.match(src, /MAX_ROWS\s*=\s*200/);
+  });
+
+  it('clampInt + AUTOFIT_DEBUG stay private to the hook module', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /function clampInt/);
+    assert.match(src, /AUTOFIT_DEBUG: boolean/);
+    assert.doesNotMatch(src, /export function clampInt/);
+    assert.doesNotMatch(src, /export const AUTOFIT_DEBUG/);
+  });
+
+  it('runFit fits + clamps + drops no-op POST /api/resize', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /fit\.fit\(\)/);
+    assert.match(src, /clampInt\(rawCols, MIN_COLS, MAX_COLS\)/);
+    assert.match(src, /clampInt\(rawRows, MIN_ROWS, MAX_ROWS\)/);
+    assert.match(src, /apiFetch\('\/api\/resize'/);
+    assert.match(src, /lastResizeRef\.current = \{ cols, rows \}/);
+  });
+
+  it('scheduleFit debounces via window.setTimeout(FIT_DEBOUNCE_MS)', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.setTimeout\(\(\) => \{[\s\S]*?runFit\(\);[\s\S]*?\}, FIT_DEBOUNCE_MS\)/);
+  });
+
+  it('parent XtermView wires the hook + drops the inline refs + helpers + constants', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useXtermAutofit\s*\}\s+from\s+'\.\.\/lib\/use-xterm-autofit'/);
+    assert.match(src, /useXtermAutofit\(\{\s*termRef,\s*fitRef,\s*workerName\s*\}\)/);
+    assert.doesNotMatch(src, /^const FIT_DEBOUNCE_MS\s*=/m);
+    assert.doesNotMatch(src, /^function clampInt/m);
+    assert.doesNotMatch(src, /const runFit = useCallback/);
+    assert.doesNotMatch(src, /const scheduleFit = useCallback/);
+  });
+});
+
 describe('extracted: useTheme hook (v1.10.671)', () => {
   const fs = require('fs');
   const path = require('path');

@@ -149,19 +149,27 @@ describe('XtermView wiring (8.24 + 8.27)', () => {
   });
 
   it('debounces fit at 120ms and dedupes POST /api/resize against last dims', () => {
-    assert.match(src, /FIT_DEBOUNCE_MS\s*=\s*120/);
-    assert.match(src, /lastResizeRef/);
-    assert.match(src, /apiFetch\(['"]\/api\/resize['"]/);
+    // (v1.10.672) Autofit moved to lib/use-xterm-autofit.
+    const autofitSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-xterm-autofit.ts'),
+      'utf8',
+    );
+    assert.match(autofitSrc, /FIT_DEBOUNCE_MS\s*=\s*120/);
+    assert.match(autofitSrc, /lastResizeRef/);
+    assert.match(autofitSrc, /apiFetch\(['"]\/api\/resize['"]/);
   });
 
   it('clamps cols + rows to the daemon PTY-manager range', () => {
-    // Mirrors src/pty-manager.js _clampResizeDims so we never ask for
-    // something the daemon will round-trip or reject.
-    assert.match(src, /MIN_COLS\s*=\s*20/);
-    assert.match(src, /MAX_COLS\s*=\s*400/);
-    assert.match(src, /MIN_ROWS\s*=\s*5/);
-    assert.match(src, /MAX_ROWS\s*=\s*200/);
-    assert.match(src, /clampInt\(/);
+    // (v1.10.672) Clamp constants + clampInt moved to lib/use-xterm-autofit.
+    const autofitSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-xterm-autofit.ts'),
+      'utf8',
+    );
+    assert.match(autofitSrc, /MIN_COLS\s*=\s*20/);
+    assert.match(autofitSrc, /MAX_COLS\s*=\s*400/);
+    assert.match(autofitSrc, /MIN_ROWS\s*=\s*5/);
+    assert.match(autofitSrc, /MAX_ROWS\s*=\s*200/);
+    assert.match(autofitSrc, /clampInt\(/);
   });
 
   it('re-fits when the visible prop flips back to true (8.27)', () => {

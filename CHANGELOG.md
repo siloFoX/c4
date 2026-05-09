@@ -4,6 +4,61 @@
 
 (no entries — next release window)
 
+## [1.10.672] - 2026-05-09 — Extract useXtermAutofit hook
+
+**Web — `XtermView.tsx` shrunk by 73 lines (320 → 247).**
+The fit→POST /api/resize loop — runFit (clamp + dedupe
+against `lastResize` + best-effort POST), scheduleFit
+(120ms debounce), and the FIT_DEBOUNCE_MS / MIN_COLS /
+MAX_COLS / MIN_ROWS / MAX_ROWS constants + the private
+`clampInt` helper + the `VITE_AUTOFIT_DEBUG` env toggle —
+all move to a self-contained hook. The terminal-init
+useEffect still owns `termRef.current = term;` etc, but
+gets the timer ref + `lastResizeRef` from the hook so
+its cleanup branch can clear them too.
+
+### Refactor
+- New `web/src/lib/use-xterm-autofit.ts` (~101 lines).
+  Exports `useXtermAutofit` + the five public clamp
+  constants. `clampInt` + `AUTOFIT_DEBUG` stay
+  module-private.
+- `XtermView.tsx`: removed the inline constants
+  (FIT_DEBOUNCE_MS / MIN_*/MAX_* / AUTOFIT_DEBUG /
+  clampInt), the two refs (`fitTimerRef`,
+  `lastResizeRef`), the ~35-line `runFit` useCallback,
+  and the `scheduleFit` useCallback. Replaced with one
+  destructured `useXtermAutofit({ termRef, fitRef,
+  workerName })` call. `apiFetch` import dropped.
+- Boundary suite #139 — 5 assertions covering hook +
+  constant re-exports, clampInt + AUTOFIT_DEBUG
+  module-privacy, runFit fits + clamps + POSTs,
+  scheduleFit debounce, parent wiring.
+- `tests/xterm-view.test.js` redirects: 4 autofit
+  assertions (debounce + dedup + clamp + helpers) now
+  read the hook file.
+- `tests/ux-visual.test.js` redirects: 6 autofit
+  assertions (env + console + URL + clamp + debounce
+  + zero-guard) now read the hook file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  692 / 692 across 138 → 139 suites.
+- `node --test tests/xterm-view.test.js`: 21 / 21
+  (after redirect).
+- `node --test tests/ux-visual.test.js`: 23 / 23
+  (after redirect).
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 143 ships total since v1.10.529.
+- 141 components/libs extracted.
+- 51 custom hooks in `web/src/lib/`.
+- 692 boundary assertions across 139 suites.
+- XtermView went from 414 → 247 across v1.10.645 +
+  v1.10.646 + v1.10.672 (-167, ~40% reduction).
+
 ## [1.10.671] - 2026-05-09 — Extract useTheme hook (50-hook milestone)
 
 **Web — `App.tsx` shrunk by 10 lines (240 → 230).**

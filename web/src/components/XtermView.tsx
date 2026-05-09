@@ -18,13 +18,13 @@ import { FitAddon } from '@xterm/addon-fit';
 import { SearchAddon } from '@xterm/addon-search';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
-import { apiFetch } from '../lib/api';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 import XtermStatusBar from './XtermStatusBar';
 import { buildXtermTheme } from '../lib/xterm-theme';
 import { useXtermThemeTracking } from '../lib/use-xterm-theme-tracking';
 import { useTerminalSseStream } from '../lib/use-terminal-sse-stream';
+import { useXtermAutofit } from '../lib/use-xterm-autofit';
 
 interface XtermViewProps {
   workerName: string;
@@ -41,36 +41,8 @@ interface XtermViewProps {
 // (v1.10.645) buildXtermTheme moved to lib/xterm-theme.ts so
 // the theme-tracking hook can share it.
 
-// 8.27 debounce shared across window.resize + ResizeObserver to avoid firing
-// two fit()/POST-resize pairs for one gesture.
-const FIT_DEBOUNCE_MS = 120;
-
-// Lower/upper cols clamp mirrors the daemon-side clamp in
-// src/pty-manager.js _clampResizeDims so the UI never asks for something the
-// daemon will reject. xterm's fit-addon can return any positive integer, so
-// the clamp stays as a safety belt.
-const MIN_COLS = 20;
-const MAX_COLS = 400;
-const MIN_ROWS = 5;
-const MAX_ROWS = 200;
-
-// 8.22-era debug toggle carried over so operators can still observe the
-// fit -> POST /api/resize loop via web/.env.local. Setting
-// VITE_AUTOFIT_DEBUG=1 prints one console.debug per recompute.
-const AUTOFIT_DEBUG: boolean = (() => {
-  try {
-    const env = (import.meta as unknown as { env?: Record<string, unknown> }).env;
-    const v = env?.['VITE_AUTOFIT_DEBUG'];
-    return v === '1' || v === 'true' || v === true;
-  } catch {
-    return false;
-  }
-})();
-
-function clampInt(n: number, lo: number, hi: number): number {
-  if (!Number.isFinite(n)) return lo;
-  return Math.max(lo, Math.min(hi, Math.floor(n)));
-}
+// (v1.10.672) FIT_DEBOUNCE_MS / clamp constants / clampInt /
+// AUTOFIT_DEBUG / runFit / scheduleFit moved to lib/use-xterm-autofit.
 
 export default function XtermView({ workerName, fontSize, visible = true }: XtermViewProps) {
   useLocale();
@@ -78,59 +50,14 @@ export default function XtermView({ workerName, fontSize, visible = true }: Xter
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
   const searchRef = useRef<SearchAddon | null>(null);
-  const fitTimerRef = useRef<number | null>(null);
-  const lastResizeRef = useRef<{ cols: number; rows: number } | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [altScreen, setAltScreen] = useState(false);
 
-  // Fit + POST /api/resize. Uses lastResizeRef to drop no-op requests so
-  // the daemon PTY only sees dimension changes.
-  const runFit = useCallback(() => {
-    const term = termRef.current;
-    const fit = fitRef.current;
-    if (!term || !fit) return;
-    try {
-      fit.fit();
-    } catch {
-      // fit throws if the container is 0x0 (tab hidden). Bail -- next
-      // resize event will retry once the terminal is visible.
-      return;
-    }
-    const rawCols = term.cols;
-    const rawRows = term.rows;
-    if (!Number.isFinite(rawCols) || !Number.isFinite(rawRows) || rawCols <= 0 || rawRows <= 0) return;
-    const cols = clampInt(rawCols, MIN_COLS, MAX_COLS);
-    const rows = clampInt(rawRows, MIN_ROWS, MAX_ROWS);
-    const last = lastResizeRef.current;
-    if (last && last.cols === cols && last.rows === rows) return;
-    lastResizeRef.current = { cols, rows };
-    if (AUTOFIT_DEBUG) {
-      // eslint-disable-next-line no-console
-      console.debug('[autofit] cols=%d rows=%d -> POST /api/resize', cols, rows);
-    }
-    void apiFetch('/api/resize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: workerName, cols, rows }),
-    }).catch(() => {
-      // Resize is best-effort; the daemon already clamps via
-      // _clampResizeDims and a failed POST just means the next fit tries
-      // again. Swallow so we do not page on transient HTTP hiccups.
-    });
-  }, [workerName]);
-
-  const scheduleFit = useCallback(() => {
-    if (fitTimerRef.current != null) {
-      window.clearTimeout(fitTimerRef.current);
-    }
-    fitTimerRef.current = window.setTimeout(() => {
-      fitTimerRef.current = null;
-      runFit();
-    }, FIT_DEBOUNCE_MS);
-  }, [runFit]);
+  // (v1.10.672) Fit + POST /api/resize loop moved to hook.
+  const { fitTimerRef, lastResizeRef, scheduleFit } = useXtermAutofit({ termRef, fitRef, workerName });
 
   // Mount the terminal once per workerName. Remounting on every prop change
   // would drop scrollback + flicker, so only workerName is in the dep list.
