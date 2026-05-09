@@ -4,6 +4,51 @@
 
 (no entries — next release window)
 
+## [1.10.736] - 2026-05-10 — Extract useSessionsCollapse hook
+
+**Web — `components/SessionsView.tsx` collapse-state cluster moved to a hook.**
+The two collapse state slots that lived inline at
+the top of `SessionsView` — the per-project-group
+`Record<string, boolean>` map and the
+`attachedCollapsed` flag for the attached-sessions
+header — plus their respective inline toggle
+lambdas (`setCollapsed((prev) => ({ ...prev, [key]:
+!prev[key] }))` for the by-key flip and
+`setAttachedCollapsed((v) => !v)` for the simple
+toggle) move to a single
+`useSessionsCollapse()` hook returning
+`{ collapsed, toggleGroup, attachedCollapsed,
+toggleAttachedCollapsed }`.
+
+The JSX `onToggleGroup` and
+`onToggleAttachedCollapsed` props at the
+SessionsListCard wiring now reference the hook's
+memoized callbacks directly instead of carrying
+inline lambdas, which means React re-renders in
+deeply-nested SessionsListCard children stop
+seeing a fresh function identity per render.
+
+This is a small win on its own (line-count near-flat
+once you count the hook file), but worth
+establishing the per-key-toggle pattern as a named
+hook because future `Record<string, boolean>`
+collapse maps (per-domain expand state on
+SpecialistsView, per-section toggles on
+HelpDrawer, etc.) can adopt it without re-typing
+the spread+flip lambda.
+
+Boundary suite #202 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the per-key flip lambda's spread
+shape, the `(v) => !v` toggle for the attached flag,
+and verifies the parent wires the hook + drops the
+inline lambdas.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (965 / 202 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.735] - 2026-05-10 — Extract useFilteredFeatures hook
 
 **Web — `components/layout/FeatureSidebar.tsx` shrunk by 17 lines (117 → 100).**

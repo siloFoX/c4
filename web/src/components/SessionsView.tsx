@@ -9,6 +9,7 @@ import { useSessionsTour } from '../lib/use-sessions-tour';
 import { useSessionsList } from '../lib/use-sessions-list';
 import { useSessionsActions } from '../lib/use-sessions-actions';
 import { useFilteredSessions } from '../lib/use-filtered-sessions';
+import { useSessionsCollapse } from '../lib/use-sessions-collapse';
 
 export interface SessionSummary {
   projectDir: string | null;
@@ -159,8 +160,9 @@ export default function SessionsView() {
   useLocale();
   const [selection, setSelection] = useState<Selection | null>(null);
   const [query, setQuery] = useState('');
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const [attachedCollapsed, setAttachedCollapsed] = useState(false);
+  // (v1.10.736) Group collapse map + attached collapse flag moved to hook.
+  const { collapsed, toggleGroup, attachedCollapsed, toggleAttachedCollapsed } =
+    useSessionsCollapse();
   // (v1.10.629) First-time tour gate hook extracted to
   // ../lib/use-sessions-tour.
   const { showTour, dismissTour } = useSessionsTour();
@@ -244,7 +246,7 @@ export default function SessionsView() {
           refreshAttached();
         }}
         attachedCollapsed={attachedCollapsed}
-        onToggleAttachedCollapsed={() => setAttachedCollapsed((v) => !v)}
+        onToggleAttachedCollapsed={toggleAttachedCollapsed}
         filteredAttached={filteredAttached}
         attachError={attachError}
         selectedAttachmentName={selectedAttachmentName}
@@ -257,7 +259,7 @@ export default function SessionsView() {
         filteredGroups={filteredGroups}
         error={error}
         collapsed={collapsed}
-        onToggleGroup={(key) => setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }))}
+        onToggleGroup={toggleGroup}
         selectedSessionId={selectedSessionId}
         onSelectSession={(id) => setSelection({ kind: 'session', id })}
       />

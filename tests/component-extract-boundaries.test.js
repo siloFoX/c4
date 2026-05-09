@@ -1954,6 +1954,40 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useSessionsCollapse hook (v1.10.736)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-sessions-collapse.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'SessionsView.tsx');
+
+  it('exports the hook + returns collapsed map + attached flag + toggles', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useSessionsCollapse/);
+    assert.match(src, /collapsed:\s*Record<string,\s*boolean>/);
+    assert.match(src, /toggleGroup:\s*\(key:\s*string\)\s*=>\s*void/);
+    assert.match(src, /attachedCollapsed:\s*boolean/);
+    assert.match(src, /toggleAttachedCollapsed:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('toggleGroup uses the per-key flip pattern', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /setCollapsed\(\(prev\)\s*=>\s*\(\{\s*\.\.\.prev,\s*\[key\]:\s*!prev\[key\]\s*\}\)\)/);
+  });
+
+  it('toggleAttachedCollapsed uses the v => !v flip pattern', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /setAttachedCollapsed\(\(v\)\s*=>\s*!v\)/);
+  });
+
+  it('parent SessionsView wires the hook + drops the inline lambdas', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useSessionsCollapse\s*\}\s+from\s+'\.\.\/lib\/use-sessions-collapse'/);
+    assert.match(src, /useSessionsCollapse\(\)/);
+    assert.doesNotMatch(src, /setCollapsed\(\(prev\)/);
+    assert.doesNotMatch(src, /setAttachedCollapsed\(\(v\)/);
+  });
+});
+
 describe('extracted: useFilteredFeatures hook (v1.10.735)', () => {
   const fs = require('fs');
   const path = require('path');
