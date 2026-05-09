@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.683] - 2026-05-09 — Extract useAuditVerify hook
+
+**Web — `SpecialistsAuditPanel.tsx` shrunk by 25 lines (227 → 202).**
+The daemon-wide hash-chain integrity check (GET
+/api/audit/verify[?includeRotated=1]) moves to a
+self-contained hook. The `valid:false` fallback on
+network failure is preserved verbatim so the banner
+still updates on errors instead of freezing.
+
+### Refactor
+- New `web/src/lib/use-audit-verify.ts` (~45 lines).
+  Exports `useAuditVerify` + `AuditVerifyResult` type.
+  Returns `{ verifyBusy, verifyResult, handleVerify }`.
+- `SpecialistsAuditPanel.tsx`: removed two useState
+  slots + the ~17-line `handleVerify` useCallback.
+  Replaced with one destructured hook call. Trimmed
+  `apiGet` import (now consumed by the hook).
+- Boundary suite #150 — 4 assertions covering hook +
+  type export shape, /api/audit/verify URL +
+  includeRotated query, valid:false fallback, parent
+  wiring.
+- SpecialistsAuditPanel suite (v1.10.531) updated:
+  the `/api/audit/verify` URL match now reads the
+  hook file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  742 / 742 across 149 → 150 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 154 ships total since v1.10.529.
+- 152 components/libs extracted.
+- 62 custom hooks in `web/src/lib/`.
+- 742 boundary assertions across 150 suites.
+- SpecialistsAuditPanel went 256 → 202 across
+  v1.10.682 + v1.10.683 (-54).
+
 ## [1.10.682] - 2026-05-09 — Extract useSpecialistsAudit hook
 
 **Web — `SpecialistsAuditPanel.tsx` shrunk by 29 lines (256 → 227).**

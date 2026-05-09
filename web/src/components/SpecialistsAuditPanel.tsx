@@ -1,9 +1,9 @@
 import { useCallback, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { apiGet } from '../lib/api';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { useSpecialistsAudit, type AuditWindow } from '../lib/use-specialists-audit';
+import { useAuditVerify } from '../lib/use-audit-verify';
 
 // (v1.10.531) Extracted from SpecialistsView. The collapsible
 // audit log viewer + chain-verify + CSV export. Polled only while
@@ -22,33 +22,8 @@ export default function SpecialistsAuditPanel() {
   const { auditEntries, auditLoading, auditWindow, setAuditWindow } =
     useSpecialistsAudit({ auditOpen });
 
-  // Audit chain verify — daemon-wide hash chain integrity check.
-  const [verifyBusy, setVerifyBusy] = useState(false);
-  const [verifyResult, setVerifyResult] = useState<{
-    valid: boolean;
-    corruptedAt: number | null;
-    total: number;
-    rotatedTotal: number;
-  } | null>(null);
-
-  const handleVerify = useCallback(async (includeRotated: boolean) => {
-    setVerifyBusy(true);
-    setVerifyResult(null);
-    try {
-      const qs = includeRotated ? '?includeRotated=1' : '';
-      const res = await apiGet<{
-        valid: boolean;
-        corruptedAt: number | null;
-        total: number;
-        rotatedTotal: number;
-      }>(`/api/audit/verify${qs}`);
-      setVerifyResult(res);
-    } catch {
-      setVerifyResult({ valid: false, corruptedAt: null, total: 0, rotatedTotal: 0 });
-    } finally {
-      setVerifyBusy(false);
-    }
-  }, []);
+  // (v1.10.683) Audit chain verify moved to lib/use-audit-verify.
+  const { verifyBusy, verifyResult, handleVerify } = useAuditVerify();
 
   // CSV export — uses the same window selector. Default UTF-8 BOM
   // + CRLF for Excel-friendliness.

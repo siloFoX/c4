@@ -84,9 +84,16 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 
   it('owns the chain-verify handler', () => {
+    // (v1.10.683) Verify handler moved to lib/use-audit-verify.
     const src = read('SpecialistsAuditPanel.tsx');
     assert.match(src, /handleVerify/);
-    assert.match(src, /\/api\/audit\/verify/);
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-audit-verify.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /\/api\/audit\/verify/);
   });
 });
 
@@ -1781,6 +1788,40 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useAuditVerify hook (v1.10.683)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-audit-verify.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'SpecialistsAuditPanel.tsx');
+
+  it('exports the hook + AuditVerifyResult type', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useAuditVerify/);
+    assert.match(src, /export interface AuditVerifyResult/);
+    assert.match(src, /valid:\s*boolean/);
+    assert.match(src, /corruptedAt:\s*number\s*\|\s*null/);
+  });
+
+  it('GETs /api/audit/verify with optional includeRotated query', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiGet<AuditVerifyResult>\(`\/api\/audit\/verify\$\{qs\}`\)/);
+    assert.match(src, /includeRotated\s*\?\s*'\?includeRotated=1'\s*:\s*''/);
+  });
+
+  it('falls back to a valid:false result on network failure', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /catch \{[\s\S]*?setVerifyResult\(\{ valid: false, corruptedAt: null, total: 0, rotatedTotal: 0 \}\)/);
+  });
+
+  it('parent SpecialistsAuditPanel wires the hook + drops the inline state + handler', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useAuditVerify\s*\}\s+from\s+'\.\.\/lib\/use-audit-verify'/);
+    assert.match(src, /useAuditVerify\(\)/);
+    assert.doesNotMatch(src, /const \[verifyBusy, setVerifyBusy\]/);
+    assert.doesNotMatch(src, /const handleVerify = useCallback/);
   });
 });
 
