@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.717] - 2026-05-10 — Extract useMeetingRetro hook
+
+**Web — `components/MeetingsRetroActions.tsx` shrunk by 38 lines (99 → 61).**
+The Phase-2.6 retro / finalize state machine
+(busy as `'preview' | 'finalize' | null` + result +
+error + the POST handler that flips its endpoint
+suffix on the `finalize` flag + the meeting-change
+reset effect that drops a stale preview when the
+selection switches) moves to a single
+`useMeetingRetro({ meetingId })` hook returning
+`{ busy, result, error, handleRetro }`.
+
+The component drops `useCallback` / `useEffect` /
+`useState` / `apiPost` / `tFormat` imports — their
+last consumer moved into the hook. The
+`RetroResult` interface is now exported from
+`use-meeting-retro.ts` so the JSX render path can
+keep typing the result narrowing.
+
+This continues the v1.10.716 pattern of pairing each
+Meetings detail action-bar component with a matched
+hook (useMeetingPublish / useMeetingRun /
+useMeetingRetro), so the Phase 3.x state machines all
+live in `lib/` now.
+
+Boundary suite #184 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the conditional `'finalize' / 'retro'`
+endpoint switch, the busy union, the meeting-change
+reset effect, and the i18n error-key mapping.
+Pre-existing boundary suite for `MeetingsRetroActions
+(v1.10.552)` redirected to read the hook file for
+state / handler / reset-effect assertions.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (878 / 183 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.716] - 2026-05-10 — Extract useMeetingRun hook
 
 **Web — `components/MeetingsRunControls.tsx` shrunk by 22 lines (72 → 50).**

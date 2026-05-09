@@ -1191,20 +1191,38 @@ describe('extracted: MeetingsRetroActions (v1.10.552)', () => {
   });
 
   it('owns its own busy / result / error state', () => {
-    const src = read('MeetingsRetroActions.tsx');
-    assert.match(src, /useState<'preview' \| 'finalize' \| null>/);
-    assert.match(src, /useState<RetroResult \| null>/);
+    // (v1.10.717) State machine moved to use-meeting-retro hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-retro.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /useState<'preview' \| 'finalize' \| null>/);
+    assert.match(hookSrc, /useState<RetroResult \| null>/);
   });
 
   it('owns the retro / finalize POST handler (toggles by finalize: boolean)', () => {
-    const src = read('MeetingsRetroActions.tsx');
-    assert.match(src, /handleRetro = useCallback/);
-    assert.match(src, /finalize \? 'finalize' : 'retro'/);
+    // (v1.10.717) POST handler moved to use-meeting-retro hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-retro.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /handleRetro = useCallback/);
+    assert.match(hookSrc, /finalize \? 'finalize' : 'retro'/);
   });
 
   it('resets on meetingId change', () => {
-    const src = read('MeetingsRetroActions.tsx');
-    assert.match(src, /\[meetingId\]/);
+    // (v1.10.717) Reset effect moved to use-meeting-retro hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-retro.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /\[meetingId\]/);
   });
 
   it('is imported and rendered by MeetingsDetailCompletedActions (v1.10.593)', () => {
@@ -1874,6 +1892,46 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useMeetingRetro hook (v1.10.717)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-retro.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'MeetingsRetroActions.tsx');
+
+  it('exports the hook + accepts meetingId', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useMeetingRetro/);
+    assert.match(src, /meetingId:\s*string/);
+  });
+
+  it('POSTs /api/meetings/:id/(retro|finalize) based on the finalize flag', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiPost/);
+    assert.match(src, /\/api\/meetings\/\$\{encodeURIComponent\(meetingId\)\}\/\$\{path\}/);
+    assert.match(src, /finalize\s*\?\s*'finalize'\s*:\s*'retro'/);
+  });
+
+  it('busy slot tracks preview | finalize | null + meeting-change reset effect', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /useState<'preview' \| 'finalize' \| null>/);
+    assert.match(src, /useEffect\([\s\S]*?setResult\(null\);\s*setError\(null\);\s*\}, \[meetingId\]\)/);
+  });
+
+  it('error path uses i18n meetings.(finalize|retro).failed keys', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /meetings\.finalize\.failed/);
+    assert.match(src, /meetings\.retro\.failed/);
+  });
+
+  it('parent MeetingsRetroActions wires the hook + drops the inline state', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useMeetingRetro\s*\}\s+from\s+'\.\.\/lib\/use-meeting-retro'/);
+    assert.match(src, /useMeetingRetro\(\{[\s\S]*?meetingId[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /const \[busy, setBusy\]/);
+    assert.doesNotMatch(src, /apiPost/);
   });
 });
 
