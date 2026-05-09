@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import { apiDelete, apiPost } from '../lib/api';
 import { Button, Input } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useMeetingTemplateEditor } from '../lib/use-meeting-template-editor';
 
 // (v1.10.538) Extracted from MeetingsView. Inline template editor
 // (create / edit / delete) for saved meeting templates. Drops
@@ -37,90 +36,15 @@ export default function MeetingsTemplateEditor({ open, tpl, onClose, onSaved, on
   const mode: 'create' | 'edit' = tpl ? 'edit' : 'create';
   const originalName = tpl?.name ?? '';
 
-  // Form state — re-seeded each time `open` flips true (so the
-  // operator opening on a different chip sees the right values).
-  const [name, setName] = useState('');
-  const [task, setTask] = useState('');
-  const [track, setTrack] = useState('');
-  const [description, setDescription] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    if (tpl) {
-      setName(tpl.name);
-      setTask(tpl.task);
-      setTrack(tpl.track || '');
-      setDescription(tpl.description || '');
-    } else {
-      setName('');
-      setTask('');
-      setTrack('');
-      setDescription('');
-    }
-    setMsg(null);
-    setFailed(false);
-  }, [open, tpl]);
-
-  const handleSave = useCallback(async () => {
-    const trimmedName = name.trim();
-    const trimmedTask = task.trim();
-    if (!trimmedName || !trimmedTask) {
-      setMsg(t('meetings.template.nameTaskRequired'));
-      setFailed(true);
-      return;
-    }
-    setBusy(true);
-    setMsg(null);
-    setFailed(false);
-    try {
-      const body: {
-        name: string;
-        task: string;
-        track?: string;
-        description?: string;
-      } = { name: trimmedName, task: trimmedTask };
-      if (track.trim()) body.track = track.trim();
-      if (description.trim()) body.description = description.trim();
-      await apiPost('/api/meetings/templates', body);
-      // Editing under a different name is a rename — drop the
-      // old record. The daemon doesn't have a rename op so we
-      // upsert + delete-old.
-      if (mode === 'edit' && originalName && originalName !== trimmedName) {
-        await apiDelete(`/api/meetings/templates/${encodeURIComponent(originalName)}`);
-      }
-      setMsg(null);
-      onSaved();
-    } catch (e) {
-      setMsg(tFormat('meetings.template.saveFailed', {
-        error: (e as Error).message || t('common.unknown'),
-      }));
-      setFailed(true);
-    } finally {
-      setBusy(false);
-    }
-  }, [name, task, track, description, mode, originalName, onSaved]);
-
-  const handleDelete = useCallback(async () => {
-    if (!originalName) return;
-    if (!window.confirm(tFormat('meetings.confirmTplDelete', { name: originalName }))) return;
-    setBusy(true);
-    setMsg(null);
-    setFailed(false);
-    try {
-      await apiDelete(`/api/meetings/templates/${encodeURIComponent(originalName)}`);
-      onDeleted(originalName);
-    } catch (e) {
-      setMsg(tFormat('meetings.template.deleteFailed', {
-        error: (e as Error).message || t('common.unknown'),
-      }));
-      setFailed(true);
-    } finally {
-      setBusy(false);
-    }
-  }, [originalName, onDeleted]);
+  // (v1.10.700) Form state + save + delete moved to hook.
+  const {
+    name, setName,
+    task, setTask,
+    track, setTrack,
+    description, setDescription,
+    busy, msg, failed,
+    handleSave, handleDelete,
+  } = useMeetingTemplateEditor({ open, tpl, onSaved, onDeleted });
 
   if (!open) return null;
 

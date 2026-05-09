@@ -1820,6 +1820,49 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useMeetingTemplateEditor hook (v1.10.700)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-template-editor.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'MeetingsTemplateEditor.tsx');
+
+  it('exports the hook + accepts open/tpl/onSaved/onDeleted', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useMeetingTemplateEditor/);
+    assert.match(src, /open:\s*boolean/);
+    assert.match(src, /tpl:\s*TemplateLike\s*\|\s*null/);
+    assert.match(src, /onSaved:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onDeleted:\s*\(deletedName:\s*string\)\s*=>\s*void/);
+  });
+
+  it('re-seeds form when open flips true', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /useEffect\(\(\) => \{[\s\S]*?if \(!open\) return;[\s\S]*?\}, \[open, tpl\]\)/);
+  });
+
+  it('handleSave POSTs /api/meetings/templates + delete-old branch on rename', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiPost\('\/api\/meetings\/templates',\s*body\)/);
+    assert.match(src, /if \(mode === 'edit' && originalName && originalName !== trimmedName\)/);
+    assert.match(src, /apiDelete\(`\/api\/meetings\/templates\/\$\{encodeURIComponent\(originalName\)\}`\)/);
+  });
+
+  it('handleDelete confirms via window.confirm + DELETEs /templates/:name', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.confirm\(tFormat\('meetings\.confirmTplDelete'/);
+    assert.match(src, /onDeleted\(originalName\)/);
+  });
+
+  it('parent MeetingsTemplateEditor wires the hook + drops the inline state + handlers', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useMeetingTemplateEditor\s*\}\s+from\s+'\.\.\/lib\/use-meeting-template-editor'/);
+    assert.match(src, /useMeetingTemplateEditor\(\{[\s\S]*?open,\s*tpl,\s*onSaved,\s*onDeleted[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /const \[name, setName\]/);
+    assert.doesNotMatch(src, /const handleSave = useCallback/);
+    assert.doesNotMatch(src, /const handleDelete = useCallback/);
+  });
+});
+
 describe('extracted: usePromptRevision hook (v1.10.699)', () => {
   const fs = require('fs');
   const path = require('path');

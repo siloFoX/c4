@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.700] - 2026-05-09 — Extract useMeetingTemplateEditor hook 🎉
+
+**Web — `MeetingsTemplateEditor.tsx` shrunk by 76 lines (218 → 142).**
+The four form fields (name / task / track / description),
+busy / msg / failed banner state, the open-flips-true
+re-seed effect, and both save (POST + delete-old on
+rename) and delete (window.confirm + DELETE) handlers
+move to a self-contained hook.
+
+This is the **700th version** since the c4 ecosystem
+shipped — and v1.10.700 marks the one that crossed it
+during the perfection track. 76 hooks now in
+`web/src/lib/`.
+
+### Refactor
+- New `web/src/lib/use-meeting-template-editor.ts`
+  (~138 lines). TemplateLike type stays
+  module-private. Returns 12 fields covering form +
+  banner + handlers.
+- `MeetingsTemplateEditor.tsx`: removed 7 useState
+  slots, the re-seed useEffect, and both handlers.
+  Replaced with one destructured hook call. Trimmed
+  `useCallback` + `useEffect` + `useState` +
+  `apiDelete` + `apiPost` imports.
+- Boundary suite #167 — 5 assertions covering hook
+  signature, re-seed effect, save + rename branch,
+  delete confirm gate, parent wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  808 / 808 across 166 → 167 suites.
+- `npm run check:full`: green.
+
+### Stats
+- 171 ships total since v1.10.529.
+- 168 components/libs extracted.
+- 77 custom hooks in `web/src/lib/`.
+- 808 boundary assertions across 167 suites.
+
 ## [1.10.699] - 2026-05-09 — Extract usePromptRevision hook
 
 **Web — `SpecialistsPromptPanel.tsx` shrunk by 63 lines (213 → 150).**
