@@ -1865,6 +1865,40 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useControlPanelSingle hook (v1.10.710)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-control-panel-single.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'ControlPanel.tsx');
+
+  it('exports the hook + accepts workerName/postAction/showToast/fetchList', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useControlPanelSingle/);
+    assert.match(src, /workerName:\s*string/);
+    assert.match(src, /postAction:[\s\S]*?Promise<\{ ok: boolean; error\?: string \}>/);
+  });
+
+  it('runSingle confirms via window.confirm + busy-marks the action kind', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(action\.confirm && !window\.confirm\(action\.confirm\)\) return/);
+    assert.match(src, /setBusyKind\(action\.kind\)/);
+  });
+
+  it('emits success/error toast routed by postAction result', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /controlPanel\.action\.failed/);
+    assert.match(src, /controlPanel\.action\.failedUnknown/);
+  });
+
+  it('parent ControlPanel wires the hook + drops the inline state + handler', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useControlPanelSingle\s*\}\s+from\s+'\.\.\/lib\/use-control-panel-single'/);
+    assert.match(src, /useControlPanelSingle\(\{[\s\S]*?workerName,\s*postAction,\s*showToast,\s*fetchList[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /const \[busyKind, setBusyKind\]/);
+    assert.doesNotMatch(src, /const runSingle = useCallback/);
+  });
+});
+
 describe('extracted: useNavBadgeCounts hook (v1.10.709)', () => {
   const fs = require('fs');
   const path = require('path');

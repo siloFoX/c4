@@ -13,6 +13,7 @@ import ControlPanelActions from './ControlPanelActions';
 import ControlPanelBatch from './ControlPanelBatch';
 import { useWorkerSelection } from '../lib/use-worker-selection';
 import { useToast } from '../lib/use-toast';
+import { useControlPanelSingle } from '../lib/use-control-panel-single';
 import { apiFetch } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import type { ListResponse, Worker } from '../types';
@@ -185,7 +186,6 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
   useLocale();
   // (v1.10.708) Toast slot moved to lib/use-toast.
   const { toast, showToast, dismissToast } = useToast();
-  const [busyKind, setBusyKind] = useState<ActionKind | null>(null);
   const [workers, setWorkers] = useState<Worker[]>([]);
 
   const fetchList = useCallback(async () => {
@@ -207,27 +207,10 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
 
   const actions = buildActions(workerName);
 
-  const runSingle = useCallback(
-    async (action: SingleAction) => {
-      if (action.confirm && !window.confirm(action.confirm)) return;
-      setBusyKind(action.kind);
-      const res = await postAction(action.endpoint, action.body);
-      if (res.ok) {
-        showToast(action.successMessage(workerName), 'success');
-      } else {
-        showToast(
-          tFormat('controlPanel.action.failed', {
-            label: action.label,
-            error: res.error || t('controlPanel.action.failedUnknown'),
-          }),
-          'error',
-        );
-      }
-      setBusyKind(null);
-      fetchList();
-    },
-    [workerName, showToast, fetchList],
-  );
+  // (v1.10.710) Single-action dispatcher moved to hook.
+  const { busyKind, runSingle } = useControlPanelSingle({
+    workerName, postAction, showToast, fetchList,
+  });
 
   // (v1.10.668) Selection + batch state machine moved to hook.
   const {

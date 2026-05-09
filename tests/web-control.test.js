@@ -308,7 +308,12 @@ describe('ControlPanel.tsx source wiring (8.8)', () => {
     ]) {
       assert.match(src, fragment);
     }
-    assert.match(src, /window\.confirm\(/);
+    // (v1.10.710) runSingle's window.confirm gate moved to use-control-panel-single hook.
+    const hookSrc = fs.readFileSync(
+      path.join(REPO_ROOT, 'web', 'src', 'lib', 'use-control-panel-single.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /window\.confirm\(/);
   });
 
   it('does NOT gate Pause or Resume behind confirm (they are reversible)', () => {

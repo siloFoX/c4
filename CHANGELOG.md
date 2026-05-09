@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.710] - 2026-05-09 — Extract useControlPanelSingle hook
+
+**Web — `components/ControlPanel.tsx` shrunk by 17 lines (282 → 265).**
+The single-worker action dispatcher (`runSingle`) and
+its in-flight `busyKind` slot move to a dedicated
+`useControlPanelSingle` hook. The hook owns the
+confirm-gate, busy-marking, postAction wrapper call,
+toast routing (success vs i18n-formatted error), and
+the post-success `fetchList` ping. Parent now passes
+`{ workerName, postAction, showToast, fetchList }` and
+destructures `{ busyKind, runSingle }` for JSX wiring.
+
+Boundary suite #177 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the confirm/busy/toast contract, and
+checks that `ControlPanel.tsx` no longer carries the
+inline `[busyKind, setBusyKind]` slot or the
+`runSingle = useCallback` block. The pre-existing
+`web-control` "prompts a confirm dialog" assertion was
+redirected from the parent to the hook file (the
+window.confirm gate physically moved with the handler).
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (851 / 176 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.709] - 2026-05-09 — Extract useNavBadgeCounts hook
 
 **Web — `layout/AppHeader.tsx` shrunk by 42 lines (190 → 148).**
