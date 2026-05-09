@@ -4,6 +4,52 @@
 
 (no entries — next release window)
 
+## [1.10.732] - 2026-05-10 — Extract useUiPreferences hook
+
+**Web — `App.tsx` shrunk by 22 lines (230 → 208).**
+The four UI preference state machines —
+`sidebarMode`, `sidebarCollapsed`, `detailMode`,
+`topView` — and their five surrounding effects (one
+`useEffect` per slot to write the new value back to
+localStorage, plus a fifth that listens for the
+`'storage'` event and re-reads all four on cross-tab
+sync) move to a single `useUiPreferences()` hook.
+
+The hook signature accepts an optional
+`onCrossTabSync` callback that fires inside the
+storage handler so the parent can refresh sibling
+preferences (e.g. theme, owned by `useTheme`) that
+participate in the same event handler. App.tsx wires
+that callback to `setTheme(readTheme())` so theme
+sync still flows through the same listener — one
+window-scoped event subscription instead of two.
+
+Refactor pulled five preference-related imports
+(`readDetailMode` / `readSidebarCollapsed` /
+`readSidebarMode` / `readTopView` / 4 writers) out of
+App.tsx since their last consumer moved into the
+hook. The four `DEFAULT_*` constants stayed because
+the Settings reset path (`onReset` → `setX(DEFAULT_X)`)
+still references them in App-level JSX.
+
+Boundary suite #198 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the four `useState<*>(read*)` slots
+and matching write effects, the storage event
+subscribe / unsubscribe pair, the
+`onCrossTabSync?.()` invocation, and verifies App.tsx
+wires the hook + drops the inline persistence and
+storage listener. Three pre-existing tests in
+`sidebar-collapsible.test.js` redirected from
+parent to hook file ("imports the new preference
+helpers" / "initialises sidebarCollapsed state" /
+"persists changes" / "cross-tab storage handler").
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (949 / 198 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.731] - 2026-05-10 — Extract useWorkspaces hook
 
 **Web — `pages/Workspaces.tsx` shrunk by 28 lines (132 → 104).**

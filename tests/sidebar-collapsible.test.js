@@ -150,17 +150,33 @@ describe('App.tsx wires sidebarCollapsed + Ctrl+B', () => {
   const src = readText(APP);
 
   it('imports the new preference helpers', () => {
-    assert.match(src, /readSidebarCollapsed/);
-    assert.match(src, /writeSidebarCollapsed/);
+    // (v1.10.732) read/write helpers moved into use-ui-preferences hook.
+    const hookSrc = fs.readFileSync(
+      path.join(ROOT, 'web/src/lib/use-ui-preferences.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /readSidebarCollapsed/);
+    assert.match(hookSrc, /writeSidebarCollapsed/);
+    // Parent still references DEFAULT_SIDEBAR_COLLAPSED for the reset path.
     assert.match(src, /DEFAULT_SIDEBAR_COLLAPSED/);
   });
 
   it('initialises sidebarCollapsed state from the persisted value', () => {
-    assert.match(src, /useState<boolean>\(readSidebarCollapsed\)/);
+    // (v1.10.732) State init moved into hook.
+    const hookSrc = fs.readFileSync(
+      path.join(ROOT, 'web/src/lib/use-ui-preferences.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /useState<boolean>\(readSidebarCollapsed\)/);
   });
 
   it('persists changes via writeSidebarCollapsed', () => {
-    assert.match(src, /writeSidebarCollapsed\(sidebarCollapsed\)/);
+    // (v1.10.732) Persistence effect moved into hook.
+    const hookSrc = fs.readFileSync(
+      path.join(ROOT, 'web/src/lib/use-ui-preferences.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /writeSidebarCollapsed\(sidebarCollapsed\)/);
   });
 
   it('passes collapsed + onToggleCollapsed through to Sidebar', () => {
@@ -192,7 +208,12 @@ describe('App.tsx wires sidebarCollapsed + Ctrl+B', () => {
   });
 
   it('cross-tab storage handler refreshes the collapsed flag', () => {
-    assert.match(src, /setSidebarCollapsed\(readSidebarCollapsed\(\)\)/);
+    // (v1.10.732) Storage event handler moved into use-ui-preferences hook.
+    const hookSrc = fs.readFileSync(
+      path.join(ROOT, 'web/src/lib/use-ui-preferences.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /setSidebarCollapsed\(readSidebarCollapsed\(\)\)/);
   });
 
   it('Settings reset restores DEFAULT_SIDEBAR_COLLAPSED', () => {

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useState } from 'react';
 import Login from './components/Login';
 import { LoadingSkeleton } from './pages/PageFrame';
 // (v1.10.509) Top-level views are lazy-loaded so the main bundle
@@ -19,31 +19,23 @@ const Chat = lazy(() => import('./components/Chat'));
 const WorkflowEditor = lazy(() => import('./components/WorkflowEditor'));
 const SettingsView = lazy(() => import('./components/SettingsView'));
 import AppHeader from './components/layout/AppHeader';
-import Sidebar, { type SidebarMode } from './components/layout/Sidebar';
-import DetailTabs, { type DetailMode } from './components/layout/DetailTabs';
+import Sidebar from './components/layout/Sidebar';
+import DetailTabs from './components/layout/DetailTabs';
 import EmptyState from './components/layout/EmptyState';
 import FeatureView from './components/layout/FeatureView';
 import HelpUIRoot from './components/HelpUIRoot';
 import MetricsBar from './components/MetricsBar';
-import { type TopView } from './components/layout/TopTabs';
 import { logout } from './lib/api';
 import { useAuthState } from './lib/use-auth-state';
 import { useSidebarShortcut } from './lib/use-sidebar-shortcut';
 import { useTheme } from './lib/use-theme';
+import { useUiPreferences } from './lib/use-ui-preferences';
 import {
   DEFAULT_DETAIL_MODE,
   DEFAULT_SIDEBAR_COLLAPSED,
   DEFAULT_SIDEBAR_MODE,
   DEFAULT_THEME,
-  readDetailMode,
-  readSidebarCollapsed,
-  readSidebarMode,
   readTheme,
-  readTopView,
-  writeDetailMode,
-  writeSidebarCollapsed,
-  writeSidebarMode,
-  writeTopView,
 } from './lib/preferences';
 
 export default function App() {
@@ -55,41 +47,27 @@ export default function App() {
     if (typeof window === 'undefined') return true;
     return window.matchMedia('(min-width: 768px)').matches;
   });
-  const [sidebarMode, setSidebarMode] = useState<SidebarMode>(readSidebarMode);
-  // (TODO 8.40) Desktop icon-rail mode. Persisted, separate from the
-  // transient mobile sidebarOpen flag so a power user's collapsed
-  // preference survives reloads.
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(readSidebarCollapsed);
-  const [detailMode, setDetailMode] = useState<DetailMode>(readDetailMode);
-  const [topView, setTopView] = useState<TopView>(readTopView);
   // (v1.10.671) Theme state + write+apply + OS-theme listener moved to
   // lib/use-theme.
   const { theme, setTheme } = useTheme();
-
-  useEffect(() => { writeSidebarMode(sidebarMode); }, [sidebarMode]);
-  useEffect(() => { writeSidebarCollapsed(sidebarCollapsed); }, [sidebarCollapsed]);
-  useEffect(() => { writeDetailMode(detailMode); }, [detailMode]);
-  useEffect(() => { writeTopView(topView); }, [topView]);
+  // (v1.10.732) Sidebar/detail/topView preferences + persistence + cross-
+  // tab storage sync moved to lib/use-ui-preferences. Theme participates
+  // in the storage sync via the onCrossTabSync callback.
+  const onCrossTabSync = useCallback(() => {
+    setTheme(readTheme());
+  }, [setTheme]);
+  const {
+    sidebarMode, setSidebarMode,
+    sidebarCollapsed, setSidebarCollapsed,
+    detailMode, setDetailMode,
+    topView, setTopView,
+  } = useUiPreferences({ onCrossTabSync });
 
   // (v1.10.670) Ctrl+B / Cmd+B sidebar shortcut moved to hook.
   useSidebarShortcut({
     onToggleCollapsed: () => setSidebarCollapsed((v) => !v),
     onToggleOpen: () => setSidebarOpen((v) => !v),
   });
-
-  // Re-sync state if another tab updates the same preferences.
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const onStorage = () => {
-      setSidebarMode(readSidebarMode());
-      setSidebarCollapsed(readSidebarCollapsed());
-      setDetailMode(readDetailMode());
-      setTopView(readTopView());
-      setTheme(readTheme());
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
 
   if (authState === 'loading') {
     return (

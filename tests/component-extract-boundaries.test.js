@@ -1942,6 +1942,49 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useUiPreferences hook (v1.10.732)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-ui-preferences.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'App.tsx');
+
+  it('exports the hook + accepts onCrossTabSync callback', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useUiPreferences/);
+    assert.match(src, /onCrossTabSync\?:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('owns 4 preference slots + per-slot persistence effects', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /useState<SidebarMode>\(readSidebarMode\)/);
+    assert.match(src, /useState<boolean>\(readSidebarCollapsed\)/);
+    assert.match(src, /useState<DetailMode>\(readDetailMode\)/);
+    assert.match(src, /useState<TopView>\(readTopView\)/);
+    assert.match(src, /writeSidebarMode\(sidebarMode\)/);
+    assert.match(src, /writeSidebarCollapsed\(sidebarCollapsed\)/);
+    assert.match(src, /writeDetailMode\(detailMode\)/);
+    assert.match(src, /writeTopView\(topView\)/);
+  });
+
+  it('storage event re-reads all four + invokes onCrossTabSync', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /addEventListener\('storage'/);
+    assert.match(src, /removeEventListener\('storage'/);
+    assert.match(src, /setSidebarMode\(readSidebarMode\(\)\)/);
+    assert.match(src, /setTopView\(readTopView\(\)\)/);
+    assert.match(src, /onCrossTabSync\?\.\(\)/);
+  });
+
+  it('parent App.tsx wires the hook + drops the inline persistence', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useUiPreferences\s*\}\s+from\s+'\.\/lib\/use-ui-preferences'/);
+    assert.match(src, /useUiPreferences\(\{[\s\S]*?onCrossTabSync[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /writeSidebarMode\(/);
+    assert.doesNotMatch(src, /writeSidebarCollapsed\(/);
+    assert.doesNotMatch(src, /addEventListener\('storage'/);
+  });
+});
+
 describe('extracted: useWorkspaces hook (v1.10.731)', () => {
   const fs = require('fs');
   const path = require('path');
