@@ -5,7 +5,8 @@ import Toast, { type ToastType } from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Input, Label, Panel, Tooltip } from '../components/ui';
-import { apiFetch, apiGet, apiPost } from '../lib/api';
+import { apiGet, apiPost } from '../lib/api';
+import { usePlanContent, type PlanResponse } from '../lib/use-plan-content';
 import { renderMarkdown } from '../lib/markdown';
 import type { ListResponse, Worker } from '../types';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -16,14 +17,8 @@ import { t, tFormat, useLocale } from '../lib/i18n';
 // the generated plan and POSTs it via /api/task so the planner output
 // can graduate into real work in one click.
 
-interface PlanResponse {
-  name?: string;
-  content?: string;
-  path?: string;
-  status?: string;
-  error?: string;
-  [key: string]: unknown;
-}
+// (v1.10.661) PlanResponse + plan-content fetch moved to
+// lib/use-plan-content.
 
 interface ToastState { id: number; message: string; type: ToastType }
 
@@ -34,10 +29,7 @@ export default function Plan() {
   const [task, setTask] = useState('');
   const [branch, setBranch] = useState('');
   const [output, setOutput] = useState('');
-  const [plan, setPlan] = useState<PlanResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
   const [dispatching, setDispatching] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
 
   const showToast = useCallback((message: string, type: ToastType) => {
@@ -60,25 +52,8 @@ export default function Plan() {
     loadWorkers();
   }, [loadWorkers]);
 
-  const loadPlan = useCallback(async () => {
-    if (!selected) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await apiFetch(`/api/plan?name=${encodeURIComponent(selected)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as PlanResponse;
-      setPlan(data);
-    } catch (e) {
-      setError((e as Error).message);
-      setPlan(null);
-    }
-    setLoading(false);
-  }, [selected]);
-
-  useEffect(() => {
-    loadPlan();
-  }, [loadPlan]);
+  // (v1.10.661) Plan-content fetch moved to hook.
+  const { plan, loading, error, setError, loadPlan } = usePlanContent({ selected });
 
   const dispatchPlan = useCallback(async () => {
     if (!selected || !task.trim()) {

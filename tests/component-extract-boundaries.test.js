@@ -1770,6 +1770,49 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: usePlanContent hook (v1.10.661)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-plan-content.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'pages', 'Plan.tsx');
+
+  it('exports the hook + PlanResponse type', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function usePlanContent/);
+    assert.match(src, /export interface PlanResponse/);
+  });
+
+  it('GETs /api/plan?name=<worker> with HTTP error mapping + auto-fetch', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\/api\/plan\?name=\$\{encodeURIComponent\(selected\)\}/);
+    assert.match(src, /throw new Error\(`HTTP \$\{res\.status\}`\)/);
+    assert.match(src, /useEffect\(\(\) => \{ loadPlan\(\); \}/);
+  });
+
+  it('clears the slot to null on error so the empty state can render', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /setPlan\(null\)/);
+  });
+
+  it('returns plan + loading + error + setError + loadPlan', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /plan:\s*PlanResponse\s*\|\s*null/);
+    assert.match(src, /loading:\s*boolean/);
+    assert.match(src, /error:\s*string\s*\|\s*null/);
+    assert.match(src, /setError:\s*\(message:\s*string\s*\|\s*null\)\s*=>\s*void/);
+    assert.match(src, /loadPlan:\s*\(\)\s*=>\s*Promise<void>/);
+  });
+
+  it('parent Plan wires the hook + drops the inline state + interface', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*usePlanContent,\s*type\s+PlanResponse\s*\}\s+from\s+'\.\.\/lib\/use-plan-content'/);
+    assert.match(src, /usePlanContent\(\{\s*selected\s*\}\)/);
+    assert.doesNotMatch(src, /^interface PlanResponse/m);
+    assert.doesNotMatch(src, /const \[plan, setPlan\]/);
+    assert.doesNotMatch(src, /const loadPlan = useCallback/);
+  });
+});
+
 describe('extracted: useWorkerList hook (v1.10.660)', () => {
   const fs = require('fs');
   const path = require('path');

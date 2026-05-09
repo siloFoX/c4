@@ -4,6 +4,43 @@
 
 (no entries — next release window)
 
+## [1.10.661] - 2026-05-09 — Extract usePlanContent hook
+
+**Web — `pages/Plan.tsx` shrunk by 17 lines (244 → 227).**
+The saved-plan reader — GET /api/plan?name=<worker> on
+`selected` flip, with HTTP-error → null-slot mapping so
+the "no plan yet" empty state can render — moves to a
+self-contained hook. The hook also exposes `setError`
+so the sibling worker-list / dispatch handlers can keep
+writing to the same banner slot.
+
+### Refactor
+- New `web/src/lib/use-plan-content.ts` (~54 lines).
+  Exports `usePlanContent` + the `PlanResponse` type
+  that the dispatch handler downstream still consumes.
+- `pages/Plan.tsx`: removed the inline `PlanResponse`
+  interface, three useState slots
+  (plan / loading / error), the `loadPlan` useCallback,
+  and the auto-refetch useEffect. Replaced with one
+  destructured hook call. `apiFetch` import dropped.
+- Boundary suite #129 — 5 assertions covering hook +
+  type export shape, `/api/plan?name=` URL + HTTP
+  error mapping + auto-fetch, error-path null-clear,
+  return tuple including setError, parent wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  647 / 647 across 128 → 129 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 133 ships total since v1.10.529.
+- 130 components/libs extracted.
+- 40 custom hooks in `web/src/lib/`.
+- 647 boundary assertions across 129 suites.
+
 ## [1.10.660] - 2026-05-09 — Extract useWorkerList hook
 
 **Web — `WorkerList.tsx` shrunk by 37 lines (279 → 242).**
