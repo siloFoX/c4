@@ -4,6 +4,43 @@
 
 (no entries — next release window)
 
+## [1.10.685] - 2026-05-09 — Extract useSpecialistsExport hook
+
+**Web — `SpecialistsBulkOpsToolbar.tsx` shrunk by 29 lines (249 → 220).**
+The specialists-registry export — GET
+/api/specialists/export, prettify JSON, blob download
+via createObjectURL + anchor click + revoke, auto-clear
+banner after 4s — moves to a self-contained hook.
+Same shape as the audit export hook; just a different
+endpoint + download payload.
+
+### Refactor
+- New `web/src/lib/use-specialists-export.ts`
+  (~55 lines). No-arg signature returning
+  `{ exportBusy, exportMsg, exportFailed, handleExport }`.
+- `SpecialistsBulkOpsToolbar.tsx`: removed three
+  useState slots and the ~29-line `handleExport`
+  useCallback. Replaced with one destructured no-arg
+  hook call. Trimmed `apiGet` import (now consumed by
+  the hook).
+- Boundary suite #152 — 4 assertions covering hook +
+  no-arg signature, /api/specialists/export URL +
+  prettified JSON download, 4s banner-clear +
+  failed-tone, parent wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  750 / 750 across 151 → 152 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 156 ships total since v1.10.529.
+- 154 components/libs extracted.
+- 64 custom hooks in `web/src/lib/`.
+- 750 boundary assertions across 152 suites.
+
 ## [1.10.684] - 2026-05-09 — Extract useAuditExport hook
 
 **Web — `SpecialistsAuditPanel.tsx` shrunk by 28 lines (202 → 174).**

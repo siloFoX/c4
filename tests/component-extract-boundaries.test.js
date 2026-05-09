@@ -1791,6 +1791,40 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useSpecialistsExport hook (v1.10.685)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-specialists-export.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'SpecialistsBulkOpsToolbar.tsx');
+
+  it('exports the hook with no-arg signature', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useSpecialistsExport\(\)/);
+  });
+
+  it('GETs /api/specialists/export + downloads pretty-printed JSON', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiGet<[\s\S]*?>\('\/api\/specialists\/export'\)/);
+    assert.match(src, /JSON\.stringify\(bundle,\s*null,\s*2\)/);
+    assert.match(src, /'application\/json'/);
+    assert.match(src, /c4-specialists-export-/);
+  });
+
+  it('auto-clears the success banner after 4s + flips failed-tone on error', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.setTimeout\(\(\) => setExportMsg\(null\),\s*4000\)/);
+    assert.match(src, /setExportFailed\(true\)/);
+  });
+
+  it('parent SpecialistsBulkOpsToolbar wires the hook + drops the inline state + handler', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useSpecialistsExport\s*\}\s+from\s+'\.\.\/lib\/use-specialists-export'/);
+    assert.match(src, /useSpecialistsExport\(\)/);
+    assert.doesNotMatch(src, /const \[exportBusy, setExportBusy\]/);
+    assert.doesNotMatch(src, /const handleExport = useCallback/);
+  });
+});
+
 describe('extracted: useAuditExport hook (v1.10.684)', () => {
   const fs = require('fs');
   const path = require('path');

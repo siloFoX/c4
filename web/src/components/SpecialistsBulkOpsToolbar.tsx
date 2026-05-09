@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { apiGet, apiPost } from '../lib/api';
+import { apiPost } from '../lib/api';
+import { useSpecialistsExport } from '../lib/use-specialists-export';
 import { Button } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -30,38 +31,8 @@ export default function SpecialistsBulkOpsToolbar({ onChange }: Props) {
   // Re-render on locale flip.
   useLocale();
 
-  const [exportBusy, setExportBusy] = useState(false);
-  const [exportMsg, setExportMsg] = useState<string | null>(null);
-  const [exportFailed, setExportFailed] = useState(false);
-  const handleExport = useCallback(async () => {
-    setExportBusy(true);
-    setExportMsg(null);
-    setExportFailed(false);
-    try {
-      const bundle = await apiGet<{
-        version: number;
-        exportedAt: string;
-        sourceVersion: number;
-        specialists: unknown[];
-      }>('/api/specialists/export');
-      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `c4-specialists-export-${bundle.exportedAt.replace(/[:.]/g, '-')}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      setExportMsg(tFormat('specialists.export.success', { count: bundle.specialists.length }));
-      window.setTimeout(() => setExportMsg(null), 4000);
-    } catch (e) {
-      setExportMsg(tFormat('specialists.export.failed', { error: (e as Error).message || t('common.unknown') }));
-      setExportFailed(true);
-    } finally {
-      setExportBusy(false);
-    }
-  }, []);
+  // (v1.10.685) Specialists export moved to lib/use-specialists-export.
+  const { exportBusy, exportMsg, exportFailed, handleExport } = useSpecialistsExport();
 
   const [importMode, setImportMode] = useState<'merge' | 'replace'>('merge');
   const [importBusy, setImportBusy] = useState(false);
