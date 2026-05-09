@@ -4,6 +4,43 @@
 
 (no entries — next release window)
 
+## [1.10.731] - 2026-05-10 — Extract useWorkspaces hook
+
+**Web — `pages/Workspaces.tsx` shrunk by 28 lines (132 → 104).**
+The `/api/workspaces` fetch + state machine + the
+`Workspace` interface move to a `useWorkspaces()`
+hook returning `{ data, error, loading, refresh }`.
+
+The page is read-only today (workspaces are
+config-driven on the daemon side); the hook shape
+leaves room for the eventual mutation endpoint by
+exposing `refresh` as the canonical re-fetch handle.
+
+`Workspace` is now exported from the hook so the
+parent JSX renderer (status icon row, path / git
+checks) keeps typing the row narrowing without a
+duplicate definition. The page-level
+`WorkspacesResponse` envelope stays inside the hook
+since no other consumer uses it.
+
+This continues the canonical "single GET fetch +
+useEffect → refresh" page-hook pattern landed across
+useConfig (v1.10.723), useValidations (v1.10.724),
+useHealth + useRbac (v1.10.729), useSwarm
+(v1.10.730).
+
+Boundary suite #197 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the `Workspace` type export, the
+mount fetch + refresh re-fetch, the i18n
+`common.failedToLoadWorkspaces` fallback, and verifies
+the parent wires the hook + drops the inline state.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (945 / 197 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.730] - 2026-05-10 — Extract useSwarm hook
 
 **Web — `pages/Swarm.tsx` shrunk by 61 lines (157 → 96).**

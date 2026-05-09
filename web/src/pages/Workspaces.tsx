@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, FolderTree, GitBranch, RefreshCw, XCircle } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
 import { Button, Panel } from '../components/ui';
-import { apiGet } from '../lib/api';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
+import { useWorkspaces } from '../lib/use-workspaces';
 
 // (v1.10.379) Workspaces — multi-repo workspace listing from
 // config.workspaces. Read-only for now; the daemon doesn't
@@ -21,38 +20,11 @@ import { t, useLocale } from '../lib/i18n';
 //   - exists=true && isGitRepo=false: directory exists but
 //     daemon can't operate on it (worktree paths need git)
 // Both render with a destructive-tone status icon.
-
-interface Workspace {
-  name: string;
-  path: string;
-  exists: boolean;
-  isGitRepo: boolean;
-}
-
-interface WorkspacesResponse {
-  workspaces: Workspace[];
-}
+// (v1.10.731) Fetch + state machine moved to lib/use-workspaces.
 
 export default function Workspaces() {
   useLocale();
-  const [data, setData] = useState<Workspace[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await apiGet<WorkspacesResponse>('/api/workspaces');
-      setData(res.workspaces || []);
-    } catch (e) {
-      setError((e as Error).message || t('common.failedToLoadWorkspaces'));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { refresh(); }, [refresh]);
+  const { data, error, loading, refresh } = useWorkspaces();
 
   return (
     <PageFrame

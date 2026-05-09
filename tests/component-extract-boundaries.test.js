@@ -1942,6 +1942,38 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useWorkspaces hook (v1.10.731)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-workspaces.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'pages', 'Workspaces.tsx');
+
+  it('exports the hook + Workspace type', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useWorkspaces\(\)/);
+    assert.match(src, /export interface Workspace/);
+  });
+
+  it('GET /api/workspaces on mount + refresh re-fetches', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiGet<WorkspacesResponse>\('\/api\/workspaces'\)/);
+    assert.match(src, /useEffect\(\(\)\s*=>\s*\{\s*refresh\(\);\s*\},\s*\[refresh\]\)/);
+  });
+
+  it('error path falls back to common.failedToLoadWorkspaces i18n key', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /common\.failedToLoadWorkspaces/);
+  });
+
+  it('parent Workspaces.tsx wires the hook + drops the inline state', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useWorkspaces\s*\}\s+from\s+'\.\.\/lib\/use-workspaces'/);
+    assert.match(src, /useWorkspaces\(\)/);
+    assert.doesNotMatch(src, /apiGet<WorkspacesResponse>/);
+    assert.doesNotMatch(src, /const \[data, setData\]/);
+  });
+});
+
 describe('extracted: useSwarm hook (v1.10.730)', () => {
   const fs = require('fs');
   const path = require('path');
