@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { HelpDrawer } from './HelpDrawer';
 import { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
 import { OnboardingTour } from './OnboardingTour';
+import { useFeatureIdFromHash } from '../lib/use-feature-id-from-hash';
 
 export const HELP_EVENT_OPEN_DRAWER = 'c4:help-drawer-open';
 export const HELP_EVENT_OPEN_SHORTCUTS = 'c4:shortcuts-open';
@@ -28,15 +29,6 @@ export function openShortcutsModal(): void {
   }
 }
 
-const HASH_PREFIX = '#/feature/';
-
-function readActiveFeatureId(): string | null {
-  if (typeof window === 'undefined') return null;
-  const hash = window.location.hash || '';
-  if (hash.startsWith(HASH_PREFIX)) return hash.slice(HASH_PREFIX.length);
-  return null;
-}
-
 // 8.33: mounts the three global help overlays (help drawer, keyboard
 // shortcut cheat sheet, onboarding tour) and wires the keyboard +
 // custom-event contract used by AppHeader and other dispatchers. Kept
@@ -45,15 +37,8 @@ function readActiveFeatureId(): string | null {
 export default function HelpUIRoot() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const [activeFeatureId, setActiveFeatureId] = useState<string | null>(() =>
-    readActiveFeatureId(),
-  );
-
-  useEffect(() => {
-    const onHash = () => setActiveFeatureId(readActiveFeatureId());
-    window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
-  }, []);
+  // (v1.10.711) Hash-routed feature id moved to hook.
+  const activeFeatureId = useFeatureIdFromHash();
 
   useEffect(() => {
     const onDrawer = () => setDrawerOpen(true);

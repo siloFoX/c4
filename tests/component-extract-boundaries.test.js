@@ -1865,6 +1865,35 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useFeatureIdFromHash hook (v1.10.711)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-feature-id-from-hash.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'HelpUIRoot.tsx');
+
+  it('exports the hook + reads window.location.hash with the #/feature/ prefix', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useFeatureIdFromHash/);
+    assert.match(src, /'#\/feature\/'/);
+    assert.match(src, /window\.location\.hash/);
+  });
+
+  it('subscribes to hashchange + returns null on the server', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /addEventListener\('hashchange'/);
+    assert.match(src, /removeEventListener\('hashchange'/);
+    assert.match(src, /typeof window === 'undefined'/);
+  });
+
+  it('parent HelpUIRoot wires the hook + drops the inline state + parser', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useFeatureIdFromHash\s*\}\s+from\s+'\.\.\/lib\/use-feature-id-from-hash'/);
+    assert.match(src, /const activeFeatureId = useFeatureIdFromHash\(\)/);
+    assert.doesNotMatch(src, /function readActiveFeatureId/);
+    assert.doesNotMatch(src, /const HASH_PREFIX/);
+  });
+});
+
 describe('extracted: useControlPanelSingle hook (v1.10.710)', () => {
   const fs = require('fs');
   const path = require('path');

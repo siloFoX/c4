@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.10.711] - 2026-05-09 — Extract useFeatureIdFromHash hook
+
+**Web — `components/HelpUIRoot.tsx` shrunk by 16 lines (113 → 97).**
+The hash-routed feature id (`#/feature/<id>` deep link
+parser + `hashchange` listener + state slot) moves to a
+self-contained `useFeatureIdFromHash()` hook that returns
+the current feature id as `string | null`. Hook owns the
+`HASH_PREFIX` constant, the SSR-safe parser
+(`readActiveFeatureId`), the state slot, and the
+hashchange subscribe/unsubscribe lifecycle.
+
+The parent now collapses three lines (state +
+useEffect + parser fn) into a single
+`const activeFeatureId = useFeatureIdFromHash();`.
+
+Boundary suite #178 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the `#/feature/` prefix, the
+hashchange listener contract, the SSR guard, and
+checks that `HelpUIRoot.tsx` no longer carries the
+`readActiveFeatureId` helper or the `HASH_PREFIX`
+constant.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (854 / 177 suites — +3 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.710] - 2026-05-09 — Extract useControlPanelSingle hook
 
 **Web — `components/ControlPanel.tsx` shrunk by 17 lines (282 → 265).**
