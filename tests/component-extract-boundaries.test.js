@@ -1865,6 +1865,47 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useOnboardingTour hook (v1.10.713)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-onboarding-tour.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'OnboardingTour.tsx');
+
+  it('exports the hook + accepts forceOpen/onClose/steps', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useOnboardingTour/);
+    assert.match(src, /forceOpen:\s*boolean\s*\|\s*undefined/);
+    assert.match(src, /onClose:\s*\(\(\)\s*=>\s*void\)\s*\|\s*undefined/);
+    assert.match(src, /steps:\s*readonly Step\[\]/);
+  });
+
+  it('hook owns shouldAutoOpen + markSeen + the TOUR_EVENT_START listener', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /function shouldAutoOpen/);
+    assert.match(src, /function markSeen/);
+    assert.match(src, /addEventListener\(TOUR_EVENT_START/);
+    assert.match(src, /removeEventListener\(TOUR_EVENT_START/);
+  });
+
+  it('Escape-key listener only mounts while the tour is open', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(!open\) return/);
+    assert.match(src, /e\.key === 'Escape'/);
+    assert.match(src, /addEventListener\('keydown'/);
+    assert.match(src, /removeEventListener\('keydown'/);
+  });
+
+  it('parent OnboardingTour wires the hook + drops the inline state machine', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useOnboardingTour\s*\}\s+from\s+'\.\.\/lib\/use-onboarding-tour'/);
+    assert.match(src, /useOnboardingTour\(\{[\s\S]*?forceOpen,\s*onClose,\s*steps:\s*STEPS[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /const \[open, setOpen\]/);
+    assert.doesNotMatch(src, /const \[index, setIndex\]/);
+    assert.doesNotMatch(src, /function shouldAutoOpen/);
+    assert.doesNotMatch(src, /function markSeen/);
+  });
+});
+
 describe('extracted: useHelpOverlayTriggers hook (v1.10.712)', () => {
   const fs = require('fs');
   const path = require('path');

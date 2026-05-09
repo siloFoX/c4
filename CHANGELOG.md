@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.713] - 2026-05-09 — Extract useOnboardingTour hook
+
+**Web — `components/OnboardingTour.tsx` shrunk by 58 lines (191 → 133).**
+The 4-step tour state machine (open / index slots,
+forceOpen sync, TOUR_EVENT_START replay listener,
+Escape-key dismiss handler, finish callback,
+shouldAutoOpen / markSeen localStorage helpers, and
+the step / isFirst / isLast / total derivation)
+moves into a single `useOnboardingTour({ forceOpen,
+onClose, steps })` hook. The Step type is now
+exported from OnboardingTour.tsx so the hook can pin
+it without circular ownership.
+
+The parent now collapses ~50 lines of imperative
+state-machine code into:
+```ts
+const { open, index, step, isFirst, isLast, total,
+  finish, goPrev, goNext } = useOnboardingTour({
+  forceOpen, onClose, steps: STEPS,
+});
+```
+JSX `setIndex(i => …)` callbacks become `goPrev` /
+`goNext` calls; the `STEPS.length` count becomes
+`total`.
+
+Boundary suite #180 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the localStorage helpers, the
+TOUR_EVENT_START subscription, the open-gated Escape
+listener, and checks that `OnboardingTour.tsx` no
+longer carries the inline state slots or the
+local-storage helper functions.
+The pre-existing `ui-docs` test for
+`window.localStorage.setItem` was redirected from
+`OnboardingTour.tsx` source to the new hook file.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (862 / 179 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.712] - 2026-05-09 — Extract useHelpOverlayTriggers hook
 
 **Web — `components/HelpUIRoot.tsx` shrunk by 34 lines (97 → 63).**

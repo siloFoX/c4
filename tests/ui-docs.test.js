@@ -266,7 +266,12 @@ describe('OnboardingTour component', () => {
 
   it('persists dismissal in localStorage via TOUR_STORAGE_KEY', () => {
     assert.match(src, /export\s+const\s+TOUR_STORAGE_KEY/);
-    assert.match(src, /window\.localStorage\.setItem/);
+    // (v1.10.713) localStorage write moved to use-onboarding-tour hook.
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-onboarding-tour.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /window\.localStorage\.setItem/);
   });
 
   it('exposes a programmatic startOnboardingTour helper', () => {
