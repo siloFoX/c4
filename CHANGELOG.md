@@ -4,6 +4,48 @@
 
 (no entries — next release window)
 
+## [1.10.657] - 2026-05-09 — Extract useRiskCheck + useRiskSandboxPreview
+
+**Web — `pages/Risk.tsx` shrunk by 37 lines (287 → 250).**
+The two POST flows that drive the action buttons — POST
+/api/risk/check (level / suggested-action verdict) and
+POST /api/risk/preview (sandbox-side what-if) — move to
+two parallel hooks. Each hook owns its busy / result /
+error triplet and the empty-command short-circuit so the
+buttons stay dumb.
+
+### Refactor
+- New `web/src/lib/use-risk-check.ts` (~48 lines) —
+  exports `useRiskCheck`. Returns `{ checkBusy,
+  checkResult, checkError, runCheck }`.
+- New `web/src/lib/use-risk-sandbox-preview.ts`
+  (~45 lines) — exports `useRiskSandboxPreview`. Returns
+  `{ sandboxBusy, sandbox, sandboxError, runPreview }`.
+  Both hooks import their response types from
+  `../pages/Risk` (still page-scoped + already exported
+  for the catalog/preview siblings).
+- `pages/Risk.tsx`: removed six useState slots + two
+  useCallback handlers. Replaced with two destructured
+  hook calls. Trimmed unused `useCallback` + `apiPost`
+  imports.
+- Boundary suite #125 — 4 assertions covering
+  check-URL + body shape, preview-URL + body shape,
+  empty-command guard + result-reset on retry, parent
+  wiring (both imports + drop checks).
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  625 / 625 across 124 → 125 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 129 ships total since v1.10.529.
+- 126 components/libs extracted (two libs this ship).
+- 36 custom hooks in `web/src/lib/`.
+- 625 boundary assertions across 125 suites.
+
 ## [1.10.656] - 2026-05-09 — Extract useTokenUsage hook
 
 **Web — `pages/TokenUsage.tsx` shrunk by 62 lines (312 → 250).**

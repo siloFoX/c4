@@ -1770,6 +1770,50 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useRiskCheck + useRiskSandboxPreview (v1.10.657)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const CHECK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-risk-check.ts');
+  const PREVIEW = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-risk-sandbox-preview.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'pages', 'Risk.tsx');
+
+  it('useRiskCheck POSTs /api/risk/check with command + includeInspected', () => {
+    const src = fs.readFileSync(CHECK, 'utf8');
+    assert.match(src, /export function useRiskCheck/);
+    assert.match(src, /apiPost<CheckResponse>\('\/api\/risk\/check'/);
+    assert.match(src, /command:\s*command\.trim\(\)/);
+    assert.match(src, /includeInspected/);
+  });
+
+  it('useRiskSandboxPreview POSTs /api/risk/preview with command', () => {
+    const src = fs.readFileSync(PREVIEW, 'utf8');
+    assert.match(src, /export function useRiskSandboxPreview/);
+    assert.match(src, /apiPost<SandboxPreview>\('\/api\/risk\/preview'/);
+    assert.match(src, /command:\s*command\.trim\(\)/);
+  });
+
+  it('both hooks short-circuit on empty command + reset prior result on retry', () => {
+    const checkSrc = fs.readFileSync(CHECK, 'utf8');
+    const previewSrc = fs.readFileSync(PREVIEW, 'utf8');
+    assert.match(checkSrc, /if \(!command\.trim\(\)\) return/);
+    assert.match(checkSrc, /setCheckResult\(null\)/);
+    assert.match(previewSrc, /if \(!command\.trim\(\)\) return/);
+    assert.match(previewSrc, /setSandbox\(null\)/);
+  });
+
+  it('parent Risk wires both hooks + drops the inline state + handlers', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useRiskCheck\s*\}\s+from\s+'\.\.\/lib\/use-risk-check'/);
+    assert.match(src, /import\s+\{\s*useRiskSandboxPreview\s*\}\s+from\s+'\.\.\/lib\/use-risk-sandbox-preview'/);
+    assert.match(src, /useRiskCheck\(\{\s*command,\s*includeInspected\s*\}\)/);
+    assert.match(src, /useRiskSandboxPreview\(\{\s*command\s*\}\)/);
+    assert.doesNotMatch(src, /const \[checkBusy, setCheckBusy\]/);
+    assert.doesNotMatch(src, /const \[sandboxBusy, setSandboxBusy\]/);
+    assert.doesNotMatch(src, /const handleCheck = useCallback/);
+    assert.doesNotMatch(src, /const handleSandboxPreview = useCallback/);
+  });
+});
+
 describe('extracted: useTokenUsage hook (v1.10.656)', () => {
   const fs = require('fs');
   const path = require('path');

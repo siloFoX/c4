@@ -1,8 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { RefreshCw, Shield } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
 import { Button, Input, Panel } from '../components/ui';
-import { apiPost } from '../lib/api';
 import { t, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
 import RiskRuleCatalogPanel from '../components/RiskRuleCatalogPanel';
@@ -10,6 +9,8 @@ import RiskSandboxPreview from '../components/RiskSandboxPreview';
 import RiskCheckResult from '../components/RiskCheckResult';
 import RiskStatsGrid from '../components/RiskStatsGrid';
 import { useRiskStats } from '../lib/use-risk-stats';
+import { useRiskCheck } from '../lib/use-risk-check';
+import { useRiskSandboxPreview } from '../lib/use-risk-sandbox-preview';
 
 // (v1.10.356) Risk classifier inspector — preview a command's
 // classification before sending it to a worker, plus a stats
@@ -112,52 +113,14 @@ export default function Risk() {
   useLocale();
   const [command, setCommand] = useState('');
   const [includeInspected, setIncludeInspected] = useState(false);
-  const [checkBusy, setCheckBusy] = useState(false);
-  const [checkResult, setCheckResult] = useState<CheckResponse | null>(null);
-  const [checkError, setCheckError] = useState<string | null>(null);
-
-
   // (v1.10.568) Pattern catalog state moved into the extracted
   // RiskRuleCatalogPanel — self-fetching, owns its own filter +
   // open state.
-
-  const [sandboxBusy, setSandboxBusy] = useState(false);
-  const [sandbox, setSandbox] = useState<SandboxPreview | null>(null);
-  const [sandboxError, setSandboxError] = useState<string | null>(null);
-  const handleSandboxPreview = useCallback(async () => {
-    if (!command.trim()) return;
-    setSandboxBusy(true);
-    setSandboxError(null);
-    setSandbox(null);
-    try {
-      const res = await apiPost<SandboxPreview>('/api/risk/preview', {
-        command: command.trim(),
-      });
-      setSandbox(res);
-    } catch (e) {
-      setSandboxError((e as Error).message || t('common.previewFailed'));
-    } finally {
-      setSandboxBusy(false);
-    }
-  }, [command]);
-
-  const handleCheck = useCallback(async () => {
-    if (!command.trim()) return;
-    setCheckBusy(true);
-    setCheckError(null);
-    setCheckResult(null);
-    try {
-      const res = await apiPost<CheckResponse>('/api/risk/check', {
-        command: command.trim(),
-        includeInspected,
-      });
-      setCheckResult(res);
-    } catch (e) {
-      setCheckError((e as Error).message || t('common.checkFailed'));
-    } finally {
-      setCheckBusy(false);
-    }
-  }, [command, includeInspected]);
+  // (v1.10.657) check + sandbox-preview moved to hooks.
+  const { checkBusy, checkResult, checkError, runCheck: handleCheck } =
+    useRiskCheck({ command, includeInspected });
+  const { sandboxBusy, sandbox, sandboxError, runPreview: handleSandboxPreview } =
+    useRiskSandboxPreview({ command });
 
   // (v1.10.644) Risk stats poll hook extracted to ../lib/use-risk-stats.
   const {
