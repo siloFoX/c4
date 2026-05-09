@@ -1791,6 +1791,39 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useScrollIntoViewOnOpen hook (v1.10.692)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-scroll-into-view-on-open.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'HelpDrawer.tsx');
+
+  it('exports the hook + accepts open/ref/optional key', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useScrollIntoViewOnOpen/);
+    assert.match(src, /open:\s*boolean/);
+    assert.match(src, /ref:\s*RefObject<HTMLElement\s*\|\s*null>/);
+    assert.match(src, /key\?:\s*unknown/);
+  });
+
+  it('schedules scrollIntoView on the next animation frame', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.requestAnimationFrame/);
+    assert.match(src, /scrollIntoView\(\{[\s\S]*?behavior:\s*'auto',\s*block:\s*'start'/);
+  });
+
+  it('cancels the animation frame on cleanup', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.cancelAnimationFrame\(frame\)/);
+  });
+
+  it('parent HelpDrawer wires the hook + drops the inline effect', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useScrollIntoViewOnOpen\s*\}\s+from\s+'\.\.\/lib\/use-scroll-into-view-on-open'/);
+    assert.match(src, /useScrollIntoViewOnOpen\(\{[\s\S]*?ref:\s*activeCardRef,\s*key:\s*activeFeatureId[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /activeCardRef\.current\?\.scrollIntoView/);
+  });
+});
+
 describe('extracted: useDrawerKeyboard hook (v1.10.691)', () => {
   const fs = require('fs');
   const path = require('path');

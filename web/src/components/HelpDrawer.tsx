@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { Button, IconButton, Input } from './ui';
 import { cn } from '../lib/cn';
 import { FEATURES, findFeature, type FeatureDef } from '../pages/registry';
 import { t, tList, useLocale } from '../lib/i18n';
 import { useDrawerKeyboard } from '../lib/use-drawer-keyboard';
+import { useScrollIntoViewOnOpen } from '../lib/use-scroll-into-view-on-open';
 
 interface HelpDrawerProps {
   open: boolean;
@@ -63,17 +64,8 @@ export function HelpDrawer({ open, onClose, activeFeatureId }: HelpDrawerProps) 
   // (v1.10.691) Esc-to-close + focus-on-open moved to hook.
   useDrawerKeyboard({ open, onClose, focusRef: inputRef });
 
-  useEffect(() => {
-    if (!open) return;
-    // Scroll the active feature into view on open.
-    const frame = window.requestAnimationFrame(() => {
-      activeCardRef.current?.scrollIntoView({
-        behavior: 'auto',
-        block: 'start',
-      });
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [open, activeFeatureId]);
+  // (v1.10.692) Scroll-into-view-on-open moved to hook.
+  useScrollIntoViewOnOpen({ open, ref: activeCardRef, key: activeFeatureId });
 
   const entries = useMemo(() => FEATURES.map(featureToEntry), []);
 

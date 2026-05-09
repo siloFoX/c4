@@ -250,7 +250,14 @@ describe('HelpDrawer component', () => {
   });
 
   it('scrolls the active feature into view when opened', () => {
-    assert.match(src, /scrollIntoView/);
+    // (v1.10.692) scrollIntoView moved to lib/use-scroll-into-view-on-open.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-scroll-into-view-on-open.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /scrollIntoView/);
   });
 });
 

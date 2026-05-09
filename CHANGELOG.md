@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.692] - 2026-05-09 — Extract useScrollIntoViewOnOpen hook
+
+**Web — `HelpDrawer.tsx` shrunk by 8 lines (226 → 218).**
+The "scroll active card into view on drawer open"
+useEffect generalizes into a reusable hook. Future
+drawers/modals that highlight a row on open can adopt
+it without re-rolling the requestAnimationFrame
+delay-cancel pair.
+
+### Refactor
+- New `web/src/lib/use-scroll-into-view-on-open.ts`
+  (~27 lines). Takes `{ open, ref, key? }`. Behavior
+  matches the original — `block: 'start'`,
+  `behavior: 'auto'`, raf-scheduled scroll with
+  cancelAnimationFrame on cleanup.
+- `HelpDrawer.tsx`: removed the ~10-line
+  scroll-on-open useEffect. Replaced with one
+  `useScrollIntoViewOnOpen({ open, ref: activeCardRef,
+  key: activeFeatureId })` call. Trimmed `useEffect`
+  import.
+- Boundary suite #159 — 4 assertions covering hook +
+  three-prop signature, raf + scrollIntoView args,
+  cancelAnimationFrame cleanup, parent wiring.
+- `tests/ui-docs.test.js` redirect: the
+  `scrollIntoView` assertion now reads the hook
+  file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  778 / 778 across 158 → 159 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 163 ships total since v1.10.529.
+- 161 components/libs extracted.
+- 71 custom hooks in `web/src/lib/`.
+- 778 boundary assertions across 159 suites.
+
 ## [1.10.691] - 2026-05-09 — Extract useDrawerKeyboard hook
 
 **Web — `HelpDrawer.tsx` shrunk by 10 lines (236 → 226).**
