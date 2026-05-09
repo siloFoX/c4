@@ -1,55 +1,26 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { apiGet } from '../lib/api';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useSpecialistsAudit, type AuditWindow } from '../lib/use-specialists-audit';
 
 // (v1.10.531) Extracted from SpecialistsView. The collapsible
 // audit log viewer + chain-verify + CSV export. Polled only while
 // open so the closed state adds no load. Drops ~240 lines from
 // SpecialistsView's mega-component.
 
-interface AuditEntry {
-  ts: string;
-  action: string;
-  id?: string | null;
-  actor?: string | null;
-  reason?: string | null;
-  mode?: string | null;
-  meetingId?: string | null;
-}
-
-type AuditWindow = 'all' | '1h' | '24h' | '7d';
+// (v1.10.682) AuditEntry + AuditWindow types + audit fetch
+// poll moved to lib/use-specialists-audit.
 
 export default function SpecialistsAuditPanel() {
   // Re-render on locale flip.
   useLocale();
 
   const [auditOpen, setAuditOpen] = useState(false);
-  const [auditEntries, setAuditEntries] = useState<AuditEntry[]>([]);
-  const [auditLoading, setAuditLoading] = useState(false);
-  const [auditWindow, setAuditWindow] = useState<AuditWindow>('all');
-
-  useEffect(() => {
-    if (!auditOpen) return undefined;
-    let cancelled = false;
-    const fetchAudit = () => {
-      setAuditLoading(true);
-      const qs = new URLSearchParams({ limit: '50' });
-      if (auditWindow !== 'all') {
-        const hours = auditWindow === '1h' ? 1 : auditWindow === '24h' ? 24 : 24 * 7;
-        const sinceMs = Date.now() - hours * 60 * 60 * 1000;
-        qs.set('since', new Date(sinceMs).toISOString());
-      }
-      apiGet<{ count: number; entries: AuditEntry[] }>(`/api/specialists/audit?${qs.toString()}`)
-        .then((res) => { if (!cancelled) setAuditEntries(res.entries || []); })
-        .catch(() => { /* tolerate */ })
-        .finally(() => { if (!cancelled) setAuditLoading(false); });
-    };
-    fetchAudit();
-    const id = window.setInterval(fetchAudit, 30000);
-    return () => { cancelled = true; window.clearInterval(id); };
-  }, [auditOpen, auditWindow]);
+  // (v1.10.682) Audit fetch + window state moved to hook.
+  const { auditEntries, auditLoading, auditWindow, setAuditWindow } =
+    useSpecialistsAudit({ auditOpen });
 
   // Audit chain verify — daemon-wide hash chain integrity check.
   const [verifyBusy, setVerifyBusy] = useState(false);

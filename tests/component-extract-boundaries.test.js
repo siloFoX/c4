@@ -72,9 +72,15 @@ describe('extracted: SpecialistsAuditPanel (v1.10.531)', () => {
   });
 
   it('owns the audit polling effect (gated on auditOpen)', () => {
-    const src = read('SpecialistsAuditPanel.tsx');
-    assert.match(src, /if \(!auditOpen\) return/);
-    assert.match(src, /window\.setInterval\(fetchAudit, 30000\)/);
+    // (v1.10.682) Audit fetch + window state moved to lib/use-specialists-audit.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-specialists-audit.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /if \(!auditOpen\) return/);
+    assert.match(hookSrc, /window\.setInterval\(fetchAudit, 30000\)/);
   });
 
   it('owns the chain-verify handler', () => {
@@ -1775,6 +1781,43 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useSpecialistsAudit hook (v1.10.682)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-specialists-audit.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'SpecialistsAuditPanel.tsx');
+
+  it('exports the hook + AuditEntry + AuditWindow types', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useSpecialistsAudit/);
+    assert.match(src, /export interface AuditEntry/);
+    assert.match(src, /export type AuditWindow\s*=\s*'all'\s*\|\s*'1h'\s*\|\s*'24h'\s*\|\s*'7d'/);
+  });
+
+  it('only polls when auditOpen + every 30s with cancel guard', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(!auditOpen\) return undefined/);
+    assert.match(src, /window\.setInterval\(fetchAudit,\s*30000\)/);
+    assert.match(src, /let cancelled = false/);
+  });
+
+  it('translates windowed since param into the URL', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /qs\.set\('since',\s*new Date\(sinceMs\)\.toISOString\(\)\)/);
+    assert.match(src, /\/api\/specialists\/audit\?\$\{qs\.toString\(\)\}/);
+    assert.match(src, /'1h'\s*\?\s*1\s*:\s*auditWindow === '24h'\s*\?\s*24\s*:\s*24 \* 7/);
+  });
+
+  it('parent SpecialistsAuditPanel wires the hook + drops the inline state + effect', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useSpecialistsAudit/);
+    assert.match(src, /useSpecialistsAudit\(\{\s*auditOpen\s*\}\)/);
+    assert.doesNotMatch(src, /^interface AuditEntry/m);
+    assert.doesNotMatch(src, /^type AuditWindow/m);
+    assert.doesNotMatch(src, /const \[auditEntries, setAuditEntries\]/);
   });
 });
 

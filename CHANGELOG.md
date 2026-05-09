@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.682] - 2026-05-09 — Extract useSpecialistsAudit hook
+
+**Web — `SpecialistsAuditPanel.tsx` shrunk by 29 lines (256 → 227).**
+The audit-log poll (GET /api/specialists/audit?limit=50
+every 30s with cancel guard, only while panel open,
+window selector translates `since`) plus the `AuditEntry`
++ `AuditWindow` types move to a self-contained hook.
+Verify-chain + CSV export handlers stay inline (different
+endpoints + different state shape).
+
+### Refactor
+- New `web/src/lib/use-specialists-audit.ts` (~61 lines).
+  Exports `useSpecialistsAudit` + `AuditEntry` +
+  `AuditWindow`. Returns `{ auditEntries, auditLoading,
+  auditWindow, setAuditWindow }`.
+- `SpecialistsAuditPanel.tsx`: removed inline interface
+  + type, three useState slots, ~20-line poll
+  useEffect. Replaced with one destructured hook call.
+  Trimmed `useEffect` import.
+- Boundary suite #149 — 4 assertions covering hook +
+  type export shape, gated polling + 30s interval +
+  cancel guard, since URL composition, parent wiring.
+- SpecialistsAuditPanel suite (v1.10.531) updated:
+  `if (!auditOpen) return` and 30s interval assertions
+  now read the hook file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  738 / 738 across 148 → 149 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 153 ships total since v1.10.529.
+- 151 components/libs extracted.
+- 61 custom hooks in `web/src/lib/`.
+- 738 boundary assertions across 149 suites.
+
 ## [1.10.681] - 2026-05-09 — Extract useFilteredSessions hook
 
 **Web — `SessionsView.tsx` shrunk by 33 lines (334 → 301).**
