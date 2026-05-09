@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { RefreshCw, Cog } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
 import { Button, Input, Panel } from '../components/ui';
-import { apiGet, apiPost } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
+import { useConfig } from '../lib/use-config';
 
 // (v1.10.358) Config viewer + reload trigger.
 //
@@ -18,14 +18,7 @@ import { cn } from '../lib/cn';
 // keeps top-level keys whose serialised value matches the query.
 // Reload returns success/failure inline; a confirm dialog
 // guards the click since reload restarts subsystems.
-
-interface ConfigResponse {
-  config: Record<string, unknown>;
-}
-
-interface ReloadResponse {
-  ok: boolean;
-}
+// (v1.10.723) Fetch + reload state machine moved to lib/use-config.
 
 function summariseValue(v: unknown): string {
   if (v === null || v === undefined) return String(v);
@@ -38,53 +31,13 @@ function summariseValue(v: unknown): string {
 
 export default function Config() {
   useLocale();
-  const [config, setConfig] = useState<Record<string, unknown> | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [filter, setFilter] = useState('');
-  const [reloadBusy, setReloadBusy] = useState(false);
-  const [reloadMsg, setReloadMsg] = useState<string | null>(null);
   // (v1.10.477) Tone separated from message text so localized
   // copy doesn't accidentally drop into the success branch when
   // .startsWith('reload failed') stops matching the translated
-  // error string.
-  const [reloadFailed, setReloadFailed] = useState<boolean>(false);
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await apiGet<ConfigResponse>('/api/config');
-      setConfig(res.config || {});
-    } catch (e) {
-      setError((e as Error).message || t('common.failedToLoadConfig'));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { refresh(); }, [refresh]);
-
-  const handleReload = useCallback(async () => {
-    if (!window.confirm(t('config.reloadConfirm'))) return;
-    setReloadBusy(true);
-    setReloadMsg(null);
-    setReloadFailed(false);
-    try {
-      const res = await apiPost<ReloadResponse>('/api/config/reload', {});
-      setReloadMsg(res.ok ? t('config.reloadOk') : t('config.reloadNotOk'));
-      setReloadFailed(!res.ok);
-      window.setTimeout(() => setReloadMsg(null), 5000);
-      refresh();
-    } catch (e) {
-      setReloadMsg(tFormat('config.reloadFailed', {
-        error: (e as Error).message || t('common.unknown'),
-      }));
-      setReloadFailed(true);
-    } finally {
-      setReloadBusy(false);
-    }
-  }, [refresh]);
+  // error string. (v1.10.723) State machine moved to use-config hook.
+  const { config, error, loading, refresh, reloadBusy, reloadMsg, reloadFailed, handleReload } =
+    useConfig();
+  const [filter, setFilter] = useState('');
 
   const filtered = (() => {
     if (!config) return null;

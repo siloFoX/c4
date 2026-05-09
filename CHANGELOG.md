@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.723] - 2026-05-10 — Extract useConfig hook
+
+**Web — `pages/Config.tsx` shrunk by 47 lines (191 → 144).**
+The viewer's two state machines —
+`{ config, error, loading, refresh }` (GET
+`/api/config`) and `{ reloadBusy, reloadMsg,
+reloadFailed, handleReload }` (POST
+`/api/config/reload` with confirm-gate, 5s
+auto-clear, and post-success refresh) — both move
+to a single `useConfig()` hook returning all 8
+slots in one destructure.
+
+The split between `error` (load failure → ErrorPanel)
+and `reloadFailed` (reload failure → inline pill
+next to the Reload button) is preserved; the page
+still wires them to two distinct surfaces.
+
+The split between `reloadMsg` text and `reloadFailed`
+tone — added at v1.10.477 to keep i18n-localised
+copy from accidentally falling into the success
+branch via `.startsWith('reload failed')` — survives
+the move untouched.
+
+The page now keeps only the `filter` input slot
+inline (it's bound to a JSX `<Input>` and doesn't
+fit the Config domain) plus the JSON tree render.
+
+Boundary suite #189 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the `useEffect → refresh` mount
+trigger, the `window.confirm` guard, the 5s
+`setReloadMsg(null)` auto-clear, and the
+reloadFailed/reloadMsg tone separation. Verifies
+the parent wires the hook + drops the inline state.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (906 / 189 suites — +5 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.722] - 2026-05-10 — Adopt useToast across 6 remaining pages
 
 **Web — sharing-win sweep, ~38 lines saved across 6 callers.**

@@ -1915,6 +1915,46 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useConfig hook (v1.10.723)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-config.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'pages', 'Config.tsx');
+
+  it('exports the hook with no required args', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useConfig\(\)/);
+  });
+
+  it('GET /api/config on mount + exposes refresh + load error/loading slots', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiGet<ConfigResponse>\('\/api\/config'\)/);
+    assert.match(src, /useEffect\(\(\)\s*=>\s*\{\s*refresh\(\);\s*\},\s*\[refresh\]\)/);
+  });
+
+  it('handleReload guards via window.confirm + auto-clears reloadMsg after 5s', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.confirm\(t\('config\.reloadConfirm'\)\)/);
+    assert.match(src, /apiPost<ReloadResponse>\('\/api\/config\/reload',\s*\{\}\)/);
+    assert.match(src, /window\.setTimeout\(\s*\(\)\s*=>\s*setReloadMsg\(null\),\s*5000\s*\)/);
+  });
+
+  it('reloadFailed slot tracks tone separately from reloadMsg copy', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /setReloadFailed\(!res\.ok\)/);
+    assert.match(src, /setReloadFailed\(true\)/);
+  });
+
+  it('parent Config.tsx wires the hook + drops the inline state machine', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useConfig\s*\}\s+from\s+'\.\.\/lib\/use-config'/);
+    assert.match(src, /useConfig\(\)/);
+    assert.doesNotMatch(src, /const \[config, setConfig\]/);
+    assert.doesNotMatch(src, /apiGet<ConfigResponse>/);
+    assert.doesNotMatch(src, /apiPost<ReloadResponse>/);
+  });
+});
+
 describe('useToast adoption sweep (v1.10.722)', () => {
   const fs = require('fs');
   const path = require('path');
