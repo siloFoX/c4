@@ -1770,6 +1770,46 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useChatSubmit hook (v1.10.673)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-chat-submit.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'ChatView.tsx');
+
+  it('exports the hook + accepts the eight callbacks/refs', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useChatSubmit/);
+    assert.match(src, /workerName:\s*string/);
+    assert.match(src, /flushWorkerBuffer:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /appendLive:\s*\(role:\s*Role,\s*text:\s*string\)\s*=>\s*void/);
+    assert.match(src, /textareaRef:\s*RefObject<HTMLTextAreaElement\s*\|\s*null>/);
+  });
+
+  it('flushes buffer before optimistic user bubble + clears input', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /flushWorkerBuffer\(\);[\s\S]*?appendLive\('user', text\);[\s\S]*?setInput\(''\)/);
+  });
+
+  it('POSTs /api/send then /api/key Enter sequentially', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiFetch\('\/api\/send'/);
+    assert.match(src, /apiFetch\('\/api\/key'[\s\S]*?key:\s*'Enter'/);
+  });
+
+  it('returns focus to textarea on every completion + flips sending=false', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /finally \{[\s\S]*?setSending\(false\)[\s\S]*?textareaRef\.current\?\.focus\(\)/);
+  });
+
+  it('parent ChatView wires the hook + drops the inline state + handler', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useChatSubmit\s*\}\s+from\s+'\.\.\/lib\/use-chat-submit'/);
+    assert.match(src, /useChatSubmit\(\{[\s\S]*?workerName,\s*input,\s*setInput,\s*setError,\s*setAutoScroll,[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /const \[sending, setSending\]/);
+    assert.doesNotMatch(src, /const handleSubmit = async/);
+  });
+});
+
 describe('extracted: useXtermAutofit hook (v1.10.672)', () => {
   const fs = require('fs');
   const path = require('path');

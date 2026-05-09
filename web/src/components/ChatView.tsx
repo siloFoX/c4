@@ -1,5 +1,4 @@
 import {
-  FormEvent,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -7,7 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { apiFetch, apiGet } from '../lib/api';
+import { apiGet } from '../lib/api';
 import { useLocale } from '../lib/i18n';
 import {
   Card,
@@ -18,6 +17,7 @@ import ChatComposer from './ChatComposer';
 import ChatErrorBanners from './ChatErrorBanners';
 import { useChatSseStream } from '../lib/use-chat-sse-stream';
 import { useWorkerBufferFlusher } from '../lib/use-worker-buffer-flusher';
+import { useChatSubmit } from '../lib/use-chat-submit';
 import {
   conversationToMessages,
   makeId,
@@ -78,7 +78,6 @@ export default function ChatView({ workerName }: ChatViewProps) {
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [liveMessages, setLiveMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
-  const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const [backfillLoading, setBackfillLoading] = useState(true);
@@ -295,44 +294,11 @@ export default function ChatView({ workerName }: ChatViewProps) {
     setAutoScroll(true);
   };
 
-  const handleSubmit = async (e?: FormEvent) => {
-    if (e) e.preventDefault();
-    const text = input;
-    if (!text.trim() || sending) return;
-    setSending(true);
-    setError(null);
-    flushWorkerBuffer();
-    appendLive('user', text);
-    setInput('');
-    setAutoScroll(true);
-    try {
-      const sendRes = await apiFetch('/api/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: workerName, input: text }),
-      });
-      if (!sendRes.ok) throw new Error(`HTTP ${sendRes.status}`);
-      const sendData = (await sendRes.json()) as { error?: string };
-      if (sendData.error) {
-        setError(sendData.error);
-        setSending(false);
-        return;
-      }
-      const keyRes = await apiFetch('/api/key', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: workerName, key: 'Enter' }),
-      });
-      if (!keyRes.ok) throw new Error(`HTTP ${keyRes.status}`);
-      const keyData = (await keyRes.json()) as { error?: string };
-      if (keyData.error) setError(keyData.error);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setSending(false);
-      textareaRef.current?.focus();
-    }
-  };
+  // (v1.10.673) Submit flow moved to lib/use-chat-submit.
+  const { sending, handleSubmit } = useChatSubmit({
+    workerName, input, setInput, setError, setAutoScroll,
+    flushWorkerBuffer, appendLive, textareaRef,
+  });
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {

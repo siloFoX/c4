@@ -4,6 +4,49 @@
 
 (no entries — next release window)
 
+## [1.10.673] - 2026-05-09 — Extract useChatSubmit hook
+
+**Web — `ChatView.tsx` shrunk by 34 lines (387 → 353).**
+The chat-message submit flow — flush worker buffer →
+optimistic user bubble → POST /api/send → POST /api/key
+Enter, with focus return to the textarea on every
+completion — moves to a self-contained hook. The
+parent's setError, setInput, setAutoScroll, and the
+buffer-flusher / appendLive helpers are threaded in as
+callbacks so the page-level state slots stay in App.
+
+### Refactor
+- New `web/src/lib/use-chat-submit.ts` (~79 lines).
+  Imports `Role` type from `./chat-helpers`. Returns
+  `{ sending, handleSubmit }`.
+- `ChatView.tsx`: removed the `sending` useState slot
+  and the ~37-line `handleSubmit` async function.
+  Replaced with one destructured `useChatSubmit`
+  call. Trimmed `FormEvent` type import + `apiFetch`
+  helper (now consumed by the hook).
+- Boundary suite #140 — 5 assertions covering hook +
+  callback prop shape, flush-then-bubble-then-clear
+  ordering, sequential POST URLs, focus-on-finally
+  contract, parent wiring.
+- `tests/chat-view.test.js` redirects: the
+  apiFetch + /api/send + /api/key + 'Enter' assertions
+  now read the hook file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  697 / 697 across 139 → 140 suites.
+- `node --test tests/chat-view.test.js`: 21 / 21 (after
+  redirect).
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 144 ships total since v1.10.529.
+- 142 components/libs extracted.
+- 52 custom hooks in `web/src/lib/`.
+- 697 boundary assertions across 140 suites.
+
 ## [1.10.672] - 2026-05-09 — Extract useXtermAutofit hook
 
 **Web — `XtermView.tsx` shrunk by 73 lines (320 → 247).**

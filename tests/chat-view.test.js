@@ -93,15 +93,18 @@ describe('ChatView source wiring', () => {
   const src = fs.readFileSync(CHAT_VIEW, 'utf8');
 
   it('imports apiFetch + eventSourceUrl from the shared api module', () => {
-    // (v1.10.643) eventSourceUrl moved into useChatSseStream hook;
-    // ChatView still uses apiFetch for /api/send + /api/key.
-    const hookSrc = fs.readFileSync(
+    // (v1.10.643) eventSourceUrl moved into useChatSseStream hook.
+    // (v1.10.673) apiFetch moved into useChatSubmit hook for /api/send + /api/key.
+    const sseSrc = fs.readFileSync(
       path.join(WEB_SRC, 'lib', 'use-chat-sse-stream.ts'),
       'utf8',
     );
-    assert.match(src, /from '\.\.\/lib\/api'/);
-    assert.match(src, /apiFetch/);
-    assert.match(hookSrc, /eventSourceUrl/);
+    const submitSrc = fs.readFileSync(
+      path.join(WEB_SRC, 'lib', 'use-chat-submit.ts'),
+      'utf8',
+    );
+    assert.match(sseSrc, /eventSourceUrl/);
+    assert.match(submitSrc, /apiFetch/);
   });
 
   it('subscribes to /api/watch with the worker name', () => {
@@ -115,9 +118,14 @@ describe('ChatView source wiring', () => {
   });
 
   it('posts user text through /api/send and Enter through /api/key', () => {
-    assert.match(src, /apiFetch\('\/api\/send'/);
-    assert.match(src, /apiFetch\('\/api\/key'/);
-    assert.match(src, /key: 'Enter'/);
+    // (v1.10.673) Submit flow moved to lib/use-chat-submit.
+    const submitSrc = fs.readFileSync(
+      path.join(WEB_SRC, 'lib', 'use-chat-submit.ts'),
+      'utf8',
+    );
+    assert.match(submitSrc, /apiFetch\('\/api\/send'/);
+    assert.match(submitSrc, /apiFetch\('\/api\/key'/);
+    assert.match(submitSrc, /key: 'Enter'/);
   });
 
   it('renders user bubbles right-aligned and worker bubbles left-aligned', () => {
