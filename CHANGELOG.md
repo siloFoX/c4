@@ -4,6 +4,50 @@
 
 (no entries — next release window)
 
+## [1.10.698] - 2026-05-09 — Extract useSpecialistsAddPropose hook
+
+**Web — `SpecialistsAddPanel.tsx` shrunk by 76 lines (166 → 90).**
+The twin add-or-propose flow — handleAdd POSTs the
+parsed JSON straight to /api/specialists; handlePropose
+routes the same payload through a meta-meeting consensus
+on /api/specialists/propose — moves to a self-contained
+hook. Both consume the same `json` text + share the
+`addError` slot, so bundling them keeps the parent's
+JSX bound to a single state cluster.
+
+### Refactor
+- New `web/src/lib/use-specialists-add-propose.ts`
+  (~122 lines). Imports `Specialist` from
+  `../components/SpecialistsView`. Returns 9 fields
+  (json/setJson, addBusy/addError/setAddError,
+  proposeBusy/proposeMsg/proposeRejected, handleAdd,
+  handlePropose).
+- `SpecialistsAddPanel.tsx`: removed inline
+  `ProposeDecision` + `ProposeResponse` types, six
+  useState slots, and both ~22-line useCallback
+  handlers. Replaced with one destructured hook
+  call. Trimmed `useCallback` + `useState` +
+  `apiPost` + `tFormat` + `Specialist` type imports.
+- Boundary suite #165 — 4 assertions covering hook
+  + signature, /api/specialists POST, /propose POST
+  + accepted/rejected branches, parent wiring.
+- SpecialistsAddPanel suite (v1.10.546) updated:
+  /propose URL match reads the hook file; state-slot
+  greps now look for `useSpecialistsAddPropose`.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  799 / 799 across 164 → 165 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 169 ships total since v1.10.529.
+- 166 components/libs extracted.
+- 75 custom hooks in `web/src/lib/`.
+- 799 boundary assertions across 165 suites.
+
 ## [1.10.697] - 2026-05-09 — Extract hierarchy-tree lib
 
 **Web — `HierarchyTree.tsx` shrunk by 80 lines (266 → 186).**

@@ -1410,16 +1410,24 @@ describe('extracted: SpecialistsAddPanel (v1.10.546)', () => {
   });
 
   it('owns both Add (POST /specialists) and Propose (POST /specialists/propose) handlers', () => {
+    // (v1.10.698) Handlers moved to lib/use-specialists-add-propose.
     const src = read('SpecialistsAddPanel.tsx');
     assert.match(src, /handleAdd/);
     assert.match(src, /handlePropose/);
-    assert.match(src, /\/api\/specialists\/propose/);
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-specialists-add-propose.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /\/api\/specialists\/propose/);
   });
 
   it('owns its form / busy / message state internally', () => {
+    // (v1.10.698) State slots moved into the hook; parent surfaces
+    // them via destructure.
     const src = read('SpecialistsAddPanel.tsx');
-    assert.match(src, /useState\(''\)/);
-    assert.match(src, /useState\(false\)/);
+    assert.match(src, /useSpecialistsAddPropose/);
     assert.match(src, /proposeRejected/);
   });
 
@@ -1788,6 +1796,46 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useSpecialistsAddPropose hook (v1.10.698)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-specialists-add-propose.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'SpecialistsAddPanel.tsx');
+
+  it('exports the hook + accepts onAdded', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useSpecialistsAddPropose/);
+    assert.match(src, /onAdded:\s*\(newId:\s*string\)\s*=>\s*void/);
+  });
+
+  it('handleAdd POSTs /api/specialists with parsed JSON', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /JSON\.parse\(json\)/);
+    assert.match(src, /apiPost<\{ ok: boolean; specialist: Specialist \}>\('\/api\/specialists',\s*parsed\)/);
+    assert.match(src, /onAdded\(res\.specialist\.id\)/);
+  });
+
+  it('handlePropose POSTs /api/specialists/propose + routes accepted/rejected branches', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiPost<ProposeResponse>\(\s*'\/api\/specialists\/propose'/);
+    assert.match(src, /if \(res\.added\)/);
+    assert.match(src, /specialists\.propose\.accepted/);
+    assert.match(src, /specialists\.propose\.rejected/);
+    assert.match(src, /setProposeRejected\(true\)/);
+  });
+
+  it('parent SpecialistsAddPanel wires the hook + drops the inline state + handlers', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useSpecialistsAddPropose\s*\}\s+from\s+'\.\.\/lib\/use-specialists-add-propose'/);
+    assert.match(src, /useSpecialistsAddPropose\(\{\s*onAdded\s*\}\)/);
+    assert.doesNotMatch(src, /^interface ProposeDecision/m);
+    assert.doesNotMatch(src, /^interface ProposeResponse/m);
+    assert.doesNotMatch(src, /const \[json, setJson\]/);
+    assert.doesNotMatch(src, /const handleAdd = useCallback/);
+    assert.doesNotMatch(src, /const handlePropose = useCallback/);
   });
 });
 
