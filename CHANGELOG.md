@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.669] - 2026-05-09 — Extract useAuthState hook
+
+**Web — `App.tsx` shrunk by 15 lines (277 → 262).**
+The four-state auth machine (loading → disabled |
+authed | anon) plus its AUTH_EVENT subscription that
+flips back to "anon" on token expiry moves to a
+self-contained hook. Login modal's `onSuccess` now
+binds to `setAuthed`; the logout button's handler
+binds to `setAnon` after the api-side logout()
+finishes.
+
+### Refactor
+- New `web/src/lib/use-auth-state.ts` (~45 lines).
+  Exports `useAuthState` + the `AuthState` type.
+- `App.tsx`: removed the inline `AuthState` type, the
+  `authState` useState slot, the `refreshAuth`
+  useCallback, and the AUTH_EVENT subscription
+  useEffect. Replaced with one destructured
+  `useAuthState()` call. Trimmed `useCallback` +
+  `AUTH_EVENT` + `fetchAuthStatus` + `getToken`
+  imports — now consumed by the hook.
+- Boundary suite #136 — 5 assertions covering hook +
+  type export shape, AUTH_EVENT listener wiring,
+  fetchAuthStatus + getToken state mapping, return
+  helpers, parent wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  679 / 679 across 135 → 136 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 140 ships total since v1.10.529.
+- 138 components/libs extracted.
+- 48 custom hooks in `web/src/lib/`.
+- 679 boundary assertions across 136 suites.
+
 ## [1.10.668] - 2026-05-09 — Extract useWorkerSelection hook
 
 **Web — `ControlPanel.tsx` shrunk by 58 lines (346 → 288).**

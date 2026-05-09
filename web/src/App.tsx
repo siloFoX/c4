@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import Login from './components/Login';
 import { LoadingSkeleton } from './pages/PageFrame';
 // (v1.10.509) Top-level views are lazy-loaded so the main bundle
@@ -26,7 +26,8 @@ import FeatureView from './components/layout/FeatureView';
 import HelpUIRoot from './components/HelpUIRoot';
 import MetricsBar from './components/MetricsBar';
 import { type TopView } from './components/layout/TopTabs';
-import { AUTH_EVENT, fetchAuthStatus, getToken, logout } from './lib/api';
+import { logout } from './lib/api';
+import { useAuthState } from './lib/use-auth-state';
 import {
   applyTheme,
   DEFAULT_DETAIL_MODE,
@@ -46,11 +47,11 @@ import {
   type ThemeMode,
 } from './lib/preferences';
 
-type AuthState = 'loading' | 'anon' | 'authed' | 'disabled';
-
 export default function App() {
   const [selectedWorker, setSelectedWorker] = useState<string | null>(null);
-  const [authState, setAuthState] = useState<AuthState>('loading');
+  // (v1.10.669) Auth state machine + AUTH_EVENT listener moved to
+  // lib/use-auth-state.
+  const { authState, setAuthed, setAnon } = useAuthState();
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return true;
     return window.matchMedia('(min-width: 768px)').matches;
@@ -122,22 +123,6 @@ export default function App() {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  const refreshAuth = useCallback(async () => {
-    const status = await fetchAuthStatus();
-    if (!status.enabled) {
-      setAuthState('disabled');
-      return;
-    }
-    setAuthState(getToken() ? 'authed' : 'anon');
-  }, []);
-
-  useEffect(() => {
-    refreshAuth();
-    const onExpired = () => setAuthState('anon');
-    window.addEventListener(AUTH_EVENT, onExpired);
-    return () => window.removeEventListener(AUTH_EVENT, onExpired);
-  }, [refreshAuth]);
-
   if (authState === 'loading') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
@@ -147,12 +132,12 @@ export default function App() {
   }
 
   if (authState === 'anon') {
-    return <Login onSuccess={() => setAuthState('authed')} />;
+    return <Login onSuccess={setAuthed} />;
   }
 
   const handleLogout = async () => {
     await logout();
-    setAuthState('anon');
+    setAnon();
   };
 
   const handleSelect = (name: string | null) => {

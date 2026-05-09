@@ -1770,6 +1770,48 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useAuthState hook (v1.10.669)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-auth-state.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'App.tsx');
+
+  it('exports the hook + AuthState type', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useAuthState/);
+    assert.match(src, /export type AuthState\s*=\s*'loading'\s*\|\s*'anon'\s*\|\s*'authed'\s*\|\s*'disabled'/);
+  });
+
+  it('subscribes to AUTH_EVENT for token-expiry → anon flips', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.addEventListener\(AUTH_EVENT,\s*onExpired\)/);
+    assert.match(src, /onExpired = \(\) => setAuthState\('anon'\)/);
+  });
+
+  it('queries fetchAuthStatus + getToken on mount and routes the four states', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /fetchAuthStatus\(\)/);
+    assert.match(src, /setAuthState\('disabled'\)/);
+    assert.match(src, /setAuthState\(getToken\(\)\s*\?\s*'authed'\s*:\s*'anon'\)/);
+  });
+
+  it('returns authState + setAuthed + setAnon helpers', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /authState:\s*AuthState/);
+    assert.match(src, /setAuthed:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /setAnon:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('parent App wires the hook + drops the inline type + state + effect', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useAuthState\s*\}\s+from\s+'\.\/lib\/use-auth-state'/);
+    assert.match(src, /useAuthState\(\)/);
+    assert.doesNotMatch(src, /^type AuthState\s*=/m);
+    assert.doesNotMatch(src, /const refreshAuth = useCallback/);
+    assert.doesNotMatch(src, /AUTH_EVENT,\s*onExpired/);
+  });
+});
+
 describe('extracted: useWorkerSelection hook (v1.10.668)', () => {
   const fs = require('fs');
   const path = require('path');
