@@ -1,12 +1,11 @@
-import { useEffect, useState } from 'react';
-import { apiGet } from './api';
+import { useSilentPoll } from './use-silent-poll';
 
 // (v1.10.725) Extracted from SpecialistsSummaryBar.
 // Phase-6.14 organism summary fetch — self-polls
 // every 30s, silently swallows errors so a degraded
 // daemon (older build, network blip) just hides the
-// bar instead of surfacing a noisy error. Returns
-// `null` until the first successful poll.
+// bar instead of surfacing a noisy error.
+// (v1.10.743) Polling shape lifted to lib/use-silent-poll.
 
 export interface OrganismSummary {
   registry: { count: number; vetoCount: number };
@@ -24,19 +23,5 @@ export interface OrganismSummary {
 const POLL_INTERVAL_MS = 30000;
 
 export function useSpecialistsSummary(): OrganismSummary | null {
-  const [summary, setSummary] = useState<OrganismSummary | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const fetchSummary = () => {
-      apiGet<OrganismSummary>('/api/specialists/summary')
-        .then((res) => { if (!cancelled) setSummary(res); })
-        .catch(() => { /* silently degrade — info bar just hides */ });
-    };
-    fetchSummary();
-    const id = window.setInterval(fetchSummary, POLL_INTERVAL_MS);
-    return () => { cancelled = true; window.clearInterval(id); };
-  }, []);
-
-  return summary;
+  return useSilentPoll<OrganismSummary>('/api/specialists/summary', POLL_INTERVAL_MS);
 }

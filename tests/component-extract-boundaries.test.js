@@ -1593,13 +1593,15 @@ describe('extracted: SpecialistsSummaryBar (v1.10.545)', () => {
 
   it('owns its own polling effect (30s tick)', () => {
     // (v1.10.725) Polling moved to use-specialists-summary hook.
+    // (v1.10.743) Polling shape lifted to lib/use-silent-poll; the
+    // summary hook now wires URL + interval into useSilentPoll.
     const fs = require('fs');
     const path = require('path');
     const hookSrc = fs.readFileSync(
       path.join(__dirname, '..', 'web', 'src', 'lib', 'use-specialists-summary.ts'),
       'utf8',
     );
-    assert.match(hookSrc, /window\.setInterval\(fetchSummary, POLL_INTERVAL_MS\)/);
+    assert.match(hookSrc, /useSilentPoll<OrganismSummary>\([\s\S]*?POLL_INTERVAL_MS/);
     assert.match(hookSrc, /POLL_INTERVAL_MS\s*=\s*30000/);
   });
 
@@ -1611,7 +1613,7 @@ describe('extracted: SpecialistsSummaryBar (v1.10.545)', () => {
       path.join(__dirname, '..', 'web', 'src', 'lib', 'use-specialists-summary.ts'),
       'utf8',
     );
-    assert.match(hookSrc, /apiGet<OrganismSummary>\('\/api\/specialists\/summary'\)/);
+    assert.match(hookSrc, /'\/api\/specialists\/summary'/);
   });
 
   it('renders nothing when summary fetch has not yet succeeded', () => {
@@ -2052,6 +2054,37 @@ describe('extracted: useChatBackfill hook (v1.10.738)', () => {
     assert.doesNotMatch(src, /async function loadBackfill/);
     assert.doesNotMatch(src, /const loadOlder = useCallback/);
     assert.doesNotMatch(src, /apiGet<SessionByWorkerResponse>/);
+  });
+});
+
+describe('extracted: useSilentPoll hook (v1.10.743)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-silent-poll.ts');
+  const STUCK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-stuck-meetings.ts');
+  const SUMMARY = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-specialists-summary.ts');
+
+  it('exports the generic poll hook with apiGet + cancel-flag cleanup', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useSilentPoll<T>\(url: string, intervalMs: number\): T \| null/);
+    assert.match(src, /apiGet<T>\(url\)/);
+    assert.match(src, /let cancelled = false/);
+    assert.match(src, /\.catch\(\(\)\s*=>\s*\{[\s\S]*?silently degrade/);
+    assert.match(src, /window\.clearInterval\(id\)/);
+  });
+
+  it('useStuckMeetings adopts useSilentPoll', () => {
+    const src = fs.readFileSync(STUCK, 'utf8');
+    assert.match(src, /import\s+\{\s*useSilentPoll\s*\}\s+from\s+'\.\/use-silent-poll'/);
+    assert.match(src, /useSilentPoll<StuckResponse>\('\/api\/meetings\/stuck\?hours=1',\s*60000\)/);
+    assert.doesNotMatch(src, /window\.setInterval/);
+  });
+
+  it('useSpecialistsSummary adopts useSilentPoll', () => {
+    const src = fs.readFileSync(SUMMARY, 'utf8');
+    assert.match(src, /import\s+\{\s*useSilentPoll\s*\}\s+from\s+'\.\/use-silent-poll'/);
+    assert.match(src, /useSilentPoll<OrganismSummary>\('\/api\/specialists\/summary',\s*POLL_INTERVAL_MS\)/);
+    assert.doesNotMatch(src, /window\.setInterval/);
   });
 });
 
@@ -2637,22 +2670,37 @@ describe('extracted: useSpecialistsSummary hook (v1.10.725)', () => {
   });
 
   it('GET /api/specialists/summary on mount + polls every 30s', () => {
+    // (v1.10.743) Polling shape lifted to lib/use-silent-poll. Hook is now
+    // a one-liner wrapper that wires the URL + interval into useSilentPoll.
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /apiGet<OrganismSummary>\('\/api\/specialists\/summary'\)/);
+    assert.match(src, /useSilentPoll<OrganismSummary>\('\/api\/specialists\/summary',\s*POLL_INTERVAL_MS\)/);
     assert.match(src, /POLL_INTERVAL_MS\s*=\s*30000/);
-    assert.match(src, /window\.setInterval\(fetchSummary, POLL_INTERVAL_MS\)/);
+    const pollSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-silent-poll.ts'),
+      'utf8',
+    );
+    assert.match(pollSrc, /apiGet<T>\(url\)/);
+    assert.match(pollSrc, /window\.setInterval\(tick, intervalMs\)/);
   });
 
   it('cleanup cancels in-flight + clears interval', () => {
-    const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /let cancelled = false/);
-    assert.match(src, /if \(!cancelled\) setSummary\(res\)/);
-    assert.match(src, /cancelled = true;\s*window\.clearInterval\(id\)/);
+    // (v1.10.743) Cancel-flag + clearInterval pair moved into useSilentPoll.
+    const pollSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-silent-poll.ts'),
+      'utf8',
+    );
+    assert.match(pollSrc, /let cancelled = false/);
+    assert.match(pollSrc, /if \(!cancelled\) setData\(res\)/);
+    assert.match(pollSrc, /cancelled = true;\s*window\.clearInterval\(id\)/);
   });
 
   it('errors silently degrade (catch swallows)', () => {
-    const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /\.catch\(\(\)\s*=>\s*\{[\s\S]*?\/\* silently degrade/);
+    // (v1.10.743) Catch swallow moved into useSilentPoll.
+    const pollSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-silent-poll.ts'),
+      'utf8',
+    );
+    assert.match(pollSrc, /\.catch\(\(\)\s*=>\s*\{[\s\S]*?\/\* silently degrade/);
   });
 
   it('parent SpecialistsSummaryBar wires the hook + drops the inline poll', () => {
@@ -6444,10 +6492,10 @@ describe('extracted: useStuckMeetings hook (v1.10.627)', () => {
   });
 
   it('returns StuckResponse | null and polls every 60s', () => {
+    // (v1.10.743) Polling shape lifted to lib/use-silent-poll.
     const src = fs.readFileSync(HOOK, 'utf8');
     assert.match(src, /useStuckMeetings\(\):\s*StuckResponse\s*\|\s*null/);
-    assert.match(src, /\/api\/meetings\/stuck\?hours=1/);
-    assert.match(src, /window\.setInterval\(fetchStuck,\s*60000\)/);
+    assert.match(src, /useSilentPoll<StuckResponse>\('\/api\/meetings\/stuck\?hours=1',\s*60000\)/);
   });
 
   it('parent MeetingsView calls the hook; inline state + effect removed', () => {

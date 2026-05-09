@@ -4,6 +4,63 @@
 
 (no entries — next release window)
 
+## [1.10.743] - 2026-05-10 — Extract useSilentPoll shared infra
+
+**Web — generic self-polling fetch consolidated.**
+The "self-poll an endpoint, silently degrade on
+failure, cancel-flag + clearInterval cleanup"
+pattern that lived in two near-identical hooks
+moves to a single generic
+`useSilentPoll<T>(url: string, intervalMs: number):
+T | null` in `lib/use-silent-poll.ts`.
+
+Two callers adopt and shrink:
+
+- `lib/use-stuck-meetings.ts` 22 → 11 (-11) —
+  one-line wrapper:
+  `useSilentPoll<StuckResponse>('/api/meetings/stuck?hours=1', 60000)`.
+- `lib/use-specialists-summary.ts` 42 → 27 (-15) —
+  same shape, keeps the `OrganismSummary` interface
+  inline since no other consumer uses it.
+
+The hook handles the dance that both consumers had
+inlined: tick → apiGet<T> → setState (cancel-flag
+gated) → catch → silently degrade. The
+`window.setInterval(tick, intervalMs)` runs
+alongside, and the cleanup fires both
+`cancelled = true` and `clearInterval(id)`.
+
+Net wire-count: +4 lines after counting the new
+shared file (30 lines) against the two ~13-line
+savings, but the win is conceptual — future
+self-polling display panels (decorative dashboards,
+status indicators) can adopt the pattern without
+re-typing the cancel dance, and a single fix in
+`useSilentPoll` propagates to all consumers.
+
+`useMetrics` (5s `/api/metrics` poll) was left as-is
+because it uses `fetch()` directly (predates
+`apiFetch`) and has a `if (!res.ok) return` check
+that would muddy the `apiGet`-based shared helper.
+Future cleanup once `useMetrics` migrates to
+`apiGet`.
+
+Boundary suite #209 in
+`tests/component-extract-boundaries.test.js` pins
+the generic hook signature, the `apiGet<T>` call,
+the cancel-flag + clearInterval cleanup, the silent
+catch, and verifies both consumers wire the new
+hook. Pre-existing `useStuckMeetings (v1.10.627)`
++ `useSpecialistsSummary (v1.10.725)` +
+`SpecialistsSummaryBar (v1.10.545)` boundary suites
+redirected to read the new helper file for the
+polling shape assertions.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (992 / 209 suites — +3 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.742] - 2026-05-10 — Extract useActionItemsExport hook
 
 **Web — `components/MeetingsActionItemsPanel.tsx` shrunk by 25 lines (154 → 129).**
