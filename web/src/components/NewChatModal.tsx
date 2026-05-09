@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { Button, Card, CardContent, CardHeader, CardTitle } from './ui';
 import { t, useLocale } from '../lib/i18n';
 import { useEscapeToClose } from '../lib/use-escape-to-close';
+import { useNewChatForm } from '../lib/use-new-chat-form';
 
 // (v1.10.539) Extracted from SessionsView. The claude.ai-style
 // "start a new conversation" modal. Pure controlled component;
@@ -40,19 +40,8 @@ export interface NewChatModalProps {
 export default function NewChatModal({ open, busy, error, onClose, onSubmit }: NewChatModalProps) {
   useLocale();
 
-  const [prompt, setPrompt] = useState('');
-  const [model, setModel] = useState('default');
-  const [agent, setAgent] = useState('generic');
-
-  // Reset on open so a previous typed-but-cancelled prompt doesn't
-  // bleed into the next session.
-  useEffect(() => {
-    if (open) {
-      setPrompt('');
-      setModel('default');
-      setAgent('generic');
-    }
-  }, [open]);
+  // (v1.10.734) Form fields + reset-on-open moved to use-new-chat-form.
+  const { prompt, setPrompt, model, setModel, agent, setAgent } = useNewChatForm({ open });
 
   // (v1.10.714) Esc-to-close moved to use-escape-to-close hook.
   useEscapeToClose({ open, onClose, busy });

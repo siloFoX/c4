@@ -1954,6 +1954,49 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useAttachForm + useNewChatForm hooks (v1.10.734)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const ATTACH_HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-attach-form.ts');
+  const ATTACH_PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'AttachModal.tsx');
+  const NCF_HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-new-chat-form.ts');
+  const NCF_PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'NewChatModal.tsx');
+
+  it('useAttachForm exports + resets on close', () => {
+    const src = fs.readFileSync(ATTACH_HOOK, 'utf8');
+    assert.match(src, /export function useAttachForm/);
+    assert.match(src, /useState\(''\)/);
+    assert.match(src, /if \(!open\)\s*\{[\s\S]*?setPathValue\(''\)/);
+    assert.match(src, /setNameValue\(''\)/);
+  });
+
+  it('useNewChatForm exports + resets on open with model/agent defaults', () => {
+    const src = fs.readFileSync(NCF_HOOK, 'utf8');
+    assert.match(src, /export function useNewChatForm/);
+    assert.match(src, /useState\('default'\)/);
+    assert.match(src, /useState\('generic'\)/);
+    assert.match(src, /if \(open\)\s*\{[\s\S]*?setPrompt\(''\)/);
+    assert.match(src, /setModel\('default'\)/);
+    assert.match(src, /setAgent\('generic'\)/);
+  });
+
+  it('parent AttachModal wires the hook + drops the inline reset', () => {
+    const src = fs.readFileSync(ATTACH_PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useAttachForm\s*\}\s+from\s+'\.\.\/lib\/use-attach-form'/);
+    assert.match(src, /useAttachForm\(\{[\s\S]*?open[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /const \[pathValue, setPathValue\]/);
+    assert.doesNotMatch(src, /useEffect\([\s\S]*?if \(!open\)/);
+  });
+
+  it('parent NewChatModal wires the hook + drops the inline reset', () => {
+    const src = fs.readFileSync(NCF_PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useNewChatForm\s*\}\s+from\s+'\.\.\/lib\/use-new-chat-form'/);
+    assert.match(src, /useNewChatForm\(\{[\s\S]*?open[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /const \[prompt, setPrompt\]/);
+    assert.doesNotMatch(src, /useEffect\([\s\S]*?if \(open\)\s*\{/);
+  });
+});
+
 describe('extracted: useStatusMessage hook (v1.10.733)', () => {
   const fs = require('fs');
   const path = require('path');

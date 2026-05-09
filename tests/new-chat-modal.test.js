@@ -68,7 +68,11 @@ describe('NewChatModal contract', () => {
   });
 
   it('resets fields when re-opened', () => {
-    assert.match(src, /if \(open\) \{\s*\n\s*setPrompt\(''\);\s*\n\s*setModel\('default'\);\s*\n\s*setAgent\('generic'\);/);
+    // (v1.10.734) Reset effect moved to use-new-chat-form hook.
+    const fs = require('fs');
+    const HOOK = path.join(ROOT, 'web/src/lib/use-new-chat-form.ts');
+    const hookSrc = fs.readFileSync(HOOK, 'utf8');
+    assert.match(hookSrc, /if \(open\) \{\s*\n\s*setPrompt\(''\);\s*\n\s*setModel\('default'\);\s*\n\s*setAgent\('generic'\);/);
   });
 
   // (review fix 2026-05-01) Standard dialogs close on Escape;

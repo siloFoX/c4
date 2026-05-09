@@ -4,6 +4,48 @@
 
 (no entries — next release window)
 
+## [1.10.734] - 2026-05-10 — Extract useAttachForm + useNewChatForm hooks
+
+**Web — two modal forms split out into matched hooks.**
+The "form fields + reset effect" pattern that lived
+inline in two attach/spawn modals moves into a
+dedicated hook per modal:
+
+- `components/AttachModal.tsx` 173 → 167 (-6) —
+  `useAttachForm({ open })` owns `pathValue` +
+  `nameValue` + the reset-on-close effect (`if
+  (!open)` — clears on close so a failed submit can
+  retry without retyping).
+- `components/NewChatModal.tsx` 178 → 167 (-11) —
+  `useNewChatForm({ open })` owns `prompt` +
+  `model` + `agent` (with the `'default'` /
+  `'generic'` defaults) plus the reset-on-open
+  effect (`if (open)` — clears on open so a
+  cancelled session does not bleed into the next).
+
+Net code-shape: each modal now has a single hook
+destructure for form state + the existing
+`useEscapeToClose` for keyboard-dismiss + JSX. The
+asymmetric reset trigger (close vs open) is now
+documented in each hook's header so a future reader
+sees the rationale without grepping for the original
+inline comments.
+
+Boundary suite #200 in
+`tests/component-extract-boundaries.test.js` covers
+both hooks in one block — pins the signatures, the
+reset-trigger directions, the model/agent defaults,
+and verifies both parents wire the hooks + drop the
+inline state. One pre-existing
+`new-chat-modal.test.js` "resets fields when
+re-opened" assertion redirected from parent → hook
+file.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (957 / 200 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.733] - 2026-05-10 — Extract useStatusMessage hook
 
 **Web — `components/StatusMessageCard.tsx` shrunk by 20 lines (77 → 57).**

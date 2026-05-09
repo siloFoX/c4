@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
 import { Link2, X } from 'lucide-react';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useAttachForm } from '../lib/use-attach-form';
 import {
   POST_ATTACH_HELP_TITLE_KEY,
   POST_ATTACH_HELP_ITEM_KEYS,
@@ -34,14 +34,8 @@ export default function AttachModal({
   onSubmit,
 }: AttachModalProps) {
   useLocale();
-  const [pathValue, setPathValue] = useState('');
-  const [nameValue, setNameValue] = useState('');
-  useEffect(() => {
-    if (!open) {
-      setPathValue('');
-      setNameValue('');
-    }
-  }, [open]);
+  // (v1.10.734) Form fields + reset-on-close moved to use-attach-form.
+  const { pathValue, setPathValue, nameValue, setNameValue } = useAttachForm({ open });
   if (!open) return null;
   const preview = available.slice(0, 10);
   return (
