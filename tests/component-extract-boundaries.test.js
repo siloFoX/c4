@@ -1954,6 +1954,36 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useControlPanelWorkerList hook (v1.10.737)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-control-panel-worker-list.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'ControlPanel.tsx');
+
+  it('exports the hook + returns workers + fetchList', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useControlPanelWorkerList/);
+    assert.match(src, /workers:\s*Worker\[\]/);
+    assert.match(src, /fetchList:\s*\(\)\s*=>\s*Promise<void>/);
+  });
+
+  it('polls /api/list every 5s + silently swallows errors', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiFetch\('\/api\/list'\)/);
+    assert.match(src, /POLL_INTERVAL_MS\s*=\s*5000/);
+    assert.match(src, /setInterval\(fetchList, POLL_INTERVAL_MS\)/);
+    assert.match(src, /catch \{[\s\S]*?keep the panel silent/);
+  });
+
+  it('parent ControlPanel wires the hook + drops the inline poll', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useControlPanelWorkerList\s*\}\s+from\s+'\.\.\/lib\/use-control-panel-worker-list'/);
+    assert.match(src, /useControlPanelWorkerList\(\)/);
+    assert.doesNotMatch(src, /setInterval\(fetchList/);
+    assert.doesNotMatch(src, /apiFetch\('\/api\/list'\)/);
+  });
+});
+
 describe('extracted: useSessionsCollapse hook (v1.10.736)', () => {
   const fs = require('fs');
   const path = require('path');

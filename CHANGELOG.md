@@ -4,6 +4,44 @@
 
 (no entries — next release window)
 
+## [1.10.737] - 2026-05-10 — Extract useControlPanelWorkerList hook
+
+**Web — `components/ControlPanel.tsx` shrunk by 17 lines (265 → 248).**
+The `/api/list` 5s self-poll that feeds
+ControlPanel's per-worker action strip + the
+batch-selection toolbar moves to a
+`useControlPanelWorkerList()` hook returning
+`{ workers, fetchList }`.
+
+Distinct from the global `useWorkerList` (extracted
+at v1.10.660) which also subscribes to
+`/api/events` SSE for real-time refresh and surfaces
+an `error` slot for the sidebar. The ControlPanel
+poll keeps the original silent-failure semantic
+(the sidebar already surfaces list errors) and
+skips the SSE subscription so two simultaneous
+`/api/events` streams don't run when both the
+sidebar and this panel are mounted together.
+
+`Worker` and `ListResponse` types stop being
+imported by `ControlPanel.tsx` since the hook owns
+the fetch — the parent now references neither.
+
+Boundary suite #203 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the 5s `POLL_INTERVAL_MS`, the
+silent catch contract, and verifies the parent
+wires the hook + drops the inline poll. Two
+pre-existing tests in `web-control.test.js`
+("imports the shared Worker + ListResponse types"
+and "fetches /api/list for the batch worker picker")
+redirected to read the hook file.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (968 / 203 suites — +3 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.736] - 2026-05-10 — Extract useSessionsCollapse hook
 
 **Web — `components/SessionsView.tsx` collapse-state cluster moved to a hook.**

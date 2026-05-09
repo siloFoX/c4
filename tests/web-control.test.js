@@ -280,9 +280,13 @@ describe('ControlPanel.tsx source wiring (8.8)', () => {
   });
 
   it('imports the shared Worker + ListResponse types', () => {
-    assert.match(src, /from '\.\.\/types'/);
-    assert.match(src, /ListResponse/);
-    assert.match(src, /\bWorker\b/);
+    // (v1.10.737) Worker + ListResponse imports moved into
+    // use-control-panel-worker-list hook with the fetch logic.
+    const HOOK = path.join(REPO_ROOT, 'web/src/lib/use-control-panel-worker-list.ts');
+    const hookSrc = fs.readFileSync(HOOK, 'utf8');
+    assert.match(hookSrc, /from '\.\.\/types'/);
+    assert.match(hookSrc, /ListResponse/);
+    assert.match(hookSrc, /\bWorker\b/);
   });
 
   it('wires every required single-worker action endpoint', () => {
@@ -343,7 +347,10 @@ describe('ControlPanel.tsx source wiring (8.8)', () => {
   });
 
   it('fetches /api/list for the batch worker picker', () => {
-    assert.match(src, /'\/api\/list'/);
+    // (v1.10.737) Fetch moved into use-control-panel-worker-list hook.
+    const HOOK = path.join(REPO_ROOT, 'web/src/lib/use-control-panel-worker-list.ts');
+    const hookSrc = fs.readFileSync(HOOK, 'utf8');
+    assert.match(hookSrc, /'\/api\/list'/);
   });
 
   it('default-exports ControlPanel as a React component', () => {

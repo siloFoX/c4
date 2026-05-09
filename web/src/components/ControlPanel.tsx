@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useState } from 'react';
 import {
   CircleSlash,
   Pause,
@@ -14,9 +13,9 @@ import ControlPanelBatch from './ControlPanelBatch';
 import { useWorkerSelection } from '../lib/use-worker-selection';
 import { useToast } from '../lib/use-toast';
 import { useControlPanelSingle } from '../lib/use-control-panel-single';
+import { useControlPanelWorkerList } from '../lib/use-control-panel-worker-list';
 import { apiFetch } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
-import type { ListResponse, Worker } from '../types';
 import {
   type ButtonProps,
 } from './ui';
@@ -186,24 +185,8 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
   useLocale();
   // (v1.10.708) Toast slot moved to lib/use-toast.
   const { toast, showToast, dismissToast } = useToast();
-  const [workers, setWorkers] = useState<Worker[]>([]);
-
-  const fetchList = useCallback(async () => {
-    try {
-      const res = await apiFetch('/api/list');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as ListResponse;
-      setWorkers(Array.isArray(data.workers) ? data.workers : []);
-    } catch {
-      // The sidebar already surfaces list errors; keep the panel silent.
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchList();
-    const interval = setInterval(fetchList, 5000);
-    return () => clearInterval(interval);
-  }, [fetchList]);
+  // (v1.10.737) /api/list 5s self-poll moved to use-control-panel-worker-list.
+  const { workers, fetchList } = useControlPanelWorkerList();
 
   const actions = buildActions(workerName);
 
