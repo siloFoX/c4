@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useState } from 'react';
-import { apiPost } from '../lib/api';
 import { Button, Input } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -7,6 +6,7 @@ import MeetingsTemplateEditor from './MeetingsTemplateEditor';
 import { useMeetingClassifyPreview } from '../lib/use-meeting-classify-preview';
 import { useMeetingPreviewPlan } from '../lib/use-meeting-preview-plan';
 import { useMeetingTemplates, type MeetingTemplate } from '../lib/use-meeting-templates';
+import { useMeetingCreate } from '../lib/use-meeting-create';
 
 // (v1.10.557) Extracted from MeetingsView. Create-meeting
 // composer — template chips with edit pencils, the embedded
@@ -41,8 +41,6 @@ export default function MeetingsComposer({ open, onClose, onCreated }: Props) {
 
   const [newTask, setNewTask] = useState('');
   const [newTrack, setNewTrack] = useState<'auto' | 'lightweight' | 'standard' | 'full'>('auto');
-  const [createBusy, setCreateBusy] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
 
   // (v1.10.649) Saved templates load + refresh moved to hook.
   const { templates, refresh: loadTemplates } = useMeetingTemplates({ open });
@@ -78,40 +76,11 @@ export default function MeetingsComposer({ open, onClose, onCreated }: Props) {
   // (v1.10.648) Dispatcher preview moved to hook.
   const { previewPlan, previewBusy } = useMeetingPreviewPlan({ open, newTask, newTrack });
 
-  const handleCreate = useCallback(async () => {
-    const task = newTask.trim();
-    if (!task && !templateName) return;
-    setCreateBusy(true);
-    setCreateError(null);
-    try {
-      const body: {
-        task?: string;
-        track?: string;
-        template?: string;
-        vars?: Record<string, string>;
-        requireAllVars?: boolean;
-      } = {};
-      if (templateName) {
-        body.template = templateName;
-        const filled = Object.fromEntries(
-          Object.entries(templateVars).filter(([, v]) => v && v.length > 0),
-        );
-        if (Object.keys(filled).length) body.vars = filled;
-      } else {
-        body.task = task;
-      }
-      if (newTrack !== 'auto') body.track = newTrack;
-      const created = await apiPost<{ id: string }>('/api/meetings', body);
-      setNewTask('');
-      setTemplateName(null);
-      setTemplateVars({});
-      if (created && created.id) onCreated(created.id);
-    } catch (e) {
-      setCreateError((e as Error).message || t('common.failedToCreateMeeting'));
-    } finally {
-      setCreateBusy(false);
-    }
-  }, [newTask, newTrack, templateName, templateVars, onCreated]);
+  // (v1.10.679) POST /api/meetings + form-reset moved to hook.
+  const { createBusy, createError, setCreateError, handleCreate } = useMeetingCreate({
+    newTask, newTrack, templateName, templateVars,
+    setNewTask, setTemplateName, setTemplateVars, onCreated,
+  });
 
   if (!open) return null;
 

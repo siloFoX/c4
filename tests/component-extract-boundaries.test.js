@@ -1778,6 +1778,53 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useMeetingCreate hook (v1.10.679)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-create.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'MeetingsComposer.tsx');
+
+  it('exports the hook + accepts the eight task/template/setters/onCreated args', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useMeetingCreate/);
+    assert.match(src, /newTask:\s*string/);
+    assert.match(src, /templateName:\s*string\s*\|\s*null/);
+    assert.match(src, /templateVars:\s*Record<string,\s*string>/);
+    assert.match(src, /onCreated:\s*\(newMeetingId:\s*string\)\s*=>\s*void/);
+  });
+
+  it('POSTs /api/meetings with task or template body branches', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiPost<\{ id: string \}>\('\/api\/meetings'/);
+    assert.match(src, /if \(templateName\)/);
+    assert.match(src, /body\.template = templateName/);
+    assert.match(src, /body\.task = task/);
+    assert.match(src, /if \(newTrack !== 'auto'\) body\.track = newTrack/);
+  });
+
+  it('filters out empty template vars before sending', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /Object\.entries\(templateVars\)\.filter\(\(\[, v\]\) => v && v\.length > 0\)/);
+  });
+
+  it('clears form + fires onCreated on success', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /setNewTask\(''\)/);
+    assert.match(src, /setTemplateName\(null\)/);
+    assert.match(src, /setTemplateVars\(\{\}\)/);
+    assert.match(src, /if \(created && created\.id\) onCreated\(created\.id\)/);
+  });
+
+  it('parent MeetingsComposer wires the hook + drops the inline state + handler', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useMeetingCreate\s*\}\s+from\s+'\.\.\/lib\/use-meeting-create'/);
+    assert.match(src, /useMeetingCreate\(\{[\s\S]*?newTask,\s*newTrack,\s*templateName,\s*templateVars[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /const \[createBusy, setCreateBusy\]/);
+    assert.doesNotMatch(src, /const \[createError, setCreateError\]/);
+    assert.doesNotMatch(src, /const handleCreate = useCallback/);
+  });
+});
+
 describe('extracted: useSpecialistFilter hook (v1.10.678)', () => {
   const fs = require('fs');
   const path = require('path');

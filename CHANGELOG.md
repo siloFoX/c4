@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.679] - 2026-05-09 — Extract useMeetingCreate hook
+
+**Web — `MeetingsComposer.tsx` shrunk by 31 lines (317 → 286).**
+The "Create" button's POST /api/meetings flow — task /
+template / track body construction, empty-var
+filtering, form-reset + onCreated callback on success
+— moves to a self-contained hook. The parent retains
+ownership of the form state slots (newTask /
+templateName / templateVars) but threads the matching
+setters into the hook so the success path can clear
+them.
+
+### Refactor
+- New `web/src/lib/use-meeting-create.ts` (~78 lines).
+  Returns `{ createBusy, createError, setCreateError,
+  handleCreate }`. setCreateError exposed because the
+  parent's Escape-key handler clears the banner that
+  way.
+- `MeetingsComposer.tsx`: removed the `createBusy` +
+  `createError` useState slots and the ~33-line
+  `handleCreate` useCallback. Replaced with one
+  destructured hook call. Trimmed `apiPost` import.
+- Boundary suite #146 — 5 assertions covering hook +
+  8-prop signature, POST URL + branch shape,
+  empty-var filter, form-reset on success, parent
+  wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  725 / 725 across 145 → 146 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 150 ships total since v1.10.529. 🎯
+- 148 components/libs extracted.
+- 58 custom hooks in `web/src/lib/`.
+- 725 boundary assertions across 146 suites.
+
 ## [1.10.678] - 2026-05-09 — Extract useSpecialistFilter hook
 
 **Web — `SpecialistsView.tsx` shrunk by 15 lines (270 → 255).**
