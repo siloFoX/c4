@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { Button, Card, CardContent, CardHeader, CardTitle } from './ui';
 import { t, useLocale } from '../lib/i18n';
+import { useEscapeToClose } from '../lib/use-escape-to-close';
 
 // (v1.10.539) Extracted from SessionsView. The claude.ai-style
 // "start a new conversation" modal. Pure controlled component;
@@ -53,21 +54,8 @@ export default function NewChatModal({ open, busy, error, onClose, onSubmit }: N
     }
   }, [open]);
 
-  // (review fix 2026-05-01) Esc closes the modal — standard
-  // expectation for `role="dialog" aria-modal="true"`. The
-  // listener is no-op while busy so an accidental Esc during
-  // submit doesn't drop the in-flight POST result.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !busy) {
-        e.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, busy, onClose]);
+  // (v1.10.714) Esc-to-close moved to use-escape-to-close hook.
+  useEscapeToClose({ open, onClose, busy });
 
   if (!open) return null;
   const trimmed = prompt.trim();

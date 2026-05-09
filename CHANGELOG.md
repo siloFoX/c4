@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.714] - 2026-05-09 — Extract useEscapeToClose hook (shared)
+
+**Web — generic Escape-key dismissal hook adopted by 2 modals.**
+The duplicated `useEffect(() => { if (!open) return;
+addEventListener('keydown', …) }, [open, onClose])`
+pattern that NewChatModal + KeyboardShortcutsModal
+both implemented inline moves into a single
+`useEscapeToClose({ open, onClose, busy? })` hook.
+
+The hook only mounts the listener while `open` is
+true, short-circuits when the optional `busy` flag is
+set (so an accidental Esc during an in-flight POST
+doesn't unmount the modal mid-submit), and calls
+`preventDefault()` before dispatching `onClose`.
+
+- `NewChatModal.tsx` 191 → 178 (-13) — busy gate variant
+- `KeyboardShortcutsModal.tsx` 101 → 94 (-7) — no gate
+- New shared `lib/use-escape-to-close.ts` — 28 lines
+
+The `MeetingsComposer` Esc handler stayed inline
+because it sits on a textarea `onKeyDown` (not a
+window listener); `ConfirmDialog` stayed inline
+because it pairs Escape with `dialogRef.current?.focus()`
+focus management. Both can adopt the hook in a future
+extraction if they grow.
+
+Boundary suite #181 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the busy short-circuit, the
+open-gated mount, and verifies both modals wire the
+hook (with / without the busy gate). Two pre-existing
+tests redirected:
+- `new-chat-modal.test.js` "binds Escape to close"
+- `ui-docs.test.js` "closes on Escape" (KeyboardShortcutsModal)
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (866 / 180 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.713] - 2026-05-09 — Extract useOnboardingTour hook
 
 **Web — `components/OnboardingTour.tsx` shrunk by 58 lines (191 → 133).**

@@ -75,8 +75,16 @@ describe('NewChatModal contract', () => {
   // the listener is no-op while busy so an accidental Esc during
   // submit doesn't drop the in-flight POST result.
   it('binds Escape to close (skipped while busy)', () => {
-    assert.match(src, /e\.key === 'Escape' && !busy/);
-    assert.match(src, /onClose\(\)/);
+    // (v1.10.714) Escape handler moved to use-escape-to-close hook,
+    // which busy-gates by short-circuiting before preventDefault.
+    const fs = require('fs');
+    const HOOK = path.join(ROOT, 'web/src/lib/use-escape-to-close.ts');
+    const hookSrc = fs.readFileSync(HOOK, 'utf8');
+    assert.match(hookSrc, /if \(busy\) return/);
+    assert.match(hookSrc, /e\.key !== 'Escape'/);
+    assert.match(hookSrc, /onClose\(\)/);
+    // Parent must wire the hook with the busy gate.
+    assert.match(src, /useEscapeToClose\(\{[\s\S]*?busy[\s\S]*?\}\)/);
   });
 
   // (review fix 2026-05-01) Backdrop click closes only when not

@@ -1,8 +1,8 @@
-import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { IconButton } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
+import { useEscapeToClose } from '../lib/use-escape-to-close';
 
 interface KeyboardShortcutsModalProps {
   open: boolean;
@@ -40,14 +40,8 @@ export function KeyboardShortcutsModal({
 }: KeyboardShortcutsModalProps) {
   useLocale();
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  // (v1.10.714) Esc-to-close moved to use-escape-to-close hook.
+  useEscapeToClose({ open, onClose });
 
   if (!open) return null;
 

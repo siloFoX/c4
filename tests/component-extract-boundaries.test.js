@@ -1865,6 +1865,45 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useEscapeToClose hook (v1.10.714)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-escape-to-close.ts');
+  const MODAL_NEW = path.join(__dirname, '..', 'web', 'src', 'components', 'NewChatModal.tsx');
+  const MODAL_KS = path.join(__dirname, '..', 'web', 'src', 'components', 'KeyboardShortcutsModal.tsx');
+
+  it('exports the hook + accepts open/onClose/optional busy', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useEscapeToClose/);
+    assert.match(src, /open:\s*boolean/);
+    assert.match(src, /onClose:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /busy\?:\s*boolean/);
+  });
+
+  it('listener only mounts while open + busy short-circuits dismissal', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(!open\) return/);
+    assert.match(src, /if \(busy\) return/);
+    assert.match(src, /e\.key !== 'Escape'/);
+    assert.match(src, /addEventListener\('keydown'/);
+    assert.match(src, /removeEventListener\('keydown'/);
+  });
+
+  it('NewChatModal wires the hook with the busy gate + drops the inline effect', () => {
+    const src = fs.readFileSync(MODAL_NEW, 'utf8');
+    assert.match(src, /import\s+\{\s*useEscapeToClose\s*\}\s+from\s+'\.\.\/lib\/use-escape-to-close'/);
+    assert.match(src, /useEscapeToClose\(\{[\s\S]*?open,\s*onClose,\s*busy[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /e\.key === 'Escape' && !busy/);
+  });
+
+  it('KeyboardShortcutsModal shares the hook (no busy gate)', () => {
+    const src = fs.readFileSync(MODAL_KS, 'utf8');
+    assert.match(src, /import\s+\{\s*useEscapeToClose\s*\}\s+from\s+'\.\.\/lib\/use-escape-to-close'/);
+    assert.match(src, /useEscapeToClose\(\{[\s\S]*?open,\s*onClose[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /addEventListener\('keydown'/);
+  });
+});
+
 describe('extracted: useOnboardingTour hook (v1.10.713)', () => {
   const fs = require('fs');
   const path = require('path');

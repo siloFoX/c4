@@ -297,7 +297,13 @@ describe('KeyboardShortcutsModal component', () => {
   });
 
   it('closes on Escape', () => {
-    assert.match(src, /e\.key === 'Escape'/);
+    // (v1.10.714) Escape handler moved to use-escape-to-close hook.
+    assert.match(src, /useEscapeToClose\(\{[\s\S]*?open,\s*onClose[\s\S]*?\}\)/);
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-escape-to-close.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /e\.key !== 'Escape'/);
   });
 });
 
