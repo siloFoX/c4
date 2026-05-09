@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Bot, Pause, Play, RefreshCw } from 'lucide-react';
-import { apiGet, apiPost } from '../lib/api';
+import { apiPost } from '../lib/api';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import AutonomousDigestMetrics from './AutonomousDigestMetrics';
+import { useAutonomousDigest } from '../lib/use-autonomous-digest';
 
 // (v1.10.349) Autonomous tab — operator-side surface for the
 // Phase 8.29 reviewer escalation flow.
@@ -35,21 +36,10 @@ export interface DigestResponse {
   resolvedEscalations: number;
 }
 
-interface Escalation {
-  id: number;
-  todoId: string | null;
-  reason: string;
-  kind: string;
-  suggestedAction: string;
-  status: 'pending' | 'resolved';
-  createdAt: number;
-  resolvedAt: number | null;
-  resolvedAction: string | null;
-  resolvedNote: string | null;
-}
-
 // (v1.10.570) fmtDuration moved to ./AutonomousDigestMetrics.tsx
 // (the only place it's used).
+// (v1.10.653) Escalation type + status/digest/escalations
+// triple-fetch with 30s refresh moved to lib/use-autonomous-digest.
 
 function fmtRelative(ms: number): string {
   const delta = Date.now() - ms;
@@ -62,11 +52,6 @@ function fmtRelative(ms: number): string {
 
 export default function AutonomousView() {
   useLocale();
-  const [digest, setDigest] = useState<DigestResponse | null>(null);
-  const [digestError, setDigestError] = useState<string | null>(null);
-  const [escalations, setEscalations] = useState<Escalation[]>([]);
-  const [escalError, setEscalError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   // (v1.10.355) When true the list shows resolved escalations
   // alongside pending ones. The daemon returns both; we filter
   // on the client. False by default so operators see actionable
@@ -77,50 +62,18 @@ export default function AutonomousView() {
   // (v1.10.484) Tone separated from message text — see prior tone refactors.
   const [pauseFailed, setPauseFailed] = useState(false);
 
-  // (v1.10.535) Track whether autonomous mode is enabled. When
-  // false, /digest and /escalations both 400; we gate on
-  // /status (which always returns 200) so the UI shows a friendly
-  // disabled state instead of spamming console errors.
-  const [autonomousEnabled, setAutonomousEnabled] = useState<boolean | null>(null);
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setDigestError(null);
-    setEscalError(null);
-    try {
-      const status = await apiGet<{ enabled: boolean; reason?: string }>(
-        '/api/autonomous/status',
-      );
-      setAutonomousEnabled(status.enabled);
-      if (!status.enabled) {
-        setDigest(null);
-        setEscalations([]);
-        return;
-      }
-      const [d, e] = await Promise.all([
-        apiGet<DigestResponse>('/api/autonomous/digest'),
-        apiGet<{ count: number; escalations: Escalation[] }>(
-          showResolved
-            ? '/api/autonomous/escalations?status=all'
-            : '/api/autonomous/escalations',
-        ),
-      ]);
-      setDigest(d);
-      setEscalations(e.escalations || []);
-    } catch (err) {
-      setDigestError((err as Error).message || t('common.failedToLoadDigest'));
-    } finally {
-      setLoading(false);
-    }
-  }, [showResolved]);
-
-  useEffect(() => {
-    refresh();
-    // Light refresh cadence — operator dwells on this tab so 30s
-    // is enough to keep the picture warm without spamming.
-    const id = window.setInterval(refresh, 30000);
-    return () => window.clearInterval(id);
-  }, [refresh, showResolved]);
+  // (v1.10.535/v1.10.653) Triple-fetch (status + digest + escalations)
+  // with 30s auto-refresh moved to lib/use-autonomous-digest.
+  const {
+    autonomousEnabled,
+    digest,
+    escalations,
+    setEscalations,
+    loading,
+    digestError,
+    escalError,
+    refresh,
+  } = useAutonomousDigest({ showResolved });
 
   const handlePauseToggle = useCallback(async () => {
     if (!digest) return;

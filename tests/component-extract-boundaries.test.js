@@ -1770,6 +1770,61 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useAutonomousDigest hook (v1.10.653)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-autonomous-digest.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'AutonomousView.tsx');
+
+  it('exports the hook + Escalation type', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useAutonomousDigest/);
+    assert.match(src, /export type \{ Escalation \}/);
+    assert.match(src, /interface Escalation \{[\s\S]*?suggestedAction:\s*string/);
+  });
+
+  it('GETs status first then digest + escalations in parallel', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiGet<\{ enabled: boolean; reason\?: string \}>\(\s*'\/api\/autonomous\/status'/);
+    assert.match(src, /Promise\.all\(\[/);
+    assert.match(src, /apiGet<DigestResponse>\('\/api\/autonomous\/digest'\)/);
+    assert.match(src, /\/api\/autonomous\/escalations\?status=all/);
+  });
+
+  it('blanks digest + escalations when autonomous is disabled', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(!status\.enabled\)/);
+    assert.match(src, /setDigest\(null\)/);
+    assert.match(src, /setEscalations\(\[\]\)/);
+  });
+
+  it('refreshes every 30s via window.setInterval', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.setInterval\(refresh,\s*30000\)/);
+    assert.match(src, /window\.clearInterval\(id\)/);
+  });
+
+  it('returns the full state tuple including setEscalations for optimistic resolves', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /autonomousEnabled:\s*boolean\s*\|\s*null/);
+    assert.match(src, /digest:\s*DigestResponse\s*\|\s*null/);
+    assert.match(src, /escalations:\s*Escalation\[\]/);
+    assert.match(src, /setEscalations:\s*React\.Dispatch<React\.SetStateAction<Escalation\[\]>>/);
+    assert.match(src, /loading:\s*boolean/);
+    assert.match(src, /refresh:\s*\(\)\s*=>\s*Promise<void>/);
+  });
+
+  it('parent AutonomousView wires the hook + drops the inline state + interface + refresh', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useAutonomousDigest\s*\}\s+from\s+'\.\.\/lib\/use-autonomous-digest'/);
+    assert.match(src, /useAutonomousDigest\(\{\s*showResolved\s*\}\)/);
+    assert.doesNotMatch(src, /^interface Escalation \{/m);
+    assert.doesNotMatch(src, /const \[digest, setDigest\]/);
+    assert.doesNotMatch(src, /const \[escalations, setEscalations\]/);
+    assert.doesNotMatch(src, /const refresh = useCallback/);
+  });
+});
+
 describe('extracted: useHistorySummary hook (v1.10.652)', () => {
   const fs = require('fs');
   const path = require('path');

@@ -4,6 +4,51 @@
 
 (no entries — next release window)
 
+## [1.10.653] - 2026-05-09 — Extract useAutonomousDigest hook
+
+**Web — `AutonomousView.tsx` shrunk by 47 lines (365 → 318).**
+The autonomous-tab triple-fetch (status + digest +
+escalations) plus its 30s `setInterval` warm-keep moves to
+a self-contained hook. The `Escalation` row interface
+ships with it. The hook gates digest+escalations on
+`status.enabled` so the disabled empty-state stays clean.
+The hook also exposes `setEscalations` so the parent's
+`handleResolve` can keep doing its optimistic-remove
+without re-routing through `refresh`.
+
+### Refactor
+- New `web/src/lib/use-autonomous-digest.ts` (~100 lines).
+  Imports `DigestResponse` from the parent component
+  (still page-scoped + already exported for
+  AutonomousDigestMetrics). `Escalation` re-exported via
+  `export type` so it stays available for downstream
+  consumers if needed.
+- `AutonomousView.tsx`: removed the inline `Escalation`
+  interface, the five useState slots
+  (digest/digestError/escalations/escalError/loading +
+  autonomousEnabled), the ~30-line `refresh` useCallback,
+  and the auto-refresh useEffect with its 30s interval.
+  Replaced with one `useAutonomousDigest` destructure.
+  Trimmed unused `useEffect` + `apiGet` imports.
+- Boundary suite #121 — 6 assertions covering hook export
+  shape + Escalation type, status-then-digest-and-escalations
+  fetch order, disabled-state blanking, 30s interval +
+  cleanup, full return tuple including `setEscalations`,
+  parent wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  605 / 605 across 120 → 121 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 125 ships total since v1.10.529.
+- 121 components/libs extracted.
+- 31 custom hooks in `web/src/lib/`.
+- 605 boundary assertions across 121 suites.
+
 ## [1.10.652] - 2026-05-09 — Extract useHistorySummary hook
 
 **Web — `HistoryView.tsx` shrunk by 25 lines (323 → 298).**
