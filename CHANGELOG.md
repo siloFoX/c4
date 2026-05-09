@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.10.666] - 2026-05-09 — Reuse useWorkerList in HierarchyTree
+
+**Web — `HierarchyTree.tsx` shrunk by 32 lines (323 → 291).**
+Not a new hook — instead, the duplicate /api/list +
+/api/events SSE wiring that was identical to WorkerList's
+gets replaced with a one-line `useWorkerList()` call.
+The hook was extracted in v1.10.660 specifically for this
+shared use case; HierarchyTree now consumes it.
+
+### Refactor
+- `HierarchyTree.tsx`: removed three useState slots
+  (workers / error / sseConnected), the `fetchList`
+  useCallback, and the SSE+interval useEffect. Replaced
+  with one destructured `useWorkerList()` call. Trimmed
+  `ListResponse` + `SSEEvent` type imports + the
+  `apiFetch` + `eventSourceUrl` helper imports — all
+  consumed by the hook now.
+- Boundary suite #133 — 2 assertions confirming the
+  hook import + call site, plus that the inline fetch
+  / SSE / state are gone (regression guard against
+  someone re-inlining the duplicate).
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  664 / 664 across 132 → 133 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 137 ships total since v1.10.529.
+- 135 components/libs extracted (no new lib — sharing
+  win, not extraction win).
+- 45 custom hooks in `web/src/lib/`.
+- 664 boundary assertions across 133 suites.
+
 ## [1.10.665] - 2026-05-09 — Extract useWorkerBufferFlusher hook
 
 **Web — `ChatView.tsx` shrunk by 26 lines (413 → 387).**

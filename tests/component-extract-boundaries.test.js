@@ -1770,6 +1770,27 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('shared: useWorkerList consumed by HierarchyTree (v1.10.666)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'HierarchyTree.tsx');
+
+  it('HierarchyTree imports useWorkerList instead of redeclaring the fetch + SSE', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useWorkerList\s*\}\s+from\s+'\.\.\/lib\/use-worker-list'/);
+    assert.match(src, /useWorkerList\(\)/);
+  });
+
+  it('HierarchyTree no longer redeclares the inline fetch / SSE / state', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.doesNotMatch(src, /const \[workers, setWorkers\]/);
+    assert.doesNotMatch(src, /const \[sseConnected, setSseConnected\]/);
+    assert.doesNotMatch(src, /const fetchList = useCallback/);
+    assert.doesNotMatch(src, /new EventSource\(eventSourceUrl\('\/api\/events'\)\)/);
+    assert.doesNotMatch(src, /apiFetch\('\/api\/list'\)/);
+  });
+});
+
 describe('extracted: useWorkerBufferFlusher hook (v1.10.665)', () => {
   const fs = require('fs');
   const path = require('path');

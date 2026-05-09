@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Dot, WifiOff } from 'lucide-react';
-import type { ListResponse, SSEEvent, Worker } from '../types';
-import { apiFetch, eventSourceUrl } from '../lib/api';
+import type { Worker } from '../types';
+import { useWorkerList } from '../lib/use-worker-list';
 import { Badge, Button } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -209,42 +209,10 @@ function TreeRow({ node, depth, expanded, toggle, selectedWorker, onSelect }: Ro
 
 export default function HierarchyTree({ selectedWorker, onSelect }: HierarchyTreeProps) {
   useLocale();
-  const [workers, setWorkers] = useState<Worker[]>([]);
+  // (v1.10.666) Worker poll + SSE shared with WorkerList via
+  // lib/use-worker-list (extracted v1.10.660).
+  const { workers, error, sseConnected } = useWorkerList();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [error, setError] = useState<string | null>(null);
-  const [sseConnected, setSseConnected] = useState(false);
-
-  const fetchList = useCallback(async () => {
-    try {
-      const res = await apiFetch('/api/list');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as ListResponse;
-      setWorkers(Array.isArray(data.workers) ? data.workers : []);
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchList();
-    const interval = setInterval(fetchList, 5000);
-    const es = new EventSource(eventSourceUrl('/api/events'));
-    es.onopen = () => setSseConnected(true);
-    es.onerror = () => setSseConnected(false);
-    es.onmessage = (ev) => {
-      try {
-        const evt = JSON.parse(ev.data) as SSEEvent;
-        if (evt.type && evt.type !== 'connected') fetchList();
-      } catch {
-        // non-JSON payload
-      }
-    };
-    return () => {
-      clearInterval(interval);
-      es.close();
-    };
-  }, [fetchList]);
 
   const roots = useMemo(() => buildTree(workers), [workers]);
 
