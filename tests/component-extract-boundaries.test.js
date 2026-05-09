@@ -853,29 +853,50 @@ describe('extracted: SpecialistsPromptPanel (v1.10.558)', () => {
   });
 
   it('owns suggest + apply state internally', () => {
+    // (v1.10.699) Slots moved to lib/use-prompt-revision.
     const src = read('SpecialistsPromptPanel.tsx');
-    assert.match(src, /const \[suggestBusy, setSuggestBusy\]/);
-    assert.match(src, /const \[suggestion, setSuggestion\]/);
-    assert.match(src, /const \[applyBusy, setApplyBusy\]/);
-    assert.match(src, /const \[applyResult, setApplyResult\]/);
+    assert.match(src, /usePromptRevision/);
+    assert.match(src, /suggestBusy/);
+    assert.match(src, /suggestion/);
+    assert.match(src, /applyBusy/);
+    assert.match(src, /applyResult/);
   });
 
   it('owns the suggest-prompt and prompt-apply POST handlers', () => {
+    // (v1.10.699) Handlers moved to hook.
     const src = read('SpecialistsPromptPanel.tsx');
     assert.match(src, /handleSuggest/);
     assert.match(src, /handleApply/);
-    assert.match(src, /\/suggest-prompt/);
-    assert.match(src, /\/prompt-apply/);
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-prompt-revision.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /\/suggest-prompt/);
+    assert.match(hookSrc, /\/prompt-apply/);
   });
 
   it('confirms apply (destructive — replaces systemPrompt)', () => {
-    const src = read('SpecialistsPromptPanel.tsx');
-    assert.match(src, /window\.confirm\(t\('specialists\.applyConfirm'\)\)/);
+    // (v1.10.699) Confirm gate moved to hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-prompt-revision.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /window\.confirm\(t\('specialists\.applyConfirm'\)\)/);
   });
 
   it('resets state on specialistId change', () => {
-    const src = read('SpecialistsPromptPanel.tsx');
-    assert.match(src, /\[specialistId\]/);
+    // (v1.10.699) Reset effect moved to hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-prompt-revision.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /\[specialistId\]/);
   });
 
   it('is imported and rendered by SpecialistsView', () => {
@@ -1796,6 +1817,43 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: usePromptRevision hook (v1.10.699)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-prompt-revision.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'SpecialistsPromptPanel.tsx');
+
+  it('exports the hook + ApplyResult + SuggestResponse types', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function usePromptRevision/);
+    assert.match(src, /export interface ApplyResult/);
+    assert.match(src, /export interface SuggestResponse/);
+  });
+
+  it('handleSuggest POSTs /suggest-prompt + handleApply POSTs /prompt-apply behind confirm', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiPost<SuggestResponse>\([\s\S]*?\/suggest-prompt`/);
+    assert.match(src, /window\.confirm\(t\('specialists\.applyConfirm'\)\)/);
+    assert.match(src, /apiPost<ApplyResult>\([\s\S]*?\/prompt-apply`/);
+    assert.match(src, /autoApply:\s*true/);
+  });
+
+  it('resets both result panels on specialistId change', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /useEffect\(\(\) => \{[\s\S]*?setSuggestion\(null\)[\s\S]*?setApplyResult\(null\)[\s\S]*?\}, \[specialistId\]\)/);
+  });
+
+  it('parent SpecialistsPromptPanel wires the hook + drops the inline state + handlers', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*usePromptRevision\s*\}\s+from\s+'\.\.\/lib\/use-prompt-revision'/);
+    assert.match(src, /usePromptRevision\(\{\s*specialistId\s*\}\)/);
+    assert.doesNotMatch(src, /^interface ApplyResult/m);
+    assert.doesNotMatch(src, /^interface SuggestResponse/m);
+    assert.doesNotMatch(src, /const \[suggestion, setSuggestion\]/);
+    assert.doesNotMatch(src, /const handleApply = useCallback/);
   });
 });
 

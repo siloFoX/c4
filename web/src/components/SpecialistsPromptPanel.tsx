@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
-import { apiPost } from '../lib/api';
 import { Button } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { usePromptRevision } from '../lib/use-prompt-revision';
 
 // (v1.10.558) Extracted from SpecialistsView. The system-prompt
 // section of the specialist detail card — the prompt block plus
@@ -10,28 +9,9 @@ import { t, tFormat, useLocale } from '../lib/i18n';
 // buttons and the per-action result/error displays. Owns its own
 // suggest / apply state internally; resets on specialistId change.
 
-interface ApplyResult {
-  specialistId: string;
-  meetingId: string | null;
-  decision: {
-    accepted: boolean;
-    accepts: string[];
-    objects: Array<Record<string, unknown>>;
-    missing: string[];
-    reason: string | null;
-  };
-  applied: boolean;
-  suggestion: {
-    revision: string | null;
-    rationale: string | null;
-  };
-  sessionStatus: string | null;
-}
-
-interface SuggestResponse {
-  revision: string | null;
-  rationale: string | null;
-}
+// (v1.10.699) ApplyResult + SuggestResponse types +
+// handleSuggest + handleApply flows moved to
+// lib/use-prompt-revision.
 
 interface Props {
   specialistId: string;
@@ -41,55 +21,12 @@ interface Props {
 export default function SpecialistsPromptPanel({ specialistId, systemPrompt }: Props) {
   useLocale();
 
-  const [suggestBusy, setSuggestBusy] = useState(false);
-  const [suggestion, setSuggestion] = useState<SuggestResponse | null>(null);
-  const [suggestError, setSuggestError] = useState<string | null>(null);
-  const [applyBusy, setApplyBusy] = useState(false);
-  const [applyResult, setApplyResult] = useState<ApplyResult | null>(null);
-  const [applyError, setApplyError] = useState<string | null>(null);
-
-  // Reset both result panels on specialist change.
-  useEffect(() => {
-    setSuggestion(null);
-    setSuggestError(null);
-    setApplyResult(null);
-    setApplyError(null);
-  }, [specialistId]);
-
-  const handleSuggest = useCallback(async () => {
-    setSuggestBusy(true);
-    setSuggestError(null);
-    setSuggestion(null);
-    try {
-      const res = await apiPost<SuggestResponse>(
-        `/api/specialists/${encodeURIComponent(specialistId)}/suggest-prompt`,
-        { brain: 'mock' },
-      );
-      setSuggestion({ revision: res.revision, rationale: res.rationale });
-    } catch (e) {
-      setSuggestError((e as Error).message || t('common.suggestFailed'));
-    } finally {
-      setSuggestBusy(false);
-    }
-  }, [specialistId]);
-
-  const handleApply = useCallback(async () => {
-    if (!window.confirm(t('specialists.applyConfirm'))) return;
-    setApplyBusy(true);
-    setApplyError(null);
-    setApplyResult(null);
-    try {
-      const res = await apiPost<ApplyResult>(
-        `/api/specialists/${encodeURIComponent(specialistId)}/prompt-apply`,
-        { brain: 'mock', autoApply: true },
-      );
-      setApplyResult(res);
-    } catch (e) {
-      setApplyError((e as Error).message || t('common.applyFailed'));
-    } finally {
-      setApplyBusy(false);
-    }
-  }, [specialistId]);
+  // (v1.10.699) Suggest + apply flows moved to hook.
+  const {
+    suggestBusy, suggestion, suggestError,
+    applyBusy, applyResult, applyError,
+    handleSuggest, handleApply,
+  } = usePromptRevision({ specialistId });
 
   return (
     <div>

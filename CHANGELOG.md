@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.699] - 2026-05-09 — Extract usePromptRevision hook
+
+**Web — `SpecialistsPromptPanel.tsx` shrunk by 63 lines (213 → 150).**
+The two prompt-revision flows — handleSuggest POSTs
+/api/specialists/:id/suggest-prompt; handleApply POSTs
+/api/specialists/:id/prompt-apply behind a
+window.confirm — move to a self-contained hook. Both
+reset on specialist change so stale results from
+specialist A don't leak into B.
+
+### Refactor
+- New `web/src/lib/use-prompt-revision.ts` (~108 lines).
+  Exports the hook + ApplyResult + SuggestResponse
+  types. Returns 8 fields.
+- `SpecialistsPromptPanel.tsx`: removed both inline
+  types, six useState slots, the reset useEffect,
+  both useCallback handlers. Trimmed useCallback +
+  useEffect + useState + apiPost imports.
+- Boundary suite #166 — 4 assertions; existing
+  panel suite (v1.10.558) redirected to read hook.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  803 / 803 across 165 → 166 suites.
+- `npm run check:full`: green.
+
+### Stats
+- 170 ships total since v1.10.529.
+- 167 components/libs extracted.
+- 76 custom hooks in `web/src/lib/`.
+- 803 boundary assertions across 166 suites.
+
 ## [1.10.698] - 2026-05-09 — Extract useSpecialistsAddPropose hook
 
 **Web — `SpecialistsAddPanel.tsx` shrunk by 76 lines (166 → 90).**
