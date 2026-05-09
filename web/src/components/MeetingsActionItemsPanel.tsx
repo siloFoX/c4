@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
+import { useActionItemsExport } from '../lib/use-action-items-export';
 import type { ActionItemType } from './MeetingsView';
 
 // (v1.10.542) Extracted from MeetingsView. Action-items panel —
@@ -39,35 +40,10 @@ interface Props {
 export default function MeetingsActionItemsPanel({ actions, meetingId }: Props) {
   useLocale();
   const [filter, setFilter] = useState<ActionItemType | null>(null);
+  // (v1.10.742) JSON download + MD copy handlers moved to lib/use-action-items-export.
+  const { handleDownloadJson, handleCopyMd } = useActionItemsExport({ actions, meetingId });
 
   if (!actions || actions.count === 0) return null;
-
-  const handleDownloadJson = () => {
-    const blob = new Blob([JSON.stringify(actions, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `action-items-${meetingId}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleCopyMd = () => {
-    const lines: string[] = [];
-    (['decision', 'action', 'todo', 'blocker'] as ActionItemType[]).forEach((k) => {
-      const group = actions.items.filter((it) => it.type === k);
-      if (group.length === 0) return;
-      lines.push(`## ${k.toUpperCase()} (${group.length})`);
-      group.forEach((it) => {
-        lines.push(`- ${it.text}`);
-      });
-      lines.push('');
-    });
-    const md = lines.join('\n').trim();
-    navigator.clipboard.writeText(md).catch(() => { /* ignore */ });
-  };
 
   return (
     <div className="rounded-md border border-border/60 bg-muted/10 p-3 text-[12px]">

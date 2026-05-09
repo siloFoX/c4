@@ -1770,10 +1770,16 @@ describe('extracted: MeetingsActionItemsPanel (v1.10.542)', () => {
   });
 
   it('owns the JSON download + Markdown copy export handlers', () => {
-    const src = read('MeetingsActionItemsPanel.tsx');
-    assert.match(src, /handleDownloadJson/);
-    assert.match(src, /handleCopyMd/);
-    assert.match(src, /navigator\.clipboard\.writeText/);
+    // (v1.10.742) Export handlers moved to use-action-items-export hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-action-items-export.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /handleDownloadJson/);
+    assert.match(hookSrc, /handleCopyMd/);
+    assert.match(hookSrc, /navigator\.clipboard\.writeText/);
   });
 
   it('is imported and rendered by MeetingsDetailBody (v1.10.596)', () => {
@@ -2046,6 +2052,43 @@ describe('extracted: useChatBackfill hook (v1.10.738)', () => {
     assert.doesNotMatch(src, /async function loadBackfill/);
     assert.doesNotMatch(src, /const loadOlder = useCallback/);
     assert.doesNotMatch(src, /apiGet<SessionByWorkerResponse>/);
+  });
+});
+
+describe('extracted: useActionItemsExport hook (v1.10.742)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-action-items-export.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'MeetingsActionItemsPanel.tsx');
+
+  it('exports the hook + accepts actions/meetingId', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useActionItemsExport/);
+    assert.match(src, /actions:\s*ActionItemsResponse \| null/);
+    assert.match(src, /meetingId:\s*string/);
+  });
+
+  it('handleDownloadJson uses Blob + revokeObjectURL after click', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /new Blob\(\[JSON\.stringify\(actions, null, 2\)\]/);
+    assert.match(src, /URL\.createObjectURL/);
+    assert.match(src, /URL\.revokeObjectURL/);
+    assert.match(src, /a\.download = `action-items-\$\{meetingId\}\.json`/);
+  });
+
+  it('handleCopyMd groups by KIND_ORDER + writes to clipboard', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /KIND_ORDER:\s*ActionItemType\[\]\s*=\s*\['decision',\s*'action',\s*'todo',\s*'blocker'\]/);
+    assert.match(src, /\$\{k\.toUpperCase\(\)\} \(\$\{group\.length\}\)/);
+    assert.match(src, /navigator\.clipboard\.writeText\(md\)/);
+  });
+
+  it('parent MeetingsActionItemsPanel wires the hook + drops the inline handlers', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useActionItemsExport\s*\}\s+from\s+'\.\.\/lib\/use-action-items-export'/);
+    assert.match(src, /useActionItemsExport\(\{[\s\S]*?actions,\s*meetingId[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /URL\.createObjectURL/);
+    assert.doesNotMatch(src, /navigator\.clipboard\.writeText/);
   });
 });
 

@@ -4,6 +4,48 @@
 
 (no entries — next release window)
 
+## [1.10.742] - 2026-05-10 — Extract useActionItemsExport hook
+
+**Web — `components/MeetingsActionItemsPanel.tsx` shrunk by 25 lines (154 → 129).**
+The two export handlers — `handleDownloadJson`
+(Blob → synthetic `<a download>` click → revoke
+object URL) and `handleCopyMd` (group items by
+KIND_ORDER with `## TYPE (count)` headings + bullet
+body, write to `navigator.clipboard`) — move to a
+`useActionItemsExport({ actions, meetingId })` hook
+returning `{ handleDownloadJson, handleCopyMd }`.
+
+The hook hoists the kind-order array
+(`['decision', 'action', 'todo', 'blocker']`) into
+a module-level `KIND_ORDER` constant so the JSX
+filter chips can keep using their own inline copy
+without coupling. The clipboard-failure swallow
+(`.catch(() => {})`) is preserved verbatim — copy
+is fire-and-forget UX with no toast feedback.
+
+The hook adds an `if (!actions) return;` guard at
+the top of each handler so calling with a null
+payload is safe — the parent's existing
+`if (!actions || actions.count === 0) return null`
+early-return still gates the JSX path, but the
+hook hardens the contract.
+
+Boundary suite #207 in
+`tests/component-extract-boundaries.test.js` pins
+the hook signature, the Blob+revokeObjectURL
+download flow, the KIND_ORDER constant, the
+clipboard write, and verifies the parent wires the
+hook + drops the inline handlers. Pre-existing
+boundary suite for `MeetingsActionItemsPanel
+(v1.10.542)` "owns the JSON download + Markdown
+copy export handlers" assertion redirected to read
+the hook file.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (989 / 208 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.741] - 2026-05-10 — Extract useLiveRef hook (shared infra)
 
 **Web — generic "live ref" pattern factored into a hook.**
