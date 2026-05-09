@@ -4,6 +4,48 @@
 
 (no entries — next release window)
 
+## [1.10.680] - 2026-05-09 — Extract usePlanDispatch hook
+
+**Web — `pages/Plan.tsx` shrunk by 41 lines (227 → 186).**
+The two related dispatch flows that share the
+`dispatching` busy slot — `dispatchPlan` (POST
+/api/plan + refetch on success) and `redispatch` (POST
+/api/task with the saved plan content as body, gated by
+window.confirm) — move to a self-contained hook.
+
+### Refactor
+- New `web/src/lib/use-plan-dispatch.ts` (~85 lines).
+  Imports `PlanResponse` from `./use-plan-content`
+  (the type owner since v1.10.661). Returns
+  `{ dispatching, dispatchPlan, redispatch }`.
+- `pages/Plan.tsx`: removed `dispatching` useState
+  slot + both ~25-line dispatch useCallbacks.
+  Replaced with one destructured hook call. Trimmed
+  `apiPost` + `tFormat` imports.
+- Boundary suite #147 — 4 assertions covering hook +
+  signature, dispatchPlan body shape, redispatch
+  confirm gate + body, parent wiring.
+- usePlanContent boundary suite updated: the parent
+  now imports just `usePlanContent` (no
+  `PlanResponse` — the dispatch hook consumes it
+  directly).
+- `tests/ui-cli-coverage.test.js` redirects: the
+  apiPost + /api/plan + /api/task + window.confirm
+  assertions read the two hook files.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  729 / 729 across 146 → 147 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 151 ships total since v1.10.529.
+- 149 components/libs extracted.
+- 59 custom hooks in `web/src/lib/`.
+- 729 boundary assertions across 147 suites.
+
 ## [1.10.679] - 2026-05-09 — Extract useMeetingCreate hook
 
 **Web — `MeetingsComposer.tsx` shrunk by 31 lines (317 → 286).**

@@ -5,11 +5,12 @@ import Toast, { type ToastType } from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Input, Label, Panel, Tooltip } from '../components/ui';
-import { apiGet, apiPost } from '../lib/api';
-import { usePlanContent, type PlanResponse } from '../lib/use-plan-content';
+import { apiGet } from '../lib/api';
+import { usePlanContent } from '../lib/use-plan-content';
+import { usePlanDispatch } from '../lib/use-plan-dispatch';
 import { renderMarkdown } from '../lib/markdown';
 import type { ListResponse, Worker } from '../types';
-import { t, tFormat, useLocale } from '../lib/i18n';
+import { t, useLocale } from '../lib/i18n';
 
 // 8.20B Plan. Dispatches a planning task via POST /api/plan and polls
 // GET /api/plan?name=<worker> to display the resulting plan.md with
@@ -29,7 +30,6 @@ export default function Plan() {
   const [task, setTask] = useState('');
   const [branch, setBranch] = useState('');
   const [output, setOutput] = useState('');
-  const [dispatching, setDispatching] = useState<boolean>(false);
   const [toast, setToast] = useState<ToastState | null>(null);
 
   const showToast = useCallback((message: string, type: ToastType) => {
@@ -55,51 +55,10 @@ export default function Plan() {
   // (v1.10.661) Plan-content fetch moved to hook.
   const { plan, loading, error, setError, loadPlan } = usePlanContent({ selected });
 
-  const dispatchPlan = useCallback(async () => {
-    if (!selected || !task.trim()) {
-      setError(t('plan.error.selectWorker'));
-      return;
-    }
-    setDispatching(true);
-    setError(null);
-    try {
-      const body: Record<string, unknown> = { name: selected, task };
-      if (branch) body['branch'] = branch;
-      if (output) body['output'] = output;
-      const r = (await apiPost<PlanResponse>('/api/plan', body)) as PlanResponse;
-      if (r.error) {
-        showToast(tFormat('plan.toast.dispatchFailed', { error: r.error }), 'error');
-        setError(r.error);
-      } else {
-        showToast(t('plan.toast.dispatched'), 'success');
-        loadPlan();
-      }
-    } catch (e) {
-      setError((e as Error).message);
-    }
-    setDispatching(false);
-  }, [selected, task, branch, output, showToast, loadPlan]);
-
-  const redispatch = useCallback(async () => {
-    if (!selected || !plan?.content) return;
-    if (!window.confirm(tFormat('plan.confirmRedispatch', { worker: selected }))) return;
-    setDispatching(true);
-    try {
-      const r = (await apiPost<{ error?: string }>('/api/task', {
-        name: selected,
-        task: plan.content,
-        useBranch: true,
-      })) as { error?: string };
-      if (r.error) {
-        showToast(tFormat('plan.toast.taskDispatchFailed', { error: r.error }), 'error');
-      } else {
-        showToast(tFormat('plan.toast.taskDispatched', { worker: selected }), 'success');
-      }
-    } catch (e) {
-      showToast(tFormat('plan.toast.taskDispatchFailed', { error: (e as Error).message }), 'error');
-    }
-    setDispatching(false);
-  }, [plan, selected, showToast]);
+  // (v1.10.680) Dispatch + redispatch flows moved to hook.
+  const { dispatching, dispatchPlan, redispatch } = usePlanDispatch({
+    selected, task, branch, output, plan, setError, showToast, loadPlan,
+  });
 
   return (
     <PageFrame

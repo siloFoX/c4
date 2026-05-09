@@ -1778,6 +1778,47 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: usePlanDispatch hook (v1.10.680)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-plan-dispatch.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'pages', 'Plan.tsx');
+
+  it('exports the hook + accepts the eight inputs', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function usePlanDispatch/);
+    assert.match(src, /selected:\s*string/);
+    assert.match(src, /plan:\s*PlanResponse\s*\|\s*null/);
+    assert.match(src, /setError:\s*\(message:\s*string\s*\|\s*null\)\s*=>\s*void/);
+    assert.match(src, /loadPlan:\s*\(\)\s*=>\s*Promise<void>/);
+  });
+
+  it('dispatchPlan POSTs /api/plan with name + task + optional branch/output', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiPost<PlanResponse>\('\/api\/plan',\s*body\)/);
+    assert.match(src, /if \(branch\) body\['branch'\] = branch/);
+    assert.match(src, /if \(output\) body\['output'\] = output/);
+    assert.match(src, /loadPlan\(\)/);
+  });
+
+  it('redispatch POSTs /api/task with the saved plan content + window.confirm gate', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.confirm\(tFormat\('plan\.confirmRedispatch'/);
+    assert.match(src, /apiPost<\{ error\?: string \}>\('\/api\/task'/);
+    assert.match(src, /task: plan\.content/);
+    assert.match(src, /useBranch: true/);
+  });
+
+  it('parent Plan wires the hook + drops the inline state + handlers', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*usePlanDispatch\s*\}\s+from\s+'\.\.\/lib\/use-plan-dispatch'/);
+    assert.match(src, /usePlanDispatch\(\{[\s\S]*?selected,\s*task,\s*branch,\s*output,\s*plan,\s*setError,\s*showToast,\s*loadPlan[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /const \[dispatching, setDispatching\]/);
+    assert.doesNotMatch(src, /const dispatchPlan = useCallback/);
+    assert.doesNotMatch(src, /const redispatch = useCallback/);
+  });
+});
+
 describe('extracted: useMeetingCreate hook (v1.10.679)', () => {
   const fs = require('fs');
   const path = require('path');
@@ -2529,8 +2570,11 @@ describe('extracted: usePlanContent hook (v1.10.661)', () => {
   });
 
   it('parent Plan wires the hook + drops the inline state + interface', () => {
+    // (v1.10.680) The `type PlanResponse` import was dropped by the
+    // sibling extraction (usePlanDispatch consumes it directly), so
+    // the parent only imports `usePlanContent`.
     const src = fs.readFileSync(PARENT, 'utf8');
-    assert.match(src, /import\s+\{\s*usePlanContent,\s*type\s+PlanResponse\s*\}\s+from\s+'\.\.\/lib\/use-plan-content'/);
+    assert.match(src, /import\s+\{\s*usePlanContent\s*\}\s+from\s+'\.\.\/lib\/use-plan-content'/);
     assert.match(src, /usePlanContent\(\{\s*selected\s*\}\)/);
     assert.doesNotMatch(src, /^interface PlanResponse/m);
     assert.doesNotMatch(src, /const \[plan, setPlan\]/);

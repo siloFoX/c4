@@ -345,13 +345,27 @@ describe('Plan.tsx component wiring', () => {
   const src = fs.readFileSync(path.join(PAGES_DIR, 'Plan.tsx'), 'utf8');
 
   it('dispatches via POST /api/plan and reads via GET /api/plan', () => {
-    assert.match(src, /apiPost<PlanResponse>\('\/api\/plan'/);
-    assert.match(src, /\/api\/plan\?name=/);
+    // (v1.10.661/680) Plan-content + plan-dispatch moved to hooks.
+    const dispatchSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-plan-dispatch.ts'),
+      'utf8',
+    );
+    const contentSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-plan-content.ts'),
+      'utf8',
+    );
+    assert.match(dispatchSrc, /apiPost<PlanResponse>\('\/api\/plan'/);
+    assert.match(contentSrc, /\/api\/plan\?name=/);
   });
 
   it('re-dispatches the generated plan through /api/task behind confirm', () => {
-    assert.match(src, /'\/api\/task'/);
-    assert.match(src, /window\.confirm/);
+    // (v1.10.680) Re-dispatch flow moved to lib/use-plan-dispatch.
+    const dispatchSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-plan-dispatch.ts'),
+      'utf8',
+    );
+    assert.match(dispatchSrc, /'\/api\/task'/);
+    assert.match(dispatchSrc, /window\.confirm/);
   });
 
   it('renders the result via the shared markdown helper', () => {
