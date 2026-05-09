@@ -1770,6 +1770,49 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useAutonomousPauseToggle hook (v1.10.654)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-autonomous-pause-toggle.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'AutonomousView.tsx');
+
+  it('exports the hook + accepts digest + refresh', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useAutonomousPauseToggle/);
+    assert.match(src, /digest:\s*DigestResponse\s*\|\s*null/);
+    assert.match(src, /refresh:\s*\(\)\s*=>\s*Promise<void>/);
+  });
+
+  it('POSTs /api/autonomous/(pause|resume) based on digest.paused', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /digest\.paused\s*\?\s*'resume'\s*:\s*'pause'/);
+    assert.match(src, /apiPost\(`\/api\/autonomous\/\$\{path\}`,\s*\{\}\)/);
+  });
+
+  it('clears the banner after 4s + calls refresh on success', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.setTimeout\(\(\) => setPauseMsg\(null\),\s*4000\)/);
+    assert.match(src, /void refresh\(\)/);
+  });
+
+  it('flips pauseFailed tone on error', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /setPauseFailed\(true\)/);
+    assert.match(src, /pauseToggle\.resumeFailed/);
+    assert.match(src, /pauseToggle\.pauseFailed/);
+  });
+
+  it('parent AutonomousView wires the hook + drops the inline state + handler', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useAutonomousPauseToggle\s*\}\s+from\s+'\.\.\/lib\/use-autonomous-pause-toggle'/);
+    assert.match(src, /useAutonomousPauseToggle\(\{\s*digest,\s*refresh\s*\}\)/);
+    assert.doesNotMatch(src, /const \[pauseBusy, setPauseBusy\]/);
+    assert.doesNotMatch(src, /const \[pauseMsg, setPauseMsg\]/);
+    assert.doesNotMatch(src, /const \[pauseFailed, setPauseFailed\]/);
+    assert.doesNotMatch(src, /const handlePauseToggle = useCallback/);
+  });
+});
+
 describe('extracted: useAutonomousDigest hook (v1.10.653)', () => {
   const fs = require('fs');
   const path = require('path');

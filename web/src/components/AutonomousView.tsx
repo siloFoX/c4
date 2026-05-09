@@ -6,6 +6,7 @@ import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import AutonomousDigestMetrics from './AutonomousDigestMetrics';
 import { useAutonomousDigest } from '../lib/use-autonomous-digest';
+import { useAutonomousPauseToggle } from '../lib/use-autonomous-pause-toggle';
 
 // (v1.10.349) Autonomous tab — operator-side surface for the
 // Phase 8.29 reviewer escalation flow.
@@ -57,11 +58,6 @@ export default function AutonomousView() {
   // on the client. False by default so operators see actionable
   // items first.
   const [showResolved, setShowResolved] = useState(false);
-  const [pauseBusy, setPauseBusy] = useState(false);
-  const [pauseMsg, setPauseMsg] = useState<string | null>(null);
-  // (v1.10.484) Tone separated from message text — see prior tone refactors.
-  const [pauseFailed, setPauseFailed] = useState(false);
-
   // (v1.10.535/v1.10.653) Triple-fetch (status + digest + escalations)
   // with 30s auto-refresh moved to lib/use-autonomous-digest.
   const {
@@ -75,27 +71,9 @@ export default function AutonomousView() {
     refresh,
   } = useAutonomousDigest({ showResolved });
 
-  const handlePauseToggle = useCallback(async () => {
-    if (!digest) return;
-    const path = digest.paused ? 'resume' : 'pause';
-    setPauseBusy(true);
-    setPauseMsg(null);
-    setPauseFailed(false);
-    try {
-      await apiPost(`/api/autonomous/${path}`, {});
-      setPauseMsg(t(path === 'resume' ? 'autonomous.pauseToggle.resumed' : 'autonomous.pauseToggle.paused'));
-      window.setTimeout(() => setPauseMsg(null), 4000);
-      void refresh();
-    } catch (err) {
-      setPauseMsg(tFormat(
-        path === 'resume' ? 'autonomous.pauseToggle.resumeFailed' : 'autonomous.pauseToggle.pauseFailed',
-        { error: (err as Error).message || t('common.unknown') },
-      ));
-      setPauseFailed(true);
-    } finally {
-      setPauseBusy(false);
-    }
-  }, [digest, refresh]);
+  // (v1.10.654) Pause/resume toggle moved to lib/use-autonomous-pause-toggle.
+  const { pauseBusy, pauseMsg, pauseFailed, handlePauseToggle } =
+    useAutonomousPauseToggle({ digest, refresh });
 
   const [resolveBusy, setResolveBusy] = useState<number | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);

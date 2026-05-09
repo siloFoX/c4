@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.654] - 2026-05-09 — Extract useAutonomousPauseToggle hook
+
+**Web — `AutonomousView.tsx` shrunk by 22 lines (318 → 296).**
+The autonomous pause/resume button — the busy flag, the
+auto-clearing banner message, the failed-tone slot, and
+the POST /api/autonomous/(pause|resume) handler — moves
+to a dedicated hook. Toggle direction is still derived
+from `digest.paused` so the parent's unchanged JSX keeps
+showing the correct icon.
+
+### Refactor
+- New `web/src/lib/use-autonomous-pause-toggle.ts`
+  (~53 lines). Imports `DigestResponse` from the parent
+  component. The 4s `setTimeout` banner-clear + the
+  `void refresh()` post-success poll-kick are preserved
+  verbatim.
+- `AutonomousView.tsx`: removed three useState slots
+  (pauseBusy / pauseMsg / pauseFailed) + the ~22-line
+  `handlePauseToggle` useCallback. Replaced with a single
+  `useAutonomousPauseToggle({ digest, refresh })`
+  destructure.
+- Boundary suite #122 — 5 assertions covering hook export
+  shape, pause/resume URL derivation, 4s timeout +
+  refresh call, failed-tone flip on error, parent
+  wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  610 / 610 across 121 → 122 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 126 ships total since v1.10.529.
+- 122 components/libs extracted.
+- 32 custom hooks in `web/src/lib/`.
+- 610 boundary assertions across 122 suites.
+
 ## [1.10.653] - 2026-05-09 — Extract useAutonomousDigest hook
 
 **Web — `AutonomousView.tsx` shrunk by 47 lines (365 → 318).**
