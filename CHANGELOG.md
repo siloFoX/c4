@@ -4,6 +4,48 @@
 
 (no entries — next release window)
 
+## [1.10.690] - 2026-05-09 — Extract usePersistedBool hook
+
+**Web — `WorkerList.tsx` shrunk by 21 lines (242 → 221).**
+The `useState(() => readBoolPref(...))` + `useEffect(()
+=> writeBoolPref(...))` pattern that's been
+hand-rolled across the codebase consolidates into one
+generic hook. WorkerList adopts it for its two
+expand-collapse keys; future bool-pref consumers can
+use the same hook instead of re-rolling the
+two-function pair.
+
+### Refactor
+- New `web/src/lib/use-persisted-bool.ts` (~41 lines).
+  `readBoolPref` / `writeBoolPref` stay module-private
+  helpers — the existing '1'/'0' encoding is preserved
+  so existing localStorage entries (created by
+  ad-hoc reader/writer pairs) keep working after this
+  hook adopts them.
+  Returns `[value, setValue]` matching `useState`'s
+  shape.
+- `WorkerList.tsx`: removed the two inline helpers
+  + four useState/useEffect lines. Replaced with two
+  destructured `usePersistedBool(KEY, fallback)`
+  calls. Trimmed `useEffect` + `useState` imports.
+- Boundary suite #157 — 4 assertions covering hook +
+  signature, 1/0 encoding contract, SSR + private-mode
+  fallback, parent wiring (helper-removed regression
+  guard).
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  770 / 770 across 156 → 157 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 161 ships total since v1.10.529.
+- 159 components/libs extracted.
+- 69 custom hooks in `web/src/lib/`.
+- 770 boundary assertions across 157 suites.
+
 ## [1.10.689] - 2026-05-09 — Extract useEffectiveCollapsed hook
 
 **Web — `layout/Sidebar.tsx` shrunk by 13 lines (242 → 229).**

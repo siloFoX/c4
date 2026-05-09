@@ -1791,6 +1791,41 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: usePersistedBool hook (v1.10.690)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-persisted-bool.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'WorkerList.tsx');
+
+  it('exports the hook + accepts key + fallback', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function usePersistedBool\(\s*key:\s*string,\s*fallback:\s*boolean,?\s*\):/);
+  });
+
+  it('reads + writes the existing 1/0 storage encoding', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /raw === '1'\)\s*return true/);
+    assert.match(src, /raw === '0'\)\s*return false/);
+    assert.match(src, /value\s*\?\s*'1'\s*:\s*'0'/);
+  });
+
+  it('falls back to the default on SSR + localStorage exception', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /typeof window === 'undefined'/);
+    assert.match(src, /catch \{\s*return fallback;\s*\}/);
+    assert.match(src, /catch \{\s*\/\* private mode/);
+  });
+
+  it('parent WorkerList adopts the hook + drops the inline helpers', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*usePersistedBool\s*\}\s+from\s+'\.\.\/lib\/use-persisted-bool'/);
+    assert.match(src, /usePersistedBool\(MGR_OPEN_KEY,\s*true\)/);
+    assert.match(src, /usePersistedBool\(WRK_OPEN_KEY,\s*true\)/);
+    assert.doesNotMatch(src, /^function readBoolPref/m);
+    assert.doesNotMatch(src, /^function writeBoolPref/m);
+  });
+});
+
 describe('extracted: useEffectiveCollapsed hook (v1.10.689)', () => {
   const fs = require('fs');
   const path = require('path');

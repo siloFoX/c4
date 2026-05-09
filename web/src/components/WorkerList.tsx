@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Inbox, Lightbulb, WifiOff } from 'lucide-react';
 import type { Worker } from '../types';
 import { useWorkerList } from '../lib/use-worker-list';
+import { usePersistedBool } from '../lib/use-persisted-bool';
 import {
   Badge,
   Card,
@@ -30,39 +31,17 @@ interface WorkerListProps {
 
 // (TODO 8.37) localStorage keys for the per-group expand/collapse
 // state. Persist so the operator's preference survives reloads.
+// (v1.10.690) Bool-persistence helpers consolidated into
+// lib/use-persisted-bool.
 const MGR_OPEN_KEY = 'c4.workerList.managers.open';
 const WRK_OPEN_KEY = 'c4.workerList.workers.open';
-
-function readBoolPref(key: string, fallback: boolean): boolean {
-  if (typeof window === 'undefined') return fallback;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (raw === '1') return true;
-    if (raw === '0') return false;
-    return fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function writeBoolPref(key: string, value: boolean): void {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(key, value ? '1' : '0');
-  } catch {
-    /* private mode — ignore */
-  }
-}
 
 export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps) {
   useLocale();
   // (v1.10.660) /api/list poll + /api/events SSE moved to hook.
   const { workers, error, sseConnected } = useWorkerList();
-  const [managersOpen, setManagersOpen] = useState<boolean>(() => readBoolPref(MGR_OPEN_KEY, true));
-  const [workersOpen, setWorkersOpen] = useState<boolean>(() => readBoolPref(WRK_OPEN_KEY, true));
-
-  useEffect(() => { writeBoolPref(MGR_OPEN_KEY, managersOpen); }, [managersOpen]);
-  useEffect(() => { writeBoolPref(WRK_OPEN_KEY, workersOpen); }, [workersOpen]);
+  const [managersOpen, setManagersOpen] = usePersistedBool(MGR_OPEN_KEY, true);
+  const [workersOpen, setWorkersOpen] = usePersistedBool(WRK_OPEN_KEY, true);
 
   // (TODO 8.37) Partition into manager / worker buckets for the
   // grouped sidebar. Sort each group by name so the order is stable
