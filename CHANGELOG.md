@@ -4,6 +4,50 @@
 
 (no entries — next release window)
 
+## [1.10.721] - 2026-05-10 — Extract useCopyPulse hook (shared infra)
+
+**Web — `components/SessionsAttachedRowActions.tsx` shrunk by 10 lines (227 → 217).**
+Generic copy-to-clipboard handler with a 1500ms
+"Copied!" indicator pulse. Hook signature
+`useCopyPulse({ text, durationMs? })` returns
+`{ copied, copy }`.
+
+The previous inline `copyToClipboard()` helper +
+`[copied, setCopied]` slot + the
+`window.setTimeout(setCopied(false), 1500)` pulse
+clean up into one hook call. Single caller today
+(SessionsAttachedRowActions's resume-command
+preview), but kept generic so future
+"click → copy → flash" UI surfaces (audit log
+copy buttons, error-message copy buttons, etc.)
+can drop the hook in.
+
+The hook's SSR guard
+(`typeof navigator !== 'undefined' &&
+navigator.clipboard`) mirrors the original inline
+behaviour exactly — no copy attempt outside the
+browser, no swallowed exception path.
+
+Boundary suite #188 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the 1500ms default, the
+clipboard.writeText call, and the
+window.setTimeout pulse contract. Two pre-existing
+tests redirected:
+- `component-extract-boundaries.test.js`
+  "owns the copyToClipboard + attachedRoleStyle
+  helpers" — the copy half moves to the hook
+  reference; attachedRoleStyle stays inline.
+- `sessions-view.test.js`
+  "reveals the claude --resume command and copies
+  it to clipboard" — clipboard half routes to the
+  hook file.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (895 / 187 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.720] - 2026-05-10 — Extract useWorkerActionStrip hook
 
 **Web — `components/WorkerActions.tsx` shrunk by 51 lines (169 → 118).**

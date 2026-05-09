@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { Copy, Eye, Terminal, Trash2 } from 'lucide-react';
 import { useAttachProcessState } from '../lib/use-attach-process-state';
+import { useCopyPulse } from '../lib/use-copy-pulse';
 import { Button } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -9,16 +10,9 @@ import type { AttachedRole, AttachedSession } from './SessionsView';
 // (v1.10.550) Extracted from SessionsView. Per-row action strip
 // for an attached session — role badge, live/idle process pill,
 // View / Resume / Detach buttons, plus the inline confirmation
-// strip and the resume-cmd preview. Owns its own state for the
-// resume / detach toggles, the copy-to-clipboard pulse, and the
-// 30s process discovery polling.
-
-function copyToClipboard(text: string): Promise<void> {
-  if (typeof navigator !== 'undefined' && navigator.clipboard) {
-    return navigator.clipboard.writeText(text);
-  }
-  return Promise.resolve();
-}
+// strip and the resume-cmd preview.
+// (v1.10.721) Copy-to-clipboard + 1500ms pulse moved to
+// lib/use-copy-pulse.
 
 // (TODO 8.38) Map an attached role to badge copy + token-backed
 // styling. Manager gets the primary accent (matches WorkerList in
@@ -60,17 +54,13 @@ export default function SessionsAttachedRowActions({
 
   const [showResume, setShowResume] = useState(false);
   const [showDetachConfirm, setShowDetachConfirm] = useState(false);
-  const [copied, setCopied] = useState(false);
   // (v1.10.674) /api/attach/:name/process 30s poll moved to hook.
   const procState = useAttachProcessState({ name: session.name });
   const resumeCmd = session.sessionId
     ? `claude --resume ${session.sessionId}`
     : `claude --resume <unknown-session-id>`;
-  const handleCopy = useCallback(async () => {
-    await copyToClipboard(resumeCmd);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1500);
-  }, [resumeCmd]);
+  // (v1.10.721) Copy + 1500ms pulse moved to use-copy-pulse hook.
+  const { copied, copy: handleCopy } = useCopyPulse({ text: resumeCmd });
   const role: AttachedRole = session.role || 'generic';
   // (TODO 8.38 review fix 2026-05-01) Stable id for the
   // confirmation strip so the Detach trigger's `aria-controls`

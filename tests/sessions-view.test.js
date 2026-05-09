@@ -158,8 +158,13 @@ describe('SessionsAttachedRowActions.tsx (extracted v1.10.550) - post-attach row
 
   it('reveals the claude --resume command and copies it to clipboard', () => {
     assert.match(rowSrc, /claude --resume \$\{session\.sessionId\}/);
-    assert.match(rowSrc, /function copyToClipboard/);
-    assert.match(rowSrc, /navigator\.clipboard\.writeText/);
+    // (v1.10.721) copyToClipboard helper moved to use-copy-pulse hook.
+    assert.match(rowSrc, /useCopyPulse\(\{[\s\S]*?text:\s*resumeCmd[\s\S]*?\}\)/);
+    const hookSrc = fs.readFileSync(
+      path.join(repoRoot, 'web/src/lib/use-copy-pulse.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /navigator\.clipboard\.writeText/);
   });
 
   it('parent SessionsAttachedSection routes onView back into the Selection state machine', () => {

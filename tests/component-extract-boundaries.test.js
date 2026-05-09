@@ -1321,8 +1321,16 @@ describe('extracted: SessionsAttachedRowActions (v1.10.550)', () => {
   });
 
   it('owns the copyToClipboard + attachedRoleStyle helpers', () => {
+    // (v1.10.721) copyToClipboard helper moved to use-copy-pulse hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-copy-pulse.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /navigator\.clipboard\.writeText\(text\)/);
+    // attachedRoleStyle stays inline (display helper, no copy concerns).
     const src = read('SessionsAttachedRowActions.tsx');
-    assert.match(src, /function copyToClipboard\(text: string\)/);
     assert.match(src, /function attachedRoleStyle\(role: AttachedRole/);
   });
 
@@ -1904,6 +1912,40 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useCopyPulse hook (v1.10.721)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-copy-pulse.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'SessionsAttachedRowActions.tsx');
+
+  it('exports the hook + accepts text + optional durationMs', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useCopyPulse/);
+    assert.match(src, /text:\s*string/);
+    assert.match(src, /durationMs\?:\s*number/);
+  });
+
+  it('default pulse is 1500ms + uses navigator.clipboard.writeText', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /DEFAULT_PULSE_MS\s*=\s*1500/);
+    assert.match(src, /navigator\.clipboard\.writeText\(text\)/);
+    assert.match(src, /typeof navigator !== 'undefined'/);
+  });
+
+  it('pulse uses window.setTimeout(setCopied(false), durationMs)', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.setTimeout\(\s*\(\)\s*=>\s*setCopied\(false\),\s*durationMs\s*\)/);
+  });
+
+  it('parent SessionsAttachedRowActions wires the hook + drops the inline copy fn', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useCopyPulse\s*\}\s+from\s+'\.\.\/lib\/use-copy-pulse'/);
+    assert.match(src, /useCopyPulse\(\{[\s\S]*?text:\s*resumeCmd[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /function copyToClipboard/);
+    assert.doesNotMatch(src, /const \[copied, setCopied\]/);
   });
 });
 
