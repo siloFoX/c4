@@ -4,6 +4,57 @@
 
 (no entries — next release window)
 
+## [1.10.668] - 2026-05-09 — Extract useWorkerSelection hook
+
+**Web — `ControlPanel.tsx` shrunk by 58 lines (346 → 288).**
+The multi-select + batch-action state machine — the
+`Set<string>` selection slot, toggle/selectAll/clear
+helpers, busy + results state, and the close/cancel
+batch driver — moves to a self-contained hook. The hook
+takes `postAction` as a callback so it stays decoupled
+from the parent's `apiFetch` wrapper (the `runSingle`
+handler in the parent reuses the same helper).
+
+### Refactor
+- New `web/src/lib/use-worker-selection.ts` (~100 lines).
+  Imports `Worker` from `../types` + `BatchKind` +
+  `BatchOutcome` from `../components/ControlPanel`
+  (still exported from there for `ControlPanelBatch`).
+  `ToastType` imported from `../components/Toast`.
+- `ControlPanel.tsx`: removed three useState slots
+  (selected / batchBusy / batchResults), three
+  selection helpers (toggleSelected / selectAll /
+  clearSelection), and the ~45-line `runBatch`
+  useCallback. Replaced with one destructured
+  `useWorkerSelection` call that takes the parent's
+  `postAction` + `showToast` + `fetchList` as
+  callbacks.
+- Boundary suite #135 — 5 assertions covering hook
+  signature + Set<string> ownership, runBatch's
+  window.confirm gate + URL mapping, per-row outcome
+  collection + toast emission + close-clears-selection,
+  parent wiring.
+- `tests/web-control.test.js` redirect: the runBatch
+  URL + confirmClose/confirmCancel tFormat assertions
+  now read the hook file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  674 / 674 across 134 → 135 suites.
+- `node --test tests/web-control.test.js`: 26 / 26
+  (after redirect).
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual). One transient
+  specialists.png 1.05% diff on first attempt;
+  cleared on retry — recurring flake on this snapshot.
+
+### Stats
+- 139 ships total since v1.10.529.
+- 137 components/libs extracted.
+- 47 custom hooks in `web/src/lib/`.
+- 674 boundary assertions across 135 suites.
+
 ## [1.10.667] - 2026-05-09 — Extract useNlChat hook
 
 **Web — `Chat.tsx` shrunk by 93 lines (288 → 195).**

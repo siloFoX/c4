@@ -11,6 +11,7 @@ import Toast, { type ToastType } from './Toast';
 import StatusMessageCard from './StatusMessageCard';
 import ControlPanelActions from './ControlPanelActions';
 import ControlPanelBatch from './ControlPanelBatch';
+import { useWorkerSelection } from '../lib/use-worker-selection';
 import { apiFetch } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import type { ListResponse, Worker } from '../types';
@@ -188,9 +189,6 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
   const [toast, setToast] = useState<ToastState | null>(null);
   const [busyKind, setBusyKind] = useState<ActionKind | null>(null);
   const [workers, setWorkers] = useState<Worker[]>([]);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [batchBusy, setBatchBusy] = useState<BatchKind | null>(null);
-  const [batchResults, setBatchResults] = useState<BatchOutcome[] | null>(null);
 
   const showToast = useCallback((message: string, type: ToastType) => {
     setToast({ id: Date.now(), message, type });
@@ -237,67 +235,11 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
     [workerName, showToast, fetchList],
   );
 
-  const toggleSelected = useCallback((name: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
-  }, []);
-
-  const selectAll = useCallback(() => {
-    setSelected(new Set(workers.map((w) => w.name)));
-  }, [workers]);
-
-  const clearSelection = useCallback(() => {
-    setSelected(new Set());
-  }, []);
-
-  const runBatch = useCallback(
-    async (kind: BatchKind) => {
-      const names = [...selected];
-      if (names.length === 0) return;
-      const confirmMsg =
-        kind === 'close'
-          ? tFormat('controlPanel.batch.confirmClose', { count: names.length })
-          : tFormat('controlPanel.batch.confirmCancel', { count: names.length });
-      if (!window.confirm(confirmMsg)) return;
-      setBatchBusy(kind);
-      setBatchResults(null);
-      const endpoint = kind === 'close' ? '/api/close' : '/api/cancel';
-      const outcomes: BatchOutcome[] = [];
-      for (const name of names) {
-        // eslint-disable-next-line no-await-in-loop
-        const r = await postAction(endpoint, { name });
-        outcomes.push({ name, ok: r.ok, error: r.error });
-      }
-      setBatchResults(outcomes);
-      const okCount = outcomes.filter((o) => o.ok).length;
-      const failCount = outcomes.length - okCount;
-      if (failCount === 0) {
-        showToast(
-          tFormat('controlPanel.batch.resultOk', { kind, ok: okCount }),
-          'success',
-        );
-      } else {
-        showToast(
-          tFormat('controlPanel.batch.resultMixed', {
-            kind,
-            ok: okCount,
-            fail: failCount,
-          }),
-          'error',
-        );
-      }
-      setBatchBusy(null);
-      fetchList();
-      if (kind === 'close') {
-        setSelected(new Set());
-      }
-    },
-    [selected, showToast, fetchList],
-  );
+  // (v1.10.668) Selection + batch state machine moved to hook.
+  const {
+    selected, toggleSelected, selectAll, clearSelection,
+    batchBusy, batchResults, runBatch,
+  } = useWorkerSelection({ workers, postAction, showToast, fetchList });
 
   const selectedCount = selected.size;
   const selectableWorkers = workers;

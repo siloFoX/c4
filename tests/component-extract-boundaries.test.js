@@ -1770,6 +1770,54 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useWorkerSelection hook (v1.10.668)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-worker-selection.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'ControlPanel.tsx');
+
+  it('exports the hook + accepts workers/postAction/showToast/fetchList', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useWorkerSelection/);
+    assert.match(src, /workers:\s*Worker\[\]/);
+    assert.match(src, /postAction:[\s\S]*?Promise<\{ ok: boolean; error\?: string \}>/);
+    assert.match(src, /showToast:\s*\(message:\s*string,\s*type:\s*ToastType\)\s*=>\s*void/);
+    assert.match(src, /fetchList:\s*\(\)\s*=>\s*Promise<void>/);
+  });
+
+  it('selects via Set<string> and exposes toggle/selectAll/clear', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /useState<Set<string>>\(new Set\(\)\)/);
+    assert.match(src, /const toggleSelected = useCallback/);
+    assert.match(src, /setSelected\(new Set\(workers\.map\(\(w\) => w\.name\)\)\)/);
+    assert.match(src, /setSelected\(new Set\(\)\)/);
+  });
+
+  it('runBatch confirms via window.confirm + maps kind to /api/close or /api/cancel', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.confirm\(confirmMsg\)/);
+    assert.match(src, /kind === 'close'\s*\?\s*'\/api\/close'\s*:\s*'\/api\/cancel'/);
+  });
+
+  it('runBatch reports per-row outcomes + emits success/mixed toast + clears selection on close', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /outcomes\.push\(\{ name, ok: r\.ok, error: r\.error \}\)/);
+    assert.match(src, /controlPanel\.batch\.resultOk/);
+    assert.match(src, /controlPanel\.batch\.resultMixed/);
+    assert.match(src, /if \(kind === 'close'\)\s*\{[\s\S]*?setSelected\(new Set\(\)\)/);
+  });
+
+  it('parent ControlPanel wires the hook + drops the inline state + handlers', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useWorkerSelection\s*\}\s+from\s+'\.\.\/lib\/use-worker-selection'/);
+    assert.match(src, /useWorkerSelection\(\{[\s\S]*?workers,\s*postAction,\s*showToast,\s*fetchList[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /const \[selected, setSelected\]/);
+    assert.doesNotMatch(src, /const \[batchBusy, setBatchBusy\]/);
+    assert.doesNotMatch(src, /const runBatch = useCallback/);
+    assert.doesNotMatch(src, /const toggleSelected = useCallback/);
+  });
+});
+
 describe('extracted: useNlChat hook (v1.10.667)', () => {
   const fs = require('fs');
   const path = require('path');

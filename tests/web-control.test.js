@@ -323,13 +323,18 @@ describe('ControlPanel.tsx source wiring (8.8)', () => {
   });
 
   it('exposes batch Close + Cancel that hit the per-worker endpoints in a loop', () => {
+    // (v1.10.668) Batch flow moved to lib/use-worker-selection.
+    const hookSrc = fs.readFileSync(
+      path.join(REPO_ROOT, 'web', 'src', 'lib', 'use-worker-selection.ts'),
+      'utf8',
+    );
     assert.match(src, /runBatch/);
-    assert.match(src, /'\/api\/close'/);
-    assert.match(src, /'\/api\/cancel'/);
+    assert.match(hookSrc, /'\/api\/close'/);
+    assert.match(hookSrc, /'\/api\/cancel'/);
     // The batch confirm prompt counts selected workers — copy is sourced from
     // i18n via tFormat with a {count} placeholder.
-    assert.match(src, /tFormat\('controlPanel\.batch\.confirmClose',\s*\{\s*count:\s*names\.length\s*\}\)/);
-    assert.match(src, /tFormat\('controlPanel\.batch\.confirmCancel',\s*\{\s*count:\s*names\.length\s*\}\)/);
+    assert.match(hookSrc, /tFormat\('controlPanel\.batch\.confirmClose',\s*\{\s*count:\s*names\.length\s*\}\)/);
+    assert.match(hookSrc, /tFormat\('controlPanel\.batch\.confirmCancel',\s*\{\s*count:\s*names\.length\s*\}\)/);
   });
 
   it('fetches /api/list for the batch worker picker', () => {
