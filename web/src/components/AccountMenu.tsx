@@ -9,16 +9,11 @@
 // shortcut) — we just relocate Sign out + add Profile/Preferences.
 
 import { ChevronUp, HelpCircle, Keyboard, LogOut, Settings, User } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { DropdownMenu, type DropdownMenuItem } from './ui/dropdown-menu';
 import { Button } from './ui/button';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
-import {
-  AUTH_EVENT,
-  getAuthRole,
-  getAuthUser,
-} from '../lib/api';
+import { useAuthIdentity } from '../lib/use-auth-identity';
 import {
   HELP_EVENT_OPEN_DRAWER,
   HELP_EVENT_OPEN_SHORTCUTS,
@@ -85,13 +80,8 @@ function roleBadgeClass(role: string | null): string {
 }
 
 // Keys that the storage-event handler should react to. Anything else
-// (theme, sidebar.collapsed, top-view, etc) is irrelevant to the
-// avatar / role badge and shouldn't trigger a re-read.
-const AUTH_STORAGE_KEYS = new Set([
-  'c4.authToken',
-  'c4.authUser',
-  'c4.authRole',
-]);
+// (v1.10.688) AUTH_STORAGE_KEYS + cross-tab + AUTH_EVENT
+// listener moved to lib/use-auth-identity.
 
 export default function AccountMenu({
   onLogout,
@@ -99,33 +89,9 @@ export default function AccountMenu({
   collapsed = false,
 }: AccountMenuProps) {
   useLocale();
-  // (review fix 2026-05-01) Lazy initializers — we don't want to
-  // touch localStorage on every render, only the first.
-  const [user, setUser] = useState<string | null>(() => getAuthUser());
-  const [role, setRole] = useState<string | null>(() => getAuthRole());
-
-  // Re-read on AUTH_EVENT so logout in another tab (or 401-clearing)
-  // wipes the avatar without a manual refresh. The cross-tab `storage`
-  // event also fires on unrelated key writes (theme toggle etc.) — we
-  // filter to only the auth keys to avoid pointless re-renders.
-  useEffect(() => {
-    const refresh = () => {
-      setUser(getAuthUser());
-      setRole(getAuthRole());
-    };
-    const onStorage = (e: StorageEvent) => {
-      // e.key === null when localStorage is cleared wholesale; treat
-      // that as a relevant signal.
-      if (e.key && !AUTH_STORAGE_KEYS.has(e.key)) return;
-      refresh();
-    };
-    window.addEventListener(AUTH_EVENT, refresh);
-    window.addEventListener('storage', onStorage);
-    return () => {
-      window.removeEventListener(AUTH_EVENT, refresh);
-      window.removeEventListener('storage', onStorage);
-    };
-  }, []);
+  // (v1.10.688) Cached user + role + AUTH_EVENT/storage
+  // listeners moved to lib/use-auth-identity.
+  const { user, role } = useAuthIdentity();
 
   const items: DropdownMenuItem[] = [
     {

@@ -108,15 +108,27 @@ describe('AccountMenu component (web/src/components/AccountMenu.tsx)', () => {
   });
 
   it('reads cached user + role from api.ts', () => {
-    assert.match(src, /getAuthUser\(\)/);
-    assert.match(src, /getAuthRole\(\)/);
+    // (v1.10.688) Reading moved to lib/use-auth-identity.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-auth-identity.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /getAuthUser\(\)/);
+    assert.match(hookSrc, /getAuthRole\(\)/);
   });
 
   it('listens to AUTH_EVENT and storage events', () => {
-    assert.match(src, /AUTH_EVENT/);
-    // The storage handler is named `onStorage` after the
-    // 2026-05-01 review-fix that filters by auth-key allow-set.
-    assert.match(src, /addEventListener\('storage', onStorage\)/);
+    // (v1.10.688) Listeners moved to lib/use-auth-identity.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-auth-identity.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /AUTH_EVENT/);
+    assert.match(hookSrc, /addEventListener\('storage', onStorage\)/);
   });
 
   it('dispatches HELP_EVENT_OPEN_DRAWER + HELP_EVENT_OPEN_SHORTCUTS', () => {
@@ -305,22 +317,26 @@ describe('roleBadgeClass (token-backed badge palette)', () => {
 
 // (review fix 2026-05-01) Storage-event filter — only the auth
 // localStorage keys should trigger a re-read.
-describe('AccountMenu storage event listener filters by auth keys', () => {
-  const src = readText(ACCOUNT_MENU);
+// (v1.10.688) Filter logic moved to lib/use-auth-identity.
+describe('useAuthIdentity storage event listener filters by auth keys', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-auth-identity.ts');
+  const hookSrc = fs.readFileSync(HOOK, 'utf8');
 
   it('declares an auth-keys allow-set', () => {
-    assert.match(src, /AUTH_STORAGE_KEYS = new Set\(\[/);
-    assert.match(src, /'c4\.authToken'/);
-    assert.match(src, /'c4\.authUser'/);
-    assert.match(src, /'c4\.authRole'/);
+    assert.match(hookSrc, /AUTH_STORAGE_KEYS = new Set\(\[/);
+    assert.match(hookSrc, /'c4\.authToken'/);
+    assert.match(hookSrc, /'c4\.authUser'/);
+    assert.match(hookSrc, /'c4\.authRole'/);
   });
 
   it('skips storage events whose key is not in the auth set', () => {
-    assert.match(src, /if \(e\.key && !AUTH_STORAGE_KEYS\.has\(e\.key\)\) return/);
+    assert.match(hookSrc, /if \(e\.key && !AUTH_STORAGE_KEYS\.has\(e\.key\)\) return/);
   });
 
   it('useState initialisers are lazy (function form)', () => {
-    assert.match(src, /useState<string \| null>\(\(\) => getAuthUser\(\)\)/);
-    assert.match(src, /useState<string \| null>\(\(\) => getAuthRole\(\)\)/);
+    assert.match(hookSrc, /useState<string \| null>\(\(\) => getAuthUser\(\)\)/);
+    assert.match(hookSrc, /useState<string \| null>\(\(\) => getAuthRole\(\)\)/);
   });
 });

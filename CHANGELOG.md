@@ -4,6 +4,48 @@
 
 (no entries — next release window)
 
+## [1.10.688] - 2026-05-09 — Extract useAuthIdentity hook
+
+**Web — `AccountMenu.tsx` shrunk by 34 lines (248 → 214).**
+The cached `user` + `role` slots from the api lib's
+localStorage, plus the AUTH_EVENT + cross-tab `storage`
+listeners that re-read on logout-in-another-tab + the
+filtered allow-set that ignores theme/sidebar
+storage-key noise — all move to a self-contained hook.
+
+### Refactor
+- New `web/src/lib/use-auth-identity.ts` (~50 lines).
+  No-arg signature returning `{ user, role }`. Owns
+  `AUTH_STORAGE_KEYS` allow-set internally so the
+  filter is module-private.
+- `AccountMenu.tsx`: removed inline `AUTH_STORAGE_KEYS`
+  set, two useState slots (lazy initializers), the
+  ~17-line listener useEffect. Replaced with one
+  destructured hook call. Trimmed `useEffect` +
+  `useState` + `AUTH_EVENT` + `getAuthRole` +
+  `getAuthUser` imports.
+- Boundary suite #155 — 4 assertions covering hook +
+  no-arg signature, lazy init, AUTH_EVENT + storage
+  filter, parent wiring.
+- `tests/account-menu.test.js` redirects: 5 assertions
+  (read-cached, listens-AUTH_EVENT, allow-set,
+  filter, lazy-init) all read the hook file now.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  762 / 762 across 154 → 155 suites.
+- `node --test tests/account-menu.test.js`: 47 / 47
+  (after redirect).
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 159 ships total since v1.10.529.
+- 157 components/libs extracted.
+- 67 custom hooks in `web/src/lib/`.
+- 762 boundary assertions across 155 suites.
+
 ## [1.10.687] - 2026-05-09 — Extract useAuditRotate hook
 
 **Web — `SpecialistsBulkOpsToolbar.tsx` shrunk by 30 lines (172 → 142).**

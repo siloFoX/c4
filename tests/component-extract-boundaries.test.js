@@ -1791,6 +1791,41 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useAuthIdentity hook (v1.10.688)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-auth-identity.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'AccountMenu.tsx');
+
+  it('exports the hook with no-arg signature', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useAuthIdentity\(\)/);
+  });
+
+  it('uses lazy initializers to avoid touching localStorage every render', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /useState<string \| null>\(\(\) => getAuthUser\(\)\)/);
+    assert.match(src, /useState<string \| null>\(\(\) => getAuthRole\(\)\)/);
+  });
+
+  it('subscribes to AUTH_EVENT + filtered cross-tab storage events', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.addEventListener\(AUTH_EVENT,\s*refresh\)/);
+    assert.match(src, /window\.addEventListener\('storage',\s*onStorage\)/);
+    assert.match(src, /AUTH_STORAGE_KEYS\.has\(e\.key\)/);
+    assert.match(src, /'c4\.authToken'[\s\S]*?'c4\.authUser'[\s\S]*?'c4\.authRole'/);
+  });
+
+  it('parent AccountMenu wires the hook + drops the inline state + listeners', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useAuthIdentity\s*\}\s+from\s+'\.\.\/lib\/use-auth-identity'/);
+    assert.match(src, /useAuthIdentity\(\)/);
+    assert.doesNotMatch(src, /^const AUTH_STORAGE_KEYS/m);
+    assert.doesNotMatch(src, /const \[user, setUser\]/);
+    assert.doesNotMatch(src, /const \[role, setRole\]/);
+  });
+});
+
 describe('extracted: useAuditRotate hook (v1.10.687)', () => {
   const fs = require('fs');
   const path = require('path');
