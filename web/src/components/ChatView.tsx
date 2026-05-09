@@ -17,11 +17,11 @@ import ChatHeader from './ChatHeader';
 import ChatComposer from './ChatComposer';
 import ChatErrorBanners from './ChatErrorBanners';
 import { useChatSseStream } from '../lib/use-chat-sse-stream';
+import { useWorkerBufferFlusher } from '../lib/use-worker-buffer-flusher';
 import {
   conversationToMessages,
   makeId,
   scrollbackToMessages,
-  stripAnsi,
   type ChatMessage,
   type ConversationShape,
   type Role,
@@ -54,7 +54,8 @@ interface ScrollbackResponse {
 // into a single worker bubble. The Claude TUI emits many small chunks during
 // a render pass; 1200ms comfortably covers a full response without merging
 // two adjacent turns.
-const WORKER_FLUSH_MS = 1200;
+// (v1.10.665) WORKER_FLUSH_MS + buffer flusher moved to
+// lib/use-worker-buffer-flusher.
 const MAX_MESSAGES = 300;
 const AUTOSCROLL_THRESHOLD_PX = 24;
 const SCROLLBACK_PAGE = 2000;
@@ -88,8 +89,6 @@ export default function ChatView({ workerName }: ChatViewProps) {
   const [loadingOlder, setLoadingOlder] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const pendingBufRef = useRef<string>('');
-  const flushTimerRef = useRef<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const scrollbackLinesRef = useRef<number>(SCROLLBACK_PAGE);
   const seenIdsRef = useRef<Set<string>>(new Set());
@@ -131,25 +130,10 @@ export default function ChatView({ workerName }: ChatViewProps) {
     [rememberMessage],
   );
 
-  const flushWorkerBuffer = useCallback(() => {
-    const raw = pendingBufRef.current;
-    pendingBufRef.current = '';
-    if (flushTimerRef.current != null) {
-      window.clearTimeout(flushTimerRef.current);
-      flushTimerRef.current = null;
-    }
-    if (!raw) return;
-    const clean = stripAnsi(raw).trim();
-    if (!clean) return;
-    appendLive('worker', clean);
-  }, [appendLive]);
-
-  const scheduleFlush = useCallback(() => {
-    if (flushTimerRef.current != null) {
-      window.clearTimeout(flushTimerRef.current);
-    }
-    flushTimerRef.current = window.setTimeout(flushWorkerBuffer, WORKER_FLUSH_MS);
-  }, [flushWorkerBuffer]);
+  // (v1.10.665) Worker buffer flusher (debounce + ANSI strip)
+  // moved to lib/use-worker-buffer-flusher.
+  const { pendingBufRef, flushWorkerBuffer, scheduleFlush, reset: resetFlusher } =
+    useWorkerBufferFlusher({ appendLive });
 
   // 8.25: worker-change reset + past-history backfill. Runs once per
   // workerName; cancels in-flight fetches via the `cancelled` closure
@@ -166,11 +150,7 @@ export default function ChatView({ workerName }: ChatViewProps) {
     setBackfillSource(null);
     setBackfillError(null);
     setHasOlder(false);
-    pendingBufRef.current = '';
-    if (flushTimerRef.current != null) {
-      window.clearTimeout(flushTimerRef.current);
-      flushTimerRef.current = null;
-    }
+    resetFlusher();
     scrollbackLinesRef.current = SCROLLBACK_PAGE;
     seenIdsRef.current = new Set();
     seenTextsRef.current = new Set();
@@ -245,13 +225,7 @@ export default function ChatView({ workerName }: ChatViewProps) {
       pendingBufRef.current += raw;
       scheduleFlush();
     },
-    onCleanup: () => {
-      if (flushTimerRef.current != null) {
-        window.clearTimeout(flushTimerRef.current);
-        flushTimerRef.current = null;
-      }
-      pendingBufRef.current = '';
-    },
+    onCleanup: resetFlusher,
   });
 
   useLayoutEffect(() => {

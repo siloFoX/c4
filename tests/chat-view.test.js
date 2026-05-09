@@ -138,7 +138,12 @@ describe('ChatView source wiring', () => {
   });
 
   it('declares a debounce window for worker output chunking', () => {
-    assert.match(src, /WORKER_FLUSH_MS\s*=\s*\d+/);
+    // (v1.10.665) WORKER_FLUSH_MS moved to lib/use-worker-buffer-flusher.
+    const flusherSrc = fs.readFileSync(
+      path.join(WEB_SRC, 'lib', 'use-worker-buffer-flusher.ts'),
+      'utf8',
+    );
+    assert.match(flusherSrc, /WORKER_FLUSH_MS\s*=\s*\d+/);
   });
 
   it('decodes base64 payloads before buffering', () => {

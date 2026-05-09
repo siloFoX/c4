@@ -4,6 +4,57 @@
 
 (no entries — next release window)
 
+## [1.10.665] - 2026-05-09 — Extract useWorkerBufferFlusher hook
+
+**Web — `ChatView.tsx` shrunk by 26 lines (413 → 387).**
+The PTY-output debounce that batches incoming bytes into
+chat bubbles — `pendingBufRef` accumulator, `flushTimerRef`
+setTimeout handle, `flushWorkerBuffer` (strip-ANSI +
+trim + appendLive), `scheduleFlush` (1200ms debounce) —
+moves to a dedicated hook that owns the refs internally
+and exposes them on the return so the worker-change
+useEffect + the SSE-stream onCleanup can still reach
+the underlying state.
+
+### Refactor
+- New `web/src/lib/use-worker-buffer-flusher.ts`
+  (~63 lines). Exports `useWorkerBufferFlusher` +
+  `WORKER_FLUSH_MS` constant. The hook owns
+  `pendingBufRef` + `flushTimerRef` + the four
+  callbacks and adds a `reset()` helper that clears
+  both refs (used by both the worker-swap useEffect
+  and the SSE-stream onCleanup callback).
+- `ChatView.tsx`: removed the inline `WORKER_FLUSH_MS`
+  constant, the two refs, the `flushWorkerBuffer` +
+  `scheduleFlush` useCallbacks. Replaced the
+  worker-swap reset's manual ref-clear (5 lines) and
+  the SSE onCleanup's manual ref-clear (5 lines) with
+  `resetFlusher`. Trimmed unused `stripAnsi` import.
+- Boundary suite #132 — 6 assertions covering hook +
+  WORKER_FLUSH_MS export shape, internal ref ownership,
+  flush stripAnsi+trim+appendLive contract, schedule
+  setTimeout binding, reset clearing both refs, parent
+  wiring.
+- `tests/chat-view.test.js` redirect:
+  `WORKER_FLUSH_MS` constant assertion now reads the
+  hook file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  662 / 662 across 131 → 132 suites.
+- `node --test tests/chat-view.test.js`: 21 / 21 (after
+  redirect).
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual). One transient web-smoke
+  flake on first attempt; cleared on retry.
+
+### Stats
+- 136 ships total since v1.10.529.
+- 135 components/libs extracted.
+- 45 custom hooks in `web/src/lib/`.
+- 662 boundary assertions across 132 suites.
+
 ## [1.10.664] - 2026-05-09 — Extract useMeetingBackup + useMeetingPrune
 
 **Web — `MeetingsMaintenancePanel.tsx` shrunk by 73 lines (296 → 223).**

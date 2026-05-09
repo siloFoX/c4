@@ -1770,6 +1770,52 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useWorkerBufferFlusher hook (v1.10.665)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-worker-buffer-flusher.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'ChatView.tsx');
+
+  it('exports the hook + WORKER_FLUSH_MS constant', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useWorkerBufferFlusher/);
+    assert.match(src, /export \{ WORKER_FLUSH_MS \}/);
+    assert.match(src, /WORKER_FLUSH_MS\s*=\s*1200/);
+  });
+
+  it('owns the pendingBuf + flushTimer refs internally', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /useRef<string>\(''\)/);
+    assert.match(src, /useRef<number\s*\|\s*null>\(null\)/);
+  });
+
+  it('flush stripsAnsi + trims + calls appendLive("worker", text)', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /stripAnsi\(raw\)\.trim\(\)/);
+    assert.match(src, /appendLive\('worker',\s*clean\)/);
+  });
+
+  it('schedule debounces via window.setTimeout(WORKER_FLUSH_MS)', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.setTimeout\(flushWorkerBuffer,\s*WORKER_FLUSH_MS\)/);
+  });
+
+  it('reset clears both refs (worker swap + SSE cleanup callsite)', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /pendingBufRef\.current = ''/);
+    assert.match(src, /window\.clearTimeout\(flushTimerRef\.current\)/);
+  });
+
+  it('parent ChatView wires the hook + drops the inline refs + helpers', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useWorkerBufferFlusher\s*\}\s+from\s+'\.\.\/lib\/use-worker-buffer-flusher'/);
+    assert.match(src, /useWorkerBufferFlusher\(\{\s*appendLive\s*\}\)/);
+    assert.doesNotMatch(src, /const flushWorkerBuffer = useCallback/);
+    assert.doesNotMatch(src, /const scheduleFlush = useCallback/);
+    assert.doesNotMatch(src, /^const WORKER_FLUSH_MS\s*=/m);
+  });
+});
+
 describe('extracted: useMeetingBackup + useMeetingPrune (v1.10.664)', () => {
   const fs = require('fs');
   const path = require('path');
