@@ -748,16 +748,28 @@ describe('extracted: StatusMessageCard (v1.10.561)', () => {
   });
 
   it('owns message + sending state internally', () => {
-    const src = read('StatusMessageCard.tsx');
-    assert.match(src, /useState\(''\)/);
-    assert.match(src, /useState\(false\)/);
+    // (v1.10.733) State machine moved to use-status-message hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-status-message.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /useState\(''\)/);
+    assert.match(hookSrc, /useState\(false\)/);
   });
 
   it('POSTs to /api/status-update with {worker, message}', () => {
-    const src = read('StatusMessageCard.tsx');
-    assert.match(src, /\/api\/status-update/);
-    assert.match(src, /worker:\s*workerName/);
-    assert.match(src, /message:\s*text/);
+    // (v1.10.733) POST handler moved to use-status-message hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-status-message.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /\/api\/status-update/);
+    assert.match(hookSrc, /worker:\s*workerName/);
+    assert.match(hookSrc, /message:\s*text/);
   });
 
   it('is imported and rendered by ControlPanel', () => {
@@ -1939,6 +1951,42 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useStatusMessage hook (v1.10.733)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-status-message.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'StatusMessageCard.tsx');
+
+  it('exports the hook + accepts workerName + onToast', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useStatusMessage/);
+    assert.match(src, /workerName:\s*string/);
+    assert.match(src, /onToast:\s*\(message:\s*string,\s*type:\s*ToastType\)\s*=>\s*void/);
+  });
+
+  it('POSTs /api/status-update with worker + message body', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiFetch\('\/api\/status-update'/);
+    assert.match(src, /worker:\s*workerName/);
+    assert.match(src, /message:\s*text/);
+  });
+
+  it('clears the textarea on success + routes failures through onToast', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /setMessage\(''\)/);
+    assert.match(src, /controlPanel\.status\.sent/);
+    assert.match(src, /controlPanel\.status\.failed/);
+  });
+
+  it('parent StatusMessageCard wires the hook + drops the inline state', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useStatusMessage\s*\}\s+from\s+'\.\.\/lib\/use-status-message'/);
+    assert.match(src, /useStatusMessage\(\{[\s\S]*?workerName,\s*onToast[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /apiFetch\('\/api\/status-update'/);
+    assert.doesNotMatch(src, /const \[message, setMessage\]/);
   });
 });
 

@@ -4,6 +4,40 @@
 
 (no entries — next release window)
 
+## [1.10.733] - 2026-05-10 — Extract useStatusMessage hook
+
+**Web — `components/StatusMessageCard.tsx` shrunk by 20 lines (77 → 57).**
+The Slack status-message form's state machine —
+`message` + `sending` slots and the `send` callback
+that POSTs `/api/status-update`, clears the textarea
+on success, and routes failures through the parent's
+toast — moves to a `useStatusMessage({ workerName,
+onToast })` hook returning `{ message, setMessage,
+sending, send }`.
+
+The component is now a near-pure render function:
+single hook destructure + JSX. The
+`HTTP <status>` throw + i18n `controlPanel.status.sent`
+/ `controlPanel.status.failed` keys all survive the
+move verbatim.
+
+Boundary suite #199 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the `/api/status-update` POST shape
+with `{ worker, message }` body, the success-path
+textarea clear, and the i18n key routing. Two
+pre-existing tests redirected from parent → hook
+file:
+- `component-extract-boundaries.test.js`
+  "owns message + sending state internally"
+- `ui-cli-coverage.test.js`
+  "posts to /api/status-update with {worker, message}"
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (953 / 199 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.732] - 2026-05-10 — Extract useUiPreferences hook
 
 **Web — `App.tsx` shrunk by 22 lines (230 → 208).**

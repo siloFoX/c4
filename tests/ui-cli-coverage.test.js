@@ -424,8 +424,11 @@ describe('ControlPanel StatusMessageCard (8.20b)', () => {
   });
 
   it('posts to /api/status-update with {worker, message}', () => {
-    assert.match(cardSrc, /'\/api\/status-update'/);
-    assert.match(cardSrc, /worker:\s*workerName/);
-    assert.match(cardSrc, /message:\s*text/);
+    // (v1.10.733) POST handler moved to use-status-message hook.
+    const HOOK = path.join(REPO_ROOT, 'web/src/lib/use-status-message.ts');
+    const hookSrc = fs.readFileSync(HOOK, 'utf8');
+    assert.match(hookSrc, /'\/api\/status-update'/);
+    assert.match(hookSrc, /worker:\s*workerName/);
+    assert.match(hookSrc, /message:\s*text/);
   });
 });

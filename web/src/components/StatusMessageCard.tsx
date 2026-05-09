@@ -1,9 +1,8 @@
-import { useCallback, useState } from 'react';
 import { Send } from 'lucide-react';
-import { apiFetch } from '../lib/api';
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import type { ToastType } from './Toast';
+import { useStatusMessage } from '../lib/use-status-message';
 
 // (v1.10.561) Extracted from ControlPanel. The Slack status
 // message form (8.20B) — fire-and-forget POST /api/status-update
@@ -11,6 +10,8 @@ import type { ToastType } from './Toast';
 // layer so oncall can see "worker X hit intervention" without
 // opening the terminal. Pure controlled component; parent
 // provides workerName + an onToast callback.
+// (v1.10.733) message + sending state + send POST handler moved
+// to lib/use-status-message.
 
 interface Props {
   workerName: string;
@@ -19,27 +20,7 @@ interface Props {
 
 export default function StatusMessageCard({ workerName, onToast }: Props) {
   useLocale();
-  const [message, setMessage] = useState('');
-  const [sending, setSending] = useState(false);
-
-  const send = useCallback(async () => {
-    const text = message.trim();
-    if (!text) return;
-    setSending(true);
-    try {
-      const res = await apiFetch('/api/status-update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ worker: workerName, message: text }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      onToast(tFormat('controlPanel.status.sent', { worker: workerName }), 'success');
-      setMessage('');
-    } catch (e) {
-      onToast(tFormat('controlPanel.status.failed', { error: (e as Error).message }), 'error');
-    }
-    setSending(false);
-  }, [message, workerName, onToast]);
+  const { message, setMessage, sending, send } = useStatusMessage({ workerName, onToast });
 
   return (
     <Card aria-label={t('controlPanel.status.label')}>
