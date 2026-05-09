@@ -4,6 +4,38 @@
 
 (no entries — next release window)
 
+## [1.10.708] - 2026-05-09 — Reuse useToast in WorkerActions + ControlPanel
+
+**Web — two pages dedupe their inline toast slots.**
+The `useToast` hook (extracted in v1.10.694 for Batch +
+Plan) gets adopted by two more callers. WorkerActions
+loses 6 lines (174 → 168); ControlPanel loses 6 lines
+(288 → 282). No new lib — pure sharing win.
+
+### Refactor
+- `WorkerActions.tsx`: dropped inline `ToastState`
+  interface + `[toast, setToast]` slot + `showToast`
+  useCallback. Replaced with destructured
+  `useToast()`. `onDismiss` now binds to
+  `dismissToast`.
+- `ControlPanel.tsx`: same swap. Trimmed `ToastType`
+  type-import (now consumed via the hook signature).
+- Boundary suite #175 — 2 assertions confirming both
+  callers import `useToast` + drop the inline state.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  843 / 843 across 174 → 175 suites.
+- `npm run check:full`: green.
+
+### Stats
+- 179 ships total since v1.10.529.
+- 175 components/libs extracted (no new lib —
+  sharing win).
+- 84 custom hooks in `web/src/lib/`.
+- 843 boundary assertions across 175 suites.
+
 ## [1.10.707] - 2026-05-09 — Extract usePinnedRules hook
 
 **Web — `PinnedRulesEditor.tsx` shrunk by 59 lines (176 → 117).**

@@ -7,11 +7,12 @@ import {
   RotateCcw,
   X,
 } from 'lucide-react';
-import Toast, { type ToastType } from './Toast';
+import Toast from './Toast';
 import StatusMessageCard from './StatusMessageCard';
 import ControlPanelActions from './ControlPanelActions';
 import ControlPanelBatch from './ControlPanelBatch';
 import { useWorkerSelection } from '../lib/use-worker-selection';
+import { useToast } from '../lib/use-toast';
 import { apiFetch } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import type { ListResponse, Worker } from '../types';
@@ -52,11 +53,7 @@ export interface SingleAction {
   successMessage: (workerName: string) => string;
 }
 
-interface ToastState {
-  id: number;
-  message: string;
-  type: ToastType;
-}
+// (v1.10.708) ToastState + showToast moved to lib/use-toast.
 
 // (v1.10.591) Promoted to exports so the extracted
 // ControlPanelBatch sibling can type its props.
@@ -186,13 +183,10 @@ async function postAction(
 
 export default function ControlPanel({ workerName }: ControlPanelProps) {
   useLocale();
-  const [toast, setToast] = useState<ToastState | null>(null);
+  // (v1.10.708) Toast slot moved to lib/use-toast.
+  const { toast, showToast, dismissToast } = useToast();
   const [busyKind, setBusyKind] = useState<ActionKind | null>(null);
   const [workers, setWorkers] = useState<Worker[]>([]);
-
-  const showToast = useCallback((message: string, type: ToastType) => {
-    setToast({ id: Date.now(), message, type });
-  }, []);
 
   const fetchList = useCallback(async () => {
     try {
@@ -279,7 +273,7 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
             key={toast.id}
             message={toast.message}
             type={toast.type}
-            onDismiss={() => setToast(null)}
+            onDismiss={dismissToast}
           />
         )}
       </div>

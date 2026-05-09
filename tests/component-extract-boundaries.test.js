@@ -1865,6 +1865,29 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('shared: useToast adopted by WorkerActions + ControlPanel (v1.10.708)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const WORKER_ACTIONS = path.join(__dirname, '..', 'web', 'src', 'components', 'WorkerActions.tsx');
+  const CONTROL_PANEL = path.join(__dirname, '..', 'web', 'src', 'components', 'ControlPanel.tsx');
+
+  it('WorkerActions imports useToast + drops the inline ToastState + showToast', () => {
+    const src = fs.readFileSync(WORKER_ACTIONS, 'utf8');
+    assert.match(src, /import\s+\{\s*useToast\s*\}\s+from\s+'\.\.\/lib\/use-toast'/);
+    assert.match(src, /useToast\(\)/);
+    assert.doesNotMatch(src, /^interface ToastState/m);
+    assert.doesNotMatch(src, /const showToast = useCallback/);
+  });
+
+  it('ControlPanel imports useToast + drops the inline ToastState + showToast', () => {
+    const src = fs.readFileSync(CONTROL_PANEL, 'utf8');
+    assert.match(src, /import\s+\{\s*useToast\s*\}\s+from\s+'\.\.\/lib\/use-toast'/);
+    assert.match(src, /useToast\(\)/);
+    assert.doesNotMatch(src, /^interface ToastState/m);
+    assert.doesNotMatch(src, /const showToast = useCallback/);
+  });
+});
+
 describe('extracted: usePinnedRules hook (v1.10.707)', () => {
   const fs = require('fs');
   const path = require('path');

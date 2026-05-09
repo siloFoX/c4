@@ -1,19 +1,16 @@
 import { useCallback, useState } from 'react';
 import { Check, GitMerge, Loader2, OctagonAlert, X } from 'lucide-react';
-import Toast, { type ToastType } from './Toast';
+import Toast from './Toast';
 import { apiFetch } from '../lib/api';
 import { Button, type ButtonProps } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useToast } from '../lib/use-toast';
 
 export interface WorkerActionsProps {
   workerName: string;
 }
 
-interface ToastState {
-  id: number;
-  message: string;
-  type: ToastType;
-}
+// (v1.10.708) ToastState + showToast moved to lib/use-toast.
 
 type ActionKind = 'merge' | 'approve' | 'interrupt' | 'close';
 
@@ -32,12 +29,9 @@ interface ActionConfig {
 
 export default function WorkerActions({ workerName }: WorkerActionsProps) {
   useLocale();
-  const [toast, setToast] = useState<ToastState | null>(null);
+  // (v1.10.708) Toast slot moved to lib/use-toast.
+  const { toast, showToast, dismissToast } = useToast();
   const [busyKind, setBusyKind] = useState<ActionKind | null>(null);
-
-  const showToast = useCallback((message: string, type: ToastType) => {
-    setToast({ id: Date.now(), message, type });
-  }, []);
 
   const actions: ActionConfig[] = [
     {
@@ -165,7 +159,7 @@ export default function WorkerActions({ workerName }: WorkerActionsProps) {
             key={toast.id}
             message={toast.message}
             type={toast.type}
-            onDismiss={() => setToast(null)}
+            onDismiss={dismissToast}
           />
         )}
       </div>
