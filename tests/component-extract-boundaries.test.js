@@ -1100,14 +1100,26 @@ describe('extracted: MeetingsPeerRetroControls (v1.10.554)', () => {
   });
 
   it('owns brain selector state (mock | claude)', () => {
-    const src = read('MeetingsPeerRetroControls.tsx');
-    assert.match(src, /useState<'mock' \| 'claude'>/);
+    // (v1.10.718) State machine moved to use-meeting-peer-retro hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-peer-retro.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /useState<'mock' \| 'claude'>/);
   });
 
   it('owns the peer-retro POST handler', () => {
-    const src = read('MeetingsPeerRetroControls.tsx');
-    assert.match(src, /handlePeerRetro/);
-    assert.match(src, /\/peer-retro/);
+    // (v1.10.718) POST handler moved to use-meeting-peer-retro hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-peer-retro.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /handlePeerRetro/);
+    assert.match(hookSrc, /\/peer-retro/);
   });
 
   it('is imported and rendered by MeetingsDetailCompletedActions (v1.10.593)', () => {
@@ -1892,6 +1904,44 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useMeetingPeerRetro hook (v1.10.718)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-peer-retro.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'MeetingsPeerRetroControls.tsx');
+
+  it('exports the hook + accepts meetingId', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useMeetingPeerRetro/);
+    assert.match(src, /meetingId:\s*string/);
+  });
+
+  it('POSTs /api/meetings/:id/peer-retro with brain + apply:true', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiPost/);
+    assert.match(src, /\/api\/meetings\/\$\{encodeURIComponent\(meetingId\)\}\/peer-retro/);
+    assert.match(src, /brain/);
+    assert.match(src, /apply:\s*true/);
+  });
+
+  it('success path auto-clears msg after 6s + computes raters/ratings/updated', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.setTimeout\(\s*\(\)\s*=>\s*setMsg\(null\),\s*6000\s*\)/);
+    assert.match(src, /res\.peer\.raw/);
+    assert.match(src, /res\.peer\.raters/);
+    assert.match(src, /Object\.keys\(res\.applied\)/);
+    assert.match(src, /meetings\.peerRetro\.success/);
+  });
+
+  it('parent MeetingsPeerRetroControls wires the hook + drops the inline state', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useMeetingPeerRetro\s*\}\s+from\s+'\.\.\/lib\/use-meeting-peer-retro'/);
+    assert.match(src, /useMeetingPeerRetro\(\{[\s\S]*?meetingId[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /const \[busy, setBusy\]/);
+    assert.doesNotMatch(src, /apiPost/);
   });
 });
 

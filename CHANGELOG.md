@@ -4,6 +4,39 @@
 
 (no entries — next release window)
 
+## [1.10.718] - 2026-05-10 — Extract useMeetingPeerRetro hook
+
+**Web — `components/MeetingsPeerRetroControls.tsx` shrunk by 34 lines (92 → 58).**
+The peer-rating POST + brain selector + busy / msg /
+failed state slots and the success-toast 6s
+auto-clear move to a `useMeetingPeerRetro({ meetingId })`
+hook returning `{ busy, msg, failed, brain, setBrain,
+handlePeerRetro }`.
+
+This completes the matched-hook pattern across the
+four Phase 3.x Meetings detail action-bar components:
+
+- `MeetingsPublishControls` ↔ `useMeetingPublish` (v1.10.703)
+- `MeetingsRunControls` ↔ `useMeetingRun` (v1.10.716)
+- `MeetingsRetroActions` ↔ `useMeetingRetro` (v1.10.717)
+- `MeetingsPeerRetroControls` ↔ `useMeetingPeerRetro` (v1.10.718)
+
+Boundary suite #185 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the `/peer-retro` POST shape with
+`apply: true`, the success-toast auto-clear timing
+(6000ms), the i18n key mapping for raters / ratings /
+updated counts, and verifies the parent wires the
+hook + drops the inline state. Pre-existing boundary
+suite for `MeetingsPeerRetroControls (v1.10.554)`
+redirected to read the hook file for both the
+state-machine + handler assertions.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (882 / 184 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.717] - 2026-05-10 — Extract useMeetingRetro hook
 
 **Web — `components/MeetingsRetroActions.tsx` shrunk by 38 lines (99 → 61).**
