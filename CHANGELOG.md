@@ -4,6 +4,48 @@
 
 (no entries — next release window)
 
+## [1.10.684] - 2026-05-09 — Extract useAuditExport hook
+
+**Web — `SpecialistsAuditPanel.tsx` shrunk by 28 lines (202 → 174).**
+The CSV export of the audit log — windowed `from`
+param, `lineEnd=crlf` for Excel-friendliness, blob
+download via createObjectURL + anchor click + revoke
+— moves to a self-contained hook. Final piece of the
+SpecialistsAuditPanel cleanup; the panel is now pure
+JSX glue around three hooks.
+
+### Refactor
+- New `web/src/lib/use-audit-export.ts` (~53 lines).
+  Imports `AuditWindow` type from the sibling
+  `./use-specialists-audit` hook (single source of
+  truth for the union). Returns
+  `{ exportAuditBusy, handleAuditExport }`.
+- `SpecialistsAuditPanel.tsx`: removed the
+  `exportAuditBusy` useState slot and the ~28-line
+  `handleAuditExport` useCallback (with its inline
+  dynamic `import('../lib/api')`). Replaced with one
+  destructured hook call. Trimmed `useCallback`
+  import.
+- Boundary suite #151 — 4 assertions covering hook +
+  prop signature, /api/audit/export URL + crlf
+  toggle + windowed from, blob-download contract,
+  parent wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  746 / 746 across 150 → 151 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 155 ships total since v1.10.529.
+- 153 components/libs extracted.
+- 63 custom hooks in `web/src/lib/`.
+- 746 boundary assertions across 151 suites.
+- SpecialistsAuditPanel went 256 → 174 across
+  v1.10.682 + v1.10.683 + v1.10.684 (-82, ~32%).
+
 ## [1.10.683] - 2026-05-09 — Extract useAuditVerify hook
 
 **Web — `SpecialistsAuditPanel.tsx` shrunk by 25 lines (227 → 202).**

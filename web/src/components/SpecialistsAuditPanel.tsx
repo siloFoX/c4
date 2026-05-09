@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { useSpecialistsAudit, type AuditWindow } from '../lib/use-specialists-audit';
 import { useAuditVerify } from '../lib/use-audit-verify';
+import { useAuditExport } from '../lib/use-audit-export';
 
 // (v1.10.531) Extracted from SpecialistsView. The collapsible
 // audit log viewer + chain-verify + CSV export. Polled only while
@@ -25,37 +26,8 @@ export default function SpecialistsAuditPanel() {
   // (v1.10.683) Audit chain verify moved to lib/use-audit-verify.
   const { verifyBusy, verifyResult, handleVerify } = useAuditVerify();
 
-  // CSV export — uses the same window selector. Default UTF-8 BOM
-  // + CRLF for Excel-friendliness.
-  const [exportAuditBusy, setExportAuditBusy] = useState(false);
-  const handleAuditExport = useCallback(async () => {
-    setExportAuditBusy(true);
-    try {
-      const params = new URLSearchParams();
-      if (auditWindow !== 'all') {
-        const hours = auditWindow === '1h' ? 1 : auditWindow === '24h' ? 24 : 24 * 7;
-        params.set('from', new Date(Date.now() - hours * 3600 * 1000).toISOString());
-      }
-      params.set('lineEnd', 'crlf');
-      const url = `/api/audit/export?${params.toString()}`;
-      const { apiFetch } = await import('../lib/api');
-      const res = await apiFetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
-      const a = document.createElement('a');
-      const objUrl = URL.createObjectURL(blob);
-      a.href = objUrl;
-      a.download = `c4-audit-${auditWindow}-${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(objUrl);
-    } catch {
-      // best-effort — silent failure
-    } finally {
-      setExportAuditBusy(false);
-    }
-  }, [auditWindow]);
+  // (v1.10.684) CSV export moved to lib/use-audit-export.
+  const { exportAuditBusy, handleAuditExport } = useAuditExport({ auditWindow });
 
   return (
     <div className="rounded-md border border-border/40 bg-muted/5">

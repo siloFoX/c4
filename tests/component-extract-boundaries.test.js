@@ -1791,6 +1791,42 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useAuditExport hook (v1.10.684)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-audit-export.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'SpecialistsAuditPanel.tsx');
+
+  it('exports the hook + accepts auditWindow', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useAuditExport/);
+    assert.match(src, /auditWindow:\s*AuditWindow/);
+  });
+
+  it('GETs /api/audit/export with windowed `from` + crlf line ending', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\/api\/audit\/export\?\$\{params\.toString\(\)\}/);
+    assert.match(src, /params\.set\('lineEnd',\s*'crlf'\)/);
+    assert.match(src, /params\.set\('from'/);
+  });
+
+  it('downloads via createObjectURL + anchor click + revoke', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /URL\.createObjectURL\(blob\)/);
+    assert.match(src, /a\.click\(\)/);
+    assert.match(src, /URL\.revokeObjectURL\(objUrl\)/);
+    assert.match(src, /c4-audit-\$\{auditWindow\}/);
+  });
+
+  it('parent SpecialistsAuditPanel wires the hook + drops the inline state + handler', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useAuditExport\s*\}\s+from\s+'\.\.\/lib\/use-audit-export'/);
+    assert.match(src, /useAuditExport\(\{\s*auditWindow\s*\}\)/);
+    assert.doesNotMatch(src, /const \[exportAuditBusy, setExportAuditBusy\]/);
+    assert.doesNotMatch(src, /const handleAuditExport = useCallback/);
+  });
+});
+
 describe('extracted: useAuditVerify hook (v1.10.683)', () => {
   const fs = require('fs');
   const path = require('path');
