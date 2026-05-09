@@ -4,6 +4,48 @@
 
 (no entries — next release window)
 
+## [1.10.728] - 2026-05-10 — Extract useSelectedFeatureId hook
+
+**Web — `components/layout/FeatureView.tsx` shrunk by 61 lines (124 → 63).**
+The selected-feature state machine — initial read
+from `window.location.hash` (`#/feature/<id>`) →
+`localStorage[FEATURE_KEY]` → first registered
+feature fallback, the persistence effect that
+writes back to both surfaces on every change, and
+the `hashchange` listener that syncs incoming
+back-forward nav events into state — moves to a
+single `useSelectedFeatureId()` hook returning a
+`[selectedId, setSelectedId]` tuple.
+
+The hook keeps the `replaceState` (vs `pushState`)
+choice so rapid feature-clicks don't pollute the
+back stack, and preserves the SSR / private-mode
+guards (`typeof window === 'undefined'` and the
+private-mode try/catch around localStorage). The
+`readInitialFeature` and `writeHash` helper
+functions move with the hook so the parent file
+can drop them entirely.
+
+The component is now a near-pure render function:
+single hook destructure + the `findFeature` memo +
+the JSX render tree.
+
+Boundary suite #194 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature (`[string, (id: string) => void]`
+tuple shape), the three-tier read priority (hash →
+localStorage → fallback), the persistence contract
+(both surfaces written on change), the
+`replaceState`-not-`pushState` choice, the
+hashchange listener subscribe / unsubscribe pair,
+and verifies the parent wires the hook + drops the
+helper functions.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (930 / 194 suites — +6 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.727] - 2026-05-10 — Extract useLazyRiskPatterns hook
 
 **Web — `components/RiskRuleCatalogPanel.tsx` shrunk by 30 lines (130 → 100).**

@@ -1942,6 +1942,53 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useSelectedFeatureId hook (v1.10.728)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-selected-feature-id.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'layout', 'FeatureView.tsx');
+
+  it('exports the hook + returns a [string, setter] tuple', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useSelectedFeatureId\(\): \[string, \(id: string\) => void\]/);
+  });
+
+  it('readInitialFeature reads from hash → localStorage → fallback', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /function readInitialFeature/);
+    assert.match(src, /window\.location\.hash/);
+    assert.match(src, /window\.localStorage\.getItem\(FEATURE_KEY\)/);
+    assert.match(src, /FEATURES\[0\]\?\.id/);
+  });
+
+  it('persists to both localStorage + hash on change', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.localStorage\.setItem\(FEATURE_KEY,\s*selectedId\)/);
+    assert.match(src, /writeHash\(selectedId\)/);
+  });
+
+  it('uses history.replaceState (not pushState) for hash writes', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.history\.replaceState/);
+    assert.doesNotMatch(src, /window\.history\.pushState/);
+  });
+
+  it('listens for hashchange + syncs back into state', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /addEventListener\('hashchange'/);
+    assert.match(src, /removeEventListener\('hashchange'/);
+  });
+
+  it('parent FeatureView wires the hook + drops the inline state machine', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useSelectedFeatureId\s*\}\s+from\s+'\.\.\/\.\.\/lib\/use-selected-feature-id'/);
+    assert.match(src, /const \[selectedId, setSelectedId\] = useSelectedFeatureId\(\)/);
+    assert.doesNotMatch(src, /function readInitialFeature/);
+    assert.doesNotMatch(src, /function writeHash/);
+    assert.doesNotMatch(src, /addEventListener\('hashchange'/);
+  });
+});
+
 describe('extracted: useLazyRiskPatterns hook (v1.10.727)', () => {
   const fs = require('fs');
   const path = require('path');

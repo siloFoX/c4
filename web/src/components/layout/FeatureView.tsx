@@ -1,48 +1,11 @@
-import { Suspense, lazy, useEffect, useMemo, useState, type ComponentType } from 'react';
+import { Suspense, lazy, useMemo, type ComponentType } from 'react';
 import FeatureSidebar from './FeatureSidebar';
-import {
-  FEATURES,
-  findFeature,
-  type FeatureDef,
-} from '../../pages/registry';
+import { findFeature, type FeatureDef } from '../../pages/registry';
 import PageFrame, { LoadingSkeleton } from '../../pages/PageFrame';
 import { t, useLocale } from '../../lib/i18n';
+import { useSelectedFeatureId } from '../../lib/use-selected-feature-id';
 
-const FEATURE_KEY = 'c4.features.selected';
-const HASH_PREFIX = '#/feature/';
-
-function readInitialFeature(): string {
-  // (v1.10.522) FEATURES is a non-empty const array — first id always
-  // defined. The `?? ''` fallback keeps TS strict happy.
-  const fallback = FEATURES[0]?.id ?? '';
-  if (typeof window === 'undefined') return fallback;
-  const hash = window.location.hash || '';
-  if (hash.startsWith(HASH_PREFIX)) {
-    const id = hash.slice(HASH_PREFIX.length);
-    if (findFeature(id)) return id;
-  }
-  try {
-    const v = window.localStorage.getItem(FEATURE_KEY);
-    if (v && findFeature(v)) return v;
-  } catch {
-    // private mode
-  }
-  return fallback;
-}
-
-function writeHash(id: string): void {
-  if (typeof window === 'undefined') return;
-  const next = `${HASH_PREFIX}${id}`;
-  if (window.location.hash === next) return;
-  // Use replaceState so the top-level browser back stack is not polluted
-  // when operators click around between features in rapid succession.
-  try {
-    const url = `${window.location.pathname}${window.location.search}${next}`;
-    window.history.replaceState(null, '', url);
-  } catch {
-    window.location.hash = next;
-  }
-}
+// (v1.10.728) Hash + localStorage selection state moved to lib/use-selected-feature-id.
 
 const pageCache = new Map<string, ComponentType>();
 
@@ -60,30 +23,7 @@ interface FeatureViewProps {
 
 export default function FeatureView({ sidebarOpen }: FeatureViewProps) {
   useLocale();
-  const [selectedId, setSelectedId] = useState<string>(readInitialFeature);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(FEATURE_KEY, selectedId);
-    } catch {
-      // private mode
-    }
-    writeHash(selectedId);
-  }, [selectedId]);
-
-  useEffect(() => {
-    const onHash = () => {
-      const hash = window.location.hash || '';
-      if (hash.startsWith(HASH_PREFIX)) {
-        const id = hash.slice(HASH_PREFIX.length);
-        if (findFeature(id) && id !== selectedId) {
-          setSelectedId(id);
-        }
-      }
-    };
-    window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
-  }, [selectedId]);
+  const [selectedId, setSelectedId] = useSelectedFeatureId();
 
   const feature = useMemo(() => findFeature(selectedId), [selectedId]);
 
