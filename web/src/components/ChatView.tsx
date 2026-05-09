@@ -17,10 +17,9 @@ import { useWorkerBufferFlusher } from '../lib/use-worker-buffer-flusher';
 import { useChatSubmit } from '../lib/use-chat-submit';
 import { useAutoScroll } from '../lib/use-auto-scroll';
 import { useChatBackfill } from '../lib/use-chat-backfill';
+import { useAppendLive } from '../lib/use-append-live';
 import {
-  makeId,
   type ChatMessage,
-  type Role,
 } from '../lib/chat-helpers';
 import ChatMessageLog from './ChatMessageLog';
 
@@ -92,30 +91,8 @@ export default function ChatView({ workerName }: ChatViewProps) {
     return merged.length > MAX_MESSAGES ? merged.slice(-MAX_MESSAGES) : merged;
   }, [history, liveMessages]);
 
-  const appendLive = useCallback(
-    (role: Role, text: string) => {
-      const trimmed = text.replace(/^\s+|\s+$/g, '');
-      if (!trimmed) return;
-      // 8.25 dedup: if the same text was rendered by the backfill pass
-      // (e.g. SSE delivers the tail of an assistant message whose full
-      // body already landed in the session JSONL), skip it so the user
-      // does not see doubled bubbles.
-      if (seenTextsRef.current.has(trimmed)) return;
-      const msg: ChatMessage = {
-        id: makeId(role === 'user' ? 'live-u' : 'live-w'),
-        role,
-        text: trimmed,
-        ts: Date.now(),
-        source: 'live',
-      };
-      rememberMessage(msg);
-      setLiveMessages((prev) => {
-        const next = [...prev, msg];
-        return next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next;
-      });
-    },
-    [rememberMessage, seenTextsRef],
-  );
+  // (v1.10.739) appendLive (trim + dedup + makeId + setLiveMessages cap) moved to hook.
+  const appendLive = useAppendLive({ seenTextsRef, rememberMessage, setLiveMessages });
 
   // (v1.10.665) Worker buffer flusher (debounce + ANSI strip)
   // moved to lib/use-worker-buffer-flusher.

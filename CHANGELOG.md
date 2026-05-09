@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.739] - 2026-05-10 — Extract useAppendLive hook
+
+**Web — `components/ChatView.tsx` shrunk by 23 lines (206 → 183).**
+The SSE-streamed live-message append handler — trims
+the chunk, runs the dedup gate against the
+backfill's `seenTextsRef` set, mints a stable id
+via `makeId`, calls `rememberMessage(m)` to track
+both the id + text, and pushes onto
+`liveMessages` with the `MAX_MESSAGES` (300) cap
+— moves to a `useAppendLive({ seenTextsRef,
+rememberMessage, setLiveMessages })` hook returning
+the typed callback.
+
+The hook keeps the `MAX_MESSAGES = 300` constant +
+the `live-u` / `live-w` id prefix logic + the
+slice-cap behaviour all internal. Parent shrinks to
+a single-line `const appendLive = useAppendLive({...})`
+call alongside the existing `useChatBackfill` and
+`useWorkerBufferFlusher` wires.
+
+The `makeId` and `Role` imports drop out of
+ChatView (their last consumers moved into the hook).
+
+Boundary suite #205 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the trim regex, the dedup gate, the
+`MAX_MESSAGES = 300` cap, the `makeId('live-u' /
+'live-w')` id prefix logic, and verifies the parent
+wires the hook + drops the inline appendLive
+callback. One pre-existing
+`chat-backfill.test.js` "dedupes SSE chunks"
+assertion redirected from parent → use-append-live
+hook file.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (978 / 205 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.738] - 2026-05-10 — Extract useChatBackfill hook
 
 **Web — `components/ChatView.tsx` shrunk by 133 lines (339 → 206).**

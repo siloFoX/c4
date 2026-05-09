@@ -239,9 +239,14 @@ describe('ChatView source wiring (8.25)', () => {
   });
 
   it('dedupes SSE chunks whose text already landed in the backfill', () => {
-    // SSE dedup logic stays inline in ChatView's appendLive (reads the hook's
-    // seenTextsRef ref). The hook side surfaces the ref + .add() on backfill.
-    assert.match(src, /seenTextsRef\.current\.has\(trimmed\)/);
+    // (v1.10.739) SSE dedup logic moved to use-append-live hook (still reads
+    // the backfill hook's seenTextsRef). The backfill hook still surfaces
+    // the ref + .add() during the initial backfill pass.
+    const appendLiveSrc = fs.readFileSync(
+      path.join(WEB_SRC, 'lib', 'use-append-live.ts'),
+      'utf8',
+    );
+    assert.match(appendLiveSrc, /seenTextsRef\.current\.has\(trimmed\)/);
     assert.match(hookSrc, /seenTextsRef\.current\.add/);
   });
 

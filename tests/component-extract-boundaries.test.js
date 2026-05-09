@@ -1954,6 +1954,42 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useAppendLive hook (v1.10.739)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-append-live.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'ChatView.tsx');
+
+  it('exports the hook + accepts seenTextsRef/rememberMessage/setLiveMessages', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useAppendLive/);
+    assert.match(src, /seenTextsRef:\s*React\.MutableRefObject<Set<string>>/);
+    assert.match(src, /rememberMessage:\s*\(m:\s*ChatMessage\)\s*=>\s*void/);
+    assert.match(src, /setLiveMessages:\s*React\.Dispatch<React\.SetStateAction<ChatMessage\[\]>>/);
+  });
+
+  it('trims input + dedupes via seenTextsRef.has(trimmed)', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /const trimmed = text\.replace\(\/\^\\s\+\|\\s\+\$\/g, ''\)/);
+    assert.match(src, /if \(seenTextsRef\.current\.has\(trimmed\)\) return/);
+  });
+
+  it('mints id via makeId + caps liveMessages at MAX_MESSAGES (300)', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /MAX_MESSAGES\s*=\s*300/);
+    assert.match(src, /makeId\(role === 'user' \? 'live-u' : 'live-w'\)/);
+    assert.match(src, /next\.length > MAX_MESSAGES \? next\.slice\(-MAX_MESSAGES\)/);
+  });
+
+  it('parent ChatView wires the hook + drops the inline appendLive', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useAppendLive\s*\}\s+from\s+'\.\.\/lib\/use-append-live'/);
+    assert.match(src, /useAppendLive\(\{[\s\S]*?seenTextsRef,\s*rememberMessage,\s*setLiveMessages[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /makeId\(role === 'user'/);
+    assert.doesNotMatch(src, /seenTextsRef\.current\.has\(trimmed\)/);
+  });
+});
+
 describe('extracted: useChatBackfill hook (v1.10.738)', () => {
   const fs = require('fs');
   const path = require('path');
