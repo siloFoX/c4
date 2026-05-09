@@ -1198,24 +1198,39 @@ describe('extracted: MeetingsContributePanel (v1.10.551)', () => {
   });
 
   it('owns its full form state internally', () => {
+    // (v1.10.701) Form state moved to lib/use-meeting-contribute.
     const src = read('MeetingsContributePanel.tsx');
-    assert.match(src, /const \[specialist, setSpecialist\]/);
-    assert.match(src, /const \[text, setText\]/);
-    assert.match(src, /const \[vote, setVote\]/);
-    assert.match(src, /const \[reason, setReason\]/);
+    assert.match(src, /useMeetingContribute/);
+    assert.match(src, /specialist/);
+    assert.match(src, /text/);
+    assert.match(src, /vote/);
+    assert.match(src, /reason/);
   });
 
   it('owns both /contribute (with body) and /vote (vote-only) handlers', () => {
+    // (v1.10.701) Handlers moved to hook.
     const src = read('MeetingsContributePanel.tsx');
     assert.match(src, /handleContribute/);
     assert.match(src, /handleVoteOnly/);
-    assert.match(src, /\/contribute/);
-    assert.match(src, /\/vote/);
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-contribute.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /\/contribute/);
+    assert.match(hookSrc, /\/vote/);
   });
 
   it('resets form on meetingId change so state does not leak across meetings', () => {
-    const src = read('MeetingsContributePanel.tsx');
-    assert.match(src, /\[meetingId\]/);
+    // (v1.10.701) Reset effect moved to hook.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-contribute.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /\[meetingId\]/);
   });
 
   it('is imported and rendered by MeetingsDetailInProgressActions (v1.10.594)', () => {
@@ -1817,6 +1832,47 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
     assert.doesNotMatch(parent, /const \[exportBusy, setExportBusy\]/);
     assert.doesNotMatch(parent, /const \[rotateBusy, setRotateBusy\]/);
     assert.doesNotMatch(parent, /const \[importPreview, setImportPreview\]/);
+  });
+});
+
+describe('extracted: useMeetingContribute hook (v1.10.701)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-contribute.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'MeetingsContributePanel.tsx');
+
+  it('exports the hook + accepts meetingId', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useMeetingContribute/);
+    assert.match(src, /meetingId:\s*string/);
+  });
+
+  it('owns four form fields + busy/msg/failed banner', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /const \[specialist, setSpecialist\]/);
+    assert.match(src, /const \[text, setText\]/);
+    assert.match(src, /const \[vote, setVote\] = useState<''\s*\|\s*'accept'\s*\|\s*'object'>/);
+    assert.match(src, /const \[reason, setReason\]/);
+  });
+
+  it('handleContribute POSTs /api/meetings/:id/contribute + handleVoteOnly POSTs /vote', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiPost\(`\/api\/meetings\/\$\{encodeURIComponent\(meetingId\)\}\/contribute`/);
+    assert.match(src, /apiPost\(`\/api\/meetings\/\$\{encodeURIComponent\(meetingId\)\}\/vote`/);
+  });
+
+  it('resets entire form on meetingId change', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /useEffect\(\(\) => \{[\s\S]*?setSpecialist\(''\)[\s\S]*?setText\(''\)[\s\S]*?\}, \[meetingId\]\)/);
+  });
+
+  it('parent MeetingsContributePanel wires the hook + drops the inline state + handlers', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useMeetingContribute\s*\}\s+from\s+'\.\.\/lib\/use-meeting-contribute'/);
+    assert.match(src, /useMeetingContribute\(\{\s*meetingId\s*\}\)/);
+    assert.doesNotMatch(src, /const \[specialist, setSpecialist\]/);
+    assert.doesNotMatch(src, /const handleContribute = useCallback/);
+    assert.doesNotMatch(src, /const handleVoteOnly = useCallback/);
   });
 });
 

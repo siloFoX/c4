@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.10.701] - 2026-05-09 — Extract useMeetingContribute hook
+
+**Web — `MeetingsContributePanel.tsx` shrunk by 76 lines (195 → 119).**
+The four-field form (specialist / text / vote / reason)
++ banner state + meetingId-change reset effect + the
+two flow handlers (handleContribute = POST /contribute;
+handleVoteOnly = POST /vote) move to a self-contained
+hook. Same shape as v1.10.700's template-editor hook.
+
+### Refactor
+- New `web/src/lib/use-meeting-contribute.ts` (~127 lines).
+  Returns 13 fields (4 setters, 4 readers, 3 banner
+  slots, 2 handlers).
+- `MeetingsContributePanel.tsx`: removed 7 useState
+  slots, the reset useEffect, and both handlers.
+  Replaced with one destructured hook call. Trimmed
+  `useCallback` + `useEffect` + `useState` +
+  `apiPost` + `tFormat` imports.
+- Boundary suite #168 — 5 assertions covering hook
+  signature, form fields, both POST URLs, reset
+  effect, parent wiring.
+- MeetingsContributePanel suite (v1.10.551) updated:
+  3 assertions redirected to read the hook file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  813 / 813 across 167 → 168 suites.
+- `npm run check:full`: green.
+
+### Stats
+- 172 ships total since v1.10.529.
+- 169 components/libs extracted.
+- 78 custom hooks in `web/src/lib/`.
+- 813 boundary assertions across 168 suites.
+
 ## [1.10.700] - 2026-05-09 — Extract useMeetingTemplateEditor hook 🎉
 
 **Web — `MeetingsTemplateEditor.tsx` shrunk by 76 lines (218 → 142).**
