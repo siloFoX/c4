@@ -1942,6 +1942,57 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useHealth + useRbac hooks (v1.10.729)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HEALTH_HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-health.ts');
+  const HEALTH_PARENT = path.join(__dirname, '..', 'web', 'src', 'pages', 'Health.tsx');
+  const RBAC_HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-rbac.ts');
+  const RBAC_PARENT = path.join(__dirname, '..', 'web', 'src', 'pages', 'Rbac.tsx');
+
+  it('useHealth exports + polls /api/health every 10s', () => {
+    const src = fs.readFileSync(HEALTH_HOOK, 'utf8');
+    assert.match(src, /export function useHealth/);
+    assert.match(src, /export interface HealthPayload/);
+    assert.match(src, /apiGet<HealthPayload>\('\/api\/health'\)/);
+    assert.match(src, /POLL_INTERVAL_MS\s*=\s*10000/);
+    assert.match(src, /setInterval\(refresh, POLL_INTERVAL_MS\)/);
+  });
+
+  it('useRbac exports + dual-fetches /api/rbac/roles + /users via Promise.all', () => {
+    const src = fs.readFileSync(RBAC_HOOK, 'utf8');
+    assert.match(src, /export function useRbac/);
+    assert.match(src, /export interface Role/);
+    assert.match(src, /export interface User/);
+    assert.match(src, /Promise\.all\(\[/);
+    assert.match(src, /apiGet<RolesResponse>\('\/api\/rbac\/roles'\)/);
+    assert.match(src, /apiGet<UsersResponse>\('\/api\/rbac\/users'\)/);
+  });
+
+  it('useRbac surfaces a single loading + error path for both fetches', () => {
+    const src = fs.readFileSync(RBAC_HOOK, 'utf8');
+    assert.match(src, /const \[error, setError\] = useState<string \| null>\(null\)/);
+    assert.match(src, /const \[loading, setLoading\] = useState\(false\)/);
+    assert.match(src, /finally\s*\{[\s\S]*?setLoading\(false\)/);
+  });
+
+  it('parent Health.tsx wires useHealth + drops the inline state', () => {
+    const src = fs.readFileSync(HEALTH_PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useHealth\s*\}\s+from\s+'\.\.\/lib\/use-health'/);
+    assert.match(src, /useHealth\(\)/);
+    assert.doesNotMatch(src, /apiGet<HealthPayload>/);
+    assert.doesNotMatch(src, /setInterval\(refresh/);
+  });
+
+  it('parent Rbac.tsx wires useRbac + drops the inline state', () => {
+    const src = fs.readFileSync(RBAC_PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useRbac\s*\}\s+from\s+'\.\.\/lib\/use-rbac'/);
+    assert.match(src, /useRbac\(\)/);
+    assert.doesNotMatch(src, /apiGet<RolesResponse>/);
+    assert.doesNotMatch(src, /Promise\.all\(/);
+  });
+});
+
 describe('extracted: useSelectedFeatureId hook (v1.10.728)', () => {
   const fs = require('fs');
   const path = require('path');

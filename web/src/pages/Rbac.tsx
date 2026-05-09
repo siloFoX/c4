@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
 import { RefreshCw, ShieldCheck, Users } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
 import { Badge, Button, Panel } from '../components/ui';
-import { apiGet } from '../lib/api';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useRbac } from '../lib/use-rbac';
 
 // (v1.10.383) RBAC viewer — read-only listing of roles + per-user
 // grants from the daemon's auth subsystem. Mutation endpoints
@@ -12,20 +11,7 @@ import { t, tFormat, useLocale } from '../lib/i18n';
 // each carries enough validation that a single page can't safely
 // expose them yet. This slice gives operators a way to *see* the
 // current state without dropping to CLI.
-
-interface Role {
-  name: 'admin' | 'manager' | 'viewer';
-  actions: string[];
-}
-interface RolesResponse { roles: Role[] }
-
-interface User {
-  user: string;
-  role: string;
-  // Grants object structure varies by daemon — render best-effort.
-  grants: Record<string, unknown>;
-}
-interface UsersResponse { users: User[] }
+// (v1.10.729) Roles + users dual-fetch moved to lib/use-rbac.
 
 const ROLE_TONE: Record<string, string> = {
   admin: 'bg-destructive/10 text-destructive border-destructive/40',
@@ -35,29 +21,7 @@ const ROLE_TONE: Record<string, string> = {
 
 export default function Rbac() {
   useLocale();
-  const [roles, setRoles] = useState<Role[] | null>(null);
-  const [users, setUsers] = useState<User[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [r, u] = await Promise.all([
-        apiGet<RolesResponse>('/api/rbac/roles'),
-        apiGet<UsersResponse>('/api/rbac/users'),
-      ]);
-      setRoles(r.roles || []);
-      setUsers(u.users || []);
-    } catch (e) {
-      setError((e as Error).message || t('common.failedToLoadRbac'));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { refresh(); }, [refresh]);
+  const { roles, users, error, loading, refresh } = useRbac();
 
   return (
     <PageFrame

@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.729] - 2026-05-10 — Extract useHealth + useRbac hooks
+
+**Web — two pages shrunk by 76 lines combined.**
+Two parallel fetch hooks land in one ship — both
+follow the same single-fetch + `useEffect → refresh`
+pattern that's now the canonical shape across pages.
+
+- `pages/Health.tsx` 145 → 105 (-40) — `useHealth()`
+  owns the `/api/health` GET + 10s self-poll +
+  `HealthPayload` type. Distinguished from
+  `useMetrics` (which polls `/api/metrics` every 5s
+  for the always-on header bar): this hook drives
+  the standalone Health page where the operator
+  wants a slower-cadence snapshot alongside an
+  explicit Refresh button.
+
+- `pages/Rbac.tsx` 167 → 131 (-36) — `useRbac()`
+  owns the dual-fetch via `Promise.all` against
+  `/api/rbac/roles` + `/api/rbac/users`, with a
+  unified loading flag and a single error path so
+  partial failures aren't surfaced as
+  inconsistent-looking dual states.
+
+`Role` / `User` / `HealthPayload` types are exported
+from their hooks so the parent JSX renderers keep
+typing the narrowing without duplicate definitions.
+
+Boundary suite #195 in
+`tests/component-extract-boundaries.test.js` covers
+both hooks in one block — pins the signatures, the
+endpoint URLs, the polling vs Promise.all shapes,
+the unified loading/error contract for useRbac, and
+verifies both parents wire the hooks + drop the
+inline state machines.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (936 / 195 suites — +6 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.728] - 2026-05-10 — Extract useSelectedFeatureId hook
 
 **Web — `components/layout/FeatureView.tsx` shrunk by 61 lines (124 → 63).**

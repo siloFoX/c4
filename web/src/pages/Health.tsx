@@ -1,61 +1,21 @@
-import { useCallback, useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Badge, Button, Panel, Tooltip } from '../components/ui';
-import { apiGet } from '../lib/api';
 import { formatDuration, formatNumber, formatRelativeTime } from '../lib/format';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useHealth } from '../lib/use-health';
 
 // 8.20B Health dashboard. Reads GET /api/health and renders the fields
 // the daemon surfaces today (pid, uptime, worker counts). Fields the
 // health endpoint does not yet expose (event loop lag, loaded modules,
 // queue depth) render as `-` and leave a sub-TODO in docs.
-
-interface HealthPayload {
-  ok?: boolean;
-  pid?: number;
-  uptime?: number;
-  startedAt?: string;
-  version?: string;
-  workers?: number;
-  activeWorkers?: number;
-  idleWorkers?: number;
-  busyWorkers?: number;
-  queueDepth?: number;
-  lostWorkers?: number;
-  eventLoopLagMs?: number;
-  modules?: string[];
-  configPath?: string;
-  error?: string;
-  [key: string]: unknown;
-}
+// (v1.10.729) Fetch + 10s poll moved to lib/use-health.
 
 export default function Health() {
   useLocale();
-  const [data, setData] = useState<HealthPayload | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const r = await apiGet<HealthPayload>('/api/health');
-      setData(r);
-    } catch (e) {
-      setError((e as Error).message);
-      setData(null);
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    refresh();
-    const id = setInterval(refresh, 10000);
-    return () => clearInterval(id);
-  }, [refresh]);
+  const { data, loading, error, refresh } = useHealth();
 
   const ok = data?.ok !== false && !error;
 
