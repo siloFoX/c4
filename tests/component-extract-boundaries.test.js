@@ -1791,6 +1791,44 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useSpecialistsImport hook (v1.10.686)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-specialists-import.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'SpecialistsBulkOpsToolbar.tsx');
+
+  it('exports the hook + ImportResult type + accepts importMode/onChange', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useSpecialistsImport/);
+    assert.match(src, /export interface ImportResult/);
+    assert.match(src, /importMode:\s*'merge'\s*\|\s*'replace'/);
+    assert.match(src, /onChange:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('handleImportFile parses local JSON and POSTs with dryRun:true', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /JSON\.parse\(text\)/);
+    assert.match(src, /apiPost<ImportResult>\('\/api\/specialists\/import',\s*\{[\s\S]*?dryRun:\s*true/);
+  });
+
+  it('handleImportApply confirms via window.confirm and POSTs with dryRun:false', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.confirm\(tFormat\('specialists\.import\.applyConfirm'/);
+    assert.match(src, /dryRun:\s*false/);
+    assert.match(src, /void onChange\(\)/);
+  });
+
+  it('parent SpecialistsBulkOpsToolbar wires the hook + drops the inline state + handlers', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useSpecialistsImport\s*\}\s+from\s+'\.\.\/lib\/use-specialists-import'/);
+    assert.match(src, /useSpecialistsImport\(\{\s*importMode,\s*onChange\s*\}\)/);
+    assert.doesNotMatch(src, /^interface ImportResult/m);
+    assert.doesNotMatch(src, /const \[importBusy, setImportBusy\]/);
+    assert.doesNotMatch(src, /const handleImportFile = useCallback/);
+    assert.doesNotMatch(src, /const handleImportApply = useCallback/);
+  });
+});
+
 describe('extracted: useSpecialistsExport hook (v1.10.685)', () => {
   const fs = require('fs');
   const path = require('path');

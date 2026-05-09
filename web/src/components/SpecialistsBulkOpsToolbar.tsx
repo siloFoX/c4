@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { apiPost } from '../lib/api';
 import { useSpecialistsExport } from '../lib/use-specialists-export';
+import { useSpecialistsImport } from '../lib/use-specialists-import';
 import { Button } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -13,15 +14,8 @@ import { t, tFormat, useLocale } from '../lib/i18n';
 // Single `onChange` callback signals the parent that the
 // registry mutated (import-applied) so it can refresh().
 
-interface ImportResult {
-  mode: string;
-  dryRun: boolean;
-  added: string[];
-  updated: string[];
-  removed: string[];
-  skipped: string[];
-  errors: Array<Record<string, unknown>>;
-}
+// (v1.10.686) ImportResult type + import flow moved to
+// lib/use-specialists-import.
 
 interface Props {
   onChange: () => void | Promise<void>;
@@ -35,54 +29,12 @@ export default function SpecialistsBulkOpsToolbar({ onChange }: Props) {
   const { exportBusy, exportMsg, exportFailed, handleExport } = useSpecialistsExport();
 
   const [importMode, setImportMode] = useState<'merge' | 'replace'>('merge');
-  const [importBusy, setImportBusy] = useState(false);
-  const [importPreview, setImportPreview] = useState<ImportResult | null>(null);
-  const [importBundle, setImportBundle] = useState<unknown | null>(null);
-  const [importError, setImportError] = useState<string | null>(null);
-  const handleImportFile = useCallback(async (file: File) => {
-    setImportBusy(true);
-    setImportError(null);
-    setImportPreview(null);
-    setImportBundle(null);
-    try {
-      const text = await file.text();
-      const bundle = JSON.parse(text);
-      setImportBundle(bundle);
-      const res = await apiPost<ImportResult>('/api/specialists/import', {
-        bundle,
-        mode: importMode,
-        dryRun: true,
-      });
-      setImportPreview(res);
-    } catch (e) {
-      setImportError((e as Error).message || t('common.importPreviewFailed'));
-    } finally {
-      setImportBusy(false);
-    }
-  }, [importMode]);
-  const handleImportApply = useCallback(async () => {
-    if (!importBundle) return;
-    const summary = importPreview
-      ? `+${importPreview.added.length} ~${importPreview.updated.length} -${importPreview.removed.length}`
-      : '?';
-    if (!window.confirm(tFormat('specialists.import.applyConfirm', { mode: importMode, summary }))) return;
-    setImportBusy(true);
-    setImportError(null);
-    try {
-      const res = await apiPost<ImportResult>('/api/specialists/import', {
-        bundle: importBundle,
-        mode: importMode,
-        dryRun: false,
-      });
-      setImportPreview(res);
-      // Signal the parent to refresh the specialist list.
-      void onChange();
-    } catch (e) {
-      setImportError((e as Error).message || t('common.importFailed'));
-    } finally {
-      setImportBusy(false);
-    }
-  }, [importBundle, importMode, importPreview, onChange]);
+
+  // (v1.10.686) Two-step import flow moved to lib/use-specialists-import.
+  const {
+    importBusy, importPreview, importError,
+    handleImportFile, handleImportApply,
+  } = useSpecialistsImport({ importMode, onChange });
 
   const [rotateBusy, setRotateBusy] = useState(false);
   const [rotateMsg, setRotateMsg] = useState<string | null>(null);

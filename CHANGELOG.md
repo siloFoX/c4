@@ -4,6 +4,50 @@
 
 (no entries — next release window)
 
+## [1.10.686] - 2026-05-09 — Extract useSpecialistsImport hook
+
+**Web — `SpecialistsBulkOpsToolbar.tsx` shrunk by 48 lines (220 → 172).**
+The two-step bulk import flow — handleImportFile parses
+local JSON and POSTs with `dryRun:true` to get the
+diff preview, then handleImportApply gates a
+`dryRun:false` POST behind `window.confirm` showing the
+diff summary — moves to a self-contained hook. The
+`onChange` callback fires after a successful apply so
+the parent's specialist list refreshes.
+
+### Refactor
+- New `web/src/lib/use-specialists-import.ts` (~93 lines).
+  Exports `useSpecialistsImport` + `ImportResult` type.
+  Returns `{ importBusy, importPreview, importBundle,
+  importError, handleImportFile, handleImportApply }`.
+- `SpecialistsBulkOpsToolbar.tsx`: removed the inline
+  `ImportResult` interface, four useState slots
+  (`importBusy` / `importPreview` / `importBundle` /
+  `importError`), and both ~22-line useCallback
+  handlers. Replaced with one destructured hook call
+  taking `{ importMode, onChange }`. The `importMode`
+  toggle stays in the parent so the JSX radio remains
+  bound there.
+- Boundary suite #153 — 4 assertions covering hook +
+  type export shape, dryRun:true preview branch,
+  window.confirm + dryRun:false apply + onChange call,
+  parent wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  754 / 754 across 152 → 153 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 157 ships total since v1.10.529.
+- 155 components/libs extracted.
+- 65 custom hooks in `web/src/lib/`.
+- 754 boundary assertions across 153 suites.
+- SpecialistsBulkOpsToolbar went 249 → 172 across
+  v1.10.685 + v1.10.686 (-77, ~31%).
+
 ## [1.10.685] - 2026-05-09 — Extract useSpecialistsExport hook
 
 **Web — `SpecialistsBulkOpsToolbar.tsx` shrunk by 29 lines (249 → 220).**
