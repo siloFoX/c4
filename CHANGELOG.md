@@ -4,6 +4,41 @@
 
 (no entries — next release window)
 
+## [1.10.726] - 2026-05-10 — Extract useMetrics hook
+
+**Web — `components/MetricsBar.tsx` shrunk by 46 lines (99 → 53).**
+The 5s self-polling `/api/metrics` fetch + the
+`MetricsResponse` interface (daemon / workers /
+totals nested shape) move to a `useMetrics()` hook
+returning `MetricsResponse | null`.
+
+The hook keeps the original direct `fetch()` call
+(rather than `apiFetch()`) — MetricsBar predates
+the shared API helper, and the metrics endpoint
+does not need the auth-injection middleware (it's
+public on the daemon's metrics route). The
+"network blip — keep last value" semantic survives
+verbatim: a catch swallows transient errors so the
+bar shows the last good value instead of flickering.
+
+The component is now a near-pure render function:
+single hook call + the conditional rendering tree.
+The fmtMb / fmtPct formatters stay inline (display
+helpers, no fetch concerns).
+
+Boundary suite #192 in
+`tests/component-extract-boundaries.test.js` pins the
+hook signature, the `MetricsResponse` export, the
+5s `POLL_INTERVAL_MS`, the blip-tolerance contract
+(catch swallow + non-ok bail), and verifies the
+parent wires the hook + drops the inline fetch /
+setInterval.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (920 / 192 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.725] - 2026-05-10 — Extract useSpecialistsSummary hook
 
 **Web — `components/SpecialistsSummaryBar.tsx` shrunk by 25 lines (111 → 86).**

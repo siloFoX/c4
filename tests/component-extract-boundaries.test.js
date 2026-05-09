@@ -1928,6 +1928,40 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useMetrics hook (v1.10.726)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-metrics.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'MetricsBar.tsx');
+
+  it('exports the hook + MetricsResponse type', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useMetrics/);
+    assert.match(src, /export interface MetricsResponse/);
+  });
+
+  it('fetches /api/metrics + polls every 5s', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /fetch\('\/api\/metrics'\)/);
+    assert.match(src, /POLL_INTERVAL_MS\s*=\s*5000/);
+    assert.match(src, /setInterval\(tick, POLL_INTERVAL_MS\)/);
+  });
+
+  it('keeps last value on network blip + bails on non-ok response', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /catch \{[\s\S]*?network blip — keep last value/);
+    assert.match(src, /if \(!res\.ok\) return/);
+  });
+
+  it('parent MetricsBar wires the hook + drops the inline poll', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useMetrics\s*\}\s+from\s+'\.\.\/lib\/use-metrics'/);
+    assert.match(src, /const m = useMetrics\(\)/);
+    assert.doesNotMatch(src, /setInterval\(tick/);
+    assert.doesNotMatch(src, /fetch\('\/api\/metrics'\)/);
+  });
+});
+
 describe('extracted: useSpecialistsSummary hook (v1.10.725)', () => {
   const fs = require('fs');
   const path = require('path');

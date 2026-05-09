@@ -1,35 +1,9 @@
-import { useEffect, useState } from 'react';
 import { Cpu, MemoryStick, Activity } from 'lucide-react';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useMetrics } from '../lib/use-metrics';
 
-// Inline-typed response so MetricsBar drops in without touching the
-// shared types.ts (which is on a different design-system axis upstream).
-interface MetricsResponse {
-  daemon: {
-    platform: string;
-    pid: number;
-    uptimeSec: number;
-    rssKb: number;
-    heapUsedKb: number;
-    heapTotalKb: number;
-    cpus: number;
-    loadavg: number[];
-  };
-  workers: Array<{
-    name: string;
-    pid: number | null;
-    status: string;
-    cpuPct: number | null;
-    rssKb: number | null;
-    threads: number | null;
-  }>;
-  totals: {
-    liveWorkers: number;
-    totalWorkers: number;
-    totalRssKb: number;
-    totalCpuPct: number;
-  };
-}
+// (v1.10.726) MetricsResponse type + 5s self-poll fetch
+// moved to lib/use-metrics.
 
 function fmtMb(kb: number | null | undefined): string {
   if (kb == null) return '—';
@@ -44,27 +18,7 @@ function fmtPct(pct: number | null | undefined): string {
 
 export default function MetricsBar() {
   useLocale();
-  const [m, setM] = useState<MetricsResponse | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    const tick = async () => {
-      try {
-        const res = await fetch('/api/metrics');
-        if (!res.ok) return;
-        const data = (await res.json()) as MetricsResponse;
-        if (alive) setM(data);
-      } catch {
-        // network blip — keep last value
-      }
-    };
-    tick();
-    const interval = setInterval(tick, 5000);
-    return () => {
-      alive = false;
-      clearInterval(interval);
-    };
-  }, []);
+  const m = useMetrics();
 
   if (!m) return null;
 
