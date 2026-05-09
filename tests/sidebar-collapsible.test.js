@@ -162,15 +162,25 @@ describe('App.tsx wires sidebarCollapsed + Ctrl+B', () => {
   });
 
   it('binds Ctrl+B / Cmd+B with input/textarea/contentEditable guard', () => {
-    assert.match(src, /e\.ctrlKey \|\| e\.metaKey/);
-    assert.match(src, /e\.key\.toLowerCase\(\) !== 'b'/);
-    assert.match(src, /tag === 'INPUT'/);
-    assert.match(src, /tag === 'TEXTAREA'/);
-    assert.match(src, /isContentEditable/);
+    // (v1.10.670) Cmd+B handler moved to lib/use-sidebar-shortcut.
+    const hookSrc = fs.readFileSync(
+      path.join(ROOT, 'web/src/lib/use-sidebar-shortcut.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /e\.ctrlKey \|\| e\.metaKey/);
+    assert.match(hookSrc, /e\.key\.toLowerCase\(\) !== 'b'/);
+    assert.match(hookSrc, /tag === 'INPUT'/);
+    assert.match(hookSrc, /tag === 'TEXTAREA'/);
+    assert.match(hookSrc, /isContentEditable/);
   });
 
   it('routes Ctrl+B to collapse on desktop and to open/close on mobile', () => {
-    assert.match(src, /matchMedia\('\(min-width: 768px\)'\)/);
+    // (v1.10.670) Routing also lives in the hook now; App still owns the setter.
+    const hookSrc = fs.readFileSync(
+      path.join(ROOT, 'web/src/lib/use-sidebar-shortcut.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /matchMedia\('\(min-width: 768px\)'\)/);
     assert.match(src, /setSidebarCollapsed\(\(v\) => !v\)/);
   });
 

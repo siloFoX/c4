@@ -1770,6 +1770,43 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useSidebarShortcut hook (v1.10.670)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-sidebar-shortcut.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'App.tsx');
+
+  it('exports the hook + accepts onToggleCollapsed + onToggleOpen', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useSidebarShortcut/);
+    assert.match(src, /onToggleCollapsed:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /onToggleOpen:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('binds Ctrl+B/Cmd+B + skips text-entry surfaces', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /e\.ctrlKey\s*\|\|\s*e\.metaKey/);
+    assert.match(src, /e\.key\.toLowerCase\(\)\s*!==\s*'b'/);
+    assert.match(src, /tag === 'INPUT'/);
+    assert.match(src, /tag === 'TEXTAREA'/);
+    assert.match(src, /isContentEditable/);
+  });
+
+  it('routes to onToggleCollapsed at desktop and onToggleOpen at mobile', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /window\.matchMedia\('\(min-width: 768px\)'\)\.matches/);
+    assert.match(src, /onToggleCollapsed\(\)/);
+    assert.match(src, /onToggleOpen\(\)/);
+  });
+
+  it('parent App wires the hook + drops the inline keydown listener', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useSidebarShortcut\s*\}\s+from\s+'\.\/lib\/use-sidebar-shortcut'/);
+    assert.match(src, /useSidebarShortcut\(\{[\s\S]*?onToggleCollapsed[\s\S]*?onToggleOpen[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /e\.key\.toLowerCase\(\) !== 'b'/);
+  });
+});
+
 describe('extracted: useAuthState hook (v1.10.669)', () => {
   const fs = require('fs');
   const path = require('path');

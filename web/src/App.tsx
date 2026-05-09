@@ -28,6 +28,7 @@ import MetricsBar from './components/MetricsBar';
 import { type TopView } from './components/layout/TopTabs';
 import { logout } from './lib/api';
 import { useAuthState } from './lib/use-auth-state';
+import { useSidebarShortcut } from './lib/use-sidebar-shortcut';
 import {
   applyTheme,
   DEFAULT_DETAIL_MODE,
@@ -71,34 +72,11 @@ export default function App() {
   useEffect(() => { writeTopView(topView); }, [topView]);
   useEffect(() => { writeTheme(theme); applyTheme(theme); }, [theme]);
 
-  // (TODO 8.40) Ctrl+B / Cmd+B sidebar toggle (VS Code convention).
-  // Skip the binding when the focus is on a text-entry surface so we
-  // don't hijack typing. The handler also no-ops in mobile widths —
-  // hamburger flow already covers that path.
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'b') return;
-      const target = e.target as HTMLElement | null;
-      if (target) {
-        const tag = target.tagName;
-        if (
-          tag === 'INPUT' ||
-          tag === 'TEXTAREA' ||
-          target.isContentEditable
-        ) return;
-      }
-      e.preventDefault();
-      const isDesktop = window.matchMedia('(min-width: 768px)').matches;
-      if (isDesktop) {
-        setSidebarCollapsed((v) => !v);
-      } else {
-        setSidebarOpen((v) => !v);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  // (v1.10.670) Ctrl+B / Cmd+B sidebar shortcut moved to hook.
+  useSidebarShortcut({
+    onToggleCollapsed: () => setSidebarCollapsed((v) => !v),
+    onToggleOpen: () => setSidebarOpen((v) => !v),
+  });
 
   // Track OS theme changes when user picked 'system'.
   useEffect(() => {

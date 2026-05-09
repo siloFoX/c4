@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.670] - 2026-05-09 — Extract useSidebarShortcut hook
+
+**Web — `App.tsx` shrunk by 22 lines (262 → 240).**
+The Ctrl+B / Cmd+B sidebar toggle (VS Code convention)
+moves to a self-contained hook. The hook still routes
+to `setSidebarCollapsed` on desktop and `setSidebarOpen`
+on mobile through parent-supplied callbacks, so the
+state slots stay in App.
+
+### Refactor
+- New `web/src/lib/use-sidebar-shortcut.ts` (~40 lines).
+  Takes `onToggleCollapsed` + `onToggleOpen` and binds
+  the keydown listener with the same INPUT / TEXTAREA /
+  contentEditable guard, the same 768px breakpoint
+  switch, and the same SSR `typeof window` no-op.
+- `App.tsx`: removed the ~25-line keydown useEffect.
+  Replaced with one `useSidebarShortcut(...)` call
+  passing inline arrow toggles.
+- Boundary suite #137 — 4 assertions covering hook +
+  callback prop shape, key + text-entry-guard
+  conditions, desktop/mobile breakpoint routing,
+  parent wiring.
+- `tests/sidebar-collapsible.test.js` redirects: the
+  Ctrl+B keymatch + matchMedia assertions now read
+  the hook file.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  683 / 683 across 136 → 137 suites.
+- `node --test tests/sidebar-collapsible.test.js`:
+  32 / 32 (after redirect).
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 141 ships total since v1.10.529.
+- 139 components/libs extracted.
+- 49 custom hooks in `web/src/lib/`.
+- 683 boundary assertions across 137 suites.
+
 ## [1.10.669] - 2026-05-09 — Extract useAuthState hook
 
 **Web — `App.tsx` shrunk by 15 lines (277 → 262).**
