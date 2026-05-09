@@ -1,12 +1,13 @@
 import { useCallback, useState } from 'react';
 import { Play, RefreshCw, Sparkles } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
-import Toast, { type ToastType } from '../components/Toast';
+import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Input, Label, Panel, Tooltip } from '../components/ui';
 import { t, useLocale } from '../lib/i18n';
 import { useBatchSubmit } from '../lib/use-batch-submit';
+import { useToast } from '../lib/use-toast';
 
 // 8.20B Batch dispatcher. POSTs to the new /api/batch endpoint that
 // this patch adds to daemon.js. Lets the operator fan out the same
@@ -16,7 +17,7 @@ import { useBatchSubmit } from '../lib/use-batch-submit';
 // (v1.10.658) BatchOutcome + BatchResponse + the submit
 // flow moved to lib/use-batch-submit.
 
-interface ToastState { id: number; message: string; type: ToastType }
+// (v1.10.694) ToastState + showToast moved to lib/use-toast.
 
 export default function Batch() {
   useLocale();
@@ -28,11 +29,8 @@ export default function Batch() {
   const [profile, setProfile] = useState('');
   const [namePrefix, setNamePrefix] = useState('batch');
   const [autoMode, setAutoMode] = useState(false);
-  const [toast, setToast] = useState<ToastState | null>(null);
-
-  const showToast = useCallback((message: string, type: ToastType) => {
-    setToast({ id: Date.now(), message, type });
-  }, []);
+  // (v1.10.694) Toast slot moved to hook.
+  const { toast, showToast, dismissToast } = useToast();
 
   // (v1.10.658) POST /api/batch flow moved to hook.
   const { busy, result, error, submit } = useBatchSubmit({
@@ -220,7 +218,7 @@ export default function Batch() {
             key={toast.id}
             message={toast.message}
             type={toast.type}
-            onDismiss={() => setToast(null)}
+            onDismiss={dismissToast}
           />
         )}
       </div>

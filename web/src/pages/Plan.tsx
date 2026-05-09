@@ -1,13 +1,14 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { Brain, RefreshCw, Send, Upload } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
-import Toast, { type ToastType } from '../components/Toast';
+import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Input, Label, Panel, Tooltip } from '../components/ui';
 import { usePlanContent } from '../lib/use-plan-content';
 import { usePlanDispatch } from '../lib/use-plan-dispatch';
 import { usePlanWorkers } from '../lib/use-plan-workers';
+import { useToast } from '../lib/use-toast';
 import { renderMarkdown } from '../lib/markdown';
 import { t, useLocale } from '../lib/i18n';
 
@@ -20,7 +21,7 @@ import { t, useLocale } from '../lib/i18n';
 // (v1.10.661) PlanResponse + plan-content fetch moved to
 // lib/use-plan-content.
 
-interface ToastState { id: number; message: string; type: ToastType }
+// (v1.10.694) ToastState + showToast moved to lib/use-toast.
 
 export default function Plan() {
   useLocale();
@@ -30,11 +31,8 @@ export default function Plan() {
   const [task, setTask] = useState('');
   const [branch, setBranch] = useState('');
   const [output, setOutput] = useState('');
-  const [toast, setToast] = useState<ToastState | null>(null);
-
-  const showToast = useCallback((message: string, type: ToastType) => {
-    setToast({ id: Date.now(), message, type });
-  }, []);
+  // (v1.10.694) Toast slot moved to hook.
+  const { toast, showToast, dismissToast } = useToast();
 
   // (v1.10.661) Plan-content fetch moved to hook.
   const { plan, loading, error, setError, loadPlan } = usePlanContent({ selected });
@@ -164,7 +162,7 @@ export default function Plan() {
             key={toast.id}
             message={toast.message}
             type={toast.type}
-            onDismiss={() => setToast(null)}
+            onDismiss={dismissToast}
           />
         )}
       </div>

@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.694] - 2026-05-09 — Extract useToast hook (Batch + Plan adopt)
+
+**Web — `pages/Batch.tsx` + `pages/Plan.tsx` consolidated.**
+The single-toast slot pattern (id stamped from
+`Date.now()` so React's key prop forces a fresh
+component mount per toast) consolidates into one
+generic hook. Two pages adopt it in this ship; future
+toast-emitting pages get the same wiring for free.
+
+### Refactor
+- New `web/src/lib/use-toast.ts` (~34 lines). Exports
+  `useToast()` + `ToastState` type. Returns
+  `{ toast, showToast, dismissToast }`.
+- `pages/Batch.tsx`: removed inline `ToastState` +
+  `toast` useState slot + `showToast` useCallback.
+  Replaced with destructured `useToast()` call.
+  `onDismiss={dismissToast}` replaces the inline
+  arrow.
+- `pages/Plan.tsx`: same swap. Trimmed `useCallback`
+  import (only used for the now-extracted toast).
+  `ToastType` import dropped from both pages
+  (re-exported through the hook signature).
+- Boundary suite #161 — 4 assertions covering hook
+  + type export shape, Date.now stamp + dismiss
+  semantics, both pages adopting the hook + dropping
+  the inline interface.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  785 / 785 across 160 → 161 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 165 ships total since v1.10.529.
+- 163 components/libs extracted.
+- 73 custom hooks in `web/src/lib/`.
+- 785 boundary assertions across 161 suites.
+
 ## [1.10.693] - 2026-05-09 — Extract usePlanWorkers hook
 
 **Web — `pages/Plan.tsx` shrunk by 13 lines (186 → 173).**

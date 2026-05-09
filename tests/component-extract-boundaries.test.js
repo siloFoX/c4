@@ -1791,6 +1791,43 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useToast hook (v1.10.694)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-toast.ts');
+  const BATCH = path.join(__dirname, '..', 'web', 'src', 'pages', 'Batch.tsx');
+  const PLAN = path.join(__dirname, '..', 'web', 'src', 'pages', 'Plan.tsx');
+
+  it('exports the hook + ToastState type', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useToast\(\)/);
+    assert.match(src, /export interface ToastState/);
+    assert.match(src, /id:\s*number/);
+    assert.match(src, /message:\s*string/);
+  });
+
+  it('showToast stamps a fresh id from Date.now', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /setToast\(\{ id: Date\.now\(\),\s*message,\s*type \}\)/);
+  });
+
+  it('dismissToast clears the slot', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /const dismissToast = useCallback\(\(\) => setToast\(null\)/);
+  });
+
+  it('Batch + Plan adopt the hook + drop the inline state + helpers', () => {
+    const batch = fs.readFileSync(BATCH, 'utf8');
+    const plan = fs.readFileSync(PLAN, 'utf8');
+    assert.match(batch, /import\s+\{\s*useToast\s*\}\s+from\s+'\.\.\/lib\/use-toast'/);
+    assert.match(plan, /import\s+\{\s*useToast\s*\}\s+from\s+'\.\.\/lib\/use-toast'/);
+    assert.match(batch, /useToast\(\)/);
+    assert.match(plan, /useToast\(\)/);
+    assert.doesNotMatch(batch, /^interface ToastState/m);
+    assert.doesNotMatch(plan, /^interface ToastState/m);
+  });
+});
+
 describe('extracted: usePlanWorkers hook (v1.10.693)', () => {
   const fs = require('fs');
   const path = require('path');
