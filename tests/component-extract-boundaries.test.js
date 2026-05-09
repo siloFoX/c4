@@ -1770,6 +1770,59 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useMeetingBackup + useMeetingPrune (v1.10.664)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const BACKUP = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-backup.ts');
+  const PRUNE = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-prune.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'MeetingsMaintenancePanel.tsx');
+
+  it('useMeetingBackup POSTs /api/meetings/persist-backup with path + force', () => {
+    const src = fs.readFileSync(BACKUP, 'utf8');
+    assert.match(src, /export function useMeetingBackup/);
+    assert.match(src, /apiPost<\{ ok: boolean; path: string; bytes: number \| null \}>\(\s*'\/api\/meetings\/persist-backup'/);
+    assert.match(src, /\{ path, force: backupForce \}/);
+    assert.match(src, /backup\.pathRequired/);
+  });
+
+  it('useMeetingPrune POSTs /api/meetings/prune-old with confirm gate (skipped on dryRun)', () => {
+    const src = fs.readFileSync(PRUNE, 'utf8');
+    assert.match(src, /export function useMeetingPrune/);
+    assert.match(src, /apiPost<\{[\s\S]*?count: number;[\s\S]*?ids: string\[\][\s\S]*?\}>\(\s*'\/api\/meetings\/prune-old'/);
+    assert.match(src, /if \(!dryRun\) \{[\s\S]*?window\.confirm/);
+    assert.match(src, /prune\.daysInvalid/);
+  });
+
+  it('prune fires onPruned only on non-dryRun success', () => {
+    const src = fs.readFileSync(PRUNE, 'utf8');
+    assert.match(src, /if \(!res\.dryRun && onPruned\) onPruned\(\)/);
+  });
+
+  it('both hooks own their input state alongside busy/msg/failed', () => {
+    const backupSrc = fs.readFileSync(BACKUP, 'utf8');
+    const pruneSrc = fs.readFileSync(PRUNE, 'utf8');
+    assert.match(backupSrc, /backupPath:\s*string/);
+    assert.match(backupSrc, /backupForce:\s*boolean/);
+    assert.match(backupSrc, /backupBusy:\s*boolean/);
+    assert.match(pruneSrc, /pruneDays:\s*string/);
+    assert.match(pruneSrc, /pruneTerminal:\s*boolean/);
+    assert.match(pruneSrc, /pruneVacuum:\s*boolean/);
+    assert.match(pruneSrc, /pruneBusy:\s*boolean/);
+  });
+
+  it('parent MeetingsMaintenancePanel wires both hooks + drops the inline state + handlers', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useMeetingBackup\s*\}\s+from\s+'\.\.\/lib\/use-meeting-backup'/);
+    assert.match(src, /import\s+\{\s*useMeetingPrune\s*\}\s+from\s+'\.\.\/lib\/use-meeting-prune'/);
+    assert.match(src, /useMeetingBackup\(\)/);
+    assert.match(src, /useMeetingPrune\(\{\s*onPruned\s*\}\)/);
+    assert.doesNotMatch(src, /const \[backupPath, setBackupPath\]/);
+    assert.doesNotMatch(src, /const \[pruneDays, setPruneDays\]/);
+    assert.doesNotMatch(src, /const handleBackup = useCallback/);
+    assert.doesNotMatch(src, /const handlePrune = useCallback/);
+  });
+});
+
 describe('extracted: useMeetingIntegrity + useMeetingFtsRebuild (v1.10.662/663)', () => {
   const fs = require('fs');
   const path = require('path');

@@ -1,10 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { Button, Input } from './ui';
 import { cn } from '../lib/cn';
-import { apiPost } from '../lib/api';
-import { t, tFormat, useLocale } from '../lib/i18n';
+import { t, useLocale } from '../lib/i18n';
 import { useMeetingIntegrity } from '../lib/use-meeting-integrity';
 import { useMeetingFtsRebuild } from '../lib/use-meeting-fts-rebuild';
+import { useMeetingBackup } from '../lib/use-meeting-backup';
+import { useMeetingPrune } from '../lib/use-meeting-prune';
 
 // (v1.10.529) Extracted from MeetingsView. The maintenance footer
 // holds 4 ops endpoints (integrity / FTS rebuild / hot backup /
@@ -30,98 +31,24 @@ export default function MeetingsMaintenancePanel({ onPruned }: MeetingsMaintenan
   const { integrityBusy, integrityMsg, integrityFailed, handleIntegrity } =
     useMeetingIntegrity();
 
-  // Backup ──────────────────────────────────────────────────────
-  const [backupPath, setBackupPath] = useState('');
-  const [backupForce, setBackupForce] = useState(false);
-  const [backupBusy, setBackupBusy] = useState(false);
-  const [backupMsg, setBackupMsg] = useState<string | null>(null);
-  const [backupFailed, setBackupFailed] = useState(false);
-  const handleBackup = useCallback(async () => {
-    const path = backupPath.trim();
-    if (!path) {
-      setBackupMsg(t('meetings.backup.pathRequired'));
-      setBackupFailed(true);
-      return;
-    }
-    setBackupBusy(true);
-    setBackupMsg(null);
-    setBackupFailed(false);
-    try {
-      const res = await apiPost<{ ok: boolean; path: string; bytes: number | null }>(
-        '/api/meetings/persist-backup',
-        { path, force: backupForce },
-      );
-      const size = res.bytes != null
-        ? tFormat('meetings.backup.bytes', { bytes: res.bytes })
-        : t('meetings.backup.sizeUnknown');
-      setBackupMsg(tFormat('meetings.backup.success', { path: res.path, size }));
-    } catch (e) {
-      setBackupMsg(tFormat('meetings.backup.failed', {
-        error: (e as Error).message || t('common.unknown'),
-      }));
-      setBackupFailed(true);
-    } finally {
-      setBackupBusy(false);
-    }
-  }, [backupPath, backupForce]);
+  // (v1.10.664) Backup + prune moved to dedicated hooks.
+  const {
+    backupPath, setBackupPath,
+    backupForce, setBackupForce,
+    backupBusy, backupMsg, backupFailed,
+    handleBackup,
+  } = useMeetingBackup();
 
   // (v1.10.663) FTS rebuild moved to lib/use-meeting-fts-rebuild.
   const { ftsBusy, ftsMsg, ftsFailed, handleFtsRebuild } = useMeetingFtsRebuild();
 
-  // Prune ───────────────────────────────────────────────────────
-  const [pruneDays, setPruneDays] = useState('90');
-  const [pruneTerminal, setPruneTerminal] = useState(true);
-  const [pruneVacuum, setPruneVacuum] = useState(false);
-  const [pruneBusy, setPruneBusy] = useState(false);
-  const [pruneMsg, setPruneMsg] = useState<string | null>(null);
-  const [pruneFailed, setPruneFailed] = useState(false);
-  const handlePrune = useCallback(async (dryRun: boolean) => {
-    const daysNum = Number(pruneDays);
-    if (!Number.isFinite(daysNum) || daysNum < 1) {
-      setPruneMsg(t('meetings.prune.daysInvalid'));
-      setPruneFailed(true);
-      return;
-    }
-    if (!dryRun) {
-      const scope = pruneTerminal
-        ? t('meetings.prune.confirm.terminal')
-        : t('meetings.prune.confirm.includes');
-      const vacuumSuffix = pruneVacuum ? t('meetings.prune.confirm.vacuum') : '';
-      if (!window.confirm(
-        `${tFormat('meetings.prune.confirm.header', { days: daysNum })}\n` +
-        `${scope}${vacuumSuffix}\n` +
-        t('meetings.prune.confirm.footer'),
-      )) return;
-    }
-    setPruneBusy(true);
-    setPruneMsg(null);
-    setPruneFailed(false);
-    try {
-      const res = await apiPost<{
-        count: number;
-        ids: string[];
-        dryRun: boolean;
-        cutoffISO: string;
-      }>('/api/meetings/prune-old', {
-        days: daysNum,
-        terminalOnly: pruneTerminal,
-        dryRun,
-        vacuum: pruneVacuum,
-      });
-      setPruneMsg(tFormat(
-        res.dryRun ? 'meetings.prune.wouldPrune' : 'meetings.prune.pruned',
-        { count: res.count, cutoff: res.cutoffISO },
-      ));
-      if (!res.dryRun && onPruned) onPruned();
-    } catch (e) {
-      setPruneMsg(tFormat('meetings.prune.failed', {
-        error: (e as Error).message || t('common.unknown'),
-      }));
-      setPruneFailed(true);
-    } finally {
-      setPruneBusy(false);
-    }
-  }, [pruneDays, pruneTerminal, pruneVacuum, onPruned]);
+  const {
+    pruneDays, setPruneDays,
+    pruneTerminal, setPruneTerminal,
+    pruneVacuum, setPruneVacuum,
+    pruneBusy, pruneMsg, pruneFailed,
+    handlePrune,
+  } = useMeetingPrune({ onPruned });
 
   return (
     <div className="border-t border-border/60 bg-muted/10">

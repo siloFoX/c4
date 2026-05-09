@@ -4,6 +4,52 @@
 
 (no entries — next release window)
 
+## [1.10.664] - 2026-05-09 — Extract useMeetingBackup + useMeetingPrune
+
+**Web — `MeetingsMaintenancePanel.tsx` shrunk by 73 lines (296 → 223).**
+The remaining two of the four maintenance operations
+move to dedicated hooks. Both own their input state
+(backup: path + force; prune: days + terminal + vacuum)
+alongside busy / msg / failed so the panel JSX is now
+purely a render-and-fire composition.
+
+### Refactor
+- New `web/src/lib/use-meeting-backup.ts` (~68 lines).
+  POST /api/meetings/persist-backup with the path-empty
+  short-circuit + the bytes-null fallback for the
+  size-unknown banner.
+- New `web/src/lib/use-meeting-prune.ts` (~92 lines).
+  POST /api/meetings/prune-old with the
+  daysNum-validity guard, the dry-run-skips-confirm
+  branch, and the `onPruned` callback fired only on
+  non-dry-run success.
+- `MeetingsMaintenancePanel.tsx`: removed all input
+  state slots + the two ~30-line useCallback handlers.
+  Replaced with two destructured hook calls. Trimmed
+  `useCallback` + `apiPost` + `tFormat` imports
+  (the panel now only needs `t` for static labels +
+  `useLocale`).
+- Boundary suite #131 — 5 assertions covering both
+  hooks' URLs + body shapes + confirm gate, the
+  onPruned-only-on-success rule, both hooks owning
+  their input state, parent wiring (both imports +
+  drop checks).
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  656 / 656 across 130 → 131 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 135 ships total since v1.10.529.
+- 134 components/libs extracted (two libs this ship).
+- 44 custom hooks in `web/src/lib/`.
+- 656 boundary assertions across 131 suites.
+- MeetingsMaintenancePanel went from 348 → 223 across
+  v1.10.663 + v1.10.664 (-125, ~36% reduction).
+
 ## [1.10.663] - 2026-05-09 — Extract useMeetingIntegrity + useMeetingFtsRebuild
 
 **Web — `MeetingsMaintenancePanel.tsx` shrunk by 52 lines (348 → 296).**
