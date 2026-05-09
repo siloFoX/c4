@@ -275,8 +275,14 @@ describe('ControlPanel.tsx source wiring (8.8)', () => {
   const src = fs.readFileSync(PANEL_TSX, 'utf8');
 
   it('imports apiFetch from the shared auth wrapper', () => {
-    assert.match(src, /from '\.\.\/lib\/api'/);
-    assert.match(src, /\bapiFetch\b/);
+    // (v1.10.740) postAction helper moved to lib/post-action which now
+    // owns the apiFetch import. The parent file no longer needs apiFetch
+    // directly, but the shared post-action helper still calls into the
+    // auth wrapper.
+    const HELPER = path.join(REPO_ROOT, 'web/src/lib/post-action.ts');
+    const helperSrc = fs.readFileSync(HELPER, 'utf8');
+    assert.match(helperSrc, /from '\.\/api'/);
+    assert.match(helperSrc, /\bapiFetch\b/);
   });
 
   it('imports the shared Worker + ListResponse types', () => {

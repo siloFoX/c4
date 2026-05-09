@@ -14,7 +14,6 @@ import { useWorkerSelection } from '../lib/use-worker-selection';
 import { useToast } from '../lib/use-toast';
 import { useControlPanelSingle } from '../lib/use-control-panel-single';
 import { useControlPanelWorkerList } from '../lib/use-control-panel-worker-list';
-import { apiFetch } from '../lib/api';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import {
   type ButtonProps,
@@ -142,44 +141,6 @@ function buildActions(workerName: string): SingleAction[] {
   ];
 }
 
-// (v1.10.561) StatusMessageCard extracted to ./StatusMessageCard.tsx
-
-async function postAction(
-  endpoint: string,
-  body: Record<string, unknown>,
-): Promise<{ ok: boolean; error?: string }> {
-  try {
-    const res = await apiFetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    let payload: unknown = null;
-    try {
-      payload = await res.json();
-    } catch {
-      // ignore non-JSON response bodies; HTTP status still tells us ok
-    }
-    if (!res.ok) {
-      const err =
-        payload && typeof payload === 'object' && 'error' in payload
-          ? String((payload as { error: unknown }).error)
-          : `HTTP ${res.status}`;
-      return { ok: false, error: err };
-    }
-    if (
-      payload &&
-      typeof payload === 'object' &&
-      'error' in payload &&
-      (payload as { error: unknown }).error
-    ) {
-      return { ok: false, error: String((payload as { error: unknown }).error) };
-    }
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: (e as Error).message };
-  }
-}
 
 export default function ControlPanel({ workerName }: ControlPanelProps) {
   useLocale();
@@ -191,15 +152,16 @@ export default function ControlPanel({ workerName }: ControlPanelProps) {
   const actions = buildActions(workerName);
 
   // (v1.10.710) Single-action dispatcher moved to hook.
+  // (v1.10.740) postAction helper now imported directly by both hooks.
   const { busyKind, runSingle } = useControlPanelSingle({
-    workerName, postAction, showToast, fetchList,
+    workerName, showToast, fetchList,
   });
 
   // (v1.10.668) Selection + batch state machine moved to hook.
   const {
     selected, toggleSelected, selectAll, clearSelection,
     batchBusy, batchResults, runBatch,
-  } = useWorkerSelection({ workers, postAction, showToast, fetchList });
+  } = useWorkerSelection({ workers, showToast, fetchList });
 
   const selectedCount = selected.size;
   const selectableWorkers = workers;

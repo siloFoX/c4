@@ -1,15 +1,17 @@
 import { useCallback, useState } from 'react';
 import { t, tFormat } from './i18n';
+import { postAction } from './post-action';
 import type { ToastType } from '../components/Toast';
 import type { ActionKind, SingleAction } from '../components/ControlPanel';
 
 // (v1.10.710) Extracted from ControlPanel. The
 // single-worker action dispatcher — confirms via
 // window.confirm if the action declares one, busy-marks
-// the action kind in flight, POSTs through the
-// parent-supplied postAction wrapper, fires a toast
-// (success or error path), and pings fetchList so the
-// sidebar reflects the new state.
+// the action kind in flight, POSTs through postAction,
+// fires a toast (success or error path), and pings
+// fetchList so the sidebar reflects the new state.
+// (v1.10.740) postAction lifted to lib/post-action so
+// the wrapper signature shrinks by one prop.
 
 interface ControlPanelSingleState {
   busyKind: ActionKind | null;
@@ -18,11 +20,10 @@ interface ControlPanelSingleState {
 
 export function useControlPanelSingle(args: {
   workerName: string;
-  postAction: (endpoint: string, body: Record<string, unknown>) => Promise<{ ok: boolean; error?: string }>;
   showToast: (message: string, type: ToastType) => void;
   fetchList: () => Promise<void>;
 }): ControlPanelSingleState {
-  const { workerName, postAction, showToast, fetchList } = args;
+  const { workerName, showToast, fetchList } = args;
   const [busyKind, setBusyKind] = useState<ActionKind | null>(null);
 
   const runSingle = useCallback(async (action: SingleAction) => {
@@ -42,7 +43,7 @@ export function useControlPanelSingle(args: {
     }
     setBusyKind(null);
     fetchList();
-  }, [workerName, postAction, showToast, fetchList]);
+  }, [workerName, showToast, fetchList]);
 
   return { busyKind, runSingle };
 }

@@ -4,6 +4,55 @@
 
 (no entries — next release window)
 
+## [1.10.740] - 2026-05-10 — Lift postAction helper to lib/
+
+**Web — `components/ControlPanel.tsx` shrunk by 38 lines (248 → 210).**
+The 36-line `postAction` helper that lived inline in
+ControlPanel — a uniform `/api/<endpoint>` POST
+wrapper that handles three failure modes (network
+throw, HTTP non-2xx, HTTP 200 + payload.error) —
+moves to `lib/post-action.ts` as a pure helper.
+
+Both consumer hooks (`useControlPanelSingle` and
+`useWorkerSelection`) now import `postAction`
+directly instead of receiving it as a prop. Hook
+signatures shrink by one prop each:
+
+- `useControlPanelSingle({ workerName, postAction,
+  showToast, fetchList })` →
+  `useControlPanelSingle({ workerName, showToast,
+  fetchList })`
+- `useWorkerSelection({ workers, postAction,
+  showToast, fetchList })` →
+  `useWorkerSelection({ workers, showToast,
+  fetchList })`
+
+ControlPanel drops both the inline `async function
+postAction` body and the `apiFetch` import (the
+post-action helper now owns it). The
+`PostActionResult` interface is exported from
+`lib/post-action.ts` so future callers can type
+the return shape without re-typing.
+
+Boundary suite #206 in
+`tests/component-extract-boundaries.test.js` pins
+the helper signature, the export of
+`PostActionResult`, and the three failure-mode
+contracts. Three pre-existing tests redirected:
+- `useControlPanelSingle hook (v1.10.710)` — now
+  asserts the postAction import + 3-prop hook call
+  (no longer 4-prop).
+- `useWorkerSelection hook (v1.10.668)` — same
+  shape change.
+- `web-control.test.js` "imports apiFetch from the
+  shared auth wrapper" — redirected from parent →
+  helper file (apiFetch lives there now).
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (982 / 206 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.739] - 2026-05-10 — Extract useAppendLive hook
 
 **Web — `components/ChatView.tsx` shrunk by 23 lines (206 → 183).**

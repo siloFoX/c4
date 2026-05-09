@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { tFormat } from './i18n';
+import { postAction } from './post-action';
 import type { Worker } from '../types';
 import type { BatchKind, BatchOutcome } from '../components/ControlPanel';
 import type { ToastType } from '../components/Toast';
@@ -7,9 +8,9 @@ import type { ToastType } from '../components/Toast';
 // (v1.10.668) Extracted from ControlPanel. The
 // multi-select + batch-action state machine — checkbox
 // selection, select-all/clear, and the close/cancel
-// batch driver. The hook takes a `postAction` callback
-// so it can stay decoupled from the apiFetch wrapper
-// (the parent's runSingle reuses the same helper).
+// batch driver.
+// (v1.10.740) postAction lifted to lib/post-action so
+// the hook signature drops one prop.
 // Toasts + a refresh kick are pushed back to the
 // parent via callbacks.
 
@@ -25,11 +26,10 @@ interface WorkerSelectionState {
 
 export function useWorkerSelection(args: {
   workers: Worker[];
-  postAction: (endpoint: string, body: Record<string, unknown>) => Promise<{ ok: boolean; error?: string }>;
   showToast: (message: string, type: ToastType) => void;
   fetchList: () => Promise<void>;
 }): WorkerSelectionState {
-  const { workers, postAction, showToast, fetchList } = args;
+  const { workers, showToast, fetchList } = args;
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [batchBusy, setBatchBusy] = useState<BatchKind | null>(null);
   const [batchResults, setBatchResults] = useState<BatchOutcome[] | null>(null);
@@ -91,7 +91,7 @@ export function useWorkerSelection(args: {
     if (kind === 'close') {
       setSelected(new Set());
     }
-  }, [selected, postAction, showToast, fetchList]);
+  }, [selected, showToast, fetchList]);
 
   return {
     selected, toggleSelected, selectAll, clearSelection,

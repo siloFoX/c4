@@ -2049,6 +2049,50 @@ describe('extracted: useChatBackfill hook (v1.10.738)', () => {
   });
 });
 
+describe('extracted: postAction helper (v1.10.740)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HELPER = path.join(__dirname, '..', 'web', 'src', 'lib', 'post-action.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'ControlPanel.tsx');
+  const SINGLE = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-control-panel-single.ts');
+  const SELECTION = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-worker-selection.ts');
+
+  it('exports postAction + PostActionResult type', () => {
+    const src = fs.readFileSync(HELPER, 'utf8');
+    assert.match(src, /export async function postAction/);
+    assert.match(src, /export interface PostActionResult/);
+  });
+
+  it('handles all 3 failure modes (network throw, non-2xx, 200+payload.error)', () => {
+    const src = fs.readFileSync(HELPER, 'utf8');
+    // Network throw — return as catch error
+    assert.match(src, /catch \(e\) \{[\s\S]*?return \{ ok: false, error: \(e as Error\)\.message \}/);
+    // HTTP non-2xx — payload.error || HTTP <status>
+    assert.match(src, /if \(!res\.ok\)/);
+    assert.match(src, /HTTP \$\{res\.status\}/);
+    // 200 + payload.error
+    assert.match(src, /'error' in payload[\s\S]*?\(payload as \{ error: unknown \}\)\.error/);
+  });
+
+  it('parent ControlPanel drops the inline postAction + apiFetch import', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.doesNotMatch(src, /async function postAction/);
+    assert.doesNotMatch(src, /import\s+\{\s*apiFetch\s*\}\s+from\s+'\.\.\/lib\/api'/);
+  });
+
+  it('useControlPanelSingle imports postAction directly + drops it from props', () => {
+    const src = fs.readFileSync(SINGLE, 'utf8');
+    assert.match(src, /import\s+\{\s*postAction\s*\}\s+from\s+'\.\/post-action'/);
+    assert.doesNotMatch(src, /postAction:\s*\(endpoint:\s*string,\s*body:\s*Record/);
+  });
+
+  it('useWorkerSelection imports postAction directly + drops it from props', () => {
+    const src = fs.readFileSync(SELECTION, 'utf8');
+    assert.match(src, /import\s+\{\s*postAction\s*\}\s+from\s+'\.\/post-action'/);
+    assert.doesNotMatch(src, /postAction:\s*\(endpoint:\s*string,\s*body:\s*Record/);
+  });
+});
+
 describe('extracted: useControlPanelWorkerList hook (v1.10.737)', () => {
   const fs = require('fs');
   const path = require('path');
@@ -3077,11 +3121,12 @@ describe('extracted: useControlPanelSingle hook (v1.10.710)', () => {
   const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-control-panel-single.ts');
   const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'ControlPanel.tsx');
 
-  it('exports the hook + accepts workerName/postAction/showToast/fetchList', () => {
+  it('exports the hook + accepts workerName/showToast/fetchList', () => {
+    // (v1.10.740) postAction lifted to lib/post-action so it's no longer a prop.
     const src = fs.readFileSync(HOOK, 'utf8');
     assert.match(src, /export function useControlPanelSingle/);
     assert.match(src, /workerName:\s*string/);
-    assert.match(src, /postAction:[\s\S]*?Promise<\{ ok: boolean; error\?: string \}>/);
+    assert.match(src, /import\s+\{\s*postAction\s*\}\s+from\s+'\.\/post-action'/);
   });
 
   it('runSingle confirms via window.confirm + busy-marks the action kind', () => {
@@ -3099,7 +3144,8 @@ describe('extracted: useControlPanelSingle hook (v1.10.710)', () => {
   it('parent ControlPanel wires the hook + drops the inline state + handler', () => {
     const src = fs.readFileSync(PARENT, 'utf8');
     assert.match(src, /import\s+\{\s*useControlPanelSingle\s*\}\s+from\s+'\.\.\/lib\/use-control-panel-single'/);
-    assert.match(src, /useControlPanelSingle\(\{[\s\S]*?workerName,\s*postAction,\s*showToast,\s*fetchList[\s\S]*?\}\)/);
+    // (v1.10.740) postAction prop dropped now that the hook imports it directly.
+    assert.match(src, /useControlPanelSingle\(\{[\s\S]*?workerName,\s*showToast,\s*fetchList[\s\S]*?\}\)/);
     assert.doesNotMatch(src, /const \[busyKind, setBusyKind\]/);
     assert.doesNotMatch(src, /const runSingle = useCallback/);
   });
@@ -4651,13 +4697,14 @@ describe('extracted: useWorkerSelection hook (v1.10.668)', () => {
   const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-worker-selection.ts');
   const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'ControlPanel.tsx');
 
-  it('exports the hook + accepts workers/postAction/showToast/fetchList', () => {
+  it('exports the hook + accepts workers/showToast/fetchList', () => {
+    // (v1.10.740) postAction lifted to lib/post-action so it's no longer a prop.
     const src = fs.readFileSync(HOOK, 'utf8');
     assert.match(src, /export function useWorkerSelection/);
     assert.match(src, /workers:\s*Worker\[\]/);
-    assert.match(src, /postAction:[\s\S]*?Promise<\{ ok: boolean; error\?: string \}>/);
     assert.match(src, /showToast:\s*\(message:\s*string,\s*type:\s*ToastType\)\s*=>\s*void/);
     assert.match(src, /fetchList:\s*\(\)\s*=>\s*Promise<void>/);
+    assert.match(src, /import\s+\{\s*postAction\s*\}\s+from\s+'\.\/post-action'/);
   });
 
   it('selects via Set<string> and exposes toggle/selectAll/clear', () => {
@@ -4685,7 +4732,8 @@ describe('extracted: useWorkerSelection hook (v1.10.668)', () => {
   it('parent ControlPanel wires the hook + drops the inline state + handlers', () => {
     const src = fs.readFileSync(PARENT, 'utf8');
     assert.match(src, /import\s+\{\s*useWorkerSelection\s*\}\s+from\s+'\.\.\/lib\/use-worker-selection'/);
-    assert.match(src, /useWorkerSelection\(\{[\s\S]*?workers,\s*postAction,\s*showToast,\s*fetchList[\s\S]*?\}\)/);
+    // (v1.10.740) postAction prop dropped now that the hook imports it directly.
+    assert.match(src, /useWorkerSelection\(\{[\s\S]*?workers,\s*showToast,\s*fetchList[\s\S]*?\}\)/);
     assert.doesNotMatch(src, /const \[selected, setSelected\]/);
     assert.doesNotMatch(src, /const \[batchBusy, setBatchBusy\]/);
     assert.doesNotMatch(src, /const runBatch = useCallback/);
