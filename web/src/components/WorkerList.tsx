@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Inbox, Lightbulb, WifiOff } from 'lucide-react';
-import type { ListResponse, SSEEvent, Worker } from '../types';
-import { apiFetch, eventSourceUrl } from '../lib/api';
+import type { Worker } from '../types';
+import { useWorkerList } from '../lib/use-worker-list';
 import {
   Badge,
   Card,
@@ -56,50 +56,13 @@ function writeBoolPref(key: string, value: boolean): void {
 
 export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps) {
   useLocale();
-  const [workers, setWorkers] = useState<Worker[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [sseConnected, setSseConnected] = useState(false);
+  // (v1.10.660) /api/list poll + /api/events SSE moved to hook.
+  const { workers, error, sseConnected } = useWorkerList();
   const [managersOpen, setManagersOpen] = useState<boolean>(() => readBoolPref(MGR_OPEN_KEY, true));
   const [workersOpen, setWorkersOpen] = useState<boolean>(() => readBoolPref(WRK_OPEN_KEY, true));
 
   useEffect(() => { writeBoolPref(MGR_OPEN_KEY, managersOpen); }, [managersOpen]);
   useEffect(() => { writeBoolPref(WRK_OPEN_KEY, workersOpen); }, [workersOpen]);
-
-  const fetchList = useCallback(async () => {
-    try {
-      const res = await apiFetch('/api/list');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as ListResponse;
-      setWorkers(Array.isArray(data.workers) ? data.workers : []);
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchList();
-    const interval = setInterval(fetchList, 5000);
-
-    const es = new EventSource(eventSourceUrl('/api/events'));
-    es.onopen = () => setSseConnected(true);
-    es.onerror = () => setSseConnected(false);
-    es.onmessage = (ev) => {
-      try {
-        const evt = JSON.parse(ev.data) as SSEEvent;
-        if (evt.type && evt.type !== 'connected') {
-          fetchList();
-        }
-      } catch {
-        // ignore non-JSON payloads
-      }
-    };
-
-    return () => {
-      clearInterval(interval);
-      es.close();
-    };
-  }, [fetchList]);
 
   // (TODO 8.37) Partition into manager / worker buckets for the
   // grouped sidebar. Sort each group by name so the order is stable

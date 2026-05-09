@@ -1770,6 +1770,55 @@ describe('extracted: SpecialistsBulkOpsToolbar (v1.10.532)', () => {
   });
 });
 
+describe('extracted: useWorkerList hook (v1.10.660)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-worker-list.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'WorkerList.tsx');
+
+  it('exports the hook with no-arg signature', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useWorkerList\(\)/);
+  });
+
+  it('GETs /api/list with HTTP error mapping to setError', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiFetch\('\/api\/list'\)/);
+    assert.match(src, /throw new Error\(`HTTP \$\{res\.status\}`\)/);
+  });
+
+  it('subscribes to /api/events and refetches on every non-connected event', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /eventSourceUrl\('\/api\/events'\)/);
+    assert.match(src, /evt\.type !== 'connected'/);
+    assert.match(src, /refresh\(\);/);
+  });
+
+  it('keeps the 5s belt-and-braces poll interval alongside SSE', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /setInterval\(refresh,\s*5000\)/);
+    assert.match(src, /clearInterval\(interval\)/);
+    assert.match(src, /es\.close\(\)/);
+  });
+
+  it('returns workers + error + sseConnected + refresh', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /workers:\s*Worker\[\]/);
+    assert.match(src, /sseConnected:\s*boolean/);
+    assert.match(src, /refresh:\s*\(\)\s*=>\s*Promise<void>/);
+  });
+
+  it('parent WorkerList wires the hook + drops the inline state + effects', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useWorkerList\s*\}\s+from\s+'\.\.\/lib\/use-worker-list'/);
+    assert.match(src, /useWorkerList\(\)/);
+    assert.doesNotMatch(src, /const \[workers, setWorkers\]/);
+    assert.doesNotMatch(src, /const \[sseConnected, setSseConnected\]/);
+    assert.doesNotMatch(src, /const fetchList = useCallback/);
+    assert.doesNotMatch(src, /new EventSource\(eventSourceUrl\('\/api\/events'\)\)/);
+  });
+});
+
 describe('extracted: useConversation hook (v1.10.659)', () => {
   const fs = require('fs');
   const path = require('path');

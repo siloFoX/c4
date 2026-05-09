@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.660] - 2026-05-09 — Extract useWorkerList hook
+
+**Web — `WorkerList.tsx` shrunk by 37 lines (279 → 242).**
+The sidebar's polling + SSE pair — GET /api/list every
+5s with a `/api/events` SSE that triggers a refetch on
+any non-`connected` event — moves to a self-contained
+hook. The 5s timer stays alongside the SSE so a
+transient drop still keeps the sidebar warm; matches
+the 8.x belt-and-braces design verbatim.
+
+### Refactor
+- New `web/src/lib/use-worker-list.ts` (~62 lines).
+  Exports `useWorkerList()` — no-arg signature returning
+  `{ workers, error, sseConnected, refresh }`. Imports
+  `ListResponse` + `SSEEvent` + `Worker` from
+  `../types`.
+- `WorkerList.tsx`: removed three useState slots
+  (workers / error / sseConnected), the `fetchList`
+  useCallback, and the SSE+interval useEffect. Replaced
+  with one destructured `useWorkerList()` call.
+  Trimmed `useCallback` import + the api helpers.
+- Boundary suite #128 — 6 assertions covering hook
+  no-arg shape, /api/list URL + HTTP error mapping,
+  SSE non-connected-only refetch trigger, 5s
+  belt-and-braces interval, return tuple, parent
+  wiring.
+
+### Verification
+- `npx tsc --noEmit`: green.
+- `node --test tests/component-extract-boundaries.test.js`:
+  642 / 642 across 127 → 128 suites.
+- `npm run check:full`: green (lint, test, build,
+  bundle-size, i18n-visual).
+
+### Stats
+- 132 ships total since v1.10.529.
+- 129 components/libs extracted.
+- 39 custom hooks in `web/src/lib/`.
+- 642 boundary assertions across 128 suites.
+
 ## [1.10.659] - 2026-05-09 — Extract useConversation hook
 
 **Web — `ConversationView.tsx` shrunk by 63 lines (282 → 219).**
