@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.767] - 2026-05-10 — useSilentPollWithRefresh — variant with manual refresh
+
+**Web — extend the silent-poll generic.** The
+existing `useSilentPoll<T>(url, intervalMs)` returns
+just the polled data. A handful of callers also
+needed a manual `refresh()` that resolves with the
+post-mutation state — they had been re-implementing
+the `apiGet + setInterval + silent-catch + cancel-
+flag` plumbing inline.
+
+- `lib/use-silent-poll.ts` exposes
+  `useSilentPollWithRefresh<T, U>(url, intervalMs,
+  fallback, mapper)`. The mapper goes through a ref
+  so its identity churn doesn't restart the polling
+  effect on every render. Returns `{ data, refresh
+  }` where `refresh` resolves with the next
+  response.
+- `lib/use-control-panel-worker-list.ts` adopts —
+  drops 16 lines of inline polling. The `Worker[]`
+  shape stays out of the polled `T` by mapping
+  `ListResponse → Worker[]` at the seam.
+
+The `EMPTY_WORKERS` constant is hoisted to module
+scope so the fallback prop has stable identity
+across renders (avoids re-mounting the polling
+effect on every parent render).
+
+Boundary tests: 1 redirected (the assertion now
+points at the shared poll source) + 1 new variant
+suite (5 assertions). All 5 quality gates green.
+
 ## [1.10.766] - 2026-05-10 — useAutoClearMessage adoption — failure-only path
 
 **Web — one more adopter, exercising a leaner shape.**

@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
-import { apiGet } from './api';
+import { useSilentPollWithRefresh } from './use-silent-poll';
 import type { ListResponse, Worker } from '../types';
 
 // (v1.10.737) Extracted from ControlPanel. Polls
@@ -16,6 +15,9 @@ import type { ListResponse, Worker } from '../types';
 // are mounted together.
 // (v1.10.750) apiFetch + manual error throw replaced
 // with apiGet which throws on non-ok internally.
+// (v1.10.767) Self-polling fetch + manual refresh
+// delegated to lib/use-silent-poll's
+// useSilentPollWithRefresh.
 
 export interface UseControlPanelWorkerListState {
   workers: Worker[];
@@ -23,24 +25,15 @@ export interface UseControlPanelWorkerListState {
 }
 
 const POLL_INTERVAL_MS = 5000;
+const EMPTY_WORKERS: Worker[] = [];
 
 export function useControlPanelWorkerList(): UseControlPanelWorkerListState {
-  const [workers, setWorkers] = useState<Worker[]>([]);
-
-  const fetchList = useCallback(async () => {
-    try {
-      const data = await apiGet<ListResponse>('/api/list');
-      setWorkers(Array.isArray(data.workers) ? data.workers : []);
-    } catch {
-      // The sidebar already surfaces list errors; keep the panel silent.
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchList();
-    const interval = setInterval(fetchList, POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, [fetchList]);
+  const { data: workers, refresh: fetchList } = useSilentPollWithRefresh<ListResponse, Worker[]>(
+    '/api/list',
+    POLL_INTERVAL_MS,
+    EMPTY_WORKERS,
+    (res) => Array.isArray(res.workers) ? res.workers : [],
+  );
 
   return { workers, fetchList };
 }

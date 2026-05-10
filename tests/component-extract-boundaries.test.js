@@ -2567,6 +2567,19 @@ describe('extracted: useSilentPoll hook (v1.10.743)', () => {
     assert.match(src, /useSilentPoll<OrganismSummary>\('\/api\/specialists\/summary',\s*POLL_INTERVAL_MS\)/);
     assert.doesNotMatch(src, /window\.setInterval/);
   });
+
+  it('exports useSilentPollWithRefresh variant with mapper + manual refresh (v1.10.767)', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    // Public type is a domain-shaped U via mapper, with a stable refresh
+    // promise so the caller can `await` it after a mutation.
+    assert.match(src, /export function useSilentPollWithRefresh<T,\s*U>/);
+    assert.match(src, /fallback:\s*U,\s*\n?\s*mapper:\s*\(res:\s*T\)\s*=>\s*U/);
+    assert.match(src, /refresh:\s*\(\)\s*=>\s*Promise<void>/);
+    // Mapper goes through a ref so its identity churn doesn't restart
+    // the polling effect on every render.
+    assert.match(src, /mapperRef = useRef\(mapper\)/);
+    assert.match(src, /mapperRef\.current\(res\)/);
+  });
 });
 
 describe('extracted: useActionItemsExport hook (v1.10.742)', () => {
@@ -2696,11 +2709,20 @@ describe('extracted: useControlPanelWorkerList hook (v1.10.737)', () => {
 
   it('polls /api/list every 5s + silently swallows errors', () => {
     // (v1.10.750) apiFetch + manual error throw replaced with apiGet.
+    // (v1.10.767) Self-polling fetch + manual refresh delegated to
+    // useSilentPollWithRefresh; the underlying apiGet + setInterval +
+    // silent-catch all live in lib/use-silent-poll now.
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /apiGet<ListResponse>\('\/api\/list'\)/);
+    assert.match(src, /useSilentPollWithRefresh<ListResponse,\s*Worker\[\]>/);
+    assert.match(src, /'\/api\/list'/);
     assert.match(src, /POLL_INTERVAL_MS\s*=\s*5000/);
-    assert.match(src, /setInterval\(fetchList, POLL_INTERVAL_MS\)/);
-    assert.match(src, /catch \{[\s\S]*?keep the panel silent/);
+    const pollSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-silent-poll.ts'),
+      'utf8',
+    );
+    assert.match(pollSrc, /apiGet<T>\(url\)/);
+    assert.match(pollSrc, /setInterval\(tick, intervalMs\)/);
+    assert.match(pollSrc, /silently degrade/);
   });
 
   it('parent ControlPanel wires the hook + drops the inline poll', () => {
