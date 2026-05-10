@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { apiPost } from './api';
 import { t, tFormat } from './i18n';
+import { useAutoClearMessage } from './use-auto-clear-message';
 import type { DigestResponse } from '../components/AutonomousView';
 
 // (v1.10.654) Extracted from AutonomousView. Pause/resume
@@ -10,6 +11,9 @@ import type { DigestResponse } from '../components/AutonomousView';
 // digest (so the toggle direction is derived from
 // `digest.paused`) and the refresh callback (so the next
 // poll sees the new state immediately).
+//
+// (v1.10.769) Banner state moved to shared infra
+// hook lib/use-auto-clear-message.
 
 interface PauseToggleState {
   pauseBusy: boolean;
@@ -24,30 +28,27 @@ export function useAutonomousPauseToggle(args: {
 }): PauseToggleState {
   const { digest, refresh } = args;
   const [pauseBusy, setPauseBusy] = useState(false);
-  const [pauseMsg, setPauseMsg] = useState<string | null>(null);
-  const [pauseFailed, setPauseFailed] = useState(false);
+  const { msg: pauseMsg, failed: pauseFailed, setSuccess, setFailure, reset } =
+    useAutoClearMessage();
 
   const handlePauseToggle = useCallback(async () => {
     if (!digest) return;
     const path = digest.paused ? 'resume' : 'pause';
     setPauseBusy(true);
-    setPauseMsg(null);
-    setPauseFailed(false);
+    reset();
     try {
       await apiPost(`/api/autonomous/${path}`, {});
-      setPauseMsg(t(path === 'resume' ? 'autonomous.pauseToggle.resumed' : 'autonomous.pauseToggle.paused'));
-      window.setTimeout(() => setPauseMsg(null), 4000);
+      setSuccess(t(path === 'resume' ? 'autonomous.pauseToggle.resumed' : 'autonomous.pauseToggle.paused'));
       void refresh();
     } catch (err) {
-      setPauseMsg(tFormat(
+      setFailure(tFormat(
         path === 'resume' ? 'autonomous.pauseToggle.resumeFailed' : 'autonomous.pauseToggle.pauseFailed',
         { error: (err as Error).message || t('common.unknown') },
       ));
-      setPauseFailed(true);
     } finally {
       setPauseBusy(false);
     }
-  }, [digest, refresh]);
+  }, [digest, refresh, reset, setSuccess, setFailure]);
 
   return { pauseBusy, pauseMsg, pauseFailed, handlePauseToggle };
 }

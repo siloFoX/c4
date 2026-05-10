@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.769] - 2026-05-10 — useAutoClearMessage adoption — pause-toggle
+
+**Web — one more action hook adopts the shared
+banner infra.** `useAutonomousPauseToggle` (autonomous
+pause / resume) joins the v1.10.764–v1.10.766
+cohort. Previously had its own
+`[pauseMsg, setPauseMsg, pauseFailed, setPauseFailed]
++ window.setTimeout(setPauseMsg(null), 4000)` block;
+now flows through `setSuccess(t(…))` /
+`setFailure(t(…))` / `reset()`.
+
+The shared infra hook is now load-bearing for **8
+action hooks** (export / rotate / publish / bulk-
+publish / contribute / peer-retro / template-editor
+/ pause-toggle).
+
+Boundary tests: 2 redirected (auto-clear + failure-
+tone assertions point at the shared infra) + 1 new
+"also adopted" assertion. All 5 quality gates green.
+
 ## [1.10.768] - 2026-05-10 — Two more local useCallback wraps
 
 **Web — small final polish on inline JSX arrows.**

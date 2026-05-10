@@ -2177,6 +2177,17 @@ describe('extracted: useAutoClearMessage hook (v1.10.764)', () => {
     // No setSuccess — save closes the dialog and there's no banner.
     assert.doesNotMatch(src, /setSuccess\(/);
   });
+
+  it('also adopted by useAutonomousPauseToggle (v1.10.769)', () => {
+    const src = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-autonomous-pause-toggle.ts'),
+      'utf8',
+    );
+    assert.match(src, /import\s+\{\s*useAutoClearMessage\s*\}\s+from\s+'\.\/use-auto-clear-message'/);
+    assert.match(src, /useAutoClearMessage\(\)/);
+    assert.match(src, /setSuccess\(/);
+    assert.match(src, /setFailure\(/);
+  });
 });
 
 describe('extracted: useToggle hook (v1.10.757)', () => {
@@ -6001,14 +6012,19 @@ describe('extracted: useAutonomousPauseToggle hook (v1.10.654)', () => {
   });
 
   it('clears the banner after 4s + calls refresh on success', () => {
+    // (v1.10.769) Banner state delegated to useAutoClearMessage; the
+    // 4s default duration applies because no override is passed.
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /window\.setTimeout\(\(\) => setPauseMsg\(null\),\s*4000\)/);
+    assert.match(src, /useAutoClearMessage/);
+    assert.match(src, /setSuccess\(t\(/);
     assert.match(src, /void refresh\(\)/);
   });
 
   it('flips pauseFailed tone on error', () => {
+    // (v1.10.769) Failure tone delegated to useAutoClearMessage's
+    // setFailure, which sets msg + failed without auto-clearing.
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /setPauseFailed\(true\)/);
+    assert.match(src, /setFailure\(/);
     assert.match(src, /pauseToggle\.resumeFailed/);
     assert.match(src, /pauseToggle\.pauseFailed/);
   });
