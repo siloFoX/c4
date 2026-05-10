@@ -6,6 +6,7 @@ import {
   type ChatMessage,
   type ConversationShape,
 } from './chat-helpers';
+import type { BackfillSource } from '../components/ChatHeader';
 
 // (v1.10.738) Extracted from ChatView. The
 // worker-history backfill state machine — owns the
@@ -48,7 +49,7 @@ export interface UseChatBackfillState {
   setHistory: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   backfillLoading: boolean;
   backfillCount: number;
-  backfillSource: 'session' | 'scrollback' | null;
+  backfillSource: BackfillSource;
   backfillError: string | null;
   hasOlder: boolean;
   loadingOlder: boolean;
@@ -69,7 +70,7 @@ export function useChatBackfill(args: {
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [backfillLoading, setBackfillLoading] = useState(true);
   const [backfillCount, setBackfillCount] = useState(0);
-  const [backfillSource, setBackfillSource] = useState<'session' | 'scrollback' | null>(null);
+  const [backfillSource, setBackfillSource] = useState<BackfillSource>(null);
   const [backfillError, setBackfillError] = useState<string | null>(null);
   const [hasOlder, setHasOlder] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);

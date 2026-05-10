@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Card, CardContent } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { useToggle } from '../lib/use-toggle';
+import type { Track } from './MeetingsSearchFacets';
 import MeetingsMaintenancePanel from './MeetingsMaintenancePanel';
 import MeetingsStuckBanner from './MeetingsStuckBanner';
 import { type StageView } from './MeetingsStagesView';
@@ -120,7 +121,7 @@ export default function MeetingsView() {
   // (Phase 6.11) List-level filters (separate from search filters
   // — search hits FTS, list hits the bare /meetings endpoint).
   const [listStatus, setListStatus] = useState<MeetingStatus | ''>('');
-  const [listTrack, setListTrack] = useState<'lightweight' | 'standard' | 'full' | ''>('');
+  const [listTrack, setListTrack] = useState<Track | ''>('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // (Phase 6.9) Lineage chain for the selected meeting. Only
@@ -140,7 +141,7 @@ export default function MeetingsView() {
   // without scanning the whole result list.
   const [searchQuery, setSearchQuery] = useState('');
   const [searchStatus, setSearchStatus] = useState<MeetingStatus | ''>('');
-  const [searchTrack, setSearchTrack] = useState<'lightweight' | 'standard' | 'full' | ''>('');
+  const [searchTrack, setSearchTrack] = useState<Track | ''>('');
   // (Phase 8.1.5) since/until — date inputs (YYYY-MM-DD) translated
   // to ISO timestamps in the URL params.
   const [searchSince, setSearchSince] = useState('');

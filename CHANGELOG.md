@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.775] - 2026-05-10 — Consolidate Track / BackfillSource aliases
+
+**Web — sixth type-deduplication pass.** Two more
+inline literal duplicates collapse to canonical
+imports.
+
+- `MeetingsView.tsx` — both `listTrack` and
+  `searchTrack` slots already use the strict-3-track
+  shape; switched to `Track | ''` from
+  `MeetingsSearchFacets.tsx` instead of re-declaring
+  the literal twice.
+- `lib/use-chat-backfill.ts` — adopts the existing
+  `BackfillSource = 'session' | 'scrollback' | null`
+  exported by `ChatHeader.tsx`. Drops 2 inline
+  duplicates from the interface field + the
+  `useState` slot.
+
+Boundary tests: 1 redirected. All 5 quality gates
+green.
+
 ## [1.10.774] - 2026-05-10 — Consolidate MeetingTrackOrAuto type alias
 
 **Web — fifth type-deduplication pass.** The

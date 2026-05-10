@@ -2034,9 +2034,12 @@ describe('extracted: useChatBackfill hook (v1.10.738)', () => {
   });
 
   it('owns history + 6 backfill state slots + 4 mutable refs', () => {
+    // (v1.10.775) backfillSource literal hoisted to BackfillSource
+    // alias from ChatHeader (the canonical export site).
     const src = fs.readFileSync(HOOK, 'utf8');
     assert.match(src, /useState<ChatMessage\[\]>/);
-    assert.match(src, /useState<'session' \| 'scrollback' \| null>/);
+    assert.match(src, /useState<BackfillSource>/);
+    assert.match(src, /import type \{\s*BackfillSource\s*\} from '\.\.\/components\/ChatHeader'/);
     assert.match(src, /scrollbackLinesRef/);
     assert.match(src, /seenIdsRef/);
     assert.match(src, /seenTextsRef/);
