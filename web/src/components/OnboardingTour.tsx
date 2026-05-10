@@ -1,6 +1,7 @@
 import { Rocket, X } from 'lucide-react';
 import { Button, IconButton } from './ui';
 import { cn } from '../lib/cn';
+import { dispatchEvent } from '../lib/dispatch-event';
 import { t, useLocale } from '../lib/i18n';
 import { useOnboardingTour } from '../lib/use-onboarding-tour';
 
@@ -27,6 +28,7 @@ const STEPS: Step[] = [
 ];
 
 // (v1.10.713) shouldAutoOpen + markSeen moved to use-onboarding-tour hook.
+// (v1.10.744) dispatch helper moved to lib/dispatch-event.
 
 export function startOnboardingTour(): void {
   if (typeof window === 'undefined') return;
@@ -35,11 +37,7 @@ export function startOnboardingTour(): void {
   } catch {
     // ignore
   }
-  try {
-    window.dispatchEvent(new CustomEvent(TOUR_EVENT_START));
-  } catch {
-    // ignore
-  }
+  dispatchEvent(TOUR_EVENT_START);
 }
 
 // 8.33: dismissable 4-step popover tour. Fires once per browser

@@ -4,6 +4,49 @@
 
 (no entries — next release window)
 
+## [1.10.744] - 2026-05-10 — Lift dispatchEvent helper to lib/
+
+**Web — generic CustomEvent dispatcher consolidated.**
+Four call sites had each hand-rolled the same
+`if (typeof window === 'undefined') return; try {
+window.dispatchEvent(new CustomEvent(name)); } catch
+{}` pattern. The helper moves to
+`lib/dispatch-event.ts` and all four adopt:
+
+- `components/HelpUIRoot.tsx` 64 → 54 (-10) —
+  `openHelpDrawer` + `openShortcutsModal` collapse
+  to one-line `dispatchEvent(EVENT_NAME)` calls.
+- `components/layout/AppHeader.tsx` 148 → 142 (-6)
+  — local `dispatch` function deleted; both
+  call-site usages updated to the lib import.
+- `components/OnboardingTour.tsx` 133 → 131 (-2) —
+  `startOnboardingTour` keeps the localStorage
+  reset but the dispatch line collapses to a
+  helper call.
+- `components/AccountMenu.tsx` 214 → 208 (-6) —
+  local `dispatchEvent` (which shadowed the global
+  `window.dispatchEvent`) deleted; lib import
+  replaces it. The shadowing was harmless but
+  potentially confusing for a reader.
+
+The shared helper preserves the SSR guard
+(`typeof window === 'undefined'`) and the
+try/catch around `dispatchEvent(new CustomEvent(…))`
+verbatim — the catch still matters for the
+JSDOM-based test env where `CustomEvent` has
+historically been finicky.
+
+Boundary suite #210 in
+`tests/component-extract-boundaries.test.js` pins
+the helper signature, the SSR + try/catch guards,
+and verifies all four call sites adopt the helper +
+drop the inline dispatch implementations.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (995 / 210 suites — +5 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.743] - 2026-05-10 — Extract useSilentPoll shared infra
 
 **Web — generic self-polling fetch consolidated.**

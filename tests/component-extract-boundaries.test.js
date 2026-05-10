@@ -2057,6 +2057,52 @@ describe('extracted: useChatBackfill hook (v1.10.738)', () => {
   });
 });
 
+describe('extracted: dispatchEvent helper (v1.10.744)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HELPER = path.join(__dirname, '..', 'web', 'src', 'lib', 'dispatch-event.ts');
+  const HELP_UI = path.join(__dirname, '..', 'web', 'src', 'components', 'HelpUIRoot.tsx');
+  const APP_HEADER = path.join(__dirname, '..', 'web', 'src', 'components', 'layout', 'AppHeader.tsx');
+  const TOUR = path.join(__dirname, '..', 'web', 'src', 'components', 'OnboardingTour.tsx');
+  const ACCOUNT = path.join(__dirname, '..', 'web', 'src', 'components', 'AccountMenu.tsx');
+
+  it('exports dispatchEvent with SSR + try/catch guards', () => {
+    const src = fs.readFileSync(HELPER, 'utf8');
+    assert.match(src, /export function dispatchEvent\(name: string\): void/);
+    assert.match(src, /typeof window === 'undefined'/);
+    assert.match(src, /window\.dispatchEvent\(new CustomEvent\(name\)\)/);
+    assert.match(src, /catch \{/);
+  });
+
+  it('HelpUIRoot adopts the helper for openHelpDrawer + openShortcutsModal', () => {
+    const src = fs.readFileSync(HELP_UI, 'utf8');
+    assert.match(src, /import\s+\{\s*dispatchEvent\s*\}\s+from\s+'\.\.\/lib\/dispatch-event'/);
+    assert.match(src, /dispatchEvent\(HELP_EVENT_OPEN_DRAWER\)/);
+    assert.match(src, /dispatchEvent\(HELP_EVENT_OPEN_SHORTCUTS\)/);
+    // The local dispatch helper bodies should be gone.
+    assert.doesNotMatch(src, /window\.dispatchEvent\(new CustomEvent\(HELP_EVENT/);
+  });
+
+  it('AppHeader drops the inline dispatch helper + uses the lib', () => {
+    const src = fs.readFileSync(APP_HEADER, 'utf8');
+    assert.match(src, /import\s+\{\s*dispatchEvent\s*\}\s+from\s+'\.\.\/\.\.\/lib\/dispatch-event'/);
+    assert.match(src, /dispatchEvent\(HELP_EVENT_OPEN_DRAWER\)/);
+    assert.doesNotMatch(src, /function dispatch\(name: string\)/);
+  });
+
+  it('OnboardingTour startOnboardingTour uses the lib helper', () => {
+    const src = fs.readFileSync(TOUR, 'utf8');
+    assert.match(src, /import\s+\{\s*dispatchEvent\s*\}\s+from\s+'\.\.\/lib\/dispatch-event'/);
+    assert.match(src, /dispatchEvent\(TOUR_EVENT_START\)/);
+  });
+
+  it('AccountMenu drops the local dispatchEvent body + imports the lib', () => {
+    const src = fs.readFileSync(ACCOUNT, 'utf8');
+    assert.match(src, /import\s+\{\s*dispatchEvent\s*\}\s+from\s+'\.\.\/lib\/dispatch-event'/);
+    assert.doesNotMatch(src, /function dispatchEvent\(name: string\)/);
+  });
+});
+
 describe('extracted: useSilentPoll hook (v1.10.743)', () => {
   const fs = require('fs');
   const path = require('path');

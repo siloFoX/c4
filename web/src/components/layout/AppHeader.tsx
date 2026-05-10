@@ -3,6 +3,7 @@ import AccountMenu from '../AccountMenu';
 import { IconButton, Tooltip } from '../ui';
 import TopTabs, { type TopView } from './TopTabs';
 import { useNavBadgeCounts } from '../../lib/use-nav-badge-counts';
+import { dispatchEvent } from '../../lib/dispatch-event';
 import {
   HELP_EVENT_OPEN_DRAWER,
   HELP_EVENT_OPEN_SHORTCUTS,
@@ -23,14 +24,7 @@ interface AppHeaderProps {
   onOpenPreferences?: () => void;
 }
 
-function dispatch(name: string): void {
-  if (typeof window === 'undefined') return;
-  try {
-    window.dispatchEvent(new CustomEvent(name));
-  } catch {
-    // non-browser test env
-  }
-}
+// (v1.10.744) dispatch helper moved to lib/dispatch-event.
 
 export default function AppHeader({
   sidebarOpen,
@@ -98,14 +92,14 @@ export default function AppHeader({
         <Tooltip label={t('common.helpCenter')} placement="bottom">
           <IconButton
             aria-label={t('common.helpCenter')}
-            onClick={() => dispatch(HELP_EVENT_OPEN_DRAWER)}
+            onClick={() => dispatchEvent(HELP_EVENT_OPEN_DRAWER)}
             icon={<HelpCircle className="h-4 w-4" />}
           />
         </Tooltip>
         <Tooltip label={t('common.shortcuts')} placement="bottom">
           <IconButton
             aria-label={t('common.shortcuts')}
-            onClick={() => dispatch(HELP_EVENT_OPEN_SHORTCUTS)}
+            onClick={() => dispatchEvent(HELP_EVENT_OPEN_SHORTCUTS)}
             icon={<Keyboard className="h-4 w-4" />}
           />
         </Tooltip>

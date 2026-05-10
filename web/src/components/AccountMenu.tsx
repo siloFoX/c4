@@ -12,6 +12,7 @@ import { ChevronUp, HelpCircle, Keyboard, LogOut, Settings, User } from 'lucide-
 import { DropdownMenu, type DropdownMenuItem } from './ui/dropdown-menu';
 import { Button } from './ui/button';
 import { cn } from '../lib/cn';
+import { dispatchEvent } from '../lib/dispatch-event';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { useAuthIdentity } from '../lib/use-auth-identity';
 import {
@@ -41,14 +42,7 @@ export const ACCOUNT_LABEL_KEYBOARD = 'Keyboard shortcuts';
 export const ACCOUNT_LABEL_HELP = 'Help center';
 export const ACCOUNT_LABEL_SIGNOUT = 'Sign out';
 
-function dispatchEvent(name: string): void {
-  if (typeof window === 'undefined') return;
-  try {
-    window.dispatchEvent(new CustomEvent(name));
-  } catch {
-    // SSR / test env — ignore.
-  }
-}
+// (v1.10.744) dispatch helper moved to lib/dispatch-event.
 
 function initialsFor(user: string | null): string {
   if (!user) return '?';
