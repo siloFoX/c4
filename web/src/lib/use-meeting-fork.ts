@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiPost } from './api';
 import { t } from './i18n';
-import type { MeetingTrackOrAuto } from '../components/MeetingsSearchFacets';
+import type { MeetingTrackOrAuto, Track } from '../components/MeetingsSearchFacets';
 
 // (v1.10.702) Extracted from MeetingsForkForm. Owns the
 // four form fields (mode / task / title / track), busy
@@ -71,7 +71,7 @@ export function useMeetingFork(args: {
         mode: MeetingForkMode;
         task?: string;
         title?: string;
-        track?: 'lightweight' | 'standard' | 'full';
+        track?: Track;
       } = { mode };
       if (task.trim()) body.task = task.trim();
       if (title.trim()) body.title = title.trim();

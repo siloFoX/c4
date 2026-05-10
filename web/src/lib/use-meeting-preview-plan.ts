@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { apiPost } from './api';
+import type { MeetingTrackOrAuto } from '../components/MeetingsSearchFacets';
 
 // (v1.10.648) Extracted from MeetingsComposer. Debounced
 // (400ms) POST /api/meetings/plan dispatcher preview that
@@ -7,6 +8,9 @@ import { apiPost } from './api';
 // policy in the composer drawer. Track is forwarded only
 // when the user has explicitly picked one — `auto` keeps
 // the planner free to choose.
+//
+// (v1.10.778) `newTrack` shape adopts MeetingTrackOrAuto
+// from MeetingsSearchFacets — was a 4-literal duplicate.
 
 export interface PreviewPlan {
   track: string;
@@ -24,7 +28,7 @@ interface PreviewPlanState {
 export function useMeetingPreviewPlan(args: {
   open: boolean;
   newTask: string;
-  newTrack: 'auto' | 'lightweight' | 'standard' | 'full';
+  newTrack: MeetingTrackOrAuto;
 }): PreviewPlanState {
   const { open, newTask, newTrack } = args;
   const [previewPlan, setPreviewPlan] = useState<PreviewPlan | null>(null);

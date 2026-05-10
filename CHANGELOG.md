@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.778] - 2026-05-10 — Track alias adoption — 3 more import sites
+
+**Web — final mop-up of the strict-Track / Track-or-
+auto literals.** Three more files were carrying the
+literal union inline; all now import the canonical
+alias from `MeetingsSearchFacets.tsx`:
+
+- `lib/use-meeting-preview-plan.ts` — `newTrack`
+  param adopts `MeetingTrackOrAuto`.
+- `lib/use-meeting-classify-preview.ts` —
+  `ClassifyPreview.track` adopts strict `Track`
+  (the daemon classifies into one of the three real
+  tracks; `'auto'` is a UI-only request marker).
+- `lib/use-meeting-fork.ts` — the fork-payload
+  typedef's `track?` field adopts strict `Track`
+  (the wire shape; `'auto'` is the sentinel that
+  prevents the field from being sent).
+
+Boundary tests: 1 redirected. All 5 quality gates
+green.
+
 ## [1.10.777] - 2026-05-10 — Hoist MeetingRetroBusy local alias
 
 **Web — small in-file dedup.** The `'preview' |

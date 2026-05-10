@@ -6342,10 +6342,13 @@ describe('extracted: useMeetingClassifyPreview hook (v1.10.647)', () => {
   const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'MeetingsComposer.tsx');
 
   it('exports the hook + ClassifyPreview type', () => {
+    // (v1.10.778) ClassifyPreview.track adopts the strict Track
+    // alias from MeetingsSearchFacets (no inline literal).
     const src = fs.readFileSync(HOOK, 'utf8');
     assert.match(src, /export function useMeetingClassifyPreview/);
     assert.match(src, /export interface ClassifyPreview/);
-    assert.match(src, /track:\s*'lightweight'\s*\|\s*'standard'\s*\|\s*'full'/);
+    assert.match(src, /track:\s*Track/);
+    assert.match(src, /import type \{\s*Track\s*\} from '\.\.\/components\/MeetingsSearchFacets'/);
   });
 
   it('debounces the GET /api/meetings/classify-track call at 250ms', () => {
