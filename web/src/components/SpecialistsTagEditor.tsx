@@ -21,7 +21,9 @@ export default function SpecialistsTagEditor({ specialistId, tags, onSaved, onEr
   useLocale();
 
   // (v1.10.706) Tag-editor flow moved to lib/use-specialist-tag-editor.
-  const { open, setOpen, value, setValue, busy, handleSave } =
+  // (v1.10.760) `toggleWithTags` combines the toggle + prefill so the
+  // edit/cancel button references one stable callback.
+  const { open, toggleWithTags, value, setValue, busy, handleSave } =
     useSpecialistTagEditor({ specialistId, onSaved, onError });
 
   return (
@@ -31,10 +33,7 @@ export default function SpecialistsTagEditor({ specialistId, tags, onSaved, onEr
         <Button
           size="sm"
           variant="outline"
-          onClick={() => {
-            setOpen((v) => !v);
-            setValue(Array.isArray(tags) ? tags.join(', ') : '');
-          }}
+          onClick={() => toggleWithTags(tags)}
           className="h-6 px-2 text-[10px]"
         >
           {open ? t('specialists.tags.cancel') : t('specialists.tags.edit')}

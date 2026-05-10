@@ -59,14 +59,14 @@ export default function App() {
   }, [setTheme]);
   const {
     sidebarMode, setSidebarMode,
-    sidebarCollapsed, setSidebarCollapsed,
+    sidebarCollapsed, setSidebarCollapsed, toggleSidebarCollapsed,
     detailMode, setDetailMode,
     topView, setTopView,
   } = useUiPreferences({ onCrossTabSync });
 
   // (v1.10.670) Ctrl+B / Cmd+B sidebar shortcut moved to hook.
   useSidebarShortcut({
-    onToggleCollapsed: () => setSidebarCollapsed((v) => !v),
+    onToggleCollapsed: toggleSidebarCollapsed,
     onToggleOpen: toggleSidebarOpen,
   });
 
@@ -177,7 +177,7 @@ export default function App() {
             selectedWorker={selectedWorker}
             onSelect={handleSelect}
             collapsed={sidebarCollapsed}
-            onToggleCollapsed={() => setSidebarCollapsed((v) => !v)}
+            onToggleCollapsed={toggleSidebarCollapsed}
             onLogout={handleLogout}
             onOpenPreferences={() => setTopView('settings')}
           />

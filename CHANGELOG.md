@@ -4,6 +4,31 @@
 
 (no entries — next release window)
 
+## [1.10.760] - 2026-05-10 — Stabilize sidebar + tag-editor toggle callbacks
+
+**Web — two more `(v) => !v` arrow allocations
+removed by pushing the toggle into its owning hook.**
+
+- `lib/use-ui-preferences.ts` exposes a memoized
+  `toggleSidebarCollapsed` (`useCallback` over the
+  existing `setSidebarCollapsed`). `App.tsx` now
+  passes the same identity to the Ctrl+B / ⌘+B
+  shortcut hook **and** the sidebar header chevron,
+  rather than minting `() => setSidebarCollapsed((v)
+  => !v)` at each call site.
+- `lib/use-specialist-tag-editor.ts` exposes
+  `toggleWithTags(tags)` — the open-flip + tag-list
+  prefill that previously lived as a 3-line inline
+  arrow on the Edit/Cancel button. The JSX now reads
+  `onClick={() => toggleWithTags(tags)}` (the
+  inner `tags` closure is unavoidable since it's a
+  prop, but the open/value state mutation is owned
+  by the hook).
+
+Boundary tests: 2 new assertions covering the new
+hook returns + the parent's drop-the-inline-arrow
+expectation. All 5 quality gates green.
+
 ## [1.10.759] - 2026-05-10 — Extract useXtermFontSize + useToggle XtermView search
 
 **Web — two more XtermView extractions.** The xterm

@@ -2808,6 +2808,18 @@ describe('extracted: useUiPreferences hook (v1.10.732)', () => {
     assert.doesNotMatch(src, /writeSidebarCollapsed\(/);
     assert.doesNotMatch(src, /addEventListener\('storage'/);
   });
+
+  it('exposes a stable toggleSidebarCollapsed (v1.10.760)', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    // Returned in the state object + memoized via useCallback so the
+    // shortcut hook + sidebar header chevron share one identity.
+    assert.match(src, /toggleSidebarCollapsed:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /const toggleSidebarCollapsed = useCallback\(/);
+    assert.match(src, /setSidebarCollapsed\(\(v\)\s*=>\s*!v\)/);
+    const parent = fs.readFileSync(PARENT, 'utf8');
+    assert.match(parent, /toggleSidebarCollapsed/);
+    assert.doesNotMatch(parent, /setSidebarCollapsed\(\(v\)\s*=>\s*!v\)/);
+  });
 });
 
 describe('extracted: useWorkspaces hook (v1.10.731)', () => {
@@ -3806,6 +3818,19 @@ describe('extracted: useSpecialistTagEditor hook (v1.10.706)', () => {
     assert.match(src, /useSpecialistTagEditor\(\{\s*specialistId,\s*onSaved,\s*onError\s*\}\)/);
     assert.doesNotMatch(src, /const \[open, setOpen\]/);
     assert.doesNotMatch(src, /const handleSave = useCallback/);
+  });
+
+  it('exposes a combined toggleWithTags callback (v1.10.760)', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    // The combined open-toggle + tag-prefill is owned by the hook so
+    // the JSX edit/cancel button passes a single tag-aware callback.
+    assert.match(src, /toggleWithTags:\s*\(tags:\s*string\[\] \| undefined\)\s*=>\s*void/);
+    assert.match(src, /setOpen\(\(prev\) => !prev\)/);
+    assert.match(src, /setValue\(Array\.isArray\(tags\) \? tags\.join\(', '\) : ''\)/);
+    const parent = fs.readFileSync(PARENT, 'utf8');
+    assert.match(parent, /toggleWithTags\(tags\)/);
+    // Inline two-call combo dropped.
+    assert.doesNotMatch(parent, /setOpen\(\(v\) => !v\)/);
   });
 });
 

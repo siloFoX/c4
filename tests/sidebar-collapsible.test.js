@@ -180,8 +180,11 @@ describe('App.tsx wires sidebarCollapsed + Ctrl+B', () => {
   });
 
   it('passes collapsed + onToggleCollapsed through to Sidebar', () => {
+    // (v1.10.760) toggleSidebarCollapsed comes from useUiPreferences as a
+    // memoized callback so the same identity flows to the chevron + the
+    // Ctrl+B / ⌘+B shortcut hook.
     assert.match(src, /collapsed=\{sidebarCollapsed\}/);
-    assert.match(src, /onToggleCollapsed=\{\(\) => setSidebarCollapsed\(\(v\) => !v\)\}/);
+    assert.match(src, /onToggleCollapsed=\{toggleSidebarCollapsed\}/);
   });
 
   it('binds Ctrl+B / Cmd+B with input/textarea/contentEditable guard', () => {
@@ -199,12 +202,19 @@ describe('App.tsx wires sidebarCollapsed + Ctrl+B', () => {
 
   it('routes Ctrl+B to collapse on desktop and to open/close on mobile', () => {
     // (v1.10.670) Routing also lives in the hook now; App still owns the setter.
+    // (v1.10.760) toggleSidebarCollapsed lives on useUiPreferences and is
+    // passed straight through to the shortcut hook.
     const hookSrc = fs.readFileSync(
       path.join(ROOT, 'web/src/lib/use-sidebar-shortcut.ts'),
       'utf8',
     );
     assert.match(hookSrc, /matchMedia\('\(min-width: 768px\)'\)/);
-    assert.match(src, /setSidebarCollapsed\(\(v\) => !v\)/);
+    assert.match(src, /onToggleCollapsed:\s*toggleSidebarCollapsed/);
+    const prefsSrc = fs.readFileSync(
+      path.join(ROOT, 'web/src/lib/use-ui-preferences.ts'),
+      'utf8',
+    );
+    assert.match(prefsSrc, /setSidebarCollapsed\(\(v\) => !v\)/);
   });
 
   it('cross-tab storage handler refreshes the collapsed flag', () => {

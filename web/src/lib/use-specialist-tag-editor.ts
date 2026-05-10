@@ -13,6 +13,7 @@ import { t, tFormat } from './i18n';
 interface SpecialistTagEditorState {
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  toggleWithTags: (tags: string[] | undefined) => void;
   value: string;
   setValue: React.Dispatch<React.SetStateAction<string>>;
   busy: boolean;
@@ -54,5 +55,14 @@ export function useSpecialistTagEditor(args: {
     }
   }, [value, specialistId, onSaved, onError]);
 
-  return { open, setOpen, value, setValue, busy, handleSave };
+  // (v1.10.760) Combined open-toggle + tag-prefill — the JSX
+  // edit/cancel button needs both, so pushing the pair into a
+  // memoized callback drops the inline arrow allocation per
+  // render and keeps the hook owning both pieces of state.
+  const toggleWithTags = useCallback((tags: string[] | undefined) => {
+    setOpen((prev) => !prev);
+    setValue(Array.isArray(tags) ? tags.join(', ') : '');
+  }, []);
+
+  return { open, setOpen, toggleWithTags, value, setValue, busy, handleSave };
 }

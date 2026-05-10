@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   readDetailMode,
   readSidebarCollapsed,
@@ -31,6 +31,7 @@ export interface UseUiPreferencesState {
   setSidebarMode: (next: SidebarMode) => void;
   sidebarCollapsed: boolean;
   setSidebarCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
+  toggleSidebarCollapsed: () => void;
   detailMode: DetailMode;
   setDetailMode: (next: DetailMode) => void;
   topView: TopView;
@@ -64,9 +65,17 @@ export function useUiPreferences(args?: {
     return () => window.removeEventListener('storage', onStorage);
   }, [onCrossTabSync]);
 
+  // (v1.10.760) Stable toggle for the collapsed slot — used by
+  // App.tsx for both the Ctrl+B / Cmd+B shortcut and the sidebar
+  // header chevron, so a single memoized callback flows through
+  // both call sites without per-render arrow allocation.
+  const toggleSidebarCollapsed = useCallback(() => {
+    setSidebarCollapsed((v) => !v);
+  }, []);
+
   return {
     sidebarMode, setSidebarMode,
-    sidebarCollapsed, setSidebarCollapsed,
+    sidebarCollapsed, setSidebarCollapsed, toggleSidebarCollapsed,
     detailMode, setDetailMode,
     topView, setTopView,
   };
