@@ -93,8 +93,8 @@ export default function WikiView() {
     bulkFailed,
     bulkGitCommit,
     bulkGitPush,
-    setBulkGitCommit,
-    setBulkGitPush,
+    toggleBulkGitCommit,
+    toggleBulkGitPush,
     handleBulkPublish,
   } = useWikiBulkPublish({ runSearch });
 
@@ -117,8 +117,8 @@ export default function WikiView() {
           bulkGitPush={bulkGitPush}
           bulkMsg={bulkMsg}
           bulkFailed={bulkFailed}
-          onBulkGitCommit={setBulkGitCommit}
-          onBulkGitPush={setBulkGitPush}
+          onBulkGitCommit={toggleBulkGitCommit}
+          onBulkGitPush={toggleBulkGitPush}
           onBulkPublish={handleBulkPublish}
         />
         <CardContent className="flex min-h-0 flex-1 flex-col overflow-y-auto p-0">

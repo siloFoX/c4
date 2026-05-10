@@ -22,9 +22,9 @@ interface MeetingPublishState {
   msg: string | null;
   failed: boolean;
   gitCommit: boolean;
-  setGitCommit: (next: boolean) => void;
+  toggleGitCommit: (next: boolean) => void;
   gitPush: boolean;
-  setGitPush: (next: boolean) => void;
+  toggleGitPush: (next: boolean) => void;
   handlePublish: () => Promise<void>;
 }
 
@@ -71,10 +71,25 @@ export function useMeetingPublish(args: {
     }
   }, [gitCommit, gitPush, meetingId]);
 
+  // (v1.10.763) Coupled-bool toggles — turning gitCommit OFF also
+  // disables gitPush (push without commit is undefined); turning
+  // gitPush ON also enables gitCommit (push needs a commit). The
+  // coupling used to live as inline JSX onChange logic in
+  // MeetingsPublishControls; pulling it into the hook keeps the
+  // state machine + invariants in one file.
+  const toggleGitCommit = useCallback((next: boolean) => {
+    setGitCommit(next);
+    if (!next) setGitPush(false);
+  }, []);
+  const toggleGitPush = useCallback((next: boolean) => {
+    setGitPush(next);
+    if (next) setGitCommit(true);
+  }, []);
+
   return {
     busy, msg, failed,
-    gitCommit, setGitCommit,
-    gitPush, setGitPush,
+    gitCommit, toggleGitCommit,
+    gitPush, toggleGitPush,
     handlePublish,
   };
 }

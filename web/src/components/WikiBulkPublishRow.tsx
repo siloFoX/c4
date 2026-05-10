@@ -46,10 +46,7 @@ export default function WikiBulkPublishRow({
         <input
           type="checkbox"
           checked={gitCommit}
-          onChange={(e) => {
-            onGitCommit(e.target.checked);
-            if (!e.target.checked) onGitPush(false);
-          }}
+          onChange={(e) => onGitCommit(e.target.checked)}
           disabled={busy}
           className="h-3 w-3"
         />
@@ -59,10 +56,7 @@ export default function WikiBulkPublishRow({
         <input
           type="checkbox"
           checked={gitPush}
-          onChange={(e) => {
-            onGitPush(e.target.checked);
-            if (e.target.checked) onGitCommit(true);
-          }}
+          onChange={(e) => onGitPush(e.target.checked)}
           disabled={busy}
           className="h-3 w-3"
         />

@@ -4,6 +4,35 @@
 
 (no entries — next release window)
 
+## [1.10.763] - 2026-05-10 — Move git-commit/push toggle interlocks into hooks
+
+**Web — coupled-checkbox state machine pulled out
+of two display components.** The "turning git-commit
+OFF auto-disables push" / "turning push ON
+auto-enables commit" interlock used to live as
+inline JSX `onChange` blocks; now both hooks own
+the invariants.
+
+- `lib/use-meeting-publish.ts` — exposes
+  `toggleGitCommit(next)` and `toggleGitPush(next)`.
+  `MeetingsPublishControls.tsx` switched from a
+  4-line inline block per checkbox to a single
+  callback per box (`onChange={(e) =>
+  toggleGitCommit(e.target.checked)}`).
+- `lib/use-wiki-bulk-publish.ts` — same shape:
+  `toggleBulkGitCommit` / `toggleBulkGitPush`. The
+  prop chain through `WikiView` →
+  `WikiSearchCardHeader` → `WikiBulkPublishRow` is
+  unchanged; the row now passes a single argument
+  through to the parent's onGitCommit/onGitPush.
+- `SpecialistsBulkOpsToolbar.tsx` —
+  `handleImportFileChange` (file-input change
+  handler with `target.value = ''` reset) wrapped
+  in a stable `useCallback`.
+
+Boundary tests updated for both interlocks (3
+suites). All 5 quality gates green.
+
 ## [1.10.762] - 2026-05-10 — Stabilize three Cancel / jump-to-latest onClicks
 
 **Web — three more inline `onClick` arrow blocks

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useSpecialistsExport } from '../lib/use-specialists-export';
 import { useSpecialistsImport } from '../lib/use-specialists-import';
 import { useAuditRotate } from '../lib/use-audit-rotate';
@@ -38,6 +38,21 @@ export default function SpecialistsBulkOpsToolbar({ onChange }: Props) {
 
   // (v1.10.687) Audit rotate moved to lib/use-audit-rotate.
   const { rotateBusy, rotateMsg, rotateFailed, handleAuditRotate } = useAuditRotate();
+
+  // (v1.10.763) Stable file-input change handler — pulls the
+  // first file off the FileList, fires the import preview, then
+  // resets `target.value` so re-selecting the same file fires
+  // the change event again.
+  const handleImportFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        void handleImportFile(file);
+        e.target.value = '';
+      }
+    },
+    [handleImportFile],
+  );
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md border border-border/40 bg-muted/5 px-3 py-1.5 text-[11px]">
@@ -79,14 +94,7 @@ export default function SpecialistsBulkOpsToolbar({ onChange }: Props) {
           type="file"
           accept="application/json,.json"
           disabled={importBusy}
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              void handleImportFile(file);
-              // Reset input so re-selecting the same file fires
-              e.target.value = '';
-            }
-          }}
+          onChange={handleImportFileChange}
           className="text-[10px] file:mr-2 file:rounded file:border file:border-border file:bg-background file:px-2 file:py-0.5 file:text-[10px]"
           aria-label={t('specialists.action.importBundle')}
         />

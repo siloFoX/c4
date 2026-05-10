@@ -15,8 +15,8 @@ interface WikiBulkPublish {
   bulkFailed: boolean;
   bulkGitCommit: boolean;
   bulkGitPush: boolean;
-  setBulkGitCommit: (next: boolean) => void;
-  setBulkGitPush: (next: boolean) => void;
+  toggleBulkGitCommit: (next: boolean) => void;
+  toggleBulkGitPush: (next: boolean) => void;
   handleBulkPublish: () => Promise<void>;
 }
 
@@ -66,14 +66,27 @@ export function useWikiBulkPublish(args: {
     }
   }, [bulkGitCommit, bulkGitPush, runSearch]);
 
+  // (v1.10.763) Coupled-bool toggles — turning bulkGitCommit OFF
+  // also disables bulkGitPush; turning bulkGitPush ON also enables
+  // bulkGitCommit. The coupling used to live as inline JSX onChange
+  // logic in WikiBulkPublishRow; the hook owns the invariants now.
+  const toggleBulkGitCommit = useCallback((next: boolean) => {
+    setBulkGitCommit(next);
+    if (!next) setBulkGitPush(false);
+  }, []);
+  const toggleBulkGitPush = useCallback((next: boolean) => {
+    setBulkGitPush(next);
+    if (next) setBulkGitCommit(true);
+  }, []);
+
   return {
     bulkBusy,
     bulkMsg,
     bulkFailed,
     bulkGitCommit,
     bulkGitPush,
-    setBulkGitCommit,
-    setBulkGitPush,
+    toggleBulkGitCommit,
+    toggleBulkGitPush,
     handleBulkPublish,
   };
 }

@@ -21,8 +21,8 @@ export default function MeetingsPublishControls({ meetingId }: Props) {
 
   const {
     busy, msg, failed,
-    gitCommit, setGitCommit,
-    gitPush, setGitPush,
+    gitCommit, toggleGitCommit,
+    gitPush, toggleGitPush,
     handlePublish,
   } = useMeetingPublish({ meetingId });
 
@@ -43,10 +43,7 @@ export default function MeetingsPublishControls({ meetingId }: Props) {
         <input
           type="checkbox"
           checked={gitCommit}
-          onChange={(e) => {
-            setGitCommit(e.target.checked);
-            if (!e.target.checked) setGitPush(false);
-          }}
+          onChange={(e) => toggleGitCommit(e.target.checked)}
           disabled={busy}
           className="h-3 w-3"
         />
@@ -56,10 +53,7 @@ export default function MeetingsPublishControls({ meetingId }: Props) {
         <input
           type="checkbox"
           checked={gitPush}
-          onChange={(e) => {
-            setGitPush(e.target.checked);
-            if (e.target.checked) setGitCommit(true);
-          }}
+          onChange={(e) => toggleGitPush(e.target.checked)}
           disabled={busy}
           className="h-3 w-3"
         />

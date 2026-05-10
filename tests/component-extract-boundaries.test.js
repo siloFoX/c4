@@ -1200,9 +1200,19 @@ describe('extracted: MeetingsPublishControls (v1.10.553)', () => {
   });
 
   it('gitPush check forces gitCommit on (and gitCommit off forces gitPush off)', () => {
+    // (v1.10.763) Coupling moved into use-meeting-publish so the
+    // hook owns both the state and the invariants.
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-publish.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /toggleGitCommit = useCallback\(\(next: boolean\) => \{[\s\S]*?if \(!next\) setGitPush\(false\)/);
+    assert.match(hookSrc, /toggleGitPush = useCallback\(\(next: boolean\) => \{[\s\S]*?if \(next\) setGitCommit\(true\)/);
     const src = read('MeetingsPublishControls.tsx');
-    assert.match(src, /if \(!e\.target\.checked\) setGitPush\(false\)/);
-    assert.match(src, /if \(e\.target\.checked\) setGitCommit\(true\)/);
+    assert.match(src, /toggleGitCommit\(e\.target\.checked\)/);
+    assert.match(src, /toggleGitPush\(e\.target\.checked\)/);
   });
 
   it('is imported and rendered by MeetingsDetailCompletedActions (v1.10.593)', () => {
@@ -7697,13 +7707,24 @@ describe('extracted: WikiBulkPublishRow (v1.10.608)', () => {
   });
 
   it('renders publish button + 2 git toggles + result message; preserves toggle interlock', () => {
+    // (v1.10.763) Toggle interlock moved into the parent
+    // hook (use-wiki-bulk-publish toggleBulkGitCommit / Push)
+    // so this row stays a thin display component.
     const src = read('WikiBulkPublishRow.tsx');
     assert.match(src, /wiki\.publishAll\.label/);
     assert.match(src, /wiki\.publishAll\.publishing/);
     assert.match(src, /wiki\.gitCommit/);
     assert.match(src, /wiki\.gitPush/);
-    assert.match(src, /if \(!e\.target\.checked\) onGitPush\(false\)/);
-    assert.match(src, /if \(e\.target\.checked\) onGitCommit\(true\)/);
+    assert.match(src, /onGitCommit\(e\.target\.checked\)/);
+    assert.match(src, /onGitPush\(e\.target\.checked\)/);
+    const fs = require('fs');
+    const path = require('path');
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-wiki-bulk-publish.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /toggleBulkGitCommit = useCallback\(\(next: boolean\) => \{[\s\S]*?if \(!next\) setBulkGitPush\(false\)/);
+    assert.match(hookSrc, /toggleBulkGitPush = useCallback\(\(next: boolean\) => \{[\s\S]*?if \(next\) setBulkGitCommit\(true\)/);
   });
 
   it('is imported and rendered by WikiSearchCardHeader (v1.10.620); parent wires onPublish', () => {
