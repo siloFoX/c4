@@ -2057,6 +2057,42 @@ describe('extracted: useChatBackfill hook (v1.10.738)', () => {
   });
 });
 
+describe('extracted: useMorning hook (v1.10.748)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-morning.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'pages', 'Morning.tsx');
+
+  it('exports the hook + accepts showToast + MorningResponse type', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useMorning/);
+    assert.match(src, /showToast:\s*\(message:\s*string,\s*type:\s*ToastType\)\s*=>\s*void/);
+    assert.match(src, /export interface MorningResponse/);
+  });
+
+  it('generate POSTs /api/morning + handles 200+r.error vs throw paths', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiPost<MorningResponse>\('\/api\/morning',\s*\{\}\)/);
+    assert.match(src, /if \(r\.error\)/);
+    assert.match(src, /setReport\(null\)/);
+  });
+
+  it('copy writes content to clipboard + routes both branches through showToast', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(!report\?\.content\) return/);
+    assert.match(src, /navigator\.clipboard\.writeText\(report\.content\)/);
+    assert.match(src, /morning\.toast\.copied/);
+    assert.match(src, /morning\.toast\.copyFailed/);
+  });
+
+  it('parent Morning.tsx wires the hook + drops the inline state', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useMorning\s*\}\s+from\s+'\.\.\/lib\/use-morning'/);
+    assert.match(src, /useMorning\(\{[\s\S]*?showToast[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /apiPost<MorningResponse>/);
+  });
+});
+
 describe('extracted: useAutoDispatch hook (v1.10.747)', () => {
   const fs = require('fs');
   const path = require('path');

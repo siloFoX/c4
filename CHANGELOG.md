@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.748] - 2026-05-10 — Extract useMorning hook
+
+**Web — `pages/Morning.tsx` shrunk by 39 lines (136 → 97).**
+The morning-report page's two flows — `generate`
+(POST `/api/morning` triggers report generation,
+the response carries the rendered markdown +
+section breakdown) and `copy` (writes the raw
+content to `navigator.clipboard` with a success /
+failure toast routed through the parent's
+showToast) — move to a `useMorning({ showToast })`
+hook returning `{ report, loading, error,
+generate, copy }`.
+
+The hook handles both error paths: `r.error` set
+on a 200 response (report cleared, error slot set)
+vs throw (same outcome, error from the Error
+message). The clipboard failure path goes through
+showToast with the `morning.toast.copyFailed`
+i18n key.
+
+`MorningResponse` is exported from the hook so the
+page JSX renderer keeps typing the
+`r.sections` / `r.content` / `r.generatedAt`
+narrowing without a duplicate definition. The
+`apiPost` import drops from `pages/Morning.tsx`
+since the hook owns it.
+
+Boundary suite #214 in
+`tests/component-extract-boundaries.test.js` pins
+the hook signature, the dual-error-path generate
+contract, the clipboard-write + toast routing for
+copy, and verifies the parent wires the hook +
+drops the inline state.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (1013 / 214 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.747] - 2026-05-10 — Extract useAutoDispatch hook
 
 **Web — `pages/Auto.tsx` shrunk by 43 lines (155 → 112).**

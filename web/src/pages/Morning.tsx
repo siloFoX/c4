@@ -1,63 +1,24 @@
-import { useCallback, useState } from 'react';
 import { Clipboard, RefreshCw, Sunrise } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Panel, Tooltip } from '../components/ui';
-import { apiPost } from '../lib/api';
 import { renderMarkdown } from '../lib/markdown';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { useToast } from '../lib/use-toast';
+import { useMorning } from '../lib/use-morning';
 
 // 8.20B Morning report. POST /api/morning triggers generation; the
 // response includes the rendered markdown. A "Copy" button grabs the
 // raw markdown for pasting into Slack/docs.
-
-interface MorningResponse {
-  content?: string;
-  generatedAt?: string;
-  sections?: { title: string; body: string }[];
-  error?: string;
-  [key: string]: unknown;
-}
-
 // (v1.10.722) Toast slot adopted from lib/use-toast (shared infra).
+// (v1.10.748) Generate + copy flows moved to lib/use-morning.
 
 export default function Morning() {
   useLocale();
-  const [report, setReport] = useState<MorningResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
   const { toast, showToast, dismissToast } = useToast();
-
-  const generate = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const r = (await apiPost<MorningResponse>('/api/morning', {})) as MorningResponse;
-      if (r.error) {
-        setError(r.error);
-        setReport(null);
-      } else {
-        setReport(r);
-      }
-    } catch (e) {
-      setError((e as Error).message);
-      setReport(null);
-    }
-    setLoading(false);
-  }, []);
-
-  const copy = useCallback(async () => {
-    if (!report?.content) return;
-    try {
-      await navigator.clipboard.writeText(report.content);
-      showToast(t('morning.toast.copied'), 'success');
-    } catch (e) {
-      showToast(tFormat('morning.toast.copyFailed', { error: (e as Error).message }), 'error');
-    }
-  }, [report, showToast]);
+  const { report, loading, error, generate, copy } = useMorning({ showToast });
 
   return (
     <PageFrame
