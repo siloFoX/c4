@@ -4,6 +4,45 @@
 
 (no entries — next release window)
 
+## [1.10.747] - 2026-05-10 — Extract useAutoDispatch hook
+
+**Web — `pages/Auto.tsx` shrunk by 43 lines (155 → 112).**
+The Auto-mode dispatch flow — pre-validates task is
+non-empty (sets `error` slot for the page's
+`ErrorPanel`), gates the spawn behind a
+`window.confirm` so an accidental dispatch doesn't
+auto-spawn a worker, POSTs to `/api/auto` with the
+task + optional worker name, and routes both the
+spawn error and the success toast through the
+parent's `showToast` callback — moves to a
+`useAutoDispatch({ task, name, showToast })` hook
+returning `{ busy, error, result, dispatch }`.
+
+The page keeps the `task` and `name` Input slots
+inline (JSX-bound form state) and feeds them to the
+hook. The hook owns the `result` payload narrowing
+(success path's `r.name ? spawnedAs : spawned` branch
+stays inside the hook).
+
+`AutoResponse` is exported from the hook so the page
+JSX renderer keeps typing the result narrowing
+without a duplicate definition. The `apiPost` /
+`tFormat` imports drop from the page since their
+last consumers moved into the hook.
+
+Boundary suite #213 in
+`tests/component-extract-boundaries.test.js` pins
+the hook signature, the task non-empty
+pre-validation, the `window.confirm` gate, the POST
+shape with `body` (which conditionally includes
+`name`), and the i18n toast key mapping. Verifies
+the parent wires the hook + drops the inline state.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (1009 / 213 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.746] - 2026-05-10 — Extract useProfiles + useTemplates + useCleanup hooks
 
 **Web — three pages shrunk by 126 lines combined.**

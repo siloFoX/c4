@@ -1,68 +1,25 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { RefreshCw, Rocket } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Input, Label, Panel, Tooltip } from '../components/ui';
-import { apiPost } from '../lib/api';
-import { t, tFormat, useLocale } from '../lib/i18n';
+import { t, useLocale } from '../lib/i18n';
 import { useToast } from '../lib/use-toast';
+import { useAutoDispatch } from '../lib/use-auto-dispatch';
 
 // 8.20B Auto mode. POSTs to /api/auto which spawns an autonomous
 // manager + scribe for the given task. Mirrors `c4 auto`.
-
-interface AutoResponse {
-  name?: string;
-  status?: string;
-  branch?: string;
-  error?: string;
-  [key: string]: unknown;
-}
-
 // (v1.10.722) Toast slot adopted from lib/use-toast (shared infra).
+// (v1.10.747) Dispatch flow + state machine moved to lib/use-auto-dispatch.
 
 export default function Auto() {
   useLocale();
   const [task, setTask] = useState('');
   const [name, setName] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<AutoResponse | null>(null);
   const { toast, showToast, dismissToast } = useToast();
-
-  const dispatch = useCallback(async () => {
-    if (!task.trim()) {
-      setError(t('auto.error.taskRequired'));
-      return;
-    }
-    if (!window.confirm(t('auto.confirmDispatch'))) {
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      const body: Record<string, unknown> = { task };
-      if (name.trim()) body['name'] = name.trim();
-      const r = (await apiPost<AutoResponse>('/api/auto', body)) as AutoResponse;
-      if (r.error) {
-        setError(r.error);
-        showToast(tFormat('auto.toast.dispatchFailed', { error: r.error }), 'error');
-      } else {
-        setResult(r);
-        showToast(
-          r.name
-            ? tFormat('auto.toast.spawnedAs', { name: r.name })
-            : t('auto.toast.spawned'),
-          'success',
-        );
-      }
-    } catch (e) {
-      setError((e as Error).message);
-      showToast(tFormat('auto.toast.dispatchFailed', { error: (e as Error).message }), 'error');
-    }
-    setBusy(false);
-  }, [task, name, showToast]);
+  const { busy, error, result, dispatch } = useAutoDispatch({ task, name, showToast });
 
   return (
     <PageFrame

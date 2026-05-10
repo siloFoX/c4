@@ -2057,6 +2057,43 @@ describe('extracted: useChatBackfill hook (v1.10.738)', () => {
   });
 });
 
+describe('extracted: useAutoDispatch hook (v1.10.747)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-auto-dispatch.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'pages', 'Auto.tsx');
+
+  it('exports the hook + accepts task/name/showToast', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useAutoDispatch/);
+    assert.match(src, /task:\s*string/);
+    assert.match(src, /name:\s*string/);
+    assert.match(src, /showToast:\s*\(message:\s*string,\s*type:\s*ToastType\)\s*=>\s*void/);
+  });
+
+  it('pre-validates task non-empty + window.confirm gates spawn', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(!task\.trim\(\)\)/);
+    assert.match(src, /auto\.error\.taskRequired/);
+    assert.match(src, /window\.confirm\(t\('auto\.confirmDispatch'\)\)/);
+  });
+
+  it('POSTs /api/auto + routes failure through showToast', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiPost<AutoResponse>\('\/api\/auto',\s*body\)/);
+    assert.match(src, /auto\.toast\.dispatchFailed/);
+    assert.match(src, /auto\.toast\.spawnedAs/);
+    assert.match(src, /auto\.toast\.spawned/);
+  });
+
+  it('parent Auto.tsx wires the hook + drops the inline state', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useAutoDispatch\s*\}\s+from\s+'\.\.\/lib\/use-auto-dispatch'/);
+    assert.match(src, /useAutoDispatch\(\{[\s\S]*?task,\s*name,\s*showToast[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /apiPost<AutoResponse>/);
+  });
+});
+
 describe('extracted: useProfiles + useTemplates + useCleanup hooks (v1.10.746)', () => {
   const fs = require('fs');
   const path = require('path');
