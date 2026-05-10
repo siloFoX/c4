@@ -22,7 +22,11 @@ import { cn } from '../lib/cn';
 // (v1.10.667) Types + sessionId persistence + sendText
 // flow moved to lib/use-nl-chat.
 
-function formatTime(ts: number): string {
+// (v1.10.776) Renamed from formatTime so the local HH:MM
+// formatter doesn't shadow lib/chat-helpers' HH:MM:SS
+// formatter (used by ChatView). The natural-language Chat
+// page wants the shorter clock format here.
+function formatHHMM(ts: number): string {
   const d = new Date(ts);
   const hh = String(d.getHours()).padStart(2, '0');
   const mm = String(d.getMinutes()).padStart(2, '0');
@@ -132,7 +136,7 @@ export default function Chat() {
                         {m.intent}
                       </Badge>
                     ) : null}
-                    <span>{formatTime(m.ts)}</span>
+                    <span>{formatHHMM(m.ts)}</span>
                   </div>
                   <div>{m.text}</div>
                 </div>

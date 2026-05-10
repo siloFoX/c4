@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.776] - 2026-05-10 — Disambiguate Chat.tsx formatTime
+
+**Web — small naming-collision cleanup.** The
+natural-language `Chat.tsx` page declared a local
+`formatTime(ts: number)` returning HH:MM, while
+`lib/chat-helpers.ts` exports `formatTime(ts:
+number)` returning HH:MM:SS. Both were used by
+different chat surfaces; the duplicate name made
+grep / IDE jump-to-definition pick the wrong one.
+
+Renamed the local helper to `formatHHMM` so the
+two coexist without name-shadow. The exported
+`formatTime` in `lib/chat-helpers.ts` (used by
+ChatView for live messages) remains the canonical
+"timestamps with seconds" formatter; the
+ISO-input-to-HH:MM `formatTime` in
+`lib/conversation-render.tsx` keeps its name (it
+already disambiguates on the input type).
+
+All 5 quality gates green.
+
 ## [1.10.775] - 2026-05-10 — Consolidate Track / BackfillSource aliases
 
 **Web — sixth type-deduplication pass.** Two more
