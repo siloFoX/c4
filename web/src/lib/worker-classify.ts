@@ -4,10 +4,11 @@
 // missed the v8.21 string-enum form). Shared lib means a single
 // source of truth.
 
-import type { BadgeProps } from '../components/ui';
+import type { BadgeVariant } from '../components/ui';
 import type { Worker } from '../types';
 
-type BadgeVariant = NonNullable<BadgeProps['variant']>;
+// (v1.10.780) BadgeVariant alias adopted from ui/badge —
+// was redeclared here as `NonNullable<BadgeProps['variant']>`.
 
 // (8.21) Server emits the narrowed string enum:
 //   'approval_pending' | 'background_exit' | 'past_resolved' | null

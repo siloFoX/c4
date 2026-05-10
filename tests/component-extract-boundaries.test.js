@@ -8701,8 +8701,10 @@ describe('extracted: WorkerDetailHeader (v1.10.588)', () => {
   });
 
   it('is imported and rendered by WorkerDetail', () => {
+    // (v1.10.780) Default + named (TerminalTab) imports merged so
+    // WorkerDetail's `tab` state slot uses the canonical alias.
     const parent = read('WorkerDetail.tsx');
-    assert.match(parent, /import\s+WorkerDetailHeader\s+from\s+'\.\/WorkerDetailHeader'/);
+    assert.match(parent, /import\s+WorkerDetailHeader,\s*\{\s*type\s+TerminalTab\s*\}\s+from\s+'\.\/WorkerDetailHeader'/);
     assert.match(parent, /<WorkerDetailHeader/);
     assert.match(parent, /onTabChange=\{setTab\}/);
     assert.match(parent, /onBumpFont=\{bumpFont\}/);

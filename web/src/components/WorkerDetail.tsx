@@ -7,7 +7,7 @@ import { cn } from '../lib/cn';
 import { useLocale } from '../lib/i18n';
 import XtermView from './XtermView';
 import PinnedRulesEditor from './PinnedRulesEditor';
-import WorkerDetailHeader from './WorkerDetailHeader';
+import WorkerDetailHeader, { type TerminalTab } from './WorkerDetailHeader';
 import WorkerDetailKeysRow from './WorkerDetailKeysRow';
 import WorkerDetailComposer from './WorkerDetailComposer';
 import { useScrollback } from '../lib/use-scrollback';
@@ -19,7 +19,8 @@ interface WorkerDetailProps {
   workerName: string;
 }
 
-type Tab = 'screen' | 'scrollback';
+// (v1.10.780) Local `type Tab` removed in favor of TerminalTab
+// from WorkerDetailHeader (the canonical export site).
 
 // (v1.10.636) ReadResponse moved into useScrollback hook.
 
@@ -34,7 +35,7 @@ const DEFAULT_FONT = 12;
 
 export default function WorkerDetail({ workerName }: WorkerDetailProps) {
   useLocale();
-  const [tab, setTab] = useState<Tab>('screen');
+  const [tab, setTab] = useState<TerminalTab>('screen');
   const [inputText, setInputText] = useState<string>('');
 
   // (v1.10.637) Font-size persistence hook extracted to

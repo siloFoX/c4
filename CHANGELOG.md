@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.780] - 2026-05-10 — Two more alias adoption sites
+
+**Web — small dedup follow-up.** Two more files
+were carrying duplicate aliases inline; both now
+import the canonical version.
+
+- `lib/worker-classify.ts` — adopts `BadgeVariant`
+  from `ui/badge` (was redeclared as
+  `NonNullable<BadgeProps['variant']>`).
+- `components/WorkerDetail.tsx` — adopts
+  `TerminalTab` from `WorkerDetailHeader` (was
+  redeclared inline as `type Tab = 'screen' |
+  'scrollback'`). Merged the named import with
+  the existing default import for `<WorkerDetailHeader>`.
+
+Boundary tests: 1 redirected. All 5 quality gates
+green.
+
 ## [1.10.779] - 2026-05-10 — Hoist BadgeVariant alias to ui/badge
 
 **Web — small alias dedup.** Two components
