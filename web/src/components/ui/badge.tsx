@@ -30,6 +30,10 @@ export interface BadgeProps
   extends HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof badgeVariants> {}
 
+// (v1.10.779) Hoisted from WorkflowRunsPanel + HistoryDetailPane
+// where each redeclared this alias inline.
+export type BadgeVariant = NonNullable<BadgeProps['variant']>;
+
 export function Badge({ className, variant, ...props }: BadgeProps) {
   return (
     <span className={cn(badgeVariants({ variant }), className)} {...props} />

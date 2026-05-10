@@ -4,6 +4,21 @@
 
 (no entries — next release window)
 
+## [1.10.779] - 2026-05-10 — Hoist BadgeVariant alias to ui/badge
+
+**Web — small alias dedup.** Two components
+(`WorkflowRunsPanel.tsx` and `HistoryDetailPane.tsx`)
+each declared a local
+`type BadgeVariant = NonNullable<BadgeProps['variant']>;`.
+The variant set is owned by `ui/badge.tsx` (the `cva`
+config), so the alias now lives next to it and is
+re-exported through the `ui` barrel.
+
+Both consumers drop the local declaration and import
+`BadgeVariant` alongside `Badge`.
+
+All 5 quality gates green. No boundary-test churn.
+
 ## [1.10.778] - 2026-05-10 — Track alias adoption — 3 more import sites
 
 **Web — final mop-up of the strict-Track / Track-or-

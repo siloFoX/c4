@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
   Panel,
-  type BadgeProps,
+  type BadgeVariant,
 } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import type { HistoryWorkerDetail } from './HistoryView';
@@ -16,8 +16,8 @@ import type { HistoryWorkerDetail } from './HistoryView';
 // for a selected history worker — header (status / branch /
 // worktree), past-tasks list with commit hashes, and the raw
 // scrollback. Pure display.
-
-type BadgeVariant = NonNullable<BadgeProps['variant']>;
+//
+// (v1.10.779) BadgeVariant alias hoisted to ui/badge.
 
 function formatDate(iso: string | null): string {
   if (!iso) return '';

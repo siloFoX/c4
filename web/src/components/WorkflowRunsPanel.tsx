@@ -1,4 +1,4 @@
-import { Badge, Panel, type BadgeProps } from './ui';
+import { Badge, Panel, type BadgeVariant } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import type { WorkflowRun } from './WorkflowEditor';
 
@@ -7,8 +7,9 @@ import type { WorkflowRun } from './WorkflowEditor';
 // runs each expandable to show per-node results + inputs.
 // Pure controlled inputs: parent owns runs[] + expandedRunId
 // + onToggleExpanded.
-
-type BadgeVariant = NonNullable<BadgeProps['variant']>;
+//
+// (v1.10.779) BadgeVariant alias hoisted to ui/badge so the
+// inline `NonNullable<BadgeProps['variant']>` repeat is gone.
 
 function runStatusVariant(status: WorkflowRun['status']): BadgeVariant {
   if (status === 'completed') return 'success';
