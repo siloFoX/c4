@@ -8,12 +8,19 @@ import { t } from './i18n';
 // subscription owned by MeetingsView picks up
 // turn / advance / terminal events as the orchestrator
 // drives the meeting, so this hook does not refetch.
+//
+// (v1.10.771) MeetingBrain type alias canonical here;
+// the literal `'mock' | 'claude'` was duplicated across
+// 8 sites — the alias is now imported by the peer-retro
+// hook + the two run-controls JSX components.
+
+export type MeetingBrain = 'mock' | 'claude';
 
 export interface MeetingRunState {
   busy: boolean;
   error: string | null;
-  brain: 'mock' | 'claude';
-  setBrain: (next: 'mock' | 'claude') => void;
+  brain: MeetingBrain;
+  setBrain: (next: MeetingBrain) => void;
   handleRun: () => Promise<void>;
 }
 
@@ -21,7 +28,7 @@ export function useMeetingRun(args: { meetingId: string }): MeetingRunState {
   const { meetingId } = args;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [brain, setBrain] = useState<'mock' | 'claude'>('mock');
+  const [brain, setBrain] = useState<MeetingBrain>('mock');
 
   const handleRun = useCallback(async () => {
     setBusy(true);

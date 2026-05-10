@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { apiPost } from './api';
 import { t, tFormat } from './i18n';
 import { useAutoClearMessage } from './use-auto-clear-message';
+import type { MeetingBrain } from './use-meeting-run';
 
 // (v1.10.718) Extracted from MeetingsPeerRetroControls.
 // The peer-rating POST + busy / msg / failed / brain
@@ -27,8 +28,8 @@ export interface MeetingPeerRetroState {
   busy: boolean;
   msg: string | null;
   failed: boolean;
-  brain: 'mock' | 'claude';
-  setBrain: (next: 'mock' | 'claude') => void;
+  brain: MeetingBrain;
+  setBrain: (next: MeetingBrain) => void;
   handlePeerRetro: () => Promise<void>;
 }
 
@@ -36,7 +37,7 @@ export function useMeetingPeerRetro(args: { meetingId: string }): MeetingPeerRet
   const { meetingId } = args;
   const [busy, setBusy] = useState(false);
   const { msg, failed, setSuccess, setFailure, reset } = useAutoClearMessage();
-  const [brain, setBrain] = useState<'mock' | 'claude'>('mock');
+  const [brain, setBrain] = useState<MeetingBrain>('mock');
 
   const handlePeerRetro = useCallback(async () => {
     setBusy(true);

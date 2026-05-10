@@ -1036,13 +1036,15 @@ describe('extracted: MeetingsRunControls (v1.10.556)', () => {
 
   it('owns brain / busy / error state internally', () => {
     // (v1.10.716) State machine moved to use-meeting-run hook.
+    // (v1.10.771) Brain literal alias hoisted to MeetingBrain.
     const fs = require('fs');
     const path = require('path');
     const hookSrc = fs.readFileSync(
       path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-run.ts'),
       'utf8',
     );
-    assert.match(hookSrc, /useState<'mock' \| 'claude'>/);
+    assert.match(hookSrc, /export type MeetingBrain = 'mock' \| 'claude'/);
+    assert.match(hookSrc, /useState<MeetingBrain>/);
   });
 
   it('owns the /run POST with autoFinalize: true', () => {
@@ -1129,13 +1131,16 @@ describe('extracted: MeetingsPeerRetroControls (v1.10.554)', () => {
 
   it('owns brain selector state (mock | claude)', () => {
     // (v1.10.718) State machine moved to use-meeting-peer-retro hook.
+    // (v1.10.771) Brain literal imported as MeetingBrain alias from
+    // use-meeting-run (canonical type owner).
     const fs = require('fs');
     const path = require('path');
     const hookSrc = fs.readFileSync(
       path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-peer-retro.ts'),
       'utf8',
     );
-    assert.match(hookSrc, /useState<'mock' \| 'claude'>/);
+    assert.match(hookSrc, /useState<MeetingBrain>/);
+    assert.match(hookSrc, /import type \{\s*MeetingBrain\s*\} from '\.\/use-meeting-run'/);
   });
 
   it('owns the peer-retro POST handler', () => {
@@ -3573,9 +3578,13 @@ describe('extracted: useMeetingRun hook (v1.10.716)', () => {
   });
 
   it('parent MeetingsRunControls wires the hook + drops the inline state', () => {
+    // (v1.10.771) Brain alias imported alongside the hook so the
+    // <select onChange> cast lines reference the type alias rather
+    // than re-declaring the literal union.
     const src = fs.readFileSync(PARENT, 'utf8');
-    assert.match(src, /import\s+\{\s*useMeetingRun\s*\}\s+from\s+'\.\.\/lib\/use-meeting-run'/);
+    assert.match(src, /import\s+\{\s*useMeetingRun,\s*type\s+MeetingBrain\s*\}\s+from\s+'\.\.\/lib\/use-meeting-run'/);
     assert.match(src, /useMeetingRun\(\{[\s\S]*?meetingId[\s\S]*?\}\)/);
+    assert.match(src, /e\.target\.value\s*as\s*MeetingBrain/);
     assert.doesNotMatch(src, /const \[busy, setBusy\]/);
     assert.doesNotMatch(src, /const \[brain, setBrain\]/);
     assert.doesNotMatch(src, /apiPost\(/);

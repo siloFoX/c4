@@ -1,7 +1,7 @@
 import { Play } from 'lucide-react';
 import { Button } from './ui';
 import { t, useLocale } from '../lib/i18n';
-import { useMeetingRun } from '../lib/use-meeting-run';
+import { useMeetingRun, type MeetingBrain } from '../lib/use-meeting-run';
 
 // (v1.10.556) Extracted from MeetingsView. Run controls for a
 // pending meeting — brain selector + Run button + error
@@ -25,7 +25,7 @@ export default function MeetingsRunControls({ meetingId }: Props) {
         <select
           className="ml-1 rounded border border-border bg-background px-1 py-0.5 text-[11px]"
           value={brain}
-          onChange={(e) => setBrain(e.target.value as 'mock' | 'claude')}
+          onChange={(e) => setBrain(e.target.value as MeetingBrain)}
           disabled={busy}
           aria-label={t('meetings.brain.aria')}
         >

@@ -3,6 +3,7 @@ import { Button } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 import { useMeetingPeerRetro } from '../lib/use-meeting-peer-retro';
+import type { MeetingBrain } from '../lib/use-meeting-run';
 
 // (v1.10.554) Extracted from MeetingsView. Peer-retro brain
 // selector + run button + result message — operator picks the
@@ -28,7 +29,7 @@ export default function MeetingsPeerRetroControls({ meetingId }: Props) {
         <select
           className="ml-1 rounded border border-border bg-background px-1 py-0.5 text-[11px]"
           value={brain}
-          onChange={(e) => setBrain(e.target.value as 'mock' | 'claude')}
+          onChange={(e) => setBrain(e.target.value as MeetingBrain)}
           disabled={busy}
           aria-label={t('meetings.peerBrain.aria')}
         >

@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.771] - 2026-05-10 — Consolidate MeetingBrain type alias
+
+**Web — second type-deduplication pass.** The
+`'mock' | 'claude'` literal union appeared in 8
+sites across `use-meeting-run`, `use-meeting-peer-
+retro`, `MeetingsRunControls`, and
+`MeetingsPeerRetroControls`. Now exported as
+`MeetingBrain` from `lib/use-meeting-run.ts` (the
+canonical owner — meeting *run* is the domain root
+for the brain selector).
+
+`use-meeting-peer-retro` imports the alias via
+`import type { MeetingBrain } from './use-meeting-
+run'`; the 2 components do the same in JSX so the
+`as 'mock' | 'claude'` casts read as `as
+MeetingBrain`.
+
+Boundary tests: 3 redirected (the assertions now
+target the alias rather than the inline literal).
+All 5 quality gates green.
+
 ## [1.10.770] - 2026-05-10 — Consolidate Track type aliases
 
 **Web — small type-deduplication cleanup.** The
