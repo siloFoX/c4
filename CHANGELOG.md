@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.10.756] - 2026-05-10 — Extract useXtermSearchHotkey hook
+
+**Web — `components/XtermView.tsx` shrunk by 12 lines (213 → 201).**
+The Ctrl+F (open search overlay) and Escape
+(close-when-open) keybind listener moves to a
+`useXtermSearchHotkey({ containerRef, searchOpen,
+setSearchOpen })` hook.
+
+The listener is scoped to the terminal container —
+not the window — so the same chord doesn't fire
+when focus is in the chat composer or elsewhere on
+the page. The dep on `searchOpen` rebuilds the
+listener so the Escape-when-open branch sees a
+fresh closure value.
+
+The `useEffect` block in XtermView (~14 lines)
+collapses to a single
+`useXtermSearchHotkey({ containerRef, searchOpen,
+setSearchOpen })` call.
+
+Boundary suite #217 in
+`tests/component-extract-boundaries.test.js` pins
+the hook signature, the Ctrl+F + Escape contract,
+the container-scoped listener (not window), and
+verifies the parent wires the hook + drops the
+inline effect. Pre-existing `xterm-view.test.js`
+"opens a search overlay on Ctrl+F" assertion
+redirected — the hotkey portion reads the hook
+file; `findNext` / `findPrevious` stays in the
+XtermView's runSearch callback.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (1026 / 217 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.755] - 2026-05-10 — Extract useDialogA11y hook
 
 **Web — `components/ConfirmDialog.tsx` shrunk by 18 lines (141 → 123).**

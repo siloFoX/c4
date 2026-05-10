@@ -2084,6 +2084,42 @@ describe('useWorkerActionStrip adopts postAction helper (v1.10.749)', () => {
   });
 });
 
+describe('extracted: useXtermSearchHotkey hook (v1.10.756)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-xterm-search-hotkey.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'XtermView.tsx');
+
+  it('exports the hook + accepts containerRef/searchOpen/setSearchOpen', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useXtermSearchHotkey/);
+    assert.match(src, /containerRef:\s*MutableRefObject<HTMLElement \| null>/);
+    assert.match(src, /searchOpen:\s*boolean/);
+    assert.match(src, /setSearchOpen:\s*\(next:\s*boolean\)\s*=>\s*void/);
+  });
+
+  it('Ctrl+F opens overlay + Escape closes when open', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /\(e\.ctrlKey \|\| e\.metaKey\) && !e\.shiftKey && !e\.altKey && e\.key\.toLowerCase\(\) === 'f'/);
+    assert.match(src, /e\.key === 'Escape' && searchOpen/);
+    assert.match(src, /setSearchOpen\(true\)/);
+    assert.match(src, /setSearchOpen\(false\)/);
+  });
+
+  it('listener scoped to container (not window)', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /container\.addEventListener\('keydown',\s*onKey\)/);
+    assert.match(src, /container\.removeEventListener\('keydown',\s*onKey\)/);
+  });
+
+  it('parent XtermView wires the hook + drops the inline effect', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useXtermSearchHotkey\s*\}\s+from\s+'\.\.\/lib\/use-xterm-search-hotkey'/);
+    assert.match(src, /useXtermSearchHotkey\(\{[\s\S]*?containerRef,\s*searchOpen,\s*setSearchOpen[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /e\.key\.toLowerCase\(\) === 'f'/);
+  });
+});
+
 describe('extracted: useDialogA11y hook (v1.10.755)', () => {
   const fs = require('fs');
   const path = require('path');

@@ -25,6 +25,7 @@ import { useXtermThemeTracking } from '../lib/use-xterm-theme-tracking';
 import { useTerminalSseStream } from '../lib/use-terminal-sse-stream';
 import { useXtermAutofit } from '../lib/use-xterm-autofit';
 import { useXtermResizeFit } from '../lib/use-xterm-resize-fit';
+import { useXtermSearchHotkey } from '../lib/use-xterm-search-hotkey';
 
 interface XtermViewProps {
   workerName: string;
@@ -140,21 +141,8 @@ export default function XtermView({ workerName, fontSize, visible = true }: Xter
     onError: setError,
   });
 
-  // Ctrl+F opens the search overlay while focus is inside the terminal.
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'f') {
-        e.preventDefault();
-        setSearchOpen(true);
-      } else if (e.key === 'Escape' && searchOpen) {
-        setSearchOpen(false);
-      }
-    };
-    container.addEventListener('keydown', onKey);
-    return () => container.removeEventListener('keydown', onKey);
-  }, [searchOpen]);
+  // (v1.10.756) Ctrl+F search hotkey moved to lib/use-xterm-search-hotkey.
+  useXtermSearchHotkey({ containerRef, searchOpen, setSearchOpen });
 
   const runSearch = useCallback(
     (direction: 'next' | 'prev') => {

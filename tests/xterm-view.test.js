@@ -193,8 +193,14 @@ describe('XtermView wiring (8.24 + 8.27)', () => {
   });
 
   it('opens a search overlay on Ctrl+F and runs findNext via the SearchAddon', () => {
-    assert.match(src, /e\.key\.toLowerCase\(\)\s*===\s*['"]f['"]/);
-    assert.match(src, /setSearchOpen\(true\)/);
+    // (v1.10.756) Ctrl+F hotkey moved to use-xterm-search-hotkey hook.
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-xterm-search-hotkey.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /e\.key\.toLowerCase\(\)\s*===\s*['"]f['"]/);
+    assert.match(hookSrc, /setSearchOpen\(true\)/);
+    // findNext + findPrevious stay in XtermView's runSearch callback.
     assert.match(src, /search\.findNext\(/);
     assert.match(src, /search\.findPrevious\(/);
   });
