@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
-import { apiFetch, apiGet } from './api';
+import { apiGet } from './api';
 import type { ListResponse, Worker } from '../types';
 
 // (v1.10.724) Extracted from pages/Validation. Owns
 // the GET /api/list → fan-out per-worker
 // /api/validation?name=<worker> fetch. Per-worker
 // requests run in parallel via Promise.all; failures
-// surface as `{ error: 'HTTP <status>' }` entries
-// rather than aborting the whole sweep.
+// surface as `{ error: '<message>' }` entries rather
+// than aborting the whole sweep.
+// (v1.10.754) Per-worker apiFetch + manual error
+// mapping replaced with apiGet — the catch block
+// already covers both throw paths uniformly.
 
 export interface ValidationResponse {
   name?: string;
@@ -47,12 +50,9 @@ export function useValidations(): UseValidationsState {
       await Promise.all(
         ws.map(async (w) => {
           try {
-            const res = await apiFetch(`/api/validation?name=${encodeURIComponent(w.name)}`);
-            if (res.ok) {
-              next[w.name] = (await res.json()) as ValidationResponse;
-            } else {
-              next[w.name] = { error: `HTTP ${res.status}` };
-            }
+            next[w.name] = await apiGet<ValidationResponse>(
+              `/api/validation?name=${encodeURIComponent(w.name)}`,
+            );
           } catch (e) {
             next[w.name] = { error: (e as Error).message };
           }

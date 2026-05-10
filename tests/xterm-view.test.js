@@ -162,7 +162,8 @@ describe('XtermView wiring (8.24 + 8.27)', () => {
     );
     assert.match(autofitSrc, /FIT_DEBOUNCE_MS\s*=\s*120/);
     assert.match(autofitSrc, /lastResizeRef/);
-    assert.match(autofitSrc, /apiFetch\(['"]\/api\/resize['"]/);
+    // (v1.10.754) apiFetch+manual builder replaced with apiPost.
+    assert.match(autofitSrc, /apiPost\(['"]\/api\/resize['"]/);
   });
 
   it('clamps cols + rows to the daemon PTY-manager range', () => {

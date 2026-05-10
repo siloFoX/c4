@@ -4,6 +4,49 @@
 
 (no entries — next release window)
 
+## [1.10.754] - 2026-05-10 — apiFetch → apiGet/apiPost sweep continued (4th)
+
+**Web — final 2 hooks adopt the api helpers.**
+
+- `lib/use-xterm-autofit.ts` 102 → 97 (-5) — fire-and-forget
+  `/api/resize` POST collapses from a 5-line `apiFetch + method +
+  headers + body + .catch(() => {})` builder to a one-liner
+  `apiPost('/api/resize', { name, cols, rows }).catch(() => {})`.
+  The `.catch` swallow stays because resize is best-effort —
+  the daemon already clamps via `_clampResizeDims` and the next
+  fit will retry.
+- `lib/use-validations.ts` — per-worker fan-out adopts `apiGet`
+  for the `/api/validation?name=<w>` path. The non-throwing
+  inline error mapping (`{ error: HTTP <s> }` from non-ok, plus
+  `{ error: e.message }` from throw) collapses into a single
+  catch path: `apiGet`'s throw on non-ok is captured by the
+  same catch that already wrote `{ error: e.message }`. The
+  emitted error string for HTTP failures becomes
+  `HTTP <status>` (or `HTTP <status>: <detail>` when the body
+  parses) instead of just `HTTP <status>` — slightly more
+  detailed, same shape.
+
+The cumulative apiFetch→helper sweep total is now 12 hooks
+across 5 ships. The only remaining `apiFetch` callers are:
+- `lib/post-action.ts` — the helper itself.
+- `lib/use-audit-export.ts` — `res.blob()` for CSV download
+  (apiGet hard-codes JSON parse).
+
+Tests
+- Redirected `useValidations (v1.10.724)` boundary suite
+  "per-worker failure surfaces" assertion to drop the
+  `HTTP \${res.status}` literal (apiGet's throw covers both
+  paths through the same catch).
+- Redirected `useXtermAutofit (v1.10.672)` "runFit fits + clamps
+  + drops no-op POST" + `xterm-view.test.js` "debounces fit at
+  120ms" + `ux-visual.test.js` "POSTs to /api/resize" assertions
+  from `apiFetch('/api/resize'` to `apiPost('/api/resize'`.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (1018 / 215 suites — same), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.753] - 2026-05-10 — apiFetch → apiGet/apiPost sweep continued (3rd)
 
 **Web — 2 more hooks adopt the api helpers.**

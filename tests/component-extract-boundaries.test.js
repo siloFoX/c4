@@ -2977,9 +2977,10 @@ describe('extracted: useValidations hook (v1.10.724)', () => {
     assert.match(src, /\/api\/validation\?name=\$\{encodeURIComponent\(w\.name\)\}/);
   });
 
-  it('per-worker failure surfaces as { error: HTTP <status> } not abort', () => {
+  it('per-worker failure surfaces as { error: <message> } not abort', () => {
+    // (v1.10.754) apiFetch+manual error mapping replaced with apiGet —
+    // its thrown HTTP <s> message is captured by the same catch.
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /next\[w\.name\] = \{ error: `HTTP \$\{res\.status\}` \}/);
     assert.match(src, /next\[w\.name\] = \{ error: \(e as Error\)\.message \}/);
   });
 
@@ -4926,11 +4927,12 @@ describe('extracted: useXtermAutofit hook (v1.10.672)', () => {
   });
 
   it('runFit fits + clamps + drops no-op POST /api/resize', () => {
+    // (v1.10.754) apiFetch+manual builder replaced with apiPost.
     const src = fs.readFileSync(HOOK, 'utf8');
     assert.match(src, /fit\.fit\(\)/);
     assert.match(src, /clampInt\(rawCols, MIN_COLS, MAX_COLS\)/);
     assert.match(src, /clampInt\(rawRows, MIN_ROWS, MAX_ROWS\)/);
-    assert.match(src, /apiFetch\('\/api\/resize'/);
+    assert.match(src, /apiPost\('\/api\/resize'/);
     assert.match(src, /lastResizeRef\.current = \{ cols, rows \}/);
   });
 

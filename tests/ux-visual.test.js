@@ -145,9 +145,10 @@ describe('XtermView auto-fit wiring (8.22 P1 carried into 8.24)', () => {
   });
 
   it('POSTs to /api/resize (the 8.19 withApiPrefix path, not bare /resize)', () => {
-    assert.match(autofitSrc, /apiFetch\(['"]\/api\/resize['"]/);
+    // (v1.10.754) apiFetch + manual builder replaced with apiPost.
+    assert.match(autofitSrc, /apiPost\(['"]\/api\/resize['"]/);
     // Should never carry the pre-8.19 bare path.
-    assert.ok(!/apiFetch\(['"]\/resize['"]/.test(autofitSrc), 'bare /resize POST must be gone');
+    assert.ok(!/apiPost\(['"]\/resize['"]/.test(autofitSrc), 'bare /resize POST must be gone');
   });
 
   it('clamps cols + rows to the daemon 20..400 / 5..200 range', () => {

@@ -1,7 +1,7 @@
 import { useCallback, useRef, type MutableRefObject } from 'react';
 import type { Terminal } from '@xterm/xterm';
 import type { FitAddon } from '@xterm/addon-fit';
-import { apiFetch } from './api';
+import { apiPost } from './api';
 
 // (v1.10.672) Extracted from XtermView. Owns the
 // fit→POST /api/resize loop: a 120ms debounce shared
@@ -74,15 +74,11 @@ export function useXtermAutofit(args: {
       // eslint-disable-next-line no-console
       console.debug('[autofit] cols=%d rows=%d -> POST /api/resize', cols, rows);
     }
-    void apiFetch('/api/resize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: workerName, cols, rows }),
-    }).catch(() => {
-      // Resize is best-effort; the daemon already clamps via
-      // _clampResizeDims and a failed POST just means the next fit tries
-      // again. Swallow so we do not page on transient HTTP hiccups.
-    });
+    // (v1.10.754) apiFetch + manual builder replaced with apiPost.
+    // Resize is best-effort; the daemon already clamps via
+    // _clampResizeDims and a failed POST just means the next fit
+    // tries again. Swallow so we don't page on transient hiccups.
+    void apiPost('/api/resize', { name: workerName, cols, rows }).catch(() => {});
   }, [workerName, termRef, fitRef]);
 
   const scheduleFit = useCallback(() => {
