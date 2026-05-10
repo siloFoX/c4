@@ -2126,6 +2126,36 @@ describe('extracted: useToggle hook (v1.10.757)', () => {
   }
 });
 
+describe('extracted: useXtermFontSize hook (v1.10.759)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-xterm-font-size.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'XtermView.tsx');
+
+  it('exports the hook + accepts termRef/fontSize/scheduleFit', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useXtermFontSize/);
+    assert.match(src, /termRef:\s*MutableRefObject<Terminal \| null>/);
+    assert.match(src, /fontSize:\s*number/);
+    assert.match(src, /scheduleFit:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('writes term.options.fontSize and triggers a fit', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /term\.options\.fontSize\s*=\s*fontSize/);
+    assert.match(src, /scheduleFit\(\)/);
+  });
+
+  it('parent XtermView wires the hook + drops the inline effect', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useXtermFontSize\s*\}\s+from\s+'\.\.\/lib\/use-xterm-font-size'/);
+    assert.match(src, /useXtermFontSize\(\{[\s\S]*?termRef,\s*fontSize,\s*scheduleFit[\s\S]*?\}\)/);
+    // Inline copy of `term.options.fontSize = fontSize` is gone (only the
+    // hook's body should match — but PARENT is the component, not the hook).
+    assert.doesNotMatch(src, /term\.options\.fontSize\s*=\s*fontSize/);
+  });
+});
+
 describe('extracted: useXtermSearchHotkey hook (v1.10.756)', () => {
   const fs = require('fs');
   const path = require('path');

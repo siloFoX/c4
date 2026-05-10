@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.759] - 2026-05-10 — Extract useXtermFontSize + useToggle XtermView search
+
+**Web — two more XtermView extractions.** The xterm
+host has shed every concern except the mount lifecycle.
+
+- `lib/use-xterm-font-size.ts` (NEW) — pushes the
+  `fontSize` prop into `term.options.fontSize` and
+  fires `scheduleFit` whenever the font flips. Kept
+  out of the mount effect so a font-size change
+  doesn't drop scrollback (the mount effect re-keys
+  on `workerName`, not `fontSize`).
+- `XtermView.tsx` — `searchOpen` adopts `useToggle()`
+  so the `onToggleSearch` JSX prop references a
+  stable memoized callback rather than allocating
+  `() => setSearchOpen((o) => !o)` per render.
+
+Boundary tests: new suite for `useXtermFontSize` (3
+assertions covering hook signature, body, and parent
+wiring). All 5 quality gates green.
+
 ## [1.10.758] - 2026-05-10 — Spread useToggle / toggle callbacks across 5 more callers
 
 **Web — second adoption pass for the shared toggle helper.**

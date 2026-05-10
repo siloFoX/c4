@@ -26,6 +26,8 @@ import { useTerminalSseStream } from '../lib/use-terminal-sse-stream';
 import { useXtermAutofit } from '../lib/use-xterm-autofit';
 import { useXtermResizeFit } from '../lib/use-xterm-resize-fit';
 import { useXtermSearchHotkey } from '../lib/use-xterm-search-hotkey';
+import { useXtermFontSize } from '../lib/use-xterm-font-size';
+import { useToggle } from '../lib/use-toggle';
 
 interface XtermViewProps {
   workerName: string;
@@ -53,7 +55,7 @@ export default function XtermView({ workerName, fontSize, visible = true }: Xter
   const searchRef = useRef<SearchAddon | null>(null);
 
   const [error, setError] = useState<string | null>(null);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchOpen, toggleSearchOpen, setSearchOpen] = useToggle();
   const [searchQuery, setSearchQuery] = useState('');
   const [altScreen, setAltScreen] = useState(false);
 
@@ -119,13 +121,9 @@ export default function XtermView({ workerName, fontSize, visible = true }: Xter
     };
   }, [workerName]);
 
-  // Apply font-size without remounting (preserves scrollback).
-  useEffect(() => {
-    const term = termRef.current;
-    if (!term) return;
-    term.options.fontSize = fontSize;
-    scheduleFit();
-  }, [fontSize, scheduleFit]);
+  // (v1.10.759) Apply-fontSize-without-remounting moved to
+  // lib/use-xterm-font-size.
+  useXtermFontSize({ termRef, fontSize, scheduleFit });
 
   // (v1.10.645) Theme tracking moved to lib/use-xterm-theme-tracking.
   useXtermThemeTracking({ termRef, workerName });
@@ -184,7 +182,7 @@ export default function XtermView({ workerName, fontSize, visible = true }: Xter
       <XtermStatusBar
         statusLabel={statusLabel}
         searchOpen={searchOpen}
-        onToggleSearch={() => setSearchOpen((o) => !o)}
+        onToggleSearch={toggleSearchOpen}
         searchQuery={searchQuery}
         onSearchQuery={setSearchQuery}
         onRunSearch={runSearch}
