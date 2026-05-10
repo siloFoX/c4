@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import type { ReactNode } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import { Button, IconButton } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
+import { useDialogA11y } from '../lib/use-dialog-a11y';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -39,26 +40,8 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   useLocale();
   const dialogRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const prevActive =
-      typeof document !== 'undefined'
-        ? (document.activeElement as HTMLElement | null)
-        : null;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !busy) {
-        e.stopPropagation();
-        onCancel();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    dialogRef.current?.focus();
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      prevActive?.focus?.();
-    };
-  }, [open, busy, onCancel]);
+  // (v1.10.755) Esc + focus restore moved to lib/use-dialog-a11y.
+  useDialogA11y({ open, busy, onCancel, dialogRef });
 
   if (!open) return null;
 

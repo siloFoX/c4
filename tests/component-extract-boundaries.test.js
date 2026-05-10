@@ -2084,6 +2084,43 @@ describe('useWorkerActionStrip adopts postAction helper (v1.10.749)', () => {
   });
 });
 
+describe('extracted: useDialogA11y hook (v1.10.755)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-dialog-a11y.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'ConfirmDialog.tsx');
+
+  it('exports the hook + accepts open/busy/onCancel/dialogRef', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useDialogA11y/);
+    assert.match(src, /open:\s*boolean/);
+    assert.match(src, /busy:\s*boolean/);
+    assert.match(src, /onCancel:\s*\(\)\s*=>\s*void/);
+    assert.match(src, /dialogRef:\s*RefObject<HTMLElement \| null>/);
+  });
+
+  it('Escape closes (busy-gated) + uses stopPropagation', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /e\.key === 'Escape' && !busy/);
+    assert.match(src, /e\.stopPropagation\(\)/);
+    assert.match(src, /onCancel\(\)/);
+  });
+
+  it('focuses dialog on open + restores prevActive on cleanup', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /document\.activeElement as HTMLElement \| null/);
+    assert.match(src, /dialogRef\.current\?\.focus\(\)/);
+    assert.match(src, /prevActive\?\.focus\?\.\(\)/);
+  });
+
+  it('parent ConfirmDialog wires the hook + drops the inline effect', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useDialogA11y\s*\}\s+from\s+'\.\.\/lib\/use-dialog-a11y'/);
+    assert.match(src, /useDialogA11y\(\{[\s\S]*?open,\s*busy,\s*onCancel,\s*dialogRef[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /useEffect/);
+  });
+});
+
 describe('extracted: useMorning hook (v1.10.748)', () => {
   const fs = require('fs');
   const path = require('path');

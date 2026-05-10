@@ -322,7 +322,13 @@ describe('ConfirmDialog component', () => {
   });
 
   it('forwards Escape to onCancel unless busy', () => {
-    assert.match(src, /e\.key === 'Escape'/);
+    // (v1.10.755) Escape handler moved to lib/use-dialog-a11y.
+    const hookSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-dialog-a11y.ts'),
+      'utf8',
+    );
+    assert.match(hookSrc, /e\.key === 'Escape'/);
+    assert.match(hookSrc, /!busy/);
   });
 });
 

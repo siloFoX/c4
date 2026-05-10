@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.755] - 2026-05-10 — Extract useDialogA11y hook
+
+**Web — `components/ConfirmDialog.tsx` shrunk by 18 lines (141 → 123).**
+The dialog accessibility wiring — Escape-to-close
+(busy-gated, with `stopPropagation` so a parent
+modal above doesn't also close), focus the dialog
+on open, restore the previously-focused element on
+close — moves to a `useDialogA11y({ open, busy,
+onCancel, dialogRef })` hook.
+
+Distinct from the simpler `useEscapeToClose`
+(v1.10.714) — that hook drives flat modals where
+Escape can bubble. ConfirmDialog typically nests
+inside another modal that owns its own keydown
+listener, so the `e.stopPropagation()` matters.
+The focus-restoration on cleanup is also unique to
+this hook — a confirm dialog's trigger is usually
+a button the operator wants to return to after
+dismiss.
+
+The component now reduces the keyboard + focus
+plumbing to a single
+`useDialogA11y({ open, busy, onCancel, dialogRef })`
+call. The `useEffect` import drops; `useRef` stays
+for the dialogRef.
+
+Boundary suite #216 in
+`tests/component-extract-boundaries.test.js` pins
+the hook signature, the busy-gated Escape +
+stopPropagation, the focus + prevActive-restore
+contract, and verifies the parent wires the hook +
+drops the inline useEffect. Pre-existing
+`ui-docs.test.js` "forwards Escape to onCancel
+unless busy" assertion redirected from
+`ConfirmDialog.tsx` source to the new hook file.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (1022 / 216 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.754] - 2026-05-10 — apiFetch → apiGet/apiPost sweep continued (4th)
 
 **Web — final 2 hooks adopt the api helpers.**
