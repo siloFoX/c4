@@ -2057,6 +2057,47 @@ describe('extracted: useChatBackfill hook (v1.10.738)', () => {
   });
 });
 
+describe('extracted: useScribe hook (v1.10.745)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-scribe.ts');
+  const PARENT = path.join(__dirname, '..', 'web', 'src', 'pages', 'Scribe.tsx');
+
+  it('exports the hook + accepts showToast', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useScribe/);
+    assert.match(src, /showToast:\s*\(message:\s*string,\s*type:\s*ToastType\)\s*=>\s*void/);
+    assert.match(src, /export interface ScribeStatus/);
+    assert.match(src, /export interface ContextResponse/);
+  });
+
+  it('refresh fetches /api/scribe/status + /api/scribe-context with split error semantics', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /apiFetch\('\/api\/scribe\/status'\)/);
+    assert.match(src, /apiFetch\('\/api\/scribe-context'\)/);
+    // Status failure surfaces through error slot.
+    assert.match(src, /setError\(\(e as Error\)\.message\)/);
+    // Context failure swallows.
+    assert.match(src, /setContext\(null\)/);
+  });
+
+  it('act busy-marks by endpoint + fires success/failed toast + post-action refresh', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /setBusy\(endpoint\)/);
+    assert.match(src, /scribe\.toast\.ok/);
+    assert.match(src, /scribe\.toast\.failed/);
+    assert.match(src, /refresh\(\);[\s\S]*?\}/);
+  });
+
+  it('parent Scribe.tsx wires the hook + drops the inline state machine', () => {
+    const src = fs.readFileSync(PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useScribe\s*\}\s+from\s+'\.\.\/lib\/use-scribe'/);
+    assert.match(src, /useScribe\(\{[\s\S]*?showToast[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /apiFetch\('\/api\/scribe/);
+    assert.doesNotMatch(src, /const \[status, setStatus\]/);
+  });
+});
+
 describe('extracted: dispatchEvent helper (v1.10.744)', () => {
   const fs = require('fs');
   const path = require('path');

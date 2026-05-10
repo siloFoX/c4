@@ -1,92 +1,24 @@
-import { useCallback, useEffect, useState } from 'react';
 import { FileText, Play, RefreshCw, Square } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Panel, Tooltip } from '../components/ui';
-import { apiFetch, apiPost } from '../lib/api';
 import { formatRelativeTime } from '../lib/format';
-import { t, tFormat, useLocale } from '../lib/i18n';
+import { t, useLocale } from '../lib/i18n';
 import { useToast } from '../lib/use-toast';
+import { useScribe } from '../lib/use-scribe';
 
 // 8.20B Scribe feature page. Wraps POST /scribe/start|stop|scan, GET
 // /scribe/status, and GET /scribe-context. No business logic -- just a
 // UI surface for the c4 scribe CLI.
-
-interface ScribeStatus {
-  running?: boolean;
-  lastScan?: string | number | null;
-  scans?: number;
-  sessions?: number;
-  bytesWritten?: number;
-  contextPath?: string;
-  error?: string;
-  [key: string]: unknown;
-}
-
-interface ContextResponse {
-  content?: string;
-  path?: string;
-  updatedAt?: string | number;
-  error?: string;
-}
-
 // (v1.10.722) Toast slot adopted from lib/use-toast (shared infra).
+// (v1.10.745) Status + context fetch + act handler moved to lib/use-scribe.
 
 export default function Scribe() {
   useLocale();
-  const [status, setStatus] = useState<ScribeStatus | null>(null);
-  const [context, setContext] = useState<ContextResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const { toast, showToast, dismissToast } = useToast();
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await apiFetch('/api/scribe/status');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as ScribeStatus;
-      setStatus(data);
-    } catch (e) {
-      setError((e as Error).message);
-      setStatus(null);
-    }
-    try {
-      const res = await apiFetch('/api/scribe-context');
-      if (res.ok) {
-        const data = (await res.json()) as ContextResponse;
-        setContext(data);
-      } else {
-        setContext(null);
-      }
-    } catch {
-      setContext(null);
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  const act = useCallback(
-    async (endpoint: string, label: string) => {
-      setBusy(endpoint);
-      try {
-        await apiPost(endpoint, {});
-        showToast(tFormat('scribe.toast.ok', { label }), 'success');
-      } catch (e) {
-        showToast(tFormat('scribe.toast.failed', { label, error: (e as Error).message }), 'error');
-      }
-      setBusy(null);
-      refresh();
-    },
-    [refresh, showToast],
-  );
+  const { status, context, loading, busy, error, refresh, act } = useScribe({ showToast });
 
   const running = Boolean(status?.running);
 

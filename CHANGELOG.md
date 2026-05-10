@@ -4,6 +4,56 @@
 
 (no entries — next release window)
 
+## [1.10.745] - 2026-05-10 — Extract useScribe hook
+
+**Web — `pages/Scribe.tsx` shrunk by 68 lines (206 → 138).**
+The Scribe feature page's state machine — dual
+`/scribe/status` + `/scribe-context` fetch (status
+is structured running/scans summary, context is the
+rolling-context markdown blob), per-endpoint busy
+slot, error/loading state, refresh + act handlers —
+moves to a `useScribe({ showToast })` hook returning
+`{ status, context, loading, busy, error, refresh,
+act }`.
+
+The split error semantics are preserved verbatim:
+
+- Status fetch failure surfaces through the `error`
+  slot so the page can render an `ErrorPanel`.
+- Context fetch failure swallows (treated as "no
+  context yet" empty state) since context is
+  optional infrastructure.
+
+`act(endpoint, label)` busy-marks by endpoint name
+(so multiple buttons can be disabled together while
+one is in flight), POSTs the action, fires a
+success/failure toast through the parent's
+`showToast` callback, and triggers a post-action
+refresh. The page is now a near-pure render
+function: `useToast` + `useScribe` destructures →
+JSX.
+
+`ScribeStatus` and `ContextResponse` types are
+exported from the hook so the parent's render JSX
+keeps typing the narrowing without duplicate
+definitions.
+
+The `apiFetch` / `apiPost` / `tFormat` imports drop
+from `pages/Scribe.tsx` since their last consumers
+moved into the hook.
+
+Boundary suite #211 in
+`tests/component-extract-boundaries.test.js` pins
+the hook signature, the dual-fetch split-error
+contract, the `act` busy-marking + toast routing,
+and verifies the parent wires the hook + drops the
+inline state.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (999 / 211 suites — +4 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.744] - 2026-05-10 — Lift dispatchEvent helper to lib/
 
 **Web — generic CustomEvent dispatcher consolidated.**
