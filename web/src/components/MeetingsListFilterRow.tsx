@@ -1,11 +1,13 @@
 import { t, useLocale } from '../lib/i18n';
 import type { MeetingStatus } from './MeetingsView';
+import type { Track } from './MeetingsSearchFacets';
 
 // (v1.10.575) Extracted from MeetingsView. The Phase-6.11
 // list-level status / track narrow dropdowns shown when no
 // search query is active. Pure controlled inputs.
-
-type Track = 'lightweight' | 'standard' | 'full';
+//
+// (v1.10.770) Track type imported from MeetingsSearchFacets
+// instead of re-declared inline.
 
 interface Props {
   status: MeetingStatus | '';

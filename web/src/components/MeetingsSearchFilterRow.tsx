@@ -1,12 +1,14 @@
 import { t, useLocale } from '../lib/i18n';
 import type { MeetingStatus } from './MeetingsView';
+import type { Track } from './MeetingsSearchFacets';
 
 // (v1.10.574) Extracted from MeetingsView. The Phase-8.1.5 search
 // filter chip row — status / track dropdowns + since / until
 // date inputs + a clear-dates button. Shown only while a search
 // query is active. Pure controlled inputs.
-
-type Track = 'lightweight' | 'standard' | 'full';
+//
+// (v1.10.770) Track type imported from MeetingsSearchFacets
+// instead of re-declared inline (was duplicated in 3 components).
 
 interface Props {
   status: MeetingStatus | '';

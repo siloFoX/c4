@@ -4,6 +4,22 @@
 
 (no entries — next release window)
 
+## [1.10.770] - 2026-05-10 — Consolidate Track type aliases
+
+**Web — small type-deduplication cleanup.** The
+`Track = 'lightweight' | 'standard' | 'full'` alias
+was redeclared inline in `MeetingsSearchFilterRow.tsx`
+and `MeetingsListFilterRow.tsx`; both now import the
+exported alias from `MeetingsSearchFacets.tsx` (which
+already publishes it). Three identical literal-union
+declarations → one canonical export.
+
+`use-meeting-create.ts` keeps its own `Track` since it
+includes the additional `'auto'` variant for the
+composer's auto-classify path.
+
+All 5 quality gates green.
+
 ## [1.10.769] - 2026-05-10 — useAutoClearMessage adoption — pause-toggle
 
 **Web — one more action hook adopts the shared
