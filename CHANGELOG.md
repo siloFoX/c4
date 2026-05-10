@@ -4,6 +4,41 @@
 
 (no entries — next release window)
 
+## [1.10.753] - 2026-05-10 — apiFetch → apiGet/apiPost sweep continued (3rd)
+
+**Web — 2 more hooks adopt the api helpers.**
+
+- `lib/use-scribe.ts` 103 → 98 (-5) — both fetches
+  (`/api/scribe/status` + `/api/scribe-context`) collapse from
+  the inline `apiFetch + if (!res.ok) … + .json()` pattern to
+  one-line `apiGet<T>(url)` calls. The split error semantics
+  preserved verbatim.
+- `lib/use-pinned-rules.ts` 100 → 95 (-5) — `load` adopts
+  `apiGet<{ pinnedMemory; lastRefreshAt }>`, `save` adopts
+  `apiPost<{ lastRefreshAt }>`. The `apiFetch` import is fully
+  replaced with the typed `apiGet` + `apiPost` pair.
+
+Cumulative apiFetch→helper sweep total now reaches 10 hooks
+across 4 ships. Remaining `apiFetch` callers retain the raw
+helper for type-narrowed reasons:
+- `use-validations.ts` — non-throwing per-row error map.
+- `use-xterm-autofit.ts` — fire-and-forget POST with
+  `.catch(() => {})` that bypasses JSON parse.
+- `use-audit-export.ts` — `res.blob()` for CSV download.
+- `use-worker-action-strip.ts` — already adopted `postAction`
+  helper at v1.10.749 (uniform 3-mode failure shape).
+
+Tests
+- Redirected `useScribe (v1.10.745)` "refresh fetches" assertion
+  from `apiFetch` to `apiGet<ScribeStatus>` / `apiGet<ContextResponse>`.
+- Redirected `usePinnedRules (v1.10.707)` "save POSTs" assertion
+  from `method: 'POST'` to `apiPost<{ lastRefreshAt: number | null }>`.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (1018 / 215 suites — same), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.752] - 2026-05-10 — apiFetch → apiGet/apiPost sweep continued
 
 **Web — 2 more hooks drop the inline apiFetch boilerplate.**

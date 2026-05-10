@@ -2229,9 +2229,10 @@ describe('extracted: useScribe hook (v1.10.745)', () => {
   });
 
   it('refresh fetches /api/scribe/status + /api/scribe-context with split error semantics', () => {
+    // (v1.10.753) apiFetch + manual error throw replaced with apiGet.
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /apiFetch\('\/api\/scribe\/status'\)/);
-    assert.match(src, /apiFetch\('\/api\/scribe-context'\)/);
+    assert.match(src, /apiGet<ScribeStatus>\('\/api\/scribe\/status'\)/);
+    assert.match(src, /apiGet<ContextResponse>\('\/api\/scribe-context'\)/);
     // Status failure surfaces through error slot.
     assert.match(src, /setError\(\(e as Error\)\.message\)/);
     // Context failure swallows.
@@ -3607,8 +3608,9 @@ describe('extracted: usePinnedRules hook (v1.10.707)', () => {
   });
 
   it('save POSTs userRules + defaultTemplate + refresh flag', () => {
+    // (v1.10.753) Inline POST builder replaced with apiPost.
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /method:\s*'POST'/);
+    assert.match(src, /apiPost<\{ lastRefreshAt: number \| null \}>/);
     assert.match(src, /userRules,\s*\n\s*defaultTemplate:\s*defaultTemplate\s*\|\|\s*null,\s*\n\s*refresh:\s*options\.refresh/);
   });
 

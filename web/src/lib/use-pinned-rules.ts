@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { apiFetch } from './api';
+import { apiGet, apiPost } from './api';
 import type { PinnedMemory } from '../types';
 
 // (v1.10.707) Extracted from PinnedRulesEditor. The
@@ -9,6 +9,8 @@ import type { PinnedMemory } from '../types';
 // POSTs back the split-by-`---` form. The
 // `refresh` flag in save() asks the daemon to
 // re-pull the worker's CLAUDE.md cache.
+// (v1.10.753) apiFetch + manual error throw replaced
+// with apiGet/apiPost which throw on non-ok internally.
 
 interface PinnedRulesState {
   rulesText: string;
@@ -39,12 +41,10 @@ export function usePinnedRules(args: {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiFetch(`/api/workers/${encodeURIComponent(workerName)}/pinned-memory`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as {
+      const data = await apiGet<{
         pinnedMemory: PinnedMemory;
         lastRefreshAt: number | null;
-      };
+      }>(`/api/workers/${encodeURIComponent(workerName)}/pinned-memory`);
       const rules = Array.isArray(data.pinnedMemory?.userRules)
         ? data.pinnedMemory.userRules
         : [];
@@ -70,20 +70,14 @@ export function usePinnedRules(args: {
         .split(/\n\s*---\s*\n/)
         .map((chunk) => chunk.trim())
         .filter(Boolean);
-      const res = await apiFetch(
+      const data = await apiPost<{ lastRefreshAt: number | null }>(
         `/api/workers/${encodeURIComponent(workerName)}/pinned-memory`,
         {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userRules,
-            defaultTemplate: defaultTemplate || null,
-            refresh: options.refresh,
-          }),
+          userRules,
+          defaultTemplate: defaultTemplate || null,
+          refresh: options.refresh,
         },
       );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as { lastRefreshAt: number | null };
       setLastRefreshAt(data.lastRefreshAt ?? null);
     } catch (e) {
       setError((e as Error).message);

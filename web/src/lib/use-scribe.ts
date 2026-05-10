@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { apiFetch, apiPost } from './api';
+import { apiGet, apiPost } from './api';
 import { tFormat } from './i18n';
 import type { ToastType } from '../components/Toast';
 
@@ -15,6 +15,8 @@ import type { ToastType } from '../components/Toast';
 // `error` slot so the page can render an
 // ErrorPanel; the context fetch swallows on
 // failure (treated as "no context yet" state).
+// (v1.10.753) apiFetch + manual error throw replaced
+// with apiGet which throws on non-ok internally.
 
 export interface ScribeStatus {
   running?: boolean;
@@ -58,22 +60,15 @@ export function useScribe(args: {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiFetch('/api/scribe/status');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as ScribeStatus;
+      const data = await apiGet<ScribeStatus>('/api/scribe/status');
       setStatus(data);
     } catch (e) {
       setError((e as Error).message);
       setStatus(null);
     }
     try {
-      const res = await apiFetch('/api/scribe-context');
-      if (res.ok) {
-        const data = (await res.json()) as ContextResponse;
-        setContext(data);
-      } else {
-        setContext(null);
-      }
+      const data = await apiGet<ContextResponse>('/api/scribe-context');
+      setContext(data);
     } catch {
       setContext(null);
     }
