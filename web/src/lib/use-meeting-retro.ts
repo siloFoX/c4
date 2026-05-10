@@ -8,6 +8,12 @@ import { t, tFormat } from './i18n';
 // handleRetro(finalize) + a meeting-change reset
 // effect so a previous meeting's preview doesn't
 // bleed into the next selection.
+//
+// (v1.10.777) MeetingRetroBusy alias hoisted so the
+// state slot type + interface field share one
+// canonical declaration.
+
+export type MeetingRetroBusy = 'preview' | 'finalize' | null;
 
 export interface RetroResult {
   deltas?: Record<string, unknown>;
@@ -17,7 +23,7 @@ export interface RetroResult {
 }
 
 export interface MeetingRetroState {
-  busy: 'preview' | 'finalize' | null;
+  busy: MeetingRetroBusy;
   result: RetroResult | null;
   error: string | null;
   handleRetro: (finalize: boolean) => Promise<void>;
@@ -25,7 +31,7 @@ export interface MeetingRetroState {
 
 export function useMeetingRetro(args: { meetingId: string }): MeetingRetroState {
   const { meetingId } = args;
-  const [busy, setBusy] = useState<'preview' | 'finalize' | null>(null);
+  const [busy, setBusy] = useState<MeetingRetroBusy>(null);
   const [result, setResult] = useState<RetroResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 

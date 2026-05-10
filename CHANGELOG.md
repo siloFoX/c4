@@ -4,6 +4,19 @@
 
 (no entries — next release window)
 
+## [1.10.777] - 2026-05-10 — Hoist MeetingRetroBusy local alias
+
+**Web — small in-file dedup.** The `'preview' |
+'finalize' | null` literal appeared twice in
+`lib/use-meeting-retro.ts` (the `useState` slot
+and the `MeetingRetroState.busy` interface
+field). Hoisted to a single `MeetingRetroBusy`
+type alias so a future state-machine extension
+flows through one declaration site.
+
+Boundary tests: 2 redirected. All 5 quality gates
+green.
+
 ## [1.10.776] - 2026-05-10 — Disambiguate Chat.tsx formatTime
 
 **Web — small naming-collision cleanup.** The

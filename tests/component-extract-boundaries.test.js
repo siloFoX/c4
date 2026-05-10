@@ -1247,13 +1247,15 @@ describe('extracted: MeetingsRetroActions (v1.10.552)', () => {
 
   it('owns its own busy / result / error state', () => {
     // (v1.10.717) State machine moved to use-meeting-retro hook.
+    // (v1.10.777) Busy literal hoisted to MeetingRetroBusy alias.
     const fs = require('fs');
     const path = require('path');
     const hookSrc = fs.readFileSync(
       path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-retro.ts'),
       'utf8',
     );
-    assert.match(hookSrc, /useState<'preview' \| 'finalize' \| null>/);
+    assert.match(hookSrc, /export type MeetingRetroBusy = 'preview' \| 'finalize' \| null/);
+    assert.match(hookSrc, /useState<MeetingRetroBusy>/);
     assert.match(hookSrc, /useState<RetroResult \| null>/);
   });
 
@@ -3532,8 +3534,9 @@ describe('extracted: useMeetingRetro hook (v1.10.717)', () => {
   });
 
   it('busy slot tracks preview | finalize | null + meeting-change reset effect', () => {
+    // (v1.10.777) Busy literal hoisted to MeetingRetroBusy alias.
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /useState<'preview' \| 'finalize' \| null>/);
+    assert.match(src, /useState<MeetingRetroBusy>/);
     assert.match(src, /useEffect\([\s\S]*?setResult\(null\);\s*setError\(null\);\s*\}, \[meetingId\]\)/);
   });
 
