@@ -2600,10 +2600,9 @@ describe('extracted: useStatusMessage hook (v1.10.733)', () => {
   });
 
   it('POSTs /api/status-update with worker + message body', () => {
+    // (v1.10.751) apiFetch + manual error throw replaced with apiPost.
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /apiFetch\('\/api\/status-update'/);
-    assert.match(src, /worker:\s*workerName/);
-    assert.match(src, /message:\s*text/);
+    assert.match(src, /apiPost\('\/api\/status-update',\s*\{\s*worker:\s*workerName,\s*message:\s*text\s*\}\)/);
   });
 
   it('clears the textarea on success + routes failures through onToast', () => {

@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { apiFetch } from './api';
+import { apiPost } from './api';
 import { tFormat } from './i18n';
 import type { ToastType } from '../components/Toast';
 
@@ -9,6 +9,8 @@ import type { ToastType } from '../components/Toast';
 // successful send. Failure paths surface through the
 // parent-supplied onToast callback so the toast
 // stack stays a single place.
+// (v1.10.751) apiFetch + manual error throw replaced
+// with apiPost which throws on non-ok internally.
 
 export interface UseStatusMessageState {
   message: string;
@@ -30,12 +32,7 @@ export function useStatusMessage(args: {
     if (!text) return;
     setSending(true);
     try {
-      const res = await apiFetch('/api/status-update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ worker: workerName, message: text }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await apiPost('/api/status-update', { worker: workerName, message: text });
       onToast(tFormat('controlPanel.status.sent', { worker: workerName }), 'success');
       setMessage('');
     } catch (e) {

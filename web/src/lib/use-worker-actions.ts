@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { apiFetch } from './api';
+import { apiPost } from './api';
 import { t, tFormat } from './i18n';
 
 // (v1.10.705) Extracted from WorkerDetail. Wraps the
@@ -10,20 +10,12 @@ import { t, tFormat } from './i18n';
 // the action actually went through (8.42 review fix:
 // previously every action that errored silently still
 // ran its .then() side-effect).
+// (v1.10.751) postJson helper replaced with shared apiPost
+// (same shape: HTTP-error throw + JSON parse).
 
 interface ActionResponse {
   error?: string;
   [key: string]: unknown;
-}
-
-async function postJson(url: string, body: unknown): Promise<ActionResponse> {
-  const res = await apiFetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return (await res.json()) as ActionResponse;
 }
 
 interface WorkerActionsState {
@@ -69,15 +61,15 @@ export function useWorkerActions(args: {
   const handleSend = useCallback(async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return false;
-    return runAction('send', () => postJson('/api/send', { name: workerName, input: trimmed }));
+    return runAction('send', () => apiPost<ActionResponse>('/api/send', { name: workerName, input: trimmed }));
   }, [runAction, workerName]);
 
   const handleEnter = useCallback(() => {
-    return runAction('key Enter', () => postJson('/api/key', { name: workerName, key: 'Enter' }));
+    return runAction('key Enter', () => apiPost<ActionResponse>('/api/key', { name: workerName, key: 'Enter' }));
   }, [runAction, workerName]);
 
   const sendKey = useCallback((key: string) => {
-    return runAction(`key ${key}`, () => postJson('/api/key', { name: workerName, key }));
+    return runAction(`key ${key}`, () => apiPost<ActionResponse>('/api/key', { name: workerName, key }));
   }, [runAction, workerName]);
 
   const handleMerge = useCallback(() => {
@@ -85,11 +77,11 @@ export function useWorkerActions(args: {
       const ok = window.confirm(t('workerDetail.mergeConfirm') || `Merge worker "${workerName}" into main?\n\nThis runs the pre-merge checks and performs git merge --no-ff.`);
       if (!ok) return Promise.resolve(false);
     }
-    return runAction('merge', () => postJson('/api/merge', { name: workerName }));
+    return runAction('merge', () => apiPost<ActionResponse>('/api/merge', { name: workerName }));
   }, [runAction, workerName]);
 
   const handleClose = useCallback(() => {
-    return runAction('close', () => postJson('/api/close', { name: workerName }));
+    return runAction('close', () => apiPost<ActionResponse>('/api/close', { name: workerName }));
   }, [runAction, workerName]);
 
   return {

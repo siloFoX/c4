@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.10.751] - 2026-05-10 — apiFetch → apiPost adoption sweep
+
+**Web — 2 hooks drop the `apiFetch + method:'POST' + headers + body
++ manual throw + .json()` boilerplate in favour of `apiPost<T>(url,
+body)` which already does the JSON-encode + HTTP-error throw +
+JSON-parse round-trip.**
+
+- `lib/use-worker-actions.ts` 99 → 91 (-8) — the local `postJson`
+  helper (an exact replica of `apiPost`) deleted entirely; all 5
+  call sites (`handleSend` / `handleEnter` / `sendKey` /
+  `handleMerge` / `handleClose`) now call
+  `apiPost<ActionResponse>(url, body)` directly.
+- `lib/use-status-message.ts` 47 → 41 (-6) — the inline POST builder
+  collapses to `await apiPost('/api/status-update', { worker, message })`.
+
+The status-update endpoint returns a JSON body (the comment about
+"may return non-JSON" in the previous decision was wrong — verified
+by `apiPost` returning successfully). The `apiPost` parse is fine
+here.
+
+`apiFetch` import drops from both files. `apiPost` is the correct
+abstraction layer; the inline `postJson` in use-worker-actions was
+literally copy-pasted from an early draft of api.ts before apiPost
+existed.
+
+Tests
+- Redirected pre-existing `useStatusMessage (v1.10.733)` boundary
+  suite "POSTs /api/status-update" assertion from
+  `apiFetch('/api/status-update'` to
+  `apiPost('/api/status-update', { worker, message })`.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (1018 / 215 suites — same), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.750] - 2026-05-10 — apiFetch → apiGet sweep across 4 lib hooks
 
 **Web — 4 hooks drop the `apiFetch + if (!res.ok) throw + .json()`
