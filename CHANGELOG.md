@@ -4,6 +4,46 @@
 
 (no entries — next release window)
 
+## [1.10.752] - 2026-05-10 — apiFetch → apiGet/apiPost sweep continued
+
+**Web — 2 more hooks drop the inline apiFetch boilerplate.**
+
+- `lib/use-chat-submit.ts` 80 → 69 (-11) — both POST sites
+  (`/api/send` for the user input and `/api/key` for the Enter
+  trigger) collapse from 8-line inline POSTs to one-liner
+  `apiPost<{ error?: string }>(url, body)` calls. The
+  `if (sendData.error)` short-circuit + 'final POST' Enter chain
+  semantics survive verbatim.
+- `lib/use-worker-list.ts` 63 → 61 (-2) — `apiFetch('/api/list')`
+  + manual throw → `apiGet<ListResponse>('/api/list')`. The SSE
+  `/api/events` subscription and the 5s fallback poll are
+  untouched.
+
+Both hooks drop the `apiFetch` import in favour of the more
+specific helper. Brings the cumulative apiFetch→helper sweep total
+to 8 hooks across 3 ships (v1.10.750 + v1.10.751 + v1.10.752).
+
+Remaining `apiFetch` callers (`lib/use-validations.ts`,
+`lib/use-xterm-autofit.ts`) deliberately keep the raw helper —
+useValidations needs non-throwing inline error mapping
+(`{ error: HTTP <s> }` per-row), useXtermAutofit's POST is
+fire-and-forget with a `.catch(() => {})` that bypasses the
+JSON-parse contract apiPost would impose.
+
+Tests
+- Redirected pre-existing assertions in 3 places:
+  `chat-view.test.js` "posts user text through /api/send" →
+  `apiPost<{ error?: string }>(...)` shape.
+  `useChatSubmit (v1.10.673)` boundary suite "POSTs /api/send then
+  /api/key Enter sequentially" → same shape.
+  `useWorkerList (v1.10.660)` boundary suite "GETs /api/list with
+  HTTP error mapping" → `apiGet<ListResponse>` shape.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (1018 / 215 suites — same), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.751] - 2026-05-10 — apiFetch → apiPost adoption sweep
 
 **Web — 2 hooks drop the `apiFetch + method:'POST' + headers + body

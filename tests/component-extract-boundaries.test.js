@@ -4878,9 +4878,10 @@ describe('extracted: useChatSubmit hook (v1.10.673)', () => {
   });
 
   it('POSTs /api/send then /api/key Enter sequentially', () => {
+    // (v1.10.752) apiFetch + manual error throw replaced with apiPost.
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /apiFetch\('\/api\/send'/);
-    assert.match(src, /apiFetch\('\/api\/key'[\s\S]*?key:\s*'Enter'/);
+    assert.match(src, /apiPost<\{ error\?: string \}>\('\/api\/send'/);
+    assert.match(src, /apiPost<\{ error\?: string \}>\('\/api\/key'[\s\S]*?key:\s*'Enter'/);
   });
 
   it('returns focus to textarea on every completion + flips sending=false', () => {
@@ -5389,9 +5390,9 @@ describe('extracted: useWorkerList hook (v1.10.660)', () => {
   });
 
   it('GETs /api/list with HTTP error mapping to setError', () => {
+    // (v1.10.752) apiFetch + manual error throw replaced with apiGet.
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /apiFetch\('\/api\/list'\)/);
-    assert.match(src, /throw new Error\(`HTTP \$\{res\.status\}`\)/);
+    assert.match(src, /apiGet<ListResponse>\('\/api\/list'\)/);
   });
 
   it('subscribes to /api/events and refetches on every non-connected event', () => {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { apiFetch, eventSourceUrl } from './api';
+import { apiGet, eventSourceUrl } from './api';
 import type { ListResponse, SSEEvent, Worker } from '../types';
 
 // (v1.10.660) Extracted from WorkerList. Polls /api/list
@@ -9,6 +9,8 @@ import type { ListResponse, SSEEvent, Worker } from '../types';
 // + SSE belt-and-braces matches what's been there since
 // 8.x — SSE is the primary signal but the timer is kept
 // so a transient drop still keeps the sidebar warm.
+// (v1.10.752) apiFetch + manual error throw replaced
+// with apiGet which throws on non-ok internally.
 
 interface WorkerListState {
   workers: Worker[];
@@ -24,9 +26,7 @@ export function useWorkerList(): WorkerListState {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await apiFetch('/api/list');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as ListResponse;
+      const data = await apiGet<ListResponse>('/api/list');
       setWorkers(Array.isArray(data.workers) ? data.workers : []);
       setError(null);
     } catch (e) {

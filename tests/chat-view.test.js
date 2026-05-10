@@ -119,12 +119,13 @@ describe('ChatView source wiring', () => {
 
   it('posts user text through /api/send and Enter through /api/key', () => {
     // (v1.10.673) Submit flow moved to lib/use-chat-submit.
+    // (v1.10.752) apiFetch + manual error throw replaced with apiPost.
     const submitSrc = fs.readFileSync(
       path.join(WEB_SRC, 'lib', 'use-chat-submit.ts'),
       'utf8',
     );
-    assert.match(submitSrc, /apiFetch\('\/api\/send'/);
-    assert.match(submitSrc, /apiFetch\('\/api\/key'/);
+    assert.match(submitSrc, /apiPost<\{ error\?: string \}>\('\/api\/send'/);
+    assert.match(submitSrc, /apiPost<\{ error\?: string \}>\('\/api\/key'/);
     assert.match(submitSrc, /key: 'Enter'/);
   });
 

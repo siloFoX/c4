@@ -1,5 +1,5 @@
 import { useCallback, useState, type FormEvent, type RefObject } from 'react';
-import { apiFetch } from './api';
+import { apiPost } from './api';
 import type { Role } from './chat-helpers';
 
 // (v1.10.673) Extracted from ChatView. The submit flow
@@ -11,6 +11,8 @@ import type { Role } from './chat-helpers';
 // the parent's setError is threaded in so the page-level
 // banner stays the single sink. Focus returns to the
 // textarea on every completion (success or failure).
+// (v1.10.752) apiFetch + manual error throw replaced
+// with apiPost which throws on non-ok internally.
 
 interface ChatSubmitState {
   sending: boolean;
@@ -44,25 +46,13 @@ export function useChatSubmit(args: {
     setInput('');
     setAutoScroll(true);
     try {
-      const sendRes = await apiFetch('/api/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: workerName, input: text }),
-      });
-      if (!sendRes.ok) throw new Error(`HTTP ${sendRes.status}`);
-      const sendData = (await sendRes.json()) as { error?: string };
+      const sendData = await apiPost<{ error?: string }>('/api/send', { name: workerName, input: text });
       if (sendData.error) {
         setError(sendData.error);
         setSending(false);
         return;
       }
-      const keyRes = await apiFetch('/api/key', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: workerName, key: 'Enter' }),
-      });
-      if (!keyRes.ok) throw new Error(`HTTP ${keyRes.status}`);
-      const keyData = (await keyRes.json()) as { error?: string };
+      const keyData = await apiPost<{ error?: string }>('/api/key', { name: workerName, key: 'Enter' });
       if (keyData.error) setError(keyData.error);
     } catch (err) {
       setError((err as Error).message);
