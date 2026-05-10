@@ -90,6 +90,14 @@ export default function MeetingsComposer({ open, onClose, onCreated }: Props) {
     setNewTask, setTemplateName, setTemplateVars, onCreated,
   });
 
+  // (v1.10.762) Stable cancel callback — drops the inline
+  // `() => { onClose(); setCreateError(null); }` arrow. Sits
+  // below useMeetingCreate so setCreateError is defined.
+  const handleCancel = useCallback(() => {
+    onClose();
+    setCreateError(null);
+  }, [onClose, setCreateError]);
+
   if (!open) return null;
 
   return (
@@ -251,7 +259,7 @@ export default function MeetingsComposer({ open, onClose, onCreated }: Props) {
         <Button
           size="sm"
           variant="outline"
-          onClick={() => { onClose(); setCreateError(null); }}
+          onClick={handleCancel}
           disabled={createBusy}
         >
           {t('common.cancel')}

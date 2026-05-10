@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { Button } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
@@ -31,6 +32,13 @@ export default function SpecialistsAddPanel({ open, onClose, onAdded }: Props) {
     proposeBusy, proposeMsg, proposeRejected,
     handleAdd, handlePropose,
   } = useSpecialistsAddPropose({ onAdded });
+
+  // (v1.10.762) Stable cancel callback — drops the
+  // `() => { onClose(); setAddError(null); }` inline arrow.
+  const handleCancel = useCallback(() => {
+    onClose();
+    setAddError(null);
+  }, [onClose, setAddError]);
 
   if (!open) return null;
 
@@ -68,7 +76,7 @@ export default function SpecialistsAddPanel({ open, onClose, onAdded }: Props) {
         <Button
           size="sm"
           variant="outline"
-          onClick={() => { onClose(); setAddError(null); }}
+          onClick={handleCancel}
           disabled={addBusy || proposeBusy}
         >
           {t('common.cancel')}

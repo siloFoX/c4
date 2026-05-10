@@ -100,6 +100,15 @@ export default function ConversationView({
     setAutoScroll(isAtBottom());
   }, [setAutoScroll, isAtBottom]);
 
+  // (v1.10.762) Stable jump-to-latest callback — scrolls the
+  // pane to the bottom and re-arms autoScroll. Drops the
+  // inline 4-line arrow from the floating action button.
+  const handleJumpToLatest = useCallback(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+    setAutoScroll(true);
+  }, [setAutoScroll]);
+
   const turnBlocks = useMemo(() => {
     if (!conversation) return [];
     // Pair tool_use + tool_result so the result is not rendered twice
@@ -192,11 +201,7 @@ export default function ConversationView({
             <Button
               size="sm"
               variant="outline"
-              onClick={() => {
-                const el = scrollRef.current;
-                if (el) el.scrollTop = el.scrollHeight;
-                setAutoScroll(true);
-              }}
+              onClick={handleJumpToLatest}
             >
               {t('conversation.jumpToLatest')}
             </Button>

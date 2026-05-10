@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.10.762] - 2026-05-10 — Stabilize three Cancel / jump-to-latest onClicks
+
+**Web — three more inline `onClick` arrow blocks
+replaced by component-local `useCallback`.**
+
+- `SpecialistsAddPanel.tsx` — `handleCancel` wraps
+  `onClose() + setAddError(null)` so the JSON-add
+  panel's Cancel button references one stable
+  callback identity rather than an inline arrow.
+- `MeetingsComposer.tsx` — `handleCancel` wraps
+  `onClose() + setCreateError(null)` for the
+  composer's Cancel button.
+- `ConversationView.tsx` — `handleJumpToLatest`
+  wraps the scrollTop = scrollHeight + setAutoScroll
+  (true) pair on the floating "Jump to latest"
+  button.
+
+Same theme as v1.10.761: each combines two
+calls that previously rebuilt the closure each
+render. Wrapping in useCallback keeps the JSX
+declarative without forfeiting prop-stable child
+re-render savings. All 5 quality gates green.
+
 ## [1.10.761] - 2026-05-10 — Stabilize three more multi-call onClick blocks
 
 **Web — three more inline arrow blocks on JSX
