@@ -2163,6 +2163,20 @@ describe('extracted: useAutoClearMessage hook (v1.10.764)', () => {
       assert.match(src, /setFailure\(/);
     }
   });
+
+  it('failure-only adopters use just setFailure + reset (v1.10.766)', () => {
+    // useMeetingTemplateEditor closes the modal on success rather than
+    // showing a toast, so it only needs the failure half.
+    const src = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-template-editor.ts'),
+      'utf8',
+    );
+    assert.match(src, /import\s+\{\s*useAutoClearMessage\s*\}\s+from\s+'\.\/use-auto-clear-message'/);
+    assert.match(src, /useAutoClearMessage\(\)/);
+    assert.match(src, /setFailure\(/);
+    // No setSuccess — save closes the dialog and there's no banner.
+    assert.doesNotMatch(src, /setSuccess\(/);
+  });
 });
 
 describe('extracted: useToggle hook (v1.10.757)', () => {
@@ -4135,8 +4149,10 @@ describe('extracted: useMeetingTemplateEditor hook (v1.10.700)', () => {
   });
 
   it('re-seeds form when open flips true', () => {
+    // (v1.10.766) Banner-state reset delegated to useAutoClearMessage's
+    // `reset` callback so the dep list grew to `[open, tpl, reset]`.
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /useEffect\(\(\) => \{[\s\S]*?if \(!open\) return;[\s\S]*?\}, \[open, tpl\]\)/);
+    assert.match(src, /useEffect\(\(\) => \{[\s\S]*?if \(!open\) return;[\s\S]*?\}, \[open, tpl,\s*reset\]\)/);
   });
 
   it('handleSave POSTs /api/meetings/templates + delete-old branch on rename', () => {

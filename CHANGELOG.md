@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.10.766] - 2026-05-10 — useAutoClearMessage adoption — failure-only path
+
+**Web — one more adopter, exercising a leaner shape.**
+`useMeetingTemplateEditor` joins the v1.10.764 +
+v1.10.765 cohort but uses only the failure half of
+the shared infra: a successful save closes the
+modal and a successful delete removes the chip, so
+neither path needs a toast. Both flow through
+`reset()` at the start of the request and
+`setFailure(error)` on throw / validation. The
+form-reset effect (`useEffect` keyed on `open`/
+`tpl`) now calls `reset()` instead of the old
+`setMsg(null) + setFailed(false)` pair, growing the
+dep list to `[open, tpl, reset]`.
+
+`reloadFailed` in `use-config.ts` was inspected but
+deliberately skipped: its 5s auto-clearing soft-
+failure semantics don't match the shared infra's
+"failure persists" contract. Keeping the inline
+timer there is honest.
+
+Boundary tests: 2 redirected (form re-seed dep
+list) + 1 new "failure-only adopters" assertion
+verifying the absence of `setSuccess` calls. All 5
+quality gates green.
+
 ## [1.10.765] - 2026-05-10 — useAutoClearMessage adoption — 4 more hooks
 
 **Web — finished the v1.10.764 migration.** The

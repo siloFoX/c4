@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiDelete, apiPost } from './api';
 import { t, tFormat } from './i18n';
+import { useAutoClearMessage } from './use-auto-clear-message';
 
 // (v1.10.700) Extracted from MeetingsTemplateEditor.
 // Owns the four form fields (name / task / track /
@@ -10,6 +11,12 @@ import { t, tFormat } from './i18n';
 // different chip sees the right values; rename is
 // implemented via upsert + delete-old since the daemon
 // doesn't have a rename op.
+//
+// (v1.10.766) Banner state moved to shared infra
+// hook lib/use-auto-clear-message. This editor only
+// uses the failure path (no auto-clearing success
+// banner — save closes the dialog and delete
+// confirmation is via window.confirm).
 
 interface TemplateLike {
   name: string;
@@ -49,8 +56,7 @@ export function useMeetingTemplateEditor(args: {
   const [track, setTrack] = useState('');
   const [description, setDescription] = useState('');
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+  const { msg, failed, setFailure, reset } = useAutoClearMessage();
 
   useEffect(() => {
     if (!open) return;
@@ -65,21 +71,18 @@ export function useMeetingTemplateEditor(args: {
       setTrack('');
       setDescription('');
     }
-    setMsg(null);
-    setFailed(false);
-  }, [open, tpl]);
+    reset();
+  }, [open, tpl, reset]);
 
   const handleSave = useCallback(async () => {
     const trimmedName = name.trim();
     const trimmedTask = task.trim();
     if (!trimmedName || !trimmedTask) {
-      setMsg(t('meetings.template.nameTaskRequired'));
-      setFailed(true);
+      setFailure(t('meetings.template.nameTaskRequired'));
       return;
     }
     setBusy(true);
-    setMsg(null);
-    setFailed(false);
+    reset();
     try {
       const body: {
         name: string;
@@ -96,36 +99,32 @@ export function useMeetingTemplateEditor(args: {
       if (mode === 'edit' && originalName && originalName !== trimmedName) {
         await apiDelete(`/api/meetings/templates/${encodeURIComponent(originalName)}`);
       }
-      setMsg(null);
       onSaved();
     } catch (e) {
-      setMsg(tFormat('meetings.template.saveFailed', {
+      setFailure(tFormat('meetings.template.saveFailed', {
         error: (e as Error).message || t('common.unknown'),
       }));
-      setFailed(true);
     } finally {
       setBusy(false);
     }
-  }, [name, task, track, description, mode, originalName, onSaved]);
+  }, [name, task, track, description, mode, originalName, onSaved, reset, setFailure]);
 
   const handleDelete = useCallback(async () => {
     if (!originalName) return;
     if (!window.confirm(tFormat('meetings.confirmTplDelete', { name: originalName }))) return;
     setBusy(true);
-    setMsg(null);
-    setFailed(false);
+    reset();
     try {
       await apiDelete(`/api/meetings/templates/${encodeURIComponent(originalName)}`);
       onDeleted(originalName);
     } catch (e) {
-      setMsg(tFormat('meetings.template.deleteFailed', {
+      setFailure(tFormat('meetings.template.deleteFailed', {
         error: (e as Error).message || t('common.unknown'),
       }));
-      setFailed(true);
     } finally {
       setBusy(false);
     }
-  }, [originalName, onDeleted]);
+  }, [originalName, onDeleted, reset, setFailure]);
 
   return {
     name, setName,
