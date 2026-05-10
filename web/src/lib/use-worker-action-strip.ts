@@ -1,21 +1,22 @@
 import { useCallback, useState } from 'react';
-import { apiFetch } from './api';
-import { tFormat } from './i18n';
+import { postAction } from './post-action';
+import { t, tFormat } from './i18n';
 import type { ToastType } from '../components/Toast';
 import type { ActionConfig, ActionKind } from '../components/WorkerActions';
 
 // (v1.10.720) Extracted from WorkerActions. The
 // per-worker row-action runner — confirms via
 // window.confirm, busy-marks the action kind in
-// flight, POSTs to action.endpoint, inspects both
-// the HTTP status and a JSON `{ error }` body
-// (the daemon returns 200 with an error key for
-// some no-op cases), and surfaces success / failure
-// through the parent's toast slot. Distinct from
-// the older `useWorkerActions` (workerDetail-level)
-// — that hook drives WorkerDetail's send / key /
-// merge handlers; this one drives the row-action
-// toolbar buttons.
+// flight, POSTs to action.endpoint via the shared
+// postAction helper (handles HTTP status + JSON
+// `{ error }` body uniformly), and surfaces success /
+// failure through the parent's toast slot. Distinct
+// from the older `useWorkerActions` (workerDetail-
+// level) — that hook drives WorkerDetail's send /
+// key / merge handlers; this one drives the row-
+// action toolbar buttons.
+// (v1.10.749) postAction (3-mode failure handling)
+// adopted from lib/post-action.
 
 export interface WorkerActionStripState {
   busyKind: ActionKind | null;
@@ -33,46 +34,19 @@ export function useWorkerActionStrip(args: {
     if (!window.confirm(action.confirm)) return;
 
     setBusyKind(action.kind);
-    try {
-      const res = await apiFetch(action.endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(action.body),
-      });
-
-      let payload: unknown = null;
-      try {
-        payload = await res.json();
-      } catch {
-        // non-JSON response
-      }
-
-      if (!res.ok) {
-        const errMsg =
-          (payload && typeof payload === 'object' && 'error' in payload
-            ? String((payload as { error: unknown }).error)
-            : null) || `HTTP ${res.status}`;
-        showToast(tFormat('worker.action.failed', { label: action.label, error: errMsg }), 'error');
-        return;
-      }
-
-      if (payload && typeof payload === 'object' && 'error' in payload && (payload as { error: unknown }).error) {
-        showToast(tFormat('worker.action.failed', {
-          label: action.label,
-          error: String((payload as { error: unknown }).error),
-        }), 'error');
-        return;
-      }
-
+    const res = await postAction(action.endpoint, action.body);
+    if (res.ok) {
       showToast(action.successMessage, 'success');
-    } catch (e) {
-      showToast(tFormat('worker.action.failed', {
-        label: action.label,
-        error: (e as Error).message,
-      }), 'error');
-    } finally {
-      setBusyKind(null);
+    } else {
+      showToast(
+        tFormat('worker.action.failed', {
+          label: action.label,
+          error: res.error || t('common.unknown'),
+        }),
+        'error',
+      );
     }
+    setBusyKind(null);
   }, [showToast]);
 
   return { busyKind, runAction };

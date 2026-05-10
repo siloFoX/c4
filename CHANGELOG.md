@@ -4,6 +4,55 @@
 
 (no entries — next release window)
 
+## [1.10.749] - 2026-05-10 — useWorkerActionStrip adopts postAction helper
+
+**Web — `lib/use-worker-action-strip.ts` shrunk by 27 lines (80 → 53).**
+The 36-line inline apiFetch + payload-parse + 3-mode
+failure handling block in `runAction` is replaced by
+a single `postAction(action.endpoint, action.body)`
+call. The hook now imports the shared helper from
+`lib/post-action` (extracted at v1.10.740) instead
+of re-implementing the same wrapper.
+
+The behavioural contract is preserved verbatim:
+
+- Network throw → `postAction` returns
+  `{ ok: false, error: e.message }` → toast.
+- HTTP non-2xx → `postAction` returns
+  `{ ok: false, error: payload.error || HTTP <s> }`
+  → toast.
+- HTTP 200 with `r.error` set →
+  `{ ok: false, error: r.error }` → toast.
+
+The error fallback is now `t('common.unknown')`
+instead of the inline `HTTP ${res.status}` (which
+postAction already emits when no payload.error
+exists, so the parent toast still shows the right
+context).
+
+This is the third consumer of the shared postAction
+helper — alongside `useControlPanelSingle` and
+`useWorkerSelection` (both adopted at v1.10.740).
+A fourth would mean breaking up postAction into
+something more configurable; for now three callers
+all benefit from the unified contract.
+
+Boundary suite #215 in
+`tests/component-extract-boundaries.test.js` pins
+the postAction import + adoption, the preserved
+window.confirm + busy-mark + toast routing
+semantics, and the `t('common.unknown')` fallback.
+Pre-existing `useWorkerActionStrip (v1.10.720)`
+suite's "handles both HTTP error and JSON {error}
+payload paths" assertion redirected from the hook
+file to read post-action.ts where the parsing logic
+now lives.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (1016 / 215 suites — +3 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.748] - 2026-05-10 — Extract useMorning hook
 
 **Web — `pages/Morning.tsx` shrunk by 39 lines (136 → 97).**

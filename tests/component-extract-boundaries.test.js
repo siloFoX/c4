@@ -2057,6 +2057,33 @@ describe('extracted: useChatBackfill hook (v1.10.738)', () => {
   });
 });
 
+describe('useWorkerActionStrip adopts postAction helper (v1.10.749)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-worker-action-strip.ts');
+
+  it('imports postAction directly + drops the inline apiFetch wrapper', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /import\s+\{\s*postAction\s*\}\s+from\s+'\.\/post-action'/);
+    assert.match(src, /const res = await postAction\(action\.endpoint,\s*action\.body\)/);
+    assert.doesNotMatch(src, /import\s+\{\s*apiFetch\s*\}/);
+    assert.doesNotMatch(src, /apiFetch\(action\.endpoint/);
+  });
+
+  it('preserves window.confirm gate + busy-mark + toast routing semantics', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /if \(action\.disabled\) return/);
+    assert.match(src, /if \(!window\.confirm\(action\.confirm\)\) return/);
+    assert.match(src, /setBusyKind\(action\.kind\)/);
+    assert.match(src, /worker\.action\.failed/);
+  });
+
+  it('uses common.unknown fallback when postAction.error is missing', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /res\.error \|\| t\('common\.unknown'\)/);
+  });
+});
+
 describe('extracted: useMorning hook (v1.10.748)', () => {
   const fs = require('fs');
   const path = require('path');
@@ -3082,12 +3109,17 @@ describe('extracted: useWorkerActionStrip hook (v1.10.720)', () => {
   });
 
   it('handles both HTTP error and JSON {error} payload paths', () => {
+    // (v1.10.749) HTTP/payload error handling moved into post-action helper.
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /if \(!res\.ok\)/);
-    assert.match(src, /HTTP \$\{res\.status\}/);
-    // Second branch: HTTP 200 but payload.error set.
-    assert.match(src, /'error' in payload[\s\S]*?\(payload as \{ error: unknown \}\)\.error/);
     assert.match(src, /worker\.action\.failed/);
+    const helperSrc = fs.readFileSync(
+      path.join(__dirname, '..', 'web', 'src', 'lib', 'post-action.ts'),
+      'utf8',
+    );
+    assert.match(helperSrc, /if \(!res\.ok\)/);
+    assert.match(helperSrc, /HTTP \$\{res\.status\}/);
+    // Second branch: HTTP 200 but payload.error set.
+    assert.match(helperSrc, /'error' in payload[\s\S]*?\(payload as \{ error: unknown \}\)\.error/);
   });
 
   it('parent WorkerActions wires the hook + drops the inline runAction', () => {
