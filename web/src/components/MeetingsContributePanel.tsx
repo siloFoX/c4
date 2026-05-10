@@ -1,7 +1,7 @@
 import { Button, Input } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
-import { useMeetingContribute } from '../lib/use-meeting-contribute';
+import { useMeetingContribute, type MeetingVote } from '../lib/use-meeting-contribute';
 
 // (v1.10.551) Extracted from MeetingsView. The Phase-1 manual
 // contribute panel — operator picks a specialist id, writes a
@@ -65,7 +65,7 @@ export default function MeetingsContributePanel({ open, meetingId }: Props) {
           vote (with contrib):
           <select
             value={vote}
-            onChange={(e) => setVote(e.target.value as '' | 'accept' | 'object')}
+            onChange={(e) => setVote(e.target.value as '' | MeetingVote)}
             disabled={busy}
             className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
           >

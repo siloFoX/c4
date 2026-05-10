@@ -4145,10 +4145,12 @@ describe('extracted: useMeetingContribute hook (v1.10.701)', () => {
   });
 
   it('owns four form fields + busy/msg/failed banner', () => {
+    // (v1.10.772) Vote literal hoisted to MeetingVote alias.
     const src = fs.readFileSync(HOOK, 'utf8');
     assert.match(src, /const \[specialist, setSpecialist\]/);
     assert.match(src, /const \[text, setText\]/);
-    assert.match(src, /const \[vote, setVote\] = useState<''\s*\|\s*'accept'\s*\|\s*'object'>/);
+    assert.match(src, /export type MeetingVote = 'accept' \| 'object'/);
+    assert.match(src, /const \[vote, setVote\] = useState<''\s*\|\s*MeetingVote>/);
     assert.match(src, /const \[reason, setReason\]/);
   });
 
@@ -4166,9 +4168,11 @@ describe('extracted: useMeetingContribute hook (v1.10.701)', () => {
   });
 
   it('parent MeetingsContributePanel wires the hook + drops the inline state + handlers', () => {
+    // (v1.10.772) MeetingVote alias imported alongside the hook.
     const src = fs.readFileSync(PARENT, 'utf8');
-    assert.match(src, /import\s+\{\s*useMeetingContribute\s*\}\s+from\s+'\.\.\/lib\/use-meeting-contribute'/);
+    assert.match(src, /import\s+\{\s*useMeetingContribute,\s*type\s+MeetingVote\s*\}\s+from\s+'\.\.\/lib\/use-meeting-contribute'/);
     assert.match(src, /useMeetingContribute\(\{\s*meetingId\s*\}\)/);
+    assert.match(src, /e\.target\.value\s*as\s*''\s*\|\s*MeetingVote/);
     assert.doesNotMatch(src, /const \[specialist, setSpecialist\]/);
     assert.doesNotMatch(src, /const handleContribute = useCallback/);
     assert.doesNotMatch(src, /const handleVoteOnly = useCallback/);

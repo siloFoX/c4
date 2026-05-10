@@ -4,6 +4,24 @@
 
 (no entries — next release window)
 
+## [1.10.772] - 2026-05-10 — Consolidate MeetingVote type alias
+
+**Web — third type-deduplication pass.** The
+`'accept' | 'object'` literal union appeared in 7
+sites across `use-meeting-contribute` (state +
+handler signatures + payload typedefs) and
+`MeetingsContributePanel` (the JSX cast). Now
+exported as `MeetingVote` from `lib/use-meeting-
+contribute.ts` (the canonical owner — vote is part
+of the contribute domain).
+
+The vote slot stays `'' | MeetingVote` since the
+form treats empty-string as "no vote yet" (which
+the backend allows).
+
+Boundary tests: 2 redirected. All 5 quality gates
+green.
+
 ## [1.10.771] - 2026-05-10 — Consolidate MeetingBrain type alias
 
 **Web — second type-deduplication pass.** The
