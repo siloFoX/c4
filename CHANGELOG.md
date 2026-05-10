@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.10.761] - 2026-05-10 — Stabilize three more multi-call onClick blocks
+
+**Web — three more inline arrow blocks on JSX
+`onClick`s replaced by memoized `useCallback`s.**
+None of the three could be a single-call helper; each
+combines two or three setter / effect calls that
+previously rebuilt the arrow at every render.
+
+- `SpecialistsView.tsx` — `onToggleAdd` now wraps
+  the open-flip + `setActionError(null)` clear in a
+  stable callback so the listing card header (which
+  already re-renders on selection change) stops
+  rebuilding the toggle each time.
+- `MeetingsComposer.tsx` — `clearTemplate` wraps
+  the `setTemplateName(null) + setTemplateVars({})`
+  pair. The chip-row now reads `onClick={clearTemplate}`
+  in place of a 4-line block.
+- `SessionsAttachedRowActions.tsx` — `confirmDetach`
+  combines `setShowDetachConfirm(false) + onDetach()`
+  so the destructive Button keeps stable identity
+  for an unchanged parent prop.
+
+The boundary test for SessionsAttachedRowActions
+already accepts useToggle adoption (v1.10.758) so
+no test churn was needed. All 5 quality gates
+green.
+
 ## [1.10.760] - 2026-05-10 — Stabilize sidebar + tag-editor toggle callbacks
 
 **Web — two more `(v) => !v` arrow allocations

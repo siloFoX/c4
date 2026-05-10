@@ -58,6 +58,14 @@ export default function MeetingsComposer({ open, onClose, onCreated }: Props) {
     setTplEditorOpen(true);
   }, []);
 
+  // (v1.10.761) Stable "clear template" callback — drops the
+  // 2-line `setTemplateName(null) + setTemplateVars({})` arrow
+  // from the chip-row JSX.
+  const clearTemplate = useCallback(() => {
+    setTemplateName(null);
+    setTemplateVars({});
+  }, []);
+
   // Placeholder names — refreshed on newTask change.
   const placeholderNames = useMemo(() => {
     const out = new Set<string>();
@@ -136,10 +144,7 @@ export default function MeetingsComposer({ open, onClose, onCreated }: Props) {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => {
-              setTemplateName(null);
-              setTemplateVars({});
-            }}
+            onClick={clearTemplate}
             aria-label={t('meetings.action.clearTemplate')}
             className="h-6 px-2 text-[11px] text-muted-foreground"
           >

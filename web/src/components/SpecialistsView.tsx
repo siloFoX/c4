@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Eye } from 'lucide-react';
 import { Card, CardContent } from './ui';
 import { t, useLocale } from '../lib/i18n';
@@ -104,6 +104,13 @@ export default function SpecialistsView() {
   // that don't have their own panel — kept here so the existing
   // surfaces below the action buttons survive the AddPanel extraction.
   const [actionError, setActionError] = useState<string | null>(null);
+  // (v1.10.761) Combined toggle — opening/closing the Add panel
+  // also clears any stale parent-side action error so the new
+  // panel's own error surface owns the message from there on.
+  const onToggleAdd = useCallback(() => {
+    setAddOpen((v) => !v);
+    setActionError(null);
+  }, []);
 
   // (v1.10.633) Remove + score-reset handlers and their busy /
   // confirmId state extracted to ../lib/use-specialist-actions.
@@ -162,7 +169,7 @@ export default function SpecialistsView() {
           loading={loading}
           addOpen={addOpen}
           actionError={actionError}
-          onToggleAdd={() => { setAddOpen((v) => !v); setActionError(null); }}
+          onToggleAdd={onToggleAdd}
           onCloseAdd={() => setAddOpen(false)}
           onAdded={(newId) => {
             setSelectedId(newId);

@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { Copy, Eye, Terminal, Trash2 } from 'lucide-react';
 import { useAttachProcessState } from '../lib/use-attach-process-state';
 import { useCopyPulse } from '../lib/use-copy-pulse';
@@ -67,6 +68,14 @@ export default function SessionsAttachedRowActions({
   // points at a real element. Suffix with the session name so
   // multiple SessionsAttachedRowActions on the same page never collide.
   const detachConfirmId = `detach-confirm-${session.name}`;
+
+  // (v1.10.761) Stable confirm-detach callback — closes the confirm
+  // strip and fires the parent's onDetach. Stable identity so the
+  // destructive Button never re-renders for an unchanged parent.
+  const confirmDetach = useCallback(() => {
+    setShowDetachConfirm(false);
+    onDetach();
+  }, [setShowDetachConfirm, onDetach]);
 
   return (
     <div className="flex flex-col gap-2 border-t border-border/60 bg-muted/30 px-4 py-2">
@@ -184,10 +193,7 @@ export default function SessionsAttachedRowActions({
             size="sm"
             variant="default"
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            onClick={() => {
-              setShowDetachConfirm(false);
-              onDetach();
-            }}
+            onClick={confirmDetach}
             aria-label={tFormat('sessions.row.confirmDetachAria', { worker: session.name })}
           >
             {t('sessions.row.detachSession')}
