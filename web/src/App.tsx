@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useState } from 'react';
 import Login from './components/Login';
 import { LoadingSkeleton } from './pages/PageFrame';
+import { useToggle } from './lib/use-toggle';
 // (v1.10.509) Top-level views are lazy-loaded so the main bundle
 // only carries Login + AppHeader + Sidebar + the default
 // WorkerDetail / ChatView / ControlPanel triple. The rest pull
@@ -43,7 +44,7 @@ export default function App() {
   // (v1.10.669) Auth state machine + AUTH_EVENT listener moved to
   // lib/use-auth-state.
   const { authState, setAuthed, setAnon } = useAuthState();
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
+  const [sidebarOpen, toggleSidebarOpen, setSidebarOpen] = useToggle(() => {
     if (typeof window === 'undefined') return true;
     return window.matchMedia('(min-width: 768px)').matches;
   });
@@ -66,7 +67,7 @@ export default function App() {
   // (v1.10.670) Ctrl+B / Cmd+B sidebar shortcut moved to hook.
   useSidebarShortcut({
     onToggleCollapsed: () => setSidebarCollapsed((v) => !v),
-    onToggleOpen: () => setSidebarOpen((v) => !v),
+    onToggleOpen: toggleSidebarOpen,
   });
 
   if (authState === 'loading') {

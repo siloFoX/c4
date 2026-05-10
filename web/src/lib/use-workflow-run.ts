@@ -14,7 +14,7 @@ import type { WorkflowRun, WorkflowRunsResponse } from '../components/WorkflowEd
 
 interface WorkflowRunState {
   inputsOpen: boolean;
-  setInputsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  toggleInputs: () => void;
   inputsJson: string;
   setInputsJson: React.Dispatch<React.SetStateAction<string>>;
   inputsError: string | null;
@@ -67,5 +67,6 @@ export function useWorkflowRun(args: {
     }
   }, [selectedId, inputsOpen, inputsJson, setRuns, setBusy, setError]);
 
-  return { inputsOpen, setInputsOpen, inputsJson, setInputsJson, inputsError, handleRun };
+  const toggleInputs = useCallback(() => setInputsOpen((v) => !v), []);
+  return { inputsOpen, toggleInputs, inputsJson, setInputsJson, inputsError, handleRun };
 }

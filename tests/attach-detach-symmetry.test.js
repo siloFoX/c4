@@ -198,7 +198,9 @@ describe('SessionsView surfaces role + two-step detach', () => {
   });
 
   it('detach button toggles the confirmation strip rather than firing onDetach directly', () => {
-    assert.match(rowSrc, /onClick=\{\(\) => setShowDetachConfirm\(\(v\) => !v\)\}/);
+    // (v1.10.758) Adopt useToggle — onClick references the stable toggle
+    // callback rather than allocating a fresh inline arrow each render.
+    assert.match(rowSrc, /onClick=\{toggleShowDetachConfirm\}/);
     assert.match(rowSrc, /aria-expanded=\{showDetachConfirm\}/);
   });
 

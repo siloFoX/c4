@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import { Copy, Eye, Terminal, Trash2 } from 'lucide-react';
 import { useAttachProcessState } from '../lib/use-attach-process-state';
 import { useCopyPulse } from '../lib/use-copy-pulse';
+import { useToggle } from '../lib/use-toggle';
 import { Button } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -52,8 +52,8 @@ export default function SessionsAttachedRowActions({
 }: Props) {
   useLocale();
 
-  const [showResume, setShowResume] = useState(false);
-  const [showDetachConfirm, setShowDetachConfirm] = useState(false);
+  const [showResume, toggleShowResume] = useToggle();
+  const [showDetachConfirm, toggleShowDetachConfirm, setShowDetachConfirm] = useToggle();
   // (v1.10.674) /api/attach/:name/process 30s poll moved to hook.
   const procState = useAttachProcessState({ name: session.name });
   const resumeCmd = session.sessionId
@@ -143,7 +143,7 @@ export default function SessionsAttachedRowActions({
         <Button
           size="sm"
           variant="outline"
-          onClick={() => setShowResume((v) => !v)}
+          onClick={toggleShowResume}
           aria-label={tFormat('sessions.row.resumeInTerminalAria', { worker: session.name })}
           aria-expanded={showResume}
         >
@@ -153,7 +153,7 @@ export default function SessionsAttachedRowActions({
         <Button
           size="sm"
           variant="outline"
-          onClick={() => setShowDetachConfirm((v) => !v)}
+          onClick={toggleShowDetachConfirm}
           aria-label={tFormat('sessions.row.detachAria', { worker: session.name })}
           aria-expanded={showDetachConfirm}
           {...(showDetachConfirm ? { 'aria-controls': detachConfirmId } : {})}

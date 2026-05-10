@@ -123,7 +123,7 @@ export default function WorkflowEditor() {
   }, [selected, selectedNodeId]);
 
   // (v1.10.677) Inputs drawer + run-now POST moved to hook.
-  const { inputsOpen, setInputsOpen, inputsJson, setInputsJson, inputsError, handleRun } =
+  const { inputsOpen, toggleInputs, inputsJson, setInputsJson, inputsError, handleRun } =
     useWorkflowRun({ selectedId, setRuns, setBusy, setError });
 
   return (
@@ -155,7 +155,7 @@ export default function WorkflowEditor() {
               inputsOpen={inputsOpen}
               inputsJson={inputsJson}
               inputsError={inputsError}
-              onToggleInputs={() => setInputsOpen((v) => !v)}
+              onToggleInputs={toggleInputs}
               onChangeInputsJson={setInputsJson}
               onRun={handleRun}
             />

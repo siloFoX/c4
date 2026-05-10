@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useToggle } from '../lib/use-toggle';
 import MeetingsMaintenancePanel from './MeetingsMaintenancePanel';
 import MeetingsStuckBanner from './MeetingsStuckBanner';
 import { type StageView } from './MeetingsStagesView';
@@ -185,7 +186,7 @@ export default function MeetingsView() {
   // / template-vars / classify-preview / dispatcher-plan-preview
   // state internally. Parent keeps just the `creating` flag so
   // the toggle button can flip it.
-  const [creating, setCreating] = useState(false);
+  const [creating, toggleCreating, setCreating] = useToggle();
 
   // (v1.10.556) Run controls (brain selector + Run button +
   // error display) extracted to ./MeetingsRunControls.tsx.
@@ -224,7 +225,7 @@ export default function MeetingsView() {
   // (v1.10.638) Auto-close-on-selection-change extracted to
   // useToggleResetOnChange — the extracted panel resets its
   // own field state on meetingId change too.
-  const { open: contribOpen, setOpen: setContribOpen } = useToggleResetOnChange(selectedId);
+  const { open: contribOpen, toggle: toggleContrib } = useToggleResetOnChange(selectedId);
 
   // (v1.10.345) Retro preview / finalize for terminal meetings.
   // Endpoints exist since phase 2.6; the web only had run with
@@ -248,7 +249,7 @@ export default function MeetingsView() {
   // mode / task / title / track / busy / error state internally.
   // (v1.10.638) Same auto-close pattern as contribOpen — half-
   // typed fork from meeting A shouldn't leak to meeting B.
-  const { open: forkOpen, setOpen: setForkOpen } = useToggleResetOnChange(selectedId);
+  const { open: forkOpen, toggle: toggleFork, setOpen: setForkOpen } = useToggleResetOnChange(selectedId);
 
   // (v1.10.342) Maintenance — surfacing four ops endpoints from
   // an inline collapsible panel:
@@ -278,7 +279,7 @@ export default function MeetingsView() {
         <MeetingsListCardHeader
           creating={creating}
           loading={loading}
-          onToggleCreating={() => setCreating((v) => !v)}
+          onToggleCreating={toggleCreating}
           onRefresh={refresh}
           listStatus={listStatus}
           onListStatusChange={setListStatus}
@@ -333,9 +334,9 @@ export default function MeetingsView() {
           detail={detail}
           streaming={streaming}
           contribOpen={contribOpen}
-          onContribToggle={() => setContribOpen((v) => !v)}
+          onContribToggle={toggleContrib}
           forkOpen={forkOpen}
-          onForkToggle={() => setForkOpen((v) => !v)}
+          onForkToggle={toggleFork}
           onForkClose={() => setForkOpen(false)}
           onForked={(newId) => {
             void refresh();

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type * as React from 'react';
 
 // (v1.10.690) Generic localStorage-backed boolean
@@ -9,6 +9,11 @@ import type * as React from 'react';
 // so the existing keys (created by ad-hoc reader/
 // writer pairs across WorkerList + others) stay
 // readable after this hook adopts them.
+//
+// (v1.10.758) Returns a 3-tuple — the third slot is a
+// stable `toggle` so callers can flip the bool without
+// allocating an inline `() => set((v) => !v)` arrow at
+// every render.
 
 function readBoolPref(key: string, fallback: boolean): boolean {
   if (typeof window === 'undefined') return fallback;
@@ -34,8 +39,9 @@ function writeBoolPref(key: string, value: boolean): void {
 export function usePersistedBool(
   key: string,
   fallback: boolean,
-): [boolean, React.Dispatch<React.SetStateAction<boolean>>] {
+): [boolean, React.Dispatch<React.SetStateAction<boolean>>, () => void] {
   const [value, setValue] = useState<boolean>(() => readBoolPref(key, fallback));
   useEffect(() => { writeBoolPref(key, value); }, [key, value]);
-  return [value, setValue];
+  const toggle = useCallback(() => setValue((v) => !v), []);
+  return [value, setValue, toggle];
 }

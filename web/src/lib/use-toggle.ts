@@ -20,8 +20,8 @@ type ToggleHandle = [
   set: React.Dispatch<React.SetStateAction<boolean>>,
 ];
 
-export function useToggle(initial: boolean = false): ToggleHandle {
-  const [value, set] = useState(initial);
+export function useToggle(initial: boolean | (() => boolean) = false): ToggleHandle {
+  const [value, set] = useState<boolean>(initial);
   const toggle = useCallback(() => set((v) => !v), []);
   return [value, toggle, set];
 }

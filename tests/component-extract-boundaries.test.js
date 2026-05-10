@@ -1370,8 +1370,9 @@ describe('extracted: SessionsAttachedRowActions (v1.10.550)', () => {
 
   it('owns its 4 internal state pieces (showResume / showDetachConfirm / copied / procState)', () => {
     // (v1.10.674) procState slot moved to hook.
+    // (v1.10.758) showResume / showDetachConfirm adopt useToggle.
     const src = read('SessionsAttachedRowActions.tsx');
-    assert.match(src, /useState\(false\)/);
+    assert.match(src, /useToggle\(\)/);
     assert.match(src, /useAttachProcessState/);
   });
 
@@ -2101,7 +2102,8 @@ describe('extracted: useToggle hook (v1.10.757)', () => {
 
   it('exports the hook + returns a 3-tuple [value, toggle, set]', () => {
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /export function useToggle\(initial: boolean = false\)/);
+    // (v1.10.758) Initial accepts a value or a lazy initializer.
+    assert.match(src, /export function useToggle\(initial: boolean \| \(\(\) => boolean\) = false\)/);
     assert.match(src, /value: boolean/);
     assert.match(src, /toggle: \(\) => void/);
     assert.match(src, /set:\s*React\.Dispatch<React\.SetStateAction<boolean>>/);

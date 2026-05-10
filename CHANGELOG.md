@@ -4,6 +4,59 @@
 
 (no entries — next release window)
 
+## [1.10.758] - 2026-05-10 — Spread useToggle / toggle callbacks across 5 more callers
+
+**Web — second adoption pass for the shared toggle helper.**
+v1.10.757 introduced `useToggle()` and adopted it in
+5 collapse-style components. This pass extends the
+pattern to 5 more inline `setX((v) => !v)` sites by
+either calling `useToggle()` directly or extending an
+existing per-feature hook to expose a stable toggle
+callback.
+
+Direct `useToggle()` adoptions:
+
+- `App.tsx` — `sidebarOpen`. The lazy-init form
+  (`useState(() => matchMedia(…).matches)`) is now
+  supported by `useToggle(initial: boolean | (() =>
+  boolean))`. The `Ctrl+B / ⌘+B` shortcut hook now
+  receives the memoized toggle instead of an inline
+  arrow. The collapsed slot stays on the
+  `useUiPreferences` setter (it persists to
+  localStorage so still owned by that hook).
+- `MeetingsView.tsx` — `creating` (compose form).
+- `SessionsAttachedRowActions.tsx` — `showResume` and
+  `showDetachConfirm`. The Detach button no longer
+  allocates an inline arrow on every render of an
+  attached row.
+
+Per-feature hook expansions (added a `toggle` slot to
+the existing return shape):
+
+- `lib/use-toggle-reset-on-change.ts` —
+  `MeetingsView` adopts the new `toggle` callback for
+  the contribute and fork panels (both still
+  auto-close on meeting selection change).
+- `lib/use-persisted-bool.ts` — `WorkerList` adopts
+  the new third-tuple `toggle` for the manager and
+  worker group headers (state still persists to
+  localStorage).
+- `lib/use-workflow-run.ts` — `WorkflowEditor` adopts
+  the new `toggleInputs` for the inputs drawer
+  expand/collapse.
+
+Five fewer `(v) => !v` arrow allocations per render
+across these callers, which means the React.memo'd
+children (`SidebarShortcut`, `MeetingsContributePanel`,
+`MeetingsForkForm`, `WorkerListGroupHeader`,
+`WorkflowSelectedHeader`) keep their cached render
+output across parent updates that don't actually
+change the toggle.
+
+`tests/component-extract-boundaries.test.js` and
+`tests/attach-detach-symmetry.test.js` updated for
+the new patterns. All 5 quality gates green.
+
 ## [1.10.757] - 2026-05-10 — Extract useToggle hook (shared infra)
 
 **Web — generic boolean-toggle helper adopted across 5 callers.**

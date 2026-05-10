@@ -40,8 +40,8 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
   useLocale();
   // (v1.10.660) /api/list poll + /api/events SSE moved to hook.
   const { workers, error, sseConnected } = useWorkerList();
-  const [managersOpen, setManagersOpen] = usePersistedBool(MGR_OPEN_KEY, true);
-  const [workersOpen, setWorkersOpen] = usePersistedBool(WRK_OPEN_KEY, true);
+  const [managersOpen, , toggleManagersOpen] = usePersistedBool(MGR_OPEN_KEY, true);
+  const [workersOpen, , toggleWorkersOpen] = usePersistedBool(WRK_OPEN_KEY, true);
 
   // (TODO 8.37) Partition into manager / worker buckets for the
   // grouped sidebar. Sort each group by name so the order is stable
@@ -177,7 +177,7 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
         <div className="space-y-1">
           <WorkerListGroupHeader
             open={managersOpen}
-            onToggle={() => setManagersOpen((v) => !v)}
+            onToggle={toggleManagersOpen}
             label={t('workerList.group.managers')}
             count={managers.length}
             icon="crown"
@@ -201,7 +201,7 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
         <div className="space-y-1">
           <WorkerListGroupHeader
             open={workersOpen}
-            onToggle={() => setWorkersOpen((v) => !v)}
+            onToggle={toggleWorkersOpen}
             label={t('workerList.group.workers')}
             count={regular.length}
             icon="wrench"
