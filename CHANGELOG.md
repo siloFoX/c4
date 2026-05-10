@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.10.765] - 2026-05-10 — useAutoClearMessage adoption — 4 more hooks
+
+**Web — finished the v1.10.764 migration.** The
+remaining 4 hooks duplicating the
+`[msg, setMsg, failed, setFailed, setTimeout(setMsg
+(null), Nms)]` pattern all migrated to the shared
+infra:
+
+- `lib/use-meeting-publish.ts` — 4s default duration.
+- `lib/use-wiki-bulk-publish.ts` — 6s success
+  duration passed per-call.
+- `lib/use-meeting-contribute.ts` — 3s; both
+  `handleContribute` and `handleVoteOnly` share the
+  message slot, plus the early-fail validation
+  branch flows through `setFailure`. The
+  meeting-id-change reset effect now calls the
+  hook's `reset()` instead of the old
+  `setMsg(null) + setFailed(false)` pair.
+- `lib/use-meeting-peer-retro.ts` — 6s success
+  duration.
+
+All hooks preserve their existing return shapes
+(e.g. `bulkMsg`, `bulkFailed`, `rotateMsg`) by
+aliasing the inner hook's `msg`/`failed`. The
+shared infra is now load-bearing for 6 action hooks.
+
+Boundary tests redirected for all 4 (4 adopter
+assertions), plus a new "also adopted by 4 more"
+suite on `useAutoClearMessage`. All 5 quality gates
+green.
+
 ## [1.10.764] - 2026-05-10 — Extract useAutoClearMessage shared infra
 
 **Web — new shared infra hook.** The "transient

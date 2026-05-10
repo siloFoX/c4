@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { apiPost } from './api';
 import { t, tFormat } from './i18n';
+import { useAutoClearMessage } from './use-auto-clear-message';
 
 // (v1.10.641) Extracted from WikiView. Bulk publish — POST
 // /api/wiki/publish-all writes a wiki page for every terminal
@@ -8,6 +9,10 @@ import { t, tFormat } from './i18n';
 // ?force=1 (not exposed in the UI). Surfaces counts in a 6s
 // toast + re-runs search. Tone separated from message text so
 // localized copy keeps the destructive style on failure.
+//
+// (v1.10.765) Banner state moved to shared infra
+// hook lib/use-auto-clear-message; the 6s duration is
+// passed per-call.
 
 interface WikiBulkPublish {
   bulkBusy: boolean;
@@ -25,16 +30,15 @@ export function useWikiBulkPublish(args: {
 }): WikiBulkPublish {
   const { runSearch } = args;
   const [bulkBusy, setBulkBusy] = useState(false);
-  const [bulkMsg, setBulkMsg] = useState<string | null>(null);
-  const [bulkFailed, setBulkFailed] = useState(false);
+  const { msg: bulkMsg, failed: bulkFailed, setSuccess, setFailure, reset } =
+    useAutoClearMessage();
   const [bulkGitCommit, setBulkGitCommit] = useState(false);
   const [bulkGitPush, setBulkGitPush] = useState(false);
 
   const handleBulkPublish = useCallback(async () => {
     if (!window.confirm(t('wiki.bulkPublishConfirm'))) return;
     setBulkBusy(true);
-    setBulkMsg(null);
-    setBulkFailed(false);
+    reset();
     try {
       const res = await apiPost<{
         written: string[];
@@ -53,18 +57,16 @@ export function useWikiBulkPublish(args: {
         msg += tFormat('wiki.bulkPublish.gitCommitted', { sha });
         if (res.git.pushed) msg += t('wiki.bulkPublish.gitPushed');
       }
-      setBulkMsg(msg);
-      window.setTimeout(() => setBulkMsg(null), 6000);
+      setSuccess(msg, 6000);
       runSearch();
     } catch (e) {
-      setBulkMsg(tFormat('wiki.bulkPublish.failed', {
+      setFailure(tFormat('wiki.bulkPublish.failed', {
         error: (e as Error).message || t('common.unknown'),
       }));
-      setBulkFailed(true);
     } finally {
       setBulkBusy(false);
     }
-  }, [bulkGitCommit, bulkGitPush, runSearch]);
+  }, [bulkGitCommit, bulkGitPush, runSearch, reset, setSuccess, setFailure]);
 
   // (v1.10.763) Coupled-bool toggles — turning bulkGitCommit OFF
   // also disables bulkGitPush; turning bulkGitPush ON also enables

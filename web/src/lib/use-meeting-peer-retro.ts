@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { apiPost } from './api';
 import { t, tFormat } from './i18n';
+import { useAutoClearMessage } from './use-auto-clear-message';
 
 // (v1.10.718) Extracted from MeetingsPeerRetroControls.
 // The peer-rating POST + busy / msg / failed / brain
@@ -8,6 +9,10 @@ import { t, tFormat } from './i18n';
 // peer-retro pass. Auto-clears the success toast
 // after 6 seconds; failure persists until the next
 // run.
+//
+// (v1.10.765) Banner state moved to shared infra
+// hook lib/use-auto-clear-message; 6s duration
+// passed per-call.
 
 interface PeerRetroResponse {
   peer: {
@@ -30,14 +35,12 @@ export interface MeetingPeerRetroState {
 export function useMeetingPeerRetro(args: { meetingId: string }): MeetingPeerRetroState {
   const { meetingId } = args;
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+  const { msg, failed, setSuccess, setFailure, reset } = useAutoClearMessage();
   const [brain, setBrain] = useState<'mock' | 'claude'>('mock');
 
   const handlePeerRetro = useCallback(async () => {
     setBusy(true);
-    setMsg(null);
-    setFailed(false);
+    reset();
     try {
       const res = await apiPost<PeerRetroResponse>(
         `/api/meetings/${encodeURIComponent(meetingId)}/peer-retro`,
@@ -46,17 +49,15 @@ export function useMeetingPeerRetro(args: { meetingId: string }): MeetingPeerRet
       const ratings = (res && res.peer && res.peer.raw) ? res.peer.raw.length : 0;
       const raters = (res && res.peer && res.peer.raters) ? res.peer.raters.length : 0;
       const updated = res && res.applied ? Object.keys(res.applied).length : 0;
-      setMsg(tFormat('meetings.peerRetro.success', { raters, ratings, updated }));
-      window.setTimeout(() => setMsg(null), 6000);
+      setSuccess(tFormat('meetings.peerRetro.success', { raters, ratings, updated }), 6000);
     } catch (e) {
-      setMsg(tFormat('meetings.peerRetro.failed', {
+      setFailure(tFormat('meetings.peerRetro.failed', {
         error: (e as Error).message || t('common.unknown'),
       }));
-      setFailed(true);
     } finally {
       setBusy(false);
     }
-  }, [brain, meetingId]);
+  }, [brain, meetingId, reset, setSuccess, setFailure]);
 
   return { busy, msg, failed, brain, setBrain, handlePeerRetro };
 }

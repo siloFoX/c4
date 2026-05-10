@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiPost } from './api';
 import { t, tFormat } from './i18n';
+import { useAutoClearMessage } from './use-auto-clear-message';
 
 // (v1.10.701) Extracted from MeetingsContributePanel.
 // Two related flows that share form state:
@@ -10,6 +11,10 @@ import { t, tFormat } from './i18n';
 // POSTs /api/meetings/:id/vote (vote without a turn).
 // Form auto-resets on meetingId change so a half-typed
 // contribution from meeting A doesn't leak into B.
+//
+// (v1.10.765) Banner state moved to shared infra
+// hook lib/use-auto-clear-message; both handlers
+// share one message slot with a 3s success duration.
 
 interface MeetingContributeState {
   specialist: string;
@@ -36,8 +41,7 @@ export function useMeetingContribute(args: {
   const [vote, setVote] = useState<'' | 'accept' | 'object'>('');
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+  const { msg, failed, setSuccess, setFailure, reset } = useAutoClearMessage();
 
   // Reset on selection change so a half-typed contribution from
   // meeting A doesn't leak into meeting B.
@@ -46,21 +50,18 @@ export function useMeetingContribute(args: {
     setText('');
     setVote('');
     setReason('');
-    setMsg(null);
-    setFailed(false);
-  }, [meetingId]);
+    reset();
+  }, [meetingId, reset]);
 
   const handleContribute = useCallback(async () => {
     const sid = specialist.trim();
     const body = text.trim();
     if (!sid || !body) {
-      setMsg(t('meetings.contribute.specialistTextRequired'));
-      setFailed(true);
+      setFailure(t('meetings.contribute.specialistTextRequired'));
       return;
     }
     setBusy(true);
-    setMsg(null);
-    setFailed(false);
+    reset();
     try {
       const payload: {
         specialistId: string;
@@ -74,28 +75,24 @@ export function useMeetingContribute(args: {
       setText('');
       setReason('');
       setVote('');
-      setMsg(t('meetings.contribute.recorded'));
-      window.setTimeout(() => setMsg(null), 3000);
+      setSuccess(t('meetings.contribute.recorded'), 3000);
     } catch (e) {
-      setMsg(tFormat('meetings.contribute.failed', {
+      setFailure(tFormat('meetings.contribute.failed', {
         error: (e as Error).message || t('common.unknown'),
       }));
-      setFailed(true);
     } finally {
       setBusy(false);
     }
-  }, [specialist, text, vote, reason, meetingId]);
+  }, [specialist, text, vote, reason, meetingId, reset, setSuccess, setFailure]);
 
   const handleVoteOnly = useCallback(async (kind: 'accept' | 'object') => {
     const sid = specialist.trim();
     if (!sid) {
-      setMsg(t('meetings.contribute.specialistRequired'));
-      setFailed(true);
+      setFailure(t('meetings.contribute.specialistRequired'));
       return;
     }
     setBusy(true);
-    setMsg(null);
-    setFailed(false);
+    reset();
     try {
       const body: { specialistId: string; vote: 'accept' | 'object'; reason?: string } = {
         specialistId: sid,
@@ -104,17 +101,15 @@ export function useMeetingContribute(args: {
       if (reason.trim()) body.reason = reason.trim();
       await apiPost(`/api/meetings/${encodeURIComponent(meetingId)}/vote`, body);
       setReason('');
-      setMsg(tFormat('meetings.contribute.voteRecorded', { vote: kind }));
-      window.setTimeout(() => setMsg(null), 3000);
+      setSuccess(tFormat('meetings.contribute.voteRecorded', { vote: kind }), 3000);
     } catch (e) {
-      setMsg(tFormat('meetings.contribute.voteFailed', {
+      setFailure(tFormat('meetings.contribute.voteFailed', {
         error: (e as Error).message || t('common.unknown'),
       }));
-      setFailed(true);
     } finally {
       setBusy(false);
     }
-  }, [specialist, reason, meetingId]);
+  }, [specialist, reason, meetingId, reset, setSuccess, setFailure]);
 
   return {
     specialist, setSpecialist,

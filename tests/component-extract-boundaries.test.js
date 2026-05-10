@@ -1328,13 +1328,15 @@ describe('extracted: MeetingsContributePanel (v1.10.551)', () => {
 
   it('resets form on meetingId change so state does not leak across meetings', () => {
     // (v1.10.701) Reset effect moved to hook.
+    // (v1.10.765) Banner-state reset delegated to useAutoClearMessage's
+    // `reset` callback so the dep list grew to `[meetingId, reset]`.
     const fs = require('fs');
     const path = require('path');
     const hookSrc = fs.readFileSync(
       path.join(__dirname, '..', 'web', 'src', 'lib', 'use-meeting-contribute.ts'),
       'utf8',
     );
-    assert.match(hookSrc, /\[meetingId\]/);
+    assert.match(hookSrc, /\[meetingId,\s*reset\]/);
   });
 
   it('is imported and rendered by MeetingsDetailInProgressActions (v1.10.594)', () => {
@@ -2132,6 +2134,25 @@ describe('extracted: useAutoClearMessage hook (v1.10.764)', () => {
 
   it('adopted by useSpecialistsExport + useAuditRotate', () => {
     for (const f of ['use-specialists-export.ts', 'use-audit-rotate.ts']) {
+      const src = fs.readFileSync(
+        path.join(__dirname, '..', 'web', 'src', 'lib', f),
+        'utf8',
+      );
+      assert.match(src, /import\s+\{\s*useAutoClearMessage\s*\}\s+from\s+'\.\/use-auto-clear-message'/);
+      assert.match(src, /useAutoClearMessage\(\)/);
+      assert.match(src, /setSuccess\(/);
+      assert.match(src, /setFailure\(/);
+    }
+  });
+
+  it('also adopted by 4 more action hooks (v1.10.765)', () => {
+    // The remaining duplicate-pattern hooks all migrated in v1.10.765.
+    for (const f of [
+      'use-meeting-publish.ts',
+      'use-wiki-bulk-publish.ts',
+      'use-meeting-contribute.ts',
+      'use-meeting-peer-retro.ts',
+    ]) {
       const src = fs.readFileSync(
         path.join(__dirname, '..', 'web', 'src', 'lib', f),
         'utf8',
@@ -3416,8 +3437,11 @@ describe('extracted: useMeetingPeerRetro hook (v1.10.718)', () => {
   });
 
   it('success path auto-clears msg after 6s + computes raters/ratings/updated', () => {
+    // (v1.10.765) Banner state delegated to useAutoClearMessage; the
+    // 6s duration is passed as the second arg to setSuccess.
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /window\.setTimeout\(\s*\(\)\s*=>\s*setMsg\(null\),\s*6000\s*\)/);
+    assert.match(src, /useAutoClearMessage/);
+    assert.match(src, /setSuccess\([\s\S]*?,\s*6000\)/);
     assert.match(src, /res\.peer\.raw/);
     assert.match(src, /res\.peer\.raters/);
     assert.match(src, /Object\.keys\(res\.applied\)/);
@@ -3994,9 +4018,12 @@ describe('extracted: useMeetingPublish hook (v1.10.703)', () => {
   });
 
   it('formats banner with file count + git SHA + push suffix; auto-clears after 4s', () => {
+    // (v1.10.765) Banner state delegated to useAutoClearMessage —
+    // the 4s default duration applies because no override is passed.
     const src = fs.readFileSync(HOOK, 'utf8');
     assert.match(src, /res\.git\.sha\s*\?\s*res\.git\.sha\.slice\(0,\s*7\)/);
-    assert.match(src, /window\.setTimeout\(\(\) => setMsg\(null\),\s*4000\)/);
+    assert.match(src, /useAutoClearMessage/);
+    assert.match(src, /setSuccess\(m\)/);
   });
 
   it('parent MeetingsPublishControls wires the hook + drops the inline state + handler', () => {
@@ -4076,8 +4103,10 @@ describe('extracted: useMeetingContribute hook (v1.10.701)', () => {
   });
 
   it('resets entire form on meetingId change', () => {
+    // (v1.10.765) Banner-state reset delegated to useAutoClearMessage's
+    // `reset` callback so the dep list grew to `[meetingId, reset]`.
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /useEffect\(\(\) => \{[\s\S]*?setSpecialist\(''\)[\s\S]*?setText\(''\)[\s\S]*?\}, \[meetingId\]\)/);
+    assert.match(src, /useEffect\(\(\) => \{[\s\S]*?setSpecialist\(''\)[\s\S]*?setText\(''\)[\s\S]*?\}, \[meetingId,\s*reset\]\)/);
   });
 
   it('parent MeetingsContributePanel wires the hook + drops the inline state + handlers', () => {
@@ -6469,9 +6498,12 @@ describe('extracted: useWikiBulkPublish hook (v1.10.641)', () => {
   });
 
   it('owns POST /api/wiki/publish-all + 6s toast + git commit/push toggles', () => {
+    // (v1.10.765) Banner state delegated to useAutoClearMessage; the
+    // 6s duration is passed as the second arg to setSuccess.
     const src = fs.readFileSync(HOOK, 'utf8');
     assert.match(src, /\/api\/wiki\/publish-all/);
-    assert.match(src, /setTimeout\(\(\) => setBulkMsg\(null\),\s*6000\)/);
+    assert.match(src, /useAutoClearMessage/);
+    assert.match(src, /setSuccess\([\s\S]*?,\s*6000\)/);
     assert.match(src, /gitCommit:\s*bulkGitCommit/);
     assert.match(src, /gitPush:\s*bulkGitPush/);
   });

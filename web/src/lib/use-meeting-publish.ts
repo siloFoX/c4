@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { apiPost } from './api';
 import { t, tFormat } from './i18n';
+import { useAutoClearMessage } from './use-auto-clear-message';
 
 // (v1.10.703) Extracted from MeetingsPublishControls.
 // Wiki publish + optional git-commit/push for the
@@ -9,6 +10,9 @@ import { t, tFormat } from './i18n';
 // 4s. The two opt-in toggles (gitCommit / gitPush) live
 // here too so the panel JSX stays bound to a single
 // state cluster.
+//
+// (v1.10.765) Banner state moved to shared infra
+// hook lib/use-auto-clear-message.
 
 interface PublishResponse {
   ok: boolean;
@@ -33,15 +37,13 @@ export function useMeetingPublish(args: {
 }): MeetingPublishState {
   const { meetingId } = args;
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+  const { msg, failed, setSuccess, setFailure, reset } = useAutoClearMessage();
   const [gitCommit, setGitCommit] = useState(false);
   const [gitPush, setGitPush] = useState(false);
 
   const handlePublish = useCallback(async () => {
     setBusy(true);
-    setMsg(null);
-    setFailed(false);
+    reset();
     try {
       const res = await apiPost<PublishResponse>(
         `/api/meetings/${encodeURIComponent(meetingId)}/publish`,
@@ -59,17 +61,15 @@ export function useMeetingPublish(args: {
         m += tFormat('meetings.publish.gitCommitted', { sha });
         if (res.git.pushed) m += t('meetings.publish.gitPushed');
       }
-      setMsg(m);
-      window.setTimeout(() => setMsg(null), 4000);
+      setSuccess(m);
     } catch (e) {
-      setMsg(tFormat('meetings.publish.failed', {
+      setFailure(tFormat('meetings.publish.failed', {
         error: (e as Error).message || t('common.unknown'),
       }));
-      setFailed(true);
     } finally {
       setBusy(false);
     }
-  }, [gitCommit, gitPush, meetingId]);
+  }, [gitCommit, gitPush, meetingId, reset, setSuccess, setFailure]);
 
   // (v1.10.763) Coupled-bool toggles — turning gitCommit OFF also
   // disables gitPush (push without commit is undefined); turning
