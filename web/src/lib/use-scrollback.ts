@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { apiFetch } from './api';
+import { apiGet } from './api';
 
 // (v1.10.636) Extracted from WorkerDetail. Polled
 // /api/scrollback?name=…&lines=200 every 3s — only when the
@@ -7,6 +7,8 @@ import { apiFetch } from './api';
 // on tab change so stale messages don't linger when the user
 // flips between Screen and Scrollback. Returns the raw content
 // + error + a status setter for the parent.
+// (v1.10.750) apiFetch + manual error throw replaced with apiGet
+// which throws on non-ok internally.
 
 interface ReadResponse {
   content?: string;
@@ -36,9 +38,7 @@ export function useScrollback(args: {
     if (tab !== 'scrollback') return;
     try {
       const url = `/api/scrollback?name=${encodeURIComponent(workerName)}&lines=200`;
-      const res = await apiFetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as ReadResponse;
+      const data = await apiGet<ReadResponse>(url);
       if (data.error) {
         setError(data.error);
         setScrollbackContent('');

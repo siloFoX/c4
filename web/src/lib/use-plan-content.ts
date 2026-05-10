@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { apiFetch } from './api';
+import { apiGet } from './api';
 
 // (v1.10.661) Extracted from pages/Plan. Loads the saved
 // plan markdown for the currently-selected worker — GET
 // /api/plan?name=<worker>. Auto-refetches on `selected`
 // flip; clears the slot to null on HTTP error so the
 // "no plan yet" empty state can re-render.
+// (v1.10.750) apiFetch + manual error throw replaced with apiGet
+// which throws on non-ok internally.
 
 export interface PlanResponse {
   name?: string;
@@ -37,9 +39,7 @@ export function usePlanContent(args: {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiFetch(`/api/plan?name=${encodeURIComponent(selected)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as PlanResponse;
+      const data = await apiGet<PlanResponse>(`/api/plan?name=${encodeURIComponent(selected)}`);
       setPlan(data);
     } catch (e) {
       setError((e as Error).message);

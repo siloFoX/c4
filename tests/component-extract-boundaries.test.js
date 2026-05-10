@@ -2458,8 +2458,9 @@ describe('extracted: useControlPanelWorkerList hook (v1.10.737)', () => {
   });
 
   it('polls /api/list every 5s + silently swallows errors', () => {
+    // (v1.10.750) apiFetch + manual error throw replaced with apiGet.
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /apiFetch\('\/api\/list'\)/);
+    assert.match(src, /apiGet<ListResponse>\('\/api\/list'\)/);
     assert.match(src, /POLL_INTERVAL_MS\s*=\s*5000/);
     assert.match(src, /setInterval\(fetchList, POLL_INTERVAL_MS\)/);
     assert.match(src, /catch \{[\s\S]*?keep the panel silent/);
@@ -2716,10 +2717,11 @@ describe('extracted: useSwarm hook (v1.10.730)', () => {
   });
 
   it('loadSwarm fetches /api/swarm?name=<selected> + bails when no selection', () => {
+    // (v1.10.750) apiFetch + manual error throw replaced with apiGet
+    // (which throws on non-ok internally via _throwHttpError).
     const src = fs.readFileSync(HOOK, 'utf8');
     assert.match(src, /if \(!selected\) return/);
-    assert.match(src, /\/api\/swarm\?name=\$\{encodeURIComponent\(selected\)\}/);
-    assert.match(src, /if \(!res\.ok\) throw new Error\(`HTTP \$\{res\.status\}`\)/);
+    assert.match(src, /apiGet<SwarmResponse>\(`\/api\/swarm\?name=\$\{encodeURIComponent\(selected\)\}`\)/);
   });
 
   it('refresh handle exposes loadSwarm (not loadWorkers)', () => {
@@ -5342,9 +5344,10 @@ describe('extracted: usePlanContent hook (v1.10.661)', () => {
   });
 
   it('GETs /api/plan?name=<worker> with HTTP error mapping + auto-fetch', () => {
+    // (v1.10.750) apiFetch + manual throw replaced with apiGet which
+    // throws on non-ok internally via _throwHttpError.
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /\/api\/plan\?name=\$\{encodeURIComponent\(selected\)\}/);
-    assert.match(src, /throw new Error\(`HTTP \$\{res\.status\}`\)/);
+    assert.match(src, /apiGet<PlanResponse>\(`\/api\/plan\?name=\$\{encodeURIComponent\(selected\)\}`\)/);
     assert.match(src, /useEffect\(\(\) => \{ loadPlan\(\); \}/);
   });
 

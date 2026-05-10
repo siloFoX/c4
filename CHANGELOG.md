@@ -4,6 +4,52 @@
 
 (no entries — next release window)
 
+## [1.10.750] - 2026-05-10 — apiFetch → apiGet sweep across 4 lib hooks
+
+**Web — 4 hooks drop the `apiFetch + if (!res.ok) throw + .json()`
+boilerplate in favour of `apiGet<T>` which already does the
+HTTP-error throw via `_throwHttpError`.**
+
+- `lib/use-control-panel-worker-list.ts` 47 → 44 (-3) —
+  `apiFetch('/api/list')` + manual throw → `apiGet<ListResponse>`.
+- `lib/use-scrollback.ts` 65 → 63 (-2) —
+  `apiFetch(scrollbackUrl)` + manual throw →
+  `apiGet<ReadResponse>`.
+- `lib/use-plan-content.ts` 55 → 53 (-2) —
+  `apiFetch('/api/plan?…')` + manual throw →
+  `apiGet<PlanResponse>`.
+- `lib/use-swarm.ts` 91 → 89 (-2) — `apiFetch('/api/swarm?…')` +
+  manual throw → `apiGet<SwarmResponse>`. Also dropped the
+  no-longer-used `apiFetch` import (only `apiGet` remains).
+
+The behavioural contract is unchanged. `apiGet` calls the same
+`apiFetch` under the hood and throws via `_throwHttpError(res)` on
+non-ok, which produces the same shape of thrown Error that the
+manual `throw new Error(\`HTTP \${res.status}\`)` did. The catch
+blocks in each hook still see an `Error` and surface it through
+`setError` / `setData(null)` / silent-swallow as before.
+
+Three pre-existing tests redirected from the old assert-throw shape
+to the new `apiGet<T>` shape:
+- `useControlPanelWorkerList (v1.10.737)` — "polls /api/list" now
+  asserts `apiGet<ListResponse>('/api/list')`.
+- `useSwarm (v1.10.730)` — "loadSwarm fetches" now asserts
+  `apiGet<SwarmResponse>(...)`.
+- `usePlanContent (v1.10.661)` — "GETs /api/plan?name=<worker>" now
+  asserts `apiGet<PlanResponse>(...)` (drops the
+  `throw new Error(\`HTTP\`)` assertion since it's gone).
+
+`use-status-message.ts` was left on `apiFetch` because the
+status-update endpoint may return a non-JSON body and `apiGet`'s
+`(await res.json())` would throw on parse. `use-validations.ts` was
+left because it deliberately surfaces non-ok as an inline
+`{ error: HTTP <s> }` map entry rather than letting it throw.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (1018 / 215 suites — same), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.749] - 2026-05-10 — useWorkerActionStrip adopts postAction helper
 
 **Web — `lib/use-worker-action-strip.ts` shrunk by 27 lines (80 → 53).**

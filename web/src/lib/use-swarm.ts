@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { apiFetch, apiGet } from './api';
+import { apiGet } from './api';
 import type { ListResponse, Worker } from '../types';
 
 // (v1.10.730) Extracted from pages/Swarm. Two coupled
@@ -67,9 +67,7 @@ export function useSwarm(): UseSwarmState {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiFetch(`/api/swarm?name=${encodeURIComponent(selected)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const r = (await res.json()) as SwarmResponse;
+      const r = await apiGet<SwarmResponse>(`/api/swarm?name=${encodeURIComponent(selected)}`);
       if (r.error) {
         setError(r.error);
         setData(null);

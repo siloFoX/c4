@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { apiFetch } from './api';
+import { apiGet } from './api';
 import type { ListResponse, Worker } from '../types';
 
 // (v1.10.737) Extracted from ControlPanel. Polls
@@ -14,6 +14,8 @@ import type { ListResponse, Worker } from '../types';
 // subscription so two simultaneous /api/events
 // streams don't run when the sidebar + this panel
 // are mounted together.
+// (v1.10.750) apiFetch + manual error throw replaced
+// with apiGet which throws on non-ok internally.
 
 export interface UseControlPanelWorkerListState {
   workers: Worker[];
@@ -27,9 +29,7 @@ export function useControlPanelWorkerList(): UseControlPanelWorkerListState {
 
   const fetchList = useCallback(async () => {
     try {
-      const res = await apiFetch('/api/list');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as ListResponse;
+      const data = await apiGet<ListResponse>('/api/list');
       setWorkers(Array.isArray(data.workers) ? data.workers : []);
     } catch {
       // The sidebar already surfaces list errors; keep the panel silent.
