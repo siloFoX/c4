@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import { Button, Input } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
+import { useToggle } from '../lib/use-toggle';
 import { useMeetingIntegrity } from '../lib/use-meeting-integrity';
 import { useMeetingFtsRebuild } from '../lib/use-meeting-fts-rebuild';
 import { useMeetingBackup } from '../lib/use-meeting-backup';
@@ -25,7 +25,7 @@ export default function MeetingsMaintenancePanel({ onPruned }: MeetingsMaintenan
   // below pick up the new locale immediately.
   useLocale();
 
-  const [open, setOpen] = useState(false);
+  const [open, toggleOpen] = useToggle();
 
   // (v1.10.662) Integrity check moved to lib/use-meeting-integrity.
   const { integrityBusy, integrityMsg, integrityFailed, handleIntegrity } =
@@ -54,7 +54,7 @@ export default function MeetingsMaintenancePanel({ onPruned }: MeetingsMaintenan
     <div className="border-t border-border/60 bg-muted/10">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggleOpen}
         className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-[11px] text-muted-foreground hover:bg-muted/30"
         aria-expanded={open}
       >

@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useToggle } from '../lib/use-toggle';
 import type { ActionItemType } from './MeetingsView';
 
 // (v1.10.541) Extracted from MeetingsView. The compact recap
@@ -37,7 +37,7 @@ interface Props {
 
 export default function MeetingsRecapPanel({ recap }: Props) {
   useLocale();
-  const [open, setOpen] = useState(false);
+  const [open, toggleOpen] = useToggle();
 
   if (!recap || !recap.stages.some((s) => s.firstTurn)) return null;
 
@@ -45,7 +45,7 @@ export default function MeetingsRecapPanel({ recap }: Props) {
     <div className="rounded-md border border-border/60 bg-muted/10">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggleOpen}
         className="flex w-full items-center gap-1 px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground"
         aria-expanded={open}
       >

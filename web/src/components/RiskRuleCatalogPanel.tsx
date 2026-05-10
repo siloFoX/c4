@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Input, Panel } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
+import { useToggle } from '../lib/use-toggle';
 import { useLazyRiskPatterns } from '../lib/use-lazy-risk-patterns';
 
 // (v1.10.568) Extracted from Risk page. The rule-catalog viewer
@@ -20,7 +21,7 @@ const LEVEL_TONE: Record<'critical' | 'high' | 'medium' | 'low', string> = {
 export default function RiskRuleCatalogPanel() {
   useLocale();
   const [filter, setFilter] = useState('');
-  const [open, setOpen] = useState(false);
+  const [open, toggleOpen] = useToggle();
   // (v1.10.357) Lazy-load on first open. The payload can be
   // sizeable; avoid fetching when the operator never expands.
   // (v1.10.727) Fetch + state moved to use-lazy-risk-patterns hook.
@@ -30,7 +31,7 @@ export default function RiskRuleCatalogPanel() {
     <Panel className="mt-4 text-sm">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggleOpen}
         className="flex w-full items-center justify-between gap-2 text-left"
         aria-expanded={open}
       >

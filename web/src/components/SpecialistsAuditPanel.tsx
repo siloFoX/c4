@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useToggle } from '../lib/use-toggle';
 import { useSpecialistsAudit, type AuditWindow } from '../lib/use-specialists-audit';
 import { useAuditVerify } from '../lib/use-audit-verify';
 import { useAuditExport } from '../lib/use-audit-export';
@@ -18,7 +18,7 @@ export default function SpecialistsAuditPanel() {
   // Re-render on locale flip.
   useLocale();
 
-  const [auditOpen, setAuditOpen] = useState(false);
+  const [auditOpen, toggleAuditOpen] = useToggle();
   // (v1.10.682) Audit fetch + window state moved to hook.
   const { auditEntries, auditLoading, auditWindow, setAuditWindow } =
     useSpecialistsAudit({ auditOpen });
@@ -33,7 +33,7 @@ export default function SpecialistsAuditPanel() {
     <div className="rounded-md border border-border/40 bg-muted/5">
       <button
         type="button"
-        onClick={() => setAuditOpen((v) => !v)}
+        onClick={toggleAuditOpen}
         className="flex w-full items-center gap-1 px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground"
         aria-expanded={auditOpen}
       >

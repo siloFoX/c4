@@ -4,6 +4,49 @@
 
 (no entries — next release window)
 
+## [1.10.757] - 2026-05-10 — Extract useToggle hook (shared infra)
+
+**Web — generic boolean-toggle helper adopted across 5 callers.**
+The idiomatic React `useState(false) + setX(v => !v)`
+pair becomes a single `useToggle(initial?)` call.
+Returns a 3-tuple `[value, toggle, set]` so existing
+callers can keep their `set*` call sites unchanged
+when they need to flip via a parent callback.
+
+5 components adopt:
+
+- `ConversationTurns.tsx` — 3 toggles
+  (ThinkingTurn / ToolUseTurn / ToolResultTurn).
+- `MeetingsRecapPanel.tsx` — recap collapse.
+- `MeetingsMaintenancePanel.tsx` — maintenance
+  footer collapse.
+- `SpecialistsAuditPanel.tsx` — audit log panel
+  collapse.
+- `RiskRuleCatalogPanel.tsx` — rule catalog
+  collapse.
+
+Each caller drops a `setX((v) => !v)` lambda from
+JSX and gains a memoized `toggleX` callback. The
+React.memo'd children that take these as props get
+a stable identity, so re-renders triggered by
+unrelated parent state updates no longer cascade
+through the toggle path.
+
+Boundary suite #218 in
+`tests/component-extract-boundaries.test.js` pins
+the hook signature, the `(v) => !v` flip pattern,
+and verifies all 5 callers adopt the hook.
+Pre-existing boundary suites for
+`MeetingsMaintenancePanel (v1.10.529)`,
+`RiskRuleCatalogPanel (v1.10.568)`, and
+`MeetingsRecapPanel (v1.10.541)` redirected from
+`useState(false)` to `useToggle()`.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (1033 / 218 suites — +7 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.756] - 2026-05-10 — Extract useXtermSearchHotkey hook
 
 **Web — `components/XtermView.tsx` shrunk by 12 lines (213 → 201).**

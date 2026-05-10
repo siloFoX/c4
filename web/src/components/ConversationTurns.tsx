@@ -1,8 +1,9 @@
-import { useState, type JSX } from 'react';
+import { type JSX } from 'react';
 import { Bot, Brain, ChevronDown, ChevronRight, Cog, FileText, Terminal, User, Wrench } from 'lucide-react';
 import { Badge } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
+import { useToggle } from '../lib/use-toggle';
 import {
   formatTime,
   formatTokens,
@@ -88,7 +89,7 @@ function AssistantTurn({ turn }: { turn: Turn }) {
 
 function ThinkingTurn({ turn }: { turn: Turn }) {
   useLocale();
-  const [open, setOpen] = useState(false);
+  const [open, toggleOpen] = useToggle();
   const ts = formatTime(turn.createdAt);
   const body = turn.thinkingText || turn.content || '';
   if (!body) return null;
@@ -99,7 +100,7 @@ function ThinkingTurn({ turn }: { turn: Turn }) {
           <button
             type="button"
             aria-expanded={open}
-            onClick={() => setOpen((v) => !v)}
+            onClick={toggleOpen}
             className="flex w-full items-center gap-2 text-left text-xs text-muted-foreground hover:text-foreground"
           >
             {open ? (
@@ -125,7 +126,7 @@ function ThinkingTurn({ turn }: { turn: Turn }) {
 
 function ToolUseTurn({ turn }: { turn: Turn }) {
   useLocale();
-  const [open, setOpen] = useState(false);
+  const [open, toggleOpen] = useToggle();
   const ts = formatTime(turn.createdAt);
   const argsText = formatToolArgs(turn.toolArgs);
   const resultText = formatToolResult(turn.toolResult);
@@ -141,7 +142,7 @@ function ToolUseTurn({ turn }: { turn: Turn }) {
           <button
             type="button"
             aria-expanded={open}
-            onClick={() => setOpen((v) => !v)}
+            onClick={toggleOpen}
             className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-muted-foreground hover:text-foreground"
           >
             {open ? (
@@ -190,7 +191,7 @@ function ToolResultTurn({ turn }: { turn: Turn }) {
   // compact badge-only row so the UI does not double-render the bytes.
   const ts = formatTime(turn.createdAt);
   const text = turn.content || formatToolResult(turn.toolResult);
-  const [open, setOpen] = useState(false);
+  const [open, toggleOpen] = useToggle();
   if (!text) return null;
   return (
     <div className="flex justify-start">
@@ -204,7 +205,7 @@ function ToolResultTurn({ turn }: { turn: Turn }) {
           <button
             type="button"
             aria-expanded={open}
-            onClick={() => setOpen((v) => !v)}
+            onClick={toggleOpen}
             className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-muted-foreground hover:text-foreground"
           >
             {open ? (

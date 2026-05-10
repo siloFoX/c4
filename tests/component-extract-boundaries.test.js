@@ -35,9 +35,10 @@ describe('extracted: MeetingsMaintenancePanel (v1.10.529)', () => {
   });
 
   it('owns its own state (integrity, backup, fts, prune)', () => {
+    // (v1.10.757) Open toggle adopts useToggle. Per-action state still
+    // lives in the per-action sibling hooks (use-meeting-integrity etc).
     const src = read('MeetingsMaintenancePanel.tsx');
-    // Sanity-check that state lives in the panel, not inherited from parent.
-    assert.match(src, /useState/);
+    assert.match(src, /useToggle/);
   });
 });
 
@@ -482,9 +483,10 @@ describe('extracted: RiskRuleCatalogPanel (v1.10.568)', () => {
   it('owns its own open / filter / patterns state', () => {
     // (v1.10.727) patterns slot moved to use-lazy-risk-patterns hook;
     // open + filter slots stay in the parent (JSX-bound).
+    // (v1.10.757) open toggle adopts useToggle.
     const src = read('RiskRuleCatalogPanel.tsx');
     assert.match(src, /useState\(''\)/);   // filter
-    assert.match(src, /useState\(false\)/); // open
+    assert.match(src, /useToggle/); // open
     const fs = require('fs');
     const path = require('path');
     const hookSrc = fs.readFileSync(
@@ -1809,8 +1811,9 @@ describe('extracted: MeetingsRecapPanel (v1.10.541)', () => {
   });
 
   it('owns its open/closed state (collapsed by default)', () => {
+    // (v1.10.757) Open toggle adopts useToggle (default false).
     const src = read('MeetingsRecapPanel.tsx');
-    assert.match(src, /useState\(false\)/);
+    assert.match(src, /useToggle\(\)/);
     assert.match(src, /aria-expanded=\{open\}/);
   });
 
@@ -2082,6 +2085,43 @@ describe('useWorkerActionStrip adopts postAction helper (v1.10.749)', () => {
     const src = fs.readFileSync(HOOK, 'utf8');
     assert.match(src, /res\.error \|\| t\('common\.unknown'\)/);
   });
+});
+
+describe('extracted: useToggle hook (v1.10.757)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-toggle.ts');
+  const CALLERS = [
+    'ConversationTurns.tsx',
+    'MeetingsRecapPanel.tsx',
+    'MeetingsMaintenancePanel.tsx',
+    'SpecialistsAuditPanel.tsx',
+    'RiskRuleCatalogPanel.tsx',
+  ];
+
+  it('exports the hook + returns a 3-tuple [value, toggle, set]', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useToggle\(initial: boolean = false\)/);
+    assert.match(src, /value: boolean/);
+    assert.match(src, /toggle: \(\) => void/);
+    assert.match(src, /set:\s*React\.Dispatch<React\.SetStateAction<boolean>>/);
+  });
+
+  it('toggle uses the (v) => !v pattern internally', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /set\(\(v\)\s*=>\s*!v\)/);
+  });
+
+  for (const caller of CALLERS) {
+    it(`${caller} adopts useToggle`, () => {
+      const src = fs.readFileSync(
+        path.join(__dirname, '..', 'web', 'src', 'components', caller),
+        'utf8',
+      );
+      assert.match(src, /import\s+\{\s*useToggle\s*\}\s+from\s+'\.\.\/lib\/use-toggle'/);
+      assert.match(src, /useToggle\(\)/);
+    });
+  }
 });
 
 describe('extracted: useXtermSearchHotkey hook (v1.10.756)', () => {
