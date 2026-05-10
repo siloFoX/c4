@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiPost } from './api';
 import { t } from './i18n';
+import type { MeetingTrackOrAuto } from '../components/MeetingsSearchFacets';
 
 // (v1.10.702) Extracted from MeetingsForkForm. Owns the
 // four form fields (mode / task / title / track), busy
@@ -32,8 +33,8 @@ interface MeetingForkState {
   setTask: (next: string) => void;
   title: string;
   setTitle: (next: string) => void;
-  track: 'auto' | 'lightweight' | 'standard' | 'full';
-  setTrack: (next: 'auto' | 'lightweight' | 'standard' | 'full') => void;
+  track: MeetingTrackOrAuto;
+  setTrack: (next: MeetingTrackOrAuto) => void;
   busy: boolean;
   error: string | null;
   handleSubmit: () => Promise<void>;
@@ -48,7 +49,7 @@ export function useMeetingFork(args: {
   const [mode, setMode] = useState<MeetingForkMode>('replan');
   const [task, setTask] = useState('');
   const [title, setTitle] = useState('');
-  const [track, setTrack] = useState<'auto' | 'lightweight' | 'standard' | 'full'>('auto');
+  const [track, setTrack] = useState<MeetingTrackOrAuto>('auto');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

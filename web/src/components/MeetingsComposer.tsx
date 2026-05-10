@@ -7,6 +7,7 @@ import { useMeetingClassifyPreview } from '../lib/use-meeting-classify-preview';
 import { useMeetingPreviewPlan } from '../lib/use-meeting-preview-plan';
 import { useMeetingTemplates, type MeetingTemplate } from '../lib/use-meeting-templates';
 import { useMeetingCreate } from '../lib/use-meeting-create';
+import type { MeetingTrackOrAuto } from './MeetingsSearchFacets';
 
 // (v1.10.557) Extracted from MeetingsView. Create-meeting
 // composer — template chips with edit pencils, the embedded
@@ -40,7 +41,7 @@ export default function MeetingsComposer({ open, onClose, onCreated }: Props) {
   useLocale();
 
   const [newTask, setNewTask] = useState('');
-  const [newTrack, setNewTrack] = useState<'auto' | 'lightweight' | 'standard' | 'full'>('auto');
+  const [newTrack, setNewTrack] = useState<MeetingTrackOrAuto>('auto');
 
   // (v1.10.649) Saved templates load + refresh moved to hook.
   const { templates, refresh: loadTemplates } = useMeetingTemplates({ open });

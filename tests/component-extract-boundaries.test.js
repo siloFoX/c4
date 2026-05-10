@@ -4107,10 +4107,12 @@ describe('extracted: useMeetingFork hook (v1.10.702)', () => {
 
   it('owns the four form fields + busy/error', () => {
     // (v1.10.773) Mode literal hoisted to MeetingForkMode alias.
+    // (v1.10.774) Track literal hoisted to MeetingTrackOrAuto from
+    // MeetingsSearchFacets.
     const src = fs.readFileSync(HOOK, 'utf8');
     assert.match(src, /export type MeetingForkMode = 'replan' \| 'reuse'/);
     assert.match(src, /useState<MeetingForkMode>/);
-    assert.match(src, /useState<'auto'\s*\|\s*'lightweight'\s*\|\s*'standard'\s*\|\s*'full'>/);
+    assert.match(src, /useState<MeetingTrackOrAuto>/);
   });
 
   it('handleSubmit POSTs /api/meetings/:id/fork + forwards track only when replan + non-auto', () => {

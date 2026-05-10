@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.10.774] - 2026-05-10 — Consolidate MeetingTrackOrAuto type alias
+
+**Web — fifth type-deduplication pass.** The
+`'auto' | 'lightweight' | 'standard' | 'full'` literal
+appeared in 5 sites: `MeetingsComposer`'s `newTrack`
+state, `use-meeting-fork`'s state slot + setter
+signature + state slot, and a local `Track` alias in
+`use-meeting-create.ts`. Now exported as
+`MeetingTrackOrAuto` from `MeetingsSearchFacets.tsx`
+(co-located with the existing strict `Track` alias —
+the search/filter chips use the strict 3-option
+variant; the composer/fork forms use the with-`'auto'`
+variant for "let the daemon classify").
+
+`use-meeting-create.ts` drops its local `Track` alias
+in favor of the import. `use-meeting-fork.ts` and
+`MeetingsComposer.tsx` import the alias too.
+
+Boundary tests: 1 redirected. All 5 quality gates
+green.
+
 ## [1.10.773] - 2026-05-10 — Consolidate two more enum-shaped type aliases
 
 **Web — fourth type-deduplication pass.** Two more

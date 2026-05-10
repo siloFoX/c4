@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import type * as React from 'react';
 import { apiPost } from './api';
 import { t } from './i18n';
+import type { MeetingTrackOrAuto } from '../components/MeetingsSearchFacets';
 
 // (v1.10.679) Extracted from MeetingsComposer. POST
 // /api/meetings — bare task / template + vars / track
@@ -12,8 +13,11 @@ import { t } from './i18n';
 // the matching reset setters so the form clears on
 // success but the parent retains ownership of those
 // fields.
-
-type Track = 'auto' | 'lightweight' | 'standard' | 'full';
+//
+// (v1.10.774) Local `Track` alias replaced by
+// MeetingTrackOrAuto from MeetingsSearchFacets so the
+// composer / fork / create surfaces share one canonical
+// 'auto' | <strict-track> shape.
 
 interface MeetingCreateState {
   createBusy: boolean;
@@ -24,7 +28,7 @@ interface MeetingCreateState {
 
 export function useMeetingCreate(args: {
   newTask: string;
-  newTrack: Track;
+  newTrack: MeetingTrackOrAuto;
   templateName: string | null;
   templateVars: Record<string, string>;
   setNewTask: React.Dispatch<React.SetStateAction<string>>;

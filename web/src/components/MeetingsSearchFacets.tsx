@@ -9,7 +9,12 @@ import type { MeetingStatus } from './MeetingsView';
 
 // (v1.10.613) Promoted to exports so MeetingsSearchSection can
 // type its props without redefining.
+// (v1.10.774) MeetingTrackOrAuto — the composer / fork form
+// pre-classification slot includes 'auto' for "let the daemon
+// classify"; the strict Track stays for the search/filter chips
+// where 'auto' isn't a valid filter value.
 export type Track = 'lightweight' | 'standard' | 'full';
+export type MeetingTrackOrAuto = 'auto' | Track;
 
 export interface SearchFacets {
   status?: Record<string, number>;
