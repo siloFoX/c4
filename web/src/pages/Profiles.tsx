@@ -1,61 +1,28 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ListChecks, RefreshCw } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Badge, Button, Input, Panel, Tooltip } from '../components/ui';
-import { apiGet } from '../lib/api';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
 import { t, useLocale } from '../lib/i18n';
 import { useToast } from '../lib/use-toast';
+import { useProfiles } from '../lib/use-profiles';
 
 // 8.20B Profiles. Read-only list from GET /api/profiles. Add/edit/remove
 // endpoints are tracked as a follow-up TODO; the UI toasts "Not
 // implemented yet" for those actions so the permission matrix is still
 // browsable today.
-
-interface ProfileItem {
-  name: string;
-  description?: string;
-  allow?: string[];
-  deny?: string[];
-  source?: string;
-  [key: string]: unknown;
-}
-
-interface ProfilesResponse {
-  profiles?: ProfileItem[];
-  error?: string;
-}
-
 // (v1.10.722) Toast slot adopted from lib/use-toast (shared infra).
+// (v1.10.746) Fetch + state machine moved to lib/use-profiles.
 
 export default function Profiles() {
   useLocale();
-  const [items, setItems] = useState<ProfileItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const { items, loading, error, refresh } = useProfiles();
   const [filter, setFilter] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const { toast, showToast, dismissToast } = useToast();
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const r = await apiGet<ProfilesResponse>('/api/profiles');
-      setItems(Array.isArray(r.profiles) ? r.profiles : []);
-    } catch (e) {
-      setError((e as Error).message);
-      setItems([]);
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
 
   const toggle = useCallback((name: string) => {
     setExpanded((prev) => {

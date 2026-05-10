@@ -4,6 +4,55 @@
 
 (no entries — next release window)
 
+## [1.10.746] - 2026-05-10 — Extract useProfiles + useTemplates + useCleanup hooks
+
+**Web — three pages shrunk by 126 lines combined.**
+Three parallel page-level fetch hooks land in one
+ship — all follow the canonical
+"single GET fetch + useEffect → refresh" pattern
+already used by useConfig (v1.10.723) /
+useValidations (v1.10.724) / useHealth + useRbac
+(v1.10.729) / useSwarm (v1.10.730) / useWorkspaces
+(v1.10.731):
+
+- `pages/Profiles.tsx` 199 → 166 (-33) —
+  `useProfiles()` owns the `/api/profiles` GET +
+  `ProfileItem` type. Page keeps the per-row expand
+  Set + fuzzyFilter inline since they're JSX-bound.
+- `pages/Templates.tsx` 150 → 116 (-34) —
+  `useTemplates()` owns the `/api/templates` GET +
+  `TemplateItem` type. Page keeps the filter Input
+  slot + fuzzyFilter inline.
+- `pages/Cleanup.tsx` 194 → 135 (-59) —
+  `useCleanup({ showToast })` owns the dual flow:
+  preview (POST `/cleanup` with `dryRun: true`) +
+  execute (POST `/cleanup` with `dryRun: false`)
+  behind the confirmOpen modal. Toast routing
+  flows through the parent's showToast callback so
+  the toast layer stays a single place.
+
+`ProfileItem`, `TemplateItem`, `CleanupResponse`
+types are exported from their respective hooks so
+the page JSX renderers keep typing the row /
+response narrowing without duplicate definitions.
+
+`apiGet` / `apiPost` / `tFormat` imports drop from
+all three pages since their last consumers moved
+into the hooks.
+
+Boundary suite #212 in
+`tests/component-extract-boundaries.test.js` covers
+all three hooks in one block — pins the signatures,
+the endpoint URLs, the dual-flow shape for cleanup
+(both `dryRun: true` + `dryRun: false` POSTs), the
+i18n toast key mapping, and verifies all three
+parents wire the hooks + drop the inline state.
+
+All 5 quality gates green: typecheck (strict mode all
+8 flags), tests (1005 / 212 suites — +6 / +1), lint
+(openapi + schema-drift + i18n-lockstep), web-build
+(bundle-size), i18n-visual (all 11 routes diff = 0.04%).
+
 ## [1.10.745] - 2026-05-10 — Extract useScribe hook
 
 **Web — `pages/Scribe.tsx` shrunk by 68 lines (206 → 138).**

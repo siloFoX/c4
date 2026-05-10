@@ -1,61 +1,27 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { RefreshCw, ScrollText } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Badge, Button, Input, Panel, Tooltip } from '../components/ui';
-import { apiGet } from '../lib/api';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
 import { t, useLocale } from '../lib/i18n';
 import { useToast } from '../lib/use-toast';
+import { useTemplates } from '../lib/use-templates';
 
 // 8.20B Templates. Read-only list from GET /api/templates. Add / remove
 // endpoints do not exist yet on the daemon, so the UI calls toast
 // "Not implemented yet" and tracks the server-side work in TODO.md
 // (sub-task 8.20b-templates-write).
-
-interface TemplateItem {
-  name: string;
-  description?: string;
-  model?: string;
-  effort?: string;
-  profile?: string;
-  source?: string;
-  [key: string]: unknown;
-}
-
-interface TemplatesResponse {
-  templates?: TemplateItem[];
-  error?: string;
-}
-
 // (v1.10.722) Toast slot adopted from lib/use-toast (shared infra).
+// (v1.10.746) Fetch + state machine moved to lib/use-templates.
 
 export default function Templates() {
   useLocale();
-  const [items, setItems] = useState<TemplateItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const { items, loading, error, refresh } = useTemplates();
   const [filter, setFilter] = useState('');
   const { toast, showToast, dismissToast } = useToast();
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const r = await apiGet<TemplatesResponse>('/api/templates');
-      setItems(Array.isArray(r.templates) ? r.templates : []);
-    } catch (e) {
-      setError((e as Error).message);
-      setItems([]);
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
 
   const filtered = useMemo(
     () => fuzzyFilter(items, filter, (t) => `${t.name} ${t.description || ''} ${t.model || ''}`),

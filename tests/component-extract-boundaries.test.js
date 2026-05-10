@@ -2057,6 +2057,63 @@ describe('extracted: useChatBackfill hook (v1.10.738)', () => {
   });
 });
 
+describe('extracted: useProfiles + useTemplates + useCleanup hooks (v1.10.746)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const PROFILES_HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-profiles.ts');
+  const PROFILES_PARENT = path.join(__dirname, '..', 'web', 'src', 'pages', 'Profiles.tsx');
+  const TEMPLATES_HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-templates.ts');
+  const TEMPLATES_PARENT = path.join(__dirname, '..', 'web', 'src', 'pages', 'Templates.tsx');
+  const CLEANUP_HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-cleanup.ts');
+  const CLEANUP_PARENT = path.join(__dirname, '..', 'web', 'src', 'pages', 'Cleanup.tsx');
+
+  it('useProfiles exports + GETs /api/profiles + ProfileItem type', () => {
+    const src = fs.readFileSync(PROFILES_HOOK, 'utf8');
+    assert.match(src, /export function useProfiles/);
+    assert.match(src, /export interface ProfileItem/);
+    assert.match(src, /apiGet<ProfilesResponse>\('\/api\/profiles'\)/);
+  });
+
+  it('useTemplates exports + GETs /api/templates + TemplateItem type', () => {
+    const src = fs.readFileSync(TEMPLATES_HOOK, 'utf8');
+    assert.match(src, /export function useTemplates/);
+    assert.match(src, /export interface TemplateItem/);
+    assert.match(src, /apiGet<TemplatesResponse>\('\/api\/templates'\)/);
+  });
+
+  it('useCleanup exports preview + executeCleanup + confirmOpen modal slot', () => {
+    const src = fs.readFileSync(CLEANUP_HOOK, 'utf8');
+    assert.match(src, /export function useCleanup/);
+    assert.match(src, /export interface CleanupResponse/);
+    assert.match(src, /apiPost<CleanupResponse>\('\/api\/cleanup',\s*\{\s*dryRun:\s*true\s*\}\)/);
+    assert.match(src, /apiPost<CleanupResponse>\('\/api\/cleanup',\s*\{\s*dryRun:\s*false\s*\}\)/);
+    assert.match(src, /confirmOpen/);
+    assert.match(src, /cleanup\.toast\.complete/);
+    assert.match(src, /cleanup\.toast\.failed/);
+  });
+
+  it('parent Profiles.tsx wires useProfiles + drops the inline state', () => {
+    const src = fs.readFileSync(PROFILES_PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useProfiles\s*\}\s+from\s+'\.\.\/lib\/use-profiles'/);
+    assert.match(src, /useProfiles\(\)/);
+    assert.doesNotMatch(src, /apiGet<ProfilesResponse>/);
+  });
+
+  it('parent Templates.tsx wires useTemplates + drops the inline state', () => {
+    const src = fs.readFileSync(TEMPLATES_PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useTemplates\s*\}\s+from\s+'\.\.\/lib\/use-templates'/);
+    assert.match(src, /useTemplates\(\)/);
+    assert.doesNotMatch(src, /apiGet<TemplatesResponse>/);
+  });
+
+  it('parent Cleanup.tsx wires useCleanup + drops the inline preview/execute', () => {
+    const src = fs.readFileSync(CLEANUP_PARENT, 'utf8');
+    assert.match(src, /import\s+\{\s*useCleanup\s*\}\s+from\s+'\.\.\/lib\/use-cleanup'/);
+    assert.match(src, /useCleanup\(\{[\s\S]*?showToast[\s\S]*?\}\)/);
+    assert.doesNotMatch(src, /apiPost<CleanupResponse>/);
+  });
+});
+
 describe('extracted: useScribe hook (v1.10.745)', () => {
   const fs = require('fs');
   const path = require('path');

@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useState } from 'react';
 import { Eye, RefreshCw, Trash2 } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
@@ -6,79 +5,21 @@ import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Panel, Tooltip } from '../components/ui';
-import { apiPost } from '../lib/api';
-import { t, tFormat, useLocale } from '../lib/i18n';
+import { t, useLocale } from '../lib/i18n';
 import { useToast } from '../lib/use-toast';
+import { useCleanup } from '../lib/use-cleanup';
 
 // 8.20B Cleanup. Calls POST /cleanup with dryRun=true to list orphan
 // worktrees / branches / directories, and POST /cleanup with
 // dryRun=false behind a confirm dialog to actually remove them.
-
-interface CleanupResponse {
-  dryRun?: boolean;
-  branches?: string[];
-  worktrees?: string[];
-  directories?: string[];
-  error?: string;
-}
-
 // (v1.10.722) Toast slot adopted from lib/use-toast (shared infra).
+// (v1.10.746) Preview + execute flows moved to lib/use-cleanup.
 
 export default function Cleanup() {
   useLocale();
-  const [data, setData] = useState<CleanupResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<boolean>(false);
   const { toast, showToast, dismissToast } = useToast();
-  const [confirmOpen, setConfirmOpen] = useState<boolean>(false);
-
-  const preview = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const r = (await apiPost<CleanupResponse>('/api/cleanup', { dryRun: true })) as CleanupResponse;
-      if (r.error) {
-        setError(r.error);
-        setData(null);
-      } else {
-        setData(r);
-      }
-    } catch (e) {
-      setError((e as Error).message);
-      setData(null);
-    }
-    setLoading(false);
-  }, []);
-
-  const executeCleanup = useCallback(async () => {
-    setConfirmOpen(false);
-    setBusy(true);
-    setError(null);
-    try {
-      const r = (await apiPost<CleanupResponse>('/api/cleanup', { dryRun: false })) as CleanupResponse;
-      if (r.error) {
-        setError(r.error);
-        showToast(tFormat('cleanup.toast.failed', { error: r.error }), 'error');
-      } else {
-        setData(r);
-        const removed = (r.branches?.length || 0) + (r.worktrees?.length || 0) + (r.directories?.length || 0);
-        showToast(tFormat('cleanup.toast.complete', { count: removed }), 'success');
-      }
-    } catch (e) {
-      setError((e as Error).message);
-      showToast(tFormat('cleanup.toast.failed', { error: (e as Error).message }), 'error');
-    }
-    setBusy(false);
-  }, [showToast]);
-
-  const commit = useCallback(() => {
-    setConfirmOpen(true);
-  }, []);
-
-  useEffect(() => {
-    preview();
-  }, [preview]);
+  const { data, loading, error, busy, confirmOpen, setConfirmOpen, preview, executeCleanup, commit } =
+    useCleanup({ showToast });
 
   const branches = data?.branches || [];
   const worktrees = data?.worktrees || [];
