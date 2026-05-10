@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import { Button, IconButton } from './ui';
@@ -43,6 +43,12 @@ export function ConfirmDialog({
   // (v1.10.755) Esc + focus restore moved to lib/use-dialog-a11y.
   useDialogA11y({ open, busy, onCancel, dialogRef });
 
+  // (v1.10.768) Stable backdrop click — guards against
+  // dismissing while the confirmed action is in flight.
+  const handleBackdropClick = useCallback(() => {
+    if (!busy) onCancel();
+  }, [busy, onCancel]);
+
   if (!open) return null;
 
   const confirmText = confirmLabel || t('common.confirm');
@@ -51,9 +57,7 @@ export function ConfirmDialog({
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm"
-      onClick={() => {
-        if (!busy) onCancel();
-      }}
+      onClick={handleBackdropClick}
     >
       <div
         ref={dialogRef}

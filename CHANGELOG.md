@@ -4,6 +4,25 @@
 
 (no entries — next release window)
 
+## [1.10.768] - 2026-05-10 — Two more local useCallback wraps
+
+**Web — small final polish on inline JSX arrows.**
+
+- `ConfirmDialog.tsx` — `handleBackdropClick`
+  wraps the `() => { if (!busy) onCancel(); }`
+  guard so the backdrop's `onClick` reads as a
+  single named identity. The wrapper depends on
+  `busy + onCancel` so it changes only when those
+  do, rather than per render.
+- `MeetingsComposer.tsx` — `applyTemplate(tpl)`
+  callback hoisted from the inline 4-line block on
+  each template chip. The chip's `onClick` still
+  allocates `() => applyTemplate(tpl)` per loop
+  iteration (the closure-captured `tpl` is
+  unavoidable), but the body is now defined once.
+
+All 5 quality gates green. No boundary-test churn.
+
 ## [1.10.767] - 2026-05-10 — useSilentPollWithRefresh — variant with manual refresh
 
 **Web — extend the silent-poll generic.** The

@@ -98,6 +98,19 @@ export default function MeetingsComposer({ open, onClose, onCreated }: Props) {
     setCreateError(null);
   }, [onClose, setCreateError]);
 
+  // (v1.10.768) Stable apply-template callback. JSX still
+  // allocates `() => applyTemplate(tpl)` per loop iteration
+  // (since `tpl` is the closure variable), but the 4-line
+  // body lives once on the hook.
+  const applyTemplate = useCallback((tpl: Template) => {
+    setNewTask(tpl.task);
+    if (tpl.track) {
+      setNewTrack(tpl.track as typeof newTrack);
+    }
+    setTemplateName(tpl.name);
+    setTemplateVars({});
+  }, []);
+
   if (!open) return null;
 
   return (
@@ -109,14 +122,7 @@ export default function MeetingsComposer({ open, onClose, onCreated }: Props) {
             <Button
               size="sm"
               variant={templateName === tpl.name ? 'default' : 'outline'}
-              onClick={() => {
-                setNewTask(tpl.task);
-                if (tpl.track) {
-                  setNewTrack(tpl.track as typeof newTrack);
-                }
-                setTemplateName(tpl.name);
-                setTemplateVars({});
-              }}
+              onClick={() => applyTemplate(tpl)}
               title={tpl.description || tpl.task}
               aria-label={tFormat('meetings.aria.applyTemplate', { name: tpl.name })}
               className="h-6 px-2 text-[11px] rounded-r-none"
