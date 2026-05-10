@@ -4,6 +4,47 @@
 
 (no entries — next release window)
 
+## [1.10.764] - 2026-05-10 — Extract useAutoClearMessage shared infra
+
+**Web — new shared infra hook.** The "transient
+success / persistent failure" message strip pattern
+showed up in 6 action hooks (`use-specialists-export`,
+`use-audit-rotate`, `use-meeting-publish`,
+`use-wiki-bulk-publish`, `use-meeting-contribute`,
+`use-meeting-peer-retro`); each had its own copy of:
+
+```
+const [msg, setMsg] = useState<string | null>(null);
+const [failed, setFailed] = useState(false);
+…
+setMsg(success);
+window.setTimeout(() => setMsg(null), 4000);
+…
+setMsg(error);
+setFailed(true);
+```
+
+`lib/use-auto-clear-message.ts` (NEW) consolidates
+the trio — `msg`, `failed`, plus `setSuccess(m, ms?)`
+/ `setFailure(m)` / `reset()` callbacks. The hook
+owns a single `setTimeout` ref, clears it on
+success / failure / reset / unmount, and exposes the
+ms override per-call so callers like `peer-retro`
+(6s) and `contribute` (3s) keep their existing
+durations.
+
+Adopted by 2 hooks in this ship to validate the
+shape:
+
+- `lib/use-specialists-export.ts`
+- `lib/use-audit-rotate.ts`
+
+The remaining 4 will adopt in follow-up ships once
+this lands cleanly. Existing return shapes (e.g.
+`{ exportMsg, exportFailed }`) preserved by aliasing
+the inner hook's `msg`/`failed`. All 5 quality
+gates green.
+
 ## [1.10.763] - 2026-05-10 — Move git-commit/push toggle interlocks into hooks
 
 **Web — coupled-checkbox state machine pulled out

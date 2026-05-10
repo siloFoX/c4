@@ -2098,6 +2098,52 @@ describe('useWorkerActionStrip adopts postAction helper (v1.10.749)', () => {
   });
 });
 
+describe('extracted: useAutoClearMessage hook (v1.10.764)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const HOOK = path.join(__dirname, '..', 'web', 'src', 'lib', 'use-auto-clear-message.ts');
+
+  it('exports the hook with msg/failed/setSuccess/setFailure/reset', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /export function useAutoClearMessage/);
+    assert.match(src, /msg:\s*string \| null/);
+    assert.match(src, /failed:\s*boolean/);
+    assert.match(src, /setSuccess:\s*\(msg:\s*string,\s*durationMs\?:\s*number\)\s*=>\s*void/);
+    assert.match(src, /setFailure:\s*\(msg:\s*string\)\s*=>\s*void/);
+    assert.match(src, /reset:\s*\(\)\s*=>\s*void/);
+  });
+
+  it('owns a setTimeout ref + clears it on success/failure/reset/unmount', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    assert.match(src, /timerRef = useRef<number \| null>\(null\)/);
+    assert.match(src, /window\.setTimeout/);
+    assert.match(src, /window\.clearTimeout/);
+    // useEffect cleanup so a fired timeout doesn't setState on unmount.
+    assert.match(src, /useEffect\(\(\) => \(\) => clearTimer\(\),/);
+  });
+
+  it('setSuccess clears failed; setFailure does NOT auto-clear', () => {
+    const src = fs.readFileSync(HOOK, 'utf8');
+    // setSuccess body sets msg + clears failed + arms timer.
+    assert.match(src, /setSuccess = useCallback\(\(m:\s*string,\s*durationMs\?:\s*number\) => \{[\s\S]*?setMsg\(m\)[\s\S]*?setFailed\(false\)[\s\S]*?timerRef\.current = window\.setTimeout/);
+    // setFailure body sets msg + sets failed + clears timer (no re-arm).
+    assert.match(src, /setFailure = useCallback\(\(m:\s*string\) => \{[\s\S]*?setMsg\(m\)[\s\S]*?setFailed\(true\)[\s\S]*?clearTimer\(\)/);
+  });
+
+  it('adopted by useSpecialistsExport + useAuditRotate', () => {
+    for (const f of ['use-specialists-export.ts', 'use-audit-rotate.ts']) {
+      const src = fs.readFileSync(
+        path.join(__dirname, '..', 'web', 'src', 'lib', f),
+        'utf8',
+      );
+      assert.match(src, /import\s+\{\s*useAutoClearMessage\s*\}\s+from\s+'\.\/use-auto-clear-message'/);
+      assert.match(src, /useAutoClearMessage\(\)/);
+      assert.match(src, /setSuccess\(/);
+      assert.match(src, /setFailure\(/);
+    }
+  });
+});
+
 describe('extracted: useToggle hook (v1.10.757)', () => {
   const fs = require('fs');
   const path = require('path');
@@ -4512,12 +4558,17 @@ describe('extracted: useAuditRotate hook (v1.10.687)', () => {
   });
 
   it('routes rotated/skipped/failure into the banner with 4s auto-clear', () => {
+    // (v1.10.764) Banner state moved to the shared infra hook
+    // useAutoClearMessage; this hook delegates via setSuccess /
+    // setFailure / reset.
     const src = fs.readFileSync(HOOK, 'utf8');
     assert.match(src, /if \(res\.rotated\)/);
     assert.match(src, /specialists\.rotate\.success/);
     assert.match(src, /specialists\.rotate\.skipped/);
     assert.match(src, /specialists\.rotate\.failed/);
-    assert.match(src, /window\.setTimeout\(\(\) => setRotateMsg\(null\),\s*4000\)/);
+    assert.match(src, /useAutoClearMessage/);
+    assert.match(src, /setSuccess\(/);
+    assert.match(src, /setFailure\(/);
   });
 
   it('parent SpecialistsBulkOpsToolbar wires the hook + drops the inline state + handler', () => {
@@ -4587,9 +4638,11 @@ describe('extracted: useSpecialistsExport hook (v1.10.685)', () => {
   });
 
   it('auto-clears the success banner after 4s + flips failed-tone on error', () => {
+    // (v1.10.764) Banner state delegated to useAutoClearMessage.
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /window\.setTimeout\(\(\) => setExportMsg\(null\),\s*4000\)/);
-    assert.match(src, /setExportFailed\(true\)/);
+    assert.match(src, /useAutoClearMessage/);
+    assert.match(src, /setSuccess\(/);
+    assert.match(src, /setFailure\(/);
   });
 
   it('parent SpecialistsBulkOpsToolbar wires the hook + drops the inline state + handler', () => {

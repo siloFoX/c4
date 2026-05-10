@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { apiGet } from './api';
 import { t, tFormat } from './i18n';
+import { useAutoClearMessage } from './use-auto-clear-message';
 
 // (v1.10.685) Extracted from SpecialistsBulkOpsToolbar.
 // GET /api/specialists/export then download the result
@@ -8,6 +9,9 @@ import { t, tFormat } from './i18n';
 // after 4s so the next click starts fresh; failures
 // flip the failed-tone flag for the destructive-style
 // banner.
+//
+// (v1.10.764) Banner state moved to shared infra
+// hook lib/use-auto-clear-message.
 
 interface SpecialistsExportState {
   exportBusy: boolean;
@@ -18,13 +22,12 @@ interface SpecialistsExportState {
 
 export function useSpecialistsExport(): SpecialistsExportState {
   const [exportBusy, setExportBusy] = useState(false);
-  const [exportMsg, setExportMsg] = useState<string | null>(null);
-  const [exportFailed, setExportFailed] = useState(false);
+  const { msg: exportMsg, failed: exportFailed, setSuccess, setFailure, reset } =
+    useAutoClearMessage();
 
   const handleExport = useCallback(async () => {
     setExportBusy(true);
-    setExportMsg(null);
-    setExportFailed(false);
+    reset();
     try {
       const bundle = await apiGet<{
         version: number;
@@ -41,15 +44,13 @@ export function useSpecialistsExport(): SpecialistsExportState {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      setExportMsg(tFormat('specialists.export.success', { count: bundle.specialists.length }));
-      window.setTimeout(() => setExportMsg(null), 4000);
+      setSuccess(tFormat('specialists.export.success', { count: bundle.specialists.length }));
     } catch (e) {
-      setExportMsg(tFormat('specialists.export.failed', { error: (e as Error).message || t('common.unknown') }));
-      setExportFailed(true);
+      setFailure(tFormat('specialists.export.failed', { error: (e as Error).message || t('common.unknown') }));
     } finally {
       setExportBusy(false);
     }
-  }, []);
+  }, [reset, setSuccess, setFailure]);
 
   return { exportBusy, exportMsg, exportFailed, handleExport };
 }
