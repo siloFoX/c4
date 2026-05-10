@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useSpecialistsExport } from '../lib/use-specialists-export';
-import { useSpecialistsImport } from '../lib/use-specialists-import';
+import { useSpecialistsImport, type SpecialistsImportMode } from '../lib/use-specialists-import';
 import { useAuditRotate } from '../lib/use-audit-rotate';
 import { Button } from './ui';
 import { cn } from '../lib/cn';
@@ -28,7 +28,7 @@ export default function SpecialistsBulkOpsToolbar({ onChange }: Props) {
   // (v1.10.685) Specialists export moved to lib/use-specialists-export.
   const { exportBusy, exportMsg, exportFailed, handleExport } = useSpecialistsExport();
 
-  const [importMode, setImportMode] = useState<'merge' | 'replace'>('merge');
+  const [importMode, setImportMode] = useState<SpecialistsImportMode>('merge');
 
   // (v1.10.686) Two-step import flow moved to lib/use-specialists-import.
   const {
@@ -80,7 +80,7 @@ export default function SpecialistsBulkOpsToolbar({ onChange }: Props) {
         <select
           className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
           value={importMode}
-          onChange={(e) => setImportMode(e.target.value as 'merge' | 'replace')}
+          onChange={(e) => setImportMode(e.target.value as SpecialistsImportMode)}
           disabled={importBusy}
           aria-label={t('specialists.action.importMode')}
         >

@@ -1,6 +1,6 @@
 import { Button, Input } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
-import { useMeetingFork } from '../lib/use-meeting-fork';
+import { useMeetingFork, type MeetingForkMode } from '../lib/use-meeting-fork';
 
 // (v1.10.544) Extracted from MeetingsView. The Phase-6.11 fork
 // form — clones a terminal meeting either by re-running the
@@ -49,7 +49,7 @@ export default function MeetingsForkForm({ open, meeting, busy: parentBusy, onCl
           {t('meetings.label.mode')}
           <select
             value={mode}
-            onChange={(e) => setMode(e.target.value as 'replan' | 'reuse')}
+            onChange={(e) => setMode(e.target.value as MeetingForkMode)}
             disabled={disabled}
             className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
           >

@@ -9,6 +9,13 @@ import { t } from './i18n';
 // `mode` toggle gates whether `track` is forwarded —
 // `replan` re-runs the dispatcher (rosters can change);
 // `reuse` deep-clones the source plan.
+//
+// (v1.10.773) MeetingForkMode type alias canonical
+// here — drops 4 inline `'replan' | 'reuse'` repeats
+// (state slot, setter signature, payload typedef,
+// JSX cast in MeetingsForkForm).
+
+export type MeetingForkMode = 'replan' | 'reuse';
 
 interface ForkResponse {
   id: string;
@@ -19,8 +26,8 @@ interface ForkResponse {
 }
 
 interface MeetingForkState {
-  mode: 'replan' | 'reuse';
-  setMode: (next: 'replan' | 'reuse') => void;
+  mode: MeetingForkMode;
+  setMode: (next: MeetingForkMode) => void;
   task: string;
   setTask: (next: string) => void;
   title: string;
@@ -38,7 +45,7 @@ export function useMeetingFork(args: {
   onClose: () => void;
 }): MeetingForkState {
   const { meetingId, onForked, onClose } = args;
-  const [mode, setMode] = useState<'replan' | 'reuse'>('replan');
+  const [mode, setMode] = useState<MeetingForkMode>('replan');
   const [task, setTask] = useState('');
   const [title, setTitle] = useState('');
   const [track, setTrack] = useState<'auto' | 'lightweight' | 'standard' | 'full'>('auto');
@@ -60,7 +67,7 @@ export function useMeetingFork(args: {
     setError(null);
     try {
       const body: {
-        mode: 'replan' | 'reuse';
+        mode: MeetingForkMode;
         task?: string;
         title?: string;
         track?: 'lightweight' | 'standard' | 'full';

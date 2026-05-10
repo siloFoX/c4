@@ -4106,8 +4106,10 @@ describe('extracted: useMeetingFork hook (v1.10.702)', () => {
   });
 
   it('owns the four form fields + busy/error', () => {
+    // (v1.10.773) Mode literal hoisted to MeetingForkMode alias.
     const src = fs.readFileSync(HOOK, 'utf8');
-    assert.match(src, /useState<'replan'\s*\|\s*'reuse'>/);
+    assert.match(src, /export type MeetingForkMode = 'replan' \| 'reuse'/);
+    assert.match(src, /useState<MeetingForkMode>/);
     assert.match(src, /useState<'auto'\s*\|\s*'lightweight'\s*\|\s*'standard'\s*\|\s*'full'>/);
   });
 
@@ -4123,9 +4125,11 @@ describe('extracted: useMeetingFork hook (v1.10.702)', () => {
   });
 
   it('parent MeetingsForkForm wires the hook + drops the inline state + handler', () => {
+    // (v1.10.773) MeetingForkMode alias imported alongside the hook.
     const src = fs.readFileSync(PARENT, 'utf8');
-    assert.match(src, /import\s+\{\s*useMeetingFork\s*\}\s+from\s+'\.\.\/lib\/use-meeting-fork'/);
+    assert.match(src, /import\s+\{\s*useMeetingFork,\s*type\s+MeetingForkMode\s*\}\s+from\s+'\.\.\/lib\/use-meeting-fork'/);
     assert.match(src, /useMeetingFork\(\{\s*meetingId:\s*meeting\.id,\s*onForked,\s*onClose\s*\}\)/);
+    assert.match(src, /e\.target\.value\s*as\s*MeetingForkMode/);
     assert.doesNotMatch(src, /^interface ForkResponse/m);
     assert.doesNotMatch(src, /const \[mode, setMode\]/);
     assert.doesNotMatch(src, /const handleSubmit = useCallback/);
@@ -4678,10 +4682,12 @@ describe('extracted: useSpecialistsImport hook (v1.10.686)', () => {
   const PARENT = path.join(__dirname, '..', 'web', 'src', 'components', 'SpecialistsBulkOpsToolbar.tsx');
 
   it('exports the hook + ImportResult type + accepts importMode/onChange', () => {
+    // (v1.10.773) Mode literal hoisted to SpecialistsImportMode alias.
     const src = fs.readFileSync(HOOK, 'utf8');
     assert.match(src, /export function useSpecialistsImport/);
     assert.match(src, /export interface ImportResult/);
-    assert.match(src, /importMode:\s*'merge'\s*\|\s*'replace'/);
+    assert.match(src, /export type SpecialistsImportMode = 'merge' \| 'replace'/);
+    assert.match(src, /importMode:\s*SpecialistsImportMode/);
     assert.match(src, /onChange:\s*\(\)\s*=>\s*void/);
   });
 
@@ -4699,9 +4705,11 @@ describe('extracted: useSpecialistsImport hook (v1.10.686)', () => {
   });
 
   it('parent SpecialistsBulkOpsToolbar wires the hook + drops the inline state + handlers', () => {
+    // (v1.10.773) SpecialistsImportMode alias imported alongside the hook.
     const src = fs.readFileSync(PARENT, 'utf8');
-    assert.match(src, /import\s+\{\s*useSpecialistsImport\s*\}\s+from\s+'\.\.\/lib\/use-specialists-import'/);
+    assert.match(src, /import\s+\{\s*useSpecialistsImport,\s*type\s+SpecialistsImportMode\s*\}\s+from\s+'\.\.\/lib\/use-specialists-import'/);
     assert.match(src, /useSpecialistsImport\(\{\s*importMode,\s*onChange\s*\}\)/);
+    assert.match(src, /e\.target\.value\s*as\s*SpecialistsImportMode/);
     assert.doesNotMatch(src, /^interface ImportResult/m);
     assert.doesNotMatch(src, /const \[importBusy, setImportBusy\]/);
     assert.doesNotMatch(src, /const handleImportFile = useCallback/);

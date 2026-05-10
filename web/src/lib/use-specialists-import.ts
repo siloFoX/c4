@@ -10,6 +10,13 @@ import { t, tFormat } from './i18n';
 // summary). The hook owns five state slots; the parent
 // passes the merge/replace mode toggle so the JSX radio
 // stays bound to the parent.
+//
+// (v1.10.773) SpecialistsImportMode literal canonical
+// here — the parent toolbar imports the alias instead
+// of re-declaring `'merge' | 'replace'` for the
+// useState slot + onChange cast.
+
+export type SpecialistsImportMode = 'merge' | 'replace';
 
 export interface ImportResult {
   mode: string;
@@ -31,7 +38,7 @@ interface SpecialistsImportState {
 }
 
 export function useSpecialistsImport(args: {
-  importMode: 'merge' | 'replace';
+  importMode: SpecialistsImportMode;
   onChange: () => void;
 }): SpecialistsImportState {
   const { importMode, onChange } = args;

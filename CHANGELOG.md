@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.10.773] - 2026-05-10 — Consolidate two more enum-shaped type aliases
+
+**Web — fourth type-deduplication pass.** Two more
+literal-union duplicates collapse to canonical
+exports.
+
+- `lib/use-specialists-import.ts` exports
+  `SpecialistsImportMode = 'merge' | 'replace'`. The
+  parent `SpecialistsBulkOpsToolbar.tsx` imports the
+  alias for both the `useState` slot and the
+  `<select>` change-handler cast — drops 2 inline
+  duplicates.
+- `lib/use-meeting-fork.ts` exports `MeetingForkMode
+  = 'replan' | 'reuse'`. Was duplicated in 4 sites
+  (state slot, setter signature, payload typedef,
+  JSX cast in `MeetingsForkForm.tsx`).
+
+Boundary tests: 4 redirected. All 5 quality gates
+green.
+
 ## [1.10.772] - 2026-05-10 — Consolidate MeetingVote type alias
 
 **Web — third type-deduplication pass.** The
