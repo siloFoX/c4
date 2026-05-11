@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.11.11] - 2026-05-11 — Two more Meetings hooks tested (retro + backup)
+
+**18 new tests** — `use-meeting-retro` (the Phase-2.6 preview /
+finalize state machine) and `use-meeting-backup` (persist-backup
+maintenance action with path + force inputs).
+
+- `lib/use-meeting-retro.test.ts` — 9 cases: idle initial state,
+  preview branch posts to `/retro` and stores result, finalize branch
+  posts to `/finalize`, null payload falls back to `{ note: 'no
+  payload' }`, encodeURIComponent on id, **busy slot distinguishes
+  'preview' vs 'finalize'**, error path, cross-selection reset on
+  meetingId change.
+- `lib/use-meeting-backup.test.ts` — 9 cases: idle initial state, path
+  + force setters, blank-path short-circuit (no fetch + failed=true),
+  whitespace-only path also short-circuits, POST body trims path +
+  forwards force flag, success message includes path, bytes=null
+  fallback (size-unknown), server error → failed=true, busy slot
+  flips during in-flight.
+
+31 files / 288 tests / 6.76s. Domain coverage: 11 / 17 use-meeting-*
+hooks (added retro + backup; remaining: preview-plan, peer-retro,
+contribute, enrichment, detail-stream (SSE), prune, publish,
+template-editor).
+
 ## [1.11.10] - 2026-05-11 — Meetings search hook tested (debounce + facets + result merge)
 
 **11 new tests** for `use-meetings-search` — the FTS5 search backbone
