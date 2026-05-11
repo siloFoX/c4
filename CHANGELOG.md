@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.11.15] - 2026-05-11 — Final two Meetings hooks tested — domain at 19/19
+
+**23 new tests** finishing the use-meeting-* / use-meetings-* surface
+the user authored: `use-meeting-contribute` (operator's manual
+transcript turn + standalone vote) and `use-meeting-template-editor`
+(template CRUD with rename-as-upsert+delete pattern).
+
+- `lib/use-meeting-contribute.test.ts` — 11 cases: blank initial form,
+  4 setters, cross-selection form reset, **handleContribute** branches
+  (specialist/text required → no fetch, trimmed POST with optional
+  vote+reason, omit blank vote/reason, **clears text/vote/reason on
+  success but keeps specialist** for next-turn convenience, server
+  error → failed=true), **handleVoteOnly** branches (specialist
+  required, POST with vote+optional reason, reason cleared on
+  success), encodeURIComponent on id (both endpoints).
+- `lib/use-meeting-template-editor.test.ts` — 12 cases: blank form on
+  create-mode open, **form seeded from tpl** on edit-mode open, no
+  re-seed when open=false, validation rejects blank name/task,
+  trimmed POST with optional track+description, optional fields
+  omitted when blank, **edit + rename = upsert new + delete old**
+  (daemon has no rename op), edit + same name = no DELETE, POST
+  error → failed=true and onSaved not called, handleDelete noop in
+  create mode, confirm-rejected skips DELETE, confirm-accepted
+  DELETEs the URL-encoded name + invokes onDeleted.
+
+39 files / 360 tests / 8.68s. **Meetings domain hooks: 19 / 19 covered**
+(17 use-meeting-* + use-meetings-list + use-meetings-search).
+
 ## [1.11.14] - 2026-05-11 — Two more Meetings hooks tested (publish + detail-stream)
 
 **19 new tests** — `use-meeting-publish` (wiki publish + optional
