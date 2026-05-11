@@ -4,6 +4,59 @@
 
 (no entries — next release window)
 
+## [1.11.18] - 2026-05-11 — Sessions/Conversation hooks tested (use-sessions-list + use-conversation)
+
+**32 new tests** opening the Sessions surface — the
+`/api/sessions` + `/api/attach/list` pair (`use-sessions-list`) and
+the `/api/sessions/:id` snapshot + `/stream` SSE pair
+(`use-conversation`).
+
+- `web/src/lib/use-sessions-list.test.ts` — 13 cases: idle initial
+  state (loading=true with data null / attached [] / no errors via
+  release-gate), **auto-selects the first session when
+  getSelection() returns null on mount** ({kind:'session', id}),
+  emits onAutoSelect(null) when the list is empty, skips
+  onAutoSelect entirely when getSelection() already returns a
+  Selection (cross-selection leak guard), surfaces error on
+  /api/sessions non-OK and clears it on the next successful
+  refreshSessions(), happy-path /api/attach/list populates
+  attached, **Array.isArray guard** defaults attached=[] when
+  response.sessions is not an array, surfaces attachError
+  independently of the sessions error, exposes setAttachError so
+  the parent can set or clear it, refreshSessions() and
+  refreshAttached() are both re-invocable and each refetches its
+  own endpoint, loading flips false only after /api/sessions
+  settles (release-gate — refreshAttached has no loading slot).
+- `web/src/lib/use-conversation.test.ts` — 19 cases: idle initial
+  state with empty sessionId AND live=false (no EventSource),
+  **refresh() short-circuits with no fetch when both sessionId and
+  snapshotUrl are empty**, happy-path GET /api/sessions/<id>
+  stores the response as conversation, **encodeURIComponent on
+  sessionId** (`a/b c` -> `a%2Fb%20c` in the path), snapshotUrl
+  override replaces the default path (used by /api/attach/<name>/
+  conversation), error surfaces and leaves conversation null,
+  loading=true during in-flight then back to false (release-gate),
+  EventSource NOT opened when live=false or when live=true with no
+  sessionId AND no streamUrl, opens EventSource on
+  /api/sessions/<encoded>/stream and flips streaming=true,
+  streamUrl override replaces the default stream path, 'conversation'
+  SSE frame replaces conversation and malformed JSON is swallowed,
+  **'turn' SSE frame appends to turns + updates totalInputTokens /
+  totalOutputTokens / updatedAt** (12+3 / 22+7), **seeds a fresh
+  conversation from sessionId on the first 'turn' frame when no
+  snapshot has loaded yet**, malformed 'turn' frame swallowed,
+  onerror flips streaming=false, unmount closes the EventSource
+  and resets streaming, **sessionId change closes the previous
+  EventSource and opens a fresh one** on the new path, **swallows
+  EventSource constructor throw without crashing** (streaming stays
+  false, no instances recorded).
+
+45 files / 435 tests / 9.76s. **Sessions surface coverage opened:
+the list + attach pair on the left rail and the conversation
+snapshot + live-stream pair on the detail pane — both web-side
+hooks behind the Sessions tab are now exercised end-to-end through
+MSW + an EventSourceStub.**
+
 ## [1.11.17] - 2026-05-11 — Chat hooks tested (use-chat-sse-stream + use-chat-submit)
 
 **25 new tests** opening the Chat surface — the `/api/watch` SSE
