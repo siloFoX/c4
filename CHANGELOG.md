@@ -4,6 +4,65 @@
 
 (no entries — next release window)
 
+## [1.11.20] - 2026-05-11 — Two larger Sessions/Chat hooks tested (sessions-actions + chat-backfill)
+
+**47 new tests** for the two largest remaining hooks in the Sessions/Chat
+domain — both REST + state-machine hubs that the prior small-hook batch
+had deferred because they each exercise more branches than the typical
+extracted hook. No code changes — pure test coverage.
+
+- `web/src/lib/use-sessions-actions.test.ts` — 23 cases across the
+  three async handlers: idle state for both attach + new-chat modals;
+  the two setter slots on each modal (`setModalOpen/setModalError`,
+  `setNewChatOpen/setNewChatError`); `handleAttachSubmit` body-shape
+  branches — bare id sends `{ sessionId }`, `.jsonl` filename sends
+  `{ path }`, forward-slash path sends `{ path }`, backslash path
+  sends `{ path }`, non-empty `name` is forwarded, empty `name` is
+  dropped; attach happy path closes modal + refreshes attached +
+  selects the new worker; attach response with empty `name` skips
+  the selection update; attach server failure surfaces `modalError`
+  and keeps the modal open; `modalBusy` flips true during the
+  in-flight POST via a release-gate Promise; `handleNewChatSubmit`
+  omits `model`/`profile` for defaults and forwards them otherwise;
+  new-chat happy path closes modal + fans out to both refresh
+  callbacks; 2xx response body carrying `{ error }` surfaces error,
+  keeps modal open, skips refresh; new-chat server failure surfaces
+  `newChatError`; `newChatBusy` flips during in-flight; `handleDetach`
+  DELETEs `/api/attach/<encoded-name>` and refreshes attached; detach
+  clears the selection when the currently-selected attached matches,
+  leaves a non-matching attached selection untouched, leaves a
+  `kind:'session'` selection untouched even when the name collides;
+  detach failure routes the error to `setAttachError` (not
+  `modalError`) and skips the refresh.
+- `web/src/lib/use-chat-backfill.test.ts` — 24 cases across the full
+  state machine: initial loading + empty history + ref defaults
+  (`scrollbackLinesRef=2000`, empty `seenIds`/`seenTexts`,
+  `backfillReadyRef=false`); `/api/sessions` URL carries
+  encoded `workerName`; session path with turns sets source=`session`,
+  populates history, mirrors ids + texts into both dedup refs, leaves
+  `hasOlder=false`; falls through to scrollback when `conversation`
+  is null OR `turns` is empty; `/api/scrollback` URL carries encoded
+  name + `lines=2000`; scrollback `hasOlder=true` when
+  `totalScrollback > lines`, `false` otherwise; scrollback returning
+  `{ error }` sets `backfillError`, clears `source`, marks
+  `backfillReadyRef=true`; scrollback HTTP throw sets `backfillError`
+  and clears loading; session HTTP throw falls through to scrollback;
+  `rememberMessage` adds to both `seenIdsRef` and `seenTextsRef`;
+  worker change calls `onResetExtras` and resets the page counter to
+  `SCROLLBACK_PAGE`; worker change tolerates undefined
+  `onResetExtras`; `loadOlder` is a no-op when source=`session`;
+  `loadOlder` no-op when `hasOlder=false`; `loadOlder` fetches the
+  next page (2000 → 4000), bumps the counter, updates history;
+  `loadOlder` caps the counter at `SCROLLBACK_MAX (10000)` after the
+  four hops and flips `hasOlder=false` on the final cap; at-the-cap
+  follow-up call clears `hasOlder` synchronously with no second fetch
+  (the `nextLines === current` guard); `loadOlder` preserves
+  `liveMessages` texts in `seenTextsRef` after rehydration;
+  `loadOlder` `sb.error` sets `backfillError` and leaves history
+  unchanged; `loadOlder` HTTP throw sets `backfillError`;
+  `loadingOlder` flips true during in-flight via release-gate
+  Promise; exposed `setHistory` lets the parent patch the list.
+
 ## [1.11.19] - 2026-05-11 — Three Sessions/Chat hooks tested (collapse + new-chat-form + filtered-sessions)
 
 **37 new tests** closing out the small-hook backlog around the Sessions
