@@ -4,6 +4,34 @@
 
 (no entries — next release window)
 
+## [1.11.1] - 2026-05-11 — First domain-coverage round: 2 Meetings hooks tested
+
+**14 new tests** covering 2 of the 17 `use-meeting-*` hooks the user
+authored. Baseline regression guard for the classify-preview +
+persist-integrity flows. The infrastructure landed in 1.11.0, this
+ship starts using it on the actual domain code.
+
+- `lib/use-meeting-classify-preview.test.ts` — 7 cases:
+  - returns null for `open=false`, empty `newTask`, whitespace-only `newTask`
+  - fetches after 250ms debounce, parses `{ track, matched[], reason }`
+  - forwards trimmed task as `?task=…` querystring
+  - falls back to null on server error
+  - clears preview the moment `open` flips back to false
+- `lib/use-meeting-integrity.test.ts` — 7 cases:
+  - idle initial state
+  - persist-disabled branch (`enabled:false`)
+  - success branch (`ok:true`)
+  - error-list branch (`errors[]` → `failed=true`)
+  - network-error branch (`HttpResponse.error`)
+  - `integrityBusy` flips during the in-flight request
+  - stale failure state cleared on the next successful run
+
+15 files / 161 tests / 4.66s. Remaining: `use-meeting-{create,fork,
+retro,backup,run,enrichment,detail-stream,fts-rebuild,template-editor,
+peer-retro,publish,prune,preview-plan,contribute,state-action}` and the
+two `use-meetings-{list,search}` paginators — 15 hooks queued for
+follow-up rounds.
+
 ## [1.11.0] - 2026-05-11 — Vitest + RTL + MSW + browser-mode test infra + TopTabs overflow fix
 
 **Two-in-one ship.** A first-class component test layer for `web/`,
