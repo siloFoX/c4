@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.11.19] - 2026-05-11 — Three Sessions/Chat hooks tested (collapse + new-chat-form + filtered-sessions)
+
+**37 new tests** closing out the small-hook backlog around the Sessions
+view: the per-group collapse map (`use-sessions-collapse`), the
+NewChatModal form-slot trio with reset-on-open (`use-new-chat-form`),
+and the search-query filter pipeline that drives both `filteredGroups`
++ `filteredAttached` (`use-filtered-sessions`). No code changes — pure
+test coverage for previously untested hooks.
+
+- `web/src/lib/use-sessions-collapse.test.ts` — 8 cases: idle empty
+  map + attached pane expanded; `toggleGroup` flips unset → true,
+  round-trips back to false, tracks multiple keys independently,
+  produces a new collapsed object each call (immutable update);
+  `toggleAttachedCollapsed` flips the attached flag without touching
+  the group map; callback references stay stable across re-renders.
+- `web/src/lib/use-new-chat-form.test.ts` — 7 cases: idle defaults
+  (empty prompt, `model='default'`, `agent='generic'`); the three
+  setters update their slots; the reset effect wipes all three fields
+  when `open` transitions to true; close (open=true → false) preserves
+  typed values so the close animation doesn't clobber state; re-open
+  after close clears stale text; mount-time render with `open=true`
+  is a no-op reset; no spurious wipe when `open` stays true.
+- `web/src/lib/use-filtered-sessions.test.ts` — 22 cases across three
+  groups: `filteredGroups` (10) covers `groups=null` → `[]`, empty +
+  whitespace-only query returns the input reference, projectPath /
+  projectDir hit keeps every session, session-content-only match
+  drops the rest, empty-match group is dropped, case-insensitive
+  matching, null fields tolerated, filtered group is a new object;
+  `totalFiltered` (3) sums across groups, is 0 on no match, counts
+  everything on empty query; `filteredAttached` (8) returns input
+  reference on empty / whitespace query, matches on name / sessionId
+  / projectPath / jsonlPath, case-insensitive, tolerates null
+  sessionId + projectPath; plus 1 memo-stability case proving
+  `filteredGroups` keeps identity across re-renders when inputs
+  don't change.
+
 ## [1.11.18] - 2026-05-11 — Sessions/Conversation hooks tested (use-sessions-list + use-conversation)
 
 **32 new tests** opening the Sessions surface — the
