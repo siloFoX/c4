@@ -4,6 +4,19 @@
 
 (no entries — next release window)
 
+## [1.11.6] - 2026-05-11 — Drop CI web-vitest step (PAT lacks `workflow` scope)
+
+**Temporary revert** of the `web unit tests (vitest + RTL + MSW)` step
+that 1.11.0 added to `.github/workflows/test.yml`. The PAT used for
+push only has `repo` scope, and GitHub server-side rejects any push
+that touches `.github/workflows/*` without `workflow` scope. Local
+`npm run test:web` still works (delegates to `npm --prefix web run
+test`); CI just won't auto-run vitest until the operator either
+(a) refreshes the token (`gh auth refresh -s workflow,repo` or edit
+the PAT in GitHub settings to add `workflow` scope) and re-adds the
+step, or (b) switches the remote to SSH which sidesteps the scope
+check entirely.
+
 ## [1.11.5] - 2026-05-11 — Three more lib utilities covered (dispatch-event / snippet / post-action)
 
 **16 new tests** across three small generic utilities used across the
