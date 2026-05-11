@@ -4,14 +4,14 @@
 
 (no entries — next release window)
 
-## [1.11.24] - 2026-05-11 — Two more Specialists hooks tested (tag-editor + actions)
+## [1.11.24] - 2026-05-11 -- Two more Specialists hooks tested (tag-editor + actions)
 
-**32 new tests** across two more Specialists web hooks — the inline
+**32 new tests** across two more Specialists web hooks -- the inline
 tag editor with `+foo` / `-foo` mode-prefix parsing and the
 remove + score-reset 2-step confirmed-action pair. No production
-code changes — pure test coverage.
+code changes -- pure test coverage.
 
-- `web/src/lib/use-specialist-tag-editor.test.ts` — 16 cases. Idle
+- `web/src/lib/use-specialist-tag-editor.test.ts` -- 16 cases. Idle
   slot (`open=false`, `value=''`, `busy=false`); `setOpen` /
   `setValue` setters exposed for the JSX cancel-button + input;
   `toggleWithTags(undefined)` opens + clears, `toggleWithTags(tags)`
@@ -30,7 +30,7 @@ code changes — pure test coverage.
   `common.failed` copy; `busy` flips true during the in-flight
   PATCH (release-gate) and back to false on resolve, and the
   `finally` block flips it back even on the error path.
-- `web/src/lib/use-specialist-actions.test.ts` — 16 cases. Idle
+- `web/src/lib/use-specialist-actions.test.ts` -- 16 cases. Idle
   slot (both busy flags false, both `confirmRemove/ResetId`
   null); confirm-id setters exposed for the 2-step confirm
   prompt; `handleScoreReset` POSTs
@@ -53,7 +53,7 @@ code changes — pure test coverage.
   returned to the list view); `removeBusy` release-gate +
   `finally` flip.
 
-Tests run under jsdom + MSW. Hook coverage continues — these two
+Tests run under jsdom + MSW. Hook coverage continues -- these two
 finish the inline action surface on the Specialists view.
 
 ## [1.11.23] - 2026-05-11 — Three more Specialists hooks tested (export + list + audit)

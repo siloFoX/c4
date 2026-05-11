@@ -81,7 +81,7 @@ describe('useSpecialistActions', () => {
     expect(capturedPath).toContain('a%2Fb%20c');
   });
 
-  it('handleScoreReset: server error → setActionError with formatted msg, refresh not called', async () => {
+  it('handleScoreReset: server error -> setActionError with formatted msg, refresh not called', async () => {
     server.use(
       http.post('/api/specialists/:id/score-reset', () =>
         HttpResponse.json({ error: 'locked' }, { status: 409 }),
@@ -216,7 +216,7 @@ describe('useSpecialistActions', () => {
     expect(capturedPath).toContain('a%2Fb%20c');
   });
 
-  it('handleRemove: server error → setActionError with the daemon message, refresh not called', async () => {
+  it('handleRemove: server error -> setActionError with the daemon message, refresh not called', async () => {
     server.use(
       http.delete('/api/specialists/:id', () =>
         HttpResponse.json({ error: 'in use' }, { status: 409 }),

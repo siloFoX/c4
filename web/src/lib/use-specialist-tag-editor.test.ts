@@ -81,7 +81,7 @@ describe('useSpecialistTagEditor', () => {
     expect(args.onSaved).not.toHaveBeenCalled();
   });
 
-  it('handleSave: empty replace (only commas + whitespace) is guarded — no PATCH', async () => {
+  it('handleSave: empty replace (only commas + whitespace) is guarded -- no PATCH', async () => {
     let calls = 0;
     server.use(
       http.patch('/api/specialists/:id/tags', () => {
@@ -161,7 +161,7 @@ describe('useSpecialistTagEditor', () => {
     let capturedPath = '';
     server.use(
       http.patch('/api/specialists/:id/tags', ({ request }) => {
-        // Use the raw URL pathname — MSW decodes :id when populating
+        // Use the raw URL pathname -- MSW decodes :id when populating
         // params, so we'd lose the %2F / %20 evidence otherwise.
         capturedPath = new URL(request.url).pathname;
         return HttpResponse.json({ ok: true });
@@ -177,7 +177,7 @@ describe('useSpecialistTagEditor', () => {
     expect(capturedPath).toContain('a%2Fb%20c');
   });
 
-  it('handleSave: server error → onError with formatted message; value/open preserved', async () => {
+  it('handleSave: server error -> onError with formatted message; value/open preserved', async () => {
     server.use(
       http.patch('/api/specialists/:id/tags', () =>
         HttpResponse.json({ error: 'tag limit' }, { status: 400 }),
