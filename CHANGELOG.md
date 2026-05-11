@@ -4,6 +4,30 @@
 
 (no entries — next release window)
 
+## [1.11.13] - 2026-05-11 — Two more Meetings hooks tested (enrichment + prune)
+
+**16 new tests** — `use-meeting-enrichment` (Phase 6.5/6.9/6.10
+detail-side decoration: lineage + action-items + recap fetches) and
+`use-meeting-prune` (persist-prune maintenance with `window.confirm`
+gate).
+
+- `lib/use-meeting-enrichment.test.ts` — 6 cases: null selectedId
+  short-circuits all 3 fetches, three endpoints fire when selected,
+  encodeURIComponent on id (all 3 paths), individual failure silently
+  nulls (best-effort decoration), **action-items + recap re-fetch on
+  transcript turn count change but lineage does NOT** (selectedId
+  only), null detail tolerated (turnsTotal=0, no NPE).
+- `lib/use-meeting-prune.test.ts` — 9 cases: documented defaults
+  (days="90", terminal=true, vacuum=false), 3 setters, days=non-
+  numeric rejected, days<1 rejected, **dryRun skips confirm**,
+  non-dryRun confirm-rejected skips POST, confirm-accepted forwards
+  the full payload, **onPruned callback fires only on non-dryRun
+  success**, server error → failed=true.
+
+35 files / 318 tests / 7.66s. Domain coverage: **15 / 17 use-meeting-*
+hooks** (added enrichment + prune; remaining: contribute, publish,
+template-editor, detail-stream).
+
 ## [1.11.12] - 2026-05-11 — Two more Meetings hooks tested (preview-plan + peer-retro)
 
 **14 new tests** — `use-meeting-preview-plan` (Composer's debounced
