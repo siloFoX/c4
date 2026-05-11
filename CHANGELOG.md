@@ -4,6 +4,37 @@
 
 (no entries — next release window)
 
+## [1.11.16] - 2026-05-11 — Sessions/Attach hooks tested (form + process-state poller)
+
+**18 new tests** opening the Sessions/Attach surface — `use-attach-form`
+(modal form-input slots with **reset-on-close-not-on-open** semantics)
+and `use-attach-process-state` (Phase 10.6 procfs poller deciding whether
+an attached JSONL is owned by a live claude or just an exported transcript).
+
+- `lib/use-attach-form.test.ts` — 7 cases: idle initial state (both
+  inputs empty), 2 setters isolated (each leaves the other field
+  alone), **open true→false wipes both fields**, **open stays true
+  across a failed submit preserves the typed-in path/name** (the
+  documented retry-without-retyping path), close-then-reopen starts
+  empty (close wiped them; open does NOT restore), mount with
+  open=false starts empty with no observable wipe.
+- `lib/use-attach-process-state.test.ts` — 11 cases: starts in the
+  loading slot before the first GET resolves, alive=true with numeric
+  pid surfaces every payload field (pid/cwd/match/multipleCandidates),
+  **defaults applied** (cwd=null, match='fd', multipleCandidates=false)
+  when daemon omits them, alive=false collapses to idle, **alive=true
+  but no numeric pid falls through to idle** (defensive branch), server
+  error → error slot with HTTP 500 message, encodeURIComponent on name
+  (`a/b c` → `a%2Fb%20c`), release-gate proves the loading slot holds
+  during in-flight, **30s polling cadence** asserted via setInterval
+  spy, clearInterval on unmount, **name prop change refetches and the
+  cancelled-guard drops the stale alive response** from the prior name.
+
+41 files / 378 tests / 9.20s. **Sessions/Attach domain coverage opened:
+2 / 5 hooks** (remaining 3: use-filtered-sessions, use-sessions-actions,
+use-sessions-list — `use-sessions-collapse` and `use-sessions-tour` are
+pure UI state with no fetch surface).
+
 ## [1.11.15] - 2026-05-11 — Final two Meetings hooks tested — domain at 19/19
 
 **23 new tests** finishing the use-meeting-* / use-meetings-* surface
