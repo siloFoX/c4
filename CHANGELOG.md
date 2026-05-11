@@ -4,6 +4,26 @@
 
 (no entries — next release window)
 
+## [1.11.5] - 2026-05-11 — Three more lib utilities covered (dispatch-event / snippet / post-action)
+
+**16 new tests** across three small generic utilities used across the
+web surface:
+
+- `lib/dispatch-event.test.ts` — 3 cases: fires CustomEvent of the
+  given name on window, ignores unrelated names, swallows
+  CustomEvent-constructor throws (CSP / restricted env).
+- `lib/snippet.test.tsx` — 6 cases: empty input passthrough, no-marker
+  text passthrough (no `<span>` emitted), single token wrapped with
+  amber highlight, multiple tokens, leading + trailing tokens, lone
+  `<<` without close treated as plain text.
+- `lib/post-action.test.ts` — 7 cases: 2xx success, body forwarded
+  as JSON, HTTP non-2xx + JSON `error` field, HTTP non-2xx + non-JSON
+  body falls back to `HTTP <status>`, **200 + payload.error** treated
+  as failure (daemon no-op convention), network error surfaces
+  `Error.message`, 204 no-content treated as ok.
+
+25 files / 232 tests / 5.65s.
+
 ## [1.11.4] - 2026-05-11 — Two more Meetings hooks tested (6 / 17 covered)
 
 **13 new tests** across `use-meeting-templates` (open-gated fetch +
