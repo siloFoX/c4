@@ -4,6 +4,49 @@
 
 (no entries — next release window)
 
+## [1.11.22] - 2026-05-11 — Three small Specialists hooks tested (summary + enrichment + filter)
+
+**30 new tests** across three small Specialists hooks — the silent-polling
+summary, the per-selection detail enrichment, and the in-memory filter
+pipeline. No production code changes — pure test coverage.
+
+- `web/src/lib/use-specialists-summary.test.ts` — 5 cases. Initial
+  mount returns null before the first poll resolves; the parsed
+  `OrganismSummary` (registry / meetings / scores / `persist.auditLog` /
+  `persist.lastKnownGood`) surfaces through the hook on a successful
+  response from `/api/specialists/summary`; a 500 silently degrades to
+  null (older daemon / blip — bar hides instead of toasting); polling is
+  scheduled via `setInterval` at the documented 30s cadence; the
+  interval is cleared on unmount (no stale ticks).
+- `web/src/lib/use-specialist-enrichment.test.ts` — 10 cases. Null
+  `selectedId` is a no-op (no fetch, stays null); empty-string `selectedId`
+  takes the same falsy-guard branch; happy path GETs
+  `/api/specialists/:id?include=audit,meetings` and surfaces
+  `recentAudit` + `recentMeetings` from the response; the id is passed
+  through `encodeURIComponent` (`/`, space, `#` all encoded in the
+  pathname); a 5xx silently nulls the enrichment slot; a response with
+  only `recentAudit` projects only that key (and the converse for
+  `recentMeetings`); a response with neither key yields `{}`; a
+  `selectedId` change re-fires and replaces the payload; clearing the
+  selection (id -> null) snaps the result back to null without waiting on
+  a network round-trip.
+- `web/src/lib/use-specialist-filter.test.ts` — 15 cases. Idle state
+  (`filter=''`, `tierFilter='any'`, `vetoOnly=false`, every row passes);
+  each of `setFilter` / `setTierFilter` / `setVetoOnly` updates only its
+  own slot; `vetoOnly=true` drops rows whose `vetoPower` is false;
+  `tierFilter` other than `'any'` requires an exact tier match while
+  `'any'` is the no-op default; whitespace-only filter trims+splits to
+  zero tokens and matches every row; a single token searches
+  case-insensitively across `id`, `displayName`, and `systemPrompt`;
+  the same token scans across `domain[]` and across
+  `triggers.keywords[]`; whitespace-separated tokens AND-compose
+  (every token must match the joined haystack); a non-array `domain`
+  is skipped without throwing on the spread; an undefined
+  `triggers.keywords` is skipped likewise; a falsy `systemPrompt`
+  substitutes an empty string in the haystack (no NPE on undefined);
+  `vetoOnly` + `tierFilter` + token compose into one pass; the
+  memoized `filtered` re-derives when the `specialists` prop changes.
+
 ## [1.11.21] - 2026-05-11 — Sessions/Chat domain finished (use-sessions-tour + use-nl-chat)
 
 **31 new tests** finishing the Sessions/Chat hook coverage — the two
