@@ -4,6 +4,51 @@
 
 (no entries — next release window)
 
+## [1.11.21] - 2026-05-11 — Sessions/Chat domain finished (use-sessions-tour + use-nl-chat)
+
+**31 new tests** finishing the Sessions/Chat hook coverage — the two
+remaining hooks (a small first-time-tour gate and the natural-language
+chat session) both land their full branch matrix. No production code
+changes — pure test coverage.
+
+- `web/src/lib/use-sessions-tour.test.ts` — 8 cases. Initial mount
+  shows the tour when `TOUR_STORAGE_KEY` is unset; stays hidden when
+  the `done` marker is already stored; swallows a thrown
+  `getItem` (private-mode browsers, `SecurityError`) and leaves the
+  tour hidden; `dismissTour()` flips `showTour=false` and persists
+  the `done` marker; `dismissTour()` still flips `showTour=false`
+  when `setItem` throws (`QuotaExceededError`); the `tourChecked`
+  ref-guard prevents the storage probe from re-running across
+  re-renders; `dismissTour` callback identity is stable across
+  re-renders.
+- `web/src/lib/use-nl-chat.test.ts` — 23 cases. Idle initial state
+  (empty messages/actions, `sending=false`, `error=null`,
+  `sessionId=null`); `loadSessionId` hydrates from
+  `c4.nl.sessionId` localStorage on mount, and falls back to null
+  when `getItem` throws; `sendText('')` and whitespace-only inputs
+  are no-ops (no POST, no message); `sendText` POSTs
+  `/api/nl/chat` with `{ text: trimmed }` when no sessionId is held
+  and `{ sessionId, text }` once one is assigned; the user bubble
+  is appended optimistically before the POST resolves;
+  `sending=true` flips during the in-flight POST and back to false
+  on settle (release-gate); the success path appends an assistant
+  bubble carrying `response`+`intent`, captures `actions`, and
+  stores the new `sessionId`; an empty `response` substitutes
+  `'(no response)'`; non-array `actions` falls back to `[]`; the
+  server-side `{ error }` envelope sets `error` and skips the
+  assistant append + sessionId/actions update; non-2xx HTTP failure
+  is caught and surfaced via the catch branch (`HTTP 503`); a prior
+  error is cleared by the next `sendText` (optimistic
+  `setError(null)`); re-entrant `sendText` while `sending=true` is
+  dropped (only one POST issued); a new `sessionId` is persisted to
+  localStorage via the effect; `newSession()` resets sessionId,
+  messages, actions, error and removes the localStorage key;
+  `setItem` failure during sessionId persistence is swallowed and
+  does not throw; user + assistant bubble ids are unique and the
+  ordering is user-then-assistant; an empty response `sessionId`
+  preserves the current sessionId; `sendText` + `newSession`
+  callback identities are stable across re-renders.
+
 ## [1.11.20] - 2026-05-11 — Two larger Sessions/Chat hooks tested (sessions-actions + chat-backfill)
 
 **47 new tests** for the two largest remaining hooks in the Sessions/Chat
