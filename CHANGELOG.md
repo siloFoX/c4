@@ -4,6 +4,75 @@
 
 (no entries — next release window)
 
+## [1.11.25] - 2026-05-11 -- Four Wiki web hooks tested
+
+**41 new tests** across the four Wiki web hooks -- search, page
+read, bulk publish, and reopen. No production code changes --
+pure test coverage so the Wiki tab's URL params, JSON bodies,
+busy slots, validation guards, coupled toggles, and stale-path
+cancellation are all locked in.
+
+- `web/src/lib/use-wiki-search.test.ts` -- 11 cases. Idle slot
+  (`query=''`, `type='any'`, `includeStale=false`, `search=null`,
+  `searchError=null`); the mount-time auto-search fires once
+  with `q=` + `type=any` + `limit=25` and no `includeStale`;
+  `setQuery` / `setType` / `setIncludeStale` each retrigger
+  `runSearch` and the new params land in the URL; `setType('')`
+  drops the `type=` key entirely; `setIncludeStale(true)` adds
+  `includeStale=1` and flipping it back off drops the key;
+  manual `runSearch` fires another network call; query is
+  URL-encoded through `URLSearchParams` (`foo bar & baz`
+  becomes `foo+bar+%26+baz`); server error surfaces through
+  `searchError` and leaves `search=null`; stale `searchError`
+  clears on the next success; `searching=true` while the gate
+  is held and back to `false` after release; a parallel
+  `runSearch` issued while the first is gated still fires a
+  second network call (no internal guard).
+- `web/src/lib/use-wiki-page.test.ts` -- 9 cases. Idle slot
+  with `selectedPath=null` (page=null, pageError=null, no
+  fetch); empty-string path treated the same; POST
+  `/api/wiki/read` with `{ path }` and the response lands in
+  `page`; special characters in path are forwarded verbatim
+  in the JSON body (no URL encoding required); `setPage` can
+  be invoked directly by the parent to flip frontmatter
+  without a refetch, including `setPage(null)`; server error
+  surfaces through `pageError`; the cross-selection guard
+  discards a stale in-flight response when `selectedPath`
+  flips mid-flight; flipping `selectedPath` back to null
+  resets `page` without firing another fetch; a previous
+  `pageError` clears on a follow-up success for a new path.
+- `web/src/lib/use-wiki-bulk-publish.test.ts` -- 12 cases.
+  Idle slot (all flags false, message null);
+  `toggleBulkGitCommit(true)` sets commit alone;
+  `toggleBulkGitCommit(false)` cascades push off;
+  `toggleBulkGitPush(true)` cascades commit on (cannot push
+  without committing); `toggleBulkGitPush(false)` leaves
+  commit alone; `window.confirm` denial aborts before any
+  fetch; happy path POSTs `{ gitCommit, gitPush }` to
+  `/api/wiki/publish-all`, re-runs search, and surfaces the
+  success message including written + skipped counts;
+  default toggles produce `{ gitCommit:false, gitPush:false }`
+  on the wire; git sha suffix appears in the success message
+  when daemon reports a commit; server error surfaces
+  `bulkFailed=true` and never re-runs search; `bulkBusy=true`
+  while the gate is held; a parallel `handleBulkPublish` issued
+  while the first is gated still fires a second POST.
+- `web/src/lib/use-wiki-reopen.test.ts` -- 9 cases. Idle slot
+  (not busy, no message, not failed); empty `relPath`
+  short-circuits without any side-effect; happy path POSTs
+  `/api/wiki/reopen` then `/api/wiki/read` with `{ path }`,
+  calls `setPage(fresh)`, runs `runSearch`, and surfaces a
+  success message containing the new meeting id + seed
+  count; special characters in the path forward verbatim in
+  the JSON body; `/reopen` server error sets
+  `reopenFailed=true` and never calls `setPage` or
+  `runSearch`; `/read` failure after a successful `/reopen`
+  also marks `reopenFailed=true` (the catch overrides the
+  earlier success message); `reopenBusy=true` while the
+  gate is held; a parallel `handleReopen` issued while the
+  first is gated still fires a second POST; stale failure
+  state clears on a fresh successful run.
+
 ## [1.11.24] - 2026-05-11 -- Two more Specialists hooks tested (tag-editor + actions)
 
 **32 new tests** across two more Specialists web hooks -- the inline
