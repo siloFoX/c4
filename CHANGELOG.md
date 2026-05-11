@@ -4,6 +4,15 @@
 
 (no entries — next release window)
 
+## [1.11.7] - 2026-05-11 — Re-add CI web-vitest step (remote switched to SSH)
+
+**Operator switched the `origin` remote from HTTPS+PAT to SSH**
+(`git@github.com:siloFoX/c4.git`), which sidesteps the `workflow`
+scope rejection that forced 1.11.6's revert. The
+`web unit tests (vitest + RTL + MSW)` step is restored to
+`.github/workflows/test.yml` right before `web build`, so CI fast-fails
+on a vitest red before bundle-size / playwright / a11y run.
+
 ## [1.11.6] - 2026-05-11 — Drop CI web-vitest step (PAT lacks `workflow` scope)
 
 **Temporary revert** of the `web unit tests (vitest + RTL + MSW)` step
