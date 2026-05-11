@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.11.14] - 2026-05-11 — Two more Meetings hooks tested (publish + detail-stream)
+
+**19 new tests** — `use-meeting-publish` (wiki publish + optional
+git-commit/push with coupled toggles) and `use-meeting-detail-stream`
+(Phase 7.1 SSE typed-event detail stream).
+
+- `lib/use-meeting-publish.test.ts` — 9 cases: idle initial state,
+  **toggleGitCommit(false) cascades gitPush off** (push without
+  commit is undefined), **toggleGitPush(true) cascades gitCommit on**
+  (push needs a commit), POST body carries
+  `{ includeRetro, apply, gitCommit, gitPush }`, encodeURIComponent
+  on id, success message includes trimmed (7-char) git sha, missing-
+  sha fallback string, server error → failed=true, busy slot.
+- `lib/use-meeting-detail-stream.test.ts` — 10 cases: null
+  selectedId → no EventSource, opens stream + streaming=true,
+  encodeURIComponent on id, **typed `snapshot` event** parses + sets
+  detail, malformed snapshot ignored without throw, **typed `state`
+  event** triggers GET refetch + status fast-path merge, typed
+  `terminal` event triggers final GET refetch, onerror → streaming=
+  false, close-on-unmount, **selectedId change** opens new stream and
+  closes the previous one.
+
+37 files / 337 tests / 8.18s. Domain coverage: **17 / 17 use-meeting-*
+hooks** for the action / fetch surface (remaining 2: contribute +
+template-editor — composer-side editor state hooks for the next
+round).
+
 ## [1.11.13] - 2026-05-11 — Two more Meetings hooks tested (enrichment + prune)
 
 **16 new tests** — `use-meeting-enrichment` (Phase 6.5/6.9/6.10
