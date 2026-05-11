@@ -4,6 +4,42 @@
 
 (no entries — next release window)
 
+## [1.11.17] - 2026-05-11 — Chat hooks tested (use-chat-sse-stream + use-chat-submit)
+
+**25 new tests** opening the Chat surface — the `/api/watch` SSE
+read-path (`use-chat-sse-stream`) and the `/api/send` + `/api/key`
+write-path (`use-chat-submit`).
+
+- `web/src/lib/use-chat-sse-stream.test.ts` — 11 cases: idle initial
+  state (sseConnected=false at mount), EventSource opens on
+  `/api/watch?name=<worker>`, **encodeURIComponent on the name**
+  (`a/b c` -> `a%2Fb%20c`), onopen flips sseConnected=true, onerror
+  flips it back to false, b64 `output` frames decoded via b64decode
+  and handed to onOutput, non-`output` typed frames ignored, frames
+  whose `data` is missing/non-string ignored, malformed JSON
+  swallowed without throwing, unmount closes EventSource AND calls
+  onCleanup, **workerName change closes the previous stream + calls
+  onCleanup + opens a fresh EventSource** on the new path.
+- `web/src/lib/use-chat-submit.test.ts` — 14 cases: idle initial
+  state (sending=false), empty/whitespace input short-circuits with
+  no POSTs and no side effects, preventDefault called on form event,
+  happy-path POSTs `/api/send` `{name,input}` then `/api/key`
+  `{name,key:'Enter'}` in that order with verified body shapes,
+  **optimistic UI fires before the network await** (flushWorkerBuffer
+  + appendLive('user', text) + setInput('') + setAutoScroll(true) +
+  setError(null) all land before /api/send resolves — release-gate),
+  **sending=true during in-flight and back to false after settle**
+  (release-gate), `sendData.error` surfaces via setError AND
+  short-circuits the follow-up `/api/key`, `keyData.error` surfaces,
+  thrown apiPost errors on non-2xx HTTP swallowed and message routed
+  to setError, textarea focus called on success AND failure (finally),
+  null textareaRef.current does not throw (opt-chain guard), **a
+  re-entrant handleSubmit call while sending is dropped** (no extra
+  /api/send POST).
+
+43 files / 403 tests / 11.27s. **Chat surface coverage opened:
+2 / 4 chat hooks** (remaining 2: use-chat-backfill, use-append-live).
+
 ## [1.11.16] - 2026-05-11 — Sessions/Attach hooks tested (form + process-state poller)
 
 **18 new tests** opening the Sessions/Attach surface — `use-attach-form`
