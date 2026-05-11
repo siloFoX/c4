@@ -4,6 +4,32 @@
 
 (no entries — next release window)
 
+## [1.11.10] - 2026-05-11 — Meetings search hook tested (debounce + facets + result merge)
+
+**11 new tests** for `use-meetings-search` — the FTS5 search backbone
+that powers the Meetings sidebar's transcript filter. Covers the
+hook's three trickier behaviors:
+
+- **Debounce + cancellation**: 250ms timer, empty / whitespace query
+  short-circuits to null state, query change before timer fires
+  cancels the in-flight setState.
+- **Querystring composition**: q + limit=50 + facet=status,track +
+  total=1 always; status / track forwarded when set; **since / until
+  appended with `T00:00:00.000Z` ISO suffix** the daemon expects;
+  blank filters omitted.
+- **Result merge**: each search hit is re-decorated against the
+  current `meetings` summary list — matched id keeps the full
+  track/title and overrides snippet, unmatched ids fall back to
+  `track="?"` + `title=id` (the partial fields the search response
+  itself returns).
+
+Plus: facets parsed, missing total returns null (not 0), server error
+sets `searchError` + empty result list.
+
+29 files / 270 tests / 6.42s. Domain coverage: 9 / 17 use-meeting-*
+hooks + both meetings-list + meetings-search paginators (the entire
+data-fetch backbone of the Meetings page).
+
 ## [1.11.9] - 2026-05-11 — Meetings list hook tested (EventSource + polling)
 
 **9 new tests** for `use-meetings-list` — the data-fetch hook behind
