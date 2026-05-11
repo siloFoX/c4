@@ -4,6 +4,27 @@
 
 (no entries — next release window)
 
+## [1.11.3] - 2026-05-11 — UI primitives covered: Card / Panel / Input
+
+**28 new tests** across the three remaining ui/* primitives that had
+no RTL coverage. Combined with `Button` / `Badge` / `IconButton` from
+1.11.0, the whole `web/src/components/ui/` surface (the ground floor
+that every page composes) now has render + variant + ref + displayName
++ user-interaction guard rails.
+
+- `components/ui/card.test.tsx` — 11 cases across the 6-piece composite
+  (`Card` / `CardHeader` / `CardTitle` / `CardDescription` /
+  `CardContent` / `CardFooter`): surface classes, className merge,
+  ref forwarding, displayName, padding profile per slot.
+- `components/ui/panel.test.tsx` — 9 cases: bordered surface, header
+  omitted when empty, `<h3>` title rendering, icon / action slots
+  (and the action-only header path), className merge, ref, displayName.
+- `components/ui/input.test.tsx` — 8 cases: surface classes, type
+  forwarding, real `userEvent.type` change tracking, disabled state
+  blocks input + onChange, className merge, ref, displayName.
+
+20 files / 203 tests / 4.51s.
+
 ## [1.11.2] - 2026-05-11 — Two more Meetings hooks tested (4 / 17 covered)
 
 **14 new tests** across `use-meeting-fts-rebuild` (FTS index rebuild
