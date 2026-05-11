@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.11.9] - 2026-05-11 — Meetings list hook tested (EventSource + polling)
+
+**9 new tests** for `use-meetings-list` — the data-fetch hook behind
+the Meetings sidebar list. Notably exercises three transport layers
+that earlier rounds didn't touch:
+
+- **REST GET** with status / track query composition (omitted when
+  blank; forwarded with the right key when set).
+- **EventSource SSE stream** (`/api/meetings/stream`) — opens a
+  connection, refetches when a message arrives, closes on unmount.
+  jsdom doesn't ship `EventSource`; the test stubs a no-op class via
+  `vi.stubGlobal` so we can assert the open URL + onmessage handler
+  + close-on-unmount.
+- **90s fallback poll** (for proxy environments where SSE is blocked)
+  — verified via `setInterval` / `clearInterval` spies.
+
+Also: error message surfaced on server failure, manual `refresh()`
+re-fetches, status / track changes recompose the URL.
+
+28 files / 259 tests / 6.03s. Domain coverage: **9 / 17 use-meeting-*
+hooks** + the meetings-list paginator (the Meetings page's
+backbone).
+
 ## [1.11.8] - 2026-05-11 — Two more Meetings hooks tested (8 / 17 covered)
 
 **18 new tests** covering the two core composer flows the user
