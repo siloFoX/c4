@@ -4,6 +4,25 @@
 
 (no entries — next release window)
 
+## [1.11.2] - 2026-05-11 — Two more Meetings hooks tested (4 / 17 covered)
+
+**14 new tests** across `use-meeting-fts-rebuild` (FTS index rebuild
+maintenance action) and `use-meeting-state-action` (5-action lifecycle
+dispatcher: start / advance / next-round / escalate / abort).
+
+- `lib/use-meeting-fts-rebuild.test.ts` — 6 cases: idle initial state,
+  success branch, server-error branch, network-error branch, busy-flag
+  flip, stale-failure-cleared-on-rerun.
+- `lib/use-meeting-state-action.test.ts` — 8 cases: idle initial state,
+  POST path includes `<id>/<action>`, **encodeURIComponent on id**
+  (verified via raw `request.url.pathname` since MSW auto-decodes
+  `params`), confirm-rejected skips POST, confirm-accepted proceeds,
+  server-error surfaces error string, busy-flag flips to the
+  in-flight action, stale error cleared on next successful run.
+
+17 files / 175 tests / 4.06s. Domain coverage: 4 / 17 use-meeting-*
+hooks (classify-preview, integrity, fts-rebuild, state-action).
+
 ## [1.11.1] - 2026-05-11 — First domain-coverage round: 2 Meetings hooks tested
 
 **14 new tests** covering 2 of the 17 `use-meeting-*` hooks the user
