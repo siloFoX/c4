@@ -4,6 +4,33 @@
 
 (no entries — next release window)
 
+## [1.11.8] - 2026-05-11 — Two more Meetings hooks tested (8 / 17 covered)
+
+**18 new tests** covering the two core composer flows the user
+authored: `use-meeting-create` (the Composer's "Create" button → POST
+/api/meetings) and `use-meeting-fork` (the ForkForm's submit → POST
+/api/meetings/:id/fork).
+
+- `lib/use-meeting-create.test.ts` — 9 cases: idle initial state,
+  early-return when `newTask` and `templateName` are both empty,
+  bare-task POST with trimmed value (no `track` key when `auto`),
+  forwarded `track` when `!== 'auto'`, **template branch with empty
+  vars filtered out**, vars key omitted entirely when no var has a
+  value, form-reset + onCreated(id) on success, error surfaced + form
+  preserved on server failure, `setCreateError` exposed for parent
+  clear.
+- `lib/use-meeting-fork.test.ts` — 9 cases: default state
+  (mode=replan, blank fields, track=auto), per-field setters,
+  cross-selection form reset on `meetingId` change, mode-only POST
+  body when fields blank, full body forwarding (trimmed task+title+
+  track) when mode=replan and track≠auto, **track omitted when
+  mode=reuse** even if set, encodeURIComponent on id, error path
+  preserves callbacks, busy-flag flip.
+
+27 files / 250 tests / 5.72s. Domain coverage: 8 / 17 use-meeting-*
+hooks (classify-preview, integrity, fts-rebuild, state-action,
+templates, run, create, fork).
+
 ## [1.11.7] - 2026-05-11 — Re-add CI web-vitest step (remote switched to SSH)
 
 **Operator switched the `origin` remote from HTTPS+PAT to SSH**
