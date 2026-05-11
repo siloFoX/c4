@@ -4,6 +4,29 @@
 
 (no entries — next release window)
 
+## [1.11.12] - 2026-05-11 — Two more Meetings hooks tested (preview-plan + peer-retro)
+
+**14 new tests** — `use-meeting-preview-plan` (Composer's debounced
+dispatcher preview) and `use-meeting-peer-retro` (terminal-state
+peer-rating roll-up).
+
+- `lib/use-meeting-preview-plan.test.ts` — 6 cases: open=false → null
+  state, empty / whitespace task → null state, **400ms debounce
+  fetches POST /api/meetings/plan with trimmed task**, track forwarded
+  only when `!== 'auto'`, server error → previewPlan=null, open flips
+  false → preview cleared.
+- `lib/use-meeting-peer-retro.test.ts` — 8 cases: idle initial state
+  (brain=mock), `setBrain` flips selection, POST body carries
+  `{ brain, apply: true }` for `/peer-retro`, encodeURIComponent on
+  id, defensive defaults when `applied: null`, defensive defaults when
+  `peer` field is entirely absent, error → `failed=true`, busy slot
+  flips during in-flight.
+
+33 files / 302 tests / 7.49s. Domain coverage: **13 / 17 use-meeting-*
+hooks** (added preview-plan + peer-retro; remaining: contribute,
+enrichment, detail-stream (SSE), prune, publish, template-editor —
+6 hooks for the next 2-3 rounds).
+
 ## [1.11.11] - 2026-05-11 — Two more Meetings hooks tested (retro + backup)
 
 **18 new tests** — `use-meeting-retro` (the Phase-2.6 preview /
