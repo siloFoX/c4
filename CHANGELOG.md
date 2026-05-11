@@ -4,6 +4,61 @@
 
 (no entries — next release window)
 
+## [1.11.0] - 2026-05-11 — Vitest + RTL + MSW + browser-mode test infra + TopTabs overflow fix
+
+**Two-in-one ship.** A first-class component test layer for `web/`,
+plus a one-line CSS fix that was hiding six header tabs (including
+the `Features` entry to all 16 feature pages).
+
+### Test infrastructure (new)
+- Stack: `vitest 4.1` + `jsdom 29` + `@testing-library/react 16` +
+  `jest-dom 6` + `user-event 14` + `msw 2.14` +
+  `@vitest/browser 4.1` + `vitest-browser-react 2.2` +
+  `@vitest/browser-playwright` (factory provider).
+- `web/vite.config.ts` runs two vitest projects:
+  - `unit` (jsdom) — fast component / hook / lib tests with MSW
+    `onUnhandledRequest: 'error'`.
+  - `browser` (real chromium) — visual / screenshot tests that
+    import `index.css` and force the dark class so cva tokens
+    render against the prod palette.
+- 13 files / 147 tests / ~2.5s. Coverage seeds:
+  - `lib/`: `cn`, `format`, `fuzzyFilter`, `preferences`,
+    `hierarchy-tree`, `use-toggle`, `use-auto-clear-message`,
+    `api` (token store / Bearer header / AUTH_EVENT on 401 / login +
+    logout / fetchAuthStatus fail-safe), `use-health` (MSW + waitFor
+    + setInterval spy).
+  - `components/ui/`: `button`, `badge`, `icon-button` (RTL render +
+    click + disabled + ref forwarding + variant class assertions).
+  - `components/ui/button.browser.test.tsx` — chromium variant /
+    size / disabled screenshots into `__screenshots__/`.
+- `src/test/{handlers,server,setup,setup.browser}.ts` — MSW handlers
+  + `setupServer` + jsdom hook + browser hook.
+- Root wiring: new `npm run test:web` (root `package.json`) delegates
+  to `npm --prefix web run test`. GH Actions workflow gets a new
+  `web unit tests (vitest + RTL + MSW)` step right before `web build`
+  so vitest fast-fails before bundle-size / playwright / a11y.
+- `.gitignore`: `web/coverage`, `web/.vitest-attachments`.
+
+### TopTabs overflow fix (P0)
+`web/src/components/layout/TopTabs.tsx` carries 11 tabs but the
+container was `flex overflow-hidden` with default `flex-shrink: 1`.
+Result on every viewport (1280 / 1440 / 1920 / 2400): container
+clamped to ~497px, last 6 tabs clipped — including **Features**, the
+entry to the 16-page feature surface (Scribe / Batch / Cleanup /
+Swarm / Token usage / Plan / Morning / Auto / Templates / Profiles /
+Config / Workspaces / RBAC / Health / Validation / Risk). Operators
+perceived "our features are missing" because the entry point itself
+was off-screen.
+
+One-line change at `TopTabs.tsx:74`:
+- `flex overflow-hidden` →
+  `flex shrink-0 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]`.
+- Container width 497 → **1039**, all 11 tabs visible at 1280+.
+- Confirmed via Chromium probe: every tab has non-zero
+  `getBoundingClientRect`, Features sidebar lists all 16 feature
+  pages, Health page renders real daemon payload (`HEALTHY` /
+  `v1.10.780` / `WORKERS TOTAL 0` / etc.).
+
 ## [1.10.780] - 2026-05-10 — Two more alias adoption sites
 
 **Web — small dedup follow-up.** Two more files

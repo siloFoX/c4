@@ -1,8 +1,58 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
+import { playwright } from '@vitest/browser-playwright';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  test: {
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'lcov'],
+      include: ['src/**/*.{ts,tsx,js,jsx}'],
+      exclude: [
+        'src/**/*.{test,spec}.{ts,tsx,js,jsx}',
+        'src/test/**',
+        'src/main.tsx',
+      ],
+    },
+    // Two projects:
+    //   - unit:    jsdom + RTL + MSW. Fast, headless, no chromium.
+    //              Pattern: src/**/*.{test,spec}.{ts,tsx}
+    //   - browser: real Chromium via playwright (vitest-browser-react).
+    //              Visual / screenshot tests live here.
+    //              Pattern: src/**/*.browser.{test,spec}.{ts,tsx}
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'unit',
+          environment: 'jsdom',
+          setupFiles: ['./src/test/setup.ts'],
+          include: ['src/**/*.{test,spec}.{ts,tsx,js,jsx}'],
+          exclude: [
+            'src/**/*.browser.{test,spec}.{ts,tsx,js,jsx}',
+            'node_modules/**',
+          ],
+          css: true,
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'browser',
+          include: ['src/**/*.browser.{test,spec}.{ts,tsx,js,jsx}'],
+          setupFiles: ['./src/test/setup.browser.ts'],
+          browser: {
+            enabled: true,
+            provider: playwright(),
+            headless: true,
+            instances: [{ browser: 'chromium' }],
+          },
+          css: true,
+        },
+      },
+    ],
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,

@@ -71,7 +71,7 @@ export default function TopTabs({ value, onChange, badges }: TopTabsProps) {
     <div
       role="tablist"
       aria-label={t('topTabs.label')}
-      className="flex overflow-hidden rounded-md border border-border text-xs"
+      className="flex shrink-0 overflow-x-auto rounded-md border border-border text-xs [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
     >
       {TABS.map(({ value: v, labelKey, fallback, Icon }) => {
         const active = v === value;

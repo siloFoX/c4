@@ -1,6 +1,6 @@
 {
   "name": "c4-cli",
-  "version": "1.10.780",
+  "version": "1.11.0",
   "description": "Claude {Claude Code} Code — An agent-on-agent orchestrator that lets Claude manage multiple Claude Code instances via virtual terminals",
   "main": "src/daemon.js",
   "bin": {
@@ -11,6 +11,7 @@
     "daemon": "node src/daemon.js",
     "build:web": "npm --prefix web install && npm --prefix web run build",
     "test": "node tests/run-all.js",
+    "test:web": "npm --prefix web run test",
     "test:browser": "node --test tests/web-smoke.test.js",
     "test:docker": "node --test tests/risk-shadow-exec-docker.test.js",
     "lint:openapi": "node scripts/validate-openapi.js",
