@@ -4,6 +4,28 @@
 
 (no entries — next release window)
 
+## [1.11.4] - 2026-05-11 — Two more Meetings hooks tested (6 / 17 covered)
+
+**13 new tests** across `use-meeting-templates` (open-gated fetch +
+cancel guard + manual refresh) and `use-meeting-run` (POST `/run` with
+brain + autoFinalize, encodeURIComponent on id, brain setter, busy /
+error slots).
+
+- `lib/use-meeting-templates.test.ts` — 6 cases: no-fetch when
+  `open=false`, fetches on `open=true`, missing `templates` field
+  → `[]`, server-error swallowed → `[]`, manual `refresh()` round-trip,
+  cancel guard suppresses setState when `open` flips false before
+  resolution.
+- `lib/use-meeting-run.test.ts` — 7 cases: idle initial state
+  (brain=mock), `setBrain` flips selection, POST body carries
+  `{ brain, autoFinalize: true }` with current selection, id
+  `encodeURIComponent`-ed in path, server-error surfaces error string,
+  busy-flag flip, stale error cleared on next successful run.
+
+22 files / 216 tests / 5.17s. Domain coverage: 6 / 17 use-meeting-*
+hooks (classify-preview, integrity, fts-rebuild, state-action,
+templates, run).
+
 ## [1.11.3] - 2026-05-11 — UI primitives covered: Card / Panel / Input
 
 **28 new tests** across the three remaining ui/* primitives that had
