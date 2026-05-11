@@ -4,6 +4,55 @@
 
 (no entries — next release window)
 
+## [1.11.23] - 2026-05-11 — Three more Specialists hooks tested (export + list + audit)
+
+**31 new tests** across three more Specialists hooks — the JSON-bundle
+export download, the list owner that pairs `/api/specialists` with the
+sibling underperformers flag set, and the 30s audit-log poller with its
+window-to-since mapping. No production code changes — pure test coverage.
+
+- `web/src/lib/use-specialists-export.test.ts` — 7 cases. Idle slot
+  (`exportBusy=false`, no msg, not failed); happy-path GET
+  `/api/specialists/export` flows the bundle into a pretty-printed
+  `application/json` Blob (indent of 2), wires a fake
+  `URL.createObjectURL` to capture the blob, creates an `<a>` with
+  the timestamp-sanitized download filename
+  (`c4-specialists-export-<iso>.json`, with `:` and `.` replaced
+  by `-`), `.click()`s it once, and revokes the object URL; the
+  success banner includes the specialist count; a 500 flips
+  `exportFailed=true` with the daemon's error string in the message
+  and skips the blob/download entirely; `exportBusy` flips true
+  while the GET is in flight (release-gate); a fresh successful run
+  clears stale failure state from a prior 5xx.
+- `web/src/lib/use-specialists-list.test.ts` — 10 cases. Loading
+  slot on mount (no data, no error, empty flag set); GET
+  `/api/specialists` surfaces the daemon's `{ count, version,
+  specialists[] }` envelope; the sibling GET
+  `/api/specialists/underperformers` populates `flaggedIds` as a
+  Set; a missing `items` array on the flags response yields the
+  empty-set fallback without throwing; a 5xx on the main list
+  surfaces an error and leaves `data=null`; a 5xx on the flags
+  endpoint is swallowed (best-effort) so the main view still
+  lands; `refresh()` re-fetches the main list and updates `data`;
+  `refresh()` does NOT re-fetch the flagged set (documented
+  separate cadence); a successful `refresh()` clears stale error
+  state; `loading=true` flips during the in-flight refresh and
+  back to false on resolve (release-gate).
+- `web/src/lib/use-specialists-audit.test.ts` — 14 cases. Idle
+  slot (empty entries, not loading, `window='all'`); no fetch
+  while `auditOpen=false`; an open flip triggers an immediate
+  GET `/api/specialists/audit?limit=50` (no `since` when window
+  is `'all'`); a missing `entries` array yields an empty list;
+  a 5xx is swallowed without surfacing an error (cancelled-
+  resilient catch); `setAuditWindow('1h' | '24h' | '7d')` maps to
+  `since = now - window` with `Date.now` pinned to a fixed UTC
+  instant; flipping the window back to `'all'` drops the `since`
+  param entirely; `auditLoading` flips true during the in-flight
+  GET; `setInterval` schedules a 30s poll; `clearInterval` runs
+  both when `auditOpen` flips back to false and on unmount; the
+  cancelled-flag race guard prevents a slow in-flight response
+  from stamping entries after the panel closes.
+
 ## [1.11.22] - 2026-05-11 — Three small Specialists hooks tested (summary + enrichment + filter)
 
 **30 new tests** across three small Specialists hooks — the silent-polling
