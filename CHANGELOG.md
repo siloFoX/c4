@@ -4,6 +4,58 @@
 
 (no entries — next release window)
 
+## [1.11.24] - 2026-05-11 — Two more Specialists hooks tested (tag-editor + actions)
+
+**32 new tests** across two more Specialists web hooks — the inline
+tag editor with `+foo` / `-foo` mode-prefix parsing and the
+remove + score-reset 2-step confirmed-action pair. No production
+code changes — pure test coverage.
+
+- `web/src/lib/use-specialist-tag-editor.test.ts` — 16 cases. Idle
+  slot (`open=false`, `value=''`, `busy=false`); `setOpen` /
+  `setValue` setters exposed for the JSX cancel-button + input;
+  `toggleWithTags(undefined)` opens + clears, `toggleWithTags(tags)`
+  opens + prefills as comma-joined, a second `toggleWithTags` call
+  flips `open` back (the toggle); `handleSave` no-op on blank value
+  (whitespace-trimmed); the empty-replace guard (` , , `) blocks
+  the PATCH so a stray "clear" doesn't wipe the tag list; happy
+  path PATCH `/api/specialists/<id>/tags` with the trimmed/filtered
+  tag list and `mode: 'replace'`, then clears `value` + closes
+  `open` + calls `onSaved`; `+`-prefix sends `mode: 'add'` with
+  the marker stripped; `-`-prefix sends `mode: 'remove'`;
+  `encodeURIComponent` survives `/` and ` ` in the id; server
+  error surfaces through `onError` with the `specialists.tagEdit.failed`
+  template, leaves the form open + value intact for retry, and
+  does NOT call `onSaved`; blank `Error.message` falls back to the
+  `common.failed` copy; `busy` flips true during the in-flight
+  PATCH (release-gate) and back to false on resolve, and the
+  `finally` block flips it back even on the error path.
+- `web/src/lib/use-specialist-actions.test.ts` — 16 cases. Idle
+  slot (both busy flags false, both `confirmRemove/ResetId`
+  null); confirm-id setters exposed for the 2-step confirm
+  prompt; `handleScoreReset` POSTs
+  `/api/specialists/<id>/score-reset` with body
+  `{ reason: 'web reset' }`, clears `confirmResetId`, calls
+  `refresh()` once; `encodeURIComponent` survives `/` and ` ` in
+  the id; server error surfaces through `setActionError` with the
+  `specialists.scoreReset.failed` template, `refresh()` not
+  called, `confirmResetId` preserved for retry; blank `Error.message`
+  falls back to `common.failed`; `resetBusy` release-gate +
+  `finally` flip on both happy and error paths. `handleRemove`
+  DELETEs `/api/specialists/<id>`, refreshes, clears
+  `confirmRemoveId`; clears `selectedId` (via `setSelectedId(null)`)
+  only when removing the currently-selected id, otherwise leaves
+  it alone; `encodeURIComponent` on the id; server error surfaces
+  the daemon's message through `setActionError` and skips
+  `refresh()`; blank `Error.message` falls back to
+  `common.failedToRemoveSpecialist`; `confirmRemoveId` is cleared
+  in `finally` even when the DELETE fails (so the user is
+  returned to the list view); `removeBusy` release-gate +
+  `finally` flip.
+
+Tests run under jsdom + MSW. Hook coverage continues — these two
+finish the inline action surface on the Specialists view.
+
 ## [1.11.23] - 2026-05-11 — Three more Specialists hooks tested (export + list + audit)
 
 **31 new tests** across three more Specialists hooks — the JSON-bundle
