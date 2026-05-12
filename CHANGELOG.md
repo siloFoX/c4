@@ -4,6 +4,90 @@
 
 (no entries -- next release window)
 
+## [1.11.52] - 2026-05-12 -- Four Web Specialists sub-panel components tested: SpecialistsAddPanel + SpecialistsAuditPanel + SpecialistsBulkOpsToolbar + SpecialistsEnrichmentPanels
+
+**144 new tests** across four `web/src/components/` Specialists
+sub-panel components. No production code changes -- pure test
+coverage. Each suite follows the same pattern as the 1.11.51
+Wiki sub-panel batch and the earlier Specialists detail batches:
+components that own a hook (AddPanel / AuditPanel /
+BulkOpsToolbar) get the hook stubbed via `vi.mock` with
+per-test-tunable flags, so the JSX wiring is exercised in
+isolation from the network; the pure-display panel
+(EnrichmentPanels) is driven by direct prop permutations.
+`userEvent.setup()` for click / type / selectOptions / upload;
+`act()` to flush the `c4:locale-changed` event-based re-render.
+The four new files (case counts):
+
+- `web/src/components/SpecialistsAddPanel.test.tsx` (35)
+- `web/src/components/SpecialistsAuditPanel.test.tsx` (43)
+- `web/src/components/SpecialistsBulkOpsToolbar.test.tsx` (38)
+- `web/src/components/SpecialistsEnrichmentPanels.test.tsx` (28)
+
+SpecialistsAddPanel: the operator-paste JSON form with twin
+Add / Propose buttons. `useSpecialistsAddPropose` is stubbed
+with a real `useState` for `json` so controlled-textarea typing
+stays observable; the rest of the slots (`addBusy`, `addError`,
+`proposeBusy`, `proposeMsg`, `proposeRejected`) are per-test
+flags. Covers the open=false null branch, textarea aria-label
+and placeholder, Add / Propose / Cancel button aria-labels and
+disabled gating (json empty -> disabled, addBusy / proposeBusy
+-> disabled, whitespace-only -> still disabled), the
+handleAdd / handlePropose / handleCancel wiring (Cancel calls
+onClose + setAddError(null)), the addError destructive banner,
+the proposeMsg emerald / amber tone flip on proposeRejected,
+both banners side-by-side, locale flip.
+
+SpecialistsAuditPanel: the collapsible audit-log viewer with
+window selector + verify / + rotated / export CSV actions and
+the live entry list. Three hooks stubbed: `useSpecialistsAudit`
+(entries + window + setter), `useAuditVerify` (busy +
+result), `useAuditExport` (busy). `useToggle` stays real so
+clicking the header drives the open / closed transition.
+Covers the collapsed-by-default `aria-expanded=false`, the
+last-50-entries subheading, the auditLoading copy, the
+selector pills (`all` / `last 1h` / `last 24h` / `last 7d`)
+with `aria-pressed` reflecting the active window, the
+setAuditWindow dispatch on click, the Export CSV /
+Verify chain / + rotated buttons + their tooltips + busy
+gating, the OK / CORRUPT verify-result banner with emerald /
+destructive tone + the `corruptedAt N` title clause, the
+entry-list reverse order, the per-action tone class on the
+action chip (`add` emerald, `remove` rose, fallback muted),
+the actor / reason conditional rendering, the empty-window
+copy, locale flip, double-click collapse.
+
+SpecialistsBulkOpsToolbar: the export / import / rotate
+governance toolbar. Three hooks stubbed: `useSpecialistsExport`,
+`useSpecialistsImport`, `useAuditRotate`. The import-mode
+dropdown stays as real `useState` inside the component so the
+test drives the select via `userEvent.selectOptions` and
+asserts the mode flows through to `useSpecialistsImport`'s
+args on the next render. Covers the Export button + tooltip +
+busy ellipsis fallback + handleExport wiring, the export-msg
+muted / destructive tone flip, the merge / replace select +
+forwarding into the hook args + onChange forwarding, the file
+input accept / disabled state, the handleImportFile call with
+the picked File + target.value reset, the previewing copy,
+the import-error destructive banner, the import-preview chip
+(`preview` vs `applied` + counts + error count), the Apply
+button only-when-dryRun branch + handleImportApply wiring +
+tooltip + busy gating, the Rotate audit button + tooltip +
+busy gating + handleAuditRotate wiring, the rotate-msg
+muted / destructive tone flip, locale flip.
+
+SpecialistsEnrichmentPanels: the Phase 6.8 detail enrichment
+panes (recent audit + recent meetings). Pure display, no hooks,
+driven by direct prop permutations. Covers the both-undefined
+and both-empty branches (renders nothing), each section's
+conditional rendering (audit / meetings independently
+suppressed), the templated headings with count, one li per
+entry, the action chip + by-actor + reason rendering on audit
+rows + the reverse order, the id + status + track + title
+rendering on meeting rows + source order, side-by-side render
+when both sections have entries, the toLocaleString
+timestamp, rerender stability, locale flip.
+
 ## [1.11.51] - 2026-05-12 -- Five Web Wiki sub-panel components tested: WikiPageDetail + WikiPageDetailHeader + WikiBulkPublishRow + WikiSearchControls + WikiSearchResults
 
 **130 new tests** across five `web/src/components/` Wiki sub-panel
