@@ -4,6 +4,62 @@
 
 (no entries -- next release window)
 
+## [1.11.44] - 2026-05-12 -- Five Web view-level components tested: WikiView + WorkflowEditor + WorkflowList + ChatView + Chat
+
+**113 new tests** across the five remaining view-level
+components in `web/src/components/`. No production code
+changes -- pure test coverage. Each suite follows the
+patterns from `SessionsView.test.tsx`,
+`SpecialistsView.test.tsx`, and `MeetingsView.test.tsx`
+(vi.mock to stub the component's hooks with per-test-tunable
+state vars + vi.fn() handlers; child components stubbed to
+thin markers that surface props via `data-*` attributes +
+test buttons that fire callbacks back into the parent;
+`userEvent.setup()` for click + type; `act()` to flush the
+`c4:locale-changed` event-based re-render). The five new
+files (case counts):
+
+- `web/src/components/WikiView.test.tsx` (23)
+- `web/src/components/WorkflowEditor.test.tsx` (21)
+- `web/src/components/WorkflowList.test.tsx` (18)
+- `web/src/components/ChatView.test.tsx` (26)
+- `web/src/components/Chat.test.tsx` (25)
+
+Coverage per component spans the prop union, every render
+branch, every callback, busy / disabled / sending variants,
+plus ARIA wiring (role="alert" for the error banner,
+aria-hidden on the workflow icon). WikiView: hook stubbing
+for the four wiki hooks + four child markers, selection
+state flow between results pane / detail header / detail
+body, page-hook arg threading, reopen + bulk-publish
+callback wiring, runSearch reference shared between reopen
+and bulk-publish hooks, locale re-render. WorkflowEditor:
+auto-select via use-workflows-list onAutoSelect, selected
+workflow + selected node resolution, node clear on workflow
+switch, inputs drawer state pass-through, run + toggle
+wiring, runs panel onToggleExpanded wiring, locale
+re-render. WorkflowList: pure-props branches (empty-state
+copy with `<code>` token, error banner role=alert, busy
+disables refresh, on/off badge per row, formatted
+nodes/edges line, selected row className, i18n-skip on
+user-data names), refresh + select callback wiring.
+ChatView: seven-hook wiring (use-chat-backfill,
+use-append-live, use-worker-buffer-flusher,
+use-chat-sse-stream, use-auto-scroll, use-chat-submit,
+useLocale) + four child markers, SSE onOutput ->
+scheduleFlush, SSE onCleanup -> reset, Enter vs Shift+Enter
+keyboard handling, log onScroll -> setAutoScroll via
+isAtBottom, header jumpToBottom, backfill state forwarding,
+locale re-render. Chat (NL): single hook stubbing, action
+chip behaviour by `type` (get_status -> "status",
+read_output -> "show w1 output", close_worker -> "close w1",
+send_task -> seed input only, unknown -> label),
+Reset/newSession wiring, controlled input + send-button
+gating (empty / whitespace / sending), Enter-key submit,
+truncated session id badge, locale re-render. ASCII-only
+commit + docs. node_modules symlinked from sibling worktree
+for the run.
+
 ## [1.11.43] - 2026-05-12 -- Four Web Specialists tab components tested: SpecialistsView + SpecialistsList + SpecialistsDetailHeader + SpecialistsTagEditor
 
 **114 new tests** across the four Specialists-tab components
