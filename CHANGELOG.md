@@ -2,7 +2,54 @@
 
 ## [Unreleased]
 
-(no entries — next release window)
+(no entries -- next release window)
+
+## [1.11.33] - 2026-05-12 -- History summary + history worker-detail hooks tested
+
+**19 new tests** across the two `use-history-*` hooks that
+back the HistoryView sidebar list and the per-worker
+detail pane. No production code changes -- pure test
+coverage. Each suite follows the patterns from
+`use-meeting-create.test.ts` (renderHook + per-test
+`server.use(...)` MSW overrides) and
+`use-meetings-list.test.ts` (fetch-on-mount + dependency-
+driven refetch).
+
+Discovery note: the dispatch title for this slot referred
+to account / AppHeader hooks, but `web/src/lib/` contains
+no `use-account-*` files and no AppHeader-bound hook
+modules. The two `use-history-*` hooks were the only
+untested hooks in scope, so the slot was filled with
+those instead.
+
+- `web/src/lib/use-history-summary.test.ts` -- 11 cases.
+  The HistoryView sidebar fetch: idle empty-array initial
+  state, the on-mount GET `/api/history` with no
+  querystring when all four filters are blank, `query`
+  forwarded as `?q=`, `statusFilter` forwarded as
+  `?status=`, the `sinceDay` / `untilDay` widening to
+  full-UTC-day ISO ranges (`T00:00:00.000Z` start,
+  `T23:59:59.999Z` end), key-omission when blank, the
+  `Array.isArray(data.workers)` fallback to `[]` when the
+  daemon returns a non-array `workers` field, the
+  `setError(message)` path on a non-ok response,
+  refetch-on-`query`-flip with `setError(null)` clearing,
+  cascading refetches when `statusFilter` / `sinceDay` /
+  `untilDay` change in sequence, and the manually-callable
+  `refresh()` callback exposed in the return value.
+- `web/src/lib/use-history-worker-detail.test.ts` -- 8
+  cases. The HistoryView detail-pane fetch: null
+  initial state with `selected=null` and no network call,
+  GET `/api/history/:name` happy-path populating the
+  detail object and clearing `setError`, the
+  `encodeURIComponent` URL guard against names with
+  spaces and slashes (`foo bar/baz` -> `foo%20bar%2Fbaz`),
+  refetch-on-`selected`-flip preserving call order, the
+  `selected -> null` reset effect clearing detail back to
+  null, the no-network-call assertion on that reset path,
+  the `setError(message)` path on a non-ok response, and
+  the prior-detail retention contract when a follow-up
+  fetch fails (no implicit clear).
 
 ## [1.11.32] - 2026-05-12 -- Five tiny generic state hooks tested
 
