@@ -4,82 +4,73 @@
 
 (no entries -- next release window)
 
-## [1.11.49] - 2026-05-12 -- Four more Web feature pages tested: Batch + Cleanup + Swarm + TokenUsage
+## [1.11.50] - 2026-05-12 -- Four more Web feature pages tested: Auto + Rbac + Validation + Risk
 
-**130 new tests** across four more `web/src/pages/` feature pages,
-extending the 1.11.47 / 1.11.48 Web page-test coverage. No production
-code changes -- pure test coverage. Each suite follows the same
-pattern as the prior two batches: `vi.mock` to stub each page's
-hook(s) with per-test-tunable state vars + `vi.fn()` handlers; heavy
-child components (`PageDescriptionBanner`, `HelpUIRoot`,
-`ConfirmDialog`) stubbed to thin markers; `userEvent.setup()` for
-click + type; `act()` to flush the `c4:locale-changed` event-based
-re-render. The four new files (case counts):
+**141 new tests** across four `web/src/pages/` feature pages. No
+production code changes -- pure test coverage. Each suite follows
+the same pattern as the 1.11.47 / 1.11.48 batches: `vi.mock` to
+stub each page's hook(s) with per-test-tunable state vars +
+`vi.fn()` handlers; heavy child components
+(`PageDescriptionBanner`, `Toast`, plus per-page sub-panels for
+the Risk page) stubbed to thin markers; `userEvent.setup()` for
+click + type; `act()` to flush the `c4:locale-changed` event-
+based re-render. The four new files (case counts):
 
-- `web/src/pages/Batch.test.tsx` (37)
-- `web/src/pages/Cleanup.test.tsx` (31)
-- `web/src/pages/Swarm.test.tsx` (29)
-- `web/src/pages/TokenUsage.test.tsx` (33)
+- `web/src/pages/Auto.test.tsx` (36)
+- `web/src/pages/Rbac.test.tsx` (33)
+- `web/src/pages/Validation.test.tsx` (33)
+- `web/src/pages/Risk.test.tsx` (39)
 
-Batch: useBatchSubmit + useToast composition. Covers PageFrame
-title + description, Dispatch button (idle + busy labels, fires
-submit, disabled + animate-spin while busy), the count/file mode
-toggle (default count mode, flips to file mode, count input hides
-in file mode), controlled task / count / branch / profile inputs,
-auto-mode checkbox toggle, try-example prefill in both modes,
-ErrorPanel via role=alert, Results panel (header, summary line
-with ok/fail/total, one row per outcome, emerald vs destructive
-tone classes, created vs error vs "failed" fallback labels),
-toast slot showing/hiding, locale flip.
+Auto: dual-hook composition (`useAutoDispatch` + `useToast`) and
+two local `useState` slots for the name + task inputs. Covers
+PageFrame title + description, the Dispatch button (label,
+animate-spin while busy, fires hook dispatch, disabled +
+re-enabled around `busy`), the `Typical scenarios` panel +
+list items, controlled name input + task textarea (placeholders,
+typing reflects in value), the optional result panel
+(`Dispatched` heading, Manager / Branch / Status rows including
+per-field hide when undefined), the inline ErrorPanel, the
+single-slot toast marker (renders / hides / forwards tone +
+message), and a locale-flip smoke test.
 
-Cleanup: useCleanup + useToast composition + a stubbed
-ConfirmDialog that surfaces preview + confirm/cancel buttons.
-Covers PageFrame title + description, Dry-run button (fires
-preview, disabled while loading or busy, animate-spin while
-loading), Clean up button (disabled when nothing to clean up,
-disabled while loading, enabled with items, fires commit,
-disabled + animate-spin while busy), ErrorPanel via role=alert,
-LoadingSkeleton vs EmptyPanel branches, ListPanel rendering for
-branches/worktrees/directories (count in header, one li per
-item, hidden when group is empty), confirm dialog (hidden when
-confirmOpen=false, visible when true, preview groups inside,
-fires executeCleanup on confirm, fires setConfirmOpen(false) on
-cancel), toast slot showing/hiding, locale flip.
+Rbac: single-hook composition (`useRbac` dual-fetch). Covers
+PageFrame title + description, the `Refresh RBAC` button
+(disabled + animate-spin while loading, fires `refresh`), the
+intro banner copy, the Roles section (heading, action-count
+chip, individual action codes), the Users section (heading with
+count, role badge, optional grant-count chip, details/summary
+view-grants block with the rendered JSON pre block), loading /
+empty / populated states for each list, and the ErrorPanel
+role=alert path.
 
-Swarm: single-hook (useSwarm) wrapping the coupled /api/list +
-/api/swarm fetches. Covers PageFrame title + description,
-Refresh button via sr-only label (disabled without selection,
-enabled when worker selected, disabled while loading,
-animate-spin while loading, fires refresh), the root-worker
-select (placeholder option, one option per worker, fires
-setSelected on change, reflects selected prop on controlled
-value), ErrorPanel via role=alert, LoadingSkeleton vs EmptyPanel
-branches, swarm panel title formatting with selected name, root
-node rendering from data.root or fallback to nodes[0], status
-badge + branch label conditional rendering, recursive TreeNode
-indentation for nested children, non-array children defensive
-guard, locale flip.
+Validation: single-hook composition (`useValidations` with
+list + fan-out fetch). Covers PageFrame title + description,
+the Filter workers input (label, placeholder, controlled value,
+fuzzy-filter pruning rows), the sr-only Refresh button
+(disabled + animate-spin while loading, fires `refresh`), the
+loading skeleton + empty hint + ErrorPanel paths, one card per
+worker (with optional branch text and the `dirty` badge), the
+per-card loading + per-card error fallbacks, the
+Tests / Typecheck / Lint check rows (pass / fail / n/a badges
+plus the formatted detail strings), and a locale-flip smoke
+test.
 
-TokenUsage: two-hook composition (useTokenUsage +
-useTokenUsageBreakdowns). Covers PageFrame title + description,
-the four day-range buttons (Today/7/30/90, flips active variant
-on click), per-task checkbox toggle, Refresh button via sr-only
-label (fires refresh, disabled + animate-spin while loading),
-LoadingSkeleton branch, ErrorPanel via role=alert, the total
-stat (formatted number + optional input/output sub-totals),
-By-worker panel (header count, EmptyPanel branch, one row per
-worker), By-day panel (header count, byDay.empty hint, one row
-per day), per-task table (hidden when toggle off, header + rows
-when on, dash fallback for missing worker), tier-quota panel
-(hidden when quota null, hidden when tiers undefined, one row
-per tier, used/limit number rendering), locale flip.
-
-Total Web test count grows from **2605** to **2735**. Whole
-suite still green (`npm --prefix web test` -> 148 files /
-2735 tests). One symlink (`web/node_modules` ->
-`/root/c4/web/node_modules`) is set up in the worktree only
-so the existing dependency tree is shared; the symlink is
-gitignored.
+Risk: triple-hook composition (`useRiskCheck` +
+`useRiskSandboxPreview` + `useRiskStats`) plus four sibling
+sub-panels (`RiskRuleCatalogPanel`, `RiskSandboxPreview`,
+`RiskCheckResult`, `RiskStatsGrid`) stubbed to thin markers.
+Covers PageFrame title + description, the Refresh stats button
+(disabled + animate-spin while statsLoading, fires
+`refreshStats`), the `Classify a command` heading + intro,
+the command textarea (aria-label, placeholder, controlled value
+disabled while checkBusy), the Check / Sandbox preview action
+buttons (disabled until the command is non-empty, fire the
+hooks, label flip to `Checking...` / `Building...` while busy),
+the show post-denoise checkbox (toggle), the recent denials
+heading + windowHours number input + setWindowHours invocation,
+the three independent error paths (check / sandbox / stats),
+the stats loading hint vs the stats grid marker, and a
+locale-flip smoke test.
 
 ## [1.11.48] - 2026-05-12 -- Four more Web feature pages tested: Plan + Morning + Scribe + Workspaces
 
