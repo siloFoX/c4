@@ -4,6 +4,107 @@
 
 (no entries -- next release window)
 
+## [1.11.72] - 2026-05-12 -- Web component RTL/jsdom test suites added: ControlPanelActions + ControlPanelBatch
+
+**115 new tests** across two untested `web/src/components/*.tsx`
+ControlPanel sub-panel files. No production code changes -- pure
+test coverage. The two new files (case counts):
+
+- `web/src/components/ControlPanelActions.test.tsx` (53 cases) --
+  covers the single-action grid extracted from ControlPanel. The
+  component is pure-display: parent owns the `SingleAction[]`
+  list, the `busyKind`, and the `onRunSingle` dispatcher; only
+  `useLocale()` is consumed internally, so the test drives every
+  prop in the union directly with `vi.fn()` callbacks instead of
+  mocking hooks. Coverage: default render (localized
+  `controlPanel.worker.label` aria-label on the Card, localized
+  "Control" CardTitle, CardDescription mentions the workerName
+  via `tFormat`); per-action-kind rendering (one Button per kind
+  in the grid for pause / resume / cancel / restart / rollback /
+  close, label rendered inside the button, description rendered
+  beneath the label, description attached as the button `title`
+  attribute, supplied JSX icon mounted inside the label span);
+  tone -> variant class mapping (neutral -> secondary, warn ->
+  outline, danger -> destructive); per-kind callback dispatch
+  (clicking each button fires `onRunSingle` exactly once with
+  the full `SingleAction` payload — body + confirm + tone are
+  threaded verbatim); keyboard handling (Enter on a focused
+  button fires `onRunSingle`, Space fires it, Tab cycles focus
+  across the grid); busy / disabled state (`busyKind=null` leaves
+  every button enabled, any non-null `busyKind` disables ALL six
+  buttons because the parent owns the lock, only the matching
+  kind shows the `{label} ...` busy template while siblings keep
+  the idle label, disabled clicks do NOT fire `onRunSingle`);
+  workerName threading (CardDescription updates on rerender,
+  empty workerName tolerated, dash/underscore characters not
+  re-encoded); prop variations (subset action arrays render only
+  the supplied buttons, empty arrays render zero buttons, custom
+  tone + label overrides honored); rerender stability (identical
+  prop trees produce the same button count, appended / dropped
+  actions add / remove buttons, busy transition flips a single
+  button into busy state); ARIA + structural (every button is
+  `type="button"`, Card aria-label is exposed); and locale flip
+  (CardTitle re-renders as "제어", busy template suffix re-renders
+  as "{label} 중...", CardDescription re-renders in Korean when
+  `setLocale('ko')` fires inside `act()`).
+
+- `web/src/components/ControlPanelBatch.test.tsx` (62 cases) --
+  covers the batch-control Card extracted from ControlPanel. The
+  component is pure-display: parent owns the selection `Set`,
+  the selectable `Worker[]`, the `batchBusy` / `disableBatch`
+  flags, the `BatchOutcome[]` last-batch payload, and the four
+  callbacks (`onSelectAll`, `onClearSelection`, `onToggleSelected`,
+  `onRunBatch`); only `useLocale()` is consumed internally, so
+  the test drives every prop directly with `vi.fn()` callbacks.
+  Coverage: default render (localized `controlPanel.batch.label`
+  aria-label on the Card, localized "Batch" CardTitle, localized
+  CardDescription with the `selectedCount` interpolated via
+  `tFormat`); selection-count badge (count = 0 / 2 / 42 each
+  reflected in the description copy); header toolbar (Select all
+  + Clear buttons rendered, click fires the matching callback,
+  Select all disabled when `selectableWorkers=[]` and enabled
+  otherwise, Clear disabled when `selectedCount=0` and enabled
+  when greater); empty workers placeholder (localized "No workers
+  available." copy rendered when the list is empty, no row
+  checkbox rendered, placeholder hidden when entries arrive);
+  worker row list (one `<li>` per selectable worker, worker name
+  in font-mono span, status badge rendered alongside the
+  checkbox, checkbox `aria-label` built via `tFormat`); checked
+  state (each row checkbox reflects membership in the selected
+  `Set`, all-checked when both names are in the Set, all-unchecked
+  when the Set is empty); per-row toggle callback (clicking a
+  row checkbox fires `onToggleSelected` with the worker name,
+  clicking the row label text also fires it via the
+  `<label>`/`<input>` association); batch action buttons (Cancel
+  selected fires `onRunBatch('cancel')`, Close selected fires
+  `onRunBatch('close')`, Cancel applies the outline variant class,
+  Close applies the destructive variant class); disabled batch
+  state (`disableBatch=true` disables both batch buttons,
+  `disableBatch=false` enables both, disabled clicks do NOT fire
+  `onRunBatch`); busy text variants (`batchBusy='cancel'` flips
+  the Cancel label to the localized busy string and keeps the
+  idle Close label, and vice versa for `batchBusy='close'`,
+  `batchBusy=null` keeps both idle labels); last-batch results
+  panel (null `batchResults` hides the panel, empty array also
+  hides the panel, populated array renders the localized panel
+  title and one `<li>` per outcome, successful entry uses the
+  emerald color class and the localized "ok" suffix, failed
+  entry with explicit error uses the destructive color class and
+  shows the error string, failed entry without an explicit error
+  falls back to the localized "failed" string, empty-string
+  error also falls back, worker name uses font-mono); ARIA +
+  structural (Card aria-label exposed, every action button is
+  `type="button"`, every row checkbox is `type="checkbox"`);
+  prop / rerender stability (selectableWorkers swap rebuilds the
+  row list, selection arrival flips a row from unchecked to
+  checked, selection arrival flips both batch buttons from
+  disabled to enabled, batchBusy transition flips the Cancel
+  label to busy, batchResults arrival reveals the last-batch
+  panel); and locale flip (CardTitle re-renders as "배치", empty
+  placeholder re-renders as the Korean copy, Cancel batch button
+  label re-renders as "선택 항목 취소" when `setLocale('ko')` fires
+  inside `act()`).
+
 ## [1.11.71] - 2026-05-12 -- Web component RTL/jsdom test suite added: SettingsView
 
 **Versions 1.11.67 / 1.11.68 / 1.11.69 are reserved for parallel
