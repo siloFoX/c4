@@ -4,6 +4,64 @@
 
 (no entries -- next release window)
 
+## [1.11.34] - 2026-05-12 -- Three Web hooks tested: lazy-risk-patterns + cleanup + config
+
+**28 new tests** across three previously-uncovered hooks in
+`web/src/lib/`. No production code changes -- pure test
+coverage. Each suite follows the patterns from
+`use-meeting-create.test.ts` (renderHook + per-test
+`server.use(...)` MSW overrides) and reuses the release-gate
+Promise pattern from `use-audit-rotate.test.ts` /
+`use-meeting-publish.test.ts` to assert in-flight busy
+slots.
+
+Discovery note: a fourth slot-mate hook -- `use-health.ts` --
+already has a colocated test suite (`use-health.test.ts`)
+covering the polling + refresh + error paths, so it was
+deliberately skipped from this dispatch. The remaining three
+were the only uncovered hooks in the dispatched bundle.
+
+- `web/src/lib/use-lazy-risk-patterns.test.ts` -- 6 cases.
+  The risk-pattern catalog lazy fetcher: idle null when
+  `open=false`, no fetch fires while open stays false, the
+  GET `/api/risk/patterns` on the first open=true flip,
+  cache-on-success (no refetch on re-open after the
+  patterns slot is populated), the silent swallow path on
+  a non-ok response (panel just stays empty), and the
+  parsed `PatternsResponse` shape returned to the caller.
+- `web/src/lib/use-cleanup.test.ts` -- 11 cases. The
+  preview + execute dual-POST hook: idle slot during the
+  on-mount preview load, the preview POST URL + `{ dryRun:
+  true }` body, the `r.error` field branch that clears
+  `data` and sets `error`, the network-failure branch that
+  surfaces a thrown HTTP error, `commit()` flipping
+  `confirmOpen=true`, the raw `setConfirmOpen` toggle,
+  `executeCleanup` POSTing `{ dryRun: false }` and firing a
+  success toast that includes the total removed-item count
+  (branches + worktrees + directories), the `r.error`
+  branch firing an error toast, the thrown-error branch
+  firing an error toast, the busy gate via release-Promise,
+  and the manually-callable `preview()` re-fetch.
+- `web/src/lib/use-config.test.ts` -- 11 cases. The GET
+  `/api/config` + POST `/api/config/reload` pair: idle
+  slot then loaded config on mount, fetch URL + payload
+  shape, fallback to `{}` when the response omits the
+  `config` field, the non-ok response branch that surfaces
+  the HTTP error and leaves config null, the manual
+  `refresh()` re-fetch, the `window.confirm` denial that
+  aborts before any POST, the success path that POSTs `{}`
+  to `/api/config/reload` + sets `reloadMsg` + schedules
+  the 5000ms `setTimeout` clear + triggers a refetch, the
+  `ok=false` branch that surfaces the not-ok pill with
+  `reloadFailed=true`, the thrown-error branch that
+  formats the error into `reloadMsg` with
+  `reloadFailed=true`, the reload busy gate via
+  release-Promise, and the stale-state reset effect that
+  clears `reloadFailed` at the start of a fresh reload.
+
+No production source files were touched. `web/node_modules`
+was symlinked from the main checkout for the test run.
+
 ## [1.11.33] - 2026-05-12 -- History summary + history worker-detail hooks tested
 
 **19 new tests** across the two `use-history-*` hooks that
