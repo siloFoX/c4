@@ -4,6 +4,57 @@
 
 (no entries -- next release window)
 
+## [1.11.62] - 2026-05-12 -- Two Web lib markdown / conversation-render renderers tested: lib/markdown.tsx + lib/conversation-render.tsx
+
+**68 new tests** across two `web/src/lib/` renderer modules. No
+production code changes -- pure test coverage. Note: version
+1.11.61 was skipped because the prior TODO turned out to be a
+duplicate of v1.11.42 work, so this release jumps from 1.11.60
+straight to 1.11.62. The two new files (case counts):
+
+- `web/src/lib/markdown.test.tsx` (23 cases) -- covers the
+  Plan / Morning markdown renderer. Every block branch
+  (paragraph coalesce, ATX headings #..###### with `role=
+  "heading"` + `aria-level` + size class, fenced code with
+  and without a language tag, unordered + ordered lists
+  exposing `list` / `listitem` roles, blockquote that joins
+  `>` lines, horizontal rule), every inline branch (inline
+  code, `**bold**`, `*italic*` and `_italic_`, `[text](url)`
+  with `rel="noopener noreferrer"` + `target="_blank"`,
+  inline markup inside heading text), edge inputs (empty
+  string returns `null`, whitespace-only emits an empty
+  wrapper, single character, very long input does not throw),
+  XSS resistance (`<script>`, `<img onerror>` and bare URLs
+  all render as plain text, never as DOM), and stability
+  (repeated calls with the same source produce identical
+  DOM).
+
+- `web/src/lib/conversation-render.test.tsx` (45 cases) --
+  covers every exported helper: `formatTime` (null / invalid
+  / valid `HH:MM`), `formatTokens` (zero, single-field, all
+  four fields joined in `in` / `out` / `cache-r` / `cache-w`
+  order with `toLocaleString()`), `truncate` (empty, below
+  max, exactly max, exceeds, default max = 400),
+  `formatToolArgs` (null + undefined, string, pretty-JSON
+  object, circular-ref fallback to `String()`),
+  `formatToolResult` (null + undefined, string, array of
+  `{text}` chunks joined by newline, array with non-text
+  entries falling back to JSON, empty-chunk filtering, plain
+  object pretty-JSON, circular-ref fallback), `renderInline`
+  (empty array, plain text in `<span>`, inline `code` +
+  `**bold**` + `*italic*` + `[label](href)`, `<script>` text
+  passthrough, pure-call equality), and `renderMarkdown` --
+  empty input returns `[]`, plain paragraph, coalesce of
+  consecutive lines, blank-line split, ATX headings with
+  size class scaled by level, fenced code with + without
+  `language-*` class, blockquote joined by `\n`, unordered
+  list (- and *) exposing `list` / `listitem` roles, ordered
+  list, mixed inline (code / bold / italic / link) in a
+  paragraph, `<script>` rendered as text, whitespace-only
+  emits zero `<p>`, single-character produces one `<p>`,
+  very long input renders without throwing, and repeated
+  calls with the same source produce identical DOM.
+
 ## [1.11.60] - 2026-05-12 -- Four Web Chat sub-panel components tested: ChatComposer + ChatErrorBanners + ChatHeader + ChatMessageLog
 
 **135 new tests** across four `web/src/components/` Chat
