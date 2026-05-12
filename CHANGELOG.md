@@ -4,6 +4,55 @@
 
 (no entries -- next release window)
 
+## [1.11.35] - 2026-05-12 -- Two Web UI primitives tested: DropdownMenu + Tooltip
+
+**39 new tests** across the two remaining uncovered UI
+primitives in `web/src/components/ui/`. No production code
+changes -- pure test coverage. Each suite follows the patterns
+from `button.test.tsx` and `icon-button.test.tsx` (concise
+`describe` block + RTL `render` / `screen` + `userEvent` for
+click + keyboard flows, `createRef` to assert ref preservation
+through `cloneElement`).
+
+- `web/src/components/ui/dropdown-menu.test.tsx` -- 21 cases.
+  The cloneElement-based dropdown primitive used by the sidebar
+  AccountMenu: default-closed render, open-on-trigger-click,
+  toggle-closed-on-second-click, the three trigger-side aria
+  attributes (`aria-haspopup` = "menu", `aria-expanded` flip,
+  `aria-controls` matching the menu id), the default
+  `aria-label` "Menu" via the i18n bundle, custom `ariaLabel`
+  override, item-click firing `onSelect` + closing the menu,
+  disabled-item branch (native `disabled` + `cursor-not-allowed`
+  + `opacity-50` + onSelect-not-called), `variant='danger'`
+  destructive text class, item `icon` + `hint` rendering, the
+  optional `header` slot, the `placement='top'` (default
+  `bottom-full`) vs `placement='bottom'` (`top-full`) class
+  switch, `className` merge onto the relative container,
+  Escape-closes, click-outside-closes (mousedown bubble), Enter
+  activating a focused item, ArrowDown moving focus to the
+  first item, ArrowDown skipping disabled items, trigger-ref
+  preservation through `cloneElement`, and the trigger's own
+  `className` surviving the wrap.
+- `web/src/components/ui/tooltip.test.tsx` -- 18 cases. The
+  cloneElement-based hover/focus tooltip primitive: child
+  trigger render, sibling `role='tooltip'` with the `label`,
+  hidden-by-default (`data-visible='false'` + `opacity-0`),
+  controlled `open={true}` (`data-visible='true'` +
+  `opacity-100`), controlled flip true -> false via rerender,
+  `aria-describedby` plumbed onto the trigger only while
+  visible (id matches the tooltip element), mouseenter show
+  after the delay (uncontrolled, `delayMs=0`), mouseleave hide,
+  focus show + blur hide, Escape-closes-while-visible, the four
+  placement classes (`top` default `bottom-full`, `bottom`
+  `top-full`, `left` `right-full`, `right` `left-full`),
+  `className` merge onto the tooltip surface, child-trigger ref
+  preservation through `cloneElement`, the child's own
+  `onMouseEnter` handler still firing after the wrap, and the
+  stable `displayName` for React DevTools.
+
+`web/node_modules` was symlinked from the main checkout for
+the test run.
+
 ## [1.11.34] - 2026-05-12 -- Three Web hooks tested: lazy-risk-patterns + cleanup + config
 
 **28 new tests** across three previously-uncovered hooks in
