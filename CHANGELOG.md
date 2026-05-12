@@ -4,6 +4,86 @@
 
 (no entries -- next release window)
 
+## [1.11.76] - 2026-05-12 -- Autonomous dispatcher dashboard rebuild
+
+Versions 1.11.72 / 1.11.73 / 1.11.74 / 1.11.75 are reserved for
+parallel workers running in the same dispatch window. This entry
+covers the auto-w52 worker's slice.
+
+`web/src/pages/Auto.tsx` has been rebuilt from a single-task
+dispatch form into a real-time autonomous dispatcher dashboard.
+The page now hosts the five sections called out in the
+showcase-page spec:
+
+- Hero stats row -- four KPI cards (Queue todo / In flight /
+  Done / Last dispatch) backed by an animated count-up that
+  pulses briefly on value change and a tone-aware gradient
+  surface so the panel reads as a single composition rather
+  than four floating tiles. Numbers eased via rAF cubic-out;
+  count-up suppressed via `noAnimation` in tests for
+  deterministic assertions.
+- Live queue table -- scrollable list parsed from
+  `docs/autonomous-queue-v10.md` via a new
+  `GET /api/autonomous/queue` daemon route. Rows render id +
+  title + truncated detail with a tooltip on hover; status
+  badge variants split todo / doing (amber) / done (emerald);
+  first 20 rows render eagerly with a Load N more affordance
+  for the remainder.
+- Active workers strip -- horizontal scroll of worker cards
+  driven by `/api/list`, polled every 5s. Each card surfaces
+  name + tier + status badge + a review pill when the worker
+  has an active intervention.
+- Dispatch timeline -- vertical timeline of the last 10
+  events from `/api/autonomous/status` `recent`. Each entry
+  picks an icon + colored left bar by event type
+  (dispatch / success / halt / dispatch-error) and joins
+  against the queue rows so titles render next to bare ids.
+- Controls dock -- sticky bottom-right glass card with
+  backdrop blur. Pause / Resume swap based on status; Tick
+  fires `/api/autonomous/tick` and is disabled while paused.
+
+State-matrix polish: every section renders a skeleton screen
+(not a centered spinner), an illustrated empty card, a
+red-tinted error card with a Retry button, or the live data
+view. All interactive elements inherit the existing focus-ring
+tokens; mount-time fade + translate uses CSS transitions so
+no new animation plugin is required. Hero grid steps 1-col
+mobile / 2-col tablet / 4-col desktop per the spec.
+
+New primitive: `web/src/components/ui/stat-card.tsx` (and
+`StatCard` export added to the `ui/index.ts` barrel). The
+card composes the count-up hook with a `change-pulse` flag,
+tone-tinted gradient + icon ring, loading skeleton state, and
+forwards rest props so callers can attach data attributes for
+analytics or testing.
+
+New daemon route: `GET /api/autonomous/queue` lives inline
+beside the existing `/autonomous/*` handlers in
+`src/daemon.js`. The handler reads
+`<repoRoot>/docs/autonomous-queue-v10.md`, walks every
+markdown line that starts with `|`, skips the header and
+separator, and returns `{ rows: [{ id, title, status, detail }]
+}` with `status` normalized to the `todo` / `doing` / `done`
+enum the UI expects. Missing file is surfaced as
+`{ rows: [], notFound: true }` so the dashboard's empty state
+fires instead of a generic error panel. The route is
+intentionally decoupled from the AutoDispatcher instance so
+operators can inspect the queue before flipping
+`config.autonomous.mode`.
+
+Tests: full RTL coverage of the loading / empty / error / data
+matrix for every section plus the controls dock action wiring,
+hero-stat derivations from queue rows, queue load-more
+expansion, timeline ordering, dispatcher-disabled notice, and
+the global refresh button (44 cases under
+`web/src/pages/Auto.test.tsx`, all passing). The full
+worktree-wide unit run reports 4648 / 4648 passing.
+
+Touched files: `web/src/pages/Auto.tsx`,
+`web/src/pages/Auto.test.tsx`,
+`web/src/components/ui/stat-card.tsx`,
+`web/src/components/ui/index.ts`, `src/daemon.js`,
+`CHANGELOG.md`, `package.json`, `package-lock.json`.
 ## [1.11.72] - 2026-05-12 -- Web component RTL/jsdom test suites added: ControlPanelActions + ControlPanelBatch
 
 **115 new tests** across two untested `web/src/components/*.tsx`
