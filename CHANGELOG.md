@@ -228,6 +228,65 @@ all locked in.
   handleVerify call clears stale verifyResult to null
   mid-flight before the new result lands.
 
+## [1.11.28] - 2026-05-12 -- Three Auth web hooks tested
+
+**31 new tests** across the three Auth-flow web hooks -- the
+four-state auth machine, the cached identity mirror, and the
+login form's submit pipeline. No production code changes --
+pure test coverage so the loading/disabled/authed/anon
+transitions, the localStorage-backed user+role re-read on
+AUTH_EVENT and on filtered cross-tab `storage` events, and
+the login hook's busy gate, error surfacing, and re-entrancy
+guard are all locked in.
+
+- `web/src/lib/use-auth-state.test.ts` -- 10 cases. Idle
+  `authState=loading` before the status fetch resolves;
+  enabled:false resolves to `disabled`; enabled:true + token
+  resolves to `authed`; enabled:true + no token resolves to
+  `anon`; 5xx on the status endpoint fails safe to
+  enabled:true and routes through `anon` when no token is
+  set; release-gate proves the hook stays in `loading` while
+  the status GET is in flight and flips out on resolve; an
+  AUTH_EVENT dispatched after an authed resolve flips the
+  machine back to `anon` (the token-expired listener path);
+  `setAuthed()` exposed for the login modal to flip the
+  state on a good POST; `setAnon()` exposed for the logout
+  button to flip the state after the api lib's logout
+  fires; AUTH_EVENT listener removed on unmount.
+
+- `web/src/lib/use-auth-identity.test.ts` -- 10 cases. Lazy
+  init reads user + role from localStorage on first render;
+  empty localStorage resolves to null/null; AUTH_EVENT
+  re-reads both slots so the avatar refreshes after a
+  login/logout cycle; cross-tab `storage` event keyed on
+  `c4.authUser` triggers a refresh; same for `c4.authRole`
+  and `c4.authToken` (any of the three auth keys);
+  unrelated-key storage events are ignored so theme /
+  sidebar.collapsed / top-view writes do not pointlessly
+  re-render the avatar; a wholesale `localStorage.clear()`
+  (storage event with key=null) is treated as a relevant
+  signal and refreshes; both AUTH_EVENT and `storage`
+  listeners removed on unmount; no state flip after unmount
+  when an AUTH_EVENT fires.
+
+- `web/src/lib/use-login.test.ts` -- 11 cases. Idle slot
+  (empty user/password, error=null, busy=false); setUser
+  and setPassword setters drive their respective slots;
+  handleSubmit always preventDefaults the form event; happy
+  path POSTs `/api/auth/login` with the exact body shape
+  `{ user, password }` from the current slots; success
+  invokes onSuccess once, stores the token in localStorage,
+  and leaves error null; 401 with `{ error }` envelope
+  surfaces the server error string verbatim, skips
+  onSuccess, and does not store a token; HttpResponse.error
+  network failure flows through the catch branch and
+  captures `err.message` on error; release-gate proves
+  busy=true while the request is in flight and back to
+  false on resolve; a re-entrant handleSubmit call while
+  busy short-circuits (one POST, one onSuccess); a fresh
+  successful submit after a prior 401 clears the stale
+  error.
+
 ## [1.11.27] - 2026-05-12 -- Three Autonomous web hooks tested
 
 **30 new tests** across the three Autonomous-tab web hooks --
