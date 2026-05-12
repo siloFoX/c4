@@ -4,6 +4,64 @@
 
 (no entries — next release window)
 
+## [1.11.29] - 2026-05-12 -- Three Audit web hooks tested
+
+**32 new tests** across the three SpecialistsAuditPanel web
+hooks -- the CSV export with windowed `from` query, the
+window.confirm-gated POST rotate flow, and the daemon-wide
+hash-chain verify GET. No production code changes -- pure
+test coverage so the export's window-to-hours mapping +
+silent-failure busy slot, the rotate banner's
+rotated/skipped/failed branches behind a confirm gate, and
+the verify hook's four-field envelope plus
+{valid:false} fallback on both 5xx and network errors are
+all locked in.
+
+- `web/src/lib/use-audit-export.test.ts` -- 11 cases. Idle
+  slot; handleAuditExport callable; auditWindow=all sends
+  `lineEnd=crlf` and no `from`; parametrised
+  it.each across {1h, 24h, 7d} verifies `from = now - N
+  hours` with fake timers pinned to a fixed system time;
+  full anchor + blob + objectURL download dance with a
+  window-tagged sanitized filename and a matching revoke;
+  silent-error path: 5xx body does not click an anchor or
+  create an objectURL but exportAuditBusy still returns to
+  false; release-gate busy slot proves
+  exportAuditBusy=true while the GET is in flight and back
+  to false after release; parallel call while the first is
+  gated still fires a second GET (no internal guard);
+  rerender with a new auditWindow makes the next call use
+  the new value (cross-selection effect on the
+  useCallback dep).
+
+- `web/src/lib/use-audit-rotate.test.ts` -- 11 cases. Idle
+  slot (no msg, not failed); handleAuditRotate callable;
+  `window.confirm=false` aborts before any fetch and leaves
+  the banner untouched (validation slot); happy POST body
+  is `{ maxBytes: 0 }` on `/api/specialists/audit-rotate`;
+  rotated=true with an archive surfaces an archive-tagged
+  banner; rotated=true with `archive:null` falls back to
+  the i18n "archive" placeholder; rotated=false surfaces
+  the skipped banner without flipping rotateFailed; 5xx
+  response sets rotateFailed=true with the server error
+  embedded; release-gate busy slot; parallel call still
+  fires a second POST (no internal guard); the reset() at
+  the start of a fresh run clears stale failure state.
+
+- `web/src/lib/use-audit-verify.test.ts` -- 10 cases. Idle
+  slot (verifyResult=null); handleVerify callable;
+  includeRotated=false hits `/api/audit/verify` with no
+  query; includeRotated=true appends `?includeRotated=1`;
+  happy path stores the four-field
+  {valid,corruptedAt,total,rotatedTotal} envelope verbatim;
+  5xx response stamps the
+  {valid:false, corruptedAt:null, total:0, rotatedTotal:0}
+  fallback; network error stamps the same fallback (no
+  exception leaks); release-gate busy slot; parallel call
+  still fires a second GET (no internal guard); a fresh
+  handleVerify call clears stale verifyResult to null
+  mid-flight before the new result lands.
+
 ## [1.11.27] - 2026-05-12 -- Three Autonomous web hooks tested
 
 **30 new tests** across the three Autonomous-tab web hooks --
