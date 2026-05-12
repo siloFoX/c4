@@ -4,6 +4,74 @@
 
 (no entries -- next release window)
 
+## [1.11.64] - 2026-05-12 -- Four small Web lib hooks tested: lib/use-toggle-reset-on-change.ts + lib/use-scroll-into-view-on-open.ts + lib/use-feature-id-from-hash.ts + lib/use-theme.ts
+
+**36 new tests** across four small `web/src/lib/` hook modules. No
+production code changes -- pure test coverage. These four were
+selected as the smallest still-untested hooks in the lib directory
+by source line count (25 / 27 / 31 / 36 lines respectively). The
+four new files (case counts):
+
+- `web/src/lib/use-toggle-reset-on-change.test.ts` (8 cases) --
+  covers the auto-reset boolean toggle: idle initial state
+  (`open=false`, `toggle` and `setOpen` are functions); `toggle`
+  flips `open` false -> true -> false; `setOpen(literal)` and
+  `setOpen((prev) => !prev)` both update the state slot;
+  watched-key change auto-resets `open` to false (the core
+  transition); identical re-render of the watched key leaves
+  `open` untouched (idempotence -- React deps short-circuit on
+  ===); `toggle` callback reference is stable across re-renders
+  and across key flips; reference-typed keys are tracked by
+  identity, not deep equality, so `{id:1} -> {id:1}` still
+  triggers a reset.
+- `web/src/lib/use-scroll-into-view-on-open.test.ts` (8 cases) --
+  covers the scroll-on-open effect: no `requestAnimationFrame`
+  call when `open` is false on mount; mounting with `open=true`
+  schedules a single rAF and the flushed callback invokes
+  `scrollIntoView` exactly once with `{behavior:'auto',
+  block:'start'}`; a `false -> true` flip on a rerender schedules
+  the frame at the transition point; a `key` change while open
+  cancels the prior frame id and reschedules; a `true -> false`
+  flip cancels the pending frame without ever calling
+  `scrollIntoView`; unmount cancels the pending frame; a null
+  `ref.current` at flush time does not throw and skips the
+  scroll; re-rendering with the same `open=true` value does not
+  re-schedule a second rAF (effect-deps idempotence). The suite
+  stubs `HTMLElement.prototype.scrollIntoView` (not implemented
+  by jsdom), `window.requestAnimationFrame`, and
+  `window.cancelAnimationFrame` and drives flushes manually
+  through the captured rAF callback.
+- `web/src/lib/use-feature-id-from-hash.test.ts` (9 cases) --
+  covers the `#/feature/<id>` hash router: returns null when the
+  URL has no hash; parses the initial deep link on mount; ignores
+  hashes outside the `#/feature/` prefix (mount and runtime);
+  follows hash changes through multiple deep-link transitions
+  (`#/feature/help` -> `#/feature/conversation`); clears the id
+  when the hash leaves the prefix; extracts the empty string
+  from the bare prefix `#/feature/`; registers exactly one
+  `hashchange` listener on `window`; removes that same listener
+  function on unmount (asserted via `addEventListener` /
+  `removeEventListener` spy identity); and remains frozen at the
+  pre-unmount value after unmount despite further hash flips.
+  hashchange is dispatched manually because jsdom does not fire
+  it synchronously on `location.hash =` assignment.
+- `web/src/lib/use-theme.test.ts` (11 cases) -- covers the
+  `theme` preference hook: defaults to the project-wide `'dark'`
+  when localStorage is empty; reads the persisted value back on
+  mount; rejects an unknown stored value and falls back to the
+  default; `setTheme('dark')` writes to `localStorage[THEME_KEY]`
+  and toggles the `dark` class on `documentElement`;
+  `setTheme('light')` removes the `dark` class; `setTheme(
+  'system')` resolves to dark / light by reading the stubbed
+  `matchMedia('(prefers-color-scheme: dark)').matches`;
+  the `matchMedia` `change` listener is registered only while
+  theme is `'system'`; an OS theme flip dispatched through the
+  mock re-applies the resolved class; leaving the `'system'`
+  theme removes the same change-listener function;
+  and unmount removes the same listener function when the
+  hook was in `'system'` mode. `matchMedia` is stubbed via
+  `vi.stubGlobal` with a custom dispatch-driven shim.
+
 ## [1.11.63] - 2026-05-12 -- One Web lib control-panel-single hook tested: lib/use-control-panel-single.ts
 
 **12 new tests** in one `web/src/lib/` hook module. No production
