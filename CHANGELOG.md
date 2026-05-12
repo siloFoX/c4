@@ -4,7 +4,91 @@
 
 (no entries -- next release window)
 
-## [1.11.41] - 2026-05-12 -- Four Web Meetings maintenance/template/recap/actions components tested: MeetingsMaintenancePanel + MeetingsTemplateEditor + MeetingsActionItemsPanel + MeetingsRecapPanel
+## [1.11.42] - 2026-05-12 -- Five Web Sessions tab components tested: SessionsView + SessionsRightPane + SessionsListSection + NewChatModal + SessionsAttachedSection
+
+**167 new tests** across the five Sessions-tab components that
+were still uncovered in `web/src/components/`. No production
+code changes -- pure test coverage. Each suite follows the
+patterns from `MeetingsMaintenancePanel.test.tsx`,
+`MeetingsActionItemsPanel.test.tsx`, and
+`MeetingsView.test.tsx` (vi.mock to stub the component's hooks
+with per-test-tunable flags + vi.fn() handlers; real `useState`
+in the form-field mocks so controlled inputs respond to typing
+/ selecting; role + accessible-name queries before testid-only
+queries; `userEvent.setup()` for click, selectOptions, type,
+and keyboard; `act()` to flush the c4:locale-changed event-
+based re-render). The five new files (case counts):
+
+- `web/src/components/NewChatModal.test.tsx` (38)
+- `web/src/components/SessionsListSection.test.tsx` (29)
+- `web/src/components/SessionsAttachedSection.test.tsx` (32)
+- `web/src/components/SessionsRightPane.test.tsx` (29)
+- `web/src/components/SessionsView.test.tsx` (39)
+
+Coverage per component spans the prop union, every render
+branch, every callback, the busy / disabled / error variants,
+plus the ARIA wiring on each modal / row. NewChatModal:
+open=false null return; role='dialog' + aria-modal='true' +
+aria-labelledby pointing at the title id; the three form
+fields stubbed with real useState in the use-new-chat-form
+mock so typing / selecting walks both the setter spies and
+the controlled inputs; trim-aware Start chat disabled gate
+(empty + whitespace-only rejected, non-whitespace enables);
+onSubmit fires with the trimmed prompt + selected model +
+selected agent; backdrop click closes only while not busy;
+Esc handler delegated via use-escape-to-close hook (mocked,
+asserts the open + busy + onClose forwarding); busy disables
+every interactive control + swaps the primary label to
+Starting...; error banner uses role='alert' + destructive
+tone. SessionsListSection: error banner + loading / empty
+copy in the empty branch; group header buttons named by
+projectPath (with projectDir fallback + 'unknown' final
+fallback); per-group session-count badge; aria-expanded
+flips with the collapsed map; collapsed groups hide their
+rows without affecting siblings; selectedSessionId drives
+aria-current + the bg-accent active highlight; clicking a
+row fires onSelect with the sessionId; clicking the group
+header fires onToggleGroup with the resolved key (projectDir
+preferred, projectPath fallback, 'unknown' last). Sessions-
+AttachedSection: SessionsAttachedRowActions + SessionsEmpty-
+AttachBanner stubbed to thin markers so the section's
+branching logic exercises in isolation without booting the
+use-attach-process-state 30s poll; heading aria-expanded
+tracks the collapsed prop; count badge tracks filtered
+length; error tone + the empty-attach banner CTA gate; per-
+row body button drives onSelect; the inner View / Detach
+actions drive onSelect / onDetach via the stubbed row-
+actions child; aria-current marks the selected row body
+button; projectPath rendered when present with jsonlPath
+fallback otherwise; sessionId placeholder dash when null;
+relative timestamp prefix only when createdAt is set.
+SessionsRightPane: empty branch (null selection) renders
+SessionsEmptyPanel with showStartFirst + onNewChat +
+onAttachNew forwarded; session branch renders ConversationView
+with live=false + flex-1 className + no snapshot/stream URLs;
+attached branch renders ConversationView (live=true) plus
+SessionsComparisonCard with self-end className, and the
+snapshot + stream URLs use encodeURIComponent on the attach
+name; React key changes remount ConversationView when the
+session id flips; same-props rerender keeps a single mount.
+SessionsView: every hook (use-sessions-tour / use-sessions-
+list / use-sessions-actions / use-filtered-sessions / use-
+sessions-collapse / use-live-ref) mocked to per-test states;
+every child (SessionsListCard / SessionsRightPane / Attach-
+Modal / NewChatModal / SessionsTour) stubbed to a marker
+exposing every prop + a click button for every callback;
+selection state drives both the list card data-selected-*
+attrs and the right pane data-selection-* attrs; onNewChat
+/ onAttachNew openers clear the corresponding error and
+open the matching modal; onRefresh fires both refresh
+mocks; onDetach forwards through to handleDetach; onToggle-
+Group + onToggleAttachedCollapsed forward through to the
+collapse hook; the empty-state CTA is gated on filtered
+groups + filtered attached + loading; the auto-select-first
+callback exposed to the list hook updates the selection;
+the actions hook's setSelection callback can clear the
+selection externally; tour overlay only mounts when use-
+SessionsTour returns showTour=true.
 
 **150 new tests** across the four remaining uncovered
 maintenance / template-editor / recap / action-items
