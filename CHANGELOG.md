@@ -4,6 +4,67 @@
 
 (no entries -- next release window)
 
+## [1.11.48] - 2026-05-12 -- Four more Web feature pages tested: Plan + Morning + Scribe + Workspaces
+
+**144 new tests** across four `web/src/pages/` feature pages. No
+production code changes -- pure test coverage. Each suite follows
+the same pattern as the 1.11.47 batch (Health/Config/Profiles/
+Templates): `vi.mock` to stub each page's hook(s) with per-test-
+tunable state vars + `vi.fn()` handlers; heavy child components
+(`PageDescriptionBanner`, `Toast`, `renderMarkdown`, formatters)
+stubbed to thin markers; `userEvent.setup()` for click + type;
+`act()` to flush the `c4:locale-changed` event-based re-render.
+The four new files (case counts):
+
+- `web/src/pages/Plan.test.tsx` (40)
+- `web/src/pages/Morning.test.tsx` (33)
+- `web/src/pages/Scribe.test.tsx` (39)
+- `web/src/pages/Workspaces.test.tsx` (32)
+
+Plan: three-hook composition (usePlanContent + usePlanWorkers +
+usePlanDispatch) plus useToast. Covers PageFrame title +
+description + Refresh button (disabled until a worker is
+selected, animate-spin while loading, fires loadPlan), the
+worker dropdown (default placeholder, one option per worker,
+controlled select value), Branch / Plan task / Output controlled
+inputs, Send plan button (fires dispatchPlan, disabled +
+animate-spin while dispatching), Re-dispatch button (disabled
+without plan content, disabled while dispatching, fires
+redispatch), ErrorPanel via role=alert, LoadingSkeleton vs
+EmptyPanel vs markdown body branches, toast slot showing/hiding,
+locale flip.
+
+Morning: single-hook (useMorning) + useToast. Covers PageFrame
+title + description, Generate / Copy buttons, generate handler
+fired on click, animate-spin while loading, Copy disabled until
+report.content present, error alert, empty-report hint,
+generatedAt line conditional, sections vs content vs no-content
+branches (sections wins when both set), toast slot, locale
+flip.
+
+Scribe: single-hook (useScribe) + useToast. Covers PageFrame
+title + description, Start / Stop / Scan buttons gated by
+status.running + busy flag, act fired with correct endpoint per
+action, Refresh button with sr-only label + animate-spin while
+loading, LoadingSkeleton disambiguated from EmptyPanel via
+aria-live="polite", error alert, status rows (Running yes/no
+with ok vs muted tone, lastScan via formatRelativeTime, scans /
+sessions / contextPath with dash fallbacks), recent-context pre
+block (tabIndex=0) vs empty hint, toast slot, status mutation
+across rerenders, locale flip.
+
+Workspaces: single-hook (useWorkspaces), no toast / banner /
+markdown wiring (the page is intentionally minimal). Covers
+PageFrame title + description, Refresh button with i18n
+accessible label + visible "Refresh" copy + animate-spin while
+loading, intro banner + heading, loading hint vs empty hint vs
+populated list branches, error alert (still renders heading +
+intro alongside), per-workspace row (name in monospace, path,
+exists/missing badges with emerald/destructive tone, git-repo /
+not-a-git-repo badges with emerald/amber tone, both git badges
+suppressed when exists=false), ul wrapping + multi-row mixed
+status rendering, rerender data mutation, locale flip.
+
 ## [1.11.47] - 2026-05-12 -- Four Web feature pages tested: Health + Config + Profiles + Templates
 
 **140 new tests** across four `web/src/pages/` feature pages. No
