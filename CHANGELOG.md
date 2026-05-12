@@ -4,6 +4,70 @@
 
 (no entries -- next release window)
 
+## [1.11.47] - 2026-05-12 -- Four Web feature pages tested: Health + Config + Profiles + Templates
+
+**140 new tests** across four `web/src/pages/` feature pages. No
+production code changes -- pure test coverage. Each suite follows
+the patterns from `HistoryView.test.tsx`, `SessionsView.test.tsx`,
+and `AutonomousDigestMetrics.test.tsx`: vi.mock to stub the page's
+hook (`use-health`, `use-config`, `use-profiles`, `use-templates`)
+with per-test-tunable state vars + `vi.fn()` handlers; heavy child
+components (`PageDescriptionBanner`, `Toast`) stubbed to thin
+markers; `userEvent.setup()` for click + type; `act()` to flush the
+`c4:locale-changed` event-based re-render. The four new files
+(case counts):
+
+- `web/src/pages/Health.test.tsx` (37)
+- `web/src/pages/Config.test.tsx` (36)
+- `web/src/pages/Profiles.test.tsx` (35)
+- `web/src/pages/Templates.test.tsx` (32)
+
+Health: single-hook wiring (useHealth). Covers PageFrame title +
+description + refresh button accessible name + click + disabled-
+on-loading gate, animate-spin class flip, loading skeleton vs
+ErrorPanel vs data-grid branches, healthy / degraded / absent-ok
+badge variants, version + configPath display, all nine Stat tiles
+(PID, Uptime, Started, Workers total, Active, Idle, Queue depth,
+Lost workers, Event-loop lag) with dash placeholders for missing
+fields, activeWorkers vs busyWorkers fallback, Loaded-modules
+panel + per-module listitem rendering vs empty-modules hint,
+prop-driven rerender stability, locale flip resilience.
+
+Config: single-hook wiring (useConfig). Covers PageFrame header,
+refresh + reload buttons (each fires its handler, each disables
+under the right busy flag), Reload-from-disk label flip to
+Reloading, reload-message tone branches (muted on success vs
+destructive on failure), filter input controlled-state + key-name
+vs serialised-value matching + no-match hint, summariseValue
+for number / quoted-short-string / quoted-long-string-with-ellipsis
+/ array `[n]` / object `{n keys}` / null / boolean preview, JSON
+pre-block payload, error-panel role=alert + heading + intro still
+visible during error, animate-spin icon class flip, locale flip
+resilience.
+
+Profiles: single-hook wiring (useProfiles). Covers PageFrame
+header, filter input + add + refresh buttons, error / loading /
+empty branches, per-row name + source badge + allow/deny count
+badges + description + aria-expanded toggle (click and Enter
+key), reveal-on-expand of allow / deny pattern lists +
+Edit / Remove action buttons (each fires a not-implemented
+toast with type=info), filter by name vs description, controlled
+filter input, em-dash placeholder when deny is empty, non-array
+allow/deny coerced to zero-length badges, source-badge absence
+when source undefined, single `<ul>` wrapper with one listitem
+per profile, locale flip resilience.
+
+Templates: single-hook wiring (useTemplates). Covers PageFrame
+header, filter input + add + refresh buttons, error / loading /
+empty branches, per-row name + source / model / effort / profile
+badges + description, conditional rendering when each optional
+field is absent, Edit / Remove action buttons (each fires a
+not-implemented toast with type=info), filter by name vs
+description vs model name, controlled filter input + value
+preservation across rerenders, empty toast slot until first
+action, single `<ul>` wrapper with one listitem per template,
+locale flip resilience.
+
 ## [1.11.46] - 2026-05-12 -- Four Web view-level components tested: HistoryView + AutonomousView + HistoryDetailPane + AutonomousDigestMetrics
 
 **165 new tests** across four `web/src/components/` view-level
