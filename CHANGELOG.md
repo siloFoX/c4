@@ -4,6 +4,94 @@
 
 (no entries -- next release window)
 
+## [1.11.46] - 2026-05-12 -- Four Web view-level components tested: HistoryView + AutonomousView + HistoryDetailPane + AutonomousDigestMetrics
+
+**165 new tests** across four `web/src/components/` view-level
+components. No production code changes -- pure test coverage.
+Each suite follows the patterns from `ChatView.test.tsx`,
+`SessionsView.test.tsx`, and `SpecialistsView.test.tsx` (vi.mock
+to stub the component's hooks with per-test-tunable state vars
++ vi.fn() handlers; child components stubbed to thin markers
+that surface props via `data-*` attributes + test buttons that
+fire callbacks back into the parent; `userEvent.setup()` for
+click + type; `act()` to flush the `c4:locale-changed`
+event-based re-render). The four new files (case counts):
+
+- `web/src/components/HistoryView.test.tsx` (43)
+- `web/src/components/AutonomousView.test.tsx` (50)
+- `web/src/components/HistoryDetailPane.test.tsx` (45)
+- `web/src/components/AutonomousDigestMetrics.test.tsx` (27)
+
+Discovery note: `HistoryDetailHeader.tsx` does not exist in
+`web/src/components/` (no component by that name was ever
+extracted), so the fourth slot was filled by
+`AutonomousDigestMetrics.tsx` -- the pure-display
+nine-cell digest grid extracted from `AutonomousView`. This
+keeps the per-batch coverage at four view-level components
+while staying within the existing component file set.
+
+HistoryView: three-hook wiring (useHistorySummary,
+useHistoryWorkerDetail, useScribeContext) plus the stubbed
+HistoryDetailPane marker. Covers sidebar render (title +
+scribe button + search input + status select + since/until
+date filters), per-row aria-pressed selection flip, client-
+side query filter against name + lastTask + branches arrays,
+empty-history hint visibility, error banner role=alert
+visibility + clear, the four filter values forwarded into the
+summary hook args, scribe drawer states (closed vs open with
+loading vs open-empty vs missing-file vs content), scribe
+open/close button wiring + aria-pressed flag, selection
+clearing the scribe on the next sidebar click, single setError
+sink shared by both fetch hooks, the placeholder card when
+no selection is active, locale flip resilience.
+
+AutonomousView: three-hook wiring (useAutonomousDigest,
+useAutonomousPauseToggle, useEscalationResolve) plus the
+stubbed AutonomousDigestMetrics marker. Covers title +
+status badge (running vs paused vs absent), refresh button
+disable + click, pause/resume button label flip + busy
+ellipsis + disabled gates (no digest, busy), pause message
+tone (muted vs destructive), not-enabled empty-state vs
+digest-error vs loading vs metrics-mount branches, the
+showResolved checkbox flipping both the heading and the
+hook arg, escalations list render (id chip + kind badge +
+reason + suggested action + todoId chip), resolve button
+wiring (approve, reject, modify with note-required
+validation + whitespace rejection + busy disable + handler
+call payloads), resolved rows (no action buttons, resolved
+badge + action, resolved note), escalError + resolveError
+display, note input setResolveNotes wiring + busy disable,
+stable refresh + setEscalations passthrough into downstream
+hooks, locale flip resilience.
+
+HistoryDetailPane: pure-display component. Covers worker
+name title, live/closed badge text + variant (alive vs
+not, status string vs default), branch + worktree chip
+visibility, past-tasks header with record count, empty-
+tasks placeholder, per-record task text + (no task text)
+fallback + status placeholder (unknown), the full
+recordStatusVariant heuristic (error/fail → destructive,
+ok/complete/merged → success, pending/busy → warning,
+unknown → outline, null → secondary, case-insensitive
+match), per-record branch chip, started/completed date
+formatting + ? placeholder + arrow prefix, commit list
+hash + message + empty-commits omission, scrollback pre
+block vs missing placeholder, multi-record rendering,
+outer card flex layout, locale flip resilience, all-
+nulls record graceful degradation.
+
+AutonomousDigestMetrics: pure-display component. Covers
+all nine cells labelled, every digest field rendered to
+its cell, success rate formatted to one decimal percent
++ null = "—" + zero = "0.0%", fmtDuration coverage
+(seconds < 1m, minutes < 1h, hours < 1d, days), window
+range from → to with arrow, conditional class branches
+(halted positive → amber, dispatchErrors positive →
+destructive, pendingEscalations positive → amber),
+always-on classes (succeeded → emerald, resolved
+escalations → muted), outer grid container layout,
+rerender on prop change.
+
 ## [1.11.45] - 2026-05-12 -- Two Web view-level components tested: WorkerDetail + ControlPanel
 
 **71 new tests** across the two remaining per-worker
