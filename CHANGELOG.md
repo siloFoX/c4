@@ -4,6 +4,84 @@
 
 (no entries -- next release window)
 
+## [1.11.40] - 2026-05-12 -- Four Web Meetings detail/retro components tested: MeetingsDetailBody + MeetingsRetroActions + MeetingsContributePanel + MeetingsPeerRetroControls
+
+**128 new tests** across the four remaining uncovered detail /
+retro / contribute components in `web/src/components/`. No
+production code changes -- pure test coverage. Each suite
+follows the patterns from `MeetingsComposer.test.tsx`,
+`MeetingsForkForm.test.tsx`, `MeetingsView.test.tsx`, and
+`button.test.tsx` (concise `describe` block + RTL `render`
+/ `screen` + `userEvent.setup()` for click, selectOptions,
+type, keyboard, and Tab activation; role and accessible-name
+queries ahead of testid-only queries; `vi.fn()` mocks for
+handler assertions; `act()` to flush the c4:locale-changed
+event-based re-render). The four new files (case counts):
+
+- `web/src/components/MeetingsDetailBody.test.tsx` (28)
+- `web/src/components/MeetingsRetroActions.test.tsx` (32)
+- `web/src/components/MeetingsContributePanel.test.tsx` (45)
+- `web/src/components/MeetingsPeerRetroControls.test.tsx` (23)
+
+Coverage per component spans the prop union and every render
+branch: MeetingsDetailBody's three-way split (empty-pick copy
+when selectedId is null, destructive-tone error banner when
+detailError is set, loading copy when selection has no
+detail yet, and the five-child loaded composition --
+MeetingsDetailHeader / MeetingsLineageStrip /
+MeetingsRecapPanel / MeetingsActionItemsPanel /
+MeetingsStagesView), prop forwarding (detail.status / track /
+currentStage / currentRound / task to the header, detail.id
+as currentId to the lineage strip, selectedId as meetingId
+to the actions panel, lineage / recap / actions presence
+flags through to each child, onNavigate forwarded into the
+lineage strip + asserted firing on a stub-click);
+MeetingsRetroActions's two-button bar (preview + finalize
+each queried via i18n aria-label, tooltip title attrs,
+busy=preview vs busy=finalize ellipsis swap on the matching
+button only, disabled wiring on both when either is busy,
+click -> handleRetro(false) and handleRetro(true)
+respectively, every result-tone branch -- applied / skipped
+/ skipped-with-note / N delta(s) / 0 delta(s) / ok
+fallback, applied-wins-over-skipped, destructive-tone error
+span, JSON title attr on the result span);
+MeetingsContributePanel's full form (open=false -> null;
+specialist + body + reason controlled inputs with setter
+calls per keystroke; vote select with three options;
+contribute disabled until both specialist and body are
+non-empty + non-whitespace; vote-only Accept / Object
+disabled until specialist is non-empty; click handlers fire
+handleContribute / handleVoteOnly('accept') /
+handleVoteOnly('object'); busy disables every control + the
+post button + both vote-only buttons and swaps the post
+label to the ellipsis; success vs failure banner tone via
+failed flag; meetingId forwarded into the hook; rerender
+stability + locale flip);
+MeetingsPeerRetroControls's brain row (peer-brain label
+text, two-option select order mock then claude, default
+brain mock, initial brain claude when hook seeds it,
+setBrain on change, controlled value reflected, click ->
+handlePeerRetro called exactly once + click event
+forwarded as the only argument, busy disables both
+controls + blocks click handler, success vs failure banner
+tone, meetingId forwarded into the hook, Tab order brain
+-> button, rerender stability + locale flip). Each
+component consumes one of the use-meeting-* hooks
+(use-meeting-retro / use-meeting-contribute /
+use-meeting-peer-retro -- the network POST + reset-on-id
+state lives there) and these are stubbed via `vi.mock` so
+no MSW handler is booted and the tests assert the
+component wiring in isolation; the contribute and peer
+mocks keep real React state inside `useState` so
+controlled-input typing and brain-select changes reflect
+in the DOM while still letting setter calls be asserted
+via `vi.fn()`. MeetingsDetailBody's five heavy child
+components are each stubbed to thin markers exposing the
+forwarded props as data-attrs + a click-able navigate
+button so the composition + prop wiring can be asserted
+without exercising the lineage chain, recap accordion,
+action-items export, or the transcript pane subtrees.
+
 ## [1.11.39] - 2026-05-12 -- Two Web Meetings form components tested: MeetingsComposer + MeetingsForkForm
 
 **94 new tests** across the two remaining uncovered form
