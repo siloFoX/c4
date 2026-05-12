@@ -4,6 +4,117 @@
 
 (no entries -- next release window)
 
+## [1.11.60] - 2026-05-12 -- Four Web Chat sub-panel components tested: ChatComposer + ChatErrorBanners + ChatHeader + ChatMessageLog
+
+**135 new tests** across four `web/src/components/` Chat
+sub-panel components. No production code changes -- pure test
+coverage. Each suite follows the same pattern as the 1.11.59
+Sessions sub-panel batch (SessionsHeader / SessionsListCard /
+SessionsTour): pure-display components are driven by direct
+prop permutations, the composer / message-log shells get a
+tiny Wrapper to host the controlled-input state + the scrollRef
+contract so userEvent + rerender exercise the live wiring.
+`userEvent.setup()` for click / keyboard activation; `act()`
+to flush the `c4:locale-changed` event-based re-render. The
+four new files (case counts):
+
+- `web/src/components/ChatComposer.test.tsx` (31)
+- `web/src/components/ChatErrorBanners.test.tsx` (24)
+- `web/src/components/ChatHeader.test.tsx` (38)
+- `web/src/components/ChatMessageLog.test.tsx` (42)
+
+ChatComposer: pure controlled form for the per-worker chat
+input (textarea + Send button inside an HTML `<form>`). Tests
+drive the full prop union via a tiny Wrapper that preserves
+the controlled-input contract for the keystroke + clear cases
+so React's onChange wiring sees the parent echo each character
+back through `input`. Cover: the single form / single textarea
+shape; the Send button idle (`Send`) vs busy (`Sending...`)
+label flip; the `type="submit"` contract; the i18n placeholder
+with `{worker}` interpolation and the workerName-rerender
+update; the controlled value reflection (populated + empty);
+per-keystroke onChangeInput fan-out (one call per character)
++ the parent-echo round-trip; the disabled-Send gate across
+all four branches (empty input / whitespace-only input /
+sending=true / non-empty input enabled); the textarea
+disabled-on-sending contract; onSubmit fires once per click
+and once per `form.requestSubmit()`, no-fire on every disabled
+permutation; onKeyDown forwarding for normal keystrokes,
+Enter (shiftKey=false), and Shift+Enter (shiftKey=true) so the
+parent can implement send-on-Enter and newline-on-Shift+Enter
+without the child knowing the policy; same-props rerender
+no-duplicate, sending rerender flip (label + disabled fan-out);
+locale flip (Send label + placeholder both re-render in
+Korean).
+
+ChatErrorBanners: pure-display two-tier banner. Parent owns
+the `error` + `backfillError` strings; the component owns the
+precedence rule (a hard error suppresses the secondary amber
+banner). Tests drive the full prop union directly. Cover: the
+no-banner default + the empty-string edge cases (treated as
+falsy by the React truthy gate); the destructive branch (role
++ text + destructive style classes); the amber backfill branch
+(role + composed `Past-message backfill failed: <msg>. Live
+stream is still connected.` copy + amber style classes); the
+precedence rule (when both are set, only the destructive
+banner is rendered, the backfill copy is hidden); the exactly-
+one role=alert count assertion per branch; rerender stability
+across the four state transitions (no-error to set, set to
+no-error, error swap, backfill-to-error swap, error-to-
+backfill swap); locale-flip re-render parity (component owns
+no localized copy so the rendered text is locale-invariant,
+which is asserted explicitly).
+
+ChatHeader: pure-display card header for the per-worker chat
+panel: title + description, optional backfill-count Badge,
+always-rendered SSE-live Badge, and an optional jump-to-latest
+Button. Tests drive the full prop union directly. Cover: the
+i18n title + `{worker}`-interpolated description (+ the
+workerName-rerender update); the backfill badge reveal (count
+> 0 gate) + the singular vs plural copy + the negative-count
+no-render edge; the backfill-source tooltip (`session` vs
+`scrollback` + the null fallback to scrollback); the SSE badge
+label flip (`live` vs `disconnected`) + the aria-live="polite"
+contract + the SSE dot aria-hidden contract; the jump-to-
+latest button reveal (autoScroll=false gate) + the
+`type="button"` no-form-submit contract; onJumpToBottom fires
+on click + Enter + Space, no-fire on initial render, no-fire
+when the button is hidden; the button-count fan-out (zero when
+autoScroll=true, one when false); the combined-branch render
+(every branch on) + the minimal render (every branch off);
+rerender stability across all three branches; locale flip
+(title + description + jump-to-latest label all re-render in
+Korean); description-scope within the CardHeader subtree.
+
+ChatMessageLog: pure-display scroll container with three
+render branches (backfill loading skeleton / empty placeholder
+/ populated message list with optional Load-older header).
+Tests drive the full prop union via a tiny Wrapper that hosts
+useRef so the scrollRef contract holds without parent
+boilerplate in every case. Cover: the role=log wrapper +
+aria-live="polite" + aria-label `Chat with <worker>`; the
+backfill loading branch (loading copy + 3-li skeleton +
+aria-hidden spinner + skeleton-wins-over-empty + skeleton-
+wins-over-populated); the empty branch (placeholder copy +
+aria-hidden Sparkles icon + no message-ul); the populated
+branch (one li per message + verbatim text in `<pre>` +
+justify-end for user / justify-start for worker + `You` header
+for user / workerName header for worker + HH:MM:SS timestamp
+format + `past` badge for backfill-source + document-order
+rendering + streaming-like append rerender); the Load-older
+header gate (`hasOlder && backfillSource === 'scrollback'`,
+all three off-branches asserted) + the loadingOlder swap
+(button vs `Loading older messages...` copy) + onLoadOlder
+fires on click + Enter, no-fire on initial render; the Load-
+older entry is the first li when present; onScroll fires per
+native scroll event (and reads currentTarget inside the
+handler so React's event recycling does not null it before
+assertion); rerender stability across the three branch
+transitions (loading-to-empty, empty-to-populated, replaced
+messages, loadingOlder=false-to-true); locale flip (empty
+copy + loading copy + Load-older label + aria-label all re-
+render in Korean).
+
 ## [1.11.59] - 2026-05-12 -- Three Web Sessions sub-panel components tested: SessionsHeader + SessionsListCard + SessionsTour
 
 **120 new tests** across three `web/src/components/` Sessions
