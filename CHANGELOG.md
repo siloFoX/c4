@@ -4,6 +4,60 @@
 
 (no entries — next release window)
 
+## [1.11.27] - 2026-05-12 -- Three Autonomous web hooks tested
+
+**30 new tests** across the three Autonomous-tab web hooks --
+the triple-fetch digest poller, the pause/resume toggle, and
+the per-escalation resolve flow. No production code changes
+-- pure test coverage so the digest's enabled-gated branching,
+the pause-toggle's path inversion + reset-before-send banner,
+and the resolve hook's modify-note validation, confirm gate,
+and optimistic remove are all locked in.
+
+- `web/src/lib/use-autonomous-digest.test.ts` -- 11 cases.
+  Idle slots (`autonomousEnabled=null`, `digest=null`,
+  `escalations=[]`, errors null) with `loading` flipping on
+  at mount; status.enabled=false blanks the digest +
+  escalations and skips the follow-up GETs; status.enabled=true
+  populates digest + escalations; escalations URL omits the
+  querystring when `showResolved=false`; appends `?status=all`
+  when `showResolved=true`; flipping `showResolved` mid-life
+  re-fetches with the new querystring; status fetch failure
+  routes through `digestError` (catch path); release-gate
+  proves `loading=true` while the status GET is in flight;
+  `setEscalations` exposed for optimistic mutation;
+  `refresh()` re-runs the triple-fetch on demand; the 30s
+  polling interval is scheduled and cleared on unmount.
+- `web/src/lib/use-autonomous-pause-toggle.test.ts` -- 8
+  cases. Idle (`pauseBusy=false`, `pauseMsg=null`,
+  `pauseFailed=false`); `digest=null` short-circuits before
+  any fetch + skips refresh; happy path POSTs
+  `/api/autonomous/pause` with body `{}` when
+  `digest.paused=false` and triggers refresh; path inverts
+  to `/api/autonomous/resume` when `digest.paused=true`;
+  server-error path flips the failure tone, surfaces the
+  banner, and skips refresh; release-gate proves
+  `pauseBusy=true` mid-flight and back to false on resolve;
+  reset-before-send clears the prior failure tone on a
+  fresh successful run; rerendering with a flipped
+  `digest.paused` prop swaps the path used by the next call.
+- `web/src/lib/use-escalation-resolve.test.ts` -- 11 cases.
+  Idle slots (`resolveBusy=null`, `resolveError=null`,
+  `resolveNotes={}`); modify without a note rejects without
+  prompting `window.confirm` and surfaces `resolveError`;
+  a whitespace-only note also fails the modify guard;
+  `window.confirm` rejection skips the POST entirely; happy
+  path POSTs `/api/autonomous/escalations/<id>` with body
+  `{ action }` when no note exists; trimmed note flows into
+  the body and is then dropped from `resolveNotes`;
+  optimistic remove drives `setEscalations(prev => filter)`
+  with the resolved id stripped; server failure leaves the
+  list intact and surfaces `resolveError`; release-gate
+  proves `resolveBusy=<id>` mid-flight and back to null on
+  resolve; `setResolveNotes` exposed in both value + updater
+  forms; a stale `resolveError` clears on the next successful
+  resolve.
+
 ## [1.11.26] - 2026-05-12 -- Three Workflow web hooks tested
 
 **40 new tests** across the three Workflow editor web hooks --
