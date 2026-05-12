@@ -4,6 +4,60 @@
 
 (no entries — next release window)
 
+## [1.11.26] - 2026-05-12 -- Three Workflow web hooks tested
+
+**40 new tests** across the three Workflow editor web hooks --
+workflows list, per-selection runs panel, and the run-now POST
+handler. No production code changes -- pure test coverage so
+the Workflow tab's mount-time auto-select, cross-selection reset
+effects, inputs-drawer JSON validation guards, busy slots, and
+encodeURIComponent on the workflow id are all locked in.
+
+- `web/src/lib/use-workflows-list.test.ts` -- 12 cases. Idle
+  slot (`workflows=[]`, `error=null`); mount-time GET hits
+  exactly `/api/workflows`; auto-selects the first workflow
+  when `getSelectedId()` returns null and fires the callback
+  exactly once; skips auto-select when an id is pre-selected
+  AND when the list comes back empty; tolerates a payload
+  missing the `workflows` array (defaults to `[]`); server
+  error surfaces through `error` and leaves `workflows`
+  empty; `setError` clears or sets the slot directly;
+  `setBusy` toggles the busy slot directly; `refresh()`
+  re-fetches and updates the list; busy flips true during
+  the in-flight fetch and back to false after release-gate;
+  a stale error clears on the next successful `refresh()`.
+- `web/src/lib/use-workflow-runs.test.ts` -- 10 cases. Idle
+  slot with `selectedId=null` (`runs=[]`, `expandedRunId=null`,
+  no fetch); on selectedId set, GETs
+  `/api/workflows/:id/runs` and populates `runs`;
+  `encodeURIComponent` on slashes / spaces in the id
+  (`a/b c` becomes `a%2Fb%20c`); tolerates a payload missing
+  the `runs` array; server failure swallows the error and
+  leaves `runs=[]`; `setRuns` lets the parent splice fresh
+  data without a refetch; `setExpandedRunId` toggles the
+  inline-detail slot; on `selectedId` flip to null, both
+  `runs` and `expandedRunId` reset; cross-selection refetches
+  and clears the expanded id; release-gate confirms a slow
+  fetch settles cleanly.
+- `web/src/lib/use-workflow-run.test.ts` -- 18 cases. Idle
+  slot (`inputsOpen=false`, `inputsJson='{}'`,
+  `inputsError=null`); `toggleInputs` flips the drawer;
+  `setInputsJson` updates the draft; `handleRun` is a
+  no-op when `selectedId=null`; happy path POSTs
+  `{ inputs: {} }` and then GETs the runs list, both with
+  `encodeURIComponent` on the id; when `inputsOpen=true` the
+  parsed `inputsJson` rides through as `inputs`; invalid
+  JSON, JSON null, JSON array, and JSON primitive each set
+  `inputsError` and skip the network entirely; when
+  `inputsOpen=false`, even garbage in the draft is ignored;
+  POST failure surfaces through `setError` and skips the
+  runs refetch; runs-refetch failure also surfaces through
+  `setError`; `setBusy(true)` fires before the POST and
+  `setBusy(false)` after settle (release-gate); a prior
+  `inputsError` clears on the next successful run; the
+  inputs drawer resets on `selectedId` change, including
+  flipping back to null.
+
 ## [1.11.25] - 2026-05-11 -- Four Wiki web hooks tested
 
 **41 new tests** across the four Wiki web hooks -- search, page
