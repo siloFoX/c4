@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.43] - 2026-05-12 -- Four Web Specialists tab components tested: SpecialistsView + SpecialistsList + SpecialistsDetailHeader + SpecialistsTagEditor
+
+**114 new tests** across the four Specialists-tab components
+that were still uncovered in `web/src/components/`. No
+production code changes -- pure test coverage. Each suite
+follows the patterns from `SessionsView.test.tsx`,
+`SessionsListSection.test.tsx`, and
+`MeetingsActionItemsPanel.test.tsx` (vi.mock to stub the
+component's hooks with per-test-tunable flags + vi.fn()
+handlers; real `useState` in the tag-editor hook stub so
+controlled-input typing keeps working; child panels stubbed
+to thin markers that expose props via `data-*` attributes +
+test buttons that fire the callbacks back into the parent;
+role + accessible-name queries before testid-only queries;
+`userEvent.setup()` for click + type; `act()` to flush the
+`c4:locale-changed` event-based re-render). The four new
+files (case counts):
+
+- `web/src/components/SpecialistsList.test.tsx` (28)
+- `web/src/components/SpecialistsDetailHeader.test.tsx` (22)
+- `web/src/components/SpecialistsTagEditor.test.tsx` (26)
+- `web/src/components/SpecialistsView.test.tsx` (38)
+
+Coverage per component spans the prop union, every render
+branch, every callback, the busy / disabled / error variants,
+plus the ARIA wiring (aria-label, role="alert" for the
+confirm-remove block). SpecialistsList: error / empty /
+loading branches, per-row tier badge + veto pill + probation
+badge + brain summary + sample total + underperform flag +
+tag chip overflow + selection highlight + click-to-select.
+SpecialistsDetailHeader: placeholder vs selected title,
+Remove button aria-label + disabled gating, confirm-remove
+block role + Cancel / Confirm wiring + busy gating.
+SpecialistsTagEditor: view vs edit branch, Edit / Cancel
+button label flip, toggleWithTags arg forwarding, controlled
+Input typing + placeholder + accessible name, busy gating on
+Input + Apply, handleSave wiring, tag chip view, empty-tags
+placeholder. SpecialistsView: hook + child stubbing for the
+nine-child composition, selection state flow, filter + add
+panel + refresh wiring, detail-pane mount gating on
+selection, tag-editor onSaved -> refresh, tag-editor onError
+-> action-error banner, enrichment payload pass-through,
+confirm-remove + score-reset handler forwarding, locale
+re-render. ASCII-only commit + docs. node_modules symlinked
+from sibling worktree for the run.
+
 ## [1.11.42] - 2026-05-12 -- Five Web Sessions tab components tested: SessionsView + SessionsRightPane + SessionsListSection + NewChatModal + SessionsAttachedSection
 
 **167 new tests** across the five Sessions-tab components that
