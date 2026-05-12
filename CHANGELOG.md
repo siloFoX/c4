@@ -4,6 +4,53 @@
 
 (no entries — next release window)
 
+## [1.11.31] - 2026-05-12 -- Two Specialists Add/Import hooks tested
+
+**27 new tests** across the two Specialists web hooks that own
+the bulk-import preview/apply flow and the add-or-propose flow.
+No production code changes -- pure test coverage. Each suite
+follows the established CRUD pattern from
+`use-meeting-template-editor.test.ts` plus the
+happy-path/error/busy gate pattern from
+`use-meeting-create.test.ts`.
+
+- `web/src/lib/use-specialists-import.test.ts` -- 14 cases.
+  The two-step import flow against `/api/specialists/import`.
+  Covers the idle initial state, the documented return-value
+  surface, invalid-JSON rejection without invoking fetch, the
+  dryRun=true preview POST verifying body shape (bundle, mode,
+  dryRun) and pathname, server-error path setting importError
+  and clearing busy, the reset-on-reload contract that wipes
+  prior error + preview before the next post, the in-flight
+  importBusy=true window via the release-gate Promise pattern,
+  rerendering with a fresh importMode and verifying the next
+  POST picks it up via the useCallback dep, the apply noop when
+  no bundle is parsed yet, confirm-rejected skipping both the
+  apply fetch and onChange, the +added ~updated -removed
+  summary string passed into window.confirm, confirm-accepted
+  posting dryRun=false with the same bundle + firing onChange
+  exactly once + overwriting importPreview, the apply
+  server-error path that surfaces importError without firing
+  onChange, and the apply-side release-gate busy window.
+- `web/src/lib/use-specialists-add-propose.test.ts` -- 13
+  cases. The twin add-or-propose flow against `/api/specialists`
+  and `/api/specialists/propose`. Covers the idle state across
+  all six exposed slots, the setJson / setAddError setters
+  driving their respective slots, handleAdd invalid-JSON
+  rejection without invoking fetch, the happy-path POST to
+  `/api/specialists` verifying body + pathname + form reset +
+  onAdded(specialist.id), the missing-specialist branch that
+  leaves json intact and skips onAdded, the 400 server-error
+  branch surfacing addError, the addBusy=true release-gate
+  window, handlePropose invalid-JSON rejection, the accepted
+  branch POSTing `{ candidate, brain: 'mock' }` and clearing
+  json + firing onAdded(candidateId), the rejected branch
+  setting proposeRejected + keeping json + skipping onAdded,
+  the per-call reset of proposeMsg + proposeRejected before
+  each invocation, the 500 server-error branch surfacing
+  addError with proposeMsg untouched, and the proposeBusy
+  release-gate window.
+
 ## [1.11.30] - 2026-05-12 -- Four generic UI keyboard hooks tested
 
 **76 new tests** across the four generic dialog/drawer/overlay
