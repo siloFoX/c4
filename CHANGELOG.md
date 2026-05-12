@@ -4,6 +4,86 @@
 
 (no entries -- next release window)
 
+## [1.11.41] - 2026-05-12 -- Four Web Meetings maintenance/template/recap/actions components tested: MeetingsMaintenancePanel + MeetingsTemplateEditor + MeetingsActionItemsPanel + MeetingsRecapPanel
+
+**150 new tests** across the four remaining uncovered
+maintenance / template-editor / recap / action-items
+components in `web/src/components/`. No production code
+changes -- pure test coverage. Each suite follows the
+patterns from `MeetingsContributePanel.test.tsx`,
+`MeetingsRetroActions.test.tsx`, and
+`MeetingsDetailBody.test.tsx` (vi.mock to stub the
+component's hook with per-test-tunable flags + vi.fn()
+handlers; real `useState` in the mock for hooks that own
+form fields so controlled inputs respond to typing /
+selecting; role + accessible-name queries before
+testid-only queries; `userEvent.setup()` for click,
+selectOptions, type, and keyboard; `act()` to flush the
+c4:locale-changed event-based re-render). The four new
+files (case counts):
+
+- `web/src/components/MeetingsMaintenancePanel.test.tsx` (50)
+- `web/src/components/MeetingsTemplateEditor.test.tsx` (48)
+- `web/src/components/MeetingsActionItemsPanel.test.tsx` (28)
+- `web/src/components/MeetingsRecapPanel.test.tsx` (24)
+
+Coverage per component spans the prop union, every render
+branch, every callback, and the busy / disabled / error
+tone variants. MeetingsMaintenancePanel: the collapsible
+heading toggle + aria-expanded; the four ops actions
+(integrity / FTS rebuild / hot backup / prune-old) each
+queried by tooltip title to stay stable across the busy
+ellipsis label swap; each handler asserted with vi.fn()
+on click; busy state disables every interactive control
+in its row; the backup path / force-overwrite checkbox /
+prune days / terminal-only / VACUUM controlled fields
+typed against real useState in the mock; dry-run vs
+destructive prune buttons asserted to call handlePrune
+with the matching boolean; the onPruned prop forwarded
+into useMeetingPrune. MeetingsTemplateEditor: open=false
+returns null; create vs edit mode swaps the heading copy
+(plain "New template" vs `tFormat`-rendered `Edit
+template "<name>"`) and the primary button label
+(Create vs Save changes) with Delete only appearing in
+edit mode; the close button's aria-label fires onClose;
+the four field setters (name / task / track /
+description) each fire on every keystroke and the
+controlled inputs reflect typed text; the track select
+exposes the auto / lightweight / standard / full option
+union; save stays disabled until both name + task have
+non-whitespace content; busy disables all four fields +
+both action buttons and swaps the primary button text
+to the ellipsis glyph; the failure banner uses the
+destructive tone and the success banner uses the muted
+tone; switching tpl from null to non-null on rerender
+flips the mode. MeetingsActionItemsPanel: null and
+zero-count actions render nothing; the all chip shows
+the total; per-type chips only render for non-zero
+counts; clicking a chip filters the rendered group
+lists, clicking the same chip again clears the filter,
+clicking the all chip clears from any filter; the
+useActionItemsExport hook stub captures both vi.fn()
+export handlers and asserts JSON + MD buttons fire them
+on click; the stage/round/specialistId trailer falls
+back to `?` when specialistId is null; owner @ chips
+only render when an owner is present; the filter state
+survives same-props rerenders. MeetingsRecapPanel: null
+gating and the no-firstTurn gating both return null;
+heading starts collapsed (aria-expanded=false, right
+chevron); clicking expands (aria-expanded=true, down
+chevron); each stage's firstTurn body is revealed with
+the specialistId (or `?` fallback) + the singular/plural
+"turn"/"turns" suffix on turnCount; the escalations
+section only appears when escalations is non-empty,
+each reason renders, and the terminal escalation gets
+the " (terminal)" suffix while non-terminal ones do
+not; stages with a null firstTurn are silently skipped
+inside the list; the expanded state survives
+same-props rerenders. Every suite also covers the
+locale flip via `act(() => setLocale('ko'))` and
+asserts the previously-rendered English copy
+disappears, exercising the useLocale subscription path.
+
 ## [1.11.40] - 2026-05-12 -- Four Web Meetings detail/retro components tested: MeetingsDetailBody + MeetingsRetroActions + MeetingsContributePanel + MeetingsPeerRetroControls
 
 **128 new tests** across the four remaining uncovered detail /
