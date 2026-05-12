@@ -4,6 +4,76 @@
 
 (no entries -- next release window)
 
+## [1.11.55] - 2026-05-12 -- Four Web Meetings sub-panel components tested: MeetingsLineageStrip + MeetingsPublishControls + MeetingsRunControls + MeetingsSearchFacets
+
+**115 new tests** across four `web/src/components/` Meetings
+sub-panel components. No production code changes -- pure test
+coverage. Each suite follows the same pattern as the 1.11.54
+Specialists sub-panel batch (ScoreHistory / SearchFilters /
+SummaryBar): the pure-display components (LineageStrip,
+SearchFacets) are driven by direct prop permutations, while the
+hook-owning components (PublishControls owns `useMeetingPublish`,
+RunControls owns `useMeetingRun`) get the hook stubbed via
+`vi.mock` with a per-test-tunable return value so the JSX wiring
+is exercised in isolation from the wiki-publish / meeting-run
+POSTs. `userEvent.setup()` for click / type / selectOptions /
+keyboard; `act()` to flush the `c4:locale-changed` event-based
+re-render. The four new files (case counts):
+
+- `web/src/components/MeetingsLineageStrip.test.tsx` (26)
+- `web/src/components/MeetingsPublishControls.test.tsx` (28)
+- `web/src/components/MeetingsRunControls.test.tsx` (27)
+- `web/src/components/MeetingsSearchFacets.test.tsx` (34)
+
+MeetingsLineageStrip: pure-display fork-chain strip that renders
+the meeting's ancestry as a row of buttons (current entry
+highlighted, arrows between entries, optional truncation
+banner). No hook mocking needed -- tests drive the full
+`LineageResponse | null` prop union, the `depth <= 1` /
+`depth > 1` branches, the `chainTruncated` banner, the
+title-attribute composition, the click + keyboard activation
+payloads (`onNavigate(id)` for any chain entry), and the locale
+flip via `useLocale`.
+
+MeetingsPublishControls: hook-owning panel that wires the
+`useMeetingPublish` cluster -- Publish-to-wiki button, optional
+`gitCommit` / `gitPush` checkboxes, success / failure message
+banner. The hook is stubbed with a tunable `busy / msg / failed /
+gitCommit / gitPush` shape so the JSX wiring is exercised
+without booting MSW. Tests cover the meeting-id forwarding, the
+aria-label + visible label on the button, both checkbox labels +
+checked states, the `handlePublish` click + Enter activation,
+both `toggleGitCommit` / `toggleGitPush` directions (set vs
+unset), the busy=true gates (button + both checkboxes), the
+success-message muted styling vs the failure-message destructive
+styling, the no-message branch, and the locale flip.
+
+MeetingsRunControls: hook-owning panel that wires the
+`useMeetingRun` cluster -- brain selector (mock / claude) +
+Run-+-auto-finalize button + error banner. The hook is stubbed
+with a tunable `busy / error / brain` shape. Tests cover the
+meeting-id forwarding, the option list on the brain select, the
+brain prop reflected as the selected value, the
+`setBrain('mock')` / `setBrain('claude')` payloads, the Run
+button aria-label + visible label, the `handleRun` click + Enter
+activation, the busy=true gates (button + select), the error
+span destructive styling, the no-error branch, and the locale
+flip.
+
+MeetingsSearchFacets: pure-display facet chip row that renders
+the FTS response counts header + the status / track filter
+chips with the count badge format. No hook mocking needed --
+tests drive the full prop union, the `total === null` vs number
+header branches, the empty-facets vs populated-facets branches,
+the one-chip-per-entry rendering with the `"k=n"` text + the
+i18n-formatted title attribute, the selected-chip highlight
+class, both toggle directions on both selectors (`onStatusToggle`
+sets the chip value when none was active and the empty string
+when the chip itself was active; same for `onTrackToggle`), the
+keyboard activation, the chip-isolation invariant (clicking a
+status chip never fires `onTrackToggle` and vice versa), and the
+locale flip on the title attribute.
+
 ## [1.11.54] - 2026-05-12 -- Three Web Specialists sub-panel components tested: SpecialistsScoreHistory + SpecialistsSearchFilters + SpecialistsSummaryBar
 
 **104 new tests** across three `web/src/components/` Specialists
