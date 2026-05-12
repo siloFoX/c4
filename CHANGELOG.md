@@ -4,6 +4,81 @@
 
 (no entries -- next release window)
 
+## [1.11.57] - 2026-05-12 -- Three Web Meetings sub-panel components tested: MeetingsStagesView + MeetingsStateActions + MeetingsStuckBanner
+
+**92 new tests** across three `web/src/components/` Meetings
+sub-panel components. No production code changes -- pure test
+coverage. Each suite follows the same pattern as the 1.11.56
+Meetings search sub-panel batch (SearchFilterRow / SearchInput /
+SearchSection): the pure-display components (StagesView,
+StuckBanner) are driven by direct prop permutations, while the
+hook-owning component (StateActions owns
+`useMeetingStateAction`) gets the hook stubbed via `vi.mock`
+with a per-test-tunable return value so the JSX wiring is
+exercised in isolation from the `/api/meetings/:id/<action>`
+POST. `userEvent.setup()` for click / keyboard; `act()` to
+flush the `c4:locale-changed` event-based re-render. The three
+new files (case counts):
+
+- `web/src/components/MeetingsStagesView.test.tsx` (21)
+- `web/src/components/MeetingsStateActions.test.tsx` (42)
+- `web/src/components/MeetingsStuckBanner.test.tsx` (29)
+
+MeetingsStagesView: pure-display per-stage card list. Parent
+owns both the `stages` array and the parallel `transcripts`
+matrix (one `Turn[]` per stage, by index). Tests drive the full
+prop union: empty stages, single + multi-stage rosters, the
+`consensus.reached` toggle (`reached` vs `pending` phrasing),
+the accepts / objects / missing tally counts, the roster
+comma-join (using the `id` slot, not `displayName`), the
+per-turn rendering (round / specialist / text), the
+"(no turns yet)" placeholder, the
+transcripts-shorter-than-stages branch (falls through to the
+`[]` default), the duplicate-stage-name key handling, the
+multi-stage DOM order assertion, the rerender stability
+contracts, and the locale-flip (no `t()` lookups -- assert
+locale-invariant copy survives).
+
+MeetingsStateActions: hook-owning state-machine controls that
+drive a meeting's lifecycle. Stub `useMeetingStateAction` with
+a per-test-tunable shape so the JSX wiring is isolated from the
+`/api/meetings/:id/<action>` POST. Tests cover both `mode`
+branches: `pending` renders only the Start button (with the
+`meetings.tooltip.startManual` title and the
+`meetings.contribute.start.label` aria-label); `in-progress`
+renders four buttons in order (Advance / Next round / Escalate
+/ Abort) each with their own i18n aria-label + tooltip. Click
+forwards `fire(<action>)` with no confirm for advance /
+next-round, and `fire('escalate', <i18n confirm>)` /
+`fire('abort', <i18n confirm>)` for the destructive
+transitions. Per-action busy assertion: `busy === <action>`
+flips that single button's visible label to the ellipsis
+spinner while leaving sibling labels intact, and disables ALL
+four buttons in the row regardless of which is busy. Error
+span renders with the destructive class on both branches; Abort
+button uses the `destructive` variant class. Lifecycle: no
+fires on initial render, no duplicate fires on rerender,
+mode-flip swaps the rendered button set, busy-flip swaps the
+spinner label, locale flip drops the English aria-label.
+
+MeetingsStuckBanner: pure-display chain-of-buttons rendered
+above the master/detail layout when the daemon reports any
+meeting stuck `>1h`. Tests cover the hidden branches (`stuck =
+null`, `stuck.count === 0` -- including the defensive case
+where `count` is 0 but the array has entries; `count` is the
+gate), the visible branches (header copy with count + "stuck
+>1h:", one button per entry up to a 5-entry `slice(0, 5)` cap),
+the per-entry button label "<id> (<age>h)" with `toFixed(1)`
+rounding, the title composition ("<title> · <status> · <age>h
+old"), the warning-icon `aria-hidden` guard, the overflow
+indicator (`count > 5` reveals "... and N more" with `N =
+count - 5`, NOT `array.length - 5`), the `onNavigate(id)`
+payload (click + Enter + Space), the rerender stability
+contracts (same-props no duplicate, new-array replaces
+buttons, stuck->null drops banner, count<=5 -> count>5 reveals
+overflow), and the locale flip (no `t()` lookups -- assert
+locale-invariant copy survives).
+
 ## [1.11.56] - 2026-05-12 -- Three Web Meetings search sub-panel components tested: MeetingsSearchFilterRow + MeetingsSearchInput + MeetingsSearchSection
 
 **98 new tests** across three `web/src/components/` Meetings
