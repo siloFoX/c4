@@ -4,6 +4,62 @@
 
 (no entries -- next release window)
 
+## [1.11.56] - 2026-05-12 -- Three Web Meetings search sub-panel components tested: MeetingsSearchFilterRow + MeetingsSearchInput + MeetingsSearchSection
+
+**98 new tests** across three `web/src/components/` Meetings
+search sub-panel components. No production code changes -- pure
+test coverage. Each suite follows the same pattern as the 1.11.55
+Meetings sub-panel batch (LineageStrip / PublishControls /
+RunControls / SearchFacets): the pure controlled-input components
+(SearchFilterRow, SearchInput) are driven by direct prop
+permutations, while the composition component (SearchSection)
+stubs its three children (SearchInput / SearchFilterRow /
+SearchFacets) via `vi.mock` to thin markers so the JSX wiring +
+prop pass-through + conditional rendering branches are exercised
+in isolation. `userEvent.setup()` for click / type / selectOptions
+/ keyboard; `act()` to flush the `c4:locale-changed` event-based
+re-render. The three new files (case counts):
+
+- `web/src/components/MeetingsSearchFilterRow.test.tsx` (42)
+- `web/src/components/MeetingsSearchInput.test.tsx` (24)
+- `web/src/components/MeetingsSearchSection.test.tsx` (32)
+
+MeetingsSearchFilterRow: pure controlled filter-chip strip --
+status / track selects + since / until date inputs + an optional
+clear-dates button. Tests drive the full prop union: every option
+on each select, every controlled value reflection, every callback
+payload (including the empty-string "any" path), the
+clear-dates visibility branches (neither / since-only / until-only
+/ both / status+track-only), the clear-dates emit (both date
+setters fire with ''), the type="button" / type="date" attribute
+guards, the no-op rerender + isolated callback contracts, and the
+locale flip via `useLocale`.
+
+MeetingsSearchInput: pure controlled search text input + X-clear
+button + "searching" indicator. Tests cover the full prop union:
+empty vs populated value, idle vs searching indicator, the
+per-keystroke onChange contract (incl. starting from a populated
+controlled value), the clear-button visibility branch + the clear
+emit (`''`), the searching indicator branch in isolation from
+value, the type="button" guard on the clear button, the aria-hidden
+decorative icon, the rerender stability contracts, and the locale
+flip.
+
+MeetingsSearchSection: composition shell that stitches the search
+input + (when `query.trim()` is non-empty) the filter row +
+(when both `searchResults` and `searchFacets` are non-null) the
+facet chip row + (when `searchError` is non-null) the destructive
+error banner. Each child is stubbed via `vi.mock` to a thin marker
+that publishes its incoming props as `data-*` attributes and
+exposes click-driven probes for every callback prop. Tests assert
+composition + prop pass-through (query / searching to input,
+status/track/since/until to filter row, resultCount + total +
+facets + selectors to facets), the empty-query vs populated-query
+branch, the whitespace-only-query branch (still hides filter row),
+the results+facets combined branch, the error-banner branch (in
+isolation + alongside results), and the rerender + locale-flip
+contracts.
+
 ## [1.11.55] - 2026-05-12 -- Four Web Meetings sub-panel components tested: MeetingsLineageStrip + MeetingsPublishControls + MeetingsRunControls + MeetingsSearchFacets
 
 **115 new tests** across four `web/src/components/` Meetings
