@@ -4,6 +4,93 @@
 
 (no entries -- next release window)
 
+## [1.11.59] - 2026-05-12 -- Three Web Sessions sub-panel components tested: SessionsHeader + SessionsListCard + SessionsTour
+
+**120 new tests** across three `web/src/components/` Sessions
+sub-panel components. No production code changes -- pure test
+coverage. Each suite follows the same pattern as the 1.11.58
+Sessions sub-panel batch (AttachedRowActions / ComparisonCard /
+EmptyAttachBanner / EmptyPanel): pure-display components are
+driven by direct prop permutations, while composite shells get
+their children stubbed via `vi.mock` with prop-recording markers
+so the wiring is exercised in isolation from the children's own
+coverage. `userEvent.setup()` for click / keyboard activation;
+`act()` to flush the `c4:locale-changed` event-based re-render.
+The three new files (case counts):
+
+- `web/src/components/SessionsHeader.test.tsx` (40)
+- `web/src/components/SessionsListCard.test.tsx` (35)
+- `web/src/components/SessionsTour.test.tsx` (45)
+
+SessionsHeader: pure controlled component for the master-pane
+card header -- title with FolderTree icon, search input, count
+display, and three action buttons (New Chat / Attach new /
+Refresh). Tests drive all eight props directly. Cover: the
+i18n panel title, the FolderTree title icon aria-hidden guard,
+the search input role/aria-label/placeholder and controlled
+value reflection (including the empty case + the no-internal-
+mutation assertion when the parent does not echo the keystroke
+back); per-keystroke onQuery fan-out (one call per character);
+the `{totalFiltered}/{total}` count pair in three flavours
+(filtered subset, zero/zero, n/n); exactly three action buttons
+in the footer; the New Chat / Attach new labels; the Refresh
+button label flipping between idle (`Refresh`) and busy
+(`Loading...`); the disabled flag tracking `loading` only on
+the Refresh button (the other two stay enabled while loading);
+onNewChat / onAttachNew / onRefresh fire once per click with
+no cross-fire, plus the busy-Refresh no-fire contract; Enter /
+Space keyboard activation on each button; same-props rerender
+no-duplicate contract, controlled-value rerender update, and
+the loading rerender flip; locale flip (title, placeholder,
+aria-label, button labels all re-render in Korean).
+
+SessionsListCard: thin composite shell that forwards every
+prop down to one of three children (SessionsHeader,
+SessionsAttachedSection, SessionsListSection). All three
+children are stubbed via `vi.mock` to thin prop-recording
+markers so this suite asserts only the wiring + the outer Card
+wrapper without re-exercising the children's own tests. Cover:
+each child renders exactly once; the master-pane width classes
+(`md:w-80 lg:w-96`) + the flex-column min-h-0 layout on the
+outer Card; every header prop forwards through (query,
+totalFiltered, total, loading, onQuery, onNewChat, onAttachNew,
+onRefresh); every attached-section prop forwards through
+(collapsed both ways, filtered list, error, selectedName both
+null and non-null, onToggle, onSelect, onAttachClick, onDetach
+all invokable with the expected payload); every list-section
+prop forwards through (filteredGroups, error, loading, collapsed
+map by reference, selectedSessionId both null and non-null,
+onToggleGroup with the group key, onSelect with the session id);
+the no-cross-wire contract between attached-section onSelect
+and list-section onSelect (they target different callbacks);
+same-props rerender no-duplicate + new-prop rerender updates
+for each of the three children.
+
+SessionsTour: self-contained three-step onboarding modal. It
+owns one piece of internal state (the current step index) and
+consumes TOUR_STEPS + onDismiss from props. Tests drive the
+step machine via user-event clicks on Next / Skip / Done / X,
+assert the per-step copy, the dialog scaffolding, and the
+dismiss callback wiring on every path. Cover: single
+role="dialog" with aria-modal=true and the i18n `Sessions
+onboarding` aria-label; the dimming overlay classes
+(`z-40 bg-black/30 fixed inset-0`); step 0 welcome copy
+(title, body, `1/3` counter) and the absence of later step
+titles on initial render; the X dismiss button with i18n
+aria-label, the Skip button on every step, the Next button
+(not Done) on the first two steps, the Done button (not Next)
+on the final step; exactly three buttons on a non-final step;
+onDismiss firing once for X / Skip / Done on every step
+(including the middle), and not firing on Next; Next advances
+through `2/3` -> `3/3` with the attach + view step copy each
+in turn; the welcome copy is dropped after advancing past it;
+the X close-icon aria-hidden guard; keyboard activation
+(Enter on Next advances; Space on Skip dismisses; Enter on
+Done dismisses); same-props rerender no-duplicate + step
+index preserved across rerender; locale flip (welcome title,
+dialog aria-label, Skip / Next labels, dismiss aria-label all
+re-render in Korean).
+
 ## [1.11.58] - 2026-05-12 -- Four Web Sessions sub-panel components tested: SessionsAttachedRowActions + SessionsComparisonCard + SessionsEmptyAttachBanner + SessionsEmptyPanel
 
 **137 new tests** across four `web/src/components/` Sessions
