@@ -4,6 +4,119 @@
 
 (no entries -- next release window)
 
+## [1.11.65] - 2026-05-12 -- Five high-value Web component RTL/jsdom test suites added: ConfirmDialog + Toast + ErrorBoundary + AccountMenu + KeyboardShortcutsModal
+
+**130 new tests** across five untested `web/src/components/*.tsx`
+files. No production code changes -- pure test coverage. The five
+new files (case counts):
+
+- `web/src/components/ConfirmDialog.test.tsx` (37 cases) --
+  covers the shared confirm overlay used for destructive actions:
+  the `open=false` null-return branch (twice -- container null +
+  no `role=dialog`); the dialog scaffolding (`role=dialog`,
+  `aria-modal=true`, `aria-label=title`, the `tabIndex=-1`
+  programmatic-focus surface, the heading rendering); the
+  optional description paragraph + Preview block (with the
+  localized "Preview" label and arbitrary ReactNode preview
+  payloads); the destructive variant (border class + AlertTriangle
+  icon + destructive button variant) vs the default variant
+  (no border, no icon, primary button variant); the localized
+  Confirm / Cancel default labels + the override
+  `confirmLabel` / `cancelLabel` paths + the localized Close (X)
+  IconButton; the callback wiring (Confirm / Cancel / Close X /
+  backdrop click) + the inner-card click stopPropagation; the
+  Escape-to-close path through `useDialogA11y`; the on-mount
+  focus on the dialog itself; the busy gate (Confirm / Cancel /
+  Close all disabled, backdrop click suppressed, Confirm click
+  suppressed); the rerender stability contract (same-prop
+  rerender does not duplicate, `open=true -> false` drops the
+  dialog, new title swaps the aria-label + heading); and the
+  locale-flip re-render (default Confirm / Cancel / Preview
+  labels swap to ko while the consumer-supplied
+  `confirmLabel` stays unchanged).
+- `web/src/components/Toast.test.tsx` (24 cases) -- covers the
+  pure-display banner + auto-dismiss timer: the `role=status`
+  liveness contract; the message-verbatim render (including a
+  200-character message and an empty-string edge case); the
+  three tone branches (success -> emerald, error -> destructive,
+  info -> sky) with cross-tone negative assertions; the icon
+  rendering as a single aria-hidden SVG; the `setTimeout`
+  side effect (no synchronous fire on mount, fires exactly once
+  at the configured duration, default 3000ms, custom durations
+  honoured, no recurring fire after the first); the unmount
+  cleanup (no fire after unmount); and the rerender contract
+  for new messages / new tones / new `onDismiss` references /
+  new durations restarting the timer. Asserts the component
+  renders no clickable button (the parent owns the dismiss
+  control). Uses `vi.useFakeTimers()` for deterministic timer
+  control.
+- `web/src/components/ErrorBoundary.test.tsx` (15 cases) --
+  covers the dashboard's top-level catch-all: the normal
+  pass-through (children render verbatim, no fallback heading,
+  no console.error); the caught-error fallback (heading +
+  formatted "The dashboard hit an error rendering this view:
+  <msg>" paragraph + tabbable stack-trace `<pre>` + the
+  original child markup dropped); the
+  `componentDidCatch` `console.error` tag (`[ErrorBoundary]`);
+  the recovery actions (Try Again clears the captured error +
+  re-renders the children when the throw flag is off; Try
+  Again keeps the fallback when the child still throws;
+  Reload calls `window.location.reload()` exactly once); the
+  empty-message edge case (`new Error()` with no message
+  still mounts the heading); and the multi-instance
+  isolation contract (only the throwing branch shows the
+  fallback). Suppresses React's deliberate-throw console
+  noise via a per-test `vi.spyOn(console, 'error')`.
+- `web/src/components/AccountMenu.test.tsx` (24 cases) --
+  covers the bottom-of-sidebar avatar + dropdown: the
+  trigger render (i18n aria-label including the user, inline
+  email + role badge, "No role" fallback when role is null,
+  initials derived from the email user, "?" initials fallback
+  when user is null, collapsed mode hiding the inline name +
+  chevron, `aria-haspopup="menu"` + `aria-expanded="false"`
+  before open, no menu container before open); the open
+  behaviour (trigger click opens, `aria-expanded` flips to
+  true); the items list (Profile / Preferences / Keyboard
+  shortcuts / Help center / Sign out in order when
+  `onOpenPreferences` is provided; Preferences hidden when
+  the prop is omitted with item count 4; Profile disabled;
+  Sign out has the danger variant); the callback wiring
+  (`onLogout` fires on Sign out, `onOpenPreferences` fires on
+  Preferences, disabled Profile fires nothing, the help-event
+  dispatcher fires `HELP_EVENT_OPEN_SHORTCUTS` /
+  `HELP_EVENT_OPEN_DRAWER` for Keyboard shortcuts / Help
+  center); the close behaviour (item activation closes,
+  Escape closes, click-outside closes); the locale-flip
+  re-render of the trigger aria-label; and a different
+  mocked identity replacing the user + role on remount.
+  Stubs `useAuthIdentity` + `dispatch-event` via `vi.mock`
+  with per-test tunable values.
+- `web/src/components/KeyboardShortcutsModal.test.tsx`
+  (30 cases) -- covers the `?`-key cheat sheet overlay: the
+  `open=false` null-return branch; the dialog scaffolding
+  (single dialog, `role=dialog`, `aria-modal=true`, the
+  localized "Keyboard shortcuts" aria-label + heading text,
+  the `data-shortcuts-modal` hook, the fixed inset-0 overlay
+  classes); the SHORTCUT_ROWS table (one `<tr>` per entry,
+  one `<kbd>` per entry, every key glyph and description from
+  the canonical list rendered); the close button (single
+  IconButton, localized "Close" aria-label); the close paths
+  (X click, backdrop click, Escape key); the inner-card
+  click stopPropagation; the no-fire on initial render and
+  no-fire on Escape when `open=false`; the rerender stability
+  (same-prop no duplicate, `open=true -> false` drops the
+  dialog, `false -> true` reveals it, new `onClose` rebinds
+  the close target); and the locale flip (aria-label +
+  description copy swap to ko while kbd glyphs stay in their
+  English form because they are not localized).
+
+The 130 cases use only the existing test infrastructure
+(`@testing-library/react`, `userEvent`, `setLocale`, `vi.mock`
+for hook stubs, `vi.useFakeTimers()` for the Toast timer); no
+new packages, no scaffolding outside `web/src/components/`. All
+new tests pass; full web suite (4,334 tests across 201 files)
+remains green.
+
 ## [1.11.64] - 2026-05-12 -- Four small Web lib hooks tested: lib/use-toggle-reset-on-change.ts + lib/use-scroll-into-view-on-open.ts + lib/use-feature-id-from-hash.ts + lib/use-theme.ts
 
 **36 new tests** across four small `web/src/lib/` hook modules. No
