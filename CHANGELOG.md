@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.36] - 2026-05-12 -- Three Web layout components tested: AppHeader + TopTabs + Sidebar
+
+**62 new tests** across the three previously uncovered layout
+components in `web/src/components/layout/`. No production code
+changes -- pure test coverage. Each suite follows the patterns
+from `button.test.tsx`, `dropdown-menu.test.tsx`, and
+`tooltip.test.tsx` (concise `describe` block + RTL
+`render` / `screen` / `within` + `userEvent.setup()` for click
+and keyboard activation, role and accessible-name queries
+ahead of testid queries, `vi.fn()` callbacks for handler
+assertions). The three new files (case counts):
+
+- `web/src/components/layout/AppHeader.test.tsx` (21)
+- `web/src/components/layout/TopTabs.test.tsx` (16)
+- `web/src/components/layout/Sidebar.test.tsx` (25)
+
+Coverage per component spans the props union (sidebar toggle
+labels, top-view selection, badges per tab, view-mode tablist,
+collapsed icon-rail flag, account-menu authed gating),
+keyboard activation (Enter / Space on the tabs), ARIA
+attributes (`aria-selected`, `aria-pressed`,
+`aria-keyshortcuts="Control+B"`, `aria-label` on every icon
+button), conditional branches (logged-in vs logged-out
+header; collapse handle gated on `onToggleCollapsed`;
+account menu gated on `onLogout`; `WorkerList` vs
+`HierarchyTree` swap on `mode`), and the `null` early return
+when `open=false`. Heavy children (`AccountMenu`,
+`WorkerList`, `HierarchyTree`) and the API-polling
+`useNavBadgeCounts` hook are stubbed via `vi.mock` so the
+tests stay focused on the layout components' own contracts;
+those modules have their own dedicated test files.
+
 ## [1.11.35] - 2026-05-12 -- Two Web UI primitives tested: DropdownMenu + Tooltip
 
 **39 new tests** across the two remaining uncovered UI
