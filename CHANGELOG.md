@@ -4,6 +4,83 @@
 
 (no entries -- next release window)
 
+## [1.11.49] - 2026-05-12 -- Four more Web feature pages tested: Batch + Cleanup + Swarm + TokenUsage
+
+**130 new tests** across four more `web/src/pages/` feature pages,
+extending the 1.11.47 / 1.11.48 Web page-test coverage. No production
+code changes -- pure test coverage. Each suite follows the same
+pattern as the prior two batches: `vi.mock` to stub each page's
+hook(s) with per-test-tunable state vars + `vi.fn()` handlers; heavy
+child components (`PageDescriptionBanner`, `HelpUIRoot`,
+`ConfirmDialog`) stubbed to thin markers; `userEvent.setup()` for
+click + type; `act()` to flush the `c4:locale-changed` event-based
+re-render. The four new files (case counts):
+
+- `web/src/pages/Batch.test.tsx` (37)
+- `web/src/pages/Cleanup.test.tsx` (31)
+- `web/src/pages/Swarm.test.tsx` (29)
+- `web/src/pages/TokenUsage.test.tsx` (33)
+
+Batch: useBatchSubmit + useToast composition. Covers PageFrame
+title + description, Dispatch button (idle + busy labels, fires
+submit, disabled + animate-spin while busy), the count/file mode
+toggle (default count mode, flips to file mode, count input hides
+in file mode), controlled task / count / branch / profile inputs,
+auto-mode checkbox toggle, try-example prefill in both modes,
+ErrorPanel via role=alert, Results panel (header, summary line
+with ok/fail/total, one row per outcome, emerald vs destructive
+tone classes, created vs error vs "failed" fallback labels),
+toast slot showing/hiding, locale flip.
+
+Cleanup: useCleanup + useToast composition + a stubbed
+ConfirmDialog that surfaces preview + confirm/cancel buttons.
+Covers PageFrame title + description, Dry-run button (fires
+preview, disabled while loading or busy, animate-spin while
+loading), Clean up button (disabled when nothing to clean up,
+disabled while loading, enabled with items, fires commit,
+disabled + animate-spin while busy), ErrorPanel via role=alert,
+LoadingSkeleton vs EmptyPanel branches, ListPanel rendering for
+branches/worktrees/directories (count in header, one li per
+item, hidden when group is empty), confirm dialog (hidden when
+confirmOpen=false, visible when true, preview groups inside,
+fires executeCleanup on confirm, fires setConfirmOpen(false) on
+cancel), toast slot showing/hiding, locale flip.
+
+Swarm: single-hook (useSwarm) wrapping the coupled /api/list +
+/api/swarm fetches. Covers PageFrame title + description,
+Refresh button via sr-only label (disabled without selection,
+enabled when worker selected, disabled while loading,
+animate-spin while loading, fires refresh), the root-worker
+select (placeholder option, one option per worker, fires
+setSelected on change, reflects selected prop on controlled
+value), ErrorPanel via role=alert, LoadingSkeleton vs EmptyPanel
+branches, swarm panel title formatting with selected name, root
+node rendering from data.root or fallback to nodes[0], status
+badge + branch label conditional rendering, recursive TreeNode
+indentation for nested children, non-array children defensive
+guard, locale flip.
+
+TokenUsage: two-hook composition (useTokenUsage +
+useTokenUsageBreakdowns). Covers PageFrame title + description,
+the four day-range buttons (Today/7/30/90, flips active variant
+on click), per-task checkbox toggle, Refresh button via sr-only
+label (fires refresh, disabled + animate-spin while loading),
+LoadingSkeleton branch, ErrorPanel via role=alert, the total
+stat (formatted number + optional input/output sub-totals),
+By-worker panel (header count, EmptyPanel branch, one row per
+worker), By-day panel (header count, byDay.empty hint, one row
+per day), per-task table (hidden when toggle off, header + rows
+when on, dash fallback for missing worker), tier-quota panel
+(hidden when quota null, hidden when tiers undefined, one row
+per tier, used/limit number rendering), locale flip.
+
+Total Web test count grows from **2605** to **2735**. Whole
+suite still green (`npm --prefix web test` -> 148 files /
+2735 tests). One symlink (`web/node_modules` ->
+`/root/c4/web/node_modules`) is set up in the worktree only
+so the existing dependency tree is shared; the symlink is
+gitignored.
+
 ## [1.11.48] - 2026-05-12 -- Four more Web feature pages tested: Plan + Morning + Scribe + Workspaces
 
 **144 new tests** across four `web/src/pages/` feature pages. No
