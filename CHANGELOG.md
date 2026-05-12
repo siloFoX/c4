@@ -4,6 +4,96 @@
 
 (no entries -- next release window)
 
+## [1.11.54] - 2026-05-12 -- Three Web Specialists sub-panel components tested: SpecialistsScoreHistory + SpecialistsSearchFilters + SpecialistsSummaryBar
+
+**104 new tests** across three `web/src/components/` Specialists
+sub-panel components. No production code changes -- pure test
+coverage. Each suite follows the same pattern as the 1.11.53
+Specialists sub-panel batch (ListCardHeader / ListTitleBar /
+MetadataPanel / PromptPanel): the pure-display / pure-controlled
+components (ScoreHistory, SearchFilters) are driven by direct
+prop permutations, while the one hook-owning component
+(SummaryBar) gets `useSpecialistsSummary` stubbed via `vi.mock`
+with a per-test-tunable return value so the JSX wiring is
+exercised in isolation from the network. `userEvent.setup()` for
+click / type / selectOptions; `act()` to flush the
+`c4:locale-changed` event-based re-render. The three new files
+(case counts):
+
+- `web/src/components/SpecialistsScoreHistory.test.tsx` (39)
+- `web/src/components/SpecialistsSearchFilters.test.tsx` (30)
+- `web/src/components/SpecialistsSummaryBar.test.tsx` (35)
+
+SpecialistsScoreHistory: pure-display panel that renders the
+rolled-up byDomain / byStage score history with the inline
+ScoreBar widget plus the operator reset-score confirm flow. No
+hook mocking needed -- the test drives the full Specialist
+record shape through fixture variants. Covers the empty-history
+fallback copy (and the suppressed wrapper that goes with it),
+the byDomain alone vs byStage alone vs both populated header
+rendering, the lastUpdated audit line interpolated with the
+timestamp vs the noUpdates fallback, the by-domain / by-stage
+section headers, one listitem per entry, alphabetical sort by
+key, the per-entry score value text (two-decimal padded), the
+n=samples chip with the lookup key fallback to 0, the font-mono
+key label per row, the Reset score button rendered when
+confirmResetId does not match, the score-reset tooltip on the
+button title, the Wipe? confirm row replacing the button when
+confirmResetId equals the specialist id (with Cancel + Confirm
+buttons), Cancel / Confirm disabled gating on resetBusy, every
+callback payload (onConfirmReset(id) on Reset score,
+onConfirmReset(null) on Cancel, onScoreReset(id) on Confirm),
+rerendering flips on confirmResetId / specialist replacements /
+history -> empty drops the wrapper, and the locale flip.
+
+SpecialistsSearchFilters: the master-pane search input + tier
+select + veto-only checkbox + filtered/total count display.
+Pure controlled JSX -- parent owns the filter / tierFilter /
+vetoOnly state. No hook mocking needed. Covers the search input
+aria-label + placeholder, the controlled value reflecting the
+filter prop (empty + populated), the clear-filter X button
+hidden when filter is empty + visible when populated, the
+onFilter('') payload on clear-button click, the onFilter
+per-character payload on keystroke typing (asserted via
+toHaveBeenNthCalledWith), the tier select aria-label, one
+option per TIER_BADGE key plus the leading any fallback, the
+selected option reflecting tierFilter, the onTierFilter payload
+on selectOptions, the veto-only checkbox aria-label + checked
+state reflecting vetoOnly, onVetoOnly(true) / onVetoOnly(false)
+on toggle, the filtered/total count text in every combination
+(0/0, mid, full), no callback fires on mount, rerendering with
+new filter / tierFilter / counts updates the rendered widgets,
+and the locale flip.
+
+SpecialistsSummaryBar: the Phase-6.14 organism summary bar that
+self-polls `/api/specialists/summary` and renders nothing while
+the endpoint is unreachable. The `useSpecialistsSummary` hook is
+stubbed with a per-test-tunable return value via a module-scope
+`hookValue` so each branch is driven independently. Covers the
+null-hides branch (returns null when the hook returns null),
+the registry count + specialists label, the meetings count +
+meetings label, the conditional veto-count clause (hidden at 0,
+visible + interpolated when positive), the conditional recent24h
+clause, the underperformers chip (hidden at 0, visible + amber
+tone when positive), the persist segment hidden when omitted,
+the persist disabled clause + amber tone, the persistRows
+clause, the persistRowsUnknown fallback for both
+`rowCount: null` and `rowCount` omitted, the dbSizeKb clause
+under 1 MB vs dbSizeMb over 1 MB, dbSize clause hidden when
+omitted, the amber-tone flip on the persistRows chip when
+dbSizeBytes exceeds 100 MB, the audit entries clause from
+auditLog.entries + the appended audit bytes MB clause when
+bytes exceed 1 MB (and the omitted clause when below), the
+amber-tone flip on the audit chip, the backup age clause (hours
+under 1 day, days at/above 1 day), the amber-tone flip when
+backup age exceeds 7 days, the backup clause hidden when
+lastKnownGood.exists is false or absent, the multi-segment
+rendering when every persist sub-field is populated, and the
+locale flip.
+
+`npm test` from `/web`: 168 files / 3391 tests pass (was
+165 / 3287 before the three new files; +104 cases here).
+
 ## [1.11.53] - 2026-05-12 -- Four Web Specialists sub-panel components tested: SpecialistsListCardHeader + SpecialistsListTitleBar + SpecialistsMetadataPanel + SpecialistsPromptPanel
 
 **137 new tests** across four `web/src/components/` Specialists
