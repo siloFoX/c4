@@ -4,6 +4,64 @@
 
 (no entries -- next release window)
 
+## [1.11.71] - 2026-05-12 -- Web component RTL/jsdom test suite added: SettingsView
+
+**Versions 1.11.67 / 1.11.68 / 1.11.69 are reserved for parallel
+workers running in the same dispatch window.** This entry covers
+the auto-w47 worker's slice (1 file, 65 new cases).
+
+**65 new tests** across one untested `web/src/components/*.tsx`
+file. No production code changes -- pure test coverage. The new
+file (case count):
+
+- `web/src/components/SettingsView.test.tsx` (65 cases) -- covers
+  the preferences pane that ships from App.tsx as a controlled,
+  prop-driven view. `resetPreferences` is the only side-effect
+  call the component makes; it is stubbed via `vi.mock` +
+  `vi.importActual` so the test keeps the live `DEFAULT_THEME` /
+  `DEFAULT_SIDEBAR_MODE` / `DEFAULT_DETAIL_MODE` constants while
+  only the side-effect function is swapped for a `vi.fn()`.
+  Coverage: default render (localized card title + description,
+  Appearance + Layout panel headings rendered at level 3, three
+  radiogroups, eight radios total = 3 + 2 + 3); radiogroup ARIA
+  (each group exposed via `aria-label`, container id matches the
+  matching `Label htmlFor`); theme prop union (light / dark /
+  system each marked `aria-checked="true"` while the other two
+  remain false, only the System option carries the localized
+  systemHint `title` attribute, Light + Dark have no title);
+  theme callback (every `onThemeChange` value asserted with the
+  exact enum payload); sidebar mode union (list / tree
+  aria-checked flip, both options rendered); sidebar callback
+  (every `onSidebarModeChange` direction); detail mode union
+  (terminal / chat / control aria-checked flip, all three
+  options rendered); detail callback (every `onDetailModeChange`
+  direction); Reset button (localized "Reset to defaults"
+  accessible name, `type="button"`, disabled when every
+  preference sits at its default, enabled when any one of the
+  three deviates); status copy (the "Using defaults" vs "Custom
+  preferences active" label flips with the prop trio); reset
+  behaviour (calls `resetPreferences` then `onReset` exactly
+  once, no fire on initial render, no fire when clicked while
+  disabled); radio button shape (every radio is `type="button"`,
+  every icon inside a radio is `aria-hidden="true"`, the Reset
+  button icon is `aria-hidden`); keyboard handling (first Tab
+  lands on the Light radio, Tab advances Light -> Dark -> System
+  inside the theme group, Tab crosses from System to the
+  sidebar mode List radio, Enter activates a focused radio and
+  fires its setter, Space activates a focused radio and fires
+  its setter); rerender / memoization stability (identical
+  props do not duplicate radios or the Reset button,
+  `aria-checked` flips when the controlling prop changes,
+  Reset disabled state flips when the trio moves off defaults,
+  swapping `onReset` rebinds the Reset click target, swapping
+  `onThemeChange` rebinds the radio click target, status copy
+  flips back and forth as preferences move on and off defaults);
+  and locale flip (card title, Reset button label, all three
+  radiogroup aria-labels, both status copy variants, and both
+  panel section headings re-render so the English text
+  disappears from the DOM when `setLocale('ko')` fires inside
+  `act()`).
+
 ## [1.11.70] - 2026-05-12 -- Five high-value Web component RTL/jsdom test suites added: PageDescriptionBanner + StatusMessageCard + MetricsBar + Login + AttachModal
 
 **Versions 1.11.67 / 1.11.68 / 1.11.69 are reserved for parallel
