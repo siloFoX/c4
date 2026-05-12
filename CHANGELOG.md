@@ -4,6 +4,148 @@
 
 (no entries -- next release window)
 
+## [1.11.70] - 2026-05-12 -- Five high-value Web component RTL/jsdom test suites added: PageDescriptionBanner + StatusMessageCard + MetricsBar + Login + AttachModal
+
+**Versions 1.11.67 / 1.11.68 / 1.11.69 are reserved for parallel
+workers running in the same dispatch window.** This entry covers
+the auto-w46 worker's slice (5 files, 178 new cases).
+
+**178 new tests** across five untested `web/src/components/*.tsx`
+files. No production code changes -- pure test coverage. The five
+new files (case counts):
+
+- `web/src/components/PageDescriptionBanner.test.tsx` (33 cases) --
+  covers the shared CLI-coverage page banner: the section
+  scaffolding (default + override testId, the localized "Help
+  center" aria-label, the consumer-supplied className extension);
+  the required summary slot (paragraph render, leading aria-hidden
+  Sparkles icon, missing-key fallback to the raw key string); the
+  optional CLI equivalent slot (localized "CLI equivalent" label,
+  resolved `<code>` body, fallback when cliKey is omitted vs
+  unknown); the optional useCases slot (pipe-delimited tList
+  expansion into 3 `<li>` bullets inside a collapsible
+  `<details>`, suppression when key is omitted vs unknown); the
+  optional example slot (collapsible `<details>` with
+  whitespace-pre-line body, suppression when omitted); the
+  optional onOpenHelp button (localized "Learn more" label,
+  type=button, click + Enter activation, no-op on initial render);
+  the optional action slot (ReactNode render verbatim, DOM order
+  vs Learn more button); rerender stability (same-props no
+  duplicate, summaryKey swap, cliKey reveal); and locale flip
+  across the CLI label, Learn more button, and section aria-label.
+
+- `web/src/components/StatusMessageCard.test.tsx` (25 cases) --
+  covers the Slack status-update form rendered inside the worker
+  ControlPanel. The `useStatusMessage` hook is stubbed via
+  `vi.mock` with per-test tunable initial message + sending values
+  + `vi.fn()` setters that ALSO drive a real `useState` so typing
+  moves the controlled textarea. Coverage: card scaffolding
+  (localized aria-label on the Card root, title + description
+  copy); textarea contract (rows=2, workerName interpolated into
+  placeholder + aria-label, initial-empty + initial-non-empty
+  reflection); send-button base (localized "Send to Slack" label,
+  disabled when message is empty / whitespace-only, enabled once
+  non-whitespace is typed); typing + setMessage wiring (every
+  keystroke fires the mock, controlled value reflects); send-button
+  click (one send() per click, no fire on disabled click, hook
+  receives correct workerName + onToast); busy/sending state
+  (label swaps to "Sending...", button disabled even with content);
+  send icon presence; rerender stability (no duplicate card,
+  workerName swap updates aria-label, onToast identity rebind);
+  and locale flip across Send button + card title.
+
+- `web/src/components/MetricsBar.test.tsx` (22 cases) -- covers
+  the four-cell metrics strip rendered above the daemon dashboard.
+  The `useMetrics` hook is stubbed via `vi.mock` with a per-test
+  tunable `MetricsResponse | null` return. Coverage: null-bail
+  branch (hook=null returns null); live workers cell
+  (totals.liveWorkers + localized "live" + "/ N total" suffix);
+  cpu cell + fmtPct (one-decimal rounding 12.345 -> 12.3%, 3.789
+  -> 3.8%, em-dash fallback for null, localized workers/load
+  labels, loadavg[0] two-decimal format + 0.00 fallback for empty
+  array); rss cell + fmtMb (sub-1024 KB stays in KB, exactly 1024
+  KB renders 1.0 MB, large values render in MB rounded to one
+  decimal, daemon.rssKb separate from totals.totalRssKb, em-dash
+  fallback for null daemon.rssKb); host suffix
+  (`<cpus>c · <platform> · pid <pid>` interpolation); icon count
+  (three lucide icons); root structure (div wrapper, muted bg +
+  bottom border classes); rerender stability (null -> payload
+  reveal, payload swap reflects new live count); and locale flip
+  across the "live" + "load" labels.
+
+- `web/src/components/Login.test.tsx` (31 cases) -- covers the
+  sign-in card shown when the dashboard has no auth token. The
+  `useLogin` hook is stubbed via `vi.mock` with per-test tunable
+  user / password / error / busy values + `vi.fn()` setters that
+  ALSO drive real `useState` so typing moves the controlled
+  inputs. The `handleSubmit` is a `vi.fn()` that always calls
+  `preventDefault()`. Coverage: scaffolding (localized title,
+  description, footer, aria-hidden dotted background); user input
+  (localized "User" label, type=text + autocomplete=username +
+  required, initial value reflection, setUser keystroke
+  forwarding, controlled-input value reflection); password input
+  (localized "Password" label, type=password +
+  autocomplete=current-password + required, setPassword
+  forwarding, masking after typing); submit-button base
+  (localized "Sign in" label, type=submit, not disabled when
+  busy=false); submit wiring (one handleSubmit per click on the
+  submit button, one per Enter from the password field, onSuccess
+  forwarded to the hook, no-op on initial render); busy state
+  (button disabled, label swaps to "Signing in...", Loader2
+  spinner icon replaces LogIn); error banner (no alert when
+  error=null, role=alert + destructive tone + leading
+  AlertTriangle icon when set); rerender stability (no duplicate
+  form, onSuccess identity rebind); and locale flip across the
+  User label, Sign in button, and description copy.
+
+- `web/src/components/AttachModal.test.tsx` (67 cases) -- covers
+  the attach-an-existing-session overlay rendered inside
+  SessionsView. The `useAttachForm` hook is stubbed via `vi.mock`
+  with a tunable initial path/name pair + `vi.fn()` setters that
+  ALSO drive real `useState`. Coverage: open=false null bail
+  (container is empty, no dialog in the DOM); dialog scaffolding
+  (role=dialog + aria-modal=true, localized title, intro copy);
+  close (X) button (aria-labelled, fires onClose once); preview
+  list (suppressed when available is empty, rendered when
+  non-empty, localized heading + count-found header, per-entry
+  projectPath / projectDir / unknown-project fallback chain,
+  per-entry msgs badge from turnCount, slice(0, 10) cap with
+  available.length reported verbatim in the header); use-this-id
+  row button (one per preview row, fires setPathValue with the
+  row sessionId, value reflects into the path input); form
+  fields (localized labels + placeholders, autoFocus on path
+  input, every keystroke forwarded into the matching setter);
+  footer buttons (localized Cancel + Attach labels, Cancel fires
+  onClose, Attach disabled when path is empty / whitespace,
+  enabled after typing); submit payload (onSubmit fires with
+  trimmed path + trimmed name, no-op when disabled); error
+  banner (no alert when error=null, role=alert + destructive
+  tone when set); busy state (Cancel + Attach disabled, label
+  swaps to "Attaching...", click no-op); post-attach help aside
+  (localized "Post-attach help" aria-label + heading, one bullet
+  per `POST_ATTACH_HELP_ITEM_KEYS` entry); hook wiring (open
+  forwarded into useAttachForm); rerender stability (no
+  duplicate dialog, open=true to open=false drop, available swap
+  replaces preview, error swap updates alert); and locale flip
+  across Attach button, Cancel button, and title.
+
+Coverage focus: every public prop in each component's prop
+union, every callback (vi.fn() + expected payload), every
+controlled-input typing path, every disabled / busy / error
+branch, every ARIA contract (`role=dialog`, `aria-modal`,
+`aria-label`, `role=alert`, `aria-hidden` on decorative icons),
+every conditional render branch (open=false null returns, error
+visible vs hidden, preview empty vs populated, etc.), and the
+locale-flip re-render contract via `act(() => setLocale('ko'))`.
+Heavy child components and hooks with their own unit-test
+coverage (`useStatusMessage`, `useMetrics`, `useLogin`,
+`useAttachForm`) are stubbed through `vi.mock` so the test runs
+isolate the JSX surface from the hook internals.
+
+Runtime: all five suites complete in well under 2s alongside the
+existing 4400+ test corpus; total Web suite remains green at
+208 files / 4579 tests.
+
 ## [1.11.66] - 2026-05-12 -- Two header overlay RTL/jsdom test suites added: HelpDrawer + HelpUIRoot
 
 **79 new tests** across two untested `web/src/components/*.tsx` files.
