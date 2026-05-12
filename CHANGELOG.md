@@ -4,6 +4,68 @@
 
 (no entries -- next release window)
 
+## [1.11.38] - 2026-05-12 -- Five Web Meetings list/view components tested: MeetingsList + MeetingsView + MeetingsListCardHeader + MeetingsListFilterRow + MeetingsListTitleBar
+
+**128 new tests** across the five remaining uncovered list/view
+page-level components in `web/src/components/`. No production
+code changes -- pure test coverage. Each suite follows the
+patterns from `FeatureSidebar.test.tsx`,
+`FeatureView.test.tsx`, and `button.test.tsx` (concise
+`describe` block + RTL `render` / `screen` / `within` +
+`userEvent.setup()` for click / select / keyboard activation,
+role and accessible-name queries ahead of testid-only queries,
+`vi.fn()` callbacks for handler assertions, `act()` to flush
+the c4:locale-changed event-based re-render). The five new
+files (case counts):
+
+- `web/src/components/MeetingsList.test.tsx` (28)
+- `web/src/components/MeetingsView.test.tsx` (29)
+- `web/src/components/MeetingsListCardHeader.test.tsx` (26)
+- `web/src/components/MeetingsListFilterRow.test.tsx` (24)
+- `web/src/components/MeetingsListTitleBar.test.tsx` (21)
+
+Coverage per component spans the full prop union (display
+list / search-mode / error / loading / selected-id on
+`MeetingsList`; status + track + clear button on
+`MeetingsListFilterRow`; creating + loading + new/refresh
+buttons on `MeetingsListTitleBar`; the composite
+parent/child wiring through `MeetingsListCardHeader`; the
+page-level meeting selection + composer + fork + stuck
+banner state machine on `MeetingsView`), click handler
+plumbing (`vi.fn()` callbacks fire with the expected meeting
+id / filter value / new-meeting id on `userEvent.click` and
+`userEvent.selectOptions`), keyboard activation (Enter /
+Space on the New + Refresh buttons), ARIA attributes
+(`aria-expanded` on the New button mirrors `creating`,
+`aria-label` from the i18n bundle on the filter selects and
+icon buttons, `aria-hidden` on every decorative icon),
+conditional branches (error vs empty vs populated on
+`MeetingsList`; search-mode vs list-mode on `MeetingsView`
++ `MeetingsListCardHeader`; clear button visibility on
+`MeetingsListFilterRow`; pending vs in-progress vs completed
+status badges), and the `cn()` active/inactive class merge
+(`bg-primary/30` on the selected row vs `hover:bg-accent/40`
+on the rest, `animate-spin` on the refresh icon while
+loading). The page-level components consume the
+`use-meetings-list` / `use-meetings-search` /
+`use-meeting-detail-stream` / `use-meeting-enrichment` /
+`use-stuck-meetings` hooks; these are stubbed via `vi.mock`
+returning deterministic data so each test can pick its
+branch without booting MSW handlers, EventSource streams, or
+the lazy detail-pane subtrees. The heavy sibling components
+(`MeetingsListCardHeader`'s `MeetingsListTitleBar` /
+`MeetingsListFilterRow` / `MeetingsSearchSection` /
+`MeetingsComposer`; `MeetingsView`'s `MeetingsStuckBanner` /
+`MeetingsMaintenancePanel` / `MeetingsList` /
+`MeetingsDetailCardHeader` / `MeetingsDetailBody`) are
+stubbed to marker components so each test asserts the
+composition + the prop wiring of the unit under test
+without dragging in their entire subtree. The
+`useToggle` / `useToggleResetOnChange` hooks are stubbed
+with `vi.importActual<typeof import('react')>` so the
+real state-flip semantics remain intact while the
+test stays isolated from the rest of the lib.
+
 ## [1.11.37] - 2026-05-12 -- Four Web layout components tested: FeatureSidebar + FeatureView + DetailTabs + EmptyState
 
 **79 new tests** across the four remaining uncovered layout
