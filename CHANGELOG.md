@@ -4,6 +4,59 @@
 
 (no entries -- next release window)
 
+## [1.11.45] - 2026-05-12 -- Two Web view-level components tested: WorkerDetail + ControlPanel
+
+**71 new tests** across the two remaining per-worker
+view-level components in `web/src/components/`. No production
+code changes -- pure test coverage. Each suite follows the
+patterns from `ChatView.test.tsx`, `MeetingsView.test.tsx`,
+and `SessionsView.test.tsx` (vi.mock to stub the component's
+hooks with per-test-tunable state vars + vi.fn() handlers;
+child components stubbed to thin markers that surface props
+via `data-*` attributes + test buttons that fire callbacks
+back into the parent; `userEvent.setup()` for click; `act()`
+to flush the `c4:locale-changed` event-based re-render). The
+two new files (case counts):
+
+- `web/src/components/WorkerDetail.test.tsx` (37)
+- `web/src/components/ControlPanel.test.tsx` (34)
+
+WorkerDetail: four-hook wiring (useScrollback,
+usePersistedFontSize, useWorkerActions, useLocale) + five
+child markers (WorkerDetailHeader, XtermView,
+WorkerDetailComposer, WorkerDetailKeysRow,
+PinnedRulesEditor). Covers tab switch (screen vs scrollback)
+including the xterm-stays-mounted invariant, scrollback pre
+rendering with ANSI strip + (empty) placeholder branch, error
+banner role=alert vs absent path, font-size threading into
+header + xterm + clamp range argument, composer
+onChange/onSend/onEnter/onMerge/onClose callbacks, input
+clear-on-success vs preserve-on-rejection branches, keys row
+Escape / Ctrl-C / Tab dispatch including the Ctrl-C interrupt
+path through the actions hook, busy flag propagation to
+composer + keys row, scrollback hook setActionMsg wrapper
+routing through the actions setter, role=log on the xterm
+pane, outer flex layout class assertions, locale re-render.
+
+ControlPanel: four-hook wiring (useToast,
+useControlPanelWorkerList, useControlPanelSingle,
+useWorkerSelection) + four child markers (ControlPanelActions,
+ControlPanelBatch, StatusMessageCard, Toast). Covers the six
+documented single actions (pause/resume/cancel/restart/
+rollback/close) including endpoint routing
+(/api/key vs /api/cancel|restart|rollback|close), tone
+classification (neutral/warn/danger), confirm-prompt presence
+per destructive action, busyKind passthrough, action body
+payload pinning to workerName (pause/resume include
+key: 'C-c' / 'Enter'), successMessage worker substitution,
+batch panel selection set + count + disable gating
+(empty selection vs busy dispatch), batchResults length,
+select-all / clear-selection / toggle-selected / runBatch
+('close' + 'cancel') callback wiring, Toast slot mount-on-
+active and dismiss callback wiring, showToast + fetchList
+stable references shared between both hooks + status-card,
+locale re-render.
+
 ## [1.11.44] - 2026-05-12 -- Five Web view-level components tested: WikiView + WorkflowEditor + WorkflowList + ChatView + Chat
 
 **113 new tests** across the five remaining view-level
