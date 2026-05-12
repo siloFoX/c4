@@ -4,6 +4,103 @@
 
 (no entries -- next release window)
 
+## [1.11.58] - 2026-05-12 -- Four Web Sessions sub-panel components tested: SessionsAttachedRowActions + SessionsComparisonCard + SessionsEmptyAttachBanner + SessionsEmptyPanel
+
+**137 new tests** across four `web/src/components/` Sessions
+sub-panel components. No production code changes -- pure test
+coverage. Each suite follows the same pattern as the 1.11.55
+Sessions sub-panel batch (AttachedSection / ListSection /
+RightPane) and the recent Meetings sub-panel batches: the
+pure-display components (ComparisonCard, EmptyAttachBanner,
+EmptyPanel) are driven by direct prop permutations, while the
+hook-owning component (AttachedRowActions owns
+`useAttachProcessState` + `useCopyPulse`) gets both hooks stubbed
+via `vi.mock` with per-test-tunable return values so the JSX
+wiring is exercised in isolation from the 30s
+`/api/attach/:name/process` poll and `navigator.clipboard`.
+`userEvent.setup()` for click / keyboard activation; `act()` to
+flush the `c4:locale-changed` event-based re-render. The four
+new files (case counts):
+
+- `web/src/components/SessionsAttachedRowActions.test.tsx` (64)
+- `web/src/components/SessionsComparisonCard.test.tsx` (22)
+- `web/src/components/SessionsEmptyAttachBanner.test.tsx` (18)
+- `web/src/components/SessionsEmptyPanel.test.tsx` (33)
+
+SessionsAttachedRowActions: hook-owning per-row action strip for
+an attached session -- role badge, live/idle process pill, View
+/ Resume / Detach buttons, plus the inline confirmation strip
+and the resume-cmd preview. Stub `useAttachProcessState` and
+`useCopyPulse` with per-test-tunable shapes so the JSX wiring is
+isolated from the network poll + clipboard global. Tests cover:
+the hook-arg pass-through (session.name into proc-state hook,
+constructed resume command into copy-pulse hook, including the
+`<unknown-session-id>` fallback when sessionId is null); every
+`AttachedRole` badge variant (manager primary-tinted; worker
+muted; planner/executor/reviewer secondary; generic fallback for
+undefined role) with the i18n aria-label + detected-role title;
+every `procState.status` branch (loading / alive / idle / error)
+with its formatted aria-label, visible copy, and title (including
+the cwd-matched hint and the multiple-candidates `+` suffix); the
+View button (i18n aria-label, visible label, click + Enter
+activation, single-fire vs repeated, no cross-fire to onDetach);
+the Resume toggle (initial aria-expanded=false, click flips
+to true, region appears with the constructed resume command,
+second click closes, Space activation also opens, copy-pulse
+copy() fires on the inline copy button, "copied" pulse caption
+appears when `copied: true` and not when false); the Detach
+confirm flow (destructive class, initial state, first click only
+opens the confirm WITHOUT firing onDetach, aria-controls points
+at the session-name-suffixed id, confirm strip has role="alert"
++ confirm body copy + Cancel + Confirm buttons, Cancel closes
+without firing, Confirm fires onDetach() with no args -- the
+wrapper strips the event -- and then closes the strip and resets
+aria-expanded); the button count progression (3 initial -> 6
+with both strips open); same-props rerender stability + state
+preservation (resume-open survives rerender); locale flip.
+
+SessionsComparisonCard: pure-display side-by-side comparison
+table -- "what is an attached session vs a live worker session?".
+Tests drive the only prop (className) directly. Cover: the i18n
+title, the BookOpen icon aria-hidden guard, the table role +
+aria-label, the three column headers (empty spacer + Attached +
+Live worker), one tbody row per `COMPARISON_ROW_KEYS` entry
+(Mode / Source / Updates / Resume) with the label + attached +
+live cells from the i18n bundle, three cells per body row, the
+default max-w-md class on the Card wrapper, the merged
+caller-provided className (without dropping max-w-md), the
+undefined-className no-op, the same-props rerender no-duplicate
+contract, the new-className wrapper-class swap, and the locale
+flip (title + headers + row labels all re-render in Korean).
+
+SessionsEmptyAttachBanner: pure-display empty-state note above
+the attached list when nothing has been attached. Tests drive
+the only prop (onAttachClick) directly. Cover: the note role +
+i18n aria-label, the title + body copy from the i18n bundle,
+both Info + Plus decorative icons being aria-hidden, the single
+CTA button with the i18n label, the click + Enter + Space
+activations, the repeated-click no-latch contract, no-fire on
+initial render, the same-props rerender no-duplicate contract,
+the swapped-callback rerender (new fn fires, old does not), and
+the locale flip (title + CTA + aria-label all re-render in
+Korean).
+
+SessionsEmptyPanel: pure-display right-pane empty state with two
+branches gated by `showStartFirst`. Composes
+SessionsComparisonCard as a child in both branches; the child
+is stubbed to a thin marker so the panel test exercises only the
+branching + prop-wiring logic. Cover: the false branch (renders
+select-prompt copy, no start-first title/body, no CTA buttons,
+comparison card still present, no fires on either callback);
+the true branch (start-first title + body, two CTA buttons with
+their i18n aria-labels, the visible labels, comparison card
+present, both Plus icons aria-hidden); per-button click +
+keyboard activation forwarding to the correct callback with no
+cross-fire; the branch flip in both directions (false<->true)
+keeping the comparison card mounted across; the same-props
+rerender no-duplicate contract; the locale flip (both branches'
+copy plus the CTA aria-label all re-render in Korean).
+
 ## [1.11.57] - 2026-05-12 -- Three Web Meetings sub-panel components tested: MeetingsStagesView + MeetingsStateActions + MeetingsStuckBanner
 
 **92 new tests** across three `web/src/components/` Meetings
