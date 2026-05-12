@@ -3670,7 +3670,7 @@ async function handleRequest(req, res) {
       }
 
     } else if (req.method === 'GET' && route === '/autonomous/digest') {
-      // (8.29) Daily digest — summary of last 24h activity for
+      // (8.29) Daily digest -- summary of last 24h activity for
       // morning review. ?windowMs= overrides the default.
       if (!autoDispatcher) {
         result = { error: 'autonomous mode not enabled' };
@@ -3679,6 +3679,50 @@ async function handleRequest(req, res) {
         result = autoDispatcher.digest(
           Number.isFinite(windowMs) && windowMs > 0 ? { windowMs } : {}
         );
+      }
+
+    } else if (req.method === 'GET' && route === '/autonomous/queue') {
+      // (1.11.76) Powers the Auto.tsx dashboard's Live queue table.
+      // Reads docs/autonomous-queue-v10.md from the repo root and
+      // parses its markdown table into structured rows. The route
+      // is intentionally decoupled from the AutoDispatcher instance
+      // so the UI can render the queue even when autonomous.mode
+      // is off (operators inspect the queue before flipping the
+      // flag). Missing file is surfaced as an empty result so the
+      // dashboard's empty state can fire instead of an error panel.
+      const cfgQueue = manager.getConfig() || {};
+      const repoRootQueue = (cfgQueue.worktree && cfgQueue.worktree.projectRoot) || process.cwd();
+      const queuePath = path.join(repoRootQueue, 'docs', 'autonomous-queue-v10.md');
+      let queueContent = '';
+      try {
+        queueContent = fs.readFileSync(queuePath, 'utf8');
+      } catch (e) {
+        if (e && e.code === 'ENOENT') {
+          result = { rows: [], source: 'docs/autonomous-queue-v10.md', notFound: true };
+        } else {
+          result = { error: 'failed to read autonomous queue: ' + e.message };
+        }
+      }
+      if (queueContent) {
+        const rows = [];
+        const lines = queueContent.split(/\r?\n/);
+        for (const line of lines) {
+          if (!line.startsWith('|')) continue;
+          const t = line.trim();
+          if (/^\|\s*-+/.test(t)) continue;
+          const cells = t.split('|').slice(1, -1).map((c) => c.trim());
+          if (cells.length < 4) continue;
+          const [id, title, status, detail] = cells;
+          if (!id || id === '#') continue;
+          const norm = status.toLowerCase();
+          rows.push({
+            id,
+            title,
+            status: (norm === 'todo' || norm === 'doing' || norm === 'done') ? norm : 'todo',
+            detail,
+          });
+        }
+        result = { rows, source: 'docs/autonomous-queue-v10.md' };
       }
 
     } else if (req.method === 'POST' && route === '/scribe/start') {

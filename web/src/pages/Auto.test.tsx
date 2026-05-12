@@ -1,385 +1,716 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { act, render, screen } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { http, HttpResponse } from 'msw';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { server } from '../test/server';
 import { setLocale } from '../lib/i18n';
-import type {
-  AutoResponse,
-  UseAutoDispatchState,
-} from '../lib/use-auto-dispatch';
-import type { ToastType } from '../components/Toast';
 
-// Auto.tsx wires PageFrame + two hooks (useAutoDispatch for the
-// POST /api/auto spawn flow + useToast for the shared single-slot
-// toast queue) and two local useState slots for the name + task
-// inputs. Stub both hooks so each test drives a single branch of
-// the idle / busy / result / error matrix without booting fetch.
-// PageDescriptionBanner + Toast are stubbed to thin markers so we
-// are not asserting against their long copy.
+// Auto.tsx is rebuilt (v1.11.76) as a real-time autonomous dispatcher
+// dashboard. The page fans out three async slots -- queue, status,
+// workers -- each with its own loading / empty / error / data state.
+// These tests cover every render path of the state matrix plus the
+// controls dock action wiring, hero stat derivations, queue rendering
+// + load-more, timeline ordering, and the dispatcher-disabled notice.
 
-const dispatchMock = vi.fn(async () => {});
-const showToastMock = vi.fn();
-const dismissToastMock = vi.fn();
+const QUEUE_PATH = '/api/autonomous/queue';
+const STATUS_PATH = '/api/autonomous/status';
+const LIST_PATH = '/api/list';
 
-interface ToastSlot {
-  id: number;
-  message: string;
-  type: ToastType;
+interface QueueRow {
+  id: string;
+  title: string;
+  status: 'todo' | 'doing' | 'done';
+  detail: string;
 }
 
-interface ToastApi {
-  toast: ToastSlot | null;
-  showToast: (m: string, t: ToastType) => void;
-  dismissToast: () => void;
+function makeQueue(rows: QueueRow[] = []): { rows: QueueRow[] } {
+  return { rows };
 }
 
-let hookState: UseAutoDispatchState = {
-  busy: false,
-  error: null,
-  result: null,
-  dispatch: dispatchMock,
-};
-
-let toastState: ToastApi = {
-  toast: null,
-  showToast: showToastMock,
-  dismissToast: dismissToastMock,
-};
-
-vi.mock('../lib/use-auto-dispatch', () => ({
-  useAutoDispatch: (): UseAutoDispatchState => hookState,
-}));
-
-vi.mock('../lib/use-toast', () => ({
-  useToast: (): ToastApi => toastState,
-}));
-
-vi.mock('../components/PageDescriptionBanner', () => ({
-  PageDescriptionBanner: () => (
-    <div data-testid="page-description-banner" />
-  ),
-}));
-
-vi.mock('../components/HelpUIRoot', () => ({
-  openHelpDrawer: vi.fn(),
-}));
-
-interface CapturedToastProps {
-  message: string;
-  type: string;
-}
-
-let lastToastProps: CapturedToastProps | null = null;
-
-vi.mock('../components/Toast', () => ({
-  default: (props: CapturedToastProps & { onDismiss: () => void }) => {
-    lastToastProps = { message: props.message, type: props.type };
-    return (
-      <div
-        data-testid="toast"
-        data-message={props.message}
-        data-type={props.type}
-      />
-    );
-  },
-}));
-
-import Auto from './Auto';
-
-function makeResult(over: Partial<AutoResponse> = {}): AutoResponse {
+function makeStatus(over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    name: 'auto-mgr-1',
-    branch: 'c4/auto-mgr-1',
-    status: 'spawned',
+    enabled: true,
+    paused: false,
+    pauseReason: null,
+    consecutiveHalts: 0,
+    lastDispatchAt: null,
+    lastDispatchId: null,
+    lastError: null,
+    recent: [],
+    pendingEscalations: 0,
+    managerName: 'c4-mgr-auto',
     ...over,
   };
 }
 
+function makeList(workers: Array<Record<string, unknown>> = []): Record<string, unknown> {
+  return { workers, queuedTasks: [], lostWorkers: [], lastHealthCheck: null };
+}
+
+function installDefaults(overrides?: {
+  queue?: () => Response | Promise<Response>;
+  status?: () => Response | Promise<Response>;
+  list?: () => Response | Promise<Response>;
+}) {
+  server.use(
+    http.get(QUEUE_PATH, () =>
+      overrides?.queue
+        ? overrides.queue()
+        : HttpResponse.json(makeQueue()),
+    ),
+    http.get(STATUS_PATH, () =>
+      overrides?.status
+        ? overrides.status()
+        : HttpResponse.json(makeStatus()),
+    ),
+    http.get(LIST_PATH, () =>
+      overrides?.list ? overrides.list() : HttpResponse.json(makeList()),
+    ),
+  );
+}
+
+import Auto from './Auto';
+
+function row(id: string, status: QueueRow['status'], title = 'Task ' + id, detail = 'detail of ' + id): QueueRow {
+  return { id, title, status, detail };
+}
+
 beforeEach(() => {
   setLocale('en');
-  dispatchMock.mockReset();
-  dispatchMock.mockResolvedValue(undefined);
-  showToastMock.mockReset();
-  dismissToastMock.mockReset();
-  hookState = {
-    busy: false,
-    error: null,
-    result: null,
-    dispatch: dispatchMock,
-  };
-  toastState = {
-    toast: null,
-    showToast: showToastMock,
-    dismissToast: dismissToastMock,
-  };
-  lastToastProps = null;
+  installDefaults();
 });
 
-describe('<Auto>', () => {
-  it('renders the page title in the frame header', () => {
-    render(<Auto />);
-    expect(screen.getByText('Auto mode')).toBeInTheDocument();
-  });
+afterEach(() => {
+  vi.useRealTimers();
+});
 
-  it('renders the page description in the frame header', () => {
-    render(<Auto />);
+describe('<Auto> dashboard scaffolding', () => {
+  it('renders the page title in the frame header', async () => {
+    render(<Auto noAnimation />);
     expect(
-      screen.getByText(/Spawn an autonomous manager \+ scribe pair/),
+      await screen.findByText('Autonomous dashboard'),
     ).toBeInTheDocument();
   });
 
-  it('renders the PageDescriptionBanner marker', () => {
-    render(<Auto />);
+  it('renders the page description in the frame header', () => {
+    render(<Auto noAnimation />);
+    expect(
+      screen.getByText(/Live view of the autonomous dispatcher/),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the global refresh action button', () => {
+    render(<Auto noAnimation />);
+    expect(
+      screen.getByRole('button', { name: 'Refresh all panels' }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the PageDescriptionBanner via testid', () => {
+    render(<Auto noAnimation />);
     expect(
       screen.getByTestId('page-description-banner'),
     ).toBeInTheDocument();
   });
+});
 
-  it('renders the Dispatch button with the visible label', () => {
-    render(<Auto />);
+describe('<Auto> hero stats row', () => {
+  it('renders all four hero stat labels', async () => {
+    render(<Auto noAnimation />);
+    expect(await screen.findByText('Queue todo')).toBeInTheDocument();
+    expect(screen.getByText('In flight')).toBeInTheDocument();
+    expect(screen.getByText('Done')).toBeInTheDocument();
+    expect(screen.getByText('Last dispatch')).toBeInTheDocument();
+  });
+
+  it('shows queue counts derived from queue rows', async () => {
+    installDefaults({
+      queue: () =>
+        HttpResponse.json(
+          makeQueue([
+            row('1.1', 'todo'),
+            row('1.2', 'todo'),
+            row('1.3', 'doing'),
+            row('1.4', 'done'),
+            row('1.5', 'done'),
+            row('1.6', 'done'),
+          ]),
+        ),
+    });
+    render(<Auto noAnimation />);
+    const todo = await screen.findByText('Queue todo');
+    const todoCard = todo.closest('[data-stat-card]') as HTMLElement;
     expect(
-      screen.getByRole('button', { name: 'Dispatch' }),
+      await within(todoCard).findByText('2', { selector: '[data-stat-value]' }),
+    ).toBeInTheDocument();
+
+    const inFlight = screen
+      .getByText('In flight')
+      .closest('[data-stat-card]') as HTMLElement;
+    expect(
+      await within(inFlight).findByText('1', { selector: '[data-stat-value]' }),
+    ).toBeInTheDocument();
+
+    const done = screen
+      .getByText('Done')
+      .closest('[data-stat-card]') as HTMLElement;
+    expect(
+      await within(done).findByText('3', { selector: '[data-stat-value]' }),
     ).toBeInTheDocument();
   });
 
-  it('renders the Typical scenarios panel heading', () => {
-    render(<Auto />);
-    expect(screen.getByText('Typical scenarios')).toBeInTheDocument();
+  it('shows -- as the last dispatch when status has no timestamp', async () => {
+    installDefaults();
+    render(<Auto noAnimation />);
+    const card = (await screen.findByText('Last dispatch')).closest(
+      '[data-stat-card]',
+    ) as HTMLElement;
+    await waitFor(() =>
+      expect(
+        within(card).getByText('--', { selector: '[data-stat-value]' }),
+      ).toBeInTheDocument(),
+    );
   });
 
-  it('renders all three scenario list items', () => {
-    render(<Auto />);
-    expect(screen.getByText(/Overnight refactor/)).toBeInTheDocument();
-    expect(screen.getByText(/Triage backlog/)).toBeInTheDocument();
-    expect(screen.getByText(/Spike a design/)).toBeInTheDocument();
+  it('shows a relative time when status carries lastDispatchAt', async () => {
+    const past = new Date(Date.now() - 120_000).toISOString();
+    installDefaults({
+      status: () =>
+        HttpResponse.json(makeStatus({ lastDispatchAt: past, lastDispatchId: '7.7' })),
+    });
+    render(<Auto noAnimation />);
+    const card = (await screen.findByText('Last dispatch')).closest(
+      '[data-stat-card]',
+    ) as HTMLElement;
+    await waitFor(() => {
+      const node = within(card).getByText(/m ago|just now/, {
+        selector: '[data-stat-value]',
+      });
+      expect(node).toBeInTheDocument();
+    });
+    expect(within(card).getByText('id 7.7')).toBeInTheDocument();
   });
 
-  it('renders the Manager name label', () => {
-    render(<Auto />);
+  it('renders loading skeletons in the hero cards before any fetch resolves', async () => {
+    let release: (() => void) | null = null;
+    const block = new Promise<void>((r) => {
+      release = () => r();
+    });
+    installDefaults({
+      queue: async () => {
+        await block;
+        return HttpResponse.json(makeQueue());
+      },
+      status: async () => {
+        await block;
+        return HttpResponse.json(makeStatus());
+      },
+    });
+    render(<Auto noAnimation />);
+    expect(screen.getByLabelText('Queue todo loading')).toBeInTheDocument();
+    expect(screen.getByLabelText('In flight loading')).toBeInTheDocument();
+    expect(screen.getByLabelText('Done loading')).toBeInTheDocument();
+    expect(screen.getByLabelText('Last dispatch loading')).toBeInTheDocument();
+    release!();
+  });
+});
+
+describe('<Auto> live queue section', () => {
+  it('renders the section heading', async () => {
+    render(<Auto noAnimation />);
+    expect(await screen.findByText('Live queue')).toBeInTheDocument();
+  });
+
+  it('renders the empty state when the queue resolves with no rows', async () => {
+    render(<Auto noAnimation />);
+    expect(await screen.findByText('No queue entries')).toBeInTheDocument();
+  });
+
+  it('renders the not-found description when notFound is set', async () => {
+    installDefaults({
+      queue: () => HttpResponse.json({ rows: [], notFound: true }),
+    });
+    render(<Auto noAnimation />);
     expect(
-      screen.getByText('Manager name (optional)'),
+      await screen.findByText(/was not found on disk/),
     ).toBeInTheDocument();
   });
 
-  it('renders the Task field label', () => {
-    render(<Auto />);
-    expect(screen.getByText('Task')).toBeInTheDocument();
+  it('renders queue rows with id, title, and status badge', async () => {
+    installDefaults({
+      queue: () =>
+        HttpResponse.json(
+          makeQueue([row('1.1', 'todo', 'Wire JSON log', 'logs.js cleanup')]),
+        ),
+    });
+    render(<Auto noAnimation />);
+    expect(await screen.findByText('1.1')).toBeInTheDocument();
+    expect(screen.getByText('Wire JSON log')).toBeInTheDocument();
+    expect(screen.getAllByText('logs.js cleanup').length).toBeGreaterThan(0);
+    expect(screen.getByText('todo')).toBeInTheDocument();
   });
 
-  it('associates the Manager name label with its input via htmlFor', () => {
-    render(<Auto />);
+  it('uses warning badge variant for doing rows', async () => {
+    installDefaults({
+      queue: () => HttpResponse.json(makeQueue([row('2.1', 'doing', 'X', 'Y')])),
+    });
+    render(<Auto noAnimation />);
+    const badge = await screen.findByText('doing');
+    expect(badge.className).toContain('amber');
+  });
+
+  it('uses success badge variant for done rows', async () => {
+    installDefaults({
+      queue: () => HttpResponse.json(makeQueue([row('3.1', 'done', 'X', 'Y')])),
+    });
+    render(<Auto noAnimation />);
+    const badge = await screen.findByText('done');
+    expect(badge.className).toContain('emerald');
+  });
+
+  it('shows a load-more button when more than 20 rows are present', async () => {
+    const many = Array.from({ length: 25 }, (_, i) =>
+      row(`9.${i + 1}`, 'todo', `Title ${i + 1}`, `Detail ${i + 1}`),
+    );
+    installDefaults({ queue: () => HttpResponse.json(makeQueue(many)) });
+    render(<Auto noAnimation />);
     expect(
-      screen.getByLabelText('Manager name (optional)'),
+      await screen.findByRole('button', { name: 'Load 5 more' }),
     ).toBeInTheDocument();
   });
 
-  it('associates the Task label with its textarea via htmlFor', () => {
-    render(<Auto />);
-    expect(screen.getByLabelText('Task')).toBeInTheDocument();
-  });
-
-  it('renders the name input placeholder', () => {
-    render(<Auto />);
+  it('hides the load-more button when at most 20 rows are present', async () => {
+    const few = Array.from({ length: 20 }, (_, i) =>
+      row(`9.${i + 1}`, 'todo'),
+    );
+    installDefaults({ queue: () => HttpResponse.json(makeQueue(few)) });
+    render(<Auto noAnimation />);
+    await screen.findByText('9.1');
     expect(
-      screen.getByPlaceholderText('auto-mgr'),
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: /Load \d+ more/ }),
+    ).not.toBeInTheDocument();
   });
 
-  it('renders the task textarea placeholder', () => {
-    render(<Auto />);
-    expect(
-      screen.getByPlaceholderText(
-        'Describe the outcome for the autonomous manager to deliver.',
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it('fires the hook dispatch handler when the Dispatch button is clicked', async () => {
+  it('expands the queue when load-more is clicked', async () => {
+    const many = Array.from({ length: 22 }, (_, i) =>
+      row(`9.${i + 1}`, 'todo'),
+    );
+    installDefaults({ queue: () => HttpResponse.json(makeQueue(many)) });
     const user = userEvent.setup();
-    render(<Auto />);
-    await user.click(screen.getByRole('button', { name: 'Dispatch' }));
-    expect(dispatchMock).toHaveBeenCalledTimes(1);
+    render(<Auto noAnimation />);
+    expect(screen.queryByText('9.22')).not.toBeInTheDocument();
+    const btn = await screen.findByRole('button', { name: 'Load 2 more' });
+    await user.click(btn);
+    expect(screen.getByText('9.22')).toBeInTheDocument();
   });
 
-  it('disables the Dispatch button while busy', () => {
-    hookState = { ...hookState, busy: true };
-    render(<Auto />);
+  it('shows the error state with a retry button when the queue fetch fails', async () => {
+    installDefaults({
+      queue: () =>
+        new HttpResponse(JSON.stringify({ error: 'boom' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    });
+    render(<Auto noAnimation />);
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/boom/);
     expect(
-      screen.getByRole('button', { name: 'Dispatch' }),
-    ).toBeDisabled();
+      within(alert).getByRole('button', { name: /Retry/ }),
+    ).toBeInTheDocument();
   });
 
-  it('enables the Dispatch button when not busy', () => {
-    render(<Auto />);
-    expect(
-      screen.getByRole('button', { name: 'Dispatch' }),
-    ).toBeEnabled();
-  });
-
-  it('shows the spinning RefreshCw icon when busy', () => {
-    hookState = { ...hookState, busy: true };
-    render(<Auto />);
-    const btn = screen.getByRole('button', { name: 'Dispatch' });
-    const icon = btn.querySelector('svg');
-    expect(icon?.getAttribute('class') || '').toContain('animate-spin');
-  });
-
-  it('does NOT apply animate-spin on the Dispatch icon when idle', () => {
-    render(<Auto />);
-    const btn = screen.getByRole('button', { name: 'Dispatch' });
-    const icon = btn.querySelector('svg');
-    expect(icon?.getAttribute('class') || '').not.toContain('animate-spin');
-  });
-
-  it('updates the name input as the user types', async () => {
+  it('refreshes the queue when the section refresh button is clicked', async () => {
+    let calls = 0;
+    server.use(
+      http.get(QUEUE_PATH, () => {
+        calls += 1;
+        return HttpResponse.json(makeQueue([row('1.1', 'todo')]));
+      }),
+    );
     const user = userEvent.setup();
-    render(<Auto />);
-    const input = screen.getByLabelText(
-      'Manager name (optional)',
-    ) as HTMLInputElement;
-    await user.type(input, 'demo-mgr');
-    expect(input.value).toBe('demo-mgr');
+    render(<Auto noAnimation />);
+    await screen.findByText('1.1');
+    const before = calls;
+    const refreshBtns = screen.getAllByRole('button', { name: 'Refresh queue' });
+    await user.click(refreshBtns[0]!);
+    await waitFor(() => expect(calls).toBeGreaterThan(before));
+  });
+});
+
+describe('<Auto> active workers strip', () => {
+  it('renders the section heading', async () => {
+    render(<Auto noAnimation />);
+    expect(await screen.findByText('Active workers')).toBeInTheDocument();
   });
 
-  it('updates the task textarea as the user types', async () => {
-    const user = userEvent.setup();
-    render(<Auto />);
-    const ta = screen.getByLabelText('Task') as HTMLTextAreaElement;
-    await user.type(ta, 'do the thing');
-    expect(ta.value).toBe('do the thing');
+  it('renders the empty state when no workers are present', async () => {
+    render(<Auto noAnimation />);
+    expect(await screen.findByText('No workers running')).toBeInTheDocument();
   });
 
-  it('renders the error panel via role=alert when the hook reports an error', () => {
-    hookState = { ...hookState, error: 'task missing' };
-    render(<Auto />);
-    expect(screen.getByRole('alert')).toHaveTextContent('task missing');
+  it('renders one card per worker with name + status badge', async () => {
+    installDefaults({
+      list: () =>
+        HttpResponse.json(
+          makeList([
+            {
+              name: 'auto-w1',
+              command: 'claude',
+              target: 'local',
+              branch: 'c4/x',
+              worktree: null,
+              parent: null,
+              scope: false,
+              pid: 1,
+              status: 'busy',
+              unreadSnapshots: 0,
+              totalSnapshots: 0,
+              intervention: null,
+              lastQuestion: null,
+              errorCount: 0,
+              phase: null,
+              testFailCount: 0,
+              tier: 'worker',
+            },
+            {
+              name: 'auto-w2',
+              command: 'claude',
+              target: 'local',
+              branch: 'c4/y',
+              worktree: null,
+              parent: null,
+              scope: false,
+              pid: 2,
+              status: 'idle',
+              unreadSnapshots: 0,
+              totalSnapshots: 0,
+              intervention: null,
+              lastQuestion: null,
+              errorCount: 0,
+              phase: null,
+              testFailCount: 0,
+              tier: 'worker',
+            },
+          ]),
+        ),
+    });
+    render(<Auto noAnimation />);
+    expect(await screen.findByText('auto-w1')).toBeInTheDocument();
+    expect(screen.getByText('auto-w2')).toBeInTheDocument();
+    expect(screen.getByText('busy')).toBeInTheDocument();
+    expect(screen.getByText('idle')).toBeInTheDocument();
   });
 
-  it('hides the error panel when error is null', () => {
-    render(<Auto />);
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  it('shows the review pill when a worker has an active intervention', async () => {
+    installDefaults({
+      list: () =>
+        HttpResponse.json(
+          makeList([
+            {
+              name: 'auto-w3',
+              command: 'claude',
+              target: 'local',
+              branch: null,
+              worktree: null,
+              parent: null,
+              scope: false,
+              pid: null,
+              status: 'busy',
+              unreadSnapshots: 0,
+              totalSnapshots: 0,
+              intervention: 'approval_pending',
+              lastQuestion: null,
+              errorCount: 0,
+              phase: null,
+              testFailCount: 0,
+            },
+          ]),
+        ),
+    });
+    render(<Auto noAnimation />);
+    expect(await screen.findByText('auto-w3')).toBeInTheDocument();
+    expect(screen.getByText('review')).toBeInTheDocument();
   });
 
-  it('hides the result panel when result is null', () => {
-    render(<Auto />);
-    expect(screen.queryByText('Dispatched')).not.toBeInTheDocument();
+  it('renders an error state when the workers fetch fails', async () => {
+    installDefaults({
+      list: () =>
+        new HttpResponse(JSON.stringify({ error: 'workers down' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    });
+    render(<Auto noAnimation />);
+    expect(await screen.findByText(/workers down/)).toBeInTheDocument();
+  });
+});
+
+describe('<Auto> dispatch timeline', () => {
+  it('renders the section heading', async () => {
+    render(<Auto noAnimation />);
+    expect(await screen.findByText('Dispatch timeline')).toBeInTheDocument();
   });
 
-  it('renders the result panel heading when a result is present', () => {
-    hookState = { ...hookState, result: makeResult() };
-    render(<Auto />);
-    expect(screen.getByText('Dispatched')).toBeInTheDocument();
-  });
-
-  it('renders the manager name in the result panel', () => {
-    hookState = { ...hookState, result: makeResult({ name: 'mgr-42' }) };
-    render(<Auto />);
-    expect(screen.getByText('Manager:')).toBeInTheDocument();
-    expect(screen.getByText('mgr-42')).toBeInTheDocument();
-  });
-
-  it('renders the branch in the result panel', () => {
-    hookState = {
-      ...hookState,
-      result: makeResult({ branch: 'c4/mgr-42' }),
-    };
-    render(<Auto />);
-    expect(screen.getByText('Branch:')).toBeInTheDocument();
-    expect(screen.getByText('c4/mgr-42')).toBeInTheDocument();
-  });
-
-  it('renders the status field in the result panel', () => {
-    hookState = {
-      ...hookState,
-      result: makeResult({ status: 'queued' }),
-    };
-    render(<Auto />);
-    expect(screen.getByText('Status:')).toBeInTheDocument();
-    expect(screen.getByText('queued')).toBeInTheDocument();
-  });
-
-  it('hides the manager row when the result has no name field', () => {
-    hookState = {
-      ...hookState,
-      result: makeResult({ name: undefined }),
-    };
-    render(<Auto />);
-    expect(screen.queryByText('Manager:')).not.toBeInTheDocument();
-  });
-
-  it('hides the branch row when the result has no branch field', () => {
-    hookState = {
-      ...hookState,
-      result: makeResult({ branch: undefined }),
-    };
-    render(<Auto />);
-    expect(screen.queryByText('Branch:')).not.toBeInTheDocument();
-  });
-
-  it('hides the status row when the result has no status field', () => {
-    hookState = {
-      ...hookState,
-      result: makeResult({ status: undefined }),
-    };
-    render(<Auto />);
-    expect(screen.queryByText('Status:')).not.toBeInTheDocument();
-  });
-
-  it('keeps the toast slot empty when the toast hook has no entry', () => {
-    render(<Auto />);
-    expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
-  });
-
-  it('renders the Toast marker when the toast slot is non-null', () => {
-    toastState = {
-      ...toastState,
-      toast: { id: 1, message: 'spawned', type: 'success' },
-    };
-    render(<Auto />);
-    expect(screen.getByTestId('toast')).toBeInTheDocument();
-    expect(lastToastProps?.message).toBe('spawned');
-    expect(lastToastProps?.type).toBe('success');
-  });
-
-  it('forwards an error tone correctly to the toast marker', () => {
-    toastState = {
-      ...toastState,
-      toast: { id: 1, message: 'bad', type: 'error' },
-    };
-    render(<Auto />);
-    expect(lastToastProps?.type).toBe('error');
-  });
-
-  it('renders both the error panel and result panel together when both are set', () => {
-    hookState = {
-      ...hookState,
-      error: 'partial',
-      result: makeResult(),
-    };
-    render(<Auto />);
-    expect(screen.getByRole('alert')).toHaveTextContent('partial');
-    expect(screen.getByText('Dispatched')).toBeInTheDocument();
-  });
-
-  it('forwards rerender state changes through hookState mutation', () => {
-    const { rerender } = render(<Auto />);
-    expect(screen.queryByText('Dispatched')).not.toBeInTheDocument();
-    hookState = { ...hookState, result: makeResult({ name: 'fresh' }) };
-    rerender(<Auto />);
-    expect(screen.getByText('Dispatched')).toBeInTheDocument();
-    expect(screen.getByText('fresh')).toBeInTheDocument();
-  });
-
-  it('keeps the name input enabled while busy (only the button is gated)', () => {
-    hookState = { ...hookState, busy: true };
-    render(<Auto />);
+  it('renders an empty state when autonomous mode is disabled', async () => {
+    installDefaults({
+      status: () =>
+        HttpResponse.json(
+          makeStatus({
+            enabled: false,
+            reason: 'autonomous.mode=false (set config.autonomous.mode=true to enable)',
+          }),
+        ),
+    });
+    render(<Auto noAnimation />);
     expect(
-      screen.getByLabelText('Manager name (optional)'),
-    ).toBeEnabled();
+      await screen.findByText('Autonomous loop disabled'),
+    ).toBeInTheDocument();
   });
 
-  it('re-renders after the locale flips without crashing', () => {
-    const { container } = render(<Auto />);
-    expect(screen.getByText('Auto mode')).toBeInTheDocument();
+  it('renders an empty state when the loop is enabled but has no recent events', async () => {
+    render(<Auto noAnimation />);
+    expect(
+      await screen.findByText('No dispatch activity yet'),
+    ).toBeInTheDocument();
+  });
+
+  it('renders timeline entries for each recent event', async () => {
+    installDefaults({
+      status: () =>
+        HttpResponse.json(
+          makeStatus({
+            recent: [
+              { type: 'dispatch', id: '5.1', at: Date.now() - 60_000 },
+              { type: 'success', id: '5.1', at: Date.now() - 30_000 },
+            ],
+          }),
+        ),
+      queue: () =>
+        HttpResponse.json(makeQueue([row('5.1', 'done', 'A quick task')])),
+    });
+    render(<Auto noAnimation />);
+    expect(await screen.findByText('Dispatch')).toBeInTheDocument();
+    expect(screen.getByText('Success')).toBeInTheDocument();
+    expect(screen.getAllByText('A quick task').length).toBeGreaterThan(0);
+  });
+
+  it('renders an error state when status fetch fails', async () => {
+    installDefaults({
+      status: () =>
+        new HttpResponse(JSON.stringify({ error: 'status down' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    });
+    render(<Auto noAnimation />);
+    expect(await screen.findByText(/status down/)).toBeInTheDocument();
+  });
+});
+
+describe('<Auto> controls dock', () => {
+  it('does not render the controls dock when autonomous mode is disabled', async () => {
+    installDefaults({
+      status: () => HttpResponse.json(makeStatus({ enabled: false })),
+    });
+    render(<Auto noAnimation />);
+    await waitFor(() =>
+      expect(
+        screen.queryByTestId('controls-dock'),
+      ).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByRole('button', { name: /Pause autonomous loop/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders Pause and Tick when the loop is running', async () => {
+    render(<Auto noAnimation />);
+    expect(
+      await screen.findByRole('button', { name: 'Pause autonomous loop' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Force autonomous tick' }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders Resume when the loop is paused', async () => {
+    installDefaults({
+      status: () => HttpResponse.json(makeStatus({ paused: true, pauseReason: 'manual' })),
+    });
+    render(<Auto noAnimation />);
+    expect(
+      await screen.findByRole('button', { name: 'Resume autonomous loop' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Pause autonomous loop' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('disables Tick when the loop is paused', async () => {
+    installDefaults({
+      status: () => HttpResponse.json(makeStatus({ paused: true })),
+    });
+    render(<Auto noAnimation />);
+    const tick = await screen.findByRole('button', {
+      name: 'Force autonomous tick',
+    });
+    expect(tick).toBeDisabled();
+  });
+
+  it('posts to /api/autonomous/pause when Pause is clicked', async () => {
+    let called = '';
+    server.use(
+      http.post('/api/autonomous/pause', async () => {
+        called = 'pause';
+        return HttpResponse.json({ paused: true });
+      }),
+    );
+    const user = userEvent.setup();
+    render(<Auto noAnimation />);
+    const btn = await screen.findByRole('button', {
+      name: 'Pause autonomous loop',
+    });
+    await user.click(btn);
+    await waitFor(() => expect(called).toBe('pause'));
+  });
+
+  it('posts to /api/autonomous/resume when Resume is clicked', async () => {
+    installDefaults({
+      status: () => HttpResponse.json(makeStatus({ paused: true })),
+    });
+    let called = '';
+    server.use(
+      http.post('/api/autonomous/resume', async () => {
+        called = 'resume';
+        return HttpResponse.json({ paused: false });
+      }),
+    );
+    const user = userEvent.setup();
+    render(<Auto noAnimation />);
+    const btn = await screen.findByRole('button', {
+      name: 'Resume autonomous loop',
+    });
+    await user.click(btn);
+    await waitFor(() => expect(called).toBe('resume'));
+  });
+
+  it('posts to /api/autonomous/tick when Tick is clicked', async () => {
+    let called = '';
+    server.use(
+      http.post('/api/autonomous/tick', async () => {
+        called = 'tick';
+        return HttpResponse.json({ dispatched: '7.1' });
+      }),
+    );
+    const user = userEvent.setup();
+    render(<Auto noAnimation />);
+    const btn = await screen.findByRole('button', {
+      name: 'Force autonomous tick',
+    });
+    await user.click(btn);
+    await waitFor(() => expect(called).toBe('tick'));
+  });
+
+  it('renders the running indicator when the loop is not paused', async () => {
+    render(<Auto noAnimation />);
+    expect(
+      await screen.findByLabelText('Autonomous loop running'),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the paused indicator when the loop is paused', async () => {
+    installDefaults({
+      status: () => HttpResponse.json(makeStatus({ paused: true })),
+    });
+    render(<Auto noAnimation />);
+    expect(
+      await screen.findByLabelText('Autonomous loop paused'),
+    ).toBeInTheDocument();
+  });
+});
+
+describe('<Auto> dispatcher disabled notice', () => {
+  it('renders a soft notice when autonomous mode is disabled', async () => {
+    installDefaults({
+      status: () =>
+        HttpResponse.json(
+          makeStatus({
+            enabled: false,
+            reason: 'autonomous.mode=false (set config.autonomous.mode=true to enable)',
+          }),
+        ),
+    });
+    render(<Auto noAnimation />);
+    expect(
+      await screen.findByText(/Autonomous dispatcher is currently disabled/),
+    ).toBeInTheDocument();
+  });
+
+  it('does not render the notice when autonomous mode is enabled', async () => {
+    render(<Auto noAnimation />);
+    await screen.findByText('Live queue');
+    expect(
+      screen.queryByText(/Autonomous dispatcher is currently disabled/),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe('<Auto> global refresh', () => {
+  it('hits all three endpoints on mount', async () => {
+    const calls: string[] = [];
+    server.use(
+      http.get(QUEUE_PATH, () => {
+        calls.push('queue');
+        return HttpResponse.json(makeQueue());
+      }),
+      http.get(STATUS_PATH, () => {
+        calls.push('status');
+        return HttpResponse.json(makeStatus());
+      }),
+      http.get(LIST_PATH, () => {
+        calls.push('list');
+        return HttpResponse.json(makeList());
+      }),
+    );
+    render(<Auto noAnimation />);
+    await waitFor(() => {
+      expect(calls).toContain('queue');
+      expect(calls).toContain('status');
+      expect(calls).toContain('list');
+    });
+  });
+
+  it('refetches all three endpoints when the header refresh button is clicked', async () => {
+    const calls: string[] = [];
+    server.use(
+      http.get(QUEUE_PATH, () => {
+        calls.push('queue');
+        return HttpResponse.json(makeQueue());
+      }),
+      http.get(STATUS_PATH, () => {
+        calls.push('status');
+        return HttpResponse.json(makeStatus());
+      }),
+      http.get(LIST_PATH, () => {
+        calls.push('list');
+        return HttpResponse.json(makeList());
+      }),
+    );
+    const user = userEvent.setup();
+    render(<Auto noAnimation />);
+    await waitFor(() => expect(calls.length).toBeGreaterThanOrEqual(3));
+    const initial = calls.length;
+    const btn = screen.getByRole('button', { name: 'Refresh all panels' });
+    await user.click(btn);
+    await waitFor(() => expect(calls.length).toBeGreaterThan(initial + 2));
+  });
+});
+
+describe('<Auto> locale flip', () => {
+  it('re-renders without crashing when the locale flips', async () => {
+    const { container } = render(<Auto noAnimation />);
+    await screen.findByText('Autonomous dashboard');
     act(() => {
       setLocale('ko');
     });
