@@ -4,6 +4,62 @@
 
 (no entries — next release window)
 
+## [1.11.30] - 2026-05-12 -- Four generic UI keyboard hooks tested
+
+**76 new tests** across the four generic dialog/drawer/overlay
+keyboard hooks. No production code changes -- pure test
+coverage. Covers listener registration + cleanup via
+vi.spyOn(window, addEventListener / removeEventListener),
+real KeyboardEvent dispatch for every responded key (Escape,
+?, /, h, H), modifier-key gating (ctrl/alt/meta), the
+typing-guard (input / textarea / contenteditable /
+role=textbox), open=false / busy gates where applicable, the
+custom-event open surfaces, the focus + rAF cancel contract
+on the drawer, and the activeElement save+restore + Escape
+stopPropagation contract on the confirm-dialog wrapper.
+
+- `web/src/lib/use-help-overlay-triggers.test.ts` -- 23
+  cases. Custom-event listeners + global hotkeys hook for the
+  help drawer and shortcuts modal. Covers the
+  HELP_EVENT_OPEN_DRAWER and HELP_EVENT_OPEN_SHORTCUTS
+  CustomEvent surfaces, hotkey behavior for `?`, Shift+`/`,
+  `h`, `H` (with preventDefault asserted only on `?`),
+  modifier-key gating for ctrl / alt / meta, the typing
+  guard for INPUT / TEXTAREA / contenteditable / role=textbox
+  via real bubbled events from the matching element, the
+  positive case from a plain `<div>` still firing the
+  callback, idempotency across rerenders, full unmount
+  cleanup of all three listeners, and re-registration when
+  callback identities change.
+- `web/src/lib/use-drawer-keyboard.test.ts` -- 16 cases.
+  Esc-to-close + focus-on-open contract for the help drawer.
+  Covers gated listener mount (open=false skips), Esc fires
+  onClose, other keys ignored, the requestAnimationFrame
+  schedule of focusRef.current.focus(), null focusRef
+  tolerance, cancelAnimationFrame on unmount (focus not
+  invoked after teardown), removeEventListener on unmount,
+  detach on open=true -> false, reattach on open=false ->
+  true, and latest-closure semantics across rerenders.
+- `web/src/lib/use-escape-to-close.test.ts` -- 16 cases.
+  Generic Esc dismissal for modals. Covers gated listener
+  mount, Esc invokes onClose with preventDefault, non-Esc
+  keys ignored, busy=true short-circuits before
+  preventDefault, resume on busy flip, detach/reattach on
+  open toggles, cleanup on unmount, no calls after unmount,
+  latest-closure semantics, and busy=undefined treated as
+  falsy.
+- `web/src/lib/use-dialog-a11y.test.ts` -- 21 cases.
+  Confirm-dialog accessibility wrapper that also calls
+  stopPropagation so a parent modal does not also dismiss.
+  Covers gated mount, Esc invokes onCancel, stopPropagation
+  fires only for Esc and only when not busy, dialogRef.focus
+  on open, focus skipped when open=false or ref is null,
+  saved activeElement restored on both unmount and
+  open=true -> false transition, removeEventListener on
+  teardown, no calls after unmount, latest-closure
+  semantics, and modifier-held Esc still cancels (this hook
+  has no modifier gate).
+
 ## [1.11.29] - 2026-05-12 -- Three Audit web hooks tested
 
 **32 new tests** across the three SpecialistsAuditPanel web
