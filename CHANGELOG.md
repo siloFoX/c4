@@ -4,6 +4,48 @@
 
 (no entries -- next release window)
 
+## [1.11.37] - 2026-05-12 -- Four Web layout components tested: FeatureSidebar + FeatureView + DetailTabs + EmptyState
+
+**79 new tests** across the four remaining uncovered layout
+components in `web/src/components/layout/`. No production code
+changes -- pure test coverage. Each suite follows the patterns
+from `Sidebar.test.tsx`, `AppHeader.test.tsx`, and
+`TopTabs.test.tsx` (concise `describe` block + RTL
+`render` / `screen` / `within` + `userEvent.setup()` for click
+and keyboard activation, role and accessible-name queries
+ahead of testid queries, `vi.fn()` callbacks for handler
+assertions, `act()` to flush the c4:locale-changed event-based
+re-render). The four new files (case counts):
+
+- `web/src/components/layout/FeatureSidebar.test.tsx` (32)
+- `web/src/components/layout/FeatureView.test.tsx` (16)
+- `web/src/components/layout/DetailTabs.test.tsx` (19)
+- `web/src/components/layout/EmptyState.test.tsx` (12)
+
+Coverage per component spans the props union (`open` /
+`selectedId` / `onSelect` on FeatureSidebar; `sidebarOpen` on
+FeatureView; `value` / `onChange` on DetailTabs; EmptyState
+takes no props), click handler plumbing (`vi.fn()` callbacks
+fire with the expected feature id / detail mode on
+`userEvent.click`), keyboard activation (Enter / Space on
+DetailTabs tabs), ARIA attributes (`aria-current="page"` on
+the active sidebar item, `aria-selected` per tab,
+`aria-label` on the tablist + nav + filter input,
+`aria-hidden` on every decorative icon), conditional
+branches (`open=false` returns null on FeatureSidebar;
+feature-selected vs empty PageFrame on FeatureView; active vs
+inactive class set per tab/feature; filter no-match copy),
+and the `cn()` active/inactive class merge (`bg-primary/30`
+vs `hover:bg-accent` / `text-muted-foreground`). Heavy
+children are stubbed via `vi.mock`: FeatureView mocks both
+`./FeatureSidebar` and `useSelectedFeatureId` plus overrides
+`findFeature` in the registry so the lazy `Suspense` boundary
+resolves to a trivial component instead of pulling in the
+real xterm / msw / page modules. The selected feature is
+driven through a module-level closure variable so each test
+can pick its branch (`mock-feature` for the happy path,
+`does-not-exist` for the empty PageFrame).
+
 ## [1.11.36] - 2026-05-12 -- Three Web layout components tested: AppHeader + TopTabs + Sidebar
 
 **62 new tests** across the three previously uncovered layout
