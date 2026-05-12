@@ -4,6 +4,107 @@
 
 (no entries -- next release window)
 
+## [1.11.53] - 2026-05-12 -- Four Web Specialists sub-panel components tested: SpecialistsListCardHeader + SpecialistsListTitleBar + SpecialistsMetadataPanel + SpecialistsPromptPanel
+
+**137 new tests** across four `web/src/components/` Specialists
+sub-panel components. No production code changes -- pure test
+coverage. Each suite follows the same pattern as the 1.11.52
+Specialists sub-panel batch (Add / Audit / BulkOps / Enrichment):
+the pure-display / pure-composite components (ListCardHeader,
+ListTitleBar, MetadataPanel) are driven by direct prop
+permutations + thin child marker stubs, while the one
+hook-owning component (PromptPanel) gets `usePromptRevision`
+stubbed via `vi.mock` with per-test-tunable flags so the JSX
+wiring is exercised in isolation from the network.
+`userEvent.setup()` for click; `act()` to flush the
+`c4:locale-changed` event-based re-render. The four new files
+(case counts):
+
+- `web/src/components/SpecialistsListCardHeader.test.tsx` (30)
+- `web/src/components/SpecialistsListTitleBar.test.tsx` (28)
+- `web/src/components/SpecialistsMetadataPanel.test.tsx` (30)
+- `web/src/components/SpecialistsPromptPanel.test.tsx` (49)
+
+SpecialistsListCardHeader: pure composite that nests
+SpecialistsListTitleBar + SpecialistsSearchFilters inside a
+single CardHeader. Both children stubbed to thin `data-testid`
+markers so the test reads off prop forwarding without pulling
+in real form state. Covers the wrapper layout classes
+(`border-b`, `flex-col`), forwards every prop in the union
+(`loading`, `addOpen`, `actionError`, `filter`, `tierFilter`,
+`vetoOnly`, `filteredCount`, `totalCount`) into the matching
+child marker, fires every callback (`onToggleAdd`, `onCloseAdd`,
+`onAdded` with the new id, `onRefresh`, `onFilter`,
+`onTierFilter`, `onVetoOnly` with the next boolean) when the
+child marker drives it, asserts no callback fires on mount,
+rerendering with new props updates the markers, and the
+locale flip via `useLocale`.
+
+SpecialistsListTitleBar: the master-pane title row with title +
+Add toggle + Refresh + the optional action-error alert + the
+SpecialistsAddPanel beneath it. AddPanel stubbed to a thin
+marker so tests skip `useSpecialistsAddPropose`. Covers the
+title text, both buttons' aria-labels (`Add specialist` /
+`Refresh specialists`), the visible labels (`Add` / `Refresh`),
+the Add button `aria-expanded` flip on `addOpen`, the Refresh
+disabled gating on `loading`, the `animate-spin` icon class
+flip on the refresh icon, the Add button staying enabled while
+loading (the master refresh does not freeze Add), the
+action-error alert hidden / visible / destructive-tone branches,
+the AddPanel `data-open` forwarding, every callback
+(`onToggleAdd` / `onRefresh` / `onCloseAdd` / `onAdded` with
+the new id), `onRefresh` not firing when disabled, no callback
+on mount, rerendering flips updating both `aria-expanded` and
+the alert, and the locale flip.
+
+SpecialistsMetadataPanel: pure-display panel that renders the
+4-column tier / brain / model / effort grid plus the domains /
+triggers (stages + keywords) / deliverables fields. No hook
+mocking needed -- the test drives the full Specialist record
+shape through fixture variants. Covers each label, each cell
+value (tier, brain.adapter, brain.model, brain.effort), the
+`-` fallback for null and empty-string `model` / `effort` (and
+both at once), the comma-joined `domain` array (including the
+empty-array branch), the comma-joined `triggers.stages` and
+`triggers.keywords` arrays, the deliverables block hide-when-
+empty branch, the deliverables `<ul>` with one `<li>` per
+entry (asserted via `within` on the role=listitem node count),
+the `sm:grid-cols-4` layout class on the top grid,
+rerendering across specialist replacements (cleanly drops old
+values, swaps in new), rerendering deliverables empty -> non
+and vice versa, and the locale flip.
+
+SpecialistsPromptPanel: the system-prompt section with twin
+Suggest revision (review-only) + Apply via meeting consensus
+buttons and the per-action result / error displays. The
+`usePromptRevision` hook is stubbed with per-test-tunable
+flags (`suggestBusy`, `suggestion`, `suggestError`, `applyBusy`,
+`applyResult`, `applyError`) plus mocked `handleSuggest` /
+`handleApply`. Covers the system-prompt label and `<pre>` body,
+forwarding `specialistId` into the hook args, both buttons'
+aria-labels and tooltip titles, busy gating with the labels
+flipping to `Asking...` / `Applying...`, both click handlers firing
+on click and not on mount, the suggest error banner hidden vs
+destructive-tone visible, the suggestion panel hidden vs
+visible (with the `Suggested revision (review only)` heading),
+the suggestion `<pre>` body, the empty-revision fallback copy,
+the rationale prefix + body conditional, the apply-hint CLI
+snippet interpolated with the specialist id (asserted as a
+`<code>` node), the apply error banner, all three apply-result
+banner branches (`Applied via meeting consensus` /
+`Meeting fired -- not applied` / `No revision drafted (no
+meeting fired)`) with their tone classes (`text-emerald-700`
+vs `text-amber-700`), the meeting link `<a>` with the truncated
+id and `#/meetings/...` href (and the link hidden when
+`meetingId` is null), the decision summary (accepted /
+rejected, accepts count, conditional objects-count clause,
+conditional reason clause), the apply-result suggestion
+revision `<pre>` and rationale prefix branches, rerendering
+flips applyResult from null to applied, and the locale flip.
+
+`npm test` from `/web`: 165 files / 3287 tests pass (was
+164 / 3150 before the four new files; +137 cases here).
+
 ## [1.11.52] - 2026-05-12 -- Four Web Specialists sub-panel components tested: SpecialistsAddPanel + SpecialistsAuditPanel + SpecialistsBulkOpsToolbar + SpecialistsEnrichmentPanels
 
 **144 new tests** across four `web/src/components/` Specialists
