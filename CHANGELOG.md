@@ -4,6 +4,69 @@
 
 (no entries — next release window)
 
+## [1.11.32] - 2026-05-12 -- Five tiny generic state hooks tested
+
+**43 new tests** across the five tiny generic state hooks
+that own ref-mirroring, copy-pulse, auto-scroll, the
+mobile collapsed-flag breakpoint guard, and the
+HierarchyTree expanded-Set. No production code changes --
+pure test coverage. Each suite follows the patterns from
+`use-toggle.test.ts` (initial state + setter + stable
+identity) and `use-auto-clear-message.test.ts` (fake
+timers via vi.useFakeTimers + vi.advanceTimersByTime) for
+the time-driven flows.
+
+- `web/src/lib/use-live-ref.test.ts` -- 6 cases. The
+  ref-mirroring contract: initial value on .current,
+  latest value tracked on every re-render, stable ref
+  identity across re-renders, null/undefined values
+  without losing identity, reference-typed values
+  tracked by identity not deep equality, and external
+  writes to .current overwritten by the next render.
+- `web/src/lib/use-copy-pulse.test.ts` -- 7 cases. The
+  click-to-copy-flash contract: idle copied=false plus a
+  copy callback, copy() flipping copied=true after
+  navigator.clipboard.writeText resolves, auto-clear
+  back to false after the default 1500ms, per-hook
+  durationMs override, the latest text prop picked up
+  via the useCallback dep, the SSR-safe path when
+  navigator.clipboard is undefined, and no throw when
+  the pulse timer fires after unmount.
+- `web/src/lib/use-auto-scroll.test.ts` -- 11 cases.
+  The ChatView scroll-on-new-content state: the
+  AUTOSCROLL_THRESHOLD_PX = 24 constant, initial
+  autoScroll=true, useLayoutEffect scrolling to bottom
+  on mount and on every bumpKey change while
+  autoScroll=true, no scroll while autoScroll=false,
+  setAutoScroll flipping state, jumpToBottom scrolling
+  and re-arming autoScroll, the null-ref no-op path
+  that does NOT re-arm autoScroll, plus isAtBottom
+  returning true within threshold, false beyond
+  threshold, and false when ref.current is null.
+- `web/src/lib/use-effective-collapsed.test.ts` -- 9
+  cases. The sidebar mobile-breakpoint guard against a
+  stubbed window.matchMedia('(min-width: 768px)'):
+  collapsed=false short-circuit on both desktop and
+  mobile, collapsed=true returning true on desktop and
+  false on mobile, the desktop->mobile flip via a
+  matchMedia change event flipping the effective flag
+  to false, the mobile->desktop flip flipping it back
+  to true, prop-flip re-evaluation on desktop, plus
+  listener registration on mount and removal on
+  unmount.
+- `web/src/lib/use-expanded-set.test.ts` -- 10 cases.
+  The HierarchyTree expanded-Set helpers: empty initial
+  set, the first-non-empty-payload auto-expand that
+  opens every worker, the sticky contract that does NOT
+  re-expand newly added workers after the first run,
+  empty-stays-empty when workers stays empty, toggle
+  adding a missing name, toggle removing a present
+  name, expandAll opening every current worker,
+  collapseAll emptying the set, expandAll picking up
+  workers added after mount, plus stable callback
+  identities for toggle and collapseAll across
+  re-renders.
+
 ## [1.11.31] - 2026-05-12 -- Two Specialists Add/Import hooks tested
 
 **27 new tests** across the two Specialists web hooks that own
