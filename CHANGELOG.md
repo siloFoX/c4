@@ -4,6 +4,80 @@
 
 (no entries -- next release window)
 
+## [1.11.39] - 2026-05-12 -- Two Web Meetings form components tested: MeetingsComposer + MeetingsForkForm
+
+**94 new tests** across the two remaining uncovered form
+components in `web/src/components/`. No production code
+changes -- pure test coverage. Each suite follows the patterns
+from `MeetingsListCardHeader.test.tsx`, `MeetingsView.test.tsx`,
+and `button.test.tsx` (concise `describe` block + RTL
+`render` / `screen` / `within` + `userEvent.setup()` for click,
+selectOptions, type, keyboard, and Tab activation; role and
+accessible-name queries ahead of testid-only queries;
+`vi.fn()` mocks for handler assertions; `act()` to flush the
+c4:locale-changed event-based re-render). The two new files
+(case counts):
+
+- `web/src/components/MeetingsComposer.test.tsx` (55)
+- `web/src/components/MeetingsForkForm.test.tsx` (39)
+
+Coverage per component spans the prop union (`open` returns
+null on both; `meeting` title vs empty title on
+MeetingsForkForm; `busy` prop vs hook-busy on
+MeetingsForkForm), default render (every input, select,
+textarea, and button queried via i18n aria-label /
+accessible name, plus the four-option track order on the
+track select and the two-option mode order on the fork
+mode select), controlled-input typing (`userEvent.type()`
+into the task input, title input, task textarea, and
+placeholder-var inputs -- value reflected and, where
+applicable, the matching setter from the mocked
+useMeetingFork hook fires per keystroke), selection
+changes (`userEvent.selectOptions()` on track + mode +
+fork-track selects, asserting both the new option's value
+and the corresponding setter call), submit-handler
+plumbing (`userEvent.click()` on Create / Submit fork,
+plus Enter-key submission on the composer task input, with
+Shift+Enter as a negative assert; the fork form has no
+form-level submit so Enter inside its title input is
+asserted not to fire handleSubmit), validation /
+disabled-submit branches (composer Create button disabled
+when the task is empty or whitespace; composer Create
+re-disabled on createBusy flip via rerender; fork Submit
+disabled on hook busy OR parentBusy), busy / disabled
+state on every form control (`disabled` attribute checked
+via `toBeDisabled()` plus a `hasAttribute('disabled')`
+guard so the tailwind `disabled:` class-name pseudo
+doesn't trip a regex), cancel / Escape handling (composer
+Cancel button + Escape key both fire onClose AND clear the
+hook-surfaced createError via the mocked
+setCreateError), keyboard navigation (composer Enter +
+Escape + Shift+Enter; fork-form Tab traversal mode -> track
+-> title -> task -> submit), ARIA attributes (every i18n
+aria-label asserted: `Meeting task`, `Meeting track`,
+`Create meeting`, `Create new template`, `Apply template
+{name}`, `Edit template {name}`, `Clear template
+selection`, `Value for {name}` on the composer; `Fork
+title override`, `Fork task override`, `Submit fork` on
+the fork form), memoization / re-render stability with
+the same hook output (rerender with the same props does
+not duplicate the form and keeps handler identity stable),
+and locale flips (`act(() => setLocale('ko'))` -- the
+English aria-label disappears, proving the i18n
+subscription rendered through, while the button itself
+stays mounted). Both components consume the
+use-meeting-create / use-meeting-fork hooks; those are
+stubbed via `vi.mock` so the fork form's mock keeps real
+React state inside `useState` to make controlled
+typing + setter assertions both work, and the composer's
+mock returns module-level fixtures (createBusy,
+createError, classifyPreview, previewPlan, previewBusy,
+templates) so each test can drive a branch without
+booting MSW handlers or window.setTimeout debounces. The
+heavy `MeetingsTemplateEditor` child is stubbed to a
+marker so its own 200+ lines of editor JSX + hook are not
+exercised here.
+
 ## [1.11.38] - 2026-05-12 -- Five Web Meetings list/view components tested: MeetingsList + MeetingsView + MeetingsListCardHeader + MeetingsListFilterRow + MeetingsListTitleBar
 
 **128 new tests** across the five remaining uncovered list/view
