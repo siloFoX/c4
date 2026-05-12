@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.63] - 2026-05-12 -- One Web lib control-panel-single hook tested: lib/use-control-panel-single.ts
+
+**12 new tests** in one `web/src/lib/` hook module. No production
+code changes -- pure test coverage. Discovery note on TODO 11.48
+scope: of the four named files in the queue entry
+(`use-attach-form`, `use-attach-process-state`, `use-conversation`,
+`use-control-panel-single`), only `use-control-panel-single.ts`
+was actually uncovered on main. The other three already had
+matching `.test.ts` siblings (use-attach-form: 7 cases,
+use-attach-process-state: 8 cases, use-conversation: existing
+suite), so only `use-control-panel-single` was eligible for new
+coverage in this release. The one new file (case count):
+
+- `web/src/lib/use-control-panel-single.test.ts` (12 cases) --
+  covers the single-worker action dispatcher: idle initial state
+  (`busyKind=null`, `runSingle` is a function); happy-path POST
+  to `action.endpoint` with `action.body` followed by a success
+  toast firing `action.successMessage(workerName)` and a single
+  `fetchList()` ping; confirm-rejected validation path
+  (`window.confirm` returns false → no POST, no toast, no
+  fetchList, `busyKind` stays null); confirm-accepted path
+  proceeds; non-2xx with `{error}` JSON produces an error toast
+  containing both the action label and the server-side error
+  string; non-2xx with empty `error` field falls back to the
+  i18n `controlPanel.action.failedUnknown` ("unknown")
+  substitution; busy slot via release-gate `Promise` pattern --
+  `busyKind` flips to `action.kind` ("restart") while the POST
+  is in flight and back to `null` after resolve; prop-driven
+  re-evaluation -- a `workerName` rerender is picked up on the
+  next `runSingle` call so `successMessage(workerName)` sees
+  the new name; network failure (`HttpResponse.error()`) surfaces
+  as an error toast still carrying the action label and clears
+  busy state + still pings `fetchList`; daemon 2xx + payload
+  `{error}` no-op convention is treated as failure; `fetchList`
+  is always invoked after the POST resolves (both success and
+  failure branches); and per-call action dispatch confirms that
+  different `endpoint` + `body` pairs route correctly through
+  the same hook instance.
+
 ## [1.11.62] - 2026-05-12 -- Two Web lib markdown / conversation-render renderers tested: lib/markdown.tsx + lib/conversation-render.tsx
 
 **68 new tests** across two `web/src/lib/` renderer modules. No
