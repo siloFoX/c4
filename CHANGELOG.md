@@ -4,6 +4,67 @@
 
 (no entries -- next release window)
 
+## [1.11.66] - 2026-05-12 -- Two header overlay RTL/jsdom test suites added: HelpDrawer + HelpUIRoot
+
+**79 new tests** across two untested `web/src/components/*.tsx` files.
+No production code changes -- pure test coverage. The two new files
+(case counts):
+
+- `web/src/components/HelpDrawer.test.tsx` (49 cases) -- covers the
+  right-side slide-out help overlay: the dialog scaffolding
+  (`role=dialog`, `aria-modal=true`, the localized "Help center"
+  aria-label, the `data-help-drawer` hook); the open vs closed
+  transform (`translate-x-0` vs `translate-x-full`); the inert +
+  pointer-events-none surface on the outer backdrop when closed;
+  the localized header heading + X icon-button; the search input
+  (aria-label + placeholder + the focus-on-open rAF wired through
+  `use-drawer-keyboard`); the four intro paragraphs (global intro,
+  feature nav, cli mapping, shortcut hint); one card per FEATURES
+  registry entry with the localized title, summary, and CLI code
+  rendering; the per-entry `data-help-entry` hook for every feature
+  id; the case-insensitive search filter (entries narrow on typed
+  query, restore on clear, ignore whitespace-only input); the
+  localized "No matches." copy when nothing matches; the
+  `data-active="true"` highlight that follows the activeFeatureId
+  prop (null, known id, unknown id, prop-change shift); the close
+  paths (X icon button, footer Close button, outer backdrop click,
+  Escape key when open, the stopPropagation guard on inner clicks,
+  the open=false null listener case); the rerender stability checks
+  (no duplicate heading, open=false to open=true reveal, onClose
+  identity rebind); and the locale flip across aria-label, title
+  heading, and the No matches copy.
+
+- `web/src/components/HelpUIRoot.test.tsx` (30 cases) -- covers the
+  three-overlay composition root: the three exported custom event
+  name constants (`c4:help-drawer-open`, `c4:shortcuts-open`,
+  `c4:locale-toggle`); the initial-render contract (drawer +
+  shortcuts mount with `data-open="false"`, OnboardingTour mounts);
+  the hash-routed activeFeatureId forwarded to HelpDrawer (empty
+  hash, matching `#/feature/<id>` prefix, non-matching hash, post-
+  mount hashchange to a known id, hash reset to empty); the open-
+  via-event surface (`c4:help-drawer-open` flips drawer open,
+  `c4:shortcuts-open` flips shortcuts open, neither leaks into the
+  other); the exported `openHelpDrawer()` + `openShortcutsModal()`
+  helpers reaching the same surface (and pre-mount calls are no-
+  ops); the keyboard hotkeys ("h" / "H" -> drawer, "?" ->
+  shortcuts, unrelated keys ignored); the close paths through the
+  child onClose props for both overlays; the independent open
+  flags (both can be open, closing one preserves the other); the
+  listener teardown on unmount (no throw on subsequent dispatch);
+  the rerender stability (no duplicate markers, reopen after close
+  works).
+
+Stubbed dependencies: HelpUIRoot's three children (HelpDrawer,
+KeyboardShortcutsModal, OnboardingTour) are mocked to thin markers
+in HelpUIRoot.test so we can assert orchestration without pulling
+their dependencies. `use-help-overlay-triggers` and
+`use-feature-id-from-hash` run real because both have their own
+unit tests for the listener contract; HelpUIRoot.test covers the
+prop-change -> child render wiring.
+
+Discovery: AccountMenu.test.tsx was already added in v1.11.65 so
+that target is not re-covered here.
+
 ## [1.11.65] - 2026-05-12 -- Five high-value Web component RTL/jsdom test suites added: ConfirmDialog + Toast + ErrorBoundary + AccountMenu + KeyboardShortcutsModal
 
 **130 new tests** across five untested `web/src/components/*.tsx`
