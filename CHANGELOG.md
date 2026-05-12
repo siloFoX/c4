@@ -4,6 +4,102 @@
 
 (no entries -- next release window)
 
+## [1.11.51] - 2026-05-12 -- Five Web Wiki sub-panel components tested: WikiPageDetail + WikiPageDetailHeader + WikiBulkPublishRow + WikiSearchControls + WikiSearchResults
+
+**130 new tests** across five `web/src/components/` Wiki sub-panel
+components. No production code changes -- pure test coverage.
+Each suite follows the same pattern as the 1.11.44 WikiView
+batch: pure-display components are driven by direct prop
+permutations, no hooks are exercised because each component
+consumes only the props the parent `WikiView` already wired from
+the four wiki hooks (`use-wiki-search`, `use-wiki-page`,
+`use-wiki-reopen`, `use-wiki-bulk-publish`). `userEvent.setup()`
+for click + type + selectOptions + keyboard; `act()` to flush
+the `c4:locale-changed` event-based re-render. The five new
+files (case counts):
+
+- `web/src/components/WikiPageDetail.test.tsx` (24)
+- `web/src/components/WikiPageDetailHeader.test.tsx` (20)
+- `web/src/components/WikiBulkPublishRow.test.tsx` (25)
+- `web/src/components/WikiSearchControls.test.tsx` (28)
+- `web/src/components/WikiSearchResults.test.tsx` (27)
+
+WikiPageDetail: the right-pane body. Covers the empty-no-
+selection branch (BookOpen icon + i18n placeholder), the error
+branch (destructive tone, takes priority over the loading
+branch), the loading branch (selectedPath + null page + null
+error), and the populated branch (metadata grid for type /
+status / last_reviewed / path with a `-` fallback when frontmatter
+keys are missing, related-pages chips that fire onSelectPath only
+when the ref ends in `.md` and stay disabled with reduced opacity
+otherwise, body pre rendering, related-count header from
+`wiki.relatedCount`). Also covers the chip title attribute
+("Open <ref>" vs the bare ref), BookOpen aria-hidden marker,
+locale flip, and idempotent rerender under identical props.
+
+WikiPageDetailHeader: the right-pane card header. Covers the
+title fallback ("Select a page" when no page is loaded), the
+frontmatter title path, the page.path fallback when frontmatter
+has no title. The Reopen button is gated on three conditions:
+page is non-null, selectedPath is non-null, and
+`frontmatter.status !== 'reopened'` -- each negative branch is
+tested separately. Covers the click forwarding selectedPath to
+onReopen, the disabled+animate-spin state during reopenBusy=true,
+the success vs destructive tone on the reopen result message,
+and the absence of either tone when reopenMsg is null. Title
+attribute, tooltip text, locale flip, and idempotent rerender.
+
+WikiBulkPublishRow: the bulk-publish strip. Covers the publish
+button (idle "Publish all" caption vs busy "Publishing..."
+caption, disabled+title attribute, type="button" no implicit
+submit, fires onPublish on click). The cascade rules
+(`gitPush=true` forces `gitCommit=true`, `gitCommit=false` cascades
+`gitPush=false`) are owned by the parent hook
+`use-wiki-bulk-publish` and tested there; the component test
+verifies only that each checkbox fires its raw callback with the
+new boolean state (off->on and on->off paths). Covers the busy
+state cascading to both checkboxes (disabled), the success
+message in muted-foreground tone vs the failure message in
+destructive tone, the absence of either tone when msg is null,
+the i18n labels for "git commit" / "+ push", layout (border-t +
+pt-2 flex), locale flip, no-callback-on-mount, and idempotent
+rerender.
+
+WikiSearchControls: the search-input strip. Covers the query
+Input with its placeholder + aria-label, the controlled value
+reflecting the query prop, every keystroke firing onQuery, Enter
+firing onSearch and preventing form submission (preventDefault),
+non-Enter keys not firing onSearch, the searching=true busy
+state disabling the Input + type select + includeStale checkbox
++ Search button. Type select: all six options from `TYPE_OPTIONS`
+with their localized labels, controlled value, onType wiring on
+change. IncludeStale checkbox: controlled checked state, off->on
+and on->off paths, disabled state. Search button: accessible
+label "Run wiki search", caption "Search", click fires onSearch,
+animate-spin icon while searching, no spin when idle. Locale
+flip, no-callback-on-mount, idempotent rerender.
+
+WikiSearchResults: the master-pane hit list. Covers the four
+render branches: error (destructive tone, takes priority over
+loading and populated branches), loading (search=null + no
+error), empty (zero hits + `wiki.empty.format` with the wikiRoot
+interpolated), and populated (one li per hit with type badge,
+optional status chip when `h.status` is non-null which serves as
+the "stale" / superseded marker, score prefix via
+`wiki.scorePrefix`, title, optional snippet, path). Selection
+highlight is via the `bg-primary/30` class on the active row
+(matching h.path === selectedPath); the SearchHit interface
+has no aria-selected attribute, so the test asserts the CSS
+class instead. Click forwarding fires onSelect with the row
+path regardless of current selection. Locale flip, divide-y
+list class, no-callback-on-mount, and idempotent rerender.
+
+After this commit `npm --prefix web test` reports 2735 passing
+tests across 149 files (45 / 0 failures introduced; the existing
+unrelated Templates tooltip-timeout warning is unchanged). No
+files in `web/src/` outside the five new colocated test files
+are touched.
+
 ## [1.11.50] - 2026-05-12 -- Four more Web feature pages tested: Auto + Rbac + Validation + Risk
 
 **141 new tests** across four `web/src/pages/` feature pages. No
