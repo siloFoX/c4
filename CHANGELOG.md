@@ -4,6 +4,65 @@
 
 (no entries -- next release window)
 
+## [1.11.106] - 2026-05-13 -- Tests: MeetingsDetail actions RTL batch (TODO 11.88)
+
+Add vitest/RTL/jsdom coverage for three action-panel components that
+previously had no test file: `web/src/components/MeetingsDetailCompletedActions.tsx`,
+`MeetingsDetailInProgressActions.tsx`, and `MeetingsDetailPendingActions.tsx`.
+Mirrors the v1.11.104 / v1.11.105 pattern (setLocale in beforeEach,
+`vi.mock` external children with marker stubs that expose props via
+`data-*` attrs, render with `vi.fn()` callbacks, locale-flip
+assertion at the end).
+
+- MeetingsDetailCompletedActions.test.tsx (15 cases): meetingId
+  forwarded into PublishControls / PeerRetroControls / RetroActions
+  marker stubs; Fork-button text resolved via `t('meetings.fork.button')`
+  when `forkOpen=false`, "Cancel fork" copy when `forkOpen=true`;
+  aria-label = "Fork meeting"; tooltip wired from
+  `meetings.tooltip.fork` (asserted via the live `t()` lookup so the
+  em-dash in the en string never lands in this file); aria-expanded
+  mirrors `forkOpen`; click fires `onForkToggle` exactly once;
+  ForkForm receives `open=true` when `forkOpen=true`, `meeting={id,
+  title}` forwarded; ForkForm `onClose` -> `onForkClose` and
+  `onForked('new-id')` -> `onForked('new-id')`; locale flip drops the
+  English Fork-button aria-label.
+- MeetingsDetailInProgressActions.test.tsx (12 cases): "manual:"
+  label renders; Contribute-button text resolved via
+  `t('meetings.contributeButton')` when `contribOpen=false`, "Hide
+  contribute" copy when `contribOpen=true`; aria-label = "Toggle
+  contribute form"; tooltip = "Post a contribution from a specific
+  specialist"; aria-expanded mirrors `contribOpen`; click fires
+  `onContribToggle` exactly once; StateActions receives `meetingId`
+  + `mode="in-progress"`; ContributePanel receives `meetingId` +
+  `open` mirroring `contribOpen`; locale flip drops the English
+  "manual:" label.
+- MeetingsDetailPendingActions.test.tsx (11 cases): meetingId
+  forwarded into RunControls + StateActions; `mode="pending"`
+  forwarded into StateActions; localized "or manually:" label
+  renders with `text-muted-foreground` class; both children render
+  exactly once; two `flex-wrap` row wrappers with RunControls in
+  the first row and StateActions in the second; empty-string
+  `meetingId` renders cleanly; meetingId updates propagate to both
+  children on rerender; locale flip drops the English "or manually:"
+  label.
+
+Mocks via `vi.mock` for the external children of each panel
+(MeetingsPublishControls + MeetingsPeerRetroControls +
+MeetingsRetroActions + MeetingsForkForm for CompletedActions;
+MeetingsStateActions + MeetingsContributePanel for
+InProgressActions; MeetingsRunControls + MeetingsStateActions for
+PendingActions) so each composite test asserts wiring without
+re-exercising the leaf controls.
+
+Verification: 38 / 38 new cases passing (`env -C
+/root/c4-worktree-auto-w79/web vitest run --project unit` on the
+three files); 5445 / 5445 cases passing across the full 246-file
+unit suite (5407 prior from v1.11.105 + 38 new cases in 3 new
+files). The ErrorBoundary "boom" / "left-boom" console.error lines
+and the tooltip async-teardown "window is not defined" warning are
+pre-existing fixture output / known async cleanup race, not
+regressions introduced here. web/package.json 1.11.105 -> 1.11.106.
+
 ## [1.11.105] - 2026-05-13 -- Tests: MeetingsDetail RTL batch (TODO 11.87)
 
 Add vitest/RTL/jsdom coverage for three components that previously
