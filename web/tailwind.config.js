@@ -1,4 +1,26 @@
 import animatePlugin from 'tailwindcss-animate';
+import plugin from 'tailwindcss/plugin';
+
+/**
+ * 8 px baseline grid plugin (1.11.88).
+ *
+ * Exposes `--baseline-step` (default 8 px) as a CSS variable on `:root`
+ * and registers a `.baseline` utility that snaps `line-height` to the
+ * step. Use it on prose-heavy blocks where the named typography scale
+ * (see `web/src/lib/typography.ts`) does not fit (long-form markdown,
+ * dynamic content) so adjacent surfaces stay vertically aligned. The
+ * companion typography scale snaps to 8 / 16 / 24 / 32 / 40 / 48 px
+ * line-heights via Tailwind's existing `leading-*` utilities -- this
+ * plugin is the escape hatch for everything else.
+ */
+const baselinePlugin = plugin(({ addBase, addUtilities }) => {
+  addBase({
+    ':root': { '--baseline-step': '8px' },
+  });
+  addUtilities({
+    '.baseline': { 'line-height': 'var(--baseline-step)' },
+  });
+});
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -67,5 +89,5 @@ export default {
       },
     },
   },
-  plugins: [animatePlugin],
+  plugins: [animatePlugin, baselinePlugin],
 };
