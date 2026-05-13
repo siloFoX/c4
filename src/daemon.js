@@ -168,6 +168,10 @@ const wikiWriter = require('./wiki-writer');
 const wikiReader = require('./wiki-reader');
 const wikiReopen = require('./wiki-reopen');
 const autoDispatcherMod = require('./auto-dispatcher');
+// (v1.11.95 / TODO 11.77) Lifecycle webhook notifier — opt-in via
+// config.notifications.{slack,discord,events}. Missing config produces
+// zero behaviour change.
+const lifecycleNotifyMod = require('./notify');
 const { PinnedMemoryScheduler, DEFAULT_INTERVAL_MS: PIN_DEFAULT_INTERVAL_MS } = require('./pinned-memory-scheduler');
 
 // (8.5) Allow-list for POST /key. Web UI needs to drive Enter, Escape,
@@ -6715,6 +6719,26 @@ function _buildAutoDispatcher() {
     ? auto.circuitThreshold
     : autoDispatcherMod.DEFAULT_CIRCUIT_THRESHOLD;
 
+  // (v1.11.95 / TODO 11.77) Resolve the lifecycle webhook config once
+  // per build so the notifier callback can hand it straight to
+  // sendWebhook without re-reading config.json on every event. If
+  // config.notifications is absent or carries no lifecycle URLs the
+  // helper short-circuits internally — opt-in by design.
+  const lifecycleVersion = (manager._daemonVersion || cfgNow.version || '1.11.95');
+  const _sendLifecycle = (kind, extra) => {
+    try {
+      lifecycleNotifyMod.sendWebhook({
+        kind,
+        payload: Object.assign({
+          worker: instance && instance.managerName,
+          version: lifecycleVersion,
+          timestamp: new Date().toISOString(),
+        }, extra || {}),
+        config: manager.getConfig() || {},
+      });
+    } catch { /* fire-and-forget — never break the autonomous loop */ }
+  };
+
   const instance = new autoDispatcherMod.AutoDispatcher({
     enabled: true,
     todoPath,
@@ -6735,10 +6759,20 @@ function _buildAutoDispatcher() {
           todo: payload.id,
           priority: payload.priority,
         });
+        _sendLifecycle('dispatch', {
+          branch: 'c4/auto-' + String(payload.id || '').replace(/\./g, '-'),
+          todo: { id: payload.id, title: payload.title },
+        });
       } else if (event === 'auto_dispatch_paused') {
         safeEmit('halt_detected', {
           worker: instance.managerName,
           reason: 'auto-dispatch paused: ' + payload.reason,
+        });
+        _sendLifecycle('halt', { reason: payload.reason });
+      } else if (event === 'auto_dispatch_escalation') {
+        _sendLifecycle('escalation', {
+          todo: { id: payload.todoId, title: payload.kind },
+          reason: payload.reason,
         });
       }
     },
@@ -6778,6 +6812,11 @@ function _stopAutoDispatcher() {
 // bridgeStallToSlackEvents block above already intercepts notifyStall;
 // here we piggyback on the same event so a halt that fires during an
 // auto-dispatched task increments the consecutive-halt counter.
+//
+// (v1.11.95 / TODO 11.77) Also fire the `complete` lifecycle webhook
+// when the manager reports task_complete for an auto-dispatched todo.
+// The webhook helper resolves config + URL gating internally so a
+// missing notifications block is a no-op.
 manager.on('sse', (event) => {
   if (!autoDispatcher) return;
   if (!event || !event.worker) return;
@@ -6785,7 +6824,21 @@ manager.on('sse', (event) => {
   if (event.type === 'error' && event.escalation) {
     autoDispatcher.recordHalt(autoDispatcher.lastDispatchId, event.message || 'escalation');
   } else if (event.type === 'task_complete') {
-    autoDispatcher.recordSuccess(autoDispatcher.lastDispatchId);
+    const lastId = autoDispatcher.lastDispatchId;
+    autoDispatcher.recordSuccess(lastId);
+    try {
+      lifecycleNotifyMod.sendWebhook({
+        kind: 'complete',
+        payload: {
+          worker: autoDispatcher.managerName,
+          version: (manager._daemonVersion || '1.11.95'),
+          timestamp: new Date().toISOString(),
+          branch: 'c4/auto-' + String(lastId || '').replace(/\./g, '-'),
+          todo: { id: lastId, title: event.task || '' },
+        },
+        config: manager.getConfig() || {},
+      });
+    } catch { /* fire-and-forget — never break the autonomous loop */ }
   }
 });
 
