@@ -78,7 +78,7 @@ export default function FeatureSidebar({
                         aria-current={active ? 'page' : undefined}
                         onClick={() => onSelect(f.id)}
                         className={cn(
-                          'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors',
+                          'flex min-h-[44px] w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors sm:min-h-0',
                           active
                             ? 'bg-primary/30 text-foreground'
                             : 'text-foreground hover:bg-accent hover:text-accent-foreground',

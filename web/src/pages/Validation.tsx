@@ -34,7 +34,7 @@ export default function Validation() {
         <>
           <Tooltip label={t('validation.tooltip.filter')}>
             <Input
-              className="h-8 w-48"
+              className="h-8 w-full sm:w-48"
               placeholder={t('validationPage.filter.placeholder')}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}

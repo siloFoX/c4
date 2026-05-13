@@ -219,7 +219,7 @@ function SectionShell({
         className,
       )}
     >
-      <header className="flex items-start justify-between gap-3 border-b border-border/60 px-5 py-4">
+      <header className="flex flex-col gap-3 border-b border-border/60 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-5">
         <div className="flex min-w-0 items-start gap-3">
           {icon ? (
             <span
@@ -242,7 +242,7 @@ function SectionShell({
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </header>
-      <div className="px-5 py-4">{children}</div>
+      <div className="px-4 py-4 sm:px-5">{children}</div>
     </section>
   );
 }
@@ -757,7 +757,7 @@ function ControlsDock({ status, onAction, pending }: ControlsDockProps) {
   return (
     <div
       data-controls-dock
-      className="fixed bottom-4 right-4 z-40 flex items-center gap-2 rounded-2xl border border-border/60 bg-card/70 p-2 shadow-2xl backdrop-blur-md supports-[backdrop-filter]:bg-card/50"
+      className="fixed bottom-4 left-2 right-2 z-40 flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-border/60 bg-card/70 p-2 shadow-2xl backdrop-blur-md supports-[backdrop-filter]:bg-card/50 sm:left-auto sm:right-4 sm:flex-nowrap sm:justify-start"
     >
       <span
         aria-label={`Autonomous loop ${indicator}`}
