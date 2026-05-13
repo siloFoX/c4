@@ -19,6 +19,7 @@ import {
   LayoutGrid,
   Layers3,
   ListChecks,
+  ListOrdered,
   Rocket,
   ScrollText,
   Shield,
@@ -143,6 +144,14 @@ export const FEATURES: FeatureDef[] = [
     category: 'automation',
     Icon: Rocket,
     load: () => import('./Auto'),
+  },
+  {
+    id: 'queue',
+    labelKey: 'feature.queue.label',
+    descriptionKey: 'feature.queue.description',
+    category: 'automation',
+    Icon: ListOrdered,
+    load: () => import('./Queue'),
   },
   {
     id: 'templates',

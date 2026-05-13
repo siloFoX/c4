@@ -1112,6 +1112,8 @@
   "feature.morning.description": "Generate the daily morning report — what happened, what is open.",
   "feature.auto.label": "Auto",
   "feature.auto.description": "Spawn an autonomous manager + scribe for a given task.",
+  "feature.queue.label": "Queue",
+  "feature.queue.description": "Edit the autonomous queue markdown -- reorder rows, flip status, edit detail.",
   "feature.templates.label": "Templates",
   "feature.templates.description": "Worker templates — reusable agent/model/effort presets.",
   "feature.profiles.label": "Profiles",
