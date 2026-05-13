@@ -4,6 +4,125 @@
 
 (no entries -- next release window)
 
+## [1.11.74] - 2026-05-13 -- Web lib hook vitest/jsdom test suites added: use-action-items-export + use-batch-submit + use-metrics + use-persisted-bool
+
+**56 new tests** across four untested `web/src/lib/use-*.ts` hooks. No
+production code changes -- pure test coverage. This entry fills the
+1.11.74 slot reserved for the auto-w50 parallel worker in the dispatch
+window noted under [1.11.76]; `package.json` + `package-lock.json` were
+already advanced to 1.11.76 by an earlier-finishing parallel worker, so
+no version bump is included here.
+
+The four new files (case counts):
+
+- `web/src/lib/use-action-items-export.test.ts` (14 cases) -- covers
+  the meeting action-item export hook (extracted from
+  MeetingsActionItemsPanel). The hook exposes two callbacks:
+  `handleDownloadJson` synthesizes a Blob + URL.createObjectURL +
+  hidden `<a download>` click + URL.revokeObjectURL dance, and
+  `handleCopyMd` groups items by KIND_ORDER (decision / action /
+  todo / blocker) into `## TYPE (count)` headers with bullet bodies,
+  trims trailing newlines, and writes to navigator.clipboard
+  (swallowing failures). The test stubs `URL.createObjectURL` /
+  `revokeObjectURL` and a `document.createElement('a')` capturing
+  proxy + `navigator.clipboard.writeText` to a `vi.fn()`. Coverage:
+  initial render returns two callable handlers, both callbacks are
+  no-ops when `actions === null` (no anchor, no blob, no
+  writeText), happy-path download fires exactly one anchor click
+  with `action-items-<meetingId>.json` + appended-before-click +
+  removed-after-click + object URL revoked, Blob type is
+  `application/json` and body is `JSON.stringify(actions, null, 2)`,
+  Markdown output orders groups by KIND_ORDER + emits
+  `## TYPE (count)` headers + skips empty groups + trims trailing
+  blank lines, clipboard rejection is silently swallowed (no
+  throw), prop rerender on meetingId updates the next download
+  filename, prop rerender on actions updates both the JSON payload
+  and the Markdown grouping, handler reference stability across
+  no-op rerenders, and a parallel call issued while the first
+  writeText is gated still fires a second (no internal mutex).
+
+- `web/src/lib/use-batch-submit.test.ts` (16 cases) -- covers the
+  `c4 batch` dispatcher hook (POST /api/batch, extracted from
+  pages/Batch). The hook owns its own `busy / result / error`
+  triplet, validates input ahead of the POST, and emits success /
+  partial-failure toasts itself. The test drives the hook through
+  msw `http.post('/api/batch', ...)` and uses a `vi.fn()` showToast.
+  Coverage: idle initial state (busy=false, result=null,
+  error=null), mode=count with empty task rejected with the i18n
+  "Task is required." string and no POST, mode=count with count<1
+  rejected with "Count must be at least 1." and no POST,
+  mode=file with no non-comment lines rejected with the i18n
+  "Paste at least one non-comment line in Tasks." string,
+  happy-path mode=count POSTs `{ namePrefix, task, count }` and
+  fires a success toast when fail=0, happy-path mode=file parses
+  `tasksText` (trims each line, drops blanks + comment-prefixed
+  lines) and POSTs `{ namePrefix, tasks }`, optional keys
+  (branch / profile / autoMode) are forwarded only when set and
+  omitted entirely when empty / false, namePrefix falls back to
+  'batch' when the prop is the empty string, 2xx `{ error }` is
+  treated as a failure (sets error, no toast), 2xx with fail>0
+  emits an `error` toast, non-2xx response is caught and the
+  HTTP message becomes the error state (busy back to false),
+  busy slot via release-gate Promise (busy=true mid-flight,
+  back to false on resolve), a parallel submit issued while
+  the first is gated still fires a second POST (no internal
+  mutex), each submit() prelude clears stale error + result,
+  and prop rerender on task picks up the new value on the next
+  submit (useCallback dependency).
+
+- `web/src/lib/use-metrics.test.ts` (11 cases) -- covers the
+  5-second self-polling metrics hook used by MetricsBar. The
+  hook calls `fetch('/api/metrics')` directly (not apiFetch)
+  since the daemon's metrics route predates the shared auth
+  middleware. State stays `null` until the first successful
+  response and is preserved across non-OK / network-blip
+  responses. The test exercises the polling cadence with
+  `vi.useFakeTimers` + `vi.advanceTimersByTimeAsync` so the
+  interval callbacks and the in-flight fetch promises both
+  drain in a single act() boundary. Coverage: idle initial
+  null, mount fires exactly one GET to `/api/metrics` and
+  stores the payload, non-OK response keeps state at null,
+  fetch network error keeps state at null, polling cadence
+  (calls = 1 / 2 / 3 across 0ms / 5000ms / 10000ms boundaries),
+  no extra request before the 5s mark (4999ms still = 1 call,
+  5000ms = 2 calls), a subsequent error response does not
+  clobber the last successful value, unmount clears the
+  interval (no further requests fire after cleanup), the
+  `alive` guard suppresses setState on an in-flight fetch that
+  resolves after unmount, and the busy slot via release-gate
+  Promise pattern (first tick holds state at null until the
+  server resolves).
+
+- `web/src/lib/use-persisted-bool.test.ts` (15 cases) -- covers
+  the generic localStorage-backed boolean preference hook. The
+  hook stores '1' / '0' (not JSON-encoded `true` / `false`) so
+  the existing ad-hoc reader/writer pairs in WorkerList + others
+  stay readable, reads via a lazy useState initializer (no
+  re-read on subsequent renders), writes on every value or key
+  change through a useEffect, and exposes a stable `toggle()`
+  as the third tuple slot. The test exercises the real
+  `window.localStorage` (cleared in beforeEach / afterEach).
+  Coverage: idle initial returns the fallback when localStorage
+  is empty + setter and toggle are functions, fallback=true is
+  honored when storage is empty, '1' read as true on mount, '0'
+  read as false on mount even when fallback=true, malformed
+  values ('yes' / legacy 'true' / empty string) fall back to
+  the default, setValue(true) writes '1' and setValue(false)
+  writes '0', the mount effect establishes the key even on a
+  cold start, toggle() flips both directions and persists each
+  transition, toggle reference is stable across re-renders,
+  setValue supports the functional updater form, changing the
+  key prop writes the current value to the new key on the next
+  effect (the lazy initializer does not re-read on key change),
+  and persisted writes survive an unmount + remount of the
+  hook at the same key.
+
+Test plumbing: pure additions under `web/src/lib/*.test.ts`. No
+changes to production code, vitest config, msw handlers, or any
+non-test source file. All 56 cases pass under the existing `npm
+--prefix web test` one-shot, alongside the prior 4903 cases (total
+4959 passing across 218 files).
+
 ## [1.11.73] - 2026-05-13 -- Web component RTL/jsdom test suites added: WorkerActions + WorkerDetailHeader + WorkerListGroupHeader
 
 **136 new tests** across three untested `web/src/components/*.tsx`
