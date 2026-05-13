@@ -78,7 +78,7 @@ export default function SpecialistsList({
               ) : null}
               {flaggedIds.has(s.id) ? (
                 <span
-                  className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0 text-[10px] text-amber-700 dark:text-amber-400"
+                  className="inline-flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-1.5 py-0 text-[10px] text-warning"
                   title={t('specialists.tooltip.underperform')}
                 >
                   <AlertTriangle className="h-2.5 w-2.5" aria-hidden />

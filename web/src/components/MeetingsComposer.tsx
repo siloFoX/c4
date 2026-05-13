@@ -242,7 +242,7 @@ export default function MeetingsComposer({ open, onClose, onCreated }: Props) {
             className={cn(
               'inline-flex items-center gap-1 rounded-full border px-1.5 py-0 text-[10px]',
               newTrack !== 'auto' && newTrack !== classifyPreview.track
-                ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400'
+                ? 'border-warning/40 bg-warning/10 text-warning'
                 : 'border-border bg-muted/30 text-muted-foreground',
             )}
             title={classifyPreview.reason}

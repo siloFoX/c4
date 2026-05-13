@@ -311,6 +311,36 @@ describe('<SessionsAttachedRowActions>', () => {
     expect(pill).toHaveAttribute('title', 'EACCES');
   });
 
+  // ---- proc-state pill semantic tokens (1.11.87 dark-mode sweep) -
+
+  it('uses the success semantic token on the alive proc-state pill (no raw emerald)', () => {
+    procStateValue = makeProcState('alive', {
+      pid: 4242,
+      cwd: '/repo/x',
+      match: 'fd',
+    });
+    renderRow();
+    const pill = screen.getByLabelText('Live process: pid 4242, fd-matched');
+    expect(pill.className).toContain('border-success/40');
+    expect(pill.className).toContain('bg-success/10');
+    expect(pill.className).toContain('text-success');
+    // The pre-1.11.87 raw Tailwind emerald shouldn't survive the
+    // sweep — assert the dark-mode-hostile tokens are gone.
+    expect(pill.className).not.toMatch(/\bemerald-/);
+    expect(pill.className).not.toMatch(/dark:text-emerald-/);
+  });
+
+  it('uses the warning semantic token on the error proc-state pill (no raw amber)', () => {
+    procStateValue = makeProcState('error', { message: 'EACCES' });
+    renderRow();
+    const pill = screen.getByLabelText('Process lookup failed: EACCES');
+    expect(pill.className).toContain('border-warning/40');
+    expect(pill.className).toContain('bg-warning/10');
+    expect(pill.className).toContain('text-warning');
+    expect(pill.className).not.toMatch(/\bamber-/);
+    expect(pill.className).not.toMatch(/dark:text-amber-/);
+  });
+
   // ---- view button -----------------------------------------------
 
   it('renders the View button with the i18n aria-label including the worker name', () => {

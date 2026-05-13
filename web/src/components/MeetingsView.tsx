@@ -100,7 +100,7 @@ export type ActionItemType = 'decision' | 'action' | 'todo' | 'blocker';
 
 export const STATUS_BADGE: Record<MeetingStatus, string> = {
   pending: 'border-border bg-muted/40 text-muted-foreground',
-  'in-progress': 'border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  'in-progress': 'border-info/40 bg-info/10 text-info',
   completed: 'border-success/40 bg-success/10 text-success',
   escalated: 'border-warning/40 bg-warning/10 text-warning',
   aborted: 'border-destructive/40 bg-destructive/10 text-destructive',

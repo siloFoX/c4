@@ -17,9 +17,9 @@ function scoreWidth(v: number): number {
 function ScoreBar({ value, samples }: { value: number; samples: number }) {
   const width = scoreWidth(value);
   const color = value > 0
-    ? 'bg-emerald-500/60'
+    ? 'bg-success/60'
     : value < 0
-      ? 'bg-rose-500/60'
+      ? 'bg-destructive/60'
       : 'bg-muted-foreground/40';
   return (
     <div className="flex items-center gap-2">

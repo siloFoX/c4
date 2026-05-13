@@ -27,8 +27,8 @@ export default function MeetingsDetailTitleBar({
           className={cn(
             'inline-flex items-center gap-1 rounded-full border px-1.5 py-0 text-[10px] uppercase tracking-wide',
             streaming
-              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-              : 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+              ? 'border-success/40 bg-success/10 text-success'
+              : 'border-warning/40 bg-warning/10 text-warning',
           )}
           aria-live="polite"
           title={streaming ? t('meetings.stream.tooltipLive') : t('meetings.stream.tooltipOffline')}

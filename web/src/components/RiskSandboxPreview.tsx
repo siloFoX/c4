@@ -25,7 +25,7 @@ export default function RiskSandboxPreview({ sandbox }: Props) {
         </Badge>
         <span className={cn(
           'text-[11px]',
-          sandbox.available.ok ? 'text-emerald-700 dark:text-emerald-400' : 'text-destructive',
+          sandbox.available.ok ? 'text-success' : 'text-destructive',
         )}>
           {sandbox.available.ok
             ? t('risk.sandbox.available')

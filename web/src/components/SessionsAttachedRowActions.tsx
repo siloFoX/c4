@@ -103,7 +103,7 @@ export default function SessionsAttachedRowActions({
           </span>
         ) : procState.status === 'alive' ? (
           <span
-            className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0 text-emerald-600 dark:text-emerald-400"
+            className="inline-flex items-center gap-1 rounded-full border border-success/40 bg-success/10 px-1.5 py-0 text-success"
             aria-label={tFormat('sessions.process.liveAria', {
               pid: procState.pid,
               match: t(procState.match === 'fd' ? 'sessions.process.fdMatched' : 'sessions.process.cwdMatched'),
@@ -115,7 +115,7 @@ export default function SessionsAttachedRowActions({
               (procState.multipleCandidates ? ' — multiple candidates' : '')
             }
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
+            <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden />
             live · pid {procState.pid}
             {procState.multipleCandidates ? '+' : ''}
           </span>
@@ -130,11 +130,11 @@ export default function SessionsAttachedRowActions({
           </span>
         ) : (
           <span
-            className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0 text-amber-700 dark:text-amber-400"
+            className="inline-flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-1.5 py-0 text-warning"
             aria-label={tFormat('sessions.row.lookupFailedAria', { message: procState.message })}
             title={procState.message}
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden />
+            <span className="h-1.5 w-1.5 rounded-full bg-warning" aria-hidden />
             {t('sessions.row.lookupFailed')}
           </span>
         )}
