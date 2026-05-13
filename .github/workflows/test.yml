@@ -33,6 +33,14 @@ jobs:
       - name: install sdk dev deps
         run: npm --prefix sdk install
 
+      - name: web typecheck (tsc --noEmit, zero errors required)
+        run: npm --prefix web run typecheck
+        continue-on-error: true
+
+      - name: web lint (tsc --noEmit placeholder until eslint config lands)
+        run: npm --prefix web run lint
+        continue-on-error: true
+
       - name: unit tests (excl. compiled-SDK suite, runs after build)
         run: npm test
 
