@@ -1,4 +1,4 @@
-import { Badge } from './ui';
+import { Badge, Skeleton } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { renderSnippet } from '../lib/snippet';
@@ -38,11 +38,24 @@ export default function MeetingsList({
     return <div className="p-4 text-sm text-destructive">{error}</div>;
   }
   if (displayList.length === 0) {
+    if (loading && !isSearchMode) {
+      return (
+        <div
+          className="flex flex-col gap-2 p-4"
+          aria-label={t('meetings.empty.loading')}
+          data-meetings-loading="1"
+        >
+          <Skeleton variant="row" />
+          <Skeleton variant="row" />
+          <Skeleton variant="row" />
+        </div>
+      );
+    }
     return (
       <div className="p-4 text-sm text-muted-foreground">
         {isSearchMode
           ? tFormat('meetings.empty.search', { query: searchQuery })
-          : (loading ? t('meetings.empty.loading') : t('meetings.empty.list'))}
+          : t('meetings.empty.list')}
       </div>
     );
   }

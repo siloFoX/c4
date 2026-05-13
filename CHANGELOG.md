@@ -4,6 +4,88 @@
 
 (no entries -- next release window)
 
+## [1.11.78] - 2026-05-13 -- Web UI: Empty + loading + error state primitives
+
+Three reusable UI primitives landed under `web/src/components/ui/` so
+the c4 web UI stops re-inlining the same empty / loading / error
+markup at every list and detail panel. The primitives sit on top of
+the semantic palette tokens added in 1.11.77 -- they never reach for
+raw Tailwind colors, only `text-foreground` / `text-muted-foreground`
+/ `text-destructive` / `bg-card` / `bg-secondary` / `bg-muted` /
+`border-border`.
+
+New primitives (each in its own file, all re-exported from
+`web/src/components/ui/index.ts`):
+
+- `ui/empty-state.tsx` -- icon + title + optional description + an
+  `action` that is either `{ label, onClick }` (renders the project
+  `Button` primitive) or any ReactNode (rendered as-is). Wrapper is
+  `bg-card` + `border-border`; title is `text-foreground`,
+  description is `text-muted-foreground`. The icon slot inherits
+  `text-muted-foreground` so any lucide icon you pass in tones down
+  automatically.
+- `ui/skeleton.tsx` -- `animate-pulse bg-muted` placeholder with
+  five variants: `text` (h-3 row, optional `lines` prop renders N
+  stacked rows with the final one shortened to `w-4/5` for a more
+  natural paragraph look), `row` (h-8 rounded-md, for list rows),
+  `card` (h-32 rounded-md, for card placeholders), `avatar`
+  (h-10 w-10 rounded-full), and `rect` (free-form, accepts
+  `width` / `height` as number or string). `role="status"` +
+  `aria-hidden="true"` on the wrapper.
+- `ui/error-state.tsx` -- AlertTriangle (lucide) + `text-destructive`
+  title + optional description + optional `error: Error | string`
+  rendered inline as a `font-mono text-xs` line + optional retry
+  button on `bg-secondary` / `hover:bg-secondary/80`. Wrapper sets
+  `role="alert"` so assistive tech announces the failure without
+  any caller boilerplate.
+
+31 new vitest cases land alongside the primitives, mirroring the
+existing `ui/badge.test.tsx` pattern: variant class assertions,
+prop wiring (action click fires, onRetry fires, retryLabel honored),
+the description-omitted vs description-present branches, the
+`error: Error` vs `error: string` rendering, and palette-token
+presence on the wrapper.
+
+Five adoption sites in this same release replace inline
+empty/loading/error markup with the new primitives:
+
+- `WorkerList.tsx` -- the destructive error banner becomes
+  `<ErrorState>` and the Inbox+copy empty placeholder becomes
+  `<EmptyState>`. No existing test coverage on this file, so the
+  swap is drop-in.
+- `MeetingsList.tsx` -- the loading branch (`displayList=[]` +
+  `loading=true` + `!isSearchMode`) becomes a 3-row
+  `<Skeleton variant="row">` stack. The localized
+  "Loading meetings..." copy survives as the wrapper `aria-label`
+  so the screen-reader hint is preserved. One existing test
+  updated in lockstep.
+- `ChatMessageLog.tsx` -- the three inline `animate-pulse`
+  `<li>`s under the backfill loader become `<Skeleton variant="rect">`
+  with explicit height props (32 / 48 / 32) to preserve the
+  staggered visual. The `<ul aria-hidden="true">` wrapper +
+  3-child shape is preserved so the existing test passes
+  without an update.
+- `WikiSearchResults.tsx` -- `search=null` (loading) becomes a
+  `<Skeleton>` stack; `hits=[]` (empty) becomes an `<EmptyState>`
+  with a FileSearch lucide icon and the `wikiRoot`-interpolated
+  copy. Two existing tests updated.
+- `SessionsListSection.tsx` -- empty + loading becomes a `<Skeleton>`
+  stack with the localized copy on `aria-label`; empty + !loading
+  becomes an `<EmptyState>` with a FolderOpen icon. One existing
+  test updated.
+
+The full vitest suite runs 5043/5043 in the non-browser environment.
+The `button.browser.test.tsx` suite is unrelated (env lacks the
+playwright runner). `vite build` emits a clean dist
+(`tsc --noEmit` still surfaces the same pre-existing TS strictness
+errors in unrelated test files documented in 1.11.77 -- nothing
+new from this change). `web/src/components/ui/index.ts` re-exports
+`EmptyState` / `Skeleton` / `ErrorState` alongside the existing
+primitives. `docs/web-design-palette.md` gains a "State primitives"
+section explaining when to reach for which, the canonical token
+choices, and how to test against them (don't pin to wrapper
+classes; assert on accessible attributes + visible text).
+
 ## [1.11.77] - 2026-05-13 -- Web theme palette consistency sweep
 
 Migrated the c4 web UI (`web/src/components/*.tsx` + `pages/*.tsx`) off

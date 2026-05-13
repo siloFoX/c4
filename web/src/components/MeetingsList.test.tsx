@@ -206,9 +206,20 @@ describe('<MeetingsList>', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the loading empty copy when the list is empty and loading=true', () => {
-    renderList({ displayList: [], loading: true });
-    expect(screen.getByText('Loading meetings...')).toBeInTheDocument();
+  it('renders skeleton placeholders when the list is empty and loading=true', () => {
+    // (v1.11.78) Loading branch now uses the <Skeleton> primitive instead
+    // of an inline copy line. We keep the localized copy on the wrapper
+    // as aria-label so the screen-reader hint survives.
+    const { container } = renderList({ displayList: [], loading: true });
+    const wrap = container.querySelector('[data-meetings-loading="1"]');
+    expect(wrap).not.toBeNull();
+    expect(wrap?.getAttribute('aria-label')).toBe('Loading meetings...');
+    const skeletons = container.querySelectorAll('[role="status"][aria-hidden="true"]');
+    expect(skeletons.length).toBe(3);
+    for (const s of Array.from(skeletons)) {
+      expect(s.className).toContain('animate-pulse');
+      expect(s.className).toContain('bg-muted');
+    }
   });
 
   it('renders the "no meetings yet" empty copy when the list is empty and not loading', () => {
@@ -282,11 +293,16 @@ describe('<MeetingsList>', () => {
   });
 
   it('re-renders the empty copy when the locale flips to ko', () => {
-    renderList({ displayList: [], loading: true });
-    expect(screen.getByText('Loading meetings...')).toBeInTheDocument();
+    // (v1.11.78) Loading branch is a skeleton; its aria-label is the
+    // localized copy. The locale flip should swap that English string
+    // out for the Korean one.
+    const { container } = renderList({ displayList: [], loading: true });
+    const wrap = container.querySelector('[data-meetings-loading="1"]');
+    expect(wrap?.getAttribute('aria-label')).toBe('Loading meetings...');
     act(() => {
       setLocale('ko');
     });
-    expect(screen.queryByText('Loading meetings...')).not.toBeInTheDocument();
+    const wrapAfter = container.querySelector('[data-meetings-loading="1"]');
+    expect(wrapAfter?.getAttribute('aria-label')).not.toBe('Loading meetings...');
   });
 });

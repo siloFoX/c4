@@ -93,11 +93,17 @@ describe('<SessionsListSection>', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders the loading copy when empty + loading', () => {
-    renderSection({ filteredGroups: [], loading: true });
-    expect(
-      screen.getByText(`Loading sessions${String.fromCharCode(0x2026)}`),
-    ).toBeInTheDocument();
+  it('renders a skeleton list when empty + loading', () => {
+    // (v1.11.78) Loading branch uses <Skeleton variant="row"> primitives;
+    // the localized copy survives as the wrapper aria-label.
+    const { container } = renderSection({ filteredGroups: [], loading: true });
+    const wrap = container.querySelector('[data-sessions-loading="1"]');
+    expect(wrap).not.toBeNull();
+    expect(wrap?.getAttribute('aria-label')).toBe(
+      `Loading sessions${String.fromCharCode(0x2026)}`,
+    );
+    const skeletons = container.querySelectorAll('[role="status"][aria-hidden="true"]');
+    expect(skeletons.length).toBe(3);
   });
 
   it('renders the empty copy when empty + not loading', () => {

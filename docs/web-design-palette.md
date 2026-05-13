@@ -151,3 +151,65 @@ it reads the same and benefits from theme tuning.
   refer to the semantic token (`bg-success`, `text-warning`), not the
   raw Tailwind class. The full suite caught the regressions when 11.62
   swept the codebase; keep that habit for future palette work.
+
+## State primitives (1.11.78)
+
+Three reusable components in `web/src/components/ui/` cover the three
+recurring non-data states a list / card / panel renders: empty,
+loading, and error. They are the only place those palette tokens
+should appear at call sites — components reach for the primitive
+instead of re-inlining the markup.
+
+| Primitive | When to use | Key props |
+| --- | --- | --- |
+| `<EmptyState>` | "Nothing to show" — empty list, no matches, no items yet. Optional icon + optional CTA. | `icon?`, `title`, `description?`, `action?` (either `{ label, onClick }` or any ReactNode), `className?` |
+| `<Skeleton>` | "Loading" — animated `bg-muted` placeholder that mirrors the shape the real data will occupy. | `variant` (`text` / `row` / `card` / `avatar` / `rect`), `width?` / `height?`, `lines?` (for the `text` variant), `className?` |
+| `<ErrorState>` | "Something failed" — destructive-tinted icon + headline, optional retry button. | `title`, `description?`, `error?` (`Error` or string — message renders inline), `onRetry?`, `retryLabel?` (default `Retry`), `className?` |
+
+Token usage:
+
+- `EmptyState`: wrapper is `bg-card` + `border-border`; title is
+  `text-foreground`, description is `text-muted-foreground`. Icon
+  slot inherits `text-muted-foreground` so any lucide icon you pass
+  in tones down automatically.
+- `Skeleton`: every variant is `animate-pulse bg-muted` — the
+  variant only changes the shape (`rounded-full` for avatars,
+  `h-32` for a card placeholder, etc.). `lines={N}` on the `text`
+  variant renders N stacked rows with the last one shortened to
+  `w-4/5` for a more natural paragraph look.
+- `ErrorState`: wrapper is `bg-card` + `border-border` (the same
+  surface as `EmptyState`, so the two read as siblings); the title
+  + AlertTriangle icon are `text-destructive`; the retry button is
+  `bg-secondary` with `hover:bg-secondary/80`. The component sets
+  `role="alert"` on the wrapper for assistive tech.
+
+Picking the variant:
+
+```
+list of cards or chips    -> <Skeleton variant="row" /> repeated
+detail card body          -> <Skeleton variant="card" />
+avatar + name row         -> <Skeleton variant="avatar" /> + <Skeleton variant="text" />
+multi-line paragraph      -> <Skeleton variant="text" lines={3} />
+arbitrary size            -> <Skeleton variant="rect" width={...} height={...} />
+```
+
+Adoption rule of thumb: if a component renders an inline
+`text-destructive` banner, an `animate-pulse rounded-md bg-muted`
+strip, or a `text-muted-foreground` "empty" copy line, that is a
+candidate for the primitive. The 1.11.78 sweep moved five such
+sites — `WorkerList` (error + empty), `MeetingsList` (loading),
+`ChatMessageLog` (backfill skeletons), `WikiSearchResults`
+(loading + empty), and `SessionsListSection` (loading + empty) —
+onto the primitives. Use those as patterns when migrating more.
+
+Tests should not pin to the wrapper's raw classes (the primitives
+own them and may swap palette tokens later). Prefer:
+
+- For `EmptyState`: assert on the title / description text + the
+  presence of an action button by accessible name.
+- For `Skeleton`: assert the `[role="status"][aria-hidden="true"]`
+  selector + the count of placeholders (use a wrapper `data-` attr
+  + `aria-label` when you need the localized hint, since the
+  visible text is gone in skeleton mode).
+- For `ErrorState`: assert `role="alert"` is present and the
+  `title` / `error` strings are in the DOM.

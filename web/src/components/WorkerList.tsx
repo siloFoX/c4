@@ -8,6 +8,8 @@ import {
   Card,
   CardContent,
   CardHeader,
+  EmptyState,
+  ErrorState,
 } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -150,21 +152,18 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
       )}
 
       {error && (
-        <div
-          role="alert"
-          className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
-        >
-          <span className="min-w-0 break-words">
-            {tFormat('workerList.failedToLoad', { error: error || '' })}
-          </span>
-        </div>
+        <ErrorState
+          title={tFormat('workerList.failedToLoad', { error: error || '' })}
+          className="p-3 text-left"
+        />
       )}
 
       {!error && workers.length === 0 && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Inbox aria-hidden="true" className="h-4 w-4" />
-          <span>{t('workerList.empty')}</span>
-        </div>
+        <EmptyState
+          icon={<Inbox className="h-5 w-5" />}
+          title={t('workerList.empty')}
+          className="p-4"
+        />
       )}
 
       {/* (TODO 8.37) Managers group — only renders when there's at
