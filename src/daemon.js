@@ -11,6 +11,7 @@ const { resolveBindHost } = require('./web-external');
 const staticServer = require('./static-server');
 const auth = require('./auth');
 const wsAttach = require('./ws-attach');
+const daemonCheckpoint = require('./daemon-checkpoint');
 const historyView = require('./history-view');
 const recovery = require('./recovery');
 const fleet = require('./fleet');
@@ -6857,13 +6858,39 @@ server.listen(PORT, HOST, () => {
 // SIGTERM run the same sequence so an `kill -TERM` from systemd
 // and a Ctrl-C from a foreground operator do the same cleanup —
 // no behavioral split.
-function _gracefulShutdown() {
+//
+// (11.73) Replaces the previous `manager.closeAll()` (which removed
+// each worker's worktree) with a per-worker checkpoint write +
+// graceful SIGTERM -> 30s grace -> SIGKILL escalation. Worktrees
+// and branches are preserved so an operator can recover the session
+// from <projectRoot>/.c4/checkpoints/<name>.json after restart. The
+// uncaughtException handler below intentionally does NOT call into
+// this path -- see the `skipCheckpoint` option for the emergency branch.
+let _shuttingDown = false;
+async function _gracefulShutdown() {
+  if (_shuttingDown) return;
+  _shuttingDown = true;
   notifications.stopPeriodicSlack();
   manager.stopHealthCheck();
   manager.stopWorktreeGc();
   _stopScheduleTick();
   _stopAutoDispatcher();
-  manager.closeAll();
+  try {
+    const results = await daemonCheckpoint.shutdownWorkers(
+      manager.workers ? manager.workers.values() : [],
+      {
+        projectRoot: path.join(__dirname, '..'),
+        version: manager._daemonVersion || daemonCheckpoint.DEFAULT_VERSION,
+        log: (msg) => process.stderr.write(msg + '\n'),
+      },
+    );
+    for (const r of results) {
+      const ckpt = r.checkpoint ? r.checkpoint : 'skipped';
+      process.stderr.write(`[daemon] shutdown ${r.name}: ${r.outcome || 'no-action'} (checkpoint: ${ckpt})\n`);
+    }
+  } catch (err) {
+    process.stderr.write(`[daemon] shutdown worker pass failed: ${err && err.message ? err.message : err}\n`);
+  }
   // (Phase 7.13) Auto-backup on graceful shutdown so every clean
   // restart leaves a "last known good" copy at a deterministic
   // path. Operators can recover from a crash-after-corruption by
