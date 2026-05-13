@@ -4,6 +4,75 @@
 
 (no entries -- next release window)
 
+## [1.11.100] - 2026-05-13 -- Observability: structured logging via pino (TODO 11.82)
+
+Replace ad-hoc `console.log` / `console.warn` / `console.error` calls
+on the daemon side with a configurable pino-based structured logger so
+operators can filter and ship logs without regex-parsing free-form
+text.
+
+Shipped:
+
+- New `src/logger.js` exposing `getLogger()` (lazy singleton, reads
+  `config.logging` from `config.json`) and `createLogger(opts)` (test
+  / advanced factory). Reads `{ path, level, pretty, maxSize }`;
+  malformed shapes coerce silently to `{ path: null, level: 'info',
+  pretty: false, maxSize: null }` so the daemon never refuses to start
+  on a typo.
+- Size-based one-step rotation built on `fs.openSync` /
+  `fs.writeSync` / `fs.renameSync` (NOT `createWriteStream`, which is
+  lazy and races `renameSync` on the first batch — the rotated inode
+  was silently lost in early prototypes). When the on-disk file
+  crosses `maxSize`, it gets renamed to `<path>.1` and a fresh fd is
+  opened. Pre-existing file size seeds the byte counter so a restart
+  doesn't reset the rotation clock.
+- Pretty mode: when `pretty: true` AND `stdout` is a TTY, pino's
+  worker-thread `pino-pretty` transport is engaged. Non-TTY (CI, nohup,
+  redirected) skips it and stays on JSON.
+- 13 console call sites in `src/daemon.js` (audit, schedule, hook
+  events, recovery hook, listen banner, reconcileOrphans, startup
+  state save, uncaughtException, unhandledRejection) and the
+  `defaultLog` helper in `src/notify.js` now route through the logger.
+  Each line carries a structured `component` field plus contextual
+  keys (worker, branch, err, etc.) for downstream filtering. Banner
+  format goes from `console.log('C4 daemon running on http://...')`
+  to `log.info({component:'daemon', host, port, version}, 'C4 daemon
+  listening')`.
+- `src/daemon-manager.js` keeps its two `console.warn` calls: it runs
+  in the operator's terminal during `c4 daemon start` BEFORE the
+  daemon process exists, where pino's default JSON destination would
+  be hostile.
+- `src/queue-editor.js`, `src/daemon-checkpoint.js`,
+  `src/daemon-reconnect.js` had no console calls at the start of this
+  task — verified by grep, no edits needed.
+- `pino@^10.3.1` + `pino-pretty@^13.1.3` added to `package.json`
+  dependencies (npm install at the repo root, not under `web/`).
+- New `tests/logger.test.js`: 18 cases across 7 suites — `_safeConfig`
+  coercion (defaults, level whitelist, path/maxSize bounds), level
+  filtering + fallback, file destination + nested-parent recursive
+  mkdir, size-triggered rotation + pre-existing byte-counter seed,
+  pretty TTY gate (skips when not a TTY, engages otherwise), an
+  integration sweep that drives `trace`/`debug`/`info`/`warn`/`error`
+  through real pino at level=trace and asserts on the numeric levels
+  10/20/30/40/50, and singleton reset.
+- `web/package.json` 1.11.99 -> 1.11.100.
+- `CLAUDE.md` daemon section gets a "Structured logging (v1.11.100)"
+  block with the config shape, rotation contract, and pretty-mode
+  rules.
+- `docs/autonomous-queue-v10.md` row 11.82 marked done with the
+  Shipped: summary mirroring this entry.
+
+Out of scope (deferred):
+
+- Sweep of the rest of `src/*.js` (only the daemon entry-point + notify
+  helper + queue editor + checkpoint + reconnect were specified for
+  this TODO). A follow-up TODO can extend the sweep to `pty-manager.js`,
+  `recovery.js`, the meeting subsystem, etc.
+- Multi-step rotation / time-based rotation. The single `<path>.1`
+  copy is sufficient for the daemon's lifetime; a downstream log
+  shipper (logrotate, vector, etc.) is the right tool when retention
+  beyond one rotated file is required.
+
 ## [1.11.99] - 2026-05-13 -- Quality: lint/typecheck baseline + partial fixes (TODO 11.81, partial)
 
 Stand up the lint/typecheck plumbing for `web/` and capture the
