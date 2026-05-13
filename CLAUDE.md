@@ -63,6 +63,9 @@ c4 scrollback <name> [--lines N]     워커 스크롤백 읽기
 c4 list                              모든 워커 상태 조회
 c4 close <name>                      워커 종료
 c4 health                            데몬 헬스체크
+c4 ui [--port N]                     Open daemon web UI in default browser (port: --port > config.json daemon.port > 3456)
+                                     # Platform opener: open (darwin) / cmd /c start (win32) / xdg-open (linux+other)
+                                     # Falls back to 'Open in browser: <url>' line when opener is missing (exit 0)
 c4 config [reload]                   설정 조회/리로드
 c4 config validate [path]            config.json 검증 (errors / warnings)
 c4 doctor                            환경 종합 헬스 체크 (daemon + config + dist + logs)
