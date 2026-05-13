@@ -1347,6 +1347,26 @@ const ROUTE_SCHEMAS = {
     ],
     response: { type: 'string', description: 'SSE stream of worker output — Content-Type: text/event-stream' },
   },
+  'GET /workers/{name}/attach': {
+    // (1.11.90) Bidirectional pty pipe via WebSocket. The route lives
+    // behind server.on('upgrade', ...) in daemon.js; the GET shape is
+    // documented here so the spec surfaces it even though there is no
+    // HTTP handler under the same path.
+    parameters: [
+      { name: 'name', in: 'path', required: true, schema: { type: 'string', description: 'Worker name to attach to' } },
+      { name: 'readonly', in: 'query', required: false, schema: { type: 'string', enum: ['1'], description: 'When `1`, the daemon silently drops inbound frames so the client cannot write to the worker (view-only).' } },
+    ],
+    response: {
+      type: 'string',
+      description:
+        'WebSocket upgrade only. Clients MUST send the standard RFC 6455 ' +
+        'handshake headers (Upgrade: websocket, Connection: Upgrade, ' +
+        'Sec-WebSocket-Key, Sec-WebSocket-Version: 13). Server frames are ' +
+        'binary (raw pty bytes); client frames are text or binary (treated ' +
+        'as keystrokes / paste). Close code 1008 + reason "worker not found" ' +
+        'if :name is missing.',
+    },
+  },
   'GET /approvals': {
     response: {
       properties: {
@@ -3666,10 +3686,27 @@ function _operationIdFor(method, routePath, seen) {
   return dedup;
 }
 
+// (1.11.90) Routes the extractRoutes regex cannot pick up. Right now
+// the only entry is the WebSocket attach endpoint, which lives behind
+// server.on('upgrade', ...) rather than an `req.method === 'GET' &&
+// route === '/y'` clause. We surface it here so /openapi.json,
+// Swagger UI, and `c4 openapi` all list it -- without it, an operator
+// inspecting the spec would have no idea attach exists.
+const _VIRTUAL_ROUTES = [
+  {
+    method: 'GET',
+    path: '/workers/{name}/attach',
+    inlineSummary: 'WebSocket attach to a running worker (RFC 6455 upgrade required)',
+    rbacAction: null,
+    _virtual: true,
+    _websocket: true,
+  },
+];
+
 function buildSpec({ daemonPath, version, baseUrl } = {}) {
   const dp = daemonPath || path.join(__dirname, 'daemon.js');
   const source = _readDaemonSource(dp);
-  const routes = extractRoutes(source);
+  const routes = extractRoutes(source).concat(_VIRTUAL_ROUTES);
 
   const paths = {};
   const seenOpIds = new Set();

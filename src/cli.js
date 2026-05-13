@@ -443,6 +443,135 @@ function runUi({
   });
 }
 
+// (1.11.90) Build the WebSocket URL for `c4 attach`. Pure function so
+// tests can pin the URL shape (--readonly query, token fallback,
+// http->ws / https->wss protocol swap) without spinning up a network
+// stack. The base argument is plumbed through so a test can pass a
+// custom origin without touching process.env.C4_URL.
+function buildAttachUrl({ name, args = [], base, token = null } = {}) {
+  if (!name) throw new Error('buildAttachUrl: name is required');
+  const origin = base || resolveBase();
+  const u = new URL(`/api/workers/${encodeURIComponent(name)}/attach`, origin);
+  const readonly = Array.isArray(args) && args.includes('--readonly');
+  if (readonly) u.searchParams.set('readonly', '1');
+  if (token) u.searchParams.set('token', token);
+  const wsProto = u.protocol === 'https:' ? 'wss:' : 'ws:';
+  return { url: `${wsProto}//${u.host}${u.pathname}${u.search}`, readonly };
+}
+
+// (1.11.90) Pipe stdin/stdout to a running worker over a WebSocket.
+// All side effects (stdin raw mode, stdout writes, process.exit) are
+// dependency-injected so tests can drive the handler with a fake
+// EventEmitter stream + fake stdio + an exit spy.
+//
+// Detach contract:
+//   * Ctrl+] (byte 0x1d) in stdin closes the socket cleanly, prints
+//     '\n[c4 attach: detached from <name>]\n' to stderr, and exits 0.
+//   * The server closing with code 1008 + reason 'worker not found'
+//     maps to exit code 2 with '[c4 attach: worker not found]'.
+//   * Any other unexpected close prints
+//     '[c4 attach: socket closed - <code>/<reason>]' and exits 1.
+async function runAttach({
+  name,
+  args = [],
+  base,
+  token,
+  connect: connectFn,
+  stdin = process.stdin,
+  stdout = process.stdout,
+  stderr = process.stderr,
+  exit = (code) => process.exit(code),
+  setRawMode,
+} = {}) {
+  if (!name) {
+    stderr.write('Usage: c4 attach <name> [--readonly]\n');
+    return exit(1);
+  }
+  const tok = token === undefined ? readToken() : token;
+  const { url, readonly } = buildAttachUrl({ name, args, base, token: tok });
+  const connector = connectFn || require('./ws-client').connect;
+
+  let client;
+  try {
+    client = await connector(url, {});
+  } catch (err) {
+    if (err && err.statusCode === 401) {
+      stderr.write('[c4 attach: unauthorized - run `c4 login` first]\n');
+      return exit(1);
+    }
+    if (err && (err.statusCode === 404 || /worker not found/i.test(err.body || ''))) {
+      stderr.write('[c4 attach: worker not found]\n');
+      return exit(2);
+    }
+    const msg = err && err.message ? err.message : String(err);
+    stderr.write(`[c4 attach: connection failed - ${msg}]\n`);
+    return exit(1);
+  }
+
+  let exited = false;
+  const setRaw = typeof setRawMode === 'function'
+    ? setRawMode
+    : (on) => { if (stdin && typeof stdin.setRawMode === 'function' && stdin.isTTY) stdin.setRawMode(on); };
+
+  function finish(code, msg) {
+    if (exited) return;
+    exited = true;
+    if (msg) stderr.write(msg);
+    try { setRaw(false); } catch { /* */ }
+    try { stdin.removeListener('data', onStdinData); } catch { /* */ }
+    try { stdin.pause(); } catch { /* */ }
+    exit(code);
+  }
+
+  function onStdinData(chunk) {
+    const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk), 'utf8');
+    // Scan for 0x1d (Ctrl+]). Send everything before it, then detach.
+    const idx = buf.indexOf(0x1d);
+    if (idx === -1) {
+      if (!readonly) client.send(buf);
+      return;
+    }
+    if (idx > 0 && !readonly) client.send(buf.subarray(0, idx));
+    try { client.close(1000, 'client detach'); } catch { /* */ }
+    finish(0, `\n[c4 attach: detached from ${name}]\n`);
+  }
+
+  client.on('message', (data /*, isBinary */) => {
+    try { stdout.write(data); } catch { /* stdout closed */ }
+  });
+
+  client.on('error', (err) => {
+    // Errors are logged but the close path is what decides the exit
+    // code, so don't double-exit here.
+    const msg = err && err.message ? err.message : String(err);
+    stderr.write(`[c4 attach: stream error - ${msg}]\n`);
+  });
+
+  client.on('close', (code, reason) => {
+    if (exited) return;
+    if (code === 1008 && /worker not found/i.test(String(reason || ''))) {
+      finish(2, '[c4 attach: worker not found]\n');
+      return;
+    }
+    // 1000 = normal closure (server-initiated) — treat as success
+    // even if we did not initiate. Anything else is an unexpected
+    // drop and we exit 1 so callers can detect a broken session.
+    if (code === 1000) {
+      finish(0, `[c4 attach: session closed - ${reason || 'normal'}]\n`);
+      return;
+    }
+    finish(1, `[c4 attach: socket closed - ${code}/${reason || ''}]\n`);
+  });
+
+  try { setRaw(true); } catch { /* */ }
+  try { stdin.resume(); } catch { /* */ }
+  stdin.on('data', onStdinData);
+
+  stderr.write(`Attached to worker '${name}'${readonly ? ' (read-only)' : ''}. Press Ctrl+] to detach.\n`);
+
+  return { client, readonly, url };
+}
+
 async function main() {
   const [cmd, ...args] = process.argv.slice(2);
 
@@ -5346,6 +5475,32 @@ async function main() {
         return;
       }
 
+      case 'attach': {
+        // (1.11.90) Interactively pipe stdin/stdout to a running worker
+        // over the daemon's WebSocket attach endpoint. Ctrl+] detaches
+        // cleanly; --readonly opens the stream view-only.
+        const name = args[0];
+        if (!name) {
+          console.error('Usage: c4 attach <name> [--readonly]');
+          process.exit(1);
+        }
+        // SIGINT in the parent terminates the CLI process; the actual
+        // Ctrl+C byte (0x03) reaches the worker through raw-mode stdin
+        // because we set setRawMode(true) below. Bind SIGINT here as a
+        // belt-and-suspenders escape hatch in case stdin is not a TTY.
+        process.on('SIGINT', () => {
+          try {
+            if (process.stdin && typeof process.stdin.setRawMode === 'function' && process.stdin.isTTY) {
+              process.stdin.setRawMode(false);
+            }
+          } catch {}
+          process.stderr.write('\n');
+          process.exit(0);
+        });
+        await runAttach({ name, args: args.slice(1) });
+        return;
+      }
+
       case 'mcp': {
         // MCP stdio transport proxy (TODO 9.4) + MCP Hub (TODO 11.1).
         //
@@ -7281,6 +7436,7 @@ Commands:
        [--follow]                  Persistent approval watcher (8.26 monitor-gap)
   scrollback <name> [--lines N]    Read scrollback buffer (default 200 lines)
   watch <name>                     Watch worker output in real-time (Ctrl+C to stop)
+  attach <name> [--readonly]       Interactively attach stdin/stdout to a running worker (Ctrl+] to detach)
   watch-interventions              Stream approval_pending transitions for all workers (8.26)
        [--worker <name>]           Filter to a single worker
        [--all]                     Explicit all-worker form
@@ -7438,5 +7594,5 @@ if (require.main === module) {
 } else {
   // Expose helpers so tests can exercise them without spawning the CLI
   // or stubbing argv. Keep this list narrow on purpose.
-  module.exports = { withApiPrefix, resolveUiPort, pickUiOpener, runUi };
+  module.exports = { withApiPrefix, resolveUiPort, pickUiOpener, runUi, buildAttachUrl, runAttach };
 }

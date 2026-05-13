@@ -4341,6 +4341,30 @@ class PtyManager extends EventEmitter {
     };
   }
 
+  // Raw passthrough input for `c4 attach` (1.11.90). Unlike send(),
+  // this writes the bytes exactly as received -- no chunking, no
+  // appended CR, no special-key mapping. The attach CLI sets stdin
+  // to raw mode so a single keystroke (including arrow escape
+  // sequences and Ctrl-C) lands here as the literal bytes the PTY
+  // expects. Skips the critical_deny block too: the operator is in
+  // an interactive session, they can answer the prompt themselves.
+  // Returns { success: true } on a successful write, { error } if
+  // the worker is missing or exited.
+  writeRawInput(name, data) {
+    const w = this.workers.get(name);
+    if (!w) return { error: `Worker '${name}' not found` };
+    if (!w.alive) return { error: `Worker '${name}' has exited` };
+    if (!w.proc || typeof w.proc.write !== 'function') {
+      return { error: `Worker '${name}' has no writable pty` };
+    }
+    try {
+      w.proc.write(data);
+    } catch (err) {
+      return { error: `Failed to write to worker '${name}': ${err && err.message ? err.message : String(err)}` };
+    }
+    return { success: true };
+  }
+
   async waitAndRead(name, timeoutMs = 120000, options = {}) {
     const { interruptOnIntervention = false } = options;
     const w = this.workers.get(name);
