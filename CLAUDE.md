@@ -120,6 +120,12 @@ c4 attach <name> [--readonly]        Interactively pipe stdin/stdout to a runnin
                                      # Detach contract: Ctrl+] (byte 0x1d) closes cleanly, prints '[c4 attach: detached from <name>]', exit 0
                                      # --readonly adds ?readonly=1; daemon drops inbound frames so the client cannot write
                                      # Exit codes: 0 (clean detach / normal close), 1 (socket / connection error), 2 (worker not found, close 1008)
+c4 diff <branch> [--stat|--patch|--files]  Show diff between main and <branch> (default --stat) (v1.11.93)
+                                     # Runs `git -C <repo> diff main...<branch>` with color.diff=always for --stat / --patch
+                                     # --files prints `--name-only` output with color disabled (pipe-friendly)
+                                     # Branch is consumed verbatim - no `c4/` prefix injection
+                                     # Repo resolves via `git rev-parse --show-toplevel` > config.worktree.projectRoot > cwd
+                                     # stdio: inherit + GIT_PAGER=cat; git's exit code is forwarded (128 on bad ref)
 c4 config [reload]                   설정 조회/리로드
 c4 config validate [path]            config.json 검증 (errors / warnings)
 c4 doctor                            환경 종합 헬스 체크 (daemon + config + dist + logs)

@@ -680,6 +680,121 @@ function requestWithStatus(method, path, body = null, status = null, timeout = 1
   });
 }
 
+// (1.11.93) `c4 diff <branch>` resolves the surrounding git repo by
+// asking git itself ('git rev-parse --show-toplevel' from cwd), falling
+// back to config.worktree.projectRoot and finally to cwd. Mirrors the
+// strategy in `c4 merge` so the diff command picks the same repo a
+// follow-up merge would target.
+function resolveDiffRepo({
+  cwd = process.cwd(),
+  cfgPath = path.resolve(__dirname, '..', 'config.json'),
+  execFn,
+} = {}) {
+  const exec = execFn || ((cmdStr, opts) => require('child_process').execSync(cmdStr, opts));
+  try {
+    const root = exec('git rev-parse --show-toplevel', { encoding: 'utf8', cwd, stdio: ['ignore', 'pipe', 'ignore'] });
+    if (root && root.trim()) return root.trim();
+  } catch {}
+  try {
+    if (cfgPath && fs.existsSync(cfgPath)) {
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+      if (cfg && cfg.worktree && cfg.worktree.projectRoot) {
+        return path.resolve(cfg.worktree.projectRoot);
+      }
+    }
+  } catch {}
+  return cwd;
+}
+
+// (1.11.93) Pure function: build the git argv and resolved mode for
+// `c4 diff <branch> [--stat|--patch|--files]`. Kept pure so tests can
+// assert the exact argv shape (merge-base 'main...<branch>' form,
+// color contract, --name-only for --files) without spawning git.
+//
+// Mode semantics:
+//   --stat (default) -> '-c color.diff=always diff main...<branch> --stat'
+//   --patch          -> '-c color.diff=always diff main...<branch>'
+//   --files          -> 'diff main...<branch> --name-only'  (no color)
+//
+// If multiple mode flags appear the LAST one wins, so a wrapper
+// script can append a flag without rewriting the rest of argv.
+function buildDiffArgs({ branch, args = [], repo }) {
+  if (!branch) throw new Error('buildDiffArgs: branch is required');
+  if (!repo) throw new Error('buildDiffArgs: repo is required');
+  const modeFlags = ['--stat', '--patch', '--files'];
+  let mode = 'stat';
+  for (const a of args) {
+    if (modeFlags.includes(a)) mode = a.slice(2);
+  }
+  const merge = `main...${branch}`;
+  const base = ['-C', repo];
+  if (mode === 'files') {
+    return { argv: [...base, 'diff', merge, '--name-only'], mode };
+  }
+  const color = ['-c', 'color.diff=always'];
+  if (mode === 'patch') {
+    return { argv: [...base, ...color, 'diff', merge], mode };
+  }
+  return { argv: [...base, ...color, 'diff', merge, '--stat'], mode };
+}
+
+// (1.11.93) Spawn `git` to print the merge-base diff between main and
+// <branch>. stdio: 'inherit' so ANSI color survives and the user sees
+// streamed output; GIT_PAGER=cat suppresses the pager when git would
+// otherwise launch less for a tall diff. Exit code is forwarded from
+// git so 128 (bad branch ref) and 0 (clean) reach the shell.
+async function runDiff({
+  args = [],
+  cwd = process.cwd(),
+  cfgPath,
+  spawn,
+  exit,
+  env = process.env,
+  stderr = process.stderr,
+} = {}) {
+  const positional = args.filter((a) => !a.startsWith('--'));
+  const branch = positional[0];
+  if (!branch) {
+    stderr.write('Usage: c4 diff <branch> [--stat|--patch|--files]\n');
+    if (typeof exit === 'function') return exit(1);
+    process.exit(1);
+    return;
+  }
+  const repo = resolveDiffRepo({ cwd, cfgPath });
+  const { argv, mode } = buildDiffArgs({ branch, args, repo });
+  const spawnFn = spawn || require('child_process').spawn;
+  const childEnv = { ...env, GIT_PAGER: 'cat' };
+  return new Promise((resolve) => {
+    let child;
+    try {
+      child = spawnFn('git', argv, { stdio: 'inherit', env: childEnv });
+    } catch (err) {
+      stderr.write(`[c4 diff: spawn failed - ${err && err.message ? err.message : err}]\n`);
+      if (typeof exit === 'function') { exit(1); resolve({ code: 1, mode, argv }); return; }
+      process.exitCode = 1;
+      resolve({ code: 1, mode, argv });
+      return;
+    }
+    if (!child || typeof child.on !== 'function') {
+      if (typeof exit === 'function') { exit(0); resolve({ code: 0, mode, argv }); return; }
+      resolve({ code: 0, mode, argv });
+      return;
+    }
+    child.on('error', (err) => {
+      stderr.write(`[c4 diff: spawn failed - ${err && err.message ? err.message : err}]\n`);
+      if (typeof exit === 'function') { exit(1); resolve({ code: 1, mode, argv }); return; }
+      process.exitCode = 1;
+      resolve({ code: 1, mode, argv });
+    });
+    child.on('close', (code) => {
+      const final = code == null ? 1 : code;
+      if (typeof exit === 'function') { exit(final); resolve({ code: final, mode, argv }); return; }
+      process.exitCode = final;
+      resolve({ code: final, mode, argv });
+    });
+  });
+}
+
 async function main() {
   const [cmd, ...args] = process.argv.slice(2);
 
@@ -1094,6 +1209,17 @@ async function main() {
       // "Open in browser: <url>" when the opener binary is missing.
       case 'ui': {
         await runUi({ args });
+        return;
+      }
+
+      // (1.11.93) `c4 diff <branch> [--stat|--patch|--files]` runs
+      // `git diff main...<branch>` in the surrounding repo and streams
+      // the result to stdout. --stat is the default; --patch prints
+      // the full unified diff; --files prints just filenames. ANSI
+      // color is preserved via `color.diff=always` for stat/patch and
+      // omitted for --files. Exit code is forwarded from git.
+      case 'diff': {
+        await runDiff({ args });
         return;
       }
 
@@ -7580,6 +7706,7 @@ Commands:
   history [worker] [--limit N]     Show task history
   health                           Check daemon status
   ui [--port N]                    Open the daemon web UI in your default browser
+  diff <branch> [--stat|--patch|--files]   Show diff between main and <branch> (default --stat)
   daemon start                     Start daemon in background
   daemon stop                      Stop daemon
   daemon restart                   Restart daemon
@@ -7717,5 +7844,5 @@ if (require.main === module) {
 } else {
   // Expose helpers so tests can exercise them without spawning the CLI
   // or stubbing argv. Keep this list narrow on purpose.
-  module.exports = { withApiPrefix, resolveUiPort, pickUiOpener, runUi, buildAttachUrl, runAttach, runReconnect };
+  module.exports = { withApiPrefix, resolveUiPort, pickUiOpener, runUi, buildAttachUrl, runAttach, runReconnect, resolveDiffRepo, buildDiffArgs, runDiff };
 }
