@@ -55,6 +55,10 @@
   "account.noRole": "역할 없음",
   "account.role": "역할: {role}",
   "account.noRoleAssigned": "역할이 할당되지 않음",
+  "account.theme.toggle": "테마 전환",
+  "account.theme.light": "라이트",
+  "account.theme.dark": "다크",
+  "account.theme.system": "시스템",
   "pageFrame.loading": "로딩 중",
 
   "feature.category.operations": "운영",

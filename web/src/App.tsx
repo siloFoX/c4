@@ -182,6 +182,8 @@ export default function App() {
             onToggleCollapsed={toggleSidebarCollapsed}
             onLogout={handleLogout}
             onOpenPreferences={() => setTopView('settings')}
+            theme={theme}
+            onThemeChange={setTheme}
           />
           <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-3 md:p-6">
             {selectedWorker ? (

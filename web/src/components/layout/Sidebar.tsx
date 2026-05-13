@@ -2,6 +2,7 @@ import { List, Network, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useEffectiveCollapsed } from '../../lib/use-effective-collapsed';
 import { cn } from '../../lib/cn';
 import { t, useLocale } from '../../lib/i18n';
+import type { ThemeMode } from '../../lib/preferences';
 import { IconButton, Tooltip } from '../ui';
 import AccountMenu from '../AccountMenu';
 import HierarchyTree from '../HierarchyTree';
@@ -26,6 +27,11 @@ interface SidebarProps {
   // standalone in tests.
   onLogout?: () => void;
   onOpenPreferences?: () => void;
+  // (1.11.87) Theme state threaded through so the AccountMenu can
+  // render its theme toggle row. Optional — the row hides when the
+  // host doesn't wire them (standalone Sidebar tests).
+  theme?: ThemeMode;
+  onThemeChange?: (next: ThemeMode) => void;
 }
 
 // (TODO 8.40 review fix) `collapsed` is a desktop-only axis. Mobile
@@ -47,6 +53,8 @@ export default function Sidebar({
   onToggleCollapsed,
   onLogout,
   onOpenPreferences,
+  theme,
+  onThemeChange,
 }: SidebarProps) {
   // Hooks must run unconditionally (React rules of hooks). The
   // open-gated early return moved below.
@@ -221,6 +229,8 @@ export default function Sidebar({
             onLogout={onLogout}
             onOpenPreferences={onOpenPreferences}
             collapsed={collapsed}
+            theme={theme}
+            onThemeChange={onThemeChange}
           />
         </div>
       ) : null}

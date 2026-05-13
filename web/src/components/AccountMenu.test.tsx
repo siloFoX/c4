@@ -29,6 +29,8 @@ import AccountMenu, {
   ACCOUNT_LABEL_KEYBOARD,
   ACCOUNT_LABEL_HELP,
   ACCOUNT_LABEL_SIGNOUT,
+  ACCOUNT_LABEL_THEME,
+  THEME_ICON_ANIM_CLASS,
 } from './AccountMenu';
 import {
   HELP_EVENT_OPEN_DRAWER,
@@ -311,5 +313,126 @@ describe('<AccountMenu>', () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getAllByText('manager').length).toBeGreaterThan(0);
+  });
+
+  // ---- theme toggle (1.11.87) ----------------------------------
+
+  it('renders the Theme toggle row when theme + onThemeChange are wired', async () => {
+    const onThemeChange = vi.fn();
+    const { user } = renderMenu({ theme: 'dark', onThemeChange });
+    await openMenu(user);
+    expect(
+      screen.getByRole('menuitem', { name: new RegExp(ACCOUNT_LABEL_THEME) }),
+    ).toBeInTheDocument();
+  });
+
+  it('hides the Theme toggle row when theme prop is omitted', async () => {
+    const { user } = renderMenu();
+    await openMenu(user);
+    expect(
+      screen.queryByRole('menuitem', { name: new RegExp(ACCOUNT_LABEL_THEME) }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('hides the Theme toggle row when onThemeChange is omitted but theme is set', async () => {
+    const { user } = renderMenu({ theme: 'dark' });
+    await openMenu(user);
+    expect(
+      screen.queryByRole('menuitem', { name: new RegExp(ACCOUNT_LABEL_THEME) }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('cycles light -> dark when the Theme row is activated with current theme=light', async () => {
+    const onThemeChange = vi.fn();
+    const { user } = renderMenu({ theme: 'light', onThemeChange });
+    await openMenu(user);
+    await user.click(
+      screen.getByRole('menuitem', { name: new RegExp(ACCOUNT_LABEL_THEME) }),
+    );
+    expect(onThemeChange).toHaveBeenCalledTimes(1);
+    expect(onThemeChange).toHaveBeenCalledWith('dark');
+  });
+
+  it('cycles dark -> system when the Theme row is activated with current theme=dark', async () => {
+    const onThemeChange = vi.fn();
+    const { user } = renderMenu({ theme: 'dark', onThemeChange });
+    await openMenu(user);
+    await user.click(
+      screen.getByRole('menuitem', { name: new RegExp(ACCOUNT_LABEL_THEME) }),
+    );
+    expect(onThemeChange).toHaveBeenCalledWith('system');
+  });
+
+  it('cycles system -> light when the Theme row is activated with current theme=system', async () => {
+    const onThemeChange = vi.fn();
+    const { user } = renderMenu({ theme: 'system', onThemeChange });
+    await openMenu(user);
+    await user.click(
+      screen.getByRole('menuitem', { name: new RegExp(ACCOUNT_LABEL_THEME) }),
+    );
+    expect(onThemeChange).toHaveBeenCalledWith('light');
+  });
+
+  it('carries the motion-safe rotate + scale animation class on the theme icon span', async () => {
+    const onThemeChange = vi.fn();
+    const { container, user } = renderMenu({
+      theme: 'dark',
+      onThemeChange,
+    });
+    await openMenu(user);
+    const animatedSpan = container.querySelector<HTMLSpanElement>(
+      'span[data-theme="dark"]',
+    );
+    expect(animatedSpan).not.toBeNull();
+    expect(animatedSpan?.className).toContain('motion-safe:animate-in');
+    expect(animatedSpan?.className).toContain('motion-safe:spin-in-180');
+    expect(animatedSpan?.className).toContain('motion-safe:zoom-in-95');
+    expect(animatedSpan?.className).toContain('motion-safe:duration-300');
+    // The exported constant + the rendered className should match in
+    // full so a future tweak to one breaks the assertion in lockstep.
+    expect(animatedSpan?.className).toBe(THEME_ICON_ANIM_CLASS);
+  });
+
+  it('flips the data-theme attribute when the theme prop changes (remount key)', async () => {
+    const onThemeChange = vi.fn();
+    const { container, user, rerender } = renderMenu({
+      theme: 'dark',
+      onThemeChange,
+    });
+    await openMenu(user);
+    expect(
+      container.querySelector('span[data-theme="dark"]'),
+    ).not.toBeNull();
+    // Rerender with a fresh theme — the key={theme} forces a remount
+    // so the data-theme attribute mirrors the new value and the
+    // motion-safe enter animation runs again.
+    rerender(
+      <AccountMenu
+        onLogout={vi.fn()}
+        onOpenPreferences={vi.fn()}
+        theme="light"
+        onThemeChange={onThemeChange}
+      />,
+    );
+    expect(
+      container.querySelector('span[data-theme="light"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('span[data-theme="dark"]'),
+    ).toBeNull();
+  });
+
+  it('places the Theme row between Preferences and Keyboard shortcuts in the menu order', async () => {
+    const onThemeChange = vi.fn();
+    const { user } = renderMenu({ theme: 'dark', onThemeChange });
+    await openMenu(user);
+    const items = screen.getAllByRole('menuitem');
+    const labels = items.map((it) => it.textContent?.trim() ?? '');
+    expect(labels[0]).toMatch(new RegExp(ACCOUNT_LABEL_PROFILE));
+    expect(labels[1]).toMatch(new RegExp(ACCOUNT_LABEL_PREFERENCES));
+    expect(labels[2]).toMatch(new RegExp(ACCOUNT_LABEL_THEME));
+    expect(labels[3]).toMatch(new RegExp(ACCOUNT_LABEL_KEYBOARD));
+    expect(labels[4]).toMatch(new RegExp(ACCOUNT_LABEL_HELP));
+    expect(labels[5]).toMatch(new RegExp(ACCOUNT_LABEL_SIGNOUT));
   });
 });

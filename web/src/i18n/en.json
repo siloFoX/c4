@@ -55,6 +55,10 @@
   "account.noRole": "No role",
   "account.role": "Role: {role}",
   "account.noRoleAssigned": "No role assigned",
+  "account.theme.toggle": "Toggle theme",
+  "account.theme.light": "light",
+  "account.theme.dark": "dark",
+  "account.theme.system": "system",
   "pageFrame.loading": "Loading",
 
   "feature.category.operations": "Operations",

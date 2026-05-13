@@ -8,13 +8,14 @@
 // per-instance controls (sidebar toggle, locale, help-center
 // shortcut) — we just relocate Sign out + add Profile/Preferences.
 
-import { ChevronUp, HelpCircle, Keyboard, LogOut, Settings, User } from 'lucide-react';
+import { ChevronUp, HelpCircle, Keyboard, LogOut, Monitor, Moon, Settings, Sun, User } from 'lucide-react';
 import { DropdownMenu, type DropdownMenuItem } from './ui/dropdown-menu';
 import { Button } from './ui/button';
 import { cn } from '../lib/cn';
 import { dispatchEvent } from '../lib/dispatch-event';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { useAuthIdentity } from '../lib/use-auth-identity';
+import type { ThemeMode } from '../lib/preferences';
 import {
   HELP_EVENT_OPEN_DRAWER,
   HELP_EVENT_OPEN_SHORTCUTS,
@@ -32,6 +33,12 @@ interface AccountMenuProps {
   // now we always render the full row; the prop is wired through so
   // 8.40 can flip a flag without re-touching this file.
   collapsed?: boolean;
+  // (1.11.87) Theme toggle plumbed through from App.tsx's useTheme().
+  // Optional so AccountMenu still renders standalone (e.g. the unit
+  // test for the trigger label) without forcing every callsite to
+  // thread theme state. Renders the Theme row only when both are set.
+  theme?: ThemeMode;
+  onThemeChange?: (next: ThemeMode) => void;
 }
 
 // Pulled out so tests can source-grep the labels and a future i18n
@@ -41,6 +48,31 @@ export const ACCOUNT_LABEL_PREFERENCES = 'Preferences';
 export const ACCOUNT_LABEL_KEYBOARD = 'Keyboard shortcuts';
 export const ACCOUNT_LABEL_HELP = 'Help center';
 export const ACCOUNT_LABEL_SIGNOUT = 'Sign out';
+export const ACCOUNT_LABEL_THEME = 'Toggle theme';
+
+// (1.11.87) Motion-safe rotate + scale animation classes applied to
+// the theme switcher icon. Keyed off `theme` so React remounts the
+// span on every toggle, which re-triggers the enter animation:
+// rotates in from -180 degrees and scales up from 95% to 100%.
+// Reduced-motion users (prefers-reduced-motion) skip the animation
+// because every utility is motion-safe-prefixed.
+export const THEME_ICON_ANIM_CLASS =
+  'inline-flex motion-safe:animate-in motion-safe:spin-in-180 motion-safe:zoom-in-95 motion-safe:duration-300';
+
+// light -> dark -> system -> light cycle. Keeps parity with the
+// SettingsView radio group so the operator can reach every theme
+// mode from the AccountMenu without opening Preferences.
+function nextThemeMode(current: ThemeMode): ThemeMode {
+  if (current === 'light') return 'dark';
+  if (current === 'dark') return 'system';
+  return 'light';
+}
+
+function themeIconFor(theme: ThemeMode) {
+  if (theme === 'light') return Sun;
+  if (theme === 'dark') return Moon;
+  return Monitor;
+}
 
 // (v1.10.744) dispatch helper moved to lib/dispatch-event.
 
@@ -81,11 +113,41 @@ export default function AccountMenu({
   onLogout,
   onOpenPreferences,
   collapsed = false,
+  theme,
+  onThemeChange,
 }: AccountMenuProps) {
   useLocale();
   // (v1.10.688) Cached user + role + AUTH_EVENT/storage
   // listeners moved to lib/use-auth-identity.
   const { user, role } = useAuthIdentity();
+
+  // (1.11.87) Theme toggle row. Only shows when both the current
+  // theme and the setter are wired (App.tsx is the only producer
+  // today; standalone unit tests omit them and the row is hidden).
+  // The icon span keys off the current theme so each toggle remounts
+  // and re-runs the motion-safe enter animation defined by
+  // THEME_ICON_ANIM_CLASS.
+  const themeItem: DropdownMenuItem | null =
+    theme && onThemeChange
+      ? {
+          key: 'theme',
+          label: t('account.theme.toggle') || ACCOUNT_LABEL_THEME,
+          icon: (
+            <span
+              key={theme}
+              data-theme={theme}
+              className={THEME_ICON_ANIM_CLASS}
+            >
+              {(() => {
+                const Icon = themeIconFor(theme);
+                return <Icon className="h-4 w-4" />;
+              })()}
+            </span>
+          ),
+          hint: t(`account.theme.${theme}`) || theme,
+          onSelect: () => onThemeChange(nextThemeMode(theme)),
+        }
+      : null;
 
   const items: DropdownMenuItem[] = [
     {
@@ -109,6 +171,7 @@ export default function AccountMenu({
           } as DropdownMenuItem,
         ]
       : []),
+    ...(themeItem ? [themeItem] : []),
     {
       key: 'shortcuts',
       label: t('account.keyboard') || ACCOUNT_LABEL_KEYBOARD,
