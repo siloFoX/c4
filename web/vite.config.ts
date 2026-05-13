@@ -1,9 +1,28 @@
 import { defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
 import react from '@vitejs/plugin-react';
+import { visualizer } from 'rollup-plugin-visualizer';
+
+// (v1.11.102) Bundle visualizer is opt-in: ANALYZE=1 vite build emits
+// web/stats.html (treemap, gzip-aware). Stays out of plugins[] otherwise
+// so dev/test/normal-build flows are unaffected. See CHANGELOG 1.11.102.
+const analyze = process.env['ANALYZE'] === '1';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    ...(analyze
+      ? [
+          visualizer({
+            filename: 'stats.html',
+            template: 'treemap',
+            gzipSize: true,
+            brotliSize: true,
+            sourcemap: false,
+          }),
+        ]
+      : []),
+  ],
   test: {
     coverage: {
       provider: 'v8',
