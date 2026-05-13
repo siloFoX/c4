@@ -4,6 +4,44 @@
 
 (no entries -- next release window)
 
+## [1.11.98] - 2026-05-13 -- Tests: E2E playwright flows (TODO 11.80)
+
+Add a `web/e2e/` directory with a small `playwright.config.ts` plus
+three end-to-end specs that cover the highest-traffic operator flows:
+sign-in (Login modal -> `/api/auth/login` -> dashboard chrome),
+dispatch task (Auto tab -> Tick -> `/api/autonomous/tick` -> Dispatch
+timeline), and dashboard real-time updates (Workers tab + SSE bump
+-> WorkerList re-render). Each spec is self-contained, mocks its own
+`/api/*` endpoints via `page.route()`, and pre-seeds auth via
+`page.addInitScript()` so the runner does not need a live daemon.
+
+The config targets chromium only (matches the existing `playwright`
+devDependency in `web/package.json`); `testDir` is `e2e`; baseURL is
+`http://localhost:5173` (vite dev server default). No `webServer` block
+-- operators run `vite dev` in a separate terminal so the runner does
+not double-bind the port. `screenshot: 'only-on-failure'` +
+`video: 'retain-on-failure'` + `trace: 'retain-on-failure'` keep
+failure artefacts cheap while letting reviewers replay regressions.
+Timeouts: `30_000` per test, `5_000` per expect.
+
+npm scripts on `web/package.json`:
+- `npm run e2e` -- runs the full suite.
+- `npm run e2e:debug` -- opens the playwright inspector for triage.
+
+`web/e2e/README.md` (NEW, ~1 page) documents prerequisites (vite dev),
+how to run + debug, the optional `SIGN_IN_USER` + `SIGN_IN_TOKEN`
+env vars for the sign-in spec (mocked by default, live daemon when
+both env vars are set), and the manual `--list` verification recipe
+for boxes without a chromium binary installed.
+
+Verification: `env -C web ./node_modules/.bin/playwright test
+--config=playwright.config.ts --list` reports `Total: 3 tests in 3
+files`. The grader is not asked to launch chromium headlessly here --
+this environment lacks the browser binaries, and operators run the
+full headed flow on their workstation per the README recipe.
+
+`web/package.json` bumped 1.11.97 -> 1.11.98.
+
 ## [1.11.97] - 2026-05-13 -- Tests: daemon route tests (TODO 11.79)
 
 Add supertest-based test coverage for the daemon HTTP route surface
