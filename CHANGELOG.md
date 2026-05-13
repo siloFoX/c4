@@ -4,6 +4,74 @@
 
 (no entries -- next release window)
 
+## [1.11.101] - 2026-05-13 -- Observability: Prometheus metrics endpoint (TODO 11.83)
+
+Add a Prometheus text-exposition endpoint to the daemon so operators
+can scrape per-worker rss + cpu and daemon-level lifecycle counters
+through the standard `prometheus` server / `node_exporter`-style
+pipeline rather than parsing the JSON `/api/metrics` shape themselves.
+
+Shipped:
+
+- New `src/prometheus-format.js` exposing
+  `formatMetrics(workers, counters)` and `escapeLabelValue(s)`. Pure
+  projection helper: takes an iterable / Map / plain object of worker
+  entries plus a counter object and returns a single text-format
+  string. Section order is fixed (rss, cpu, dispatch, escalation) so
+  two snapshots diff cleanly; rows are sorted by worker name; label
+  values escape backslash, double-quote, newline, and CRLF per spec.
+  Missing rss / cpu samples skip the row (Prometheus treats absent
+  data points as expected); missing or non-finite counter values
+  render as `0` so every series the daemon promises is always
+  present.
+- New daemon route `GET /api/metrics/prometheus` in `src/daemon.js`:
+  reuses the existing `manager.metrics()` snapshot (no extra
+  sampling), enriches with `target` from `manager.list()` and `tier`
+  from the existing `tierWorkerMap`, then hands the result to
+  `formatMetrics`. Response sets
+  `Content-Type: text/plain; version=0.0.4; charset=utf-8`. Auth
+  rides the same `/api/*` JWT gate already applied to `/api/metrics`
+  — no special case.
+- Metric names + label set:
+  - `c4_worker_rss_bytes{name,tier,target}` (gauge, bytes)
+  - `c4_worker_cpu_percent{name,tier,target}` (gauge, percent)
+  - `c4_dispatch_total_count` (counter, daemon-wide)
+  - `c4_escalation_total_count` (counter, daemon-wide)
+- Counter wiring: module-level `lifecycleCounters` object on the
+  daemon, bumped at the same call sites as the v1.11.95 lifecycle
+  webhook (`_sendLifecycle('dispatch')` / `_sendLifecycle('escalation')`
+  inside the autonomous notifier callback). Counters reset on daemon
+  restart by design; the audit log remains the source of truth for
+  durable accounting.
+- New `tests/prometheus-format.test.js`: 17 cases across 2 suites —
+  ASCII passthrough + backslash / quote / newline / CRLF escaping,
+  empty input → HELP + TYPE + zero counters, null / undefined /
+  non-iterable input handling, lexicographic worker sort across rss
+  + cpu sections, default tier / target labels, rssBytes precedence
+  over rssKb, Map and plain-object collections, negative / NaN
+  counter defense, fixed section order, single trailing newline.
+- New `tests/daemon-prometheus.test.js`: 8 cases across 3 suites —
+  200 + content type, prometheus regex sanity on the body shape,
+  per-worker rss + cpu rows with the right labels (auto-w1 / mgr-1,
+  worker / manager, local / dgx), live counter reflection across
+  two scrapes, empty-fleet output, and the auth gate triplet (401
+  parity with /api/metrics, 200 with a valid bearer, 401 with a
+  wrong-secret token). Uses native `http.request` rather than
+  supertest so the suite runs without a node_modules install.
+- `web/package.json` 1.11.100 -> 1.11.101.
+- `CLAUDE.md` daemon section gets a "Prometheus metrics endpoint
+  (v1.11.101)" block with a `curl` example.
+- `docs/autonomous-queue-v10.md` row 11.83 marked done with the
+  Shipped: summary mirroring this entry.
+
+Out of scope (deferred):
+
+- A Grafana dashboard JSON template. The metric names + label set
+  are the contract; downstream dashboards are a separate exercise.
+- Histogram metrics for task latency / queue depth. Counters +
+  gauges land first; a follow-up TODO can layer histograms once the
+  scrape path is in production use.
+
 ## [1.11.100] - 2026-05-13 -- Observability: structured logging via pino (TODO 11.82)
 
 Replace ad-hoc `console.log` / `console.warn` / `console.error` calls

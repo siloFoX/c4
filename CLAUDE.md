@@ -161,6 +161,40 @@ operator's terminal before the daemon process exists.
   are used so the rotated inode is always on disk before the next
   write.
 
+### Prometheus metrics endpoint (v1.11.101)
+`GET /api/metrics/prometheus` exposes the same per-worker rss + cpu
+samples as the JSON `/api/metrics` endpoint, plus daemon-wide
+lifecycle counters, in Prometheus text exposition format
+(`text/plain; version=0.0.4; charset=utf-8`). Same `/api/*` JWT auth
+gate as the JSON endpoint; no special case.
+
+```bash
+# unauthed (auth disabled in config)
+curl -sS http://127.0.0.1:3456/api/metrics/prometheus
+
+# authed
+curl -sS -H "Authorization: Bearer $TOKEN" \
+  http://127.0.0.1:3456/api/metrics/prometheus
+```
+
+Series:
+
+- `c4_worker_rss_bytes{name,tier,target}` -- gauge, bytes; one
+  sample per live worker (rows where the underlying sample is
+  unavailable are skipped, not zeroed).
+- `c4_worker_cpu_percent{name,tier,target}` -- gauge, percent (last
+  CPU sample from `worker-metrics`); same skip rule.
+- `c4_dispatch_total_count` -- counter, daemon-wide. Bumped once
+  per autonomous dispatch alongside the v1.11.95 lifecycle webhook.
+- `c4_escalation_total_count` -- counter, daemon-wide. Same wiring
+  for the escalation kind.
+
+Counters reset on daemon restart by design -- Prometheus is for
+short-horizon ops observability; the audit log remains the source
+of truth for durable accounting. Worker rows are sorted by name and
+labels are escaped per spec (backslash / quote / newline / CRLF) so
+the body is stable across scrapes.
+
 ### C4 CLI 명령어 (관리자/워커 모두 사용)
 ```
 c4 daemon start|stop|restart|status  데몬 관리
