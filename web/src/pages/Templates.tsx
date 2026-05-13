@@ -5,8 +5,10 @@ import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Badge, Button, Input, Panel, Tooltip } from '../components/ui';
+import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
 import { t, useLocale } from '../lib/i18n';
+import { text } from '../lib/typography';
 import { useToast } from '../lib/use-toast';
 import { useTemplates } from '../lib/use-templates';
 
@@ -78,14 +80,14 @@ export default function Templates() {
             <li key={tpl.name}>
               <Panel className="p-3">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-sm text-foreground">{tpl.name}</span>
+                  <span className={cn(text.mono, 'text-foreground')}>{tpl.name}</span>
                   {tpl.source && <Badge variant="outline">{tpl.source}</Badge>}
                   {tpl.model && <Badge variant="outline">{tpl.model}</Badge>}
                   {tpl.effort && <Badge variant="outline">{tpl.effort}</Badge>}
                   {tpl.profile && <Badge variant="outline">{tpl.profile}</Badge>}
                 </div>
                 {tpl.description && (
-                  <div className="text-xs text-muted-foreground">{tpl.description}</div>
+                  <div className={text.caption}>{tpl.description}</div>
                 )}
                 <div className="mt-2 flex gap-2">
                   <Button type="button" variant="ghost" size="sm" onClick={notImplemented}>

@@ -3,8 +3,10 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Badge, Button, Panel, Tooltip } from '../components/ui';
+import { cn } from '../lib/cn';
 import { formatDuration, formatNumber, formatRelativeTime } from '../lib/format';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { text } from '../lib/typography';
 import { useHealth } from '../lib/use-health';
 
 // 8.20B Health dashboard. Reads GET /api/health and renders the fields
@@ -55,10 +57,10 @@ export default function Health() {
               {ok ? t('healthPage.status.healthy') : t('healthPage.status.degraded')}
             </Badge>
             {data.version && (
-              <span className="text-xs text-muted-foreground">v{String(data.version)}</span>
+              <span className={text.caption}>v{String(data.version)}</span>
             )}
             {data.configPath && (
-              <span className="truncate font-mono text-xs text-muted-foreground">
+              <span className={cn('truncate', text.caption, 'font-mono')}>
                 {String(data.configPath)}
               </span>
             )}
@@ -85,7 +87,7 @@ export default function Health() {
               </ul>
             </Panel>
           ) : (
-            <div className="text-xs text-muted-foreground">
+            <div className={text.caption}>
               {t('healthPage.modules.empty')}
             </div>
           )}

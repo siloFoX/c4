@@ -4,6 +4,7 @@ import PageFrame, { ErrorPanel } from './PageFrame';
 import { Button, Input, Panel } from '../components/ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
+import { text } from '../lib/typography';
 import { useConfig } from '../lib/use-config';
 
 // (v1.10.358) Config viewer + reload trigger.
@@ -78,7 +79,7 @@ export default function Config() {
 
       <Panel className="text-sm">
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
+          <h3 className={cn('flex items-center gap-2 text-foreground', text.h3)}>
             <Cog className="h-4 w-4 text-muted-foreground" aria-hidden />
             {t('config.heading')}
           </h3>

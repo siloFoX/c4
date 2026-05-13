@@ -5,6 +5,8 @@ import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Input, Label, Panel, Tooltip } from '../components/ui';
+import { cn } from '../lib/cn';
+import { text } from '../lib/typography';
 import { usePlanContent } from '../lib/use-plan-content';
 import { usePlanDispatch } from '../lib/use-plan-dispatch';
 import { usePlanWorkers } from '../lib/use-plan-workers';
@@ -148,7 +150,7 @@ export default function Plan() {
         {loading ? (
           <LoadingSkeleton rows={4} />
         ) : plan?.content ? (
-          <div className="prose prose-invert max-h-[480px] max-w-none overflow-y-auto text-sm">
+          <div className={cn('prose prose-invert max-h-[480px] max-w-none overflow-y-auto', text.bodySm)}>
             {renderMarkdown(plan.content)}
           </div>
         ) : (

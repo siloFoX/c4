@@ -3,6 +3,7 @@ import PageFrame, { ErrorPanel } from './PageFrame';
 import { Button, Panel } from '../components/ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
+import { text } from '../lib/typography';
 import { useWorkspaces } from '../lib/use-workspaces';
 
 // (v1.10.379) Workspaces — multi-repo workspace listing from
@@ -49,7 +50,7 @@ export default function Workspaces() {
       </div>
 
       <Panel className="text-sm">
-        <h3 className="mb-2 flex items-center gap-2 text-base font-semibold text-foreground">
+        <h3 className={cn('mb-2 flex items-center gap-2 text-foreground', text.h3)}>
           <FolderTree className="h-4 w-4 text-muted-foreground" aria-hidden />
           {t('workspaces.heading')}
         </h3>
