@@ -1,7 +1,7 @@
 {
   "name": "c4-web",
   "private": true,
-  "version": "1.11.97",
+  "version": "1.11.98",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "e2e": "playwright test --config=playwright.config.ts",
+    "e2e:debug": "playwright test --config=playwright.config.ts --debug"
   },
   "dependencies": {
     "@xterm/addon-fit": "^0.11.0",
