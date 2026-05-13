@@ -1,7 +1,8 @@
 import { Suspense, lazy, useMemo, type ComponentType } from 'react';
 import FeatureSidebar from './FeatureSidebar';
 import { findFeature, type FeatureDef } from '../../pages/registry';
-import PageFrame, { LoadingSkeleton } from '../../pages/PageFrame';
+import PageFrame from '../../pages/PageFrame';
+import { Skeleton } from '../ui/skeleton';
 import { t, useLocale } from '../../lib/i18n';
 import { useSelectedFeatureId } from '../../lib/use-selected-feature-id';
 
@@ -39,7 +40,11 @@ export default function FeatureView({ sidebarOpen }: FeatureViewProps) {
           <Suspense
             fallback={
               <PageFrame title={t(feature.labelKey)} description={t(feature.descriptionKey)}>
-                <LoadingSkeleton rows={5} />
+                {/* (v1.11.102) Single-card skeleton matches the
+                    code-split deliverable; lazy chunk arrives in a
+                    few hundred ms on first navigation, second visit
+                    pulls from the page cache instantly. */}
+                <Skeleton variant="card" data-testid="feature-suspense-skeleton" />
               </PageFrame>
             }
           >
