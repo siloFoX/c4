@@ -4,6 +4,44 @@
 
 (no entries -- next release window)
 
+## [1.11.104] - 2026-05-13 -- Tests: Conversation+Hierarchy RTL coverage (TODO 11.86)
+
+Add vitest/RTL/jsdom coverage for three components that previously
+had no test file: `web/src/components/ConversationTurns.tsx`,
+`ConversationView.tsx`, and `HierarchyTree.tsx`. Mirrors the prop +
+hook-stub pattern from SessionsView.test.tsx and MeetingsView.test.tsx.
+
+- ConversationTurns.test.tsx (22 cases): every `turn.role` arm of
+  the TurnRow dispatcher (user / assistant / thinking / tool_use /
+  tool_result / system) plus the default-arm null return, the
+  collapse-by-default + expand-on-click toggles on thinking /
+  tool_use / tool_result, the token + model label branches on
+  assistant, the Input + Result panel reveal on tool_use, and the
+  locale flip re-render for the "You" label.
+- ConversationView.test.tsx (25 cases): loading / error / empty /
+  list branches, header sessionId precedence (snapshot vs prop),
+  streaming Live/Idle badge gated on `live`, project path + model +
+  turns + tokens meta strip, warnings badge, jump-to-latest
+  visibility tied to `autoScroll`, scroll-handler driving
+  setAutoScroll, tool_use + tool_result pairing dropping the
+  duplicate result row, bumpKey wiring into useAutoScroll. Mocks
+  useConversation + useAutoScroll + the TurnRow child.
+- HierarchyTree.test.tsx (23 cases): empty state, SSE-disconnected
+  chip toggle, error alert, per-row name + status badge variant
+  (idle / busy / intervention), select callback, parent/child
+  rendering after auto-expand, rollup badge counts when total > 1,
+  Expand all / Collapse all toolbar, chevron toggle on parents,
+  leaf chevron disabled, selected-row highlight, locale flip
+  re-render. Mocks useWorkerList; lets useExpandedSet + buildTree
+  run real.
+
+Verification: 70 / 70 new cases passing (`vitest run --project unit`
+over the three files); 5358 / 5358 cases passing across the full
+240-file unit suite (one pre-existing async teardown warning from
+AppHeader.test.tsx -> tooltip.tsx setTimeout fired after jsdom
+window cleanup; not introduced by this change). web/package.json
+bumped 1.11.103 -> 1.11.104.
+
 ## [1.11.103] - 2026-05-13 -- Performance: daemon hot path TTL cache (TODO 11.85)
 
 Profile + cache the two hottest daemon read endpoints. `GET /api/list`
