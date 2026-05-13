@@ -4,6 +4,106 @@
 
 (no entries -- next release window)
 
+## [1.11.95] - 2026-05-13 -- Feature: Webhook notifications (TODO 11.77)
+
+Wire the autonomous loop to fire one-line Slack and/or Discord lifecycle
+webhooks on the four canonical events (`dispatch`, `complete`, `halt`,
+`escalation`). Opt-in via `config.notifications.{slack,discord,events}`;
+missing config = zero behaviour change. Uses Node's built-in `https`
+module so the dependency footprint does not grow.
+
+Config shape (top-level, opt-in):
+
+```json
+"notifications": {
+  "slack":   "https://hooks.slack.com/services/T/B/X",
+  "discord": "https://discord.com/api/webhooks/1/abc",
+  "events":  ["halt", "dispatch", "complete", "escalation"]
+}
+```
+
+`slack` and `discord` accept an `https://` URL **string** for the
+lifecycle webhook channel. The legacy object form
+(`slack: { enabled, webhookUrl, ... }`) still drives the buffered
+`Notifications` channel — both shapes coexist, the validator only
+runs the new contract when the value is a string. `events[]` is gated
+to the four canonical kinds; any other entry is rejected at
+`c4 config validate` time. `events[]` listed without a configured URL
+produces a single warning so a typo doesn't sit there silently.
+
+`src/notify.js` (new) hosts the helper:
+
+- `sendWebhook({ kind, payload, config, _request?, env?, log? })`
+  routes the event to the configured channels and returns
+  `{ fired: ['slack', 'discord'], skipped: '<reason>' | null }`. Slack
+  receives `{ text: '<one-line summary>' }`; Discord receives
+  `{ content: '<one-line summary>' }`. The summary line is
+  `[c4 autonomous] <kind> | todo=<id> | title=<title> | worker=<name>
+  | v<version>` — markdown-safe so a stripping renderer still produces
+  a legible row.
+- Fire-and-forget. The helper returns immediately after `req.end()`;
+  the response is only inspected for status class. On 4xx / 5xx the
+  helper logs a single warn line carrying the host + status (never the
+  body or full URL path, to avoid leaking webhook secrets into logs).
+  Network errors and synchronous request setup errors also surface as
+  one warn line each. No retries — rate limits are a concern and the
+  next lifecycle event will retry the live channel on its own schedule.
+- Escape hatches: `NOTIFY_DISABLED=1` env var skips every POST;
+  `opts._request` lets tests inject a stub `https.request` (mirrors
+  the `opts.kill` / `opts.writeCheckpoint` injection pattern in
+  `src/daemon-checkpoint.js`, so the suite never needs to monkey-patch
+  the real `https` module).
+
+`src/daemon.js` wiring:
+
+- The `_buildAutoDispatcher` notifier callback now also calls
+  `sendWebhook` for `auto_dispatch_sent` -> `dispatch`,
+  `auto_dispatch_paused` -> `halt`, and `auto_dispatch_escalation` ->
+  `escalation`. The existing `safeEmit('task_start', ...)` /
+  `safeEmit('halt_detected', ...)` paths keep firing untouched.
+- The manager-SSE listener that already calls `recordSuccess` on
+  `task_complete` for the autonomous manager now also fires the
+  `complete` kind. Wrapped in a try-block so a webhook failure never
+  breaks the autonomous loop.
+
+Tests:
+
+- `tests/notify.test.js` (new, 23 node:test cases) covers gating
+  (kind not in events / missing notifications / unknown kind / no URLs
+  / non-https URL), body shapes (Slack `text`, Discord `content`, both
+  fired in deterministic order, POST + JSON headers), error handling
+  (4xx / 5xx warn, 2xx silent, synchronous request throw, network
+  error event, no body leakage in log), `NOTIFY_DISABLED` (=1, =TRUE,
+  =0 still fires), and `formatSummary` / `_resolveUrls` / `_resolveEvents`
+  helpers. https.request mocked via the `_request` injection point so
+  no test touches the network.
+- `tests/auto-dispatch.test.js` gains a "webhook notifier wiring
+  (11.77)" section: five integration cases assert the
+  `auto_dispatch_*` -> `<kind>` translation, the no-emit shape on
+  `recordSuccess` (manager-SSE owns `complete`), and a full
+  drive-through that fires Slack + Discord for each of the three
+  dispatcher-side kinds with the right summary line and body shape.
+- `tests/config-validate.test.js` gains a "notifications lifecycle
+  (11.77)" describe: seven cases covering the clean shape, non-https
+  URL reject (slack + discord), invalid event reject, non-array
+  events reject, no-URL warning, and the legacy object form
+  pass-through.
+
+Full notify.test.js 23/23 passing, auto-dispatch.test.js 68/68
+passing, config-validate.test.js 48/48 passing.
+
+Docs:
+
+- This `CHANGELOG.md` entry; `CLAUDE.md` autonomous section gains a
+  paragraph on the new notifier (config shape + the four event kinds).
+- `docs/autonomous-queue-v10.md` row 11.77 flipped from `todo` to
+  `done` with the Shipped: summary.
+- `config.example.json` gains a `_notifications_lifecycle_doc` preface
+  plus a `_notifications_lifecycle_example` block so operators have a
+  copy-paste starting point alongside the existing legacy
+  `notifications.slack` object form.
+- `web/package.json` bumped 1.11.94 -> 1.11.95.
+
 ## [1.11.94] - 2026-05-13 -- Feature: Queue web editor (TODO 11.76)
 
 Build a single-table web editor for `docs/autonomous-queue-v10.md` so an

@@ -286,6 +286,69 @@ describe('config validate', () => {
       assert.match(e.message, /allowExec=true requires a working runtime/);
     });
   });
+
+  // (v1.11.95 / TODO 11.77) notifications.{slack,discord,events} lifecycle
+  // webhook schema. String form drives the lifecycle webhook; legacy
+  // object form is left to the existing Notifications channel.
+  describe('notifications lifecycle (11.77)', () => {
+    it('accepts a clean lifecycle block', () => {
+      const r = validate({
+        notifications: {
+          slack: 'https://hooks.slack.com/services/T/B/X',
+          discord: 'https://discord.com/api/webhooks/1/abc',
+          events: ['halt', 'dispatch', 'complete', 'escalation'],
+        },
+      });
+      assert.strictEqual(r.errors.length, 0);
+    });
+
+    it('rejects non-https slack URL', () => {
+      const r = validate({
+        notifications: { slack: 'http://insecure.example.com/hook' },
+      });
+      assert.ok(r.errors.find((e) => e.path === 'notifications.slack'));
+    });
+
+    it('rejects non-https discord URL', () => {
+      const r = validate({
+        notifications: { discord: 'ftp://nope.example.com' },
+      });
+      assert.ok(r.errors.find((e) => e.path === 'notifications.discord'));
+    });
+
+    it('rejects events that are not in the allowed set', () => {
+      const r = validate({
+        notifications: { events: ['dispatch', 'shutdown'] },
+      });
+      assert.ok(r.errors.find((e) => e.path === 'notifications.events[1]'));
+    });
+
+    it('rejects non-array events value', () => {
+      const r = validate({
+        notifications: { events: 'dispatch' },
+      });
+      assert.ok(r.errors.find((e) => e.path === 'notifications.events'));
+    });
+
+    it('warns when events are listed but no URL is configured', () => {
+      const r = validate({
+        notifications: { events: ['dispatch'] },
+      });
+      assert.ok(r.warnings.find((w) => w.path === 'notifications.events'));
+    });
+
+    it('legacy object form for slack does not trigger string validation', () => {
+      const r = validate({
+        notifications: {
+          slack: { enabled: true, webhookUrl: 'https://hooks.slack.com/x' },
+        },
+      });
+      assert.strictEqual(
+        r.errors.find((e) => e.path === 'notifications.slack'),
+        undefined
+      );
+    });
+  });
 });
 
 // (review fix 2026-05-01) CLI integration — the `c4 config
