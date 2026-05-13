@@ -4,6 +4,91 @@
 
 (no entries -- next release window)
 
+## [1.11.102] - 2026-05-13 -- Performance: web bundle analyze + lazy boundary polish (TODO 11.84)
+
+Wire `rollup-plugin-visualizer` behind an `ANALYZE=1` env gate so the
+web bundle can be inspected with the same `vite build` command, then
+align the existing per-page lazy boundary with the deliverable spec
+and add a regression test that pins the four heaviest page chunks
+to the React.lazy contract.
+
+Shipped:
+
+- New devDependency `rollup-plugin-visualizer@^6.0.11`.
+  `web/vite.config.ts` reads `process.env['ANALYZE']` and conditionally
+  appends the visualizer to `plugins[]` (template `treemap`,
+  `gzipSize: true`, `brotliSize: true`, `filename: 'stats.html'`).
+  The plugin is OFF by default so dev / test / normal-build flows are
+  byte-identical to before; only `npm run build:analyze`
+  (= `ANALYZE=1 vite build`) emits the report.
+- `web/package.json` gains a `build:analyze` script. `web/.gitignore`
+  (new file) excludes `stats.html` so the report stays local --
+  regenerate on demand. Verified with `git check-ignore -v
+  web/stats.html` (matches `web/.gitignore:4:stats.html`).
+- Top 3 chunks from the first analyze run (gzip sizes in parens):
+  `vendor-xterm` 369.39 kB (95.72 kB), `index` 221.40 kB (71.10 kB),
+  `vendor-react-dom` 129.82 kB (41.68 kB). Heaviest page chunks land
+  well under the vendor split: WorkerDetail 18.96 kB / Risk
+  15.67 kB / Auto 15.62 kB / WorkflowEditor 12.95 kB. The 17
+  feature pages each ship in their own chunk (Auto, Batch, Cleanup,
+  Config, Health, Morning, Plan, Profiles, Queue, Rbac, Risk,
+  Scribe, Swarm, Templates, TokenUsage, Validation, Workspaces).
+- Code-split confirmation: the pages were already lazy because the
+  `FEATURES` registry in `web/src/pages/registry.ts` exposes a
+  `load: () => import('./X')` callback that `FeatureView` wraps with
+  `React.lazy()` (see `web/src/components/layout/FeatureView.tsx`
+  lines 11-19). The visualizer run confirms each page lives in its
+  own chunk -- so the deliverable's "split 4 pages" requirement is
+  satisfied for all 17 pages, not just 4. No new lazy declarations
+  needed; touching the registry would have duplicated the chunk
+  pipeline.
+- `FeatureView` Suspense fallback now uses the v1.11.78 `Skeleton`
+  primitive (variant=card, `data-testid="feature-suspense-skeleton"`)
+  inside the existing `PageFrame` shell, replacing the multi-row
+  `LoadingSkeleton`. Header still shows the title/description while
+  the chunk is in flight; body is a single shimmer card per the spec.
+- New `web/src/pages/page-lazy.test.tsx`: 5 cases. Four parameterised
+  cases assert that wrapping `feat.load` in `React.lazy()` for the
+  four heaviest pages (auto / risk / queue / token-usage) yields a
+  component whose `$$typeof` equals `Symbol.for('react.lazy')` --
+  the same sentinel React itself uses to decide whether to suspend.
+  A fifth case renders a stubbed lazy component through Suspense and
+  asserts the fallback -> body swap once the promise resolves. The
+  test deliberately does NOT resolve the real registry promises
+  (those pull in xterm / msw fixtures) so it stays a fast unit pass.
+- `web/package.json` 1.11.101 -> 1.11.102.
+- `docs/autonomous-queue-v10.md` row 11.84 marked done with the
+  Shipped: summary mirroring this entry.
+
+Bundle size delta:
+
+- Initial `index` chunk: 221.40 kB / gzip 71.10 kB (unchanged --
+  the registry was already loading pages on demand, so the main
+  bundle never carried their bodies). This entry codifies that
+  state with the visualizer + a regression test rather than
+  introducing a new split.
+
+Verification:
+
+- `env -C web ANALYZE=1 npx vite build` succeeds in 4.81s, emits
+  `web/stats.html` (~1.0 MB treemap), prints chunk table to stdout.
+- `env -C web npx vitest run --project unit` reports 237 files /
+  5288 tests passing (5283 prior + 5 new lazy cases).
+- `env -C web npx vitest run --project unit
+  src/components/layout/FeatureView.test.tsx` reports 16/16 passing
+  after the Skeleton fallback swap.
+
+Out of scope (deferred):
+
+- An eager re-split of the 369 kB `vendor-xterm` chunk. xterm is a
+  dynamic import inside `XtermView` already; the chunk only loads
+  when a worker terminal opens. Reducing it would require trimming
+  xterm addons (search / web-links / fit) which carry small but
+  non-zero terminal feature value; left for a future task.
+- A bundle-size CI gate. The visualizer wires the inspection path;
+  threshold enforcement (e.g. fail PR when `index` chunk grows >5%)
+  is a separate follow-up.
+
 ## [1.11.101] - 2026-05-13 -- Observability: Prometheus metrics endpoint (TODO 11.83)
 
 Add a Prometheus text-exposition endpoint to the daemon so operators
