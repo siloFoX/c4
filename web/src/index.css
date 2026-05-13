@@ -28,6 +28,21 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+    /* (v1.11.77) Status semantic tokens. Until now toasts, badges,
+     * banners and SSE dots reached for raw Tailwind colors
+     * (emerald-500/15 + text-amber-700 dark:text-amber-400 etc.),
+     * which ignored dark-mode lightness tuning and forced every
+     * site to spell out the same dark: variant. These tokens let
+     * components write bg-success/15 + text-warning once and pick
+     * up theme-aware values. Light-mode lightness is tuned for
+     * 4.5:1 AA contrast on bg-card; dark-mode lightness sits at
+     * the 400-band so it reads on slate-900. */
+    --success: 142 71% 36%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 92% 42%;
+    --warning-foreground: 0 0% 98%;
+    --info: 199 89% 42%;
+    --info-foreground: 0 0% 98%;
     --radius: 0.5rem;
   }
 
@@ -80,6 +95,17 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+    /* (v1.11.77) Dark-mode status tones. Lightness pushed toward
+     * the Tailwind 400 band (~56-65%) so the foreground passes
+     * WCAG AA on slate-900 (--background) without the eye-bleed
+     * of pure 500. Backgrounds layered with /10-/20 still read
+     * because the alpha absorbs the lightness shift. */
+    --success: 142 72% 56%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 92% 63%;
+    --warning-foreground: 0 0% 98%;
+    --info: 199 89% 65%;
+    --info-foreground: 0 0% 98%;
   }
 }
 
