@@ -39,7 +39,7 @@ export default function Templates() {
         <>
           <Tooltip label={t('templates.tooltip.filter')}>
             <Input
-              className="h-8 w-48"
+              className="h-8 w-full sm:w-48"
               placeholder={t('templatesPage.filter.placeholder')}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}

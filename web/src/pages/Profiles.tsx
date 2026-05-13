@@ -49,7 +49,7 @@ export default function Profiles() {
         <>
           <Tooltip label={t('profiles.tooltip.filter')}>
             <Input
-              className="h-8 w-48"
+              className="h-8 w-full sm:w-48"
               placeholder={t('profilesPage.filter.placeholder')}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}

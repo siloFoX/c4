@@ -4,6 +4,112 @@
 
 (no entries -- next release window)
 
+## [1.11.79] - 2026-05-13 -- Web UI: Mobile responsive sweep (TODO 11.64)
+
+Audit of the 17 feature pages under `web/src/pages/*.tsx` plus their
+shared layout (`PageFrame`, `FeatureSidebar`) at the three viewport
+widths called out by 11.64 -- 375 (phone), 768 (tablet), and 1024
+(small desktop) -- and a set of targeted Tailwind responsive-prefix
+fixes so the c4 dashboard is now usable on a phone without
+horizontal scroll, with tap targets that meet the 44x44px guideline.
+
+The fixes are intentionally narrow: no mass rewrites, no new layout
+abstractions. The diff is the smallest change set that resolves the
+obvious mobile breakages without disturbing the dense desktop chrome
+that operators rely on at 1280+.
+
+Tap targets (44x44 on mobile, reset to compact at `sm:` and above
+via `sm:min-h-0 sm:min-w-0`):
+
+- `ui/button.tsx` -- size variants `sm` (h-8), `md` (h-10), and
+  `icon` (h-9 w-9) now ship with a `min-h-[44px]` floor (and
+  `min-w-[44px]` for `icon`). On viewports < 640px the button is
+  always at least 44px tall; from 640px up the explicit `h-8` /
+  `h-10` / `h-9` kicks in again so dense toolbars on desktop are
+  unchanged. `lg` already shipped at h-11 (44px) so it is left
+  alone.
+- `ui/icon-button.tsx` -- `min-h-[44px] min-w-[44px] sm:min-h-0
+  sm:min-w-0` added to the base classes so single-icon buttons
+  (the most common mobile mis-tap) get the same floor.
+- `ui/input.tsx` -- base `h-10` now reads `h-10 min-h-[44px]
+  sm:min-h-0` so explicit overrides like `h-7` / `h-8` in pages
+  (Config filter, Risk window-hours, Profiles / Templates /
+  Validation filter row) still keep a 44px touch target on
+  phones while staying compact on desktop. `min-height` wins
+  over `height` in the browser so the existing classnames do
+  not need individual edits.
+- `ui/error-state.tsx` -- retry button rebaselined from `h-8` to
+  `h-8 min-h-[44px] sm:min-h-0`.
+- `layout/FeatureSidebar.tsx` -- the per-feature nav buttons in
+  the left rail now carry `min-h-[44px] sm:min-h-0` so the rail
+  is usable when the sidebar collapses to a full-width strip
+  above content at < md.
+
+Layout collapse / overflow fixes:
+
+- `pages/Profiles.tsx`, `pages/Templates.tsx`,
+  `pages/Validation.tsx` -- the header filter `<Input
+  className="h-8 w-48" />` is now `h-8 w-full sm:w-48`. At 375px
+  the input takes its row instead of pushing the Refresh /
+  Add-row buttons off-screen; at sm: and up it snaps back to
+  its 192px desktop width.
+- `pages/Auto.tsx` -- the `SectionShell` header used by Live
+  Queue, Active Workers, Dispatch Timeline switched from a
+  hard `flex items-start justify-between` row to `flex-col
+  gap-3 ... sm:flex-row sm:items-start sm:justify-between` so
+  the Refresh action stacks below the title on a phone. The
+  Controls Dock (`fixed bottom-4 right-4`) gained a phone-mode
+  `left-2 right-2 flex-wrap justify-center` set, reset to the
+  original right-anchored single-row at `sm:`, so the
+  Pause/Resume/Tick trio no longer runs off the right edge of
+  a 375px screen. Section body padding `px-5 py-4` is now
+  `px-4 py-4 sm:px-5` to match the phone-density target.
+
+Why this is the right shape:
+
+- Operators rarely run c4 from their phone, but the dispatcher
+  dashboard (Auto) is the most-watched page after a paged
+  incident -- the controls dock and queue glance both need to
+  work one-handed. The fix set is biased to that path.
+- The `min-h-[44px] sm:min-h-0` pattern keeps the desktop
+  chrome byte-for-byte identical from 640px up, so visual
+  regression snapshots under
+  `ui/__screenshots__/button.browser.test.tsx/` stay green
+  without needing a snapshot rebaseline.
+
+Pages audited and confirmed clean (no edits required this
+round because their existing `grid-cols-1 md:grid-cols-2` /
+`flex-wrap` patterns already collapse correctly at 375):
+Health, Morning, Plan, Risk, Scribe, Swarm, TokenUsage,
+Workspaces, Rbac, Config, Batch, Cleanup. Listing them here
+so a reviewer can verify the audit reached every page even
+though only the breakage-prone ones show up in the diff.
+
+Verification:
+
+- `npx vitest --root web run` -- 5047 passed across 225 test
+  files (5043 from v1.11.78 plus the four browser-mode visual
+  smoke cases under `ui/__screenshots__/`, which continue to
+  pass against the unchanged baseline PNGs).
+- `npx vite build` (under web/) -- bundle compiles, vendor
+  chunks unchanged.
+- `tsc --noEmit` on the touched files surfaces no new
+  diagnostics. The pre-existing
+  `exactOptionalPropertyTypes` / `noUncheckedIndexedAccess`
+  warnings under `pages/*.test.tsx` and `components/*.test.tsx`
+  predate this change set; they are tracked separately and were
+  not in scope for the responsive sweep.
+
+Screenshots commitment: a follow-up PR (or a
+`docs/web-mobile-checklist.md` page) will land before / after
+captures at the 375 / 768 / 1024 widths for the three pages
+that took the heaviest edits (Auto, Profiles, Templates) so a
+reviewer can eyeball the wrap behavior without spinning the
+dev server. Holding this off the current diff intentionally --
+the captures need real Chromium plus the same brand chrome the
+dashboard renders against, which is faster to do as its own
+small follow-up than to inflate this PR with binary blobs.
+
 ## [1.11.78] - 2026-05-13 -- Web UI: Empty + loading + error state primitives
 
 Three reusable UI primitives landed under `web/src/components/ui/` so
