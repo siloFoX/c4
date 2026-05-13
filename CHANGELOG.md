@@ -4,6 +4,104 @@
 
 (no entries -- next release window)
 
+## [1.11.97] - 2026-05-13 -- Tests: daemon route tests (TODO 11.79)
+
+Add supertest-based test coverage for the daemon HTTP route surface
+that takes real operator traffic: `/auth/login` + `/auth/status` +
+`/auth/logout`, `/list`, `/autonomous/*` (status / pause / resume /
+tick), and `/config` + `/config/reload`. Goal: bump daemon-side route
+coverage past 80% for the four families that the dispatch document
+called out as the "real operator traffic" tier.
+
+The dispatch text mentioned `src/daemon/routes/*.js` as the location
+for these handlers, but the current codebase keeps routes inline
+inside `src/daemon.js`. Splitting the daemon into per-route modules
+is a much bigger refactor than this TODO scopes, so the test file
+mirrors the same in-process http.Server pattern that
+`tests/daemon-api.test.js` and `tests/daemon-attach.test.js` already
+use for `/key`, `/merge`, and the WebSocket attach endpoint: the
+real `src/auth.js` and `src/rbac.js` modules drive the auth/RBAC
+path while `pty-manager` and `auto-dispatcher` get tiny stubs, and
+supertest drives the server through
+`request(server).post('/...').send({...}).expect(200)`.
+
+New test file: `tests/daemon-routes.test.js` — 51 supertest cases.
+Coverage shape:
+
+- `POST /auth/login` (9 cases): success returns 200 + a JWT that
+  verifies under the configured secret with the right `sub` + `role`
+  claim; viewer-role assignment; invalid password / unknown user
+  both return 401 with `invalid credentials`; missing user, missing
+  password, and empty-body each return 401 with `missing user or
+  password`; one audit entry is recorded on a successful login and
+  one on a failed login (the `actor` field on the failure path stays
+  `anonymous` so the audit trail does not attribute the attempt to
+  the user that was being impersonated).
+- `GET /auth/status` (3 cases): returns `{ enabled: true }` when
+  `config.auth.enabled` is true, `{ enabled: false }` otherwise, and
+  is reachable without a bearer token even when auth is enabled
+  (it's part of `auth.OPEN_API_ROUTES`, so a 401 here would be a
+  regression in the middleware contract — `auth.checkRequest` would
+  fall back to "needs auth" and the React app could not decide
+  whether to render the login page).
+- `POST /auth/logout` (1 case): returns `{ ok: true }` for an
+  authenticated request and writes one `auth.logout` audit entry.
+- `GET /list` (8 cases): empty case returns `{ workers: [],
+  queuedTasks: [], lostWorkers: [] }`; populated case returns the
+  worker array; `tier` falls back to `'worker'` when missing and
+  preserves an explicit `'manager'` tier; 401 without a bearer
+  token; 401 for a malformed bearer; 200 with a valid bearer; and
+  the same handler is reachable via the `/api/list` prefix alias.
+- `/autonomous/*` (14 cases):
+  - With a live `AutoDispatcher` stub (6 cases): status returns the
+    dispatcher payload; `pause` with `{ reason }` flips
+    `paused=true` and records the reason; the next `status` call
+    reflects the pause; pause without a body defaults the reason to
+    `'manual via cli'`; resume clears `paused` and `pauseReason`;
+    tick advances the dispatcher's tick counter.
+  - With no dispatcher instance (4 cases): status returns the static
+    disabled payload with the `autonomous.mode=false` hint;
+    pause / resume / tick each return the `autonomous mode not
+    enabled` error envelope so the CLI never has to disambiguate a
+    404 from a real response.
+  - Auth-failure shape (4 cases): each verb (status / pause /
+    resume / tick) returns 401 when `config.auth.enabled=true` and
+    no bearer token is sent.
+- `/config` (7 cases): `GET /config` returns the current config
+  object; the same handler returns 401 without a bearer and 200
+  with a valid bearer when auth is enabled;
+  `POST /config/reload` returns success when the caller has the
+  `config.reload` RBAC action, returns 403 with
+  `{ action, user }` when a viewer attempts it, returns 401 when
+  no bearer is sent, and is allowed when `auth.enabled=false`
+  (operator-on-localhost workflow stays intact).
+- `src/daemon.js` source integration (9 cases): grep-style
+  assertions that each route handler still exists in the daemon
+  source with the documented verb + path, mirroring the
+  `(8.5) daemon.js source integration` block in
+  `tests/daemon-api.test.js`. These let a future refactor that
+  moves these routes still keep verbs and paths stable.
+
+Devdep: `supertest@^7.1.3` added as a new `devDependency`. The npm
+install reports one pre-existing high-severity vulnerability in a
+transitive dep (same baseline as before the install). `supertest`
+is wired in via `node_modules/supertest`; the test file requires it
+directly so the existing `tests/run-all.js` discovers it without
+any per-file shim work.
+
+Verification:
+
+- `node --test tests/daemon-routes.test.js` reports 51/51 pass in
+  ~720ms.
+- `node --test tests/daemon-attach.test.js
+  tests/daemon-checkpoint.test.js tests/daemon-api.test.js`
+  together with the new file reports 82/82 pass — the existing
+  daemon-side suites still come up green.
+
+No daemon production code was changed; the new file lives entirely
+under `tests/` and exercises the production `src/auth.js` and
+`src/rbac.js` modules directly.
+
 ## [1.11.96] - 2026-05-13 -- Tests: lib coverage push (TODO 11.78)
 
 Add vitest RTL/jsdom tests for six previously-untested `use-*` hooks
