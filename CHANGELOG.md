@@ -4,6 +4,142 @@
 
 (no entries -- next release window)
 
+## [1.11.91] - 2026-05-13 -- Daemon: clean stop with worker checkpoint (TODO 11.73)
+
+Make `c4 daemon stop` graceful and recoverable. The previous flow
+called `manager.closeAll()`, which removed every worker's worktree
+and deleted its branch before the daemon exited -- a restart left
+no trail of what a worker had been doing. The new flow writes a
+per-worker checkpoint JSON, sends SIGTERM, waits up to 30s for
+clean exits, and only then escalates to SIGKILL. Worktrees and
+branches are preserved so an operator can pick up where the worker
+left off.
+
+Graceful shutdown flow (`src/daemon.js::_gracefulShutdown`):
+
+- Idempotent: a second SIGINT/SIGTERM during shutdown is a no-op
+  (a `_shuttingDown` flag short-circuits re-entry).
+- Calls `daemonCheckpoint.shutdownWorkers(manager.workers.values(),
+  { projectRoot, version, log })` in place of `manager.closeAll()`.
+- The helper enumerates live workers, writes one checkpoint JSON
+  per worker, sends `process.kill(pid, 'SIGTERM')`, polls every
+  250ms until the worker map empties OR the 30s ceiling elapses,
+  then `process.kill(pid, 'SIGKILL')` to any survivor.
+- Per-worker log line is written to stderr: `graceful exit` on
+  clean exit, `force-killed after Ns` on timeout, plus the path of
+  the checkpoint that was written.
+- Existing `meeting-persist` auto-backup + `server.close()` +
+  `process.exit(0)` run AFTER the worker pass; the listening
+  socket closes last so an HTTP client never sees a half-killed
+  daemon answer a `/health` request mid-shutdown.
+
+Checkpoint writer (`src/daemon-checkpoint.js`, new):
+
+- `writeCheckpoint(worker, projectRoot, opts)` stages the JSON to
+  `<os.tmpdir()>/<name>.<pid>.json.tmp` first, then renames into
+  `<projectRoot>/.c4/checkpoints/<name>.json`. The mkdir is
+  recursive so a fresh install does not have to pre-create the
+  directory. A crash mid-write leaves the tmp file but never a
+  half-written final file.
+- Payload schema (matches the v1.11.91 contract):
+
+      {
+        "name":      "<worker name>",
+        "branch":    "c4/auto-foo" | null,
+        "worktree":  "/abs/path"  | null,
+        "pid":       <pid>        | null,
+        "target":    "local" | "dgx" | ...,
+        "tier":      "worker" | "manager",
+        "lastTask": {
+          "summary":   "<first line, max 200 chars>",
+          "timestamp": "<ISO 8601>"
+        } | null,
+        "stoppedAt": "<ISO 8601 when the checkpoint was written>",
+        "version":   "1.11.91"
+      }
+
+- `lastTask.summary` pulls from the existing `worker._taskText`
+  field (or `worker.lastTask.summary` when the caller pre-populates
+  it), keeps only the first line, and truncates to 200 chars.
+  `null` when the worker never received a task. Timestamp uses
+  `worker._taskStartedAt` when present, else falls back to the
+  shutdown timestamp so the field is always populated for a
+  non-null lastTask.
+- `tier` and `target` default to `worker` / `local` when the
+  session object omits them -- the existing PtyManager populates
+  `target` but does not yet record `tier`, so the default keeps
+  the schema honest until 11.74 lands tier wiring.
+- `CHECKPOINT_GRACE_MS = 30_000` is exported as a single tunable
+  constant so a follow-up PR can adjust the ceiling in one place.
+  Kept under systemd's default `TimeoutStopSec=90s` so the unit
+  never trips the kill timeout before this path finishes.
+
+uncaughtException is NOT a clean stop:
+
+The `process.on('uncaughtException', ...)` handler in daemon.js
+intentionally does NOT trigger `_gracefulShutdown`. If a future PR
+ever hooks an emergency-stop path, it must pass
+`shutdownWorkers(workers, { skipCheckpoint: true, ... })` so the
+checkpoint write is bypassed -- a checkpoint written from an
+inconsistent process state would mislead recovery. The contract is
+documented in the module header and locked by a test.
+
+Recovery (manual today; 11.74 will automate this):
+
+    cat <projectRoot>/.c4/checkpoints/<worker>.json | jq
+
+Then `c4 new <worker> --branch <branch> --cwd <worktree>` resumes
+on the same worktree. Auto-readoption lands in TODO 11.74
+(c4/auto-daemon-reconnect).
+
+Tests (`tests/daemon-checkpoint.test.js`, 20 cases under node:test):
+
+- writeCheckpoint payload schema (full field set, types, defaults)
+- writeCheckpoint serializes to pretty-printed JSON on disk
+- writeCheckpoint atomic write (stages to tmp then renames)
+- writeCheckpoint mkdirs the checkpoints directory recursively
+- writeCheckpoint handles missing `_taskText` (lastTask -> null)
+- writeCheckpoint truncates summary to 200 chars + drops second line
+- writeCheckpoint defaults tier=worker / target=local
+- writeCheckpoint throws when worker.name missing or empty
+- writeCheckpoint end-to-end against a real `os.mkdtempSync` root
+- shutdownWorkers walks every worker and writes a checkpoint each
+- shutdownWorkers SIGTERMs every live worker before polling
+- shutdownWorkers resolves early once every worker exits
+- shutdownWorkers escalates to SIGKILL after CHECKPOINT_GRACE_MS
+- shutdownWorkers per-worker log lines: `graceful exit` /
+  `force-killed after Ns`
+- shutdownWorkers honors skipCheckpoint=true (uncaughtException
+  path bypasses the checkpoint write)
+- shutdownWorkers records the checkpoint path on each result entry
+- shutdownWorkers reports kill-error outcome on `process.kill`
+  throws
+- shutdownWorkers tolerates writeCheckpoint failures without
+  aborting the rest of the pass
+- CHECKPOINT_GRACE_MS exports the documented 30s ceiling
+- daemon.js wires `await daemonCheckpoint.shutdownWorkers(...)`
+  before `server.close()` so the listening socket closes last
+  (textual ordering assertion against the daemon source)
+
+Time-jump tests use injected `now()` + `delay()` instead of
+`vi.useFakeTimers` -- the daemon test suite runs under node:test,
+not vitest, so DI keeps the polling loop deterministic without an
+extra dependency.
+
+Files changed:
+
+- `src/daemon-checkpoint.js` (new): writeCheckpoint,
+  shutdownWorkers, CHECKPOINT_GRACE_MS, checkpointDir,
+  buildCheckpointPayload.
+- `src/daemon.js`: `_gracefulShutdown` now async + idempotent,
+  delegates the worker pass to `daemonCheckpoint.shutdownWorkers`.
+- `tests/daemon-checkpoint.test.js` (new): 20 cases as above.
+- `CLAUDE.md`: daemon section gains a "Daemon checkpoints" entry
+  pointing at the JSON path + how to recover.
+- `docs/autonomous-queue-v10.md`: 11.73 marked done with the
+  Shipped summary.
+- `web/package.json`: 1.11.90 -> 1.11.91.
+
 ## [1.11.90] - 2026-05-13 -- CLI: `c4 attach` command + daemon WS endpoint (TODO 11.72, partial)
 
 Add `c4 attach <name> [--readonly]` and the matching daemon

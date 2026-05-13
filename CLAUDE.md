@@ -47,6 +47,30 @@ ssh -R 9222:localhost:9222 shinc@192.168.10.222
 - 데몬 시작: `c4 daemon start` (데몬 중지: `c4 daemon stop`, 상태: `c4 daemon status`)
 - CLI: `c4` (npm link 등록됨)
 
+### Daemon checkpoints (v1.11.91)
+`c4 daemon stop` is graceful + recoverable. Before sending SIGTERM, the daemon
+writes one checkpoint JSON per live worker to
+`<projectRoot>/.c4/checkpoints/<name>.json`, then waits up to 30s
+(`CHECKPOINT_GRACE_MS` in `src/daemon-checkpoint.js`) for clean exits before
+SIGKILL. Worktrees and branches are preserved across restarts.
+
+```bash
+# inspect a checkpoint after the daemon stops
+cat /path/to/c4/.c4/checkpoints/auto-w42.json
+# {"name":"auto-w42","branch":"c4/auto-foo","worktree":"/root/c4-worktree-auto-w42",
+#  "pid":12345,"target":"local","tier":"worker",
+#  "lastTask":{"summary":"fix lint in src/api.js","timestamp":"2026-05-13T16:30:00Z"},
+#  "stoppedAt":"2026-05-13T16:32:10Z","version":"1.11.91"}
+
+# manual recovery: bring the worker back on the same branch + worktree
+c4 new auto-w42 --branch c4/auto-foo --cwd /root/c4-worktree-auto-w42
+```
+
+uncaughtException is NOT a clean stop — emergency shutdown paths must pass
+`{ skipCheckpoint: true }` so an inconsistent process state never writes a
+misleading checkpoint. Auto-readoption on `c4 daemon start` is tracked under
+TODO 11.74.
+
 ### C4 CLI 명령어 (관리자/워커 모두 사용)
 ```
 c4 daemon start|stop|restart|status  데몬 관리
