@@ -4,6 +4,88 @@
 
 (no entries -- next release window)
 
+## [1.11.75] - 2026-05-13 -- Web lib hook vitest/jsdom test suites added: use-append-live + use-onboarding-tour + use-control-panel-worker-list + use-filtered-features
+
+**57 new tests** across four untested `web/src/lib/use-*.ts` hooks. No
+production code changes -- pure test coverage. This entry fills the
+1.11.75 slot reserved for the auto-w51 parallel worker in the dispatch
+window noted under [1.11.76]; `package.json` + `package-lock.json` were
+already advanced to 1.11.76 by an earlier-finishing parallel worker, so
+no version bump is included here.
+
+The four new files (case counts):
+
+- `web/src/lib/use-append-live.test.ts` (12 cases) -- covers the
+  SSE-streamed live-message append handler extracted from ChatView.
+  Verifies idle wiring (stable callback identity across re-renders),
+  both short-circuit paths (whitespace-trimmed empty + seenTextsRef
+  dedup against the backfill pass), trim semantics, role-tagged id
+  prefix (`live-u-` vs `live-w-`), the ChatMessage shape passed to
+  rememberMessage (role / text / source='live' / ts in window), that
+  rememberMessage and setLiveMessages receive the same instance, the
+  setLiveMessages updater form (append onto prev), the MAX_MESSAGES
+  300 trailing-window cap kicking in only when the slot would
+  overflow, that seenTextsRef.current is read at call time (post-mount
+  mutations honored), and an integration shape with a real React
+  useRef wrapping.
+
+- `web/src/lib/use-onboarding-tour.test.ts` (22 cases) -- covers the
+  4-step popover tour state machine extracted from OnboardingTour.tsx.
+  Verifies idle slots on a cold start (open=true, index=0, isFirst,
+  total), the localStorage seen-flag branch (auto-open suppressed),
+  explicit forceOpen=true / forceOpen=false overriding the seen flag,
+  the forceOpen sync effect (re-flipping back to closed + index reset
+  on re-open), the TOUR_EVENT_START listener replaying from step 0
+  whether closed or already-open (rewinding to 0), listener cleanup
+  on unmount, goNext / goPrev advancement plus clamping at the upper
+  (steps.length - 1) and lower (0) bounds, finish('done') and
+  finish('skip') both marking-seen + closing + resetting index +
+  invoking onClose, finish tolerating an undefined onClose, the
+  Escape-key dismiss handler firing finish('skip') only while open
+  (the listener is unbound while closed), non-Escape keys not closing
+  the tour, keydown listener cleanup on the open->closed transition,
+  the step memo tracking STEPS[index] including after goPrev, total
+  reflecting a steps-prop length change, and graceful handling of
+  localStorage.getItem / setItem throws (private mode / quota --
+  shouldAutoOpen returns false, markSeen swallows the error).
+
+- `web/src/lib/use-control-panel-worker-list.test.ts` (9 cases) --
+  covers the thin wrapper over useSilentPollWithRefresh at the
+  documented 5_000 ms cadence against /api/list. Verifies idle state
+  (stable empty workers array, fetchList is a function), the
+  happy-path REST exchange (workers list lands after the first
+  response), the manual refresh resolving with the post-mutation
+  state, the silent-degradation contract on a server 500 (previous
+  workers stay, no throw, fetchList resolves), the non-array workers
+  mapper guard (falls back to empty), the 5_000 ms interval cadence
+  scheduling, the interval cleanup on unmount, the network-failure
+  swallow on fetchList, and a busy slot via release-gate (a slow
+  /api/list mid-refresh preserves the previous workers list and
+  flips to the new payload only after the gate releases).
+
+- `web/src/lib/use-filtered-features.test.ts` (14 cases) -- covers
+  the per-category grouping memo plus the matched-count reducer used
+  by FeatureSidebar's empty state. Verifies idle wiring (empty filter
+  returns featuresByCategory() unchanged + matchCount equals
+  FEATURES.length), whitespace-only short-circuit, case-insensitive
+  description match ("recorder" surfaces only scribe), uppercase
+  filter case-folding, description and id match surfaces, the
+  no-match branch (every CATEGORY_ORDER bucket empty + zero
+  matchCount), matchCount as a pure sum across the buckets, dep-
+  change rerun (filter swap flips the grouping), cross-selection
+  reset under a locale flip via setLocale (the t() haystack re-runs
+  on rerender; matchCount restores when the locale flips back),
+  bucket isolation (no leak into unrelated categories), memo
+  identity stability (same grouping object reused on equal-filter
+  rerender), and the grouped-shape invariant that every
+  CATEGORY_ORDER key is always present.
+
+Test plumbing: pure additions under `web/src/lib/*.test.ts`. No
+changes to production code, vitest config, msw handlers, or any
+non-test source file. All 57 cases pass under the existing `npm
+--prefix web test` one-shot, alongside the prior 4959 cases (total
+5016 passing across 222 files).
+
 ## [1.11.74] - 2026-05-13 -- Web lib hook vitest/jsdom test suites added: use-action-items-export + use-batch-submit + use-metrics + use-persisted-bool
 
 **56 new tests** across four untested `web/src/lib/use-*.ts` hooks. No
