@@ -67,7 +67,7 @@ export default function Workspaces() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono text-[12px] font-medium">{w.name}</span>
                   {w.exists ? (
-                    <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 dark:text-emerald-400">
+                    <span className="inline-flex items-center gap-1 text-[10px] text-success">
                       <CheckCircle2 className="h-3 w-3" aria-hidden />
                       {t('workspaces.exists')}
                     </span>
@@ -79,12 +79,12 @@ export default function Workspaces() {
                   )}
                   {w.exists && (
                     w.isGitRepo ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 dark:text-emerald-400">
+                      <span className="inline-flex items-center gap-1 text-[10px] text-success">
                         <GitBranch className="h-3 w-3" aria-hidden />
                         {t('workspaces.gitRepo')}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-400">
+                      <span className="inline-flex items-center gap-1 text-[10px] text-warning">
                         <GitBranch className="h-3 w-3" aria-hidden />
                         {t('workspaces.notGitRepo')}
                       </span>

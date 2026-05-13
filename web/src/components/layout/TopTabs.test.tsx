@@ -123,7 +123,7 @@ describe('<TopTabs>', () => {
       />,
     );
     const badge = screen.getByText('2');
-    expect(badge.className).toMatch(/amber/);
+    expect(badge.className).toMatch(/warning/);
   });
 
   it('applies the destructive tone classes to destructive badges', () => {

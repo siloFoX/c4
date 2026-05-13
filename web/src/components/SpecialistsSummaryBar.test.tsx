@@ -119,7 +119,7 @@ describe('<SpecialistsSummaryBar>', () => {
     });
     render(<SpecialistsSummaryBar />);
     const chip = screen.getByText('1 underperformer(s)');
-    expect(chip.className).toMatch(/text-amber-700/);
+    expect(chip.className).toMatch(/text-warning/);
   });
 
   it('does NOT render any persist clause when the persist block is absent', () => {
@@ -138,7 +138,7 @@ describe('<SpecialistsSummaryBar>', () => {
     hookValue = makeSummary({ persist: { enabled: false } });
     render(<SpecialistsSummaryBar />);
     const chip = screen.getByText('· persist DISABLED');
-    expect(chip.className).toMatch(/text-amber-700/);
+    expect(chip.className).toMatch(/text-warning/);
   });
 
   it('renders the persistRows clause when persist.rowCount is set', () => {
@@ -204,7 +204,7 @@ describe('<SpecialistsSummaryBar>', () => {
     });
     render(<SpecialistsSummaryBar />);
     const chip = screen.getByText(/persist 10 rows/);
-    expect(chip.className).not.toMatch(/text-amber-700/);
+    expect(chip.className).not.toMatch(/text-warning/);
   });
 
   it('highlights the persistRows clause with amber when dbSizeBytes exceeds 100 MB', () => {
@@ -217,7 +217,7 @@ describe('<SpecialistsSummaryBar>', () => {
     });
     render(<SpecialistsSummaryBar />);
     const chip = screen.getByText(/persist 10 rows/);
-    expect(chip.className).toMatch(/text-amber-700/);
+    expect(chip.className).toMatch(/text-warning/);
   });
 
   it('renders the audit entries clause when auditLog.entries is set', () => {
@@ -275,7 +275,7 @@ describe('<SpecialistsSummaryBar>', () => {
     });
     render(<SpecialistsSummaryBar />);
     const chip = screen.getByText(/audit 50 entries/);
-    expect(chip.className).toMatch(/text-amber-700/);
+    expect(chip.className).toMatch(/text-warning/);
   });
 
   it('renders the backupAgeHours clause when lastKnownGood.ageDays is below 1', () => {
@@ -312,7 +312,7 @@ describe('<SpecialistsSummaryBar>', () => {
     });
     render(<SpecialistsSummaryBar />);
     const chip = screen.getByText(/backup 14\.0d ago/);
-    expect(chip.className).toMatch(/text-amber-700/);
+    expect(chip.className).toMatch(/text-warning/);
   });
 
   it('does NOT render the backup clause when lastKnownGood.exists is false', () => {

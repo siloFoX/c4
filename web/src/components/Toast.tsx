@@ -13,9 +13,9 @@ export interface ToastProps {
 }
 
 const TONE: Record<ToastType, string> = {
-  success: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-100',
+  success: 'border-success/40 bg-success/15 text-success',
   error: 'border-destructive/40 bg-destructive/10 text-destructive-foreground',
-  info: 'border-sky-500/40 bg-sky-500/15 text-sky-100',
+  info: 'border-info/40 bg-info/15 text-info',
 };
 
 export default function Toast({

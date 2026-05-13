@@ -41,7 +41,7 @@ export default function MeetingsLineageStrip({ lineage, currentId, onNavigate }:
         <span className="font-medium text-foreground">{t('meetings.forkLineage')}</span>
         <span>· depth={lineage.depth}</span>
         {lineage.chainTruncated ? (
-          <span className="text-amber-600 dark:text-amber-400">
+          <span className="text-warning">
             · chain truncated (older ancestor purged)
           </span>
         ) : null}

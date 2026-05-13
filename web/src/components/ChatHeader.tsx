@@ -53,7 +53,7 @@ export default function ChatHeader({
           <span
             className={cn(
               'inline-block h-1.5 w-1.5 rounded-full',
-              sseConnected ? 'bg-emerald-400' : 'bg-muted-foreground'
+              sseConnected ? 'bg-success' : 'bg-muted-foreground'
             )}
             aria-hidden="true"
           />

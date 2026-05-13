@@ -38,7 +38,7 @@ export default function MeetingsRetroActions({ meetingId }: Props) {
         disabled={busy !== null}
         aria-label={t('meetings.finalizeLabel')}
         title={t('meetings.tooltip.finalize')}
-        className="h-6 px-2 text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-300"
+        className="h-6 px-2 text-[10px] border-warning/60 text-warning"
       >
         {busy === 'finalize' ? '…' : t('meetings.finalize')}
       </Button>

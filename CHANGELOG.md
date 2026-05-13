@@ -4,6 +4,66 @@
 
 (no entries -- next release window)
 
+## [1.11.77] - 2026-05-13 -- Web theme palette consistency sweep
+
+Migrated the c4 web UI (`web/src/components/*.tsx` + `pages/*.tsx`) off
+raw Tailwind colors (`emerald-500/15`, `text-amber-700 dark:text-amber-400`,
+`bg-sky-500/40`) onto a new semantic palette. The shadcn-style theme in
+`web/src/index.css` + `web/tailwind.config.js` now exposes three
+status-tone tokens alongside the existing background / foreground /
+card / popover / muted / accent / destructive set:
+
+- `--success` / `--success-foreground` — ok / merged / live indicator
+- `--warning` / `--warning-foreground` — pending / paused / review-needed
+- `--info` / `--info-foreground` — decisions / live stream / accent bar
+
+Light-mode lightness is tuned for >= 4.5:1 contrast on `bg-card`;
+dark-mode sits in the 56-65% band so the foreground passes WCAG AA
+on ARPS' slate-900 (`--background`). The tokens are reachable as
+ordinary Tailwind classes (`bg-success/15`, `text-warning`,
+`border-info/40`) and respect the `.dark` class on `<html>` for free —
+component call sites no longer need to spell out a `dark:` variant.
+
+35 component + page files were swept in this release:
+
+- UI kit: `ui/badge.tsx` (success / warning / info variants),
+  `ui/stat-card.tsx` (tone gradients + icon ring), `ui/tooltip.tsx`
+  (inline `style={{ maxWidth: 260 }}` -> `max-w-[260px]` className),
+  `Toast.tsx` (TONE map), `layout/TopTabs.tsx` (badge.amber tone).
+- Status / metrics: `MetricsBar.tsx`, `AutonomousDigestMetrics.tsx`,
+  `ChatHeader.tsx` (sse dot), `ChatErrorBanners.tsx`,
+  `ControlPanelBatch.tsx`.
+- Meetings family: `MeetingsActionItemsPanel.tsx`,
+  `MeetingsRetroActions.tsx`, `MeetingsStuckBanner.tsx`,
+  `MeetingsLineageStrip.tsx`, `MeetingsRecapPanel.tsx`,
+  `MeetingsView.tsx` (status badges).
+- Risk family: `RiskCheckResult.tsx`, `RiskRuleCatalogPanel.tsx`,
+  `RiskStatsGrid.tsx`, `pages/Risk.tsx`.
+- Specialists family: `SpecialistsSummaryBar.tsx`,
+  `SpecialistsAddPanel.tsx`, `SpecialistsAuditPanel.tsx`,
+  `SpecialistsPromptPanel.tsx`, `SpecialistsBulkOpsToolbar.tsx`,
+  `AutonomousView.tsx`.
+- Misc: `WikiPageDetailHeader.tsx`.
+- Pages: `Auto.tsx` (event descriptors + paused/live dot),
+  `Batch.tsx`, `Scribe.tsx`, `Rbac.tsx`, `Profiles.tsx`,
+  `Workspaces.tsx`, `TokenUsage.tsx` (accent bar),
+  `Swarm.tsx` (inline `style={{ paddingLeft }}` -> conditional
+  `pl-4` className).
+
+Categorical chart palettes -- `SpecialistsView.TIER_BADGE`,
+`SpecialistsAuditPanel` event-kind tones, `WorkflowGraph.TYPE_FILL`
+SVG fills -- were intentionally left on raw Tailwind colors because
+they encode identity (which tier? which event kind? which node type?),
+not status. `docs/web-design-palette.md` (new) explains where the line
+is and how to add new tokens.
+
+Test assertions that pinned `text-emerald-700` / `text-amber-700` etc.
+were updated in lockstep across 12 test files; the full vitest suite
+runs 5016 passing cases against the new classes. `npx vite build`
+emits a clean dist (the `tsc --noEmit` half of `npm run build`
+surfaces pre-existing TS strictness errors in unrelated test files,
+not introduced by this change).
+
 ## [1.11.75] - 2026-05-13 -- Web lib hook vitest/jsdom test suites added: use-append-live + use-onboarding-tour + use-control-panel-worker-list + use-filtered-features
 
 **57 new tests** across four untested `web/src/lib/use-*.ts` hooks. No

@@ -69,7 +69,7 @@ export default function MeetingsRecapPanel({ recap }: Props) {
           </ul>
           {recap.escalations.length > 0 ? (
             <div className="mt-3">
-              <div className="font-medium text-amber-700 dark:text-amber-400">
+              <div className="font-medium text-warning">
                 {tFormat('meetings.escalations.format', { n: String(recap.escalations.length) })}
               </div>
               <ul className="mt-1 space-y-0.5">

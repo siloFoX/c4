@@ -97,15 +97,15 @@ export interface StatsResponse {
 // (v1.10.605) LEVEL_TONE / ACTION_TONE promoted to exports —
 // consumed by the RiskCheckResult sibling.
 export const LEVEL_TONE: Record<CheckResponse['level'], string> = {
-  low: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/40',
-  medium: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/40',
+  low: 'bg-success/10 text-success border-success/40',
+  medium: 'bg-warning/10 text-warning border-warning/40',
   high: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/40',
   critical: 'bg-destructive/10 text-destructive border-destructive/40',
 };
 
 export const ACTION_TONE: Record<CheckResponse['suggestedAction'], string> = {
-  allow: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/40',
-  review: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/40',
+  allow: 'bg-success/10 text-success border-success/40',
+  review: 'bg-warning/10 text-warning border-warning/40',
   deny: 'bg-destructive/10 text-destructive border-destructive/40',
 };
 

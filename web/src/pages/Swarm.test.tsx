@@ -301,8 +301,10 @@ describe('<Swarm>', () => {
     };
     hookState = { ...hookState, data, selected: 'root' };
     const { container } = render(<Swarm />);
-    const root = container.querySelector('div[style*="padding-left: 0"]');
-    const indented = container.querySelector('div[style*="padding-left: 16px"]');
+    // (v1.11.77) Inline paddingLeft was replaced with a conditional
+    // Tailwind `pl-4` className (depth>0 only); root has no pl-* class.
+    const root = container.querySelector('div.text-xs:not(.pl-4)');
+    const indented = container.querySelector('div.pl-4.text-xs');
     expect(root).not.toBeNull();
     expect(indented).not.toBeNull();
   });

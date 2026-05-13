@@ -358,7 +358,7 @@ describe('<SpecialistsPromptPanel>', () => {
     hookState.applyResult = makeApplyResult({ applied: true });
     renderPanel();
     const banner = screen.getByText('Applied via meeting consensus');
-    expect(banner.className).toMatch(/text-emerald-700/);
+    expect(banner.className).toMatch(/text-success/);
   });
 
   it('renders the fired banner when applyResult.applied is false but meetingId is set', () => {
@@ -379,7 +379,7 @@ describe('<SpecialistsPromptPanel>', () => {
     });
     renderPanel();
     const banner = screen.getByText(/^Meeting fired/);
-    expect(banner.className).toMatch(/text-amber-700/);
+    expect(banner.className).toMatch(/text-warning/);
   });
 
   it('renders the no-revision banner when applied is false and meetingId is null', () => {

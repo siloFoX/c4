@@ -15,8 +15,8 @@ import { useRbac } from '../lib/use-rbac';
 
 const ROLE_TONE: Record<string, string> = {
   admin: 'bg-destructive/10 text-destructive border-destructive/40',
-  manager: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/40',
-  viewer: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/40',
+  manager: 'bg-warning/10 text-warning border-warning/40',
+  viewer: 'bg-success/10 text-success border-success/40',
 };
 
 export default function Rbac() {

@@ -318,7 +318,7 @@ describe('<SpecialistsAuditPanel>', () => {
     await openSection(user);
     const banner = screen.getByText('ok (50)');
     expect(banner).toBeInTheDocument();
-    expect(banner.className).toMatch(/text-emerald-700/);
+    expect(banner.className).toMatch(/text-success/);
   });
 
   it('renders the CORRUPT verify banner with destructive tone when valid=false', async () => {
@@ -447,7 +447,7 @@ describe('<SpecialistsAuditPanel>', () => {
     const { user } = renderPanel();
     await openSection(user);
     const chip = screen.getByText('add');
-    expect(chip.className).toMatch(/text-emerald-700/);
+    expect(chip.className).toMatch(/text-success/);
   });
 
   it('applies the per-action tone class on remove (rose)', async () => {

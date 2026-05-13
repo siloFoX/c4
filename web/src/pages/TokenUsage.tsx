@@ -215,7 +215,7 @@ function Bar({ value, max, tone }: { value: number; max: number; tone?: BarTone 
   const color = tone === 'danger'
     ? 'bg-destructive/70'
     : tone === 'accent'
-      ? 'bg-sky-500/70'
+      ? 'bg-info/70'
       : 'bg-primary/70';
   return (
     <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-muted">

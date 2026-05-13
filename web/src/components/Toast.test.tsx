@@ -67,7 +67,7 @@ describe('<Toast>', () => {
   it('applies the emerald success tone classes when type=success', () => {
     renderToast({ type: 'success' });
     const status = screen.getByRole('status');
-    expect(status.className).toMatch(/emerald/);
+    expect(status.className).toMatch(/success/);
   });
 
   it('applies the destructive error tone classes when type=error', () => {
@@ -79,17 +79,17 @@ describe('<Toast>', () => {
   it('applies the sky info tone classes when type=info', () => {
     renderToast({ type: 'info' });
     const status = screen.getByRole('status');
-    expect(status.className).toMatch(/sky/);
+    expect(status.className).toMatch(/info/);
   });
 
   it('does NOT apply the success tone classes when type=error', () => {
     renderToast({ type: 'error' });
-    expect(screen.getByRole('status').className).not.toMatch(/emerald/);
+    expect(screen.getByRole('status').className).not.toMatch(/success/);
   });
 
   it('does NOT apply the info tone classes when type=success', () => {
     renderToast({ type: 'success' });
-    expect(screen.getByRole('status').className).not.toMatch(/sky/);
+    expect(screen.getByRole('status').className).not.toMatch(/info/);
   });
 
   // ---- icon -----------------------------------------------------
@@ -160,9 +160,9 @@ describe('<Toast>', () => {
 
   it('rerendering with a new tone updates the className family', () => {
     const { rerender, props } = renderToast({ type: 'success' });
-    expect(screen.getByRole('status').className).toMatch(/emerald/);
+    expect(screen.getByRole('status').className).toMatch(/success/);
     rerender(<Toast {...props} type="error" />);
-    expect(screen.getByRole('status').className).not.toMatch(/emerald/);
+    expect(screen.getByRole('status').className).not.toMatch(/success/);
     expect(screen.getByRole('status').className).toMatch(/destructive/);
   });
 

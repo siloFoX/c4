@@ -477,7 +477,7 @@ describe('<ControlPanelBatch>', () => {
       batchResults: [{ name: 'res-1', ok: true }],
     });
     const ok = screen.getByText(/^res-1/).closest('li');
-    expect(ok?.className).toMatch(/text-emerald-400/);
+    expect(ok?.className).toMatch(/text-success/);
   });
 
   it('applies the destructive color class on failed outcome rows', () => {

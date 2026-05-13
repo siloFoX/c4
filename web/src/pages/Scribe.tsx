@@ -128,7 +128,7 @@ export default function Scribe() {
 interface StatusRowProps { label: string; value: string; mono?: boolean; tone?: 'ok' | 'muted' }
 
 function StatusRow({ label, value, mono, tone }: StatusRowProps) {
-  const toneCls = tone === 'ok' ? 'text-emerald-400' : tone === 'muted' ? 'text-muted-foreground' : 'text-foreground';
+  const toneCls = tone === 'ok' ? 'text-success' : tone === 'muted' ? 'text-muted-foreground' : 'text-foreground';
   return (
     <div className="flex items-center justify-between gap-2 py-0.5">
       <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>

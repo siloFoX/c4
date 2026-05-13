@@ -50,7 +50,7 @@ export default function WikiPageDetailHeader({
       {reopenMsg ? (
         <span className={cn(
           'text-[11px]',
-          reopenFailed ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400',
+          reopenFailed ? 'text-destructive' : 'text-success',
         )}>
           {reopenMsg}
         </span>

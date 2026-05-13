@@ -419,7 +419,7 @@ describe('<Scribe>', () => {
     hookState = { ...hookState, status: makeStatus({ running: true }) };
     render(<Scribe />);
     const yes = screen.getByText('yes');
-    expect(yes.className).toContain('text-emerald-400');
+    expect(yes.className).toContain('text-success');
   });
 
   it('renders the running indicator with the muted tone class when not running', () => {

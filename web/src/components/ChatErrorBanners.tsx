@@ -25,7 +25,7 @@ export default function ChatErrorBanners({ error, backfillError }: Props) {
       {backfillError && !error && (
         <div
           role="alert"
-          className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300"
+          className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 p-3 text-xs text-warning"
         >
           <span className="min-w-0 break-words">
             Past-message backfill failed: {backfillError}. Live stream is still connected.

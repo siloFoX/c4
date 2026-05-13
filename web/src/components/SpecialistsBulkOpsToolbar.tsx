@@ -118,7 +118,7 @@ export default function SpecialistsBulkOpsToolbar({ onChange }: Props) {
               variant="outline"
               onClick={handleImportApply}
               disabled={importBusy}
-              className="h-6 px-2 text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-300"
+              className="h-6 px-2 text-[10px] border-warning/60 text-warning"
               title={t('specialists.tooltip.applyImport')}
             >
               {t('common.apply')}

@@ -148,7 +148,7 @@ export default function Profiles() {
 }
 
 function PatternList({ label, items, tone }: { label: string; items: string[]; tone: 'ok' | 'danger' }) {
-  const color = tone === 'ok' ? 'text-emerald-400' : 'text-destructive';
+  const color = tone === 'ok' ? 'text-success' : 'text-destructive';
   return (
     <div className="rounded-md border border-border bg-muted/30 p-2 text-xs">
       <div className="mb-1 text-muted-foreground">{label}</div>

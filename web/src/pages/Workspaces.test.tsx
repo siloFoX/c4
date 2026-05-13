@@ -219,24 +219,24 @@ describe('<Workspaces>', () => {
     expect(missing.className).toContain('text-destructive');
   });
 
-  it('uses the emerald-tone styling on the exists badge', () => {
+  it('uses the success-tone styling on the exists badge', () => {
     hookState = {
       ...hookState,
       data: [makeWorkspace({ exists: true })],
     };
     render(<Workspaces />);
     const exists = screen.getByText('exists');
-    expect(exists.className).toMatch(/emerald/);
+    expect(exists.className).toMatch(/text-success/);
   });
 
-  it('uses the amber-tone styling on the not-a-git-repo badge', () => {
+  it('uses the warning-tone styling on the not-a-git-repo badge', () => {
     hookState = {
       ...hookState,
       data: [makeWorkspace({ exists: true, isGitRepo: false })],
     };
     render(<Workspaces />);
     const badge = screen.getByText('not a git repo');
-    expect(badge.className).toMatch(/amber/);
+    expect(badge.className).toMatch(/text-warning/);
   });
 
   it('renders the error panel via role=alert when the hook reports an error', () => {

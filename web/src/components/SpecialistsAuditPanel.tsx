@@ -100,7 +100,7 @@ export default function SpecialistsAuditPanel() {
                   className={cn(
                     'rounded border px-1.5 py-0 font-mono text-[10px]',
                     verifyResult.valid
-                      ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                      ? 'border-success/40 bg-success/10 text-success'
                       : 'border-destructive/40 bg-destructive/10 text-destructive',
                   )}
                   title={
@@ -133,11 +133,11 @@ export default function SpecialistsAuditPanel() {
               <ul className="divide-y divide-border/40 text-[11px]">
                 {auditEntries.slice().reverse().map((e, i) => {
                   const tone: Record<string, string> = {
-                    add: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+                    add: 'border-success/40 bg-success/10 text-success',
                     remove: 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400',
                     import: 'border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-400',
                     'score-applied': 'border-purple-500/40 bg-purple-500/10 text-purple-700 dark:text-purple-400',
-                    'prompt-revised': 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+                    'prompt-revised': 'border-warning/40 bg-warning/10 text-warning',
                     'tags-updated': 'border-cyan-500/40 bg-cyan-500/10 text-cyan-700 dark:text-cyan-400',
                     'score-reset': 'border-orange-500/40 bg-orange-500/10 text-orange-700 dark:text-orange-400',
                   };

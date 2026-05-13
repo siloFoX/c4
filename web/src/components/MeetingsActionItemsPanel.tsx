@@ -26,10 +26,10 @@ export interface ActionItemsResponse {
 }
 
 const TONE: Record<ActionItemType, string> = {
-  decision: 'border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-400',
-  action: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
-  todo: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
-  blocker: 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400',
+  decision: 'border-info/40 bg-info/10 text-info',
+  action: 'border-success/40 bg-success/10 text-success',
+  todo: 'border-warning/40 bg-warning/10 text-warning',
+  blocker: 'border-destructive/40 bg-destructive/10 text-destructive',
 };
 
 interface Props {

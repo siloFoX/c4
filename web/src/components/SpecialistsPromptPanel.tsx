@@ -53,7 +53,7 @@ export default function SpecialistsPromptPanel({ specialistId, systemPrompt }: P
             variant="outline"
             onClick={handleApply}
             disabled={applyBusy}
-            className="h-6 px-2 text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-300"
+            className="h-6 px-2 text-[10px] border-warning/60 text-warning"
             title={t('specialists.tooltip.applyMeeting')}
           >
             {applyBusy ? t('specialists.applyViaMeetingApplying') : t('specialists.applyViaMeeting')}
@@ -67,8 +67,8 @@ export default function SpecialistsPromptPanel({ specialistId, systemPrompt }: P
         <div className="mt-1 text-[11px] text-destructive">{suggestError}</div>
       ) : null}
       {suggestion ? (
-        <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px]">
-          <div className="mb-1 font-medium text-amber-700 dark:text-amber-400">
+        <div className="mt-2 rounded-md border border-warning/40 bg-warning/10 p-2 text-[11px]">
+          <div className="mb-1 font-medium text-warning">
             {t('specialists.suggest.title')}
           </div>
           {suggestion.revision ? (
@@ -97,15 +97,15 @@ export default function SpecialistsPromptPanel({ specialistId, systemPrompt }: P
         <div className={cn(
           'mt-2 rounded-md border p-2 text-[11px]',
           applyResult.applied
-            ? 'border-emerald-500/40 bg-emerald-500/10'
-            : 'border-amber-500/40 bg-amber-500/10',
+            ? 'border-success/40 bg-success/10'
+            : 'border-warning/40 bg-warning/10',
         )}>
           <div className="mb-1 flex items-center justify-between gap-2">
             <div className={cn(
               'font-medium',
               applyResult.applied
-                ? 'text-emerald-700 dark:text-emerald-400'
-                : 'text-amber-700 dark:text-amber-400',
+                ? 'text-success'
+                : 'text-warning',
             )}>
               {applyResult.applied
                 ? t('specialists.applyResult.applied')

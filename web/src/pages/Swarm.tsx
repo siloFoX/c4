@@ -78,7 +78,7 @@ export default function Swarm() {
 function TreeNode({ node, depth }: { node: SwarmNode; depth: number }) {
   const children = Array.isArray(node.children) ? node.children : [];
   return (
-    <div style={{ paddingLeft: depth === 0 ? 0 : 16 }} className="text-xs">
+    <div className={depth === 0 ? 'text-xs' : 'pl-4 text-xs'}>
       <div className="flex items-center gap-2 py-1">
         <span className="font-mono text-foreground">{node.name}</span>
         {node.status && (
