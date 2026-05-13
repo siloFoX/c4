@@ -131,6 +131,36 @@ Fire-and-forget: no retries, single warn line on 4xx/5xx (host +
 status, never the body or full URL path). Set `NOTIFY_DISABLED=1` in
 the env to skip every POST (useful in tests / staging).
 
+### Structured logging (v1.11.100)
+`src/logger.js` exports `getLogger()` (singleton) + `createLogger(opts)`
+(factory). The daemon side (`src/daemon.js`, `src/notify.js`, etc.)
+now logs through pino so every line carries a `component` field plus
+arbitrary structured context. CLI files (`src/cli.js`, `src/daemon-manager.js`,
+tests) keep using `console.*` because their output lands in the
+operator's terminal before the daemon process exists.
+
+```json
+"logging": {
+  "path":    "/root/c4/.c4/logs/c4.log",
+  "level":   "info",
+  "pretty":  true,
+  "maxSize": 10485760
+}
+```
+
+- `path`: absolute file path (parent dirs auto-created); `null`/missing
+  routes lines to stdout instead.
+- `level`: one of `trace` / `debug` / `info` / `warn` / `error`;
+  unknown values fall back to `info`.
+- `pretty`: when `true` AND stdout is a TTY, pipes through
+  `pino-pretty` for human reading. JSON otherwise.
+- `maxSize`: bytes — when the live file crosses the cap on the next
+  write, it is renamed to `<path>.1` (one-step rotation, the previous
+  rotated copy is overwritten) and a fresh stream opens. `null`
+  disables rotation. Synchronous `fs.openSync` / `writeSync` / `renameSync`
+  are used so the rotated inode is always on disk before the next
+  write.
+
 ### C4 CLI 명령어 (관리자/워커 모두 사용)
 ```
 c4 daemon start|stop|restart|status  데몬 관리
