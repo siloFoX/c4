@@ -68,8 +68,28 @@ c4 new auto-w42 --branch c4/auto-foo --cwd /root/c4-worktree-auto-w42
 
 uncaughtException is NOT a clean stop — emergency shutdown paths must pass
 `{ skipCheckpoint: true }` so an inconsistent process state never writes a
-misleading checkpoint. Auto-readoption on `c4 daemon start` is tracked under
-TODO 11.74.
+misleading checkpoint.
+
+### Daemon reconnect (v1.11.92)
+`c4 daemon start` auto-reconciles orphan workers from the previous run.
+On startup the daemon walks `git worktree list`, pairs each
+`c4-worktree-*` entry with `.c4/checkpoints/<name>.json`, and either
+re-adopts the workers whose pid is still alive (state = ATTACHED,
+shown once with a `(recovered)` suffix in `c4 list`) or marks them
+LOST with a reason field (`no-checkpoint` | `pid-dead` |
+`malformed-checkpoint` | `no-pid`). LOST workers appear in the
+`LOST (daemon restart)` section of `c4 list`.
+
+```bash
+# manually re-adopt a single orphan after daemon stop/start
+c4 reconnect auto-w42
+# -> Reconnected auto-w42 (pid=12345, branch=c4/auto-foo)
+
+# exit codes: 0 = adopted, 2 = no checkpoint, 1 = pid dead / network error
+```
+
+The same logic runs via `POST /api/workers/<name>/reconnect` (200 on
+adopt, 404 when no checkpoint, 409 when the pid is dead).
 
 ### C4 CLI 명령어 (관리자/워커 모두 사용)
 ```
@@ -86,6 +106,11 @@ c4 wait --all [--interrupt-on-intervention]  전체 워커 대기 + intervention
 c4 scrollback <name> [--lines N]     워커 스크롤백 읽기
 c4 list                              모든 워커 상태 조회
 c4 close <name>                      워커 종료
+c4 reconnect <name>                  체크포인트로부터 orphan worker 재입양 (v1.11.92)
+                                     # 200: 'Reconnected <name> (pid=..., branch=...)' / exit 0
+                                     # 404: 'Worker <name> not found in checkpoints' / exit 2
+                                     # 409: 'Worker <name> pid <N> is no longer alive ...' / exit 1
+                                     # daemon 시작 시 자동 reconcile 도 같이 수행됨
 c4 health                            데몬 헬스체크
 c4 ui [--port N]                     Open daemon web UI in default browser (port: --port > config.json daemon.port > 3456)
                                      # Platform opener: open (darwin) / cmd /c start (win32) / xdg-open (linux+other)
@@ -278,7 +303,7 @@ git -C /c/Users/silof/c4-worktree-worker1 status
 | 데몬 응답 없음 | `c4 health` | `c4 daemon restart` |
 | 좀비 데몬 (프로세스 살아있지만 무응답) | `c4 daemon status` | `c4 daemon stop` 후 `c4 daemon start` |
 | 워커 STALL (멈춤) | `c4 read-now <name>` | 상황 파악 후 `c4 key <name> Enter` 또는 `c4 send <name> "지시"` |
-| LOST 워커 (데몬 재시작 후) | `c4 list` | 새 워커 생성 후 같은 브랜치에서 이어가기 |
+| LOST 워커 (데몬 재시작 후) | `c4 list` | `c4 reconnect <name>` 으로 재입양 (v1.11.92, pid 살아있을 때) / 죽었으면 새 워커 생성 후 같은 브랜치에서 이어가기 |
 | 고아 worktree 잔여 | `git worktree list` | `c4 cleanup` 또는 `git worktree remove <path> --force` |
 | Git Bash 경로 변환 | `/model`이 `/c/model`로 변환됨 | `MSYS_NO_PATHCONV=1 c4 send <name> "/model"` |
 | 긴 작업 메시지 잘림 | 1000자+ 메시지 | 자동으로 `.c4-task.md` 파일 전달됨 (수동 조치 불필요) |

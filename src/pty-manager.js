@@ -24,6 +24,8 @@ const riskSandbox = require('./risk-sandbox');
 const interventionState = require('./intervention-state');
 const { ApprovalMonitor } = require('./approval-monitor');
 const postCompactHook = require('./post-compact-hook');
+const daemonCheckpoint = require('./daemon-checkpoint');
+const daemonReconnect = require('./daemon-reconnect');
 
 // L4 Critical Deny List (5.13) — these commands are NEVER auto-approved, even at full autonomy
 const CRITICAL_DENY_PATTERNS = [
@@ -2634,6 +2636,24 @@ class PtyManager extends EventEmitter {
     return entries.filter(e => path.basename(e.worktree).startsWith('c4-worktree-'));
   }
 
+  // (11.74) Auto-reconnect orphan workers from the previous daemon
+  // run. Pairs c4-worktree-* paths with .c4/checkpoints/<name>.json
+  // and either re-adopts the live ones (ATTACHED session, with a
+  // "(recovered)" suffix on the first list()) or marks them LOST.
+  // The pure planner lives in daemon-checkpoint.js and the
+  // manager-side side effects in daemon-reconnect.js so the unit
+  // tests don't have to load node-pty.
+  reconcileOrphans(opts = {}) {
+    return daemonReconnect.reconcileOrphans(this, opts);
+  }
+
+  // (11.74) Single-name re-adopt. Powers the daemon endpoint
+  // POST /api/workers/:name/reconnect and the `c4 reconnect <name>`
+  // CLI subcommand.
+  reconnectWorker(name, opts = {}) {
+    return daemonReconnect.reconnectWorker(this, name, opts);
+  }
+
   startWorktreeGc() {
     if (this._worktreeGcTimer) return;
     const cfg = this.config.daemon?.worktreeGc || {};
@@ -4966,6 +4986,12 @@ class PtyManager extends EventEmitter {
       const pid = w.proc ? w.proc.pid : null;
       const ms = workerMetrics.sample(pid, w._lastCpuSample || null);
       if (ms.sample) w._lastCpuSample = ms.sample;
+      // (11.74) Recovered workers show '(recovered)' only on the first
+      // list() call after reconciliation; flip the breadcrumb so steady
+      // state listings look like any other worker.
+      const recovered = !!w._recovered;
+      const recoveredSuffix = recovered && !w._recoveryShown;
+      if (recoveredSuffix) w._recoveryShown = true;
       result.push({
         name,
         // (8.17) 'spawned' is the default on every PTY-backed worker so
@@ -4979,6 +5005,12 @@ class PtyManager extends EventEmitter {
         parent: w.parent || null,
         scope: w.scopeGuard ? w.scopeGuard.hasRestrictions() : false,
         pid,
+        // (11.74) Recovered workers carry an ATTACHED state and may be
+        // surfaced with a one-shot "(recovered)" suffix on the first
+        // list() call so operators see the auto-adopt happened.
+        recovered,
+        recoveredSuffix,
+        state: w.state || null,
         status: w.alive ? (idleMs > this.idleThresholdMs ? 'idle' : 'busy') : 'exited',
         unreadSnapshots,
         totalSnapshots: w.snapshots.length,
