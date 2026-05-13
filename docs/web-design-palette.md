@@ -213,3 +213,70 @@ own them and may swap palette tokens later). Prefer:
   visible text is gone in skeleton mode).
 - For `ErrorState`: assert `role="alert"` is present and the
   `title` / `error` strings are in the DOM.
+
+## Motion (1.11.80)
+
+The c4 web UI uses Tailwind utilities plus the `tailwindcss-animate`
+plugin for tasteful, accessibility-respecting motion. Three rules:
+
+1. **Wrap every motion utility in `motion-safe:`.** Tailwind's
+   `motion-safe:` variant only applies its rule inside `@media
+   (prefers-reduced-motion: no-preference)`, so an operator who
+   sets `prefers-reduced-motion: reduce` (vestibular disorders,
+   accessibility settings) gets a still UI. Bare `animate-in` or
+   `transition-*` without the prefix is a bug.
+2. **Keep durations short (75-300 ms) and easings calm.** No
+   bouncing / overshoot, no spring physics. The recipe used today:
+
+   | Surface | Utility set | Duration |
+   | --- | --- | --- |
+   | Card / Panel mount | `motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200` | 200 ms |
+   | Button :active | `motion-safe:transition-transform motion-safe:duration-75 motion-safe:active:scale-95` | 75 ms |
+   | Toast slide-in | `motion-safe:animate-in motion-safe:slide-in-from-right motion-safe:duration-300` | 300 ms |
+   | Tab cross-fade | `motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150` keyed on the active tab | 150 ms |
+
+3. **Re-fire `animate-in` by changing a `key`, not by toggling a
+   class.** `tailwindcss-animate`'s `animate-in` utility is a
+   one-shot keyframe -- it fires on mount and never again. Wrap
+   the content body in `<div key={activeTab}
+   motion-safe:animate-in ...>` so React unmounts and remounts the
+   wrapper on tab switch and the keyframe runs again. The
+   top-level `App.tsx` cross-fade does this; the detail-mode
+   switch inside Workers does the same with `key={detailMode}`.
+
+The plugin is registered in `web/tailwind.config.js` via an ESM
+import (`import animatePlugin from 'tailwindcss-animate'`). The
+package itself is a small (~3 KB) shadcn-standard dep that ships
+the `animate-in / animate-out / fade-in / fade-out /
+slide-in-from-* / zoom-in / zoom-out` utilities; no JS-side
+animation library is involved.
+
+Focus rings (1.11.80):
+
+- Interactive primitives in `web/src/components/ui/*.tsx`
+  (`button`, `icon-button`, `input`, the retry button in
+  `error-state`) standardise on
+  `focus-visible:outline-none focus-visible:ring-2
+  focus-visible:ring-primary focus-visible:ring-offset-2
+  focus-visible:ring-offset-background`. Use `focus-visible`
+  (keyboard focus) rather than `focus` (mouse focus) so a mouse
+  click does not paint the ring.
+- Non-primitive call sites (page-level `<input>`s in
+  `pages/Batch.tsx`, `pages/Plan.tsx`, `pages/Swarm.tsx`,
+  `components/HistoryView.tsx`, `components/StatusMessageCard.tsx`)
+  still use `ring-ring`. Sweeping those onto `ring-primary` is a
+  follow-up; not part of 1.11.80.
+
+Verification:
+
+- `vite build` (or `npm --prefix web run build` -- the tsc step
+  surfaces unrelated pre-existing test-file warnings that were
+  already noted in v1.11.79).
+- `vitest run` -- expects 5047/5047 passing. Class-name
+  assertions in primitive tests are additive (`toHaveClass(...)`)
+  so adding motion-safe / focus-visible / active classes is
+  non-breaking.
+- Reduced-motion: Chrome DevTools -> Rendering -> "Emulate CSS
+  media feature prefers-reduced-motion" -> "reduce" -> reload.
+  Card mount, button press, toast appearance, and tab switch
+  should all be motionless.

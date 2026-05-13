@@ -15,7 +15,7 @@ export const Panel = forwardRef<HTMLDivElement, PanelProps>(
       <div
         ref={ref}
         className={cn(
-          'rounded-lg border border-border bg-muted/40 p-4',
+          'rounded-lg border border-border bg-muted/40 p-4 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200',
           className
         )}
         {...props}

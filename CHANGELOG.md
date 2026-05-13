@@ -4,6 +4,118 @@
 
 (no entries -- next release window)
 
+## [1.11.80] - 2026-05-13 -- Web UI: Micro-interactions + polish (TODO 11.65)
+
+Tasteful, accessibility-respecting motion across the c4 web UI using
+Tailwind utilities plus a new `tailwindcss-animate` plugin dependency.
+Every animation is wrapped in `motion-safe:` so operators who set
+`prefers-reduced-motion: reduce` get a still interface and no motion
+fires.
+
+Five categories shipped:
+
+1. Panel mount fade-in (200ms) -- the `Card` and `Panel` primitives in
+   `web/src/components/ui/` now carry
+   `motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200`
+   so the surface materialises on first paint instead of popping.
+   Because `PageFrame.tsx` wraps every feature page in a `<Card>`, the
+   17 pages audited in v1.11.79 all pick this up without per-page
+   edits. Re-renders inside a mounted card do not refire the animation
+   (animate-in is a one-shot keyframe).
+2. Button :active scale-95 -- `ui/button.tsx` and `ui/icon-button.tsx`
+   gained `motion-safe:transition-transform motion-safe:duration-75
+   motion-safe:active:scale-95` so a press visibly responds without
+   bouncing on release. The retry button in `ui/error-state.tsx`
+   follows the same pattern so the three primitives behave
+   consistently.
+3. Toast slide-in-from-right (300ms) -- the toast row in
+   `components/Toast.tsx` gets
+   `motion-safe:animate-in motion-safe:slide-in-from-right
+   motion-safe:duration-300` so new toasts slide in from the edge
+   instead of appearing in place. Pure CSS keyframes; no JS animation
+   library.
+4. Focus rings standardised on `ring-primary` -- the audit of
+   `web/src/components/ui/*.tsx` covered the interactive primitives
+   (`button`, `icon-button`, `input`, retry button in `error-state`)
+   and switched their `focus-visible` ring from `ring-ring` to
+   `ring-primary` with the explicit `focus-visible:ring-2
+   focus-visible:ring-offset-2 focus-visible:ring-offset-background`
+   pair. `focus-visible` (keyboard) rather than `focus` (mouse) means
+   mouse clicks no longer paint a ring. `badge.tsx` is left alone
+   because it is a non-interactive span. The non-primitive
+   focus-visible call sites in `components/` and `pages/` continue to
+   reference `ring-ring`; sweeping those is out of scope for this
+   round.
+5. Tab change cross-fade (150ms) -- the top-level view switch in
+   `App.tsx` (Workers / History / Sessions / Meetings / Specialists /
+   Wiki / Autonomous / Chat / Workflows / Features / Settings) now
+   wraps each branch in a `<div key={topView} ...
+   motion-safe:animate-in motion-safe:fade-in
+   motion-safe:duration-150>` so React unmounts the previous branch
+   and re-mounts the new one, re-running the animate-in keyframe.
+   The detail switch inside Workers (terminal / chat / control) gets
+   the same treatment via `key={detailMode}` on its content wrapper.
+
+Plugin registration:
+
+- `tailwindcss-animate@^1.0.7` added as a `devDependency` in
+  `web/package.json`. The plugin is a small (~3 KB) shadcn-standard
+  dep that ships the `animate-in / animate-out / fade-in / fade-out /
+  slide-in-from-*` utilities. Registered in
+  `web/tailwind.config.js` via an ESM `import animatePlugin from
+  'tailwindcss-animate'` (the config file is ESM since the package
+  declares `"type": "module"`).
+
+Why motion-safe everywhere:
+
+- Operators who opt into `prefers-reduced-motion: reduce` (vestibular
+  disorders, accessibility settings, motion-sensitive devices) must
+  not see any of the new motion. Tailwind's `motion-safe:` variant
+  wraps the rule in `@media (prefers-reduced-motion: no-preference)`
+  so the still UI is the default for that cohort.
+- Durations are short (75 to 300 ms) and easings are linear /
+  ease-out -- no overshoot, no bouncing.
+
+Verification:
+
+- `vite build` succeeds. tsc --noEmit surfaces the same pre-existing
+  test-file warnings as v1.11.79 (`exactOptionalPropertyTypes`,
+  `noUncheckedIndexedAccess`); those remain out of scope.
+- `vitest run` reports 5047/5047 passing -- the same count as
+  v1.11.79. Class-name assertions in the primitive tests are
+  additive (`toHaveClass('rounded-xl')`, `toHaveClass('h-10')`) so
+  adding motion-safe / focus-visible / active classes does not
+  break any assertion.
+- Reduced-motion verification: open Chrome DevTools, Rendering
+  panel, set "Emulate CSS media feature prefers-reduced-motion" to
+  "reduce". Reload any page (Workers, Auto, Meetings). Card mount,
+  button press, toast appearance, and tab switch should all be
+  motionless. Toggle back to "no preference" and the animations
+  return.
+
+Files touched:
+
+- `web/package.json` -- bump 1.11.79 -> 1.11.80, add
+  `tailwindcss-animate` devDependency.
+- `web/package-lock.json` -- version sync + tailwindcss-animate +
+  transitive deps captured by `npm install`.
+- `web/tailwind.config.js` -- register the plugin.
+- `web/src/components/ui/button.tsx` -- focus-visible:ring-primary +
+  motion-safe active scale.
+- `web/src/components/ui/icon-button.tsx` -- same.
+- `web/src/components/ui/input.tsx` -- focus-visible:ring-primary.
+- `web/src/components/ui/error-state.tsx` -- retry button focus +
+  active styles.
+- `web/src/components/ui/card.tsx` -- mount fade-in.
+- `web/src/components/ui/panel.tsx` -- mount fade-in.
+- `web/src/components/Toast.tsx` -- slide-in-from-right.
+- `web/src/App.tsx` -- top-level cross-fade (`key={topView}`) +
+  detail cross-fade (`key={detailMode}`).
+- `docs/web-design-palette.md` -- new "Motion" section with
+  durations, easings, and the motion-safe rule.
+- `docs/autonomous-queue-v10.md` -- 11.65 marked done with a
+  Shipped: summary.
+
 ## [1.11.79] - 2026-05-13 -- Web UI: Mobile responsive sweep (TODO 11.64)
 
 Audit of the 17 feature pages under `web/src/pages/*.tsx` plus their
