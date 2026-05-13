@@ -4,6 +4,107 @@
 
 (no entries -- next release window)
 
+## [1.11.73] - 2026-05-13 -- Web component RTL/jsdom test suites added: WorkerActions + WorkerDetailHeader + WorkerListGroupHeader
+
+**136 new tests** across three untested `web/src/components/*.tsx`
+Worker-family sub-panel files. No production code changes -- pure
+test coverage. This entry fills the 1.11.73 slot reserved for the
+auto-w49 parallel worker in the dispatch window noted under
+[1.11.76]; `package.json` + `package-lock.json` were already
+advanced to 1.11.76 by an earlier-finishing parallel worker
+(auto-w52), so no version bump is included here.
+
+The three new files (case counts):
+
+- `web/src/components/WorkerActions.test.tsx` (48 cases) -- covers
+  the per-row action toolbar extracted to the WorkerActions
+  component. The component wires two hooks (`useToast`,
+  `useWorkerActionStrip`) and renders a single Toast slot, so the
+  test stubs both hooks to a deterministic shape and stubs Toast
+  to a marker that exposes the message / type / onDismiss via
+  data-* + a test button. Coverage: default render of the four
+  buttons (merge / approve / interrupt / close), variant -> class
+  mapping (outline for merge / approve / interrupt, destructive
+  for close), per-kind `runAction` dispatch with the full
+  `ActionConfig` payload (`endpoint` + `body` + `confirm` +
+  `successMessage` + `variant` + the workerName threaded through
+  `tFormat`), busy / disabled state (any non-null `busyKind`
+  disables every button, the matching kind renders the
+  `Loader2` spinner instead of the action icon, disabled clicks
+  do NOT fire `runAction`), keyboard handling (Enter / Space on
+  the focused button fires `runAction`, Tab cycles focus across
+  the four buttons in order), showToast wiring (the `useToast`
+  return value is forwarded into `useWorkerActionStrip` so the
+  strip's failure path can publish toasts), Toast slot rendering
+  branches (no toast / success / error / info, dismiss fires
+  `dismissToast`), workerName forwarding (CardDescription updates
+  on rerender, dash / underscore characters not re-encoded), prop
+  rerender stability (busyKind transitions flip the disabled
+  state in both directions), and locale flip on each translated
+  label (`setLocale('ko')` inside `act()`).
+
+- `web/src/components/WorkerDetailHeader.test.tsx` (49 cases) --
+  covers the WorkerDetail card header (worker title + tablist for
+  screen / scrollback + font-size control cluster). The component
+  is pure-controlled: parent owns `tab` + `fontSize`, passes
+  `onTabChange` + `onBumpFont`, no hooks of its own except
+  `useLocale`. The test drives every prop in the union directly
+  with `vi.fn()` callbacks. Coverage: title + sub-text rendering,
+  tablist with the localized aria-label, two tab buttons with
+  role=tab + aria-selected wiring per active tab, variant class
+  mapping (active=secondary, inactive=ghost), `onTabChange`
+  dispatch on click + keyboard Enter / Space (idempotent click on
+  the already-active tab still fires the callback), font cluster
+  rendering with the localized aria-label, decrease / increase
+  IconButtons with localized aria-labels, fontSize text rendering
+  (9px / 14px / 24px bounds), `onBumpFont` dispatch with +1 / -1
+  deltas (per-click count + keyboard activation), structural +
+  ARIA attributes (`role=tablist`, `role=tab`, `type=button`,
+  `truncate` class on the title), prop rerender stability
+  (workerName / fontSize / tab transitions), and locale flip on
+  every translated string (terminal-session sub-text, screen +
+  scrollback tab labels, font-size aria-label, auto-fit copy).
+
+- `web/src/components/WorkerListGroupHeader.test.tsx` (39 cases)
+  -- covers the worker-list section header (managers / workers
+  buckets) with the chevron + icon + label + count badge + the
+  expand / collapse toggle. The component is pure display, no
+  hooks. Coverage: single-button render with `type=button`, label
+  + count text, count edge cases (0 / 5 / 99), `aria-expanded`
+  forwarding (open=true vs open=false), `aria-controls`
+  derivation from the lowercased label (single word and
+  space-containing labels both preserved), chevron orientation
+  (ChevronDown when open, ChevronRight when closed; both render
+  two SVGs total -- chevron + group icon), icon variant
+  (`crown` vs `wrench` both render two SVGs), accent class
+  mapping (primary -> `text-primary` + `hover:bg-primary/5` +
+  `border-primary` on the count badge; muted ->
+  `text-muted-foreground` + `hover:bg-accent` + `border-border`
+  on the count badge), `onToggle` dispatch on click (button,
+  label text, count badge -- all forward the click through
+  event-bubbling) and keyboard (Enter / Space on the focused
+  header, Tab focuses it first), badge layout (`ml-auto` +
+  semibold label), prop rerender stability (`aria-expanded` flip,
+  count update, label rename, accent flip; identical props leave
+  the single-button DOM stable; count-only rerender does NOT fire
+  `onToggle`), and combined permutations (primary / crown / open
+  vs muted / wrench / closed).
+
+Tests: full unit run reports **4903 / 4903 passing** after the
+new files land. No new vitest dependencies, no shared fixtures,
+no changes to the existing setup files. All three new test files
+follow the recent Worker-family / control-panel pattern: stub
+hooks to deterministic shapes, stub heavy child components to
+markers, render with `@testing-library/react` + `userEvent.setup()`
++ `screen` / `within` queries, and assert via the accessible
+role / name layer rather than CSS selectors so the tests stay
+robust against tailwind reshuffles.
+
+Touched files: `web/src/components/WorkerActions.test.tsx`,
+`web/src/components/WorkerDetailHeader.test.tsx`,
+`web/src/components/WorkerListGroupHeader.test.tsx`,
+`CHANGELOG.md`.
+
 ## [1.11.76] - 2026-05-12 -- Autonomous dispatcher dashboard rebuild
 
 Versions 1.11.72 / 1.11.73 / 1.11.74 / 1.11.75 are reserved for
