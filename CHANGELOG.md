@@ -4,6 +4,112 @@
 
 (no entries -- next release window)
 
+## [1.11.86] - 2026-05-13 -- Web UI: Command palette Cmd+K (TODO 11.68)
+
+A global Cmd+K (Ctrl+K on Linux/Windows) command palette lands as a
+centered modal dialog. Operators can fuzzy-search every feature page
+plus a handful of worker and queue actions without leaving the
+keyboard. The palette mounts via `HelpUIRoot` so the hotkey + dialog
+overlay are always live regardless of which tab is currently in front.
+
+New files:
+
+- `web/src/components/CommandPalette.tsx` -- centered modal dialog
+  (`fixed inset-0 z-50 bg-background/80 backdrop-blur`, panel
+  `bg-card border-border rounded-lg shadow-lg w-full max-w-lg`).
+  Search input at the top, scrollable section-grouped result list
+  below, arrow up/down to move the active selection, Enter to
+  activate, Escape and backdrop click to close. Empty state uses the
+  shared `ui/empty-state` primitive when no command matches. All
+  palette colours flow through semantic tokens
+  (`text-foreground` / `text-muted-foreground` /
+  `bg-accent` / `border-border`) so light and dark themes Just Work.
+- `web/src/components/command-palette/commands.ts` -- the catalog +
+  fuzzy matcher. `buildPaletteCommands(ctx)` returns the full set:
+  one navigation entry per page in `web/src/pages/*.tsx` (16 today --
+  Auto, Batch, Cleanup, Config, Health, Morning, Plan, Profiles,
+  Rbac, Risk, Scribe, Swarm, Templates, TokenUsage, Validation,
+  Workspaces), the canonical worker actions
+  (`workers:new` / `workers:list` / `workers:close` /
+  `workers:audit`), and the queue actions
+  (`queue:tick` / `queue:pause` / `queue:resume`) wired to
+  `POST /api/autonomous/{tick,pause,resume}`. The same file exports
+  the fuzzy matcher used by the palette filter:
+
+  - `match(query, label)` returns a numeric score or `null`. Prefix
+    substring wins (1000), non-prefix substring scaled by position
+    (500 - idx), camelCase / space-tokenised acronym match (250).
+    Case-insensitive throughout.
+  - `filterCommands(cmds, q)` filters via `match` then sorts by
+    score descending and breaks ties by label ascending.
+
+- `web/src/components/command-palette/commands.test.ts` and
+  `web/src/components/CommandPalette.test.tsx` -- 36 new vitest
+  cases covering the matcher (prefix vs substring vs acronym, case
+  insensitivity, empty query passthrough), the catalog (section
+  order, the >= 14 navigation entries assertion, the canonical
+  worker + queue action IDs, navigateTopView wiring), and the
+  palette UI surface (Cmd+K / Ctrl+K open via HelpUIRoot, Escape +
+  backdrop close, inner-panel click does not bubble, substring +
+  acronym filtering, ArrowDown / ArrowUp selection, Enter activates
+  + closes, click activates + closes, EmptyState rendering, the
+  Navigate / Workers / Queue header order, motion-safe animation
+  classes, semantic palette tokens on the backdrop, and the open
+  lifecycle reset).
+
+Mount-site changes:
+
+- `web/src/components/HelpUIRoot.tsx` -- gained an optional
+  `onNavigateTopView` prop (default no-op so the existing
+  `<HelpUIRoot />` callsites and unit tests keep working) and a
+  third overlay state slot for the palette. A `keydown` listener
+  toggles the palette on Cmd+K / Ctrl+K (`e.metaKey || e.ctrlKey`,
+  `e.key === 'k' || 'K'`) and a `c4:command-palette-open` custom
+  event opens it programmatically. `openCommandPalette()` ships as
+  the matching helper, mirroring the `openHelpDrawer` /
+  `openShortcutsModal` pattern.
+- `web/src/App.tsx` -- passes the `setTopView` setter from
+  `useUiPreferences` into `HelpUIRoot` so navigation entries can
+  flip the top tab; the palette writes the corresponding feature
+  hash (`#/feature/<id>`) so `useSelectedFeatureId` picks the
+  destination on the hashchange roundtrip.
+
+Decorative animation: the dialog backdrop wears
+`motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150`
+and the inner panel adds `motion-safe:slide-in-from-top-2` for a
+gentle drop-in. Reduced-motion users get a still UI.
+
+Worker actions wire to existing surfaces:
+
+- `New worker` -- jumps to the Sessions tab and dispatches a
+  `c4:new-chat-open` custom event for the existing NewChatModal
+  surface to pick up (today, this lands the operator on the
+  sessions page where the New Chat button lives).
+- `Close worker` and `List workers` -- jump to the Workers tab so
+  the existing `WorkerActions` rail and worker list handle the
+  actual selection + confirm prompt.
+- `Worker history` -- jumps to the History tab.
+
+Queue actions call the existing `/api/autonomous/{tick,pause,resume}`
+endpoints via the shared `apiPost` helper. Errors are silently
+swallowed because the Auto page's Controls Dock re-polls
+`/api/autonomous/status` on its own cadence and surfaces the
+resulting state -- the palette is fire-and-forget by design.
+
+Verification:
+
+- `env -C web vite build` succeeds.
+- `env -C web vitest run` reports 5119 / 5119 passing across 228
+  test files (5083 prior + 36 new).
+
+Docs:
+
+- `docs/autonomous-queue-v10.md` 11.68 row flipped to `done` with a
+  Shipped: summary mirroring the entry above.
+- `docs/web-design-palette.md` gained a "Command palette" section
+  documenting the Cmd+K / Ctrl+K keybinding contract and how to
+  register new commands.
+
 ## [1.11.84] - 2026-05-13 -- Web UI: Hero illustrations (TODO 11.66)
 
 Four monochrome line-art SVG illustrations land under

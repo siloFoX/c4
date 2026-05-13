@@ -335,3 +335,67 @@ Adopting a new illustration in an empty state:
    muted-icon convention -- it is redundant inside `EmptyState`
    (the wrapper already paints `text-muted-foreground`) but kept
    so the illustration tones down when used outside `EmptyState`.
+
+## Command palette (1.11.86)
+
+The command palette lives at `web/src/components/CommandPalette.tsx`
+and is mounted globally by `HelpUIRoot`. Operators trigger it from
+anywhere in the app via a single keystroke; the dialog overlays the
+current page, filters as they type, and dismisses itself on
+activation.
+
+Keybinding contract:
+
+- `Cmd+K` on macOS (`metaKey`) or `Ctrl+K` on Linux/Windows
+  (`ctrlKey`) toggles the palette open. The listener fires on
+  `window.keydown` so it works inside text inputs too -- operators
+  expect Cmd+K to open the palette mid-typing.
+- `Escape` and a backdrop click close the palette. A click on the
+  inner panel does not bubble (the panel `stopPropagation`s so the
+  click only closes when the backdrop is the target).
+- `ArrowDown` and `ArrowUp` move the highlighted command.
+- `Enter` activates the highlighted command and closes the palette.
+- A mouse click on a result fires the same `run()` and closes.
+
+Programmatic open: `import { openCommandPalette } from
+'../components/HelpUIRoot'`. The helper dispatches the
+`c4:command-palette-open` custom event, mirroring the
+`openHelpDrawer` / `openShortcutsModal` pattern.
+
+Dialog scaffolding (semantic palette tokens only, no raw colours):
+
+- Backdrop: `fixed inset-0 z-50 bg-background/80 backdrop-blur`,
+  plus `motion-safe:animate-in motion-safe:fade-in
+  motion-safe:duration-150`.
+- Panel: `bg-card border-border rounded-lg shadow-lg w-full
+  max-w-lg`, plus `motion-safe:slide-in-from-top-2`.
+- Active row: `bg-accent text-accent-foreground`. Idle rows hover
+  to `bg-accent/40`.
+- Empty state: rendered through the shared `ui/empty-state`
+  primitive so the no-match branch looks like every other empty
+  state in the app.
+
+Adding a new command:
+
+1. Open `web/src/components/command-palette/commands.ts`.
+2. Append the entry into the matching section array
+   (`workers` or `queue`) or extend `FEATURES` directly if it is a
+   new page. The shape is `{ id, label, hint?, section, Icon, run
+   }`. `Icon` is a lucide-react component. `run` is fire-and-
+   forget; closing the palette is the consumer's job, so a `run`
+   that posts to an API should not await.
+3. Update `commands.test.ts` to lock the new ID into the catalog
+   assertions if the entry is canonical.
+
+Adding a new section:
+
+1. Extend the `CommandSection` union and the `SECTION_ORDER`
+   array so the section renders in the documented order.
+2. Update the section header ordering test in
+   `CommandPalette.test.tsx` so a future drift on the order shows
+   up immediately.
+
+The fuzzy matcher (`match` + `filterCommands` in the same file) is
+intentionally tiny -- no new dependency. Substring beats acronym,
+prefix substring beats non-prefix substring, ties break by label
+ascending. Case insensitive on both sides.

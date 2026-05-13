@@ -96,7 +96,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
-      <HelpUIRoot />
+      <HelpUIRoot onNavigateTopView={setTopView} />
       <AppHeader
         sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen((open) => !open)}
