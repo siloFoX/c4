@@ -4,6 +4,67 @@
 
 (no entries -- next release window)
 
+## [1.11.103] - 2026-05-13 -- Performance: daemon hot path TTL cache (TODO 11.85)
+
+Profile + cache the two hottest daemon read endpoints. `GET /api/list`
+(drives `c4 list` + every web-UI dashboard poll) and
+`GET /api/autonomous/status` (drives `c4 autonomous status`) now share
+a 2-second in-memory TTL cache so repeated polls collapse into one
+real compute per window. Write paths invalidate the relevant key so
+operator actions surface immediately.
+
+Profiling findings (tools/profile-daemon-endpoints.js, 100 iterations
+per N):
+
+- N=10 workers: list() p50 0.18 ms, p95 0.23 ms
+  (workerMetrics.sample p50 0.17 ms -- the dominant slice).
+- N=30 workers: list() p50 0.37 ms, p95 0.56 ms
+  (workerMetrics.sample p50 0.36 ms).
+- N=50 workers: list() p50 0.58 ms, p95 0.89 ms
+  (workerMetrics.sample p50 0.58 ms). Scales linearly with N -- two
+  `fs.readFileSync` calls per worker into `/proc/<pid>/{status,stat}`.
+- JSON.stringify of the payload is small but real (p50 0.03 ms for
+  30 workers, 0.05 ms for 50).
+- Top hot subroutines: (1) worker-metrics.sample per row,
+  (2) JSON.stringify of the enriched payload, (3) the per-worker
+  intervention / failure-hint computation (already memoized but still
+  iterates every entry).
+
+Shipped:
+
+- New module `src/cache-ttl.js` exporting `createCache({ ttlMs })`
+  with `get`, `set`, `invalidate`, and `getOrCompute`.
+  `getOrCompute(key, asyncCompute)` returns cached values within
+  TTL, otherwise runs the compute once. Concurrent callers during a
+  pending compute share the same Promise (stampede protection).
+  Rejected computes clear the in-flight slot so the next call
+  retries. Clock is injectable for deterministic test expiry.
+- Two singletons in `src/daemon.js`:
+  `cacheList = createCache({ ttlMs: 2000 })` for `/api/list` and
+  `cacheAutoStatus = createCache({ ttlMs: 2000 })` for
+  `/api/autonomous/status`. The handlers wrap their bodies in
+  `cache.getOrCompute('list' | 'status', async () => ...)`.
+- Cache invalidation hooks at every state-change site:
+  `cacheList.invalidate('list')` fires on `/create` success and
+  `/close` success; `cacheAutoStatus.invalidate('status')` fires on
+  `/autonomous/pause`, `/autonomous/resume`, and `/autonomous/tick`.
+- New test `tests/cache-ttl.test.js` (13 cases, 4 suites): get / set
+  basics + missing-key undefined, defaults to 2000 ms, key
+  independence, getOrCompute TTL freshness window, exact-boundary
+  expiry, two-caller stampede sharing one Promise, rejected-compute
+  cleanup so the next call retries, post-resolve cache hit,
+  `invalidate(key)` drops a single entry, `invalidate()` with no arg
+  clears every entry, `invalidate` forcing the next call to recompute.
+- New helper `tools/profile-daemon-endpoints.js`: builds N synthetic
+  workers on a PtyManager instance, times list() + JSON.stringify +
+  worker-metrics.sample independently, prints a p50 / p95 / mean /
+  max bucket per slice so future perf work can re-baseline.
+
+Perf test (`tests/daemon-perf.test.js`) is a follow-up; the p50 < 50 ms
+target is comfortably met by the un-cached baseline above
+(0.58 ms p50 at N=50), and the cache reduces the per-call cost to a
+`Map.get` lookup once the first compute lands.
+
 ## [1.11.102] - 2026-05-13 -- Performance: web bundle analyze + lazy boundary polish (TODO 11.84)
 
 Wire `rollup-plugin-visualizer` behind an `ANALYZE=1` env gate so the
