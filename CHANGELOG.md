@@ -4,6 +4,101 @@
 
 (no entries -- next release window)
 
+## [1.11.99] - 2026-05-13 -- Quality: lint/typecheck baseline + partial fixes (TODO 11.81, partial)
+
+Stand up the lint/typecheck plumbing for `web/` and capture the
+current baseline so a follow-up worker can drive the bar to zero.
+The work scoped under TODO 11.81 was wrapped early by the manager
+(quality task ran over the time budget); this entry documents what
+shipped and what the follow-up still needs to do so the next worker
+does not start cold.
+
+Shipped:
+
+- `web/package.json` scripts: `typecheck` (`tsc --noEmit`), `lint`
+  (`tsc --noEmit` placeholder until an eslint config lands), and
+  `lint:fix` (same placeholder; will become `eslint . --fix` once
+  the eslint base config is added in a follow-up). Version bump
+  1.11.98 -> 1.11.99.
+- `web/tsconfig.json` already had `noUnusedLocals: true` and
+  `noUnusedParameters: true` enabled along with the rest of the
+  strict-mode bundle (`exactOptionalPropertyTypes`,
+  `noUncheckedIndexedAccess`, `noPropertyAccessFromIndexSignature`,
+  etc.) -- no tsconfig edits were required to "tighten" the bar.
+  The tightening this TODO called out is the de-facto default for
+  this repo; the real work is making the codebase honour it.
+- `.github/workflows/test.yml` now runs `npm --prefix web run
+  typecheck` and `npm --prefix web run lint` after web deps are
+  installed. Both steps are wired with `continue-on-error: true`
+  for this release window so CI keeps shipping while the
+  remediation work is in flight; the follow-up worker should drop
+  `continue-on-error` once the baseline hits zero.
+
+Baseline captured (single `npx tsc --noEmit` run from `web/`):
+
+- 136 TS errors across 43 files (output frozen in
+  `/tmp/typecheck-before.txt` on the worker host so the follow-up
+  worker can diff against it).
+- Error-code histogram:
+  - TS6133 unused declaration -- 40 (mostly stub mock-capture
+    variables in `*.test.tsx`; trivial deletes / `_`-prefix
+    renames).
+  - TS2532 object possibly undefined -- 38 (test code destructuring
+    `mock.calls[0]` etc.; fix via non-null assertions or guards).
+  - TS2345 argument type mismatch -- 15.
+  - TS2786 component-as-JSX with `void` return -- 11 (the
+    `Thrower`/`NoMessage` helpers in `ErrorBoundary.test.tsx`
+    declare no return type so TS infers `void`; add an explicit
+    `: never` annotation).
+  - TS2339 property does not exist on `never` -- 10 (mock-builder
+    chains in `use-audit-export.test.ts`,
+    `use-audit-verify.test.ts`, `use-batch-submit.test.ts`).
+  - TS4111 index-signature access -- 6 (switch to bracket
+    notation, e.g. `props['onCreated']`).
+  - TS2550 `.at()` not in lib -- 3 (jest matcher arg types).
+  - TS2379, TS2375, TS2322, TS18048, TS7006, TS2488, TS2352 --
+    fewer than 5 each.
+- Affected file groups: 41 `*.test.tsx` / `*.test.ts` files, plus
+  two production files (`src/components/HelpUIRoot.tsx`,
+  `src/components/layout/Sidebar.tsx`) where
+  `exactOptionalPropertyTypes` flags a couple of prop forwards
+  that pass `T | undefined` into a non-optional slot. The
+  production-file findings are the highest-impact fixes; the test
+  findings are bulk-fixable in one pass.
+- Eslint config: not yet introduced. The repository does not ship
+  an `.eslintrc*` / `eslint.config.*` and eslint is not installed
+  in `web/devDependencies`. The follow-up should add eslint 9 with
+  `@typescript-eslint`, `eslint-plugin-react`, and
+  `eslint-plugin-react-hooks` flat config, then flip the `lint`
+  and `lint:fix` scripts off the placeholder.
+
+Follow-up worker checklist (suggested ordering):
+
+1. Bulk-fix TS6133 + TS2786 + TS4111 in test files (largest count,
+   lowest risk; should drop the total from 136 to ~80).
+2. Fix the two production-file findings
+   (`HelpUIRoot.tsx`, `layout/Sidebar.tsx`) — these are
+   small but ship-blocking once `continue-on-error` is removed.
+3. Walk the TS2532 / TS18048 cluster (38 + 2 cases) in test
+   files; choose between non-null assertions and explicit guards
+   per call site.
+4. Resolve the TS2339 mock-builder cluster
+   (`use-audit-export.test.ts` etc.) -- these usually mean a
+   `vi.fn<>()` generic was dropped and the chain re-inferred as
+   `never`.
+5. Add the eslint flat config + plugin set, repoint `lint` and
+   `lint:fix` to `eslint .` / `eslint . --fix`, then drop
+   `continue-on-error: true` from the two CI steps.
+
+Verification this worker performed:
+
+- `env -C web npm ci` -- 325 packages installed cleanly.
+- `env -C web npx tsc --noEmit` -- 136 errors (baseline above).
+- Existing test suite was NOT re-run by this worker (no fixes
+  landed, so behaviour is unchanged from v1.11.98).
+
+`web/package.json` bumped 1.11.98 -> 1.11.99.
+
 ## [1.11.98] - 2026-05-13 -- Tests: E2E playwright flows (TODO 11.80)
 
 Add a `web/e2e/` directory with a small `playwright.config.ts` plus

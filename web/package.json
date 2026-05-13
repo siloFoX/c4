@@ -1,7 +1,7 @@
 {
   "name": "c4-web",
   "private": true,
-  "version": "1.11.98",
+  "version": "1.11.99",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,6 +10,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "lint:fix": "tsc --noEmit",
     "e2e": "playwright test --config=playwright.config.ts",
     "e2e:debug": "playwright test --config=playwright.config.ts --debug"
   },
