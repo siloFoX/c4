@@ -6,6 +6,7 @@ import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Button, Panel, Tooltip } from '../components/ui';
 import { renderMarkdown } from '../lib/markdown';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { text } from '../lib/typography';
 import { useToast } from '../lib/use-toast';
 import { useMorning } from '../lib/use-morning';
 
@@ -60,7 +61,7 @@ export default function Morning() {
       ) : (
         <>
           {report.generatedAt && (
-            <div className="text-xs text-muted-foreground">
+            <div className={text.caption}>
               {tFormat('morningPage.generatedAt', { ts: new Date(report.generatedAt).toLocaleString() })}
             </div>
           )}

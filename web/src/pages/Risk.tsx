@@ -4,6 +4,7 @@ import PageFrame, { ErrorPanel } from './PageFrame';
 import { Button, Input, Panel } from '../components/ui';
 import { t, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
+import { text } from '../lib/typography';
 import RiskRuleCatalogPanel from '../components/RiskRuleCatalogPanel';
 import RiskSandboxPreview from '../components/RiskSandboxPreview';
 import RiskCheckResult from '../components/RiskCheckResult';
@@ -159,7 +160,7 @@ export default function Risk() {
 
       {/* Command input */}
       <Panel className="text-sm">
-        <h3 className="mb-2 flex items-center gap-2 text-base font-semibold text-foreground">
+        <h3 className={cn('mb-2 flex items-center gap-2 text-foreground', text.h3)}>
           <Shield className="h-4 w-4 text-muted-foreground" aria-hidden />
           {t('riskPage.classify.heading')}
         </h3>
@@ -219,7 +220,7 @@ export default function Risk() {
       {/* Stats */}
       <Panel className="mt-4 text-sm">
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-foreground">
+          <h3 className={cn('text-foreground', text.h3)}>
             {t('riskPage.recentDenials')}
           </h3>
           <label className="flex items-center gap-1 text-[11px] text-muted-foreground">

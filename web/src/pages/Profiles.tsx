@@ -5,8 +5,10 @@ import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Badge, Button, Input, Panel, Tooltip } from '../components/ui';
+import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
 import { t, useLocale } from '../lib/i18n';
+import { text } from '../lib/typography';
 import { useToast } from '../lib/use-toast';
 import { useProfiles } from '../lib/use-profiles';
 
@@ -99,16 +101,16 @@ export default function Profiles() {
                   >
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-sm text-foreground">{p.name}</span>
+                        <span className={cn(text.mono, 'text-foreground')}>{p.name}</span>
                         {p.source && <Badge variant="outline">{p.source}</Badge>}
                         <Badge variant="outline">{allow.length} allow</Badge>
                         <Badge variant="outline">{deny.length} deny</Badge>
                       </div>
                       {p.description && (
-                        <div className="mt-1 text-xs text-muted-foreground">{p.description}</div>
+                        <div className={cn('mt-1', text.caption)}>{p.description}</div>
                       )}
                     </div>
-                    <span className="text-xs text-muted-foreground">{isOpen ? t('profiles.toggle.hide') : t('profiles.toggle.show')}</span>
+                    <span className={text.caption}>{isOpen ? t('profiles.toggle.hide') : t('profiles.toggle.show')}</span>
                   </button>
                   {isOpen && (
                     <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">

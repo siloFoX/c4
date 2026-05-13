@@ -4,6 +4,130 @@
 
 (no entries -- next release window)
 
+## [1.11.88] - 2026-05-13 -- Web UI: Typography rhythm (TODO 11.70)
+
+Define a named type scale in `web/src/lib/typography.ts`, register an
+8 px baseline-grid Tailwind plugin in `web/tailwind.config.js`, and
+adopt the scale across eight high-traffic pages so headings, body
+copy, and captions follow one rhythm. The named scale is the one
+place future pages reach for when picking a heading size or a hint
+copy line; ad-hoc `text-* leading-*` pairs become a code-review
+signal.
+
+Named scale (`web/src/lib/typography.ts`, 8 entries):
+
+- `text.display` -- `text-4xl leading-[3rem] tracking-tight font-semibold` (36 / 48).
+- `text.h1` -- `text-3xl leading-[2.5rem] tracking-tight font-semibold` (30 / 40).
+- `text.h2` -- `text-2xl leading-8 font-semibold` (24 / 32).
+- `text.h3` -- `text-xl leading-7 font-medium` (20 / 28; 3.5 * 8 -- half-step).
+- `text.body` -- `text-base leading-6` (16 / 24).
+- `text.bodySm` -- `text-sm leading-5` (14 / 20; not on the 8 grid, see JSDoc).
+- `text.caption` -- `text-xs leading-4 text-muted-foreground` (12 / 16).
+- `text.mono` -- `font-mono text-sm leading-5`.
+
+8 px baseline rationale: line-heights snap to multiples of 8 wherever
+the type size allows (display 48, h1 40, h2 32, body 24, caption 16).
+Two intentional half-step / off-grid exceptions are documented in the
+JSDoc above the export: `text.h3` 20 / 28 (28 is 3.5 * 8 -- a 32 px
+line-height would make h3 indistinguishable from h2), and
+`text.bodySm` / `text.mono` 14 / 20 (24 px on 14 px crowds tables and
+inline code -- the trade-off is recoverable via `space-y-*` between
+rows).
+
+Tailwind plugin (`web/tailwind.config.js`):
+
+- A tiny `baselinePlugin` registers `--baseline-step` (default 8 px)
+  on `:root` and adds a single `.baseline` utility that sets
+  `line-height` to the step. Use it on prose-heavy blocks where the
+  named scale does not fit (long-form markdown, dynamic content)
+  so adjacent surfaces still snap to the same vertical grid. Plugin
+  is ~10 lines including the JSDoc and registers alongside the
+  existing `tailwindcss-animate` plugin.
+
+Pages adopted (8 of 17 today):
+
+- `web/src/pages/Workspaces.tsx` -- section `<h3>` bumps from
+  `text-base font-semibold` to `cn('mb-2 flex items-center gap-2
+  text-foreground', text.h3)`. The 16 px / semibold heading becomes
+  a 20 px / medium heading sitting on the 28 px line-height; pairs
+  cleanly with the surrounding 12 px chrome.
+- `web/src/pages/Config.tsx` -- same section-heading bump for the
+  `Cog`-prefixed Configuration heading inside the panel.
+- `web/src/pages/Risk.tsx` -- both `<h3>` section headings
+  (`Classify` panel + `Recent denials` stats panel) adopt
+  `text.h3`.
+- `web/src/pages/Health.tsx` -- version pill + configPath pill +
+  modules-empty copy adopt `text.caption`. The configPath span
+  keeps `font-mono` via `cn('truncate', text.caption, 'font-mono')`
+  so the captioned mono line still reads as code.
+- `web/src/pages/Templates.tsx` -- template name `<span>` adopts
+  `text.mono` (`font-mono text-sm leading-5`); description hint
+  adopts `text.caption`.
+- `web/src/pages/Profiles.tsx` -- same mono + caption adoption for
+  profile name + description; the toggle hint (`hide` / `show`)
+  also adopts `text.caption`.
+- `web/src/pages/Morning.tsx` -- `generatedAt` timestamp adopts
+  `text.caption`.
+- `web/src/pages/Plan.tsx` -- rendered-markdown wrapper adopts
+  `text.bodySm` so the plan body carries the named 14 / 20 rhythm
+  instead of a bare `text-sm`.
+
+Intentionally skipped (documented in commit body + below):
+
+- `web/src/pages/PageFrame.tsx` `CardTitle` (text-lg font-semibold
+  leading-none tracking-tight) -- the shared page-title surface
+  used by every page. Density is deliberate; a sweep here belongs
+  in a follow-up that also calibrates the Card primitive.
+- `web/src/pages/Auto.tsx` `SectionShell` h2 (truncate text-sm
+  font-semibold tracking-tight), queue rows, worker strip, dispatch
+  timeline (text-xs / text-[11px] / font-mono text-xs) -- dense
+  dashboard chrome where smaller-than-scale is intentional.
+- `web/src/pages/Validation.tsx` / `Cleanup.tsx` / `Batch.tsx` /
+  `Scribe.tsx` panels with `text-[10px]` / `text-[11px]` /
+  `text-[12px]` -- dense tables and uppercase label rows; not
+  page-level rhythm. The `text-xs uppercase tracking-wide
+  text-muted-foreground` pattern in Stat label rows is a stat-card
+  convention, not body copy.
+- Badge / chip `text-xs` uses anywhere on the pages -- pinned to
+  the `Badge` primitive's own contract.
+
+Tests (`web/src/lib/typography.test.ts`, 9 new cases):
+
+- Every entry is a non-empty string (defensive check on the
+  exported shape).
+- Every entry includes at least one `text-*` utility class.
+- Every entry includes a `leading-*` utility (the 8 px baseline
+  rhythm is part of every scale entry, not just the headings).
+- `text.h1`, `text.h2`, `text.h3` each carry a font-weight class
+  (font-semibold or font-medium).
+- `text.display` carries a font-weight class (it sits in the
+  heading family even though it is not a semantic h1).
+- `text.caption` includes `text-muted-foreground` so muted hints
+  inherit it for free.
+- `text.mono` includes `font-mono` so code spans render in the
+  mono stack.
+- The exposed scale-key set is exactly
+  `body / bodySm / caption / display / h1 / h2 / h3 / mono`.
+- An inline snapshot pins the full object so a rename or value
+  drift surfaces immediately in vitest.
+
+Verification: env -C /root/c4-worktree-auto-w61/web npx vite build
+succeeds (3.40s, no new bundle entries since the scale + plugin land
+into existing chunks). env -C /root/c4-worktree-auto-w61/web npx
+vitest run reports 5203 / 5203 passing across 230 test files
+(5194 prior + 9 new typography cases). The Unhandled-Error count
+from TokenUsage.test.tsx tooltip timer cleanup is pre-existing and
+unrelated to this change (no tooltip code touched).
+
+Docs:
+
+- `docs/web-design-palette.md` -- new "Typography (1.11.88)"
+  section documenting the named scale, the 8 px baseline plugin,
+  the half-step / off-grid trade-offs, and the "how to add a new
+  size" recipe.
+- `docs/autonomous-queue-v10.md` -- TODO 11.70 marked done with a
+  shipped summary that points at this CHANGELOG entry.
+
 ## [1.11.87] - 2026-05-13 -- Web UI: Dark mode polish (TODO 11.69)
 
 Dark-mode parity sweep across the `web/src/` chrome plus an animated
