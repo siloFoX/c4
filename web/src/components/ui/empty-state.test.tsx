@@ -19,7 +19,7 @@ describe('<EmptyState>', () => {
     // a missing description means only the title span exists.
     const spans = container.querySelectorAll('span');
     expect(spans).toHaveLength(1);
-    expect(spans[0].textContent).toBe('Empty');
+    expect(spans[0]?.textContent).toBe('Empty');
   });
 
   it('renders an action button when action is a { label, onClick } object', () => {

@@ -53,8 +53,8 @@ describe('<Skeleton>', () => {
   it('shortens the final text line for a more natural paragraph look', () => {
     const { container } = render(<Skeleton variant="text" lines={3} />);
     const rows = container.querySelectorAll('[data-skeleton-line]');
-    expect(rows[2].className).toContain('w-4/5');
-    expect(rows[0].className).not.toContain('w-4/5');
+    expect(rows[2]?.className).toContain('w-4/5');
+    expect(rows[0]?.className).not.toContain('w-4/5');
   });
 
   it('applies width / height props as inline style', () => {
