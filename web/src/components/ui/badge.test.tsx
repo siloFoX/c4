@@ -23,13 +23,13 @@ describe('<Badge>', () => {
   it('applies the success variant classes', () => {
     render(<Badge variant="success">ok</Badge>);
     const node = screen.getByText('ok');
-    expect(node.className).toContain('emerald-500');
+    expect(node.className).toContain('bg-success');
   });
 
   it('applies the warning variant classes', () => {
     render(<Badge variant="warning">busy</Badge>);
     const node = screen.getByText('busy');
-    expect(node.className).toContain('amber-500');
+    expect(node.className).toContain('bg-warning');
   });
 
   it('merges caller-provided className with the variant classes', () => {

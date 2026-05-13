@@ -201,7 +201,7 @@ export default function Batch() {
             {result.results.map((r) => (
               <li
                 key={r.name}
-                className={r.ok ? 'text-emerald-400' : 'text-destructive'}
+                className={r.ok ? 'text-success' : 'text-destructive'}
               >
                 <span className="font-mono">{r.name}</span>
                 {': '}

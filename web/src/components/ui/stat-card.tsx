@@ -71,17 +71,17 @@ function useChangePulse(value: number | string): boolean {
 const TONE_GRADIENT: Record<StatCardTone, string> = {
   default: 'from-muted/40 via-muted/10 to-transparent',
   primary: 'from-primary/20 via-primary/5 to-transparent',
-  success: 'from-emerald-500/20 via-emerald-500/5 to-transparent',
-  warning: 'from-amber-500/20 via-amber-500/5 to-transparent',
-  info: 'from-sky-500/20 via-sky-500/5 to-transparent',
+  success: 'from-success/20 via-success/5 to-transparent',
+  warning: 'from-warning/20 via-warning/5 to-transparent',
+  info: 'from-info/20 via-info/5 to-transparent',
 };
 
 const TONE_ICON_RING: Record<StatCardTone, string> = {
   default: 'text-muted-foreground ring-border',
   primary: 'text-primary ring-primary/30',
-  success: 'text-emerald-400 ring-emerald-500/30',
-  warning: 'text-amber-400 ring-amber-500/30',
-  info: 'text-sky-400 ring-sky-500/30',
+  success: 'text-success ring-success/30',
+  warning: 'text-warning ring-warning/30',
+  info: 'text-info ring-info/30',
 };
 
 export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(

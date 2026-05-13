@@ -162,7 +162,7 @@ describe('<WikiPageDetailHeader>', () => {
       selectedPath: 'docs/foo.md',
       reopenMsg: null,
     });
-    expect(container.querySelector('.text-emerald-600')).toBeNull();
+    expect(container.querySelector('.text-success')).toBeNull();
     expect(container.querySelector('.text-destructive')).toBeNull();
   });
 
@@ -174,7 +174,7 @@ describe('<WikiPageDetailHeader>', () => {
       reopenFailed: false,
     });
     const msg = screen.getByText('reopened — meeting 42 (2 context seed(s))');
-    expect(msg).toHaveClass('text-emerald-600');
+    expect(msg).toHaveClass('text-success');
     expect(msg).not.toHaveClass('text-destructive');
   });
 
@@ -187,7 +187,7 @@ describe('<WikiPageDetailHeader>', () => {
     });
     const msg = screen.getByText('reopen failed: 500');
     expect(msg).toHaveClass('text-destructive');
-    expect(msg).not.toHaveClass('text-emerald-600');
+    expect(msg).not.toHaveClass('text-success');
   });
 
   it('does not fire onReopen on initial render', () => {

@@ -167,8 +167,8 @@ const EVENT_DESCRIPTORS: Record<DispatchEventType, EventDescriptor> = {
   success: {
     Icon: CheckCircle2,
     label: 'Success',
-    bar: 'bg-emerald-500/70',
-    ring: 'text-emerald-400',
+    bar: 'bg-success/70',
+    ring: 'text-success',
   },
   halt: {
     Icon: AlertCircle,
@@ -179,8 +179,8 @@ const EVENT_DESCRIPTORS: Record<DispatchEventType, EventDescriptor> = {
   'dispatch-error': {
     Icon: AlertTriangle,
     label: 'Error',
-    bar: 'bg-amber-500/70',
-    ring: 'text-amber-400',
+    bar: 'bg-warning/70',
+    ring: 'text-warning',
   },
 };
 
@@ -561,7 +561,7 @@ function WorkerCard({ worker, now }: WorkerCardProps) {
         <Badge variant={workerStatusVariant(worker.status)}>{worker.status}</Badge>
         {interventionActive ? (
           <Tooltip label="Awaiting reviewer" placement="top">
-            <span className="inline-flex items-center gap-1 text-amber-400">
+            <span className="inline-flex items-center gap-1 text-warning">
               <ShieldAlert aria-hidden="true" className="h-3.5 w-3.5" />
               <span>review</span>
             </span>
@@ -767,7 +767,7 @@ function ControlsDock({ status, onAction, pending }: ControlsDockProps) {
           aria-hidden="true"
           className={cn(
             'h-2 w-2 rounded-full',
-            paused ? 'bg-amber-400' : 'bg-emerald-400 motion-safe:animate-pulse',
+            paused ? 'bg-warning' : 'bg-success motion-safe:animate-pulse',
           )}
         />
         {indicator}

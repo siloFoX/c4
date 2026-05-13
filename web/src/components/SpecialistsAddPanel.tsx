@@ -87,7 +87,7 @@ export default function SpecialistsAddPanel({ open, onClose, onAdded }: Props) {
         {proposeMsg ? (
           <span className={cn(
             'text-[11px]',
-            proposeRejected ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400',
+            proposeRejected ? 'text-warning' : 'text-success',
           )}>
             {proposeMsg}
           </span>

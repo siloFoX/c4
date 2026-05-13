@@ -33,7 +33,7 @@ export default function RiskStatsGrid({ stats }: Props) {
         <div className="text-[10px] uppercase text-muted-foreground">{t('risk.stats.shadowExec')}</div>
         <div className="font-mono text-[14px]">{stats.shadowExec}</div>
         {stats.shadowExecKilled > 0 || stats.shadowExecNonZero > 0 ? (
-          <div className="text-[10px] text-amber-700 dark:text-amber-400">
+          <div className="text-[10px] text-warning">
             {stats.shadowExecKilled > 0 ? `${stats.shadowExecKilled} killed` : ''}
             {stats.shadowExecKilled > 0 && stats.shadowExecNonZero > 0 ? ' · ' : ''}
             {stats.shadowExecNonZero > 0 ? `${stats.shadowExecNonZero} non-zero` : ''}
@@ -79,7 +79,7 @@ export default function RiskStatsGrid({ stats }: Props) {
         </div>
       ) : null}
       {stats.ruleSetRotations > 1 ? (
-        <div className="col-span-2 md:col-span-4 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] text-amber-700 dark:text-amber-400">
+        <div className="col-span-2 md:col-span-4 rounded border border-warning/40 bg-warning/10 p-2 text-[11px] text-warning">
           <span className="font-medium">{stats.ruleSetRotations} rule-set rotations</span>
           {' '}detected in this window — operator changed classifier config mid-window.
         </div>

@@ -34,7 +34,7 @@ export default function SpecialistsSummaryBar() {
       {summary.scores.underperformerCount > 0 ? (
         <>
           <span>·</span>
-          <span className="text-amber-700 dark:text-amber-400">
+          <span className="text-warning">
             {tFormat('specialists.summary.underperformers', { count: summary.scores.underperformerCount })}
           </span>
         </>
@@ -44,7 +44,7 @@ export default function SpecialistsSummaryBar() {
           <span>·</span>
           <span className={cn(
             typeof summary.persist.dbSizeBytes === 'number' && summary.persist.dbSizeBytes > 100 * 1024 * 1024
-              ? 'text-amber-700 dark:text-amber-400'
+              ? 'text-warning'
               : '',
           )}>
             {summary.persist.rowCount != null
@@ -59,7 +59,7 @@ export default function SpecialistsSummaryBar() {
           {summary.persist.auditLog && typeof summary.persist.auditLog.entries === 'number' ? (
             <span className={cn(
               typeof summary.persist.auditLog.bytes === 'number' && summary.persist.auditLog.bytes > 1024 * 1024
-                ? 'text-amber-700 dark:text-amber-400'
+                ? 'text-warning'
                 : '',
             )}>
               {tFormat('specialists.summary.auditEntries', { entries: summary.persist.auditLog.entries })}
@@ -70,7 +70,7 @@ export default function SpecialistsSummaryBar() {
           ) : null}
           {summary.persist.lastKnownGood && summary.persist.lastKnownGood.exists && typeof summary.persist.lastKnownGood.ageDays === 'number' ? (
             <span className={cn(
-              summary.persist.lastKnownGood.ageDays > 7 ? 'text-amber-700 dark:text-amber-400' : '',
+              summary.persist.lastKnownGood.ageDays > 7 ? 'text-warning' : '',
             )}>
               {summary.persist.lastKnownGood.ageDays < 1
                 ? tFormat('specialists.summary.backupAgeHours', { hours: (summary.persist.lastKnownGood.ageDays * 24).toFixed(1) })
@@ -79,7 +79,7 @@ export default function SpecialistsSummaryBar() {
           ) : null}
         </>
       ) : summary.persist ? (
-        <span className="text-amber-700 dark:text-amber-400">{t('specialists.summary.persistDisabled')}</span>
+        <span className="text-warning">{t('specialists.summary.persistDisabled')}</span>
       ) : null}
     </div>
   );

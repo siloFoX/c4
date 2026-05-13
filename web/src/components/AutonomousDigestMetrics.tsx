@@ -32,7 +32,7 @@ export default function AutonomousDigestMetrics({ digest }: Props) {
       </div>
       <div>
         <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.succeeded')}</div>
-        <div className="font-mono text-emerald-700 dark:text-emerald-400">
+        <div className="font-mono text-success">
           {digest.succeeded}
         </div>
       </div>
@@ -40,7 +40,7 @@ export default function AutonomousDigestMetrics({ digest }: Props) {
         <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.halted')}</div>
         <div className={cn(
           'font-mono',
-          digest.halted > 0 ? 'text-amber-700 dark:text-amber-400' : '',
+          digest.halted > 0 ? 'text-warning' : '',
         )}>
           {digest.halted}
         </div>
@@ -66,7 +66,7 @@ export default function AutonomousDigestMetrics({ digest }: Props) {
         <div className="text-[10px] uppercase text-muted-foreground">{t('autonomous.metric.pendingEscalations')}</div>
         <div className={cn(
           'font-mono',
-          digest.pendingEscalations > 0 ? 'text-amber-700 dark:text-amber-400' : '',
+          digest.pendingEscalations > 0 ? 'text-warning' : '',
         )}>
           {digest.pendingEscalations}
         </div>

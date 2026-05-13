@@ -77,7 +77,7 @@ describe('<HistoryDetailPane>', () => {
   it('uses the success badge variant when alive', () => {
     render(<HistoryDetailPane detail={makeDetail({ alive: true, status: 'live' })} />);
     const badge = screen.getByText('live');
-    expect(badge.className).toContain('emerald');
+    expect(badge.className).toContain('bg-success');
   });
 
   it('uses the secondary badge variant when not alive', () => {
@@ -179,7 +179,7 @@ describe('<HistoryDetailPane>', () => {
       />,
     );
     const badge = screen.getByText('ok');
-    expect(badge.className).toContain('emerald');
+    expect(badge.className).toContain('bg-success');
   });
 
   it('uses the success badge variant for a "complete" record status', () => {
@@ -191,7 +191,7 @@ describe('<HistoryDetailPane>', () => {
       />,
     );
     const badge = screen.getByText('complete');
-    expect(badge.className).toContain('emerald');
+    expect(badge.className).toContain('bg-success');
   });
 
   it('uses the success badge variant for a "merged" record status', () => {
@@ -201,7 +201,7 @@ describe('<HistoryDetailPane>', () => {
       />,
     );
     const badge = screen.getByText('merged');
-    expect(badge.className).toContain('emerald');
+    expect(badge.className).toContain('bg-success');
   });
 
   it('uses the warning badge variant for a "pending" record status', () => {
@@ -213,7 +213,7 @@ describe('<HistoryDetailPane>', () => {
       />,
     );
     const badge = screen.getByText('pending review');
-    expect(badge.className).toContain('amber');
+    expect(badge.className).toContain('bg-warning');
   });
 
   it('uses the warning badge variant for a "busy" record status', () => {
@@ -223,7 +223,7 @@ describe('<HistoryDetailPane>', () => {
       />,
     );
     const badge = screen.getByText('busy');
-    expect(badge.className).toContain('amber');
+    expect(badge.className).toContain('bg-warning');
   });
 
   it('uses the outline badge variant for an unmatched record status', () => {
@@ -415,7 +415,7 @@ describe('<HistoryDetailPane>', () => {
       />,
     );
     const badge = screen.getByText('OK');
-    expect(badge.className).toContain('emerald');
+    expect(badge.className).toContain('bg-success');
   });
 
   it('renders the records section as a list with a panel per record', () => {

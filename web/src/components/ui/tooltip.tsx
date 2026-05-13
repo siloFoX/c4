@@ -114,12 +114,11 @@ export function Tooltip({
         id={id}
         data-visible={visible}
         className={cn(
-          'pointer-events-none absolute z-50 whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity',
+          'pointer-events-none absolute z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity',
           pos,
           visible ? 'opacity-100' : 'opacity-0',
           className,
         )}
-        style={{ maxWidth: 260 }}
       >
         {label}
       </span>

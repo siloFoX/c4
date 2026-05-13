@@ -31,7 +31,7 @@ export default function MeetingsStuckBanner({ stuck, onNavigate }: Props) {
   if (!stuck || stuck.count === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-700 dark:text-amber-400">
+    <div className="flex flex-wrap items-center gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-[12px] text-warning">
       <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
       <span className="font-medium">{stuck.count} meeting(s) stuck &gt;1h:</span>
       {stuck.stuck.slice(0, 5).map((s) => (
@@ -39,7 +39,7 @@ export default function MeetingsStuckBanner({ stuck, onNavigate }: Props) {
           key={s.id}
           type="button"
           onClick={() => onNavigate(s.id)}
-          className="rounded border border-amber-500/40 bg-background/40 px-1.5 py-0 font-mono text-[10px] hover:bg-amber-500/20"
+          className="rounded border border-warning/40 bg-background/40 px-1.5 py-0 font-mono text-[10px] hover:bg-warning/20"
           title={`${s.title} · ${s.status} · ${s.ageHours.toFixed(1)}h old`}
         >
           {s.id} ({s.ageHours.toFixed(1)}h)

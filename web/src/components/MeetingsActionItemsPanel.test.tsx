@@ -270,7 +270,7 @@ describe('<MeetingsActionItemsPanel>', () => {
     renderPanel();
     const decisionChip = screen.getByRole('button', { name: /decision . 1/i });
     await user.click(decisionChip);
-    expect(decisionChip.className).toMatch(/blue/);
+    expect(decisionChip.className).toMatch(/info/);
   });
 
   it('clears the filter when the active chip is clicked again', async () => {

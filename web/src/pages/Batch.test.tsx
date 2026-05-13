@@ -274,7 +274,7 @@ describe('<Batch>', () => {
     };
     const { container } = render(<Batch />);
     const li = container.querySelector('ul > li');
-    expect(li?.className || '').toContain('text-emerald-400');
+    expect(li?.className || '').toContain('text-success');
   });
 
   it('marks a failed outcome with the destructive tone class', () => {

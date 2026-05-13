@@ -256,7 +256,7 @@ describe('<Auto> live queue section', () => {
     });
     render(<Auto noAnimation />);
     const badge = await screen.findByText('doing');
-    expect(badge.className).toContain('amber');
+    expect(badge.className).toContain('bg-warning');
   });
 
   it('uses success badge variant for done rows', async () => {
@@ -265,7 +265,7 @@ describe('<Auto> live queue section', () => {
     });
     render(<Auto noAnimation />);
     const badge = await screen.findByText('done');
-    expect(badge.className).toContain('emerald');
+    expect(badge.className).toContain('bg-success');
   });
 
   it('shows a load-more button when more than 20 rows are present', async () => {

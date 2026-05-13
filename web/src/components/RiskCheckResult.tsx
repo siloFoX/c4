@@ -124,7 +124,7 @@ export default function RiskCheckResult({ result }: Props) {
               <li>
                 <span className="text-muted-foreground">{t('risk.intent.destructive')}</span>
                 {result.intent.destructiveVerbs!.map((v) => (
-                  <code key={v} className="ml-1 rounded border border-amber-500/40 bg-amber-500/10 px-1 font-mono text-[10px] text-amber-700 dark:text-amber-400">
+                  <code key={v} className="ml-1 rounded border border-warning/40 bg-warning/10 px-1 font-mono text-[10px] text-warning">
                     {v}
                   </code>
                 ))}

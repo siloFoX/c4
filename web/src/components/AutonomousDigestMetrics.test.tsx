@@ -162,12 +162,12 @@ describe('<AutonomousDigestMetrics>', () => {
 
   it('applies the amber halt class when halted is positive', () => {
     render(<AutonomousDigestMetrics digest={makeDigest({ halted: 2 })} />);
-    expect(valueOf('halted').className).toContain('text-amber-700');
+    expect(valueOf('halted').className).toContain('text-warning');
   });
 
   it('does NOT apply the amber halt class when halted is zero', () => {
     render(<AutonomousDigestMetrics digest={makeDigest({ halted: 0 })} />);
-    expect(valueOf('halted').className).not.toContain('text-amber-700');
+    expect(valueOf('halted').className).not.toContain('text-warning');
   });
 
   it('applies the destructive class when dispatchErrors is positive', () => {
@@ -193,7 +193,7 @@ describe('<AutonomousDigestMetrics>', () => {
       />,
     );
     expect(valueOf('pending escalations').className).toContain(
-      'text-amber-700',
+      'text-warning',
     );
   });
 
@@ -204,13 +204,13 @@ describe('<AutonomousDigestMetrics>', () => {
       />,
     );
     expect(valueOf('pending escalations').className).not.toContain(
-      'text-amber-700',
+      'text-warning',
     );
   });
 
   it('always tags the succeeded cell with the emerald success class', () => {
     render(<AutonomousDigestMetrics digest={makeDigest({ succeeded: 0 })} />);
-    expect(valueOf('succeeded').className).toContain('text-emerald-700');
+    expect(valueOf('succeeded').className).toContain('text-success');
   });
 
   it('always tags the resolved-escalations cell with the muted class', () => {

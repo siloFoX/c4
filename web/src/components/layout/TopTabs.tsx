@@ -98,7 +98,7 @@ export default function TopTabs({ value, onChange, badges }: TopTabsProps) {
             {badge && badge.count > 0 ? (
               <span className={cn(
                 'inline-flex min-w-[1rem] items-center justify-center rounded-full border px-1 text-[9px] leading-tight',
-                badge.tone === 'amber' && 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+                badge.tone === 'amber' && 'border-warning/40 bg-warning/10 text-warning',
                 badge.tone === 'destructive' && 'border-destructive/40 bg-destructive/10 text-destructive',
                 badge.tone === 'muted' && 'border-border bg-muted/40 text-muted-foreground',
               )}>

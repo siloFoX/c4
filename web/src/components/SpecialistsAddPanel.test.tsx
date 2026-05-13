@@ -292,8 +292,8 @@ describe('<SpecialistsAddPanel>', () => {
 
   it('does NOT render the proposeMsg span when proposeMsg is null', () => {
     const { container } = renderPanel();
-    expect(container.querySelector('.text-emerald-700')).toBeNull();
-    expect(container.querySelector('.text-amber-700')).toBeNull();
+    expect(container.querySelector('.text-success')).toBeNull();
+    expect(container.querySelector('.text-warning')).toBeNull();
   });
 
   it('renders the proposeMsg with emerald tone when proposeRejected is false', () => {
@@ -301,8 +301,8 @@ describe('<SpecialistsAddPanel>', () => {
     hookState.proposeRejected = false;
     renderPanel();
     const banner = screen.getByText('accepted by 3 specialist(s)');
-    expect(banner).toHaveClass('text-emerald-700');
-    expect(banner).not.toHaveClass('text-amber-700');
+    expect(banner).toHaveClass('text-success');
+    expect(banner).not.toHaveClass('text-warning');
   });
 
   it('renders the proposeMsg with amber tone when proposeRejected is true', () => {
@@ -310,8 +310,8 @@ describe('<SpecialistsAddPanel>', () => {
     hookState.proposeRejected = true;
     renderPanel();
     const banner = screen.getByText('rejected: missing systemPrompt');
-    expect(banner).toHaveClass('text-amber-700');
-    expect(banner).not.toHaveClass('text-emerald-700');
+    expect(banner).toHaveClass('text-warning');
+    expect(banner).not.toHaveClass('text-success');
   });
 
   it('renders both addError and proposeMsg banners side by side when both set', () => {

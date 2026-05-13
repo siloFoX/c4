@@ -250,7 +250,7 @@ export default function AutonomousView() {
                           variant="outline"
                           onClick={() => handleResolve(e.id, 'modify')}
                           disabled={resolveBusy === e.id || !resolveNotes[e.id]?.trim()}
-                          className="h-6 px-2 text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-300"
+                          className="h-6 px-2 text-[10px] border-warning/60 text-warning"
                           title={t('autonomous.escalations.modifyTitle')}
                         >
                           {t('autonomous.escalations.modify')}

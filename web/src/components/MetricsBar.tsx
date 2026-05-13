@@ -27,16 +27,18 @@ export default function MetricsBar() {
   // none of which exist in the Tailwind config (only text-muted-
   // foreground / bg-muted / etc. do). The bar still rendered but
   // with default browser colors. Switching to the proper tokens.
+  // (v1.11.77) Now uses --success / --warning palette tokens added
+  // to the theme, so light/dark modes share the same call sites.
   return (
     <div className="flex flex-wrap items-center gap-3 border-b border-border bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
       <span className="flex items-center gap-1.5">
-        <Activity className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+        <Activity className="h-3.5 w-3.5 text-success" />
         <span className="font-medium text-foreground">{m.totals.liveWorkers}</span>
         <span>{t('metrics.live')}</span>
         <span className="text-muted-foreground">/ {m.totals.totalWorkers} {t('metrics.total')}</span>
       </span>
       <span className="flex items-center gap-1.5">
-        <Cpu className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+        <Cpu className="h-3.5 w-3.5 text-warning" />
         <span className="font-medium text-foreground">{fmtPct(m.totals.totalCpuPct)}</span>
         <span>{t('metrics.workers')} · {t('metrics.load')} {(m.daemon.loadavg[0] ?? 0).toFixed(2)}</span>
       </span>

@@ -79,7 +79,7 @@ describe('<ChatErrorBanners>', () => {
   it('applies the amber style classes when only backfillError is set', () => {
     renderBanners({ backfillError: 'past went boom' });
     const alert = screen.getByRole('alert');
-    expect(alert.className).toMatch(/amber/);
+    expect(alert.className).toMatch(/warning/);
   });
 
   it('does NOT apply destructive classes when only backfillError is set', () => {
@@ -176,7 +176,7 @@ describe('<ChatErrorBanners>', () => {
   it('rerendering from backfill-only to error-set swaps the amber for the destructive banner', () => {
     const { rerender } = renderBanners({ backfillError: 'past went boom' });
     const amber = screen.getByRole('alert');
-    expect(amber.className).toMatch(/amber/);
+    expect(amber.className).toMatch(/warning/);
     rerender(<ChatErrorBanners error="hard fail" backfillError="past went boom" />);
     const destructive = screen.getByRole('alert');
     expect(destructive.className).toMatch(/text-destructive/);
@@ -192,7 +192,7 @@ describe('<ChatErrorBanners>', () => {
     expect(destructive.className).toMatch(/text-destructive/);
     rerender(<ChatErrorBanners error={null} backfillError="past went boom" />);
     const amber = screen.getByRole('alert');
-    expect(amber.className).toMatch(/amber/);
+    expect(amber.className).toMatch(/warning/);
     expect(amber).toHaveTextContent(/Past-message backfill failed/);
   });
 
