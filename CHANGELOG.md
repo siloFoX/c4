@@ -4,6 +4,55 @@
 
 (no entries -- next release window)
 
+## [1.11.96] - 2026-05-13 -- Tests: lib coverage push (TODO 11.78)
+
+Add vitest RTL/jsdom tests for six previously-untested `use-*` hooks
+under `web/src/lib/`. The six picks target small, self-contained
+hooks (under ~55 lines each) covering the three common shapes in
+the lib: pure-state slot (`use-toast`), keyboard-listener with
+focus-aware bypass (`use-sidebar-shortcut`), fetch-on-mount with
+delegate setters (`use-plan-workers`, `use-workspaces`), and
+imperative POST with busy/result/error triplet (`use-status-message`,
+`use-risk-sandbox-preview`).
+
+Coverage delta: 41 untested `use-*.ts` hooks (89 tested out of 130)
+before this push, 35 after. New file count: +6 test files, +71
+vitest cases.
+
+New test files (case counts after iteration):
+
+- `use-toast.test.ts` — 12 cases: idle state, single-slot replace,
+  Date.now() id stability, three ToastType values, dismiss + show
+  cycle, useCallback reference stability.
+- `use-plan-workers.test.ts` — 11 cases: mount fetch, auto-select
+  first when `selected` is empty, non-array fallback, HTTP error
+  via `setError`, manual refresh, no-reject contract. (Note:
+  setSelected / setError refs are hoisted out of the renderHook
+  callback to avoid useCallback dep churn that would otherwise
+  loop the mount effect.)
+- `use-sidebar-shortcut.test.ts` — 13 cases: Ctrl+B desktop
+  branch, Cmd+B Mac branch, mobile breakpoint via matchMedia,
+  case-insensitive key, INPUT/TEXTAREA/contentEditable bypass,
+  preventDefault, unmount cleanup, prop-change reattach.
+- `use-risk-sandbox-preview.test.ts` — 12 cases: empty +
+  whitespace short-circuit, trimmed POST body, sandbox/error
+  state reset, busy gate on resolve + error, useCallback dep on
+  command.
+- `use-status-message.test.ts` — 12 cases: empty + whitespace
+  short-circuit, trimmed POST body, success/error toast routing,
+  message-reset on success, message-preserve on error, sending
+  flag, workerName useCallback dep, no internal mutex.
+- `use-workspaces.test.ts` — 11 cases: mount fetch, missing
+  `workspaces` field defaults to `[]`, HTTP error capture,
+  loading flag on success + error, refresh re-fetch, error
+  clear on refresh, no-reject contract, workspace shape pass-through.
+
+All six suites run on the `unit` project (jsdom + RTL + MSW). The
+imperative-POST suites mirror the gate / busy pattern from
+`use-batch-submit.test.ts`; the fetch-on-mount suites mirror
+`use-meeting-classify-preview.test.ts`. No production hook code
+changed.
+
 ## [1.11.95] - 2026-05-13 -- Feature: Webhook notifications (TODO 11.77)
 
 Wire the autonomous loop to fire one-line Slack and/or Discord lifecycle
