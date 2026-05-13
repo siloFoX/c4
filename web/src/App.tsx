@@ -118,41 +118,43 @@ export default function App() {
         </div>
       }>
       {topView === 'history' ? (
-        <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div key={topView} className="flex min-h-0 flex-1 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150">
           <HistoryView />
         </div>
       ) : topView === 'sessions' ? (
-        <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div key={topView} className="flex min-h-0 flex-1 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150">
           <SessionsView />
         </div>
       ) : topView === 'meetings' ? (
-        <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div key={topView} className="flex min-h-0 flex-1 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150">
           <MeetingsView />
         </div>
       ) : topView === 'specialists' ? (
-        <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div key={topView} className="flex min-h-0 flex-1 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150">
           <SpecialistsView />
         </div>
       ) : topView === 'wiki' ? (
-        <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div key={topView} className="flex min-h-0 flex-1 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150">
           <WikiView />
         </div>
       ) : topView === 'chat' ? (
-        <div className="flex min-h-0 flex-1 overflow-hidden p-3 md:p-6">
+        <div key={topView} className="flex min-h-0 flex-1 overflow-hidden p-3 md:p-6 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150">
           <Chat />
         </div>
       ) : topView === 'workflows' ? (
-        <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div key={topView} className="flex min-h-0 flex-1 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150">
           <WorkflowEditor />
         </div>
       ) : topView === 'autonomous' ? (
-        <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div key={topView} className="flex min-h-0 flex-1 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150">
           <AutonomousView />
         </div>
       ) : topView === 'features' ? (
-        <FeatureView sidebarOpen={sidebarOpen} />
+        <div key={topView} className="flex min-h-0 flex-1 flex-col motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150">
+          <FeatureView sidebarOpen={sidebarOpen} />
+        </div>
       ) : topView === 'settings' ? (
-        <div className="flex min-h-0 flex-1 overflow-auto">
+        <div key={topView} className="flex min-h-0 flex-1 overflow-auto motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150">
           <SettingsView
             theme={theme}
             onThemeChange={setTheme}
@@ -169,7 +171,7 @@ export default function App() {
           />
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div key={topView} className="flex min-h-0 flex-1 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150">
           <Sidebar
             open={sidebarOpen}
             mode={sidebarMode}
@@ -187,7 +189,7 @@ export default function App() {
                 <div className="mb-3 flex justify-end">
                   <DetailTabs value={detailMode} onChange={setDetailMode} />
                 </div>
-                <div className="min-h-0 min-w-0 flex-1">
+                <div key={detailMode} className="min-h-0 min-w-0 flex-1 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150">
                   {detailMode === 'chat' ? (
                     <ChatView key={`chat-${selectedWorker}`} workerName={selectedWorker} />
                   ) : detailMode === 'control' ? (

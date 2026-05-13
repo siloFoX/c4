@@ -35,7 +35,7 @@ export default function Toast({
     <Card
       role="status"
       className={cn(
-        'pointer-events-auto border shadow-lg',
+        'pointer-events-auto border shadow-lg motion-safe:animate-in motion-safe:slide-in-from-right motion-safe:duration-300',
         TONE[type]
       )}
     >
