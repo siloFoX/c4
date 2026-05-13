@@ -492,3 +492,128 @@ through the host. `AccountMenu` keeps both props optional -- when
 either is missing the Theme row hides, which is how the existing
 unit tests that pre-date 1.11.87 keep their menu-order assertions
 green.
+
+## Typography (1.11.88)
+
+The c4 web UI exposes a named type scale at
+`web/src/lib/typography.ts`. Every entry is a Tailwind class string
+combining font-size, line-height, tracking, and weight, so call
+sites stop spelling out the same trio of utility classes at every
+heading and body block. Reach for `text.h1` / `text.body` / etc.
+instead of `text-3xl leading-10 font-semibold` -- the named scale
+stays calibrated even if the underlying utility values shift later.
+
+### Named scale
+
+| Key | Tailwind classes | Pixels (size / line-height) | Intent |
+| --- | --- | --- | --- |
+| `display` | `text-4xl leading-[3rem] tracking-tight font-semibold` | 36 / 48 | Hero / marketing surface (not used yet in chrome). |
+| `h1` | `text-3xl leading-[2.5rem] tracking-tight font-semibold` | 30 / 40 | Top-level page heading when a page wants more weight than `CardTitle`. |
+| `h2` | `text-2xl leading-8 font-semibold` | 24 / 32 | Major in-card section heading. |
+| `h3` | `text-xl leading-7 font-medium` | 20 / 28 | In-card subsection heading (the most-adopted entry today). |
+| `body` | `text-base leading-6` | 16 / 24 | Default body copy. |
+| `bodySm` | `text-sm leading-5` | 14 / 20 | Dense body copy (tables, descriptions, inline forms). |
+| `caption` | `text-xs leading-4 text-muted-foreground` | 12 / 16 | Hint / metadata / muted timestamp. `text-muted-foreground` baked in. |
+| `mono` | `font-mono text-sm leading-5` | 14 / 20 | Code spans, branch names, identifiers. |
+
+The 9-case vitest suite at `web/src/lib/typography.test.ts` pins
+the contract: every entry has a `text-*` and a `leading-*` class,
+`text.h1` / `h2` / `h3` / `display` each carry a font-weight,
+`text.caption` includes `text-muted-foreground`, `text.mono`
+includes `font-mono`, and an inline snapshot locks the full object
+so a rename or value drift surfaces immediately.
+
+### 8 px baseline grid + plugin
+
+Line-heights snap to multiples of 8 wherever the type size allows
+(display 48, h1 40, h2 32, body 24, caption 16) so adjacent surfaces
+-- a card header above a stat row, a section heading above a list --
+align vertically without per-component padding fudges. Two
+intentional exceptions live in the JSDoc:
+
+- `text.h3` -> 20 / 28. 28 px is `3.5 * 8` (half-step, not full).
+  A 32 px line-height would make h3 indistinguishable from h2; a
+  24 px line-height under-spaces 20 px ascenders.
+- `text.bodySm` / `text.mono` -> 14 / 20. 20 px is *not* on the
+  8 px grid. 14 px text below 1.4x crowds descenders; pushing to
+  24 px makes dense tables and inline code blocks feel airy.
+  Pages that stack `bodySm` next to `body` should add `space-y-*`
+  padding to recover the grid.
+
+`web/tailwind.config.js` registers a tiny `baselinePlugin` (~10 lines
+including JSDoc) that defines `--baseline-step` (default 8 px) on
+`:root` and exposes a `.baseline` utility class:
+
+```css
+.baseline { line-height: var(--baseline-step); }
+```
+
+Use `.baseline` on prose-heavy blocks where the named scale does not
+fit (long-form markdown, dynamic content) so adjacent surfaces still
+snap to the same vertical grid. The named scale is the default; the
+plugin is the escape hatch.
+
+### Usage
+
+```tsx
+import { cn } from '../lib/cn';
+import { text } from '../lib/typography';
+
+// Section heading inside a panel
+<h3 className={cn('mb-2 flex items-center gap-2 text-foreground', text.h3)}>
+  Configuration
+</h3>
+
+// Muted hint (text-muted-foreground baked in)
+<div className={text.caption}>
+  Last refreshed 12s ago
+</div>
+
+// Code span with the named mono rhythm
+<span className={cn(text.mono, 'text-foreground')}>{worker.branch}</span>
+
+// Composing with extra utilities -- twMerge picks the last one for
+// conflicting groups (font-weight, font-family, etc.), so put the
+// override AFTER the named class.
+<span className={cn(text.caption, 'font-mono')}>{configPath}</span>
+```
+
+### Adoption rule of thumb
+
+- **Page-level section heading** (`<h3>` inside a panel) -> `text.h3`.
+- **Page title** -- leave to `PageFrame`'s `CardTitle` for now; the
+  shared header surface is a future calibration target, not a per-page
+  adoption.
+- **Body paragraph / markdown wrapper** -> `text.body` (16 px) or
+  `text.bodySm` (14 px) depending on density.
+- **Muted hint / metadata / timestamp** -> `text.caption` (already
+  carries `text-muted-foreground`).
+- **Branch name / identifier / code span** -> `text.mono`.
+- **Dense chrome** -- queue rows, table cells, badge / chip text,
+  stat-card label rows (`text-xs uppercase tracking-wide
+  text-muted-foreground`), Panel `text-[10px]` / `text-[11px]` /
+  `text-[12px]` surfaces: **skip**. The named scale is for
+  page-level rhythm; these are intentionally non-scale (see the
+  v1.11.88 CHANGELOG for the per-page skip list).
+
+### Adding a new size
+
+1. Decide whether the new size earns a slot. The scale is small on
+   purpose -- one entry per visual role. Reach for an existing
+   entry first; a slightly off-spec heading is fine if it stays in
+   the family.
+2. If the size is new, add it to the `text` object in
+   `web/src/lib/typography.ts` with the same shape
+   (`'text-? leading-? ... font-?'`) and document the line-height
+   choice in the JSDoc above the export. If the line-height is not
+   on the 8 px grid, write down why.
+3. Extend the inline snapshot in
+   `web/src/lib/typography.test.ts` so vitest pins the new entry.
+   Add a per-entry assertion only if the new entry violates the
+   shared invariants (text-* utility, leading-* utility, etc.).
+4. Adopt the new size in at least one call site before merging --
+   the value of a named entry is that consumers stop spelling it
+   out at the call site.
+5. Update the table above (and the JSDoc on the relevant Tailwind
+   classes if you also extend the tailwind theme).
+
