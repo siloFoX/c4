@@ -174,6 +174,20 @@ const autoDispatcherMod = require('./auto-dispatcher');
 // config.notifications.{slack,discord,events}. Missing config produces
 // zero behaviour change.
 const lifecycleNotifyMod = require('./notify');
+// (v1.11.101 / TODO 11.83) Prometheus text exposition formatter used by
+// GET /api/metrics/prometheus. Pure projection — no sampling of its own.
+const promFormat = require('./prometheus-format');
+
+// (v1.11.101 / TODO 11.83) In-memory lifecycle counters surfaced by the
+// /api/metrics/prometheus endpoint. Bumped at the same call sites as
+// the v1.11.95 lifecycle webhook (`dispatch` / `escalation`). Resets on
+// daemon restart by design — Prometheus is for short-horizon ops
+// observability; the audit log remains the source of truth for durable
+// accounting.
+const lifecycleCounters = {
+  dispatch: 0,
+  escalation: 0,
+};
 const { PinnedMemoryScheduler, DEFAULT_INTERVAL_MS: PIN_DEFAULT_INTERVAL_MS } = require('./pinned-memory-scheduler');
 
 // (8.5) Allow-list for POST /key. Web UI needs to drive Enter, Escape,
@@ -1123,6 +1137,34 @@ async function handleRequest(req, res) {
     } else if (req.method === 'GET' && route === '/metrics') {
       // Per-worker + daemon CPU/RSS snapshot (worker-metrics module).
       result = manager.metrics();
+
+    } else if (req.method === 'GET' && route === '/metrics/prometheus') {
+      // (v1.11.101 / TODO 11.83) Prometheus text-exposition projection
+      // of the /metrics snapshot. Same per-worker rss + cpu data the
+      // JSON endpoint exposes — no extra sampling — plus the
+      // lifecycleCounters (dispatch / escalation) bumped alongside the
+      // v1.11.95 webhook. Auth gating rides the same /api/* JWT path
+      // already applied above.
+      const promSnap = manager.metrics();
+      const listSnap = manager.list();
+      const targetByName = new Map();
+      if (listSnap && Array.isArray(listSnap.workers)) {
+        for (const w of listSnap.workers) {
+          targetByName.set(w.name, w.target || 'local');
+        }
+      }
+      const promWorkers = (promSnap.workers || []).map((w) => ({
+        name: w.name,
+        tier: tierWorkerMap.get(w.name) || 'worker',
+        target: targetByName.get(w.name) || 'local',
+        rssKb: typeof w.rssKb === 'number' ? w.rssKb : null,
+        cpuPct: typeof w.cpuPct === 'number' ? w.cpuPct : null,
+      }));
+      const body = promFormat.formatMetrics(promWorkers, lifecycleCounters);
+      res.setHeader('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+      res.writeHead(200);
+      res.end(body);
+      return;
 
     } else if (req.method === 'GET' && route === '/workspaces') {
       // Multi-repo workspace listing (config.workspaces).
@@ -6761,6 +6803,10 @@ function _buildAutoDispatcher() {
           todo: payload.id,
           priority: payload.priority,
         });
+        // (v1.11.101) Bump Prometheus dispatch counter alongside the
+        // existing lifecycle webhook so /api/metrics/prometheus tracks
+        // every dispatch the loop fires, regardless of webhook config.
+        lifecycleCounters.dispatch++;
         _sendLifecycle('dispatch', {
           branch: 'c4/auto-' + String(payload.id || '').replace(/\./g, '-'),
           todo: { id: payload.id, title: payload.title },
@@ -6772,6 +6818,10 @@ function _buildAutoDispatcher() {
         });
         _sendLifecycle('halt', { reason: payload.reason });
       } else if (event === 'auto_dispatch_escalation') {
+        // (v1.11.101) Bump Prometheus escalation counter alongside the
+        // existing lifecycle webhook so /api/metrics/prometheus exposes
+        // escalation pressure even when no webhook URL is configured.
+        lifecycleCounters.escalation++;
         _sendLifecycle('escalation', {
           todo: { id: payload.todoId, title: payload.kind },
           reason: payload.reason,
