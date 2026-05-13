@@ -351,6 +351,98 @@ function parseSimpleYaml(text) {
   return parseBlock(-1);
 }
 
+// (11.71) Resolve the port for `c4 ui`. Priority order:
+//   1. --port <N> in argv (parsed as integer)
+//   2. daemon.port from config.json at <repo>/config.json
+//   3. Hard-coded fallback of 3456 (the daemon's own default)
+// Returns the resolved integer port. Defensive against malformed
+// config.json — a parse error is swallowed and we fall through to
+// the default so `c4 ui` keeps working before `c4 init` lands.
+function resolveUiPort(args, cfgPath) {
+  if (Array.isArray(args)) {
+    const idx = args.indexOf('--port');
+    if (idx !== -1 && idx < args.length - 1) {
+      const parsed = parseInt(args[idx + 1], 10);
+      if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    }
+  }
+  if (cfgPath) {
+    try {
+      if (fs.existsSync(cfgPath)) {
+        const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+        if (cfg && cfg.daemon && Number.isFinite(cfg.daemon.port) && cfg.daemon.port > 0) {
+          return cfg.daemon.port;
+        }
+      }
+    } catch {}
+  }
+  return 3456;
+}
+
+// (11.71) Pick the URL-opener binary by platform. On Windows we go
+// through `cmd /c start ""` so URLs containing `&` or spaces survive
+// cmd.exe's argument splitting (the empty "" is the window-title
+// argument that `start` consumes positionally).
+function pickUiOpener(platform) {
+  if (platform === 'darwin') return { cmd: 'open', extraArgs: [] };
+  if (platform === 'win32') return { cmd: 'cmd', extraArgs: ['/c', 'start', ''] };
+  return { cmd: 'xdg-open', extraArgs: [] };
+}
+
+// (11.71) Open the daemon's web UI in the user's default browser.
+// Always prints the resolved URL to stdout so script consumers can
+// pipe it. Falls back to a "Open in browser: <url>" line when the
+// platform opener is missing (xdg-open on headless Linux, etc.) —
+// caller still gets the URL, just without the launch.
+function runUi({
+  args = [],
+  platform = process.platform,
+  cfgPath = path.resolve(__dirname, '..', 'config.json'),
+  spawn,
+  out = (s) => process.stdout.write(s + '\n'),
+} = {}) {
+  const spawnFn = spawn || require('child_process').spawn;
+  const port = resolveUiPort(args, cfgPath);
+  const url = `http://127.0.0.1:${port}`;
+  const opener = pickUiOpener(platform);
+  const spawnArgs = [...opener.extraArgs, url];
+  const fallbackLine = `Open in browser: ${url} (no xdg-open / open / start available)`;
+  const successLine = `Opening ${url} in your default browser...`;
+
+  return new Promise((resolve) => {
+    let child;
+    try {
+      child = spawnFn(opener.cmd, spawnArgs, { detached: true, stdio: 'ignore' });
+    } catch (err) {
+      out(fallbackLine);
+      resolve({ url, port, opened: false, opener: opener.cmd, args: spawnArgs, error: err });
+      return;
+    }
+
+    let settled = false;
+    const settleFallback = (err) => {
+      if (settled) return;
+      settled = true;
+      out(fallbackLine);
+      resolve({ url, port, opened: false, opener: opener.cmd, args: spawnArgs, error: err || null });
+    };
+
+    if (!child || typeof child.on !== 'function') {
+      settleFallback(new Error('spawn returned no child'));
+      return;
+    }
+    child.on('error', settleFallback);
+
+    setImmediate(() => {
+      if (settled) return;
+      settled = true;
+      try { if (typeof child.unref === 'function') child.unref(); } catch {}
+      out(successLine);
+      resolve({ url, port, opened: true, opener: opener.cmd, args: spawnArgs });
+    });
+  });
+}
+
 async function main() {
   const [cmd, ...args] = process.argv.slice(2);
 
@@ -742,6 +834,16 @@ async function main() {
           }
         } catch {}
         break;
+      }
+
+      // (11.71) Open the daemon's web UI in the user's default browser.
+      // Port resolution: --port flag > config.json daemon.port > 3456.
+      // Platform opener: open (darwin) / cmd /c start (win32) /
+      // xdg-open (linux+other). Falls back to printing
+      // "Open in browser: <url>" when the opener binary is missing.
+      case 'ui': {
+        await runUi({ args });
+        return;
       }
 
       // Aggregated environment health check. Surfaces "what's wrong"
@@ -7198,6 +7300,7 @@ Commands:
   close <name>                     Close a worker
   history [worker] [--limit N]     Show task history
   health                           Check daemon status
+  ui [--port N]                    Open the daemon web UI in your default browser
   daemon start                     Start daemon in background
   daemon stop                      Stop daemon
   daemon restart                   Restart daemon
@@ -7335,5 +7438,5 @@ if (require.main === module) {
 } else {
   // Expose helpers so tests can exercise them without spawning the CLI
   // or stubbing argv. Keep this list narrow on purpose.
-  module.exports = { withApiPrefix };
+  module.exports = { withApiPrefix, resolveUiPort, pickUiOpener, runUi };
 }

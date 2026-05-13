@@ -4,6 +4,138 @@
 
 (no entries -- next release window)
 
+## [1.11.89] - 2026-05-13 -- CLI: `c4 ui` command (TODO 11.71)
+
+Add a `c4 ui` subcommand to `src/cli.js` that opens the daemon's web
+UI in the user's default browser. The handler resolves the daemon
+port, picks a platform-specific opener binary, spawns it detached,
+and falls back to printing the URL when the opener is unavailable so
+script consumers still get a usable target. The CLI is part of the
+same release vehicle as the React app, so we bump `web/package.json`
+(matching the v1.11.77 - v1.11.88 convention).
+
+Port resolution priority (`resolveUiPort`):
+
+1. `--port <N>` CLI flag, parsed via `parseInt(..., 10)` with a
+   positive-finite guard. Highest priority -- lets operators
+   override even when `config.json` has a daemon section.
+2. `config.json` `daemon.port` -- loaded via the same `fs.existsSync`
+   + `fs.readFileSync` + `JSON.parse` pattern the existing `c4
+   doctor` case in `src/cli.js` uses for `config.json`. Wrapped in a
+   `try / catch` so a malformed JSON file falls through rather than
+   crashing the command -- the daemon itself does the same defensive
+   parse in `src/pty-manager.js` `loadConfig()`.
+3. Hard-coded `3456` -- matches the daemon's own default
+   (`src/daemon.js` line 202: `process.env.PORT || cfg.daemon?.port ||
+   '3456'`) so `c4 ui` and `c4 daemon start` agree out of the box.
+
+Platform opener map (`pickUiOpener`):
+
+- `darwin` -> `open <url>`. macOS's standard URL opener.
+- `win32` -> `cmd /c start "" <url>`. The empty `""` is the title
+  argument that Windows `start` consumes positionally -- omitting it
+  would make `start` treat URLs with spaces or `&` as the window
+  title and silently swallow the actual URL.
+- everything else (linux / freebsd / unknown) -> `xdg-open <url>`.
+  The freedesktop.org standard; preinstalled on every mainstream
+  desktop distro.
+
+Spawn semantics (`runUi`):
+
+- `child_process.spawn(opener.cmd, [...opener.extraArgs, url], {
+  detached: true, stdio: 'ignore' })`. `detached: true` lets the
+  parent CLI exit immediately; `stdio: 'ignore'` makes sure the
+  child does not keep the parent's stdout open.
+- `child.unref()` on the success path so the unattached child does
+  not pin the event loop -- `c4 ui` exits in milliseconds even when
+  the browser is slow to launch.
+- Returns a `Promise` that resolves on whichever of two settle paths
+  wins:
+  - `spawn()` throws synchronously (some platforms / test mocks) ->
+    print `Open in browser: <url> (no xdg-open / open / start
+    available)` and resolve `{ opened: false }`.
+  - `spawn()` returns a child, child fires an async `'error'` event
+    with `code === 'ENOENT'` (Linux when `xdg-open` is missing) ->
+    same fallback line, same `{ opened: false }`.
+  - `spawn()` returns a child, no `'error'` event arrives before
+    `setImmediate` fires -> print `Opening <url> in your default
+    browser...`, call `child.unref()`, resolve `{ opened: true }`.
+- Always prints exactly one URL-bearing line to stdout (success or
+  fallback) so a caller can `c4 ui | head -1 | grep -oE
+  'http://[^ ]+'` and pipe the URL into another tool.
+- Always exits `0` -- the fallback path is a *graceful* degradation,
+  not an error. Headless CI runners that pipe `c4 ui` into a
+  webhook-poster do not need to special-case "no display".
+
+Code shape:
+
+- Three pure helpers (`resolveUiPort`, `pickUiOpener`, `runUi`) live
+  in `src/cli.js` just above `async function main()`. They are
+  exported via `module.exports` alongside the existing
+  `withApiPrefix` export so tests can exercise them without
+  spawning the CLI as a subprocess.
+- `case 'ui'` in the main `switch (cmd)` block calls `await runUi({
+  args })` and returns. Mirrors the `case 'health'` / `case 'doctor'`
+  shape (no `result =` assignment so the default JSON dump after the
+  switch does not fire).
+- The usage / `--help` block lists `ui [--port N]` between
+  `health` and `daemon start`.
+
+Tests (`tests/cli-ui.test.js`, 21 new cases, `node:test` runner):
+
+- The `tests/` directory has 147 `node:test` suites and zero
+  `vitest` suites -- vitest only runs on the `web/` React side. We
+  mirror `cli-version-flag.test.js` / `cli-risk.test.js` /
+  `cli-doctor-risk.test.js` here; the task brief's "vitest" wording
+  does not apply to the Node-side CLI.
+- 8 `resolveUiPort` cases: `--port 9999` wins, `--port` beats
+  `config.json daemon.port`, `config.json daemon.port` falls through
+  when `--port` is absent, `daemon: {}` config falls through to
+  3456, missing config file falls through to 3456, malformed JSON
+  falls through to 3456, `--port` with no value is ignored,
+  non-numeric `--port` value is ignored.
+- 4 `pickUiOpener` cases: darwin / win32 (asserts `extraArgs ===
+  ['/c', 'start', '']` so the empty title arg is locked) / linux /
+  unknown-platform-falls-back-to-xdg-open.
+- 6 `runUi` cases (dependency-injected `spawn` + `out`): darwin
+  spawn shape (`cmd === 'open'`, args === `['http://127.0.0.1:1234']`,
+  opts === `{ detached: true, stdio: 'ignore' }`), linux spawn
+  shape, win32 spawn shape (asserts the four-element args list
+  `['/c', 'start', '', 'http://127.0.0.1:5555']`), sync-throw
+  fallback (mock spawn throws `ENOENT`), async ENOENT fallback (mock
+  spawn returns a fake `EventEmitter` child that emits `'error'` on
+  `process.nextTick`), `unref()` called on the success path.
+- 3 `spawnSync` integration cases: `node src/cli.js ui --port 9999`
+  prints the URL and exits 0; default-port form prints a
+  well-formed URL and exits 0; the usage block (printed for unknown
+  commands) lists `ui [--port N]`.
+
+Verification:
+
+- `node --test tests/cli-ui.test.js` reports 21 / 21 passing in
+  ~190 ms on this branch. The full suite still runs via `npm test`
+  (node:test runner discovery in `tests/run-all.js` picks up the
+  new file automatically).
+- Manual smoke on this headless Linux container: `node src/cli.js
+  ui --port 9999` prints `Open in browser: http://127.0.0.1:9999
+  (no xdg-open / open / start available)` -- expected because
+  `xdg-open` is absent from the container. Exit code 0.
+
+Docs:
+
+- `CLAUDE.md` -- new `c4 ui [--port N]` row in the CLI command list
+  between `c4 health` and `c4 config`, documenting the port priority
+  order, platform opener map, and fallback behavior. Three lines so
+  the table stays scannable.
+- `docs/autonomous-queue-v10.md` -- TODO 11.71 row flipped to `done`
+  with a Shipped: summary mirroring this entry.
+
+Files touched: `src/cli.js` (handler + helpers + module exports +
+usage block), `tests/cli-ui.test.js` (new), `CHANGELOG.md` (this
+entry), `CLAUDE.md` (CLI command row), `docs/autonomous-queue-v10.md`
+(TODO 11.71 flipped to done), `web/package.json` (1.11.88 ->
+1.11.89). 6 files.
+
 ## [1.11.88] - 2026-05-13 -- Web UI: Typography rhythm (TODO 11.70)
 
 Define a named type scale in `web/src/lib/typography.ts`, register an
