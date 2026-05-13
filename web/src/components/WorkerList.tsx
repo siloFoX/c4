@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Inbox, Lightbulb, WifiOff } from 'lucide-react';
+import { Lightbulb, WifiOff } from 'lucide-react';
 import type { Worker } from '../types';
 import { useWorkerList } from '../lib/use-worker-list';
 import { usePersistedBool } from '../lib/use-persisted-bool';
@@ -11,6 +11,7 @@ import {
   EmptyState,
   ErrorState,
 } from './ui';
+import { NoWorkersIllustration } from './illustrations';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import WorkerListGroupHeader from './WorkerListGroupHeader';
@@ -160,7 +161,12 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
 
       {!error && workers.length === 0 && (
         <EmptyState
-          icon={<Inbox className="h-5 w-5" />}
+          icon={
+            <NoWorkersIllustration
+              className="text-muted-foreground"
+              size={160}
+            />
+          }
           title={t('workerList.empty')}
           className="p-4"
         />

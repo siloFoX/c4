@@ -4,6 +4,126 @@
 
 (no entries -- next release window)
 
+## [1.11.84] - 2026-05-13 -- Web UI: Hero illustrations (TODO 11.66)
+
+Four monochrome line-art SVG illustrations land under
+`web/src/components/illustrations/index.tsx` as named React exports
+and replace the small lucide icons in three high-traffic empty
+states so the dashboard feels less terse on first encounter.
+
+New components (named exports; no default export):
+
+- `EmptyQueueIllustration` -- open inbox tray with three dotted
+  placeholder rows, a dashed horizon line, and a small accent fill on
+  the tray interior. Reads as "a queue that is currently empty"
+  rather than a dead-end.
+- `NoWorkersIllustration` -- vacant desk with a single chair, a tiny
+  coffee mug, two rising "z" italics, and a dim power indicator dot.
+  Reads as "the seat is empty, nothing is running."
+- `WelcomeOnboardingIllustration` -- half-open door silhouette with a
+  trailing path, sparkle accents and a couple of stars overhead.
+  Reads as "step in, you're invited."
+- `AllDoneIllustration` -- checkmark inside a filled accent circle,
+  surrounded by four corner sparkles and a few confetti dots. Reads
+  as "task complete, celebrate."
+
+Design constraints shared by the set so they feel like one family:
+
+- `viewBox="0 0 240 180"` (4:3 landscape).
+- Strokes use `stroke="currentColor"` so the consumer controls hue
+  via a semantic palette class -- typically `text-muted-foreground`
+  applied by `EmptyState`'s built-in icon wrapper (from v1.11.78).
+- `strokeWidth={1.75}`, `strokeLinecap="round"`,
+  `strokeLinejoin="round"` on every illustration so the line weight
+  and join style are visually consistent across the four.
+- At most one accent fill per illustration, using
+  `hsl(var(--primary) / 0.15)` so the accent picks up the active
+  brand colour and adapts cleanly between light and dark themes.
+- 8 to 25 shapes per illustration (paths/lines/circles/rects), kept
+  in budget by a vitest assertion so future tweaks don't drift into
+  over-detailed territory.
+
+Accessibility approach:
+
+- Decorative by default: `aria-hidden="true"` on the root `<svg>`
+  unless the caller passes `aria-hidden={false}`, in which case the
+  illustration flips to `role="img"` with a descriptive `aria-label`
+  (e.g. `Empty queue`, `No workers running`, `Welcome`, `All done`).
+- Because these are paired with a textual `EmptyState.title`, the
+  default decorative mode is the right one in every site we wired
+  this round -- the screen reader hears the title, the illustration
+  is silent.
+
+Three empty states adopted the illustrations via `EmptyState`'s
+`icon` prop:
+
+- `web/src/components/SessionsListSection.tsx` -- the
+  `t('sessions.empty')` state now renders
+  `WelcomeOnboardingIllustration` (size 160) in place of the small
+  `FolderOpen` lucide icon. "No sessions yet" reads as an invitation
+  rather than a dead folder.
+- `web/src/components/WorkerList.tsx` -- the
+  `t('workerList.empty')` state swaps the `Inbox` lucide icon for
+  `NoWorkersIllustration` (size 160). The illustration picks up
+  `text-muted-foreground` from `EmptyState`'s built-in icon wrapper.
+- `web/src/pages/Auto.tsx` -- the "No queue entries" branch in
+  `LiveQueueSection` now uses the shared `EmptyState` primitive
+  (imported as `PrimitiveEmptyState` to avoid a local-symbol clash
+  with Auto's own panel-style `EmptyState`) so the
+  `EmptyQueueIllustration` (size 160) lands cleanly without
+  reshaping the local panel-style empty (which still services the
+  workers strip + dispatch timeline).
+
+Optional accent: the round wrapper that `EmptyState` applies around
+the icon is honoured automatically (the wrapper just colours its
+child) and the illustration's `text-muted-foreground` className is
+redundant-but-harmless next to that wrapper -- left in so the
+illustration also tones down when used outside `EmptyState`.
+
+Testing:
+
+- `web/src/components/illustrations/illustrations.test.tsx` -- 14
+  vitest cases (10 of them parameterised across the four exports
+  via `it.each`, so the test runner reports 4 x 10 = 40 invocations
+  for the shared contract plus 4 illustration-specific cases),
+  covering viewBox, currentColor stroke, default size, size
+  passthrough, className passthrough, decorative-vs-img a11y
+  branching, the 8-25 shape budget, the 1.5-2 stroke-weight floor
+  and ceiling, and per-illustration shape mix (checkmark + circle
+  for AllDone, dashed placeholders for EmptyQueue, sparkles + door
+  for WelcomeOnboarding, desk + zzz text for NoWorkers).
+
+Verification:
+
+- `env -C web vite build` succeeds; bundle continues to compile.
+- `env -C web vitest run` reports 5083 / 5083 passing across 226
+  test files (5047 prior + 36 illustration cases on top of the
+  shared `it.each` invocations).
+- Pre-existing TS warnings in `*.test.tsx` files
+  (`exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`)
+  remain out of scope.
+
+Files touched:
+
+- `web/package.json` -- bump 1.11.80 -> 1.11.84.
+- `web/src/components/illustrations/index.tsx` -- NEW; 4 named
+  exports + shared `IllustrationFrame` helper.
+- `web/src/components/illustrations/illustrations.test.tsx` -- NEW;
+  14 vitest cases.
+- `web/src/components/SessionsListSection.tsx` -- swap
+  `FolderOpen` lucide icon for `WelcomeOnboardingIllustration`.
+- `web/src/components/WorkerList.tsx` -- swap `Inbox` lucide icon
+  for `NoWorkersIllustration`.
+- `web/src/pages/Auto.tsx` -- queue empty branch now renders
+  `PrimitiveEmptyState` (the shared `ui/EmptyState`) with
+  `EmptyQueueIllustration` in the icon slot.
+- `docs/autonomous-queue-v10.md` -- 11.66 marked done with a
+  Shipped: summary.
+- `docs/web-design-palette.md` -- new "Illustrations" section
+  documenting the line-art recipe (viewBox, stroke weights,
+  currentColor convention, accent fill convention,
+  aria-hidden-by-default).
+
 ## [1.11.80] - 2026-05-13 -- Web UI: Micro-interactions + polish (TODO 11.65)
 
 Tasteful, accessibility-respecting motion across the c4 web UI using

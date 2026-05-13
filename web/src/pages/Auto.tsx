@@ -33,10 +33,12 @@ import {
   Button,
   Card,
   CardContent,
+  EmptyState as PrimitiveEmptyState,
   StatCard,
   Tooltip,
 } from '../components/ui';
 import type { BadgeVariant } from '../components/ui';
+import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { useLocale } from '../lib/i18n';
 import { apiGet, apiPost } from '../lib/api';
@@ -462,8 +464,13 @@ function LiveQueueSection({ slot }: LiveQueueSectionProps) {
       ) : slot.state.kind === 'error' ? (
         <ErrorState message={slot.state.error} onRetry={refresh} />
       ) : slot.state.data.rows.length === 0 ? (
-        <EmptyState
-          icon={<Inbox className="h-5 w-5" />}
+        <PrimitiveEmptyState
+          icon={
+            <EmptyQueueIllustration
+              className="text-muted-foreground"
+              size={160}
+            />
+          }
           title="No queue entries"
           description={
             slot.state.data.notFound
