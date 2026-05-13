@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.105] - 2026-05-13 -- Tests: MeetingsDetail RTL batch (TODO 11.87)
+
+Add vitest/RTL/jsdom coverage for three components that previously
+had no test file: `web/src/components/MeetingsDetailCardHeader.tsx`,
+`MeetingsDetailHeader.tsx`, and `MeetingsDetailTitleBar.tsx`. Mirrors
+the v1.11.104 ConversationView / HierarchyTree pattern (setLocale
+in beforeEach, `vi.mock` external children with marker stubs that
+expose props via `data-*` attrs, render with `vi.fn()` callbacks,
+locale-flip assertion at the end).
+
+- MeetingsDetailTitleBar.test.tsx (14 cases): title text inside the
+  CardTitle; badge omitted when `showStreamingBadge=false`; live /
+  offline label + tooltip + aria-live="polite" + success vs warning
+  variant classes when the badge is shown; Radio icon aria-hidden so
+  it does not pollute the accessible name; empty-string title renders
+  cleanly; title + badge stay siblings in the same row container;
+  locale flip drops the English "live" / "offline" labels.
+- MeetingsDetailHeader.test.tsx (16 cases): four localized field
+  labels ("Status", "Track", "Stage", "Round") + the "Task:" label;
+  value cells render the passed `status` / `track`; `currentStage`
+  falls back to "-" when null or empty string; `currentRound` renders
+  the number including 0; task description text renders on the second
+  line; empty task body does not crash; grid wrapper carries
+  `grid-cols-2` + `sm:grid-cols-4`; locale flip swaps every label to
+  Korean.
+- MeetingsDetailCardHeader.test.tsx (19 cases): TitleBar always
+  rendered with `title` + `streaming` forwarded; `showStreamingBadge`
+  gated on `selectedId` (null = false, set = true); no action panel
+  when `selectedId` or `detail` is null; PendingActions panel exactly
+  when `detail.status === 'pending'` with `meetingId=selectedId`
+  forwarded; InProgressActions panel when status is `'in-progress'`
+  with `meetingId` + `contribOpen` forwarded + `onContribToggle`
+  fired via marker button; CompletedActions panel for `'completed'`
+  AND `'escalated'` (NOT `'aborted'`) with `meetingId` +
+  `meetingTitle` + `forkOpen` forwarded + `onForkToggle` /
+  `onForkClose` / `onForked('forked-id')` all wired; CardHeader
+  wrapper carries `border-b` + `flex-col`; no callbacks fire on
+  initial render; locale flip re-renders (useLocale subscription on
+  the wrapper).
+
+Verification: 49 / 49 new cases passing (`vitest run --project unit`
+over the three files); 5407 / 5407 cases passing across the full
+243-file unit suite (the ErrorBoundary console.error "boom" /
+"left-boom" lines are intentional fixture output, not regressions).
+web/package.json bumped 1.11.104 -> 1.11.105.
+
 ## [1.11.104] - 2026-05-13 -- Tests: Conversation+Hierarchy RTL coverage (TODO 11.86)
 
 Add vitest/RTL/jsdom coverage for three components that previously
