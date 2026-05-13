@@ -83,9 +83,16 @@ describe('<WikiSearchResults>', () => {
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
 
-  it('renders the loading text when search is null and no error', () => {
-    renderResults({ search: null, searchError: null });
-    expect(screen.getByText('Loading wiki…')).toBeInTheDocument();
+  it('renders a skeleton list when search is null and no error', () => {
+    // (v1.11.78) Loading copy moved to aria-label on the <Skeleton>
+    // wrapper so screen readers still get the hint, while the
+    // visual treatment is now the animate-pulse primitive.
+    const { container } = renderResults({ search: null, searchError: null });
+    const wrap = container.querySelector('[data-wiki-loading="1"]');
+    expect(wrap).not.toBeNull();
+    expect(wrap?.getAttribute('aria-label')).toBe('Loading wiki…');
+    const skeletons = container.querySelectorAll('[role="status"][aria-hidden="true"]');
+    expect(skeletons.length).toBe(3);
   });
 
   it('renders the empty-state message with the wikiRoot when hits is empty', () => {
@@ -289,13 +296,17 @@ describe('<WikiSearchResults>', () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
-  it('re-renders the loading copy when the locale flips to ko', () => {
-    renderResults({ search: null });
-    expect(screen.getByText('Loading wiki…')).toBeInTheDocument();
+  it('re-renders the loading aria-label when the locale flips to ko', () => {
+    // (v1.11.78) Loading copy lives on the wrapper aria-label, not
+    // inside the visible skeleton.
+    const { container } = renderResults({ search: null });
+    const wrap = container.querySelector('[data-wiki-loading="1"]');
+    expect(wrap?.getAttribute('aria-label')).toBe('Loading wiki…');
     act(() => {
       setLocale('ko');
     });
-    expect(screen.queryByText('Loading wiki…')).not.toBeInTheDocument();
+    const wrapAfter = container.querySelector('[data-wiki-loading="1"]');
+    expect(wrapAfter?.getAttribute('aria-label')).not.toBe('Loading wiki…');
   });
 
   it('renders the score prefix in each row', () => {

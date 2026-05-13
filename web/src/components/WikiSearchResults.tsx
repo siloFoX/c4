@@ -1,4 +1,5 @@
-import { Badge } from './ui';
+import { FileSearch } from 'lucide-react';
+import { Badge, EmptyState, Skeleton } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import type { SearchResponse } from './WikiView';
@@ -27,13 +28,25 @@ export default function WikiSearchResults({
     return <div className="p-4 text-sm text-destructive">{searchError}</div>;
   }
   if (!search) {
-    return <div className="p-4 text-sm text-muted-foreground">{t('wiki.loading')}</div>;
+    return (
+      <div
+        className="flex flex-col gap-2 p-4"
+        aria-label={t('wiki.loading')}
+        data-wiki-loading="1"
+      >
+        <Skeleton variant="row" />
+        <Skeleton variant="row" />
+        <Skeleton variant="row" />
+      </div>
+    );
   }
   if (search.hits.length === 0) {
     return (
-      <div className="p-4 text-sm text-muted-foreground">
-        {tFormat('wiki.empty.format', { root: search.wikiRoot })}
-      </div>
+      <EmptyState
+        icon={<FileSearch className="h-6 w-6" />}
+        title={tFormat('wiki.empty.format', { root: search.wikiRoot })}
+        className="m-4"
+      />
     );
   }
   return (

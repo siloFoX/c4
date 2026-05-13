@@ -1,6 +1,6 @@
 import { Loader2, Sparkles } from 'lucide-react';
 import type { RefObject, UIEvent } from 'react';
-import { Button } from './ui';
+import { Button, Skeleton } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import {
@@ -53,9 +53,15 @@ export default function ChatMessageLog({
           <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
           <span>{t('chat.loadingPast')}</span>
           <ul className="mt-4 w-full max-w-sm space-y-2" aria-hidden="true">
-            <li className="h-8 animate-pulse rounded-md bg-muted/60" />
-            <li className="h-12 animate-pulse rounded-md bg-muted/50" />
-            <li className="h-8 animate-pulse rounded-md bg-muted/60" />
+            <li>
+              <Skeleton variant="rect" height={32} className="w-full" />
+            </li>
+            <li>
+              <Skeleton variant="rect" height={48} className="w-full" />
+            </li>
+            <li>
+              <Skeleton variant="rect" height={32} className="w-full" />
+            </li>
           </ul>
         </div>
       ) : messages.length === 0 ? (
