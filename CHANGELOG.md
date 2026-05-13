@@ -4,6 +4,65 @@
 
 (no entries -- next release window)
 
+## [1.11.109] - 2026-05-13 -- Tests: Risk panels remaining RTL batch (TODO 11.91)
+
+Add vitest/RTL/jsdom coverage for the two remaining Risk-page panels
+that previously had no test file:
+`web/src/components/RiskSandboxPreview.tsx` and `RiskStatsGrid.tsx`.
+Mirrors the v1.11.104 / v1.11.105 / v1.11.106 / v1.11.107 pattern
+(setLocale in beforeEach, render with concrete prop fixtures, assert
+the DOM, locale-flip assertion at the end). Both panels are pure
+display over a parent-owned value so neither test file needs a
+`vi.mock` -- the fetch / busy / poll plumbing already lives in
+`useRiskSandboxPreview` and `useRiskStats`, both with their own
+dedicated hook tests. Skipping the 1.11.108 slot per the queue's
+TODO 11.90 "skipped - 11.81 baseline sufficient" note.
+
+- RiskSandboxPreview.test.tsx (20 cases): runtime badge interpolates
+  the `runtime` value (covers both `docker` and `null`); isolation
+  badge interpolates `isolation.name`; `available.ok=true` renders the
+  English "available" indicator inside a `text-success` span and
+  `available.ok=false` renders the "unavailable: {reason}" indicator
+  inside a `text-destructive` span; the reason field falls back to
+  `?` when null; the capability grid renders the
+  `network` / `filesystem` / `resources` values from the isolation
+  block; the argv `<pre>` joins binary + args with single spaces, and
+  args containing whitespace are JSON-quoted while bare args stay
+  bare; the binary falls back to the literal `<NullRuntime>` when
+  `binary` is null or the empty string; the env `<details>` block is
+  hidden when `sandbox.env` is empty (covers both `{}` and the
+  defensive `undefined` branch via the `|| {}` fallback) and rendered
+  with a `env (N)` summary + `K=V` joined-by-newline `<pre>` body
+  when populated; the argv `<pre>` keeps `tabIndex=0`; a keyboard
+  user can click the env summary to flip `details.open`; locale flip
+  drops the English "available" indicator.
+- RiskStatsGrid.test.tsx (17 cases): the four headline tiles
+  (`total events` / `enforced` / `dry run` / `shadow exec`) render
+  their numeric values; the enforced tile gets the destructive tone
+  class only when `enforced > 0`; the shadow-exec sub-line is hidden
+  when both `shadowExecKilled` and `shadowExecNonZero` are 0 and
+  renders only the killed segment, only the non-zero segment, or
+  both joined by the separator depending on which counters are
+  positive; the four byLevel tiles render their level label, the
+  underlying count (defaulting to 0 when missing), and the per-level
+  tone class derived from `LEVEL_TONE` (text-destructive /
+  text-orange-700 / text-warning / text-success); the topReasons and
+  topWorkers sections are hidden when their arrays are empty and
+  render one `<li>` per entry with the count when populated; the
+  rule-set rotations banner is hidden when `ruleSetRotations <= 1`
+  and rendered with the count + the operator-warning copy when
+  `> 1`; the from -> to range row carries both timestamps; locale
+  flip drops the English "total events" label.
+
+Verification: 37 / 37 new cases passing (`env -C
+/root/c4-worktree-auto-w82/web vitest run --project unit` on the two
+files); 5534 / 5534 cases passing across the full 251-file unit
+suite (5497 prior from v1.11.107 + 37 new cases in 2 new files).
+ErrorBoundary `boom` / `left-boom` console.error lines are
+pre-existing fixture output, not regressions introduced here.
+web/package.json 1.11.107 -> 1.11.109 (1.11.108 intentionally
+skipped per the orchestrator's TODO 11.90 note).
+
 ## [1.11.107] - 2026-05-13 -- Tests: Risk panels + editors RTL batch (TODO 11.89)
 
 Add vitest/RTL/jsdom coverage for three components that previously
