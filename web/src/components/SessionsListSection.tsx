@@ -1,5 +1,6 @@
-import { ChevronDown, ChevronRight, FolderOpen } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Badge, EmptyState, Skeleton } from './ui';
+import { WelcomeOnboardingIllustration } from './illustrations';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 import {
@@ -53,7 +54,12 @@ export default function SessionsListSection({
     }
     return (
       <EmptyState
-        icon={<FolderOpen className="h-6 w-6" />}
+        icon={
+          <WelcomeOnboardingIllustration
+            className="text-muted-foreground"
+            size={160}
+          />
+        }
         title={t('sessions.empty')}
         className="m-4"
       />

@@ -280,3 +280,58 @@ Verification:
   media feature prefers-reduced-motion" -> "reduce" -> reload.
   Card mount, button press, toast appearance, and tab switch
   should all be motionless.
+
+## Illustrations (1.11.84)
+
+Hero illustrations live under
+`web/src/components/illustrations/index.tsx` as named React
+exports. The set today is four: `EmptyQueueIllustration`,
+`NoWorkersIllustration`, `WelcomeOnboardingIllustration`,
+`AllDoneIllustration`. They drop into `EmptyState`'s `icon` slot
+and replace small lucide icons in three high-traffic sites
+(Sessions empty, Workers empty, Auto queue empty).
+
+Line-art recipe -- follow these so future illustrations feel like
+one family rather than four loose icons:
+
+- `viewBox="0 0 240 180"` -- 4:3 landscape, plenty of horizontal
+  room for inbox / desk / door silhouettes.
+- `stroke="currentColor"` -- the consumer paints the hue via a
+  semantic palette class (typically `text-muted-foreground` from
+  `EmptyState`'s built-in icon wrapper). Never set a hard stroke
+  color.
+- `strokeWidth={1.75}` plus `strokeLinecap="round"` and
+  `strokeLinejoin="round"` on the root `<svg>`. The 1.5 to 2 range
+  is enforced by the illustrations test so you cannot drift the
+  weight per-illustration.
+- `fill="none"` on the root so unintended fills do not leak in
+  from defaults. Add fills only where you mean to.
+- At most one accent fill per illustration, expressed as
+  `hsl(var(--primary) / 0.15)`. The accent picks up the active
+  brand colour and adapts cleanly to light vs dark themes -- never
+  hard-code a hex.
+- 8 to 25 shapes (path / line / circle / rect / polygon) per
+  illustration. The shape-budget test in
+  `illustrations.test.tsx` will fail if you blow past 25 -- that
+  is on purpose; hero illustrations are read-at-a-glance, not
+  technical diagrams.
+
+Accessibility convention:
+
+- Default to decorative: every illustration ships with
+  `aria-hidden="true"` on the root `<svg>` because it is paired
+  with a textual `EmptyState.title` that the screen reader will
+  already announce.
+- When the illustration stands alone (no neighbouring text), pass
+  `aria-hidden={false}` and the component flips to `role="img"`
+  with a descriptive `aria-label` baked into the component.
+
+Adopting a new illustration in an empty state:
+
+1. Import the named export from `../components/illustrations`.
+2. Pass it to `EmptyState`'s `icon` prop with `size={160}` (or
+   `size={180}` if the surrounding card has more room).
+3. Add `className="text-muted-foreground"` for parity with the
+   muted-icon convention -- it is redundant inside `EmptyState`
+   (the wrapper already paints `text-muted-foreground`) but kept
+   so the illustration tones down when used outside `EmptyState`.
