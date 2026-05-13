@@ -3478,6 +3478,42 @@ async function handleRequest(req, res) {
         try { pinnedMemoryScheduler.unregister(name); } catch {}
       }
 
+    } else if (req.method === 'POST' && /^\/workers\/[^\/]+\/reconnect$/.test(route)) {
+      // (11.74) Manual re-adopt for a single worker. Mirrors the
+      // auto-reconcile sweep that runs on daemon start, but lets an
+      // operator recover a specific name without restarting the
+      // daemon. 200 on adopt, 404 if no checkpoint exists, 409 if the
+      // pid recorded in the checkpoint is dead.
+      const name = decodeURIComponent(route.split('/')[2] || '');
+      const gate = requireRole(authCheck, rbac.ACTIONS.WORKER_CREATE);
+      if (denyOr(res, gate)) return;
+      const r = manager.reconnectWorker(name);
+      if (r && r.error === 'not-found') {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'not-found', name, message: `Worker '${name}' not found in checkpoints` }));
+        return;
+      }
+      if (r && r.error === 'pid-dead') {
+        res.writeHead(409);
+        res.end(JSON.stringify({
+          error: 'pid-dead',
+          name,
+          pid: r.pid,
+          message: `Worker '${name}' pid ${r.pid} is no longer alive - run c4 cleanup to discard`,
+        }));
+        return;
+      }
+      if (r && r.error) {
+        res.writeHead(400);
+        res.end(JSON.stringify(r));
+        return;
+      }
+      _safeAudit('worker.reconnected', { recovered: !!(r && r.worker && r.worker.recovered) },
+        { target: name, actor: _auditActor(authCheck) });
+      safeEmit('worker_reconnect', { worker: name });
+      safeRecord('worker_reconnect', { worker: name, payload: r });
+      result = r;
+
     } else if (req.method === 'GET' && /^\/workers\/[^\/]+\/pinned-memory$/.test(route)) {
       // 8.46: read the current pinned memory for a worker. Matches the
       // `c4 pinned-memory get <name>` CLI path. Read-side is gated by the
@@ -6847,6 +6883,19 @@ server.listen(PORT, HOST, () => {
   console.log(`C4 daemon running on http://${HOST}:${PORT} (version ${manager._daemonVersion || 'unknown'})`);
   // Persist daemon version to state.json (7.15)
   try { manager._saveState(); } catch (e) { console.error('[DAEMON] _saveState on startup failed:', e.message); }
+  // (11.74) Auto-reconnect orphan workers left over from the previous
+  // daemon run. Defensive: never throws — a malformed checkpoint must
+  // not block startup. The helper logs adopted / lost counts to stderr.
+  try {
+    const r = manager.reconcileOrphans({
+      log: (msg) => process.stderr.write(msg + '\n'),
+    });
+    if (r && (r.adopted > 0 || r.lost > 0)) {
+      console.log(`[reconnect] startup reconcile: adopted=${r.adopted} lost=${r.lost}`);
+    }
+  } catch (e) {
+    console.error('[DAEMON] reconcileOrphans on startup failed:', e.message);
+  }
   manager.startHealthCheck();
   manager.startWorktreeGc();
   notifications.startPeriodicSlack();

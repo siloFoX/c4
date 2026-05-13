@@ -572,6 +572,114 @@ async function runAttach({
   return { client, readonly, url };
 }
 
+// (11.74) `c4 reconnect <name>` — re-adopt a worker the daemon lost
+// track of (typically after `c4 daemon stop` + restart leaves a live
+// PID behind). Calls POST /api/workers/:name/reconnect; the helper is
+// exported so tests can drive it with an injected request function
+// and stdio without spawning a real daemon.
+async function runReconnect({
+  name,
+  base,
+  token,
+  request: requestFn,
+  stdout = process.stdout,
+  stderr = process.stderr,
+} = {}) {
+  const baseUrl = base || BASE;
+  let response;
+  try {
+    if (typeof requestFn === 'function') {
+      response = await requestFn({
+        method: 'POST',
+        path: `/workers/${encodeURIComponent(name)}/reconnect`,
+        base: baseUrl,
+        token,
+      });
+    } else {
+      const status = { code: null };
+      response = await requestWithStatus(
+        'POST',
+        `/workers/${encodeURIComponent(name)}/reconnect`,
+        null,
+        status,
+      );
+      response._statusCode = status.code;
+    }
+  } catch (err) {
+    const msg = err && err.message ? err.message : String(err);
+    stderr.write(`[c4 reconnect: ${msg}]\n`);
+    return { exitCode: 1, response: null };
+  }
+
+  const body = response && response.body !== undefined ? response.body : response;
+  const status = response && response._statusCode != null
+    ? response._statusCode
+    : (response && response.status != null ? response.status : null);
+
+  // Treat HTTP status as the source of truth when the helper surfaces
+  // it; otherwise fall back to body.error for older daemons.
+  if (status === 404 || (body && body.error === 'not-found')) {
+    stdout.write(`Worker '${name}' not found in checkpoints\n`);
+    return { exitCode: 2, response };
+  }
+  if (status === 409 || (body && body.error === 'pid-dead')) {
+    const pid = body && body.pid != null ? body.pid : 'unknown';
+    stdout.write(`Worker '${name}' pid ${pid} is no longer alive - run c4 cleanup to discard\n`);
+    return { exitCode: 1, response };
+  }
+  if (status && status >= 400) {
+    const err = body && body.error ? body.error : `HTTP ${status}`;
+    stderr.write(`[c4 reconnect: ${err}]\n`);
+    return { exitCode: 1, response };
+  }
+  if (body && body.error) {
+    stderr.write(`[c4 reconnect: ${body.error}]\n`);
+    return { exitCode: 1, response };
+  }
+  const worker = (body && body.worker) || {};
+  const pid = worker.pid != null ? worker.pid : '?';
+  const branch = worker.branch || '-';
+  stdout.write(`Reconnected ${name} (pid=${pid}, branch=${branch})\n`);
+  return { exitCode: 0, response };
+}
+
+// (11.74) Variant of request() that surfaces the HTTP status code as
+// well as the parsed body. The standard request() helper above
+// resolves with the body only, losing the 200/404/409 distinction
+// runReconnect needs. New helper kept narrow so existing callers of
+// request() stay unchanged.
+function requestWithStatus(method, path, body = null, status = null, timeout = 10000) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(withApiPrefix(path), BASE);
+    const headers = { 'Content-Type': 'application/json' };
+    const token = readToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const options = {
+      hostname: url.hostname,
+      port: url.port,
+      path: url.pathname + url.search,
+      method,
+      headers,
+      timeout,
+    };
+    const req = http.request(options, (res) => {
+      if (status && typeof status === 'object') status.code = res.statusCode;
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        let parsed;
+        try { parsed = JSON.parse(data); }
+        catch { parsed = { raw: data }; }
+        resolve(parsed);
+      });
+    });
+    req.on('timeout', () => { req.destroy(); reject(new Error('Request timeout')); });
+    req.on('error', (err) => reject(new Error(`Daemon not running? ${err.message}`)));
+    if (body) req.write(JSON.stringify(body));
+    req.end();
+  });
+}
+
 async function main() {
   const [cmd, ...args] = process.argv.slice(2);
 
@@ -950,6 +1058,20 @@ async function main() {
         const name = args[0];
         result = await request('POST', '/close', { name });
         break;
+      }
+
+      case 'reconnect': {
+        // (11.74) Manual re-adopt for a single worker. Exit codes:
+        //   0 — Reconnected successfully (200 from daemon)
+        //   1 — pid is dead (409) or unexpected network/daemon error
+        //   2 — no checkpoint exists for that name (404)
+        const name = args[0];
+        if (!name) {
+          console.error('Usage: c4 reconnect <name>');
+          process.exit(1);
+        }
+        const r = await runReconnect({ name });
+        process.exit(r.exitCode);
       }
 
       case 'health': {
@@ -7454,6 +7576,7 @@ Commands:
   recover <name> [--category X]    Smart recovery pass on a stuck worker (8.4)
        [--history] [--limit N]     Show recovery history instead of running a pass
   close <name>                     Close a worker
+  reconnect <name>                 Re-adopt an orphan worker from its checkpoint (11.74)
   history [worker] [--limit N]     Show task history
   health                           Check daemon status
   ui [--port N]                    Open the daemon web UI in your default browser
@@ -7594,5 +7717,5 @@ if (require.main === module) {
 } else {
   // Expose helpers so tests can exercise them without spawning the CLI
   // or stubbing argv. Keep this list narrow on purpose.
-  module.exports = { withApiPrefix, resolveUiPort, pickUiOpener, runUi, buildAttachUrl, runAttach };
+  module.exports = { withApiPrefix, resolveUiPort, pickUiOpener, runUi, buildAttachUrl, runAttach, runReconnect };
 }

@@ -4,6 +4,132 @@
 
 (no entries -- next release window)
 
+## [1.11.92] - 2026-05-13 -- Daemon: reconnect orphan workers (TODO 11.74)
+
+Auto-recover workers across `c4 daemon stop` + restart cycles. v1.11.91
+left a per-worker checkpoint JSON behind on graceful shutdown but the
+restarting daemon ignored those files -- an operator had to manually
+re-spawn each worker on the same branch / worktree to pick up where
+the previous session left off. This release closes the loop: on
+startup the daemon walks `git worktree list`, pairs each
+`c4-worktree-*` entry with its `.c4/checkpoints/<name>.json`, and
+either auto-re-adopts the workers whose recorded pid is still alive
+(state = ATTACHED) or marks them LOST with a reason field. The new
+`c4 reconnect <name>` subcommand runs the same logic on demand for
+a single worker.
+
+Reconcile flow on daemon start (`src/daemon.js::server.listen`
+callback, after `_saveState`):
+
+- Calls `manager.reconcileOrphans({ log })` once. Logs adopted /
+  lost counts to console + per-worker `[reconnect] auto-adopted ...`
+  or `[reconnect] worker X marked LOST (reason: ...)` lines.
+- Already-registered worker names are skipped (the daemon owns the
+  live PTY; a stale checkpoint from a previous crash must not
+  clobber it).
+- Defensive: any throw inside reconcile is caught + logged, never
+  blocks daemon startup. A malformed checkpoint JSON is treated as
+  LOST/`malformed-checkpoint`, not a fatal error.
+
+LOST reasons the planner can emit:
+
+- `no-checkpoint` -- worktree exists, no `.c4/checkpoints/<name>.json`
+- `pid-dead` -- checkpoint pid does not respond to
+  `process.kill(pid, 0)` (ESRCH; EPERM still counts as alive)
+- `malformed-checkpoint` -- file present but JSON parse failed
+- `no-pid` -- file present and parsed, but pid field missing/non-numeric
+
+Pure planner (`src/daemon-checkpoint.js`):
+
+- `defaultIsPidAlive(pid)` -- wraps `process.kill(pid, 0)`; ESRCH = dead,
+  EPERM = alive, anything else = dead. Injectable so tests drive both
+  branches without touching real PIDs.
+- `readCheckpoint(name, projectRoot, opts)` -- returns
+  `{ found, payload, malformed, error, path }`. Distinguishes "file
+  missing" from "file present but unreadable JSON".
+- `workerNameFromWorktreePath(p)` -- strips the `c4-worktree-` prefix
+  from the basename. Returns `null` for non-c4 worktrees so the
+  enumerator never re-adopts foreign ones.
+- `planReconnect(name, opts)` -- single-name plan used by the daemon
+  endpoint. Returns `{ action: 'adopt'|'lost', reason?, pid?, ... }`.
+- `reconcileOrphans({ worktrees, projectRoot, skipNames, isPidAlive,
+  fs, log })` -- fleet-level plan; never throws.
+
+PtyManager wrapper (`src/daemon-reconnect.js`, new):
+
+- Pulled out of pty-manager.js so unit tests don't have to load the
+  full PtyManager (which pulls in node-pty native bindings).
+- `buildRecoveredWorker(name, plan)` constructs the session entry
+  with `kind: 'recovered'`, `state: 'ATTACHED'`, `_recovered: true`,
+  `_recoveryShown: false` (flipped to true on the first list() call
+  so the suffix only appears once), and copies the checkpoint's
+  branch / worktree / target / tier / lastTask / pinnedMemory.
+- `applyReconcilePlan(manager, plan)` mutates `manager.workers` for
+  adopt plans and `manager.lostWorkers` for lost plans. Lost entries
+  get `{ name, pid, branch, worktree, parent, sessionId, pinnedMemory,
+  lostAt, reason, state: 'LOST' }` so `c4 list` can render the
+  reason column.
+- `reconcileOrphans(manager, opts)` and
+  `reconnectWorker(manager, name, opts)` glue the planner to the
+  manager-side maps. PtyManager methods of the same name are
+  one-line forwards.
+
+list() surface updates (`src/pty-manager.js::list`):
+
+- Each worker entry now carries `recovered`, `recoveredSuffix`, and
+  `state` fields. The CLI / Web UI can render
+  `<name> (recovered)` on the first list() after adoption;
+  `recoveredSuffix` flips to false on subsequent calls.
+- `lostWorkers` array entries gain a `reason` field
+  (`'no-checkpoint' | 'pid-dead' | 'malformed-checkpoint' | 'no-pid'`)
+  and a `state: 'LOST'` field. Existing fields (name, pid, branch,
+  worktree, lostAt) are unchanged.
+
+API endpoint contract (`POST /api/workers/:name/reconnect`):
+
+- 200 + `{ ok: true, worker: { name, pid, branch, worktree, state:
+  'ATTACHED', recovered: true } }` on successful re-adopt.
+- 404 + `{ error: 'not-found', name, message }` when no checkpoint
+  file exists for that name.
+- 409 + `{ error: 'pid-dead', name, pid, message }` when the
+  checkpoint's pid is no longer alive. The pid-dead path also adds
+  a LOST entry to `lostWorkers` so a follow-up `c4 list` shows the
+  bad state without re-querying.
+- Returns `{ ok: true, already: true, worker }` (200) when the name
+  is already registered -- idempotent for repeated calls.
+- RBAC: gated by `rbac.ACTIONS.WORKER_CREATE` (reconnect creates a
+  session entry, conceptually similar to create).
+- Audit: emits `worker.reconnected` audit event + `worker_reconnect`
+  SSE.
+
+CLI subcommand (`c4 reconnect <name>`, `src/cli.js`):
+
+- `runReconnect({ name, request?, stdout?, stderr? })` -- exported
+  for tests. Calls `POST /api/workers/<encoded name>/reconnect`,
+  reads the HTTP status, maps to exit code + message.
+- 200 prints `Reconnected <name> (pid=<pid>, branch=<branch>)`,
+  exit 0.
+- 404 prints `Worker '<name>' not found in checkpoints`, exit 2.
+- 409 prints `Worker '<name>' pid <pid> is no longer alive - run c4
+  cleanup to discard`, exit 1.
+- Network error prints `[c4 reconnect: <error>]` to stderr, exit 1.
+- Added a narrow `requestWithStatus()` helper alongside the existing
+  `request()` so the CLI can read the HTTP status code (which the
+  baseline helper drops). Existing callers of `request()` are
+  unchanged.
+
+Tests (count: 32):
+
+- `tests/daemon-reconnect.test.js` (24 cases) -- planner
+  adopt/lost/malformed/no-pid/no-checkpoint, log line shape,
+  skipNames guard, single-name `planReconnect` adopt/lost/pid-dead,
+  manager-side `reconcileOrphans` + `reconnectWorker` mutating
+  workers/lostWorkers maps, recovered breadcrumb (`_recoveryShown`),
+  and the 200/404/409 endpoint contract.
+- `tests/cli-reconnect.test.js` (8 cases) -- URL shape, URI
+  encoding, 200/404/409 stdout + exit codes, network-error path,
+  legacy daemon body-only error code, and the 500-fallback branch.
+
 ## [1.11.91] - 2026-05-13 -- Daemon: clean stop with worker checkpoint (TODO 11.73)
 
 Make `c4 daemon stop` graceful and recoverable. The previous flow
