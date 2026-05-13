@@ -4,6 +4,123 @@
 
 (no entries -- next release window)
 
+## [1.11.85] - 2026-05-13 -- Web UI: OnboardingTour motion + skip persistence
+
+OnboardingTour rewrite that swaps the legacy popover-only chrome for
+a Tailwind motion-safe transition layer, a backdrop-blurred dim
+overlay, a box-shadow ring spotlight over the active step's target,
+and a dedicated `c4.tour.skipped` localStorage key so analytics can
+distinguish a user-initiated skip from a normal completion.
+
+Behavioural changes:
+
+- Skip / X / Escape now write `'true'` to `c4.tour.skipped` instead
+  of the legacy `c4.onboardingTour.v1` `'seen'` marker. The skip
+  decision is persistent and blocks auto-open the next time the
+  page mounts. Done continues to write `'seen'` to the legacy key,
+  so analytics can tell the two paths apart.
+- `shouldAutoOpen()` is now a single try/catch that fails closed.
+  When `localStorage.getItem` throws (private mode, locked storage)
+  the tour stays closed instead of flashing the popover on a page
+  it cannot persist a dismissal for.
+- `startOnboardingTour()` clears both `TOUR_STORAGE_KEY` and
+  `TOUR_SKIP_KEY` before firing `TOUR_EVENT_START`, so a manager
+  replay from Settings / the ? menu drops the user back at step 1
+  regardless of which dismissal path they took before.
+
+Visual chrome:
+
+- Overlay carries `motion-safe:backdrop-blur-sm bg-background/40`
+  for the dim, plus `motion-safe:transition-opacity
+  motion-safe:duration-200 motion-safe:ease-out` so the fade-in
+  is silent under `prefers-reduced-motion: reduce`.
+- Popover gains `motion-safe:transition-all motion-safe:duration-200
+  motion-safe:ease-out motion-safe:animate-in motion-safe:fade-in
+  motion-safe:slide-in-from-bottom-2`. The `key={index}` reset on
+  the popover element re-fires the enter animation on every step
+  advance, so each step feels distinct without bouncing the dialog
+  position.
+- Spotlight overlay is an absolutely-positioned div sized to the
+  resolved target's bounding rect. It carries `ring-2 ring-primary
+  ring-offset-2 ring-offset-background` for the box-shadow ring
+  and a soft `shadow-[0_0_0_4px_hsl(var(--primary)/0.35)]` halo,
+  with the same 200ms motion-safe transition so the ring eases
+  between targets when the step advances.
+- Reduced-motion users (`prefers-reduced-motion: reduce`) get a
+  static popover + still ring + non-blurred dim, since every motion
+  utility is wrapped in `motion-safe:`.
+
+`data-tour-step` attribute contract:
+
+- The overlay, popover, and spotlight each carry `data-tour-step`
+  with the current 1-indexed step number (`'1'` ... `'4'`), so
+  e2e harnesses can assert which step is on screen without
+  reaching into the popover copy.
+- Each `Step` definition now accepts an optional `targetSelector`
+  CSS selector. When the selector resolves, the tour sets
+  `data-tour-active="true"` on the target for the duration of that
+  step and cleans up on advance / dismount / dismiss. The four
+  shipping steps target `[data-tour-step="tabs"]`,
+  `[data-tour-step="sidebar"]`, `[data-tour-step="banner"]`, and
+  `[data-tour-step="help"]` — host pages can opt in to spotlight
+  highlighting by tagging the relevant element with the matching
+  `data-tour-step` attribute (no spotlight renders when the target
+  is missing, so the rollout can be incremental).
+
+Testing:
+
+- `web/src/components/OnboardingTour.test.tsx` -- NEW; 64 vitest
+  cases under the jsdom unit project, covering: exported-constant
+  identities (`TOUR_STORAGE_KEY`, `TOUR_SKIP_KEY`,
+  `TOUR_EVENT_START`), the cold-start auto-open + the
+  `c4.tour.skipped` / `seen` gates + `forceOpen` overrides + the
+  private-mode fail-closed path, the dialog scaffolding
+  (`role="dialog"`, `aria-modal="true"`, the i18n aria-label,
+  `data-tour-overlay`, `data-tour-step="1"`, fixed inset-0),
+  the motion-safe overlay + popover class assertions
+  (`backdrop-blur-sm`, `duration-200`, `ease-out`,
+  `bg-background/40`, `transition-all`), step-1 copy and counter,
+  the button matrix per step (Skip on every step, X on every step,
+  Next on non-final, Back on non-first, Done on final), forward
+  + backward navigation with overlay/popover `data-tour-step`
+  updates, the new skip-key persistence (Skip / X both write
+  `'true'` to `c4.tour.skipped` and do not write `'seen'`), the
+  legacy done-key persistence (Done writes `'seen'` and does not
+  touch the skip key), the `onClose` callback firing on every
+  dismissal path, Escape-key dismissal (treated as a skip, with
+  unbind verification post-close), forceOpen sync (overrides
+  `'seen'`, rewinds index on false->true flip), `TOUR_EVENT_START`
+  replay from a skipped state and mid-tour rewind, the
+  `startOnboardingTour` helper clearing both keys and dispatching
+  the event, the spotlight absence when no target matches and
+  presence when one does (including the `ring-2 ring-primary`
+  + motion-safe class assertions), the `data-tour-active="true"`
+  tag moving with the active step and clearing on dismiss, the
+  popover `data-tour-popover` marker + matching `data-tour-step`,
+  locale flip re-rendering, and rerender stability (no duplicate
+  dialog on a same-props rerender).
+
+Verification:
+
+- `npm --prefix web test` reports 5147 / 5147 passing across
+  227 test files (5083 prior + 64 new OnboardingTour cases). No
+  pre-existing tests regressed.
+- `npm --prefix web test src/components/OnboardingTour.test.tsx`
+  isolated run: 64 / 64 passing in ~840 ms.
+
+Files touched:
+
+- `web/package.json` -- bump 1.11.84 -> 1.11.85.
+- `web/package-lock.json` -- mirror the version bump (no
+  dependency tree changes).
+- `web/src/components/OnboardingTour.tsx` -- rewrite with the
+  motion-safe transition layer, spotlight ring, skip-key
+  persistence, and `data-tour-step` / `data-tour-active`
+  attribute contract.
+- `web/src/components/OnboardingTour.test.tsx` -- NEW; 64
+  vitest RTL cases.
+- `CHANGELOG.md` -- this entry.
+
 ## [1.11.84] - 2026-05-13 -- Web UI: Hero illustrations (TODO 11.66)
 
 Four monochrome line-art SVG illustrations land under
