@@ -399,3 +399,96 @@ The fuzzy matcher (`match` + `filterCommands` in the same file) is
 intentionally tiny -- no new dependency. Substring beats acronym,
 prefix substring beats non-prefix substring, ties break by label
 ascending. Case insensitive on both sides.
+
+## Dark mode audit (1.11.87)
+
+The semantic palette pays for itself only when every chrome surface
+reaches for it. Before merging a PR that adds a status-style surface,
+run the same audit the v1.11.87 sweep used to scrub the few
+remaining raw-hue holdouts:
+
+### Grep recipe
+
+```bash
+# 1. Pure black / pure white on chrome (almost always wrong).
+grep -rnE '\b(bg|text|border)-(white|black)\b' web/src --include='*.tsx'
+
+# 2. Tailwind neutral families on chrome (gray / slate / neutral /
+#    zinc / stone, NNN = 50/100/200/300/400/500/600/700/800/900).
+grep -rnE '\b(bg|text|border)-(gray|slate|neutral|zinc|stone)-(50|100|200|300|400|500|600|700|800|900)' \
+  web/src --include='*.tsx'
+
+# 3. Status hues paired with a `dark:` variant -- the canonical
+#    "this should be a semantic token" smell. The pair was the
+#    pre-1.11.77 way to spell ok/warning/info/error.
+grep -rnE '\b(emerald|amber|rose|orange|blue|sky|red|green)-(400|500|600|700)\b' \
+  web/src --include='*.tsx' | grep -v test.tsx
+```
+
+A clean run produces only the intentional sites listed below.
+
+### Decide: semantic or categorical
+
+| Question | If yes -> | If no -> |
+| --- | --- | --- |
+| Is this an ok / warning / info / error tone? | semantic token (`success`/`warning`/`info`/`destructive`) | continue |
+| Is this a fixed-overlay dim layer (modal backdrop, tour scrim)? | leave as `bg-black/{30,50}` -- intentional regardless of theme | continue |
+| Is this color identifying *which* item it is (kind / tier / role / tag)? | categorical -- raw Tailwind hue is fine, document the mapping next to the lookup table | continue |
+| Is this a gradient slot the semantic palette does not cover (e.g. risk "high" between `warning` and `destructive`)? | raw hue OK, note it in the audit prose so future PRs do not "fix" it | rare -- file a token RFC before merging |
+
+### Intentional raw-hue sites (post-1.11.87)
+
+- `web/src/components/AttachModal.tsx` + `SessionsTour.tsx` --
+  `bg-black/{30,50}` modal backdrops. Dim overlay is theme-neutral.
+- `web/src/components/WorkflowNodeProperties.tsx` -- `text-white`
+  on an inline-styled colored badge. Contrast is on the fill, not
+  the theme background.
+- `web/src/components/SpecialistsView.tsx` `TIER_BADGE`,
+  `SpecialistsAuditPanel.tsx` `tone` map, `MeetingsList.tsx`
+  fork-of marker, `SpecialistsList.tsx` veto + tag chips --
+  categorical (per-item identity).
+- `web/src/pages/Risk.tsx` + `RiskRuleCatalogPanel.tsx`
+  `LEVEL_TONE.high` -- orange-500 is an intermediate severity
+  between `warning` and `destructive`; semantic palette has no
+  matching slot.
+- `web/src/lib/snippet.ts` -- search-hit highlight (amber-500/20).
+  Highlight is a visual cue, not a status.
+
+### AccountMenu theme switcher recipe
+
+The 1.11.87 `AccountMenu` ships with a Toggle theme row that
+demonstrates the motion-safe re-mount pattern for future icon
+animations:
+
+```tsx
+import { Sun, Moon, Monitor } from 'lucide-react';
+
+export const THEME_ICON_ANIM_CLASS =
+  'inline-flex motion-safe:animate-in motion-safe:spin-in-180 ' +
+  'motion-safe:zoom-in-95 motion-safe:duration-300';
+
+function themeIconFor(theme: ThemeMode) {
+  if (theme === 'light') return Sun;
+  if (theme === 'dark') return Moon;
+  return Monitor;
+}
+
+// In the menu item:
+<span key={theme} data-theme={theme} className={THEME_ICON_ANIM_CLASS}>
+  {(() => { const Icon = themeIconFor(theme); return <Icon className="h-4 w-4" />; })()}
+</span>
+```
+
+`key={theme}` is doing all the work -- React unmounts the previous
+span and mounts a fresh one on every toggle, which re-runs the
+`motion-safe:animate-in` enter animation. `motion-safe:` keeps the
+animation off the `(prefers-reduced-motion: reduce)` cohort. No
+state slot, no `setTimeout` cleanup, no animation library beyond
+`tailwindcss-animate`.
+
+To wire the row at a new call site, thread `theme` + `onThemeChange`
+from `useTheme()` (already centralized in `web/src/lib/use-theme.ts`)
+through the host. `AccountMenu` keeps both props optional -- when
+either is missing the Theme row hides, which is how the existing
+unit tests that pre-date 1.11.87 keep their menu-order assertions
+green.

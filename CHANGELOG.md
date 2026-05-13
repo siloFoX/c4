@@ -4,6 +4,159 @@
 
 (no entries -- next release window)
 
+## [1.11.87] - 2026-05-13 -- Web UI: Dark mode polish (TODO 11.69)
+
+Dark-mode parity sweep across the `web/src/` chrome plus an animated
+theme-switcher icon in the AccountMenu. The audit caught the last
+half-dozen status surfaces that were still spelling out raw Tailwind
+hues with a `dark:` pair (e.g. `emerald-500/10 text-emerald-600
+dark:text-emerald-400`) and remapped them onto the semantic palette
+tokens introduced in v1.11.77 (`success` / `warning` / `info` /
+`destructive`). Categorical surfaces (tier badges, audit event
+kinds, fork-of marker, risk gradient) were intentionally left on
+raw hues -- see the "Categorical leave-as-is" list below.
+
+Audit categories scanned (grep over `web/src/**/*.tsx`):
+
+- `bg-white` / `bg-black` / `text-white` / `text-black` -- only the
+  three intentional sites remain (`AttachModal` modal backdrop and
+  `SessionsTour` overlay both use `bg-black/{30,50}` as a dim layer
+  regardless of theme; `WorkflowNodeProperties` uses `text-white`
+  on top of an inline-styled colored badge).
+- `bg-gray-NNN` / `bg-slate-NNN` / `bg-neutral-NNN` / `bg-zinc-NNN`
+  / `bg-stone-NNN` plus the matching `text-*` and `border-*`
+  variants -- zero matches outside of `dark:` pairs (the sweep
+  was already clean from v1.11.77).
+- Raw `(emerald|amber|rose|blue|orange)-500/.{10,40}` paired with
+  `dark:text-*-400` -- the six chrome status surfaces remapped to
+  semantic tokens below.
+
+Status surfaces flipped to semantic tokens (7 source files):
+
+- `web/src/components/SessionsAttachedRowActions.tsx` -- live proc
+  pill (alive) goes from `border-emerald-500/40 bg-emerald-500/10
+  text-emerald-600 dark:text-emerald-400` + `bg-emerald-500` dot to
+  `border-success/40 bg-success/10 text-success` + `bg-success`.
+  Lookup-failed pill (error) goes from amber-500 to `warning`. The
+  idle and loading pills already used `muted-foreground` -- left
+  untouched.
+- `web/src/components/MeetingsDetailTitleBar.tsx` -- streaming
+  badge: live=emerald-500 -> `success`, offline=amber-500 ->
+  `warning`.
+- `web/src/components/MeetingsComposer.tsx` -- track-classifier
+  mismatch hint goes from amber-500 to `warning`.
+- `web/src/components/MeetingsView.tsx` -- `STATUS_BADGE['in-progress']`
+  goes from `border-blue-500/40 bg-blue-500/10 text-blue-600
+  dark:text-blue-400` to `border-info/40 bg-info/10 text-info`.
+  The rest of the map (`completed` / `escalated` / `aborted` /
+  `pending`) was already on semantic tokens from v1.11.77.
+- `web/src/components/RiskSandboxPreview.tsx` -- sandbox-available
+  text goes from `text-emerald-700 dark:text-emerald-400` to
+  `text-success`.
+- `web/src/components/SpecialistsScoreHistory.tsx` -- `<ScoreBar>`
+  bar color: positive score=emerald-500/60 -> `success/60`,
+  negative score=rose-500/60 -> `destructive/60` (the zero band
+  stays on `muted-foreground/40`).
+- `web/src/components/SpecialistsList.tsx` -- underperform chip
+  goes from amber-500 to `warning`.
+
+Categorical leave-as-is (documented under the audit recipe):
+
+- `SpecialistsView.tsx` `TIER_BADGE` -- meeting/design/implement/
+  review/audit/test/deploy each owns a distinct hue. Identity, not
+  status.
+- `SpecialistsAuditPanel.tsx` `tone` map -- per-audit-event kind.
+  Identity, not status.
+- `MeetingsList.tsx` fork-of marker (purple-500) -- categorical
+  fork indicator, no semantic overlap.
+- `SpecialistsList.tsx` veto chip (rose-500) and tag chips
+  (cyan-500) -- categorical attributes (security flag + free-form
+  tags). Tags especially have no semantic ceiling -- a "warning"
+  semantic for tag chips would lie about meaning.
+- `Risk.tsx` + `RiskRuleCatalogPanel.tsx` `LEVEL_TONE.high`
+  (orange-500) -- intermediate risk severity between `warning`
+  (medium) and `destructive` (critical). The semantic palette has
+  no "high" slot today, and inventing one for a single site is
+  not worth a token. Leave as orange-500.
+- `lib/snippet.ts` search-hit highlight (amber-500/20) --
+  highlight is a categorical visual cue, not a status.
+
+AccountMenu theme switcher (`web/src/components/AccountMenu.tsx`):
+
+- New optional props `theme: ThemeMode | undefined` and
+  `onThemeChange: ((next: ThemeMode) => void) | undefined`. When
+  both are wired, a new `Toggle theme` menu row renders between
+  `Preferences` and `Keyboard shortcuts`. The row shows the
+  current theme via a `Sun` (light) / `Moon` (dark) /
+  `Monitor` (system) lucide icon and cycles light -> dark ->
+  system -> light on each activation.
+- The icon span wears `key={theme}` plus
+  `inline-flex motion-safe:animate-in motion-safe:spin-in-180
+  motion-safe:zoom-in-95 motion-safe:duration-300` (exported as
+  `THEME_ICON_ANIM_CLASS`). Each toggle remounts the span, which
+  re-runs the rotate-from-180 + zoom-from-95% enter animation.
+  `motion-safe:` keeps reduced-motion users on a still icon.
+- The new exports `ACCOUNT_LABEL_THEME` and
+  `THEME_ICON_ANIM_CLASS` mirror the existing
+  `ACCOUNT_LABEL_PROFILE` / etc. pattern so tests + future
+  consumers can pin the contract.
+- `web/src/components/layout/Sidebar.tsx` + `web/src/App.tsx` thread
+  `theme` + `setTheme` from `useTheme()` down through
+  `AccountMenu`. Standalone Sidebar / AccountMenu test renders
+  that omit the props keep the row hidden -- the existing menu
+  order assertions stay green without changes.
+- `web/src/i18n/en.json` + `ko.json` gained
+  `account.theme.toggle` / `account.theme.{light,dark,system}`.
+  The hint column on the menu row shows the current mode using
+  the localized name.
+
+Tests (9 new vitest cases):
+
+- `AccountMenu.test.tsx` -- 8 new cases pinning:
+  1. Theme row renders when both `theme` and `onThemeChange` wired.
+  2. Theme row is hidden when `theme` prop is omitted.
+  3. Theme row is hidden when `onThemeChange` is omitted.
+  4. light -> dark on activate.
+  5. dark -> system on activate.
+  6. system -> light on activate.
+  7. Icon span carries the motion-safe rotate + scale class chain
+     (exact match against the `THEME_ICON_ANIM_CLASS` export).
+  8. `key={theme}` remount: flipping the `theme` prop swaps the
+     `data-theme` attribute on the icon span (light <-> dark).
+  9. Menu order is Profile / Preferences / Theme / Keyboard /
+     Help / Sign out when the theme is wired.
+- `SessionsAttachedRowActions.test.tsx` -- 2 new cases pinning the
+  semantic token migration: alive pill uses `border-success/40
+  bg-success/10 text-success` and contains no raw `emerald-*` or
+  `dark:text-emerald-*` class. Error pill mirrors the assertion
+  against `warning`. These guard against regressions when future
+  PRs reach for a raw hue.
+
+Verification:
+
+- `env -C web vite build` succeeds (no source-tree TS or bundler
+  errors). Pre-existing `tsc --noEmit` warnings in `*.test.tsx`
+  files are unrelated to this PR and inherited from earlier
+  branches -- vite build is the binary the CHANGELOG entries
+  before 1.11.87 also gate on.
+- `env -C web vitest run` reports 5194 / 5194 passing across 229
+  test files (prior 5119 + 9 new + the rest of the diff is
+  inherited from earlier merges into this branch). No skips.
+
+Docs:
+
+- `docs/autonomous-queue-v10.md` 11.69 row flipped to `done`
+  with a Shipped: summary mirroring the entry above.
+- `docs/web-design-palette.md` gained a "Dark mode audit
+  (1.11.87)" section documenting the grep recipe (raw-hue
+  patterns to look for) plus the categorical-leave-as-is
+  decision tree so the next PR that adds a status surface can
+  self-check without re-deriving the rules.
+
+Files touched: 7 source files (color sweep) + 1 source file
+(AccountMenu wiring) + 2 layout files (Sidebar + App.tsx) + 2
+i18n bundles + 2 test files + 1 CHANGELOG + 2 docs = 17 files.
+
 ## [1.11.86] - 2026-05-13 -- Web UI: Command palette Cmd+K (TODO 11.68)
 
 A global Cmd+K (Ctrl+K on Linux/Windows) command palette lands as a
