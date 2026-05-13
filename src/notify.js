@@ -32,17 +32,20 @@
 //     the real https module).
 
 const https = require('https');
+const { getLogger } = require('./logger');
+const _log = getLogger();
 
 const ALLOWED_EVENTS = Object.freeze(['halt', 'dispatch', 'complete', 'escalation']);
 const ALLOWED_EVENT_SET = new Set(ALLOWED_EVENTS);
 
-// Default logger writes a single warn line. Tests inject opts.log to
-// assert the wording / count without polluting stdout.
+// Default logger writes a single warn line via the structured logger.
+// Tests inject opts.log to assert the wording / count without polluting
+// stdout.
 function defaultLog(level, message) {
   if (level === 'warn') {
-    console.warn(message);
+    _log.warn({ component: 'notify' }, message);
   } else if (level === 'info') {
-    console.log(message);
+    _log.info({ component: 'notify' }, message);
   }
 }
 

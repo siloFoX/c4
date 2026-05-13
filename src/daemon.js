@@ -2,6 +2,8 @@ const fs = require('fs');
 const http = require('http');
 const path = require('path');
 const readline = require('readline');
+const { getLogger } = require('./logger');
+const log = getLogger();
 const PtyManager = require('./pty-manager');
 const McpHandler = require('./mcp-handler');
 const Planner = require('./planner');
@@ -308,7 +310,7 @@ function _auditActor(authCheck) {
 }
 function _safeAudit(type, details, overrides) {
   try { return audit.record(type, details, overrides); }
-  catch (e) { console.error('[AUDIT] record failed:', e && e.message ? e.message : e); return null; }
+  catch (e) { log.error({ component: 'audit', err: e && e.message ? e.message : String(e) }, '[AUDIT] record failed'); return null; }
 }
 
 // (10.1) Shared RoleManager. Writes to ~/.c4/rbac.json by default; the
@@ -626,7 +628,7 @@ function runScheduleTick(now) {
     const mgr = getScheduleManager();
     return mgr.scheduleTick(now || new Date(), _scheduleDispatch);
   } catch (e) {
-    console.error('[SCHEDULE] tick failed:', e && e.message ? e.message : e);
+    log.error({ component: 'schedule', err: e && e.message ? e.message : String(e) }, '[SCHEDULE] tick failed');
     return { tickAt: new Date().toISOString(), dueIds: [], schedules: [] };
   }
 }
@@ -3869,11 +3871,11 @@ async function handleRequest(req, res) {
       const workerName = body.worker || '';
       const debugHooks = manager.config && manager.config.debug && manager.config.debug.hookEvents;
       if (debugHooks) {
-        console.error(`[DAEMON] /hook-event received: worker=${workerName} hook_type=${body.hook_type || ''} tool=${body.tool_name || ''}`);
+        log.debug({ component: 'daemon', worker: workerName, hook_type: body.hook_type || '', tool: body.tool_name || '' }, '/hook-event received');
       }
       if (!workerName) {
         // Always log the rejection — that's a real bug signal, not steady-state noise.
-        console.error('[DAEMON] /hook-event rejected: missing worker name');
+        log.warn({ component: 'daemon' }, '/hook-event rejected: missing worker name');
         result = { error: 'Missing worker name in hook event' };
       } else {
         result = manager.hookEvent(workerName, body);
@@ -6661,12 +6663,12 @@ manager.on('sse', (event) => {
   try {
     const res = recovery.recoverWorker(manager, event.worker, { manual: false });
     if (res && res.recovered) {
-      console.log(`[RECOVERY] auto-hook: ${event.worker} strategy=${res.strategy} category=${res.category} attempt=${res.attempt}`);
+      log.info({ component: 'recovery', worker: event.worker, strategy: res.strategy, category: res.category, attempt: res.attempt }, '[RECOVERY] auto-hook');
     } else if (res && res.skipped) {
-      console.log(`[RECOVERY] auto-hook: ${event.worker} skipped (${res.reason})`);
+      log.info({ component: 'recovery', worker: event.worker, reason: res.reason }, '[RECOVERY] auto-hook skipped');
     }
   } catch (err) {
-    console.error(`[RECOVERY] auto-hook failed for ${event.worker}:`, err && err.message ? err.message : err);
+    log.error({ component: 'recovery', worker: event.worker, err: err && err.message ? err.message : String(err) }, '[RECOVERY] auto-hook failed');
   }
 });
 
@@ -6934,21 +6936,21 @@ manager.on('sse', (event) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`C4 daemon running on http://${HOST}:${PORT} (version ${manager._daemonVersion || 'unknown'})`);
+  log.info({ component: 'daemon', host: HOST, port: PORT, version: manager._daemonVersion || 'unknown' }, 'C4 daemon listening');
   // Persist daemon version to state.json (7.15)
-  try { manager._saveState(); } catch (e) { console.error('[DAEMON] _saveState on startup failed:', e.message); }
+  try { manager._saveState(); } catch (e) { log.error({ component: 'daemon', err: e.message }, '_saveState on startup failed'); }
   // (11.74) Auto-reconnect orphan workers left over from the previous
   // daemon run. Defensive: never throws — a malformed checkpoint must
   // not block startup. The helper logs adopted / lost counts to stderr.
   try {
     const r = manager.reconcileOrphans({
-      log: (msg) => process.stderr.write(msg + '\n'),
+      log: (msg) => log.info({ component: 'reconnect' }, msg),
     });
     if (r && (r.adopted > 0 || r.lost > 0)) {
-      console.log(`[reconnect] startup reconcile: adopted=${r.adopted} lost=${r.lost}`);
+      log.info({ component: 'reconnect', adopted: r.adopted, lost: r.lost }, 'startup reconcile');
     }
   } catch (e) {
-    console.error('[DAEMON] reconcileOrphans on startup failed:', e.message);
+    log.error({ component: 'daemon', err: e.message }, 'reconcileOrphans on startup failed');
   }
   manager.startHealthCheck();
   manager.startWorktreeGc();
@@ -7032,10 +7034,10 @@ process.on('SIGINT', _gracefulShutdown);
 process.on('SIGTERM', _gracefulShutdown);
 
 process.on('uncaughtException', (err) => {
-  console.error('[DAEMON] uncaughtException:', err.message);
+  log.error({ component: 'daemon', err: err && err.message ? err.message : String(err) }, '[DAEMON] uncaughtException');
   // Don't crash — log and continue
 });
 
 process.on('unhandledRejection', (err) => {
-  console.error('[DAEMON] unhandledRejection:', err);
+  log.error({ component: 'daemon', err: err && err.message ? err.message : String(err) }, '[DAEMON] unhandledRejection');
 });
