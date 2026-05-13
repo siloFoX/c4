@@ -10,6 +10,7 @@ const Notifications = require('./notifications');
 const { resolveBindHost } = require('./web-external');
 const staticServer = require('./static-server');
 const auth = require('./auth');
+const wsAttach = require('./ws-attach');
 const historyView = require('./history-view');
 const recovery = require('./recovery');
 const fleet = require('./fleet');
@@ -6476,6 +6477,129 @@ async function handleRequest(req, res) {
 }
 
 const server = http.createServer(handleRequest);
+
+// (1.11.90) WebSocket attach endpoint /api/workers/:name/attach.
+// Mirrors the SSE /watch endpoint's lookup pattern (manager.watchWorker)
+// but bolts on bidirectional input via the new manager.writeRawInput
+// helper. The handshake is done in src/ws-attach.js so daemon.js does
+// not need to know about RFC 6455 framing.
+function _handleAttachUpgrade(req, socket) {
+  const parsed = wsAttach.parseAttachPath(req.url || '');
+  if (!parsed) {
+    socket.end(wsAttach.buildRejectResponse(404, 'Not Found',
+      JSON.stringify({ error: 'attach endpoint not found' })));
+    return;
+  }
+
+  const cfg = manager.getConfig();
+  // Mirror the HTTP handler's auth gate. The /api prefix is stripped
+  // before checkRequest because OPEN_API_ROUTES and the route-table
+  // operate on the un-prefixed shape. checkRequest accepts ?token= as
+  // a fallback for clients that cannot set Authorization (EventSource,
+  // browser WebSocket, etc.) -- the same fallback the /watch SSE
+  // endpoint already relies on.
+  const unprefixed = `/workers/${encodeURIComponent(parsed.name)}/attach`;
+  const authCheck = auth.checkRequest(cfg, req, unprefixed);
+  if (!authCheck.allow) {
+    const status = authCheck.status || 401;
+    const body = JSON.stringify(authCheck.body || { error: 'Authentication required' });
+    socket.end(wsAttach.buildRejectResponse(status,
+      status === 401 ? 'Unauthorized' : 'Forbidden', body));
+    return;
+  }
+
+  const wsKey = req.headers['sec-websocket-key'];
+  if (!wsKey) {
+    socket.end(wsAttach.buildRejectResponse(400, 'Bad Request',
+      JSON.stringify({ error: 'missing Sec-WebSocket-Key' })));
+    return;
+  }
+
+  // Subscribe BEFORE writing the 101 so we know the worker exists.
+  // Sending a close frame after a 101 means the client sees a clean
+  // disconnect with reason 'worker not found' instead of a confusing
+  // HTTP 404 followed by silence.
+  const outbound = (data) => {
+    if (socket.destroyed || !socket.writable) return;
+    try { socket.write(wsAttach.encodeBinaryFrame(data)); }
+    catch { /* socket closed under us; the 'close' handler will clean up */ }
+  };
+
+  const unwatch = manager.watchWorker(parsed.name, outbound);
+  if (!unwatch) {
+    // Worker missing. Per the contract we still complete the
+    // handshake first so the client gets a structured close with
+    // code 1008 + reason 'worker not found'.
+    socket.write(wsAttach.buildHandshakeResponse(wsKey));
+    try { socket.write(wsAttach.encodeCloseFrame(1008, 'worker not found')); }
+    catch { /* same */ }
+    try { socket.end(); } catch { /* same */ }
+    return;
+  }
+
+  socket.write(wsAttach.buildHandshakeResponse(wsKey));
+
+  const readonly = parsed.params.get('readonly') === '1';
+
+  const decoder = wsAttach.createFrameDecoder({
+    onText: (text) => {
+      if (readonly) return;
+      const res = manager.writeRawInput(parsed.name, text);
+      if (res && res.error) {
+        try { socket.write(wsAttach.encodeCloseFrame(1011, res.error)); } catch { /* */ }
+        cleanup();
+      }
+    },
+    onBinary: (chunk) => {
+      if (readonly) return;
+      const res = manager.writeRawInput(parsed.name, chunk);
+      if (res && res.error) {
+        try { socket.write(wsAttach.encodeCloseFrame(1011, res.error)); } catch { /* */ }
+        cleanup();
+      }
+    },
+    onClose: (code, reason) => {
+      // Echo a close frame back (RFC 6455 requires the server to
+      // respond to a peer-initiated close) and tear down. The
+      // cleanup path also runs on socket 'close' so a partial
+      // close from a hostile client still drops the subscription.
+      try { socket.write(wsAttach.encodeCloseFrame(code || 1000, reason || '')); } catch { /* */ }
+      cleanup();
+    },
+    onProtocolError: (reason) => {
+      try { socket.write(wsAttach.encodeCloseFrame(1002, reason)); } catch { /* */ }
+      cleanup();
+    },
+  });
+
+  let cleaned = false;
+  function cleanup() {
+    if (cleaned) return;
+    cleaned = true;
+    try { unwatch(); } catch { /* */ }
+    try { socket.end(); } catch { /* */ }
+  }
+
+  socket.on('data', (chunk) => { decoder.push(chunk); });
+  socket.on('close', cleanup);
+  socket.on('error', cleanup);
+}
+
+server.on('upgrade', (req, socket) => {
+  try {
+    if ((req.headers.upgrade || '').toLowerCase() !== 'websocket') {
+      socket.end(wsAttach.buildRejectResponse(400, 'Bad Request',
+        JSON.stringify({ error: 'only websocket upgrades are supported' })));
+      return;
+    }
+    _handleAttachUpgrade(req, socket);
+  } catch (err) {
+    try {
+      socket.end(wsAttach.buildRejectResponse(500, 'Internal Server Error',
+        JSON.stringify({ error: err && err.message ? err.message : String(err) })));
+    } catch { /* socket gone */ }
+  }
+});
 
 // Smart recovery auto-hook (8.4). When a worker's intervention transitions
 // to 'escalation' the daemon classifies the failure from scrollback and

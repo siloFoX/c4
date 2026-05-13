@@ -66,6 +66,11 @@ c4 health                            데몬 헬스체크
 c4 ui [--port N]                     Open daemon web UI in default browser (port: --port > config.json daemon.port > 3456)
                                      # Platform opener: open (darwin) / cmd /c start (win32) / xdg-open (linux+other)
                                      # Falls back to 'Open in browser: <url>' line when opener is missing (exit 0)
+c4 attach <name> [--readonly]        Interactively pipe stdin/stdout to a running worker via the daemon WebSocket
+                                     # Endpoint: GET ws://<host>:<port>/api/workers/<name>/attach (RFC 6455 upgrade)
+                                     # Detach contract: Ctrl+] (byte 0x1d) closes cleanly, prints '[c4 attach: detached from <name>]', exit 0
+                                     # --readonly adds ?readonly=1; daemon drops inbound frames so the client cannot write
+                                     # Exit codes: 0 (clean detach / normal close), 1 (socket / connection error), 2 (worker not found, close 1008)
 c4 config [reload]                   설정 조회/리로드
 c4 config validate [path]            config.json 검증 (errors / warnings)
 c4 doctor                            환경 종합 헬스 체크 (daemon + config + dist + logs)

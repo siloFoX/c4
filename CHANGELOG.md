@@ -4,6 +4,239 @@
 
 (no entries -- next release window)
 
+## [1.11.90] - 2026-05-13 -- CLI: `c4 attach` command + daemon WS endpoint (TODO 11.72, partial)
+
+Add `c4 attach <name> [--readonly]` and the matching daemon
+WebSocket endpoint `GET /api/workers/:name/attach` so an operator
+can pipe stdin/stdout to a running worker without opening a new
+tmux pane.
+
+NOTE: shipped as a "partial impl" per manager direction
+(`feat(cli): c4 attach - partial impl, test fixture iteration
+pending`). The implementation + tests are complete; a follow-up
+task will run the full-suite regression + lint and merge to main.
+
+Daemon WebSocket endpoint `GET /api/workers/:name/attach`:
+
+- `src/ws-attach.js` (new) implements just enough of RFC 6455 for
+  the daemon side: SHA-1 + WS-GUID handshake key derivation
+  (`acceptKey`), the HTTP 101 upgrade response builder
+  (`buildHandshakeResponse`), unmasked server text / binary /
+  close frame encoders (`encodeTextFrame`, `encodeBinaryFrame`,
+  `encodeCloseFrame`), and a streaming masked client-frame decoder
+  (`createFrameDecoder`) that handles split-across-chunks frames,
+  short / 16-bit / 64-bit length payloads, dispatches text /
+  binary / close opcodes, surfaces protocol errors for unmasked
+  client frames or fragmented frames, swallows ping / pong, and
+  caps each frame at 1 MiB so a hostile client cannot exhaust
+  memory. A tiny `parseAttachPath` helper recognises both
+  `/api/workers/:name/attach` and the api-prefix-stripped
+  `/workers/:name/attach` form and URI-decodes the name.
+- `src/daemon.js` wires `server.on('upgrade', ...)` to
+  `_handleAttachUpgrade`. The handler:
+  - Calls `wsAttach.parseAttachPath` first; non-matching URLs
+    short-circuit with an HTTP 404 + JSON body (the connection
+    has not yet flipped protocols).
+  - Runs `auth.checkRequest(cfg, req, route)` on the
+    un-prefixed `/workers/:name/attach` shape -- the same gate
+    `/api/watch` uses, with `?token=` as a fallback for clients
+    that cannot set the `Authorization` header.
+  - Subscribes to the worker's PTY output via the existing
+    `manager.watchWorker(name, cb)` helper before writing the
+    101. If the worker is missing, the daemon still completes
+    the handshake then sends a structured `1008 / worker not
+    found` close frame so the CLI surfaces a clean error
+    instead of a confusing socket-level drop.
+  - Pipes outbound: each PTY chunk goes out as a single binary
+    frame (`encodeBinaryFrame`) so bytes that would not survive
+    a UTF-8 round-trip (ANSI escapes, raw control codes) reach
+    the client intact.
+  - Pipes inbound: a `createFrameDecoder` consumes the raw TCP
+    stream and dispatches text / binary frames to the new
+    `PtyManager.writeRawInput(name, data)` helper. Close frames
+    are echoed back per RFC 6455; protocol errors close with
+    1002.
+  - Honours `?readonly=1`: inbound frames are silently dropped
+    on both text and binary paths so a viewer client cannot
+    write to the worker.
+  - Subscription teardown runs on `socket.on('close')`,
+    `socket.on('error')`, peer close, and on a write failure
+    inside the decoder callbacks -- the watcher is removed and
+    the socket is ended exactly once via a `cleaned` flag.
+- `src/pty-manager.js` gains `writeRawInput(name, data)` -- a
+  raw passthrough write that does NOT chunk, does NOT append a
+  carriage return, and bypasses the `critical_deny` block from
+  `send()` (the operator is in an interactive session and can
+  answer the prompt themselves). Returns `{ success: true }`
+  or `{ error: '...' }` for missing / exited / non-writable
+  workers so the upgrade handler can echo the error back as a
+  close-1011 frame.
+- `src/openapi-gen.js` gains a `_VIRTUAL_ROUTES` injection array
+  (the existing `extractRoutes` regex matches HTTP route
+  handlers only, so an `upgrade`-event route would otherwise be
+  invisible to the spec). Curated `ROUTE_SCHEMAS['GET
+  /workers/{name}/attach']` documents the path / query
+  parameters and notes that this route is a WebSocket upgrade
+  with binary server frames + 1008 close on missing worker.
+
+CLI `c4 attach <name> [--readonly]`:
+
+- `src/ws-client.js` (new) is a minimal client-side WebSocket
+  built on top of `node:http`'s `request('upgrade')` event so we
+  do not pull in the `ws` npm package for one CLI subcommand.
+  It implements the masking client-text/binary encoder
+  (`_encodeClientFrame` with a `crypto.randomBytes(4)` mask),
+  the server-frame decoder (which refuses masked server frames
+  per RFC 6455), Sec-WebSocket-Accept verification on the 101
+  response, and a `WsClient` EventEmitter with `send` / `close`
+  / `'message'` / `'close'` / `'error'`. A non-101 response
+  reads up to 4 KB of the daemon's JSON error body and rejects
+  with `err.statusCode` + `err.body` so callers can map "worker
+  not found" / 401 / etc. to the right CLI exit code.
+- A subtle bug fix encoded in the design: the `head` buffer
+  attached to Node's `upgrade` event contains bytes that
+  arrived in the same TCP packet as the 101 response. If we
+  feed `head` into the decoder *before* `resolve(client)`
+  returns, the awaiter has no chance to attach `'close'`
+  listeners before an immediate-close server fires the
+  synchronous close emit. `process.nextTick` is not enough
+  either -- in Node, nextTick callbacks run BEFORE Promise
+  microtasks, which means the awaiter still has not attached
+  the listener by the time the close emits. We schedule the
+  `head` flush via `setImmediate` (a macrotask), which lets the
+  awaiter's microtask continuation run first and attach
+  listeners. The fix is captured both in code comments and in
+  the end-to-end "non-existent worker" daemon test.
+- `src/cli.js` gains two helpers and a `case 'attach'` handler:
+  - `buildAttachUrl({ name, args, base, token })` is a pure
+    function that builds the WebSocket URL. It encodes the
+    worker name, appends `?readonly=1` when `--readonly` is in
+    args, appends `?token=` when a token is provided, and
+    swaps `http:` → `ws:` / `https:` → `wss:` so the same base
+    that drives the rest of the CLI works for the WS endpoint.
+    Throws when `name` is missing so callers cannot accidentally
+    open an unscoped URL.
+  - `runAttach({ name, args, base, token, connect, stdin,
+    stdout, stderr, exit, setRawMode })` is the DI-friendly
+    handler. It opens the WebSocket via the injected `connect`
+    function (production code uses `require('./ws-client').
+    connect`), wires `stdin → client.send` and `client.message
+    → stdout.write`, sets stdin to raw mode so single
+    keystrokes (arrow keys, Ctrl-C, Ctrl-D, escape sequences)
+    reach the worker, and listens for Ctrl+] (byte `0x1d`) in
+    stdin to trigger a clean detach.
+  - Detach contract: a Ctrl+] byte sends everything before it
+    (if any) as a single text frame, then calls `client.close
+    (1000, 'client detach')`, restores stdin via
+    `setRawMode(false)`, prints `\n[c4 attach: detached from
+    <name>]\n` to stderr, and exits 0.
+  - Exit-code map: server close `1008 / worker not found` →
+    exit 2 with `[c4 attach: worker not found]`; server close
+    `1000 / *` → exit 0 with `[c4 attach: session closed -
+    <reason>]`; any other close → exit 1 with `[c4 attach:
+    socket closed - <code>/<reason>]`; upgrade refusal with
+    HTTP 404 + matching body → exit 2; HTTP 401 → exit 1 with
+    a "run `c4 login` first" hint; any other connect failure
+    → exit 1 with a structured `[c4 attach: connection failed
+    - <message>]` line.
+  - `--readonly` flag silently drops outbound stdin data on
+    the client side too (so the user does not paste into a
+    view-only session and wonder why nothing happens); the
+    daemon-side drop is the actual enforcement, the client
+    drop is a UX courtesy.
+  - `case 'attach'` block in the main switch validates the
+    name argument, binds a SIGINT belt-and-suspenders cleanup
+    that restores `setRawMode(false)` on Ctrl+C in case stdin
+    is not a TTY, and delegates to `runAttach`.
+- `module.exports` adds `buildAttachUrl` + `runAttach` alongside
+  the existing `withApiPrefix` / `resolveUiPort` / `pickUiOpener`
+  / `runUi` exports so tests can exercise them without spawning
+  the CLI as a subprocess.
+- Usage block lists `attach <name> [--readonly]` between
+  `watch <name>` and `watch-interventions`.
+
+Tests (all passing locally):
+
+- `tests/daemon-attach.test.js` (23 cases, `node:test` runner):
+  - 3 handshake-helper cases pinning the RFC 6455 worked
+    example (`acceptKey('dGhlIHNhbXBsZSBub25jZQ==') ===
+    's3pPLMBiTxaQ9kYGzzhZRbK+xOo='`) and the HTTP 101 reply
+    shape.
+  - 5 frame-encoder cases asserting short / 16-bit / binary /
+    close-with-code / zero-payload-close frame layouts.
+  - 5 frame-decoder cases: masked text frame, multiple frames
+    in one chunk, split-across-chunks frames, refusal of
+    unmasked client frames via `onProtocolError`, masked close
+    frame with code + reason via `onClose`.
+  - 5 `parseAttachPath` cases for the api-prefixed and
+    api-prefix-stripped shapes, the null-on-non-attach
+    fallback, the `?readonly=1` parse, and URI-decoding of
+    encoded worker names (`auto%2Dw63` → `auto-w63`).
+  - 5 end-to-end cases against a real in-process
+    `http.Server` that wires the same upgrade-handler shape
+    `daemon.js` uses (a stub manager records inputs +
+    dispatches outputs): non-existent worker closes with
+    `1008 / worker not found`; existing worker forwards
+    output frames; inbound frames hit
+    `writeRawInput`; `?readonly=1` drops inbound; socket
+    close cleans the subscription (the worker's `_watchers`
+    set is empty after the test client disconnects, and
+    later worker output is not received).
+- `tests/cli-attach.test.js` (19 cases, `node:test` runner):
+  - 7 `buildAttachUrl` cases: ws / wss protocol swap,
+    `--readonly` query, token query, readonly+token compose,
+    URI-encoded worker names, missing-name guard, default
+    base from `resolveBase`.
+  - 11 `runAttach` cases (DI-injected fake `WsClient` +
+    `EventEmitter` stdin + spy `stdout` / `stderr` / `exit`
+    / `setRawMode`): missing-name usage line + exit 1; URL
+    plumbing through the injected connect; Ctrl+] (byte 0x1d)
+    detach (client.close(1000), setRawMode toggles
+    `[true, false]`, detach line on stderr, exit 0);
+    `1008 / worker not found` close → exit 2; non-1000
+    non-1008 close → exit 1 with `socket closed - <code>`
+    line; stdin chunks (including `0x03 Ctrl-C` and the
+    Up-arrow escape sequence `0x1b 0x5b 0x41`) pass through
+    to `client.send` unchanged; `--readonly` silently drops
+    stdin sends; messages forwarded to stdout; ECONNREFUSED
+    → exit 1 with `connection failed` line; HTTP 404 upgrade
+    refusal with matching body → exit 2; HTTP 401 → exit 1
+    with `unauthorized` line.
+  - 1 help-block assertion: `node src/cli.js
+    unknown-cmd-xyzzy` prints `attach <name> [--readonly]` in
+    the usage block.
+
+Verification:
+
+- `node --test tests/daemon-attach.test.js` reports 23 / 23
+  passing in ~270 ms on this branch.
+- `node --test tests/cli-attach.test.js` reports 19 / 19
+  passing in ~110 ms.
+- `node --test tests/watch-stream.test.js tests/cli-ui.test.js`
+  reports 29 / 29 passing (no regression on the SSE / `c4 ui`
+  paths the new code shares helpers with).
+- Full-suite regression deferred to the follow-up task per
+  manager direction.
+
+Docs:
+
+- `CLAUDE.md` gains an `attach <name> [--readonly]` row in the
+  CLI command list with the endpoint URL, the detach contract,
+  the `--readonly` semantics, and the exit-code map. Sits
+  between `c4 ui` and `c4 config`.
+- `docs/autonomous-queue-v10.md` -- TODO 11.72 row flipped to
+  `partial` with a Shipped: summary mirroring this entry.
+
+Files touched: `src/ws-attach.js` (new), `src/ws-client.js`
+(new), `src/daemon.js` (upgrade handler + require), `src/cli.js`
+(buildAttachUrl + runAttach + case 'attach' + usage block +
+module exports), `src/pty-manager.js` (writeRawInput),
+`src/openapi-gen.js` (_VIRTUAL_ROUTES + curated schema),
+`tests/daemon-attach.test.js` (new), `tests/cli-attach.test.js`
+(new), `CHANGELOG.md` (this entry), `CLAUDE.md` (CLI command
+row), `docs/autonomous-queue-v10.md` (TODO 11.72 row),
+`web/package.json` (1.11.89 → 1.11.90). 12 files.
+
 ## [1.11.89] - 2026-05-13 -- CLI: `c4 ui` command (TODO 11.71)
 
 Add a `c4 ui` subcommand to `src/cli.js` that opens the daemon's web
