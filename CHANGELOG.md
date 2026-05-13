@@ -4,6 +4,78 @@
 
 (no entries -- next release window)
 
+## [1.11.93] - 2026-05-13 -- Feature: c4 diff command (TODO 11.75)
+
+Add `c4 diff <branch> [--stat|--patch|--files]` so an operator can preview
+a worker branch without having to remember the merge-base form
+`main...<branch>` or wire up an external pager. Mirrors the same repo
+resolution `c4 merge` uses (`git rev-parse --show-toplevel` first, then
+`config.worktree.projectRoot`, then `cwd`), so the diff command picks
+the same repo a follow-up merge would target.
+
+Modes:
+
+- `--stat` (default) -- runs `git -c color.diff=always diff main...<branch>
+  --stat` and streams the summary to stdout.
+- `--patch` -- full unified diff with the same color contract.
+- `--files` -- `git diff main...<branch> --name-only`. Color is
+  intentionally omitted; the output is meant to be piped into a follow-up
+  command (xargs, grep, etc.).
+
+Color contract: `-c color.diff=always` is set via the git command-line
+flag so the output renders colored even when the user pipes it through
+less, grep, or a file. `GIT_PAGER=cat` is added to the spawned env so
+git never launches its own pager on tall diffs. The CLI itself does not
+touch stdout -- git owns every byte.
+
+Spawn semantics: `child_process.spawn('git', argv, { stdio: 'inherit' })`.
+stdio inherit lets ANSI escape codes survive and gives the user streamed
+output on large repos. Exit code is forwarded from git via the `close`
+event, so `128` (bad branch ref) and `0` (clean) reach the shell
+verbatim. A spawn ENOENT (or any `error` event from the child) maps to
+exit 1 with a structured `[c4 diff: spawn failed - <msg>]` line on
+stderr.
+
+Branch argument is consumed verbatim -- no `c4/` prefix injection. Users
+can pass full names like `c4/auto-ui-cmdk` or short refs that git
+accepts directly (`feat`, `HEAD~3`, etc.). If multiple mode flags appear
+on the command line the LAST one wins, so a wrapper script can append a
+flag without rewriting the rest of argv.
+
+Help block: `diff <branch> [--stat|--patch|--files]   Show diff between
+main and <branch> (default --stat).` lands in the top-level usage between
+the `ui` row and `daemon start`.
+
+`src/cli.js` exports three new helpers so tests can drive the handler
+without spawning git:
+
+- `resolveDiffRepo({ cwd, cfgPath, execFn })` -- the repo-resolution
+  fallback chain. `execFn` is injectable for tests.
+- `buildDiffArgs({ branch, args, repo })` -- pure function returning
+  `{ argv, mode }`. Throws on missing branch or repo.
+- `runDiff({ args, cwd, cfgPath, spawn, exit, env, stderr })` -- the
+  handler. Resolves with `{ code, mode, argv }` once the spawned child
+  fires `close` (or `error`).
+
+`tests/cli-diff.test.js` (new, 19 cases, node:test) covers:
+
+- `buildDiffArgs`: default --stat argv, --stat explicit matches default,
+  --patch keeps color but drops --stat/--name-only, --files uses
+  --name-only and drops color, branch verbatim (no prefix), multiple
+  mode flags resolve to the last one, missing-branch + missing-repo
+  guards throw.
+- `resolveDiffRepo`: returns the toplevel reported by the injected
+  execFn, falls back to `config.worktree.projectRoot`, finally falls
+  back to cwd when both fail.
+- `runDiff`: usage error on missing <branch>, spawn called with
+  --stat argv + `stdio: 'inherit'` + `GIT_PAGER=cat`, --patch passes
+  color.diff=always while --files does not, git's exit code forwards
+  through the `close` event (128 reaches the shell), configured repo
+  used when git toplevel is unavailable, spawn `error` maps to exit 1
+  with a structured stderr line, null close code normalises to exit 1.
+- Help-block integration: spawning the CLI with an unknown subcommand
+  prints the new `diff <branch>` row.
+
 ## [1.11.92] - 2026-05-13 -- Daemon: reconnect orphan workers (TODO 11.74)
 
 Auto-recover workers across `c4 daemon stop` + restart cycles. v1.11.91
