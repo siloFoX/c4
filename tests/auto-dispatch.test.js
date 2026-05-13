@@ -684,6 +684,171 @@ t('escalations cap trims oldest entries', () => {
   assert.strictEqual(d.escalations[2].id, 10);
 });
 
+// --- (v1.11.95 / TODO 11.77) Webhook notifier wiring ------------------
+//
+// Integration check: the autonomous loop must hand a sendWebhook-style
+// adapter the matching `kind` (dispatch / halt / escalation / complete)
+// when the AutoDispatcher emits its native events. This mirrors the
+// daemon.js wiring (`_sendLifecycle` in _buildAutoDispatcher) without
+// requiring daemon.js itself — the goal is to lock in the event-name
+// translation table so a future rename here can't silently desync.
+
+section('webhook notifier wiring (11.77)');
+
+function makeWiredDispatcher(overrides) {
+  const fired = [];
+  // Recreate the daemon.js translation: auto_dispatch_sent -> dispatch,
+  // auto_dispatch_paused -> halt, auto_dispatch_escalation -> escalation.
+  const adapter = (event, payload) => {
+    if (event === 'auto_dispatch_sent') {
+      fired.push({ kind: 'dispatch', payload });
+    } else if (event === 'auto_dispatch_paused') {
+      fired.push({ kind: 'halt', payload });
+    } else if (event === 'auto_dispatch_escalation') {
+      fired.push({ kind: 'escalation', payload });
+    }
+  };
+  const base = {
+    todoPath: 'TODO.md',
+    enabled: true,
+    throttleMs: 1000,
+    circuitThreshold: 3,
+    softHaltThreshold: 2,
+    clock: () => 100000,
+    reader: () => '| 1.1 | task | todo | safe plain detail |',
+    idleCheck: () => true,
+    dispatch: async () => ({ ok: true }),
+    notifier: adapter,
+  };
+  return { dispatcher: new AutoDispatcher(Object.assign(base, overrides || {})), fired };
+}
+
+tAsync('webhook adapter sees dispatch kind on tick', async () => {
+  const { dispatcher, fired } = makeWiredDispatcher();
+  await dispatcher.tick();
+  const dispatch = fired.filter((e) => e.kind === 'dispatch');
+  assert.strictEqual(dispatch.length, 1);
+  assert.strictEqual(dispatch[0].payload.id, '1.1');
+});
+
+tAsync('webhook adapter sees halt kind on circuit-breaker trip', async () => {
+  const { dispatcher, fired } = makeWiredDispatcher();
+  dispatcher.recordHalt('1.1', 'a');
+  dispatcher.recordHalt('1.2', 'b');
+  dispatcher.recordHalt('1.3', 'c');
+  const halt = fired.filter((e) => e.kind === 'halt');
+  assert.strictEqual(halt.length, 1);
+  assert.ok(/circuit-breaker/.test(halt[0].payload.reason));
+});
+
+t('webhook adapter sees escalation kind on soft halt threshold', () => {
+  const { dispatcher, fired } = makeWiredDispatcher();
+  dispatcher.lastDispatchId = '7.7';
+  dispatcher.recordHalt('7.7', 'first halt');
+  // first halt under softHaltThreshold (2) -> no escalation
+  assert.strictEqual(fired.filter((e) => e.kind === 'escalation').length, 0);
+  dispatcher.recordHalt('7.7', 'second halt');
+  // second halt -> soft threshold -> escalation
+  const esc = fired.filter((e) => e.kind === 'escalation');
+  assert.strictEqual(esc.length, 1);
+  assert.strictEqual(esc[0].payload.kind, 'halt-streak');
+});
+
+t('webhook adapter does not see complete kind from AutoDispatcher (manager SSE owns it)', () => {
+  // The dispatcher itself never emits a "complete" event; the daemon's
+  // manager SSE listener (`task_complete` for the autonomous manager)
+  // owns that path. recordSuccess() is the dispatcher-side hook but
+  // emits no notifier event - it just resets the halt counter. We
+  // assert the no-emit shape here so a future drift (e.g. adding a
+  // success notifier event) doesn't accidentally double-fire complete.
+  const { dispatcher, fired } = makeWiredDispatcher();
+  dispatcher.lastDispatchId = '1.1';
+  dispatcher.recordSuccess('1.1');
+  assert.strictEqual(fired.length, 0);
+});
+
+tAsync('webhook adapter integration: drive sendWebhook for each kind', async () => {
+  // Lock in the wiring end-to-end: notifier callback -> sendWebhook
+  // with the right kind argument and a payload-shaped body for both
+  // Slack and Discord.
+  const notify = require('../src/notify');
+  const calls = [];
+  function _request(reqOpts, responseCb) {
+    let body = '';
+    return {
+      write(chunk) { body += chunk; },
+      end() {
+        calls.push({
+          hostname: reqOpts.hostname,
+          body: JSON.parse(body),
+        });
+        if (typeof responseCb === 'function') {
+          responseCb({ statusCode: 200, resume() {} });
+        }
+      },
+      on() {},
+    };
+  }
+  const config = {
+    notifications: {
+      slack: 'https://hooks.slack.com/services/T/B/X',
+      discord: 'https://discord.com/api/webhooks/1/abc',
+      events: ['halt', 'dispatch', 'complete', 'escalation'],
+    },
+  };
+  const adapter = (event, payload) => {
+    let kind = null;
+    if (event === 'auto_dispatch_sent') kind = 'dispatch';
+    else if (event === 'auto_dispatch_paused') kind = 'halt';
+    else if (event === 'auto_dispatch_escalation') kind = 'escalation';
+    if (!kind) return;
+    notify.sendWebhook({
+      kind,
+      payload: { worker: 'auto-mgr', todo: { id: payload.id || payload.todoId, title: payload.title || payload.kind } },
+      config,
+      _request,
+      env: {},
+    });
+  };
+  const d = new AutoDispatcher({
+    todoPath: '/x',
+    enabled: true,
+    throttleMs: 1,
+    circuitThreshold: 3,
+    softHaltThreshold: 2,
+    clock: () => 1,
+    reader: () => '| 1.1 | drive dispatch | todo | safe detail |',
+    idleCheck: () => true,
+    dispatch: async () => ({ ok: true }),
+    notifier: adapter,
+  });
+  await d.tick();
+  d.lastDispatchId = '1.1';
+  d.recordHalt('1.1', 'h1');
+  d.recordHalt('1.1', 'h2'); // escalation
+  d.recordHalt('1.1', 'h3'); // halt (circuit)
+  // Each kind should have fired both Slack and Discord = 3 kinds * 2 = 6 calls.
+  assert.strictEqual(calls.length, 6);
+  const hostnames = calls.map((c) => c.hostname);
+  assert.deepStrictEqual(
+    hostnames,
+    [
+      'hooks.slack.com', 'discord.com',
+      'hooks.slack.com', 'discord.com',
+      'hooks.slack.com', 'discord.com',
+    ]
+  );
+  // Body shapes
+  for (let i = 0; i < calls.length; i += 2) {
+    assert.ok(typeof calls[i].body.text === 'string', 'slack body has text field');
+    assert.ok(typeof calls[i + 1].body.content === 'string', 'discord body has content field');
+  }
+  // dispatch / escalation / halt summaries appear in order
+  assert.ok(/dispatch/.test(calls[0].body.text));
+  assert.ok(/escalation/.test(calls[2].body.text));
+  assert.ok(/halt/.test(calls[4].body.text));
+});
+
 // --- run buffered tests in order --------------------------------------
 
 (async () => {

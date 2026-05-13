@@ -410,6 +410,60 @@ function validate(config = {}) {
     }
   }
 
+  // -- notifications (v1.11.95): lifecycle webhook channels for the
+  // autonomous loop. The block is opt-in and sits alongside the legacy
+  // notifications.slack object (buffered digests) — when slack/discord
+  // is a string here it is the lifecycle URL; when it is an object the
+  // legacy Notifications channel takes over and this validator skips
+  // it. events[] gates which kinds fire a POST.
+  if (config.notifications && typeof config.notifications === 'object') {
+    const NOTIFICATION_EVENTS = new Set(['halt', 'dispatch', 'complete', 'escalation']);
+    const n = config.notifications;
+    if (typeof n.slack === 'string') {
+      if (!n.slack.startsWith('https://')) {
+        errors.push({
+          path: 'notifications.slack',
+          message: `must be an https:// URL string, got ${JSON.stringify(n.slack)}`,
+        });
+      }
+    }
+    if (typeof n.discord === 'string') {
+      if (!n.discord.startsWith('https://')) {
+        errors.push({
+          path: 'notifications.discord',
+          message: `must be an https:// URL string, got ${JSON.stringify(n.discord)}`,
+        });
+      }
+    }
+    if (n.events !== undefined) {
+      if (!Array.isArray(n.events)) {
+        errors.push({
+          path: 'notifications.events',
+          message: `must be an array of ${[...NOTIFICATION_EVENTS].join('|')}, got ${typeof n.events}`,
+        });
+      } else {
+        for (let i = 0; i < n.events.length; i++) {
+          const ev = n.events[i];
+          if (typeof ev !== 'string' || !NOTIFICATION_EVENTS.has(ev)) {
+            errors.push({
+              path: `notifications.events[${i}]`,
+              message: `must be one of ${[...NOTIFICATION_EVENTS].join('|')}, got ${JSON.stringify(ev)}`,
+            });
+          }
+        }
+      }
+    }
+    // No URL configured but events listed -> noisy noop. Warn so the
+    // operator notices before wondering why nothing is firing.
+    const hasLifecycleUrl = typeof n.slack === 'string' || typeof n.discord === 'string';
+    if (Array.isArray(n.events) && n.events.length > 0 && !hasLifecycleUrl) {
+      warnings.push({
+        path: 'notifications.events',
+        message: 'events listed but neither notifications.slack nor notifications.discord is a string URL — nothing will fire',
+      });
+    }
+  }
+
   // -- fleet.peers
   for (const [name, peer] of Object.entries((config.fleet && config.fleet.peers) || {})) {
     if (!peer || typeof peer !== 'object') {

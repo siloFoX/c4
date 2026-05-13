@@ -104,6 +104,33 @@ diff/preview view can compare on-disk vs. edited state. A single
 `autonomous.queue.write` audit line is emitted per successful save so
 edits are traceable through `c4 audit`.
 
+### Lifecycle webhook notifications (v1.11.95)
+The autonomous loop can now fire one-line Slack and/or Discord webhooks
+on the four canonical events `dispatch` / `complete` / `halt` /
+`escalation`. Opt-in via `config.notifications`; missing block = zero
+behaviour change. Uses Node's built-in `https` module — no new deps.
+
+```json
+"notifications": {
+  "slack":   "https://hooks.slack.com/services/T/B/X",
+  "discord": "https://discord.com/api/webhooks/1/abc",
+  "events":  ["halt", "dispatch", "complete", "escalation"]
+}
+```
+
+`slack` / `discord` accept an `https://` URL **string** for the
+lifecycle channel (the legacy object form
+`slack: { enabled, webhookUrl, ... }` still drives the buffered
+`Notifications` channel — both shapes coexist). `events[]` is gated to
+the four kinds; `c4 config validate` rejects anything else and warns
+when events are listed without a URL. Body shapes: Slack
+`{ text: '<one-line summary>' }`, Discord
+`{ content: '<one-line summary>' }`. Summary format:
+`[c4 autonomous] <kind> | todo=<id> | title=<title> | worker=<name> | v<version>`.
+Fire-and-forget: no retries, single warn line on 4xx/5xx (host +
+status, never the body or full URL path). Set `NOTIFY_DISABLED=1` in
+the env to skip every POST (useful in tests / staging).
+
 ### C4 CLI 명령어 (관리자/워커 모두 사용)
 ```
 c4 daemon start|stop|restart|status  데몬 관리

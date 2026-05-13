@@ -437,6 +437,12 @@
     }
   },
 
+  "_notifications_lifecycle_doc": "(v1.11.95) Lifecycle webhook channels for the autonomous loop. Set notifications.slack / notifications.discord to an https:// URL (string form) to fire one-line POSTs on the events listed in notifications.events. Allowed event kinds: halt / dispatch / complete / escalation. Both shapes coexist: the legacy object form below (slack: {enabled, webhookUrl, ...}) still drives buffered digests, while the string form below drives lifecycle webhooks. NOTIFY_DISABLED=1 env var skips every POST (useful in tests / staging).",
+  "_notifications_lifecycle_example": {
+    "slack": "https://hooks.slack.com/services/T000/B000/XXX",
+    "discord": "https://discord.com/api/webhooks/000/XXX",
+    "events": ["halt", "dispatch", "complete", "escalation"]
+  },
   "notifications": {
     "language": "ko",
     "slack": {
