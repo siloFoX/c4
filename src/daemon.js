@@ -305,6 +305,18 @@ function safeRecord(type, fields) {
 const tierQuota = tierQuotaMod.getShared({ tiers: cfg.tierConfig, force: true });
 const tierWorkerMap = new Map();
 
+// TODO 11.85 (v1.11.103) — 2s TTL cache singletons for the two hottest
+// read endpoints. Profiling (tools/profile-daemon-endpoints.js) showed
+// /api/list scales O(N workers) per call because list() runs
+// worker-metrics.sample() against /proc per row; web-UI polling at 2-3s
+// from multiple tabs hammered that path. The cache collapses repeated
+// reads into one compute per TTL window. Write paths (worker
+// create/close, autonomous tick/pause/resume) invalidate the relevant
+// key so operators never see stale snapshots after a state change.
+const { createCache: _createCache } = require('./cache-ttl');
+const cacheList = _createCache({ ttlMs: 2000 });
+const cacheAutoStatus = _createCache({ ttlMs: 2000 });
+
 // (10.2) Shared audit logger. Writes to ~/.c4/audit.jsonl by default so
 // the trail survives daemon restarts. Every security-relevant endpoint
 // below records through this instance; the CLI `c4 audit` subcommands
@@ -1367,6 +1379,9 @@ async function handleRequest(req, res) {
       if (result && !result.error) {
         tierWorkerMap.set(name, requestedTier);
         if (result && typeof result === 'object') result.tier = requestedTier;
+        // (TODO 11.85) Drop the cached /api/list payload so the next
+        // poll picks up the new worker instead of waiting for the TTL.
+        cacheList.invalidate('list');
         // 8.46: start the per-worker pinned-memory timer. Scheduler picks
         // up the rules via manager.getPinnedMemory(name) on each tick.
         pinnedMemoryScheduler.register(name);
@@ -1445,13 +1460,19 @@ async function handleRequest(req, res) {
       // 'worker' when no explicit /create call mapped it (e.g. older
       // sessions before 8.3 landed). The CLI was already printing tier
       // via this map; the Web UI just lacked the field.
-      const listed = manager.list();
-      if (listed && Array.isArray(listed.workers)) {
-        for (const w of listed.workers) {
-          w.tier = tierWorkerMap.get(w.name) || 'worker';
+      //
+      // (TODO 11.85) Routed through a 2s TTL cache so repeated polls
+      // collapse into one compute per window. Invalidated at every
+      // worker create/close site below.
+      result = await cacheList.getOrCompute('list', async () => {
+        const listed = manager.list();
+        if (listed && Array.isArray(listed.workers)) {
+          for (const w of listed.workers) {
+            w.tier = tierWorkerMap.get(w.name) || 'worker';
+          }
         }
-      }
-      result = listed;
+        return listed;
+      });
 
     } else if (req.method === 'GET' && route === '/tree') {
       const tree = require('./hierarchy-tree');
@@ -3522,6 +3543,9 @@ async function handleRequest(req, res) {
         _safeAudit('worker.closed', {}, { target: name, actor: _auditActor(authCheck) });
         safeEmit('worker_close', { worker: name });
         safeRecord('worker_close', { worker: name, payload: {} });
+        // (TODO 11.85) Drop the cached /api/list payload so the next
+        // poll reflects the close instead of serving stale rows.
+        cacheList.invalidate('list');
         // 8.46: stop re-injecting pinned memory for a closed worker so we
         // do not send rules into a dead PTY.
         try { pinnedMemoryScheduler.unregister(name); } catch {}
@@ -3683,15 +3707,19 @@ async function handleRequest(req, res) {
       // (8.28) Autonomous dispatcher inspection. Returns a static
       // disabled payload when the instance is null so the CLI never has
       // to disambiguate a 404 from a real response.
-      if (!autoDispatcher) {
-        result = {
-          enabled: false,
-          paused: false,
-          reason: 'autonomous.mode=false (set config.autonomous.mode=true to enable)',
-        };
-      } else {
-        result = autoDispatcher.getStatus();
-      }
+      //
+      // (TODO 11.85) 2s TTL cache. tick/pause/resume invalidate the
+      // 'status' key so operator actions reflect immediately.
+      result = await cacheAutoStatus.getOrCompute('status', async () => {
+        if (!autoDispatcher) {
+          return {
+            enabled: false,
+            paused: false,
+            reason: 'autonomous.mode=false (set config.autonomous.mode=true to enable)',
+          };
+        }
+        return autoDispatcher.getStatus();
+      });
 
     } else if (req.method === 'POST' && route === '/autonomous/pause') {
       if (!autoDispatcher) {
@@ -3701,6 +3729,9 @@ async function handleRequest(req, res) {
         try { body = await parseBody(req); } catch { body = {}; }
         if (_validateOrFail('POST', '/autonomous/pause', body, res, cfg)) return;
         result = autoDispatcher.pause((body && body.reason) || 'manual via cli');
+        // (TODO 11.85) Drop cached /api/autonomous/status so the
+        // pauseReason surfaces on the next read immediately.
+        cacheAutoStatus.invalidate('status');
       }
 
     } else if (req.method === 'POST' && route === '/autonomous/resume') {
@@ -3708,6 +3739,9 @@ async function handleRequest(req, res) {
         result = { error: 'autonomous mode not enabled' };
       } else {
         result = autoDispatcher.resume();
+        // (TODO 11.85) Drop cached /api/autonomous/status so the
+        // resumed state surfaces on the next read immediately.
+        cacheAutoStatus.invalidate('status');
       }
 
     } else if (req.method === 'POST' && route === '/autonomous/tick') {
@@ -3717,6 +3751,9 @@ async function handleRequest(req, res) {
         result = { error: 'autonomous mode not enabled' };
       } else {
         result = await autoDispatcher.tick();
+        // (TODO 11.85) Drop cached /api/autonomous/status so the
+        // post-tick dispatcher state surfaces immediately.
+        cacheAutoStatus.invalidate('status');
       }
 
     } else if (req.method === 'GET' && route === '/autonomous/escalations') {
