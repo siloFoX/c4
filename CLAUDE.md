@@ -91,6 +91,19 @@ c4 reconnect auto-w42
 The same logic runs via `POST /api/workers/<name>/reconnect` (200 on
 adopt, 404 when no checkpoint, 409 when the pid is dead).
 
+### Queue web editor (v1.11.94)
+`docs/autonomous-queue-v10.md` is now editable from the browser via the
+Features sidebar -> Automation -> Queue. The page renders the parsed
+table with a status dropdown (todo/doing/done/partial), a truncated
+detail preview + Edit modal, and HTML5 drag reorder. Every mutation
+posts the full `rows[]` back to `POST /api/autonomous/queue`, which
+validates (unique ids, allowed status, optional detail) and atomically
+rewrites the markdown via tmp + rename. `GET /api/autonomous/queue` now
+also returns the raw markdown alongside the parsed rows so a future
+diff/preview view can compare on-disk vs. edited state. A single
+`autonomous.queue.write` audit line is emitted per successful save so
+edits are traceable through `c4 audit`.
+
 ### C4 CLI 명령어 (관리자/워커 모두 사용)
 ```
 c4 daemon start|stop|restart|status  데몬 관리

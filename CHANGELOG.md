@@ -4,6 +4,107 @@
 
 (no entries -- next release window)
 
+## [1.11.94] - 2026-05-13 -- Feature: Queue web editor (TODO 11.76)
+
+Build a single-table web editor for `docs/autonomous-queue-v10.md` so an
+operator can reorder rows, flip the status dropdown, and rewrite the
+`detail` cell from the browser instead of hand-editing the markdown. The
+backend already exposed `GET /api/autonomous/queue` for the Auto.tsx
+dashboard's read-only Live queue; this entry adds the matching writer +
+the editor page.
+
+Daemon endpoint:
+
+- `POST /api/autonomous/queue` accepts `{ rows: [{ id, title, status,
+  detail }, ...] }`, validates the payload, rebuilds the table block in
+  place, and atomically writes back via tmp + rename. Validation:
+  status in `todo | doing | done | partial`; `id` unique within the
+  table; `detail` allowed to be empty. Auth gate is the same
+  `CONFIG_RELOAD` action used by `POST /api/config/reload`, on the
+  assumption that anyone allowed to bounce the daemon config is also
+  allowed to edit the queue source-of-truth.
+- `GET /api/autonomous/queue` now returns `raw` (the verbatim markdown)
+  alongside the parsed `rows` so the editor can show a diff view or
+  fall back to manual editing when the parser gets confused. Status
+  parsing also accepts the new `partial` token (the manual convention
+  already used in 11.72).
+- A single `autonomous.queue.write` audit line is recorded on each
+  successful POST so editor activity is traceable through `c4 audit`.
+
+`src/queue-editor.js` (new) hosts the pure helpers:
+
+- `parseQueue(content)` -> `{ rows, preamble, header, separator,
+  interlude, postamble, trailingNewline }`. Preamble + postamble round
+  through unchanged; `interlude` captures non-table blocks that sit
+  between two data rows (e.g. the `## Operating rules` section in
+  v10.md) and lands at the end of the table block on write so row
+  reordering does not strand a positional anchor.
+- `serializeQueue(snapshot, newRows)` rebuilds the file from a snapshot
+  plus a fresh `rows[]`. Pipes inside cell values are replaced with `/`
+  on write so an exotic detail string cannot break the table grammar.
+- `validateRows(rows)` returns `{ valid, errors }` with every fault in
+  one pass so the 400 response carries all the issues at once.
+- `writeAtomic(path, content)` stages to a sibling tmp file under
+  `os.tmpdir()` and renames into place. EXDEV falls back to copy +
+  unlink so a cross-device tmpfs setup still finishes atomically from
+  the reader's perspective.
+- `handleGetQueueRequest({ repoRoot })` / `handlePostQueueRequest({
+  repoRoot, body, actor, audit })` are the pure handlers the daemon
+  route delegates to. Tests exercise the same code path the daemon
+  uses, no HTTP plumbing required.
+
+Web page:
+
+- `web/src/pages/Queue.tsx` renders a single table with six columns
+  (drag handle, ID, Title, Status dropdown, truncated Detail preview,
+  Actions). Drag-reorder is HTML5 drag-and-drop on rows; status and
+  detail edits fire the same `POST /api/autonomous/queue` with the
+  full `rows[]`. Optimistic update + rollback keeps the UI snappy and
+  recoverable: every mutation flips `rows` immediately, then awaits
+  the POST and restores the pre-edit snapshot on failure while
+  surfacing a `Save failed: <msg>` banner above the table.
+- The edit modal is a centered dialog with a `min-h-[12rem]` textarea
+  preloaded with the row's detail. Save fires the POST; Cancel and
+  backdrop click and Escape close without firing. Status dropdown
+  uses a plain `<select>` listing all four allowed values.
+- Loading: 6-row `Skeleton` stack. Error: `ErrorState` with retry
+  wired to a fresh GET. Empty: `EmptyState` with
+  `EmptyQueueIllustration` from the v1.11.84 hero illustration set.
+- Registered in `web/src/pages/registry.ts` under the Automation
+  category between Auto and Templates with the `ListOrdered` icon.
+  `en.json` carries the two new feature label / description strings;
+  `ko.json` falls through to the English bundle via the existing
+  `t()` fallback path until a translator updates it.
+
+Tests:
+
+- `web/src/pages/Queue.test.tsx` (new, 13 vitest cases) covers
+  loading skeleton render, table row mapping, empty illustration,
+  GET error + retry round-trip, status dropdown change fires POST,
+  modal open / save / cancel branches, drag reorder fires POST with
+  the new order, rollback on POST failure, status option list, the
+  refresh button, and the truncated detail preview.
+- `tests/daemon-queue.test.js` (new, 22 node:test cases) covers
+  `parseQueue` (full fixture, no-table fallback, status
+  normalisation, preamble/interlude/postamble preservation),
+  `serializeQueue` (round-trip, reorder, pipe-strip), `validateRows`
+  (all four statuses pass, non-array reject, invalid status reject,
+  duplicate id reject, missing id reject, non-string title reject,
+  empty detail accepted), `writeAtomic` (no tmp file left behind),
+  and the `handleGet / handlePost` helpers (parsed rows + raw, 404
+  fallback, atomic write + audit, malformed body 400, invalid status
+  400, duplicate id 400).
+- Full vitest suite 5216 / 5216 passing. Full daemon-queue suite
+  22 / 22 passing.
+
+Docs:
+
+- This `CHANGELOG.md` entry; `CLAUDE.md` gains a one-paragraph note in
+  the autonomous section about the new editor.
+- `docs/autonomous-queue-v10.md` row 11.76 flipped from `todo` to
+  `done` with the Shipped: summary.
+- `web/package.json` bumped 1.11.93 -> 1.11.94.
+
 ## [1.11.93] - 2026-05-13 -- Feature: c4 diff command (TODO 11.75)
 
 Add `c4 diff <branch> [--stat|--patch|--files]` so an operator can preview
