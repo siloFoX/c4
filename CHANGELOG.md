@@ -4,6 +4,76 @@
 
 (no entries -- next release window)
 
+## [1.11.107] - 2026-05-13 -- Tests: Risk panels + editors RTL batch (TODO 11.89)
+
+Add vitest/RTL/jsdom coverage for three components that previously
+had no test file: `web/src/components/PinnedRulesEditor.tsx`,
+`RiskCheckResult.tsx`, and `RiskRuleCatalogPanel.tsx`. Mirrors the
+v1.11.104 / v1.11.105 / v1.11.106 pattern (setLocale in beforeEach,
+`vi.mock` external hooks/children with marker stubs that expose
+props via mock setters or data-* attrs, render with `vi.fn()`
+callbacks, locale-flip assertion at the end).
+
+- PinnedRulesEditor.test.tsx (17 cases): forwards `workerName` into
+  the mocked `usePinnedRules` hook; renders the localized "Persistent
+  Rules" header text; last-refresh chip hidden when
+  `lastRefreshAt=null` and rendered with the formatted string when
+  set; description `{separator}` placeholder rendered as a
+  `<code>---</code>` element; all four role-template options visible
+  (`No template` + the three `role-*` literals); role select reflects
+  `defaultTemplate`; `setDefaultTemplate` fires on role change;
+  textarea reflects `rulesText` and `setRulesText` fires on change;
+  error alert (`role="alert"`) hidden when `error=null` and rendered
+  with the message when set; loading/saving both disable the two
+  save buttons + the select + the textarea; `save({refresh: false})`
+  fires on the plain Save click and `save({refresh: true})` fires on
+  Save-and-refresh click; locale flip drops the English "Save"
+  button label.
+- RiskCheckResult.test.tsx (21 cases): level + suggestedAction
+  rendered inside uppercase badges; "would deny" badge gated on
+  `wouldDeny`; "denyList" badge gated on `denyForced`; threshold
+  caption interpolates `autoDenyLevel` and appends the
+  "enforcement OFF" suffix only when `enforcementEnabled=false`;
+  reasons block hidden when `reasons=[]` and rendered with header
+  count + per-row code/label + optional snippet span; decoded block
+  hidden when `decoded=null` and rendered as a `<pre>` when set;
+  inspectedSource block hidden when omitted and rendered when set;
+  static-intent block hidden when `intent` is undefined or
+  `intent.empty=true`; privileged badge inside the intent block;
+  writes / reads / network / destructive rows render with their
+  respective code lists; locale flip drops the English "Static
+  intent" header.
+- RiskRuleCatalogPanel.test.tsx (14 cases): "Rule catalog" heading
+  rendered as a toggle button; starts closed with
+  `aria-expanded=false` and no body; click flips `aria-expanded` to
+  true; the current `open` flag is forwarded into the mocked
+  `useLazyRiskPatterns`; "Loading catalog" caption when open with
+  `patterns=null`; once patterns load, the heading caption shows the
+  builtin/custom/allowList/denyList rollup; filter input +
+  critical/high/medium sections render when open with patterns;
+  severity section skipped when its builtin list is empty;
+  "Custom rules" block hidden when `counts.custom.total=0` and
+  rendered with per-severity counts when greater than 0; filter
+  narrows by both code and label substrings; no-match filter hides
+  every section; locale flip drops the English "Rule catalog"
+  heading.
+
+Mocks via `vi.mock` for the wrapped hooks
+(`../lib/use-pinned-rules` for the editor surface,
+`../lib/use-lazy-risk-patterns` for the catalog panel) so each
+composite test asserts wiring without re-exercising the hook
+internals -- the lazy-fetch + cache + load/save paths already have
+dedicated hook tests in `web/src/lib/`. `RiskCheckResult` is a pure
+display over a `CheckResponse` value and needs no module mocks.
+
+Verification: 52 / 52 new cases passing (`env -C
+/root/c4-worktree-auto-w80/web vitest run --project unit` on the
+three files); 5497 / 5497 cases passing across the full 249-file
+unit suite (5445 prior from v1.11.106 + 52 new cases in 3 new
+files). The ErrorBoundary "boom" / "left-boom" console.error lines
+are pre-existing fixture output, not regressions introduced here.
+web/package.json 1.11.106 -> 1.11.107.
+
 ## [1.11.106] - 2026-05-13 -- Tests: MeetingsDetail actions RTL batch (TODO 11.88)
 
 Add vitest/RTL/jsdom coverage for three action-panel components that
