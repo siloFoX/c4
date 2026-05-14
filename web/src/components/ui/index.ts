@@ -45,3 +45,4 @@ export * from './rating';
 export * from './image';
 export * from './list-item';
 export * from './status-dot';
+export * from './tag-input';
