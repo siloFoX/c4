@@ -84,4 +84,62 @@ describe('<Skeleton>', () => {
     expect(node).toHaveAttribute('role', 'status');
     expect(node).toHaveAttribute('aria-hidden', 'true');
   });
+
+  // ---- v1.11.135: new variant aliases ------------------------------
+
+  it('applies the line variant (h-3 + w-full + rounded) as a thin horizontal bar', () => {
+    const { container } = render(<Skeleton variant="line" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node).toHaveClass('h-3');
+    expect(node).toHaveClass('w-full');
+    expect(node).toHaveClass('animate-pulse');
+    expect(node).toHaveClass('bg-muted');
+  });
+
+  it('applies the circle variant (rounded-full + 10x10 square aspect)', () => {
+    const { container } = render(<Skeleton variant="circle" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node).toHaveClass('rounded-full');
+    expect(node).toHaveClass('h-10');
+    expect(node).toHaveClass('w-10');
+  });
+
+  it('applies the card variant (taller rounded block) explicitly', () => {
+    const { container } = render(<Skeleton variant="card" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node).toHaveClass('h-32');
+    expect(node).toHaveClass('w-full');
+    expect(node).toHaveClass('rounded-md');
+  });
+
+  it('renders the page variant as 1 header line + 3 body lines stacked', () => {
+    const { container } = render(<Skeleton variant="page" />);
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper).toHaveAttribute('role', 'status');
+    expect(wrapper).toHaveAttribute('aria-hidden', 'true');
+    expect(wrapper.querySelectorAll('[data-skeleton-page="header"]')).toHaveLength(1);
+    expect(wrapper.querySelectorAll('[data-skeleton-page="body"]')).toHaveLength(3);
+  });
+
+  it('shortens the final body line on the page variant for a natural look', () => {
+    const { container } = render(<Skeleton variant="page" />);
+    const bodyLines = container.querySelectorAll('[data-skeleton-page="body"]');
+    expect(bodyLines[2]?.className).toContain('w-4/5');
+    expect(bodyLines[0]?.className).not.toContain('w-4/5');
+  });
+
+  it('preserves the legacy default (no variant) as a single rect node', () => {
+    const { container } = render(<Skeleton data-testid="sk" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node).toHaveClass('rounded-md');
+    expect(node).toHaveClass('animate-pulse');
+    expect(node).toHaveClass('bg-muted');
+    expect(container.querySelectorAll('[data-skeleton-page="body"]')).toHaveLength(0);
+  });
+
+  it('forwards caller className on the page variant wrapper', () => {
+    const { container } = render(<Skeleton variant="page" className="my-page" />);
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper).toHaveClass('my-page');
+  });
 });
