@@ -3,11 +3,13 @@ import {
   History as HistoryIcon,
   NotebookText,
   Search,
+  Trash2,
   X,
 } from 'lucide-react';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import {
   Badge,
+  BulkActionToolbar,
   Button,
   Card,
   CardContent,
@@ -108,6 +110,22 @@ export default function HistoryView() {
     closeScribe();
     setSelected(name);
   }, [closeScribe]);
+
+  // (11.191) Bulk selection - shift/meta+click toggles membership.
+  const [bulk, setBulk] = useState<Set<string>>(() => new Set());
+  const toggleBulk = useCallback((name: string) => {
+    setBulk((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }, []);
+  const clearBulk = useCallback(() => setBulk(new Set()), []);
+  const deleteBulk = useCallback(() => {
+    // Placeholder: no backend delete wired.
+    clearBulk();
+  }, [clearBulk]);
 
   const activeSection: 'scribe' | 'detail' | 'placeholder' = showScribe
     ? 'scribe'
@@ -232,16 +250,28 @@ export default function HistoryView() {
                   className="pr-1"
                   renderItem={(w) => {
                     const isSelected = !showScribe && selected === w.name;
+                    const isBulkSelected = bulk.has(w.name);
                     return (
                       <button
                         type="button"
-                        onClick={() => selectWorker(w.name)}
+                        onClick={(e) => {
+                          if (e.shiftKey || e.metaKey || e.ctrlKey) {
+                            toggleBulk(w.name);
+                            return;
+                          }
+                          selectWorker(w.name);
+                        }}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          toggleBulk(w.name);
+                        }}
                         aria-pressed={isSelected}
                         className={cn(
                           'w-full rounded-md border border-transparent px-2 py-1.5 text-left text-sm transition-colors',
                           isSelected
                             ? 'bg-accent text-accent-foreground ring-1 ring-ring'
-                            : 'bg-muted/30 text-foreground hover:bg-muted'
+                            : 'bg-muted/30 text-foreground hover:bg-muted',
+                          isBulkSelected && 'ring-2 ring-primary',
                         )}
                       >
                         <div className="flex items-center justify-between gap-2">
@@ -322,6 +352,20 @@ export default function HistoryView() {
           </Card>
         )}
       </main>
+      <BulkActionToolbar
+        selectedCount={bulk.size}
+        onClearSelection={clearBulk}
+        ariaLabel="History bulk actions"
+        actions={[
+          {
+            id: 'delete',
+            label: 'Delete selected',
+            icon: <Trash2 className="h-3.5 w-3.5" />,
+            tone: 'danger',
+            onClick: deleteBulk,
+          },
+        ]}
+      />
     </div>
   );
 }

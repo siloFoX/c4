@@ -1,11 +1,12 @@
-import { useMemo } from 'react';
-import { Lightbulb, WifiOff } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { Lightbulb, Trash2, WifiOff } from 'lucide-react';
 import type { Worker } from '../types';
 import { useWorkerList } from '../lib/use-worker-list';
 import { usePersistedBool } from '../lib/use-persisted-bool';
 import {
   Avatar,
   Badge,
+  BulkActionToolbar,
   Card,
   CardContent,
   CardHeader,
@@ -50,6 +51,24 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
   const { workers, error, sseConnected } = useWorkerList();
   const [managersOpen, , toggleManagersOpen] = usePersistedBool(MGR_OPEN_KEY, true);
   const [workersOpen, , toggleWorkersOpen] = usePersistedBool(WRK_OPEN_KEY, true);
+  // (11.191) Bulk-action selection. Right-click context menu toggles
+  // membership; the floating BulkActionToolbar surfaces a 'Kill
+  // selected' action once any row is selected.
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const toggleSelected = useCallback((name: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }, []);
+  const clearSelection = useCallback(() => setSelected(new Set()), []);
+  const killSelected = useCallback(() => {
+    // Placeholder: reuses the same no-op as the existing 'Kill' context
+    // menu item. Real wiring goes through a future close-worker action.
+    clearSelection();
+  }, [clearSelection]);
 
   // (TODO 8.37) Partition into manager / worker buckets for the
   // grouped sidebar. Sort each group by name so the order is stable
@@ -76,6 +95,11 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
   const rowContextItems = (w: Worker): ContextMenuItem[] => [
     { id: 'attach', label: 'Attach', onSelect: () => onSelect(w.name) },
     { id: 'logs', label: 'Logs', onSelect: () => onSelect(w.name) },
+    {
+      id: 'select',
+      label: selected.has(w.name) ? 'Deselect' : 'Select',
+      onSelect: () => toggleSelected(w.name),
+    },
     { id: 'sep', label: '', separator: true },
     { id: 'kill', label: 'Kill', danger: true, onSelect: () => {} },
   ];
@@ -83,6 +107,7 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
   const renderRow = (w: Worker, accent: 'primary' | 'muted') => {
     const interventionActive = isInterventionActive(w);
     const isSelected = selectedWorker === w.name;
+    const isBulkSelected = selected.has(w.name);
     const dotVariant = mapStatusDotVariant(w);
     const card = (
       <Card
@@ -96,6 +121,7 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
           accent === 'primary' && 'border-l-2 border-l-primary/40',
           isSelected &&
             'ring-2 ring-ring ring-offset-2 ring-offset-background',
+          isBulkSelected && 'ring-2 ring-primary',
         )}
       >
         <CardHeader className="flex-row items-center justify-between gap-2 p-4">
@@ -232,6 +258,21 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
           least one worker. Always-visible header would be confusing
           when there's a single bucket. Same `hidden`-attribute
           ARIA fix as Managers group above. */}
+      <BulkActionToolbar
+        selectedCount={selected.size}
+        onClearSelection={clearSelection}
+        ariaLabel="Worker bulk actions"
+        actions={[
+          {
+            id: 'kill',
+            label: 'Kill selected',
+            icon: <Trash2 className="h-3.5 w-3.5" />,
+            tone: 'danger',
+            onClick: killSelected,
+          },
+        ]}
+      />
+
       {regular.length > 0 && (
         <div className="space-y-1">
           <WorkerListGroupHeader
