@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Badge, Fieldset, Input, Panel } from './ui';
+import { Badge, Collapsible, CollapsibleGroup, Fieldset, Input, Panel } from './ui';
 import type { BadgeVariant } from './ui/badge';
 import { t, useLocale } from '../lib/i18n';
 import { useToggle } from '../lib/use-toggle';
@@ -61,32 +61,38 @@ export default function RiskRuleCatalogPanel() {
               aria-label={t('riskPage.filter.label')}
               className="h-7 text-[11px]"
             />
-            {(['critical', 'high', 'medium'] as const).map((lv) => {
-              const items = (patterns.builtin[lv] || []).filter((p) => {
-                if (!filter) return true;
-                const f = filter.toLowerCase();
-                return p.code.toLowerCase().includes(f) ||
-                       p.label.toLowerCase().includes(f);
-              });
-              if (items.length === 0) return null;
-              return (
-                <div key={lv}>
-                  <Badge variant={LEVEL_VARIANT[lv]} className="mb-1 px-1.5 py-0 text-[10px] uppercase tracking-wide">
-                    {lv} · {items.length}
-                  </Badge>
-                  <ul className="space-y-0.5 pl-3 text-[11px]">
-                    {items.map((p) => (
-                      <li key={p.code}>
-                        <code className="rounded border border-border bg-background px-1 font-mono text-[10px]">
-                          {p.code}
-                        </code>
-                        <span className="ml-1 text-muted-foreground">— {p.label}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              );
-            })}
+            <CollapsibleGroup exclusive={false}>
+              {(['critical', 'high', 'medium'] as const).map((lv) => {
+                const items = (patterns.builtin[lv] || []).filter((p) => {
+                  if (!filter) return true;
+                  const f = filter.toLowerCase();
+                  return p.code.toLowerCase().includes(f) ||
+                         p.label.toLowerCase().includes(f);
+                });
+                if (items.length === 0) return null;
+                return (
+                  <Collapsible
+                    key={lv}
+                    title={
+                      <Badge variant={LEVEL_VARIANT[lv]} className="px-1.5 py-0 text-[10px] uppercase tracking-wide">
+                        {lv} · {items.length}
+                      </Badge>
+                    }
+                  >
+                    <ul className="space-y-0.5 pl-3 text-[11px]">
+                      {items.map((p) => (
+                        <li key={p.code}>
+                          <code className="rounded border border-border bg-background px-1 font-mono text-[10px]">
+                            {p.code}
+                          </code>
+                          <span className="ml-1 text-muted-foreground">— {p.label}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </Collapsible>
+                );
+              })}
+            </CollapsibleGroup>
             {patterns.counts.custom.total > 0 ? (
               <div className="rounded border border-border bg-muted/10 p-2 text-[11px]">
                 <div className="font-medium">{t('riskPage.customRules')}</div>
