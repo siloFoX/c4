@@ -85,10 +85,10 @@ export default function Plan() {
           </select>
         </div>
         <div>
-          <Label htmlFor="plan-branch">{t('planPage.branch')}</Label>
           <Tooltip label={t('plan.tooltip.branch')} placement="top">
             <Input
               id="plan-branch"
+              label={t('planPage.branch')}
               value={branch}
               onChange={(e) => setBranch(e.target.value)}
               placeholder={t('planPage.branch.placeholder')}
@@ -107,10 +107,10 @@ export default function Plan() {
           />
         </div>
         <div>
-          <Label htmlFor="plan-output">{t('planPage.output')}</Label>
           <Tooltip label={t('plan.tooltip.output')} placement="top">
             <Input
               id="plan-output"
+              label={t('planPage.output')}
               value={output}
               onChange={(e) => setOutput(e.target.value)}
               placeholder={t('planPage.output.placeholder')}

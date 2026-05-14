@@ -59,4 +59,114 @@ describe('<Input>', () => {
   it('exposes a stable displayName', () => {
     expect(Input.displayName).toBe('Input');
   });
+
+  // ----- v1.11.142 optional label / hint / error slots -----
+
+  describe('label slot', () => {
+    it('renders a <Label> above the input with the given text', () => {
+      render(<Input label="Email" id="email" />);
+      const labelEl = screen.getByText('Email');
+      expect(labelEl.tagName).toBe('LABEL');
+    });
+
+    it('wires htmlFor to an explicitly provided input id', () => {
+      render(<Input label="Email" id="email" />);
+      const labelEl = screen.getByText('Email');
+      expect(labelEl).toHaveAttribute('for', 'email');
+      const inputEl = screen.getByLabelText('Email');
+      expect(inputEl).toHaveAttribute('id', 'email');
+    });
+
+    it('uses a generated id when label is set but no id is provided', () => {
+      render(<Input label="Email" />);
+      const labelEl = screen.getByText('Email');
+      const forValue = labelEl.getAttribute('for');
+      expect(forValue).toBeTruthy();
+      const inputEl = screen.getByLabelText('Email');
+      expect(inputEl).toHaveAttribute('id', forValue!);
+    });
+  });
+
+  describe('hint slot', () => {
+    it('renders the hint text below the input', () => {
+      render(<Input label="Email" id="email" hint="We never share this" />);
+      expect(screen.getByText('We never share this')).toBeInTheDocument();
+    });
+
+    it('wires aria-describedby to the hint element id', () => {
+      render(<Input label="Email" id="email" hint="We never share this" />);
+      const inputEl = screen.getByLabelText('Email');
+      const describedBy = inputEl.getAttribute('aria-describedby') ?? '';
+      const hintEl = screen.getByText('We never share this');
+      expect(hintEl.id).toBeTruthy();
+      expect(describedBy.split(/\s+/)).toContain(hintEl.id);
+    });
+
+    it('does not set aria-invalid when only a hint is present', () => {
+      render(<Input label="Email" id="email" hint="hint only" />);
+      const inputEl = screen.getByLabelText('Email');
+      expect(inputEl).not.toHaveAttribute('aria-invalid');
+    });
+  });
+
+  describe('error slot', () => {
+    it('renders the error in a role=alert region and sets aria-invalid=true', () => {
+      render(<Input label="Email" id="email" error="Required" />);
+      const alertEl = screen.getByRole('alert');
+      expect(alertEl).toHaveTextContent('Required');
+      const inputEl = screen.getByLabelText('Email');
+      expect(inputEl).toHaveAttribute('aria-invalid', 'true');
+    });
+
+    it('wires aria-describedby to the error element id', () => {
+      render(<Input label="Email" id="email" error="Required" />);
+      const inputEl = screen.getByLabelText('Email');
+      const describedBy = inputEl.getAttribute('aria-describedby') ?? '';
+      const errorEl = screen.getByRole('alert');
+      expect(errorEl.id).toBeTruthy();
+      expect(describedBy.split(/\s+/)).toContain(errorEl.id);
+    });
+
+    it('adds the destructive border tone when error is set', () => {
+      render(<Input label="Email" id="email" error="Required" />);
+      const inputEl = screen.getByLabelText('Email');
+      expect(inputEl).toHaveClass('border-destructive');
+    });
+  });
+
+  describe('hint and error coexist', () => {
+    it('aria-describedby contains both the hint id and the error id', () => {
+      render(
+        <Input
+          label="Email"
+          id="email"
+          hint="Format hint"
+          error="Required"
+        />,
+      );
+      const inputEl = screen.getByLabelText('Email');
+      const describedBy = inputEl.getAttribute('aria-describedby') ?? '';
+      const hintEl = screen.getByText('Format hint');
+      const errorEl = screen.getByRole('alert');
+      const ids = describedBy.split(/\s+/);
+      expect(ids).toContain(hintEl.id);
+      expect(ids).toContain(errorEl.id);
+      expect(inputEl).toHaveAttribute('aria-invalid', 'true');
+    });
+  });
+
+  describe('bare input (no slots)', () => {
+    it('renders just the <input> with no wrapper when label / hint / error are all unset', () => {
+      const { container } = render(<Input placeholder="bare" />);
+      expect(container.firstElementChild?.tagName).toBe('INPUT');
+      expect(container.firstElementChild).toBe(
+        screen.getByPlaceholderText('bare'),
+      );
+    });
+
+    it('does not set aria-invalid on a bare input', () => {
+      const { container } = render(<Input placeholder="bare" />);
+      expect(container.firstElementChild).not.toHaveAttribute('aria-invalid');
+    });
+  });
 });

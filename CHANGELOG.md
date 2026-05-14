@@ -4,6 +4,63 @@
 
 (no entries -- next release window)
 
+## [1.11.142] - 2026-05-14 -- Web: Add optional label / hint / error slots to ui/Input + adopt across 5 form sites
+
+Extend the `ui/input.tsx` primitive with three optional slots so
+form sites stop reimplementing the same `<Label htmlFor>` +
+`<Input id>` plus `aria-describedby` / `aria-invalid` plumbing by
+hand. Adopted across five high-traffic form sites in this release;
+the remaining 30+ Input consumers in the repo are left as bare
+inputs (the new slots are strictly opt-in -- the old call shape is
+backwards compatible).
+
+What changed:
+
+1. **`ui/input.tsx` -- three optional props on `<Input>`** --
+   `label?: ReactNode` renders a `<Label>` above the input with
+   `htmlFor` wired to the caller-provided `id` or, if missing, a
+   stable `React.useId()` value so the label-input pair is always
+   associated. `hint?: ReactNode` renders a muted helper line
+   below the input and joins its id into `aria-describedby`.
+   `error?: ReactNode` renders a destructive-tone message in a
+   `role="alert"` region below, adds `aria-invalid="true"` and a
+   `border-destructive` tone on the input, and joins its id into
+   `aria-describedby` as well. When both `hint` and `error` are
+   set, `aria-describedby` carries both ids (space-separated, plus
+   any inbound `aria-describedby` from a parent like Tooltip).
+   **Backwards compat:** with none of the new props set the
+   primitive still renders a bare `<input>` -- no wrapper `<div>`,
+   no extra DOM -- so the ~30 existing call sites that already
+   pass `aria-label` / external `<Label htmlFor>` are untouched.
+
+2. **Adopted across five form sites** --
+   `pages/Batch.tsx` (count + namePrefix + branchPrefix + profile,
+   4 inputs), `pages/Plan.tsx` (branch + output, 2 inputs),
+   `components/AttachModal.tsx` (attach-path + alias, 2 inputs),
+   `pages/Risk.tsx` (window-hours, 1 input; the trailing "hours"
+   suffix moves to the new `hint` slot), and
+   `components/MeetingsMaintenancePanel.tsx` (prune-days, 1
+   input). 10 ad-hoc `<Label htmlFor>` + `<Input id>` pairs and
+   wrapping `<label>` elements collapse into a single `<Input
+   label=...>` call. Tooltip wrappers move to wrap the whole
+   widget instead of the bare input, which is fine -- Tooltip
+   clones the child via `cloneElement` and the cloned
+   `aria-describedby` still lands on the underlying `<input>`.
+
+3. **Tests** -- `ui/input.test.tsx` gains 12 new cases organized
+   under `label slot` / `hint slot` / `error slot` /
+   `hint + error coexist` / `bare input (no slots)` describe
+   blocks. The 8 pre-v1.11.142 cases are preserved verbatim. No
+   form-site test file required updating -- every migrated site
+   queries inputs through `getByLabelText(<visible text>)`, and
+   the new slot still renders a `<label htmlFor>` + `<input id>`
+   pair, so the 214 tests across the five form-site test files
+   pass unchanged.
+
+No ARPS design-system files (`/root/c4/arps-design-system-v1/`)
+were modified. No changes to `docs/autonomous-queue-v10.md`. No
+new npm dependencies.
+
 ## [1.11.141] - 2026-05-14 -- Web: Standardize focus rings across 13 non-primitive components
 
 Audit and unify ad-hoc focus styles across the web app so every

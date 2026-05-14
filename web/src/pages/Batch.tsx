@@ -117,9 +117,9 @@ export default function Batch() {
             />
           </div>
           <div>
-            <Label htmlFor="batch-count">{t('batchPage.count')}</Label>
             <Input
               id="batch-count"
+              label={t('batchPage.count')}
               type="number"
               min={1}
               max={50}
@@ -128,10 +128,10 @@ export default function Batch() {
             />
           </div>
           <div>
-            <Label htmlFor="batch-prefix">{t('batchPage.namePrefix')}</Label>
             <Tooltip label={t('batch.tooltip.prefix')} placement="top">
               <Input
                 id="batch-prefix"
+                label={t('batchPage.namePrefix')}
                 value={namePrefix}
                 onChange={(e) => setNamePrefix(e.target.value)}
                 placeholder={t('batchPage.namePrefix.placeholder')}
@@ -155,10 +155,10 @@ export default function Batch() {
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <div>
-          <Label htmlFor="batch-branch">{t('batchPage.branchPrefix')}</Label>
           <Tooltip label={t('batch.tooltip.branch')} placement="top">
             <Input
               id="batch-branch"
+              label={t('batchPage.branchPrefix')}
               value={branch}
               onChange={(e) => setBranch(e.target.value)}
               placeholder={t('batchPage.branchPrefix.placeholder')}
@@ -166,10 +166,10 @@ export default function Batch() {
           </Tooltip>
         </div>
         <div>
-          <Label htmlFor="batch-profile">{t('batchPage.profile')}</Label>
           <Tooltip label={t('batch.tooltip.profile')} placement="top">
             <Input
               id="batch-profile"
+              label={t('batchPage.profile')}
               value={profile}
               onChange={(e) => setProfile(e.target.value)}
               placeholder={t('batchPage.profile.placeholder')}
