@@ -4,12 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { setLocale } from '../lib/i18n';
 
 // NewChatModal owns three controlled form fields (prompt, model
-// agent) that are extracted into use-new-chat-form, and the
-// Escape-key dismissal listener that is extracted into
-// use-escape-to-close. Both hooks have their own unit tests, so
-// we stub them here with per-test-tunable initial values + vi.fn()
-// setters that also drive real useState so typing / selecting
-// actually moves the controlled inputs.
+// agent) extracted into use-new-chat-form (mocked here), and wraps the
+// shared Dialog primitive (web/src/components/ui/dialog.tsx) which
+// owns Escape + backdrop dismissal, focus trap, and portal mount.
 
 let promptInitial = '';
 let modelInitial = 'default';
@@ -18,10 +15,6 @@ const setPromptMock = vi.fn();
 const setModelMock = vi.fn();
 const setAgentMock = vi.fn();
 let lastFormOpen: boolean | null = null;
-
-let lastEscapeArgs:
-  | { open: boolean; busy: boolean | undefined; onClose: () => void }
-  | null = null;
 
 vi.mock('../lib/use-new-chat-form', async () => {
   const react = await vi.importActual<typeof import('react')>('react');
@@ -55,20 +48,6 @@ vi.mock('../lib/use-new-chat-form', async () => {
   };
 });
 
-vi.mock('../lib/use-escape-to-close', () => ({
-  useEscapeToClose: (args: {
-    open: boolean;
-    busy?: boolean;
-    onClose: () => void;
-  }) => {
-    lastEscapeArgs = {
-      open: args.open,
-      busy: args.busy,
-      onClose: args.onClose,
-    };
-  },
-}));
-
 import NewChatModal from './NewChatModal';
 
 beforeEach(() => {
@@ -80,7 +59,6 @@ beforeEach(() => {
   setModelMock.mockReset();
   setAgentMock.mockReset();
   lastFormOpen = null;
-  lastEscapeArgs = null;
 });
 
 function renderModal(
@@ -102,19 +80,6 @@ function renderModal(
 }
 
 describe('<NewChatModal>', () => {
-  it('renders nothing when open=false', () => {
-    const { container } = render(
-      <NewChatModal
-        open={false}
-        busy={false}
-        error={null}
-        onClose={vi.fn()}
-        onSubmit={vi.fn()}
-      />,
-    );
-    expect(container.firstChild).toBeNull();
-  });
-
   it('does not render the dialog when open=false', () => {
     render(
       <NewChatModal
@@ -134,13 +99,14 @@ describe('<NewChatModal>', () => {
     expect(dialog).toHaveAttribute('aria-modal', 'true');
   });
 
-  it('labels the dialog via aria-labelledby pointing at the title id', () => {
+  it('labels the dialog via aria-labelledby pointing at the title', () => {
     renderModal();
-    expect(screen.getByRole('dialog')).toHaveAttribute(
-      'aria-labelledby',
-      'new-chat-title',
-    );
-    expect(screen.getByText('New Chat').id).toBe('new-chat-title');
+    const dialog = screen.getByRole('dialog');
+    const labelId = dialog.getAttribute('aria-labelledby');
+    expect(labelId).toBeTruthy();
+    const labelEl = document.getElementById(labelId as string);
+    expect(labelEl).not.toBeNull();
+    expect(labelEl).toHaveTextContent('New Chat');
   });
 
   it('renders the localized New Chat heading', () => {
@@ -204,13 +170,6 @@ describe('<NewChatModal>', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Start chat' }),
-    ).toBeInTheDocument();
-  });
-
-  it('renders an aria-labelled Close (X) button', () => {
-    renderModal();
-    expect(
-      screen.getByRole('button', { name: 'Close' }),
     ).toBeInTheDocument();
   });
 
@@ -330,27 +289,40 @@ describe('<NewChatModal>', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('fires onClose when the Close (X) header button is clicked', async () => {
-    const { user, onClose } = renderModal();
-    await user.click(screen.getByRole('button', { name: 'Close' }));
-    expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
   it('fires onClose when the backdrop is clicked while not busy', async () => {
     const { user, onClose } = renderModal();
-    await user.click(screen.getByRole('dialog'));
+    const backdrop = document.querySelector(
+      '[data-dialog-backdrop]',
+    ) as HTMLElement;
+    expect(backdrop).not.toBeNull();
+    await user.click(backdrop);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('does NOT fire onClose on backdrop click while busy', async () => {
     const { user, onClose } = renderModal({ busy: true });
-    await user.click(screen.getByRole('dialog'));
+    const backdrop = document.querySelector(
+      '[data-dialog-backdrop]',
+    ) as HTMLElement;
+    await user.click(backdrop);
     expect(onClose).not.toHaveBeenCalled();
   });
 
   it('does NOT fire onClose when the inner card is clicked', async () => {
     const { user, onClose } = renderModal();
     await user.click(screen.getByText('New Chat'));
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('fires onClose when Escape is pressed while not busy', async () => {
+    const { user, onClose } = renderModal();
+    await user.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('does NOT fire onClose when Escape is pressed while busy', async () => {
+    const { user, onClose } = renderModal({ busy: true });
+    await user.keyboard('{Escape}');
     expect(onClose).not.toHaveBeenCalled();
   });
 
@@ -372,7 +344,6 @@ describe('<NewChatModal>', () => {
     expect(screen.getByLabelText('Model')).toBeDisabled();
     expect(screen.getByLabelText('Agent')).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Close' })).toBeDisabled();
     expect(
       screen.getByRole('button', { name: 'Starting...' }),
     ).toBeDisabled();
@@ -383,23 +354,7 @@ describe('<NewChatModal>', () => {
     expect(lastFormOpen).toBe(true);
   });
 
-  it('forwards the open + busy + onClose props into useEscapeToClose', () => {
-    const onClose = vi.fn();
-    render(
-      <NewChatModal
-        open
-        busy
-        error={null}
-        onClose={onClose}
-        onSubmit={vi.fn()}
-      />,
-    );
-    expect(lastEscapeArgs?.open).toBe(true);
-    expect(lastEscapeArgs?.busy).toBe(true);
-    expect(lastEscapeArgs?.onClose).toBe(onClose);
-  });
-
-  it('focuses the prompt textarea via autoFocus on mount', () => {
+  it('focuses the prompt textarea on mount', () => {
     renderModal();
     expect(screen.getByLabelText('Initial prompt')).toHaveFocus();
   });
