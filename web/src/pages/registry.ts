@@ -7,6 +7,7 @@
 import type { ComponentType } from 'react';
 import {
   Activity,
+  Archive,
   BarChart3,
   Bell,
   Brain,
@@ -203,6 +204,14 @@ export const FEATURES: FeatureDef[] = [
     category: 'config',
     Icon: Palette,
     load: () => import('./DesignSystem'),
+  },
+  {
+    id: 'snapshots',
+    labelKey: 'feature.snapshots.label',
+    descriptionKey: 'feature.snapshots.description',
+    category: 'config',
+    Icon: Archive,
+    load: () => import('./Snapshots'),
   },
   {
     id: 'keyboard-map',

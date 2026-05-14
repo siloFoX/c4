@@ -1119,6 +1119,8 @@
   "feature.auto.description": "주어진 작업에 대한 자율 관리자 + scribe 생성.",
   "feature.queue.label": "큐",
   "feature.queue.description": "자율 큐 마크다운 편집 -- 행 재정렬, 상태 전환, 상세 편집.",
+  "feature.snapshots.label": "Snapshots",
+  "feature.snapshots.description": "데몬 config 와 autonomous queue 마크다운을 타임스탬프 스냅샷으로 저장/복원.",
   "feature.templates.label": "Templates",
   "feature.templates.description": "워커 템플릿 — 재사용 가능한 agent/model/effort 프리셋.",
   "feature.profiles.label": "Profiles",

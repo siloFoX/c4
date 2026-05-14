@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.207] - 2026-05-14 -- UI + daemon: snapshots save/restore (11.189)
+
+Snapshots feature for safely saving and restoring the live `config.json` + `docs/autonomous-queue-v10.md`. Daemon exposes `GET /api/snapshots`, `POST /api/snapshots`, `POST /api/snapshots/:id/restore`, and `DELETE /api/snapshots/:id`, all JWT-auth gated through the existing `CONFIG_RELOAD` RBAC action and writing atomically via tmp + rename. Each mutation emits a single `snapshot.create` / `snapshot.restore` / `snapshot.delete` audit line. Size caps: 10 MB config, 5 MB queue. Snapshot ids are validated against `^[0-9A-Za-z._-]+$` to block path traversal. Web side adds `web/src/pages/Snapshots.tsx` (Config category, Archive icon) listing saved snapshots newest first with Restore + Delete behind confirm dialogs and a "Take snapshot" form. See `docs/patches/11.189-ui-snapshots.md`.
+
 ## [1.11.206] - 2026-05-14 -- UI: command palette v3 (11.188)
 
 `<CommandPalette>` polish: per-row Star toggle persists ids to `c4:cmdk:favorites` and pins a `Favorites` section to the top above `Recent` and the section grouping; typing `>` as the first character flips the palette into action mode (Quit / Reload / Toggle theme / Open Settings / Show shortcuts) with a `Nav`/`Action` `<Chip>` badge to the right of the input. `Toggle theme` integrates with `useTheme` to cycle system -> light -> dark; `Show shortcuts` fires the existing `c4:shortcuts-open` event. See `docs/patches/11.188-ui-cmdk-v3.md`.
