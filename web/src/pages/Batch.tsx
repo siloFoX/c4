@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Checkbox, Input, Label, Panel, Textarea, Tooltip } from '../components/ui';
+import { Button, Checkbox, Input, Label, Panel, Progress, Textarea, Tooltip } from '../components/ui';
 import { t, useLocale } from '../lib/i18n';
 import { useBatchSubmit } from '../lib/use-batch-submit';
 import { useToast } from '../lib/use-toast';
@@ -186,6 +186,14 @@ export default function Batch() {
         </div>
       </div>
 
+      {busy && (
+        <Progress
+          indeterminate
+          label
+          aria-label={t('batchPage.dispatching')}
+        />
+      )}
+
       {error && <ErrorPanel message={error} />}
 
       {result && (
@@ -193,6 +201,14 @@ export default function Batch() {
           <div className="mb-2 text-sm text-muted-foreground">
             {`${result.ok} ok / ${result.fail} failed / ${result.total} total`}
           </div>
+          <Progress
+            value={result.ok}
+            max={result.total || 1}
+            label
+            variant={result.fail === 0 ? 'success' : 'warning'}
+            className="mb-2"
+          />
+
           <ul className="space-y-0.5">
             {result.results.map((r) => (
               <li
