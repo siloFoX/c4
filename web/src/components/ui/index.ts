@@ -50,3 +50,4 @@ export * from './number-input';
 export * from './date-picker';
 export * from './breadcrumbs';
 export * from './notification-banner';
+export * from './virtual-list';
