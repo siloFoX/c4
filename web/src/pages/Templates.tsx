@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Chip, EmptyState, FileInput, Pagination, Panel, SearchBar, Tooltip } from '../components/ui';
+import { Button, Chip, EmptyState, FileInput, ListItem, Pagination, Panel, SearchBar, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -99,24 +99,29 @@ export default function Templates() {
           {pageItems.map((tpl) => (
             <li key={tpl.name}>
               <Panel className="p-3">
-                <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <span className={cn(text.mono, 'text-foreground')}>{tpl.name}</span>
-                  {tpl.source && <Chip variant="outline">{tpl.source}</Chip>}
-                  {tpl.model && <Chip variant="outline">{tpl.model}</Chip>}
-                  {tpl.effort && <Chip variant="outline">{tpl.effort}</Chip>}
-                  {tpl.profile && <Chip variant="outline">{tpl.profile}</Chip>}
-                </div>
-                {tpl.description && (
-                  <div className={text.caption}>{tpl.description}</div>
-                )}
-                <div className="mt-2 flex gap-2">
-                  <Button type="button" variant="ghost" size="sm" onClick={notImplemented}>
-                    {t('common.edit')}
-                  </Button>
-                  <Button type="button" variant="ghost" size="sm" onClick={notImplemented}>
-                    {t('common.remove')}
-                  </Button>
-                </div>
+                <ListItem
+                  className="p-0"
+                  title={
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className={cn(text.mono, 'text-foreground')}>{tpl.name}</span>
+                      {tpl.source && <Chip variant="outline">{tpl.source}</Chip>}
+                      {tpl.model && <Chip variant="outline">{tpl.model}</Chip>}
+                      {tpl.effort && <Chip variant="outline">{tpl.effort}</Chip>}
+                      {tpl.profile && <Chip variant="outline">{tpl.profile}</Chip>}
+                    </span>
+                  }
+                  description={tpl.description || undefined}
+                  trailing={
+                    <>
+                      <Button type="button" variant="ghost" size="sm" onClick={notImplemented}>
+                        {t('common.edit')}
+                      </Button>
+                      <Button type="button" variant="ghost" size="sm" onClick={notImplemented}>
+                        {t('common.remove')}
+                      </Button>
+                    </>
+                  }
+                />
               </Panel>
             </li>
           ))}

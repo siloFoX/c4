@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { Badge, EmptyState, Skeleton, Timeline } from './ui';
+import { Badge, EmptyState, ListItem, Skeleton, Timeline } from './ui';
 import type { TimelineItem } from './ui';
 import { WelcomeOnboardingIllustration } from './illustrations';
 import { cn } from '../lib/cn';
@@ -124,35 +124,33 @@ export default function SessionsListSection({
               ? group.sessions.map((session) => {
                   const active = selectedSessionId === session.sessionId;
                   return (
-                    <button
+                    <ListItem
                       key={session.sessionId}
-                      type="button"
                       onClick={() => onSelect(session.sessionId)}
-                      aria-current={active ? 'true' : undefined}
+                      active={active}
                       className={cn(
-                        'block w-full px-4 py-3 text-left text-sm transition-colors',
-                        active
-                          ? 'bg-accent text-accent-foreground'
-                          : 'hover:bg-accent/60',
+                        'rounded-none px-4 py-3',
+                        active && 'bg-accent text-accent-foreground',
                       )}
-                    >
-                      <div className="flex items-center gap-2">
+                      title={
                         <span className="font-mono text-xs text-muted-foreground">
                           {shortId(session.sessionId)}
                         </span>
-                        <Badge variant="secondary" className="ml-auto">
-                          {session.turnCount}
-                        </Badge>
-                      </div>
-                      {session.lastAssistantSnippet ? (
-                        <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                          {session.lastAssistantSnippet}
-                        </div>
-                      ) : null}
-                      <div className="mt-1 text-[11px] text-muted-foreground">
-                        {formatRelative(session.updatedAt)}
-                      </div>
-                    </button>
+                      }
+                      description={
+                        <>
+                          {session.lastAssistantSnippet ? (
+                            <span className="block">{session.lastAssistantSnippet}</span>
+                          ) : null}
+                          <span className="block text-[11px]">
+                            {formatRelative(session.updatedAt)}
+                          </span>
+                        </>
+                      }
+                      trailing={
+                        <Badge variant="secondary">{session.turnCount}</Badge>
+                      }
+                    />
                   );
                 })
               : null}

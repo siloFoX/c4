@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, EmptyState, Fieldset, HeroCard, Panel, SearchBar, Tooltip } from '../components/ui';
+import { Badge, Button, EmptyState, Fieldset, HeroCard, ListItem, Panel, SearchBar, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -109,25 +109,26 @@ export default function Profiles() {
             return (
               <li key={p.name}>
                 <Panel className="p-3">
-                  <button
-                    type="button"
+                  <ListItem
+                    className="p-0"
                     onClick={() => toggle(p.name)}
-                    className="flex w-full items-start justify-between gap-2 text-left"
                     aria-expanded={isOpen}
-                  >
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
+                    active={isOpen}
+                    title={
+                      <span className="flex flex-wrap items-center gap-2">
                         <span className={cn(text.mono, 'text-foreground')}>{p.name}</span>
                         {p.source && <Badge variant="outline">{p.source}</Badge>}
                         <Badge variant="outline">{allow.length} allow</Badge>
                         <Badge variant="outline">{deny.length} deny</Badge>
-                      </div>
-                      {p.description && (
-                        <div className={cn('mt-1', text.caption)}>{p.description}</div>
-                      )}
-                    </div>
-                    <span className={text.caption}>{isOpen ? t('profiles.toggle.hide') : t('profiles.toggle.show')}</span>
-                  </button>
+                      </span>
+                    }
+                    description={p.description || undefined}
+                    trailing={
+                      <span className={text.caption}>
+                        {isOpen ? t('profiles.toggle.hide') : t('profiles.toggle.show')}
+                      </span>
+                    }
+                  />
                   {isOpen && (
                     <Fieldset
                       legend={t('profiles.list.allow') + ' / ' + t('profiles.list.deny')}
