@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Chip, EmptyState, Input, Pagination, Panel, Tooltip } from '../components/ui';
+import { Button, Chip, EmptyState, FileInput, Input, Pagination, Panel, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -121,6 +121,7 @@ export default function Templates() {
           ))}
         </ul>
       )}
+      <ImportTemplateForm />
       {!loading && filtered.length > PAGE_SIZE && (
         <div className="mt-3 flex justify-center">
           <Pagination
@@ -143,5 +144,26 @@ export default function Templates() {
         )}
       </div>
     </PageFrame>
+  );
+}
+
+function ImportTemplateForm() {
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <div className="mt-4">
+      <FileInput
+        label="Import template"
+        hint="Upload a JSON or YAML template file (no daemon endpoint yet)"
+        accept="application/json,application/yaml,.json,.yaml,.yml"
+        maxSize={1024 * 1024}
+        error={error ?? undefined}
+        onFiles={(files) => {
+          setError(null);
+          // eslint-disable-next-line no-console
+          console.log('[templates] import file', files[0]?.name, files[0]?.size);
+        }}
+        onError={(msg) => setError(msg)}
+      />
+    </div>
   );
 }

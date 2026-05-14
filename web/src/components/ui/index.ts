@@ -29,3 +29,4 @@ export * from './scroll-area';
 export * from './separator';
 export * from './chip';
 export * from './timeline';
+export * from './file-input';
