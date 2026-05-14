@@ -105,6 +105,7 @@ export default function Sidebar({
         widthClass,
       )}
       data-collapsed={collapsed ? 'true' : 'false'}
+      data-print-hide
       aria-label={t('sidebar.workersSidebar')}
     >
       <ScrollArea
