@@ -385,7 +385,10 @@ describe('<Risk>', () => {
 
   it('renders the windowHours number input with the current value', () => {
     render(<Risk />);
-    const input = screen.getByRole('spinbutton') as HTMLInputElement;
+    // (11.175) Migrated to NumberInput primitive; lookup via aria-label
+    // instead of role=spinbutton since the underlying control is now a
+    // type=text input with inputmode=numeric.
+    const input = screen.getByLabelText('window:') as HTMLInputElement;
     expect(input).toBeInTheDocument();
     expect(input.value).toBe('24');
   });
@@ -393,7 +396,7 @@ describe('<Risk>', () => {
   it('disables the windowHours input while statsLoading', () => {
     statsState = { ...statsState, statsLoading: true };
     render(<Risk />);
-    expect(screen.getByRole('spinbutton')).toBeDisabled();
+    expect(screen.getByLabelText('window:')).toBeDisabled();
   });
 
   it('renders the check error panel when checkError is set', () => {
@@ -470,7 +473,7 @@ describe('<Risk>', () => {
   it('fires setWindowHours when the windowHours input changes', async () => {
     const user = userEvent.setup();
     render(<Risk />);
-    const input = screen.getByRole('spinbutton') as HTMLInputElement;
+    const input = screen.getByLabelText('window:') as HTMLInputElement;
     await user.clear(input);
     await user.type(input, '48');
     expect(setWindowHoursMock).toHaveBeenCalled();
