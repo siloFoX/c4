@@ -11,6 +11,7 @@ import {
 import type { MouseEvent, ReactElement, ReactNode, Ref } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/cn';
+import { useFocusTrap } from '../../hooks/use-focus-trap';
 
 export type PopoverPlacement = 'top' | 'bottom' | 'left' | 'right';
 export type PopoverAlign = 'start' | 'center' | 'end';
@@ -27,21 +28,6 @@ export interface PopoverProps {
   closeOnClickOutside?: boolean;
   closeOnEsc?: boolean;
   className?: string;
-}
-
-const FOCUSABLE_SELECTOR = [
-  'a[href]',
-  'button:not([disabled])',
-  'input:not([disabled]):not([type="hidden"])',
-  'select:not([disabled])',
-  'textarea:not([disabled])',
-  '[tabindex]:not([tabindex="-1"])',
-].join(',');
-
-function getFocusables(root: HTMLElement | null): HTMLElement[] {
-  if (!root) return [];
-  return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
-    .filter((el) => !el.hasAttribute('disabled') && el.tabIndex !== -1);
 }
 
 function opposite(p: PopoverPlacement): PopoverPlacement {
@@ -138,18 +124,6 @@ export function Popover({
   }, [open, placement, align, offset, content]);
 
   useEffect(() => {
-    if (!open || !closeOnEsc) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        setOpen(false);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, closeOnEsc, setOpen]);
-
-  useEffect(() => {
     if (!open || !closeOnClickOutside) return;
     const onDown = (e: globalThis.MouseEvent) => {
       const target = e.target as Node | null;
@@ -162,52 +136,26 @@ export function Popover({
     return () => document.removeEventListener('mousedown', onDown, true);
   }, [open, closeOnClickOutside, setOpen]);
 
-  // Focus trap + initial focus + return focus.
+  const handleEscape = useCallback(() => {
+    if (closeOnEsc) setOpen(false);
+  }, [closeOnEsc, setOpen]);
+
+  useFocusTrap(panelRef, {
+    active: open,
+    onEscape: closeOnEsc ? handleEscape : undefined,
+    restoreFocusOnUnmount: false,
+  });
+
+  // Return focus to the trigger when the panel closes (popover-specific:
+  // hook restores to previouslyFocused, which is not always the trigger in
+  // controlled mode).
+  const prevOpenRef = useRef(open);
   useEffect(() => {
-    if (!open) return;
-    const panel = panelRef.current;
-    if (!panel) return;
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    const focusables = getFocusables(panel);
-    const first = focusables[0];
-    if (first) first.focus();
-    else panel.focus();
-    return () => {
+    if (prevOpenRef.current && !open) {
       const trig = triggerRef.current;
       if (trig && typeof trig.focus === 'function') trig.focus();
-      else if (previouslyFocused && typeof previouslyFocused.focus === 'function') previouslyFocused.focus();
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return;
-      const panel = panelRef.current;
-      if (!panel) return;
-      const focusables = getFocusables(panel);
-      if (focusables.length === 0) {
-        e.preventDefault();
-        panel.focus();
-        return;
-      }
-      const first = focusables[0]!;
-      const last = focusables[focusables.length - 1]!;
-      const active = document.activeElement as HTMLElement | null;
-      if (e.shiftKey) {
-        if (active === first || !panel.contains(active)) {
-          e.preventDefault();
-          last.focus();
-        }
-      } else {
-        if (active === last || !panel.contains(active)) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    }
+    prevOpenRef.current = open;
   }, [open]);
 
   const triggerProps = trigger.props as {
