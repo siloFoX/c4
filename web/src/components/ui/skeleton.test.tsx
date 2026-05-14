@@ -1,6 +1,15 @@
+import { createRef } from 'react';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Skeleton } from './skeleton';
+import {
+  AvatarShape,
+  Circle,
+  Rect,
+  Skeleton,
+  StatCardShape,
+  TableRowShape,
+  TextLine,
+} from './skeleton';
 
 describe('<Skeleton>', () => {
   it('renders an animate-pulse + bg-muted node by default', () => {
@@ -141,5 +150,162 @@ describe('<Skeleton>', () => {
     const { container } = render(<Skeleton variant="page" className="my-page" />);
     const wrapper = container.firstChild as HTMLElement;
     expect(wrapper).toHaveClass('my-page');
+  });
+});
+
+// ---- v1.11.174: composable shape variants ------------------------
+
+describe('<TextLine>', () => {
+  it('renders with the default 100% width and 0.875em height', () => {
+    const { container } = render(<TextLine />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.style.width).toBe('100%');
+    expect(node.style.height).toBe('0.875em');
+    expect(node).toHaveClass('animate-pulse');
+    expect(node).toHaveClass('bg-muted');
+  });
+
+  it('accepts a custom width prop (string + number)', () => {
+    const { container: c1 } = render(<TextLine width="70%" />);
+    expect((c1.firstChild as HTMLElement).style.width).toBe('70%');
+    const { container: c2 } = render(<TextLine width={120} />);
+    expect((c2.firstChild as HTMLElement).style.width).toBe('120px');
+  });
+
+  it('merges caller className', () => {
+    const { container } = render(<TextLine className="my-line" />);
+    expect(container.firstChild as HTMLElement).toHaveClass('my-line');
+  });
+
+  it('forwardRef exposes the underlying DOM node', () => {
+    const ref = createRef<HTMLDivElement>();
+    render(<TextLine ref={ref} data-testid="tl" />);
+    expect(ref.current).not.toBeNull();
+    expect(ref.current?.tagName).toBe('DIV');
+  });
+});
+
+describe('<Rect>', () => {
+  it('applies rounded-md by default', () => {
+    const { container } = render(<Rect width={50} height={20} />);
+    const node = container.firstChild as HTMLElement;
+    expect(node).toHaveClass('rounded-md');
+    expect(node.style.width).toBe('50px');
+    expect(node.style.height).toBe('20px');
+  });
+
+  it('rounded="full" applies rounded-full class', () => {
+    const { container } = render(<Rect rounded="full" width={20} height={20} />);
+    expect(container.firstChild as HTMLElement).toHaveClass('rounded-full');
+  });
+
+  it('accepts string width/height (passes through)', () => {
+    const { container } = render(<Rect width="50%" height="1rem" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.style.width).toBe('50%');
+    expect(node.style.height).toBe('1rem');
+  });
+
+  it('merges caller className', () => {
+    const { container } = render(<Rect className="my-rect" />);
+    expect(container.firstChild as HTMLElement).toHaveClass('my-rect');
+  });
+
+  it('forwardRef exposes the underlying DOM node', () => {
+    const ref = createRef<HTMLDivElement>();
+    render(<Rect ref={ref} />);
+    expect(ref.current).not.toBeNull();
+  });
+});
+
+describe('<Circle>', () => {
+  it('matches w/h to the size prop', () => {
+    const { container } = render(<Circle size="3rem" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.style.width).toBe('3rem');
+    expect(node.style.height).toBe('3rem');
+    expect(node).toHaveClass('rounded-full');
+  });
+
+  it('accepts numeric size', () => {
+    const { container } = render(<Circle size={48} />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.style.width).toBe('48px');
+    expect(node.style.height).toBe('48px');
+  });
+
+  it('merges caller className', () => {
+    const { container } = render(<Circle className="my-circle" />);
+    expect(container.firstChild as HTMLElement).toHaveClass('my-circle');
+  });
+});
+
+describe('<AvatarShape>', () => {
+  it('sm size applies h-6/w-6 classes', () => {
+    const { container } = render(<AvatarShape size="sm" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node).toHaveClass('h-6');
+    expect(node).toHaveClass('w-6');
+    expect(node).toHaveAttribute('data-avatar-size', 'sm');
+  });
+
+  it('md size applies h-10/w-10 classes', () => {
+    const { container } = render(<AvatarShape size="md" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node).toHaveClass('h-10');
+    expect(node).toHaveClass('w-10');
+  });
+
+  it('lg size applies h-14/w-14 classes', () => {
+    const { container } = render(<AvatarShape size="lg" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node).toHaveClass('h-14');
+    expect(node).toHaveClass('w-14');
+  });
+
+  it('merges caller className', () => {
+    const { container } = render(<AvatarShape className="my-av" />);
+    expect(container.firstChild as HTMLElement).toHaveClass('my-av');
+  });
+});
+
+describe('<StatCardShape>', () => {
+  it('renders 3 Rect children (label + number + delta)', () => {
+    const { container } = render(<StatCardShape />);
+    const rects = container.querySelectorAll('[data-skeleton-shape="rect"]');
+    expect(rects).toHaveLength(3);
+  });
+
+  it('merges caller className on the wrapper', () => {
+    const { container } = render(<StatCardShape className="my-stat" />);
+    expect(container.firstChild as HTMLElement).toHaveClass('my-stat');
+  });
+});
+
+describe('<TableRowShape>', () => {
+  it('renders 5 rects by default', () => {
+    const { container } = render(<TableRowShape />);
+    const rects = container.querySelectorAll('[data-skeleton-shape="rect"]');
+    expect(rects).toHaveLength(5);
+  });
+
+  it('renders N rects when columns=N', () => {
+    const { container } = render(<TableRowShape columns={3} />);
+    const rects = container.querySelectorAll('[data-skeleton-shape="rect"]');
+    expect(rects).toHaveLength(3);
+  });
+
+  it('merges caller className on the row wrapper', () => {
+    const { container } = render(<TableRowShape className="my-row" />);
+    expect(container.firstChild as HTMLElement).toHaveClass('my-row');
+  });
+
+  it('cycles the 60/100/45/70/30 width pattern for >5 columns', () => {
+    const { container } = render(<TableRowShape columns={7} />);
+    const rects = container.querySelectorAll('[data-skeleton-shape="rect"]');
+    expect(rects).toHaveLength(7);
+    expect((rects[0] as HTMLElement).style.width).toBe('60%');
+    expect((rects[5] as HTMLElement).style.width).toBe('60%');
+    expect((rects[6] as HTMLElement).style.width).toBe('100%');
   });
 });
