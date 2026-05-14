@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { ChevronDown, ChevronRight, X } from 'lucide-react';
 import {
   Badge,
+  BulkActionToolbar,
   ContextMenu,
   EmptyState,
   ListItem,
@@ -45,6 +46,22 @@ export default function SessionsListSection({
   onSelect,
 }: Props) {
   useLocale();
+
+  // (11.191) Bulk selection state - context-menu toggle.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const toggleSelected = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+  const closeSelected = useCallback(() => {
+    // Placeholder: no backend wired yet.
+    clearSelection();
+  }, [clearSelection]);
 
   // (v1.11.167) patch 11.149 - recent activity timeline subset.
   // Read-only preview alongside the interactive group list below;
@@ -142,6 +159,7 @@ export default function SessionsListSection({
                     else if (ageMs < 60 * 60_000) dotVariant = 'away';
                     else dotVariant = 'offline';
                   }
+                  const isBulkSelected = selectedIds.has(session.sessionId);
                   const sessionMenuItems: ContextMenuItem[] = [
                     {
                       id: 'open',
@@ -149,6 +167,11 @@ export default function SessionsListSection({
                       onSelect: () => onSelect(session.sessionId),
                     },
                     { id: 'rename', label: 'Rename', onSelect: () => {} },
+                    {
+                      id: 'select',
+                      label: isBulkSelected ? 'Deselect' : 'Select',
+                      onSelect: () => toggleSelected(session.sessionId),
+                    },
                     { id: 'sep', label: '', separator: true },
                     {
                       id: 'delete',
@@ -164,6 +187,7 @@ export default function SessionsListSection({
                       className={cn(
                         'rounded-none px-4 py-3',
                         active && 'bg-accent text-accent-foreground',
+                        isBulkSelected && 'ring-2 ring-primary ring-inset',
                       )}
                       title={
                         <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
@@ -200,6 +224,20 @@ export default function SessionsListSection({
         );
       })}
     </ul>
+    <BulkActionToolbar
+      selectedCount={selectedIds.size}
+      onClearSelection={clearSelection}
+      ariaLabel="Session bulk actions"
+      actions={[
+        {
+          id: 'close',
+          label: 'Close selected',
+          icon: <X className="h-3.5 w-3.5" />,
+          tone: 'danger',
+          onClick: closeSelected,
+        },
+      ]}
+    />
     </>
   );
 }
