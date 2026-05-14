@@ -1,6 +1,6 @@
 import { CheckCircle2, FolderTree, GitBranch, RefreshCw, XCircle } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
-import { Button, EmptyState, Panel } from '../components/ui';
+import { Button, EmptyState, HeroCard, Panel } from '../components/ui';
 import { WelcomeOnboardingIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
@@ -46,9 +46,13 @@ export default function Workspaces() {
         </Button>
       }
     >
-      <div className="rounded-md border border-border bg-muted/10 p-3 text-[12px] text-muted-foreground">
-        {t('workspaces.intro')}
-      </div>
+      <HeroCard
+        size="sm"
+        tone="info"
+        icon={<FolderTree className="h-5 w-5" aria-hidden />}
+        title="Workspace overview"
+        description={t('workspaces.intro')}
+      />
 
       <Panel className="text-sm">
         <h3 className={cn('mb-2 flex items-center gap-2 text-foreground', text.h3)}>

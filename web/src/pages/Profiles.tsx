@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ListChecks, RefreshCw } from 'lucide-react';
+import { ListChecks, RefreshCw, ShieldCheck } from 'lucide-react';
 import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, EmptyState, Fieldset, Input, Panel, Tooltip } from '../components/ui';
+import { Badge, Button, EmptyState, Fieldset, HeroCard, Input, Panel, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -74,6 +74,13 @@ export default function Profiles() {
         </>
       }
     >
+      <HeroCard
+        size="sm"
+        tone="primary"
+        icon={<ShieldCheck className="h-5 w-5" aria-hidden />}
+        title="Get started with profile presets"
+        description="Bundles of allow / deny patterns a worker inherits via --profile <name>. Browse the built-in presets below, or create one tailored to your team."
+      />
       <PageDescriptionBanner
         summaryKey="profiles.summary"
         cliKey="profiles.cli"
