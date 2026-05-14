@@ -4,6 +4,72 @@
 
 (no entries -- next release window)
 
+## [1.11.124] - 2026-05-14 -- Tests: Lib hooks coverage push 9 (TODO 11.106)
+
+Continue the untested `web/src/lib/use-*.ts` coverage push. Discovered
+four hooks still without a sibling test file after pushes 1-7:
+`use-auto-dispatch.ts` (autonomous-manager spawn flow), `use-morning.ts`
+(Morning report state machine + clipboard copy), `use-nav-badge-counts.ts`
+(60s polled top-tab badge counts gated on /autonomous/status), and
+`use-pinned-rules.ts` (per-worker pinned-memory editor). All four gain
+a sibling `*.test.ts` mirroring the v1.11.115 / v1.11.117 / v1.11.119 /
+v1.11.121 batch style: `renderHook` + `act` from
+`@testing-library/react`, MSW for the apiGet/apiPost surface,
+`vi.spyOn(window, 'confirm')` for the spawn-gate hook, and
+`vi.useFakeTimers({ shouldAdvanceTime: true })` for the 60s poll
+cadence + interval-cleanup assertion. Total: 43 cases across 4 files
+(10 + 11 + 10 + 12).
+
+`useAutoDispatch` covers the four-gate dispatch flow -- idle state,
+empty-task short-circuit (sets `auto.error.taskRequired`, never POSTs,
+never confirms), `window.confirm`=false short-circuit, happy path with
+no name (POSTs `{ task }` and fires `auto.toast.spawned`), happy path
+with a trimmed name (POSTs `{ task, name }` and fires
+`auto.toast.spawnedAs`), server-side error envelope, thrown HTTP 500
+path, busy-flag flip around inflight, stale-error clear on re-enter,
+and callback-identity tracking against (task, name).
+
+`useMorning` covers idle state, happy-path POST `/api/morning` with the
+rendered report, envelope error, thrown HTTP 500 path, loading-flag flip
+around inflight, stale-error clear, the `copy()` no-op when
+`report.content` is missing, clipboard happy path with
+`morning.toast.copied`, clipboard rejection surfacing
+`morning.toast.copyFailed`, and callback-identity stability for
+`generate` (useCallback []) vs identity-tied for `copy` (useCallback
+[report, showToast]).
+
+`useNavBadgeCounts` covers the `authed=false` short-circuit (no fetch
+at all), happy path filling `stuckCount` + `underperformerCount` from
+the two always-on endpoints, the autonomous-gate (escalations NOT
+fetched while `/autonomous/status` returns `enabled=false`), the
+enabled=true branch fetching escalations, defensive defaults when
+fields are missing, fault tolerance (failed endpoints leave prior
+state untouched), 60s poll cadence via fake timers, the `cancelled`
+guard on unmount-during-inflight, interval cleanup on unmount, and
+the authed flip false->true re-triggering the first round.
+
+`usePinnedRules` covers the empty-`workerName` short-circuit, mount
+load() joining `userRules` with the `\n\n---\n\n` separator, URL
+encoding on the worker name, defensive fallback for missing/non-array
+`userRules`, load() error path (HTTP 404 -> error set, loading flips
+off), save() POSTing the split-by-`---` form with
+`defaultTemplate: null` when empty, save() forwarding a non-empty
+`defaultTemplate` verbatim, save() error path (HTTP 409 -> error set,
+saving flips off), `loading` flip around in-flight load(), `saving`
+flip around in-flight save(), `workerName` change re-firing load()
+against the new encoded URL, and the `setRulesText` /
+`setDefaultTemplate` setters applying immediately without a fetch.
+
+Bumped `web/package.json` 1.11.122 -> 1.11.124 (1.11.123 reserved for
+in-flight branches that did not land a CHANGELOG entry).
+Verification: `env -C web /root/c4/web/node_modules/.bin/vitest run
+--project unit src/lib/{use-auto-dispatch,use-morning,use-nav-badge-counts,use-pinned-rules}.test.ts`
+reports 4 files / 43/43 passing. Full unit suite under
+`--project unit` continues to pass except for the same 5 pre-existing
+failures in `i18n.test.ts` / `use-scrollback.test.ts` /
+`use-stuck-meetings.test.ts` that pre-date this push (none touch the
+four new files).
+
 ## [1.11.122] - 2026-05-14 -- Tests: Component coverage final sweep (TODO 11.100)
 
 Final sweep over `web/src/components/**/*.tsx` to close the remaining
