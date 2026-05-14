@@ -185,13 +185,14 @@ export default function Toast({
   const node = (
     <div
       data-testid="toast"
+      data-print-hide
       style={{
         transform: `translateX(${tx})`,
         opacity: leaving ? 0 : 1,
         transition,
         touchAction: 'pan-y',
       }}
-      className="pointer-events-auto select-none"
+      className="pointer-events-auto select-none no-print"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

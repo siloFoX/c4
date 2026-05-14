@@ -4,6 +4,7 @@ import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import { installErrorCapture } from './lib/error-capture';
 import './index.css';
+import './styles/print.css';
 
 installErrorCapture();
 
