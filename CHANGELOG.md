@@ -4,6 +4,46 @@
 
 (no entries -- next release window)
 
+## [1.11.156] - 2026-05-14 -- Web: Alert banner primitive
+
+A new shared `<Alert>` UI primitive replaces ad-hoc banner div markup
+across the feature pages.
+
+What changed:
+
+- **`<Alert variant title? children icon? action? dismissible?
+  onDismiss? role? className?>`**
+  (`web/src/components/ui/alert.tsx`) -- renders `<div role={role ||
+  (variant === 'error' ? 'alert' : 'status')} aria-live=...>` with a
+  border + rounded + padding shell. Variants are `info`
+  (bg-primary/10), `success` (bg-success/10), `warning`
+  (bg-warning/10), `error` (bg-destructive/10), and `neutral`
+  (bg-muted). Title renders as a font-semibold `<p>`; children are the
+  message body; the optional left icon slot lives in an
+  `aria-hidden` wrapper; the optional action slot stacks below the
+  body for a button row. `dismissible` adds a lucide-react X button
+  that fires `onDismiss`.
+- **`alert.test.tsx`** -- 17 cases covering each variant's class
+  triplet (bg / text / border), title element + font-semibold,
+  icon-slot present/absent, action slot, dismiss-button
+  absent-when-false / present-when-true / fires-onDismiss, default
+  role=status, default role=alert for error, explicit role override,
+  and className merge.
+- **Page adoption (3 sites):**
+  - `web/src/pages/Auto.tsx` ErrorState now renders `<Alert
+    variant="error">` with the AlertCircle icon + Retry action.
+  - `web/src/pages/Queue.tsx` saveError banner now renders `<Alert
+    variant="error">`; text content unchanged so the existing
+    "Save failed: write failed" test stays green.
+  - `web/src/pages/Risk.tsx` intro hint now renders `<Alert
+    variant="neutral">`, preserving the `text-[12px]` sizing via
+    `className`.
+- **`ui/index.ts`** -- exports the new module alongside the other
+  primitives.
+
+All 96 page tests across Auto / Queue / Risk still pass; the 17
+alert.test.tsx cases pass clean.
+
 ## [1.11.155] - 2026-05-14 -- Web: Table primitive + TokenUsage adoption
 
 A new shared `<Table>` UI primitive replaces ad-hoc `<table>` markup
