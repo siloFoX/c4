@@ -169,13 +169,13 @@ describe('<AppHeader>', () => {
     window.removeEventListener('c4:shortcuts-open', listener);
   });
 
-  it('flips locale en->ko when the Language icon is clicked', async () => {
+  it('flips locale en->ko via the LocaleSwitcher dropdown', async () => {
     const user = userEvent.setup();
     renderHeader();
+    // Open the dropdown then pick the Korean row (native label, so
+    // the assertion is stable across locales).
     await user.click(screen.getByRole('button', { name: 'Language' }));
-    // After locale flip, the tab labels re-translate to Korean. Sample one.
-    // Use queryByText to avoid relying on a specific Korean string match.
-    // The English label "Workers" should no longer be present as a tab name.
+    await user.click(screen.getByRole('menuitem', { name: /한국어/ }));
     expect(
       screen.queryByRole('tab', { name: 'Workers' }),
     ).not.toBeInTheDocument();

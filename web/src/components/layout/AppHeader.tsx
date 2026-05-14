@@ -1,5 +1,6 @@
-import { HelpCircle, Keyboard, Languages, Menu, X } from 'lucide-react';
+import { HelpCircle, Keyboard, Menu, X } from 'lucide-react';
 import AccountMenu from '../AccountMenu';
+import LocaleSwitcher from '../LocaleSwitcher';
 import ThemeToggle from '../ThemeToggle';
 import { IconButton, Navbar, Tooltip } from '../ui';
 import TopTabs, { type TopView } from './TopTabs';
@@ -9,7 +10,7 @@ import {
   HELP_EVENT_OPEN_DRAWER,
   HELP_EVENT_OPEN_SHORTCUTS,
 } from '../HelpUIRoot';
-import { getLocale, setLocale, t, useLocale } from '../../lib/i18n';
+import { t, useLocale } from '../../lib/i18n';
 
 interface AppHeaderProps {
   sidebarOpen: boolean;
@@ -37,7 +38,6 @@ export default function AppHeader({
   onOpenPreferences,
 }: AppHeaderProps) {
   useLocale();
-  const locale = getLocale();
   // (v1.10.709) Three nav-badge polls (stuck-meetings /
   // specialist-underperformers / autonomous-escalations) moved
   // to lib/use-nav-badge-counts.
@@ -110,18 +110,7 @@ export default function AppHeader({
         />
       </Tooltip>
       <ThemeToggle size="sm" />
-      <Tooltip label={t('common.language')} placement="bottom">
-        <IconButton
-          aria-label={t('common.language')}
-          onClick={() => setLocale(locale === 'en' ? 'ko' : 'en')}
-          icon={
-            <span className="flex items-center gap-1 text-[11px] font-semibold uppercase">
-              <Languages className="h-4 w-4" aria-hidden="true" />
-              {locale}
-            </span>
-          }
-        />
-      </Tooltip>
+      <LocaleSwitcher />
       {/* (TODO 8.41) Replaced the standalone LogOut IconButton with a
           compact AccountMenu - the avatar+chevron trigger opens the
           same dropdown the sidebar uses (Profile / Preferences /
