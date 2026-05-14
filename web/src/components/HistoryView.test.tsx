@@ -162,8 +162,7 @@ describe('<HistoryView>', () => {
     expect(screen.getByRole('button', { name: 'Scribe' })).toBeInTheDocument();
     expect(screen.getByLabelText('Search history')).toBeInTheDocument();
     expect(screen.getByLabelText('Filter by status')).toBeInTheDocument();
-    expect(screen.getByLabelText('Since date')).toBeInTheDocument();
-    expect(screen.getByLabelText('Until date')).toBeInTheDocument();
+    expect(screen.getByLabelText('Filter by date range')).toBeInTheDocument();
   });
 
   it('lists every summary worker as a pressable row', () => {
@@ -439,20 +438,27 @@ describe('<HistoryView>', () => {
     expect(lastSummaryArgs?.statusFilter).toBe('closed');
   });
 
-  it('forwards a since date into the summary hook args', async () => {
+  it('forwards a since date into the summary hook args via DateRangePicker', async () => {
     const user = userEvent.setup();
     render(<HistoryView />);
-    const since = screen.getByLabelText('Since date') as HTMLInputElement;
-    await user.type(since, '2026-05-01');
-    expect(lastSummaryArgs?.sinceDay).toBe('2026-05-01');
+    await user.click(screen.getByLabelText('Filter by date range'));
+    // First click in the picker sets the from-date.
+    const panels = screen.getAllByRole('gridcell', { name: '1' });
+    await user.click(panels[0]!);
+    expect(lastSummaryArgs?.sinceDay).toMatch(/^\d{4}-\d{2}-01$/);
   });
 
-  it('forwards an until date into the summary hook args', async () => {
+  it('forwards an until date into the summary hook args via DateRangePicker', async () => {
     const user = userEvent.setup();
     render(<HistoryView />);
-    const until = screen.getByLabelText('Until date') as HTMLInputElement;
-    await user.type(until, '2026-05-30');
-    expect(lastSummaryArgs?.untilDay).toBe('2026-05-30');
+    await user.click(screen.getByLabelText('Filter by date range'));
+    // First click sets the from-date; popover stays open.
+    const fromCells = screen.getAllByRole('gridcell', { name: '1' });
+    await user.click(fromCells[0]!);
+    // Second click in the same open popover sets the to-date.
+    const toCells = screen.getAllByRole('gridcell', { name: '15' });
+    await user.click(toCells[0]!);
+    expect(lastSummaryArgs?.untilDay).toMatch(/^\d{4}-\d{2}-15$/);
   });
 
   it('client-side filters the sidebar list by typed query (matches the worker name)', async () => {

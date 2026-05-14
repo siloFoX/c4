@@ -823,6 +823,7 @@
   "history.filter.status.exited": "퇴출됨",
   "history.filter.since.label": "시작 일자",
   "history.filter.until.label": "종료 일자",
+  "history.filter.range.label": "날짜 범위로 필터",
   "history.empty": "기록이 없습니다.",
   "history.scribe.title": "Scribe session-context.md",
   "history.scribe.openHint": "뷰어를 열어 Scribe 파일을 불러옵니다.",
