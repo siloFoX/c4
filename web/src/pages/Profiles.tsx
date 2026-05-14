@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, EmptyState, Input, Panel, Tooltip } from '../components/ui';
+import { Badge, Button, EmptyState, Fieldset, Input, Panel, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -121,10 +121,15 @@ export default function Profiles() {
                     <span className={text.caption}>{isOpen ? t('profiles.toggle.hide') : t('profiles.toggle.show')}</span>
                   </button>
                   {isOpen && (
-                    <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      <PatternList label={t('profiles.list.allow')} items={allow} tone="ok" />
-                      <PatternList label={t('profiles.list.deny')} items={deny} tone="danger" />
-                    </div>
+                    <Fieldset
+                      legend={t('profiles.list.allow') + ' / ' + t('profiles.list.deny')}
+                      className="mt-3"
+                    >
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <PatternList label={t('profiles.list.allow')} items={allow} tone="ok" />
+                        <PatternList label={t('profiles.list.deny')} items={deny} tone="danger" />
+                      </div>
+                    </Fieldset>
                   )}
                   {isOpen && (
                     <div className="mt-3 flex gap-2">
