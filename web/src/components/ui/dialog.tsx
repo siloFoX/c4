@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/cn';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
+import { motionClass } from '../../lib/motion';
+import { useReducedMotion } from '../../hooks/use-reduced-motion';
 
 interface DialogProps {
   open: boolean;
@@ -23,6 +25,7 @@ export function Dialog({
 }: DialogProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  const reducedMotion = useReducedMotion();
 
   useFocusTrap(cardRef, {
     active: open,
@@ -39,7 +42,10 @@ export function Dialog({
   const node = (
     <div
       data-dialog-backdrop
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm"
+      className={cn(
+        'fixed inset-0 z-[100] flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm',
+        motionClass('fadeIn', reducedMotion),
+      )}
       onClick={handleBackdropClick}
     >
       <div
@@ -50,6 +56,7 @@ export function Dialog({
         tabIndex={-1}
         className={cn(
           'w-full max-w-lg rounded-lg border border-border bg-card p-4 shadow-xl outline-none',
+          motionClass('scaleIn', reducedMotion),
           className,
         )}
         onClick={(e) => e.stopPropagation()}

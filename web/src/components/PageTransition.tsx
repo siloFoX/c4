@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react';
 import { cn } from '../lib/cn';
+import { useReducedMotion } from '../hooks/use-reduced-motion';
 
 // (v1.11.175 / patch 11.157) Lightweight route-change crossfade.
 // Tailwind utilities only -- no framer-motion / no new dependency.
@@ -26,13 +27,6 @@ export interface PageTransitionProps {
   className?: string;
 }
 
-function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-    return false;
-  }
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
 type Phase = 'idle' | 'prepare' | 'animate';
 
 const PageTransition = forwardRef<HTMLDivElement, PageTransitionProps>(
@@ -47,10 +41,15 @@ const PageTransition = forwardRef<HTMLDivElement, PageTransitionProps>(
     const [phase, setPhase] = useState<Phase>('idle');
     const swapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const rafId = useRef<number | null>(null);
+    const reducedMotion = useReducedMotion();
+    const reducedMotionRef = useRef(reducedMotion);
+    useEffect(() => {
+      reducedMotionRef.current = reducedMotion;
+    }, [reducedMotion]);
 
     useEffect(() => {
       if (routeKey === currentKey) return;
-      if (prefersReducedMotion()) {
+      if (reducedMotionRef.current) {
         setCurrentKey(routeKey);
         setCurrentChildren(children);
         setPrevKey(null);

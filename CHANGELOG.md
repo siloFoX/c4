@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.188] - 2026-05-14 -- UI: motion utility hooks + helpers (11.170)
+
+New `useReducedMotion()` hook in `web/src/hooks/use-reduced-motion.ts` (subscribes to `matchMedia('(prefers-reduced-motion: reduce)')`, SSR-safe via `typeof window` guard returning `false`, legacy `addListener`/`removeListener` fallback for older browsers). New `web/src/lib/motion.ts` exposes a `motion` record of eight tailwindcss-animate presets (`fadeIn` / `fadeOut` / `slideInRight` / `slideOutRight` / `slideInLeft` / `slideOutLeft` / `scaleIn` / `scaleOut`) plus `motionClass(key, reducedMotion, fallback?)` which returns the preset class string when `!reducedMotion` and `fallback ?? ''` otherwise. Adopted in `Toast` (fadeIn entering / fadeOut leaving gated by `useReducedMotion`, inline-style swipe transforms preserved), `Dialog` (fadeIn on backdrop, scaleIn on panel), `Popover` (fadeIn on panel), and `PageTransition` (local `prefersReducedMotion()` helper replaced with the `useReducedMotion` hook through a ref so the route-change effect keeps its `[routeKey]` dependency).
+
 ## [1.11.187] - 2026-05-14 -- UI: Drawer primitive + Health/Auto filter adoption
 
 New `<Drawer>` primitive in `web/src/components/ui/drawer.tsx` (slide-in side panel rendered via `createPortal` to `document.body`; props open/onOpenChange/side 'left'|'right' default 'right'/width number|string default '320px'/title/description/showCloseButton default true/closeOnBackdropClick default true/closeOnEsc default true/className/children; role='dialog' aria-modal='true' with aria-labelledby + aria-describedby wired to the rendered h2 + paragraph; focus trap via `useFocusTrap` with restoreFocusOnUnmount and onEscape gated by closeOnEsc; backdrop click gated by closeOnBackdropClick; lucide-react X close button; forwardRef to the panel element; cn() class merge). Adopted in `pages/Health.tsx` and `pages/Auto.tsx`: added a Filter IconButton in the PageFrame actions slot that opens a Drawer carrying a "Coming soon" Alert (real filter wiring deferred -- this lands the surface).
