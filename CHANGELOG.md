@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.206] - 2026-05-14 -- UI: command palette v3 (11.188)
+
+`<CommandPalette>` polish: per-row Star toggle persists ids to `c4:cmdk:favorites` and pins a `Favorites` section to the top above `Recent` and the section grouping; typing `>` as the first character flips the palette into action mode (Quit / Reload / Toggle theme / Open Settings / Show shortcuts) with a `Nav`/`Action` `<Chip>` badge to the right of the input. `Toggle theme` integrates with `useTheme` to cycle system -> light -> dark; `Show shortcuts` fires the existing `c4:shortcuts-open` event. See `docs/patches/11.188-ui-cmdk-v3.md`.
+
 ## [1.11.205] - 2026-05-14 -- UI: Keyboard Map page (11.187)
 
 New `<KeyboardMap>` page at `web/src/pages/KeyboardMap.tsx` rendering the full reference of every keyboard binding wired into the web UI. Pulls `SHORTCUT_ROWS` from `KeyboardShortcutsModal.tsx` and extends with Drawer/Dialog/CommandPalette/editing/global bindings not surfaced in the compact modal (Escape close, Ctrl+K palette, Tab cycle, Ctrl+] detach, Ctrl+C/V/Z/Shift+Z editing). Grouped into six sections (Navigation / Actions / View / Editing / Global / Custom) with `<Kbd>` combos + labels. Top `<SearchBar>` debounced-filters by label or key combo (case-insensitive); empty state uses `<EmptyState>` with the `KeyboardOff` lucide icon. Registered as `feature.keyboardMap` (config category, Keyboard icon). en/ko i18n keys added. See `docs/patches/11.187-ui-keyboard-map-page.md`.

@@ -446,3 +446,154 @@ describe('<CommandPalette> match highlighting', () => {
     expect(option.querySelector('span.font-semibold')).toBeNull();
   });
 });
+
+describe('<CommandPalette> v3 favorites', () => {
+  it('renders a star toggle next to every command row', () => {
+    const { container } = render(
+      <CommandPalette open onClose={() => {}} />,
+    );
+    const options = container.querySelectorAll('[role="option"]');
+    expect(options.length).toBeGreaterThan(0);
+    options.forEach((opt) => {
+      expect(opt.querySelector('[data-command-favorite]')).not.toBeNull();
+    });
+  });
+
+  it('clicking the star persists the command id to the favorites localStorage key', async () => {
+    const X = () => null;
+    render(
+      <CommandPalette
+        open
+        onClose={() => {}}
+        commands={[
+          {
+            id: 'fav:one',
+            label: 'First favorite',
+            section: 'Navigate',
+            Icon: X,
+            run: () => {},
+          },
+        ]}
+      />,
+    );
+    const user = userEvent.setup();
+    const star = screen.getByLabelText('Star First favorite');
+    await user.click(star);
+    const raw = window.localStorage.getItem('c4:cmdk:favorites');
+    expect(raw).not.toBeNull();
+    expect(JSON.parse(raw || '[]')).toEqual(['fav:one']);
+  });
+
+  it('clicking the star a second time removes the favorite', async () => {
+    const X = () => null;
+    window.localStorage.setItem(
+      'c4:cmdk:favorites',
+      JSON.stringify(['fav:two']),
+    );
+    render(
+      <CommandPalette
+        open
+        onClose={() => {}}
+        commands={[
+          {
+            id: 'fav:two',
+            label: 'Second favorite',
+            section: 'Navigate',
+            Icon: X,
+            run: () => {},
+          },
+        ]}
+      />,
+    );
+    const user = userEvent.setup();
+    const star = screen.getByLabelText('Unstar Second favorite');
+    await user.click(star);
+    const raw = window.localStorage.getItem('c4:cmdk:favorites');
+    expect(JSON.parse(raw || '[]')).toEqual([]);
+  });
+
+  it('renders Favorites as the top section when the localStorage seed has entries', () => {
+    window.localStorage.setItem(
+      'c4:cmdk:favorites',
+      JSON.stringify(['queue:tick']),
+    );
+    const { container } = render(
+      <CommandPalette open onClose={() => {}} />,
+    );
+    const headers = Array.from(
+      container.querySelectorAll('[data-section-header]'),
+    ).map((el) => el.textContent || '');
+    expect(headers[0]).toBe('Favorites');
+    const favSection = container.querySelector('[data-section="Favorites"]');
+    expect(favSection).not.toBeNull();
+    const ids = Array.from(
+      favSection!.querySelectorAll('[data-command-id]'),
+    ).map((el) => el.getAttribute('data-command-id') || '');
+    expect(ids).toEqual(['queue:tick']);
+  });
+});
+
+describe('<CommandPalette> v3 action mode', () => {
+  it('typing ">" switches to action mode and shows quick action list', async () => {
+    render(<CommandPalette open onClose={() => {}} />);
+    const user = userEvent.setup();
+    const input = screen.getByLabelText('Search commands');
+    await user.type(input, '>');
+    const headers = Array.from(
+      document.querySelectorAll('[data-section-header]'),
+    ).map((el) => el.textContent || '');
+    expect(headers).toEqual(['Actions']);
+    const ids = Array.from(
+      document.querySelectorAll('[data-command-id]'),
+    ).map((el) => el.getAttribute('data-command-id') || '');
+    expect(ids).toContain('action:reload');
+    expect(ids).toContain('action:toggle-theme');
+    expect(ids).toContain('action:open-settings');
+    expect(ids).toContain('action:show-shortcuts');
+    expect(ids).toContain('action:quit');
+  });
+
+  it('mode badge reads "Nav" by default and "Action" after typing ">"', async () => {
+    render(<CommandPalette open onClose={() => {}} />);
+    const badge = document.querySelector('[data-command-mode]') as HTMLElement;
+    expect(badge).not.toBeNull();
+    expect(badge.textContent).toBe('Nav');
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('Search commands'), '>');
+    const after = document.querySelector('[data-command-mode]') as HTMLElement;
+    expect(after.textContent).toBe('Action');
+  });
+
+  it('action mode "Reload" invokes window.location.reload', async () => {
+    const originalLocation = window.location;
+    const reload = vi.fn();
+    // jsdom location is non-configurable; replace via defineProperty.
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, reload },
+    });
+    try {
+      render(<CommandPalette open onClose={() => {}} />);
+      const user = userEvent.setup();
+      await user.type(screen.getByLabelText('Search commands'), '>reload');
+      const reloadOpt = screen.getByRole('option', { name: /Reload/ });
+      await user.click(reloadOpt);
+      expect(reload).toHaveBeenCalledTimes(1);
+    } finally {
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: originalLocation,
+      });
+    }
+  });
+
+  it('action mode "Toggle theme" cycles the persisted theme', async () => {
+    window.localStorage.setItem('c4:theme', 'system');
+    render(<CommandPalette open onClose={() => {}} />);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('Search commands'), '>toggle');
+    const toggleOpt = screen.getByRole('option', { name: /Toggle theme/ });
+    await user.click(toggleOpt);
+    expect(window.localStorage.getItem('c4:theme')).toBe('light');
+  });
+});
