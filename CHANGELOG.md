@@ -4,6 +4,79 @@
 
 (no entries -- next release window)
 
+## [1.11.135] - 2026-05-14 -- Web: loading-state primitives (Skeleton variants + <Spinner>)
+
+Two reusable loading-state primitives so feature code stops hand-rolling
+ad-hoc `Loader2` icons and one-off pulse divs:
+
+1. **`web/src/components/ui/skeleton.tsx`** -- adds three new variant
+   aliases on top of the existing `'text' | 'row' | 'card' | 'avatar' |
+   'rect'` palette:
+   - `'line'` -- thin horizontal bar (resolves to the same `h-3 w-full
+     rounded` classes the `'text'` variant uses).
+   - `'circle'` -- square aspect with `rounded-full` (resolves to the
+     same `h-10 w-10` classes the `'avatar'` variant uses).
+   - `'page'` -- full-width hero placeholder; renders one 6 px header
+     bar stacked over three line-variant body bars, with the last body
+     line shortened to `w-4/5` for a natural paragraph look.
+
+   The legacy variant names continue to resolve to the same Tailwind
+   classes, so existing call sites do not need to migrate. The shimmer
+   base color stays on the project's `bg-muted` Tailwind class
+   (`hsl(var(--muted))`); the ARPS design-system surface tokens
+   (`--surface-2` / `--surface-panel`) are not wired into this bundle
+   yet (see the v1.11.134 CHANGELOG note) so the existing class scheme
+   is preserved verbatim.
+
+2. **`web/src/components/Spinner.tsx`** -- new small inline loading
+   indicator. An SVG ring (circle + arc) animated via Tailwind's
+   `animate-spin`. Props: `size` (`'sm' | 'md' | 'lg'`), `label?`
+   (default `'Loading'`, surfaced via `aria-label` and an `sr-only`
+   span), and `className?`. The wrapper carries `role=status` +
+   `aria-live=polite` so standalone usages announce a single status
+   message; callers that wrap the Spinner with their own labeled
+   container (a Button with visible text, a div with a text label) can
+   pass `aria-hidden='true'` to suppress the redundant announcement.
+   `stroke='currentColor'` so the ring inherits the surrounding text
+   color via parent `text-*` classes -- no theming code in the
+   component itself.
+
+Five ad-hoc loading states migrated to the new primitive (one commit
+each so any single swap can be reverted independently):
+
+- `web/src/components/Login.tsx` -- submit-button busy spinner.
+- `web/src/components/WorkerActions.tsx` -- busy state across the four
+  action buttons (merge / approve / interrupt / close).
+- `web/src/components/ConversationView.tsx` -- 'Loading session...'
+  placeholder spinner.
+- `web/src/components/ChatMessageLog.tsx` -- both the backfill-loading
+  placeholder spinner and the inline 'load older' indicator.
+- `web/src/components/SpecialistsList.tsx` -- previously text-only
+  'Loading...' copy now pairs the localized label with a `<Spinner>`.
+
+Tests:
+
+- `web/src/components/ui/skeleton.test.tsx` -- seven new cases covering
+  the `'line'` / `'circle'` / `'card'` (explicit) / `'page'` variants
+  (including the 1 header + 3 body line structure, the shortened final
+  body line, the legacy default preservation, and className passthrough
+  on the page-variant wrapper). All twelve original cases are kept.
+- `web/src/components/Spinner.test.tsx` -- new file. Ten cases cover
+  the default `Loading` aria-label, the matching sr-only text, the
+  aria-hidden inner SVG ring with `animate-spin`, the three size
+  classes, custom label override, className merge, arbitrary HTML
+  attribute passthrough, and the `stroke='currentColor'` color
+  inheritance.
+- Each of the five replacement sites adds one case to its existing
+  test file asserting the new Spinner is present via `data-testid` in
+  the loading branch. No existing cases were deleted -- the prior
+  `svg.animate-spin` and visible-text assertions still pass because
+  Spinner renders an `animate-spin` SVG with the same visible text
+  copy.
+
+No new dependencies. No design-system files were modified. No changes
+to `docs/autonomous-queue-v10.md`.
+
 ## [1.11.134] - 2026-05-14 -- Web: visual-hierarchy polish on the top shell
 
 Three small UI papercuts on the daemon web app's shell layer:

@@ -176,6 +176,12 @@ describe('<ConversationView>', () => {
     expect(screen.getByText(/Loading session/i)).toBeInTheDocument();
   });
 
+  it('renders the shared <Spinner> component (data-testid=conversation-spinner) in the loading state', () => {
+    conversationState = { ...conversationState, loading: true };
+    render(<ConversationView sessionId="sess-1" />);
+    expect(screen.getByTestId('conversation-spinner')).toBeInTheDocument();
+  });
+
   it('renders the error message when the hook reports an error string', () => {
     conversationState = { ...conversationState, error: 'snapshot fetch failed' };
     render(<ConversationView sessionId="sess-1" />);

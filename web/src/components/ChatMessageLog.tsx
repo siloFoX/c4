@@ -1,6 +1,7 @@
-import { Loader2, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import type { RefObject, UIEvent } from 'react';
 import { Button, Skeleton } from './ui';
+import Spinner from './Spinner';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import {
@@ -50,7 +51,7 @@ export default function ChatMessageLog({
     >
       {backfillLoading ? (
         <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
-          <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+          <Spinner size="md" aria-hidden="true" data-testid="chat-backfill-spinner" />
           <span>{t('chat.loadingPast')}</span>
           <ul className="mt-4 w-full max-w-sm space-y-2" aria-hidden="true">
             <li>
@@ -75,7 +76,7 @@ export default function ChatMessageLog({
             <li className="flex items-center justify-center py-1 text-xs text-muted-foreground">
               {loadingOlder ? (
                 <span className="inline-flex items-center gap-1">
-                  <Loader2 aria-hidden="true" className="h-3 w-3 animate-spin" />
+                  <Spinner size="sm" aria-hidden="true" data-testid="chat-older-spinner" />
                   {t('chat.olderLoading')}
                 </span>
               ) : (

@@ -110,6 +110,11 @@ describe('<SpecialistsList>', () => {
     expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
 
+  it('renders the shared <Spinner> component (data-testid=specialists-list-spinner) when empty + loading', () => {
+    renderList({ filtered: [], loading: true });
+    expect(screen.getByTestId('specialists-list-spinner')).toBeInTheDocument();
+  });
+
   it('renders the no-match copy when empty + not loading', () => {
     renderList({ filtered: [], loading: false });
     expect(

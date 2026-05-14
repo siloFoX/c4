@@ -1,5 +1,6 @@
-import { Check, GitMerge, Loader2, OctagonAlert, X } from 'lucide-react';
+import { Check, GitMerge, OctagonAlert, X } from 'lucide-react';
 import Toast from './Toast';
+import Spinner from './Spinner';
 import { Button, type ButtonProps } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { useToast } from '../lib/use-toast';
@@ -93,7 +94,11 @@ export default function WorkerActions({ workerName }: WorkerActionsProps) {
               title={action.disabled ? action.disabledTitle : undefined}
             >
               {isBusy ? (
-                <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+                <Spinner
+                  size="md"
+                  aria-hidden="true"
+                  data-testid={`worker-action-spinner-${action.kind}`}
+                />
               ) : (
                 action.icon
               )}

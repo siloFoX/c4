@@ -112,6 +112,11 @@ describe('<ChatMessageLog>', () => {
     expect(svg).not.toBeNull();
   });
 
+  it('renders the shared <Spinner> component (data-testid=chat-backfill-spinner) when backfillLoading=true', () => {
+    renderLog({ backfillLoading: true });
+    expect(screen.getByTestId('chat-backfill-spinner')).toBeInTheDocument();
+  });
+
   it('does NOT render the empty placeholder when backfillLoading=true and messages is empty', () => {
     renderLog({ backfillLoading: true, messages: [] });
     expect(

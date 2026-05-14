@@ -1,4 +1,4 @@
-import { AlertTriangle, KeyRound, Loader2, LogIn, User } from 'lucide-react';
+import { AlertTriangle, KeyRound, LogIn, User } from 'lucide-react';
 import {
   Button,
   Card,
@@ -10,6 +10,7 @@ import {
   Input,
   Label,
 } from './ui';
+import Spinner from './Spinner';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 import { useLogin } from '../lib/use-login';
@@ -101,7 +102,7 @@ export default function Login({ onSuccess }: LoginProps) {
               disabled={busy}
             >
               {busy ? (
-                <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+                <Spinner size="md" aria-hidden="true" data-testid="login-spinner" />
               ) : (
                 <LogIn aria-hidden="true" className="h-4 w-4" />
               )}
