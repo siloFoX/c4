@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.186] - 2026-05-14 -- UI: form validation helpers + useForm hook
+
+New `web/src/lib/form-validation.ts` exposes a small `Validator<T>` algebra (`required` / `minLength` / `maxLength` / `pattern` / `email` / `custom` / `compose`), each returning `{ error?: string }`; the lightweight email regex rejects empty, missing `@`, and consecutive dots. New `web/src/hooks/use-form.ts` provides `useForm<TFields>({ initialValues, validators?, onSubmit? })` returning `{ values, errors, touched, setValue, setTouched, handleSubmit, isValid, reset }` -- `errors[field]` populates only after the field is touched or `handleSubmit` runs (which also marks every field touched), and `isValid` reflects the full validator sweep so callers can gate submit independent of touched state. Adopted in `pages/Plan.tsx` (required validator on the task Textarea wired via `setValue` / `setTouched` / `error` slot) and `pages/Risk.tsx` (command Textarea adopted with the same wiring; raw `<textarea>` converted to the `Textarea` primitive so the error slot is available). Profiles has no editable name input so adoption was skipped per the task's "fit naturally" rule.
+
 ## [1.11.185] - 2026-05-14 -- UI: focus-trap reusable hook
 
 New `useFocusTrap(containerRef, options?)` hook in `web/src/hooks/use-focus-trap.ts` (DRY focus trap: captures `document.activeElement` on activation, focuses `initialFocusRef.current` or the first focusable inside the container or the container itself; cycles Tab / Shift+Tab through focusable descendants using the canonical a11y selector; invokes `onEscape` on Escape when provided; restores the previously focused element on unmount / deactivation when `restoreFocusOnUnmount` (default true); SSR-safe via `typeof document` guard). `Dialog` and `Popover` now delegate to the hook instead of carrying inline focus-trap implementations -- behaviour and tests preserved. Popover keeps its trigger-return-focus rule via a local prev-open effect since the generic hook restores to `previouslyFocused`.

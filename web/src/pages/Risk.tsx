@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { RefreshCw, Shield } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
-import { Alert, Button, Input, Panel, Switch } from '../components/ui';
+import { Alert, Button, Input, Panel, Switch, Textarea } from '../components/ui';
 import { t, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
@@ -12,6 +12,8 @@ import RiskStatsGrid from '../components/RiskStatsGrid';
 import { useRiskStats } from '../lib/use-risk-stats';
 import { useRiskCheck } from '../lib/use-risk-check';
 import { useRiskSandboxPreview } from '../lib/use-risk-sandbox-preview';
+import { useForm } from '../hooks/use-form';
+import { required } from '../lib/form-validation';
 
 // (v1.10.356) Risk classifier inspector — preview a command's
 // classification before sending it to a worker, plus a stats
@@ -121,7 +123,15 @@ export const ACTION_VARIANT: Record<CheckResponse['suggestedAction'], BadgeVaria
 
 export default function Risk() {
   useLocale();
-  const [command, setCommand] = useState('');
+  // (v1.11.186) command field migrated to useForm. The required validator
+  // surfaces an inline error via Textarea's error slot once the field is
+  // touched or after a Check / Sandbox-preview click.
+  const commandForm = useForm<{ command: string }>({
+    initialValues: { command: '' },
+    validators: { command: required() },
+  });
+  const command = commandForm.values.command;
+  const setCommand = (value: string) => commandForm.setValue('command', value);
   const [includeInspected, setIncludeInspected] = useState(false);
   // (v1.10.568) Pattern catalog state moved into the extracted
   // RiskRuleCatalogPanel — self-fetching, owns its own filter +
@@ -174,9 +184,11 @@ export default function Risk() {
           {t('riskPage.classify.heading')}
         </h3>
         <div className="flex flex-col gap-2">
-          <textarea
+          <Textarea
             value={command}
             onChange={(e) => setCommand(e.target.value)}
+            onBlur={() => commandForm.setTouched('command', true)}
+            error={commandForm.errors.command}
             placeholder={t('riskPage.command.placeholder')}
             disabled={checkBusy}
             className="min-h-[80px] rounded border border-border bg-background p-2 font-mono text-[12px]"
@@ -184,6 +196,7 @@ export default function Risk() {
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
+                commandForm.handleSubmit();
                 handleCheck();
               }
             }}
@@ -192,7 +205,10 @@ export default function Risk() {
             <Button
               type="button"
               size="sm"
-              onClick={handleCheck}
+              onClick={() => {
+                commandForm.handleSubmit();
+                handleCheck();
+              }}
               disabled={checkBusy || !command.trim()}
             >
               {checkBusy ? t('riskPage.checking') : t('riskPage.check')}
@@ -201,7 +217,10 @@ export default function Risk() {
               type="button"
               size="sm"
               variant="outline"
-              onClick={handleSandboxPreview}
+              onClick={() => {
+                commandForm.handleSubmit();
+                handleSandboxPreview();
+              }}
               disabled={sandboxBusy || !command.trim()}
               title={t('riskPage.sandboxPreview.tooltip')}
             >
