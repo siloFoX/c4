@@ -28,6 +28,7 @@ import FeatureView from './components/layout/FeatureView';
 import HelpUIRoot from './components/HelpUIRoot';
 import MetricsBar from './components/MetricsBar';
 import AutonomousStatusBanner from './components/AutonomousStatusBanner';
+import GridDebugOverlay from './components/dev/GridDebugOverlay';
 import { logout } from './lib/api';
 import { useAuthState } from './lib/use-auth-state';
 import { useSidebarShortcut } from './lib/use-sidebar-shortcut';
@@ -127,6 +128,10 @@ export default function App() {
           unreachable or auth-gated. */}
       <MetricsBar />
       <AutonomousStatusBanner />
+      {/* (v1.11.201 / patch 11.183) Dev-only grid debug overlay.
+          Self-gates on import.meta.env.PROD so production builds
+          render null. Toggle via Cmd/Ctrl+Shift+G. */}
+      <GridDebugOverlay />
       <Suspense fallback={
         <div className="flex min-h-0 flex-1 overflow-auto p-6">
           <LoadingSkeleton rows={6} />
