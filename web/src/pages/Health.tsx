@@ -1,8 +1,8 @@
-import { RefreshCw } from 'lucide-react';
+import { HelpCircle, RefreshCw } from 'lucide-react';
 import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, DashboardGrid, Panel, Tooltip } from '../components/ui';
+import { Badge, Button, DashboardGrid, Panel, Popover, Tooltip } from '../components/ui';
 import { StatCard } from '../components/ui/stat-card';
 import { cn } from '../lib/cn';
 import { formatDuration, formatNumber, formatRelativeTime } from '../lib/format';
@@ -65,6 +65,27 @@ export default function Health() {
                 {String(data.configPath)}
               </span>
             )}
+            <Popover
+              placement="bottom"
+              align="start"
+              trigger={
+                <button
+                  type="button"
+                  aria-label="Health endpoint details"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  <HelpCircle className="h-3.5 w-3.5" />
+                </button>
+              }
+              content={
+                <div className="w-72 space-y-1 text-xs text-muted-foreground">
+                  <p className="font-semibold text-foreground">Health source</p>
+                  <p>Polled every 10s from <code>GET /api/health</code>.</p>
+                  <p>Counters reset on daemon restart; the audit log remains
+                    the source of truth for durable accounting.</p>
+                </div>
+              }
+            />
           </div>
 
           <DashboardGrid data-stat-card-trends gap="sm">

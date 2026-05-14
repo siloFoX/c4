@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.173] - 2026-05-14 -- UI: Popover anchored-panel primitive + 3 adoption sites
+
+New `<Popover>` primitive in `web/src/components/ui/popover.tsx` (anchored lightweight panel rendered via `createPortal` to `document.body`, props trigger/content/open/defaultOpen/onOpenChange/placement(top|bottom|left|right default 'bottom')/align(start|center|end default 'center')/offset (default 6)/closeOnClickOutside default true/closeOnEsc default true/className, trigger cloned with onClick toggle + aria-haspopup='dialog'/aria-expanded/aria-controls via useId, panel role='dialog' tabIndex=-1 auto-focuses first focusable + traps Tab/Shift-Tab + returns focus to trigger on close, mousedown-capture outside listener so inside clicks don't close, smart positioning flips to opposite side when chosen side overflows viewport). Adopted as info HelpCircle popovers in Plan (planning-flow stages near the Stepper), Config (DispatchLifecycleDemo stage descriptions), and Health (status-badge endpoint cadence note). Originally listed targets (WorkerActions overflow / StatCard '?' / KeyboardShortcutsModal close) were unfindable in described shape or are Modal-based; substituted with info-trigger sites per task spec.
+
 ## [1.11.172] - 2026-05-14 -- UI: Stepper multi-step wizard primitive + 2 adoption sites
 
 New `<Stepper>` primitive in `web/src/components/ui/stepper.tsx` (props steps/currentIndex/orientation/onStepClick/allowFuture/size/className, numbered circular badge per step with state-driven color complete=bg-primary+Check / current=bg-primary+ring / pending=bg-muted, connector line solid-primary between completed steps else muted, last step omits trailing connector, vertical orientation renders description text under label, aria role=list/listitem with aria-current='step' on the current row, optional onStepClick gated by allowFuture, forwardRef to root ol). Adopted in Plan page (planning flow stages: Select worker -> Describe task -> Dispatch plan -> View plan) and Config page dispatch-lifecycle demo block (dispatch -> work -> verify -> merge -> complete).

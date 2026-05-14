@@ -34,3 +34,4 @@ export * from './fieldset';
 export * from './dashboard-grid';
 export * from './h-scroll';
 export * from './stepper';
+export * from './popover';

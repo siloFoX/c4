@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { RefreshCw, Cog } from 'lucide-react';
+import { HelpCircle, RefreshCw, Cog } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
-import { Button, CodeBlock, FileInput, Input, Panel, Stepper } from '../components/ui';
+import { Button, CodeBlock, FileInput, Input, Panel, Popover, Stepper } from '../components/ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
@@ -160,9 +160,32 @@ function DispatchLifecycleDemo() {
   ];
   return (
     <Panel className="mt-3 p-3">
-      <h3 className={cn('mb-3 text-foreground', text.h3)}>
-        Dispatch lifecycle
-      </h3>
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className={cn('text-foreground', text.h3)}>Dispatch lifecycle</h3>
+        <Popover
+          placement="bottom"
+          align="end"
+          trigger={
+            <button
+              type="button"
+              aria-label="Lifecycle stage details"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <HelpCircle className="h-4 w-4" />
+            </button>
+          }
+          content={
+            <ul className="w-64 space-y-1 text-xs text-muted-foreground">
+              {steps.map((s) => (
+                <li key={s.id}>
+                  <span className="font-semibold text-foreground">{s.label}:</span>{' '}
+                  {s.description}
+                </li>
+              ))}
+            </ul>
+          }
+        />
+      </div>
       <Stepper steps={steps} currentIndex={1} orientation="horizontal" size="sm" />
     </Panel>
   );
