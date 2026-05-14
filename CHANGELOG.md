@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.185] - 2026-05-14 -- UI: focus-trap reusable hook
+
+New `useFocusTrap(containerRef, options?)` hook in `web/src/hooks/use-focus-trap.ts` (DRY focus trap: captures `document.activeElement` on activation, focuses `initialFocusRef.current` or the first focusable inside the container or the container itself; cycles Tab / Shift+Tab through focusable descendants using the canonical a11y selector; invokes `onEscape` on Escape when provided; restores the previously focused element on unmount / deactivation when `restoreFocusOnUnmount` (default true); SSR-safe via `typeof document` guard). `Dialog` and `Popover` now delegate to the hook instead of carrying inline focus-trap implementations -- behaviour and tests preserved. Popover keeps its trigger-return-focus rule via a local prev-open effect since the generic hook restores to `previouslyFocused`.
+
 ## [1.11.184] - 2026-05-14 -- UI: theme toggle hook + AppHeader integration
 
 New `useTheme()` hook in `web/src/hooks/use-theme.ts` (Theme = 'system' | 'light' | 'dark', ResolvedTheme = 'light' | 'dark'; localStorage key 'c4:theme'; subscribes to matchMedia('(prefers-color-scheme: dark)') when theme='system'; toggles `dark` class + `data-theme` on documentElement; SSR-safe window/document guards; setTheme persists every choice including 'system'). New `<ThemeToggle>` in `web/src/components/ThemeToggle.tsx` (variant 'cycle' default cycling system -> light -> dark -> system with Sun/Moon/Monitor lucide icons and Tooltip showing current + next state; variant 'group' rendering 3 IconButtons with aria-pressed and per-button aria-label; size sm|md; className merge). Wired into AppHeader actions slot (cycle, size='sm') beside Help/Shortcuts/Language. Tailwind already had `darkMode: ['class']` so no config change.
