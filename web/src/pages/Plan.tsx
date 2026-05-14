@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Brain, RefreshCw, Send, Upload } from 'lucide-react';
+import { Brain, HelpCircle, RefreshCw, Send, Upload } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Input, Label, Panel, Stepper, Textarea, Tooltip } from '../components/ui';
+import { Button, Input, Label, Panel, Popover, Stepper, Textarea, Tooltip } from '../components/ui';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
 import { usePlanContent } from '../lib/use-plan-content';
@@ -69,24 +69,48 @@ export default function Plan() {
         useCasesKey="plan.useCases"
         onOpenHelp={openHelpDrawer}
       />
-      <Stepper
-        steps={[
-          { id: 'worker', label: 'Select worker' },
-          { id: 'task', label: 'Describe task' },
-          { id: 'dispatch', label: 'Dispatch plan' },
-          { id: 'result', label: 'View plan' },
-        ]}
-        currentIndex={
-          plan?.content
-            ? 3
-            : dispatching || (selected && task.trim())
-            ? 2
-            : selected
-            ? 1
-            : 0
-        }
-        size="sm"
-      />
+      <div className="flex items-center justify-between gap-2">
+        <Stepper
+          steps={[
+            { id: 'worker', label: 'Select worker' },
+            { id: 'task', label: 'Describe task' },
+            { id: 'dispatch', label: 'Dispatch plan' },
+            { id: 'result', label: 'View plan' },
+          ]}
+          currentIndex={
+            plan?.content
+              ? 3
+              : dispatching || (selected && task.trim())
+              ? 2
+              : selected
+              ? 1
+              : 0
+          }
+          size="sm"
+        />
+        <Popover
+          placement="bottom"
+          align="end"
+          trigger={
+            <button
+              type="button"
+              aria-label="Plan stage details"
+              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <HelpCircle className="h-4 w-4" />
+            </button>
+          }
+          content={
+            <div className="w-64 space-y-1 text-xs text-muted-foreground">
+              <p className="font-semibold text-foreground">Planning flow</p>
+              <p>1. Select an existing worker as plan target.</p>
+              <p>2. Describe the work; optionally set a branch + output path.</p>
+              <p>3. Dispatch fires <code>POST /api/plan</code>.</p>
+              <p>4. View the generated plan.md and graduate into a task.</p>
+            </div>
+          }
+        />
+      </div>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div>
           <Label htmlFor="plan-worker">{t('planPage.worker')}</Label>
