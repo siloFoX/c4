@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { RefreshCw, ScrollText } from 'lucide-react';
 import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, EmptyState, Input, Panel, Tooltip } from '../components/ui';
+import { Badge, Button, EmptyState, Input, Pagination, Panel, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -24,11 +24,22 @@ export default function Templates() {
   useLocale();
   const { items, loading, error, refresh } = useTemplates();
   const [filter, setFilter] = useState('');
+  const [page, setPage] = useState(1);
   const { toast, showToast, dismissToast } = useToast();
 
   const filtered = useMemo(
     () => fuzzyFilter(items, filter, (t) => `${t.name} ${t.description || ''} ${t.model || ''}`),
     [items, filter],
+  );
+
+  const PAGE_SIZE = 20;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  useEffect(() => {
+    if (page > totalPages) setPage(1);
+  }, [page, totalPages]);
+  const pageItems = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page],
   );
 
   const notImplemented = () =>
@@ -84,7 +95,7 @@ export default function Templates() {
         />
       ) : (
         <ul className="flex flex-col gap-2">
-          {filtered.map((tpl) => (
+          {pageItems.map((tpl) => (
             <li key={tpl.name}>
               <Panel className="p-3">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
@@ -109,6 +120,16 @@ export default function Templates() {
             </li>
           ))}
         </ul>
+      )}
+      {!loading && filtered.length > PAGE_SIZE && (
+        <div className="mt-3 flex justify-center">
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            ariaLabel="Templates pagination"
+          />
+        </div>
       )}
 
       <div className="pointer-events-none fixed right-4 top-4 z-50 flex flex-col gap-2">

@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, Panel, Tooltip } from '../components/ui';
+import { Badge, Button, Pagination, Panel, Tooltip } from '../components/ui';
 import { useTokenUsage } from '../lib/use-token-usage';
 import { useTokenUsageBreakdowns, coerceTotal } from '../lib/use-token-usage-breakdowns';
 import { cn } from '../lib/cn';
@@ -31,6 +31,7 @@ export default function TokenUsage() {
   useLocale();
   const [days, setDays] = useState<number>(7);
   const [perTask, setPerTask] = useState<boolean>(false);
+  const [perTaskPage, setPerTaskPage] = useState(1);
   // (v1.10.656) Token-usage + quota fetch moved to hook.
   const { data, quota, loading, error, refresh } = useTokenUsage({ perTask });
 
@@ -159,32 +160,11 @@ export default function TokenUsage() {
           </Panel>
 
           {perTask && Array.isArray(data.perTask) && (
-            <Panel title={tFormat('tokenUsagePage.perTaskHeading', { n: String(data.perTask.length) })} className="p-3 text-xs">
-              <div className="max-h-64 overflow-y-auto">
-                <table className="w-full text-left font-mono">
-                  <thead className="text-muted-foreground">
-                    <tr>
-                      <th className="py-1 pr-2">{t('tokenUsagePage.tableHeader.worker')}</th>
-                      <th className="py-1 pr-2">{t('tokenUsagePage.tableHeader.task')}</th>
-                      <th className="py-1 pr-2 text-right">{t('tokenUsagePage.tableHeader.total')}</th>
-                      <th className="py-1 pr-2 text-right">{t('tokenUsagePage.tableHeader.input')}</th>
-                      <th className="py-1 pr-2 text-right">{t('tokenUsagePage.tableHeader.output')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.perTask.slice(0, 200).map((e, idx) => (
-                      <tr key={idx} className="border-t border-border/60 text-foreground">
-                        <td className="py-1 pr-2 truncate">{e.worker || e.name || '-'}</td>
-                        <td className="max-w-xs truncate py-1 pr-2 text-muted-foreground">{e.task || ''}</td>
-                        <td className="py-1 pr-2 text-right">{formatNumber(e.total ?? coerceTotal(e))}</td>
-                        <td className="py-1 pr-2 text-right">{formatNumber(e.input)}</td>
-                        <td className="py-1 pr-2 text-right">{formatNumber(e.output)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Panel>
+            <PerTaskTable
+              rows={data.perTask}
+              page={perTaskPage}
+              onPageChange={setPerTaskPage}
+            />
           )}
         </div>
       )}
@@ -209,6 +189,75 @@ export default function TokenUsage() {
         </Panel>
       )}
     </PageFrame>
+  );
+}
+
+const PER_TASK_PAGE_SIZE = 20;
+
+interface PerTaskRow {
+  worker?: string;
+  name?: string;
+  task?: string;
+  total?: number;
+  input?: number;
+  output?: number;
+}
+
+interface PerTaskTableProps {
+  rows: PerTaskRow[];
+  page: number;
+  onPageChange: (page: number) => void;
+}
+
+function PerTaskTable({ rows, page, onPageChange }: PerTaskTableProps) {
+  const totalPages = Math.max(1, Math.ceil(rows.length / PER_TASK_PAGE_SIZE));
+  useEffect(() => {
+    if (page > totalPages) onPageChange(1);
+  }, [page, totalPages, onPageChange]);
+  const slice = rows.slice(
+    (page - 1) * PER_TASK_PAGE_SIZE,
+    page * PER_TASK_PAGE_SIZE,
+  );
+  return (
+    <Panel
+      title={tFormat('tokenUsagePage.perTaskHeading', { n: String(rows.length) })}
+      className="p-3 text-xs"
+    >
+      <div className="max-h-64 overflow-y-auto">
+        <table className="w-full text-left font-mono">
+          <thead className="text-muted-foreground">
+            <tr>
+              <th className="py-1 pr-2">{t('tokenUsagePage.tableHeader.worker')}</th>
+              <th className="py-1 pr-2">{t('tokenUsagePage.tableHeader.task')}</th>
+              <th className="py-1 pr-2 text-right">{t('tokenUsagePage.tableHeader.total')}</th>
+              <th className="py-1 pr-2 text-right">{t('tokenUsagePage.tableHeader.input')}</th>
+              <th className="py-1 pr-2 text-right">{t('tokenUsagePage.tableHeader.output')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {slice.map((e, idx) => (
+              <tr key={idx} className="border-t border-border/60 text-foreground">
+                <td className="py-1 pr-2 truncate">{e.worker || e.name || '-'}</td>
+                <td className="max-w-xs truncate py-1 pr-2 text-muted-foreground">{e.task || ''}</td>
+                <td className="py-1 pr-2 text-right">{formatNumber(e.total ?? coerceTotal(e))}</td>
+                <td className="py-1 pr-2 text-right">{formatNumber(e.input)}</td>
+                <td className="py-1 pr-2 text-right">{formatNumber(e.output)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {rows.length > PER_TASK_PAGE_SIZE && (
+        <div className="mt-2 flex justify-center">
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
+            ariaLabel="Per-task pagination"
+          />
+        </div>
+      )}
+    </Panel>
   );
 }
 
