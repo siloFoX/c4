@@ -4,6 +4,100 @@
 
 (no entries -- next release window)
 
+## [1.11.132] - 2026-05-14 -- Web + Daemon: browser-frame error capture + open /client-errors sink
+
+Add a minimal client-side error capture path plus a matching open
+daemon endpoint so unhandled `window.error` and `unhandledrejection`
+events from the Web UI -- including unauthenticated frames (login
+screen, expired-session screens) -- land in a structured server-side
+sink instead of disappearing into the browser console.
+
+Web side (`web/src/lib/error-capture.ts`, new):
+
+- `installErrorCapture()` wires `window.addEventListener('error', ...)`
+  and `window.addEventListener('unhandledrejection', ...)` exactly
+  once. A module-scope `installed` guard makes a second call a no-op
+  so an accidental re-import (HMR, test) cannot register a duplicate
+  listener that would double-post every event.
+- Each handler POSTs a small JSON payload to `/api/client-errors`:
+  `{ kind, message, stack, url, line, column, userAgent, timestamp }`.
+  `kind` is one of `'error'` / `'unhandledrejection'`. `message` and
+  `stack` are truncated at 4096 chars so a runaway stack cannot blow
+  up the request body. `keepalive: true` lets the POST survive a page
+  unload (browser tab close mid-error).
+- Fetch errors are swallowed silently inside an inner `.catch(() => {})`
+  so the capture never re-throws into the browser's error pipeline
+  (which would double-fire 'error') and never replaces or shadows
+  existing handlers -- `addEventListener` is purely additive.
+- Wired exactly once from `web/src/main.tsx` (one line, before
+  `ReactDOM.createRoot(...).render(...)`) so capture is live for the
+  entire app lifetime, including pre-render bootstrap errors.
+
+Daemon side (`src/daemon.js`):
+
+- `POST /client-errors` accepts the same JSON shape. Validates
+  `kind in {error, unhandledrejection}` and `typeof message === 'string'`;
+  silently drops anything else without writing a JSONL line. Always
+  returns `204 No Content` -- malformed bodies, validation failures,
+  and successful writes all share the same response so the browser
+  capture path never sees a retryable non-2xx.
+- Auth bypass: a new `isClientErrors` guard subtracts the route from
+  the existing `needsAuthCheck` chain (same shape as the `isCicdWebhook`
+  bypass for GitHub's HMAC-only webhook). This is an open sink by
+  design so unauthenticated UIs -- login pages, public landing pages,
+  expired-session screens -- can still report.
+- On a valid body: structured log via the singleton pino logger
+  (`component: 'client-errors'`, kind/message/url/line/column/userAgent)
+  plus an append to a JSONL ring file. The path resolves via
+  `C4_CLIENT_ERRORS_PATH` (used by the test to inject a tmp path),
+  falling back to `~/.c4/client-errors.jsonl`. The file is capped at
+  `CLIENT_ERRORS_MAX_BYTES` (10MB); when the live file crosses the cap
+  on the next write it is renamed to `<path>.1` (one-step rotation,
+  same shape as `src/logger.js`'s rotation) and a fresh file is
+  opened on the next append. Every fs error is swallowed -- the sink
+  is best-effort and must never fail the daemon.
+
+Verification:
+
+- `web/src/lib/error-capture.test.ts` (6 cases, vitest + jsdom)
+  stubs `global.fetch` via `vi.stubGlobal`, calls
+  `installErrorCapture()` once in `beforeAll`, then asserts: (a) a
+  window 'error' dispatch posts exactly one payload to
+  `/api/client-errors` with the right method/headers/keepalive and
+  the full `{ kind, message, stack, url, line, column, userAgent,
+  timestamp }` shape, (b) a window 'unhandledrejection' dispatch
+  posts exactly one payload with `kind = 'unhandledrejection'` and
+  the reason's message/stack extracted onto the payload, (c)
+  non-Error rejection reasons stringify onto `message`, (d) an
+  oversized message truncates to 4096 chars, (e) double-install is
+  a no-op (a single dispatch still posts exactly once), and (f)
+  fetch rejections are swallowed without re-throwing.
+- `tests/daemon-client-errors.test.js` (8 handler cases + 6 source
+  integration cases, node:test + supertest) mirrors the
+  `daemon-list-procmetrics.test.js` fixture pattern. An in-process
+  `http.Server` wires the SAME validation + JSONL append loop the
+  daemon runs, driven through `supertest`, with the JSONL path
+  injected via `process.env.C4_CLIENT_ERRORS_PATH`. Asserts: (a)
+  valid kind=error and kind=unhandledrejection bodies return 204
+  and write one JSONL line each with the persisted shape, (b)
+  invalid kind, non-string message, and empty body all return 204
+  with NO line written, (c) unknown extra fields are ignored
+  (not bled into the persisted line), (d) successive POSTs append
+  in order, and (e) non-number line/column coerces to `null` and
+  missing string fields default to `""`. The
+  `daemon.js source integration` block greps the real source so a
+  refactor that drops the route, the `isClientErrors` auth bypass,
+  the `appendClientErrorLine` call, the 10MB cap, or the 204 status
+  trips the test.
+
+Scope: `web/src/lib/error-capture.ts` (new),
+`web/src/lib/error-capture.test.ts` (new), `web/src/main.tsx`
+(one-line wiring), `src/daemon.js` (auth bypass + JSONL helper +
+POST /client-errors route), `tests/daemon-client-errors.test.js`
+(new), `CHANGELOG.md`, `web/package.json` (1.11.131 -> 1.11.132).
+No changes to `docs/autonomous-queue-v10.md`. No new npm
+dependencies.
+
 ## [1.11.131] - 2026-05-14 -- Daemon: per-worker rssBytes + cpuPct on GET /list
 
 Enrich the GET /api/list daemon response with per-worker process metrics
