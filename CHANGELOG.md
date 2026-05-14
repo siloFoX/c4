@@ -4,6 +4,66 @@
 
 (no entries -- next release window)
 
+## [1.11.138] - 2026-05-14 -- Web: CommandPalette recent ranking, shortcut chip, match highlight
+
+`web/src/components/CommandPalette.tsx` and the matching
+`web/src/components/command-palette/commands.ts` data layer gain three
+related UX upgrades. Scope is intentionally narrow: only the palette,
+its tests, the version bump, and this entry are touched -- no new npm
+dependencies, no design-system changes, no shared utility churn.
+
+What changed:
+
+1. **Recent commands** -- The palette now remembers the last five
+   command ids the operator selected, persisted to the
+   `cmdk:recent` localStorage key (most-recent-first, capped at
+   `RECENT_MAX = 5`). When the query is empty and at least one
+   stored id still resolves to a live command, a `Recent` section
+   renders at the top of the listbox (above `Navigate`) and the same
+   ids are de-duplicated out of their regular section so a recent
+   `Tick` does not appear in both `Recent` and `Queue`. When the
+   query is non-empty `filterCommands(commands, query, recentIds)`
+   adds a `RECENT_BOOST = 100` to a recent command's fuzzy score so
+   it sorts ahead of ties inside the same band -- the boost is sized
+   to break ties without letting a recent acronym leapfrog a
+   non-recent prefix substring match. Recording happens in a single
+   `activate(cmd)` helper that runs on both click and Enter; the
+   palette re-reads localStorage every time `open` flips true so a
+   sibling tab's edits show up on the next mount. Malformed JSON,
+   non-array seeds, and ids that no longer exist in the catalog are
+   silently dropped.
+
+2. **Shortcut chip** -- `PaletteCommand.hint` was renamed to
+   `.shortcut` to match the field's role; the lone use site
+   (`queue:tick`, shortcut `T`) was updated and the `<kbd>` chip now
+   uses `rounded border bg-muted px-1.5 py-0.5 font-mono text-xs
+   text-muted-foreground` with a `data-command-shortcut` hook for
+   tests. When a command does not declare a shortcut the `<kbd>` is
+   omitted entirely (no empty chip, no placeholder).
+
+3. **Match highlighting** -- A new `highlightLabel(label, query)`
+   helper renders the matched portion of a command label inside
+   `<span className="font-semibold">`. The substring path emits one
+   contiguous bold span (case-insensitive), and a fuzzy-acronym
+   fallback wraps each matched char individually so a `tu` query
+   against `Token usage` still shows its two hits. An empty query
+   returns the label verbatim with no DOM noise.
+
+4. **Test coverage** -- `CommandPalette.test.tsx` keeps every prior
+   case intact and adds five recent-commands cases (Recent renders
+   as the top section when the seed has entries, MRU order is
+   preserved, omitted when no seed, missing catalog ids are dropped,
+   click persists the id), two shortcut-chip cases (renders with the
+   documented bg-muted styling, omitted otherwise), and three
+   highlight cases (substring bold span, acronym per-char fallback,
+   empty query no-op). `beforeEach` was extended to call
+   `window.localStorage.clear()` so recents from one case do not
+   bleed into the next.
+
+`filterCommands` keeps its old two-argument call signature thanks to
+a default `recentIds = []`, so the existing `commands.test.ts` cases
+and any other caller continue to work unchanged.
+
 ## [1.11.137] - 2026-05-14 -- Web: Toast stacking, swipe-to-dismiss, portal
 
 `web/src/components/Toast.tsx` and the matching `web/src/lib/use-toast.ts`
