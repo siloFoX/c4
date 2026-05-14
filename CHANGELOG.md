@@ -4,6 +4,79 @@
 
 (no entries -- next release window)
 
+## [1.11.125] - 2026-05-14 -- Tests: Lib hooks coverage push 10 (TODO 11.106)
+
+Continue the untested `web/src/lib/use-*.ts` coverage push. The original
+push-10 dispatch targeted `use-plan-dispatch.ts`, `use-prompt-revision.ts`,
+`use-scribe.ts`, and `use-scrollback.ts`, but the latter two already
+landed in push 7 (`use-prompt-revision.test.ts` + `use-scrollback.test.ts`
+exist). Substituted with four hooks that genuinely lacked a sibling test
+file: `use-plan-dispatch.ts` (Plan page dispatch + redispatch flows),
+`use-scribe.ts` (dual scribe status + context fetch and the act() POST
+wrapper), `use-silent-poll.ts` (the generic silently-degrading polling
+hook and its `WithRefresh` variant), and `use-swarm.ts` (workers list +
+swarm-tree coupled fetch). All four gain a sibling `*.test.ts` mirroring
+the v1.11.115 / v1.11.117 / v1.11.119 / v1.11.121 / v1.11.124 batch style:
+`renderHook` + `act` from `@testing-library/react`, MSW for the
+apiGet/apiPost surface, `vi.spyOn(window, 'confirm')` for the
+confirm-gated redispatch, and `vi.useFakeTimers()` for the poll cadence
++ interval-cleanup assertions in the silent-poll suite. Total: 61 cases
+across 4 files (18 + 12 + 14 + 17).
+
+`usePlanDispatch` covers idle state, empty-selected + whitespace-task
+validation short-circuits (both set `plan.error.selectWorker` via
+setError, never POST), happy path with the minimal `{ name, task }`
+body, branch/output inclusion, server-side envelope error routing to
+`plan.toast.dispatchFailed` + setError + skipped loadPlan,
+thrown-HTTP 500 path surfacing through setError only, `dispatching`
+busy flip around inflight, the three redispatch short-circuit paths
+(no plan / empty content / no selection -- none even trigger
+window.confirm), `window.confirm=false` short-circuit before busy
+flip, redispatch happy path with `{ name, task: plan.content,
+useBranch: true }` and the `plan.toast.taskDispatched` success
+toast, envelope-error + thrown-error routing to
+`plan.toast.taskDispatchFailed`, the busy flip around the redispatch
+POST, confirm message worker-name interpolation, and dispatchPlan
+callback identity tracking against `(selected, task, branch, output)`.
+
+`useScribe` covers loading=true mount, happy path storing both status +
+context with cleared error, status GET failure surfacing via the shared
+`error` slot (status reset to null), context GET failure swallowed
+silently (no error, no toast), `refresh()` re-running both fetches and
+clearing stale error, `act()` happy-path POST firing `scribe.toast.ok`
+with busy-slot keyed by endpoint string, `act()` HTTP 500 surfacing
+`scribe.toast.failed` and clearing busy, refresh-after-act on both
+success and throw branches, busy-slot endpoint verbatim, and the
+`refresh` reference being stable across re-renders.
+
+`useSilentPoll` + `useSilentPollWithRefresh` cover null-before-first-fetch,
+interval polling with the latest payload, silent error swallow (data
+stays at last good value, no `error` state), recovery on the next tick,
+no-write-after-unmount via the cancel flag, `clearInterval` on unmount,
+restart on url change, fallback before first response, mapper-driven
+public shape, `refresh()` awaiting a fresh fetch and updating data,
+`refresh()` swallowing errors silently, and mapper updates being
+picked up on the next tick without restarting the timer (mapper held
+in a ref).
+
+`useSwarm` covers idle mount state, workers list load with auto-select
+of the first worker, no auto-select when the list is empty, defensive
+fallback to `[]` for a non-array workers field, HTTP error from
+`/api/list` surfacing via the shared error slot, swarm-tree load for
+the selected worker with URL-encoded query string, envelope-error
+clearing data, HTTP 500 clearing data with `e.message` in error,
+loading flip around the swarm fetch, `setSelected` re-triggering the
+swarm fetch for the new name, `refresh()` re-running the swarm fetch
+only (no extra `/api/list` hit), refresh short-circuit when no worker
+is selected, refresh clearing stale error on success, `setSelected('')`
+leaving data untouched (loadSwarm short-circuits and preserves the
+last successful read), refresh identity changing with the selected
+prop, and no swarm fetch when the worker list is empty.
+
+Net effect: every `web/src/lib/use-*.ts` hook touched by the v1.10.661 /
+v1.10.680 / v1.10.730 / v1.10.743 / v1.10.745 / v1.10.767 extractions
+now has a sibling unit-test file.
+
 ## [1.11.124] - 2026-05-14 -- Tests: Lib hooks coverage push 9 (TODO 11.106)
 
 Continue the untested `web/src/lib/use-*.ts` coverage push. Discovered
