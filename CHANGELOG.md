@@ -4,6 +4,77 @@
 
 (no entries -- next release window)
 
+## [1.11.153] - 2026-05-14 -- Web: Tabs primitive + TopTabs adapter
+
+A new shared Tabs primitive replaces the hand-rolled tablist + roving
+tabindex + arrow-key handling currently duplicated in TopTabs. The
+primitive ships with a TabsPanel companion so feature pages can wire
+real panels without re-implementing aria-controls / aria-labelledby
+plumbing.
+
+What changed:
+
+- **`<Tabs value onChange items={Array<{value, label, disabled?, icon?, ariaLabel?, title?}>} className? ariaLabel? children?>`**
+  (`web/src/components/ui/tabs.tsx`) -- renders `role=tablist` with
+  the supplied aria-label (default `Tabs`), each item as `role=tab`
+  with `aria-selected` mirroring `value`, `aria-controls`/`id`
+  wiring for the corresponding panel, roving tabindex (active=0,
+  others=-1), and full WAI-ARIA keyboard nav: ArrowLeft/ArrowRight
+  cycle with wrap, Home/End jump to first/last, disabled items are
+  skipped, and every tab carries the shared
+  `focus-visible:ring-2 ring-primary` chain. The active/inactive
+  styling matches the existing TopTabs look
+  (`bg-primary/30 text-foreground` vs
+  `text-muted-foreground hover:bg-accent`) so adapters get the same
+  visual treatment for free.
+- **`<TabsPanel value children className?>`** -- consumes the same
+  context as `<Tabs>` (rendered as children of `<Tabs>`), emits
+  `role=tabpanel` with id/aria-labelledby wired against the
+  matching tab id, hides itself with the `hidden` attribute when
+  inactive, and skips rendering inactive children to keep panels
+  cheap.
+- **`tabs.test.tsx`** -- 20 cases covering: tablist render with
+  default + custom aria-label, aria-selected, click selection,
+  roving tabindex, ArrowLeft/Right (incl. wrap both directions),
+  Home/End, disabled-skip in nav, disabled-click no-op, icon node
+  render, aria-controls + aria-labelledby wiring against TabsPanel,
+  TabsPanel hide/show across value flips, focus-visible ring
+  classes, active vs inactive class sets, item ariaLabel/title
+  plumbing, className on the tablist container, and the
+  out-of-strip arrow-key no-op.
+- **`web/src/components/ui/index.ts`** -- exports the new primitive.
+- **`web/src/components/layout/TopTabs.tsx`** -- internals replaced
+  with the shared `Tabs` primitive. The wrapping component becomes
+  a thin adapter that maps the i18n labels, lucide icons, and
+  per-tab badge nodes into the `TabsItem` shape and forwards the
+  existing `value` / `onChange` / `badges` API unchanged. The
+  visual design (rounded border strip, active highlight, hidden
+  scrollbar shelf, badge styling, icon-only collapse on sm) is
+  preserved. `TopTabs.test.tsx` is left as-is and every existing
+  case still passes against the new internals.
+- **`web/package.json`** -- version bump 1.11.152 -> 1.11.153.
+
+Why -- the daemon web UI already has at least two callsites with
+tabs-like behaviour (TopTabs at the page level, DetailTabs inside
+the worker drawer). Each one re-implements the roving-tabindex
+pattern slightly differently and only the TopTabs flavour has wrap
+and arrow nav at all. The new primitive gives those callsites (and
+future ones like a Settings sectioner) a single source of truth for
+the accessibility contract, plus a TabsPanel companion that frees
+pages from hand-wiring id/aria-controls every time. The
+pick-whichever-fits clause in the spec was resolved in favour of
+the `<TabsPanel value>` child pattern because it keeps the wiring
+implicit (caller never types an id) while still leaving the
+tablist + panels visually decoupled in the DOM.
+
+Scope -- strictly contained: `web/src/components/ui/tabs.tsx`,
+`web/src/components/ui/tabs.test.tsx`,
+`web/src/components/ui/index.ts`,
+`web/src/components/layout/TopTabs.tsx`,
+`web/src/components/layout/TopTabs.test.tsx` (untouched),
+`web/package.json`, `CHANGELOG.md`. No ARPS tokens were touched, no
+queue rows were edited, and no npm dependencies were added.
+
 ## [1.11.152] - 2026-05-14 -- Web: Radio + Checkbox primitives
 
 Two new form primitives fill the last gap in the UI primitive set so
