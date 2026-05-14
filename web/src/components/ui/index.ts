@@ -40,3 +40,4 @@ export * from './collapsible';
 export * from './hero-card';
 export * from './navbar';
 export * from './search-bar';
+export * from './rating';

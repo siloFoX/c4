@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.181] - 2026-05-14 -- UI: Rating primitive + Health page adoption
+
+New `<Rating>` primitive in `web/src/components/ui/rating.tsx` (5-star widget with hover preview, half-star support, readonly mode, `aria role='slider'` with `aria-valuenow` / `aria-valuemin` / `aria-valuemax`; props value/max (default 5)/onChange/size sm|md|lg/readonly (auto-true when onChange omitted)/allowHalf (default true)/label/className; click on left half sets x.5; keyboard ArrowLeft/Right step by 0.5 (allowHalf) or 1, Home -> 0, End -> max; lucide-react Star with empty stroke layer + filled overlay sized 0/50/100% via `fill='currentColor'`; `forwardRef` to wrapper div). Adopted on the Health page as a 'Was this dashboard helpful?' widget (console.log only).
+
 ## [1.11.180] - 2026-05-14 -- UI: SearchBar primitive + adoption (Templates / Profiles / Validation)
 
 New `<SearchBar>` primitive in `web/src/components/ui/search-bar.tsx` (controlled or uncontrolled; lucide-react Search left icon + X clear button; `type='search'` input wrapped in `role='search'`; `onChange` fires every keystroke and `onDebouncedChange` fires once after `debounceMs` (default 200) with initial-emit skip when `defaultValue` matches; props `value` / `defaultValue` / `onChange` / `onDebouncedChange` / `debounceMs` / `placeholder` / `size` (sm|md) / `disabled` / `ariaLabel` / `clearable` (default true) / `onClear` / `className` / `inputClassName`; controlled clear does NOT mutate internally - just `onChange('')` + `onClear`; `forwardRef` to the input). Adopted in `pages/Templates.tsx`, `pages/Profiles.tsx`, and `pages/Validation.tsx` filter rows.

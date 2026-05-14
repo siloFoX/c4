@@ -10,6 +10,7 @@ import {
   DataList,
   Panel,
   Popover,
+  Rating,
   Tooltip,
 } from '../components/ui';
 import type { DataListItem } from '../components/ui';
@@ -168,6 +169,17 @@ export default function Health() {
               ] satisfies DataListItem[]}
             />
           </Panel>
+
+          <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
+            <span>Was this dashboard helpful?</span>
+            <Rating
+              value={0}
+              max={5}
+              onChange={(v) => console.log('[health.rating]', v)}
+              size="sm"
+              label="Was this dashboard helpful?"
+            />
+          </div>
 
           {Array.isArray(data.modules) && data.modules.length > 0 ? (
             <Collapsible
