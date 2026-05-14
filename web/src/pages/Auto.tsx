@@ -36,9 +36,10 @@ import {
   CardContent,
   EmptyState as PrimitiveEmptyState,
   StatCard,
+  Timeline,
   Tooltip,
 } from '../components/ui';
-import type { BadgeVariant } from '../components/ui';
+import type { BadgeVariant, TimelineItem, TimelineTone } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { useLocale } from '../lib/i18n';
@@ -159,6 +160,13 @@ interface EventDescriptor {
   bar: string;
   ring: string;
 }
+
+const EVENT_TONE: Record<string, TimelineTone> = {
+  dispatch: 'primary',
+  success: 'success',
+  halt: 'danger',
+  'dispatch-error': 'warning',
+};
 
 const EVENT_DESCRIPTORS: Record<DispatchEventType, EventDescriptor> = {
   dispatch: {
@@ -689,60 +697,34 @@ function TimelineSection({ status, queue, now }: TimelineSectionProps) {
           description="Click Tick on the controls dock to fire the loop immediately."
         />
       ) : (
-        <ol
-          aria-label="Dispatch timeline"
-          className="relative flex flex-col gap-1"
-        >
-          {(status.state.data.recent || [])
-            .slice()
-            .reverse()
-            .map((evt, i) => {
-              const d = descriptorFor(evt.type);
-              const Icon = d.Icon;
-              const subtitle = evt.id ? titleById.get(evt.id) : null;
-              return (
-                <li
-                  key={`${evt.type}-${evt.at ?? i}-${evt.id ?? i}`}
-                  className="relative flex items-start gap-3 rounded-md py-2 pl-4 pr-2 transition-colors hover:bg-muted/40"
-                >
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      'absolute left-0 top-1 bottom-1 w-[3px] rounded-full',
-                      d.bar,
-                    )}
-                  />
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      'mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-background ring-1 ring-border',
-                      d.ring,
-                    )}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
+        (() => {
+          const events = (status.state.data.recent || []).slice().reverse();
+          const items: TimelineItem[] = events.map((evt, i) => {
+            const d = descriptorFor(evt.type);
+            const Icon = d.Icon;
+            const subtitle = evt.id ? titleById.get(evt.id) : null;
+            const tone: TimelineTone = EVENT_TONE[evt.type] || 'neutral';
+            return {
+              id: `${evt.type}-${evt.at ?? i}-${evt.id ?? i}`,
+              timestamp: evt.at ? new Date(evt.at) : new Date(),
+              tone,
+              icon: <Icon className="h-3 w-3" />,
+              title: (
+                <span className="flex items-baseline gap-2">
+                  <span>{d.label}</span>
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {evt.id || '-'}
                   </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {d.label}
-                        <span className="ml-2 font-mono text-xs text-muted-foreground">
-                          {evt.id || '-'}
-                        </span>
-                      </p>
-                      <span className="shrink-0 text-xs text-muted-foreground">
-                        {relativeTime(evt.at ?? null, now)}
-                      </span>
-                    </div>
-                    {subtitle ? (
-                      <p className="truncate text-xs text-muted-foreground">
-                        {subtitle}
-                      </p>
-                    ) : null}
-                  </div>
-                </li>
-              );
-            })}
-        </ol>
+                  <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                    {relativeTime(evt.at ?? null, now)}
+                  </span>
+                </span>
+              ),
+              description: subtitle ?? undefined,
+            };
+          });
+          return <Timeline aria-label="Dispatch timeline" items={items} />;
+        })()
       )}
     </SectionShell>
   );

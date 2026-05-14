@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.167] - 2026-05-14 -- UI: Timeline primitive + 3 callsite swaps
+
+New `<Timeline>` primitive in `web/src/components/ui/timeline.tsx` (vertical event list, props `items` / `groupByDay` / `className`, tone neutral/primary/success/warning/danger via ARPS bg-* tokens, connector line auto-omitted on the last item per group, optional ISO yyyy-mm-dd day headers). Adopted in Auto dispatch timeline (full substitution), SessionsListSection recent-activity subset (alongside the interactive group list), and SpecialistsAuditPanel notifications-log feed (substitution).
+
 ## [1.11.166] - 2026-05-14 -- UI: Chip primitive + 3 callsite swaps
 
 New `<Chip>` primitive in `web/src/components/ui/chip.tsx` (variant subtle/solid/outline, tone neutral/primary/success/warning/danger, size sm/md, optional leading icon + optional onDismiss X with aria-label, forwardRef). Adopted in SpecialistsTagEditor tag list, Templates source/model/effort/profile tags, RiskCheckResult level/action/wouldDeny/denyList badges.

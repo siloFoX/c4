@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { Badge, EmptyState, Skeleton } from './ui';
+import { Badge, EmptyState, Skeleton, Timeline } from './ui';
+import type { TimelineItem } from './ui';
 import { WelcomeOnboardingIllustration } from './illustrations';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
@@ -35,6 +37,25 @@ export default function SessionsListSection({
 }: Props) {
   useLocale();
 
+  // (v1.11.167) patch 11.149 - recent activity timeline subset.
+  // Read-only preview alongside the interactive group list below;
+  // the existing buttons remain authoritative for selection.
+  const recentTimeline = useMemo<TimelineItem[]>(() => {
+    const flat = filteredGroups.flatMap((g) => g.sessions);
+    flat.sort((a, b) => {
+      const at = a.updatedAt ? Date.parse(a.updatedAt) : 0;
+      const bt = b.updatedAt ? Date.parse(b.updatedAt) : 0;
+      return bt - at;
+    });
+    return flat.slice(0, 5).map((s) => ({
+      id: s.sessionId,
+      timestamp: s.updatedAt ?? new Date().toISOString(),
+      title: shortId(s.sessionId),
+      description: s.lastAssistantSnippet || s.projectPath || s.projectDir || '',
+      tone: 'primary' as const,
+    }));
+  }, [filteredGroups]);
+
   if (error) {
     return <div className="p-4 text-sm text-destructive">{error}</div>;
   }
@@ -66,7 +87,16 @@ export default function SessionsListSection({
     );
   }
   return (
-    <ul className="divide-y divide-border">
+    <>
+      {recentTimeline.length > 0 ? (
+        <div className="border-b border-border bg-muted/20 px-4 py-3">
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Recent activity
+          </div>
+          <Timeline items={recentTimeline} />
+        </div>
+      ) : null}
+      <ul className="divide-y divide-border">
       {filteredGroups.map((group) => {
         const key = group.projectDir || group.projectPath || 'unknown';
         const isCollapsed = Boolean(collapsed[key]);
@@ -130,5 +160,6 @@ export default function SessionsListSection({
         );
       })}
     </ul>
+    </>
   );
 }
