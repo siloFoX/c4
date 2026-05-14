@@ -32,6 +32,27 @@ describe('<Badge>', () => {
     expect(node.className).toContain('bg-warning');
   });
 
+  it('applies the info variant classes', () => {
+    render(<Badge variant="info">note</Badge>);
+    const node = screen.getByText('note');
+    expect(node.className).toContain('bg-info');
+    expect(node.className).toContain('text-info');
+  });
+
+  it('applies the error variant classes (alias for destructive semantics)', () => {
+    render(<Badge variant="error">fail</Badge>);
+    const node = screen.getByText('fail');
+    expect(node).toHaveClass('bg-destructive');
+    expect(node).toHaveClass('text-destructive-foreground');
+  });
+
+  it('applies the neutral variant classes', () => {
+    render(<Badge variant="neutral">n/a</Badge>);
+    const node = screen.getByText('n/a');
+    expect(node).toHaveClass('bg-muted');
+    expect(node).toHaveClass('text-muted-foreground');
+  });
+
   it('merges caller-provided className with the variant classes', () => {
     render(<Badge className="my-tag">tag</Badge>);
     const node = screen.getByText('tag');
