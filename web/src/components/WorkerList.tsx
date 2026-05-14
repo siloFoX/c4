@@ -67,17 +67,10 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
     return (
       <Card
         key={w.name}
-        role="button"
-        tabIndex={0}
+        interactive
         onClick={() => onSelect(w.name)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onSelect(w.name);
-          }
-        }}
         className={cn(
-          'cursor-pointer transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          'hover:bg-accent/40',
           // (TODO 8.37) Manager rows wear a left primary accent bar so
           // the role distinction is visible at a glance even when
           // groups are collapsed via the parent's overflow trick.

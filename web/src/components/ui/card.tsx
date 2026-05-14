@@ -1,18 +1,59 @@
 import { forwardRef } from 'react';
-import type { HTMLAttributes } from 'react';
+import type { HTMLAttributes, KeyboardEvent, MouseEvent } from 'react';
 import { cn } from '../../lib/cn';
 
-export const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        'rounded-xl border border-border bg-card text-card-foreground shadow-sm motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200',
-        className
-      )}
-      {...props}
-    />
-  )
+export interface CardProps extends HTMLAttributes<HTMLDivElement> {
+  // (v1.11.143) When true, the Card becomes a keyboard- and pointer-
+  // reachable activate target: hover-lift, active-press, focus-visible
+  // ring, plus role=button + tabIndex=0 and Enter/Space => onClick.
+  // When omitted/false, Card renders byte-identically to the prior
+  // static-container output (no class delta, no a11y attr injection).
+  interactive?: boolean;
+}
+
+export const Card = forwardRef<HTMLDivElement, CardProps>(
+  (
+    {
+      className,
+      interactive,
+      role,
+      tabIndex,
+      onClick,
+      onKeyDown,
+      ...props
+    },
+    ref
+  ) => {
+    const isInteractive = interactive === true;
+
+    const handleKeyDown = isInteractive
+      ? (event: KeyboardEvent<HTMLDivElement>) => {
+          onKeyDown?.(event);
+          if (event.defaultPrevented) return;
+          if ((event.key === 'Enter' || event.key === ' ') && onClick) {
+            event.preventDefault();
+            onClick(event as unknown as MouseEvent<HTMLDivElement>);
+          }
+        }
+      : onKeyDown;
+
+    return (
+      <div
+        ref={ref}
+        role={isInteractive ? role ?? 'button' : role}
+        tabIndex={isInteractive ? tabIndex ?? 0 : tabIndex}
+        onClick={onClick}
+        onKeyDown={handleKeyDown}
+        className={cn(
+          'rounded-xl border border-border bg-card text-card-foreground shadow-sm motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200',
+          isInteractive &&
+            'cursor-pointer transition-all hover:shadow-md active:shadow-sm motion-safe:hover:-translate-y-0.5 motion-safe:active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          className
+        )}
+        {...props}
+      />
+    );
+  }
 );
 Card.displayName = 'Card';
 

@@ -4,6 +4,107 @@
 
 (no entries -- next release window)
 
+## [1.11.143] - 2026-05-14 -- Web: Add optional `interactive` prop to ui/Card (hover-lift, active-press, focus ring) + adopt at WorkerList rows
+
+Card has been a static container primitive since it landed. Several
+consumers use it as a clickable activate-target (WorkerList rows)
+and reimplement the same `role=button` + `tabIndex=0` + onKeyDown
+Enter/Space handler + `cursor-pointer` + focus-visible ring set by
+hand on the className. This release lifts that contract into a
+single opt-in prop so future clickable-card sites get the
+standardised interactive treatment for free, and keyboard/mouse
+reach stay equivalent without each callsite re-wiring the same a11y
+plumbing.
+
+What changed:
+
+1. **`ui/card.tsx` -- new optional prop `interactive?: boolean`**.
+   When `true`, the Card becomes a keyboard- and pointer-reachable
+   surface:
+   - **Pointer hover** lifts the card with `hover:shadow-md` plus
+     a `motion-safe:hover:-translate-y-0.5` micro-translate (the
+     translate is gated on `motion-safe:` so users with
+     `prefers-reduced-motion: reduce` get the shadow change with
+     no movement).
+   - **Pointer active / pressed** collapses back with
+     `active:shadow-sm` + `motion-safe:active:translate-y-0` so
+     the press visually settles the lift.
+   - **Keyboard focus** draws a `focus-visible:ring-2
+     ring-primary ring-offset-2 ring-offset-background` plus
+     `focus-visible:outline-none` so the browser's default outline
+     does not double up. `focus-visible:` (not plain `focus:`)
+     means mouse-down on the card does NOT flash a ring; only
+     keyboard nav does.
+   - **A11y attributes** -- `role="button"` and `tabIndex={0}`
+     are auto-injected (caller can still override either prop
+     when they need `role="link"` etc.).
+   - **Keyboard activation** -- when the focused interactive Card
+     receives Enter or Space, the Card calls the caller-provided
+     `onClick` (Space is preventDefault'd to suppress page
+     scroll). Caller-provided `onKeyDown` still fires first and
+     can suppress the auto-activate by calling `event.preventDefault()`
+     itself.
+   - The whole set is gated behind `transition-all` so the
+     hover/active visual change is animated; the gate token
+     respects `motion-safe:` for the translate so reduced-motion
+     users still get the (non-moving) shadow + ring.
+
+   **Backwards compat:** with `interactive` omitted/false the
+   primitive renders byte-identically to the prior v1.11.142 output
+   -- no class delta, no `role` / `tabIndex` / `onKeyDown` injection.
+   The existing `card.snapshot.test.tsx` baselines pass unchanged.
+
+2. **Adopted at one site: `WorkerList.tsx` rows** -- the v1.10.567
+   sidebar Card-per-worker rows previously hand-wired
+   `role="button"`, `tabIndex={0}`, an inline `onKeyDown` Enter/Space
+   handler, plus the `cursor-pointer transition-colors
+   focus-visible:ring-2 ring-primary ring-offset-2
+   ring-offset-background` className set. Replaced with `interactive`
+   + a single `onClick`; the row now also gets the standardised
+   hover-lift shadow that the rest of the codebase will inherit
+   when more Card+onClick sites land.
+
+   Scope-honest disclosure: WorkerList is currently the only
+   `<Card>` callsite that wires an `onClick` -- the Sessions list
+   surfaces (`SessionsListSection`, `SessionsAttachedSection`) and
+   the Meetings / Specialists / Workflow / History per-row lists
+   all use `<button>` (or bare `<li onClick>`) elements rather
+   than Card, and adopting `interactive` Card there would replace
+   tight `divide-y` flat lists with rounded-xl + bordered + shadow
+   cards -- a visual regression, not an improvement. The
+   primitive change is the durable carrying value of this release;
+   the adoption surface will grow as more Card+onClick sites land
+   organically.
+
+3. **`card.test.tsx`** -- existing cases (static container, ref
+   forwarding, displayName, header / title / description / content
+   / footer slots) preserved verbatim. Adds 11 new cases under a
+   `<Card interactive>` block: default has no hover/active/focus-ring
+   classes; default has no `role` / `tabIndex` attrs; interactive
+   adds `cursor-pointer` + `hover:shadow-md` + `active:shadow-sm` +
+   the focus-visible ring tokens; interactive applies the
+   `motion-safe:` translate tokens for the lift; interactive sets
+   `role=button` + `tabIndex=0`; caller can override `role` +
+   `tabIndex`; click on an interactive Card fires `onClick`; Enter
+   on an interactive Card fires `onClick`; Space on an interactive
+   Card also fires `onClick`; Enter on a non-interactive Card does
+   NOT auto-fire `onClick`; caller-provided `onKeyDown` runs
+   alongside the auto-activate wiring; caller-provided `onKeyDown`
+   that calls `preventDefault()` suppresses the auto-activate.
+
+4. **WorkerList tests** -- the existing keyboard activation case
+   (`fires onSelect when the focused row receives Enter or Space`)
+   plus the click-to-select case still pass unchanged: the
+   interactive Card preserves the `role=button` + `tabIndex=0` +
+   Enter/Space activation contract that those tests rely on.
+
+5. **`web/package.json`** -- version bump 1.11.142 -> 1.11.143.
+
+Files touched: `web/src/components/ui/card.tsx`,
+`web/src/components/ui/card.test.tsx`,
+`web/src/components/WorkerList.tsx`, `web/package.json`,
+`CHANGELOG.md`.
+
 ## [1.11.142] - 2026-05-14 -- Web: Add optional label / hint / error slots to ui/Input + adopt across 5 form sites
 
 Extend the `ui/input.tsx` primitive with three optional slots so
