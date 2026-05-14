@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.147] - 2026-05-14 -- Web: StatCard trend + sparkline props
+
+The `<StatCard>` component (`web/src/components/ui/stat-card.tsx`)
+gained two optional props so KPI tiles can render lightweight
+deltas and inline trend visuals without a charting library.
+
+What changed:
+
+- **`trend?: { value: number; label?: string }`** renders an inline
+  arrow + absolute percent next to the value. Sign drives the
+  color (`text-success` when positive, `text-destructive` when
+  negative, `text-muted-foreground` when zero) and the arrow
+  glyph. The optional `label` shows after the percent in muted
+  text for context like "vs last hour".
+- **`sparkline?: number[]`** renders a pure inline SVG polyline
+  with `viewBox="0 0 100 24"` and `preserveAspectRatio="none"` so
+  it auto-stretches to the card width. The Y axis auto-scales to
+  the array's min/max. Stroke color matches the card's tone via
+  `currentColor`, falling back to `text-muted-foreground` on the
+  default tone. No external dependency.
+- Omitting both props preserves the previous render exactly --
+  every existing `<StatCard>` callsite stays pixel-identical.
+- The Health page (`web/src/pages/Health.tsx`) now renders a
+  three-tile StatCard row above the existing data grid that
+  showcases the new props on uptime / workers / queue-depth with
+  mocked deltas. The original Stat panels and Health.test.tsx
+  assertions are untouched.
+- Eight new test cases in `stat-card.test.tsx` cover the
+  positive / negative / zero trend branches, the trend label,
+  sparkline polyline rendering, and the omitted / empty no-svg
+  cases. The existing twelve cases all continue to pass.
+
+Why now: the autonomous-loop ops dashboards have been asking for
+inline deltas on the hero KPIs for several weeks. Bundling the
+component primitive + the first Health adoption in one release
+keeps the diff small while making the new props discoverable.
+
+Bumps `web/package.json` to `1.11.147`.
+
 ## [1.11.146] - 2026-05-14 -- Web: DropdownMenu keyboard navigation polish
 
 The hand-rolled `<DropdownMenu>` primitive
