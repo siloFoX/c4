@@ -4,7 +4,7 @@ import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame'
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Input, Label, Panel, Tooltip } from '../components/ui';
+import { Button, Input, Label, Panel, Textarea, Tooltip } from '../components/ui';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
 import { usePlanContent } from '../lib/use-plan-content';
@@ -96,13 +96,12 @@ export default function Plan() {
           </Tooltip>
         </div>
         <div className="md:col-span-2">
-          <Label htmlFor="plan-task">{t('planPage.task')}</Label>
-          <textarea
+          <Textarea
             id="plan-task"
+            label={t('planPage.task')}
             rows={4}
             value={task}
             onChange={(e) => setTask(e.target.value)}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             placeholder={t('planPage.task.placeholder')}
           />
         </div>
