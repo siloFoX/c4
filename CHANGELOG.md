@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.165] - 2026-05-14 -- UI: Separator primitive + 5 callsite swaps
+
+New `<Separator>` primitive in `web/src/components/ui/separator.tsx` (horizontal/vertical, thin/thick, optional centered label, role=none|separator + aria-orientation). Adopted in markdown `<hr>`, SettingsView footer, ConversationView jump-to-latest footer, SessionsAttachedRowActions strip, WikiBulkPublishRow.
+
 ## [1.11.164] - 2026-05-14 -- UI: ScrollArea primitive + 4 callsite swaps
 
 New `<ScrollArea>` primitive in `web/src/components/ui/scroll-area.tsx` gives the app a single hover-to-show scrollbar surface (axis y/x/both, maxHeight/height, ref-forwarding). Adopted in Sidebar nav, ChatMessageLog, Queue table, SpecialistsAuditPanel (Health log viewer not present yet -- alternative target used).

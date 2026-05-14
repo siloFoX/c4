@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { useConversation } from '../lib/use-conversation';
 import { useAutoScroll } from '../lib/use-auto-scroll';
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from './ui';
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Separator } from './ui';
 import Spinner from './Spinner';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -201,7 +201,9 @@ export default function ConversationView({
           )}
         </div>
         {!autoScroll ? (
-          <div className="border-t border-border bg-background/80 px-3 py-2 text-right md:px-6">
+          <>
+          <Separator />
+          <div className="bg-background/80 px-3 py-2 text-right md:px-6">
             <Button
               size="sm"
               variant="outline"
@@ -210,6 +212,7 @@ export default function ConversationView({
               {t('conversation.jumpToLatest')}
             </Button>
           </div>
+          </>
         ) : null}
       </CardContent>
     </Card>

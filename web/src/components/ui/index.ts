@@ -26,3 +26,4 @@ export * from './avatar';
 export * from './kbd';
 export * from './code-block';
 export * from './scroll-area';
+export * from './separator';

@@ -1,4 +1,4 @@
-import { Button, Tooltip } from './ui';
+import { Button, Separator, Tooltip } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 
@@ -31,7 +31,9 @@ export default function WikiBulkPublishRow({
 }: Props) {
   useLocale();
   return (
-    <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-2 text-[11px]">
+    <>
+    <Separator />
+    <div className="flex flex-wrap items-center gap-2 pt-2 text-[11px]">
       <Tooltip label={t('wiki.publishAll.title')}>
         <Button
           size="sm"
@@ -70,5 +72,6 @@ export default function WikiBulkPublishRow({
         )}>{msg}</span>
       ) : null}
     </div>
+    </>
   );
 }

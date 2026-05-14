@@ -11,7 +11,7 @@ import {
   Sun,
   TerminalSquare,
 } from 'lucide-react';
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Label, Panel } from './ui';
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Label, Panel, Separator } from './ui';
 import type { DetailMode } from './layout/DetailTabs';
 import type { SidebarMode } from './layout/Sidebar';
 import { cn } from '../lib/cn';
@@ -182,7 +182,8 @@ export default function SettingsView({
             </div>
           </Panel>
 
-          <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
+          <Separator />
+          <div className="flex items-center justify-end gap-3 pt-2">
             <span className="text-xs text-muted-foreground">
               {isDefault ? t('settings.usingDefaults') : t('settings.customActive')}
             </span>
