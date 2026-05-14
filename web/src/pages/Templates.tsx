@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Chip, EmptyState, FileInput, ListItem, Pagination, Panel, SearchBar, Tooltip } from '../components/ui';
+import { Button, Chip, EmptyState, FileInput, Label, ListItem, Pagination, Panel, SearchBar, TagInput, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -155,8 +155,9 @@ export default function Templates() {
 
 function ImportTemplateForm() {
   const [error, setError] = useState<string | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
   return (
-    <div className="mt-4">
+    <div className="mt-4 space-y-3">
       <FileInput
         label="Import template"
         hint="Upload a JSON or YAML template file (no daemon endpoint yet)"
@@ -170,6 +171,16 @@ function ImportTemplateForm() {
         }}
         onError={(msg) => setError(msg)}
       />
+      <div className="space-y-1.5">
+        <Label>Tags</Label>
+        <TagInput
+          value={tags}
+          onChange={setTags}
+          ariaLabel="Template tags"
+          placeholder="Add tag..."
+          normalize={(raw) => raw.trim().toLowerCase()}
+        />
+      </div>
     </div>
   );
 }

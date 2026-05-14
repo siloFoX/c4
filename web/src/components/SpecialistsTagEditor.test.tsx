@@ -3,60 +3,25 @@ import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { setLocale } from '../lib/i18n';
 
-// SpecialistsTagEditor delegates open/value/busy state +
-// handleSave + toggleWithTags to useSpecialistTagEditor.
-// Tests stub the hook with per-test-tunable flags + real
-// useState for value so controlled-input typing keeps working.
-// The component test focuses on the JSX wiring: view vs edit
-// branch, button label flip, Save button gating, value passing
-// into the Input, and the hook args (specialistId, onSaved,
-// onError) the parent feeds the hook.
+// (11.174) SpecialistsTagEditor was migrated to <TagInput>. The
+// editor no longer leans on the use-specialist-tag-editor hook
+// (its CSV +/- prefix semantics do not map onto a tag-array UI),
+// so apiPatch is mocked directly. Tests focus on the JSX wiring:
+// view vs edit branch, button label flip, chip dismiss, Apply
+// gating, and the PATCH payload shape.
 
-const toggleWithTagsMock = vi.fn();
-const handleSaveMock = vi.fn();
+const apiPatchMock = vi.fn().mockResolvedValue({});
 
-let editorState: {
-  open: boolean;
-  busy: boolean;
-} = { open: false, busy: false };
-
-let lastHookArgs: {
-  specialistId: string;
-  onSaved: () => void;
-  onError: (msg: string) => void;
-} | null = null;
-
-vi.mock('../lib/use-specialist-tag-editor', async () => {
-  const react = await vi.importActual<typeof import('react')>('react');
-  return {
-    useSpecialistTagEditor: (args: {
-      specialistId: string;
-      onSaved: () => void;
-      onError: (msg: string) => void;
-    }) => {
-      lastHookArgs = args;
-      const [value, setValue] = react.useState('');
-      return {
-        open: editorState.open,
-        setOpen: () => {},
-        toggleWithTags: toggleWithTagsMock,
-        value,
-        setValue,
-        busy: editorState.busy,
-        handleSave: handleSaveMock,
-      };
-    },
-  };
-});
+vi.mock('../lib/api', () => ({
+  apiPatch: (...args: unknown[]) => apiPatchMock(...args),
+}));
 
 import SpecialistsTagEditor from './SpecialistsTagEditor';
 
 beforeEach(() => {
   setLocale('en');
-  toggleWithTagsMock.mockReset();
-  handleSaveMock.mockReset();
-  editorState = { open: false, busy: false };
-  lastHookArgs = null;
+  apiPatchMock.mockReset();
+  apiPatchMock.mockResolvedValue({});
 });
 
 function renderEditor(
@@ -77,29 +42,14 @@ function renderEditor(
 }
 
 describe('<SpecialistsTagEditor>', () => {
-  it('forwards specialistId / onSaved / onError into the hook', () => {
-    const { onSaved, onError } = renderEditor({
-      specialistId: 'sec-7',
-    });
-    expect(lastHookArgs?.specialistId).toBe('sec-7');
-    expect(lastHookArgs?.onSaved).toBe(onSaved);
-    expect(lastHookArgs?.onError).toBe(onError);
-  });
-
-  it('renders the tags label always', () => {
+  it('renders the tags label', () => {
     renderEditor();
     expect(screen.getByText('tags')).toBeInTheDocument();
   });
 
-  it('renders the Edit button in the view (closed) branch', () => {
+  it('renders the Edit button in the view branch', () => {
     renderEditor();
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
-  });
-
-  it('renders the Cancel button in the edit (open) branch', () => {
-    editorState = { open: true, busy: false };
-    renderEditor();
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
   });
 
   it('renders all provided tags as chips in the view branch', () => {
@@ -118,135 +68,71 @@ describe('<SpecialistsTagEditor>', () => {
     expect(screen.getByText('no tags')).toBeInTheDocument();
   });
 
-  it('does NOT render any tag chips when tags is empty', () => {
-    renderEditor({ tags: [] });
-    expect(screen.queryByText(/^#/)).not.toBeInTheDocument();
-  });
-
-  it('does NOT render the edit Input + Apply button in the view branch', () => {
-    renderEditor();
-    expect(
-      screen.queryByRole('textbox', { name: 'Edit tags' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Apply' }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('renders the edit Input + Apply button in the open branch', () => {
-    editorState = { open: true, busy: false };
-    renderEditor();
-    expect(
-      screen.getByRole('textbox', { name: 'Edit tags' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Apply' }),
-    ).toBeInTheDocument();
-  });
-
-  it('does NOT render the tag chip list when in the edit branch', () => {
-    editorState = { open: true, busy: false };
-    renderEditor();
-    expect(screen.queryByText('#core')).not.toBeInTheDocument();
-  });
-
-  it('fires toggleWithTags with the current tags array when Edit is clicked', async () => {
-    const { user, props } = renderEditor();
-    await user.click(screen.getByRole('button', { name: 'Edit' }));
-    expect(toggleWithTagsMock).toHaveBeenCalledTimes(1);
-    expect(toggleWithTagsMock).toHaveBeenCalledWith(props.tags);
-  });
-
-  it('fires toggleWithTags with undefined when tags prop is undefined', async () => {
-    const { user } = renderEditor({ tags: undefined });
-    await user.click(screen.getByRole('button', { name: 'Edit' }));
-    expect(toggleWithTagsMock).toHaveBeenCalledWith(undefined);
-  });
-
-  it('fires toggleWithTags when Cancel is clicked in the edit branch', async () => {
-    editorState = { open: true, busy: false };
-    const { user, props } = renderEditor();
-    await user.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(toggleWithTagsMock).toHaveBeenCalledTimes(1);
-    expect(toggleWithTagsMock).toHaveBeenCalledWith(props.tags);
-  });
-
-  it('updates the typed value into the controlled Input', async () => {
-    editorState = { open: true, busy: false };
+  it('switches to the edit branch when Edit is clicked', async () => {
     const { user } = renderEditor();
-    const input = screen.getByRole('textbox', {
-      name: 'Edit tags',
-    }) as HTMLInputElement;
-    await user.type(input, '+new');
-    expect(input.value).toBe('+new');
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Edit tags' })).toBeInTheDocument();
   });
 
-  it('renders the placeholder copy on the Input', () => {
-    editorState = { open: true, busy: false };
-    renderEditor();
-    const input = screen.getByRole('textbox', { name: 'Edit tags' });
-    expect(input).toHaveAttribute(
-      'placeholder',
-      'comma-separated; prefix with + to add, - to remove',
-    );
+  it('pre-populates the TagInput with the current tags on open', async () => {
+    const { user } = renderEditor();
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    const group = screen.getByRole('group', { name: 'Edit tags' });
+    expect(group).toHaveTextContent('core');
+    expect(group).toHaveTextContent('design');
   });
 
-  it('exposes Edit tags as the accessible name on the Input', () => {
-    editorState = { open: true, busy: false };
-    renderEditor();
-    expect(
-      screen.getByRole('textbox', { name: 'Edit tags' }),
-    ).toBeInTheDocument();
+  it('closes the edit branch when Cancel is clicked', async () => {
+    const { user } = renderEditor();
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Edit tags' })).not.toBeInTheDocument();
   });
 
-  it('disables the Input when busy is true', () => {
-    editorState = { open: true, busy: true };
-    renderEditor();
-    expect(screen.getByRole('textbox', { name: 'Edit tags' })).toBeDisabled();
-  });
-
-  it('disables the Apply button when busy is true', () => {
-    editorState = { open: true, busy: true };
-    renderEditor();
+  it('disables Apply when there are no tags in the editor', async () => {
+    const { user } = renderEditor({ tags: [] });
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
     expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
   });
 
-  it('does not disable the Apply button when busy is false', () => {
-    editorState = { open: true, busy: false };
-    renderEditor();
-    expect(screen.getByRole('button', { name: 'Apply' })).not.toBeDisabled();
-  });
-
-  it('fires handleSave when the Apply button is clicked', async () => {
-    editorState = { open: true, busy: false };
-    const { user } = renderEditor();
+  it('PATCHes the specialist tags with mode=replace on Apply', async () => {
+    const { user, onSaved } = renderEditor({ specialistId: 'sec-7' });
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
     await user.click(screen.getByRole('button', { name: 'Apply' }));
-    expect(handleSaveMock).toHaveBeenCalledTimes(1);
+    expect(apiPatchMock).toHaveBeenCalledWith(
+      '/api/specialists/sec-7/tags',
+      { tags: ['core', 'design'], mode: 'replace' },
+    );
+    expect(onSaved).toHaveBeenCalledTimes(1);
   });
 
-  it('does not fire handleSave on initial render', () => {
-    editorState = { open: true, busy: false };
-    renderEditor();
-    expect(handleSaveMock).not.toHaveBeenCalled();
+  it('calls onError when the PATCH rejects', async () => {
+    apiPatchMock.mockRejectedValueOnce(new Error('boom'));
+    const { user, onError, onSaved } = renderEditor();
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Apply' }));
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onSaved).not.toHaveBeenCalled();
   });
 
-  it('does not fire toggleWithTags on initial render', () => {
-    renderEditor();
-    expect(toggleWithTagsMock).not.toHaveBeenCalled();
+  it('removes a tag from the editor when its dismiss button is clicked', async () => {
+    const { user } = renderEditor();
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByLabelText('Remove core'));
+    const group = screen.getByRole('group', { name: 'Edit tags' });
+    expect(group).not.toHaveTextContent('core');
+    expect(group).toHaveTextContent('design');
   });
 
-  it('keeps the typed value across rerenders with the same props', async () => {
-    editorState = { open: true, busy: false };
-    const { user, rerender, props } = renderEditor();
-    const input = screen.getByRole('textbox', {
-      name: 'Edit tags',
-    }) as HTMLInputElement;
-    await user.type(input, 'foo');
-    rerender(<SpecialistsTagEditor {...props} />);
-    expect(
-      (screen.getByRole('textbox', { name: 'Edit tags' }) as HTMLInputElement)
-        .value,
-    ).toBe('foo');
+  it('adds a new tag via Enter inside the editor', async () => {
+    const { user } = renderEditor({ tags: [] });
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    const input = screen.getByLabelText('Add tag') as HTMLInputElement;
+    await user.click(input);
+    await user.keyboard('fresh{Enter}');
+    expect(screen.getByRole('group', { name: 'Edit tags' })).toHaveTextContent('fresh');
   });
 
   it('renders translated copy when the locale flips to ko', () => {
@@ -258,11 +144,10 @@ describe('<SpecialistsTagEditor>', () => {
     expect(screen.queryByText('tags')).not.toBeInTheDocument();
   });
 
-  it('flips the toggle button label when open transitions false -> true', () => {
-    const { rerender, props } = renderEditor();
+  it('flips the toggle button label when open transitions false -> true', async () => {
+    const { user } = renderEditor();
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
-    editorState = { open: true, busy: false };
-    rerender(<SpecialistsTagEditor {...props} />);
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
   });
 });
