@@ -19,6 +19,7 @@ const AutonomousView = lazy(() => import('./components/AutonomousView'));
 const Chat = lazy(() => import('./components/Chat'));
 const WorkflowEditor = lazy(() => import('./components/WorkflowEditor'));
 const SettingsView = lazy(() => import('./components/SettingsView'));
+import PageTransition from './components/PageTransition';
 import AppHeader from './components/layout/AppHeader';
 import Sidebar from './components/layout/Sidebar';
 import DetailTabs from './components/layout/DetailTabs';
@@ -129,6 +130,14 @@ export default function App() {
           <LoadingSkeleton rows={6} />
         </div>
       }>
+      {/* (v1.11.175 / patch 11.157) PageTransition wraps the top-view
+          switcher so route changes get a unified slide+fade crossfade
+          instead of each branch animating its own enter. The wrapper
+          keys off `topView` so it only fires on top-level navigation;
+          per-branch keys (key={topView}) inside continue to drive
+          their existing motion-safe animate-in classes for nested
+          state changes (e.g., detailMode within the worker view). */}
+      <PageTransition routeKey={topView} className="flex min-h-0 flex-1">
       {topView === 'history' ? (
         <div key={topView} className="flex min-h-0 flex-1 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150">
           <HistoryView />
@@ -219,6 +228,7 @@ export default function App() {
           </main>
         </div>
       )}
+      </PageTransition>
       </Suspense>
     </div>
   );
