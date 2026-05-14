@@ -6,6 +6,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  HScroll,
   Panel,
   type BadgeVariant,
 } from './ui';
@@ -82,18 +83,18 @@ export default function HistoryDetailPane({ detail }: Props) {
                       {r.status || t('history.record.unknownStatus')}
                     </Badge>
                   </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                  <HScroll gap="sm" snap={false} className="mt-1 text-[11px] text-muted-foreground">
                     {r.branch && (
-                      <span className="inline-flex items-center gap-1 font-mono">
+                      <span data-h-scroll-item className="inline-flex items-center gap-1 font-mono">
                         <GitBranch aria-hidden="true" className="h-3 w-3" />
                         {r.branch}
                       </span>
                     )}
-                    <span className="font-mono">{formatDate(r.startedAt) || '?'}</span>
+                    <span data-h-scroll-item className="font-mono">{formatDate(r.startedAt) || '?'}</span>
                     {r.completedAt && (
-                      <span className="font-mono">-&gt; {formatDate(r.completedAt)}</span>
+                      <span data-h-scroll-item className="font-mono">-&gt; {formatDate(r.completedAt)}</span>
                     )}
-                  </div>
+                  </HScroll>
                   {r.commits.length > 0 && (
                     <ul className="mt-2 space-y-0.5 text-[11px] text-muted-foreground">
                       {r.commits.map((c, j) => (

@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.171] - 2026-05-14 -- UI: HScroll horizontal-list primitive + 3 adoption sites
+
+New `<HScroll>` primitive in `web/src/components/ui/h-scroll.tsx` (flex overflow-x scroll container with optional `snap-x snap-mandatory` + `snap-start` on `data-h-scroll-item` children, optional hover-revealed left/right arrow buttons that scrollBy 80% of clientWidth via `scrollBy({ behavior: 'smooth' })`, gap sm/md/lg -> gap-2/gap-3/gap-4, imperative ref handle `HScrollHandle` exposing `scrollToIndex(i)` / `scrollToEl(el)` via `scrollIntoView({ block: 'nearest', inline: 'center' })`). Adopted in WorkerList badges row (unread/intervention), SpecialistsTagEditor tag chip list, HistoryDetailPane per-record metadata row (branch + timestamps).
+
 ## [1.11.170] - 2026-05-14 -- UI: DashboardGrid layout primitive + 2 adoption sites
 
 New `<DashboardGrid>` + `<DashboardGrid.Item>` (also exported as `DashboardGridItem`) primitive in `web/src/components/ui/dashboard-grid.tsx` (responsive 12-column CSS grid container, props gap='sm'|'md'|'lg' mapping to gap-2/gap-4/gap-6, Item span 1..12|'full' default 'full' plus optional smSpan/mdSpan/lgSpan responsive overrides, forwardRef on container and item, static switch-style class mapping so Tailwind's content scanner picks them up). Adopted in Health hero metrics row (3 StatCards) and Auto live-queue + timeline two-column panel.
