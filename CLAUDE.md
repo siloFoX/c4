@@ -234,6 +234,16 @@ c4 config [reload]                   설정 조회/리로드
 c4 config validate [path]            config.json 검증 (errors / warnings)
 c4 doctor                            환경 종합 헬스 체크 (daemon + config + dist + logs)
 c4 metrics [--json]                  per-worker + daemon CPU/RSS 스냅샷
+c4 logs [--tail N] [--follow|-f] [--level L] [--component C]  pino 로그 파일 tail (v1.11.133)
+                                     # config.logging.path 의 JSONL 파일을 'TS LEVEL [component] msg key=val' 로 포맷
+                                     # 기본: 마지막 100줄. --tail N 양수 정수만 (0/음수/비숫자 -> usage + exit 1)
+                                     # --follow: fs.watchFile 200ms poll 로 신규 append 스트리밍 (rotation 시 size 재기반)
+                                     # --level: 'info' / '30' 양쪽 형식 모두 수용 (line 의 level 필드도 양쪽 형식 매칭)
+                                     # --component: 정확 일치 (component 없는 line 은 drop)
+                                     # JSON parse 실패 라인은 verbatim 출력 (crash 없음)
+                                     # config.logging.path 미설정 -> 'Logs go to stdout (no logging.path set); cannot tail.' / exit 1
+                                     # 로그 파일 없음 -> 'Log file not found: <path>' / exit 1
+                                     # daemon 에 접속하지 않음 (read-only file access)
 c4 workspaces [--json]               멀티 repo workspace 목록 (config.workspaces)
 c4 sse [--type <name>]               daemon SSE 스트림 실시간 tail (filter by type)
 c4 risk "<command>" [--json] [--decoded]  명령어 risk classifier 분류 결과 출력 (level/reasons/decoded)
