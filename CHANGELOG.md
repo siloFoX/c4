@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.168] - 2026-05-14 -- UI: FileInput dropzone primitive + 2 adoption sites
+
+New `<FileInput>` primitive in `web/src/components/ui/file-input.tsx` (drag/drop file uploader, hidden native `<input type=file>`, props label/hint/error/accept/multiple/maxSize/onFiles/onError/className/disabled, MIME-prefix accept matching, keyboard Enter/Space + click to open picker, data-active visual highlight, aria-labelledby + aria-describedby wiring, forwardRef to dropzone div). Adopted as `ImportTemplateForm` in Templates and `ImportConfigSection` in Config (both placeholder import flows -- no daemon endpoint yet).
+
 ## [1.11.167] - 2026-05-14 -- UI: Timeline primitive + 3 callsite swaps
 
 New `<Timeline>` primitive in `web/src/components/ui/timeline.tsx` (vertical event list, props `items` / `groupByDay` / `className`, tone neutral/primary/success/warning/danger via ARPS bg-* tokens, connector line auto-omitted on the last item per group, optional ISO yyyy-mm-dd day headers). Adopted in Auto dispatch timeline (full substitution), SessionsListSection recent-activity subset (alongside the interactive group list), and SpecialistsAuditPanel notifications-log feed (substitution).

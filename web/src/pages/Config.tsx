@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { RefreshCw, Cog } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
-import { Button, CodeBlock, Input, Panel } from '../components/ui';
+import { Button, CodeBlock, FileInput, Input, Panel } from '../components/ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
@@ -144,6 +144,28 @@ export default function Config() {
           </div>
         )}
       </Panel>
+      <ImportConfigSection />
     </PageFrame>
+  );
+}
+
+function ImportConfigSection() {
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <Panel className="mt-3">
+      <FileInput
+        label="Import config"
+        hint="Upload a JSON config file (preview only; no daemon endpoint)"
+        accept="application/json,.json"
+        maxSize={1024 * 1024}
+        error={error ?? undefined}
+        onFiles={(files) => {
+          setError(null);
+          // eslint-disable-next-line no-console
+          console.log('[config] import file', files[0]?.name, files[0]?.size);
+        }}
+        onError={(msg) => setError(msg)}
+      />
+    </Panel>
   );
 }
