@@ -24,7 +24,7 @@ export const SECTION_ORDER: readonly CommandSection[] = [
 export interface PaletteCommand {
   id: string;
   label: string;
-  hint?: string;
+  shortcut?: string;
   section: CommandSection;
   Icon: ComponentType<SVGProps<SVGSVGElement>>;
   run: () => void | Promise<void>;
@@ -108,7 +108,7 @@ export function buildPaletteCommands(ctx: CommandContext = {}): PaletteCommand[]
     {
       id: 'queue:tick',
       label: 'Tick',
-      hint: 'T',
+      shortcut: 'T',
       section: 'Queue',
       Icon: Zap,
       run: () => {
@@ -161,16 +161,26 @@ export interface ScoredCommand {
   score: number;
 }
 
+// Recent-command score boost. Sized to outrank ties inside the same
+// fuzzy band (substring at the same index, or another acronym) without
+// jumping a recent acronym over a non-recent prefix substring match.
+export const RECENT_BOOST = 100;
+
 export function filterCommands(
   commands: readonly PaletteCommand[],
   query: string,
+  recentIds: readonly string[] = [],
 ): PaletteCommand[] {
   const q = (query || '').trim();
   if (!q) return [...commands];
+  const recentSet = recentIds.length > 0 ? new Set(recentIds) : null;
   const scored: ScoredCommand[] = [];
   for (const c of commands) {
     const s = match(q, c.label);
-    if (s !== null) scored.push({ command: c, score: s });
+    if (s !== null) {
+      const boost = recentSet?.has(c.id) ? RECENT_BOOST : 0;
+      scored.push({ command: c, score: s + boost });
+    }
   }
   scored.sort((a, b) =>
     b.score !== a.score

@@ -1,11 +1,12 @@
 import {
+  Fragment,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
-import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
 import { Search } from 'lucide-react';
 import { EmptyState } from './ui';
 import { cn } from '../lib/cn';
@@ -26,6 +27,93 @@ export interface CommandPaletteProps {
   commands?: readonly PaletteCommand[];
 }
 
+export const RECENT_STORAGE_KEY = 'cmdk:recent';
+export const RECENT_MAX = 5;
+
+function loadRecent(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(RECENT_STORAGE_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .filter((s): s is string => typeof s === 'string' && s.length > 0)
+      .slice(0, RECENT_MAX);
+  } catch {
+    return [];
+  }
+}
+
+function saveRecent(ids: readonly string[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(
+      RECENT_STORAGE_KEY,
+      JSON.stringify(ids.slice(0, RECENT_MAX)),
+    );
+  } catch {
+    // quota / disabled storage -- swallow.
+  }
+}
+
+// Wraps the characters of `label` that match `query` in <span
+// className="font-semibold">. Substring match is preferred and renders
+// one contiguous bold span; otherwise each matched char (in order) is
+// boxed individually so an acronym-style match still shows its hits.
+export function highlightLabel(label: string, query: string): ReactNode {
+  const q = (query || '').trim();
+  if (!q || !label) return label;
+  const ql = q.toLowerCase();
+  const ll = label.toLowerCase();
+  const idx = ll.indexOf(ql);
+  if (idx >= 0) {
+    return (
+      <>
+        {label.slice(0, idx)}
+        <span className="font-semibold">{label.slice(idx, idx + q.length)}</span>
+        {label.slice(idx + q.length)}
+      </>
+    );
+  }
+  const parts: ReactNode[] = [];
+  let buffer = '';
+  let qi = 0;
+  for (let i = 0; i < label.length; i++) {
+    const ch = label.charAt(i);
+    if (qi < ql.length && ch.toLowerCase() === ql.charAt(qi)) {
+      if (buffer) {
+        parts.push(buffer);
+        buffer = '';
+      }
+      parts.push(
+        <span key={i} className="font-semibold">
+          {ch}
+        </span>,
+      );
+      qi += 1;
+    } else {
+      buffer += ch;
+    }
+  }
+  if (qi < ql.length) return label;
+  if (buffer) parts.push(buffer);
+  return (
+    <>
+      {parts.map((p, i) =>
+        typeof p === 'string' ? <Fragment key={`t${i}`}>{p}</Fragment> : p,
+      )}
+    </>
+  );
+}
+
+type SectionLabel = CommandSection | 'Recent';
+
+interface SectionGroup {
+  section: SectionLabel;
+  items: PaletteCommand[];
+}
+
 export default function CommandPalette({
   open,
   onClose,
@@ -34,6 +122,7 @@ export default function CommandPalette({
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
+  const [recent, setRecent] = useState<string[]>(() => loadRecent());
   const inputRef = useRef<HTMLInputElement>(null);
 
   const built = useMemo(
@@ -41,19 +130,40 @@ export default function CommandPalette({
     [providedCommands, ctx],
   );
 
-  const filtered = useMemo(() => filterCommands(built, query), [built, query]);
+  const filtered = useMemo(
+    () => filterCommands(built, query, recent),
+    [built, query, recent],
+  );
 
-  const sections = useMemo(() => {
+  const sections = useMemo<SectionGroup[]>(() => {
     const byKey: Record<CommandSection, PaletteCommand[]> = {
       Navigate: [],
       Workers: [],
       Queue: [],
     };
     for (const c of filtered) byKey[c.section].push(c);
-    return SECTION_ORDER
-      .map((s) => ({ section: s, items: byKey[s] }))
+    const regular: SectionGroup[] = SECTION_ORDER
+      .map((s) => ({ section: s as SectionLabel, items: byKey[s] }))
       .filter((g) => g.items.length > 0);
-  }, [filtered]);
+
+    const showRecent = query.trim().length === 0 && recent.length > 0;
+    if (!showRecent) return regular;
+
+    const byId = new Map(built.map((c) => [c.id, c]));
+    const recentItems = recent
+      .map((id) => byId.get(id))
+      .filter((c): c is PaletteCommand => Boolean(c));
+    if (recentItems.length === 0) return regular;
+
+    const recentSet = new Set(recentItems.map((c) => c.id));
+    const deduped = regular
+      .map((g) => ({
+        section: g.section,
+        items: g.items.filter((c) => !recentSet.has(c.id)),
+      }))
+      .filter((g) => g.items.length > 0);
+    return [{ section: 'Recent', items: recentItems }, ...deduped];
+  }, [filtered, built, query, recent]);
 
   const flat = useMemo(() => sections.flatMap((g) => g.items), [sections]);
 
@@ -61,6 +171,7 @@ export default function CommandPalette({
     if (!open) return;
     setQuery('');
     setActiveIndex(0);
+    setRecent(loadRecent());
     const id = window.setTimeout(() => {
       inputRef.current?.focus();
     }, 0);
@@ -72,6 +183,23 @@ export default function CommandPalette({
   }, [query]);
 
   useEscapeToClose({ open, onClose });
+
+  const recordRecent = useCallback((id: string) => {
+    setRecent((prev) => {
+      const next = [id, ...prev.filter((x) => x !== id)].slice(0, RECENT_MAX);
+      saveRecent(next);
+      return next;
+    });
+  }, []);
+
+  const activate = useCallback(
+    (cmd: PaletteCommand) => {
+      recordRecent(cmd.id);
+      void cmd.run();
+      onClose();
+    },
+    [recordRecent, onClose],
+  );
 
   const onKeyDown = useCallback(
     (e: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -85,13 +213,10 @@ export default function CommandPalette({
         if (flat.length === 0) return;
         e.preventDefault();
         const cmd = flat[Math.max(0, Math.min(activeIndex, flat.length - 1))];
-        if (cmd) {
-          void cmd.run();
-          onClose();
-        }
+        if (cmd) activate(cmd);
       }
     },
-    [activeIndex, flat, onClose],
+    [activeIndex, flat, activate],
   );
 
   if (!open) return null;
@@ -167,10 +292,7 @@ export default function CommandPalette({
                       role="option"
                       aria-selected={active}
                       data-command-id={cmd.id}
-                      onClick={() => {
-                        void cmd.run();
-                        onClose();
-                      }}
+                      onClick={() => activate(cmd)}
                       onMouseEnter={() => setActiveIndex(idx)}
                       className={cn(
                         'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors',
@@ -183,10 +305,15 @@ export default function CommandPalette({
                         aria-hidden="true"
                         className="h-4 w-4 shrink-0 text-muted-foreground"
                       />
-                      <span className="flex-1 truncate">{cmd.label}</span>
-                      {cmd.hint ? (
-                        <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-                          {cmd.hint}
+                      <span className="flex-1 truncate">
+                        {highlightLabel(cmd.label, query)}
+                      </span>
+                      {cmd.shortcut ? (
+                        <kbd
+                          data-command-shortcut
+                          className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground"
+                        >
+                          {cmd.shortcut}
                         </kbd>
                       ) : null}
                     </button>
