@@ -4,6 +4,79 @@
 
 (no entries -- next release window)
 
+## [1.11.112] - 2026-05-14 -- Tests: Xterm + small remaining RTL (TODO 11.94)
+
+Add vitest/RTL/jsdom coverage for two terminal-pane components that
+previously had no test file: `web/src/components/XtermView.tsx` and
+`XtermStatusBar.tsx`. The third component in the TODO 11.94 scope
+(`WorkerListGroupHeader.tsx`) already had a comprehensive test file
+landed in an earlier batch (39 cases), so it is skipped here per the
+"skip if any already exist" guard in the task brief. Mirrors the
+v1.11.104 / v1.11.105 / v1.11.106 / v1.11.107 / v1.11.109 / v1.11.110 /
+v1.11.111 pattern (`setLocale('en')` in `beforeEach`, render with
+`vi.fn()` callbacks, assert the DOM + callback wiring, locale-flip
+assertion at the end). `XtermStatusBar` is a pure controlled fragment
+so its tests render it directly. `XtermView` mounts a real
+`@xterm/xterm` `Terminal` plus three addons and routes SSE, autofit,
+resize, theme, search-hotkey and font-size through extracted hooks --
+each of those has its own coverage, so this file mocks them at the
+module boundary (via `vi.hoisted` so the mocked classes can be
+referenced from the `vi.mock` factories) and asserts only what
+`XtermView` itself owns: lifecycle, prop wiring, the visible flag,
+the error banner, and the localized wrapper aria-label.
+
+- XtermStatusBar.test.tsx (22 cases): renders the `statusLabel` text
+  verbatim across the `normal` / `alt-screen` / `disconnected`
+  buckets; the Search toggle button carries the localized
+  `Search in terminal` aria-label and renders the localized
+  `Search` button text; clicking the toggle fires `onToggleSearch`;
+  `searchOpen=false` suppresses both the input and the close button
+  while `searchOpen=true` reveals the input (with `searchQuery`
+  reflected as value, the localized `Find in terminal (Enter = next,
+  Shift+Enter = prev)` placeholder, and autofocus) plus the close
+  button (with the localized `Close search` aria-label); typing
+  fires `onSearchQuery` per character with the right argument
+  sequence; Enter in the input fires `onRunSearch('next')`,
+  Shift+Enter fires `onRunSearch('prev')`, Escape fires
+  `onCloseSearch`, and any other key fires neither; clicking the
+  close (X) button fires `onCloseSearch`; locale flip swaps the
+  Search button text, the find placeholder, and the close-search
+  aria-label.
+- XtermView.test.tsx (26 cases): renders the wrapper with the
+  localized `Terminal` aria-label, renders the XtermStatusBar child
+  marker, renders the focusable `tabindex=0` terminal container,
+  constructs the `Terminal` exactly once on mount and forwards the
+  `fontSize` prop into the constructor options alongside the static
+  options (`scrollback`, `cursorStyle`, `cursorBlink`); loads three
+  addons (fit + search + web-links) on mount, opens the terminal
+  into the focusable container, and disposes on unmount; wires
+  `useTerminalSseStream` with the `workerName` prop, forwards
+  `disconnected` to the status bar when `sseConnected=false`,
+  `normal` when `sseConnected=true` + normal buffer, and flips to
+  `alt-screen` when the `onBufferChange` handler fires with the
+  buffer in `alternate`; suppresses the error banner by default and
+  renders it (`role="alert"`) verbatim when the SSE hook reports a
+  failure; `visible` defaults to `true` (no `invisible` class),
+  `visible=true` matches, `visible=false` flips on the `invisible`
+  class; seeds the status bar with `searchOpen=false` + empty query
+  on first render; toggle/close callbacks flip `searchOpen` open and
+  back; typing through the status-bar onSearchQuery callback
+  propagates into the `searchQuery` prop; `onRunSearch('next')`
+  routes to `SearchAddon.findNext(query)`, `onRunSearch('prev')`
+  routes to `SearchAddon.findPrevious(query)`, and an empty query
+  calls neither; locale flip swaps the wrapper aria-label.
+
+Verification: 48 / 48 new cases passing (`env -C
+/root/c4-worktree-auto-w85/web /root/c4/web/node_modules/.bin/vitest
+run --project unit src/components/XtermView.test.tsx
+src/components/XtermStatusBar.test.tsx
+src/components/WorkerListGroupHeader.test.tsx` -- 87 with the
+existing 39 WorkerListGroupHeader cases). Full unit suite still
+green: 260 files / 5728 tests passing, no regressions (prior 258 /
+5680 + 2 new files / 48 new cases). ErrorBoundary `boom` /
+`left-boom` console.error lines are pre-existing fixture output,
+not regressions.
+
 ## [1.11.111] - 2026-05-14 -- Tests: Workflow RTL batch (TODO 11.93)
 
 Add vitest/RTL/jsdom coverage for four workflow components that
