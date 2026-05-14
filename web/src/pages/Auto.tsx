@@ -41,6 +41,7 @@ import {
   Tooltip,
 } from '../components/ui';
 import type { BadgeVariant, TimelineItem, TimelineTone } from '../components/ui';
+import { AvatarShape, TableRowShape, TextLine } from '../components/ui/skeleton';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { useLocale } from '../lib/i18n';
@@ -469,7 +470,16 @@ function LiveQueueSection({ slot }: LiveQueueSectionProps) {
       }
     >
       {slot.state.kind === 'loading' ? (
-        <BlockSkeleton rows={6} />
+        <div
+          role="status"
+          aria-live="polite"
+          aria-label="Loading queue"
+          className="flex flex-col gap-2"
+        >
+          {Array.from({ length: 6 }).map((_, i) => (
+            <TableRowShape key={i} columns={5} className="h-10 rounded-md bg-muted/30 px-3" />
+          ))}
+        </div>
       ) : slot.state.kind === 'error' ? (
         <ErrorState message={slot.state.error} onRetry={refresh} />
       ) : slot.state.data.rows.length === 0 ? (
@@ -616,13 +626,19 @@ function WorkersStrip({ slot, now }: WorkersStripProps) {
       }
     >
       {slot.state.kind === 'loading' ? (
-        <div className="flex gap-3 overflow-hidden">
+        <div className="flex gap-3 overflow-hidden" role="status" aria-label="Loading workers">
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              aria-hidden="true"
-              className="h-28 w-56 shrink-0 animate-pulse rounded-xl bg-muted/60"
-            />
+              className="flex h-28 w-56 shrink-0 items-center gap-3 rounded-xl border border-border bg-card p-3"
+            >
+              <AvatarShape size="md" />
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <TextLine width="70%" />
+                <TextLine width="45%" />
+                <TextLine width="55%" />
+              </div>
+            </div>
           ))}
           <span className="sr-only">Loading workers</span>
         </div>

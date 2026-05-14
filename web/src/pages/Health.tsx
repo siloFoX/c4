@@ -1,8 +1,9 @@
 import { HelpCircle, RefreshCw } from 'lucide-react';
-import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
+import PageFrame, { ErrorPanel } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import { Badge, Button, DashboardGrid, Panel, Popover, Tooltip } from '../components/ui';
+import { StatCardShape, TableRowShape } from '../components/ui/skeleton';
 import { StatCard } from '../components/ui/stat-card';
 import { cn } from '../lib/cn';
 import { formatDuration, formatNumber, formatRelativeTime } from '../lib/format';
@@ -49,7 +50,28 @@ export default function Health() {
         useCasesKey="health.useCases"
         onOpenHelp={openHelpDrawer}
       />
-      {loading && !data ? <LoadingSkeleton rows={3} /> : null}
+      {loading && !data ? (
+        <div className="flex flex-col gap-3" role="status" aria-label={t('healthPage.refresh.label')}>
+          <DashboardGrid gap="sm">
+            <DashboardGrid.Item span="full" smSpan={6} lgSpan={4}>
+              <StatCardShape />
+            </DashboardGrid.Item>
+            <DashboardGrid.Item span="full" smSpan={6} lgSpan={4}>
+              <StatCardShape />
+            </DashboardGrid.Item>
+            <DashboardGrid.Item span="full" smSpan={6} lgSpan={4}>
+              <StatCardShape />
+            </DashboardGrid.Item>
+          </DashboardGrid>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Panel key={i} className="flex flex-col gap-2 p-3">
+                <TableRowShape columns={2} />
+              </Panel>
+            ))}
+          </div>
+        </div>
+      ) : null}
       {error && <ErrorPanel message={error} />}
       {data && (
         <div className="flex flex-col gap-3">
