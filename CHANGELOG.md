@@ -4,6 +4,53 @@
 
 (no entries -- next release window)
 
+## [1.11.154] - 2026-05-14 -- Web: Textarea primitive + 3 callsite adoptions
+
+A new shared `<Textarea>` UI primitive mirrors the `<Input>` slot API
+(label / hint / error) and adds an auto-resize behaviour so long
+multi-line content grows to fit without manual `rows` tuning.
+
+What changed:
+
+- **`<Textarea label? hint? error? id? disabled? className? ...rest>`**
+  (`web/src/components/ui/textarea.tsx`) -- renders a native
+  `<textarea>` styled to match `<Input>` (rounded, bordered,
+  `bg-background`, focus ring). Slot wiring is contract-compatible
+  with `<Input>`: `useId` fallback when `label` is set without `id`,
+  `aria-invalid=true` + `border-destructive` on error,
+  `aria-describedby` chains hint id + error id, error message uses
+  `role=alert`.
+- **Auto-resize**: when no explicit `rows` is set, a
+  `useLayoutEffect` resets `height` to `auto` then to
+  `scrollHeight + 'px'` on every value change. The element is capped
+  at `max-height: 60vh` with `overflow-y: auto` so unbounded growth
+  is bounded. Setting `rows={N}` opts out cleanly -- the effect is
+  skipped and no inline height/max-height is applied.
+- **`textarea.test.tsx`** -- 20 cases covering: bare render, surface
+  classes, controlled onChange, disabled, ref forwarding, displayName,
+  label/hint/error slot wiring (same checklist as Input incl.
+  hint+error coexist), auto-resize fires on initial render and on
+  value change (mocked via `Object.defineProperty` on the
+  `HTMLTextAreaElement.prototype.scrollHeight` getter), max-height
+  cap + overflow-y applied, and explicit `rows` skips auto-resize.
+- **Adopted in 3 callsites** (replaced hand-rolled `<textarea>`
+  markup with `<Textarea>`):
+  - `web/src/pages/Plan.tsx` -- plan-task input
+    (`<Label>` + `<textarea>` collapsed into one `<Textarea label>`).
+  - `web/src/pages/Batch.tsx` -- count-mode task input AND file-mode
+    tasks list (both use the slot API; file mode keeps its
+    `font-mono text-xs` override via `className`).
+  - `web/src/pages/Queue.tsx` -- queue editor modal detail textarea
+    (kept the `aria-label="Row detail"` contract, dropped the
+    duplicated surface classes).
+- **Exported from `web/src/components/ui/index.ts`** alongside the
+  other primitives.
+
+Existing tests in `Plan.test.tsx`, `Batch.test.tsx`, and
+`Queue.test.tsx` already locate the textareas via `getByLabelText`
+(or `aria-label` for the queue modal) so no test changes were
+required for the adopted callsites.
+
 ## [1.11.153] - 2026-05-14 -- Web: Tabs primitive + TopTabs adapter
 
 A new shared Tabs primitive replaces the hand-rolled tablist + roving
