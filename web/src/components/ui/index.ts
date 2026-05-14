@@ -2,6 +2,7 @@ export * from './button';
 export * from './card';
 export * from './panel';
 export * from './input';
+export * from './select';
 export * from './textarea';
 export * from './label';
 export * from './badge';
