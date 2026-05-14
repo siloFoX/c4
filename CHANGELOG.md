@@ -4,6 +4,85 @@
 
 (no entries -- next release window)
 
+## [1.11.111] - 2026-05-14 -- Tests: Workflow RTL batch (TODO 11.93)
+
+Add vitest/RTL/jsdom coverage for four workflow components that
+previously had no test file: `web/src/components/WorkflowGraph.tsx`,
+`WorkflowNodeProperties.tsx`, `WorkflowRunsPanel.tsx`, and
+`WorkflowSelectedHeader.tsx`. Mirrors the v1.11.104 / v1.11.105 /
+v1.11.106 / v1.11.107 / v1.11.109 / v1.11.110 pattern (setLocale in
+beforeEach, render with `vi.fn()` callbacks, assert the DOM +
+callback wiring, locale-flip assertion at the end). All four
+components are pure controlled inputs with no external hook
+dependencies, so the tests render them directly without any
+module-level mocks.
+
+- WorkflowGraph.test.tsx (16 cases): svg `role=img` with the
+  localized aria-label (`Graph of {name}` -> `{name} 그래프`);
+  one text label per node showing the node name (with id
+  fallback when name is empty) plus the node-type label; rect
+  fill matches the `TYPE_FILL` palette and falls back to `#444`
+  for unknown types; the selected node's rect carries the
+  highlight stroke `#f9d949` + stroke-width 3 while other rects
+  use `#1f2937` + 1.5; clicking a node fires `onSelectNode` with
+  the right id; edges render as one `<path>` plus the arrow
+  marker shape; edge condition labels render verbatim, get
+  truncated to 18 chars + `...` when long, and are omitted when
+  the edge has no condition; the arrow `<marker id="wf-arrow">`
+  always renders; zero-node + zero-edge workflows render with
+  only the arrow path; edges whose endpoints don't resolve to a
+  known node are skipped; locale flip swaps the aria-label.
+- WorkflowNodeProperties.test.tsx (14 cases): renders the
+  localized empty-state hint (`Select a node to inspect its
+  config.`) when `node` is `null` and suppresses the heading +
+  config dump; renders the node name as an `<h4>` heading with
+  the id fallback when name is empty; type pill background
+  matches `TYPE_FILL[type]` and falls back to `#444` for unknown
+  types; renders the `id: {id}` prefix line; renders the config
+  object as pretty-printed JSON inside a `<pre tabindex="0">`,
+  and falls back to `{}` for both undefined and empty-record
+  configs; renders the lowercase `config` section label; covers
+  every supported node type without crashing; locale flip
+  swaps both the empty-state hint and the id prefix line.
+- WorkflowRunsPanel.test.tsx (16 cases): renders the localized
+  `Recent runs` header + run count and the `No runs yet.`
+  empty-state hint when `runs` is empty; renders one row per
+  run with the run id visible; caps visible rows at 10 and
+  reverses the order so the most recent appears first; renders
+  the `(running)` suffix when `completedAt` is `null`; renders
+  the `{n} node(s)` line when `nodeResults` is non-empty;
+  collapsed-row click fires `onToggleExpanded(runId)`, open-row
+  click fires `onToggleExpanded(null)`; `aria-expanded` mirrors
+  whether the row matches `expandedRunId`; expanded row shows
+  the `No per-node results.` hint when results are empty and
+  otherwise lists per-node id chips + status badges + errors;
+  string outputs render verbatim and object outputs render as
+  pretty-printed JSON; renders an inputs `<details>` when
+  inputs is a non-empty object and omits it when empty; locale
+  flip swaps the empty-state hint.
+- WorkflowSelectedHeader.test.tsx (19 cases): renders the
+  workflow name as the card title and the description fallback
+  (`No description.`) when empty; renders the show/hide-inputs
+  button label that matches `inputsOpen` and the english
+  textarea aria-label (`Workflow run inputs (JSON)`); hides the
+  textarea when `inputsOpen` is `false` and seeds it with
+  `inputsJson` when `true`; typing into the textarea fires
+  `onChangeInputsJson`; renders the inputs error span when
+  `inputsError` is set and omits it when `null`; toggle button
+  fires `onToggleInputs`, Run button fires `onRun`; `busy=true`
+  disables both buttons + the textarea; the workflow being
+  `enabled=false` disables the Run button; `aria-expanded` on
+  the toggle button mirrors `inputsOpen` across rerenders;
+  locale flip swaps the Run label and the toggle label.
+
+Verification: 65 / 65 new cases passing (`env -C
+/root/c4-worktree-auto-w84/web /root/c4/web/node_modules/.bin/vitest
+run --project unit src/components/WorkflowGraph.test.tsx
+src/components/WorkflowNodeProperties.test.tsx
+src/components/WorkflowRunsPanel.test.tsx
+src/components/WorkflowSelectedHeader.test.tsx`). Full unit suite
+still green: 258 files / 5680 tests passing, no regressions.
+
 ## [1.11.110] - 2026-05-14 -- Tests: Worker detail + Wiki header RTL batch (TODO 11.92)
 
 Add vitest/RTL/jsdom coverage for three components that previously had
