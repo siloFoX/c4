@@ -1017,6 +1017,169 @@ async function runLogs({
   });
 }
 
+// (1.11.159) Per-subcommand --help / -h output.
+// 8 most-used subcommands get a polished help block: Usage / Description /
+// Options (flag + type + default column-aligned) / Examples. ANSI bold is
+// applied to section headers only when stdout is a TTY so test snapshots
+// stay deterministic. Flag parsing is unchanged — this just intercepts
+// `c4 <cmd> --help` and prints a formatted block, otherwise returns false
+// and the switch handles the command normally.
+const HELP_SPECS = {
+  new: {
+    usage: 'c4 new <name> [command] [options]',
+    description: 'Create a new worker. The worker gets its own git worktree and branch under the configured project root. Use --target dgx to spawn on the DGX server instead of locally.',
+    options: [
+      { flag: '--target',      type: 'local|dgx', def: 'local',     desc: 'Where to spawn the worker' },
+      { flag: '--cwd',         type: 'path',      def: '(repo root)', desc: 'Working directory for the worktree' },
+      { flag: '--template',    type: 'name',      def: '(none)',    desc: 'Permission template to apply' },
+      { flag: '--parent',      type: 'name',      def: '$C4_WORKER_NAME', desc: 'Record parent worker' },
+      { flag: '--tier',        type: 'name',      def: '(default)', desc: 'Resource tier (manager/mid/worker)' },
+      { flag: '--pin-memory',  type: 'file',      def: '(none)',    desc: 'Inline a memory file as pinned rules' },
+      { flag: '--pin-rules',   type: 'text',      def: '(none)',    desc: 'Inline pinned-rule text (repeatable)' },
+      { flag: '--pin-role',    type: 'name',      def: '(none)',    desc: 'Apply a role-based pinned-rules default' },
+    ],
+    examples: [
+      'c4 new worker1',
+      'c4 new w2 --target dgx --tier worker',
+      'c4 new auto-w42 --branch c4/auto-foo --cwd /root/c4-worktree-auto-w42',
+    ],
+  },
+  task: {
+    usage: 'c4 task <name> <text> [options]',
+    description: 'Send a task to a worker. By default a fresh branch is created under c4/<name>. Use --no-branch to stay on the current branch, or --branch to override the name.',
+    options: [
+      { flag: '--branch',      type: 'name',  def: 'c4/<name>', desc: 'Override branch name' },
+      { flag: '--no-branch',   type: 'flag',  def: 'false',     desc: 'Do not create a branch or worktree' },
+      { flag: '--repo',        type: 'path',  def: '(config)',  desc: 'Repo root for the worktree' },
+      { flag: '--cwd',         type: 'path',  def: '(cwd)',     desc: 'Working dir inside the repo' },
+      { flag: '--auto-mode',   type: 'flag',  def: 'false',     desc: 'Skip per-step confirmation prompts' },
+      { flag: '--context',     type: 'name',  def: '(none)',    desc: 'Reuse another worker as context' },
+      { flag: '--budget',      type: 'usd',   def: '(none)',    desc: 'Hard cost ceiling for this task' },
+      { flag: '--max-retries', type: 'int',   def: '(config)',  desc: 'Retry cap on failure' },
+    ],
+    examples: [
+      'c4 task worker1 "fix lint in src/api.js"',
+      'c4 task worker1 "investigate" --no-branch',
+      'c4 task w2 "build feature X" --auto-mode --branch c4/featx',
+    ],
+  },
+  send: {
+    usage: 'c4 send <name> <text>',
+    description: 'Send raw text to the worker tmux pane. Does not append Enter — use `c4 key <name> Enter` for that. For slash commands like /model under Git Bash, prefix with `MSYS_NO_PATHCONV=1` to avoid path conversion.',
+    options: [],
+    examples: [
+      'c4 send worker1 "continue with the next step"',
+      'MSYS_NO_PATHCONV=1 c4 send worker1 "/model opus"',
+      'c4 send worker1 "/clear"',
+    ],
+  },
+  key: {
+    usage: 'c4 key <name> <key>',
+    description: 'Send a special key to a worker pane. Accepts the standard tmux key names: Enter, Escape, Tab, C-c, C-b, BSpace, Up, Down, Left, Right.',
+    options: [],
+    examples: [
+      'c4 key worker1 Enter',
+      'c4 key worker1 C-c',
+      'c4 key worker1 Escape',
+    ],
+  },
+  wait: {
+    usage: 'c4 wait <name...> [options]',
+    description: 'Block until the worker reaches an idle state, then print its current screen. Multiple worker names return when the first one becomes idle. `--all` waits for every live worker.',
+    options: [
+      { flag: '--timeout',                   type: 'ms',   def: '(none)', desc: 'Abort after N milliseconds' },
+      { flag: '--all',                       type: 'flag', def: 'false',  desc: 'Wait for every live worker' },
+      { flag: '--interrupt-on-intervention', type: 'flag', def: 'false',  desc: 'Return early on approval_pending' },
+      { flag: '--follow',                    type: 'flag', def: 'false',  desc: 'Persistent approval watcher loop' },
+    ],
+    examples: [
+      'c4 wait worker1',
+      'c4 wait w1 w2 w3 --timeout 60000',
+      'c4 wait --all --interrupt-on-intervention',
+    ],
+  },
+  list: {
+    usage: 'c4 list [options]',
+    description: 'List all known workers with their state, tier, target, branch, and last task. LOST workers (orphaned across daemon restart) are shown in a separate section.',
+    options: [
+      { flag: '--tree', type: 'flag', def: 'false', desc: 'Show parent/child hierarchy view' },
+    ],
+    examples: [
+      'c4 list',
+      'c4 list --tree',
+    ],
+  },
+  merge: {
+    usage: 'c4 merge <worker|branch> [options]',
+    description: 'Merge a worker branch into main with pre-flight checks (tests, TODO updates, CHANGELOG entry). Use --skip-checks to bypass them when the worker has already been reviewed.',
+    options: [
+      { flag: '--skip-checks', type: 'flag', def: 'false', desc: 'Skip test / TODO / CHANGELOG checks' },
+      { flag: '--auto-stash',  type: 'flag', def: 'false', desc: 'Stash main, merge, then pop' },
+      { flag: '--push',        type: 'flag', def: 'false', desc: 'Push main after the merge' },
+    ],
+    examples: [
+      'c4 merge worker1',
+      'c4 merge worker1 --skip-checks',
+      'c4 merge c4/auto-foo --auto-stash --push',
+    ],
+  },
+  batch: {
+    usage: 'c4 batch "<task>" [options]',
+    description: 'Fan out a task across multiple workers in parallel. Either pass --count N for the same task on N workers, or --file <path> to read one task per line (# comments ignored). Workers are named batch-1, batch-2, ... unless --name is given.',
+    options: [
+      { flag: '--count',     type: 'int',  def: '1',      desc: 'How many workers to spawn' },
+      { flag: '--file',      type: 'path', def: '(none)', desc: 'One task per line; overrides positional' },
+      { flag: '--auto-mode', type: 'flag', def: 'false',  desc: 'Pass --auto-mode to every worker' },
+      { flag: '--profile',   type: 'name', def: '(none)', desc: 'Permission profile for each worker' },
+      { flag: '--branch',    type: 'name', def: 'batch',  desc: 'Branch prefix (creates <prefix>-1 ...)' },
+    ],
+    examples: [
+      'c4 batch "fix lint in src/" --count 5',
+      'c4 batch --file tasks.txt --auto-mode',
+      'c4 batch "add tests" --count 3 --branch feature',
+    ],
+  },
+};
+
+function formatSubcommandHelp(spec, { color = false } = {}) {
+  const BOLD = color ? '\x1b[1m' : '';
+  const RESET = color ? '\x1b[0m' : '';
+  const lines = [];
+  lines.push(`${BOLD}Usage:${RESET} ${spec.usage}`);
+  lines.push('');
+  lines.push(`${BOLD}Description:${RESET}`);
+  lines.push('  ' + spec.description);
+  if (spec.options && spec.options.length) {
+    lines.push('');
+    lines.push(`${BOLD}Options:${RESET}`);
+    const flagW = Math.max(...spec.options.map(o => o.flag.length));
+    const typeW = Math.max(...spec.options.map(o => o.type.length));
+    const defW = Math.max(...spec.options.map(o => o.def.length));
+    for (const o of spec.options) {
+      lines.push(
+        '  ' + o.flag.padEnd(flagW) +
+        '  ' + o.type.padEnd(typeW) +
+        '  ' + o.def.padEnd(defW) +
+        '  ' + o.desc
+      );
+    }
+  }
+  lines.push('');
+  lines.push(`${BOLD}Examples:${RESET}`);
+  for (const ex of spec.examples) {
+    lines.push('  $ ' + ex);
+  }
+  return lines.join('\n') + '\n';
+}
+
+function maybePrintSubcommandHelp(cmd, args, { stdout = process.stdout } = {}) {
+  if (!HELP_SPECS[cmd]) return false;
+  if (!args.includes('--help') && !args.includes('-h')) return false;
+  const color = !!(stdout && stdout.isTTY);
+  stdout.write(formatSubcommandHelp(HELP_SPECS[cmd], { color }));
+  return true;
+}
+
 async function main() {
   const [cmd, ...args] = process.argv.slice(2);
 
@@ -1028,6 +1191,9 @@ async function main() {
     console.log(pkg.version);
     return;
   }
+
+  // (1.11.159) Per-subcommand --help intercept. Returns true when handled.
+  if (maybePrintSubcommandHelp(cmd, args)) return;
 
   try {
     let result;
@@ -8083,5 +8249,7 @@ if (require.main === module) {
     resolveDiffRepo, buildDiffArgs, runDiff,
     // (1.11.133) c4 logs handler + pure helpers
     runLogs, _pinoLevelName, _buildLevelFilter, _formatLogLine, _resolveLogPath,
+    // (1.11.159) Per-subcommand --help
+    HELP_SPECS, formatSubcommandHelp, maybePrintSubcommandHelp,
   };
 }
