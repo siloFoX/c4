@@ -14,6 +14,7 @@ import {
   EmptyState,
   ErrorState,
   Skeleton,
+  Textarea,
   Tooltip,
 } from '../components/ui';
 import type { BadgeVariant } from '../components/ui';
@@ -134,9 +135,9 @@ function EditModal({ row, busy, onCancel, onSave }: EditModalProps) {
         </div>
         <label className="flex flex-col gap-2">
           <span className={cn(text.caption, 'text-foreground')}>Detail</span>
-          <textarea
+          <Textarea
             ref={textareaRef}
-            className="min-h-[12rem] w-full rounded-md border border-input bg-background p-3 font-mono text-sm leading-5 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="min-h-[12rem] p-3 font-mono leading-5 text-foreground"
             value={draft}
             onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setDraft(event.target.value)}
             disabled={busy}

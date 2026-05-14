@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Checkbox, Input, Label, Panel, Tooltip } from '../components/ui';
+import { Button, Checkbox, Input, Label, Panel, Textarea, Tooltip } from '../components/ui';
 import { t, useLocale } from '../lib/i18n';
 import { useBatchSubmit } from '../lib/use-batch-submit';
 import { useToast } from '../lib/use-toast';
@@ -106,13 +106,12 @@ export default function Batch() {
       {mode === 'count' ? (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div className="md:col-span-2">
-            <Label htmlFor="batch-task">{t('batchPage.task')}</Label>
-            <textarea
+            <Textarea
               id="batch-task"
+              label={t('batchPage.task')}
               rows={4}
               value={task}
               onChange={(e) => setTask(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               placeholder={t('batchPage.task.placeholder')}
             />
           </div>
@@ -141,13 +140,13 @@ export default function Batch() {
         </div>
       ) : (
         <div>
-          <Label htmlFor="batch-tasks">{t('batchPage.tasks')}</Label>
-          <textarea
+          <Textarea
             id="batch-tasks"
+            label={t('batchPage.tasks')}
             rows={8}
             value={tasksText}
             onChange={(e) => setTasksText(e.target.value)}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="font-mono text-xs"
             placeholder={t('batch.tasksPlaceholder')}
           />
         </div>
