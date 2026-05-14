@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.150] - 2026-05-14 -- Web: Dialog primitive
+
+A new `<Dialog>` primitive (`web/src/components/ui/dialog.tsx`) centralises
+the modal scaffolding that three ad-hoc overlays had each re-implemented:
+portal mount into `document.body`, role/aria wiring, focus trap, Escape +
+backdrop dismissal, and mount/unmount gated by the `open` prop.
+
+What changed:
+
+- **`<Dialog open onClose title? children footer? className?>`** -- renders
+  a backdrop + centered card via `ReactDOM.createPortal(document.body)`. The
+  card carries `role="dialog"`, `aria-modal="true"`, and
+  `aria-labelledby` pointing at a `useId()`-generated `<h2>` when a `title`
+  is provided. On open, focus moves to the first focusable inside the card
+  (or the card itself if none exists). `Tab` / `Shift+Tab` cycle inside the
+  card; both `Escape` and backdrop clicks call `onClose`. Returns `null`
+  when `open=false` so the tree is unmounted, not just hidden.
+- **`dialog.test.tsx`** -- locks the contract: role + aria, Escape closes,
+  backdrop click closes, focus trap (Tab from last refocuses first;
+  Shift+Tab from first refocuses last), `open=false` renders nothing,
+  portal mount target is `document.body`, title-less mode omits
+  `aria-labelledby`.
+- **Three callsites migrated** -- each now wraps `<Dialog>` and drops its
+  own backdrop + role-dialog scaffolding. External component APIs are
+  preserved:
+  - `KeyboardShortcutsModal.tsx` -- the `?` cheat sheet. `useEscapeToClose`
+    import dropped; Dialog owns the listener.
+  - `NewChatModal.tsx` -- start-a-new-chat overlay. `useEscapeToClose`
+    import dropped. `busy` gates both Escape and backdrop dismissal via
+    a wrapping `onClose` callback so an in-flight POST is not unmounted.
+  - `AttachModal.tsx` -- attach-an-existing-session overlay. Same
+    busy-gated `onClose` pattern. The legacy `Card / CardHeader /
+    CardContent` wrap is replaced by the Dialog card surface.
+- Callsite tests updated where they explicitly inspected the legacy
+  backdrop markup (the dialog is now portal-mounted, so
+  `container.firstChild` no longer reaches it) or the inline X close
+  button (the Dialog primitive does not expose one; Escape, backdrop
+  click, and the existing Cancel button cover the dismissal paths).
+
 ## [1.11.149] - 2026-05-14 -- Web: Panel optional header slots
 
 The `<Panel>` component (`web/src/components/ui/panel.tsx`) gained three
