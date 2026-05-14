@@ -118,15 +118,12 @@ describe('<SpecialistsAddPanel>', () => {
     expect(buttons.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('uses the propose tooltip text on the Propose button title attribute', () => {
+  it('wraps the Propose button with a Tooltip carrying the propose hint', () => {
     renderPanel();
-    const propose = screen.getAllByRole('button', {
-      name: 'Propose via meeting',
-    })[0];
-    expect(propose).toHaveAttribute(
-      'title',
+    const tip = screen.getByText(
       'POST to /specialists/propose — drives a meta-meeting and adds only on consensus',
     );
+    expect(tip).toHaveAttribute('role', 'tooltip');
   });
 
   it('renders the Cancel button', () => {

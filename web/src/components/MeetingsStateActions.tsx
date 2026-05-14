@@ -1,4 +1,4 @@
-import { Button } from './ui';
+import { Button, Tooltip } from './ui';
 import { t, useLocale } from '../lib/i18n';
 import { useMeetingStateAction } from '../lib/use-meeting-state-action';
 
@@ -29,16 +29,17 @@ export default function MeetingsStateActions({ meetingId, mode }: Props) {
   if (mode === 'pending') {
     return (
       <>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => fire('start')}
-          disabled={busy !== null}
-          aria-label={t('meetings.contribute.start.label')}
-          title={t('meetings.tooltip.startManual')}
-        >
-          {busy === 'start' ? '…' : t('meetings.startManual')}
-        </Button>
+        <Tooltip label={t('meetings.tooltip.startManual')}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => fire('start')}
+            disabled={busy !== null}
+            aria-label={t('meetings.contribute.start.label')}
+          >
+            {busy === 'start' ? '…' : t('meetings.startManual')}
+          </Button>
+        </Tooltip>
         {error ? (
           <span className="text-[11px] text-destructive">{error}</span>
         ) : null}
@@ -49,26 +50,28 @@ export default function MeetingsStateActions({ meetingId, mode }: Props) {
   // mode === 'in-progress'
   return (
     <>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => fire('advance')}
-        disabled={busy !== null}
-        aria-label={t('meetings.contribute.advance.label')}
-        title={t('meetings.tooltip.advance')}
-      >
-        {busy === 'advance' ? '…' : t('meetings.advance')}
-      </Button>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => fire('next-round')}
-        disabled={busy !== null}
-        aria-label={t('meetings.contribute.bumpRound.label')}
-        title={t('meetings.tooltip.nextRound')}
-      >
-        {busy === 'next-round' ? '…' : t('meetings.nextRound')}
-      </Button>
+      <Tooltip label={t('meetings.tooltip.advance')}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => fire('advance')}
+          disabled={busy !== null}
+          aria-label={t('meetings.contribute.advance.label')}
+        >
+          {busy === 'advance' ? '…' : t('meetings.advance')}
+        </Button>
+      </Tooltip>
+      <Tooltip label={t('meetings.tooltip.nextRound')}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => fire('next-round')}
+          disabled={busy !== null}
+          aria-label={t('meetings.contribute.bumpRound.label')}
+        >
+          {busy === 'next-round' ? '…' : t('meetings.nextRound')}
+        </Button>
+      </Tooltip>
       <Button
         size="sm"
         variant="outline"

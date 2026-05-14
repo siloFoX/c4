@@ -80,12 +80,10 @@ describe('<MeetingsDetailInProgressActions>', () => {
     ).toHaveAttribute('aria-label', 'Toggle contribute form');
   });
 
-  it('sets the Contribute-button tooltip from meetings.tooltip.contribute', () => {
+  it('wraps the Contribute button with a Tooltip carrying the contribute hint', () => {
     renderPanel();
-    expect(
-      screen.getByRole('button', { name: 'Toggle contribute form' }),
-    ).toHaveAttribute(
-      'title',
+    const tip = screen.getByRole('tooltip');
+    expect(tip).toHaveTextContent(
       'Post a contribution from a specific specialist',
     );
   });

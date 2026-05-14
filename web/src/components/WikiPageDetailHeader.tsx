@@ -1,5 +1,5 @@
 import { RotateCcw } from 'lucide-react';
-import { Button, CardHeader, CardTitle } from './ui';
+import { Button, CardHeader, CardTitle, Tooltip } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 import type { ReadResponse } from './WikiView';
@@ -34,17 +34,18 @@ export default function WikiPageDetailHeader({
           {page ? (page.frontmatter['title'] as string) || page.path : t('wiki.title.select')}
         </CardTitle>
         {page && selectedPath && page.frontmatter['status'] !== 'reopened' ? (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onReopen(selectedPath)}
-            disabled={reopenBusy}
-            aria-label={t('wiki.reopen.label')}
-            title={t('wiki.tooltip.reopen')}
-          >
-            <RotateCcw className={cn('h-3.5 w-3.5', reopenBusy && 'animate-spin')} aria-hidden />
-            {t('wiki.reopen')}
-          </Button>
+          <Tooltip label={t('wiki.tooltip.reopen')}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onReopen(selectedPath)}
+              disabled={reopenBusy}
+              aria-label={t('wiki.reopen.label')}
+            >
+              <RotateCcw className={cn('h-3.5 w-3.5', reopenBusy && 'animate-spin')} aria-hidden />
+              {t('wiki.reopen')}
+            </Button>
+          </Tooltip>
         ) : null}
       </div>
       {reopenMsg ? (

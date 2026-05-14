@@ -1,5 +1,5 @@
 import { MessageCircle } from 'lucide-react';
-import { Button } from './ui';
+import { Button, Tooltip } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 import { useMeetingPeerRetro } from '../lib/use-meeting-peer-retro';
@@ -37,17 +37,18 @@ export default function MeetingsPeerRetroControls({ meetingId }: Props) {
           <option value="claude">{t('meetings.adapter.claude')}</option>
         </select>
       </label>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={handlePeerRetro}
-        disabled={busy}
-        aria-label={t('meetings.peerRetro.label')}
-        title={t('meetings.tooltip.peerRetro')}
-      >
-        <MessageCircle className="h-3.5 w-3.5" aria-hidden />
-        {t('meetings.peerRetro')}
-      </Button>
+      <Tooltip label={t('meetings.tooltip.peerRetro')}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handlePeerRetro}
+          disabled={busy}
+          aria-label={t('meetings.peerRetro.label')}
+        >
+          <MessageCircle className="h-3.5 w-3.5" aria-hidden />
+          {t('meetings.peerRetro')}
+        </Button>
+      </Tooltip>
       {msg ? (
         <span className={cn(
           'text-[11px]',

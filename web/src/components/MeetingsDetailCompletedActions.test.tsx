@@ -138,9 +138,9 @@ describe('<MeetingsDetailCompletedActions>', () => {
 
   it('sets the Fork-button tooltip from meetings.tooltip.fork', () => {
     renderPanel();
-    expect(
-      screen.getByRole('button', { name: 'Fork meeting' }),
-    ).toHaveAttribute('title', t('meetings.tooltip.fork'));
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
+      t('meetings.tooltip.fork'),
+    );
   });
 
   it('sets aria-expanded=false on the Fork button when forkOpen=false', () => {

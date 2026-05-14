@@ -1,4 +1,4 @@
-import { Button } from './ui';
+import { Button, Tooltip } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 
@@ -32,16 +32,17 @@ export default function WikiBulkPublishRow({
   useLocale();
   return (
     <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-2 text-[11px]">
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={onPublish}
-        disabled={busy}
-        aria-label={t('wiki.publishAll.label')}
-        title={t('wiki.publishAll.title')}
-      >
-        {busy ? t('wiki.publishAll.publishing') : t('wiki.publishAll')}
-      </Button>
+      <Tooltip label={t('wiki.publishAll.title')}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onPublish}
+          disabled={busy}
+          aria-label={t('wiki.publishAll.label')}
+        >
+          {busy ? t('wiki.publishAll.publishing') : t('wiki.publishAll')}
+        </Button>
+      </Tooltip>
       <label className="flex items-center gap-1 text-muted-foreground">
         <input
           type="checkbox"

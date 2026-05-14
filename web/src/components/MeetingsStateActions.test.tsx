@@ -82,13 +82,10 @@ describe('<MeetingsStateActions>', () => {
     expect(btn.textContent).toBe('Start (manual)');
   });
 
-  it('sets the title attribute to the start-manual tooltip on the Start button', () => {
+  it('wraps the Start button with a Tooltip carrying the start-manual hint', () => {
     render(<MeetingsStateActions meetingId="m1" mode="pending" />);
-    const btn = screen.getByRole('button', {
-      name: 'Start meeting (transition to in-progress)',
-    });
-    expect(btn).toHaveAttribute(
-      'title',
+    const tip = screen.getByRole('tooltip');
+    expect(tip).toHaveTextContent(
       'Mark the meeting as in-progress without running. For manual / CLI-driven sessions.',
     );
   });
@@ -229,24 +226,20 @@ describe('<MeetingsStateActions>', () => {
     ).toBeInTheDocument();
   });
 
-  it('sets the advance tooltip on the Advance button title', () => {
+  it('wraps the Advance button with a Tooltip carrying the advance hint', () => {
     render(<MeetingsStateActions meetingId="m1" mode="in-progress" />);
-    expect(
-      screen.getByRole('button', { name: 'Advance to next stage' }),
-    ).toHaveAttribute(
-      'title',
+    const tip = screen.getByText(
       'Advance to the next stage if consensus is reached',
     );
+    expect(tip).toHaveAttribute('role', 'tooltip');
   });
 
-  it('sets the next-round tooltip on the Next-round button title', () => {
+  it('wraps the Next-round button with a Tooltip carrying the next-round hint', () => {
     render(<MeetingsStateActions meetingId="m1" mode="in-progress" />);
-    expect(
-      screen.getByRole('button', { name: 'Bump round counter' }),
-    ).toHaveAttribute(
-      'title',
+    const tip = screen.getByText(
       'Bump round counter on the current stage (refused past round cap)',
     );
+    expect(tip).toHaveAttribute('role', 'tooltip');
   });
 
   it('fires fire("advance") with no confirm prompt when Advance is clicked', async () => {
