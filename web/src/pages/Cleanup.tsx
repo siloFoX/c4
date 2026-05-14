@@ -1,10 +1,11 @@
 import { Eye, RefreshCw, Trash2 } from 'lucide-react';
-import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
+import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Panel, Tooltip } from '../components/ui';
+import { Button, EmptyState, Panel, Tooltip } from '../components/ui';
+import { AllDoneIllustration } from '../components/illustrations';
 import { t, useLocale } from '../lib/i18n';
 import { useToast } from '../lib/use-toast';
 import { useCleanup } from '../lib/use-cleanup';
@@ -63,7 +64,14 @@ export default function Cleanup() {
       {error && <ErrorPanel message={error} />}
       {loading && !data ? <LoadingSkeleton rows={4} /> : null}
       {data && total === 0 ? (
-        <EmptyPanel message={t('cleanup.empty')} />
+        <EmptyState
+          icon={
+            <span data-testid="cleanup-empty-illustration">
+              <AllDoneIllustration size={160} />
+            </span>
+          }
+          title={t('cleanup.empty')}
+        />
       ) : null}
       {data && total > 0 && (
         <div className="flex flex-col gap-3">

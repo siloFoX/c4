@@ -144,6 +144,14 @@ describe('<Profiles>', () => {
     expect(screen.getByText(/No profiles defined/)).toBeInTheDocument();
   });
 
+  it('renders the empty illustration alongside the empty hint', () => {
+    hookState = { ...hookState, loading: false, items: [] };
+    render(<Profiles />);
+    expect(
+      screen.getByTestId('profiles-empty-illustration'),
+    ).toBeInTheDocument();
+  });
+
   it('renders one row per profile in the list', () => {
     hookState = {
       ...hookState,

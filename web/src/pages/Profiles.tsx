@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ListChecks, RefreshCw } from 'lucide-react';
-import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
+import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, Input, Panel, Tooltip } from '../components/ui';
+import { Badge, Button, EmptyState, Input, Panel, Tooltip } from '../components/ui';
+import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
 import { t, useLocale } from '../lib/i18n';
@@ -83,7 +84,14 @@ export default function Profiles() {
       {error && <ErrorPanel message={error} />}
       {loading && items.length === 0 ? <LoadingSkeleton rows={3} /> : null}
       {!loading && filtered.length === 0 ? (
-        <EmptyPanel message={t('profiles.empty')} />
+        <EmptyState
+          icon={
+            <span data-testid="profiles-empty-illustration">
+              <EmptyQueueIllustration size={160} />
+            </span>
+          }
+          title={t('profiles.empty')}
+        />
       ) : (
         <ul className="flex flex-col gap-2">
           {filtered.map((p) => {

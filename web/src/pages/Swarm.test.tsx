@@ -220,6 +220,15 @@ describe('<Swarm>', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders the empty illustration alongside the empty-swarm hint', () => {
+    const data: SwarmResponse = {};
+    hookState = { ...hookState, data, selected: 'alpha' };
+    render(<Swarm />);
+    expect(
+      screen.getByTestId('swarm-empty-illustration'),
+    ).toBeInTheDocument();
+  });
+
   it('renders the swarm panel title with the selected worker name', () => {
     const data: SwarmResponse = { root: makeNode({ name: 'root' }) };
     hookState = { ...hookState, data, selected: 'alpha' };

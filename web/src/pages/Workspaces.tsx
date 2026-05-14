@@ -1,6 +1,7 @@
 import { CheckCircle2, FolderTree, GitBranch, RefreshCw, XCircle } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
-import { Button, Panel } from '../components/ui';
+import { Button, EmptyState, Panel } from '../components/ui';
+import { WelcomeOnboardingIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 import { text } from '../lib/typography';
@@ -58,9 +59,14 @@ export default function Workspaces() {
         {!data ? (
           <div className="text-[12px] text-muted-foreground">{t('common.loading')}</div>
         ) : data.length === 0 ? (
-          <div className="text-[12px] text-muted-foreground">
-            {t('workspaces.empty')}
-          </div>
+          <EmptyState
+            icon={
+              <span data-testid="workspaces-empty-illustration">
+                <WelcomeOnboardingIllustration size={160} />
+              </span>
+            }
+            title={t('workspaces.empty')}
+          />
         ) : (
           <ul className="divide-y divide-border/40 text-[12px]">
             {data.map((w) => (
