@@ -1,8 +1,6 @@
 import { X } from 'lucide-react';
-import { IconButton } from './ui';
-import { cn } from '../lib/cn';
+import { Dialog, IconButton } from './ui';
 import { t, useLocale } from '../lib/i18n';
-import { useEscapeToClose } from '../lib/use-escape-to-close';
 
 interface KeyboardShortcutsModalProps {
   open: boolean;
@@ -25,14 +23,8 @@ export const SHORTCUT_ROWS: Row[] = [
   { keys: 'Enter', descriptionKey: 'shortcuts.sendChat' },
   { keys: 'Shift+Enter', descriptionKey: 'shortcuts.newLine' },
   { keys: 'T', descriptionKey: 'shortcuts.toggleTour' },
-  // (TODO 8.40) Sidebar collapse — VS Code convention, mirrors
-  // App.tsx's keydown handler. Both Ctrl and Cmd trigger; we list
-  // Ctrl+B since the rest of the table uses Ctrl naming.
   { keys: 'Ctrl+B', descriptionKey: 'shortcuts.toggleSidebar' },
 ];
-
-// 8.33: ? key cheat sheet. Rendered as an overlay modal so the user can
-// glance at it from any tab. Locale-aware via useLocale().
 
 export function KeyboardShortcutsModal({
   open,
@@ -40,30 +32,15 @@ export function KeyboardShortcutsModal({
 }: KeyboardShortcutsModalProps) {
   useLocale();
 
-  // (v1.10.714) Esc-to-close moved to use-escape-to-close hook.
-  useEscapeToClose({ open, onClose });
-
-  if (!open) return null;
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={t('shortcuts.heading')}
-      data-shortcuts-modal
-      className={cn(
-        'fixed inset-0 z-[95] flex items-center justify-center bg-background/60 p-4 backdrop-blur-sm',
-      )}
-      onClick={onClose}
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={t('shortcuts.heading')}
+      className="max-w-md"
     >
-      <div
-        className="w-full max-w-md rounded-lg border border-border bg-card p-4 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">
-            {t('shortcuts.heading')}
-          </h2>
+      <div data-shortcuts-modal>
+        <div className="mb-3 flex items-center justify-end">
           <IconButton
             aria-label={t('common.close')}
             onClick={onClose}
@@ -87,7 +64,7 @@ export function KeyboardShortcutsModal({
           </tbody>
         </table>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
