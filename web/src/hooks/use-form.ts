@@ -4,8 +4,9 @@
 // fields regardless of touched state, so a submit button can disable until the
 // form is genuinely valid.
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useContext, useMemo, useState } from 'react';
 import type { Validator } from '../lib/form-validation';
+import { AnnounceContext } from './use-announce';
 
 export interface UseFormConfig<TFields extends Record<string, unknown>> {
   initialValues: TFields;
@@ -35,6 +36,10 @@ export function useForm<TFields extends Record<string, unknown>>(
   const [errors, setErrors] = useState<Errors<TFields>>({});
   const [touched, setTouchedState] = useState<Touched<TFields>>({});
   const [submitted, setSubmitted] = useState(false);
+  // Read context directly (not via useAnnounce) so a useForm consumer
+  // mounted outside an <AnnounceRegion> still works -- announcements
+  // are a progressive enhancement.
+  const announce = useContext(AnnounceContext);
 
   const validateField = useCallback(
     <K extends keyof TFields>(field: K, value: TFields[K]): string | undefined => {
@@ -108,10 +113,17 @@ export function useForm<TFields extends Record<string, unknown>>(
       const currentErrors = validateAll(values);
       setErrors(currentErrors);
       if (Object.keys(currentErrors).length === 0) {
+        announce?.('Saved', 'polite');
         void onSubmit?.(values);
+      } else {
+        const firstKey = Object.keys(currentErrors)[0] as keyof TFields | undefined;
+        const firstError = firstKey !== undefined ? currentErrors[firstKey] : undefined;
+        if (firstError) {
+          announce?.(`Form has errors: ${firstError}`, 'assertive');
+        }
       }
     },
-    [initialValues, validateAll, onSubmit, values],
+    [initialValues, validateAll, onSubmit, values, announce],
   );
 
   const reset = useCallback(() => {

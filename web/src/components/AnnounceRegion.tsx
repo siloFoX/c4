@@ -31,13 +31,16 @@ export interface AnnounceRegionProps {
 export default function AnnounceRegion({ children, className }: AnnounceRegionProps) {
   const [politeMsg, setPoliteMsg] = useState('');
   const [assertiveMsg, setAssertiveMsg] = useState('');
-  const flickerTimers = useRef<{ polite?: number; assertive?: number }>({});
+  const flickerTimers = useRef<{ polite: number | null; assertive: number | null }>({
+    polite: null,
+    assertive: null,
+  });
 
   useEffect(() => {
     return () => {
       const t = flickerTimers.current;
-      if (t.polite !== undefined) window.clearTimeout(t.polite);
-      if (t.assertive !== undefined) window.clearTimeout(t.assertive);
+      if (t.polite !== null) window.clearTimeout(t.polite);
+      if (t.assertive !== null) window.clearTimeout(t.assertive);
     };
   }, []);
 
@@ -45,14 +48,15 @@ export default function AnnounceRegion({ children, className }: AnnounceRegionPr
     (message: string, priority: AnnouncePriority = 'polite') => {
       if (typeof message !== 'string' || message.length === 0) return;
       const setter = priority === 'assertive' ? setAssertiveMsg : setPoliteMsg;
-      const key = priority === 'assertive' ? 'assertive' : 'polite';
+      const key: 'polite' | 'assertive' =
+        priority === 'assertive' ? 'assertive' : 'polite';
       const prev = flickerTimers.current[key];
-      if (prev !== undefined) window.clearTimeout(prev);
+      if (prev !== null) window.clearTimeout(prev);
       // Clear -> set on next tick so AT picks up duplicate messages.
       setter('');
       flickerTimers.current[key] = window.setTimeout(() => {
         setter(message);
-        flickerTimers.current[key] = undefined;
+        flickerTimers.current[key] = null;
       }, 30);
     },
     [],
