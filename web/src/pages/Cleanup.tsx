@@ -4,7 +4,7 @@ import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, EmptyState, Panel, Tooltip } from '../components/ui';
+import { Button, EmptyState, Panel, Progress, Tooltip } from '../components/ui';
 import { AllDoneIllustration } from '../components/illustrations';
 import { t, useLocale } from '../lib/i18n';
 import { useToast } from '../lib/use-toast';
@@ -61,6 +61,14 @@ export default function Cleanup() {
         useCasesKey="cleanup.useCases"
         onOpenHelp={openHelpDrawer}
       />
+      {(busy || loading) && (
+        <Progress
+          indeterminate
+          label
+          variant={busy ? 'destructive' : 'default'}
+          aria-label={busy ? t('cleanupPage.commit') : t('cleanupPage.dryRun')}
+        />
+      )}
       {error && <ErrorPanel message={error} />}
       {loading && !data ? <LoadingSkeleton rows={4} /> : null}
       {data && total === 0 ? (

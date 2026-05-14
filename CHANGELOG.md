@@ -4,6 +4,50 @@
 
 (no entries -- next release window)
 
+## [1.11.157] - 2026-05-14 -- Web: Progress bar primitive
+
+A new shared `<Progress>` UI primitive renders a determinate or
+indeterminate progress bar for long-running workflows.
+
+What changed:
+
+- **`<Progress value? max? indeterminate? label? variant? className?>`**
+  (`web/src/components/ui/progress.tsx`) -- renders a wrapper `<div>`
+  containing an inner `role="progressbar"` track with `aria-valuemin=0`
+  and `aria-valuemax={max ?? 100}`. When a numeric `value` is provided
+  (and `indeterminate` is false), `aria-valuenow` is set and an inner
+  fill bar takes the corresponding percentage width with a Tailwind
+  `bg-{variant}` background. `variant` is one of `default` (bg-primary),
+  `success` (bg-success), `warning` (bg-warning), or `destructive`
+  (bg-destructive). When `indeterminate` is true, `aria-valuenow` is
+  omitted and an animated `animate-pulse` stripe is rendered in place
+  of the fixed-width fill; `role="progressbar"` is preserved so AT
+  consumers still announce the busy state. The optional `label` prop
+  renders a small caption above the bar with the rounded percent
+  (e.g. `42%`) when determinate or the string `Working...` when
+  indeterminate.
+- **`progress.test.tsx`** -- 18 cases covering `aria-valuenow` /
+  `aria-valuemin` / `aria-valuemax` wiring, indeterminate omitting
+  `aria-valuenow` while still exposing the progressbar role + striped
+  class, label rendering the rounded percent vs. `Working...`,
+  each variant's `bg-*` class on both the fill and the indeterminate
+  stripe, caller `className` passthrough, and value clamping
+  (`> max` -> 100%, `< 0` -> 0%, custom `max` ratios).
+- **Page adoption (2 sites):**
+  - `web/src/pages/Batch.tsx` renders an indeterminate
+    `<Progress label>` above the form while the batch dispatch is
+    in flight, and a determinate `<Progress value=ok max=total
+    label variant=success|warning>` inside the results panel after
+    the dispatch resolves (variant is `success` on a clean run and
+    `warning` when any worker failed).
+  - `web/src/pages/Cleanup.tsx` renders an indeterminate
+    `<Progress label>` while either the dry-run preview or the
+    commit is in flight; the destructive commit uses
+    `variant="destructive"` and the dry-run uses the default
+    primary color so the operator can tell the two flows apart.
+
+Bumps `web/package.json` to `1.11.157`. No new npm dependencies.
+
 ## [1.11.156] - 2026-05-14 -- Web: Alert banner primitive
 
 A new shared `<Alert>` UI primitive replaces ad-hoc banner div markup
