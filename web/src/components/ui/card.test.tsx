@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createRef } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import {
   Card,
   CardContent,
@@ -37,6 +37,128 @@ describe('<Card>', () => {
 
   it('exposes a stable displayName', () => {
     expect(Card.displayName).toBe('Card');
+  });
+});
+
+// (v1.11.143) interactive prop: opt-in pointer + keyboard activation
+// surface. Default (omitted/false) keeps the static-container shape -
+// no class delta, no a11y attribute injection - so the pre-existing
+// snapshots and downstream consumers remain unchanged.
+describe('<Card interactive>', () => {
+  it('without interactive, omits hover-lift / active-press / focus-ring classes', () => {
+    render(<Card data-testid="c">x</Card>);
+    const node = screen.getByTestId('c');
+    expect(node).not.toHaveClass('cursor-pointer');
+    expect(node).not.toHaveClass('hover:shadow-md');
+    expect(node).not.toHaveClass('active:shadow-sm');
+    expect(node).not.toHaveClass('focus-visible:ring-2');
+  });
+
+  it('without interactive, does not set role or tabIndex', () => {
+    render(<Card data-testid="c">x</Card>);
+    const node = screen.getByTestId('c');
+    expect(node).not.toHaveAttribute('role');
+    expect(node).not.toHaveAttribute('tabindex');
+  });
+
+  it('with interactive, adds cursor-pointer + hover/active shadow + focus-visible ring classes', () => {
+    render(<Card data-testid="c" interactive>x</Card>);
+    const node = screen.getByTestId('c');
+    expect(node).toHaveClass('cursor-pointer');
+    expect(node).toHaveClass('hover:shadow-md');
+    expect(node).toHaveClass('active:shadow-sm');
+    expect(node).toHaveClass('focus-visible:outline-none');
+    expect(node).toHaveClass('focus-visible:ring-2');
+    expect(node).toHaveClass('focus-visible:ring-primary');
+    expect(node).toHaveClass('focus-visible:ring-offset-2');
+  });
+
+  it('with interactive, applies motion-safe hover/active translate classes for the lift', () => {
+    render(<Card data-testid="c" interactive>x</Card>);
+    const node = screen.getByTestId('c');
+    expect(node).toHaveClass('motion-safe:hover:-translate-y-0.5');
+    expect(node).toHaveClass('motion-safe:active:translate-y-0');
+  });
+
+  it('with interactive, sets role=button and tabIndex=0 for keyboard reachability', () => {
+    render(<Card data-testid="c" interactive>x</Card>);
+    const node = screen.getByTestId('c');
+    expect(node).toHaveAttribute('role', 'button');
+    expect(node).toHaveAttribute('tabindex', '0');
+  });
+
+  it('with interactive, lets the caller override role + tabIndex when needed', () => {
+    render(
+      <Card data-testid="c" interactive role="link" tabIndex={-1}>x</Card>,
+    );
+    const node = screen.getByTestId('c');
+    expect(node).toHaveAttribute('role', 'link');
+    expect(node).toHaveAttribute('tabindex', '-1');
+  });
+
+  it('clicking an interactive Card fires onClick', () => {
+    const handler = vi.fn();
+    render(
+      <Card data-testid="c" interactive onClick={handler}>x</Card>,
+    );
+    fireEvent.click(screen.getByTestId('c'));
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it('pressing Enter on an interactive Card fires onClick', () => {
+    const handler = vi.fn();
+    render(
+      <Card data-testid="c" interactive onClick={handler}>x</Card>,
+    );
+    fireEvent.keyDown(screen.getByTestId('c'), { key: 'Enter' });
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it('pressing Space on an interactive Card also fires onClick (button-like activation)', () => {
+    const handler = vi.fn();
+    render(
+      <Card data-testid="c" interactive onClick={handler}>x</Card>,
+    );
+    fireEvent.keyDown(screen.getByTestId('c'), { key: ' ' });
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it('pressing Enter on a NON-interactive Card does not auto-fire onClick', () => {
+    const handler = vi.fn();
+    render(
+      <Card data-testid="c" onClick={handler}>x</Card>,
+    );
+    fireEvent.keyDown(screen.getByTestId('c'), { key: 'Enter' });
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('forwards caller-provided onKeyDown alongside the Enter/Space activation wiring', () => {
+    const onKey = vi.fn();
+    const onClick = vi.fn();
+    render(
+      <Card data-testid="c" interactive onClick={onClick} onKeyDown={onKey}>
+        x
+      </Card>,
+    );
+    fireEvent.keyDown(screen.getByTestId('c'), { key: 'Enter' });
+    expect(onKey).toHaveBeenCalledTimes(1);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('if the caller-provided onKeyDown calls preventDefault, onClick is suppressed', () => {
+    const onClick = vi.fn();
+    render(
+      <Card
+        data-testid="c"
+        interactive
+        onClick={onClick}
+        onKeyDown={(e) => e.preventDefault()}
+      >
+        x
+      </Card>,
+    );
+    fireEvent.keyDown(screen.getByTestId('c'), { key: 'Enter' });
+    expect(onClick).not.toHaveBeenCalled();
   });
 });
 
