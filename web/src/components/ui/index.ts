@@ -9,6 +9,7 @@ export * from './badge';
 export * from './icon-button';
 export * from './tooltip';
 export * from './dropdown-menu';
+export * from './context-menu';
 export * from './stat-card';
 export * from './empty-state';
 export * from './skeleton';

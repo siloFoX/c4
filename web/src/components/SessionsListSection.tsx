@@ -1,7 +1,15 @@
 import { useMemo } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { Badge, EmptyState, ListItem, Skeleton, StatusDot, Timeline } from './ui';
-import type { StatusDotVariant } from './ui';
+import {
+  Badge,
+  ContextMenu,
+  EmptyState,
+  ListItem,
+  Skeleton,
+  StatusDot,
+  Timeline,
+} from './ui';
+import type { ContextMenuItem, StatusDotVariant } from './ui';
 import type { TimelineItem } from './ui';
 import { WelcomeOnboardingIllustration } from './illustrations';
 import { cn } from '../lib/cn';
@@ -134,9 +142,23 @@ export default function SessionsListSection({
                     else if (ageMs < 60 * 60_000) dotVariant = 'away';
                     else dotVariant = 'offline';
                   }
-                  return (
+                  const sessionMenuItems: ContextMenuItem[] = [
+                    {
+                      id: 'open',
+                      label: 'Open',
+                      onSelect: () => onSelect(session.sessionId),
+                    },
+                    { id: 'rename', label: 'Rename', onSelect: () => {} },
+                    { id: 'sep', label: '', separator: true },
+                    {
+                      id: 'delete',
+                      label: 'Delete',
+                      danger: true,
+                      onSelect: () => {},
+                    },
+                  ];
+                  const listItem = (
                     <ListItem
-                      key={session.sessionId}
                       onClick={() => onSelect(session.sessionId)}
                       active={active}
                       className={cn(
@@ -162,6 +184,14 @@ export default function SessionsListSection({
                       trailing={
                         <Badge variant="secondary">{session.turnCount}</Badge>
                       }
+                    />
+                  );
+                  return (
+                    <ContextMenu
+                      key={session.sessionId}
+                      trigger={listItem}
+                      items={sessionMenuItems}
+                      ariaLabel={`Session ${shortId(session.sessionId)} actions`}
                     />
                   );
                 })
