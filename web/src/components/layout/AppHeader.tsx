@@ -1,5 +1,6 @@
 import { HelpCircle, Keyboard, Languages, Menu, X } from 'lucide-react';
 import AccountMenu from '../AccountMenu';
+import ThemeToggle from '../ThemeToggle';
 import { IconButton, Navbar, Tooltip } from '../ui';
 import TopTabs, { type TopView } from './TopTabs';
 import { useNavBadgeCounts } from '../../lib/use-nav-badge-counts';
@@ -108,6 +109,7 @@ export default function AppHeader({
           icon={<Keyboard className="h-4 w-4" />}
         />
       </Tooltip>
+      <ThemeToggle size="sm" />
       <Tooltip label={t('common.language')} placement="bottom">
         <IconButton
           aria-label={t('common.language')}
