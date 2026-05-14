@@ -4,6 +4,48 @@
 
 (no entries -- next release window)
 
+## [1.11.159] - 2026-05-14 -- CLI: Polished --help for 8 core subcommands
+
+`c4 <cmd> --help` (and `-h`) now prints a structured help block for the
+eight highest-traffic subcommands instead of falling through to the
+unified `Usage: c4 <command>` dump. Flag parsing is untouched -- this is
+a pure presentation layer that intercepts before the dispatch switch.
+
+What changed:
+
+- **`src/cli.js`** -- adds `HELP_SPECS`, `formatSubcommandHelp(spec, {color})`
+  and `maybePrintSubcommandHelp(cmd, args, {stdout})`. The intercept fires
+  near the top of `main()` after the `--version` check, returns early when
+  it handles the call, and otherwise lets the existing switch run. Each
+  polished block has four sections: `Usage:`, `Description:`, `Options:`
+  (flag / type / default columns padded with `padEnd` to identical width),
+  and `Examples:` with 2-3 realistic invocations prefixed `  $ `. Section
+  headers are wrapped in `\x1b[1m...\x1b[0m` only when `stdout.isTTY` is
+  true, so test snapshots stay clean.
+- **Polished subcommands**: `new`, `task`, `send`, `key`, `wait`, `list`,
+  `merge`, `batch`. These cover the daily worker-management surface: spawn,
+  dispatch, send raw input, send special keys, wait for idle, list, merge,
+  and fan-out. Every other subcommand still falls through to the existing
+  unified help, so behaviour is strictly additive.
+- **`tests/cli-help.test.js`** -- 38 cases. Validates `HELP_SPECS` keys,
+  asserts each spec has a `Usage:` line, `Examples:`, and at least one
+  example matching the subcommand; pins the `\x1b[1m`...`\x1b[0m` wrapping
+  when `color: true`; verifies the option rows align through the default
+  column; exercises the intercept directly (true/false return paths,
+  unpolished subcommand falls through); spawns
+  `node src/cli.js <sub> --help` once per polished subcommand to confirm
+  the intercept fires before the daemon-dependent dispatch and exits 0.
+- **`web/package.json`** -- bump 1.11.158 -> 1.11.159 (CLI bumps still
+  ride on the web package version).
+
+Out of scope (intentional):
+
+- The legacy unified `Usage: c4 <command> [args]` block printed by the
+  switch default still ships verbatim -- nothing about the global `c4`
+  invocation or unpolished subcommands changes.
+- No new npm dependencies; ANSI bold is a 4-character escape sequence
+  applied inline.
+
 ## [1.11.158] - 2026-05-14 -- Web: Avatar primitive
 
 A new shared `<Avatar>` UI primitive renders a rounded user/worker
