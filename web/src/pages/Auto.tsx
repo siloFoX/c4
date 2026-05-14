@@ -29,6 +29,7 @@ import PageFrame from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import {
+  Alert,
   Badge,
   Button,
   Card,
@@ -288,27 +289,26 @@ interface ErrorStateProps {
 
 function ErrorState({ message, onRetry }: ErrorStateProps) {
   return (
-    <div
-      role="alert"
-      className="flex flex-col items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive"
+    <Alert
+      variant="error"
+      icon={<AlertCircle className="h-4 w-4" />}
+      action={
+        onRetry ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={onRetry}
+            className="border-destructive/40 text-destructive hover:bg-destructive/10"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            <span>Retry</span>
+          </Button>
+        ) : undefined
+      }
     >
-      <div className="flex items-start gap-2">
-        <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
-        <p className="leading-relaxed">{message}</p>
-      </div>
-      {onRetry ? (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={onRetry}
-          className="border-destructive/40 text-destructive hover:bg-destructive/10"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          <span>Retry</span>
-        </Button>
-      ) : null}
-    </div>
+      {message}
+    </Alert>
   );
 }
 

@@ -9,6 +9,7 @@ import type { ChangeEvent, DragEvent, FormEvent, KeyboardEvent } from 'react';
 import { GripVertical, Pencil, RefreshCw } from 'lucide-react';
 import PageFrame from './PageFrame';
 import {
+  Alert,
   Badge,
   Button,
   EmptyState,
@@ -304,12 +305,7 @@ export default function Queue() {
       }
     >
       {saveError ? (
-        <div
-          role="alert"
-          className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
-        >
-          Save failed: {saveError}
-        </div>
+        <Alert variant="error">Save failed: {saveError}</Alert>
       ) : null}
 
       {loading && !rows ? (
