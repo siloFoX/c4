@@ -27,6 +27,7 @@ import EmptyState from './components/layout/EmptyState';
 import FeatureView from './components/layout/FeatureView';
 import HelpUIRoot from './components/HelpUIRoot';
 import MetricsBar from './components/MetricsBar';
+import AutonomousStatusBanner from './components/AutonomousStatusBanner';
 import { logout } from './lib/api';
 import { useAuthState } from './lib/use-auth-state';
 import { useSidebarShortcut } from './lib/use-sidebar-shortcut';
@@ -125,6 +126,7 @@ export default function App() {
           so it doesn't introduce layout jumps when the daemon is
           unreachable or auth-gated. */}
       <MetricsBar />
+      <AutonomousStatusBanner />
       <Suspense fallback={
         <div className="flex min-h-0 flex-1 overflow-auto p-6">
           <LoadingSkeleton rows={6} />
