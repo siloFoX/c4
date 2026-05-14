@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { RefreshCw, Shield } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
-import { Button, Checkbox, Input, Panel } from '../components/ui';
+import { Alert, Button, Checkbox, Input, Panel } from '../components/ui';
 import { t, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
@@ -161,11 +161,11 @@ export default function Risk() {
         </Button>
       }
     >
-      <div className="rounded-md border border-border bg-muted/10 p-3 text-[12px] text-muted-foreground">
+      <Alert variant="neutral" className="text-[12px]">
         {t('riskPage.intro.prefix')}
         <code className="font-mono">{t('riskPage.intro.cli')}</code>
         {t('riskPage.intro.suffix')}
-      </div>
+      </Alert>
 
       {/* Command input */}
       <Panel className="text-sm">
