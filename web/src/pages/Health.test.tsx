@@ -55,6 +55,11 @@ function makeHealth(over: Partial<HealthPayload> = {}): HealthPayload {
 
 function statValue(label: string): HTMLElement {
   const lbl = screen.getByText(label);
+  if (lbl.tagName === 'DT') {
+    const dd = lbl.nextElementSibling as HTMLElement | null;
+    if (!dd) throw new Error(`no <dd> for stat "${label}"`);
+    return dd;
+  }
   const cell = lbl.parentElement as HTMLElement;
   const value = cell.querySelector('.font-mono');
   if (!value) throw new Error(`no font-mono value for stat "${label}"`);

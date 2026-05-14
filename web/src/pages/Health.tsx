@@ -2,7 +2,8 @@ import { HelpCircle, RefreshCw } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, DashboardGrid, Panel, Popover, Tooltip } from '../components/ui';
+import { Badge, Button, DashboardGrid, DataList, Panel, Popover, Tooltip } from '../components/ui';
+import type { DataListItem } from '../components/ui';
 import { StatCardShape, TableRowShape } from '../components/ui/skeleton';
 import { StatCard } from '../components/ui/stat-card';
 import { cn } from '../lib/cn';
@@ -143,17 +144,21 @@ export default function Health() {
             </DashboardGrid.Item>
           </DashboardGrid>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <Stat label={t('healthPage.stat.pid')} value={data.pid != null ? String(data.pid) : '-'} />
-            <Stat label={t('healthPage.stat.uptime')} value={formatDuration((data.uptime ?? 0) * 1000)} />
-            <Stat label={t('healthPage.stat.started')} value={formatRelativeTime(data.startedAt)} />
-            <Stat label={t('healthPage.stat.workersTotal')} value={formatNumber(data.workers)} />
-            <Stat label={t('healthPage.stat.active')} value={formatNumber(data.activeWorkers ?? data.busyWorkers)} />
-            <Stat label={t('healthPage.stat.idle')} value={formatNumber(data.idleWorkers)} />
-            <Stat label={t('healthPage.stat.queueDepth')} value={formatNumber(data.queueDepth)} />
-            <Stat label={t('healthPage.stat.lostWorkers')} value={formatNumber(data.lostWorkers)} />
-            <Stat label={t('healthPage.stat.eventLoopLag')} value={data.eventLoopLagMs != null ? `${data.eventLoopLagMs} ms` : '-'} />
-          </div>
+          <Panel className="p-3">
+            <DataList
+              items={[
+                { id: 'pid', label: t('healthPage.stat.pid'), value: data.pid != null ? String(data.pid) : '-' },
+                { id: 'uptime', label: t('healthPage.stat.uptime'), value: formatDuration((data.uptime ?? 0) * 1000) },
+                { id: 'started', label: t('healthPage.stat.started'), value: formatRelativeTime(data.startedAt) },
+                { id: 'workersTotal', label: t('healthPage.stat.workersTotal'), value: formatNumber(data.workers) },
+                { id: 'active', label: t('healthPage.stat.active'), value: formatNumber(data.activeWorkers ?? data.busyWorkers) },
+                { id: 'idle', label: t('healthPage.stat.idle'), value: formatNumber(data.idleWorkers) },
+                { id: 'queueDepth', label: t('healthPage.stat.queueDepth'), value: formatNumber(data.queueDepth) },
+                { id: 'lostWorkers', label: t('healthPage.stat.lostWorkers'), value: formatNumber(data.lostWorkers) },
+                { id: 'eventLoopLag', label: t('healthPage.stat.eventLoopLag'), value: data.eventLoopLagMs != null ? `${data.eventLoopLagMs} ms` : '-' },
+              ] satisfies DataListItem[]}
+            />
+          </Panel>
 
           {Array.isArray(data.modules) && data.modules.length > 0 ? (
             <Panel
@@ -178,11 +183,3 @@ export default function Health() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <Panel className="flex flex-col gap-1 p-3">
-      <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
-      <span className="font-mono text-lg text-foreground">{value}</span>
-    </Panel>
-  );
-}

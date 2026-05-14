@@ -6,9 +6,11 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  DataList,
   HScroll,
   Panel,
   type BadgeVariant,
+  type DataListItem,
 } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import type { HistoryWorkerDetail } from './HistoryView';
@@ -44,19 +46,47 @@ export default function HistoryDetailPane({ detail }: Props) {
     <Card className="flex h-full min-h-0 min-w-0 flex-col">
       <CardHeader className="p-4 md:p-5">
         <CardTitle>{detail.name}</CardTitle>
-        <CardDescription className="flex flex-wrap items-center gap-2">
-          <Badge variant={detail.alive ? 'success' : 'secondary'} className="uppercase">
-            {detail.alive ? detail.status || t('history.status.live') : t('history.status.closed')}
-          </Badge>
-          {detail.branch && (
-            <span className="inline-flex items-center gap-1 font-mono text-xs">
-              <GitBranch aria-hidden="true" className="h-3.5 w-3.5" />
-              {detail.branch}
-            </span>
-          )}
-          {detail.worktree && (
-            <span className="truncate font-mono text-xs">{detail.worktree}</span>
-          )}
+        <CardDescription>
+          <DataList
+            className="mt-1"
+            items={[
+              {
+                id: 'status',
+                label: t('history.detail.label.status'),
+                value: (
+                  <Badge variant={detail.alive ? 'success' : 'secondary'} className="uppercase">
+                    {detail.alive ? detail.status || t('history.status.live') : t('history.status.closed')}
+                  </Badge>
+                ),
+              },
+              ...(detail.branch
+                ? [
+                    {
+                      id: 'branch',
+                      label: t('history.detail.label.branch'),
+                      value: (
+                        <span className="inline-flex items-center gap-1 font-mono text-xs">
+                          <GitBranch aria-hidden="true" className="h-3.5 w-3.5" />
+                          {detail.branch}
+                        </span>
+                      ),
+                      copyValue: detail.branch,
+                    } as DataListItem,
+                  ]
+                : []),
+              ...(detail.worktree
+                ? [
+                    {
+                      id: 'worktree',
+                      label: t('history.detail.label.worktree'),
+                      value: <span className="font-mono text-xs">{detail.worktree}</span>,
+                      copyValue: detail.worktree,
+                      truncate: true,
+                    } as DataListItem,
+                  ]
+                : []),
+            ]}
+          />
         </CardDescription>
       </CardHeader>
 

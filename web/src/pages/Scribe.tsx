@@ -3,7 +3,8 @@ import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame'
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, CodeBlock, Panel, Tooltip } from '../components/ui';
+import { Button, CodeBlock, DataList, Panel, Tooltip } from '../components/ui';
+import type { DataListItem } from '../components/ui';
 import { formatRelativeTime } from '../lib/format';
 import { t, useLocale } from '../lib/i18n';
 import { useToast } from '../lib/use-toast';
@@ -91,11 +92,23 @@ export default function Scribe() {
       {error && <ErrorPanel message={error} />}
       {status && (
         <Panel className="flex flex-col gap-1 p-3 text-sm">
-          <StatusRow label={t('scribe.row.running')} value={running ? t('scribe.value.yes') : t('scribe.value.no')} tone={running ? 'ok' : 'muted'} />
-          <StatusRow label={t('scribe.row.lastScan')} value={formatRelativeTime(status.lastScan)} />
-          <StatusRow label={t('scribe.row.scans')} value={String(status.scans ?? '-')} />
-          <StatusRow label={t('scribe.row.sessions')} value={String(status.sessions ?? '-')} />
-          <StatusRow label={t('scribe.row.contextPath')} value={status.contextPath || '-'} mono />
+          <DataList
+            items={[
+              {
+                id: 'running',
+                label: t('scribe.row.running'),
+                value: (
+                  <span className={running ? 'text-success' : 'text-muted-foreground'}>
+                    {running ? t('scribe.value.yes') : t('scribe.value.no')}
+                  </span>
+                ),
+              },
+              { id: 'lastScan', label: t('scribe.row.lastScan'), value: formatRelativeTime(status.lastScan) },
+              { id: 'scans', label: t('scribe.row.scans'), value: String(status.scans ?? '-') },
+              { id: 'sessions', label: t('scribe.row.sessions'), value: String(status.sessions ?? '-') },
+              { id: 'contextPath', label: t('scribe.row.contextPath'), value: status.contextPath || '-', copyValue: status.contextPath || undefined },
+            ] satisfies DataListItem[]}
+          />
         </Panel>
       )}
       <div>
@@ -125,14 +138,3 @@ export default function Scribe() {
   );
 }
 
-interface StatusRowProps { label: string; value: string; mono?: boolean; tone?: 'ok' | 'muted' }
-
-function StatusRow({ label, value, mono, tone }: StatusRowProps) {
-  const toneCls = tone === 'ok' ? 'text-success' : tone === 'muted' ? 'text-muted-foreground' : 'text-foreground';
-  return (
-    <div className="flex items-center justify-between gap-2 py-0.5">
-      <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
-      <span className={`${mono ? 'font-mono text-xs' : 'text-sm'} ${toneCls}`}>{value}</span>
-    </div>
-  );
-}
