@@ -253,11 +253,17 @@ describe('<Login>', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('swaps the LogIn icon to a Loader2 spinner when busy=true', () => {
+  it('swaps the LogIn icon to a spinning SVG ring when busy=true', () => {
     initialBusy = true;
     renderLogin();
     const btn = screen.getByRole('button', { name: /Signing in/ });
     expect(btn.querySelector('svg.animate-spin')).not.toBeNull();
+  });
+
+  it('renders the shared <Spinner> component (data-testid=login-spinner) when busy=true', () => {
+    initialBusy = true;
+    renderLogin();
+    expect(screen.getByTestId('login-spinner')).toBeInTheDocument();
   });
 
   // ---- error banner --------------------------------------------
