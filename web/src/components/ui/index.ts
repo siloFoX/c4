@@ -48,3 +48,4 @@ export * from './status-dot';
 export * from './tag-input';
 export * from './number-input';
 export * from './date-picker';
+export * from './breadcrumbs';
