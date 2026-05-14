@@ -1,4 +1,4 @@
-import { Badge, Button, Input } from './ui';
+import { Button, Chip, Input } from './ui';
 import { t, useLocale } from '../lib/i18n';
 import { useSpecialistTagEditor } from '../lib/use-specialist-tag-editor';
 
@@ -43,9 +43,9 @@ export default function SpecialistsTagEditor({ specialistId, tags, onSaved, onEr
         <div className="mt-1 flex flex-wrap gap-1">
           {Array.isArray(tags) && tags.length > 0
             ? tags.map((tag) => (
-                <Badge key={tag} variant="info" className="px-1.5 py-0 text-[10px]">
+                <Chip key={tag} tone="primary" className="px-1.5 py-0 text-[10px]">
                   #{tag}
-                </Badge>
+                </Chip>
               ))
             : <span className="text-[11px] text-muted-foreground italic">{t('specialists.tags.empty')}</span>}
         </div>

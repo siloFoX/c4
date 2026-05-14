@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.166] - 2026-05-14 -- UI: Chip primitive + 3 callsite swaps
+
+New `<Chip>` primitive in `web/src/components/ui/chip.tsx` (variant subtle/solid/outline, tone neutral/primary/success/warning/danger, size sm/md, optional leading icon + optional onDismiss X with aria-label, forwardRef). Adopted in SpecialistsTagEditor tag list, Templates source/model/effort/profile tags, RiskCheckResult level/action/wouldDeny/denyList badges.
+
 ## [1.11.165] - 2026-05-14 -- UI: Separator primitive + 5 callsite swaps
 
 New `<Separator>` primitive in `web/src/components/ui/separator.tsx` (horizontal/vertical, thin/thick, optional centered label, role=none|separator + aria-orientation). Adopted in markdown `<hr>`, SettingsView footer, ConversationView jump-to-latest footer, SessionsAttachedRowActions strip, WikiBulkPublishRow.
