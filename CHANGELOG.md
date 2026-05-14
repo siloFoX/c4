@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.203] - 2026-05-14 -- UI: Design System docs page (11.185)
+
+New `<DesignSystem>` page at `web/src/pages/DesignSystem.tsx` rendering live demos + variant matrices + JSX snippets for every UI primitive in `web/src/components/ui` (Button, Input, Textarea, Select, Switch, Chip, Badge, Card/Panel, Alert, EmptyState, StatCard, Tooltip, Popover, Dialog, DropdownMenu, DataList, Timeline, Stepper, Breadcrumbs, ScrollArea, FileTree, DatePicker/Range, Rating, NumberInput, SearchBar, TagInput, HScroll, Progress, Avatar/AvatarShape, Kbd, Separator). Missing primitives (e.g. Spinner) render a graceful placeholder. Registered as `feature.designSystem` (config category, Palette icon) so it appears in the Features sidebar. en/ko i18n keys added. See `docs/patches/11.185-ui-design-system-page.md`.
+
 ## [1.11.202] - 2026-05-14 -- UI: route progress bar (11.184)
 
 New `<RouteProgressBar>` component at `web/src/components/RouteProgressBar.tsx`. Slim 2px fixed top bar driven by a `transform: scaleX` fill, with NProgress-style trickle (jumps to 30%, then creeps with diminishing returns toward 90%) on start, snaps to 100% + fades out on done. Two control modes: `routeKey` prop auto-runs a start->done cycle on change (settle uses `requestIdleCallback` with a `setTimeout` fallback), and `forwardRef` exposes a `RouteProgressHandle` with imperative `start()` / `done()`. Honors `prefers-reduced-motion` via the existing `useReducedMotion` hook (skips trickle, briefly shows full + fades). Props: `routeKey`, `color` (`primary` | `success` | `info` | `danger`), `className`. Decorative (`aria-hidden='true'`). Mounted in `App.tsx` just below `AutonomousStatusBanner`, keyed off `topView` so top-level navigation always shows progress. See `docs/patches/11.184-ui-route-progress.md`.

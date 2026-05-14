@@ -1125,6 +1125,8 @@
   "feature.profiles.description": "Permission profiles — allow/deny matrix for worker scopes.",
   "feature.config.label": "Config",
   "feature.config.description": "Live daemon config (sans secrets); reload from disk.",
+  "feature.designSystem.label": "Design System",
+  "feature.designSystem.description": "Live demos of UI primitives with variant matrices and code snippets.",
   "feature.workspaces.label": "Workspaces",
   "feature.workspaces.description": "Multi-repo workspaces declared in config.workspaces.",
   "feature.rbac.label": "RBAC",

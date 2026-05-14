@@ -20,6 +20,7 @@ import {
   Layers3,
   ListChecks,
   ListOrdered,
+  Palette,
   Rocket,
   ScrollText,
   Shield,
@@ -192,6 +193,14 @@ export const FEATURES: FeatureDef[] = [
     category: 'config',
     Icon: ShieldCheck,
     load: () => import('./Rbac'),
+  },
+  {
+    id: 'design-system',
+    labelKey: 'feature.designSystem.label',
+    descriptionKey: 'feature.designSystem.description',
+    category: 'config',
+    Icon: Palette,
+    load: () => import('./DesignSystem'),
   },
   {
     id: 'health',
