@@ -3,7 +3,7 @@ import { RefreshCw } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, Input, Panel, Tooltip } from '../components/ui';
+import { Badge, Button, Panel, SearchBar, Tooltip } from '../components/ui';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
 import type { Worker } from '../types';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -33,12 +33,13 @@ export default function Validation() {
       actions={
         <>
           <Tooltip label={t('validation.tooltip.filter')}>
-            <Input
-              className="h-8 w-full sm:w-48"
+            <SearchBar
+              size="sm"
+              className="w-full sm:w-48"
               placeholder={t('validationPage.filter.placeholder')}
               value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              aria-label={t('validationPage.filter.label')}
+              onChange={setFilter}
+              ariaLabel={t('validationPage.filter.label')}
             />
           </Tooltip>
           <Tooltip label={t('validation.tooltip.refresh')}>

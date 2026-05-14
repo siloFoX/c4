@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, EmptyState, Fieldset, HeroCard, Input, Panel, Tooltip } from '../components/ui';
+import { Badge, Button, EmptyState, Fieldset, HeroCard, Panel, SearchBar, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -51,12 +51,13 @@ export default function Profiles() {
       actions={
         <>
           <Tooltip label={t('profiles.tooltip.filter')}>
-            <Input
-              className="h-8 w-full sm:w-48"
+            <SearchBar
+              size="sm"
+              className="w-full sm:w-48"
               placeholder={t('profilesPage.filter.placeholder')}
               value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              aria-label={t('profilesPage.filter.label')}
+              onChange={setFilter}
+              ariaLabel={t('profilesPage.filter.label')}
             />
           </Tooltip>
           <Tooltip label={t('profiles.tooltip.add')}>

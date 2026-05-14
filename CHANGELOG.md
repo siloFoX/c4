@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.180] - 2026-05-14 -- UI: SearchBar primitive + adoption (Templates / Profiles / Validation)
+
+New `<SearchBar>` primitive in `web/src/components/ui/search-bar.tsx` (controlled or uncontrolled; lucide-react Search left icon + X clear button; `type='search'` input wrapped in `role='search'`; `onChange` fires every keystroke and `onDebouncedChange` fires once after `debounceMs` (default 200) with initial-emit skip when `defaultValue` matches; props `value` / `defaultValue` / `onChange` / `onDebouncedChange` / `debounceMs` / `placeholder` / `size` (sm|md) / `disabled` / `ariaLabel` / `clearable` (default true) / `onClear` / `className` / `inputClassName`; controlled clear does NOT mutate internally - just `onChange('')` + `onClear`; `forwardRef` to the input). Adopted in `pages/Templates.tsx`, `pages/Profiles.tsx`, and `pages/Validation.tsx` filter rows.
+
 ## [1.11.179] - 2026-05-14 -- UI: Navbar primitive + AppHeader adoption
 
 New `<Navbar>` primitive in `web/src/components/ui/navbar.tsx` (semantic `<header role='banner'>` wrapping `<nav role='navigation' aria-label='Primary'>` with a three-column grid (brand auto / center 1fr / actions auto); props brand?/center?/actions?/sticky? default false/variant? plain|bordered|elevated default plain/className?/innerClassName?; sticky variant adds `sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60`; bordered adds `border-b border-border`; elevated adds `shadow-sm`; forwardRef to the header element). Adopted in `AppHeader` (variant='bordered' with className='rounded-none bg-card' to preserve the existing card-tinted surface; brand slot holds hamburger + logo + wordmark, center slot holds TopTabs, actions slot holds Help/Shortcuts/Language IconButtons plus the authed AccountMenu).
