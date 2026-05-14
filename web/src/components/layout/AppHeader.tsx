@@ -149,7 +149,7 @@ export default function AppHeader({
   return (
     <Navbar
       variant="bordered"
-      className="rounded-none bg-card no-print"
+      className="rounded-none bg-card no-print pt-safe-t pl-safe-l pr-safe-r min-h-[calc(3rem+env(safe-area-inset-top))]"
       data-print-hide
       brand={brand}
       center={center}
