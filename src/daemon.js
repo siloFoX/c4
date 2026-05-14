@@ -15,6 +15,7 @@ const auth = require('./auth');
 const wsAttach = require('./ws-attach');
 const daemonCheckpoint = require('./daemon-checkpoint');
 const queueEditor = require('./queue-editor');
+const snapshots = require('./snapshots');
 const historyView = require('./history-view');
 const recovery = require('./recovery');
 const fleet = require('./fleet');
@@ -3960,6 +3961,69 @@ async function handleRequest(req, res) {
       const out = queueEditor.handlePostQueueRequest({
         repoRoot: repoRootQueue,
         body,
+        actor: _auditActor(authCheck),
+        audit: _safeAudit,
+      });
+      res.writeHead(out.status);
+      res.end(JSON.stringify(out.body));
+      return;
+
+    } else if (req.method === 'GET' && route === '/snapshots') {
+      // (11.189) List saved snapshots from <repoRoot>/.c4/snapshots/.
+      // Returns metadata only (no inline config/queue) so the UI can
+      // render a list view without fetching every blob.
+      const cfgSnap = manager.getConfig() || {};
+      const repoRootSnap = (cfgSnap.worktree && cfgSnap.worktree.projectRoot) || process.cwd();
+      const out = snapshots.listSnapshots({ repoRoot: repoRootSnap });
+      res.writeHead(out.status);
+      res.end(JSON.stringify(out.body));
+      return;
+
+    } else if (req.method === 'POST' && route === '/snapshots') {
+      // (11.189) Take a snapshot of the current config + queue.
+      const gate = requireRole(authCheck, rbac.ACTIONS.CONFIG_RELOAD);
+      if (denyOr(res, gate)) return;
+      const body = await parseBody(req);
+      if (_validateOrFail('POST', '/snapshots', body, res, cfg)) return;
+      const cfgSnap = manager.getConfig() || {};
+      const repoRootSnap = (cfgSnap.worktree && cfgSnap.worktree.projectRoot) || process.cwd();
+      const out = snapshots.createSnapshot({
+        repoRoot: repoRootSnap,
+        body,
+        actor: _auditActor(authCheck),
+        audit: _safeAudit,
+      });
+      res.writeHead(out.status);
+      res.end(JSON.stringify(out.body));
+      return;
+
+    } else if (req.method === 'POST' && route.startsWith('/snapshots/') && route.endsWith('/restore')) {
+      // (11.189) Restore a saved snapshot.
+      const gate = requireRole(authCheck, rbac.ACTIONS.CONFIG_RELOAD);
+      if (denyOr(res, gate)) return;
+      const id = route.slice('/snapshots/'.length, route.length - '/restore'.length);
+      const cfgSnap = manager.getConfig() || {};
+      const repoRootSnap = (cfgSnap.worktree && cfgSnap.worktree.projectRoot) || process.cwd();
+      const out = snapshots.restoreSnapshot({
+        repoRoot: repoRootSnap,
+        id,
+        actor: _auditActor(authCheck),
+        audit: _safeAudit,
+      });
+      res.writeHead(out.status);
+      res.end(JSON.stringify(out.body));
+      return;
+
+    } else if (req.method === 'DELETE' && route.startsWith('/snapshots/')) {
+      // (11.189) Delete a saved snapshot.
+      const gate = requireRole(authCheck, rbac.ACTIONS.CONFIG_RELOAD);
+      if (denyOr(res, gate)) return;
+      const id = route.slice('/snapshots/'.length);
+      const cfgSnap = manager.getConfig() || {};
+      const repoRootSnap = (cfgSnap.worktree && cfgSnap.worktree.projectRoot) || process.cwd();
+      const out = snapshots.deleteSnapshot({
+        repoRoot: repoRootSnap,
+        id,
         actor: _auditActor(authCheck),
         audit: _safeAudit,
       });
