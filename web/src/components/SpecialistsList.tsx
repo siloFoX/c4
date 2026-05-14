@@ -72,10 +72,10 @@ export default function SpecialistsList({
                 {s.tier}
               </span>
               {s.vetoPower ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/40 bg-rose-500/10 px-1.5 py-0 text-[10px] text-rose-600 dark:text-rose-400">
+                <Badge variant="error" className="gap-1 px-1.5 py-0 text-[10px]">
                   <Shield className="h-2.5 w-2.5" aria-hidden />
                   veto
-                </span>
+                </Badge>
               ) : null}
               {s.probation === 'probation' ? (
                 <Badge variant="outline" className="text-[10px]">{t('specialists.badge.probation')}</Badge>
@@ -106,12 +106,13 @@ export default function SpecialistsList({
             {Array.isArray(s.tags) && s.tags.length > 0 ? (
               <div className="flex flex-wrap gap-0.5">
                 {s.tags.slice(0, 4).map((tag) => (
-                  <span
+                  <Badge
                     key={tag}
-                    className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-1 py-0 text-[9px] text-cyan-700 dark:text-cyan-400"
+                    variant="info"
+                    className="px-1 py-0 text-[9px]"
                   >
                     #{tag}
-                  </span>
+                  </Badge>
                 ))}
                 {s.tags.length > 4 ? (
                   <span className="text-[9px] text-muted-foreground">+{s.tags.length - 4}</span>

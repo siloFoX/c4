@@ -4,6 +4,77 @@
 
 (no entries -- next release window)
 
+## [1.11.144] - 2026-05-14 -- Web: Badge semantic-variant audit + ad-hoc colour-chip migration
+
+The Badge primitive in `web/src/components/ui/badge.tsx` was the
+canonical semantic colour vocabulary for the web UI, but the
+five-tone set (`success / warning / error / info / neutral`) was
+never fully spelled out -- `error` and `neutral` were missing, so
+several callsites reached for inline `bg-rose-500/10` /
+`bg-cyan-500/10` / `bg-emerald-500/20` spans instead. This release
+completes the set and migrates eight first-class callsites to the
+shared variants so future colour-token tweaks land in one place
+rather than across a dozen `<span>` className strings.
+
+What changed:
+
+1. **`ui/badge.tsx` -- two new variants**:
+   - `error: bg-destructive text-destructive-foreground` (alias of
+     `destructive` semantics, but with the more intuitive name when
+     the call-site is already thinking in success/warning/error
+     terms).
+   - `neutral: bg-muted text-muted-foreground` (the "no opinion"
+     tone -- chip exists, but does not encode state).
+   Existing variants (`default / secondary / destructive / outline
+   / success / warning / info`) all keep working unchanged.
+   `badge.test.tsx` gains coverage for `info`, `error`, and
+   `neutral`; the existing success/warning/destructive cases stay
+   in place.
+
+2. **Eight ad-hoc badge-like spans migrated to `<Badge>`**:
+   - `SpecialistsTagEditor` tag chip  -> `variant="info"`
+   - `SpecialistsList` veto chip      -> `variant="error"`
+   - `SpecialistsList` tag chip       -> `variant="info"`
+   - `MeetingsList` fork-of chip      -> `variant="info"`
+   - `ErrorBoundary` `Copied` chip    -> `variant="success"`
+   - `RiskCheckResult` level badge    -> `LEVEL_VARIANT[level]`
+   - `RiskCheckResult` action badge   -> `ACTION_VARIANT[action]`
+   - `RiskRuleCatalogPanel` severity  -> `LEVEL_VARIANT[lv]`
+
+3. **`pages/Risk` -- LEVEL_TONE/ACTION_TONE replaced**. The two
+   exported class-string maps consumed by `RiskCheckResult` (and
+   `RiskRuleCatalogPanel` via a private copy) are now exported as
+   `LEVEL_VARIANT` / `ACTION_VARIANT` typed `BadgeVariant` maps.
+   The four-step severity scale folds onto the five-variant Badge
+   vocabulary as `critical/high -> error`, `medium -> warning`,
+   `low -> success`. The previous orange-vs-red distinction
+   between `high` and `critical` is lost in favour of consistent
+   design-system tokens -- both still read as "do not proceed",
+   which is the actionable signal.
+
+4. **`RiskStatsGrid` -- local `LEVEL_TEXT` map**. The per-level
+   stat number was reading the second whitespace-separated token
+   out of the now-removed `LEVEL_TONE` string. Replaced with an
+   explicit `LEVEL_TEXT` record (`text-success` / `text-warning`
+   / `text-destructive`). The matching unit test assertion was
+   updated from `/text-orange-700/` to `/text-destructive/` to
+   match the new `high` tone.
+
+5. **Category-colour maps left intentionally alone**. The
+   `TIER_BADGE` map in `SpecialistsView` (7 specialist tiers) and
+   the `tone` map in `SpecialistsAuditPanel` (6 audit-event kinds)
+   both use distinct hue rotations to differentiate categories
+   rather than to encode state. Collapsing those onto the
+   5-variant semantic palette would lose information, so they
+   stay on their existing class strings.
+
+Scope: `web/src/components/ui/badge.tsx`,
+`web/src/components/ui/badge.test.tsx`, eight callsite files +
+`RiskStatsGrid.tsx` + `RiskStatsGrid.test.tsx` (one assertion),
+`web/package.json` (1.11.143 -> 1.11.144), and this CHANGELOG
+entry. No ARPS design-system files, no
+`docs/autonomous-queue-v10.md`, no new npm deps.
+
 ## [1.11.143] - 2026-05-14 -- Web: Add optional `interactive` prop to ui/Card (hover-lift, active-press, focus ring) + adopt at WorkerList rows
 
 Card has been a static container primitive since it landed. Several

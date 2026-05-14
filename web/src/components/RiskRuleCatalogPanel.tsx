@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Input, Panel } from './ui';
-import { cn } from '../lib/cn';
+import { Badge, Input, Panel } from './ui';
+import type { BadgeVariant } from './ui/badge';
 import { t, useLocale } from '../lib/i18n';
 import { useToggle } from '../lib/use-toggle';
 import { useLazyRiskPatterns } from '../lib/use-lazy-risk-patterns';
@@ -10,12 +10,16 @@ import { useLazyRiskPatterns } from '../lib/use-lazy-risk-patterns';
 // first open (payload can be sizeable) and shows builtin
 // pattern counts + a filtered list per severity.
 // (v1.10.727) Lazy patterns fetch + state moved to lib/use-lazy-risk-patterns.
+// (v1.11.144) Per-level chip switched from inline class map to
+// the shared Badge semantic variants — high/critical fold to
+// 'error' (the orange/red distinction is dropped in favour of
+// the design-system tokens).
 
-const LEVEL_TONE: Record<'critical' | 'high' | 'medium' | 'low', string> = {
-  low: 'bg-success/10 text-success border-success/40',
-  medium: 'bg-warning/10 text-warning border-warning/40',
-  high: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/40',
-  critical: 'bg-destructive/10 text-destructive border-destructive/40',
+const LEVEL_VARIANT: Record<'critical' | 'high' | 'medium' | 'low', BadgeVariant> = {
+  low: 'success',
+  medium: 'warning',
+  high: 'error',
+  critical: 'error',
 };
 
 export default function RiskRuleCatalogPanel() {
@@ -64,9 +68,9 @@ export default function RiskRuleCatalogPanel() {
               if (items.length === 0) return null;
               return (
                 <div key={lv}>
-                  <div className={cn('mb-1 inline-block rounded border px-1.5 py-0 text-[10px] uppercase tracking-wide', LEVEL_TONE[lv])}>
+                  <Badge variant={LEVEL_VARIANT[lv]} className="mb-1 px-1.5 py-0 text-[10px] uppercase tracking-wide">
                     {lv} · {items.length}
-                  </div>
+                  </Badge>
                   <ul className="space-y-0.5 pl-3 text-[11px]">
                     {items.map((p) => (
                       <li key={p.code}>

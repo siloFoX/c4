@@ -135,7 +135,7 @@ describe('<RiskStatsGrid>', () => {
     expect(critCell.textContent).toBe('4');
     expect(critCell.className).toMatch(/text-destructive/);
     const highCell = screen.getByText('high').nextElementSibling as HTMLElement;
-    expect(highCell.className).toMatch(/text-orange-700/);
+    expect(highCell.className).toMatch(/text-destructive/);
     const medCell = screen.getByText('medium').nextElementSibling as HTMLElement;
     expect(medCell.className).toMatch(/text-warning/);
     const lowCell = screen.getByText('low').nextElementSibling as HTMLElement;

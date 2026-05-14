@@ -80,12 +80,13 @@ export default function MeetingsList({
                 {m.track}
               </Badge>
               {m.forkOf ? (
-                <span
-                  className="inline-flex items-center rounded-full border border-purple-500/40 bg-purple-500/10 px-1.5 py-0 text-[10px] text-purple-700 dark:text-purple-400"
+                <Badge
+                  variant="info"
+                  className="px-1.5 py-0 text-[10px]"
                   title={tFormat('meetings.tooltip.forkedFrom', { parent: m.forkOf })}
                 >
                   ← {m.forkOf.slice(0, 8)}
-                </span>
+                </Badge>
               ) : null}
               <span className="text-[10px] text-muted-foreground">
                 {formatRelative(m.startedAt || m.createdAt)}

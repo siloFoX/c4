@@ -1,9 +1,8 @@
 import { Badge } from './ui';
-import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import {
-  ACTION_TONE,
-  LEVEL_TONE,
+  ACTION_VARIANT,
+  LEVEL_VARIANT,
   type CheckResponse,
 } from '../pages/Risk';
 
@@ -22,10 +21,10 @@ export default function RiskCheckResult({ result }: Props) {
   return (
     <div className="mt-3 flex flex-col gap-2 rounded-md border border-border bg-muted/10 p-3 text-[12px]">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge className={cn('uppercase', LEVEL_TONE[result.level])}>
+        <Badge variant={LEVEL_VARIANT[result.level]} className="uppercase">
           {result.level}
         </Badge>
-        <Badge className={cn('uppercase', ACTION_TONE[result.suggestedAction])}>
+        <Badge variant={ACTION_VARIANT[result.suggestedAction]} className="uppercase">
           {result.suggestedAction}
         </Badge>
         {result.wouldDeny ? (
