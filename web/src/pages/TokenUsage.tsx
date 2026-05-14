@@ -3,7 +3,7 @@ import { RefreshCw } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, ExportButton, Pagination, Panel, Switch, Table, Tooltip } from '../components/ui';
+import { Badge, Button, ColumnPicker, ExportButton, Pagination, Panel, Switch, Table, Tooltip } from '../components/ui';
 import type { TableColumn } from '../components/ui';
 import { useTokenUsage } from '../lib/use-token-usage';
 import { useTokenUsageBreakdowns, coerceTotal } from '../lib/use-token-usage-breakdowns';
@@ -218,6 +218,8 @@ interface PerTaskTableProps {
   onPageChange: (page: number) => void;
 }
 
+const PER_TASK_COLUMN_IDS = ['worker', 'task', 'total', 'input', 'output'] as const;
+
 function PerTaskTable({ rows, page, onPageChange }: PerTaskTableProps) {
   const totalPages = Math.max(1, Math.ceil(rows.length / PER_TASK_PAGE_SIZE));
   useEffect(() => {
@@ -227,7 +229,10 @@ function PerTaskTable({ rows, page, onPageChange }: PerTaskTableProps) {
     (page - 1) * PER_TASK_PAGE_SIZE,
     page * PER_TASK_PAGE_SIZE,
   );
-  const columns: TableColumn<PerTaskRow>[] = [
+  const [visibleCols, setVisibleCols] = useState<string[]>(
+    () => [...PER_TASK_COLUMN_IDS],
+  );
+  const allColumns: TableColumn<PerTaskRow>[] = [
     {
       key: 'worker',
       label: t('tokenUsagePage.tableHeader.worker'),
@@ -259,11 +264,27 @@ function PerTaskTable({ rows, page, onPageChange }: PerTaskTableProps) {
       render: (e) => formatNumber(e.output),
     },
   ];
+  const visibleSet = new Set(visibleCols);
+  const columns = allColumns.filter((c) => visibleSet.has(String(c.key)));
   return (
     <Panel
       title={tFormat('tokenUsagePage.perTaskHeading', { n: String(rows.length) })}
       className="p-3 text-xs"
     >
+      <div className="mb-2 flex justify-end">
+        <ColumnPicker
+          columns={[
+            { id: 'worker', label: t('tokenUsagePage.tableHeader.worker'), alwaysVisible: true },
+            { id: 'task', label: t('tokenUsagePage.tableHeader.task') },
+            { id: 'total', label: t('tokenUsagePage.tableHeader.total') },
+            { id: 'input', label: t('tokenUsagePage.tableHeader.input') },
+            { id: 'output', label: t('tokenUsagePage.tableHeader.output') },
+          ]}
+          value={visibleCols}
+          onChange={setVisibleCols}
+          storageKey="c4:token-usage:columns"
+        />
+      </div>
       <div className="max-h-64 overflow-y-auto">
         <Table<PerTaskRow>
           columns={columns}
