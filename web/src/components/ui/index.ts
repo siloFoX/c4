@@ -15,3 +15,4 @@ export * from './dialog';
 export * from './pagination';
 export * from './radio';
 export * from './checkbox';
+export * from './tabs';
