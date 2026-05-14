@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.205] - 2026-05-14 -- UI: Keyboard Map page (11.187)
+
+New `<KeyboardMap>` page at `web/src/pages/KeyboardMap.tsx` rendering the full reference of every keyboard binding wired into the web UI. Pulls `SHORTCUT_ROWS` from `KeyboardShortcutsModal.tsx` and extends with Drawer/Dialog/CommandPalette/editing/global bindings not surfaced in the compact modal (Escape close, Ctrl+K palette, Tab cycle, Ctrl+] detach, Ctrl+C/V/Z/Shift+Z editing). Grouped into six sections (Navigation / Actions / View / Editing / Global / Custom) with `<Kbd>` combos + labels. Top `<SearchBar>` debounced-filters by label or key combo (case-insensitive); empty state uses `<EmptyState>` with the `KeyboardOff` lucide icon. Registered as `feature.keyboardMap` (config category, Keyboard icon). en/ko i18n keys added. See `docs/patches/11.187-ui-keyboard-map-page.md`.
+
 ## [1.11.204] - 2026-05-14 -- UI: Notifications feed page (11.186)
 
 New `<Notifications>` page at `web/src/pages/Notifications.tsx` rendering the unified lifecycle feed (dispatch/complete/halt/escalation/system) with chip-based type filters, day-grouped `<Timeline>`, `<EmptyState>` fallback (BellOff icon), `Mark all read` header action, and a `Load more` pagination placeholder (50 items default). Fetches `/api/notifications` with a try/catch fallback to 20 inline mock items spanning the last 7 days; a `sample data` badge surfaces when mocks are used. Registered as `feature.notifications` (diagnostics category, Bell icon). en/ko i18n keys added. See `docs/patches/11.186-ui-notifications-page.md`.
