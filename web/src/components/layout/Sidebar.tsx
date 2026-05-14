@@ -4,7 +4,7 @@ import { useEffectiveCollapsed } from '../../lib/use-effective-collapsed';
 import { cn } from '../../lib/cn';
 import { t, useLocale } from '../../lib/i18n';
 import type { ThemeMode } from '../../lib/preferences';
-import { IconButton, Tooltip } from '../ui';
+import { IconButton, Kbd, Tooltip } from '../ui';
 import AccountMenu from '../AccountMenu';
 import HierarchyTree from '../HierarchyTree';
 import WorkerList from '../WorkerList';
@@ -130,7 +130,16 @@ export default function Sidebar({
           ) : null}
           {onToggleCollapsed ? (
             <Tooltip
-              label={`${collapsed ? t('sidebar.expand') : t('sidebar.collapse')} (Ctrl+B / Ctrl+\\)`}
+              label={
+                <span className="inline-flex items-center gap-1">
+                  <span>
+                    {collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
+                  </span>
+                  <Kbd keys={['Ctrl', 'B']} />
+                  <span aria-hidden="true">/</span>
+                  <Kbd keys={['Ctrl', '\\']} />
+                </span>
+              }
               placement="bottom"
             >
               <IconButton

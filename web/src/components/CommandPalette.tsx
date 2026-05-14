@@ -8,7 +8,7 @@ import {
 } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
 import { Search } from 'lucide-react';
-import { EmptyState } from './ui';
+import { EmptyState, Kbd } from './ui';
 import { cn } from '../lib/cn';
 import { useEscapeToClose } from '../lib/use-escape-to-close';
 import {
@@ -309,12 +309,12 @@ export default function CommandPalette({
                         {highlightLabel(cmd.label, query)}
                       </span>
                       {cmd.shortcut ? (
-                        <kbd
+                        <Kbd
                           data-command-shortcut
-                          className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground"
+                          className="border-border py-0.5"
                         >
                           {cmd.shortcut}
-                        </kbd>
+                        </Kbd>
                       ) : null}
                     </button>
                   );

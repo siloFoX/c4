@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { Search, X } from 'lucide-react';
-import { Button, IconButton, Input } from './ui';
+import { Button, IconButton, Input, Kbd } from './ui';
 import { cn } from '../lib/cn';
 import { FEATURES, findFeature, type FeatureDef } from '../pages/registry';
 import { t, tList, useLocale } from '../lib/i18n';
@@ -205,7 +205,10 @@ export function HelpDrawer({ open, onClose, activeFeatureId }: HelpDrawerProps) 
           )}
         </div>
         <footer className="flex items-center justify-between border-t border-border px-4 py-2 text-xs text-muted-foreground">
-          <span>{t('help.shortcutHint')}</span>
+          <span className="inline-flex items-center gap-1">
+            <Kbd>?</Kbd>
+            <span>{t('help.shortcutHint')}</span>
+          </span>
           <Button type="button" variant="ghost" size="sm" onClick={onClose}>
             {t('common.close')}
           </Button>

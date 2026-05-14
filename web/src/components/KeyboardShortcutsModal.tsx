@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { Dialog, IconButton } from './ui';
+import { Dialog, IconButton, Kbd } from './ui';
 import { t, useLocale } from '../lib/i18n';
 
 interface KeyboardShortcutsModalProps {
@@ -52,9 +52,9 @@ export function KeyboardShortcutsModal({
             {SHORTCUT_ROWS.map((row) => (
               <tr key={`${row.keys}-${row.descriptionKey}`} className="align-middle">
                 <td className="w-32 py-1 pr-2">
-                  <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
+                  <Kbd className="border-border py-0.5 text-foreground">
                     {row.keys}
-                  </kbd>
+                  </Kbd>
                 </td>
                 <td className="py-1 text-muted-foreground">
                   {t(row.descriptionKey)}
