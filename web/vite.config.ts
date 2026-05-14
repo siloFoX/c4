@@ -26,13 +26,11 @@ export default defineConfig({
   test: {
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html', 'lcov'],
-      include: ['src/**/*.{ts,tsx,js,jsx}'],
-      exclude: [
-        'src/**/*.{test,spec}.{ts,tsx,js,jsx}',
-        'src/test/**',
-        'src/main.tsx',
-      ],
+      reporter: ['text', 'json-summary', 'json'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/**/*.test.{ts,tsx}', 'src/test/**', 'src/**/*.d.ts'],
+      reportOnFailure: true,
     },
     // Two projects:
     //   - unit:    jsdom + RTL + MSW. Fast, headless, no chromium.
