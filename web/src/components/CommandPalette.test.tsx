@@ -17,6 +17,9 @@ beforeEach(() => {
   setLocale('en');
   // Reset hash so feature-id navigation tests don't bleed.
   window.history.replaceState(null, '', window.location.pathname);
+  // Recent-command storage (cmdk:recent) is per-jsdom; clear it so a
+  // case that seeds recents does not bleed into the next one.
+  window.localStorage.clear();
 });
 
 describe('<CommandPalette> trigger via HelpUIRoot', () => {
@@ -234,5 +237,212 @@ describe('<CommandPalette> open lifecycle', () => {
       await Promise.resolve();
     });
     expect(reopened.value).toBe('');
+  });
+});
+
+describe('<CommandPalette> recent commands', () => {
+  it('renders Recent as the top section when query is empty and the localStorage seed has entries', () => {
+    window.localStorage.setItem(
+      'cmdk:recent',
+      JSON.stringify(['queue:tick', 'workers:list']),
+    );
+    const { container } = render(
+      <CommandPalette open onClose={() => {}} />,
+    );
+    const headers = Array.from(
+      container.querySelectorAll('[data-section-header]'),
+    ).map((el) => el.textContent || '');
+    expect(headers[0]).toBe('Recent');
+    expect(headers).toContain('Navigate');
+    expect(headers).toContain('Workers');
+    expect(headers).toContain('Queue');
+  });
+
+  it('Recent ranking respects the localStorage seed order (MRU first)', () => {
+    window.localStorage.setItem(
+      'cmdk:recent',
+      JSON.stringify(['workers:list', 'queue:tick']),
+    );
+    const { container } = render(
+      <CommandPalette open onClose={() => {}} />,
+    );
+    const recentSection = container.querySelector('[data-section="Recent"]');
+    expect(recentSection).not.toBeNull();
+    const ids = Array.from(
+      recentSection!.querySelectorAll('[data-command-id]'),
+    ).map((el) => el.getAttribute('data-command-id') || '');
+    expect(ids).toEqual(['workers:list', 'queue:tick']);
+  });
+
+  it('omits the Recent section entirely when no recents are stored', () => {
+    const { container } = render(
+      <CommandPalette open onClose={() => {}} />,
+    );
+    const headers = Array.from(
+      container.querySelectorAll('[data-section-header]'),
+    ).map((el) => el.textContent || '');
+    expect(headers).not.toContain('Recent');
+  });
+
+  it('drops Recent IDs that do not exist in the catalog', () => {
+    window.localStorage.setItem(
+      'cmdk:recent',
+      JSON.stringify(['does:not:exist', 'queue:tick']),
+    );
+    const { container } = render(
+      <CommandPalette open onClose={() => {}} />,
+    );
+    const recentSection = container.querySelector('[data-section="Recent"]');
+    expect(recentSection).not.toBeNull();
+    const ids = Array.from(
+      recentSection!.querySelectorAll('[data-command-id]'),
+    ).map((el) => el.getAttribute('data-command-id') || '');
+    expect(ids).toEqual(['queue:tick']);
+  });
+
+  it('persists the last selected command id to localStorage on click', async () => {
+    const onClose = vi.fn();
+    const run = vi.fn();
+    const X = () => null;
+    render(
+      <CommandPalette
+        open
+        onClose={onClose}
+        commands={[
+          {
+            id: 'custom:remembered',
+            label: 'Remember me',
+            section: 'Navigate',
+            Icon: X,
+            run,
+          },
+        ]}
+      />,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('option', { name: /Remember me/ }));
+    const raw = window.localStorage.getItem('cmdk:recent');
+    expect(raw).not.toBeNull();
+    const parsed = JSON.parse(raw || '[]');
+    expect(parsed[0]).toBe('custom:remembered');
+  });
+});
+
+describe('<CommandPalette> shortcut chip', () => {
+  it('renders a <kbd> with bg-muted styling for commands that declare a shortcut', () => {
+    const X = () => null;
+    render(
+      <CommandPalette
+        open
+        onClose={() => {}}
+        commands={[
+          {
+            id: 'with:shortcut',
+            label: 'Command with shortcut',
+            section: 'Navigate',
+            Icon: X,
+            shortcut: 'K',
+            run: () => {},
+          },
+        ]}
+      />,
+    );
+    const option = screen.getByRole('option', {
+      name: /Command with shortcut/,
+    });
+    const kbd = option.querySelector('kbd');
+    expect(kbd).not.toBeNull();
+    expect(kbd?.textContent).toBe('K');
+    expect(kbd?.className).toMatch(/text-xs/);
+    expect(kbd?.className).toMatch(/rounded/);
+    expect(kbd?.className).toMatch(/border/);
+    expect(kbd?.className).toMatch(/bg-muted/);
+  });
+
+  it('omits the <kbd> chip for commands without a shortcut', () => {
+    const X = () => null;
+    render(
+      <CommandPalette
+        open
+        onClose={() => {}}
+        commands={[
+          {
+            id: 'no:shortcut',
+            label: 'Plain command',
+            section: 'Navigate',
+            Icon: X,
+            run: () => {},
+          },
+        ]}
+      />,
+    );
+    const option = screen.getByRole('option', { name: /Plain command/ });
+    expect(option.querySelector('kbd')).toBeNull();
+  });
+});
+
+describe('<CommandPalette> match highlighting', () => {
+  it('wraps a contiguous substring match in <span class="font-semibold"> (case-insensitive)', async () => {
+    render(<CommandPalette open onClose={() => {}} />);
+    const user = userEvent.setup();
+    const input = screen.getByLabelText('Search commands');
+    await user.type(input, 'tic');
+    const dialog = screen.getByRole('dialog', { name: 'Command palette' });
+    const options = within(dialog).getAllByRole('option');
+    const tick = options.find((o) =>
+      /tick/i.test(o.getAttribute('data-command-id') || ''),
+    );
+    expect(tick).toBeDefined();
+    const bolded = tick!.querySelector('span.font-semibold');
+    expect(bolded).not.toBeNull();
+    expect(bolded?.textContent?.toLowerCase()).toBe('tic');
+  });
+
+  it('bolds each matched character individually for a non-contiguous acronym match', async () => {
+    const X = () => null;
+    render(
+      <CommandPalette
+        open
+        onClose={() => {}}
+        commands={[
+          {
+            id: 'acro:test',
+            label: 'Token usage',
+            section: 'Navigate',
+            Icon: X,
+            run: () => {},
+          },
+        ]}
+      />,
+    );
+    const user = userEvent.setup();
+    const input = screen.getByLabelText('Search commands');
+    await user.type(input, 'tu');
+    const option = screen.getByRole('option', { name: /Token usage/ });
+    const bolds = option.querySelectorAll('span.font-semibold');
+    expect(bolds.length).toBe(2);
+    expect(bolds[0]?.textContent?.toLowerCase()).toBe('t');
+    expect(bolds[1]?.textContent?.toLowerCase()).toBe('u');
+  });
+
+  it('does not wrap anything when the query is empty', () => {
+    const X = () => null;
+    render(
+      <CommandPalette
+        open
+        onClose={() => {}}
+        commands={[
+          {
+            id: 'plain:label',
+            label: 'Untouched label',
+            section: 'Navigate',
+            Icon: X,
+            run: () => {},
+          },
+        ]}
+      />,
+    );
+    const option = screen.getByRole('option', { name: /Untouched label/ });
+    expect(option.querySelector('span.font-semibold')).toBeNull();
   });
 });
