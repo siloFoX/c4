@@ -15,6 +15,7 @@ import {
   Panel,
   Popover,
   Rating,
+  StatusDot,
   Tooltip,
 } from '../components/ui';
 import type { DataListItem } from '../components/ui';
@@ -112,6 +113,11 @@ export default function Health() {
       {data && (
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
+            <StatusDot
+              variant={ok ? 'online' : 'offline'}
+              size="md"
+              pulse={ok}
+            />
             <Badge variant={ok ? 'default' : 'outline'} className="uppercase">
               {ok ? t('healthPage.status.healthy') : t('healthPage.status.degraded')}
             </Badge>
