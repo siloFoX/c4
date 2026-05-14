@@ -33,3 +33,4 @@ export * from './file-input';
 export * from './fieldset';
 export * from './dashboard-grid';
 export * from './h-scroll';
+export * from './stepper';

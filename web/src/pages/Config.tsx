@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { RefreshCw, Cog } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
-import { Button, CodeBlock, FileInput, Input, Panel } from '../components/ui';
+import { Button, CodeBlock, FileInput, Input, Panel, Stepper } from '../components/ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
@@ -145,7 +145,26 @@ export default function Config() {
         )}
       </Panel>
       <ImportConfigSection />
+      <DispatchLifecycleDemo />
     </PageFrame>
+  );
+}
+
+function DispatchLifecycleDemo() {
+  const steps = [
+    { id: 'dispatch', label: 'Dispatch', description: 'Manager sends task to worker' },
+    { id: 'work', label: 'Work', description: 'Worker implements + commits' },
+    { id: 'verify', label: 'Verify', description: 'Tests + lint + review' },
+    { id: 'merge', label: 'Merge', description: 'Branch lands on main' },
+    { id: 'complete', label: 'Complete', description: 'Queue row marked done' },
+  ];
+  return (
+    <Panel className="mt-3 p-3">
+      <h3 className={cn('mb-3 text-foreground', text.h3)}>
+        Dispatch lifecycle
+      </h3>
+      <Stepper steps={steps} currentIndex={1} orientation="horizontal" size="sm" />
+    </Panel>
   );
 }
 

@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.172] - 2026-05-14 -- UI: Stepper multi-step wizard primitive + 2 adoption sites
+
+New `<Stepper>` primitive in `web/src/components/ui/stepper.tsx` (props steps/currentIndex/orientation/onStepClick/allowFuture/size/className, numbered circular badge per step with state-driven color complete=bg-primary+Check / current=bg-primary+ring / pending=bg-muted, connector line solid-primary between completed steps else muted, last step omits trailing connector, vertical orientation renders description text under label, aria role=list/listitem with aria-current='step' on the current row, optional onStepClick gated by allowFuture, forwardRef to root ol). Adopted in Plan page (planning flow stages: Select worker -> Describe task -> Dispatch plan -> View plan) and Config page dispatch-lifecycle demo block (dispatch -> work -> verify -> merge -> complete).
+
 ## [1.11.171] - 2026-05-14 -- UI: HScroll horizontal-list primitive + 3 adoption sites
 
 New `<HScroll>` primitive in `web/src/components/ui/h-scroll.tsx` (flex overflow-x scroll container with optional `snap-x snap-mandatory` + `snap-start` on `data-h-scroll-item` children, optional hover-revealed left/right arrow buttons that scrollBy 80% of clientWidth via `scrollBy({ behavior: 'smooth' })`, gap sm/md/lg -> gap-2/gap-3/gap-4, imperative ref handle `HScrollHandle` exposing `scrollToIndex(i)` / `scrollToEl(el)` via `scrollIntoView({ block: 'nearest', inline: 'center' })`). Adopted in WorkerList badges row (unread/intervention), SpecialistsTagEditor tag chip list, HistoryDetailPane per-record metadata row (branch + timestamps).
