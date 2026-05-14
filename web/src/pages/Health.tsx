@@ -110,7 +110,11 @@ export default function Health() {
           </div>
 
           {Array.isArray(data.modules) && data.modules.length > 0 ? (
-            <Panel title={tFormat('healthPage.modules.loaded', { n: String(data.modules.length) })} className="p-3 text-xs">
+            <Panel
+              title={tFormat('healthPage.modules.loaded', { n: String(data.modules.length) })}
+              description="Modules currently registered in the daemon's runtime — sub-systems reporting health back to /api/health."
+              className="p-3 text-xs"
+            >
               <ul className="grid grid-cols-1 gap-0.5 font-mono sm:grid-cols-2 lg:grid-cols-3">
                 {data.modules.map((m) => (
                   <li key={m} className="truncate text-muted-foreground">{m}</li>

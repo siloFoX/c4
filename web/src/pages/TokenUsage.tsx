@@ -114,7 +114,11 @@ export default function TokenUsage() {
             </div>
           </Panel>
 
-          <Panel title={tFormat('tokenUsagePage.byWorker', { n: String(perWorker.length) })} className="p-3">
+          <Panel
+            title={tFormat('tokenUsagePage.byWorker', { n: String(perWorker.length) })}
+            description={`Aggregated token totals per worker over the last ${days} day${days === 1 ? '' : 's'}.`}
+            className="p-3"
+          >
             {perWorker.length === 0 ? (
               <EmptyPanel message={t('tokenUsage.empty')} />
             ) : (
