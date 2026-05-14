@@ -42,3 +42,4 @@ export * from './navbar';
 export * from './search-bar';
 export * from './rating';
 export * from './image';
+export * from './list-item';
