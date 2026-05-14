@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.140] - 2026-05-14 -- Web: Adopt hero illustrations on 5 empty-state pages
+
+Five pages with text-only empty states now surface the v1.11.84
+hero illustration set above the existing copy: Profiles + Templates
+(`EmptyQueueIllustration`, list/inbox feel), Workspaces
+(`WelcomeOnboardingIllustration`, first-load onboarding feel),
+Swarm (`NoWorkersIllustration`, vacant workstation matches "no
+swarm data"), and Cleanup (`AllDoneIllustration`, nothing to
+clean reads as a success state). Each page swaps the
+`EmptyPanel`/inline-div empty branch for the
+`EmptyState` ui primitive, with the illustration in the `icon`
+slot and the existing `t('<page>.empty')` string as the
+`title` -- no copy changes, no new locale keys, no changes to
+`illustrations/index.tsx`.
+
+What changed:
+
+1. **Page swaps** -- `web/src/pages/Profiles.tsx`,
+   `Templates.tsx`, `Workspaces.tsx`, `Swarm.tsx`, and
+   `Cleanup.tsx` import the matching illustration and
+   `EmptyState` from `../components/ui`. The illustration is
+   wrapped in a `<span data-testid="<page>-empty-illustration">`
+   so the test files can assert SVG presence without breaking
+   the existing `getByText(/<message>/)` assertions. Size is
+   `160` to match the existing Queue/Auto adoption.
+
+2. **Test updates** -- Each of the five `.test.tsx` files
+   adds a single new test that asserts the illustration's
+   `data-testid` is in the document on the empty branch. The
+   pre-existing text-based empty-state assertions are kept
+   verbatim; no other test was modified.
+
+3. **No design-system changes** -- The illustrations already
+   handle their own colors (every stroke is `currentColor`,
+   one accent fill via `hsl(var(--primary) / 0.15)`), so no
+   ARPS design-system file is touched and no new color tokens
+   are introduced.
+
+`vitest run` on the five page test files now reports 164 tests
+passing across 5 files (5 new tests, all green).
+
 ## [1.11.139] - 2026-05-14 -- Web: Hero copy polish for 8 PageDescriptionBanner pages
 
 `web/src/i18n/en.json` -- the `summary`, `example`, and `useCases`

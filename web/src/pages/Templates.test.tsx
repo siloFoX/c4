@@ -143,6 +143,14 @@ describe('<Templates>', () => {
     expect(screen.getByText(/No templates defined/)).toBeInTheDocument();
   });
 
+  it('renders the empty illustration alongside the empty hint', () => {
+    hookState = { ...hookState, loading: false, items: [] };
+    render(<Templates />);
+    expect(
+      screen.getByTestId('templates-empty-illustration'),
+    ).toBeInTheDocument();
+  });
+
   it('renders one row per template in the list', () => {
     hookState = {
       ...hookState,

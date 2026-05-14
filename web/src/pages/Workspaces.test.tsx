@@ -141,6 +141,14 @@ describe('<Workspaces>', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders the empty illustration alongside the empty hint', () => {
+    hookState = { ...hookState, data: [] };
+    render(<Workspaces />);
+    expect(
+      screen.getByTestId('workspaces-empty-illustration'),
+    ).toBeInTheDocument();
+  });
+
   it('renders one list row per workspace when populated', () => {
     hookState = {
       ...hookState,

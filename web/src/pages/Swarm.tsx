@@ -1,8 +1,9 @@
 import { GitBranch, RefreshCw } from 'lucide-react';
-import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
+import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, Label, Panel, Tooltip } from '../components/ui';
+import { Badge, Button, EmptyState, Label, Panel, Tooltip } from '../components/ui';
+import { NoWorkersIllustration } from '../components/illustrations';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { useSwarm, type SwarmNode } from '../lib/use-swarm';
 
@@ -59,7 +60,14 @@ export default function Swarm() {
       {error && <ErrorPanel message={error} />}
       {loading && !data ? <LoadingSkeleton rows={4} /> : null}
       {data && !rootNode ? (
-        <EmptyPanel message={t('swarm.empty')} />
+        <EmptyState
+          icon={
+            <span data-testid="swarm-empty-illustration">
+              <NoWorkersIllustration size={160} />
+            </span>
+          }
+          title={t('swarm.empty')}
+        />
       ) : null}
 
       {rootNode && (

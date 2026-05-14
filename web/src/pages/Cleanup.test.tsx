@@ -275,6 +275,14 @@ describe('<Cleanup>', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders the empty illustration alongside the empty-cleanup hint', () => {
+    hookState = { ...hookState, data: makeCleanupData() };
+    render(<Cleanup />);
+    expect(
+      screen.getByTestId('cleanup-empty-illustration'),
+    ).toBeInTheDocument();
+  });
+
   it('renders the branches panel when branches exist', () => {
     hookState = {
       ...hookState,
