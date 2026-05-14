@@ -4,6 +4,54 @@
 
 (no entries -- next release window)
 
+## [1.11.134] - 2026-05-14 -- Web: visual-hierarchy polish on the top shell
+
+Three small UI papercuts on the daemon web app's shell layer:
+
+1. **Subtle gradient backdrop behind the AppHeader** (`web/src/App.tsx`).
+   A thin `bg-gradient-to-b` wraps the top bar with stops sourced
+   from the ARPS design system tokens
+   (`/root/c4/arps-design-system-v1/tokens.css`):
+   `--surface-canvas` (`220 18% 8%`) -> `--surface-panel`
+   (`220 15% 12%`). The HSL values are inlined as Tailwind
+   arbitrary values because the web bundle does not yet import
+   `tokens.css` -- when it does, the gradient stops can be swapped
+   to `hsl(var(--surface-canvas))` / `hsl(var(--surface-panel))`
+   without changing the visual.
+2. **Cmd+\\ / Ctrl+\\ shortcut for sidebar collapse**
+   (`web/src/components/layout/Sidebar.tsx`). Sits next to the
+   existing Ctrl+B binding (VS Code parity). Same input-focus
+   guard as `lib/use-sidebar-shortcut`: skips when the active
+   target is `<input>` / `<textarea>` / `contenteditable` so
+   operators do not lose `\` keystrokes while typing. The
+   collapse handle's `aria-keyshortcuts` now advertises both
+   bindings (`Control+B Control+Backslash`) per WAI-ARIA 1.2.
+3. **Roving-tabindex + arrow-key navigation on TopTabs**
+   (`web/src/components/layout/TopTabs.tsx`). Only the active
+   tab carries `tabindex=0`; the rest are `tabindex=-1`. Left /
+   Right arrows on a focused tab move both focus and selection
+   to the prev / next sibling and wrap at the ends -- standard
+   ARIA tablist behaviour. Arrow presses outside the strip are
+   a no-op since the handler is bound per-button.
+
+Tests:
+
+- `web/src/components/layout/Sidebar.test.tsx` -- five new
+  cases cover the new `aria-keyshortcuts` value, the Ctrl+\\
+  and Cmd+\\ window listeners, the input-focus guard, and the
+  no-listener-when-prop-missing guarantee. Existing cases are
+  preserved.
+- `web/src/components/layout/TopTabs.test.tsx` -- six new
+  cases cover roving tabindex, ArrowRight / ArrowLeft moves,
+  wrap-around at both ends, and the outside-the-strip no-op.
+  All previous Enter / Space activation cases continue to
+  pass because `<button>` natively triggers click on both
+  keys regardless of tabindex.
+
+No new dependencies. No design-system files were modified --
+the gradient values are copied as literals into the JSX. No
+changes to `docs/autonomous-queue-v10.md`.
+
 ## [1.11.133] - 2026-05-14 -- CLI: `c4 logs` tails the pino daemon log file
 
 Adds a read-only `c4 logs` subcommand so operators can pretty-print the

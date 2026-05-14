@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { List, Network, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useEffectiveCollapsed } from '../../lib/use-effective-collapsed';
 import { cn } from '../../lib/cn';
@@ -60,6 +61,30 @@ export default function Sidebar({
   // open-gated early return moved below.
   useLocale();
   const effectiveCollapsed = useEffectiveCollapsed(collapsed);
+
+  // (v1.11.134) Cmd+\ (mac) / Ctrl+\ (other) toggles the desktop
+  // icon-rail collapse -- alongside the existing Ctrl+B binding.
+  // Skips when focus is on a text-entry surface so the keystroke
+  // does not steal characters from inputs. No-op when the host
+  // did not wire onToggleCollapsed (standalone tests).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!onToggleCollapsed) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.key !== '\\') return;
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable) return;
+      }
+      e.preventDefault();
+      onToggleCollapsed();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onToggleCollapsed]);
+
   if (!open) return null;
 
   // Tailwind doesn't see template literals at scan time, so the
@@ -105,14 +130,14 @@ export default function Sidebar({
           ) : null}
           {onToggleCollapsed ? (
             <Tooltip
-              label={`${collapsed ? t('sidebar.expand') : t('sidebar.collapse')} (Ctrl+B)`}
+              label={`${collapsed ? t('sidebar.expand') : t('sidebar.collapse')} (Ctrl+B / Ctrl+\\)`}
               placement="bottom"
             >
               <IconButton
                 className={cn('hidden md:inline-flex', collapsed ? 'md:mt-1' : 'ml-auto')}
                 aria-label={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
                 aria-pressed={collapsed}
-                aria-keyshortcuts="Control+B"
+                aria-keyshortcuts="Control+B Control+Backslash"
                 onClick={onToggleCollapsed}
                 icon={
                   collapsed ? (
