@@ -1145,6 +1145,8 @@
   "feature.errorReports.description": "Local in-memory feed of captured client errors (window / unhandledrejection / react / manual). Last 50 entries.",
   "feature.keyboardMap.label": "Keyboard Map",
   "feature.keyboardMap.description": "Full reference of keyboard bindings across the app -- navigation, actions, view, editing, global and custom shortcuts.",
+  "feature.featureFlags.label": "Feature Flags",
+  "feature.featureFlags.description": "Toggle component-scoped UI feature flags (grid overlay, route progress, page transitions, motion, reduced motion).",
   "keyboardMap.title": "Keyboard Map",
   "keyboardMap.description": "Complete reference of every keyboard binding wired into the web UI.",
   "keyboardMap.search.placeholder": "Filter shortcuts by label or key...",

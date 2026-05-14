@@ -1145,6 +1145,8 @@
   "feature.errorReports.description": "클라이언트 측 에러(window / unhandledrejection / react / manual) 로컬 메모리 피드. 최근 50건.",
   "feature.keyboardMap.label": "Keyboard Map",
   "feature.keyboardMap.description": "앱 전체 키보드 바인딩 레퍼런스 - navigation/actions/view/editing/global/custom.",
+  "feature.featureFlags.label": "Feature Flags",
+  "feature.featureFlags.description": "컴포넌트 범위 UI 기능 플래그 토글 (그리드 오버레이, 라우트 프로그레스, 페이지 전환, 모션, reduced motion).",
   "keyboardMap.title": "Keyboard Map",
   "keyboardMap.description": "웹 UI에 연결된 모든 키보드 바인딩의 전체 레퍼런스.",
   "keyboardMap.search.placeholder": "레이블 또는 키로 단축키 필터링...",
