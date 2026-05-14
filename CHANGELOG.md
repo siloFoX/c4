@@ -4,6 +4,54 @@
 
 (no entries -- next release window)
 
+## [1.11.162] - 2026-05-14 -- UI: Switch primitive + 3 callsite swaps
+
+New `<Switch>` primitive in `web/src/components/ui/switch.tsx` provides
+an accessible toggle for boolean state, replacing checkbox usage at the
+three most prominent boolean-toggle sites in the app.
+
+Behaviour:
+
+- Renders `<button type="button" role="switch" aria-checked={checked}>`
+  with an animated thumb (a `<span>` that translates X via
+  `transition-transform`).
+- Geometry: 36 px wide x 20 px tall track, 16 px thumb. Track is
+  `bg-primary` when checked, `bg-muted` when unchecked. Thumb slides
+  from `translate-x-0.5` -> `translate-x-4`.
+- Keyboard: Space and Enter both toggle. Disabled gates click + key
+  events and applies `opacity-50` + `cursor-not-allowed`.
+- Optional `label` slot renders text next to the button. Clicking the
+  label fires the same toggle. `useId` wires `htmlFor` to the button.
+- Focus-visible ring chain matches the other primitives:
+  `focus-visible:ring-2 focus-visible:ring-primary
+  focus-visible:ring-offset-2 focus-visible:ring-offset-background`.
+
+Tests in `switch.test.tsx` cover role + aria-checked reflection, click
+toggle, Space/Enter activation, label-click toggle, disabled gating
+(click + key + opacity class), focus-visible class presence, and
+aria-label + label association.
+
+Callsites swapped from `<Checkbox>` to `<Switch>` (boolean toggles
+adjacent to the Health page surface):
+
+- `Batch.tsx` -- auto-mode toggle in the dispatch form.
+- `TokenUsage.tsx` -- per-task aggregation toggle in the toolbar.
+- `Risk.tsx` -- "show post-denoise text" toggle in the classify panel.
+
+`Checkbox` is retained for binary form-row inputs (lists, indeterminate
+state, list selection) -- only standalone "on/off" toggles were
+migrated.
+
+Exported from `web/src/components/ui/index.ts`. Updated the three
+callsite tests to assert `aria-checked` instead of `input.checked`.
+
+Files: `web/src/components/ui/switch.tsx`,
+`web/src/components/ui/switch.test.tsx`,
+`web/src/components/ui/index.ts`, `web/src/pages/Batch.tsx`,
+`web/src/pages/Batch.test.tsx`, `web/src/pages/TokenUsage.tsx`,
+`web/src/pages/TokenUsage.test.tsx`, `web/src/pages/Risk.tsx`,
+`web/src/pages/Risk.test.tsx`, `web/package.json`.
+
 ## [1.11.161] - 2026-05-14 -- UI: Select primitive + 3 callsite swaps
 
 New `<Select>` primitive in `web/src/components/ui/select.tsx` replaces

@@ -172,18 +172,18 @@ describe('<Batch>', () => {
     expect(screen.getByLabelText('Profile')).toBeInTheDocument();
   });
 
-  it('renders the auto-mode checkbox', () => {
+  it('renders the auto-mode switch', () => {
     render(<Batch />);
     expect(screen.getByLabelText('Auto mode')).toBeInTheDocument();
   });
 
-  it('toggles the auto-mode checkbox on click', async () => {
+  it('toggles the auto-mode switch on click', async () => {
     const user = userEvent.setup();
     render(<Batch />);
-    const cb = screen.getByLabelText('Auto mode') as HTMLInputElement;
-    expect(cb.checked).toBe(false);
+    const cb = screen.getByLabelText('Auto mode');
+    expect(cb).toHaveAttribute('aria-checked', 'false');
     await user.click(cb);
-    expect(cb.checked).toBe(true);
+    expect(cb).toHaveAttribute('aria-checked', 'true');
   });
 
   it('reflects typed text in the task textarea', async () => {
