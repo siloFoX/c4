@@ -144,13 +144,16 @@ describe('<MeetingsContributePanel>', () => {
     expect(screen.getByLabelText('Vote reason')).toBeInTheDocument();
   });
 
-  it('renders the vote-with-contrib select with all three options', () => {
+  it('renders the vote-with-contrib select with all three options', async () => {
+    const user = userEvent.setup();
     renderOpen();
-    const select = screen.getByRole('combobox') as HTMLSelectElement;
-    const values = Array.from(select.querySelectorAll('option')).map(
-      (o) => o.value,
-    );
-    expect(values).toEqual(['', 'accept', 'object']);
+    await user.click(screen.getByRole('combobox'));
+    const opts = screen.getAllByRole('option');
+    expect(opts.map((o) => o.textContent)).toEqual([
+      'none',
+      'accept',
+      'object',
+    ]);
   });
 
   it('renders the Post contribution button with the i18n aria label', () => {
@@ -226,16 +229,17 @@ describe('<MeetingsContributePanel>', () => {
   it('fires setVote when the vote select is changed', async () => {
     const user = userEvent.setup();
     renderOpen();
-    await user.selectOptions(screen.getByRole('combobox'), 'accept');
+    await user.click(screen.getByRole('combobox'));
+    await user.click(screen.getByRole('option', { name: 'accept' }));
     expect(setVoteMock).toHaveBeenCalledWith('accept');
   });
 
   it('reflects the vote choice in the controlled select', async () => {
     const user = userEvent.setup();
     renderOpen();
-    const select = screen.getByRole('combobox') as HTMLSelectElement;
-    await user.selectOptions(select, 'object');
-    expect(select.value).toBe('object');
+    await user.click(screen.getByRole('combobox'));
+    await user.click(screen.getByRole('option', { name: 'object' }));
+    expect(screen.getByRole('combobox')).toHaveTextContent('object');
   });
 
   it('starts the post button disabled when specialist + text are empty', () => {

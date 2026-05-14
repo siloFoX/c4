@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { useSpecialistsExport } from '../lib/use-specialists-export';
 import { useSpecialistsImport, type SpecialistsImportMode } from '../lib/use-specialists-import';
 import { useAuditRotate } from '../lib/use-audit-rotate';
-import { Button } from './ui';
+import { Button, Select } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 
@@ -75,19 +75,21 @@ export default function SpecialistsBulkOpsToolbar({ onChange }: Props) {
         </span>
       ) : null}
       <span className="text-border">|</span>
-      <label className="flex items-center gap-1 text-muted-foreground">
-        {t('specialists.label.mode')}
-        <select
-          className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
-          value={importMode}
-          onChange={(e) => setImportMode(e.target.value as SpecialistsImportMode)}
-          disabled={importBusy}
-          aria-label={t('specialists.action.importMode')}
-        >
-          <option value="merge">{t('specialists.option.merge')}</option>
-          <option value="replace">{t('specialists.option.replace')}</option>
-        </select>
-      </label>
+      <div className="flex items-center gap-1 text-muted-foreground">
+        <span>{t('specialists.label.mode')}</span>
+        <div className="min-w-[6rem]">
+          <Select
+            value={importMode}
+            onChange={(v) => setImportMode(v as SpecialistsImportMode)}
+            disabled={importBusy}
+            ariaLabel={t('specialists.action.importMode')}
+            options={[
+              { value: 'merge', label: t('specialists.option.merge') },
+              { value: 'replace', label: t('specialists.option.replace') },
+            ]}
+          />
+        </div>
+      </div>
       <label className="flex items-center gap-1 text-muted-foreground">
         {t('specialists.import.label')}
         <input

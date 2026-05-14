@@ -15,6 +15,7 @@ import {
   CardHeader,
   CardTitle,
   Input,
+  Select,
 } from './ui';
 import { cn } from '../lib/cn';
 import HistoryDetailPane from './HistoryDetailPane';
@@ -150,18 +151,16 @@ export default function HistoryView() {
                 aria-label={t('history.search.label')}
               />
             </div>
-            <select
+            <Select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className={cn(
-                'h-9 w-full rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background'
-              )}
-              aria-label={t('history.filter.status.label')}
-            >
-              <option value="">{t('history.filter.status.all')}</option>
-              <option value="closed">{t('history.filter.status.closed')}</option>
-              <option value="exited">{t('history.filter.status.exited')}</option>
-            </select>
+              onChange={setStatusFilter}
+              ariaLabel={t('history.filter.status.label')}
+              options={[
+                { value: '', label: t('history.filter.status.all') },
+                { value: 'closed', label: t('history.filter.status.closed') },
+                { value: 'exited', label: t('history.filter.status.exited') },
+              ]}
+            />
             <div className="flex gap-2">
               <Input
                 type="date"
