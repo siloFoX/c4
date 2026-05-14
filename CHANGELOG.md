@@ -4,6 +4,78 @@
 
 (no entries -- next release window)
 
+## [1.11.137] - 2026-05-14 -- Web: Toast stacking, swipe-to-dismiss, portal
+
+`web/src/components/Toast.tsx` and the matching `web/src/lib/use-toast.ts`
+hook were reworked from a fixed single-slot banner into a stack-aware,
+swipe-aware, portal-rendered toast surface. The public hook API stays
+backwards compatible -- existing pages keep using `{toast, showToast,
+dismissToast}` unchanged.
+
+What changed:
+
+1. **Stacking** -- `useToast` is now queue-backed internally. The hook
+   exposes a new `toasts: ToastState[]` array for the multi-toast case
+   while `toast` continues to resolve to the most recent record so the
+   prior `{toast && <Toast ... />}` mount pattern in `ControlPanel.tsx`,
+   `WorkerActions.tsx`, `Scribe.tsx`, `Batch.tsx`, `Plan.tsx`,
+   `Morning.tsx`, `Templates.tsx`, `Cleanup.tsx`, and `Profiles.tsx`
+   continues to render the latest toast unchanged. The queue is capped
+   at `TOAST_QUEUE_LIMIT = 5` (older entries shift out first) so a
+   runaway `showToast` loop cannot flood the portal.
+
+2. **Swipe-to-dismiss** -- Each `<Toast>` instance now handles
+   `pointerdown` / `pointermove` / `pointerup` plus
+   `touchstart` / `touchmove` / `touchend`. A horizontal drag tracked
+   via inline `transform: translateX(...)` follows the pointer in real
+   time. Past the `TOAST_SWIPE_THRESHOLD = 80 px` cutoff (either
+   direction) release commits the dismissal by sliding the card off
+   screen and calling `onDismiss` after the CSS transition completes;
+   under the threshold the toast snaps back to 0. Drag origin is
+   tracked in refs so the React state stream is just the visible
+   translateX, not the per-pixel pointer noise.
+
+3. **Portal** -- The Toast renders into a lazily-created
+   `#toast-root` div inside `document.body`. The portal target is
+   reused if one already exists (so a host page may pre-wire its own
+   anchor) and inherits the existing `pointer-events-none fixed
+   right-4 top-4 z-50 flex flex-col gap-2` layout class so multiple
+   Toast siblings naturally stack vertically without any per-row
+   offset math. Because the layer lives at `document.body`, route
+   changes that unmount the host tree no longer tear the toast layer
+   down -- the `#toast-root` anchor stays put and the next `<Toast>`
+   reuses it.
+
+4. **CSS transitions** -- Enter, drag, and exit are all driven by
+   inline `transition: transform 180ms ease, opacity 180ms ease` on a
+   plain wrapper `<div>` -- no new animation library, no new npm
+   dependency. The card starts at `translateX(100%)` and flips to
+   `translateX(0)` on the next animation frame so the slide-in has a
+   starting frame to interpolate from. Auto-dismiss still honours the
+   `duration` prop (default 3000 ms) and re-uses the same exit
+   animation budget so the operator-visible timing is unchanged for
+   the common case where no swipe ever happens.
+
+5. **Test coverage** -- `Toast.test.tsx` keeps every prior case
+   intact (liveness, tone variants, icon contract, auto-dismiss
+   timer, rerender behaviour, the no-button assertion) and adds
+   portal, stacking, and swipe coverage: the portal landing-zone
+   check (`role="status"` lives under `document.body > #toast-root`,
+   not the per-render container), the reuse-existing-#toast-root
+   path, three-toast stacking, single-unmount-leaves-the-rest
+   intact, and four pointer/touch swipe variants
+   (right-past-threshold, left-past-threshold, snap-back below
+   threshold, touch-events-also-trigger, plus a move-without-down
+   no-op). `use-toast.test.ts` keeps its existing cases and adds
+   queue-array exposure, the cap-at-5 eviction rule, dismiss-by-id,
+   the unknown-id no-op, the showToast-returns-id contract, and the
+   same-tick tiebreak counter that prevents duplicate React keys.
+
+No new npm dependencies. Strict scope: `Toast.tsx`,
+`Toast.test.tsx`, `use-toast.ts`, `use-toast.test.ts`,
+`web/package.json` (`1.11.136` -> `1.11.137`), and this CHANGELOG
+entry. Existing consumers were not touched.
+
 ## [1.11.136] - 2026-05-14 -- Web: friendlier ErrorBoundary fallback UI
 
 `web/src/components/ErrorBoundary.tsx` was reworked from a bare error

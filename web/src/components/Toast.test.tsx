@@ -1,17 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import Toast from './Toast';
+import Toast, { TOAST_SWIPE_THRESHOLD } from './Toast';
 import type { ToastType } from './Toast';
 
-// Toast is a pure-display banner with a single side effect: a
-// setTimeout(onDismiss, duration) that fires after the configured
-// delay. There is no internal state and no controlled-input surface;
-// the parent owns the visibility queue. Tests drive the prop union
-// directly: the tone-class branches (success / error / info), the
-// role=status liveness contract, the message-verbatim render, the
-// auto-dismiss timer (with vi.useFakeTimers), the cleanup on unmount,
-// and the rerender contract for new messages.
+// Toast is now a portal-rendered, swipe-aware, stack-aware
+// banner. The pure-display contract is preserved (role=status,
+// auto-dismiss timer, tone-class branches) but each instance
+// portals into a lazy #toast-root in document.body and tracks
+// pointer / touch drag for swipe-to-dismiss. The parent still
+// owns the visibility queue; the Toast component itself never
+// imports useToast.
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -19,6 +18,10 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  // Strip the leftover portal node so each test starts with a
+  // clean document.body. The Toast component re-creates it on
+  // demand on the next mount.
+  document.getElementById('toast-root')?.remove();
 });
 
 function renderToast(
@@ -95,13 +98,18 @@ describe('<Toast>', () => {
   // ---- icon -----------------------------------------------------
 
   it('renders exactly one icon SVG inside the toast', () => {
-    const { container } = renderToast();
-    expect(container.querySelectorAll('svg').length).toBe(1);
+    renderToast();
+    // The portal pulls the Toast out of the host container, so
+    // the icon lives under document.body via #toast-root rather
+    // than the per-render container. Query the portal subtree.
+    const root = document.getElementById('toast-root');
+    expect(root).not.toBeNull();
+    expect(root!.querySelectorAll('svg').length).toBe(1);
   });
 
   it('marks the icon as aria-hidden so it does not steal an accessible name', () => {
-    const { container } = renderToast();
-    const svg = container.querySelector('svg');
+    renderToast();
+    const svg = document.getElementById('toast-root')!.querySelector('svg');
     expect(svg).toHaveAttribute('aria-hidden', 'true');
   });
 
@@ -204,6 +212,133 @@ describe('<Toast>', () => {
     expect(screen.queryAllByRole('button')).toHaveLength(0);
     const user = userEvent.setup();
     await user.click(screen.getByRole('status'));
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  // ---- portal target (v1.11.137) --------------------------------
+
+  it('portals into a lazily-created #toast-root inside document.body, not the host container', () => {
+    const { container } = renderToast({ message: 'portal-me' });
+    // The host container is the per-render wrapper from RTL. The
+    // toast must NOT live inside it; createPortal moves the DOM
+    // node into document.body via #toast-root.
+    expect(container.querySelector('[role="status"]')).toBeNull();
+    const root = document.getElementById('toast-root');
+    expect(root).not.toBeNull();
+    expect(root!.parentElement).toBe(document.body);
+    expect(root!.contains(screen.getByRole('status'))).toBe(true);
+  });
+
+  it('reuses an existing #toast-root if one already exists in document.body', () => {
+    const existing = document.createElement('div');
+    existing.id = 'toast-root';
+    existing.setAttribute('data-prewired', 'true');
+    document.body.appendChild(existing);
+    renderToast();
+    const root = document.getElementById('toast-root');
+    // Same node, not a fresh one -- the lazy create skipped.
+    expect(root).toBe(existing);
+    expect(root!.getAttribute('data-prewired')).toBe('true');
+  });
+
+  // ---- stacking (v1.11.137) -------------------------------------
+
+  it('renders multiple toasts as separate sibling elements inside #toast-root', () => {
+    const onA = vi.fn();
+    const onB = vi.fn();
+    const onC = vi.fn();
+    render(
+      <>
+        <Toast message="A" type="success" onDismiss={onA} duration={99999} />
+        <Toast message="B" type="info" onDismiss={onB} duration={99999} />
+        <Toast message="C" type="error" onDismiss={onC} duration={99999} />
+      </>,
+    );
+    const statuses = screen.getAllByRole('status');
+    expect(statuses).toHaveLength(3);
+    expect(statuses[0]).toHaveTextContent('A');
+    expect(statuses[1]).toHaveTextContent('B');
+    expect(statuses[2]).toHaveTextContent('C');
+    const root = document.getElementById('toast-root')!;
+    // Each toast wraps its Card in a `[data-testid="toast"]` div;
+    // those are the direct siblings the portal stacks.
+    expect(root.querySelectorAll('[data-testid="toast"]').length).toBe(3);
+  });
+
+  it('unmounting one toast leaves the remaining toasts intact in the portal', () => {
+    const { rerender } = render(
+      <>
+        <Toast message="A" type="success" onDismiss={vi.fn()} duration={99999} />
+        <Toast message="B" type="info" onDismiss={vi.fn()} duration={99999} />
+      </>,
+    );
+    expect(screen.getAllByRole('status')).toHaveLength(2);
+    rerender(
+      <>
+        <Toast message="A" type="success" onDismiss={vi.fn()} duration={99999} />
+      </>,
+    );
+    const remaining = screen.getAllByRole('status');
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0]).toHaveTextContent('A');
+  });
+
+  // ---- swipe-to-dismiss (v1.11.137) -----------------------------
+
+  it('swiping past the horizontal threshold via pointer events triggers onDismiss', () => {
+    const { onDismiss } = renderToast({ duration: 999999 });
+    const wrap = screen.getByTestId('toast');
+    fireEvent.pointerDown(wrap, { clientX: 0, pointerId: 1 });
+    fireEvent.pointerMove(wrap, { clientX: TOAST_SWIPE_THRESHOLD + 10, pointerId: 1 });
+    fireEvent.pointerUp(wrap, { clientX: TOAST_SWIPE_THRESHOLD + 10, pointerId: 1 });
+    // The exit slide schedules onDismiss after the CSS transition.
+    vi.advanceTimersByTime(500);
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it('swiping back below threshold snaps back without dismissing', () => {
+    const { onDismiss } = renderToast({ duration: 999999 });
+    const wrap = screen.getByTestId('toast');
+    fireEvent.pointerDown(wrap, { clientX: 0, pointerId: 1 });
+    fireEvent.pointerMove(wrap, { clientX: 30, pointerId: 1 });
+    fireEvent.pointerUp(wrap, { clientX: 30, pointerId: 1 });
+    vi.advanceTimersByTime(500);
+    expect(onDismiss).not.toHaveBeenCalled();
+    // The toast is still in the document; only the duration timer
+    // will eventually fire it (not exercised here).
+    expect(screen.getByRole('status')).toBeInTheDocument();
+  });
+
+  it('swiping past the threshold via touch events also triggers onDismiss', () => {
+    const { onDismiss } = renderToast({ duration: 999999 });
+    const wrap = screen.getByTestId('toast');
+    fireEvent.touchStart(wrap, {
+      touches: [{ clientX: 0, clientY: 0 } as Touch],
+    });
+    fireEvent.touchMove(wrap, {
+      touches: [{ clientX: TOAST_SWIPE_THRESHOLD + 20, clientY: 0 } as Touch],
+    });
+    fireEvent.touchEnd(wrap, { touches: [] });
+    vi.advanceTimersByTime(500);
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it('negative-direction swipe past threshold also dismisses (left swipe)', () => {
+    const { onDismiss } = renderToast({ duration: 999999 });
+    const wrap = screen.getByTestId('toast');
+    fireEvent.pointerDown(wrap, { clientX: 200, pointerId: 1 });
+    fireEvent.pointerMove(wrap, { clientX: 200 - (TOAST_SWIPE_THRESHOLD + 5), pointerId: 1 });
+    fireEvent.pointerUp(wrap, { clientX: 200 - (TOAST_SWIPE_THRESHOLD + 5), pointerId: 1 });
+    vi.advanceTimersByTime(500);
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it('pointer move without pointer down is a no-op (no false dismiss)', () => {
+    const { onDismiss } = renderToast({ duration: 999999 });
+    const wrap = screen.getByTestId('toast');
+    fireEvent.pointerMove(wrap, { clientX: TOAST_SWIPE_THRESHOLD + 100, pointerId: 1 });
+    fireEvent.pointerUp(wrap, { clientX: TOAST_SWIPE_THRESHOLD + 100, pointerId: 1 });
+    vi.advanceTimersByTime(500);
     expect(onDismiss).not.toHaveBeenCalled();
   });
 });
