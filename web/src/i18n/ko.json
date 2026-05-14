@@ -1125,6 +1125,8 @@
   "feature.profiles.description": "권한 프로파일 — 워커 범위에 대한 허용/거부 매트릭스.",
   "feature.config.label": "Config",
   "feature.config.description": "라이브 데몬 config (시크릿 제외); 디스크에서 리로드.",
+  "feature.designSystem.label": "Design System",
+  "feature.designSystem.description": "UI 프리미티브의 변형 매트릭스와 코드 스니펫을 포함한 라이브 데모.",
   "feature.workspaces.label": "Workspaces",
   "feature.workspaces.description": "config.workspaces에 선언된 멀티 repo 워크스페이스.",
   "feature.rbac.label": "RBAC",
