@@ -2,7 +2,7 @@ import { RefreshCw } from 'lucide-react';
 import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, Panel, Tooltip } from '../components/ui';
+import { Badge, Button, DashboardGrid, Panel, Tooltip } from '../components/ui';
 import { StatCard } from '../components/ui/stat-card';
 import { cn } from '../lib/cn';
 import { formatDuration, formatNumber, formatRelativeTime } from '../lib/format';
@@ -67,35 +67,38 @@ export default function Health() {
             )}
           </div>
 
-          <div
-            data-stat-card-trends
-            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            <StatCard
-              label="Uptime trend"
-              value={formatDuration((data.uptime ?? 0) * 1000)}
-              tone="success"
-              noAnimation
-              trend={{ value: 4, label: 'vs last hour' }}
-              sparkline={[12, 14, 13, 15, 16, 18, 19, 21]}
-            />
-            <StatCard
-              label="Workers"
-              value={formatNumber(data.workers)}
-              tone="primary"
-              noAnimation
-              trend={{ value: (data.workers ?? 0) > 0 ? 2 : 0 }}
-              sparkline={[2, 2, 3, 3, 4, 3, 4, data.workers ?? 0]}
-            />
-            <StatCard
-              label="Queue trend"
-              value={formatNumber(data.queueDepth)}
-              tone={(data.queueDepth ?? 0) > 0 ? 'warning' : 'default'}
-              noAnimation
-              trend={{ value: (data.queueDepth ?? 0) > 0 ? -8 : 0, label: 'vs last hour' }}
-              sparkline={[5, 4, 6, 3, 2, 1, 1, data.queueDepth ?? 0]}
-            />
-          </div>
+          <DashboardGrid data-stat-card-trends gap="sm">
+            <DashboardGrid.Item span="full" smSpan={6} lgSpan={4}>
+              <StatCard
+                label="Uptime trend"
+                value={formatDuration((data.uptime ?? 0) * 1000)}
+                tone="success"
+                noAnimation
+                trend={{ value: 4, label: 'vs last hour' }}
+                sparkline={[12, 14, 13, 15, 16, 18, 19, 21]}
+              />
+            </DashboardGrid.Item>
+            <DashboardGrid.Item span="full" smSpan={6} lgSpan={4}>
+              <StatCard
+                label="Workers"
+                value={formatNumber(data.workers)}
+                tone="primary"
+                noAnimation
+                trend={{ value: (data.workers ?? 0) > 0 ? 2 : 0 }}
+                sparkline={[2, 2, 3, 3, 4, 3, 4, data.workers ?? 0]}
+              />
+            </DashboardGrid.Item>
+            <DashboardGrid.Item span="full" smSpan={6} lgSpan={4}>
+              <StatCard
+                label="Queue trend"
+                value={formatNumber(data.queueDepth)}
+                tone={(data.queueDepth ?? 0) > 0 ? 'warning' : 'default'}
+                noAnimation
+                trend={{ value: (data.queueDepth ?? 0) > 0 ? -8 : 0, label: 'vs last hour' }}
+                sparkline={[5, 4, 6, 3, 2, 1, 1, data.queueDepth ?? 0]}
+              />
+            </DashboardGrid.Item>
+          </DashboardGrid>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <Stat label={t('healthPage.stat.pid')} value={data.pid != null ? String(data.pid) : '-'} />

@@ -34,6 +34,7 @@ import {
   Button,
   Card,
   CardContent,
+  DashboardGrid,
   EmptyState as PrimitiveEmptyState,
   StatCard,
   Timeline,
@@ -905,18 +906,18 @@ export default function Auto({ noAnimation = false }: AutoProps = {}) {
           noAnimation={noAnimation}
         />
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-          <div className="xl:col-span-2">
+        <DashboardGrid gap="md">
+          <DashboardGrid.Item span="full" lgSpan={8}>
             <LiveQueueSection slot={queueSlot} />
-          </div>
-          <div>
+          </DashboardGrid.Item>
+          <DashboardGrid.Item span="full" lgSpan={4}>
             <TimelineSection
               status={statusSlot}
               queue={queueSlot.state}
               now={now}
             />
-          </div>
-        </div>
+          </DashboardGrid.Item>
+        </DashboardGrid>
 
         <WorkersStrip slot={workersSlot} now={now} />
 

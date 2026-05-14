@@ -31,3 +31,4 @@ export * from './chip';
 export * from './timeline';
 export * from './file-input';
 export * from './fieldset';
+export * from './dashboard-grid';
