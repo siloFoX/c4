@@ -154,17 +154,15 @@ export default function MeetingsMaintenancePanel({ onPruned }: MeetingsMaintenan
           {/* Prune */}
           <div className="flex flex-col gap-1">
             <div className="flex flex-wrap items-center gap-2">
-              <label className="flex items-center gap-1 text-muted-foreground">
-                {t('meetings.label.days')}
-                <Input
-                  type="number"
-                  min={1}
-                  value={pruneDays}
-                  onChange={(e) => setPruneDays(e.target.value)}
-                  className="h-6 w-16 px-2 text-[11px]"
-                  disabled={pruneBusy}
-                />
-              </label>
+              <Input
+                label={t('meetings.label.days')}
+                type="number"
+                min={1}
+                value={pruneDays}
+                onChange={(e) => setPruneDays(e.target.value)}
+                className="h-6 w-16 px-2 text-[11px]"
+                disabled={pruneBusy}
+              />
               <label className="flex items-center gap-1 text-muted-foreground">
                 <input
                   type="checkbox"

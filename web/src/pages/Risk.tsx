@@ -223,19 +223,17 @@ export default function Risk() {
           <h3 className={cn('text-foreground', text.h3)}>
             {t('riskPage.recentDenials')}
           </h3>
-          <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
-            {t('riskPage.window.label')}
-            <Input
-              type="number"
-              min={1}
-              max={720}
-              value={windowHours}
-              onChange={(e) => setWindowHours(Math.max(1, Math.min(720, Number(e.target.value) || 24)))}
-              disabled={statsLoading}
-              className="h-7 w-16 text-[11px]"
-            />
-            hours
-          </label>
+          <Input
+            label={t('riskPage.window.label')}
+            hint="hours"
+            type="number"
+            min={1}
+            max={720}
+            value={windowHours}
+            onChange={(e) => setWindowHours(Math.max(1, Math.min(720, Number(e.target.value) || 24)))}
+            disabled={statsLoading}
+            className="h-7 w-16 text-[11px]"
+          />
         </div>
         {statsError ? <ErrorPanel message={statsError} /> : null}
         {stats ? <RiskStatsGrid stats={stats} /> : !statsError ? (

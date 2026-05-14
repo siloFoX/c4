@@ -107,27 +107,19 @@ export default function AttachModal({
             </section>
           ) : null}
 
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs font-medium text-muted-foreground">
-              {t('sessions.attach.fieldLabel')}
-            </span>
-            <Input
-              value={pathValue}
-              onChange={(e) => setPathValue(e.target.value)}
-              placeholder={t('sessions.attachPath.placeholder')}
-              autoFocus
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs font-medium text-muted-foreground">
-              {t('sessions.attach.aliasLabel')}
-            </span>
-            <Input
-              value={nameValue}
-              onChange={(e) => setNameValue(e.target.value)}
-              placeholder={t('sessions.attachName.placeholder')}
-            />
-          </label>
+          <Input
+            label={t('sessions.attach.fieldLabel')}
+            value={pathValue}
+            onChange={(e) => setPathValue(e.target.value)}
+            placeholder={t('sessions.attachPath.placeholder')}
+            autoFocus
+          />
+          <Input
+            label={t('sessions.attach.aliasLabel')}
+            value={nameValue}
+            onChange={(e) => setNameValue(e.target.value)}
+            placeholder={t('sessions.attachName.placeholder')}
+          />
           {error ? (
             <div className="text-sm text-destructive" role="alert">
               {error}
