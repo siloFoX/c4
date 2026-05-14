@@ -4,6 +4,50 @@
 
 (no entries -- next release window)
 
+## [1.11.158] - 2026-05-14 -- Web: Avatar primitive
+
+A new shared `<Avatar>` UI primitive renders a rounded user/worker
+mark, either from a remote image or as a deterministic initials chip.
+
+What changed:
+
+- **`<Avatar name? src? size? alt? className?>`**
+  (`web/src/components/ui/avatar.tsx`) -- always renders a
+  `role="img"` rounded-full element with `aria-label` resolved from
+  `alt || name`. When `src` is set and the underlying `<img>` loads
+  successfully, the photo is shown at `object-cover`; if the image
+  errors out the component transparently falls back to the initials
+  chip. Initials extraction is whitespace-aware (1-word name -> single
+  letter; 2+ words -> first + last initial, trimmed, max 2 chars,
+  uppercased). Background color comes from a 6-class palette built on
+  existing tokens (`bg-primary/20`, `bg-success/15`, `bg-warning/15`,
+  `bg-info/15`, `bg-destructive/15`, `bg-secondary`) selected via a
+  stable char-code-sum hash so repeat names always render the same
+  color. Sizes: `sm` (h-6 w-6 text-xs), `md` (h-8 w-8 text-sm,
+  default), `lg` (h-10 w-10 text-base). Helper exports
+  `avatarInitials()` + `avatarColorClass()` are surfaced for reuse
+  and verification.
+- **`avatar.test.tsx`** -- 16 cases covering initials extraction
+  (1-word / 2-word / 3+word / trim / undefined / empty), color
+  hash stability for the same input, `<img>` rendering with the
+  correct `src` + `alt` (and `alt` defaulting to `name`), falsy
+  `src` falling back to the initials chip, every size class
+  (`sm` / `md` / `lg` and the default), `role="img"` +
+  `aria-label` wiring, `alt` taking precedence over `name` for the
+  label, caller `className` passthrough, and the `rounded-full`
+  shape.
+- **Page adoption (2 sites):**
+  - `web/src/components/WorkerList.tsx` row header now leads with a
+    small `<Avatar name={w.name} size="sm">` chip so the sidebar
+    gives an at-a-glance per-worker visual handle without requiring
+    any backend changes.
+  - `web/src/components/SessionsAttachedSection.tsx` per-row button
+    now shows the same small `<Avatar name={a.name}>` ahead of the
+    monospaced session name, matching the worker sidebar's visual
+    rhythm.
+
+Bumps `web/package.json` to `1.11.158`. No new npm dependencies.
+
 ## [1.11.157] - 2026-05-14 -- Web: Progress bar primitive
 
 A new shared `<Progress>` UI primitive renders a determinate or

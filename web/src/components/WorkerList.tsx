@@ -4,6 +4,7 @@ import type { Worker } from '../types';
 import { useWorkerList } from '../lib/use-worker-list';
 import { usePersistedBool } from '../lib/use-persisted-bool';
 import {
+  Avatar,
   Badge,
   Card,
   CardContent,
@@ -80,9 +81,12 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
         )}
       >
         <CardHeader className="flex-row items-center justify-between gap-2 p-4">
-          <span className="min-w-0 truncate text-sm font-medium text-foreground">
-            {w.name}
-          </span>
+          <div className="flex min-w-0 items-center gap-2">
+            <Avatar name={w.name} size="sm" />
+            <span className="min-w-0 truncate text-sm font-medium text-foreground">
+              {w.name}
+            </span>
+          </div>
           <Badge variant={mapWorkerStatusToBadgeVariant(w)} className="shrink-0 uppercase">
             {statusLabel(w)}
           </Badge>

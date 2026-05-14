@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight, Link2 } from 'lucide-react';
-import { Badge } from './ui';
+import { Avatar, Badge } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 import {
@@ -84,6 +84,7 @@ export default function SessionsAttachedSection({
                       className="flex-1 text-left"
                     >
                       <div className="flex items-center gap-2">
+                        <Avatar name={a.name} size="sm" />
                         <span className="font-mono text-xs">
                           {a.name}
                         </span>
