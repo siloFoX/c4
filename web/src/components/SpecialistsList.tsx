@@ -1,5 +1,6 @@
 import { AlertTriangle, Shield, Star } from 'lucide-react';
 import { Badge } from './ui';
+import Spinner from './Spinner';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 import { TIER_BADGE, type Specialist } from './SpecialistsView';
@@ -31,9 +32,21 @@ export default function SpecialistsList({
     return <div className="p-4 text-sm text-destructive">{error}</div>;
   }
   if (filtered.length === 0) {
+    if (loading) {
+      return (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-center gap-2 p-4 text-sm text-muted-foreground"
+        >
+          <Spinner size="sm" aria-hidden="true" data-testid="specialists-list-spinner" />
+          <span>{t('common.loadingDots')}</span>
+        </div>
+      );
+    }
     return (
       <div className="p-4 text-sm text-muted-foreground">
-        {loading ? t('common.loadingDots') : t('specialists.empty.noMatch')}
+        {t('specialists.empty.noMatch')}
       </div>
     );
   }
