@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Sidebar from './Sidebar';
 import { setLocale } from '../../lib/i18n';
@@ -218,11 +218,40 @@ describe('<Sidebar>', () => {
     ).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('advertises the Ctrl+B hotkey via aria-keyshortcuts on the collapse handle', () => {
+  it('advertises both Ctrl+B and Ctrl+\\ hotkeys via aria-keyshortcuts on the collapse handle', () => {
     renderSidebar({ collapsed: false, onToggleCollapsed: vi.fn() });
     expect(
       screen.getByRole('button', { name: 'Collapse sidebar' }),
-    ).toHaveAttribute('aria-keyshortcuts', 'Control+B');
+    ).toHaveAttribute('aria-keyshortcuts', 'Control+B Control+Backslash');
+  });
+
+  it('fires onToggleCollapsed when Ctrl+\\ is pressed on the window', () => {
+    const onToggleCollapsed = vi.fn();
+    renderSidebar({ collapsed: false, onToggleCollapsed });
+    fireEvent.keyDown(window, { key: '\\', ctrlKey: true });
+    expect(onToggleCollapsed).toHaveBeenCalledTimes(1);
+  });
+
+  it('fires onToggleCollapsed when Cmd+\\ is pressed (mac modifier)', () => {
+    const onToggleCollapsed = vi.fn();
+    renderSidebar({ collapsed: false, onToggleCollapsed });
+    fireEvent.keyDown(window, { key: '\\', metaKey: true });
+    expect(onToggleCollapsed).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores Ctrl+\\ when the focused target is an input (no hijack of typing)', () => {
+    const onToggleCollapsed = vi.fn();
+    renderSidebar({ collapsed: false, onToggleCollapsed });
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    fireEvent.keyDown(input, { key: '\\', ctrlKey: true });
+    expect(onToggleCollapsed).not.toHaveBeenCalled();
+    document.body.removeChild(input);
+  });
+
+  it('does not register the Ctrl+\\ listener when onToggleCollapsed is not wired', () => {
+    renderSidebar();
+    expect(() => fireEvent.keyDown(window, { key: '\\', ctrlKey: true })).not.toThrow();
   });
 
   it('fires onToggleCollapsed when the collapse handle is clicked', async () => {
