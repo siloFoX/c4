@@ -112,7 +112,7 @@ export default function Batch() {
               rows={4}
               value={task}
               onChange={(e) => setTask(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               placeholder={t('batchPage.task.placeholder')}
             />
           </div>
@@ -147,7 +147,7 @@ export default function Batch() {
             rows={8}
             value={tasksText}
             onChange={(e) => setTasksText(e.target.value)}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             placeholder={t('batch.tasksPlaceholder')}
           />
         </div>

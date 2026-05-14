@@ -422,7 +422,7 @@ function QueueRowItem({ row }: QueueRowItemProps) {
         <Tooltip label={row.detail} placement="bottom">
           <span
             tabIndex={0}
-            className="block max-w-full truncate text-xs leading-relaxed text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="block max-w-full truncate text-xs leading-relaxed text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             {row.detail}
           </span>

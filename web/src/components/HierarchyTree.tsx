@@ -68,7 +68,7 @@ function TreeRow({ node, depth, expanded, toggle, selectedWorker, onSelect }: Ro
         <button
           type="button"
           className={cn(
-            'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:hover:bg-transparent'
+            'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-default disabled:hover:bg-transparent'
           )}
           onClick={() => hasChildren && toggle(node.worker.name)}
           aria-label={hasChildren ? (isOpen ? t('hierarchy.collapse') : t('hierarchy.expand')) : t('hierarchy.leaf')}

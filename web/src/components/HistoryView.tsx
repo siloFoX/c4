@@ -154,7 +154,7 @@ export default function HistoryView() {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className={cn(
-                'h-9 w-full rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+                'h-9 w-full rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background'
               )}
               aria-label={t('history.filter.status.label')}
             >
