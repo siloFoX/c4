@@ -298,6 +298,7 @@
   "common.failed": "failed",
   "workerDetail.actionFailed": "{label} failed: {error}",
   "workerDetail.actionOk": "{label} ok",
+  "workerDetail.mergeConfirm": "Merge worker \"{name}\" into main?\n\nThis runs the pre-merge checks and performs git merge --no-ff.",
   "specialists.option.merge": "merge",
   "specialists.option.replace": "replace",
   "specialists.option.any": "any",

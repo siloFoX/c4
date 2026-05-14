@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.199] - 2026-05-14 -- i18n: key extractor refresh (11.181)
+
+Audited `t()` + `tFormat()` call sites in `web/src` against `web/src/i18n/en.json` and `ko.json`. Added 1 missing en+ko key (`workerDetail.mergeConfirm`) and filled 2 missing ko translations (`feature.queue.label`, `feature.queue.description`) to restore en/ko parity (now 1347 keys on both sides). New `web/src/i18n/i18n-keys.test.ts` (vitest) walks `web/src` for `t('...')`/`tFormat('...')`, asserts every referenced key exists in `en.json` (allowlist for the two intentional fallback fixtures `no.such.translation.key` / `totally.absent.key`), and asserts `ko.json` has the same key set as `en.json`. See `docs/patches/11.181-i18n-refresh.md`.
+
 ## [1.11.198] - 2026-05-14 -- UI: FileTree primitive (11.180)
 
 New `<FileTree>` primitive in `web/src/components/ui/file-tree.tsx` (collapsible folder/file tree, props `nodes: FileTreeNode[]` / `defaultExpanded?: string[]` / `selectedId?: string` / `onSelect?: (id, node) => void` / `className` / `ariaLabel`; role='tree' outer ul + role='treeitem' per node with aria-level / aria-expanded / aria-selected; roving tabindex; keyboard nav ArrowUp/Down move visible item, ArrowRight expands collapsed folder or moves to first child, ArrowLeft collapses or moves to parent, Home/End jump, Enter calls onSelect on focused node; clicking a folder toggles, clicking a file calls onSelect; lucide-react ChevronRight / Folder / FolderOpen / File icons; forwardRef to ul). Exported from `web/src/components/ui/index.ts`. Adopted at the Plan page (new "Plan workspace" panel with a static placeholder `plan/` -> `drafts/` + `finalized/` tree) and at the Config page (new `ConfigFilesPreview` panel showing `config.json` + `profiles/` + `templates/`). Both adoptions use placeholder data pending daemon endpoints. See `docs/patches/11.180-ui-file-tree.md`.
