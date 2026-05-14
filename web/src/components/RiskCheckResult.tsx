@@ -1,10 +1,24 @@
-import { Badge } from './ui';
+import { Badge, Chip } from './ui';
+import type { ChipTone } from './ui/chip';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import {
-  ACTION_VARIANT,
-  LEVEL_VARIANT,
   type CheckResponse,
 } from '../pages/Risk';
+
+// (v1.11.166) Risk level / action / wouldDeny / denyList rendered
+// via Chip. Level + action map onto the chip tone vocabulary —
+// critical/high collapse onto 'danger' and 'deny' is the same.
+const LEVEL_CHIP_TONE: Record<CheckResponse['level'], ChipTone> = {
+  low: 'success',
+  medium: 'warning',
+  high: 'danger',
+  critical: 'danger',
+};
+const ACTION_CHIP_TONE: Record<CheckResponse['suggestedAction'], ChipTone> = {
+  allow: 'success',
+  review: 'warning',
+  deny: 'danger',
+};
 
 // (v1.10.605) Extracted from pages/Risk. The classifier check
 // result panel — level/action/wouldDeny/denyList badges +
@@ -21,17 +35,17 @@ export default function RiskCheckResult({ result }: Props) {
   return (
     <div className="mt-3 flex flex-col gap-2 rounded-md border border-border bg-muted/10 p-3 text-[12px]">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={LEVEL_VARIANT[result.level]} className="uppercase">
+        <Chip variant="solid" tone={LEVEL_CHIP_TONE[result.level]} className="uppercase">
           {result.level}
-        </Badge>
-        <Badge variant={ACTION_VARIANT[result.suggestedAction]} className="uppercase">
+        </Chip>
+        <Chip variant="solid" tone={ACTION_CHIP_TONE[result.suggestedAction]} className="uppercase">
           {result.suggestedAction}
-        </Badge>
+        </Chip>
         {result.wouldDeny ? (
-          <Badge variant="destructive" className="uppercase">{t('risk.badge.wouldDeny')}</Badge>
+          <Chip variant="solid" tone="danger" className="uppercase">{t('risk.badge.wouldDeny')}</Chip>
         ) : null}
         {result.denyForced ? (
-          <Badge variant="outline" className="uppercase">{t('risk.badge.denyList')}</Badge>
+          <Chip variant="outline" className="uppercase">{t('risk.badge.denyList')}</Chip>
         ) : null}
         <span className="text-[11px] text-muted-foreground">
           {tFormat('risk.threshold', { level: result.autoDenyLevel })}

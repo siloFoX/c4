@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, EmptyState, Input, Pagination, Panel, Tooltip } from '../components/ui';
+import { Button, Chip, EmptyState, Input, Pagination, Panel, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -100,10 +100,10 @@ export default function Templates() {
               <Panel className="p-3">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
                   <span className={cn(text.mono, 'text-foreground')}>{tpl.name}</span>
-                  {tpl.source && <Badge variant="outline">{tpl.source}</Badge>}
-                  {tpl.model && <Badge variant="outline">{tpl.model}</Badge>}
-                  {tpl.effort && <Badge variant="outline">{tpl.effort}</Badge>}
-                  {tpl.profile && <Badge variant="outline">{tpl.profile}</Badge>}
+                  {tpl.source && <Chip variant="outline">{tpl.source}</Chip>}
+                  {tpl.model && <Chip variant="outline">{tpl.model}</Chip>}
+                  {tpl.effort && <Chip variant="outline">{tpl.effort}</Chip>}
+                  {tpl.profile && <Chip variant="outline">{tpl.profile}</Chip>}
                 </div>
                 {tpl.description && (
                   <div className={text.caption}>{tpl.description}</div>
