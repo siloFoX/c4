@@ -11,6 +11,7 @@ import {
   CardHeader,
   EmptyState,
   ErrorState,
+  HScroll,
 } from './ui';
 import { NoWorkersIllustration } from './illustrations';
 import { cn } from '../lib/cn';
@@ -92,20 +93,22 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
           </Badge>
         </CardHeader>
         <CardContent className="space-y-1.5 p-4 pt-0">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {w.unreadSnapshots > 0 && (
-              <Badge variant="info" className="px-1.5 py-0 text-[11px] font-medium">
-                {w.unreadSnapshots} unread
-              </Badge>
-            )}
-            {interventionActive && (
-              <Badge variant="destructive" className="px-1.5 py-0 text-[11px] font-medium">
-                {String(
-                  (w.intervention as { reason?: unknown })?.reason ?? 'intervention'
-                )}
-              </Badge>
-            )}
-          </div>
+          {(w.unreadSnapshots > 0 || interventionActive) && (
+            <HScroll gap="sm" snap={false} className="text-[11px]">
+              {w.unreadSnapshots > 0 && (
+                <Badge data-h-scroll-item variant="info" className="px-1.5 py-0 text-[11px] font-medium">
+                  {w.unreadSnapshots} unread
+                </Badge>
+              )}
+              {interventionActive && (
+                <Badge data-h-scroll-item variant="destructive" className="px-1.5 py-0 text-[11px] font-medium">
+                  {String(
+                    (w.intervention as { reason?: unknown })?.reason ?? 'intervention'
+                  )}
+                </Badge>
+              )}
+            </HScroll>
+          )}
           {w.branch && (
             <div className="truncate font-mono text-xs text-muted-foreground">
               {w.branch}

@@ -1,4 +1,4 @@
-import { Button, Chip, Input } from './ui';
+import { Button, Chip, HScroll, Input } from './ui';
 import { t, useLocale } from '../lib/i18n';
 import { useSpecialistTagEditor } from '../lib/use-specialist-tag-editor';
 
@@ -40,15 +40,19 @@ export default function SpecialistsTagEditor({ specialistId, tags, onSaved, onEr
         </Button>
       </div>
       {!open ? (
-        <div className="mt-1 flex flex-wrap gap-1">
-          {Array.isArray(tags) && tags.length > 0
-            ? tags.map((tag) => (
-                <Chip key={tag} tone="primary" className="px-1.5 py-0 text-[10px]">
-                  #{tag}
-                </Chip>
-              ))
-            : <span className="text-[11px] text-muted-foreground italic">{t('specialists.tags.empty')}</span>}
-        </div>
+        Array.isArray(tags) && tags.length > 0 ? (
+          <HScroll gap="sm" snap={false} className="mt-1">
+            {tags.map((tag) => (
+              <Chip key={tag} data-h-scroll-item tone="primary" className="px-1.5 py-0 text-[10px]">
+                #{tag}
+              </Chip>
+            ))}
+          </HScroll>
+        ) : (
+          <div className="mt-1">
+            <span className="text-[11px] text-muted-foreground italic">{t('specialists.tags.empty')}</span>
+          </div>
+        )
       ) : (
         <div className="mt-1 flex flex-wrap items-center gap-1">
           <Input
