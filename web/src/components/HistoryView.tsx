@@ -17,6 +17,7 @@ import {
   DateRangePicker,
   Input,
   Select,
+  VirtualList,
 } from './ui';
 import { parseISODate, toISODate } from '../lib/date-format';
 import { cn } from '../lib/cn';
@@ -190,8 +191,12 @@ export default function HistoryView() {
             {summary.length === 0 && !error && (
               <div className="text-xs text-muted-foreground">{t('history.empty')}</div>
             )}
-            <ul className="space-y-1">
-              {(query
+            {(() => {
+              // (v1.11.197) patch 11.179 - VirtualList primitive adoption.
+              // Sidebar summary list virtualizes so >1k workers render
+              // O(viewport) rows instead of O(N). itemHeight=64 covers
+              // the badge row + meta row + space-y-1 gap.
+              const filtered = query
                 ? summary.filter((w) => {
                     const needle = query.toLowerCase();
                     if (w.name.toLowerCase().includes(needle)) return true;
@@ -199,40 +204,48 @@ export default function HistoryView() {
                     if (w.branches.some((b) => b.toLowerCase().includes(needle))) return true;
                     return false;
                   })
-                : summary
-              ).map((w) => {
-                const isSelected = !showScribe && selected === w.name;
-                return (
-                  <li key={w.name}>
-                    <button
-                      type="button"
-                      onClick={() => selectWorker(w.name)}
-                      aria-pressed={isSelected}
-                      className={cn(
-                        'w-full rounded-md border border-transparent px-2 py-1.5 text-left text-sm transition-colors',
-                        isSelected
-                          ? 'bg-accent text-accent-foreground ring-1 ring-ring'
-                          : 'bg-muted/30 text-foreground hover:bg-muted'
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate">{w.name}</span>
-                        <Badge
-                          variant={w.alive ? 'success' : 'secondary'}
-                          className="shrink-0 text-[10px] uppercase"
-                        >
-                          {w.alive ? w.liveStatus || 'live' : 'closed'}
-                        </Badge>
-                      </div>
-                      <div className="mt-0.5 text-[11px] text-muted-foreground">
-                        {tFormat(w.taskCount === 1 ? 'history.taskCount.singular' : 'history.taskCount.plural', { count: w.taskCount })}
-                        {w.lastTaskAt ? ` - ${w.lastTaskAt.slice(0, 10)}` : ''}
-                      </div>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+                : summary;
+              return (
+                <VirtualList
+                  items={filtered}
+                  itemHeight={64}
+                  height="60vh"
+                  getKey={(w) => w.name}
+                  ariaLabel={t('history.sidebar.title')}
+                  className="pr-1"
+                  renderItem={(w) => {
+                    const isSelected = !showScribe && selected === w.name;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => selectWorker(w.name)}
+                        aria-pressed={isSelected}
+                        className={cn(
+                          'w-full rounded-md border border-transparent px-2 py-1.5 text-left text-sm transition-colors',
+                          isSelected
+                            ? 'bg-accent text-accent-foreground ring-1 ring-ring'
+                            : 'bg-muted/30 text-foreground hover:bg-muted'
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate">{w.name}</span>
+                          <Badge
+                            variant={w.alive ? 'success' : 'secondary'}
+                            className="shrink-0 text-[10px] uppercase"
+                          >
+                            {w.alive ? w.liveStatus || 'live' : 'closed'}
+                          </Badge>
+                        </div>
+                        <div className="mt-0.5 text-[11px] text-muted-foreground">
+                          {tFormat(w.taskCount === 1 ? 'history.taskCount.singular' : 'history.taskCount.plural', { count: w.taskCount })}
+                          {w.lastTaskAt ? ` - ${w.lastTaskAt.slice(0, 10)}` : ''}
+                        </div>
+                      </button>
+                    );
+                  }}
+                />
+              );
+            })()}
           </CardContent>
         </Card>
       </aside>
