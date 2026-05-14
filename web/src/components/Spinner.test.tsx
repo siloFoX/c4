@@ -74,4 +74,41 @@ describe('<Spinner>', () => {
     expect(ring.getAttribute('stroke')).toBe('currentColor');
     expect(ring.getAttribute('fill')).toBe('none');
   });
+
+  it('applies the primary color class by default', () => {
+    render(<Spinner />);
+    const node = screen.getByRole('status');
+    expect(node).toHaveClass('text-primary');
+  });
+
+  it('applies text-primary when color="primary" is set explicitly', () => {
+    render(<Spinner color="primary" data-testid="sp-primary" />);
+    const node = screen.getByTestId('sp-primary');
+    expect(node).toHaveClass('text-primary');
+  });
+
+  it('applies text-muted-foreground when color="muted"', () => {
+    render(<Spinner color="muted" data-testid="sp-muted" />);
+    const node = screen.getByTestId('sp-muted');
+    expect(node).toHaveClass('text-muted-foreground');
+  });
+
+  it('applies text-primary-foreground when color="inverse"', () => {
+    render(<Spinner color="inverse" data-testid="sp-inverse" />);
+    const node = screen.getByTestId('sp-inverse');
+    expect(node).toHaveClass('text-primary-foreground');
+  });
+
+  it('applies text-destructive when color="destructive"', () => {
+    render(<Spinner color="destructive" data-testid="sp-destructive" />);
+    const node = screen.getByTestId('sp-destructive');
+    expect(node).toHaveClass('text-destructive');
+  });
+
+  it('keeps the wrapper defaults (inline-flex) alongside color class', () => {
+    render(<Spinner color="muted" data-testid="sp-mix" />);
+    const node = screen.getByTestId('sp-mix');
+    expect(node).toHaveClass('inline-flex');
+    expect(node).toHaveClass('text-muted-foreground');
+  });
 });

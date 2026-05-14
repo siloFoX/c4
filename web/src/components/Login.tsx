@@ -102,7 +102,7 @@ export default function Login({ onSuccess }: LoginProps) {
               disabled={busy}
             >
               {busy ? (
-                <Spinner size="md" aria-hidden="true" data-testid="login-spinner" />
+                <Spinner size="md" color="inverse" aria-hidden="true" data-testid="login-spinner" />
               ) : (
                 <LogIn aria-hidden="true" className="h-4 w-4" />
               )}

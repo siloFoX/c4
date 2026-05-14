@@ -39,7 +39,7 @@ export default function SpecialistsList({
           aria-live="polite"
           className="flex items-center gap-2 p-4 text-sm text-muted-foreground"
         >
-          <Spinner size="sm" aria-hidden="true" data-testid="specialists-list-spinner" />
+          <Spinner size="sm" color="muted" aria-hidden="true" data-testid="specialists-list-spinner" />
           <span>{t('common.loadingDots')}</span>
         </div>
       );

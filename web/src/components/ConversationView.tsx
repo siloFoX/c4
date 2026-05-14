@@ -181,7 +181,7 @@ export default function ConversationView({
               aria-live="polite"
               className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground"
             >
-              <Spinner size="md" aria-hidden="true" data-testid="conversation-spinner" />
+              <Spinner size="md" color="muted" aria-hidden="true" data-testid="conversation-spinner" />
               {t('sessions.loadingSession')}
             </div>
           ) : error ? (

@@ -13,9 +13,11 @@ import { cn } from '../lib/cn';
 // content over aria-label.
 
 export type SpinnerSize = 'sm' | 'md' | 'lg';
+export type SpinnerColor = 'primary' | 'muted' | 'inverse' | 'destructive';
 
 export interface SpinnerProps extends HTMLAttributes<HTMLSpanElement> {
   size?: SpinnerSize;
+  color?: SpinnerColor;
   label?: string;
   className?: string;
 }
@@ -26,8 +28,16 @@ const SIZE_CLASS: Record<SpinnerSize, string> = {
   lg: 'h-6 w-6',
 };
 
+const COLOR_CLASS: Record<SpinnerColor, string> = {
+  primary: 'text-primary',
+  muted: 'text-muted-foreground',
+  inverse: 'text-primary-foreground',
+  destructive: 'text-destructive',
+};
+
 export default function Spinner({
   size = 'md',
+  color = 'primary',
   label = 'Loading',
   className,
   ...rest
@@ -37,7 +47,11 @@ export default function Spinner({
       role="status"
       aria-live="polite"
       aria-label={label}
-      className={cn('inline-flex items-center justify-center', className)}
+      className={cn(
+        'inline-flex items-center justify-center',
+        COLOR_CLASS[color],
+        className,
+      )}
       {...rest}
     >
       <svg
