@@ -298,4 +298,135 @@ describe('<DropdownMenu>', () => {
       'trigger-tag',
     );
   });
+
+  it('cycles focus through items with ArrowDown and wraps to the first item', async () => {
+    const user = userEvent.setup();
+    render(
+      <DropdownMenu trigger={<button>Open</button>} items={baseItems} />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    await user.keyboard('{ArrowDown}');
+    await waitFor(() => {
+      expect(
+        screen.getByRole('menuitem', { name: 'Profile' }),
+      ).toHaveFocus();
+    });
+    await user.keyboard('{ArrowDown}');
+    await waitFor(() => {
+      expect(
+        screen.getByRole('menuitem', { name: 'Settings' }),
+      ).toHaveFocus();
+    });
+    await user.keyboard('{ArrowDown}');
+    await waitFor(() => {
+      expect(
+        screen.getByRole('menuitem', { name: 'Profile' }),
+      ).toHaveFocus();
+    });
+  });
+
+  it('wraps to the last item when ArrowUp is pressed from the top', async () => {
+    const user = userEvent.setup();
+    render(
+      <DropdownMenu trigger={<button>Open</button>} items={baseItems} />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    await user.keyboard('{ArrowUp}');
+    await waitFor(() => {
+      expect(
+        screen.getByRole('menuitem', { name: 'Settings' }),
+      ).toHaveFocus();
+    });
+  });
+
+  it('jumps focus to the first item when Home is pressed', async () => {
+    const user = userEvent.setup();
+    render(
+      <DropdownMenu trigger={<button>Open</button>} items={baseItems} />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    await user.keyboard('{ArrowDown}');
+    await user.keyboard('{ArrowDown}');
+    await user.keyboard('{Home}');
+    await waitFor(() => {
+      expect(
+        screen.getByRole('menuitem', { name: 'Profile' }),
+      ).toHaveFocus();
+    });
+  });
+
+  it('jumps focus to the last item when End is pressed', async () => {
+    const user = userEvent.setup();
+    render(
+      <DropdownMenu trigger={<button>Open</button>} items={baseItems} />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    await user.keyboard('{End}');
+    await waitFor(() => {
+      expect(
+        screen.getByRole('menuitem', { name: 'Settings' }),
+      ).toHaveFocus();
+    });
+  });
+
+  it('restores focus to the trigger when the menu closes via Escape', async () => {
+    const user = userEvent.setup();
+    render(
+      <DropdownMenu trigger={<button>Open</button>} items={baseItems} />,
+    );
+    const trigger = screen.getByRole('button', { name: 'Open' });
+    await user.click(trigger);
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    await waitFor(() => {
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(trigger).toHaveFocus();
+    });
+  });
+
+  it('focuses the first item whose label starts with a typed letter (type-ahead)', async () => {
+    const user = userEvent.setup();
+    render(
+      <DropdownMenu
+        trigger={<button>Open</button>}
+        items={[
+          { key: 'a', label: 'Profile', onSelect: () => {} },
+          { key: 'b', label: 'Settings', onSelect: () => {} },
+          { key: 'c', label: 'Sign out', onSelect: () => {} },
+        ]}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    await user.keyboard('s');
+    await waitFor(() => {
+      expect(
+        screen.getByRole('menuitem', { name: 'Settings' }),
+      ).toHaveFocus();
+    });
+    // A second 's' press advances to the next 'S'-prefixed item before
+    // the 500ms reset window elapses.
+    await user.keyboard('s');
+    await waitFor(() => {
+      expect(
+        screen.getByRole('menuitem', { name: 'Sign out' }),
+      ).toHaveFocus();
+    });
+  });
+
+  it('exposes aria-orientation="vertical" and aria-activedescendant on the menu', async () => {
+    const user = userEvent.setup();
+    render(
+      <DropdownMenu trigger={<button>Open</button>} items={baseItems} />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    const menu = screen.getByRole('menu');
+    expect(menu).toHaveAttribute('aria-orientation', 'vertical');
+    await user.keyboard('{ArrowDown}');
+    const firstItem = screen.getByRole('menuitem', { name: 'Profile' });
+    await waitFor(() => {
+      expect(menu.getAttribute('aria-activedescendant')).toBe(firstItem.id);
+    });
+  });
 });

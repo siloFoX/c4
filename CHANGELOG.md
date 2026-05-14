@@ -4,6 +4,50 @@
 
 (no entries -- next release window)
 
+## [1.11.146] - 2026-05-14 -- Web: DropdownMenu keyboard navigation polish
+
+The hand-rolled `<DropdownMenu>` primitive
+(`web/src/components/ui/dropdown-menu.tsx`) gained a full keyboard
+navigation surface so it now matches the WAI-ARIA Authoring Practices
+menu pattern. Mouse and click-outside behavior are unchanged; the
+public component API (`trigger`, `items`, `onSelect`, `placement`,
+`ariaLabel`, `header`, `className`) is unchanged.
+
+What changed:
+
+- **ArrowDown / ArrowUp** cycle the active item with wrap-around and
+  skip disabled rows. Pressing ArrowDown with no prior highlight
+  focuses the first enabled item; ArrowUp focuses the last.
+- **Enter / Space** activate the focused item via the existing
+  `onSelect` callback, close the menu, and restore focus to the
+  trigger.
+- **Escape** closes the menu and restores focus to the trigger
+  (previously the menu closed but the trigger never re-received
+  focus, breaking keyboard-only flows).
+- **Home / End** jump to the first / last enabled item.
+- **Single-letter type-ahead** focuses the first item whose label
+  string starts with the typed key (case-insensitive). Repeated
+  presses of the same key cycle through matching items; a 500ms
+  `setTimeout` ref resets the buffer once the user pauses.
+- ARIA: `role="menu"` + `aria-orientation="vertical"` on the menu
+  container, `role="menuitem"` on each row, `aria-haspopup="menu"` /
+  `aria-expanded` on the trigger (already wired previously), plus
+  new `aria-activedescendant` on the menu pointing at the active
+  item id. Item ids are derived from `React.useId()`.
+
+Tests: `dropdown-menu.test.tsx` gained six new cases covering
+ArrowDown wrap cycling, ArrowUp wrap-to-last, Home / End jumps,
+Escape focus restoration, single-letter type-ahead (including the
+repeat-press cycle), and the new `aria-orientation` /
+`aria-activedescendant` wiring. The full file now runs 28 tests
+(was 22) and all pass.
+
+Files touched: `web/src/components/ui/dropdown-menu.tsx`,
+`web/src/components/ui/dropdown-menu.test.tsx`,
+`web/package.json` (1.11.145 -> 1.11.146).
+
+No new npm dependencies.
+
 ## [1.11.145] - 2026-05-14 -- Web: Tooltip primitive rollout (native title= migration)
 
 Thirteen icon-or-text buttons that leaned on the native `title=`
