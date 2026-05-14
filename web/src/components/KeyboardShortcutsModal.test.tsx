@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { setLocale } from '../lib/i18n';
+import { useHelpOverlayTriggers } from '../lib/use-help-overlay-triggers';
 import {
   KeyboardShortcutsModal,
   SHORTCUT_ROWS,
@@ -255,5 +257,104 @@ describe('<KeyboardShortcutsModal>', () => {
     });
     expect(screen.getAllByText('Esc').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Ctrl+B').length).toBeGreaterThan(0);
+  });
+
+  // ---- categorized sections (v1.11.191) ------------------------
+
+  it('renders Navigation / Actions / View section headings', () => {
+    renderModal();
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('Navigation')).toBeInTheDocument();
+    expect(within(dialog).getByText('Actions')).toBeInTheDocument();
+    expect(within(dialog).getByText('View')).toBeInTheDocument();
+  });
+
+  it('groups every shortcut row under a section data attribute', () => {
+    renderModal();
+    const sections = document.querySelectorAll('[data-shortcuts-section]');
+    expect(sections.length).toBeGreaterThan(0);
+    let total = 0;
+    sections.forEach((s) => {
+      total += s.querySelectorAll('tbody tr').length;
+    });
+    expect(total).toBe(SHORTCUT_ROWS.length);
+  });
+
+  // ---- search filter ------------------------------------------
+
+  it('renders a SearchBar filter input above the sections', () => {
+    renderModal();
+    expect(
+      screen.getByRole('searchbox', { name: 'Filter shortcuts' }),
+    ).toBeInTheDocument();
+  });
+
+  it('filters rows by description label substring (e.g. "tour")', async () => {
+    const { user } = renderModal();
+    const filter = screen.getByRole('searchbox', { name: 'Filter shortcuts' });
+    await user.type(filter, 'tour');
+    const rows = screen.getAllByRole('row');
+    expect(rows.length).toBe(1);
+    expect(
+      within(rows[0]!).getByText('Replay onboarding tour'),
+    ).toBeInTheDocument();
+  });
+
+  it('filters rows by key combo (e.g. "Ctrl+F")', async () => {
+    const { user } = renderModal();
+    const filter = screen.getByRole('searchbox', { name: 'Filter shortcuts' });
+    await user.type(filter, 'Ctrl+F');
+    const rows = screen.getAllByRole('row');
+    expect(rows.length).toBe(1);
+    expect(within(rows[0]!).getByText('Ctrl+F')).toBeInTheDocument();
+    expect(within(rows[0]!).getByText('Search in terminal')).toBeInTheDocument();
+  });
+
+  it('empty filter shows all rows', async () => {
+    const { user } = renderModal();
+    const filter = screen.getByRole('searchbox', { name: 'Filter shortcuts' });
+    await user.type(filter, 'tour');
+    expect(screen.getAllByRole('row').length).toBe(1);
+    await user.clear(filter);
+    expect(screen.getAllByRole('row').length).toBe(SHORTCUT_ROWS.length);
+  });
+
+  it('shows the empty-state message when no row matches the filter', async () => {
+    const { user } = renderModal();
+    const filter = screen.getByRole('searchbox', { name: 'Filter shortcuts' });
+    await user.type(filter, 'zzzz-no-match');
+    expect(screen.getByText('No matching shortcuts')).toBeInTheDocument();
+    expect(screen.queryAllByRole('row')).toHaveLength(0);
+  });
+
+  // ---- global ? hotkey wiring (via useHelpOverlayTriggers) ----
+
+  function HotkeyHarness() {
+    const [open, setOpen] = useState(false);
+    useHelpOverlayTriggers({
+      onOpenDrawer: () => {},
+      onOpenShortcuts: () => setOpen(true),
+    });
+    return (
+      <>
+        <input data-testid="harness-input" placeholder="focus me" />
+        <KeyboardShortcutsModal open={open} onClose={() => setOpen(false)} />
+      </>
+    );
+  }
+
+  it('opens the modal when ? is pressed and no input is focused', () => {
+    render(<HotkeyHarness />);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.keyDown(document.body, { key: '?' });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('does NOT open the modal when ? is pressed while an input is focused', () => {
+    render(<HotkeyHarness />);
+    const input = screen.getByTestId('harness-input') as HTMLInputElement;
+    input.focus();
+    fireEvent.keyDown(input, { key: '?' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
