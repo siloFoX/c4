@@ -4,7 +4,8 @@ import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame'
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Input, Label, Panel, Popover, Stepper, Textarea, Tooltip } from '../components/ui';
+import { Button, FileTree, Input, Label, Panel, Popover, Stepper, Textarea, Tooltip } from '../components/ui';
+import type { FileTreeNode } from '../components/ui';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
 import { usePlanContent } from '../lib/use-plan-content';
@@ -26,6 +27,37 @@ import { t, useLocale } from '../lib/i18n';
 // lib/use-plan-content.
 
 // (v1.10.694) ToastState + showToast moved to lib/use-toast.
+
+// (v1.11.198) Placeholder workspace tree shown in the Plan output panel
+// using the new <FileTree> primitive. Static demo data until the daemon
+// exposes a real plan-files endpoint.
+const PLAN_WORKSPACE_TREE: FileTreeNode[] = [
+  {
+    id: 'plan',
+    name: 'plan',
+    type: 'folder',
+    children: [
+      {
+        id: 'plan/drafts',
+        name: 'drafts',
+        type: 'folder',
+        children: [
+          { id: 'plan/drafts/plan.md', name: 'plan.md', type: 'file' },
+          { id: 'plan/drafts/notes.md', name: 'notes.md', type: 'file' },
+        ],
+      },
+      {
+        id: 'plan/finalized',
+        name: 'finalized',
+        type: 'folder',
+        children: [
+          { id: 'plan/finalized/plan-v1.md', name: 'plan-v1.md', type: 'file' },
+        ],
+      },
+      { id: 'plan/README.md', name: 'README.md', type: 'file' },
+    ],
+  },
+];
 
 export default function Plan() {
   useLocale();
@@ -217,6 +249,14 @@ export default function Plan() {
         ) : (
           <EmptyPanel message={t('plan.empty')} />
         )}
+      </Panel>
+
+      <Panel title="Plan workspace" className="p-3">
+        <FileTree
+          nodes={PLAN_WORKSPACE_TREE}
+          defaultExpanded={['plan', 'plan/drafts']}
+          ariaLabel="Plan workspace files"
+        />
       </Panel>
 
       <div className="pointer-events-none fixed right-4 top-4 z-50 flex flex-col gap-2">

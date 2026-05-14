@@ -51,3 +51,4 @@ export * from './date-picker';
 export * from './breadcrumbs';
 export * from './notification-banner';
 export * from './virtual-list';
+export * from './file-tree';

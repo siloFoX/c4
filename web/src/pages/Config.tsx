@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { HelpCircle, RefreshCw, Cog } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
-import { Button, CodeBlock, FileInput, Input, Panel, Popover, Stepper } from '../components/ui';
+import { Button, CodeBlock, FileInput, FileTree, Input, Panel, Popover, Stepper } from '../components/ui';
+import type { FileTreeNode } from '../components/ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
@@ -145,6 +146,7 @@ export default function Config() {
         )}
       </Panel>
       <ImportConfigSection />
+      <ConfigFilesPreview />
       <DispatchLifecycleDemo />
     </PageFrame>
   );
@@ -187,6 +189,44 @@ function DispatchLifecycleDemo() {
         />
       </div>
       <Stepper steps={steps} currentIndex={1} orientation="horizontal" size="sm" />
+    </Panel>
+  );
+}
+
+// (v1.11.198) Placeholder config-files browser using the new <FileTree>
+// primitive. Static demo until a daemon endpoint exposes the real layout.
+const CONFIG_FILES_TREE: FileTreeNode[] = [
+  { id: 'config.json', name: 'config.json', type: 'file' },
+  {
+    id: 'profiles',
+    name: 'profiles',
+    type: 'folder',
+    children: [
+      { id: 'profiles/admin.json', name: 'admin.json', type: 'file' },
+      { id: 'profiles/manager.json', name: 'manager.json', type: 'file' },
+      { id: 'profiles/viewer.json', name: 'viewer.json', type: 'file' },
+    ],
+  },
+  {
+    id: 'templates',
+    name: 'templates',
+    type: 'folder',
+    children: [
+      { id: 'templates/web.md', name: 'web.md', type: 'file' },
+      { id: 'templates/cli.md', name: 'cli.md', type: 'file' },
+    ],
+  },
+];
+
+function ConfigFilesPreview() {
+  return (
+    <Panel className="mt-3 p-3">
+      <h3 className={cn('mb-2 text-foreground', text.h3)}>Config files</h3>
+      <FileTree
+        nodes={CONFIG_FILES_TREE}
+        defaultExpanded={['profiles', 'templates']}
+        ariaLabel="Config files"
+      />
     </Panel>
   );
 }
