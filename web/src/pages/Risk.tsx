@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { RefreshCw, Shield } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
-import { Alert, Button, Input, Panel, Switch, Textarea } from '../components/ui';
+import { Alert, Button, Input, NumberInput, Panel, Switch, Textarea } from '../components/ui';
 import { t, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
@@ -247,16 +247,17 @@ export default function Risk() {
           <h3 className={cn('text-foreground', text.h3)}>
             {t('riskPage.recentDenials')}
           </h3>
-          <Input
-            label={t('riskPage.window.label')}
-            hint="hours"
-            type="number"
+          {/* (11.175) Migrated to NumberInput primitive. */}
+          <NumberInput
+            value={windowHours}
+            onChange={(next) => setWindowHours(Math.max(1, Math.min(720, next ?? 24)))}
             min={1}
             max={720}
-            value={windowHours}
-            onChange={(e) => setWindowHours(Math.max(1, Math.min(720, Number(e.target.value) || 24)))}
+            unit="h"
             disabled={statsLoading}
-            className="h-7 w-16 text-[11px]"
+            ariaLabel={t('riskPage.window.label')}
+            size="sm"
+            className="w-32"
           />
         </div>
         {statsError ? <ErrorPanel message={statsError} /> : null}

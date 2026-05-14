@@ -12,6 +12,7 @@ import {
   DataList,
   Drawer,
   IconButton,
+  NumberInput,
   Panel,
   Popover,
   Rating,
@@ -37,6 +38,10 @@ export default function Health() {
   useLocale();
   const { data, loading, error, refresh } = useHealth();
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // (11.175) Placeholder health-poll timeout setting to demonstrate
+  // NumberInput adoption. Local-only; not yet wired to the polling
+  // hook - a follow-up will pass this into useHealth.
+  const [pollTimeoutMs, setPollTimeoutMs] = useState<number | undefined>(10000);
 
   const ok = data?.ok !== false && !error;
 
@@ -199,6 +204,25 @@ export default function Health() {
                 { id: 'eventLoopLag', label: t('healthPage.stat.eventLoopLag'), value: data.eventLoopLagMs != null ? `${data.eventLoopLagMs} ms` : '-' },
               ] satisfies DataListItem[]}
             />
+          </Panel>
+
+          {/* (11.175) Settings panel - NumberInput primitive adoption. */}
+          <Panel className="flex flex-wrap items-center gap-3 p-3 text-xs">
+            <span className="font-medium text-foreground">Settings</span>
+            <label className="flex items-center gap-2 text-muted-foreground">
+              <span>Poll timeout</span>
+              <NumberInput
+                value={pollTimeoutMs}
+                onChange={setPollTimeoutMs}
+                min={500}
+                max={60000}
+                step={500}
+                unit="ms"
+                ariaLabel="Health poll timeout (ms)"
+                size="sm"
+                className="w-40"
+              />
+            </label>
           </Panel>
 
           <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
