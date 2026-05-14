@@ -15,6 +15,7 @@ import {
   CardHeader,
   CardTitle,
   DateRangePicker,
+  ExportButton,
   Input,
   Select,
   VirtualList,
@@ -125,19 +126,35 @@ export default function HistoryView() {
                 {t('history.sidebar.title')}
               </CardTitle>
             </div>
-            <Button
-              type="button"
-              variant={showScribe ? 'default' : 'secondary'}
-              size="sm"
-              onClick={openScribe}
-              aria-pressed={showScribe}
-              data-active={showScribe ? 'true' : 'false'}
-            >
-              <NotebookText className="h-3.5 w-3.5" />
-              <span>
-                {t('history.sidebar.scribeButton')}
-              </span>
-            </Button>
+            <div className="flex items-center gap-1">
+              {/* (11.190) ExportButton adoption: download visible history
+                  workers as CSV/JSON. */}
+              <ExportButton
+                rows={summary as unknown[]}
+                columns={[
+                  { key: 'name', header: 'Worker' },
+                  { key: 'taskCount', header: 'Tasks' },
+                  { key: 'lastTaskAt', header: 'Last Task' },
+                  { key: 'lastStatus', header: 'Status' },
+                  { key: 'lastTask', header: 'Last' },
+                ]}
+                filename="history"
+                disabled={summary.length === 0}
+              />
+              <Button
+                type="button"
+                variant={showScribe ? 'default' : 'secondary'}
+                size="sm"
+                onClick={openScribe}
+                aria-pressed={showScribe}
+                data-active={showScribe ? 'true' : 'false'}
+              >
+                <NotebookText className="h-3.5 w-3.5" />
+                <span>
+                  {t('history.sidebar.scribeButton')}
+                </span>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 p-0 pt-3">
             <div className="relative">
