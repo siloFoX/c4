@@ -35,7 +35,7 @@ export default function StatusMessageCard({ workerName, onToast }: Props) {
           rows={2}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           placeholder={tFormat('controlPanel.status.placeholder', { worker: workerName })}
           aria-label={tFormat('controlPanel.status.aria', { worker: workerName })}
         />

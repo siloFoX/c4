@@ -92,7 +92,7 @@ export default function NewChatModal({ open, busy, error, onClose, onSubmit }: N
             </label>
             <textarea
               id="new-chat-prompt"
-              className="min-h-[120px] w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="min-h-[120px] w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               placeholder={t('sessions.task.placeholder')}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
@@ -108,7 +108,7 @@ export default function NewChatModal({ open, busy, error, onClose, onSubmit }: N
               </label>
               <select
                 id="new-chat-model"
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
                 disabled={busy}
@@ -130,7 +130,7 @@ export default function NewChatModal({ open, busy, error, onClose, onSubmit }: N
               </label>
               <select
                 id="new-chat-agent"
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 value={agent}
                 onChange={(e) => setAgent(e.target.value)}
                 disabled={busy}

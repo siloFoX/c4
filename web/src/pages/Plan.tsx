@@ -76,7 +76,7 @@ export default function Plan() {
             id="plan-worker"
             value={selected}
             onChange={(e) => setSelected(e.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <option value="">— select —</option>
             {workers.map((w) => (
@@ -102,7 +102,7 @@ export default function Plan() {
             rows={4}
             value={task}
             onChange={(e) => setTask(e.target.value)}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             placeholder={t('planPage.task.placeholder')}
           />
         </div>

@@ -353,8 +353,12 @@ describe('<WorkerList>', () => {
     const inactive = screen
       .getByText('w-1')
       .closest('[role="button"]') as HTMLElement;
-    expect(active.className).toMatch(/ring-2/);
-    expect(inactive.className).not.toMatch(/ring-2/);
+    // The selected row carries the unprefixed selection ring
+    // (`ring-2 ring-ring`); every row also carries a
+    // `focus-visible:ring-2` for keyboard focus, so match on the
+    // unprefixed token specifically.
+    expect(active.className).toMatch(/(^|\s)ring-2(\s|$)/);
+    expect(inactive.className).not.toMatch(/(^|\s)ring-2(\s|$)/);
   });
 
   it('fires onSelect with the worker name when its row is clicked', async () => {
