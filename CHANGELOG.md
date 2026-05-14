@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.201] - 2026-05-14 -- UI: grid debug overlay (11.183)
+
+New dev-only `<GridDebugOverlay>` at `web/src/components/dev/GridDebugOverlay.tsx`. Renders a 12-column grid aligned to the `max-w-7xl mx-auto` container with alternating red/blue 4% tint + 1px dashed borders, plus a top-right Tailwind breakpoint pill (xs/sm/md/lg/xl/2xl) and a bottom-left `WxH @ y=scroll` pill. Self-gates on `import.meta.env.PROD` so production bundles render null. Visibility toggles on `Cmd/Ctrl+Shift+G` and persists via localStorage key `c4:grid-debug:visible`. `pointer-events-none` + `aria-hidden='true'` so it never blocks interaction. Mounted in `App.tsx` below the AutonomousStatusBanner. See `docs/patches/11.183-ui-grid-debug.md`.
+
 ## [1.11.200] - 2026-05-14 -- UI: ContextMenu primitive (11.182)
 
 New `<ContextMenu>` primitive in `web/src/components/ui/context-menu.tsx` (right-click triggered menu rendered via `createPortal` to `document.body` at click coordinates; props `trigger: ReactElement` / `items: ContextMenuItem[]` / `ariaLabel?` / `className?`; item shape `{ id, label, icon?, disabled?, danger?, onSelect?, separator? }`; ArrowDown/Up keyboard nav skipping disabled + separators, Enter activates highlighted item, Escape closes via existing `useFocusTrap` hook, click-outside via `mousedown` capture; position clamped to viewport via `useLayoutEffect` + `getBoundingClientRect`; `role='menu'` + `role='menuitem'` + `role='separator'`; `aria-disabled` on disabled items; `danger=true` adds `text-destructive`; `forwardRef` to the trigger element). Exported from `web/src/components/ui/index.ts`. Adopted at `WorkerList` row (Attach / Logs / Kill actions) and `SessionsListSection` per-session row (Open / Rename / Delete with placeholder handlers pending backend). See `docs/patches/11.182-ui-context-menu.md`.
