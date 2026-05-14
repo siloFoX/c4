@@ -14,6 +14,7 @@ export * from './empty-state';
 export * from './skeleton';
 export * from './error-state';
 export * from './dialog';
+export * from './drawer';
 export * from './pagination';
 export * from './radio';
 export * from './checkbox';
