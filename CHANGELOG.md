@@ -4,6 +4,107 @@
 
 (no entries -- next release window)
 
+## [1.11.133] - 2026-05-14 -- CLI: `c4 logs` tails the pino daemon log file
+
+Adds a read-only `c4 logs` subcommand so operators can pretty-print the
+structured log stream the daemon writes via `src/logger.js` without
+opening the raw JSONL file. The daemon process is never contacted -- the
+handler only reads `config.logging.path`, so it works even when the
+daemon is down or unreachable.
+
+CLI surface:
+
+```bash
+c4 logs                            # last 100 lines, pretty-printed
+c4 logs --tail 500                 # last 500 lines
+c4 logs --follow                   # tail -f (200ms poll via fs.watchFile)
+c4 logs -f                         #   ditto, short form
+c4 logs --level info               # only level >= matching lines
+c4 logs --level 30                 # numeric form is equivalent
+c4 logs --component daemon         # exact component match
+c4 logs --tail 50 --component notify --follow   # filters compose
+```
+
+Implementation (`src/cli.js`):
+
+- A pure helper trio is exported alongside `runLogs` so tests can
+  exercise each piece without spawning the CLI:
+  - `_pinoLevelName(value)` -> uppercase canonical name. Maps the six
+    pino numeric levels (10/20/30/40/50/60) to TRACE/DEBUG/INFO/WARN/
+    ERROR/FATAL, uppercases an already-string level, and falls back to
+    the literal value for an unknown level.
+  - `_buildLevelFilter(filter)` -> predicate. The user may pass the
+    name form ("info") or the numeric form ("30"); the on-disk line
+    may store either form; both sides normalise to the canonical pair
+    so "info" matches lines with `level: 30` and `level: "info"`
+    alike.
+  - `_formatLogLine(line, levelPred, componentFilter)` -> formatted
+    string / null / verbatim line. Renders the canonical pino line as
+    `TIMESTAMP LEVEL [component] msg key=val ...`, dropping the
+    component segment when absent and serialising nested values as
+    compact JSON. Trailing keys hide pino plumbing (pid, hostname, v,
+    name) and the prefix keys (time, level, component, msg) so only
+    operator-relevant pairs surface. Returns `null` when a filter
+    rejects the line; returns the original line verbatim when
+    JSON.parse throws (so a stray stack-trace line still surfaces).
+  - `_resolveLogPath(cfgPath, fsImpl)` -> path or null. Reads
+    `config.logging.path` and returns null for any of: missing config,
+    missing logging block, malformed JSON.
+- `runLogs(opts)` parses flags (rejecting `--tail 0`, `--tail -1`,
+  `--tail abc`, and a missing value for `--level` / `--component`
+  with a usage line + exit 1), resolves the log path, reads the file
+  via `fsImpl.readFileSync`, slices to the last N non-empty lines,
+  and writes each formatted line to `stdout`. With `--follow` the
+  handler then installs an `fs.watchFile` poll at 200ms; on each
+  size-grow tick it opens the file, reads the appended bytes via
+  `fs.readSync` from the prior `lastSize`, splits on `\n`, and emits
+  the new lines through the same formatter. Truncation (size shrink)
+  rebases `lastSize` so a rotated log continues to stream cleanly.
+- The case wires into the main switch right after `c4 metrics`,
+  matching the `audit` / `metrics` shape requested by the spec. The
+  top-level `Usage` block lists the flag set near `c4 diff`.
+- Exports widen: the existing `module.exports` block now also exposes
+  `runLogs`, `_pinoLevelName`, `_buildLevelFilter`, `_formatLogLine`,
+  and `_resolveLogPath` so the test file can `require(CLI_PATH)`
+  without spawning a child process.
+
+Error paths (all exit 1 with a usage line on stderr):
+
+- `--tail N` with N not a positive integer
+- `--level` / `--component` without a value
+- `config.logging.path` missing -> `Logs go to stdout (no
+  logging.path set); cannot tail.`
+- Log file missing -> `Log file not found: <path>`
+
+Verification:
+
+- `tests/cli-logs.test.js` (node:test, 31 cases across 5 suites)
+  - Pure helpers: `_pinoLevelName` numeric/string/unknown/null,
+    `_buildLevelFilter` null-passthrough + name/numeric symmetry +
+    null-level drop, `_formatLogLine` canonical shape +
+    component-absent + level-reject + component-reject +
+    malformed-verbatim + nested-extras, `_resolveLogPath`
+    present/missing/non-existent/malformed.
+  - `runLogs` handler: default tail prints 100 of 250 lines (asserts
+    first + last line indices), default prints all when < 100,
+    `--tail 5` slices correctly, `--tail 0` / `--tail -1` /
+    `--tail abc` all error with usage on stderr + exit 1, missing
+    `config.logging.path` prints the exact stderr hint, missing log
+    file prints the path, `--level info` keeps only matching lines,
+    `--level 30` matches the same set, `--component daemon` drops
+    non-daemon and component-absent lines, malformed JSON line
+    passes through verbatim while surrounding valid lines still
+    pretty-print + exit 0, full canonical line renders exactly as
+    `2023-11-14T22:13:20.000Z WARN [notify] sent kind=dispatch
+    worker=w1`.
+- `cli-diff.test.js`, `cli-ui.test.js`, `cli-version-flag.test.js`
+  all pass against the modified `src/cli.js` (46/46), confirming
+  the helper additions did not regress the surrounding exports.
+
+Scope: `src/cli.js`, `tests/cli-logs.test.js`, `web/package.json`,
+`CHANGELOG.md`, `CLAUDE.md`. No new dependencies; no daemon code; no
+network surface.
+
 ## [1.11.132] - 2026-05-14 -- Web + Daemon: browser-frame error capture + open /client-errors sink
 
 Add a minimal client-side error capture path plus a matching open
