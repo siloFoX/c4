@@ -98,7 +98,7 @@ describe('<Panel>', () => {
     expect(container.querySelector('p')).toBeNull();
   });
 
-  it('renders breadcrumbs as a <nav aria-label="Breadcrumb"> with the right links and labels', () => {
+  it('renders breadcrumbs as a <nav aria-label="breadcrumb"> with the right links and labels', () => {
     render(
       <Panel
         title="Detail"
@@ -111,7 +111,7 @@ describe('<Panel>', () => {
         body
       </Panel>,
     );
-    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    const nav = screen.getByRole('navigation', { name: 'breadcrumb' });
     expect(nav).toBeInTheDocument();
     const links = nav.querySelectorAll('a');
     expect(links).toHaveLength(2);
@@ -120,9 +120,8 @@ describe('<Panel>', () => {
     expect(links[1]).toHaveTextContent('Workers');
     expect(links[1]).toHaveAttribute('href', '/workers');
     expect(nav).toHaveTextContent('auto-w1');
-    const separators = nav.querySelectorAll('[aria-hidden="true"]');
+    const separators = nav.querySelectorAll('li[aria-hidden="true"]');
     expect(separators).toHaveLength(2);
-    separators.forEach((s) => expect(s.textContent).toBe('/'));
   });
 
   it('omits the breadcrumb nav when breadcrumbs is an empty array', () => {
@@ -131,7 +130,7 @@ describe('<Panel>', () => {
         body
       </Panel>,
     );
-    expect(screen.queryByRole('navigation', { name: 'Breadcrumb' })).toBeNull();
+    expect(screen.queryByRole('navigation', { name: 'breadcrumb' })).toBeNull();
   });
 
   it('renders only breadcrumbs / description without an old-header row when title is omitted', () => {
@@ -144,7 +143,7 @@ describe('<Panel>', () => {
       </Panel>,
     );
     expect(screen.queryByRole('heading', { level: 3 })).not.toBeInTheDocument();
-    expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'breadcrumb' })).toBeInTheDocument();
     expect(screen.getByText('just a description').tagName).toBe('P');
   });
 });

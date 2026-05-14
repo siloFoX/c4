@@ -1,18 +1,49 @@
-import { forwardRef } from 'react';
+import { forwardRef, isValidElement } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 import { cn } from '../../lib/cn';
+import { Breadcrumbs } from './breadcrumbs';
+import type { BreadcrumbItem } from './breadcrumbs';
 
 export interface PanelBreadcrumb {
   label: string;
   href?: string;
 }
 
-export interface PanelProps extends HTMLAttributes<HTMLDivElement> {
+export type PanelBreadcrumbsProp =
+  | Array<PanelBreadcrumb | BreadcrumbItem>
+  | ReactNode;
+
+export interface PanelProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   icon?: ReactNode;
   title?: string;
   action?: ReactNode;
   description?: string;
-  breadcrumbs?: Array<PanelBreadcrumb>;
+  breadcrumbs?: PanelBreadcrumbsProp;
+  children?: ReactNode;
+}
+
+function isBreadcrumbArray(
+  value: unknown,
+): value is Array<PanelBreadcrumb | BreadcrumbItem> {
+  if (!Array.isArray(value)) return false;
+  return value.every(
+    (entry) =>
+      entry !== null &&
+      typeof entry === 'object' &&
+      'label' in (entry as Record<string, unknown>),
+  );
+}
+
+function normalizeItems(
+  items: Array<PanelBreadcrumb | BreadcrumbItem>,
+): BreadcrumbItem[] {
+  return items.map((entry, idx) => {
+    const id =
+      'id' in entry && typeof entry.id === 'string' && entry.id.length > 0
+        ? entry.id
+        : `crumb-${idx}`;
+    return { id, label: entry.label, href: entry.href };
+  });
 }
 
 export const Panel = forwardRef<HTMLDivElement, PanelProps>(
@@ -21,7 +52,20 @@ export const Panel = forwardRef<HTMLDivElement, PanelProps>(
     ref,
   ) => {
     const hasOldHeader = Boolean(icon || title || action);
-    const hasBreadcrumbs = Array.isArray(breadcrumbs) && breadcrumbs.length > 0;
+    const isItemArray = isBreadcrumbArray(breadcrumbs);
+    const breadcrumbItems = isItemArray
+      ? normalizeItems(breadcrumbs as Array<PanelBreadcrumb | BreadcrumbItem>)
+      : null;
+    const customBreadcrumbsNode =
+      !isItemArray && breadcrumbs !== undefined && breadcrumbs !== null
+        ? (breadcrumbs as ReactNode)
+        : null;
+    const hasBreadcrumbs =
+      (breadcrumbItems !== null && breadcrumbItems.length > 0) ||
+      isValidElement(customBreadcrumbsNode) ||
+      (customBreadcrumbsNode !== null &&
+        customBreadcrumbsNode !== false &&
+        customBreadcrumbsNode !== undefined);
     const hasDescription = Boolean(description);
     const hasNewSlots = hasBreadcrumbs || hasDescription;
     const hasHeader = hasOldHeader || hasNewSlots;
@@ -38,27 +82,11 @@ export const Panel = forwardRef<HTMLDivElement, PanelProps>(
           hasNewSlots ? (
             <div className="mb-3 flex flex-col gap-1">
               {hasBreadcrumbs ? (
-                <nav
-                  aria-label="Breadcrumb"
-                  className="flex flex-wrap items-center text-xs text-muted-foreground"
-                >
-                  {breadcrumbs!.map((crumb, idx) => (
-                    <span key={idx} className="flex items-center">
-                      {idx > 0 ? (
-                        <span className="mx-1 text-muted-foreground" aria-hidden="true">
-                          /
-                        </span>
-                      ) : null}
-                      {crumb.href ? (
-                        <a href={crumb.href} className="hover:underline">
-                          {crumb.label}
-                        </a>
-                      ) : (
-                        <span>{crumb.label}</span>
-                      )}
-                    </span>
-                  ))}
-                </nav>
+                breadcrumbItems ? (
+                  <Breadcrumbs items={breadcrumbItems} />
+                ) : (
+                  customBreadcrumbsNode
+                )
               ) : null}
               {hasOldHeader ? (
                 <div className="flex items-center justify-between gap-2">
