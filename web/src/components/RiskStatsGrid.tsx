@@ -1,11 +1,21 @@
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
-import { LEVEL_TONE, type StatsResponse } from '../pages/Risk';
+import { type StatsResponse } from '../pages/Risk';
 
 // (v1.10.606) Extracted from pages/Risk. The recent-denials
 // stats grid — total/enforced/dryRun/shadowExec tiles, by-level
 // counts, top reasons + top workers, rule-set rotation banner.
 // Pure display: takes the full stats response.
+// (v1.11.144) Local text-color map for per-level stat numbers.
+// Previously read the second token out of the now-removed
+// LEVEL_TONE class string; the explicit map is clearer.
+
+const LEVEL_TEXT: Record<'critical' | 'high' | 'medium' | 'low', string> = {
+  low: 'text-success',
+  medium: 'text-warning',
+  high: 'text-destructive',
+  critical: 'text-destructive',
+};
 
 interface Props {
   stats: StatsResponse;
@@ -43,7 +53,7 @@ export default function RiskStatsGrid({ stats }: Props) {
       {(['critical', 'high', 'medium', 'low'] as const).map((lv) => (
         <div key={lv}>
           <div className="text-[10px] uppercase text-muted-foreground">{lv}</div>
-          <div className={cn('font-mono text-[14px]', LEVEL_TONE[lv].split(' ')[1])}>
+          <div className={cn('font-mono text-[14px]', LEVEL_TEXT[lv])}>
             {stats.byLevel[lv] || 0}
           </div>
         </div>

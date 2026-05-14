@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle } from 'lucide-react';
-import { Button } from './ui';
+import { Badge, Button } from './ui';
 import { t, tFormat } from '../lib/i18n';
 
 // (v1.11.136) Friendlier top-level Error Boundary fallback. The stack
@@ -176,13 +176,14 @@ export default class ErrorBoundary extends Component<Props, State> {
               {t('errorBoundary.tryAgain')}
             </Button>
             {this.state.copied ? (
-              <span
+              <Badge
+                variant="success"
                 role="status"
                 aria-live="polite"
-                className="inline-flex items-center rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-medium text-emerald-300"
+                className="px-2 py-0.5 text-[11px] font-medium"
               >
                 Copied
-              </span>
+              </Badge>
             ) : null}
           </div>
         </div>

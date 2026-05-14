@@ -95,19 +95,28 @@ export interface StatsResponse {
   topWorkers: Array<{ key: string; count: number }>;
 }
 
-// (v1.10.605) LEVEL_TONE / ACTION_TONE promoted to exports —
-// consumed by the RiskCheckResult sibling.
-export const LEVEL_TONE: Record<CheckResponse['level'], string> = {
-  low: 'bg-success/10 text-success border-success/40',
-  medium: 'bg-warning/10 text-warning border-warning/40',
-  high: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/40',
-  critical: 'bg-destructive/10 text-destructive border-destructive/40',
+// (v1.10.605) LEVEL_VARIANT / ACTION_VARIANT (formerly
+// LEVEL_TONE / ACTION_TONE) promoted to exports — consumed by
+// the RiskCheckResult sibling.
+// (v1.11.144) Migrated from ad-hoc class strings to Badge
+// semantic variants. The 4-step level scale folds onto the
+// 5-variant Badge vocabulary as critical/high -> error (both
+// communicate "do not proceed"), medium -> warning, low ->
+// success. The richer orange-vs-red distinction goes away but
+// readers still get the correct "bad / caution / ok" signal.
+import type { BadgeVariant } from '../components/ui/badge';
+
+export const LEVEL_VARIANT: Record<CheckResponse['level'], BadgeVariant> = {
+  low: 'success',
+  medium: 'warning',
+  high: 'error',
+  critical: 'error',
 };
 
-export const ACTION_TONE: Record<CheckResponse['suggestedAction'], string> = {
-  allow: 'bg-success/10 text-success border-success/40',
-  review: 'bg-warning/10 text-warning border-warning/40',
-  deny: 'bg-destructive/10 text-destructive border-destructive/40',
+export const ACTION_VARIANT: Record<CheckResponse['suggestedAction'], BadgeVariant> = {
+  allow: 'success',
+  review: 'warning',
+  deny: 'error',
 };
 
 export default function Risk() {
