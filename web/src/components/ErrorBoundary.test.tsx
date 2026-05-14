@@ -30,7 +30,7 @@ afterEach(() => {
 // We expose a setShouldThrow toggle through context-free state so a
 // "Try Again" click can re-render the boundary's children with the
 // throwing behaviour disabled.
-function Thrower({ message }: { message: string }) {
+function Thrower({ message }: { message: string }): ReactNode {
   throw new Error(message);
 }
 
@@ -275,6 +275,168 @@ describe('<ErrorBoundary>', () => {
       screen.getAllByRole('heading', { name: 'Something went wrong' }),
     ).toHaveLength(1);
     expect(screen.getByTestId('happy-child')).toHaveTextContent('right');
+  });
+
+  // ---- v1.11.136 friendlier fallback UI -------------------------
+  // The redesigned panel surfaces three primary recovery actions
+  // alongside a collapsible stack trace. The cases below pin down
+  // the contract for each: clipboard write on Copy, the Copied
+  // chip toast, the prefilled GitHub deep link, and the closed-by-
+  // default <details> region.
+
+  function stubClipboard(writeText: ReturnType<typeof vi.fn>): () => void {
+    const original = Object.getOwnPropertyDescriptor(
+      globalThis.navigator,
+      'clipboard',
+    );
+    Object.defineProperty(globalThis.navigator, 'clipboard', {
+      configurable: true,
+      writable: true,
+      value: { writeText },
+    });
+    return () => {
+      if (original) {
+        Object.defineProperty(globalThis.navigator, 'clipboard', original);
+      } else {
+        delete (globalThis.navigator as { clipboard?: unknown }).clipboard;
+      }
+    };
+  }
+
+  it('renders the redesigned three-button action row (Reload + Copy + GitHub issue)', () => {
+    render(
+      <ErrorBoundary>
+        <Thrower message="boom-actions" />
+      </ErrorBoundary>,
+    );
+    expect(
+      screen.getByRole('button', { name: 'Reload' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Copy stack trace' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Open GitHub issue' }),
+    ).toBeInTheDocument();
+  });
+
+  it('writes the captured stack trace to navigator.clipboard.writeText when Copy stack trace is clicked', async () => {
+    // userEvent.setup() installs its own clipboard mock under jsdom,
+    // so stub AFTER setup to make sure our spy is the one the
+    // component's click handler hits.
+    const user = userEvent.setup();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const restore = stubClipboard(writeText);
+    try {
+      render(
+        <ErrorBoundary>
+          <Thrower message="boom-copy" />
+        </ErrorBoundary>,
+      );
+      await user.click(
+        screen.getByRole('button', { name: 'Copy stack trace' }),
+      );
+      expect(writeText).toHaveBeenCalledTimes(1);
+      const arg = writeText.mock.calls[0]?.[0];
+      expect(typeof arg).toBe('string');
+      expect(arg as string).toMatch(/boom-copy/);
+    } finally {
+      restore();
+    }
+  });
+
+  it('flips the Copied chip on after a successful clipboard write', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const restore = stubClipboard(writeText);
+    try {
+      render(
+        <ErrorBoundary>
+          <Thrower message="boom-chip" />
+        </ErrorBoundary>,
+      );
+      expect(screen.queryByText('Copied')).not.toBeInTheDocument();
+      await user.click(
+        screen.getByRole('button', { name: 'Copy stack trace' }),
+      );
+      expect(await screen.findByText('Copied')).toBeInTheDocument();
+    } finally {
+      restore();
+    }
+  });
+
+  it('exposes a GitHub issue link with the prefilled title + URL-encoded body containing the stack', () => {
+    render(
+      <ErrorBoundary>
+        <Thrower message="boom-github" />
+      </ErrorBoundary>,
+    );
+    const link = screen.getByRole('link', { name: 'Open GitHub issue' });
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
+    const href = link.getAttribute('href') || '';
+    expect(
+      href.startsWith('https://github.com/siloFoX/c4/issues/new?'),
+    ).toBe(true);
+    const url = new URL(href);
+    expect(url.searchParams.get('title')).toBe('Bug report: boom-github');
+    const body = url.searchParams.get('body') || '';
+    expect(body).toMatch(/Stack trace/);
+    expect(body).toMatch(/boom-github/);
+  });
+
+  it('truncates the GitHub issue title to 60 chars of the message + ellipsis when the message is too long', () => {
+    const long = 'x'.repeat(120);
+    render(
+      <ErrorBoundary>
+        <Thrower message={long} />
+      </ErrorBoundary>,
+    );
+    const link = screen.getByRole('link', { name: 'Open GitHub issue' });
+    const url = new URL(link.getAttribute('href') || '');
+    const title = url.searchParams.get('title') || '';
+    expect(title.startsWith('Bug report: ')).toBe(true);
+    expect(title.endsWith('...')).toBe(true);
+    expect(title).toHaveLength('Bug report: '.length + 60 + 3);
+  });
+
+  it('renders the stack trace inside a <details> region that starts collapsed', () => {
+    render(
+      <ErrorBoundary>
+        <Thrower message="boom-details" />
+      </ErrorBoundary>,
+    );
+    const details = document.querySelector('details');
+    expect(details).not.toBeNull();
+    expect(details?.hasAttribute('open')).toBe(false);
+    // The stack <pre> lives inside the <details>, so the operator
+    // has to expand the region to read it - it is not surfaced at
+    // the top level of the panel any more.
+    expect(details?.querySelector('pre')).not.toBeNull();
+  });
+
+  it('exposes the stack content once the <details> region is toggled open', async () => {
+    render(
+      <ErrorBoundary>
+        <Thrower message="boom-expand" />
+      </ErrorBoundary>,
+    );
+    const details = document.querySelector('details');
+    expect(details).not.toBeNull();
+    const summary = details?.querySelector('summary');
+    expect(summary).not.toBeNull();
+    const user = userEvent.setup();
+    await user.click(summary as HTMLElement);
+    // jsdom does not auto-toggle <details> on summary click the way a
+    // real browser does; mirror the user-agent behaviour so the
+    // post-click assertion reflects what an operator would see.
+    if (!details?.hasAttribute('open')) {
+      (details as HTMLDetailsElement).open = true;
+    }
+    expect(details?.hasAttribute('open')).toBe(true);
+    expect(details?.querySelector('pre')?.textContent || '').toMatch(
+      /boom-expand/,
+    );
   });
 });
 

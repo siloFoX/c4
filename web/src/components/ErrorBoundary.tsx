@@ -1,11 +1,20 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { AlertTriangle } from 'lucide-react';
+import { Button } from './ui';
 import { t, tFormat } from '../lib/i18n';
 
-// (v1.10.512) Top-level Error Boundary so a render error in any
-// view doesn't blank-screen the whole dashboard. Renders a small
-// fallback panel with the error message + a Reload button. The
-// error itself is also logged to console for the operator to grab
-// from devtools.
+// (v1.11.136) Friendlier top-level Error Boundary fallback. The stack
+// trace now lives inside a collapsed <details> so it does not dominate
+// the panel, and three primary recovery affordances surface inline:
+// Reload (full page), Copy stack trace (clipboard for paste into a
+// ticket), and Open GitHub issue (deep link to a prefilled new-issue
+// form). The legacy Try Again button is preserved as a secondary
+// action so a transient render error can still be cleared without a
+// page reload.
+
+const GITHUB_NEW_ISSUE = 'https://github.com/siloFoX/c4/issues/new';
+const TITLE_MAX = 60;
+const COPIED_RESET_MS = 2000;
 
 interface Props {
   children: ReactNode;
@@ -13,61 +22,168 @@ interface Props {
 
 interface State {
   error: Error | null;
+  copied: boolean;
 }
 
 export default class ErrorBoundary extends Component<Props, State> {
-  override state: State = { error: null };
+  override state: State = { error: null, copied: false };
+
+  private copiedTimer: ReturnType<typeof setTimeout> | null = null;
 
   static getDerivedStateFromError(error: Error): State {
-    return { error };
+    return { error, copied: false };
   }
 
   override componentDidCatch(error: Error, info: ErrorInfo): void {
     // Surface to console so operators can copy the stack from
-    // devtools. We don't ship a remote error sink (yet) — c4 is
+    // devtools. We don't ship a remote error sink (yet) - c4 is
     // operator-facing and the daemon log captures backend issues
     // separately.
     console.error('[ErrorBoundary]', error, info.componentStack);
   }
 
+  override componentWillUnmount(): void {
+    if (this.copiedTimer !== null) {
+      clearTimeout(this.copiedTimer);
+      this.copiedTimer = null;
+    }
+  }
+
+  private getStack(): string {
+    const err = this.state.error;
+    if (!err) return '';
+    return err.stack || err.message || String(err);
+  }
+
+  private getIssueHref(): string {
+    const err = this.state.error;
+    if (!err) return GITHUB_NEW_ISSUE;
+    const rawMessage = err.message || String(err);
+    const truncated =
+      rawMessage.length > TITLE_MAX
+        ? `${rawMessage.slice(0, TITLE_MAX)}...`
+        : rawMessage;
+    const title = `Bug report: ${truncated}`;
+    const stack = this.getStack();
+    const body = [
+      '## What happened',
+      '',
+      '(please describe what you were doing)',
+      '',
+      '## Stack trace',
+      '',
+      '```',
+      stack,
+      '```',
+      '',
+    ].join('\n');
+    const params = new URLSearchParams({ title, body });
+    return `${GITHUB_NEW_ISSUE}?${params.toString()}`;
+  }
+
   reset = (): void => {
-    this.setState({ error: null });
+    if (this.copiedTimer !== null) {
+      clearTimeout(this.copiedTimer);
+      this.copiedTimer = null;
+    }
+    this.setState({ error: null, copied: false });
   };
 
   reload = (): void => {
     window.location.reload();
   };
 
+  copyStack = (): void => {
+    const stack = this.getStack();
+    const clip =
+      typeof navigator !== 'undefined' ? navigator.clipboard : undefined;
+    if (!clip || typeof clip.writeText !== 'function') return;
+    const result = clip.writeText(stack);
+    const finish = (): void => {
+      this.setState({ copied: true });
+      if (this.copiedTimer !== null) clearTimeout(this.copiedTimer);
+      this.copiedTimer = setTimeout(() => {
+        this.copiedTimer = null;
+        this.setState({ copied: false });
+      }, COPIED_RESET_MS);
+    };
+    if (result && typeof (result as Promise<void>).then === 'function') {
+      (result as Promise<void>).then(finish, () => {
+        // Clipboard write rejected (no permission / not a secure
+        // context). Operators can still expand the <details> and copy
+        // by hand, so we swallow the failure silently.
+      });
+    } else {
+      finish();
+    }
+  };
+
   override render(): ReactNode {
     if (!this.state.error) return this.props.children;
     const message = this.state.error.message || String(this.state.error);
+    const stack = this.getStack();
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-6">
         <div className="w-full max-w-md rounded-md border border-destructive/40 bg-destructive/10 p-6">
-          <h1 className="mb-2 text-lg font-semibold text-destructive">
-            {t('errorBoundary.title')}
-          </h1>
+          <div className="mb-3 flex items-center gap-3">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-destructive text-destructive-foreground">
+              <AlertTriangle aria-hidden="true" className="h-5 w-5" />
+            </span>
+            <h1 className="text-lg font-semibold text-destructive">
+              {t('errorBoundary.title')}
+            </h1>
+          </div>
           <p className="mb-4 text-sm text-muted-foreground">
             {tFormat('errorBoundary.message', { error: message })}
           </p>
-          <pre tabIndex={0} className="mb-4 max-h-48 overflow-auto rounded bg-background/50 p-2 font-mono text-[11px] text-muted-foreground">
-            {this.state.error.stack || message}
-          </pre>
-          <div className="flex gap-2">
-            <button
+          <details className="mb-4 rounded border border-border bg-background/50">
+            <summary className="cursor-pointer select-none px-2 py-1 text-xs font-medium text-foreground">
+              Stack trace
+            </summary>
+            <pre
+              tabIndex={0}
+              className="max-h-48 overflow-auto px-2 pb-2 font-mono text-[11px] text-muted-foreground"
+            >
+              {stack}
+            </pre>
+          </details>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" size="sm" onClick={this.reload}>
+              {t('errorBoundary.reload')}
+            </Button>
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
+              onClick={this.copyStack}
+            >
+              Copy stack trace
+            </Button>
+            <a
+              href={this.getIssueHref()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-8 min-h-[44px] items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:min-h-0"
+            >
+              Open GitHub issue
+            </a>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
               onClick={this.reset}
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm hover:bg-accent"
             >
               {t('errorBoundary.tryAgain')}
-            </button>
-            <button
-              type="button"
-              onClick={this.reload}
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              {t('errorBoundary.reload')}
-            </button>
+            </Button>
+            {this.state.copied ? (
+              <span
+                role="status"
+                aria-live="polite"
+                className="inline-flex items-center rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-medium text-emerald-300"
+              >
+                Copied
+              </span>
+            ) : null}
           </div>
         </div>
       </div>
