@@ -21,3 +21,4 @@ export * from './table';
 export * from './alert';
 export * from './progress';
 export * from './avatar';
+export * from './kbd';
