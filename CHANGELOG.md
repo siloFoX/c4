@@ -4,6 +4,53 @@
 
 (no entries -- next release window)
 
+## [1.11.160] - 2026-05-14 -- UI: Kbd primitive + adoption across 5 sites
+
+New `<Kbd>` primitive in `web/src/components/ui/kbd.tsx` standardizes the
+inline keyboard-shortcut chip that previously lived as ad-hoc `<kbd>` tags
+in CommandPalette and KeyboardShortcutsModal. Two render modes:
+
+- **Single key**: `<Kbd>Esc</Kbd>` renders one `<kbd>` element styled with
+  Tailwind `border + rounded + bg-muted + text-muted-foreground + px-1.5 +
+  text-xs + font-mono`.
+- **Join mode**: `<Kbd keys={['Ctrl','K']} />` renders one `<kbd>` per key
+  separated by a configurable separator (default `' + '`). Each child
+  `<kbd>` gets the same styling; the outermost wrapper (`<kbd>` in single
+  mode, `<span>` in join mode) carries `data-kbd` so callers and tests can
+  locate the chip without depending on Tailwind class names.
+
+What changed:
+
+- **`web/src/components/ui/kbd.tsx`** -- the new primitive. `KbdProps`
+  extends `HTMLAttributes<HTMLElement>` so callers can forward
+  `aria-keyshortcuts`, `data-*`, etc. `className` is merged via the project
+  `cn` helper.
+- **`web/src/components/ui/kbd.test.tsx`** -- 12 cases: single-key renders
+  one `<kbd>`; N-length keys array renders N `<kbd>` + (N-1) separators;
+  default + custom separator paths; class assertions for `border`,
+  `bg-muted`, `font-mono`; `data-kbd` lands on the outermost wrapper in
+  both modes; aria-keyshortcuts forwarding; empty-array falls back to
+  single-key mode.
+- **`web/src/components/ui/index.ts`** -- re-exports `./kbd`.
+- **`web/src/components/CommandPalette.tsx`** -- the shortcut chip in the
+  command list now uses `<Kbd>` instead of a raw `<kbd>`.
+- **`web/src/components/KeyboardShortcutsModal.tsx`** -- each shortcut row
+  now renders its key label through `<Kbd>`.
+- **`web/src/components/layout/Sidebar.tsx`** -- the desktop sidebar
+  collapse Tooltip label now renders `<Kbd keys={['Ctrl','B']} />` and
+  `<Kbd keys={['Ctrl','\\']} />` instead of inlining the shortcut as
+  plain text.
+- **`web/src/components/AccountMenu.tsx`** -- the "Keyboard shortcuts"
+  dropdown row hint switches from the string `'?'` to `<Kbd>?</Kbd>`.
+- **`web/src/components/HelpDrawer.tsx`** -- the footer shortcut hint now
+  prepends a `<Kbd>?</Kbd>` chip alongside the localized text.
+
+Scope is intentionally tight: no ARPS-side changes, no new npm deps, no
+i18n key rewrites. Existing component tests (CommandPalette,
+KeyboardShortcutsModal, HelpDrawer, Sidebar, AccountMenu) keep passing
+because the rendered DOM is still a `<kbd>` element with the same
+`border + bg-muted + font-mono + rounded + text-xs` style surface.
+
 ## [1.11.159] - 2026-05-14 -- CLI: Polished --help for 8 core subcommands
 
 `c4 <cmd> --help` (and `-h`) now prints a structured help block for the

@@ -11,6 +11,7 @@
 import { ChevronUp, HelpCircle, Keyboard, LogOut, Monitor, Moon, Settings, Sun, User } from 'lucide-react';
 import { DropdownMenu, type DropdownMenuItem } from './ui/dropdown-menu';
 import { Button } from './ui/button';
+import { Kbd } from './ui/kbd';
 import { cn } from '../lib/cn';
 import { dispatchEvent } from '../lib/dispatch-event';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -176,7 +177,7 @@ export default function AccountMenu({
       key: 'shortcuts',
       label: t('account.keyboard') || ACCOUNT_LABEL_KEYBOARD,
       icon: <Keyboard className="h-4 w-4" />,
-      hint: '?',
+      hint: <Kbd>?</Kbd>,
       onSelect: () => dispatchEvent(HELP_EVENT_OPEN_SHORTCUTS),
     },
     {
