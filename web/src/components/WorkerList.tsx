@@ -12,7 +12,9 @@ import {
   EmptyState,
   ErrorState,
   HScroll,
+  StatusDot,
 } from './ui';
+import type { StatusDotVariant } from './ui';
 import { NoWorkersIllustration } from './illustrations';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -63,9 +65,17 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
     return { managers: m, regular: r };
   }, [workers]);
 
+  const mapStatusDotVariant = (w: Worker): StatusDotVariant => {
+    if (isInterventionActive(w)) return 'away';
+    if (w.status === 'busy') return 'busy';
+    if (w.status === 'idle') return 'online';
+    return 'unknown';
+  };
+
   const renderRow = (w: Worker, accent: 'primary' | 'muted') => {
     const interventionActive = isInterventionActive(w);
     const isSelected = selectedWorker === w.name;
+    const dotVariant = mapStatusDotVariant(w);
     return (
       <Card
         key={w.name}
@@ -84,6 +94,11 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
         <CardHeader className="flex-row items-center justify-between gap-2 p-4">
           <div className="flex min-w-0 items-center gap-2">
             <Avatar name={w.name} size="sm" />
+            <StatusDot
+              variant={dotVariant}
+              size="sm"
+              pulse={dotVariant === 'busy'}
+            />
             <span className="min-w-0 truncate text-sm font-medium text-foreground">
               {w.name}
             </span>

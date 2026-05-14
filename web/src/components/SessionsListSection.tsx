@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { Badge, EmptyState, ListItem, Skeleton, Timeline } from './ui';
+import { Badge, EmptyState, ListItem, Skeleton, StatusDot, Timeline } from './ui';
+import type { StatusDotVariant } from './ui';
 import type { TimelineItem } from './ui';
 import { WelcomeOnboardingIllustration } from './illustrations';
 import { cn } from '../lib/cn';
@@ -123,6 +124,16 @@ export default function SessionsListSection({
             {!isCollapsed
               ? group.sessions.map((session) => {
                   const active = selectedSessionId === session.sessionId;
+                  const updatedMs = session.updatedAt
+                    ? Date.parse(session.updatedAt)
+                    : 0;
+                  const ageMs = updatedMs ? Date.now() - updatedMs : Infinity;
+                  let dotVariant: StatusDotVariant = 'unknown';
+                  if (updatedMs) {
+                    if (ageMs < 5 * 60_000) dotVariant = 'online';
+                    else if (ageMs < 60 * 60_000) dotVariant = 'away';
+                    else dotVariant = 'offline';
+                  }
                   return (
                     <ListItem
                       key={session.sessionId}
@@ -133,7 +144,8 @@ export default function SessionsListSection({
                         active && 'bg-accent text-accent-foreground',
                       )}
                       title={
-                        <span className="font-mono text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
+                          <StatusDot variant={dotVariant} size="sm" />
                           {shortId(session.sessionId)}
                         </span>
                       }

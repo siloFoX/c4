@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.189] - 2026-05-14 -- UI: StatusDot primitive + 3 adoption sites (11.171)
+
+New `<StatusDot>` primitive in `web/src/components/ui/status-dot.tsx` (small colored dot with variant 'online'|'busy'|'away'|'offline'|'unknown' default 'unknown' driving bg-green-500 / bg-yellow-500 / bg-orange-500 / bg-muted-foreground / bg-muted; size 'sm'|'md'|'lg' default 'md' for 6/8/10px; pulse boolean default false adding an absolute-positioned animate-ping span at 75% opacity in the same color behind the dot; optional label ReactNode rendered inline; role='status' on the wrapper with aria-label='Status: <variant>' fallback when no label is provided; cn() class merge). Adopted in WorkerList row (StatusDot beside the avatar mapping busy/idle/intervention to busy/online/away with pulse on busy), SessionsListSection per-session row (StatusDot in the title slot derived from updatedAt recency: <5m online, <1h away, else offline), and Health page top status row (StatusDot beside the healthy/degraded badge mapping daemon ok to online/offline with pulse when healthy).
+
 ## [1.11.188] - 2026-05-14 -- UI: motion utility hooks + helpers (11.170)
 
 New `useReducedMotion()` hook in `web/src/hooks/use-reduced-motion.ts` (subscribes to `matchMedia('(prefers-reduced-motion: reduce)')`, SSR-safe via `typeof window` guard returning `false`, legacy `addListener`/`removeListener` fallback for older browsers). New `web/src/lib/motion.ts` exposes a `motion` record of eight tailwindcss-animate presets (`fadeIn` / `fadeOut` / `slideInRight` / `slideOutRight` / `slideInLeft` / `slideOutLeft` / `scaleIn` / `scaleOut`) plus `motionClass(key, reducedMotion, fallback?)` which returns the preset class string when `!reducedMotion` and `fallback ?? ''` otherwise. Adopted in `Toast` (fadeIn entering / fadeOut leaving gated by `useReducedMotion`, inline-style swipe transforms preserved), `Dialog` (fadeIn on backdrop, scaleIn on panel), `Popover` (fadeIn on panel), and `PageTransition` (local `prefersReducedMotion()` helper replaced with the `useReducedMotion` hook through a ref so the route-change effect keeps its `[routeKey]` dependency).
