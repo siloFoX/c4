@@ -4,6 +4,53 @@
 
 (no entries -- next release window)
 
+## [1.11.131] - 2026-05-14 -- Daemon: per-worker rssBytes + cpuPct on GET /list
+
+Enrich the GET /api/list daemon response with per-worker process metrics
+so the Web UI worker grid can render CPU% and memory without a
+follow-up round trip to /api/metrics. The /list handler in
+`src/daemon.js` now iterates each worker row after the existing tier
+enrichment, calls the existing `src/worker-metrics.js` `sample(pid, prev)`
+helper (the same one feeding /api/metrics and
+/api/metrics/prometheus), and attaches two new fields to every worker:
+
+- `rssBytes` -- bytes (rssKb * 1024). null when the worker has no pid
+  or the platform is not Linux (sample() returns null fields and the
+  /list handler propagates them as null so the response shape stays
+  stable for the Web UI).
+- `cpuPct`   -- percent. null on the first sample for a given worker
+  name (CPU% is a delta against the previous sample) and on the same
+  skip paths as rssBytes.
+
+Previous-sample state is held in a new module-scope `listMetricsPrev`
+Map keyed by worker name (mirrors the prevCache pattern /api/metrics
+keeps via pty-manager.list's `w._lastCpuSample`). The cache lives in
+the daemon module rather than on pty-manager state so the /list
+enrichment never mutates pty-manager internals and stays
+sampled-at-request-time even if pty-manager later moves to a
+different cadence. The Map grows bounded by the number of live worker
+names -- entries for dead workers are simply never refreshed.
+
+Verification: `tests/daemon-list-procmetrics.test.js` (9 cases over
+2 suites) mirrors the daemon-routes.test.js fixture pattern: an
+in-process http.Server wires the SAME enrichment loop daemon.js
+runs, driven through supertest, with a stub `workerMetrics.sample`
+that returns predictable values. Asserts (a) rssBytes equals
+rssKb * 1024 and cpuPct lands verbatim on every worker row, (b)
+the skip-when-no-pid path produces `null` on both fields via the
+REAL worker-metrics module, (c) the first call seeds
+listMetricsPrev and the second call feeds it back as `prev`,
+(d) empty worker arrays do not invoke the sampler, and (e) tier
+enrichment is preserved alongside the new fields. A
+`daemon.js source integration` block at the bottom greps the real
+source so a refactor that drops the loop or the cache trips the
+test.
+
+Scope: `src/daemon.js` (require + module-scope Map + /list loop),
+`tests/daemon-list-procmetrics.test.js` (new), `CHANGELOG.md`,
+`web/package.json` (1.11.130 -> 1.11.131). No changes to
+`src/worker-metrics.js` or `docs/autonomous-queue-v10.md`.
+
 ## [1.11.130] - 2026-05-14 -- Tests: Storyshot baseline snapshots for 5 UI primitives
 
 Add storyshot-style markup baselines for the five stable UI primitives in
