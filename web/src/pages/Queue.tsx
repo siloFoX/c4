@@ -14,6 +14,7 @@ import {
   Button,
   EmptyState,
   ErrorState,
+  ScrollArea,
   Skeleton,
   Textarea,
   Tooltip,
@@ -341,7 +342,7 @@ export default function Queue() {
       ) : null}
 
       {!loading && !error && rows && rows.length > 0 ? (
-        <div className="overflow-x-auto rounded-md border border-border">
+        <ScrollArea axis="x" className="rounded-md border border-border">
           <table
             data-testid="queue-table"
             className="w-full text-left text-sm"
@@ -434,7 +435,7 @@ export default function Queue() {
               })}
             </tbody>
           </table>
-        </div>
+        </ScrollArea>
       ) : null}
 
       {editingRow ? (
