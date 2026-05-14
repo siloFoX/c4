@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.170] - 2026-05-14 -- UI: DashboardGrid layout primitive + 2 adoption sites
+
+New `<DashboardGrid>` + `<DashboardGrid.Item>` (also exported as `DashboardGridItem`) primitive in `web/src/components/ui/dashboard-grid.tsx` (responsive 12-column CSS grid container, props gap='sm'|'md'|'lg' mapping to gap-2/gap-4/gap-6, Item span 1..12|'full' default 'full' plus optional smSpan/mdSpan/lgSpan responsive overrides, forwardRef on container and item, static switch-style class mapping so Tailwind's content scanner picks them up). Adopted in Health hero metrics row (3 StatCards) and Auto live-queue + timeline two-column panel.
+
 ## [1.11.169] - 2026-05-14 -- UI: Fieldset primitive + 3 adoption sites
 
 New `<Fieldset>` primitive in `web/src/components/ui/fieldset.tsx` (semantic `<fieldset>`/`<legend>` wrapper, props legend/description/collapsible/defaultOpen/open/onOpenChange/disabled/className/children, chevron-toggle legend button with aria-expanded when collapsible, `hidden` attribute preserves form state across toggles, prefers-reduced-motion drops rotation, forwardRef to fieldset element). Adopted in Profiles expanded-row allow/deny grouping, RiskRuleCatalogPanel filter + per-level results group, and NewChatModal model/agent routing group.
