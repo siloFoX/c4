@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Badge, Input, Panel } from './ui';
+import { Badge, Fieldset, Input, Panel } from './ui';
 import type { BadgeVariant } from './ui/badge';
 import { t, useLocale } from '../lib/i18n';
 import { useToggle } from '../lib/use-toggle';
@@ -49,7 +49,10 @@ export default function RiskRuleCatalogPanel() {
       </button>
       {open ? (
         patterns ? (
-          <div className="mt-2 flex flex-col gap-2">
+          <Fieldset
+            legend={t('riskPage.filter.label')}
+            className="mt-2"
+          >
             <Input
               type="text"
               value={filter}
@@ -95,7 +98,7 @@ export default function RiskRuleCatalogPanel() {
                 </div>
               </div>
             ) : null}
-          </div>
+          </Fieldset>
         ) : (
           <div className="mt-2 text-[12px] text-muted-foreground">{t('riskPage.loadingCatalog')}</div>
         )

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Button, Dialog } from './ui';
+import { Button, Dialog, Fieldset } from './ui';
 import { t, useLocale } from '../lib/i18n';
 import { useNewChatForm } from '../lib/use-new-chat-form';
 
@@ -69,6 +69,7 @@ export default function NewChatModal({ open, busy, error, onClose, onSubmit }: N
           />
         </div>
 
+        <Fieldset legend="Routing" disabled={busy}>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div className="space-y-1">
             <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="new-chat-model">
@@ -115,6 +116,7 @@ export default function NewChatModal({ open, busy, error, onClose, onSubmit }: N
             </p>
           </div>
         </div>
+        </Fieldset>
 
         <div className="flex justify-end gap-2 pt-2">
           <Button size="sm" variant="outline" onClick={onClose} disabled={busy}>

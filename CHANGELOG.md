@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.169] - 2026-05-14 -- UI: Fieldset primitive + 3 adoption sites
+
+New `<Fieldset>` primitive in `web/src/components/ui/fieldset.tsx` (semantic `<fieldset>`/`<legend>` wrapper, props legend/description/collapsible/defaultOpen/open/onOpenChange/disabled/className/children, chevron-toggle legend button with aria-expanded when collapsible, `hidden` attribute preserves form state across toggles, prefers-reduced-motion drops rotation, forwardRef to fieldset element). Adopted in Profiles expanded-row allow/deny grouping, RiskRuleCatalogPanel filter + per-level results group, and NewChatModal model/agent routing group.
+
 ## [1.11.168] - 2026-05-14 -- UI: FileInput dropzone primitive + 2 adoption sites
 
 New `<FileInput>` primitive in `web/src/components/ui/file-input.tsx` (drag/drop file uploader, hidden native `<input type=file>`, props label/hint/error/accept/multiple/maxSize/onFiles/onError/className/disabled, MIME-prefix accept matching, keyboard Enter/Space + click to open picker, data-active visual highlight, aria-labelledby + aria-describedby wiring, forwardRef to dropzone div). Adopted as `ImportTemplateForm` in Templates and `ImportConfigSection` in Config (both placeholder import flows -- no daemon endpoint yet).
