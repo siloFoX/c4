@@ -97,15 +97,27 @@ export default function App() {
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
       <HelpUIRoot onNavigateTopView={setTopView} />
-      <AppHeader
-        sidebarOpen={sidebarOpen}
-        onToggleSidebar={() => setSidebarOpen((open) => !open)}
-        topView={topView}
-        onTopViewChange={setTopView}
-        authed={authState === 'authed' || authState === 'disabled'}
-        onLogout={handleLogout}
-        onOpenPreferences={() => setTopView('settings')}
-      />
+      {/* (v1.11.134) Subtle gradient backdrop behind the header.
+          Stops sourced from the ARPS design system tokens.css:
+          --surface-canvas (220 18% 8%) -> --surface-panel (220 15% 12%).
+          The values are inlined as HSL because the daemon web bundle
+          does not import tokens.css yet -- using `hsl(var(--...))`
+          here would resolve to nothing. When tokens.css lands the
+          arbitrary values can be swapped for the CSS variables. */}
+      <div
+        className="bg-gradient-to-b from-[hsl(220_18%_8%)] to-[hsl(220_15%_12%)]"
+        data-testid="app-top-bar-gradient"
+      >
+        <AppHeader
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen((open) => !open)}
+          topView={topView}
+          onTopViewChange={setTopView}
+          authed={authState === 'authed' || authState === 'disabled'}
+          onLogout={handleLogout}
+          onOpenPreferences={() => setTopView('settings')}
+        />
+      </div>
       {/* MetricsBar polls /api/metrics every 5s and renders a thin strip
           of daemon RSS/heap/loadavg + worker CPU/RSS totals just below
           the header. Component returns null until the first response,
