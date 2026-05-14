@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode } from 'react';
+import { Separator } from '../components/ui';
 
 // Minimal markdown renderer used by Plan + Morning pages. Covers the
 // features the daemon actually emits: ATX headings, fenced code blocks,
@@ -164,7 +165,7 @@ export function renderMarkdown(src: string): ReactNode {
     }
     // Horizontal rule
     if (/^---+$/.test(line.trim())) {
-      blocks.push(<hr key={`hr-${blockIdx++}`} className="border-border" />);
+      blocks.push(<Separator key={`hr-${blockIdx++}`} className="my-2" />);
       i++;
       continue;
     }

@@ -3,7 +3,7 @@ import { Copy, Eye, Terminal, Trash2 } from 'lucide-react';
 import { useAttachProcessState } from '../lib/use-attach-process-state';
 import { useCopyPulse } from '../lib/use-copy-pulse';
 import { useToggle } from '../lib/use-toggle';
-import { Button } from './ui';
+import { Button, Separator } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import type { AttachedRole, AttachedSession } from './SessionsView';
@@ -78,7 +78,9 @@ export default function SessionsAttachedRowActions({
   }, [setShowDetachConfirm, onDetach]);
 
   return (
-    <div className="flex flex-col gap-2 border-t border-border/60 bg-muted/30 px-4 py-2">
+    <>
+    <Separator />
+    <div className="flex flex-col gap-2 bg-muted/30 px-4 py-2">
       {/* (TODO 8.38) Role badge + an explicit "the original terminal
           keeps running" hint. */}
       <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
@@ -219,5 +221,6 @@ export default function SessionsAttachedRowActions({
         </div>
       ) : null}
     </div>
+    </>
   );
 }
