@@ -4,6 +4,59 @@
 
 (no entries -- next release window)
 
+## [1.11.139] - 2026-05-14 -- Web: Hero copy polish for 8 PageDescriptionBanner pages
+
+`web/src/i18n/en.json` -- the `summary`, `example`, and `useCases`
+values backing the `PageDescriptionBanner` on the Batch, Morning,
+Templates, Profiles, Swarm, Plan, Health, and TokenUsage pages were
+rewritten so each banner opens with a concise tagline, a one-line
+when-to-use context, and 2-3 example workflows. No banner prop,
+no component logic, and no API changes; the page files keep their
+existing `summaryKey` / `exampleKey` / `useCasesKey` references.
+
+What changed:
+
+1. **Tagline-first summaries** -- Each `<page>.summary` now leads
+   with a single sentence describing what the page is for, followed
+   (when it adds something the reader cannot derive) by a short
+   clause on when to reach for it. E.g., `batch.summary` becomes
+   "Fan out a single task to N identical workers, or send one task
+   per pasted line, in one dispatch. Returns a per-worker results
+   table.", and `swarm.summary` becomes "Pick a root worker to see
+   the tree of sub-workers it spawned, with each node's live
+   status and branch.".
+
+2. **Concrete example slot** -- `<page>.example` now gives the
+   operator a single, run-it-now scenario instead of a generic
+   reminder. `morning.example` becomes "Open Morning at 9am, click
+   Generate, copy the markdown, and paste into your standup
+   channel."; `plan.example` walks through dispatching a planner
+   and promoting its plan; `tokenUsage.example` calls out switching
+   to the 7-day range to spot the biggest spender of the week.
+
+3. **Workflow-focused useCases** -- `<page>.useCases` keeps the
+   pipe-delimited bullet shape (`tList` parses on `|`) but each
+   bullet is sharpened into a real workflow instead of a noun
+   phrase. E.g., `swarm.useCases` becomes "Follow an autonomous
+   manager's progress in real time.|Find which sub-worker halted
+   under a manager.|Audit the branch each sub-worker owns.".
+
+The Korean bundle (`web/src/i18n/ko.json`) is intentionally left
+unchanged in this release window so the polish lands first in
+English and a translator can mirror it in a follow-up; the i18n
+layer falls back to the en value when a ko key is absent, but
+existing ko entries continue to render until they are updated.
+
+No test changes were needed: all eight matching `.test.tsx`
+files mock `PageDescriptionBanner` to an empty marker div and
+assert against the `<page>Page.description` string in the
+PageFrame header (`swarmPage.description`, `healthPage.description`,
+etc.), which is a separate key set untouched by this change.
+`vitest run` on the eight page test files plus `src/lib/i18n.test.ts`
+passes (the single pre-existing failure in
+`detectLocale > navigator language fallback` reproduces on main
+and is unrelated to copy content).
+
 ## [1.11.138] - 2026-05-14 -- Web: CommandPalette recent ranking, shortcut chip, match highlight
 
 `web/src/components/CommandPalette.tsx` and the matching
