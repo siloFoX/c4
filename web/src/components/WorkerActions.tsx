@@ -96,6 +96,7 @@ export default function WorkerActions({ workerName }: WorkerActionsProps) {
               {isBusy ? (
                 <Spinner
                   size="md"
+                  color={action.variant === 'destructive' ? 'inverse' : 'primary'}
                   aria-hidden="true"
                   data-testid={`worker-action-spinner-${action.kind}`}
                 />

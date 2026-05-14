@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.148] - 2026-05-14 -- Web: Spinner color variants
+
+The `<Spinner>` component (`web/src/components/Spinner.tsx`) gained a
+new `color` prop so callsites can opt into a non-default ring tone
+without overriding `className`.
+
+What changed:
+
+- **`color?: 'primary' | 'muted' | 'inverse' | 'destructive'`**
+  (default `'primary'`). Maps to `text-primary` /
+  `text-muted-foreground` / `text-primary-foreground` /
+  `text-destructive` on the wrapper span. The SVG ring already uses
+  `stroke="currentColor"`, so the wrapper's text color drives the
+  ring color directly.
+- All other props (`size`, `label`, `className`, `...rest`) are
+  preserved exactly. Omitting `color` keeps the previous render
+  identical (the wrapper inherits the parent text color, same as
+  before, just with an explicit `text-primary` class added).
+- Five existing callsites adopted a non-default color where it
+  improves contrast / matches the surrounding tone:
+  - `WorkerActions.tsx` -- the close action (destructive Button)
+    now passes `color="inverse"`; merge / approve / interrupt keep
+    `color="primary"` since they sit on outline buttons.
+  - `Login.tsx` -- the submit-button spinner uses
+    `color="inverse"` so it reads against the primary fill.
+  - `ChatMessageLog.tsx` (backfill + older-messages) and
+    `SpecialistsList.tsx` and `ConversationView.tsx` pass
+    `color="muted"` to make the explicit ring tone match the
+    surrounding muted-foreground copy.
+- Six new test cases in `Spinner.test.tsx` cover the four color
+  variants (default + explicit primary / muted / inverse /
+  destructive) plus a wrapper-defaults regression. The original
+  ten cases all continue to pass.
+
+Why now: post-11.117 the spinner is used in five+ different
+surfaces (primary buttons, destructive buttons, muted footers,
+empty states), and the implicit currentColor-only API forced
+callers to wrap each spinner in a `text-*` span just to retint
+the ring. The explicit `color` prop closes that gap with zero
+new dependencies.
+
 ## [1.11.147] - 2026-05-14 -- Web: StatCard trend + sparkline props
 
 The `<StatCard>` component (`web/src/components/ui/stat-card.tsx`)

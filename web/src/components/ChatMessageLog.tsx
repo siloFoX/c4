@@ -51,7 +51,7 @@ export default function ChatMessageLog({
     >
       {backfillLoading ? (
         <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
-          <Spinner size="md" aria-hidden="true" data-testid="chat-backfill-spinner" />
+          <Spinner size="md" color="muted" aria-hidden="true" data-testid="chat-backfill-spinner" />
           <span>{t('chat.loadingPast')}</span>
           <ul className="mt-4 w-full max-w-sm space-y-2" aria-hidden="true">
             <li>
