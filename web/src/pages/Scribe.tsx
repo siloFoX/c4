@@ -3,7 +3,7 @@ import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame'
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Panel, Tooltip } from '../components/ui';
+import { Button, CodeBlock, Panel, Tooltip } from '../components/ui';
 import { formatRelativeTime } from '../lib/format';
 import { t, useLocale } from '../lib/i18n';
 import { useToast } from '../lib/use-toast';
@@ -104,9 +104,9 @@ export default function Scribe() {
           <span>{t('scribePage.recentContext')}</span>
         </div>
         {context && context.content ? (
-          <pre tabIndex={0} className="max-h-96 overflow-auto rounded-md border border-border bg-muted/30 p-3 font-mono text-xs text-foreground">
+          <CodeBlock language="log" maxHeight="96">
             {context.content}
-          </pre>
+          </CodeBlock>
         ) : (
           <EmptyPanel message={t('scribe.empty')} />
         )}

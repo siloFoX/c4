@@ -13,8 +13,7 @@ function installClipboard() {
 }
 
 afterEach(() => {
-  // @ts-expect-error -- restore between tests
-  delete (navigator as any).clipboard;
+  delete (navigator as { clipboard?: unknown }).clipboard;
 });
 
 describe('<CodeBlock>', () => {

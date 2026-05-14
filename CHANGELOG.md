@@ -4,6 +4,54 @@
 
 (no entries -- next release window)
 
+## [1.11.163] - 2026-05-14 -- UI: CodeBlock primitive + 3 callsite swaps
+
+New `<CodeBlock>` primitive in `web/src/components/ui/code-block.tsx`
+gives the app a single, accessible surface for rendering raw code /
+log / JSON dumps. Replaces ad-hoc `<pre>` markup at three sites.
+
+Behaviour:
+
+- Renders `<div role="region" aria-label="...">` wrapping a `<pre>`
+  with `font-mono text-sm bg-muted border rounded` and a nested
+  `<code>` for the content. Accepts either `children` or a `code`
+  prop.
+- Optional `language` prop renders an uppercase badge in the
+  top-left of the region. Omitted when language is null/undefined.
+- Top-right copy button (lucide-react `Copy` icon) appears unless
+  `showCopy={false}`. Click reads `<code>` textContent and calls
+  `navigator.clipboard.writeText`, then flashes a "Copied" chip
+  next to the button for 2s via `useState` + `setTimeout`. The
+  pending timer is cleared on unmount.
+- Wrap mode: `wrap` (controlled boolean) or `defaultWrap`
+  (uncontrolled initial state) flips the `<code>`'s whitespace
+  class between `whitespace-pre` and `whitespace-pre-wrap`. When
+  `defaultWrap` is set and `wrap` is not, an extra `WrapText`
+  toggle button is rendered next to the copy button.
+- `maxHeight` (e.g. `"96"`) applies `max-h-<value>` +
+  `overflow-y-auto` so long bodies stay scrollable.
+- Re-exported from `web/src/components/ui/index.ts`.
+
+Tests in `code-block.test.tsx` (12 cases, all passing) cover:
+bare render, `code` prop content, pre class wiring, language
+badge present/absent, copy click writing to a mocked
+`navigator.clipboard.writeText`, the Copied chip flipping on
+after click then off after 2s under fake timers, wrap toggle
+flipping the whitespace class, `defaultWrap=true` honored as
+initial state, controlled `wrap` suppressing the toggle button,
+`showCopy=false` suppressing the copy button, and
+`role=region` + `aria-label` wiring.
+
+Callsites swapped from inline `<pre>` to `<CodeBlock>`:
+
+- `Config.tsx` -- expanded-entry JSON dump in the config viewer.
+- `Rbac.tsx` -- per-user grants JSON inside the view-grants details.
+- `Scribe.tsx` -- recent-context body in the scribe panel.
+
+Existing Config / Rbac / Scribe tests that match the underlying
+`<pre>` element continue to pass because `<CodeBlock>` still
+renders the same `<pre>` tag wrapping the textual content.
+
 ## [1.11.162] - 2026-05-14 -- UI: Switch primitive + 3 callsite swaps
 
 New `<Switch>` primitive in `web/src/components/ui/switch.tsx` provides

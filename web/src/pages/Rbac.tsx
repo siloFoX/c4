@@ -1,6 +1,6 @@
 import { RefreshCw, ShieldCheck, Users } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
-import { Badge, Button, Panel } from '../components/ui';
+import { Badge, Button, CodeBlock, Panel } from '../components/ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { useRbac } from '../lib/use-rbac';
@@ -115,9 +115,13 @@ export default function Rbac() {
                       <summary className="cursor-pointer text-[10px] text-muted-foreground">
                         {t('rbac.users.viewGrants')}
                       </summary>
-                      <pre className="mt-1 overflow-auto rounded bg-muted/30 p-2 font-mono text-[10px]">
+                      <CodeBlock
+                        language="json"
+                        showCopy={false}
+                        className="mt-1"
+                      >
                         {JSON.stringify(u.grants, null, 2)}
-                      </pre>
+                      </CodeBlock>
                     </details>
                   ) : null}
                 </li>

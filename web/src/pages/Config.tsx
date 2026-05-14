@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { RefreshCw, Cog } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
-import { Button, Input, Panel } from '../components/ui';
+import { Button, CodeBlock, Input, Panel } from '../components/ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
@@ -132,9 +132,13 @@ export default function Config() {
                     {summariseValue(v)}
                   </span>
                 </summary>
-                <pre className="border-t border-border bg-background p-2 font-mono text-[11px] leading-snug">
+                <CodeBlock
+                  language="json"
+                  showCopy={false}
+                  className="border-t border-border"
+                >
                   {JSON.stringify(v, null, 2)}
-                </pre>
+                </CodeBlock>
               </details>
             ))}
           </div>
