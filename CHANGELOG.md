@@ -4,6 +4,62 @@
 
 (no entries -- next release window)
 
+## [1.11.141] - 2026-05-14 -- Web: Standardize focus rings across 13 non-primitive components
+
+Audit and unify ad-hoc focus styles across the web app so every
+keyboard-reachable control wears the same visible ring on
+`focus-visible`. The convention is the one already used by the
+`ui/button.tsx` and `ui/input.tsx` primitives:
+`focus-visible:outline-none focus-visible:ring-2
+focus-visible:ring-primary focus-visible:ring-offset-2
+focus-visible:ring-offset-background`. Only non-primitive
+components are touched -- the `ui/*` primitives already render the
+correct ring and are left as-is.
+
+What changed:
+
+1. **Form inputs / selects / textareas standardized to ring-primary**
+   -- `ChatComposer.tsx`, `HierarchyTree.tsx` (expand button),
+   `HistoryView.tsx` (status filter select), `NewChatModal.tsx`
+   (3 fields: prompt textarea + model select + agent select; also
+   flips `focus:*` to `focus-visible:*`), `StatusMessageCard.tsx`
+   (status textarea), `Auto.tsx` (queue-detail truncated span),
+   `Batch.tsx` (count + tasks textareas), `Plan.tsx` (worker
+   select + task textarea), `Swarm.tsx` (root-worker select).
+   The ad-hoc `focus-visible:ring-ring` (and one `focus:ring-ring`
+   in `NewChatModal`) became the primitive `ring-primary` ring,
+   and the previously-missing `ring-offset-2` /
+   `ring-offset-background` pair is added everywhere so the ring
+   has the same 2px halo around it as the buttons.
+
+2. **Interactive nav controls now show a focus ring** --
+   `TopTabs.tsx` top-of-page tabs, `Sidebar.tsx` list / tree
+   view-mode buttons (both the expanded inline variant and the
+   collapsed-rail icon variant, 4 buttons total), the
+   `CommandPalette.tsx` result items, and the `WorkerList.tsx`
+   `Card` rows (`role=button` + `tabIndex=0`) previously rendered
+   their active / selected state through background color only,
+   so a keyboard user tabbing through had no visible focus
+   indicator. They now carry the same `focus-visible:ring-*`
+   stack as the primitives. WorkerList's pre-existing
+   unprefixed selection ring (`ring-2 ring-ring`) is preserved
+   so the focused-and-selected vs. focused-but-not-selected
+   states remain distinct.
+
+3. **Test update for WorkerList selection ring** --
+   `WorkerList.test.tsx` asserted that only the selected row
+   matches `/ring-2/`. With every row now carrying a
+   `focus-visible:ring-2` for keyboard focus, the assertion is
+   tightened to match the **unprefixed** `ring-2` token (the
+   selection ring) rather than any substring containing
+   `ring-2`. The behaviour the test was guarding -- "the
+   selected row visually stands out" -- is unchanged.
+
+`vitest run` on the 13 touched test files reports 413 tests
+passing across 13 files (1 newly-modified assertion, all green).
+No ARPS design-system files, no `ui/*` primitives, no
+`docs/autonomous-queue-v10.md`, and no new npm deps.
+
 ## [1.11.140] - 2026-05-14 -- Web: Adopt hero illustrations on 5 empty-state pages
 
 Five pages with text-only empty states now surface the v1.11.84
