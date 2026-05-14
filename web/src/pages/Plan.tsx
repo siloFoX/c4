@@ -11,6 +11,8 @@ import { usePlanContent } from '../lib/use-plan-content';
 import { usePlanDispatch } from '../lib/use-plan-dispatch';
 import { usePlanWorkers } from '../lib/use-plan-workers';
 import { useToast } from '../lib/use-toast';
+import { useForm } from '../hooks/use-form';
+import { required } from '../lib/form-validation';
 import { renderMarkdown } from '../lib/markdown';
 import { t, useLocale } from '../lib/i18n';
 
@@ -30,7 +32,14 @@ export default function Plan() {
 
 
   const [selected, setSelected] = useState<string>('');
-  const [task, setTask] = useState('');
+  // (v1.11.186) task field migrated to useForm; required validator surfaces
+  // an inline error via Textarea's error slot once the field is touched or
+  // the user clicks Send.
+  const taskForm = useForm<{ task: string }>({
+    initialValues: { task: '' },
+    validators: { task: required() },
+  });
+  const task = taskForm.values.task;
   const [branch, setBranch] = useState('');
   const [output, setOutput] = useState('');
   // (v1.10.694) Toast slot moved to hook.
@@ -143,7 +152,9 @@ export default function Plan() {
             label={t('planPage.task')}
             rows={4}
             value={task}
-            onChange={(e) => setTask(e.target.value)}
+            onChange={(e) => taskForm.setValue('task', e.target.value)}
+            onBlur={() => taskForm.setTouched('task', true)}
+            error={taskForm.errors.task}
             placeholder={t('planPage.task.placeholder')}
           />
         </div>
@@ -162,7 +173,16 @@ export default function Plan() {
 
       <div className="flex flex-wrap gap-2">
         <Tooltip label={t('plan.tooltip.dispatch')}>
-          <Button type="button" variant="default" size="sm" onClick={dispatchPlan} disabled={dispatching}>
+          <Button
+            type="button"
+            variant="default"
+            size="sm"
+            onClick={() => {
+              taskForm.handleSubmit();
+              dispatchPlan();
+            }}
+            disabled={dispatching}
+          >
             {dispatching ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             <span>{t('planPage.send')}</span>
           </Button>
