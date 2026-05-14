@@ -1141,6 +1141,8 @@
   "feature.validation.description": "워커별 검증 객체 — tests / typecheck / lint 요약.",
   "feature.risk.label": "Risk",
   "feature.risk.description": "명령의 risk 분류 미리보기 + 최근 N시간 내 거부 항목.",
+  "feature.errorReports.label": "Error Reports",
+  "feature.errorReports.description": "클라이언트 측 에러(window / unhandledrejection / react / manual) 로컬 메모리 피드. 최근 50건.",
   "feature.keyboardMap.label": "Keyboard Map",
   "feature.keyboardMap.description": "앱 전체 키보드 바인딩 레퍼런스 - navigation/actions/view/editing/global/custom.",
   "keyboardMap.title": "Keyboard Map",

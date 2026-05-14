@@ -7,6 +7,7 @@
 import type { ComponentType } from 'react';
 import {
   Activity,
+  AlertTriangle,
   Archive,
   BarChart3,
   Bell,
@@ -252,6 +253,14 @@ export const FEATURES: FeatureDef[] = [
     category: 'diagnostics',
     Icon: Shield,
     load: () => import('./Risk'),
+  },
+  {
+    id: 'error-reports',
+    labelKey: 'feature.errorReports.label',
+    descriptionKey: 'feature.errorReports.description',
+    category: 'diagnostics',
+    Icon: AlertTriangle,
+    load: () => import('./ErrorReports'),
   },
 ];
 
