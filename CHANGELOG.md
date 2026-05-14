@@ -4,6 +4,104 @@
 
 (no entries -- next release window)
 
+## [1.11.136] - 2026-05-14 -- Web: friendlier ErrorBoundary fallback UI
+
+`web/src/components/ErrorBoundary.tsx` was reworked from a bare error
+panel into a friendlier crash screen. The render path still mounts on
+`getDerivedStateFromError` and the `console.error('[ErrorBoundary]', ...)`
+operator-grab log is unchanged.
+
+What changed in the fallback panel:
+
+1. **Heading with destructive icon** -- `Something went wrong`
+   (`errorBoundary.title` i18n key, unchanged copy) now sits next to
+   an `AlertTriangle` lucide-react icon on a `bg-destructive`
+   surface so the panel reads as a hard error at a glance. The
+   shared `lucide-react` dep is already in `web/package.json` -- no
+   new package was added.
+
+2. **Collapsed stack trace** -- the `<pre>` block is now nested
+   inside a `<details>` region that starts closed. The summary
+   reads `Stack trace`; the `<pre>` keeps its `tabIndex={0}` so the
+   existing keyboard-focus test still passes. Operators have to
+   click to expand, which keeps the panel short for the common
+   case where the message alone is enough.
+
+3. **Three inline recovery actions** built on the shared `Button`
+   primitive from `web/src/components/ui`:
+   - `Reload` (primary) -- calls `window.location.reload()`.
+   - `Copy stack trace` (outline) -- calls
+     `navigator.clipboard.writeText(stack)`. A `Copied` chip
+     pulses next to the action for 2 s (local `state.copied` flag,
+     `setTimeout(2000)` reset, cleared on `componentWillUnmount`
+     to keep the boundary leak-free). Failed clipboard writes
+     swallow silently -- the `<details>` region still lets the
+     operator copy by hand.
+   - `Open GitHub issue` (outline link) -- an `<a target="_blank"
+     rel="noopener noreferrer">` pointing at
+     `https://github.com/siloFoX/c4/issues/new?title=...&body=...`
+     with `title=Bug report: <first 60 chars of message>[...]`
+     and a body that includes the stack trace inside a fenced
+     code block. URLSearchParams handles the URL-encoding so
+     special characters in the message survive the round trip.
+
+4. **Try Again preserved** -- the legacy `Try Again` reset button
+   stays as a small `ghost` variant after the three primary
+   actions. This keeps the v1.10.512 transient-recovery path
+   working and means the existing reset-on-toggle test cases
+   continue to pin down the contract.
+
+5. **Screenshot-to-clipboard intentionally omitted.** The task
+   sketch initially included a 'copy screenshot to clipboard'
+   action, but every off-the-shelf implementation (html2canvas,
+   dom-to-image, modern-screenshot) adds a runtime dependency and
+   the c4 dispatch contract bans new deps. Operators can still
+   take a native screenshot via OS tooling; the stack-trace copy
+   and the GitHub deep link together cover the
+   reproduce-on-someone-else's-machine path the screenshot was
+   meant to serve.
+
+i18n: existing keys (`errorBoundary.title`, `errorBoundary.message`,
+`errorBoundary.tryAgain`, `errorBoundary.reload`) are reused as-is so
+the en/ko bundles stay untouched. The four new labels introduced by
+this redesign (`Stack trace`, `Copy stack trace`, `Copied`,
+`Open GitHub issue`) are inline English; a follow-up that promotes
+them to i18n keys is out of scope for this dispatch (which is
+restricted to `ErrorBoundary.tsx`, `ErrorBoundary.test.tsx`,
+`CHANGELOG.md`, `web/package.json`).
+
+Tests (`web/src/components/ErrorBoundary.test.tsx`):
+
+All eleven existing cases are preserved (no deletions). Seven new
+cases were appended on top:
+
+- Three-button action row is rendered (`Reload` + `Copy stack trace`
+  + `Open GitHub issue`).
+- Copy click writes the stack to `navigator.clipboard.writeText`
+  with the stack content (`vi.fn()` spy via a configurable
+  `navigator.clipboard` `Object.defineProperty` stub installed
+  after `userEvent.setup()` so the spy is not shadowed by the
+  user-event clipboard mock).
+- The `Copied` chip flips on after a successful clipboard write.
+- The GitHub issue link has `target="_blank"` + `rel` containing
+  `noopener`, `href` starts with
+  `https://github.com/siloFoX/c4/issues/new?`, and both `title`
+  and `body` survive the URL round-trip (asserted via
+  `new URL(href).searchParams`).
+- The issue title truncates to `Bug report: <first 60 chars of
+  message>...` when the message is longer than 60 characters.
+- The `<details>` element starts collapsed, with the `<pre>`
+  reachable as its descendant.
+- Clicking the `<summary>` (or, under jsdom, flipping `details.open`
+  to mirror the user-agent behaviour) reveals the stack content
+  inside the `<details>` region.
+
+The `Thrower` helper was given an explicit `ReactNode` return type so
+the new `<Thrower>` references no longer surface TS2786 errors (the
+existing `FlaggedThrower` helper already used the same pattern).
+
+Version bump: `web/package.json` 1.11.135 -> 1.11.136.
+
 ## [1.11.135] - 2026-05-14 -- Web: loading-state primitives (Skeleton variants + <Spinner>)
 
 Two reusable loading-state primitives so feature code stops hand-rolling
