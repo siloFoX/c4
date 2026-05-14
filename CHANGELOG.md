@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.202] - 2026-05-14 -- UI: route progress bar (11.184)
+
+New `<RouteProgressBar>` component at `web/src/components/RouteProgressBar.tsx`. Slim 2px fixed top bar driven by a `transform: scaleX` fill, with NProgress-style trickle (jumps to 30%, then creeps with diminishing returns toward 90%) on start, snaps to 100% + fades out on done. Two control modes: `routeKey` prop auto-runs a start->done cycle on change (settle uses `requestIdleCallback` with a `setTimeout` fallback), and `forwardRef` exposes a `RouteProgressHandle` with imperative `start()` / `done()`. Honors `prefers-reduced-motion` via the existing `useReducedMotion` hook (skips trickle, briefly shows full + fades). Props: `routeKey`, `color` (`primary` | `success` | `info` | `danger`), `className`. Decorative (`aria-hidden='true'`). Mounted in `App.tsx` just below `AutonomousStatusBanner`, keyed off `topView` so top-level navigation always shows progress. See `docs/patches/11.184-ui-route-progress.md`.
+
 ## [1.11.201] - 2026-05-14 -- UI: grid debug overlay (11.183)
 
 New dev-only `<GridDebugOverlay>` at `web/src/components/dev/GridDebugOverlay.tsx`. Renders a 12-column grid aligned to the `max-w-7xl mx-auto` container with alternating red/blue 4% tint + 1px dashed borders, plus a top-right Tailwind breakpoint pill (xs/sm/md/lg/xl/2xl) and a bottom-left `WxH @ y=scroll` pill. Self-gates on `import.meta.env.PROD` so production bundles render null. Visibility toggles on `Cmd/Ctrl+Shift+G` and persists via localStorage key `c4:grid-debug:visible`. `pointer-events-none` + `aria-hidden='true'` so it never blocks interaction. Mounted in `App.tsx` below the AutonomousStatusBanner. See `docs/patches/11.183-ui-grid-debug.md`.
