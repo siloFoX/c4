@@ -762,6 +762,40 @@ function parseBodyRaw(req) {
   });
 }
 
+// (v1.11.132) JSONL ring file for the POST /client-errors browser-frame
+// sink. Path resolves via C4_CLIENT_ERRORS_PATH (used by the test to
+// inject a tmp file), falling back to ~/.c4/client-errors.jsonl. When
+// the live file crosses CLIENT_ERRORS_MAX_BYTES on the next write, it
+// is renamed to <path>.1 (one-step rotation, the previous rotated copy
+// is overwritten) and a fresh file is opened on the next append. All
+// errors swallowed -- this sink is best-effort and must never fail the
+// daemon.
+const CLIENT_ERRORS_MAX_BYTES = 10 * 1024 * 1024;
+function _clientErrorsPath() {
+  if (process.env.C4_CLIENT_ERRORS_PATH) return process.env.C4_CLIENT_ERRORS_PATH;
+  const home = process.env.HOME || process.env.USERPROFILE || '.';
+  return path.join(home, '.c4', 'client-errors.jsonl');
+}
+function appendClientErrorLine(obj) {
+  try {
+    const p = _clientErrorsPath();
+    const dir = path.dirname(p);
+    try { fs.mkdirSync(dir, { recursive: true }); } catch (_) { /* best-effort */ }
+    try {
+      const st = fs.statSync(p);
+      if (st && typeof st.size === 'number' && st.size >= CLIENT_ERRORS_MAX_BYTES) {
+        try { fs.renameSync(p, p + '.1'); } catch (_) { /* best-effort */ }
+      }
+    } catch (_) { /* file may not exist yet */ }
+    fs.appendFileSync(p, JSON.stringify(obj) + '\n');
+  } catch (e) {
+    try {
+      log.warn({ component: 'client-errors', err: e && e.message ? e.message : String(e) },
+        'client-errors append failed');
+    } catch (_) { /* swallow */ }
+  }
+}
+
 function escapeHtml(str) {
   if (typeof str !== 'string') return '';
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1121,7 +1155,12 @@ async function handleRequest(req, res) {
     // Skip the JWT gate so bearer-less requests reach the handler where
     // verifySignature does the real auth.
     const isCicdWebhook = route === '/cicd/webhook' && req.method === 'POST';
-    const needsAuthCheck = (isApiPrefixed || route === '/dashboard') && !isCicdWebhook;
+    // (v1.11.132) /client-errors is an open sink so unauthenticated
+    // browser frames (login screen, expired-session screens, public
+    // landing pages) can still report window errors. The handler is
+    // best-effort and never trusts the body shape unconditionally.
+    const isClientErrors = route === '/client-errors' && req.method === 'POST';
+    const needsAuthCheck = (isApiPrefixed || route === '/dashboard') && !isCicdWebhook && !isClientErrors;
     let authCheck = { allow: true };
     if (needsAuthCheck) {
       authCheck = auth.checkRequest(cfg, req, route);
@@ -1196,6 +1235,49 @@ async function handleRequest(req, res) {
       res.setHeader('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
       res.writeHead(200);
       res.end(body);
+      return;
+
+    } else if (req.method === 'POST' && route === '/client-errors') {
+      // (v1.11.132) Open browser-frame error sink. NO RBAC gate (see the
+      // isClientErrors bypass above) so unauthenticated frames -- login
+      // screen, expired-session screens, public landing pages -- can
+      // still report window 'error' and 'unhandledrejection' events.
+      // Validates the minimum shape (kind, message) and silently drops
+      // malformed bodies. Always returns 204 No Content so the client
+      // capture path never sees a non-2xx response and never retries.
+      try {
+        const body = await parseBody(req);
+        const kind = body && body.kind;
+        const message = body && body.message;
+        const validKind = kind === 'error' || kind === 'unhandledrejection';
+        if (validKind && typeof message === 'string') {
+          try {
+            log.warn({
+              component: 'client-errors',
+              kind,
+              message,
+              url: typeof body.url === 'string' ? body.url : '',
+              line: typeof body.line === 'number' ? body.line : null,
+              column: typeof body.column === 'number' ? body.column : null,
+              userAgent: typeof body.userAgent === 'string' ? body.userAgent : '',
+            }, '[client-errors]');
+          } catch (_) { /* swallow */ }
+          appendClientErrorLine({
+            kind,
+            message,
+            stack: typeof body.stack === 'string' ? body.stack : '',
+            url: typeof body.url === 'string' ? body.url : '',
+            line: typeof body.line === 'number' ? body.line : null,
+            column: typeof body.column === 'number' ? body.column : null,
+            userAgent: typeof body.userAgent === 'string' ? body.userAgent : '',
+            timestamp: typeof body.timestamp === 'string'
+              ? body.timestamp
+              : new Date().toISOString(),
+          });
+        }
+      } catch (_) { /* never fail the client */ }
+      res.writeHead(204);
+      res.end();
       return;
 
     } else if (req.method === 'GET' && route === '/workspaces') {
