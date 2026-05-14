@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.120] - 2026-05-14 -- Tests: Lib hooks coverage push 4 (TODO 11.98)
+
+Continue the untested `web/src/lib/use-*.ts` coverage push. Discovered
+23 hooks still without a test file after pushes 1-3, sorted by source
+line count, and picked the 6 smallest: `useScribeContext` (57 LOC),
+`useXtermResizeFit` (60), `useRbac` (61), `useTokenUsageBreakdowns`
+(62), `useWorkerList` (62), `useWorkerBufferFlusher` (63). All six
+gain a sibling `*.test.ts` mirroring the
+v1.11.115 / v1.11.117 / v1.11.119 batch style: `renderHook` + `act`
+from `@testing-library/react`, MSW for the apiGet hooks, an
+`EventSourceStub` for the SSE-aware hook, and `vi.useFakeTimers()`
+for the debounce path. Per-hook contracts are documented in the test
+file headers so a future refactor can read the intent without
+chasing the diff. Total: 91 cases across 6 files (14 + 14 + 14 + 19
++ 15 + 15). `useScribeContext` covers the drawer-open state machine
+(idle / loading / happy / error / re-open clears banner / closeScribe
+preserves cached payload) plus the useCallback dep tracking for
+`openScribe` vs `closeScribe`. `useXtermResizeFit` stubs
+`ResizeObserver` to assert the three signal paths (observer fire,
+window resize, layout-effect on visibility) plus the cleanup contract
+(disconnect + removeEventListener + clear pending fitTimerRef + the
+disconnect try/catch). `useRbac` walks the Promise.all dual-fetch
+including the partial-failure assertion (one endpoint failing must
+NOT apply the other endpoint's partial payload). `useTokenUsageBreakdowns`
+is the only pure-memo hook in the batch -- 19 cases include the
+`coerceTotal` truth table (number passthrough / explicit total wins /
+input+output sum / array-as-object yields 0) and the perDay
+inclusive-range filter. `useWorkerList` combines polling + SSE + apiGet:
+asserts the EventSource open/error/message wiring, the
+`connected`-heartbeat-is-silent rule, the 5s interval firing while
+mounted, AND the interval+EventSource cleanup on unmount.
+`useWorkerBufferFlusher` exercises the WORKER_FLUSH_MS=1200 debounce
+with fake timers including the "coalesce mid-burst" and "flush clears
+the timer so a stale fire cannot double-flush" invariants. Bumped
+`web/package.json` 1.11.112 -> 1.11.120 (jumps over 1.11.113-119 which
+landed via main merges without a CHANGELOG entry). Verification:
+`env -C web /root/c4/web/node_modules/.bin/vitest run --project unit
+src/lib/use-{scribe-context,xterm-resize-fit,rbac,token-usage-breakdowns,worker-list,worker-buffer-flusher}.test.ts`
+reports 6 files / 91/91 passing. Out of scope: the 17 remaining
+untested hooks (use-auto-dispatch, use-morning, use-nav-badge-counts,
+use-pinned-rules, use-plan-dispatch, use-prompt-revision,
+use-scribe, use-scrollback, use-selected-feature-id, use-silent-poll,
+use-swarm, use-token-usage, use-ui-preferences, use-validations,
+use-worker-actions, use-worker-selection, use-xterm-autofit) -- queued
+for the next lib coverage push.
+
 ## [1.11.112] - 2026-05-14 -- Tests: Xterm + small remaining RTL (TODO 11.94)
 
 Add vitest/RTL/jsdom coverage for two terminal-pane components that
