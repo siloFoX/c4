@@ -169,4 +169,66 @@ describe('<TopTabs>', () => {
     await user.keyboard(' ');
     expect(onChange).toHaveBeenCalledWith('chat');
   });
+
+  it('only the active tab carries tabIndex=0; inactive tabs are tabIndex=-1 (roving tabindex)', () => {
+    render(<TopTabs value="history" onChange={() => {}} />);
+    const history = screen.getByRole('tab', { name: 'History' });
+    const workers = screen.getByRole('tab', { name: 'Workers' });
+    expect(history).toHaveAttribute('tabindex', '0');
+    expect(workers).toHaveAttribute('tabindex', '-1');
+  });
+
+  it('ArrowRight on a focused tab moves selection + focus to the next tab', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<TopTabs value="workers" onChange={onChange} />);
+    const workers = screen.getByRole('tab', { name: 'Workers' });
+    workers.focus();
+    await user.keyboard('{ArrowRight}');
+    expect(onChange).toHaveBeenCalledWith('history');
+    expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'History' }));
+  });
+
+  it('ArrowLeft on a focused tab moves selection + focus to the previous tab', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<TopTabs value="history" onChange={onChange} />);
+    const history = screen.getByRole('tab', { name: 'History' });
+    history.focus();
+    await user.keyboard('{ArrowLeft}');
+    expect(onChange).toHaveBeenCalledWith('workers');
+    expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'Workers' }));
+  });
+
+  it('ArrowRight on the last tab wraps focus + selection back to the first tab', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<TopTabs value="settings" onChange={onChange} />);
+    const settings = screen.getByRole('tab', { name: 'Settings' });
+    settings.focus();
+    await user.keyboard('{ArrowRight}');
+    expect(onChange).toHaveBeenCalledWith('workers');
+    expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'Workers' }));
+  });
+
+  it('ArrowLeft on the first tab wraps focus + selection to the last tab', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<TopTabs value="workers" onChange={onChange} />);
+    const workers = screen.getByRole('tab', { name: 'Workers' });
+    workers.focus();
+    await user.keyboard('{ArrowLeft}');
+    expect(onChange).toHaveBeenCalledWith('settings');
+    expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'Settings' }));
+  });
+
+  it('arrow keys do not fire when focus is outside the tab strip', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<TopTabs value="workers" onChange={onChange} />);
+    // Body has focus by default; arrow press should be a no-op.
+    document.body.focus();
+    await user.keyboard('{ArrowRight}');
+    expect(onChange).not.toHaveBeenCalled();
+  });
 });

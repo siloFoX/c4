@@ -1,4 +1,4 @@
-import type { ComponentType, SVGProps } from 'react';
+import { useRef, type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type SVGProps } from 'react';
 import {
   BookOpen,
   Bot,
@@ -67,13 +67,30 @@ export default function TopTabs({ value, onChange, badges }: TopTabsProps) {
   // useLocale registers a re-render when the operator flips
   // between en/ko in Settings. The actual lookup uses t().
   useLocale();
+  // (v1.11.134) Refs keep per-tab focus reachable from the arrow-key
+  // handler. The array is rebuilt on every render but React keeps
+  // the same length-N slot identity for each tab in TABS.
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  const handleKeyDown = (idx: number) => (e: ReactKeyboardEvent<HTMLButtonElement>) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    const len = TABS.length;
+    const dir = e.key === 'ArrowLeft' ? -1 : 1;
+    const nextIdx = (idx + dir + len) % len;
+    const next = TABS[nextIdx];
+    if (!next) return;
+    tabRefs.current[nextIdx]?.focus();
+    onChange(next.value);
+  };
+
   return (
     <div
       role="tablist"
       aria-label={t('topTabs.label')}
       className="flex shrink-0 overflow-x-auto rounded-md border border-border text-xs [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
     >
-      {TABS.map(({ value: v, labelKey, fallback, Icon }) => {
+      {TABS.map(({ value: v, labelKey, fallback, Icon }, idx) => {
         const active = v === value;
         const badge = badges && badges[v];
         const label = t(labelKey) || fallback;
@@ -82,10 +99,15 @@ export default function TopTabs({ value, onChange, badges }: TopTabsProps) {
             key={v}
             type="button"
             role="tab"
+            ref={(el) => {
+              tabRefs.current[idx] = el;
+            }}
             aria-selected={active}
             aria-label={label}
             title={label}
+            tabIndex={active ? 0 : -1}
             onClick={() => onChange(v)}
+            onKeyDown={handleKeyDown(idx)}
             className={cn(
               'relative inline-flex items-center gap-1.5 px-2 py-1.5 transition-colors sm:px-3',
               active
