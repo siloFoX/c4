@@ -4,6 +4,74 @@
 
 (no entries -- next release window)
 
+## [1.11.126] - 2026-05-14 -- Tests: Lib hooks coverage push 11 (TODO 11.108)
+
+Continue the untested `web/src/lib/use-*.ts` coverage push. The original
+push-11 dispatch listed `use-selected-feature-id` plus three hooks that
+were already covered (`use-sidebar-shortcut.test.ts` and `use-toast.test.ts`
+exist) and one that does not exist in the tree (`use-pin-modal.ts`).
+Substituted with four hooks that genuinely lacked a sibling test file:
+`use-selected-feature-id.ts` (Features-tab selection state with hash +
+localStorage persistence), `use-token-usage.ts` (TokenUsage page's dual
+fetch over `/api/token-usage` + `/api/quota`), `use-ui-preferences.ts`
+(four localStorage-backed UI slots with cross-tab storage sync), and
+`use-validations.ts` (Validation page's `/api/list` -> per-worker
+`/api/validation` fan-out). All four gain a sibling `*.test.ts`
+mirroring the v1.11.115 / v1.11.117 / v1.11.119 / v1.11.121 /
+v1.11.124 / v1.11.125 batch style: `renderHook` + `act` from
+`@testing-library/react`, MSW handlers via `server.use()` for the
+apiGet / apiPost surface, and direct `window.history.replaceState` +
+`HashChangeEvent` / `StorageEvent` dispatch for the browser-side hooks.
+Total: 54 cases across 4 files (14 + 12 + 15 + 13).
+
+`useSelectedFeatureId` covers the three-source priority order on mount
+(hash > localStorage > FEATURES[0] fallback), invalid hash falling
+through to localStorage, invalid localStorage falling through to the
+default, non-`#/feature/` prefix being treated as no hash, setter
+persistence to both surfaces, the hashchange listener picking up
+valid feature ids and ignoring unknown / non-feature-prefix hashes,
+listener cleanup on unmount, and the idempotent writeHash short-circuit
+when the URL already matches the next value.
+
+`useTokenUsage` covers idle mount (loading=true, data/quota/error null),
+happy path with `perTask=false` producing no query string, `perTask=true`
+appending `?perTask=1`, token-usage HTTP 500 routing through setError
++ data=null while quota still fires, the quota silent-failure branch
+(no setError, quota=null), both-endpoints-fail with the error reflecting
+token-usage, `refresh()` re-firing both endpoints and clearing stale
+error on recovery, loading busy-gate flip during inflight, perTask prop
+change triggering a re-fetch with the new query, refresh callback
+identity stability vs. perTask, full payload forwarding including
+perWorker / perDay maps, and successive refresh re-entry.
+
+`useUiPreferences` covers idle mount with all four documented defaults,
+seeding all four slots from valid localStorage values, unknown enum
+values falling back to defaults, each setter (`setSidebarMode`,
+`setSidebarCollapsed`, `setDetailMode`, `setTopView`) writing the
+matching localStorage key, the `'1'`/`'0'` boolean encoding for
+sidebarCollapsed, the functional-updater form of setSidebarCollapsed,
+`setTopView('settings')` accepting state but skipping persist (transient
+destination guard in `writeTopView`), `toggleSidebarCollapsed` flipping
++ persisting each tick with stable callback identity, the `storage`
+event re-reading all four slots, `onCrossTabSync` firing on storage
+events, the no-args path not throwing on storage events, and listener
+cleanup on unmount.
+
+`useValidations` covers idle mount (loading=true, workers=[],
+validations={}, error=null), happy path with the `/api/list` ->
+`/api/validation?name=<w>` fan-out and per-worker payload merging,
+per-worker validation HTTP failure surfacing as a `{ error }` entry
+without aborting the sweep, `/api/list` HTTP error routing through
+the shared error slot with no fan-out, non-array workers field
+defaulting to `[]` defensively, URL-encoding of worker names with
+special chars, `refresh()` re-firing both phases, refresh clearing
+stale error on success, the loading flip across the gated list
+fetch, refresh callback identity stability (empty deps), the empty
+workers list short-circuit (no fan-out, validations stays `{}`),
+three-worker parallel fan-out populating before loading flips false,
+and a `refresh` that picks up a newly-added worker on the second
+list call.
+
 ## [1.11.125] - 2026-05-14 -- Tests: Lib hooks coverage push 10 (TODO 11.106)
 
 Continue the untested `web/src/lib/use-*.ts` coverage push. The original
