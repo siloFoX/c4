@@ -102,14 +102,12 @@ describe('<MeetingsPeerRetroControls>', () => {
     ).toHaveTextContent('Peer retro');
   });
 
-  it('attaches the peer-retro tooltip text to the run button title', () => {
+  it('wraps the run peer-retro button with a Tooltip carrying the hint text', () => {
     renderRow();
-    expect(
-      screen.getByRole('button', { name: 'Run peer retro' }),
-    ).toHaveAttribute(
-      'title',
+    const tip = screen.getByText(
       'Each speaker rates their peers; aggregate folds into the registry score',
     );
+    expect(tip).toHaveAttribute('role', 'tooltip');
   });
 
   it('starts the brain select at "mock"', () => {

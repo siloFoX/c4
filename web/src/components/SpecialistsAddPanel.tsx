@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Button } from './ui';
+import { Button, Tooltip } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 import { useSpecialistsAddPropose } from '../lib/use-specialists-add-propose';
@@ -63,16 +63,17 @@ export default function SpecialistsAddPanel({ open, onClose, onAdded }: Props) {
         </Button>
         {/* (Phase 1.5) Propose via meta-meeting consensus —
             safer governance path than direct add. */}
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handlePropose}
-          disabled={proposeBusy || addBusy || !json.trim()}
-          aria-label={t('specialists.action.propose')}
-          title={t('specialists.tooltip.propose')}
-        >
-          {t('specialists.action.proposeLabel')}
-        </Button>
+        <Tooltip label={t('specialists.tooltip.propose')}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handlePropose}
+            disabled={proposeBusy || addBusy || !json.trim()}
+            aria-label={t('specialists.action.propose')}
+          >
+            {t('specialists.action.proposeLabel')}
+          </Button>
+        </Tooltip>
         <Button
           size="sm"
           variant="outline"

@@ -68,12 +68,11 @@ describe('<WorkerDetailComposer>', () => {
     expect(screen.getByRole('button', { name: 'Enter' })).toBeInTheDocument();
   });
 
-  it('renders the Merge button with the localized label and title attr', () => {
+  it('renders the Merge button with the localized label and Tooltip surface', () => {
     renderComposer();
     const merge = screen.getByRole('button', { name: /Merge/ });
     expect(merge).toBeInTheDocument();
-    expect(merge).toHaveAttribute(
-      'title',
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
       "Run pre-merge checks and merge this worker's branch into main",
     );
   });
@@ -311,12 +310,16 @@ describe('<WorkerDetailComposer>', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('drops the English Merge title attribute when the locale flips to ko', () => {
-    const { container } = renderComposer();
-    expect(container.querySelector('[title="Run pre-merge checks and merge this worker\'s branch into main"]')).not.toBeNull();
+  it('drops the English Merge Tooltip label when the locale flips to ko', () => {
+    renderComposer();
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
+      "Run pre-merge checks and merge this worker's branch into main",
+    );
     act(() => {
       setLocale('ko');
     });
-    expect(container.querySelector('[title="Run pre-merge checks and merge this worker\'s branch into main"]')).toBeNull();
+    expect(screen.getByRole('tooltip')).not.toHaveTextContent(
+      "Run pre-merge checks and merge this worker's branch into main",
+    );
   });
 });

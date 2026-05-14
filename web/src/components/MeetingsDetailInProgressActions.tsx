@@ -1,4 +1,4 @@
-import { Button } from './ui';
+import { Button, Tooltip } from './ui';
 import { t, useLocale } from '../lib/i18n';
 import MeetingsStateActions from './MeetingsStateActions';
 import MeetingsContributePanel from './MeetingsContributePanel';
@@ -26,16 +26,17 @@ export default function MeetingsDetailInProgressActions({
     <>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[11px] text-muted-foreground">{t('meetings.manual.label')}</span>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onContribToggle}
-          aria-label={t('meetings.contribute.toggle.label')}
-          title={t('meetings.tooltip.contribute')}
-          aria-expanded={contribOpen}
-        >
-          {contribOpen ? t('meetings.hideContribute') : t('meetings.contributeButton')}
-        </Button>
+        <Tooltip label={t('meetings.tooltip.contribute')}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onContribToggle}
+            aria-label={t('meetings.contribute.toggle.label')}
+            aria-expanded={contribOpen}
+          >
+            {contribOpen ? t('meetings.hideContribute') : t('meetings.contributeButton')}
+          </Button>
+        </Tooltip>
         <MeetingsStateActions meetingId={meetingId} mode="in-progress" />
       </div>
       <MeetingsContributePanel open={contribOpen} meetingId={meetingId} />

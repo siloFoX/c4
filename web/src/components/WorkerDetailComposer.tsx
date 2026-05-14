@@ -1,5 +1,5 @@
 import { GitMerge, Send, X } from 'lucide-react';
-import { Button, Input } from './ui';
+import { Button, Input, Tooltip } from './ui';
 import { t, useLocale } from '../lib/i18n';
 
 // (v1.10.611) Extracted from WorkerDetail. The composer row —
@@ -63,17 +63,18 @@ export default function WorkerDetailComposer({
       >
         {t('workerDetail.composer.enter')}
       </Button>
-      <Button
-        type="button"
-        variant="default"
-        size="sm"
-        onClick={onMerge}
-        disabled={busy}
-        title={t('workerDetail.composer.mergeTitle')}
-      >
-        <GitMerge className="h-4 w-4" />
-        <span>{t('workerDetail.composer.merge')}</span>
-      </Button>
+      <Tooltip label={t('workerDetail.composer.mergeTitle')}>
+        <Button
+          type="button"
+          variant="default"
+          size="sm"
+          onClick={onMerge}
+          disabled={busy}
+        >
+          <GitMerge className="h-4 w-4" />
+          <span>{t('workerDetail.composer.merge')}</span>
+        </Button>
+      </Tooltip>
       <Button
         type="button"
         variant="destructive"

@@ -1,4 +1,4 @@
-import { Button } from './ui';
+import { Button, Tooltip } from './ui';
 import { t, useLocale } from '../lib/i18n';
 import MeetingsPublishControls from './MeetingsPublishControls';
 import MeetingsPeerRetroControls from './MeetingsPeerRetroControls';
@@ -38,17 +38,18 @@ export default function MeetingsDetailCompletedActions({
         <span aria-hidden className="text-muted-foreground">·</span>
         <MeetingsRetroActions meetingId={meetingId} />
         <span aria-hidden className="text-muted-foreground">·</span>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onForkToggle}
-          aria-label={t('meetings.fork.button.label')}
-          title={t('meetings.tooltip.fork')}
-          className="h-6 px-2 text-[10px]"
-          aria-expanded={forkOpen}
-        >
-          {forkOpen ? t('meetings.cancelFork') : t('meetings.fork.button')}
-        </Button>
+        <Tooltip label={t('meetings.tooltip.fork')}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onForkToggle}
+            aria-label={t('meetings.fork.button.label')}
+            className="h-6 px-2 text-[10px]"
+            aria-expanded={forkOpen}
+          >
+            {forkOpen ? t('meetings.cancelFork') : t('meetings.fork.button')}
+          </Button>
+        </Tooltip>
       </div>
       <MeetingsForkForm
         open={forkOpen}

@@ -83,24 +83,16 @@ describe('<MeetingsRetroActions>', () => {
     ).toHaveTextContent('Finalize');
   });
 
-  it('attaches the preview tooltip text to the preview button title', () => {
+  it('wraps the preview button with a Tooltip carrying the preview hint', () => {
     renderRow();
-    expect(
-      screen.getByRole('button', { name: 'Preview retro deltas' }),
-    ).toHaveAttribute(
-      'title',
-      'Compute retro score deltas without applying',
-    );
+    const tip = screen.getByText('Compute retro score deltas without applying');
+    expect(tip).toHaveAttribute('role', 'tooltip');
   });
 
-  it('attaches the finalize tooltip text to the finalize button title', () => {
+  it('wraps the finalize button with a Tooltip carrying the finalize hint', () => {
     renderRow();
-    expect(
-      screen.getByRole('button', { name: 'Finalize retro (apply deltas)' }),
-    ).toHaveAttribute(
-      'title',
-      'Apply retro deltas to the registry score record',
-    );
+    const tip = screen.getByText('Apply retro deltas to the registry score record');
+    expect(tip).toHaveAttribute('role', 'tooltip');
   });
 
   it('calls handleRetro(false) when the preview button is clicked', async () => {

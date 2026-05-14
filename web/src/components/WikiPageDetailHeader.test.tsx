@@ -97,15 +97,13 @@ describe('<WikiPageDetailHeader>', () => {
     ).toBeInTheDocument();
   });
 
-  it('uses the Reopen tooltip text on the title attribute', () => {
+  it('wraps the Reopen button with a Tooltip carrying the reopen hint', () => {
     renderHeader({
       page: buildPage(),
       selectedPath: 'docs/foo.md',
     });
-    expect(
-      screen.getByRole('button', { name: 'Reopen this decision' }),
-    ).toHaveAttribute(
-      'title',
+    const tip = screen.getByRole('tooltip');
+    expect(tip).toHaveTextContent(
       'Spawn a new meeting seeded with this page + its related neighbours',
     );
   });

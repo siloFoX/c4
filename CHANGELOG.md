@@ -4,6 +4,55 @@
 
 (no entries -- next release window)
 
+## [1.11.145] - 2026-05-14 -- Web: Tooltip primitive rollout (native title= migration)
+
+Thirteen icon-or-text buttons that leaned on the native `title=`
+attribute as a tooltip surrogate were migrated to the accessible
+`<Tooltip>` primitive from `web/src/components/ui/tooltip.tsx`. The
+native `title=` attribute is unreliable across browsers (no keyboard
+or focus surface, no consistent styling, no `Escape` dismissal) and
+hides the hint from screen-reader announcements. The Tooltip
+primitive wires `aria-describedby` while visible, dismisses on
+Escape, fires on focus + hover, and lives in a sibling
+`role="tooltip"` span so assistive tech can announce the hint.
+
+What changed:
+
+1. **Ten components** got their tooltip-surrogate `title=` swapped
+   for a `<Tooltip label={...}>` wrapper around the existing
+   `<Button>`, keeping the `aria-label` / `aria-expanded` /
+   `disabled` semantics intact:
+   - `MeetingsStateActions`         -- Start / Advance / Next-round
+   - `MeetingsRetroActions`         -- Preview / Finalize
+   - `MeetingsDetailInProgressActions` -- Contribute toggle
+   - `MeetingsDetailCompletedActions`  -- Fork toggle
+   - `MeetingsPeerRetroControls`    -- Run peer-retro
+   - `MeetingsComposer`             -- + New template
+   - `SpecialistsAddPanel`          -- Propose via meeting
+   - `WikiPageDetailHeader`         -- Reopen
+   - `WikiBulkPublishRow`           -- Publish all
+   - `WorkerDetailComposer`         -- Merge
+
+2. **Nine test files** were updated to assert against the new
+   `role="tooltip"` surface (via `getByRole('tooltip')` +
+   `toHaveTextContent`, or `getByText(...)` + `toHaveAttribute('role',
+   'tooltip')`) instead of the old `toHaveAttribute('title', ...)`
+   pattern. All other behavioural assertions are unchanged.
+
+3. **No behaviour change**: tooltip text content stays identical,
+   `aria-label` is preserved, the underlying button DOM and click
+   handlers are untouched. Visual layout for the migrated buttons is
+   wrapped in a `<span class="relative inline-flex">` (Tooltip's
+   wrapper) which is layout-neutral for the affected callsites.
+
+Out of scope: the `<title>` attribute survives where it is not a
+tooltip surrogate (e.g., a debug JSON dump on the retro result span,
+the classifier-preview hint span, the template-chip + edit-pencil
+button pair whose visual grouping depends on direct-sibling border
+collapse). `tooltip.tsx` itself, ARPS design-system tokens, the
+autonomous-queue doc, and `package.json` dependencies are all
+untouched.
+
 ## [1.11.144] - 2026-05-14 -- Web: Badge semantic-variant audit + ad-hoc colour-chip migration
 
 The Badge primitive in `web/src/components/ui/badge.tsx` was the

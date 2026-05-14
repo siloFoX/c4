@@ -1,4 +1,4 @@
-import { Button } from './ui';
+import { Button, Tooltip } from './ui';
 import { t, useLocale } from '../lib/i18n';
 import { useMeetingRetro } from '../lib/use-meeting-retro';
 
@@ -20,28 +20,30 @@ export default function MeetingsRetroActions({ meetingId }: Props) {
 
   return (
     <>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => handleRetro(false)}
-        disabled={busy !== null}
-        aria-label={t('meetings.retroPreviewLabel')}
-        title={t('meetings.tooltip.retroPreview')}
-        className="h-6 px-2 text-[10px]"
-      >
-        {busy === 'preview' ? '…' : t('meetings.retroPreview')}
-      </Button>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => handleRetro(true)}
-        disabled={busy !== null}
-        aria-label={t('meetings.finalizeLabel')}
-        title={t('meetings.tooltip.finalize')}
-        className="h-6 px-2 text-[10px] border-warning/60 text-warning"
-      >
-        {busy === 'finalize' ? '…' : t('meetings.finalize')}
-      </Button>
+      <Tooltip label={t('meetings.tooltip.retroPreview')}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => handleRetro(false)}
+          disabled={busy !== null}
+          aria-label={t('meetings.retroPreviewLabel')}
+          className="h-6 px-2 text-[10px]"
+        >
+          {busy === 'preview' ? '…' : t('meetings.retroPreview')}
+        </Button>
+      </Tooltip>
+      <Tooltip label={t('meetings.tooltip.finalize')}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => handleRetro(true)}
+          disabled={busy !== null}
+          aria-label={t('meetings.finalizeLabel')}
+          className="h-6 px-2 text-[10px] border-warning/60 text-warning"
+        >
+          {busy === 'finalize' ? '…' : t('meetings.finalize')}
+        </Button>
+      </Tooltip>
       {error ? (
         <span className="text-[11px] text-destructive">{error}</span>
       ) : null}

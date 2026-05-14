@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Button, Input } from './ui';
+import { Button, Input, Tooltip } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import MeetingsTemplateEditor from './MeetingsTemplateEditor';
@@ -145,16 +145,17 @@ export default function MeetingsComposer({ open, onClose, onCreated }: Props) {
             </button>
           </span>
         ))}
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => openTplEditor()}
-          aria-label={t('meetings.action.newTemplate')}
-          title={t('meetings.tooltip.saveTemplate')}
-          className="h-6 px-2 text-[11px]"
-        >
-          + New
-        </Button>
+        <Tooltip label={t('meetings.tooltip.saveTemplate')}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => openTplEditor()}
+            aria-label={t('meetings.action.newTemplate')}
+            className="h-6 px-2 text-[11px]"
+          >
+            + New
+          </Button>
+        </Tooltip>
         {templateName ? (
           <Button
             size="sm"

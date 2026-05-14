@@ -72,14 +72,10 @@ describe('<WikiBulkPublishRow>', () => {
     ).not.toBeDisabled();
   });
 
-  it('uses the tooltip text on the publish button title attribute', () => {
+  it('wraps the publish button with a Tooltip carrying the publish hint', () => {
     renderRow();
-    expect(
-      screen.getByRole('button', {
-        name: 'Publish all terminal meetings without a wiki page',
-      }),
-    ).toHaveAttribute(
-      'title',
+    const tip = screen.getByRole('tooltip');
+    expect(tip).toHaveTextContent(
       "Publish a wiki page for every terminal meeting that doesn't have one",
     );
   });
