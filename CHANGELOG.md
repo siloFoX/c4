@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.182] - 2026-05-14 -- UI: Image primitive + Avatar adoption
+
+New `<Image>` primitive in `web/src/components/ui/image.tsx` (lazy-loading image wrapper with blur placeholder, error fallback, and aspect-ratio container; props src/alt/aspect square|4/3|16/9|auto/width/height/placeholderColor/fallback/fallbackInitials/lazy (default true, IntersectionObserver with rootMargin '50px', disconnects after first intersection)/rounded sm|md|lg|full|none default md/className; muted bg + animate-pulse while loading, fade-in opacity transition on load, ImageOff lucide icon as default error fallback, optional initials tinted square or custom ReactNode; forwardRef to wrapper div). Avatar primitive now routes src-backed renders through `<Image>` (lazy=false to preserve eager-load semantics, fallbackInitials seeded from name) so all future thumbnail-style avatars share one load/error path.
+
 ## [1.11.181] - 2026-05-14 -- UI: Rating primitive + Health page adoption
 
 New `<Rating>` primitive in `web/src/components/ui/rating.tsx` (5-star widget with hover preview, half-star support, readonly mode, `aria role='slider'` with `aria-valuenow` / `aria-valuemin` / `aria-valuemax`; props value/max (default 5)/onChange/size sm|md|lg/readonly (auto-true when onChange omitted)/allowHalf (default true)/label/className; click on left half sets x.5; keyboard ArrowLeft/Right step by 0.5 (allowHalf) or 1, Home -> 0, End -> max; lucide-react Star with empty stroke layer + filled overlay sized 0/50/100% via `fill='currentColor'`; `forwardRef` to wrapper div). Adopted on the Health page as a 'Was this dashboard helpful?' widget (console.log only).

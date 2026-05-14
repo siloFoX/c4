@@ -41,3 +41,4 @@ export * from './hero-card';
 export * from './navbar';
 export * from './search-bar';
 export * from './rating';
+export * from './image';
