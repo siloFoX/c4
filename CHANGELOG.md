@@ -4,6 +4,34 @@
 
 (no entries -- next release window)
 
+## [1.11.122] - 2026-05-14 -- Tests: Component coverage final sweep (TODO 11.100)
+
+Final sweep over `web/src/components/**/*.tsx` to close the remaining
+gap. Discovered just two untested components after prior pushes:
+`ui/label.tsx` and `ui/stat-card.tsx`. Both gain a sibling
+`*.test.tsx` mirroring the v1.11.84 / v1.11.112 ui-primitive style:
+RTL `render` + `screen` queries, `createRef` to assert the
+forwardRef contract, and class-merging assertions to pin the
+surface tokens. Total: 19 cases across 2 files (7 + 12). `Label`
+covers the LABEL tagName, base typography tokens (`text-sm` +
+`font-medium` + `leading-none`), `htmlFor` association, className
+merging, arbitrary `data-*`/`aria-*` passthrough, ref forwarding,
+and `displayName`. `StatCard` covers the label/value render
+contract (numeric path uses `noAnimation` to skip the rAF count-up
+for deterministic assertions, string path renders the value
+verbatim), `data-stat-value` + `data-stat-final` attributes, hint
+slot, icon slot, the loading branch (`role="status"` skeleton
+suppresses the value), `data-stat-card` wrapper attribute,
+className merging with built-in `rounded-xl`/`border` tokens, ref
+forwarding to the wrapper div, arbitrary attribute passthrough,
+and `displayName`. Bumped `web/package.json` 1.11.120 -> 1.11.122
+(1.11.121 landed via main merges without a CHANGELOG entry).
+Verification: `env -C web /root/c4/web/node_modules/.bin/vitest
+run --project unit src/components/ui/{label,stat-card}.test.tsx`
+reports 2 files / 19/19 passing. Out of scope: component coverage
+is now ~100% per the discover sweep; no further untested
+`*.tsx` remain under `web/src/components/` after this sweep.
+
 ## [1.11.120] - 2026-05-14 -- Tests: Lib hooks coverage push 4 (TODO 11.98)
 
 Continue the untested `web/src/lib/use-*.ts` coverage push. Discovered
