@@ -28,3 +28,4 @@ export * from './code-block';
 export * from './scroll-area';
 export * from './separator';
 export * from './chip';
+export * from './timeline';

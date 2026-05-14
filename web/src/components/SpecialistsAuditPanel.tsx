@@ -5,7 +5,8 @@ import { useToggle } from '../lib/use-toggle';
 import { useSpecialistsAudit, type AuditWindow } from '../lib/use-specialists-audit';
 import { useAuditVerify } from '../lib/use-audit-verify';
 import { useAuditExport } from '../lib/use-audit-export';
-import { ScrollArea } from './ui';
+import { ScrollArea, Timeline } from './ui';
+import type { TimelineItem, TimelineTone } from './ui';
 
 // (v1.10.531) Extracted from SpecialistsView. The collapsible
 // audit log viewer + chain-verify + CSV export. Polled only while
@@ -131,41 +132,48 @@ export default function SpecialistsAuditPanel() {
                     : tFormat('specialists.audit.empty.window', { window: auditWindow })}
               </div>
             ) : (
-              <ul className="divide-y divide-border/40 text-[11px]">
-                {auditEntries.slice().reverse().map((e, i) => {
-                  const tone: Record<string, string> = {
-                    add: 'border-success/40 bg-success/10 text-success',
-                    remove: 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400',
-                    import: 'border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-400',
-                    'score-applied': 'border-purple-500/40 bg-purple-500/10 text-purple-700 dark:text-purple-400',
-                    'prompt-revised': 'border-warning/40 bg-warning/10 text-warning',
-                    'tags-updated': 'border-cyan-500/40 bg-cyan-500/10 text-cyan-700 dark:text-cyan-400',
-                    'score-reset': 'border-orange-500/40 bg-orange-500/10 text-orange-700 dark:text-orange-400',
-                  };
-                  return (
-                    <li key={i} className="flex flex-wrap items-baseline gap-2 px-3 py-1.5">
-                      <span className="font-mono text-[10px] text-muted-foreground">
-                        {new Date(e.ts).toLocaleString()}
+              (() => {
+                // (v1.11.167) patch 11.149 - notifications-log surface adopts
+                // the new Timeline primitive. The action -> tone mapping is
+                // preserved (success/danger/info/warning/neutral) so visual
+                // language stays continuous across this panel and the queue.
+                const actionTone: Record<string, TimelineTone> = {
+                  add: 'success',
+                  remove: 'danger',
+                  import: 'primary',
+                  'score-applied': 'primary',
+                  'prompt-revised': 'warning',
+                  'tags-updated': 'primary',
+                  'score-reset': 'warning',
+                };
+                const items: TimelineItem[] = auditEntries
+                  .slice()
+                  .reverse()
+                  .map((e, i) => ({
+                    id: `${e.ts}-${e.action}-${e.id ?? i}`,
+                    timestamp: e.ts,
+                    tone: actionTone[e.action] ?? 'neutral',
+                    title: (
+                      <span className="flex flex-wrap items-baseline gap-2">
+                        <span className="inline-flex items-center rounded-full border border-border bg-muted/30 px-1.5 py-0 text-[10px] uppercase tracking-wide text-muted-foreground">
+                          {e.action}
+                        </span>
+                        {e.id ? (
+                          <span className="font-mono text-[11px]">{e.id}</span>
+                        ) : null}
+                        {e.actor ? (
+                          <span className="text-muted-foreground">
+                            {tFormat('specialists.event.byActor', { actor: e.actor })}
+                          </span>
+                        ) : null}
                       </span>
-                      <span className={cn(
-                        'inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] uppercase tracking-wide',
-                        tone[e.action] || 'border-border bg-muted/30 text-muted-foreground',
-                      )}>
-                        {e.action}
-                      </span>
-                      {e.id ? (
-                        <span className="font-mono text-[11px]">{e.id}</span>
-                      ) : null}
-                      {e.actor ? (
-                        <span className="text-muted-foreground">{tFormat('specialists.event.byActor', { actor: e.actor })}</span>
-                      ) : null}
-                      {e.reason ? (
-                        <span className="text-muted-foreground italic">— {e.reason}</span>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
+                    ),
+                    description: e.reason ? (
+                      <span className="italic">{e.reason}</span>
+                    ) : undefined,
+                  }));
+                return <Timeline items={items} className="px-3 py-2" />;
+              })()
             )}
           </ScrollArea>
         </div>
