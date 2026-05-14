@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useRef } from 'react';
-import { Loader2 } from 'lucide-react';
 import { useConversation } from '../lib/use-conversation';
 import { useAutoScroll } from '../lib/use-auto-scroll';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from './ui';
+import Spinner from './Spinner';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import TurnRow from './ConversationTurns';
@@ -176,8 +176,12 @@ export default function ConversationView({
           data-testid="conversation-scroll"
         >
           {loading && !conversation ? (
-            <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground"
+            >
+              <Spinner size="md" aria-hidden="true" data-testid="conversation-spinner" />
               {t('sessions.loadingSession')}
             </div>
           ) : error ? (
