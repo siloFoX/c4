@@ -12,6 +12,8 @@ import type { MouseEvent, ReactElement, ReactNode, Ref } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/cn';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
+import { motionClass } from '../../lib/motion';
+import { useReducedMotion } from '../../hooks/use-reduced-motion';
 
 export type PopoverPlacement = 'top' | 'bottom' | 'left' | 'right';
 export type PopoverAlign = 'start' | 'center' | 'end';
@@ -92,6 +94,7 @@ export function Popover({
   closeOnEsc = true,
   className,
 }: PopoverProps) {
+  const reducedMotion = useReducedMotion();
   const isControlled = controlledOpen !== undefined;
   const [uncontrolledOpen, setUncontrolledOpen] = useState<boolean>(defaultOpen);
   const open = isControlled ? Boolean(controlledOpen) : uncontrolledOpen;
@@ -198,6 +201,7 @@ export function Popover({
       }}
       className={cn(
         'min-w-[8rem] rounded-md border border-border bg-popover p-2 text-sm text-popover-foreground shadow-md outline-none',
+        motionClass('fadeIn', reducedMotion),
         className,
       )}
     >

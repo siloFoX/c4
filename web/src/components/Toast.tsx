@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom';
 import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { Card, CardContent } from './ui';
 import { cn } from '../lib/cn';
+import { motionClass } from '../lib/motion';
+import { useReducedMotion } from '../hooks/use-reduced-motion';
 
 export type ToastType = 'success' | 'error' | 'info';
 
@@ -58,6 +60,7 @@ export default function Toast({
   const dragging = useRef(false);
   const dismissed = useRef(false);
   const onDismissRef = useRef(onDismiss);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     onDismissRef.current = onDismiss;
@@ -189,6 +192,9 @@ export default function Toast({
         className={cn(
           'border shadow-lg cursor-grab active:cursor-grabbing',
           TONE[type],
+          leaving
+            ? motionClass('fadeOut', reducedMotion)
+            : motionClass('fadeIn', reducedMotion),
         )}
       >
         <CardContent className="flex items-start gap-2 p-3 text-sm">
