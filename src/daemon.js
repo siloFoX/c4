@@ -177,6 +177,12 @@ const lifecycleNotifyMod = require('./notify');
 // (v1.11.101 / TODO 11.83) Prometheus text exposition formatter used by
 // GET /api/metrics/prometheus. Pure projection — no sampling of its own.
 const promFormat = require('./prometheus-format');
+// (v1.11.131 / TODO 11.113) Per-worker process metrics module. Used by
+// the /list handler below to enrich each worker row with a fresh
+// rssBytes + cpuPct reading at request time. Sampling state (prev
+// utime/stime) is kept in `listMetricsPrev` so CPU% computes across
+// successive /list calls; first call seeds, second produces a delta.
+const workerMetrics = require('./worker-metrics');
 
 // (v1.11.101 / TODO 11.83) In-memory lifecycle counters surfaced by the
 // /api/metrics/prometheus endpoint. Bumped at the same call sites as
@@ -188,6 +194,20 @@ const lifecycleCounters = {
   dispatch: 0,
   escalation: 0,
 };
+
+// (v1.11.131 / TODO 11.113) Per-worker previous-sample cache for the
+// /list metrics enrichment. Map keyed by worker name -> the `sample`
+// object returned by workerMetrics.sample on the previous call. This
+// mirrors the prevCache pattern /api/metrics uses internally (see
+// pty-manager.list — `w._lastCpuSample`); we keep a separate cache
+// here so the /list enrichment never mutates pty-manager state and
+// stays sampled-at-request-time even if pty-manager later moves to
+// a different cadence. Entries for dead workers fall off naturally
+// because lookups by missing name return undefined and the entry is
+// just never refreshed; the Map's memory footprint is bounded by the
+// number of live worker names.
+const listMetricsPrev = new Map();
+
 const { PinnedMemoryScheduler, DEFAULT_INTERVAL_MS: PIN_DEFAULT_INTERVAL_MS } = require('./pinned-memory-scheduler');
 
 // (8.5) Allow-list for POST /key. Web UI needs to drive Enter, Escape,
@@ -1469,6 +1489,22 @@ async function handleRequest(req, res) {
         if (listed && Array.isArray(listed.workers)) {
           for (const w of listed.workers) {
             w.tier = tierWorkerMap.get(w.name) || 'worker';
+          }
+          // (v1.11.131 / TODO 11.113) Per-worker rssBytes + cpuPct
+          // enrichment. workerMetrics.sample returns null fields for
+          // non-Linux or missing pid; in that case we leave both new
+          // fields as null so the response shape stays stable for the
+          // Web UI. The previous sample for each name is kept in the
+          // module-scope `listMetricsPrev` Map so CPU% computes across
+          // successive /list calls (first call seeds, next produces a
+          // delta — same contract /api/metrics has via pty-manager).
+          for (const w of listed.workers) {
+            if (!w || typeof w.name !== 'string') continue;
+            const prev = listMetricsPrev.get(w.name) || null;
+            const ms = workerMetrics.sample(w.pid, prev);
+            if (ms.sample) listMetricsPrev.set(w.name, ms.sample);
+            w.rssBytes = typeof ms.rssKb === 'number' ? ms.rssKb * 1024 : null;
+            w.cpuPct = typeof ms.cpuPct === 'number' ? ms.cpuPct : null;
           }
         }
         return listed;
