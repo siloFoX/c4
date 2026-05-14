@@ -323,6 +323,13 @@ describe('<WorkerActions>', () => {
     expect(getButton('Close').querySelector('svg.animate-spin')).toBeFalsy();
   });
 
+  it('renders the shared <Spinner> component (data-testid=worker-action-spinner-merge) when merge is busy', () => {
+    stripState = { busyKind: 'merge' };
+    render(<WorkerActions workerName="w1" />);
+    expect(screen.getByTestId('worker-action-spinner-merge')).toBeInTheDocument();
+    expect(screen.queryByTestId('worker-action-spinner-approve')).toBeNull();
+  });
+
   it('does NOT fire runAction when a disabled button is clicked (busy state)', async () => {
     stripState = { busyKind: 'merge' };
     const user = userEvent.setup();
