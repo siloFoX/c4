@@ -795,6 +795,228 @@ async function runDiff({
   });
 }
 
+// (1.11.133) `c4 logs [--tail N] [--follow|-f] [--level L] [--component C]`
+// reads the pino-formatted log file the daemon writes when
+// config.logging.path is set, and prints either the last N lines or a
+// tailed live view to stdout. Read-only file access; never touches the
+// daemon process or socket. Default tail is 100 lines.
+//
+// The helper trio (_pinoLevelName / _buildLevelFilter / _formatLogLine
+// / _resolveLogPath / runLogs) is exported so tests can drive each
+// piece without spawning a real CLI process.
+
+// Pino numeric level -> uppercase name. Returns the input as a string
+// when it's not one of the canonical numeric levels (so an exotic
+// custom level still surfaces).
+function _pinoLevelName(value) {
+  if (value == null) return '';
+  if (typeof value === 'string') return value.toUpperCase();
+  const numToName = { 10: 'TRACE', 20: 'DEBUG', 30: 'INFO', 40: 'WARN', 50: 'ERROR', 60: 'FATAL' };
+  if (Object.prototype.hasOwnProperty.call(numToName, value)) return numToName[value];
+  return String(value);
+}
+
+// Build a predicate that returns true if a parsed JSON line should
+// pass the --level filter. The user may pass either the numeric form
+// ("30") or the string form ("info"); the on-disk line may also
+// store either form (pino defaults to numeric, but child loggers
+// can override). Both sides normalise to the canonical pair.
+function _buildLevelFilter(filter) {
+  if (filter == null || filter === '') return () => true;
+  const nameToNum = { trace: 10, debug: 20, info: 30, warn: 40, error: 50, fatal: 60 };
+  const numToName = { 10: 'trace', 20: 'debug', 30: 'info', 40: 'warn', 50: 'error', 60: 'fatal' };
+  let targetNum = null;
+  let targetName = null;
+  const trimmed = String(filter).trim();
+  if (/^\d+$/.test(trimmed)) {
+    targetNum = parseInt(trimmed, 10);
+    targetName = numToName[targetNum] || null;
+  } else {
+    const lower = trimmed.toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(nameToNum, lower)) {
+      targetName = lower;
+      targetNum = nameToNum[lower];
+    } else {
+      targetName = lower; // unknown - still allow literal string match
+    }
+  }
+  return (lineLevel) => {
+    if (lineLevel == null) return false;
+    if (typeof lineLevel === 'number') return targetNum != null && lineLevel === targetNum;
+    if (typeof lineLevel === 'string') {
+      const ll = lineLevel.toLowerCase();
+      if (targetName != null && ll === targetName) return true;
+      if (targetNum != null && /^\d+$/.test(ll) && parseInt(ll, 10) === targetNum) return true;
+      return false;
+    }
+    return false;
+  };
+}
+
+// Keys we hide from the trailing `key=val` list because they're
+// either part of the structured prefix (time/level/component/msg) or
+// pino plumbing the operator does not care about (pid/hostname/v/name).
+const _LOG_SKIP_KEYS = new Set(['time', 'level', 'pid', 'hostname', 'msg', 'component', 'v', 'name']);
+
+// Format a single log line. Returns:
+//   - the formatted string when the JSON parses and passes filters
+//   - null when the parsed JSON is dropped by a filter
+//   - the original line verbatim when JSON.parse fails (per spec:
+//     "otherwise print verbatim. Skip malformed JSON lines without
+//     crashing." -- skip = skip the formatting step, not the line)
+function _formatLogLine(line, levelPred, componentFilter) {
+  let parsed;
+  try { parsed = JSON.parse(line); }
+  catch { return line; }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return line;
+  if (levelPred && !levelPred(parsed.level)) return null;
+  if (componentFilter != null && parsed.component !== componentFilter) return null;
+
+  let ts = '';
+  if (parsed.time != null) {
+    try { ts = new Date(parsed.time).toISOString(); }
+    catch { ts = String(parsed.time); }
+  }
+  const level = _pinoLevelName(parsed.level);
+  const component = parsed.component != null ? `[${parsed.component}]` : '';
+  const msg = parsed.msg != null ? String(parsed.msg) : '';
+  const extras = [];
+  for (const k of Object.keys(parsed)) {
+    if (_LOG_SKIP_KEYS.has(k)) continue;
+    const v = parsed[k];
+    extras.push(`${k}=${typeof v === 'object' ? JSON.stringify(v) : String(v)}`);
+  }
+  const parts = [];
+  if (ts) parts.push(ts);
+  if (level) parts.push(level);
+  if (component) parts.push(component);
+  if (msg) parts.push(msg);
+  if (extras.length) parts.push(extras.join(' '));
+  return parts.join(' ');
+}
+
+function _resolveLogPath(cfgPath, fsImpl) {
+  try {
+    if (!cfgPath || !fsImpl.existsSync(cfgPath)) return null;
+    const cfg = JSON.parse(fsImpl.readFileSync(cfgPath, 'utf8'));
+    if (cfg && cfg.logging && typeof cfg.logging.path === 'string' && cfg.logging.path.length > 0) {
+      return cfg.logging.path;
+    }
+  } catch {}
+  return null;
+}
+
+const _LOG_USAGE = 'Usage: c4 logs [--tail N] [--follow|-f] [--level L] [--component C]\n';
+
+async function runLogs({
+  args = [],
+  cfgPath = path.resolve(__dirname, '..', 'config.json'),
+  stdout = process.stdout,
+  stderr = process.stderr,
+  exit,
+  fsImpl = fs,
+  watchFile,
+} = {}) {
+  const fail = (msg) => {
+    stderr.write(_LOG_USAGE);
+    if (msg) stderr.write('  ' + msg + '\n');
+    if (typeof exit === 'function') { exit(1); return { code: 1 }; }
+    process.exit(1);
+  };
+
+  let tailN = 100;
+  let follow = false;
+  let levelFilter = null;
+  let componentFilter = null;
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (a === '--tail') {
+      const raw = args[i + 1];
+      if (raw == null || !/^\d+$/.test(String(raw).trim()) || parseInt(raw, 10) <= 0) {
+        return fail(`--tail N must be a positive integer (got: ${raw == null ? '(missing)' : raw})`);
+      }
+      tailN = parseInt(raw, 10);
+      i++;
+    } else if (a === '--follow' || a === '-f') {
+      follow = true;
+    } else if (a === '--level') {
+      const raw = args[i + 1];
+      if (raw == null) return fail('--level requires a value');
+      levelFilter = raw;
+      i++;
+    } else if (a === '--component') {
+      const raw = args[i + 1];
+      if (raw == null) return fail('--component requires a value');
+      componentFilter = raw;
+      i++;
+    }
+  }
+
+  const logPath = _resolveLogPath(cfgPath, fsImpl);
+  if (!logPath) {
+    stderr.write('Logs go to stdout (no logging.path set); cannot tail.\n');
+    if (typeof exit === 'function') { exit(1); return { code: 1 }; }
+    process.exit(1);
+    return;
+  }
+  if (!fsImpl.existsSync(logPath)) {
+    stderr.write(`Log file not found: ${logPath}\n`);
+    if (typeof exit === 'function') { exit(1); return { code: 1 }; }
+    process.exit(1);
+    return;
+  }
+
+  const levelPred = _buildLevelFilter(levelFilter);
+
+  const content = fsImpl.readFileSync(logPath, 'utf8');
+  const allLines = content.split('\n').filter((line) => line.length > 0);
+  const lastN = allLines.slice(-tailN);
+  for (const line of lastN) {
+    const out = _formatLogLine(line, levelPred, componentFilter);
+    if (out !== null) stdout.write(out + '\n');
+  }
+
+  if (!follow) {
+    if (typeof exit === 'function') { exit(0); return { code: 0, logPath, tailN }; }
+    return { code: 0, logPath, tailN };
+  }
+
+  // --follow: poll the file every 200ms and emit newly appended bytes.
+  // Truncation / rotation: when the file shrinks (size < lastSize) we
+  // rebase to the new end so the next append still streams cleanly.
+  let lastSize;
+  try { lastSize = fsImpl.statSync(logPath).size; }
+  catch { lastSize = Buffer.byteLength(content, 'utf8'); }
+
+  const watchFn = watchFile || ((p, opts, listener) => fsImpl.watchFile(p, opts, listener));
+  return new Promise((resolve) => {
+    const onTick = (curr) => {
+      if (!curr || curr.size === lastSize) return;
+      if (curr.size < lastSize) { lastSize = curr.size; return; }
+      const length = curr.size - lastSize;
+      try {
+        const fd = fsImpl.openSync(logPath, 'r');
+        const buf = Buffer.alloc(length);
+        fsImpl.readSync(fd, buf, 0, length, lastSize);
+        fsImpl.closeSync(fd);
+        const newContent = buf.toString('utf8');
+        const newLines = newContent.split('\n').filter((line) => line.length > 0);
+        for (const line of newLines) {
+          const out = _formatLogLine(line, levelPred, componentFilter);
+          if (out !== null) stdout.write(out + '\n');
+        }
+      } catch {}
+      lastSize = curr.size;
+    };
+    const stop = watchFn(logPath, { interval: 200 }, onTick);
+    // Real follow blocks until SIGINT; tests inject a watchFn that
+    // returns a resolver so the promise can be awaited.
+    if (typeof stop === 'function') {
+      resolve({ code: 0, logPath, tailN, follow: true, stop });
+    }
+  });
+}
+
 async function main() {
   const [cmd, ...args] = process.argv.slice(2);
 
@@ -1717,6 +1939,15 @@ async function main() {
         }
         result = null;
         break;
+      }
+
+      // (1.11.133) Tail the pino-formatted log file the daemon writes
+      // when config.logging.path is set. Read-only file access -- the
+      // daemon process is never contacted. See runLogs() above for the
+      // full flag list and filter semantics.
+      case 'logs': {
+        await runLogs({ args });
+        return;
       }
 
       // List configured multi-repo workspaces (config.workspaces).
@@ -7707,6 +7938,8 @@ Commands:
   health                           Check daemon status
   ui [--port N]                    Open the daemon web UI in your default browser
   diff <branch> [--stat|--patch|--files]   Show diff between main and <branch> (default --stat)
+  logs [--tail N] [--follow|-f] [--level L] [--component C]
+                                   Tail the pino log file at config.logging.path (default --tail 100)
   daemon start                     Start daemon in background
   daemon stop                      Stop daemon
   daemon restart                   Restart daemon
@@ -7844,5 +8077,11 @@ if (require.main === module) {
 } else {
   // Expose helpers so tests can exercise them without spawning the CLI
   // or stubbing argv. Keep this list narrow on purpose.
-  module.exports = { withApiPrefix, resolveUiPort, pickUiOpener, runUi, buildAttachUrl, runAttach, runReconnect, resolveDiffRepo, buildDiffArgs, runDiff };
+  module.exports = {
+    withApiPrefix, resolveUiPort, pickUiOpener, runUi,
+    buildAttachUrl, runAttach, runReconnect,
+    resolveDiffRepo, buildDiffArgs, runDiff,
+    // (1.11.133) c4 logs handler + pure helpers
+    runLogs, _pinoLevelName, _buildLevelFilter, _formatLogLine, _resolveLogPath,
+  };
 }
