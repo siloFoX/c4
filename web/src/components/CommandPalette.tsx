@@ -25,6 +25,7 @@ import { Chip } from './ui/chip';
 import { cn } from '../lib/cn';
 import { useEscapeToClose } from '../lib/use-escape-to-close';
 import { useTheme, type Theme } from '../hooks/use-theme';
+import { getBinding, useBindings } from '../lib/keyboard-bindings';
 import {
   SECTION_ORDER,
   buildPaletteCommands,
@@ -189,7 +190,7 @@ function buildActionCommands(
     {
       id: 'action:toggle-theme',
       label: 'Toggle theme',
-      shortcut: 't',
+      shortcut: getBinding('toggleTheme'),
       section: 'Navigate',
       Icon: SunMoon,
       run: () => {
@@ -211,7 +212,7 @@ function buildActionCommands(
     {
       id: 'action:show-shortcuts',
       label: 'Show shortcuts',
-      shortcut: '?',
+      shortcut: getBinding('help'),
       section: 'Navigate',
       Icon: HelpCircle,
       run: () => {
@@ -238,6 +239,7 @@ export default function CommandPalette({
   const [favorites, setFavorites] = useState<string[]>(() => loadFavorites());
   const inputRef = useRef<HTMLInputElement>(null);
   const { theme, setTheme } = useTheme();
+  const bindings = useBindings();
 
   const mode: PaletteMode = query.startsWith('>') ? 'action' : 'nav';
   const effectiveQuery = mode === 'action' ? query.slice(1) : query;
@@ -248,7 +250,10 @@ export default function CommandPalette({
   );
   const actionBuilt = useMemo(
     () => buildActionCommands(ctx ?? {}, onClose, theme, setTheme),
-    [ctx, onClose, theme, setTheme],
+    // bindings is intentionally a dep so the displayed shortcut updates
+    // when the user remaps via the Keyboard Remap page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ctx, onClose, theme, setTheme, bindings],
   );
 
   const built = mode === 'action' ? actionBuilt : navBuilt;

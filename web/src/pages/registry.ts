@@ -233,6 +233,14 @@ export const FEATURES: FeatureDef[] = [
     load: () => import('./KeyboardMap'),
   },
   {
+    id: 'keyboard-remap',
+    labelKey: 'feature.keyboardRemap.label',
+    descriptionKey: 'feature.keyboardRemap.description',
+    category: 'config',
+    Icon: Keyboard,
+    load: () => import('./KeyboardRemap'),
+  },
+  {
     id: 'feature-flags',
     labelKey: 'feature.featureFlags.label',
     descriptionKey: 'feature.featureFlags.description',
