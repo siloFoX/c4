@@ -5,6 +5,7 @@ import { useToggle } from '../lib/use-toggle';
 import { useSpecialistsAudit, type AuditWindow } from '../lib/use-specialists-audit';
 import { useAuditVerify } from '../lib/use-audit-verify';
 import { useAuditExport } from '../lib/use-audit-export';
+import { ScrollArea } from './ui';
 
 // (v1.10.531) Extracted from SpecialistsView. The collapsible
 // audit log viewer + chain-verify + CSV export. Polled only while
@@ -120,7 +121,7 @@ export default function SpecialistsAuditPanel() {
               ) : null}
             </span>
           </div>
-          <div className="max-h-64 overflow-y-auto">
+          <ScrollArea maxHeight={256}>
             {auditEntries.length === 0 ? (
               <div className="p-3 text-[11px] text-muted-foreground">
                 {auditLoading
@@ -166,7 +167,7 @@ export default function SpecialistsAuditPanel() {
                 })}
               </ul>
             )}
-          </div>
+          </ScrollArea>
         </div>
       ) : null}
     </div>

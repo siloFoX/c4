@@ -1,6 +1,6 @@
 import { Sparkles } from 'lucide-react';
 import type { RefObject, UIEvent } from 'react';
-import { Button, Skeleton } from './ui';
+import { Button, ScrollArea, Skeleton } from './ui';
 import Spinner from './Spinner';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -41,10 +41,10 @@ export default function ChatMessageLog({
 }: Props) {
   useLocale();
   return (
-    <div
+    <ScrollArea
       ref={scrollRef}
       onScroll={onScroll}
-      className="min-h-0 min-w-0 flex-1 overflow-y-auto rounded-md border border-border bg-background p-3 md:p-4"
+      className="min-h-0 min-w-0 flex-1 rounded-md border border-border bg-background p-3 md:p-4"
       role="log"
       aria-live="polite"
       aria-label={tFormat('chatView.aria.chatWith', { worker: workerName })}
@@ -125,6 +125,6 @@ export default function ChatMessageLog({
           })}
         </ul>
       )}
-    </div>
+    </ScrollArea>
   );
 }

@@ -4,7 +4,7 @@ import { useEffectiveCollapsed } from '../../lib/use-effective-collapsed';
 import { cn } from '../../lib/cn';
 import { t, useLocale } from '../../lib/i18n';
 import type { ThemeMode } from '../../lib/preferences';
-import { IconButton, Kbd, Tooltip } from '../ui';
+import { IconButton, Kbd, ScrollArea, Tooltip } from '../ui';
 import AccountMenu from '../AccountMenu';
 import HierarchyTree from '../HierarchyTree';
 import WorkerList from '../WorkerList';
@@ -107,9 +107,9 @@ export default function Sidebar({
       data-collapsed={collapsed ? 'true' : 'false'}
       aria-label={t('sidebar.workersSidebar')}
     >
-      <div
+      <ScrollArea
         className={cn(
-          'flex min-h-0 flex-1 flex-col overflow-y-auto',
+          'flex min-h-0 flex-1 flex-col',
           collapsed ? 'md:px-2 md:py-3 p-4' : 'p-4',
         )}
       >
@@ -252,7 +252,7 @@ export default function Sidebar({
             <WorkerList selectedWorker={selectedWorker} onSelect={onSelect} />
           )
         ) : null}
-      </div>
+      </ScrollArea>
       {/* (TODO 8.41) Account row pinned at the sidebar bottom — claude.ai /
           VS Code / Linear convention. The dropdown opens upward so the
           menu stays inside the viewport. Only renders when the host has

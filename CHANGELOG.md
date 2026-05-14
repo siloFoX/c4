@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.164] - 2026-05-14 -- UI: ScrollArea primitive + 4 callsite swaps
+
+New `<ScrollArea>` primitive in `web/src/components/ui/scroll-area.tsx` gives the app a single hover-to-show scrollbar surface (axis y/x/both, maxHeight/height, ref-forwarding). Adopted in Sidebar nav, ChatMessageLog, Queue table, SpecialistsAuditPanel (Health log viewer not present yet -- alternative target used).
+
 ## [1.11.163] - 2026-05-14 -- UI: CodeBlock primitive + 3 callsite swaps
 
 New `<CodeBlock>` primitive in `web/src/components/ui/code-block.tsx`
