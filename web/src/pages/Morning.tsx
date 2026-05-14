@@ -68,7 +68,12 @@ export default function Morning() {
           {Array.isArray(report.sections) && report.sections.length > 0 ? (
             <div className="flex flex-col gap-3">
               {report.sections.map((s, i) => (
-                <Panel key={i} title={s.title} className="p-3">
+                <Panel
+                  key={i}
+                  title={s.title}
+                  description={`Section ${i + 1} of ${report.sections!.length} in this morning report.`}
+                  className="p-3"
+                >
                   <div className="text-sm">{renderMarkdown(s.body)}</div>
                 </Panel>
               ))}

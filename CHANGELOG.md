@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.149] - 2026-05-14 -- Web: Panel optional header slots
+
+The `<Panel>` component (`web/src/components/ui/panel.tsx`) gained three
+optional slots so callsites can render richer panel headers without
+re-implementing layout. The component degrades to its previous markup
+verbatim when the new slots are omitted, so existing snapshot tests
+remain valid.
+
+What changed:
+
+- **`description?: string`** -- renders as a `<p>` with
+  `text-sm text-muted-foreground`, placed below the title row.
+- **`breadcrumbs?: Array<{ label: string; href?: string }>`** -- renders
+  as `<nav aria-label="Breadcrumb">` above the title row. Each crumb
+  becomes an `<a>` when `href` is set, otherwise a plain `<span>`.
+  Crumbs are separated by `/` (visually only -- the separator is
+  `aria-hidden="true"` so it does not leak into screen-reader output).
+- **`action?: ReactNode`** -- preserved (already existed). When provided,
+  renders right-aligned in the header row to the right of the title.
+- Existing props (`icon`, `title`, `className`, `children`) are
+  preserved. When `description` and `breadcrumbs` are both omitted, the
+  rendered markup is byte-identical to the previous version, so the
+  inline snapshot baseline in `panel.snapshot.test.tsx` still matches.
+- `panel.test.tsx` gained focused cases for the three slots: action
+  position relative to the title, description as a muted `<p>`, and
+  breadcrumbs as a labelled `<nav>` with the right number of links.
+- Four panel-heavy pages adopted the new `description` slot to surface
+  what each panel shows:
+  - `TokenUsage.tsx` -- per-worker totals panel describes the window
+    in days.
+  - `Health.tsx` -- loaded-modules panel describes the daemon
+    sub-systems reporting health.
+  - `Morning.tsx` -- per-section morning-report panel describes the
+    section number / total.
+  - `Validation.tsx` -- per-worker validation card now uses a
+    `breadcrumbs` trail (Workers / `<name>` / `<branch>`) plus a
+    description summarising what the card surfaces. The legacy
+    branch-line span is dropped because the breadcrumb carries it.
+
 ## [1.11.148] - 2026-05-14 -- Web: Spinner color variants
 
 The `<Spinner>` component (`web/src/components/Spinner.tsx`) gained a

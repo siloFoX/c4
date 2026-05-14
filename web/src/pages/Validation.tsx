@@ -91,10 +91,17 @@ function ValidationCard({ worker, report }: { worker: Worker; report?: Validatio
   const testsOk = report.tests ? report.tests.ok !== false && (report.tests.failed || 0) === 0 : null;
   const typeOk = report.typecheck ? report.typecheck.ok !== false : null;
   const lintOk = report.lint ? report.lint.ok !== false : null;
+  const breadcrumbs = worker.branch
+    ? [{ label: 'Workers' }, { label: worker.branch }]
+    : [{ label: 'Workers' }];
   return (
-    <Panel title={worker.name} className="p-3">
+    <Panel
+      title={worker.name}
+      description="Tests, typecheck, and lint results for this worker's branch."
+      breadcrumbs={breadcrumbs}
+      className="p-3"
+    >
       <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        {worker.branch && <span className="font-mono">{worker.branch}</span>}
         {report.dirty && <Badge variant="outline">{t('validation.dirty')}</Badge>}
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
