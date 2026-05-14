@@ -41,7 +41,7 @@ export function getToastRoot(): HTMLElement {
     root.id = 'toast-root';
     root.setAttribute('data-toast-root', 'true');
     root.className =
-      'pointer-events-none fixed right-4 top-4 z-50 flex flex-col gap-2';
+      'pointer-events-none fixed right-4 top-4 z-50 flex flex-col gap-2 pb-safe-b pl-safe-l pr-safe-r';
     document.body.appendChild(root);
   }
   return root;

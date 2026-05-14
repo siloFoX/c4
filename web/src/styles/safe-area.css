@@ -1,0 +1,27 @@
+/* Safe-area inset fallback (1.11.215).
+ *
+ * Modern browsers honour `env(safe-area-inset-*)` natively when the
+ * page declares `viewport-fit=cover`. Older engines that do not
+ * implement the env() function silently drop the value, so the
+ * Tailwind `pt-safe-t` / `pb-safe-b` utilities resolve to no padding.
+ * The @supports block below is a no-op on browsers that do support
+ * the inset env() and adds a conservative fallback (0) elsewhere so
+ * layout stays stable.
+ */
+@supports (padding: env(safe-area-inset-top)) {
+  :root {
+    --safe-area-inset-top: env(safe-area-inset-top);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom);
+    --safe-area-inset-left: env(safe-area-inset-left);
+    --safe-area-inset-right: env(safe-area-inset-right);
+  }
+}
+
+@supports not (padding: env(safe-area-inset-top)) {
+  :root {
+    --safe-area-inset-top: 0px;
+    --safe-area-inset-bottom: 0px;
+    --safe-area-inset-left: 0px;
+    --safe-area-inset-right: 0px;
+  }
+}

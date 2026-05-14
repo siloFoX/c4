@@ -101,7 +101,7 @@ export default function Sidebar({
         // prefers-reduced-motion so vestibular-sensitive operators
         // do not see the 200ms slide on toggle. Snap-to instead.
         // 8.37: logo lives in AppHeader now; sidebar header just labels.
-        'flex w-full shrink-0 flex-col border-b border-border bg-background transition-[width] duration-200 ease-out motion-reduce:transition-none md:border-b-0 md:border-r',
+        'flex w-full shrink-0 flex-col border-b border-border bg-background transition-[width] duration-200 ease-out motion-reduce:transition-none md:border-b-0 md:border-r pl-safe-l pb-safe-b',
         widthClass,
       )}
       data-collapsed={collapsed ? 'true' : 'false'}
