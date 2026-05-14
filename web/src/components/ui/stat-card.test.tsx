@@ -95,4 +95,85 @@ describe('<StatCard>', () => {
   it('exposes a stable displayName', () => {
     expect(StatCard.displayName).toBe('StatCard');
   });
+
+  it('renders no trend element when the trend prop is omitted', () => {
+    const { container } = render(
+      <StatCard label="Foo" value={1} noAnimation />,
+    );
+    expect(container.querySelector('[data-stat-trend]')).toBeNull();
+  });
+
+  it('renders a positive trend with text-success and an up arrow', () => {
+    const { container } = render(
+      <StatCard label="Up" value={1} noAnimation trend={{ value: 12 }} />,
+    );
+    const node = container.querySelector('[data-stat-trend]') as HTMLElement;
+    expect(node).not.toBeNull();
+    expect(node).toHaveClass('text-success');
+    const arrow = node.querySelector('[data-stat-trend-arrow]');
+    expect(arrow?.textContent).toBe('▲');
+    expect(node).toHaveTextContent('12%');
+  });
+
+  it('renders a negative trend with text-destructive and a down arrow', () => {
+    const { container } = render(
+      <StatCard label="Down" value={1} noAnimation trend={{ value: -7 }} />,
+    );
+    const node = container.querySelector('[data-stat-trend]') as HTMLElement;
+    expect(node).toHaveClass('text-destructive');
+    const arrow = node.querySelector('[data-stat-trend-arrow]');
+    expect(arrow?.textContent).toBe('▼');
+    expect(node).toHaveTextContent('7%');
+  });
+
+  it('renders a zero trend with text-muted-foreground', () => {
+    const { container } = render(
+      <StatCard label="Flat" value={1} noAnimation trend={{ value: 0 }} />,
+    );
+    const node = container.querySelector('[data-stat-trend]') as HTMLElement;
+    expect(node).toHaveClass('text-muted-foreground');
+    expect(node).toHaveTextContent('0%');
+  });
+
+  it('renders the trend.label when provided', () => {
+    render(
+      <StatCard
+        label="Up"
+        value={1}
+        noAnimation
+        trend={{ value: 5, label: 'vs last hour' }}
+      />,
+    );
+    expect(screen.getByText('vs last hour')).toBeInTheDocument();
+  });
+
+  it('renders a sparkline svg with a polyline when sparkline data is provided', () => {
+    const { container } = render(
+      <StatCard
+        label="Spark"
+        value={1}
+        noAnimation
+        sparkline={[1, 4, 2, 8, 3]}
+      />,
+    );
+    const svg = container.querySelector('svg.sparkline');
+    expect(svg).not.toBeNull();
+    const polyline = svg?.querySelector('polyline');
+    expect(polyline).not.toBeNull();
+    expect(polyline?.getAttribute('points') || '').toMatch(/\d/);
+  });
+
+  it('renders no sparkline svg when the sparkline prop is omitted', () => {
+    const { container } = render(
+      <StatCard label="NoSpark" value={1} noAnimation />,
+    );
+    expect(container.querySelector('svg.sparkline')).toBeNull();
+  });
+
+  it('renders no sparkline svg when the sparkline array is empty', () => {
+    const { container } = render(
+      <StatCard label="EmptySpark" value={1} noAnimation sparkline={[]} />,
+    );
+    expect(container.querySelector('svg.sparkline')).toBeNull();
+  });
 });

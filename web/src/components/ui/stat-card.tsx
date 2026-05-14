@@ -17,6 +17,12 @@ export type StatCardTone =
   | 'warning'
   | 'info';
 
+export interface StatCardTrend {
+  // Signed percent value. Sign drives arrow direction and color.
+  value: number;
+  label?: string;
+}
+
 export interface StatCardProps extends HTMLAttributes<HTMLDivElement> {
   icon?: ReactNode | undefined;
   label: string;
@@ -27,6 +33,8 @@ export interface StatCardProps extends HTMLAttributes<HTMLDivElement> {
   // Skip the count-up animation on number values. Used by tests so
   // assertions are deterministic without waitFor on every render.
   noAnimation?: boolean | undefined;
+  trend?: StatCardTrend | undefined;
+  sparkline?: number[] | undefined;
 }
 
 function useCountUp(target: number, enabled: boolean, durationMs = 700): number {
@@ -84,6 +92,41 @@ const TONE_ICON_RING: Record<StatCardTone, string> = {
   info: 'text-info ring-info/30',
 };
 
+const TONE_SPARK_STROKE: Record<StatCardTone, string> = {
+  default: 'text-muted-foreground',
+  primary: 'text-primary',
+  success: 'text-success',
+  warning: 'text-warning',
+  info: 'text-info',
+};
+
+function buildSparklinePoints(
+  data: number[],
+  width: number,
+  height: number,
+): string {
+  if (data.length === 0) return '';
+  if (data.length === 1) {
+    const y = height / 2;
+    return `0,${y} ${width},${y}`;
+  }
+  let min = data[0]!;
+  let max = data[0]!;
+  for (const n of data) {
+    if (n < min) min = n;
+    if (n > max) max = n;
+  }
+  const range = max - min || 1;
+  const stepX = width / (data.length - 1);
+  return data
+    .map((v, i) => {
+      const x = i * stepX;
+      const y = height - ((v - min) / range) * height;
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+    })
+    .join(' ');
+}
+
 export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(
   (
     {
@@ -95,6 +138,8 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(
       loading = false,
       tone = 'default',
       noAnimation = false,
+      trend,
+      sparkline,
       ...props
     },
     ref,
@@ -151,6 +196,47 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(
             )}
             {hint ? (
               <p className="mt-1 truncate text-xs text-muted-foreground">{hint}</p>
+            ) : null}
+            {trend ? (
+              <p
+                data-stat-trend
+                data-stat-trend-value={String(trend.value)}
+                className={cn(
+                  'mt-1 flex items-center gap-1 text-xs font-medium',
+                  trend.value > 0 && 'text-success',
+                  trend.value < 0 && 'text-destructive',
+                  trend.value === 0 && 'text-muted-foreground',
+                )}
+              >
+                <span aria-hidden="true" data-stat-trend-arrow>
+                  {trend.value > 0 ? '▲' : trend.value < 0 ? '▼' : '▬'}
+                </span>
+                <span>{Math.abs(trend.value)}%</span>
+                {trend.label ? (
+                  <span className="text-muted-foreground">{trend.label}</span>
+                ) : null}
+              </p>
+            ) : null}
+            {sparkline && sparkline.length > 0 ? (
+              <svg
+                data-stat-sparkline
+                className={cn(
+                  'sparkline mt-2 h-8 w-full',
+                  TONE_SPARK_STROKE[tone],
+                )}
+                viewBox="0 0 100 24"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <polyline
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  points={buildSparklinePoints(sparkline, 100, 24)}
+                />
+              </svg>
             ) : null}
           </div>
           {icon ? (
