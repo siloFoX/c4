@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.128] - 2026-05-14 -- Web: vitest coverage report config (WIP)
+
+Set up vitest v8 coverage reporting for the `web/` package. Replaces the
+prior `coverage.reporter: ['text', 'html', 'lcov']` block in
+`web/vite.config.ts` with the machine-readable trio
+`['text', 'json-summary', 'json']` plus `reportsDirectory: './coverage'`,
+narrows `include` to `src/**/*.{ts,tsx}` and `exclude` to test files,
+the `src/test/**` fixture dir, and `*.d.ts` declarations. Adds
+`reportOnFailure: true` so `env -C web npx vitest run --coverage
+--project unit` actually writes `coverage-summary.json` even when the
+three known-failing legacy tests (`use-scrollback`, `use-stuck-meetings`,
+`i18n` navigator fallback) are still in the suite -- vitest 4.x skips
+the report writer on failed runs by default.
+
+Captures the first snapshot in `web/src/test/coverage-report.json`:
+lines 97.62%, statements 96.07%, functions 94.57%, branches 91.15%
+(generated from the unit project at v1.11.128). The HTML report
+directory `web/coverage/` is already gitignored; only the JSON
+snapshot is committed.
+
+WIP checkpoint -- README badge + Testing section follow in a separate
+commit once the workflow is wired through `npm run test:coverage`.
+
 ## [1.11.127] - 2026-05-14 -- Tests: Final lib coverage sweep (5 files, 100% lib)
 
 Close out the `web/src/lib` coverage push by writing the last five sibling
