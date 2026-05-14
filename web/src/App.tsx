@@ -26,6 +26,7 @@ import DetailTabs from './components/layout/DetailTabs';
 import EmptyState from './components/layout/EmptyState';
 import FeatureView from './components/layout/FeatureView';
 import HelpUIRoot from './components/HelpUIRoot';
+import AnnounceRegion from './components/AnnounceRegion';
 import MetricsBar from './components/MetricsBar';
 import AutonomousStatusBanner from './components/AutonomousStatusBanner';
 import GridDebugOverlay from './components/dev/GridDebugOverlay';
@@ -99,6 +100,7 @@ export default function App() {
   };
 
   return (
+    <AnnounceRegion>
     <div className="flex h-screen flex-col bg-background text-foreground">
       <HelpUIRoot onNavigateTopView={setTopView} />
       {/* (v1.11.134) Subtle gradient backdrop behind the header.
@@ -242,5 +244,6 @@ export default function App() {
       </PageTransition>
       </Suspense>
     </div>
+    </AnnounceRegion>
   );
 }

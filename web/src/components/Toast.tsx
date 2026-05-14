@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { AnnounceContext } from '../hooks/use-announce';
 import type { PointerEvent as ReactPointerEvent, TouchEvent as ReactTouchEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
@@ -61,6 +62,19 @@ export default function Toast({
   const dismissed = useRef(false);
   const onDismissRef = useRef(onDismiss);
   const reducedMotion = useReducedMotion();
+  // Optional aria-live announcement. Reading the context directly so
+  // existing Toast tests that mount without an <AnnounceRegion>
+  // provider continue to pass.
+  const announce = useContext(AnnounceContext);
+
+  useEffect(() => {
+    if (!announce) return;
+    announce(message, type === 'error' ? 'assertive' : 'polite');
+    // Announce once on appear -- intentional dep list omission of
+    // message/type so an update inside the same Toast instance does
+    // not double-announce. Each new toast creates a new Toast mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     onDismissRef.current = onDismiss;
