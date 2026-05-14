@@ -434,8 +434,8 @@ describe('<HistoryView>', () => {
   it('forwards a selected status filter into the summary hook args', async () => {
     const user = userEvent.setup();
     render(<HistoryView />);
-    const select = screen.getByLabelText('Filter by status') as HTMLSelectElement;
-    await user.selectOptions(select, 'closed');
+    await user.click(screen.getByLabelText('Filter by status'));
+    await user.click(screen.getByRole('option', { name: 'closed' }));
     expect(lastSummaryArgs?.statusFilter).toBe('closed');
   });
 

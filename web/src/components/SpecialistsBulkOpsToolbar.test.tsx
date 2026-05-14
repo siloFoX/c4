@@ -195,21 +195,15 @@ describe('<SpecialistsBulkOpsToolbar>', () => {
     renderToolbar();
     const select = screen.getByRole('combobox', {
       name: 'Import mode',
-    }) as HTMLSelectElement;
-    expect(select.value).toBe('merge');
+    });
+    expect(select).toHaveTextContent('merge');
   });
 
-  it('renders both merge / replace options inside the mode select', () => {
-    renderToolbar();
-    const select = screen.getByRole('combobox', { name: 'Import mode' });
-    expect(
-      (select.querySelector('option[value="merge"]') as HTMLOptionElement)
-        ?.textContent,
-    ).toBe('merge');
-    expect(
-      (select.querySelector('option[value="replace"]') as HTMLOptionElement)
-        ?.textContent,
-    ).toBe('replace');
+  it('renders both merge / replace options inside the mode select', async () => {
+    const { user } = renderToolbar();
+    await user.click(screen.getByRole('combobox', { name: 'Import mode' }));
+    expect(screen.getByRole('option', { name: 'merge' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'replace' })).toBeInTheDocument();
   });
 
   it('forwards the initial importMode=merge into the import hook args', () => {
@@ -224,8 +218,8 @@ describe('<SpecialistsBulkOpsToolbar>', () => {
 
   it('updates the import hook args when the mode select changes to replace', async () => {
     const { user } = renderToolbar();
-    const select = screen.getByRole('combobox', { name: 'Import mode' });
-    await user.selectOptions(select, 'replace');
+    await user.click(screen.getByRole('combobox', { name: 'Import mode' }));
+    await user.click(screen.getByRole('option', { name: 'replace' }));
     expect(lastImportArgs?.importMode).toBe('replace');
   });
 

@@ -1,4 +1,4 @@
-import { Button, Input } from './ui';
+import { Button, Input, Select } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 import { useMeetingContribute, type MeetingVote } from '../lib/use-meeting-contribute';
@@ -61,19 +61,21 @@ export default function MeetingsContributePanel({ open, meetingId }: Props) {
         className="h-7 text-[11px]"
       />
       <div className="flex flex-wrap items-center gap-2 pt-1">
-        <label className="flex items-center gap-1 text-muted-foreground">
-          vote (with contrib):
-          <select
-            value={vote}
-            onChange={(e) => setVote(e.target.value as '' | MeetingVote)}
-            disabled={busy}
-            className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
-          >
-            <option value="">{t('meetings.option.none')}</option>
-            <option value="accept">{t('meetings.option.accept')}</option>
-            <option value="object">{t('meetings.option.object')}</option>
-          </select>
-        </label>
+        <div className="flex items-center gap-1 text-muted-foreground">
+          <span>vote (with contrib):</span>
+          <div className="min-w-[6rem]">
+            <Select
+              value={vote}
+              onChange={(v) => setVote(v as '' | MeetingVote)}
+              disabled={busy}
+              options={[
+                { value: '', label: t('meetings.option.none') },
+                { value: 'accept', label: t('meetings.option.accept') },
+                { value: 'object', label: t('meetings.option.object') },
+              ]}
+            />
+          </div>
+        </div>
         <Button
           size="sm"
           onClick={handleContribute}

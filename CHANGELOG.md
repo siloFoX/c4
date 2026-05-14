@@ -4,6 +4,48 @@
 
 (no entries -- next release window)
 
+## [1.11.161] - 2026-05-14 -- UI: Select primitive + 3 callsite swaps
+
+New `<Select>` primitive in `web/src/components/ui/select.tsx` replaces
+ad-hoc native `<select>` elements with a custom button-trigger + listbox
+popup. Built to mirror the `<Input>` slot wiring (label / hint / error
+with shared `useId` fallback) so dropdowns participate in the same
+form-row layout as text fields.
+
+Behaviour:
+
+- Trigger is a `<button role="combobox" aria-haspopup="listbox">` whose
+  `aria-expanded` mirrors the open state and `aria-controls` points at
+  the listbox id.
+- Listbox is `<ul role="listbox">` with each option `<li role="option"
+  aria-selected>`. Per-option `disabled` is honoured (skipped by arrow
+  nav, ignored on click, rendered with `aria-disabled` + opacity).
+- Keyboard: ArrowDown/Up cycle the highlighted option without
+  committing, Enter/Space commit the highlight then close, Escape
+  closes without committing, Home/End jump to first / last enabled,
+  Tab closes, single-letter type-ahead matches by `label.startsWith`
+  with a 500 ms idle reset window. Click outside dismisses.
+- Slot wiring: label / hint / error mirror `<Input>` exactly --
+  `aria-describedby` chains both hint + error ids, `aria-invalid=true`
+  flips on when `error` is set, `role="alert"` on the error text,
+  generated id when no explicit `id` is provided alongside a label.
+  Bare mode (no slots) renders just trigger + popup.
+
+Callsites swapped:
+
+- **`web/src/components/HistoryView.tsx`** -- status filter dropdown
+  (3 options: all / closed / exited).
+- **`web/src/components/SpecialistsBulkOpsToolbar.tsx`** -- import
+  mode dropdown (merge / replace) inside the bulk-ops toolbar.
+- **`web/src/components/MeetingsContributePanel.tsx`** -- vote dropdown
+  (none / accept / object) in the manual contribute panel.
+
+Test updates: the three callsite test suites that previously asserted
+on native `<select>` markup (`HTMLSelectElement`, `selectOptions`,
+`querySelector('option')`) were rewritten to use `getByRole('option')`
++ `user.click` against the new listbox surface. 24 new cases in
+`select.test.tsx` cover the full keyboard / slot / disabled contract.
+
 ## [1.11.160] - 2026-05-14 -- UI: Kbd primitive + adoption across 5 sites
 
 New `<Kbd>` primitive in `web/src/components/ui/kbd.tsx` standardizes the

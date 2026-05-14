@@ -1,0 +1,386 @@
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
+import { Label } from './label';
+import { cn } from '../../lib/cn';
+
+export interface SelectOption {
+  value: string;
+  label: string;
+  disabled?: boolean;
+}
+
+export interface SelectProps {
+  options: SelectOption[];
+  value: string;
+  onChange: (value: string) => void;
+  label?: ReactNode;
+  hint?: ReactNode;
+  error?: ReactNode;
+  placeholder?: string;
+  disabled?: boolean;
+  id?: string;
+  className?: string;
+  ariaLabel?: string;
+}
+
+const TRIGGER_CLASSES =
+  'flex h-10 min-h-[44px] sm:min-h-0 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50';
+
+const TYPEAHEAD_RESET_MS = 500;
+
+function findNextEnabled(
+  options: SelectOption[],
+  start: number,
+  dir: 1 | -1,
+): number {
+  const len = options.length;
+  if (len === 0) return -1;
+  let next = start < 0 ? (dir === 1 ? -1 : 0) : start;
+  for (let step = 0; step < len; step++) {
+    next = (next + dir + len) % len;
+    if (!options[next]?.disabled) return next;
+  }
+  return -1;
+}
+
+function firstEnabled(options: SelectOption[]): number {
+  for (let i = 0; i < options.length; i++) {
+    if (!options[i]?.disabled) return i;
+  }
+  return -1;
+}
+
+function lastEnabled(options: SelectOption[]): number {
+  for (let i = options.length - 1; i >= 0; i--) {
+    if (!options[i]?.disabled) return i;
+  }
+  return -1;
+}
+
+export const Select = forwardRef<HTMLButtonElement, SelectProps>(
+  (
+    {
+      options,
+      value,
+      onChange,
+      label,
+      hint,
+      error,
+      placeholder,
+      disabled,
+      id,
+      className,
+      ariaLabel,
+    },
+    ref,
+  ) => {
+    const generatedId = useId();
+    const listboxId = useId();
+    const hasSlots = label != null || hint != null || error != null;
+    const triggerId = id ?? (hasSlots ? generatedId : undefined);
+    const hintId = hint != null && triggerId ? `${triggerId}-hint` : undefined;
+    const errorId = error != null && triggerId ? `${triggerId}-error` : undefined;
+    const describedBy =
+      [hintId, errorId].filter(Boolean).join(' ') || undefined;
+
+    const [open, setOpen] = useState(false);
+    const [highlight, setHighlight] = useState<number>(-1);
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const triggerRef = useRef<HTMLButtonElement | null>(null);
+    const listboxRef = useRef<HTMLUListElement | null>(null);
+    const typeAheadRef = useRef<{ buffer: string; timer: number | null }>({
+      buffer: '',
+      timer: null,
+    });
+
+    const selectedIndex = options.findIndex((o) => o.value === value);
+    const selectedOption =
+      selectedIndex >= 0 ? options[selectedIndex] : undefined;
+
+    const close = useCallback((opts?: { restoreFocus?: boolean }) => {
+      setOpen(false);
+      setHighlight(-1);
+      if (opts?.restoreFocus) {
+        triggerRef.current?.focus();
+      }
+    }, []);
+
+    const openMenu = useCallback(() => {
+      if (disabled) return;
+      setOpen(true);
+      // Start highlight on selected, else first enabled
+      const start =
+        selectedIndex >= 0 && !options[selectedIndex]?.disabled
+          ? selectedIndex
+          : firstEnabled(options);
+      setHighlight(start);
+    }, [disabled, options, selectedIndex]);
+
+    const toggle = useCallback(() => {
+      if (disabled) return;
+      if (open) {
+        close();
+      } else {
+        openMenu();
+      }
+    }, [disabled, open, openMenu, close]);
+
+    const commit = useCallback(
+      (idx: number) => {
+        const opt = options[idx];
+        if (!opt || opt.disabled) return;
+        onChange(opt.value);
+        close({ restoreFocus: true });
+      },
+      [options, onChange, close],
+    );
+
+    // Click-outside dismiss
+    useEffect(() => {
+      if (!open) return;
+      const onDocMouseDown = (e: MouseEvent) => {
+        const root = containerRef.current;
+        if (!root) return;
+        if (e.target instanceof Node && !root.contains(e.target)) {
+          close();
+        }
+      };
+      document.addEventListener('mousedown', onDocMouseDown);
+      return () => document.removeEventListener('mousedown', onDocMouseDown);
+    }, [open, close]);
+
+    // Clear type-ahead timer on close / unmount
+    useEffect(() => {
+      if (!open) {
+        const state = typeAheadRef.current;
+        if (state.timer !== null) {
+          clearTimeout(state.timer);
+          state.timer = null;
+        }
+        state.buffer = '';
+      }
+      return () => {
+        const state = typeAheadRef.current;
+        if (state.timer !== null) {
+          clearTimeout(state.timer);
+          state.timer = null;
+        }
+      };
+    }, [open]);
+
+    const handleTypeAhead = useCallback(
+      (key: string) => {
+        const state = typeAheadRef.current;
+        if (state.timer !== null) clearTimeout(state.timer);
+        state.buffer = (state.buffer + key).toLowerCase();
+        state.timer = setTimeout(() => {
+          state.buffer = '';
+          state.timer = null;
+        }, TYPEAHEAD_RESET_MS) as unknown as number;
+
+        const buf = state.buffer;
+        const len = options.length;
+        // If buffer is a single char, advance from current position so
+        // repeated presses cycle through matches; otherwise restart.
+        const startFrom = buf.length === 1 ? (highlight >= 0 ? highlight : -1) : -1;
+        for (let step = 1; step <= len; step++) {
+          const idx = (startFrom + step + len) % len;
+          const opt = options[idx];
+          if (!opt || opt.disabled) continue;
+          if (opt.label.toLowerCase().startsWith(buf)) {
+            setHighlight(idx);
+            return;
+          }
+        }
+      },
+      [options, highlight],
+    );
+
+    const onKeyDown = useCallback(
+      (e: KeyboardEvent<HTMLElement>) => {
+        if (disabled) return;
+        if (!open) {
+          if (
+            e.key === 'Enter' ||
+            e.key === ' ' ||
+            e.key === 'ArrowDown' ||
+            e.key === 'ArrowUp'
+          ) {
+            e.preventDefault();
+            openMenu();
+          }
+          return;
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          close({ restoreFocus: true });
+          return;
+        }
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (highlight >= 0) commit(highlight);
+          return;
+        }
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          const dir: 1 | -1 = e.key === 'ArrowDown' ? 1 : -1;
+          setHighlight((prev) => findNextEnabled(options, prev, dir));
+          return;
+        }
+        if (e.key === 'Home') {
+          e.preventDefault();
+          setHighlight(firstEnabled(options));
+          return;
+        }
+        if (e.key === 'End') {
+          e.preventDefault();
+          setHighlight(lastEnabled(options));
+          return;
+        }
+        if (e.key === 'Tab') {
+          close();
+          return;
+        }
+        if (
+          e.key.length === 1 &&
+          !e.ctrlKey &&
+          !e.metaKey &&
+          !e.altKey &&
+          /\S/.test(e.key)
+        ) {
+          e.preventDefault();
+          handleTypeAhead(e.key);
+        }
+      },
+      [disabled, open, openMenu, close, highlight, commit, options, handleTypeAhead],
+    );
+
+    const optionIdPrefix = `${listboxId}-opt-`;
+    const activeDescendant =
+      open && highlight >= 0 && highlight < options.length
+        ? `${optionIdPrefix}${highlight}`
+        : undefined;
+
+    const triggerLabelText = selectedOption
+      ? selectedOption.label
+      : placeholder ?? '';
+    const triggerIsPlaceholder = !selectedOption;
+
+    const triggerEl = (
+      <button
+        ref={(node) => {
+          triggerRef.current = node;
+          if (typeof ref === 'function') ref(node);
+          else if (ref) (ref as { current: HTMLButtonElement | null }).current = node;
+        }}
+        type="button"
+        id={triggerId}
+        role="combobox"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listboxId}
+        aria-activedescendant={activeDescendant}
+        aria-label={ariaLabel}
+        aria-invalid={hasSlots && error != null ? true : undefined}
+        aria-describedby={describedBy}
+        disabled={disabled}
+        onClick={toggle}
+        onKeyDown={onKeyDown}
+        className={cn(
+          TRIGGER_CLASSES,
+          hasSlots && error != null && 'border-destructive',
+          className,
+        )}
+      >
+        <span
+          className={cn(
+            'flex-1 truncate text-left',
+            triggerIsPlaceholder && 'text-muted-foreground',
+          )}
+        >
+          {triggerLabelText}
+        </span>
+        <span aria-hidden="true" className="ml-2 text-muted-foreground">
+          {'▾'}
+        </span>
+      </button>
+    );
+
+    const popupEl = open ? (
+      <ul
+        ref={listboxRef}
+        id={listboxId}
+        role="listbox"
+        aria-label={ariaLabel ?? (typeof label === 'string' ? label : undefined)}
+        tabIndex={-1}
+        className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-auto rounded-md border border-border bg-popover py-1 text-sm text-popover-foreground shadow-md focus:outline-none"
+      >
+        {options.map((opt, idx) => {
+          const isSelected = opt.value === value;
+          const isHighlight = idx === highlight && !opt.disabled;
+          return (
+            <li
+              key={opt.value}
+              id={`${optionIdPrefix}${idx}`}
+              role="option"
+              aria-selected={isSelected}
+              aria-disabled={opt.disabled || undefined}
+              onMouseEnter={() => {
+                if (!opt.disabled) setHighlight(idx);
+              }}
+              onMouseDown={(e) => {
+                // prevent trigger blur before click commit
+                e.preventDefault();
+              }}
+              onClick={() => commit(idx)}
+              className={cn(
+                'cursor-pointer px-3 py-2',
+                opt.disabled && 'cursor-not-allowed opacity-50',
+                isHighlight && 'bg-accent text-accent-foreground',
+                isSelected && !isHighlight && 'font-medium',
+              )}
+            >
+              {opt.label}
+            </li>
+          );
+        })}
+      </ul>
+    ) : null;
+
+    const root = (
+      <div className="relative" ref={containerRef}>
+        {triggerEl}
+        {popupEl}
+      </div>
+    );
+
+    if (!hasSlots) {
+      return root;
+    }
+
+    return (
+      <div className="space-y-1.5">
+        {label != null ? <Label htmlFor={triggerId}>{label}</Label> : null}
+        {root}
+        {hint != null ? (
+          <p id={hintId} className="text-xs text-muted-foreground">
+            {hint}
+          </p>
+        ) : null}
+        {error != null ? (
+          <p id={errorId} role="alert" className="text-xs text-destructive">
+            {error}
+          </p>
+        ) : null}
+      </div>
+    );
+  },
+);
+Select.displayName = 'Select';
