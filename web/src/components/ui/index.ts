@@ -37,3 +37,4 @@ export * from './stepper';
 export * from './popover';
 export * from './data-list';
 export * from './collapsible';
+export * from './hero-card';
