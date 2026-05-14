@@ -18,3 +18,4 @@ export * from './radio';
 export * from './checkbox';
 export * from './tabs';
 export * from './table';
+export * from './alert';
