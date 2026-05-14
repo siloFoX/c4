@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.200] - 2026-05-14 -- UI: ContextMenu primitive (11.182)
+
+New `<ContextMenu>` primitive in `web/src/components/ui/context-menu.tsx` (right-click triggered menu rendered via `createPortal` to `document.body` at click coordinates; props `trigger: ReactElement` / `items: ContextMenuItem[]` / `ariaLabel?` / `className?`; item shape `{ id, label, icon?, disabled?, danger?, onSelect?, separator? }`; ArrowDown/Up keyboard nav skipping disabled + separators, Enter activates highlighted item, Escape closes via existing `useFocusTrap` hook, click-outside via `mousedown` capture; position clamped to viewport via `useLayoutEffect` + `getBoundingClientRect`; `role='menu'` + `role='menuitem'` + `role='separator'`; `aria-disabled` on disabled items; `danger=true` adds `text-destructive`; `forwardRef` to the trigger element). Exported from `web/src/components/ui/index.ts`. Adopted at `WorkerList` row (Attach / Logs / Kill actions) and `SessionsListSection` per-session row (Open / Rename / Delete with placeholder handlers pending backend). See `docs/patches/11.182-ui-context-menu.md`.
+
 ## [1.11.199] - 2026-05-14 -- i18n: key extractor refresh (11.181)
 
 Audited `t()` + `tFormat()` call sites in `web/src` against `web/src/i18n/en.json` and `ko.json`. Added 1 missing en+ko key (`workerDetail.mergeConfirm`) and filled 2 missing ko translations (`feature.queue.label`, `feature.queue.description`) to restore en/ko parity (now 1347 keys on both sides). New `web/src/i18n/i18n-keys.test.ts` (vitest) walks `web/src` for `t('...')`/`tFormat('...')`, asserts every referenced key exists in `en.json` (allowlist for the two intentional fallback fixtures `no.such.translation.key` / `totally.absent.key`), and asserts `ko.json` has the same key set as `en.json`. See `docs/patches/11.181-i18n-refresh.md`.

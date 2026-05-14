@@ -9,12 +9,13 @@ import {
   Card,
   CardContent,
   CardHeader,
+  ContextMenu,
   EmptyState,
   ErrorState,
   HScroll,
   StatusDot,
 } from './ui';
-import type { StatusDotVariant } from './ui';
+import type { ContextMenuItem, StatusDotVariant } from './ui';
 import { NoWorkersIllustration } from './illustrations';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
@@ -72,13 +73,19 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
     return 'unknown';
   };
 
+  const rowContextItems = (w: Worker): ContextMenuItem[] => [
+    { id: 'attach', label: 'Attach', onSelect: () => onSelect(w.name) },
+    { id: 'logs', label: 'Logs', onSelect: () => onSelect(w.name) },
+    { id: 'sep', label: '', separator: true },
+    { id: 'kill', label: 'Kill', danger: true, onSelect: () => {} },
+  ];
+
   const renderRow = (w: Worker, accent: 'primary' | 'muted') => {
     const interventionActive = isInterventionActive(w);
     const isSelected = selectedWorker === w.name;
     const dotVariant = mapStatusDotVariant(w);
-    return (
+    const card = (
       <Card
-        key={w.name}
         interactive
         onClick={() => onSelect(w.name)}
         className={cn(
@@ -155,6 +162,14 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
           )}
         </CardContent>
       </Card>
+    );
+    return (
+      <ContextMenu
+        key={w.name}
+        trigger={card}
+        items={rowContextItems(w)}
+        ariaLabel={`Actions for ${w.name}`}
+      />
     );
   };
 
