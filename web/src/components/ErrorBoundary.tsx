@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle } from 'lucide-react';
-import { Badge, Button } from './ui';
+import { Badge, Button, Collapsible } from './ui';
 import { t, tFormat } from '../lib/i18n';
 
 // (v1.11.136) Friendlier top-level Error Boundary fallback. The stack
@@ -136,17 +136,14 @@ export default class ErrorBoundary extends Component<Props, State> {
           <p className="mb-4 text-sm text-muted-foreground">
             {tFormat('errorBoundary.message', { error: message })}
           </p>
-          <details className="mb-4 rounded border border-border bg-background/50">
-            <summary className="cursor-pointer select-none px-2 py-1 text-xs font-medium text-foreground">
-              Stack trace
-            </summary>
+          <Collapsible title="Stack trace" className="mb-4 bg-background/50">
             <pre
               tabIndex={0}
-              className="max-h-48 overflow-auto px-2 pb-2 font-mono text-[11px] text-muted-foreground"
+              className="max-h-48 overflow-auto font-mono text-[11px] text-muted-foreground"
             >
               {stack}
             </pre>
-          </details>
+          </Collapsible>
           <div className="flex flex-wrap items-center gap-2">
             <Button type="button" size="sm" onClick={this.reload}>
               {t('errorBoundary.reload')}

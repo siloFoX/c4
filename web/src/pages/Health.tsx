@@ -2,7 +2,16 @@ import { HelpCircle, RefreshCw } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, DashboardGrid, DataList, Panel, Popover, Tooltip } from '../components/ui';
+import {
+  Badge,
+  Button,
+  Collapsible,
+  DashboardGrid,
+  DataList,
+  Panel,
+  Popover,
+  Tooltip,
+} from '../components/ui';
 import type { DataListItem } from '../components/ui';
 import { StatCardShape, TableRowShape } from '../components/ui/skeleton';
 import { StatCard } from '../components/ui/stat-card';
@@ -161,17 +170,17 @@ export default function Health() {
           </Panel>
 
           {Array.isArray(data.modules) && data.modules.length > 0 ? (
-            <Panel
+            <Collapsible
               title={tFormat('healthPage.modules.loaded', { n: String(data.modules.length) })}
-              description="Modules currently registered in the daemon's runtime — sub-systems reporting health back to /api/health."
-              className="p-3 text-xs"
+              description="Modules currently registered in the daemon's runtime - sub-systems reporting health back to /api/health."
+              className="text-xs"
             >
               <ul className="grid grid-cols-1 gap-0.5 font-mono sm:grid-cols-2 lg:grid-cols-3">
                 {data.modules.map((m) => (
                   <li key={m} className="truncate text-muted-foreground">{m}</li>
                 ))}
               </ul>
-            </Panel>
+            </Collapsible>
           ) : (
             <div className={text.caption}>
               {t('healthPage.modules.empty')}

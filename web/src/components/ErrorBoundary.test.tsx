@@ -400,41 +400,33 @@ describe('<ErrorBoundary>', () => {
     expect(title).toHaveLength('Bug report: '.length + 60 + 3);
   });
 
-  it('renders the stack trace inside a <details> region that starts collapsed', () => {
+  it('renders the stack trace inside a Collapsible region that starts closed', () => {
     render(
       <ErrorBoundary>
         <Thrower message="boom-details" />
       </ErrorBoundary>,
     );
-    const details = document.querySelector('details');
-    expect(details).not.toBeNull();
-    expect(details?.hasAttribute('open')).toBe(false);
-    // The stack <pre> lives inside the <details>, so the operator
-    // has to expand the region to read it - it is not surfaced at
-    // the top level of the panel any more.
-    expect(details?.querySelector('pre')).not.toBeNull();
+    const trigger = screen.getByRole('button', { name: /stack trace/i });
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    // The <pre> is still in the DOM (Collapsible uses the `hidden`
+    // attribute) so operators can find it once expanded.
+    const section = trigger.closest('section');
+    expect(section?.querySelector('pre')).not.toBeNull();
   });
 
-  it('exposes the stack content once the <details> region is toggled open', async () => {
+  it('exposes the stack content once the Collapsible region is toggled open', async () => {
     render(
       <ErrorBoundary>
         <Thrower message="boom-expand" />
       </ErrorBoundary>,
     );
-    const details = document.querySelector('details');
-    expect(details).not.toBeNull();
-    const summary = details?.querySelector('summary');
-    expect(summary).not.toBeNull();
+    const trigger = screen.getByRole('button', { name: /stack trace/i });
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
     const user = userEvent.setup();
-    await user.click(summary as HTMLElement);
-    // jsdom does not auto-toggle <details> on summary click the way a
-    // real browser does; mirror the user-agent behaviour so the
-    // post-click assertion reflects what an operator would see.
-    if (!details?.hasAttribute('open')) {
-      (details as HTMLDetailsElement).open = true;
-    }
-    expect(details?.hasAttribute('open')).toBe(true);
-    expect(details?.querySelector('pre')?.textContent || '').toMatch(
+    await user.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    const region = screen.getByRole('region', { name: /stack trace/i });
+    expect(region.querySelector('pre')?.textContent || '').toMatch(
       /boom-expand/,
     );
   });
