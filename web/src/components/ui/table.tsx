@@ -12,7 +12,7 @@ export interface TableColumn<T = unknown> {
   render?: (row: T, rowIndex: number) => ReactNode;
 }
 
-export interface TableProps<T = Record<string, unknown>> {
+export interface TableProps<T = unknown> {
   columns: TableColumn<T>[];
   rows: T[];
   sortKey?: string;
@@ -32,7 +32,7 @@ function alignClass(align?: 'left' | 'center' | 'right') {
   return 'text-left';
 }
 
-export function Table<T extends Record<string, unknown>>({
+export function Table<T>({
   columns,
   rows,
   sortKey,
@@ -137,7 +137,7 @@ export function Table<T extends Record<string, unknown>>({
                   >
                     {col.render
                       ? col.render(row, rowIndex)
-                      : (row[col.key] as ReactNode)}
+                      : ((row as Record<string, unknown>)[col.key] as ReactNode)}
                   </td>
                 ))}
               </tr>

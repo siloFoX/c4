@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { Table } from './table';
 import type { TableColumn, TableSortDir } from './table';
 
-interface Row extends Record<string, unknown> {
+interface Row {
   id: number;
   name: string;
   count: number;
@@ -40,11 +40,11 @@ describe('<Table>', () => {
     render(<Table columns={COLUMNS} rows={ROWS} />);
     const headers = screen.getAllByRole('columnheader');
     // name + count have a button child
-    expect(within(headers[0]).getByRole('button', { name: /Name/ })).toBeInTheDocument();
-    expect(within(headers[1]).getByRole('button', { name: /Count/ })).toBeInTheDocument();
+    expect(within(headers[0]!).getByRole('button', { name: /Name/ })).toBeInTheDocument();
+    expect(within(headers[1]!).getByRole('button', { name: /Count/ })).toBeInTheDocument();
     // id is plain text -- no button
-    expect(within(headers[2]).queryByRole('button')).toBeNull();
-    expect(headers[2].textContent).toContain('ID');
+    expect(within(headers[2]!).queryByRole('button')).toBeNull();
+    expect(headers[2]!.textContent).toContain('ID');
   });
 
   it('aria-sort reflects active sortKey and direction', () => {
@@ -52,20 +52,20 @@ describe('<Table>', () => {
       <Table columns={COLUMNS} rows={ROWS} sortKey="name" sortDir="asc" />,
     );
     let headers = screen.getAllByRole('columnheader');
-    expect(headers[0]).toHaveAttribute('aria-sort', 'ascending');
-    expect(headers[1]).toHaveAttribute('aria-sort', 'none');
+    expect(headers[0]!).toHaveAttribute('aria-sort', 'ascending');
+    expect(headers[1]!).toHaveAttribute('aria-sort', 'none');
     rerender(
       <Table columns={COLUMNS} rows={ROWS} sortKey="count" sortDir="desc" />,
     );
     headers = screen.getAllByRole('columnheader');
-    expect(headers[0]).toHaveAttribute('aria-sort', 'none');
-    expect(headers[1]).toHaveAttribute('aria-sort', 'descending');
+    expect(headers[0]!).toHaveAttribute('aria-sort', 'none');
+    expect(headers[1]!).toHaveAttribute('aria-sort', 'descending');
   });
 
   it('non-sortable headers omit aria-sort', () => {
     render(<Table columns={COLUMNS} rows={ROWS} sortKey="name" sortDir="asc" />);
     const headers = screen.getAllByRole('columnheader');
-    expect(headers[2]).not.toHaveAttribute('aria-sort');
+    expect(headers[2]!).not.toHaveAttribute('aria-sort');
   });
 
   it('clicking a sortable header toggles asc -> desc -> asc via onSortChange', async () => {
@@ -74,12 +74,14 @@ describe('<Table>', () => {
     const Wrapper = () => {
       const [key, setKey] = useState<string | undefined>(undefined);
       const [dir, setDir] = useState<TableSortDir | undefined>(undefined);
+      const extra: { sortKey?: string; sortDir?: TableSortDir } = {};
+      if (key !== undefined) extra.sortKey = key;
+      if (dir !== undefined) extra.sortDir = dir;
       return (
         <Table
           columns={COLUMNS}
           rows={ROWS}
-          sortKey={key}
-          sortDir={dir}
+          {...extra}
           onSortChange={(k, d) => {
             onSortChange(k, d);
             setKey(k);
@@ -105,7 +107,7 @@ describe('<Table>', () => {
       <Table columns={COLUMNS} rows={ROWS} onSortChange={onSortChange} />,
     );
     const headers = screen.getAllByRole('columnheader');
-    await user.click(headers[2]);
+    await user.click(headers[2]!);
     expect(onSortChange).not.toHaveBeenCalled();
   });
 
@@ -114,9 +116,9 @@ describe('<Table>', () => {
       <Table columns={COLUMNS} rows={ROWS} striped />,
     );
     const bodyRows = container.querySelectorAll('tbody tr');
-    expect(bodyRows[0].className).not.toContain('bg-muted/40');
-    expect(bodyRows[1].className).toContain('bg-muted/40');
-    expect(bodyRows[2].className).not.toContain('bg-muted/40');
+    expect(bodyRows[0]!.className).not.toContain('bg-muted/40');
+    expect(bodyRows[1]!.className).toContain('bg-muted/40');
+    expect(bodyRows[2]!.className).not.toContain('bg-muted/40');
   });
 
   it('does not apply striped class when striped is omitted', () => {

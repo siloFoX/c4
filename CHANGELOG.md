@@ -4,6 +4,50 @@
 
 (no entries -- next release window)
 
+## [1.11.155] - 2026-05-14 -- Web: Table primitive + TokenUsage adoption
+
+A new shared `<Table>` UI primitive replaces ad-hoc `<table>` markup
+with a typed, accessible, sort-aware contract.
+
+What changed:
+
+- **`<Table columns rows sortKey? sortDir? onSortChange? striped?
+  stickyHeader? ariaLabel? className? rowKey? emptyMessage?>`**
+  (`web/src/components/ui/table.tsx`) -- renders a semantic
+  `<table>` / `<thead>` / `<tbody>`. `columns: TableColumn<T>[]`
+  carries `{ key, label, sortable?, align?, className?, render? }`.
+  Sortable headers render a `<button>` inside the `<th>`; clicking
+  fires `onSortChange(key, dir)` with the next direction (toggles
+  `asc` -> `desc` -> `asc`). `aria-sort` resolves to
+  `ascending` / `descending` on the active column, `none` on the
+  other sortable columns, and is omitted on non-sortable columns.
+  Striping applies `bg-muted/40` to odd data rows; sticky header
+  adds `sticky top-0 z-10 bg-background` to `<thead>`. `ariaLabel`
+  is passed verbatim to the underlying `<table>`. Custom cell
+  content uses `col.render(row, index)`; otherwise the cell falls
+  back to `row[key]`.
+- **`table.test.tsx`** -- 15 cases covering semantic markup,
+  sortable-vs-plain header rendering, `aria-sort` reflection,
+  click-driven asc/desc toggle, non-sortable click is a no-op,
+  odd-row striping, sticky header classes, ariaLabel passthrough,
+  `render` override, `emptyMessage`, `rowKey`, and stable
+  `displayName`.
+- **Adopted in `TokenUsage` per-task table**
+  (`web/src/pages/TokenUsage.tsx`) -- `PerTaskTable` now drives
+  rendering via `<Table>` while keeping the existing
+  monospace / right-aligned numeric look and Pagination footer.
+  The surrounding `Panel` and `max-h-64 overflow-y-auto` wrapper
+  are unchanged. All 33 page tests still pass without modification.
+- **Note on `HistoryView`** -- the History sidebar uses a
+  `<ul>`/`<li>` list (not a `<table>`); no callsite conversion
+  applies there. `HistoryDetailPane` similarly has no real table
+  markup. The primitive is staged in `ui/index.ts` for future
+  adopters.
+- **Exported from `ui/index.ts`** so callsites can
+  `import { Table } from '../components/ui'` alongside the other
+  primitives.
+- Version bumped `1.11.154 -> 1.11.155` in `web/package.json`.
+
 ## [1.11.154] - 2026-05-14 -- Web: Textarea primitive + 3 callsite adoptions
 
 A new shared `<Textarea>` UI primitive mirrors the `<Input>` slot API
