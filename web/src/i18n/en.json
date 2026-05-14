@@ -1147,6 +1147,8 @@
   "feature.keyboardMap.description": "Full reference of keyboard bindings across the app -- navigation, actions, view, editing, global and custom shortcuts.",
   "feature.featureFlags.label": "Feature Flags",
   "feature.featureFlags.description": "Toggle component-scoped UI feature flags (grid overlay, route progress, page transitions, motion, reduced motion).",
+  "feature.settingsPage.label": "Settings",
+  "feature.settingsPage.description": "Consolidated landing for theme, locale, scribe, notifications, feature flags and a link to the daemon config.",
   "keyboardMap.title": "Keyboard Map",
   "keyboardMap.description": "Complete reference of every keyboard binding wired into the web UI.",
   "keyboardMap.search.placeholder": "Filter shortcuts by label or key...",

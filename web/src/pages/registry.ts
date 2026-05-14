@@ -27,6 +27,7 @@ import {
   Palette,
   Rocket,
   ScrollText,
+  Settings as SettingsIcon,
   Shield,
   ShieldCheck,
   Sparkles,
@@ -182,6 +183,14 @@ export const FEATURES: FeatureDef[] = [
     category: 'config',
     Icon: Cog,
     load: () => import('./Config'),
+  },
+  {
+    id: 'settings-page',
+    labelKey: 'feature.settingsPage.label',
+    descriptionKey: 'feature.settingsPage.description',
+    category: 'config',
+    Icon: SettingsIcon,
+    load: () => import('./Settings'),
   },
   {
     id: 'workspaces',

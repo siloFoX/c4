@@ -1,0 +1,236 @@
+import { useState } from 'react';
+import {
+  Bell,
+  Cog,
+  ExternalLink,
+  Feather,
+  Globe,
+  Palette,
+  ToggleRight,
+} from 'lucide-react';
+import PageFrame from './PageFrame';
+import {
+  Alert,
+  Panel,
+  Radio,
+  Tabs,
+  TabsPanel,
+  type TabsItem,
+} from '../components/ui';
+import { LOCALES, getLocale, setLocale, t, useLocale, type Locale } from '../lib/i18n';
+import { useTheme, type Theme } from '../hooks/use-theme';
+import ThemeToggle from '../components/ThemeToggle';
+import FeatureFlags from './FeatureFlags';
+
+// (patch 11.199) Consolidated Settings landing page. Six tabs surface the
+// most frequently touched preference areas in one place: General (Config),
+// Theme, Scribe, Notifications, Locale, Feature Flags. Existing dedicated
+// pages stay untouched -- this page only REFERENCES or EMBEDS the existing
+// surfaces so operators have a single entry point without disrupting the
+// already-shipped pages. Strings inside panel bodies are intentionally
+// inline (English) following the Notifications.tsx precedent; only the
+// sidebar label / description round-trip through i18n.
+
+type TabKey =
+  | 'general'
+  | 'theme'
+  | 'scribe'
+  | 'notifications'
+  | 'locale'
+  | 'feature-flags';
+
+const THEME_OPTIONS: ReadonlyArray<{ value: Theme; label: string }> = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+];
+
+function GeneralPanel() {
+  return (
+    <Panel
+      icon={<Cog className="h-4 w-4" aria-hidden="true" />}
+      title="General"
+      description="Live daemon config sans secrets. The full editor + reload trigger lives on the Config page."
+    >
+      <p className="text-sm text-muted-foreground">
+        The Config page surfaces <code className="font-mono">GET /api/config</code>{' '}
+        with a search filter and a confirm-guarded reload trigger
+        (<code className="font-mono">POST /api/config/reload</code>). Use that page
+        for full inspection; this tab is a quick reference for the consolidated
+        Settings hub.
+      </p>
+      <a
+        href="#feature=config"
+        className="mt-3 inline-flex items-center gap-1 text-sm text-primary underline-offset-2 hover:underline"
+        data-testid="settings-general-config-link"
+      >
+        <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+        Open Config page
+      </a>
+    </Panel>
+  );
+}
+
+function ThemePanel() {
+  const { theme, resolvedTheme } = useTheme();
+  return (
+    <Panel
+      icon={<Palette className="h-4 w-4" aria-hidden="true" />}
+      title="Theme"
+      description={`Selection persists to localStorage 'c4:theme'. Resolved: ${resolvedTheme}.`}
+    >
+      <div className="flex flex-col gap-3">
+        <div className="text-sm text-muted-foreground">
+          Current selection:{' '}
+          <span className="font-medium text-foreground" data-testid="settings-theme-current">
+            {theme}
+          </span>
+        </div>
+        <div className="flex flex-row items-center gap-3">
+          <span className="text-sm text-foreground">Quick toggle</span>
+          <ThemeToggle variant="group" size="sm" />
+        </div>
+        <ul className="mt-1 list-disc pl-5 text-xs text-muted-foreground">
+          {THEME_OPTIONS.map((opt) => (
+            <li key={opt.value}>
+              <span className="font-mono">{opt.value}</span> -- {opt.label}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </Panel>
+  );
+}
+
+function ScribePanel() {
+  return (
+    <Panel
+      icon={<Feather className="h-4 w-4" aria-hidden="true" />}
+      title="Scribe"
+      description="Session context recorder. Start / stop / scan controls live on the Scribe page."
+    >
+      <p className="text-sm text-muted-foreground">
+        Scribe runs as part of the daemon and snapshots the active session
+        transcript on a fixed cadence. Use the Scribe page to start / stop the
+        recorder, force a scan, or inspect the last captured context payload.
+      </p>
+    </Panel>
+  );
+}
+
+function NotificationsPanel() {
+  return (
+    <Panel
+      icon={<Bell className="h-4 w-4" aria-hidden="true" />}
+      title="Notifications"
+      description="Lifecycle feed for dispatch / complete / halt / escalation events."
+    >
+      <p className="text-sm text-muted-foreground">
+        Slack and Discord lifecycle webhooks are opted-in via{' '}
+        <code className="font-mono">config.notifications</code>. The
+        Notifications page renders the unified feed and per-event filters; this
+        tab is a read-only summary for the consolidated landing.
+      </p>
+    </Panel>
+  );
+}
+
+function LocalePanel() {
+  const [locale, setLocaleLocal] = useState<Locale>(() => getLocale());
+
+  const handleChange = (next: Locale) => {
+    setLocaleLocal(next);
+    setLocale(next);
+  };
+
+  return (
+    <Panel
+      icon={<Globe className="h-4 w-4" aria-hidden="true" />}
+      title="Locale"
+      description="Display language for the dashboard. Persists in this browser."
+    >
+      <div role="radiogroup" aria-label="Locale" className="flex flex-col gap-2">
+        {LOCALES.map((loc) => (
+          <Radio
+            key={loc}
+            name="settings-locale"
+            value={loc}
+            checked={locale === loc}
+            onChange={() => handleChange(loc)}
+            label={loc === 'en' ? 'English' : 'Korean'}
+            data-testid={`settings-locale-radio-${loc}`}
+          />
+        ))}
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Selection writes to <code className="font-mono">localStorage</code> via
+        the shared <code className="font-mono">setLocale()</code> helper
+        (key <code className="font-mono">c4.locale</code>) and dispatches the{' '}
+        <code className="font-mono">c4:locale-changed</code>{' '}
+        <code className="font-mono">CustomEvent</code> so mounted{' '}
+        <code className="font-mono">useLocale()</code> subscribers re-render
+        without a page reload.
+      </p>
+    </Panel>
+  );
+}
+
+function FeatureFlagsPanel() {
+  return (
+    <div data-testid="settings-feature-flags-embed">
+      <FeatureFlags />
+    </div>
+  );
+}
+
+export default function Settings() {
+  useLocale();
+  const [active, setActive] = useState<TabKey>('general');
+
+  const items: TabsItem[] = [
+    { value: 'general', label: 'General', icon: <Cog className="h-3.5 w-3.5" aria-hidden="true" /> },
+    { value: 'theme', label: 'Theme', icon: <Palette className="h-3.5 w-3.5" aria-hidden="true" /> },
+    { value: 'scribe', label: 'Scribe', icon: <Feather className="h-3.5 w-3.5" aria-hidden="true" /> },
+    { value: 'notifications', label: 'Notifications', icon: <Bell className="h-3.5 w-3.5" aria-hidden="true" /> },
+    { value: 'locale', label: 'Locale', icon: <Globe className="h-3.5 w-3.5" aria-hidden="true" /> },
+    { value: 'feature-flags', label: 'Feature Flags', icon: <ToggleRight className="h-3.5 w-3.5" aria-hidden="true" /> },
+  ];
+
+  return (
+    <PageFrame
+      title={t('feature.settingsPage.label')}
+      description={t('feature.settingsPage.description')}
+    >
+      <Alert variant="info">
+        Consolidated landing -- the dedicated Config / Scribe / Notifications /
+        Feature Flags pages remain authoritative; this tab strip is a one-stop
+        entry point and does not duplicate their state.
+      </Alert>
+      <Tabs
+        value={active}
+        onChange={(v) => setActive(v as TabKey)}
+        items={items}
+        ariaLabel="Settings sections"
+      >
+        <TabsPanel value="general" className="mt-3">
+          <GeneralPanel />
+        </TabsPanel>
+        <TabsPanel value="theme" className="mt-3">
+          <ThemePanel />
+        </TabsPanel>
+        <TabsPanel value="scribe" className="mt-3">
+          <ScribePanel />
+        </TabsPanel>
+        <TabsPanel value="notifications" className="mt-3">
+          <NotificationsPanel />
+        </TabsPanel>
+        <TabsPanel value="locale" className="mt-3">
+          <LocalePanel />
+        </TabsPanel>
+        <TabsPanel value="feature-flags" className="mt-3">
+          <FeatureFlagsPanel />
+        </TabsPanel>
+      </Tabs>
+    </PageFrame>
+  );
+}
