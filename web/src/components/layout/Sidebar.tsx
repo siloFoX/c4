@@ -161,7 +161,7 @@ export default function Sidebar({
                 aria-selected={mode === 'list'}
                 onClick={() => onModeChange('list')}
                 className={cn(
-                  'inline-flex items-center gap-1.5 px-2 py-1 transition-colors',
+                  'inline-flex items-center gap-1.5 px-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                   mode === 'list'
                     ? 'bg-primary/30 text-foreground'
                     : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
@@ -176,7 +176,7 @@ export default function Sidebar({
                 aria-selected={mode === 'tree'}
                 onClick={() => onModeChange('tree')}
                 className={cn(
-                  'inline-flex items-center gap-1.5 px-2 py-1 transition-colors',
+                  'inline-flex items-center gap-1.5 px-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                   mode === 'tree'
                     ? 'bg-primary/30 text-foreground'
                     : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
@@ -200,7 +200,7 @@ export default function Sidebar({
                   aria-label={t('sidebar.listView')}
                   onClick={() => onModeChange('list')}
                   className={cn(
-                    'inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent transition-colors',
+                    'inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                     mode === 'list'
                       ? 'border-border bg-primary/30 text-foreground'
                       : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
@@ -217,7 +217,7 @@ export default function Sidebar({
                   aria-label={t('sidebar.treeView')}
                   onClick={() => onModeChange('tree')}
                   className={cn(
-                    'inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent transition-colors',
+                    'inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                     mode === 'tree'
                       ? 'border-border bg-primary/30 text-foreground'
                       : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',

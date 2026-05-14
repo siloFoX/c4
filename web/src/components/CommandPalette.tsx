@@ -295,7 +295,7 @@ export default function CommandPalette({
                       onClick={() => activate(cmd)}
                       onMouseEnter={() => setActiveIndex(idx)}
                       className={cn(
-                        'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors',
+                        'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                         active
                           ? 'bg-accent text-accent-foreground'
                           : 'text-foreground hover:bg-accent/40',
