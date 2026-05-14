@@ -1,5 +1,6 @@
-import { useState, type ImgHTMLAttributes } from 'react';
+import { type ImgHTMLAttributes } from 'react';
 import { cn } from '../../lib/cn';
+import { Image } from './image';
 
 export type AvatarSize = 'sm' | 'md' | 'lg';
 
@@ -50,24 +51,26 @@ export function Avatar({
   className,
   ...rest
 }: AvatarProps) {
-  const [imgFailed, setImgFailed] = useState(false);
   const label = alt || name || '';
-  const showImage = Boolean(src) && !imgFailed;
   const base = cn(
     'inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold select-none',
     SIZE_CLASS[size],
   );
 
-  if (showImage) {
+  if (src) {
+    // Image's underlying <img alt={label}> provides the accessible name
+    // via its implicit img role; the outer span stays decorative so
+    // existing tests using getByRole('img', { name }) keep pointing at
+    // the <img> element.
     return (
-      <span className={cn(base, className)}>
-        <img
+      <span className={cn(base, className)} {...rest}>
+        <Image
           src={src}
           alt={label}
-          aria-label={label}
-          className="h-full w-full object-cover"
-          onError={() => setImgFailed(true)}
-          {...rest}
+          rounded="full"
+          lazy={false}
+          className="h-full w-full"
+          fallbackInitials={avatarInitials(name)}
         />
       </span>
     );
