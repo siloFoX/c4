@@ -1131,6 +1131,8 @@
   "feature.workspaces.description": "Multi-repo workspaces declared in config.workspaces.",
   "feature.rbac.label": "RBAC",
   "feature.rbac.description": "Read-only roster of roles + per-user grants.",
+  "feature.notifications.label": "Notifications",
+  "feature.notifications.description": "Unified feed of lifecycle events (dispatch/complete/halt/escalation) from the autonomous loop.",
   "feature.health.label": "Health",
   "feature.health.description": "Daemon status, uptime, queue depth and loaded modules.",
   "feature.validation.label": "Validation",
