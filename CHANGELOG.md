@@ -4,6 +4,92 @@
 
 (no entries -- next release window)
 
+## [1.11.127] - 2026-05-14 -- Tests: Final lib coverage sweep (5 files, 100% lib)
+
+Close out the `web/src/lib` coverage push by writing the last five sibling
+test files for previously-untested modules: `use-worker-actions.ts`,
+`use-worker-selection.ts`, `use-xterm-autofit.ts`, `worker-classify.ts`,
+and `xterm-theme.ts`. Together these bring the lib directory to 100%
+file coverage (every `*.ts` / `*.tsx` non-`.test` module now has a
+sibling `.test.ts`). 84 cases total across the five files (20 + 14 +
+17 + 23 + 10), matching the established push 7-11 style: `renderHook`
++ `act` + `waitFor` from `@testing-library/react`, MSW `server.use()`
+handlers for `/api/*` surfaces, `vi.useFakeTimers()` for the debounce
+in `use-xterm-autofit`, and direct `document.documentElement.style`
+mutation for the shadcn CSS-var reads in `xterm-theme`.
+
+`useWorkerActions` covers idle mount (`actionMsg=null`, `busy=false`),
+the consumer-controlled `setActionMsg` setter, `runAction`'s three
+exit branches (happy -> `<label> ok` + `fetchScrollback`; envelope
+error -> `<label> failed: <error>`; thrown -> `<label> failed:
+<e.message>`), the `busy` flip while inflight and back to false on
+every exit, the `handleSend` trim-empty short-circuit (no POST, no
+banner) plus its `/api/send` happy/HTTP-500 paths, `handleEnter`
+posting `{ name, key: 'Enter' }` to `/api/key`, `sendKey` forwarding
+arbitrary keys, `handleMerge`'s `window.confirm` gate (cancel ->
+`Promise.resolve(false)` with `busy` untouched; confirm -> `/api/merge`
+with `{ name }` body) including the envelope-error branch, the
+`handleClose` `/api/close` happy + HTTP-500 paths, the `busy`
+back-to-false guarantee on thrown error, the stale-banner clear
+between consecutive runs, and the `useCallback` identity flip when
+`workerName` changes.
+
+`useWorkerSelection` covers idle mount (`selected=Set`, `batchBusy=null`,
+`batchResults=null`), `toggleSelected` add/remove behaviour, `selectAll`
+seeding from the current `workers` prop, `clearSelection` emptying the
+set, `runBatch` short-circuit on empty selection (no confirm, no
+POST, no toast), `runBatch` short-circuit on `window.confirm=false`,
+the `close` happy path posting per-name to `/api/close` and clearing
+the selection at the end, the `cancel` happy path posting to
+`/api/cancel` while preserving the selection (close-only clear rule),
+the mixed-results path with one HTTP-503 surfacing through `batchResults`
+plus an error-toast on any failure, the 2xx+`{ error }` daemon no-op
+shape, the `batchBusy` flip to the kind during the loop with reset to
+`null` on completion, `batchResults` reset to `null` at the start of
+a new run, the `toggleSelected` stable identity (empty deps), and the
+`selectAll` identity change when the `workers` prop mutates.
+
+`useXtermAutofit` covers the exported `FIT_DEBOUNCE_MS` / `MIN_COLS`
+/ `MAX_COLS` / `MIN_ROWS` / `MAX_ROWS` constants, idle mount, `runFit`
+no-op when termRef / fitRef is null, `runFit` happy path posting
+`{ name, cols, rows }` to `/api/resize` and stamping `lastResizeRef`,
+the `fit.fit()` throw swallow (container 0x0 case), the non-finite
+and zero/negative cols / rows skip branches, the upper clamp
+(`9999 -> MAX_*`) and lower clamp (`1 -> MIN_*`), the `lastResizeRef`
+dedupe of consecutive identical fits, the re-post path when cols /
+rows actually change, `clampInt`'s `Math.floor` applied to fractional
+xterm column counts, the apiPost-rejection swallow (`/api/resize`
+HTTP 500 does not throw), the `scheduleFit` debounce via
+`vi.useFakeTimers()` + `vi.advanceTimersByTime()` firing exactly one
+`runFit` after `FIT_DEBOUNCE_MS`, the collapse of overlapping
+`scheduleFit` calls (previous timer cleared via `window.clearTimeout`),
+and the callback identity change when `workerName` mutates.
+
+`workerClassify` covers `isInterventionActive`'s null / undefined
+short-circuit, the v8.21 string-enum match (`approval_pending` true,
+`background_exit` / `past_resolved` false), the legacy object form
+fallbacks (`{ reason: x }` default-truthy, `{ active: true }`,
+`{ active: false }`), `mapWorkerStatusToBadgeVariant`'s priority
+(`destructive` for intervention, `warning` for busy, `success` for
+idle, `secondary` for exited, intervention overriding exited),
+`statusLabel`'s `'intervention'` mask for active interventions vs.
+the raw status passthrough for the non-`approval_pending` enum
+members, and `groupOf`'s tier-first dispatch (`'manager'` short-circuit,
+`'worker'` falls through to name pattern, unknown tier classifies as
+worker) plus the three legacy name-pattern fallbacks (`c4-mgr-*`,
+`auto-mgr*`, `*-mgr-*`) when tier is absent.
+
+`buildXtermTheme` covers the six-fallback baseline when no shadcn
+CSS vars are set, the `hsl(<H S% L%>)` wrap when vars are present,
+each CSS-var-to-theme-slot mapping (`--background -> background +
+cursorAccent`, `--foreground -> foreground + selectionForeground +
+brightWhite`, `--muted-foreground -> white`, `--primary -> cursor`,
+`--accent -> selectionBackground`, `--destructive -> red`), the
+hard-coded ANSI palette stability across calls, the whitespace-only
+CSS-var treated-as-unset branch, the per-call new-object guarantee,
+and the partial-theme mix of `hsl()` values and hex fallbacks
+per-slot.
+
 ## [1.11.126] - 2026-05-14 -- Tests: Lib hooks coverage push 11 (TODO 11.108)
 
 Continue the untested `web/src/lib/use-*.ts` coverage push. The original
