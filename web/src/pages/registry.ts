@@ -16,6 +16,7 @@ import {
   FileCheck2,
   FolderTree,
   GitBranch,
+  Keyboard,
   Layers,
   LayoutGrid,
   Layers3,
@@ -202,6 +203,14 @@ export const FEATURES: FeatureDef[] = [
     category: 'config',
     Icon: Palette,
     load: () => import('./DesignSystem'),
+  },
+  {
+    id: 'keyboard-map',
+    labelKey: 'feature.keyboardMap.label',
+    descriptionKey: 'feature.keyboardMap.description',
+    category: 'config',
+    Icon: Keyboard,
+    load: () => import('./KeyboardMap'),
   },
   {
     id: 'notifications',
