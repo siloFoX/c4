@@ -29,6 +29,7 @@ import HelpUIRoot from './components/HelpUIRoot';
 import MetricsBar from './components/MetricsBar';
 import AutonomousStatusBanner from './components/AutonomousStatusBanner';
 import GridDebugOverlay from './components/dev/GridDebugOverlay';
+import RouteProgressBar from './components/RouteProgressBar';
 import { logout } from './lib/api';
 import { useAuthState } from './lib/use-auth-state';
 import { useSidebarShortcut } from './lib/use-sidebar-shortcut';
@@ -128,6 +129,9 @@ export default function App() {
           unreachable or auth-gated. */}
       <MetricsBar />
       <AutonomousStatusBanner />
+      {/* (v1.11.202 / patch 11.184) Slim top-of-page progress bar that
+          auto-runs a start->done cycle whenever `topView` changes. */}
+      <RouteProgressBar routeKey={topView} />
       {/* (v1.11.201 / patch 11.183) Dev-only grid debug overlay.
           Self-gates on import.meta.env.PROD so production builds
           render null. Toggle via Cmd/Ctrl+Shift+G. */}
