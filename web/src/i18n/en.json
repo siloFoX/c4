@@ -1141,6 +1141,8 @@
   "feature.validation.description": "Per-worker validation object — tests / typecheck / lint summary.",
   "feature.risk.label": "Risk",
   "feature.risk.description": "Preview a command's risk classification + recent denials in the last N hours.",
+  "feature.errorReports.label": "Error Reports",
+  "feature.errorReports.description": "Local in-memory feed of captured client errors (window / unhandledrejection / react / manual). Last 50 entries.",
   "feature.keyboardMap.label": "Keyboard Map",
   "feature.keyboardMap.description": "Full reference of keyboard bindings across the app -- navigation, actions, view, editing, global and custom shortcuts.",
   "keyboardMap.title": "Keyboard Map",

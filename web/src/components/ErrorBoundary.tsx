@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Badge, Button, Collapsible } from './ui';
 import { t, tFormat } from '../lib/i18n';
+import { report as reportError } from '../lib/error-reporter';
 
 // (v1.11.136) Friendlier top-level Error Boundary fallback. The stack
 // trace now lives inside a collapsed <details> so it does not dominate
@@ -40,6 +41,16 @@ export default class ErrorBoundary extends Component<Props, State> {
     // operator-facing and the daemon log captures backend issues
     // separately.
     console.error('[ErrorBoundary]', error, info.componentStack);
+    try {
+      reportError({
+        source: 'react',
+        message: error.message || String(error),
+        stack: error.stack,
+        componentStack: info.componentStack ?? undefined,
+      });
+    } catch {
+      /* sink must never re-throw into the render path */
+    }
   }
 
   override componentWillUnmount(): void {
