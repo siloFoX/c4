@@ -823,6 +823,7 @@
   "history.filter.status.exited": "exited",
   "history.filter.since.label": "Since date",
   "history.filter.until.label": "Until date",
+  "history.filter.range.label": "Filter by date range",
   "history.empty": "No history yet.",
   "history.scribe.title": "Scribe session-context.md",
   "history.scribe.openHint": "Open the viewer to load the scribe file.",

@@ -10,6 +10,7 @@ import {
   Collapsible,
   DashboardGrid,
   DataList,
+  DatePicker,
   Drawer,
   IconButton,
   NumberInput,
@@ -42,6 +43,9 @@ export default function Health() {
   // NumberInput adoption. Local-only; not yet wired to the polling
   // hook - a follow-up will pass this into useHealth.
   const [pollTimeoutMs, setPollTimeoutMs] = useState<number | undefined>(10000);
+  // (11.176) Placeholder since-filter date. Local-only until the
+  // health filter Drawer is wired into the polling hook.
+  const [sinceDate, setSinceDate] = useState<Date | null>(null);
 
   const ok = data?.ok !== false && !error;
 
@@ -84,6 +88,16 @@ export default function Health() {
           Filter wiring lands in a follow-up. Drawer is integrated so the
           surface is ready.
         </Alert>
+        {/* (11.176) DatePicker primitive adoption - placeholder since
+            filter; not yet threaded into useHealth. */}
+        <div className="mt-3 flex items-center gap-2 text-xs">
+          <span className="text-muted-foreground">Since</span>
+          <DatePicker
+            value={sinceDate}
+            onChange={setSinceDate}
+            ariaLabel="Filter health events since"
+          />
+        </div>
       </Drawer>
       <PageDescriptionBanner
         summaryKey="health.summary"

@@ -14,9 +14,11 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  DateRangePicker,
   Input,
   Select,
 } from './ui';
+import { parseISODate, toISODate } from '../lib/date-format';
 import { cn } from '../lib/cn';
 import HistoryDetailPane from './HistoryDetailPane';
 import { useScribeContext } from '../lib/use-scribe-context';
@@ -161,22 +163,22 @@ export default function HistoryView() {
                 { value: 'exited', label: t('history.filter.status.exited') },
               ]}
             />
-            <div className="flex gap-2">
-              <Input
-                type="date"
-                value={sinceDay}
-                onChange={(e) => setSinceDay(e.target.value)}
-                className="h-9 flex-1 text-xs"
-                aria-label={t('history.filter.since.label')}
-              />
-              <Input
-                type="date"
-                value={untilDay}
-                onChange={(e) => setUntilDay(e.target.value)}
-                className="h-9 flex-1 text-xs"
-                aria-label={t('history.filter.until.label')}
-              />
-            </div>
+            {/* (11.176) DateRangePicker primitive adoption.
+                Replaces the prior pair of <Input type="date"> filters.
+                Internal state remains YYYY-MM-DD strings so the
+                summary hook contract is unchanged. */}
+            <DateRangePicker
+              value={{
+                from: parseISODate(sinceDay),
+                to: parseISODate(untilDay),
+              }}
+              onChange={(r) => {
+                setSinceDay(toISODate(r.from));
+                setUntilDay(toISODate(r.to));
+              }}
+              ariaLabel={t('history.filter.range.label')}
+              className="text-xs"
+            />
             {error && (
               <div
                 role="alert"
