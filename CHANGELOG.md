@@ -4,6 +4,54 @@
 
 (no entries -- next release window)
 
+## [1.11.152] - 2026-05-14 -- Web: Radio + Checkbox primitives
+
+Two new form primitives fill the last gap in the UI primitive set so
+the daemon web pages stop hand-rolling raw `<input type=checkbox>`
+and `<input type=radio>` elements with bespoke Tailwind classes.
+
+What changed:
+
+- **`<Radio name value checked onChange label? id? disabled? className? ...rest>`**
+  (`web/src/components/ui/radio.tsx`) -- a native `<input type="radio">`
+  styled with the same `focus-visible:ring-2 ring-primary
+  ring-offset-2` treatment as `<Input>` and `<Checkbox>`. The optional
+  `label` prop wraps the input in the existing `<Label>` primitive
+  with `htmlFor` wiring; when no `id` is provided a `useId()` id is
+  generated and threaded into both the input and the label. Bare
+  (label-less) form is just the styled input, which slots into ad-hoc
+  layouts.
+- **`<Checkbox checked onChange label? id? disabled? indeterminate? className? ...rest>`**
+  (`web/src/components/ui/checkbox.tsx`) -- same shape as `<Radio>`
+  with `type="checkbox"`, plus an `indeterminate` prop that is wired
+  to the underlying `input.indeterminate` DOM property via a merged
+  ref + `useEffect`. While `indeterminate` is true the input also
+  carries `aria-checked="mixed"` so assistive tech announces the
+  tri-state. Both forwarded callers' refs and the internal ref are
+  preserved.
+- **`radio.test.tsx` + `checkbox.test.tsx`** -- bare render, label
+  render via `<Label>` wrap, generated id wiring, controlled checked
+  + `onChange`, disabled state ignoring user clicks, focus-visible
+  ring classes present, and (checkbox only) `indeterminate` flipping
+  `input.indeterminate` + `aria-checked="mixed"`, then clearing back
+  to default when `indeterminate=false`.
+- **`web/src/components/ui/index.ts`** -- exports both primitives.
+- **Three callsite migrations** -- the page-level form toggles drop
+  their raw `<label><input type=checkbox></label>` markup in favour
+  of `<Checkbox label=...>`:
+  - `web/src/pages/Risk.tsx` -- the "show post-denoise text" toggle on
+    the risk inspector form.
+  - `web/src/pages/Batch.tsx` -- the "auto mode" toggle on the batch
+    dispatcher form.
+  - `web/src/pages/TokenUsage.tsx` -- the "per-task" toggle that
+    gates the per-task table.
+
+  The existing page tests already query the controls via
+  `screen.getByLabelText(...)` so the new label wiring is contract
+  compatible -- no test changes were needed.
+
+No new dependencies. `web/package.json` bumps `1.11.151 -> 1.11.152`.
+
 ## [1.11.151] - 2026-05-14 -- Web: Pagination primitive
 
 A new `<Pagination>` primitive (`web/src/components/ui/pagination.tsx`)

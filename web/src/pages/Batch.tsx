@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Input, Label, Panel, Tooltip } from '../components/ui';
+import { Button, Checkbox, Input, Label, Panel, Tooltip } from '../components/ui';
 import { t, useLocale } from '../lib/i18n';
 import { useBatchSubmit } from '../lib/use-batch-submit';
 import { useToast } from '../lib/use-toast';
@@ -178,14 +178,11 @@ export default function Batch() {
         </div>
         <div className="flex items-end gap-2">
           <Tooltip label={t('batch.tooltip.autoMode')} placement="top">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={autoMode}
-                onChange={(e) => setAutoMode(e.target.checked)}
-              />
-              <span>{t('batchPage.autoMode')}</span>
-            </label>
+            <Checkbox
+              checked={autoMode}
+              onChange={(e) => setAutoMode(e.target.checked)}
+              label={t('batchPage.autoMode')}
+            />
           </Tooltip>
         </div>
       </div>

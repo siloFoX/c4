@@ -3,7 +3,7 @@ import { RefreshCw } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, Pagination, Panel, Tooltip } from '../components/ui';
+import { Badge, Button, Checkbox, Pagination, Panel, Tooltip } from '../components/ui';
 import { useTokenUsage } from '../lib/use-token-usage';
 import { useTokenUsageBreakdowns, coerceTotal } from '../lib/use-token-usage-breakdowns';
 import { cn } from '../lib/cn';
@@ -67,14 +67,11 @@ export default function TokenUsage() {
             </Tooltip>
           ))}
           <Tooltip label={t('tokenUsage.tooltip.perTask')}>
-            <label className="inline-flex items-center gap-1.5 text-xs">
-              <input
-                type="checkbox"
-                checked={perTask}
-                onChange={(e) => setPerTask(e.target.checked)}
-              />
-              {t('tokenUsagePage.perTask')}
-            </label>
+            <Checkbox
+              checked={perTask}
+              onChange={(e) => setPerTask(e.target.checked)}
+              label={t('tokenUsagePage.perTask')}
+            />
           </Tooltip>
           <Tooltip label={t('tokenUsage.tooltip.refresh')}>
             <Button type="button" variant="ghost" size="sm" onClick={refresh} disabled={loading}>
