@@ -39,3 +39,4 @@ export * from './data-list';
 export * from './collapsible';
 export * from './hero-card';
 export * from './navbar';
+export * from './search-bar';

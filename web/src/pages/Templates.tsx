@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Chip, EmptyState, FileInput, Input, Pagination, Panel, Tooltip } from '../components/ui';
+import { Button, Chip, EmptyState, FileInput, Pagination, Panel, SearchBar, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -52,12 +52,13 @@ export default function Templates() {
       actions={
         <>
           <Tooltip label={t('templates.tooltip.filter')}>
-            <Input
-              className="h-8 w-full sm:w-48"
+            <SearchBar
+              size="sm"
+              className="w-full sm:w-48"
               placeholder={t('templatesPage.filter.placeholder')}
               value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              aria-label={t('templatesPage.filter.label')}
+              onChange={setFilter}
+              ariaLabel={t('templatesPage.filter.label')}
             />
           </Tooltip>
           <Tooltip label={t('templates.tooltip.add')}>
