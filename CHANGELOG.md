@@ -4,6 +4,62 @@
 
 (no entries -- next release window)
 
+## [1.11.130] - 2026-05-14 -- Tests: Storyshot baseline snapshots for 5 UI primitives
+
+Add storyshot-style markup baselines for the five stable UI primitives in
+`web/src/components/ui/`: `Button`, `Card`, `Badge`, `Panel`, `Tooltip`.
+Each gets a dedicated `*.snapshot.test.tsx` sibling that complements (does
+not replace) the existing behavioural `*.test.tsx`. Pure
+`toMatchInlineSnapshot` shape diffs over `container.firstChild` so a
+rogue className / DOM-structure change is flagged in review without any
+runtime behaviour coupling.
+
+`button.snapshot.test.tsx` (10 cases) snapshots each documented variant
+(`default` / `destructive` / `outline` / `secondary` / `ghost` / `link`)
+and each documented size (default `md` / `sm` / `lg` / `icon`). Captures
+the cva base class set plus the variant-specific overrides per render so
+the `buttonVariants` map cannot drift silently.
+
+`badge.snapshot.test.tsx` (7 cases) covers the full variant matrix the
+component supports: `default`, `secondary`, `destructive`, `outline`,
+plus the tone variants `success`, `warning`, `info` (all are public and
+consumed in the dashboard surfaces -- the snapshot fences the
+`bg-<tone>/15 text-<tone>` class pairs against accidental rename).
+
+`card.snapshot.test.tsx` (4 cases) snapshots bare `<Card>`, then each
+composed shape we ship: `header + content`, `header + content + footer`,
+and `content + footer` (no header). The composition matrix matters
+because consumers wire `<CardHeader>` / `<CardContent>` / `<CardFooter>`
+together rather than passing a single prop, so a padding rename on
+`CardHeader` would silently shift downstream surfaces without a
+markup-level baseline in place.
+
+`panel.snapshot.test.tsx` (5 cases) fences the conditional header band:
+body-only (no `icon` / `title` / `action` -> no header rendered), `title`
+only, `icon + title`, `title + action` (trailing footer-style slot), and
+`action` only (header still renders without a title). Together these
+exercise every branch of `hasHeader = Boolean(icon || title || action)`.
+
+`tooltip.snapshot.test.tsx` (5 cases) covers the trigger + label
+sibling-span composition. Uses the controlled `open` prop so jsdom
+keeps the visibility state deterministic (no hover / focus timer
+needed): hidden default (`opacity-0`, `data-visible="false"`),
+visible default placement (`top`), and each remaining placement
+(`bottom`, `left`, `right`) so the `pos` className map cannot drift
+silently. `aria-describedby` plumbing onto the trigger is captured in
+the visible-state snapshots.
+
+Verification: `env -C web npx vitest run --project unit
+src/components/ui/button.snapshot.test.tsx
+src/components/ui/badge.snapshot.test.tsx
+src/components/ui/card.snapshot.test.tsx
+src/components/ui/panel.snapshot.test.tsx
+src/components/ui/tooltip.snapshot.test.tsx`
+-> 5 files / 31 tests pass, 31 inline snapshots written on the first
+run and pinned to the file thereafter. No existing test / component /
+docs file was touched. Version skip from 1.11.128 -> 1.11.130 follows
+the established "skip the .129 slot" convention.
+
 ## [1.11.128] - 2026-05-14 -- Web: vitest coverage report config (WIP)
 
 Set up vitest v8 coverage reporting for the `web/` package. Replaces the
