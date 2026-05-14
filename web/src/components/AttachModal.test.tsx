@@ -93,20 +93,6 @@ function renderModal(
 describe('<AttachModal>', () => {
   // ---- open=false null bail --------------------------------------
 
-  it('renders nothing when open=false', () => {
-    const { container } = render(
-      <AttachModal
-        open={false}
-        busy={false}
-        error={null}
-        available={[]}
-        onClose={vi.fn()}
-        onSubmit={vi.fn()}
-      />,
-    );
-    expect(container.firstChild).toBeNull();
-  });
-
   it('does not render the dialog when open=false', () => {
     render(
       <AttachModal
@@ -141,18 +127,30 @@ describe('<AttachModal>', () => {
     ).toBeInTheDocument();
   });
 
-  // ---- close (X) button ------------------------------------------
+  // ---- close paths (Dialog-driven) -------------------------------
 
-  it('renders an aria-labelled Close button', () => {
-    renderModal();
-    expect(
-      screen.getByRole('button', { name: 'Close' }),
-    ).toBeInTheDocument();
+  it('fires onClose when the backdrop is clicked while not busy', async () => {
+    const { user, onClose } = renderModal();
+    const backdrop = document.querySelector(
+      '[data-dialog-backdrop]',
+    ) as HTMLElement;
+    expect(backdrop).not.toBeNull();
+    await user.click(backdrop);
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('fires onClose exactly once when the Close (X) button is clicked', async () => {
+  it('does NOT fire onClose on backdrop click while busy', async () => {
+    const { user, onClose } = renderModal({ busy: true });
+    const backdrop = document.querySelector(
+      '[data-dialog-backdrop]',
+    ) as HTMLElement;
+    await user.click(backdrop);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('fires onClose when Escape is pressed while not busy', async () => {
     const { user, onClose } = renderModal();
-    await user.click(screen.getByRole('button', { name: 'Close' }));
+    await user.keyboard('{Escape}');
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -234,10 +232,11 @@ describe('<AttachModal>', () => {
     const many = Array.from({ length: 15 }, (_, i) =>
       makeSession({ sessionId: `sid-${i}` }),
     );
-    const { container } = renderModal({ available: many });
-    const list = container.querySelector('ul');
-    expect(list).not.toBeNull();
-    expect(list!.querySelectorAll('li').length).toBe(10);
+    renderModal({ available: many });
+    const previewRegion = screen.getByRole('region', {
+      name: 'Available sessions preview',
+    });
+    expect(previewRegion.querySelectorAll('li').length).toBe(10);
   });
 
   it('reports the full available.length in the count-found header even when preview is capped', () => {
@@ -502,10 +501,10 @@ describe('<AttachModal>', () => {
   });
 
   it('rerendering from open=true to open=false drops the dialog entirely', () => {
-    const { rerender, props, container } = renderModal();
-    expect(container.firstChild).not.toBeNull();
+    const { rerender, props } = renderModal();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
     rerender(<AttachModal {...props} open={false} />);
-    expect(container.firstChild).toBeNull();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('rerendering with new available entries replaces the preview rows', () => {

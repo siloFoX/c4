@@ -11,3 +11,4 @@ export * from './stat-card';
 export * from './empty-state';
 export * from './skeleton';
 export * from './error-state';
+export * from './dialog';

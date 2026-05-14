@@ -8,11 +8,10 @@ import {
 } from './KeyboardShortcutsModal';
 
 // KeyboardShortcutsModal is the ? cheat sheet rendered as a global
-// overlay. State machine is small: open=false null-return, open=true
-// renders a dialog that locks SHORTCUT_ROWS as the canonical shortcut
-// list. Escape-to-close lives in useEscapeToClose (its own unit
-// test). Tests drive the prop union directly: the visibility branches,
-// the dialog scaffolding (role, aria-modal, aria-label), the row
+// overlay. It now wraps the Dialog primitive (web/src/components/ui/
+// dialog.tsx) which handles portal mounting, focus trap, Escape, and
+// backdrop click. Tests drive the prop union: visibility branches,
+// the dialog scaffolding (role, aria-modal, aria-labelledby), the row
 // count + per-row kbd + description rendering, the close paths
 // (X button, backdrop click, Escape key), the inner-card click
 // suppression, and the locale flip.
@@ -39,13 +38,6 @@ describe('<KeyboardShortcutsModal>', () => {
   // ---- open=false null return ------------------------------------
 
   it('renders nothing when open=false', () => {
-    const { container } = render(
-      <KeyboardShortcutsModal open={false} onClose={vi.fn()} />,
-    );
-    expect(container.firstChild).toBeNull();
-  });
-
-  it('does not render the dialog when open=false', () => {
     render(<KeyboardShortcutsModal open={false} onClose={vi.fn()} />);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
@@ -58,25 +50,18 @@ describe('<KeyboardShortcutsModal>', () => {
     expect(dialog).toHaveAttribute('aria-modal', 'true');
   });
 
-  it('uses the localized "Keyboard shortcuts" string as the dialog aria-label', () => {
+  it('uses the localized "Keyboard shortcuts" string as the dialog accessible name', () => {
     renderModal();
     expect(
       screen.getByRole('dialog', { name: 'Keyboard shortcuts' }),
     ).toBeInTheDocument();
   });
 
-  it('marks the dialog with the data-shortcuts-modal hook so other code can locate it', () => {
+  it('marks the inner content with the data-shortcuts-modal hook so other code can locate it', () => {
     renderModal();
     expect(
-      screen.getByRole('dialog').getAttribute('data-shortcuts-modal'),
+      document.querySelector('[data-shortcuts-modal]'),
     ).not.toBeNull();
-  });
-
-  it('renders the dialog as fixed inset-0 with the dimming overlay class', () => {
-    renderModal();
-    const dialog = screen.getByRole('dialog');
-    expect(dialog.className).toMatch(/fixed/);
-    expect(dialog.className).toMatch(/inset-0/);
   });
 
   it('renders the localized heading text inside the dialog body', () => {
@@ -93,12 +78,9 @@ describe('<KeyboardShortcutsModal>', () => {
     expect(rows.length).toBe(SHORTCUT_ROWS.length);
   });
 
-  it('renders the kbd label for each shortcut row exactly once', () => {
+  it('renders the kbd label for each shortcut row', () => {
     renderModal();
     for (const row of SHORTCUT_ROWS) {
-      // Some keys (?, Shift+/) appear in multiple rows because they
-      // share a description. Verify each row mounts a <kbd> with the
-      // expected text by querying through the row index instead.
       expect(screen.getAllByText(row.keys).length).toBeGreaterThan(0);
     }
   });
@@ -138,9 +120,9 @@ describe('<KeyboardShortcutsModal>', () => {
     ).toBeInTheDocument();
   });
 
-  it('wraps each key label in a real <kbd> element so screen-readers and styling treat it as a keyboard glyph', () => {
-    const { container } = renderModal();
-    const kbds = container.querySelectorAll('kbd');
+  it('wraps each key label in a real <kbd> element', () => {
+    renderModal();
+    const kbds = document.querySelectorAll('kbd');
     expect(kbds.length).toBe(SHORTCUT_ROWS.length);
   });
 
@@ -168,13 +150,16 @@ describe('<KeyboardShortcutsModal>', () => {
 
   it('fires onClose when the backdrop is clicked', async () => {
     const { user, onClose } = renderModal();
-    await user.click(screen.getByRole('dialog'));
+    const backdrop = document.querySelector(
+      '[data-dialog-backdrop]',
+    ) as HTMLElement;
+    expect(backdrop).not.toBeNull();
+    await user.click(backdrop);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('does NOT fire onClose when the inner card is clicked (stopPropagation)', async () => {
     const { user, onClose } = renderModal();
-    // The heading sits inside the inner card.
     await user.click(
       within(screen.getByRole('dialog')).getByText('Keyboard shortcuts'),
     );
@@ -209,10 +194,10 @@ describe('<KeyboardShortcutsModal>', () => {
   });
 
   it('rerendering from open=true to open=false drops the dialog entirely', () => {
-    const { rerender, props, container } = renderModal();
-    expect(container.firstChild).not.toBeNull();
+    const { rerender, props } = renderModal();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
     rerender(<KeyboardShortcutsModal {...props} open={false} />);
-    expect(container.firstChild).toBeNull();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('rerendering from open=false to open=true reveals the dialog', () => {
@@ -240,7 +225,7 @@ describe('<KeyboardShortcutsModal>', () => {
 
   // ---- locale flip ---------------------------------------------
 
-  it('re-renders the dialog aria-label in Korean when the locale flips to ko', () => {
+  it('re-renders the dialog accessible name in Korean when the locale flips to ko', () => {
     renderModal();
     expect(
       screen.getByRole('dialog', { name: 'Keyboard shortcuts' }),
@@ -248,7 +233,6 @@ describe('<KeyboardShortcutsModal>', () => {
     act(() => {
       setLocale('ko');
     });
-    // English aria-label should no longer be the dialog's accessible name.
     expect(
       screen.queryByRole('dialog', { name: 'Keyboard shortcuts' }),
     ).not.toBeInTheDocument();
