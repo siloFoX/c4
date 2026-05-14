@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { RefreshCw, Shield } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
-import { Button, Input, Panel } from '../components/ui';
+import { Button, Checkbox, Input, Panel } from '../components/ui';
 import { t, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
@@ -207,16 +207,13 @@ export default function Risk() {
             >
               {sandboxBusy ? t('riskPage.building') : t('riskPage.sandboxPreview')}
             </Button>
-            <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
-              <input
-                type="checkbox"
-                checked={includeInspected}
-                onChange={(e) => setIncludeInspected(e.target.checked)}
-                disabled={checkBusy}
-                className="h-3 w-3"
-              />
-              {t('risk.label.showPostDenoise')}
-            </label>
+            <Checkbox
+              className="h-3 w-3"
+              checked={includeInspected}
+              onChange={(e) => setIncludeInspected(e.target.checked)}
+              disabled={checkBusy}
+              label={t('risk.label.showPostDenoise')}
+            />
             <span className="text-[11px] text-muted-foreground">{t('risk.label.cmdEnterSubmit')}</span>
           </div>
           {checkError ? <ErrorPanel message={checkError} /> : null}
