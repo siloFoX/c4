@@ -12,6 +12,7 @@
 ![Claude Code](https://img.shields.io/badge/Claude_Code-v2.1.85--2.1.112-8A2BE2.svg)
 ![Platform](https://img.shields.io/badge/platform-Win11%2022H2%2B%20%7C%20Ubuntu%2022.04%2B-blue.svg)
 ![Version](https://img.shields.io/badge/version-1.10.307-green.svg)
+![Web coverage](https://img.shields.io/badge/web%20coverage-97.6%25-brightgreen.svg)
 
 > **The only multi-agent orchestrator for Claude Code** — parallel workers, manager rotation, recursive delegation, overnight autonomous coding. No screenshots, just PTY.
 
@@ -454,6 +455,19 @@ Contributions are welcome! Please:
 - `npm run lint:i18n-visual` — Playwright walk over ~42 surfaces in ko locale (requires running daemon on :3458)
 - `npm run lint:runtime-drift` — validate live daemon GET routes against OpenAPI spec (requires running daemon on :3456)
 - `npm run check` — composite (lint + test + build + bundle-size)
+
+### Testing & Coverage
+
+The `web/` package ships a vitest suite plus an opt-in coverage run.
+
+```bash
+cd web
+npm run test            # one-shot run, jsdom + RTL + MSW
+npm run test:watch      # interactive vitest UI
+npm run test:coverage   # writes web/coverage/ + updates web/src/test/coverage-report.json
+```
+
+`npm run test:coverage` uses the `@vitest/coverage-v8` provider configured in `web/vite.config.ts` (text + json-summary + json reporters, `reportOnFailure: true`). Latest snapshot: lines **97.6%**, statements **96.1%**, functions **94.6%**, branches **91.2%** — see [web/src/test/coverage-report.json](web/src/test/coverage-report.json). The `web/coverage/` directory is gitignored; only the JSON summary lives in git.
 
 See [TODO.md](TODO.md) for the roadmap and open tasks.
 
