@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.179] - 2026-05-14 -- UI: Navbar primitive + AppHeader adoption
+
+New `<Navbar>` primitive in `web/src/components/ui/navbar.tsx` (semantic `<header role='banner'>` wrapping `<nav role='navigation' aria-label='Primary'>` with a three-column grid (brand auto / center 1fr / actions auto); props brand?/center?/actions?/sticky? default false/variant? plain|bordered|elevated default plain/className?/innerClassName?; sticky variant adds `sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60`; bordered adds `border-b border-border`; elevated adds `shadow-sm`; forwardRef to the header element). Adopted in `AppHeader` (variant='bordered' with className='rounded-none bg-card' to preserve the existing card-tinted surface; brand slot holds hamburger + logo + wordmark, center slot holds TopTabs, actions slot holds Help/Shortcuts/Language IconButtons plus the authed AccountMenu).
+
 ## [1.11.178] - 2026-05-14 -- UI: HeroCard featured info-card primitive + 2 adoption sites
 
 New `<HeroCard>` primitive in `web/src/components/ui/hero-card.tsx` (forwardRef to `<section>`; props icon/title/description/cta/secondaryCta/tone primary|success|info|muted default primary/size sm|md|lg default md/className; rounded-xl border + size-driven padding, subtle tone-driven `bg-gradient-to-br` overlay positioned absolutely inside relative+overflow-hidden, icon rendered in a tone-coloured rounded badge above title, h2 bold title + muted description below, flex-row CTA slot at the bottom). Adopted on Workspaces (top-of-page welcome replacing the prior muted intro div) and Profiles (top-of-page onboarding card above the existing PageDescriptionBanner).
