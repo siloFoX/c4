@@ -31,6 +31,7 @@ import {
   ShieldCheck,
   Sparkles,
   Sunrise,
+  ToggleRight,
   Trash2,
   Wrench,
 } from 'lucide-react';
@@ -221,6 +222,14 @@ export const FEATURES: FeatureDef[] = [
     category: 'config',
     Icon: Keyboard,
     load: () => import('./KeyboardMap'),
+  },
+  {
+    id: 'feature-flags',
+    labelKey: 'feature.featureFlags.label',
+    descriptionKey: 'feature.featureFlags.description',
+    category: 'config',
+    Icon: ToggleRight,
+    load: () => import('./FeatureFlags'),
   },
   {
     id: 'notifications',
