@@ -4,6 +4,67 @@
 
 (no entries -- next release window)
 
+## [1.11.110] - 2026-05-14 -- Tests: Worker detail + Wiki header RTL batch (TODO 11.92)
+
+Add vitest/RTL/jsdom coverage for three components that previously had
+no test file: `web/src/components/WorkerDetailComposer.tsx`,
+`WorkerDetailKeysRow.tsx`, and `WikiSearchCardHeader.tsx`. Mirrors the
+v1.11.104 / v1.11.105 / v1.11.106 / v1.11.107 / v1.11.109 pattern
+(setLocale in beforeEach, render with `vi.fn()` callbacks, assert the
+DOM + callback wiring, locale-flip assertion at the end). Two of the
+three components are pure controlled inputs with no module-level
+dependencies; `WikiSearchCardHeader` composes
+`WikiSearchControls` + `WikiBulkPublishRow` so the test mocks both
+children with marker stubs (data-* attrs for props + buttons that
+trigger callbacks) -- the children already have dedicated tests in
+`WikiSearchControls.test.tsx` and the bulk-publish hook coverage.
+
+- WorkerDetailComposer.test.tsx (32 cases): localized placeholder
+  + Send / Enter / Merge / Close button labels rendered with the
+  correct aria-labels and title attribute; `inputText` prop reflects
+  as the input value with rerender update; `onChangeInputText` fires
+  per character typed; Enter in the input fires `onSend` but
+  Shift+Enter and other keys do not, and Enter does not submit a
+  parent form (preventDefault path); every button-click dispatches
+  the right handler; Send icon-button is disabled when `inputText` is
+  empty or whitespace-only and enabled otherwise; `busy=true` gates
+  the input + all four buttons; every button carries `type="button"`;
+  no callback fires on initial render; locale flip drops the English
+  placeholder + Merge label + Close label + Merge title attribute.
+- WorkerDetailKeysRow.test.tsx (28 cases): localized "Keys" heading
+  + Esc / Ctrl-C / Ctrl-D / Tab button labels + four arrow-button
+  aria-labels render; exactly eight buttons; the container carries
+  the `md:hidden` Tailwind class so it hides at md+ breakpoints;
+  every button click dispatches `onSendKey` with the right
+  `SendableKey` token (`Escape` / `C-c` / `C-d` / `Tab` / `Up` /
+  `Down` / `Left` / `Right`); repeated clicks fire the callback
+  once per click with the same arg; `busy=true` disables every
+  button; every button carries `type="button"`; no callback on
+  initial render; locale flip drops the English "Keys" heading +
+  Arrow Up aria-label.
+- WikiSearchCardHeader.test.tsx (21 cases): renders the localized
+  "Wiki" CardTitle + both child marker stubs inside a CardHeader
+  with the `border-b` + `flex-col` utility classes; forwards
+  `query` / `type` / `includeStale` / `searching` into the
+  WikiSearchControls stub (default values + overrides); each
+  controls callback (`onQuery` / `onType` / `onIncludeStale` /
+  `onSearch`) wires through to the parent prop; forwards
+  `bulkBusy` / `bulkGitCommit` / `bulkGitPush` / `bulkMsg` /
+  `bulkFailed` into the WikiBulkPublishRow stub including the
+  `null` `bulkMsg` default and the failed=true path; each
+  bulk-publish callback (`onBulkGitCommit` / `onBulkGitPush` /
+  `onBulkPublish`) wires through; no callback fires on initial
+  render; locale flip drops the English "Wiki" title and both
+  child markers stay mounted.
+
+Verification: 81 / 81 new cases passing (`env -C
+/root/c4-worktree-auto-w83/web vitest run --project unit` on the
+three files); 5615 / 5615 cases passing across the full 254-file
+unit suite (5534 prior from v1.11.109 + 81 new cases in 3 new
+files). ErrorBoundary `boom` / `left-boom` console.error lines
+are pre-existing fixture output, not regressions introduced here.
+web/package.json 1.11.109 -> 1.11.110.
+
 ## [1.11.109] - 2026-05-13 -- Tests: Risk panels remaining RTL batch (TODO 11.91)
 
 Add vitest/RTL/jsdom coverage for the two remaining Risk-page panels
