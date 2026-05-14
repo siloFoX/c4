@@ -180,13 +180,13 @@ describe('<TokenUsage>', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('toggles the per-task checkbox state on click', async () => {
+  it('toggles the per-task switch state on click', async () => {
     const user = userEvent.setup();
     render(<TokenUsage />);
-    const cb = screen.getByLabelText('Per-task') as HTMLInputElement;
-    expect(cb.checked).toBe(false);
+    const cb = screen.getByLabelText('Per-task');
+    expect(cb).toHaveAttribute('aria-checked', 'false');
     await user.click(cb);
-    expect(cb.checked).toBe(true);
+    expect(cb).toHaveAttribute('aria-checked', 'true');
   });
 
   it('fires the hook refresh handler when the refresh button is clicked', async () => {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { RefreshCw, Shield } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
-import { Alert, Button, Checkbox, Input, Panel } from '../components/ui';
+import { Alert, Button, Input, Panel, Switch } from '../components/ui';
 import { t, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
@@ -207,10 +207,9 @@ export default function Risk() {
             >
               {sandboxBusy ? t('riskPage.building') : t('riskPage.sandboxPreview')}
             </Button>
-            <Checkbox
-              className="h-3 w-3"
+            <Switch
               checked={includeInspected}
-              onChange={(e) => setIncludeInspected(e.target.checked)}
+              onChange={setIncludeInspected}
               disabled={checkBusy}
               label={t('risk.label.showPostDenoise')}
             />

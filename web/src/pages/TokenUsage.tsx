@@ -3,7 +3,7 @@ import { RefreshCw } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, Checkbox, Pagination, Panel, Table, Tooltip } from '../components/ui';
+import { Badge, Button, Pagination, Panel, Switch, Table, Tooltip } from '../components/ui';
 import type { TableColumn } from '../components/ui';
 import { useTokenUsage } from '../lib/use-token-usage';
 import { useTokenUsageBreakdowns, coerceTotal } from '../lib/use-token-usage-breakdowns';
@@ -68,9 +68,9 @@ export default function TokenUsage() {
             </Tooltip>
           ))}
           <Tooltip label={t('tokenUsage.tooltip.perTask')}>
-            <Checkbox
+            <Switch
               checked={perTask}
-              onChange={(e) => setPerTask(e.target.checked)}
+              onChange={setPerTask}
               label={t('tokenUsagePage.perTask')}
             />
           </Tooltip>

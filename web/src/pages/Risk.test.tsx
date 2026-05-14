@@ -362,15 +362,13 @@ describe('<Risk>', () => {
     ).toBeInTheDocument();
   });
 
-  it('toggles the post-denoise checkbox when clicked', async () => {
+  it('toggles the post-denoise switch when clicked', async () => {
     const user = userEvent.setup();
     render(<Risk />);
-    const cb = screen.getByLabelText(
-      /show post-denoise text/,
-    ) as HTMLInputElement;
-    expect(cb.checked).toBe(false);
+    const cb = screen.getByLabelText(/show post-denoise text/);
+    expect(cb).toHaveAttribute('aria-checked', 'false');
     await user.click(cb);
-    expect(cb.checked).toBe(true);
+    expect(cb).toHaveAttribute('aria-checked', 'true');
   });
 
   it('renders the ⌘+Enter submit hint', () => {
