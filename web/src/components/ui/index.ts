@@ -24,3 +24,4 @@ export * from './alert';
 export * from './progress';
 export * from './avatar';
 export * from './kbd';
+export * from './code-block';
