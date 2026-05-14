@@ -1131,6 +1131,8 @@
   "feature.workspaces.description": "config.workspaces에 선언된 멀티 repo 워크스페이스.",
   "feature.rbac.label": "RBAC",
   "feature.rbac.description": "역할 + 사용자별 권한 부여의 읽기 전용 명단.",
+  "feature.notifications.label": "Notifications",
+  "feature.notifications.description": "자율 루프의 라이프사이클 이벤트(dispatch/complete/halt/escalation) 통합 피드.",
   "feature.health.label": "Health",
   "feature.health.description": "데몬 상태, 업타임, 큐 깊이 및 로드된 모듈.",
   "feature.validation.label": "Validation",

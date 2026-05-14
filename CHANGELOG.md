@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.204] - 2026-05-14 -- UI: Notifications feed page (11.186)
+
+New `<Notifications>` page at `web/src/pages/Notifications.tsx` rendering the unified lifecycle feed (dispatch/complete/halt/escalation/system) with chip-based type filters, day-grouped `<Timeline>`, `<EmptyState>` fallback (BellOff icon), `Mark all read` header action, and a `Load more` pagination placeholder (50 items default). Fetches `/api/notifications` with a try/catch fallback to 20 inline mock items spanning the last 7 days; a `sample data` badge surfaces when mocks are used. Registered as `feature.notifications` (diagnostics category, Bell icon). en/ko i18n keys added. See `docs/patches/11.186-ui-notifications-page.md`.
+
 ## [1.11.203] - 2026-05-14 -- UI: Design System docs page (11.185)
 
 New `<DesignSystem>` page at `web/src/pages/DesignSystem.tsx` rendering live demos + variant matrices + JSX snippets for every UI primitive in `web/src/components/ui` (Button, Input, Textarea, Select, Switch, Chip, Badge, Card/Panel, Alert, EmptyState, StatCard, Tooltip, Popover, Dialog, DropdownMenu, DataList, Timeline, Stepper, Breadcrumbs, ScrollArea, FileTree, DatePicker/Range, Rating, NumberInput, SearchBar, TagInput, HScroll, Progress, Avatar/AvatarShape, Kbd, Separator). Missing primitives (e.g. Spinner) render a graceful placeholder. Registered as `feature.designSystem` (config category, Palette icon) so it appears in the Features sidebar. en/ko i18n keys added. See `docs/patches/11.185-ui-design-system-page.md`.

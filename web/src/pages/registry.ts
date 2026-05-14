@@ -8,6 +8,7 @@ import type { ComponentType } from 'react';
 import {
   Activity,
   BarChart3,
+  Bell,
   Brain,
   Coins,
   Cog,
@@ -201,6 +202,14 @@ export const FEATURES: FeatureDef[] = [
     category: 'config',
     Icon: Palette,
     load: () => import('./DesignSystem'),
+  },
+  {
+    id: 'notifications',
+    labelKey: 'feature.notifications.label',
+    descriptionKey: 'feature.notifications.description',
+    category: 'diagnostics',
+    Icon: Bell,
+    load: () => import('./Notifications'),
   },
   {
     id: 'health',
