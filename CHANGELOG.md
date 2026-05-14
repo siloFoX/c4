@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.187] - 2026-05-14 -- UI: Drawer primitive + Health/Auto filter adoption
+
+New `<Drawer>` primitive in `web/src/components/ui/drawer.tsx` (slide-in side panel rendered via `createPortal` to `document.body`; props open/onOpenChange/side 'left'|'right' default 'right'/width number|string default '320px'/title/description/showCloseButton default true/closeOnBackdropClick default true/closeOnEsc default true/className/children; role='dialog' aria-modal='true' with aria-labelledby + aria-describedby wired to the rendered h2 + paragraph; focus trap via `useFocusTrap` with restoreFocusOnUnmount and onEscape gated by closeOnEsc; backdrop click gated by closeOnBackdropClick; lucide-react X close button; forwardRef to the panel element; cn() class merge). Adopted in `pages/Health.tsx` and `pages/Auto.tsx`: added a Filter IconButton in the PageFrame actions slot that opens a Drawer carrying a "Coming soon" Alert (real filter wiring deferred -- this lands the surface).
+
 ## [1.11.186] - 2026-05-14 -- UI: form validation helpers + useForm hook
 
 New `web/src/lib/form-validation.ts` exposes a small `Validator<T>` algebra (`required` / `minLength` / `maxLength` / `pattern` / `email` / `custom` / `compose`), each returning `{ error?: string }`; the lightweight email regex rejects empty, missing `@`, and consecutive dots. New `web/src/hooks/use-form.ts` provides `useForm<TFields>({ initialValues, validators?, onSubmit? })` returning `{ values, errors, touched, setValue, setTouched, handleSubmit, isValid, reset }` -- `errors[field]` populates only after the field is touched or `handleSubmit` runs (which also marks every field touched), and `isValid` reflects the full validator sweep so callers can gate submit independent of touched state. Adopted in `pages/Plan.tsx` (required validator on the task Textarea wired via `setValue` / `setTouched` / `error` slot) and `pages/Risk.tsx` (command Textarea adopted with the same wiring; raw `<textarea>` converted to the `Textarea` primitive so the error slot is available). Profiles has no editable name input so adoption was skipped per the task's "fit naturally" rule.

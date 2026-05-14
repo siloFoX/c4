@@ -13,6 +13,7 @@ import {
   CircleDashed,
   Clock,
   Cpu,
+  Filter,
   History,
   Inbox,
   Loader2,
@@ -35,7 +36,9 @@ import {
   Card,
   CardContent,
   DashboardGrid,
+  Drawer,
   EmptyState as PrimitiveEmptyState,
+  IconButton,
   StatCard,
   Timeline,
   Tooltip,
@@ -861,6 +864,7 @@ export default function Auto({ noAnimation = false }: AutoProps = {}) {
 
   const [pending, setPending] = useState<'pause' | 'resume' | 'tick' | null>(null);
   const inflightRef = useRef(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const refreshAll = useCallback(() => {
     queueSlot.refresh();
@@ -893,20 +897,40 @@ export default function Auto({ noAnimation = false }: AutoProps = {}) {
         title="Autonomous dashboard"
         description="Live view of the autonomous dispatcher: queue, workers, timeline, controls."
         actions={
-          <Tooltip label="Refresh all panels" placement="bottom">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={refreshAll}
-              aria-label="Refresh all panels"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              <span>Refresh</span>
-            </Button>
-          </Tooltip>
+          <>
+            <Tooltip label="Filters" placement="bottom">
+              <IconButton
+                icon={<Filter className="h-3.5 w-3.5" />}
+                aria-label="Open filters"
+                onClick={() => setFiltersOpen(true)}
+              />
+            </Tooltip>
+            <Tooltip label="Refresh all panels" placement="bottom">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={refreshAll}
+                aria-label="Refresh all panels"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span>Refresh</span>
+              </Button>
+            </Tooltip>
+          </>
         }
       >
+        <Drawer
+          open={filtersOpen}
+          onOpenChange={setFiltersOpen}
+          title="Filters"
+          description="worker name, status, target"
+        >
+          <Alert variant="info" title="Coming soon">
+            Filter wiring lands in a follow-up. Drawer is integrated so the
+            surface is ready.
+          </Alert>
+        </Drawer>
         <PageDescriptionBanner
           summaryKey="auto.summary"
           cliKey="auto.cli"

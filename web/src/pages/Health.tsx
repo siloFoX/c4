@@ -1,13 +1,17 @@
-import { HelpCircle, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import { Filter, HelpCircle, RefreshCw } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import {
+  Alert,
   Badge,
   Button,
   Collapsible,
   DashboardGrid,
   DataList,
+  Drawer,
+  IconButton,
   Panel,
   Popover,
   Rating,
@@ -31,6 +35,7 @@ import { useHealth } from '../lib/use-health';
 export default function Health() {
   useLocale();
   const { data, loading, error, refresh } = useHealth();
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const ok = data?.ok !== false && !error;
 
@@ -39,21 +44,41 @@ export default function Health() {
       title={t('healthPage.title')}
       description={t('healthPage.description')}
       actions={
-        <Tooltip label={t('health.tooltip.refresh')}>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={refresh}
-            disabled={loading}
-            aria-label={t('healthPage.refresh.label')}
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span className="sr-only">{t('common.srOnlyRefresh')}</span>
-          </Button>
-        </Tooltip>
+        <>
+          <Tooltip label="Filters">
+            <IconButton
+              icon={<Filter className="h-3.5 w-3.5" />}
+              aria-label="Open filters"
+              onClick={() => setFiltersOpen(true)}
+            />
+          </Tooltip>
+          <Tooltip label={t('health.tooltip.refresh')}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={refresh}
+              disabled={loading}
+              aria-label={t('healthPage.refresh.label')}
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span className="sr-only">{t('common.srOnlyRefresh')}</span>
+            </Button>
+          </Tooltip>
+        </>
       }
     >
+      <Drawer
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        title="Filters"
+        description="status, severity, since"
+      >
+        <Alert variant="info" title="Coming soon">
+          Filter wiring lands in a follow-up. Drawer is integrated so the
+          surface is ready.
+        </Alert>
+      </Drawer>
       <PageDescriptionBanner
         summaryKey="health.summary"
         cliKey="health.cli"
