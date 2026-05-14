@@ -4,6 +4,10 @@
 
 (no entries -- next release window)
 
+## [1.11.190] - 2026-05-14 -- UI: error/empty page templates (11.172)
+
+New page-level templates in `web/src/components/templates/`: `<ErrorPage>` (generic error fallback with Alert showing error.message when provided, Try again Button calling resetError, Go home anchor styled via buttonVariants), `<NotFoundPage>` (default title 'Page not found' + single Go home CTA), and `<UnauthorizedPage>` (default title 'Unauthorized' + Sign in primary + Go home secondary). All three use forwardRef on the wrapper div, share a full-height centered card layout with lucide-react icon (AlertCircle / FileQuestion / Lock), and re-export through a new `web/src/components/templates/index.ts` barrel. App.tsx router wiring deferred -- topView is exhaustively constrained at the storage + type layer so there is no unreachable fallback to replace; templates exported and ready for adoption when a generic router lands.
+
 ## [1.11.189] - 2026-05-14 -- UI: StatusDot primitive + 3 adoption sites (11.171)
 
 New `<StatusDot>` primitive in `web/src/components/ui/status-dot.tsx` (small colored dot with variant 'online'|'busy'|'away'|'offline'|'unknown' default 'unknown' driving bg-green-500 / bg-yellow-500 / bg-orange-500 / bg-muted-foreground / bg-muted; size 'sm'|'md'|'lg' default 'md' for 6/8/10px; pulse boolean default false adding an absolute-positioned animate-ping span at 75% opacity in the same color behind the dot; optional label ReactNode rendered inline; role='status' on the wrapper with aria-label='Status: <variant>' fallback when no label is provided; cn() class merge). Adopted in WorkerList row (StatusDot beside the avatar mapping busy/idle/intervention to busy/online/away with pulse on busy), SessionsListSection per-session row (StatusDot in the title slot derived from updatedAt recency: <5m online, <1h away, else offline), and Health page top status row (StatusDot beside the healthy/degraded badge mapping daemon ok to online/offline with pulse when healthy).
