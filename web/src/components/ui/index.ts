@@ -44,3 +44,4 @@ export * from './search-bar';
 export * from './rating';
 export * from './image';
 export * from './list-item';
+export * from './status-dot';
