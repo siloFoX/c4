@@ -16,6 +16,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  ColumnPicker,
   DateRangePicker,
   ExportButton,
   Input,
@@ -111,6 +112,17 @@ export default function HistoryView() {
     setSelected(name);
   }, [closeScribe]);
 
+  // (11.192) ColumnPicker controls which sidebar summary fields render
+  // per row. 'name' is always visible.
+  const [visibleCols, setVisibleCols] = useState<string[]>(() => [
+    'name',
+    'status',
+    'branch',
+    'taskCount',
+    'lastTaskAt',
+  ]);
+  const visibleColSet = new Set(visibleCols);
+
   // (11.191) Bulk selection - shift/meta+click toggles membership.
   const [bulk, setBulk] = useState<Set<string>>(() => new Set());
   const toggleBulk = useCallback((name: string) => {
@@ -147,6 +159,18 @@ export default function HistoryView() {
             <div className="flex items-center gap-1">
               {/* (11.190) ExportButton adoption: download visible history
                   workers as CSV/JSON. */}
+              <ColumnPicker
+                columns={[
+                  { id: 'name', label: 'Name', alwaysVisible: true },
+                  { id: 'status', label: 'Status' },
+                  { id: 'branch', label: 'Branch' },
+                  { id: 'taskCount', label: 'Tasks' },
+                  { id: 'lastTaskAt', label: 'Last task' },
+                ]}
+                value={visibleCols}
+                onChange={setVisibleCols}
+                storageKey="c4:history:columns"
+              />
               <ExportButton
                 rows={summary as unknown[]}
                 columns={[
@@ -276,17 +300,26 @@ export default function HistoryView() {
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span className="truncate">{w.name}</span>
-                          <Badge
-                            variant={w.alive ? 'success' : 'secondary'}
-                            className="shrink-0 text-[10px] uppercase"
-                          >
-                            {w.alive ? w.liveStatus || 'live' : 'closed'}
-                          </Badge>
+                          {visibleColSet.has('status') && (
+                            <Badge
+                              variant={w.alive ? 'success' : 'secondary'}
+                              className="shrink-0 text-[10px] uppercase"
+                            >
+                              {w.alive ? w.liveStatus || 'live' : 'closed'}
+                            </Badge>
+                          )}
                         </div>
-                        <div className="mt-0.5 text-[11px] text-muted-foreground">
-                          {tFormat(w.taskCount === 1 ? 'history.taskCount.singular' : 'history.taskCount.plural', { count: w.taskCount })}
-                          {w.lastTaskAt ? ` - ${w.lastTaskAt.slice(0, 10)}` : ''}
-                        </div>
+                        {visibleColSet.has('branch') && w.branches.length > 0 && (
+                          <div className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
+                            {w.branches[0]}
+                          </div>
+                        )}
+                        {(visibleColSet.has('taskCount') || visibleColSet.has('lastTaskAt')) && (
+                          <div className="mt-0.5 text-[11px] text-muted-foreground">
+                            {visibleColSet.has('taskCount') && tFormat(w.taskCount === 1 ? 'history.taskCount.singular' : 'history.taskCount.plural', { count: w.taskCount })}
+                            {visibleColSet.has('lastTaskAt') && w.lastTaskAt ? ` - ${w.lastTaskAt.slice(0, 10)}` : ''}
+                          </div>
+                        )}
                       </button>
                     );
                   }}
