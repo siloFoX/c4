@@ -4,6 +4,43 @@
 
 (no entries -- next release window)
 
+## [1.11.151] - 2026-05-14 -- Web: Pagination primitive
+
+A new `<Pagination>` primitive (`web/src/components/ui/pagination.tsx`)
+gives list-heavy pages a consistent way to keep DOM size bounded as data
+grows. Two of the busiest pages adopt it in the same release.
+
+What changed:
+
+- **`<Pagination page totalPages onPageChange siblingCount?>`** -- renders
+  Prev (disabled at page 1), numbered page buttons with ellipsis truncation
+  around the current page (`siblingCount` default 1, so page 5 of 20 ->
+  `1 ... 4 5 6 ... 20`), and Next (disabled at the last page). The active
+  page button carries `aria-current="page"`. The wrapping `<nav>` exposes
+  `role="navigation"` + `aria-label="Pagination"` so assistive tech can
+  jump straight to the control. Clicking a number, Prev, or Next fires
+  `onPageChange` with the target page; clicking the already-active page
+  is a no-op. `totalPages=1` collapses to a single page button with both
+  Prev and Next disabled and no ellipsis.
+- **`pagination.test.tsx`** -- locks the contract: single-page form,
+  full-numbered form at `total=5`, the truncated `1 ... 9 10 11 ... 20`
+  form at `total=20 page=10` (two ellipsis spans), the explicit
+  `1 ... 4 5 6 ... 20` sequence for `page=5 of 20`, numbered + Prev +
+  Next click semantics, `aria-current` on the active button, disabled
+  edges on page 1 and the final page, and the active-page no-op.
+- **`web/src/pages/Templates.tsx`** -- the templates list now paginates
+  the filter result with a page size of 20 (`useState` page state, page
+  resets to 1 when the filter shrinks the list below the current page).
+  Pagination renders below the list only when `filtered.length > 20`.
+- **`web/src/pages/TokenUsage.tsx`** -- the per-task table (gated on
+  `perTask=1`) was previously hard-capped at the first 200 rows via
+  `slice(0, 200)`. It now extracts a `<PerTaskTable>` subcomponent that
+  paginates the full payload at 20 rows per page, so deeper-ranked rows
+  are still reachable on busy days. Page resets to 1 if the underlying
+  data shrinks below the current page.
+
+No new dependencies. `web/package.json` bumps `1.11.150 -> 1.11.151`.
+
 ## [1.11.150] - 2026-05-14 -- Web: Dialog primitive
 
 A new `<Dialog>` primitive (`web/src/components/ui/dialog.tsx`) centralises
