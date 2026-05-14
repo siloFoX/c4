@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, EmptyState, Fieldset, HeroCard, ListItem, Panel, SearchBar, Tooltip } from '../components/ui';
+import { Badge, Button, EmptyState, ExportButton, Fieldset, HeroCard, ListItem, Panel, SearchBar, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -66,6 +66,17 @@ export default function Profiles() {
               <span>{t('profilesPage.add')}</span>
             </Button>
           </Tooltip>
+          {/* (11.190) ExportButton adoption: download filtered profile
+              rows for offline review. */}
+          <ExportButton
+            rows={filtered as unknown[]}
+            columns={[
+              { key: 'name', header: 'Profile' },
+              { key: 'description', header: 'Description' },
+            ]}
+            filename="profiles"
+            disabled={filtered.length === 0}
+          />
           <Tooltip label={t('profiles.tooltip.refresh')}>
             <Button type="button" variant="ghost" size="sm" onClick={refresh} disabled={loading}>
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />

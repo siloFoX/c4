@@ -53,3 +53,4 @@ export * from './breadcrumbs';
 export * from './notification-banner';
 export * from './virtual-list';
 export * from './file-tree';
+export * from './export-button';

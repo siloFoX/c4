@@ -3,7 +3,7 @@ import { RefreshCw } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, Pagination, Panel, Switch, Table, Tooltip } from '../components/ui';
+import { Badge, Button, ExportButton, Pagination, Panel, Switch, Table, Tooltip } from '../components/ui';
 import type { TableColumn } from '../components/ui';
 import { useTokenUsage } from '../lib/use-token-usage';
 import { useTokenUsageBreakdowns, coerceTotal } from '../lib/use-token-usage-breakdowns';
@@ -74,6 +74,17 @@ export default function TokenUsage() {
               label={t('tokenUsagePage.perTask')}
             />
           </Tooltip>
+          {/* (11.190) ExportButton adoption: download per-worker token
+              totals over the current window. */}
+          <ExportButton
+            rows={perWorker as unknown[]}
+            columns={[
+              { key: 'name', header: 'Worker' },
+              { key: 'total', header: 'Total' },
+            ]}
+            filename="token-usage"
+            disabled={perWorker.length === 0}
+          />
           <Tooltip label={t('tokenUsage.tooltip.refresh')}>
             <Button type="button" variant="ghost" size="sm" onClick={refresh} disabled={loading}>
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
