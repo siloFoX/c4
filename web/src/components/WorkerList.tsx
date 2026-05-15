@@ -21,6 +21,7 @@ import { NoWorkersIllustration } from './illustrations';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import WorkerListGroupHeader from './WorkerListGroupHeader';
+import WorkerResourceGraph from './WorkerResourceGraph';
 import {
   groupOf,
   isInterventionActive,
@@ -136,9 +137,12 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
               {w.name}
             </span>
           </div>
-          <Badge variant={mapWorkerStatusToBadgeVariant(w)} className="shrink-0 uppercase">
-            {statusLabel(w)}
-          </Badge>
+          <div className="flex shrink-0 items-center gap-2">
+            <WorkerResourceGraph workerName={w.name} />
+            <Badge variant={mapWorkerStatusToBadgeVariant(w)} className="uppercase">
+              {statusLabel(w)}
+            </Badge>
+          </div>
         </CardHeader>
         <CardContent className="space-y-1.5 p-4 pt-0">
           {(w.unreadSnapshots > 0 || interventionActive) && (
