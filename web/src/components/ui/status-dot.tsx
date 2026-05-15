@@ -17,10 +17,22 @@ export interface StatusDotProps extends HTMLAttributes<HTMLSpanElement> {
   label?: ReactNode;
 }
 
+// (v1.11.242, TODO 11.224) Map every status to a canonical
+// tag-palette `dot` class so light/dark theme parity is automatic
+// and a future hue migration only has to touch tag-palette.ts.
+// online -> success.dot   (signal-success green)
+// busy   -> warning.dot   (signal-warning amber)
+// away   -> chart-3       (warm orange, the only non-status hue
+//                          that survives both themes without
+//                          colliding with the success/warning
+//                          binary)
+// offline -> neutral.dot  (muted-foreground graphite)
+// unknown -> bg-muted     (the lightest neutral surface, kept
+//                          distinct from `offline`)
 const COLOR_BY_VARIANT: Record<StatusDotVariant, string> = {
-  online: 'bg-green-500',
-  busy: 'bg-yellow-500',
-  away: 'bg-orange-500',
+  online: 'bg-success',
+  busy: 'bg-warning',
+  away: 'bg-chart-3',
   offline: 'bg-muted-foreground',
   unknown: 'bg-muted',
 };

@@ -39,6 +39,7 @@ import {
   StatCard,
   Stepper,
   Switch,
+  TAG_PALETTE,
   TagInput,
   Textarea,
   Timeline,
@@ -189,6 +190,58 @@ function SwitchDemo() {
       code={`<Switch checked={on} onChange={setOn} label="Notifications" />`}
     >
       <Switch checked={on} onChange={setOn} label="Notifications" />
+    </Demo>
+  );
+}
+
+function TagPaletteDemo() {
+  // (v1.11.242, TODO 11.224) Canonical 8-color tag palette. Every
+  // status / category surface (Chip, Badge, StatusDot, TagInput
+  // chips, tier badges in SpecialistsView) routes through this
+  // set so adjacent surfaces stay visually harmonious. Ad-hoc
+  // Tailwind hues (bg-green-500, bg-blue-500/10, ...) are out -- use
+  // a palette entry instead.
+  return (
+    <Demo
+      name="Tag palette (canonical 8 colors)"
+      description="Single source of truth for tag / chip / badge / status colors. 5 status tones (brand/success/warning/info/danger) + 3 accent tones (accent/magenta/neutral). Each entry exposes subtle / solid / outline / dot class strings pinned to shadcn + chart tokens."
+      code={`import { TAG_PALETTE, pickTagTone, getTagTone } from '../components/ui';
+
+// Direct lookup by id
+getTagTone('success').subtle  // -> 'bg-success/15 text-success'
+
+// Deterministic pick by seed (e.g. tag name)
+pickTagTone('reviewer').solid // stable hash -> one of the 8 tones`}
+    >
+      <div className="flex w-full flex-col gap-3">
+        {(['subtle', 'solid', 'outline'] as const).map((surface) => (
+          <div key={surface} className="flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">
+              {surface}
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {TAG_PALETTE.map((tone) => (
+                <span
+                  key={`${tone.id}-${surface}`}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium border',
+                    surface === 'subtle' && 'border-transparent',
+                    surface === 'solid' && 'border-transparent',
+                    tone[surface],
+                  )}
+                  title={`${tone.id} (${tone.arpsToken})`}
+                >
+                  <span
+                    aria-hidden
+                    className={cn('h-1.5 w-1.5 rounded-full', tone.dot)}
+                  />
+                  {tone.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </Demo>
   );
 }
@@ -708,6 +761,7 @@ const CATEGORIES: { label: string; demos: ReactNode }[] = [
     label: 'Display',
     demos: (
       <>
+        <TagPaletteDemo />
         <ChipDemo />
         <BadgeDemo />
         <CardPanelDemo />
