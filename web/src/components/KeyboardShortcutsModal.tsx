@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
-import { Dialog, IconButton, Kbd, SearchBar, Separator } from './ui';
+import { Chip, Dialog, IconButton, Kbd, SearchBar, Separator } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 
@@ -46,6 +46,28 @@ const SECTION_KEYS: Record<ShortcutCategory, string> = {
   view: 'shortcuts.section.view',
 };
 
+// (v1.11.259, TODO 11.241) Pure matcher exported for unit coverage.
+// Matches against three surfaces: the binding (row.keys), the
+// translated description (the human-readable label), and the
+// translated section/category name (so "nav" / "navigation"
+// filters to every navigation shortcut). All comparisons are
+// case-insensitive substring matches. An empty / whitespace-only
+// needle matches everything.
+export function matchesShortcut(row: Row, needle: string): boolean {
+  const n = needle.trim().toLowerCase();
+  if (!n) return true;
+  if (row.keys.toLowerCase().includes(n)) return true;
+  const description = t(row.descriptionKey).toLowerCase();
+  if (description.includes(n)) return true;
+  const sectionLabel = t(SECTION_KEYS[row.category]).toLowerCase();
+  if (sectionLabel.includes(n)) return true;
+  // Raw category id ("navigation" / "actions" / "view") -- matches
+  // even when the locale flips, so an English operator on a Korean
+  // session can still type "navigation" and get a hit.
+  if (row.category.toLowerCase().includes(n)) return true;
+  return false;
+}
+
 export function KeyboardShortcutsModal({
   open,
   onClose,
@@ -53,16 +75,13 @@ export function KeyboardShortcutsModal({
   useLocale();
   const [filter, setFilter] = useState('');
 
-  const filtered = useMemo(() => {
-    const needle = filter.trim().toLowerCase();
-    if (!needle) return SHORTCUT_ROWS;
-    return SHORTCUT_ROWS.filter((row) => {
-      const label = t(row.descriptionKey).toLowerCase();
-      return (
-        row.keys.toLowerCase().includes(needle) || label.includes(needle)
-      );
-    });
-  }, [filter]);
+  const filtered = useMemo(
+    () => SHORTCUT_ROWS.filter((row) => matchesShortcut(row, filter)),
+    [filter],
+  );
+
+  const trimmedFilter = filter.trim();
+  const isFiltering = trimmedFilter.length > 0;
 
   const grouped = useMemo(() => {
     const out: Record<ShortcutCategory, Row[]> = {
@@ -89,16 +108,29 @@ export function KeyboardShortcutsModal({
             icon={<X className="h-4 w-4" />}
           />
         </div>
-        <div className="mb-3">
-          <SearchBar
-            size="sm"
-            value={filter}
-            onChange={setFilter}
-            onDebouncedChange={setFilter}
-            placeholder={t('shortcuts.search.placeholder')}
-            ariaLabel={t('shortcuts.search.ariaLabel')}
-            data-shortcuts-filter
-          />
+        <div className="mb-3 flex items-center gap-2">
+          <div className="flex-1">
+            <SearchBar
+              size="sm"
+              value={filter}
+              onChange={setFilter}
+              onDebouncedChange={setFilter}
+              placeholder={t('shortcuts.search.placeholder')}
+              ariaLabel={t('shortcuts.search.ariaLabel')}
+              data-shortcuts-filter
+            />
+          </div>
+          {isFiltering ? (
+            <Chip
+              tone="neutral"
+              variant="subtle"
+              size="sm"
+              aria-live="polite"
+              data-testid="shortcuts-result-count"
+            >
+              {filtered.length} / {SHORTCUT_ROWS.length}
+            </Chip>
+          ) : null}
         </div>
         {filtered.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">
