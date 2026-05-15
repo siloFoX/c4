@@ -468,12 +468,15 @@ export default function CommandPalette({
                         {highlightLabel(cmd.label, effectiveQuery)}
                       </span>
                       {cmd.shortcut ? (
+                        // (v1.11.268, TODO 11.250) Platform-aware
+                        // mod glyphs via the new Kbd `combo` prop:
+                        // shortcut strings like "Mod+K" render as
+                        // ⌘K on mac and "Ctrl + K" on others.
                         <Kbd
+                          combo={cmd.shortcut}
                           data-command-shortcut
                           className="border-border py-0.5"
-                        >
-                          {cmd.shortcut}
-                        </Kbd>
+                        />
                       ) : null}
                       <span
                         role="button"

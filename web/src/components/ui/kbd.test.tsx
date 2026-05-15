@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Kbd } from './kbd';
+import { Kbd, mapKey, parseCombo, detectPlatform } from './kbd';
 
 describe('<Kbd>', () => {
   it('renders a single <kbd> element when given children', () => {
@@ -98,5 +98,120 @@ describe('<Kbd>', () => {
     const kbds = container.querySelectorAll('kbd');
     expect(kbds.length).toBe(1);
     expect(kbds[0]).toHaveTextContent('Esc');
+  });
+
+  // -- v1.11.268 platform-aware mod mapping (TODO 11.250) ----------
+
+  it('combo prop parses "Cmd+K" on mac into glyph + literal key', () => {
+    const { container } = render(<Kbd combo="Cmd+K" platform="mac" />);
+    const kbds = container.querySelectorAll('kbd');
+    expect(kbds.length).toBe(2);
+    expect(kbds[0]!.textContent).toBe('⌘'); // ⌘
+    expect(kbds[1]!.textContent).toBe('K');
+  });
+
+  it('combo prop parses "Mod+K" platform="mac" -> ⌘ + K', () => {
+    const { container } = render(<Kbd combo="Mod+K" platform="mac" />);
+    const kbds = container.querySelectorAll('kbd');
+    expect(kbds[0]!.textContent).toBe('⌘');
+    expect(kbds[1]!.textContent).toBe('K');
+  });
+
+  it('combo prop parses "Mod+K" platform="other" -> Ctrl + K', () => {
+    const { container } = render(<Kbd combo="Mod+K" platform="other" />);
+    const kbds = container.querySelectorAll('kbd');
+    expect(kbds[0]!.textContent).toBe('Ctrl');
+    expect(kbds[1]!.textContent).toBe('K');
+  });
+
+  it('combo prop parses "Ctrl+Shift+P" on mac with three glyphs', () => {
+    const { container } = render(
+      <Kbd combo="Ctrl+Shift+P" platform="mac" />,
+    );
+    const kbds = container.querySelectorAll('kbd');
+    expect(kbds.length).toBe(3);
+    expect(kbds[0]!.textContent).toBe('⌃'); // ⌃
+    expect(kbds[1]!.textContent).toBe('⇧'); // ⇧
+    expect(kbds[2]!.textContent).toBe('P');
+  });
+
+  it('combo prop parses "Ctrl+Shift+P" on other platforms verbatim', () => {
+    const { container } = render(
+      <Kbd combo="Ctrl+Shift+P" platform="other" />,
+    );
+    const kbds = container.querySelectorAll('kbd');
+    expect(kbds[0]!.textContent).toBe('Ctrl');
+    expect(kbds[1]!.textContent).toBe('Shift');
+    expect(kbds[2]!.textContent).toBe('P');
+  });
+
+  it('mac default separator drops to "" (tight glyph layout)', () => {
+    const { container } = render(<Kbd combo="Cmd+K" platform="mac" />);
+    const seps = container.querySelectorAll('[data-kbd-separator]');
+    expect(seps.length).toBe(0);
+  });
+
+  it('non-mac default separator stays " + "', () => {
+    const { container } = render(<Kbd combo="Ctrl+K" platform="other" />);
+    const sep = container.querySelector('[data-kbd-separator]');
+    expect(sep).not.toBeNull();
+    expect(sep!.textContent).toBe(' + ');
+  });
+
+  it('explicit separator overrides the platform default', () => {
+    const { container } = render(
+      <Kbd combo="Cmd+K" platform="mac" separator=" / " />,
+    );
+    const sep = container.querySelector('[data-kbd-separator]');
+    expect(sep).not.toBeNull();
+    expect(sep!.textContent).toBe(' / ');
+  });
+
+  it('maps Alt / Option to ⌥ on mac, Alt verbatim on other', () => {
+    expect(mapKey('Alt', 'mac')).toBe('⌥');
+    expect(mapKey('Option', 'mac')).toBe('⌥');
+    expect(mapKey('Alt', 'other')).toBe('Alt');
+  });
+
+  it('maps Enter / Backspace / Esc / Tab / Space on mac', () => {
+    expect(mapKey('Enter', 'mac')).toBe('↵');
+    expect(mapKey('Backspace', 'mac')).toBe('⌫');
+    expect(mapKey('Esc', 'mac')).toBe('⎋');
+    expect(mapKey('Escape', 'mac')).toBe('⎋');
+    expect(mapKey('Tab', 'mac')).toBe('⇥');
+    expect(mapKey('Space', 'mac')).toBe('␣');
+  });
+
+  it('keeps non-modifier keys verbatim regardless of platform', () => {
+    expect(mapKey('K', 'mac')).toBe('K');
+    expect(mapKey('K', 'other')).toBe('K');
+    expect(mapKey('?', 'mac')).toBe('?');
+    expect(mapKey('/', 'other')).toBe('/');
+  });
+
+  it('parseCombo splits + and trims whitespace', () => {
+    expect(parseCombo('  Cmd + K  ', 'other')).toEqual(['Ctrl', 'K']);
+    expect(parseCombo('Cmd+K', 'mac')).toEqual(['⌘', 'K']);
+  });
+
+  it('exposes data-platform on the outer wrapper for e2e selectors', () => {
+    const { container } = render(<Kbd combo="Cmd+K" platform="mac" />);
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.getAttribute('data-platform')).toBe('mac');
+  });
+
+  it('detectPlatform returns a defined token (smoke check)', () => {
+    const p = detectPlatform();
+    expect(['mac', 'other']).toContain(p);
+  });
+
+  it('combo wins over keys when both are passed', () => {
+    const { container } = render(
+      <Kbd combo="Cmd+P" keys={['Ctrl', 'X']} platform="mac" />,
+    );
+    const kbds = container.querySelectorAll('kbd');
+    expect(kbds.length).toBe(2);
+    expect(kbds[0]!.textContent).toBe('⌘');
+    expect(kbds[1]!.textContent).toBe('P');
   });
 });
