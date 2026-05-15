@@ -1,6 +1,7 @@
 import { RotateCcw, Sparkles } from 'lucide-react';
 import PageFrame from './PageFrame';
 import { Alert, Button, Panel, Switch } from '../components/ui';
+import HelpTip from '../components/HelpTip';
 import { t, useLocale } from '../lib/i18n';
 import {
   FLAGS,
@@ -58,7 +59,21 @@ export default function FeatureFlags() {
                 <div className="flex flex-row items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium leading-tight text-foreground">
-                      {flag.label}
+                      <span className="inline-flex items-center gap-1.5">
+                        {flag.label}
+                        {/* (v1.11.264, TODO 11.246) Per-row HelpTip.
+                            Surfaces the persistent storage location +
+                            default value + reset behaviour so the
+                            operator can predict what flipping the
+                            Switch will do (and what Reset restores). */}
+                        <HelpTip
+                          ariaLabel={`Help for ${flag.label}`}
+                          data-testid={`feature-flag-help-${flag.key}`}
+                          content={`${flag.description}\n\nStorage: \`localStorage\` key \`c4:feature-flags\`. Default value: \`${String(
+                            flag.defaultValue,
+                          )}\`. Use the Reset button at the top of the page to revert this flag to its default.`}
+                        />
+                      </span>
                       {overridden ? (
                         <span className="ml-2 text-xs font-normal text-muted-foreground">
                           (override)
