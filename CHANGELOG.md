@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.231] - 2026-05-15 -- UI: dropdown-menu focus-cycle adoption (11.213)
+
+Component-scope-only refactor. The hand-rolled
+ArrowUp / ArrowDown / Home / End / wrap logic in
+`web/src/components/ui/dropdown-menu.tsx` now delegates to the shared
+`useFocusCycle` hook from v1.11.223 (11.205). No public API change on
+`DropdownMenu`, no daemon-side change, and no `c4` CLI surface change.
+
+- `dropdown-menu.tsx` keeps its document-level keydown listener (the
+  menu items are the focus targets, not the menu container) but the
+  arrow / Home / End branch is replaced by `focusCycle.handleKeyDown`.
+  Escape close and single-letter type-ahead remain inline and run
+  BEFORE the hook in the chain -- the hook only owns arrow + edge
+  navigation, so type-ahead keys never reach it.
+- Visual highlight + `aria-activedescendant` stay correct via the
+  hook's `onSelect` callback: each time the hook moves focus, it
+  reports the new element and the component maps it back to the
+  internal `highlight` index. The inline `findNextEnabled` /
+  `firstEnabled` / `lastEnabled` helpers are deleted (the hook's
+  visibility filter already drops native-`disabled` rows).
+- `context-menu.tsx` is intentionally NOT migrated. It uses a
+  pointer-positioned portal, a focus trap on the menu container
+  itself (items have `tabIndex={-1}` and the container is the
+  focus owner), and `aria-disabled` rather than native `disabled`.
+  The hook's "items are individually focusable" model would break
+  the existing focus-trap interaction and the test that asserts
+  the initial highlight starts at index 0. See
+  `docs/patches/11.213-ui-dropdown-focus-cycle.md` for the
+  scope-reduction rationale.
+
+Tests: `dropdown-menu.test.tsx` keeps all 24 prior cases green and
+adds 3 new cases asserting disabled items are skipped on ArrowDown,
+ArrowUp, and End. `context-menu.test.tsx` (unchanged) also stays
+green: 43 / 43 across both files.
+
 ## [1.11.230] - 2026-05-15 -- UI: debounce + throttle hooks (11.212)
 
 Component-scope-only additions. Two small primitives in

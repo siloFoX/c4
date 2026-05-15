@@ -29,6 +29,7 @@ import type {
   RefCallback,
 } from 'react';
 import { cn } from '../../lib/cn';
+import { useFocusCycle } from '../../hooks/use-focus-cycle';
 
 export type DropdownPlacement = 'top' | 'bottom';
 
@@ -96,6 +97,7 @@ export function DropdownMenu({
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState<number>(-1);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const itemsRef = useRef<Array<HTMLButtonElement | null>>([]);
   const typeAheadRef = useRef<{ buffer: string; timer: number | null }>({
@@ -137,33 +139,26 @@ export function DropdownMenu({
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [open, close]);
 
-  const findNextEnabled = useCallback(
-    (start: number, dir: 1 | -1, len: number): number => {
-      if (len === 0) return -1;
-      // No previous highlight: ArrowDown -> first, ArrowUp -> last.
-      let next = start < 0 ? (dir === 1 ? -1 : 0) : start;
-      for (let step = 0; step < len; step++) {
-        next = (next + dir + len) % len;
-        if (!items[next]?.disabled) return next;
-      }
-      return -1;
-    },
-    [items],
-  );
+  // ArrowUp/Down/Home/End cycling is delegated to useFocusCycle so the
+  // dropdown shares the same a11y primitive as <Tabs> and other roving-
+  // tabindex surfaces. The hook reads `document.activeElement` to find
+  // the current row and skips items that carry the native `disabled`
+  // attribute (each menuitem button below renders `disabled={item.disabled}`),
+  // so behaviour for enabled-only cycling is preserved without an extra
+  // index map. We feed an `onSelect` callback so the visual highlight
+  // and aria-activedescendant track focus moves the hook drives.
+  const handleFocusChange = useCallback((el: HTMLElement) => {
+    const idx = itemsRef.current.indexOf(el as HTMLButtonElement);
+    if (idx >= 0) setHighlight(idx);
+  }, []);
 
-  const firstEnabled = useCallback((): number => {
-    for (let i = 0; i < items.length; i++) {
-      if (!items[i]?.disabled) return i;
-    }
-    return -1;
-  }, [items]);
-
-  const lastEnabled = useCallback((): number => {
-    for (let i = items.length - 1; i >= 0; i--) {
-      if (!items[i]?.disabled) return i;
-    }
-    return -1;
-  }, [items]);
+  const focusCycle = useFocusCycle({
+    containerRef: menuRef,
+    itemSelector: '[role=menuitem]:not([aria-disabled=true])',
+    orientation: 'vertical',
+    wrap: true,
+    onSelect: handleFocusChange,
+  });
 
   const handleTypeAhead = useCallback(
     (key: string) => {
@@ -203,7 +198,11 @@ export function DropdownMenu({
     [items, highlight, focusItem],
   );
 
-  // Keyboard navigation.
+  // Keyboard navigation. Order matters: Escape > type-ahead > focus-cycle
+  // hook. The hook owns ArrowUp/Down/Home/End only; single-letter
+  // type-ahead must run BEFORE the hook so 'h'/'e' don't get swallowed
+  // as no-op keys (the hook would ignore them but explicit ordering
+  // matches the task contract and keeps the chain readable).
   useEffect(() => {
     if (!open) return;
     const onKey = (e: globalThis.KeyboardEvent) => {
@@ -212,63 +211,32 @@ export function DropdownMenu({
         close({ restoreFocus: true });
         return;
       }
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault();
-        const len = items.length;
-        if (len === 0) return;
-        const dir: 1 | -1 = e.key === 'ArrowDown' ? 1 : -1;
-        setHighlight((prev) => {
-          const next = findNextEnabled(prev, dir, len);
-          if (next >= 0) focusItem(next);
-          return next;
-        });
-        return;
-      }
-      if (e.key === 'Home') {
-        e.preventDefault();
-        const idx = firstEnabled();
-        if (idx >= 0) {
-          setHighlight(idx);
-          focusItem(idx);
-        }
-        return;
-      }
-      if (e.key === 'End') {
-        e.preventDefault();
-        const idx = lastEnabled();
-        if (idx >= 0) {
-          setHighlight(idx);
-          focusItem(idx);
-        }
-        return;
-      }
       // Single-letter type-ahead. Match printable single chars only;
-      // ignore when modifier keys are held (Ctrl/Meta/Alt).
+      // ignore when modifier keys are held (Ctrl/Meta/Alt) and skip
+      // Space (the item button handles activation).
       if (
         e.key.length === 1 &&
+        e.key !== ' ' &&
         !e.ctrlKey &&
         !e.metaKey &&
         !e.altKey &&
         /\S/.test(e.key)
       ) {
-        // Skip Enter/Space here -- those are handled by the item button.
-        if (e.key === ' ') return;
         e.preventDefault();
         handleTypeAhead(e.key);
+        return;
       }
+      // Arrows + Home/End: delegate to the shared focus-cycle primitive.
+      // The hook accepts a React KeyboardEvent shape; the surface it
+      // touches (`key`, `preventDefault`, `stopPropagation`) is identical
+      // on native KeyboardEvent, so the cast is safe.
+      focusCycle.handleKeyDown(
+        e as unknown as KeyboardEvent<HTMLElement>,
+      );
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [
-    open,
-    items,
-    close,
-    findNextEnabled,
-    firstEnabled,
-    lastEnabled,
-    focusItem,
-    handleTypeAhead,
-  ]);
+  }, [open, close, handleTypeAhead, focusCycle]);
 
   // Clear type-ahead timer when menu closes / unmounts.
   useEffect(() => {
@@ -330,6 +298,7 @@ export function DropdownMenu({
       {open ? (
         <div
           id={menuId}
+          ref={menuRef}
           role="menu"
           aria-label={resolvedAriaLabel}
           aria-orientation="vertical"
