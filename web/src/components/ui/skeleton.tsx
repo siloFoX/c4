@@ -1,6 +1,11 @@
 import { forwardRef } from 'react';
 import type { CSSProperties, HTMLAttributes } from 'react';
 import { cn } from '../../lib/cn';
+import { useReducedMotion } from '../../hooks/use-reduced-motion';
+import {
+  getLoadingMotionClass,
+  getLoadingMotionStyle,
+} from './loading-motion';
 
 // (v1.11.135) New loading-state variants -- 'line' (thin horizontal bar,
 // alias for the prior default), 'circle' (square aspect, rounded-full),
@@ -40,7 +45,14 @@ export interface SkeletonProps extends HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
-const VARIANT_BASE = 'animate-pulse bg-muted';
+// (v1.11.243, TODO 11.225) Shimmer timing now flows through the
+// shared loading-motion contract (ui/loading-motion.ts) and the
+// `animate-pulse` utility is dropped under
+// `prefers-reduced-motion: reduce`. The SHAPE_BASE / VARIANT_BASE
+// constants below keep the colour token (`bg-muted`) -- the
+// animation class is appended per render via the helper.
+const SKELETON_COLOR_BASE = 'bg-muted';
+const VARIANT_BASE = SKELETON_COLOR_BASE;
 
 const VARIANT_CLASS: Record<SkeletonVariant, string> = {
   text: 'h-3 w-full rounded',
@@ -70,19 +82,24 @@ export function Skeleton({
   style,
   ...rest
 }: SkeletonProps) {
+  const reduced = useReducedMotion();
+  const animationClass = getLoadingMotionClass('skeleton', reduced);
+  const animationStyle = getLoadingMotionStyle('skeleton', reduced);
   if (variant === 'text' && lines && lines > 1) {
     return (
       <div
         className={cn('flex flex-col gap-2', className)}
         role="status"
         aria-hidden="true"
+        data-motion-reduced={reduced ? '' : undefined}
         {...rest}
       >
         {Array.from({ length: lines }).map((_, i) => (
           <div
             key={i}
             data-skeleton-line={i}
-            className={cn(VARIANT_BASE, VARIANT_CLASS.text, i === lines - 1 && 'w-4/5')}
+            className={cn(animationClass, VARIANT_BASE, VARIANT_CLASS.text, i === lines - 1 && 'w-4/5')}
+            style={animationStyle}
           />
         ))}
       </div>
@@ -94,29 +111,33 @@ export function Skeleton({
         className={cn('flex flex-col gap-3', className)}
         role="status"
         aria-hidden="true"
+        data-motion-reduced={reduced ? '' : undefined}
         {...rest}
       >
         <div
           data-skeleton-page="header"
-          className={cn(VARIANT_BASE, 'h-6 w-2/5 rounded-md')}
+          className={cn(animationClass, VARIANT_BASE, 'h-6 w-2/5 rounded-md')}
+          style={animationStyle}
         />
         {[0, 1, 2].map((i) => (
           <div
             key={i}
             data-skeleton-page="body"
             data-skeleton-line={i}
-            className={cn(VARIANT_BASE, VARIANT_CLASS.line, i === 2 && 'w-4/5')}
+            className={cn(animationClass, VARIANT_BASE, VARIANT_CLASS.line, i === 2 && 'w-4/5')}
+            style={animationStyle}
           />
         ))}
       </div>
     );
   }
-  const inlineStyle = { ...toStyle(width, height), ...style };
+  const inlineStyle = { ...animationStyle, ...toStyle(width, height), ...style };
   return (
     <div
       role="status"
       aria-hidden="true"
-      className={cn(VARIANT_BASE, VARIANT_CLASS[variant], className)}
+      data-motion-reduced={reduced ? '' : undefined}
+      className={cn(animationClass, VARIANT_BASE, VARIANT_CLASS[variant], className)}
       style={Object.keys(inlineStyle).length ? inlineStyle : undefined}
       {...rest}
     />
@@ -124,8 +145,13 @@ export function Skeleton({
 }
 
 // -- v1.11.174 composable shape variants --------------------------
-
-const SHAPE_BASE = 'animate-pulse bg-muted';
+//
+// (v1.11.243, TODO 11.225) Like the top-level Skeleton, every
+// composable shape below routes its animation class + duration
+// through the shared loading-motion contract so the shimmer keeps
+// pulsing at the same rhythm everywhere -- and stops entirely
+// when `prefers-reduced-motion: reduce` is active.
+const SHAPE_BASE = 'bg-muted';
 
 export interface TextLineProps extends HTMLAttributes<HTMLDivElement> {
   width?: string | number;
@@ -135,6 +161,9 @@ export interface TextLineProps extends HTMLAttributes<HTMLDivElement> {
 
 export const TextLine = forwardRef<HTMLDivElement, TextLineProps>(
   ({ width = '100%', height = '0.875em', className, style, ...rest }, ref) => {
+    const reduced = useReducedMotion();
+    const animationClass = getLoadingMotionClass('skeleton', reduced);
+    const animationStyle = getLoadingMotionStyle('skeleton', reduced);
     const resolvedWidth = typeof width === 'number' ? `${width}px` : width;
     const resolvedHeight = typeof height === 'number' ? `${height}px` : height;
     return (
@@ -143,8 +172,9 @@ export const TextLine = forwardRef<HTMLDivElement, TextLineProps>(
         role="status"
         aria-hidden="true"
         data-skeleton-shape="text-line"
-        className={cn(SHAPE_BASE, 'rounded', className)}
-        style={{ width: resolvedWidth, height: resolvedHeight, ...style }}
+        data-motion-reduced={reduced ? '' : undefined}
+        className={cn(animationClass, SHAPE_BASE, 'rounded', className)}
+        style={{ ...animationStyle, width: resolvedWidth, height: resolvedHeight, ...style }}
         {...rest}
       />
     );
@@ -171,9 +201,12 @@ export interface RectProps extends HTMLAttributes<HTMLDivElement> {
 
 export const Rect = forwardRef<HTMLDivElement, RectProps>(
   ({ width, height, rounded = 'md', className, style, ...rest }, ref) => {
+    const reduced = useReducedMotion();
+    const animationClass = getLoadingMotionClass('skeleton', reduced);
+    const animationStyle = getLoadingMotionStyle('skeleton', reduced);
     const resolvedWidth = width === undefined ? undefined : typeof width === 'number' ? `${width}px` : width;
     const resolvedHeight = height === undefined ? undefined : typeof height === 'number' ? `${height}px` : height;
-    const merged: CSSProperties = { ...style };
+    const merged: CSSProperties = { ...animationStyle, ...style };
     if (resolvedWidth !== undefined) merged.width = resolvedWidth;
     if (resolvedHeight !== undefined) merged.height = resolvedHeight;
     return (
@@ -182,7 +215,8 @@ export const Rect = forwardRef<HTMLDivElement, RectProps>(
         role="status"
         aria-hidden="true"
         data-skeleton-shape="rect"
-        className={cn(SHAPE_BASE, RECT_ROUNDED[rounded], className)}
+        data-motion-reduced={reduced ? '' : undefined}
+        className={cn(animationClass, SHAPE_BASE, RECT_ROUNDED[rounded], className)}
         style={Object.keys(merged).length ? merged : undefined}
         {...rest}
       />
@@ -197,14 +231,18 @@ export interface CircleProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export function Circle({ size = '2.5rem', className, style, ...rest }: CircleProps) {
+  const reduced = useReducedMotion();
+  const animationClass = getLoadingMotionClass('skeleton', reduced);
+  const animationStyle = getLoadingMotionStyle('skeleton', reduced);
   const resolved = typeof size === 'number' ? `${size}px` : size;
   return (
     <div
       role="status"
       aria-hidden="true"
       data-skeleton-shape="circle"
-      className={cn(SHAPE_BASE, 'rounded-full', className)}
-      style={{ width: resolved, height: resolved, ...style }}
+      data-motion-reduced={reduced ? '' : undefined}
+      className={cn(animationClass, SHAPE_BASE, 'rounded-full', className)}
+      style={{ ...animationStyle, width: resolved, height: resolved, ...style }}
       {...rest}
     />
   );
@@ -234,6 +272,9 @@ export interface AvatarShapeProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export function AvatarShape({ size = 'md', className, style, ...rest }: AvatarShapeProps) {
+  const reduced = useReducedMotion();
+  const animationClass = getLoadingMotionClass('skeleton', reduced);
+  const animationStyle = getLoadingMotionStyle('skeleton', reduced);
   const dim = AVATAR_SHAPE_SIZE[size];
   return (
     <div
@@ -241,8 +282,9 @@ export function AvatarShape({ size = 'md', className, style, ...rest }: AvatarSh
       aria-hidden="true"
       data-skeleton-shape="avatar"
       data-avatar-size={size}
-      className={cn(SHAPE_BASE, 'rounded-full', AVATAR_SHAPE_CLASS[size], className)}
-      style={{ width: dim, height: dim, ...style }}
+      data-motion-reduced={reduced ? '' : undefined}
+      className={cn(animationClass, SHAPE_BASE, 'rounded-full', AVATAR_SHAPE_CLASS[size], className)}
+      style={{ ...animationStyle, width: dim, height: dim, ...style }}
       {...rest}
     />
   );
@@ -325,6 +367,9 @@ function SkeletonText({
   style,
   ...rest
 }: SkeletonTextProps) {
+  const reduced = useReducedMotion();
+  const animationClass = getLoadingMotionClass('skeleton', reduced);
+  const animationStyle = getLoadingMotionStyle('skeleton', reduced);
   const safeLines = Math.max(1, Math.floor(lines));
   const resolvedWidth = typeof width === 'number' ? `${width}px` : width;
   const resolvedHeight = typeof height === 'number' ? `${height}px` : height;
@@ -334,8 +379,9 @@ function SkeletonText({
         role="status"
         aria-hidden="true"
         data-skeleton-sub="text"
-        className={cn(SHAPE_BASE, 'rounded', className)}
-        style={{ width: resolvedWidth, height: resolvedHeight, ...style }}
+        data-motion-reduced={reduced ? '' : undefined}
+        className={cn(animationClass, SHAPE_BASE, 'rounded', className)}
+        style={{ ...animationStyle, width: resolvedWidth, height: resolvedHeight, ...style }}
         {...rest}
       />
     );
@@ -345,6 +391,7 @@ function SkeletonText({
       role="status"
       aria-hidden="true"
       data-skeleton-sub="text"
+      data-motion-reduced={reduced ? '' : undefined}
       className={cn('flex flex-col gap-2', className)}
       style={style}
       {...rest}
@@ -354,11 +401,13 @@ function SkeletonText({
           key={i}
           data-skeleton-line={i}
           className={cn(
+            animationClass,
             SHAPE_BASE,
             'rounded',
             i === safeLines - 1 && 'w-4/5',
           )}
           style={{
+            ...animationStyle,
             width: i === safeLines - 1 ? undefined : resolvedWidth,
             height: resolvedHeight,
           }}
@@ -387,6 +436,9 @@ function SkeletonAvatar({
   style,
   ...rest
 }: SkeletonAvatarProps) {
+  const reduced = useReducedMotion();
+  const animationClass = getLoadingMotionClass('skeleton', reduced);
+  const animationStyle = getLoadingMotionStyle('skeleton', reduced);
   const dim = SKELETON_AVATAR_PX[size];
   return (
     <div
@@ -394,8 +446,9 @@ function SkeletonAvatar({
       aria-hidden="true"
       data-skeleton-sub="avatar"
       data-skeleton-avatar-size={size}
-      className={cn(SHAPE_BASE, 'rounded-full', className)}
-      style={{ width: `${dim}px`, height: `${dim}px`, ...style }}
+      data-motion-reduced={reduced ? '' : undefined}
+      className={cn(animationClass, SHAPE_BASE, 'rounded-full', className)}
+      style={{ ...animationStyle, width: `${dim}px`, height: `${dim}px`, ...style }}
       {...rest}
     />
   );
@@ -406,11 +459,15 @@ export interface SkeletonCardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 function SkeletonCard({ className, ...rest }: SkeletonCardProps) {
+  const reduced = useReducedMotion();
+  const animationClass = getLoadingMotionClass('skeleton', reduced);
+  const animationStyle = getLoadingMotionStyle('skeleton', reduced);
   return (
     <div
       role="status"
       aria-hidden="true"
       data-skeleton-sub="card"
+      data-motion-reduced={reduced ? '' : undefined}
       className={cn(
         'flex flex-col gap-2 rounded-md border border-border p-4',
         className,
@@ -419,17 +476,20 @@ function SkeletonCard({ className, ...rest }: SkeletonCardProps) {
     >
       <div
         data-skeleton-card="header"
-        className={cn(SHAPE_BASE, 'h-5 w-2/5 rounded')}
+        className={cn(animationClass, SHAPE_BASE, 'h-5 w-2/5 rounded')}
+        style={animationStyle}
       />
       <div
         data-skeleton-card="line"
         data-skeleton-line={0}
-        className={cn(SHAPE_BASE, 'h-3 w-full rounded')}
+        className={cn(animationClass, SHAPE_BASE, 'h-3 w-full rounded')}
+        style={animationStyle}
       />
       <div
         data-skeleton-card="line"
         data-skeleton-line={1}
-        className={cn(SHAPE_BASE, 'h-3 w-4/5 rounded')}
+        className={cn(animationClass, SHAPE_BASE, 'h-3 w-4/5 rounded')}
+        style={animationStyle}
       />
     </div>
   );
@@ -447,6 +507,9 @@ function SkeletonTable({
   className,
   ...rest
 }: SkeletonTableProps) {
+  const reduced = useReducedMotion();
+  const animationClass = getLoadingMotionClass('skeleton', reduced);
+  const animationStyle = getLoadingMotionStyle('skeleton', reduced);
   const safeRows = Math.max(0, Math.floor(rows));
   const safeCols = Math.max(0, Math.floor(cols));
   const renderCells = (rowIndex: number, isHeader: boolean) =>
@@ -455,11 +518,13 @@ function SkeletonTable({
         key={c}
         data-skeleton-table-cell={c}
         className={cn(
+          animationClass,
           SHAPE_BASE,
           'flex-1 rounded',
           isHeader ? 'h-4' : 'h-3',
           isHeader && c === safeCols - 1 && 'w-3/5',
         )}
+        style={animationStyle}
         data-row-index={rowIndex}
       />
     ));
@@ -468,6 +533,7 @@ function SkeletonTable({
       role="status"
       aria-hidden="true"
       data-skeleton-sub="table"
+      data-motion-reduced={reduced ? '' : undefined}
       className={cn('flex flex-col gap-2', className)}
       {...rest}
     >
