@@ -174,7 +174,19 @@
  * `.c4-scroll` instead starts transparent and fades the thumb in on
  * hover / keyboard focus so containers stay quiet until the user
  * interacts. Uses the same --muted-foreground token as the global
- * theme for parity. */
+ * theme for parity.
+ *
+ * (v1.11.245, TODO 11.227) Responsive width: the default (.c4-scroll
+ * with no size modifier) renders at 8 px on fine pointers (desktop
+ * mouse / trackpad) and bumps to 14 px under `@media (pointer:
+ * coarse)` so the thumb stays comfortably tap-sized on touch
+ * surfaces. Explicit modifiers `.c4-scroll-thin` / `.c4-scroll-default`
+ * / `.c4-scroll-wide` override the auto-sizing per call site for
+ * dense / spacious layouts. `.c4-scroll-safe-area` adds
+ * `scroll-padding` based on `env(safe-area-inset-*)` so a scrollable
+ * region snug against the device chrome (notch / curved corner /
+ * gesture bar) keeps its final row visible past the inset rather
+ * than scrolling to under it. */
 .c4-scroll {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
@@ -204,4 +216,67 @@
 }
 .c4-scroll::-webkit-scrollbar-thumb:hover {
   background-color: hsl(var(--muted-foreground) / 0.6);
+}
+
+/* Touch-device width bump. `pointer: coarse` is the canonical CSS
+ * signal for a primary input device that lacks fine-grained hover /
+ * cursor positioning (touch screens, game controllers, TV remotes).
+ * Bumping the chrome scrollbar to 14 px keeps the thumb tappable
+ * without changing the desktop look. Firefox does not expose a
+ * numeric `scrollbar-width` in CSS yet -- the `thin` keyword stays
+ * because Firefox auto-scales for touch via its own platform rule. */
+@media (pointer: coarse) {
+  .c4-scroll::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+/* Explicit width modifiers. Each pair pins the desktop + touch sizes
+ * so a call site can opt out of the auto-bump (e.g. a dense data
+ * table stays thin even on touch) or opt in to a wider chrome for a
+ * touch-first surface (e.g. a swipe carousel that doubles as a
+ * keyboard-navigable list). */
+.c4-scroll-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+@media (pointer: coarse) {
+  .c4-scroll-thin::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+}
+.c4-scroll-default::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+@media (pointer: coarse) {
+  .c4-scroll-default::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+  }
+}
+.c4-scroll-wide::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+@media (pointer: coarse) {
+  .c4-scroll-wide::-webkit-scrollbar {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* Safe-area inset honouring. `scroll-padding` pushes the snap /
+ * anchor edges in by the platform inset so a scrollable region
+ * pinned against the device chrome keeps its final element clear of
+ * notches / curved corners / gesture bars. Combined with
+ * `padding-{right,bottom}: env(safe-area-inset-*)` the trailing
+ * content also reserves space for the OS chrome. */
+.c4-scroll-safe-area {
+  scroll-padding-right: env(safe-area-inset-right);
+  scroll-padding-bottom: env(safe-area-inset-bottom);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
 }

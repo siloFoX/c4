@@ -4,6 +4,68 @@
 
 (no entries -- next release window)
 
+## [1.11.245] - 2026-05-15 -- UI: Responsive scrollbar width + safe-area (TODO 11.227)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+`web/src/index.css` -- the `.c4-scroll` rule (consumed by the
+`ScrollArea` primitive) now sizes its chrome off the pointer-
+coarseness of the primary input device. Desktop (fine pointer)
+keeps the prior 8 px / 10 px chrome; under
+`@media (pointer: coarse)` the thumb bumps to 14 px so it stays
+tap-sized on touch screens without changing the desktop look.
+Three explicit modifier classes pin the per-state pair so a call
+site can opt out of the auto-bump (dense data table that stays
+thin on touch) or opt in to a wider chrome (touch-first
+carousel):
+- `.c4-scroll-thin`    -> 6 px desktop / 10 px coarse
+- `.c4-scroll-default` -> 8 px desktop / 14 px coarse
+- `.c4-scroll-wide`    -> 12 px desktop / 18 px coarse
+
+A `.c4-scroll-safe-area` modifier adds
+`scroll-padding-{right,bottom}: env(safe-area-inset-*)` plus
+matching `padding-*` so a region pinned against the device chrome
+(notch / curved corner / gesture bar) keeps its trailing content
+clear of the inset.
+
+`web/src/components/ui/scroll-area.tsx` -- two new props expose
+the contract:
+- `size: 'auto' | 'thin' | 'default' | 'wide'` (default
+  `'auto'` inherits the pointer-coarse auto-bump; explicit values
+  pin the per-state pair).
+- `safeArea: boolean` (default `false`; appends
+  `.c4-scroll-safe-area` and emits a `data-scrollarea-safe-area`
+  attribute).
+
+Both compose with the existing `axis` + caller `className` via
+`cn()`. The wrapper carries `data-scrollarea-size` +
+`data-scrollarea-safe-area` data attributes so browser devtools +
+screenshot tests can verify the gate without resorting to
+className introspection.
+
+Test coverage:
+- `scroll-area.test.tsx` gains 7 new vitest cases:
+  `size='auto'` default emits no modifier, each explicit `size`
+  applies its `c4-scroll-*` class + data attr, `safeArea=true`
+  adds the class + data attr, `safeArea=false` (default) omits
+  both, and `size + safeArea` compose with `axis` + caller
+  `className`. Total 20/20 ScrollArea unit cases pass.
+
+Consumer regression: ScrollArea is the surface for
+`ChatMessageLog`, `Queue`, `Sidebar`, `SpecialistsAuditPanel`,
+plus the `DesignSystem` demo. The four actively-tested consumers
+(ChatMessageLog 9/9, Queue 13/13, Sidebar 24/24, ScrollArea
+itself 20/20 = 66/66) stay green on the new contract.
+`SpecialistsAuditPanel`'s pre-existing 5 chip-tone failures (the
+panel migrated to the Timeline primitive at v1.11.167 but the
+chip-tone tests still assert the old `text-emerald-700` /
+`text-rose-700` classes) are confirmed identical with my edits
+reverted; unrelated to this push and out of scope.
+
+Bumped `package.json` 1.11.244 -> 1.11.245 and `web/package.json`
+1.11.244 -> 1.11.245 along with both lockfiles.
+
 ## [1.11.244] - 2026-05-15 -- UI: Image perf tweaks + Avatar DPR adoption (TODO 11.226)
 
 Component-scope-only addition. No daemon-side change and no `c4`
