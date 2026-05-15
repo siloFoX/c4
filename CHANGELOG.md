@@ -4,6 +4,65 @@
 
 (no entries -- next release window)
 
+## [1.11.254] - 2026-05-15 -- UI: Empty-state imagery refresh (TODO 11.236)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+Three new hero-style illustrations join the existing
+`AllDone` / `EmptyQueue` / `NoWorkers` / `Welcome` family in
+`web/src/components/illustrations/index.tsx`. All three share
+the 240x180 viewBox, 1.75 stroke, currentColor line-art
+contract, and the `ACCENT_FILL` highlight pattern set by the
+v1.11.84 hero set:
+
+- **NoDataIllustration**: a blank bar-chart frame with dashed
+  grid lines + a "no data" caption + faint baseline tick.
+  Reads as "the chart renders, the dataset is empty" rather
+  than the chart itself being broken.
+- **OffScheduleIllustration**: a clock face stopped at 12
+  paired with a 3-slot calendar strip whose middle slot is
+  dashed (missing). The accent fill backs the clock dial so
+  the surface centres on the time element.
+- **AccessDeniedIllustration**: a closed padlock body with a
+  dashed key silhouette pulled away from the lock. Accent
+  fill backs the padlock so the surface reads as "lock
+  engaged + key elsewhere" rather than a generic denial X.
+
+`EmptyState` (`web/src/components/ui/empty-state.tsx`) grows
+an optional `illustration?: EmptyStateIllustration` prop. The
+value resolves against a 9-entry registry covering every
+illustration the project ships today (`all-done` /
+`empty-queue` / `no-workers` / `no-data` / `off-schedule` /
+`access-denied` / `search-empty` / `sessions-empty` /
+`welcome`). The legacy `icon` prop still wins when both are
+passed so existing call sites that compose their own
+ReactNode keep working byte-for-byte.
+
+Test coverage:
+- `illustrations/v11-236-illustrations.test.tsx` (21 cases)
+  parameterises 7 invariants across the three new illustrations
+  (viewBox, default 160 px size, `sm` token = 64 px,
+  aria-hidden default, aria-label-when-not-decorative,
+  currentColor + 1.75 stroke) and adds one shape-specific
+  assertion per illustration (NoData has the dashed baseline,
+  OffSchedule has the clock circle + dashed calendar slot,
+  AccessDenied has the dashed key silhouette).
+- `empty-state.test.tsx` +4 cases pin the new illustration
+  prop (`no-data`, `off-schedule`, `access-denied` each
+  render an SVG; `icon` wins over `illustration` when both
+  are passed).
+- Existing `illustrations.test.tsx` + `new-illustrations.test.tsx`
+  stay green: 91/91 total across the 4 suites.
+
+Pre-existing failures unchanged (DataList navigator.clipboard
+read-only x 5, ErrorBoundary Collapsible toggle x 2,
+FeatureSidebar > filter, i18n-keys > t() self-match);
+confirmed earlier and out of scope.
+
+Bumped `package.json` 1.11.253 -> 1.11.254 and `web/package.json`
+1.11.253 -> 1.11.254 along with both lockfiles.
+
 ## [1.11.253] - 2026-05-15 -- UI: Central motion tokens + 4-primitive adoption (TODO 11.235)
 
 Component-scope-only addition. No daemon-side change and no `c4`
