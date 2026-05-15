@@ -115,7 +115,16 @@ export default function Plan() {
           steps={[
             { id: 'worker', label: 'Select worker' },
             { id: 'task', label: 'Describe task' },
-            { id: 'dispatch', label: 'Dispatch plan' },
+            {
+              id: 'dispatch',
+              label: 'Dispatch plan',
+              // (v1.11.270, TODO 11.252) When the dispatch /
+              // fetch surfaced an error, flag the dispatch step
+              // so the bubble flips red + X glyph. Operators see
+              // the failure inline in the wizard strip without
+              // scrolling to the ErrorPanel below.
+              error: Boolean(error),
+            },
             { id: 'result', label: 'View plan' },
           ]}
           currentIndex={
