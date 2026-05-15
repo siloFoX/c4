@@ -242,6 +242,116 @@ export function SearchEmpty(props: IllustrationProps) {
   );
 }
 
+// (v1.11.254, TODO 11.236) NoData: a blank bar chart frame --
+// axes drawn, a dashed grid line where bars would sit, and a
+// faint baseline "0" tick on the y-axis. Reads as "the chart
+// renders, the dataset just happens to be empty" rather than
+// the chart itself being broken. Accent fill backs the chart
+// area so the surface still has a centre of gravity.
+export function NoDataIllustration(props: IllustrationProps) {
+  return (
+    <IllustrationFrame {...props} label="No data">
+      <path
+        d="M58 56 L182 56 L182 140 L58 140 Z"
+        fill={ACCENT_FILL}
+      />
+      <path d="M58 56 L58 140 L182 140" />
+      <line x1="58" y1="98" x2="182" y2="98" strokeDasharray="3 5" />
+      <line x1="58" y1="80" x2="182" y2="80" strokeDasharray="3 5" />
+      <line x1="58" y1="62" x2="182" y2="62" strokeDasharray="3 5" />
+      <line x1="58" y1="116" x2="182" y2="116" strokeDasharray="3 5" />
+      <line x1="80" y1="140" x2="80" y2="148" />
+      <line x1="104" y1="140" x2="104" y2="148" />
+      <line x1="128" y1="140" x2="128" y2="148" />
+      <line x1="152" y1="140" x2="152" y2="148" />
+      <line x1="176" y1="140" x2="176" y2="148" />
+      <text
+        x="42"
+        y="144"
+        fontFamily="ui-sans-serif, system-ui, sans-serif"
+        fontSize="10"
+        fill="currentColor"
+        stroke="none"
+      >
+        0
+      </text>
+      <text
+        x="120"
+        y="98"
+        textAnchor="middle"
+        fontFamily="ui-sans-serif, system-ui, sans-serif"
+        fontSize="11"
+        fontStyle="italic"
+        fill="currentColor"
+        stroke="none"
+      >
+        no data
+      </text>
+      <line x1="42" y1="158" x2="198" y2="158" strokeDasharray="2 6" />
+    </IllustrationFrame>
+  );
+}
+
+// (v1.11.254, TODO 11.236) OffSchedule: a clock face whose
+// hands have stopped at 12, paired with a dashed calendar
+// strip whose middle slot is missing -- the surface reads as
+// "the scheduler ran into a gap" rather than a generic clock
+// graphic. Accent fill backs the clock dial.
+export function OffScheduleIllustration(props: IllustrationProps) {
+  return (
+    <IllustrationFrame {...props} label="Off schedule">
+      <circle cx="86" cy="92" r="34" fill={ACCENT_FILL} />
+      <circle cx="86" cy="92" r="34" />
+      <line x1="86" y1="92" x2="86" y2="68" />
+      <line x1="86" y1="92" x2="102" y2="92" />
+      <circle cx="86" cy="92" r="2" fill="currentColor" stroke="none" />
+      <line x1="86" y1="58" x2="86" y2="62" />
+      <line x1="86" y1="122" x2="86" y2="126" />
+      <line x1="56" y1="92" x2="60" y2="92" />
+      <line x1="112" y1="92" x2="116" y2="92" />
+      <rect x="138" y="62" width="18" height="22" rx="2" />
+      <rect x="138" y="90" width="18" height="22" rx="2" strokeDasharray="3 3" />
+      <rect x="138" y="118" width="18" height="22" rx="2" />
+      <line x1="142" y1="69" x2="152" y2="69" />
+      <line x1="142" y1="125" x2="152" y2="125" />
+      <path d="M170 96 L186 96 M178 88 L178 104" strokeDasharray="2 3" />
+      <line x1="42" y1="158" x2="198" y2="158" strokeDasharray="2 6" />
+    </IllustrationFrame>
+  );
+}
+
+// (v1.11.254, TODO 11.236) AccessDenied: a padlock body whose
+// shackle is closed + a dashed key silhouette pulled away
+// from it -- reads as "the lock is engaged and the key is
+// elsewhere" rather than a generic denial X. Accent fill
+// backs the padlock body so the surface centres on the lock.
+export function AccessDeniedIllustration(props: IllustrationProps) {
+  return (
+    <IllustrationFrame {...props} label="Access denied">
+      <path d="M96 86 L96 76 Q96 60 116 60 Q136 60 136 76 L136 86" />
+      <rect
+        x="80"
+        y="86"
+        width="72"
+        height="52"
+        rx="6"
+        fill={ACCENT_FILL}
+      />
+      <rect x="80" y="86" width="72" height="52" rx="6" />
+      <circle cx="116" cy="108" r="4" fill="currentColor" stroke="none" />
+      <line x1="116" y1="112" x2="116" y2="124" />
+      <circle cx="180" cy="112" r="6" strokeDasharray="3 3" />
+      <line x1="186" y1="112" x2="204" y2="112" strokeDasharray="3 3" />
+      <line x1="198" y1="108" x2="198" y2="116" strokeDasharray="2 2" />
+      <line x1="202" y1="108" x2="202" y2="116" strokeDasharray="2 2" />
+      <line x1="60" y1="68" x2="60" y2="76" />
+      <line x1="56" y1="72" x2="64" y2="72" />
+      <circle cx="60" cy="120" r="1.6" fill="currentColor" stroke="none" />
+      <line x1="42" y1="158" x2="198" y2="158" strokeDasharray="2 6" />
+    </IllustrationFrame>
+  );
+}
+
 // (v1.11.233, patch 11.215) Sessions empty: three stacked terminal
 // cards with a dashed "no connection" overlay slashed across them.
 // Used in the attached-sessions banner when nothing has been
