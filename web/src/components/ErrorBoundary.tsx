@@ -3,6 +3,7 @@ import { AlertTriangle } from 'lucide-react';
 import { Badge, Button, Collapsible } from './ui';
 import { t, tFormat } from '../lib/i18n';
 import { report as reportError } from '../lib/error-reporter';
+import { copyTextToClipboard } from '../hooks/use-copy';
 
 // (v1.11.136) Friendlier top-level Error Boundary fallback. The stack
 // trace now lives inside a collapsed <details> so it does not dominate
@@ -104,29 +105,25 @@ export default class ErrorBoundary extends Component<Props, State> {
     window.location.reload();
   };
 
+  // (v1.11.251, TODO 11.233) Inline navigator.clipboard.writeText
+  // path now delegates to the shared `copyTextToClipboard()`
+  // imperative helper from `hooks/use-copy`. The helper covers
+  // the Clipboard API + textarea fallback in one place, so a
+  // sandboxed-iframe / non-secure-context environment still
+  // succeeds via execCommand('copy'). ErrorBoundary cannot use
+  // the React hook directly (it is a class component); the
+  // imperative entry point keeps the contract.
   copyStack = (): void => {
     const stack = this.getStack();
-    const clip =
-      typeof navigator !== 'undefined' ? navigator.clipboard : undefined;
-    if (!clip || typeof clip.writeText !== 'function') return;
-    const result = clip.writeText(stack);
-    const finish = (): void => {
+    void copyTextToClipboard(stack).then((ok) => {
+      if (!ok) return;
       this.setState({ copied: true });
       if (this.copiedTimer !== null) clearTimeout(this.copiedTimer);
       this.copiedTimer = setTimeout(() => {
         this.copiedTimer = null;
         this.setState({ copied: false });
       }, COPIED_RESET_MS);
-    };
-    if (result && typeof (result as Promise<void>).then === 'function') {
-      (result as Promise<void>).then(finish, () => {
-        // Clipboard write rejected (no permission / not a secure
-        // context). Operators can still expand the <details> and copy
-        // by hand, so we swallow the failure silently.
-      });
-    } else {
-      finish();
-    }
+    });
   };
 
   override render(): ReactNode {

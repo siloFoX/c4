@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 import { Copy, WrapText } from 'lucide-react';
 import { cn } from '../../lib/cn';
+import { copyTextToClipboard } from '../../hooks/use-copy';
 
 export interface CodeBlockProps
   extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
@@ -40,6 +41,16 @@ export function CodeBlock({
   const effectiveWrap = isControlledWrap ? (wrap as boolean) : internalWrap;
   const showToggle = !isControlledWrap && typeof defaultWrap === 'boolean';
 
+  // (v1.11.251, TODO 11.233) The inline `navigator.clipboard?.
+  // writeText(text)` call site now routes through the shared
+  // `copyTextToClipboard()` imperative helper from
+  // `hooks/use-copy`. The helper handles the Clipboard API +
+  // textarea fallback in one place. The local `copied` pulse
+  // stays here (rather than via `useCopy`) so the visual
+  // feedback flips synchronously on click -- matching the
+  // existing test contract for "Copied chip flips on after
+  // click" (the hook variant only flips after the async write
+  // resolves, which would break the synchronous assertion).
   const [copied, setCopied] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -55,11 +66,7 @@ export function CodeBlock({
 
   const onCopy = () => {
     const text = codeRef.current?.textContent ?? copyTextFallback;
-    try {
-      void navigator.clipboard?.writeText(text);
-    } catch {
-      /* noop */
-    }
+    void copyTextToClipboard(text);
     setCopied(true);
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => setCopied(false), 2000);

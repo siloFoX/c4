@@ -3,6 +3,7 @@ import type { HTMLAttributes, ReactNode } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { Tooltip } from './tooltip';
+import { copyTextToClipboard } from '../../hooks/use-copy';
 
 export interface DataListItem {
   id: string;
@@ -104,9 +105,15 @@ interface CopyChipProps {
 }
 
 function CopyChip({ copyValue, label }: CopyChipProps) {
+  // (v1.11.251, TODO 11.233) Inline `navigator.clipboard?.
+  // writeText(copyValue)` now routes through the shared
+  // `copyTextToClipboard()` imperative helper from
+  // `hooks/use-copy`. Local `copied` state stays here so the
+  // pulse flips synchronously on click (matching the existing
+  // "transient Check icon" test contract -- the hook variant
+  // would flip after the async write resolves).
   const [copied, setCopied] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -114,7 +121,7 @@ function CopyChip({ copyValue, label }: CopyChipProps) {
   }, []);
 
   const handleCopy = useCallback(() => {
-    void navigator.clipboard?.writeText(copyValue);
+    void copyTextToClipboard(copyValue);
     setCopied(true);
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => setCopied(false), 1200);

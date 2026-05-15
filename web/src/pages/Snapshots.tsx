@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Archive, RotateCcw, Save, Trash2 } from 'lucide-react';
+import { Archive, Copy, RotateCcw, Save, Trash2 } from 'lucide-react';
 import PageFrame from './PageFrame';
 import {
   Alert,
@@ -11,12 +11,14 @@ import {
   Input,
   Skeleton,
   Tooltip,
+  VisuallyHidden,
 } from '../components/ui';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
 import { useLocale } from '../lib/i18n';
 import RelativeTime from '../components/RelativeTime';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
+import { copyTextToClipboard } from '../hooks/use-copy';
 
 // (11.189) Snapshots page. Lists saved snapshots from
 // GET /api/snapshots; supports taking a new snapshot (POST), restoring
@@ -223,6 +225,36 @@ export default function Snapshots() {
                     </td>
                     <td className="px-3 py-2 text-right align-top">
                       <div className="inline-flex items-center gap-1">
+                        <Tooltip label="Copy snapshot id">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            data-testid={`snapshots-copy-id-${s.id}`}
+                            onClick={() => {
+                              void copyTextToClipboard(s.id);
+                            }}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                            <VisuallyHidden>Copy id {s.id}</VisuallyHidden>
+                          </Button>
+                        </Tooltip>
+                        {s.label ? (
+                          <Tooltip label="Copy snapshot label">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              data-testid={`snapshots-copy-label-${s.id}`}
+                              onClick={() => {
+                                void copyTextToClipboard(s.label as string);
+                              }}
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                              <VisuallyHidden>Copy label {s.label}</VisuallyHidden>
+                            </Button>
+                          </Tooltip>
+                        ) : null}
                         <Tooltip label="Restore this snapshot (overwrites current files)">
                           <Button
                             type="button"
