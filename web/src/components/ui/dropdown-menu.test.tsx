@@ -415,6 +415,75 @@ describe('<DropdownMenu>', () => {
     });
   });
 
+  // Regression coverage for the useFocusCycle hook integration (v1.11.231):
+  // the hook reads enabled menuitems via the [role=menuitem]:not([aria-disabled=true])
+  // selector and also drops elements carrying the native `disabled` attribute,
+  // so disabled rows must be skipped by every arrow / Home / End path.
+  it('skips disabled items mid-list when navigating with ArrowDown', async () => {
+    const user = userEvent.setup();
+    render(
+      <DropdownMenu
+        trigger={<button>Open</button>}
+        items={[
+          { key: 'a', label: 'A', onSelect: () => {} },
+          { key: 'b', label: 'B', disabled: true, onSelect: () => {} },
+          { key: 'c', label: 'C', onSelect: () => {} },
+        ]}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    await user.keyboard('{ArrowDown}');
+    await waitFor(() => {
+      expect(screen.getByRole('menuitem', { name: 'A' })).toHaveFocus();
+    });
+    await user.keyboard('{ArrowDown}');
+    await waitFor(() => {
+      expect(screen.getByRole('menuitem', { name: 'C' })).toHaveFocus();
+    });
+  });
+
+  it('skips disabled items when navigating backwards with ArrowUp', async () => {
+    const user = userEvent.setup();
+    render(
+      <DropdownMenu
+        trigger={<button>Open</button>}
+        items={[
+          { key: 'a', label: 'A', onSelect: () => {} },
+          { key: 'b', label: 'B', disabled: true, onSelect: () => {} },
+          { key: 'c', label: 'C', onSelect: () => {} },
+        ]}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    await user.keyboard('{End}');
+    await waitFor(() => {
+      expect(screen.getByRole('menuitem', { name: 'C' })).toHaveFocus();
+    });
+    await user.keyboard('{ArrowUp}');
+    await waitFor(() => {
+      expect(screen.getByRole('menuitem', { name: 'A' })).toHaveFocus();
+    });
+  });
+
+  it('lands End on the last enabled item when the tail is disabled', async () => {
+    const user = userEvent.setup();
+    render(
+      <DropdownMenu
+        trigger={<button>Open</button>}
+        items={[
+          { key: 'a', label: 'A', onSelect: () => {} },
+          { key: 'b', label: 'B', onSelect: () => {} },
+          { key: 'c', label: 'C', disabled: true, onSelect: () => {} },
+        ]}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    await user.keyboard('{End}');
+    await waitFor(() => {
+      expect(screen.getByRole('menuitem', { name: 'B' })).toHaveFocus();
+    });
+  });
+
   it('exposes aria-orientation="vertical" and aria-activedescendant on the menu', async () => {
     const user = userEvent.setup();
     render(
