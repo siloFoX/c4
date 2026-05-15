@@ -10,23 +10,23 @@ describe('<StatusDot>', () => {
     expect(node).toHaveAttribute('role', 'status');
   });
 
-  it("variant='online' applies a green dot class", () => {
+  it("variant='online' applies the canonical success-token dot class (v1.11.242)", () => {
     const { container } = render(<StatusDot variant="online" />);
     const dot = container.querySelector('.rounded-full');
     expect(dot).not.toBeNull();
-    expect(dot?.className).toContain('bg-green-500');
+    expect(dot?.className).toContain('bg-success');
   });
 
-  it("variant='busy' applies a yellow/warning class", () => {
+  it("variant='busy' applies the canonical warning-token dot class (v1.11.242)", () => {
     const { container } = render(<StatusDot variant="busy" />);
     const dot = container.querySelector('.rounded-full');
-    expect(dot?.className).toContain('bg-yellow-500');
+    expect(dot?.className).toContain('bg-warning');
   });
 
-  it("variant='away' applies an orange class", () => {
+  it("variant='away' applies the chart-3 token dot class (v1.11.242)", () => {
     const { container } = render(<StatusDot variant="away" />);
     const dot = container.querySelector('.rounded-full');
-    expect(dot?.className).toContain('bg-orange-500');
+    expect(dot?.className).toContain('bg-chart-3');
   });
 
   it("variant='offline' applies muted-foreground class", () => {
@@ -55,7 +55,7 @@ describe('<StatusDot>', () => {
     const { container } = render(<StatusDot variant="online" pulse />);
     const ping = container.querySelector('.animate-ping');
     expect(ping).not.toBeNull();
-    expect(ping?.className).toContain('bg-green-500');
+    expect(ping?.className).toContain('bg-success');
   });
 
   it('pulse=false omits the animate-ping span', () => {

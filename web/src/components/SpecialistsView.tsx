@@ -53,14 +53,28 @@ export interface ListResponse {
   specialists: Specialist[];
 }
 
+// (v1.11.242, TODO 11.224) Tier badge classes now route through
+// the canonical 8-color tag palette (see
+// web/src/components/ui/tag-palette.ts). Each tier picks the
+// closest semantic slot so the dark/light theme parity comes
+// from the underlying tokens automatically instead of from a
+// per-class `dark:text-*` override.
+//   meeting   -> info     (collab / status-neutral blue)
+//   design    -> magenta  (chart-5, ARPS --ai-magenta)
+//   implement -> success  (built / shipped green)
+//   review    -> warning  (caution / pending amber)
+//   audit     -> danger   (risk / compliance red)
+//   test      -> accent   (chart-2, ARPS --ai-cyan)
+//   deploy    -> brand    (primary / release violet)
+//   docs      -> neutral  (muted, identical to prior contract)
 export const TIER_BADGE: Record<string, string> = {
-  meeting: 'border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  design: 'border-purple-500/40 bg-purple-500/10 text-purple-600 dark:text-purple-400',
-  implement: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-  review: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
-  audit: 'border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400',
-  test: 'border-cyan-500/40 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',
-  deploy: 'border-orange-500/40 bg-orange-500/10 text-orange-600 dark:text-orange-400',
+  meeting: 'border-info/40 bg-info/10 text-info',
+  design: 'border-chart-5/40 bg-chart-5/10 text-chart-5',
+  implement: 'border-success/40 bg-success/10 text-success',
+  review: 'border-warning/40 bg-warning/10 text-warning',
+  audit: 'border-destructive/40 bg-destructive/10 text-destructive',
+  test: 'border-chart-2/40 bg-chart-2/10 text-chart-2',
+  deploy: 'border-primary/40 bg-primary/10 text-primary',
   docs: 'border-border bg-muted/40 text-muted-foreground',
 };
 
