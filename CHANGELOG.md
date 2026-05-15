@@ -4,6 +4,64 @@
 
 (no entries -- next release window)
 
+## [1.11.246] - 2026-05-15 -- UI: Lazy-route prefetch on hover (TODO 11.228)
+
+Component-scope-only addition + adoption sweep. No daemon-side
+change and no `c4` CLI surface change.
+
+New `web/src/lib/route-prefetch.ts`: `prefetch(loader)` is a
+WeakMap-cached warm-up that calls a `() => import(...)` once per
+loader identity, swallows rejections + drops the cache entry so a
+retry is possible, no-ops under SSR, and ignores non-thenable
+return values defensively. `prefetchHandlers(loader)` returns
+the canonical `{ onMouseEnter, onFocus, onTouchStart }` triple so
+a consumer can spread the wiring onto a nav button without
+re-deriving it. TouchStart fires alongside the mouse / focus
+signals because a touch user never sees `mouseenter`; firing on
+press-down warms the chunk during the ~150 ms before
+synthetic-click delivery.
+
+New `web/src/lib/route-loaders.ts` is the single source of truth
+for the top-level view loaders so the prefetch path and the
+`React.lazy(...)` boundaries in App.tsx target the same module
+URLs. The bundler de-dupes the underlying chunk fetch, and the
+prefetch cache stays keyed by stable function identity (an arrow
+defined inside a render would defeat the WeakMap after every
+re-render, so the loaders are exported once at module scope).
+
+Adoption:
+- `web/src/components/ui/tabs.tsx` -- the primitive grows an
+  optional `onPrefetch?: (value: string) => void`. Each tab
+  button wires `onMouseEnter` / `onFocus` / `onTouchStart` to
+  fire with the tab's value, skipping the already-active tab and
+  disabled rows.
+- `web/src/components/layout/TopTabs.tsx` -- routes the new prop
+  to `prefetch(getTopViewLoader(value))` so a hover / focus /
+  touchstart on any sibling tab warms the lazy chunk before the
+  click commits.
+- `web/src/components/ui/dropdown-menu.tsx` --
+  `DropdownMenuItem` gains an optional `onPrefetch`; the
+  rendered `<button>` wires it to the existing mouseenter /
+  focus path.
+- `web/src/components/AccountMenu.tsx` -- the Preferences row
+  now warms the SettingsView chunk on hover / focus via the
+  shared `SETTINGS_LOADER` export.
+
+Test coverage:
+- 8 unit cases in `route-prefetch.test.ts` (loader fires once
+  per identity, distinct loaders cache independently, rejection
+  retry path, synchronous-throw guard, non-thenable guard, and
+  the prefetchHandlers triple-fire memoization).
+- 4 new cases in `tabs.test.tsx` (mouseenter / focus fire
+  onPrefetch with the tab value; active tab skipped; disabled
+  tab skipped). Existing tabs / TopTabs / AccountMenu /
+  DropdownMenu suites stay green: Tabs 25/25, plus
+  TopTabs + AccountMenu + DropdownMenu untouched (92/92 = 117/117
+  across the affected stack).
+
+Bumped `package.json` 1.11.245 -> 1.11.246 and `web/package.json`
+1.11.245 -> 1.11.246 along with both lockfiles.
+
 ## [1.11.245] - 2026-05-15 -- UI: Responsive scrollbar width + safe-area (TODO 11.227)
 
 Component-scope-only addition. No daemon-side change and no `c4`
