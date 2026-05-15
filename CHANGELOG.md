@@ -4,6 +4,77 @@
 
 (no entries -- next release window)
 
+## [1.11.243] - 2026-05-15 -- UI: Skeleton + Spinner motion harmony (TODO 11.225)
+
+Component-scope-only addition + a follow-up adoption sweep across
+the two loading primitives. No daemon-side change and no `c4`
+CLI surface change.
+
+New `web/src/components/ui/loading-motion.ts` pins the shared
+duration + easing contract for the two loading-state animations:
+- **skeleton**: `1800 ms / cubic-bezier(0.4, 0, 0.2, 1)` (the
+  ARPS standard easing -- ease-in, gentler ease-out; replaces
+  Tailwind's `animate-pulse` default `2 s cubic-bezier(0.4, 0,
+  0.6, 1)` so the shimmer settles between pulses instead of
+  ease-out-as-fast-as-it-eased-in).
+- **spinner**: `1200 ms / linear` (slower than Tailwind's
+  `animate-spin` default `1 s` so the spinner completes 1.5
+  rotations per shimmer pulse -- 3:2 period ratio gives the two
+  indicators a felt rhythm without locking into a 1:1
+  strobe).
+
+Both numbers are clean multiples of 200 ms (the smallest
+tweenable unit on a 60 Hz display) so they line up with the rest
+of the ARPS motion scale (`--duration-fast: 160 ms`,
+`--duration-normal: 240 ms`, `--duration-slow: 360 ms`,
+`--duration-deliberate: 600 ms`). The module also exports two
+helpers:
+- `getLoadingMotionStyle(kind, reduced)` returns an inline
+  `{ animationDuration, animationTimingFunction }` style or an
+  empty object when reduced-motion is preferred.
+- `getLoadingMotionClass(kind, reduced)` returns the Tailwind
+  utility (`animate-pulse` / `animate-spin`) or an empty string
+  when reduced-motion is preferred.
+
+Reduced-motion is now respected end-to-end. Both
+`web/src/components/Spinner.tsx` and
+`web/src/components/ui/skeleton.tsx` (including every shape
+sub-component: TextLine, Rect, Circle, AvatarShape, StatCardShape
+via Rect, TableRowShape via Rect, and the Skeleton.Text /
+Skeleton.Avatar / Skeleton.Card / Skeleton.Table compounds) read
+`useReducedMotion()` and switch the animation utility off + drop
+the inline style override when the user prefers reduced motion. A
+`data-motion-reduced=""` attribute lands on the animated element
+in that branch so tests + browser devtools can verify the gate
+without resorting to class introspection.
+
+DesignSystem (`web/src/pages/DesignSystem.tsx`) gets a new
+`LoadingMotionDemo` block in the Display category that renders the
+two primitives side by side with their underlying duration /
+easing values surfaced as code chips, plus a description bar that
+advertises the unified contract + the reduced-motion fallback.
+The prior `MissingPrimitive name="Spinner"` placeholder drops --
+the new demo covers both primitives in a single block.
+
+Test coverage:
+- 10 new unit cases for `loading-motion.ts` lock the constants,
+  the 3:2 period ratio, the 200 ms tweenable-unit invariant, the
+  per-kind class string, and the reduced-motion empty-style /
+  empty-class fallback.
+- 8 cross-cutting cases in `loading-motion-integration.test.tsx`
+  verify the contract end-to-end: animate-pulse + animate-spin
+  classes + inline animationDuration / animationTimingFunction
+  are present when motion is allowed, dropped + replaced by
+  `data-motion-reduced` when reduce is preferred, across the
+  Spinner + Skeleton + every shape sub-component.
+- Existing skeleton + Spinner unit suites stay green untouched
+  (jsdom default matchMedia is undefined -> useReducedMotion
+  returns false -> previous animate-* class assertions still
+  hold).
+
+Bumped `package.json` 1.11.242 -> 1.11.243 and `web/package.json`
+1.11.242 -> 1.11.243 along with both lockfiles.
+
 ## [1.11.242] - 2026-05-15 -- UI: Tag color palette audit (TODO 11.224)
 
 Component-scope-only addition + a follow-up adoption sweep. No
