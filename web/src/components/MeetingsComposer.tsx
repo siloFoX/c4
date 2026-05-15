@@ -3,6 +3,7 @@ import { Button, Input, Tooltip } from './ui';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import MeetingsTemplateEditor from './MeetingsTemplateEditor';
+import { formatNumber } from './NumberFormat';
 import { useMeetingClassifyPreview } from '../lib/use-meeting-classify-preview';
 import { useMeetingPreviewPlan } from '../lib/use-meeting-preview-plan';
 import { useMeetingTemplates, type MeetingTemplate } from '../lib/use-meeting-templates';
@@ -282,7 +283,7 @@ export default function MeetingsComposer({ open, onClose, onCreated }: Props) {
             {tFormat('meetings.preview.summary', {
               track: previewPlan.track,
               size: previewPlan.rosterSize,
-              tokens: previewPlan.estimatedTokens.toLocaleString(),
+              tokens: formatNumber(previewPlan.estimatedTokens),
             })}
           </div>
           <div className="text-muted-foreground">

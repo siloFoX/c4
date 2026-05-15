@@ -4,6 +4,42 @@
 
 (no entries -- next release window)
 
+## [1.11.234] - 2026-05-15 -- UI: NumberFormat component (11.216)
+
+Component-scope-only addition. No daemon-side change and no `c4` CLI
+surface change.
+
+- `web/src/components/NumberFormat.tsx` -- new wrapper around
+  `Intl.NumberFormat`. Props: `value` (required) plus optional
+  `style` (`'decimal' | 'currency' | 'percent'`), `currency`
+  (default `'USD'` when style=currency), `minimumFractionDigits`,
+  `maximumFractionDigits`, `locale` (override; default reads from
+  `useLocale()`), and `compact` (uses `notation='compact'` for
+  shorthand like `1.5K` / `2.5M`). Formatter instances are cached
+  per `(locale, style, currency, digits, notation)` tuple so
+  re-renders do not allocate new `Intl.NumberFormat` objects.
+  Non-finite inputs (`NaN`, `Infinity`, `-Infinity`) render as
+  an em-dash. Renders an inline `<span>` so it composes cleanly
+  inside existing typography. SSR-safe -- `Intl` is available in
+  Node and browsers.
+- `formatNumber(value, opts)` helper exported from the same module
+  for non-component callsites (string-template values, `tFormat()`
+  args). Same options surface, same em-dash fallback.
+- Adopted at five existing `.toLocaleString()` numeric callsites:
+  `web/src/lib/conversation-render.tsx` (4 token-counter parts in
+  `formatTokens`), `web/src/components/MeetingsComposer.tsx`
+  (preview plan estimated tokens), and
+  `web/src/components/ConversationView.tsx` (turns count + input /
+  output total tokens). Date-formatting `toLocaleString()` callsites
+  are intentionally untouched -- those belong to the 11.210 date
+  formatter track.
+- Test coverage `web/src/components/NumberFormat.test.tsx` --
+  17 cases across the component and the helper covering decimal,
+  currency, percent, compact (1.5K / 1.5M), explicit fraction
+  digits, NaN / +Infinity / -Infinity em-dash fallback, custom
+  locale override (de-DE thousand separator), and className
+  forwarding.
+
 ## [1.11.233] - 2026-05-15 -- UI: empty-state illustrations refresh (11.215)
 
 Component-scope-only refresh of the web empty-state illustration set.
