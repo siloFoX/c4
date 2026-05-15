@@ -2,6 +2,7 @@ import { useCallback, useId, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/cn';
+import { getPortalRoot } from '../../lib/portal-root';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
 import { motionClass } from '../../lib/motion';
 import { useReducedMotion } from '../../hooks/use-reduced-motion';
@@ -75,7 +76,8 @@ export function Dialog({
     </div>
   );
 
-  return createPortal(node, document.body);
+  const target = getPortalRoot('dialog-root') ?? document.body;
+  return createPortal(node, target);
 }
 
 Dialog.displayName = 'Dialog';

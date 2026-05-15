@@ -11,6 +11,7 @@ import {
 import type { MouseEvent, ReactElement, ReactNode, Ref } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/cn';
+import { getPortalRoot } from '../../lib/portal-root';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
 import { motionClass } from '../../lib/motion';
 import { useReducedMotion } from '../../hooks/use-reduced-motion';
@@ -207,7 +208,7 @@ export function Popover({
     >
       {content}
     </div>,
-    document.body,
+    getPortalRoot('popover-root') ?? document.body,
   ) : null;
 
   return (

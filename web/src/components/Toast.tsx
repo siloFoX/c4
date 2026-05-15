@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { Card, CardContent, Chip } from './ui';
 import { cn } from '../lib/cn';
+import { getPortalRoot } from '../lib/portal-root';
 import { motionClass } from '../lib/motion';
 import { useReducedMotion } from '../hooks/use-reduced-motion';
 
@@ -77,14 +78,12 @@ const TOAST_EXIT_MS = 180;
 // route changes: even if a page unmounts, #toast-root stays in
 // document.body and is reused by the next toast that mounts.
 export function getToastRoot(): HTMLElement {
-  let root = document.getElementById('toast-root');
-  if (!root) {
-    root = document.createElement('div');
-    root.id = 'toast-root';
+  const root = getPortalRoot('toast-root')!;
+  // Apply toast-specific positioning + tagging on first creation.
+  if (!root.hasAttribute('data-toast-root')) {
     root.setAttribute('data-toast-root', 'true');
     root.className =
       'pointer-events-none fixed right-4 top-4 z-50 flex flex-col gap-2 pb-safe-b pl-safe-l pr-safe-r';
-    document.body.appendChild(root);
   }
   return root;
 }
