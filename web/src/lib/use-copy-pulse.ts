@@ -1,18 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
+import { useCopyToClipboard } from '../hooks/use-copy-to-clipboard';
 
-// (v1.10.721) Generic copy-to-clipboard handler with a
-// short "Copied!" indicator pulse. Extracted from
-// SessionsAttachedRowActions where it backed the
-// resume-command preview, but kept text/duration as
-// args so any other "click → copy → flash 'Copied'"
-// surface can drop the hook in.
-//
-// SSR-safe: navigator.clipboard.writeText is gated on
-// the global being defined, mirroring the original
-// inline check in SessionsAttachedRowActions. The
-// timeout uses window.setTimeout (matching the parent's
-// existing call signature) so the unmount cleanup
-// stays semantically identical.
+// (v1.10.721, refactored v1.11.224) Generic copy-to-clipboard
+// handler with a short "Copied!" indicator pulse. Now delegates
+// the writeText + reset-timer plumbing to useCopyToClipboard so
+// the SSR-safe fallback path is shared with other copy surfaces.
 
 const DEFAULT_PULSE_MS = 1500;
 
@@ -26,15 +18,11 @@ export function useCopyPulse(args: {
   durationMs?: number;
 }): CopyPulseState {
   const { text, durationMs = DEFAULT_PULSE_MS } = args;
-  const [copied, setCopied] = useState(false);
+  const { copy: doCopy, copied } = useCopyToClipboard(durationMs);
 
   const copy = useCallback(async () => {
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      await navigator.clipboard.writeText(text);
-    }
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), durationMs);
-  }, [text, durationMs]);
+    await doCopy(text);
+  }, [doCopy, text]);
 
   return { copied, copy };
 }

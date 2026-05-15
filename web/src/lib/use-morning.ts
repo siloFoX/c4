@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { apiPost } from './api';
 import { t, tFormat } from './i18n';
 import type { ToastType } from '../components/Toast';
+import { useCopyToClipboard } from '../hooks/use-copy-to-clipboard';
 
 // (v1.10.748) Extracted from pages/Morning. The
 // morning-report state machine — POST /api/morning
@@ -34,6 +35,7 @@ export function useMorning(args: {
   const [report, setReport] = useState<MorningResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const { copy: copyText } = useCopyToClipboard();
 
   const generate = useCallback(async () => {
     setLoading(true);
@@ -55,13 +57,18 @@ export function useMorning(args: {
 
   const copy = useCallback(async () => {
     if (!report?.content) return;
-    try {
-      await navigator.clipboard.writeText(report.content);
-      showToast(t('morning.toast.copied'), 'success');
-    } catch (e) {
-      showToast(tFormat('morning.toast.copyFailed', { error: (e as Error).message }), 'error');
+    const res = await copyText(report.content);
+    if (!res.ok) {
+      showToast(
+        tFormat('morning.toast.copyFailed', {
+          error: res.error?.message ?? 'copy failed',
+        }),
+        'error',
+      );
+      return;
     }
-  }, [report, showToast]);
+    showToast(t('morning.toast.copied'), 'success');
+  }, [report, showToast, copyText]);
 
   return { report, loading, error, generate, copy };
 }
