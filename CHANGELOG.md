@@ -4,6 +4,73 @@
 
 (no entries -- next release window)
 
+## [1.11.250] - 2026-05-15 -- UI: Multi-key shortcut sequences (TODO 11.232)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+New `web/src/hooks/use-shortcut-sequence.ts` gives the app a
+Vim-style chord vocabulary on top of the existing single-key
+shortcut registry. The hook accepts a map of sequence strings
+-> handlers, listens on `window` for plain-letter keydowns,
+buffers each press, and fires the matching handler on an exact
+match. A 1500 ms inactivity timer expires the buffer (the
+`timeoutMs` option overrides the default) so an abandoned mid-
+chord does not poison the next press.
+
+Guards:
+- Text-entry surfaces (`INPUT` / `TEXTAREA` / `SELECT` /
+  contentEditable) -- the chord is a no-op so an operator
+  typing the word "growth" does not trigger `gg`.
+- Modifier keys (Ctrl / Meta / Alt) -- those combos are
+  reserved for the explicit shortcut registry; holding any of
+  them drops the in-flight chord.
+- Non-printable keys (`length !== 1`) -- arrows / function
+  keys reset the buffer.
+- Handler throws -- swallowed so a bad nav callback cannot
+  poison the next chord.
+- When a non-prefix key arrives the buffer clears, but if that
+  key is itself a fresh chord head the buffer restarts with it
+  (so `x g h` still completes `gh`).
+
+Three chords wired into `App.tsx`:
+- `g g` -> scroll the active view to the top + dispatch a
+  `c4:scroll-to-top` `CustomEvent` so subsurfaces with their
+  own overflow container (FeatureView / ChatMessageLog /
+  WikiView) can opt in by adding a `window` listener.
+- `g h` -> "home" = `setTopView('workers')` + clear the
+  selected worker.
+- `g w` -> `setTopView('workers')`; no selection change so
+  the operator's current worker stays put.
+
+`KeyboardShortcutsModal.tsx` grows three `SHORTCUT_ROWS` rows
+under the navigation category (`g g`, `g h`, `g w`) so the
+discoverability surface lists the chords alongside the
+single-key shortcuts. The existing modal test reads
+`SHORTCUT_ROWS.length` at runtime so the new rows ship
+documented in lockstep without breaking any prior assertion.
+i18n keys added for both `en` + `ko` bundles
+(`shortcuts.gotoTop` / `shortcuts.gotoHome` /
+`shortcuts.gotoWorkers`).
+
+Test coverage: 13 new vitest cases in
+`use-shortcut-sequence.test.tsx` lock the contract (exact
+match, shared-prefix disambiguation, non-prefix reset, 1500 ms
+timeout expiry, in-window completion, custom `timeoutMs`,
+text-input guard, modifier guard, non-printable ignore,
+preventDefault on the final keystroke, `enabled=false` hard
+no-op, error-swallow does not poison subsequent chords,
+fresh-chord-head restart rule). Modal + CommandPalette suites
+stay green (KeyboardShortcutsModal 34/34, CommandPalette
+35/35).
+
+Pre-existing failures unchanged (FeatureSidebar > filter,
+i18n-keys > t() self-match); confirmed earlier and out of
+scope.
+
+Bumped `package.json` 1.11.249 -> 1.11.250 and `web/package.json`
+1.11.249 -> 1.11.250 along with both lockfiles.
+
 ## [1.11.249] - 2026-05-15 -- UI: Uptime + recent-incidents page (TODO 11.231)
 
 Component-scope-only addition. No daemon-side change and no `c4`
