@@ -4,6 +4,78 @@
 
 (no entries -- next release window)
 
+## [1.11.253] - 2026-05-15 -- UI: Central motion tokens + 4-primitive adoption (TODO 11.235)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+Two new modules give every animation surface a single source of
+truth so a future ARPS-tokens migration flips one file instead
+of every primitive:
+
+- `web/src/styles/motion.css` -- CSS custom properties for the
+  canonical motion scale:
+  `--motion-duration-{instant 80, fast 150, normal 200, slow
+  300, deliberate 500}ms`, `--motion-ease-{standard, out, in,
+  emphasized}` (Material 3 vocabulary, with `standard` =
+  `cubic-bezier(0.4, 0, 0.2, 1)`), and two spring presets
+  (`--motion-spring-snappy` ~5% overshoot for tooltips / toasts,
+  `--motion-spring-soft` ~15% overshoot for hero motion). Plus
+  utility classes (`.motion-duration-fast`,
+  `.motion-ease-standard`, ...) so the tokens are
+  Tailwind-composable. A `@media (prefers-reduced-motion:
+  reduce)` block collapses every duration to 1 ms; individual
+  primitives that want a different gate (loading-motion
+  contract from 11.225, animated carousels) keep their own
+  `useReducedMotion()` check.
+- `web/src/lib/motion-tokens.ts` -- JS mirror of the same scale
+  (`MOTION_DURATION_FAST_MS = 150`, `MOTION_EASE_STANDARD =
+  'cubic-bezier(0.4, 0, 0.2, 1)'`, plus `MOTION_DURATIONS_MS` /
+  `MOTION_EASINGS` records). Required because JS callers like
+  Toast's `style.transition` string cannot read CSS variables
+  synchronously.
+
+Wired into the bundle via `web/src/main.tsx` (one new
+`import './styles/motion.css'` alongside the existing index.css
+/ print.css / safe-area.css imports).
+
+Four primitives adopted:
+
+1. **Toast** -- the inline `${TOAST_EXIT_MS}ms ease` string now
+   reads as `${TOAST_EXIT_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`
+   via `MOTION_EASE_STANDARD`. `TOAST_EXIT_MS` itself was an
+   ad-hoc `180`; it now equals `MOTION_DURATION_FAST_MS` (150)
+   so a Toast exit syncs to the same beat as a Dialog open.
+2. **Drawer** -- the `transition-transform` utility now stacks
+   `motion-duration-normal motion-ease-standard` so Drawer
+   moves on the same curve as Dialog / Popover. Tailwind's
+   default 150 ms / ease-in-out was wrong (too snappy for a
+   large surface).
+3. **Dialog** -- already routed through
+   `motionClass('fadeIn' / 'scaleIn')` in `lib/motion.ts`. The
+   lib doc-comment now points at the central tokens so the
+   Tailwind duration classes (`duration-150` /
+   `duration-200`) read as the `fast` / `normal` steps in the
+   canonical scale.
+4. **Popover** -- same as Dialog; consumes
+   `motionClass('fadeIn')` already, no source edit needed
+   beyond the doc note.
+
+Test coverage: 14 new vitest cases in `motion-tokens.test.ts`
+pin the duration scale (5 monotonically-ordered steps + record
+parity), the four easings + two springs (exact strings,
+non-empty + `cubic-bezier(`-prefixed invariant), and the 6-key
+easing record. Adopters re-verified: Toast 25/25, Dialog 9/9,
+Drawer 32/32, Popover 26/26 (= 92/92 across the four).
+
+Pre-existing failures unchanged (DataList navigator.clipboard
+read-only x 5, ErrorBoundary Collapsible toggle x 2,
+FeatureSidebar > filter, i18n-keys > t() self-match); confirmed
+earlier and out of scope.
+
+Bumped `package.json` 1.11.252 -> 1.11.253 and `web/package.json`
+1.11.252 -> 1.11.253 along with both lockfiles.
+
 ## [1.11.252] - 2026-05-15 -- UI: Command history page (TODO 11.234)
 
 Component-scope-only addition. No daemon-side change and no `c4`

@@ -81,7 +81,13 @@ export const Drawer = forwardRef<HTMLDivElement, DrawerProps>(function Drawer(
         data-drawer-side={side}
         style={widthStyle}
         className={cn(
-          'fixed top-0 bottom-0 flex max-w-full flex-col bg-background text-foreground shadow-xl outline-none transition-transform',
+          // (v1.11.253, TODO 11.235) `motion-duration-normal` +
+          // `motion-ease-standard` route Drawer transform through
+          // the central scale (`styles/motion.css`) instead of
+          // Tailwind's default 150ms/ease-in-out. Standard easing
+          // matches Dialog / Popover / Toast so a Drawer that
+          // opens beside a Dialog reads on the same curve.
+          'fixed top-0 bottom-0 flex max-w-full flex-col bg-background text-foreground shadow-xl outline-none transition-transform motion-duration-normal motion-ease-standard',
           sideClasses,
           className,
         )}

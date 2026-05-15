@@ -1,0 +1,100 @@
+/* (v1.11.253, TODO 11.235) Central animation tokens.
+ *
+ * Single source of truth for transition durations, easing
+ * curves, and spring presets across the primitives. Mirrors the
+ * ARPS design-system motion scale from
+ * `arps-design-system-v1/tokens.css` (--duration-*, --ease-*)
+ * but is scoped to web/ so the c4 bundle does not require the
+ * upstream tokens.css to be imported. JS callers should import
+ * `lib/motion-tokens.ts`, which exports the same numbers as TS
+ * constants so a `setTimeout` / inline `style.transition` stays
+ * in lockstep with the CSS variables.
+ *
+ * Why CSS variables instead of Tailwind utilities:
+ *   - Inline styles (Toast's `style={{ transition: ... }}`)
+ *     need a string value, not a className.
+ *   - A future ARPS-tokens migration only has to flip the
+ *     numbers in this one file -- the primitives stay put.
+ *   - Tailwind's `duration-150` / `ease-out` classes still work
+ *     for sites that prefer the utility path; the variables
+ *     give the inline-style escape hatch.
+ *
+ * Loaded from `web/src/main.tsx` alongside index.css so every
+ * primitive sees the tokens on first paint.
+ */
+
+:root {
+  /* ── Durations ────────────────────────────────────────────
+   * Five steps, chosen so adjacent primitives never share the
+   * exact same period (which would betray the rhythm). 150 ms
+   * is the perceptual floor where a transition still reads as
+   * intentional; 500 ms is the ceiling before the user starts
+   * waiting for the animation to finish. */
+  --motion-duration-instant:    80ms;
+  --motion-duration-fast:       150ms;
+  --motion-duration-normal:     200ms;
+  --motion-duration-slow:       300ms;
+  --motion-duration-deliberate: 500ms;
+
+  /* ── Easing ────────────────────────────────────────────────
+   * Three core curves (Material 3 vocabulary):
+   *   standard   -- ease in and out symmetrically; the
+   *                 most boring + most correct choice.
+   *   out        -- ease out only; for entrances (a panel
+   *                 sliding in should decelerate, not jerk to
+   *                 a stop).
+   *   in         -- ease in only; for exits (a toast leaving
+   *                 should accelerate away, not drift).
+   *   emphasized -- aggressive ease-out for hero motion (FAB
+   *                 expand, modal open). Use sparingly. */
+  --motion-ease-standard:   cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-ease-out:        cubic-bezier(0, 0, 0.2, 1);
+  --motion-ease-in:         cubic-bezier(0.4, 0, 1, 1);
+  --motion-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ── Spring presets ───────────────────────────────────────
+   * Two approximated springs via cubic-bezier (a real spring
+   * curve cannot be expressed as a single bezier, so these are
+   * "spring-ish" -- they overshoot slightly then settle).
+   *   snappy -- ~5% overshoot; for toast enters, tooltip
+   *             arrivals.
+   *   soft   -- ~15% overshoot; for hero card flips, drawer
+   *             pull-ins. Use when the surface is large
+   *             enough that a tiny overshoot reads as
+   *             intentional rather than buggy. */
+  --motion-spring-snappy: cubic-bezier(0.2, 0.8, 0.2, 1.05);
+  --motion-spring-soft:   cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Utility classes ─────────────────────────────────────────
+ * Optional shortcuts for callers that prefer Tailwind-style
+ * composition over inline `var(--motion-*)`. The duration
+ * classes set `transition-duration` only; pair with one of
+ * the `.motion-ease-*` classes to round out the contract. */
+.motion-duration-instant    { transition-duration: var(--motion-duration-instant); }
+.motion-duration-fast       { transition-duration: var(--motion-duration-fast); }
+.motion-duration-normal     { transition-duration: var(--motion-duration-normal); }
+.motion-duration-slow       { transition-duration: var(--motion-duration-slow); }
+.motion-duration-deliberate { transition-duration: var(--motion-duration-deliberate); }
+
+.motion-ease-standard       { transition-timing-function: var(--motion-ease-standard); }
+.motion-ease-out            { transition-timing-function: var(--motion-ease-out); }
+.motion-ease-in             { transition-timing-function: var(--motion-ease-in); }
+.motion-ease-emphasized     { transition-timing-function: var(--motion-ease-emphasized); }
+
+.motion-spring-snappy       { transition-timing-function: var(--motion-spring-snappy); }
+.motion-spring-soft         { transition-timing-function: var(--motion-spring-soft); }
+
+/* `prefers-reduced-motion: reduce` flips every duration to a
+ * near-instant snap. Individual primitives that need a
+ * different behaviour (loading-motion contract, animated
+ * carousels) keep their own gate via useReducedMotion(). */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration-instant:    1ms;
+    --motion-duration-fast:       1ms;
+    --motion-duration-normal:     1ms;
+    --motion-duration-slow:       1ms;
+    --motion-duration-deliberate: 1ms;
+  }
+}

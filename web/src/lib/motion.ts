@@ -1,3 +1,15 @@
+// (v1.11.253, TODO 11.235) Tailwind-class shortcuts for the
+// canonical animation library (used by Dialog + Popover + every
+// surface that wants a one-liner). The duration values below
+// align with the central motion scale in
+// `web/src/styles/motion.css` / `web/src/lib/motion-tokens.ts`:
+//   duration-150 -> --motion-duration-fast
+//   duration-200 -> --motion-duration-normal
+//   duration-100 -> ~--motion-duration-instant (Tailwind has no
+//                   80ms class; 100ms reads as the same beat
+//                   without registering as a separate step).
+// Inline-style callers (Toast) reach for the tokens directly so
+// their numbers stay in lockstep across this layer.
 export const motion = {
   fadeIn: 'animate-in fade-in duration-200',
   fadeOut: 'animate-out fade-out duration-150',

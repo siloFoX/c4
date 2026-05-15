@@ -7,6 +7,7 @@ import { installErrorCapture } from './lib/error-capture';
 import './index.css';
 import './styles/print.css';
 import './styles/safe-area.css';
+import './styles/motion.css';
 
 installErrorCapture();
 

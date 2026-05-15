@@ -7,6 +7,10 @@ import { Card, CardContent, Chip } from './ui';
 import { cn } from '../lib/cn';
 import { getPortalRoot } from '../lib/portal-root';
 import { motionClass } from '../lib/motion';
+import {
+  MOTION_DURATION_FAST_MS,
+  MOTION_EASE_STANDARD,
+} from '../lib/motion-tokens';
 import { useReducedMotion } from '../hooks/use-reduced-motion';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -70,9 +74,13 @@ export function partitionToasts(
 // (horizontal) commits the dismissal; anything less snaps back to 0.
 export const TOAST_SWIPE_THRESHOLD = 80;
 
-// Animation budget. Used for both the exit slide-out and the
-// post-dismiss fade so consumers can synchronise unmount timing.
-const TOAST_EXIT_MS = 180;
+// (v1.11.253, TODO 11.235) Animation budget. Used for both the
+// exit slide-out and the post-dismiss fade so consumers can
+// synchronise unmount timing. Sourced from the central motion
+// scale (`lib/motion-tokens.ts`) so a future migration only
+// flips one number; the prior 180 ms ad-hoc value rounded to
+// the canonical 150 ms `--motion-duration-fast` step.
+const TOAST_EXIT_MS = MOTION_DURATION_FAST_MS;
 
 // Lazy-create the portal target so the toast layer survives parent
 // route changes: even if a page unmounts, #toast-root stays in
@@ -224,9 +232,12 @@ export default function Toast({
   // Drag: track pointer horizontally. Leaving: parked at large
   // translateX so the exit slide is visible until unmount.
   const tx = !entered ? '100%' : `${dragX}px`;
+  // (v1.11.253, TODO 11.235) Standard easing replaces the bare
+  // `ease` keyword so Toast moves on the same curve as Dialog /
+  // Popover / Drawer. Numbers come from the central scale.
   const transition = dragging.current
-    ? `opacity ${TOAST_EXIT_MS}ms ease`
-    : `transform ${TOAST_EXIT_MS}ms ease, opacity ${TOAST_EXIT_MS}ms ease`;
+    ? `opacity ${TOAST_EXIT_MS}ms ${MOTION_EASE_STANDARD}`
+    : `transform ${TOAST_EXIT_MS}ms ${MOTION_EASE_STANDARD}, opacity ${TOAST_EXIT_MS}ms ${MOTION_EASE_STANDARD}`;
 
   const node = (
     <div
