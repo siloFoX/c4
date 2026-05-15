@@ -5,6 +5,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  VisuallyHidden,
 } from '../components/ui';
 import { Skeleton } from '../components/ui/skeleton';
 import { t, useLocale } from '../lib/i18n';
@@ -51,7 +52,7 @@ export function LoadingSkeleton({ rows = 4 }: { rows?: number }) {
           className="bg-muted/50"
         />
       ))}
-      <span className="sr-only">{t('pageFrame.loading')}</span>
+      <VisuallyHidden>{t('pageFrame.loading')}</VisuallyHidden>
     </div>
   );
 }

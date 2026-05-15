@@ -1,5 +1,6 @@
 import type { HTMLAttributes } from 'react';
 import { cn } from '../lib/cn';
+import { VisuallyHidden } from './ui/visually-hidden';
 
 // (v1.11.135) Small inline loading indicator. An SVG ring (circle +
 // arc) animated via Tailwind's `animate-spin`. Uses `stroke="currentColor"`
@@ -65,7 +66,7 @@ export default function Spinner({
         <circle cx="12" cy="12" r="10" strokeWidth="3" strokeOpacity="0.25" />
         <path d="M22 12a10 10 0 0 1-10 10" strokeWidth="3" strokeLinecap="round" />
       </svg>
-      <span className="sr-only">{label}</span>
+      <VisuallyHidden>{label}</VisuallyHidden>
     </span>
   );
 }
