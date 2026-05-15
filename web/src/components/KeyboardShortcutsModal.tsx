@@ -25,6 +25,13 @@ export const SHORTCUT_ROWS: Row[] = [
   { keys: 'H', descriptionKey: 'shortcuts.openHelpDrawer', category: 'navigation' },
   { keys: 'Ctrl+B', descriptionKey: 'shortcuts.toggleSidebar', category: 'navigation' },
   { keys: 'T', descriptionKey: 'shortcuts.toggleTour', category: 'navigation' },
+  // (v1.11.250, TODO 11.232) Multi-key chord shortcuts. The first
+  // letter starts a 1500 ms buffer; the second key completes the
+  // chord. Chord keys are case-insensitive and skipped while focus
+  // sits on a text input.
+  { keys: 'g g', descriptionKey: 'shortcuts.gotoTop', category: 'navigation' },
+  { keys: 'g h', descriptionKey: 'shortcuts.gotoHome', category: 'navigation' },
+  { keys: 'g w', descriptionKey: 'shortcuts.gotoWorkers', category: 'navigation' },
   { keys: 'Enter', descriptionKey: 'shortcuts.sendChat', category: 'actions' },
   { keys: 'Shift+Enter', descriptionKey: 'shortcuts.newLine', category: 'actions' },
   { keys: 'Ctrl+F', descriptionKey: 'shortcuts.terminalSearch', category: 'actions' },
