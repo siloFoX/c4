@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.238] - 2026-05-15 -- UI: useLocalStorage hook (11.220)
+
+Component-scope-only addition. No daemon-side change and no `c4` CLI
+surface change.
+
+- `web/src/hooks/use-local-storage.ts` -- new generic JSON-backed
+  hook + matching imperative helpers for non-React callers.
+  - `useLocalStorage<T>(key, defaultValue): [value, setValue, remove]`
+    reads its initial value through a lazy `useState` initializer
+    (so each render only ever does one read) and subscribes to the
+    `window` `storage` event for cross-tab sync. Two hooks pointing
+    at the same key inside the same tab also stay in sync because
+    `setLocalStorage` / `removeLocalStorage` re-dispatch a synthetic
+    `StorageEvent` on `window`. Malformed JSON falls back to
+    `defaultValue` instead of throwing. `typeof window` guards
+    every browser touch so SSR builds keep working.
+  - `getLocalStorage<T>(key, defaultValue)`,
+    `setLocalStorage<T>(key, value)`,
+    `removeLocalStorage(key)` -- the same contract for non-React
+    call sites (e.g. classic `loadX` / `saveX` helper pairs).
+- `web/src/hooks/use-local-storage.test.tsx` -- 11 vitest cases
+  covering the contract: empty / pre-seeded reads, set + remove
+  round-trip, malformed JSON fallback, real cross-tab `storage`
+  event, ignored events for unrelated keys, two-hook same-tab
+  sync, key-change re-seed, imperative helper round-trip, and an
+  SSR-shape (no `window`) smoke test for the helpers.
+- `web/src/components/CommandPalette.tsx` -- replaces the four
+  inline `loadRecent` / `saveRecent` / `loadFavorites` /
+  `saveFavorites` `localStorage` callsites with the new helpers.
+  Storage payload is unchanged (still a JSON-stringified array
+  under the same `cmdk:recent` / `c4:cmdk:favorites` keys), so
+  the existing `CommandPalette.test.tsx` cases stay green.
+- `web/src/components/ui/column-picker.tsx` -- swaps the
+  `readFromStorage` / `writeToStorage` helpers (two more inline
+  callsites) to ride on `getLocalStorage` / `setLocalStorage`.
+  Same JSON-array payload format as before so the
+  `column-picker.test.tsx` seed / persist cases keep working.
+- `docs/patches/11.220-ui-local-storage-hook.md` -- patch note
+  with the contract, the rationale for JSON-only payloads, the
+  SSR / cross-tab sync model, and the adoption inventory.
+
 ## [1.11.237] - 2026-05-15 -- UI: route-progress feature flag (11.219)
 
 Component-scope-only wiring. No daemon-side change and no `c4` CLI

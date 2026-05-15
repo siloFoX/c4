@@ -5,6 +5,10 @@ import { Button } from './button';
 import { Popover } from './popover';
 import { Checkbox } from './checkbox';
 import { cn } from '../../lib/cn';
+import {
+  getLocalStorage,
+  setLocalStorage,
+} from '../../hooks/use-local-storage';
 
 export interface ColumnPickerColumn {
   id: string;
@@ -22,26 +26,20 @@ export interface ColumnPickerProps {
   ariaLabel?: string;
 }
 
+const STORAGE_SENTINEL = Symbol('column-picker:absent');
+
 function readFromStorage(key: string): string[] | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return null;
-    return parsed.filter((v): v is string => typeof v === 'string');
-  } catch {
-    return null;
-  }
+  const raw = getLocalStorage<unknown>(
+    key,
+    STORAGE_SENTINEL as unknown as unknown,
+  );
+  if (raw === (STORAGE_SENTINEL as unknown)) return null;
+  if (!Array.isArray(raw)) return null;
+  return raw.filter((v): v is string => typeof v === 'string');
 }
 
 function writeToStorage(key: string, value: string[]): void {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // ignore
-  }
+  setLocalStorage<string[]>(key, value);
 }
 
 export const ColumnPicker = forwardRef<HTMLButtonElement, ColumnPickerProps>(
