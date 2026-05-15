@@ -71,4 +71,44 @@ describe('<EmptyState>', () => {
     expect(wrapper).toHaveClass('my-empty');
     expect(wrapper).toHaveClass('flex');
   });
+
+  // -- v1.11.254 illustration prop (TODO 11.236) --------------------
+
+  it("renders the no-data illustration when illustration='no-data'", () => {
+    const { container } = render(
+      <EmptyState title="Empty" illustration="no-data" />,
+    );
+    const svg = container.querySelector('svg');
+    expect(svg).not.toBeNull();
+    expect(svg?.getAttribute('aria-label')).toBeNull();
+    // The decorative wrapper around the icon is aria-hidden.
+    expect(svg?.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it("renders the off-schedule illustration when illustration='off-schedule'", () => {
+    const { container } = render(
+      <EmptyState title="Empty" illustration="off-schedule" />,
+    );
+    expect(container.querySelector('svg')).not.toBeNull();
+  });
+
+  it("renders the access-denied illustration when illustration='access-denied'", () => {
+    const { container } = render(
+      <EmptyState title="Empty" illustration="access-denied" />,
+    );
+    expect(container.querySelector('svg')).not.toBeNull();
+  });
+
+  it("keeps backward compatibility -- 'icon' wins over 'illustration' when both are set", () => {
+    const { container, getByTestId } = render(
+      <EmptyState
+        title="Empty"
+        illustration="no-data"
+        icon={<span data-testid="override-icon">override</span>}
+      />,
+    );
+    expect(getByTestId('override-icon')).toBeInTheDocument();
+    // The SVG illustration must NOT render in that case.
+    expect(container.querySelector('svg')).toBeNull();
+  });
 });
