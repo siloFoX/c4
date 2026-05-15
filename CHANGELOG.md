@@ -4,6 +4,59 @@
 
 (no entries -- next release window)
 
+## [1.11.272] - 2026-05-15 -- UI: Avatar group stack (TODO 11.254)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/avatar-group.tsx` -- overlapping avatar
+  circle stack with an optional `"+N more"` chip when the roster
+  exceeds the `max` cap.
+- Public surface:
+  - `items: { name?, src?, alt? }[]`
+  - `max?: number` (default 5, clamped to >= 1)
+  - `size?: 'sm' | 'md' | 'lg'` -- maps to Avatar size and the
+    overlap pull (`-ml-2` / `-ml-3` / `-ml-4`)
+  - `overflowAriaLabel?: (n: number) => string` -- default
+    `` `${n} more` ``
+  - All other HTMLDivElement props pass through to the root.
+- The root carries `role="group"` + `aria-label="N participants"`
+  (singular at `N=1`), `data-section="avatar-group"`, `data-count`,
+  and `data-overflow`. Each visible Avatar wrapper carries
+  `data-avatar-group-item={idx}`. The overflow chip carries
+  `data-avatar-group-overflow`.
+- 21 vitest cases cover the visible-count + overflow arithmetic
+  (items <= max, items > max, items == max+1, `max=0` clamp,
+  `max=1`, empty list), role / aria-label, custom
+  `overflowAriaLabel`, overlap class per size, className merge,
+  HTML attribute forwarding, and the e2e data attributes.
+
+### Changed
+
+- `web/src/components/SessionsAttachedSection.tsx` -- the section
+  header's plain count chip (text-only `"{N}"`) is replaced by an
+  AvatarGroup roster when `filtered.length > 0`. data-testid=
+  `"sessions-attached-roster"`. The empty-list case falls back to
+  the `"0"` count chip so the empty-state surface stays
+  visually consistent. 31/32 SessionsAttachedSection tests pass
+  (1 unrelated pre-existing failure about RelativeTime).
+- `web/src/components/HistoryView.tsx` -- new AvatarGroup roster
+  preview row at the top of the sidebar (between empty-state and
+  the virtualized worker list) showing the visible workers as a
+  stacked group with `"N workers"` label. data-testid=
+  `"history-sidebar-roster"`. 43/43 HistoryView tests pass.
+
+### Notes
+
+- The dispatch listed Templates author roster as a third site,
+  but `TemplateItem` does not carry an author field today, so
+  there is no roster data to render. Adoption is gated on adding
+  the author field to the template payload, which is its own
+  work item.
+- Reference design tokens: `/root/c4/arps-design-system-v1/`.
+
 ## [1.11.271] - 2026-05-15 -- UI: CodeBlock filename header + line numbers (TODO 11.253)
 
 Component-scope-only polish. No daemon-side change and no `c4`
