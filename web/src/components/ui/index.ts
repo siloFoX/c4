@@ -64,3 +64,4 @@ export * from './widget';
 export * from './sticky-filter-bar';
 export * from './undo-toast';
 export * from './detail-panel';
+export * from './page-header';

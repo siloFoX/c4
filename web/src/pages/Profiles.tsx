@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, EmptyState, ExportButton, Fieldset, HeroCard, ListItem, Panel, SearchBar, Tooltip } from '../components/ui';
+import { Badge, Button, EmptyState, ExportButton, Fieldset, HeroCard, ListItem, PageHeader, Panel, SearchBar, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -86,6 +86,16 @@ export default function Profiles() {
         </>
       }
     >
+      <PageHeader
+        breadcrumbs={[
+          { id: 'home', label: 'Dashboard', href: '#feature=workers' },
+        ]}
+        backHref="#feature=workers"
+        backLabel="Back to Workers"
+        sticky={false}
+        className="-mx-4 -mt-2 md:-mx-6 md:-mt-2"
+        data-testid="profiles-page-header"
+      />
       <HeroCard
         size="sm"
         tone="primary"
