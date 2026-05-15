@@ -4,6 +4,76 @@
 
 (no entries -- next release window)
 
+## [1.11.256] - 2026-05-15 -- UI: Dashboard Widget primitive (TODO 11.238)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/widget.tsx` -- composable dashboard widget
+  shell. Two equivalent shapes that produce byte-identical DOM:
+  - **Compound API**: `<Widget><Widget.Header />, <Widget.Body />,
+    <Widget.Footer /></Widget>` -- explicit named slots.
+  - **Flat API**: pass `title`, `icon`, `updatedAt`, `updatedLabel`
+    (default `"updated"`), `onRefresh`, `loading`, `footer` props on
+    the root and the component composes the same internal slots.
+  - Optional refresh button (lucide `RefreshCw`) wired to
+    `onRefresh`; when `loading` is true the button disables and the
+    icon spins (`animate-spin`), and the root carries
+    `data-widget-loading` for snapshot / e2e contracts.
+  - Optional `updatedAt` (epoch ms or ISO string) renders a relative
+    time stamp prefixed with `updatedLabel` -- e.g. `"updated 2m
+    ago"` / `"started 5h ago"` / `"snapshot from just now"`.
+  - Root sets `data-section="widget"`, header `data-slot="header"`,
+    body `data-slot="body"`, footer `data-slot="footer"` for stable
+    selectors.
+  - 14 vitest cases (section marker, flat title render, icon slot,
+    no-header-when-no-prop, updatedAt stamp, custom updatedLabel,
+    refresh button render + click, loading disables refresh,
+    `data-widget-loading` attribute, body wrap, flat footer,
+    compound slot composition, className merge) -- all pass.
+  - Exported from the `web/src/components/ui` barrel.
+
+### Changed
+
+- `web/src/pages/Uptime.tsx` -- the 3 hero tiles (daemon-process /
+  restart-counter / incidents) are now `<Widget>` instances. Each
+  tile drives its own refresh callback (`health.refresh()` /
+  `restart.refresh()` / `incidents.refresh()`) and renders an
+  appropriate `updatedAt` stamp (`startedAt` / `sinceFirstSeen` /
+  `now`). `data-testid` contract (`uptime-card` / `restart-card` /
+  `incidents-card`) is preserved unchanged. Uptime tests 6/6 pass.
+- `web/src/pages/Auto.tsx` -- the `HeroStats` `StatCard` quartet is
+  now wrapped in a `<Widget title="Recent dispatches" icon={Clock}
+  updatedLabel="last dispatch">` with the last-dispatch timestamp
+  pulled from the autonomous status. `data-testid` on the inner
+  cards is preserved. Auto tests 44/44 pass.
+- `web/src/pages/Health.tsx` -- the hero metrics `Panel` containing
+  the daemon `DataList` is now wrapped in a `<Widget title="Hero
+  metrics" updatedLabel="snapshot from" onRefresh={refresh}>`. The
+  per-row `data-testid` contract on the DataList is preserved.
+  Health tests 36/37 pass (1 pre-existing role=status failure
+  unrelated to this change -- documented out of scope in
+  v1.11.242).
+
+### Notes
+
+- The compound API is the canonical shape; the flat API exists so
+  that pages with a single content block (Uptime tiles, Auto hero
+  strip, Health datalist) don't need to spell out three child
+  components for a trivial case. Internally the flat form always
+  rebuilds the compound tree, so consumers can rely on the same
+  DOM.
+- The widget is purely presentational -- it does not own state,
+  fetch data, or talk to the daemon. The refresh button just calls
+  `onRefresh()`; the parent is responsible for kicking off the
+  fetch and toggling `loading`.
+- Reference design tokens: `/root/c4/arps-design-system-v1/`
+  (tokens.css + tailwind.tokens.js); the widget uses
+  `bg-card`/`border-border`/`text-foreground`/`text-muted-foreground`
+  shadcn tokens exclusively -- no raw Tailwind hues.
+
 ## [1.11.255] - 2026-05-15 -- UI: Workspaces page polish (TODO 11.237)
 
 Component-scope-only addition. No daemon-side change and no `c4`
