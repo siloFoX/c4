@@ -6,16 +6,19 @@ import { Image } from './image';
 type IOCallback = (entries: Array<{ isIntersecting: boolean }>) => void;
 
 let lastCallback: IOCallback | null = null;
+let lastInit: IntersectionObserverInit | undefined;
 let observeCalls = 0;
 let disconnectCalls = 0;
 
 function installIO() {
   lastCallback = null;
+  lastInit = undefined;
   observeCalls = 0;
   disconnectCalls = 0;
   class FakeIO {
-    constructor(cb: IOCallback) {
+    constructor(cb: IOCallback, init?: IntersectionObserverInit) {
       lastCallback = cb;
+      lastInit = init;
     }
     observe() {
       observeCalls += 1;
@@ -164,5 +167,65 @@ describe('<Image>', () => {
     expect(wrap.className).toContain('animate-pulse');
     fireEvent.load(screen.getByAltText('p'));
     expect(wrap.className).not.toContain('animate-pulse');
+  });
+
+  // -- v1.11.244 perf tweaks (TODO 11.226) -------------------------
+
+  it('emits decoding="async" by default on the underlying <img>', () => {
+    render(<Image src="/d.png" alt="d" lazy={false} />);
+    const img = screen.getByAltText('d') as HTMLImageElement;
+    expect(img.getAttribute('decoding')).toBe('async');
+  });
+
+  it('honors a custom decoding prop ("sync" for above-the-fold)', () => {
+    render(<Image src="/d.png" alt="d" lazy={false} decoding="sync" />);
+    const img = screen.getByAltText('d') as HTMLImageElement;
+    expect(img.getAttribute('decoding')).toBe('sync');
+  });
+
+  it('emits loading="lazy" when lazy=true and the image is in view', () => {
+    render(<Image src="/l.png" alt="l" lazy={true} />);
+    triggerIntersect();
+    const img = screen.getByAltText('l') as HTMLImageElement;
+    expect(img.getAttribute('loading')).toBe('lazy');
+  });
+
+  it('emits loading="eager" when lazy=false', () => {
+    render(<Image src="/e.png" alt="e" lazy={false} />);
+    const img = screen.getByAltText('e') as HTMLImageElement;
+    expect(img.getAttribute('loading')).toBe('eager');
+  });
+
+  it('forwards srcSet + sizes to the underlying <img>', () => {
+    render(
+      <Image
+        src="/x.png"
+        alt="rs"
+        lazy={false}
+        srcSet="/x-1x.png 1x, /x-2x.png 2x"
+        sizes="(min-width: 768px) 320px, 100vw"
+      />,
+    );
+    const img = screen.getByAltText('rs') as HTMLImageElement;
+    expect(img.getAttribute('srcset')).toBe('/x-1x.png 1x, /x-2x.png 2x');
+    expect(img.getAttribute('sizes')).toBe('(min-width: 768px) 320px, 100vw');
+  });
+
+  it('omits srcset / sizes attributes when the props are not provided', () => {
+    render(<Image src="/x.png" alt="bare" lazy={false} />);
+    const img = screen.getByAltText('bare') as HTMLImageElement;
+    expect(img.hasAttribute('srcset')).toBe(false);
+    expect(img.hasAttribute('sizes')).toBe(false);
+  });
+
+  it("IntersectionObserver default rootMargin is '200px' (lookahead)", () => {
+    render(<Image src="/io.png" alt="io" lazy={true} />);
+    expect(lastInit).toBeDefined();
+    expect(lastInit?.rootMargin).toBe('200px');
+  });
+
+  it('rootMargin prop overrides the default lookahead', () => {
+    render(<Image src="/io2.png" alt="io2" lazy={true} rootMargin="0px" />);
+    expect(lastInit?.rootMargin).toBe('0px');
   });
 });

@@ -24,6 +24,32 @@ export interface ImageProps {
   lazy?: boolean;
   rounded?: ImageRounded;
   className?: string;
+  /**
+   * (v1.11.244, TODO 11.226) Responsive sources. The `srcSet` is
+   * forwarded verbatim to the underlying <img>; pair it with
+   * `sizes` to let the browser pick the best candidate. When
+   * neither is set the component falls back to the single `src`
+   * URL just like before.
+   */
+  srcSet?: string;
+  sizes?: string;
+  /**
+   * (v1.11.244, TODO 11.226) IntersectionObserver lookahead.
+   * Default `'200px'` -- start fetching the image once it is
+   * within 200px of the viewport so a fast scroll does not strand
+   * the user on a blank placeholder. Set to `'0px'` to disable
+   * the lookahead, or any other CSS length string to tune.
+   * Only used while `lazy` is true.
+   */
+  rootMargin?: string;
+  /**
+   * (v1.11.244, TODO 11.226) Optional override for the
+   * `<img decoding>` attribute. Default `'async'` keeps the main
+   * thread responsive while the browser decodes the bitmap; set
+   * to `'sync'` for above-the-fold critical images that must paint
+   * before script runs.
+   */
+  decoding?: 'async' | 'sync' | 'auto';
 }
 
 const ASPECT_CLASS: Record<ImageAspect, string> = {
@@ -59,6 +85,10 @@ export const Image = forwardRef<HTMLDivElement, ImageProps>(function Image(
     lazy = true,
     rounded = 'md',
     className,
+    srcSet,
+    sizes,
+    rootMargin = '200px',
+    decoding = 'async',
   },
   ref,
 ) {
@@ -89,11 +119,15 @@ export const Image = forwardRef<HTMLDivElement, ImageProps>(function Image(
           }
         }
       },
-      { rootMargin: '50px' },
+      // (v1.11.244, TODO 11.226) Lookahead bumped 50px -> 200px so
+      // a fast scroll starts the fetch before the placeholder
+      // actually intersects the viewport. Configurable via the
+      // `rootMargin` prop for tuning per surface.
+      { rootMargin },
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [lazy, inView]);
+  }, [lazy, inView, rootMargin]);
 
   // Reset load/error state when src changes.
   useEffect(() => {
@@ -156,10 +190,22 @@ export const Image = forwardRef<HTMLDivElement, ImageProps>(function Image(
       );
     }
   } else if (inView) {
+    // (v1.11.244, TODO 11.226) `decoding="async"` lets the browser
+    // decode off the main thread (default has always been
+    // implementation-defined; pinning it keeps behaviour stable
+    // across engines). `loading` mirrors the lazy/eager intent so
+    // an environment without `IntersectionObserver` still benefits
+    // from the native lazy-loader. `srcSet` + `sizes` are
+    // forwarded verbatim so responsive surfaces can offer multiple
+    // resolutions.
     body = (
       <img
         src={src}
+        srcSet={srcSet}
+        sizes={sizes}
         alt={alt}
+        decoding={decoding}
+        loading={lazy ? 'lazy' : 'eager'}
         onLoad={() => setLoaded(true)}
         onError={() => setError(true)}
         className={cn(
