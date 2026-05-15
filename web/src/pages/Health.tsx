@@ -28,6 +28,7 @@ import { formatDuration, formatNumber, formatRelativeTime } from '../lib/format'
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { text } from '../lib/typography';
 import { useHealth } from '../lib/use-health';
+import { useABVariant } from '../lib/ab-variant';
 
 // 8.20B Health dashboard. Reads GET /api/health and renders the fields
 // the daemon surfaces today (pid, uptime, worker counts). Fields the
@@ -46,6 +47,12 @@ export default function Health() {
   // (11.176) Placeholder since-filter date. Local-only until the
   // health filter Drawer is wired into the polling hook.
   const [sinceDate, setSinceDate] = useState<Date | null>(null);
+  // (11.202) A/B variant harness hookup point. The hero KPI block below
+  // carries `data-ab-variant` so a follow-up can branch on variant 'B'
+  // for a condensed hero. Today both variants render the same UI; the
+  // attribute is the contract that downstream styling / Playwright
+  // selectors will pivot on. See web/src/lib/ab-variant.ts.
+  const [heroVariant] = useABVariant('health-hero');
 
   const ok = data?.ok !== false && !error;
 
@@ -171,7 +178,7 @@ export default function Health() {
             />
           </div>
 
-          <DashboardGrid data-stat-card-trends gap="sm">
+          <DashboardGrid data-stat-card-trends gap="sm" data-ab-variant={heroVariant}>
             <DashboardGrid.Item span="full" smSpan={6} lgSpan={4}>
               <StatCard
                 label="Uptime trend"
