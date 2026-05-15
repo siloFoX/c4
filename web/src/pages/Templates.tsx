@@ -87,12 +87,19 @@ export default function Templates() {
       {loading && items.length === 0 ? <LoadingSkeleton rows={3} /> : null}
       {!loading && filtered.length === 0 ? (
         <EmptyState
+          size="md"
           icon={
             <span data-testid="templates-empty-illustration">
               <EmptyQueueIllustration size={160} />
             </span>
           }
           title={t('templates.empty')}
+          description="No prompt templates are configured yet. Templates live in config.json and let workers reuse common task scaffolds."
+          secondaryAction={{
+            label: 'Open Config page',
+            href: '#feature=config',
+          }}
+          data-testid="templates-empty-state"
         />
       ) : (
         <ul className="flex flex-col gap-2">

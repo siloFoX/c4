@@ -101,6 +101,7 @@ export default function SessionsListSection({
     }
     return (
       <EmptyState
+        size="lg"
         icon={
           <WelcomeOnboardingIllustration
             className="text-muted-foreground"
@@ -108,7 +109,13 @@ export default function SessionsListSection({
           />
         }
         title={t('sessions.empty')}
+        description="No sessions are attached or saved on disk yet. Start a new chat or attach an existing worker session to populate this list."
+        secondaryAction={{
+          label: 'Read the Sessions guide',
+          href: '#feature=help',
+        }}
         className="m-4"
+        data-testid="sessions-list-empty-state"
       />
     );
   }

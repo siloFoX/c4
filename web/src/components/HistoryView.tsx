@@ -20,6 +20,7 @@ import {
   CardTitle,
   ColumnPicker,
   DateRangePicker,
+  EmptyState,
   ExportButton,
   Input,
   Select,
@@ -391,7 +392,17 @@ export default function HistoryView() {
               </div>
             )}
             {summary.length === 0 && !error && (
-              <div className="text-xs text-muted-foreground">{t('history.empty')}</div>
+              <EmptyState
+                size="sm"
+                illustration="no-workers"
+                title={t('history.empty')}
+                description="No workers have completed tasks in the selected date range yet."
+                secondaryAction={{
+                  label: 'Browse archived workers',
+                  href: '#feature=cleanup',
+                }}
+                data-testid="history-empty-state"
+              />
             )}
             {(() => {
               // (v1.11.227 / patch 11.209) Sidebar summary list now
