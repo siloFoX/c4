@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useRef, useState } from 'react';
 import type { InputHTMLAttributes } from 'react';
 import { Search, X } from 'lucide-react';
 import { cn } from '../../lib/cn';
+import { useDebouncedCallback } from '../../hooks/use-debounce';
 
 export interface SearchBarProps
   extends Omit<
@@ -71,16 +72,20 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
     const current = isControlled ? (value as string) : internal;
     const userInteractedRef = useRef(false);
 
+    // (v1.11.230) Inline setTimeout replaced by
+    // useDebouncedCallback. Same trailing-edge "latest
+    // value wins" + unmount cancellation; the SSR-skip
+    // ref logic still gates the very first emit.
+    const debouncedEmit = useDebouncedCallback((next: string) => {
+      onDebouncedChange?.(next);
+    }, debounceMs);
     useEffect(() => {
       if (!onDebouncedChange) return;
       if (!userInteractedRef.current && current === (defaultValue ?? '')) {
         return;
       }
-      const handle = setTimeout(() => {
-        onDebouncedChange(current);
-      }, debounceMs);
-      return () => clearTimeout(handle);
-    }, [current, debounceMs, onDebouncedChange, defaultValue]);
+      debouncedEmit(current as never);
+    }, [current, onDebouncedChange, defaultValue, debouncedEmit]);
 
     const emit = (next: string) => {
       userInteractedRef.current = true;

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { apiGet } from './api';
+import { useDebounce } from '../hooks/use-debounce';
 import type { Track } from '../components/MeetingsSearchFacets';
 
 // (v1.10.647) Extracted from MeetingsComposer. Debounced
@@ -23,21 +24,25 @@ export function useMeetingClassifyPreview(args: {
 }): ClassifyPreview | null {
   const { open, newTask } = args;
   const [classifyPreview, setClassifyPreview] = useState<ClassifyPreview | null>(null);
+  // (v1.11.230) Inline setTimeout replaced by useDebounce.
+  // Same 250ms trailing-edge semantics; rapid edits still
+  // collapse into the latest task before the GET fires.
+  const debouncedTask = useDebounce(newTask, 250);
   useEffect(() => {
-    if (!open || !newTask.trim()) {
+    const trimmed = debouncedTask.trim();
+    if (!open || !trimmed) {
       setClassifyPreview(null);
-      return undefined;
+      return;
     }
-    const handle = window.setTimeout(async () => {
+    (async () => {
       try {
-        const qs = new URLSearchParams({ task: newTask.trim() });
+        const qs = new URLSearchParams({ task: trimmed });
         const res = await apiGet<ClassifyPreview>(`/api/meetings/classify-track?${qs.toString()}`);
         setClassifyPreview(res);
       } catch {
         setClassifyPreview(null);
       }
-    }, 250);
-    return () => window.clearTimeout(handle);
-  }, [open, newTask]);
+    })();
+  }, [open, debouncedTask]);
   return classifyPreview;
 }
