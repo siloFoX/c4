@@ -4,6 +4,68 @@
 
 (no entries -- next release window)
 
+## [1.11.249] - 2026-05-15 -- UI: Uptime + recent-incidents page (TODO 11.231)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+New `web/src/pages/Uptime.tsx` is a Diagnostics page (the
+"Health group" the brief refers to) with three cards:
+
+1. **Daemon process** -- pid / version / startedAt / uptime
+   duration. Reads from `/api/health` via the existing
+   `useHealth()` hook so the page inherits the 10 s self-poll +
+   refresh contract for free.
+2. **Restart counter** -- operator-local count of daemon
+   restarts observed since the operator first opened the page.
+   The daemon does not surface its own restart history yet, so
+   the new `useDaemonRestartTracker()` hook stores the last
+   `(pid, startedAt)` pair in `localStorage` and bumps a
+   counter every time either value changes between polls. First
+   contact records `firstSeen` but does NOT count as a restart;
+   quota / private-mode failures fall back to the in-memory
+   state.
+3. **Recent incidents** -- last 5 halt / dispatch-error rows
+   from `/api/autonomous/status` `recent[]` plus any reviewer
+   escalations from `escalations[]`, merged + sorted
+   newest-first, capped at 5. Empty state ("All clear") when
+   the loop has been healthy. Halt + dispatch-error rows use
+   the destructive Badge variant; escalations use warning, so
+   the signal-icon layer added in v1.11.247 reads in every row.
+
+Two new lib hooks support the page:
+- `web/src/lib/use-autonomous-incidents.ts` -- exposes the pure
+  `toIncidents(payload)` helper plus a 30 s polling
+  `useAutonomousIncidents()` wrapper. 7 vitest cases pin the
+  contract.
+- `web/src/lib/use-daemon-restart-tracker.ts` -- localStorage-
+  backed counter with a `_resetDaemonRestartTracker()` test
+  helper. 8 vitest cases cover the zero state, first-contact
+  no-bump rule, pid-change bump, startedAt-change bump, no-op
+  same-pair rule, sequence count, and persistence across
+  remount.
+
+Registered in `web/src/pages/registry.ts` under category
+`diagnostics` as `uptime` with the `Activity` lucide icon. i18n
+labels added for both en + ko bundles
+(`feature.uptime.label` / `feature.uptime.description`).
+
+Test coverage: Uptime.test.tsx adds 6 vitest cases covering the
+PageFrame title / description, daemon-process card pid + version
+chips, restart counter initial value, the "All clear"
+empty-state, the populated incident list with newest-first
+ordering, and the 5-row cap when the status payload contains
+more rows. Total +21 cases (7 incidents + 8 restart + 6 page);
+all pass.
+
+Pre-existing failures unchanged (confirmed identical with
+edits reverted, out of scope): FeatureSidebar.test.tsx > filter
+list, i18n-keys.test.ts > t() keys exist. Both pre-date this
+push.
+
+Bumped `package.json` 1.11.248 -> 1.11.249 and `web/package.json`
+1.11.248 -> 1.11.249 along with both lockfiles.
+
 ## [1.11.248] - 2026-05-15 -- UI: Decision Log page + 5 seed ADRs (TODO 11.230)
 
 Component-scope-only addition. No daemon-side change and no `c4`
