@@ -130,4 +130,115 @@ describe('<CodeBlock>', () => {
     expect(region).not.toBeNull();
     expect(region.getAttribute('aria-label')).toMatch(/code block/i);
   });
+
+  // -- v1.11.271 filename header (TODO 11.253) ---------------------
+
+  it('omits the header bar when no filename + no language is passed', () => {
+    render(<CodeBlock>abc</CodeBlock>);
+    expect(
+      document.querySelector('[data-code-block-header]'),
+    ).toBeNull();
+  });
+
+  it('renders the editor-style header bar when filename is passed', () => {
+    render(<CodeBlock filename="config.json">{'{"a":1}'}</CodeBlock>);
+    const header = document.querySelector('[data-code-block-header]');
+    expect(header).not.toBeNull();
+    expect(
+      document.querySelector('[data-code-block-filename]')!.textContent,
+    ).toBe('config.json');
+  });
+
+  it('filename header includes the language badge on the right', () => {
+    render(
+      <CodeBlock filename="config.json" language="json">
+        {'{"a":1}'}
+      </CodeBlock>,
+    );
+    const header = document.querySelector('[data-code-block-header]');
+    expect(header).not.toBeNull();
+    expect(
+      header!.querySelector('[data-code-block-language]')!.textContent,
+    ).toBe('json');
+  });
+
+  it('region aria-label uses the filename when provided', () => {
+    render(<CodeBlock filename="config.json">{'{"a":1}'}</CodeBlock>);
+    const region = screen.getByRole('region');
+    expect(region.getAttribute('aria-label')).toBe('config.json code block');
+  });
+
+  it('region aria-label falls back to language when no filename is passed', () => {
+    render(<CodeBlock language="json">{'{"a":1}'}</CodeBlock>);
+    const region = screen.getByRole('region');
+    expect(region.getAttribute('aria-label')).toBe('json code block');
+  });
+
+  // -- v1.11.271 line numbers (TODO 11.253) ------------------------
+
+  it('omits the line-number gutter by default', () => {
+    render(<CodeBlock>{'a\nb\nc'}</CodeBlock>);
+    expect(
+      document.querySelector('[data-code-block-line-numbers]'),
+    ).toBeNull();
+  });
+
+  it('renders the line-number gutter when showLineNumbers is true', () => {
+    render(
+      <CodeBlock showLineNumbers code={'line1\nline2\nline3'} />,
+    );
+    const gutter = document.querySelector(
+      '[data-code-block-line-numbers]',
+    );
+    expect(gutter).not.toBeNull();
+    expect(gutter!.querySelectorAll('span')).toHaveLength(3);
+    expect(gutter!.textContent).toBe('123');
+  });
+
+  it('line-number gutter counts at least 1 even for empty code', () => {
+    render(<CodeBlock showLineNumbers code="" />);
+    const gutter = document.querySelector(
+      '[data-code-block-line-numbers]',
+    );
+    expect(gutter).not.toBeNull();
+    expect(gutter!.querySelectorAll('span')).toHaveLength(1);
+    expect(gutter!.textContent).toBe('1');
+  });
+
+  it('gutter is marked aria-hidden so screen readers do not read "1 2 3..." over code', () => {
+    render(<CodeBlock showLineNumbers code={'a\nb'} />);
+    const gutter = document.querySelector(
+      '[data-code-block-line-numbers]',
+    );
+    expect(gutter!.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('line-number gutter falls back to children when no `code` prop is passed', () => {
+    render(<CodeBlock showLineNumbers>{'one\ntwo\nthree\nfour'}</CodeBlock>);
+    const gutter = document.querySelector(
+      '[data-code-block-line-numbers]',
+    );
+    expect(gutter!.querySelectorAll('span')).toHaveLength(4);
+  });
+
+  it('filename + showLineNumbers combine without crashing (kitchen sink)', () => {
+    render(
+      <CodeBlock
+        filename="src/lib/foo.ts"
+        language="ts"
+        showLineNumbers
+        code={'export function foo() {\n  return 42;\n}'}
+      />,
+    );
+    expect(
+      document.querySelector('[data-code-block-filename]')!.textContent,
+    ).toBe('src/lib/foo.ts');
+    expect(
+      document.querySelector('[data-code-block-language]')!.textContent,
+    ).toBe('ts');
+    const gutter = document.querySelector(
+      '[data-code-block-line-numbers]',
+    );
+    expect(gutter!.querySelectorAll('span')).toHaveLength(3);
+  });
 });
