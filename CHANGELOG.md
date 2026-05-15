@@ -4,6 +4,74 @@
 
 (no entries -- next release window)
 
+## [1.11.264] - 2026-05-15 -- UI: Contextual help tooltip (TODO 11.246)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/HelpTip.tsx` (167 lines) -- inline
+  contextual help glyph. `HelpCircle` icon trigger wrapped in
+  the existing `Tooltip` primitive; tooltip body accepts either
+  a `content` string (parsed via a minimal inline markdown
+  subset) or `children` (ReactNode for richer layouts).
+  Children wins when both are passed so a caller can override
+  the parsed content per instance.
+- Inline markdown subset (intentionally narrow -- no third-party
+  parser, no `dangerouslySetInnerHTML`, no XSS surface):
+  - `**bold**` -> `<strong>`
+  - `*italic*` -> `<em>`
+  - `` `code` `` -> styled `<code>`
+  - `[label](url)` -> `<a>` (only `http://` / `https://` /
+    `mailto:` / `#` / `/` prefixes are accepted; `javascript:` /
+    `data:` schemes drop the link entirely with the label text
+    passing through as plain text).
+- Trigger is a real `<button>` so focus / keyboard activation
+  are free; Tooltip wires `aria-describedby` + show-on-focus.
+  Default `aria-label="Help"` overridable per call.
+  `data-section="help-tip"` + `data-testid="help-tip"`
+  (overridable).
+- `renderInlineMarkdown` exported separately for unit testing
+  without rendering the full `HelpTip` tree.
+- 21 vitest cases covering markdown coverage, component
+  contract, accessibility wiring, custom labels, size variants,
+  and the unsafe-URL safety contract.
+
+### Changed
+
+- `web/src/components/ui/panel.tsx` -- `title?: string` relaxed
+  to `title?: ReactNode` so consumers can append inline glyphs
+  (`HelpTip`, status chips) next to the title without losing
+  the Panel's built-in header layout. String values keep
+  working byte-identically; 15/15 Panel tests stay green.
+- `web/src/pages/Settings.tsx` -- Theme / Density / Locale
+  panel titles now carry a HelpTip glyph
+  (`data-testid="settings-help-{theme,density,locale}"`). Each
+  tooltip explains the surface with the relevant
+  `localStorage` key in `code`. 6/6 Settings tests stay green.
+- `web/src/pages/Risk.tsx` -- HelpTip next to the "Classify a
+  command" heading
+  (`data-testid="risk-help-classifier"`) explaining what the
+  classifier returns (level / reasons / decoded / intent), that
+  the same classifier runs in the PreToolUse daemon hook, and
+  what `wouldDeny` means. 39/39 Risk tests stay green.
+- `web/src/pages/FeatureFlags.tsx` -- per-row HelpTip next to
+  each flag label
+  (`data-testid="feature-flag-help-<key>"`) surfacing the
+  description + storage location + default value + reset
+  behaviour. The tooltip body deliberately avoids echoing the
+  flag label literal so the Settings embed test's
+  `getByText('<label>')` stays unique.
+
+### Notes
+
+- The markdown subset is deliberately narrow. Anything richer
+  should be passed via `children` so the consumer renders its
+  own JSX -- the goal is to make help copy easy to write inline
+  without pulling a markdown parser into the bundle.
+- Reference design tokens: `/root/c4/arps-design-system-v1/`.
+
 ## [1.11.263] - 2026-05-15 -- UI: Density toggle (TODO 11.245)
 
 Component-scope-only addition. No daemon-side change and no `c4`
