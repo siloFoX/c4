@@ -235,9 +235,12 @@ function CardPanelDemo() {
   return (
     <Demo
       name="Card / Panel"
-      description="Card is the page-level surface; Panel is the inline framed block."
+      description="Card is the page-level surface; Panel is the inline framed block. Card supports tone='success'|'warning'|'danger' for subdued status tints."
       code={`<Card><CardHeader><CardTitle>Stats</CardTitle></CardHeader>
   <CardContent>Body</CardContent></Card>
+<Card tone="success"><CardContent>All checks passed.</CardContent></Card>
+<Card tone="warning"><CardContent>Approaching limit.</CardContent></Card>
+<Card tone="danger"><CardContent>Worker halted.</CardContent></Card>
 <Panel className="p-3">Inline panel</Panel>`}
     >
       <Card className="w-64">
@@ -247,6 +250,15 @@ function CardPanelDemo() {
         <CardContent className="p-3 pt-0 text-sm text-muted-foreground">
           Card body content.
         </CardContent>
+      </Card>
+      <Card tone="success" className="w-64">
+        <CardContent className="p-3 text-sm">All checks passed.</CardContent>
+      </Card>
+      <Card tone="warning" className="w-64">
+        <CardContent className="p-3 text-sm">Approaching limit.</CardContent>
+      </Card>
+      <Card tone="danger" className="w-64">
+        <CardContent className="p-3 text-sm">Worker halted.</CardContent>
       </Card>
       <Panel className="w-64 p-3 text-sm text-muted-foreground">Inline panel.</Panel>
     </Demo>
