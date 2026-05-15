@@ -298,3 +298,213 @@ export function TableRowShape({ columns = 5, className, ...rest }: TableRowShape
     </div>
   );
 }
+
+// -- v1.11.208 Skeleton.* compound sub-components -----------------
+// Higher-level, named building blocks attached to the Skeleton
+// primitive via Object.assign. These cover the most common ad-hoc
+// loading shapes (single text line, avatar, card, table) so call
+// sites can swap inline `animate-pulse rounded-md bg-muted` divs
+// for a typed, accessible API. The pixel sizes for Skeleton.Avatar
+// (24 / 32 / 48) intentionally differ from the older AvatarShape
+// (24 / 40 / 56) -- the new sub-component targets list / row
+// affordances while AvatarShape is sized for profile / detail
+// surfaces. Both remain available.
+
+export interface SkeletonTextProps extends HTMLAttributes<HTMLDivElement> {
+  width?: string | number;
+  height?: string | number;
+  lines?: number;
+  className?: string;
+}
+
+function SkeletonText({
+  width = '100%',
+  height = '1em',
+  lines = 1,
+  className,
+  style,
+  ...rest
+}: SkeletonTextProps) {
+  const safeLines = Math.max(1, Math.floor(lines));
+  const resolvedWidth = typeof width === 'number' ? `${width}px` : width;
+  const resolvedHeight = typeof height === 'number' ? `${height}px` : height;
+  if (safeLines === 1) {
+    return (
+      <div
+        role="status"
+        aria-hidden="true"
+        data-skeleton-sub="text"
+        className={cn(SHAPE_BASE, 'rounded', className)}
+        style={{ width: resolvedWidth, height: resolvedHeight, ...style }}
+        {...rest}
+      />
+    );
+  }
+  return (
+    <div
+      role="status"
+      aria-hidden="true"
+      data-skeleton-sub="text"
+      className={cn('flex flex-col gap-2', className)}
+      style={style}
+      {...rest}
+    >
+      {Array.from({ length: safeLines }).map((_, i) => (
+        <div
+          key={i}
+          data-skeleton-line={i}
+          className={cn(
+            SHAPE_BASE,
+            'rounded',
+            i === safeLines - 1 && 'w-4/5',
+          )}
+          style={{
+            width: i === safeLines - 1 ? undefined : resolvedWidth,
+            height: resolvedHeight,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+export type SkeletonAvatarSize = 'sm' | 'md' | 'lg';
+
+const SKELETON_AVATAR_PX: Record<SkeletonAvatarSize, number> = {
+  sm: 24,
+  md: 32,
+  lg: 48,
+};
+
+export interface SkeletonAvatarProps extends HTMLAttributes<HTMLDivElement> {
+  size?: SkeletonAvatarSize;
+  className?: string;
+}
+
+function SkeletonAvatar({
+  size = 'md',
+  className,
+  style,
+  ...rest
+}: SkeletonAvatarProps) {
+  const dim = SKELETON_AVATAR_PX[size];
+  return (
+    <div
+      role="status"
+      aria-hidden="true"
+      data-skeleton-sub="avatar"
+      data-skeleton-avatar-size={size}
+      className={cn(SHAPE_BASE, 'rounded-full', className)}
+      style={{ width: `${dim}px`, height: `${dim}px`, ...style }}
+      {...rest}
+    />
+  );
+}
+
+export interface SkeletonCardProps extends HTMLAttributes<HTMLDivElement> {
+  className?: string;
+}
+
+function SkeletonCard({ className, ...rest }: SkeletonCardProps) {
+  return (
+    <div
+      role="status"
+      aria-hidden="true"
+      data-skeleton-sub="card"
+      className={cn(
+        'flex flex-col gap-2 rounded-md border border-border p-4',
+        className,
+      )}
+      {...rest}
+    >
+      <div
+        data-skeleton-card="header"
+        className={cn(SHAPE_BASE, 'h-5 w-2/5 rounded')}
+      />
+      <div
+        data-skeleton-card="line"
+        data-skeleton-line={0}
+        className={cn(SHAPE_BASE, 'h-3 w-full rounded')}
+      />
+      <div
+        data-skeleton-card="line"
+        data-skeleton-line={1}
+        className={cn(SHAPE_BASE, 'h-3 w-4/5 rounded')}
+      />
+    </div>
+  );
+}
+
+export interface SkeletonTableProps extends HTMLAttributes<HTMLDivElement> {
+  rows?: number;
+  cols?: number;
+  className?: string;
+}
+
+function SkeletonTable({
+  rows = 5,
+  cols = 3,
+  className,
+  ...rest
+}: SkeletonTableProps) {
+  const safeRows = Math.max(0, Math.floor(rows));
+  const safeCols = Math.max(0, Math.floor(cols));
+  const renderCells = (rowIndex: number, isHeader: boolean) =>
+    Array.from({ length: safeCols }).map((_, c) => (
+      <div
+        key={c}
+        data-skeleton-table-cell={c}
+        className={cn(
+          SHAPE_BASE,
+          'flex-1 rounded',
+          isHeader ? 'h-4' : 'h-3',
+          isHeader && c === safeCols - 1 && 'w-3/5',
+        )}
+        data-row-index={rowIndex}
+      />
+    ));
+  return (
+    <div
+      role="status"
+      aria-hidden="true"
+      data-skeleton-sub="table"
+      className={cn('flex flex-col gap-2', className)}
+      {...rest}
+    >
+      <div
+        data-skeleton-table-row="header"
+        className="flex items-center gap-3 border-b border-border pb-2"
+      >
+        {renderCells(-1, true)}
+      </div>
+      {Array.from({ length: safeRows }).map((_, r) => (
+        <div
+          key={r}
+          data-skeleton-table-row="body"
+          data-row-index={r}
+          className="flex items-center gap-3"
+        >
+          {renderCells(r, false)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+SkeletonText.displayName = 'Skeleton.Text';
+SkeletonAvatar.displayName = 'Skeleton.Avatar';
+SkeletonCard.displayName = 'Skeleton.Card';
+SkeletonTable.displayName = 'Skeleton.Table';
+
+export { SkeletonText, SkeletonAvatar, SkeletonCard, SkeletonTable };
+
+// Declaration-merge the sub-components onto the Skeleton function
+// value so `Skeleton.Text`, `Skeleton.Avatar`, etc. are visible to
+// TypeScript without altering the underlying function signature.
+// eslint-disable-next-line @typescript-eslint/no-namespace
+export namespace Skeleton {
+  export const Text = SkeletonText;
+  export const Avatar = SkeletonAvatar;
+  export const Card = SkeletonCard;
+  export const Table = SkeletonTable;
+}

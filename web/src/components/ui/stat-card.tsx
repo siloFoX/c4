@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useRef, useState } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 import { cn } from '../../lib/cn';
+import { Skeleton } from './skeleton';
 
 // Polished KPI card used by pages/Auto.tsx's hero stats row. The
 // value count-up is intentionally implemented with rAF (not CSS
@@ -177,10 +178,12 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(
               {label}
             </p>
             {loading ? (
-              <span
-                role="status"
+              <Skeleton
+                aria-hidden={false}
                 aria-label={`${label} loading`}
-                className="mt-2 inline-block h-8 w-20 animate-pulse rounded-md bg-muted/70"
+                width="5rem"
+                height="2rem"
+                className="mt-2 inline-block bg-muted/70"
               />
             ) : (
               <p
