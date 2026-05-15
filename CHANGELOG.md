@@ -4,6 +4,70 @@
 
 (no entries -- next release window)
 
+## [1.11.265] - 2026-05-15 -- UI: Detail-panel slide-in pattern (TODO 11.247)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/detail-panel.tsx` -- composable
+  slide-in primitive. Thin wrapper over the existing `Drawer`
+  that adds two missing pieces:
+  - A pinned footer slot for action rows (Save / Cancel / Open
+    in full view / Close). Drawer's body still scrolls; the
+    footer stays anchored at the bottom with a top border.
+  - Compound API: `<DetailPanel.Body>` / `<DetailPanel.Footer>`
+    child components route content into the matching slots via
+    a Symbol type marker. The flat API (`footer` prop +
+    `children` as body) still works for terse call sites.
+- Drawer already owns the portal mount, focus trap,
+  Escape-to-close, backdrop click-to-close, title/description
+  aria wiring, and the sliding transition
+  (`motion-duration-normal` + `motion-ease-standard`).
+  DetailPanel only adds the body/footer split via inner
+  flexbox (`flex-1 overflow-y-auto` for the body,
+  `border-t border-border` for the footer).
+- 15 vitest cases cover: `open=false` null return, dialog
+  accessible name, `data-section="detail-panel"` marker, flat
+  footer placement, footer-omitted case, compound body slot,
+  compound footer slot, loose children fall back into body,
+  compound members on the root export, `data-testid`
+  forwarding, X-close wiring, `width` passthrough, `side="left"`,
+  title + description in Drawer header, body slot keeps
+  `flex-1 overflow-y-auto` for long content.
+- Exported from `web/src/components/ui` barrel.
+
+### Changed
+
+- `web/src/components/WorkerDetail.tsx` -- new "Info" Button at
+  the bottom-right (`data-testid="worker-detail-info-trigger"`)
+  opens a DetailPanel slide-in
+  (`data-testid="worker-detail-info-panel"`) showing worker
+  metadata (name / active tab / font size / scrollback line
+  count / last action message). The persistent terminal pane
+  stays mounted underneath so live output keeps streaming. The
+  panel uses the flat API: title + description + body
+  dl/dt/dd metadata grid + single "Close" Button in the
+  footer slot.
+- `web/src/components/SessionsRightPane.tsx` -- matching "Info"
+  Button + DetailPanel pair
+  (`data-testid="sessions-right-info-trigger"` /
+  `"sessions-right-info-panel"`) for session metadata (kind /
+  session-id-or-worker-name / live flag). Renders for both the
+  session-snapshot path and the attached-live path; not
+  rendered on the empty-state path.
+
+### Notes
+
+- The compound `<DetailPanel.Body>` / `<DetailPanel.Footer>`
+  surface lets callers spread the slide-in layout across
+  multiple files (`SessionInfoPanel`, `WorkerInfoPanel`, etc.)
+  without prop-drilling. The flat API is preserved for one-shot
+  call sites that don't need the indirection.
+- Reference: `/root/c4/arps-design-system-v1/USAGE.md` "detail
+  panel" pattern.
+
 ## [1.11.264] - 2026-05-15 -- UI: Contextual help tooltip (TODO 11.246)
 
 Component-scope-only addition. No daemon-side change and no `c4`
