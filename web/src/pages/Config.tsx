@@ -134,6 +134,7 @@ export default function Config() {
                   </span>
                 </summary>
                 <CodeBlock
+                  filename={`config.${k}`}
                   language="json"
                   showCopy={false}
                   className="border-t border-border"

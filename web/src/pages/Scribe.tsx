@@ -117,7 +117,15 @@ export default function Scribe() {
           <span>{t('scribePage.recentContext')}</span>
         </div>
         {context && context.content ? (
-          <CodeBlock language="log" maxHeight="96">
+          <CodeBlock
+            // (v1.11.271, TODO 11.253) Editor-style filename
+            // header bar uses the scribe log path when available,
+            // falling back to a generic label otherwise.
+            filename={context.path ?? 'scribe.log'}
+            language="log"
+            maxHeight="96"
+            showLineNumbers
+          >
             {context.content}
           </CodeBlock>
         ) : (
