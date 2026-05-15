@@ -5,6 +5,7 @@ import {
   EMPTY_ATTACH_BANNER_TITLE_KEY,
   EMPTY_ATTACH_BANNER_BODY_KEY,
 } from './SessionsView';
+import { SessionsEmpty } from './illustrations';
 
 // (v1.10.549) Extracted from SessionsView. Empty-state banner
 // shown above the attached-sessions list when nothing has been
@@ -26,6 +27,10 @@ export default function SessionsEmptyAttachBanner({ onAttachClick }: Props) {
       <Info
         className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"
         aria-hidden
+      />
+      <SessionsEmpty
+        size="sm"
+        className="hidden shrink-0 text-muted-foreground sm:block"
       />
       <div className="flex-1">
         <div className="font-semibold text-foreground">

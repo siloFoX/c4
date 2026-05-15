@@ -4,6 +4,42 @@
 
 (no entries -- next release window)
 
+## [1.11.233] - 2026-05-15 -- UI: empty-state illustrations refresh (11.215)
+
+Component-scope-only refresh of the web empty-state illustration set.
+No daemon-side change and no `c4` CLI surface change.
+
+- `web/src/components/illustrations/index.tsx` -- standardised the
+  `size` surface across the family with a named-token convention.
+  `size` now accepts `'sm' | 'md' | 'lg'` (64 / 96 / 128 px) in
+  addition to the legacy numeric passthrough. The four v1.11.84
+  hero illustrations keep their 160 px default so their existing
+  test suite stays green.
+- New `SearchEmpty` illustration -- magnifying glass tilted over a
+  stack of three blank list rows. Defaults to the `md` (96 px) token.
+- New `SessionsEmpty` illustration -- three stacked terminal cards
+  with a dashed "no connection" slash. Defaults to the `md` token.
+- Adopted at two obvious sites:
+  - `HistoryView.tsx` sidebar list renders `<SearchEmpty />` plus the
+    existing `history.empty` copy when the search input is non-empty
+    and produces zero matches. The `summary.length === 0` branch is
+    unchanged.
+  - `SessionsEmptyAttachBanner.tsx` renders an inline
+    `<SessionsEmpty size="sm" />` alongside the existing Info icon
+    and CTA. Decorative + `hidden sm:block`, so the mobile compact
+    layout is preserved.
+- Tones documented in the module header: outlines paint through
+  `currentColor` (consumer drives via `text-muted-foreground`);
+  highlights use the new `HIGHLIGHT_FILL = hsl(var(--primary) / 0.3)`
+  constant, the SVG-equivalent of `text-primary/30`. The four legacy
+  hero illustrations keep their lighter 0.15 accent unchanged.
+- Tests: `web/src/components/illustrations/new-illustrations.test.tsx`
+  exercises both new illustrations across viewBox / size tokens /
+  numeric size passthrough / aria semantics / className forwarding
+  / shape contracts. The v1.11.84 hero suite in
+  `illustrations.test.tsx` is untouched.
+- Docs: `docs/patches/11.215-ui-empty-state-refresh.md`.
+
 ## [1.11.232] - 2026-05-15 -- UI: FormField primitive (11.214)
 
 Component-scope-only addition. Introduces `FormField`, a shared
