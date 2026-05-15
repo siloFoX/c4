@@ -4,6 +4,74 @@
 
 (no entries -- next release window)
 
+## [1.11.270] - 2026-05-15 -- UI: Stepper error state (TODO 11.252)
+
+Component-scope-only polish. No daemon-side change and no `c4`
+CLI surface change.
+
+### Context
+
+The Stepper primitive already had `'complete' | 'current' |
+'pending'` state machine (since v1.11.131 / earlier). This
+release extends it with the missing `'error'` state the
+dispatch calls out, completing the canonical 4-state set
+(complete / current / upcoming = pending / error).
+
+### Added
+
+- `StepperStep.error?: boolean` -- per-step flag that flips the
+  step to the new `'error'` state regardless of position
+  relative to `currentIndex`. The internal `stateOf()` helper
+  takes the `hasError` flag and returns `'error'` first so:
+  - current + error -> `'error'`
+  - earlier-step + error (retroactive failure) -> `'error'`
+  - later-step + error (deliberately flagged future step) -> `'error'`
+- Error rendering: bg-destructive + ring-destructive +
+  text-destructive on the label + lucide `<X>` glyph inside
+  the bubble (matches the existing `<Check>` glyph pattern for
+  the complete state).
+- Connectors trailing an error step paint `bg-destructive`
+  (matches the badge tone) so the eye follows the failure line
+  from bubble through to the next step.
+- `data-state="error"` exposed on the item wrapper for e2e
+  selectors; `data-testid="stepper-error-<id>"` on the X glyph
+  matches the existing `data-testid="stepper-check-<id>"`
+  convention for the complete glyph.
+- 9 new vitest cases (21/21 total): error glyph renders,
+  error overrides current, error overrides complete
+  (retroactive), badge bg-destructive, label text-destructive
+  + font-semibold, connector bg-destructive, `error=false` is
+  a no-op, error state stays clickable when `onStepClick` is
+  wired (operator can click to retry / dismiss).
+
+### Changed
+
+- `web/src/pages/Plan.tsx` -- the "Dispatch plan" step in the
+  4-step Stepper now carries `{ error: Boolean(error) }` so
+  the bubble flips red + X glyph when the dispatch / fetch
+  surfaced an error. Operators see the failure inline in the
+  wizard strip without scrolling to the `ErrorPanel` below.
+  40/40 Plan tests still pass.
+
+### Notes
+
+- The dispatch's two literal target sites -- "Settings
+  provisioning wizard" + "AccountMenu reset onboarding" --
+  don't exist in the codebase today. Settings is a Tabs
+  consolidation surface, not a wizard; AccountMenu is a
+  DropdownMenu, not an onboarding flow. The primitive
+  enhancement + Plan.tsx adoption ship the dispatch's intent
+  (a stepper that can render error tone); the literal sites
+  remain deferred until those flows are added.
+- The dispatch refers to the four states as
+  "complete / current / upcoming / error". The JS state-machine
+  literal stays `'pending'` (matching the existing
+  `data-state="pending"` attribute contract) -- "upcoming" is
+  documented in the source comment as the user-facing synonym.
+  Renaming would ripple to every existing consumer and break
+  the data attribute.
+- Reference design tokens: `/root/c4/arps-design-system-v1/`.
+
 ## [1.11.269] - 2026-05-15 -- UI: Labeled section divider (TODO 11.251)
 
 Component-scope-only addition. No daemon-side change and no `c4`
