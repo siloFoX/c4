@@ -356,6 +356,7 @@ export default function Notifications() {
       <Panel className="p-4">
         {filtered.length === 0 ? (
           <EmptyState
+            size={activeFilter === 'all' ? 'lg' : 'md'}
             icon={<BellOff className="h-6 w-6" />}
             title="No notifications match"
             description={
@@ -363,6 +364,15 @@ export default function Notifications() {
                 ? 'You are all caught up - no notifications to show.'
                 : `No ${activeFilter} notifications in the current window.`
             }
+            secondaryAction={
+              activeFilter === 'all'
+                ? { label: 'Configure webhooks', href: '#feature=settings' }
+                : {
+                    label: 'Show all types',
+                    onClick: () => setActiveFilter('all'),
+                  }
+            }
+            data-testid="notifications-empty-state"
           />
         ) : (
           <Timeline items={timelineItems} groupByDay />
