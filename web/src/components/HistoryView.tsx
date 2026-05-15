@@ -25,6 +25,7 @@ import {
   Select,
   StickyFilterBar,
   Tooltip,
+  UndoToast,
 } from './ui';
 import { parseISODate, toISODate } from '../lib/date-format';
 import { cn } from '../lib/cn';
@@ -35,6 +36,7 @@ import { useHistorySummary } from '../lib/use-history-summary';
 import { useListVirtualizer } from '../hooks/use-list-virtualizer';
 import { useScrollRestoration } from '../hooks/use-scroll-restoration';
 import { useTableSort } from '../hooks/use-table-sort';
+import { useUndoToast } from '../hooks/use-undo-toast';
 import { SearchEmpty } from './illustrations';
 
 export interface HistoryCommit {
@@ -198,10 +200,31 @@ export default function HistoryView() {
     });
   }, []);
   const clearBulk = useCallback(() => setBulk(new Set()), []);
+  // (v1.11.262, TODO 11.244) Bulk delete now flows through
+  // useUndoToast. The delete is still a placeholder (no backend
+  // wired -- only the UI selection clears), but the operator now
+  // sees a 5s undo window with a countdown progress bar before the
+  // selection is finalised. onUndo restores the previously-selected
+  // names; onCommit no-ops because the placeholder has no backend.
+  const lastBulkRef = useRef<Set<string> | null>(null);
+  const { active: bulkUndoActive, showUndo: showBulkUndo } = useUndoToast();
   const deleteBulk = useCallback(() => {
-    // Placeholder: no backend delete wired.
+    if (bulk.size === 0) return;
+    const snap = new Set(bulk);
+    lastBulkRef.current = snap;
     clearBulk();
-  }, [clearBulk]);
+    showBulkUndo({
+      message: `Removed ${snap.size} worker${snap.size === 1 ? '' : 's'} from selection.`,
+      onCommit: () => {
+        lastBulkRef.current = null;
+      },
+      onUndo: () => {
+        const cached = lastBulkRef.current;
+        lastBulkRef.current = null;
+        if (cached) setBulk(cached);
+      },
+    });
+  }, [bulk, clearBulk, showBulkUndo]);
 
   const activeSection: 'scribe' | 'detail' | 'placeholder' = showScribe
     ? 'scribe'
@@ -496,6 +519,12 @@ export default function HistoryView() {
           },
         ]}
       />
+      {bulkUndoActive ? (
+        <UndoToast
+          active={bulkUndoActive}
+          data-testid="history-bulk-undo"
+        />
+      ) : null}
     </div>
   );
 }
