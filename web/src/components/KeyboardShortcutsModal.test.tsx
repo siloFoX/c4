@@ -7,6 +7,7 @@ import { useHelpOverlayTriggers } from '../lib/use-help-overlay-triggers';
 import {
   KeyboardShortcutsModal,
   SHORTCUT_ROWS,
+  matchesShortcut,
 } from './KeyboardShortcutsModal';
 
 // KeyboardShortcutsModal is the ? cheat sheet rendered as a global
@@ -325,6 +326,113 @@ describe('<KeyboardShortcutsModal>', () => {
     await user.type(filter, 'zzzz-no-match');
     expect(screen.getByText('No matching shortcuts')).toBeInTheDocument();
     expect(screen.queryAllByRole('row')).toHaveLength(0);
+  });
+
+  // ---- 11.241 category-name match + result count chip ----------
+
+  it('filters rows by the translated category name ("Navigation")', async () => {
+    const { user } = renderModal();
+    const filter = screen.getByRole('searchbox', { name: 'Filter shortcuts' });
+    await user.type(filter, 'Navigation');
+    const rows = screen.getAllByRole('row');
+    // Every Row whose category is "navigation" should be present.
+    const expected = SHORTCUT_ROWS.filter((r) => r.category === 'navigation').length;
+    expect(rows.length).toBe(expected);
+  });
+
+  it('filters rows by a partial category name (lowercase prefix "nav")', async () => {
+    const { user } = renderModal();
+    const filter = screen.getByRole('searchbox', { name: 'Filter shortcuts' });
+    await user.type(filter, 'nav');
+    const rows = screen.getAllByRole('row');
+    const expected = SHORTCUT_ROWS.filter((r) => r.category === 'navigation').length;
+    expect(rows.length).toBe(expected);
+  });
+
+  it('filters rows by the "actions" category id', async () => {
+    const { user } = renderModal();
+    const filter = screen.getByRole('searchbox', { name: 'Filter shortcuts' });
+    await user.type(filter, 'actions');
+    const rows = screen.getAllByRole('row');
+    const expected = SHORTCUT_ROWS.filter((r) => r.category === 'actions').length;
+    expect(rows.length).toBe(expected);
+  });
+
+  it('does NOT render the result-count chip when the filter is empty', () => {
+    renderModal();
+    expect(
+      screen.queryByTestId('shortcuts-result-count'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders the result-count chip showing matches / total while filtering', async () => {
+    const { user } = renderModal();
+    const filter = screen.getByRole('searchbox', { name: 'Filter shortcuts' });
+    await user.type(filter, 'tour');
+    const chip = screen.getByTestId('shortcuts-result-count');
+    expect(chip).toBeInTheDocument();
+    expect(chip).toHaveTextContent(`1 / ${SHORTCUT_ROWS.length}`);
+  });
+
+  it('updates the result-count chip as the filter narrows or widens', async () => {
+    const { user } = renderModal();
+    const filter = screen.getByRole('searchbox', { name: 'Filter shortcuts' });
+    await user.type(filter, 'nav');
+    const navCount = SHORTCUT_ROWS.filter((r) => r.category === 'navigation').length;
+    expect(screen.getByTestId('shortcuts-result-count')).toHaveTextContent(
+      `${navCount} / ${SHORTCUT_ROWS.length}`,
+    );
+    await user.clear(filter);
+    expect(
+      screen.queryByTestId('shortcuts-result-count'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('result chip shows 0 / N when nothing matches the filter', async () => {
+    const { user } = renderModal();
+    const filter = screen.getByRole('searchbox', { name: 'Filter shortcuts' });
+    await user.type(filter, 'zzz-no-match');
+    expect(screen.getByTestId('shortcuts-result-count')).toHaveTextContent(
+      `0 / ${SHORTCUT_ROWS.length}`,
+    );
+  });
+
+  // ---- 11.241 matchesShortcut pure-matcher coverage ------------
+
+  it('matchesShortcut treats an empty needle as "everything matches"', () => {
+    const row = SHORTCUT_ROWS[0]!;
+    expect(matchesShortcut(row, '')).toBe(true);
+    expect(matchesShortcut(row, '   ')).toBe(true);
+  });
+
+  it('matchesShortcut matches binding (case-insensitive)', () => {
+    const row = SHORTCUT_ROWS.find((r) => r.keys === 'Ctrl+F')!;
+    expect(matchesShortcut(row, 'ctrl+f')).toBe(true);
+    expect(matchesShortcut(row, 'CTRL')).toBe(true);
+  });
+
+  it('matchesShortcut matches description text', () => {
+    const row = SHORTCUT_ROWS.find((r) => r.descriptionKey === 'shortcuts.toggleTour')!;
+    expect(matchesShortcut(row, 'tour')).toBe(true);
+    expect(matchesShortcut(row, 'Replay')).toBe(true);
+  });
+
+  it('matchesShortcut matches the translated section name', () => {
+    const row = SHORTCUT_ROWS.find((r) => r.category === 'navigation')!;
+    expect(matchesShortcut(row, 'Navigation')).toBe(true);
+    expect(matchesShortcut(row, 'navigation')).toBe(true);
+  });
+
+  it('matchesShortcut matches the raw category id even across locales', () => {
+    const row = SHORTCUT_ROWS.find((r) => r.category === 'view')!;
+    setLocale('ko');
+    expect(matchesShortcut(row, 'view')).toBe(true);
+    setLocale('en');
+  });
+
+  it('matchesShortcut returns false for an unrelated needle', () => {
+    const row = SHORTCUT_ROWS[0]!;
+    expect(matchesShortcut(row, 'zzz-no-match-xyzzy')).toBe(false);
   });
 
   // ---- global ? hotkey wiring (via useHelpOverlayTriggers) ----
