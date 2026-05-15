@@ -4,6 +4,67 @@
 
 (no entries -- next release window)
 
+## [1.11.267] - 2026-05-15 -- UI: Page-header breadcrumb (TODO 11.249)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/page-header.tsx` -- sticky page-level
+  header primitive that composes the canonical 4-piece bar:
+  `[back button]` + breadcrumbs + title + subtitle + actions.
+  All four pieces are optional so a caller can wire just the
+  breadcrumb trail (e.g. wrapped under an existing PageFrame
+  title) or use it standalone as a full-page header replacement.
+- Defaults to `sticky: true` with `top: 0` + `z-index: 5`;
+  `sticky={false}` opts out. `topOffset` accepts a number (px)
+  or any CSS length string (e.g. `"var(--app-header-h)"`)
+  when the parent owns a fixed navbar above.
+- Back button accepts either `backHref` (anchor) or `onBack`
+  (click handler). When both are passed `onBack` wins so a
+  caller can keep the anchor for noscript / mid-click semantics
+  while overriding the in-page navigation. `backLabel` overrides
+  the default `"Back"` aria-label.
+- `data-section="page-header"` on root + per-slot
+  `data-testid` hooks: `page-header-breadcrumbs`,
+  `page-header-back`, `page-header-actions`.
+- 20 vitest cases cover render shape, title omission, subtitle,
+  breadcrumbs (rendered / omitted-when-empty / omitted-when-
+  absent), actions (rendered / omitted), back anchor + button +
+  onBack-wins, custom `backLabel`, sticky default + opt-out,
+  topOffset (number + string), HTML attribute forwarding,
+  kitchen-sink with all 5 pieces.
+- Exported from `web/src/components/ui` barrel.
+
+### Changed
+
+- `web/src/pages/Settings.tsx` -- adds `<PageHeader breadcrumbs=
+  [{Dashboard}] backHref="#feature=workers" backLabel="Back to
+  Workers" sticky={false}>` at the top of PageFrame children.
+  `data-testid="settings-page-header"`.
+- `web/src/pages/Health.tsx` -- same PageHeader bar.
+  `data-testid="health-page-header"`.
+- `web/src/pages/Templates.tsx` -- same PageHeader bar.
+  `data-testid="templates-page-header"`.
+- `web/src/pages/Profiles.tsx` -- same PageHeader bar.
+  `data-testid="profiles-page-header"`.
+- The leaf breadcrumb (e.g. "Settings") is intentionally
+  omitted so `getByText('<page title>')` queries in adopter
+  tests stay unique. The trail shows just `[Dashboard]` with
+  the Back button carrying the destination affordance.
+- Each adopter uses the `-mx-4 / -mt-2 / md:-mx-6 / md:-mt-2`
+  inset so the PageHeader's `border-b` spans the full
+  PageFrame card width.
+
+### Notes
+
+- All 4 adopter pages have additional pre-existing test
+  failures (Health 1, Templates 1) that were verified as
+  unchanged from baseline via stash-and-run. They are out of
+  scope for this change.
+- Reference design tokens: `/root/c4/arps-design-system-v1/`.
+
 ## [1.11.266] - 2026-05-15 -- UI: EmptyState primitive polish (TODO 11.248)
 
 Component-scope-only polish. No daemon-side change and no `c4`
