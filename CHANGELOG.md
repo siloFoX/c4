@@ -4,6 +4,72 @@
 
 (no entries -- next release window)
 
+## [1.11.260] - 2026-05-15 -- UI: Notifications clear-all confirm + undo (TODO 11.242)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ConfirmDialog.tsx` gains an optional
+  `initialFocus` prop: `'dialog' | 'cancel' | 'confirm'`. Default
+  `'dialog'` preserves the v1.11.259 behavior. Destructive
+  confirmations should now pass `initialFocus="cancel"` so a quick
+  Enter on the freshly-opened modal doesn't accidentally trigger
+  the destructive action -- the operator has to explicitly tab or
+  click to Confirm. The override runs in a `setTimeout(0)` after
+  `useDialogA11y` so the button refs are mounted by the time we
+  attempt to focus them.
+- `data-confirm-dialog-cancel` and `data-confirm-dialog-confirm`
+  attributes on the two action buttons for e2e + unit selectors.
+- `web/src/pages/Notifications.tsx` -- new "Clear all" button next
+  to the existing "Mark all read". Disabled when the feed is
+  empty. Clicking opens a destructive `ConfirmDialog` with
+  `initialFocus="cancel"`.
+- New inline undo banner (`data-testid="notifications-undo-banner"`)
+  positioned bottom-right of the page. Live region (`aria-live=
+  "polite"`) announces "Cleared N notifications." Two action
+  affordances:
+  - `Undo` button (`notifications-undo-action`) restores the
+    snapshot and hides the banner.
+  - `x` dismiss button (`notifications-undo-dismiss`) hides the
+    banner without restoring.
+  - 5-second auto-dismiss timer (no restore on timeout, only the
+    operator-initiated Undo restores).
+- Exported `UNDO_BANNER_MS = 5000` constant so tests drive the
+  timer deterministically and downstream consumers can read the
+  contract.
+
+### Tests
+
+- `web/src/components/ConfirmDialog.test.tsx`: 5 new cases
+  covering the new `initialFocus` prop and the data-* hooks
+  (45/45 total).
+- `web/src/pages/Notifications.test.tsx`: 10 new cases covering
+  the Clear all flow end to end -- button visible + disabled
+  when feed empty, click opens confirm, Cancel keeps feed,
+  Confirm clears feed + surfaces banner, Undo restores feed,
+  5-second auto-dismiss keeps cleared state, dismiss-x keeps
+  cleared state, banner copy plural agreement, exported
+  `UNDO_BANNER_MS` is 5000 (17/17 total).
+
+### Notes
+
+- The undo is an inline banner rather than an extension of the
+  existing `Toast` system. The Toast primitive in
+  `web/src/components/Toast.tsx` has no clickable action surface
+  (intentional -- it's a one-line announcement), and extending it
+  would have rippled into the entire toast pipeline (Toast +
+  ToastStack + useToast). An inline banner on the Notifications
+  page itself is scoped exactly to where the action originates,
+  carries `aria-live="polite"` for screen-reader parity with a
+  toast, and lets the operator stay in context.
+- The cleared-state remains operator-local (page state). There is
+  no daemon-side notifications wipe; reload still re-fetches from
+  `GET /api/notifications`. A future server-backed Clear all
+  would tie this UI to an authenticated DELETE endpoint.
+- Reference design tokens: `/root/c4/arps-design-system-v1/`.
+
 ## [1.11.259] - 2026-05-15 -- UI: KeyboardShortcuts search polish (TODO 11.241)
 
 Component-scope-only polish. No daemon-side change and no `c4`

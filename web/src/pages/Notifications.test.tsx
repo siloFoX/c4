@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { setLocale } from '../lib/i18n';
-import Notifications from './Notifications';
+import Notifications, { UNDO_BANNER_MS } from './Notifications';
 import type { NotificationItem } from './Notifications';
 
 // Notifications.tsx fetches /api/notifications and falls back to inline
@@ -141,5 +141,165 @@ describe('<Notifications>', () => {
     await waitFor(() => {
       expect(screen.getByText(/sample data/i)).toBeInTheDocument();
     });
+  });
+
+  // ---- 11.242 clear-all + undo ---------------------------------
+
+  it('renders the Clear all button', async () => {
+    mockFetchOk(makeItems(['dispatch', 'complete']));
+    render(<Notifications />);
+    await waitFor(() => {
+      expect(screen.getByTestId('notifications-clear-all')).toBeInTheDocument();
+    });
+  });
+
+  it('disables Clear all when the feed is empty', async () => {
+    mockFetchOk([]);
+    render(<Notifications />);
+    await waitFor(() => {
+      expect(screen.getByTestId('notifications-clear-all')).toBeDisabled();
+    });
+  });
+
+  it('clicking Clear all opens the confirm dialog (no immediate clear)', async () => {
+    const user = userEvent.setup();
+    mockFetchOk(makeItems(['dispatch', 'complete', 'halt']));
+    render(<Notifications />);
+    await waitFor(() => {
+      expect(screen.getByText('Event dispatch 0')).toBeInTheDocument();
+    });
+    await user.click(screen.getByTestId('notifications-clear-all'));
+    expect(
+      screen.getByRole('dialog', { name: /Clear all notifications/i }),
+    ).toBeInTheDocument();
+    // Items still on screen -- nothing has been cleared yet.
+    expect(screen.getByText('Event dispatch 0')).toBeInTheDocument();
+  });
+
+  it('confirm dialog initially focuses the Cancel button (safety default)', async () => {
+    const user = userEvent.setup();
+    mockFetchOk(makeItems(['dispatch']));
+    render(<Notifications />);
+    await waitFor(() => {
+      expect(screen.getByTestId('notifications-clear-all')).toBeInTheDocument();
+    });
+    await user.click(screen.getByTestId('notifications-clear-all'));
+    await waitFor(() => {
+      const cancel = document.querySelector(
+        '[data-confirm-dialog-cancel]',
+      ) as HTMLButtonElement | null;
+      expect(cancel).not.toBeNull();
+      expect(document.activeElement).toBe(cancel);
+    });
+  });
+
+  it('Cancel keeps notifications and closes the dialog', async () => {
+    const user = userEvent.setup();
+    mockFetchOk(makeItems(['dispatch', 'complete']));
+    render(<Notifications />);
+    await waitFor(() => {
+      expect(screen.getByText('Event dispatch 0')).toBeInTheDocument();
+    });
+    await user.click(screen.getByTestId('notifications-clear-all'));
+    const cancel = document.querySelector(
+      '[data-confirm-dialog-cancel]',
+    ) as HTMLButtonElement;
+    await user.click(cancel);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByText('Event dispatch 0')).toBeInTheDocument();
+    expect(screen.getByText('Event complete 1')).toBeInTheDocument();
+  });
+
+  it('Confirm clears the feed and surfaces the undo banner', async () => {
+    const user = userEvent.setup();
+    mockFetchOk(makeItems(['dispatch', 'complete', 'halt']));
+    render(<Notifications />);
+    await waitFor(() => {
+      expect(screen.getByText('Event dispatch 0')).toBeInTheDocument();
+    });
+    await user.click(screen.getByTestId('notifications-clear-all'));
+    const confirm = document.querySelector(
+      '[data-confirm-dialog-confirm]',
+    ) as HTMLButtonElement;
+    await user.click(confirm);
+    // Feed cleared.
+    expect(screen.queryByText('Event dispatch 0')).not.toBeInTheDocument();
+    expect(screen.queryByText('Event complete 1')).not.toBeInTheDocument();
+    // Banner visible.
+    const banner = screen.getByTestId('notifications-undo-banner');
+    expect(banner).toBeInTheDocument();
+    expect(within(banner).getByText(/Cleared 3 notifications/)).toBeInTheDocument();
+  });
+
+  it('Undo restores the cleared feed and hides the banner', async () => {
+    const user = userEvent.setup();
+    mockFetchOk(makeItems(['dispatch', 'complete']));
+    render(<Notifications />);
+    await waitFor(() => {
+      expect(screen.getByText('Event dispatch 0')).toBeInTheDocument();
+    });
+    await user.click(screen.getByTestId('notifications-clear-all'));
+    await user.click(
+      document.querySelector('[data-confirm-dialog-confirm]') as HTMLButtonElement,
+    );
+    expect(screen.getByTestId('notifications-undo-banner')).toBeInTheDocument();
+    await user.click(screen.getByTestId('notifications-undo-action'));
+    expect(
+      screen.queryByTestId('notifications-undo-banner'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Event dispatch 0')).toBeInTheDocument();
+    expect(screen.getByText('Event complete 1')).toBeInTheDocument();
+  });
+
+  it(
+    'undo banner auto-dismisses after UNDO_BANNER_MS without restoring',
+    { timeout: 10000 },
+    async () => {
+      const user = userEvent.setup({ delay: null });
+      mockFetchOk(makeItems(['dispatch', 'complete']));
+      render(<Notifications />);
+      await waitFor(() => {
+        expect(screen.getByText('Event dispatch 0')).toBeInTheDocument();
+      });
+      await user.click(screen.getByTestId('notifications-clear-all'));
+      await user.click(
+        document.querySelector('[data-confirm-dialog-confirm]') as HTMLButtonElement,
+      );
+      expect(screen.getByTestId('notifications-undo-banner')).toBeInTheDocument();
+      // Real-time wait covering the 5s timer plus a small slack.
+      await waitFor(
+        () => {
+          expect(
+            screen.queryByTestId('notifications-undo-banner'),
+          ).not.toBeInTheDocument();
+        },
+        { timeout: UNDO_BANNER_MS + 1000 },
+      );
+      // Feed stays empty (no auto-restore on timeout).
+      expect(screen.queryByText('Event dispatch 0')).not.toBeInTheDocument();
+    },
+  );
+
+  it('dismiss-x closes the banner without restoring the feed', async () => {
+    const user = userEvent.setup({ delay: null });
+    mockFetchOk(makeItems(['dispatch']));
+    render(<Notifications />);
+    await waitFor(() => {
+      expect(screen.getByText('Event dispatch 0')).toBeInTheDocument();
+    });
+    await user.click(screen.getByTestId('notifications-clear-all'));
+    await user.click(
+      document.querySelector('[data-confirm-dialog-confirm]') as HTMLButtonElement,
+    );
+    await user.click(screen.getByTestId('notifications-undo-dismiss'));
+    expect(
+      screen.queryByTestId('notifications-undo-banner'),
+    ).not.toBeInTheDocument();
+    // Feed stays cleared.
+    expect(screen.queryByText('Event dispatch 0')).not.toBeInTheDocument();
+  });
+
+  it('UNDO_BANNER_MS exports the 5000 ms duration matching the dispatch spec', () => {
+    expect(UNDO_BANNER_MS).toBe(5000);
   });
 });
