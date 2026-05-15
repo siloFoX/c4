@@ -23,6 +23,7 @@ import {
   ExportButton,
   Input,
   Select,
+  StickyFilterBar,
   Tooltip,
 } from './ui';
 import { parseISODate, toISODate } from '../lib/date-format';
@@ -262,6 +263,16 @@ export default function HistoryView() {
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 p-0 pt-3">
+            {/* (v1.11.261, TODO 11.243) Sticky filter row. Pins
+                the search + status + sort + date controls to the
+                top of the <aside> scroll container so they stay
+                visible while the operator scrolls through long
+                history lists. Scroll-shadow elevates the bar
+                once pinned. */}
+            <StickyFilterBar
+              data-testid="history-sidebar-sticky"
+              className="-mx-4 flex flex-col gap-2 px-4 py-2"
+            >
             <div className="relative">
               <Search
                 aria-hidden="true"
@@ -347,6 +358,7 @@ export default function HistoryView() {
               ariaLabel={t('history.filter.range.label')}
               className="text-xs"
             />
+            </StickyFilterBar>
             {error && (
               <div
                 role="alert"
