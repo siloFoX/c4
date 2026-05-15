@@ -4,6 +4,59 @@
 
 (no entries -- next release window)
 
+## [1.11.240] - 2026-05-15 -- UI: useViewportSize hook (TODO 11.222)
+
+New `web/src/hooks/use-viewport-size.ts` centralises the
+responsive-breakpoint logic that had been duplicated as inline
+`window.matchMedia('(min-width: 768px)')` calls across the app
+shell. The hook returns
+`{ width, height, isMobile (<768), isTablet (768-1024), isDesktop (>1024) }`,
+guards SSR by returning a desktop-sized fallback so hydration does
+not flash a mobile layout for PC users, and coalesces resize bursts
+through a single `requestAnimationFrame` so a fast resize drag does
+not thrash React state. The mount-time `flush()` re-classifies once
+the effect fires in case the initial state was the SSR fallback or
+`innerWidth` changed between render and the effect tick. Bucket
+classification preserves object identity when nothing material
+changed (same width/height + same boolean trio) so downstream
+`useMemo` / dependency arrays stay quiet.
+
+Breakpoint contract follows the task brief verbatim (`<768`,
+`[768, 1024]`, `>1024`) which matches the existing
+`matchMedia('(min-width: 768px)')` cutoff already baked into the
+codebase, so call sites can swap to `!isMobile` for the legacy
+"tablet-or-wider" semantics. The ARPS design tokens
+(`/root/c4/arps-design-system-v1/tokens.css`) advertise
+`--bp-tablet: 640px` and `--bp-desktop: 1024px`; a follow-up may
+add `isWide (>=1440)` and align tablet with `--bp-tablet` once the
+legacy 768 callers are gone.
+
+Three inline (min-width: 768px) checks replaced:
+1. `web/src/App.tsx` line 49 -- initial `sidebarOpen` default now
+   reads `!viewport.isMobile`.
+2. `web/src/App.tsx` line 92 -- `handleSelect` close-on-mobile now
+   reads `viewport.isMobile`.
+3. `web/src/lib/use-sidebar-shortcut.ts` line 30 -- Ctrl+B /
+   Cmd+B desktop/mobile branch now reads from a `useViewportSize`
+   ref so the keydown listener always sees the latest snapshot
+   without forcing the effect to reattach on every resize frame.
+
+Test coverage: 10 new unit cases for `useViewportSize` (boundary
+classification at 767 / 768 / 1024 / 1025, multi-step resize
+transitions, rAF coalescing of three resize events into a single
+flush, `removeEventListener` + `cancelAnimationFrame` on unmount,
+reference-identity preservation when the snapshot does not
+change). `use-sidebar-shortcut.test.ts` switched its harness from
+a `matchMedia` stub to direct `innerWidth` stubbing; 15/15 cases
+still pass. Total +24 cases on the project, none touching the
+unrelated pre-existing flakies (`use-scrollback`,
+`use-stuck-meetings`, `i18n.test.ts`) confirmed identical on
+HEAD~3.
+
+Bumped `package.json` 1.11.76 -> 1.11.240 and
+`web/package.json` 1.11.239 -> 1.11.240 along with the version
+lines in the two lockfiles.
+
 ## [1.11.239] - 2026-05-15 -- UI: Card primitive surface refresh (11.221)
 
 Component-scope-only addition. No daemon-side change and no `c4` CLI
