@@ -15,6 +15,8 @@ import {
 import { Tabs, type TabsItem } from '../ui/tabs';
 import { cn } from '../../lib/cn';
 import { t, useLocale } from '../../lib/i18n';
+import { prefetch } from '../../lib/route-prefetch';
+import { getTopViewLoader } from '../../lib/route-loaders';
 
 export type TopView =
   | 'workers'
@@ -102,12 +104,24 @@ export default function TopTabs({ value, onChange, badges }: TopTabsProps) {
     };
   });
 
+  // (v1.11.246, TODO 11.228) Warm the lazy chunk for whichever
+  // tab the user hovers / focuses / taps so the click-time
+  // navigation does not stall on the bundle fetch. The loader
+  // identities are pulled from lib/route-loaders so repeated
+  // hovers on the same tab hit the prefetch cache instead of
+  // re-firing the import.
+  const handlePrefetch = (next: string) => {
+    const loader = getTopViewLoader(next as TopView);
+    if (loader) prefetch(loader);
+  };
+
   return (
     <Tabs
       value={value}
       onChange={(v) => onChange(v as TopView)}
       items={items}
       ariaLabel={t('topTabs.label')}
+      onPrefetch={handlePrefetch}
     />
   );
 }

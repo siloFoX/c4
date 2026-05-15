@@ -250,4 +250,50 @@ describe('<Tabs>', () => {
     await user.keyboard('{ArrowRight}');
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  // -- v1.11.246 onPrefetch wiring (TODO 11.228) -------------------
+
+  it('fires onPrefetch with the tab value on mouseenter for an inactive tab', async () => {
+    const user = userEvent.setup();
+    const onPrefetch = vi.fn();
+    render(
+      <Tabs value="one" onChange={() => {}} items={ITEMS} onPrefetch={onPrefetch} />,
+    );
+    await user.hover(screen.getByRole('tab', { name: 'Two' }));
+    expect(onPrefetch).toHaveBeenCalledWith('two');
+  });
+
+  it('fires onPrefetch on focus for an inactive tab', () => {
+    const onPrefetch = vi.fn();
+    render(
+      <Tabs value="one" onChange={() => {}} items={ITEMS} onPrefetch={onPrefetch} />,
+    );
+    const target = screen.getByRole('tab', { name: 'Two' });
+    target.focus();
+    expect(onPrefetch).toHaveBeenCalledWith('two');
+  });
+
+  it('does NOT fire onPrefetch for the already-active tab', async () => {
+    const user = userEvent.setup();
+    const onPrefetch = vi.fn();
+    render(
+      <Tabs value="one" onChange={() => {}} items={ITEMS} onPrefetch={onPrefetch} />,
+    );
+    await user.hover(screen.getByRole('tab', { name: 'One' }));
+    expect(onPrefetch).not.toHaveBeenCalled();
+  });
+
+  it('does NOT fire onPrefetch for a disabled tab', async () => {
+    const user = userEvent.setup();
+    const onPrefetch = vi.fn();
+    const items: TabsItem[] = [
+      { value: 'one', label: 'One' },
+      { value: 'two', label: 'Two', disabled: true },
+    ];
+    render(
+      <Tabs value="one" onChange={() => {}} items={items} onPrefetch={onPrefetch} />,
+    );
+    await user.hover(screen.getByRole('tab', { name: 'Two' }));
+    expect(onPrefetch).not.toHaveBeenCalled();
+  });
 });

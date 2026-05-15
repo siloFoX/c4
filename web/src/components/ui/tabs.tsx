@@ -20,6 +20,13 @@ export interface TabsItem {
   title?: string;
 }
 
+// (v1.11.246, TODO 11.228) Optional prefetch wiring. An adapter
+// like TopTabs may pass `onPrefetch={(value) => ...}` so each tab
+// fires the callback on hover / focus / touchstart -- typically
+// the route-prefetch helper, which warms the corresponding lazy
+// chunk before the user clicks.
+export type TabsPrefetchHandler = (value: string) => void;
+
 export interface TabsProps {
   value: string;
   onChange: (value: string) => void;
@@ -27,6 +34,13 @@ export interface TabsProps {
   className?: string;
   ariaLabel?: string;
   children?: ReactNode;
+  /**
+   * Fired on `mouseenter` / `focus` / `touchstart` for each tab
+   * button. Use this to warm the lazy chunk associated with the
+   * tab so the click-time navigation does not stall on the
+   * network. See lib/route-prefetch.ts + lib/route-loaders.ts.
+   */
+  onPrefetch?: TabsPrefetchHandler;
 }
 
 interface TabsContextValue {
@@ -61,6 +75,7 @@ export function Tabs({
   className,
   ariaLabel,
   children,
+  onPrefetch,
 }: TabsProps) {
   const idBase = useId();
   const tablistRef = useRef<HTMLDivElement | null>(null);
@@ -86,6 +101,10 @@ export function Tabs({
       >
         {items.map((item) => {
           const active = item.value === value;
+          const firePrefetch = () => {
+            if (item.disabled || active) return;
+            onPrefetch?.(item.value);
+          };
           return (
             <button
               key={item.value}
@@ -103,6 +122,13 @@ export function Tabs({
                 if (item.disabled) return;
                 onChange(item.value);
               }}
+              // (v1.11.246, TODO 11.228) Prefetch on user-intent
+              // signals. The active tab does not refire because
+              // its chunk is already mounted, and disabled tabs
+              // are skipped entirely.
+              onMouseEnter={firePrefetch}
+              onFocus={firePrefetch}
+              onTouchStart={firePrefetch}
               onKeyDown={handleKeyDown}
               className={cn(
                 TAB_BASE_CLASSES,
