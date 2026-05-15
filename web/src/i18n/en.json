@@ -1139,6 +1139,8 @@
   "feature.notifications.description": "Unified feed of lifecycle events (dispatch/complete/halt/escalation) from the autonomous loop.",
   "feature.health.label": "Health",
   "feature.health.description": "Daemon status, uptime, queue depth and loaded modules.",
+  "feature.uptime.label": "Uptime",
+  "feature.uptime.description": "Daemon process uptime, operator-local restart count, and the five most recent halt / escalation incidents.",
   "feature.validation.label": "Validation",
   "feature.validation.description": "Per-worker validation object — tests / typecheck / lint summary.",
   "feature.risk.label": "Risk",

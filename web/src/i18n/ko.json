@@ -1139,6 +1139,8 @@
   "feature.notifications.description": "자율 루프의 라이프사이클 이벤트(dispatch/complete/halt/escalation) 통합 피드.",
   "feature.health.label": "Health",
   "feature.health.description": "데몬 상태, 업타임, 큐 깊이 및 로드된 모듈.",
+  "feature.uptime.label": "Uptime",
+  "feature.uptime.description": "데몬 프로세스 업타임, 운영자 기준 재시작 횟수, 최근 halt / escalation 5건.",
   "feature.validation.label": "Validation",
   "feature.validation.description": "워커별 검증 객체 — tests / typecheck / lint 요약.",
   "feature.risk.label": "Risk",

@@ -274,6 +274,14 @@ export const FEATURES: FeatureDef[] = [
     load: () => import('./Health'),
   },
   {
+    id: 'uptime',
+    labelKey: 'feature.uptime.label',
+    descriptionKey: 'feature.uptime.description',
+    category: 'diagnostics',
+    Icon: Activity,
+    load: () => import('./Uptime'),
+  },
+  {
     id: 'validation',
     labelKey: 'feature.validation.label',
     descriptionKey: 'feature.validation.description',
