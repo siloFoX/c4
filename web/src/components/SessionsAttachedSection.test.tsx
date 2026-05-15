@@ -142,12 +142,17 @@ describe('<SessionsAttachedSection>', () => {
     expect(getHeadingButton()).toBeInTheDocument();
   });
 
-  it('renders the count badge with the filtered length', () => {
+  it('renders an AvatarGroup roster in the heading when items exist', () => {
+    // (v1.11.272, TODO 11.254) The plain count chip was replaced
+    // by an AvatarGroup roster preview that exposes the same count
+    // via the role=group + data-count attribute.
     renderSection();
-    expect(within(getHeadingButton()).getByText('2')).toBeInTheDocument();
+    const heading = getHeadingButton();
+    const roster = within(heading).getByTestId('sessions-attached-roster');
+    expect(roster.getAttribute('data-count')).toBe('2');
   });
 
-  it('renders the count badge as 0 when the filtered list is empty', () => {
+  it('falls back to the count chip when the filtered list is empty', () => {
     renderSection({ filtered: [] });
     expect(within(getHeadingButton()).getByText('0')).toBeInTheDocument();
   });
