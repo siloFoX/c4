@@ -4,6 +4,79 @@
 
 (no entries -- next release window)
 
+## [1.11.255] - 2026-05-15 -- UI: Workspaces page polish (TODO 11.237)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+`web/src/pages/Workspaces.tsx` gains three operator-local
+affordances:
+
+1. **HeroCard intro CTA** -- the existing info-tone HeroCard
+   already advertised the page; it now grows a contextual
+   "Reset order + aliases" button that appears when either
+   override is non-empty so the operator can roll back to the
+   daemon's view in one click.
+2. **Drag-reorder** -- every row carries a `GripVertical`
+   handle with a `cursor-grab` cue + "Drag to reorder"
+   tooltip. HTML5 DnD records the source name on dragstart,
+   `preventDefault`s dragover, and reorders the operator-local
+   `c4:workspace:order` list on drop. The override is a
+   display-only sort -- CLI flags (`--workspace <name>`) still
+   read the canonical id from `config.workspaces`. Drag is
+   disabled while the page is loading or while another row is
+   in edit-mode so a half-finished rename never lands on a
+   sibling.
+3. **Inline rename** -- each row's name gets an `Edit3` icon
+   button that swaps the label for an `Input` + Save / Cancel
+   pair. Submit fires on Enter / blur / Save click; Escape
+   cancels. Empty input or same-as-canonical clears the alias
+   (no identity aliases are persisted). The canonical id
+   renders in parens beside the alias so the operator can
+   always see what `--workspace <id>` on the CLI expects.
+
+Backing module `web/src/lib/use-workspace-prefs.ts` owns the
+two localStorage slots:
+
+- `c4:workspace:order` -- `string[]` of workspace names. Rows
+  render in this order; missing ids are dropped, repeats are
+  deduped, and workspaces added by the daemon after the
+  override was saved are appended at the end so the page
+  never loses a row.
+- `c4:workspace:aliases` -- `Record<name, displayName>`. The
+  alias overrides the rendered label only; the canonical id
+  is unchanged.
+
+Public surface: `getWorkspacePrefs()`, `setWorkspaceOrder`,
+`setWorkspaceAlias`, `clearWorkspaceAlias`,
+`clearWorkspacePrefs`, `useWorkspacePrefs()` React hook
+(same-tab `c4:workspace-prefs-changed` `CustomEvent` +
+cross-tab `storage` event sync), plus the pure helper
+`applyWorkspaceOrder(source, order)`.
+
+Test coverage:
+- `web/src/lib/use-workspace-prefs.test.ts` -- 16 vitest cases
+  pin the persistence contract (empty default, order
+  persistence, non-string filter, malformed JSON guard, alias
+  trim + empty-clear + `clearWorkspaceAlias` + `clearAll`,
+  malformed alias JSON, non-string alias values) and the
+  `applyWorkspaceOrder` pure helper (clone-on-empty, reorder,
+  append-missing, drop-phantom, dedupe-repeats).
+- Existing `Workspaces.test.tsx` (33/33) stays green; the
+  page DOM keeps the `data-testid` contract those cases
+  expect, plus three new ids (`workspace-drag-<name>`,
+  `workspace-edit-trigger-<name>`,
+  `workspace-canonical-<name>`) so future tests can target
+  the new affordances directly.
+
+Pre-existing failures unchanged (DataList navigator.clipboard
+read-only x 5, ErrorBoundary Collapsible toggle x 2,
+FeatureSidebar > filter, i18n-keys > t() self-match);
+confirmed earlier and out of scope.
+
+Bumped `package.json` 1.11.254 -> 1.11.255 and `web/package.json`
+1.11.254 -> 1.11.255 along with both lockfiles.
+
 ## [1.11.254] - 2026-05-15 -- UI: Empty-state imagery refresh (TODO 11.236)
 
 Component-scope-only addition. No daemon-side change and no `c4`
