@@ -63,10 +63,14 @@ describe('<SessionsEmptyAttachBanner>', () => {
 
   // ---- icons ------------------------------------------------------
 
-  it('renders both the Info and Plus decorative icons as aria-hidden', () => {
+  it('renders the Info, SessionsEmpty illustration, and Plus decorative svgs as aria-hidden', () => {
+    // (v1.11.233, patch 11.215) Empty-state SessionsEmpty
+    // illustration adopted alongside the existing Info + Plus
+    // icons. All three remain decorative -- the note role + body
+    // text carry the semantic meaning.
     const { container } = renderBanner();
     const svgs = container.querySelectorAll('svg');
-    expect(svgs.length).toBe(2);
+    expect(svgs.length).toBe(3);
     for (const svg of svgs) {
       expect(svg).toHaveAttribute('aria-hidden', 'true');
     }

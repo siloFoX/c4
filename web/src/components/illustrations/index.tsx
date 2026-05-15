@@ -6,23 +6,46 @@ import type { ReactNode, SVGAttributes } from 'react';
 // palette: every stroke is `currentColor` so the consumer (typically
 // EmptyState's icon wrapper, which paints `text-muted-foreground`)
 // decides the hue. One accent fill per illustration is allowed and
-// uses `hsl(var(--primary) / 0.15)` so the accent picks up the
-// active brand color and adapts to light/dark themes.
+// uses `hsl(var(--primary) / 0.3)` -- mirrors the `text-primary/30`
+// utility so highlights line up with the rest of the ARPS palette.
 //
-// All four share: the same 240x180 viewBox, the same 1.75 stroke
-// weight, round joins/caps, and the same baseline grid so the
-// silhouettes feel like one family rather than four loose icons.
+// (v1.11.233, patch 11.215) `size` now accepts a named token --
+// 'sm' (64), 'md' (96), 'lg' (128) -- alongside the legacy numeric
+// passthrough. Existing call sites that pass a raw number keep
+// working unchanged.
+
+export type IllustrationSize = number | 'sm' | 'md' | 'lg';
 
 export interface IllustrationProps {
   className?: string;
-  size?: number;
+  size?: IllustrationSize;
   'aria-hidden'?: boolean;
 }
 
+export const ILLUSTRATION_SIZE_TOKENS: Record<'sm' | 'md' | 'lg', number> = {
+  sm: 64,
+  md: 96,
+  lg: 128,
+};
+
+export function resolveIllustrationSize(
+  size: IllustrationSize | undefined,
+  fallback: number,
+): number {
+  if (size === undefined) return fallback;
+  if (typeof size === 'number') return size;
+  return ILLUSTRATION_SIZE_TOKENS[size];
+}
+
+const HIGHLIGHT_FILL = 'hsl(var(--primary) / 0.3)';
+// Legacy accent fill -- the four v1.11.84 hero illustrations were
+// authored against the lighter 0.15 ramp. Kept stable so their visual
+// weight does not shift; new illustrations use HIGHLIGHT_FILL.
 const ACCENT_FILL = 'hsl(var(--primary) / 0.15)';
 
 interface FrameProps extends IllustrationProps {
   label: string;
+  defaultSize?: number;
   children: ReactNode;
 }
 
@@ -31,11 +54,13 @@ interface FrameProps extends IllustrationProps {
 // on its shapes.
 function IllustrationFrame({
   className,
-  size = 160,
+  size,
+  defaultSize = 160,
   'aria-hidden': ariaHidden = true,
   label,
   children,
 }: FrameProps) {
+  const resolved = resolveIllustrationSize(size, defaultSize);
   const decorative = ariaHidden !== false;
   const a11y: SVGAttributes<SVGSVGElement> = decorative
     ? { 'aria-hidden': true }
@@ -44,8 +69,8 @@ function IllustrationFrame({
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 240 180"
-      width={size}
-      height={size}
+      width={resolved}
+      height={resolved}
       fill="none"
       stroke="currentColor"
       strokeWidth={1.75}
@@ -184,6 +209,75 @@ export function AllDoneIllustration(props: IllustrationProps) {
       <circle cx="96" cy="138" r="1.5" fill="currentColor" stroke="none" />
       <circle cx="146" cy="140" r="1.5" fill="currentColor" stroke="none" />
       <line x1="42" y1="158" x2="198" y2="158" strokeDasharray="2 6" />
+    </IllustrationFrame>
+  );
+}
+
+// (v1.11.233, patch 11.215) Search empty: a magnifying glass tilted
+// over a stack of three blank list rows. Used in HistoryView when a
+// search filter returns nothing. Defaults to the 'md' (96) token so
+// the new family reads smaller than the v1.11.84 hero set.
+export function SearchEmpty(props: IllustrationProps) {
+  return (
+    <IllustrationFrame {...props} label="No search results" defaultSize={96}>
+      <rect
+        x="44"
+        y="62"
+        width="120"
+        height="14"
+        rx="3"
+        fill={HIGHLIGHT_FILL}
+      />
+      <rect x="44" y="62" width="120" height="14" rx="3" />
+      <rect x="44" y="86" width="120" height="14" rx="3" />
+      <rect x="44" y="110" width="120" height="14" rx="3" />
+      <line x1="54" y1="69" x2="92" y2="69" strokeDasharray="2 4" />
+      <line x1="54" y1="93" x2="80" y2="93" strokeDasharray="2 4" />
+      <line x1="54" y1="117" x2="100" y2="117" strokeDasharray="2 4" />
+      <circle cx="172" cy="100" r="28" fill={HIGHLIGHT_FILL} />
+      <circle cx="172" cy="100" r="28" />
+      <line x1="192" y1="120" x2="210" y2="138" />
+      <circle cx="172" cy="100" r="2" fill="currentColor" stroke="none" />
+    </IllustrationFrame>
+  );
+}
+
+// (v1.11.233, patch 11.215) Sessions empty: three stacked terminal
+// cards with a dashed "no connection" overlay slashed across them.
+// Used in the attached-sessions banner when nothing has been
+// attached yet.
+export function SessionsEmpty(props: IllustrationProps) {
+  return (
+    <IllustrationFrame {...props} label="No sessions attached" defaultSize={96}>
+      <rect
+        x="50"
+        y="50"
+        width="140"
+        height="36"
+        rx="4"
+        fill={HIGHLIGHT_FILL}
+      />
+      <rect x="50" y="50" width="140" height="36" rx="4" />
+      <line x1="50" y1="60" x2="190" y2="60" />
+      <circle cx="58" cy="55" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="64" cy="55" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="70" cy="55" r="1.5" fill="currentColor" stroke="none" />
+      <path d="M56 72 L60 76 L56 80" />
+      <line x1="66" y1="80" x2="86" y2="80" />
+      <rect x="44" y="94" width="140" height="32" rx="4" />
+      <line x1="44" y1="104" x2="184" y2="104" />
+      <circle cx="52" cy="99" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="57" cy="99" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="62" cy="99" r="1.3" fill="currentColor" stroke="none" />
+      <rect x="38" y="134" width="140" height="28" rx="4" />
+      <line x1="38" y1="144" x2="178" y2="144" />
+      <line
+        x1="36"
+        y1="160"
+        x2="208"
+        y2="40"
+        strokeDasharray="4 4"
+      />
     </IllustrationFrame>
   );
 }

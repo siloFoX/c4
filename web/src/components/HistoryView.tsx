@@ -29,6 +29,7 @@ import { useScribeContext } from '../lib/use-scribe-context';
 import { useHistoryWorkerDetail } from '../lib/use-history-worker-detail';
 import { useHistorySummary } from '../lib/use-history-summary';
 import { useListVirtualizer } from '../hooks/use-list-virtualizer';
+import { SearchEmpty } from './illustrations';
 
 export interface HistoryCommit {
   hash: string;
@@ -268,6 +269,17 @@ export default function HistoryView() {
                     return false;
                   })
                 : summary;
+              if (query && filtered.length === 0) {
+                return (
+                  <div
+                    className="flex flex-col items-center gap-2 py-6 text-center text-xs text-muted-foreground"
+                    data-testid="history-search-empty"
+                  >
+                    <SearchEmpty className="text-muted-foreground" />
+                    <div>{t('history.empty')}</div>
+                  </div>
+                );
+              }
               return (
                 <SidebarVirtualizedList
                   filtered={filtered}
