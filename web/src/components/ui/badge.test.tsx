@@ -69,4 +69,67 @@ describe('<Badge>', () => {
     const node = screen.getByTestId('badge-1');
     expect(node).toHaveAttribute('aria-label', 'status');
   });
+
+  // -- v1.11.247 signal-icon support (TODO 11.229) -----------------
+
+  it('renders a default leading icon for the success variant', () => {
+    const { container } = render(<Badge variant="success">ok</Badge>);
+    const node = container.firstChild as HTMLElement;
+    expect(node.querySelector('svg')).not.toBeNull();
+    expect(node).toHaveClass('gap-1');
+  });
+
+  it('renders a default leading icon for the warning variant', () => {
+    const { container } = render(<Badge variant="warning">busy</Badge>);
+    expect((container.firstChild as HTMLElement).querySelector('svg')).not.toBeNull();
+  });
+
+  it('renders a default leading icon for the info variant', () => {
+    const { container } = render(<Badge variant="info">note</Badge>);
+    expect((container.firstChild as HTMLElement).querySelector('svg')).not.toBeNull();
+  });
+
+  it('renders a default leading icon for the destructive variant', () => {
+    const { container } = render(<Badge variant="destructive">err</Badge>);
+    expect((container.firstChild as HTMLElement).querySelector('svg')).not.toBeNull();
+  });
+
+  it('renders a default leading icon for the error variant', () => {
+    const { container } = render(<Badge variant="error">fail</Badge>);
+    expect((container.firstChild as HTMLElement).querySelector('svg')).not.toBeNull();
+  });
+
+  it('does NOT render a default icon for the neutral / default / secondary / outline variants', () => {
+    const { container: a } = render(<Badge>plain</Badge>);
+    const { container: b } = render(<Badge variant="secondary">s</Badge>);
+    const { container: c } = render(<Badge variant="outline">o</Badge>);
+    const { container: d } = render(<Badge variant="neutral">n</Badge>);
+    expect((a.firstChild as HTMLElement).querySelector('svg')).toBeNull();
+    expect((b.firstChild as HTMLElement).querySelector('svg')).toBeNull();
+    expect((c.firstChild as HTMLElement).querySelector('svg')).toBeNull();
+    expect((d.firstChild as HTMLElement).querySelector('svg')).toBeNull();
+  });
+
+  it('accepts a custom `icon` prop and renders it verbatim before the children', () => {
+    const { container } = render(
+      <Badge variant="success" icon={<span data-testid="custom-icon">!</span>}>
+        ok
+      </Badge>,
+    );
+    const node = container.firstChild as HTMLElement;
+    expect(node.querySelector('[data-testid="custom-icon"]')).not.toBeNull();
+    // Custom icon replaces the default; no lucide svg rendered.
+    expect(node.querySelector('svg')).toBeNull();
+  });
+
+  it('opts out of the auto-icon entirely when `icon={false}` is passed', () => {
+    const { container } = render(
+      <Badge variant="success" icon={false}>
+        ok
+      </Badge>,
+    );
+    const node = container.firstChild as HTMLElement;
+    expect(node.querySelector('svg')).toBeNull();
+    expect(node.className).not.toContain('gap-1');
+  });
 });
