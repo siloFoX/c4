@@ -2,6 +2,20 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { act, renderHook } from '@testing-library/react';
 import { server } from '../test/server';
+
+// The hook now consumes `useConfirm()` (promise-based confirm dialog,
+// v1.11.225). The existing test bed asserts behaviour through the
+// legacy `window.confirm` spy, so we bridge the two by mocking the
+// hook to defer to `window.confirm`. The dedicated
+// `use-confirm.test.tsx` covers the new hook's own contract.
+const stableConfirm = (
+  opts: { title: string; message?: string },
+): Promise<boolean> =>
+  Promise.resolve(window.confirm(opts.message ?? opts.title));
+vi.mock('../hooks/use-confirm', () => ({
+  useConfirm: () => stableConfirm,
+}));
+
 import { useWorkerActionStrip } from './use-worker-action-strip';
 import type { ActionConfig, ActionKind } from '../components/WorkerActions';
 
