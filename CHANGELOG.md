@@ -4,6 +4,75 @@
 
 (no entries -- next release window)
 
+## [1.11.269] - 2026-05-15 -- UI: Labeled section divider (TODO 11.251)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/section-divider.tsx` (118 lines) --
+  horizontal rule with an optional label / icon. Four resolved
+  variants:
+  - `'line'`: plain hairline rule, no content slot.
+  - `'label-center'` (default when label/icon present): rule on
+    both sides of a centered label + optional icon.
+  - `'label-left'`: label flush at the start, trailing rule
+    fills the rest.
+  - `'label-right'`: label flush at the end, leading rule fills
+    the rest.
+- `spacing` prop (`'sm' | 'md' | 'lg'`, default `'md'`) controls
+  vertical breathing room (`my-1` / `my-3` / `my-6`) so callers
+  can pick the right rhythm for tight separator groups vs
+  top-level section breaks.
+- `role="separator"` + `aria-orientation="horizontal"` on the
+  root. `data-section="section-divider"`, `data-variant=
+  <resolved>`, `data-section-divider-line="leading"|"trailing"`,
+  `data-section-divider-content`, `data-section-divider-icon`,
+  `data-section-divider-label` for e2e selectors.
+- 17 vitest cases cover render shape, default variant, line-only
+  mode, auto-promote to `label-center` when a label is passed,
+  rule omission per variant (left / right), icon slot,
+  icon-without-label, spacing variants, className merge, HTML
+  attribute forwarding, ReactNode label, explicit
+  `variant="line"` overrides the label inference.
+- Exported from `web/src/components/ui` barrel.
+
+### Changed
+
+- `web/src/components/KeyboardShortcutsModal.tsx` -- replaces
+  the prior `<Separator className="mb-3" />` + `<h3>` pair
+  (one per category section) with a single
+  `<SectionDivider label={t(SECTION_KEYS[cat])} variant=
+  "label-left">` per section. First section uses `spacing="sm"`,
+  subsequent sections use `spacing="md"` so the first category
+  hugs the search bar above. `data-shortcuts-section-divider=
+  <cat>` attribute exposes the cat name for e2e. 47/47 Modal
+  tests pass.
+- `web/src/pages/Settings.tsx` -- adds a `<SectionDivider
+  label="Preferences" variant="label-left" spacing="sm">`
+  between the consolidated-landing Alert and the Tabs strip
+  so the tab strip reads as the body of a labeled section.
+  `data-testid="settings-section-divider"`. 6/6 Settings
+  tests pass.
+
+### Notes
+
+- AccountMenu adoption deferred. The dispatch listed AccountMenu
+  as a third target, but the DropdownMenu primitive doesn't
+  expose a separator-item kind or a footer slot, and its
+  existing `header` slot already carries `border-b` styling so a
+  SectionDivider inside it would be redundant. A clean
+  AccountMenu adoption needs an upstream DropdownMenu extension
+  (separator item kind), which is its own work item.
+- Why a separate primitive from the existing `Separator`:
+  Separator is a single visual line (orientation + weight) with
+  no label slot. Adding a label there would force every existing
+  caller to opt in via a new prop. SectionDivider is the
+  labeled cousin; both share the same hairline class so the
+  visual rhythm matches.
+- Reference design tokens: `/root/c4/arps-design-system-v1/`.
+
 ## [1.11.268] - 2026-05-15 -- UI: Kbd shortcut chip (TODO 11.250)
 
 Component-scope-only polish. No daemon-side change and no `c4`
