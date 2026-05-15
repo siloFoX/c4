@@ -58,3 +58,4 @@ export * from './bulk-action-toolbar';
 export * from './column-picker';
 export * from './form-field';
 export * from './visually-hidden';
+export * from './tag-palette';
