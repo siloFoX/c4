@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import { cn } from './cn';
 import type { TurnTokens } from '../components/ConversationView';
+import { formatNumber } from '../components/NumberFormat';
 
 // (v1.10.560) Extracted from ConversationView. Pure render +
 // format helpers — markdown rendering, inline formatter,
@@ -19,10 +20,10 @@ export function formatTime(iso: string | null): string {
 
 export function formatTokens(t: TurnTokens): string {
   const parts: string[] = [];
-  if (t.input) parts.push(`${t.input.toLocaleString()} in`);
-  if (t.output) parts.push(`${t.output.toLocaleString()} out`);
-  if (t.cacheRead) parts.push(`${t.cacheRead.toLocaleString()} cache-r`);
-  if (t.cacheCreate) parts.push(`${t.cacheCreate.toLocaleString()} cache-w`);
+  if (t.input) parts.push(`${formatNumber(t.input)} in`);
+  if (t.output) parts.push(`${formatNumber(t.output)} out`);
+  if (t.cacheRead) parts.push(`${formatNumber(t.cacheRead)} cache-r`);
+  if (t.cacheCreate) parts.push(`${formatNumber(t.cacheCreate)} cache-w`);
   return parts.join(' ');
 }
 

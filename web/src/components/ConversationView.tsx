@@ -6,6 +6,7 @@ import Spinner from './Spinner';
 import { cn } from '../lib/cn';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import TurnRow from './ConversationTurns';
+import { formatNumber } from './NumberFormat';
 
 // Conversation contract mirrors src/session-parser.js. Keep the shapes
 // loose (nullable fields) so a mid-session file still renders - the
@@ -145,14 +146,14 @@ export default function ConversationView({
         ) : null}
         {conversation ? (
           <span>
-            {tFormat('conversation.header.turns', { count: conversation.turns.length.toLocaleString() })}
+            {tFormat('conversation.header.turns', { count: formatNumber(conversation.turns.length) })}
           </span>
         ) : null}
         {conversation ? (
           <span>
             {tFormat('conversation.header.tokens', {
-              input: conversation.totalInputTokens.toLocaleString(),
-              output: conversation.totalOutputTokens.toLocaleString(),
+              input: formatNumber(conversation.totalInputTokens),
+              output: formatNumber(conversation.totalOutputTokens),
             })}
           </span>
         ) : null}
