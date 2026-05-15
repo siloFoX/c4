@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.239] - 2026-05-15 -- UI: Card primitive surface refresh (11.221)
+
+Component-scope-only addition. No daemon-side change and no `c4` CLI
+surface change.
+
+- `web/src/components/ui/card.tsx` -- new `tone` prop on `<Card>`
+  with four values: `'default'` (or omitted) preserves the prior
+  `bg-card` + `border-border` surface byte-for-byte, and
+  `'success'` / `'warning'` / `'danger'` add a subdued ARPS-token
+  tint plus matching border:
+  - `tone='success'` -> `bg-success/5 border-success/30`
+  - `tone='warning'` -> `bg-warning/5 border-warning/30`
+  - `tone='danger'`  -> `bg-destructive/5 border-destructive/30`
+  Tone composes cleanly with the existing `interactive` prop
+  (focus-ring + hover-lift stay intact) and with caller-provided
+  `className`. The exported `CardTone` type lives next to
+  `CardProps`. Children render path is unchanged.
+- `web/src/components/ui/card.test.tsx` -- 7 new vitest cases:
+  default keeps `bg-card` + `border-border`; `tone='default'`
+  renders the same as omitted; each of `success` / `warning` /
+  `danger` renders its tint + border; custom `className` still
+  passes through; `tone` composes with `interactive`.
+- `web/src/pages/DesignSystem.tsx` -- `CardPanelDemo` now renders
+  one example per tone so consumers can preview the surface
+  language alongside the default Card.
+
+In-tree adoption note: the three existing status banners (Login
+auth error, WorkerDetail error, AutonomousView dispatch errors)
+are inline `div` alerts inside otherwise-persistent Card shells,
+not status-conditional containers, so swapping the parent Card's
+`tone` would tint the whole shell even when no error is present.
+The `<Alert>` primitive remains the right surface for transient
+banners; the new Card tones are registered for future consumers
+that own a genuinely status-keyed container.
+
 ## [1.11.238] - 2026-05-15 -- UI: useLocalStorage hook (11.220)
 
 Component-scope-only addition. No daemon-side change and no `c4` CLI

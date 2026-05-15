@@ -162,6 +162,72 @@ describe('<Card interactive>', () => {
   });
 });
 
+// (v1.11.239) tone variants: subdued background tint + matching
+// border using ARPS tokens. 'default' (or omitted) is byte-identical
+// to the prior bg-card / border-border surface.
+describe('<Card tone>', () => {
+  it('omitted tone keeps the default bg-card + border-border surface', () => {
+    render(<Card data-testid="c">x</Card>);
+    const node = screen.getByTestId('c');
+    expect(node).toHaveClass('bg-card');
+    expect(node).toHaveClass('border-border');
+    expect(node).not.toHaveClass('bg-success/5');
+    expect(node).not.toHaveClass('bg-warning/5');
+    expect(node).not.toHaveClass('bg-destructive/5');
+  });
+
+  it("tone='default' renders the same as omitted", () => {
+    render(<Card data-testid="c" tone="default">x</Card>);
+    const node = screen.getByTestId('c');
+    expect(node).toHaveClass('bg-card');
+    expect(node).toHaveClass('border-border');
+  });
+
+  it("tone='success' renders with success tint + border", () => {
+    render(<Card data-testid="c" tone="success">x</Card>);
+    const node = screen.getByTestId('c');
+    expect(node).toHaveClass('bg-success/5');
+    expect(node).toHaveClass('border-success/30');
+    expect(node).not.toHaveClass('bg-card');
+    expect(node).not.toHaveClass('border-border');
+  });
+
+  it("tone='warning' renders with warning tint + border", () => {
+    render(<Card data-testid="c" tone="warning">x</Card>);
+    const node = screen.getByTestId('c');
+    expect(node).toHaveClass('bg-warning/5');
+    expect(node).toHaveClass('border-warning/30');
+    expect(node).not.toHaveClass('bg-card');
+  });
+
+  it("tone='danger' renders with destructive tint + border", () => {
+    render(<Card data-testid="c" tone="danger">x</Card>);
+    const node = screen.getByTestId('c');
+    expect(node).toHaveClass('bg-destructive/5');
+    expect(node).toHaveClass('border-destructive/30');
+    expect(node).not.toHaveClass('bg-card');
+  });
+
+  it('custom className still passes through alongside a tone', () => {
+    render(
+      <Card data-testid="c" tone="success" className="extra-tag">x</Card>,
+    );
+    const node = screen.getByTestId('c');
+    expect(node).toHaveClass('extra-tag');
+    expect(node).toHaveClass('bg-success/5');
+  });
+
+  it('tone composes with interactive (keeps focus-ring + cursor)', () => {
+    render(
+      <Card data-testid="c" tone="warning" interactive>x</Card>,
+    );
+    const node = screen.getByTestId('c');
+    expect(node).toHaveClass('bg-warning/5');
+    expect(node).toHaveClass('cursor-pointer');
+    expect(node).toHaveClass('focus-visible:ring-2');
+  });
+});
+
 describe('<CardHeader>', () => {
   it('renders the children inside a flex column container', () => {
     render(<CardHeader data-testid="h"><span>title</span></CardHeader>);
