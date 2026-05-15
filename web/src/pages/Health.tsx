@@ -19,6 +19,7 @@ import {
   Rating,
   StatusDot,
   Tooltip,
+  VisuallyHidden,
 } from '../components/ui';
 import type { DataListItem } from '../components/ui';
 import { StatCardShape, TableRowShape } from '../components/ui/skeleton';
@@ -153,7 +154,7 @@ export default function Health() {
               aria-label={t('healthPage.refresh.label')}
             >
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span className="sr-only">{t('common.srOnlyRefresh')}</span>
+              <VisuallyHidden>{t('common.srOnlyRefresh')}</VisuallyHidden>
             </Button>
           </Tooltip>
         </>

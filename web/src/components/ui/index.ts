@@ -57,3 +57,4 @@ export * from './export-button';
 export * from './bulk-action-toolbar';
 export * from './column-picker';
 export * from './form-field';
+export * from './visually-hidden';

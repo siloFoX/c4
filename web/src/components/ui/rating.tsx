@@ -2,6 +2,7 @@ import { forwardRef, useState } from 'react';
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import { Star } from 'lucide-react';
 import { cn } from '../../lib/cn';
+import { VisuallyHidden } from './visually-hidden';
 
 export interface RatingProps {
   value: number;
@@ -175,7 +176,7 @@ export const Rating = forwardRef<HTMLDivElement, RatingProps>(
         )}
       >
         {label != null && typeof label !== 'string' ? (
-          <span className="sr-only">{label}</span>
+          <VisuallyHidden>{label}</VisuallyHidden>
         ) : null}
         {stars}
       </div>

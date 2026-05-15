@@ -18,6 +18,7 @@ import {
   Skeleton,
   Textarea,
   Tooltip,
+  VisuallyHidden,
 } from '../components/ui';
 import type { BadgeVariant } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
@@ -300,7 +301,7 @@ export default function Queue() {
             disabled={loading || busy}
           >
             <RefreshCw className={cn('h-3.5 w-3.5', (loading || busy) && 'animate-spin')} />
-            <span className="sr-only">Refresh</span>
+            <VisuallyHidden>Refresh</VisuallyHidden>
           </Button>
         </Tooltip>
       }
@@ -349,7 +350,7 @@ export default function Queue() {
           >
             <thead className="bg-muted/40">
               <tr>
-                <th scope="col" className="w-10 px-3 py-2"><span className="sr-only">Drag handle</span></th>
+                <th scope="col" className="w-10 px-3 py-2"><VisuallyHidden>Drag handle</VisuallyHidden></th>
                 <th scope="col" className="w-24 px-3 py-2 font-medium">ID</th>
                 <th scope="col" className="px-3 py-2 font-medium">Title</th>
                 <th scope="col" className="w-32 px-3 py-2 font-medium">Status</th>
@@ -426,7 +427,7 @@ export default function Queue() {
                           onClick={() => setEditingId(row.id)}
                         >
                           <Pencil className="h-3.5 w-3.5" />
-                          <span className="sr-only">Edit {row.id}</span>
+                          <VisuallyHidden>Edit {row.id}</VisuallyHidden>
                         </Button>
                       </Tooltip>
                     </td>

@@ -4,6 +4,71 @@
 
 (no entries -- next release window)
 
+## [1.11.241] - 2026-05-15 -- UI: VisuallyHidden primitive (TODO 11.223)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+New `web/src/components/ui/visually-hidden.tsx` (43 lines): a
+forwardRef'd `<span>` that emits Tailwind's canonical `sr-only`
+utility (position absolute / width 1px / clip-path inset), merged
+with any caller-provided `className` via the project `cn()` helper.
+Public surface is `VisuallyHidden`, a stable `displayName`, and the
+type alias `VisuallyHiddenProps = HTMLAttributes<HTMLSpanElement>`.
+The primitive is a thin convention layer over the existing
+`sr-only` class -- it does not re-implement the rule, so the
+class-merge precedence stays the same as the inline pattern it
+replaces, and the legacy `node.querySelector('.sr-only')` contract
+relied on by existing tests (Spinner, Profiles, Plan, Swarm,
+Templates, TokenUsage, Validation) keeps working untouched.
+
+Why the primitive instead of inline `className="sr-only"`:
+- One symbol to grep / lint instead of a string literal sprinkled
+  through pages and components.
+- Future-proofs the project for swapping off Tailwind core's
+  `sr-only` (e.g. a CSS-module-based replacement) without touching
+  every call site.
+- Keeps the class-merge path explicit so a caller's `className`
+  override does not accidentally outweigh the `sr-only` rule.
+
+Adopted in 5 files / 7 inline sites:
+1. `web/src/components/Spinner.tsx` -- the accessible-text mirror
+   inside the role=status wrapper.
+2. `web/src/components/ui/rating.tsx` -- the off-screen `ReactNode`
+   label fallback when the caller passes a non-string label.
+3. `web/src/pages/Health.tsx` -- refresh-button accessible name.
+4. `web/src/pages/PageFrame.tsx` -- LoadingSkeleton role=status
+   announcement.
+5. `web/src/pages/Queue.tsx` -- toolbar refresh button, drag-handle
+   column header, and per-row Edit button (3 sites).
+
+The remaining inline `sr-only` spans (Validation, Scribe, Auto,
+TokenUsage, Templates, Swarm, Plan, Snapshots, Profiles plus the
+`<label className="sr-only">` and `<input className="sr-only">`
+variants in Queue + file-input) are deliberately left alone for
+this push -- the form-element variants need a polymorphic `as`
+prop on the primitive that we are not introducing yet, and the
+remaining span sites can ride a follow-up batch once any
+typography-token decisions on `srOnlyRefresh` settle. The
+`web/src/components/ui/index.ts` barrel exports the new primitive
+so consumers can `import { VisuallyHidden } from '../components/ui'`.
+
+Test coverage: 8 new vitest cases for `<VisuallyHidden>` (SPAN
+tagName, `sr-only` class applied, caller `className` merge keeps
+`sr-only`, attribute passthrough, ref forwarding to
+`HTMLSpanElement`, interpolated children textContent round-trip,
+`displayName === 'VisuallyHidden'`, and the legacy
+`.sr-only` querySelector contract). Adopters re-verified in
+isolation: visually-hidden 8/8, Spinner 16/16, rating 20/20, Queue
+13/13 -- all pass. The pre-existing `<Health>` skeleton-role test
+failure (asserts no role=status when a StatusDot legitimately
+exposes one) was confirmed identical with my Health.tsx edit
+reverted; it is independent of this push.
+
+Bumped `package.json` 1.11.240 -> 1.11.241 and `web/package.json`
+1.11.240 -> 1.11.241 along with the version lines in both
+lockfiles.
+
 ## [1.11.240] - 2026-05-15 -- UI: useViewportSize hook (TODO 11.222)
 
 New `web/src/hooks/use-viewport-size.ts` centralises the
