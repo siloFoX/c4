@@ -16,6 +16,7 @@ import {
   type ErrorRecord,
   type ErrorSource,
 } from '../lib/error-reporter';
+import RelativeTime from '../components/RelativeTime';
 
 // (v1.11.213) Operator-facing inspector for the local in-memory error
 // sink. List the last 50 captured errors (window / unhandledrejection
@@ -40,16 +41,6 @@ const SOURCE_TONE: Record<ErrorSource, ChipTone> = {
   manual: 'neutral',
 };
 
-function formatTimestamp(iso: string): string {
-  try {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return iso;
-    return d.toLocaleString();
-  } catch {
-    return iso;
-  }
-}
-
 function truncate(value: string, max: number): string {
   if (value.length <= max) return value;
   return `${value.slice(0, max)}...`;
@@ -65,9 +56,10 @@ function Row({ rec }: { rec: ErrorRecord }) {
         <Chip tone={SOURCE_TONE[rec.source]} className="px-2 py-0.5">
           {SOURCE_LABEL[rec.source]}
         </Chip>
-        <span className="text-muted-foreground">
-          {formatTimestamp(rec.timestamp)}
-        </span>
+        <RelativeTime
+          className="text-muted-foreground"
+          value={rec.timestamp}
+        />
         <span className="ml-auto font-mono text-[10px] text-muted-foreground">
           {rec.id}
         </span>

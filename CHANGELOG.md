@@ -4,6 +4,43 @@
 
 (no entries -- next release window)
 
+## [1.11.228] - 2026-05-15 -- UI: relative-time component (11.210)
+
+Standalone `RelativeTime` component for the web UI. Component-scope
+only -- no daemon / no API surface. Lives at
+`web/src/components/RelativeTime.tsx` and ships with 17 vitest cases
+in `web/src/components/RelativeTime.test.tsx`. Renders a self-
+refreshing `<time dateTime=...>` element with a delta-driven label
+(`just now`, `N seconds/minutes/hours/days/months/years ago`, plus
+the symmetric `in N ...` future tense for negative deltas). The
+absolute locale string lives on the `title=` attribute by default so
+hovering still surfaces the exact timestamp. Built-in `Date` math
+only -- no external date libraries.
+
+Auto-refresh cadence is delta-aware: 1s under a minute, 1min under
+an hour, 1h under a day, 1d otherwise. Each tick re-picks the next
+interval, so an entry that crosses a boundary doesn't keep firing
+at the wrong rate. The setTimeout install is gated behind `useEffect`
+so SSR / first-render is deterministic; passing an explicit `now`
+prop also short-circuits the timer (test fixtures and frozen-frame
+stories get a stable label).
+
+Adopted at 5 inline date-formatting callsites where "X minutes ago"
+reads better than an ISO / locale string:
+
+- `web/src/components/MeetingsRecapPanel.tsx` -- escalation timestamp
+- `web/src/components/SessionsAttachedSection.tsx` -- attached
+  session `createdAt` row meta
+- `web/src/components/AttachModal.tsx` -- preview list `updatedAt`
+  (still bails out cleanly when the timestamp is null)
+- `web/src/pages/ErrorReports.tsx` -- captured-error timestamp; the
+  local `formatTimestamp` helper is retired alongside the swap
+- `web/src/pages/Snapshots.tsx` -- snapshot `createdAt` cell
+
+Tokens-only / numeric-format `toLocaleString()` sites (token counts,
+date pickers, conversation render) are left untouched -- the
+component is for timestamps, not numeric pretty-printing.
+
 ## [1.11.227] - 2026-05-15 -- UI: list virtualizer hook (11.209)
 
 Standalone `useListVirtualizer` hook for the web UI: a small,

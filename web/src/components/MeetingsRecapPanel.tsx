@@ -1,5 +1,6 @@
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { useToggle } from '../lib/use-toggle';
+import RelativeTime from './RelativeTime';
 import type { ActionItemType } from './MeetingsView';
 
 // (v1.10.541) Extracted from MeetingsView. The compact recap
@@ -75,7 +76,7 @@ export default function MeetingsRecapPanel({ recap }: Props) {
               <ul className="mt-1 space-y-0.5">
                 {recap.escalations.map((e, i) => (
                   <li key={i} className="text-muted-foreground">
-                    {e.ts ? <span className="font-mono">{new Date(e.ts).toLocaleString()}</span> : null}
+                    {e.ts ? <RelativeTime className="font-mono" value={e.ts} /> : null}
                     {' '}— {e.reason}{e.terminal ? ' (terminal)' : ''}
                   </li>
                 ))}
