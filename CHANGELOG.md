@@ -4,6 +4,95 @@
 
 (no entries -- next release window)
 
+## [1.11.251] - 2026-05-15 -- UI: Shared copy-to-clipboard module (TODO 11.233)
+
+Component-scope-only addition + 5-site adoption sweep. No
+daemon-side change and no `c4` CLI surface change.
+
+Two new modules wire up the clipboard contract:
+
+- `web/src/lib/clipboard.ts` -- imperative
+  `copyTextToClipboardWithError(text)` (returns
+  `{ ok, error }`) + boolean shim `copyTextToClipboard(text)`.
+  Tries the Clipboard API first, then falls back to
+  `document.execCommand('copy')` via a hidden textarea. A
+  writeText rejection still falls through to the fallback so a
+  sandboxed iframe that allows execCommand but not the API
+  still succeeds; the original error wins only when every path
+  fails. Never throws.
+- `web/src/hooks/use-copy.ts` -- canonical hook module under
+  the shorter name the brief asked for. Re-exports
+  `useCopyToClipboard as useCopy` (legacy name still
+  available), keeps the existing 3 lib consumers
+  (`use-action-items-export`, `use-copy-pulse`, `use-morning`)
+  working unchanged, and re-exports `copyTextToClipboard` so a
+  single import covers both the hook + the imperative helper.
+
+`hooks/use-copy-to-clipboard.ts` refactored to delegate the
+write path to `lib/clipboard.ts`. Existing 7 unit cases stay
+byte-for-byte green; the writeText rejection still surfaces with
+its original error message because the lib helper now returns
+the structured `{ ok, error }` shape.
+
+5-site adoption sweep:
+1. `web/src/components/ui/code-block.tsx` -- the Copy button.
+2. `web/src/components/ui/data-list.tsx` -- the per-item
+   CopyChip.
+3. `web/src/components/ErrorBoundary.tsx` -- Copy stack trace
+   (class component; the imperative helper is the right entry
+   point because hooks cannot run inside a class).
+4. `web/src/pages/Snapshots.tsx` -- NEW Copy ID button per
+   row.
+5. `web/src/pages/Snapshots.tsx` -- NEW Copy Label button per
+   row (only rendered when the snapshot has a label set).
+
+Pattern note: every adopter keeps the `copied` pulse as
+*local* `useState` + `useEffect` cleanup rather than reaching
+for `useCopy` directly. The existing tests assert the pulse
+flips synchronously on click; `useCopy` only flips after the
+async writeText resolves, which would break the synchronous
+assertion. The imperative helper preserves the synchronous-flip
+contract while still routing every write through the single
+clipboard module. New surfaces that can await the result are
+free to switch to the hook variant.
+
+Test deltas:
+- `web/src/lib/clipboard.test.ts` -- 8 new vitest cases
+  (Clipboard API success, writeText rejection surfaced,
+  execCommand fallback, both paths fail, fallback-after-
+  rejection, non-Error throw wrapping, boolean shim true,
+  boolean shim false).
+- `web/src/hooks/use-copy.test.ts` -- 4 cases pin the
+  re-export contract (useCopy is a function, useCopyToClipboard
+  still exported, alias identity, copyTextToClipboard
+  re-exported).
+- `hooks/use-copy-to-clipboard.test.tsx` 7/7 stays green.
+- CodeBlock 12/12 (the prior "Copied chip flips on after
+  click" failure -- introduced by an interim useCopy-hook
+  variant during this push -- is fixed by the
+  imperative-helper + local-state pattern).
+- Snapshots 5/5 with two new Copy buttons rendered alongside
+  Restore + Delete.
+
+Pre-existing failures left unchanged (confirmed identical with
+my migration reverted, out of scope):
+- DataList 5/10 -- 5 pre-existing failures stem from jsdom
+  making `navigator.clipboard` read-only; `Object.assign(
+  navigator, { clipboard: ... })` throws "Cannot set property
+  clipboard of #<Navigator> which has only a getter" in
+  beforeEach so every test that depends on the setup fails.
+  Fix is a test-side `Object.defineProperty` swap, which I am
+  not bundling into this push.
+- ErrorBoundary 20/22 -- 2 pre-existing failures in the
+  Collapsible "Stack trace" toggle (unrelated to the
+  clipboard work).
+- The FeatureSidebar > filter and i18n-keys > t() pre-existing
+  failures noted in earlier CHANGELOG entries remain
+  unchanged.
+
+Bumped `package.json` 1.11.250 -> 1.11.251 and `web/package.json`
+1.11.250 -> 1.11.251 along with both lockfiles.
+
 ## [1.11.250] - 2026-05-15 -- UI: Multi-key shortcut sequences (TODO 11.232)
 
 Component-scope-only addition. No daemon-side change and no `c4`
