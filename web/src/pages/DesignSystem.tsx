@@ -48,6 +48,7 @@ import {
   Tooltip,
 } from '../components/ui';
 import Spinner from '../components/Spinner';
+import ColorBlindFilters from '../components/dev/ColorBlindFilters';
 import { cn } from '../lib/cn';
 
 // Design System docs page (patch 11.185). Inline live demo page showing
@@ -193,6 +194,63 @@ function SwitchDemo() {
       code={`<Switch checked={on} onChange={setOn} label="Notifications" />`}
     >
       <Switch checked={on} onChange={setOn} label="Notifications" />
+    </Demo>
+  );
+}
+
+function ColorBlindAuditDemo() {
+  // (v1.11.247, TODO 11.229) Side-by-side simulation of the tag
+  // palette + signal Badge variants under each of the three
+  // common dichromacies (protanopia / deuteranopia / tritanopia)
+  // plus the "Normal" baseline. The wrappers apply an SVG
+  // colour-matrix via `filter: url(#cb-*)` -- the filter defs
+  // live in components/dev/ColorBlindFilters.tsx, mounted at the
+  // top of the demo so all four rows reference the same ids.
+  const SIMULATIONS = [
+    { id: 'normal', label: 'Normal', className: '' },
+    { id: 'protanopia', label: 'Protanopia (red)', className: 'cb-protanopia' },
+    { id: 'deuteranopia', label: 'Deuteranopia (green)', className: 'cb-deuteranopia' },
+    { id: 'tritanopia', label: 'Tritanopia (blue)', className: 'cb-tritanopia' },
+  ];
+  return (
+    <Demo
+      name="Colour-blindness audit"
+      description="Tag palette + Badge variants rendered under each common dichromacy. The leading icon on every signal Badge is the secondary signal -- a colourblind operator still sees success vs warning vs danger via the icon shape, not just the hue."
+      code={`<ColorBlindFilters />
+<div className="cb-deuteranopia">
+  <Badge variant="success">ok</Badge>
+  <Badge variant="warning">busy</Badge>
+  <Badge variant="destructive">err</Badge>
+</div>`}
+    >
+      <ColorBlindFilters />
+      <div className="flex w-full flex-col gap-3">
+        {SIMULATIONS.map((sim) => (
+          <div key={sim.id} className="flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">{sim.label}</span>
+            <div className={cn('flex flex-wrap items-center gap-1.5', sim.className)}>
+              {TAG_PALETTE.map((tone) => (
+                <span
+                  key={`${sim.id}-${tone.id}`}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-full border-transparent px-2 py-0.5 text-[11px] font-medium',
+                    tone.subtle,
+                  )}
+                >
+                  <span aria-hidden className={cn('h-1.5 w-1.5 rounded-full', tone.dot)} />
+                  {tone.label}
+                </span>
+              ))}
+              <span className="ml-2 inline-flex items-center gap-1.5">
+                <Badge variant="success">ok</Badge>
+                <Badge variant="warning">busy</Badge>
+                <Badge variant="info">note</Badge>
+                <Badge variant="destructive">err</Badge>
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
     </Demo>
   );
 }
@@ -817,6 +875,7 @@ const CATEGORIES: { label: string; demos: ReactNode }[] = [
     demos: (
       <>
         <TagPaletteDemo />
+        <ColorBlindAuditDemo />
         <ChipDemo />
         <BadgeDemo />
         <CardPanelDemo />

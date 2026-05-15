@@ -4,6 +4,69 @@
 
 (no entries -- next release window)
 
+## [1.11.247] - 2026-05-15 -- UI: Colour-blindness audit + Badge signal icons (TODO 11.229)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+Two pieces of the colour-blindness audit:
+
+1. **Badge gets per-variant signal icons** so colour stops being
+   the sole signal.
+   - `web/src/components/ui/badge.tsx`: the four signal variants
+     (`success` / `warning` / `info` / `error` / `destructive`)
+     now render a leading lucide icon (`CheckCircle2` /
+     `AlertTriangle` / `Info` / `XCircle`). A colourblind
+     operator still distinguishes ok-vs-busy-vs-err via the icon
+     shape, not just the hue. The new
+     `icon?: ReactNode | false` prop overrides the default or
+     opts out (`icon={false}` preserves the byte-identical
+     pre-1.11.247 shape).
+   - Neutral / default / secondary / outline keep their
+     byte-for-byte appearance -- they carry no colour-only
+     signal, so the icon-less rendering stays.
+   - `badge.test.tsx` gains 7 cases (default icon per signal
+     variant, no-icon on the four neutral variants, custom-icon
+     override, `icon={false}` opt-out). `badge.snapshot.test.tsx`
+     baselines updated for the four signal variants; the three
+     icon-less variants stay byte-identical.
+
+2. **Inline colour-vision simulation surface** so a designer can
+   audit any subtree without leaving the app.
+   - `web/src/components/dev/ColorBlindFilters.tsx` renders an
+     inline `<svg><defs>` block with three named filters
+     (`#cb-protanopia`, `#cb-deuteranopia`, `#cb-tritanopia`).
+     The matrices are the canonical Machado et al. 2009
+     approximations at full dichromacy -- if a tone pair
+     survives the full deficiency it survives every milder
+     anomaly.
+   - `web/src/index.css` gains three wrapper classes that point
+     at the filter ids via `filter: url(#cb-*)`. The filter is
+     purely visual -- it does NOT alter the DOM, so screen
+     readers + keyboard navigation stay unaffected.
+   - `DesignSystem.tsx` adopts a new `ColorBlindAuditDemo` block
+     in the Display category. It renders 4 rows -- Normal,
+     Protanopia, Deuteranopia, Tritanopia -- each wrapping the
+     canonical 8-tone tag palette + the four signal Badge
+     variants. The icons baked into Badge read identically in
+     every row, so the demo doubles as proof that the
+     secondary-signal layer survives every dichromacy.
+   - `ColorBlindFilters.test.tsx` pins the contract: stable
+     `cb-*` ids, aria-hidden + zero-sized SVG, exact Machado
+     matrix values, custom `idPrefix` override for multi-mount
+     scenarios, and a 4x5 (= 20 entries) finite-number
+     invariant on every matrix string.
+
+Test deltas: badge.test.tsx +7 cases, badge.snapshot.test.tsx 4
+baselines updated (3 icon-less stay byte-identical),
+ColorBlindFilters.test.tsx +6 cases. Consumer regressions verified
+on the three biggest Badge sites: SpecialistsList 21/21,
+RiskCheckResult 24/24, ConversationView 31/31 = 76/76 -- the new
+icons land transparently without changing existing assertions.
+
+Bumped `package.json` 1.11.246 -> 1.11.247 and `web/package.json`
+1.11.246 -> 1.11.247 along with both lockfiles.
+
 ## [1.11.246] - 2026-05-15 -- UI: Lazy-route prefetch on hover (TODO 11.228)
 
 Component-scope-only addition + adoption sweep. No daemon-side

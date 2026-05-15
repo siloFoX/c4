@@ -280,3 +280,22 @@
   padding-right: env(safe-area-inset-right);
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* (v1.11.247, TODO 11.229) Color-vision simulation wrappers. Apply
+ * `.cb-protanopia` / `.cb-deuteranopia` / `.cb-tritanopia` to any
+ * container to render its subtree through the matching SVG color
+ * matrix (defined by components/dev/ColorBlindFilters.tsx). The
+ * filter is purely visual -- it does NOT alter the DOM, so
+ * screen readers and keyboard navigation stay unaffected. The
+ * audit surface in DesignSystem renders palette / badge variants
+ * inside each wrapper so a designer can eyeball clashes before
+ * they ship. */
+.cb-protanopia {
+  filter: url(#cb-protanopia);
+}
+.cb-deuteranopia {
+  filter: url(#cb-deuteranopia);
+}
+.cb-tritanopia {
+  filter: url(#cb-tritanopia);
+}
