@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { cn } from '../lib/cn';
 import { useReducedMotion } from '../hooks/use-reduced-motion';
+import { useFeatureFlag } from '../lib/feature-flags';
 
 export interface RouteProgressHandle {
   start: () => void;
@@ -37,6 +38,7 @@ const REDUCED_MOTION_HOLD_MS = 120;
 
 export const RouteProgressBar = forwardRef<RouteProgressHandle, RouteProgressBarProps>(
   function RouteProgressBar({ routeKey, color = 'primary', className }, ref) {
+    const [enabled] = useFeatureFlag('routeProgress');
     const reducedMotion = useReducedMotion();
     const [progress, setProgress] = useState(0);
     const [visible, setVisible] = useState(false);
@@ -117,6 +119,8 @@ export const RouteProgressBar = forwardRef<RouteProgressHandle, RouteProgressBar
         clearFade();
       };
     }, [clearTrickle, clearFade]);
+
+    if (!enabled) return null;
 
     return (
       <div

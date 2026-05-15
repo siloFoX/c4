@@ -4,6 +4,36 @@
 
 (no entries -- next release window)
 
+## [1.11.237] - 2026-05-15 -- UI: route-progress feature flag (11.219)
+
+Component-scope-only wiring. No daemon-side change and no `c4` CLI
+surface change.
+
+- `web/src/components/RouteProgressBar.tsx` -- call
+  `useFeatureFlag('routeProgress')` from inside the component
+  (after every other hook, never at module scope) and return
+  `null` when the flag is `false`. The flag defaults to `true`,
+  so unconfigured installs keep the existing trickle / fade
+  behaviour bit-for-bit. Toggling the flag at runtime via
+  `setFlag('routeProgress', ...)` (Features sidebar -> Flags)
+  re-renders the subscribed component immediately through the
+  existing `feature-flag-changed` CustomEvent bus from patch
+  11.198, so the bar appears / disappears without a route
+  change.
+- `web/src/components/RouteProgressBar.test.tsx` -- three new
+  vitest cases on top of the existing eight: default-true render,
+  flag-false hides the bar, and a true -> false -> true toggle
+  cycle driven by `setFlag` that asserts the
+  `[data-testid="route-progress-bar"]` node is mounted /
+  unmounted accordingly. `beforeEach` / `afterEach` clear
+  `c4:feature-flags` from `localStorage` and call `resetFlags()`
+  so the pre-existing trickle / done / reduced-motion / colour
+  cases keep running against the default-on state and stay
+  green.
+- `docs/patches/11.219-ui-route-progress-flag.md` -- patch note
+  describing the wiring contract, the rationale for keeping the
+  hook inside the component, and the test matrix.
+
 ## [1.11.236] - 2026-05-15 -- UI: portal-root manager (11.218)
 
 Component-scope-only addition. No daemon-side change and no `c4` CLI

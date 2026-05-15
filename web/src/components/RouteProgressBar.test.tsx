@@ -2,6 +2,7 @@ import { act, render } from '@testing-library/react';
 import { createRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RouteProgressBar, type RouteProgressHandle } from './RouteProgressBar';
+import { setFlag, resetFlags, STORAGE_KEY } from '../lib/feature-flags';
 
 type Listener = (e: MediaQueryListEvent) => void;
 
@@ -54,10 +55,21 @@ describe('RouteProgressBar', () => {
   beforeEach(() => {
     installMatchMedia(false);
     vi.useFakeTimers();
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+    resetFlags();
   });
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
   });
 
   it('renders hidden by default with aria-hidden and zero progress', () => {
@@ -160,5 +172,38 @@ describe('RouteProgressBar', () => {
     render(<RouteProgressBar ref={ref} />);
     expect(typeof ref.current?.start).toBe('function');
     expect(typeof ref.current?.done).toBe('function');
+  });
+
+  it('renders the progress bar when the routeProgress feature flag defaults to true', () => {
+    const { container } = render(<RouteProgressBar />);
+    const root = container.querySelector('[data-testid="route-progress-bar"]');
+    expect(root).toBeTruthy();
+  });
+
+  it('renders nothing when the routeProgress feature flag is set to false', () => {
+    setFlag('routeProgress', false);
+    const { container } = render(<RouteProgressBar />);
+    const root = container.querySelector('[data-testid="route-progress-bar"]');
+    expect(root).toBeNull();
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('toggling the flag from true to false makes the bar disappear', () => {
+    const { container } = render(<RouteProgressBar />);
+    expect(
+      container.querySelector('[data-testid="route-progress-bar"]'),
+    ).toBeTruthy();
+    act(() => {
+      setFlag('routeProgress', false);
+    });
+    expect(
+      container.querySelector('[data-testid="route-progress-bar"]'),
+    ).toBeNull();
+    act(() => {
+      setFlag('routeProgress', true);
+    });
+    expect(
+      container.querySelector('[data-testid="route-progress-bar"]'),
+    ).toBeTruthy();
   });
 });
