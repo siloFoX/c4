@@ -4,7 +4,7 @@ import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame'
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, FileTree, Input, Label, Panel, Popover, Stepper, Textarea, Tooltip } from '../components/ui';
+import { Button, FileTree, FormField, Input, Panel, Popover, Stepper, Textarea, Tooltip } from '../components/ui';
 import type { FileTreeNode } from '../components/ui';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
@@ -153,10 +153,8 @@ export default function Plan() {
         />
       </div>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <div>
-          <Label htmlFor="plan-worker">{t('planPage.worker')}</Label>
+        <FormField id="plan-worker" label={t('planPage.worker')}>
           <select
-            id="plan-worker"
             value={selected}
             onChange={(e) => setSelected(e.target.value)}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -166,7 +164,7 @@ export default function Plan() {
               <option key={w.name} value={w.name}>{w.name}</option>
             ))}
           </select>
-        </div>
+        </FormField>
         <div>
           <Tooltip label={t('plan.tooltip.branch')} placement="top">
             <Input
