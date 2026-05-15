@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.257] - 2026-05-15 -- UI: Toast severity icons (TODO 11.239)
+
+Component-scope-only polish. No daemon-side change and no `c4`
+CLI surface change.
+
+### Changed
+
+- `web/src/components/Toast.tsx` -- per-type leading icon now aligns
+  with the Badge signal-icon family (v1.11.247) so a success toast
+  and a success badge surface the same glyph, an error toast and an
+  error badge share the X-circle, and so on. The relevant mapping:
+  - `success` -> `CheckCircle2` (unchanged)
+  - `error`   -> `XCircle` (was `AlertTriangle` -- doubled with
+                 warning, lost severity differentiation)
+  - `warning` -> `AlertTriangle` (unchanged)
+  - `info`    -> `Info` (unchanged)
+- Exported `TOAST_ICON: Record<ToastType, ComponentType>` next to
+  the existing `TOAST_PRIORITY` map so call sites and tests share
+  the single source of truth.
+- Icon `<svg>` now carries `data-toast-icon="<type>"` for e2e
+  selectors that need to assert severity without scraping lucide
+  class names.
+- Reduced-motion path is unchanged: `motionClass('fadeIn' |
+  'fadeOut', reducedMotion)` was already wired in v1.11.253 (TODO
+  11.235); the dispatch's "respect useReducedMotion" requirement
+  was already satisfied.
+
+### Tests
+
+- 7 new vitest cases in `Toast.test.tsx` (`<Toast>` suite):
+  CheckCircle2 for success, XCircle for error, AlertTriangle for
+  warning, Info for info, `data-toast-icon` attribute, distinct
+  glyph for error vs warning (regression for the prior doubled
+  AlertTriangle), `TOAST_ICON` map coverage + Badge alignment.
+  55/55 Toast.test.tsx cases pass.
+
+### Notes
+
+- No outward visible change for the success / info / warning
+  toasts; only the error toast changes glyph (triangle -> x).
+- The `TOAST_ICON` export is the canonical mapping; consumers that
+  want a custom icon per toast should pass through the parent
+  state and not import lucide icons directly.
+- Reference design tokens: `/root/c4/arps-design-system-v1/`.
+
 ## [1.11.256] - 2026-05-15 -- UI: Dashboard Widget primitive (TODO 11.238)
 
 Component-scope-only addition. No daemon-side change and no `c4`
