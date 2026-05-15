@@ -27,6 +27,7 @@ import {
   Palette,
   Rocket,
   ScrollText,
+  History as HistoryIcon,
   Settings as SettingsIcon,
   Shield,
   ShieldCheck,
@@ -215,6 +216,14 @@ export const FEATURES: FeatureDef[] = [
     category: 'config',
     Icon: Palette,
     load: () => import('./DesignSystem'),
+  },
+  {
+    id: 'decision-log',
+    labelKey: 'feature.decisionLog.label',
+    descriptionKey: 'feature.decisionLog.description',
+    category: 'config',
+    Icon: HistoryIcon,
+    load: () => import('./DecisionLog'),
   },
   {
     id: 'snapshots',
