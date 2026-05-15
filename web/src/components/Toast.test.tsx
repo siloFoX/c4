@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Toast, {
+  TOAST_ICON,
   TOAST_SWIPE_THRESHOLD,
   TOAST_PRIORITY,
   TOAST_VISIBLE_LIMIT,
@@ -9,6 +10,7 @@ import Toast, {
   partitionToasts,
 } from './Toast';
 import type { ToastEntry, ToastType } from './Toast';
+import { AlertTriangle, CheckCircle2, Info, XCircle } from 'lucide-react';
 
 // Toast is now a portal-rendered, swipe-aware, stack-aware
 // banner. The pure-display contract is preserved (role=status,
@@ -354,6 +356,82 @@ describe('<Toast>', () => {
     renderToast({ type: 'warning' });
     const status = screen.getByRole('status');
     expect(status.className).toMatch(/warning/);
+  });
+
+  // ---- severity icon glyphs (11.239) ----------------------------
+  // Aligns the per-type leading icon with the Badge signal-icon
+  // family so a colourblind operator can read severity from the
+  // glyph as well as the tone.
+
+  it('renders the CheckCircle2 glyph for type=success (lucide-circle-check)', () => {
+    renderToast({ type: 'success' });
+    const svg = document.getElementById('toast-root')!.querySelector('svg');
+    expect(svg).not.toBeNull();
+    expect(svg!.getAttribute('class') ?? '').toContain('lucide-circle-check');
+  });
+
+  it('renders the XCircle glyph for type=error (lucide-circle-x)', () => {
+    renderToast({ type: 'error' });
+    const svg = document.getElementById('toast-root')!.querySelector('svg');
+    expect(svg).not.toBeNull();
+    expect(svg!.getAttribute('class') ?? '').toContain('lucide-circle-x');
+  });
+
+  it('renders the AlertTriangle glyph for type=warning (lucide-triangle-alert)', () => {
+    renderToast({ type: 'warning' });
+    const svg = document.getElementById('toast-root')!.querySelector('svg');
+    expect(svg).not.toBeNull();
+    expect(svg!.getAttribute('class') ?? '').toContain('lucide-triangle-alert');
+  });
+
+  it('renders the Info glyph for type=info (lucide-info)', () => {
+    renderToast({ type: 'info' });
+    const svg = document.getElementById('toast-root')!.querySelector('svg');
+    expect(svg).not.toBeNull();
+    expect(svg!.getAttribute('class') ?? '').toContain('lucide-info');
+  });
+
+  it('tags the icon with data-toast-icon=<type> so e2e selectors can pick severity', () => {
+    renderToast({ type: 'error' });
+    const svg = document.getElementById('toast-root')!.querySelector('svg');
+    expect(svg).not.toBeNull();
+    expect(svg!.getAttribute('data-toast-icon')).toBe('error');
+  });
+
+  it('renders a distinct glyph for error vs warning (no doubled triangles)', () => {
+    // error -> XCircle (lucide-circle-x); warning -> AlertTriangle
+    // (lucide-triangle-alert). Prior to v1.11.257 both used
+    // AlertTriangle so the two severities were not visually distinct.
+    const { unmount } = renderToast({ type: 'error' });
+    const errSvgClass =
+      document.getElementById('toast-root')!.querySelector('svg')!.getAttribute('class') ?? '';
+    unmount();
+    document.getElementById('toast-root')?.remove();
+    renderToast({ type: 'warning' });
+    const warnSvgClass =
+      document.getElementById('toast-root')!.querySelector('svg')!.getAttribute('class') ?? '';
+    expect(errSvgClass).not.toEqual(warnSvgClass);
+    expect(errSvgClass).toContain('lucide-circle-x');
+    expect(warnSvgClass).toContain('lucide-triangle-alert');
+  });
+
+  it('TOAST_ICON map covers every ToastType with a renderable component', () => {
+    const types: ToastType[] = ['success', 'error', 'info', 'warning'];
+    for (const t of types) {
+      expect(TOAST_ICON[t]).toBeDefined();
+      // lucide-react icons are forwardRef components -- `typeof` is
+      // 'object' (the forwardRef wrapper), not 'function'. The
+      // important contract is renderability, asserted in the
+      // per-glyph tests above.
+      expect(TOAST_ICON[t]).not.toBeNull();
+    }
+  });
+
+  it('TOAST_ICON entries match the Badge signal-icon family exactly', () => {
+    expect(TOAST_ICON.success).toBe(CheckCircle2);
+    expect(TOAST_ICON.error).toBe(XCircle);
+    expect(TOAST_ICON.warning).toBe(AlertTriangle);
+    expect(TOAST_ICON.info).toBe(Info);
   });
 });
 

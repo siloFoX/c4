@@ -2,7 +2,8 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'r
 import { AnnounceContext } from '../hooks/use-announce';
 import type { PointerEvent as ReactPointerEvent, TouchEvent as ReactTouchEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import type { ComponentType, SVGProps } from 'react';
+import { AlertTriangle, CheckCircle2, Info, XCircle } from 'lucide-react';
 import { Card, CardContent, Chip } from './ui';
 import { cn } from '../lib/cn';
 import { getPortalRoot } from '../lib/portal-root';
@@ -27,6 +28,20 @@ const TONE: Record<ToastType, string> = {
   error: 'border-destructive/40 bg-destructive/10 text-destructive-foreground',
   info: 'border-info/40 bg-info/15 text-info',
   warning: 'border-warning/40 bg-warning/15 text-warning',
+};
+
+// (v1.11.257, TODO 11.239) Per-type leading icon. Aligned with the
+// Badge signal-icon mapping (v1.11.247) so a success toast and a
+// success badge surface the same glyph (CheckCircle2), an error
+// toast and an error badge share the X-circle, and so on. Prior to
+// this version the error toast used AlertTriangle, which doubled
+// with the warning toast and lost the visual distinction; XCircle
+// makes the two severities differentiable at a glance.
+export const TOAST_ICON: Record<ToastType, ComponentType<SVGProps<SVGSVGElement>>> = {
+  success: CheckCircle2,
+  error: XCircle,
+  info: Info,
+  warning: AlertTriangle,
 };
 
 // Priority ordering for the visible queue. Higher = surfaces first.
@@ -221,12 +236,7 @@ export default function Toast({
 
   const onTouchEnd = useCallback(() => endDrag(), [endDrag]);
 
-  const Icon =
-    type === 'success'
-      ? CheckCircle2
-      : type === 'error' || type === 'warning'
-        ? AlertTriangle
-        : Info;
+  const Icon = TOAST_ICON[type];
 
   // Compose the visible transform. Enter: slide in from right.
   // Drag: track pointer horizontally. Leaving: parked at large
@@ -270,7 +280,11 @@ export default function Toast({
         )}
       >
         <CardContent className="flex items-start gap-2 p-3 text-sm">
-          <Icon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+          <Icon
+            aria-hidden="true"
+            data-toast-icon={type}
+            className="mt-0.5 h-4 w-4 shrink-0"
+          />
           <span className="min-w-0 break-words">{message}</span>
         </CardContent>
       </Card>
