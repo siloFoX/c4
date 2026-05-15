@@ -4,6 +4,80 @@
 
 (no entries -- next release window)
 
+## [1.11.266] - 2026-05-15 -- UI: EmptyState primitive polish (TODO 11.248)
+
+Component-scope-only polish. No daemon-side change and no `c4`
+CLI surface change.
+
+### Context
+
+The EmptyState primitive already had `icon` / `illustration` /
+`title` / `description` / `action` (since v1.11.254 etc). This
+release extends it with the two missing pieces the dispatch
+calls out:
+
+### Added
+
+- `size?: 'sm' | 'md' | 'lg'` (default `md`, preserving the
+  prior implicit layout byte-identically). `sm` tightens
+  padding to `p-3` + xs title for inline empty rows; `lg`
+  relaxes to `p-10` + `text-base` title for top-level "all
+  caught up" pages. `data-empty-state-size` attribute exposes
+  the value for e2e selectors.
+- `secondaryAction?: { label, onClick } | { label, href }` --
+  optional follow-up action below the primary CTA. Button shape
+  for internal nav / dialog openers; anchor shape for deep
+  links (relative / hash hrefs stay in-tab) or external docs
+  (http(s) hrefs get `target="_blank"` + `rel="noreferrer
+  noopener"` automatically). Renders as a subtle text link so
+  it visually defers to the primary CTA.
+  `data-testid="empty-state-secondary-link"`.
+- 9 new vitest cases (21/21 total): default size = md / p-6,
+  sm tightens to p-3, lg relaxes to p-10 with text-base title,
+  secondaryAction button click, secondaryAction relative anchor
+  href, http anchor target+rel, omission when undefined,
+  primary + secondary stack together.
+
+### Changed (4 adoption sites)
+
+- `web/src/components/HistoryView.tsx` -- replaces the inline
+  `<div className="text-xs text-muted-foreground">{t('history.
+  empty')}</div>` with an EmptyState (`size="sm"` +
+  `illustration="no-workers"` + description + `secondaryAction
+  { label: "Browse archived workers", href: "#feature=cleanup" }`
+  + `data-testid="history-empty-state"`). 43/43 HistoryView
+  tests pass.
+- `web/src/components/SessionsListSection.tsx` -- extends the
+  existing EmptyState with `size="lg"` + description +
+  `secondaryAction { label: "Read the Sessions guide",
+  href: "#feature=help" }` +
+  `data-testid="sessions-list-empty-state"`. Pre-existing 12
+  failures in `SessionsListSection.test.tsx` are unchanged
+  (confirmed by stash-and-run on baseline) and out of scope.
+- `web/src/pages/Notifications.tsx` -- extends the existing
+  EmptyState with `size="lg"` when `activeFilter === 'all'`
+  (matches "all caught up" top-level tone) else `'md'`, plus
+  `secondaryAction` wired to either "Configure webhooks"
+  (when no notifications at all) or "Show all types"
+  `onClick` (when a filter hides all current rows). 17/17
+  Notifications tests pass.
+- `web/src/pages/Templates.tsx` -- extends the existing
+  EmptyState with `size="md"` + description + `secondaryAction
+  { label: "Open Config page", href: "#feature=config" }`
+  + `data-testid="templates-empty-state"`. Pre-existing 1
+  failure in `Templates.test.tsx` ("renders all rows in a
+  single <ul> wrapper") is unchanged (confirmed by stash-and-
+  run on baseline) and out of scope.
+
+### Notes
+
+- Pre-existing test failures (SessionsListSection 12,
+  Templates 1) were verified as unrelated to this change via
+  stash-and-run on the baseline tree. They appear in main
+  before this commit and after, with the same assertion
+  messages. Fixing them is its own work item.
+- Reference design tokens: `/root/c4/arps-design-system-v1/`.
+
 ## [1.11.265] - 2026-05-15 -- UI: Detail-panel slide-in pattern (TODO 11.247)
 
 Component-scope-only addition. No daemon-side change and no `c4`
