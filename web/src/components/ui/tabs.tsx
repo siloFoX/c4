@@ -3,10 +3,10 @@ import {
   useContext,
   useId,
   useRef,
-  type KeyboardEvent,
   type ReactNode,
 } from 'react';
 import { cn } from '../../lib/cn';
+import { useFocusCycle } from '../../hooks/use-focus-cycle';
 
 export interface TabsItem {
   value: string;
@@ -63,58 +63,36 @@ export function Tabs({
   children,
 }: TabsProps) {
   const idBase = useId();
-  const refs = useRef<Array<HTMLButtonElement | null>>([]);
+  const tablistRef = useRef<HTMLDivElement | null>(null);
 
-  const enabledIndices = items
-    .map((it, i) => (it.disabled ? -1 : i))
-    .filter((i) => i >= 0);
-
-  const focusAndSelect = (idx: number) => {
-    const item = items[idx];
-    if (!item || item.disabled) return;
-    refs.current[idx]?.focus();
-    onChange(item.value);
-  };
-
-  const handleKeyDown = (idx: number) => (e: KeyboardEvent<HTMLButtonElement>) => {
-    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
-    if (enabledIndices.length === 0) return;
-    e.preventDefault();
-
-    let nextIdx: number;
-    if (e.key === 'Home') {
-      nextIdx = enabledIndices[0]!;
-    } else if (e.key === 'End') {
-      nextIdx = enabledIndices[enabledIndices.length - 1]!;
-    } else {
-      const dir = e.key === 'ArrowLeft' ? -1 : 1;
-      const currentPos = enabledIndices.indexOf(idx);
-      const basePos = currentPos >= 0 ? currentPos : 0;
-      const nextPos =
-        (basePos + dir + enabledIndices.length) % enabledIndices.length;
-      nextIdx = enabledIndices[nextPos]!;
-    }
-    focusAndSelect(nextIdx);
-  };
+  const { handleKeyDown } = useFocusCycle({
+    containerRef: tablistRef,
+    itemSelector: '[role=tab]:not([disabled])',
+    orientation: 'horizontal',
+    wrap: true,
+    onSelect: (el) => {
+      const value = el.getAttribute('data-tab-value');
+      if (value) onChange(value);
+    },
+  });
 
   return (
     <TabsContext.Provider value={{ value, idBase }}>
       <div
         role="tablist"
         aria-label={ariaLabel ?? 'Tabs'}
+        ref={tablistRef}
         className={cn(TABLIST_CLASSES, className)}
       >
-        {items.map((item, idx) => {
+        {items.map((item) => {
           const active = item.value === value;
           return (
             <button
               key={item.value}
               type="button"
               role="tab"
-              ref={(el) => {
-                refs.current[idx] = el;
-              }}
               id={tabDomId(idBase, item.value)}
+              data-tab-value={item.value}
               aria-selected={active}
               aria-controls={panelDomId(idBase, item.value)}
               aria-label={item.ariaLabel}
@@ -125,7 +103,7 @@ export function Tabs({
                 if (item.disabled) return;
                 onChange(item.value);
               }}
-              onKeyDown={handleKeyDown(idx)}
+              onKeyDown={handleKeyDown}
               className={cn(
                 TAB_BASE_CLASSES,
                 active ? TAB_ACTIVE_CLASSES : TAB_INACTIVE_CLASSES,
