@@ -5,12 +5,20 @@ import { Image } from './image';
 export type AvatarSize = 'sm' | 'md' | 'lg';
 
 export interface AvatarProps
-  extends Omit<ImgHTMLAttributes<HTMLElement>, 'src' | 'alt' | 'className'> {
+  extends Omit<ImgHTMLAttributes<HTMLElement>, 'src' | 'alt' | 'className' | 'srcSet' | 'sizes'> {
   name?: string;
   src?: string;
   size?: AvatarSize;
   alt?: string;
   className?: string;
+  /**
+   * (v1.11.244, TODO 11.226) Forwarded to the underlying Image
+   * primitive. Pair `srcSet` with size descriptors (e.g.
+   * `"avatar@1x.png 1x, avatar@2x.png 2x"`) to let the browser
+   * pick the right DPR for the visible avatar.
+   */
+  srcSet?: string;
+  sizes?: string;
 }
 
 const SIZE_CLASS: Record<AvatarSize, string> = {
@@ -49,6 +57,8 @@ export function Avatar({
   size = 'md',
   alt,
   className,
+  srcSet,
+  sizes,
   ...rest
 }: AvatarProps) {
   const label = alt || name || '';
@@ -61,7 +71,11 @@ export function Avatar({
     // Image's underlying <img alt={label}> provides the accessible name
     // via its implicit img role; the outer span stays decorative so
     // existing tests using getByRole('img', { name }) keep pointing at
-    // the <img> element.
+    // the <img> element. (v1.11.244, TODO 11.226) Forwarding srcSet /
+    // sizes lets callers ship a DPR-aware avatar without a wrapping
+    // <picture>; Image's decoding="async" + (eager) loading defaults
+    // are inherited so the avatar stays interactive while the bitmap
+    // is decoded off the main thread.
     return (
       <span className={cn(base, className)} {...rest}>
         <Image
@@ -69,6 +83,8 @@ export function Avatar({
           alt={label}
           rounded="full"
           lazy={false}
+          srcSet={srcSet}
+          sizes={sizes}
           className="h-full w-full"
           fallbackInitials={avatarInitials(name)}
         />

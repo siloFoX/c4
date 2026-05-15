@@ -4,6 +4,61 @@
 
 (no entries -- next release window)
 
+## [1.11.244] - 2026-05-15 -- UI: Image perf tweaks + Avatar DPR adoption (TODO 11.226)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+Four perf knobs added to the existing `Image` primitive
+(`web/src/components/ui/image.tsx`) without breaking any existing
+caller:
+
+- **`decoding` prop** (default `'async'`). Pins the `<img
+  decoding>` attribute so the browser decodes the bitmap off the
+  main thread regardless of engine defaults. Set to `'sync'` for
+  above-the-fold critical images that must paint before script
+  runs.
+- **`loading` attribute** derived from the existing `lazy` prop
+  (`lazy` -> `'lazy'`, else `'eager'`). Acts as a
+  belt-and-braces fallback alongside the `IntersectionObserver`
+  gate so a user-agent without our observer still benefits from
+  the native lazy-loader.
+- **`srcSet` + `sizes` props** forwarded verbatim to the
+  underlying `<img>` so responsive surfaces can offer multiple
+  resolutions without wrapping in `<picture>`. Omitting both
+  drops the attributes from the DOM (no empty-string regression).
+- **`rootMargin` prop** (default `'200px'`, up from the prior
+  hard-coded `'50px'`). Starts the fetch once the placeholder is
+  within 200 px of the viewport so a fast scroll does not strand
+  the user on a blank slot. Configurable per surface
+  (`'0px'` disables the lookahead entirely).
+
+`web/src/components/ui/avatar.tsx` widens its `AvatarProps` to
+forward `srcSet` / `sizes` to the underlying `Image`. The default
+`decoding="async"` + `loading="eager"` pair is inherited
+automatically -- avatars stay interactive while the bitmap is
+decoded off the main thread, and DPR-aware avatars
+(`avatar@1x.png 1x, avatar@2x.png 2x`) just work without a
+`<picture>` wrapper.
+
+Test coverage:
+- `image.test.tsx` gains 8 new vitest cases covering the
+  `decoding` default + override, `loading` lazy + eager, `srcSet`
+  + `sizes` pass-through, attribute omission when the props are
+  not provided, and the `IntersectionObserver` `rootMargin`
+  default + override (a `FakeIO` now captures the `init` arg in
+  addition to the callback so the observer config can be
+  asserted directly).
+- `avatar.test.tsx` gains 2 cases covering the inherited
+  decoding / loading pair and the new `srcSet` / `sizes`
+  forwarding.
+
+Existing image + avatar suites stay green: image 23/23 + avatar
+21/21.
+
+Bumped `package.json` 1.11.243 -> 1.11.244 and `web/package.json`
+1.11.243 -> 1.11.244 along with both lockfiles.
+
 ## [1.11.243] - 2026-05-15 -- UI: Skeleton + Spinner motion harmony (TODO 11.225)
 
 Component-scope-only addition + a follow-up adoption sweep across

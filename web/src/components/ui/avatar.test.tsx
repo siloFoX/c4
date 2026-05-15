@@ -120,4 +120,27 @@ describe('<Avatar>', () => {
     render(<Avatar name="A" />);
     expect(screen.getByRole('img', { name: 'A' }).className).toContain('rounded-full');
   });
+
+  // -- v1.11.244 perf tweaks (TODO 11.226) -------------------------
+
+  it('inherits decoding="async" + loading="eager" from the Image primitive when src is provided', () => {
+    render(<Avatar src="/u.png" alt="user" />);
+    const img = screen.getByAltText('user') as HTMLImageElement;
+    expect(img.getAttribute('decoding')).toBe('async');
+    expect(img.getAttribute('loading')).toBe('eager');
+  });
+
+  it('forwards srcSet + sizes to the underlying <img> for DPR-aware avatars', () => {
+    render(
+      <Avatar
+        src="/u.png"
+        alt="user"
+        srcSet="/u@1x.png 1x, /u@2x.png 2x"
+        sizes="32px"
+      />,
+    );
+    const img = screen.getByAltText('user') as HTMLImageElement;
+    expect(img.getAttribute('srcset')).toBe('/u@1x.png 1x, /u@2x.png 2x');
+    expect(img.getAttribute('sizes')).toBe('32px');
+  });
 });
