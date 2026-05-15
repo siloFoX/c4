@@ -4,6 +4,83 @@
 
 (no entries -- next release window)
 
+## [1.11.252] - 2026-05-15 -- UI: Command history page (TODO 11.234)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+New `web/src/pages/CommandHistory.tsx` renders an operator-local
+log of the last 50 CommandPalette activations under the
+Features sidebar -> Config category (`feature.commandHistory.*`).
+Each row shows a section-tinted Badge (Navigate -> info,
+Workers -> success, Queue -> warning -- matching the palette's
+own section headers), the captured command label + id +
+relative timestamp, and a per-row Rerun affordance that
+re-resolves the historic id against the live
+`buildPaletteCommands({})` registry and fires its `run()` thunk.
+The row falls back to "Unavailable" when the id no longer
+resolves (registry drift / flag-gated removal) so the surface
+degrades cleanly. The page header carries a Clear button that
+empties the slot in one click.
+
+Two new modules support the page:
+
+- `web/src/lib/command-history.ts` -- the localStorage-backed
+  log. Public surface:
+    - `recordCommandHistory({ id, label, section, at? })` --
+      prepends a timestamped entry; FIFO-evicts past the
+      `COMMAND_HISTORY_MAX = 50` cap.
+    - `getCommandHistory()` -- safe-parse the slot. Rows with
+      the wrong shape are dropped so a manual `localStorage`
+      edit cannot crash a renderer.
+    - `clearCommandHistory()` -- empties the slot.
+    - `useCommandHistory()` -- React hook with same-tab
+      `c4:command-history-changed` CustomEvent + cross-tab
+      `storage` event sync.
+  This is a *log* (duplicates allowed) and lives in a
+  different localStorage slot (`c4:command-history`) from the
+  existing CommandPalette `cmdk:recent` *set* of ids used for
+  fuzzy-ranking. Mixing the two would corrupt that math.
+
+- `web/src/components/CommandPalette.tsx` -- `activate(cmd)`
+  now calls `recordCommandHistory` alongside `recordRecent`
+  so every palette selection lands in the new log
+  automatically.
+
+Why we re-resolve the command at rerun time (instead of
+persisting the `run` thunk):
+  1. Functions cannot be JSON-serialised.
+  2. The registry can evolve between sessions -- a stale
+     command id may have changed shape, been removed, or be
+     gated behind a new feature flag. Re-resolving means the
+     rerun observes the current contract; the row goes
+     "Unavailable" when the registry no longer matches.
+
+Test coverage:
+- `web/src/lib/command-history.test.ts` -- 10 vitest cases
+  (empty-list default, single-entry record, newest-first
+  ordering, duplicates allowed, 50-row FIFO cap, Date.now()
+  default, clear empties, malformed JSON guard, wrong-shape
+  rows dropped, key derivation).
+- `web/src/pages/CommandHistory.test.tsx` -- 7 vitest cases
+  (empty-state, disabled Clear, list ordering, resolved Rerun
+  button, Unavailable fallback for stale ids, Clear-empties
+  round trip, section-badge variant mapping).
+- CommandPalette 35/35 stays green after the
+  `recordCommandHistory` call site addition.
+
+Registered in `web/src/pages/registry.ts` under category
+`config` as `command-history` with the `Terminal` lucide icon.
+i18n labels added for both en + ko bundles.
+
+Pre-existing failures unchanged (DataList navigator.clipboard
+read-only x 5, ErrorBoundary Collapsible toggle x 2,
+FeatureSidebar > filter, i18n-keys > t() self-match);
+confirmed earlier and out of scope.
+
+Bumped `package.json` 1.11.251 -> 1.11.252 and `web/package.json`
+1.11.251 -> 1.11.252 along with both lockfiles.
+
 ## [1.11.251] - 2026-05-15 -- UI: Shared copy-to-clipboard module (TODO 11.233)
 
 Component-scope-only addition + 5-site adoption sweep. No

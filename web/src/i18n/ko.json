@@ -1131,6 +1131,8 @@
   "feature.designSystem.description": "UI 프리미티브의 변형 매트릭스와 코드 스니펫을 포함한 라이브 데모.",
   "feature.decisionLog.label": "Decision Log",
   "feature.decisionLog.description": "ADR 스타일 의사결정 로그 -- 각 결정의 컨텍스트, 결정 내용, 결과를 기록.",
+  "feature.commandHistory.label": "Command History",
+  "feature.commandHistory.description": "최근 CommandPalette 실행 50건 로컬 기록. 행별 Rerun, 전체 Clear 지원.",
   "feature.workspaces.label": "Workspaces",
   "feature.workspaces.description": "config.workspaces에 선언된 멀티 repo 워크스페이스.",
   "feature.rbac.label": "RBAC",

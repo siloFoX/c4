@@ -24,6 +24,7 @@ import { EmptyState, Kbd } from './ui';
 import { Chip } from './ui/chip';
 import { cn } from '../lib/cn';
 import { useEscapeToClose } from '../lib/use-escape-to-close';
+import { recordCommandHistory } from '../lib/command-history';
 import { useTheme, type Theme } from '../hooks/use-theme';
 import {
   getLocalStorage,
@@ -331,6 +332,18 @@ export default function CommandPalette({
   const activate = useCallback(
     (cmd: PaletteCommand) => {
       recordRecent(cmd.id);
+      // (v1.11.252, TODO 11.234) Log the activation to the
+      // command-history slot so the Command History page can
+      // render a timestamped, rerunnable trail. This is a
+      // separate localStorage slot from `cmdk:recent` (which is
+      // a set of ids used for the Recent section + ranking
+      // nudge); the history log keeps duplicates so the same
+      // command can appear multiple times across the row count.
+      recordCommandHistory({
+        id: cmd.id,
+        label: cmd.label,
+        section: cmd.section,
+      });
       void cmd.run();
       onClose();
     },

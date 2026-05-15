@@ -28,6 +28,7 @@ import {
   Rocket,
   ScrollText,
   History as HistoryIcon,
+  Terminal as TerminalIcon,
   Settings as SettingsIcon,
   Shield,
   ShieldCheck,
@@ -224,6 +225,14 @@ export const FEATURES: FeatureDef[] = [
     category: 'config',
     Icon: HistoryIcon,
     load: () => import('./DecisionLog'),
+  },
+  {
+    id: 'command-history',
+    labelKey: 'feature.commandHistory.label',
+    descriptionKey: 'feature.commandHistory.description',
+    category: 'config',
+    Icon: TerminalIcon,
+    load: () => import('./CommandHistory'),
   },
   {
     id: 'snapshots',

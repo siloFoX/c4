@@ -1131,6 +1131,8 @@
   "feature.designSystem.description": "Live demos of UI primitives with variant matrices and code snippets.",
   "feature.decisionLog.label": "Decision Log",
   "feature.decisionLog.description": "ADR-style log of architectural decisions -- context, decision, and consequences for each.",
+  "feature.commandHistory.label": "Command History",
+  "feature.commandHistory.description": "Local log of recent CommandPalette activations (last 50). Rerun per row, or clear all.",
   "feature.workspaces.label": "Workspaces",
   "feature.workspaces.description": "Multi-repo workspaces declared in config.workspaces.",
   "feature.rbac.label": "RBAC",
