@@ -25,6 +25,10 @@ import { Chip } from './ui/chip';
 import { cn } from '../lib/cn';
 import { useEscapeToClose } from '../lib/use-escape-to-close';
 import { useTheme, type Theme } from '../hooks/use-theme';
+import {
+  getLocalStorage,
+  setLocalStorage,
+} from '../hooks/use-local-storage';
 import { getBinding, useBindings } from '../lib/keyboard-bindings';
 import {
   SECTION_ORDER,
@@ -47,56 +51,28 @@ export const RECENT_MAX = 5;
 export const FAVORITES_STORAGE_KEY = 'c4:cmdk:favorites';
 export const SHORTCUTS_OPEN_EVENT = 'c4:shortcuts-open';
 
+function sanitizeIdList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((s): s is string => typeof s === 'string' && s.length > 0);
+}
+
 function loadRecent(): string[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(RECENT_STORAGE_KEY);
-    if (!raw) return [];
-    const arr = JSON.parse(raw);
-    if (!Array.isArray(arr)) return [];
-    return arr
-      .filter((s): s is string => typeof s === 'string' && s.length > 0)
-      .slice(0, RECENT_MAX);
-  } catch {
-    return [];
-  }
+  return sanitizeIdList(getLocalStorage<unknown>(RECENT_STORAGE_KEY, [])).slice(
+    0,
+    RECENT_MAX,
+  );
 }
 
 function saveRecent(ids: readonly string[]): void {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(
-      RECENT_STORAGE_KEY,
-      JSON.stringify(ids.slice(0, RECENT_MAX)),
-    );
-  } catch {
-    // quota / disabled storage -- swallow.
-  }
+  setLocalStorage<string[]>(RECENT_STORAGE_KEY, ids.slice(0, RECENT_MAX));
 }
 
 function loadFavorites(): string[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(FAVORITES_STORAGE_KEY);
-    if (!raw) return [];
-    const arr = JSON.parse(raw);
-    if (!Array.isArray(arr)) return [];
-    return arr.filter((s): s is string => typeof s === 'string' && s.length > 0);
-  } catch {
-    return [];
-  }
+  return sanitizeIdList(getLocalStorage<unknown>(FAVORITES_STORAGE_KEY, []));
 }
 
 function saveFavorites(ids: readonly string[]): void {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(
-      FAVORITES_STORAGE_KEY,
-      JSON.stringify(ids),
-    );
-  } catch {
-    // quota / disabled storage -- swallow.
-  }
+  setLocalStorage<string[]>(FAVORITES_STORAGE_KEY, [...ids]);
 }
 
 // Wraps the characters of `label` that match `query` in <span
