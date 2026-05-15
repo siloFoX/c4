@@ -4,6 +4,74 @@
 
 (no entries -- next release window)
 
+## [1.11.271] - 2026-05-15 -- UI: CodeBlock filename header + line numbers (TODO 11.253)
+
+Component-scope-only polish. No daemon-side change and no `c4`
+CLI surface change.
+
+### Context
+
+The `CodeBlock` primitive already had Copy button + language
+badge + wrap toggle (since v1.11.251 / earlier). This release
+adds the two missing pieces the dispatch calls out: an
+editor-style filename header bar and an optional line-number
+gutter.
+
+### Added
+
+- `CodeBlockProps.filename?: string` -- editor-style chrome
+  header bar above the code with the file path (mono, muted)
+  on the left. When set, the language label badge docks to the
+  right of the bar instead of overlapping the first line of
+  code, and the Copy / wrap buttons move into the header
+  strip. When `filename` is omitted, layout falls back to the
+  prior absolute-positioned badge + actions for byte-identical
+  default appearance.
+- `CodeBlockProps.showLineNumbers?: boolean` -- renders a
+  numeric line-number gutter on the left of the code. Counts
+  code lines split on `\n` (minimum 1 even for empty code).
+  Gutter is `aria-hidden` so screen readers do not read
+  "1 2 3 ..." over the code itself. Falls back to children
+  text when no `code` prop is passed.
+- Region `aria-label` uses the filename when provided,
+  falling back to language, then to a generic
+  `"code block"` label.
+- New `data-code-block-header` / `data-code-block-filename` /
+  `data-code-block-line-numbers` data attributes for e2e
+  selectors.
+- 11 new vitest cases (23/23 total): header omitted by
+  default, header rendered with filename, language docks into
+  header when filename is present, aria-label uses filename,
+  aria-label falls back to language, gutter omitted by default,
+  gutter rendered with showLineNumbers, empty-code gutter
+  minimum 1 line, gutter `aria-hidden`, gutter fallback to
+  children text, filename + line-numbers kitchen sink.
+
+### Changed
+
+- `web/src/pages/Config.tsx` -- each per-key JSON snippet now
+  carries `filename={`config.${k}`}` so the header reads as
+  `config.daemon` / `config.notifications` / etc. 36/36 Config
+  tests still pass.
+- `web/src/pages/Scribe.tsx` -- the recent-context log block
+  now carries `filename={context.path ?? 'scribe.log'}` +
+  `showLineNumbers` so the operator can quote "line N of the
+  log". 39/39 Scribe tests still pass.
+
+### Notes
+
+- The dispatch listed three target sites: ConfigEditor sample
+  snippets (adopted via `Config.tsx` -- the editor surface for
+  `config.json`), KeyboardShortcutsModal binding examples (no
+  inline code blocks in the modal -- shortcuts render as `Kbd`
+  chips, not code), and Health debug payloads (no `<pre>` /
+  `<code>` / `CodeBlock` usage in `Health.tsx`). The latter
+  two were deferred since the surfaces don't render code
+  blocks today; `Scribe.tsx` replaced them as the second
+  adoption site to demonstrate the line-numbers feature on a
+  real log payload.
+- Reference design tokens: `/root/c4/arps-design-system-v1/`.
+
 ## [1.11.270] - 2026-05-15 -- UI: Stepper error state (TODO 11.252)
 
 Component-scope-only polish. No daemon-side change and no `c4`
