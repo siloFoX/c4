@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useViewportSize } from '../hooks/use-viewport-size';
 
 // (v1.10.670) Extracted from App. Ctrl+B / Cmd+B
 // sidebar toggle (VS Code convention). The shortcut
@@ -7,12 +8,22 @@ import { useEffect } from 'react';
 // the transient `sidebarOpen` flag; desktop flips
 // the persisted `sidebarCollapsed` flag — same
 // keystroke, different slot.
+//
+// (v1.11.240, TODO 11.222) The breakpoint check now reads from the
+// centralised useViewportSize hook so a single resize listener
+// drives every responsive surface. The latest viewport snapshot is
+// stashed in a ref so the keydown handler always sees current
+// state without forcing the effect to reattach on every resize
+// frame.
 
 export function useSidebarShortcut(args: {
   onToggleCollapsed: () => void;
   onToggleOpen: () => void;
 }): void {
   const { onToggleCollapsed, onToggleOpen } = args;
+  const viewport = useViewportSize();
+  const isMobileRef = useRef<boolean>(viewport.isMobile);
+  isMobileRef.current = viewport.isMobile;
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const onKey = (e: KeyboardEvent) => {
@@ -27,11 +38,10 @@ export function useSidebarShortcut(args: {
         ) return;
       }
       e.preventDefault();
-      const isDesktop = window.matchMedia('(min-width: 768px)').matches;
-      if (isDesktop) {
-        onToggleCollapsed();
-      } else {
+      if (isMobileRef.current) {
         onToggleOpen();
+      } else {
+        onToggleCollapsed();
       }
     };
     window.addEventListener('keydown', onKey);

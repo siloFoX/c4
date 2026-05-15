@@ -4,27 +4,27 @@ import { useSidebarShortcut } from './use-sidebar-shortcut';
 
 // useSidebarShortcut wires Ctrl+B / Cmd+B to a sidebar toggle. The
 // listener no-ops while focus is on a text-entry surface so the
-// chord does not hijack typing. matchMedia('(min-width: 768px)')
-// selects between onToggleCollapsed (desktop) and onToggleOpen
-// (mobile). The listener is added to the window and cleaned up on
-// unmount.
+// chord does not hijack typing. The viewport-size hook
+// (useViewportSize, v1.11.240) drives the desktop/mobile branch:
+// width >= 768 fires onToggleCollapsed (desktop, persisted slot),
+// width < 768 fires onToggleOpen (mobile, transient slot). The
+// listener is added to the window and cleaned up on unmount.
 
-function setMatchMedia(matches: boolean): void {
-  Object.defineProperty(window, 'matchMedia', {
+function setViewport(width: number, height = 800): void {
+  Object.defineProperty(window, 'innerWidth', {
     configurable: true,
     writable: true,
-    value: (query: string) => ({
-      matches,
-      media: query,
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      addListener: () => {},
-      removeListener: () => {},
-      onchange: null,
-      dispatchEvent: () => false,
-    }),
+    value: width,
+  });
+  Object.defineProperty(window, 'innerHeight', {
+    configurable: true,
+    writable: true,
+    value: height,
   });
 }
+
+const DESKTOP_WIDTH = 1440;
+const MOBILE_WIDTH = 400;
 
 function dispatchCtrlB(opts: Partial<KeyboardEventInit> = {}): KeyboardEvent {
   const ev = new KeyboardEvent('keydown', {
@@ -40,13 +40,13 @@ function dispatchCtrlB(opts: Partial<KeyboardEventInit> = {}): KeyboardEvent {
 
 describe('useSidebarShortcut', () => {
   beforeEach(() => {
-    setMatchMedia(true);
+    setViewport(DESKTOP_WIDTH);
   });
 
   afterEach(() => {
-    // Restore matchMedia between tests.
-    // @ts-expect-error - allow delete on configurable property.
-    delete (window as { matchMedia?: unknown }).matchMedia;
+    // jsdom's default innerWidth/innerHeight are restored automatically
+    // when the test environment resets between files; nothing to clean
+    // up here beyond the renderHook/cleanup the setup file performs.
   });
 
   it('renders without returning anything (void hook)', () => {
@@ -60,7 +60,7 @@ describe('useSidebarShortcut', () => {
   });
 
   it('fires onToggleCollapsed on Ctrl+B at the desktop breakpoint', () => {
-    setMatchMedia(true);
+    setViewport(DESKTOP_WIDTH);
     const onToggleCollapsed = vi.fn();
     const onToggleOpen = vi.fn();
     renderHook(() => useSidebarShortcut({ onToggleCollapsed, onToggleOpen }));
@@ -70,7 +70,7 @@ describe('useSidebarShortcut', () => {
   });
 
   it('fires onToggleOpen on Ctrl+B at the mobile breakpoint', () => {
-    setMatchMedia(false);
+    setViewport(MOBILE_WIDTH);
     const onToggleCollapsed = vi.fn();
     const onToggleOpen = vi.fn();
     renderHook(() => useSidebarShortcut({ onToggleCollapsed, onToggleOpen }));
@@ -80,7 +80,7 @@ describe('useSidebarShortcut', () => {
   });
 
   it('fires on Cmd+B (Mac convention) when ctrlKey is false but metaKey is true', () => {
-    setMatchMedia(true);
+    setViewport(DESKTOP_WIDTH);
     const onToggleCollapsed = vi.fn();
     renderHook(() =>
       useSidebarShortcut({

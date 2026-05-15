@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useState } from 'react';
 import Login from './components/Login';
 import { LoadingSkeleton } from './pages/PageFrame';
 import { useToggle } from './lib/use-toggle';
+import { useViewportSize } from './hooks/use-viewport-size';
 // (v1.10.509) Top-level views are lazy-loaded so the main bundle
 // only carries Login + AppHeader + Sidebar + the default
 // WorkerDetail / ChatView / ControlPanel triple. The rest pull
@@ -49,10 +50,14 @@ export default function App() {
   // (v1.10.669) Auth state machine + AUTH_EVENT listener moved to
   // lib/use-auth-state.
   const { authState, setAuthed, setAnon } = useAuthState();
-  const [sidebarOpen, toggleSidebarOpen, setSidebarOpen] = useToggle(() => {
-    if (typeof window === 'undefined') return true;
-    return window.matchMedia('(min-width: 768px)').matches;
-  });
+  // (v1.11.240, TODO 11.222) Centralised viewport hook supersedes the
+  // ad-hoc matchMedia('(min-width: 768px)') call sites. `!isMobile`
+  // preserves the legacy ">= 768px" semantics for the initial
+  // sidebar-open default.
+  const viewport = useViewportSize();
+  const [sidebarOpen, toggleSidebarOpen, setSidebarOpen] = useToggle(
+    () => !viewport.isMobile,
+  );
   // (v1.10.671) Theme state + write+apply + OS-theme listener moved to
   // lib/use-theme.
   const { theme, setTheme } = useTheme();
@@ -94,7 +99,7 @@ export default function App() {
 
   const handleSelect = (name: string | null) => {
     setSelectedWorker(name);
-    if (typeof window !== 'undefined' && !window.matchMedia('(min-width: 768px)').matches) {
+    if (viewport.isMobile) {
       setSidebarOpen(false);
     }
   };
