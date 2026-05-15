@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
-import { Chip, Dialog, IconButton, Kbd, SearchBar, Separator } from './ui';
+import { Chip, Dialog, IconButton, Kbd, SearchBar, SectionDivider } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 
@@ -143,10 +143,21 @@ export function KeyboardShortcutsModal({
               if (rows.length === 0) return null;
               return (
                 <section key={cat} data-shortcuts-section={cat}>
-                  {idx > 0 ? <Separator className="mb-3" /> : null}
-                  <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {t(SECTION_KEYS[cat])}
-                  </h3>
+                  {/* (v1.11.269, TODO 11.251) Labeled section
+                      divider replaces the prior Separator + h3
+                      pair. label-left variant keeps the section
+                      name flush against the start so the table
+                      below reads as the body of the labeled break.
+                      The first section drops the leading rule
+                      entirely (no idx>0 gate -- SectionDivider
+                      with variant="label-left" already has no
+                      leading rule). */}
+                  <SectionDivider
+                    label={t(SECTION_KEYS[cat])}
+                    variant="label-left"
+                    spacing={idx === 0 ? 'sm' : 'md'}
+                    data-shortcuts-section-divider={cat}
+                  />
                   <table className="w-full text-left text-sm">
                     <tbody>
                       {rows.map((row) => (

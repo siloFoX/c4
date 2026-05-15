@@ -15,6 +15,7 @@ import {
   PageHeader,
   Panel,
   Radio,
+  SectionDivider,
   Tabs,
   TabsPanel,
   type TabsItem,
@@ -310,6 +311,17 @@ export default function Settings() {
         Feature Flags pages remain authoritative; this tab strip is a one-stop
         entry point and does not duplicate their state.
       </Alert>
+      {/* (v1.11.269, TODO 11.251) Section break between the
+          consolidated-landing alert and the actual preference
+          tabs. label-left places the heading flush against the
+          start so the tab strip below reads as the body of the
+          "Preferences" section. */}
+      <SectionDivider
+        label="Preferences"
+        variant="label-left"
+        spacing="sm"
+        data-testid="settings-section-divider"
+      />
       <Tabs
         value={active}
         onChange={(v) => setActive(v as TabKey)}
