@@ -4,6 +4,46 @@
 
 (no entries -- next release window)
 
+## [1.11.236] - 2026-05-15 -- UI: portal-root manager (11.218)
+
+Component-scope-only addition. No daemon-side change and no `c4` CLI
+surface change.
+
+- `web/src/lib/portal-root.ts` -- new `getPortalRoot(id)` /
+  `cleanupPortalRoot(id)` pair that owns the lazy-create + reuse
+  policy for `createPortal` target nodes. Recognised ids are
+  `toast-root` / `dialog-root` / `popover-root` / `dropdown-root`
+  (any string is accepted for forward compatibility). First call for
+  an id appends a `<div id={id} data-portal-root="true">` under
+  `document.body` and returns it; subsequent calls return the same
+  node. `cleanupPortalRoot(id)` removes the node only when it has no
+  children (test-friendly teardown). SSR-safe: returns `null` when
+  `typeof document === 'undefined'`. Logs a single `console.warn`
+  when `document.body` is missing so callers can null-check without
+  spamming the console.
+- `web/src/lib/portal-root.test.ts` -- 10 vitest cases covering
+  lazy creation, idempotency, `data-portal-root` tagging, id
+  separation, reuse of a caller-placed `#id` element, child-gated
+  cleanup, no-op cleanup, SSR (`delete globalThis.document`)
+  branch, and the missing-body warning path.
+- Consolidated three inline portal-root creation sites onto the new
+  helper, behaviour-identical:
+  - `web/src/components/Toast.tsx` -- `getToastRoot()` now delegates
+    creation to `getPortalRoot('toast-root')` and only applies the
+    toast-layer positioning class + `data-toast-root` on first
+    creation (gated by `hasAttribute`, so the class is not
+    re-applied if a caller has customised it).
+  - `web/src/components/ui/dialog.tsx` -- portal target is
+    `getPortalRoot('dialog-root') ?? document.body` (the
+    `document.body` branch only fires in pathological DOMs where
+    `body` is unavailable; existing `document.body.contains(...)`
+    assertions in `dialog.test.tsx` still pass because the dialog
+    root is nested under `body`).
+  - `web/src/components/ui/popover.tsx` -- same swap for the
+    popover panel target.
+- All 80 existing Toast / Dialog / Popover tests continue to pass
+  unchanged.
+
 ## [1.11.235] - 2026-05-15 -- UI: scroll-restoration hook (11.217)
 
 Component-scope-only addition. No daemon-side change and no `c4` CLI
