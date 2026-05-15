@@ -4,6 +4,69 @@
 
 (no entries -- next release window)
 
+## [1.11.268] - 2026-05-15 -- UI: Kbd shortcut chip (TODO 11.250)
+
+Component-scope-only polish. No daemon-side change and no `c4`
+CLI surface change.
+
+### Context
+
+The Kbd primitive already had two render modes -- `<Kbd>?</Kbd>`
+(literal child) and `<Kbd keys={[...]} />` (explicit array). This
+release adds a third mode with platform-aware modifier mapping
+and adopts it at one ad-hoc call site.
+
+### Added
+
+- `web/src/components/ui/kbd.tsx` -- new `combo: string` prop
+  that parses shortcut strings like `"Mod+K"` / `"Ctrl+Shift+P"`
+  / `"Shift+/"` into a per-platform sequence of glyphs. Modifier
+  tokens flip to Mac glyphs on mac (Cmd -> ⌘, Shift -> ⇧, Alt
+  / Option -> ⌥, Ctrl -> ⌃) and stay verbatim on Windows /
+  Linux. The `Mod` alias is the canonical "platform meta"
+  token (mac: ⌘, other: Ctrl) so authors can write one combo
+  and the right glyph renders everywhere. Mac also flips
+  Enter / Backspace / Esc / Tab / Space / arrow keys to their
+  HIG glyphs (↵ / ⌫ / ⎋ / ⇥ / ␣ / ↑↓←→).
+- New exported helpers `mapKey(token, platform)`,
+  `parseCombo(combo, platform)`, `detectPlatform()`. The
+  detector reads `navigator.userAgent` + `navigator.platform`
+  and returns `'mac' | 'other'`; tests can override per-call
+  via the explicit `platform` prop.
+- New `data-platform="mac" | "other"` attribute on the
+  multi-key root wrapper for e2e selectors.
+- Mac defaults to NO inter-chip separator (tight Apple HIG
+  layout); non-mac defaults to `' + '`. Callers can override
+  via the existing `separator` prop.
+- 15 new vitest cases (27/27 total): combo + mac glyphs,
+  combo + other verbatim, `Mod` alias both ways, 3-key combo,
+  mac drops separator, non-mac keeps " + ", custom separator
+  override, Alt/Option/Enter/Backspace/Esc/Tab/Space mac
+  glyphs, non-modifier keys verbatim, parseCombo trim,
+  data-platform attribute, detectPlatform smoke, combo wins
+  over keys.
+
+### Changed
+
+- `web/src/components/CommandPalette.tsx` -- shortcut chip now
+  uses `<Kbd combo={cmd.shortcut} />` instead of children.
+  Mac operators see `⌘K` instead of `"Mod+K"`; non-mac stays
+  `"Ctrl + K"`. 35/35 CommandPalette tests pass.
+
+### Notes
+
+- `KeyboardShortcutsModal.tsx` continues to use the legacy
+  literal-children path (`<Kbd>{row.keys}</Kbd>`) so its 47
+  pre-existing test assertions (which match the concatenated
+  string text like `"Ctrl+F"`) stay green. Future work can
+  migrate the Modal once those assertions restructure around
+  per-chip selectors.
+- AccountMenu + HelpDrawer already use Kbd in single-key mode
+  (`<Kbd>?</Kbd>`) so no change is needed there.
+- No raw `<kbd>` HTML spans remain in the codebase (verified by
+  grep `<kbd ` outside the primitive file).
+- Reference design tokens: `/root/c4/arps-design-system-v1/`.
+
 ## [1.11.267] - 2026-05-15 -- UI: Page-header breadcrumb (TODO 11.249)
 
 Component-scope-only addition. No daemon-side change and no `c4`
