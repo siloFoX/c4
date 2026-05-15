@@ -159,4 +159,118 @@ describe('<Stepper>', () => {
     const last = items[items.length - 1];
     expect(last.querySelector('[data-stepper-connector]')).toBeNull();
   });
+
+  // -- v1.11.270 error state (TODO 11.252) -------------------------
+
+  it('renders the error glyph on a step flagged with error=true', () => {
+    const steps: StepperStep[] = [
+      { id: 'a', label: 'Dispatch' },
+      { id: 'b', label: 'Validate', error: true },
+      { id: 'c', label: 'Merge' },
+    ];
+    render(<Stepper steps={steps} currentIndex={1} />);
+    expect(screen.getByTestId('stepper-error-b')).toBeInTheDocument();
+    // The numbered span is NOT rendered when the step is in error
+    // state.
+    const item = document.querySelectorAll('[data-stepper-item]')[1]!;
+    expect(item.getAttribute('data-state')).toBe('error');
+  });
+
+  it('error state overrides current (current+error -> error)', () => {
+    const steps: StepperStep[] = [
+      { id: 'a', label: 'A' },
+      { id: 'b', label: 'B', error: true },
+      { id: 'c', label: 'C' },
+    ];
+    const { container } = render(<Stepper steps={steps} currentIndex={1} />);
+    const items = container.querySelectorAll('[data-stepper-item]');
+    expect(items[1]!.getAttribute('data-state')).toBe('error');
+    // aria-current is dropped when the step state flips to error
+    // (the step is no longer the "current" step in the conventional
+    // sense -- it's an error step that demands attention).
+    expect(items[1]!.getAttribute('aria-current')).toBeNull();
+  });
+
+  it('error state overrides complete (retroactive earlier-step failure)', () => {
+    const steps: StepperStep[] = [
+      { id: 'a', label: 'A', error: true },
+      { id: 'b', label: 'B' },
+      { id: 'c', label: 'C' },
+    ];
+    const { container } = render(<Stepper steps={steps} currentIndex={2} />);
+    const items = container.querySelectorAll('[data-stepper-item]');
+    expect(items[0]!.getAttribute('data-state')).toBe('error');
+    expect(screen.getByTestId('stepper-error-a')).toBeInTheDocument();
+    // The Check glyph for the (would-have-been-complete) step a is
+    // NOT rendered.
+    expect(screen.queryByTestId('stepper-check-a')).toBeNull();
+  });
+
+  it('error state paints the badge bg-destructive', () => {
+    const steps: StepperStep[] = [
+      { id: 'a', label: 'A', error: true },
+    ];
+    render(<Stepper steps={steps} currentIndex={0} />);
+    const badge = document.querySelector('[data-stepper-badge]');
+    expect(badge).not.toBeNull();
+    expect(badge!.className).toContain('bg-destructive');
+  });
+
+  it('error state paints the label text-destructive', () => {
+    const steps: StepperStep[] = [
+      { id: 'err', label: 'Failed step', error: true },
+    ];
+    render(<Stepper steps={steps} currentIndex={0} />);
+    const label = document.querySelector('[data-stepper-label]');
+    expect(label).not.toBeNull();
+    expect(label!.className).toContain('text-destructive');
+    expect(label!.className).toContain('font-semibold');
+  });
+
+  it('error connector trailing a non-complete step paints bg-destructive', () => {
+    const steps: StepperStep[] = [
+      { id: 'a', label: 'A', error: true },
+      { id: 'b', label: 'B' },
+    ];
+    const { container } = render(<Stepper steps={steps} currentIndex={0} />);
+    const connector = container.querySelector('[data-stepper-connector]');
+    expect(connector).not.toBeNull();
+    expect(connector!.className).toContain('bg-destructive');
+  });
+
+  it('error=false on a step has no effect (state machine unchanged)', () => {
+    const steps: StepperStep[] = [
+      { id: 'a', label: 'A', error: false },
+      { id: 'b', label: 'B' },
+    ];
+    const { container } = render(<Stepper steps={steps} currentIndex={0} />);
+    const items = container.querySelectorAll('[data-stepper-item]');
+    expect(items[0]!.getAttribute('data-state')).toBe('current');
+    expect(items[1]!.getAttribute('data-state')).toBe('pending');
+  });
+
+  it('error state is omitted from clickable gating like pending (no onClick when error)', () => {
+    const onStepClick = vi.fn();
+    const steps: StepperStep[] = [
+      { id: 'a', label: 'A', error: true },
+      { id: 'b', label: 'B' },
+    ];
+    render(
+      <Stepper
+        steps={steps}
+        currentIndex={1}
+        onStepClick={onStepClick}
+      />,
+    );
+    // Error state is NOT in the "disabled" path -- it's a clickable
+    // attention surface (the operator must click to retry / dismiss).
+    // Confirm the button is enabled.
+    const badge = document.querySelector(
+      '[data-stepper-item][data-state="error"] [data-stepper-badge]',
+    ) as HTMLButtonElement;
+    expect(badge).not.toBeNull();
+    expect(badge.disabled).toBe(false);
+    fireEvent.click(badge);
+    expect(onStepClick).toHaveBeenCalledWith(0);
+  });
 });

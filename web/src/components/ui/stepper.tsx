@@ -1,12 +1,20 @@
 import { forwardRef } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
-import { Check } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { cn } from '../../lib/cn';
 
 export interface StepperStep {
   id: string;
   label: ReactNode;
   description?: ReactNode;
+  // (v1.11.270, TODO 11.252) Per-step error flag. When true the
+  // step renders with destructive tone (red bubble + X glyph)
+  // regardless of its position relative to currentIndex. An error
+  // on the current step is the common case (dispatch / validate
+  // failed); errors on earlier steps are also supported so a
+  // wizard can flag a retroactive failure ("step 2 was invalid,
+  // user fixed it on step 3, then it failed again").
+  error?: boolean;
 }
 
 export interface StepperProps
@@ -20,7 +28,12 @@ export interface StepperProps
   className?: string;
 }
 
-type StepState = 'complete' | 'current' | 'pending';
+// (v1.11.270, TODO 11.252) 'error' joins the canonical state set.
+// The terminology aligns with the dispatch's "complete / current /
+// upcoming / error" surface; `pending` is the internal name for
+// the upcoming state (the JS rename would ripple to consumers and
+// break the existing data-state attribute contract).
+type StepState = 'complete' | 'current' | 'pending' | 'error';
 
 const BADGE_SIZE: Record<'sm' | 'md', string> = {
   sm: 'h-6 w-6 text-[11px]',
@@ -32,7 +45,10 @@ const ICON_SIZE: Record<'sm' | 'md', string> = {
   md: 'h-4 w-4',
 };
 
-function stateOf(idx: number, current: number): StepState {
+function stateOf(idx: number, current: number, hasError: boolean): StepState {
+  // `error` wins regardless of position so a current-step error
+  // and a retroactive earlier-step error both surface in red.
+  if (hasError) return 'error';
   if (idx < current) return 'complete';
   if (idx === current) return 'current';
   return 'pending';
@@ -67,12 +83,16 @@ export const Stepper = forwardRef<HTMLOListElement, StepperProps>(
         {...rest}
       >
         {steps.map((step, idx) => {
-          const state = stateOf(idx, currentIndex);
+          const state = stateOf(idx, currentIndex, !!step.error);
           const isLast = idx === steps.length - 1;
           const clickable =
             !!onStepClick && (allowFuture || state !== 'pending');
           const connectorClass =
-            state === 'complete' ? 'bg-primary' : 'bg-muted';
+            state === 'complete'
+              ? 'bg-primary'
+              : state === 'error'
+                ? 'bg-destructive'
+                : 'bg-muted';
           return (
             <li
               key={step.id}
@@ -109,6 +129,8 @@ export const Stepper = forwardRef<HTMLOListElement, StepperProps>(
                     state === 'current' &&
                       'bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2 ring-offset-background',
                     state === 'pending' && 'bg-muted text-muted-foreground',
+                    state === 'error' &&
+                      'bg-destructive text-destructive-foreground ring-2 ring-destructive ring-offset-2 ring-offset-background',
                     clickable
                       ? 'cursor-pointer hover:opacity-90'
                       : 'cursor-default',
@@ -118,6 +140,12 @@ export const Stepper = forwardRef<HTMLOListElement, StepperProps>(
                   {state === 'complete' ? (
                     <Check
                       data-testid={`stepper-check-${step.id}`}
+                      className={ICON_SIZE[size]}
+                      aria-hidden="true"
+                    />
+                  ) : state === 'error' ? (
+                    <X
+                      data-testid={`stepper-error-${step.id}`}
                       className={ICON_SIZE[size]}
                       aria-hidden="true"
                     />
@@ -142,6 +170,7 @@ export const Stepper = forwardRef<HTMLOListElement, StepperProps>(
                     state === 'current' && 'font-semibold text-foreground',
                     state === 'complete' && 'text-foreground',
                     state === 'pending' && 'text-muted-foreground',
+                    state === 'error' && 'font-semibold text-destructive',
                   )}
                 >
                   {step.label}
