@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { postAction } from './post-action';
 import { t, tFormat } from './i18n';
+import { useConfirm } from '../hooks/use-confirm';
 import type { ToastType } from '../components/Toast';
 import type { ActionConfig, ActionKind } from '../components/WorkerActions';
 
@@ -28,10 +29,17 @@ export function useWorkerActionStrip(args: {
 }): WorkerActionStripState {
   const { showToast } = args;
   const [busyKind, setBusyKind] = useState<ActionKind | null>(null);
+  const confirm = useConfirm();
 
   const runAction = useCallback(async (action: ActionConfig) => {
     if (action.disabled) return;
-    if (!window.confirm(action.confirm)) return;
+    const ok = await confirm({
+      title: action.label,
+      message: action.confirm,
+      confirmLabel: action.label,
+      tone: action.variant === 'destructive' ? 'destructive' : 'default',
+    });
+    if (!ok) return;
 
     setBusyKind(action.kind);
     const res = await postAction(action.endpoint, action.body);
@@ -47,7 +55,7 @@ export function useWorkerActionStrip(args: {
       );
     }
     setBusyKind(null);
-  }, [showToast]);
+  }, [showToast, confirm]);
 
   return { busyKind, runAction };
 }
