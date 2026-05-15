@@ -8,7 +8,6 @@ import {
   Info,
   Rocket,
   Trash2,
-  Undo2,
 } from 'lucide-react';
 import PageFrame from './PageFrame';
 import {
@@ -18,9 +17,11 @@ import {
   EmptyState,
   Panel,
   Timeline,
+  UndoToast,
 } from '../components/ui';
 import type { TimelineItem, TimelineTone } from '../components/ui';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { useUndoToast } from '../hooks/use-undo-toast';
 import { cn } from '../lib/cn';
 
 // Notifications feed page (patch 11.186). Renders the unified lifecycle
@@ -83,8 +84,10 @@ function IconForType({ type }: { type: NotificationType }) {
 const PAGE_SIZE = 50;
 
 // (v1.11.260, TODO 11.242) How long the inline undo banner stays
-// visible after a Clear all confirm. Exported so tests can drive
-// the timer deterministically without hardcoding a magic number.
+// visible after a Clear all confirm. v1.11.262 (TODO 11.244) keeps
+// this export but the implementation now flows through the shared
+// useUndoToast hook (DEFAULT_UNDO_DURATION_MS = 5000) rather than
+// owning its own timer locally.
 export const UNDO_BANNER_MS = 5000;
 
 function buildMockNotifications(): NotificationItem[] {
@@ -156,13 +159,17 @@ export default function Notifications() {
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
   const [readAt, setReadAt] = useState<number | null>(null);
   const [visibleLimit, setVisibleLimit] = useState(PAGE_SIZE);
-  // (v1.11.260, TODO 11.242) Clear all confirm + undo state.
-  // confirmOpen drives the ConfirmDialog; undoSnapshot != null
-  // drives the inline undo banner. The snapshot remembers the
-  // list as it was at clear time so Undo can restore it.
+  // (v1.11.260, TODO 11.242 -> v1.11.262, TODO 11.244) Clear-all
+  // flow. confirmOpen drives the ConfirmDialog. The undo window is
+  // now driven by the shared useUndoToast hook: showUndo() runs
+  // after Confirm and the hook owns the timer + commit + undo
+  // state. The snapshot ref keeps the cleared list so the hook's
+  // onUndo callback can restore it.
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [undoSnapshot, setUndoSnapshot] = useState<NotificationItem[] | null>(null);
-  const undoTimerRef = useRef<number | null>(null);
+  const undoSnapshotRef = useRef<NotificationItem[] | null>(null);
+  const { active: undoActive, showUndo } = useUndoToast({
+    durationMs: UNDO_BANNER_MS,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -240,42 +247,33 @@ export default function Notifications() {
 
   const canLoadMore = filtered.length > visible.length;
 
-  // (v1.11.260, TODO 11.242) Clear all flow.
+  // (v1.11.262, TODO 11.244) Clear-all flow now flows through
+  // useUndoToast. confirmClearAll() snapshots the current items,
+  // wipes the local state, and tells the hook to surface a 5s
+  // undo window. onUndo restores from the snapshot; onCommit is a
+  // no-op here because the destruction is already operator-local
+  // (no server call to defer).
   const openClearConfirm = () => setConfirmOpen(true);
   const cancelClearConfirm = () => setConfirmOpen(false);
   const confirmClearAll = () => {
     setConfirmOpen(false);
     if (!items || items.length === 0) return;
-    setUndoSnapshot(items);
+    const snap = items;
+    undoSnapshotRef.current = snap;
     setItems([]);
     setVisibleLimit(PAGE_SIZE);
+    showUndo({
+      message: `Cleared ${snap.length} notification${snap.length === 1 ? '' : 's'}.`,
+      onCommit: () => {
+        undoSnapshotRef.current = null;
+      },
+      onUndo: () => {
+        const cached = undoSnapshotRef.current;
+        undoSnapshotRef.current = null;
+        if (cached) setItems(cached);
+      },
+    });
   };
-  const dismissUndo = () => {
-    setUndoSnapshot(null);
-    if (undoTimerRef.current !== null) {
-      window.clearTimeout(undoTimerRef.current);
-      undoTimerRef.current = null;
-    }
-  };
-  const undoClear = () => {
-    if (!undoSnapshot) return;
-    setItems(undoSnapshot);
-    dismissUndo();
-  };
-
-  // Auto-dismiss the undo banner after UNDO_BANNER_MS.
-  useEffect(() => {
-    if (!undoSnapshot) return undefined;
-    const id = window.setTimeout(() => {
-      setUndoSnapshot(null);
-      undoTimerRef.current = null;
-    }, UNDO_BANNER_MS);
-    undoTimerRef.current = id;
-    return () => {
-      window.clearTimeout(id);
-      undoTimerRef.current = null;
-    };
-  }, [undoSnapshot]);
 
   const totalCount = items ? items.length : 0;
 
@@ -386,39 +384,12 @@ export default function Notifications() {
         </div>
       )}
 
-      {undoSnapshot !== null && (
-        <div
-          role="status"
-          aria-live="polite"
+      {undoActive ? (
+        <UndoToast
+          active={undoActive}
           data-testid="notifications-undo-banner"
-          className="fixed bottom-4 right-4 z-40 flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 shadow-lg"
-        >
-          <span className="text-sm text-foreground">
-            Cleared {undoSnapshot.length} notification
-            {undoSnapshot.length === 1 ? '' : 's'}.
-          </span>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            onClick={undoClear}
-            aria-label="Undo clear all notifications"
-            data-testid="notifications-undo-action"
-          >
-            <Undo2 className="mr-1 h-3.5 w-3.5" />
-            Undo
-          </Button>
-          <button
-            type="button"
-            onClick={dismissUndo}
-            aria-label="Dismiss undo banner"
-            data-testid="notifications-undo-dismiss"
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <span aria-hidden="true">x</span>
-          </button>
-        </div>
-      )}
+        />
+      ) : null}
 
       <ConfirmDialog
         open={confirmOpen}
