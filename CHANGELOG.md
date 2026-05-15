@@ -4,6 +4,79 @@
 
 (no entries -- next release window)
 
+## [1.11.262] - 2026-05-15 -- UI: Command-result undo toast (TODO 11.244)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/hooks/use-undo-toast.ts` -- generic 5-second undo toast
+  pattern. `showUndo({ message, onCommit, onUndo })` starts a
+  countdown; `active.undo()` fires `onUndo` and cancels
+  `onCommit`; `active.dismiss()` commits immediately. Timeout
+  auto-commits. Showing a second toast commits the first (matches
+  the canonical Google Drive trash semantics). Unmount cancels
+  the pending commit so the destructive side effect never leaks
+  after the UI is gone. Exposes `remainingMs` + `progress` so
+  consumers can render a countdown progress bar without owning
+  their own timer. `DEFAULT_UNDO_DURATION_MS = 5000`,
+  `DEFAULT_UNDO_TICK_MS = 50`, both exported.
+- `web/src/components/ui/undo-toast.tsx` -- presentational
+  `UndoToast` component pairing with the hook. Floating card at
+  bottom-right (overridable via `className`) with the message +
+  Undo button + dismiss-x + a thin progress bar pinned to the
+  card bottom that depletes as the countdown elapses.
+  `role="status"` + `aria-live="polite"` for screen-reader
+  parity. `data-testid` hooks: `undo-toast-action`,
+  `undo-toast-dismiss`, `undo-toast-progress`. Progress bar uses
+  `role="progressbar"` with `aria-valuenow` tracking the
+  remaining percent.
+- Tests: 12 vitest cases for the hook (state machine + commit /
+  undo / dismiss / timeout / replace / unmount / progress / tick /
+  duration override), 10 cases for the component (render / a11y /
+  callbacks / progress wiring / props). All 22 pass.
+
+### Changed
+
+- `web/src/pages/Notifications.tsx` -- Clear-all undo flow now
+  flows through `useUndoToast` instead of the local setTimeout +
+  state pair. `UNDO_BANNER_MS` is preserved as an export but now
+  just feeds the hook's `durationMs`. The inline banner wraps the
+  shared `<UndoToast>`; the page-level `data-testid=
+  "notifications-undo-banner"` is still exposed, the inner Undo
+  + dismiss buttons now use the canonical `undo-toast-action` /
+  `undo-toast-dismiss` ids. 17/17 Notifications tests stay green
+  after migrating the assertions to the new ids.
+- `web/src/components/HistoryView.tsx` -- the bulk-delete
+  placeholder (no backend wired) now surfaces a 5s undo window.
+  `onUndo` restores the previously-selected names; `onCommit`
+  no-ops since the placeholder has no destructive side effect to
+  defer. `data-testid="history-bulk-undo"` at the bottom of the
+  page tree. 43/43 HistoryView tests stay green.
+- `web/src/pages/Snapshots.tsx` -- single-snapshot delete is now
+  optimistically removed from the list, and the actual
+  `apiDelete` fires only after the 5s undo window elapses (or
+  when the operator dismisses the toast). Click Undo to restore
+  the snapshot at its prior index and skip the server call
+  entirely. On `onCommit` error the row is best-effort restored
+  from the cached prev list so the UI doesn't lie about the
+  state. `data-testid="snapshots-delete-undo"`, `undoLabel="Undo
+  delete"`. 3 new vitest cases + 5 existing (8/8 total).
+
+### Notes
+
+- The hook is layout-agnostic. `<UndoToast>` is the canonical
+  presentational shell, but a consumer with bespoke positioning
+  needs can drop the hook's `active` into a custom render and
+  call `undo()` / `dismiss()` directly.
+- The Snapshots adoption is the "real" deferred-commit pattern:
+  the server call is held behind the timer, so Undo never has
+  to walk back a write. The Notifications + HistoryView
+  adoptions are still operator-local (no server call to defer)
+  because their underlying actions are placeholders for now.
+- Reference design tokens: `/root/c4/arps-design-system-v1/`.
+
 ## [1.11.261] - 2026-05-15 -- UI: Dashboard sticky filter bar (TODO 11.243)
 
 Component-scope-only addition. No daemon-side change and no `c4`
