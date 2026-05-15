@@ -20,6 +20,7 @@ import {
   StatusDot,
   Tooltip,
   VisuallyHidden,
+  Widget,
 } from '../components/ui';
 import type { DataListItem } from '../components/ui';
 import { StatCardShape, TableRowShape } from '../components/ui/skeleton';
@@ -294,7 +295,20 @@ export default function Health() {
             </button>
           </div>
 
-          <Panel className="p-3">
+          {/* (v1.11.256, TODO 11.238) Hero metrics DataList wrapped
+              in the Widget shell so the header stamp + refresh
+              affordance reads consistently with the new Uptime +
+              Auto dashboards. */}
+          <Widget
+            data-testid="health-hero-datalist"
+            title="Hero metrics"
+            updatedAt={data.startedAt ?? null}
+            updatedLabel="snapshot from"
+            onRefresh={() => {
+              void refresh();
+            }}
+            loading={loading}
+          >
             <DataList
               items={[
                 { id: 'pid', label: t('healthPage.stat.pid'), value: data.pid != null ? String(data.pid) : '-' },
@@ -308,7 +322,7 @@ export default function Health() {
                 { id: 'eventLoopLag', label: t('healthPage.stat.eventLoopLag'), value: data.eventLoopLagMs != null ? `${data.eventLoopLagMs} ms` : '-' },
               ] satisfies DataListItem[]}
             />
-          </Panel>
+          </Widget>
 
           {/* (11.175) Settings panel - NumberInput primitive adoption. */}
           <Panel className="flex flex-wrap items-center gap-3 p-3 text-xs">

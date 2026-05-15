@@ -42,6 +42,7 @@ import {
   StatCard,
   Timeline,
   Tooltip,
+  Widget,
 } from '../components/ui';
 import type { BadgeVariant, TimelineItem, TimelineTone } from '../components/ui';
 import { AvatarShape, Skeleton, TableRowShape, TextLine } from '../components/ui/skeleton';
@@ -372,49 +373,62 @@ function HeroStats({ queue, status, now, noAnimation }: HeroStatsProps) {
   const queueLoading = queue.kind === 'loading';
   const statusLoading = status.kind === 'loading';
 
+  // (v1.11.256, TODO 11.238) Adopt the Widget shell so the
+  // Auto hero stats sit under a uniform "Recent dispatches"
+  // header with the canonical last-updated stamp. The actual
+  // metric tiles remain StatCard so the existing screenshot +
+  // snapshot baselines stay byte-identical inside the body.
   return (
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-      <StatCard
-        label="Queue todo"
-        icon={<Inbox className="h-4 w-4" />}
-        value={todoCount}
-        hint="Tasks awaiting dispatch"
-        loading={queueLoading}
-        tone="info"
-        noAnimation={noAnimation}
-      />
-      <StatCard
-        label="In flight"
-        icon={<Loader2 className="h-4 w-4" />}
-        value={doingCount}
-        hint="Tasks currently dispatched"
-        loading={queueLoading}
-        tone="warning"
-        noAnimation={noAnimation}
-      />
-      <StatCard
-        label="Done"
-        icon={<CheckCircle2 className="h-4 w-4" />}
-        value={doneCount}
-        hint="Tasks marked done in queue"
-        loading={queueLoading}
-        tone="success"
-        noAnimation={noAnimation}
-      />
-      <StatCard
-        label="Last dispatch"
-        icon={<Clock className="h-4 w-4" />}
-        value={lastDispatchLabel}
-        hint={
-          status.kind === 'data' && status.data.lastDispatchId
-            ? `id ${status.data.lastDispatchId}`
-            : 'No recent dispatch'
-        }
-        loading={statusLoading}
-        tone="primary"
-        noAnimation={noAnimation}
-      />
-    </div>
+    <Widget
+      data-testid="auto-recent-dispatches"
+      title="Recent dispatches"
+      icon={<Clock className="h-4 w-4" aria-hidden />}
+      updatedAt={lastDispatchAt}
+      updatedLabel="last dispatch"
+    >
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Queue todo"
+          icon={<Inbox className="h-4 w-4" />}
+          value={todoCount}
+          hint="Tasks awaiting dispatch"
+          loading={queueLoading}
+          tone="info"
+          noAnimation={noAnimation}
+        />
+        <StatCard
+          label="In flight"
+          icon={<Loader2 className="h-4 w-4" />}
+          value={doingCount}
+          hint="Tasks currently dispatched"
+          loading={queueLoading}
+          tone="warning"
+          noAnimation={noAnimation}
+        />
+        <StatCard
+          label="Done"
+          icon={<CheckCircle2 className="h-4 w-4" />}
+          value={doneCount}
+          hint="Tasks marked done in queue"
+          loading={queueLoading}
+          tone="success"
+          noAnimation={noAnimation}
+        />
+        <StatCard
+          label="Last dispatch"
+          icon={<Clock className="h-4 w-4" />}
+          value={lastDispatchLabel}
+          hint={
+            status.kind === 'data' && status.data.lastDispatchId
+              ? `id ${status.data.lastDispatchId}`
+              : 'No recent dispatch'
+          }
+          loading={statusLoading}
+          tone="primary"
+          noAnimation={noAnimation}
+        />
+      </div>
+    </Widget>
   );
 }
 
