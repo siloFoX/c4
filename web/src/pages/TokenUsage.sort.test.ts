@@ -69,17 +69,17 @@ describe('perTaskComparator', () => {
   });
 
   it('falls back to name when worker is missing in the worker sort', () => {
-    const rows = [
-      row({ worker: undefined, name: 'zeta' }),
-      row({ worker: undefined, name: 'alpha' }),
+    const rows: PerTaskRow[] = [
+      { name: 'zeta' },
+      { name: 'alpha' },
     ];
     rows.sort(perTaskComparator('worker', 'asc'));
     expect(rows.map((r) => r.name)).toEqual(['alpha', 'zeta']);
   });
 
   it('treats missing input/output as 0 (sortable without nulls)', () => {
-    const rows = [
-      row({ worker: 'a', input: undefined }),
+    const rows: PerTaskRow[] = [
+      { worker: 'a' },
       row({ worker: 'b', input: 10 }),
       row({ worker: 'c', input: 5 }),
     ];
@@ -88,13 +88,13 @@ describe('perTaskComparator', () => {
   });
 
   it('coerces total via the sum when total is missing', () => {
-    // total prop undefined -> coerceTotal sums input+output. The
+    // total prop omitted -> coerceTotal sums input+output. The
     // comparator must respect that fallback so a row that only
     // carries input/output still sorts in the right slot.
-    const rows = [
-      row({ worker: 'a', total: undefined, input: 100, output: 200 }),
-      row({ worker: 'b', total: undefined, input: 1, output: 2 }),
-      row({ worker: 'c', total: 50 }),
+    const rows: PerTaskRow[] = [
+      { worker: 'a', input: 100, output: 200 },
+      { worker: 'b', input: 1, output: 2 },
+      { worker: 'c', total: 50 },
     ];
     rows.sort(perTaskComparator('total', 'desc'));
     expect(rows.map((r) => r.worker)).toEqual(['a', 'c', 'b']);

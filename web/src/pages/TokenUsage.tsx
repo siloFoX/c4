@@ -341,8 +341,8 @@ function PerTaskTable({ rows, page, onPageChange }: PerTaskTableProps) {
         <Table<PerTaskRow>
           columns={columns}
           rows={slice}
-          sortKey={sortKey}
-          sortDir={sortDir}
+          {...(sortKey ? { sortKey } : {})}
+          {...(sortDir ? { sortDir } : {})}
           onSortChange={(k, d) => onSortChange(k as PerTaskSortKey, d)}
           className="font-mono"
           ariaLabel={t('tokenUsagePage.perTaskHeading')}
