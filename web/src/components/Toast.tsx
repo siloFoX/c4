@@ -1,14 +1,14 @@
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AnnounceContext } from '../hooks/use-announce';
 import type { PointerEvent as ReactPointerEvent, TouchEvent as ReactTouchEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
-import { Card, CardContent } from './ui';
+import { Card, CardContent, Chip } from './ui';
 import { cn } from '../lib/cn';
 import { motionClass } from '../lib/motion';
 import { useReducedMotion } from '../hooks/use-reduced-motion';
 
-export type ToastType = 'success' | 'error' | 'info';
+export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 export interface ToastProps {
   message: string;
@@ -21,7 +21,49 @@ const TONE: Record<ToastType, string> = {
   success: 'border-success/40 bg-success/15 text-success',
   error: 'border-destructive/40 bg-destructive/10 text-destructive-foreground',
   info: 'border-info/40 bg-info/15 text-info',
+  warning: 'border-warning/40 bg-warning/15 text-warning',
 };
+
+// Priority ordering for the visible queue. Higher = surfaces first.
+// error > warning > success > info. Same-priority ties fall back to
+// insertion order (ascending id), so the queue is stable FIFO within
+// a tier.
+export const TOAST_PRIORITY: Record<ToastType, number> = {
+  error: 3,
+  warning: 2,
+  success: 1,
+  info: 0,
+};
+
+// Maximum number of toasts visible at the same time. Anything past
+// this cap is held in `pending` until a visible slot dismisses.
+export const TOAST_VISIBLE_LIMIT = 3;
+
+export interface ToastEntry {
+  id: number;
+  message: string;
+  type: ToastType;
+}
+
+// Split a flat queue into the slice that should be visible right now
+// vs the slice waiting to be promoted. Sorting is stable: priority
+// descending, then id ascending (= insertion order). Exported so the
+// useToast hook can derive the same view without re-implementing it.
+export function partitionToasts(
+  toasts: readonly ToastEntry[],
+  limit: number = TOAST_VISIBLE_LIMIT,
+): { visible: ToastEntry[]; pending: ToastEntry[] } {
+  const sorted = [...toasts].sort((a, b) => {
+    const pa = TOAST_PRIORITY[a.type] ?? 0;
+    const pb = TOAST_PRIORITY[b.type] ?? 0;
+    if (pb !== pa) return pb - pa;
+    return a.id - b.id;
+  });
+  return {
+    visible: sorted.slice(0, limit),
+    pending: sorted.slice(limit),
+  };
+}
 
 // Swipe-to-dismiss threshold in px. Drag beyond this on either axis
 // (horizontal) commits the dismissal; anything less snaps back to 0.
@@ -172,7 +214,12 @@ export default function Toast({
 
   const onTouchEnd = useCallback(() => endDrag(), [endDrag]);
 
-  const Icon = type === 'success' ? CheckCircle2 : type === 'error' ? AlertTriangle : Info;
+  const Icon =
+    type === 'success'
+      ? CheckCircle2
+      : type === 'error' || type === 'warning'
+        ? AlertTriangle
+        : Info;
 
   // Compose the visible transform. Enter: slide in from right.
   // Drag: track pointer horizontally. Leaving: parked at large
@@ -221,4 +268,63 @@ export default function Toast({
   );
 
   return createPortal(node, getToastRoot());
+}
+
+export interface ToastStackProps {
+  toasts: readonly ToastEntry[];
+  onDismiss: (id: number) => void;
+  duration?: number;
+  visibleLimit?: number;
+}
+
+// Priority-aware view of the toast queue. The component is the
+// component-scope home of the "visible cap + pending overflow"
+// contract: it sorts the incoming queue by TOAST_PRIORITY, mounts at
+// most `visibleLimit` Toast instances (default TOAST_VISIBLE_LIMIT),
+// and renders a "+N more" Chip into the same portal when there are
+// overflow entries. Each individual Toast still owns its own
+// auto-dismiss / swipe-to-dismiss timer; dismissals bubble back here
+// via onDismiss so the parent can drop the id from its source array
+// and let the next-highest-priority pending entry promote on the
+// following render.
+export function ToastStack({
+  toasts,
+  onDismiss,
+  duration,
+  visibleLimit = TOAST_VISIBLE_LIMIT,
+}: ToastStackProps) {
+  const { visible, pending } = useMemo(
+    () => partitionToasts(toasts, visibleLimit),
+    [toasts, visibleLimit],
+  );
+
+  const overflow = pending.length;
+  const chip =
+    overflow > 0 ? (
+      <Chip
+        data-testid="toast-overflow-chip"
+        tone="neutral"
+        variant="subtle"
+        size="sm"
+        className="self-end shadow-sm pointer-events-auto"
+        aria-label={`${overflow} more toast${overflow === 1 ? '' : 's'} pending`}
+      >
+        +{overflow} more
+      </Chip>
+    ) : null;
+
+  return (
+    <>
+      {visible.map((t) => (
+        <Toast
+          key={t.id}
+          message={t.message}
+          type={t.type}
+          duration={duration}
+          onDismiss={() => onDismiss(t.id)}
+        />
+      ))}
+      {chip ? createPortal(chip, getToastRoot()) : null}
+    </>
+  );
 }

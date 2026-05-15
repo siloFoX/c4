@@ -4,6 +4,44 @@
 
 (no entries -- next release window)
 
+## [1.11.229] - 2026-05-15 -- UI: toast queue prioritization (11.211)
+
+Component-scope-only extension to the toast layer. The existing
+single-toast `<Toast>`, the `useToast` hook, and the portal target
+all stay where they are. New surface:
+
+- `TOAST_PRIORITY` map (`error=3, warning=2, success=1, info=0`)
+  drives a stable sort over the toast queue. Same-priority ties
+  fall back to insertion order (ascending id), keeping FIFO
+  semantics within a single tier.
+- `TOAST_VISIBLE_LIMIT = 3` -- the visible cap. Anything past it is
+  held in `pending` until a visible slot dismisses.
+- `partitionToasts()` helper -- pure split of the raw queue into
+  `{ visible, pending }` using the same sort key. Exported for the
+  test surface and any future direct consumers.
+- `ToastStack` component -- mounts the top-N visible toasts and a
+  small `+N more` Chip into `#toast-root` when there is overflow.
+  The chip uses the existing `Chip` primitive (neutral / subtle /
+  sm). Hidden entirely when nothing is pending.
+- A fourth `warning` tone on the existing `<Toast>` (icon =
+  `AlertTriangle`, classes = `border-warning/40 bg-warning/15
+  text-warning`) so the priority rubric has a paired visual.
+
+Behaviour: callers keep using `useToast().showToast(message, type)`
+and pass `useToast().toasts` into `<ToastStack>`. Dismissals bubble
+via `onDismiss(id)` so the parent drops the entry from `useToast`;
+on the following render the stack promotes the next-highest pending
+toast into the freed slot. Each `<Toast>` still owns its own
+auto-dismiss timer and swipe-to-dismiss gesture.
+
+Test coverage extends `web/src/components/Toast.test.tsx` with 11
+new cases across three describes (priority map, `partitionToasts`,
+`<ToastStack>`) plus a warning-tone smoke test on the existing
+`<Toast>` describe.
+
+See `docs/patches/11.211-ui-toast-priority.md` for the full design
+note.
+
 ## [1.11.228] - 2026-05-15 -- UI: relative-time component (11.210)
 
 Standalone `RelativeTime` component for the web UI. Component-scope
