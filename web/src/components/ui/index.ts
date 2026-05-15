@@ -60,3 +60,4 @@ export * from './form-field';
 export * from './visually-hidden';
 export * from './tag-palette';
 export * from './loading-motion';
+export * from './widget';
