@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { apiPost } from './api';
+import { useDebounce } from '../hooks/use-debounce';
 import type { MeetingTrackOrAuto } from '../components/MeetingsSearchFacets';
 
 // (v1.10.648) Extracted from MeetingsComposer. Debounced
@@ -33,16 +34,21 @@ export function useMeetingPreviewPlan(args: {
   const { open, newTask, newTrack } = args;
   const [previewPlan, setPreviewPlan] = useState<PreviewPlan | null>(null);
   const [previewBusy, setPreviewBusy] = useState(false);
+  // (v1.11.230) Inline setTimeout replaced by useDebounce.
+  // 400ms trailing-edge semantics preserved.
+  const debouncedTask = useDebounce(newTask, 400);
+  const debouncedTrack = useDebounce(newTrack, 400);
   useEffect(() => {
-    if (!open || !newTask.trim()) {
+    const trimmed = debouncedTask.trim();
+    if (!open || !trimmed) {
       setPreviewPlan(null);
-      return undefined;
+      return;
     }
-    const handle = window.setTimeout(async () => {
-      setPreviewBusy(true);
+    setPreviewBusy(true);
+    (async () => {
       try {
-        const body: { task: string; track?: string } = { task: newTask.trim() };
-        if (newTrack !== 'auto') body.track = newTrack;
+        const body: { task: string; track?: string } = { task: trimmed };
+        if (debouncedTrack !== 'auto') body.track = debouncedTrack;
         const res = await apiPost<PreviewPlan>('/api/meetings/plan', body);
         setPreviewPlan(res);
       } catch {
@@ -50,8 +56,7 @@ export function useMeetingPreviewPlan(args: {
       } finally {
         setPreviewBusy(false);
       }
-    }, 400);
-    return () => window.clearTimeout(handle);
-  }, [open, newTask, newTrack]);
+    })();
+  }, [open, debouncedTask, debouncedTrack]);
   return { previewPlan, previewBusy };
 }

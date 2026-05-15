@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.230] - 2026-05-15 -- UI: debounce + throttle hooks (11.212)
+
+Component-scope-only additions. Two small primitives in
+`web/src/hooks/` plus a swap of three inline `setTimeout`
+debounces to use the new hook surface. No daemon-side
+changes; no public API on `c4` CLI.
+
+- `useDebounce(value, ms)` -- trailing-edge debounced value.
+  Holds the previous value until `ms` of no changes, then
+  flushes the latest. Pending timer is cleared on unmount.
+- `useDebouncedCallback(fn, ms)` -- returns a stable callback
+  that fires `fn` after `ms` of no invocations with the last
+  set of args. Pending fire is cancelled on unmount. The
+  callback identity is stable while `ms` is unchanged, so
+  it is effect-dependency-safe.
+- `useThrottle(value, ms)` -- leading-edge throttled value.
+  First update after mount, and the first update after a
+  full window has elapsed, propagate immediately; intervening
+  updates are dropped.
+- `useThrottledCallback(fn, ms)` -- leading-edge throttled
+  callback. First call fires immediately; subsequent calls
+  within `ms` are dropped; calls after unmount are ignored.
+
+Adoption sites (3, behaviour unchanged):
+
+- `web/src/components/ui/search-bar.tsx` -- the
+  `onDebouncedChange` emit now goes through
+  `useDebouncedCallback` instead of an inline
+  `setTimeout` / `clearTimeout` pair.
+- `web/src/lib/use-meeting-classify-preview.ts` -- the
+  250ms classify GET preview now keys off
+  `useDebounce(newTask, 250)` instead of an in-effect
+  timeout.
+- `web/src/lib/use-meeting-preview-plan.ts` -- the 400ms
+  plan POST preview now keys off
+  `useDebounce(newTask, 400)` + `useDebounce(newTrack, 400)`.
+
+Both hook files are SSR-safe (timers live in `useEffect`
+or behind a callback closure; no `window` access during
+render).
+
 ## [1.11.229] - 2026-05-15 -- UI: toast queue prioritization (11.211)
 
 Component-scope-only extension to the toast layer. The existing
