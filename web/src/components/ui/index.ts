@@ -66,3 +66,4 @@ export * from './undo-toast';
 export * from './detail-panel';
 export * from './page-header';
 export * from './section-divider';
+export * from './avatar-group';

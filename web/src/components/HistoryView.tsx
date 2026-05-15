@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import {
+  AvatarGroup,
   Badge,
   BulkActionToolbar,
   Button,
@@ -404,6 +405,25 @@ export default function HistoryView() {
                 data-testid="history-empty-state"
               />
             )}
+            {summary.length > 0 && !error ? (
+              /* (v1.11.272, TODO 11.254) AvatarGroup roster
+                 preview at the top of the sidebar gives operators
+                 a single-glance "who's in this list" view without
+                 scrolling the virtualized worker rows below. */
+              <div
+                className="flex items-center gap-2 px-1 text-[11px] text-muted-foreground"
+                data-testid="history-sidebar-roster"
+              >
+                <AvatarGroup
+                  items={summary.map((w) => ({ name: w.name }))}
+                  max={6}
+                  size="sm"
+                />
+                <span>
+                  {summary.length} {summary.length === 1 ? 'worker' : 'workers'}
+                </span>
+              </div>
+            ) : null}
             {(() => {
               // (v1.11.227 / patch 11.209) Sidebar summary list now
               // virtualizes through the dedicated `useListVirtualizer`

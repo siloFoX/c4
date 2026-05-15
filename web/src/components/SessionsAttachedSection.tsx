@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight, Link2 } from 'lucide-react';
-import { Avatar, Badge } from './ui';
+import { Avatar, AvatarGroup, Badge } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 import {
@@ -52,9 +52,24 @@ export default function SessionsAttachedSection({
         )}
         <Link2 className="h-3.5 w-3.5" aria-hidden />
         <span className="normal-case text-foreground">{t('sessions.section.attached')}</span>
-        <span className="ml-auto rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
-          {filtered.length}
-        </span>
+        {/* (v1.11.272, TODO 11.254) AvatarGroup roster preview.
+            When collapsed the operator still sees who is attached;
+            when expanded the per-row Avatars stay (the group is
+            just a header summary). max=4 caps the visible stack
+            so wide rosters collapse to "+N". */}
+        {filtered.length > 0 ? (
+          <AvatarGroup
+            items={filtered.map((a) => ({ name: a.name }))}
+            max={4}
+            size="sm"
+            className="ml-auto"
+            data-testid="sessions-attached-roster"
+          />
+        ) : (
+          <span className="ml-auto rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
+            {filtered.length}
+          </span>
+        )}
       </button>
       {!collapsed ? (
         error ? (
