@@ -4,6 +4,78 @@
 
 (no entries -- next release window)
 
+## [1.11.261] - 2026-05-15 -- UI: Dashboard sticky filter bar (TODO 11.243)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/sticky-filter-bar.tsx` (95 lines) --
+  StickyFilterBar primitive. Wraps a row of filter controls
+  (search input, status select, chips, date range picker, sort
+  menu, etc.) and pins it to the top of the nearest scroll
+  container once the operator scrolls past it. Implementation:
+  - Drops a zero-height sentinel `<div aria-hidden="true">`
+    just above the sticky wrapper. An `IntersectionObserver`
+    tracks the sentinel: while in view, `data-pinned="false"`
+    and `shadow-none`; once out of view, `data-pinned="true"`
+    and `shadow-md`, with a `transition-shadow duration-200`.
+  - Sticky positioning is pure CSS (`position: sticky`,
+    `top: <topOffset>`). The hook only drives the visual
+    elevation, not the layout.
+  - SSR-safe: the effect bails when `IntersectionObserver` is
+    missing so the bar still renders, it just never auto-pins.
+  - Props:
+    - `topOffset?: number | string` -- defaults to `0`. Pass a
+      px number or any CSS length string (e.g. `"var(--app-
+      header-h)"`) when the parent owns a fixed header above.
+    - `zIndex?: number` -- defaults to `10`.
+    - All other `HTMLDivElement` props pass through so callers
+      can wire `data-testid`, `aria-label`, etc.
+  - 13 vitest cases covering: children render, sentinel
+    structure + aria-hidden, data-section marker, default
+    data-pinned, flip to "true" on not-intersecting, flip back
+    to "false" on intersecting, shadow class swap, number
+    topOffset, string topOffset, custom zIndex, rootMargin
+    derivation, HTML attribute forwarding, SSR-safe path
+    when IntersectionObserver is absent.
+  - Exported from `web/src/components/ui` barrel.
+
+### Changed
+
+- `web/src/components/SessionsHeader.tsx` -- the entire
+  `<CardHeader>` (title + search + counts + actions row) is now
+  wrapped in a `<StickyFilterBar data-testid="sessions-header-
+  sticky">`. The search input + per-session counts + New Chat /
+  Attach New / Refresh buttons stay visible while the operator
+  scrolls through a long sessions list inside the same Card.
+  SessionsHeader tests 40/40 stay green.
+- `web/src/components/HistoryView.tsx` -- the sidebar filter row
+  (search input + status select + sort selector + date range
+  picker) is wrapped in a `<StickyFilterBar data-testid=
+  "history-sidebar-sticky">`. The `-mx-4 / px-4 / py-2` inset
+  extends the sticky surface to the `<aside>` edges so the
+  scroll-shadow spans the full sidebar width. CardHeader
+  (column picker + export + scribe button) stays in place
+  above the sticky bar -- it acts as the section title. The
+  virtualized worker list scrolls underneath the pinned bar.
+  HistoryView tests 43/43 stay green.
+
+### Notes
+
+- StickyFilterBar is deliberately layout-agnostic: it only
+  needs a scrollable parent. Any consumer can drop it inside
+  an `overflow-y-auto` ancestor and the bar will pin to the
+  top of that ancestor's scroll viewport.
+- The shadow uses Tailwind's `shadow-md` so it follows the
+  token system. No hand-rolled box-shadow values.
+- `position: sticky` does not work when an intermediate
+  ancestor uses `overflow: hidden`. Both adoption sites
+  (SessionsListCard and HistoryView sidebar `<aside>`) use
+  `overflow-y-auto`, so the sticky propagates correctly.
+- Reference design tokens: `/root/c4/arps-design-system-v1/`.
+
 ## [1.11.260] - 2026-05-15 -- UI: Notifications clear-all confirm + undo (TODO 11.242)
 
 Component-scope-only addition. No daemon-side change and no `c4`
