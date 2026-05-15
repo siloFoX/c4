@@ -35,6 +35,7 @@ import RouteProgressBar from './components/RouteProgressBar';
 import { logout } from './lib/api';
 import { useAuthState } from './lib/use-auth-state';
 import { useSidebarShortcut } from './lib/use-sidebar-shortcut';
+import { useShortcutSequence } from './hooks/use-shortcut-sequence';
 import { useTheme } from './lib/use-theme';
 import { useUiPreferences } from './lib/use-ui-preferences';
 import {
@@ -78,6 +79,33 @@ export default function App() {
   useSidebarShortcut({
     onToggleCollapsed: toggleSidebarCollapsed,
     onToggleOpen: toggleSidebarOpen,
+  });
+
+  // (v1.11.250, TODO 11.232) Multi-key chord shortcuts.
+  //   gg  -> scroll the current view to the top
+  //   gh  -> "home" = workers tab + clear the selected worker
+  //   gw  -> jump straight to the workers tab
+  // The hook drops the chord while focus sits on a text input so
+  // typing the letter g in the chat composer does not navigate.
+  useShortcutSequence({
+    gg: () => {
+      if (typeof window === 'undefined') return;
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      // Scroll any active scroll surface (FeatureView /
+      // ChatMessageLog / WikiView) back to the top -- those mount
+      // their own overflow container, so a window scroll is not
+      // enough. Cheapest portable path: dispatch a custom event
+      // that surfaces can listen to. Future surfaces can opt in
+      // by adding a `c4:scroll-to-top` listener.
+      window.dispatchEvent(new CustomEvent('c4:scroll-to-top'));
+    },
+    gh: () => {
+      setTopView('workers');
+      setSelectedWorker(null);
+    },
+    gw: () => {
+      setTopView('workers');
+    },
   });
 
   if (authState === 'loading') {
