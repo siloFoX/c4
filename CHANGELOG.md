@@ -4,6 +4,58 @@
 
 (no entries -- next release window)
 
+## [1.11.232] - 2026-05-15 -- UI: FormField primitive (11.214)
+
+Component-scope-only addition. Introduces `FormField`, a shared
+label + control + helper/error wrapper for form rows, and adopts
+it at three existing call sites. No daemon-side change and no
+`c4` CLI surface change.
+
+- New `web/src/components/ui/form-field.tsx` exports `FormField`.
+  Props: `id?`, `label`, `required?`, `helperText?`, `error?`,
+  `children` (single `ReactElement` -- the form control),
+  `className?`, `layout?: 'vertical' | 'horizontal'` (default
+  vertical). Auto-generates a control id via `useId()` when none
+  is provided. Wires `aria-describedby` to the helper / error
+  copy (error wins when both are present) and sets
+  `aria-invalid` on the inner control whenever `error` is set.
+  When the child is a wrapper element (e.g. a `<div>` that hosts
+  an icon overlay + the real `<input>` underneath), the id and
+  `aria-invalid` props are NOT cloned onto the wrapper -- only
+  `aria-describedby` is propagated, and the caller is responsible
+  for putting the matching id on the real control inside.
+  `layout="horizontal"` switches the wrapper to a row layout with
+  a ~30% wide label column.
+- Adopted at three sites:
+  * `web/src/pages/Plan.tsx` -- the plan-worker `<select>` row
+    (was a hand-rolled `<Label htmlFor>` + `<select>` pair).
+  * `web/src/components/Login.tsx` -- the c4-user and c4-password
+    rows (both keep their absolute-positioned icon overlay
+    inside the `<div className="relative">` wrapper, which is
+    why FormField's wrapper-aware cloneElement path matters).
+  Other label sites were intentionally NOT migrated:
+  `SettingsView.tsx`'s ChoiceGroup is a radiogroup `<div>` (not a
+  form control), `Swarm.tsx` wraps the select in a `<Tooltip>` and
+  the existing Input / Textarea / Select primitives already embed
+  their own label slot.
+- Index `web/src/components/ui/index.ts` re-exports the new
+  primitive so callers can do
+  `import { FormField } from '../components/ui'`.
+
+Tests: new `form-field.test.tsx` (12 cases -- label / id linkage,
+auto-id uniqueness, externally-provided id, required indicator,
+helperText muted tone + aria-describedby, error destructive tone +
+aria-invalid, error overrides helperText display, horizontal layout
+puts the label on the left at ~30% width, default vertical layout,
+child id takes precedence over a FormField-provided id, and
+className merges onto the wrapper). All 12 pass; the existing
+`Login.test.tsx` and `Plan.test.tsx` suites stay green
+(86 / 86 across the three files).
+
+See `docs/patches/11.214-ui-form-field.md` for the design notes
+on why wrapper children only receive `aria-describedby` and not
+`id` / `aria-invalid`.
+
 ## [1.11.231] - 2026-05-15 -- UI: dropdown-menu focus-cycle adoption (11.213)
 
 Component-scope-only refactor. The hand-rolled

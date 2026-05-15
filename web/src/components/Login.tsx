@@ -7,8 +7,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  FormField,
   Input,
-  Label,
 } from './ui';
 import Spinner from './Spinner';
 import { cn } from '../lib/cn';
@@ -44,8 +44,7 @@ export default function Login({ onSuccess }: LoginProps) {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="c4-user">{t('login.user')}</Label>
+            <FormField id="c4-user" label={t('login.user')}>
               <div className="relative">
                 <User
                   aria-hidden="true"
@@ -61,10 +60,9 @@ export default function Login({ onSuccess }: LoginProps) {
                   required
                 />
               </div>
-            </div>
+            </FormField>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="c4-password">{t('login.password')}</Label>
+            <FormField id="c4-password" label={t('login.password')}>
               <div className="relative">
                 <KeyRound
                   aria-hidden="true"
@@ -80,7 +78,7 @@ export default function Login({ onSuccess }: LoginProps) {
                   required
                 />
               </div>
-            </div>
+            </FormField>
 
             {error && (
               <div
