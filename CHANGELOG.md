@@ -4,6 +4,66 @@
 
 (no entries -- next release window)
 
+## [1.11.259] - 2026-05-15 -- UI: KeyboardShortcuts search polish (TODO 11.241)
+
+Component-scope-only polish. No daemon-side change and no `c4`
+CLI surface change.
+
+### Context
+
+The KeyboardShortcutsModal already had a live SearchBar filter
+(v1.11.191 categorized sections + filter input), already
+matched against the binding glyph and the translated description,
+and already rendered the empty-state copy when nothing matched.
+This release extends that filter -- it does not introduce one
+from scratch.
+
+### Changed
+
+- `web/src/components/KeyboardShortcutsModal.tsx` -- the live
+  filter now also matches against the section/category surface:
+  - the translated section name (`shortcuts.section.navigation`
+    -> "Navigation"), so typing `Navigation` filters to every
+    navigation shortcut;
+  - the raw category id (`"navigation" | "actions" | "view"`),
+    so an English operator on a Korean session can still type
+    `navigation` and get a hit;
+  - case-insensitive substring match on every surface.
+- New `Chip` rendered next to the SearchBar showing `N / total`
+  matches whenever the filter is non-empty. Hidden at rest so
+  the no-filter view is byte-identical to v1.11.258. Uses
+  `aria-live="polite"` so screen-reader users hear the count
+  update as they type. Tagged `data-testid="shortcuts-result-count"`
+  for e2e + unit selectors.
+- New exported pure matcher
+  `matchesShortcut(row: Row, needle: string): boolean`. Returns
+  `true` for empty / whitespace-only needles (matches everything).
+  Centralises the filter logic so the unit tests can verify each
+  surface (binding / description / section / category id) in
+  isolation without rendering the full modal.
+
+### Tests
+
+- 13 new vitest cases in `KeyboardShortcutsModal.test.tsx`:
+  filter by translated category name, by partial category name,
+  by raw category id, no chip when filter empty, chip shows
+  `N / total`, chip updates as filter narrows + widens, chip
+  shows `0 / N` when nothing matches, `matchesShortcut` empty
+  needle behaviour, binding case-insensitivity, description
+  substring, section-name match, raw-category-id match across
+  locale flip, unrelated needle returns false.
+- All pre-existing 34 cases still pass (47/47 total).
+
+### Notes
+
+- The Chip primitive (already in the UI barrel) provides the
+  result-count surface so this adds zero CSS / new components.
+- The filter input + empty-state already met the dispatch's
+  literal "Add live search filter / empty-state when no match"
+  asks. The category-name match is the meaningful delta that
+  bridges this release to the prior implementation.
+- Reference design tokens: `/root/c4/arps-design-system-v1/`.
+
 ## [1.11.258] - 2026-05-15 -- UI: Data-table sort persistence (TODO 11.240)
 
 Component-scope-only addition. No daemon-side change and no `c4`
